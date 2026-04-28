@@ -71,11 +71,7 @@ const ERROR_DEDUP_WINDOW_MS = 5000
  * Bead: km-silvercode.error-dedup.
  */
 function mergeError(prev: ErrorEntry | null, message: string, ts: number): ErrorEntry {
-  if (
-    prev !== null &&
-    prev.message === message &&
-    ts - prev.ts <= ERROR_DEDUP_WINDOW_MS
-  ) {
+  if (prev !== null && prev.message === message && ts - prev.ts <= ERROR_DEDUP_WINDOW_MS) {
     return { message, count: prev.count + 1, ts }
   }
   return { message, count: 1, ts }

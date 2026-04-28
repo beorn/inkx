@@ -72,9 +72,7 @@ describe("session-reducer — error dedup (km-silvercode.error-dedup)", () => {
   test("first error sets count=1", () => {
     let s = initialInternalState()
     ;[s] = reduce(s, errorEvent("boom", 100))
-    expect(publicView(s).lastError).toEqual(
-      expect.objectContaining({ message: "boom", count: 1 }),
-    )
+    expect(publicView(s).lastError).toEqual(expect.objectContaining({ message: "boom", count: 1 }))
   })
 
   test("dedup window refreshes on each merge — slow-but-steady drip stays folded", () => {
