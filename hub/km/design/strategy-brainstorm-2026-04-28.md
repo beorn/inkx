@@ -10,9 +10,9 @@
 
 The portfolio is a layered architecture. Strategies are *paths* through it, not exclusive choices.
 
-- **The architecture is the asset**. Layers (UI → features → substrate → agents → protocols → services) accrete from silvery + flexily + tribe + km + agentroom. They exist regardless of which strategy executes.
+- **The architecture is the asset**. Layers (UI → features → substrate → agents → protocols → services) accrete from [silvery](#g-silvery) + [flexily](#g-flexily) + [tribe](#g-tribe) + km + [agentroom](#g-agentroom). They exist regardless of which strategy executes.
 - **Strategies select**: which customer segments to serve, which components to expose or open-source, which monetization model to apply.
-- **Paths coexist**. Cursor can be the silvercode customer; Anthropic can be the silvery acquirer; PKM users can be the km customer; AI-tool builders can be the services customer. Same substrate, different traversals.
+- **Paths coexist**. [Cursor](#g-cursor) can be the [silvercode](#g-silvercode) customer; [Anthropic](#g-anthropic) can be the silvery acquirer; PKM users can be the km customer; AI-tool builders can be the services customer. Same substrate, different traversals.
 - **Pivots are cheap** because the architecture compounds across paths. Investing in silvery, tribe, agentroom, services is reusable; investing in a single product instance is not.
 - **Acquirers buy paths-with-architecture**. silvery → AI lab. agentroom → infra company. km → PKM acquirer. Different acquirers, different price points, all from the same graph.
 
@@ -27,19 +27,19 @@ The portfolio is a layered architecture. Strategies are *paths* through it, not 
 **Recommended lead path** ([Family C](#family-map) + [Family D](#family-map) + an E demonstrator):
 
 - **[S25](#s25) ★ — Bottom-stack first, apps as demonstrators**. Agent + protocol + services as the lead. silvery + silvercode + km repositioned as open reference implementations. Cross-elasticity becomes positive throughout.
-- **[S23](#s23) ★ — The playground for the UI of agentic work**. Integrated app (chat + docs + code + agents + boards + diagrams). One app, multiple panes. TUI today → web/native via silvery's multi-target.
+- **[S23](#s23) ★ — The playground for the UI of agentic work**. Integrated app (chat + docs + code + agents + boards + diagrams). One app, multiple panes. [TUI](#g-tui) today → web/native via silvery's multi-target.
 - **[S26](#s26) ★ — Docker for agents**. `.brain` as portable agent format. Spec-authorship moat at the protocol layer. Composes with [S25](#s25).
 
 **Why**: simultaneously cross-elasticity-positive, solo-bandwidth-fitting, /pro-rubric-validated (25/25 cluster math), multi-acquirer-optional, capital-efficient (architecture compounds across paths).
 
-**What NOT to do**: lock to [S1](#s1) (high cross-elasticity exposure); pursue [Family H](#family-map) (abandons architectural coherence); ship production hosted services solo; promote PlainBrain as a standalone "third standard" before silvery validates; pre-form a separate entity for agentroom.
+**What NOT to do**: lock to [S1](#s1) (high cross-elasticity exposure); pursue [Family H](#family-map) (abandons architectural coherence); ship production hosted services solo; promote [PlainBrain](#g-plainbrain) as a standalone "third standard" before silvery validates; pre-form a separate entity for agentroom.
 
 **Sequencing**:
 
 | Phase | Team size | Capital posture | Focus |
 |---|---|---|---|
-| Months 0-3 | solo | bootstrap, ~$0 burn | silvery maintenance + ACP-proxy ship-now cluster ([S18](#s18)) + tribe wire v0 spec + `.brain` v0 spec + silvercode-as-open-reference + dogfooding km |
-| Months 3-6 | first hire | personal capital or angel ($0.5-1M); ~$25-40k/mo burn | agentroom *preview* gateway (NOT production-SLA), `.brain` registry preview, [S23](#s23) demo, design-partner outreach |
+| Months 0-3 | solo | bootstrap, ~$0 burn | silvery maintenance + [ACP](#g-acp)-proxy ship-now cluster ([S18](#s18)) + tribe wire v0 spec + `.brain` v0 spec + silvercode-as-open-reference + dogfooding km |
+| Months 3-6 | first hire | personal capital or angel ($0.5-1M); ~$25-40k/mo burn | agentroom *preview* gateway (NOT production-[SLA](#g-sla)), `.brain` registry preview, [S23](#s23) demo, design-partner outreach |
 | Months 6-12 | small team (~5) | seed ($3-5M); ~$120-180k/mo burn | production services, enterprise readiness, AI-lab outreach |
 | Months 12+ | seed/Series A | revenue + Series A optional ($8-15M) | signal-driven path deepening (AI-lab inbound → [S24](#s24); services scaling → [S2](#s2)/[S16](#s16); `.brain` adoption → [S26](#s26) standalone; PKM market shifts → [Family B](#family-map)) |
 
@@ -53,7 +53,7 @@ The portfolio is a layered architecture. Strategies are *paths* through it, not 
 
 ### A. Major shipped assets
 
-**silvery** — React TUI framework. 98.6% Ink-compat, 3K DL/wk, polished, multi-target rendering (TUI today → canvas/DOM/web/native), mouse-first, incremental rendering, 45+ components. silvery.dev live.
+**silvery** — React TUI framework. 98.6% [Ink](#g-ink)-compat, 3K [DL/wk](#g-dl-wk), polished, multi-target rendering (TUI today → canvas/DOM/web/native), mouse-first, incremental rendering, 45+ components. silvery.dev live.
 - Sub-projects: `silvery/ink` (the migration shim, ~3K LOC, sed-substitutable Ink replacement); flexily (Yoga-compatible flex layout, 1.5-5.5× faster, no WASM, 1561 tests).
 - **Potential**: arguably the best React TUI framework in existence; years of compressed work; composable architecture extends to canvas/DOM/native and to other reconcilers (Svelte/Vue/Solid).
 - **Acquisition target by Big AI labs (Anthropic, Google, Microsoft, Cursor) wanting off Ink**. Only architecturally-suited drop-in (see A4). One Big-AI-lab migration → permanent brand halo.
@@ -63,24 +63,24 @@ The portfolio is a layered architecture. Strategies are *paths* through it, not 
 
 **km / Knowledge Machine** — agentic knowledge workspace; board + calendar + journal + agents + recall, bidirectional md↔SQL sync. knowledgemachine.co. Pre-launch.
 - **Potential**: km's core asset is the *substrate* (markdown filesystem + bidirectional sync + KNode model + recall + commands). The substrate can serve multiple framings:
-  - PKM-for-AI workspace (Obsidian-for-AI-agents) — every AI tool now ships markdown vaults; Obsidian is the only serious vault editor and is not AI-native.
+  - PKM-for-AI workspace ([Obsidian](#g-obsidian)-for-AI-agents) — every AI tool now ships markdown vaults; Obsidian is the only serious vault editor and is not AI-native.
   - Decomposed into silvercode features (board, journal, outline, recall) — silvercode-with-built-in-backlog gets stronger.
   - Multi-tenant vault for any silvery app — third parties embed km components.
   - Canonical PlainBrain reference workspace.
   - **General pivot target** — anything needing a markdown substrate + bidirectional UI.
 
-**tribe** — cross-session/cross-machine coordination protocol; MIT in vendor/bearly. Wire + event vocabulary + room/chat patterns + lease semantics + ambient channels.
-- **Potential**: precondition for agentroom and the entire ACP-proxy stack. If shipped as MSC into Matrix before Anthropic/Google/OpenAI publish theirs, becomes the canonical agent-coordination protocol. Spec-authorship is generational-scale moat.
+**tribe** — cross-session/cross-machine coordination protocol; [MIT](#g-mit) in vendor/[bearly](#g-bearly). Wire + event vocabulary + room/chat patterns + lease semantics + ambient channels.
+- **Potential**: precondition for agentroom and the entire ACP-proxy stack. If shipped as [MSC](#g-msc) into Matrix before Anthropic/Google/OpenAI publish theirs, becomes the canonical agent-coordination protocol. Spec-authorship is generational-scale moat.
 
 **PlainBrain** — markdown-filesystem shape km uses; not yet formal spec. Domains plainbrain.org + plainbrains.com owned.
-- **Modest framing**: markdown profile for agentic-work repos; interop with Obsidian/Notion/Cursor Rules/Claude Projects.
+- **Modest framing**: markdown profile for agentic-work repos; interop with Obsidian/[Notion](#g-notion)/Cursor Rules/Claude Projects.
 - **Ambitious framing — `.brain` as portable agent format** (the agent equivalent of `Dockerfile`). A `.brain` contains agent knowledge, rules/skills, persona/config, optional prior conversation history.
   - Operations: `run-brain my.brain` (instantiate); `run-brain a.brain b.brain c.brain` (multi-agent runtime); `merge-brain a.brain b.brain` (combine ensembles); `fork-brain my.brain` (git-style branching); `pack-brain ./vault → my.brain` (bundle).
   - Solves: agent portability (not locked to one vendor), interoperability (any compatible runtime loads any brain), composability (ensembles), versioning (git-track), distribution (share `recall-thought.brain` like an npm package).
   - **Strategic ceiling**: Docker-shape. Generational-scale if standard adoption happens.
   - **Reframes the portfolio**: silvery = UI for brains; tribe = coordination wire; agentroom = cloud runtime; PlainBrain = the format; km = brain editor; silvercode = canonical reference brain.
 
-**agentroom gateway** — planned ACP↔Matrix bridge, paid managed cloud. Not built. Top venture-rubric score (24/25 alone, 25/25 with cluster). Described in ventures doc as *"candidate generational company."* Adjacency check (2026-04-28): Open-ACP (280 stars) ships a self-hosted bridge for Claude Code/Codex → Telegram/Discord/Slack. Validates the demand pattern; partially commoditizes the *adapter* surface. agentroom's value prop sharpens toward managed-cloud differentiators (multi-machine routing, SLA, `org.agentroom.*` MSC authorship, multi-tenant) rather than just having connectors.
+**agentroom gateway** — planned ACP↔Matrix bridge, paid managed cloud. Not built. Top venture-rubric score (24/25 alone, 25/25 with cluster). Described in ventures doc as *"candidate generational company."* Adjacency check (2026-04-28): [Open-ACP](#g-open-acp) (280 stars) ships a self-hosted bridge for [Claude Code](#g-claude-code)/Codex → Telegram/Discord/Slack. Validates the demand pattern; partially commoditizes the *adapter* surface. agentroom's value prop sharpens toward managed-cloud differentiators (multi-machine routing, SLA, `org.agentroom.*` MSC authorship, multi-tenant) rather than just having connectors.
 
 **bearly tooling family** — recall, tribe-cli, llm CLI, worktrees, hooks. The entire Claude-Code-orchestration toolkit. Itself productizable; pieces can spin out as standalone tools.
 
@@ -137,7 +137,7 @@ SUPPORTING          Standards (CC BY 4.0), feeder sites, bearly
 
 ### A4. OpenTUI architectural reality check
 
-The Ink-migration market is **structurally inaccessible to OpenTUI**.
+The Ink-migration market is **structurally inaccessible to [OpenTUI](#g-opentui)**.
 
 | Ink | OpenTUI |
 |---|---|
@@ -151,7 +151,7 @@ Every JSX tag and hook is differently shaped. Ink → OpenTUI rewrites every UI 
 
 ### B. Founder + company strengths
 
-**Technical depth** — incredible depth across the TUI/terminal stack (silvery + flexily + termless + terminfo + vt100/vt220/vterm + loggily + mdspec + the migration shim). From terminal emulator backends up to React reconciliation, with rigorous test infra. Architectural coherence: components recompose cheaply (silvery → canvas is a binding swap, not a rewrite). Cross-cutting patterns (alien-* reactives, scope-based lifecycle, TEA, bidirectional md↔tree sync, ACP/MCP/Matrix interop) travel well.
+**Technical depth** — incredible depth across the TUI/terminal stack (silvery + flexily + termless + terminfo + vt100/vt220/vterm + loggily + mdspec + the migration shim). From terminal emulator backends up to React reconciliation, with rigorous test infra. Architectural coherence: components recompose cheaply (silvery → canvas is a binding swap, not a rewrite). Cross-cutting patterns (alien-* reactives, scope-based lifecycle, TEA, bidirectional md↔tree sync, ACP/[MCP](#g-mcp)/Matrix interop) travel well.
 
 **Strategic** — daily dogfooding of PKM + AI-coding workflows (km, silvercode, silvery, tribe, recall, beads); Claude-Code-ecosystem fluency (bearly tooling); cross-border tax/legal sophistication (Stripe Atlas, multi-residency, prior C-Corp + holding-company structuring, AppAnnie/data.ai exit); **solo founder + AI-augmented velocity** (one person + agents builds the entire portfolio); existing investor/operator network + **Palo Alto residency** (warm intros to founders, operators, devtools VCs are coffee-meeting-distance).
 
@@ -162,12 +162,12 @@ Every JSX tag and hook is differently shaped. Ink → OpenTUI rewrites every UI 
 ### C. Constraints
 
 - Solo founder bandwidth — Delei is on Mama Muse; realistically <40 hrs/week across silvery + km + silvercode + tribe + agentroom + PlainBrain.
-- No formal entity yet (Wyoming HoldCo planned Q1 2026 — see [Phase 4](#phase-4)).
+- No formal entity yet (Wyoming [HoldCo](#g-holdco) planned Q1 2026 — see [Phase 4](#phase-4)).
 - No external capital; bootstrap mode unless raise.
 - Pre-revenue across the silvery/silvercode/km/tribe portfolio.
 - 3K DL/wk silvery base rate stable for months — possible "demand thermocline."
-- Cannot win head-on against OpenTUI ($8M Cota seed, Anomaly distribution, Kilo OEM proof) on greenfield React TUI.
-- Cannot win head-on against Cursor ($9.9B / $500M ARR) on integrated agentic IDE.
+- Cannot win head-on against OpenTUI ($8M [Cota](#g-cota) seed, [Anomaly](#g-anomaly) distribution, Kilo OEM proof) on greenfield React TUI.
+- Cannot win head-on against Cursor ($9.9B / $500M [ARR](#g-arr)) on integrated agentic IDE.
 - Ink-community sensitivity — Vadim is well-liked; aggressive migration framing risks backlash.
 - Operational infrastructure debt — services need production-grade, not prototype.
 
@@ -182,7 +182,7 @@ Every JSX tag and hook is differently shaped. Ink → OpenTUI rewrites every UI 
 | Segment | Size | Notes |
 |---|---|---|
 | Ink users (existing AI CLIs) | 1M+ DL/wk Ink ecosystem | Claude Code, Copilot CLI, Wrangler. Capability-capped; React-locked. |
-| OpenTUI users (greenfield) | smaller, well-funded | Anomaly's opencode, Kilo Code. |
+| OpenTUI users (greenfield) | smaller, well-funded | Anomaly's opencode, [Kilo Code](#g-kilo-code). |
 | Bubble Tea users (Go-native) | mature niche | Glow, Crush, Soft Serve. Not silvery's segment. |
 | Generic React TUI builders | high-volume, low-margin | Internal CLIs, dashboards. |
 | Agentic IDE consumers | $500M+ ARR (Cursor) | Cursor users, Claude Code users. |
@@ -197,8 +197,8 @@ Every JSX tag and hook is differently shaped. Ink → OpenTUI rewrites every UI 
 - **Greenfield React TUI**: OpenTUI, Ink itself, Bubble Tea (cross-pollinates).
 - **Agentic IDE**: Cursor, Claude Code, Aider, Cline, Continue, Goose, Crush, opencode, Kilo Code, Codex CLI, gemini-cli, OpenHands.
 - **PKM-for-AI**: Notion ($30B+), Obsidian, Logseq, Reflect, Mem, Tana; Cursor Rules / Claude Projects / ChatGPT Memory (the AI-native players).
-- **AI infra services**: Vercel AI SDK + Gateway (~$200M ARR), Auth0 ($6.5B), Algolia ($100M+), Supabase ($50M+), LangChain/LangSmith, Helicone, Portkey, Pinecone, Weaviate, Modal, E2B.
-- **Cross-tool coordination / ACP**: Zed Industries (ACP creator), Anthropic + OpenAI implicit (Claude Code, Codex), Matrix Foundation.
+- **AI infra services**: [Vercel](#g-vercel) AI SDK + Gateway (~$200M ARR), [Auth0](#g-auth0) ($6.5B), [Algolia](#g-algolia) ($100M+), Supabase ($50M+), LangChain/LangSmith, Helicone, Portkey, Pinecone, Weaviate, Modal, E2B.
+- **Cross-tool coordination / ACP**: [Zed Industries](#g-zed-industries) (ACP creator), Anthropic + OpenAI implicit (Claude Code, Codex), Matrix Foundation.
 - **ACP registry + bridges (community-driven, NOT Zed)**:
   - **[agentclientprotocol.com/registry](https://agentclientprotocol.com/get-started/registry)** — community ACP-agent registry. Lists Claude Agent, Gemini CLI, Copilot, Cline, Cursor, goose. Format: `agent.json` + `icon.svg`; distribution: JSON file at `cdn.agentclientprotocol.com/registry/v1/latest/registry.json`. *Distribution metadata for existing agents — not a portable agent format.*
   - **[github.com/Open-ACP](https://github.com/Open-ACP)** (280 stars) — self-hosted ACP bridge: Claude Code/Codex/etc → Telegram/Discord/Slack. Has plugin registry, adapters, workspace plugins, git monitoring, TTS. *Validates the bridge category; partially commoditizes the Discord/Slack-adapter portion of the agentroom value prop.*
@@ -223,7 +223,7 @@ Every JSX tag and hook is differently shaped. Ink → OpenTUI rewrites every UI 
 ### Demand signals (real evidence)
 
 - 1M+ DL/wk for Ink-using AI CLIs (real demand, capability-capped).
-- gbrain (third-party PKM-for-AI tool, 4,600+ pages, dogfooded by founder) — existence proof of the PKM-as-md-files-for-AI movement; not a personal asset.
+- [gbrain](#g-gbrain) (third-party PKM-for-AI tool, 4,600+ pages, dogfooded by founder) — existence proof of the PKM-as-md-files-for-AI movement; not a personal asset.
 - $8M raised by Kilo on OpenTUI — greenfield TUI is fundable.
 - Anthropic Claude Code adoption — agentic CLI as a category is validated.
 - ACP shipped in Zed — coordination-protocol demand is real.
@@ -254,11 +254,11 @@ L0  COMPUTE                    Modal, E2B, AWS, GCP
 | Layer | Solo (today) | 2-3 (co-founder + 1) | 5-10 (seed) | 20+ (Series A) |
 |---|---|---|---|---|
 | L7 Applications | not viable | not viable | not viable | viable |
-| L6 Workspaces (km, silvercode) | viable for v1 + dogfooding | viable to PMF | viable to launch | needed for scale |
+| L6 Workspaces (km, silvercode) | viable for v1 + dogfooding | viable to [PMF](#g-pmf) | viable to launch | needed for scale |
 | L5 Agent frameworks | not viable | viable with niche | viable | viable |
 | L4 UI frameworks (silvery) | viable today | better community mgmt | strong support coverage | foundation-team scale |
 | L3 Coordination (tribe, agentroom) | spec-only viable | viable with infra-ops co-founder | production gateway + first customers | enterprise SLA |
-| L2 Services | demo-only viable | each service ~2-3 people | per-service team + SRE/security/sales | enterprise |
+| L2 Services | demo-only viable | each service ~2-3 people | per-service team + [SRE](#g-sre)/security/sales | enterprise |
 | L1 Model APIs | not viable | not viable | not viable | not viable (capital) |
 | L0 Compute | not viable | not viable | not viable | not viable (capital) |
 
@@ -271,7 +271,7 @@ silvery (L4) → services (L2) and agentroom (L3) → enterprise sales sit in la
 The same portfolio, played at different layers, has fundamentally different revenue dynamics:
 
 - **L4 silvery** — open framework, brand halo. No direct revenue path. Accept that.
-- **L3 agentroom** — open spec + paid hosted gateway (Confluent shape). Revenue.
+- **L3 agentroom** — open spec + paid hosted gateway ([Confluent](#g-confluent) shape). Revenue.
 - **L2 services** — silvery-cloud / hosted services tier (auth, recall, ambient-safety, sync). Vercel pattern. Revenue.
 - **L6 km** — PKM-for-AI workspace. Less cross-elasticity exposure. Revenue.
 - **L6 silvercode** — open reference implementation that demonstrates L2/L3 services. Marketing/halo, not revenue.
@@ -369,7 +369,7 @@ The ACP-proxy cluster has the highest commercial ceiling in the entire portfolio
 
 #### S1 [A] — "Cursor with our framework" (locked Option 5)
 
-[D1](#phase-2-6). silvery open Apache + CLA, silvercode proprietary IDE, tribe wire open, services proprietary, PlainBrain elevated. The integrated portfolio bet.
+[D1](#phase-2-6). silvery open Apache + [CLA](#g-cla), silvercode proprietary IDE, tribe wire open, services proprietary, PlainBrain elevated. The integrated portfolio bet.
 **Score**: B=5 / T=12-18 / C=mid-high / R=4 (cross-elasticity exposure) / D=silvery validates *and* silvercode finds PMF *and* services scale.
 
 <a id="s2"></a>
@@ -377,7 +377,7 @@ The ACP-proxy cluster has the highest commercial ceiling in the entire portfolio
 #### S2 [C] — "Vercel for terminal" (services-led, silvercode open reference)
 
 [D3](#phase-2-6). silvery Apache. silvercode open-sourced as the *reference* IDE. Revenue from services tier (auth, recall, ambient-safety, agentroom, sync). Kubernetes → GKE pattern.
-**Score**: B=5 / T=18-24 / C=very-high / R=4 / D=silvery validates *and* services productize *and* SOC2/compliance.
+**Score**: B=5 / T=18-24 / C=very-high / R=4 / D=silvery validates *and* services productize *and* [SOC2](#g-soc2)/compliance.
 
 <a id="s3"></a>
 
@@ -509,7 +509,7 @@ Add the **agent-in-the-middle platform** on top of [S19](#s19). Proxy hosts pers
 
 #### S21 [D] — "Memory-as-a-Service" (cross-agent recall standalone, #2)
 
-Pull #2 out as its own product. Mem0 ($24M, 52K stars) and Letta ($10M, 22K stars) prove the market; both are *single-agent*; **nobody has cross-agent memory** because no incumbent has reason to bridge Claude + Codex + Gemini + Copilot. silvery+tribe-bearly already has the recall infrastructure.
+Pull #2 out as its own product. [Mem0](#g-mem0) ($24M, 52K stars) and [Letta](#g-letta) ($10M, 22K stars) prove the market; both are *single-agent*; **nobody has cross-agent memory** because no incumbent has reason to bridge Claude + Codex + Gemini + Copilot. silvery+tribe-bearly already has the recall infrastructure.
 **Score**: B=3 / T=6-9 / C=high / R=3 / D=cross-agent-memory category survives single-agent versions; tribe plugin model spreads beyond silvercode.
 
 <a id="s22"></a>
@@ -617,7 +617,7 @@ Docker analog (intentional):
 
 - silvery maintenance + light promo (let cluster-1 sites work organically).
 - Ship **ACP-proxy top-3 cluster** ([S18](#s18): #1 observability + #2 cross-agent recall + #3 cost dashboard) as tribe-side plugins in silvercode. *"One sprint to MVP."*
-- Author **tribe wire v0** (Apache + CC BY 4.0) and submit `org.agentroom.*` events as Matrix MSC.
+- Author **tribe wire v0** (Apache + [CC BY 4.0](#g-cc-by)) and submit `org.agentroom.*` events as Matrix MSC.
 - Author **`.brain` v0 spec** + `run-brain` CLI ([S26](#s26)).
 - Continue dogfooding km / silvercode. silvercode launches as **open reference IDE** (free, demonstrator).
 - Build the **agent layer wrapping** (universal ACP-wrapper for Claude Code, Codex, Aider, Cline).
@@ -671,7 +671,7 @@ Docker analog (intentional):
 
 Founder is **US/California-resident as of 2025-01-25** (NOT Norway despite Norwegian citizenship + Sparebank1). Cross-border tax/legal sophistication is a strength.
 
-Use the existing planned **Wyoming HoldCo LLC** (Q1 2026, multi-member 50/50 Bjorn + Delei for QSBS pass-through) — see `~vault/areas/@office/CHARTER.md`. NOT a new vehicle. silvercode + km/Kimmi spin out as Delaware C-Corps at PMF (PLEP [Phase 2](#phase-2), 2027-2028). Don't pre-form a separate entity for agentroom — keep optional spinout ([S5](#s5)/[S19](#s19)) on the table; defer formation until services prove out.
+Use the existing planned **Wyoming HoldCo LLC** (Q1 2026, multi-member 50/50 Bjorn + Delei for [QSBS](#g-qsbs) pass-through) — see `~vault/areas/@office/CHARTER.md`. NOT a new vehicle. silvercode + km/Kimmi spin out as Delaware C-Corps at PMF ([PLEP](#g-plep) [Phase 2](#phase-2), 2027-2028). Don't pre-form a separate entity for agentroom — keep optional spinout ([S5](#s5)/[S19](#s19)) on the table; defer formation until services prove out.
 
 ---
 
@@ -736,6 +736,194 @@ The 25/25 cluster math (#11+#12+#13) assumes tribe wire + `org.agentroom.*` even
 3. **agentroom spin out ([S5](#s5)/[S19](#s19)) or stay inside ([S22](#s22))?** [S25](#s25) keeps this optional; the choice is signal-driven (capital + co-founder + acquirer interest).
 4. **Is `.brain` ready to ship as MSC alongside `org.agentroom.*` events?** Clock is ticking; window closes when one lab ships theirs.
 5. **Right venue for fundraise narrative if/when capital is needed?** Devtools VC for [S13](#s13) path, or strategic conversation with one Big AI lab for [S24](#s24) path.
+
+---
+
+<a id="glossary"></a>
+
+## Glossary
+
+### Protocols & standards
+
+<a id="g-acp"></a>
+
+- **ACP — Agent Client Protocol** ([Zed Industries](#g-zed-industries)). How an editor (host) talks to an agent. Distinct from MCP. Spec at [agentclientprotocol.com](https://agentclientprotocol.com).
+
+<a id="g-mcp"></a>
+
+- **MCP — Model Context Protocol** ([Anthropic](#g-anthropic)). How an agent talks to its tools. Distinct layer from [ACP](#g-acp).
+
+<a id="g-msc"></a>
+
+- **MSC — Matrix Spec Change**. The RFC-like proposal mechanism by which the Matrix Foundation governs additions to the Matrix protocol. Authoring `org.agentroom.*` events as MSC is part of [tribe](#g-tribe)'s spec-authorship moat.
+
+<a id="g-cla"></a>
+
+- **CLA — Contributor License Agreement**. Required for accepting external contributions while retaining licensing optionality.
+
+<a id="g-cc-by"></a>
+
+- **CC BY 4.0**. Creative Commons Attribution 4.0; the license used for [tribe](#g-tribe)'s open spec text (in addition to Apache 2.0 for code).
+
+<a id="g-mit"></a>
+
+- **MIT**. Permissive open-source license. [tribe](#g-tribe) currently MIT in `vendor/bearly`.
+
+### This portfolio's products
+
+<a id="g-silvery"></a>
+
+- **silvery** — React [TUI](#g-tui) framework. Lead asset; 98.6% [Ink](#g-ink)-compat shipped, 3K [DL/wk](#g-dl-wk), multi-target rendering (TUI today → canvas/DOM/web/native). silvery.dev live.
+
+<a id="g-silvercode"></a>
+
+- **silvercode** — multi-pane agentic IDE built on [silvery](#g-silvery). Pre-launch.
+
+<a id="g-tribe"></a>
+
+- **tribe** — cross-session/cross-machine coordination protocol. Lives in `vendor/bearly`, currently [MIT](#g-mit). Wire + event vocabulary + room/chat patterns + lease semantics + ambient channels.
+
+<a id="g-agentroom"></a>
+
+- **agentroom** — planned [ACP](#g-acp)↔Matrix bridge + managed-cloud gateway. Top venture-rubric score (24/25 alone, 25/25 with cluster).
+
+<a id="g-plainbrain"></a>
+
+- **PlainBrain / `.brain`** — markdown-filesystem shape [km](#g-flexily) uses; ambitiously framed as a portable agent format (Docker analog with `run-brain`/`merge-brain`/`fork-brain`/`pack-brain` operations).
+
+<a id="g-flexily"></a>
+
+- **flexily** — Yoga-compatible flex layout engine; powers [silvery](#g-silvery)'s layout. 1.5-5.5× faster, no WASM.
+
+<a id="g-bearly"></a>
+
+- **bearly** — internal tooling family (recall, [tribe](#g-tribe), llm CLI, hooks, beads, worktrees).
+
+<a id="g-tui"></a>
+
+- **TUI — Terminal User Interface**. The category [silvery](#g-silvery) ships against today; multi-target architecture extends to canvas/DOM/native.
+
+<a id="g-dl-wk"></a>
+
+- **DL/wk** — downloads per week (npm package metric).
+
+### Competitor / adjacent products
+
+<a id="g-ink"></a>
+
+- **Ink** — React [TUI](#g-tui) framework. Capability-capped incumbent; the migration source. ~1M+ DL/wk ecosystem.
+
+<a id="g-opentui"></a>
+
+- **OpenTUI** — rival React [TUI](#g-tui) framework. $8M [Cota](#g-cota) seed; backed by [Anomaly](#g-anomaly); powers [Kilo Code](#g-kilo-code). Architecturally incompatible with [Ink](#g-ink) (lowercase JSX, different hooks).
+
+<a id="g-cursor"></a>
+
+- **Cursor** — agentic IDE. $9.9B valuation, $500M [ARR](#g-arr).
+
+<a id="g-claude-code"></a>
+
+- **Claude Code** — [Anthropic](#g-anthropic)'s agentic CLI; built on [Ink](#g-ink).
+
+<a id="g-notion"></a>
+
+- **Notion** — collaborative knowledge platform. $30B+ valuation; AI features bolt-on.
+
+<a id="g-obsidian"></a>
+
+- **Obsidian** — markdown-vault editor. De facto AI-KM vault editor today. Hypothesized acquisition target in 12-24 months.
+
+<a id="g-vercel"></a>
+
+- **Vercel** — frontend cloud platform. Vercel AI SDK + AI Gateway ~$200M [ARR](#g-arr). Open-spec-but-proprietary-services pattern is the canonical reference for [S25](#s25)/[S2](#s2).
+
+<a id="g-auth0"></a>
+
+- **Auth0** — identity-as-a-service. Acquired by Okta for $6.5B.
+
+<a id="g-algolia"></a>
+
+- **Algolia** — search-as-a-service. $100M+ [ARR](#g-arr).
+
+<a id="g-confluent"></a>
+
+- **Confluent** — managed Apache Kafka. The open-spec + paid hosted-service pattern for [agentroom](#g-agentroom).
+
+<a id="g-open-acp"></a>
+
+- **Open-ACP** — community-driven self-hosted [ACP](#g-acp) bridge to Telegram/Discord/Slack. 280 GitHub stars. Validates the bridge pattern; partially commoditizes the adapter layer.
+
+<a id="g-gbrain"></a>
+
+- **gbrain** — third-party PKM-for-AI tool (4,600+ pages). Founder dogfoods it as evidence of the PKM-as-md-files-for-AI movement; NOT part of this portfolio.
+
+<a id="g-mem0"></a>
+
+- **Mem0** — single-agent memory product. $24M raised, 52K GitHub stars. Cited as Memory-as-a-Service comparable for [S21](#s21).
+
+<a id="g-letta"></a>
+
+- **Letta** — single-agent memory product. $10M raised, 22K GitHub stars. Cited alongside [Mem0](#g-mem0) for [S21](#s21).
+
+### Companies / investors
+
+<a id="g-anthropic"></a>
+
+- **Anthropic** — maker of Claude; ships [Claude Code](#g-claude-code) (Ink-based). Plausible silvery acquirer.
+
+<a id="g-zed-industries"></a>
+
+- **Zed Industries** — creator of [ACP](#g-acp) and the Zed editor.
+
+<a id="g-anomaly"></a>
+
+- **Anomaly** — investor in [OpenTUI](#g-opentui); distribution channel.
+
+<a id="g-cota"></a>
+
+- **Cota** — VC backing [Kilo Code](#g-kilo-code)'s [OpenTUI](#g-opentui) work ($8M seed).
+
+<a id="g-kilo-code"></a>
+
+- **Kilo Code** — agentic IDE; April 2026 fork; [OpenTUI](#g-opentui)-based.
+
+### Business / legal / financial
+
+<a id="g-arr"></a>
+
+- **ARR — Annual Recurring Revenue**.
+
+<a id="g-pmf"></a>
+
+- **PMF — Product-Market Fit**.
+
+<a id="g-soc2"></a>
+
+- **SOC2** — security/compliance audit standard. Required for enterprise services.
+
+<a id="g-sla"></a>
+
+- **SLA — Service Level Agreement**. Uptime / response-time guarantees.
+
+<a id="g-sre"></a>
+
+- **SRE — Site Reliability Engineering**.
+
+<a id="g-loi"></a>
+
+- **LOI — Letter of Intent**. Pre-contract demand validation signal.
+
+<a id="g-qsbs"></a>
+
+- **QSBS — Qualified Small Business Stock**. US tax incentive for early-stage equity; drives multi-member 50/50 [HoldCo](#g-holdco) structure.
+
+<a id="g-plep"></a>
+
+- **PLEP — Personal Legal/Estate Plan**. The family-office charter at `~vault/areas/@office/CHARTER.md`. Phases 1-2 cover [HoldCo](#g-holdco) formation and Delaware C-Corp spinouts at [PMF](#g-pmf).
+
+<a id="g-holdco"></a>
+
+- **HoldCo — Holding company**. Wyoming LLC at the top of this portfolio's planned structure (multi-member 50/50 Bjorn + Delei for [QSBS](#g-qsbs) pass-through). See `~vault/areas/@office/CHARTER.md`.
 
 ---
 
