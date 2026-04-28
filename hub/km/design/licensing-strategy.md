@@ -311,11 +311,21 @@ A 4-leg dual-pro review (GPT-5.4 Pro + Kimi K2.6 + Gemini 3 Pro + Grok 4) was ru
 
 **Ink upgrade risk** (Vadim Demedes): if Ink ships a major upgrade with multi-pane / mouse / partial-redraw support, the migration wedge collapses overnight. Mitigation: speed (the 3-6 month promo window is a race against Ink's roadmap, not arbitrary); architectural differentiation (silvery's long-term moat must be a fundamentally superior reconciler, plugin model, or multi-process rendering — features hard for Ink to retrofit). **Action**: weekly 15-min check on Ink's GitHub issues, roadmap, and Vadim's social for v5 signals. If a v5 alpha appears, accelerate launch by 2 weeks.
 
-**The Seam Rule** (codify the open/closed boundary): write down the framework-vs-application heuristic in the silvery repo before contributors start asking for silvercode features. Working text:
+**The Seam Rule** (codify the open/closed boundary): write down the framework-vs-application heuristic in the silvery repo before contributors start asking for silvercode features.
 
-> If a feature is useful in a terminal-based `vim`, `htop`, or `gitui`, it belongs in **silvery**. If a feature is only useful in an agent-coding IDE with cloud sync, it belongs in **silvercode**. If uncertain, default to silvercode; silvery grows by need, not by generosity.
+**Critical correction (2026-04-27 night)**: an earlier draft of the Seam Rule cut at "generic vs agent-shaped" — which would have ceded the entire agentic-chat space to OpenTUI. The Ink-migration target users are *building agentic chat tools* (Claude Code, gemini-cli, Copilot CLI). If silvery doesn't ship agent UI patterns, those teams reach for OpenTUI or stay on Ink. The migration story collapses. **The right cut is "client glue vs operational service"**, which the SDK-with-services revenue pattern was already pointing at.
 
-Add a "Scope and Boundaries" doc to silvery's repo. Add a GitHub issue label "Out of scope (belongs in app/service)" with a polite boilerplate response. This prevents feature-creep-by-guilt as silvery gains traction.
+Canonical wording:
+
+> **Client glue** (rendering, components, layout, state primitives, interaction, theming — *including agent-shaped UI patterns* like `<AgentChat>`, `<ToolUseRenderer>`, `<StreamingMessage>`, `<ConversationPane>`, `<RecallPanel>`, `<SquadView>`, `<HandoffViz>`, `<ContextSafetyMonitor>`) → **silvery** (open). BYO API key works out of the box.
+>
+> **Operational service** (auth flows, secret management, cloud state, network protocols, ambient-context-safety pipeline logic, hosted recall index, CrossAgentState orchestration, agentroom gateway runtime, multi-machine coordination) → **cluster-2 services** (proprietary).
+>
+> If uncertain, default to silvery for the rendering/interaction half and cluster-2 for the wire/service half. The moat is the operational tier and the integrated polish, **not the widget code**.
+
+Under this rule silvery ships *all* the components that an Ink-using AI-tool team would migrate to. The migration story is preserved because the migration *target* is complete for the actual users. silvercode's defensibility doesn't depend on owning the widgets — it depends on owning the *services* + the *integrated assembly* (Cursor's moat isn't "we own the autocomplete widget"; it's the integration with the model + the workflow + the brand).
+
+Add a "Scope and Boundaries" doc to silvery's repo using this canonical wording. Add a GitHub issue label "Out of scope (belongs in service)" with a polite boilerplate that points the user to either the BYO-key path or the cluster-2 service. This prevents feature-creep-by-guilt while keeping the migration target complete.
 
 **Terminfo data licensing**: do NOT attempt to relicense data derived from ncurses terminfo under CC0/ODbL. Either license could be invalid given upstream provenance. Safer path: publish the *transformation pipeline* under Apache-2.0; document how users fetch terminfo from upstream and transform locally; if hosting compiled artifacts, preserve original license notices (likely permissive-with-attribution, not ODbL). Verify upstream license before shipping.
 
