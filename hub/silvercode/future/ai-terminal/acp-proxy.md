@@ -71,6 +71,14 @@ silvercode today is **already** a proxy in shape, just not in name:
 
 The "what changes if we name it a proxy" is mostly about *strategy and roadmap* rather than architecture.
 
+### 2.1 Two flavours of proxy: transform-in-the-middle vs agent-in-the-middle
+
+Most of §3 below describes **transform-in-the-middle** capabilities — stateless or short-lived operations on the ACP traffic (route, cache, redact, validate, observe, normalize). These are CDN / API-gateway shapes — well-understood, large surface area, mostly engineering.
+
+§3.4 introduces a different shape: **agent-in-the-middle**. The proxy hosts a *persistent LLM sub-agent* that thinks alongside the foreground agent and augments its prompts with delta injections. This is closer to "edge-compute platform" than "byte-pipe."
+
+Both shapes coexist and reinforce each other. The transform layer is the substrate; the agent-in-the-middle is the moat.
+
 ---
 
 ## 3. Categories of opportunity
@@ -95,9 +103,40 @@ Per-session timeline of every prompt + tool call + response. Cost dashboard per 
 
 silvercode already proxies every JSON-RPC message; surfacing this is the cheapest available wedge. Zero new architecture.
 
-### 3.4 Memory / cross-session continuity
+### 3.4 Memory / cross-session continuity (and the broader "agent-in-the-middle" pattern)
 
 Today recall lives in `vendor/bearly` and is silvercode-specific. With a proxy: any agent talking through the proxy gets recall injection. Codex/Gemini/Copilot all gain "Memory" without each shipping it. Project-scoped memory ("work on `pim/km` recalls past `pim/km` sessions"). User-controlled remember/forget enforced at proxy layer.
+
+But there's a bigger architectural pattern here than "inject memory snippets." The proxy can host a **persistent in-session sub-agent** — a separate LLM with its own prompt-cached context — that watches all ACP traffic, maintains compiled-knowledge state, and augments the foreground agent's prompts with delta injections. **Agent-in-the-middle**, not just transform-in-the-middle.
+
+See [`hub/tribe/design/recall-thought.md`](../../../tribe/design/recall-thought.md) for the full design — the mem-thought (Tier 3) sub-agent. Originally framed as a local silvercode adapter; the proxy reframe is "this could live in the cloud as part of the ACP proxy."
+
+What the proxy-hosted memory sub-agent gets that a local one doesn't:
+
+- **Cross-machine continuity** — same user's sessions on laptop A and laptop B share memory state without local sync
+- **Centralized LSP / repo context** — proxy holds the repo (mounted, synced via git, or remote LSP), sub-agent loads symbol tables once, reuses across sessions
+- **Resource isolation** — heavy 50K-token cached LLM context maintained server-side, doesn't drain client RAM
+- **Multi-agent coverage by default** — every spawned agent (Claude/Codex/Gemini/Copilot) inherits the same memory layer; no per-agent integration
+- **Scale economics** — multi-tenant deployment amortizes the LLM cost of memory maintenance across users; cache hits cross sessions
+- **Stronger durability** — sub-agent state survives client crashes, network drops, OS reboots
+
+What it costs:
+
+- **Privacy/compliance** — source code visible to cloud (mitigated by self-host option, end-to-end encryption of prompts, or local-first hybrid)
+- **Network latency on every event** — augmenting prompts adds RTT (mitigated by colocating proxy with model API)
+- **Multi-tenant isolation** — per-user state, per-project scope, leak prevention
+- **Cold-start cost when context cache evicts** — re-priming a 50K compiled-knowledge cache is expensive (mitigated by warm pools, persistent cache layers)
+
+This is qualitatively different from §3.1–3.3 (transforms, security, observability) — those are mostly stateless. A persistent LLM sub-agent in the proxy is a **new architectural primitive**: not a rule, not a route, not a cache — a co-resident agent that thinks alongside the foreground agent and pushes deltas into its prompt.
+
+Other candidates for proxy-hosted persistent sub-agents (same shape, different purpose):
+- **Compiler / type-check / lint sub-agent** — watches edits, runs checkers, surfaces issues as ambient
+- **Critic sub-agent** — second opinion on every plan, raises concerns when it disagrees (`/pro`-as-always-on)
+- **Style/convention sub-agent** — knows the codebase's patterns, flags drift before commit
+- **Test-runner sub-agent** — watches code changes, runs relevant tests, surfaces failures
+- **Documentation sub-agent** — keeps docs in sync with code, suggests doc edits when code changes
+
+The proxy as **agent-in-the-middle host** is potentially the biggest architectural shift in the ACP era — analogous to CDNs evolving from byte-pipes to edge-compute platforms. The byte-pipe was the start; the compute platform was the moat.
 
 ### 3.5 Conformance + capability normalization
 
