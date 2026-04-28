@@ -265,6 +265,76 @@ percolate:cost         { sessionId, cycleN, costUsd, model }
 - Cost ceiling: cycle costs total < $0.50 per dogfood session
 - No user-facing latency tail (verify by timing user prompts before vs after percolation enabled)
 
+## Prior-art /deep verdict (2026-04-28 00:05): no exact match found, novel composition
+
+Fired GPT-5.4 prior-art search (knowledge cutoff Oct 2024 — caveat noted; 2025-2026 sweep needed). Full output captured at [`recall-thought-prior-art-deep.md`](recall-thought-prior-art-deep.md).
+
+**Headline finding**: *"No exact match found. Each piece exists somewhere, but not the composition."*
+
+### Cross-system gap analysis (Oct-2024 knowledge)
+
+| System | Has separate sub-agent? | Reactive to multi-source events? | Prompt-cached compiled knowledge? | Delta emit to foreground? | Rich tools (recall+LSP+git+vault)? | Proxy/gateway shape? |
+|---|---|---|---|---|---|---|
+| **Letta / MemGPT** | ❌ self-managed | ❌ tool-call only | ❌ tier files in DB | ❌ full retrieval | partial (recall + archival) | ❌ |
+| **ChatGPT memory** | ❌ self-managed | ❌ capture-trigger only | ❌ summary in system prompt | ❌ inject-once at start | ❌ | ❌ |
+| **Mem0** | ❌ orchestration layer | ❌ on-demand only | ❌ atomic facts in vector + graph DB | ❌ on-demand | partial (vector + graph) | ❌ |
+| **Anthropic memory tool** (claude-agent-sdk) | ❌ self-managed | ❌ tool-driven | ❌ file-based notes | ❌ full inject | ❌ | ❌ |
+| **Cursor 2.x** | ❌ inline RAG | ❌ per-prompt only | partial (embedding index) | ❌ inject-per-prompt | partial (codebase + files) | ❌ |
+| **Sourcegraph Cody** | ❌ inline | ❌ per-prompt or user-action | partial (embeddings + symbols) | ❌ per-prompt | partial (symbols + repo) | ❌ |
+| **Aider repo map** | ❌ static | ❌ static | ❌ static | ❌ always-on inject | partial (symbols only) | ❌ |
+| **GitHub Copilot Workspace** | ❌ planner agent | ❌ session-bound | ❌ | ❌ foreground produces all | partial (repos + issues + PRs) | ❌ |
+| **AutoGen / CrewAI** | ✅ separate roles | partial (within run) | ❌ per-role context | partial (interject) | depends | ❌ not IDE proxy |
+| **Generative Agents** (Stanford 2023) | partial (multi-agent) | ✅ env events | partial (episodic memory + reflection) | ✅ pushes observations | ❌ | ❌ |
+| **LangGraph Cloud** | ✅ stateful graphs | depends | ✅ checkpoints | depends | depends | ❌ not IDE proxy |
+| **OpenRouter / LiteLLM / Portkey / Helicone** | ❌ stateless | ❌ | ❌ | ❌ | ❌ | ✅ but transform-only |
+| **MCP servers / Continue** | ❌ client-side orchestration | depends | ❌ | ❌ | ✅ tools | ❌ |
+| **mem-thought (this design)** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (cloud option) |
+
+The closest cluster is **Generative Agents (Stanford 2023)** — has reflection + memory consolidation + agents push observations. But not IDE-integrated, no rich tools, no proxy architecture. Conceptually validates the "mind-wandering" idea, doesn't preempt the composition.
+
+**LangGraph Cloud** could *build* this composition — stateful agent graphs with persistence and checkpoints — but it's a framework, not an out-of-box product with this shape.
+
+### What the composition implies for moat positioning
+
+GPT-5.4's verdict: *"The composition appears novel as of late 2024. Each ingredient is known; the recipe isn't."*
+
+Specific moat sources identified:
+
+1. **Composition/IP** — exact split of responsibilities and pacing (delta emits vs. full snapshots; event filters; dedupe; outcome-aware ranking)
+2. **Tool depth** — coherent integration of recall FTS + LSP + git/CI + vault hybrid search. Most systems pick 1–2; this picks all.
+3. **Prompt-cached compiled-knowledge engineering** — cache breakpoint placement + cost discipline + state retention strategy. Non-trivial engineering.
+4. **Visibility + operator UX** — many systems are opaque. The side-panel/tooltip/inspector/journal layers are uncommon.
+5. **Cloud-as-proxy positioning** — agent-in-the-middle on the ACP wire is a fresh wedge ([acp-proxy.md §3.4](../../silvercode/future/ai-terminal/acp-proxy.md))
+
+### Critical caveat: knowledge cutoff Oct 2024
+
+GPT-5.4's training data cuts off Oct 2024. The agent-memory space has moved fast in 2025–2026 — Anthropic released the memory tool, Letta has shipped updates, Mem0 has a roadmap. **Nothing in /deep's response covers 2025-2026 systems**, which is exactly the timeframe a parallel design might have shipped.
+
+Recommended follow-up: actual web-sweep with 2025-2026 search filter on these terms:
+
+- "background memory agent IDE delta emit" 2025
+- "agent proxy persistent memory MCP ACP" 2025
+- "multi-agent memory watcher codebase CI events" 2025
+- "prompt caching compiled knowledge agent" 2025-2026
+- "Sourcegraph Cody background memory 2025"
+- "Copilot Workspace memory background 2025"
+- "Letta MemGPT background watcher events 2025"
+
+This needs the actual Deep Research API (multi-source web sweep, ~$2-5, 2-15 min) — what we ran was a single GPT-5.4 call. Still useful for the architecture-comparison framing; insufficient for 2025-2026 vendor announcements.
+
+### Implications for shipping
+
+If we ship mem-thought v1 and it's even directionally close to the design, **first-mover claim is plausible**. Worth:
+
+- Writing a focused public design doc (not just internal hub/) once shipped
+- Filing a defensive disclosure or even a provisional patent on the composition
+- Branding the pattern ("agent-in-the-middle memory" or similar) so it gets known by name
+- Talking about it openly — the composition has enough specificity that public discussion strengthens position rather than weakens it (engineers trying to build the same thing without the silvercode/tribe substrate will rebuild slower)
+
+The cross-reference loop is now in place: [recall-thought.md](recall-thought.md) ↔ [acp-proxy.md §3.4](../../silvercode/future/ai-terminal/acp-proxy.md). Either one is a credible product narrative on its own; together they're a stronger moat thesis.
+
+---
+
 ## Scope expansion (2026-04-27 23:58): private context maintainer, not just memory
 
 Two user additions reframe the sub-agent from "memory of past sessions" to **"private comprehensive context maintainer for the foreground agent"**:
