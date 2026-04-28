@@ -221,6 +221,7 @@
         "silvercode": "./src/bootstrap.ts",
       },
       "dependencies": {
+        "@bearly/recall": "workspace:*",
         "@beorn/accountly": "workspace:*",
         "@km/agent-harness": "workspace:*",
         "@km/autolinks": "workspace:*",
@@ -561,6 +562,66 @@
         "react": ">=19.0.0",
         "silvery": ">=0.17.0",
         "vitest": ">=4.0.0",
+      },
+    },
+    "vendor/bearly/plugins/github": {
+      "name": "@bearly/github",
+      "version": "0.1.0",
+      "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.27.1",
+      },
+    },
+    "vendor/bearly/plugins/injection-envelope": {
+      "name": "@bearly/injection-envelope",
+      "version": "0.1.0",
+      "dependencies": {
+        "loggily": "^0.10.0",
+      },
+    },
+    "vendor/bearly/plugins/llm": {
+      "name": "@bearly/llm",
+      "version": "0.10.0",
+      "bin": {
+        "bearly-llm": "./src/cli.ts",
+      },
+      "peerDependencies": {
+        "@bearly/recall": "*",
+      },
+      "optionalPeers": [
+        "@bearly/recall",
+      ],
+    },
+    "vendor/bearly/plugins/recall": {
+      "name": "@bearly/recall",
+      "version": "0.2.0",
+    },
+    "vendor/bearly/plugins/shared-mcp": {
+      "name": "@bearly/shared-mcp",
+      "version": "0.0.0",
+      "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.27.1",
+      },
+    },
+    "vendor/bearly/plugins/tribe": {
+      "name": "@bearly/tribe",
+      "version": "0.14.0",
+      "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.27.1",
+      },
+    },
+    "vendor/bearly/plugins/tty": {
+      "name": "claude-tty-mcp",
+      "version": "0.1.0",
+      "bin": "./server.ts",
+      "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.27.1",
+        "@termless/core": "^0.1.0",
+        "@termless/xtermjs": "^0.1.0",
+        "playwright": "^1.52.0",
+        "zod": "^3.24.0",
+      },
+      "devDependencies": {
+        "tsdown": "^0.21.7",
       },
     },
     "vendor/flexily": {
@@ -1189,6 +1250,18 @@
     "@babel/types": ["@babel/types@8.0.0-rc.3", "", { "dependencies": { "@babel/helper-string-parser": "^8.0.0-rc.3", "@babel/helper-validator-identifier": "^8.0.0-rc.3" } }, "sha512-mOm5ZrYmphGfqVWoH5YYMTITb3cDXsFgmvFlvkvWDMsR9X8RFnt7a0Wb6yNIdoFsiMO9WjYLq+U/FMtqIYAF8Q=="],
 
     "@bearly/bg-recall": ["@bearly/bg-recall@workspace:vendor/bearly/packages/bg-recall"],
+
+    "@bearly/github": ["@bearly/github@workspace:vendor/bearly/plugins/github"],
+
+    "@bearly/injection-envelope": ["@bearly/injection-envelope@workspace:vendor/bearly/plugins/injection-envelope"],
+
+    "@bearly/llm": ["@bearly/llm@workspace:vendor/bearly/plugins/llm"],
+
+    "@bearly/recall": ["@bearly/recall@workspace:vendor/bearly/plugins/recall"],
+
+    "@bearly/shared-mcp": ["@bearly/shared-mcp@workspace:vendor/bearly/plugins/shared-mcp"],
+
+    "@bearly/tribe": ["@bearly/tribe@workspace:vendor/bearly/plugins/tribe"],
 
     "@bearly/tribe-client": ["@bearly/tribe-client@workspace:vendor/bearly/packages/tribe-client"],
 
@@ -2205,6 +2278,8 @@
     "chokidar": ["chokidar@5.0.0", "", { "dependencies": { "readdirp": "^5.0.0" } }, "sha512-TQMmc3w+5AxjpL8iIiwebF73dRDF4fBIieAqGn9RGCWaEVwQ6Fb2cGe31Yns0RRIzii5goJ1Y7xbMwo1TxMplw=="],
 
     "chrono-node": ["chrono-node@2.9.0", "", {}, "sha512-glI4YY2Jy6JII5l3d5FN6rcrIbKSQqKPhWsIRYPK2IK8Mm4Q1ZZFdYIaDqglUNf7gNwG+kWIzTn0omzzE0VkvQ=="],
+
+    "claude-tty-mcp": ["claude-tty-mcp@workspace:vendor/bearly/plugins/tty"],
 
     "cli-boxes": ["cli-boxes@3.0.0", "", {}, "sha512-/lzGpEWL/8PfI0BmBOPRwp0c/wFNX1RdUML3jK/RcSBA9T8mZDdQpqYBKtCFTOfQbwPqWEOpjqW+Fnayc0969g=="],
 

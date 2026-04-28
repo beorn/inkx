@@ -44,18 +44,18 @@ describe("ambient-adapter/recall", () => {
         queue,
         now: () => now++,
         query: async () => [
-          { token: "decker", summary: "we discussed deckers in march" },
-          { token: "decker", summary: "decker has a sync backend in cloudsv" },
+          { token: "decker-spec", summary: "we discussed decker-spec in march" },
+          { token: "decker-spec", summary: "decker-spec has a sync backend in cloudsv" },
         ],
       },
-      "decker",
+      "decker-spec",
     )
     expect(emitted).toBe(1)
 
     const events = queue.peek()
     expect(events).toHaveLength(1)
     expect(events[0]?.source).toBe("recall")
-    expect(events[0]?.content).toContain("decker")
+    expect(events[0]?.content).toContain("decker-spec")
     // Digest format: should reference "2 prior sessions"
     expect(events[0]?.content).toContain("2 prior sessions")
   })
@@ -71,7 +71,7 @@ describe("ambient-adapter/recall", () => {
           throw new Error("recall daemon down")
         },
       },
-      "decker",
+      "decker-spec",
     )
     expect(emitted).toBe(0)
     expect(queue.peek()).toEqual([])
@@ -83,10 +83,10 @@ describe("ambient-adapter/recall", () => {
     const handle = registerRecallAmbientAdapterHandle({
       scope,
       queue,
-      query: async () => [{ token: "x", summary: "hit" }],
+      query: async () => [{ token: "x-mark", summary: "hit" }],
     })
     handle.dispose()
-    const emitted = await handle.probe("x")
+    const emitted = await handle.probe("x-mark")
     expect(emitted).toBe(0)
     expect(queue.peek()).toEqual([])
   })
@@ -118,33 +118,120 @@ describe("ambient-adapter/recall", () => {
       minQueryIntervalMs: 60_000,
       query: async () => {
         queryCalls++
-        return [{ token: "x", summary: "hit" }]
+        return [{ token: "x-mark", summary: "hit" }]
       },
     })
 
-    // First probe — admitted.
-    const a = await handle.probe("first")
+    // First probe — admitted (kebab-id = salient).
+    const a = await handle.probe("first-token")
     expect(a).toBe(1)
     expect(queryCalls).toBe(1)
 
     // 1s later — well inside the 60s window. Rate-limit must block.
     now += 1_000
-    const b = await handle.probe("second")
+    const b = await handle.probe("second-token")
     expect(b).toBe(0)
     expect(queryCalls).toBe(1) // query NOT re-invoked
 
     // 30s later (still inside 60s) — still blocked.
     now += 29_000
-    const c = await handle.probe("third")
+    const c = await handle.probe("third-token")
     expect(c).toBe(0)
     expect(queryCalls).toBe(1)
 
     // 31s later — past the 60s window. Admitted.
     now += 31_000
-    const d = await handle.probe("fourth")
+    const d = await handle.probe("fourth-token")
     expect(d).toBe(1)
     expect(queryCalls).toBe(2)
     handle.dispose()
+  })
+
+  test("V2 salience gate skips short meta-prompts before query fires", async () => {
+    const scope = createScope("test")
+    const queue = createChannelQueue(scope)
+    let queryCalls = 0
+    const emitted = await triggerRecallProbe(
+      {
+        scope,
+        queue,
+        query: async () => {
+          queryCalls++
+          return [{ token: "x-mark", summary: "hit" }]
+        },
+      },
+      "improve this", // No kebab-id / path / backtick / scoped-pkg / quoted phrase
+    )
+    expect(emitted).toBe(0)
+    expect(queryCalls).toBe(0) // Salience gate fires BEFORE query
+    expect(queue.peek()).toEqual([])
+  })
+
+  test("V2 long substantive prompt bypasses salience gate", async () => {
+    const scope = createScope("test")
+    const queue = createChannelQueue(scope)
+    let queryCalls = 0
+    const longPrompt =
+      "I would like a thorough explanation of how the rendering pipeline behaves when several large lists are mounted simultaneously."
+    expect(longPrompt.length).toBeGreaterThanOrEqual(120)
+    const emitted = await triggerRecallProbe(
+      {
+        scope,
+        queue,
+        query: async () => {
+          queryCalls++
+          return [{ token: "x-mark", summary: "hit" }]
+        },
+      },
+      longPrompt,
+    )
+    expect(emitted).toBe(1)
+    expect(queryCalls).toBe(1)
+  })
+
+  test("V2 content gate filters hits with rejected-signal patterns", async () => {
+    const scope = createScope("test")
+    const queue = createChannelQueue(scope)
+    const emitted = await triggerRecallProbe(
+      {
+        scope,
+        queue,
+        query: async () => [
+          {
+            token: "research",
+            summary: 'Earlier analysis: "verdict": "orthogonal", discusses unrelated framework.',
+          },
+        ],
+      },
+      "km-storage cognitive types",
+    )
+    expect(emitted).toBe(0) // Only hit was filtered → no emit
+    expect(queue.peek()).toEqual([])
+  })
+
+  test("V2 default digest emits 1 hit summary, with +N more for the rest", async () => {
+    const scope = createScope("test")
+    const queue = createChannelQueue(scope)
+    const emitted = await triggerRecallProbe(
+      {
+        scope,
+        queue,
+        query: async () => [
+          { token: "km-board", summary: "first hit — strongest match" },
+          { token: "km-board", summary: "second hit — relevant but lower" },
+          { token: "km-board", summary: "third hit — should be in +N more" },
+        ],
+      },
+      "km-board status",
+    )
+    expect(emitted).toBe(1)
+    const event = queue.peek()[0]
+    expect(event?.content).toContain("first hit")
+    // Default RECALL_DIGEST_HITS = 1 → only first hit shown inline
+    expect(event?.content).not.toContain("second hit")
+    expect(event?.content).not.toContain("third hit")
+    // +N more suffix surfaces remaining
+    expect(event?.content).toContain("+2 more")
   })
 
   test("sanitize neutralizes role-prefix bytes in indexed transcripts", async () => {
@@ -166,7 +253,7 @@ describe("ambient-adapter/recall", () => {
           },
         ],
       },
-      "wrap regression",
+      "wrap-regression diagnostic",
     )
     expect(emitted).toBe(1)
     const event = queue.peek()[0]
@@ -221,7 +308,7 @@ describe("ambient-adapter/recall", () => {
           },
         ],
       },
-      "anything",
+      "anything-token",
     )
     expect(emitted).toBe(1)
     const event = queue.peek()[0]
