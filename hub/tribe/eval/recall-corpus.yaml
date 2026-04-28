@@ -95,3 +95,135 @@ pairs:
       Question is specifically about the design state. Right answers are
       this session + the Tier 3 / deep-rounds beads. Watch for incidental
       hits on "compiled" (build artifacts) or "state" (state machines).
+
+  # ── Axis A: design decisions historical ─────────────────────────
+
+  - id: pair-006
+    axis: A
+    query: "ENGRAM cognitive types"
+    expected_relevant_artifacts:
+      - kind: doc
+        path: "docs/explorations/memory-systems-analysis.md"
+      - kind: doc
+        path: "cloudi/specs/active/ADR01/ADR01-memory-system.md"
+    expected_irrelevant_session_ids: []
+    notes: |
+      Specific external research term — fact (semantic) hypothesis bucket.
+      Right answer is the analysis docs that define episodic/semantic/procedural.
+
+  - id: pair-007
+    axis: A
+    query: "yoga flexbox layout decision"
+    expected_relevant_artifacts:
+      - kind: bead
+        id: "km-flexx"  # closed flexx work
+    expected_irrelevant_session_ids: []
+    notes: |
+      Architecture-decision recall. Should surface the decision-history
+      around adopting Yoga for flexily layout.
+
+  - id: pair-008
+    axis: B
+    query: "silvery positioning ink"
+    expected_relevant_artifacts:
+      - kind: bead
+        id: "km-silvery.positioning"
+      - kind: doc
+        path: "docs/silvery-positioning-brief.md"
+    expected_irrelevant_session_ids: []
+    notes: |
+      Q is about silvery's positioning relative to Ink. Right answers are
+      the active P0 bead km-silvery.positioning + the brief doc.
+
+  # ── Axis A: adversarial near-miss ───────────────────────────────
+
+  - id: pair-009
+    axis: A
+    query: "vendor bearly llm cli"
+    expected_relevant_artifacts:
+      - kind: bead
+        id: "km-bearly.llm-loggily-migration"
+    expected_irrelevant_session_ids: []
+    notes: |
+      Tests whether system surfaces canonical bearly llm work vs incidental
+      "vendor" / "cli" matches that pollute many sessions.
+
+  - id: pair-010
+    axis: A
+    query: "ambient context safety phase 3"
+    expected_relevant_artifacts:
+      - kind: doc
+        path: "hub/silvercode/design/ambient-context-safety.md"
+      - kind: bead
+        id: "km-silvercode.ambient-phase-3-layers"
+    expected_irrelevant_session_ids: []
+    notes: |
+      Layered defense work. Right answers are the design doc + the closed
+      phase-3 bead with the layer numbers.
+
+  # ── Axis A: instruction-shaped query ────────────────────────────
+
+  - id: pair-011
+    axis: A
+    query: "how to run vitest"
+    expected_relevant_artifacts:
+      - kind: doc
+        path: "CLAUDE.md"
+    expected_irrelevant_session_ids: []
+    notes: |
+      Procedural / instruction hypothesis. Right answer is CLAUDE.md (top-
+      level km doc) which documents the test commands. Should NOT surface
+      individual test runs that incidentally mention vitest.
+
+  - id: pair-012
+    axis: A
+    query: "tribe-cli session daemon"
+    expected_relevant_artifacts:
+      - kind: doc
+        path: "vendor/bearly/plugins/tribe"
+    expected_irrelevant_session_ids: []
+    notes: |
+      Specific to tribe daemon implementation. Should surface bearly tribe
+      plugin material, not arbitrary tribe-related discussion.
+
+  # ── Axis B: external knowledge ──────────────────────────────────
+
+  - id: pair-013
+    axis: B
+    query: "Hindsight TEMPR multi-pathway retrieval"
+    expected_relevant_artifacts:
+      - kind: doc
+        path: "docs/explorations/memory-systems-analysis.md"
+      - kind: doc
+        path: "cloudi/specs/active/ADR01/REF01-memory-research.md"
+    expected_irrelevant_session_ids: []
+    notes: |
+      Hindsight is the SOTA memory system at 91.4% LongMemEval. Right
+      answer is the research doc + cloudi REF01.
+
+  - id: pair-014
+    axis: A
+    query: "salience trigger Jaccard distance"
+    expected_relevant_session_ids:
+      - "4de4a3ab"  # this session
+    expected_relevant_artifacts:
+      - kind: bead
+        id: "km-tribe.recall-salience-trigger"
+    expected_irrelevant_session_ids: []
+    notes: |
+      This session designed the Jaccard salience trigger. Right answer is
+      this session + the salience-trigger bead.
+
+  - id: pair-015
+    axis: A
+    query: "recall hypothesis loop FTS"
+    expected_relevant_session_ids:
+      - "4de4a3ab"
+    expected_relevant_artifacts:
+      - kind: bead
+        id: "km-tribe.recall-deep-rounds"
+    expected_irrelevant_session_ids: []
+    notes: |
+      Today's hypothesis-loop tool work. Right answer is this session +
+      the deep-rounds bead. Watch for noise from any prior recall-hook
+      discussion that doesn't address THIS architecture.
