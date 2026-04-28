@@ -175,14 +175,14 @@ describe("readBeadsExport", () => {
     const fs = memFs({ "/repo/.beads/issues.jsonl": sampleLine })
     const { issues } = readBeadsExport(fs, "/repo/.beads")
     expect(issues).toHaveLength(1)
-    expect(issues[0].id).toBe("km-foo")
+    expect(issues[0]!.id).toBe("km-foo")
   })
 
   it("reads the file directly when given a .jsonl path", () => {
     const fs = memFs({ "/tmp/foreign-export.jsonl": sampleLine })
     const { issues } = readBeadsExport(fs, "/tmp/foreign-export.jsonl")
     expect(issues).toHaveLength(1)
-    expect(issues[0].id).toBe("km-foo")
+    expect(issues[0]!.id).toBe("km-foo")
   })
 
   it("returns empty when the resolved path doesn't exist", () => {

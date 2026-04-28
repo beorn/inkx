@@ -119,7 +119,7 @@ export type InternalSessionState = SessionState & {
 export function initialInternalState(): InternalSessionState {
   return {
     ...initialSessionState(),
-    _strip: { byTurn: new Map(), pending: "" },
+    _strip: { byTurn: new Map<TurnId, StripState>(), pending: "" },
   }
 }
 
