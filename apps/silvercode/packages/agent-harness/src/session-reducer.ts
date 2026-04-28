@@ -609,8 +609,19 @@ export function reduce(state: InternalSessionState, action: AgentEvent): [Intern
       next.status = next.permissions.length > 0 ? "awaiting-permission" : "idle"
       break
     case "status":
-      // Harness "status" events are low-level; fold into status enum only for recognised values.
-      if (action.status === "requesting") next.status = "thinking"
+      // Harness "status" events are low-level annotations on whatever the
+      // turn lifecycle already established. Only honour `requesting` when
+      // a turn is genuinely in flight (status already running). If we're
+      // idle / ended / awaiting-permission / spawning, a stray `requesting`
+      // would flip status to "thinking" with no active turn — and because
+      // controller.send gates the queue on idle/ended, the queue wedges
+      // forever. km-silvercode.queue-stuck-thinking.
+      if (
+        action.status === "requesting" &&
+        (next.status === "thinking" || next.status === "tool-running")
+      ) {
+        next.status = "thinking"
+      }
       break
     case "session-end":
       applySessionEnd(next, action)
