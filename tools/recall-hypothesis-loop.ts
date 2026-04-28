@@ -7,9 +7,11 @@
  * Implements the hypothesis-driven inner loop:
  *
  *   Round 1..N:
- *     1. HYPOTHESIS: LLM articulates {concepts, timeline_events, procedures}
- *        about what the user is asking. Round 1 from query alone; Round 2+
- *        refines based on evidence from Round N-1.
+ *     1. HYPOTHESIS: LLM articulates {facts, events, instructions} about
+ *        what the user is asking — ENGRAM cognitive types as used in
+ *        cloudi/ADR01 §"Cognitive Memory Types" (semantic / episodic /
+ *        procedural). Round 1 from query alone; Round 2+ refines based on
+ *        evidence from Round N-1.
  *     2. QUERY: LLM generates the most-discriminating FTS query for the
  *        current hypothesis.
  *     3. SEARCH: bun recall --raw -n 20 --json (FTS only, no agent layer).
@@ -35,10 +37,16 @@ const DEFAULT_MAX_ROUNDS = 4
 const DEFAULT_MAX_COST = 0.10 // $
 const FTS_TOP_K = 20
 
+/**
+ * Hypothesis is shaped as ENGRAM cognitive types — aligned with cloudi/ADR01
+ * SemanticCategory: facts (semantic) / events (episodic) / instructions (procedural).
+ * See docs/explorations/memory-systems-analysis.md and
+ * cloudi/specs/active/ADR01/ADR01-memory-system.md §"Cognitive Memory Types".
+ */
 type Hypothesis = {
-  concepts: string[]
-  timeline_events: string[]
-  procedures: string[]
+  facts: string[]         // semantic — static knowledge
+  events: string[]        // episodic — things that happened
+  instructions: string[]  // procedural — how to behave / do things
   confidence: "low" | "medium" | "high"
   notes: string
 }
@@ -186,10 +194,10 @@ async function formHypothesisAndQuery(
 
 User asked: "${userQuery}"
 
-Form a hypothesis about what they're looking for, ENGRAM-shaped:
-- concepts: the semantic facts/topics involved
-- timeline_events: any episodic events that might be relevant
-- procedures: any how-to/instructions that might apply
+Form a hypothesis about what they're looking for, using ENGRAM cognitive types (the categories cloudi/ADR01 uses):
+- facts (semantic): static knowledge — "X is Y", "the API is Z"
+- events (episodic): things that happened — "we shipped X on date D", "discussion happened about Y"
+- instructions (procedural): how-to / rules — "to deploy run X", "always confirm before sending"
 - confidence: your initial confidence (low|medium|high)
 - notes: brief reasoning
 
@@ -199,9 +207,9 @@ Return ONLY this JSON, no prose:
 \`\`\`json
 {
   "hypothesis": {
-    "concepts": ["concept1", "concept2"],
-    "timeline_events": ["event1"],
-    "procedures": [],
+    "facts": ["fact1", "fact2"],
+    "events": ["event1"],
+    "instructions": [],
     "confidence": "medium",
     "notes": "..."
   },
@@ -216,14 +224,19 @@ User originally asked: "${userQuery}"
 Previous hypothesis: ${JSON.stringify(prevHypothesis)}
 Evidence summary from previous round: ${prevEvidenceSummary}
 
-Refine the hypothesis based on what the evidence revealed (concepts confirmed/added/dropped, timeline filled in, procedures clarified). Keep the same JSON shape.
+Refine the hypothesis based on what the evidence revealed. Hypothesis uses ENGRAM cognitive types (the categories cloudi/ADR01 uses):
+- facts (semantic): static knowledge — confirmed/added/dropped from prior round
+- events (episodic): things that happened — fill in timeline as evidence reveals it
+- instructions (procedural): how-to / rules — clarify based on evidence
+
+Keep the same JSON shape.
 
 Then generate a NEW FTS query targeting whatever the previous round's evidence suggested needed deeper investigation. Avoid repeating the previous query verbatim.
 
 Return ONLY this JSON, no prose:
 \`\`\`json
 {
-  "hypothesis": { "concepts": [...], "timeline_events": [...], "procedures": [...], "confidence": "...", "notes": "..." },
+  "hypothesis": { "facts": [...], "events": [...], "instructions": [...], "confidence": "...", "notes": "..." },
   "query": "...",
   "query_rationale": "..."
 }
@@ -237,7 +250,7 @@ Return ONLY this JSON, no prose:
 
   if (!parsed) {
     return {
-      hypothesis: { concepts: [], timeline_events: [], procedures: [], confidence: "low", notes: "(parse failure)" },
+      hypothesis: { facts: [], events: [], instructions: [], confidence: "low", notes: "(parse failure)" },
       query: userQuery,
       queryRationale: "(LLM parse failure — falling back to user query verbatim)",
       cost,
@@ -326,10 +339,10 @@ function fmtRound(r: Round, snippets: Snippet[]): string[] {
   lines.push(`${"─".repeat(70)}`)
   lines.push(``)
   lines.push(`HYPOTHESIS [${r.hypothesis.confidence}]:`)
-  lines.push(`  concepts:        [${r.hypothesis.concepts.join(", ")}]`)
-  lines.push(`  timeline_events: [${r.hypothesis.timeline_events.join(", ")}]`)
-  lines.push(`  procedures:      [${r.hypothesis.procedures.join(", ")}]`)
-  lines.push(`  notes:           ${r.hypothesis.notes}`)
+  lines.push(`  facts:        [${r.hypothesis.facts.join(", ")}]`)
+  lines.push(`  events:       [${r.hypothesis.events.join(", ")}]`)
+  lines.push(`  instructions: [${r.hypothesis.instructions.join(", ")}]`)
+  lines.push(`  notes:        ${r.hypothesis.notes}`)
   lines.push(``)
   lines.push(`QUERY: "${r.query}"`)
   lines.push(`  rationale: ${r.queryRationale}`)
@@ -446,10 +459,10 @@ async function main(): Promise<void> {
     const last = trace[trace.length - 1]
     if (last) {
       console.log(`Final hypothesis [${last.hypothesis.confidence}]:`)
-      console.log(`  concepts:        [${last.hypothesis.concepts.join(", ")}]`)
-      console.log(`  timeline_events: [${last.hypothesis.timeline_events.join(", ")}]`)
-      console.log(`  procedures:      [${last.hypothesis.procedures.join(", ")}]`)
-      console.log(`  notes:           ${last.hypothesis.notes}`)
+      console.log(`  facts:        [${last.hypothesis.facts.join(", ")}]`)
+      console.log(`  events:       [${last.hypothesis.events.join(", ")}]`)
+      console.log(`  instructions: [${last.hypothesis.instructions.join(", ")}]`)
+      console.log(`  notes:        ${last.hypothesis.notes}`)
     }
     console.log(``)
     console.log(`Supporting snippets across ${trace.length} rounds: ${supporting.length}`)
