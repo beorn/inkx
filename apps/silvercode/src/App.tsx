@@ -28,6 +28,7 @@ import { SessionPromptHistory } from "./components/SessionPromptHistory.tsx"
 import { Notifications } from "./components/Notifications.tsx"
 import { PaneGrid, type PaneGridHandle } from "./components/PaneGrid.tsx"
 import { InlinePermissionPrompt } from "./components/InlinePermissionPrompt.tsx"
+import { InlineAskUserQuestionPrompt } from "./components/InlineAskUserQuestionPrompt.tsx"
 import { useQueue } from "./hooks/use-queue.ts"
 import { SidePanel } from "./components/SidePanel.tsx"
 import { prefixSid } from "./sid-prefix.ts"
@@ -312,13 +313,23 @@ export function App(props: AppProps): React.ReactElement {
   // while a permission is pending — in-flight keystrokes cannot accidentally
   // answer the inline prompt.
   const [pendingPermissions, setPendingPermissions] = useState(0)
+  // Pending-question count (AskUserQuestion overlays). Same disable-composer
+  // discipline as pendingPermissions — keystrokes mustn't bleed into the
+  // picker. Bead: km-silvercode.askuserquestion-implement.
+  const [pendingQuestions, setPendingQuestions] = useState(0)
   useEffect(() => {
     let cancelled = false
     const recompute = () => {
       if (cancelled) return
       let total = 0
-      for (const s of sessions) total += s.store.state.get().permissions.length
+      let totalQ = 0
+      for (const s of sessions) {
+        const st = s.store.state.get()
+        total += st.permissions.length
+        if (st.pendingQuestion) totalQ += 1
+      }
       setPendingPermissions(total)
+      setPendingQuestions(totalQ)
     }
     recompute()
     const unsubs = sessions.map((s) => s.store.state.subscribe(recompute))
@@ -1259,6 +1270,12 @@ export function App(props: AppProps): React.ReactElement {
                       controller.respondPermissionOption(sid, rid, optionId, approved)
                     }
                   />
+                  <InlineAskUserQuestionPrompt
+                    focused={focused}
+                    sessions={sessions}
+                    onAnswer={(sid, toolUseId, answers) => controller.respondAskUserQuestion(sid, toolUseId, answers)}
+                    onCancel={(sid, toolUseId) => controller.cancelAskUserQuestion(sid, toolUseId)}
+                  />
                   {showHistory && <SessionPromptHistory onClose={() => setShowHistory(false)} logDir={props.logDir} />}
                   <Notifications sessions={sessions} />
 
@@ -1294,7 +1311,7 @@ export function App(props: AppProps): React.ReactElement {
                           onFocusRegion={setFocusedRegion}
                           inputValue={inputValue}
                           onInputChange={setInputValue}
-                          inputDisabled={!focused || pendingPermissions > 0}
+                          inputDisabled={!focused || pendingPermissions > 0 || pendingQuestions > 0}
                           onSubmit={handleSubmit}
                           onExit={requestExit}
                           promptColor={promptColor}

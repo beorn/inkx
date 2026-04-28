@@ -41,6 +41,7 @@ export type {
   ToolResultEntry,
   Todo,
 } from "./session-store.ts"
+export type { AskUserQuestionItem, AskUserQuestionOption, PendingQuestion } from "./session-types.ts"
 
 // ACP-shaped canonical types (silvercode's own namespace; structurally
 // compatible with @agentclientprotocol/sdk at v1). See ./acp-types.ts.

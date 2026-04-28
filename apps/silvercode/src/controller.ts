@@ -366,6 +366,29 @@ export type Controller = {
    * For legacy (stream-json) sessions this falls back to `respondPermission`.
    */
   respondPermissionOption(sessionId: string, requestId: string, optionId: PermissionOptionId, approved: boolean): void
+  /**
+   * Answer a pending AskUserQuestion tool call. The answers are formatted
+   * as a follow-up user message describing what the user picked, then
+   * sent through the agent's normal stdin path. A synthetic `tool-result`
+   * event is also applied to the session store so the UI's
+   * `pendingQuestion` clears immediately. The agent receives the answer
+   * as user-level context and continues its turn naturally.
+   *
+   * Bead: km-silvercode.askuserquestion-implement.
+   */
+  respondAskUserQuestion(
+    sessionId: string,
+    toolUseId: string,
+    answers: ReadonlyArray<{ question: string; label: string }>,
+  ): void
+  /**
+   * Cancel a pending AskUserQuestion tool call (Escape pressed in the
+   * picker). Clears the UI's `pendingQuestion` via a synthetic tool-result
+   * event and informs the agent via a follow-up user message that the
+   * question was cancelled — without this, the agent would sit waiting
+   * for an answer that never comes.
+   */
+  cancelAskUserQuestion(sessionId: string, toolUseId: string): void
   runSlashCommand(sessionId: string, text: string): void
   spawnSession(name?: string): Promise<SessionHandle>
   /** Move task+context from source → destination session. */
@@ -1457,6 +1480,52 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       const s = sessions.find((h) => h.id === sessionId)
       if (!s) return
       s.session.respondToPermission(requestId as PermissionRequestId, approved)
+    },
+    respondAskUserQuestion(
+      sessionId: string,
+      toolUseId: string,
+      answers: ReadonlyArray<{ question: string; label: string }>,
+    ): void {
+      const s = sessions.find((h) => h.id === sessionId)
+      if (!s) return
+      // Clear the UI's pendingQuestion via a synthetic tool-result event.
+      // The reducer matches on toolUseId and zeroes pendingQuestion.
+      s.store.apply({
+        kind: "tool-result",
+        sessionId: s.session.sessionId,
+        id: toolUseId as never,
+        output: {
+          questions: answers.map((a) => ({ question: a.question, label: a.label })),
+          answers: answers.reduce<Record<string, string>>((acc, a) => {
+            acc[a.question] = a.label
+            return acc
+          }, {}),
+        },
+        ts: Date.now(),
+      })
+      // Send the answer back to the agent as a follow-up user message.
+      // We can't inject a synthetic tool_result block into Claude Code's
+      // CLI mid-turn — its stream-json input only accepts user / permission
+      // / interrupt — so the answer arrives as a user-authored explanation
+      // of what was picked. The agent reads it on the next turn and
+      // continues. Multi-question form: "Q1: A1\nQ2: A2".
+      const formatted = answers.map((a) => `${a.question} → ${a.label}`).join("\n")
+      s.session.send(formatted)
+    },
+    cancelAskUserQuestion(sessionId: string, toolUseId: string): void {
+      const s = sessions.find((h) => h.id === sessionId)
+      if (!s) return
+      s.store.apply({
+        kind: "tool-result",
+        sessionId: s.session.sessionId,
+        id: toolUseId as never,
+        output: { cancelled: true },
+        is_error: true,
+        ts: Date.now(),
+      })
+      // Tell the agent the user cancelled — without this it sits waiting
+      // for an answer that never comes.
+      s.session.send("(user cancelled the question)")
     },
     runSlashCommand(sessionId: string, text: string): void {
       // Slash commands pass through verbatim — Claude Code interprets /compact, /clear, etc.

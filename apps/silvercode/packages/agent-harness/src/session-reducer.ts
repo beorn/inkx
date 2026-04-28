@@ -29,11 +29,14 @@
  * Bead: km-silvercode.session-store-tea-refactor.
  */
 
-import type { AgentEvent, ContentBlock, TurnId } from "./events.ts"
+import type { AgentEvent, ContentBlock, ToolUseId, TurnId } from "./events.ts"
 import type {
+  AskUserQuestionItem,
+  AskUserQuestionOption,
   ErrorEntry,
   MessageEntry,
   MessageOp,
+  PendingQuestion,
   SessionState,
   Todo,
   ToolCallEntry,
@@ -247,6 +250,51 @@ function upsertMessage(
   return [...messages, fresh]
 }
 
+/**
+ * Parse the `input` of an AskUserQuestion tool-use event into the
+ * harness's typed {@link PendingQuestion} shape. Mirrors Anthropic's
+ * `AskUserQuestionInput` schema (1-4 questions, each with header + 2-4
+ * options). Returns `null` if the input is malformed — the reducer must
+ * never throw, and a malformed AskUserQuestion call shouldn't poison the
+ * pending state.
+ *
+ * Bead: km-silvercode.askuserquestion-implement.
+ */
+function parseAskUserQuestionInput(toolUseId: ToolUseId, input: unknown): PendingQuestion | null {
+  if (!input || typeof input !== "object") return null
+  const root = input as Record<string, unknown>
+  const rawQuestions = root.questions
+  if (!Array.isArray(rawQuestions) || rawQuestions.length === 0) return null
+  const questions: AskUserQuestionItem[] = []
+  for (const q of rawQuestions) {
+    if (!q || typeof q !== "object") return null
+    const qo = q as Record<string, unknown>
+    const question = typeof qo.question === "string" ? qo.question : null
+    const header = typeof qo.header === "string" ? qo.header : null
+    const rawOptions = qo.options
+    if (question === null || header === null || !Array.isArray(rawOptions)) return null
+    const options: AskUserQuestionOption[] = []
+    for (const o of rawOptions) {
+      if (!o || typeof o !== "object") return null
+      const oo = o as Record<string, unknown>
+      const label = typeof oo.label === "string" ? oo.label : null
+      if (label === null) return null
+      options.push({
+        label,
+        description: typeof oo.description === "string" ? (oo.description as string) : undefined,
+        preview: typeof oo.preview === "string" ? (oo.preview as string) : undefined,
+      })
+    }
+    questions.push({
+      question,
+      header,
+      multiSelect: typeof qo.multiSelect === "boolean" ? (qo.multiSelect as boolean) : undefined,
+      options,
+    })
+  }
+  return { toolUseId, questions }
+}
+
 function extractTodos(input: unknown): Todo[] | undefined {
   if (!input || typeof input !== "object") return undefined
   const maybe = (input as Record<string, unknown>).todos
@@ -426,6 +474,15 @@ function applyToolUse(next: InternalSessionState, action: Extract<AgentEvent, { 
     const t = extractTodos(action.input)
     if (t) next.todos = t
   }
+  // AskUserQuestion — surface the question(s) on the public state so the
+  // UI can render an interactive picker. Cleared by `applyToolResult` when
+  // the matching `tool-result` arrives, or by an explicit user response
+  // routed through the controller (which emits a synthetic tool-result).
+  // Bead: km-silvercode.askuserquestion-implement.
+  if (action.name === "AskUserQuestion") {
+    const parsed = parseAskUserQuestionInput(action.id, action.input)
+    if (parsed) next.pendingQuestion = parsed
+  }
   next.status = "tool-running"
 }
 
@@ -457,6 +514,13 @@ function applyToolResult(next: InternalSessionState, action: Extract<AgentEvent,
       })
       next.messages = [...next.messages.slice(0, idx), updated, ...next.messages.slice(idx + 1)]
     }
+  }
+  // Clear pendingQuestion when its tool-result arrives (either a real
+  // result from the agent, or a synthetic one emitted by the controller
+  // when the user picks an option). Bead: km-silvercode.askuserquestion-
+  // implement.
+  if (next.pendingQuestion && next.pendingQuestion.toolUseId === action.id) {
+    next.pendingQuestion = null
   }
   // Status guard: only transition `tool-running → thinking`. A late
   // tool-result that arrives AFTER turn-end must NOT re-arm the spinner
@@ -653,10 +717,7 @@ export function reduce(state: InternalSessionState, action: AgentEvent): [Intern
       // would flip status to "thinking" with no active turn — and because
       // controller.send gates the queue on idle/ended, the queue wedges
       // forever. km-silvercode.queue-stuck-thinking.
-      if (
-        action.status === "requesting" &&
-        (next.status === "thinking" || next.status === "tool-running")
-      ) {
+      if (action.status === "requesting" && (next.status === "thinking" || next.status === "tool-running")) {
         next.status = "thinking"
       }
       break

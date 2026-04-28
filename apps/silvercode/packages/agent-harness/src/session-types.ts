@@ -14,6 +14,46 @@ import type { ContentBlock, SessionId, ToolUseId, TurnId } from "./events.ts"
 export type RoleIndicator = "user" | "assistant" | "system"
 
 /**
+ * One option for an AskUserQuestion question. Mirrors Anthropic's
+ * `AskUserQuestionInput.questions[].options[]` schema (label + description,
+ * with an optional preview for richer UIs). The harness keeps these as
+ * plain data — the renderer (silvery SelectList) maps them to its own
+ * item shape at render time.
+ *
+ * Bead: km-silvercode.askuserquestion-implement.
+ */
+export type AskUserQuestionOption = {
+  label: string
+  description?: string
+  preview?: string
+}
+
+/**
+ * One question in an AskUserQuestion tool call. The agent supplies 1-4
+ * questions; each carries 2-4 mutually-exclusive options (or any number
+ * when `multiSelect` is true).
+ */
+export type AskUserQuestionItem = {
+  question: string
+  /** Short chip-style label (max 12 chars per the upstream schema). */
+  header: string
+  multiSelect?: boolean
+  options: AskUserQuestionOption[]
+}
+
+/**
+ * Pending AskUserQuestion state surfaced on the session. Set when a
+ * `tool-use` event with `name === "AskUserQuestion"` is observed, cleared
+ * when the matching `tool-result` arrives. While set, the composer is
+ * disabled and the InlineAskUserQuestionPrompt overlay renders above it
+ * (mirroring the InlinePermissionPrompt pattern).
+ */
+export type PendingQuestion = {
+  toolUseId: ToolUseId
+  questions: AskUserQuestionItem[]
+}
+
+/**
  * Inline tool-call entry stored on a `MessageOp` (no `mcp_server`
  * indirection; the value `name` already includes the namespaced prefix
  * when applicable).
@@ -176,6 +216,14 @@ export type SessionState = {
   status: SessionStatus
   messages: MessageEntry[]
   permissions: Array<{ requestId: string; tool: string; args: unknown }>
+  /**
+   * Active AskUserQuestion tool call awaiting a user choice. `null` when no
+   * question is pending. Set when the agent emits a `tool-use` event with
+   * `name === "AskUserQuestion"`; cleared when the matching `tool-result`
+   * arrives. The UI reads this directly to render the picker overlay.
+   * Bead: km-silvercode.askuserquestion-implement.
+   */
+  pendingQuestion: PendingQuestion | null
   /** The most recent TodoWrite snapshot, regardless of which turn produced it. */
   todos: Todo[]
   /** Running cost + tokens. */
@@ -231,6 +279,7 @@ export function initialSessionState(): SessionState {
     status: "idle",
     messages: [],
     permissions: [],
+    pendingQuestion: null,
     todos: [],
     cost: { usd: 0, inputTokens: 0, outputTokens: 0 },
     lastError: null,

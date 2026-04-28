@@ -39,6 +39,7 @@ function defaultState(): SessionState {
     status: "idle",
     messages: [],
     permissions: [],
+    pendingQuestion: null,
     todos: [],
     cost: { usd: 0, inputTokens: 0, outputTokens: 0 },
     lastError: null,
