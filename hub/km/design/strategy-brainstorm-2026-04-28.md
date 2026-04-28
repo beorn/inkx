@@ -1,6 +1,33 @@
 # Strategy brainstorm — portfolio paths through a layered architecture
 
-**Status**: workshop output, 2026-04-28. Standalone counterpart to [`licensing-strategy.md`](licensing-strategy.md) (which commits to Option 5). This doc steps back, enumerates alternatives, and recommends a layered lead path.
+**Status**: workshop output, 2026-04-28. Counterpart to [`licensing-strategy.md`](licensing-strategy.md) (Option 5 commitment). This doc steps back, enumerates alternatives, and recommends a layered lead path.
+
+---
+
+<a id="tldr"></a>
+
+## TL;DR
+
+**Recommended lead path** ([Family C](#family-map) services-led + [Family D](#family-map) protocol play + an E demonstrator):
+
+- **[S25](#s25) ★ — Bottom-stack first, apps as demonstrators**. Agent + protocol + services lead; silvery + silvercode + km repositioned as open reference implementations. Cross-elasticity becomes positive throughout.
+- **[S23](#s23) ★ — The playground for the UI of agentic work**. Integrated app (chat + docs + code + agents + boards + diagrams), one app with multiple panes. TUI today → web/native via silvery's multi-target.
+- **[S26](#s26) ★ — Docker for agents**. `.brain` as portable agent format; spec-authorship moat at the protocol layer; composes with S25.
+
+**Why**: simultaneously cross-elasticity-positive, solo-bandwidth-fitting, /pro-validated (25/25 cluster math), multi-acquirer-optional, capital-efficient (architecture compounds across paths).
+
+**What NOT to do**: lock to S1 (high cross-elasticity exposure); pursue Family H (abandons architectural coherence); ship production hosted services solo; promote PlainBrain as a standalone "third standard" before silvery validates; pre-form a separate entity for agentroom.
+
+**Sequencing**:
+
+| Phase | Team | Capital | Focus |
+|---|---|---|---|
+| Months 0-3 | solo | bootstrap, ~$0 burn | silvery maintenance + ACP-proxy ship-now cluster (S18) closed/open-core (BSL on gateway from day one) + tribe wire as INTERNAL API + conformance harness in private + `.brain` as `run-brain` utility (NOT a spec) + silvercode-as-open-reference (zero-config to agentroom.cloud) + dogfooding km |
+| Months 3-6 | first hire | angel ($0.5-1M); ~$25-40k/mo | agentroom *preview* gateway (no SLA), tribe wire published as documentation (not formal MSC), `.brain` registry preview with provenance/signing, S23 demo, design-partner outreach |
+| Months 6-12 | small team (~5) | seed ($3-5M); ~$120-180k/mo | production services, enterprise readiness, AI-lab outreach, submit formal MSC for `org.agentroom.*` with dominant impl behind it |
+| Months 12+ | seed → Series A | revenue + Series A optional ($8-15M) | signal-driven path deepening (AI-lab inbound → S24; services scaling → S2/S16; `.brain` adoption → S26 standalone; PKM market shifts → Family B). Standardize-to-weaponize — formalize `.brain` once 10K+ brains in registry. |
+
+*Burn estimates assume Bay-Area engineering rates; remote-only or international hiring shifts ranges 30-50% lower. Solo timelines slip 1.5-2× under realistic distraction load.*
 
 ---
 
@@ -10,40 +37,13 @@
 
 The portfolio is a layered architecture. Strategies are *paths* through it, not exclusive choices.
 
-- **The architecture is the asset**. Layers (UI → features → substrate → agents → protocols → services) accrete from [silvery](#g-silvery) + [flexily](#g-flexily) + [tribe](#g-tribe) + km + [agentroom](#g-agentroom). They exist regardless of which strategy executes.
-- **Strategies select**: which customer segments to serve, which components to expose or open-source, which monetization model to apply.
-- **Paths coexist**. [Cursor](#g-cursor) can be the [silvercode](#g-silvercode) customer; [Anthropic](#g-anthropic) can be the silvery acquirer; PKM users can be the km customer; AI-tool builders can be the services customer. Same substrate, different traversals.
-- **Pivots are cheap** because the architecture compounds across paths. Investing in silvery, tribe, agentroom, services is reusable; investing in a single product instance is not.
-- **Acquirers buy paths-with-architecture**. silvery → AI lab. agentroom → infra company. km → PKM acquirer. Different acquirers, different price points, all from the same graph.
+- **The architecture is the asset.** Layers (UI → features → substrate → agents → protocols → services) accrete from [silvery](#g-silvery) + [flexily](#g-flexily) + [tribe](#g-tribe) + km + [agentroom](#g-agentroom). They exist regardless of which strategy executes.
+- **Strategies select** which customer segments to serve, which components to open-source, which monetization model to apply.
+- **Paths coexist.** [Cursor](#g-cursor) can be the [silvercode](#g-silvercode) customer; [Anthropic](#g-anthropic) can be the silvery acquirer; PKM users can be the km customer; AI-tool builders can be the services customer. Same substrate, different traversals.
+- **Pivots are cheap** because architecture compounds across paths. Investing in silvery, tribe, agentroom, services is reusable; investing in a single product instance is not.
+- **Acquirers buy paths-with-architecture.** silvery → AI lab; agentroom → infra company; km → PKM acquirer. Different acquirers, different price points, same graph.
 
-**Strategic implication**: the decision is *which paths to traverse first*, not *which assets to build*. Start with paths that share the most architecture (so investment is reusable), generate signal early, avoid paths that need unique infrastructure no other path uses.
-
----
-
-<a id="tldr"></a>
-
-## TL;DR
-
-**Recommended lead path** ([Family C](#family-map) + [Family D](#family-map) + an E demonstrator):
-
-- **[S25](#s25) ★ — Bottom-stack first, apps as demonstrators**. Agent + protocol + services as the lead. silvery + silvercode + km repositioned as open reference implementations. Cross-elasticity becomes positive throughout.
-- **[S23](#s23) ★ — The playground for the UI of agentic work**. Integrated app (chat + docs + code + agents + boards + diagrams). One app, multiple panes. [TUI](#g-tui) today → web/native via silvery's multi-target.
-- **[S26](#s26) ★ — Docker for agents**. `.brain` as portable agent format. Spec-authorship moat at the protocol layer. Composes with [S25](#s25).
-
-**Why**: simultaneously [cross-elasticity](#g-cross-elasticity)-positive, solo-bandwidth-fitting, /pro-rubric-validated (25/25 cluster math), multi-acquirer-optional, capital-efficient (architecture compounds across paths).
-
-**What NOT to do**: lock to [S1](#s1) (high cross-elasticity exposure); pursue [Family H](#family-map) (abandons architectural coherence); ship production hosted services solo; promote [PlainBrain](#g-plainbrain) as a standalone "third standard" before silvery validates; pre-form a separate entity for agentroom.
-
-**Sequencing**:
-
-| Phase | Team size | Capital posture | Focus |
-|---|---|---|---|
-| Months 0-3 | solo | bootstrap, ~$0 burn | silvery maintenance + [ACP](#g-acp)-proxy ship-now cluster ([S18](#s18)) shipped closed/open-core ([BSL](#g-bsl) on gateway code from day one) + tribe wire as INTERNAL API + conformance harness in private + `.brain` as `run-brain` utility (NOT a spec) + silvercode-as-open-reference (zero-config to agentroom.cloud) + dogfooding km |
-| Months 3-6 | first hire | personal capital or angel ($0.5-1M); ~$25-40k/mo burn | agentroom *preview* gateway (NOT production-[SLA](#g-sla)), tribe wire published as documentation (NOT formal MSC), `.brain` registry preview with provenance/signing, [S23](#s23) demo, design-partner outreach |
-| Months 6-12 | small team (~5) | seed ($3-5M); ~$120-180k/mo burn | production services, enterprise readiness, AI-lab outreach, **submit formal MSC for `org.agentroom.*`** (with dominant impl behind it) |
-| Months 12+ | seed/Series A | revenue + Series A optional ($8-15M) | signal-driven path deepening (AI-lab inbound → [S24](#s24); services scaling → [S2](#s2)/[S16](#s16); `.brain` adoption → [S26](#s26) standalone; PKM market shifts → [Family B](#family-map)). **Standardize-to-weaponize** — formalize `.brain` once 10K+ brains in registry. |
-
-*Burn estimates assume Bay-Area engineering rates; remote-only or international hiring shifts ranges 30-50% lower. Timelines are nominal — solo timelines slip 1.5-2× under realistic distraction load.*
+**Strategic implication**: decide *which paths to traverse first*, not *which assets to build*. Start with paths that share the most architecture, generate signal early, avoid paths needing unique infrastructure no other path uses.
 
 ---
 
