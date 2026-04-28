@@ -931,6 +931,94 @@ Subscribe to events in the controller (same as before — feed everything to `on
 
 ---
 
+## Ship plan (2026-04-28, locked): doubt-shaped, gated, kill-switchable
+
+User-approved plan. Replaces the earlier "build-the-architecture-then-iterate" sequence with a "disprove-the-hypothesis-cheaply-then-invest" sequence.
+
+### Day 1 — Cheapest hypothesis test (no code)
+
+Shell script: every 5 minutes, run `bun recall --agent` against the last 10 turns of an active session, log results to a file. Manual eyeball at end of day — would these emits have been useful in the actual conversation?
+
+- **Kill gate**: 0 of 10 useful → kill the project, save 6 weeks
+- **Proceed gate**: 3+ of 10 useful → continue to Day 2
+
+Bead: `km-tribe.recall-step1-hypothesis-test`
+
+### Days 2–3 — Tier 2 v2 vs Tier 3 v0 A/B (∼150 LOC total)
+
+Two cheap implementations behind env flags, run in parallel for 3–4 days:
+
+- **Tier 2 v2** (∼50 LOC patch on `UserPromptSubmit` hook): skip-on-no-salience + per-(token,scope) dedup + outcome-aware ranking
+- **Tier 3 v0** (∼100 LOC paced echo): subscribe to events, every 12 turns run `bun recall --agent` on synthetic query, emit raw hits — no LLM packaging, no compiled state, no tools
+
+Decide which (or both) is worth investing in. Tier 2 v2 might give 80% of the value at 10% of the work — that's worth knowing.
+
+Beads: `km-tribe.recall-step2-tier2v2-stub`, `km-tribe.recall-step3-tier3v0-stub`
+
+### Day 4 — Real Deep Research API web sweep (∼$5, 15 min)
+
+Closes the Oct 2024 cutoff gap from the earlier `/deep` audit. Already missed Hermes Agent (Feb 2026); other things may have shipped. Updates moat thesis.
+
+Bead: `km-tribe.recall-step4-prior-art-2025-26`
+
+### Week 2 — Tier 3 v1 + visibility (only if A/B says yes)
+
+Build the sub-agent (∼300 LOC) and side-panel/tooltip/journal **in parallel**. gbrain conventions adopted as we go (drafts of compiled-state format + dream-cycle protocol live, refined in code).
+
+Sub-bead: `km-tribe.recall-thought` (existing)
+Companion bead: `km-tribe.recall-thought-visibility`
+
+### Week 3 — Honest decision point
+
+- Kill criteria triggered (`useful_emit_rate < 20%`, daily-cost > $5, foreground-agent visibly distracted) → stop
+- Useful but expensive → tighten cadence + tools
+- Useful and cheap → continue to Week 4
+- Surprisingly useful for non-memory things → **pivot** to compiler/lint/critic sub-agent which are easier to validate
+
+### Weeks 4–8 — Either Tier 4 mem-dream OR alternate sub-agent
+
+Same gate-then-invest pattern. gbrain dream-cycle adapted as we apply it.
+
+### Topology B+C (deferred)
+
+Daemon move (Topology B) only when state-survival becomes felt pain. Cloud proxy (Topology C) only when distribution becomes a real product question. Don't build for hypothetical needs.
+
+### Kill-switch metrics
+
+Tracked from Day 1 onward via `silvercode:ambient` loggily namespace:
+
+```
+useful_emit_rate = emits_referenced_in_next_2_turns / total_emits
+daily_cost_usd   = sum(per-event costs)
+distraction_signal = manual user thumbs-down per session
+```
+
+Thresholds:
+- `useful_emit_rate < 20% sustained over 1 week` → kill or pivot
+- `daily_cost_usd > $5/dev` → tighten gates
+- `distraction_signal > 1/day` → reduce cadence
+
+### What I'm explicitly NOT doing in v1
+
+- Multi-corpus search (qmd, gbrain) — single corpus first
+- Tool-call agent loop — paced wrapper first
+- LSP/git/bd tools — recall_search only
+- Cross-session dedup persistence — per-session is enough
+- Cloud deployment — local only
+- agentskills.io interop — different problem
+- User-facing docs — until the thing is useful
+
+### Compounding shift
+
+The earlier plan was **confidence-shaped** ("build, ship, iterate"). This plan is **doubt-shaped** ("disprove cheaply, invest in what survives"). For a novel composition with unproven user value, doubt-shaped wins.
+
+- **Time-to-yes-or-no**: 4 days
+- **Time-to-platform-claim**: 6–8 weeks IF early gates pass; 0 weeks if they don't
+
+The riskiest cut from the earlier plan is the "adopt-gbrain-first" step — kept available as draft references but not blocking.
+
+---
+
 ## Reactive evolution (2026-04-27 23:38): mem-thought as stateful in-session agent
 
 User reframe: the memory itself should be a stateful agent that maintains compiled context and updates incrementally on new events (tribe broadcasts, file changes, prompts), instead of re-searching from scratch each cycle.
