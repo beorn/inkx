@@ -202,11 +202,23 @@ A list of async-fetched trees of plain values uses all four together. Each packa
 
 ### Vault structure & sigil syntax — load BEFORE designing paths/links
 
-The vault layout is **node-tree-shaped on disk**. Directories and files become km nodes; node lookup is by `node.name`. This has hard implications for any path you design:
+The vault layout is **node-tree-shaped on disk**. Directories and files become km nodes; node lookup is by `node.name`. This has hard implications for any path, link, or id you design.
 
-- **Sigils are name-matched nodes.** A board sigil like `@km` is a node with `node.name = "@km"`. A directory `@km/` and a directory `km/` are **different nodes** — same letters, different names. Wikilinks `[[@km/beads/cutover]]` traverse `name=@km` → `name=beads` → `name=cutover`. A `km/` directory will not satisfy that lookup, even if it contains `beads/cutover.md`.
-- **Sigil prefix is dynamic.** The `@<prefix>` matches whatever `issue-prefix` the source bd config specifies — `@km/` for our vault, `@pim/` for a `pim`-prefixed vault. Never hardcode `@km`; thread `sourcePrefix` through.
-- **Migrated bead layout.**
+**All sigils are load-bearing.** The leading sigil character is part of the node name, not just a marker. Strip it and you point at a different node — or no node at all.
+
+| Sigil | Example | Node name | Role |
+|-------|---------|-----------|------|
+| `@<name>` | `@km`, `@issue`, `@memory` | `@km`, `@issue`, `@memory` | Boards, mentions, sigil-tagged collections |
+| `#<tag>` | `#P0`, `#bug`, `#task` | `#P0`, `#bug`, `#task` | Tags (priority, type, label) |
+| `^<id>` | `^abc123` | `^abc123` | Block / node references |
+| `[[<target>]]` | `[[@km/beads/cutover]]` | matches by inner path | Wikilink — brackets are syntax, the inside is a name path |
+| `<key>::` | `blocks::`, `due::` | property key on the containing node | Logseq-style inline property |
+
+**Consequences for paths and migrations:**
+
+- A directory `@km/` creates `node.name = "@km"`. A directory `km/` creates `node.name = "km"`. Different nodes. Wikilinks `[[@km/beads/cutover]]` traverse `name=@km` → `name=beads` → `name=cutover` and won't resolve under bare `km/`.
+- Sigil **prefix is dynamic** — `@<prefix>` matches whatever `issue-prefix` the source bd config specifies. `@km/` here, `@pim/` for a `pim`-prefixed vault. Thread `sourcePrefix`; never hardcode.
+- **Migrated bead layout:**
   ```
   vault-root/
     mem/<key>.md                    # memories — prefix-agnostic, root-level
@@ -214,10 +226,10 @@ The vault layout is **node-tree-shaped on disk**. Directories and files become k
     @km/_orphan/<id>.md             # bd auto-ids without scope (km-q5hji etc)
     @pim/...                        # if you ever import a second prefix
   ```
-- **Path-form == frontmatter id == wikilink target.** All three carry the literal `@<prefix>/`. The on-disk path mirrors the link target 1:1 — no mental translation between "path" and "logical id."
-- **Aliases keep bd-form working.** Frontmatter `aliases:` includes bd-form (`km-beads.cutover`) and dash-form (`km-beads-cutover`) so legacy text still resolves; canonical id is the path-form.
+- **Path-form == frontmatter id == wikilink target.** All three carry the literal sigil. The on-disk path mirrors the link target 1:1 — no mental translation between "path" and "logical id."
+- **Aliases keep legacy forms working.** For migrated beads, frontmatter `aliases:` includes bd-form (`km-beads.cutover`) and dash-form (`km-beads-cutover`); canonical id is the sigil-prefixed path-form.
 
-**Trap to avoid (recurring):** "use bare `km/` instead of `@km/` because shell completion / @ is annoying." This is wrong — different node, broken board parenting, broken wikilink resolution. The literal `@` is load-bearing.
+**Trap to avoid (recurring):** "Use bare `km/` / `bug/` / `abc123/` instead of `@km/` / `#bug/` / `^abc123/` because the sigil is annoying / breaks shell completion / looks weird." Wrong — different node, broken parenting, broken link resolution. The sigil character is part of node identity.
 
 Authoritative code: `packages/km-beads/src/migrate.ts` (`bdIdToPathForm`, `bdIdToAliases`, `issueToMarkdown`).
 
