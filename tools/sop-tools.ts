@@ -272,6 +272,17 @@ const toolVersions: SopTask = {
   cache: 86400,
 }
 
+const recallEvalBaseline: SopTask = {
+  id: "recall-eval-baseline",
+  label: "recall eval baseline (P@5/R@5/MRR vs baseline)",
+  // Monthly check: 1-run baseline against hub/tribe/eval/recall-corpus.yaml.
+  // Costs ~$0.10 per run (15 pairs × Haiku synth). Output is the aggregate row;
+  // human compares against bead km-tribe.recall-eval-corpus baseline.
+  // Re-runs with --runs 3 (more reliable) live in /sop --quarterly windows.
+  command: "bun tools/recall-eval.ts --quiet --mode baseline 2>&1 | tail -10",
+  cache: 86400 * 30,
+}
+
 // ─── Legal tools ───────────────────────────────────────────────────────────
 
 const licenseFiles: SopTask = {
@@ -302,6 +313,7 @@ export const TASKS: SopTask[] = [
   // Phase 1: external (cache: TTL)
   bunAudit, ghIssues, bdStale, bdOrphans, bdPriority,
   ciHealth, npmRegistry, nixFreshness, toolVersions, depLicenses,
+  recallEvalBaseline,
 ]
 
 export const TASK_MAP = new Map(TASKS.map((t) => [t.id, t]))
@@ -317,6 +329,6 @@ export const DOMAIN_TOOLS: Record<string, string[]> = {
   sites: ["doc-links", "doc-freshness"],
   security: ["bun-audit", "secret-scan", "lockfile", "nix-freshness"],
   packaging: ["bundle-sizes", "zero-dep", "cjs-esm"],
-  infra: ["ci-health", "hook-integrity", "tool-versions"],
+  infra: ["ci-health", "hook-integrity", "tool-versions", "recall-eval-baseline"],
   legal: ["license-files", "dep-licenses"],
 }
