@@ -24,7 +24,7 @@
  *
  * Bead: km-silvercode.permission-inline-prompt.
  */
-import React, { useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { Box, Muted, SelectList, Text } from "silvery"
 import { useInput } from "silvery/runtime"
 import type { PermissionOptionId } from "@km/agent-harness"
@@ -61,6 +61,17 @@ export function InlinePermissionPrompt({
   onDeny: (sessionId: string, requestId: string) => void
   onSelectOption?: (sessionId: string, requestId: string, optionId: PermissionOptionId, approved: boolean) => void
 }): React.ReactElement | null {
+  // Subscribe to the focused session's store so we re-render whenever
+  // its `permissions` array changes — `useMemo` alone reads at render
+  // time and won't catch in-place state updates from the harness.
+  // `tick` increments per store-emit; the snapshot below reads the
+  // freshest state on every render that follows.
+  const [tick, setTick] = useState(0)
+  useEffect(() => {
+    if (!focused) return
+    return focused.store.state.subscribe(() => setTick((t) => t + 1))
+  }, [focused])
+
   // Pull the FIRST pending permission for the focused session. We
   // intentionally ignore other sessions: each pane has its own composer
   // chrome and a permission prompt belongs above the composer of the pane
@@ -78,10 +89,9 @@ export function InlinePermissionPrompt({
       args: first.args,
       options: (first as unknown as { options?: PermissionOption[] }).options ?? [],
     }
-    // `sessions` is included so a re-render triggered by another session's
-    // store update still re-evaluates the focused session's first pending
-    // entry — necessary because state.permissions is mutated in place.
-  }, [focused, sessions])
+    // `sessions` + `tick` together force a recompute on store changes
+    // and on session-list changes (e.g. focus switching).
+  }, [focused, sessions, tick])
 
   const [optionCursor, setOptionCursor] = useState(0)
 
@@ -96,13 +106,15 @@ export function InlinePermissionPrompt({
 
   const isMultiOption = optionItems.length > 0
 
+  // Multi-option mode: Enter is owned by the inner <SelectList> (it fires
+  // onSelect on the focused option). We deliberately skip Enter handling
+  // here so the option doesn't get dispatched twice. y/n still work as
+  // shortcuts for "select the focused option" in multi-option mode.
   useInput(
     (input, key) => {
       if (!current) return
       if (isMultiOption) {
-        // Multi-option: y / n / Enter dispatch the focused option. Up/Down
-        // navigation is owned by the inner <SelectList>.
-        if (key.return || input === "y" || input === "n") {
+        if (input === "y" || input === "n") {
           const opt = current.options[optionCursor]
           if (!opt) return
           const approved = opt.kind === "allow_once" || opt.kind === "allow_always"
@@ -115,11 +127,14 @@ export function InlinePermissionPrompt({
           }
           setOptionCursor(0)
         }
-      } else {
-        // Legacy binary flow.
-        if (input === "y") onApprove(current.sessionId, current.requestId)
-        else if (input === "n") onDeny(current.sessionId, current.requestId)
+        return
       }
+      // Legacy binary flow.
+      if (input === "y") onApprove(current.sessionId, current.requestId)
+      else if (input === "n") onDeny(current.sessionId, current.requestId)
+      // No-op on key.return here too — useInput passes through to other
+      // handlers, but legacy mode has no Enter binding (intentional;
+      // submit must be explicit y/n).
     },
     { isActive: !!current },
   )
