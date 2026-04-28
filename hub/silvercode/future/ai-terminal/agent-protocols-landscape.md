@@ -333,6 +333,23 @@ What does Layer 4 actually need?
 3. Not federated across organizations
 4. Proprietary cloud + OSS SDK split
 
+### Two architectural primitives that are universally missing
+
+**Agent-in-the-middle (compute platform)**: a persistent in-session LLM sub-agent co-resident with the proxy/gateway. Watches all wire traffic, maintains compiled-knowledge state via prompt caching, injects context deltas into foreground prompts. Per /deep prior-art audit (2026-04-28), **every product in the LLM-gateway category is transform-only** — OpenRouter, LiteLLM Proxy, Portkey, Helicone, Vercel AI Gateway, LangSmith. None hosts a persistent stateful sub-agent. CDN→edge-compute is the precedent (Cloudflare Workers); this is its agent-protocol analog and remains uncontested.
+
+**Coordination layer (shared agent state)**: room-scoped derived state for shared todos, atomic claims, soft/hard locks, decisions, findings, dependencies, handoffs. Operating-system primitives (locks/queues/semaphores) and distributed-systems primitives (consensus/etcd/CRDT) at agent-protocol scale. ACP gives the *signal* (`session/update plan` notifications, Claude Code's TodoWrite) but no *layer*. Every existing protocol punts:
+
+| Protocol | Coordination support |
+|---|---|
+| MCP | None — agent↔tool only |
+| A2A | `contextId` for grouping; no shared room state, no atomic claim, no locks |
+| ACP-Zed | Per-agent `plan` events; no room-scope, no claim semantics |
+| ACP-IBM | None |
+| MS Bot Framework | Bot state per-bot; no peer-agent coordination |
+| LangGraph | Framework-internal `AgentState`; not exchangeable across agents |
+
+This is the second uncontested primitive. Combined with agent-in-the-middle, it forms the actual platform layer that Layer 4 needs.
+
 ---
 
 ## Matrix's agent gap — substrate built, vocabulary missing
@@ -451,9 +468,20 @@ Every agent protocol punts on session format — MCP, A2A, ACP-Zed, ACP-IBM, ANP
 
 There is **no cross-protocol portable session format** for agent conversations. The vault-as-storage substrate (#12) fills that gap with a JSONL format using `org.agentroom.*` vocabulary. That makes it more strategically valuable than the standalone score (22/25) suggests — it's the missing universal persistence layer.
 
-### 5. Re-cast venture #11 score
+### 5. Re-cast venture #11 score and the four-piece stack
 
-Original framing scored 23/25 as "ACP-to-Matrix gateway." Revised framing as **"agentroom gateway: humans+agents Layer 4 substrate, bridges A2A and ACP-Zed agents into a shared room, authors `org.agentroom.*` MSC"**:
+The venture analysis decomposes into four complementary pieces, each a distinct architectural primitive:
+
+| # | Layer | Score | Notes |
+|---|---|---|---|
+| **#11** | Wire (agentroom gateway, A2A + ACP-Zed bridges, `org.agentroom.*` MSC) | 24/25 | The bridge — moves bytes, authors the spec |
+| **#12** | Storage (km vault as canonical session JSONL; rooms = KNodes) | 22/25 | The disk — durable, portable, vault-native |
+| **#13** | Coordination (shared todos/locks/decisions/findings as room-scoped events) | 23/25 | The logic — derived state across agents; "agent collaboration database" |
+| **#14** | Compute platform (agent-in-the-middle: recall-thought, critic, style-watcher, test-runner sub-agents) | 21/25 | The platform — Cloudflare-Workers analog; persistent LLM sub-agents |
+
+Combined cluster (#11 + #12 + #13 + #14) hits **25/25 ceiling effect**. CDN→edge-compute is the right competitive reference: Cloudflare ($30B+ valuation) came from Workers, not CDN; Kong ($2B) is gateway-only. Same arc applies — substrate is the start, compute is the moat, coordination is the customer lock-in.
+
+Original framing scored #11 alone at 23/25 as "ACP-to-Matrix gateway." Revised framing as **"agentroom gateway: humans+agents Layer 4 substrate, bridges A2A and ACP-Zed agents into a shared room, authors `org.agentroom.*` MSC"**:
 
 | Real | Win | Worth | Wedge | Moat | Score | Kill? |
 |------|-----|-------|-------|------|-------|-------|

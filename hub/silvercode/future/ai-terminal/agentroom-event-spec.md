@@ -20,14 +20,28 @@ ACP defines these primitives as JSON-RPC methods, but JSON-RPC is point-to-point
 
 All custom events use the reverse-DNS-style namespace `org.agentroom.*`. Sub-namespaces:
 
+**Wire / message layer (1:1 + multi-agent foundation):**
+
 - `org.agentroom.session.*` — session lifecycle (start, end, resume)
 - `org.agentroom.agent.*` — agent participation (join, leave, capability change)
 - `org.agentroom.prompt.*` — user-initiated requests
 - `org.agentroom.response.*` — agent text replies (streaming + final)
 - `org.agentroom.tool.*` — tool calls and results
-- `org.agentroom.plan.*` — agent plan announcements
+- `org.agentroom.plan.*` — per-agent plan announcements (see also `todo.*` for room-scoped shared todos)
 - `org.agentroom.content.*` — typed content blocks (text, code, diff, image)
 - `org.agentroom.permission.*` — permission requests and decisions
+
+**Agent-in-the-middle layer (proxy-hosted sub-agents):**
+
+- `org.agentroom.subagent.*` — recall-thought, critic, style-watcher, test-runner, doc-keeper sub-agent emissions
+
+**Coordination layer (shared room state across agents):**
+
+- `org.agentroom.todo.*` — room-scoped shared todo state (create, claim, update, complete, dependency)
+- `org.agentroom.lock.*` — soft and hard locks on resources
+- `org.agentroom.decision.*` — recorded decisions inherited by future sessions
+- `org.agentroom.finding.*` — knowledge accumulated during work
+- `org.agentroom.handoff.*` — explicit handoff between agents or to humans
 
 ## Multi-agent semantics — N agents in one session
 
@@ -290,6 +304,252 @@ The session terminates (clean exit, error, timeout). Includes summary stats usef
     "tokens_input": 18452,
     "tokens_output": 4391,
     "cost_usd": 0.4271
+  }
+}
+```
+
+## Sub-agent events (agent-in-the-middle layer)
+
+The proxy hosts persistent in-session sub-agents (recall-thought, critic, style-watcher, test-runner, doc-keeper) that emit observations into the room without being foreground agents. These events make the sub-agent's activity transparent to humans and other agents.
+
+### `org.agentroom.subagent.thought`
+
+A sub-agent surfaces an insight unprompted (e.g., recall-thought notices a thematic match with a past session).
+
+```json
+{
+  "type": "org.agentroom.subagent.thought",
+  "content": {
+    "session_id": "acp-session-uuid",
+    "subagent_id": "recall-thought:default",
+    "subagent_kind": "memory",
+    "thought_id": "thought-uuid",
+    "title": "Similar refactor in last month's session",
+    "body": "When you refactored `parseTokens` 27 days ago, you used the same early-return pattern...",
+    "confidence": 0.78,
+    "references": [{"session_id": "old-session-uuid", "summary": "parseTokens refactor"}]
+  }
+}
+```
+
+### `org.agentroom.subagent.delta`
+
+A sub-agent injects a context delta into a foreground agent's prompt. Visible to humans for transparency (they see what's being added to the agent's context).
+
+```json
+{
+  "type": "org.agentroom.subagent.delta",
+  "content": {
+    "session_id": "acp-session-uuid",
+    "subagent_id": "recall-thought:default",
+    "target_agent_id": "@claude-acp:gateway.example",
+    "delta_kind": "context_inject",
+    "body": "[recall-thought]: extractBody is also called from packages/km-render/src/columns.ts:142",
+    "size_tokens": 18,
+    "rationale": "Foreground agent didn't grep all call sites"
+  }
+}
+```
+
+### `org.agentroom.subagent.alert`
+
+A sub-agent flags a concern (critic mode warning, style violation, failing test, etc.).
+
+```json
+{
+  "type": "org.agentroom.subagent.alert",
+  "content": {
+    "session_id": "acp-session-uuid",
+    "subagent_id": "critic:default",
+    "subagent_kind": "critic",
+    "alert_id": "alert-uuid",
+    "severity": "warning",
+    "title": "Plan looks risky",
+    "body": "The plan to delete the migration runner skips the verification step. In 3 prior cases, this caused data loss.",
+    "suggested_action": "Add an explicit pre-check before deletion."
+  }
+}
+```
+
+### `org.agentroom.subagent.metric`
+
+Periodic sub-agent state report (cache size, knowledge entries active, etc.). Mostly for observability.
+
+```json
+{
+  "type": "org.agentroom.subagent.metric",
+  "content": {
+    "session_id": "acp-session-uuid",
+    "subagent_id": "recall-thought:default",
+    "metric_kind": "state_summary",
+    "values": {
+      "cache_tokens": 47830,
+      "knowledge_entries_active": 142,
+      "thoughts_emitted": 7,
+      "deltas_injected": 3
+    }
+  }
+}
+```
+
+## Coordination events (shared room state)
+
+Room-scoped state shared across all agents. Mutations are atomic at the gateway; events are append-only on the wire/log.
+
+### `org.agentroom.todo.create`
+
+Create a new todo item in the room. Items live as KNodes under the room node (markdown `[ ]` items).
+
+```json
+{
+  "type": "org.agentroom.todo.create",
+  "content": {
+    "session_id": "acp-session-uuid",
+    "todo_id": "todo-uuid",
+    "title": "Refactor extractBody to use early returns",
+    "priority": "high",
+    "status": "pending",
+    "created_by": "@user:matrix.example",
+    "depends_on": [],
+    "knode_path": "rooms/refactor-extractbody/todos/01"
+  }
+}
+```
+
+### `org.agentroom.todo.claim`
+
+An agent (or human) atomically claims a todo. Gateway rejects duplicate claims; first writer wins.
+
+```json
+{
+  "type": "org.agentroom.todo.claim",
+  "content": {
+    "todo_id": "todo-uuid",
+    "claimed_by": "@claude-acp:gateway.example",
+    "claim_token": "atomic-claim-uuid",
+    "estimated_duration_s": 600
+  }
+}
+```
+
+### `org.agentroom.todo.update`
+
+Status / priority / progress updates on a claimed todo.
+
+```json
+{
+  "type": "org.agentroom.todo.update",
+  "content": {
+    "todo_id": "todo-uuid",
+    "updated_by": "@claude-acp:gateway.example",
+    "status": "in_progress",
+    "progress_pct": 30,
+    "note": "Identified all 7 call sites; rewriting first 3"
+  }
+}
+```
+
+### `org.agentroom.todo.complete`
+
+Mark a todo as done; release any associated locks.
+
+```json
+{
+  "type": "org.agentroom.todo.complete",
+  "content": {
+    "todo_id": "todo-uuid",
+    "completed_by": "@claude-acp:gateway.example",
+    "outcome": "ok",
+    "summary": "Refactored extractBody; all tests pass; PR #4231",
+    "duration_s": 542
+  }
+}
+```
+
+### `org.agentroom.lock.acquire`
+
+Soft (advisory) or hard (enforced) lock on a resource. Hard locks rejected by gateway if conflict.
+
+```json
+{
+  "type": "org.agentroom.lock.acquire",
+  "content": {
+    "lock_id": "lock-uuid",
+    "resource": "file:src/util/extractBody.ts",
+    "lock_kind": "soft",
+    "acquired_by": "@claude-acp:gateway.example",
+    "rationale": "Refactoring; please don't edit",
+    "expires_at": "2026-04-27T23:00:00Z"
+  }
+}
+```
+
+### `org.agentroom.lock.release`
+
+Release a previously-acquired lock. Auto-released on agent disconnect or expiry.
+
+```json
+{
+  "type": "org.agentroom.lock.release",
+  "content": {
+    "lock_id": "lock-uuid",
+    "released_by": "@claude-acp:gateway.example",
+    "reason": "completed"
+  }
+}
+```
+
+### `org.agentroom.decision.record`
+
+Record a decision inherited by future sessions. Materializes as a `#decision`-tagged sub-node under the room KNode.
+
+```json
+{
+  "type": "org.agentroom.decision.record",
+  "content": {
+    "decision_id": "decision-uuid",
+    "title": "Use early returns in extractBody",
+    "rationale": "Reduces nesting from 4 to 2; matches codebase convention in 11 of 14 similar functions",
+    "decided_by": ["@user:matrix.example", "@claude-acp:gateway.example"],
+    "alternatives_considered": ["Guard clauses + named returns", "Restructure as iterator"],
+    "knode_path": "rooms/refactor-extractbody/decisions/01"
+  }
+}
+```
+
+### `org.agentroom.finding.share`
+
+Knowledge accumulated during work. Materializes as a `#finding`-tagged sub-node, indexed by FTS5 for cross-room search.
+
+```json
+{
+  "type": "org.agentroom.finding.share",
+  "content": {
+    "finding_id": "finding-uuid",
+    "shared_by": "@claude-acp:gateway.example",
+    "title": "extractBody is called from 7 sites",
+    "body": "Sites: packages/km-render/src/columns.ts:142, ...",
+    "tags": ["call-graph", "refactoring-prep"],
+    "confidence": 1.0,
+    "knode_path": "rooms/refactor-extractbody/findings/01"
+  }
+}
+```
+
+### `org.agentroom.handoff`
+
+Explicit handoff from one agent (or human) to another. Often follows `todo.complete` to signal "your turn."
+
+```json
+{
+  "type": "org.agentroom.handoff",
+  "content": {
+    "handoff_id": "handoff-uuid",
+    "from": "@claude-acp:gateway.example",
+    "to": "@codex-acp:gateway.example",
+    "context": "Refactor done; please write integration tests",
+    "related_todo_id": "todo-uuid",
+    "related_findings": ["finding-uuid"]
   }
 }
 ```
