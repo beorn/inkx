@@ -65,7 +65,7 @@ type RecallResult = {
   timing?: unknown
 }
 
-type Mode = "baseline" | "no-synthesis" | "max-rounds-1" | "max-rounds-4"
+type Mode = "baseline" | "no-synthesis" | "max-rounds-1" | "max-rounds-4" | "hypothesis-loop"
 
 type PairScore = {
   pairId: string
@@ -111,6 +111,9 @@ function modeFlags(mode: Mode): string[] {
       // recall caps max-rounds=2 today; this run will execute as max-rounds=2 but
       // documents the desired knob for km-tribe.recall-deep-rounds.
       return ["--agent", "--max-rounds", "2"]
+    case "hypothesis-loop":
+      // Special-cased: dispatched to tools/recall-hypothesis-loop.ts in runRecall.
+      return []
   }
 }
 
@@ -126,6 +129,9 @@ function exec(cmd: string, args: string[]): Promise<{ stdout: string; stderr: st
 }
 
 async function runRecall(query: string, mode: Mode): Promise<RecallResult | null> {
+  if (mode === "hypothesis-loop") {
+    return runHypothesisLoop(query)
+  }
   // Note: do NOT pass "search" subcommand — recall's default action is search,
   // and the explicit subcommand parser rejects multi-flag invocations.
   const { stdout, code } = await exec("bun", [
@@ -139,6 +145,62 @@ async function runRecall(query: string, mode: Mode): Promise<RecallResult | null
   if (jsonStart < 0) return null
   try {
     return JSON.parse(stdout.slice(jsonStart)) as RecallResult
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Hypothesis-loop mode dispatches to tools/recall-hypothesis-loop.ts and maps
+ * its output back to the RecallResult shape so scoring works uniformly.
+ *
+ * Mapping:
+ *   - hypothesis-loop's `supporting` array → RecallResult.results
+ *     (only snippets the LLM verdicted as 'supports' across rounds)
+ *   - hypothesis-loop's final round's evidence summary → synthesis
+ *   - hypothesis-loop's totalCost → llmCost
+ *   - hypothesis-loop's totalDuration → durationMs
+ *
+ * Why use only `supporting`: the loop already filters credulous matches via
+ * its strict evaluator. Feeding orthogonal/refute snippets to scoring would
+ * inflate top-K with noise.
+ */
+async function runHypothesisLoop(query: string): Promise<RecallResult | null> {
+  const { stdout, code } = await exec("bun", [
+    "tools/recall-hypothesis-loop.ts",
+    "--json",
+    query,
+  ])
+  if (code !== 0) return null
+  const jsonStart = stdout.indexOf("{")
+  if (jsonStart < 0) return null
+  try {
+    const loop = JSON.parse(stdout.slice(jsonStart)) as {
+      query: string
+      trace: Array<{ evidenceSummary?: string }>
+      supporting: Array<{ round: number; index: number; snippet: { type?: string; sessionId?: string; sessionTitle?: string | null; snippet?: string; rank?: number }; why: string }>
+      totalCost: number
+      totalDuration: number
+      rounds: number
+    }
+    // Map supporting → results, preserving order (round-then-rank within round).
+    const results = loop.supporting.map((s) => ({
+      type: s.snippet.type,
+      sessionId: s.snippet.sessionId,
+      sessionTitle: s.snippet.sessionTitle ?? null,
+      snippet: s.snippet.snippet ?? "",
+      rank: s.snippet.rank ?? 0,
+    }))
+    const lastRound = loop.trace[loop.trace.length - 1]
+    return {
+      query: loop.query,
+      synthesis: lastRound?.evidenceSummary ?? "",
+      results,
+      llmCost: loop.totalCost,
+      durationMs: loop.totalDuration,
+      // trace passes through for fmtTrace
+      trace: loop.trace,
+    } as RecallResult
   } catch {
     return null
   }
