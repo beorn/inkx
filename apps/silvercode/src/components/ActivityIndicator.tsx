@@ -73,19 +73,23 @@ export type ActivityStatus = "spawning" | "idle" | "thinking" | "tool-running" |
  */
 export function ActivityIndicator({
   status,
-  pendingPermissions,
-  inFlightTool,
-  turnStartedAt,
-  inputTokens,
-  outputTokens,
+  pendingPermissions = 0,
+  inFlightTool = null,
+  turnStartedAt = null,
+  inputTokens = 0,
+  outputTokens = 0,
 }: {
   status: ActivityStatus
-  pendingPermissions: number
-  inFlightTool: string | null
-  /** Epoch ms at which the current turn started; null if no messages yet. */
-  turnStartedAt: number | null
-  inputTokens: number
-  outputTokens: number
+  /** @default 0 */
+  pendingPermissions?: number
+  /** @default null */
+  inFlightTool?: string | null
+  /** Epoch ms at which the current turn started; null if no messages yet. @default null */
+  turnStartedAt?: number | null
+  /** @default 0 */
+  inputTokens?: number
+  /** @default 0 */
+  outputTokens?: number
 }): React.ReactElement | null {
   const isActive = status !== "idle" && status !== "ended"
 

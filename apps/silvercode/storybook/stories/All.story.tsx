@@ -329,14 +329,7 @@ function AllStoryBody(): React.ReactElement {
           <SessionExchangeDivider />
 
           <SectionLabel>ActivityIndicator — thinking spinner</SectionLabel>
-          <ActivityIndicator
-            status="thinking"
-            pendingPermissions={0}
-            inFlightTool={null}
-            turnStartedAt={Date.now() - 3000}
-            inputTokens={0}
-            outputTokens={0}
-          />
+          <ActivityIndicator status="thinking" turnStartedAt={Date.now() - 3000} />
 
           <SectionLabel>RequestPermissionInbox — one pending Bash</SectionLabel>
           <RequestPermissionInbox sessions={[handle]} onApprove={() => {}} onDeny={() => {}} onClose={() => {}} />

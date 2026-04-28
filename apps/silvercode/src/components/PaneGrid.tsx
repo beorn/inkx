@@ -758,6 +758,14 @@ function PaneDivider({
   // unbreakable token (200/400 cells), overflowing the divider's pinned cross
   // size and bleeding `│`/`─` glyphs into sibling pane regions. Regression
   // covered by vendor/silvery/tests/features/divider-overflow-clear.test.tsx.
+  //
+  // Empirical note (2026-04-28): both /pro recommendations to refactor this
+  // pattern (outer-Box-only; both-axes-on-Text) FAILED that regression test.
+  // The shape below is load-bearing: 0-min on inner Box (both axes) plus
+  // 0-min on Text (CROSS-axis only). Don't refactor without re-running the
+  // test in the vendor project (`bun vitest run --project vendor
+  // vendor/silvery/tests/features/divider-overflow-clear.test.tsx`).
+  //
   // Bead: km-silvercode.pane-2d-horizontal-divider.
   if (direction === "row") {
     // Vertical divider — 1-col wide, full height.
