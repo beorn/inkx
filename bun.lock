@@ -186,6 +186,7 @@
         "@km/fs-mount": "workspace:*",
         "@km/markdown": "workspace:*",
         "@km/storage": "workspace:*",
+        "@km/text-render": "workspace:*",
         "@km/tree": "workspace:*",
         "@silvery/ag-react": "workspace:*",
         "@silvery/ag-term": "workspace:*",
@@ -227,6 +228,7 @@
         "@km/autolinks": "workspace:*",
         "@km/markdown": "workspace:*",
         "@km/mcp-server": "workspace:*",
+        "@km/text-render": "workspace:*",
         "@km/tribe-mcp": "workspace:*",
         "@silvery/ag-react": "workspace:*",
         "@silvery/ag-term": "workspace:*",
@@ -421,6 +423,15 @@
       "devDependencies": {
         "@beorn/watcher-chaos": "workspace:*",
         "vimonkey": "workspace:*",
+      },
+    },
+    "packages/km-text-render": {
+      "name": "@km/text-render",
+      "dependencies": {
+        "@km/markdown": "workspace:*",
+        "@types/mdast": "^4.0.4",
+        "mdast-util-from-markdown": "^2.0.3",
+        "string-width": "^8.1.0",
       },
     },
     "packages/km-tree": {
@@ -1442,6 +1453,8 @@
     "@km/silvercode": ["@km/silvercode@workspace:apps/silvercode"],
 
     "@km/storage": ["@km/storage@workspace:packages/km-storage"],
+
+    "@km/text-render": ["@km/text-render@workspace:packages/km-text-render"],
 
     "@km/tree": ["@km/tree@workspace:packages/km-tree"],
 

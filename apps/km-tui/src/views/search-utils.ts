@@ -7,7 +7,7 @@
  * their own scorer here.
  */
 import type { KNode } from "@km/core"
-import { extractRefs } from "../text/text-pipeline.ts"
+import { extractRefs } from "@km/text-render"
 
 /**
  * Get parent display name for context

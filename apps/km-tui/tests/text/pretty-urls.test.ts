@@ -6,8 +6,7 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { prettifyUrl } from "../../src/text/text-pipeline.ts"
-import { parseToPlainText } from "../../src/text/inline-parser.ts"
+import { prettifyUrl, parseToPlainText } from "@km/text-render"
 import { item } from "../helpers/board-test.ts"
 import { createTestApp } from "../helpers/test-app.ts"
 

@@ -5,9 +5,7 @@
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
-import { extractRefs } from "../text/text-pipeline.ts"
-import { parseInlineText, inlineNodesToPlainText } from "../text/inline-parser.ts"
-import type { InlineNode } from "../text/inline-ast-types.ts"
+import { extractRefs, parseInlineText, inlineNodesToPlainText, type InlineNode } from "@km/text-render"
 
 // =============================================================================
 // Date formatting

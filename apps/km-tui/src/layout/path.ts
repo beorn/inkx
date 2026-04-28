@@ -5,7 +5,7 @@
  */
 
 import type { KNode } from "@km/core"
-import { displayLength } from "../text/rich.ts"
+import { displayLength } from "@km/text-render"
 
 /**
  * Path segment for breadcrumb rendering.

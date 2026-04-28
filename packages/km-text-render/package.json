@@ -1,0 +1,16 @@
+{
+  "name": "@km/text-render",
+  "private": true,
+  "description": "Shared inline-text parsing primitives — markdown + km-syntax (wikilinks, sigils, fields) → InlineNode[] AST. Consumed by km-tui's InlineComponents and silvercode's MarkdownView.",
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@km/markdown": "workspace:*",
+    "@types/mdast": "^4.0.4",
+    "mdast-util-from-markdown": "^2.0.3",
+    "string-width": "^8.1.0"
+  }
+}

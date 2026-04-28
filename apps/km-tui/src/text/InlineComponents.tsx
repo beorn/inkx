@@ -15,12 +15,7 @@ import { Link, Small, Text } from "@silvery/ag-react"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import { detectAutolinks, type AutolinkDetection } from "@km/autolinks"
 import { getTermColor } from "./colors.ts"
-import { parseInlineText } from "./inline-parser.ts"
-import { prettifyUrl } from "./text-pipeline.ts"
-import { type PopoverContent, usePopover } from "../views/Popover.tsx"
-import { useLinkInteraction, linkTextProps } from "./link-interaction.ts"
-import { useAutolinks } from "./AutolinksContext.tsx"
-import { autolinkPopoverContent } from "./autolink-popover.tsx"
+import { parseInlineText, prettifyUrl } from "@km/text-render"
 import type {
   BareURLNode,
   BoldNode,
@@ -36,7 +31,11 @@ import type {
   TagNode,
   TextDecoration,
   WikiLinkNode,
-} from "./inline-ast-types.ts"
+} from "@km/text-render"
+import { type PopoverContent, usePopover } from "../views/Popover.tsx"
+import { useLinkInteraction, linkTextProps } from "./link-interaction.ts"
+import { useAutolinks } from "./AutolinksContext.tsx"
+import { autolinkPopoverContent } from "./autolink-popover.tsx"
 
 // =============================================================================
 // Render Context (passed through to configure sigil behavior)
