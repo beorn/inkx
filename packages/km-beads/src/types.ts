@@ -50,4 +50,9 @@ export interface CreateIssueOptions {
   path?: string // Where to create
   description?: string // Body text (created as child paragraph)
   notes?: string // Additional notes (created as child paragraph after description)
+  /**
+   * Issue id prefix (e.g. `km`, `gbrain`). Comes from the repo's
+   * `.km/config.yaml` `beads.prefix`. Defaults to `"km"` when omitted.
+   */
+  prefix?: string
 }

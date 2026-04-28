@@ -1,9 +1,9 @@
 import { ulid } from "ulid"
 import type { Repo } from "@km/storage"
 
-const PREFIX = "km"
 const SEPARATOR = "-"
 const AUTO_LENGTH = 4
+const DEFAULT_PREFIX = "km"
 
 /** Options for short ID functions */
 export interface ShortIdOptions {
@@ -11,14 +11,22 @@ export interface ShortIdOptions {
   repo?: Repo
 }
 
-export function generateShortId(): string {
+/**
+ * Generate a fresh short id of the form `<prefix>-<4chars>`.
+ *
+ * `prefix` comes from the destination repo's `.km/config.yaml`
+ * (`beads.prefix`) and from the source `.beads/config.yaml`
+ * (`issue-prefix`) during migration. Defaults to `"km"` for callers
+ * that don't have a config in scope (tests, legacy code paths).
+ */
+export function generateShortId(prefix: string = DEFAULT_PREFIX): string {
   const id = ulid()
   const suffix = id.slice(-AUTO_LENGTH).toLowerCase()
-  return `${PREFIX}${SEPARATOR}${suffix}`
+  return `${prefix}${SEPARATOR}${suffix}`
 }
 
-export function generateCustomId(custom: string): string {
-  return `${PREFIX}${SEPARATOR}${custom}`
+export function generateCustomId(custom: string, prefix: string = DEFAULT_PREFIX): string {
+  return `${prefix}${SEPARATOR}${custom}`
 }
 
 export function generateSubId(parentShortId: string, childNumber: number): string {

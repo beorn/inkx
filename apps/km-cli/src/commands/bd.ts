@@ -36,6 +36,7 @@ import { issueToBdJson, printIssue, printReadyIssue, printIssueDetails } from ".
 import { resolveIssueArg } from "./bd-query-helpers.ts"
 import { configCommand } from "./bd-config.ts"
 import { migrateCommand, exportCommand } from "./bd-migrate.ts"
+import { attachMemoryCommands } from "./bd-memory.ts"
 import { buildQueryString, normalizeStatus, type SharedQueryFlags } from "./shared-query.ts"
 
 /** Format scope/board context for display messages (e.g., " in path" or " on @board") */
@@ -250,6 +251,7 @@ bdCommand
       parentId: opts.parent,
       description: opts.description,
       notes: opts.notes,
+      prefix: configObj.beads.prefix,
     })
 
     // Resolve parent: explicit --parent flag, or config default
@@ -894,3 +896,4 @@ bdCommand
 bdCommand.addCommand(configCommand)
 bdCommand.addCommand(migrateCommand)
 bdCommand.addCommand(exportCommand)
+attachMemoryCommands(bdCommand)

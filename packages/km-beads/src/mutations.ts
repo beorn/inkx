@@ -24,17 +24,19 @@ export function createIssueNode(
   const now = Date.now()
   const id = ulid()
 
-  // Generate short ID
+  // Generate short ID — prefix from repo config (.km/config.yaml beads.prefix)
+  // or "km" default for callers without config in scope.
+  const prefix = options.prefix
   let shortId: string
   if (options.customId) {
-    shortId = generateCustomId(options.customId)
+    shortId = generateCustomId(options.customId, prefix)
   } else if (options.parentId) {
     // For sub-issues, we'd need to query existing children
     // For now, use timestamp-based suffix
     const childNum = Math.floor(Date.now() % 1000)
     shortId = generateSubId(options.parentId, childNum)
   } else {
-    shortId = generateShortId()
+    shortId = generateShortId(prefix)
   }
 
   // Build content with metadata

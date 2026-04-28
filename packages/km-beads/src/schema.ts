@@ -97,28 +97,48 @@ export function parseBeadsIssueLine(
 
 /**
  * `bd export` interleaves issues with `_type: "memory"` records produced by
- * `bd remember`. These are not issues and have no id/title — skip them
- * silently so the migrate stats reflect real validation failures only.
+ * `bd remember`. Shape: `{_type: "memory", key: <slug>, value: <text>}`.
+ * Memories are surfaced separately (not as issues) and migrated into the
+ * vault's `mem/` root.
  */
+export const beadsMemorySchema = z.object({
+  _type: z.literal("memory"),
+  key: z.string(),
+  value: z.string(),
+})
+
+export type BeadsMemory = z.infer<typeof beadsMemorySchema>
+
 function isMemoryLine(parsed: unknown): boolean {
   return typeof parsed === "object" && (parsed as { _type?: unknown })?._type === "memory"
 }
 
 /**
- * Parse multiple lines of JSONL, collecting valid issues and errors.
+ * Parse multiple lines of JSONL, collecting valid issues, memories,
+ * and errors.
  */
 export function parseBeadsIssuesJsonl(content: string): {
   issues: BeadsIssue[]
+  memories: BeadsMemory[]
   errors: Array<{ line: number; error: string }>
 } {
   const lines = content.trim().split("\n").filter(Boolean)
   const issues: BeadsIssue[] = []
+  const memories: BeadsMemory[] = []
   const errors: Array<{ line: number; error: string }> = []
 
   for (const [i, line] of lines.entries()) {
     try {
       const parsed = JSON.parse(line)
-      if (isMemoryLine(parsed)) continue
+      if (isMemoryLine(parsed)) {
+        const memResult = beadsMemorySchema.safeParse(parsed)
+        if (memResult.success) {
+          memories.push(memResult.data)
+        } else {
+          errors.push({ line: i + 1, error: `memory: ${memResult.error.message}` })
+        }
+        continue
+      }
     } catch {
       // fall through to parseBeadsIssueLine which will record the JSON error
     }
@@ -131,5 +151,5 @@ export function parseBeadsIssuesJsonl(content: string): {
     }
   }
 
-  return { issues, errors }
+  return { issues, memories, errors }
 }

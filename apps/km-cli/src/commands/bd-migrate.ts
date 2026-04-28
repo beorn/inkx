@@ -33,22 +33,30 @@ export const migrateCommand = new Command("migrate")
   .option("--dry-run", "Show what would be migrated without writing files")
   .option("--status <statuses>", "Only migrate issues with these statuses (comma-separated)")
   .option("--target <dir>", "Target directory for markdown files")
+  .option("--source <dir>", "Source .beads directory (or its parent). Defaults to auto-discovery upward from cwd.")
   .action(async (opts) => {
     const resolved = resolvePathArg(undefined)
     const configObj = await loadKmBdConfig(resolved.repoRoot)
 
-    // Find .beads directory
-    const beadsDir = findBeadsDir(nodeFs, resolved.repoRoot)
-    if (!beadsDir) {
-      console.error(term.red("No .beads directory found."))
-      console.log(term.dim("Run 'bd init' to initialize beads, or check your working directory."))
+    // Find .beads directory — explicit --source wins, else auto-discover.
+    const sourceArg = opts.source as string | undefined
+    const beadsDir = sourceArg
+      ? sourceArg.endsWith("/.beads") || sourceArg.endsWith(".beads")
+        ? sourceArg
+        : join(sourceArg, ".beads")
+      : findBeadsDir(nodeFs, resolved.repoRoot)
+    if (!beadsDir || !nodeFs.existsSync(beadsDir)) {
+      console.error(term.red(`No .beads directory found${sourceArg ? ` at ${beadsDir}` : ""}.`))
+      console.log(term.dim("Pass --source <dir> or run from a vault containing .beads/."))
       process.exitCode = 1
       return
     }
 
     // Read original beads config for issue prefix
-    const originalConfig = getOriginalBeadsConfig(resolved.repoRoot)
+    const sourceRoot = sourceArg ?? resolved.repoRoot
+    const originalConfig = getOriginalBeadsConfig(sourceRoot)
     const originalConfigPath = originalConfig ? join(beadsDir, "config.yaml") : undefined
+    const sourcePrefix = (originalConfig?.["issue-prefix"] as string | undefined) ?? configObj.beads.prefix
 
     // Show stats first
     const stats = getMigrationStats(nodeFs, beadsDir)
@@ -106,6 +114,7 @@ export const migrateCommand = new Command("migrate")
       statusFilter,
       dryRun: opts.dryRun,
       fs: nodeFs,
+      sourcePrefix,
     })
 
     console.log(term.bold("Results"))

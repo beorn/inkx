@@ -19,10 +19,8 @@ Issues are addressed by **`@<prefix>/<scope>/<slug>`**, where `<prefix>` is the 
 
 **Legacy bd-form ids** (`km-storage.lazy-hydration`, `km-storage-lazy-hydration`, `km-flexx-diag-passes`) keep working via two mechanisms:
 
-1. **Per-issue `aliases:` frontmatter** (Obsidian-standard) — authoritative exact-match resolution for irregular cases.
-2. **Autolink regex fallback** — pattern-based rewrite for the bulk: `<prefix>-<scope>.<slug>` and `<prefix>-<scope>-<slug>` → `@<prefix>/<scope>/<slug>`.
-
-> **Bug**: `packages/km-beads/src/short-ids.ts:4` hardcodes `const PREFIX = "km"` instead of reading `.km/config.yaml`. Fix tracked under `@km/beads/prefix-config`.
+1. **Per-issue `aliases:` frontmatter** (Obsidian-standard) — authoritative exact-match resolution for irregular cases. Generated automatically by `km bd migrate` for every imported issue.
+2. **Import-time rewrite** — prose mentions of `<prefix>-<scope>.<slug>` become `@<prefix>/<scope>/<slug>` once at migration time (`rewriteLegacyIdMentions` in `migrate.ts`). No runtime regex scanning needed; aliases catch what slips through.
 
 ---
 
@@ -175,26 +173,30 @@ Ids accept both canonical and legacy forms: `km bd show @km/storage/lazy-hydrati
 
 `km bd migrate` reads `.beads/issues.jsonl` (refreshed via `bd export`) and emits one .md file per issue under the configured `Parent:` directory.
 
-Current state (commit `f7f3a9fcd`):
+Current state — structural cutover infrastructure shipped:
 
-- Parser handles bd v1.0 export shape: numeric priority, `dependencies` array, `_type: "memory"` records skipped silently.
-- 4635/4635 issues parse, 0 errors. Memory records routed to a separate stream (currently dropped; future: written to `mem/` per the `@mem` design above).
-- Issues land at `issue/<id>.md` with bd-form id as filename.
+- **Parser** (`packages/km-beads/src/schema.ts`) handles bd v1.0 export shape: numeric priority, `dependencies` array, `_type: "memory"` records parsed into a typed stream. 4666/4666 issues + 3/3 memories parse, 0 errors.
+- **Path-form filenames + aliases** (`bdIdToPathForm` / `bdIdToAliases`): `km-silvercode.acp-rename` → `silvercode/acp-rename.md` with frontmatter `id: silvercode/acp-rename` + `aliases: [km-silvercode.acp-rename, km-silvercode-acp-rename]`. Sub-issues with deeper dot-form (`km-silvery.backdrop-hardening.slim-barrel`) nest correctly. Auto-id beads (`km-q5hji`) park under `_orphan/`.
+- **Cross-graph relations** — bd v1.0 `dependencies[]` translates to `blocks::` / `blocked-by::` / `related::` Logseq-style multi-value wikilink lines emitted at the top of the body. Targets are absolute path-form (`[[silvery/backdrop-hardening]]`) so they resolve regardless of host file location.
+- **Memories** (`bd remember`, `bd memories`, `bd prime`) write to `mem/<key>.md` with a single `## <Title> @memory` section. Migration writes the same shape, so memories survive the bd→km bd cutover round-trip.
+- **Legacy autolinks** rewritten *at import* (`rewriteLegacyIdMentions`) — bd-form ids in prose become `@<prefix>/<path-form>` once at migration time, not at every render. Skips matches inside existing wikilinks or inline code.
+- **Resolver** (`resolveShortId` in `short-ids.ts`) tries three forms in order: canonical path-form `data.id` → legacy `data.short_id` → frontmatter `aliases[]`. Sigil-prefixed input (`@km/silvercode/acp/rename`) is normalized to canonical path-form before lookup.
+- **Configurable prefix** — runtime new beads pull `beads.prefix` from `.km/config.yaml`; migration pulls `issue-prefix` from the source vault's `.beads/config.yaml` (or `--source <dir>` override). No hardcoded `"km"` in source.
 
-Remaining migration work (each its own bead under `@km/beads/`):
+Remaining cutover work (last mile):
 
-- **`@km/beads/dep-graph`** — derive `blocks::`/`blocked-by::`/`parent::` from bd v1.0 `dependencies[]`. Currently dropped because the legacy `blocked_by`/`parent_id` fields don't exist on v1.0 exports.
-- **`@km/beads/path-ids`** — rewrite filenames from `<id>.md` to path form (`<scope>/<slug>.md`); seed each .md with `aliases: [legacy-id]`.
-- **`@km/beads/aliases-resolver`** — index frontmatter `aliases:` in the name table; serve them from `resolveShortId`.
-- **`@km/beads/legacy-autolinks`** — regex autolink rules for bd-form ids in prose (catch-all when `aliases:` doesn't have an entry yet).
-- **`@km/beads/sigil-boards`** — render `@<prefix>/...` paths as kanban; resolver normalizes `@` away when matching ids.
-- **`@km/beads/memories`** — `@mem`-tagged sections in `mem/`; `km bd remember/memories/prime`.
-- **`@km/beads/prefix-config`** — read prefix from `.km/config.yaml`; remove hardcoded `"km"` in `short-ids.ts`.
 - **`@km/beads/pm-skill-rewrite`** — `.claude/skills/pm/` and CLAUDE.md examples switch from `bd` to `km bd`.
 - **`@km/beads/hooks-rewrite`** — SessionStart hooks call `km bd prime` instead of `bd prime`; `bd dolt pull` becomes `git pull` (markdown is the source of truth).
 - **`@km/beads/dolt-archive`** — once both forms agree, archive `.beads/` to `.beads.bak/` and remove the brew dep.
 
-Order: dep-graph → path-ids → aliases-resolver → sigil-boards (these four are the structural cutover) → memories → pm-skill + hooks (last mile) → dolt-archive (declares it done).
+Resolution priority (canonical, served by `resolveShortId`):
+
+1. `data.id` — frontmatter canonical path-form (`silvercode/acp/rename`)
+2. `data.short_id` — legacy bd-form set on nodes that ship neither frontmatter `id` nor `aliases`
+3. `data.aliases[]` — explicit alternate names (`km-silvercode.acp-rename`, `km-silvercode-acp-rename`)
+4. Fallback: ULID-suffix match on the raw node id (`km-a1b2` → trailing 4 chars match)
+
+Sigil-prefixed input (`@<prefix>/<path>`) is stripped to bare canonical path-form before lookup so `@km/silvercode/acp/rename` and `silvercode/acp/rename` both resolve to the same node.
 
 ---
 
