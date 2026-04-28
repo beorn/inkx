@@ -1,6 +1,44 @@
 # Silvery Knowledge — silvery agent
 
-Last updated: 2026-04-27 (C1 L5 — deterministic handle counter replaces GC memory tests)
+Last updated: 2026-04-28 (km-yej6 — STRICT multiPassConverged gate + resizeFn drain)
+
+## STRICT multiPassConverged gate + resizeFn drain (2026-04-28)
+
+**Bead**: `km-yej6` (column-resize-incremental-mismatch, P2, closed). Silvery commit `f9be40d0`. km submodule bump `cda187d12`.
+
+**Symptom**: `apps/km-tui/tests/resize-garble.slow.test.ts:200` 'zoom in then zoom out roundtrip' threw `IncrementalRenderMismatchError: SILVERY_STRICT: MISMATCH at (X, Y) on render #N` under SILVERY_STRICT=1. Tree shape: `<CardColumn>` measures `useBoxRect()`, passes derived `columnHeight` as a prop into each child `<Card>`. Resize triggers the layout-feedback chain (rect changes → setState → re-render → yoga dirty); the post-render STRICT comparison saw the not-yet-stable incremental buffer vs a fresh render whose `calculateLayout()` ran against the post-commit React tree.
+
+**Root cause**: at production-matching `singlePassLayout: true`, `doRender`'s multi-pass loop has `MAX_CONVERGENCE_PASSES = 2`. On resize, useBoxRect-driven feedback can require >2 passes to drain. The loop exits with React work pending, but STRICT was running unconditionally on `renderCount > 1`. Inside the same `doRender`, `incrementalOverlay` reflects pre-commit React state; `doFreshRenderFull()` on the next line re-runs `calculateLayout()` and sees post-commit state → apples vs oranges.
+
+**Fix** (`vendor/silvery/packages/ag-term/src/renderer.ts`):
+
+1. **Track convergence**: add `let multiPassConverged = false` at doRender start. Set `true` only when a multi-pass iteration exits with `hadReactCommit === false` (in BOTH the singlePass loop and the classic multi-pass loop). Gate STRICT on `strictMode && instance.renderCount > 1 && multiPassConverged` — when convergence is uncertain, skip the comparison.
+2. **Outer resize drain**: in `resizeFn`, after the initial `doRender()`, mirror `sendInput`'s post-doRender drain pattern when `instance.singlePassLayout`. Loop up to `MAX_CONVERGENCE_PASSES` times: `flushSyncWork()` → if `hadReactCommit`, `doRender()` again. Each subsequent doRender's STRICT runs on a more-stable state. After the drain, `instance.prevBuffer.markAllRowsDirty()` if `doRenderCount > 1` (mirrors classic-loop multi-pass cleanup).
+
+**Why classic-loop snapshot was NOT shipped**: an initial fix attempt also captured `instance.prevBuffer` at doRender entry as `snapshotPrevBuffer` and used it for ALL classic-loop iterations (so iter N+1's incremental cascade baselined on the same user-visible frame as iter 0). This made the regression test pass but broke ~47 km-tui filter tests AND ~30 silvery feature tests (listview-*, modal-dismiss, layout-during-stream). The classic loop's existing inter-iter `instance.prevBuffer = carryForwardBuffer ?? buffer` assignment is load-bearing for tests that rely on intermediate buffer state. The `multiPassConverged` gate alone — without snapshot — covers the production scenario (km-tui uses singlePass) without breaking other tests.
+
+**Pre-existing test failures observed during this work** (NOT caused by this fix, verified by running with HEAD's renderer.ts):
+- `vendor/silvery/tests/features/outline-incremental.test.tsx` — 6 tests fail. Real bug in incremental fast-path: when outline is removed from a child, the parent's clearNodeRegion can't clear pixels OUTSIDE the parent's rect (outline overflowed), and no ancestor has dirty flags set to trigger re-render. Diagnostic: "ALL DIRTY FLAGS FALSE - fast-path likely skipped this node".
+- `vendor/silvery/tests/features/outline-postate-cleanup.test.tsx` — 2 tests fail. Same incremental dirty-flag issue across realistic-scale outline migration.
+- `vendor/silvery/tests/lint-env-reads.test.ts` — 2 tests fail. Lint scans `.claude/worktrees/` and finds env-read violations in OTHER agents' worktrees. Infra issue (linter scope), not code issue.
+
+These should be tracked separately from km-yej6.
+
+**Regression test**: `vendor/silvery/tests/features/resize-multipass-strict.test.tsx`. Two singlePass scenarios (simple resize + zoom-in/zoom-out roundtrip) using the km-tui CardColumn shape (parent measures useBoxRect, child gets derived prop). Asserts `app.resize(...)` does not throw under STRICT — the original bug surfaced as a thrown `IncrementalRenderMismatchError` from the internal STRICT check.
+
+**Why a tighter cell-by-cell external comparison was NOT used**: a stricter regression test (cell-by-cell `app.lastBuffer()` vs `app.freshRender()` after resize) hits a separate, latent dirty-flag-propagation issue at the `useBoxRect` → child-prop boundary that this fix does NOT address. The fix's scope is the STRICT/drain machinery; deeper dirty-flag work belongs in a separate bead.
+
+**Where this lives**:
+- `vendor/silvery/packages/ag-term/src/renderer.ts:651` — `multiPassConverged` declaration
+- `vendor/silvery/packages/ag-term/src/renderer.ts:746–752, 844–850` — set-on-converge in singlePass + classic loops
+- `vendor/silvery/packages/ag-term/src/renderer.ts:880` — STRICT gate
+- `vendor/silvery/packages/ag-term/src/renderer.ts:1284–1326` — resizeFn outer drain
+- `vendor/silvery/tests/features/resize-multipass-strict.test.tsx` — regression test
+
+**Lessons**:
+- STRICT internal checks compare buffer vs `doFreshRenderFull()` which re-runs `calculateLayout()`. Any flow that exits a multi-pass loop with React work pending will trip STRICT. Drain loops must mirror sendInput's pattern (flush → re-doRender) for resize, paste, and any synthetic event-emitting path.
+- `singlePassLayout: true` (production / km-tui driver) is structurally different from the classic test multi-pass mode. Fixes need to be tested under both modes — a fix that helps singlePass can break classic and vice versa. The km-tui filter tests are good canaries for classic-loop regressions.
+- "Mirror what sendInput does" is the canonical pattern for any non-input event source that triggers React commits. resizeFn was missing this drain; future event sources (clipboard, network resume, window-focus restore) need the same shape.
 
 ## C1 L5 — deterministic handle counter (2026-04-27)
 
