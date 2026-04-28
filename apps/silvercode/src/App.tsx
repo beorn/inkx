@@ -6,6 +6,7 @@ import {
   type ListViewHandle,
   PopoverProvider,
   Screen,
+  Text,
   useExit,
   useScopeEffect,
   useTerm,
@@ -268,6 +269,12 @@ export function App(props: AppProps): React.ReactElement {
   useEffect(() => controller.subscribe((list) => setSessions(list.slice())), [controller])
   const [focusedSessionId, setFocusedSessionId] = useState<string>(() => controller.focusedId())
   useEffect(() => controller.onFocusChange((id) => setFocusedSessionId(id)), [controller])
+  // Surface controller-level spawn errors as a visible banner so the user
+  // isn't stuck staring at a blank UI when the agent connection drops or
+  // the configured agent fails to launch. Stderr writes alone are hidden
+  // behind alt-screen. Bead: km-silvercode.spawn-error-blank-screen.
+  const [spawnError, setSpawnErrorState] = useState<string | null>(() => controller.lastSpawnError())
+  useEffect(() => controller.onSpawnError((msg) => setSpawnErrorState(msg)), [controller])
 
   const focused = useMemo(
     () => sessions.find((s) => s.id === focusedSessionId) ?? sessions[0],
@@ -1178,26 +1185,43 @@ export function App(props: AppProps): React.ReactElement {
               to shrink=0 — `minWidth={0}` alone does nothing without an
               overflow boundary in the chain. */}
               <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
-                <PaneGrid
-                  ref={paneGridRef}
-                  controller={controller}
-                  sessions={sessions}
-                  focusedSessionId={focusedSessionId}
-                  zoomedPaneId={zoomedPaneId}
-                  tree={paneTree}
-                  onTreeChange={onTreeChange}
-                  cwd={props.cwd}
-                  onFocusSession={(id) => controller.focus(id)}
-                  onApprovePermission={(sid, rid) => controller.respondPermission(sid, rid, true)}
-                  onDenyPermission={(sid, rid) => controller.respondPermission(sid, rid, false)}
-                  paneHeaders={props.paneHeaders === true}
-                  onSplitRightPane={splitPaneRightById}
-                  onClosePane={closePaneById}
-                  onToggleMinimizePane={toggleMinimizePane}
-                  minimizedPaneIds={minimizedPaneIds}
-                  onRegisterScrollList={registerScrollList}
-                  showDebug={showDebug}
-                />
+                {sessions.length === 0 && spawnError ? (
+                  <Box flexDirection="column" flexGrow={1} paddingX={2} paddingY={1}>
+                    <Text bold color="$error">
+                      {"Spawn failed"}
+                    </Text>
+                    <Text>{""}</Text>
+                    <Text color="$fg">{spawnError}</Text>
+                    <Text>{""}</Text>
+                    <Text color="$muted">{"Common causes:"}</Text>
+                    <Text color="$muted">{" - Agent binary missing or misconfigured"}</Text>
+                    <Text color="$muted">{" - Account credentials missing"}</Text>
+                    <Text color="$muted">{" - ACP server initialize timeout / connection closed"}</Text>
+                    <Text>{""}</Text>
+                    <Text color="$muted">{"Press Ctrl+D twice to quit."}</Text>
+                  </Box>
+                ) : (
+                  <PaneGrid
+                    ref={paneGridRef}
+                    controller={controller}
+                    sessions={sessions}
+                    focusedSessionId={focusedSessionId}
+                    zoomedPaneId={zoomedPaneId}
+                    tree={paneTree}
+                    onTreeChange={onTreeChange}
+                    cwd={props.cwd}
+                    onFocusSession={(id) => controller.focus(id)}
+                    onApprovePermission={(sid, rid) => controller.respondPermission(sid, rid, true)}
+                    onDenyPermission={(sid, rid) => controller.respondPermission(sid, rid, false)}
+                    paneHeaders={props.paneHeaders === true}
+                    onSplitRightPane={splitPaneRightById}
+                    onClosePane={closePaneById}
+                    onToggleMinimizePane={toggleMinimizePane}
+                    minimizedPaneIds={minimizedPaneIds}
+                    onRegisterScrollList={registerScrollList}
+                    showDebug={showDebug}
+                  />
+                )}
 
                 {/* Bottom chrome (left column). flexShrink=0 prevents overflow. */}
                 <Box flexDirection="column" flexShrink={0}>

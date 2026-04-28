@@ -319,6 +319,17 @@ export type Controller = {
   subscribe(handler: (sessions: SessionHandle[]) => void): () => void
   onFocusChange(handler: (id: string) => void): () => void
   /**
+   * Most-recent spawn error, if any. Set when `spawnSession()` rejects and
+   * cleared when a session successfully spawns. The UI uses this to render
+   * a visible banner inside the alt-screen — without it, spawn failures
+   * (bad agent config, missing binary, ACP connection closed, etc.) write
+   * to stderr which is hidden behind alt-screen and the user sees a blank
+   * UI with no clue what went wrong.
+   * Bead: km-silvercode.spawn-error-blank-screen.
+   */
+  lastSpawnError(): string | null
+  onSpawnError(handler: (message: string | null) => void): () => void
+  /**
    * Send a user message. If the session is currently NOT idle (Claude is
    * thinking / running a tool / waiting for permission), the text is
    * appended to a queue buffer and the whole buffer is submitted as ONE
@@ -572,6 +583,17 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
 
   function notifySessions(): void {
     for (const fn of sessionSubs) fn(sessions)
+  }
+
+  // Spawn-error broadcast — see Controller.lastSpawnError for the full
+  // rationale. Held outside notifySessions so a stale error doesn't get
+  // re-broadcast on every session list change.
+  let spawnError: string | null = null
+  const spawnErrorSubs = new Set<(message: string | null) => void>()
+  function setSpawnError(message: string | null): void {
+    if (spawnError === message) return
+    spawnError = message
+    for (const fn of spawnErrorSubs) fn(message)
   }
 
   // Per-session message queue — single string buffer so the on-screen
@@ -1237,22 +1259,31 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
 
   // Eagerly spawn the requested number of initial sessions.
   for (let i = 0; i < opts.initialSessions; i++) {
-    void spawnSession().catch((err: unknown) => {
-      // Surface spawn failures to stderr so silently-failed `--resume`
-      // doesn't look like "it just opened a fresh session". The spawn
-      // can fail because of:
-      //   - AcpResumeUnsupportedError (the agent doesn't advertise
-      //     loadSession in its initialize response)
-      //   - The agent's loadSession returned an error (sid expired,
-      //     session storage gone, etc.)
-      //   - Subprocess spawn failed (binary missing, permission denied)
-      // In all three cases the user wants to know — silent failure
-      // produces an empty-looking session that's indistinguishable from
-      // a fresh start.
-      const message = err instanceof Error ? err.message : String(err)
-      const opname = opts.resume ? `resume ${opts.resume}` : "spawn session"
-      process.stderr.write(`silvercode: ${opname} failed: ${message}\n`)
-    })
+    void spawnSession()
+      .then(() => {
+        // Successful spawn clears any prior spawn-error banner.
+        setSpawnError(null)
+      })
+      .catch((err: unknown) => {
+        // Surface spawn failures both to stderr (for users running
+        // outside alt-screen) and to the in-UI banner (for users inside
+        // alt-screen, where stderr is invisible). The spawn can fail
+        // because of:
+        //   - AcpResumeUnsupportedError (the agent doesn't advertise
+        //     loadSession in its initialize response)
+        //   - The agent's loadSession returned an error (sid expired,
+        //     session storage gone, etc.)
+        //   - The ACP connection closed before initialize completed
+        //   - Subprocess spawn failed (binary missing, permission denied)
+        // In all cases the user wants to know — silent failure produces
+        // an empty-looking session indistinguishable from a fresh start.
+        // Bead: km-silvercode.spawn-error-blank-screen.
+        const message = err instanceof Error ? err.message : String(err)
+        const opname = opts.resume ? `resume ${opts.resume}` : "spawn session"
+        const formatted = `silvercode: ${opname} failed: ${message}`
+        process.stderr.write(`${formatted}\n`)
+        setSpawnError(formatted)
+      })
   }
 
   return {
@@ -1277,6 +1308,14 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       focusSubs.add(handler)
       handler(focusedId)
       return () => focusSubs.delete(handler)
+    },
+    lastSpawnError(): string | null {
+      return spawnError
+    },
+    onSpawnError(handler: (message: string | null) => void): () => void {
+      spawnErrorSubs.add(handler)
+      handler(spawnError)
+      return () => spawnErrorSubs.delete(handler)
     },
     send(sessionId: string, text: string): void {
       const s = sessions.find((h) => h.id === sessionId)
@@ -1401,7 +1440,21 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       })
       s.session.send(text)
     },
-    spawnSession,
+    // Wrap spawnSession so user-initiated spawns also propagate spawn-error
+    // banner state — clears on success, sets on failure. Mirrors the eager-
+    // spawn loop's behavior so the UI banner stays in sync regardless of
+    // which call path triggered the spawn.
+    async spawnSession(name?: string): Promise<SessionHandle> {
+      try {
+        const handle = await spawnSession(name)
+        setSpawnError(null)
+        return handle
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        setSpawnError(`silvercode: spawn session failed: ${message}`)
+        throw err
+      }
+    },
     handoff(fromId: string, toId: string, prompt: string): void {
       const from = sessions.find((h) => h.id === fromId)
       const to = sessions.find((h) => h.id === toId)
