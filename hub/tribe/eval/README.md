@@ -12,18 +12,24 @@ Without an eval primitive, every other Tier 3 improvement is unfalsifiable. With
 
 ## What gets measured
 
-Two questions, in order of weight:
+Three independent axes — published memory benchmarks (LongMemEval, LoCoMo) only cover the first; axes B and C are novel territory.
 
-### Q1: Per-query precision/recall
+### Axis A — Conversational retrieval (Q1: per-query precision/recall)
 
-For each pair `(conversation_prefix, expected_relevant[], expected_irrelevant[])`:
+For each pair `(conversation_prefix, expected_relevant_session_ids[], expected_irrelevant_session_ids[])`:
 - Run the recall pipeline as it would fire today
 - Score: did `expected_relevant` appear in top-K? Did `expected_irrelevant` appear?
 - Aggregate: precision@5, recall@5, MRR for relevant; trap-hit rate for irrelevant
 
-This is what most retrieval evals measure. It tells us if the system can pick the right memory **once**.
+This is what most retrieval evals measure. It tells us if the system can pick the right past **conversation** snippet. LongMemEval and LoCoMo provide an external sanity floor on this axis — see `km-tribe.recall-eval-longmemeval`.
 
-### Q2: Per-thread redundancy (compiled-state value test)
+### Axis B — External-data integration (km-tribe.recall-eval-external-data)
+
+km integrates substrates the published benchmarks ignore: beads, design docs, git history, ambient streams, future LSP. Pairs are `(conversation_prefix, expected_external_artifacts[])` where artifacts have a `kind` (bead / doc / commit / file).
+
+Tracked under sibling bead `km-tribe.recall-eval-external-data`. Same runner, different corpus, scored per-kind. This axis is where km's design exceeds the published systems' problem definition.
+
+### Axis C — Per-thread redundancy (Q2: compiled-state value test)
 
 For each multi-turn pair `(conversation_thread_with_N_turns, expected_relevant_per_turn[][])`:
 - Run the recall pipeline at each turn boundary
@@ -32,6 +38,8 @@ For each multi-turn pair `(conversation_thread_with_N_turns, expected_relevant_p
 - Low overlap (<30%) → each turn surfaces fresh material, compiled-state is over-engineering
 
 This question is the user's clarification on 2026-04-27: *compiled-state is a multi-turn optimization, not a foundational requirement. It earns its keep only if the same conversation thread keeps benefiting from the same retrieved context.*
+
+None of LongMemEval / LoCoMo / ENGRAM / AutoMem / Hindsight measures this — they're passive memory systems with no sub-agent. mem-thought (km-tribe.recall-thought) is novel on this axis.
 
 ## Corpus format
 
