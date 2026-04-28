@@ -587,7 +587,6 @@ function TreeNodeImpl({
   // single-sigil titles and provide a per-render context that keeps the sigil.
   const titleOnlySigil = useMemo(() => {
     const trimmed = processedContent.trim()
-    if (!trimmed.startsWith("@") && !trimmed.startsWith("#") && !trimmed.startsWith("+")) return null
     if (!isSigilName(trimmed)) return null
     if (!inlineContext.excludeSigils?.has(trimmed)) return null
     return trimmed

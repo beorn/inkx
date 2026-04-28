@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { SIGILS, getSigilChar, hasSigilPrefix, isInlineSigilStart, isSigilChar } from "../src/sigils.ts"
+import { SIGILS, getSigilChar, hasSigilPrefix, isInlineSigilStart, isSigilChar, stripSigil } from "../src/sigils.ts"
 
 describe("SIGILS", () => {
   test("recognized sigils are @ # +", () => {
@@ -39,6 +39,25 @@ describe("hasSigilPrefix / getSigilChar", () => {
     expect(hasSigilPrefix("note/sub")).toBe(false)
     expect(getSigilChar("Alice")).toBeNull()
     expect(getSigilChar("")).toBeNull()
+  })
+})
+
+describe("stripSigil", () => {
+  test("removes leading sigil character", () => {
+    expect(stripSigil("@Alice")).toBe("Alice")
+    expect(stripSigil("#urgent")).toBe("urgent")
+    expect(stripSigil("+cleanup")).toBe("cleanup")
+  })
+
+  test("returns plain names unchanged", () => {
+    expect(stripSigil("Alice")).toBe("Alice")
+    expect(stripSigil("")).toBe("")
+    expect(stripSigil("note/sub")).toBe("note/sub")
+  })
+
+  test("strips only the leading sigil, not subsequent ones", () => {
+    expect(stripSigil("@@foo")).toBe("@foo")
+    expect(stripSigil("#tag@author")).toBe("tag@author")
   })
 })
 

@@ -21,7 +21,10 @@ export interface SharedQueryFlags {
 
 /** Defaults that differ per command */
 export interface QueryDefaults {
-  /** Default board tag filter, e.g., "issue" for km bd */
+  /**
+   * Default board node name filter, sigil included — e.g., "@issue" for km bd.
+   * In km the sigil is part of the node identity; pass the literal node name.
+   */
   boardTag?: string
   /** Default status filter, e.g., "todo" for km bd ready */
   statusFilter?: string
@@ -64,9 +67,9 @@ export function buildQueryString(
 ): string {
   const parts: string[] = []
 
-  // Add board tag unless --all
+  // Add board tag unless --all (boardTag carries its own sigil — pass verbatim)
   if (!flags.all && defaults.boardTag) {
-    parts.push(`@${defaults.boardTag}`)
+    parts.push(defaults.boardTag)
   }
 
   // Positional query takes precedence for status/text

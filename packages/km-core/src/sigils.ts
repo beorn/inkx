@@ -60,6 +60,14 @@ export function getSigilChar(name: string): SigilChar | null {
 }
 
 /**
+ * Return `name` with any leading sigil character removed. Names without a
+ * sigil prefix are returned unchanged.
+ */
+export function stripSigil(name: string): string {
+  return hasSigilPrefix(name) ? name.slice(1) : name
+}
+
+/**
  * True if the substring starting at position `i` in `text` begins a valid
  * inline sigil link.
  *

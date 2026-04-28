@@ -142,4 +142,4 @@ export { createLinkResolver } from "./klink-resolver.ts"
 
 // Sigils — name-prefix characters with semantic meaning. See docs/design/model/klink.md.
 export type { SigilChar, SigilKind, SigilDefinition } from "./sigils.ts"
-export { SIGILS, isSigilChar, hasSigilPrefix, getSigilChar, isInlineSigilStart } from "./sigils.ts"
+export { SIGILS, isSigilChar, hasSigilPrefix, getSigilChar, stripSigil, isInlineSigilStart } from "./sigils.ts"

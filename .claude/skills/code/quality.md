@@ -144,6 +144,9 @@ bun lint:unused 2>&1 | tee /tmp/knip-output.txt  # unused files/exports
 | Inverted pyramid   | Helpers before main logic; file >200 lines with factory/public API below line 100 |
 | Prop drilling      | Same props through 3+ layers                                                |
 | Hardcoded color    | `color="red"` instead of `color="$error"`                                   |
+| **Sigil hygiene**  |                                                                             |
+| Single-sigil strip | `x.startsWith("@") ? x.slice(1) : x` — strips ONE sigil, breaks for `#`/`+`. In km, sigils are part of node identity; if strip is intended, use `stripSigil()` from `@km/core`. Detected by Pattern 42 in `scripts/review-code-patterns.sh`. |
+| Strip-then-readd   | `\`@\${stripSigil(x)}\`` round-trip — caller passed a sigil-bearing name and the function re-decorates it. Either pass the bare label and document it, or pass the full node name and use it verbatim. |
 
 ## Phase 2: Diagnose
 
