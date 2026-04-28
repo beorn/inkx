@@ -433,6 +433,23 @@ function UnifiedOmniboxConnector({
     [runSelection],
   )
 
+  // km-tui.omnibox-interactions (Phase 7): accepting the ghost completion
+  // routes back through the same SET_BUFFER path as a regular keystroke, so
+  // the slippery-sigil rule and selection-reset both apply. The connector
+  // doesn't need to know whether the ghost came from a Tab press or a
+  // mouse click on the ghost line — both call the same handler.
+  const handleAcceptGhost = useCallback(
+    (completedBuffer: string) => {
+      handleBufferChange(completedBuffer)
+    },
+    [handleBufferChange],
+  )
+
+  // km-tui.omnibox-preview-pane: derive the "Enter will run X" summary
+  // command id from the current pane state so the preview pane reflects
+  // the same effectiveCommand the runSelection path will use.
+  const previewEffectiveCommand = pane.state.buffer.startsWith("/") ? "local_find" : pane.state.defaultCommand
+
   return (
     <UnifiedOmnibox
       pane={pane}
@@ -440,10 +457,13 @@ function UnifiedOmniboxConnector({
       selectedIndex={selectedIndex}
       onBufferChange={handleBufferChange}
       onConfirm={() => runSelection()}
+      onAcceptGhost={handleAcceptGhost}
       onRowClick={handleRowClick}
       onRowHover={setSelectedIndex}
       width={width}
       maxHeight={maxHeight}
+      preview={true}
+      previewEffectiveCommand={previewEffectiveCommand}
     />
   )
 }

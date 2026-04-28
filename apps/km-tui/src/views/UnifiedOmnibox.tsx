@@ -16,10 +16,13 @@
  * See docs/design/omnibox.md and apps/km-tui/src/state/omnibox.ts.
  */
 import React from "react"
-import { Box, ModalDialog, PickerList, Text, TextInput } from "@silvery/ag-react"
+import { Box, ModalDialog, PickerList, Small, Text, TextInput } from "@silvery/ag-react"
 import { OmniboxRow, type OmniboxRowData } from "./OmniboxRow.tsx"
 import type { OmniboxPane } from "../state/omnibox.ts"
 import { modeOf } from "../state/omnibox.ts"
+import { chipsFromQuery, type Chip } from "../state/omnibox-chips.ts"
+import { ghostFor, type GhostCandidate } from "../state/omnibox-ghost.ts"
+import { previewForRow, type PreviewContent } from "../state/omnibox-preview.ts"
 
 // =============================================================================
 // Empty-buffer prefix guide
@@ -62,6 +65,94 @@ function GuideHeading({ children }: { children: string }): React.ReactElement {
     <Text bold color="$fg-muted">
       {children}
     </Text>
+  )
+}
+
+// =============================================================================
+// Parse chips strip — visible "what the parser understood" legend
+// =============================================================================
+
+/**
+ * One-line strip of chips that mirrors the buffer's parsed structure.
+ * Renders only when the buffer parses to at least one recognized token —
+ * empty buffers fall through to the prefix guide.
+ *
+ * Implements `km-tui.omnibox-parse-chips` — the "visible narrowing legend"
+ * pattern from Emacs Consult and which-key. Pure presentation; the
+ * derivation lives in `state/omnibox-chips.ts` so the same data is
+ * available to tests, the preview pane, and any future debug surface.
+ *
+ * Acceptance:
+ *  (a) chips render above the buffer, one per parsed token
+ *  (b) chips update on every keystroke without jitter (component is pure
+ *      and re-renders only when `chips` changes by reference)
+ *  (c) chip color/style differs per token kind via theme tokens
+ *  (d) typing an unknown token shows it as a `text` chip, not nothing
+ *  (g) chips are display-only; tokens are still edited via the buffer
+ */
+function ParseChips({ chips }: { chips: readonly Chip[] }): React.ReactElement | null {
+  if (chips.length === 0) return null
+  return (
+    <Box
+      flexDirection="row"
+      flexWrap="wrap"
+      data-testid="omnibox-parse-chips"
+      // Single-line strip with vertical breathing room above and below
+      // so it doesn't collide with the input cursor row.
+      marginTop={1}
+      marginBottom={1}
+      gap={1}
+    >
+      {chips.map((chip) => (
+        <Text key={chip.key} color={chip.color} data-chip-kind={chip.kind}>
+          {chip.label}
+        </Text>
+      ))}
+    </Box>
+  )
+}
+
+// =============================================================================
+// Preview pane — Telescope/Helm-style detail of the highlighted row
+// =============================================================================
+
+/**
+ * One-line summary + body lines for the currently-highlighted row.
+ * Implements `km-tui.omnibox-preview-pane`. Pure presentation — the
+ * derivation lives in `state/omnibox-preview.ts`.
+ *
+ * Acceptance:
+ *  (a) preview pane renders for node results (content + breadcrumbs)
+ *  (b) preview pane renders for command results (description + summary)
+ *  (c) toggle via `preview` prop (default off)
+ *  (d) doesn't interfere with bottom-left layout (caller suppresses)
+ */
+function PreviewPane({ content }: { content: PreviewContent }): React.ReactElement {
+  return (
+    <Box
+      data-testid="omnibox-preview"
+      flexDirection="column"
+      marginTop={1}
+      paddingX={1}
+      borderStyle="single"
+      borderColor="$border-subtle"
+    >
+      {/* Heading row — title + optional hint */}
+      <Box flexDirection="row" justifyContent="space-between">
+        <Text bold color={content.disabled ? "$fg-muted" : "$fg-accent"}>
+          {content.title}
+        </Text>
+        {content.hint && <Text color="$fg-muted">{content.hint}</Text>}
+      </Box>
+      {/* Body lines (description for commands, breadcrumb for nodes) */}
+      {content.lines.map((line, i) => (
+        <Text key={`line-${i}`} color="$fg-default">
+          {line}
+        </Text>
+      ))}
+      {/* "What Enter will do" summary — always present, dimmed */}
+      <Small>{content.summary}</Small>
+    </Box>
   )
 }
 
@@ -115,6 +206,27 @@ export interface UnifiedOmniboxProps {
    * Derived from `buffer.startsWith("/")` by the caller.
    */
   layout?: "center" | "bottom-left"
+  /**
+   * Optional accept-ghost callback (km-tui.omnibox-interactions, Phase 7).
+   * When the connector wires this, Tab / Space / Right-Arrow at the end of
+   * the buffer trigger it with the full ghost-completed buffer. Pure
+   * delegation — the connector decides whether to update via SET_BUFFER
+   * directly or run a follow-up action.
+   */
+  onAcceptGhost?: (completedBuffer: string) => void
+  /**
+   * Show a preview pane below the result list (km-tui.omnibox-preview-pane).
+   * Default: off. Recommended for center-layout dialogs on terminals
+   * with enough vertical room (>= 24 rows). Bottom-left layout always
+   * suppresses this — the find-bar is a single line and has no preview.
+   */
+  preview?: boolean
+  /**
+   * Effective command id used in the preview's "Enter will run X" summary
+   * for node rows. Connector typically passes the result of
+   * `resolveEffectiveCommand(pane.state)` here.
+   */
+  previewEffectiveCommand?: string
 }
 
 // =============================================================================
@@ -187,10 +299,13 @@ function CenterOmnibox({
   selectedIndex,
   onBufferChange,
   onConfirm,
+  onAcceptGhost,
   onRowClick,
   onRowHover,
   width,
   maxHeight,
+  preview,
+  previewEffectiveCommand,
 }: Omit<UnifiedOmniboxProps, "layout"> & { width: number }): React.ReactElement {
   const buffer = pane.state.buffer
   const mode = modeOf(buffer)
@@ -200,6 +315,42 @@ function CenterOmnibox({
   // caller didn't override with a sigil-specific defaultCommand (e.g. `manage_favorites`
   // should still surface favorites, not the guide).
   const showGuide = buffer === "" && mode === "universal" && pane.state.defaultCommand === "default"
+
+  // Live parse chips — strip rendered between the input and the result list
+  // when the buffer parses to at least one token. Memoized on the buffer so
+  // the chip array reference is stable across renders that don't change the
+  // buffer (e.g. selection-only changes).
+  const chips = React.useMemo(() => chipsFromQuery(buffer), [buffer])
+
+  // Ghost completion — derive from the top-ranked result. We trim the
+  // leading sigil from the candidate id (commands) so the ghost suffix
+  // is right-aligned to the buffer's text portion. Pure derivation;
+  // the connector wires `onAcceptGhost` to commit the completion.
+  const ghost = React.useMemo(() => {
+    const ghostCandidates: GhostCandidate[] = results.map((r) => ({
+      id: r.id,
+      title: r.title,
+      kind: r.kind,
+    }))
+    return ghostFor(buffer, ghostCandidates)
+  }, [buffer, results])
+  // Build the completed-buffer string callers commit when the user accepts
+  // the ghost (Tab / Space / Right-Arrow). Stable identity — only changes
+  // when buffer or ghost change.
+  const completedBuffer = ghost != null ? buffer + ghost : null
+  const handleAcceptGhost = React.useCallback(() => {
+    if (completedBuffer != null && onAcceptGhost) onAcceptGhost(completedBuffer)
+  }, [completedBuffer, onAcceptGhost])
+
+  // Preview-as-selection — derive content from the highlighted row when
+  // the preview pane is enabled. Hidden when no row is selected (empty
+  // results) so we don't show an empty pane.
+  const selectedRow = results[selectedIndex] ?? null
+  const previewContent = React.useMemo(
+    () =>
+      preview ? previewForRow(selectedRow, { effectiveCommand: previewEffectiveCommand }) : null,
+    [preview, selectedRow, previewEffectiveCommand],
+  )
 
   // Chrome budget (borderless dialog, opencode-style): title(2) + paddingY(2)
   // + input(1 row, borderless) + blank-line gap(1) = 6 rows. No outer border.
@@ -229,9 +380,27 @@ function CenterOmnibox({
           prompt={chrome.prompt}
           promptColor="$fg-accent"
         />
+        {/* Ghost completion — rendered just below the input as a dim
+            "press Tab to complete: <full-id>" hint. Acceptance happens via
+            the parent connector binding Tab/Space/Right-Arrow to
+            onAcceptGhost — we surface the available completion here so the
+            user discovers the chord exists. */}
+        {ghost != null && (
+          <Box flexDirection="row" data-testid="omnibox-ghost" onClick={handleAcceptGhost}>
+            <Small>
+              {"  ↳ "}
+              {buffer}
+              {ghost}
+              {"  (Tab to complete)"}
+            </Small>
+          </Box>
+        )}
+        {/* Parse chips — empty when the buffer is empty/whitespace, so this
+            gracefully degrades to a single blank line in that case. */}
+        <ParseChips chips={chips} />
         {/* One-line gap between the input and the results/guide — visual
             breathing room so the input doesn't abut the first row. */}
-        <Text> </Text>
+        {chips.length === 0 && <Text> </Text>}
         {showGuide ? (
           <PrefixGuide />
         ) : (
@@ -251,6 +420,10 @@ function CenterOmnibox({
             )}
           />
         )}
+        {/* Preview pane — Telescope/Helm-style detail of the highlighted
+            row. Only renders for center layout (bottom-left passes through
+            UnifiedOmnibox without ever reaching here). */}
+        {previewContent && <PreviewPane content={previewContent} />}
       </Box>
     </ModalDialog>
   )
