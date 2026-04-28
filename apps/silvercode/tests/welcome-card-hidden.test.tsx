@@ -35,7 +35,7 @@ test("Welcome content renders in focused pane (full app)", async () => {
   expect(s.text).toContain("Commands")
   expect(s.text).toContain("Keybindings")
   // At least one slash-command row.
-  expect(s.text).toContain("/inbox")
+  expect(s.text).toContain("/panel")
   s.dispose()
 })
 

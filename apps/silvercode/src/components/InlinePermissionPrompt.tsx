@@ -2,8 +2,8 @@
  * InlinePermissionPrompt — renders the FIRST pending permission for the
  * focused session as an interactive bar above the SessionPromptComposer.
  *
- * Replaces the older `RequestPermissionInbox` modal. Permission requests
- * are answered one at a time, in-context: each `requestPermission` call
+ * Replaces the older permission-inbox modal. Permission requests are
+ * answered one at a time, in-context: each `requestPermission` call
  * resolves before the next renders. There is no queue, no SelectList of
  * pending entries, no ModalDialog that obscures which tool is being
  * approved.

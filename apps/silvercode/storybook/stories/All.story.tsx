@@ -14,7 +14,7 @@
  *   • SubAgentExchange (Task tool with nested stream)
  *   • SessionExchangeDivider
  *   • ActivityIndicator (thinking)
- *   • RequestPermissionInbox (one pending Bash)
+ *   • InlinePermissionPrompt (one pending Bash)
  *   • UsageMeter + UsageBreakdown + UsageMetrics
  *   • SessionPromptComposer (with-text)
  *
@@ -32,7 +32,7 @@ import { ApplyPatch } from "../../src/components/ApplyPatch.tsx"
 import { BoundedScroll } from "../../src/components/BoundedScroll.tsx"
 import { LinkifiedText } from "../../src/components/LinkifiedText.tsx"
 import { MarkdownView } from "../../src/components/MarkdownView.tsx"
-import { RequestPermissionInbox } from "../../src/components/RequestPermissionInbox.tsx"
+import { InlinePermissionPrompt } from "../../src/components/InlinePermissionPrompt.tsx"
 import { SessionExchangeDivider } from "../../src/components/SessionExchangeDivider.tsx"
 import { SessionPromptComposer } from "../../src/components/SessionPromptComposer.tsx"
 import { SessionRetry } from "../../src/components/SessionRetry.tsx"
@@ -331,8 +331,8 @@ function AllStoryBody(): React.ReactElement {
           <SectionLabel>ActivityIndicator — thinking spinner</SectionLabel>
           <ActivityIndicator status="thinking" turnStartedAt={Date.now() - 3000} />
 
-          <SectionLabel>RequestPermissionInbox — one pending Bash</SectionLabel>
-          <RequestPermissionInbox sessions={[handle]} onApprove={() => {}} onDeny={() => {}} onClose={() => {}} />
+          <SectionLabel>InlinePermissionPrompt — one pending Bash</SectionLabel>
+          <InlinePermissionPrompt focused={handle} sessions={[handle]} onApprove={() => {}} onDeny={() => {}} />
 
           <SectionLabel>
             UsageMeter + UsageBreakdown + UsageMetrics + StructuredQuestion + StructuredAnswer
