@@ -11,11 +11,17 @@
  * all when DEBUG_LOG isn't set (no console capture to worry about).
  */
 
-if (!process.env.LOG_LEVEL) process.env.LOG_LEVEL = "error"
+// Default LOG_LEVEL: "info" when DEBUG_LOG is set so the startup-timing
+// instrumentation (and any other info-level loggily emits) reach the file.
+// Otherwise "error" so info/debug don't emit at all and there's no
+// console capture to worry about. Explicit LOG_LEVEL always wins.
+if (!process.env.LOG_LEVEL) {
+  process.env.LOG_LEVEL = process.env.DEBUG_LOG ? "info" : "error"
 
-// Capture earliest possible timestamp so the startup-timing log can
-// attribute the cost of the index.tsx import + module graph compile.
-// Stash on globalThis so it survives the dynamic import boundary.
+  // Capture earliest possible timestamp so the startup-timing log can
+  // attribute the cost of the index.tsx import + module graph compile.
+  // Stash on globalThis so it survives the dynamic import boundary.
+}
 ;(globalThis as { __SILVERCODE_BOOT_T0?: number }).__SILVERCODE_BOOT_T0 = Date.now()
 
 // Must run before any debug() call fires.

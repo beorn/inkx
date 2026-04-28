@@ -37,7 +37,7 @@ import {
 import { createScope, type Scope } from "@silvery/scope"
 import { createInMemoryTribe, type TribeBackend } from "@km/tribe-mcp"
 import { resolveAccountDir } from "./accounts.ts"
-import { bdPrimeOutput, readActiveBead } from "./bd-prime.ts"
+import { bdPrimeOutputAsync, bdPrimePeek, readActiveBeadAsync, readActiveBeadPeek } from "./bd-prime.ts"
 import { type ChannelQueue, createChannelQueue } from "./channel-queue.ts"
 import { type AmbientStream, createAmbientStream } from "./ambient-stream.ts"
 import { type MuteState, createMuteState } from "./mute-state.ts"
@@ -491,7 +491,7 @@ let nextId = 1
 const ctrlStartupLog = createLogger("silvercode:startup")
 const ctrlBootT0 = (globalThis as { __SILVERCODE_BOOT_T0?: number }).__SILVERCODE_BOOT_T0 ?? Date.now()
 function ctrlStartupTick(label: string, extra?: Record<string, unknown>): void {
-  ctrlStartupLog.info?.(label, { elapsedMs: Date.now() - ctrlBootT0, ...(extra ?? {}) })
+  ctrlStartupLog.info?.(label, { elapsedMs: Date.now() - ctrlBootT0, ...extra })
 }
 
 export function createSilvercodeController(opts: ControllerOptions): Controller {
@@ -527,11 +527,13 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   // events fan out into `recordBroadcast` below so the prompt-assembly
   // slice has visibility into recent peer activity.
   const crossAgentState = createCrossAgentState(controllerScope)
+  ctrlStartupTick("controller:create:beforeWireChannelSources")
   if (!opts.disableChannelSources) {
     wireChannelSources(controllerScope, channelQueue, {
       disable: opts.disableLegacyTribeSource ? { tribe: true } : undefined,
     })
   }
+  ctrlStartupTick("controller:create:afterWireChannelSources")
   // Phase 6.b ambient adapters — sanitize + debounce real source signals
   // (tribe, ci, filewatch, subagent; recall is a wired stub awaiting a
   // controller token stream). Disabling is gated by
@@ -541,12 +543,14 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   // events from the per-session subscribe loop.
   let subagentAdapter: ReturnType<typeof registerAllAmbientAdapters>["subagent"] | undefined
   if (!opts.disableAmbientAdapters && !opts.disableChannelSources) {
+    ctrlStartupTick("controller:create:beforeRegisterAmbient")
     const adapters = registerAllAmbientAdapters({
       scope: controllerScope,
       queue: channelQueue,
       cwd: opts.cwd,
     })
     subagentAdapter = adapters.subagent
+    ctrlStartupTick("controller:create:afterRegisterAmbient")
   }
   // Mirror channel-queue events into the cross-agent broadcast ring buffer
   // so the prompt-projection slice (apps/silvercode/src/prompt-cross-agent.ts)
@@ -913,22 +917,25 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     list.push(cwdInjector())
     // Active bead injector — wraps bd data + the bd prime output so sessions
     // running under --bare still see the SessionStart context users depend on.
+    //
+    // Both probes are async + cached (see bd-prime.ts). The injector reads
+    // the cache synchronously — if the pre-warm hasn't resolved yet the
+    // injector skips this turn instead of blocking the event loop. UI
+    // mount no longer pays the bd cold-start cost.
     list.push(
       activeBeadInjector(() => {
         const override = opts.getActiveBead?.() ?? {}
         if (override.beadId) return override
-        return readActiveBead(opts.cwd)
+        return readActiveBeadPeek()
       }),
     )
-    const primeOutput = bdPrimeOutput(opts.cwd)
-    if (primeOutput.length > 0) {
-      list.push({
-        name: "bd-prime",
-        run() {
-          return primeOutput
-        },
-      })
-    }
+    list.push({
+      name: "bd-prime",
+      run() {
+        const out = bdPrimePeek()
+        return out.length > 0 ? out : null
+      },
+    })
     // Channel-digest injector: surface tribe messages addressed to this
     // session as [channel from peer] reminders on the next turn.
     list.push(
@@ -1265,6 +1272,23 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     notifySessions()
     return handle
   }
+
+  // Pre-warm the bd-prime + active-bead caches asynchronously. These
+  // probes shell out to `bd` (multi-second cold-start when Dolt isn't
+  // running) and used to live in `makeInjectors` as sync execSyncs —
+  // which blocked silvery's render flush until they resolved. Now they
+  // run in the background; the injectors read the cache synchronously
+  // when a user submits a turn (and skip if not yet warm).
+  void bdPrimeOutputAsync(opts.cwd)
+    .then((out) => ctrlStartupTick("controller:create:bdPrimeWarm", { bytes: out.length }))
+    .catch(() => {
+      /* swallowed inside bd-prime.ts */
+    })
+  void readActiveBeadAsync(opts.cwd)
+    .then((s) => ctrlStartupTick("controller:create:bdActiveWarm", { hasBead: Boolean(s.beadId) }))
+    .catch(() => {
+      /* swallowed inside bd-prime.ts */
+    })
 
   ctrlStartupTick("controller:create:beforeInitialSpawn", { sessions: opts.initialSessions })
   // Eagerly spawn the requested number of initial sessions.

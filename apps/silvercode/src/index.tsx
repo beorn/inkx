@@ -10,7 +10,7 @@ import { App } from "./App.tsx"
 const startupLog = createLogger("silvercode:startup")
 const bootT0 = (globalThis as { __SILVERCODE_BOOT_T0?: number }).__SILVERCODE_BOOT_T0 ?? Date.now()
 function startupTick(label: string, extra?: Record<string, unknown>): void {
-  startupLog.info?.(label, { elapsedMs: Date.now() - bootT0, ...(extra ?? {}) })
+  startupLog.info?.(label, { elapsedMs: Date.now() - bootT0, ...extra })
 }
 startupTick("indexModuleEvaluated")
 import { AcpEntryKind, BUILTIN_AGENTS, McpKind, type AcpEntry, type McpEntry } from "./config-schema.ts"
