@@ -7,6 +7,7 @@
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
 import type { Issue, IssueFilter } from "./types.ts"
+import { resolveShortId } from "./short-ids.ts"
 
 /** Options for beads query functions */
 export interface BeadsQueryOptions {
@@ -154,8 +155,11 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
   // Count dependencies
   const dependencyCount = blockedBy?.length || 0
 
-  // Calculate the short ID for this issue (needed for dependent count lookup)
-  const shortId = (data?.short_id as string) || `km-${node.id.slice(-4).toLowerCase()}`
+  // Calculate the short ID for this issue (needed for dependent count lookup).
+  // Priority: frontmatter `id:` (canonical path-form, e.g. "silvercode/acp/rename")
+  // > legacy `data.short_id` (bd-form like "km-a1b2")
+  // > ULID-suffix fallback for nodes that ship neither.
+  const shortId = (data?.id as string) || (data?.short_id as string) || `km-${node.id.slice(-4).toLowerCase()}`
 
   // Count dependents (issues that are blocked by this one)
   const dependentCount = countDependents(shortId, repo)
@@ -334,22 +338,31 @@ export function queryIssues(
  * @param shortId - The short ID to look up
  * @param options - Optional query options (repo for DI)
  */
-export function getIssue(shortId: string, options?: BeadsQueryOptions): Issue | null {
+export function getIssue(idRef: string, options?: BeadsQueryOptions): Issue | null {
   const repo = options?.repo
-  // Try to find by short_id in data
-  // Don't filter by type='task' - issues can be file nodes with task_status
-  if (!repo) {
-    return null // Cannot query without repo
+  if (!repo) return null
+
+  // First, the canonical resolver path: frontmatter id, legacy short_id, or
+  // any entry in the aliases list. Handles `silvercode/acp/rename`,
+  // `@km/silvercode/acp/rename`, and `km-silvercode.acp-rename`.
+  const nodeId = resolveShortId(idRef, { repo })
+  if (nodeId) {
+    const node = repo.getNode(nodeId)
+    if (node) return nodeToIssue(node, { repo })
   }
-  const nodes = repo.query(`@issue`)
 
-  for (const node of nodes) {
-    const data = node.data as Record<string, unknown> | undefined
-    const nodeShortId = data?.short_id as string | undefined
-    const derivedShortId = `km-${node.id.slice(-4).toLowerCase()}`
-
-    if (nodeShortId === shortId || derivedShortId === shortId) {
-      return nodeToIssue(node, { repo })
+  // Last-resort: ULID-suffix fallback for nodes that ship neither
+  // frontmatter id nor data.short_id (e.g., bd-form ids derived purely from
+  // the trailing 4 chars of the node's ULID).
+  const tail = idRef.match(/^km-([a-z0-9]{4})$/i)?.[1]?.toLowerCase()
+  if (tail) {
+    const rows = repo.rawQuery<{ id: string }>(
+      `SELECT id FROM nodes WHERE lower(substr(id, length(id) - 3, 4)) = ? LIMIT 1`,
+      [tail],
+    )
+    if (rows[0]) {
+      const node = repo.getNode(rows[0].id)
+      if (node) return nodeToIssue(node, { repo })
     }
   }
 
