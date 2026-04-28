@@ -309,6 +309,11 @@ export type {
   ExpandProgress,
 } from "./repo/repo.ts"
 
+// Move/rename with reference rewriting (canonical primitive)
+export { rewriteWikilinks, rewriteBareIdMentions } from "./repo/move-with-refs.ts"
+
+export type { MoveSpec, MoveOptions, MoveResult, MoveProgress } from "./repo/move-with-refs.ts"
+
 export type { UnexploredDir } from "./discovery.ts"
 
 // Testing utilities

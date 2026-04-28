@@ -20,11 +20,12 @@ import { getNodeDisplayName } from "@km/tree"
 import type { KNode } from "@km/core"
 
 export const moveCommand = new Command("move")
-  .description("Move a node to a different parent")
+  .description("Move a node to a different parent (rewrites incoming references by default)")
   .argument("<node>", "Node to move (ID, path, or filename)")
   .argument("[parent]", "Target parent (ID, path, or filename)")
   .option("-p, --project <name>", "Move to project by name")
   .option("--to-root", "Move to root level (no parent)")
+  .option("--no-rewrite", "Skip rewriting incoming references")
   .option("--json", "Output as JSON")
   .action(async (nodeArg, parentArg, options) => {
     // Resolve the node argument - may detect repo root from path
@@ -101,18 +102,33 @@ export const moveCommand = new Command("move")
       return
     }
 
-    // Move via repo (handles event emission and persistence)
-    // targetParentId is null only for --toRoot; repo.moveNode handles null at runtime via dataStore
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- null is valid at runtime for --toRoot (repo.moveNode delegates to dataStore which accepts null)
-    repo.moveNode(node.id, targetParentId!, Date.now())
+    // Move via the canonical primitive — rewrites incoming references by
+    // default unless `--no-rewrite` is set. See hub/km/design/move-rewrite-refs.md.
+    // targetParentId may be null (--to-root); MoveSpec accepts null explicitly.
+    const result = repo.moveNodeWithRefs(
+      node.id,
+      { newParentId: targetParentId },
+      { noRewrite: options.rewrite === false },
+    )
 
     if (options.json) {
-      console.log(JSON.stringify({ id: node.id, parent_id: targetParentId }))
+      console.log(
+        JSON.stringify({
+          id: node.id,
+          parent_id: targetParentId,
+          rewroteHosts: result.rewroteHosts,
+          rewroteRefs: result.rewroteRefs,
+        }),
+      )
       return
     }
 
     const nodeName = getNodeDisplayName(node)
     const targetName = targetParent ? getNodeDisplayName(targetParent) : "(root)"
 
-    console.log(term.green("→"), `Moved ${nodeName} to ${targetName}`)
+    const refsSuffix =
+      result.rewroteRefs > 0
+        ? ` (rewrote ${result.rewroteRefs} ref${result.rewroteRefs === 1 ? "" : "s"} in ${result.rewroteHosts} file${result.rewroteHosts === 1 ? "" : "s"})`
+        : ""
+    console.log(term.green("→"), `Moved ${nodeName} to ${targetName}${refsSuffix}`)
   })
