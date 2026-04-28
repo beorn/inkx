@@ -144,9 +144,11 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
     }
   }
 
-  // Extract assignee from mentions
-  const mentions = data?.mentions as string[] | undefined
-  const assignee = mentions?.[0]
+  // Assignee is the structural `assigned_to` column on KNode — set by
+  // `bd update <id> --claim` and persisted as a first-class field. Don't
+  // derive from data.mentions: that conflates person references with
+  // board sigils like `@issue`.
+  const assignee = node.assigned_to
 
   // Get path and context
   const path = getNodePath(node, repo)
