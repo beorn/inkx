@@ -371,24 +371,33 @@ export function bdIdToPathFormWithSlug(bdId: string, title: string, sourcePrefix
 }
 
 /**
- * Build an `id → path-form` map for a batch of issues, applying
- * slug-augmentation for numeric-leaf ids. Used by {@link
- * migrateBeadsToMarkdown} so wikilink targets, frontmatter ids, and
- * filenames all agree on the same resolved form within a single
- * migration pass.
+ * Build an `id → path-form` map for a batch of issues, applying:
  *
- * Skips augmentation when the issue is also a parent of other issues
- * — augmenting `silvery/1` to `silvery/1-foo` would break the
- * directory path that `silvery/1/child` files live under. The bare
- * numeric form is kept in those cases (file + sibling directory share
- * the same name, which km handles natively).
+ *   1. Scope-epic routing: a no-dot id (`km-silvery`, `km-beads`)
+ *      with at least one dotted child in the same batch is a scope
+ *      epic — emit `@<prefix>/<scope>.md` (sibling file to the
+ *      `@<prefix>/<scope>/` directory of children). Without this,
+ *      `bdIdToPathForm`'s default no-dot rule parks scope epics
+ *      under `_orphan/`, splitting the scope-bead from its children.
  *
- * Only sets entries when augmentation actually changes the path so
- * callers can fall back via `idMap.get(id) ?? bdIdToPathForm(id)`
- * without losing accuracy.
+ *   2. Slug-augmentation for numeric-leaf ids: `km-rev-code-0203.1`
+ *      → `@km/rev-code-0203/1-add-keyboard-nav` so filenames stay
+ *      legible. Skipped when the id is itself a parent (would break
+ *      the child directory path).
+ *
+ * Used by {@link migrateBeadsToMarkdown} so wikilink targets,
+ * frontmatter ids, and filenames all agree on the same resolved form
+ * within a single migration pass. Callers fall back via
+ * `idMap.get(id) ?? bdIdToPathForm(id)` — the map only contains
+ * entries that differ from the default routing.
  */
 export function buildIdMap(issues: BeadsIssue[], sourcePrefix = "km"): Map<string, string> {
+  // First pass: collect (a) parent paths so slug-augmentation skips
+  // them, and (b) known scopes — no-dot ids that are the prefix of
+  // other ids in this batch (i.e., have children).
   const parentPaths = new Set<string>()
+  const idsWithDot = new Set<string>()
+  const stripped = new Map<string, string>() // bd-id → stripped form
   for (const issue of issues) {
     const base = bdIdToPathForm(issue.id, sourcePrefix)
     if (!base) continue
@@ -397,11 +406,30 @@ export function buildIdMap(issues: BeadsIssue[], sourcePrefix = "km"): Map<strin
       parentPaths.add(base.slice(0, idx))
       idx = base.indexOf("/", idx + 1)
     }
+    const s = issue.id.startsWith(`${sourcePrefix}-`) ? issue.id.slice(sourcePrefix.length + 1) : issue.id
+    stripped.set(issue.id, s)
+    if (s.includes(".")) idsWithDot.add(s.split(".")[0]!)
   }
+
   const map = new Map<string, string>()
+
+  // Scope-epic detection: no-dot id with at least one dotted child →
+  // route to `@<prefix>/<scope>.md` (overrides the default _orphan/ rule).
+  const sigilRoot = `@${sourcePrefix}`
+  for (const issue of issues) {
+    const s = stripped.get(issue.id)
+    if (!s) continue
+    if (s.includes(".")) continue
+    if (idsWithDot.has(s)) {
+      map.set(issue.id, `${sigilRoot}/${s}`)
+    }
+  }
+
+  // Slug-augmentation pass.
   for (const issue of issues) {
     const base = bdIdToPathForm(issue.id, sourcePrefix)
     if (!base || parentPaths.has(base)) continue
+    if (map.has(issue.id)) continue // scope-epic routing already set
     const resolved = bdIdToPathFormWithSlug(issue.id, issue.title, sourcePrefix)
     if (resolved && resolved !== base) {
       map.set(issue.id, resolved)

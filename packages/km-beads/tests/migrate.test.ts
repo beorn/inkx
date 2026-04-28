@@ -62,6 +62,34 @@ describe("buildIdMap", () => {
     expect(map.get("km-rev-code-0203.2")).toBe("@km/rev-code-0203/2-convert-getters-to-plain-properties")
   })
 
+  it("routes scope epics (no-dot id with dotted children) to @<prefix>/<scope>.md, not _orphan/", () => {
+    // km-silvery is the umbrella scope bead; km-silvery.foo and .bar are children
+    const map = buildIdMap([
+      fakeIssue("km-silvery", "[epic] Silvery render pipeline", { issue_type: "epic" }),
+      fakeIssue("km-silvery.foo", "Foo"),
+      fakeIssue("km-silvery.bar", "Bar"),
+    ])
+    expect(map.get("km-silvery")).toBe("@km/silvery")
+    // Children are unaffected — they still go to their dotted paths via default routing.
+    expect(map.has("km-silvery.foo")).toBe(false)
+  })
+
+  it("leaves no-dot orphan auto-ids in _orphan/ when they have no children", () => {
+    // km-q5hji has no children — stays as orphan auto-id (no map entry, default routing)
+    const map = buildIdMap([fakeIssue("km-q5hji", "Random auto-id bead")])
+    expect(map.has("km-q5hji")).toBe(false)
+    // Default routing still parks it under _orphan/
+    expect(bdIdToPathForm("km-q5hji")).toBe("@km/_orphan/q5hji")
+  })
+
+  it("scope-epic routing uses the dynamic prefix", () => {
+    const map = buildIdMap(
+      [fakeIssue("pim-tasks", "[epic] PIM tasks", { issue_type: "epic" }), fakeIssue("pim-tasks.inbox", "Inbox")],
+      "pim",
+    )
+    expect(map.get("pim-tasks")).toBe("@pim/tasks")
+  })
+
   it("skips augmenting when the id is also a parent of other ids", () => {
     // km-silvery.1 is BOTH a leaf issue AND a parent of km-silvery.1.foo;
     // augmenting it would break the directory path the child file lives under.
