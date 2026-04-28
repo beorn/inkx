@@ -107,9 +107,21 @@ APP FEATURES        Hierarchy X-ray view (Boardliner / Super Finder)
 SUBSTRATE           PlainBrain spec, repo-as-DB, md↔SQLite + watcher
 ─────────────────────────────────────────────────────────────────
 AGENT               (1) Universal ACP-wrapper for any third-party
-                        coding agent (anti-Cursor)
-                    (2) Sub-agents on the wire (recall-thought,
-                        critic, style-watcher, test-runner, docs-keeper)
+                        coding agent (Claude Code, Codex, Aider, Cline,
+                        Continue, pi). silvercode hosts ALL of them.
+                    (2) Sub-agents on the wire (recall-thought, critic,
+                        style-watcher, test-runner, docs-keeper) — the
+                        agent-in-the-middle platform.
+                    (3) First-party coding agent (the "pi shape" — own
+                        the agent that ships as silvercode's default).
+                        Owning the UI layer enables vertical-integration
+                        moves nobody else can match: silvercode UI ⇄
+                        first-party agent ⇄ ACP-services. Default agent
+                        with ++ features tied to silvery primitives
+                        (squad mode, hierarchy X-ray, ambient channels).
+                        NOT a Cursor clone; coexists with (1) — silvercode
+                        is the best place to run our agent AND any
+                        third-party agent.
                     Multi-agent coordination, ambient-context-safety,
                     recall, handoff
 ─────────────────────────────────────────────────────────────────
@@ -131,9 +143,17 @@ SUPPORTING          Standards (CC BY 4.0), feeder sites, bearly
 
 **Layer-aware insight**: the question isn't *"which product wins?"* but *"which layers do we own?"*
 
-- **Always own**: silvery (UI), tribe + PlainBrain (authored protocols), agentroom (services anchor). Competitors structurally can't replicate cheaply.
-- **Compose freely**: silvercode, km, future apps. Vehicles for the layers, not the layers themselves.
+- **Always own**: [silvery](#g-silvery) (UI), [tribe](#g-tribe) + [PlainBrain](#g-plainbrain) (authored protocols), [agentroom](#g-agentroom) (services anchor). Competitors structurally can't replicate cheaply.
+- **Compose freely**: [silvercode](#g-silvercode), km, future apps. Vehicles for the layers, not the layers themselves.
 - **Open-source generously at the layer level; monetize at the services level + selectively at app-shape.**
+
+**Vertical-integration insight (added 2026-04-28)**: owning the UI layer creates leverage that pure-services competitors can't match. The full vertical stack — UI ⇄ first-party agent ⇄ ACP-services — lets us ship UI features that *only* compose properly with our agent + our services. Cursor's moat is exactly this shape: Cursor supports any model API but the Composer + Agent UX is first-party and the integrated experience is what people pay for. The strategic move:
+
+- **Universal client (option 1) stays first-class** — silvercode hosts Claude Code, Codex, Aider, Cline, Continue, pi. Gives us the multi-agent coordination story (squad mode, parallel agents, cross-agent state).
+- **First-party coding agent (option 3) ships as the default** — the agent silvercode reaches for unless you BYO. Realistic execution: fork pi (badlogic) or opencode and add silvercode-specific integrations (multi-pane orchestration, hierarchy-X-ray-aware planning, ambient-channel awareness, native squad-mode coordination). Don't build a Cursor-class agent from scratch.
+- **Services tier (Layer 2/3) anchors monetization** — auth, recall, ambient-safety, hosted gateway. Same ACP wire used by both first-party and third-party agents.
+
+Result: a differentiated default experience competitors can't fully copy without owning all three layers, while staying open at the wire so the multi-agent story holds.
 
 ### A4. OpenTUI architectural reality check
 
@@ -557,7 +577,10 @@ Build silvery + silvery/ink shim + agentroom + tribe to *just* the right size fo
 [D3](#phase-2-6) + [D4](#phase-2-6)/[D5](#phase-2-6) layered. **Recommended lead.**
 
 **Lead (revenue)**:
-- **Agent layer** as universal ACP-wrapper for *any* coding agent — anti-Cursor positioning. Don't compete on having an agent; be the best UI for managing any agent. Multi-agent coordination, ambient-context-safety, recall.
+- **Agent layer** has three first-class options that compose:
+  - **Universal ACP-wrapper** for any third-party coding agent ([Claude Code](#g-claude-code), Codex, Aider, Cline, Continue, pi). Gives us the multi-agent coordination story (squad mode, parallel agents, cross-agent state).
+  - **Sub-agents on the wire** (recall-thought, critic, style-watcher, test-runner, docs-keeper) — the "agent-in-the-middle platform."
+  - **First-party coding agent** as silvercode's *default*. Realistically: fork pi (badlogic) or opencode and add silvercode-specific integrations (multi-pane orchestration, hierarchy-X-ray-aware planning, ambient-channel awareness, native squad-mode coordination) — don't build a Cursor-class agent from scratch. The vertical-integration leverage (UI ⇄ first-party agent ⇄ ACP-services) is what competitors can't match without owning all three layers.
 - **Protocol layer** — tribe wire + `org.agentroom.*` event vocab + PlainBrain substrate spec authored as MSCs. Spec-authorship moat is generational-scale.
 - **Services layer** — ACP-proxy ship-now cluster (observability + recall + cost) for v1 → full agentroom hosted gateway + CrossAgentState orchestration + ambient-safety + hosted recall over time.
 
