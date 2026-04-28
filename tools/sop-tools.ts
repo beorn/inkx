@@ -296,6 +296,16 @@ const recallEmitDashboard: SopTask = {
   cache: 3600,
 }
 
+const wipTriage: SopTask = {
+  id: "wip-triage",
+  label: "retained agent work (worktrees + branches + stashes)",
+  // Surfaces all retained agent work across 4 sources, classifies by
+  // bead-status + divergence + age, recommends integrate / discard / leave.
+  // No cache: branch + worktree state changes too fast to cache. See bead
+  // km-infra.orphan-branch-audit + the eventual-consistency operating doc.
+  command: "bun tools/wip-triage.ts scan 2>&1",
+}
+
 // ─── Legal tools ───────────────────────────────────────────────────────────
 
 const licenseFiles: SopTask = {
@@ -326,7 +336,7 @@ export const TASKS: SopTask[] = [
   // Phase 1: external (cache: TTL)
   bunAudit, ghIssues, bdStale, bdOrphans, bdPriority,
   ciHealth, npmRegistry, nixFreshness, toolVersions, depLicenses,
-  recallEvalBaseline, recallEmitDashboard,
+  recallEvalBaseline, recallEmitDashboard, wipTriage,
 ]
 
 export const TASK_MAP = new Map(TASKS.map((t) => [t.id, t]))
@@ -342,6 +352,6 @@ export const DOMAIN_TOOLS: Record<string, string[]> = {
   sites: ["doc-links", "doc-freshness"],
   security: ["bun-audit", "secret-scan", "lockfile", "nix-freshness"],
   packaging: ["bundle-sizes", "zero-dep", "cjs-esm"],
-  infra: ["ci-health", "hook-integrity", "tool-versions", "recall-eval-baseline", "recall-emit-dashboard"],
+  infra: ["ci-health", "hook-integrity", "tool-versions", "recall-eval-baseline", "recall-emit-dashboard", "wip-triage"],
   legal: ["license-files", "dep-licenses"],
 }
