@@ -293,6 +293,46 @@ describe("user-message — optimistic + echo dedup", () => {
     expect(store.state.get().messages).toHaveLength(2)
   })
 
+  test("late tool-result arriving after turn-end MUST NOT flip status back to thinking", () => {
+    // Repro for the "stuck thinking" bug user re-reported on 2026-04-27
+    // (session claude-acp-1777334914180-1). The ACP wire emits
+    // sessionUpdate notifications fire-and-forget; depending on JSON-RPC
+    // write ordering, a tool_call_update notification can arrive on the
+    // consumer side AFTER the prompt response (which triggers the
+    // synthetic turn-end). Without the status guard, the late tool-result
+    // event flips status from "idle" back to "thinking" and the spinner
+    // never clears.
+    const store = createSessionStore()
+    const t = tid(1)
+    // Turn lifecycle: assistant turn → tool-use → tool-result → turn-end
+    store.apply({ kind: "turn-start", sessionId: sid, turnId: t, role: "assistant", ts: 0 })
+    expect(store.state.get().status).toBe("thinking")
+    store.apply({
+      kind: "tool-use",
+      sessionId: sid,
+      turnId: t,
+      id: tu(1),
+      name: "Bash",
+      input: { command: "ls" },
+      ts: 1,
+    })
+    expect(store.state.get().status).toBe("tool-running")
+    // turn-end arrives synthetically via withTurnLifecycle BEFORE the
+    // late tool_call_update wins the race on the wire.
+    store.apply({ kind: "turn-end", sessionId: sid, turnId: t, stopReason: "end_turn", ts: 2 })
+    expect(store.state.get().status).toBe("idle")
+    // Late tool-result — this MUST NOT flip status back to "thinking".
+    store.apply({
+      kind: "tool-result",
+      sessionId: sid,
+      id: tu(1),
+      output: "file1\nfile2\n",
+      is_error: false,
+      ts: 3,
+    })
+    expect(store.state.get().status, "late tool-result re-stuck status to thinking").toBe("idle")
+  })
+
   test("optimistic with empty text + echo with empty text doesn't crash", () => {
     // Edge case: meta-only entries (additionalContext only) skip dedup
     // because there's no text to match on.

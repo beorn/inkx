@@ -455,7 +455,16 @@ export function createSessionStore(): SessionStore {
           })
           next.messages = [...next.messages.slice(0, idx), updated, ...next.messages.slice(idx + 1)]
         }
-        next.status = "thinking"
+        // Status guard: only transition `tool-running → thinking`. A late
+        // tool-result that arrives AFTER turn-end must NOT re-arm the
+        // spinner — the ACP wire emits sessionUpdate notifications
+        // fire-and-forget and races with the prompt response on the JSON-
+        // RPC stream, so a tool_call_update can land on the consumer side
+        // after the synthetic turn-end fired by withTurnLifecycle. Bead
+        // km-silvercode.acp-status-as-derived tracks the architectural
+        // fix (derive status from observable state instead of an FSM);
+        // this guard is the symptomatic patch.
+        if (next.status === "tool-running") next.status = "thinking"
         break
       }
       case "assistant-message":
