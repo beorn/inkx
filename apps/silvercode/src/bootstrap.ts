@@ -13,6 +13,11 @@
 
 if (!process.env.LOG_LEVEL) process.env.LOG_LEVEL = "error"
 
+// Capture earliest possible timestamp so the startup-timing log can
+// attribute the cost of the index.tsx import + module graph compile.
+// Stash on globalThis so it survives the dynamic import boundary.
+;(globalThis as { __SILVERCODE_BOOT_T0?: number }).__SILVERCODE_BOOT_T0 = Date.now()
+
 // Must run before any debug() call fires.
 import "./debug-log.ts"
 
@@ -47,4 +52,8 @@ installFastExit("SIGINT", 130)
 installFastExit("SIGTERM", 143)
 
 const { main } = await import("./index.tsx")
+import { createLogger } from "loggily"
+const bootLog = createLogger("silvercode:startup")
+const t0 = (globalThis as { __SILVERCODE_BOOT_T0?: number }).__SILVERCODE_BOOT_T0 ?? Date.now()
+bootLog.info?.("indexImported", { elapsedMs: Date.now() - t0 })
 await main()

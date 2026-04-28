@@ -7,6 +7,7 @@
  * render tree and the headless agent-harness.
  */
 
+import { createLogger } from "loggily"
 import { resolve as resolvePath } from "node:path"
 import createDebug from "debug"
 import {
@@ -487,7 +488,14 @@ export type Controller = {
 
 let nextId = 1
 
+const ctrlStartupLog = createLogger("silvercode:startup")
+const ctrlBootT0 = (globalThis as { __SILVERCODE_BOOT_T0?: number }).__SILVERCODE_BOOT_T0 ?? Date.now()
+function ctrlStartupTick(label: string, extra?: Record<string, unknown>): void {
+  ctrlStartupLog.info?.(label, { elapsedMs: Date.now() - ctrlBootT0, ...(extra ?? {}) })
+}
+
 export function createSilvercodeController(opts: ControllerOptions): Controller {
+  ctrlStartupTick("controller:create:enter")
   const sessions: SessionHandle[] = []
   let focusedId = ""
   const sessionSubs = new Set<(s: SessionHandle[]) => void>()
@@ -1203,6 +1211,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       // grained spinner states stay inside the per-session SessionStore.
       if (event.kind === "session-init") {
         crossAgentState.updateSessionStatus(id, "idle")
+        ctrlStartupTick("session-init:received", { sessionId: id })
       } else if (event.kind === "turn-start") {
         crossAgentState.updateSessionStatus(id, "thinking")
       } else if (event.kind === "turn-end") {
@@ -1257,6 +1266,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     return handle
   }
 
+  ctrlStartupTick("controller:create:beforeInitialSpawn", { sessions: opts.initialSessions })
   // Eagerly spawn the requested number of initial sessions.
   for (let i = 0; i < opts.initialSessions; i++) {
     void spawnSession()

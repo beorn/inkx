@@ -1,10 +1,18 @@
 import { Command } from "@silvery/commander"
 import { loadConfig } from "@silvery/config"
 import { mountConfigCommand } from "@silvery/config/commander"
+import { createLogger } from "loggily"
 import React from "react"
 import { run } from "silvery/runtime"
 import { applyActiveAccountEnv } from "./accounts.ts"
 import { App } from "./App.tsx"
+
+const startupLog = createLogger("silvercode:startup")
+const bootT0 = (globalThis as { __SILVERCODE_BOOT_T0?: number }).__SILVERCODE_BOOT_T0 ?? Date.now()
+function startupTick(label: string, extra?: Record<string, unknown>): void {
+  startupLog.info?.(label, { elapsedMs: Date.now() - bootT0, ...(extra ?? {}) })
+}
+startupTick("indexModuleEvaluated")
 import { AcpEntryKind, BUILTIN_AGENTS, McpKind, type AcpEntry, type McpEntry } from "./config-schema.ts"
 import { runDoctor, severityToExitCode, CHECKER_NAMES } from "./doctor/index.ts"
 import { renderReport } from "./doctor/render.ts"
@@ -126,7 +134,9 @@ async function buildProgram(): Promise<Command> {
   // `.action()` callback fires after `loadConfig`, but the `--config`
   // flag (and KM_CONFIG / SILVERCODE_CONFIG env) need to influence
   // where loadConfig looks. See `resolveGlobalConfigPath` above.
+  startupTick("loadConfig:start")
   const config = await loadConfig({ appName: "km", globalPath: resolveGlobalConfigPath(), watch: false })
+  startupTick("loadConfig:done")
 
   const program = new Command()
   program
@@ -207,6 +217,7 @@ async function buildProgram(): Promise<Command> {
         }
       }
 
+      startupTick("run:start", { agent: resolved.entry.agent, account })
       const handle = await run(
         <App
           cwd={cwd}
@@ -224,6 +235,7 @@ async function buildProgram(): Promise<Command> {
         // has a single TextInput — focus navigation via Tab isn't useful.
         { mode: "fullscreen", handleTabCycling: false },
       )
+      startupTick("run:resolved")
       await handle.waitUntilExit()
     })
 

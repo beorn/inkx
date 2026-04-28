@@ -1,5 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { createLogger } from "loggily"
 import type { AgentSession, SessionStore } from "@km/agent-harness"
+
+const appStartupLog = createLogger("silvercode:startup")
+const appBootT0 = (globalThis as { __SILVERCODE_BOOT_T0?: number }).__SILVERCODE_BOOT_T0 ?? Date.now()
+function appStartupTick(label: string, extra?: Record<string, unknown>): void {
+  appStartupLog.info?.(label, { elapsedMs: Date.now() - appBootT0, ...(extra ?? {}) })
+}
+appStartupTick("App.tsx:moduleEvaluated")
 import {
   Box,
   ChainAppContext,
@@ -251,6 +259,7 @@ export function App(props: AppProps): React.ReactElement {
 
   const controllerRef = useRef<Controller | null>(null)
   if (!controllerRef.current) {
+    appStartupTick("App:firstRender:beforeControllerCreate")
     controllerRef.current = createSilvercodeController({
       cwd: props.cwd,
       model: props.model,
@@ -263,6 +272,7 @@ export function App(props: AppProps): React.ReactElement {
       spawnFactory: props.spawnFactory,
       getFocusedRegion: () => focusedRegionRef.current,
     })
+    appStartupTick("App:firstRender:afterControllerCreate")
   }
   const controller = controllerRef.current!
 
