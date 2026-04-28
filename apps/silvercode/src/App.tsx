@@ -27,7 +27,7 @@ import { SessionPromptComposer } from "./components/SessionPromptComposer.tsx"
 import { SessionPromptHistory } from "./components/SessionPromptHistory.tsx"
 import { Notifications } from "./components/Notifications.tsx"
 import { PaneGrid, type PaneGridHandle } from "./components/PaneGrid.tsx"
-import { RequestPermissionInbox } from "./components/RequestPermissionInbox.tsx"
+import { InlinePermissionPrompt } from "./components/InlinePermissionPrompt.tsx"
 import { useQueue } from "./hooks/use-queue.ts"
 import { SidePanel } from "./components/SidePanel.tsx"
 import { prefixSid } from "./sid-prefix.ts"
@@ -306,12 +306,11 @@ export function App(props: AppProps): React.ReactElement {
   // Thinking mode ("" = none). Set when the user types /think, /think_hard,
   // /ultrathink. Rendered as an optional row in SidePanel's version block.
   const [thinking, setThinking] = useState<string>("")
-  const [showInbox, setShowInbox] = useState(false)
 
   // Pending-permission count across all sessions, kept in sync via per-store
-  // subscriptions. Bumps on every state.apply() so we can auto-surface the
-  // inbox when a permission-request arrives and disable the composer so
-  // in-flight keystrokes can't accidentally answer the prompt.
+  // subscriptions. Bumps on every state.apply() so the composer is disabled
+  // while a permission is pending — in-flight keystrokes cannot accidentally
+  // answer the inline prompt.
   const [pendingPermissions, setPendingPermissions] = useState(0)
   useEffect(() => {
     let cancelled = false
@@ -328,13 +327,6 @@ export function App(props: AppProps): React.ReactElement {
       for (const u of unsubs) u()
     }
   }, [sessions])
-
-  // Auto-surface the inbox when ANY session has a pending request. Codex /
-  // ACP otherwise hangs forever waiting on a respondPermission write the
-  // user has no UI to trigger.
-  useEffect(() => {
-    if (pendingPermissions > 0) setShowInbox(true)
-  }, [pendingPermissions])
 
   // Side panel disclosure — auto-default driven by viewport breakpoint;
   // manual toggle pins for the session (Ctrl+O / Ctrl+Y / /panel / /aside / /todos).
@@ -666,8 +658,6 @@ export function App(props: AppProps): React.ReactElement {
       const arg = rest.join(" ")
       if (isLocal(cmd ?? "")) {
         switch (cmd) {
-          case "/inbox":
-            return setShowInbox(true)
           case "/history":
             return setShowHistory(true)
           case "/todos":
@@ -800,8 +790,7 @@ export function App(props: AppProps): React.ReactElement {
       if (key.escape && paneGridRef.current?.cancelDrag()) {
         return
       }
-      if (key.escape && (showInbox || showHistory)) {
-        setShowInbox(false)
+      if (key.escape && showHistory) {
         setShowHistory(false)
         return
       }
@@ -854,19 +843,6 @@ export function App(props: AppProps): React.ReactElement {
       // Cursor-boundary handoff between command and queue is handled by
       // SessionPromptComposer's own `onEdge` callbacks on the silvery TextAreas —
       // no parent-side Up/Down intercept needed.
-      // Ctrl+E toggles the permission inbox manually — but only when there's
-      // no text to navigate to the end of. With non-empty input we let the
-      // keypress fall through to silvery TextArea's readline binding
-      // (Ctrl+E = move cursor to end-of-line), the cross-platform
-      // expectation. To open the inbox while typing, clear the buffer
-      // first or use the `/inbox` slash command. Note: the inbox also
-      // auto-surfaces when a permission-request arrives (see the
-      // pendingPermissions effect above), so this manual toggle is mostly a
-      // backup for re-opening after dismissal.
-      if (key.ctrl && input === "e" && (inputValue.length === 0 || focusedRegion !== "command")) {
-        setShowInbox((v) => !v)
-        return
-      }
       // Ctrl-B — background the in-flight turn for the focused session.
       // No-op if there's no active turn (controller checks status). Frees
       // the UI immediately so the user can keep typing while the turn
@@ -1276,17 +1252,15 @@ export function App(props: AppProps): React.ReactElement {
 
                 {/* Bottom chrome (left column). flexShrink=0 prevents overflow. */}
                 <Box flexDirection="column" flexShrink={0}>
-                  {showInbox && (
-                    <RequestPermissionInbox
-                      sessions={sessions}
-                      onApprove={(sid, rid) => controller.respondPermission(sid, rid, true)}
-                      onDeny={(sid, rid) => controller.respondPermission(sid, rid, false)}
-                      onSelectOption={(sid, rid, optionId, approved) =>
-                        controller.respondPermissionOption(sid, rid, optionId, approved)
-                      }
-                      onClose={() => setShowInbox(false)}
-                    />
-                  )}
+                  <InlinePermissionPrompt
+                    focused={focused}
+                    sessions={sessions}
+                    onApprove={(sid, rid) => controller.respondPermission(sid, rid, true)}
+                    onDeny={(sid, rid) => controller.respondPermission(sid, rid, false)}
+                    onSelectOption={(sid, rid, optionId, approved) =>
+                      controller.respondPermissionOption(sid, rid, optionId, approved)
+                    }
+                  />
                   {showHistory && <SessionPromptHistory onClose={() => setShowHistory(false)} logDir={props.logDir} />}
                   <Notifications sessions={sessions} />
 
