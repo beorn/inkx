@@ -710,3 +710,10 @@ These were on the candidate list but skipped — either because the unscoped nam
 - `aigent` — `eumemic` 0.0.1 (2023 — dormant single-version; disputable).
 - `xagent` — `hyj1991` 0.0.0 (2022 — placeholder; disputable).
 - `ensemble`, `murmur`, `acdc` — 2022-era abandoned but published.
+
+---
+
+## See also
+
+- [openacp-deep-dive-2026-04-28.md](openacp-deep-dive-2026-04-28.md) — closest prior art (chat-platform bridge, mid-conversation `/switch` with context carry-over). Architectural validation for this venture; their wedge does NOT overlap ours (chat vs editor, single-user vs multi-tenant, no coordination layer).
+- [acp-registry-support-plan.md](acp-registry-support-plan.md) — silvercode plan to consume all 31 ACP Registry agents (npx + binary + uvx distributions), 3-phase rollout.

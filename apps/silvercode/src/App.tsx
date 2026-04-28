@@ -45,6 +45,7 @@ import {
   leafIds,
   loadPanes,
   reconcileTree,
+  removeLeaf,
   renameLeaf,
   savePanes,
   splitLeaf,
@@ -509,14 +510,22 @@ export function App(props: AppProps): React.ReactElement {
       // Place placeholder synchronously in the user's chosen direction.
       setPaneTree((prev) => splitLeaf(prev, currentFocus, placeholder, direction))
       // When the spawn resolves, rename placeholder → real id (and persist).
-      void controller.spawnSession().then((handle) => {
-        setPaneTree((prev) => {
-          const next = renameLeaf(prev, placeholder, handle.id)
-          savePanes(props.cwd, next)
-          return next
+      // On failure (cap reached, factory throws), remove the placeholder so
+      // the focused pane reclaims its full slot — the controller's spawn-
+      // error banner already surfaces the cause to the user.
+      void controller
+        .spawnSession()
+        .then((handle) => {
+          setPaneTree((prev) => {
+            const next = renameLeaf(prev, placeholder, handle.id)
+            savePanes(props.cwd, next)
+            return next
+          })
+          return undefined
         })
-        return undefined
-      })
+        .catch(() => {
+          setPaneTree((prev) => removeLeaf(prev, placeholder) ?? prev)
+        })
     },
     [controller, focusedSessionId, props.cwd],
   )
@@ -552,14 +561,19 @@ export function App(props: AppProps): React.ReactElement {
     (id: string): void => {
       const placeholder = freshPlaceholderId()
       setPaneTree((prev) => splitLeaf(prev, id, placeholder, "row"))
-      void controller.spawnSession().then((handle) => {
-        setPaneTree((prev) => {
-          const next = renameLeaf(prev, placeholder, handle.id)
-          savePanes(props.cwd, next)
-          return next
+      void controller
+        .spawnSession()
+        .then((handle) => {
+          setPaneTree((prev) => {
+            const next = renameLeaf(prev, placeholder, handle.id)
+            savePanes(props.cwd, next)
+            return next
+          })
+          return undefined
         })
-        return undefined
-      })
+        .catch(() => {
+          setPaneTree((prev) => removeLeaf(prev, placeholder) ?? prev)
+        })
     },
     [controller, props.cwd],
   )
