@@ -29,6 +29,14 @@ function silvercode(args: string[], opts: { stdin?: string; timeoutMs?: number }
     encoding: "utf8",
     input: opts.stdin ?? "",
     timeout: opts.timeoutMs ?? 8_000,
+    // Default `killSignal` is SIGTERM. If the child's event loop is wedged
+    // (a real failure mode — see km-silvercode.signal-hang-investigate),
+    // SIGTERM is queued but never dispatched and the child keeps running
+    // at 100% CPU until manually reaped. SIGKILL can't be ignored, so
+    // escalate immediately on timeout. If we ever need a graceful drain
+    // here we should add a SIGTERM-then-SIGKILL escalator instead of
+    // weakening the signal back to SIGTERM.
+    killSignal: "SIGKILL",
     env: {
       ...process.env,
       // Force a non-TTY so the CLI doesn't try to enter alt-screen even

@@ -16,21 +16,35 @@ if (!process.env.LOG_LEVEL) process.env.LOG_LEVEL = "error"
 // Must run before any debug() call fires.
 import "./debug-log.ts"
 
-// Ctrl+C hard-exit safety net. Registered at the earliest possible point —
-// before silvery loads, before any React tree mounts. silvery doesn't
-// removeAllListeners('SIGINT'), so this fires alongside its own handler.
-// 500 ms gives silvery + the App-level handler (in App.tsx) time to drain
-// gracefully; if something's stuck, this force-exits. unref() so it
-// doesn't hold the event loop open during normal quit.
-let sigintCount = 0
-process.on("SIGINT", () => {
-  sigintCount++
-  const delay = sigintCount === 1 ? 500 : 0
-  const t = setTimeout(() => {
-    process.exit(130) // lint-ok: SIGINT deadline
-  }, delay) as unknown as { unref?: () => void }
-  t.unref?.()
-})
+// Hard-exit safety nets for SIGINT (Ctrl+C) and SIGTERM (timeout / kill / IDE
+// terminate). Registered at the earliest possible point — before silvery
+// loads, before any React tree mounts. silvery doesn't removeAllListeners,
+// so these fire alongside its own handlers. 500 ms gives silvery + the
+// App-level handler (in App.tsx) time to drain gracefully; if cleanup is
+// slow, this force-exits. unref() so it doesn't hold the event loop open
+// during normal quit.
+//
+// CAVEAT: this only protects against "soft hang during cleanup" (event
+// loop is alive but cleanup awaits something). It does NOT protect
+// against a wedged JS loop — `setTimeout` callbacks can't fire while
+// JS is in a tight `while(true)` or runaway sync work, and the same
+// is true for the signal handler itself. For that case, the parent
+// MUST escalate to SIGKILL (e.g. `timeout --kill-after=2 8 ...`, or
+// `kill -9 $!` after the SIGTERM grace period). Bead:
+// km-silvercode.signal-hang-investigate.
+let sigSeen = 0
+function installFastExit(signal: "SIGINT" | "SIGTERM", code: number): void {
+  process.on(signal, () => {
+    sigSeen++
+    const delay = sigSeen === 1 ? 500 : 0
+    const t = setTimeout(() => {
+      process.exit(code) // lint-ok: signal deadline
+    }, delay) as unknown as { unref?: () => void }
+    t.unref?.()
+  })
+}
+installFastExit("SIGINT", 130)
+installFastExit("SIGTERM", 143)
 
 const { main } = await import("./index.tsx")
 await main()
