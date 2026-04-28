@@ -27,14 +27,14 @@ Four phases, separable to avoid premature commitment:
 
 These are the assets that would appear in a pitch deck, an acquisition conversation, or a "what do we own" inventory at a fundraise. Each is described with both its *current state* and its *strategic potential*.
 
-**silvery** — React TUI framework. 98.6% Ink-compat shipped, 3K DL/wk, polished, multi-target rendering (terminal + canvas/DOM future), mouse-first, incremental rendering, 45+ components. silvery.dev live.
-- **Potential**: arguably the best React TUI framework in existence. Technically difficult to build (years of work compressed). Composable architecture means it could extend to canvas / DOM / React Native, *and* to other framework reconcilers (Svelte / Vue / SolidJS via swappable bindings). Currently missing: polished visuals, killer demos, broad real-world reality-check. **Acquisition target by big AI players (Anthropic, Google, Microsoft, Cursor) wanting to get off Ink** — they all need a better React TUI substrate and silvery is the only one architecturally suited as drop-in.
+**silvery** (with sub-projects) — React TUI framework. 98.6% Ink-compat shipped, 3K DL/wk, polished, multi-target rendering (terminal + canvas/DOM future), mouse-first, incremental rendering, 45+ components. silvery.dev live.
 
-**silvery/ink** — the migration shim, ~3K LOC, bundled into silvery package.
-- **Potential**: the *only* drop-in Ink replacement. OpenTUI architecturally cannot serve this market. If even one Big AI lab notices and migrates, the brand-halo is permanent.
+  Sub-projects:
+  - **`silvery/ink`** (sub-package, ~3K LOC) — the migration shim. Sed-substitutable Ink replacement. OpenTUI architecturally cannot serve this market (see A3). The Ink-migration capability is part of silvery, not a separate asset.
+  - **flexily** (sister package, beorn.codes/flexily/ live) — Yoga-compatible flex layout, 1.5-5.5× faster, no WASM, 1561 tests. Powers silvery's layout engine. Could stand alone as a Yoga-killer for React Native + game engines + browser-layout space (independent acquisition surface), but strategically a sub-project of silvery.
 
-**flexily** — Yoga-compatible flex layout, 1.5-5.5× faster, no WASM, 1561 tests. beorn.codes/flexily/ live.
-- **Potential**: standalone competitor to Yoga across the React Native + game-engine + browser-layout space. Underrated outside silvery; could be the layout engine for any framework that wants flex without the WASM tax. Independent acquisition surface. Combined with silvery + canvas, foundation for a future visual/architecture-diagram product.
+- **Potential**: arguably the best React TUI framework in existence. Technically difficult to build (years of work compressed). Composable architecture means it could extend to canvas / DOM / React Native, *and* to other framework reconcilers (Svelte / Vue / SolidJS via swappable bindings). Currently missing: polished visuals, killer demos, broad real-world reality-check.
+- **Acquisition target by big AI players (Anthropic, Google, Microsoft, Cursor) wanting to get off Ink** — they all need a better React TUI substrate and silvery is the only one architecturally suited as drop-in. If even one Big AI lab migrates, the brand-halo is permanent.
 
 **silvercode** — multi-pane agentic IDE built on silvery; validated near-term wedge: squad mode (parallel agents + CrossAgentState). Pre-launch.
 - **Potential**: in combination with silvery + km + flexily, could be **a new "agentic coding desktop"** — chat sessions + kanban backlog management + agent orchestration + shared node-tree storage + potentially novel UI patterns nobody else has (on-demand interactive architecture diagrams via silvery+flexily+canvas, ambient cross-agent state visualization, declarative-prompt UI). This is a *new category*, not just "Cursor with a different framework." The cross-elasticity trap exists for "Cursor with a different framework"; it's diluted for "an entirely new UX paradigm for AI-coding work."
