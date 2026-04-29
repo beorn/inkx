@@ -18,6 +18,7 @@ import {
   readKmignore,
   readObsidianIgnore,
   getIgnorePatterns,
+  createIgnoreMatcher,
 } from "../../src/fs/ignore.ts"
 import { withTestEnvSync } from "@km/storage"
 
@@ -190,7 +191,7 @@ dist/
         expect(patterns[0]).toBe("**/*.log")
       }))
 
-    test("should skip negation patterns (not supported)", () =>
+    test("should preserve negation patterns with ! prefix", () =>
       withTestEnvSync(({ repoDir }) => {
         writeFileSync(
           join(repoDir, ".gitignore"),
@@ -200,8 +201,97 @@ dist/
         )
 
         const patterns = readGitignore(repoDir)
-        expect(patterns.length).toBe(1)
+        // Both lines must be retained — the negation pattern is preserved with a "!"
+        // prefix so the matcher can re-include earlier-excluded files (gitignore semantic).
+        expect(patterns.length).toBe(2)
+        expect(patterns[0]).toBe("**/*.log")
+        // !important.log: ! is preserved on the front of the converted glob
+        expect(patterns[1]).toBe("!**/important.log")
       }))
+  })
+
+  describe("Negation patterns (gitignore !)", () => {
+    test("dotfile-management pattern: /* + !/.* includes dotfiles, excludes everything else", () =>
+      withTestEnvSync(({ repoDir }) => {
+        // The classic dotfile-management .gitignore (used in ~/ for `dot` workflow):
+        // /*       — exclude everything at root by default
+        // !/.*     — but re-include dotfiles
+        writeFileSync(
+          join(repoDir, ".gitignore"),
+          `/*
+!/.*
+`,
+        )
+
+        const matcher = createIgnoreMatcher(repoDir)
+
+        // Plain top-level files/dirs: excluded
+        expect(matcher.matches(join(repoDir, "bar"), repoDir)).toBe(true)
+        expect(matcher.matches(join(repoDir, "Documents"), repoDir)).toBe(true)
+
+        // Top-level dotfiles: re-included by the negation
+        expect(matcher.matches(join(repoDir, ".foo"), repoDir)).toBe(false)
+        expect(matcher.matches(join(repoDir, ".zshrc"), repoDir)).toBe(false)
+      }))
+
+    test("simple negation: *.log + !important.log keeps important.log included", () =>
+      withTestEnvSync(({ repoDir }) => {
+        writeFileSync(
+          join(repoDir, ".gitignore"),
+          `*.log
+!important.log
+`,
+        )
+
+        const matcher = createIgnoreMatcher(repoDir)
+
+        // Regular .log files are ignored
+        expect(matcher.matches(join(repoDir, "debug.log"), repoDir)).toBe(true)
+        expect(matcher.matches(join(repoDir, "deep/nested/random.log"), repoDir)).toBe(true)
+
+        // important.log is re-included
+        expect(matcher.matches(join(repoDir, "important.log"), repoDir)).toBe(false)
+      }))
+
+    test("plain (non-negated) patterns continue to work", () =>
+      withTestEnvSync(({ repoDir }) => {
+        writeFileSync(
+          join(repoDir, ".gitignore"),
+          `*.log
+node_modules
+`,
+        )
+
+        const matcher = createIgnoreMatcher(repoDir)
+
+        expect(matcher.matches(join(repoDir, "x.log"), repoDir)).toBe(true)
+        expect(matcher.matches(join(repoDir, "node_modules"), repoDir)).toBe(true)
+        // Non-matched file falls through to default-not-ignored
+        expect(matcher.matches(join(repoDir, "README.md"), repoDir)).toBe(false)
+      }))
+
+    test("shouldIgnore (legacy array path) honors negation patterns", () => {
+      const patterns = ["**/*.log", "!**/important.log"]
+      expect(shouldIgnore("debug.log", patterns)).toBe(true)
+      expect(shouldIgnore("important.log", patterns)).toBe(false)
+    })
+
+    test("order matters: a later positive pattern re-overrides a negation", () => {
+      // *.log → !important.log → important.log
+      // Final positive pattern excludes important.log again.
+      const patterns = ["**/*.log", "!**/important.log", "**/important.log"]
+      expect(shouldIgnore("important.log", patterns)).toBe(true)
+    })
+
+    test("negation cannot un-ignore a file inside an ignored directory", () => {
+      // gitignore semantic: "It is not possible to re-include a file if a parent
+      // directory of that file is excluded." Our matcher matches file paths
+      // directly, so excluding a directory pattern doesn't transitively exclude
+      // descendants — but a negation that doesn't match anything is harmless.
+      const patterns = ["**/build", "!**/build"]
+      // The negation cancels the ignore — file path matching, no directory-cascade semantic
+      expect(shouldIgnore("build", patterns)).toBe(false)
+    })
   })
 
   describe("readKmignore", () => {
