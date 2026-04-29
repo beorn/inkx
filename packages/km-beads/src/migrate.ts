@@ -5,7 +5,7 @@
  */
 
 import { join, dirname } from "node:path"
-import { stringify as stringifyYaml } from "yaml"
+import { stringify as stringifyYaml, parse as parseYaml } from "yaml"
 import { createLogger } from "loggily"
 import type { BeadsFs } from "./types.ts"
 import { parseBeadsIssuesJsonl, type BeadsIssue, type BeadsMemory } from "./schema.ts"
@@ -601,6 +601,233 @@ export function migrateBeadsToMarkdown(beadsDir: string, options: MigrateOptions
   }
 
   return result
+}
+
+/**
+ * ADD-only frontmatter fields recapture honors. These are the
+ * non-recomputable fields that `migrate-completeness` taught
+ * `issueToMarkdown` to emit; older imports written before that change
+ * are missing them. Recapture backfills exactly these fields and never
+ * touches anything else (body, scalars, timestamps).
+ *
+ * `metadata` is special-cased: when both source and target have
+ * non-empty content, they are merged with a `\n---\n` separator instead
+ * of being replaced. Everything else is strict ADD-only — present means
+ * "leave alone".
+ */
+const RECAPTURE_FIELDS = [
+  "started_at",
+  "owner",
+  "assignee",
+  "metadata",
+  "dependencies",
+  "legacy_deps",
+  "children",
+] as const
+
+export interface RecaptureOptions {
+  /** Filesystem implementation (DI). */
+  fs: BeadsFs
+  /**
+   * Resolve a bd issue id (or one of its aliases) to an absolute target
+   * file path inside the vault. Return `null` when no target exists.
+   *
+   * The CLI wires this to a vault scanner; tests can pass an in-memory map.
+   */
+  resolveTarget: (issue: BeadsIssue) => string | null
+  /** When true, skip writing files (still computes the patch report). */
+  dryRun?: boolean
+  /**
+   * Issue id prefix in the source vault (mirrors {@link MigrateOptions}).
+   * Currently unused by recapture proper but kept on the surface so
+   * future logic that path-form-translates new fields has it available.
+   */
+  sourcePrefix?: string
+}
+
+export interface RecapturePatch {
+  /** Source bd id whose frontmatter the patch derives from. */
+  bdId: string
+  /** Absolute path of the target markdown file. */
+  filepath: string
+  /** Field names that were added (or merged for `metadata`). Empty = no-op. */
+  fieldsChanged: string[]
+}
+
+export interface RecaptureResult {
+  /** Issues whose target was found and patched (fieldsChanged.length > 0). */
+  patched: RecapturePatch[]
+  /** Issues whose target was found but already complete (no missing fields). */
+  unchanged: number
+  /** Issues with no resolvable target file in the vault. */
+  skipped: { bdId: string; reason: string }[]
+  /** Per-issue exceptions from parsing/writing (frontmatter malformed, etc). */
+  errors: { bdId: string; error: string }[]
+}
+
+/**
+ * Backfill missing frontmatter fields on existing vault beads from a bd
+ * export, ADD-only. For each issue in the export:
+ *
+ *   1. Resolve the target file via `resolveTarget`. Skip with a warning
+ *      when no target exists (a `--restore` mode would create the file
+ *      here; left as a future hook).
+ *   2. Parse the existing frontmatter. For each field in
+ *      {@link RECAPTURE_FIELDS}: ADD if absent or empty in the target,
+ *      NEVER overwrite when present and non-empty. `metadata` merges
+ *      both blobs with `\n---\n` instead of replacing.
+ *   3. NEVER touches body content, scalar fields (status, priority,
+ *      title, assignee, …), or timestamps (created_at, updated_at,
+ *      closed_at) — vault state may have drifted from the export.
+ *   4. Write the file back only when something changed (idempotent).
+ *
+ * Use case: an earlier `km bd migrate` ran before
+ * `migrate-completeness` taught the emitter to preserve every
+ * non-recomputable field. This function recovers the lost state from
+ * the original export without overwriting subsequent hand edits.
+ */
+export function recaptureFromExport(
+  beadsDirOrFile: string,
+  options: RecaptureOptions,
+): RecaptureResult {
+  const { fs } = options
+  const { issues } = readBeadsExport(fs, beadsDirOrFile)
+  const result: RecaptureResult = {
+    patched: [],
+    unchanged: 0,
+    skipped: [],
+    errors: [],
+  }
+
+  for (const issue of issues) {
+    try {
+      const filepath = options.resolveTarget(issue)
+      if (!filepath) {
+        result.skipped.push({ bdId: issue.id, reason: "no target file" })
+        continue
+      }
+      if (!fs.existsSync(filepath)) {
+        result.skipped.push({ bdId: issue.id, reason: `target missing: ${filepath}` })
+        continue
+      }
+
+      const content = fs.readFileSync(filepath, "utf-8")
+      const split = splitFrontmatter(content)
+      if (!split) {
+        result.errors.push({ bdId: issue.id, error: `no frontmatter in ${filepath}` })
+        continue
+      }
+
+      const fm = (parseYaml(split.frontmatter) ?? {}) as Record<string, unknown>
+      const before = JSON.stringify(fm)
+      const fieldsChanged = applyAddOnlyPatch(fm, issue)
+      const after = JSON.stringify(fm)
+
+      if (fieldsChanged.length === 0 || before === after) {
+        result.unchanged++
+        continue
+      }
+
+      const newContent = rebuildWithFrontmatter(fm, split.body)
+      if (!options.dryRun) {
+        fs.writeFileSync(filepath, newContent, "utf-8")
+      }
+      result.patched.push({ bdId: issue.id, filepath, fieldsChanged })
+    } catch (error) {
+      result.errors.push({
+        bdId: issue.id,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+
+  return result
+}
+
+/**
+ * Apply ADD-only patch in-place on the parsed frontmatter object,
+ * returning the list of field names that changed. Implements the field
+ * policy documented on {@link recaptureFromExport}.
+ */
+export function applyAddOnlyPatch(fm: Record<string, unknown>, issue: BeadsIssue): string[] {
+  const changed: string[] = []
+
+  // Scalar string fields — ADD only when target is absent or empty.
+  for (const key of ["started_at", "owner", "assignee"] as const) {
+    const sourceVal = issue[key]
+    if (sourceVal === undefined || sourceVal === null || sourceVal === "") continue
+    if (isEmpty(fm[key])) {
+      fm[key] = sourceVal
+      changed.push(key)
+    }
+  }
+
+  // Array fields — ADD when target is absent or empty array.
+  if (issue.children && issue.children.length > 0 && isEmpty(fm.children)) {
+    fm.children = [...issue.children]
+    changed.push("children")
+  }
+  if (issue.dependencies && issue.dependencies.length > 0 && isEmpty(fm.dependencies)) {
+    fm.dependencies = issue.dependencies
+    changed.push("dependencies")
+  }
+
+  // legacy_deps — only emitted on pre-v1.0 exports; ADD when absent.
+  const sourceLegacy: Record<string, string[]> = {}
+  if (issue.blocked_by && issue.blocked_by.length > 0) sourceLegacy.blocked_by = issue.blocked_by
+  if (issue.blocks && issue.blocks.length > 0) sourceLegacy.blocks = issue.blocks
+  if (Object.keys(sourceLegacy).length > 0 && isEmpty(fm.legacy_deps)) {
+    fm.legacy_deps = sourceLegacy
+    changed.push("legacy_deps")
+  }
+
+  // metadata — merge both blobs when both non-empty (rather than overwrite).
+  if (issue.metadata !== undefined && issue.metadata !== "" && issue.metadata !== "{}") {
+    const targetMeta = fm.metadata
+    if (isEmpty(targetMeta)) {
+      fm.metadata = issue.metadata
+      changed.push("metadata")
+    } else if (typeof targetMeta === "string" && targetMeta !== issue.metadata) {
+      fm.metadata = `${targetMeta}\n---\n${issue.metadata}`
+      changed.push("metadata")
+    }
+  }
+
+  return changed
+}
+
+/**
+ * "Empty" for ADD-only purposes: undefined, null, empty string, empty
+ * array, empty object literal `"{}"` (bd's metadata sentinel), or the
+ * empty plain object. Any other value counts as present.
+ */
+function isEmpty(v: unknown): boolean {
+  if (v === undefined || v === null) return true
+  if (typeof v === "string") return v.trim() === "" || v.trim() === "{}"
+  if (Array.isArray(v)) return v.length === 0
+  if (typeof v === "object") return Object.keys(v as Record<string, unknown>).length === 0
+  return false
+}
+
+interface FrontmatterSplit {
+  frontmatter: string
+  body: string
+}
+
+/**
+ * Split a markdown file into `{ frontmatter, body }`. Returns null when
+ * the file has no leading `---` block. Body includes everything after
+ * the closing `---` (preserving the original separator newline so
+ * round-trip is byte-identical for files we don't patch).
+ */
+export function splitFrontmatter(content: string): FrontmatterSplit | null {
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/)
+  if (!match) return null
+  return { frontmatter: match[1]!, body: match[2]! }
+}
+
+function rebuildWithFrontmatter(fm: Record<string, unknown>, body: string): string {
+  return `---\n${stringifyYaml(fm).trimEnd()}\n---\n${body}`
 }
 
 /**

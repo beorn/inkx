@@ -14,10 +14,15 @@ import {
   getMigrationStats,
   migrateBeadsToMarkdown,
   exportToBeads,
+  recaptureFromExport,
+  splitFrontmatter,
+  bdIdToPathForm,
   type BeadsFs,
+  type BeadsIssue,
 } from "@km/beads"
-import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync } from "node:fs"
-import { basename, join, dirname } from "node:path"
+import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync, readdirSync } from "node:fs"
+import { parse as parseYaml } from "yaml"
+import { basename, join, dirname, relative } from "node:path"
 import { spawnSync } from "node:child_process"
 import { getOriginalBeadsConfig } from "@km/storage"
 import { resolvePathArg } from "@km/fs-mount"
@@ -37,6 +42,10 @@ export const migrateCommand = new Command("migrate")
   .option("--source <dir>", "Source .beads directory (or its parent). Defaults to auto-discovery upward from cwd.")
   .option("--file <path>", "Read issues directly from a .jsonl file (skips .beads discovery and pre-flight).")
   .option("--no-preflight", "Skip pre-flight: bd export refresh + bd doctor.")
+  .option(
+    "--update-only",
+    "Backfill missing frontmatter fields on existing vault beads from the export (ADD-only). Skip beads not yet in the vault.",
+  )
   .action(async (opts) => {
     const resolved = resolvePathArg(undefined)
     const configObj = await loadKmBdConfig(resolved.repoRoot)
@@ -118,6 +127,67 @@ export const migrateCommand = new Command("migrate")
 
     if (stats.total === 0) {
       console.log(term.yellow("No issues to migrate."))
+      return
+    }
+
+    // --update-only: don't create new files, only backfill missing
+    // frontmatter fields on beads that already exist in the vault.
+    // Target = live vault root (repoRoot), not an imports/ subdir, since
+    // we're patching the canonical files in place.
+    if (opts.updateOnly) {
+      const vaultRoot = opts.target || resolved.repoRoot
+      const indexBuildStart = Date.now()
+      const index = buildVaultIdIndex(vaultRoot)
+      const buildMs = Date.now() - indexBuildStart
+
+      console.log(term.bold("Recapture Target"))
+      console.log(`  Vault root:    ${vaultRoot}`)
+      console.log(`  Index entries: ${index.size} (${buildMs}ms)`)
+      if (opts.dryRun) console.log(term.yellow("  Dry run — no files will be written."))
+      console.log()
+
+      const result = recaptureFromExport(migrateSource, {
+        fs: nodeFs,
+        dryRun: opts.dryRun,
+        sourcePrefix,
+        resolveTarget: (issue: BeadsIssue) => {
+          // Try canonical path-form first (cheap, hits ≈ all migrated beads).
+          const pathForm = bdIdToPathForm(issue.id, sourcePrefix)
+          if (pathForm) {
+            const direct = join(vaultRoot, `${pathForm}.md`)
+            if (existsSync(direct)) return direct
+          }
+          // Fall back to the id index (handles slug-augmented and aliased ids).
+          return index.get(issue.id) ?? null
+        },
+      })
+
+      console.log(term.bold("Results"))
+      console.log(`  Patched:   ${result.patched.length}`)
+      console.log(`  Unchanged: ${result.unchanged}`)
+      console.log(`  Skipped:   ${result.skipped.length}`)
+      if (result.errors.length > 0) {
+        console.log(term.red(`  Errors:    ${result.errors.length}`))
+      }
+      console.log()
+      // Per-bead lines so callers can grep `PATCH`/`SKIP`.
+      for (const p of result.patched) {
+        const rel = relative(vaultRoot, p.filepath)
+        console.log(`  PATCH ${p.bdId} (${p.fieldsChanged.join(",")}) → ${rel}`)
+      }
+      if (result.skipped.length > 0) {
+        for (const s of result.skipped) {
+          console.log(term.dim(`  SKIP  ${s.bdId} — ${s.reason}`))
+        }
+      }
+      for (const e of result.errors) {
+        console.log(term.red(`  ERROR ${e.bdId} — ${e.error}`))
+      }
+
+      if (result.patched.length > 0 && !opts.dryRun) {
+        console.log()
+        console.log(term.green(`✓ Recaptured ${result.patched.length} beads in ${vaultRoot}`))
+      }
       return
     }
 
@@ -325,6 +395,82 @@ function runPreflight(beadsDir: string): void {
   }
 
   console.log()
+}
+
+/**
+ * Walk the vault and build a `bdId → absolute file path` index by
+ * reading frontmatter `id` + `aliases` from every `.md` file under
+ * `vaultRoot`.
+ *
+ * Skips obvious non-bead trees (`node_modules`, `.git`, `vendor`,
+ * `.claude`, `dist`, `imports`) so a 4700-bead vault indexes in well
+ * under a second. The index is consulted only when the canonical
+ * path-form lookup misses (slug-augmented or aliased ids).
+ */
+function buildVaultIdIndex(vaultRoot: string): Map<string, string> {
+  const index = new Map<string, string>()
+  const SKIP_DIRS = new Set([
+    "node_modules",
+    ".git",
+    "vendor",
+    ".claude",
+    "dist",
+    "build",
+    "out",
+    "imports",
+    ".cache",
+    "tmp",
+  ])
+
+  const walk = (dir: string): void => {
+    let entries: string[]
+    try {
+      entries = readdirSync(dir)
+    } catch {
+      return
+    }
+    for (const name of entries) {
+      const full = join(dir, name)
+      let st
+      try {
+        st = statSync(full)
+      } catch {
+        continue
+      }
+      if (st.isDirectory()) {
+        if (SKIP_DIRS.has(name)) continue
+        walk(full)
+        continue
+      }
+      if (!name.endsWith(".md")) continue
+      let content: string
+      try {
+        content = readFileSync(full, "utf-8")
+      } catch {
+        continue
+      }
+      const split = splitFrontmatter(content)
+      if (!split) continue
+      let fm: Record<string, unknown>
+      try {
+        fm = (parseYaml(split.frontmatter) ?? {}) as Record<string, unknown>
+      } catch {
+        continue
+      }
+      const aliases = Array.isArray(fm.aliases) ? (fm.aliases as unknown[]).filter((x) => typeof x === "string") : []
+      const id = typeof fm.id === "string" ? fm.id : null
+      const shortId = typeof fm.short_id === "string" ? fm.short_id : null
+      // Index by every form a bd issue might be referenced as. First-write
+      // wins so the canonical file (deepest sigil-prefixed match) is kept.
+      for (const key of [id, shortId, ...(aliases as string[])]) {
+        if (!key) continue
+        if (!index.has(key)) index.set(key, full)
+      }
+    }
+  }
+
+  walk(vaultRoot)
+  return index
 }
 
 /**
