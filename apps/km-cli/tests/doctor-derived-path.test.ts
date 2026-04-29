@@ -137,4 +137,97 @@ describe.sequential("doctor paths drift check", () => {
       expect(findPathDrift(db)).toEqual([])
     })
   })
+
+  // Test-fixture corpora carry hardcoded ULID `data.id` values intentionally
+  // — they're synthetic artifacts, not real beads. By default `findPathDrift`
+  // skips paths matching `**/fidelity-corpus/**`, `**/__fixtures__/**`, etc.
+  // `--include-fixtures` opts back into scanning them.
+  describe("fixture-path exclusion", () => {
+    test("drifted bead inside fidelity-corpus → skipped by default", async () => {
+      await withTestEnv(async ({ db }) => {
+        // Build the parent chain: packages/km-markdown/tests/fidelity-corpus/large/kitchen-sink
+        insertNode(db, { id: "packages", name: "packages" })
+        insertNode(db, { id: "km-md", name: "km-markdown", parent_id: "packages" })
+        insertNode(db, { id: "tests", name: "tests", parent_id: "km-md" })
+        insertNode(db, { id: "corpus", name: "fidelity-corpus", parent_id: "tests" })
+        insertNode(db, { id: "large", name: "large", parent_id: "corpus" })
+        insertNode(db, {
+          id: "packages/km-markdown/tests/fidelity-corpus/large/kitchen-sink",
+          name: "kitchen-sink",
+          parent_id: "large",
+          // Hardcoded ULID — drifts vs derived parent path
+          data: { id: "01HVQZ3MZYX0RNK8QKM7B1F4TF" },
+        })
+
+        expect(findPathDrift(db)).toEqual([])
+      })
+    })
+
+    test("drifted bead inside fidelity-corpus → flagged with includeFixtures", async () => {
+      await withTestEnv(async ({ db }) => {
+        insertNode(db, { id: "packages", name: "packages" })
+        insertNode(db, { id: "km-md", name: "km-markdown", parent_id: "packages" })
+        insertNode(db, { id: "tests", name: "tests", parent_id: "km-md" })
+        insertNode(db, { id: "corpus", name: "fidelity-corpus", parent_id: "tests" })
+        insertNode(db, { id: "large", name: "large", parent_id: "corpus" })
+        insertNode(db, {
+          id: "packages/km-markdown/tests/fidelity-corpus/large/kitchen-sink",
+          name: "kitchen-sink",
+          parent_id: "large",
+          data: { id: "01HVQZ3MZYX0RNK8QKM7B1F4TF" },
+        })
+
+        const findings = findPathDrift(db, { includeFixtures: true })
+        expect(findings.length).toBe(1)
+        expect(findings[0]!.declared).toBe("01HVQZ3MZYX0RNK8QKM7B1F4TF")
+      })
+    })
+
+    test("non-fixture drift still surfaces by default", async () => {
+      await withTestEnv(async ({ db }) => {
+        insertNode(db, { id: "root", name: "@km" })
+        insertNode(db, {
+          id: "leaf",
+          name: "actually-renamed",
+          parent_id: "root",
+          data: { id: "@km/old-name" },
+        })
+
+        const findings = findPathDrift(db)
+        expect(findings.length).toBe(1)
+        expect(findings[0]!.derived).toBe("@km/actually-renamed")
+      })
+    })
+
+    test("fidelity-corpus bead with matching id is fine even when scanned", async () => {
+      await withTestEnv(async ({ db }) => {
+        insertNode(db, { id: "tests", name: "tests" })
+        insertNode(db, { id: "corpus", name: "fidelity-corpus", parent_id: "tests" })
+        insertNode(db, {
+          id: "tests/fidelity-corpus/aligned",
+          name: "aligned",
+          parent_id: "corpus",
+          data: { id: "tests/fidelity-corpus/aligned" },
+        })
+
+        expect(findPathDrift(db, { includeFixtures: true })).toEqual([])
+      })
+    })
+
+    test("__fixtures__ segment also excluded by default", async () => {
+      await withTestEnv(async ({ db }) => {
+        insertNode(db, { id: "pkg", name: "pkg" })
+        insertNode(db, { id: "fx", name: "__fixtures__", parent_id: "pkg" })
+        insertNode(db, {
+          id: "pkg/__fixtures__/sample",
+          name: "sample",
+          parent_id: "fx",
+          data: { id: "01HXXXXXXXXXXXXXXXXXXXXXX1" },
+        })
+
+        expect(findPathDrift(db)).toEqual([])
+        expect(findPathDrift(db, { includeFixtures: true })).toHaveLength(1)
+      })
+    })
+  })
 })
