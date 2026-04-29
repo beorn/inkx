@@ -809,3 +809,104 @@ describe("tasks with both inline props and inline formatting", () => {
     expect(mdSource).not.toContain("due::")
   })
 })
+
+// ---------------------------------------------------------------------------
+// km-kmadd-in-doc-text: inline-code-quoted property syntax must NOT be parsed
+// ---------------------------------------------------------------------------
+
+describe("inline-code-quoted km.<key>:: must not be extracted as a rule", () => {
+  // The bug: `kmInlinePropTransform` flattens heading/paragraph nodes via
+  // `nodeToText`, which descends into `inlineCode` children. That causes
+  // documentation prose like "use `km.add::` to define rules" or a heading
+  // "Board rules (`km.add::`)" to be parsed as if it contained an actual
+  // structural property, polluting `propsRaw` and creating phantom rules
+  // (or empty/garbage rule values) on doc nodes.
+  //
+  // mdast already classifies inline code as inline code; the property
+  // extractor must respect that classification and skip the value of any
+  // `inlineCode` descendant.
+
+  test("paragraph mentioning `km.add::` in inline code does NOT extract a rule", () => {
+    const tree = parse("Use `km.add::` to define board rules.")
+    const para = tree.children[0]!
+    expect(para.data?.propsRaw?.["km.add"]).toBeUndefined()
+    // Whole paragraph stays as content; no propsRaw at all (or no km.* in it).
+    if (para.data?.propsRaw) {
+      for (const k of Object.keys(para.data.propsRaw)) {
+        expect(k.startsWith("km.")).toBe(false)
+      }
+    }
+  })
+
+  test("heading containing `km.add::` in inline code does NOT extract a rule", () => {
+    const tree = parse("### Board rules (`km.add::`)")
+    const heading = tree.children[0]!
+    expect(heading.data?.propsRaw?.["km.add"]).toBeUndefined()
+  })
+
+  test("paragraph with km.add:: appearing only inside inline code stays clean", () => {
+    const tree = parse(
+      "Tree globs select nodes via `km.add::` rules, CLI commands, search, view filters.",
+    )
+    const para = tree.children[0]!
+    expect(para.data?.propsRaw?.["km.add"]).toBeUndefined()
+  })
+
+  test("real heading with structural km.add:: still extracts rule (regression guard)", () => {
+    // The fix must NOT break the legitimate use case: km.add:: appearing as
+    // bare structural text in a heading.
+    const tree = parse("## Inbox km.add:: ./inbox/**(.)")
+    const heading = tree.children[0]!
+    expect(heading.data?.propsRaw?.["km.add"]).toBe("./inbox/**(.)")
+    expect(heading.data?.cleanText).toBe("Inbox")
+  })
+
+  test("mixed: structural km.add:: outside inline code is extracted, prose km.add:: inside backticks is not", () => {
+    const tree = parse("## Inbox km.add:: ./inbox/** uses `km.sync::` syntax")
+    const heading = tree.children[0]!
+    // Structural rule extracted; the masked `km.sync::` is invisible to the
+    // extractor, so the km.add value extends to end-of-text — that's fine,
+    // the important property is that no phantom km.sync rule fires.
+    expect(heading.data?.propsRaw?.["km.add"]).toBeDefined()
+    expect(heading.data?.propsRaw?.["km.add"]).toContain("./inbox/**")
+    // Prose km.sync inside backticks NOT extracted
+    expect(heading.data?.propsRaw?.["km.sync"]).toBeUndefined()
+  })
+
+  test("fenced code block with km.add:: is not parsed (existing behaviour, regression guard)", () => {
+    const tree = parse("```markdown\n## Inbox km.add:: ./inbox/**(.)\n```\n")
+    // No heading/paragraph node should carry a km.add propsRaw entry.
+    function walk(node: any): void {
+      if (node.type === "heading" || node.type === "paragraph") {
+        expect(node.data?.propsRaw?.["km.add"]).toBeUndefined()
+      }
+      if (node.children) for (const c of node.children) walk(c)
+    }
+    walk(tree)
+  })
+
+  test("docs/ref/tree-globs.md does not produce phantom km.* rules", async () => {
+    // Integration guard for the original bug report.
+    const fs = await import("node:fs")
+    const path = await import("node:path")
+    const repoRoot = path.resolve(__dirname, "../../../..")
+    const mdPath = path.join(repoRoot, "docs/ref/tree-globs.md")
+    if (!fs.existsSync(mdPath)) return // Skip if doc moved/removed
+    const md = fs.readFileSync(mdPath, "utf-8")
+    const tree = parse(md)
+
+    function walk(node: any): void {
+      if (node.type === "heading" || node.type === "paragraph") {
+        const propsRaw = node.data?.propsRaw ?? {}
+        for (const k of Object.keys(propsRaw)) {
+          // No km.* properties should be extracted from the doc's prose.
+          // (The legitimate examples in the doc all live inside fenced
+          // code blocks, which the transform skips.)
+          expect(k.startsWith("km.")).toBe(false)
+        }
+      }
+      if (node.children) for (const c of node.children) walk(c)
+    }
+    walk(tree)
+  })
+})

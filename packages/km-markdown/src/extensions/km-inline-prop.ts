@@ -5,16 +5,57 @@ import { visit } from "unist-util-visit"
 import { extractKVProperties } from "@km/core"
 import { parseInlineProperties, nodeToText } from "../parser.ts"
 
+/**
+ * Flatten a heading/paragraph to text, but mask out `inlineCode` content with
+ * spaces of equal length. This produces text whose character positions match
+ * `nodeToText(node)` exactly, but where `key::` syntax appearing inside inline
+ * code (i.e. documentation prose like `` `km.add::` ``) cannot match the
+ * property extractor regex.
+ *
+ * Why: the inline-property extractor must respect mdast's classification.
+ * `inlineCode` is by definition prose-quoted-literal; treating it as
+ * structural data caused phantom rules to fire on documentation pages
+ * (km-kmadd-in-doc-text). The original text — including the backticked
+ * snippet — still survives as `cleanText` for the heading title.
+ */
+function nodeToMaskedText(node: any): string {
+  if (node.type === "inlineCode" && typeof node.value === "string") {
+    return " ".repeat(node.value.length)
+  }
+  if (node.type === "break") {
+    return "\n"
+  }
+  // Preserve the existing nodeToText behaviour for kmWikilink and bare-value
+  // nodes (text, code) by delegating when no children are present.
+  if (!("children" in node) || !Array.isArray(node.children)) {
+    return nodeToText(node)
+  }
+  return node.children.map((c: any) => nodeToMaskedText(c)).join("")
+}
+
 export function kmInlinePropTransform(tree: Root): void {
   visit(tree, (node, _index, parent) => {
     // Process paragraphs and headings
     if (node.type !== "paragraph" && node.type !== "heading") return
 
+    // Mask inline code so `key::` inside backticks (doc prose) cannot match.
     const text = nodeToText(node as any)
-    const { entries, cleanText } = extractKVProperties(text)
+    const masked = nodeToMaskedText(node as any)
+    const { entries } = extractKVProperties(masked)
 
     // Skip if no properties found
     if (entries.length === 0) return
+
+    // Recompute cleanText from the ORIGINAL text using the matched ranges
+    // (positions are identical between masked and original).
+    let cleanText = ""
+    let lastEnd = 0
+    for (const entry of entries) {
+      cleanText += text.slice(lastEnd, entry.start)
+      lastEnd = entry.end
+    }
+    cleanText += text.slice(lastEnd)
+    cleanText = cleanText.replace(/\s+/g, " ").trim()
 
     // Build propsRaw from ALL entries (including km.* for headings)
     // Duplicate keys are concatenated with ", " (supports repeated km.add:: syntax)
@@ -24,8 +65,9 @@ export function kmInlinePropTransform(tree: Root): void {
       propsRaw[k] = propsRaw[k] !== undefined ? `${propsRaw[k]}, ${value}` : value
     }
 
-    // Build typed props (excluding km.* system properties)
-    const parsed = parseInlineProperties(text)
+    // Build typed props (excluding km.* system properties).
+    // Pass the masked text so prose-quoted properties don't show up here either.
+    const parsed = parseInlineProperties(masked)
 
     // Store on the node's data
     node.data = node.data || {}
