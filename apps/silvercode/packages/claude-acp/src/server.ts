@@ -261,18 +261,59 @@ export async function runClaudeAcpServer(opts: RunClaudeAcpServerOpts = {}): Pro
         sessionId = await new Promise<string>((resolve, reject) => {
           const timer = setTimeout(() => {
             unsubscribe()
-            reject(
-              new acp.RequestError(
-                -32000,
-                `claude failed to initialize within ${SESSION_INIT_TIMEOUT_MS / 1000}s — check Claude Code subscription auth and MCP server health (DEBUG=silvercode:* DEBUG_LOG=/tmp/sc.log)`,
-              ),
-            )
+            // Build an informative error. If claude already emitted
+            // error/session-end/session-lifecycle events while we were
+            // waiting, the real failure reason lives there — surface it
+            // instead of the generic timeout message. Common causes:
+            // bad OAuth (Keychain slot empty for the requested
+            // CLAUDE_CONFIG_DIR), claude binary missing, MCP child
+            // failing to start.
+            const details = summarizeBufferedFailure(buffered)
+            const baseMsg = `claude failed to initialize within ${SESSION_INIT_TIMEOUT_MS / 1000}s`
+            const fullMsg = details
+              ? `${baseMsg}. Subprocess output:\n${details}\n\nCheck Claude Code subscription auth (CLAUDE_CONFIG_DIR for --account) and MCP server health. DEBUG=silvercode:* DEBUG_LOG=/tmp/sc.log silvercode … for full trace.`
+              : `${baseMsg} (no diagnostic events received — likely a subprocess spawn failure or stdin/stdout pipe issue). Check Claude Code subscription auth and MCP server health (DEBUG=silvercode:* DEBUG_LOG=/tmp/sc.log).`
+            reject(new acp.RequestError(-32000, fullMsg))
           }, SESSION_INIT_TIMEOUT_MS)
           const unsubscribe = agentSession.subscribe((event) => {
-            if (event.kind !== "session-init") return
-            clearTimeout(timer)
-            unsubscribe()
-            resolve(event.sessionId)
+            // session-init: success path.
+            if (event.kind === "session-init") {
+              clearTimeout(timer)
+              unsubscribe()
+              resolve(event.sessionId)
+              return
+            }
+            // Early-fail path: claude died before emitting session-init.
+            // Surface the real reason (error message or stopReason) so
+            // the user sees auth / subprocess errors instead of a 30s
+            // generic timeout.
+            if (event.kind === "error") {
+              clearTimeout(timer)
+              unsubscribe()
+              reject(
+                new acp.RequestError(
+                  -32000,
+                  `claude failed to initialize: ${event.message}. Check Claude Code subscription auth (CLAUDE_CONFIG_DIR for --account) and MCP server health.`,
+                ),
+              )
+              return
+            }
+            if (event.kind === "session-end" || event.kind === "session-lifecycle") {
+              const ended =
+                event.kind === "session-end" ||
+                (event.kind === "session-lifecycle" && event.state === "ended")
+              if (!ended) return
+              const reason =
+                event.kind === "session-end" && event.stopReason ? event.stopReason : "subprocess exited"
+              clearTimeout(timer)
+              unsubscribe()
+              reject(
+                new acp.RequestError(
+                  -32000,
+                  `claude exited before initializing (${reason}). Check that the claude binary is on PATH and the requested account has valid OAuth credentials.`,
+                ),
+              )
+            }
           })
         })
       } catch (err) {
@@ -652,6 +693,26 @@ function formatAge(ms: number): string {
   if (hr < 24) return `${hr}h ago`
   const day = Math.floor(hr / 24)
   return `${day}d ago`
+}
+
+/**
+ * Summarize buffered events that arrived before session-init for inclusion
+ * in the timeout error. Pulls error messages, session-end stopReasons, and
+ * any other diagnostic-shaped events. Returns null if nothing useful was
+ * captured (silent subprocess — distinct failure mode worth its own hint).
+ */
+function summarizeBufferedFailure(buffered: ReadonlyArray<AgentEvent>): string | null {
+  const lines: string[] = []
+  for (const event of buffered) {
+    if (event.kind === "error") {
+      lines.push(`  error: ${event.message}`)
+    } else if (event.kind === "session-end") {
+      lines.push(`  session-end: ${event.stopReason ?? "(no stopReason)"}`)
+    } else if (event.kind === "session-lifecycle" && event.state === "ended") {
+      lines.push(`  session-lifecycle: ended`)
+    }
+  }
+  return lines.length > 0 ? lines.join("\n") : null
 }
 
 // ---------------------------------------------------------------------------

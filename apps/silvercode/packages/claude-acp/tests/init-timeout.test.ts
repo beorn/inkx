@@ -213,9 +213,15 @@ describe("claude-acp newSession — session-init timeout", () => {
     // the no-console-output vitest rule.
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
     try {
+      // Either timeout fires ("claude failed to initialize within Ns") or
+      // an early session-end / session-lifecycle:ended arrives first
+      // ("claude exited before initializing"). Both are valid rejection
+      // shapes for the same root cause: claude never reached session-init.
+      // The fix surfaces the actual failure mode so the user sees auth /
+      // subprocess errors rather than a 30s generic timeout.
       await expect(conn.newSession({ cwd: "/work", mcpServers: [] })).rejects.toMatchObject({
         code: -32000,
-        message: expect.stringMatching(/claude failed to initialize within/),
+        message: expect.stringMatching(/claude (failed to initialize|exited before initializing)/),
       })
     } finally {
       consoleErrorSpy.mockRestore()
