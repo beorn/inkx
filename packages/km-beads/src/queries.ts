@@ -71,6 +71,22 @@ function getNodePath(node: KNode, repo?: Repo): string | undefined {
 }
 
 /**
+ * Trailing-slash anchored prefix check: a path is under one of the
+ * configured roots iff it equals a root or starts with `root + "/"`.
+ *
+ * Anchoring matters — `beads-archive/` must NOT match `beads`. See
+ * queryReady.fuzz.ts for the property-based regression suite.
+ */
+function isUnderRoots(path: string | undefined, roots: string[]): boolean {
+  if (!path) return false
+  for (const root of roots) {
+    if (path === root) return true
+    if (path.startsWith(`${root}/`)) return true
+  }
+  return false
+}
+
+/**
  * Count how many issues are blocked by the given short ID.
  *
  * Slow path: scans all nodes once per call (unindexed JSON LIKE). Use
@@ -217,14 +233,14 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
   // Calculate the short ID for this issue (needed for dependent count lookup).
   // Priority: frontmatter `id:` (canonical path-form, e.g. "silvercode/acp/rename")
   // > legacy `data.short_id` (bd-form like "km-a1b2")
-  // > ULID-suffix fallback for non-bead checkbox nodes that happen to flow
-  //   through here. queryReady() runs the boardRoots predicate AFTER mapping
-  //   nodes to Issues, so any checkbox in the vault (markdown fixtures,
-  //   archived notes, ad-hoc todos) reaches nodeToIssue before being filtered
-  //   out. The fallback keeps mapping non-throwing for those out-of-scope
-  //   nodes; the resulting Issue is discarded by the boardRoots filter.
-  //   Within the beads roots, predicate-A + recapture-E ensure every bead
-  //   ships data.id or data.short_id — the third arm only fires for noise.
+  // > ULID-suffix fallback. Pre-map boardRoots filtering keeps truly
+  //   out-of-scope nodes (markdown fixtures, archived notes, ad-hoc todos
+  //   outside the beads roots) from reaching nodeToIssue. The fallback is
+  //   still hit by in-scope sub-checkbox items inside legitimate bead
+  //   files — those resolve a parent path that IS under boardRoots but
+  //   carry no `id:` or `short_id` of their own. Future cleanup may
+  //   tighten the predicate to top-level file nodes; until then, the
+  //   fallback synthesizes a deterministic short_id for those sub-items.
   const shortId = (data?.id as string) || (data?.short_id as string) || `km-${node.id.slice(-4).toLowerCase()}`
 
   // Count dependents (issues that are blocked by this one).
@@ -322,23 +338,23 @@ export function queryReady(
   if (!repo) {
     return [] // Cannot query without repo
   }
-  const nodes = repo.query(query)
+  const allNodes = repo.query(query)
+  // Board-membership predicate: keep only nodes whose repo-relative
+  // fs_path lives under one of the configured beads roots. Filtering
+  // pre-map ensures out-of-scope nodes (markdown fixtures, archived
+  // notes, ad-hoc todos) never reach nodeToIssue — which means the
+  // ULID-suffix fallback in nodeToIssue is unreachable for these
+  // queries, and out-of-scope nodes can't accidentally fall through
+  // and get a synthesized short_id.
+  const boardRoots = options?.boardRoots
+  const nodes =
+    boardRoots && boardRoots.length > 0
+      ? allNodes.filter((n) => isUnderRoots(getNodePath(n, repo), boardRoots))
+      : allNodes
   // Build the dependent-count map ONCE, not per-issue. Eliminates 3463 × O(N)
   // unindexed scans on large vaults — see km-beads.list-status-perf.
   const dependentCountMap = buildDependentCountMap(repo)
   let issues = nodes.map((n) => nodeToIssue(n, { repo, dependentCountMap }))
-
-  // Board-membership predicate: keep only issues whose repo-relative
-  // fs_path lives under one of the configured beads roots. Trailing
-  // slash anchors the prefix so `beads-archive/` does not match `beads`.
-  const boardRoots = options?.boardRoots
-  if (boardRoots && boardRoots.length > 0) {
-    issues = issues.filter((issue) => {
-      const p = issue.path
-      if (!p) return false
-      return boardRoots.some((root) => p === root || p.startsWith(`${root}/`))
-    })
-  }
 
   // Apply path scope filter after query (since path: syntax not supported)
   if (scopePath) {
@@ -370,7 +386,7 @@ export function queryIssues(
   filter?: IssueFilter,
   scopePath?: string,
   boardTag?: string,
-  options?: BeadsQueryOptions,
+  options?: BeadsQueryOptions & { boardRoots?: string[] },
 ): Issue[] {
   const repo = options?.repo
   let query = ""
@@ -398,7 +414,15 @@ export function queryIssues(
   if (!repo) {
     return [] // Cannot query without repo
   }
-  const nodes = repo.query(query.trim() || "*")
+  const allNodes = repo.query(query.trim() || "*")
+  // Pre-map root-membership filter — see queryReady for the rationale.
+  // Out-of-scope nodes never reach nodeToIssue, so the ULID-suffix
+  // fallback is unreachable when boardRoots is set.
+  const boardRoots = options?.boardRoots
+  const nodes =
+    boardRoots && boardRoots.length > 0
+      ? allNodes.filter((n) => isUnderRoots(getNodePath(n, repo), boardRoots))
+      : allNodes
   // Build the dependent-count map ONCE — see queryReady for context.
   const dependentCountMap = buildDependentCountMap(repo)
   let issues = nodes.map((n) => nodeToIssue(n, { repo, dependentCountMap }))
