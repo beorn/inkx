@@ -337,18 +337,33 @@ function buildPropCondition(propCond: QueryPropCondition, params: (string | numb
   return ""
 }
 
-/** SQL subquery matching unresolved blockers for a given outer table alias */
+/**
+ * SQL subquery matching unresolved blockers for a given outer table alias.
+ *
+ * Reads from the indexed deps table (schema v7) — one row per
+ * (host_id, target, kind) tuple. The blocker JOIN matches the deps
+ * `target` against either `nodes.id` or `nodes.name`, mirroring the
+ * pre-v7 LIKE-scan semantics: targets are short-ids that resolve via
+ * either the canonical id column or the human-facing name slug.
+ */
 function unresolvedBlockerExists(outerTable: string): string {
   return `EXISTS (
-          SELECT 1 FROM nodes AS blocker
-          WHERE (
-            blocker.id = json_extract(${outerTable}.data, '$.props.blocked-by.target')
-            OR blocker.name = json_extract(${outerTable}.data, '$.props.blocked-by.target')
-            OR json_extract(${outerTable}.data, '$.props.blocked-by') LIKE '%"target":"' || blocker.id || '"%'
-            OR json_extract(${outerTable}.data, '$.props.blocked-by') LIKE '%"target":"' || blocker.name || '"%'
-          )
-          AND (blocker.task_status IS NULL OR blocker.task_status NOT IN ('done', 'dropped'))
+          SELECT 1
+          FROM deps AS d
+          JOIN nodes AS blocker
+            ON blocker.id = d.target OR blocker.name = d.target
+          WHERE d.host_id = ${outerTable}.id
+            AND d.kind = 'blocked-by'
+            AND (blocker.task_status IS NULL OR blocker.task_status NOT IN ('done', 'dropped'))
         )`
+}
+
+/**
+ * SQL predicate matching nodes that have at least one blocked-by edge.
+ * Cheap (host_id is indexed); replaces the JSON LIKE on data.props.
+ */
+function hasAnyBlockedBy(outerTable: string): string {
+  return `EXISTS (SELECT 1 FROM deps WHERE host_id = ${outerTable}.id AND kind = 'blocked-by')`
 }
 
 /**
@@ -360,14 +375,15 @@ function buildBlockedCondition(special: QuerySpecial, outerTable: string): strin
   if (special.type !== "blocked") return ""
 
   const blockerSubquery = unresolvedBlockerExists(outerTable)
+  const hasEdge = hasAnyBlockedBy(outerTable)
 
   if (special.value) {
-    // blocked:true - has blocked-by property with at least one unresolved blocker
-    return ` AND json_extract(data, '$.props.blocked-by') IS NOT NULL AND ${blockerSubquery}`
+    // blocked:true — at least one unresolved blocker.
+    return ` AND ${hasEdge} AND ${blockerSubquery}`
   }
 
-  // blocked:false - no blocked-by property OR all blockers are done
-  return ` AND (json_extract(data, '$.props.blocked-by') IS NULL OR NOT ${blockerSubquery})`
+  // blocked:false — no edge, or every blocker is resolved.
+  return ` AND (NOT ${hasEdge} OR NOT ${blockerSubquery})`
 }
 
 /** Build SQL for phrase search (exact phrase in content, order-sensitive) */
