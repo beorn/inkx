@@ -210,9 +210,94 @@ function buildPathCteSelect(): string {
       WHERE 1=1`
 }
 
+/**
+ * Allowlist of node columns the query DSL may filter against. Mirrors
+ * the schema in `db/schema.ts` and the aliases in `@km/core`'s parser
+ * (status → task_status, etc.). Anything outside this set is a typo or
+ * a wishful field that doesn't exist — fail fast with a helpful message
+ * rather than letting `field` interpolate into SQL and surface a raw
+ * SQLiteError downstream (also closes a SQL-injection vector). See
+ * query-helpful-errors.
+ */
+const ALLOWED_QUERY_FIELDS: ReadonlySet<string> = new Set([
+  "id",
+  "type",
+  "fstype",
+  "parent_id",
+  "item",
+  "embed_of",
+  "parent_idx",
+  "fs_path",
+  "fs_dev",
+  "fs_ino",
+  "fs_mtime",
+  "fs_size",
+  "fs_content_hash",
+  "name",
+  "title",
+  "md_pos",
+  "md_line",
+  "list_marker",
+  "task_marker",
+  "task_status",
+  "assigned_to",
+  "due_at",
+  "start_at",
+  "due_date",
+  "scheduled_date",
+  "priority",
+  "content",
+  "content_hash",
+  "parsed",
+  "data",
+  "created_at",
+  "updated_at",
+  "version",
+])
+
+/**
+ * Aliases users typically reach for first (the bd CLI happily accepts
+ * "status:open"). Listed in the error so users discover the canonical
+ * field plus its short forms in one shot.
+ */
+const QUERY_FIELD_ALIASES: ReadonlyArray<string> = [
+  "status (= task_status)",
+  "due (= due_at)",
+  "start (= start_at)",
+  "scheduled (= start_at)",
+  "assigned (= assigned_to)",
+]
+
+/**
+ * Thrown when a query references an unknown column. Carries a `hint`
+ * shaped like `CliError` so callers can present a helpful message
+ * without depending on @km/cli.
+ */
+export class QueryFieldError extends Error {
+  readonly field: string
+  readonly hint: string
+
+  constructor(field: string) {
+    const allowed = Array.from(ALLOWED_QUERY_FIELDS).sort().join(", ")
+    super(`Unknown attribute: '${field}'.`)
+    this.name = "QueryFieldError"
+    this.field = field
+    this.hint =
+      `Valid attributes: ${allowed}.\n  Common aliases: ${QUERY_FIELD_ALIASES.join(", ")}.\n` +
+      `  Use 'km bd query --help' to see DSL grammar.`
+  }
+}
+
 /** Handle date shortcut resolution and general field conditions */
 function buildFieldCondition(cond: QueryCondition, params: (string | number)[]): string {
   const { field, op, value } = cond
+
+  // Validate field name against the schema allowlist BEFORE composing SQL
+  // — otherwise an unknown column reaches SQLite and surfaces as a raw
+  // SQLiteError + Bun stack trace, which is hostile to CLI users.
+  if (!ALLOWED_QUERY_FIELDS.has(field)) {
+    throw new QueryFieldError(field)
+  }
 
   // Handle type: conditions with virtual type translation
   if (field === "type" && (op === "=" || op === "!=")) {

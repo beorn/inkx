@@ -173,7 +173,7 @@ export { evaluateAllRules, evaluateNodeRules, onNodeChanged, onNodeDeleted, crea
 export type { RulesProgress, RuleContext } from "./db/rules.ts"
 
 // Query language
-export { parseQuery, resolveDateQuery } from "./query.ts"
+export { parseQuery, resolveDateQuery, QueryFieldError } from "./query.ts"
 
 export type { QueryCondition, QueryRef, DateRange } from "./query.ts"
 

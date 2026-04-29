@@ -12,6 +12,7 @@
 
 import { configureProgram } from "./program.ts"
 import { CliError } from "./errors.ts"
+import { QueryFieldError } from "@km/storage"
 import { createTerm } from "@silvery/ag-react"
 
 // Configure the program (all commands, hooks, options)
@@ -30,11 +31,13 @@ if (firstArg && isBoardShortcut(firstArg)) {
   process.argv.splice(2, 0, "view")
 }
 
-// Parse and execute — CliError gets clean display, everything else propagates
+// Parse and execute — CliError gets clean display, everything else propagates.
+// QueryFieldError is treated like CliError so unknown DSL fields surface a
+// hint instead of a SQLiteError + Bun stack trace.
 try {
   await program.parseAsync()
 } catch (err) {
-  if (err instanceof CliError) {
+  if (err instanceof CliError || err instanceof QueryFieldError) {
     const term = createTerm(process)
     console.error(`\n${term.bold.red("error:")} ${err.message}`)
     if (err.hint) console.error(term.yellow(`  ${err.hint}`))
