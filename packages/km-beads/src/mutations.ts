@@ -161,8 +161,14 @@ export function updateIssueFields(issue: Issue, changes: UpdateIssueChanges): Pa
     updates.item = { task: { status: changes.status, marker: getMarkerForStatus(changes.status) } }
   }
 
-  if (changes.priority !== undefined) {
-    updates.priority = changes.priority
+  // Canonicalize priority on update the same way create does — without
+  // this, `bd update --priority P0` on a `priority="0"` bead leaves the
+  // `#0` tag in content and adds `P0` separately (yields ["0","P0"]).
+  // Falsy normalize result preserves caller's literal value (caller is
+  // free to set non-canonical priority strings if they really want).
+  const normalizedPriority = changes.priority !== undefined ? (normalizePriority(changes.priority) ?? changes.priority) : undefined
+  if (normalizedPriority !== undefined) {
+    updates.priority = normalizedPriority
   }
 
   if (changes.title !== undefined) {
@@ -180,13 +186,13 @@ export function updateIssueFields(issue: Issue, changes: UpdateIssueChanges): Pa
   // node's existing data blob to preserve `id`, `aliases`, `short_id`,
   // `mentions`, etc. Assignee no longer mirrors into `data.mentions` —
   // `node.assigned_to` is the authoritative source.
-  if (changes.priority !== undefined || changes.type !== undefined) {
+  if (normalizedPriority !== undefined || changes.type !== undefined) {
     const currentTags =
       changes.currentTags ??
       (changes.currentData?.tags as string[] | undefined) ??
       [issue.type, issue.priority].filter((t): t is string => typeof t === "string" && t.length > 0)
     const nextTags = rewriteTypeAndPriorityTags(currentTags, {
-      priority: changes.priority,
+      priority: normalizedPriority,
       type: changes.type,
     })
     updates.data = { ...changes.currentData, tags: nextTags }
@@ -196,13 +202,16 @@ export function updateIssueFields(issue: Issue, changes: UpdateIssueChanges): Pa
 }
 
 /**
- * Replace any existing P0–P4 tag and/or the current type tag with the new
- * values. Preserves unrelated tags (e.g. `frontend`, `urgent`) unchanged.
+ * Replace any existing P0–P4 (or bare 0–4) tag and/or the current type
+ * tag with the new values. Preserves unrelated tags (e.g. `frontend`,
+ * `urgent`) unchanged. Stripping bare-digit tags too prevents
+ * accumulation: a bead with legacy `#0` getting --priority P1 should
+ * end up with just `[P1]`, not `[0, P1]`.
  */
 function rewriteTypeAndPriorityTags(tags: string[], next: { priority?: string; type?: string }): string[] {
   const typeKeywords = new Set(["bug", "feature", "epic", "task", "docs", "question"])
   const filtered = tags.filter((t) => {
-    if (next.priority !== undefined && /^P[0-4]$/i.test(t)) return false
+    if (next.priority !== undefined && (/^P[0-4]$/i.test(t) || /^[0-4]$/.test(t))) return false
     if (next.type !== undefined && typeKeywords.has(t.toLowerCase())) return false
     return true
   })
