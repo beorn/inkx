@@ -90,7 +90,11 @@ export const HIDDEN_FILE_PATTERN = "**/.*"
 
 /**
  * Convert a gitignore pattern to a glob pattern
- * This is a simplified conversion - gitignore has some nuances
+ * This is a simplified conversion - gitignore has some nuances.
+ *
+ * Negation (`!`) is preserved on the output as a `!`-prefixed glob, so the
+ * matcher can re-include earlier-excluded files (gitignore semantic — last
+ * matching pattern wins).
  */
 function gitignoreToGlob(pattern: string, _basePath: string): string {
   let glob = pattern.trim()
@@ -100,9 +104,12 @@ function gitignoreToGlob(pattern: string, _basePath: string): string {
     return ""
   }
 
-  // Handle negation (we don't support it yet, skip)
+  // Detect negation, strip the marker so the rest can be converted normally,
+  // then re-attach `!` to the final glob.
+  let negate = false
   if (glob.startsWith("!")) {
-    return ""
+    negate = true
+    glob = glob.slice(1)
   }
 
   // Remove leading slash (makes it relative to repo root)
@@ -120,13 +127,7 @@ function gitignoreToGlob(pattern: string, _basePath: string): string {
     glob = "**/" + glob
   }
 
-  // If pattern doesn't start with ** or /, make it match from root
-  if (!glob.startsWith("**/") && !glob.startsWith("/")) {
-    // Pattern like "foo/bar" should match from root
-    // But "*.log" should match anywhere (already handled above)
-  }
-
-  return glob
+  return negate ? "!" + glob : glob
 }
 
 /**
@@ -300,17 +301,23 @@ export interface PatternMatcher {
  * Compiles all glob patterns to RegExp once at construction time,
  * avoiding O(n*m) regex compilation during file scanning.
  *
+ * Patterns starting with `!` are negations that re-include a path
+ * matched by an earlier positive pattern. Patterns are walked in order
+ * and the last matching pattern's polarity wins (gitignore semantic).
+ *
  * Usage:
  *   const matcher = createPatternMatcher({ patterns: getIgnorePatterns(repoPath) })
  *   if (matcher.matches(filePath)) { skip this file }
  */
 function createPatternMatcher(options: PatternMatcherOptions): PatternMatcher {
-  const compiledPatterns: Array<{ regex: RegExp; original: string }> = []
+  const compiledPatterns: Array<{ regex: RegExp; original: string; negate: boolean }> = []
 
-  for (const pattern of options.patterns) {
-    const regex = patternToRegex(pattern)
+  for (const raw of options.patterns) {
+    const negate = raw.startsWith("!")
+    const body = negate ? raw.slice(1) : raw
+    const regex = patternToRegex(body)
     if (regex) {
-      compiledPatterns.push({ regex, original: pattern })
+      compiledPatterns.push({ regex, original: raw, negate })
     }
   }
 
@@ -319,12 +326,15 @@ function createPatternMatcher(options: PatternMatcherOptions): PatternMatcher {
       const normalizedPath = repoPath ? relative(repoPath, path) : path
       const name = basename(path)
 
-      for (const { regex } of compiledPatterns) {
+      // Last matching pattern wins (gitignore semantic). Negations
+      // re-include a path that an earlier positive pattern excluded.
+      let ignored = false
+      for (const { regex, negate } of compiledPatterns) {
         if (regex.test(normalizedPath) || regex.test(name)) {
-          return true
+          ignored = !negate
         }
       }
-      return false
+      return ignored
     },
 
     get size() {
@@ -363,6 +373,10 @@ export function matchesPattern(path: string, pattern: string): boolean {
  *
  * Accepts either a string[] of patterns (legacy, recompiles each call)
  * or a PatternMatcher (preferred, pre-compiled).
+ *
+ * Patterns prefixed with `!` are negations — they re-include a path that
+ * an earlier positive pattern excluded. Patterns are walked in order and
+ * the last matching pattern's polarity wins (gitignore semantic).
  */
 export function shouldIgnore(path: string, patternsOrMatcher: string[] | PatternMatcher, repoPath?: string): boolean {
   // Use PatternMatcher if provided (fast path) - check for matches method
@@ -373,18 +387,17 @@ export function shouldIgnore(path: string, patternsOrMatcher: string[] | Pattern
   // Legacy: array of patterns (recompiles each call)
   const patterns = patternsOrMatcher
   const normalizedPath = repoPath ? relative(repoPath, path) : path
+  const name = basename(path)
 
-  for (const pattern of patterns) {
-    if (matchesPattern(normalizedPath, pattern)) {
-      return true
-    }
-    // Also try matching against basename for patterns like "*.log"
-    if (matchesPattern(basename(path), pattern)) {
-      return true
+  let ignored = false
+  for (const raw of patterns) {
+    const negate = raw.startsWith("!")
+    const body = negate ? raw.slice(1) : raw
+    if (matchesPattern(normalizedPath, body) || matchesPattern(name, body)) {
+      ignored = !negate
     }
   }
-
-  return false
+  return ignored
 }
 
 /**
