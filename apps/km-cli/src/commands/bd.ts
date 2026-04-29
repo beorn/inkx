@@ -39,6 +39,7 @@ import { resolveIssueArg } from "./bd-query-helpers.ts"
 import { configCommand } from "./bd-config.ts"
 import { migrateCommand, exportCommand } from "./bd-migrate.ts"
 import { attachMemoryCommands } from "./bd-memory.ts"
+import { attachDoctorCommands } from "./bd-doctor.ts"
 import { buildQueryString, normalizeStatus, type SharedQueryFlags } from "./shared-query.ts"
 
 /** Format scope context for display messages (e.g., " in path") */
@@ -1024,3 +1025,4 @@ bdCommand.addCommand(configCommand)
 bdCommand.addCommand(migrateCommand)
 bdCommand.addCommand(exportCommand)
 attachMemoryCommands(bdCommand)
+attachDoctorCommands(bdCommand)
