@@ -969,8 +969,12 @@ bdCommand
     console.log(term.bold("Beads Configuration"))
     console.log("===================")
     console.log(`Prefix: ${config.prefix}`)
+    console.log(`Roots: ${JSON.stringify(config.roots)}`)
+    console.log(`Default scope: ${config.default_scope}`)
     if (configObj.path) {
-      console.log(term.dim(`Config: ${configObj.path}`))
+      console.log(term.dim(`Config: ${configObj.path} (overrides defaults)`))
+    } else {
+      console.log(term.dim(`Source: built-in defaults`))
     }
 
     console.log()
@@ -1052,6 +1056,8 @@ bdCommand
     if (existsSync(kmDir)) {
       console.log(kmDir)
       console.log(`  prefix: ${configObj.beads.prefix}`)
+      console.log(`  roots: ${JSON.stringify(configObj.beads.roots)}`)
+      console.log(`  default_scope: ${configObj.beads.default_scope}`)
       console.log(`  database: ${dbPath}`)
       console.log(`  repo: ${resolved.repoRoot}`)
       if (resolved.nodeRef) {

@@ -40,10 +40,19 @@ export interface BeadsConfig {
   /**
    * Search roots for beads content within the repo (relative paths). Multiple
    * roots support migration sub-vaults (`imports/<source>-<date>/`) sitting
-   * alongside a primary `beads/`. First root is the canonical write target.
-   * Defaults to `["beads"]` when absent.
+   * alongside a primary root. First root is the canonical write target.
+   * Defaults to `["@km"]` when absent — the sigil-prefixed board directory at
+   * the repo root, matching the vault layout that `bd migrate` produces.
    */
   roots?: string[]
+  /**
+   * Scope under which `km bd create` (no `--parent`, no `--id`) lands its
+   * fresh beads. The created file lives at
+   * `<roots[0]>/<default_scope>/<short-id>.md`. Defaults to `"inbox"` —
+   * the single triage zone that also receives migration-imported scope-less
+   * auto-ids (km-q5hji etc).
+   */
+  default_scope?: string
 }
 
 export interface TuiConfig {
@@ -222,7 +231,8 @@ export function getBeadsConfig(searchFrom?: string): Required<BeadsConfig> {
   const config = loadConfig(searchFrom)
   return {
     prefix: config.beads?.prefix ?? "km",
-    roots: config.beads?.roots ?? ["beads"],
+    roots: config.beads?.roots ?? ["@km"],
+    default_scope: config.beads?.default_scope ?? "inbox",
   }
 }
 

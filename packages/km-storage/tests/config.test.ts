@@ -17,6 +17,7 @@ import {
   loadConfig,
   clearConfigCache,
   getOriginalBeadsConfig,
+  getBeadsConfig,
   getFolderIndexConfig,
   getCollapseParseConfig,
 } from "../src/config.ts"
@@ -342,5 +343,58 @@ describe("getCollapseParseConfig (inactive: key)", () => {
 
       const { patterns } = getCollapseParseConfig(testDir)
       expect(patterns).toEqual(["raw/**", "archive/**"])
+    }))
+})
+
+describe("getBeadsConfig — built-in defaults", () => {
+  // The defaults are the load-bearing contract: a fresh repo with no
+  // .km/config.yaml must still have working bd defaults so `km bd init`
+  // followed by `km bd create` materializes a real file under the right
+  // directory. These tests pin the defaults so a config refactor can't
+  // silently drift them — every km vault depends on these literals.
+
+  test("returns inbox + @km when no config file exists", () =>
+    withTestEnvSync(({ testDir }) => {
+      clearConfigCache()
+      const config = getBeadsConfig(testDir)
+      expect(config.prefix).toBe("km")
+      expect(config.roots).toEqual(["@km"])
+      expect(config.default_scope).toBe("inbox")
+    }))
+
+  test("user config.yaml overrides every default", () =>
+    withTestEnvSync(({ testDir }) => {
+      clearConfigCache()
+      mkdirSync(join(testDir, ".km"), { recursive: true })
+      writeFileSync(
+        join(testDir, ".km/config.yaml"),
+        `beads:
+  prefix: "pim"
+  roots: ["beads", "imports/x"]
+  default_scope: "triage"
+`,
+      )
+
+      const config = getBeadsConfig(testDir)
+      expect(config.prefix).toBe("pim")
+      expect(config.roots).toEqual(["beads", "imports/x"])
+      expect(config.default_scope).toBe("triage")
+    }))
+
+  test("partial config keeps untouched fields at their defaults", () =>
+    withTestEnvSync(({ testDir }) => {
+      clearConfigCache()
+      mkdirSync(join(testDir, ".km"), { recursive: true })
+      writeFileSync(
+        join(testDir, ".km/config.yaml"),
+        `beads:
+  default_scope: "inflight"
+`,
+      )
+
+      const config = getBeadsConfig(testDir)
+      expect(config.prefix).toBe("km")
+      expect(config.roots).toEqual(["@km"])
+      expect(config.default_scope).toBe("inflight")
     }))
 })
