@@ -49,7 +49,7 @@ For km-tui code, import from `@silvery/ag-react` (or the `silvery` barrel). The 
 |---|---|---|---|
 | **ModalDialog** | Bordered, centered dialog shell with optional title, hotkey badge, footer. Children render inside. Pair with `CenterDialog` / `TopRightDialog` from km-tui for absolute positioning. | `title`, `hotkey`, `width`, `height`, `footer`, `titleAlign` | `@silvery/ag-react` |
 | **Toast** | Transient notification. `ToastStack` manages the queue. | `message`, `kind`, `duration` | `@silvery/ag-react` |
-| **Tooltip** | Inline tooltip — renders next to its anchor. For floating popovers with viewport clamping and overlap positioning, see the km-local `Popover.tsx` (no silvery equivalent yet — tracked in `km-silvery.popover`). | `content`, `children` | `@silvery/ag-react` |
+| **Tooltip** | Inline tooltip — renders next to its anchor. For floating popovers with viewport clamping and overlap positioning, see the km-local `Popover.tsx` (no silvery equivalent yet — tracked in `@km/silvery/popover`). | `content`, `children` | `@silvery/ag-react` |
 
 ## Data display
 
@@ -185,12 +185,12 @@ These are the ways km-tui has accidentally reinvented silvery primitives. If you
 
 These km-local components duplicate silvery primitives. Migrate when you next touch them.
 
-- **`apps/km-tui/src/views/shared-components.tsx:423` — `InputBox`** — duplicates `TextInput`. Wraps `CursorLine` + prompt + placeholder + focus ring. km's `ghostHint` prop should move to silvery's `TextInput` as a new feature. Consumers: `SearchDialog.tsx`, `WorkspaceChrome.tsx` (omnibox), `UnifiedOmnibox.tsx`. Tracked in `km-tui.omnibox-use-silvery`.
-- **`apps/km-tui/src/hooks/use-dialog-input.ts` — `useDialogInput`** — wraps `useEditContext` with dialog Enter/Escape/arrow routing. Most of this lives in silvery's `useReadline` (with `handleEnter: false, handleEscape: false, handleVerticalArrows: false`) plus a thin `useInput` for the dialog-specific keys. Tracked in `km-tui.omnibox-use-silvery`.
-- **`apps/km-tui/src/views/SearchDialog.tsx`** — hand-rolls ModalDialog + InputBox + filtered list. `PickerDialog<SearchResult>` composes exactly this shape. Migration deferred — track in `km-review.silvery-gap-analysis`.
+- **`apps/km-tui/src/views/shared-components.tsx:423` — `InputBox`** — duplicates `TextInput`. Wraps `CursorLine` + prompt + placeholder + focus ring. km's `ghostHint` prop should move to silvery's `TextInput` as a new feature. Consumers: `SearchDialog.tsx`, `WorkspaceChrome.tsx` (omnibox), `UnifiedOmnibox.tsx`. Tracked in `@km/tui/omnibox-use-silvery`.
+- **`apps/km-tui/src/hooks/use-dialog-input.ts` — `useDialogInput`** — wraps `useEditContext` with dialog Enter/Escape/arrow routing. Most of this lives in silvery's `useReadline` (with `handleEnter: false, handleEscape: false, handleVerticalArrows: false`) plus a thin `useInput` for the dialog-specific keys. Tracked in `@km/tui/omnibox-use-silvery`.
+- **`apps/km-tui/src/views/SearchDialog.tsx`** — hand-rolls ModalDialog + InputBox + filtered list. `PickerDialog<SearchResult>` composes exactly this shape. Migration deferred — track in `@km/review/silvery-gap-analysis`.
 - **`apps/km-tui/src/views/ItemPicker.tsx`** — same shape (ModalDialog + input + list). `PickerDialog` covers it. Deferred.
 - **`apps/km-tui/src/views/FavoritesDialog.tsx`** — same shape. `PickerDialog` covers it. Deferred.
-- **`apps/km-tui/src/views/Popover.tsx`** — rich floating popover with viewport clamping and corner-cascade positioning. Silvery has `Tooltip` but it's inline-only. No duplication yet — this is a **SILVERY GAP**. Tracked as `km-silvery.popover` — when that lands, migrate km's Popover to consume it.
+- **`apps/km-tui/src/views/Popover.tsx`** — rich floating popover with viewport clamping and corner-cascade positioning. Silvery has `Tooltip` but it's inline-only. No duplication yet — this is a **SILVERY GAP**. Tracked as `@km/silvery/popover` — when that lands, migrate km's Popover to consume it.
 - **`apps/km-tui/src/views/FilterDialog.tsx`** — uses `ModalDialog` directly, which is correct (it's not a picker). No action.
 - **`apps/km-tui/src/views/shared-components.tsx:579` — `ConfirmDialog`** — no direct silvery equivalent; keep until silvery ships a `ConfirmDialog` primitive.
 

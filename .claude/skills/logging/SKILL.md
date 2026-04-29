@@ -113,7 +113,7 @@ if (process.env.LOGGILY_FILE_INJECTION) {
 
 ## Anti-patterns (and why)
 
-**Don't export a local `createLogger`.** A subsystem that ships its own `createLogger` shadows loggily's name in its namespace and bypasses the shared writer pipeline. Every other subsystem that uses loggily then can't see your subsystem's records, and your file format drifts. **Failure mode this caused (2026-04-27)**: `vendor/bearly/packages/bg-recall/src/log.ts` exported a parallel `createLogger`; `vendor/bearly/plugins/injection-envelope/src/debug.ts` used `fs.appendFileSync` directly. Two parallel pipelines, two env vars, two file paths to coordinate. Tracked in `km-bearly.unified-observability`.
+**Don't export a local `createLogger`.** A subsystem that ships its own `createLogger` shadows loggily's name in its namespace and bypasses the shared writer pipeline. Every other subsystem that uses loggily then can't see your subsystem's records, and your file format drifts. **Failure mode this caused (2026-04-27)**: `vendor/bearly/packages/bg-recall/src/log.ts` exported a parallel `createLogger`; `vendor/bearly/plugins/injection-envelope/src/debug.ts` used `fs.appendFileSync` directly. Two parallel pipelines, two env vars, two file paths to coordinate. Tracked in `@km/bearly/unified-observability`.
 
 **Don't write `fs.appendFileSync(path, line + "\n")` for log records.** That's loggily's `createFileWriter(path)` job. Direct file appends bypass formatting, level filtering, namespace tagging, and the structured-record pipeline.
 
@@ -123,7 +123,7 @@ if (process.env.LOGGILY_FILE_INJECTION) {
 
 ## Why this rule exists
 
-Without it, every subsystem that wants persistent observability reinvents file-JSONL writes locally and the architecture allows two paths to drift (different formats, different env vars, different forensic queries). The bg-recall + injection-envelope drift was discovered post-shipping and required a separate refactor bead (km-bearly.unified-observability) to fold them back into loggily. The rule above turns "two paths can drift" into "there is no second path" — quality-rubric L0/L1 → L4.
+Without it, every subsystem that wants persistent observability reinvents file-JSONL writes locally and the architecture allows two paths to drift (different formats, different env vars, different forensic queries). The bg-recall + injection-envelope drift was discovered post-shipping and required a separate refactor bead (@km/bearly/unified-observability) to fold them back into loggily. The rule above turns "two paths can drift" into "there is no second path" — quality-rubric L0/L1 → L4.
 
 ## Sub-skills
 

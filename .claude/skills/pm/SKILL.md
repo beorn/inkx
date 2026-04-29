@@ -88,17 +88,17 @@ Every bead belongs under a scope epic via `km-<scope>.<suffix>` dot notation. Sc
 
 | Epic | Scope | Example |
 |------|-------|---------|
-| `km-silvery` | silvery rendering engine | `km-silvery.bg-bleed` |
-| `km-flexily` | Flexily layout engine | `km-flexily.cold-start` |
-| `km-tui` | TUI app views/interaction | `km-tui.emptybody` |
-| `km-vitestx` | Test framework package | `km-vitestx.mdspec` |
-| `km-infra` | Monorepo infra (cross-cutting: CI, benchmarks, packaging) | `km-infra.ci-fuzz` |
-| `km-storage` | Storage layer | `km-storage.split-query` |
-| `km-tools` | km CLI tools & agent capabilities | `km-tools.bd-api` |
-| `km-bearly` | bearly: reusable Claude Code tools (@bearly/*) | `km-bearly.batch-refactor` |
-| `km-tribe` | Tribe coordination system | `km-tribe.testing` |
-| `km-markdown` | Markdown parser/serializer | `km-markdown.split-roundtrip` |
-| `km-review` | Code reviews (cross-cutting quality) | `km-review.feb-0203` |
+| `km-silvery` | silvery rendering engine | `@km/silvery/bg-bleed` |
+| `km-flexily` | Flexily layout engine | `@km/flexily/cold-start` |
+| `km-tui` | TUI app views/interaction | `@km/tui/emptybody` |
+| `km-vitestx` | Test framework package | `@km/vitestx/mdspec` |
+| `km-infra` | Monorepo infra (cross-cutting: CI, benchmarks, packaging) | `@km/infra/ci-fuzz` |
+| `km-storage` | Storage layer | `@km/storage/split-query` |
+| `km-tools` | km CLI tools & agent capabilities | `@km/tools/bd-api` |
+| `km-bearly` | bearly: reusable Claude Code tools (@bearly/*) | `@km/bearly/batch-refactor` |
+| `km-tribe` | Tribe coordination system | `@km/tribe/testing` |
+| `km-markdown` | Markdown parser/serializer | `@km/markdown/split-roundtrip` |
+| `km-review` | Code reviews (cross-cutting quality) | `@km/review/feb-0203` |
 
 **Scoping rule**: If a bead belongs to a specific package, use `km-<package>`. If cross-cutting infra (CI, benchmarks, packaging), use `km-infra`. If cross-cutting non-infra (code reviews, multi-package quality), use `km-review`.
 
@@ -110,7 +110,7 @@ Every bead belongs under a scope epic via `km-<scope>.<suffix>` dot notation. Sc
 | Kind | Examples | Closes? | Meaning of 98% |
 |------|----------|---------|-----------------|
 | **Scope epic** (backlog) | `km-tui`, `km-silvery`, `km-infra` | **Never** — permanent backlog | "Only a few open items left" |
-| **Project epic** (finite) | `km-silvery.era2`, `km-silvery.tea` | **Yes** — when all children done | "Project complete" |
+| **Project epic** (finite) | `@km/silvery/era2`, `@km/silvery/tea` | **Yes** — when all children done | "Project complete" |
 
 **Scope epics are backlogs.** New bugs/features keep getting added. Don't close them even at 98%. Auto-close logic is gone (the old `bd epic close-eligible` was retired); project epics close manually via `km bd close` after verifying all children are done.
 
@@ -136,9 +136,9 @@ Session beads record what happened during a work session (especially `/explore` 
 
 ```bash
 # Generate date-based ID: km-session.<MMDD><seq> (a, b, c for multiple same-day sessions)
-km bd create --id km-session.0215a --type task --title "Session: <focus>"
-km bd update km-session.0215a --parent km-tui  # or appropriate epic
-km bd update km-session.0215a --claim
+km bd create --id @km/session/0215a --type task --title "Session: <focus>"
+km bd update @km/session/0215a --parent km-tui  # or appropriate epic
+km bd update @km/session/0215a --claim
 ```
 
 Print the session bead ID. This ID is used for all subsequent session updates.
@@ -206,8 +206,8 @@ Every Acceptance bullet on a new bead must name a current consumer or workflow (
 
 **CRITICAL**: `--id` and `--parent` CANNOT be combined on `km bd create`. Always two-step:
 ```bash
-km bd create --id km-tui.foo --type task --title "Foo"   # Step 1
-km bd update km-tui.foo --parent km-tui                    # Step 2
+km bd create --id @km/tui/foo --type task --title "Foo"   # Step 1
+km bd update @km/tui/foo --parent km-tui                    # Step 2
 ```
 
 | Command     | Wrong                         | Correct                                      |

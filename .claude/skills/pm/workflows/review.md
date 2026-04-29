@@ -54,14 +54,14 @@ Output a comprehensive table of all open beads with these columns (up to 100 bea
 | ID                    | Type    | Title                    | Priority | Claimed |
 | --------------------- | ------- | ------------------------ | -------- | ------- |
 | km-silvery               | epic    | silvery & ansi issues     | P1       | -       |
-| km-silvery.stale-pixels  | bug     | Stale pixel bugs         | P1       | claude  |
-| km-silvery.bg-bleed      | bug     | Background color bleed   | P2       | -       |
+| @km/silvery/stale-pixels  | bug     | Stale pixel bugs         | P1       | claude  |
+| @km/silvery/bg-bleed      | bug     | Background color bleed   | P2       | -       |
 | km-tui                | epic    | TUI app issues           | P2       | -       |
-| km-tui.emptybody      | bug     | Empty body column        | P2       | -       |
+| @km/tui/emptybody      | bug     | Empty body column        | P2       | -       |
 
 **Grouping rules:**
 
-- Group epics with their children (hierarchical IDs like km-test-4, km-test-4.1, km-test-4.2)
+- Group epics with their children (hierarchical IDs like km-test-4, @km/test-4/1, @km/test-4/2)
 - Show epic first, then all its subtasks indented or immediately following
 - Sort groups by priority (highest first), then by ID within each group
 - Limit total output to ~100 beads for readability
@@ -235,7 +235,7 @@ done | sort -t: -k2 -rn
 
 | Finding | Action |
 |---|---|
-| Epic has >40 open children | Split into sub-epics by theme (e.g., km-silvery → km-silvery.demos, km-silvery.infra) |
+| Epic has >40 open children | Split into sub-epics by theme (e.g., km-silvery → @km/silvery/demos, @km/silvery/infra) |
 | Epic has 0 open children (all closed) | Close the epic if it's a project epic. Scope epics stay open. |
 | Beads without a parent epic | Assign to the correct scope epic |
 | Catch-all scopes (km-all) with unrelated children | Dissolve — move children to specific scopes |
@@ -264,7 +264,7 @@ Rename any that aren't legitimate scope names (km-board, km-tribe etc. are fine)
 
 **6. Sub-epic grouping** — when 5+ beads in a scope share a prefix or theme:
 - Group under a sub-epic: `km bd create --id km-scope.theme --type epic`
-- Example: 9 `examples-*` beads → parent under `km-silvery.demos`
+- Example: 9 `examples-*` beads → parent under `@km/silvery/demos`
 
 Run this review as part of every groom. Output findings in the Phase 3 report under a "### F. Organization" section.
 
@@ -351,7 +351,7 @@ Output structured report:
 
 | Scope | Issue | Action |
 |---|---|---|
-| km-silvery | 65 open children | Split: examples → km-silvery.demos, infra → sub-epic |
+| km-silvery | 65 open children | Split: examples → @km/silvery/demos, infra → sub-epic |
 | km-all | Catch-all with unrelated children | Dissolve: move to km-tui, km-infra, km-market |
 | km-foo.bar | Orphan — no parent | Assign to km-foo |
 

@@ -247,7 +247,7 @@ gh pr create --repo <owner>/<repo> \
 
 ### 8. Register for tracking (MANDATORY when a workaround lands)
 
-If steps 5–7 left a workaround in our code, **register the bead in `km-all.upstream-waiting`** so the workaround unwinds when upstream lands. Without this step, workarounds become permanent silent debt — the registry is the only mechanism that ensures revisit.
+If steps 5–7 left a workaround in our code, **register the bead in `@km/all/upstream-waiting`** so the workaround unwinds when upstream lands. Without this step, workarounds become permanent silent debt — the registry is the only mechanism that ensures revisit.
 
 #### When to register
 - A workaround was applied (any change to our code that exists *because* upstream is broken).
@@ -262,12 +262,12 @@ km bd create --id km-<scope>.<descriptive-slug> \
   --title "Remove <workaround-description> when <upstream-ref> lands" \
   --type=bug --priority=3 \
   --description="<see template below>"
-km bd update km-<scope>.<slug> --parent km-all.upstream-waiting
+km bd update km-<scope>.<slug> --parent @km/all/upstream-waiting
 
 # REQUIRED: record the next-review date in the description's `Last checked`
 # / `Escalate by` fields (template below). km bd has no `defer` primitive
-# — the parent epic km-all.upstream-waiting is itself the surfacing
-# mechanism, walked monthly via `km bd children km-all.upstream-waiting`
+# — the parent epic @km/all/upstream-waiting is itself the surfacing
+# mechanism, walked monthly via `km bd children @km/all/upstream-waiting`
 # during /sop infra. The defer machinery from the Go-bd era is retired.
 ```
 
@@ -285,7 +285,7 @@ Status: <filed-upstream | merged-upstream | released-upstream | adopted-locally>
 Last checked: <YYYY-MM-DD>
 Escalate by: <YYYY-MM-DD>     # default = creation + 6 months
   - At this date re-decide: vendorize | fork | accept owned divergence | continue waiting
-  - If "accept owned divergence" → move bead to km-all.owned-divergence (perpetual sibling registry)
+  - If "accept owned divergence" → move bead to @km/all/owned-divergence (perpetual sibling registry)
   - If "continue waiting" → bump Escalate by another 6 months and document why
 
 Files affected by the workaround:
@@ -305,7 +305,7 @@ Unwind when upstream lands:
 - *Status (4-state enum)*: `filed → merged → released → adopted`. The progression is monotonic. Closing on `merged-upstream` is the most common false-victory — our code still runs the workaround until our deps actually pull the patched release. Only `adopted-locally` justifies running the unwind steps. Most beads sit at `filed-upstream` for months before any movement; that's the honest default.
 - *Last checked*: gives the monthly reviewer a delta to compare against; updated every review even if nothing changed (this is how we detect orphaned beads).
 - *Escalate by*: forces a re-decision before the bead silently becomes "we gave up but won't admit it." Without this, "waiting" beads accumulate forever and the registry stops being honest.
-- *Next-review date*: kept in the `Last checked` and `Escalate by` description fields. With km bd no longer offering a `defer` primitive, the parent epic (`km-all.upstream-waiting`) is the surfacing mechanism — `/sop infra` walks it monthly and uses these dates to decide whether to bump or escalate.
+- *Next-review date*: kept in the `Last checked` and `Escalate by` description fields. With km bd no longer offering a `defer` primitive, the parent epic (`@km/all/upstream-waiting`) is the surfacing mechanism — `/sop infra` walks it monthly and uses these dates to decide whether to bump or escalate.
 - *Files affected* with specific changes: when the upstream lands months later, the original author may not be available — the bead must be self-contained.
 - *Unwind steps*: removing a workaround is rarely a single line. Spelling out the steps prevents partial unwinds (revert one site, miss two).
 
@@ -326,17 +326,17 @@ Every workaround in code must carry a greppable comment block at the call site:
 - Markers do not need to be on a single line — multiline `/* … */` is fine — but the three labelled lines must be present and contiguous.
 
 The lint script (`packages/km-infra/scripts/check-upstream-markers.sh`, wired into `bun fix`) enforces a two-way binding:
-1. Every `// UPSTREAM-WAITING(<ref>):` comment in apps/, packages/, vendor/ resolves to an open bead under km-all.upstream-waiting.
-2. Every open child of km-all.upstream-waiting has at least one matching code marker (so beads can't outlive their workaround).
+1. Every `// UPSTREAM-WAITING(<ref>):` comment in apps/, packages/, vendor/ resolves to an open bead under @km/all/upstream-waiting.
+2. Every open child of @km/all/upstream-waiting has at least one matching code marker (so beads can't outlive their workaround).
 
 Mismatches fail CI. Either wire up the missing side, or close the bead.
 
 #### Cross-references
-- Epic: `km-all.upstream-waiting` (perpetual registry, never closes — children close individually).
-- Sibling epic: `km-all.owned-divergence` — destination when escalation re-decides "accept owned divergence" (upstream dead/declined).
+- Epic: `@km/all/upstream-waiting` (perpetual registry, never closes — children close individually).
+- Sibling epic: `@km/all/owned-divergence` — destination when escalation re-decides "accept owned divergence" (upstream dead/declined).
 - Lint: `packages/km-infra/scripts/check-upstream-markers.sh` (two-way bead↔marker binding, runs in `bun fix`).
 - Cadence: monthly via `/sop infra` → `upstream-waiting` check (`.claude/skills/sop/SKILL.md`).
-- Existing examples: see open children of `km-all.upstream-waiting` for prior-art bead descriptions (e.g. `km-bearly.bun-keepalive-url-shim` for the Bun #7716 keep-alive workaround).
+- Existing examples: see open children of `@km/all/upstream-waiting` for prior-art bead descriptions (e.g. `@km/bearly/bun-keepalive-url-shim` for the Bun #7716 keep-alive workaround).
 
 #### Anti-patterns
 - "I'll remember to come back to this" — you won't, and a future maintainer can't read your memory.
@@ -345,7 +345,7 @@ Mismatches fail CI. Either wire up the missing side, or close the bead.
 - Closing the bead when upstream merges but before unwind runs — the bead must stay open until Status = `adopted-locally`.
 - **Bundling upstream-shim with permanent local improvements creates wrong unwind.** Split. When upstream lands, the agent reverts the whole bead — including the local hygiene work that should have stayed. One bead per unwindable unit; permanent improvements get their own non-upstream-waiting bead.
 - Missing code marker — the bead is the *plan*, the marker is the *anchor*. A bead without markers is unenforceable; markers without a bead are orphans. The lint script catches both.
-- Letting `Escalate by` slide silently — six months passed and nothing was decided ≡ "we gave up but won't admit it." Move to `km-all.owned-divergence` or extend the date with a written reason; never let it expire quietly.
+- Letting `Escalate by` slide silently — six months passed and nothing was decided ≡ "we gave up but won't admit it." Move to `@km/all/owned-divergence` or extend the date with a written reason; never let it expire quietly.
 
 ## Examples
 
@@ -403,10 +403,10 @@ Mismatches fail CI. Either wire up the missing side, or close the bead.
 - [ ] Applied workaround in your code
 - [ ] (Optional) Vendorized and fixed
 - [ ] (Optional) Submitted PR upstream
-- [ ] **Registered in `km-all.upstream-waiting`** (mandatory whenever a workaround landed) — bead has upstream URL, status, last-checked date, files-affected list, and concrete unwind steps
+- [ ] **Registered in `@km/all/upstream-waiting`** (mandatory whenever a workaround landed) — bead has upstream URL, status, last-checked date, files-affected list, and concrete unwind steps
 - [ ] Bead `Status:` uses the 4-state enum: `filed-upstream` | `merged-upstream` | `released-upstream` | `adopted-locally` (most beads start at `filed-upstream`)
 - [ ] Bead `Escalate by: <YYYY-MM-DD>` set (default = creation + 6 months) with re-decision options documented (vendorize / fork / accept owned divergence / continue waiting)
-- [ ] Bead `Last checked: <YYYY-MM-DD>` field set (default = creation date) so the monthly `/sop infra` walk of `km-all.upstream-waiting` children has a delta to compare against — km bd no longer has a `defer` primitive; the parent epic + this date are the surfacing mechanism
+- [ ] Bead `Last checked: <YYYY-MM-DD>` field set (default = creation date) so the monthly `/sop infra` walk of `@km/all/upstream-waiting` children has a delta to compare against — km bd no longer has a `defer` primitive; the parent epic + this date are the surfacing mechanism
 - [ ] Code marker present at every workaround site: `// UPSTREAM-WAITING(<repo>#<issue>): Delete when <pkg> >= <version>` + `// Bead: km-<scope>.<slug>` + `// Escalate by: <YYYY-MM-DD>`
 - [ ] Bead is unwindable as a single unit — no permanent local improvements bundled with the upstream-shim (split if needed, otherwise reverting the bead deletes good work)
 - [ ] `bash packages/km-infra/scripts/check-upstream-markers.sh` passes (two-way bead↔marker binding clean)

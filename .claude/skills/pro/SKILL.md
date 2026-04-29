@@ -77,4 +77,4 @@ Daily usage (`/pro "question"`, `/pro review <pkg>`) is fully covered by the dec
 - [triage.md](triage.md) — P0/P1/P2/P3 classification, per-package + per-finding bead creation
 - [history.md](history.md) — `history.jsonl` schema, staleness detection, recurring-pattern aggregation
 
-These helpers were briefly removed in a 2026-04-27 simplification pass (km-all.pro-skill-strip) and restored after the regression was caught — the `history.jsonl` file has real entries, the workflow is in active use.
+These helpers were briefly removed in a 2026-04-27 simplification pass (@km/all/pro-skill-strip) and restored after the regression was caught — the `history.jsonl` file has real entries, the workflow is in active use.

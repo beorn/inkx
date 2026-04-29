@@ -38,15 +38,15 @@ for id in <bead-ids>; do
 done
 
 # 3. Re-parent the ones that semantically belong to the program
-#    Slice epics (km-silvery.structural-hardening) → parent to program epic
+#    Slice epics (@km/silvery/structural-hardening) → parent to program epic
 #    Scope-backlog beads (km-silvery.<follow-up>) → parent if part of the program, else leave
-#    External-blocked beads (km-all.upstream-waiting children) → leave under upstream-waiting
+#    External-blocked beads (@km/all/upstream-waiting children) → leave under upstream-waiting
 km bd update <slice-epic> --parent <program-epic>
 ```
 
 **Don't bulk-rewrite.** Each re-parent is a reporting-hierarchy change. Manual confirmation per bead. Slice epics that are 100% the program → re-parent. Slice epics that contain non-program work too → leave parented to their natural home, accept that the program retro is the canonical aggregator.
 
-**This is the work the original /pm skill missed.** `km bd create --id` can't combine with `--parent`, so the second step gets forgotten under load. Future fix: see km-all.bead-parent-discipline (file if not yet created).
+**This is the work the original /pm skill missed.** `km bd create --id` can't combine with `--parent`, so the second step gets forgotten under load. Future fix: see @km/all/bead-parent-discipline (file if not yet created).
 
 ## Step 2: Locate the program's evidence
 

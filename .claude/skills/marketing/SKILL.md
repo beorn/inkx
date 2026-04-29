@@ -69,10 +69,10 @@ This section tracks when each workflow was last run. Update after each execution
 ### SEO Audits (2026-04-02)
 | Site | Score | Bead | Key Fixes Applied |
 |------|-------|------|-------------------|
-| silvery.dev | 69/100 | km-market.silvery-seo | Unique descriptions (146/146), 45+ count, SoftwareApplication schema, author URLs |
-| terminfo.dev | 72/100 | km-market.terminfo-seo | BreadcrumbList template fix, OG PNG, Dataset schema, OG tags |
-| termless.dev | 63/100 | km-market.termless-seo | Unique descriptions (22 pages), OG PNG, page titles, FAQPage schema |
-| beorn.codes | 50/100 | km-market.beorn-seo | Sitemap URL fix (missing base path), mdtest→mdspec rename, vitepress-enrich adoption |
+| silvery.dev | 69/100 | @km/market/silvery-seo | Unique descriptions (146/146), 45+ count, SoftwareApplication schema, author URLs |
+| terminfo.dev | 72/100 | @km/market/terminfo-seo | BreadcrumbList template fix, OG PNG, Dataset schema, OG tags |
+| termless.dev | 63/100 | @km/market/termless-seo | Unique descriptions (22 pages), OG PNG, page titles, FAQPage schema |
+| beorn.codes | 50/100 | @km/market/beorn-seo | Sitemap URL fix (missing base path), mdtest→mdspec rename, vitepress-enrich adoption |
 
 ### Phase 1: Programmatic SEO
 | Task | Status | Pages | Last Run | Notes |

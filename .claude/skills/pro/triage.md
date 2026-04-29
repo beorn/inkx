@@ -27,7 +27,7 @@ km bd create --id km-<scope>.pro-review-<MMDD> --type task \
   --title "Pro Review: <package> (<date>)" \
   --description "GPT 5.4 Pro code review of <package>. N findings: X P0, Y P1, Z P2, W P3." \
   --priority 2
-km bd update km-<scope>.pro-review-<MMDD> --parent km-all.pro-review-<N>
+km bd update km-<scope>.pro-review-<MMDD> --parent @km/all/pro-review-<N>
 ```
 
 **Scope mapping**:
@@ -61,7 +61,7 @@ km bd update <new-id> --parent km-<scope>.pro-review-<MMDD>
 Update the tracking epic's description with cumulative dashboard:
 
 ```bash
-km bd update km-all.pro-review-<N> --description "Pro Review Round N: <date>
+km bd update @km/all/pro-review-<N> --description "Pro Review Round N: <date>
 
 ## Progress
 | Package | Status | P0 | P1 | P2 | P3 | Cost |

@@ -24,7 +24,7 @@ For each site (silvery.dev, terminfo.dev, termless.dev, beorn.codes/flexily):
 ## After Check
 
 Update SKILL.md SEO Audits table with check date and any issues found.
-Create beads for any regressions under `km-market.seo`.
+Create beads for any regressions under `@km/market/seo`.
 
 ## When to Run
 

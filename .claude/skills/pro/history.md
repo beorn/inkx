@@ -7,7 +7,7 @@ The history system enables pro-review to improve over time — adjusting cost es
 `history.jsonl` — append-only, one JSON line per package review:
 
 ```jsonl
-{"date":"2026-03-13","package":"km-storage","path":"packages/km-storage","loc":4200,"cost":9.22,"findings":{"P0":9,"P1":8,"P2":5,"P3":1},"bead":"km-storage.pro-review-0313","fixed":{"P0":9,"P1":8},"duration_min":12,"patterns":["missing error handling","off-by-one in ranges"]}
+{"date":"2026-03-13","package":"km-storage","path":"packages/km-storage","loc":4200,"cost":9.22,"findings":{"P0":9,"P1":8,"P2":5,"P3":1},"bead":"@km/storage/pro-review-0313","fixed":{"P0":9,"P1":8},"duration_min":12,"patterns":["missing error handling","off-by-one in ranges"]}
 ```
 
 ### Fields

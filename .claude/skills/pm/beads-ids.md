@@ -54,8 +54,8 @@ km-<scope>-<N>
 **Examples:**
 
 - `km-storage-15` - Storage package work #15
-- `km-tui.persist-nav` - TUI board navigation persistence
-- `km-silvery.bg-bleed` - silvery background color bleed bug
+- `@km/tui/persist-nav` - TUI board navigation persistence
+- `@km/silvery/bg-bleed` - silvery background color bleed bug
 
 **Metadata carries classification:**
 
@@ -80,12 +80,12 @@ km bd create --id km-storage-15 \
 
 ```
 km-vitestx             # Test framework tracking epic
-km-vitestx.mdspec      # mdspec vitest plugin subtask
-km-infra.ci-fuzz       # CI fuzzing (cross-cutting infra)
+@km/vitestx/mdspec      # mdspec vitest plugin subtask
+@km/infra/ci-fuzz       # CI fuzzing (cross-cutting infra)
 
 km-silvery                # silvery tracking epic
-km-silvery.stale-pixels   # Stale pixel bugs subtask
-km-silvery.bg-bleed       # Background color bleed subtask
+@km/silvery/stale-pixels   # Stale pixel bugs subtask
+@km/silvery/bg-bleed       # Background color bleed subtask
 ```
 
 **Note**: Dot notation works with ANY prefix — not just `km-`. Always check the database prefix first.
@@ -132,7 +132,7 @@ km-<4-5 char random>
 | --------------------- | --------------- | ------------------------------------------ | ------------------------------- |
 | Package-specific bug  | 1: Scoped       | `km-storage-15`, `silvery-render-3`     | Check prefix first, find next N |
 | Feature in a package  | 1: Scoped       | `km-tui-8`, `silvery/packages/ansi-color-2`         | Clear scope                     |
-| Epic with subtasks    | 2: Hierarchical | `km-storage-8.1`, `km-silvery.bg-bleed`       | Dot notation works with any prefix |
+| Epic with subtasks    | 2: Hierarchical | `@km/storage-8/1`, `@km/silvery/bg-bleed`       | Dot notation works with any prefix |
 | Cross-package feature | 3: Keyword      | `km-dark-mode`                             | Memorable name                  |
 | Quick bug capture     | 4: Opaque       | `km-5vsut`                                 | Auto-generated                  |
 | Unknown scope yet     | 4: Opaque       | `km-a1b2c`                                 | Refine later                    |
@@ -193,12 +193,12 @@ Use `.1`, `.2`, `.3` (numbers) for subtasks under a parent. **Works with any pre
 
 ```
 km-storage-8          # Parent epic
-km-storage-8.1        # Subtask 1
-km-storage-8.2        # Subtask 2
+@km/storage-8/1        # Subtask 1
+@km/storage-8/2        # Subtask 2
 
 km-silvery               # Tracking epic
-km-silvery.stale-pixels  # Named subtask
-km-silvery.bg-bleed      # Named subtask
+@km/silvery/stale-pixels  # Named subtask
+@km/silvery/bg-bleed      # Named subtask
 ```
 
 **Rules:**
@@ -309,11 +309,11 @@ km bd create --id km-tui-8 \
   --title "Add vim keybindings"
 
 # Subtasks (NOTE: --id and --parent CANNOT be combined, use two steps)
-km bd create --id km-tui-8.1 --type task --title "Normal mode navigation"
-km bd update km-tui-8.1 --parent km-tui-8
+km bd create --id @km/tui-8/1 --type task --title "Normal mode navigation"
+km bd update @km/tui-8/1 --parent km-tui-8
 
-km bd create --id km-tui-8.2 --type task --title "Visual selection mode"
-km bd update km-tui-8.2 --parent km-tui-8
+km bd create --id @km/tui-8/2 --type task --title "Visual selection mode"
+km bd update @km/tui-8/2 --parent km-tui-8
 ```
 
 ### Cross-Cutting Epic
@@ -352,7 +352,7 @@ km bd create --id km-help-crash \
 Use `km bd rename <old-id> <new-id>` to rename a bead. This automatically updates all references (deps, descriptions, titles, notes, labels, comments, events).
 
 ```bash
-km bd rename km-w382l km-tui.nav      # Rename opaque ID to descriptive
+km bd rename km-w382l @km/tui/nav      # Rename opaque ID to descriptive
 ```
 
 ## Migration Strategy

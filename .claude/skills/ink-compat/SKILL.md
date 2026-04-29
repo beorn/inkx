@@ -54,7 +54,7 @@ Produce current silvery-vs-ink numbers, compare with prior baseline, detect regr
 
 ### Key reference
 - Bench file: `hub/silvery/benchmarks/silvery-vs-ink.bench.ts`
-- Perf bead tree: `km-silvery.perf` (children track specific optimizations)
+- Perf bead tree: `@km/silvery/perf` (children track specific optimizations)
 - Existing analysis: `hub/silvery/internals/perf-analysis-2026-04.md`
 
 ---
@@ -109,7 +109,7 @@ Bump Ink to latest version, run compat tests, fix any regressions, update shims 
 
    **Principle**: While silvery is young, adopt what's genuinely better from Ink. Keep what silvery does better with a compat shim. Bad Ink designs should stay in the compat layer, not pollute silvery's core API.
 
-   Document each evaluation in the tracking bead (km-silvery.ink70-feature-eval or equivalent for future versions).
+   Document each evaluation in the tracking bead (@km/silvery/ink70-feature-eval or equivalent for future versions).
 
 6. **Add shims for new hooks**
    Check `/Users/beorn/Code/pim/km/node_modules/ink/build/index.d.ts` for new exports.
@@ -144,7 +144,7 @@ New shims: {hook1}, {hook2}, ...
 Fixed bugs: {count}
 New intentional divergences: {count}
 
-Refs: km-silvery.ink-compat-upgrade
+Refs: @km/silvery/ink-compat-upgrade
 ```
 
 ---
@@ -180,7 +180,7 @@ Deep-dive on Ink's latest features, understand architectural implications, propo
    - Reference existing examples: `boxmetrics-parity.md`, `focus-parity.md`, `animation.md`
 
 5. **Create beads**
-   - Each parity gap → child bead of `km-silvery.positioning`
+   - Each parity gap → child bead of `@km/silvery/positioning`
    - Name: `km-silvery.{feature}-parity`
    - Priority: based on migration friendliness impact
 
@@ -206,7 +206,7 @@ Update silvery's positioning docs based on current state of both projects.
    - Silvery horizons: `hub/roadmap.md` § Track 2
 
 2. **Update positioning bead**
-   - `km bd show km-silvery.positioning`
+   - `km bd show @km/silvery/positioning`
    - Update numbers, feature table, elevator pitches
 
 3. **Update silvery.dev docs**
@@ -220,7 +220,7 @@ Update silvery's positioning docs based on current state of both projects.
    For each horizon (v1.0, v1.5, v2.0, v3.0):
    - What did Ink just add that shrinks silvery's moat?
    - What can silvery build that Ink structurally can't?
-   - Update defensibility scorecard in `km-silvery.positioning` bead
+   - Update defensibility scorecard in `@km/silvery/positioning` bead
 
 5. **Strategic recommendations**
    - Which new silvery features to prioritize (based on moat strength)
@@ -259,7 +259,7 @@ For each Ink change, answer:
 - What's the updated elevator pitch?
 
 **Update targets:**
-- `km-silvery.positioning` bead (append findings)
+- `@km/silvery/positioning` bead (append findings)
 - `hub/silvery/launch/positioning-YYYY.md` (internal strategy)
 - Defensibility scorecard (add/remove rows)
 
@@ -391,7 +391,7 @@ For each Ink change, answer:
 
 Save to: `hub/silvery/launch/ink-{VERSION}-impact-{DATE}.md`
 
-Reference from: `km-silvery.positioning` bead notes
+Reference from: `@km/silvery/positioning` bead notes
 
 ## Expected time
 
@@ -427,10 +427,10 @@ Things to build into this skill over time:
 ## Key files and beads
 
 ### Tracking beads
-- `km-silvery.positioning` (P0 tracking epic) — strategic narrative
-- `km-silvery.perf` (P1 epic) — performance optimization
-- `km-silvery.ink-compat-upgrade` (P0) — upgrade process itself
-- `km-silvery.boxmetrics-parity`, `km-silvery.focus-parity`, `km-silvery.animation` — feature parity work
+- `@km/silvery/positioning` (P0 tracking epic) — strategic narrative
+- `@km/silvery/perf` (P1 epic) — performance optimization
+- `@km/silvery/ink-compat-upgrade` (P0) — upgrade process itself
+- `@km/silvery/boxmetrics-parity`, `@km/silvery/focus-parity`, `@km/silvery/animation` — feature parity work
 
 ### Bench
 - `hub/silvery/benchmarks/silvery-vs-ink.bench.ts` — head-to-head

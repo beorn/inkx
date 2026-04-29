@@ -114,13 +114,13 @@ $ bun tools/bd-verify.ts km-foo.bar
 ✓ 2/2 criteria pass
 
 # Claim was wrong — close-reason said 0 hits, reality has 2
-$ bun tools/bd-verify.ts km-silvery.feedback-trace-v31-integration
+$ bun tools/bd-verify.ts @km/silvery/feedback-trace-v31-integration
 ✗ git grep recordPassCause origin/main
   expected 0, got 2 line(s) (exit 0)
 ✗ 1/1 criteria FAIL
 
 # Prose-only acceptance — bd-verify can't help here
-$ bun tools/bd-verify.ts km-all.substrate-phasing-convention
+$ bun tools/bd-verify.ts @km/all/substrate-phasing-convention
 ⚠ no executable criteria — manual review needed
 ```
 

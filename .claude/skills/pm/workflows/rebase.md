@@ -105,7 +105,7 @@ km bd list --status open --json | jq -r '.[] | .id' | sed 's/-[0-9]*$//' | sort 
 ### 4b. Epic Membership
 
 Identify beads that belong to epics:
-- Hierarchical IDs (e.g., `km-test-4.1` under `km-test-4`)
+- Hierarchical IDs (e.g., `@km/test-4/1` under `km-test-4`)
 - Explicit parent relationships
 
 ### 4c. Dependency Chains
@@ -176,8 +176,8 @@ km bd update km-target --notes "Absorbed km-dupe scope"
 ```bash
 # Create child beads, update parent to epic
 km bd update km-big --type epic
-km bd create --id km-big.1 --title "First part" --parent km-big
-km bd create --id km-big.2 --title "Second part" --parent km-big
+km bd create --id @km/big/1 --title "First part" --parent km-big
+km bd create --id @km/big/2 --title "Second part" --parent km-big
 ```
 
 **Delete** - Remove obsolete or invalid beads:

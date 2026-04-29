@@ -45,7 +45,7 @@ WIP: 7
   ────────────────────────────────────────────────────────────────────────
   wt3                 abc1234   3/0            km-foo.bar           commits to push+integrate
   wt7                 (clean)   0/0            km-wt7 (idle)        slot already released
-  km-recall-iter3     0654d0d   2/0            km-tribe.recall      named worktree, push+integrate
+  km-recall-iter3     0654d0d   2/0            @km/tribe/recall      named worktree, push+integrate
   feat/legacy         old111    1/57           (none)               likely stale, ask
   stash@{0}           — — —     —              —                    review or drop
   vendor/bearly       53fc57a   ahead          —                    push submodule pointer

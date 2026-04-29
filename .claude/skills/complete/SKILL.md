@@ -101,9 +101,9 @@ Beads get closed aspirationally — the agent did work, the bead says "done," bu
 
 ### Three failure modes to watch for
 
-1. **Renamed, not deleted.** Agent renames `OldThing` → `NewThing` and closes "delete OldThing." The abstraction survives with a new name and the same number of references. (Real example: km-tui.tree.v4 Phase 10 — ColumnView → DerivedColumn → ColumnSnapshot, eventually deleted.)
+1. **Renamed, not deleted.** Agent renames `OldThing` → `NewThing` and closes "delete OldThing." The abstraction survives with a new name and the same number of references. (Real example: @km/tui/tree/v4 Phase 10 — ColumnView → DerivedColumn → ColumnSnapshot, eventually deleted.)
 
-2. **Wrapped, not eliminated.** Agent wraps old ceremony in a thinner wrapper and closes "eliminate ceremony." The call count doesn't change, just the call depth. (Real example: km-tui.tree.v4 Phase 9 — 21 useEffects → still 21, just calling store API now.)
+2. **Wrapped, not eliminated.** Agent wraps old ceremony in a thinner wrapper and closes "eliminate ceremony." The call count doesn't change, just the call depth. (Real example: @km/tui/tree/v4 Phase 9 — 21 useEffects → still 21, just calling store API now.)
 
 3. **Numeric targets ignored.** Bead says "≤12 useEffects, ≤1000 LOC." Agent doesn't check the numbers before closing. (Real example: actual = 21 useEffects, 1356 LOC.)
 

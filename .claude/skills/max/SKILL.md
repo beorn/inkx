@@ -145,7 +145,7 @@ Only when: (a) the pool is full (all 9 slots claimed), (b) the agent is read-onl
 
 When ≥ 2 agents will write to `vendor/<pkg>/` (silvery, bearly, flexily, loggily, termless, etc.), **each agent MUST be in its own pool slot** (or fallback worktree). Never let two write-agents share a working tree on the same submodule.
 
-**Why:** silent corruption — orphaned commits, lying bead closure, format-reflow commits sweeping up half-staged work from the other agent. The 2026-04-20 backdrop+themedetect incident, the 2026-04-22 hook-router run, and the 2026-04-29 branch-hop on the bug/km-bearly.worktree-merge-origin-race-preflight branch — all variants of the same root cause.
+**Why:** silent corruption — orphaned commits, lying bead closure, format-reflow commits sweeping up half-staged work from the other agent. The 2026-04-20 backdrop+themedetect incident, the 2026-04-22 hook-router run, and the 2026-04-29 branch-hop on the bug/@km/bearly/worktree-merge-origin-race-preflight branch — all variants of the same root cause.
 
 ### Blast-radius classification
 

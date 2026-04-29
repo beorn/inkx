@@ -226,8 +226,8 @@ Together: the description tells you what the bead IS right now, the notes tell y
 **Example:**
 ```bash
 # User says: "actually the HR should also have padding on both sides"
-km bd update km-tui.hr-render --notes "16:30 — User feedback: HR should also have padding on both sides"
-km bd update km-tui.hr-render --description "HR nodes render as a horizontal line (─) spanning the card width with 1-char padding on each side, aligned with card borders. No border box around HR. In edit mode, show raw content instead."
+km bd update @km/tui/hr-render --notes "16:30 — User feedback: HR should also have padding on both sides"
+km bd update @km/tui/hr-render --description "HR nodes render as a horizontal line (─) spanning the card width with 1-char padding on each side, aligned with card borders. No border box around HR. In edit mode, show raw content instead."
 ```
 
 ## Renaming beads
@@ -324,7 +324,7 @@ km bd create "Normal mode nav" --id @km/tui/normal-mode-nav --type task
 km bd create "Normal mode nav" --parent km-tui --id normal-mode-nav --type task
 
 # This errors (overlap):
-km bd create "Normal mode nav" --parent km-tui --id km-tui.normal-mode-nav --type task
+km bd create "Normal mode nav" --parent km-tui --id @km/tui/normal-mode-nav --type task
 
 # This is just the literal id "wt.1" (no auto-scope-derive):
 km bd create "Slot 1" --id wt.1

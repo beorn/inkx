@@ -163,7 +163,7 @@ System prompt body ...
 ## Pointers
 
 - Drift-checker source: `tools/lint-claude-config.ts`
-- Triggering bug postmortem: bead `km-infra.claude-config-manifest`
+- Triggering bug postmortem: bead `@km/infra/claude-config-manifest`
 - Related skill: [`/claude`](../claude/SKILL.md) for slash-command + plugin
   authoring.
 - Hook authoring reference: [.claude/hooks/README.md](../../hooks/README.md)

@@ -266,5 +266,5 @@ Present as a table:
 | License badges | 10/13 | 3 READMEs missing badges |
 
 ### Action Items
-1. Add CC BY 4.0 to terminfo.dev (km-terminfo.cc-by-4)
+1. Add CC BY 4.0 to terminfo.dev (@km/terminfo/cc-by-4)
 ```

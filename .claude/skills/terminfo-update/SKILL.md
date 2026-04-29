@@ -199,7 +199,7 @@ return `pass: true`.
 3. **Create a bead** for each in-scope failure:
    ```bash
    km bd create \
-     --id km-termless.vterm-<feature-slug> \
+     --id @km/termless/vterm-<feature-slug> \
      --type task \
      --priority 3 \
      --title "vterm: implement <feature-name>"
@@ -228,5 +228,5 @@ probe passes with correct output verification.
 ## Related Beads
 
 - km-terminfo (epic) — terminfo.dev feature database
-- km-termless.terminfo-probe-coverage — upgrade partial probes to full verification
-- km-market.terminfo-completeness — content completeness + CI/CD
+- @km/termless/terminfo-probe-coverage — upgrade partial probes to full verification
+- @km/market/terminfo-completeness — content completeness + CI/CD

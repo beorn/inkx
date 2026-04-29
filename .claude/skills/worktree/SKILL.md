@@ -101,7 +101,7 @@ The fallback uses APFS `cp -c -R` (~20-25s) and creates `.claude/worktrees/agent
 
 7. **Cherry-picks beat merges for cross-worktree integration.** The orchestrator's consolidation phase cherry-picks each branch's commits onto main, resolving conflicts inline. Direct `git merge wtN main` from outside the worktree fragments history and risks submodule pointer mismatches.
 
-8. **`cd "$(git rev-parse --show-toplevel)"` — never a hardcoded path.** When agents run inside a `.claude/worktrees/<agent>/` worktree, template substitutions for "the repo root" resolve to the *main repo's* path — Bash-tool calls then leak file writes back to main. Always derive the repo root at command time. (km-all.agent-worktree-isolation-cd-repo-root-leak)
+8. **`cd "$(git rev-parse --show-toplevel)"` — never a hardcoded path.** When agents run inside a `.claude/worktrees/<agent>/` worktree, template substitutions for "the repo root" resolve to the *main repo's* path — Bash-tool calls then leak file writes back to main. Always derive the repo root at command time. (@km/all/agent-worktree-isolation-cd-repo-root-leak)
 
 9. **HARD RULE — 2+ agents on `vendor/<pkg>/`**: every agent MUST be in its own pool slot (or fallback worktree). Never two write-agents sharing a working tree on the same submodule. Silent corruption (orphaned commits, lying bead closure, sweep-up commits) — even with disjoint files, the discipline must hold.
 
@@ -155,8 +155,8 @@ Don't `git reset --hard` or `git stash` — preserve the work, replay it cleanly
 
 ## Incident log
 
-- **2026-04-29**: HEAD hopped from `main` to `bug/km-bearly.worktree-merge-origin-race-preflight` mid-cherry-pick. Recovered by checking out main and re-applying cherry-picks. Root cause: another session left a feature branch checked out in main repo's working dir.
-- **2026-04-29 morning**: silvercode2 broadcast "branch hopped on me again" mid-write — main repo HEAD shifted from `feat/predicate-pre-map-filter` to `feat/km-tasks.blocked-filter` between read and write. Format-reflow commit accidentally swept up half-staged work from another agent.
+- **2026-04-29**: HEAD hopped from `main` to `bug/@km/bearly/worktree-merge-origin-race-preflight` mid-cherry-pick. Recovered by checking out main and re-applying cherry-picks. Root cause: another session left a feature branch checked out in main repo's working dir.
+- **2026-04-29 morning**: silvercode2 broadcast "branch hopped on me again" mid-write — main repo HEAD shifted from `feat/predicate-pre-map-filter` to `feat/@km/tasks/blocked-filter` between read and write. Format-reflow commit accidentally swept up half-staged work from another agent.
 - **2026-04-28 evening**: HEAD bounced through `feat/fuzz-migrate-roundtrip` → `feat/predicate-pre-map-filter` from concurrent agents committing to whatever was current.
 - **2026-04-22 hook-router /max run**: 2 agents on vendor/bearly without isolation; worked only because they touched disjoint files. Discipline, not luck.
 - **2026-04-20 backdrop+themedetect**: 2 agents on vendor/silvery without isolation → orphaned commits + lying bead closure.

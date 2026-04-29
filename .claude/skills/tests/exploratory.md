@@ -225,8 +225,8 @@ Prefix with sequence number. Name describes the state, not the action. Quality o
 ```
 | # | Bead | P | Title | Status | Test | AI Verify | User |
 |---|------|---|-------|--------|------|-----------|------|
-| 1 | km-tui.body-collapse | 2 | Body collapse | Fixed | 3/3 | screenshot | confirmed |
-| 2 | km-tui.fold-color | 2 | Fold count color | Open | -- | -- | -- |
+| 1 | @km/tui/body-collapse | 2 | Body collapse | Fixed | 3/3 | screenshot | confirmed |
+| 2 | @km/tui/fold-color | 2 | Fold count color | Open | -- | -- | -- |
 ```
 
 Status: Open, Investigating, Fix in progress, TUI test pass, GUI/TTY verified, Awaiting user, Fixed, Reopened, Deferred.

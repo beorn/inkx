@@ -148,7 +148,7 @@ When an agent claims a bead and tries to close it, it MUST:
 
 When a refactor splits into "Phase 1: build the new substrate alongside the old; Phase 2/3: delete the old," the substrate-phase bead closes at L4 (new structure proven, old code still present). The cleanup bead that deletes the old code at L5 must be **filed at planning time, before the substrate ships** — not discovered after when /complete catches the residue.
 
-**Why**: Plateau-90 (April 2026) phased C1, C2, C3a as "Phase 1 substrate, Phase 2/3 in notes." Three substrate beads closed at L4 with workaround fossils still in code as planned residue. The cleanup beads (`km-silvery.lifecycle-leak-detection-fossil`, `km-silvery.paint-clear-l5-final`) were filed AFTER the substrate shipped, when residue was rediscovered during /complete. That meant no bead tracked the L4-but-not-L5 state — it was implicit in NOTES, not explicit in the tree.
+**Why**: Plateau-90 (April 2026) phased C1, C2, C3a as "Phase 1 substrate, Phase 2/3 in notes." Three substrate beads closed at L4 with workaround fossils still in code as planned residue. The cleanup beads (`@km/silvery/lifecycle-leak-detection-fossil`, `@km/silvery/paint-clear-l5-final`) were filed AFTER the substrate shipped, when residue was rediscovered during /complete. That meant no bead tracked the L4-but-not-L5 state — it was implicit in NOTES, not explicit in the tree.
 
 **Convention**:
 1. When planning a substrate-then-cleanup migration, file BOTH beads at planning time:
@@ -215,7 +215,7 @@ Without these annotations, /complete will flag the shadow artifacts as leftover 
 - Leave @deprecated annotations after deletion → stale noise. Delete annotations in the same phase as the code.
 
 ### Reference implementation
-km-tui.hierarchical-node-state (2026-04) — 5 sync methods replaced by reduced signals. Shadow oracle in Phase 1, cutover in Phase 2, purge in Phase 3. See that bead's phase beads for the exact pattern.
+@km/tui/hierarchical-node-state (2026-04) — 5 sync methods replaced by reduced signals. Shadow oracle in Phase 1, cutover in Phase 2, purge in Phase 3. See that bead's phase beads for the exact pattern.
 
 ## Retrospective (after all phases complete)
 

@@ -137,7 +137,7 @@ Example: `shipped: cfe7642fb (count-and-warn) — apps/km-cli/tests/doctor-rebui
 
 ## Numeric criteria — measure, don't estimate
 
-If a bead description has numeric targets (≤12 useEffects, ≤1000 LOC, 0 TS errors): **run the grep/wc/tsc and paste the actual count** into the close reason. "Mostly done" is not done. The session that closed `km-tui.tree.v4 Phase 9` claiming "21 useEffects → still 21" is the canonical anti-pattern.
+If a bead description has numeric targets (≤12 useEffects, ≤1000 LOC, 0 TS errors): **run the grep/wc/tsc and paste the actual count** into the close reason. "Mostly done" is not done. The session that closed `@km/tui/tree/v4 Phase 9` claiming "21 useEffects → still 21" is the canonical anti-pattern.
 
 ## Pairs with
 
