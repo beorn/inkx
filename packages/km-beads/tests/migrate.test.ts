@@ -247,54 +247,53 @@ describe("issueToMarkdown — round-trip preserves all non-recomputable fields",
     expect(issues.some((i) => i.blocked_by && i.blocked_by.length > 0)).toBe(true)
   })
 
-  it.each(issues.map((issue) => [issue.id, issue] as const))(
-    "preserves non-recomputable frontmatter fields for %s",
-    (_id, issue) => {
-      const md = issueToMarkdown(issue, "km")
-      const fm = extractFrontmatter(md)
+  it.each(
+    issues.map((issue) => [issue.id, issue] as const),
+  )("preserves non-recomputable frontmatter fields for %s", (_id, issue) => {
+    const md = issueToMarkdown(issue, "km")
+    const fm = extractFrontmatter(md)
 
-      // Identity.
-      expect(fm.id).toBeTruthy()
-      if (issue.created_by !== undefined) expect(fm.created_by).toBe(issue.created_by)
-      expect(fm.created_at).toBe(issue.created_at)
+    // Identity.
+    expect(fm.id).toBeTruthy()
+    if (issue.created_by !== undefined) expect(fm.created_by).toBe(issue.created_by)
+    expect(fm.created_at).toBe(issue.created_at)
 
-      // Lifecycle timestamps.
-      if (issue.started_at !== undefined) expect(fm.started_at).toBe(issue.started_at)
-      if (issue.closed_at !== undefined) expect(fm.closed_at).toBe(issue.closed_at)
-      if (issue.close_reason !== undefined) expect(fm.close_reason).toBe(issue.close_reason)
-      if (issue.defer_until !== undefined) expect(fm.defer_until).toBe(issue.defer_until)
+    // Lifecycle timestamps.
+    if (issue.started_at !== undefined) expect(fm.started_at).toBe(issue.started_at)
+    if (issue.closed_at !== undefined) expect(fm.closed_at).toBe(issue.closed_at)
+    if (issue.close_reason !== undefined) expect(fm.close_reason).toBe(issue.close_reason)
+    if (issue.defer_until !== undefined) expect(fm.defer_until).toBe(issue.defer_until)
 
-      // Ownership.
-      if (issue.owner !== undefined) expect(fm.owner).toBe(issue.owner)
-      if (issue.assignee !== undefined) expect(fm.assignee).toBe(issue.assignee)
+    // Ownership.
+    if (issue.owner !== undefined) expect(fm.owner).toBe(issue.owner)
+    if (issue.assignee !== undefined) expect(fm.assignee).toBe(issue.assignee)
 
-      // Graph — parent_id, children, dependencies (verbatim), legacy_deps.
-      if (issue.parent_id !== undefined) expect(fm.parent_id).toBe(issue.parent_id)
-      if (issue.children && issue.children.length > 0) {
-        expect(fm.children).toEqual(issue.children)
-      }
-      if (issue.dependencies && issue.dependencies.length > 0) {
-        expect(fm.dependencies).toEqual(issue.dependencies)
-      }
-      if ((issue.blocked_by && issue.blocked_by.length > 0) || (issue.blocks && issue.blocks.length > 0)) {
-        const expected: Record<string, string[]> = {}
-        if (issue.blocked_by?.length) expected.blocked_by = issue.blocked_by
-        if (issue.blocks?.length) expected.blocks = issue.blocks
-        expect(fm.legacy_deps).toEqual(expected)
-      }
+    // Graph — parent_id, children, dependencies (verbatim), legacy_deps.
+    if (issue.parent_id !== undefined) expect(fm.parent_id).toBe(issue.parent_id)
+    if (issue.children && issue.children.length > 0) {
+      expect(fm.children).toEqual(issue.children)
+    }
+    if (issue.dependencies && issue.dependencies.length > 0) {
+      expect(fm.dependencies).toEqual(issue.dependencies)
+    }
+    if ((issue.blocked_by && issue.blocked_by.length > 0) || (issue.blocks && issue.blocks.length > 0)) {
+      const expected: Record<string, string[]> = {}
+      if (issue.blocked_by?.length) expected.blocked_by = issue.blocked_by
+      if (issue.blocks?.length) expected.blocks = issue.blocks
+      expect(fm.legacy_deps).toEqual(expected)
+    }
 
-      // Freeform blob.
-      if (issue.metadata !== undefined && issue.metadata !== "{}") {
-        expect(fm.metadata).toBe(issue.metadata)
-      } else {
-        // Empty metadata is intentionally suppressed as noise.
-        expect(fm.metadata).toBeUndefined()
-      }
+    // Freeform blob.
+    if (issue.metadata !== undefined && issue.metadata !== "{}") {
+      expect(fm.metadata).toBe(issue.metadata)
+    } else {
+      // Empty metadata is intentionally suppressed as noise.
+      expect(fm.metadata).toBeUndefined()
+    }
 
-      // work_type — present iff source had it.
-      if (issue.work_type !== undefined) expect(fm.work_type).toBe(issue.work_type)
-    },
-  )
+    // work_type — present iff source had it.
+    if (issue.work_type !== undefined) expect(fm.work_type).toBe(issue.work_type)
+  })
 
   it("never persists recomputable counts in frontmatter", () => {
     for (const issue of issues) {
@@ -308,152 +307,6 @@ describe("issueToMarkdown — round-trip preserves all non-recomputable fields",
 })
 
 /**
- * Comment rendering — bd v1.0 ships `comments[]` per issue. issueToMarkdown
- * renders them as a `## Comments @comments` body subsection (chronological)
- * and the runtime `bd comment add/list` commands read/write the same shape.
- */
-describe("issueToMarkdown — comments[]", () => {
-  // Inline parser mirroring bd-comment.ts parseComments. Kept here so the
-  // km-beads tests stay free of cross-package dependencies.
-  function parseCommentsFromMd(md: string): string[] {
-    const lines = md.split(/\r?\n/)
-    const headingIdx = lines.findIndex((l) => l.trim() === "## Comments @comments")
-    if (headingIdx < 0) return []
-    const out: string[] = []
-    for (let i = headingIdx + 1; i < lines.length; i++) {
-      const line = lines[i] ?? ""
-      if (/^#{1,6}\s/.test(line)) break
-      const m = line.match(/^-\s+(.+)$/)
-      if (m) out.push(m[1] ?? "")
-    }
-    return out
-  }
-
-  it("renders no section when comments[] is absent", () => {
-    const issue = fakeIssue("km-foo.bar", "Title")
-    const md = issueToMarkdown(issue, "km")
-    expect(md).not.toContain("## Comments @comments")
-  })
-
-  it("renders no section when comments[] is empty", () => {
-    const issue = fakeIssue("km-foo.bar", "Title", { comments: [] })
-    const md = issueToMarkdown(issue, "km")
-    expect(md).not.toContain("## Comments @comments")
-  })
-
-  it("renders a `## Comments @comments` section with one item per comment", () => {
-    const issue = fakeIssue("km-foo.bar", "Title", {
-      description: "Body text.",
-      comments: [
-        { author: "alice", text: "first", created_at: "2026-04-28T01:00:00Z" },
-        { author: "bob", text: "second", created_at: "2026-04-28T02:00:00Z" },
-      ],
-    })
-    const md = issueToMarkdown(issue, "km")
-    expect(md).toContain("## Comments @comments")
-    const parsed = parseCommentsFromMd(md)
-    expect(parsed).toEqual([
-      "@alice (2026-04-28T01:00:00Z): first",
-      "@bob (2026-04-28T02:00:00Z): second",
-    ])
-  })
-
-  it("orders comments chronologically by created_at regardless of input order", () => {
-    const issue = fakeIssue("km-foo.bar", "Title", {
-      comments: [
-        { author: "c", text: "third", created_at: "2026-04-28T03:00:00Z" },
-        { author: "a", text: "first", created_at: "2026-04-28T01:00:00Z" },
-        { author: "b", text: "second", created_at: "2026-04-28T02:00:00Z" },
-      ],
-    })
-    const md = issueToMarkdown(issue, "km")
-    const parsed = parseCommentsFromMd(md)
-    expect(parsed).toEqual([
-      "@a (2026-04-28T01:00:00Z): first",
-      "@b (2026-04-28T02:00:00Z): second",
-      "@c (2026-04-28T03:00:00Z): third",
-    ])
-  })
-
-  it("flattens inner newlines in comment text to ` ↵ ` so each comment is one list item", () => {
-    const issue = fakeIssue("km-foo.bar", "Title", {
-      comments: [{ author: "a", text: "line one\nline two\nline three", created_at: "2026-04-28T01:00:00Z" }],
-    })
-    const md = issueToMarkdown(issue, "km")
-    const parsed = parseCommentsFromMd(md)
-    expect(parsed).toHaveLength(1)
-    expect(parsed[0]).toBe("@a (2026-04-28T01:00:00Z): line one ↵ line two ↵ line three")
-  })
-
-  it("round-trip: N imported comments → render → parse returns those N items in chronological order", () => {
-    const inputs = [
-      { author: "claude", text: "session A wrap-up", created_at: "2026-04-20T01:00:00Z" },
-      { author: "bjorn", text: "follow-up note", created_at: "2026-04-21T01:00:00Z" },
-      { author: "claude", text: "next-steps for round 2", created_at: "2026-04-22T01:00:00Z" },
-    ]
-    const issue = fakeIssue("km-silvery.virtualizer-from-layout", "Virtualizer wiring", {
-      comments: [...inputs].reverse(), // shuffle to confirm sort
-    })
-    const md = issueToMarkdown(issue, "km")
-    const parsed = parseCommentsFromMd(md)
-    expect(parsed).toEqual(inputs.map((c) => `@${c.author} (${c.created_at}): ${c.text}`))
-  })
-
-  it("preserves real comments from a bd v1.0 export shape (smoke)", () => {
-    const issue = fakeIssue("km-silvercode.ambient-split-test", "Ambient split test", {
-      comments: [
-        {
-          id: "019dd26f-cabc-723a-ba47-adfa15aec407",
-          issue_id: "km-silvercode.ambient-split-test",
-          author: "claude:cc081a9a",
-          text: "Harness shipped on branch feat/ambient-split-test-harness.",
-          created_at: "2026-04-28T04:53:55Z",
-        },
-      ],
-    })
-    const md = issueToMarkdown(issue, "km")
-    expect(md).toContain("## Comments @comments")
-    expect(md).toContain("- @claude:cc081a9a (2026-04-28T04:53:55Z): Harness shipped on branch feat/ambient-split-test-harness.")
-    // Recomputable counts must not leak.
-    expect(md).not.toMatch(/^comment_count:/m)
-  })
-})
-
-describe("schema — comments[] validation", () => {
-  it("accepts the bd v1.0 comment shape verbatim", async () => {
-    const { parseBeadsIssueLine } = await import("../src/schema.ts")
-    const line = JSON.stringify({
-      id: "km-foo.bar",
-      title: "x",
-      status: "open",
-      priority: 2,
-      created_at: "2026-04-28T00:00:00Z",
-      updated_at: "2026-04-28T00:00:00Z",
-      comments: [
-        {
-          id: "01HXYZ",
-          issue_id: "km-foo.bar",
-          author: "claude:abc123",
-          text: "some text",
-          created_at: "2026-04-28T01:00:00Z",
-        },
-      ],
-    })
-    const result = parseBeadsIssueLine(line)
-    expect(result.success).toBe(true)
-    if (result.success) {
-      expect(result.data.comments).toHaveLength(1)
-      expect(result.data.comments?.[0]?.author).toBe("claude:abc123")
-    }
-describe("migrateBeadsToMarkdown — flat @memory layout", () => {
-  /** Trackable in-memory fs that captures every write. */
-  function trackFs(seed: Record<string, string> = {}): BeadsFs & { files: Record<string, string>; dirs: Set<string> } {
-    const files: Record<string, string> = { ...seed }
-    const dirs = new Set<string>()
-    return {
-      files,
-      dirs,
-      existsSync: (p: string) => files[p] !== undefined || dirs.has(p),
  * Recapture (--update-only) — ADD missing fields from the export onto
  * already-migrated vault beads, never overwrite present-and-non-empty.
  *
@@ -603,103 +456,6 @@ describe("recaptureFromExport — diff(before, after) ⊆ {fields previously emp
       writeFileSync: (p: string, content: string) => {
         files[p] = content
       },
-      mkdirSync: (p: string) => {
-        dirs.add(p)
-      },
-    }
-  }
-
-  function memoryLine(key: string, value: string): string {
-    return JSON.stringify({ _type: "memory", key, value, created_at: "2026-04-28T00:00:00Z" })
-  }
-
-  it("appends '## From <source>' subsection on slug collision when memSourceLabel is set", () => {
-    const fs = trackFs({
-      "/src-a/.beads/issues.jsonl": memoryLine("workflow-tip", "Source A insight"),
-    })
-    migrateBeadsToMarkdown("/src-a/.beads", {
-      targetDir: "/repo/beads",
-      memDir: "/repo/beads/@memory",
-      memSourceLabel: "src-a-2026-04-28",
-      fs,
-      sourcePrefix: "km",
-    })
-    expect(fs.files["/repo/beads/@memory/workflow-tip.md"]).toContain("Source A insight")
-
-    // Second source — same slug, different content.
-    fs.files["/src-b/.beads/issues.jsonl"] = memoryLine("workflow-tip", "Source B insight")
-    const result = migrateBeadsToMarkdown("/src-b/.beads", {
-      targetDir: "/repo/beads",
-      memDir: "/repo/beads/@memory",
-      memSourceLabel: "src-b-2026-04-28",
-      fs,
-      sourcePrefix: "km",
-    })
-
-    const merged = fs.files["/repo/beads/@memory/workflow-tip.md"]!
-    expect(merged).toContain("Source A insight")
-    expect(merged).toContain("## From src-b-2026-04-28")
-    expect(merged).toContain("Source B insight")
-    expect(result.memoriesMigrated).toBe(1)
-  })
-
-  it("is idempotent — re-running the same source does not stack subsections", () => {
-    const fs = trackFs({
-      "/src-a/.beads/issues.jsonl": memoryLine("dup", "first"),
-    })
-    migrateBeadsToMarkdown("/src-a/.beads", {
-      targetDir: "/repo/beads",
-      memDir: "/repo/beads/@memory",
-      memSourceLabel: "src-a",
-      fs,
-      sourcePrefix: "km",
-    })
-
-    fs.files["/src-b/.beads/issues.jsonl"] = memoryLine("dup", "second")
-    migrateBeadsToMarkdown("/src-b/.beads", {
-      targetDir: "/repo/beads",
-      memDir: "/repo/beads/@memory",
-      memSourceLabel: "src-b",
-      fs,
-      sourcePrefix: "km",
-    })
-    // Re-run src-b — same source label, must not append another subsection.
-    const result = migrateBeadsToMarkdown("/src-b/.beads", {
-      targetDir: "/repo/beads",
-      memDir: "/repo/beads/@memory",
-      memSourceLabel: "src-b",
-      fs,
-      sourcePrefix: "km",
-    })
-
-    const merged = fs.files["/repo/beads/@memory/dup.md"]!
-    const occurrences = merged.match(/## From src-b/g)?.length ?? 0
-    expect(occurrences).toBe(1)
-    expect(result.memoriesSkipped).toBe(1)
-  })
-
-  it("falls back to skip behavior when memSourceLabel is not provided", () => {
-    const fs = trackFs({
-      "/src-a/.beads/issues.jsonl": memoryLine("k", "first"),
-    })
-    migrateBeadsToMarkdown("/src-a/.beads", {
-      targetDir: "/repo/beads",
-      memDir: "/repo/beads/@memory",
-      fs,
-      sourcePrefix: "km",
-    })
-
-    fs.files["/src-b/.beads/issues.jsonl"] = memoryLine("k", "second")
-    const result = migrateBeadsToMarkdown("/src-b/.beads", {
-      targetDir: "/repo/beads",
-      memDir: "/repo/beads/@memory",
-      // memSourceLabel omitted — collision must skip rather than merge.
-      fs,
-      sourcePrefix: "km",
-    })
-
-    expect(result.memoriesSkipped).toBe(1)
-    expect(fs.files["/repo/beads/@memory/k.md"]).not.toContain("second")
       mkdirSync: () => {},
     }
     return { fs, files }
@@ -897,5 +653,252 @@ describe("recaptureFromExport — diff(before, after) ⊆ {fields previously emp
     expect(result.patched[0]!.fieldsChanged).toContain("started_at")
     // File on disk is unchanged in dry-run.
     expect(files[beadPath]).toBe(before)
+  })
+})
+describe("issueToMarkdown — comments[]", () => {
+  // Inline parser mirroring bd-comment.ts parseComments. Kept here so the
+  // km-beads tests stay free of cross-package dependencies.
+  function parseCommentsFromMd(md: string): string[] {
+    const lines = md.split(/\r?\n/)
+    const headingIdx = lines.findIndex((l) => l.trim() === "## Comments @comments")
+    if (headingIdx < 0) return []
+    const out: string[] = []
+    for (let i = headingIdx + 1; i < lines.length; i++) {
+      const line = lines[i] ?? ""
+      if (/^#{1,6}\s/.test(line)) break
+      const m = line.match(/^-\s+(.+)$/)
+      if (m) out.push(m[1] ?? "")
+    }
+    return out
+  }
+
+  it("renders no section when comments[] is absent", () => {
+    const issue = fakeIssue("km-foo.bar", "Title")
+    const md = issueToMarkdown(issue, "km")
+    expect(md).not.toContain("## Comments @comments")
+  })
+
+  it("renders no section when comments[] is empty", () => {
+    const issue = fakeIssue("km-foo.bar", "Title", { comments: [] })
+    const md = issueToMarkdown(issue, "km")
+    expect(md).not.toContain("## Comments @comments")
+  })
+
+  it("renders a `## Comments @comments` section with one item per comment", () => {
+    const issue = fakeIssue("km-foo.bar", "Title", {
+      description: "Body text.",
+      comments: [
+        { author: "alice", text: "first", created_at: "2026-04-28T01:00:00Z" },
+        { author: "bob", text: "second", created_at: "2026-04-28T02:00:00Z" },
+      ],
+    })
+    const md = issueToMarkdown(issue, "km")
+    expect(md).toContain("## Comments @comments")
+    const parsed = parseCommentsFromMd(md)
+    expect(parsed).toEqual([
+      "@alice (2026-04-28T01:00:00Z): first",
+      "@bob (2026-04-28T02:00:00Z): second",
+    ])
+  })
+
+  it("orders comments chronologically by created_at regardless of input order", () => {
+    const issue = fakeIssue("km-foo.bar", "Title", {
+      comments: [
+        { author: "c", text: "third", created_at: "2026-04-28T03:00:00Z" },
+        { author: "a", text: "first", created_at: "2026-04-28T01:00:00Z" },
+        { author: "b", text: "second", created_at: "2026-04-28T02:00:00Z" },
+      ],
+    })
+    const md = issueToMarkdown(issue, "km")
+    const parsed = parseCommentsFromMd(md)
+    expect(parsed).toEqual([
+      "@a (2026-04-28T01:00:00Z): first",
+      "@b (2026-04-28T02:00:00Z): second",
+      "@c (2026-04-28T03:00:00Z): third",
+    ])
+  })
+
+  it("flattens inner newlines in comment text to ` ↵ ` so each comment is one list item", () => {
+    const issue = fakeIssue("km-foo.bar", "Title", {
+      comments: [{ author: "a", text: "line one\nline two\nline three", created_at: "2026-04-28T01:00:00Z" }],
+    })
+    const md = issueToMarkdown(issue, "km")
+    const parsed = parseCommentsFromMd(md)
+    expect(parsed).toHaveLength(1)
+    expect(parsed[0]).toBe("@a (2026-04-28T01:00:00Z): line one ↵ line two ↵ line three")
+  })
+
+  it("round-trip: N imported comments → render → parse returns those N items in chronological order", () => {
+    const inputs = [
+      { author: "claude", text: "session A wrap-up", created_at: "2026-04-20T01:00:00Z" },
+      { author: "bjorn", text: "follow-up note", created_at: "2026-04-21T01:00:00Z" },
+      { author: "claude", text: "next-steps for round 2", created_at: "2026-04-22T01:00:00Z" },
+    ]
+    const issue = fakeIssue("km-silvery.virtualizer-from-layout", "Virtualizer wiring", {
+      comments: [...inputs].reverse(), // shuffle to confirm sort
+    })
+    const md = issueToMarkdown(issue, "km")
+    const parsed = parseCommentsFromMd(md)
+    expect(parsed).toEqual(inputs.map((c) => `@${c.author} (${c.created_at}): ${c.text}`))
+  })
+
+  it("preserves real comments from a bd v1.0 export shape (smoke)", () => {
+    const issue = fakeIssue("km-silvercode.ambient-split-test", "Ambient split test", {
+      comments: [
+        {
+          id: "019dd26f-cabc-723a-ba47-adfa15aec407",
+          issue_id: "km-silvercode.ambient-split-test",
+          author: "claude:cc081a9a",
+          text: "Harness shipped on branch feat/ambient-split-test-harness.",
+          created_at: "2026-04-28T04:53:55Z",
+        },
+      ],
+    })
+    const md = issueToMarkdown(issue, "km")
+    expect(md).toContain("## Comments @comments")
+    expect(md).toContain("- @claude:cc081a9a (2026-04-28T04:53:55Z): Harness shipped on branch feat/ambient-split-test-harness.")
+    // Recomputable counts must not leak.
+    expect(md).not.toMatch(/^comment_count:/m)
+  })
+})
+
+describe("schema — comments[] validation", () => {
+  it("accepts the bd v1.0 comment shape verbatim", async () => {
+    const { parseBeadsIssueLine } = await import("../src/schema.ts")
+    const line = JSON.stringify({
+      id: "km-foo.bar",
+      title: "x",
+      status: "open",
+      priority: 2,
+      created_at: "2026-04-28T00:00:00Z",
+      updated_at: "2026-04-28T00:00:00Z",
+      comments: [
+        {
+          id: "01HXYZ",
+          issue_id: "km-foo.bar",
+          author: "claude:abc123",
+          text: "some text",
+          created_at: "2026-04-28T01:00:00Z",
+        },
+      ],
+    })
+    const result = parseBeadsIssueLine(line)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.comments).toHaveLength(1)
+      expect(result.data.comments?.[0]?.author).toBe("claude:abc123")
+    }
+  })
+})
+describe("migrateBeadsToMarkdown — flat @memory layout", () => {
+  /** Trackable in-memory fs that captures every write. */
+  function trackFs(seed: Record<string, string> = {}): BeadsFs & { files: Record<string, string>; dirs: Set<string> } {
+    const files: Record<string, string> = { ...seed }
+    const dirs = new Set<string>()
+    return {
+      files,
+      dirs,
+      existsSync: (p: string) => files[p] !== undefined || dirs.has(p),
+      readFileSync: (p: string) => files[p] ?? "",
+      writeFileSync: (p: string, content: string) => {
+        files[p] = content
+      },
+      mkdirSync: (p: string) => {
+        dirs.add(p)
+      },
+    }
+  }
+
+  function memoryLine(key: string, value: string): string {
+    return JSON.stringify({ _type: "memory", key, value, created_at: "2026-04-28T00:00:00Z" })
+  }
+
+  it("appends '## From <source>' subsection on slug collision when memSourceLabel is set", () => {
+    const fs = trackFs({
+      "/src-a/.beads/issues.jsonl": memoryLine("workflow-tip", "Source A insight"),
+    })
+    migrateBeadsToMarkdown("/src-a/.beads", {
+      targetDir: "/repo/beads",
+      memDir: "/repo/beads/@memory",
+      memSourceLabel: "src-a-2026-04-28",
+      fs,
+      sourcePrefix: "km",
+    })
+    expect(fs.files["/repo/beads/@memory/workflow-tip.md"]).toContain("Source A insight")
+
+    // Second source — same slug, different content.
+    fs.files["/src-b/.beads/issues.jsonl"] = memoryLine("workflow-tip", "Source B insight")
+    const result = migrateBeadsToMarkdown("/src-b/.beads", {
+      targetDir: "/repo/beads",
+      memDir: "/repo/beads/@memory",
+      memSourceLabel: "src-b-2026-04-28",
+      fs,
+      sourcePrefix: "km",
+    })
+
+    const merged = fs.files["/repo/beads/@memory/workflow-tip.md"]!
+    expect(merged).toContain("Source A insight")
+    expect(merged).toContain("## From src-b-2026-04-28")
+    expect(merged).toContain("Source B insight")
+    expect(result.memoriesMigrated).toBe(1)
+  })
+
+  it("is idempotent — re-running the same source does not stack subsections", () => {
+    const fs = trackFs({
+      "/src-a/.beads/issues.jsonl": memoryLine("dup", "first"),
+    })
+    migrateBeadsToMarkdown("/src-a/.beads", {
+      targetDir: "/repo/beads",
+      memDir: "/repo/beads/@memory",
+      memSourceLabel: "src-a",
+      fs,
+      sourcePrefix: "km",
+    })
+
+    fs.files["/src-b/.beads/issues.jsonl"] = memoryLine("dup", "second")
+    migrateBeadsToMarkdown("/src-b/.beads", {
+      targetDir: "/repo/beads",
+      memDir: "/repo/beads/@memory",
+      memSourceLabel: "src-b",
+      fs,
+      sourcePrefix: "km",
+    })
+    // Re-run src-b — same source label, must not append another subsection.
+    const result = migrateBeadsToMarkdown("/src-b/.beads", {
+      targetDir: "/repo/beads",
+      memDir: "/repo/beads/@memory",
+      memSourceLabel: "src-b",
+      fs,
+      sourcePrefix: "km",
+    })
+
+    const merged = fs.files["/repo/beads/@memory/dup.md"]!
+    const occurrences = merged.match(/## From src-b/g)?.length ?? 0
+    expect(occurrences).toBe(1)
+    expect(result.memoriesSkipped).toBe(1)
+  })
+
+  it("falls back to skip behavior when memSourceLabel is not provided", () => {
+    const fs = trackFs({
+      "/src-a/.beads/issues.jsonl": memoryLine("k", "first"),
+    })
+    migrateBeadsToMarkdown("/src-a/.beads", {
+      targetDir: "/repo/beads",
+      memDir: "/repo/beads/@memory",
+      fs,
+      sourcePrefix: "km",
+    })
+
+    fs.files["/src-b/.beads/issues.jsonl"] = memoryLine("k", "second")
+    const result = migrateBeadsToMarkdown("/src-b/.beads", {
+      targetDir: "/repo/beads",
+      memDir: "/repo/beads/@memory",
+      // memSourceLabel omitted — collision must skip rather than merge.
+      fs,
+      sourcePrefix: "km",
+    })
+
+    expect(result.memoriesSkipped).toBe(1)
+    expect(fs.files["/repo/beads/@memory/k.md"]).not.toContain("second")
   })
 })
