@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { createLogger } from "loggily"
 import type { AgentSession, SessionStore } from "@km/agent-harness"
 
@@ -623,21 +623,27 @@ export function App(props: AppProps): React.ReactElement {
   // gets the composer; bottom-of-layout suppresses its render in that case
   // so only one composer is mounted at a time.
   // Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn.
-  const [welcomeIsFocused, setWelcomeIsFocused] = useState<boolean>(() => {
-    const s = focused
-    return s ? s.store.state.get().messages.length === 0 : false
-  })
-  useEffect(() => {
-    if (!focused) {
-      setWelcomeIsFocused(false)
-      return undefined
-    }
-    const recompute = () => {
-      setWelcomeIsFocused(focused.store.state.get().messages.length === 0)
-    }
-    recompute()
-    return focused.store.state.subscribe(recompute)
-  }, [focused])
+  // Derive welcomeIsFocused on every render — no useState+useEffect
+  // false→true flip on first commit. Pre-spawn (focused=undefined) and
+  // fresh-session (messages=[]) both want welcome chrome; only an
+  // active conversation moves the composer to the bottom slot.
+  //
+  // Initial-state stability matters: useState with an "is conversation
+  // empty?" initializer would land at `false` when sessions=[] (because
+  // focused is undefined) and then flip to `true` once the spawn
+  // microtask resolves and the recompute effect fired. That flip moved
+  // the composer between two parent slots (Welcome group ↔ bottom slot)
+  // → React unmounted/remounted the underlying TextInput → readline
+  // cursor reset. By deriving each render from the canonical source
+  // (focused?.messages.length), the value is stable from frame 0 and
+  // only changes when the user actually types a turn.
+  // Bead: km-silvery.startup-layout-cascade (L3 trigger).
+  const conversationStarted =
+    useSyncExternalStore(
+      (cb) => (focused ? focused.store.state.subscribe(cb) : () => {}),
+      () => (focused ? focused.store.state.get().messages.length > 0 : false),
+    )
+  const welcomeIsFocused = !conversationStarted
   const [focusedRegion, setFocusedRegion] = useState<"queue" | "command">("command")
   // Mirror focusedRegion into the ref the controller closes over (created
   // once at mount above) so its turn-end auto-flush guard sees the latest
