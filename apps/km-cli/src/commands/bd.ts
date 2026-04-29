@@ -23,6 +23,7 @@ import {
   removeDependency,
   getDependencies,
   mergeDepProps,
+  resolveBeadsRoots,
   type Issue,
   type IssueFilter,
 } from "@km/beads"
@@ -53,20 +54,28 @@ export const bdCommand = new Command("bd")
   )
   .allowUnknownOption(false)
 
-// bd ready [scope] - Find available work
+// bd ready [scope-or-board] - Find available work
 bdCommand
   .command("ready")
-  .argument("[scope]", "Path scope to filter issues")
+  .argument(
+    "[scopeOrBoard]",
+    "Filesystem path scopes results; a non-path argument (e.g. `@km`) overrides the configured beads root[0].",
+  )
   .description("List ready issues (unblocked, todo status)")
   .option("-t, --type <type>", "Filter by issue type (bug, feature, etc.)")
   .option("-a, --assignee <name>", "Filter by assignee")
   .option("-p, --priority <value>", "Filter by priority (e.g. P1, P2, or 0-4)")
-  .option("--all", "Show all tasks (no scope narrowing)")
+  .option("--all", "Show all tasks (no board-membership filter)")
   .option("--json", "Output as JSON")
   // oxlint-disable-next-line complexity/complexity -- CLI info display with config/stats sections
   .actionMerged(async (opts) => {
-    const resolved = resolvePathArg(opts.scope)
-    const scopePath = resolved.nodeRef ?? undefined
+    const resolved = resolvePathArg(opts.scopeOrBoard)
+    // A non-path positional ("@km", "imports/km-2026-04-28") overrides
+    // the config[0] beads root. An explicit filesystem path (./, ../,
+    // /abs) still scopes results to a subtree, preserving the legacy
+    // path-scope use case for arbitrary directories.
+    const cliRootOverride = resolved.wasExplicitPath ? undefined : (resolved.nodeRef ?? undefined)
+    const scopePath = resolved.wasExplicitPath ? (resolved.nodeRef ?? undefined) : undefined
 
     using repo = await loadRepo(resolved.repoRoot)
 
@@ -75,10 +84,12 @@ bdCommand
     if (opts.assignee) filter.assignee = opts.assignee
     if (opts.priority !== undefined) filter.priority = opts.priority
 
-    // Scope IS the board in the new convention — no global board filter.
-    // queryReady already returns issue-shaped nodes vault-wide; scope path
-    // narrows to a sub-tree when given.
-    const issues = queryReady(filter, scopePath, undefined, { repo })
+    // Board-membership predicate: by default, scope to the configured
+    // beads roots so vault-wide checkbox noise (markdown fixtures,
+    // archived notes) doesn't drown out actual work. `--all` opts out
+    // for the rare case of debugging unindexed beads.
+    const boardRoots = opts.all ? undefined : resolveBeadsRoots(repo.config.beads, cliRootOverride)
+    const issues = queryReady(filter, scopePath, undefined, { repo, boardRoots })
 
     if (opts.json) {
       console.log(JSON.stringify(issues.map(issueToBdJson), null, 2))
