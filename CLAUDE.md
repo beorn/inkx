@@ -290,16 +290,37 @@ Use `/commit`. Follow [Conventional Commits](https://conventionalcommits.org): `
 
 ## Branches and worktrees — the standing rule
 
-Multiple Claude agents are concurrent. Long-lived feature branches sitting in the main repo cause HEAD-hopping (one agent commits to `feat/X`, the next session lands on `feat/X` instead of `main`, then commits there too — and `main` becomes a moving target). The standing rule:
+**Branches in the main repo are dead. Worktrees only.**
 
-- **The main repo's working directory stays on `main`.** Never `git checkout` a feature branch in the main repo's working dir.
-- **All agent work goes in a worktree.** Use `bun worktree create <name>`. Each worktree gets its own throwaway branch (`feat/<name>`), isolated working dir, isolated dependencies.
-- **Throwaway branches are merged-and-deleted on completion.** As soon as the work is merged into `main`, delete the branch (`git branch -D feat/<name>`) and remove the worktree (`bun worktree remove <name>`). No long-lived feat branches.
-- **Concurrent agents on the same files MUST be in worktrees** (per memory `feedback-worktree-shared-submodule.md` — default, not threshold). One worktree per agent.
-- **`Agent({isolation: "worktree"})` clones into `.claude/worktrees/agent-*` automatically** — but verify isolation per `feedback-agent-worktree-verification.md` (`git worktree list --porcelain` should show the entry; if missing, fall back to `bun worktree create`).
-- **Never `git stash` to enable a checkout.** If the main repo's working dir has uncommitted files from another agent, ask the owner (broadcast on tribe) to commit/discard. Don't touch their WIP.
+Multiple Claude agents are concurrent. Branches in the main repo's working tree cause silent corruption: one agent's `git checkout feat/X` hops the HEAD, another agent commits to whatever's checked out, files leak between branches via the shared working dir, and "format reflow" commits accidentally sweep up half-staged work from a concurrent agent. There is no recovery once trust in branch ownership is lost — only re-merge from snapshots.
 
-The reason this rule exists: silvercode evening 2026-04-28 — main repo's HEAD bounced through `feat/fuzz-migrate-roundtrip` → `feat/predicate-pre-map-filter` from concurrent agents committing to whatever branch was current. The fix is procedural, not technical: agents stay in their own worktrees, main is the convergence point.
+The rules, in order of strictness:
+
+1. **The main repo's working directory stays on `main`. Always. No exceptions.**
+   - Never `git checkout <feature-branch>` in the main repo's working dir. Not for a quick edit, not for a one-off check, not for "just to verify."
+   - The only place `git checkout main` and `git merge --ff-only <branch>` are allowed is during the consolidation phase by the orchestrator session — and even then, the merge is the last step before deleting the branch.
+
+2. **All agent work goes in a worktree.** Use `bun worktree create <name>` (preferred — handles submodules, deps, hooks) or `Agent({isolation: "worktree"})` for sub-agents. Each worktree gets its own throwaway branch (`feat/<name>` or `wip/<bead-id>`), isolated working dir, isolated dependencies.
+
+3. **Throwaway branches are merged-and-deleted on completion.** As soon as the work is merged into `main`:
+   - `git branch -d feat/<name>` (or `git push origin :feat/<name>` if pushed)
+   - `bun worktree remove <name>` (or let WorktreeRemove hook auto-classify if `.claude/worktrees/`)
+   - No long-lived feat branches. Branches are a *queue*, not a deliverable.
+
+4. **Concurrent agents on the same files MUST be in worktrees** — default, not threshold (per memory `feedback-worktree-shared-submodule.md`). One worktree per agent. Two agents touching `vendor/silvery/` without isolation = corruption, full stop.
+
+5. **Verify worktree isolation post-spawn** — `Agent({isolation: "worktree"})` can fail silently (lock contention on concurrent `git worktree add`, submodule clone failure). Check with `git worktree list --porcelain` after spawn; fall back to `bun worktree create` if missing. See `feedback-agent-worktree-verification.md`.
+
+6. **Never `git stash` / `git reset --hard` / `git checkout <ref> -- <path>` to enable a checkout.** If the main repo's working dir has uncommitted files from another agent, ask the owner (broadcast on tribe) to commit or discard. Use `git show <ref>:<path> > <path>` if you need read-only retrieval. Files in someone else's working tree are theirs until they commit.
+
+7. **Cherry-picks beat merges for cross-worktree integration.** The consolidation phase (orchestrator session) cherry-picks each worktree's commits onto `main`, resolving conflicts inline. Direct `git merge feat/X main` from outside the worktree fragments history and risks submodule pointer mismatches.
+
+**The reason this rule exists** (incident log, most recent first):
+- 2026-04-29 morning: silvercode2 broadcast "branch hopped on me again" mid-write — main repo HEAD shifted from `feat/predicate-pre-map-filter` to `feat/km-tasks.blocked-filter` between read and write of the same file. `810edd137 chore(format): oxfmt reflow` accidentally swept up half-staged work from share-resolvetask's port-blocked-filter agent.
+- 2026-04-28 evening: main repo's HEAD bounced through `feat/fuzz-migrate-roundtrip` → `feat/predicate-pre-map-filter` from concurrent agents committing to whatever was current.
+- Multiple sessions over 2026-04-Q2: `Agent({isolation: "worktree"})` silent failures fell back to main tree, causing same-tree concurrent edits.
+
+The fix is procedural, not technical: agents stay in their own worktrees, main is the convergence point. Tooling (dcg, worktree hooks, isolation verification) catches violations but can't prevent them — discipline is the load-bearing layer.
 
 ## Shipping (push to main, version bumps, npm publish)
 
