@@ -335,6 +335,7 @@
       },
       "devDependencies": {
         "@types/bun": "latest",
+        "fast-check": "^4.6.0",
       },
     },
     "packages/km-board": {
