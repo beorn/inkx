@@ -24,12 +24,21 @@ import { resolveKnobs, type Story } from "./types.ts"
 
 type Focus = "list" | "preview"
 
+const LIST_PANE_WIDTH = 34
+const LIST_LABEL_WIDTH = LIST_PANE_WIDTH - 4
+
+function truncateLabel(label: string, width: number): string {
+  if (label.length <= width) return label
+  if (width <= 1) return "…"
+  return `${label.slice(0, width - 1)}…`
+}
+
 interface AppProps {
   /** Optional: open this story id directly (skip the list cursor). */
   initialStoryId?: string
 }
 
-function StorybookApp({ initialStoryId }: AppProps): React.ReactElement {
+export function StorybookApp({ initialStoryId }: AppProps): React.ReactElement {
   const { exit } = useApp()
   const [focus, setFocus] = useState<Focus>("list")
   const [cursor, setCursor] = useState(() => {
@@ -80,11 +89,27 @@ function StorybookApp({ initialStoryId }: AppProps): React.ReactElement {
 
   return (
     <Screen flexDirection="row">
-      <Box flexDirection="column" width={32} flexShrink={0} paddingX={1} paddingY={1}>
-        <Strong>Stories ({STORIES.length})</Strong>
+      <Box
+        id="storybook-list-pane"
+        flexDirection="column"
+        width={LIST_PANE_WIDTH}
+        flexGrow={0}
+        flexShrink={0}
+        minWidth={LIST_PANE_WIDTH}
+        maxWidth={LIST_PANE_WIDTH}
+        overflow="hidden"
+        backgroundColor="$bg-surface-subtle"
+        paddingX={1}
+        paddingY={1}
+        userSelect="contain"
+      >
+        <Box flexDirection="row" gap={1} paddingBottom={1}>
+          <Strong>Stories</Strong>
+          <Muted>{STORIES.length}</Muted>
+        </Box>
         <Box flexDirection="column" flexGrow={1} minHeight={0} paddingTop={1}>
           <SelectList
-            items={STORIES.map((s) => ({ label: s.id, value: s.id }))}
+            items={STORIES.map((s) => ({ label: truncateLabel(s.id, LIST_LABEL_WIDTH), value: s.id }))}
             highlightedIndex={cursor}
             onHighlight={setCursor}
             onSelect={(opt) => {
@@ -96,10 +121,22 @@ function StorybookApp({ initialStoryId }: AppProps): React.ReactElement {
           />
         </Box>
         <Box paddingTop={1}>
-          <Muted>{focus === "list" ? "list focus" : "preview focus"} — ? for help</Muted>
+          <Muted>{focus === "list" ? "list" : "preview"} focus</Muted>
         </Box>
       </Box>
-      <Box flexDirection="column" flexGrow={1} minHeight={0} paddingX={1} paddingY={1}>
+      <Box flexDirection="column" width={1} flexGrow={0} flexShrink={0} backgroundColor="$border" />
+      <Box
+        id="storybook-preview-pane"
+        flexDirection="column"
+        flexGrow={1}
+        flexShrink={1}
+        minWidth={0}
+        minHeight={0}
+        overflow="hidden"
+        paddingX={1}
+        paddingY={1}
+        userSelect="contain"
+      >
         {story ? <StoryFrame story={story} /> : <Muted>No stories registered.</Muted>}
       </Box>
     </Screen>
@@ -125,7 +162,7 @@ function StoryFrame({ story }: { story: Story }): React.ReactElement {
         </Box>
       )}
       <Divider />
-      <Box flexDirection="column" flexGrow={1} minHeight={0} paddingTop={1}>
+      <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} overflow="hidden" paddingTop={1}>
         {story.render(knobs)}
       </Box>
     </Box>

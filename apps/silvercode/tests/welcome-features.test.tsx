@@ -90,7 +90,7 @@ function makeHandle(v: Variant) {
   } as never
 }
 
-function renderCard(handle: never, cols = 100, rows = 50) {
+function renderCard(handle: never, cols = 100, rows = 50, agent = "claude-code") {
   // Stub process.stdout dims so silvery's <Screen> picks up the test
   // virtual size (it reads `getTermDims()` from the host stdout). Same
   // technique the production `renderScenario` harness uses.
@@ -106,7 +106,7 @@ function renderCard(handle: never, cols = 100, rows = 50) {
           <SessionCard
             handle={handle}
             isFocused
-            agent="claude-code"
+            agent={agent}
             onFocus={() => {}}
             onApprove={() => {}}
             onDeny={() => {}}
@@ -175,11 +175,26 @@ describe("feature 2 — Welcome screen (fresh vs loading)", () => {
     expect(app.text).not.toContain("COMMANDS")
   })
 
-  test("loading session (resumeId set), status=spawning: banner + Loading line", () => {
-    const app = renderCard(makeHandle({ status: "spawning", resumeId: "abc12345-de67-890a-bcde-f1234567890a" }))
+  test("loading session (resumeId set), status=spawning: banner + centered two-line Loading state", () => {
+    const resumeId = "019ddb63-6e8d-7141-a603-f7c86c135be6"
+    const idText = `codex:${resumeId}`
+    const app = renderCard(makeHandle({ status: "spawning", resumeId }), 100, 50, "codex")
     expect(app.text).toMatch(/ ░░░░░░  ░░░░/)
-    // Loading indicator with truncated session id.
-    expect(app.text).toMatch(/Loading session abc12345…/)
+    expect(app.text).toContain("Loading session")
+    expect(app.text).toContain(idText)
+
+    const loadingLine = app.lines.find((l) => l.includes("Loading session"))
+    const idLine = app.lines.find((l) => l.includes(idText))
+    expect(loadingLine).toBeDefined()
+    expect(idLine).toBeDefined()
+
+    const assertCentered = (line: string, text: string) => {
+      const left = line.indexOf(text)
+      const right = app.width - (left + text.length)
+      expect(Math.abs(left - right)).toBeLessThanOrEqual(1)
+    }
+    assertCentered(loadingLine!, "Loading session")
+    assertCentered(idLine!, idText)
   })
 
   test("Welcome unmounts when messages.length transitions 0 → 1; chat view mounts", () => {
@@ -358,6 +373,13 @@ describe("feature 3 — right-aligned user prompt bubble", () => {
     }
     expect(topRow).toBeGreaterThanOrEqual(0)
     expect(bottomRow).toBeGreaterThan(topRow)
+    const topLine = app.lines[topRow]!
+    const leftCornerCol = topLine.indexOf("╭")
+    const rightCornerCol = topLine.indexOf("╮")
+    expect(leftCornerCol).toBeGreaterThanOrEqual(0)
+    expect(rightCornerCol).toBeGreaterThan(leftCornerCol)
+    expect(rightCornerCol).toBeGreaterThanOrEqual(app.width - 6)
+    expect(rightCornerCol - leftCornerCol + 1).toBeLessThanOrEqual(Math.floor(app.width * 0.8))
     // Multi-row wrap: at least 2 content rows between top and bottom.
     expect(bottomRow - topRow).toBeGreaterThanOrEqual(2)
     // The full text appears (joined across wrapped rows when whitespace

@@ -3,6 +3,7 @@ import { resolve as resolvePath } from "node:path"
 import { existsSync, readFileSync } from "node:fs"
 import { Box, Image, MeasuredBox, Muted, Small, Text, isKittyGraphicsSupported } from "silvery"
 import type { SessionHandle } from "../controller.ts"
+import { prefixSid } from "../sid-prefix.ts"
 
 /**
  * Per-agent display label. Mirrors the `AGENT_DISPLAY` map in `SidePanel.tsx`
@@ -365,11 +366,26 @@ export function MeasuredBanner({ agentLabel }: { agentLabel?: string }): React.R
   )
 }
 
+export function StaticTextBanner({ agentLabel }: { agentLabel?: string }): React.ReactElement {
+  return (
+    <Box flexDirection="column" alignItems="center" gap={1} paddingTop={1}>
+      <FigletBlock rows={SILVER_SHADED} color="$primary" />
+      <FigletBlock rows={CODE_SHADED} color="$accent" />
+      {agentLabel ? <Small color="$muted">{agentLabel}</Small> : null}
+    </Box>
+  )
+}
+
 /** Truncate UUID-style ids to a readable prefix for the loading line. */
 export function shortenSessionId(id: string | undefined): string {
   if (!id) return ""
   if (id.length <= 24) return id
   return id.slice(0, 8) + "…"
+}
+
+export function formatLoadingSessionId(id: string | undefined, agent: string | undefined): string {
+  if (!id) return ""
+  return agent ? prefixSid(agent, id) : id
 }
 
 /**
@@ -380,8 +396,8 @@ export function shortenSessionId(id: string | undefined): string {
  * differs (centered here vs bottom-anchored in chat state).
  *
  * Visually: banner + agent label, followed by either the composer
- * (fresh session) or a quiet "Loading session <id>…" line (resume),
- * stacked and centered both axes in the available pane height. Bead:
+ * (fresh session) or a quiet two-line loading state (resume), stacked
+ * and centered both axes in the available pane height. Bead:
  * km-cr94.
  */
 export function Welcome(props: {
@@ -401,21 +417,37 @@ export function Welcome(props: {
    * the test asserts banner-only chrome.
    */
   composerSlot?: React.ReactNode
+  /** Force a text banner. Storybook uses this inside scroll containers so
+   * Kitty bitmap placements don't re-anchor while the user scrolls. */
+  bitmapBanner?: boolean
+  /** App welcome fills and centers the pane; storybook renders it inline. */
+  centerVertically?: boolean
 }): React.ReactElement {
   const agentLabel = props.agent ? AGENT_LABELS[props.agent] : undefined
-  const resumeId = props.handle.resumeId
+  const resumeId = formatLoadingSessionId(props.handle.resumeId, props.agent)
   const isLoading = typeof resumeId === "string" && resumeId.length > 0
+  const centerVertically = props.centerVertically !== false
 
   return (
     // Center the brand mark on both axes. `flexGrow={1}` claims the full
     // pane height; `justifyContent="center"` + `alignItems="center"` pin
     // contents to the visual center. `gap={1}` sets breathing room
     // between the banner and the composer / loading line.
-    <Box flexDirection="column" flexGrow={1} alignItems="center" justifyContent="center" gap={1} paddingX={2}>
-      <MeasuredBanner agentLabel={agentLabel} />
+    <Box
+      flexDirection="column"
+      flexGrow={centerVertically ? 1 : 0}
+      alignItems="center"
+      justifyContent={centerVertically ? "center" : "flex-start"}
+      gap={1}
+      paddingX={2}
+    >
+      {props.bitmapBanner === false ? <StaticTextBanner agentLabel={agentLabel} /> : <MeasuredBanner agentLabel={agentLabel} />}
 
       {isLoading ? (
-        <Muted>Loading session {shortenSessionId(resumeId)}…</Muted>
+        <Box flexDirection="column" alignItems="center">
+          <Muted>Loading session</Muted>
+          <Muted>{resumeId}</Muted>
+        </Box>
       ) : props.composerSlot ? (
         <Box flexDirection="column" flexShrink={0} width={80} maxWidth={80} minWidth={0}>
           {props.composerSlot}

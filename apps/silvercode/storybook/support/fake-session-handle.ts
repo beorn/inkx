@@ -20,6 +20,7 @@ import type { SessionHandle } from "../../src/controller.ts"
 export interface FakeHandleOpts {
   id?: string
   name?: string
+  resumeId?: string
   state?: Partial<SessionState>
 }
 
@@ -73,6 +74,7 @@ export function fakeSessionHandle(opts: FakeHandleOpts = {}): SessionHandle {
     unsubscribe: () => {},
     log: { write: () => {}, sessionLogPath: "" },
     account: undefined,
+    resumeId: opts.resumeId,
   } as unknown as SessionHandle
   return handle
 }

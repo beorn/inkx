@@ -17,6 +17,7 @@ import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, test } from "vitest"
 import { createSessionStore } from "@km/agent-harness"
 import { findCodexTranscript, replayCodexSessionFromDisk } from "../src/codex-resume.ts"
+import { validateResumeId } from "../src/resume.ts"
 
 const SESSION_ID = "019dd09d-test-codex-replay-fixture-aaaa"
 
@@ -190,6 +191,44 @@ describe("codex-resume: replayCodexSessionFromDisk", () => {
     const store = createSessionStore()
     replayCodexSessionFromDisk(store, SESSION_ID)
     expect(store.state.get().status).toBe("idle")
+  })
+
+  test("validateResumeId allows Codex transcripts that ended without task_complete", () => {
+    const body = lines(
+      {
+        timestamp: "2026-04-29T21:40:32.693Z",
+        type: "session_meta",
+        payload: { id: SESSION_ID, cwd: "/tmp", cli_version: "0.124.0" },
+      },
+      {
+        timestamp: "2026-04-29T21:40:32.693Z",
+        type: "event_msg",
+        payload: { type: "task_started", turn_id: "t-stale-process" },
+      },
+      {
+        timestamp: "2026-04-29T21:40:37.258Z",
+        type: "response_item",
+        payload: {
+          type: "function_call",
+          name: "write_stdin",
+          arguments: '{"session_id":76609,"chars":"","yield_time_ms":15000}',
+          call_id: "call_stale_process",
+        },
+      },
+      {
+        timestamp: "2026-04-29T21:40:52.261Z",
+        type: "response_item",
+        payload: {
+          type: "function_call_output",
+          call_id: "call_stale_process",
+          output: "Chunk ID: 742bc3\nWall time: 15.0024 seconds\nProcess running with session ID 76609\nOutput:\n",
+        },
+      },
+    )
+    writeFakeRollout(SESSION_ID, body)
+
+    const err = validateResumeId({ agent: "codex", sessionId: SESSION_ID, cwd: "/tmp" })
+    expect(err).toBeNull()
   })
 
   test("findCodexTranscript locates the rollout by sessionId suffix", () => {

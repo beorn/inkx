@@ -35,7 +35,16 @@
 import React, { useMemo } from "react"
 import type { MessageEntry, ToolCallId, ToolCallStatus, ToolKind } from "@km/agent-harness"
 import type { ToolCall as ToolCallType, ToolCallContent } from "@km/agent-harness"
-import { Box, ListView, type ListViewHandle, Prose, Text, useModifierKeys, usePopoverHandlers } from "silvery"
+import {
+  Box,
+  ListView,
+  type ListViewHandle,
+  Prose,
+  Text,
+  type SilveryMouseEvent,
+  useModifierKeys,
+  usePopoverHandlers,
+} from "silvery"
 import { ActivityIndicator, type ActivityStatus } from "./ActivityIndicator.tsx"
 import { AmbientEventRow, type AmbientStreamEntry } from "./AmbientEventRow.tsx"
 import { MarkdownView } from "./MarkdownView.tsx"
@@ -253,20 +262,20 @@ function UserRow({
   const lineCount = additionalContext ? additionalContext.split("\n").length : 0
 
   return (
-    <Box flexDirection="column" flexShrink={1} minWidth={0} paddingX={1} paddingY={0}>
+    <Box flexDirection="column" alignSelf="stretch" width="100%" flexShrink={1} minWidth={0} paddingX={1} paddingY={0}>
       {!isMetaOnly && (
-        // Right-align via flex. The bubble shrinks to content; long content
-        // wraps inside the 80%-of-row maxWidth cap.
-        <Box flexDirection="row" justifyContent="flex-end" flexShrink={1} minWidth={0}>
+        <Box flexDirection="row" width="100%" justifyContent="flex-end" flexShrink={1} minWidth={0}>
           <Box
             flexDirection="row"
+            width="snug-content"
+            maxWidth="80%"
             flexShrink={1}
             minWidth={0}
             borderStyle="round"
             borderColor="$border-default"
             paddingX={1}
           >
-            <Prose flexGrow={0} flexShrink={1} minWidth={0}>
+            <Prose flexShrink={1} minWidth={0}>
               <LinkifiedText text={text} role="user" />
             </Prose>
           </Box>
@@ -379,9 +388,9 @@ function prettyYamlForDebug(value: unknown, indent = 0): string {
 
 /**
  * RawInspector — secret debug trick. Wraps each chat entry so that hovering
- * with Cmd+Shift held shows a popover with the entry's raw JSON. When the
- * modifiers aren't held, the wrapper is a transparent passthrough — no popover
- * trigger, no event cost beyond the modifier-state hook.
+ * with Cmd+Shift held shows a popover with the entry's raw JSON. The wrapper
+ * always listens for hover so a modifier-aware mouse-enter can trigger the
+ * popover even when the terminal did not emit standalone modifier key events.
  *
  * Why: debugging a verbose-tool-result or thinking-loop bug usually means
  * inspecting what the wire actually delivered. Without this, the only path is
@@ -397,10 +406,7 @@ function prettyYamlForDebug(value: unknown, indent = 0): string {
 function RawInspector({ payload, children }: { payload: unknown; children: React.ReactNode }): React.ReactElement {
   const { super: cmdHeld, shift: shiftHeld } = useModifierKeys()
   const debugMode = cmdHeld && shiftHeld
-  // Always compute a valid PopoverContent (the hook requires non-null), but
-  // only attach mouse handlers when debug mode is active. When the modifiers
-  // aren't held, the wrapper is a transparent fragment — no handlers, no
-  // hover-event cost.
+  // Always compute a valid PopoverContent (the hook requires non-null).
   const popoverContent = useMemo(() => {
     // Pretty-print: when a string value contains newlines, render the body
     // as an indented block under the key (no JSON escapes, no surrounding
@@ -435,7 +441,16 @@ function RawInspector({ payload, children }: { payload: unknown; children: React
     }
   }, [payload])
   const handlers = usePopoverHandlers(popoverContent)
-  return debugMode ? <Box {...handlers}>{children}</Box> : <>{children}</>
+  function onMouseEnter(e: SilveryMouseEvent): void {
+    if (debugMode || (e.metaKey && e.shiftKey)) {
+      handlers.onMouseEnter(e)
+    }
+  }
+  return (
+    <Box onMouseEnter={onMouseEnter} onMouseLeave={handlers.onMouseLeave}>
+      {children}
+    </Box>
+  )
 }
 
 function ExchangeItem({ m, showDebug }: { m: MessageEntry; showDebug: boolean }): React.ReactElement {
@@ -648,6 +663,8 @@ export const SessionUpdateList = React.forwardRef<
     /** CLI version string from session-init (e.g. "2.1.119"). Forwarded
      *  to ActivityIndicator. `null` until session-init resolves. */
     agentVersion?: string | null
+    /** Chat panes follow the latest turn; natural-height story previews can disable it. */
+    follow?: "end" | false
   }
 >(function SessionUpdateList(
   {
@@ -662,12 +679,54 @@ export const SessionUpdateList = React.forwardRef<
     ambientEntries,
     agentLabel = null,
     agentVersion = null,
+    follow = "end",
   },
   ref,
 ): React.ReactElement {
   const showActivity = status !== "idle" && status !== "ended"
   const merged = ambientEntries && ambientEntries.length > 0 ? interleave(messages, ambientEntries) : [...messages]
   const items: Item[] = showActivity ? [...merged, { __activity: true }] : merged
+  const renderSessionItem = (item: Item, i: number): React.ReactNode =>
+    isActivity(item) ? (
+      <ActivityIndicator
+        status={status}
+        pendingPermissions={pendingPermissions}
+        inFlightTool={inFlightTool}
+        turnStartedAt={turnStartedAt}
+        inputTokens={inputTokens}
+        outputTokens={outputTokens}
+        agentLabel={agentLabel}
+        agentVersion={agentVersion}
+      />
+    ) : isAmbient(item) ? (
+      <AmbientCluster entries={item.entries} />
+    ) : item.role === "assistant" ? (
+      // Assistant turns wrap each op (text/tool) individually inside
+      // ExchangeItem so the hover popover shows ONLY the hovered op,
+      // not the whole turn's combined JSON.
+      <ExchangeItem m={item} showDebug={showDebug} />
+    ) : (
+      <RawInspector payload={item}>
+        <ExchangeItem m={item} showDebug={showDebug} />
+      </RawInspector>
+    )
+
+  if (follow === false) {
+    return (
+      <Box flexDirection="column" gap={1} alignSelf="stretch" width="100%">
+        {items.map((item, i) => (
+          <Box
+            key={isActivity(item) ? "__activity" : isAmbient(item) ? `ambient-cluster:${item.entries[0]?.id ?? i}` : i}
+            flexDirection="column"
+            alignSelf="stretch"
+            width="100%"
+          >
+            {renderSessionItem(item, i)}
+          </Box>
+        ))}
+      </Box>
+    )
+  }
 
   // `follow="end"` is the canonical chat-style auto-follow API
   // (silvery bead `km-silvery.listview-followpolicy-split`). It owns
@@ -689,32 +748,8 @@ export const SessionUpdateList = React.forwardRef<
       }
       gap={1}
       maxRendered={200}
-      follow="end"
-      renderItem={(item) =>
-        isActivity(item) ? (
-          <ActivityIndicator
-            status={status}
-            pendingPermissions={pendingPermissions}
-            inFlightTool={inFlightTool}
-            turnStartedAt={turnStartedAt}
-            inputTokens={inputTokens}
-            outputTokens={outputTokens}
-            agentLabel={agentLabel}
-            agentVersion={agentVersion}
-          />
-        ) : isAmbient(item) ? (
-          <AmbientCluster entries={item.entries} />
-        ) : item.role === "assistant" ? (
-          // Assistant turns wrap each op (text/tool) individually inside
-          // ExchangeItem so the hover popover shows ONLY the hovered op,
-          // not the whole turn's combined JSON.
-          <ExchangeItem m={item} showDebug={showDebug} />
-        ) : (
-          <RawInspector payload={item}>
-            <ExchangeItem m={item} showDebug={showDebug} />
-          </RawInspector>
-        )
-      }
+      follow={follow}
+      renderItem={renderSessionItem}
     />
   )
 })

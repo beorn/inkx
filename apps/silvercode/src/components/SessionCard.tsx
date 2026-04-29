@@ -166,7 +166,18 @@ export function SessionCard({
       >
         <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} paddingX={1} paddingTop={1}>
           {state.messages.length === 0 ? (
-            <Welcome handle={handle} agent={agent} status={state.status} composerSlot={composerSlot} />
+            // Keep the production welcome in the normal cell renderer. The
+            // Kitty bitmap banner writes terminal image escapes directly to
+            // stdout; during resume/load it can unmount exactly as the chat
+            // list appears, which makes some terminals expose stale image
+            // state in scrollback.
+            <Welcome
+              handle={handle}
+              agent={agent}
+              status={state.status}
+              composerSlot={composerSlot}
+              bitmapBanner={false}
+            />
           ) : (
             <SessionUpdateList
               ref={scrollListRefCb}

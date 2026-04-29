@@ -107,3 +107,239 @@ export const MULTI_TURN: MessageEntry[] = [
     ts: NOW + 2_500,
   }),
 ]
+
+export const LONG_TOOL_SESSION: MessageEntry[] = [
+  makeFixtureEntry({
+    id: tid(10),
+    role: "user",
+    ops: [{ kind: "text", text: "Find why resumed Codex sessions lose their hover inspector, then patch it." }],
+    ts: NOW + 10_000,
+  }),
+  makeFixtureEntry({
+    id: tid(11),
+    role: "assistant",
+    ops: [
+      { kind: "text", text: "I’ll start by tracing the resume path and the popover wiring." },
+      {
+        kind: "tool",
+        toolCall: {
+          id: "tu_read_resume" as ToolUseId,
+          name: "Read",
+          input: { file_path: "apps/silvercode/src/resume.ts" },
+        },
+        result: {
+          id: "tu_read_resume" as ToolUseId,
+          output:
+            "export async function validateResumeId(agent: string, id: string) {\n" +
+            "  const transcript = await findTranscript(agent, id)\n" +
+            "  if (!transcript) throw new Error(`Resource not found: ${id}`)\n" +
+            "  return transcript\n" +
+            "}\n",
+          is_error: false,
+        },
+      },
+      {
+        kind: "tool",
+        toolCall: {
+          id: "tu_grep_popover" as ToolUseId,
+          name: "Grep",
+          input: { pattern: "usePopoverHandlers|Cmd\\+Shift|RawInspector", path: "apps/silvercode/src" },
+        },
+        result: {
+          id: "tu_grep_popover" as ToolUseId,
+          output:
+            "apps/silvercode/src/components/SessionUpdateList.tsx:444:function RawInspector\n" +
+            "apps/silvercode/src/App.tsx:789:// outside Kitty disambiguation mode\n" +
+            "apps/silvercode/src/components/AmbientEventRow.tsx:196:// popover mechanism\n",
+          is_error: false,
+        },
+      },
+    ],
+    ts: NOW + 11_000,
+  }),
+  makeFixtureEntry({
+    id: tid(12),
+    role: "user",
+    ops: [{ kind: "text", text: "Also check the storybook layout while you’re in there." }],
+    ts: NOW + 18_000,
+  }),
+  makeFixtureEntry({
+    id: tid(13),
+    role: "assistant",
+    ops: [
+      { kind: "text", text: "The story body is still doing some local layout work. I’m going to verify it first." },
+      {
+        kind: "tool",
+        toolCall: {
+          id: "tu_test_layout" as ToolUseId,
+          name: "Bash",
+          input: { command: "bun vitest run apps/silvercode/storybook/tests/stories.test.tsx -t All/together" },
+        },
+        result: {
+          id: "tu_test_layout" as ToolUseId,
+          output: "✓ apps/silvercode/storybook/tests/stories.test.tsx (26 tests | 25 skipped)\n",
+          is_error: false,
+        },
+      },
+      {
+        kind: "tool",
+        toolCall: {
+          id: "tu_edit_story" as ToolUseId,
+          name: "Edit",
+          input: {
+            file_path: "apps/silvercode/storybook/stories/All.story.tsx",
+            old_string: "<Screen flexDirection=\"row\" overflow=\"hidden\">",
+            new_string: "<Box flexDirection=\"row\" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} overflow=\"hidden\">",
+          },
+        },
+        result: { id: "tu_edit_story" as ToolUseId, output: "Patch applied.", is_error: false },
+      },
+    ],
+    ts: NOW + 19_000,
+  }),
+  makeFixtureEntry({
+    id: tid(14),
+    role: "user",
+    ops: [{ kind: "text", text: "Run the focused tests and show me any failures." }],
+    ts: NOW + 26_000,
+  }),
+  makeFixtureEntry({
+    id: tid(15),
+    role: "assistant",
+    ops: [
+      { kind: "text", text: "One focused test is still red; the user prompt bubble is visible but too wide." },
+      {
+        kind: "tool",
+        toolCall: {
+          id: "tu_fail" as ToolUseId,
+          name: "Bash",
+          input: { command: "bun vitest run apps/silvercode/tests/welcome-features.test.tsx -t 'feature 3'" },
+        },
+        result: {
+          id: "tu_fail" as ToolUseId,
+          output:
+            "FAIL feature 3 — right-aligned user prompt bubble\n" +
+            "AssertionError: expected leftCornerCol to be greater than app.width / 4\n",
+          is_error: true,
+        },
+      },
+      { kind: "text", text: "I’ll tighten the cap and re-run it." },
+      {
+        kind: "tool",
+        toolCall: {
+          id: "tu_write" as ToolUseId,
+          name: "Write",
+          input: {
+            file_path: "/tmp/silvercode-debug.log",
+            content: "prompt bubble width: 75%; max requested cap: <=80%\n",
+          },
+        },
+        result: { id: "tu_write" as ToolUseId, output: "Wrote /tmp/silvercode-debug.log", is_error: false },
+      },
+    ],
+    ts: NOW + 27_000,
+  }),
+  makeFixtureEntry({
+    id: tid(16),
+    role: "user",
+    ops: [{ kind: "text", text: "Before you finish, scan docs and ask a sub-agent to check for related regressions." }],
+    ts: NOW + 34_000,
+  }),
+  makeFixtureEntry({
+    id: tid(17),
+    role: "assistant",
+    ops: [
+      { kind: "text", text: "I’m checking the nearby docs, file set, and a delegated review path." },
+      {
+        kind: "tool",
+        toolCall: {
+          id: "tu_glob" as ToolUseId,
+          name: "Glob",
+          input: { pattern: "apps/silvercode/**/*.{tsx,ts,md}" },
+        },
+        result: {
+          id: "tu_glob" as ToolUseId,
+          output:
+            "apps/silvercode/src/components/SessionUpdateList.tsx\n" +
+            "apps/silvercode/src/components/Welcome.tsx\n" +
+            "apps/silvercode/storybook/stories/All.story.tsx\n" +
+            "apps/silvercode/storybook/README.md\n",
+          is_error: false,
+        },
+      },
+      {
+        kind: "tool",
+        toolCall: {
+          id: "tu_fetch" as ToolUseId,
+          name: "WebFetch",
+          input: { url: "https://example.com/acp-session-updates" },
+        },
+        result: {
+          id: "tu_fetch" as ToolUseId,
+          output: "Fetched reference page. Relevant sections: tool_call, tool_call_update, permission_request.",
+          is_error: false,
+        },
+      },
+      {
+        kind: "tool",
+        toolCall: {
+          id: "tu_todo" as ToolUseId,
+          name: "TodoWrite",
+          input: {
+            todos: [
+              { content: "Restore user prompts", status: "completed" },
+              { content: "Expand storybook session fixture", status: "in_progress" },
+              { content: "Run focused tests", status: "pending" },
+            ],
+          },
+        },
+        result: { id: "tu_todo" as ToolUseId, output: "Todo list updated.", is_error: false },
+      },
+      {
+        kind: "tool",
+        toolCall: {
+          id: "tu_task" as ToolUseId,
+          name: "Task",
+          input: {
+            description: "Review storybook session coverage",
+            prompt: "Check whether the representative session exercises user, assistant, tools, failures, and ambient rows.",
+          },
+        },
+        result: {
+          id: "tu_task" as ToolUseId,
+          output: "Coverage looks broad: read, grep, glob, bash, edit, write, fetch, todo, task, and a failed command.",
+          is_error: false,
+        },
+      },
+    ],
+    ts: NOW + 35_000,
+  }),
+  makeFixtureEntry({
+    id: tid(18),
+    role: "user",
+    ops: [{ kind: "text", text: "Clean up any temporary scratch file and then summarize." }],
+    ts: NOW + 43_000,
+  }),
+  makeFixtureEntry({
+    id: tid(19),
+    role: "assistant",
+    ops: [
+      {
+        kind: "tool",
+        toolCall: {
+          id: "tu_delete" as ToolUseId,
+          name: "Delete",
+          input: { path: "/tmp/silvercode-debug.log" },
+        },
+        result: { id: "tu_delete" as ToolUseId, output: "Removed /tmp/silvercode-debug.log", is_error: false },
+      },
+      {
+        kind: "text",
+        text:
+          "Summary: the representative session now includes normal chat, tool-heavy work, a failed command, " +
+          "file operations, search, fetch, todo planning, sub-agent output, and ambient notifications interleaved in the transcript.",
+      },
+    ],
+    ts: NOW + 44_000,
+  }),
+]

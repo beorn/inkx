@@ -24,7 +24,7 @@ import { AsideLayout } from "./components/AsideLayout.tsx"
 import { useResponsiveDisclosure } from "./hooks/useResponsiveDisclosure.ts"
 import { useInput } from "silvery/runtime"
 import { SessionPromptComposer } from "./components/SessionPromptComposer.tsx"
-import { shortenSessionId } from "./components/Welcome.tsx"
+import { formatLoadingSessionId } from "./components/Welcome.tsx"
 import { SessionPromptHistory } from "./components/SessionPromptHistory.tsx"
 import { Notifications } from "./components/Notifications.tsx"
 import { PaneGrid, type PaneGridHandle } from "./components/PaneGrid.tsx"
@@ -638,11 +638,10 @@ export function App(props: AppProps): React.ReactElement {
   // (focused?.messages.length), the value is stable from frame 0 and
   // only changes when the user actually types a turn.
   // Bead: km-silvery.startup-layout-cascade (L3 trigger).
-  const conversationStarted =
-    useSyncExternalStore(
-      (cb) => (focused ? focused.store.state.subscribe(cb) : () => {}),
-      () => (focused ? focused.store.state.get().messages.length > 0 : false),
-    )
+  const conversationStarted = useSyncExternalStore(
+    (cb) => (focused ? focused.store.state.subscribe(cb) : () => {}),
+    () => (focused ? focused.store.state.get().messages.length > 0 : false),
+  )
   const welcomeIsFocused = !conversationStarted
   const [focusedRegion, setFocusedRegion] = useState<"queue" | "command">("command")
   // Mirror focusedRegion into the ref the controller closes over (created
@@ -1336,9 +1335,12 @@ export function App(props: AppProps): React.ReactElement {
                       // on `focused` internally.
                       welcomeIsFocused || sessions.length === 0 ? (
                         focused?.resumeId || (sessions.length === 0 && props.resume) ? (
-                          <Text color="$muted">
-                            {`Loading session ${shortenSessionId(focused?.resumeId ?? props.resume ?? "")}…`}
-                          </Text>
+                          <Box flexDirection="column" alignItems="center">
+                            <Text color="$muted">Loading session</Text>
+                            <Text color="$muted">
+                              {formatLoadingSessionId(focused?.resumeId ?? props.resume ?? "", props.agent)}
+                            </Text>
+                          </Box>
                         ) : (
                           <SessionPromptComposer
                             queueText={focused ? queueText : ""}
@@ -1355,9 +1357,7 @@ export function App(props: AppProps): React.ReactElement {
                             onFocusRegion={focused ? setFocusedRegion : () => {}}
                             inputValue={inputValue}
                             onInputChange={setInputValue}
-                            inputDisabled={
-                              focused ? pendingPermissions > 0 || pendingQuestions > 0 : false
-                            }
+                            inputDisabled={focused ? pendingPermissions > 0 || pendingQuestions > 0 : false}
                             onSubmit={(text) => {
                               if (focused) {
                                 handleSubmit(text)
@@ -1381,15 +1381,6 @@ export function App(props: AppProps): React.ReactElement {
 
                 {/* Bottom chrome (left column). flexShrink=0 prevents overflow. */}
                 <Box flexDirection="column" flexShrink={0}>
-                  <InlinePermissionPrompt
-                    focused={focused}
-                    sessions={sessions}
-                    onApprove={(sid, rid) => controller.respondPermission(sid, rid, true)}
-                    onDeny={(sid, rid) => controller.respondPermission(sid, rid, false)}
-                    onSelectOption={(sid, rid, optionId, approved) =>
-                      controller.respondPermissionOption(sid, rid, optionId, approved)
-                    }
-                  />
                   <InlineAskUserQuestionPrompt
                     focused={focused}
                     sessions={sessions}
@@ -1417,7 +1408,7 @@ export function App(props: AppProps): React.ReactElement {
                       Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn. */}
                   <Box paddingX={2} paddingY={1} flexShrink={0} flexDirection="row">
                     <Box flexGrow={1} flexDirection="column">
-                      {focused && !welcomeIsFocused && renderComposer()}
+                      {focused && !welcomeIsFocused && renderCommandSurface()}
                     </Box>
                   </Box>
                 </Box>
@@ -1474,5 +1465,23 @@ export function App(props: AppProps): React.ReactElement {
         promptColor={promptColor}
       />
     )
+  }
+
+  function renderCommandSurface(): React.ReactElement | null {
+    const focusedPermissions = focused?.store.state.get().permissions.length ?? 0
+    if (focusedPermissions > 0) {
+      return (
+        <InlinePermissionPrompt
+          focused={focused}
+          sessions={sessions}
+          onApprove={(sid, rid) => controller.respondPermission(sid, rid, true)}
+          onDeny={(sid, rid) => controller.respondPermission(sid, rid, false)}
+          onSelectOption={(sid, rid, optionId, approved) =>
+            controller.respondPermissionOption(sid, rid, optionId, approved)
+          }
+        />
+      )
+    }
+    return renderComposer()
   }
 }
