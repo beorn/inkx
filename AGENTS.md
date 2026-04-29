@@ -23,7 +23,8 @@ vendor/                  # Git submodules — independent npm packages
   ansi/, termless/, bearly/, loggily/, accountly/, tap/, vt100/, ...
 hub/                     # Internal design docs (private; do not promote to public docs)
 docs/                    # Public documentation
-.beads/                  # Issue tracker DB (do not grep — opaque dolt files)
+@km/                     # Bead state — markdown files (one per scope/sub-bead) tracked in git
+.km/                     # Local bead index (gitignored FTS5 cache; rebuilt from @km/)
 ```
 
 **Architecture**: layers flow downward — `App → Commands → Board → Tree/Storage → Parser → Filesystem`. UI never touches the filesystem; Tree and Storage are peers.
@@ -32,7 +33,7 @@ docs/                    # Public documentation
 
 These directories add noise without value during search-driven exploration:
 
-- `.beads/` — dolt database files, jsonl logs (1M+ lines of issue history). Use `km bd list`, `km bd show <id>` instead.
+- `.km/` — generated FTS5 cache for bead lookups. Rebuilt from `@km/` markdown via `km doctor rebuild`. Use `km bd list`, `km bd show <id>` instead of grepping it.
 - `node_modules/`, `.cache/`, `dist/`, `build/` — generated.
 - `vendor/*/dist/`, `vendor/*/node_modules/` — generated inside submodules.
 - `hub/` — internal-only drafts. Reference for context if asked, but don't propose changes here unless the user explicitly opens hub work.
@@ -69,7 +70,8 @@ km bd ready                 # Find available work
 km bd show <id>             # View issue details
 km bd update <id> --claim   # Claim before coding
 km bd close <id>            # Complete
-bd dolt push             # Push to dolt remote (before git push)
+# Bead state rides normal git transport — no separate sync step
+git add @km/ && git commit -m "..." && git push
 ```
 
 When closing, include a brief reason:

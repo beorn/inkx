@@ -227,7 +227,7 @@ Exports: `.` (main), `./plugin`, `./fuzz`, `./chaos`
 
 ### `km bd` subcommands
 
-`km bd` is a bd-compatible CLI that operates on km's own SQLite data (not `.beads/`).
+`km bd` is the issue tracker. Bead state lives as markdown under `@km/<scope>/<slug>.md` (committed to git); `.km/state.db` is a gitignored FTS5 cache rebuilt from those markdown files. The standalone Go `bd` binary and its Dolt backend (`.beads/beads.db`) were retired 2026-04-29.
 
 | Subcommand | What |
 |------------|------|
@@ -246,8 +246,8 @@ Exports: `.` (main), `./plugin`, `./fuzz`, `./chaos`
 | `km bd children <id>` | List sub-tasks |
 | `km bd info` | Configuration and statistics |
 | `km bd query <expr>` | Raw DSL query |
-| `km bd migrate` | Import from `.beads/issues.jsonl` |
-| `km bd export` | Export to `.beads/issues.jsonl` |
+| `km bd migrate <source>` | Import from external `<source>/issues.jsonl` (Asana, legacy bd dump, etc.) into `imports/<source>-<date>/@km/...` |
+| `km bd export` | Dump beads to `issues.jsonl` for sharing |
 
 ### Root-level bun scripts (tools)
 
