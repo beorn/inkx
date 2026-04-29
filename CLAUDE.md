@@ -264,7 +264,7 @@ Before theorizing about a bug or issue, **search history first**: `bun recall "t
 
 ## Issue Tracking (km bd / beads)
 
-This project uses **`km bd`** for issue tracking — a km-native CLI that reads/writes the same `.beads/` store the Go `bd` binary maintains during the cutover. `km bd prime` injects workflow context on session start via `.claude/hooks/bd-prime.sh` (prefers Go bd while installed for perf, falls back to `km bd prime` otherwise).
+This project uses **`km bd`** for issue tracking — a km-native CLI. The Go `bd` binary and Dolt backend were retired (`@km/beads/dolt-archive` + `@km/beads/split-backend` closed 2026-04-29; `bd` is no longer on PATH). Bead state lives as **markdown files in the vault** (`@km/<scope>/<slug>.md`) — git is the sync mechanism; there is no separate Dolt push.
 
 ```bash
 km bd ready                    # Find available work
@@ -273,13 +273,12 @@ km bd create "title" -p 2      # Create a bead (P0–P4)
 km bd update <id> --claim      # Claim before starting
 km bd close <id>               # Complete work
 km bd list --status open       # List open beads
-bd dolt push                   # Push beads to remote (before git push) — Go bd only for now
+git push                       # Sync beads to remote — beads ride with normal git
 ```
 
-The Go `bd` binary still works as a synonym during the cutover. Advanced subcommands not yet ported to km bd (`defer`, `undefer`, `count`, `epic`, `lint`, `validate`, `search`, `dolt`, `formula`, `mol`, `gate`, `slot`, etc.) still require the Go binary — see `km-beads.split-backend` and `km-beads.dolt-archive` for the cutover plan.
+**All bead operations happen on the main repo's main worktree.** Bead state is checked-out per-worktree (the `@km/<scope>/<slug>.md` files), so an update from a sibling worktree doesn't propagate to main until commit + push + pull. To avoid that ceremony, run `km bd create / update / claim / close` from the main repo on `main`, regardless of which worktree owns the code change. The exception is the worktree-pool slot lifecycle — `km bd close km-wtN` runs from inside `wtN` to release a slot, since the slot's bead is the slot owner's own bead.
 
-Use `/pm` for the full workflow (create, claim, close, triage). Claim before coding.
-Any significant work (features, bug fixes, refactors) should have a bead — consider creating one when planning.
+`km bd prime` injects workflow context on session start via `.claude/hooks/bd-prime.sh`. Use `/pm` for the full workflow (create, claim, close, triage). Claim before coding. Any significant work (features, bug fixes, refactors) should have a bead — consider creating one when planning.
 **When `/pm` reports a bug requiring code changes, auto-run `/tdd`** — create the bead, then immediately reproduce with a failing test before fixing. See [.claude/skills/pm/] and [.claude/skills/tdd/].
 
 ## Commits
@@ -344,7 +343,7 @@ The pool reframe: instead of "every agent makes a new worktree" (high spawn cost
 
 ## Session Completion
 
-Before ending: `bun fix && bun run test:all && bd dolt push && git push`. For refactors/migrations, run `/complete` to catch remnants, stale docs, and unclosed beads. Propose next steps with AskUserQuestion.
+Before ending: `bun fix && bun run test:all && git push`. For refactors/migrations, run `/complete` to catch remnants, stale docs, and unclosed beads. Propose next steps with AskUserQuestion.
 Sub-agents skip this — only the top-level session runs verification.
 
 ## Triage — load these first when user says X
@@ -492,7 +491,7 @@ The hooks directory contains Claude Code hooks. opencode should map these equiva
 
 ### Workflow Integration
 
-Both agents use **`km bd`** (or the Go `bd` binary as a synonym during the cutover) for issue tracking:
+Both agents use **`km bd`** for issue tracking:
 
 ```bash
 km bd ready              # Find available work
