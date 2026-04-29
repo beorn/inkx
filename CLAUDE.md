@@ -288,6 +288,19 @@ Use `/commit`. Follow [Conventional Commits](https://conventionalcommits.org): `
 
 **Never use destructive git operations** (`git stash`, `git reset --hard`, `git checkout .`, `git restore`, `git clean -f`) - multiple agents may be operating on the same worktree concurrently.
 
+## Branches and worktrees — the standing rule
+
+Multiple Claude agents are concurrent. Long-lived feature branches sitting in the main repo cause HEAD-hopping (one agent commits to `feat/X`, the next session lands on `feat/X` instead of `main`, then commits there too — and `main` becomes a moving target). The standing rule:
+
+- **The main repo's working directory stays on `main`.** Never `git checkout` a feature branch in the main repo's working dir.
+- **All agent work goes in a worktree.** Use `bun worktree create <name>`. Each worktree gets its own throwaway branch (`feat/<name>`), isolated working dir, isolated dependencies.
+- **Throwaway branches are merged-and-deleted on completion.** As soon as the work is merged into `main`, delete the branch (`git branch -D feat/<name>`) and remove the worktree (`bun worktree remove <name>`). No long-lived feat branches.
+- **Concurrent agents on the same files MUST be in worktrees** (per memory `feedback-worktree-shared-submodule.md` — default, not threshold). One worktree per agent.
+- **`Agent({isolation: "worktree"})` clones into `.claude/worktrees/agent-*` automatically** — but verify isolation per `feedback-agent-worktree-verification.md` (`git worktree list --porcelain` should show the entry; if missing, fall back to `bun worktree create`).
+- **Never `git stash` to enable a checkout.** If the main repo's working dir has uncommitted files from another agent, ask the owner (broadcast on tribe) to commit/discard. Don't touch their WIP.
+
+The reason this rule exists: silvercode evening 2026-04-28 — main repo's HEAD bounced through `feat/fuzz-migrate-roundtrip` → `feat/predicate-pre-map-filter` from concurrent agents committing to whatever branch was current. The fix is procedural, not technical: agents stay in their own worktrees, main is the convergence point.
+
 ## Shipping (push to main, version bumps, npm publish)
 
 **Default: pre-authorized for repos we own.** Push to main, merge feature branches to main, version bumps, and `npm publish` are pre-authorized — agents do not need to ask the user for each one.
