@@ -3,7 +3,6 @@ import type { Repo } from "@km/storage"
 
 const SEPARATOR = "-"
 const AUTO_LENGTH = 4
-const DEFAULT_PREFIX = "km"
 
 /** Options for short ID functions */
 export interface ShortIdOptions {
@@ -14,12 +13,16 @@ export interface ShortIdOptions {
 /**
  * Generate a fresh short id of the form `<prefix>-<4chars>`.
  *
- * `prefix` comes from the destination repo's `.km/config.yaml`
- * (`beads.prefix`) and from the source `.beads/config.yaml`
- * (`issue-prefix`) during migration. Defaults to `"km"` for callers
- * that don't have a config in scope (tests, legacy code paths).
+ * `prefix` MUST come from the destination repo's `.km/config.yaml`
+ * (`beads.prefix`) — read via `getBeadsConfig` from `@km/storage`, or via
+ * the async `loadKmBdConfig` adapter for app-level callers. Migration paths
+ * forward the source `.beads/config.yaml` `issue-prefix` instead.
+ *
+ * No default — passing the wrong prefix in a non-`km` repo (cloudi, pam,
+ * pim vault) silently produced `km-…` ids. Required-arg makes the bug
+ * visible at the type level.
  */
-export function generateShortId(prefix: string = DEFAULT_PREFIX): string {
+export function generateShortId(prefix: string): string {
   const id = ulid()
   const suffix = id.slice(-AUTO_LENGTH).toLowerCase()
   return `${prefix}${SEPARATOR}${suffix}`
@@ -38,8 +41,10 @@ export function generateShortId(prefix: string = DEFAULT_PREFIX): string {
  * Idempotent: passing an already-bd-form id returns it unchanged. This
  * fixes the double-prefix bug (km-beads.create-double-prefix) where
  * `--id km-beads.foo` was producing `km-km-beads.foo`.
+ *
+ * `prefix` is required — see `generateShortId` for why.
  */
-export function generateCustomId(custom: string, prefix: string = DEFAULT_PREFIX): string {
+export function generateCustomId(custom: string, prefix: string): string {
   let s = custom.trim()
   // Strip a leading `@<prefix>/` sigil — canonical cross-vault reference.
   if (s.startsWith(`@${prefix}/`)) {

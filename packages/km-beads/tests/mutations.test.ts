@@ -4,7 +4,7 @@ import type { Issue } from "../src/types.ts"
 
 describe("createIssueNode", () => {
   test("creates a basic issue node", () => {
-    const { node, shortId } = createIssueNode("Fix the login bug")
+    const { node, shortId } = createIssueNode("Fix the login bug", { prefix: "km" })
 
     expect(node.type).toBe("p")
     expect(node.item).toBeDefined()
@@ -16,39 +16,40 @@ describe("createIssueNode", () => {
   })
 
   test("creates issue with type tag", () => {
-    const { node } = createIssueNode("Fix the login bug", { type: "bug" })
+    const { node } = createIssueNode("Fix the login bug", { prefix: "km", type: "bug" })
 
     expect(node.content).toContain("#bug")
   })
 
   test("creates issue with priority", () => {
-    const { node } = createIssueNode("Critical fix", { priority: "P0" })
+    const { node } = createIssueNode("Critical fix", { prefix: "km", priority: "P0" })
 
     expect(node.content).toContain("#P0")
     expect(node.priority).toBe("P0")
   })
 
   test("creates issue with assignee", () => {
-    const { node } = createIssueNode("Assigned task", { assignee: "alice" })
+    const { node } = createIssueNode("Assigned task", { prefix: "km", assignee: "alice" })
 
     expect(node.content).toContain("@alice")
     expect(node.data?.mentions).toContain("alice")
   })
 
   test("creates issue with custom ID", () => {
-    const { shortId } = createIssueNode("Epic task", { customId: "auth-epic" })
+    const { shortId } = createIssueNode("Epic task", { prefix: "km", customId: "auth-epic" })
 
     expect(shortId).toBe("km-auth-epic")
   })
 
   test("creates sub-issue with parent ID", () => {
-    const { shortId } = createIssueNode("Sub task", { parentId: "km-epic" })
+    const { shortId } = createIssueNode("Sub task", { prefix: "km", parentId: "km-epic" })
 
     expect(shortId).toMatch(/^km-epic\.\d+$/)
   })
 
   test("creates issue with labels", () => {
     const { node } = createIssueNode("Labeled task", {
+      prefix: "km",
       labels: ["urgent", "frontend"],
     })
 
@@ -57,10 +58,24 @@ describe("createIssueNode", () => {
   })
 
   test("defaults to P2 priority", () => {
-    const { node } = createIssueNode("Normal task")
+    const { node } = createIssueNode("Normal task", { prefix: "km" })
 
     expect(node.content).toContain("#P2")
     expect(node.priority).toBe("P2")
+  })
+
+  test("honors a non-km prefix end-to-end (regression: hardcoded prefix bug)", () => {
+    // A vault configured with prefix=pim should produce pim-* ids.
+    const { shortId: auto } = createIssueNode("auto", { prefix: "pim" })
+    expect(auto).toMatch(/^pim-[a-z0-9]{4}$/)
+
+    const { shortId: custom } = createIssueNode("custom", { prefix: "pim", customId: "scope.thing" })
+    expect(custom).toBe("pim-scope.thing")
+  })
+
+  test("requires explicit prefix — no hardcoded 'km' fallback", () => {
+    // @ts-expect-error — prefix is required, this should fail typecheck and throw at runtime.
+    expect(() => createIssueNode("forgot prefix", {})).toThrow(/prefix is required/)
   })
 })
 

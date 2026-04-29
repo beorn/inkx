@@ -21,13 +21,19 @@ import { normalizePriority } from "./priority.ts"
  */
 export function createIssueNode(
   title: string,
-  options: CreateIssueOptions = {},
+  options: CreateIssueOptions,
 ): { node: KNode; shortId: string; children: KNode[] } {
   const now = Date.now()
   const id = ulid()
 
-  // Generate short ID — prefix from repo config (.km/config.yaml beads.prefix)
-  // or "km" default for callers without config in scope.
+  // Generate short ID — prefix MUST come from repo config
+  // (.km/config.yaml `beads.prefix`). No default: a missing prefix would
+  // silently produce `km-…` ids in non-`km` repos (cloudi, pam, pim vault).
+  if (!options.prefix) {
+    throw new Error(
+      "createIssueNode: options.prefix is required — read from .km/config.yaml `beads.prefix` (e.g. via loadKmBdConfig).",
+    )
+  }
   const prefix = options.prefix
   let shortId: string
   if (options.customId) {

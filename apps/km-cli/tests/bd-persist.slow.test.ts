@@ -108,7 +108,7 @@ describe("km bd write-path persistence", () => {
       const inbox = repo.resolveNode("inbox")
       expect(inbox, "inbox.md must resolve").toBeTruthy()
 
-      const { node, children } = createIssueNode("persist me please", { type: "bug" })
+      const { node, children } = createIssueNode("persist me please", { prefix: "km", type: "bug" })
       const nodeId = repo.addNode(inbox!.id, node)
       for (const child of children) {
         repo.addNode(nodeId, child)
@@ -132,7 +132,7 @@ describe("km bd write-path persistence", () => {
     {
       using repo = openRepo(dir)
       const inbox = repo.resolveNode("inbox")!
-      const { node } = createIssueNode("before edit", { priority: "P3" })
+      const { node } = createIssueNode("before edit", { prefix: "km", priority: "P3" })
       const issueId = repo.addNode(inbox.id, node)
 
       const issue = nodeToIssue(repo.getNode(issueId)!, { repo })
@@ -156,7 +156,7 @@ describe("km bd write-path persistence", () => {
     {
       using repo = openRepo(dir)
       const inbox = repo.resolveNode("inbox")!
-      const { node } = createIssueNode("close me", {})
+      const { node } = createIssueNode("close me", { prefix: "km" })
       const issueId = repo.addNode(inbox.id, node)
 
       repo.updateNode(issueId, closeIssueFields("resolved"))
@@ -174,7 +174,7 @@ describe("km bd write-path persistence", () => {
     {
       using repo = openRepo(dir)
       const inbox = repo.resolveNode("inbox")!
-      const { node } = createIssueNode("claim me @alice", {})
+      const { node } = createIssueNode("claim me @alice", { prefix: "km" })
       const issueId = repo.addNode(inbox.id, node)
 
       const issue = nodeToIssue(repo.getNode(issueId)!, { repo })
@@ -194,7 +194,7 @@ describe("km bd write-path persistence", () => {
     {
       using repo = openRepo(dir)
       const inbox = repo.resolveNode("inbox")!
-      const { node } = createIssueNode("drop this", {})
+      const { node } = createIssueNode("drop this", { prefix: "km" })
       const issueId = repo.addNode(inbox.id, node)
       repo.updateNode(issueId, dropIssueFields("wontfix"))
     }
@@ -214,11 +214,11 @@ describe("km bd write-path persistence", () => {
       using repo = openRepo(dir)
       const inbox = repo.resolveNode("inbox")!
 
-      const blocker = createIssueNode("the blocker", { customId: "test-blocker-1" })
+      const blocker = createIssueNode("the blocker", { prefix: "km", customId: "test-blocker-1" })
       repo.addNode(inbox.id, blocker.node)
       blockerShort = blocker.shortId
 
-      const blocked = createIssueNode("the blocked", {})
+      const blocked = createIssueNode("the blocked", { prefix: "km" })
       const blockedId = repo.addNode(inbox.id, blocked.node)
 
       const issue = nodeToIssue(repo.getNode(blockedId)!, { repo })

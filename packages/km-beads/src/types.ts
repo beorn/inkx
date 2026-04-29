@@ -60,8 +60,10 @@ export interface CreateIssueOptions {
   description?: string // Body text (created as child paragraph)
   notes?: string // Additional notes (created as child paragraph after description)
   /**
-   * Issue id prefix (e.g. `km`, `gbrain`). Comes from the repo's
-   * `.km/config.yaml` `beads.prefix`. Defaults to `"km"` when omitted.
+   * Issue id prefix (e.g. `km`, `gbrain`, `pim`). Required — comes from the
+   * repo's `.km/config.yaml` `beads.prefix` (read via `loadKmBdConfig` or
+   * `getBeadsConfig`). No default: a missing prefix would silently produce
+   * `km-…` ids in non-`km` repos (cloudi, pam, pim vault).
    */
-  prefix?: string
+  prefix: string
 }
