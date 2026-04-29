@@ -165,11 +165,6 @@ export const viewCommand = new Command("view")
 
       let createdRepo: import("@km/storage").Repo | undefined
       let rootNodeId: string | undefined
-      // Bare-scope arrival: the CLI arg resolves to a directory (folder/repo
-      // fstype), not a file or sub-anchor. The TUI uses this to snap the
-      // initial cursor to the first child of the directory rather than
-      // descending into a sub-block. See bead @km/tui/bare-scope-snap-to-root.
-      let bareScopeArrival = false
 
       await steps({
         loadRepo: function* () {
@@ -193,11 +188,6 @@ export const viewCommand = new Command("view")
           if (resolved.nodeRef) {
             const node = createdRepo.resolveNode(resolved.nodeRef)
             rootNodeId = node?.id
-            // Directory-like fstypes mean the CLI arg pointed at a scope, not a
-            // file/section — `km view beads` resolving to `@km/beads`.
-            if (node && (node.fstype === "folder" || node.fstype === "repo")) {
-              bareScopeArrival = true
-            }
 
             // km-view-stub: If targeting a stub file, parse it eagerly
             if (
@@ -216,8 +206,6 @@ export const viewCommand = new Command("view")
           } else {
             const repoRootNode = createdRepo.getRepoRootNode()
             rootNodeId = repoRootNode?.id
-            // No CLI arg → repo root → bare-scope arrival.
-            bareScopeArrival = true
           }
 
           // Surface load errors/warnings
@@ -433,7 +421,6 @@ export const viewCommand = new Command("view")
         repo: createdRepo,
         patchedConsole: patchedConsole ?? undefined,
         onReady: enableConsoleDebug,
-        bareScopeArrival,
       })
 
       // Signal background task to stop (don't wait - causes Bun crash on cleanup)

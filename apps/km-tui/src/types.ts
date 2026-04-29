@@ -98,12 +98,4 @@ export interface TuiOptions {
    * Used to log total startup time from CLI to first render.
    */
   startTime?: number
-  /**
-   * "Bare scope arrival" — the CLI arg resolved to a directory (folder/repo
-   * fstype) with no explicit deep target, e.g. `km view beads` opening
-   * `@km/beads`. When true, the initial cursor snaps to the first child of
-   * `rootId` (a bead file) instead of descending one level further to a
-   * sub-block. See bead @km/tui/bare-scope-snap-to-root.
-   */
-  bareScopeArrival?: boolean
 }
