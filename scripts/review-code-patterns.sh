@@ -390,10 +390,15 @@ echo "=== PATTERN 43: Stale 'bd <ported-cmd>' in skills/docs/hooks (cutover regr
 #
 # Track parity matrix in hub/km/design/cutover-runbook.md.
 PORTED_BD_CMDS='ready|list|show|create|update|close|drop|dep|stale|orphans|claim|children|blocked|query|rename|migrate|export|remember|memories|prime'
+# `\bbd\s+...` matches both `bd ready` (target) and the `bd ready` substring
+# inside `km bd ready` / `km" bd ready` (false positives). Filter via a
+# follow-up grep that excludes any line where `km` (with optional quote)
+# precedes the match.
 grep -rEn "\\bbd\\s+($PORTED_BD_CMDS)\\b" \
   .claude/skills .claude/hooks docs CLAUDE.md \
   --include='*.md' --include='*.sh' 2>/dev/null \
-  | grep -v 'node_modules\|/dist/\|cutover-runbook\.md' || true
+  | grep -vE "km[\"' ]?\\s+bd\\s+($PORTED_BD_CMDS)\\b" \
+  | grep -v 'node_modules\|/dist/\|cutover-runbook\.md\|bd-prime\.sh' || true
 echo ""
 
 echo "Pattern detection complete."

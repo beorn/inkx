@@ -1,4 +1,10 @@
 ---
+tags:
+  - bug
+  - P2
+mentions:
+  - km
+  - claude
 id: "@km/beads/export-path-relative"
 aliases:
   - km-beads.export-path-relative
@@ -76,6 +82,8 @@ close_reason: >-
   diagnosis (mktemp template error caused git init to run in main repo CWD).
   Branch is 1 commit ahead of origin/main with a stray issues.jsonl. Surfaced
   for user to revert; not pushed to origin.
+closeReason: Obsoleted by cutover — Go bd binary is gone, the
+  export-path-relative bug class no longer applicable.
 ---
 
 # [x] bd export hook writes issues.jsonl to worktree root instead of .beads/ — three agents hit it concurrently @km/beads #bug #P2 @claude:cc081a9a
@@ -100,3 +108,4 @@ bd config has 'export.path: "issues.jsonl"' (relative). In the main worktree git
 - bd config docs clarify export.path resolution semantics
 - Hook either resolves relative to '.beads/' OR uses an absolute path
 - Add a sanity check that errors loudly if 'issues.jsonl' detected at root
+
