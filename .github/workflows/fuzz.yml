@@ -169,13 +169,14 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-      # The runner doesn't have credentials to push to the Dolt-backed beads
-      # repo, so this step prints the `bd create` command into the workflow
-      # log for human follow-up. The script is idempotent — re-runs against
-      # the same seed produce the same bead ID and append-note instead of
-      # creating duplicates. When a `BD_DOLT_TOKEN` secret is added to the
-      # repo, the dry-run gate can be removed and the script can `bd dolt
-      # push` directly.
+      # The runner doesn't have credentials to commit bead markdown to the
+      # repo, so this step prints the `km bd create` command into the
+      # workflow log for human follow-up. The script is idempotent — re-runs
+      # against the same seed produce the same bead ID and append-note
+      # instead of creating duplicates. When a write-capable token is wired
+      # into the workflow, the dry-run gate can be removed and the script
+      # can commit the @km/<scope>/<slug>.md file + git push directly
+      # (Dolt-backend cutover, 2026-04-29).
       - name: File bead for fuzz crash (dry-run)
         if: steps.fuzz.outcome == 'failure'
         env:
