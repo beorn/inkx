@@ -281,8 +281,13 @@ export function SilverCodeBanner({
     // aspect divided by that cell-shape factor — no per-image
     // hardcoded ratios.
     const CELL_HEIGHT_TO_WIDTH = 2
+    // Cap at 60 cols — the image is a centered banner, not a full-screen
+    // backdrop. Without this, on a 150-col Ghostty window the image
+    // computed to ~146 cells wide × 50 cells tall and consumed almost
+    // the entire viewport.
+    const IMG_MAX_COLS = 60
     const { width: pngW, height: pngH } = SILVER_CODE_PNG_DIMENSIONS
-    const imgW = Math.max(20, availableWidth - 4)
+    const imgW = Math.min(IMG_MAX_COLS, Math.max(20, availableWidth - 4))
     const imgH = Math.max(5, Math.round((imgW * pngH) / (pngW * CELL_HEIGHT_TO_WIDTH)))
     block = (
       <Box flexDirection="column" alignItems="center">
