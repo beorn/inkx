@@ -1,0 +1,20 @@
+---
+id: "@km/silvercode/m8-silvery-syntax"
+aliases:
+  - km-silvercode.m8-silvery-syntax
+  - km-silvercode-m8-silvery-syntax
+created_by: claude:0940ca20
+created_at: 2026-04-24T09:09:52Z
+closed_at: 2026-04-24T09:37:06Z
+close_reason: "Shipped in commit 48955bf47 as part of the M0-M12 landing. See
+  commit message for per-milestone scope notes. Future work: swap in-app
+  markdown/syntax for @silvery/markdown + @silvery/syntax when they ship; evolve
+  Codex Track 1 parser as the CLI stabilizes; harden km-mcp backend when real
+  @km/storage queries are wired in apps/silvercode/controller.ts."
+---
+
+# [x] M8: @silvery/syntax (Shiki-based) + diff renderer @km/silvercode #task #P2
+
+blocks:: [[@km/silvercode]]
+
+See hub/silvery/future/ai-terminal/00-agent-workspace.md Phased delivery section for M8- scope.

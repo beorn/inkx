@@ -1,0 +1,16 @@
+---
+id: "@km/tui/column-top-disappears"
+aliases:
+  - km-tui.column-top-disappears
+  - km-tui-column-top-disappears
+created_by: claude:8b5b9e1c
+created_at: 2026-04-20T16:56:58Z
+closed_at: 2026-04-21T03:01:28Z
+close_reason: FIXED — see full notes. User confirmed 2026-04-21.
+---
+
+# [x] Column top disappears on cursor-down, reappears on cursor-up @km/tui #bug #P1 @claude:8b5b9e1c
+
+blocks:: [[@km/tui]]
+
+When cursoring down in a column with many cards, the top of the column (header or leading cards) disappears. Cursoring back up restores them. Symptom suggests column height miscalculation or race condition in scroll tier / incremental rendering. Recurring report: prior recall shows this bug was observed before but unresolved.

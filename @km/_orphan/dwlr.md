@@ -1,0 +1,97 @@
+---
+id: "@km/_orphan/dwlr"
+aliases:
+  - km-dwlr
+created_at: 2026-01-17T23:15:36Z
+closed_at: 2026-01-17T23:18:31Z
+---
+
+# [x] Integrate @km/commands with Board.tsx @km/_orphan #task #P2
+
+## Goal
+Replace the monolithic `handleKeyboardInput` in Board.tsx with the unified command system.
+
+## Current State
+
+Board.tsx has ~800 lines of keyboard handling:
+```typescript
+function handleKeyboardInput(input: string, key: KeyObject) {
+  // 800+ lines of if/else chains
+  if (input === "q") { exit(); return; }
+  if (key.meta && key.upArrow) { moveCardInColumn(card, "up"); return; }
+  // ... etc
+}
+```
+
+## Target State
+
+```typescript
+function handleKeyboardInput(input: string, key: KeyObject) {
+  // Build context
+  const ctx = buildCommandContext(state, ui, storage);
+  const kbCtx = buildKeybindingContext(state, ui);
+  
+  // Resolve key to command
+  const commandId = resolveKeybinding(
+    input || getKeyName(key),
+    { ctrl: key.ctrl, meta: key.meta, shift: key.shift, alt: key.meta },
+    kbCtx
+  );
+  
+  if (!commandId) return; // No binding for this key
+  
+  // Execute command
+  const actions = executeCommand(commandId, ctx);
+  if (!actions) return; // Command declined to execute
+  
+  // Dispatch actions
+  for (const action of Array.isArray(actions) ? actions : [actions]) {
+    dispatchAction(action);
+  }
+}
+```
+
+## Migration Strategy
+
+### Phase 1: Parallel Implementation
+- Keep existing handlers as fallback
+- New system handles commands that are migrated
+- Feature flag to switch between systems
+
+### Phase 2: Progressive Migration
+- Move handlers to commands one category at a time
+- Navigation → Selection → Edit → Task → View
+- Delete old handler code as commands are verified
+
+### Phase 3: Cleanup
+- Remove feature flag
+- Delete legacy handler code
+- Board.tsx keyboard section reduced to ~50 lines
+
+## Action Dispatcher
+
+Need a unified dispatcher that routes actions appropriately:
+```typescript
+function dispatchAction(action: AnyAction) {
+  if (isBoardAction(action)) {
+    // Update board state via reducer
+    setBoardState(boardReducer(state, action));
+  } else if (isUIAction(action)) {
+    // Update UI state
+    dispatch(action);
+  } else if (isTAction(action)) {
+    // Storage mutation
+    executeStorageAction(action);
+    // Then refresh board state
+    refreshBoardState();
+  }
+}
+```
+
+## Acceptance Criteria
+- [ ] handleKeyboardInput uses command system
+- [ ] All existing keybindings still work
+- [ ] Visual regression tests pass (ttyd + Playwright)
+- [ ] Board.tsx keyboard section < 100 lines
+- [ ] No behavior changes for users
+- [ ] Feature flag for rollback (temporary)

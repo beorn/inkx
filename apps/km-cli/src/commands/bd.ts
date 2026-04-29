@@ -108,6 +108,7 @@ bdCommand
   .option("--blocked", "Show only blocked issues")
   .option("--unblocked", "Show only unblocked issues")
   .option("--all", "Show all tasks (no scope narrowing)")
+  .option("-n, --limit <n>", "Limit number of results")
   .option("--json", "Output as JSON")
   .actionMerged(async (opts) => {
     const queryParts: string[] = opts.query ?? []
@@ -135,7 +136,9 @@ bdCommand
 
       // Scope IS the board — no global board filter (queryIssues narrows
       // by scope path or query string instead).
-      const issues = queryIssues(filter, scopePath, undefined, { repo })
+      const allIssues = queryIssues(filter, scopePath, undefined, { repo })
+      const limit = opts.limit ? Number.parseInt(opts.limit as string, 10) : 0
+      const issues = limit > 0 ? allIssues.slice(0, limit) : allIssues
 
       if (opts.json) {
         console.log(JSON.stringify(issues.map(issueToBdJson), null, 2))
@@ -148,7 +151,9 @@ bdCommand
       }
 
       const scopeMsg = formatScopeMessage(scopePath)
-      console.log(term.bold(`Issues (${issues.length}${scopeMsg}):\n`))
+      const totalMsg =
+        limit > 0 && allIssues.length > issues.length ? `${issues.length} of ${allIssues.length}` : `${issues.length}`
+      console.log(term.bold(`Issues (${totalMsg}${scopeMsg}):\n`))
       for (const issue of issues) {
         printIssue(issue)
       }
@@ -177,6 +182,10 @@ bdCommand
       issues = issues.filter((i) => !i.blockedBy || i.blockedBy.length === 0)
     }
 
+    const totalCount = issues.length
+    const limit = opts.limit ? Number.parseInt(opts.limit as string, 10) : 0
+    if (limit > 0) issues = issues.slice(0, limit)
+
     if (opts.json) {
       console.log(JSON.stringify(issues.map(issueToBdJson), null, 2))
       return
@@ -187,7 +196,8 @@ bdCommand
       return
     }
 
-    console.log(term.bold(`Issues (${issues.length}):\n`))
+    const totalMsg = limit > 0 && totalCount > issues.length ? `${issues.length} of ${totalCount}` : `${issues.length}`
+    console.log(term.bold(`Issues (${totalMsg}):\n`))
     for (const issue of issues) {
       printIssue(issue)
     }

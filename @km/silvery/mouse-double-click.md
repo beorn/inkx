@@ -1,0 +1,14 @@
+---
+id: "@km/silvery/mouse-double-click"
+aliases:
+  - km-silvery.mouse-double-click
+  - km-silvery-mouse-double-click
+created_by: Bjørn Stabell
+created_at: 2026-04-15T23:18:16Z
+---
+
+# [ ] Mouse: double-click word selection @km/silvery #feature #P2
+
+blocks:: [[@km/silvery/opentui-parity]]
+
+On 2nd click within double-click threshold, auto-extend selection to word boundary. Standard text editor behavior; missing from silvery's selection system.

@@ -1,0 +1,20 @@
+---
+id: "@km/tui/autolinks-hover-popover"
+aliases:
+  - km-tui.autolinks-hover-popover
+  - km-tui-autolinks-hover-popover
+created_by: claude:2405c72e
+created_at: 2026-04-26T04:55:01Z
+closed_at: 2026-04-26T06:38:26Z
+close_reason: "Shipped: fd39c7f96 + 9de8cbf70. usePopover-based hover wiring via
+  clientX/clientY (anchorRef substrate is BoxProp; inline Text spans can't take
+  it without breaking word-wrap — migration noted for when silvery ships
+  span-level fragment rects). 5 integration tests. Session:
+  km-session.0425-evening"
+---
+
+# [x] km-tui hover-popover via overlay-anchor system @km/tui #feature #P2 @claude:2405c72e
+
+blocks:: [[@km/silvery/overlay-anchor-impl-v1]], [[@km/tui]], [[@km/tui/autolinks-adopt]]
+
+After autolinks adoption (@km/tui/autolinks-adopt) + overlay-anchor v1 (@km/silvery/overlay-anchor-impl-v1). Hovering an autolink match in @km/tui shows popover anchored to the text span via anchorRef + decorations. placeFloating chooses position. Parent: @km/tui.
