@@ -1,14 +1,14 @@
 /**
  * Beads Memory Commands — bd remember / bd memories / bd prime
  *
- * Memories live as `mem/<slug>.md` files at vault root. Each file is a
+ * Memories live as `<beadsRoot>/@memory/<slug>.md` files. Each file is a
  * single sectioned `## <Title> @memory` block whose body is the insight.
  * The `@memory` sigil makes them queryable via standard sigil sweep.
  *
- * Memories are insights (not prefix-tagged); they are NOT scoped under
- * `@<prefix>/`. Migrated bd memories land in `imports/<source>-<date>/mem/`
- * (paired with their bd db's `@<prefix>/` import); runtime `bd remember`
- * writes to `<repoRoot>/mem/`.
+ * Memories are insights (not prefix-tagged); the `@memory/` directory
+ * sits next to per-source board directories (`@<prefix>/`) inside the
+ * configured beads root. Multiple sources merge into one flat
+ * `@memory/`, keyed by slug. Path resolved via @km/beads `resolveMemDir`.
  */
 
 import { Command } from "@silvery/commander"
@@ -16,6 +16,8 @@ import { createTerm } from "@silvery/ag-react"
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from "node:fs"
 import { join, basename } from "node:path"
 import { resolvePathArg } from "@km/fs-mount"
+import { resolveMemDir } from "@km/beads"
+import { loadConfigObject } from "@km/storage"
 
 const term = createTerm(process)
 
@@ -29,9 +31,10 @@ function slugifyMemoryKey(text: string): string {
   return slug || `memory-${Date.now().toString(36)}`
 }
 
-/** Resolve the memory directory for the current vault. */
-function resolveMemDir(repoRoot: string): string {
-  return join(repoRoot, "mem")
+/** Load beads config and resolve the memory directory for the vault. */
+function memDirFor(repoRoot: string): string {
+  const config = loadConfigObject(repoRoot)
+  return resolveMemDir(repoRoot, config.beads)
 }
 
 /** Read all `.md` files in `memDir`, returning `{key, title, body, mtime}` for each. */
@@ -81,7 +84,7 @@ export const rememberCommand = new Command("remember")
       return
     }
     const resolved = resolvePathArg(undefined)
-    const memDir = resolveMemDir(resolved.repoRoot)
+    const memDir = memDirFor(resolved.repoRoot)
     if (!existsSync(memDir)) mkdirSync(memDir, { recursive: true })
 
     const firstLine = text.split("\n")[0] ?? text
@@ -110,7 +113,7 @@ export const memoriesCommand = new Command("memories")
   .option("-n, --limit <n>", "Max results", "20")
   .action(async (keyword, opts) => {
     const resolved = resolvePathArg(undefined)
-    const memDir = resolveMemDir(resolved.repoRoot)
+    const memDir = memDirFor(resolved.repoRoot)
     let memories = readMemories(memDir)
 
     if (keyword) {
@@ -164,7 +167,7 @@ export const primeCommand = new Command("prime")
     }
 
     // 2. Recent memories from mem/.
-    const memDir = resolveMemDir(resolved.repoRoot)
+    const memDir = memDirFor(resolved.repoRoot)
     const memories = readMemories(memDir)
     if (memories.length > 0) {
       memories.sort((a, b) => b.mtime - a.mtime)
