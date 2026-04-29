@@ -87,6 +87,67 @@ function isUnderRoots(path: string | undefined, roots: string[]): boolean {
 }
 
 /**
+ * Compute the path's depth relative to the longest matching root, in
+ * number of `/`-separated segments past the root prefix.
+ *
+ *   path = "@km/beads/aliases-resolver.md", root = "@km"
+ *   subpath = "beads/aliases-resolver.md" → 2 segments
+ *
+ *   path = "beads/@km/scope/slug.md", root = "beads"
+ *   subpath = "@km/scope/slug.md" → 3 segments
+ *
+ * Returns -1 when no root matches. The longest-match preference
+ * disambiguates overlapping roots (e.g. `["beads", "beads/@km"]`).
+ */
+function depthUnderRoots(path: string | undefined, roots: string[]): number {
+  if (!path) return -1
+  let bestMatch: string | undefined
+  for (const root of roots) {
+    if (path === root || path.startsWith(`${root}/`)) {
+      if (bestMatch === undefined || root.length > bestMatch.length) bestMatch = root
+    }
+  }
+  if (bestMatch === undefined) return -1
+  if (path === bestMatch) return 0
+  const subpath = path.slice(bestMatch.length + 1)
+  return subpath.split("/").length
+}
+
+/**
+ * Bead-membership predicate: a node is a "bead" iff
+ *   1. it lives under a configured boards root, AND
+ *   2. its on-disk shape matches one of:
+ *      a) Structural (default) — depth-2 file under the root, i.e. the
+ *         canonical `<root>/<scope>/<slug>.md` layout. The bead file is
+ *         the second segment past the root.
+ *      b) Declarative (escape hatch) — `node.name` starts with `+`,
+ *         the elevated-sub-bead sigil. This lets a sub-checkbox at any
+ *         depth opt into bead status without disturbing the default.
+ *
+ * Sub-checkbox content (`- [ ] X` nested under a bead file) is NOT a
+ * bead under either branch — it has no `+` and lives at depth ≥ 3 — so
+ * it falls out of `bd ready` / `bd list` results, eliminating the
+ * sub-item noise that previously hit the ULID-suffix fallback in
+ * `nodeToIssue`.
+ *
+ * See km-beads.bead-sigil-elevation for the design rationale.
+ */
+function isBead(node: KNode, roots: string[], repo: Repo | undefined): boolean {
+  const path = getNodePath(node, repo)
+  if (!isUnderRoots(path, roots)) return false
+  // Structural: the node IS the bead file at depth-2 under the root.
+  // `node.fs_path` is the gate — only file nodes carry it; embedded
+  // children resolve their path via parent walk in getNodePath, so the
+  // depth check would otherwise admit any sub-checkbox sitting in a
+  // depth-2 file. Requiring `node.fs_path` ensures we only count the
+  // file node itself, not its descendants.
+  if (node.fs_path && depthUnderRoots(node.fs_path, roots) === 2) return true
+  // Declarative: explicit elevation via `+` sigil prefix on node.name.
+  if (node.name?.startsWith("+")) return true
+  return false
+}
+
+/**
  * Count how many issues are blocked by the given short ID.
  *
  * Slow path: scans all nodes once per call (unindexed JSON LIKE). Use
@@ -339,18 +400,16 @@ export function queryReady(
     return [] // Cannot query without repo
   }
   const allNodes = repo.query(query)
-  // Board-membership predicate: keep only nodes whose repo-relative
-  // fs_path lives under one of the configured beads roots. Filtering
-  // pre-map ensures out-of-scope nodes (markdown fixtures, archived
-  // notes, ad-hoc todos) never reach nodeToIssue — which means the
-  // ULID-suffix fallback in nodeToIssue is unreachable for these
-  // queries, and out-of-scope nodes can't accidentally fall through
-  // and get a synthesized short_id.
+  // Bead-membership predicate (km-beads.bead-sigil-elevation):
+  // Default = file at depth-2 under boardRoots (the canonical
+  // `<root>/<scope>/<slug>.md` shape). Declarative escape hatch =
+  // `node.name?.startsWith("+")`, the elevated-sub-bead sigil. Sub-
+  // checkboxes inside bead files (depth ≥ 3, no sigil) are correctly
+  // excluded — eliminating the previous N+1 noise that hit the
+  // ULID-suffix fallback in nodeToIssue.
   const boardRoots = options?.boardRoots
   const nodes =
-    boardRoots && boardRoots.length > 0
-      ? allNodes.filter((n) => isUnderRoots(getNodePath(n, repo), boardRoots))
-      : allNodes
+    boardRoots && boardRoots.length > 0 ? allNodes.filter((n) => isBead(n, boardRoots, repo)) : allNodes
   // Build the dependent-count map ONCE, not per-issue. Eliminates 3463 × O(N)
   // unindexed scans on large vaults — see km-beads.list-status-perf.
   const dependentCountMap = buildDependentCountMap(repo)
@@ -415,14 +474,11 @@ export function queryIssues(
     return [] // Cannot query without repo
   }
   const allNodes = repo.query(query.trim() || "*")
-  // Pre-map root-membership filter — see queryReady for the rationale.
-  // Out-of-scope nodes never reach nodeToIssue, so the ULID-suffix
-  // fallback is unreachable when boardRoots is set.
+  // Bead-membership predicate — see queryReady for the rationale and
+  // km-beads.bead-sigil-elevation for the design.
   const boardRoots = options?.boardRoots
   const nodes =
-    boardRoots && boardRoots.length > 0
-      ? allNodes.filter((n) => isUnderRoots(getNodePath(n, repo), boardRoots))
-      : allNodes
+    boardRoots && boardRoots.length > 0 ? allNodes.filter((n) => isBead(n, boardRoots, repo)) : allNodes
   // Build the dependent-count map ONCE — see queryReady for context.
   const dependentCountMap = buildDependentCountMap(repo)
   let issues = nodes.map((n) => nodeToIssue(n, { repo, dependentCountMap }))
