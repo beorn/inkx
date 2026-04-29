@@ -154,7 +154,14 @@ function isBead(node: KNode, roots: string[], repo: Repo | undefined): boolean {
  * buildDependentCountMap(repo) once and pass via options.dependentCountMap
  * for batch queries — that turns 3463 × O(N) scans into 1 × O(N).
  */
-function countDependents(shortId: string, repo?: Repo, dependentCountMap?: Map<string, number>): number {
+function countDependents(
+  shortId: string | undefined,
+  repo?: Repo,
+  dependentCountMap?: Map<string, number>,
+): number {
+  // Non-beads (no shortId) can't be the target of a `blocked-by` edge —
+  // the dependent count is trivially zero.
+  if (!shortId) return 0
   if (dependentCountMap) {
     return dependentCountMap.get(shortId) ?? 0
   }
@@ -294,15 +301,21 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
   // Calculate the short ID for this issue (needed for dependent count lookup).
   // Priority: frontmatter `id:` (canonical path-form, e.g. "silvercode/acp/rename")
   // > legacy `data.short_id` (bd-form like "km-a1b2")
-  // > ULID-suffix fallback. Pre-map boardRoots filtering keeps truly
-  //   out-of-scope nodes (markdown fixtures, archived notes, ad-hoc todos
-  //   outside the beads roots) from reaching nodeToIssue. The fallback is
-  //   still hit by in-scope sub-checkbox items inside legitimate bead
-  //   files — those resolve a parent path that IS under boardRoots but
-  //   carry no `id:` or `short_id` of their own. Future cleanup may
-  //   tighten the predicate to top-level file nodes; until then, the
-  //   fallback synthesizes a deterministic short_id for those sub-items.
-  const shortId = (data?.id as string) || (data?.short_id as string) || `km-${node.id.slice(-4).toLowerCase()}`
+  // > undefined (not a real bead).
+  //
+  // Invariant after km-beads.bead-sigil-elevation: any node reaching
+  // `nodeToIssue` from queryReady / queryIssues is a bead (depth-2 file
+  // under boardRoots OR `+` sigil prefix on `name`) and therefore carries
+  // `data.id` or `data.short_id`. The bypass paths — `bd children`
+  // (in-file paragraphs), `bd query` (raw DSL), path-resolved nodes via
+  // `resolveTaskNode`, and `getDependencies` (parents of `blocks::`
+  // paragraphs) — may pass a non-bead node; for those, `shortId` is
+  // honestly `undefined` rather than a synthesized `km-${tail}` that
+  // fabricates a bead identity the node doesn't actually have.
+  //
+  // Display sites must use `issue.shortId ?? issue.id` (or an explicit
+  // placeholder) to render non-beads.
+  const shortId = (data?.id as string | undefined) ?? (data?.short_id as string | undefined)
 
   // Count dependents (issues that are blocked by this one).
   // Prefer pre-built map for batch queries (avoids N+1 scan).
