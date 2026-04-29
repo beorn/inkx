@@ -284,38 +284,39 @@ bdCommand
       prefix: configObj.beads.prefix,
     })
 
-    // Resolve parent: explicit --parent flag wins; otherwise derive from
-    // the customId's scope (km-beads.foo → "beads/", @km/silvercode/acp/rename
-    // → "silvercode/"). The bd id encodes the board by construction — no
-    // global beads.parent config knob.
-    const customIdScope = (() => {
-      if (typeof opts.id !== "string") return null
+    // Parent resolution rule:
+    //   `--id @km/wt/1` (or `km-wt.1`)            → full identity, parent encoded in id
+    //   `--parent @km/wt --id 1`                  → split form, leaf id under explicit parent
+    //   `--parent @km/wt --id @km/wt/1`           → AMBIGUOUS, error out
+    //   `--id 1` (no --parent)                    → bead at root, id = "1" literally
+    //   `--id wt.1` (no --parent)                 → bead at root named "wt.1" literally
+    //                                                (no auto-scope-derive any more)
+    //
+    // Bd-form (`km-wt.1`) and path-form (`@km/wt/1`) are equivalent fully-qualified
+    // identities — both encode the parent. They're treated as path-form for the
+    // ambiguity check.
+    const explicitParent = opts.parent as string | undefined
+    const idIsFullyQualified = (() => {
+      if (typeof opts.id !== "string") return false
       const id = opts.id.trim()
       const prefix = configObj.beads.prefix
-      // `@<prefix>/<scope>/…` — sigil-prefixed canonical path-form.
-      if (id.startsWith(`@${prefix}/`)) {
-        return id.slice(prefix.length + 2).split("/")[0] ?? null
-      }
-      // `<scope>/…` — bare path-form.
-      if (id.includes("/")) {
-        return id.split("/")[0] ?? null
-      }
-      // `<prefix>-<scope>.<…>` (or `<scope>.<…>`) — bd-form with dot separator.
-      if (id.includes(".")) {
-        const head = id.split(".")[0] ?? ""
-        return head.startsWith(`${prefix}-`) ? head.slice(prefix.length + 1) : head || null
-      }
-      return null
+      if (id.startsWith(`@${prefix}/`) && id.includes("/", prefix.length + 2)) return true
+      if (id.includes("/")) return true
+      if (id.startsWith(`${prefix}-`) && id.includes(".")) return true
+      return false
     })()
-    const explicitParent = opts.parent as string | undefined
-    const autoScopeParent = customIdScope ? `${customIdScope}/` : null
-    let parentId: string | null = null
 
-    // Try the explicit --parent first; fall back to auto-derived scope.
-    // Explicit --parent must resolve — accept path-form (`@km/silvercode`),
-    // bare path-form (`silvercode/`), bd-form (`km-silvercode`), or short id
-    // (`km-q5hji`). Auto-scope is best-effort — silently fall through to
-    // root if the scope epic doesn't exist yet (newly-bootstrapped scopes).
+    if (explicitParent && idIsFullyQualified) {
+      console.error(
+        term.red(
+          `Ambiguous: both --parent and a fully-qualified --id were given. Pass either --parent X --id <leaf> OR --id @${configObj.beads.prefix}/X/<leaf>, not both.`,
+        ),
+      )
+      process.exitCode = 1
+      return
+    }
+
+    let parentId: string | null = null
     if (explicitParent) {
       // Try bd-form / sigil-id first (resolveIssueArg), then path-form.
       const parentIssue = resolveIssueArg(repo, explicitParent)
@@ -340,11 +341,8 @@ bdCommand
           return
         }
       }
-    } else if (autoScopeParent) {
-      const parentNode = repo.resolveNode(autoScopeParent)
-      if (parentNode) parentId = parentNode.id
-      // else: silently fall through to root — scope epic doesn't exist yet
     }
+    // else: bead lands at root. The id is literal — no auto-scope-derive.
 
     const nodeId = repo.addNode(parentId, node)
 
