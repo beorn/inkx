@@ -6,14 +6,8 @@ export interface Issue {
    *
    * `undefined` when neither is present — i.e. the KNode is not a real
    * bead (sub-checkbox descendant, raw `bd query` hit, in-file paragraph
-   * surfaced via `bd children`, etc.). Display sites should fall back to
-   * `issue.shortId ?? issue.id` or an explicit placeholder.
-   *
-   * Pre-purge of the ULID-tail third-arm fallback (km-beads.purge-
-   * fallback-id-l5), this was always a string — synthesized as
-   * `km-${node.id.slice(-4)}` for non-beads. That was dishonest: it
-   * fabricated a bead identity for nodes that aren't beads. The honest
-   * type is nullable; consumers handle the absence explicitly.
+   * surfaced via `bd children`, etc.). Display sites use `displayId(issue)`
+   * (from `@km/beads`) which falls back to `issue.id` for non-beads.
    */
   shortId: string | undefined
   title: string

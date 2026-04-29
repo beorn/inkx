@@ -127,8 +127,8 @@ function depthUnderRoots(path: string | undefined, roots: string[]): number {
  * Sub-checkbox content (`- [ ] X` nested under a bead file) is NOT a
  * bead under either branch — it has no `+` and lives at depth ≥ 3 — so
  * it falls out of `bd ready` / `bd list` results, eliminating the
- * sub-item noise that previously hit the ULID-suffix fallback in
- * `nodeToIssue`.
+ * sub-item noise that previously required a ULID-suffix synthesis in
+ * `nodeToIssue` (since retired in km-beads.purge-fallback-id-l5 / -l4).
  *
  * See km-beads.bead-sigil-elevation for the design rationale.
  */
@@ -154,11 +154,7 @@ function isBead(node: KNode, roots: string[], repo: Repo | undefined): boolean {
  * buildDependentCountMap(repo) once and pass via options.dependentCountMap
  * for batch queries — that turns 3463 × O(N) scans into 1 × O(N).
  */
-function countDependents(
-  shortId: string | undefined,
-  repo?: Repo,
-  dependentCountMap?: Map<string, number>,
-): number {
+function countDependents(shortId: string | undefined, repo?: Repo, dependentCountMap?: Map<string, number>): number {
   // Non-beads (no shortId) can't be the target of a `blocked-by` edge —
   // the dependent count is trivially zero.
   if (!shortId) return 0
@@ -303,18 +299,16 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
   // > legacy `data.short_id` (bd-form like "km-a1b2")
   // > undefined (not a real bead).
   //
-  // Invariant after km-beads.bead-sigil-elevation: any node reaching
-  // `nodeToIssue` from queryReady / queryIssues is a bead (depth-2 file
-  // under boardRoots OR `+` sigil prefix on `name`) and therefore carries
-  // `data.id` or `data.short_id`. The bypass paths — `bd children`
-  // (in-file paragraphs), `bd query` (raw DSL), path-resolved nodes via
-  // `resolveTaskNode`, and `getDependencies` (parents of `blocks::`
-  // paragraphs) — may pass a non-bead node; for those, `shortId` is
-  // honestly `undefined` rather than a synthesized `km-${tail}` that
-  // fabricates a bead identity the node doesn't actually have.
+  // Invariant: any node reaching `nodeToIssue` from queryReady / queryIssues
+  // is a bead (km-beads.bead-sigil-elevation: depth-2 file under boardRoots OR
+  // `+` sigil prefix on `name`) and therefore carries `data.id` or
+  // `data.short_id`. Bypass paths — `bd children` (in-file paragraphs),
+  // `bd query` (raw DSL), path-resolved nodes via `resolveTaskNode`, and
+  // `getDependencies` (parents of `blocks::` paragraphs) — may pass a non-
+  // bead node; for those, `shortId` is honestly `undefined`.
   //
-  // Display sites must use `issue.shortId ?? issue.id` (or an explicit
-  // placeholder) to render non-beads.
+  // Display sites use `displayId(issue)` (which falls back to `issue.id`)
+  // to render non-beads.
   const shortId = (data?.id as string | undefined) ?? (data?.short_id as string | undefined)
 
   // Count dependents (issues that are blocked by this one).
@@ -418,11 +412,11 @@ export function queryReady(
   // `<root>/<scope>/<slug>.md` shape). Declarative escape hatch =
   // `node.name?.startsWith("+")`, the elevated-sub-bead sigil. Sub-
   // checkboxes inside bead files (depth ≥ 3, no sigil) are correctly
-  // excluded — eliminating the previous N+1 noise that hit the
-  // ULID-suffix fallback in nodeToIssue.
+  // excluded — these now produce `Issue.shortId === undefined`
+  // (post km-beads.purge-fallback-id-l5) so callers can distinguish
+  // real beads from generic nodes.
   const boardRoots = options?.boardRoots
-  const nodes =
-    boardRoots && boardRoots.length > 0 ? allNodes.filter((n) => isBead(n, boardRoots, repo)) : allNodes
+  const nodes = boardRoots && boardRoots.length > 0 ? allNodes.filter((n) => isBead(n, boardRoots, repo)) : allNodes
   // Build the dependent-count map ONCE, not per-issue. Eliminates 3463 × O(N)
   // unindexed scans on large vaults — see km-beads.list-status-perf.
   const dependentCountMap = buildDependentCountMap(repo)
@@ -490,8 +484,7 @@ export function queryIssues(
   // Bead-membership predicate — see queryReady for the rationale and
   // km-beads.bead-sigil-elevation for the design.
   const boardRoots = options?.boardRoots
-  const nodes =
-    boardRoots && boardRoots.length > 0 ? allNodes.filter((n) => isBead(n, boardRoots, repo)) : allNodes
+  const nodes = boardRoots && boardRoots.length > 0 ? allNodes.filter((n) => isBead(n, boardRoots, repo)) : allNodes
   // Build the dependent-count map ONCE — see queryReady for context.
   const dependentCountMap = buildDependentCountMap(repo)
   let issues = nodes.map((n) => nodeToIssue(n, { repo, dependentCountMap }))
