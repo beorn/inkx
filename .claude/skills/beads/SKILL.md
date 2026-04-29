@@ -44,7 +44,7 @@ km bd export                                        # dump for sharing
 
 **Resolution**: `km bd show` accepts path-form (`@km/silvercode/queue-stuck`), bd-form (`km-silvercode.queue-stuck`), and short id (`km-q5hji`). Same for `--parent`.
 
-**The `--parent` rule** (4734b3bb1): `--id` is the full identity. `--parent X --id <leaf>` is a split shortcut. Both forms with overlap → error. `--id wt.1` is literal "wt.1", no auto-scope-derive.
+**The `--id` rule** (4734b3bb1): `--id` is the full identity. Prefer path-form ids for scoped beads, e.g. `--id @km/silvery/better-scroll-defaults`. Do not use `--parent km-silvery --id better-scroll-defaults` for new scoped beads. `--id wt.1` is literal "wt.1", no auto-scope-derive.
 
 ## Lifecycle
 
@@ -109,7 +109,7 @@ km bd close <id> --reason "shipped <SHA> — what changed, links to test"
 
 ### Create a new bead under a scope
 ```bash
-km bd create "Fix the foo bug" --type bug --priority P1 --parent km-silvercode --id "fix-foo-bug"
+km bd create "Fix the foo bug" --type bug --priority P1 --id @km/silvercode/fix-foo-bug
 # Lands as @km/silvercode/fix-foo-bug
 ```
 
@@ -153,7 +153,8 @@ If a bead description has numeric targets (≤12 useEffects, ≤1000 LOC, 0 TS e
 - Running `km bd` from a slot worktree (`.claude/worktrees/wtN`) for non-slot beads — landed in slot, not visible from main
 - Closing a bead without grep evidence in `--reason`
 - Closing a bead because "the agent said done" — agents close aspirationally; verify with `km bd show <id>` and run the acceptance commands
-- Using `--id wt.1` expecting it to auto-scope to `@km/wt/1` — auto-scope-derive was removed (4734b3bb1); use `--parent km-wt --id 1` or `--id @km/wt/1`
+- Using `--parent km-silvery --id better-scroll-defaults` for a scoped bead — use `--id @km/silvery/better-scroll-defaults`
+- Using `--id wt.1` expecting it to auto-scope to `@km/wt/1` — auto-scope-derive was removed (4734b3bb1); use `--id @km/wt/1`
 - Re-creating a bead someone else already filed — search `km bd list --status open` first
 
 ## Deeper references

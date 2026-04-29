@@ -1,4 +1,9 @@
 ---
+tags:
+  - epic
+  - P2
+mentions:
+  - km
 id: "@km/silvery"
 aliases:
   - km-silvery
@@ -11,6 +16,8 @@ owner: bjorn@stabell.org
 # [ ] Silvery ecosystem (v1.0): packaging, release, adoption @km/silvery #epic #P2
 
 Master tracking bead for the silvery ecosystem.
+
+- [ ] Make silvery scrolling default visual less noisy #bug #P0 @issue priority:: P0
 
 ## Completed (migration)
 
@@ -62,3 +69,4 @@ Release sequence: tree-shaking → bundle audit → border overflow fix → migr
 ## Positioning
 
 silvery = the shiny new renderer. Better ink/chalk (drop-in compat), with a path to cross-platform rendering. TEA is optional gradual migration, not a prerequisite.
+
