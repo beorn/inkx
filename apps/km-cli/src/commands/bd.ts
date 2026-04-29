@@ -16,6 +16,7 @@ import {
   nodeToIssue,
   buildDependentCountMap,
   createIssueNode,
+  renderInboxCapture,
   updateIssueFields,
   closeIssueFields,
   dropIssueFields,
@@ -31,7 +32,7 @@ import { resolvePathArg } from "@km/fs-mount"
 import { loadKmBdConfig } from "./bd-load-config.ts"
 import { loadRepo } from "../load-repo.ts"
 import { join } from "path"
-import { existsSync } from "fs"
+import { existsSync, mkdirSync, writeFileSync } from "fs"
 
 /**
  * Write a large JSON payload to stdout and append a newline. Plain
@@ -391,7 +392,53 @@ bdCommand
         }
       }
     }
-    // else: bead lands at root. The id is literal — no auto-scope-derive.
+
+    // No --parent, no --id: materialize a real file under
+    // <roots[0]>/<default_scope>/<short-id>.md so the bead has a stable
+    // on-disk identity instead of the index-only ghost (fs_path: null) the
+    // bare addNode path used to produce. Filesystem is the source of truth;
+    // the storage watcher will pick the file up and seed the DB on next sync.
+    if (!explicitParent && !opts.id) {
+      const primaryRoot = configObj.beads.roots[0] ?? "@km"
+      const inboxScope = configObj.beads.default_scope
+      const inboxDir = join(resolved.repoRoot, primaryRoot, inboxScope)
+      const { filename, content } = renderInboxCapture(shortId, opts.title, {
+        prefix: configObj.beads.prefix,
+        type: opts.type as string | undefined,
+        priority: opts.priority as string | undefined,
+        description: opts.description as string | undefined,
+        notes: opts.notes as string | undefined,
+      })
+      const filepath = join(inboxDir, filename)
+      if (existsSync(filepath)) {
+        // shortId collision is theoretically possible if the same id was
+        // captured-then-deleted in the same second. Surface clearly.
+        console.error(term.red(`File already exists at ${filepath} — short-id collision; retry.`))
+        process.exitCode = 1
+        return
+      }
+      mkdirSync(inboxDir, { recursive: true })
+      writeFileSync(filepath, content, "utf-8")
+
+      if (opts.json) {
+        console.log(JSON.stringify({ shortId, fs_path: filepath }, null, 2))
+      } else {
+        console.log(term.green(`Created issue: ${shortId}`))
+        console.log(`Title: ${opts.title}`)
+        if (opts.type) console.log(`Type: ${opts.type}`)
+        console.log(`Priority: ${opts.priority ?? "P2"}`)
+        console.log(term.dim(`Path: ${filepath}`))
+        console.log(
+          term.dim(
+            `Note: no scope — landed at @${configObj.beads.prefix}/${inboxScope}/. Use --parent @${configObj.beads.prefix}/<scope> to file directly under a scope.`,
+          ),
+        )
+      }
+      return
+    }
+    // else: bead has --parent and/or --id. Existing flow — addNode under the
+    // resolved parent (which already has an fs_path so the child file lands
+    // under that parent's directory via the storage reconciler).
 
     const nodeId = repo.addNode(parentId, node)
 

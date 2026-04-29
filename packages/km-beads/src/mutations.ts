@@ -5,6 +5,7 @@
  */
 
 import { ulid } from "ulid"
+import { stringify as stringifyYaml } from "yaml"
 import type { KNode } from "@km/core"
 import { getMarkerForStatus } from "@km/core"
 import type { Issue, CreateIssueOptions } from "./types.ts"
@@ -265,4 +266,46 @@ export function dropIssueFields(reason?: string, currentData?: Record<string, un
   }
 
   return updates
+}
+
+/**
+ * Render a fresh-capture bead (no scope, no parent) as the markdown file
+ * that lands at `<roots[0]>/<default_scope>/<short-id>.md` for `km bd
+ * create 'title'`. Returns the canonical filename (relative — caller
+ * joins with the roots[0]/default_scope dir) and the file content.
+ *
+ * Spec from `@km/beads/create-orphan-must-materialize`:
+ *   - aliases include the bare short-id AND the bd-form `<prefix>-<short-id>`
+ *   - NO redundant `id:` line — the file path IS the canonical id
+ *   - title goes in a `# <title>` body heading; description/notes follow
+ *
+ * Pure function: no I/O. Caller writes the file. Easy to test.
+ */
+export function renderInboxCapture(
+  shortId: string,
+  title: string,
+  options: {
+    prefix: string
+    type?: string
+    priority?: string
+    description?: string
+    notes?: string
+    createdAt?: Date
+  },
+): { filename: string; content: string } {
+  const aliases = [shortId, `${options.prefix}-${shortId}`]
+  const frontmatter: Record<string, unknown> = {
+    aliases,
+    created_at: (options.createdAt ?? new Date()).toISOString(),
+  }
+  if (options.type) frontmatter.type = options.type
+  if (options.priority) frontmatter.priority = options.priority
+
+  const fmYaml = stringifyYaml(frontmatter).trimEnd()
+  const heading = `# ${title}`
+  const description = options.description?.trim() ?? ""
+  const notes = options.notes?.trim() ?? ""
+  const sections = [heading, description, notes].filter((s) => s.length > 0).join("\n\n")
+  const content = `---\n${fmYaml}\n---\n\n${sections}\n`
+  return { filename: `${shortId}.md`, content }
 }

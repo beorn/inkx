@@ -223,6 +223,7 @@ export { parseRRule, getNextOccurrence, naturalToRRule } from "./recurrence.ts"
 export {
   loadConfig,
   clearConfigCache,
+  getBeadsConfig,
   getOriginalBeadsConfig,
   getFolderIndexConfig,
   getCollapseParseConfig,
