@@ -365,7 +365,7 @@ function collectDependencyEdges(issue: BeadsIssue, rel: "blocks" | "blocked-by" 
  *
  *   km-silvercode.acp-rename                 → @km/silvercode/acp-rename
  *   km-silvery.backdrop-hardening.slim-barrel → @km/silvery/backdrop-hardening/slim-barrel
- *   km-q5hji                                  → @km/_orphan/q5hji
+ *   km-q5hji                                  → @km/inbox/q5hji
  *
  * The literal `@` prefix is load-bearing: wikilink resolution matches by
  * node.name, so `[[@km/foo/bar]]` resolves to a node named `@km` (the
@@ -377,10 +377,11 @@ export function bdIdToPathForm(bdId: string, sourcePrefix = "km"): string | null
   const stripped = bdId.startsWith(`${sourcePrefix}-`) ? bdId.slice(sourcePrefix.length + 1) : bdId
   if (!stripped) return null
   const sigilRoot = `@${sourcePrefix}`
-  // No dots → orphan auto-id (km-q5hji etc). Park under @<prefix>/_orphan/
-  // so they round-trip without colliding with scoped issues.
+  // No dots → bare auto-id (km-q5hji etc). Park under @<prefix>/inbox/
+  // so they round-trip without colliding with scoped issues. Fresh
+  // `km bd create` (no --parent) lands here too — single triage zone.
   if (!stripped.includes(".")) {
-    return `${sigilRoot}/_orphan/${stripped}`
+    return `${sigilRoot}/inbox/${stripped}`
   }
   return `${sigilRoot}/${stripped.split(".").join("/")}`
 }
@@ -445,7 +446,7 @@ export function bdIdToPathFormWithSlug(bdId: string, title: string, sourcePrefix
  *      epic — emit `@<prefix>/<scope>.md` (sibling file to the
  *      `@<prefix>/<scope>/` directory of children). Without this,
  *      `bdIdToPathForm`'s default no-dot rule parks scope epics
- *      under `_orphan/`, splitting the scope-bead from its children.
+ *      under `inbox/`, splitting the scope-bead from its children.
  *
  *   2. Slug-augmentation for numeric-leaf ids: `km-rev-code-0203.1`
  *      → `@km/rev-code-0203/1-add-keyboard-nav` so filenames stay
@@ -481,7 +482,7 @@ export function buildIdMap(issues: BeadsIssue[], sourcePrefix = "km"): Map<strin
   const map = new Map<string, string>()
 
   // Scope-epic detection: no-dot id with at least one dotted child →
-  // route to `@<prefix>/<scope>.md` (overrides the default _orphan/ rule).
+  // route to `@<prefix>/<scope>.md` (overrides the default inbox/ rule).
   const sigilRoot = `@${sourcePrefix}`
   for (const issue of issues) {
     const s = stripped.get(issue.id)

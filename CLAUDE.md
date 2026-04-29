@@ -226,7 +226,7 @@ The vault layout is **node-tree-shaped on disk**. Directories and files become k
     imports/                                # all migrated bd content lives here
       km-2026-04-28/                        # one subdir per import (<source>-<YYYY-MM-DD>)
         @km/<scope>/<slug>.md               # canonical bead path (mirrors @km/<scope>/<slug> sigil)
-        @km/_orphan/<id>.md                 # bd auto-ids without scope (km-q5hji etc)
+        @km/inbox/<id>.md                   # bd auto-ids without scope (km-q5hji etc); also fresh `km bd create` lands here
         mem/<key>.md                        # memories — insights, not prefix-tagged
       decker-2026-04-29/                    # second import = own subdir
         @decker/...

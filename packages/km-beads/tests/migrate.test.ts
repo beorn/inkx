@@ -71,7 +71,7 @@ describe("buildIdMap", () => {
     expect(map.get("km-rev-code-0203.2")).toBe("@km/rev-code-0203/2-convert-getters-to-plain-properties")
   })
 
-  it("routes scope epics (no-dot id with dotted children) to @<prefix>/<scope>.md, not _orphan/", () => {
+  it("routes scope epics (no-dot id with dotted children) to @<prefix>/<scope>.md, not inbox/", () => {
     // km-silvery is the umbrella scope bead; km-silvery.foo and .bar are children
     const map = buildIdMap([
       fakeIssue("km-silvery", "[epic] Silvery render pipeline", { issue_type: "epic" }),
@@ -83,12 +83,12 @@ describe("buildIdMap", () => {
     expect(map.has("km-silvery.foo")).toBe(false)
   })
 
-  it("leaves no-dot orphan auto-ids in _orphan/ when they have no children", () => {
-    // km-q5hji has no children — stays as orphan auto-id (no map entry, default routing)
+  it("leaves no-dot bare auto-ids in inbox/ when they have no children", () => {
+    // km-q5hji has no children — stays as bare auto-id (no map entry, default routing)
     const map = buildIdMap([fakeIssue("km-q5hji", "Random auto-id bead")])
     expect(map.has("km-q5hji")).toBe(false)
-    // Default routing still parks it under _orphan/
-    expect(bdIdToPathForm("km-q5hji")).toBe("@km/_orphan/q5hji")
+    // Default routing parks it under inbox/
+    expect(bdIdToPathForm("km-q5hji")).toBe("@km/inbox/q5hji")
   })
 
   it("scope-epic routing uses the dynamic prefix", () => {
@@ -148,8 +148,8 @@ describe("bdIdToPathForm", () => {
     expect(bdIdToPathForm("km-silvercode.acp.rename")).toBe("@km/silvercode/acp/rename")
   })
 
-  it("parks orphan ids under @<prefix>/_orphan/", () => {
-    expect(bdIdToPathForm("km-q5hji")).toBe("@km/_orphan/q5hji")
+  it("parks bare auto-ids under @<prefix>/inbox/", () => {
+    expect(bdIdToPathForm("km-q5hji")).toBe("@km/inbox/q5hji")
   })
 
   it("honors a non-default sourcePrefix (e.g. @pim/ for pim-prefixed vault)", () => {

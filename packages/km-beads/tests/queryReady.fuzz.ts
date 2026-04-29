@@ -43,7 +43,7 @@ import { queryReady } from "../src/queries.ts"
 const ROOT_POOL = ["beads", "beads-archive", "imports/km-2026-04-28", "a", "a-extra", "vault/notes"]
 
 /** Path segments for synthesized fs_paths. */
-const SEGMENTS = ["alpha", "beta", "gamma", "delta", "@km", "@decker", "_orphan", "sub", "deep"]
+const SEGMENTS = ["alpha", "beta", "gamma", "delta", "@km", "@decker", "inbox", "sub", "deep"]
 
 /**
  * Synthesize a random fs_path. May or may not live under any pool root —

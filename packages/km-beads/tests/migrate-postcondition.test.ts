@@ -14,7 +14,7 @@
  *     3. resolvable from the on-disk vault via every form a caller might
  *        legitimately reference it as — bd-form (dot + dash), canonical
  *        path-form, slug-augmented path-form (for numeric leaves), the
- *        scope-epic synthetic path, the `_orphan/` parking lot.
+ *        scope-epic synthetic path, the `inbox/` landing zone.
  *
  * The third clause mirrors the index `bd-migrate.ts buildVaultIdIndex`
  * builds at recapture time: every bead must be findable by `frontmatter.id`
@@ -143,7 +143,7 @@ describe("migrateBeadsToMarkdown — post-condition: every input id is resolvabl
     // Mixed corpus exercising every routing branch the migrator owns:
     //   - canonical scope.slug
     //   - scope-epic (no-dot id with dotted children → @<prefix>/<scope>.md)
-    //   - orphan auto-id (no scope → @<prefix>/_orphan/<id>.md)
+    //   - bare auto-id (no scope → @<prefix>/inbox/<id>.md)
     //   - numeric-leaf (slug-augmented to keep filename legible)
     //   - parent + child path (dotted-2)
     //   - comments[] (rendered as @comments subsection)
@@ -157,8 +157,8 @@ describe("migrateBeadsToMarkdown — post-condition: every input id is resolvabl
       // Numeric leaf — slug augmentation triggers.
       { id: "km-rev-code-0203.1", title: "Remove ensureOpen anti-pattern" },
       { id: "km-rev-code-0203.2", title: "Convert getters to plain properties" },
-      // Orphan auto-id (no dot, no children).
-      { id: "km-q5hji", title: "Random auto-id orphan bead" },
+      // Bare auto-id (no dot, no children) — lands in inbox/.
+      { id: "km-q5hji", title: "Random auto-id bare bead" },
       // Parent + child (3-level dotted path).
       { id: "km-silvery.virtualizer.from-layout", title: "Wire virtualizer from layout" },
       // With comments — exercises the @comments subsection emission.
@@ -240,11 +240,11 @@ describe("migrateBeadsToMarkdown — post-condition: every input id is resolvabl
     }
   })
 
-  it("orphan ids land under @<prefix>/_orphan/ so they don't collide with scoped beads", () => {
+  it("bare auto-ids land under @<prefix>/inbox/ so they don't collide with scoped beads", () => {
     const { repoRoot, targetDir } = freshTmp()
     const lines = [
-      issueLine({ id: "km-q5hji", title: "First orphan" }),
-      issueLine({ id: "km-z9abc", title: "Second orphan" }),
+      issueLine({ id: "km-q5hji", title: "First bare" }),
+      issueLine({ id: "km-z9abc", title: "Second bare" }),
     ]
     seedBeadsDir(repoRoot, lines)
 
@@ -257,8 +257,8 @@ describe("migrateBeadsToMarkdown — post-condition: every input id is resolvabl
     expect(result.migrated).toBe(2)
     expect(result.errors).toEqual([])
 
-    expect(existsSync(join(targetDir, "@km/_orphan/q5hji.md"))).toBe(true)
-    expect(existsSync(join(targetDir, "@km/_orphan/z9abc.md"))).toBe(true)
+    expect(existsSync(join(targetDir, "@km/inbox/q5hji.md"))).toBe(true)
+    expect(existsSync(join(targetDir, "@km/inbox/z9abc.md"))).toBe(true)
   })
 
   it("scope-epic with dotted children writes @<prefix>/<scope>.md as a sibling to the children directory", () => {
@@ -278,12 +278,12 @@ describe("migrateBeadsToMarkdown — post-condition: every input id is resolvabl
     })
     expect(result.migrated).toBe(3)
 
-    // Scope epic sits alongside its children directory — NOT parked under _orphan/.
+    // Scope epic sits alongside its children directory — NOT parked under inbox/.
     expect(existsSync(join(targetDir, "@km/silvery.md"))).toBe(true)
     expect(existsSync(join(targetDir, "@km/silvery/foo.md"))).toBe(true)
     expect(existsSync(join(targetDir, "@km/silvery/bar.md"))).toBe(true)
-    // Negative: never wrongly routed to _orphan/.
-    expect(existsSync(join(targetDir, "@km/_orphan/silvery.md"))).toBe(false)
+    // Negative: never wrongly routed to inbox/.
+    expect(existsSync(join(targetDir, "@km/inbox/silvery.md"))).toBe(false)
   })
 
   it("numeric-leaf ids get slug-augmented filenames AND remain reachable via the bare path-form alias", () => {
@@ -316,8 +316,8 @@ describe("migrateBeadsToMarkdown — post-condition: every input id is resolvabl
   it("dynamic sourcePrefix routes ids under @<prefix>/, not hardcoded @km/", () => {
     const { repoRoot, targetDir } = freshTmp()
     const lines = [
-      issueLine({ id: "pim-tasks.inbox", title: "Inbox" }),
-      issueLine({ id: "pim-q9zzz", title: "Pim orphan" }),
+      issueLine({ id: "pim-tasks.triage", title: "Triage" }),
+      issueLine({ id: "pim-q9zzz", title: "Pim bare" }),
     ]
     seedBeadsDir(repoRoot, lines)
 
@@ -328,8 +328,8 @@ describe("migrateBeadsToMarkdown — post-condition: every input id is resolvabl
       sourcePrefix: "pim",
     })
     expect(result.migrated).toBe(2)
-    expect(existsSync(join(targetDir, "@pim/tasks/inbox.md"))).toBe(true)
-    expect(existsSync(join(targetDir, "@pim/_orphan/q9zzz.md"))).toBe(true)
+    expect(existsSync(join(targetDir, "@pim/tasks/triage.md"))).toBe(true)
+    expect(existsSync(join(targetDir, "@pim/inbox/q9zzz.md"))).toBe(true)
     // Negative: never leaks under @km/.
     expect(existsSync(join(targetDir, "@km"))).toBe(false)
   })
