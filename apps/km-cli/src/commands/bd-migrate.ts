@@ -14,12 +14,14 @@ import {
   getMigrationStats,
   migrateBeadsToMarkdown,
   exportToBeads,
+  resolveBeadsRoots,
+  resolveMemDir,
   type BeadsFs,
 } from "@km/beads"
 import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync } from "node:fs"
 import { basename, join, dirname } from "node:path"
 import { spawnSync } from "node:child_process"
-import { getOriginalBeadsConfig } from "@km/storage"
+import { getOriginalBeadsConfig, loadConfigObject } from "@km/storage"
 import { resolvePathArg } from "@km/fs-mount"
 import { loadKmBdConfig } from "./bd-load-config.ts"
 
@@ -121,21 +123,31 @@ export const migrateCommand = new Command("migrate")
       return
     }
 
-    // Determine target directory. Default = `<repoRoot>/imports/<source>-<date>/`
-    // so each migration is namespaced and reversible (mirrors the Asana
-    // export convention). Inside it: `@<prefix>/<scope>/<slug>.md` for
-    // beads, `mem/<key>.md` for memories — both children of the same
-    // import root. The vault's existing nodes stay clean of imported
-    // content.
-    const targetDir =
-      opts.target || join(resolved.repoRoot, "imports", deriveImportSlug(beadsDir, fileArg, sourcePrefix))
+    // Determine target directory and memory directory.
+    //
+    // Default target is the configured beads root (`<repoRoot>/<roots[0]>/`,
+    // typically `<repoRoot>/beads/`). The migrate helper writes
+    // `@<prefix>/<scope>/<slug>.md` underneath, so the on-disk layout is
+    //   `<repoRoot>/<beadsRoot>/@<prefix>/<scope>/<slug>.md`.
+    //
+    // Memory layout is FLAT: every source merges into the single
+    // `<beadsRoot>/@memory/` directory (resolveMemDir), keyed by slug.
+    // On collision, migrate appends a `## From <source>` subsection.
+    const kmConfig = loadConfigObject(resolved.repoRoot)
+    const beadsRoots = resolveBeadsRoots(kmConfig.beads)
+    const defaultTargetDir = join(resolved.repoRoot, beadsRoots[0]!)
+    const targetDir = opts.target || defaultTargetDir
+    const memDir = resolveMemDir(resolved.repoRoot, kmConfig.beads)
+    const sourceLabel = deriveImportSlug(beadsDir, fileArg, sourcePrefix)
 
     // Parse status filter
     const statusFilter = opts.status ? opts.status.split(",") : undefined
 
     console.log(term.bold("Migration Target"))
     console.log(`  Target dir: ${targetDir}`)
-    console.log(`  Layout:     <target>/@${sourcePrefix}/<scope>/<slug>.md + <target>/mem/<key>.md`)
+    console.log(`  Memory dir: ${memDir}`)
+    console.log(`  Layout:     <target>/@${sourcePrefix}/<scope>/<slug>.md + <memDir>/<key>.md`)
+    console.log(`  Source:     ${sourceLabel} (collision-merge subsection)`)
     if (statusFilter) {
       console.log(`  Status filter: ${statusFilter.join(", ")}`)
     }
@@ -149,6 +161,8 @@ export const migrateCommand = new Command("migrate")
     // Run migration
     const result = migrateBeadsToMarkdown(migrateSource, {
       targetDir,
+      memDir,
+      memSourceLabel: sourceLabel,
       statusFilter,
       dryRun: opts.dryRun,
       fs: nodeFs,

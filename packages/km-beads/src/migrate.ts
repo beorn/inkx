@@ -85,6 +85,22 @@ function capitalizeWord(w: string): string {
 }
 
 /**
+ * Render a per-source subsection appended to an existing memory file
+ * when slugs collide across imports. Format:
+ *
+ *   ## From <sourceLabel>
+ *
+ *   <memory body>
+ *
+ * The `From <sourceLabel>` heading doubles as an idempotency marker —
+ * re-running migrate against the same source short-circuits before
+ * appending a duplicate.
+ */
+function renderMemorySubsection(mem: BeadsMemory, sourceLabel: string): string {
+  return `## From ${sourceLabel}\n\n${mem.value.trim()}`
+}
+
+/**
  * Convert beads status to task mark
  */
 function statusToMark(status: BeadsIssue["status"]): string {
@@ -519,10 +535,20 @@ export interface MigrateOptions {
   sourcePrefix?: string
   /**
    * Directory for migrated memory files (one `.md` per memory).
-   * Defaults to `<targetDir>/mem` so memories live at vault root
-   * alongside the per-scope issue directories.
+   * Defaults to `<targetDir>/@memory` so memories live alongside the
+   * per-source `@<prefix>/` board directories under the same beads root.
+   * The CLI passes `resolveMemDir(repoRoot, config)` so multi-source
+   * imports merge into one flat `<beadsRoot>/@memory/` directory.
    */
   memDir?: string
+  /**
+   * Source label appended as a `## From <label>` subsection when a
+   * memory key collides with an existing file (e.g. multiple bd dbs
+   * imported into the same vault). Without this, collisions are
+   * skipped — content from the second source is silently dropped.
+   * Typically the import slug (`<source>-<YYYY-MM-DD>`).
+   */
+  memSourceLabel?: string
 }
 
 export interface MigrateResult {
@@ -598,16 +624,36 @@ export function migrateBeadsToMarkdown(beadsDir: string, options: MigrateOptions
   }
 
   // Memories — write each to <memDir>/<key>.md. Default sits next to
-  // `@<prefix>/` under the same `targetDir`. Memories are insights
-  // (not prefix-tagged); the import-root containing both `mem/` and
-  // `@<prefix>/` is the unit of provenance, not the sigil dir.
-  const memDir = options.memDir ?? join(options.targetDir, "mem")
+  // `@<prefix>/` under the same `targetDir` (now `@memory/` under the
+  // configured beads root when called via `bd migrate`). Memories are
+  // insights (not prefix-tagged); the @memory layout is FLAT, so
+  // multiple bd-source imports merge by slug. On collision, append a
+  // `## From <memSourceLabel>` subsection to the existing file rather
+  // than skipping (which silently dropped content from the second
+  // source) or mangling slugs into per-source subdirs.
+  const memDir = options.memDir ?? join(options.targetDir, "@memory")
   for (const mem of memories) {
     try {
       const { filename, content } = memoryToMarkdown(mem)
       const filepath = join(memDir, filename)
       if (fs.existsSync(filepath)) {
-        result.memoriesSkipped++
+        // Collision: merge if a source label was given, else skip.
+        if (options.memSourceLabel && !options.dryRun) {
+          const existing = fs.readFileSync(filepath, "utf-8")
+          const subsection = renderMemorySubsection(mem, options.memSourceLabel)
+          // Idempotent: skip the append if this source label already
+          // appears as a subsection header. Re-running migrate against
+          // the same source must not stack duplicates.
+          if (!existing.includes(`## From ${options.memSourceLabel}`)) {
+            fs.writeFileSync(filepath, `${existing.trimEnd()}\n\n${subsection}\n`, "utf-8")
+            result.memoriesMigrated++
+            result.files.push(filepath)
+          } else {
+            result.memoriesSkipped++
+          }
+        } else {
+          result.memoriesSkipped++
+        }
         continue
       }
       if (!options.dryRun) {
