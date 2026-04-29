@@ -272,6 +272,68 @@ describe("claude-acp newSession — session-init timeout", () => {
     await serverPromise.catch(() => {})
   })
 
+  test("newSession resolves from hook_started/hook_response when modern claude defers subtype:init", async () => {
+    // Modern claude (≥2.1.123) defers `subtype:"init"` until AFTER the
+    // first user message. With stdin idle, the only events that arrive
+    // initially are SessionStart hook envelopes — `hook_started` /
+    // `hook_response` — each carrying the real session_id. The parser
+    // synthesizes a session-init from the first hook event, which lets
+    // newSession resolve with the real session UUID (not synthetic, not
+    // timed-out). Bead: km-silvercode.claude-acp-modern-init-timing.
+    //
+    // Without the fix this test fails with the timeout-rejection path
+    // (sessionInitTimeoutMs elapses, newSession rejects with "claude
+    // failed to initialize within Ns").
+    setScript([
+      JSON.stringify({
+        type: "system",
+        subtype: "hook_started",
+        hook_id: "h-1",
+        hook_name: "SessionStart:startup",
+        hook_event: "SessionStart",
+        uuid: "00000000-0000-0000-0000-000000000001",
+        session_id: "real-claude-uuid-from-hook-9876",
+      }),
+      JSON.stringify({
+        type: "system",
+        subtype: "hook_response",
+        hook_id: "h-1",
+        hook_name: "SessionStart:startup",
+        hook_event: "SessionStart",
+        output: "{}\n",
+        stdout: "{}\n",
+        stderr: "",
+        exit_code: 0,
+        outcome: "success",
+        uuid: "00000000-0000-0000-0000-000000000002",
+        session_id: "real-claude-uuid-from-hook-9876",
+      }),
+    ])
+    const wire = createWirePair()
+    const { runClaudeAcpServer } = await import("../src/server.ts")
+
+    const serverPromise = runClaudeAcpServer({
+      stdin: wire.serverStdin,
+      stdout: wire.serverStdout,
+      sessionInitTimeoutMs: 200,
+    })
+
+    const { conn } = buildClient(wire)
+    await conn.initialize({ protocolVersion: 1 })
+    const result = await conn.newSession({ cwd: "/work", mcpServers: [] })
+
+    // The id MUST be the real session_id from the hook envelope.
+    expect(result.sessionId).toBe("real-claude-uuid-from-hook-9876")
+    // Negative-space: not a synthetic id, not empty.
+    expect(/^claude-acp-\d{13}-\d+$/.test(result.sessionId as string)).toBe(false)
+    expect(result.sessionId).not.toBe("")
+
+    wire.clientStdout.end()
+    wire.serverStdout.end()
+    await settle(20)
+    await serverPromise.catch(() => {})
+  })
+
   test("buffered events emitted before session-init replay through the wire after attach", async () => {
     // Scripted JSONL: stream events arrive INTERLEAVED with init — but the
     // fake-child gates lines after the first on stdin, so all subsequent
