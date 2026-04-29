@@ -34,6 +34,23 @@ export const beadsDependencySchema = z.object({
 })
 
 /**
+ * Comment record as emitted by bd v1.0+ in `bd export`.
+ *
+ * Real exports carry `id`, `issue_id`, `author`, `text`, `created_at`.
+ * Preserved verbatim through migration so round-trip property tests pass
+ * and downstream consumers can re-derive the bd comment timeline.
+ */
+export const beadsCommentSchema = z.object({
+  id: z.string().optional(),
+  issue_id: z.string().optional(),
+  author: z.string(),
+  text: z.string(),
+  created_at: z.string(),
+})
+
+export type BeadsComment = z.infer<typeof beadsCommentSchema>
+
+/**
  * Beads issue schema for validating JSON from issues.jsonl
  *
  * Reflects bd v1.0 export format (priority is numeric 0-4, dependencies live
@@ -63,6 +80,10 @@ export const beadsIssueSchema = z.object({
   dependency_count: z.number().optional(),
   dependent_count: z.number().optional(),
   comment_count: z.number().optional(),
+  // Comments (bd v1.0). Preserved verbatim — rendered as a
+  // `## Comments @comments` body subsection by issueToMarkdown,
+  // chronological by created_at.
+  comments: z.array(beadsCommentSchema).optional(),
   // Metadata
   labels: z.array(z.string()).optional(),
   assignee: z.string().optional(),
