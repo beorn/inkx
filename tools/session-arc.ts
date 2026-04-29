@@ -270,7 +270,7 @@ function fmtTurn(t: Turn): string {
     if (t.recall.skipped) {
       lines.push(`       recall: SKIP (${t.recall.reason})`)
     } else {
-      lines.push(`       recall: EMIT ${t.recall.emitChars}ch — ${squish(t.recall.emitPreview ?? "", 100)}`)
+      lines.push(`       recall: EMIT ${t.recall.emitChars}ch — ${squish(t.recall.emitFull ?? "", 100)}`)
     }
   }
   if (t.cumulativeAnchors && t.cumulativeAnchors.length > 0) {
