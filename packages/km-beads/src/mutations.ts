@@ -11,6 +11,18 @@ import type { Issue, CreateIssueOptions } from "./types.ts"
 import { generateShortId, generateCustomId, generateSubId } from "./short-ids.ts"
 
 /**
+ * Canonicalize a priority value to `P0`..`P4` form.
+ *
+ * Accepts any of: "0", "1", ..., "4", "P0"..."P4", "p0"..."p4".
+ * Returns canonical "P${digit}" or null if the input doesn't match.
+ */
+function normalizePriorityTag(input: string | undefined): string | null {
+  if (input === undefined || input === null || input === "") return null
+  const m = String(input).match(/^P?([0-4])$/i)
+  return m?.[1] ? `P${m[1]}` : null
+}
+
+/**
  * Create a new issue.
  *
  * Returns a detached KNode tree (node + optional description/notes children).
@@ -47,8 +59,18 @@ export function createIssueNode(
     content += ` #${options.type}`
   }
 
-  // Add priority tag
-  const priority = options.priority ?? "P2"
+  // Add priority tag.
+  //
+  // Normalize to canonical `P0`..`P4` form regardless of input shape:
+  //   --priority 0   → "P0"
+  //   --priority P0  → "P0"
+  //   --priority p0  → "P0"
+  // Without this, `bd create --priority 0` wrote tag `#0` while peer beads
+  // had `#P0`, and `bd list --priority 0` (query `#0`) would miss the
+  // canonical-form ones (and vice versa). Both `nodeToIssue` (read) and
+  // queryIssues (filter) normalize input, but the on-disk tag stays in
+  // whatever form was first written — so we canonicalize at the boundary.
+  const priority = normalizePriorityTag(options.priority) ?? "P2"
   content += ` #${priority}`
 
   // Add assignee
