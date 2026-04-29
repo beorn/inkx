@@ -36,6 +36,7 @@ import { existsSync } from "fs"
 // Import from extracted modules
 import { issueToBdJson, printIssue, printReadyIssue, printIssueDetails } from "./bd-format.ts"
 import { resolveIssueArg } from "./bd-query-helpers.ts"
+import { resolveAssignee } from "../utils/assignee.ts"
 import { configCommand } from "./bd-config.ts"
 import { migrateCommand, exportCommand } from "./bd-migrate.ts"
 import { attachMemoryCommands } from "./bd-memory.ts"
@@ -368,13 +369,8 @@ const updateCmd = bdCommand
 
     // Handle --claim: set status + assignee atomically
     if (opts.claim) {
-      let gitUser = "unknown"
-      try {
-        const { execSync } = await import("child_process")
-        gitUser = execSync("git config user.name", { encoding: "utf-8" }).trim()
-      } catch {}
       opts.status = opts.status ?? "wip"
-      opts.assignee = opts.assignee ?? gitUser
+      opts.assignee = opts.assignee ?? resolveAssignee()
     }
 
     const changes: Parameters<typeof updateIssueFields>[1] = {}
@@ -721,20 +717,13 @@ bdCommand
       return
     }
 
-    let gitUser = "unknown"
-    try {
-      const { execSync } = await import("child_process")
-      gitUser = execSync("git config user.name", { encoding: "utf-8" }).trim()
-    } catch {
-      // Fall back to "unknown" if git config not set
-    }
-
-    const updates = updateIssueFields(issue, { status: "wip", assignee: gitUser })
+    const assignee = resolveAssignee()
+    const updates = updateIssueFields(issue, { status: "wip", assignee })
     repo.updateNode(issue.id, updates)
 
     console.log(term.green(`Claimed ${issue.shortId}`))
     console.log(term.dim(`  Status: wip`))
-    console.log(term.dim(`  Assignee: ${gitUser}`))
+    console.log(term.dim(`  Assignee: ${assignee}`))
   })
 
 // bd children <id> - List children of an epic
