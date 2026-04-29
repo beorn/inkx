@@ -4,28 +4,22 @@ description: Label taxonomy and conventions for bead metadata
 
 # Label Conventions
 
-Labels provide rich, queryable metadata for beads beyond what's encoded in IDs. Use labels to classify work by scope, domain, phase, and other dimensions.
+Labels provide rich classification for beads beyond what's encoded in IDs. Use labels to mark scope, domain, phase, and other dimensions.
+
+> **Cutover note (2026-04-29)**: `km bd create --label <name>...` is supported and persists labels to the bead's frontmatter. CLI **filtering** by label is currently weak — `km bd list --label X` doesn't exist, and `km bd query "label=X"` is fragile. Labels also surface as inline title sigils (`#bug`, `#P0`, `+project`, `@assignee`) which `km bd list <query>` can match by text. The Go-bd-era `bd label add/remove/list` and `bd count --by-label` are retired; manage labels via `km bd create --label` or by editing the markdown frontmatter directly. Treat the CLI examples in this doc as conventions for the *names*, not the exact filter flags.
 
 ## Philosophy
 
-IDs provide grouping prefixes (km-storage-N), while labels provide multi-dimensional classification. A single bead can have multiple labels, enabling flexible queries.
+IDs provide grouping prefixes (km-storage-N), while labels provide multi-dimensional classification. A single bead can have multiple labels.
 
 **Example:**
 
 ```bash
-km bd create --id km-storage-15 \
+km bd create "Race condition in file sync" \
   --type bug \
-  --title "Race condition in file sync" \
-  --priority 0 \
-  --labels sync,watcher,phase:testing
-```
-
-Query by any dimension:
-
-```bash
-km bd list --label sync              # All sync-related work
-km bd list --label phase:testing     # All testing phase work
-km bd list --label sync --label phase:testing  # Intersection
+  --priority P0 \
+  --label sync watcher phase:testing \
+  --id km-storage-15 --parent km-storage
 ```
 
 ## Label Categories
@@ -210,93 +204,58 @@ tui/nav         # Navigation within TUI
 
 ### Keep Labels Consistent
 
-Use existing labels when possible. Check before creating new ones:
+Use existing labels when possible. Check what's already in use:
 
 ```bash
-bd count --by-label           # Label usage stats
+km bd list --json | jq -r '.[].labels // [] | .[]' | sort | uniq -c | sort -rn | head -30
 ```
 
 ## Query Examples
 
-### Basic Queries
+Native CLI label filtering is sparse. The pragmatic options:
+
+### Text-search on title (titles include sigils like `#bug #P0 +project`)
 
 ```bash
-# All sync work
-km bd list --label sync
-
-# All testing phase work
-km bd list --label phase:testing
-
-# Open bugs with sync label
-km bd list --type bug --status open --label sync
+km bd list "sync"                          # FTS match on title/description for "sync"
+km bd list "phase:testing"                 # Match the phase sigil
+km bd list "sync" --type bug --status open # Combine with first-class filters
 ```
 
-### Multiple Labels (AND)
+### JSON + jq (most reliable for label-precise queries)
 
 ```bash
-# Sync work in testing phase
-km bd list --label sync --label phase:testing
+# All beads with label "sync"
+km bd list --json | jq '.[] | select(.labels // [] | contains(["sync"]))'
 
-# Storage bugs with high priority
-km bd list --label storage --type bug --priority-max 1
+# Open bugs with label "sync"
+km bd list --status open --type bug --json \
+  | jq '.[] | select(.labels // [] | contains(["sync"]))'
+
+# Any-of (OR)
+km bd list --json | jq '.[] | select(.labels // [] | any(. as $l | ["sync","watcher","parser"] | index($l)))'
+
+# Pattern (regex)
+km bd list --json | jq '.[] | select(.labels // [] | any(test("^phase:")))'
 ```
 
-### Label OR Queries
+### Label statistics
 
 ```bash
-# Beads with ANY of these labels (OR) — no SQL needed
-km bd list --label-any sync,watcher,parser --status open
+km bd list --json | jq -r '.[] | .labels // [] | .[]' | sort | uniq -c | sort -rn
 ```
 
-### Label Pattern Matching
+## Managing labels
+
+`km bd create --label <name>...` is the supported way to attach labels at creation time. To edit an existing bead's labels, edit the markdown frontmatter directly (the `labels:` array) and re-run `km bd doctor` to refresh the index. The Go-bd-era `bd label add/remove/list` commands are retired.
 
 ```bash
-# Glob pattern on labels
-km bd list --label-pattern "phase:*"        # All phase-labeled beads
-km bd list --label-pattern "tech-*"         # All tech-* labels
-
-# Regex pattern on labels
-km bd list --label-regex "tech-(debt|legacy)"
+# Frontmatter form (in @km/<scope>/<slug>.md):
+# ---
+# id: km-storage-15
+# labels: [sync, watcher, phase:testing]
+# ---
 ```
-
-### Label Statistics
-
-```bash
-# Count beads by label (replaces raw SQL)
-bd count --by-label
-bd count --by-label --status open
-```
-
-### Query Language for Labels
-
-```bash
-# Use km bd query for compound label conditions
-km bd query "label=sync AND status=open AND priority<=2"
-```
-
-## Managing Labels
-
-### Add Labels to Existing Bead
-
-```bash
-bd label add km-storage-15 sync watcher
-```
-
-### Remove Labels
-
-```bash
-bd label remove km-storage-15 watcher
-```
-
-### List Bead's Labels
-
-```bash
-bd label list km-storage-15
-```
-
-### Batch Add Labels
-
-Use `km bd update <id> --add-label <labels>` for individual beads.
 
 ## Label Recommendations by Issue Type
 

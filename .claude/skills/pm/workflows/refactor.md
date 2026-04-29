@@ -29,7 +29,7 @@ grep -r "OldPattern" --include="*.ts" --include="*.tsx" | wc -l
 grep -r "OldPattern" --include="*.md" | wc -l
 
 # Check for existing beads
-bd search "topic"
+km bd list "topic"
 bun recall "topic"
 ```
 
@@ -145,7 +145,7 @@ km bd create --id km-<scope>.phase-N-name --type task --priority 1 \
   --description "<paste phase template>"
 km bd update km-<scope>.phase-N-name --parent km-<scope>.<refactor-name>
 km bd dep add km-<scope>.phase-N-name km-<scope>.phase-N-1-name
-km bd update km-<scope>.phase-N-name --append-notes "MANDATORY first step: Read docs/lessons/refactoring.md IN FULL before writing any code."
+km bd update km-<scope>.phase-N-name --notes "MANDATORY first step: Read docs/lessons/refactoring.md IN FULL before writing any code."
 ```
 
 ## Step 5: Review the Plan

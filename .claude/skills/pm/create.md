@@ -87,11 +87,17 @@ Phase 6: Work Completion (record results, update related)
 ### Run searches
 
 ```bash
-# Text search in all beads (open + closed)
-bd search "<key terms from description>" | head -20
+# Text search in all beads (open + closed) — positional query is FTS over title+body
+km bd list --all "<key terms from description>" | head -20
 
-# Semantic duplicate detection (slower but catches different wording)
-bd find-duplicates --status open --threshold 0.4
+# Stricter title/desc filtering via DSL
+km bd query "title=<keyword>" | head -20
+
+# Semantic duplicate detection retired with the Go bd binary; do a manual
+# JSON pass when wording may diverge:
+km bd list --all --json \
+  | jq -r '.[] | "\(.id)\t\(.title)"' \
+  | grep -i "<keyword>"
 ```
 
 ### Analyze results:
@@ -143,9 +149,10 @@ This prevents accidental duplicates when sessions crash mid-creation or multiple
 1. **Check database prefix first:**
 
    ```bash
-   # See what prefix the database uses (CRITICAL - don't assume km-)
-   km bd list --limit 1
-   # Or: sqlite3 .beads/beads.db "SELECT id FROM issues LIMIT 1"
+   # See what prefix the vault uses (CRITICAL - don't assume km-)
+   km bd info | grep prefix
+   # Or: km bd config get beads.prefix
+   # Or: km bd list --limit 1
    ```
 
    | Location | Prefix |

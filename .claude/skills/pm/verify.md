@@ -97,9 +97,10 @@ This guards against prose like "All 3 files use getActiveHandleCount" or
 
 - `grep ... origin/main -- path` is a malformed `grep` command — `--` is `git
   grep`'s path separator, not regular `grep`'s. Use `git grep` or drop the `-- path`.
-- Paths in the cmd are interpreted relative to the km repo root (where `.beads/`
-  lives), not the bead author's `cwd` at the time. Use absolute or repo-rooted
-  paths (`vendor/silvery/tests/memory/`, not `tests/memory/`).
+- Paths in the cmd are interpreted relative to the km repo root (where the
+  vault's `@km/` tree lives), not the bead author's `cwd` at the time. Use
+  absolute or repo-rooted paths (`vendor/silvery/tests/memory/`, not
+  `tests/memory/`).
 - A grep that errors with exit 2 (e.g. path doesn't exist) is treated as FAIL,
   not "zero hits" — broken commands cannot silently green-light.
 

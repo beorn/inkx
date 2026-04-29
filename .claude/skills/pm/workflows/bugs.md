@@ -247,7 +247,7 @@ close reason contains ALL THREE:
 3. "user confirmed" (Layer 3)
 
 If any layer is missing, use:
-  km bd update <id> --append-notes "Awaiting <layer>"
+  km bd update <id> --notes "Awaiting <layer>"
 Do NOT call km bd close.
 
 Anti-pattern: "Awaiting user confirmation" in the close reason of a
@@ -264,7 +264,7 @@ If this bug was found during a tracked session (session bead exists):
 
 ```bash
 # Log to session bead
-km bd update <session-id> --append-notes "HH:MM — Fixed <bug-id>: <summary>. Verified: TUI test + GUI/TTY"
+km bd update <session-id> --notes "HH:MM — Fixed <bug-id>: <summary>. Verified: TUI test + GUI/TTY"
 
 # Include session reference in bug close reason
 km bd close <bug-id> --reason "Fixed: ... Session: <session-id>"

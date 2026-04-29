@@ -42,11 +42,11 @@ Activated by requests about:
 ### `status` - Health Summary
 
 ```bash
-bd count --by-status                     # Quick overview
-bd count --by-priority --status open     # Priority distribution
-km bd list --status open --limit 0 --tree   # Hierarchical tree view
-km bd list --status in_progress --limit 0 --long
-km bd stale --days 14 --limit 0
+km bd info                                                 # Vault stats / counts
+km bd list --status open --json | jq 'group_by(.priority) | map({priority: .[0].priority, count: length})'  # Priority distribution
+km bd list --status open --limit 0                         # Full open backlog
+km bd list --status wip --limit 0                          # Work claimed but possibly stalled
+km bd stale --days 14 --limit 0                            # Issues needing attention
 ```
 
 Output a comprehensive table of all open beads with these columns (up to 100 beads):
@@ -101,15 +101,15 @@ Run these bash commands **in parallel** (single message, multiple Bash tool call
 
 | Command                                         | Purpose                           |
 | ----------------------------------------------- | --------------------------------- |
-| `km bd list --status open --limit 0 --tree`        | Full backlog, hierarchical view   |
-| `km bd list --status in_progress --limit 0 --long` | Work claimed but possibly stalled |
+| `km bd list --status open --limit 0`               | Full open backlog                 |
+| `km bd list --status wip --limit 0`                | Work claimed but possibly stalled |
 | `km bd stale --days 14 --limit 0`                  | Issues needing attention          |
-| `bd find-duplicates --status open`              | Semantic duplicate detection      |
-| `bd epic status`                                | Epic completion status            |
+| `km bd list --status open --json \| jq 'group_by(.title) \| map(select(length>1) \| .[0].title)'` | Title-near-dup detection (manual) |
+| `km bd children <epic-id>`                         | Per-epic completion status        |
 | `km bd blocked`                                    | Blocked issues and blockers       |
 | `km bd ready --limit 20`                           | Currently actionable work         |
-| `bd count --by-status`                          | Quick status distribution         |
-| `bd count --by-priority --status open`          | Priority distribution             |
+| `km bd info`                                       | Vault stats + counts              |
+| `km bd list --status open --json \| jq 'group_by(.priority) \| map({p:.[0].priority,n:length})'` | Priority distribution             |
 
 Then run:
 
@@ -163,7 +163,7 @@ This resets the staleness clock for ~1-2 weeks. During grooming, check the `note
 
 | Signal            | Action                                  |
 | ----------------- | --------------------------------------- |
-| Exact duplicate   | `bd duplicates` found it                |
+| Exact duplicate   | manual title scan via `--json \| jq` found it |
 | Same root cause   | 3 bugs fixed by one refactor → keep one |
 | Overlapping scope | One subsumes another                    |
 
@@ -197,7 +197,7 @@ This resets the staleness clock for ~1-2 weeks. During grooming, check the `note
 **Consolidation pattern** (for scattered beads sharing a theme):
 
 1. **Identify clusters**: Search for beads by keyword across IDs, titles, descriptions
-2. **Create tracking epic**: `km-<scope>` with `--type epic` and a clean scope description title (e.g., "silvery & ansi issues"). Use `bd epic status` to check epic health.
+2. **Create tracking epic**: `km-<scope>` with `--type epic` and a clean scope description title (e.g., "silvery & ansi issues"). Use `km bd children <epic-id> --json | jq` to inspect children and gauge epic health.
 3. **Rename sub-beads**: Use `km bd rename <old-id> <new-id>` to move beads to `km-<scope>.<suffix>` dot notation, then `km bd update <new-id> --parent km-<scope>`
 4. **Categorize carefully**: A bead mentioning X isn't always *about* X — check if it's the primary subject
 5. **Verify**: `km bd children <epic-id>` to confirm structure
@@ -225,7 +225,12 @@ Review the overall km-* scope structure for maximum organization:
 
 **1. Scope size audit** — count open children per epic:
 ```bash
-bd epic status  # Shows completion % and child counts
+# Per-epic open child count (km-bd has no auto-status; do it via JSON)
+for epic in $(km bd list --type epic --json | jq -r '.[].id'); do
+  open=$(km bd children "$epic" --json | jq '[.[] | select(.status != "done")] | length')
+  total=$(km bd children "$epic" --json | jq 'length')
+  echo "$epic: $open/$total open"
+done | sort -t: -k2 -rn
 ```
 
 | Finding | Action |
@@ -293,7 +298,7 @@ This step is critical — it catches beads that *look* done from the description
 
 6. **Track deferred items**: When a bead has "deferred", "tracked only", "P2 items", or "P1s deferred" items in its description/notes, these MUST be tracked before closing:
    - For each deferred item, find the covering bead (the one that should eventually address it).
-   - If a covering bead exists: `km bd update <covering-bead> --append-notes "Deferred from <closing-bead>: <item description>"` — so the item is explicitly mentioned and won't be forgotten.
+   - If a covering bead exists: `km bd update <covering-bead> --notes "Deferred from <closing-bead>: <item description>"` — so the item is explicitly mentioned and won't be forgotten.
    - If NO covering bead exists: create one with `km bd create --id <scope>.<suffix> --type <type> --priority <N> --title "<title>" --description "Deferred <priority> from <closing-bead> (<date>). <details>"`, then parent it.
    - **Never close a bead with deferred items that have no tracking destination.** This is how work gets lost across sessions.
 
@@ -406,8 +411,8 @@ After tribe review (and user confirmation if needed), execute changes in this or
 # Close with reason
 km bd close <id> --reason "Grooming: <reason>"
 
-# Mark as duplicate (auto-closes source)
-bd duplicate <source-id> --of <canonical-id>
+# Mark as duplicate (close with --reason linking to canonical id)
+km bd close <source-id> --reason "Duplicate of <canonical-id>"
 
 # Update priority
 km bd update <id> --priority <N>
@@ -510,11 +515,11 @@ Propose concrete improvements based on root causes:
 
 **Tooling enhancements:**
 
-- Add `bd duplicates` to pre-commit hook for author awareness
-- Create `bd validate` command to check for circular deps, orphans, etc.
+- Add a duplicate-detection pre-commit hook (the old `bd duplicates` is gone — needs to be re-implemented over `km bd list --json`)
+- Add a `km bd validate` subcommand to check for circular deps, orphans, etc.
 - Add priority health check (warn if >5 P0-P1 issues)
 - Auto-tag stale issues (flag after 30 days)
-- Add `bd search <query>` before `km bd create` workflow
+- Add `km bd list <query>` before `km bd create` workflow
 - Generate backlog health dashboard (metrics over time)
 
 **Documentation:**
@@ -600,7 +605,7 @@ If the grooming revealed gaps in this review process itself, consider updating [
 
 - Example: "Check for issues with no activity in 90+ days (not just 14+)"
 - Example: "Detect issues that changed priority 3+ times (priority thrashing)"
-- Example: "Find epics with no children (orphaned epics) — use `bd epic status` to check"
+- Example: "Find epics with no children (orphaned epics) — `for e in $(km bd list --type epic --json | jq -r '.[].id'); do n=$(km bd children "$e" --json | jq length); [ "$n" -eq 0 ] && echo "$e"; done`"
 
 **Severity criteria refinements:**
 

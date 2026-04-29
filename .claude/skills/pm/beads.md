@@ -1,50 +1,41 @@
 ---
-description: Full km bd CLI reference
+description: Full km bd CLI reference — flags, fields, query DSL, common mistakes
 ---
 
-# km bd CLI Reference
+# km bd CLI reference
 
-**Keywords**: bd command, km bd list, km bd create, km bd update, km bd show
+**Keywords**: bd command, km bd list, km bd create, km bd update, km bd show, query DSL
 
-Full reference for the standalone `bd` CLI (v0.50+).
+The canonical surface (CLI shape, lifecycle, claim/close, naming) lives in **[.claude/skills/beads/SKILL.md](../beads/SKILL.md)**. This document is the deeper reference: every field, every flag, the query DSL, and the failure modes that bite repeatedly.
 
-## Important: Two Separate Implementations
+> **History note** (2026-04-29): the standalone Go `bd` binary and its Dolt backend (`.beads/beads.db`, `bd dolt push`) were retired. Today **`km bd` is the only implementation** — it stores beads as markdown under `@km/<scope>/<slug>.md` and uses `.km/state.db` as a gitignored FTS5 cache. References to `bd dolt`, `.beads/beads.db`, or "go-bd" in older docs/sessions are stale; they describe the world before the cutover.
 
-There are two `bd` commands with **different data backends**:
+## Data model
 
-- **`bd`** (standalone, installed via nix) — stores data in `.beads/` Dolt database. Full-featured: 50+ subcommands, `--description`, `--parent`, `--claim`, Dolt sync, etc. **Use this for all beads operations.**
-- **`km bd`** (km CLI subcommand) — reimplements beads on top of km's markdown/SQLite data model (`@km/beads` package). Fewer features (~15 subcommands), different flags. Useful for querying km's own task tree but lags behind `bd` in capabilities.
-
-These are NOT wrappers of each other. `km bd` queries km's repo node tree; `bd` queries the `.beads/` Dolt database. They share concepts (issues, dependencies, priorities) but have independent implementations and data stores.
-
-Always prefer standalone `bd` for creating and updating beads. Use `km bd` only for km-specific operations (querying the markdown task tree, board filtering).
-
-## Data Model
-
-A **bead** is an issue/task/bug with these core fields:
+A **bead** is an issue/task/bug with these fields. The markdown frontmatter mirrors them 1:1.
 
 | Field         | Type              | Description                                                      |
 | ------------- | ----------------- | ---------------------------------------------------------------- |
-| `id`          | string (required) | Unique ID - see [beads-ids.md](beads-ids.md) for conventions     |
+| `id`          | string (required) | Unique ID — see [beads-ids.md](beads-ids.md) for conventions     |
 | `title`       | string (required) | Short summary (< 80 chars)                                       |
-| `issue_type`  | enum (required)   | `bug`, `feature`, `task`, `epic`, `chore`, `decision`            |
-| `status`      | enum              | `open` (default), `in_progress`, `blocked`, `deferred`, `closed` |
+| `issue_type`  | enum (required)   | `bug`, `feature`, `task`, `epic`, `chore`, `decision`, `docs`    |
+| `status`      | enum              | `open` (default), `wip`, `blocked`, `done`, `dropped`            |
 | `priority`    | int (0-4)         | 0=P0 (highest), 4=P4 (lowest), default=2                         |
 | `description` | string            | Full description (markdown supported)                            |
-| `notes`       | string            | Status updates, progress notes                                   |
+| `notes`       | string            | Status updates, progress notes (append-only by convention)       |
 | `design`      | string            | Design notes                                                     |
 | `acceptance`  | string            | Acceptance criteria                                              |
 | `assignee`    | string            | Who is responsible (session ID or username)                      |
 | `actor`       | string            | Who performed last action (audit trail)                          |
 | `parent`      | string            | Parent bead ID (for hierarchical tracking)                       |
 | `due_at`      | timestamp         | Due date/time                                                    |
-| `defer_until` | timestamp         | Hidden from `km bd ready` until this time                           |
-| `ephemeral`   | bool              | If true, not exported to JSONL (wisp)                            |
 | `created_at`  | timestamp         | When created                                                     |
 | `created_by`  | string            | Who created it                                                   |
 | `updated_at`  | timestamp         | Last update time                                                 |
 
-**Storage**: SQLite database at `.beads/beads.db`, synced to `.beads/issues.jsonl` for git tracking.
+**Storage**: markdown file at `@km/<scope>/<slug>.md` (path-form id) with frontmatter. The local `.km/state.db` is a gitignored FTS5 cache, rebuilt from markdown on `km bd doctor` / `km doctor rebuild`. Git is the only transport — no separate sync step.
+
+**Status names**: km bd accepts both `wip` and `in_progress` (alias). Canonical is `wip`.
 
 **Actor vs Assignee**:
 
@@ -55,11 +46,11 @@ A **bead** is an issue/task/bug with these core fields:
 
 ```
 open (no assignee)
-  → in_progress (assignee set via --claim)
-  → closed (--reason required)
+  → wip (assignee set via --claim)
+  → done (--reason required)
 ```
 
-## Querying Beads
+## Querying beads
 
 ```bash
 km bd show km-abc123           # Human-readable
@@ -67,35 +58,28 @@ km bd show km-abc123 --json    # JSON for scripting
 km bd show km-abc123 --json | jq -r '.[0].status'
 ```
 
-## Listing & Filtering
+Resolution: `km bd show` accepts path-form (`@km/silvercode/queue-stuck`), bd-form (`km-silvercode.queue-stuck`), and short id (`km-q5hji`).
+
+## Listing & filtering
 
 ```bash
-km bd list                     # Open issues (limit 50)
+km bd list                          # Open issues (default)
 km bd list --status open
-km bd list --status in_progress
+km bd list --status wip
 km bd list --type bug
-km bd list --priority 0        # P0 only
-km bd list --priority-max 1    # P0 and P1
+km bd list --priority P0            # P0 only
+km bd list --priority 0             # numeric form also accepted
 km bd list --assignee beorn
-km bd list --no-assignee       # Unassigned
-km bd list --title mdspec      # Search title
-km bd list --all               # Include closed
-km bd list --limit 0           # Unlimited
-km bd list --tree              # Hierarchical tree format
-km bd list --long              # Detailed multi-line output
-km bd list --parent km-tui     # Children of a parent (replaces grep)
-km bd list --ready             # Only ready issues (open, not blocked/deferred)
-km bd list --overdue           # Due date in the past
-km bd list --deferred          # Deferred issues
-km bd list --due-before tomorrow  # Due soon
-km bd list --label-any sync,watcher  # OR: has ANY of these labels
-km bd list --label sync --label watcher  # AND: has ALL of these labels
-km bd list --label-pattern "tech-*"  # Glob pattern match on labels
-km bd list --sort updated      # Sort by updated, created, priority, etc.
+km bd list --all                    # Include all statuses
+km bd list --blocked                # Only blocked
+km bd list --unblocked              # Only unblocked
+km bd list --limit 50
 km bd list --json | jq -r '.[] | "\(.id) \(.title)"'
 ```
 
-## Query Language
+For richer filters (boolean ops, date math, label matches), use `km bd query` with the DSL.
+
+## Query DSL
 
 `km bd query` supports compound filters with boolean operators:
 
@@ -105,115 +89,87 @@ km bd query "status=open AND type=bug AND updated>7d"
 km bd query "(status=open OR status=blocked) AND priority<2"
 km bd query "assignee=none AND type=task"
 km bd query "title=authentication AND priority=0"
-km bd query "parent=km-tui AND status!=closed"
+km bd query "parent=km-tui AND status!=done"
 ```
 
 Supports: `=`, `!=`, `>`, `>=`, `<`, `<=`, `AND`, `OR`, `NOT`, `()` grouping.
 Fields: status, priority, type, assignee, label, title, description, notes, created, updated, closed, id, parent, ephemeral, pinned.
 Dates: `7d` (7 days ago), `2w`, `24h`, `2025-01-15`, `tomorrow`, `next monday`.
 
-## Text Search
-
-`bd search` searches across title, description, and ID:
-
-```bash
-bd search "authentication bug"
-bd search "login" --status open
-bd search "database" --label backend --limit 10
-bd search "bd-5q"                      # Partial ID match
-bd search "security" --priority-min 0 --priority-max 2
-bd search "bug" --created-after 2025-01-01
-bd search "api" --desc-contains "endpoint"
-bd search "cleanup" --no-assignee --no-labels
-bd search "refactor" --sort priority
-```
-
-## Creating Beads
+## Creating beads
 
 **See [beads-ids.md](beads-ids.md) for full ID conventions.**
 
-### Check Database Prefix First
+### Check the prefix first
 
-**CRITICAL**: Different projects/submodules have different ID prefixes. Check before creating:
+Different vaults/submodules have different ID prefixes. Verify before creating:
 
 ```bash
-# See what prefix the database uses
-km bd list --limit 1
+km bd info | grep prefix              # Show the configured prefix
+km bd config get beads.prefix         # Same, direct
+km bd list --limit 1                  # Or just see one issue's id
 ```
 
 | Location | Prefix |
 |----------|--------|
 | km (main project) | `km-` |
-| vendor/silvery | `silvery-` |
-| vendor/silvery/packages/ansi | `silvery/packages/ansi-` |
-| Other vendor packages | `beorn-<name>-` |
+| Other vaults | configured via `km bd config set beads.prefix <name>` |
 
-**Never assume `km-`** — always verify for the current working directory.
+**Never assume `km-`** — always verify in the current working directory.
 
-### Create Examples
+### Create examples
 
 ```bash
 # Full create with metadata
-km bd create --id km-storage-15 --type bug --title "Race in file sync" \
+km bd create "Race in file sync" --type bug \
   --description "Files occasionally not written when..." \
-  --priority 0 --labels sync
+  --priority P0 --id race-in-file-sync
 
-# With inline dependencies
-km bd create --id km-tui-8.1 --type task --title "Normal mode navigation" \
-  --deps "blocks:km-tui-8"
-
-# With due date and deferral
-km bd create --id km-infra.ci --type task --title "Setup CI" \
-  --due "next monday" --defer "tomorrow"
+# Create under a parent (split shortcut: --parent + --id)
+km bd create "Normal mode navigation" --type task \
+  --parent km-tui --id normal-mode-nav
 
 # With acceptance criteria and design notes
-km bd create --id km-tui.search --type feature --title "Search bar" \
+km bd create "Search bar" --type feature --id search-bar \
   --acceptance "User can search by title" \
   --design "Use fuzzy matching via fzf algorithm"
-
-# Quick capture (outputs only ID — great for scripting)
-km bd q "Quick note about issue"
-km bd q "Fix login bug" -t bug -p 1
-ISSUE=$(km bd q "New feature")    # Capture ID in variable
-
-# Set parent AFTER creation (--id and --parent cannot be used together)
-km bd update km-tui-8.1 --parent km-tui-8
 ```
 
-## Updating Beads
+**`--id` is the full identity. `--parent` is a split shortcut for `--id <parent>/<leaf>`.** If both are passed and they overlap (e.g. `--parent foo --id foo/bar`), the command errors. Auto-scope-derive (`--id wt.1` → parent `@km/wt`) was removed 2026-04-29.
+
+## Updating beads
 
 ```bash
-km bd update km-abc123 --status in_progress
-km bd update km-abc123 --notes "Progress: fixed X, still need Y"
-km bd update km-abc123 --append-notes "Additional context"  # Appends, doesn't overwrite
-km bd update km-abc123 --priority 1
+km bd update km-abc123 --status wip
+km bd update km-abc123 --notes "Progress: fixed X, still need Y"   # Appends a child paragraph
+km bd update km-abc123 --priority P1
 km bd update km-abc123 --title "New title"
-km bd update km-abc123 --description "Updated description"
-km bd update km-abc123 --design "New design notes"
-km bd update km-abc123 --acceptance "Updated criteria"
-km bd update km-abc123 --due "next friday"
-km bd update km-abc123 --due ""       # Clear due date
-
-# Label management on update
-km bd update km-abc123 --add-label sync,watcher
-km bd update km-abc123 --remove-label watcher
-km bd update km-abc123 --set-labels sync,parser  # Replace all labels
+km bd update km-abc123 --description "Updated description"         # Replaces first child paragraph
+km bd update km-abc123 --type task
+km bd update km-abc123 --parent km-tui                             # Move under a new parent
 ```
 
-## Claiming & Unclaiming Work
+Notes vs description:
 
-**Claim** = assign to yourself + set status to in_progress (atomic operation).
+- `--description` / `-d`: rewrites the bead's first child paragraph (the "current state of truth")
+- `--notes` / `-n`: appends a new child paragraph (chronological log)
+
+## Claiming & unclaiming work
+
+**Claim** = assign to yourself + set status to `wip` (atomic).
 
 ```bash
 # Claim a bead (REQUIRED before starting work)
 km bd update <id> --claim
+# or:
+km bd claim <id>
 
 # What --claim does:
 #   1. Sets assignee to $BD_ACTOR or $USER
-#   2. Sets status to in_progress
+#   2. Sets status to wip
 #   3. Fails if already claimed by someone else (prevents conflicts)
 
-# Unclaim / release a bead (return to pool)
+# Unclaim / release
 km bd update <id> --assignee "" --status open
 
 # Reassign to someone else
@@ -225,25 +181,24 @@ km bd update <id> --assignee "other-person"
 1. `km bd ready` → find available work
 2. `km bd update <id> --claim` → claim before coding
 3. Do the work
-4. `km bd close <id> --reason "..."` → marks done, clears assignee
+4. `km bd close <id> --reason "shipped <SHA> — what changed"` → marks done, clears assignee
 
 **Stale claim guidelines:**
 
-- Agent claims (`claude:*`): Stale after ~20 min inactivity
-- User claims (`beorn`): Stale after ~24 hours inactivity
-- Check: `km bd show <id> --json | jq -r '.updated_at'`
+- Agent claims (`claude:*`): stale after ~20 min inactivity
+- User claims (`beorn`): stale after ~24 hours inactivity
+- Check: `km bd show <id> --json | jq -r '.[0].updated_at'`
 
-## Closing Beads
+## Closing beads
 
 ```bash
-km bd close km-abc123 --reason "Fixed in commit abc123"
-km bd close km-abc123 --suggest-next    # Show newly unblocked issues after closing
-km bd close km-abc123 km-def456         # Close multiple at once
+km bd close km-abc123 --reason "Fixed in commit abc123 — apps/foo/tests/bar.test.ts: 5/5 pass"
+km bd drop km-abc123  --reason "Won't fix — superseded by km-def456"
 ```
 
-<a name="user-feedback"></a>
+Closing requires a `--reason` with evidence. See [verify.md](verify.md) for the full closure protocol.
 
-## User Feedback on Beads
+## User feedback on beads
 
 Beads have two layers that serve different purposes:
 
@@ -256,11 +211,11 @@ Together: the description tells you what the bead IS right now, the notes tell y
 
 1. **Log the feedback verbatim** in notes with timestamp:
    ```bash
-   km bd update <id> --append-notes "HH:MM — User feedback: <exact feedback as given>"
+   km bd update <id> --notes "HH:MM — User feedback: <exact feedback as given>"
    ```
 
 2. **Rewrite/update the bead** to integrate the feedback:
-   - Update `--description` to reflect the current understanding (not append — rewrite the whole thing)
+   - Update `--description` to reflect the current understanding (not append — rewrite)
    - Update `--title` if the feedback changes the scope or framing
    - Update `--acceptance` if acceptance criteria changed
 
@@ -271,102 +226,44 @@ Together: the description tells you what the bead IS right now, the notes tell y
 **Example:**
 ```bash
 # User says: "actually the HR should also have padding on both sides"
-km bd update km-tui.hr-render --append-notes "16:30 — User feedback: HR should also have padding on both sides"
+km bd update km-tui.hr-render --notes "16:30 — User feedback: HR should also have padding on both sides"
 km bd update km-tui.hr-render --description "HR nodes render as a horizontal line (─) spanning the card width with 1-char padding on each side, aligned with card borders. No border box around HR. In edit mode, show raw content instead."
 ```
 
-## Renaming Beads
+## Renaming beads
 
 ```bash
 km bd rename km-old-id km-new-id
 ```
 
-This updates: the issue's primary ID, all references in other issues (descriptions, titles, notes), dependencies, labels, comments, and events. No need for manual grep + update.
-
-## Deferring Beads
-
-```bash
-bd defer km-abc123                     # Defer (status-based, hidden from km bd ready)
-bd defer km-abc123 --until=tomorrow    # Defer until specific time
-bd defer km-abc123 --until="+1w"       # Defer for 1 week
-bd defer km-abc123 km-def456           # Defer multiple
-bd undefer km-abc123                   # Restore to open
-```
-
-Deferred issues don't show in `km bd ready` but remain visible in `km bd list`.
+This rewrites all incoming references (deps, descriptions, titles, notes, labels, comments). Use it instead of manual grep-and-update. Default rewrites everywhere; `--no-rewrite-refs` disables.
 
 ## Comments
 
 ```bash
-bd comments km-abc123                  # List all comments
-bd comments add km-abc123 "This is a comment"
-bd comments add km-abc123 -f notes.txt  # From file
+km bd comment list <id>                    # List comments on a bead
+km bd comment add <id> "This is a comment" # Append to the bead's `## Comments @comments` section
 ```
 
-## Deleting Beads
+Comments live in the bead's markdown body, not in a separate database.
+
+## Stale issues
 
 ```bash
-bd delete km-abc123 --force            # Delete (preview first without --force)
-bd delete km-abc123 --dry-run          # Preview what would be deleted
-bd delete km-abc123 --cascade --force  # Recursively delete all dependents
-bd delete --from-file deletions.txt --force  # Batch delete from file
-bd delete km-abc123 --reason "Created in error"  # With audit trail
-```
-
-## Ready Work
-
-```bash
-km bd ready                    # Open, no blockers
-```
-
-## Counting & Statistics
-
-```bash
-bd count                          # Total count
-bd count --status open            # Open issues
-bd count --by-status              # Group by status
-bd count --by-priority            # Group by priority
-bd count --by-type                # Group by issue type
-bd count --by-assignee            # Group by assignee
-bd count --by-label               # Group by label
-bd count --assignee alice --by-status  # Alice's issues by status
-```
-
-## Stale Issues
-
-```bash
-km bd stale                    # Issues not updated in 30+ days (default)
-km bd stale --days 14          # Not updated in 14+ days
-km bd stale --status in_progress  # Only stale in-progress items
-```
-
-## Duplicate Detection
-
-```bash
-bd find-duplicates                       # Mechanical text similarity
-bd find-duplicates --threshold 0.4       # Lower threshold = more results
-bd find-duplicates --method ai           # AI-powered semantic comparison
-bd find-duplicates --status open         # Only check open issues
-```
-
-## Epic Management
-
-```bash
-bd epic status                  # Show epic completion status
-bd epic close-eligible          # Close epics where all children are complete
-km bd list --parent km-tui         # List children of an epic
-km bd children km-tui              # Alternative: list child beads
+km bd stale                       # Issues not updated in 30+ days (default)
+km bd stale --days 14             # Not updated in 14+ days
 ```
 
 ## Dependencies
 
 ```bash
-km bd dep add <issue> <depends-on>     # issue depends on depends-on
-km bd blocked                          # Show all blocked issues
-bd graph                            # Display dependency graph
+km bd dep add <id> <depends-on>   # issue is blocked by depends-on
+km bd dep remove <id> <depends-on>
+km bd dep list <id>               # List dependencies for an issue
+km bd blocked                     # Show all blocked issues
 ```
 
-## JSON Fields
+## JSON fields
 
 `km bd show <id> --json` returns:
 
@@ -378,127 +275,93 @@ bd graph                            # Display dependency graph
 | `notes`       | Status updates                               |
 | `design`      | Design notes                                 |
 | `acceptance`  | Acceptance criteria                          |
-| `status`      | open, in_progress, blocked, deferred, closed |
+| `status`      | open, wip, blocked, done, dropped            |
 | `priority`    | 0-4 (P0=highest)                             |
-| `issue_type`  | bug, feature, task, epic, chore, decision    |
+| `issue_type`  | bug, feature, task, epic, chore, decision, docs |
 | `assignee`    | Session ID or username                       |
 | `parent`      | Parent bead ID                               |
 | `actor`       | Who performed the action (audit trail)       |
 | `due_at`      | Due date/time                                |
-| `defer_until` | Defer until date/time                        |
-| `ephemeral`   | Whether this is a wisp                       |
 
-## Actor Attribution (Audit Trail)
+## Actor attribution (audit trail)
 
-The `bd` command tracks who performs actions via the `--actor` flag. This is automatically set by environment variables:
+`km bd` tracks who performs actions via `--actor`. This is set automatically from environment variables:
 
-- **User operations**: Uses `$USER` (typically "beorn")
-- **Agent operations**: Uses `$BD_ACTOR` (set by Claude Code session prehook to "claude:sessionId")
+- **User operations**: `$USER` (typically "beorn")
+- **Agent operations**: `$BD_ACTOR` (set by Claude Code session prehook to `claude:<sessionId>`)
 - **Manual override**: `km bd update <id> --actor "custom-name"`
 
-The Claude Code session prehook (in `.claude/settings.json`) automatically exports `BD_ACTOR=claude:<sessionId>` for each agent session, making every Claude instance a distinct actor. All bd commands in that session (update, create, close, etc.) automatically inherit this actor.
+The Claude Code session prehook (in `.claude/settings.json`) automatically exports `BD_ACTOR=claude:<sessionId>` per session, so every Claude instance is a distinct actor. All `km bd` commands in that session inherit it.
 
-No special handling needed in commands - the actor is set automatically based on your environment.
-
-## Renaming / Re-IDing Beads
-
-Use `km bd rename <old-id> <new-id>` — this automatically updates all references (deps, descriptions, titles, notes, labels, comments, events).
+## Doctor & migrations
 
 ```bash
-km bd rename km-w382l km-tui.nav      # Rename to descriptive ID
+km bd doctor                      # Layout diagnostics + one-shot migrations
+km bd info                        # Beads configuration and statistics
+km bd where [scope]               # Show beads paths and prefix config
+km bd config get|set <key> [value]
+km bd migrate <source-jsonl>      # Import from external (Asana, etc.) into imports/<source>-<date>/
+km bd export                      # Dump for sharing
 ```
 
-No need to manually grep for references — `km bd rename` handles everything.
-
----
-
-## Common Mistakes
-
-### CRITICAL: --id and --parent CANNOT be combined
-
-`km bd create --id X --parent Y` **ALWAYS FAILS**. Use two steps:
+## Memories
 
 ```bash
-km bd create --id km-tui.foo --type task --title "Foo"   # Step 1: create
-km bd update km-tui.foo --parent km-tui                    # Step 2: set parent
+km bd remember "<insight>"        # Save a memory under mem/<slug>.md
+km bd memories [keyword]          # List or search memories
+km bd prime                       # Print workflow context + recent memories
+```
+
+## Common mistakes
+
+### `--id` and `--parent` overlap
+
+`--id` is the full identity. `--parent X --id <leaf>` is a split shortcut. Passing both with overlap (`--parent foo --id foo/bar`) errors out.
+
+```bash
+# These are equivalent:
+km bd create "Normal mode nav" --id @km/tui/normal-mode-nav --type task
+km bd create "Normal mode nav" --parent km-tui --id normal-mode-nav --type task
+
+# This errors (overlap):
+km bd create "Normal mode nav" --parent km-tui --id km-tui.normal-mode-nav --type task
+
+# This is just the literal id "wt.1" (no auto-scope-derive):
+km bd create "Slot 1" --id wt.1
+# To put it under @km/wt, write either form explicitly:
+km bd create "Slot 1" --parent km-wt --id 1
+km bd create "Slot 1" --id @km/wt/1
 ```
 
 ### Other flag mistakes
 
-These flags DON'T EXIST - check `km bd <cmd> --help` if unsure:
+These flags DON'T EXIST — check `km bd <cmd> --help` if unsure:
 
-| Wrong                            | Correct                                                 |
-| -------------------------------- | ------------------------------------------------------- |
-| `km bd close --note "x"`            | `km bd close --reason "x"`                                 |
-| `km bd update --id km-x`            | `km bd update km-x` (positional)                           |
-| `km bd create --name`               | `km bd create --title` or `km bd create <title>` (positional) |
-| `km bd update --desc`               | `km bd update --description` or `-d`                       |
-| `km bd create --id km-...` (in vendor) | Check prefix first: `km bd list --limit 1`              |
-| Assume dot notation is km-only   | Dot notation works with any prefix (`km-silvery.bg-bleed`) |
+| Wrong                              | Correct                                               |
+| ---------------------------------- | ----------------------------------------------------- |
+| `km bd close --note "x"`           | `km bd close --reason "x"`                            |
+| `km bd update --id km-x`           | `km bd update km-x` (positional)                      |
+| `km bd create --name`              | `km bd create --title` or `km bd create <title>` (positional) |
+| `km bd update --desc`              | `km bd update --description` or `-d`                  |
+| `km bd update --append-notes`      | `km bd update --notes` (already appends)              |
+| Use bare `bd` (no `km` prefix)     | Always `km bd` — the Go binary is gone                |
+| Run `bd dolt push`                 | Just `git add @km/... && git commit && git push`      |
 
-**Note**: `--description` and `--notes` are BOTH valid on `km bd update` but serve different purposes:
+## Retired commands
 
-- `--description` / `-d`: Full issue description (main content)
-- `--notes`: Additional status updates, progress notes
-- `--append-notes`: Append to existing notes (doesn't overwrite)
-- `--design`: Design notes (separate field)
-- `--acceptance`: Acceptance criteria (separate field)
+These commands existed in the old Go `bd` binary and are **not present in `km bd`**. Older docs/sessions referencing them are stale:
 
-## Advanced Features
+- `bd defer / bd undefer` — no defer in km bd. Use `km bd update <id> --status blocked` if you really need to hide work.
+- `bd find-duplicates` — no AI/text-similarity dedup. Manual: `km bd list --json | jq` then visual inspection.
+- `bd graph` — no dep graph viz. `km bd dep list <id>` shows incoming deps.
+- `bd promote / bd mol / bd swarm / bd formula` — no wisp/molecule/swarm machinery.
+- `bd slot / bd gate` — no agent-slot or async-gate primitives.
+- `bd backend` — no backend toggle (km bd is the only backend).
+- `bd count` — use `km bd info` for stats, or `km bd list --json | jq 'group_by(.status)'`.
+- `bd epic status / close-eligible` — no auto-close. Manual via `km bd children <epic>` + close.
+- `bd label add/remove/list` — labels are part of the markdown body (sigils like `#bug`, `#P0`); use `km bd update --notes` or edit the markdown directly. `km bd query` supports `label=` filter.
+- `bd search` — use `km bd list <query>` (positional, FTS) or `km bd query "title=..."`.
+- `bd comments add/list` — replaced by `km bd comment add/list`.
+- `bd delete` — beads are markdown files; `git rm @km/<path>.md && km bd doctor` rebuilds the index.
 
-### Wisps (Ephemeral Beads)
-
-Wisps are ephemeral beads not exported to JSONL — useful for temporary tracking:
-
-```bash
-km bd create --ephemeral --title "Temporary investigation"
-bd promote km-abc123              # Promote wisp to permanent bead
-bd promote km-abc123 --reason "Worth tracking long-term"
-```
-
-### Molecules & Formulas
-
-Work templates for repeatable workflows:
-
-```bash
-bd formula list                   # Available workflow templates
-bd mol pour <formula>             # Instantiate as persistent molecule
-bd mol wisp <formula>             # Instantiate as ephemeral
-bd mol progress <mol-id>          # Show molecule progress
-```
-
-### Swarms
-
-Structured parallel work on epics:
-
-```bash
-bd swarm create <epic-id>         # Create swarm from epic
-bd swarm status <swarm-id>        # Current status
-bd swarm list                     # All swarm molecules
-```
-
-### Agent State (for multi-agent coordination)
-
-```bash
-km bd agent state <agent-id> running   # Set agent state
-km bd agent heartbeat <agent-id>       # Update activity timestamp
-km bd agent show <agent-id>            # Show agent details
-bd slot set <agent-id> hook <bead>  # Attach work to agent's hook
-bd slot clear <agent-id> hook       # Clear agent's hook
-```
-
-### Gates (Async Coordination)
-
-```bash
-bd gate list                      # Show open gates
-bd gate check                     # Evaluate all open gates
-bd gate resolve <id>              # Manually resolve a gate
-```
-
-### Backend & Mode Options
-
-```bash
-bd backend show                   # Current backend (sqlite or dolt)
-km bd --no-db list                   # JSONL-only mode (no SQLite)
-km bd --readonly list                # Read-only mode (for sandboxes)
-```
+If you need any of these workflows, file a bead under `km-beads.<feature>` with the use case.

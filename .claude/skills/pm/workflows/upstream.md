@@ -264,10 +264,11 @@ km bd create --id km-<scope>.<descriptive-slug> \
   --description="<see template below>"
 km bd update km-<scope>.<slug> --parent km-all.upstream-waiting
 
-# REQUIRED: defer the bead so it surfaces in `km bd ready` near its review date.
-# Default = creation date + 30 days. Each /sop infra review re-defers another 30d
-# if upstream hasn't moved.
-bd defer km-<scope>.<slug> --until="<YYYY-MM-DD>"   # creation + 30 days
+# REQUIRED: record the next-review date in the description's `Last checked`
+# / `Escalate by` fields (template below). km bd has no `defer` primitive
+# — the parent epic km-all.upstream-waiting is itself the surfacing
+# mechanism, walked monthly via `km bd children km-all.upstream-waiting`
+# during /sop infra. The defer machinery from the Go-bd era is retired.
 ```
 
 **Description template** (every field is required — the monthly review depends on them):
@@ -304,7 +305,7 @@ Unwind when upstream lands:
 - *Status (4-state enum)*: `filed → merged → released → adopted`. The progression is monotonic. Closing on `merged-upstream` is the most common false-victory — our code still runs the workaround until our deps actually pull the patched release. Only `adopted-locally` justifies running the unwind steps. Most beads sit at `filed-upstream` for months before any movement; that's the honest default.
 - *Last checked*: gives the monthly reviewer a delta to compare against; updated every review even if nothing changed (this is how we detect orphaned beads).
 - *Escalate by*: forces a re-decision before the bead silently becomes "we gave up but won't admit it." Without this, "waiting" beads accumulate forever and the registry stops being honest.
-- *bd defer date*: parent-grouping makes the bead visible in monthly review; defer-until makes it active in `km bd ready` near its review date — both, not either.
+- *Next-review date*: kept in the `Last checked` and `Escalate by` description fields. With km bd no longer offering a `defer` primitive, the parent epic (`km-all.upstream-waiting`) is the surfacing mechanism — `/sop infra` walks it monthly and uses these dates to decide whether to bump or escalate.
 - *Files affected* with specific changes: when the upstream lands months later, the original author may not be available — the bead must be self-contained.
 - *Unwind steps*: removing a workaround is rarely a single line. Spelling out the steps prevents partial unwinds (revert one site, miss two).
 
@@ -405,7 +406,7 @@ Mismatches fail CI. Either wire up the missing side, or close the bead.
 - [ ] **Registered in `km-all.upstream-waiting`** (mandatory whenever a workaround landed) — bead has upstream URL, status, last-checked date, files-affected list, and concrete unwind steps
 - [ ] Bead `Status:` uses the 4-state enum: `filed-upstream` | `merged-upstream` | `released-upstream` | `adopted-locally` (most beads start at `filed-upstream`)
 - [ ] Bead `Escalate by: <YYYY-MM-DD>` set (default = creation + 6 months) with re-decision options documented (vendorize / fork / accept owned divergence / continue waiting)
-- [ ] `bd defer km-<scope>.<slug> --until="<YYYY-MM-DD>"` run (default = creation + 30 days) so the bead actively surfaces in `km bd ready` near review date
+- [ ] Bead `Last checked: <YYYY-MM-DD>` field set (default = creation date) so the monthly `/sop infra` walk of `km-all.upstream-waiting` children has a delta to compare against — km bd no longer has a `defer` primitive; the parent epic + this date are the surfacing mechanism
 - [ ] Code marker present at every workaround site: `// UPSTREAM-WAITING(<repo>#<issue>): Delete when <pkg> >= <version>` + `// Bead: km-<scope>.<slug>` + `// Escalate by: <YYYY-MM-DD>`
 - [ ] Bead is unwindable as a single unit — no permanent local improvements bundled with the upstream-shim (split if needed, otherwise reverting the bead deletes good work)
 - [ ] `bash packages/km-infra/scripts/check-upstream-markers.sh` passes (two-way bead↔marker binding clean)

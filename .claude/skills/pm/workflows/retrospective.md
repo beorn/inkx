@@ -132,10 +132,12 @@ Or, if the epic spans multiple phases, leave it open with notes updated and file
 
 ```bash
 git add hub/<scope>/design/<program>-retro.md .claude/skills/  # if new skills/workflows promoted
+git add @km/                                                    # bead state (closes, notes) rides the same commit
 git commit -m "docs(<program>): post-ship retrospective + promoted lessons"
 git push origin main
-bd dolt push
 ```
+
+Beads ride normal git transport now — no separate sync step.
 
 ## Common failure modes
 

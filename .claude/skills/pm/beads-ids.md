@@ -11,21 +11,20 @@ This document defines the ID structure for beads in the km project. All skills t
 **CRITICAL**: Different projects/submodules have different ID prefixes. Before creating any bead:
 
 ```bash
-# See what prefix the database uses
-km bd list --limit 1
+# See what prefix the vault uses
+km bd info | grep prefix
+km bd config get beads.prefix
 
-# Or check directly
-sqlite3 .beads/beads.db "SELECT id FROM issues LIMIT 1"
+# Or just see one issue's id
+km bd list --limit 1
 ```
 
 | Location | Prefix |
 |----------|--------|
 | km (main project) | `km-` |
-| vendor/silvery | `silvery-` |
-| vendor/silvery/packages/ansi | `silvery/packages/ansi-` |
-| Other vendor packages | `beorn-<name>-` |
+| Other vaults | configured via `km bd config set beads.prefix <name>` |
 
-**Never assume `km-`** — always verify for the current working directory. The `bd` command will reject mismatched prefixes.
+**Never assume `km-`** — always verify for the current working directory. `km bd create` will reject mismatched prefixes.
 
 ## Philosophy: Metadata First
 
@@ -274,10 +273,11 @@ km bd list --all | grep "km-storage"
 # → Next: km-storage-3
 ```
 
-**Efficient lookup** (direct database query):
+**Efficient lookup** via JSON output:
 
 ```bash
-sqlite3 .beads/beads.db "SELECT MAX(CAST(SUBSTR(id, LENGTH('km-storage-')+1) AS INTEGER)) FROM issues WHERE id LIKE 'km-storage-%'"
+km bd list --all --json | jq -r '.[] | select(.id | startswith("km-storage-")) | .id' \
+  | sed 's/^km-storage-//' | sort -n | tail -1
 # Output: 9
 # → Next: 10
 ```

@@ -17,7 +17,7 @@ Issue tracking using beads. Coordinates work across Claude sessions.
 
 **Submodule warning**: In `vendor/*` directories, beads use different prefixes (e.g., `silvery-*`). Always check with `km bd list --limit 1` before creating.
 
-**`bd` vs `km bd`** — the docs reference `km bd` (the km-native CLI; superset of the Go bd binary on the common path: ready / show / claim / update / close / create / list / dep / children / blocked / migrate / export / remember / memories / prime / rename / config / info). The Go `bd` binary still works as a synonym during the cutover and is preferred inside hooks for performance (50ms vs 600ms cold). Advanced subcommands not yet ported to km bd — `defer`, `undefer`, `delete`, `comments`, `count`, `epic`, `formula`, `mol`, `gate`, `slot`, `swarm`, `promote`, `lint`, `validate`, `search`, `dolt`, `find-duplicates`, `graph`, `label` — still require the Go binary; the docs use `bd <cmd>` (no `km` prefix) for those so the gap is visible.
+**`km bd` is the only implementation** (since 2026-04-29). The standalone Go `bd` binary and its Dolt backend (`.beads/beads.db`, `bd dolt push`) were retired. Bead state is now markdown under `@km/<scope>/<slug>.md`, ridden over normal git transport. Subcommands `ready / show / claim / update / close / create / list / query / dep / children / blocked / stale / orphans / migrate / export / remember / memories / prime / rename / config / info / where / comment / doctor / drop / agent` are all available on `km bd`. Older docs/sessions referring to `bd defer` / `bd count` / `bd epic` / `bd find-duplicates` / `bd graph` / `bd label` / `bd dolt` / `bd promote` / `bd mol` / `bd swarm` / `bd slot` / `bd gate` / `bd formula` / `bd backend` / `bd search` / `bd delete` / `bd comments` describe a binary that no longer exists. See [beads.md § Retired commands](beads.md#retired-commands) for what they mapped to.
 
 ## Current State
 
@@ -40,7 +40,7 @@ When user says `/pm <action>`, run these commands:
 | `/pm show <id>`     | `km bd show <id>`                                               | info        |
 | `/pm verify <id>`   | Run executable acceptance criteria for a bead                | info        |
 | `/pm close <id>`    | `km bd close <id>`                                              | action      |
-| `/pm sync`          | `git add .beads && git commit -m "chore: sync beads"`        | action      |
+| `/pm sync`          | `git add @km/ && git commit -m "chore: sync beads" && git push` | action      |
 | `/pm my`            | `km bd list --assignee $USER`                                   | info        |
 | `/pm refactor <scope>` | Load [workflows/refactor.md](workflows/refactor.md) for phased refactoring | ask    |
 | `/pm retro <epic-id>` | Load [workflows/retrospective.md](workflows/retrospective.md) — closing a multi-bead epic | ask |
@@ -112,18 +112,21 @@ Every bead belongs under a scope epic via `km-<scope>.<suffix>` dot notation. Sc
 | **Scope epic** (backlog) | `km-tui`, `km-silvery`, `km-infra` | **Never** — permanent backlog | "Only a few open items left" |
 | **Project epic** (finite) | `km-silvery.era2`, `km-silvery.tea` | **Yes** — when all children done | "Project complete" |
 
-**Scope epics are backlogs.** New bugs/features keep getting added. Don't close them even at 98%. `bd epic close-eligible` only applies to project epics.
+**Scope epics are backlogs.** New bugs/features keep getting added. Don't close them even at 98%. Auto-close logic is gone (the old `bd epic close-eligible` was retired); project epics close manually via `km bd close` after verifying all children are done.
 
 ### Managing Epics
 
 ```bash
 km bd children <epic-id>              # List children
 km bd list --parent <epic-id>         # Alternative
-bd epic status                     # Completion % for all epics
-bd epic close-eligible             # Auto-close PROJECT epics (not scope epics)
+km bd query "parent=<epic-id> AND status!=done" --json | jq length   # Open child count
+
+# Project-epic completion: confirm all children closed, then close manually
+km bd children <epic-id> --json | jq -r '.[] | "\(.id) \(.status)"'
+km bd close <epic-id> --reason "All children done — see <retro-doc-path>"
 ```
 
-No need for `TRACKING:` or `(idle)` title prefixes — `type=epic` and `bd epic status` provide this information. Epic titles should be clean descriptions of the scope (e.g., "TUI app views & interaction").
+No need for `TRACKING:` or `(idle)` title prefixes — `type=epic` carries that information.
 
 ## Session Tracking
 
@@ -162,7 +165,7 @@ km bd close <session-id> --reason "Explored <focus>. Found N bugs (M fixed). N t
 When creating a bug during a session, log it in the session bead:
 
 ```bash
-km bd update <session-id> --append-notes "HH:MM — Found bug: <desc> → created <bead-id> (P2)"
+km bd update <session-id> --notes "HH:MM — Found bug: <desc> → created <bead-id> (P2)"
 ```
 
 When closing a bug found during a session, reference the session:
