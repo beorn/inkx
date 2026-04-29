@@ -26,16 +26,104 @@ One job: leave the workspace and this session's coordination state in a clean st
 
 `--force` is a last-resort flag. Default is "let idle work finish."
 
+## Step 0 — resolve this session's id
+
+Everything below depends on knowing the current Claude Code session id. It's the join key
+between team configs, task ledgers, transcript jsonl, and process tree.
+
+```bash
+# Option A: env var (set by some harnesses)
+sid="${CLAUDE_SESSION_ID:-}"
+
+# Option B (fallback): newest jsonl in this project's transcript dir
+if [ -z "$sid" ]; then
+  proj=$(pwd | sed 's|/|-|g')
+  sid=$(ls -t ~/.claude/projects/${proj}/*.jsonl 2>/dev/null | head -1 \
+        | xargs -I{} basename {} .jsonl)
+fi
+echo "session id: $sid"
+```
+
+If `$sid` is empty after both attempts, abort `/close` and ask the user for their session
+id (`/status` shows it). Without `$sid`, every authoritative-source check below is unsound.
+
 ## Step 1 — inventory live resources
 
-Build the kill list before touching anything. Six surfaces:
+Build the kill list before touching anything. Seven surfaces, in priority order — DO NOT skip any:
 
-1. **Agent team** — `TaskList` (team task list). Non-empty + any `in_progress` row → busy.
-2. **Background tasks** — anything spawned with `run_in_background: true` (Bash, Agent, Monitor). Track by the IDs you remember spawning in this session; if uncertain, ask the user via `/tasks` slash.
-3. **Foreground shells** — none to enumerate (Bash tool calls are synchronous), but check for orphaned ones the user may have started: `ps -ef | grep -E "$USER.*(bun|node|tsc|vitest)" | grep -v grep | head -10`.
-4. **Worktree branches with un-merged commits** — `git worktree list --porcelain` + `git log origin/main..HEAD` per worktree.
-5. **In-progress beads claimed by this session** — `km bd list --status in_progress --assignee "$USER" 2>/dev/null | head -20`.
-6. **Uncommitted changes** in the main repo and any worktree this session touched — `git status --porcelain`.
+1. **Agent teams I LEAD** — authoritative source is `~/.claude/teams/<team>/config.json`, NOT `TaskList`.
+   `TaskList` only shows the current session's tasks. Teams created in a prior session
+   (especially ones rolled over through `/compact`) won't appear there. The fix:
+   ```bash
+   # CLAUDE_SESSION_ID may not be set — derive it from the most recent transcript jsonl
+   sid="${CLAUDE_SESSION_ID:-$(ls -t ~/.claude/projects/$(pwd | sed 's|/|-|g')/*.jsonl 2>/dev/null | head -1 | xargs -I{} basename {} .jsonl)}"
+
+   # Find every team where I am the lead
+   for cfg in ~/.claude/teams/*/config.json; do
+     lead=$(jq -r '.leadSessionId // ""' "$cfg" 2>/dev/null)
+     [ "$lead" = "$sid" ] && echo "LEADING: $(jq -r '.name' "$cfg") — $(jq -r '.members | length' "$cfg") members"
+   done
+   ```
+   For each leading team, read the task state from `~/.claude/tasks/<sid>/*.json`
+   (the per-session task ledger; cat all `*.json` and parse — these are the authoritative
+   in_progress / pending / completed records).
+
+2. **Agent teams I am a MEMBER of** — search the same configs for `members[].agentId`
+   matching this session. Membership matters less for `/close` (I can't delete a team I
+   don't lead) but I should leave the team gracefully via `SendMessage` to the lead.
+
+3. **Background tasks** — anything spawned with `run_in_background: true` (Bash, Agent, Monitor).
+   Don't rely on memory of IDs you spawned. Two authoritative sources:
+
+   **a. Session transcript** — every `run_in_background: true` call is recorded:
+   ```bash
+   transcript=~/.claude/projects/$(pwd | sed 's|/|-|g')/${sid}.jsonl
+   # Bash background calls — find launches without a matching TaskStop
+   grep -o '"task_id":"[^"]*"' "$transcript" 2>/dev/null | sort -u
+   # Cross-reference: which task_ids appear in TaskStop tool_use blocks
+   grep -B2 -A2 'TaskStop' "$transcript" 2>/dev/null | grep -o '"task_id":"[^"]*"' | sort -u
+   # Diff = still-live tasks
+   ```
+
+   **b. Process tree under claude-code** — every running bg-task has a live child process:
+   ```bash
+   # Find this Claude Code's pid (parent of this bash)
+   ccpid=$(ps -o ppid= -p $$ | tr -d ' ')
+   # While that pid still has a parent that looks claude-ish, walk up
+   while ps -o command= -p "$ccpid" 2>/dev/null | grep -qE '(bash|zsh|sh)$'; do
+     ccpid=$(ps -o ppid= -p "$ccpid" | tr -d ' ')
+   done
+   # List children of the claude-code process
+   pgrep -P "$ccpid" 2>/dev/null | xargs -I{} ps -o pid,etime,command -p {} 2>/dev/null
+   ```
+   Live children that aren't the tribe MCP or the user's shell are this session's
+   background tasks. Cross-reference with the transcript to label them.
+
+4. **Foreground shells / orphaned procs** — Bash tool calls are synchronous and don't
+   leak by themselves, but spawned `nohup` / `disown` / `&`-backgrounded processes from
+   prior tool calls DO outlive the call:
+   ```bash
+   # Long-running user-owned procs not tied to this Claude Code's tree
+   ps -eo pid,ppid,etime,command -u "$USER" \
+     | grep -E '(bun |node |tsc |vitest |watch|tail -f)' \
+     | grep -v grep | grep -v tribe-daemon | head -20
+   ```
+   Cross-check ppid: anything whose ancestry traces back to THIS Claude Code's pid is
+   mine to consider; everything else is the user's or a peer session's.
+
+5. **Worktree branches with un-merged commits** — `git worktree list --porcelain` +
+   `git log origin/main..HEAD` per worktree. Only flag worktrees this session created
+   (others belong to peer sessions).
+
+6. **In-progress beads claimed by this session** — `km bd list --status in_progress --assignee "$USER" 2>/dev/null | head -20`.
+
+7. **Uncommitted changes** in the main repo and any worktree this session touched — `git status --porcelain`.
+
+**Critical**: do NOT trust `TaskList` alone for team detection. The 2026-04-29 incident: a
+team created pre-compact was invisible to `TaskList` post-compact, so the original `/close`
+report claimed "no team to retire" while four teammates (`gitignore-finisher`,
+`rebuild-completeness`, `migrate-postcondition`, `kmadd-parser`) were still registered.
+Always check `~/.claude/teams/` first.
 
 Print one table:
 
@@ -165,12 +253,29 @@ When the argument starts with `tribe`:
 
 ## Anti-patterns
 
-- **Killing the tribe daemon as part of `/close`.** It's user-global. Only the user (or a non-tribe session) shuts it down. Re-learned 2026-04-29.
-- **Force-stopping a background agent without checking its state.** May lose un-pushed work. Wait it out unless the user explicitly says `--force`.
+- **Trusting `TaskList` alone for team detection.** It only sees the current session's
+  task ledger. Teams that rolled over through `/compact` or were created in a parent
+  session are invisible there. Always check `~/.claude/teams/<team>/config.json` first
+  and match `leadSessionId == $sid`. The 2026-04-29 incident: `/close` reported
+  "no team to retire" while four teammates (`gitignore-finisher`, `rebuild-completeness`,
+  `migrate-postcondition`, `kmadd-parser`) were still registered in
+  `~/.claude/teams/km-bead-fixes/config.json`.
+- **Trusting agent memory for background-task IDs.** After `/compact`, those IDs are gone.
+  Use the session transcript jsonl + process tree, not "what I remember spawning."
+- **Killing the tribe daemon as part of `/close`.** It's user-global. Only the user (or a
+  non-tribe session) shuts it down. Re-learned 2026-04-29.
+- **Force-stopping a background agent without checking its state.** May lose un-pushed
+  work. Wait it out unless the user explicitly says `--force`.
 - **Skipping the warning when `--force` is set.** The user needs to see what they're discarding.
-- **Calling `/close` reflexively at the end of every session.** Most sessions should end via natural `/complete` + `git push`. `/close` is for sessions with active teams, background tasks, or coordination state — not pure-coding sessions.
-- **Asking the user 5 questions in a row.** One AskUserQuestion call per decision point. Bundle related options.
-- **Closing while `/loop` or `/schedule` is active.** Those need explicit `--kill` (handled by `/merge --kill`, not here).
+- **Calling `/close` reflexively at the end of every session.** Most sessions should end
+  via natural `/complete` + `git push`. `/close` is for sessions with active teams,
+  background tasks, or coordination state — not pure-coding sessions.
+- **Asking the user 5 questions in a row.** One AskUserQuestion call per decision point.
+  Bundle related options.
+- **Closing while `/loop` or `/schedule` is active.** Those need explicit `--kill`
+  (handled by `/merge --kill`, not here).
+- **Skipping Step 0.** Without `$sid` resolved, every authoritative-source check is a
+  guess. Abort early if you can't resolve the session id.
 
 ## Pairs with
 
