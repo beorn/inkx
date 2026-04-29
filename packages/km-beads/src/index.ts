@@ -1,6 +1,7 @@
 export * from "./paths.ts"
 export * from "./types.ts"
 export * from "./short-ids.ts"
+export * from "./priority.ts"
 export * from "./queries.ts"
 export * from "./mutations.ts"
 export * from "./deps.ts"

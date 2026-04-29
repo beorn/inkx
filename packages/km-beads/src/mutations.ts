@@ -9,18 +9,7 @@ import type { KNode } from "@km/core"
 import { getMarkerForStatus } from "@km/core"
 import type { Issue, CreateIssueOptions } from "./types.ts"
 import { generateShortId, generateCustomId, generateSubId } from "./short-ids.ts"
-
-/**
- * Canonicalize a priority value to `P0`..`P4` form.
- *
- * Accepts any of: "0", "1", ..., "4", "P0"..."P4", "p0"..."p4".
- * Returns canonical "P${digit}" or null if the input doesn't match.
- */
-function normalizePriorityTag(input: string | undefined): string | null {
-  if (input === undefined || input === null || input === "") return null
-  const m = String(input).match(/^P?([0-4])$/i)
-  return m?.[1] ? `P${m[1]}` : null
-}
+import { normalizePriority } from "./priority.ts"
 
 /**
  * Create a new issue.
@@ -70,7 +59,7 @@ export function createIssueNode(
   // canonical-form ones (and vice versa). Both `nodeToIssue` (read) and
   // queryIssues (filter) normalize input, but the on-disk tag stays in
   // whatever form was first written — so we canonicalize at the boundary.
-  const priority = normalizePriorityTag(options.priority) ?? "P2"
+  const priority = normalizePriority(options.priority) ?? "P2"
   content += ` #${priority}`
 
   // Add assignee

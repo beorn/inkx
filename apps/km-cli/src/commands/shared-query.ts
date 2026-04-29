@@ -6,6 +6,7 @@
  */
 
 import type { Command } from "@silvery/commander"
+import { normalizePriority } from "@km/beads"
 
 /** Common CLI flags that both km list and km bd list accept */
 export interface SharedQueryFlags {
@@ -89,7 +90,7 @@ export function buildQueryString(
   if (flags.type) parts.push(`#${flags.type}`)
   if (flags.assignee) parts.push(`@${flags.assignee}`)
   if (flags.priority !== undefined) {
-    const p = /^\d$/.test(flags.priority) ? `P${flags.priority}` : flags.priority
+    const p = normalizePriority(flags.priority) ?? flags.priority
     parts.push(`#${p}`)
   }
 
