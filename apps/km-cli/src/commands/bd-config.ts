@@ -18,11 +18,21 @@ import { loadKmBdConfig } from "./bd-load-config.ts"
 
 export const configCommand = new Command("config").description("View and modify beads configuration")
 
-const VALID_KEYS = ["prefix"] as const
+// Canonical keys are the dotted form that mirrors `.km/config.yaml` shape.
+// Bare forms (e.g. `prefix`) are accepted as aliases for ergonomics.
+const VALID_KEYS = ["beads.prefix"] as const
+const KEY_ALIASES: Record<string, (typeof VALID_KEYS)[number]> = {
+  prefix: "beads.prefix",
+  "beads.prefix": "beads.prefix",
+}
+
+function normalizeKey(key: string): (typeof VALID_KEYS)[number] | undefined {
+  return KEY_ALIASES[key]
+}
 
 function printConfig(configObj: Awaited<ReturnType<typeof loadKmBdConfig>>): void {
   console.log(term.bold("Beads Configuration"))
-  console.log(`  prefix: ${configObj.beads.prefix}`)
+  console.log(`  beads.prefix: ${configObj.beads.prefix}`)
   if (configObj.path) {
     console.log()
     console.log(term.dim(`Source: ${configObj.path}`))
@@ -44,14 +54,15 @@ configCommand
 
 configCommand
   .command("get")
-  .argument("<key>", "Config key (prefix)")
+  .argument("<key>", "Config key (beads.prefix; bare 'prefix' also accepted)")
   .description("Get a configuration value")
   .actionMerged(async (opts) => {
     const resolved = resolvePathArg(undefined)
     const configObj = await loadKmBdConfig(resolved.repoRoot)
 
-    switch (opts.key) {
-      case "prefix":
+    const canonical = normalizeKey(opts.key)
+    switch (canonical) {
+      case "beads.prefix":
         console.log(configObj.beads.prefix)
         break
       default:
@@ -63,11 +74,12 @@ configCommand
 
 configCommand
   .command("set")
-  .argument("<key>", "Config key (prefix)")
+  .argument("<key>", "Config key (beads.prefix; bare 'prefix' also accepted)")
   .argument("<value>", "Config value")
   .description("Set a configuration value (edits .km/config.yaml)")
   .actionMerged(async (opts) => {
-    if (!VALID_KEYS.includes(opts.key as (typeof VALID_KEYS)[number])) {
+    const canonical = normalizeKey(opts.key)
+    if (!canonical) {
       console.error(term.red(`Unknown config key: ${opts.key}`))
       console.log(term.dim(`Valid keys: ${VALID_KEYS.join(", ")}`))
       process.exitCode = 1
@@ -78,10 +90,10 @@ configCommand
     const configObj = await loadKmBdConfig(resolved.repoRoot)
 
     // `@silvery/config` handles atomic writes + scoped (local) save.
-    configObj.raw.set(`beads.${opts.key}`, opts.value, "local")
+    configObj.raw.set(canonical, opts.value, "local")
     await configObj.raw.save({ scope: "local" })
 
-    console.log(term.green(`Set beads.${opts.key} = ${opts.value}`))
+    console.log(term.green(`Set ${canonical} = ${opts.value}`))
     if (configObj.raw.projectPath) {
       console.log(term.dim(`Wrote: ${configObj.raw.projectPath}`))
     }
