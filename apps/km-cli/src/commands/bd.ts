@@ -43,38 +43,11 @@ import { attachMemoryCommands } from "./bd-memory.ts"
 import { attachCommentCommands } from "./bd-comment.ts"
 import { attachDoctorCommands } from "./bd-doctor.ts"
 import { buildQueryString, normalizeStatus, type SharedQueryFlags } from "./shared-query.ts"
+import { parseLimitFlag, applyLimit } from "../utils/limit.ts"
 
 /** Format scope context for display messages (e.g., " in path") */
 function formatScopeMessage(scopePath?: string): string {
   return scopePath ? ` in ${scopePath}` : ""
-}
-
-/**
- * Parse the `--limit N` flag value. Non-numeric, missing, zero, and
- * negative values all collapse to 0 ("no limit"). Exported for unit tests.
- */
-export function parseLimitFlag(raw: unknown): number {
-  if (raw === undefined || raw === null || raw === "") return 0
-  const n = Number.parseInt(String(raw), 10)
-  if (!Number.isFinite(n) || n <= 0) return 0
-  return n
-}
-
-/**
- * Apply `--limit N` to a list of issues. Returns the (possibly truncated)
- * slice plus the message fragment for the "Issues (X[ of Y])" header.
- *
- * The header reports "X of Y" only when truncation actually happened, so
- * `--limit 100` on a 5-issue list looks identical to no limit.
- */
-export function applyLimit<T>(items: T[], limit: number): { items: T[]; totalMsg: string } {
-  const totalCount = items.length
-  const limited = limit > 0 ? items.slice(0, limit) : items
-  const truncated = limit > 0 && totalCount > limited.length
-  return {
-    items: limited,
-    totalMsg: truncated ? `${limited.length} of ${totalCount}` : `${limited.length}`,
-  }
 }
 
 export const bdCommand = new Command("bd")

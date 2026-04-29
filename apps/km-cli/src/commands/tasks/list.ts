@@ -25,6 +25,7 @@ import {
   taskPathMatches,
   looksLikeQuery,
 } from "./queries.ts"
+import { parseLimitFlag, applyLimit } from "../../utils/limit.ts"
 
 export interface ListTasksOptions {
   status?: string
@@ -38,6 +39,7 @@ export interface ListTasksOptions {
   json?: boolean
   blocked?: boolean
   unblocked?: boolean
+  limit?: string | number
 }
 
 /**
@@ -307,7 +309,10 @@ function renderTree(repo: Repo, tasks: KNodeType[], options: ListTasksOptions): 
  * Render the resolved task list (handles JSON, flat, and tree modes).
  */
 function renderTaskList(repo: Repo, input: ResolvedInput, options: ListTasksOptions): void {
-  const { tasks, rootNode, pathFilter } = input
+  const { rootNode, pathFilter } = input
+
+  const limit = parseLimitFlag(options.limit)
+  const { items: tasks, totalMsg } = applyLimit(input.tasks, limit)
 
   if (options.json) {
     console.log(JSON.stringify(tasks, null, 2))
@@ -335,7 +340,7 @@ function renderTaskList(repo: Repo, input: ResolvedInput, options: ListTasksOpti
   }
 
   console.log()
-  console.log(term.dim(`${tasks.length} task(s)`))
+  console.log(term.dim(`${totalMsg} task(s)`))
 }
 
 /**
