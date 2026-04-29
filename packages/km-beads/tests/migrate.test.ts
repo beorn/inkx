@@ -13,6 +13,7 @@ import {
   bdIdToPathFormWithSlug,
   bdIdToAliases,
   buildIdMap,
+  migrateBeadsToMarkdown,
   readBeadsExport,
   rewriteLegacyIdMentions,
 } from "../src/migrate.ts"
@@ -189,5 +190,118 @@ describe("readBeadsExport", () => {
     const fs = memFs({})
     expect(readBeadsExport(fs, "/missing/.beads")).toEqual({ issues: [], memories: [] })
     expect(readBeadsExport(fs, "/missing.jsonl")).toEqual({ issues: [], memories: [] })
+  })
+})
+
+describe("migrateBeadsToMarkdown — flat @memory layout", () => {
+  /** Trackable in-memory fs that captures every write. */
+  function trackFs(seed: Record<string, string> = {}): BeadsFs & { files: Record<string, string>; dirs: Set<string> } {
+    const files: Record<string, string> = { ...seed }
+    const dirs = new Set<string>()
+    return {
+      files,
+      dirs,
+      existsSync: (p: string) => files[p] !== undefined || dirs.has(p),
+      readFileSync: (p: string) => files[p] ?? "",
+      writeFileSync: (p: string, content: string) => {
+        files[p] = content
+      },
+      mkdirSync: (p: string) => {
+        dirs.add(p)
+      },
+    }
+  }
+
+  function memoryLine(key: string, value: string): string {
+    return JSON.stringify({ _type: "memory", key, value, created_at: "2026-04-28T00:00:00Z" })
+  }
+
+  it("appends '## From <source>' subsection on slug collision when memSourceLabel is set", () => {
+    const fs = trackFs({
+      "/src-a/.beads/issues.jsonl": memoryLine("workflow-tip", "Source A insight"),
+    })
+    migrateBeadsToMarkdown("/src-a/.beads", {
+      targetDir: "/repo/beads",
+      memDir: "/repo/beads/@memory",
+      memSourceLabel: "src-a-2026-04-28",
+      fs,
+      sourcePrefix: "km",
+    })
+    expect(fs.files["/repo/beads/@memory/workflow-tip.md"]).toContain("Source A insight")
+
+    // Second source — same slug, different content.
+    fs.files["/src-b/.beads/issues.jsonl"] = memoryLine("workflow-tip", "Source B insight")
+    const result = migrateBeadsToMarkdown("/src-b/.beads", {
+      targetDir: "/repo/beads",
+      memDir: "/repo/beads/@memory",
+      memSourceLabel: "src-b-2026-04-28",
+      fs,
+      sourcePrefix: "km",
+    })
+
+    const merged = fs.files["/repo/beads/@memory/workflow-tip.md"]!
+    expect(merged).toContain("Source A insight")
+    expect(merged).toContain("## From src-b-2026-04-28")
+    expect(merged).toContain("Source B insight")
+    expect(result.memoriesMigrated).toBe(1)
+  })
+
+  it("is idempotent — re-running the same source does not stack subsections", () => {
+    const fs = trackFs({
+      "/src-a/.beads/issues.jsonl": memoryLine("dup", "first"),
+    })
+    migrateBeadsToMarkdown("/src-a/.beads", {
+      targetDir: "/repo/beads",
+      memDir: "/repo/beads/@memory",
+      memSourceLabel: "src-a",
+      fs,
+      sourcePrefix: "km",
+    })
+
+    fs.files["/src-b/.beads/issues.jsonl"] = memoryLine("dup", "second")
+    migrateBeadsToMarkdown("/src-b/.beads", {
+      targetDir: "/repo/beads",
+      memDir: "/repo/beads/@memory",
+      memSourceLabel: "src-b",
+      fs,
+      sourcePrefix: "km",
+    })
+    // Re-run src-b — same source label, must not append another subsection.
+    const result = migrateBeadsToMarkdown("/src-b/.beads", {
+      targetDir: "/repo/beads",
+      memDir: "/repo/beads/@memory",
+      memSourceLabel: "src-b",
+      fs,
+      sourcePrefix: "km",
+    })
+
+    const merged = fs.files["/repo/beads/@memory/dup.md"]!
+    const occurrences = merged.match(/## From src-b/g)?.length ?? 0
+    expect(occurrences).toBe(1)
+    expect(result.memoriesSkipped).toBe(1)
+  })
+
+  it("falls back to skip behavior when memSourceLabel is not provided", () => {
+    const fs = trackFs({
+      "/src-a/.beads/issues.jsonl": memoryLine("k", "first"),
+    })
+    migrateBeadsToMarkdown("/src-a/.beads", {
+      targetDir: "/repo/beads",
+      memDir: "/repo/beads/@memory",
+      fs,
+      sourcePrefix: "km",
+    })
+
+    fs.files["/src-b/.beads/issues.jsonl"] = memoryLine("k", "second")
+    const result = migrateBeadsToMarkdown("/src-b/.beads", {
+      targetDir: "/repo/beads",
+      memDir: "/repo/beads/@memory",
+      // memSourceLabel omitted — collision must skip rather than merge.
+      fs,
+      sourcePrefix: "km",
+    })
+
+    expect(result.memoriesSkipped).toBe(1)
+    expect(fs.files["/repo/beads/@memory/k.md"]).not.toContain("second")
   })
 })
