@@ -14,6 +14,7 @@ import { collapseAncestorsWithTypes } from "@km/tree"
 import { KNode, type KNode as KNodeType } from "@km/core"
 import { normalizePriority } from "@km/beads"
 import { getRootPath } from "../../program.ts"
+import { resolveAssignee } from "../../utils/assignee.ts"
 import { getNodeDisplayName, formatCollapsedAncestor, formatTaskWithPath, formatTaskLine } from "./formatters.ts"
 import {
   findNodeByPathOrId,
@@ -29,6 +30,7 @@ export interface ListTasksOptions {
   status?: string
   priority?: string
   query?: string
+  assignee?: string
   all?: boolean
   detail?: boolean
   flat?: boolean
@@ -73,6 +75,26 @@ function filterTasksByBlocked(
     return tasks.filter((t) => !taskIsBlocked(t))
   }
   return tasks
+}
+
+/**
+ * Resolve the --assignee value, expanding "me" to the current user's handle.
+ * Exported so tests can pin the resolution behavior independently of process state.
+ */
+export function resolveAssigneeFilter(value: string | undefined): string | undefined {
+  if (!value) return undefined
+  if (value.toLowerCase() === "me") return resolveAssignee()
+  return value
+}
+
+/**
+ * Filter tasks by assignee (case-insensitive exact match against `task.assigned_to`).
+ * Returns input unchanged when filter is undefined.
+ */
+export function filterTasksByAssignee(tasks: KNodeType[], assignee: string | undefined): KNodeType[] {
+  if (!assignee) return tasks
+  const target = assignee.toLowerCase()
+  return tasks.filter((t) => (t.assigned_to ?? "").toLowerCase() === target)
 }
 
 /** Result of resolving input arguments into a filtered task list */
@@ -170,10 +192,11 @@ function resolveInput(repo: Repo, pathOrId: string | undefined, options: ListTas
   // Handle query option first (takes precedence).
   // Also treat positional arg as query if it looks like one.
   const queryArg = options.query || (pathOrId && looksLikeQuery(pathOrId) ? pathOrId : null)
+  const assignee = resolveAssigneeFilter(options.assignee)
 
   if (queryArg) {
     return {
-      tasks: resolveFromQuery(repo, queryArg, options),
+      tasks: filterTasksByAssignee(resolveFromQuery(repo, queryArg, options), assignee),
       rootNode: null,
       pathFilter: null,
     }
@@ -187,13 +210,16 @@ function resolveInput(repo: Repo, pathOrId: string | undefined, options: ListTas
       if (rootNode) showTaskDetails(repo, rootNode, options)
       return null
     }
-    return result
+    return { ...result, tasks: filterTasksByAssignee(result.tasks, assignee) }
   }
 
   // Global task list (no positional arg, no query)
-  const tasks = filterTasksByBlocked(
-    filterTasksByPriority(filterTasksByStatus(repo.getAllTasks(), options), options.priority),
-    options,
+  const tasks = filterTasksByAssignee(
+    filterTasksByBlocked(
+      filterTasksByPriority(filterTasksByStatus(repo.getAllTasks(), options), options.priority),
+      options,
+    ),
+    assignee,
   )
   return { tasks, rootNode: null, pathFilter: null }
 }
