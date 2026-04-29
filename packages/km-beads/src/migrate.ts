@@ -146,13 +146,41 @@ export function issueToMarkdown(issue: BeadsIssue, sourcePrefix = "km", idMap?: 
   // YAML alias syntax outside quoted scalars, and our zero-indented
   // continuation lines fell out of the scalar context entirely
   // (BAD_ALIAS warning at parse time).
+  // Frontmatter — captures every non-recomputable field bd export ships
+  // (counts like dependency_count/dependent_count/comment_count are dropped:
+  // they're derivable from `dependencies` + comment-section markdown).
+  // Order: identity → authorship → lifecycle → ownership → graph → blob.
+  // Anything missing or empty is omitted entirely.
   const frontmatter: Record<string, unknown> = { id: canonicalId }
   if (aliases.length > 0) frontmatter.aliases = aliases
   if (issue.created_by) frontmatter.created_by = issue.created_by
   frontmatter.created_at = issue.created_at
+  if (issue.started_at) frontmatter.started_at = issue.started_at
   if (issue.closed_at) frontmatter.closed_at = issue.closed_at
   if (issue.close_reason) frontmatter.close_reason = issue.close_reason
+  if (issue.defer_until) frontmatter.defer_until = issue.defer_until
+  if (issue.owner) frontmatter.owner = issue.owner
+  if (issue.assignee) frontmatter.assignee = issue.assignee
+  if (issue.work_type) frontmatter.work_type = issue.work_type
   if (issue.parent_id) frontmatter.parent_id = issue.parent_id
+  if (issue.children && issue.children.length > 0) frontmatter.children = issue.children
+  // Dependency edges preserved verbatim (every field bd ships per edge —
+  // type, depends_on_id, issue_id, created_at, created_by, metadata).
+  // The Logseq inline `blocks::`/`blocked-by::` lines below are a derived
+  // view of the same graph, not the source of truth.
+  if (issue.dependencies && issue.dependencies.length > 0) {
+    frontmatter.dependencies = issue.dependencies
+  }
+  // Pre-v1.0 bd exports used flat blocked_by/blocks arrays. When present in
+  // source, preserve under legacy_deps so the round-trip is loss-free even
+  // for archives that predate the dependencies[] schema.
+  const legacyDeps: Record<string, string[]> = {}
+  if (issue.blocked_by && issue.blocked_by.length > 0) legacyDeps.blocked_by = issue.blocked_by
+  if (issue.blocks && issue.blocks.length > 0) legacyDeps.blocks = issue.blocks
+  if (Object.keys(legacyDeps).length > 0) frontmatter.legacy_deps = legacyDeps
+  // Freeform metadata blob — bd emits as a JSON-encoded string. Skip the
+  // empty-object case ("{}") since it's noise on >90% of issues.
+  if (issue.metadata && issue.metadata !== "{}") frontmatter.metadata = issue.metadata
 
   lines.push("---")
   lines.push(stringifyYaml(frontmatter).trimEnd())
