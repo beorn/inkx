@@ -1314,47 +1314,55 @@ export function App(props: AppProps): React.ReactElement {
                       // placeholder; just an empty surface ready to
                       // type into). Chat state returns undefined and
                       // the bottom-of-layout render below takes over.
+                      //
+                      // Identity stability: ONE SessionPromptComposer
+                      // element across the pre-spawn → post-spawn
+                      // transition. Earlier code rendered two distinct
+                      // <SessionPromptComposer> JSX expressions (frozen
+                      // pre-spawn handlers vs live post-spawn handlers)
+                      // — when `focused` flipped from null to an object,
+                      // React saw two different element ownerships at
+                      // the same position and reset the underlying
+                      // readline cursor (bug: command-box cursor jumps
+                      // to front after the second layout shift, bead
+                      // km-silvery.composer-cursor-reset). Now: a single
+                      // SessionPromptComposer with handlers that branch
+                      // on `focused` internally.
                       welcomeIsFocused || sessions.length === 0 ? (
                         focused?.resumeId || (sessions.length === 0 && props.resume) ? (
                           <Text color="$muted">
                             {`Loading session ${shortenSessionId(focused?.resumeId ?? props.resume ?? "")}…`}
                           </Text>
-                        ) : focused ? (
-                          <SessionPromptComposer
-                            queueText={queueText}
-                            onQueueChange={(t) => controller.setQueuedText(focused.id, t)}
-                            onQueueSubmit={() => {
-                              controller.flushQueue(focused.id)
-                              setFocusedRegion("command")
-                            }}
-                            focusedRegion={focusedRegion}
-                            onFocusRegion={setFocusedRegion}
-                            inputValue={inputValue}
-                            onInputChange={setInputValue}
-                            inputDisabled={pendingPermissions > 0 || pendingQuestions > 0}
-                            onSubmit={handleSubmit}
-                            onExit={requestExit}
-                            promptColor={promptColor}
-                          />
                         ) : (
-                          // Pre-spawn fresh session — live composer,
-                          // typed input is buffered in App-owned
-                          // `inputValue` and dispatched once the
-                          // SessionHandle materializes. NO "spawning…"
-                          // placeholder; that's reserved for the
-                          // chat-view ActivityIndicator after the user
-                          // submits.
                           <SessionPromptComposer
-                            queueText=""
-                            onQueueChange={() => {}}
-                            onQueueSubmit={() => {}}
-                            focusedRegion="command"
-                            onFocusRegion={() => {}}
+                            queueText={focused ? queueText : ""}
+                            onQueueChange={(t) => {
+                              if (focused) controller.setQueuedText(focused.id, t)
+                            }}
+                            onQueueSubmit={() => {
+                              if (focused) {
+                                controller.flushQueue(focused.id)
+                                setFocusedRegion("command")
+                              }
+                            }}
+                            focusedRegion={focused ? focusedRegion : "command"}
+                            onFocusRegion={focused ? setFocusedRegion : () => {}}
                             inputValue={inputValue}
                             onInputChange={setInputValue}
+                            inputDisabled={
+                              focused ? pendingPermissions > 0 || pendingQuestions > 0 : false
+                            }
                             onSubmit={(text) => {
-                              setInputValue("")
-                              pendingFirstPromptRef.current = text
+                              if (focused) {
+                                handleSubmit(text)
+                              } else {
+                                // Pre-spawn fresh session — buffer the
+                                // typed text in pendingFirstPromptRef;
+                                // an effect dispatches it once the
+                                // SessionHandle materializes.
+                                setInputValue("")
+                                pendingFirstPromptRef.current = text
+                              }
                             }}
                             onExit={requestExit}
                             promptColor={promptColor}

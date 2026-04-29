@@ -1,7 +1,7 @@
 import React from "react"
 import { resolve as resolvePath } from "node:path"
 import { existsSync, readFileSync } from "node:fs"
-import { Box, Image, Muted, Small, Text, isKittyGraphicsSupported, useBoxRect } from "silvery"
+import { Box, Image, MeasuredBox, Muted, Small, Text, isKittyGraphicsSupported } from "silvery"
 import type { SessionHandle } from "../controller.ts"
 
 /**
@@ -343,26 +343,20 @@ export function SilverCodeBanner({
 }
 
 /**
- * Width-aware wrapper. `useBoxRect` reads the host node's measured width and
- * triggers a re-render when it changes. On the first paint width is 0; we
- * defer rendering the inner banner until measurement returns a positive
- * width — this avoids the layout jump where a fallback-width banner paints
- * once, then re-paints at the actual width on the second pass.
+ * Width-aware wrapper. Uses silvery's `<MeasuredBox>` primitive — defers
+ * children until layout has measured the host's positive cell width, so
+ * the banner doesn't flash at a fallback width on first paint and then
+ * re-paint at the real width.
  *
- * The OUTER Box always renders (it's the node being measured); only the
- * SilverCodeBanner inside is gated on width > 0.
+ * `alignSelf="stretch"` makes this Box fill the parent's cross-axis so
+ * the measurement reads the FULL pane width — needed by the shaded tier
+ * for full-width row padding.
  */
 export function MeasuredBanner({ agentLabel }: { agentLabel?: string }): React.ReactElement {
-  const { width } = useBoxRect()
-  // `alignSelf="stretch"` makes this Box fill the parent's cross-axis so
-  // `useBoxRect` reads the FULL pane width — needed by the shaded tier
-  // for full-width row padding. Without stretch the Box shrinks to the
-  // banner's natural content width and the shaded gradient only spans
-  // the centered ~52 cols instead of the whole pane.
   return (
-    <Box flexDirection="column" alignSelf="stretch" alignItems="center">
-      {width > 0 ? <SilverCodeBanner agentLabel={agentLabel} availableWidth={width} /> : null}
-    </Box>
+    <MeasuredBox flexDirection="column" alignSelf="stretch" alignItems="center">
+      {({ width }) => <SilverCodeBanner agentLabel={agentLabel} availableWidth={width} />}
+    </MeasuredBox>
   )
 }
 
