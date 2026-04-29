@@ -29,4 +29,22 @@ opencode reference (3 states only — idle | busy | retry): Runner abstraction o
 
 Bead @km/tui/tea has the same architectural target for @km/tui's own state machines. Coordinate scope: do they unify, or are silvercode and @km/tui separate machines that share the Turn-owner pattern?
 
-Parked from /loop session 2026-04-28 evening at user direction (focus on cleanup, not new architectural work).
+## Recurrence log → unparked 2026-04-28 23:20
+
+Originally parked 2026-04-28 21:19 ("focus on cleanup, not new architectural work"). Four hours later, recurrence #5 of the same class hit (Burnishing 61s+, MCP children sleeping, queue held — `claude-acp-1777439414160-1` synthetic-id session). The shape of each recurrence is different (different reducer arm flips status), but the class is identical. As long as `next.status` has 10 writers across 10 reducer arms, the bug-class survives every L1 patch.
+
+Confirmed via /big reframing: the fix that makes this impossible is the L4 reframe in this bead. Patches keep deferring it; deferral keeps producing recurrences. Unparking.
+
+## Phase plan
+
+- **Phase A** — silvercode:status debug logger + dev-mode invariant assert. Tracked in [[@km/silvercode/session-store-trace]] (bumped P2 → P0). Ship first; provides evidence for B–D. ≤2 hours.
+- **Phase B** — Turn-owner module (mirrors opencode `Runner`). All status-affecting transitions route through it. Reducer arms call `turn.start({turnId, kind})` / `turn.end({turnId})` instead of mutating `next.status` directly. Additive; reducer-side `next.status = X` lines stay (compatibility). ~1 day.
+- **Phase C** — `deriveStatus(internal)` getter on the public projection. `controller.tryFlush` gates on `Turn.canAccept()` instead of `status === "idle"`. Delete the 10 stored `next.status` writes from session-reducer.ts (lines 335, 344, 482, 529, 615, 626, 702, 706, 716, 724). Delete the L1 guard at line 716 (no longer needed). ~1 day.
+- **Phase D** — Property/fuzz tests on the reducer (any event sequence → consistent derived status). Delete stale workarounds (queue-focus-flush-guard's special case may collapse). Close this bead + the L1 bead `@km/silvercode/queue-stuck-thinking`. ~half day.
+
+## Related beads
+
+- [[@km/silvercode/queue-stuck-thinking]] — L1 fix (commit `32d71e571`). Closes when Phase D ships.
+- [[@km/silvercode/session-store-trace]] — Phase A.
+- [[@km/silvercode/claude-acp-init-timeout-no-fallback]] — orthogonal: synthetic-id phantom session at boot. Worth fixing alongside since it produces wedged sessions outside the L4 path.
+- [[@km/tui/tea]] — same Turn-owner pattern target for the @km/tui state machines. Coordinate when Phase B ships so we extract a shared module rather than two parallel implementations.
