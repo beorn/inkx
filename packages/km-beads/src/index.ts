@@ -1,3 +1,4 @@
+export * from "./paths.ts"
 export * from "./types.ts"
 export * from "./short-ids.ts"
 export * from "./queries.ts"

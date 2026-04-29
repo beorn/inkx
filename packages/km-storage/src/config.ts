@@ -37,6 +37,13 @@ const log = createLogger("km:storage:config")
 export interface BeadsConfig {
   /** Issue ID prefix (e.g., "km" for km-xxxx). The vault sigil for cross-vault refs. */
   prefix?: string
+  /**
+   * Search roots for beads content within the repo (relative paths). Multiple
+   * roots support migration sub-vaults (`imports/<source>-<date>/`) sitting
+   * alongside a primary `beads/`. First root is the canonical write target.
+   * Defaults to `["beads"]` when absent.
+   */
+  roots?: string[]
 }
 
 export interface TuiConfig {
@@ -215,6 +222,7 @@ export function getBeadsConfig(searchFrom?: string): Required<BeadsConfig> {
   const config = loadConfig(searchFrom)
   return {
     prefix: config.beads?.prefix ?? "km",
+    roots: config.beads?.roots ?? ["beads"],
   }
 }
 
