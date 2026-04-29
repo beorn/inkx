@@ -108,7 +108,7 @@ For each lesson broader than the program, propagate it. A lesson that lives only
 | Lesson type | Where it goes |
 |---|---|
 | Process gap (e.g., commit-AND-push) | Update `/max`, `/complete`, or `/refactor` |
-| New protocol (e.g., round-close) | New skill in `.claude/skills/<name>/` |
+| New protocol (e.g., a verification gate) | New skill in `.claude/skills/<name>/` |
 | Tooling gap (e.g., authorization model) | File a bead with the design |
 | Memory-worthy heuristic | Add to `MEMORY.md` index + `feedback-*.md` file |
 
@@ -141,7 +141,7 @@ bd dolt push
 
 1. **Victory lap, not a retro.** No "what didn't go well" / "what was deferred" / "what we'd do differently" → it's marketing, not a retrospective. Force the honest sections.
 2. **Lessons captured but not promoted.** Step 4 is mandatory. A lesson buried in a hub doc that nobody re-reads is a lesson lost.
-3. **Retro written too early.** Acceptance unverified at origin/main = wishful retro. Run `/round-close` first.
+3. **Retro written too early.** Acceptance unverified at origin/main = wishful retro. Run `/complete` first — its Iron Rule re-runs every closed bead's acceptance grep against `origin/main` (not local worktree).
 4. **Retro written too late.** A week after ship, /tmp logs are gone, recall is stale. Window: same session that closes the epic.
 5. **No cross-references.** A retro that doesn't link bead IDs, design doc paths, follow-up beads is a dead end.
 6. **Single-paragraph TL;DR replaces the full retro.** Tables matter. Structured sections force you to answer the hard questions.

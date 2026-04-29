@@ -1,5 +1,5 @@
 ---
-description: "Session-end completeness audit. Use when finishing a refactor, migration, or feature to verify nothing was left behind."
+description: "Completeness audit — verify everything since the last /complete is actually finished. Bead acceptance greps run against origin/main (not local worktree). Use when finishing a refactor, migration, feature, or integration round."
 argument-hint: "[<what-was-changed>]"
 allowed-tools: Bash, Read, Glob, Grep, Skill, AskUserQuestion
 benefits-from: [pm, recall, tests]
@@ -7,7 +7,28 @@ benefits-from: [pm, recall, tests]
 
 # Completeness Audit
 
-**Keywords**: complete, done, finish, session end, audit, remnant, leftover
+**Keywords**: complete, done, finish, session end, audit, remnant, leftover, round close, integration verify, acceptance grep
+
+## Iron Rule: trust origin/main, not local worktrees
+
+An agent's `git log` showing a commit is NOT proof. A bead is closed when its acceptance criteria pass at **origin/main** — not at a worktree's local pin, not at a feature branch, not at the bead author's word. Always:
+
+```bash
+git fetch origin
+cd vendor/<submodule> && git fetch origin && cd ..   # for each submodule
+git submodule update --init --recursive               # if pin is stale
+```
+
+Then run every acceptance grep with `origin/main` explicit:
+
+```bash
+git grep <pattern> origin/main -- 'packages/'   # expect 0 hits per acceptance
+```
+
+Common origin-vs-local divergence we've hit:
+- **Agent committed but didn't push** — `git ls-remote origin <branch>` doesn't show the SHA the agent reported
+- **Branch was merged to a feature branch but never to main** — origin/main lacks the commit
+- **Submodule pin drift** — local pin trails origin/main's pin; greps via local pin are stale
 
 ## Context
 
