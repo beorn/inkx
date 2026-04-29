@@ -9,6 +9,7 @@ import { listTasks } from "./list.ts"
 import { createTask, markDone, claimTask, releaseTask, assignTask } from "./mutations.ts"
 import { createStatusCommand } from "./status.ts"
 import { createSetCommand, createClearCommand } from "./set-clear.ts"
+import { listStaleTasks } from "./stale.ts"
 
 /**
  * Task command - unified task management
@@ -94,4 +95,19 @@ taskCommand
   .option("--json", "Output as JSON")
   .action((id, options) => {
     void releaseTask(id, options)
+  })
+
+// Add stale subcommand — list open tasks not updated in N days.
+// Use optsWithGlobals() so flags shared with the parent `tasks` command (notably
+// `--json`) aren't swallowed by the parent before reaching this action.
+taskCommand
+  .command("stale")
+  .description("List open tasks not updated in N days (default 14)")
+  .option("-d, --days <n>", "Days threshold (default 14)", (v) => parseInt(v, 10), 14)
+  .option("-V, --detail", "Show more details")
+  .option("-f, --flat", "Show path on single line")
+  .option("-i, --id", "Show task IDs")
+  .option("--json", "Output as JSON")
+  .action((_options, cmd) => {
+    void listStaleTasks(cmd.optsWithGlobals())
   })
