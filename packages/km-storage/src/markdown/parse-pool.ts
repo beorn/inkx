@@ -242,7 +242,22 @@ function createParsePoolInternal(options?: ParsePoolOptions): ParsePoolInternal 
         pendingRequests.delete(message.id)
 
         if (message.error) {
-          pending.reject(new Error(message.error))
+          // Resolve with an error-bearing ParseResult so downstream consumers
+          // (parseFiles) can attribute the failure to its file. Rejecting
+          // here forced single-file failures to abort the surrounding
+          // Promise.race in `stream()` and tear down the whole rebuild —
+          // exactly the silent-skip behavior the count-and-warn bead was
+          // filed against.
+          pending.resolve({
+            nodeId: message.nodeId,
+            fsPath: message.fsPath,
+            nodes: [],
+            wikilinks: [],
+            hash: "",
+            ino: 0,
+            mtime: 0,
+            error: message.error,
+          })
         } else {
           pending.resolve({
             nodeId: message.nodeId,

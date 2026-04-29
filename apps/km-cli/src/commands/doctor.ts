@@ -436,10 +436,19 @@ async function loadAndReport(repoPath: string, stepLabel: string, successMessage
       },
     }).run({ clear: true })
 
-    // Parse deferred files (reconciliation stubs that need markdown parsing)
+    // Parse deferred files (reconciliation stubs that need markdown parsing).
+    // Track imported / skipped / failed so the rebuild summary reflects what
+    // actually landed in the DB instead of claiming success when N files were
+    // silently dropped.
+    let imported = 0
+    let skipped = 0
+    let failed: Array<{ fsPath: string; error: string }> = []
     if (repo.deferredFiles.length > 0) {
       console.log(term.dim(`  Parsing ${repo.deferredFiles.length} new files...`))
-      await parseDeferredAsync(repo.database, repo.deferredFiles)
+      const result = await parseDeferredAsync(repo.database, repo.deferredFiles)
+      imported = result.parsed
+      skipped = result.skipped
+      failed = result.failed
     }
 
     const nodeCount = (
@@ -452,6 +461,26 @@ async function loadAndReport(repoPath: string, stepLabel: string, successMessage
     console.log(term.green("✓"), successMessage)
     console.log(term.dim(`  Nodes: ${nodeCount}`))
     console.log(term.dim(`  Time: ${repo.stats.duration}ms`))
+
+    // Completeness summary: distinguish imported / skipped / failed so a
+    // silent partial-rebuild can't masquerade as success. P0 motivation —
+    // see km-beads.rebuild-completeness-plateau.
+    if (repo.deferredFiles.length > 0) {
+      const summary = `${imported} imported, ${skipped} skipped, ${failed.length} failed`
+      if (failed.length > 0) {
+        console.log(term.red(`  Rebuild incomplete: ${summary}`))
+        console.log(term.red("  Failed files:"))
+        for (const f of failed) {
+          console.log(term.red(`    ${f.fsPath}`))
+          console.log(term.dim(`      ${f.error}`))
+        }
+        console.log()
+        console.log(term.dim("  Re-run after fixing the listed files. Set DEBUG=km:* DEBUG_LOG=/tmp/km.log for trace output."))
+        process.exit(1)
+      } else {
+        console.log(term.dim(`  Rebuild complete: ${summary}`))
+      }
+    }
   } catch (error) {
     console.error(term.red(`${successMessage.split(" ")[0]} failed:`), error)
     process.exit(1)

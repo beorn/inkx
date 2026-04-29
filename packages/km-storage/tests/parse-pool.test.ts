@@ -65,8 +65,15 @@ describe("ParsePoolService", () => {
     await using pool = createParsePool({ poolSize: 1 })
     await pool.start()
 
-    // Worker rejects the promise when file doesn't exist
-    await expect(pool.parse("test-node", filePath)).rejects.toThrow()
+    // Worker resolves with an error-bearing ParseResult so callers (parseFiles)
+    // can attribute the failure to its file instead of having a single broken
+    // file abort the surrounding Promise.race in `stream()`. See
+    // km-beads-rebuild-completeness-plateau for the count-and-warn motivation.
+    const result = await pool.parse("test-node", filePath)
+    expect(result.error).toBeDefined()
+    expect(result.error).toContain("ENOENT")
+    expect(result.fsPath).toBe(filePath)
+    expect(result.nodes).toEqual([])
   })
 
   test("respects abort callback in parseMany", async () => {

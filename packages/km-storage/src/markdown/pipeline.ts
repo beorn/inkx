@@ -83,6 +83,12 @@ export interface PipelineOptions {
   idMap?: Map<string, string>
   /** Called after each batch commit with (completedFiles, totalFiles) */
   onProgress?: (completed: number, total: number) => void
+  /**
+   * Counter incremented when applyNodes drops a file because the stub was
+   * already parsed (or had children from a prior run). Lets callers surface
+   * a "skipped" total in summaries without sniffing logs.
+   */
+  skippedCounter?: { count: number }
 }
 
 // ============================================================================
@@ -92,11 +98,16 @@ export interface PipelineOptions {
 /**
  * Parse markdown files using worker pool.
  * Streams results as workers complete (not in order, but fast).
+ *
+ * Errored files are pushed into `failures` (when supplied) so callers can
+ * surface a count + paths instead of relying on logs alone. Without an
+ * accumulator, errors are still logged but no longer counted.
  */
 export async function* parseFiles(
   sources: ParseSource[],
   parsePool: ParsePoolService,
   signal?: AbortSignal,
+  failures?: Array<{ fsPath: string; error: string }>,
 ): AsyncGenerator<ParsedFile> {
   if (sources.length === 0) return
 
@@ -121,6 +132,7 @@ export async function* parseFiles(
       // The file's stub node persists but won't be populated — better than
       // creating a corrupt stub that looks valid.
       log.warn?.(`parseFiles: parse error for ${result.fsPath}: ${result.error}`)
+      failures?.push({ fsPath: result.fsPath, error: result.error })
       continue
     }
 
@@ -154,7 +166,7 @@ export async function* applyNodes(
   db: Database,
   options: PipelineOptions = {},
 ): AsyncGenerator<AppliedFile> {
-  const { signal, emitter, stubInfo, onProgress } = options
+  const { signal, emitter, stubInfo, onProgress, skippedCounter } = options
 
   // Collect all parsed files (exhaust upstream)
   const files: ParsedFile[] = []
@@ -202,7 +214,7 @@ export async function* applyNodes(
         if (file.error) continue
 
         if (file.isCreate) {
-          insertFileNodes(file, insertStmt, deleteStmt, db, stubInfo, emitter, now)
+          insertFileNodes(file, insertStmt, deleteStmt, db, stubInfo, emitter, now, skippedCounter)
         } else {
           updateFileMetadata(file, db, emitter, now, pendingMetadataEmits)
         }
@@ -439,6 +451,7 @@ function insertFileNodes(
   stubInfo: Map<string, { parent_id: string | null; parent_idx: number; fs_path: string | null }> | undefined,
   emitter: Emitter | undefined,
   now: number,
+  skippedCounter?: { count: number },
 ): void {
   // Get stub info if available (for deferred parsing)
   const stub = stubInfo?.get(file.nodeId)
@@ -465,7 +478,10 @@ function insertFileNodes(
   // Check both `parsed` flag (catches title-only files) and childCount (legacy guard).
   if (stub) {
     const parsedRow = db.prepare("SELECT parsed FROM nodes WHERE id = ?").get(file.nodeId) as { parsed: number } | null
-    if (parsedRow?.parsed) return // Already parsed, skip
+    if (parsedRow?.parsed) {
+      if (skippedCounter) skippedCounter.count++
+      return // Already parsed, skip
+    }
 
     const childCount = (
       db.prepare("SELECT count(*) as cnt FROM nodes WHERE parent_id = ?").get(file.nodeId) as { cnt: number }
@@ -473,6 +489,7 @@ function insertFileNodes(
     if (childCount > 0) {
       // Mark parsed for future checks, then skip
       db.prepare("UPDATE nodes SET parsed = 1 WHERE id = ?").run(file.nodeId)
+      if (skippedCounter) skippedCounter.count++
       return
     }
     deleteStmt.run(file.nodeId)
@@ -564,7 +581,12 @@ export async function runDeferredPipeline(
   deferredFiles: Array<{ nodeId: string; fsPath: string }>,
   pool: ParsePoolService,
   options: PipelineOptions = {},
-): Promise<{ parsed: number; pendingLinks: ResolvedLink[] }> {
+): Promise<{
+  parsed: number
+  skipped: number
+  failed: Array<{ fsPath: string; error: string }>
+  pendingLinks: ResolvedLink[]
+}> {
   const { signal } = options
 
   // Build stub info from existing nodes
@@ -587,9 +609,14 @@ export async function runDeferredPipeline(
     isCreate: true,
   }))
 
+  // Tracking accumulators threaded through the pipeline so we can attribute
+  // each input file to imported / skipped / failed for the rebuild summary.
+  const failed: Array<{ fsPath: string; error: string }> = []
+  const skippedCounter = { count: 0 }
+
   // Compose pipeline: parse → apply → resolve
-  const parsed = parseFiles(sources, pool, signal)
-  const applied = applyNodes(parsed, db, { ...options, stubInfo })
+  const parsed = parseFiles(sources, pool, signal, failed)
+  const applied = applyNodes(parsed, db, { ...options, stubInfo, skippedCounter })
   const resolved = pipelineResolveLinks(applied, db, signal)
 
   // Collect resolved links (don't apply yet - let caller decide)
@@ -600,8 +627,13 @@ export async function runDeferredPipeline(
   const linkGen = applyLinks(toAsyncGenerator(pendingLinks), db, signal, options.emitter)
   await runPipeline(linkGen)
 
-  const parsedCount = stubInfo.size
-  log.debug?.(`runDeferredPipeline: ${parsedCount} parsed, ${pendingLinks.length} links`)
+  // Each input ends up in exactly one bucket: failed (worker error),
+  // skipped (already-parsed stub or missing stub row), or parsed.
+  const parsedCount = Math.max(0, deferredFiles.length - failed.length - skippedCounter.count)
 
-  return { parsed: parsedCount, pendingLinks }
+  log.debug?.(
+    `runDeferredPipeline: ${parsedCount} parsed, ${skippedCounter.count} skipped, ${failed.length} failed, ${pendingLinks.length} links`,
+  )
+
+  return { parsed: parsedCount, skipped: skippedCounter.count, failed, pendingLinks }
 }

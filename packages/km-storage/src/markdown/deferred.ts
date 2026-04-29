@@ -29,6 +29,12 @@ const log = createLogger("km:storage:deferred-parsing")
 // PUBLIC API
 // ============================================================================
 
+/** A file that failed to parse during deferred parsing. */
+export interface DeferredParseFailure {
+  fsPath: string
+  error: string
+}
+
 /**
  * km-fast-md.7: Parse deferred files in background after board renders.
  * Updates stub nodes with full content and creates child nodes.
@@ -38,16 +44,21 @@ const log = createLogger("km:storage:deferred-parsing")
  * @param deferredFiles - Files to parse (from LoadResult.deferredFiles)
  * @param shouldAbort - Optional callback that returns true to abort parsing
  * @param options - Optional configuration (useWorkerPool defaults to true)
- * @returns Object with parsed count and pending links for resolution
+ * @returns Object with parsed/skipped/failed counts, failed paths, and pending links
  */
 export async function parseDeferredAsync(
   db: Database,
   deferredFiles: DeferredFile[],
   shouldAbort?: () => boolean,
   options?: { useWorkerPool?: boolean; onProgress?: (completed: number, total: number) => void },
-): Promise<{ parsed: number; pendingLinks: PendingLink[] }> {
+): Promise<{
+  parsed: number
+  skipped: number
+  failed: DeferredParseFailure[]
+  pendingLinks: PendingLink[]
+}> {
   const total = deferredFiles.length
-  if (total === 0) return { parsed: 0, pendingLinks: [] }
+  if (total === 0) return { parsed: 0, skipped: 0, failed: [], pendingLinks: [] }
 
   const useWorkerPool = options?.useWorkerPool ?? true
 
@@ -219,7 +230,12 @@ async function parseDeferredWithPool(
   deferredFiles: DeferredFile[],
   _shouldAbort?: () => boolean,
   onProgress?: (completed: number, total: number) => void,
-): Promise<{ parsed: number; pendingLinks: PendingLink[] }> {
+): Promise<{
+  parsed: number
+  skipped: number
+  failed: DeferredParseFailure[]
+  pendingLinks: PendingLink[]
+}> {
   const total = deferredFiles.length
   log.debug?.(`parseDeferredWithPool: starting ${total} files with pipeline`)
 
@@ -232,21 +248,32 @@ async function parseDeferredWithPool(
   // applyLinks stage. The v4 schema carries only (host_id, href, rel), so
   // there's nothing to re-derive into PendingLink shape here — return an
   // empty list and let callers rely on the persisted rows.
-  log.debug?.(`parseDeferredWithPool: completed, ${result.parsed} parsed, ${result.pendingLinks.length} links applied`)
+  log.debug?.(
+    `parseDeferredWithPool: completed, ${result.parsed} parsed, ${result.skipped} skipped, ${result.failed.length} failed, ${result.pendingLinks.length} links applied`,
+  )
 
-  return { parsed: result.parsed, pendingLinks: [] }
+  return { parsed: result.parsed, skipped: result.skipped, failed: result.failed, pendingLinks: [] }
 }
 
 /**
+ * Outcome of parsing a single deferred file. Distinguishes "no work needed"
+ * (stub already parsed / has children / not found) from "successfully parsed"
+ * so the caller can attribute counts to skipped vs imported.
+ */
+type ParseOneOutcome = { kind: "parsed"; links: PendingLink[] } | { kind: "skipped" }
+
+/**
  * Parse a single deferred file: read markdown, replace stub with full nodes.
- * Returns the wikilinks found, or null if the stub was not found.
+ * Returns parsed links or "skipped" when the stub was not found / already
+ * filled / has children. Throws on hard failures (file read, parse error) so
+ * the caller can attribute them to the failed bucket.
  */
 function parseOneFile(
   db: Database,
   insertStmt: ReturnType<Database["prepare"]>,
   deleteStmt: ReturnType<Database["prepare"]>,
   deferredFile: DeferredFile,
-): PendingLink[] | null {
+): ParseOneOutcome {
   const { nodeId, fsPath } = deferredFile
   const content = readFileSync(fsPath, "utf-8")
   const isTxt = fsPath.endsWith(".txt")
@@ -261,11 +288,11 @@ function parseOneFile(
 
   if (!stubRow) {
     log.debug?.(`parseDeferredSequential: stub ${nodeId} not found, skipping`)
-    return null
+    return { kind: "skipped" }
   }
 
   // Skip if already parsed — prevents double-parse duplicates and metadata loss
-  if (stubRow.parsed) return null
+  if (stubRow.parsed) return { kind: "skipped" }
 
   // Also skip if children exist (from events or prior parse that didn't set flag)
   const childCount = (
@@ -274,7 +301,7 @@ function parseOneFile(
   if (childCount > 0) {
     // Mark parsed for future checks, then skip
     db.prepare("UPDATE nodes SET parsed = 1 WHERE id = ?").run(nodeId)
-    return null
+    return { kind: "skipped" }
   }
 
   deleteStmt.run(nodeId)
@@ -309,7 +336,7 @@ function parseOneFile(
   // Mark the file node as parsed
   db.prepare("UPDATE nodes SET parsed = 1 WHERE id = ?").run(nodeId)
 
-  return wikilinks
+  return { kind: "parsed", links: wikilinks }
 }
 
 /**
@@ -319,12 +346,19 @@ async function parseDeferredSequential(
   db: Database,
   deferredFiles: DeferredFile[],
   shouldAbort?: () => boolean,
-): Promise<{ parsed: number; pendingLinks: PendingLink[] }> {
+): Promise<{
+  parsed: number
+  skipped: number
+  failed: DeferredParseFailure[]
+  pendingLinks: PendingLink[]
+}> {
   const total = deferredFiles.length
   log.debug?.(`parseDeferredSequential: starting ${total} files`)
   const pendingLinks: PendingLink[] = []
+  const failed: DeferredParseFailure[] = []
   const BATCH_SIZE = 10
   let parsed = 0
+  let skipped = 0
 
   db.run("BEGIN IMMEDIATE")
 
@@ -334,16 +368,21 @@ async function parseDeferredSequential(
 
     for (const [i, deferredFile] of deferredFiles.entries()) {
       try {
-        const links = parseOneFile(db, insertStmt, deleteStmt, deferredFile)
-        if (links === null) continue
+        const outcome = parseOneFile(db, insertStmt, deleteStmt, deferredFile)
+        if (outcome.kind === "skipped") {
+          skipped++
+          continue
+        }
 
-        for (const wikilink of links) {
+        for (const wikilink of outcome.links) {
           pendingLinks.push(wikilink)
         }
         parsed++
       } catch (err) {
         // F10: Log at WARN so per-file parse errors are visible during normal operation
-        log.warn?.(`parseDeferredSequential: error parsing ${deferredFile.fsPath}: ${String(err)}`)
+        const message = err instanceof Error ? err.message : String(err)
+        log.warn?.(`parseDeferredSequential: error parsing ${deferredFile.fsPath}: ${message}`)
+        failed.push({ fsPath: deferredFile.fsPath, error: message })
       }
 
       if (i % BATCH_SIZE === 0) {
@@ -363,7 +402,9 @@ async function parseDeferredSequential(
     throw error
   }
 
-  log.debug?.(`parseDeferredSequential: completed, ${parsed} parsed, ${pendingLinks.length} links`)
+  log.debug?.(
+    `parseDeferredSequential: completed, ${parsed} parsed, ${skipped} skipped, ${failed.length} failed, ${pendingLinks.length} links`,
+  )
 
-  return { parsed, pendingLinks }
+  return { parsed, skipped, failed, pendingLinks }
 }
