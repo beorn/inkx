@@ -24,31 +24,28 @@ export interface BeadsQueryOptions {
 /**
  * Build a dependent-count map in a single pass.
  *
- * Replaces the per-issue countDependents() N+1 scan. The data shape is
- * `data.props["blocked-by"]` with type "link" (single target) or "list"
- * (multiple targets in `values[].target`). Each target is a canonical
- * short-id of the issue being blocked.
+ * Replaces the per-issue countDependents() N+1 scan. Reads from the
+ * indexed `deps` table (schema v7) — one row per (host_id, target, kind)
+ * tuple, populated by triggers from `nodes.data.props["blocked-by"]`.
+ * Each target is the canonical short-id of the issue being blocked.
+ *
+ * Pre-v7 the same shape was JSON-scanned out of `nodes.data` on every
+ * call; the migration backfills the table so this query stays correct
+ * across upgrades.
  *
  * @returns Map of shortId → count of issues that block-by this id.
  */
 export function buildDependentCountMap(repo: Repo): Map<string, number> {
   const map = new Map<string, number>()
   const sql = `
-    SELECT data FROM nodes
-    WHERE json_extract(data, '$.props."blocked-by"') IS NOT NULL
+    SELECT target, COUNT(*) AS n
+    FROM deps
+    WHERE kind = 'blocked-by'
+    GROUP BY target
   `
-  const rows = repo.rawQuery<{ data: string | Record<string, unknown> }>(sql)
+  const rows = repo.rawQuery<{ target: string; n: number }>(sql)
   for (const row of rows) {
-    const data = (typeof row.data === "string" ? JSON.parse(row.data) : row.data) as Record<string, unknown>
-    const props = data?.props as Record<string, { type?: string; target?: string; values?: Array<{ target?: string }> }>
-    const bb = props?.["blocked-by"]
-    if (!bb) continue
-    const targets: string[] = []
-    if (bb.type === "link" && bb.target) targets.push(bb.target)
-    if (bb.type === "list" && Array.isArray(bb.values)) {
-      for (const v of bb.values) if (v?.target) targets.push(v.target)
-    }
-    for (const t of targets) map.set(t, (map.get(t) ?? 0) + 1)
+    map.set(row.target, row.n)
   }
   return map
 }
@@ -150,9 +147,12 @@ function isBead(node: KNode, roots: string[], repo: Repo | undefined): boolean {
 /**
  * Count how many issues are blocked by the given short ID.
  *
- * Slow path: scans all nodes once per call (unindexed JSON LIKE). Use
- * buildDependentCountMap(repo) once and pass via options.dependentCountMap
- * for batch queries — that turns 3463 × O(N) scans into 1 × O(N).
+ * Indexed path: hits idx_deps_target_kind on the deps table (schema v7).
+ * Pre-v7 this was an O(N) JSON LIKE scan over every node; the migration
+ * backfills the table so this query stays correct across upgrades.
+ *
+ * Callers doing batch queries should still prefer
+ * `buildDependentCountMap(repo)` to fetch every count in one round-trip.
  */
 function countDependents(shortId: string | undefined, repo?: Repo, dependentCountMap?: Map<string, number>): number {
   // Non-beads (no shortId) can't be the target of a `blocked-by` edge —
@@ -163,23 +163,11 @@ function countDependents(shortId: string | undefined, repo?: Repo, dependentCoun
   }
   if (!repo) return 0
 
-  const sql = `
-    SELECT data FROM nodes
-    WHERE json_extract(data, '$.props."blocked-by"') IS NOT NULL
-  `
-  const rows = repo.rawQuery<{ data: string | Record<string, unknown> }>(sql)
-  let count = 0
-  for (const row of rows) {
-    const data = (typeof row.data === "string" ? JSON.parse(row.data) : row.data) as Record<string, unknown>
-    const props = data?.props as Record<string, { type?: string; target?: string; values?: Array<{ target?: string }> }>
-    const bb = props?.["blocked-by"]
-    if (!bb) continue
-    if (bb.type === "link" && bb.target === shortId) count++
-    if (bb.type === "list" && Array.isArray(bb.values)) {
-      for (const v of bb.values) if (v?.target === shortId) count++
-    }
-  }
-  return count
+  const row = repo.rawQuery<{ n: number }>(
+    "SELECT COUNT(*) AS n FROM deps WHERE target = ? AND kind = 'blocked-by'",
+    [shortId],
+  )[0]
+  return row?.n ?? 0
 }
 
 /**
