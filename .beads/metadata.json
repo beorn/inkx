@@ -1,7 +1,0 @@
-{
-  "database": "dolt",
-  "backend": "dolt",
-  "dolt_mode": "server",
-  "dolt_database": "km",
-  "project_id": "a14b83e6-9bfa-452d-9ff0-728315723eb5"
-}
