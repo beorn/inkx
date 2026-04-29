@@ -180,7 +180,11 @@ export class ChangeHandlers {
           const file = findFileNode(this.db, node)
           if (file && file.id !== excludeFileId) fileIds.add(file.id)
         }
-        // Rewrite each affected source file (without assignBlockId to prevent cascading)
+        // Rewrite each affected source file (without assignBlockId to prevent cascading).
+        // Each per-file write is content-equality-gated: if the freshly-serialized
+        // content matches the baseline, skip. Otherwise the cascade rewrites every
+        // file that had ANY anchor minted, even when nothing in that file actually
+        // changed. (km-beads.doctor-rebuild-corruption)
         const writeChangeId = changeId ?? this.currentChangeId
         for (const fileId of fileIds) {
           const file = getNode(this.db, fileId)
@@ -191,6 +195,8 @@ export class ChangeHandlers {
           const absPath = toAbsoluteFsPath(this.repoPath, file.fs_path)
           const subtreeNodes = getSubtree(this.db, fileId)
           const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
+          const newHash = hashContent(content)
+          if (file.content_hash === newHash) continue
           void this.fsTarget.writeFile(absPath, content, writeChangeId)
         }
       },
@@ -224,6 +230,24 @@ export class ChangeHandlers {
     let subtreeNodes = getSubtree(this.db, fileNode.id)
     subtreeNodes = this.mergeExternalDrift(fileNode, absPath, subtreeNodes)
     const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), anchors.assign)
+    const newHash = hashContent(content)
+
+    // Content-equality gate. If the serialized form matches the baseline
+    // km last wrote (no semantic change AND no anchors minted), skip both
+    // the writeFile AND the rewriteSourceFiles cascade. Without this gate,
+    // every node_updated event triggered a full file rewrite, and
+    // closing a single bead could touch hundreds of files transitively
+    // via the anchor cascade. (km-beads.doctor-rebuild-corruption)
+    //
+    // Note: `anchors.assign` is called inline by nodesToMarkdown above,
+    // so if any cross-link target had its anchor minted, that mint has
+    // already committed to the DB. Skipping the file-write here is still
+    // correct because the minted anchor's value also lives in `content`,
+    // which by definition equals the on-disk baseline only if no anchor
+    // was minted (otherwise the inserted `^anchor` literal would change
+    // the hash).
+    if (fileNode.content_hash === newHash) return
+
     void this.fsTarget.writeFile(absPath, content, this.currentChangeId)
     // Record the write as the new parsed-content baseline on the file node.
     //
@@ -244,7 +268,7 @@ export class ChangeHandlers {
     // would read a baseline that never matched disk and the CAS guard
     // would spuriously trip. On conflict (disk diverged from our
     // baseline) the write path correctly leaves fs_content_hash alone.
-    this.updateContentBaseline(fileNode.id, hashContent(content))
+    this.updateContentBaseline(fileNode.id, newHash)
     anchors.rewriteSourceFiles(fileNode.id)
   }
 
