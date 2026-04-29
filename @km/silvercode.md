@@ -35,7 +35,7 @@ blocks:: [[@km/_orphan/code]]
   Test: termless test that simulates a 12s session-init delay; assert newSession either rejects or extends its wait, never resolves with a synthetic id.
   
   Related to but separate from `@km/silvercode/queue-stuck-thinking-l4` — that bead's Phase B (Turn module) would also own session-init readiness, at which point this bead may collapse into it. For now, ship as a narrower, faster fix.
-- [ ] Welcome screen bypassed by PaneGrid '◈ Spawning session…' chrome on fresh silvercode launch #bug #P2 @issue priority:: P2
+- [x] Welcome screen bypassed by PaneGrid '◈ Spawning session…' chrome on fresh silvercode launch #bug #P2 @issue priority:: P2
 
   Symptom: when user runs `silvercode` (no --resume), the Welcome screen does NOT render on first paint. Instead, PaneGrid shows a chrome-level placeholder reading `◈ Spawning session…` and the banner + command box never appear until something else flips the state.
   
