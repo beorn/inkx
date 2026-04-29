@@ -33,6 +33,25 @@ import { loadRepo } from "../load-repo.ts"
 import { join } from "path"
 import { existsSync } from "fs"
 
+/**
+ * Write a large JSON payload to stdout and append a newline. Plain
+ * `console.log` on Bun returns before the write hits the pipe; once the
+ * action callback returns and the script exits, multi-MB payloads can be
+ * truncated mid-string when stdout is a pipe (jq fails with
+ * "Unfinished string at EOF"). The async stream callback fires only
+ * after Node has handed every byte to the kernel, so the producer can't
+ * exit early. See list-json-malformed.
+ */
+async function writeJsonOut(value: unknown): Promise<void> {
+  const out = JSON.stringify(value, null, 2) + "\n"
+  // process.stdout is a Writable stream; honour back-pressure so a slow
+  // consumer (jq, less, head -c N) doesn't drop bytes when the script
+  // exits. Awaiting the callback waits until Node confirms the write.
+  await new Promise<void>((resolve, reject) => {
+    process.stdout.write(out, (err) => (err ? reject(err) : resolve()))
+  })
+}
+
 // Import from extracted modules
 import { issueToBdJson, printIssue, printReadyIssue } from "./bd-format.ts"
 import { resolveIssueArg } from "./bd-query-helpers.ts"
@@ -50,6 +69,28 @@ import { parseLimitFlag, applyLimit } from "../utils/limit.ts"
 /** Format scope context for display messages (e.g., " in path") */
 function formatScopeMessage(scopePath?: string): string {
   return scopePath ? ` in ${scopePath}` : ""
+}
+
+/**
+ * Print a helpful empty-result hint for bd subcommands that scope to the
+ * default beads root[0]. When `beads.roots[0]` doesn't actually exist in
+ * the vault (or is empty), commands silently return 0 — this nudges the
+ * user toward `--all`, an explicit board override, or a config tweak.
+ *
+ * `subcommand` is the bare bd subcommand the user just ran ("ready",
+ * "info", "list"). `boardRoots` is the resolved roots that produced the
+ * empty result.
+ */
+function printEmptyDefaultBoardHint(subcommand: string, boardRoots: readonly string[] | undefined): void {
+  const root0 = boardRoots && boardRoots.length > 0 ? boardRoots[0] : ""
+  const rootDisplay = root0 ? `"${root0}"` : "empty"
+  console.log()
+  console.log(term.dim(`No issues in default board (beads.roots[0] = ${rootDisplay}).`))
+  console.log(term.dim("Try:"))
+  console.log(term.dim(`  km bd ${subcommand} @km          # all beads in @km/ root`))
+  console.log(term.dim(`  km bd ${subcommand} --all        # all beads everywhere`))
+  console.log(term.dim(`  km bd config get beads.roots     # see configured roots`))
+  console.log(term.dim(`  km bd config set beads.roots '["@km"]'  # configure default`))
 }
 
 export const bdCommand = new Command("bd")
@@ -98,12 +139,20 @@ bdCommand
     const issues = queryReady(filter, scopePath, undefined, { repo, boardRoots })
 
     if (opts.json) {
-      console.log(JSON.stringify(issues.map(issueToBdJson), null, 2))
+      await writeJsonOut(issues.map(issueToBdJson))
       return
     }
 
     if (issues.length === 0) {
       console.log(term.yellow(`No ready issues found${formatScopeMessage(scopePath)}.`))
+      // Bare `bd ready` (no positional, no --all): hint about the
+      // default board so the user isn't left guessing why a vault with
+      // beads returns nothing. Suppressed when an explicit scope/board
+      // arg was supplied — the user already targeted a specific place
+      // and a generic config-tweak hint would just be noise.
+      if (!opts.all && !opts.scopeOrBoard) {
+        printEmptyDefaultBoardHint("ready", boardRoots)
+      }
       return
     }
 
@@ -159,7 +208,7 @@ bdCommand
       const { items: issues, totalMsg } = applyLimit(allIssues, limit)
 
       if (opts.json) {
-        console.log(JSON.stringify(issues.map(issueToBdJson), null, 2))
+        await writeJsonOut(issues.map(issueToBdJson))
         return
       }
 
@@ -205,7 +254,7 @@ bdCommand
     issues = limited.items
 
     if (opts.json) {
-      console.log(JSON.stringify(issues.map(issueToBdJson), null, 2))
+      await writeJsonOut(issues.map(issueToBdJson))
       return
     }
 
@@ -661,7 +710,7 @@ bdCommand
     const stale = issues.filter((i) => i.updatedAt < threshold && i.status !== "done" && i.status !== "dropped")
 
     if (opts.json) {
-      console.log(JSON.stringify(stale.map(issueToBdJson), null, 2))
+      await writeJsonOut(stale.map(issueToBdJson))
       return
     }
 
@@ -830,7 +879,7 @@ bdCommand
       .map((c) => nodeToIssue(c, { repo, dependentCountMap }))
 
     if (opts.json) {
-      console.log(JSON.stringify(childIssues.map(issueToBdJson), null, 2))
+      await writeJsonOut(childIssues.map(issueToBdJson))
       return
     }
 
@@ -861,7 +910,7 @@ bdCommand
     )
 
     if (opts.json) {
-      console.log(JSON.stringify(blocked.map(issueToBdJson), null, 2))
+      await writeJsonOut(blocked.map(issueToBdJson))
       return
     }
 
@@ -885,23 +934,37 @@ bdCommand.addCommand(bdAgentCommand)
 // bd info [scope] - Show database information
 bdCommand
   .command("info")
-  .argument("[scope]", "Path scope")
+  .argument(
+    "[scopeOrBoard]",
+    "Filesystem path scopes results; a non-path argument (e.g. `@km`) overrides the configured beads root[0].",
+  )
   .description("Show beads configuration and statistics")
+  .option("--all", "Count every checkbox in the vault, not just configured beads roots")
   // oxlint-disable-next-line complexity/complexity -- CLI action with sequential reporting steps
   .actionMerged(async (opts) => {
-    const resolved = resolvePathArg(opts.scope)
+    const resolved = resolvePathArg(opts.scopeOrBoard)
     const kmDir = join(resolved.repoRoot, ".km")
 
     // Load repo for database access and mode
     using repo = await loadRepo(resolved.repoRoot)
-    const scopePath = resolved.nodeRef ?? undefined
+    // Mirror `bd ready`: a non-path positional ("@km") overrides the
+    // config[0] beads root; an explicit filesystem path scopes results
+    // to a subtree.
+    const cliRootOverride = resolved.wasExplicitPath ? undefined : (resolved.nodeRef ?? undefined)
+    const scopePath = resolved.wasExplicitPath ? (resolved.nodeRef ?? undefined) : undefined
     const configObj = await loadKmBdConfig(resolved.repoRoot)
     const config = configObj.beads
     const dbPath = join(kmDir, "state.db")
     const repoMode = repo.mode
 
-    // No global board filter — scope is encoded per-issue via path-form id.
-    const issues = queryIssues({}, scopePath, undefined, { repo })
+    // Match `bd ready` / `bd list`: scope counts to the configured beads
+    // roots so vault-wide checkbox noise (markdown fixtures, archived
+    // notes) doesn't drown out actual work. `--all` opts out for
+    // debugging unindexed beads. Without this filter, `bd info` and
+    // `bd list --status X` reported wildly divergent totals
+    // (info-stats-mismatch).
+    const boardRoots = opts.all ? undefined : resolveBeadsRoots(repo.config.beads, cliRootOverride)
+    const issues = queryIssues({}, scopePath, undefined, { repo, boardRoots })
 
     console.log(term.bold("Beads Configuration"))
     console.log("===================")
@@ -964,6 +1027,11 @@ bdCommand
           console.log(term.dim(`  ... and ${pathsWithTasks.size - 5} more files`))
         }
       }
+    } else if (!opts.all && !opts.scopeOrBoard) {
+      // Bare `bd info` with default boardRoots returning 0 = same shape
+      // as the bare-ready empty case. Surface the same hint instead of
+      // a stranded "Total: 0 issues" line.
+      printEmptyDefaultBoardHint("info", boardRoots)
     }
   })
 
@@ -1012,7 +1080,7 @@ bdCommand
     const issues = nodes.map((n) => nodeToIssue(n, { repo, dependentCountMap }))
 
     if (opts.json) {
-      console.log(JSON.stringify(issues.map(issueToBdJson), null, 2))
+      await writeJsonOut(issues.map(issueToBdJson))
       return
     }
 

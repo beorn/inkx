@@ -493,7 +493,13 @@ export function queryIssues(
   if (!repo) {
     return [] // Cannot query without repo
   }
-  const allNodes = repo.query(query.trim() || "*")
+  // Empty query string → executeQuery selects all nodes (SELECT * WHERE 1=1).
+  // Do NOT fall back to "*" here: the DSL parses "*" as a text term, which
+  // becomes `content LIKE '%*%'` — matching only nodes whose content
+  // happens to contain a literal asterisk. That's the info-stats-mismatch
+  // bug: `bd info` ran "*" and got a content-incidental subset, while
+  // `bd list --status X` ran a real status filter.
+  const allNodes = repo.query(query.trim())
   // Bead-membership predicate — see queryReady for the rationale and
   // km-beads.bead-sigil-elevation for the design.
   const boardRoots = options?.boardRoots
