@@ -5,6 +5,20 @@ aliases:
   - km-tribe-recall-deep-rounds
 created_by: claude:4de4a3ab
 created_at: 2026-04-28T07:10:29Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.recall-deep-rounds
+    depends_on_id: km-tribe.recall
+    type: parent-child
+    created_at: 2026-04-28T00:10:29Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
+  - issue_id: km-tribe.recall-deep-rounds
+    depends_on_id: km-tribe.recall-eval-corpus
+    type: blocks
+    created_at: 2026-04-28T00:10:30Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] Deep agent rounds — extend LLM↔search inner-loop beyond max-rounds=2 @km/tribe #feature #P2

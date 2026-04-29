@@ -10,6 +10,8 @@ close_reason: "Fixed: Removed empty-field guard from diffNodeFields. Safe
   because WriteTokenMap suppresses self-writes, rename handlers record tokens,
   and ordinal-drift uses block_id matching. External edits that clear content
   now sync correctly. Commit 7afb123f."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] diffNodeFields empty-string guard is incorrect self-write detector @km/storage #bug #P1 @Bjørn Stabell

@@ -10,6 +10,7 @@ close_reason: 12 built-in themes (dracula, nord, monokai, catppuccin,
   tokyo-night, solarized, github, gruvbox, one-dark, rose-pine + light
   variants), --theme CLI flag, Set Theme in .tape, termless themes command. 14
   tests.
+owner: bjorn@stabell.org
 ---
 
 # [x] Recording themes: Set Theme in .tape using silvery's 38 palettes @km/termless #feature #P3

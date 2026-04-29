@@ -13,6 +13,15 @@ close_reason: "Wrapped buildNodePopoverContent's lazy render() in
   to a function component so the lazy DetailView require defers until React
   mounts. Test: apps/km-tui/tests/text/popover.test.ts (verified failing without
   the wrap, passing with). Commit ad1a1c7aa."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-tui.popover-nodestore
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-13T23:30:15Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Popover render missing NodeStoreProvider → useNodeStore throws @km/tui #bug #P2 @Bjørn Stabell

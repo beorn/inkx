@@ -5,6 +5,14 @@ aliases:
   - km-silvery-plugin-namespace-lint
 created_by: claude:8b5b9e1c
 created_at: 2026-04-21T09:06:17Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.plugin-namespace-lint
+    depends_on_id: km-silvery.authoring-elegance
+    type: parent-child
+    created_at: 2026-04-21T02:06:43Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [ ] Lint rule: ban hand-typed '${name}.${op}' literals outside definePlugin @km/silvery #feature #P3

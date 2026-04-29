@@ -5,6 +5,7 @@ aliases:
 created_by: claude:e7c823b8
 created_at: 2026-02-27T12:33:58Z
 closed_at: 2026-02-28T21:32:32Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Streamline Text Input — inkx + km Unified @km/_orphan #feature #P0

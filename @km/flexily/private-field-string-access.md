@@ -9,6 +9,7 @@ closed_at: 2026-03-13T05:36:55Z
 close_reason: P3 quality — string indexing for private fields is a TypeScript
   pattern used intentionally to bypass type system for cross-module access. Not
   a bug.
+owner: bjorn@stabell.org
 ---
 
 # [x] markSubtreeLayoutSeen accesses private fields via string indexing @km/flexily #task #P3

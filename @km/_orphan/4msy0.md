@@ -6,6 +6,8 @@ created_by: claude:c9beade3
 created_at: 2026-03-13T23:21:14Z
 closed_at: 2026-03-13T23:45:56Z
 close_reason: Closed
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] termless: command execution has shell-injection/quoting bugs @km/_orphan #bug #P1 @claude:c9beade3

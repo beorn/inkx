@@ -12,6 +12,14 @@ close_reason: "Types portion shipped in v0.18.0: ThemeToken / StandardThemeToken
   autocomplete. Matchers (toHaveToken, toResolveToken) deferred — needs
   @termless/test or silvery test helper extension. Full PARTIAL closure: types
   done, matchers tracked separately."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.typed-tokens-matchers
+    depends_on_id: km-silvery.theme-system-v2
+    type: parent-child
+    created_at: 2026-04-18T10:45:13Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] TypeScript-enforced ThemeToken union + test matchers @km/silvery #task #P3

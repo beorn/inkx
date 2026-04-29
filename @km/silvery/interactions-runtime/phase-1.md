@@ -9,6 +9,7 @@ closed_at: 2026-04-06T07:39:45Z
 close_reason: "Cross-references updated: km-dfrtr notes point to
   interactions-runtime, km-y9zs4 notes supersession, km-7hfik already closed.
   Phase 0 dependency is artificial (docs don't block bead metadata)."
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 1: Update related beads @km/silvery #task #P1

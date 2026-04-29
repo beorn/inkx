@@ -6,6 +6,7 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T14:51:26Z
 closed_at: 2026-02-18T14:51:49Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Add dimension anti-patterns to /code clean skill @km/tools #task #P3

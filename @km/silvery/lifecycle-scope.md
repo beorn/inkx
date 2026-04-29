@@ -11,6 +11,16 @@ close_reason: "Shipped: vendor/silvery 7d9ee8081 + km main 84ac75043.
   silvercode App.tsx migrated. 5 tests pass under vendor project. Decisions on 7
   open questions documented in agent report. Phase 3 (subprocess ownership
   migration) + Phase 5 (delete useDispose) deferred to follow-up beads."
+started_at: 2026-04-25T06:32:22Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvery.lifecycle-scope
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-24T10:57:34Z
+    created_by: claude:0940ca20
+    metadata: "{}"
 ---
 
 # [x] Silvery runtime-integrated structured-concurrency scope for managed resources @km/silvery #feature #P0 @claude:2405c72e

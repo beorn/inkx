@@ -10,6 +10,14 @@ close_reason: Moved out of beads (2026-04-23). Speculative brainstorming, not
   roadmap — docs at hub/silvery/future/ai-terminal/. Revisit after km + silvery
   1.0 ship, or when a concrete trigger emerges (showcase demo needs panes,
   CAP-adjacent opportunity, etc.).
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.commander-protocol
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T22:32:02Z
+    created_by: claude:6443387f
+    metadata: "{}"
 ---
 
 # [x] CAP: Commander App Protocol — AI-native CLI integration standard @km/silvery #feature #P4

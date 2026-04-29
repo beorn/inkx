@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-22T07:35:06Z
 closed_at: 2026-02-22T08:54:29Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Windowing: refactor store to workspace/panes/global structure @km/tui #task #P2 @claude:d3a7049b

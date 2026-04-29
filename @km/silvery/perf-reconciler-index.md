@@ -9,6 +9,7 @@ closed_at: 2026-03-13T05:22:01Z
 close_reason: "Deferred: Reconciler uses filter/slice for child index lookups.
   O(n) per lookup but n is typically small (5-20 children). Map-based index
   would add memory overhead for marginal gain. No measured bottleneck."
+owner: bjorn@stabell.org
 ---
 
 # [x] Perf: Reconciler O(n) child index computations via filter/slice @km/silvery #task #P3

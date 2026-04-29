@@ -6,6 +6,8 @@ aliases:
 created_by: claude:536645b5
 created_at: 2026-02-19T17:06:35Z
 closed_at: 2026-02-20T13:40:58Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Add kitty keyboard protocol support to inkx @km/infra #feature #P3 @claude:8f007ba9

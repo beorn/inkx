@@ -12,6 +12,21 @@ close_reason: "Added 5 STRICT invariants across scroll/layout contracts (4
   throw. Placed before skipStateUpdates so fresh-render comparisons also catch
   violations. Full silvery suite (5018 tests + STRICT=2) green: no new failures,
   no invariant violations. Commit 0cdf5f5b."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-silvery.implicit-invariants-audit
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-20T14:53:01Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
+  - issue_id: km-silvery.implicit-invariants-audit
+    depends_on_id: km-silvery.virtualizer-from-layout
+    type: blocks
+    created_at: 2026-04-20T15:10:10Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Audit silvery for implicit contracts → convert to STRICT-mode invariants @km/silvery #task #P2 @claude:8b5b9e1c

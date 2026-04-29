@@ -6,6 +6,8 @@ aliases:
 created_by: claude:2f3fc9d8
 created_at: 2026-02-11T20:14:11Z
 closed_at: 2026-02-12T07:28:11Z
+owner: bjorn@stabell.org
+assignee: claude:2f3fc9d8
 ---
 
 # [x] TextArea component: sluggish input, eaten keypresses, cursor position issues @km/inkx #bug #P2 @claude:2f3fc9d8

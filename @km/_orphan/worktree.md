@@ -4,6 +4,7 @@ aliases:
   - km-worktree
 created_at: 2026-01-30T12:52:42Z
 closed_at: 2026-01-30T13:08:19Z
+assignee: claude:17efd9ed
 ---
 
 # [x] Create /worktree skill for git worktree management @km/_orphan #feature #P2 @claude:17efd9ed

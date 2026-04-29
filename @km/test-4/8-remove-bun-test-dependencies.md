@@ -6,6 +6,7 @@ aliases:
   - "@km/test-4/8"
 created_at: 2026-01-27T14:26:12Z
 closed_at: 2026-01-27T15:44:32Z
+assignee: claude:bb984f7c
 ---
 
 # [x] Remove Bun test dependencies @km/test-4 #task #P2 @claude:bb984f7c

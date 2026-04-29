@@ -5,6 +5,7 @@ aliases:
   - km-vitestx-diagnostics
 created_at: 2026-02-04T17:00:05Z
 closed_at: 2026-02-04T21:14:55Z
+assignee: claude:10db6ea8
 ---
 
 # [x] Diagnostic testing infrastructure for inkx apps @km/vitestx #feature #P2 @claude:10db6ea8

@@ -5,6 +5,20 @@ aliases:
   - km-silvercode-markdown-table-render
 created_by: claude:1eb07bba
 created_at: 2026-04-26T05:49:35Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.markdown-table-render
+    depends_on_id: km-shared.text-render-package
+    type: blocks
+    created_at: 2026-04-28T12:45:11Z
+    created_by: claude:2405c72e
+    metadata: "{}"
+  - issue_id: km-silvercode.markdown-table-render
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T14:19:55Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] Markdown table rendering with column alignment @km/silvercode #feature #P0

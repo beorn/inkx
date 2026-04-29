@@ -11,6 +11,14 @@ close_reason: "Fixed in silvery fc7847ef — removed duplicated
   ListView's onItemClick/onItemHover props. 45 tests (6 new: 3 SelectList
   regression, 3 ListView standalone coverage). Option (a) single-source-of-truth
   picked."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.selectlist-double-onselect
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T00:58:51Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] SelectList fires onSelect twice on click: ListView wrapper Box onClick duplicates SelectList's own onClick @km/silvery #bug #P2

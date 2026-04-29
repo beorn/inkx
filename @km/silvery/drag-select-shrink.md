@@ -5,6 +5,14 @@ aliases:
   - km-silvery-drag-select-shrink
 created_by: claude:0940ca20
 created_at: 2026-04-24T15:09:22Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.drag-select-shrink
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-24T08:09:37Z
+    created_by: claude:0940ca20
+    metadata: "{}"
 ---
 
 # [ ] silvery: drag-select extends but won't shrink, plus 2 mouse bugs @km/silvery #bug #P2

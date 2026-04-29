@@ -10,6 +10,16 @@ close_reason: "Shipped: a7e86361d (controller helpers) + 0cd94792b (Esc parity).
   interruptActiveTurn, popQueueHead, double-Esc opens history. Per-turn abort
   uses synthetic turn-end fallback (km-agent-harness.per-turn-abort tracks the
   upstream gap). Session: km-session.0425-evening"
+started_at: 2026-04-26T05:55:43Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.esc-claude-parity
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-25T22:55:42Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Esc behavior mirroring Claude Code: interrupt + restore queue + double-esc history @km/silvercode #feature #P2 @claude:2405c72e

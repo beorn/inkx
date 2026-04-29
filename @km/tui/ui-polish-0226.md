@@ -6,6 +6,8 @@ aliases:
 created_by: claude:e7c823b8
 created_at: 2026-02-26T17:00:14Z
 closed_at: 2026-02-26T17:11:32Z
+owner: bjorn@stabell.org
+assignee: claude:e7c823b8
 ---
 
 # [x] UI polish: theme neutralization, filter bug, rendering, truncation padding @km/tui #task #P2 @claude:e7c823b8

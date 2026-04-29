@@ -4,6 +4,7 @@ aliases:
   - km-ocwrx
 created_at: 2026-02-02T22:08:27Z
 closed_at: 2026-02-02T22:14:35Z
+assignee: claude:1588825b
 ---
 
 # [x] Refactor: Unify VirtualList and HorizontalVirtualList @km/_orphan #task #P2 @claude:1588825b

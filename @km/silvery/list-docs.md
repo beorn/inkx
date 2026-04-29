@@ -9,6 +9,8 @@ closed_at: 2026-03-11T07:49:29Z
 close_reason: Added 'List Components' section to scrolling guide with comparison
   table (overflow vs VirtualList vs ScrollbackList). Cross-linked from
   scrollback page and components guide.
+owner: bjorn@stabell.org
+assignee: claude:e4e70c9a
 ---
 
 # [x] Docs: cross-link list components (SelectList, VirtualList, ScrollbackList) @km/silvery #task #P3 @claude:e4e70c9a

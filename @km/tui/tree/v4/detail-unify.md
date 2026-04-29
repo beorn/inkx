@@ -10,6 +10,8 @@ close_reason: "Gap 1: useEffects 21→10 (exceeded ≤12 target). Gap 2:
   DerivedColumn 0 refs. Gap 3: zebra fixed. Board.tsx 1422→1336 LOC. LOC target
   ≤1100 not met — would require Board split (future). ColumnSnapshot kept as
   legitimate DTO."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Quality plateau gaps — Board.tsx useEffects, DerivedColumn deletion, detail view unification @km/tui #task #P2 @Bjørn Stabell

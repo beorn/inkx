@@ -6,6 +6,7 @@ aliases:
   - "@km/test-4/10"
 created_at: 2026-01-27T14:26:14Z
 closed_at: 2026-01-27T16:06:31Z
+assignee: claude:bb984f7c
 ---
 
 # [x] CI integration and HTML reports @km/test-4 #task #P2 @claude:bb984f7c

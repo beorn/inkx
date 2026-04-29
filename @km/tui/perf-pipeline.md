@@ -6,6 +6,7 @@ aliases:
 created_by: claude:499eee95
 created_at: 2026-02-13T18:27:47Z
 closed_at: 2026-02-13T18:45:27Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Pipeline timing threshold too tight (113ms > 100ms) @km/tui #bug #P3

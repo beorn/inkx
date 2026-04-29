@@ -5,6 +5,7 @@ aliases:
   - km-tui-persist-locations
 created_by: Bjørn Stabell
 created_at: 2026-03-31T01:05:40Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Persist favorites & dynamic journal location @km/tui #feature #P2

@@ -5,6 +5,7 @@ aliases:
   - km-tui-search-goto
 created_at: 2026-02-04T14:29:42Z
 closed_at: 2026-02-04T14:39:14Z
+assignee: claude:44a381e0
 ---
 
 # [x] Search Enter doesn't navigate to non-file items @km/tui #bug #P2 @claude:44a381e0

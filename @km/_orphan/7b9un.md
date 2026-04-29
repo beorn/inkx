@@ -10,6 +10,8 @@ close_reason: "Investigation complete: native Static already uses useScrollback
   for Ink's string concatenation output model (render/renderToString). No
   replacement feasible or beneficial. ~85 lines removable only when compat
   Static is deprecated entirely."
+owner: bjorn@stabell.org
+assignee: claude:73d7a332
 ---
 
 # [x] Static: investigate alignment with scrollback promotion @km/_orphan #task #P3 @claude:73d7a332

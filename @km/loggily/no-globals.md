@@ -9,6 +9,15 @@ closed_at: 2026-04-13T00:24:03Z
 close_reason: Removed ambient metrics (side-effect import), added
   TRACE_ID_FORMAT + TRACE_SAMPLE_RATE env vars, idFormat/sampleRate config keys,
   deprecated setIdFormat/setSampleRate setters. 307 tests pass.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-loggily.no-globals
+    depends_on_id: km-loggily
+    type: parent-child
+    created_at: 2026-04-12T17:18:11Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Remove global setters — setIdFormat/setSampleRate into config/env @km/loggily #task #P0 @Bjørn Stabell

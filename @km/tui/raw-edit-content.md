@@ -6,6 +6,8 @@ aliases:
 created_by: claude:5770ce77
 created_at: 2026-02-17T10:57:20Z
 closed_at: 2026-02-17T11:05:04Z
+owner: bjorn@stabell.org
+assignee: claude:5770ce77
 ---
 
 # [x] Show full raw markdown (metadata, @tags, color=) when editing @km/tui #feature #P2 @claude:5770ce77

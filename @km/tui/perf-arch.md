@@ -5,6 +5,7 @@ aliases:
   - km-tui-perf-arch
 created_at: 2026-02-08T09:26:23Z
 closed_at: 2026-02-08T21:15:39Z
+assignee: claude:a3625ec3
 ---
 
 # [x] TUI architecture refactor: unified state, sync layout, fine-grained updates @km/tui #task #P0 @claude:a3625ec3

@@ -7,6 +7,16 @@ created_by: claude:cc081a9a
 created_at: 2026-04-26T21:46:31Z
 closed_at: 2026-04-26T22:02:51Z
 close_reason: Closed
+started_at: 2026-04-26T21:47:35Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-all.fix-sweep-board-features
+    depends_on_id: km-all.fix-sweep-remaining-slow
+    type: parent-child
+    created_at: 2026-04-26T14:46:43Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Board features bugs: truncation + search scrolling artifacts @km/all #bug #P2 @claude:cc081a9a

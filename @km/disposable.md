@@ -5,6 +5,7 @@ aliases:
   - "@km/_orphan/disposable"
 created_at: 2026-01-23T18:27:11Z
 closed_at: 2026-01-23T20:07:25Z
+assignee: 20ff2ff9
 ---
 
 # [x] Adopt Disposable pattern for all cleanup-requiring objects @km/disposable #feature #P2 @20ff2ff9

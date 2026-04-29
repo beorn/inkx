@@ -38,6 +38,7 @@ close_reason: >-
   showcase).
 
   - npx tsc --noEmit 2>&1 | grep 'error TS' | grep -v vendor/ | wc -l → 0.
+owner: bjorn@stabell.org
 ---
 
 # [x] [bug] Undo stack doesn't cover title edits — 'Nothing to undo' after typo @km/tui #bug #P2

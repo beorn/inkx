@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-silvercode-agent-future
 created_by: claude:4de4a3ab
 created_at: 2026-04-27T19:02:44Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.silvercode-agent-future
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-27T12:02:44Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] [tracking][long-horizon] silvercode-agent — own ACP-compatible agent runtime with native silvercode primitives (ACP++) @km/silvercode #epic #P4

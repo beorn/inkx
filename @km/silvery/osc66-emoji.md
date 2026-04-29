@@ -8,6 +8,8 @@ created_at: 2026-03-10T05:16:01Z
 closed_at: 2026-03-10T15:36:57Z
 close_reason: Extended OSC 66 to text-presentation emoji. Exported
   isTextPresentationEmoji, extended wrapTextSizing in output-phase.ts.
+owner: bjorn@stabell.org
+assignee: claude:55df8ef1
 ---
 
 # [x] Extend OSC 66 text sizing to cover emoji width discrepancies @km/silvery #task #P2 @claude:55df8ef1

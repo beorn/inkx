@@ -5,6 +5,20 @@ aliases:
   - km-silvercode-acp-comp-terminal-panel
 created_by: claude:cd034ca4
 created_at: 2026-04-26T15:37:39Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.acp-comp-terminal-panel
+    depends_on_id: km-silvercode.acp-comp-workspace-shell
+    type: blocks
+    created_at: 2026-04-26T08:37:57Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-comp-terminal-panel
+    depends_on_id: km-silvercode.ide-shell
+    type: parent-child
+    created_at: 2026-04-26T08:55:12Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [ ] silvercode terminal panel — pipeBackend at v0, vt100/vterm integration spike @km/silvercode #feature #P4

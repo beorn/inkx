@@ -10,6 +10,15 @@ close_reason: "Foundation shipped in b011bf65c + 3c941fd9e: --account CLI flag,
   ~/.silvercode/accounts/<name> resolution, per-session configDir passthrough,
   StatusLine @account label, intro message. OAuth onboarding, account roster
   modal, quota display, auto-routing deferred to follow-up beads."
+owner: bjorn@stabell.org
+assignee: claude:0940ca20
+dependencies:
+  - issue_id: km-silvercode.multi-account
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-24T08:33:39Z
+    created_by: claude:0940ca20
+    metadata: "{}"
 ---
 
 # [x] v1.1: multi-account spawning via per-session CLAUDE_CONFIG_DIR @km/silvercode #feature #P2 @claude:0940ca20

@@ -4,6 +4,7 @@ aliases:
   - km-flexx-percent
 created_at: 2026-01-30T21:19:52Z
 closed_at: 2026-01-30T21:28:38Z
+assignee: claude:b8b4780b
 ---
 
 # [x] Optimize flexx percent value resolution @km/_orphan #task #P3 @claude:b8b4780b

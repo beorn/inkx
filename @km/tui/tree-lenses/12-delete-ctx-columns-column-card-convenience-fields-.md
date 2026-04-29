@@ -11,6 +11,8 @@ close_reason: OpCtx.columns and OpCtx.column (ColumnView) removed. Replaced with
   OpCtx.columnId (string). ~20 call sites migrated across 8 files. ColumnView
   still used internally in buildOpCtx for cursor derivation but not exposed on
   OpCtx interface. All 1555 tests pass.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Delete ctx.columns/column/card convenience fields from OpCtx @km/tui #task #P3 @Bjørn Stabell

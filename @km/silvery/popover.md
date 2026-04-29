@@ -5,6 +5,7 @@ aliases:
   - km-silvery-popover
 created_by: Bjørn Stabell
 created_at: 2026-04-03T06:55:22Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Popover component — floating, viewport-aware, with automatic defaults @km/silvery #feature #P2

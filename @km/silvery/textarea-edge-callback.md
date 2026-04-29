@@ -12,6 +12,14 @@ close_reason: "Implemented TextArea onEdge callback. Silvery commits: 2b03f6ba
   vendor/silvery/packages/ag-react/src/ui/components/{TextArea.tsx,useTextArea.\
   ts}, vendor/silvery/docs/components/TextArea.md,
   vendor/silvery/tests/features/textarea-onedge.test.tsx"
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.textarea-edge-callback
+    depends_on_id: km-silvercode.queue-option-b
+    type: parent-child
+    created_at: 2026-04-24T16:16:26Z
+    created_by: claude:0940ca20
+    metadata: "{}"
 ---
 
 # [x] TextArea: onEdge callback fires when arrow hits buffer boundary (enables focus handoff) @km/silvery #feature #P1

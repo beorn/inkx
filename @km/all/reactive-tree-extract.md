@@ -9,6 +9,15 @@ closed_at: 2026-04-19T04:12:58Z
 close_reason: Extracted to packages/reactive-tree/. 33/33 tests pass in new
   location. km-tui consumer migrated. Commit c71915597. Vendor submodule
   promotion deferred until a second consumer materializes.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-all.reactive-tree-extract
+    depends_on_id: km-all.reactive-tree-library
+    type: parent-child
+    created_at: 2026-04-18T21:05:16Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Extract reactive-graph.ts to @km/reactive-tree workspace package @km/all #task #P2 @Bjørn Stabell

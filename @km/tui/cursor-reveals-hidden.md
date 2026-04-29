@@ -9,6 +9,8 @@ closed_at: 2026-04-03T19:44:35Z
 close_reason: Added findVisibleAncestor() — dispatchBoard(TOGGLE_FOLD) and
   setFoldDepths() now auto-rescue cursor to nearest visible ancestor when
   folding hides it. 2 tests in fold.slow.test.ts.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] Cursor navigates into hidden/folded nodes — should auto-expand to reveal cursor @km/tui #bug #P1 @Bjørn Stabell

@@ -9,6 +9,8 @@ closed_at: 2026-04-01T06:33:11Z
 close_reason: Double-click check was after isColumnNode early return. Moved
   before — double-click on column headers enters inline edit. Single-click
   select + Enter edit + k navigation all verified working.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Column/board titles should act like cards for their container @km/tui #feature #P2 @Bjørn Stabell

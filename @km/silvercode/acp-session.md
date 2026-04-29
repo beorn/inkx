@@ -24,6 +24,22 @@ close_reason: "Shipped createAcpSession(scope, agentSession, opts) factory at
   acp-session.ts (new), acp-session.test.ts (new), index.ts (append), CLAUDE.md
   (additive), package.json (deps + export). createSessionStore unchanged — both
   paths coexist for gradual migration."
+started_at: 2026-04-26T09:38:03Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-session
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T01:10:53Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-session
+    depends_on_id: km-silvercode.acp-client
+    type: blocks
+    created_at: 2026-04-26T01:10:27Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] createAcpSession factory — signals/projections/trees over SessionUpdate stream @km/silvercode #feature #P1 @claude:cd034ca4

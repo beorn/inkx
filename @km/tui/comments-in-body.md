@@ -6,6 +6,8 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T15:11:23Z
 closed_at: 2026-02-19T15:58:34Z
+owner: bjorn@stabell.org
+assignee: claude:36393b5d
 ---
 
 # [x] Import: Asana comments render as body content instead of sub-items @km/tui #bug #P2 @claude:36393b5d

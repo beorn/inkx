@@ -5,6 +5,20 @@ aliases:
   - km-tribe-recall-cognitive-rerank
 created_by: claude:4de4a3ab
 created_at: 2026-04-28T07:06:07Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.recall-cognitive-rerank
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-28T00:06:24Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
+  - issue_id: km-tribe.recall-cognitive-rerank
+    depends_on_id: km-tribe.recall-eval-corpus
+    type: blocks
+    created_at: 2026-04-28T00:06:07Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] Post-hoc cognitive type rerank (ENGRAM-inspired, read-side only) @km/tribe #feature #P3

@@ -10,6 +10,14 @@ close_reason: "Shipped: check-no-raw-lifecycle.sh in km 1f317889a
   (baseline-guard lint, wired into test:ci) + SILVERY_SCOPE_TRACE leak detector
   in silvery 2b0880ef (40 tests pass). Together they close the front and back
   gates per /big plateau analysis."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.scope-leak-detector
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-24T15:35:16Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
 ---
 
 # [x] Dev-mode scope leak detector — runtime accounting at process exit @km/silvery #task #P1

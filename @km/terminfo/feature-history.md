@@ -5,6 +5,7 @@ aliases:
   - km-terminfo-feature-history
 created_by: claude:f8196c1c
 created_at: 2026-03-26T15:33:19Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Feature history enrichment: origin stories + adoption context for all 148 features @km/terminfo #task #P3

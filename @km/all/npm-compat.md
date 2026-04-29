@@ -6,6 +6,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-10T18:45:13Z
 closed_at: 2026-04-10T21:40:40Z
+owner: bjorn@stabell.org
 ---
 
 # [x] npm packaging: Node compat, bundling, bin entries across all vendor packages @km/all #task #P2

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:54aefa32
 created_at: 2026-02-18T00:12:11Z
 closed_at: 2026-02-18T07:51:19Z
+owner: bjorn@stabell.org
+assignee: claude:54aefa32
 ---
 
 # [x] Detail pane: props formatting, content indent, title dedup @km/tui #task #P2 @claude:54aefa32

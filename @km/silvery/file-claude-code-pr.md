@@ -6,6 +6,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-09T20:36:44Z
 closed_at: 2026-04-09T21:25:01Z
+owner: bjorn@stabell.org
 ---
 
 # [x] File PR comment on anthropics/claude-code#41965 — silvery inline incremental rendering as existence proof (REQUIRES USER APPROVAL) @km/silvery #task #P2

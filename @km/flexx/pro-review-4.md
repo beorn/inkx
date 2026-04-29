@@ -8,6 +8,8 @@ created_at: 2026-03-14T02:12:46Z
 closed_at: 2026-03-14T02:28:20Z
 close_reason: Package naming fixed, Yoga divergences, migration guide, benchmark
   methodology, SEO
+owner: bjorn@stabell.org
+assignee: claude:65d845d9
 ---
 
 # [x] Pro Review 4: flexily docs & positioning — 2 critical, 3 important @km/flexx #task #P2 @claude:65d845d9

@@ -6,6 +6,7 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T01:23:53Z
 closed_at: 2026-02-20T08:13:52Z
+owner: bjorn@stabell.org
 ---
 
 # [x] TUI v2: unified model, simplified navigation, rendering fixes @km/all #epic #P1

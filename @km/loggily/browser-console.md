@@ -13,6 +13,14 @@ close_reason: "Fixed via loggily commits 02645025b (failing tests) + 05b1cb7
   gained userArgs: unknown[]. Error first for DevTools stack clickability, then
   merged context+props+data. Tests: 319/319 (311 pre-existing + 8 new). TSC
   baseline unchanged. loggily branch fix/browser-console pushed to origin."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-loggily.browser-console
+    depends_on_id: km-loggily
+    type: parent-child
+    created_at: 2026-04-12T18:06:10Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Browser console: %c CSS colors + multi-arg + arrow functions @km/loggily #bug #P0

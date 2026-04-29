@@ -15,6 +15,15 @@ close_reason: Shipped in bearly 2d75c1b (submodule bump km ffcf20ef5, pushed).
   Daemon typecheck clean (2 pre-existing errors elsewhere, unrelated). Manual
   boot verified. Stop hook from earlier session still installed at
   ~/.claude/hooks/detect-role-prefix.sh.
+owner: bjorn@stabell.org
+assignee: claude:da4429de
+dependencies:
+  - issue_id: km-tribe.compact-channel-broadcasts
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-23T14:09:51Z
+    created_by: claude:da4429de
+    metadata: "{}"
 ---
 
 # [x] Compact tribe channel broadcasts into per-turn summary @km/tribe #task #P2 @claude:da4429de

@@ -11,6 +11,7 @@ aliases:
   - "@km/_orphan/bearly"
 created_by: claude:19080504
 created_at: 2026-03-25T17:58:20Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] bearly: reusable Claude Code tools monorepo (@bearly/*) @km/bearly #epic #P2

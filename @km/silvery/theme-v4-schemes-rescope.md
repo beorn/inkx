@@ -12,6 +12,15 @@ close_reason: "Phase 3 complete: @silvery/theme rescoped to scheme catalog only.
   autoGenerateTheme, generateTheme) added to @silvery/ansi. All re-exports
   removed. Zero new type errors. Tests passing. Silvery: 379ba5ba, km:
   3daafc28d"
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-silvery.theme-v4-schemes-rescope
+    depends_on_id: km-silvery.theme-v4
+    type: parent-child
+    created_at: 2026-04-19T10:59:04Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Phase 3: Rescope @silvery/theme to scheme catalog (+ rename to @silvery/schemes) @km/silvery #task #P3 @Bjørn Stabell

@@ -9,6 +9,7 @@ closed_at: 2026-03-13T05:32:45Z
 close_reason: P3 DRY — measureNode duplicates layoutNode Phase 3 logic but is
   intentional (different measure vs layout concerns). Extracting shared code
   would couple them.
+owner: bjorn@stabell.org
 ---
 
 # [x] DRY: measureNode duplicates ~80 lines from layoutNode Phase 3 @km/flexily #task #P3

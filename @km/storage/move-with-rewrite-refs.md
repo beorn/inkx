@@ -5,6 +5,16 @@ aliases:
   - km-storage-move-with-rewrite-refs
 created_by: claude:da9990c5
 created_at: 2026-04-28T19:10:43Z
+started_at: 2026-04-28T19:13:18Z
+owner: bjorn@stabell.org
+assignee: claude:da9990c5
+dependencies:
+  - issue_id: km-storage.move-with-rewrite-refs
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-28T12:10:42Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [/] Move/rename primitive that rewrites all incoming references (wikilinks, aliases, inline mentions) @km/storage #feature #P2 @claude:da9990c5

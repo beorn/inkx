@@ -7,6 +7,7 @@ created_by: claude:e4e70c9a
 created_at: 2026-03-12T08:16:11Z
 closed_at: 2026-03-12T08:20:26Z
 close_reason: Duplicate of km-silvery.scope-tree — merging context into existing bead
+owner: bjorn@stabell.org
 ---
 
 # [x] Generalize scope tree; consider resurrecting/integrating legion @km/all #feature #P4

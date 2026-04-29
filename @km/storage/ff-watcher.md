@@ -8,6 +8,7 @@ created_at: 2026-03-17T06:18:55Z
 closed_at: 2026-03-17T06:25:10Z
 close_reason: Implemented syncIndexFileToFolder in update-handler.ts —
   propagates index file edits back to folder node (title, child ordering)
+owner: bjorn@stabell.org
 ---
 
 # [x] Index file → folder sync in update handler @km/storage #task #P2

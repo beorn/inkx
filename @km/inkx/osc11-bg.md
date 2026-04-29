@@ -6,6 +6,7 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T13:21:47Z
 closed_at: 2026-03-04T16:23:43Z
+owner: bjorn@stabell.org
 ---
 
 # [x] OSC 11: detect terminal background color for auto dark/light theme @km/inkx #feature #P2

@@ -5,6 +5,7 @@ aliases:
   - km-all-board-test-migration
 created_by: claude:8baeb5e0
 created_at: 2026-03-01T22:12:36Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Migrate board behavior tests from km-tui to km-board @km/all #task #P3

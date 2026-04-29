@@ -6,6 +6,8 @@ aliases:
 created_by: claude:97b8de73
 created_at: 2026-02-23T13:23:44Z
 closed_at: 2026-03-04T16:36:08Z
+owner: bjorn@stabell.org
+assignee: claude:97b8de73
 ---
 
 # [x] Command palette: results truncated and layout issues @km/tui #bug #P2 @claude:97b8de73

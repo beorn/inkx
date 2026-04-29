@@ -4,6 +4,7 @@ aliases:
   - km-storage-4
 created_at: 2026-01-20T11:24:11Z
 closed_at: 2026-01-27T20:38:07Z
+assignee: claude:cacac722
 ---
 
 # [x] Performance tracing for cursor movement @km/_orphan #task #P3 @claude:cacac722

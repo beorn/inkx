@@ -12,6 +12,7 @@ close_reason: "Fixed all items: (1) Popover uses DocContent renderer via lazy
   added colorOverride=null on cursor row in DetailView DocNode, stripping link
   colors when bg is selection-bg. (4) Card title heading colors:
   colorOverride=null when ownColor is set in TreeNode."
+owner: bjorn@stabell.org
 ---
 
 # [x] Doc view polish: wikilink rendering, unfocused cursor colors, link visibility @km/tui #bug #P2

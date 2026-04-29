@@ -6,6 +6,7 @@ aliases:
 created_by: claude:717696c0
 created_at: 2026-02-15T22:03:03Z
 closed_at: 2026-02-16T00:02:30Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Cursoring to partially visible columns doesn't trigger horizontal scroll @km/tui #bug #P2

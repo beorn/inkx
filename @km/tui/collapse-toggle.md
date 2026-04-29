@@ -6,6 +6,7 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T21:46:17Z
 closed_at: 2026-02-14T21:46:30Z
+owner: bjorn@stabell.org
 ---
 
 # [x] collapse=true columns cannot be toggled off via 'c' key @km/tui #bug #P2

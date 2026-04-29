@@ -10,6 +10,7 @@ close_reason: "Deferred: childPositionChanged is computed per-node in content
   phase by comparing prevLayout positions. Precomputing in layout phase would
   save repeated comparisons but adds complexity to layout phase. No measured
   perf impact — only triggers when subtreeDirty."
+owner: bjorn@stabell.org
 ---
 
 # [x] Perf: Precompute childPositionChanged bit in layout phase @km/silvery #task #P3

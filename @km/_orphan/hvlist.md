@@ -4,6 +4,7 @@ aliases:
   - km-hvlist
 created_at: 2026-02-02T20:33:30Z
 closed_at: 2026-02-02T22:14:35Z
+assignee: claude:227cdc41
 ---
 
 # [x] HorizontalVirtualList component for horizontal virtualization @km/_orphan #feature #P3 @claude:227cdc41

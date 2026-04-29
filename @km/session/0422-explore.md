@@ -8,6 +8,69 @@ created_at: 2026-04-22T18:47:04Z
 closed_at: 2026-04-26T06:25:12Z
 close_reason: Session complete — issues identified and tracked, blocked items
   have follow-up beads
+owner: bjorn@stabell.org
+assignee: claude:019d032d
+dependencies:
+  - issue_id: km-session.0422-explore
+    depends_on_id: km-all.signal-handler-registry
+    type: blocks
+    created_at: 2026-04-22T13:41:53Z
+    created_by: claude:019d032d
+    metadata: "{}"
+  - issue_id: km-session.0422-explore
+    depends_on_id: km-cli.init-prompt-corrupts-tui
+    type: blocks
+    created_at: 2026-04-22T11:59:31Z
+    created_by: claude:019d032d
+    metadata: "{}"
+  - issue_id: km-session.0422-explore
+    depends_on_id: km-silvery.input-owner
+    type: blocks
+    created_at: 2026-04-22T13:34:30Z
+    created_by: claude:019d032d
+    metadata: "{}"
+  - issue_id: km-session.0422-explore
+    depends_on_id: km-silvery.stdout-dims-snapshot-race
+    type: blocks
+    created_at: 2026-04-22T13:41:53Z
+    created_by: claude:019d032d
+    metadata: "{}"
+  - issue_id: km-session.0422-explore
+    depends_on_id: km-silvery.term-sub-owners
+    type: blocks
+    created_at: 2026-04-22T13:47:52Z
+    created_by: claude:019d032d
+    metadata: "{}"
+  - issue_id: km-session.0422-explore
+    depends_on_id: km-silvery.terminal-protocol-owner
+    type: blocks
+    created_at: 2026-04-22T13:41:53Z
+    created_by: claude:019d032d
+    metadata: "{}"
+  - issue_id: km-session.0422-explore
+    depends_on_id: km-storage.parse-worker-stdout-leak
+    type: blocks
+    created_at: 2026-04-22T11:59:31Z
+    created_by: claude:019d032d
+    metadata: "{}"
+  - issue_id: km-session.0422-explore
+    depends_on_id: km-tui.cursor-stuck-col-0-h-scrolls
+    type: blocks
+    created_at: 2026-04-22T13:24:30Z
+    created_by: claude:019d032d
+    metadata: "{}"
+  - issue_id: km-session.0422-explore
+    depends_on_id: km-tui.evaluate-probe-autoprobing
+    type: blocks
+    created_at: 2026-04-22T13:09:00Z
+    created_by: claude:019d032d
+    metadata: "{}"
+  - issue_id: km-session.0422-explore
+    depends_on_id: km-tui.single-col-missing-top-borders
+    type: blocks
+    created_at: 2026-04-22T12:09:48Z
+    created_by: claude:019d032d
+    metadata: "{}"
 ---
 
 # [x] Session 2026-04-22: explore km view broken after storage/fs-mount refactor @km/session #task #P1 @claude:019d032d

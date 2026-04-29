@@ -6,6 +6,7 @@ aliases:
 created_by: claude:8fc35754
 created_at: 2026-03-03T08:27:54Z
 closed_at: 2026-03-03T11:10:46Z
+owner: bjorn@stabell.org
 ---
 
 # [x] VTE (GNOME) backend via libvte @km/termless #task #P4

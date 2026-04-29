@@ -15,6 +15,16 @@ close_reason: "fe0adca89 — nHits pass condition now ANDs count match with
   (recordPassCause discrepancy preserved); 0 typecheck errors. Branch
   agent-bd-verify-hardening pushed to origin (SHA
   fe0adca89f015567a20d73c23757b253c03e6d40)."
+started_at: 2026-04-27T20:32:54Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-tools.bd-verify-nhits-exit-code
+    depends_on_id: km-all.bd-verify-primitive
+    type: parent-child
+    created_at: 2026-04-27T13:23:41Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] bd-verify: nHits pass condition must AND with exitCode === 0 @km/tools #task #P3 @claude:cc081a9a

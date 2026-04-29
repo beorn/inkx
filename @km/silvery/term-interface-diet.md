@@ -5,6 +5,21 @@ aliases:
   - km-silvery-term-interface-diet
 created_by: claude:019d032d
 created_at: 2026-04-23T01:26:17Z
+owner: bjorn@stabell.org
+assignee: claude:019d032d
+dependencies:
+  - issue_id: km-silvery.term-interface-diet
+    depends_on_id: km-silvery.input-structured-events
+    type: blocks
+    created_at: 2026-04-22T18:26:32Z
+    created_by: claude:019d032d
+    metadata: "{}"
+  - issue_id: km-silvery.term-interface-diet
+    depends_on_id: km-silvery.term-sub-owners
+    type: parent-child
+    created_at: 2026-04-22T18:26:32Z
+    created_by: claude:019d032d
+    metadata: "{}"
 ---
 
 # [ ] Delete redundant legacy slots on Term (write/writeLine/cols/rows/hasInput/hasCursor/hasColor/hasUnicode/caps) @km/silvery #task #P3 @claude:019d032d

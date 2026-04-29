@@ -13,6 +13,14 @@ close_reason: "Subsumed by km-infra.orphan-branch-audit. The 'patch-apply'
   'patch-apply' is just the 'integrate' action in triage — cherry-pick vs merge
   vs squash is style, not architecture, for 1-3 commit bug-fix branches. The
   triage primitive (km-infra.orphan-branch-audit) is sufficient."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.agent-isolation-reframe
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-28T14:48:44Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Agent isolation reframe — replace branch-API with patch-apply API between agents and lead @km/infra #feature #P2

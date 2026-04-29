@@ -13,6 +13,15 @@ close_reason: "Shipped commit ec122c1a8. Repo interface gains readonly repoId:
   pass in repo-id-lifecycle.test.ts: fresh mint, reopen idempotent, existing-id
   preserved, malformed config falls back, memory-mode transient, multi-repo
   isolation."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.federation-repo-lifecycle-wiring
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-22T08:35:56Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Wire Repo lifecycle to use readOrMintRepoId on open @km/storage #task #P2 @claude:8b5b9e1c

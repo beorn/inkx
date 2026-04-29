@@ -5,6 +5,7 @@ aliases:
   - km-tui-search-bugs
 created_at: 2026-02-04T12:48:35Z
 closed_at: 2026-02-04T13:01:36Z
+assignee: claude:44a381e0
 ---
 
 # [x] Search dialog (/) display issues and Enter-to-select broken @km/tui #bug #P2 @claude:44a381e0

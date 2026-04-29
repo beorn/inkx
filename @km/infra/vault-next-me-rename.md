@@ -5,6 +5,7 @@ aliases:
   - km-infra-vault-next-me-rename
 created_by: Bjørn Stabell
 created_at: 2026-04-07T21:31:53Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] vault: rename @next.md → @me.md for symmetry with @agent.md (discuss) @km/infra #task #P3

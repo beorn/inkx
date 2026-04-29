@@ -9,6 +9,8 @@ closed_at: 2026-03-25T22:08:33Z
 close_reason: "Implemented: 4 baseline detail pages (/baseline/core, modern,
   rich, unicode), clickable baseline boxes on home page, baseline filter
   dropdown in matrix, content/baselines.json with editorial content. Pushed."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Baseline detail pages + baseline filter + clickable baseline boxes @km/terminfo #feature #P2 @claude:f8196c1c

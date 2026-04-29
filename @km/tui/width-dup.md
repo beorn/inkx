@@ -5,6 +5,7 @@ aliases:
   - km-tui-width-dup
 created_at: 2026-02-04T11:27:22Z
 closed_at: 2026-02-04T13:26:57Z
+assignee: claude:27f1a547
 ---
 
 # [x] ColumnsView: Duplicated width calculations with Board.tsx @km/tui #task #P3 @claude:27f1a547

@@ -10,6 +10,8 @@ closed_at: 2026-04-06T04:21:00Z
 close_reason: All 59 ctx.columns/viewIndex/viewTree refs migrated to ctx.tree (0
   remaining). CardView deleted. view-navigation.ts migrated to
   ViewTreeProjection. Column + Card use useNode for all view data.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Migrate Board.tsx + column views to useNode/ViewTree @km/tui #task #P2 @Bjørn Stabell

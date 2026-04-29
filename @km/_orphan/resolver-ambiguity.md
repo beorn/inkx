@@ -4,6 +4,7 @@ aliases:
   - km-resolver-ambiguity
 created_at: 2026-01-30T16:43:25Z
 closed_at: 2026-01-30T16:47:12Z
+assignee: claude:cf38b4a6
 ---
 
 # [x] Improve node resolver: path-first, warn on ambiguity @km/_orphan #task #P2 @claude:cf38b4a6

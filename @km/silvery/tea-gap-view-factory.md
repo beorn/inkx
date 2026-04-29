@@ -11,6 +11,15 @@ close_reason: "Landed as 9721b572 on silvery main. withReact now accepts
   positional form. 9 new tests in packages/create/tests/with-react.test.ts, all
   108 create tests pass. Factory eagerly resolves at plugin-install so it sees
   all upstream plugins' additions."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-silvery.tea-gap-view-factory
+    depends_on_id: km-silvery.tea
+    type: parent-child
+    created_at: 2026-04-18T12:01:16Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] TEA gap: withReact view should accept factory (app) => ReactElement @km/silvery #task #P2 @Bjørn Stabell

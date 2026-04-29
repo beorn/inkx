@@ -10,6 +10,15 @@ close_reason: "Audit complete:
   hub/km/research/op-vocabulary-audit-2026-04-22.md. Verdict: Phase B is persist
   + replay + ~2-3 person-weeks of normalization. 11 gaps found (1 high severity:
   folder rename bypasses emitter.apply — follow-up beads suggested)."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.op-vocabulary-audit
+    depends_on_id: km-storage.pathway-db-crdt
+    type: parent-child
+    created_at: 2026-04-21T22:23:07Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Phase B prereq: map the scope of serializable ops (content changes only, exclude UI/app state) @km/storage #task #P0 @claude:8b5b9e1c

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:c7c59180
 created_at: 2026-02-10T15:37:27Z
 closed_at: 2026-02-10T15:46:32Z
+owner: bjorn@stabell.org
+assignee: claude:c7c59180
 ---
 
 # [x] perf(inkx): diff micro-optimizations (bounding box, relative cursor, row slice compare) @km/inkx #task #P3 @claude:c7c59180

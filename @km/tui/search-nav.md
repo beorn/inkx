@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T13:30:04Z
 closed_at: 2026-02-19T08:10:30Z
+owner: bjorn@stabell.org
+assignee: claude:36393b5d
 ---
 
 # [x] Search: Enter doesn't navigate cursor to the matched card @km/tui #bug #P2 @claude:36393b5d

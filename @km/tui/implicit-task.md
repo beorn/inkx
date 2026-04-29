@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T21:54:21Z
 closed_at: 2026-02-15T09:07:13Z
+owner: bjorn@stabell.org
+assignee: claude:a5c7f7de
 ---
 
 # [x] Nodes with task properties (due_date, priority, etc.) are implicitly tasks @km/tui #feature #P3 @claude:a5c7f7de

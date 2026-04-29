@@ -8,6 +8,7 @@ created_at: 2026-03-31T22:04:12Z
 closed_at: 2026-03-31T22:12:23Z
 close_reason: Same fix as km-tui.enter-creates-node-id — requestRenderFlush +
   synchronous column derivation.
+owner: bjorn@stabell.org
 ---
 
 # [x] Enter does nothing after typing subitem title @km/tui #bug #P2

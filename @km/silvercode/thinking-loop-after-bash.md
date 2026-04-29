@@ -7,6 +7,16 @@ created_by: claude:cd034ca4
 created_at: 2026-04-26T23:14:56Z
 closed_at: 2026-04-27T00:12:40Z
 close_reason: "Both parts shipped: stop-reason fix (e0f425018) + tool-summary (4b28208f8)"
+started_at: 2026-04-26T23:17:57Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.thinking-loop-after-bash
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-26T16:14:56Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] [bug] silvercode keeps thinking ('Stirring...') after bash result — Claude Code stops cleanly @km/silvercode #bug #P2 @claude:cd034ca4

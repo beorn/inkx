@@ -5,6 +5,9 @@ aliases:
   - km-silvercode-test-system
 created_by: claude:0940ca20
 created_at: 2026-04-24T20:15:39Z
+started_at: 2026-04-24T21:23:24Z
+owner: bjorn@stabell.org
+assignee: claude:0940ca20
 ---
 
 # [/] Multi-layer silvercode test system with Anthropic/OpenAI fakes @km/silvercode #epic #P1 @claude:0940ca20

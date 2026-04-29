@@ -8,6 +8,7 @@ created_at: 2026-03-13T04:30:18Z
 closed_at: 2026-03-13T04:51:47Z
 close_reason: "False positive: clearNodeRegion correctly clips to parent
   contentRect (content area). Code is correct."
+owner: bjorn@stabell.org
 ---
 
 # [x] clearNodeRegion clips to parent full rect, not parent content area @km/silvery #bug #P2

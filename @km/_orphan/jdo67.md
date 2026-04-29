@@ -8,6 +8,8 @@ closed_at: 2026-03-24T06:59:39Z
 close_reason: Already done — all silvery tests use createTermless() or
   createRenderer(). No PTY-spawned tests found. Only Bun.spawn usage is for
   build verification (not TUI testing).
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] Adopt createTermless() across silvery test suite @km/_orphan #feature #P2 @claude:4929065a

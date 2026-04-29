@@ -10,6 +10,7 @@ close_reason: "Shipped: sync_state table with baseline_hash. Two-tier ownership:
   WriteTokenMap (in-memory fast path) + sync_state (persisted, restart-safe).
   recordProjection/recordObservation/isOurs/renamePath/renamePrefix. 13 tests.
   Commits 9bb8ac36, various wiring."
+owner: bjorn@stabell.org
 ---
 
 # [x] Persisted sync_state table with baseline hash (replaces in-memory WriteTokenMap) @km/storage #task #P2

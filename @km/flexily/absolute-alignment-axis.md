@@ -12,6 +12,7 @@ close_reason: "Fixed: Absolute children now use direction-aware alignment. In
   flexDirection. Fixed in both layout-zero.ts and classic/layout.ts. Test:
   vendor/flexily/tests/absolute-positioning.test.ts (7 tests in 'absolute
   alignment axis' describe block)."
+owner: bjorn@stabell.org
 ---
 
 # [x] Bug: Absolute children use wrong fallback alignment axis in row containers @km/flexily #bug #P0

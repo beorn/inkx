@@ -8,6 +8,7 @@ created_at: 2026-03-10T17:24:48Z
 closed_at: 2026-03-10T17:34:47Z
 close_reason: All 6 phases complete. 8 new doc pages, 3 new runnable examples,
   showcases split, CLI runner created, nav updated.
+owner: bjorn@stabell.org
 ---
 
 # [x] Silvery Examples & Narrative Overhaul @km/silvery #epic #P2

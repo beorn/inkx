@@ -23,6 +23,15 @@ close_reason: >-
 
   km root commit b996ec605 updates all 4 submodule pointers. Version bumps +
   actual publishing deferred to /release run.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-infra.legacy-broken-publishes
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-11T21:11:27Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Legacy broken publishes — termless, vterm, watcher-chaos, vitepress-enrich ship raw .ts @km/infra #bug #P2 @Bjørn Stabell

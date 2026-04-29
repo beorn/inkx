@@ -9,6 +9,14 @@ closed_at: 2026-04-24T23:14:49Z
 close_reason: Theme v4 delivered — rebranded as Sterling. Phases 1-3+6 closed;
   remaining open work (kill-theme-detect-package, theme-v4-stripInlineColors)
   re-parented directly to km-all.sterling tracking epic.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-v4
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-24T16:12:56Z
+    created_by: claude:5e447b66
+    metadata: "{}"
 ---
 
 # [x] Theme v4 — Sterling design system (multi-target, structured tokens) @km/silvery #task #P2

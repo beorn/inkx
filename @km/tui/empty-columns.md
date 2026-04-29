@@ -6,6 +6,8 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-18T22:43:35Z
 closed_at: 2026-02-19T11:07:09Z
+owner: bjorn@stabell.org
+assignee: claude:36393b5d
 ---
 
 # [x] Column loading UX: show per-column loading indicator during file parse (5-10s) @km/tui #bug #P3 @claude:36393b5d

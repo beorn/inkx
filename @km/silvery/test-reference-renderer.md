@@ -9,6 +9,7 @@ closed_at: 2026-03-13T05:22:37Z
 close_reason: "Deferred: Independent simple renderer as second oracle for STRICT
   checks. Would need a complete from-scratch renderer (~1000 lines). STRICT
   already compares incremental vs fresh — the fresh renderer IS the reference."
+owner: bjorn@stabell.org
 ---
 
 # [x] Testing gap: independent simple reference renderer as second oracle @km/silvery #task #P3

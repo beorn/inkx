@@ -7,6 +7,8 @@ created_by: claude:c9beade3
 created_at: 2026-03-13T15:10:26Z
 closed_at: 2026-03-13T18:06:00Z
 close_reason: Fixed with TDD tests, all passing (1215 fuzz + unit)
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] Cross-axis alignment in auto-sized containers produces NaN offsets @km/flexily #bug #P1 @claude:c9beade3

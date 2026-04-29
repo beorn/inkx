@@ -5,6 +5,7 @@ aliases:
   - km-tui-event-inspector
 created_by: Bjørn Stabell
 created_at: 2026-04-01T06:13:00Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Live event inspector panel — shows sync pipeline events in real-time @km/tui #feature #P2

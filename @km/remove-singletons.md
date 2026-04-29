@@ -5,6 +5,7 @@ aliases:
   - "@km/_orphan/remove-singletons"
 created_at: 2026-01-23T20:58:56Z
 closed_at: 2026-01-25T08:15:02Z
+assignee: 73ce0af2
 ---
 
 # [x] Remove all deprecated singletons from km @km/remove-singletons #epic #P1 @73ce0af2

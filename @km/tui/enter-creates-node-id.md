@@ -9,6 +9,7 @@ closed_at: 2026-03-31T22:12:23Z
 close_reason: "Fixed: two root causes — (1) linebreak handlers missing
   requestRenderFlush(), (2) useColumns setTimeout(0) debounce made columns one
   frame behind. Both fixed. 4953 tests pass."
+owner: bjorn@stabell.org
 ---
 
 # [x] Enter in edit mode creates items with node IDs instead of content @km/tui #bug #P2

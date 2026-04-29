@@ -10,6 +10,8 @@ close_reason: Implemented card hover + click interaction via useCardInteraction
   hook. Plain hover highlights border, click selects, Cmd+hover arms for
   navigation, Cmd+click zooms. All 5 card variants covered. 1270 km-tui tests
   pass.
+owner: bjorn@stabell.org
+assignee: claude:c0da815b
 ---
 
 # [x] Hover-over and click-navigation for UI elements @km/tui #feature #P1 @claude:c0da815b

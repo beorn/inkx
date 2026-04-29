@@ -6,6 +6,7 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T11:57:44Z
 closed_at: 2026-02-18T22:38:08Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Detail pane: render body/subitems as column, show attachment links @km/tui #feature #P2

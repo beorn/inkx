@@ -11,6 +11,7 @@ close_reason: "By design: measure phase clears contentDirty for text nodes
   content phase compensates via textPaintDirty (paintDirty survives as witness).
   Comment at line 101-105 documents this explicitly. Updated CLAUDE.md formulas
   already include textPaintDirty."
+owner: bjorn@stabell.org
 ---
 
 # [x] Measure phase clears contentDirty — biggest boundary violation @km/silvery #bug #P2

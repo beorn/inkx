@@ -10,6 +10,8 @@ close_reason: 42 boundary-condition tests for VirtualList and SelectList added.
   No similar ceil bugs found — VirtualList uses Box overflow=scroll which
   handles clipping differently. Tests cover exact-fit, partial-fit, all-fit,
   overflow indicators, variable heights, gaps.
+owner: bjorn@stabell.org
+assignee: claude:65d845d9
 ---
 
 # [x] Add boundary-condition tests for all silvery UI components with math (VirtualList, SelectList) @km/silvery #task #P2 @claude:65d845d9

@@ -9,6 +9,14 @@ closed_at: 2026-04-18T18:27:50Z
 close_reason: Shipped in v0.18.0 — see
   hub/silvery/design/v10-terminal/theme-system-v2-plan.md and silvery v0.18.0
   changelog
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-storybook
+    depends_on_id: km-silvery.design-system
+    type: parent-child
+    created_at: 2026-04-17T22:37:43Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Theme storybook — interactive showcase at all 4 capability tiers @km/silvery #feature #P3

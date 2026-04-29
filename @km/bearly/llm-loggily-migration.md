@@ -64,6 +64,14 @@ close_reason: >-
 
 
   All pushed to origin (verified via git ls-remote on each repo's main).
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.llm-loggily-migration
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-27T11:59:03Z
+    created_by: claude:87d20187
+    metadata: "{}"
 ---
 
 # [x] Migrate dual-pro/dispatch/silvery/km-cli to loggily @km/bearly #task #P3

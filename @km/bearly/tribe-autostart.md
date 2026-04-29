@@ -12,6 +12,8 @@ close_reason: "Shipped @bearly/tribe 0.11.0: autostart config
   wired into hook-dispatch and lore/server.ts. 54/54 tribe tests pass, tsc=315
   (unchanged). Smoke-verified end-to-end: kill daemon → fire hook → daemon
   respawns."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] @bearly/tribe 0.11 — autostart config + auto-spawn daemon @km/bearly #feature #P2 @Bjørn Stabell

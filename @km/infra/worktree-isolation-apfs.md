@@ -65,6 +65,15 @@ close_reason: >-
 
   /bin/rm -rf /tmp/cp-c-test-1776977355627845000
   /tmp/cp-c-test-1776977426611724000
+owner: bjorn@stabell.org
+assignee: claude:c6244087
+dependencies:
+  - issue_id: km-infra.worktree-isolation-apfs
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-23T13:38:32Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Fix Agent worktree isolation via APFS cp -c (replace broken git-worktree hook) @km/infra #task #P2 @claude:c6244087

@@ -9,6 +9,7 @@ closed_at: 2026-03-09T23:48:55Z
 close_reason: "Already implemented: MouseCursorShape type,
   setMouseCursorShape(), resetMouseCursorShape() in packages/term/src/output.ts.
   Exported from term index. 3 tests pass."
+owner: bjorn@stabell.org
 ---
 
 # [x] OSC 22 mouse cursor: text cursor in textarea, pointer on clickable, default elsewhere @km/silvery #feature #P2

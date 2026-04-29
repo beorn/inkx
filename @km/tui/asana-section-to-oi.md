@@ -6,6 +6,7 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-18T23:43:25Z
 closed_at: 2026-02-19T01:58:33Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Convert Asana section headings to oi nodes during import @km/tui #feature #P3

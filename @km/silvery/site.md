@@ -11,6 +11,7 @@ close_reason: "Restructured silvery.dev: 'Better Ink' homepage hero, Getting
   Components, Theming, State Management, Future Targets), Reference (Components
   & Hooks, Packages, Compatibility), Blog. 12 new files, zero deletions. Build
   passes."
+owner: bjorn@stabell.org
 ---
 
 # [x] silvery.dev: restructure site for multi-target and ink/chalk compat messaging @km/silvery #task #P3

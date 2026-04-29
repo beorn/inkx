@@ -9,6 +9,16 @@ closed_at: 2026-04-26T06:38:29Z
 close_reason: "Shipped: 6c1f464b + bb60d163 + 3655890f (silvery). 13 tests
   across checkClickCount + dblclick word + tripleclick line + drag granularity +
   lifecycle. Session: km-session.0425-evening"
+started_at: 2026-04-26T05:33:37Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvery.click-granularity-selection
+    depends_on_id: km-silvery.architectural-plateau
+    type: parent-child
+    created_at: 2026-04-25T22:33:36Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Double/triple click → word/line text selection @km/silvery #feature #P2 @claude:2405c72e

@@ -8,6 +8,7 @@ created_at: 2026-04-10T23:02:54Z
 closed_at: 2026-04-11T18:12:33Z
 close_reason: "Superseded: package layering done in km-silvery.package-layering
   (silvery v0.16.0). create is now pure."
+owner: bjorn@stabell.org
 ---
 
 # [x] Package dependency cleanup — extract types, fix undeclared imports @km/silvery #task #P1

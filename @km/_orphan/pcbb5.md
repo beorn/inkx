@@ -4,6 +4,7 @@ aliases:
   - km-pcbb5
 created_at: 2026-01-31T12:23:30Z
 closed_at: 2026-01-31T12:37:47Z
+assignee: claude:b8b4780b
 ---
 
 # [x] Implement constraint fingerprinting for Zero-alloc @km/_orphan #task #P1 @claude:b8b4780b

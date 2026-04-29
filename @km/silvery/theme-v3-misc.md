@@ -11,6 +11,14 @@ close_reason: N6 (theme inspect CLI) shipped with B2 at silvery 4bdefe44 + km
   killed mid-task; re-dispatch if still desired. The derived.ts brighten/darken
   fix (silvery 6a67674c) already collapses the shift closure into one path —
   that is effectively B3's goal.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-v3-misc
+    depends_on_id: km-silvery.theme-v3-plumbing
+    type: parent-child
+    created_at: 2026-04-18T21:09:21Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Typed variants runtime + single generator + theme inspect CLI @km/silvery #task #P3

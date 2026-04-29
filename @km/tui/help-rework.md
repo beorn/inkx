@@ -6,6 +6,7 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-20T16:28:27Z
 closed_at: 2026-02-20T18:18:38Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Rework Help dialog for systematic keybindings (chord groups, consistency) @km/tui #feature #P2

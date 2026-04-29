@@ -7,6 +7,7 @@ created_by: claude:65d845d9
 created_at: 2026-03-14T00:11:56Z
 closed_at: 2026-03-14T02:00:00Z
 close_reason: All P0/P1 bugs fixed, 374 tests pass
+owner: bjorn@stabell.org
 ---
 
 # [x] Pro Review 3: loggily — 2 P0, 6 P1, 2 P2 @km/loggily #task #P2

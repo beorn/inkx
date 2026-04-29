@@ -5,6 +5,20 @@ aliases:
   - km-tui-minimalist-redesign
 created_by: Bjørn Stabell
 created_at: 2026-04-16T19:47:00Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.minimalist-redesign
+    depends_on_id: km-silvery.design-review
+    type: blocks
+    created_at: 2026-04-16T12:47:23Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.minimalist-redesign
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-16T12:47:23Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] km: try a minimalist opencode-inspired design variant @km/tui #feature #P3

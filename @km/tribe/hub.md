@@ -5,6 +5,14 @@ aliases:
   - km-tribe-hub
 created_by: claude:19080504
 created_at: 2026-03-23T07:02:06Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.hub
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-18T11:00:14Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Phase 4: Hub integration — bridge tribe with km agent system @km/tribe #feature #P4

@@ -4,6 +4,7 @@ aliases:
   - km-ylxe
 created_at: 2026-01-26T18:06:56Z
 closed_at: 2026-01-27T01:09:30Z
+assignee: "67570949"
 ---
 
 # [x] Remove AsyncLocalStorage and singleton patterns - use DI consistently @km/_orphan #task #P2 @67570949

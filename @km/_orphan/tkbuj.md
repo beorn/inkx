@@ -7,6 +7,8 @@ created_at: 2026-03-25T05:15:40Z
 closed_at: 2026-03-25T05:55:48Z
 close_reason: Headless design doc + prototypes committed (3150b3a). Merging into
   new era2b tracking bead.
+owner: bjorn@stabell.org
+assignee: claude:491faf6c
 ---
 
 # [x] Era2b design: @silvery/headless API spec + prototypes @km/_orphan #task #P1 @claude:491faf6c

@@ -5,6 +5,7 @@ aliases:
   - km-silvery-size-variants
 created_by: claude:e8fd4b92
 created_at: 2026-03-10T21:23:08Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Size variants for input components (compact/default/spacious) @km/silvery #feature #P2

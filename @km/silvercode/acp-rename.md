@@ -8,6 +8,38 @@ created_at: 2026-04-26T18:39:03Z
 closed_at: 2026-04-26T22:03:33Z
 close_reason: All 10 legacy names swept — greps verified 0 active-code hits
   across all 7 layers
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.acp-rename
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T11:39:03Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-rename
+    depends_on_id: km-silvercode.acp-session-prompt
+    type: blocks
+    created_at: 2026-04-26T11:39:04Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-rename
+    depends_on_id: km-silvercode.acp-session-update-list
+    type: blocks
+    created_at: 2026-04-26T11:39:04Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-rename
+    depends_on_id: km-silvercode.acp-tool-call
+    type: blocks
+    created_at: 2026-04-26T11:39:03Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-rename
+    depends_on_id: km-silvercode.acp-usage-and-permission
+    type: blocks
+    created_at: 2026-04-26T11:39:04Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] [TRACKING] silvercode component renames to ACP-aligned names @km/silvercode #feature #P1

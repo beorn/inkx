@@ -5,6 +5,14 @@ aliases:
   - km-infra-bd-integrate
 created_by: claude:cc081a9a
 created_at: 2026-04-28T07:59:27Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.bd-integrate
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-28T00:59:34Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] bd integrate — single-command integration transaction (worktree → main → cleanup) @km/infra #feature #P1

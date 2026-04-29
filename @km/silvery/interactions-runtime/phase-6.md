@@ -8,6 +8,7 @@ created_at: 2026-04-06T07:04:44Z
 closed_at: 2026-04-06T09:38:01Z
 close_reason: CHANGELOG, README, CLAUDE.md, guide pages all updated. Internal
   design doc has SUPERSEDED notice. Silvery commit 5d8a0ab.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 6: Fix demo, km, docs, marketing (selection/find/copy/drag only) @km/silvery #task #P1

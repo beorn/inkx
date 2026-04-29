@@ -15,6 +15,26 @@ close_reason: "Redundant with ':' sigil + 'when' clause filtering. The
   when the combobox is open — not a new mechanism. Ctrl+{g,m,a,l,c}+Enter
   modifier chords stay as direct-verb shortcuts, covered in
   km-tui.omnibox-two-fields."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.omnibox-action-panel
+    depends_on_id: km-tui.omnibox-dialog
+    type: blocks
+    created_at: 2026-04-14T17:09:34Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.omnibox-action-panel
+    depends_on_id: km-tui.omnibox-unified
+    type: parent-child
+    created_at: 2026-04-14T17:09:30Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.omnibox-action-panel
+    depends_on_id: km-tui.omnibox-when
+    type: blocks
+    created_at: 2026-04-14T17:09:34Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Action panel on selected candidate (Embark/Raycast pattern) @km/tui #feature #P2

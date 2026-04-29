@@ -5,6 +5,14 @@ aliases:
   - km-tribe-recall-eval-corpus
 created_by: claude:4de4a3ab
 created_at: 2026-04-28T06:29:21Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.recall-eval-corpus
+    depends_on_id: km-tribe.recall
+    type: parent-child
+    created_at: 2026-04-27T23:29:48Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] Build labeled adversarial corpus for recall/mem-thought evaluation @km/tribe #task #P1

@@ -10,6 +10,7 @@ close_reason: "Done: 10 edge-case probes (cursor boundaries, CUU/CUD past
   limits, CUP+scroll region, EL with attrs, ED in scroll region, DECSTBM
   set/reset, G0-G1 switching, DEC line drawing). All in probe-defs + termless
   runner."
+owner: bjorn@stabell.org
 ---
 
 # [x] Deep VT edge-case probes — cursor boundaries, erase with attrs, scroll regions (from esctest2) @km/terminfo #task #P2

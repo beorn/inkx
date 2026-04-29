@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T14:44:54Z
 closed_at: 2026-02-25T17:19:01Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] Bare blockref/wikilink IDs still showing instead of resolved titles @km/tui #bug #P1 @claude:d697f216

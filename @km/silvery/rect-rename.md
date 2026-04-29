@@ -6,6 +6,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-09T18:56:26Z
 closed_at: 2026-04-09T20:58:54Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Rename rect API: contentRect->boxRect, screenRect->scrollRect, renderRect->screenRect @km/silvery #task #P1

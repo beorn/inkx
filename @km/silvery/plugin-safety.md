@@ -9,6 +9,8 @@ closed_at: 2026-03-11T07:38:12Z
 close_reason: "Plugin safety guidelines added to design doc: last-write-wins for
   spread, dev-mode collision warnings, plugin.command namespace convention,
   left-to-right ordering in pipe(), TypeScript intersection type enforcement."
+owner: bjorn@stabell.org
+assignee: claude:e4e70c9a
 ---
 
 # [x] Plugin composition: collision detection and ordering guidelines @km/silvery #task #P3 @claude:e4e70c9a

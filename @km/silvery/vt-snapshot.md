@@ -8,6 +8,7 @@ created_at: 2026-04-02T21:08:29Z
 closed_at: 2026-04-02T23:34:15Z
 close_reason: Implemented. captureRegion() for ANSI snapshot. ListView cache
   stores real ANSI. Static inline mode fixed. 32 tests.
+owner: bjorn@stabell.org
 ---
 
 # [x] Snapshot capture: buffer-region grab for cache transitions @km/silvery #task #P1

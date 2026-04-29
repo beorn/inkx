@@ -15,6 +15,15 @@ close_reason: "Shipped: expandUnexploredDirectory (scanner) + applyChanges
   loader-replay-skips-persist.test.ts (4 tests). 7167 fast-suite pass. Surfaced
   follow-up: reconcile-origin node_createds arguably should be journaled — left
   as separate question."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.op-surface-route-scanner
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-21T23:45:12Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Route scanner/lazy-expand bulk inserts through emitter.apply @km/storage #task #P1 @claude:8b5b9e1c

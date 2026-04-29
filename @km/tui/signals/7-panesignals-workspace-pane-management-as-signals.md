@@ -11,6 +11,7 @@ close_reason: "Acceptance: only store methods (setUI, dispatchBoard,
   openDetailPane) and handler registrations remain in WorkspaceChrome. Nav reads
   (rootPath, rootId, moveState, sel) already migrated to useFocusedPaneSignals
   in signals.4b."
+owner: bjorn@stabell.org
 ---
 
 # [x] PaneSignals: workspace/pane management as signals @km/tui #task #P3

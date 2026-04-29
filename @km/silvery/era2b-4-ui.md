@@ -11,6 +11,8 @@ close_reason: "React hooks for headless machines: useSelectList, useReadline in
   useReducer. Package.json updated with ./react subpath export. Full component
   migration (replacing internal state management in SelectList, TextInput, etc.)
   deferred — hooks are the absorb step."
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Era2b Phase 4: @silvery/ag-react/ui — component refactor @km/silvery #task #P2 @claude:fed8de9e

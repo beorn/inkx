@@ -5,6 +5,20 @@ aliases:
   - km-silvery-stdout-dims-snapshot-race
 created_by: claude:019d032d
 created_at: 2026-04-22T20:41:41Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.stdout-dims-snapshot-race
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-22T13:41:52Z
+    created_by: claude:019d032d
+    metadata: "{}"
+  - issue_id: km-silvery.stdout-dims-snapshot-race
+    depends_on_id: km-silvery.term-sub-owners
+    type: blocks
+    created_at: 2026-04-22T13:47:53Z
+    created_by: claude:019d032d
+    metadata: "{}"
 ---
 
 # [ ] stdout.columns/rows read races during SIGWINCH (44 readers take stale snapshots) @km/silvery #task #P2

@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-ambient-context-excellence
 created_by: claude:4de4a3ab
 created_at: 2026-04-27T18:19:18Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.ambient-context-excellence
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-27T11:19:17Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] [epic] Ambient-context pipeline — make it bulletproof, well-tested, and observably correct @km/silvercode #epic #P0

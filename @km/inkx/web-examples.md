@@ -6,6 +6,8 @@ aliases:
 created_by: claude:ee8efc0f
 created_at: 2026-02-23T14:52:32Z
 closed_at: 2026-03-04T16:36:12Z
+owner: bjorn@stabell.org
+assignee: claude:3c1481f8
 ---
 
 # [x] Fix DOM and Canvas2D browser renderers for live examples @km/inkx #task #P2 @claude:3c1481f8

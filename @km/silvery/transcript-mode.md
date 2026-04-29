@@ -5,6 +5,7 @@ aliases:
   - km-silvery-transcript-mode
 created_by: Bjørn Stabell
 created_at: 2026-04-02T16:51:06Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Transcript mode: less-style read-only navigation of conversation/output history @km/silvery #feature #P3

@@ -5,6 +5,8 @@ aliases:
 created_by: claude:b509d761
 created_at: 2026-02-10T12:10:17Z
 closed_at: 2026-02-10T12:10:51Z
+owner: bjorn@stabell.org
+assignee: claude:b509d761
 ---
 
 # [x] inkx layout snapshot tests (rendered output regression) @km/_orphan #task #P2 @claude:b509d761

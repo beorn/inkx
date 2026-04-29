@@ -12,6 +12,14 @@ close_reason: "Folded into km-storage.link-model-canonical (2026-04-16). Sigil
   prefix. No separate config, no MdForm variants, no cross-namespace
   unification. Strict namespaces fall out from name uniqueness.
   ~/.config/km/config.yml not needed for v1."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-storage.sigil-strict-namespaces
+    depends_on_id: km-storage.sigils
+    type: parent-child
+    created_at: 2026-04-15T12:25:37Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Sigils form strict namespaces (no cross-sigil unification) @km/storage #feature #P1 #link-graph #parser #resolver #sigils #strict-namespaces

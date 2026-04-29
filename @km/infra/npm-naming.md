@@ -8,6 +8,7 @@ created_at: 2026-03-04T22:27:49Z
 closed_at: 2026-03-07T02:12:24Z
 close_reason: "Grooming: merged into km-infra.npm-hightea — fallback rename is
   part of the same npm acquisition decision"
+owner: bjorn@stabell.org
 ---
 
 # [x] Consider renaming hightea — npm name blocked by high-tea similarity @km/infra #task #P2

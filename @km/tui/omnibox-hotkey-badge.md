@@ -10,6 +10,14 @@ close_reason: "Fixed in 504bf996b. Replaced the hardcoded hotkey=':' with a
   mode-derived lookup table (modeChrome) that produces title + hotkey +
   placeholder in sync. : → :, @ → @, # → #, + → +, / → /, universal → empty
   hotkey. Also deleted the dead 'node' mode branch from the ternary."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.omnibox-hotkey-badge
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T23:07:28Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Omnibox title hotkey badge always shows [:] — should reflect current sigil @km/tui #bug #P2

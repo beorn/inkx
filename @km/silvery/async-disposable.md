@@ -12,6 +12,14 @@ close_reason: "Superseded by elegance review (2026-04-26 /pro):
   with [Symbol.asyncDispose] natively. No external wrapper. See
   km-silvercode.spawn-close-hardening for the consolidated work. Full review:
   /tmp/llm-2405c72e-elegance-review-of-the-wrw1.txt."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.async-disposable
+    depends_on_id: km-silvery.lifecycle-scope
+    type: parent-child
+    created_at: 2026-04-26T14:08:53Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] @silvery/scope: add asyncDisposable() helper @km/silvery #feature #P2

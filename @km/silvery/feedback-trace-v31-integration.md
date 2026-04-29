@@ -10,6 +10,14 @@ close_reason: "Resolved: v3.1 (logPass rename + per-cause sub-namespaces)
   integrated into silvery main during Round 4 (silvery commit 5e0dc86c, km
   commit 906fd817a). Acceptance: git grep recordPassCause origin/main → 0 hits;
   git grep logPass → 21 sites."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.feedback-trace-v31-integration
+    depends_on_id: km-all.plateau-90
+    type: parent-child
+    created_at: 2026-04-27T11:00:54Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Integrate v3.1 (logPass rename + per-cause sub-namespaces) into silvery main @km/silvery #task #P2

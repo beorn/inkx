@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T11:56:51Z
 closed_at: 2026-02-25T12:33:54Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] Card rendering: missing links, plain-text URLs, overflow/wrapping issues @km/tui #bug #P1 @claude:d697f216

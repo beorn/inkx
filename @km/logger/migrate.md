@@ -5,6 +5,7 @@ aliases:
   - km-logger-migrate
 created_at: 2026-02-02T15:24:42Z
 closed_at: 2026-02-02T15:48:33Z
+assignee: claude:76fda6b0
 ---
 
 # [x] logger-migrate @km/logger #task #P3 @claude:76fda6b0

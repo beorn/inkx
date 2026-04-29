@@ -9,6 +9,8 @@ closed_at: 2026-03-28T01:38:48Z
 close_reason: "Fixed: body paragraphs (type=p, item=false) now render without
   bullet prefix and dimmed. isBody flag propagated through NodeChildren →
   TreeNode → FoldAwareChild → FoldedChildRow."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Body paragraphs render as bullet items instead of inline body text in cards @km/tui #bug #P1 @claude:f8196c1c

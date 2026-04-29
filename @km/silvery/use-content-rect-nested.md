@@ -9,6 +9,7 @@ closed_at: 2026-03-26T06:13:09Z
 close_reason: Fixed in commit 4275ae3. useContentRect now subtracts
   padding+border via getInnerRect() helper in useLayout.ts. Dashboard uses
   ProgressBar everywhere, no manual bar calculations. 246 vendor tests pass.
+owner: bjorn@stabell.org
 ---
 
 # [x] useContentRect returns wrong width in nested flex layouts @km/silvery #bug #P2

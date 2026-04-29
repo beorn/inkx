@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-22T20:24:54Z
 closed_at: 2026-02-22T21:04:37Z
+owner: bjorn@stabell.org
+assignee: claude:28b14b32
 ---
 
 # [x] Windowing: per-pane state isolation (cursor, folds, nav) @km/tui #task #P2 @claude:28b14b32

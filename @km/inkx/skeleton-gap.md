@@ -6,6 +6,7 @@ aliases:
 created_by: claude:97b8de73
 created_at: 2026-02-23T10:56:58Z
 closed_at: 2026-02-23T11:50:02Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Gap analysis: skeleton/loading patterns vs shadcn, bubbletea, textual, blessed @km/inkx #task #P2

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:c7c59180
 created_at: 2026-02-10T16:55:45Z
 closed_at: 2026-02-12T14:12:32Z
+owner: bjorn@stabell.org
+assignee: claude:586bad48
 ---
 
 # [x] Optimize cursor navigation for large sibling lists (O(N) findIndex → O(1)) @km/tui #task #P2 @claude:586bad48

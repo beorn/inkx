@@ -5,6 +5,7 @@ aliases:
   - km-tui-search-ux
 created_at: 2026-02-05T14:24:07Z
 closed_at: 2026-02-05T14:25:18Z
+assignee: claude:ed93d0af
 ---
 
 # [x] fix(tui): search dialog UX - title flicker, hint alignment, capitalization @km/tui #bug #P2 @claude:ed93d0af

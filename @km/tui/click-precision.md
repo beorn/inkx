@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-20T15:52:54Z
 closed_at: 2026-02-23T01:20:37Z
+owner: bjorn@stabell.org
+assignee: claude:97b8de73
 ---
 
 # [x] Precise click targeting: columns, card titles, sub-blocks @km/tui #feature #P2 @claude:97b8de73

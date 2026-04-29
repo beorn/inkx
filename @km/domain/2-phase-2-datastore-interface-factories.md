@@ -6,6 +6,7 @@ aliases:
   - "@km/domain/2"
 created_at: 2026-01-25T23:36:36Z
 closed_at: 2026-01-26T08:13:02Z
+assignee: claude-session
 ---
 
 # [x] Phase 2: DataStore interface + factories @km/domain #task #P2 @claude-session

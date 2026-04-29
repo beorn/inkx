@@ -9,6 +9,8 @@ closed_at: 2026-03-31T23:00:09Z
 close_reason: "Already implemented: UndoEntry has
   foldStateBefore/foldStateAfter, handlers snapshot fold state, undo/redo
   restores it"
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Undo does not restore card expand/collapse state @km/tui #bug #P2 @Bjørn Stabell

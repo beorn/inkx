@@ -6,6 +6,7 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-20T07:43:21Z
 closed_at: 2026-02-20T07:47:09Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Tag columns show double name like '@-norway #norway' @km/tui #bug #P2

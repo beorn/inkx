@@ -14,6 +14,14 @@ close_reason: "Verified shipped 2026-04-17: OmniboxRow.tsx (107 lines) renders
   passing in apps/km-tui/ (0 failed, 37 skipped). Zero tsc errors in Phase 1
   files (65 pre-existing baseline errors elsewhere are unrelated). No behavior
   change — adapter pattern keeps row component type-agnostic."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.omnibox-row
+    depends_on_id: km-tui.omnibox-unified
+    type: parent-child
+    created_at: 2026-04-14T16:24:05Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Shared OmniboxRow component (Phase 1) @km/tui #task #P1

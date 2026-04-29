@@ -11,6 +11,8 @@ close_reason: "Added 11 editorial cross-links across silvery (7 files) and
   protocol, terminal matrix), silvery->termless (testing, debugging),
   silvery->flexily (layouts, box), termless->terminfo.dev (writing-tests,
   backend), termless->silvery (why, integration)."
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] Systematic cross-site editorial linking across all ecosystem sites @km/market #task #P3 @claude:4929065a

@@ -8,6 +8,16 @@ created_at: 2026-04-26T05:44:58Z
 closed_at: 2026-04-26T06:38:34Z
 close_reason: "Shipped: 156f71a4 (silvery). Soft-wrap default with wrap='off'
   opt-out. 4 tests. Session: km-session.0425-evening"
+started_at: 2026-04-26T05:47:27Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvery.textarea-wrap-by-default
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-25T22:45:05Z
+    created_by: claude:1eb07bba
+    metadata: "{}"
 ---
 
 # [x] TextArea: long single-line input scrolls horizontally instead of soft-wrapping @km/silvery #bug #P2 @claude:2405c72e

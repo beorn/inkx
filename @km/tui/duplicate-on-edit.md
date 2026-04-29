@@ -10,6 +10,7 @@ close_reason: "Fixed: handleTitleSave in tree-node-edit.tsx only updated content
   but not name. For outline nodes (folders/sections), name drives filesystem
   ops. Fix: handleTitleSave now also updates name, matching
   handleInlineEditConfirm behavior."
+owner: bjorn@stabell.org
 ---
 
 # [x] [bug] Editing node name creates duplicate instead of renaming @km/tui #bug #P1

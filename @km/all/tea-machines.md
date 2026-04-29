@@ -6,6 +6,8 @@ aliases:
 created_by: claude:e7c823b8
 created_at: 2026-02-27T14:13:23Z
 closed_at: 2026-04-11T19:18:16Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] TEA state machines: unify all interactive subsystems as pure (action, state) → [state, effects] @km/all #feature #P0 @Bjørn Stabell

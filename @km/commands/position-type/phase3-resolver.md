@@ -8,6 +8,8 @@ created_at: 2026-03-28T00:39:06Z
 closed_at: 2026-03-28T05:59:02Z
 close_reason: Phase 3 complete. TargetResolver deleted, position-resolver.ts
   extracted, 71 tests added.
+owner: bjorn@stabell.org
+assignee: claude:ceb7c9cb
 ---
 
 # [x] Phase 3: Position resolver — kill TargetResolver, extract + test @km/commands #task #P2 @claude:ceb7c9cb

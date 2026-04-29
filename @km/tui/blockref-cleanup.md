@@ -9,6 +9,8 @@ closed_at: 2026-03-10T15:36:58Z
 close_reason: Removed <^ID> format, stopped strip-reinject cycle, bare ^ID
   parsed as field metadata, [[^ID]] for cross-refs, unresolved refs render red.
   Tests rewritten.
+owner: bjorn@stabell.org
+assignee: claude:55df8ef1
 ---
 
 # [x] Blockref pipeline cleanup: reduce paths, DRY resolution, structured refs @km/tui #task #P2 @claude:55df8ef1

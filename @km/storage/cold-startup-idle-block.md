@@ -5,6 +5,15 @@ aliases:
   - km-storage-cold-startup-idle-block
 created_by: claude:fa4168d9
 created_at: 2026-04-23T05:51:49Z
+owner: bjorn@stabell.org
+assignee: claude:fa4168d9
+dependencies:
+  - issue_id: km-storage.cold-startup-idle-block
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-22T22:52:26Z
+    created_by: claude:fa4168d9
+    metadata: "{}"
 ---
 
 # [/] Cold startup blocks event loop ~30s during post-mount reconcile (sync fs walk) @km/storage #bug #P1 @claude:fa4168d9

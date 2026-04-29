@@ -11,6 +11,15 @@ close_reason: "Shipped: pickColorLevel + run({ colorLevel }) + docs + storybook
   new tests passing, typecheck clean on touched files. Inline-hex quantization
   at ansi16/256 tiers explicitly deferred per the 'don't touch pipeline'
   constraint."
+owner: bjorn@stabell.org
+assignee: claude:4274df30
+dependencies:
+  - issue_id: km-silvery.sterling-tier-override
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-19T16:24:28Z
+    created_by: claude:4274df30
+    metadata: "{}"
 ---
 
 # [x] Sterling: programmatic colorLevel override on run() @km/silvery #feature #P3 @claude:4274df30

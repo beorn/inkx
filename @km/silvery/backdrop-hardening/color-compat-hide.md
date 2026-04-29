@@ -11,6 +11,15 @@ close_reason: Deleted color-compat.ts. mixSrgb imported from @silvery/color
   (deletion-pending until upstream exports it). 100 backdrop tests pass. rg
   color-compat returns 0 hits outside the bead's own header comment. Commit
   2ed6523a.
+owner: bjorn@stabell.org
+assignee: claude:a1a0e667
+dependencies:
+  - issue_id: km-silvery.backdrop-hardening.color-compat-hide
+    depends_on_id: km-silvery.backdrop-hardening
+    type: parent-child
+    created_at: 2026-04-20T14:01:25Z
+    created_by: claude:88c0e764
+    metadata: "{}"
 ---
 
 # [x] Harden or hide color-compat.ts — publish-cycle shim shouldn't be long-term @km/silvery #task #P0 @claude:a1a0e667

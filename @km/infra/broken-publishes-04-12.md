@@ -10,6 +10,14 @@ close_reason: "Fixed by hotfix publishes: silvery 0.17.4, @silvery/commander
   0.17.5, vitest-silvery-dots 0.1.2, vimonkey 0.2.3.
   @silvery/test/create/headless/theme marked private (bundled into barrel). All
   verified passing 'bun release verify'."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.broken-publishes-04-12
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-11T20:45:28Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Hotfix broken packages found by /release verify @km/infra #bug #P1

@@ -17,6 +17,15 @@ close_reason: "Shipped 2026-04-17: rankResults(parsedQuery, candidates) +
   off-limits per concurrent-agent scope); follow-up bead can finish the
   deletion. Commits: 18476ffdc, 92b7a5633. Closes km-tui.picker-rank-subpath
   floor."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-tui.omnibox-ranker
+    depends_on_id: km-tui.omnibox-unified
+    type: parent-child
+    created_at: 2026-04-14T16:24:15Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Shared ranker + test fixture (Phase 2, fixes km-tui.picker-rank-subpath) @km/tui #task #P1 @Bjørn Stabell

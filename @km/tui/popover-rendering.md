@@ -10,6 +10,7 @@ close_reason: "Fixed 6/7 items: raw wikilinks (context merge), text overflow
   (OVERFLOW_HIDDEN layout), Cmd+hover (useModifierKeys), coalescing (swap
   delay), click passthrough (stopPropagation), popover bg (-bg). Remaining:
   popover scroll (needs scrollTo/ListView approach — separate bead)."
+owner: bjorn@stabell.org
 ---
 
 # [x] [bug] Popover: raw wikilinks, text overflow, scroll broken, Cmd+hover unreliable @km/tui #bug #P1

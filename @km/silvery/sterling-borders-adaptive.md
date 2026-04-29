@@ -9,6 +9,22 @@ closed_at: 2026-04-25T07:04:15Z
 close_reason: "Fixed in silvery c0072dae: ensureContrast pass added for
   border-default (3:1) and border-muted (1.5:1). 0/84 → 84/84 catalog pass-rate.
   theme-contrast.test.ts strict mode restored."
+started_at: 2026-04-25T06:43:55Z
+owner: bjorn@stabell.org
+assignee: claude:22c2717d
+dependencies:
+  - issue_id: km-silvery.sterling-borders-adaptive
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-24T16:12:59Z
+    created_by: claude:5e447b66
+    metadata: "{}"
+  - issue_id: km-silvery.sterling-borders-adaptive
+    depends_on_id: km-silvery.sterling-2e-interior-migration
+    type: blocks
+    created_at: 2026-04-24T16:16:08Z
+    created_by: claude:5e447b66
+    metadata: "{}"
 ---
 
 # [x] Sterling: border-default/muted derivation needs contrast lift @km/silvery #bug #P2 @claude:22c2717d

@@ -10,6 +10,7 @@ close_reason: "Docs created: providers.md, headless-machines.md,
   runtime-layers.md updated, READMEs updated, CLAUDE.md updated, sidebar config
   updated. All /complete criteria pass. Docs build succeeds. Commit 23db39c in
   silvery."
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 0: Document existing composition architecture @km/silvery #task #P1

@@ -7,6 +7,7 @@ created_by: claude:65d845d9
 created_at: 2026-03-14T00:12:57Z
 closed_at: 2026-03-14T01:34:31Z
 close_reason: Closed
+owner: bjorn@stabell.org
 ---
 
 # [x] mdtest: CLI hook cleanup not protected by finally @km/mdtest #bug #P2

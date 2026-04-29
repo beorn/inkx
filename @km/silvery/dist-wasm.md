@@ -5,6 +5,7 @@ aliases:
   - km-silvery-dist-wasm
 created_by: claude:e4e70c9a
 created_at: 2026-03-11T07:32:08Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] WASM distribution: run Silvery apps in browsers @km/silvery #feature #P4

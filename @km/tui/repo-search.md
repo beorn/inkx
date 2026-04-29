@@ -8,6 +8,7 @@ created_at: 2026-04-02T21:39:16Z
 closed_at: 2026-04-03T00:05:15Z
 close_reason: Implemented. SearchDialog registers as repo Searchable on mount.
   Ctrl+F=local find, /=repo search. Commit 9139ff5a.
+owner: bjorn@stabell.org
 ---
 
 # [x] withRepoSearch() — / repo-wide FTS search with SearchDialog @km/tui #feature #P2

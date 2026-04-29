@@ -7,6 +7,15 @@ created_by: Bjørn Stabell
 created_at: 2026-04-18T03:43:29Z
 closed_at: 2026-04-18T03:56:22Z
 close_reason: 0.10.0 shipped, all aliases purged.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-bearly.tribe-0.10-purge
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-17T20:43:47Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] @bearly/tribe 0.10.0 — purge all 0.9.0 compat aliases @km/bearly #task #P2 @Bjørn Stabell

@@ -6,6 +6,7 @@ aliases:
 created_by: claude:bca35d62
 created_at: 2026-02-11T16:32:05Z
 closed_at: 2026-02-11T18:33:46Z
+owner: bjorn@stabell.org
 ---
 
 # [x] km add: events written to JSONL but not applied to DB or filesystem @km/storage #bug #P2

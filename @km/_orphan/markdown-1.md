@@ -4,6 +4,7 @@ aliases:
   - km-markdown-1
 created_at: 2026-01-23T17:01:22Z
 closed_at: 2026-02-14T08:59:14Z
+assignee: claude:124bfbe5
 ---
 
 # [x] Add support for plain text files @km/_orphan #feature #P3 @claude:124bfbe5

@@ -26,6 +26,7 @@ close_reason: >-
   One obvious way: createNodeStore() + signals + useTreeNode().
 
   216/216 test files pass (5757 tests, 1 flaky column-rendering).
+owner: bjorn@stabell.org
 ---
 
 # [x] Reactive tree quality plateau — eliminate sync ceremony, direct signals, factory function @km/tui #epic #P1

@@ -5,6 +5,7 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-12T21:36:23Z
 closed_at: 2026-02-12T22:28:38Z
+owner: bjorn@stabell.org
 ---
 
 # [x] TUI: Sigil links colored by resolved node, not dimmed @km/_orphan #feature #P3

@@ -10,6 +10,15 @@ close_reason: Built tools/session-promote.ts (528 lines). Scan/promote/status
   commands. Extracts fact/event/instruction from recall daily summaries,
   deduplicates against gbrain, writes pages via gbrain put. State tracking in
   promote-state.json. Integrated as backlog domain check in /sop SKILL.md.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-infra.session-promote
+    depends_on_id: km-infra.org-redesign
+    type: parent-child
+    created_at: 2026-04-12T15:35:41Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Session promotion pipeline — extract durable knowledge from sessions into gbrain vault @km/infra #feature #P2 @Bjørn Stabell

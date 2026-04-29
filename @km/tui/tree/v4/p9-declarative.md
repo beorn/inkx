@@ -15,6 +15,8 @@ close_reason: >-
   deleted, expandSelectionWithDescendants moved to store. Board.tsx 1422→1348
   LOC (-74). Effects still exist as thin dispatches — further reduction possible
   by moving writes to action handlers (future work).
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Phase 9: Board.tsx declarative rewrite — move signal writes to action handlers @km/tui #task #P3 @Bjørn Stabell

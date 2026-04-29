@@ -89,6 +89,15 @@ close_reason: >-
   triggers phantom ▼1. Scroll-phase's isPhantomReserveCut guard doesn't cover
   "last child bottom > rawViewportBottom". Guarded by INV-2b for bead
   km-silvery.virtualized-overflow-indicator-counts.
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-silvery.virtualizer-from-layout
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-20T15:10:10Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Virtualizer reads visible range from layout-phase via alien-signals (single source of truth) @km/silvery #feature #P2 @claude:8b5b9e1c

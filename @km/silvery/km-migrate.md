@@ -8,6 +8,7 @@ created_at: 2026-03-09T18:28:19Z
 closed_at: 2026-03-09T20:32:50Z
 close_reason: Complete. 190 files rewritten, 6 vendor submodules updated, all
   tests pass. Commit 65ad41de.
+owner: bjorn@stabell.org
 ---
 
 # [x] Migrate km imports: hightea/decant/swatch → silvery/loggily @km/silvery #task #P2

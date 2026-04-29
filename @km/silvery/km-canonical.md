@@ -10,6 +10,7 @@ close_reason: Migrated driver.ts withCommands to pipe() pattern. Added
   architectural TODO comments in tui.tsx and board-app.ts documenting the full
   pipe() migration path (requires createApp() plugin support for event
   handlers). All 4221 tests pass.
+owner: bjorn@stabell.org
 ---
 
 # [x] Migrate km to canonical Silvery Way — plugin composition, withDomEvents, withFocus @km/silvery #task #P2

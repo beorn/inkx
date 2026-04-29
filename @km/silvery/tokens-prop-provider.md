@@ -11,6 +11,14 @@ close_reason: "Shipped in v0.18.0: <ThemeProvider tokens={{...}}> unified API.
   standard. 6 new tests. Legacy theme= prop still works (deprecated for next
   major). vendor/silvery/packages/ag-react/src/ThemeProvider.tsx +
   theme-provider-tokens.test.tsx"
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.tokens-prop-provider
+    depends_on_id: km-silvery.theme-system-v2
+    type: parent-child
+    created_at: 2026-04-18T10:45:11Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] <ThemeProvider tokens={{…}}> — unified sparse/full token bag @km/silvery #task #P3

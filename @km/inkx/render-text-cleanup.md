@@ -5,6 +5,7 @@ aliases:
   - km-inkx-render-text-cleanup
 created_at: 2026-02-05T12:28:15Z
 closed_at: 2026-02-05T12:31:23Z
+assignee: claude:b53ef7e4
 ---
 
 # [x] refactor(inkx): deduplicate grapheme rendering + remove unused inWord @km/inkx #task #P3 @claude:b53ef7e4

@@ -7,6 +7,16 @@ created_by: claude:cc081a9a
 created_at: 2026-04-26T20:24:41Z
 closed_at: 2026-04-26T20:48:31Z
 close_reason: Closed
+started_at: 2026-04-26T20:36:58Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-all.fix-sweep-card-borders
+    depends_on_id: km-all.fix-sweep-0426
+    type: parent-child
+    created_at: 2026-04-26T13:25:02Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Fix card border + date badge layout bugs (8 km-tui slow test failures) @km/all #bug #P1 @claude:cc081a9a

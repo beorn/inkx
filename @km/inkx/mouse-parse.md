@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-20T14:05:56Z
 closed_at: 2026-02-20T14:10:07Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Parse SGR mouse sequences from stdin @km/inkx #task #P3 @claude:d3a7049b

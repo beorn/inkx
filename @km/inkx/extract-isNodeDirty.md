@@ -6,6 +6,7 @@ aliases:
 created_by: claude:dffe6eeb
 created_at: 2026-02-09T13:48:10Z
 closed_at: 2026-02-09T13:58:12Z
+owner: bjorn@stabell.org
 ---
 
 # [x] content-phase: Extract isNodeDirty/shouldSkipRendering helper @km/inkx #task #P1

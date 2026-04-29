@@ -5,6 +5,14 @@ aliases:
   - km-tui-md-file-columns
 created_by: claude:8b5b9e1c
 created_at: 2026-04-21T09:05:24Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.md-file-columns
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-21T02:05:23Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [ ] Zooming into md file shows single column instead of horizontal columns @km/tui #bug #P2

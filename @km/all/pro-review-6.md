@@ -8,6 +8,8 @@ created_at: 2026-03-17T05:52:55Z
 closed_at: 2026-03-18T18:56:27Z
 close_reason: "Grooming: Design review complete. Findings incorporated into
   km-silvery.virtual-inline-fix DESIGN section."
+owner: bjorn@stabell.org
+assignee: claude:def7f8a1
 ---
 
 # [x] Pro Review Round 6: 2026-03-16 — virtual inline architecture @km/all #epic #P2 @claude:def7f8a1

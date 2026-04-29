@@ -8,6 +8,8 @@ created_at: 2026-03-24T19:24:31Z
 closed_at: 2026-04-02T02:19:53Z
 close_reason: deriveCursorPath via ViewNode is now the sole cursor path
   mechanism. Old parent_id walk deleted. Commit 216eadb8.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] design: cursor path — visual hierarchy for selection and embeds @km/tui #feature #P2 @Bjørn Stabell

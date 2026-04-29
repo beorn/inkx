@@ -5,6 +5,7 @@ aliases:
   - km-infra-logging
 created_at: 2026-02-04T14:41:14Z
 closed_at: 2026-02-04T14:58:12Z
+assignee: claude:90e14a90
 ---
 
 # [x] Verbosity/log-level integration with zero-overhead pattern @km/infra #chore #P2 @claude:90e14a90

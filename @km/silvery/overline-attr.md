@@ -13,6 +13,14 @@ close_reason: "cd6babada (km) + 5 silvery commits tip 8875ed00. Overline attr
   uses overline (bottom stays underline); intent-based bump detection for
   keyboard nav. Deferred: overlineColor (km-silvery.overline-color), pulse/flash
   anim, wheel-handler edge-at-start (km-silvery.overscroll-bump-at-edge)."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.overline-attr
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T14:05:38Z
+    created_by: claude:c56dc5d6
+    metadata: "{}"
 ---
 
 # [x] Add overline attr prop (SGR 53/55) to Box/Text @km/silvery #feature #P2

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-20T17:15:12Z
 closed_at: 2026-02-20T17:18:20Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Block IDs show up in detail pane content @km/tui #bug #P2 @claude:8f007ba9

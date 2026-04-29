@@ -4,6 +4,7 @@ aliases:
   - km-5oqkf
 created_at: 2026-02-01T20:57:02Z
 closed_at: 2026-02-01T21:02:44Z
+assignee: claude:3e1beaa0
 ---
 
 # [x] Orphaned .km with empty database shows Empty board @km/_orphan #bug #P1 @claude:3e1beaa0

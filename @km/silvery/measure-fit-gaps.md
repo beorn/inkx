@@ -8,6 +8,8 @@ created_at: 2026-03-13T05:03:10Z
 closed_at: 2026-03-13T05:16:58Z
 close_reason: Gap part fixed. internal_transform and flex-wrap are separate,
   more complex issues — tracked as future work.
+owner: bjorn@stabell.org
+assignee: claude:65d845d9
 ---
 
 # [x] Bug: measureIntrinsicSize() ignores gap, internal_transform, flex-wrap @km/silvery #bug #P1 @claude:65d845d9

@@ -5,6 +5,26 @@ aliases:
   - km-tui-tea
 created_by: Bjørn Stabell
 created_at: 2026-04-11T00:41:10Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.tea
+    depends_on_id: km-silvery.tea
+    type: parent-child
+    created_at: 2026-04-18T10:42:54Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.tea
+    depends_on_id: km-silvery.tea-useinput
+    type: blocks
+    created_at: 2026-04-15T11:31:28Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.tea
+    depends_on_id: km-tui.atomic-tree-ops
+    type: blocks
+    created_at: 2026-04-15T08:36:39Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] TEA state machines for km-tui: unified selection + atomic operations @km/tui #feature #P0

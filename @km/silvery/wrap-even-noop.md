@@ -40,6 +40,15 @@ close_reason: >-
   Lesson: the original /explore 'byte-identical wrap modes' observation was real
   data but wrong conclusion. Always verify at the algorithm level (direct
   function call) before concluding that a rendering integration is broken.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-silvery.wrap-even-noop
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-11T21:29:17Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] wrap="even" renders identically to wrap="wrap" — Knuth-Plass not wired through @km/silvery #bug #P2 @Bjørn Stabell

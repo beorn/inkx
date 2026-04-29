@@ -24,6 +24,16 @@ close_reason: "Phase 6.a complete. Storybook stories:
   hub/silvercode/design/ambient-inline-display.md. Commits: 153982678 (design),
   03d29f78f (component+stories), f230fc88f (wiring), c2abfc1a3 (side panel mute
   toggles)."
+started_at: 2026-04-27T20:23:27Z
+owner: bjorn@stabell.org
+assignee: claude:4de4a3ab
+dependencies:
+  - issue_id: km-silvercode.ambient-inline-display
+    depends_on_id: km-silvercode.ambient-context-excellence
+    type: parent-child
+    created_at: 2026-04-27T13:23:26Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [x] Phase 6.a: inline AmbientEventRow in chat scrollback @km/silvercode #feature #P1 @claude:4de4a3ab

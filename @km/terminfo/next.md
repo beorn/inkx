@@ -10,6 +10,8 @@ close_reason: "All 7 children complete: TCD JSON API, Terminal Baseline 2026,
   compare pages, feature expansion (110→134), probe parity (134 on both
   termless+CLI), unified probe-defs package, thin probe server with dynamic
   reload."
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] terminfo.dev Next: TPT + TCD + baselines + content @km/terminfo #epic #P1 @claude:4929065a

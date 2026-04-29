@@ -7,6 +7,8 @@ created_by: claude:ceb7c9cb
 created_at: 2026-03-27T16:00:21Z
 closed_at: 2026-03-27T21:54:20Z
 close_reason: NULL-safe UNIQUE index with COALESCE + migration deduplicates 629 groups
+owner: bjorn@stabell.org
+assignee: claude:ceb7c9cb
 ---
 
 # [x] Duplicate link rows in links table (629 groups) @km/storage #bug #P3 @claude:ceb7c9cb

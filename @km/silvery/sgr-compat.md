@@ -9,6 +9,8 @@ closed_at: 2026-03-10T08:31:19Z
 close_reason: "Silvery now emits chalk-compatible ANSI natively: 4-bit codes
   (30-37,40-47), per-attribute resets (39,49,22,23,24), individual SGR
   sequences. Eliminated ~200-line post-processing conversion layer in compat."
+owner: bjorn@stabell.org
+assignee: claude:474834b0
 ---
 
 # [x] Differential SGR output: multi-color-mode + per-attribute resets for automatic chalk compat @km/silvery #task #P2 @claude:474834b0

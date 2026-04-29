@@ -6,6 +6,8 @@ aliases:
 created_by: claude:8baeb5e0
 created_at: 2026-03-01T21:41:01Z
 closed_at: 2026-03-04T12:44:43Z
+owner: bjorn@stabell.org
+assignee: claude:8baeb5e0
 ---
 
 # [x] Test quality: layered behavior-level testing strategy @km/all #epic #P2 @claude:8baeb5e0

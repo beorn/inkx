@@ -7,6 +7,8 @@ created_at: 2026-03-17T15:05:10Z
 closed_at: 2026-03-17T20:28:00Z
 close_reason: Default changed to metadata. 12 tests updated to explicitly set
   none where needed.
+owner: bjorn@stabell.org
+assignee: claude:b92140a2
 ---
 
 # [x] Change default materialization from none to metadata @km/_orphan #task #P2 @claude:b92140a2

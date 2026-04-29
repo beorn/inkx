@@ -6,6 +6,8 @@ aliases:
 created_by: claude:084f044c
 created_at: 2026-02-12T11:28:03Z
 closed_at: 2026-02-12T12:00:57Z
+owner: bjorn@stabell.org
+assignee: claude:084f044c
 ---
 
 # [x] Multi-select operations: batch delete, status toggle @km/tui #feature #P2 @claude:084f044c

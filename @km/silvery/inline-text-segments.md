@@ -5,6 +5,7 @@ aliases:
   - km-silvery-inline-text-segments
 created_by: Bjørn Stabell
 created_at: 2026-04-09T20:05:38Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Nested Text as inline style segments — HTML inline model (wrap + hit-test + styling from one primitive) @km/silvery #feature #P1

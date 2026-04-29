@@ -12,6 +12,21 @@ close_reason: "Added verify-publishable CI workflow to all 7 vendor repos
   → node import test. Catches the exact class of bugs we hit (missing deps,
   wrong exports, broken tarballs) at PR time instead of after publishing. km
   root commit 84be1c7fa."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-infra.release-verify-ci
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-11T22:11:10Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-infra.release-verify-ci
+    depends_on_id: km-infra.release-execute-full
+    type: blocks
+    created_at: 2026-04-11T22:11:12Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Run bun release verify in CI on every commit @km/infra #task #P3 @Bjørn Stabell

@@ -5,6 +5,7 @@ aliases:
   - km-silvery-snug-wrapping-quality
 created_by: Bjørn Stabell
 created_at: 2026-04-10T22:00:46Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] snug-content wrapping quality — boxes 3-5 in demo look suboptimal @km/silvery #bug #P2

@@ -6,6 +6,7 @@ aliases:
 created_by: claude:e7c823b8
 created_at: 2026-02-26T16:54:39Z
 closed_at: 2026-02-26T17:48:57Z
+owner: bjorn@stabell.org
 ---
 
 # [x] TUI tests: set explicit theme to decouple from default theme changes @km/tui #task #P3

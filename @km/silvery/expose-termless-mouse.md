@@ -10,6 +10,14 @@ close_reason: Landed in same commit as km-silvery.mouse-drag-vs-click. See
   silvery 915b4bf9 — term.mouse.*/term.clipboard API added to createTermless at
   vendor/silvery/packages/test/src/index.tsx. 7 regression tests use the new API
   (zero SGR byte strings, zero 'as any').
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.expose-termless-mouse
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T00:39:31Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Expose termless mouse + clipboard API through silvery's createTermless @km/silvery #feature #P2

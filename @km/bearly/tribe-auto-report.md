@@ -8,6 +8,8 @@ created_at: 2026-03-23T07:01:57Z
 closed_at: 2026-03-25T22:36:09Z
 close_reason: Background polling (30s) detects git commits and bead changes,
   auto-sends status to chief. Opt-out via --no-auto-report.
+owner: bjorn@stabell.org
+assignee: claude:19080504
 ---
 
 # [x] Auto-reporting: plugin detects commits + bead changes @km/bearly #feature #P2 @claude:19080504

@@ -6,6 +6,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-06T07:21:02Z
 closed_at: 2026-04-06T07:22:30Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 2.5: Coordinator + render invalidation + capability registry (shared infra) @km/silvery #task #P1

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:ee8efc0f
 created_at: 2026-02-23T11:14:25Z
 closed_at: 2026-02-23T11:38:20Z
+owner: bjorn@stabell.org
+assignee: claude:ee8efc0f
 ---
 
 # [x] Define 1.0 criteria for flexx and inkx @km/all #task #P2 @claude:ee8efc0f

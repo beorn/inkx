@@ -6,6 +6,8 @@ aliases:
 created_by: claude:536645b5
 created_at: 2026-02-21T16:22:07Z
 closed_at: 2026-02-21T17:07:44Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Show hidden item count at end of each column @km/tui #feature #P2 @claude:d3a7049b

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:ee8efc0f
 created_at: 2026-02-23T11:14:21Z
 closed_at: 2026-02-23T11:42:08Z
+owner: bjorn@stabell.org
+assignee: claude:ee8efc0f
 ---
 
 # [x] Add CONTRIBUTING.md and engines field to flexx @km/flexx #task #P2 @claude:ee8efc0f

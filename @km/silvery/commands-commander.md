@@ -5,6 +5,7 @@ aliases:
   - km-silvery-commands-commander
 created_by: Bjørn Stabell
 created_at: 2026-04-10T22:10:47Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Explore connecting @silvery/commands to @silvery/commander @km/silvery #task #P3

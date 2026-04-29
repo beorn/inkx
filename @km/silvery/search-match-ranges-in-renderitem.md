@@ -10,6 +10,7 @@ close_reason: fba21c81e — ListItemMeta.matchRanges + searchQuery shipped;
   computeMatchRanges(text, query) exported from @silvery/ag-term; km-logview
   migrated (highlightQuery) with 2 new logview tests + 4 new ListView tests; 0
   new tsc errors; 69/69 vendor + 44/44 logview tests pass
+owner: bjorn@stabell.org
 ---
 
 # [x] Pass search match ranges to ListView renderItem via ListItemMeta @km/silvery #feature #P2

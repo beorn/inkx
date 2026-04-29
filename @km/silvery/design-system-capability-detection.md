@@ -7,6 +7,14 @@ created_by: Bjørn Stabell
 created_at: 2026-04-18T05:37:42Z
 closed_at: 2026-04-18T05:43:02Z
 close_reason: Merged into km-silvery.scheme-detect (unified detection bead)
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.design-system-capability-detection
+    depends_on_id: km-silvery.design-system
+    type: parent-child
+    created_at: 2026-04-17T22:37:44Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Best-practice capability (tier) detection — truecolor/256/ANSI16/monochrome @km/silvery #feature #P3

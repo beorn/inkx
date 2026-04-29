@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T12:21:12Z
 closed_at: 2026-03-02T11:07:27Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] Detail pane: black bg, no cursor nav, top bar styling, remove duplicate title @km/tui #bug #P2 @claude:d697f216

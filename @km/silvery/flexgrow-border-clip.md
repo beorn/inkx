@@ -11,6 +11,7 @@ close_reason: "Fixed: removed redundant EL (erase-to-end-of-line) from
   the last column, and EL in pending-wrap is terminal-dependent — some terminals
   wrapped first, clipping the border. Added 8 tests in
   border-edge-clipping.test.tsx."
+owner: bjorn@stabell.org
 ---
 
 # [x] flexGrow child right border clipped at terminal edge @km/silvery #bug #P3

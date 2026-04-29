@@ -6,6 +6,8 @@ aliases:
 created_by: claude:536645b5
 created_at: 2026-02-20T15:47:58Z
 closed_at: 2026-02-20T18:50:33Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Keybinding v2: bare symbol shortcuts (@/#/+/[ in node mode) @km/all #task #P3 @claude:d3a7049b

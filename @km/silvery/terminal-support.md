@@ -8,6 +8,7 @@ created_at: 2026-03-13T17:58:57Z
 closed_at: 2026-03-27T19:02:21Z
 close_reason: "Grooming: steps 0-7 complete per notes. Remaining child
   (terminal-width-db) tracked as standalone P2 bead"
+owner: bjorn@stabell.org
 ---
 
 # [x] Terminal support: unified Cell type, STRICT_TERMINAL, cross-backend matrix @km/silvery #epic #P2

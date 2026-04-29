@@ -14,6 +14,16 @@ close_reason: "Phase 2 complete. Implemented all 5 stub functions in
   unit tests in vendor/silvery/tests/output-hybrid.test.ts pass under
   SILVERY_STRICT=2. Commits: silvery 626ac0e1 + km 8ce33dd0a. Phase 3 (wire
   SILVERY_HYBRID_OUTPUT=1 into output-phase.ts) tracked separately if needed."
+started_at: 2026-04-26T22:47:51Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvery.known-limits.hybrid-output
+    depends_on_id: km-silvery.known-limits
+    type: parent-child
+    created_at: 2026-04-26T15:47:00Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Output hybrid pipeline phase 2 — design doc recovery + implementation @km/silvery #task #P2 @claude:cc081a9a

@@ -4,6 +4,7 @@ aliases:
   - km-sp1dp
 created_at: 2026-02-03T14:27:20Z
 closed_at: 2026-02-03T14:28:25Z
+assignee: claude:3c00d7cc
 ---
 
 # [x] inkx: stale pixels when children conditionally removed @km/_orphan #bug #P2 @claude:3c00d7cc

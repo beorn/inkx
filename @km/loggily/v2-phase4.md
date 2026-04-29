@@ -9,6 +9,21 @@ closed_at: 2026-04-12T08:01:10Z
 close_reason: 17 doc files updated for v2 API. All examples use config arrays.
   Comparison.md rewritten per positioning rules. Migration guides updated. 248
   tests pass.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-loggily.v2-phase4
+    depends_on_id: km-loggily.api-v2
+    type: parent-child
+    created_at: 2026-04-11T23:58:54Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-loggily.v2-phase4
+    depends_on_id: km-loggily.v2-phase3
+    type: blocks
+    created_at: 2026-04-11T23:59:04Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Phase 4: advanced features — OTEL, worker, rotation, metrics @km/loggily #task #P3 @Bjørn Stabell

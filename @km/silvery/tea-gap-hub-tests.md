@@ -9,6 +9,14 @@ closed_at: 2026-04-19T03:58:55Z
 close_reason: "Fixed: added test:prototype script + wired into test:ci. bun
   vitest run --project prototype passes 82/82 (3 files). CI now blocks
   regressions in hub/silvery/prototype/."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.tea-gap-hub-tests
+    depends_on_id: km-silvery.tea
+    type: parent-child
+    created_at: 2026-04-18T12:02:29Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] TEA gap: hub/silvery/prototype/ tests need opt-in vitest project @km/silvery #task #P3

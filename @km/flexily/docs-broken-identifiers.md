@@ -11,6 +11,7 @@ close_reason: "Fixed: Replaced GAP_COLUMN with GUTTER_COLUMN in
   freeRecursive() with free() in getting-started.md (2 occurrences) and
   api/reference.md (1 occurrence) — freeRecursive is a Yoga API method that
   doesn't exist in flexily."
+owner: bjorn@stabell.org
 ---
 
 # [x] Docs: Examples use wrong identifiers — GAP_COLUMN vs GUTTER_COLUMN, missing freeRecursive @km/flexily #bug #P2

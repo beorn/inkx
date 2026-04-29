@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-22T00:24:46Z
 closed_at: 2026-02-22T10:10:16Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] UI chrome redesign: status bar, command box, help @km/tui #feature #P2 @claude:d3a7049b

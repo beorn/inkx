@@ -5,6 +5,7 @@ aliases:
   - km-silvery-link-hit-whitespace
 created_by: Bjørn Stabell
 created_at: 2026-04-09T20:11:05Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Hit test whitespace claim + <Link> component — surgical fix for space-between-clickables @km/silvery #feature #P1

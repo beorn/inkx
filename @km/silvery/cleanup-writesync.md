@@ -10,6 +10,7 @@ close_reason: "Fixed. Two issues: (1) output guard patched process.stdout
   globally even with mock stdout — added isRealStdout check. (2) writeSync(fd)
   in cleanup/lifecycle bypassed mocks — guarded with stdout === process.stdout
   check. 12 tests fixed."
+owner: bjorn@stabell.org
 ---
 
 # [x] writeSync(fd=1) in createApp cleanup writes to real stdout, breaks mock-stdout tests @km/silvery #bug #P2

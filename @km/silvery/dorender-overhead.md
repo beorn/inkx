@@ -7,6 +7,8 @@ created_by: Bjørn Stabell
 created_at: 2026-04-09T14:30:36Z
 closed_at: 2026-04-09T15:54:42Z
 close_reason: Hoisted feature flags to module-level constants. Commit 445a256a.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Strip doRender per-frame feature-detection overhead @km/silvery #task #P0 @Bjørn Stabell

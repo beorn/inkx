@@ -8,6 +8,8 @@ created_at: 2026-03-25T20:33:05Z
 closed_at: 2026-03-26T06:44:06Z
 close_reason: Canvas renderer with full input support implemented and tested.
   All 5 demos render on canvas with keyboard navigation working.
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Switch showcase demos from xterm.js iframe to canvas renderer @km/silvery #task #P1 @claude:fed8de9e

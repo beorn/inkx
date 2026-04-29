@@ -10,6 +10,16 @@ close_reason: Fixed in commit e16090dfc — minWidth={0} on TreeNode content Box
   and NodeView column header inner row Box. 6/7 originally-failing tests now
   pass. 1 remaining (card-bg-inheritance) reclassified as separate concern
   (CardColumn theme-cascade) — tracked as km-tui.cardbg-cascade-broken.
+started_at: 2026-04-26T08:00:32Z
+owner: bjorn@stabell.org
+assignee: claude:53042a7f
+dependencies:
+  - issue_id: km-tui.layout-after-text-intrinsic-fix
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-26T00:55:18Z
+    created_by: claude:53042a7f
+    metadata: "{}"
 ---
 
 # [x] km-tui tests fail after text-intrinsic-vs-render fix — codified old conflation behavior @km/tui #bug #P2 @claude:53042a7f

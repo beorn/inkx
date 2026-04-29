@@ -9,6 +9,7 @@ closed_at: 2026-03-13T07:41:38Z
 close_reason: "Fixed: adapter now respects outlineTop/Bottom/Left/Right props
   and uses formatTextLines for text wrapping/truncation/newlines. 8 new TDD
   tests."
+owner: bjorn@stabell.org
 ---
 
 # [x] Content-phase-adapter text rendering ignores wrapping + outline side flags @km/silvery #bug #P1

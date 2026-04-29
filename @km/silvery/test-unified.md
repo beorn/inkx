@@ -8,6 +8,8 @@ created_at: 2026-04-09T06:36:54Z
 closed_at: 2026-04-09T07:33:48Z
 close_reason: Wired RunHandle.root + buffer into termless backend createTestApp.
   21/21 tests pass with locators on termless. Commit 95b473a62.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Unified test backend — expose AgNode tree through RunHandle @km/silvery #feature #P2 @Bjørn Stabell

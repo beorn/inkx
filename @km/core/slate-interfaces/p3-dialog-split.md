@@ -8,6 +8,8 @@ created_at: 2026-03-28T14:12:55Z
 closed_at: 2026-03-28T14:29:33Z
 close_reason: User decided 54-case handler is acceptable — decentralizing would
   add more complexity than it saves
+owner: bjorn@stabell.org
+assignee: claude:ceb7c9cb
 ---
 
 # [x] Split DialogOp handler — 54 cases exceeds 25-case limit @km/core #task #P3 @claude:ceb7c9cb

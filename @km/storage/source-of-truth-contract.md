@@ -15,6 +15,15 @@ close_reason: "RFC committed at hub/km/source-of-truth-rfc.md (2026-04-21).
   contract for derived stores spelled out: rebuild <500ms first frame at 1x
   post-lazy-hydration, full rebuild <5s at 1x, log replay <1s at 1x, filesystem
   wins conflict priority."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.source-of-truth-contract
+    depends_on_id: km-all.plateau
+    type: parent-child
+    created_at: 2026-04-21T01:37:22Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Source-of-truth contract — markdown vs log vs DB @km/storage #feature #P1 @claude:8b5b9e1c

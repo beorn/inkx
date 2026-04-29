@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-20T10:37:02Z
 closed_at: 2026-02-20T15:21:33Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Add vertical spacing around body text in detail pane when >2 KNodes @km/tui #feature #P3 @claude:d3a7049b

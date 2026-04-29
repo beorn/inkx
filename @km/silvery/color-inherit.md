@@ -12,6 +12,14 @@ close_reason: "Shipped in v0.18.0: color='inherit'/'currentColor' resolved via
   InlineComponents.tsx + link-interaction.ts use color='inherit' instead of
   colorOverride=null. Full colorOverride retirement in km-tui is follow-up
   (string-override semantic still in use by 4 callers)."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.color-inherit
+    depends_on_id: km-silvery.theme-system-v2
+    type: parent-child
+    created_at: 2026-04-18T10:45:13Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] color='inherit' / 'currentColor' primitive, retire colorOverride @km/silvery #task #P3

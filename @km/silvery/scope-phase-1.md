@@ -5,6 +5,22 @@ aliases:
   - km-silvery-scope-phase-1
 created_by: claude:2aefb4b6
 created_at: 2026-04-24T20:39:18Z
+started_at: 2026-04-24T21:54:00Z
+owner: bjorn@stabell.org
+assignee: claude:2aefb4b6
+dependencies:
+  - issue_id: km-silvery.scope-phase-1
+    depends_on_id: km-silvery.lifecycle-scope
+    type: parent-child
+    created_at: 2026-04-24T13:39:18Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
+  - issue_id: km-silvery.scope-phase-1
+    depends_on_id: km-silvery.scope-phase-0
+    type: blocks
+    created_at: 2026-04-24T13:39:18Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
 ---
 
 # [ ] Phase 1: Prototype de-risk (hooks + fiber disposal + withScope + silvercode migration) @km/silvery #task #P1 @claude:2aefb4b6

@@ -13,6 +13,7 @@ close_reason: "Absorbed into km-all.test-system per user request ('all under
   that cannot cleanly relocate (they drive the Board UI via createBoardDriver).
   Reclassified to REWRITE (rewrite from scratch against lower-layer primitives)
   or FREEZE. All further work consolidated in parent bead."
+owner: bjorn@stabell.org
 ---
 
 # [x] Test reclassification — migrate/rewrite/relocate/freeze audit @km/all #task #P2

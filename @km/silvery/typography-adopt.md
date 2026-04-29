@@ -9,6 +9,8 @@ closed_at: 2026-03-12T23:36:13Z
 close_reason: Adopted Small typography preset across 11 km-tui view files.
   Replaced <Text dimColor> with <Small> for muted/secondary text. Committed and
   pushed.
+owner: bjorn@stabell.org
+assignee: claude:73d7a332
 ---
 
 # [x] Adopt typography presets across km, examples, and docs @km/silvery #task #P2 @claude:73d7a332

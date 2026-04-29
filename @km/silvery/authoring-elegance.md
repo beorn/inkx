@@ -5,6 +5,14 @@ aliases:
   - km-silvery-authoring-elegance
 created_by: claude:8b5b9e1c
 created_at: 2026-04-21T07:43:38Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.authoring-elegance
+    depends_on_id: km-all.plateau
+    type: parent-child
+    created_at: 2026-04-21T00:43:38Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [ ] Authoring elegance — framework-adoption bar for silvery plugin API @km/silvery #feature #P0

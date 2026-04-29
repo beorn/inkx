@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T23:35:29Z
 closed_at: 2026-02-15T21:14:57Z
+owner: bjorn@stabell.org
+assignee: claude:34ba82b6
 ---
 
 # [x] VirtualList scroll container equalizes all child heights during multi-iteration doRender @km/flexx #bug #P2 @claude:34ba82b6

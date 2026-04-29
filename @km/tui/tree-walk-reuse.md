@@ -8,6 +8,7 @@ created_at: 2026-04-08T07:01:10Z
 closed_at: 2026-04-08T23:50:21Z
 close_reason: "Superseded: v3 computed engine makes tree walks transparent. No
   manual catalog needed."
+owner: bjorn@stabell.org
 ---
 
 # [x] Analyze tree-walk + reduced signal reuse across km, silvery, flexily @km/tui #task #P3

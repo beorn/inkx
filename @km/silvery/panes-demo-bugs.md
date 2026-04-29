@@ -8,6 +8,7 @@ created_at: 2026-04-02T22:41:02Z
 closed_at: 2026-04-02T23:50:21Z
 close_reason: Fixed. Output guard patches console. Panes demo uses new props.
   Display offset resolved.
+owner: bjorn@stabell.org
 ---
 
 # [x] [bug] Panes demo: search broken, display offset, search input missing keybindings @km/silvery #bug #P1

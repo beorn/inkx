@@ -8,6 +8,15 @@ created_at: 2026-04-12T06:58:48Z
 closed_at: 2026-04-12T07:41:07Z
 close_reason: "Phase 1 complete: pipeline.ts, core.ts rewritten, 248 tests pass,
   typecheck clean"
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-loggily.v2-phase1
+    depends_on_id: km-loggily.api-v2
+    type: parent-child
+    created_at: 2026-04-11T23:58:48Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Phase 1: core pipeline + createLogger polymorphic @km/loggily #task #P1 @Bjørn Stabell

@@ -9,6 +9,9 @@ closed_at: 2026-04-26T12:12:18Z
 close_reason: "Shipped: daa743b51. LinkifiedText: gap pieces now wrapped in
   <Text> instead of React.Fragment for uniform virtual-text. 2 tests. Session:
   km-session.0425-evening"
+started_at: 2026-04-26T11:33:21Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
 ---
 
 # [x] Autolinked file path appears to eat trailing space in user-message render @km/silvercode #bug #P3 @claude:2405c72e

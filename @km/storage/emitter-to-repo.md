@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-02T23:25:52Z
 closed_at: 2026-04-03T00:40:24Z
 close_reason: Partially done — repo.apply/commit added. Full Emitter merge deferred to era2.
+owner: bjorn@stabell.org
 ---
 
 # [x] Merge Emitter into Repo — repo.apply(event) as the unified interface @km/storage #task #P3

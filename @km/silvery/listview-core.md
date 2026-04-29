@@ -11,6 +11,8 @@ close_reason: "ListView.tsx (334 lines) merges VirtualView + VirtualList. New
   ListItemMeta.isCursor. Old components are thin deprecated wrappers.
   useListItem.tsx created. 63 tests pass. Committed in worktree
   feat/listview-core."
+owner: bjorn@stabell.org
+assignee: claude:def7f8a1
 ---
 
 # [x] ListView core: merge VirtualView + VirtualList @km/silvery #task #P1 @claude:def7f8a1

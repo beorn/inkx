@@ -10,6 +10,14 @@ close_reason: "Updated .claude/skills/max/SKILL.md: replaced 'CRITICAL
   commit-AND-push' block with 'wip/<bead-id> local-only' contract. Anti-patterns
   table now flags the legacy mandate. /refactor skill had no push references.
   Committed direct to main."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.max-skill-update-eventual-consistency
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-28T15:19:43Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Drop push-to-origin contract from /max + /refactor skill docs (eventual-consistency model) @km/infra #task #P2

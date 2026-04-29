@@ -9,6 +9,8 @@ closed_at: 2026-03-09T19:08:53Z
 close_reason: Split complete. 236 files organized across 8 packages
   (@silvery/react, term, ansi, theme, tea, ui, test, compat). All cross-package
   imports rewritten. TypeScript compiles with 0 errors. Pushed to GitHub.
+owner: bjorn@stabell.org
+assignee: claude:55df8ef1
 ---
 
 # [x] Split hightea monolith into @silvery/* packages @km/silvery #task #P2 @claude:55df8ef1

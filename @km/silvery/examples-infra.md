@@ -10,6 +10,8 @@ close_reason: "Phase 1 complete: 13 dead web-only files deleted (-2353 lines),
   all 9 showcases now use terminal examples as single source of truth, build.ts
   auto-discovers. Phase 2 already done (CLI viewer had Cmd+K, theme picker,
   cross-links)."
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] Examples infrastructure: unify web/CLI, auto-discover, kill showcases @km/silvery #task #P1 @claude:c9beade3

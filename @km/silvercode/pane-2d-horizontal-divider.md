@@ -14,6 +14,14 @@ close_reason: "Divider rendering bug fixed: silvery 639cc7fa (regression test) +
   divider-overflow-clear.test.tsx 4/4 passing. The pane-2d-layout.test.tsx tests
   still fail but the cause is orthogonal (split-direction routing) — filed as
   km-silvercode.split-direction-race."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.pane-2d-horizontal-divider
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T08:07:37Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Visual regression: horizontal pane dividers render as vertical (─ → │) after paint-clear merges @km/silvercode #bug #P1

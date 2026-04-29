@@ -8,6 +8,15 @@ created_at: 2026-04-18T05:18:41Z
 closed_at: 2026-04-18T07:53:09Z
 close_reason: "Rename complete, 0 ColorPalette hits, 2149 tests pass, typecheck
   clean. Commits: silvery 4e0338c8, km 4597c228e."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-silvery.scheme-rename
+    depends_on_id: km-silvery.design-system
+    type: parent-child
+    created_at: 2026-04-17T22:18:41Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Scheme rename refactor — ColorPalette → ColorScheme across silvery @km/silvery #task #P3 @Bjørn Stabell

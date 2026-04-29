@@ -10,6 +10,8 @@ close_reason: KNode.extractProps() denylist model (SlateJS-compatible).
   SYSTEM_KEYS excludes 13 structural fields, everything else inherits.
   deriveFsType() in app layer. 4 handler duplication sites replaced. 9 new
   tests. Commit 1452b100.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Sticky type: new nodes inherit characteristics from source node @km/tui #feature #P2 @Bjørn Stabell

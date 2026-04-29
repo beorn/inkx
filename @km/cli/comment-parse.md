@@ -6,6 +6,8 @@ aliases:
 created_by: claude:28b14b32
 created_at: 2026-02-23T16:48:02Z
 closed_at: 2026-02-23T16:52:12Z
+owner: bjorn@stabell.org
+assignee: claude:28b14b32
 ---
 
 # [x] Asana import: comment parsing issues (dates, names, structure) @km/cli #bug #P2 @claude:28b14b32

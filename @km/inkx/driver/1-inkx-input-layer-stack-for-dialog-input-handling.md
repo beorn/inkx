@@ -6,6 +6,7 @@ aliases:
   - "@km/inkx/driver/1"
 created_at: 2026-02-04T15:30:44Z
 closed_at: 2026-02-05T10:22:42Z
+assignee: claude:10db6ea8
 ---
 
 # [x] inkx: Input Layer Stack for dialog input handling @km/inkx #feature #P2 @claude:10db6ea8

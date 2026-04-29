@@ -4,6 +4,7 @@ aliases:
   - km-storage-3
 created_at: 2026-01-20T10:32:30Z
 closed_at: 2026-02-14T08:52:47Z
+assignee: claude:124bfbe5
 ---
 
 # [x] Split db-queries.ts into focused modules @km/_orphan #task #P3 @claude:124bfbe5

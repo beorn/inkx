@@ -11,6 +11,7 @@ close_reason: "Done: expanded from 110 to 133 features. Added input protocols
   XTGETTCAP, DECRPM), shell integration (OSC 7, OSC 633, notifications),
   graphics (iTerm2 images), Unicode depth, classic edge cases. Remaining ~30
   features need probes written."
+owner: bjorn@stabell.org
 ---
 
 # [x] TPT: expand from 110 to ~160 features (input, graphics, Unicode, edge cases) @km/terminfo #task #P2

@@ -5,6 +5,14 @@ aliases:
   - km-tui-card-border-click
 created_by: Bjørn Stabell
 created_at: 2026-04-14T05:05:10Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.card-border-click
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-13T22:05:31Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Clicking card border selects card then column @km/tui #bug #P3

@@ -8,6 +8,7 @@ created_at: 2026-03-25T20:03:59Z
 closed_at: 2026-03-25T20:18:50Z
 close_reason: Cloudflare zone created with 4 A records + www CNAME. Pending
   Porkbun NS change to dawn/max.ns.cloudflare.com
+owner: bjorn@stabell.org
 ---
 
 # [x] flexily.dev DNS broken — points to AWS instead of GitHub Pages @km/flexily #bug #P1

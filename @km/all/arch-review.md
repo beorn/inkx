@@ -12,6 +12,8 @@ close_reason: "All fixes shipped: SectionRules moved to @km/core (layer
   declared, globalThis globals replaced with module exports, stale Zustand refs
   cleaned. Remaining: @km/board→@silvery/ag-react GridNavigator coupling (deeper
   fix, separate bead)."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Architecture review fixes — layer violations, stale docs, undeclared deps @km/all #epic #P0 @Bjørn Stabell

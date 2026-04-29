@@ -5,6 +5,14 @@ aliases:
   - km-all-plateau
 created_by: claude:8b5b9e1c
 created_at: 2026-04-21T05:22:59Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.plateau
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-20T22:23:18Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [ ] Quality Plateau — full-stack roadmap to architectural completeness @km/all #epic #P0

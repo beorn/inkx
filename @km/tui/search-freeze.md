@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T14:33:40Z
 closed_at: 2026-02-18T14:53:43Z
+owner: bjorn@stabell.org
+assignee: claude:fcaad2fa
 ---
 
 # [x] Search: app freezes for seconds after pressing Enter — needs loading indicator @km/tui #bug #P2 @claude:fcaad2fa

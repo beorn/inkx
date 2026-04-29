@@ -5,6 +5,14 @@ aliases:
   - km-silvery-dev-redesign
 created_by: Bjørn Stabell
 created_at: 2026-04-17T23:10:17Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.dev-redesign
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-17T16:10:30Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] silvery.dev design system rollout — Tier 2 (tokens + logo + terminal hero) @km/silvery #feature #P2

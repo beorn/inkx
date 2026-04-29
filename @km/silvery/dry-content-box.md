@@ -9,6 +9,7 @@ closed_at: 2026-03-13T05:21:46Z
 close_reason: "Deferred: 27 inline content box calculations across 4 files. Need
   getContentBox() and getContentBounds() in helpers.ts. Mechanical refactor —
   border+padding inset math extracted to shared functions. Safe to do anytime."
+owner: bjorn@stabell.org
 ---
 
 # [x] DRY: Extract getContentBox/getBoxInsets geometry helpers @km/silvery #task #P2

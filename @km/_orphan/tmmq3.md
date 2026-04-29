@@ -5,6 +5,7 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T10:41:35Z
 closed_at: 2026-02-18T10:44:08Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Import: attachment downloads fail with 403 — need token refresh on expired signed URLs @km/_orphan #bug #P2

@@ -11,6 +11,14 @@ close_reason: "All 9 child beads closed. v2 ships: Primer aliases, tokens-prop
   runThemed boot, typed ThemeToken union, state-variants (hover/active OKLCH),
   variants-as-tokens (typography presets). km-tui.coloroverride-purge follow-up
   also closed (36 sites migrated)."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-system-v2
+    depends_on_id: km-silvery.design-system
+    type: parent-child
+    created_at: 2026-04-18T10:44:55Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Theme System v2 — Primer names, tokens-prop ThemeProvider, standard brand tokens, mono wiring, variants-as-tokens, color inherit, state variants, typed tokens, createThemedApp @km/silvery #task #P2

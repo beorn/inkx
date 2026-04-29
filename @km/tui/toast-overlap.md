@@ -5,6 +5,7 @@ aliases:
   - km-tui-toast-overlap
 created_at: 2026-02-05T16:58:18Z
 closed_at: 2026-02-05T17:45:20Z
+assignee: claude:b53ef7e4
 ---
 
 # [x] Toast notification overlaps bottom status bar @km/tui #bug #P2 @claude:b53ef7e4

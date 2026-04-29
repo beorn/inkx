@@ -16,6 +16,14 @@ close_reason: "DONE via silvery d750e2b1 (withCustomEvents chain plugin + 9
   more on/emit surface). Deviation: pause/resume retained as optional on
   RuntimeContextValue for km-tui useBoardController console-mode — documented in
   bead history."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.tea-custom-events
+    depends_on_id: km-silvery.tea
+    type: parent-child
+    created_at: 2026-04-18T11:44:16Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Custom event bus — migrate km-tui link:open off RuntimeContextValue @km/silvery #task #P2

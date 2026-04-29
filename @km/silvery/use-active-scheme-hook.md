@@ -11,6 +11,14 @@ close_reason: "Shipped at silvery 6d73d0ef + km adbf3dc9d. ActiveScheme type
   ActiveSchemeContext. Bonus: shared wrapWithThemedProvider extracted (overlaps
   bead km-silvery.unify-theme-boot-helpers scope — that bead may now be
   partially redundant). 13 new tests pass."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.use-active-scheme-hook
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-18T22:56:58Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] useActiveScheme() React hook — expose detected scheme metadata @km/silvery #task #P3

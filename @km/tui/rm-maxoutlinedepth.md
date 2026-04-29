@@ -6,6 +6,8 @@ aliases:
 created_by: claude:ee8efc0f
 created_at: 2026-02-22T01:23:58Z
 closed_at: 2026-02-22T02:10:09Z
+owner: bjorn@stabell.org
+assignee: claude:ee8efc0f
 ---
 
 # [x] Remove maxOutlineDepth — derive fold visibility from foldedNodes only @km/tui #task #P1 @claude:ee8efc0f

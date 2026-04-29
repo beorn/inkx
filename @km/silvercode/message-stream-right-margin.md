@@ -10,6 +10,16 @@ close_reason: "Implemented in 59e50f180: SessionCard paddingRight=2,
   ToolCallBlock single-line collapsed via wrap=truncate, markdown-bearing tool
   inputs render via MarkdownView, MarkdownTable adds light row dividers when >=3
   rows. Visual tests (77) all green."
+started_at: 2026-04-26T05:57:27Z
+owner: bjorn@stabell.org
+assignee: claude:bc3eb794
+dependencies:
+  - issue_id: km-silvercode.message-stream-right-margin
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-25T22:54:58Z
+    created_by: claude:bc3eb794
+    metadata: "{}"
 ---
 
 # [x] Message stream lacks right margin/gutter against side panel @km/silvercode #bug #P3 @claude:bc3eb794

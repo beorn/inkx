@@ -9,6 +9,8 @@ closed_at: 2026-03-17T06:25:09Z
 close_reason: Implemented generateIndexFileContent, indexFileName,
   handleFolderIndexUpdate in both FsWriter and SyncManager, plus
   syncIndexFileToFolder in update handler
+owner: bjorn@stabell.org
+assignee: claude:b92140a2
 ---
 
 # [x] Index file content generation + FsWriter/SyncManager auto-create @km/storage #task #P2 @claude:b92140a2

@@ -5,6 +5,15 @@ aliases:
   - km-bearly-daemon-spine-phase1
 created_by: claude:2405c72e
 created_at: 2026-04-26T22:14:07Z
+started_at: 2026-04-26T22:14:46Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.daemon-spine-phase1
+    depends_on_id: km-bearly.daemon-spine
+    type: parent-child
+    created_at: 2026-04-26T15:14:15Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [/] Phase 1: extract @bearly/daemon-spine package, rewrite lore/socket.ts as adapter (~250 LOC delete) @km/bearly #task #P2

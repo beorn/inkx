@@ -6,6 +6,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-08T23:41:19Z
 closed_at: 2026-04-09T05:51:41Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Invisible perf tracking — spans in run(), budget alerts, exit summary @km/silvery #task #P2

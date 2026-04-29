@@ -6,6 +6,8 @@ aliases:
 created_by: claude:536645b5
 created_at: 2026-02-19T18:45:45Z
 closed_at: 2026-02-20T18:50:40Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Keybindings v2: vim chords, cursor depth, Cmd/Ctrl layers @km/all #feature #P1 @claude:d3a7049b

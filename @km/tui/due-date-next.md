@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-15T07:55:55Z
 closed_at: 2026-02-15T14:13:41Z
+owner: bjorn@stabell.org
+assignee: claude:a5c7f7de
 ---
 
 # [x] Nodes with due_date don't automatically appear on @next (missing rule?) @km/tui #bug #P2 @claude:a5c7f7de

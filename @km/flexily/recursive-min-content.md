@@ -91,6 +91,16 @@ close_reason: >-
 
   This is the plateau move. Box-wrappers around <Text wrap> now lay out
   identically to bare Text in constrained rows.
+started_at: 2026-04-26T08:55:18Z
+owner: bjorn@stabell.org
+assignee: claude:53042a7f
+dependencies:
+  - issue_id: km-flexily.recursive-min-content
+    depends_on_id: km-flexily
+    type: parent-child
+    created_at: 2026-04-26T01:55:17Z
+    created_by: claude:53042a7f
+    metadata: "{}"
 ---
 
 # [x] Recursive intrinsic min-content for container nodes — eliminate the Box-wrapper foot-gun @km/flexily #feature #P3 @claude:53042a7f

@@ -10,6 +10,7 @@ close_reason: "Deferred: 50+ inline Math.max/Math.min patterns across 4 files
   (content-phase.ts, render-box.ts, render-text.ts, content-phase-adapter.ts).
   Need clipRectToBounds() and intersectRects() in a new rect-utils.ts.
   Mechanical refactor — no behavior change, just DRY. Safe to do anytime."
+owner: bjorn@stabell.org
 ---
 
 # [x] DRY: Extract intersectRects/clipRectToBounds rectangle utilities @km/silvery #task #P3

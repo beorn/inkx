@@ -9,6 +9,7 @@ closed_at: 2026-04-02T22:30:11Z
 close_reason: "Shipped: ReconciliationEngine extracted (195 LOC). SyncManager
   reduced from 947→790 LOC. Engine handles isOwnedWrite, filterOwnedWriteOps,
   recordObservations, reconcile/apply. No circular imports. Commit 06b0e442."
+owner: bjorn@stabell.org
 ---
 
 # [x] Split SyncManager (854 LOC) into 3 focused components @km/storage #task #P2

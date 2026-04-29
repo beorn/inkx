@@ -11,6 +11,14 @@ close_reason: "Both child beads (km-silvercode.queue-option-b-impl,
   apps/silvercode/tests/visual/queue-option-b.test.tsx (7 createRenderer tests)
   + apps/silvercode/tests/visual/queue-cursor.test.tsx (3 termless tests, this
   session). Architecture shipped, no regressions."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.queue-option-b
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-24T16:16:25Z
+    created_by: claude:0940ca20
+    metadata: "{}"
 ---
 
 # [x] [epic] Queue UX redesign — two TextAreas with seamless cursor-boundary focus handoff @km/silvercode #feature #P1

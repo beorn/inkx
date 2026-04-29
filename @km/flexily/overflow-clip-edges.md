@@ -6,6 +6,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-09T20:12:24Z
 closed_at: 2026-04-09T23:36:01Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Flexily overflow clipping rounding differs from Yoga in 3 edge cases @km/flexily #bug #P2

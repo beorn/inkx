@@ -5,6 +5,7 @@ aliases:
 created_by: claude:e7c823b8
 created_at: 2026-02-26T14:54:26Z
 closed_at: 2026-03-03T10:20:26Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Markdown roundtrip testing: comprehensive md ↔ node ↔ md verification @km/_orphan #task #P2

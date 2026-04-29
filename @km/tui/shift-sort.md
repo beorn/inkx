@@ -6,6 +6,8 @@ aliases:
 created_by: claude:bca35d62
 created_at: 2026-02-11T13:20:31Z
 closed_at: 2026-02-11T13:32:57Z
+owner: bjorn@stabell.org
+assignee: claude:bca35d62
 ---
 
 # [x] Shift down sends cards to bottom due to duplicate parent_idx @km/tui #bug #P2 @claude:bca35d62

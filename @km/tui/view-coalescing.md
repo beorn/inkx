@@ -11,6 +11,8 @@ close_reason: "Fixed via km 1fed20fad (silvery f8cc395). Drain-then-render:
   looping until eventQueue stabilizes (cap maxDrainSpins=32). 10 rapid keys → 1
   processEventBatch → 1 doRender. event-coalescing.test.tsx covers 10/5+5/25 key
   bursts, all ≤2 batches."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Coalesce rapid view updates — debounce re-render for batched keypresses @km/tui #feature #P0 @Bjørn Stabell

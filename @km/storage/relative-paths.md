@@ -5,6 +5,7 @@ aliases:
   - km-storage-relative-paths
 created_at: 2026-02-08T13:46:27Z
 closed_at: 2026-02-08T15:00:04Z
+assignee: claude:dffe6eeb
 ---
 
 # [x] fs_path should be relative to repo root for portable repos @km/storage #bug #P1 @claude:dffe6eeb

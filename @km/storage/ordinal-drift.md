@@ -9,6 +9,8 @@ closed_at: 2026-04-02T21:33:26Z
 close_reason: "Fixed: Three-phase node matching — block_id first, content hash
   second, ordinal fallback last. Inserting paragraphs no longer shifts sibling
   identity. 8 new tests. Commit ee5c605d."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] node-differ structural matching by ordinal causes identity drift on insertion @km/storage #bug #P1 @Bjørn Stabell

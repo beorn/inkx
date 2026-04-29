@@ -9,6 +9,8 @@ closed_at: 2026-03-28T08:35:49Z
 close_reason: Categorized ~130 action types into 8 focused sub-unions
   (VerbOp/NavOp/EditOp/TextOp/BoardOp/DialogOp/PaneOp/ViewOp). Router is 8
   lines. All 4791 tests pass. Type guards use O(1) Set dispatch.
+owner: bjorn@stabell.org
+assignee: claude:ceb7c9cb
 ---
 
 # [x] Phase 3: Split CommandAction (91 variants → focused sub-unions) @km/core #task #P2 @claude:ceb7c9cb

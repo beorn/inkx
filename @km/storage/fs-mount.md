@@ -11,6 +11,21 @@ close_reason: "Extracted @km/fs-mount package with fs/ + watch/ + store/fs.ts
   apps import unchanged. km-fs-mount 415/415, km-storage 1066/1066, typecheck at
   baseline. Scope note: 17 legacy @km/storage files still import node:fs
   (DO-NOT-MOVE list); making @km/storage truly FS-free is a follow-up bead."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.fs-mount
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-21T22:30:08Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
+  - issue_id: km-storage.fs-mount
+    depends_on_id: km-storage.reconciliation-harness
+    type: blocks
+    created_at: 2026-04-21T21:50:02Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] FsMount (@km/fs-mount) — formalize existing FS split into package boundary @km/storage #feature #P1 @claude:8b5b9e1c

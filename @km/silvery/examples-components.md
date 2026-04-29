@@ -5,6 +5,7 @@ aliases:
   - km-silvery-examples-components
 created_by: claude:73d7a332
 created_at: 2026-03-12T16:20:40Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Example: components showcase (all UI elements, focus ring, Storybook-style) @km/silvery #task #P1

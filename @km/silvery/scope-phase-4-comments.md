@@ -14,6 +14,20 @@ close_reason: "No app-layer or test-fixture migrations needed. Grep results
   useDispose/useExit actively but is gated (silvercode actively churning,
   deferred per Phase 1.4 policy). Phase 4 epic effectively closed once
   silvercode migration lands."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.scope-phase-4-comments
+    depends_on_id: km-silvery.scope-phase-4
+    type: parent-child
+    created_at: 2026-04-24T13:40:49Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
+  - issue_id: km-silvery.scope-phase-4-comments
+    depends_on_id: km-silvery.scope-phase-4-eslint
+    type: blocks
+    created_at: 2026-04-24T13:40:49Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
 ---
 
 # [x] Phase 4.G: Inline comments + test fixtures @km/silvery #task #P2

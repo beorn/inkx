@@ -34,6 +34,16 @@ close_reason: |-
   Commits:
     bearly: 634b2afda
     km:     e108917bf
+started_at: 2026-04-26T23:24:15Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-bearly.test-failures-vendor-fuzz
+    depends_on_id: km-all.fix-sweep-vendor-fuzz
+    type: parent-child
+    created_at: 2026-04-26T16:22:37Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] [bug] vendor/bearly — 2 test failures (daemon-spine + mcp) @km/bearly #bug #P2 @claude:cc081a9a

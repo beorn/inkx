@@ -10,6 +10,7 @@ close_reason: "Fixed: text.edit() + requestRenderFlush() after executeDelete.
   Root cause: unmount auto-save cleared new text selection, unconditional
   deselect in confirm callbacks, missing initialCursorPos passthrough. Commit
   00d1fac13."
+owner: bjorn@stabell.org
 ---
 
 # [x] Backspace on empty card should stay in edit mode on previous sibling @km/tui #task #P2

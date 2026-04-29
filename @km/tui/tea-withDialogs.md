@@ -5,6 +5,14 @@ aliases:
   - km-tui-tea-withDialogs
 created_by: claude:8b5b9e1c
 created_at: 2026-04-21T09:17:10Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.tea-withDialogs
+    depends_on_id: km-tui.tea
+    type: parent-child
+    created_at: 2026-04-21T02:17:32Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [ ] TEA withDialogs Phase 1 — parent tracker for all dialog cutovers @km/tui #feature #P1

@@ -11,6 +11,21 @@ close_reason: Phase 3 complete. Focus poller + session_focus table +
   extractSessionFocus pure export + CLI sessions focus hints + workspace JSON
   dump. 19 bear/plugin tests green, test:fast 6620 pass, /complete audit found +
   fixed the MCP tool gap.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-bear.focus
+    depends_on_id: km-bear
+    type: parent-child
+    created_at: 2026-04-17T08:37:16Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-bear.focus
+    depends_on_id: km-bear.daemon
+    type: blocks
+    created_at: 2026-04-17T08:37:16Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Phase 3: focus detection + bear.workspace_state() @km/bear #task #P2 @Bjørn Stabell

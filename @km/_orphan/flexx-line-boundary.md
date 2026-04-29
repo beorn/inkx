@@ -4,6 +4,7 @@ aliases:
   - km-flexx-line-boundary
 created_at: 2026-01-31T08:27:57Z
 closed_at: 2026-01-31T08:59:04Z
+assignee: claude:b8b4780b
 ---
 
 # [x] Implement line boundary indices @km/_orphan #task #P2 @claude:b8b4780b

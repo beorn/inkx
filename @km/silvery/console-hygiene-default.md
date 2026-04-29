@@ -7,6 +7,14 @@ created_by: claude:22c2717d
 created_at: 2026-04-26T04:53:47Z
 closed_at: 2026-04-26T05:29:46Z
 close_reason: Closed
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.console-hygiene-default
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-25T21:54:05Z
+    created_by: claude:22c2717d
+    metadata: "{}"
 ---
 
 # [x] Silvery: foolproof console/debug suppression by default in alt-screen @km/silvery #feature #P1

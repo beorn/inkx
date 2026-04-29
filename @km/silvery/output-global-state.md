@@ -8,6 +8,7 @@ created_at: 2026-03-13T04:30:43Z
 closed_at: 2026-03-13T04:57:57Z
 close_reason: "Already fixed: createOutputPhase() factory pattern scopes all
   state per-instance via closure. No module-level globals."
+owner: bjorn@stabell.org
 ---
 
 # [x] Output phase diff pool/scratch state is module-global, not instance-safe @km/silvery #bug #P3

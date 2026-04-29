@@ -5,6 +5,14 @@ aliases:
   - km-tribe-recall-step4-prior-art-2025-26
 created_by: claude:4de4a3ab
 created_at: 2026-04-28T01:52:23Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.recall-step4-prior-art-2025-26
+    depends_on_id: km-tribe.recall
+    type: parent-child
+    created_at: 2026-04-27T18:52:23Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] Step 4 (Day 4): Real Deep Research API web sweep for 2025-2026 prior art @km/tribe #task #P2

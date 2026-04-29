@@ -9,6 +9,7 @@ closed_at: 2026-04-01T06:33:10Z
 close_reason: Board.tsx used useApp() which created a snapshot with undefined
   pause/resume. Switched to useRuntime() for lazy access to the mutable context
   object. Backtick now toggles to normal screen correctly.
+owner: bjorn@stabell.org
 ---
 
 # [x] [bug] Backtick console toggle not working @km/tui #bug #P2

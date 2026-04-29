@@ -14,6 +14,15 @@ close_reason: "extracted: TribePluginApi + TribeClientApi boundary landed;
   Gates: PluginContext/pluginCtx refs in tools/ = 0; km tsc = 156/326; vendor
   tests = 199/199 pass in touched files; slow tribe tests = 20/20 pass; bundle
   rebuilds cleanly."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-tribe.plugin-extraction
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-18T22:51:28Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] tribe: extract git/github/health/beads/accountly plugins from daemon core @km/tribe #feature #P3 @Bjørn Stabell

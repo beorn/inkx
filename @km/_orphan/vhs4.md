@@ -4,6 +4,7 @@ aliases:
   - km-vhs4
 created_at: 2026-01-24T22:27:48Z
 closed_at: 2026-01-24T22:53:38Z
+assignee: claude-1769322689
 ---
 
 # [x] Screen goes blank after navigating in km view @km/_orphan #bug #P1 @claude-1769322689

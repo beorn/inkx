@@ -69,6 +69,16 @@ close_reason: >-
 
   9ebc2d663 fix(km-tui): delegate toHaveText/toContainText to termless for
   region/terminal shapes
+started_at: 2026-04-26T23:24:01Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-termless.matcher-locator-shape
+    depends_on_id: km-all.fix-sweep-vendor-fuzz
+    type: parent-child
+    created_at: 2026-04-26T16:22:36Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] [bug] vendor/termless matchers — 5 failures: toHaveText expects AutoLocator @km/termless #bug #P2 @claude:cc081a9a

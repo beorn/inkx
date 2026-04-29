@@ -9,6 +9,14 @@ closed_at: 2026-04-28T22:27:22Z
 close_reason: Skills shipped in commit (this commit). Tracked here as a record.
   /shutdown surfaces in available-skills list; /startup activates on next
   skill-list rescan.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.daily-rhythm-skills
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-28T15:27:21Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Daily-rhythm skills shipped — /shutdown + /startup @km/infra #task #P3

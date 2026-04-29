@@ -6,6 +6,8 @@ aliases:
 created_by: claude:ee8efc0f
 created_at: 2026-02-23T01:21:53Z
 closed_at: 2026-02-23T01:47:51Z
+owner: bjorn@stabell.org
+assignee: claude:ee8efc0f
 ---
 
 # [x] Transform component — verify CC API compatibility @km/inkx #feature #P2 @claude:ee8efc0f

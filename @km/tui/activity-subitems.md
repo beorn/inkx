@@ -6,6 +6,8 @@ aliases:
 created_by: claude:97b8de73
 created_at: 2026-02-23T13:23:52Z
 closed_at: 2026-02-23T14:32:26Z
+owner: bjorn@stabell.org
+assignee: claude:97b8de73
 ---
 
 # [x] Activity/Comments still show as card sub-items (§ Activity) @km/tui #bug #P2 @claude:97b8de73

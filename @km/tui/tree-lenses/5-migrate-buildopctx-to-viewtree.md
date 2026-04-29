@@ -10,6 +10,7 @@ closed_at: 2026-04-06T00:55:22Z
 close_reason: "tree required in OpCtx, 23/59 refs migrated to ctx.tree (34 new
   usages). 36 remain: 29 ctx.columns (grid-model), 7 ctx.viewIndex. Merged 6
   agent commits."
+owner: bjorn@stabell.org
 ---
 
 # [x] Migrate buildOpCtx to ViewTree @km/tui #task #P2

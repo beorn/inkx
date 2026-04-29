@@ -6,6 +6,8 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-20T17:10:51Z
 closed_at: 2026-02-21T08:42:01Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Replace regex text pipeline with inline AST → JSX rendering @km/tui #feature #P2 @claude:8f007ba9

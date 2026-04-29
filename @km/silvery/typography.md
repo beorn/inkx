@@ -11,6 +11,7 @@ close_reason: "Implemented 16 typography components: H1-H3, P, Lead, Muted,
   nesting via React context. All components accept optional color prop. Updated
   all silvery example apps to use typography presets (Kbd for help bars, H1 for
   titles, Muted for secondary text). Exports from silvery main package."
+owner: bjorn@stabell.org
 ---
 
 # [x] Typography presets: H1, H2, H3, Muted, Lead components @km/silvery #feature #P2

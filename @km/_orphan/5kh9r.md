@@ -9,6 +9,8 @@ close_reason: Design doc finalized at
   vendor/silvery-internal/design/state-api-redesign.md. All 10 open questions
   resolved with decisions. Strategic positioning validated by O3 deep research.
   Implementation tracked in km-silvery.api-impl.
+owner: bjorn@stabell.org
+assignee: claude:e4e70c9a
 ---
 
 # [x] Redesign silvery state management API surface @km/_orphan #feature #P2 @claude:e4e70c9a

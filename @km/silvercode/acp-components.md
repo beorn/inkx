@@ -12,6 +12,22 @@ close_reason: "Plan complete (research/plan bead, not implementation). Component
   dependency on km-silvercode.acp-session is a blocker for implementation, not
   for the plan doc itself — implementation beads will inherit that dependency
   naturally."
+started_at: 2026-04-26T09:27:53Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-components
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T01:42:24Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-components
+    depends_on_id: km-silvercode.acp-session
+    type: blocks
+    created_at: 2026-04-26T01:42:24Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] Component parity with opencode + silvery primitives parity with OpenTUI @km/silvercode #feature #P2 @claude:cd034ca4

@@ -5,6 +5,14 @@ aliases:
   - km-board-viewnode-cache-correctness
 created_by: Bjørn Stabell
 created_at: 2026-04-02T15:13:24Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-board.viewnode-cache-correctness
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-15T12:19:02Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] ViewNodeColumnCache: fix correctness vs explore faster derivation @km/board #task #P2

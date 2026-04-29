@@ -10,6 +10,8 @@ close_reason: "Fixed: output-phase.ts dimension change guard — falls back to
   full render when buffer size changes. CUP clamping in replayAnsiWithStyles.
   Test: output-phase-dimension-change.test.ts (8 tests). Verified: TUI tests
   only — rendering pipeline fix."
+owner: bjorn@stabell.org
+assignee: claude:21c57d63
 ---
 
 # [x] Rendering artifacts after deep zoom-out in Asana vault @km/tui #bug #P2 @claude:21c57d63

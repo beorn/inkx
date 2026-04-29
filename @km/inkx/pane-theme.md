@@ -6,6 +6,8 @@ aliases:
 created_by: claude:53ab8041
 created_at: 2026-03-01T23:06:46Z
 closed_at: 2026-03-01T23:39:45Z
+owner: bjorn@stabell.org
+assignee: claude:53ab8041
 ---
 
 # [x] Per-pane theme: Box theme prop + context theme stack for unfocused dimming @km/inkx #feature #P1 @claude:53ab8041

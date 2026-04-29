@@ -6,6 +6,8 @@ aliases:
 created_by: claude:56a1fd6b
 created_at: 2026-03-03T23:12:26Z
 closed_at: 2026-03-03T23:20:37Z
+owner: bjorn@stabell.org
+assignee: claude:56a1fd6b
 ---
 
 # [x] Leverage theme tokens across entire km + inkx codebase @km/themex #feature #P2 @claude:56a1fd6b

@@ -8,6 +8,8 @@ closed_at: 2026-03-18T19:32:19Z
 close_reason: "Bug 1 (duplicates): stale DB from metadata change — delete
   state.db* and relaunch. Bug 2 (disk I/O): fixed WAL checkpoint + DB close
   before process.exit in view.ts. 3 regression tests added."
+owner: bjorn@stabell.org
+assignee: claude:d29abbfa
 ---
 
 # [x] P0: Asana vault shows duplicate sections + disk I/O errors @km/_orphan #bug #P0 @claude:d29abbfa

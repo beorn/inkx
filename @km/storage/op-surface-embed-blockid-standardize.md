@@ -13,6 +13,15 @@ close_reason: "Shipped: 5 sites refactored to emitter.commit — update-handler
   Discovered double-write anti-pattern in update+create handlers (audit said
   'already correct' — was actually redundant db.run + emit). 4 new tests in
   embed-blockid-emits.test.ts. 7172 fast-suite pass. Closes G4/G7/G9."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.op-surface-embed-blockid-standardize
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-21T23:45:14Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Standardize emitter.apply for embed_of / block_id / content_hash back-writes @km/storage #task #P2 @claude:8b5b9e1c

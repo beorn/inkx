@@ -10,6 +10,8 @@ close_reason: "Fixed: STRICT_OUTPUT exception corrupted prevBuffer by preventing
   pipeline return. Wrapped output phase in try/catch, attached content buffer to
   error. Regression test added. Fuzz pass rate: 0% to 79%. 9 remaining failures
   are separate real mismatches."
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] Incremental rendering mismatch in scrolling boards (found by fuzz) @km/silvery #bug #P2 @claude:c9beade3

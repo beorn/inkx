@@ -15,6 +15,15 @@ close_reason: "Shipped: commit 414d65169. Replaced $bg-cursor/$fg-cursor with
   the title cursor row. Popover inherits all changes via shared DocContent.
   Tests: 2511/2511 km-tui pass; 1595/1602 silvery (7 pre-existing fails
   unchanged); tsc 0 non-vendor errors."
+owner: bjorn@stabell.org
+assignee: claude:019d032d
+dependencies:
+  - issue_id: km-tui.detail-pane-polish
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-22T20:57:55Z
+    created_by: claude:019d032d
+    metadata: "{}"
 ---
 
 # [x] DetailView: fix white-on-white cursor + paragraph spacing + align with selection model @km/tui #bug #P2 @claude:019d032d

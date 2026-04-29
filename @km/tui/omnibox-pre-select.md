@@ -5,6 +5,20 @@ aliases:
   - km-tui-omnibox-pre-select
 created_by: Bjørn Stabell
 created_at: 2026-04-14T23:26:04Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.omnibox-pre-select
+    depends_on_id: km-tui.omnibox-interactions
+    type: blocks
+    created_at: 2026-04-14T16:26:19Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.omnibox-pre-select
+    depends_on_id: km-tui.omnibox-unified
+    type: parent-child
+    created_at: 2026-04-14T16:26:04Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Cursor pre-select — propagate focused pane's cursor into new dialog (Phase 8) @km/tui #task #P1

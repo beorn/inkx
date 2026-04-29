@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-20T22:09:25Z
 closed_at: 2026-02-21T09:00:50Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] inkx TEA runtime: focus, events, state, plugins @km/inkx #epic #P1 @claude:d3a7049b

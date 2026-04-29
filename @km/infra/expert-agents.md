@@ -5,6 +5,14 @@ aliases:
   - km-infra-expert-agents
 created_by: Bjørn Stabell
 created_at: 2026-04-12T18:14:25Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.expert-agents
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-12T11:14:44Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Expert agents: persistent specialists with accumulated domain knowledge @km/infra #task #P2

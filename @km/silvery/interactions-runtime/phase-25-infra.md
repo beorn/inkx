@@ -9,6 +9,7 @@ closed_at: 2026-04-06T08:14:26Z
 close_reason: InputRouter (priority dispatch, claim, invalidate callback,
   overlays) and CapabilityRegistry (symbol-keyed) created. 21 tests pass.
   Internal-only, not exported. Silvery commit 9644f87.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 2.5: Coordinator + render invalidation + capability registry (shared infra) @km/silvery #task #P1

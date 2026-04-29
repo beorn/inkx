@@ -5,6 +5,7 @@ aliases:
   - km-silvery-examples-cleanup
 created_by: claude:73d7a332
 created_at: 2026-03-12T16:20:45Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Examples cleanup: move thin demos to docs, delete web/showcases/ @km/silvery #task #P2

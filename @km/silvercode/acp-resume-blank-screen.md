@@ -9,6 +9,14 @@ closed_at: 2026-04-28T00:50:54Z
 close_reason: Fixed in 849b4358d. newSession now awaits session-init and uses
   the real Claude UUID as the ACP sessionId. Resume hints emit ids that --resume
   can actually load.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.acp-resume-blank-screen
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-27T17:50:55Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] --resume blank screen: synthetic session id never matches on-disk JSONL @km/silvercode #bug #P1

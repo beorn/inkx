@@ -9,6 +9,8 @@ closed_at: 2026-03-10T19:49:19Z
 close_reason: Created SilveryErrorBoundary in @silvery/react as default Root
   wrapper. createApp() wraps all apps with it as outermost element — catches
   render errors gracefully with red ERROR + message + file location.
+owner: bjorn@stabell.org
+assignee: claude:474834b0
 ---
 
 # [x] Built-in ErrorBoundary as default Root component @km/silvery #task #P2 @claude:474834b0

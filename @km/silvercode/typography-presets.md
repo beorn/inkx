@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-typography-presets
 created_by: claude:2405c72e
 created_at: 2026-04-28T22:16:31Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.typography-presets
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T15:16:31Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] Replace raw <Text bold> with typography presets across silvercode @km/silvercode #task #P3 #design

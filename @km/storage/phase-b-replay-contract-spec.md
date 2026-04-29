@@ -11,6 +11,15 @@ close_reason: "Shipped: hub/km/phase-b-replay-contract-2026-04-22.md (577 lines
   changes.jsonl (no dual-write), snapshot+ops replay contract, origin-tagged
   fs-watch events skipped on replay, task_* as tagged aliases, oplog boundary at
   schema-stable. Prereq for Phase B scheduling."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.phase-b-replay-contract-spec
+    depends_on_id: km-storage.pathway-db-crdt
+    type: parent-child
+    created_at: 2026-04-21T23:45:13Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Phase B replay contract spec (DQ1-DQ5) @km/storage #task #P1 @claude:8b5b9e1c

@@ -9,6 +9,8 @@ closed_at: 2026-03-10T18:48:33Z
 close_reason: "Implemented 8 plugin APIs: pipe(), withReact(), withTerminal(),
   withFocus(), withDomEvents(), createCommandRegistry(), plus barrel exports in
   plugins.ts and index.ts. 566 tests pass."
+owner: bjorn@stabell.org
+assignee: claude:474834b0
 ---
 
 # [x] Implement composable plugin APIs: pipe(), withDomEvents(), withTerminal(), withReact(), withFocus() @km/silvery #feature #P2 @claude:474834b0

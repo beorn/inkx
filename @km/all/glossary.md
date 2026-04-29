@@ -9,6 +9,7 @@ closed_at: 2026-04-03T21:52:32Z
 close_reason: Created docs/glossary.md — 201 terms, 181 cross-references,
   covering selection model, TEA, data model, rendering, storage, testing, and
   infra.
+owner: bjorn@stabell.org
 ---
 
 # [x] Unified glossary — docs/glossary.md @km/all #task #P3

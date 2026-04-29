@@ -6,6 +6,7 @@ aliases:
 created_by: claude:65d845d9
 created_at: 2026-03-13T05:32:29Z
 closed_at: 2026-03-13T05:35:25Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Missing test coverage for POSITION_TYPE_STATIC @km/flexily #task #P3

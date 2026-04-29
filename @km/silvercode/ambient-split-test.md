@@ -5,6 +5,16 @@ aliases:
   - km-silvercode-ambient-split-test
 created_by: claude:4de4a3ab
 created_at: 2026-04-27T19:38:59Z
+started_at: 2026-04-28T04:48:25Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvercode.ambient-split-test
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-27T12:39:12Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [/] [task] Split-test multiple ambient-pipeline implementations against the eval — pick the winner empirically @km/silvercode #task #P1 @claude:cc081a9a

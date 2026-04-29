@@ -5,6 +5,7 @@ aliases:
   - km-tui-console-scrollback
 created_at: 2026-02-05T14:50:39Z
 closed_at: 2026-02-05T15:07:55Z
+assignee: claude:b53ef7e4
 ---
 
 # [x] Console errors/warnings not visible during screen-switch @km/tui #bug #P2 @claude:b53ef7e4

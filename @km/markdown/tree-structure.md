@@ -6,6 +6,8 @@ aliases:
 created_by: claude:4c413aae
 created_at: 2026-02-21T19:09:42Z
 closed_at: 2026-02-23T12:38:33Z
+owner: bjorn@stabell.org
+assignee: claude:97b8de73
 ---
 
 # [x] Remove depth field from KNode: nesting is implicit from parent chain @km/markdown #feature #P2 @claude:97b8de73

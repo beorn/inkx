@@ -9,6 +9,8 @@ closed_at: 2026-03-17T07:21:53Z
 close_reason: "3 modules built: history-buffer.ts (ring buffer, circular
   eviction), list-document.ts (frozen+live row model), text-surface.ts
   (read/query facade). 32 tests pass. Committed in worktree feat/text-surface."
+owner: bjorn@stabell.org
+assignee: claude:def7f8a1
 ---
 
 # [x] ListDocument + TextSurface: semantic document model @km/silvery #task #P1 @claude:def7f8a1

@@ -9,6 +9,20 @@ closed_at: 2026-04-23T00:47:39Z
 close_reason: Shipped silvery b77c687c. createBackendTerm now constructs Signals
   and disposes with the term; emulator-backed path tested via
   @silvery/test/createTermless; 21 term-signals tests pass.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.phase-a2-backend-term-signals
+    depends_on_id: km-silvery.phase-a1-signals-name-uniqueness
+    type: blocks
+    created_at: 2026-04-22T17:44:25Z
+    created_by: claude:019d032d
+    metadata: "{}"
+  - issue_id: km-silvery.phase-a2-backend-term-signals
+    depends_on_id: km-silvery.pro-review-p1
+    type: parent-child
+    created_at: 2026-04-22T17:44:24Z
+    created_by: claude:019d032d
+    metadata: "{}"
 ---
 
 # [x] Phase A2: createBackendTerm has signals owner @km/silvery #task #P2

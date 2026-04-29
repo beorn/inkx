@@ -18,6 +18,15 @@ close_reason: "Shipped. Phase A (silvery 85c7d387) + Phase B (018bd1e2 +
   (events/subscribe/getState). Verification: tsc 0 non-vendor errors; silvery
   feature+runtime sweep 1595/1602 (7 pre-existing fails unchanged); km-tui
   2511/2511. NOT PUSHED."
+owner: bjorn@stabell.org
+assignee: claude:019d032d
+dependencies:
+  - issue_id: km-silvery.input-structured-events
+    depends_on_id: km-silvery.term-sub-owners
+    type: parent-child
+    created_at: 2026-04-22T18:26:31Z
+    created_by: claude:019d032d
+    metadata: "{}"
 ---
 
 # [x] Migrate ANSI event parsing into term.input; retire term.events() / TermState / term.subscribe @km/silvery #task #P1 @claude:019d032d

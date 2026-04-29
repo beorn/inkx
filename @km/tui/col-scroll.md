@@ -6,6 +6,8 @@ aliases:
 created_by: claude:e5580cd5
 created_at: 2026-02-12T16:09:01Z
 closed_at: 2026-02-14T09:08:06Z
+owner: bjorn@stabell.org
+assignee: claude:124bfbe5
 ---
 
 # [x] Vertical scroll indicator not showing in COLUMNS view @km/tui #bug #P3 @claude:124bfbe5

@@ -9,6 +9,7 @@ closed_at: 2026-03-13T05:22:38Z
 close_reason: "Deferred: Startup/first-N-frames differential testing. First
   frame is already tested implicitly (every test starts with a first render).
   STRICT checks verify first render correctness."
+owner: bjorn@stabell.org
 ---
 
 # [x] Testing gap: startup/first-N-frames differential testing @km/silvery #task #P2

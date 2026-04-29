@@ -6,6 +6,7 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-20T09:43:01Z
 closed_at: 2026-02-20T09:45:50Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Use @slug naming for user My Tasks files @km/tools #task #P2

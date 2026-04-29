@@ -10,6 +10,7 @@ close_reason: "Grooming 2026-04-15: historical status doc. All 15 sub-beads
   (selection.1-.15, silvery.1) are closed. Selection package work complete.
   Ongoing selection tracking lives in km-silvery.selection-focus-plateau
   (canonical epic)."
+owner: bjorn@stabell.org
 ---
 
 # [x] @silvery/selection — unified selection model for silvery apps @km/silvery #feature #P1

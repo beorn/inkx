@@ -5,6 +5,7 @@ aliases:
   - km-market-state-report
 created_by: Bjørn Stabell
 created_at: 2026-04-02T19:55:52Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] State of Terminal Compatibility 2026 — annual data report from terminfo.dev @km/market #task #P2

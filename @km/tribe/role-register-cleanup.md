@@ -8,6 +8,14 @@ created_at: 2026-04-19T17:55:27Z
 closed_at: 2026-04-20T18:46:26Z
 close_reason: Dissolved. Roles are km-beads tasks with assigned_to + due_at
   (hub/km/design/tribe-matrix.md). No separate role/register split.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.role-register-cleanup
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-19T10:55:26Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] tribe: split overloaded role; unify register and tribe.join @km/tribe #feature #P3

@@ -10,6 +10,14 @@ close_reason: Shipped at silvery cc650f74 + km bump. setActiveTheme() deleted
   entirely, mono-tier-attrs.test.tsx migrated to withTheme(theme, fn) helper
   using pushContextTheme/popContextTheme with proper try/finally. 28/28 tests
   pass.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-v3-test-migration-cleanup
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-18T22:41:36Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Migrate mono-tier-attrs.test.tsx to pushContextTheme+pop helper @km/silvery #task #P4

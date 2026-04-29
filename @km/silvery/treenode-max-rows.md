@@ -66,6 +66,15 @@ close_reason: >-
 
   Commit: 237607540 refactor(km-tui): unify truncation via TreeNode maxRows
   primitive.
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-silvery.treenode-max-rows
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-20T15:27:56Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] TreeNode maxRows + overflowIndicator props — cross-target presentation primitive @km/silvery #feature #P2 @claude:8b5b9e1c

@@ -8,6 +8,8 @@ created_at: 2026-03-30T07:51:24Z
 closed_at: 2026-03-30T08:02:26Z
 close_reason: "Review complete ($4.12). Key advice: pick one flagship story,
   dogfood now, narrow the gateway framing."
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Pro Review: silvery strategy, framing, sequencing @km/silvery #task #P3 @claude:fed8de9e

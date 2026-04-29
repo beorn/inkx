@@ -6,6 +6,8 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T13:24:42Z
 closed_at: 2026-02-19T14:02:47Z
+owner: bjorn@stabell.org
+assignee: claude:36393b5d
 ---
 
 # [x] Detail pane: body as virtual card, subitems as outline tree @km/tui #feature #P1 @claude:36393b5d

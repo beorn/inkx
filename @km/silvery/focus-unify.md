@@ -12,6 +12,8 @@ close_reason: "Easy steps done. Steps 1-2: useFocus(options) hook +
   event-handling.md Focus Management section + focus-parity status update
   (9fcbe681). Remaining Step 5 (delete InkFocusContext, rewire ink-render.ts) is
   multi-day — tracked in km-silvery.focus epic (P0)."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Unify focus systems — eliminate parallel ink-compat implementation @km/silvery #task #P1 @Bjørn Stabell

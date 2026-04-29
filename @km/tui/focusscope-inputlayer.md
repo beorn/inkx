@@ -10,6 +10,8 @@ close_reason: "Phase 1 shipped (commit 7ef4feff5): onKeyUp dispatch in silvery
   (636a12ce), TEA-first input principle documented in selection-state-spec.md,
   focusScope integration with ModeStack via bindFocusManager. Remaining Levels
   2-4 tracked in km-silvery.input-event-model."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Discuss: integrate focusScope with InputLayerProvider @km/tui #task #P3 @Bjørn Stabell

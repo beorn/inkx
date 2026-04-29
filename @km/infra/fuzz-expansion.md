@@ -9,6 +9,7 @@ closed_at: 2026-03-12T06:21:29Z
 close_reason: All 7 child beads implemented and closed. 52 km fuzz tests, 8
   silvery incremental fuzz tests, expanded flexily differential fuzz. All
   passing.
+owner: bjorn@stabell.org
 ---
 
 # [x] Fuzz/chaos test expansion: new tests + expanded invariants @km/infra #epic #P2

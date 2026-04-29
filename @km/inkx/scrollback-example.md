@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fa5431cd
 created_at: 2026-03-03T13:15:24Z
 closed_at: 2026-03-03T14:38:21Z
+owner: bjorn@stabell.org
+assignee: claude:fa5431cd
 ---
 
 # [x] ScrollbackView example: input overwrites border + resize corruption @km/inkx #bug #P2 @claude:fa5431cd

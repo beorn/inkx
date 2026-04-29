@@ -5,6 +5,7 @@ aliases:
   - km-infra-oxlint-warnings
 created_by: claude:1c01b987
 created_at: 2026-03-21T06:51:12Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Fix all oxlint warnings (245 remaining) @km/infra #task #P3

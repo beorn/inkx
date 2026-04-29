@@ -10,6 +10,16 @@ close_reason: "Shipped: silvercode c74f8df16 + tests f0b6691e8.
   process-supervisor.ts (328 lines): pidfile + child-pgid registry + reaper.
   clampLayoutForResume forces initialSessions=1. spawn.ts onSpawn/onExit
   callbacks. 32 tests across 3 files. Session: km-session.0425-evening"
+started_at: 2026-04-26T07:25:06Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.resume-fork-bomb
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-26T00:21:37Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] silvercode --resume can fork-bomb the machine @km/silvercode #bug #P1 @claude:2405c72e

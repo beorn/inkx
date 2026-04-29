@@ -11,6 +11,15 @@ close_reason: "Verified 2026-04-21: the 17s event-loop block does not reproduce
   lazy-hydration (phase attribution landed), down from 17s baseline. No new
   regressions. Architectural lazy-hydration for <500ms target continues under
   km-storage.lazy-hydration."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-tui.cold-startup-block
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-18T10:47:01Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Cold-start 17s event-loop block — (startup) with no phase attribution @km/tui #bug #P3 @Bjørn Stabell

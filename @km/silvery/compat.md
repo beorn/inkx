@@ -10,6 +10,7 @@ close_reason: Implemented silvery/ink and silvery/chalk subpath exports. Ink
   compat re-exports Box, Text, render, useInput, useApp, useFocus,
   useFocusManager, etc. Chalk compat provides default export, Chalk constructor,
   supportsColor, name lists. TypeScript compiles clean.
+owner: bjorn@stabell.org
 ---
 
 # [x] silvery/compat: ink + chalk API compatibility subpath @km/silvery #feature #P3

@@ -11,6 +11,8 @@ close_reason: "Phase 2 complete: term.paint() + term.frame on all 3 Term
   exports. 10 new tests (3 skipped — termless env). CLAUDE.md + pipeline docs
   updated. Remaining adapter.flush() in pipeline/index.ts:412 is internal to
   ag-term (executeRenderAdapter for browser targets)."
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Era2a Phase 2: term.paint() — wraps RenderAdapter.flush @km/silvery #task #P1 @claude:fed8de9e

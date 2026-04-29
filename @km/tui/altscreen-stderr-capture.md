@@ -16,6 +16,14 @@ close_reason: "Shipped in
   incl. real yaml.parse(broken) → 0 stderr leak. Reverted defensive
   logLevel:'error' in km-markdown — fix lives at the silvery sub-owner layer per
   Silvery Way principle 11 (Term owns I/O)."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.altscreen-stderr-capture
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-27T22:07:10Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] Capture process.emitWarning during alt-screen so foreign warnings don't bleed @km/tui #bug #P2

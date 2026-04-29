@@ -9,6 +9,8 @@ closed_at: 2026-03-28T08:24:45Z
 close_reason: TreeOps created in km-tree with 4 helpers (moveTo, toSortOrder,
   nodeAt, isAtPosition) + TreeReader/TreeMover interfaces. Old exports deleted
   from position-resolver.ts. 23 new tests. All callers updated.
+owner: bjorn@stabell.org
+assignee: claude:ceb7c9cb
 ---
 
 # [x] Phase 2: TreeOps — consolidate scattered mutations @km/core #task #P2 @claude:ceb7c9cb

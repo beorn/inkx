@@ -5,6 +5,7 @@ aliases:
   - km-termless-readme-svgs
 created_by: claude:8fc35754
 created_at: 2026-03-03T08:12:17Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Update READMEs with termless SVG screenshots @km/termless #task #P4

@@ -7,6 +7,7 @@ created_at: 2026-03-13T02:27:05Z
 closed_at: 2026-03-13T02:36:43Z
 close_reason: "Fixed: inlineIncrementalRender now emits cursor suffix even when
   content unchanged"
+owner: bjorn@stabell.org
 ---
 
 # [x] Inline incremental early return drops cursor-only updates @km/_orphan #bug #P2

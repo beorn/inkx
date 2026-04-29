@@ -9,6 +9,7 @@ closed_at: 2026-04-09T15:00:04Z
 close_reason: Board.tsx 1336→266 LOC (10 useEffects→1). Split into BoardView.tsx
   (637 LOC, pure render) + useBoardController.ts (587 LOC, lifecycle). Work
   found uncommitted on main — committed as 61a745f3a.
+owner: bjorn@stabell.org
 ---
 
 # [x] Split Board.tsx into BoardView + useBoardController (1336→≤900 LOC) @km/tui #task #P0

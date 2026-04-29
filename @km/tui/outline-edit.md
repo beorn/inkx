@@ -6,6 +6,8 @@ aliases:
 created_by: claude:703e68be
 created_at: 2026-02-11T16:43:02Z
 closed_at: 2026-02-11T18:03:46Z
+owner: bjorn@stabell.org
+assignee: claude:9b6678d0
 ---
 
 # [x] TRACKING: Outline editing (split/merge/Slate) @km/tui #feature #P2 @claude:9b6678d0

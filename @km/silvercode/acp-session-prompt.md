@@ -6,6 +6,28 @@ aliases:
 created_by: claude:cd034ca4
 created_at: 2026-04-26T15:37:39Z
 closed_at: 2026-04-26T21:15:24Z
+started_at: 2026-04-26T21:05:43Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-session-prompt
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T08:37:53Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-session-prompt
+    depends_on_id: km-silvery.diff-code-accordion
+    type: blocks
+    created_at: 2026-04-26T08:37:56Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-session-prompt
+    depends_on_id: km-silvery.overlay-vocabulary
+    type: blocks
+    created_at: 2026-04-26T08:37:56Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] silvercode <SessionPromptComposer> — slash, mention, image, history, drives session/prompt @km/silvercode #feature #P1 @claude:cd034ca4

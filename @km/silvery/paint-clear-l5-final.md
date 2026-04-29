@@ -5,6 +5,14 @@ aliases:
   - km-silvery-paint-clear-l5-final
 created_by: claude:cc081a9a
 created_at: 2026-04-27T14:51:47Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.paint-clear-l5-final
+    depends_on_id: km-all.plateau-90
+    type: parent-child
+    created_at: 2026-04-27T11:00:55Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] C2 Phase 3 final: full Step 6 + delete clearExcessArea/hasPrevBuffer/env flag (L4→L5) @km/silvery #task #P2

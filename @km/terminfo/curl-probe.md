@@ -9,6 +9,8 @@ closed_at: 2026-03-31T21:47:43Z
 close_reason: Built pure POSIX shell script at docs/public/probe — 34 feature
   checks, DA1 sentinel pattern, alt screen isolation, cleanup traps. Live at
   terminfo.dev/probe.
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] curl-based terminal probe — curl terminfo.dev/probe | sh @km/terminfo #feature #P3 @claude:4929065a

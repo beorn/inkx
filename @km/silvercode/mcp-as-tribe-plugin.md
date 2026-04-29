@@ -50,6 +50,16 @@ close_reason: >-
 
 
   References: /tmp/llm-2405c72e-elegance-review-of-the-wrw1.txt
+started_at: 2026-04-28T04:48:11Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvercode.mcp-as-tribe-plugin
+    depends_on_id: km-silvercode.process-mgmt
+    type: parent-child
+    created_at: 2026-04-26T14:09:30Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] createMcpPlugin — MCP as a tribe plugin (idle + max-lifetime as two timers) @km/silvercode #feature #P2 @claude:cc081a9a

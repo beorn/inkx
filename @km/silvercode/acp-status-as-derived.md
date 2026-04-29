@@ -5,6 +5,16 @@ aliases:
   - km-silvercode-acp-status-as-derived
 created_by: claude:cc081a9a
 created_at: 2026-04-27T22:47:03Z
+started_at: 2026-04-28T00:26:18Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvercode.acp-status-as-derived
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-27T15:47:07Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [/] Reframe: silvercode status as derived signal (L3→L4) @km/silvercode #feature #P2 @claude:cc081a9a

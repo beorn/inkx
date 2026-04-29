@@ -5,6 +5,14 @@ aliases:
   - km-silvery-architectural-plateau
 created_by: claude:2405c72e
 created_at: 2026-04-25T06:15:56Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.architectural-plateau
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-24T23:16:16Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] [meta-epic] Silvery architectural plateau — view-as-layout-output, TEA, signals, focus/selection unification @km/silvery #epic #P0

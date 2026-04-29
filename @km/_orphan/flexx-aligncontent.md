@@ -4,6 +4,7 @@ aliases:
   - km-flexx-aligncontent
 created_at: 2026-01-30T15:24:33Z
 closed_at: 2026-01-31T13:41:02Z
+assignee: claude:b8b4780b
 ---
 
 # [x] [flexx] Implement alignContent for wrapped layouts @km/_orphan #task #P1 @claude:b8b4780b

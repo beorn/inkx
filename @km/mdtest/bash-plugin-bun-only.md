@@ -7,6 +7,7 @@ created_by: claude:65d845d9
 created_at: 2026-03-14T00:12:48Z
 closed_at: 2026-03-14T01:29:26Z
 close_reason: Closed
+owner: bjorn@stabell.org
 ---
 
 # [x] mdtest: bash plugin hard-wired to Bun, breaks Vitest @km/mdtest #bug #P1

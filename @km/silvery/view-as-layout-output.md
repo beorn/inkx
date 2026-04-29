@@ -12,6 +12,14 @@ close_reason: "All 6 phases shipped. Phase 1: audit doc at
   selection (da040837). Phase 5+6: sweep + doc + lint heuristics (9c052c4b). km
   bump: 761eb68bc. Substrate complete; TEA can build on top. Lint passes 0
   violations across 569 files."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.view-as-layout-output
+    depends_on_id: km-silvery.selection-focus-plateau
+    type: parent-child
+    created_at: 2026-04-24T23:08:05Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Treat cursor/selection/focus as layout outputs (not effect outputs) @km/silvery #feature #P1

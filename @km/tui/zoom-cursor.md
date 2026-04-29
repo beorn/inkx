@@ -6,6 +6,8 @@ aliases:
 created_by: claude:499eee95
 created_at: 2026-02-14T00:14:19Z
 closed_at: 2026-02-14T07:59:54Z
+owner: bjorn@stabell.org
+assignee: claude:124bfbe5
 ---
 
 # [x] Cursor jumps to first column on zoom-in (i); should stay on same item @km/tui #bug #P1 @claude:124bfbe5

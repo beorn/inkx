@@ -15,6 +15,15 @@ close_reason: "NOT a ListView bug — fixed in silvery 089f6261. Root cause:
   is the same class as defaults-contract — TermContext invariants bound by
   convention, not types. Strong argument for Plateau Phase 2 (Term.caps
   required)."
+owner: bjorn@stabell.org
+assignee: claude:c6244087
+dependencies:
+  - issue_id: km-silvery.listview-flex-sibling
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T01:00:04Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] ListView height={N} doesn't behave as rigid row-budget in a flex column; absorbs all rows below siblings @km/silvery #bug #P2 @claude:c6244087

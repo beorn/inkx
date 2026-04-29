@@ -5,6 +5,7 @@ aliases:
 created_by: claude:e7c823b8
 created_at: 2026-02-26T14:54:29Z
 closed_at: 2026-02-26T15:04:05Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Fix heading depth >6 in nodes2md serializer (produces invalid markdown) @km/_orphan #bug #P1

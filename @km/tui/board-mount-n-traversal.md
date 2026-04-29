@@ -6,6 +6,21 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-18T18:12:11Z
 closed_at: 2026-04-18T18:58:16Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-tui.board-mount-n-traversal
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-18T11:12:11Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.board-mount-n-traversal
+    depends_on_id: km-tui.reactive-desc-walk-inversion
+    type: supersedes
+    created_at: 2026-04-18T11:58:16Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Optimize board for big repos — full-vault walks on mount @km/tui #bug #P1 @Bjørn Stabell

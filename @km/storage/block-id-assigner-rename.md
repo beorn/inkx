@@ -10,6 +10,15 @@ close_reason: Shipped commit 3bd284cd3. BlockIdAssigner → AnchorAssigner,
   createBlockIdAssigner → createAnchorAssigner, blockIds → anchors, param
   blockId → anchor. 7 files touched, 13 identifiers renamed. grep for
   BlockIdAssigner|blockIdAssign = 0. typecheck baseline. 7182 tests pass.
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.block-id-assigner-rename
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-22T11:35:25Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Rename BlockIdAssigner → AnchorAssigner (cosmetic completion of block-id fold) @km/storage #task #P3 @claude:8b5b9e1c

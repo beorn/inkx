@@ -29,6 +29,16 @@ close_reason: >-
 
 
   Commit: 0a240f599 pushed to main.
+started_at: 2026-04-27T18:15:39Z
+owner: bjorn@stabell.org
+assignee: claude:87d20187
+dependencies:
+  - issue_id: km-arch.editorial-split
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-27T10:42:37Z
+    created_by: claude:87d20187
+    metadata: "{}"
 ---
 
 # [x] Editorial split — current-state vs futures in hub/ docs; bead template addendum @km/arch #task #P3 @claude:87d20187

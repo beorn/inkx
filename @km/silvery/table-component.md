@@ -9,6 +9,7 @@ closed_at: 2026-03-31T19:03:00Z
 close_reason: Table component (120 lines, 12 tests) — auto-width columns, custom
   renderers, grow columns. Used in tribe-watch (replaced 100 lines of manual
   table code).
+owner: bjorn@stabell.org
 ---
 
 # [x] Table/Grid component — auto-width columns from data @km/silvery #feature #P3

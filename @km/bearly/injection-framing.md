@@ -5,6 +5,15 @@ aliases:
   - km-bearly-injection-framing
 created_by: Bjørn Stabell
 created_at: 2026-04-21T06:09:51Z
+owner: bjorn@stabell.org
+assignee: claude:6552f1e9
+dependencies:
+  - issue_id: km-bearly.injection-framing
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-20T23:10:12Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [/] Injection framing: positive <user_prompt> marker + unified context envelope across all injection sources (tribe, recall, qmd, hooks, MCP) @km/bearly #task #P0 @claude:6552f1e9

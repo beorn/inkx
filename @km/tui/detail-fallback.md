@@ -6,6 +6,8 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-18T23:42:57Z
 closed_at: 2026-02-19T22:18:29Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Open detail panel instead of zooming when target yields flat list @km/tui #feature #P3 @claude:8f007ba9

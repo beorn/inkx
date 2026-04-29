@@ -6,6 +6,7 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T10:26:42Z
 closed_at: 2026-02-18T16:28:18Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Session 0218b: code clean, commit, explore @km/tui #epic #P2

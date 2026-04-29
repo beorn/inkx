@@ -6,6 +6,8 @@ aliases:
 created_by: claude:586bad48
 created_at: 2026-02-12T14:15:09Z
 closed_at: 2026-02-15T09:07:10Z
+owner: bjorn@stabell.org
+assignee: claude:586bad48
 ---
 
 # [x] Hide redundant sigil backlink on embedded links (e.g. @next inside @next column) @km/tui #bug #P3 @claude:586bad48

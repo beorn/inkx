@@ -14,6 +14,14 @@ close_reason: "Fixed in 504bf996b. Two bugs resolved: (a) command_palette now
   when body is empty, and hide command list for content sigils (@ # + ~). 20
   omnibox tests still green after updating three tests to reflect the new
   command-mode default."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.omnibox-cmd-k-colon
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T23:07:23Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Omnibox: Cmd-K should open with ':' prefix already inserted + show all commands for empty query @km/tui #bug #P1

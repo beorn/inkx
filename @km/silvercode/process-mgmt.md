@@ -40,6 +40,14 @@ close_reason: >-
   - /tmp/llm-2405c72e-review-this-entire-process-management-k1md.txt (round 1)
 
   - /tmp/llm-2405c72e-elegance-review-of-the-wrw1.txt (round 2)
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.process-mgmt
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-27T01:25:55Z
+    created_by: claude:87d20187
+    metadata: "{}"
 ---
 
 # [x] [epic] Process management — daemon strategy, close hardening, MCP-as-tribe-plugin @km/silvercode #epic #P1

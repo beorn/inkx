@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T11:20:13Z
 closed_at: 2026-02-25T17:19:02Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] vd doesn't hide tasks in @lio and #us (contexts/tags view) @km/tui #bug #P1 @claude:d697f216

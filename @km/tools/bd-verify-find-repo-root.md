@@ -10,6 +10,16 @@ close_reason: "5fb3e6e24 — replaced spawnSync('test',...) with fs.existsSync +
   statSync.isDirectory() in findRepoRoot; added import.meta.url fallback for
   vitest/node where import.meta.dir is empty. Verified: 41/41 unit tests pass
   (incl. findRepoRoot test); 0 typecheck errors."
+started_at: 2026-04-27T20:32:42Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-tools.bd-verify-find-repo-root
+    depends_on_id: km-all.bd-verify-primitive
+    type: parent-child
+    created_at: 2026-04-27T13:23:39Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] bd-verify: replace test-spawn with fs.existsSync in findRepoRoot @km/tools #task #P3 @claude:cc081a9a

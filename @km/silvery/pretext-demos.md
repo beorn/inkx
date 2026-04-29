@@ -8,6 +8,7 @@ created_at: 2026-04-10T19:29:25Z
 closed_at: 2026-04-10T20:52:00Z
 close_reason: "Demo created: examples/pretext-demo.tsx — 3 sections (bubbles,
   even wrap, combined). Tab nav, semantic tokens, docs linked."
+owner: bjorn@stabell.org
 ---
 
 # [x] Pretext demos — bubbles, even wrap, masonry inspired by chenglou.me/pretext @km/silvery #task #P2

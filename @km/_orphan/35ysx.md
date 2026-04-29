@@ -5,6 +5,8 @@ aliases:
 created_by: claude:891e3ce1
 created_at: 2026-02-28T20:07:29Z
 closed_at: 2026-03-01T15:59:57Z
+owner: bjorn@stabell.org
+assignee: claude:891e3ce1
 ---
 
 # [x] Fix slow typing in ScrollbackList demos - inkx @km/_orphan #bug #P2 @claude:891e3ce1

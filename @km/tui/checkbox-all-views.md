@@ -10,6 +10,8 @@ close_reason: "Fixed 3 gaps: (1) popover title now shows task status icon, (2)
   DetailView root title now shows task status icon, (3) heading-tasks in
   DetailView now show checkbox (isHeading branch no longer swallows task
   marker). Files: tree-node-shared.ts, DetailView.tsx."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] Sub-items with tasks missing checkbox/task-marker in popover and detail view @km/tui #bug #P1 @Bjørn Stabell

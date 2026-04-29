@@ -19,6 +19,7 @@ close_reason: "Investigated. No classic-vs-zero differential tests exist. The
   imports it). Classic-vs-zero drift is a theoretical concern, not a practical
   one. Deferring as tracked-for-later — would be valuable if classic ever
   becomes actively used or if caching bugs resurface."
+owner: bjorn@stabell.org
 ---
 
 # [x] Testing: Need classic-vs-zero differential test suite to prevent drift @km/flexily #task #P2

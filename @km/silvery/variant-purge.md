@@ -7,6 +7,16 @@ created_by: claude:22c2717d
 created_at: 2026-04-25T16:44:05Z
 closed_at: 2026-04-25T16:49:48Z
 close_reason: Closed
+started_at: 2026-04-25T16:44:10Z
+owner: bjorn@stabell.org
+assignee: claude:22c2717d
+dependencies:
+  - issue_id: km-silvery.variant-purge
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-25T09:44:09Z
+    created_by: claude:22c2717d
+    metadata: "{}"
 ---
 
 # [x] Purge tone aliases — variant everywhere @km/silvery #task #P2 @claude:22c2717d

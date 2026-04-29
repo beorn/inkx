@@ -5,6 +5,14 @@ aliases:
   - km-silvery-plateau-deprecate-caps-field
 created_by: claude:c6244087
 created_at: 2026-04-23T09:49:25Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.plateau-deprecate-caps-field
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T02:49:51Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [ ] Deprecate RunOptions.caps + colorLevel in favor of RunOptions.profile only @km/silvery #task #P3

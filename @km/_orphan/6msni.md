@@ -4,6 +4,7 @@ aliases:
   - km-6msni
 created_at: 2026-02-02T10:13:40Z
 closed_at: 2026-02-02T10:35:17Z
+assignee: claude:5fa2decc
 ---
 
 # [x] Review km-tui for React feature adoption @km/_orphan #feature #P2 @claude:5fa2decc

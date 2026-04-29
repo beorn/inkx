@@ -10,6 +10,8 @@ close_reason: "All 5 phases complete. Reduced signal engine built (21 unit
   tests), cursorDescendant + selectedAncestor + editingDescendant wired and cut
   over. Old cursorInDescendant purged. 217 test files pass (5755 tests).
   Commits: b4507db28, 35b7d47db, 7c11c80c5, 7adef8f4c, d739625f0, 825c2d424."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Reduced signals — tree.ancestors/descendants declarative state + tree.up/down imperative iteration @km/tui #feature #P1 @Bjørn Stabell

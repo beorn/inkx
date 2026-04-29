@@ -6,6 +6,8 @@ aliases:
 created_by: claude:28b14b32
 created_at: 2026-02-23T16:44:42Z
 closed_at: 2026-02-25T17:19:01Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] Detail pane: expand comments and attachments by default @km/tui #feature #P2 @claude:d697f216

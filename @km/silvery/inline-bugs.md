@@ -62,6 +62,7 @@ close_reason: >-
 
   km root picks up these fixes via the silvery submodule pointer; bumped
   separately via chore(silvery).
+owner: bjorn@stabell.org
 ---
 
 # [x] AI chat inline mode bugs: jump-up, exit, borders, advance behavior @km/silvery #bug #P1

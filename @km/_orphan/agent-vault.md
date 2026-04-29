@@ -4,6 +4,7 @@ aliases:
   - km-agent-vault
 created_at: 2026-01-25T08:30:35Z
 closed_at: 2026-01-26T00:10:09Z
+assignee: km
 ---
 
 # [x] Convert km-agent package to use Vault API @km/_orphan #task #P1 @km

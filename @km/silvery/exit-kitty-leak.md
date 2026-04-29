@@ -10,6 +10,7 @@ close_reason: "Fixed: async exit drain. exit() sends early disable via
   writeSync, defers cleanup to pump finally block which awaits 15ms for kernel
   buffer flush, then drains stdin. Signal handlers use sync best-effort. Correct
   I/O quiesce pattern, not a hack."
+owner: bjorn@stabell.org
 ---
 
 # [x] [bug] Kitty keyboard release event leaks to shell after exit (3;1:3u) @km/silvery #bug #P1

@@ -6,6 +6,7 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-14T00:09:49Z
 closed_at: 2026-02-14T00:59:47Z
+owner: bjorn@stabell.org
 ---
 
 # [x] TRACKING: km-ast domain model migration @km/ast #epic #P1

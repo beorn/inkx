@@ -5,6 +5,7 @@ aliases:
   - "@km/_orphan/fast-md"
 created_at: 2026-01-23T15:25:58Z
 closed_at: 2026-01-24T17:52:08Z
+assignee: "11507516"
 ---
 
 # [x] Markdown parsing performance optimizations @km/fast-md #epic #P2 @11507516

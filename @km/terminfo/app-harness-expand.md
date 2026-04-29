@@ -10,6 +10,8 @@ close_reason: Fresh 128-probe results for iTerm2 (127/128), Terminal.app
   (120/128), Kitty (124/128), Ghostty (124/128). API now shows 136 features.
   Launched terminals via direct binary + serve daemon. Terminal detection
   misidentifies Kitty/Ghostty as cmux when launched from CLI (separate issue).
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Expand app harness to probe all 133 features (currently only 52) @km/terminfo #task #P2 @claude:f8196c1c

@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-09T07:43:58Z
 closed_at: 2026-04-09T07:57:30Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Deep dive: silvery vs ink architectural perf differences @km/silvery #task #P0 @Bjørn Stabell

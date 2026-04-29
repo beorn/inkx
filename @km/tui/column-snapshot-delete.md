@@ -5,6 +5,7 @@ aliases:
   - km-tui-column-snapshot-delete
 created_by: Bjørn Stabell
 created_at: 2026-04-09T07:48:41Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Delete ColumnSnapshot — web canvas + tests use lens directly @km/tui #task #P3

@@ -10,6 +10,15 @@ close_reason: "Legacy fadeCell branch (scrim===null) now stamps attrs.dim on
   emoji lead+continuation when fgHex && bgHex. CJK skipped. 3 new tests cover:
   emoji with theme bg, emoji with null bg fallback, CJK does NOT get dim. 92→95
   backdrop tests pass. Commit d02e7604."
+owner: bjorn@stabell.org
+assignee: claude:a1a0e667
+dependencies:
+  - issue_id: km-silvery.backdrop-hardening.legacy-emoji-dim
+    depends_on_id: km-silvery.backdrop-hardening
+    type: parent-child
+    created_at: 2026-04-20T14:01:07Z
+    created_by: claude:88c0e764
+    metadata: "{}"
 ---
 
 # [x] Legacy no-scrim path doesn't fade emoji when Kitty unavailable @km/silvery #bug #P0 @claude:a1a0e667

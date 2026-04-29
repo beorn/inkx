@@ -7,6 +7,7 @@ created_at: 2026-03-17T22:25:23Z
 closed_at: 2026-03-18T18:56:39Z
 close_reason: "Grooming: Duplicate of km-shk24 (Bug 2: same SQLite disk I/O
   error, same WAL+mmap root cause)."
+owner: bjorn@stabell.org
 ---
 
 # [x] SQLite disk I/O error after prolonged use @km/_orphan #bug #P2

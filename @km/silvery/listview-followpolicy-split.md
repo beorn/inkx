@@ -10,6 +10,16 @@ close_reason: 'Shipped: silvery a238a0b1 + km f94f59079. follow="none"|"end"
   prop; atEnd computed in VISUAL ROW space (not item-based). silvercode
   MessageList migrated — dropped cursorKey={lastKey} pin. stickyBottom kept as
   one-cycle alias. 8 follow-end tests. Session: km-session.0425-evening'
+started_at: 2026-04-26T08:11:44Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvery.listview-followpolicy-split
+    depends_on_id: km-silvery.architectural-plateau
+    type: parent-child
+    created_at: 2026-04-26T00:48:08Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] ListView: split chat-follow policy from cursor (drop cursorKey={last} for stickyBottom-only) @km/silvery #feature #P2 @claude:2405c72e

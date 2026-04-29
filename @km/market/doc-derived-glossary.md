@@ -10,6 +10,8 @@ close_reason: "Implemented in @bearly/vitepress-enrich: 3 extraction patterns
   (heading+paragraph, abbreviation, dfn), JSONL round-trip, bucket composition,
   extractGlossary/extractFromMarkdown/loadBucket/writeGlossaryBucket/readGlossa\
   ryBucket API. 23 tests pass."
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] Doc-derived glossary: extract terms from source docs with buckets @km/market #feature #P3 @claude:4929065a

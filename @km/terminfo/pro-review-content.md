@@ -10,6 +10,8 @@ close_reason: P0 factual corrections done (VT510, escape sequence claims,
   xterm/Kitty over-crediting). P1 additions done (Why not terminfo, formal vs de
   facto, 15 glossary terms). P2 polish items tracked in
   km-terminfo.feature-history.
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] GPT Pro content review fixes: P0 factual corrections + P1 missing sections + P2 tone @km/terminfo #task #P2 @claude:f8196c1c

@@ -9,6 +9,8 @@ closed_at: 2026-04-09T00:18:34Z
 close_reason: "rebind() was clearing cached nodes, orphaning signal
   subscriptions. Fix: update traversal in-place. 62 test failures fixed, stale
   bench deleted. Commit 86ff72cfb."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Phase 1: Fix test failures + stale import from Phase 3 store merge @km/tui #task #P1 @Bjørn Stabell

@@ -6,6 +6,7 @@ aliases:
   - "@km/defensive-chain/7"
 created_at: 2026-01-25T12:12:04Z
 closed_at: 2026-01-25T12:22:28Z
+assignee: cf9418f8
 ---
 
 # [x] Phase 2: Status bar messages @km/defensive-chain #task #P1 @cf9418f8

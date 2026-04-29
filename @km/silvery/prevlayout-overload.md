@@ -10,6 +10,7 @@ close_reason: "Won't fix: prevLayout serves dual purpose (change detection +
   excess clearing) but works correctly via syncPrevLayout at end of content
   phase. The overload is intentional — separating would add complexity without
   benefit."
+owner: bjorn@stabell.org
 ---
 
 # [x] prevLayout field overloaded — change detection + content-phase bookkeeping @km/silvery #bug #P3

@@ -5,6 +5,14 @@ aliases:
   - km-tribe-session-identity
 created_by: Bjørn Stabell
 created_at: 2026-04-19T04:28:46Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.session-identity
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-18T21:28:46Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] tribe: stable session identity across Claude Code restarts @km/tribe #feature #P3

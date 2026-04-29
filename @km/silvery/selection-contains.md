@@ -83,6 +83,15 @@ close_reason: >-
   walkOrder, but they fire once per user action, not per render, so they
 
   never show up in the profile.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-silvery.selection-contains
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-15T09:54:09Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] SelectionApp.tree.contains(id) — O(1) validity check to retire walkOrder cache + startup warmup @km/silvery #feature #P2 @Bjørn Stabell

@@ -8,6 +8,8 @@ created_at: 2026-04-09T14:30:52Z
 closed_at: 2026-04-09T15:54:43Z
 close_reason: createRenderer reuses via rerender() when dims match. Flat list 10
   flipped from Ink 1.18x to Silvery 3.53x. Commit a9e10f2b.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] createRenderer: reuse instance instead of unmount+remount @km/silvery #task #P0 @Bjørn Stabell

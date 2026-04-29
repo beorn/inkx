@@ -5,6 +5,7 @@ aliases:
   - km-market-launch
 created_by: claude:0b5ea482
 created_at: 2026-03-10T18:48:29Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Silvery ecosystem launch: marketing rollout and community outreach @km/market #feature #P4

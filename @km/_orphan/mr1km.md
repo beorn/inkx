@@ -4,6 +4,7 @@ aliases:
   - km-mr1km
 created_at: 2026-02-02T15:25:21Z
 closed_at: 2026-02-02T16:33:53Z
+assignee: claude:227cdc41
 ---
 
 # [x] TUI: slow cursor navigation in list/columns views @km/_orphan #bug #P1 @claude:227cdc41

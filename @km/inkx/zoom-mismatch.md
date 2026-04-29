@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T12:02:24Z
 closed_at: 2026-02-25T13:44:13Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] INKX_STRICT mismatch at (27,14) after zoom out/in on Asana import @km/inkx #bug #P1 @claude:d697f216

@@ -11,6 +11,16 @@ close_reason: Implemented in 1f248bcd8 (2026-04-24 23:22). Ctrl-B backgrounds
   back into conversation. Bead was left in_progress when the session bead
   km-silvercode.ctrl-b-background got rolled into the bulk session-close commit
   (0ce2dbc66) but this feature bead missed the close. Housekeeping.
+started_at: 2026-04-25T05:34:59Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.ctrl-b-background
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-24T22:30:06Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Ctrl-B to background long-running commands @km/silvercode #feature #P2 @claude:2405c72e

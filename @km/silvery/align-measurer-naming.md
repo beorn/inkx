@@ -7,6 +7,15 @@ created_by: claude:c6244087
 created_at: 2026-04-23T19:28:14Z
 closed_at: 2026-04-23T19:35:23Z
 close_reason: Closed
+owner: bjorn@stabell.org
+assignee: claude:c6244087
+dependencies:
+  - issue_id: km-silvery.align-measurer-naming
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T12:28:27Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Align measurer param names with caps (maybeWideEmojis, textSizing) @km/silvery #task #P2 @claude:c6244087

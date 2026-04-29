@@ -5,6 +5,8 @@ aliases:
 created_by: claude:97b8de73
 created_at: 2026-02-22T07:36:08Z
 closed_at: 2026-02-22T12:37:09Z
+owner: bjorn@stabell.org
+assignee: claude:97b8de73
 ---
 
 # [x] H1 body content parsed as top-level items instead of body blocks @km/_orphan #bug #P1 @claude:97b8de73

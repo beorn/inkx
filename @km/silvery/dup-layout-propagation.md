@@ -9,6 +9,7 @@ closed_at: 2026-03-13T05:18:36Z
 close_reason: "Won't fix: Only affects Ink compat layer (calculateLayout in
   nodes.ts), not the pipeline. The pipeline's propagateLayout in layout-phase.ts
   is authoritative and correct. Ink compat is deprecated."
+owner: bjorn@stabell.org
 ---
 
 # [x] Duplicate layout propagation in reconciler/nodes.ts — dead/dangerous code @km/silvery #bug #P3

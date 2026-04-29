@@ -7,6 +7,7 @@ created_by: claude:db326126
 created_at: 2026-03-29T23:18:45Z
 closed_at: 2026-03-29T23:27:33Z
 close_reason: Closed
+owner: bjorn@stabell.org
 ---
 
 # [x] Dashboard snapshot test: termless render vs approved mockup @km/silvery #task #P2

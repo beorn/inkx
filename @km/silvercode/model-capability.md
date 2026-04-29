@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-model-capability
 created_by: claude:4de4a3ab
 created_at: 2026-04-27T18:47:01Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.model-capability
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-27T11:47:01Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] [feature] Add 'models' capability to AgentCapabilities — descriptor-driven model picker per agent @km/silvercode #feature #P2

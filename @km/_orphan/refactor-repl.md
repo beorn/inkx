@@ -4,6 +4,7 @@ aliases:
   - km-refactor-repl
 created_at: 2026-01-24T21:50:30Z
 closed_at: 2026-01-24T21:59:38Z
+assignee: beorn-14119
 ---
 
 # [x] Migrate km-repl away from legacy BoardState @km/_orphan #task #P1 @beorn-14119

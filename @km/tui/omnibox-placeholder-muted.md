@@ -12,6 +12,14 @@ close_reason: "Fixed. Row layout (6ab93183b): bold title + right-aligned muted
   placeholderColor prop defaulting to $disabledfg. 7 new tests
   (omnibox-row-layout.test.tsx + omnibox-muted.test.tsx). 2344/2344 km-tui tests
   pass."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.omnibox-placeholder-muted
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-18T12:18:07Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Omnibox placeholder text 'Type a command or search…' doesn't look muted @km/tui #bug #P2

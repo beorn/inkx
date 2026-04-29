@@ -11,6 +11,8 @@ close_reason: "Fixed: (1) heartbeat interval not cleared on exit, (2)
   1000 entries with lazy snapshots. Added opt-in km:memory diagnostics. Segfault
   likely Bun GC issue with large heap — reduced heap pressure should help.
   Commit f08bd819."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Bun segfault on exit — 10.54GB RSS, likely memory leak @km/tui #bug #P1 @Bjørn Stabell

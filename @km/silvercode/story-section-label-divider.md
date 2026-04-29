@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-story-section-label-divider
 created_by: claude:2405c72e
 created_at: 2026-04-28T22:17:43Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.story-section-label-divider
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T15:17:43Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] SectionLabel in All.story uses literal '──' padding — replace with <Divider title> @km/silvercode #task #P4 #design #storybook

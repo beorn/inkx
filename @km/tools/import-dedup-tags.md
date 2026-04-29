@@ -6,6 +6,7 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-20T09:42:58Z
 closed_at: 2026-02-20T09:45:44Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Deduplicate tag output: remove tag-GID files, keep #slug aggregation @km/tools #task #P2

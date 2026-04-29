@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-cross-agent-replay
 created_by: claude:4de4a3ab
 created_at: 2026-04-27T18:47:34Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.cross-agent-replay
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-27T11:47:34Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] [experiment] Cross-agent transcript replay — load Claude session into Codex (and vice versa) via prompt-replay; measure quality degradation @km/silvercode #feature #P2

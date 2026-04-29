@@ -10,6 +10,7 @@ close_reason: "Shipped silvery fix 418bb5ad bumped via km 307b9ab53. Kitty stdio
   initApp 411.8ms → 206.8ms (~49% reduction) on real-TTY 552k-node vault repro.
   Remaining 143ms React-mount commit is separate architectural followup
   (provider stack), not in scope here."
+owner: bjorn@stabell.org
 ---
 
 # [x] Cold-start 16s event-loop block — (startup:react-mount), 2 renders, layout=26ms @km/_orphan #bug #P1

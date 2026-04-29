@@ -6,6 +6,8 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-19T18:54:10Z
 closed_at: 2026-02-19T19:04:43Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Import: @next/@someday have duplicate embed references @km/tui #bug #P2 @claude:8f007ba9

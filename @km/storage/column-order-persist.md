@@ -9,6 +9,7 @@ closed_at: 2026-04-16T01:50:23Z
 close_reason: Fixed in ab086b508..e3d92db2d — .km/sibling-order.json persists
   user column order; discovery + reconciler read it on rebuild. 15 new tests
   including E2E.
+owner: bjorn@stabell.org
 ---
 
 # [x] Column move position not persisted across restart (delete state.db loses order) @km/storage #bug #P2

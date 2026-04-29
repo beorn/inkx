@@ -6,6 +6,7 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T11:55:21Z
 closed_at: 2026-02-18T12:02:03Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Dim body and subitems of completed/dropped tasks @km/tui #feature #P3

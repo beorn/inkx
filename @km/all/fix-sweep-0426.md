@@ -5,6 +5,16 @@ aliases:
   - km-all-fix-sweep-0426
 created_by: claude:2405c72e
 created_at: 2026-04-26T19:13:02Z
+started_at: 2026-04-26T19:13:33Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-all.fix-sweep-0426
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-26T12:13:33Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [/] Fix sweep 2026-04-26 — supervisor redesign + 83 test failures + 210 typecheck errors @km/all #epic #P1 @claude:2405c72e

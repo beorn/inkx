@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T13:39:15Z
 closed_at: 2026-02-19T16:17:18Z
+owner: bjorn@stabell.org
+assignee: claude:fcaad2fa
 ---
 
 # [x] Detail pane v2: match Asana quality — attachments, bullet formatting, subtasks as tasks @km/tui #feature #P2 @claude:fcaad2fa

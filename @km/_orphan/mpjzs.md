@@ -5,6 +5,7 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T10:43:25Z
 closed_at: 2026-02-18T11:17:54Z
+owner: bjorn@stabell.org
 ---
 
 # [x] TUI: TABS view content bleed — inactive tab fragments show in active tab @km/_orphan #bug #P2

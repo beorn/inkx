@@ -8,6 +8,14 @@ created_at: 2026-04-26T23:07:43Z
 closed_at: 2026-04-26T23:09:43Z
 close_reason: no longer reproduces after subsequent commits — cause unidentified
   (likely one of the silvery bumps post-d3b79c90e). Reopen if symptom recurs.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.live-tty-blank-screen
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-26T16:07:46Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] [bug] silvercode shows blank screen on launch (live TTY only — harness passes) @km/silvercode #bug #P1

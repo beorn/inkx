@@ -5,6 +5,7 @@ aliases:
   - km-silvery-prompt-bridge
 created_by: claude:f8196c1c
 created_at: 2026-03-23T19:30:27Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Prompt-library bridge: confirm, select, input with minimal setup @km/silvery #feature #P2

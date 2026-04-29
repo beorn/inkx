@@ -6,6 +6,8 @@ created_by: claude:c9beade3
 created_at: 2026-03-13T23:21:16Z
 closed_at: 2026-03-13T23:45:55Z
 close_reason: Closed
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] termless: backends fabricate unsupported state instead of null/unknown @km/_orphan #bug #P1 @claude:c9beade3

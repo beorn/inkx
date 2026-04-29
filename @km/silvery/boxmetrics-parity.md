@@ -7,6 +7,8 @@ created_by: Bjørn Stabell
 created_at: 2026-04-09T14:38:32Z
 closed_at: 2026-04-09T15:56:15Z
 close_reason: Implemented. useBoxMetrics hook + 7 tests. Commit 7c66bacc.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Review useContentRect vs Ink's useBoxMetrics — adopt name, match API @km/silvery #task #P1 @Bjørn Stabell

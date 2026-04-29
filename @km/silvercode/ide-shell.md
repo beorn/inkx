@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-ide-shell
 created_by: claude:cd034ca4
 created_at: 2026-04-26T15:55:08Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.ide-shell
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-26T08:55:12Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [ ] [TRACKING] silvercode IDE-shell — deferred multi-session/workspace chrome @km/silvercode #feature #P4

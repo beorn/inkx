@@ -9,6 +9,26 @@ closed_at: 2026-04-24T06:15:45Z
 close_reason: Moved out of beads (2026-04-23). Speculative brainstorming, not
   roadmap — docs at hub/silvery/future/ai-terminal/. Revisit after km + silvery
   1.0 ship.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.agent-harness
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T19:22:41Z
+    created_by: claude:6443387f
+    metadata: "{}"
+  - issue_id: km-silvery.agent-harness
+    depends_on_id: km-silvery.multiplex
+    type: blocks
+    created_at: 2026-04-23T19:38:47Z
+    created_by: claude:6443387f
+    metadata: "{}"
+  - issue_id: km-silvery.agent-harness
+    depends_on_id: km-silvery.sessions
+    type: blocks
+    created_at: 2026-04-23T22:47:42Z
+    created_by: claude:6443387f
+    metadata: "{}"
 ---
 
 # [x] Agent harness: wrap and drive TUI coding agents (Claude Code, Codex, opencode) @km/silvery #feature #P4

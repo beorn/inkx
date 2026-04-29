@@ -5,6 +5,7 @@ aliases:
   - km-infra-vite-plus-pilot
 created_by: claude:fed8de9e
 created_at: 2026-03-25T21:26:26Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Pilot Vite Plus on flexily — when Bun package manager lands @km/infra #task #P3

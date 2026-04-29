@@ -9,6 +9,14 @@ closed_at: 2026-04-22T17:30:54Z
 close_reason: "Answered by phase-b-replay-contract-2026-04-22.md §10.1 DQ3 row +
   §11 OQ1: session_* ops stay in changes.jsonl tagged, skipped by replay. Reopen
   only if agent tooling needs a separate trace file."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-storage.phase-b-session-ops-decision
+    depends_on_id: km-storage.pathway-db-crdt
+    type: parent-child
+    created_at: 2026-04-22T10:30:51Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Phase B: session_* ops disposition (audit DQ3/G13) @km/storage #task #P3

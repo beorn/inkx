@@ -7,6 +7,7 @@ created_by: claude:65d845d9
 created_at: 2026-03-13T05:31:11Z
 closed_at: 2026-03-13T05:34:56Z
 close_reason: Duplicate of km-flexily.static-position-type (P0)
+owner: bjorn@stabell.org
 ---
 
 # [x] POSITION_TYPE_STATIC incorrectly applies position offsets @km/flexily #bug #P2

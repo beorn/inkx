@@ -5,6 +5,16 @@ aliases:
   - km-silvery-diff-code-accordion
 created_by: claude:cd034ca4
 created_at: 2026-04-26T15:37:20Z
+started_at: 2026-04-26T16:27:53Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvery.diff-code-accordion
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-26T08:37:51Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [/] silvery primitives — Diff, Code (tree-sitter), Accordion, LineNumber @km/silvery #feature #P1 @claude:cd034ca4

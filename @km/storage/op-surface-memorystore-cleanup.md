@@ -11,6 +11,14 @@ close_reason: "Investigated 2026-04-22: MemoryStore is actively used (57 sites),
   by design per packages/km-storage/src/store/memory.ts:515 comment —
   memory-mode has no journal. Not a gap. Closed as no-action with rationale
   captured in bead."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-storage.op-surface-memorystore-cleanup
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-22T10:30:51Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] MemoryStore cleanup decision (audit G10) @km/storage #task #P3

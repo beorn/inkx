@@ -6,6 +6,7 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-15T12:57:27Z
 closed_at: 2026-02-15T20:58:37Z
+owner: bjorn@stabell.org
 ---
 
 # [x] TUI: 'j' from Kaiser Health in @next.md#inbox jumps cursor to board title @km/tui #bug #P2

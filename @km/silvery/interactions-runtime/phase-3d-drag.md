@@ -8,6 +8,7 @@ created_at: 2026-04-06T07:07:28Z
 closed_at: 2026-04-06T08:49:07Z
 close_reason: DragFeature (210 lines), DRAG_CAPABILITY, withDomEvents extended
   with drag at priority 150, 20 tests pass. Silvery commit 73396e1.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 3d: Extend withDomEvents for draggable (drag-and-drop) @km/silvery #task #P1

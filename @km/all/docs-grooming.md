@@ -11,6 +11,15 @@ close_reason: "All 9 phases shipped. 29 active docs now (down from ~90).
   + ref/ + dev/. Retired 8 docs. Created 2 new canonical refs (effects,
   changes). ~100 inbound-link updates. See docs/backlog.md Done section for
   recap."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-all.docs-grooming
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-16T22:18:52Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Docs grooming — km + silvery ecosystem (public/internal hard line) @km/all #task #P2 @Bjørn Stabell

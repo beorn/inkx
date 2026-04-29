@@ -6,6 +6,8 @@ aliases:
 created_by: claude:28b14b32
 created_at: 2026-02-23T13:59:06Z
 closed_at: 2026-02-23T14:04:37Z
+owner: bjorn@stabell.org
+assignee: claude:28b14b32
 ---
 
 # [x] VirtualList: default keybindings & mouse scroll @km/inkx #feature #P2 @claude:28b14b32

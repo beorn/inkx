@@ -11,6 +11,21 @@ close_reason: Phase 4 complete. Opt-in summarizer
   session_focus columns, bear.session_state MCP tool, CLI summary display. 28
   bear tests green. Integration followup commit 4220fbe fixed missed file commit
   from the first go.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-bear.summarizer
+    depends_on_id: km-bear
+    type: parent-child
+    created_at: 2026-04-17T08:48:30Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-bear.summarizer
+    depends_on_id: km-bear.focus
+    type: blocks
+    created_at: 2026-04-17T08:48:30Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Phase 4: background Haiku summarizer @km/bear #task #P2 @Bjørn Stabell

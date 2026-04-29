@@ -6,6 +6,7 @@ aliases:
   - "@km/domain/8"
 created_at: 2026-01-26T07:57:42Z
 closed_at: 2026-01-26T17:18:47Z
+assignee: 7ca208ee
 ---
 
 # [x] ADR-002 Phase 1: Remove storage singleton pattern @km/domain #task #P3 @7ca208ee

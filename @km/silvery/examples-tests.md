@@ -10,6 +10,16 @@ close_reason: "Bug 3 (Tab→submit) fixed: silvery 2d4a8583 + km 6bc1cce55.
   Remaining 2 failures are real pipeline/layout bugs split out to:
   km-silvery.ai-chat-incremental-mismatch (render #20 bg mismatch) +
   km-silvery.listview-resize-scroll-target (scrollTo viewport drift on resize)."
+started_at: 2026-04-26T23:24:14Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvery.examples-tests
+    depends_on_id: km-all.fix-sweep-vendor-fuzz
+    type: parent-child
+    created_at: 2026-04-26T16:22:36Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] [bug] vendor/silvery examples — 3 failures (2 files) @km/silvery #bug #P2 @claude:cc081a9a

@@ -8,6 +8,7 @@ created_at: 2026-03-16T21:40:22Z
 closed_at: 2026-03-16T22:00:25Z
 close_reason: onRelease callback added to useInput. Release events dispatched to
   onRelease handler. 6 tests. Docs updated.
+owner: bjorn@stabell.org
 ---
 
 # [x] Key release events: hold-to-reveal, key-up handlers, modifier-gated UI @km/silvery #feature #P2

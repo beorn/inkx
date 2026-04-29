@@ -26,6 +26,14 @@ close_reason: >-
 
   12 new tests (9 pure + 3 integration). 545 bearly tests pass. Daemon PID 80740
   running new code.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.chief-auto-election
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-18T11:00:13Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Chief auto-election: promote longest-running member when lease expires @km/tribe #task #P2

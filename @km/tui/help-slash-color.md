@@ -6,6 +6,8 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-12T22:29:19Z
 closed_at: 2026-02-14T08:04:37Z
+owner: bjorn@stabell.org
+assignee: claude:124bfbe5
 ---
 
 # [x] Help dialog: '/' search key should be yellow, not dimmed @km/tui #bug #P3 @claude:124bfbe5

@@ -12,6 +12,22 @@ close_reason: "3-leg champion-challenger with cheap judge + leaderboard +
   promotion threshold + backtest sample selection + judge prompt+parser +
   rotation. Commit: vendor/bearly main 6f41ed6 (cherry-picks 05b6de5 + 240253b +
   test stdout fix). Parent submodule bump: 0248983f1."
+started_at: 2026-04-27T07:36:41Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-bearly.llm-dual-pro-shadow-test
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-27T00:05:11Z
+    created_by: claude:2405c72e
+    metadata: "{}"
+  - issue_id: km-bearly.llm-dual-pro-shadow-test
+    depends_on_id: km-bearly.llm-registry-split
+    type: blocks
+    created_at: 2026-04-27T00:05:11Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Dual-pro with shadow challenger + judge scoring + human-gated promotion @km/bearly #feature #P2 @claude:2405c72e

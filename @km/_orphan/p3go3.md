@@ -5,6 +5,7 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T11:44:22Z
 closed_at: 2026-02-19T11:48:13Z
+owner: bjorn@stabell.org
 ---
 
 # [x] inkx: OSC 8 hyperlinks corrupted in cell buffer @km/_orphan #bug #P1

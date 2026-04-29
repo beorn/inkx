@@ -5,6 +5,14 @@ aliases:
   - km-all-test-system-p6-api
 created_by: Bjørn Stabell
 created_at: 2026-04-18T07:45:31Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.test-system.p6-api
+    depends_on_id: km-all.test-system
+    type: parent-child
+    created_at: 2026-04-18T00:46:13Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Phase 6: TestApp API refinement — shrink surface, improve ergonomics @km/all #task #P2

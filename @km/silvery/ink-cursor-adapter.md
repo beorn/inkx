@@ -9,6 +9,8 @@ closed_at: 2026-03-10T19:49:19Z
 close_reason: Created withInkCursor() thin adapter in
   @silvery/compat/with-ink-cursor. ~50 lines — just CursorProvider +
   InkCursorStoreCtx context plumbing.
+owner: bjorn@stabell.org
+assignee: claude:474834b0
 ---
 
 # [x] withInkCursor() — thin adapter from Ink useCursor to silvery CursorStore @km/silvery #task #P2 @claude:474834b0

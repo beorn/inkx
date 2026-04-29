@@ -9,6 +9,7 @@ closed_at: 2026-04-06T09:01:06Z
 close_reason: useSelection hook with CapabilityRegistryContext bridge,
   Symbol.for() for cross-package identity, demo rewritten with real selection. 4
   tests. Silvery commit 08abb69.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 3.1: useSelection hook + demo validation @km/silvery #task #P1

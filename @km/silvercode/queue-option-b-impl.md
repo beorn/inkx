@@ -25,6 +25,22 @@ close_reason: >-
   polish item: TextAreaHandle doesn't yet expose setCursor, so down→command
   handoff lands cursor at silvery's preserved position rather than offset 0;
   bead-message sent to silvery-onedge requesting setCursor on the handle.
+started_at: 2026-04-24T23:22:25Z
+owner: bjorn@stabell.org
+assignee: claude:0940ca20
+dependencies:
+  - issue_id: km-silvercode.queue-option-b-impl
+    depends_on_id: km-silvercode.queue-option-b
+    type: parent-child
+    created_at: 2026-04-24T16:21:18Z
+    created_by: claude:0940ca20
+    metadata: "{}"
+  - issue_id: km-silvercode.queue-option-b-impl
+    depends_on_id: km-silvery.textarea-edge-callback
+    type: blocks
+    created_at: 2026-04-24T16:21:18Z
+    created_by: claude:0940ca20
+    metadata: "{}"
 ---
 
 # [x] Implement Option B — two TextAreas with cursor-boundary focus handoff (silvercode side) @km/silvercode #task #P1 @claude:0940ca20

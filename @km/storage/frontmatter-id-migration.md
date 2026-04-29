@@ -9,6 +9,14 @@ closed_at: 2026-04-21T22:29:34Z
 close_reason: Folded into km-storage.identity-recovery-cascade — the backfill
   migration is part of the identity package, ships together. See consolidated
   scope there.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-storage.frontmatter-id-migration
+    depends_on_id: km-storage.fs-mount
+    type: parent-child
+    created_at: 2026-04-21T13:26:49Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Frontmatter id: backfill — one-shot migration for existing vaults @km/storage #task #P1

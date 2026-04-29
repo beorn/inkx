@@ -14,6 +14,20 @@ close_reason: "Shipped at 59b936a9 (silvery) + d1c7d3690 (km). 83 tests in
   friendly form). Two follow-ups tracked: km-storage.adopt-silvery-config (P3)
   for km-cli unification; km-silvercode.zero-config (existing) for env-var
   auto-discovery."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.connection-system.phase1
+    depends_on_id: km-silvercode.connection-system
+    type: parent-child
+    created_at: 2026-04-26T15:13:27Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
+  - issue_id: km-silvercode.connection-system.phase1
+    depends_on_id: km-silvery.config-package
+    type: blocks
+    created_at: 2026-04-26T15:13:27Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [x] Phase 1: CLI integration — drop legacy flags, wire resolveConnection, mount config command @km/silvercode #task #P1

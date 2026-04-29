@@ -8,6 +8,7 @@ created_at: 2026-04-05T18:22:39Z
 closed_at: 2026-04-05T18:32:54Z
 close_reason: Status toasts added for fold/unfold, collapse, zoom in/out, toggle
   hidden. Committed a36bd152.
+owner: bjorn@stabell.org
 ---
 
 # [x] [feat] UI feedback for all view-changing commands (fold, collapse, filter, etc.) @km/tui #feature #P2

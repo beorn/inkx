@@ -8,6 +8,8 @@ created_at: 2026-03-31T06:07:48Z
 closed_at: 2026-04-02T20:30:10Z
 close_reason: "Grooming: all 4 children closed. Discovery broker, peer sockets,
   github resource shipped."
+owner: bjorn@stabell.org
+assignee: claude:19080504
 ---
 
 # [x] Tribe v2: discovery broker + peer-to-peer + socket locking @km/tribe #epic #P3 @claude:19080504

@@ -15,6 +15,8 @@ close_reason: "Phase 1: click-to-position for title editing. Added onMouseDown
   click-at-start, click-past-end, and keyboard-after-click. Files: TreeNode.tsx
   (handler), board-test.ts (clickTree helper), click-to-position.spec.ts
   (tests)."
+owner: bjorn@stabell.org
+assignee: claude:4a5961be
 ---
 
 # [x] Click-to-position across card tree nodes (card-as-textarea) @km/tui #feature #P2 @claude:4a5961be

@@ -6,6 +6,7 @@ aliases:
   - "@km/tools/bd-api/1"
 created_by: claude:1d8b0fc3
 created_at: 2026-02-15T15:21:40Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] km bd tier 5: proxy passthrough for advanced bd commands @km/tools #task #P4

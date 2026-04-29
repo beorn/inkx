@@ -5,6 +5,7 @@ aliases:
   - km-silvery-non-tty
 created_by: claude:f8196c1c
 created_at: 2026-03-23T19:30:26Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Non-TTY story: renderStatic, plain mode, capability detection @km/silvery #feature #P2

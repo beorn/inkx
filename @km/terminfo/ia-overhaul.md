@@ -12,6 +12,8 @@ close_reason: "Full IA overhaul shipped: /terminal/ → /terminals/ rename,
   /multiplexers index pages, cross-links on ambiguous entities, 116 glossary
   entries, homepage explore cards + mux section, meta description HTML fix, cmux
   cleanup, vterm-js + gnu-screen slug fixes."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] terminfo.dev information architecture overhaul @km/terminfo #task #P2 @claude:f8196c1c

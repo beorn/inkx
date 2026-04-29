@@ -12,6 +12,14 @@ close_reason: Shipped in bearly ca6b56d (example.ts template) + km 4f9edbd67
   pattern, enabling, settings.json wiring, anti-patterns. Cross-referenced from
   docs/design/hook-router.md. Pruned content that duplicated design doc
   (problem/why/decisions/composability/out-of-scope).
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.listener-docs
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-22T19:38:37Z
+    created_by: claude:fa4168d9
+    metadata: "{}"
 ---
 
 # [x] Listener authoring docs + templates @km/bearly #task #P3

@@ -6,6 +6,7 @@ aliases:
   - "@km/tui/3"
 created_at: 2026-02-04T15:56:04Z
 closed_at: 2026-02-04T17:38:30Z
+assignee: claude:44a381e0
 ---
 
 # [x] Search dialog: title/input hidden when results displayed @km/tui #task #P2 @claude:44a381e0

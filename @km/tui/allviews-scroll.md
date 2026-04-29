@@ -6,6 +6,8 @@ aliases:
 created_by: claude:949598cc
 created_at: 2026-02-11T19:49:32Z
 closed_at: 2026-02-18T08:25:43Z
+owner: bjorn@stabell.org
+assignee: claude:5770ce77
 ---
 
 # [x] Storybook All Views section doesn't scroll (ArrowDown consumed or ignored) @km/tui #bug #P3 @claude:5770ce77

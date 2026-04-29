@@ -6,6 +6,8 @@ aliases:
 created_by: claude:54aefa32
 created_at: 2026-02-18T00:31:16Z
 closed_at: 2026-02-18T07:49:10Z
+owner: bjorn@stabell.org
+assignee: claude:5f0aee02
 ---
 
 # [x] Zoom out (u) moves selection to parent instead of keeping current node selected @km/tui #bug #P2 @claude:5f0aee02

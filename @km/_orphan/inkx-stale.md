@@ -4,6 +4,7 @@ aliases:
   - km-inkx-stale
 created_at: 2026-02-03T12:11:11Z
 closed_at: 2026-02-04T11:23:52Z
+assignee: claude:227cdc41
 ---
 
 # [x] inkx: incremental rendering stale pixel bugs (4 bugs + paintDirty rename) @km/_orphan #bug #P1 @claude:227cdc41

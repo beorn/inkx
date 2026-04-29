@@ -6,6 +6,7 @@ aliases:
 created_by: claude:c9beade3
 created_at: 2026-03-13T04:29:08Z
 closed_at: 2026-03-13T05:20:21Z
+owner: bjorn@stabell.org
 ---
 
 # [x] MAX_SINGLE_PASS_ITERATIONS=5, add cap diagnostics to classic path @km/silvery #bug #P3

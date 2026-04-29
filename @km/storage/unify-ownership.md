@@ -8,6 +8,7 @@ created_at: 2026-04-02T22:35:02Z
 closed_at: 2026-04-03T03:32:11Z
 close_reason: OwnershipTracker unifies WriteTokenMap + SyncState. 15 tests. 257
   watch tests pass.
+owner: bjorn@stabell.org
 ---
 
 # [x] Unify WriteTokenMap + SyncState into single OwnershipTracker @km/storage #task #P2

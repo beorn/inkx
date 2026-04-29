@@ -8,6 +8,7 @@ created_at: 2026-04-02T20:51:14Z
 closed_at: 2026-04-02T21:21:40Z
 close_reason: "Fixed: removed 15 void prefixes from fsTarget calls. SyncManager
   implementation is synchronous — void was misleading. Commit 1542464b."
+owner: bjorn@stabell.org
 ---
 
 # [x] [bug] void this.fsTarget.writeFile() — 15+ fire-and-forget writes never awaited @km/storage #bug #P1

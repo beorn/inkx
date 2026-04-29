@@ -9,6 +9,7 @@ closed_at: 2026-03-31T01:04:07Z
 close_reason: "Implemented: output guard intercepts process.stdout.write and
   process.stderr.write in alt screen mode. Scheduler routes through writeOutput
   option. Guard activated in both render() and createApp() paths. 16 tests."
+owner: bjorn@stabell.org
 ---
 
 # [x] Guard all stdout/stderr output in alt screen mode @km/silvery #feature #P2

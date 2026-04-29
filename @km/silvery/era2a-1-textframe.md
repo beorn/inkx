@@ -10,6 +10,8 @@ close_reason: "Phase 1 complete: createTextFrame() snapshot factory,
   cellToFrameCell(), FrameCell convergence (underlineColor + UnderlineStyle),
   App implements TextFrame structurally, 25 tests, CLAUDE.md updated. All
   /complete criteria met."
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Era2a Phase 1: TextFrame — immutable snapshot from buffer @km/silvery #task #P1 @claude:fed8de9e

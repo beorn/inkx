@@ -8,6 +8,8 @@ created_at: 2026-03-29T05:02:49Z
 closed_at: 2026-03-30T20:01:11Z
 close_reason: Already implemented in silvery HEAD. Added 48 tests covering all
   21 US QWERTY shifted punct chars. Normalization in parseKey() works correctly.
+owner: bjorn@stabell.org
+assignee: claude:db326126
 ---
 
 # [x] silvery: normalize shifted punctuation in legacy input parser @km/silvery #task #P2 @claude:db326126

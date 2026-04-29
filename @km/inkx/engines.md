@@ -6,6 +6,8 @@ aliases:
 created_by: claude:ee8efc0f
 created_at: 2026-02-23T11:14:25Z
 closed_at: 2026-02-23T11:42:09Z
+owner: bjorn@stabell.org
+assignee: claude:ee8efc0f
 ---
 
 # [x] Add engines field and package.json polish for inkx @km/inkx #task #P2 @claude:ee8efc0f

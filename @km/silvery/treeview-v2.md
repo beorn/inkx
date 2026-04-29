@@ -8,6 +8,7 @@ created_at: 2026-04-02T21:59:39Z
 closed_at: 2026-04-03T01:16:14Z
 close_reason: Implemented. TreeView delegates to ListView. Flattening + indent +
   expand/collapse. 11 tests pass. Commit 8684652.
+owner: bjorn@stabell.org
 ---
 
 # [x] TreeView as ListView composition @km/silvery #task #P2

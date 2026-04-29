@@ -9,6 +9,14 @@ closed_at: 2026-04-18T18:27:52Z
 close_reason: Shipped in v0.18.0 — see
   hub/silvery/design/v10-terminal/theme-system-v2-plan.md and silvery v0.18.0
   changelog
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-fake-cursor
+    depends_on_id: km-silvery.design-system
+    type: parent-child
+    created_at: 2026-04-17T22:07:26Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Theme fake cursors — wire SelectList / Picker / TextInput / Board to cursorColor/cursorText @km/silvery #feature #P3

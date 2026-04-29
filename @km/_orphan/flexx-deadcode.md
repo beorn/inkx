@@ -4,6 +4,7 @@ aliases:
   - km-flexx-deadcode
 created_at: 2026-01-31T21:00:29Z
 closed_at: 2026-01-31T21:04:44Z
+assignee: claude:b8b4780b
 ---
 
 # [x] Remove unused distributeFlexSpace() function @km/_orphan #task #P3 @claude:b8b4780b

@@ -9,6 +9,7 @@ closed_at: 2026-03-31T21:58:18Z
 close_reason: "9 fault injection tests written: reconcile failure (2),
   cross-file move (2), event replay cascade (4), delete ordering (1). Plus 4
   existing tests verified. All 1045+ tests pass."
+owner: bjorn@stabell.org
 ---
 
 # [x] Close 10 sync pipeline silent failure test gaps @km/storage #task #P2

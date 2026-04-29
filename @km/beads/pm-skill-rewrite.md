@@ -16,6 +16,16 @@ close_reason: Shipped in fa1858976 (commit message bundled mine with concurrent
   stay as bare 'bd <cmd>' so the cutover gap remains visible. Top of SKILL.md
   notes the 'bd' vs 'km bd' compatibility status. Lock-race meant my staged
   commit got absorbed into another agent's commit.
+started_at: 2026-04-28T08:02:07Z
+owner: bjorn@stabell.org
+assignee: claude:da9990c5
+dependencies:
+  - issue_id: km-beads.pm-skill-rewrite
+    depends_on_id: km-beads.cutover
+    type: parent-child
+    created_at: 2026-04-27T23:12:42Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] Rewrite /pm skill to use km bd commands instead of bd binary @km/beads #task #P2 @claude:da9990c5

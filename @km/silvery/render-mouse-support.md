@@ -5,6 +5,8 @@ aliases:
   - km-silvery-render-mouse-support
 created_by: claude:c56dc5d6
 created_at: 2026-04-23T18:23:42Z
+owner: bjorn@stabell.org
+assignee: claude:c56dc5d6
 ---
 
 # [/] render() should enable SGR mouse tracking like run() does @km/silvery #bug #P2 @claude:c56dc5d6

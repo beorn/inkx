@@ -9,6 +9,7 @@ closed_at: 2026-03-13T04:57:58Z
 close_reason: "False positive: trace diagnostic and runtime both compute
   childAncestorCleared identically (parentRegionCleared || (ancestorCleared &&
   \\!props.backgroundColor))."
+owner: bjorn@stabell.org
 ---
 
 # [x] Trace diagnostics compute childAncestorCleared differently than runtime @km/silvery #bug #P3

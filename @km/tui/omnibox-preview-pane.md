@@ -13,6 +13,16 @@ close_reason: Telescope/Helm-style preview pane shipped. previewForRow pure
   summary. preview prop default off; bottom-left layout suppresses; connector
   enables on center layout with effectiveCommand threaded. 7 unit tests + 5
   render tests, all green.
+started_at: 2026-04-28T22:12:43Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-tui.omnibox-preview-pane
+    depends_on_id: km-tui.omnibox-unified
+    type: parent-child
+    created_at: 2026-04-14T17:08:01Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Preview-as-selection — live preview pane for current result @km/tui #feature #P1 @claude:2405c72e

@@ -60,6 +60,16 @@ close_reason: >-
 
   Out of scope (separate beads): /pro and /deep skill updates, --json flag,
   dispatch.ts shatter, dual-pro shadow-test.
+started_at: 2026-04-27T07:12:06Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-bearly.llm-registry-split
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-26T23:58:21Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Split llm Model registry: SKUs + ProviderEndpoints + capabilities @km/bearly #feature #P1 @claude:2405c72e

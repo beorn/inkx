@@ -5,6 +5,14 @@ aliases:
   - km-silvery-design-system
 created_by: Bjørn Stabell
 created_at: 2026-04-17T21:04:14Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.design-system
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-17T14:04:38Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] @silvery/design — standard-aligned design system (Polaris-structured, W3C Tokens Format, multi-target bindings) @km/silvery #feature #P2

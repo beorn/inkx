@@ -11,6 +11,8 @@ close_reason: "Fixed: added width={storeDimensions.columns} to single-pane Box
   renders (1028 TreeNode calls, 742ms event-loop block). After: paneRect settles
   in single layout pass (292 TreeNode calls, no block warning, run-board
   1111ms→970ms). All 6655 km tests pass."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
 ---
 
 # [x] TUI blocks event loop ~1s during startup:react-mount @km/tui #bug #P2 @claude:8b5b9e1c

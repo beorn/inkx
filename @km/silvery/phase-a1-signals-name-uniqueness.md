@@ -8,6 +8,15 @@ created_at: 2026-04-23T00:44:05Z
 closed_at: 2026-04-23T00:46:11Z
 close_reason: Shipped silvery 7dac8778. Duplicate-name registrations throw; 20
   term-signals tests pass.
+owner: bjorn@stabell.org
+assignee: claude:019d032d
+dependencies:
+  - issue_id: km-silvery.phase-a1-signals-name-uniqueness
+    depends_on_id: km-silvery.pro-review-p1
+    type: parent-child
+    created_at: 2026-04-22T17:44:24Z
+    created_by: claude:019d032d
+    metadata: "{}"
 ---
 
 # [x] Phase A1: term.signals.on() rejects duplicate names @km/silvery #task #P2 @claude:019d032d

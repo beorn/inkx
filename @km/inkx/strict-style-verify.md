@@ -6,6 +6,8 @@ aliases:
 created_by: claude:23485adf
 created_at: 2026-02-24T11:47:10Z
 closed_at: 2026-03-04T16:36:14Z
+owner: bjorn@stabell.org
+assignee: claude:3c1481f8
 ---
 
 # [x] INKX_STRICT: verify ANSI SGR output matches buffer styles (catch all rendering issues) @km/inkx #task #P2 @claude:3c1481f8

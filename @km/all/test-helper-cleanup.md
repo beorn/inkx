@@ -6,6 +6,8 @@ aliases:
 created_by: claude:aee18a0e
 created_at: 2026-02-27T14:00:16Z
 closed_at: 2026-02-27T14:25:02Z
+owner: bjorn@stabell.org
+assignee: claude:aee18a0e
 ---
 
 # [x] Test helper cleanup: dead code, skipped tests, DRY, split board-test.ts @km/all #task #P1 @claude:aee18a0e

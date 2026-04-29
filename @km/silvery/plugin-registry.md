@@ -5,6 +5,7 @@ aliases:
   - km-silvery-plugin-registry
 created_by: claude:e4e70c9a
 created_at: 2026-03-11T07:33:09Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Plugin and component registry for community contributions @km/silvery #task #P4

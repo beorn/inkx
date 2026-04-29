@@ -6,6 +6,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-06T19:11:10Z
 closed_at: 2026-04-06T19:11:50Z
+owner: bjorn@stabell.org
 ---
 
 # [x] [bug] Sub-item styling flickers during edit cursor movement — checkbox/dim/indent changes @km/tui #bug #P1

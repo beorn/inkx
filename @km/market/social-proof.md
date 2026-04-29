@@ -5,6 +5,7 @@ aliases:
   - km-market-social-proof
 created_by: Bjørn Stabell
 created_at: 2026-04-02T02:03:34Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Add social proof badges to silvery.dev homepage @km/market #task #P2

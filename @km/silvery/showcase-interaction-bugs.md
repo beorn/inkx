@@ -5,6 +5,7 @@ aliases:
   - km-silvery-showcase-interaction-bugs
 created_by: claude:491faf6c
 created_at: 2026-03-25T20:32:04Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Showcase demos: rendering corruption, broken interaction, scrolling @km/silvery #bug #P3

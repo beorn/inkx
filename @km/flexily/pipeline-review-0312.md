@@ -10,6 +10,8 @@ close_reason: All 32 child beads resolved. 9 P0 bugs fixed (absolute-alignment,
   percent-box, align-content, cross-axis, logical-position, measure-rtl,
   static-position, wrap-auto, wrap-hypothetical). Doc updates, benchmark fixes,
   expanded test coverage. 1511 flexily tests passing.
+owner: bjorn@stabell.org
+assignee: claude:65d845d9
 ---
 
 # [x] Flexily GPT 5.4 Pro code review — all findings @km/flexily #epic #P1 @claude:65d845d9

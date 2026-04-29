@@ -10,6 +10,8 @@ close_reason: "Created beorn/silvery GitHub repo with: bun workspaces (8
   packages: react, term, ansi, theme, tea, ui, test, compat), changesets (fixed
   versioning), oxlint+oxfmt (not biome), TypeScript. All packages have stub
   src/index.ts. https://github.com/beorn/silvery"
+owner: bjorn@stabell.org
+assignee: claude:55df8ef1
 ---
 
 # [x] Set up silvery monorepo with bun workspaces + changesets @km/silvery #task #P2 @claude:55df8ef1

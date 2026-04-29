@@ -8,6 +8,8 @@ created_at: 2026-04-03T00:58:10Z
 closed_at: 2026-04-03T01:15:31Z
 close_reason: 100% clean. Zero createSync, setFsSync, FsSync, repo.emitter,
   SyncManager in .ts files. Doc references fixed.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Eliminate createSync legacy wrapper + setFsSync + repo.emitter access @km/storage #task #P2 @Bjørn Stabell

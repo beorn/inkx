@@ -6,6 +6,8 @@ aliases:
 created_by: claude:23485adf
 created_at: 2026-02-23T17:09:28Z
 closed_at: 2026-03-04T00:46:32Z
+owner: bjorn@stabell.org
+assignee: claude:f47d1ff0
 ---
 
 # [x] Phase 6: merge CursorStore into Jotai atoms @km/tui #task #P3 @claude:f47d1ff0

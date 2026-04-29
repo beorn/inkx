@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-06T06:01:11Z
 closed_at: 2026-04-06T06:12:08Z
 close_reason: consolidated into km-market.terminfo-completeness.sgr-visual
+owner: bjorn@stabell.org
 ---
 
 # [x] Extend termless for more probeable features @km/market #task #P2

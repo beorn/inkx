@@ -6,6 +6,8 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T13:28:43Z
 closed_at: 2026-02-19T14:02:47Z
+owner: bjorn@stabell.org
+assignee: claude:36393b5d
 ---
 
 # [x] Delete dead code: store fields, ActionCtx fields, hooks, types @km/tui #task #P2 @claude:36393b5d

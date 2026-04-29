@@ -5,6 +5,7 @@ aliases:
   - km-market-newsletter
 created_by: Bjørn Stabell
 created_at: 2026-04-02T20:00:49Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Set up Beehiiv newsletter — 3 lists (terminfo, silvery, termless) @km/market #task #P2

@@ -9,6 +9,20 @@ closed_at: 2026-04-24T06:15:47Z
 close_reason: Moved out of beads (2026-04-23). Speculative brainstorming, not
   roadmap — docs at hub/silvery/future/ai-terminal/. Revisit after km + silvery
   1.0 ship.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.shell
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T21:57:46Z
+    created_by: claude:6443387f
+    metadata: "{}"
+  - issue_id: km-silvery.shell
+    depends_on_id: km-silvery.commander-protocol
+    type: blocks
+    created_at: 2026-04-23T22:32:02Z
+    created_by: claude:6443387f
+    metadata: "{}"
 ---
 
 # [x] @silvery/commander: silvery-app for command execution (shell input is one component) @km/silvery #feature #P4

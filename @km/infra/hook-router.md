@@ -76,6 +76,15 @@ close_reason: >-
 
 
   Lesson encoded at memory/feedback-bearly-owns-claude-hooks.md.
+owner: bjorn@stabell.org
+assignee: claude:fa4168d9
+dependencies:
+  - issue_id: km-infra.hook-router
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-22T18:20:31Z
+    created_by: claude:fa4168d9
+    metadata: "{}"
 ---
 
 # [x] Unified hook dispatch (kanban-style) for km integrations @km/infra #feature #P3 @claude:fa4168d9

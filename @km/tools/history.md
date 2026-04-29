@@ -5,6 +5,7 @@ aliases:
   - km-tools-history
 created_at: 2026-02-04T11:55:25Z
 closed_at: 2026-02-04T12:27:42Z
+assignee: claude:a7826e85
 ---
 
 # [x] Integrated history/memory for Claude Code sessions @km/tools #feature #P2 @claude:a7826e85

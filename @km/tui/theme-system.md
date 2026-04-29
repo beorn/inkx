@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T21:02:57Z
 closed_at: 2026-03-03T23:21:56Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] Theme system: semantic tokens, ANSI16+truecolor, primary color cycling, light/dark @km/tui #feature #P1 @claude:d697f216

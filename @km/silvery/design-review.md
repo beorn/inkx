@@ -5,6 +5,14 @@ aliases:
   - km-silvery-design-review
 created_by: Bjørn Stabell
 created_at: 2026-04-16T19:40:05Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.design-review
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-16T12:40:23Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Design review with Mike — tokens, components, contrast settings, 'bun design' workbench @km/silvery #feature #P2

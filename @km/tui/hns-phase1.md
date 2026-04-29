@@ -9,6 +9,8 @@ closed_at: 2026-04-08T08:09:24Z
 close_reason: "Engine built (21 tests), shadow wired in ReactiveNodeStore.
   Skipped rename+privatize since cutover+purge happening in same session.
   Commits: 35b7d47db, 7c11c80c5."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Phase 1: Engine + Shadow — build reduced signals, wire alongside old sync @km/tui #task #P1 @Bjørn Stabell

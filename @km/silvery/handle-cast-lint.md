@@ -14,6 +14,16 @@ close_reason: "Ported from closed scope-resource-ownership commit 050902963.
   lint addition with no merge collision risk, so it bypassed the worktree
   pattern). Files: packages/km-infra/scripts/check-no-handle-cast.sh,
   packages/km-infra/tests/no-handle-cast.test.ts."
+started_at: 2026-04-28T22:12:50Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvery.handle-cast-lint
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-28T14:45:38Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] CI lint blocking 'as XHandle' / 'as TickHandle' casts outside scoped factories @km/silvery #task #P3 @claude:2405c72e

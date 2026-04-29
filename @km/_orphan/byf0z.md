@@ -8,6 +8,8 @@ closed_at: 2026-04-02T04:14:56Z
 close_reason: "Fixed: directory deletion now uses rmSync with recursive:true.
   writequeue.ts stats path before delete — dirs get rmSync, files get
   unlinkSync. Commit 849afdef."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Folder deletion uses unlinkSync which fails on directories (EISDIR) @km/_orphan #bug #P0 @Bjørn Stabell

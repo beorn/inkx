@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-02T23:02:58Z
 closed_at: 2026-04-02T23:49:22Z
 close_reason: Shipped 460bae4d
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 2: Extract heartbeat to createHeartbeat() factory @km/storage #task #P2

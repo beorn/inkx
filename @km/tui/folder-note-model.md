@@ -5,6 +5,14 @@ aliases:
   - km-tui-folder-note-model
 created_by: Bjørn Stabell
 created_at: 2026-04-14T17:35:52Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.folder-note-model
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T10:35:57Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Folder-note model: refine merge semantics (parked) @km/tui #task #P3

@@ -10,6 +10,8 @@ close_reason: "Grooming 2026-04-15: all 14 child phases (0-6) closed. Remaining
   work (selection quality, pointer model, hover, userSelect, copy-on-select) is
   tracked under km-silvery.selection-focus-plateau and standalone km-silvery.*
   feature beads."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Interactions as runtime: move machines to @silvery/headless, extend existing providers, document it all @km/silvery #epic #P1 @Bjørn Stabell

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T15:04:09Z
 closed_at: 2026-02-19T16:17:15Z
+owner: bjorn@stabell.org
+assignee: claude:fcaad2fa
 ---
 
 # [x] Cards show raw link IDs (^12031...) instead of resolved target titles @km/tui #bug #P2 @claude:fcaad2fa

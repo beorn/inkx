@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T13:09:19Z
 closed_at: 2026-02-25T17:18:57Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] Restrict UI chrome to ANSI 16 colors; allow extended for user content @km/tui #task #P1 @claude:d697f216

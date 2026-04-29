@@ -9,6 +9,8 @@ close_reason: "Completed test fixture audit and all improvements: added shared
   fixtures (item.simpleBoard/multiColBoard/nestedBoard), navigateTo helper,
   merged 7 tiny files into domain parents (112→105 files, -7), updated tests
   CLAUDE.md with best practices. All tests pass."
+owner: bjorn@stabell.org
+assignee: claude:ceb7c9cb
 ---
 
 # [x] task: review test fixture ergonomics and shared abstractions @km/_orphan #task #P3 @claude:ceb7c9cb

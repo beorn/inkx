@@ -12,6 +12,15 @@ close_reason: "Fixed in bearly a12dc91 (P0.5/P0.6/P1.7) + afb35e7 (P1.3).
   tests + 37 slow tests all pass. P2.1 notification-machinery cleanup deferred —
   the polling-era remnants in tribe-daemon.ts are pure comments now, no dead
   code. bearly commits pushed. km submodule bumped and pushed: eb2814608."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-tribe.delivery-correctness
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-19T10:54:51Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] tribe: fix message-loss + cursor-advance bugs in replay/disconnect paths @km/tribe #bug #P0 @Bjørn Stabell

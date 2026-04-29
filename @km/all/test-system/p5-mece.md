@@ -5,6 +5,14 @@ aliases:
   - km-all-test-system-p5-mece
 created_by: Bjørn Stabell
 created_at: 2026-04-18T07:44:53Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.test-system.p5-mece
+    depends_on_id: km-all.test-system
+    type: parent-child
+    created_at: 2026-04-18T00:46:11Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Phase 5: MECE reorg — consolidate tests from ~130 to ~55-60 files @km/all #task #P2

@@ -9,6 +9,8 @@ created_at: 2026-04-05T07:52:58Z
 closed_at: 2026-04-05T09:18:12Z
 close_reason: Reactive<T> deleted, useReactive deleted (0 hits). 35 call sites
   migrated. useSignal hook enhanced. 62 test files pass.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] useSignal hook — React subscribes to alien-signals directly @km/tui #task #P2 @Bjørn Stabell

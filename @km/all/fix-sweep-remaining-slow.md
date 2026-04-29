@@ -7,6 +7,16 @@ created_by: claude:cc081a9a
 created_at: 2026-04-26T21:39:12Z
 closed_at: 2026-04-26T22:09:39Z
 close_reason: Closed
+started_at: 2026-04-26T21:40:11Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-all.fix-sweep-remaining-slow
+    depends_on_id: km-all.fix-sweep-0426
+    type: parent-child
+    created_at: 2026-04-26T14:39:29Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Remaining 6 km-tui slow test failures — heterogeneous real bugs @km/all #bug #P1 @claude:cc081a9a

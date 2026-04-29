@@ -6,6 +6,7 @@ aliases:
   - "@km/term-2/5"
 created_at: 2026-01-28T13:49:50Z
 closed_at: 2026-01-28T14:33:00Z
+assignee: claude:df8d3459
 ---
 
 # [x] Remove cross-dependencies: tui/term must not depend on inkx/chalkx @km/term-2 #task #P1 @claude:df8d3459

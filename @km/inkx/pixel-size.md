@@ -6,6 +6,7 @@ aliases:
 created_by: claude:d1f60fb4
 created_at: 2026-02-25T23:27:34Z
 closed_at: 2026-02-25T23:37:06Z
+owner: bjorn@stabell.org
 ---
 
 # [x] CSI 14t/18t — terminal size in pixels and chars @km/inkx #feature #P4

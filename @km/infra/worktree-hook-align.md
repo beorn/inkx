@@ -5,6 +5,14 @@ aliases:
   - km-infra-worktree-hook-align
 created_by: claude:2405c72e
 created_at: 2026-04-28T22:19:43Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.worktree-hook-align
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-28T15:19:43Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] Align worktree-create hook + isolate.sh with eventual-consistency convention @km/infra #task #P3

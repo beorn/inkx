@@ -8,6 +8,9 @@ created_at: 2026-04-26T11:22:10Z
 closed_at: 2026-04-26T12:12:17Z
 close_reason: "Shipped: 2e7bf52ad. Rebound pane chord prefix from Ctrl+W to
   Ctrl+G (BEL, no readline conflict). 4 tests. Session: km-session.0425-evening"
+started_at: 2026-04-26T11:33:20Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
 ---
 
 # [x] Ctrl+W chord prefix blocked by TextArea word-delete binding @km/silvercode #bug #P2 @claude:2405c72e

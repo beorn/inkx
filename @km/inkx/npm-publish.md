@@ -7,6 +7,7 @@ created_by: claude:ee8efc0f
 created_at: 2026-02-23T11:14:22Z
 closed_at: 2026-03-09T22:07:20Z
 close_reason: "Grooming: superseded by km-silvery.publish-1.0 (hightea → silvery)"
+owner: bjorn@stabell.org
 ---
 
 # [x] Publish hightea to npm @km/inkx #task #P4

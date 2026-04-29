@@ -10,6 +10,8 @@ close_reason: "Created 46 per-component API reference docs + categorized index
   at docs/components/README.md. All props extracted from TypeScript source.
   Categories: Layout, Text, Input, Lists, Navigation, Dialogs, Data, Feedback,
   Error, Theming, Form."
+owner: bjorn@stabell.org
+assignee: claude:19080504
 ---
 
 # [x] Per-component API reference docs for all 30+ silvery components @km/silvery #task #P2 @claude:19080504

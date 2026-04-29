@@ -4,6 +4,7 @@ aliases:
   - km-flexx-wrap-justify
 created_at: 2026-01-31T21:00:26Z
 closed_at: 2026-01-31T21:08:35Z
+assignee: claude:b8b4780b
 ---
 
 # [x] Fix multi-line wrap: justify-content computed globally instead of per-line @km/_orphan #bug #P1 @claude:b8b4780b

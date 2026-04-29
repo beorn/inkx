@@ -15,6 +15,15 @@ close_reason: "Shipped in silvery 087f2ac4. probeTerminalProfile(opts):
   branch). 4 new contract tests in profile.test.ts pin: probeTheme: false → no
   theme, mono/ansi16 tiers use canned themes (no OSC roundtrip), precedence
   matches sync factory."
+owner: bjorn@stabell.org
+assignee: claude:c6244087
+dependencies:
+  - issue_id: km-silvery.plateau-profile-theme
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T02:49:46Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Fold detectTheme into TerminalProfile — async profile with probeTheme @km/silvery #task #P3 @claude:c6244087

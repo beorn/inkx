@@ -8,6 +8,7 @@ created_at: 2026-04-02T22:01:29Z
 closed_at: 2026-04-02T22:21:03Z
 close_reason: "Shipped: All 7 timing constants now configurable via SyncConfig
   (retry, clearInFlightDelayMs). Commit efba271c."
+owner: bjorn@stabell.org
 ---
 
 # [x] Move hardcoded timing constants to config @km/storage #task #P3

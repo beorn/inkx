@@ -6,6 +6,7 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T13:46:51Z
 closed_at: 2026-02-19T16:56:18Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Border-box model: text bleeds into right border of Box with borderStyle @km/inkx #bug #P2

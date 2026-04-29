@@ -10,6 +10,8 @@ close_reason: "Fixed: SyncManager accepts injected emitter via SyncConfig. Added
   skipFsSync to EmitOptions + wrapEmitterForReconcile() for FS-origin events.
   TUI/daemon inject shared repo emitter. 5 new emitter tests. Commits
   69903bd9..649b7269."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] SyncManager creates private emitter instead of sharing repo's emitter @km/storage #bug #P1 @Bjørn Stabell

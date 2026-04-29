@@ -6,6 +6,8 @@ aliases:
 created_by: claude:e7ea0892
 created_at: 2026-02-11T19:20:45Z
 closed_at: 2026-02-12T14:21:40Z
+owner: bjorn@stabell.org
+assignee: claude:586bad48
 ---
 
 # [x] Rename: update all reference types (rules, properties, paths) @km/storage #feature #P2 @claude:586bad48

@@ -11,6 +11,7 @@ close_reason: "Fixed: EDGE_START/EDGE_END position values were stored at indices
   layout-helpers.ts and used it at 3 sites in layout-zero.ts (parent relative
   offset, child relative offset, absolute child positioning). Test:
   vendor/flexily/tests/logical-position-edges.test.ts (7 tests)"
+owner: bjorn@stabell.org
 ---
 
 # [x] Bug: EDGE_START/EDGE_END positions are ignored — logical positioning broken @km/flexily #bug #P0

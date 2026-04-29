@@ -6,6 +6,7 @@ aliases:
 created_by: claude:28b14b32
 created_at: 2026-02-23T16:43:20Z
 closed_at: 2026-03-04T16:23:31Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Import: attachments should render as links, not plain text @km/cli #bug #P2

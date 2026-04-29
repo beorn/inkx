@@ -5,6 +5,7 @@ aliases:
   - "@km/_orphan/bear"
 created_by: Bjørn Stabell
 created_at: 2026-04-17T06:03:43Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] (EPIC) bear: workspace daemon unifying recall memory + tribe coordination @km/bear #feature #P3

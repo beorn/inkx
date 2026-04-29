@@ -6,6 +6,8 @@ created_by: Bjørn Stabell
 created_at: 2026-04-01T06:10:39Z
 closed_at: 2026-04-02T04:05:43Z
 close_reason: Closed
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] WriteQueue.flush() is re-entrant — can write stale content over newer content @km/_orphan #bug #P0 @Bjørn Stabell

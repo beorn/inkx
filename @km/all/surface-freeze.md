@@ -5,6 +5,14 @@ aliases:
   - km-all-surface-freeze
 created_by: Bjørn Stabell
 created_at: 2026-04-16T22:55:18Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.surface-freeze
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-16T15:55:21Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Surface freeze: no new view modes / node types until W3 omnibox + W7 selection close @km/all #task #P2

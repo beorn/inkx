@@ -10,6 +10,8 @@ close_reason: All dialog keybindings migrated from boolean flags to
   inScope()/inDialog predicates. Zero old guards remain. Local find +
   search/replace now push dialog modes. 540 km-commands tests pass. Commit
   b37e36665.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Wire inScope() to dialog commands — replace manual mode guards @km/tui #task #P2 @Bjørn Stabell

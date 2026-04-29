@@ -13,6 +13,14 @@ close_reason: Shipped @ km 4eaf34c38. .claude/lib/isolate.sh now wraps cp -c -R
   + 3 parallel clones serialize correctly + lockdir cleans up after each.
   Skipped pid-based staleness reaping (race windows) — wedged-process case is
   rare and surfaces via timeout.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.worktree-clone-serialization
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-24T16:19:05Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
 ---
 
 # [x] Serialize concurrent worktree clones — avoid Hook cancelled under tribe-cp pressure @km/infra #task #P2

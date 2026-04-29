@@ -10,6 +10,15 @@ close_reason: Shipped at silvery 7312271a + km bump 8cf5e86a5. 8 new state
   tokens (primaryHover/Active, accentHover/Active, fgHover/Active,
   bgSelectedHover, bgSurfaceHover) derived ±0.04L/±0.08L OKLCH. PRIMER_ALIASES
   routes $primary-hover→primaryHover. 23 tests pass.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-silvery.state-variants
+    depends_on_id: km-silvery.theme-system-v2
+    type: parent-child
+    created_at: 2026-04-18T10:45:13Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] $primary-hover/-active + family — state variants as tokens @km/silvery #task #P3 @Bjørn Stabell

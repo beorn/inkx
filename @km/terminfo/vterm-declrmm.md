@@ -10,6 +10,8 @@ close_reason: "Implemented all 4 remaining features: DECLRMM (real left/right
   margin support), mode 2031 (color scheme reporting), OSC 66 (text sizing), OSC
   5522 (advanced clipboard). vterm.js now 161/161 (100%) on terminfo.dev. 26 new
   tests, all passing."
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] vterm.js: implement DECLRMM (left/right margins) — last missing feature for 100% @km/terminfo #feature #P3 @claude:4929065a

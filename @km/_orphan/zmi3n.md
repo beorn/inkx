@@ -5,6 +5,7 @@ aliases:
 created_by: claude:891e3ce1
 created_at: 2026-02-27T16:44:13Z
 closed_at: 2026-02-27T16:44:20Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Unified RuntimeContext: collapse input contexts + bidirectional event bus @km/_orphan #feature #P2

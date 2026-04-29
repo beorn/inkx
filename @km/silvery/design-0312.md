@@ -10,6 +10,8 @@ close_reason: Architecture overview doc created (146 lines). Plugin composition
   (generic accumulation via intersection types) and op() ergonomics (semantic
   contract, enforcement modes) documented in app-composition.md. All
   cross-references updated.
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] Design docs: driver-on-handle, fx.from(), timers/streams, scope policies @km/silvery #task #P2 @claude:c9beade3

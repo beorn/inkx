@@ -5,6 +5,7 @@ aliases:
   - km-bearly-github-integration
 created_by: claude:19080504
 created_at: 2026-03-30T20:22:00Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] GitHub integration: fix rate limiting, webhooks, smart polling @km/bearly #task #P2

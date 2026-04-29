@@ -15,6 +15,14 @@ close_reason: "Shipped in 6712ff91e + c3d4f091e on main. Schema flipped 9→3 co
   idx_links_embed_one is regular index, not UNIQUE — markdown paragraph
   coalescing can produce multiple embed rows per host; invariant enforced at
   write time via buildEmbedChild."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-storage.link-phase-3
+    depends_on_id: km-storage.link-model-canonical
+    type: parent-child
+    created_at: 2026-04-16T21:08:24Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Phase 3: storage schema flip — 3-col links table, KLink type, drop dead code @km/storage #task #P2

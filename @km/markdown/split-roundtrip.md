@@ -5,6 +5,7 @@ aliases:
   - km-markdown-split-roundtrip
 created_at: 2026-02-04T11:50:53Z
 closed_at: 2026-02-04T14:21:11Z
+assignee: claude:2a6d91a8
 ---
 
 # [x] Investigate splitting roundtrip.test.ts (1800 lines) @km/markdown #task #P4 @claude:2a6d91a8

@@ -31,6 +31,14 @@ close_reason: >-
   The pane-2d-layout test failure (only │, no ─) is 100% App-side. Refile any
   remaining symptom against km-silvercode (split-direction-race already covers
   it).
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.flexdirection-reuse-bug
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-28T10:28:43Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] flexDirection prop change on reused Box doesn't update layout direction @km/silvery #bug #P1

@@ -12,6 +12,7 @@ close_reason: view-tree.ts (861 lines) + view-snapshot.ts (151 lines) +
   Kept helpers moved to view-lens-helpers.ts. km-canvas migrated to lens. All
   5651 tests pass. 1012 lines of legacy source + ~1444 lines of legacy tests
   removed.
+owner: bjorn@stabell.org
 ---
 
 # [x] Delete view-tree.ts + view-snapshot.ts (1012 lines) — migrate driver/state/km-canvas to lens @km/tui #task #P2

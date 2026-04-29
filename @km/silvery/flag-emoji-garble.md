@@ -11,6 +11,8 @@ close_reason: "Fixed: Added isFlagSequence() detection to wrapTextSizing for OSC
   and incremental render paths now handle flag emoji correctly. Verified in TTY
   at 220x50 with Asana launch-academy vault — j+l+h round-trip clean, no
   garble."
+owner: bjorn@stabell.org
+assignee: claude:65d845d9
 ---
 
 # [x] Flag emoji (🇨🇦) causes cursor drift garble at wide terminals @km/silvery #bug #P2 @claude:65d845d9

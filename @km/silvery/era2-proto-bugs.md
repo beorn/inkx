@@ -9,6 +9,8 @@ closed_at: 2026-03-21T06:39:02Z
 close_reason: "Fixed: drain() yields to event loop between iterations
   (setTimeout(0)). Fixes missing keystrokes, auto-advance, and streaming
   display."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Prototype runtime bugs: ctrl-d, missing keystrokes, no delays @km/silvery #bug #P1 @claude:f8196c1c

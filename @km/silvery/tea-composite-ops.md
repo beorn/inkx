@@ -5,6 +5,20 @@ aliases:
   - km-silvery-tea-composite-ops
 created_by: claude:8b5b9e1c
 created_at: 2026-04-21T06:12:44Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.tea-composite-ops
+    depends_on_id: km-silvery.tea
+    type: parent-child
+    created_at: 2026-04-20T23:12:43Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
+  - issue_id: km-silvery.tea-composite-ops
+    depends_on_id: km-silvery.tea-state-delta-convention
+    type: blocks
+    created_at: 2026-04-21T15:27:11Z
+    created_by: claude:c1c8afe1
+    metadata: "{}"
 ---
 
 # [ ] Composite op primitive for atomic multi-domain transactions @km/silvery #feature #P1

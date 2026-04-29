@@ -72,6 +72,8 @@ close_reason: >-
   Verification: bun vitest run packages/km-storage packages/km-markdown
 
   (1783 + 51 fast) + --project slow (52) + apps/km-tui (2259) all green.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] File watcher doesn't detect external changes in-session @km/storage #bug #P1 @Bjørn Stabell

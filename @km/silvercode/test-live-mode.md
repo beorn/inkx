@@ -17,6 +17,22 @@ close_reason: "SILVERCODE_REAL=1 contract tests via describe.each([fake, real])
   passed + 3 skipped; SILVERCODE_REAL=1 bun run test:silvercode-live runs all 6
   (3 fake + 3 real). Doc updates in apps/silvercode/docs/test-system-design.md
   cover both modes + invocation. Commit be80b2c4f."
+started_at: 2026-04-24T22:46:47Z
+owner: bjorn@stabell.org
+assignee: claude:0940ca20
+dependencies:
+  - issue_id: km-silvercode.test-live-mode
+    depends_on_id: km-silvercode.test-api-fakes
+    type: blocks
+    created_at: 2026-04-24T14:55:57Z
+    created_by: claude:0940ca20
+    metadata: "{}"
+  - issue_id: km-silvercode.test-live-mode
+    depends_on_id: km-silvercode.test-system
+    type: parent-child
+    created_at: 2026-04-24T14:55:57Z
+    created_by: claude:0940ca20
+    metadata: "{}"
 ---
 
 # [x] Visual tests: opt-out real-mode flag (SILVERCODE_REAL=1) for contract tests @km/silvercode #feature #P2 @claude:0940ca20

@@ -23,6 +23,22 @@ close_reason: "Channel pipeline shipped (mechanism delivered alongside
   apps/silvercode/tests/{channel-queue,prompt-assembly}.test.ts (new),
   apps/silvercode/docs/channels.md (new), apps/silvercode/package.json
   (+@silvery/scope dep)."
+started_at: 2026-04-26T09:32:58Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-channels
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T01:32:05Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-channels
+    depends_on_id: km-silvercode.acp-session
+    type: blocks
+    created_at: 2026-04-26T01:32:05Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] Channel pipeline — replace Claude Code's <channel> injection with typed ACP-shaped delivery @km/silvercode #feature #P2 @claude:cd034ca4

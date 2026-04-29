@@ -24,6 +24,8 @@ close_reason: >-
 
 
   5715/5724 fast suite (only pre-existing symlink flake).
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Cursor-null invariant violation after deselect + gate cursor-required commands @km/tui #bug #P1 @Bjørn Stabell

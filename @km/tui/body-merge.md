@@ -6,6 +6,8 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-14T08:13:16Z
 closed_at: 2026-02-14T08:26:19Z
+owner: bjorn@stabell.org
+assignee: claude:124bfbe5
 ---
 
 # [x] Merge all body content into one virtual card per column @km/tui #feature #P3 @claude:124bfbe5

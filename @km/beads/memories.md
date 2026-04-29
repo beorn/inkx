@@ -9,6 +9,7 @@ closed_at: 2026-04-28T02:53:33Z
 close_reason: Shipped in commit ede04bd5a (staged work was bundled into a peer
   agent's commit by concurrent git activity, but all code is present in that
   SHA).
+owner: bjorn@stabell.org
 ---
 
 # [x] @mem root + km bd remember/memories/prime @km/beads #task #P1

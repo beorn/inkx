@@ -9,6 +9,8 @@ closed_at: 2026-03-12T23:35:37Z
 close_reason: "Auto-generated ink compat tests from upstream via codemod. 34
   vitest files, 10,361 lines, 21 fixtures. 804/813 (98.9%) Ink tests pass, 32/32
   Chalk. Docs updated: CLAUDE.md, ANALYSIS.md, RESULTS.md, AUDIT.md."
+owner: bjorn@stabell.org
+assignee: claude:73d7a332
 ---
 
 # [x] Auto-generate ink compat tests from upstream via codemod @km/silvery #task #P2 @claude:73d7a332

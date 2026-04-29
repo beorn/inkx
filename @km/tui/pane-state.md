@@ -6,6 +6,8 @@ aliases:
 created_by: claude:53ab8041
 created_at: 2026-02-28T21:02:36Z
 closed_at: 2026-03-04T12:53:40Z
+owner: bjorn@stabell.org
+assignee: claude:53ab8041
 ---
 
 # [x] Pane-as-view: per-pane state model replacing flat BoardAppState fields @km/tui #feature #P1 @claude:53ab8041

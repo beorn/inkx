@@ -14,6 +14,16 @@ close_reason: "Shipped at 59b936a9 (silvery) + d1c7d3690 (km). 83 tests in
   friendly form). Two follow-ups tracked: km-storage.adopt-silvery-config (P3)
   for km-cli unification; km-silvercode.zero-config (existing) for env-var
   auto-discovery."
+started_at: 2026-04-26T21:07:39Z
+owner: bjorn@stabell.org
+assignee: claude:4de4a3ab
+dependencies:
+  - issue_id: km-silvery.config-package
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-26T14:01:47Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [x] Build @silvery/config — generic config + named-registry primitives @km/silvery #feature #P2 @claude:4de4a3ab

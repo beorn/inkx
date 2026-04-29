@@ -6,6 +6,7 @@ aliases:
 created_by: claude:fbad9cb1
 created_at: 2026-03-06T09:19:15Z
 closed_at: 2026-03-06T09:45:00Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Update design doc pages on hightea.dev to reflect implemented status @km/hightea #task #P2

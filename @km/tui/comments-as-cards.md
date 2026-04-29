@@ -6,6 +6,8 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-18T22:59:19Z
 closed_at: 2026-02-19T08:10:20Z
+owner: bjorn@stabell.org
+assignee: claude:36393b5d
 ---
 
 # [x] Asana comments render as separate cards in column (should be detail-pane only) @km/tui #bug #P2 @claude:36393b5d

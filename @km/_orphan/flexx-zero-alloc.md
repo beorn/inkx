@@ -4,6 +4,7 @@ aliases:
   - km-flexx-zero-alloc
 created_at: 2026-01-30T20:33:59Z
 closed_at: 2026-01-30T21:35:54Z
+assignee: claude:227cdc41
 ---
 
 # [x] [flexx] Zero-allocation layout passes via node-stored flex info @km/_orphan #task #P1 @claude:227cdc41

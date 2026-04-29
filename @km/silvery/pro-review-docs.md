@@ -8,6 +8,8 @@ created_at: 2026-03-30T06:39:47Z
 closed_at: 2026-03-30T06:53:46Z
 close_reason: "Review complete ($6.49). Key finding: DOM mirror must be
   semantics consumer, not display-list adapter. Full findings in notes."
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Pro Review: silvery design docs (roadmap, pretext, rendering-targets) @km/silvery #task #P3 @claude:fed8de9e

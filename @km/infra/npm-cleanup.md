@@ -5,6 +5,7 @@ aliases:
   - km-infra-npm-cleanup
 created_by: claude:fbad9cb1
 created_at: 2026-03-05T08:10:25Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Unpublish unused npm placeholder packages (May 2026) @km/infra #task #P4

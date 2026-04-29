@@ -11,6 +11,16 @@ close_reason: "Work shipped via @bearly/llm 0.3.0 (commit c2f454c, 2026-04-27).
   4 original P1 items vindicated as false-positives by re-verification (see bead
   NOTES F1/F2/F3 + closure note). R3 (path leakage) spun out as
   km-bearly.llm-path-leakage. R2 (leaderboard cache) deferred per YAGNI."
+started_at: 2026-04-28T05:05:04Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-bearly.llm-pro-review-fixes
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-27T08:00:00Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Pro-review fixes for @bearly/llm 0.2.0 — JSONC parser, cost weights, backtest determinism, leaderboard cache @km/bearly #epic #P1 @claude:cc081a9a

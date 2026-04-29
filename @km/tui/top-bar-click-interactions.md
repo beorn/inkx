@@ -8,6 +8,8 @@ created_at: 2026-04-07T22:56:12Z
 closed_at: 2026-04-07T22:56:18Z
 close_reason: Shipped in same session as km-tui.column-empty-space-deselect
   (re-fix). 2 new tests in mouse-click.test.ts. 15/15 pass.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Top-bar click interactions: select board + open view dialog @km/tui #feature #P3 @Bjørn Stabell

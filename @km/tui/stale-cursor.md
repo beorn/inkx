@@ -6,6 +6,8 @@ aliases:
 created_by: claude:9b6678d0
 created_at: 2026-02-11T20:47:04Z
 closed_at: 2026-02-12T09:58:47Z
+owner: bjorn@stabell.org
+assignee: claude:9b6678d0
 ---
 
 # [x] Cursor node not in repo after column shift + file sync @km/tui #bug #P2 @claude:9b6678d0

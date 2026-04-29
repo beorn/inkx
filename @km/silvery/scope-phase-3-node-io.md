@@ -11,6 +11,20 @@ close_reason: N/A — only fs.watch site is apps/km-logview/src/App.tsx:110, whi
   clearTimeout). Migration to useScopeEffect would be ~churn for marginal gain
   (no async work to abort against scope.signal). Re-open if a real long-lived
   spawn site appears.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.scope-phase-3-node-io
+    depends_on_id: km-silvery.lifecycle-scope
+    type: parent-child
+    created_at: 2026-04-24T13:39:53Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
+  - issue_id: km-silvery.scope-phase-3-node-io
+    depends_on_id: km-silvery.scope-phase-2
+    type: blocks
+    created_at: 2026-04-24T13:39:53Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
 ---
 
 # [x] Phase 3.4: fs.watch / child_process.spawn migration @km/silvery #task #P2

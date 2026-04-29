@@ -6,6 +6,7 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T13:14:44Z
 closed_at: 2026-02-19T11:21:13Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Unified text stripping/formatting pipeline @km/tui #task #P2

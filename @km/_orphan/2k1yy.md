@@ -5,6 +5,7 @@ aliases:
 created_by: claude:8fc35754
 created_at: 2026-03-03T07:34:30Z
 closed_at: 2026-03-03T07:53:11Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Composable Region + Matcher API for termless @km/_orphan #feature #P1

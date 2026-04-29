@@ -6,6 +6,7 @@ aliases:
 created_by: claude:5770ce77
 created_at: 2026-02-17T16:08:19Z
 closed_at: 2026-02-17T17:18:59Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Incremental rendering: ghost pixels when components unmount/overlay @km/inkx #bug #P2

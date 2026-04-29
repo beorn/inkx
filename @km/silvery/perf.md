@@ -5,6 +5,7 @@ aliases:
   - km-silvery-perf
 created_by: Bjørn Stabell
 created_at: 2026-04-09T07:41:31Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Silvery performance — analysis, benchmarks, and optimization @km/silvery #epic #P1

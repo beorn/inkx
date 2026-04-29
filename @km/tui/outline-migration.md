@@ -6,6 +6,7 @@ aliases:
 created_by: claude:28b14b32
 created_at: 2026-02-23T15:12:16Z
 closed_at: 2026-02-23T15:46:18Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Migrate cards from border to outline @km/tui #task #P2

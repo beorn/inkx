@@ -6,6 +6,8 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T13:24:36Z
 closed_at: 2026-02-19T13:43:50Z
+owner: bjorn@stabell.org
+assignee: claude:36393b5d
 ---
 
 # [x] Cards: only show count when WIP limit set @km/tui #feature #P3 @claude:36393b5d

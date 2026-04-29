@@ -6,6 +6,8 @@ created_by: claude:ceb7c9cb
 created_at: 2026-03-27T21:02:47Z
 closed_at: 2026-03-27T21:54:21Z
 close_reason: 54 instances migrated to shared fixtures across 14 files, -80 lines
+owner: bjorn@stabell.org
+assignee: claude:ceb7c9cb
 ---
 
 # [x] Migrate tests to shared fixtures + further consolidation @km/_orphan #task #P3 @claude:ceb7c9cb

@@ -5,6 +5,14 @@ aliases:
   - km-silvery-tea-migration
 created_by: claude:f8196c1c
 created_at: 2026-03-20T20:06:38Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.tea.migration
+    depends_on_id: km-silvery.tea-gap-substrate-merge
+    type: blocks
+    created_at: 2026-04-21T15:27:13Z
+    created_by: claude:c1c8afe1
+    metadata: "{}"
 ---
 
 # [ ] Era2b Phase 7: km migration — tea to new packages @km/silvery #task #P2

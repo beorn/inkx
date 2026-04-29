@@ -11,6 +11,8 @@ close_reason: "Consolidated: km-tui re-exports from @km/board (canonical). Moved
   Added SET_COLLAPSED_NODES to canonical definition. km-repl kept separate with
   comment explaining why (tree-in-state paradigm). 196 test files, 5220 tests
   pass."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Consolidate 3 drifted BoardState definitions into one @km/all #task #P2 @Bjørn Stabell

@@ -5,6 +5,32 @@ aliases:
   - km-tui-omnibox-local-find
 created_by: Bjørn Stabell
 created_at: 2026-04-14T23:26:06Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.omnibox-local-find
+    depends_on_id: km-tui.omnibox-dialog
+    type: blocks
+    created_at: 2026-04-14T16:26:20Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.omnibox-local-find
+    depends_on_id: km-tui.omnibox-query-syntax
+    type: blocks
+    created_at: 2026-04-14T18:17:20Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.omnibox-local-find
+    depends_on_id: km-tui.omnibox-ranker
+    type: blocks
+    created_at: 2026-04-14T18:17:20Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.omnibox-local-find
+    depends_on_id: km-tui.omnibox-unified
+    type: parent-child
+    created_at: 2026-04-14T16:26:06Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] / local find bottom-left layout (Phase 9) @km/tui #feature #P1

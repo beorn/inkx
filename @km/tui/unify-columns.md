@@ -8,6 +8,8 @@ created_at: 2026-02-19T13:28:47Z
 closed_at: 2026-04-02T03:49:06Z
 close_reason: useColumns now wraps ViewNode — viewTreeToColumnViews is the
   single derivation path. Commit 6b91c775.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Unify column derivation — use-columns.ts becomes thin ViewNode wrapper @km/tui #task #P2 @Bjørn Stabell

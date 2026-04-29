@@ -15,6 +15,14 @@ close_reason: "Superseded by the pipe() + with*() + createSlice pattern
   (hub/silvery/help-overlay.v3.ts, 56 code LOC) demonstrates the target shape.
   Next: migrate apps/km-tui/src/plugins/with-help-overlay.ts to v3 shape (see
   km-silvery.authoring-elegance follow-ups)."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.definePlugin
+    depends_on_id: km-silvery.authoring-elegance
+    type: parent-child
+    created_at: 2026-04-21T02:06:43Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] definePlugin() factory + useStore hook — the elegance unlock @km/silvery #feature #P1

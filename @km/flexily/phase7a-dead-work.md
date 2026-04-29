@@ -7,6 +7,8 @@ created_by: Bjørn Stabell
 created_at: 2026-04-09T14:30:10Z
 closed_at: 2026-04-09T15:54:40Z
 close_reason: "Fixed. Deep tree 50: Yoga 2.82x gap → 1.61x. 1562 tests pass. Commit f4898ad."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Fix Phase 7a dead-work bug — closes deep tree 2.38x loss @km/flexily #task #P0 @Bjørn Stabell

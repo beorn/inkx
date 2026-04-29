@@ -9,6 +9,7 @@ closed_at: 2026-03-31T21:59:51Z
 close_reason: "Already fixed by km-storage.cross-file-move fix: handleNodeMoved
   now regenerates both source and destination files. old_parent_id snapshoted in
   moveNodeImpl. Verified in TTY + 4 regression tests added."
+owner: bjorn@stabell.org
 ---
 
 # [x] Tab indent in normal mode + undo causes data corruption and content loss @km/tui #bug #P0

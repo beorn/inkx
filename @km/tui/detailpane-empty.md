@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T14:44:16Z
 closed_at: 2026-02-25T17:18:53Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] Detail pane disappears on 'n' — should always show something useful @km/tui #bug #P1 @claude:d697f216

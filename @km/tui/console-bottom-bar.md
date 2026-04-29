@@ -5,6 +5,7 @@ aliases:
   - km-tui-console-bottom-bar
 created_at: 2026-02-05T14:50:52Z
 closed_at: 2026-02-05T15:18:50Z
+assignee: claude:b53ef7e4
 ---
 
 # [x] Bottom bar console stats indicator: show errors/warnings with search-style UX @km/tui #feature #P2 @claude:b53ef7e4

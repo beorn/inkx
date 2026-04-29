@@ -6,6 +6,7 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-18T22:49:55Z
 closed_at: 2026-02-19T08:23:55Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Card content lines count should include title wrap lines @km/tui #bug #P3

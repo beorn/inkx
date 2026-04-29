@@ -5,6 +5,7 @@ aliases:
   - km-termless-terminfo-probe-coverage
 created_by: Bjørn Stabell
 created_at: 2026-04-06T08:34:27Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Extend termless to improve terminfo.dev probe coverage (58 partial → automated) @km/termless #task #P2

@@ -11,6 +11,7 @@ close_reason: "withReact + withTest compose plugins implemented and tested (7
   end-to-end. Command dual-path purged (-681 LOC). RunHandle removed from
   barrel. Mass migration of 33+ test files to compose API deferred — requires
   separate focused session due to scale."
+owner: bjorn@stabell.org
 ---
 
 # [x] Era2a cleanup: withReact/withTest for compose, delete RunHandle/createRenderer @km/silvery #task #P1

@@ -12,6 +12,14 @@ close_reason: Shipped. vendor/bearly@8fd431f + km@1e3a2768c. Two-layer defense
   (anthropics/claude-code#10628) remains upstream — not fixable from submodule,
   memory rule is soft. Follow-up (UserPromptSubmit additionalContext scrub)
   deferred; would close the same trigger class for recall-injected content.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.channel-scrub-haiku
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-22T18:13:49Z
+    created_by: claude:e8967322
+    metadata: "{}"
 ---
 
 # [x] Tribe channel scrub + haiku paraphrase to suppress transcript-shape triggers in broadcast content @km/tribe #task #P2

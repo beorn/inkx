@@ -11,6 +11,7 @@ close_reason: "Phase 1: Extended createTerm() with Provider capabilities
   (83% reduction) as thin wrapper over createApp(). Added paste support to
   term-provider.ts. Fixed 4 stale docs referencing removed terminal option. All
   301 silvery feature tests pass."
+owner: bjorn@stabell.org
 ---
 
 # [x] Unified Terminal abstraction: createTerminal() factory + run() unification @km/silvery #task #P2

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-19T16:52:12Z
 closed_at: 2026-02-19T17:44:24Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Raw Asana section GIDs shown instead of names @km/tui #bug #P2 @claude:8f007ba9

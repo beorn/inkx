@@ -6,6 +6,7 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T01:25:53Z
 closed_at: 2026-02-19T21:50:10Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Rendering: context-dependent styles, card fixes, detail pane @km/all #task #P2

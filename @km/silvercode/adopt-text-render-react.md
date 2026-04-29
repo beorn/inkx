@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-adopt-text-render-react
 created_by: claude:2405c72e
 created_at: 2026-04-28T22:28:37Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.adopt-text-render-react
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T15:28:37Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] Replace silvercode's block-level markdown renderer with @km/text-render + thread InlineComponents-equivalent @km/silvercode #task #P2

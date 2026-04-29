@@ -11,6 +11,15 @@ close_reason: Removed dead themeFgBg/applyBg/ANSI_BG_COLORS in
   chalk-style bg ANSI (bgWhiteBright = \u001b[107m) into Text payloads. Added
   detail-bg-conflict.slow.test.ts regression guard. Could not statically repro
   against user vault in headless — guard is forward-going. Commit c0e2dffd8.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-tui.detail-view-bg-conflict
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-13T22:28:30Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Detail view crash: chalk bg=brightWhite conflicts with silvery bufferBg @km/tui #bug #P2 @Bjørn Stabell

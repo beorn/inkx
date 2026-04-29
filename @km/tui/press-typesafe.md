@@ -5,6 +5,7 @@ aliases:
   - km-tui-press-typesafe
 created_by: Bjørn Stabell
 created_at: 2026-04-02T00:17:27Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Type-safe board.press() — key string literal union @km/tui #task #P3

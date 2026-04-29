@@ -8,6 +8,8 @@ created_at: 2026-04-11T15:37:40Z
 closed_at: 2026-04-11T15:57:30Z
 close_reason: Done. Moved plugins + createApp from create to ag-term. create is
   now pure TS. Published silvery v0.16.0. 243 test files pass.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Package layering: make @silvery/create pure (no React, no ag-term) @km/silvery #task #P1 @Bjørn Stabell

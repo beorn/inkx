@@ -6,6 +6,8 @@ aliases:
 created_by: claude:536645b5
 created_at: 2026-02-20T15:47:46Z
 closed_at: 2026-02-20T18:18:49Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Local find: inline search bar (/ / Ctrl+f) @km/tui #feature #P2 @claude:d3a7049b

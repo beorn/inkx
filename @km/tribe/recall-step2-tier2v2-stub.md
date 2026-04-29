@@ -5,6 +5,20 @@ aliases:
   - km-tribe-recall-step2-tier2v2-stub
 created_by: claude:4de4a3ab
 created_at: 2026-04-28T01:52:22Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.recall-step2-tier2v2-stub
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-27T18:52:24Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
+  - issue_id: km-tribe.recall-step2-tier2v2-stub
+    depends_on_id: km-tribe.recall-step1-hypothesis-test
+    type: blocks
+    created_at: 2026-04-27T18:52:23Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] Step 2 (Days 2-3): Tier 2 v2 stub — UserPromptSubmit hook with skip-on-no-salience + dedup + outcome-rank @km/tribe #task #P2

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d1f60fb4
 created_at: 2026-02-25T14:50:16Z
 closed_at: 2026-02-25T15:14:49Z
+owner: bjorn@stabell.org
+assignee: claude:d1f60fb4
 ---
 
 # [x] Analyze inline mode scrollback behavior — edge cases, limitations, and improvements @km/inkx #task #P2 @claude:d1f60fb4

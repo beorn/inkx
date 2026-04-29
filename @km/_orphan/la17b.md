@@ -5,6 +5,8 @@ aliases:
 created_by: claude:84903949
 created_at: 2026-02-23T23:56:34Z
 closed_at: 2026-03-04T12:44:43Z
+owner: bjorn@stabell.org
+assignee: claude:ee8efc0f
 ---
 
 # [x] Web viewer: resize bug, layout shift, mouse events, source pane @km/_orphan #bug #P3 @claude:ee8efc0f

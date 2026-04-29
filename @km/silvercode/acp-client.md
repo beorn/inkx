@@ -87,6 +87,22 @@ close_reason: >-
 
   - apps/silvercode/packages/agent-harness/CLAUDE.md ("Consuming an external ACP
   server" section)
+started_at: 2026-04-26T09:09:32Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-client
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T01:10:52Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-client
+    depends_on_id: km-silvercode.acp-foundation
+    type: blocks
+    created_at: 2026-04-26T01:10:26Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] ACP client — scope-bound ClientSideConnection factory with capability negotiation @km/silvercode #feature #P1 @claude:cd034ca4

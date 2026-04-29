@@ -5,6 +5,7 @@ aliases:
   - km-silvery-wide-emoji-continuation-cell-stale
 created_by: claude:019d032d
 created_at: 2026-04-22T20:43:37Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Wide emoji continuation cells retain stale chars when right-justified sibling reflows @km/silvery #bug #P3

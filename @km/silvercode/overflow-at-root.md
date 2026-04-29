@@ -18,6 +18,9 @@ close_reason: "Shipped: km main 48c524bfb. Most of the bead's scope (per-leaf
   container, not multi-level descendants. Removal becomes safe when silvery
   adopts CSS preset (km-silvery.flexshrink-default Phase 6 +
   km-flexily.auto-min-size-flex-items)."
+started_at: 2026-04-25T10:39:48Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
 ---
 
 # [x] Overflow prevention at the container root, not per-leaf @km/silvercode #task #P2 @claude:2405c72e

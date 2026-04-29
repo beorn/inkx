@@ -5,6 +5,7 @@ aliases:
   - km-silvery-trilemma-tape
 created_by: Bjørn Stabell
 created_at: 2026-04-02T16:58:15Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Create VHS .tape recording of the trilemma demo @km/silvery #task #P2

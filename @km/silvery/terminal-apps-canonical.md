@@ -9,6 +9,7 @@ closed_at: 2026-03-10T18:48:38Z
 close_reason: Updated terminal-apps.md, plugins.md, event-handling.md,
   quick-start.md to use real import paths (@silvery/tea/plugins). Fixed
   aspirational-to-real API references. Added pipe() mention in quick-start.
+owner: bjorn@stabell.org
 ---
 
 # [x] Rewrite terminal-apps guide to canonical Silvery Way @km/silvery #task #P2

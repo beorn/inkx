@@ -6,6 +6,8 @@ aliases:
 created_by: claude:28b14b32
 created_at: 2026-02-23T12:18:36Z
 closed_at: 2026-02-23T12:34:11Z
+owner: bjorn@stabell.org
+assignee: claude:28b14b32
 ---
 
 # [x] Omnibox: add vault-wide content search mode @km/tui #feature #P2 @claude:28b14b32

@@ -6,6 +6,7 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-14T08:46:40Z
 closed_at: 2026-02-14T15:40:49Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Due date and priority not showing in cards view @km/tui #bug #P2

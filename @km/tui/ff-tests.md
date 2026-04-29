@@ -10,6 +10,7 @@ close_reason: 22 detection tests (index-file.test.ts), 10 column promotion tests
   (duplicate-columns.test.ts), 5 AST parser tests (km-wikilink.test.ts), 5 regex
   parser tests (markdown.test.ts). All pass. Fuzz fixtures deferred — item()
   helper doesn't support fstype, would need createFakeRepo-based setup.
+owner: bjorn@stabell.org
 ---
 
 # [x] Unit + slow + fuzz tests for index file columns @km/tui #task #P2

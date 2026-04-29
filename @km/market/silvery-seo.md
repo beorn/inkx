@@ -10,6 +10,8 @@ close_reason: "Audit (69/100) + fixes shipped: unique descriptions, 45+ count,
   SoftwareApplication schema, author URLs, section indexes, FAQ page, About/Why
   expansion. Commits: 1f46633, fa49800, c995ae7, d100077, f4c3fcd, 1359c4e,
   8b120e3"
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] silvery.dev SEO audit and optimization @km/market #task #P2 @Bjørn Stabell

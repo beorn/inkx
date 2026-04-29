@@ -7,6 +7,8 @@ created_by: claude:ceb7c9cb
 created_at: 2026-03-30T14:57:21Z
 closed_at: 2026-04-02T20:49:25Z
 close_reason: "Shipped: dotted underline default, blue on hover. Commit a3f8e76d."
+owner: bjorn@stabell.org
+assignee: claude:km-work2
 ---
 
 # [x] Wikilink styling v2: dotted underline default, blue on hover @km/tui #task #P1 @claude:km-work2

@@ -5,6 +5,7 @@ aliases:
   - km-silvery-distribution
 created_by: claude:f8196c1c
 created_at: 2026-03-23T19:30:27Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Distribution: bundling recipes, lightweight CLI, single binary @km/silvery #task #P2

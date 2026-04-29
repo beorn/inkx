@@ -9,6 +9,15 @@ closed_at: 2026-04-18T18:27:46Z
 close_reason: Shipped in v0.18.0 — see
   hub/silvery/design/v10-terminal/theme-system-v2-plan.md and silvery v0.18.0
   changelog
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-silvery.theme-invariants
+    depends_on_id: km-silvery.design-system
+    type: parent-child
+    created_at: 2026-04-18T00:01:46Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Theme invariants — AA contrast + gamut mapping enforced at theme load @km/silvery #feature #P3 @Bjørn Stabell

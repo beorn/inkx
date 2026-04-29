@@ -9,6 +9,7 @@ closed_at: 2026-03-09T23:48:52Z
 close_reason: Already implemented at packages/ui/src/components/useTextArea.ts
   (648 lines). Exported from components.ts. TextArea uses it internally. 14
   tests pass.
+owner: bjorn@stabell.org
 ---
 
 # [x] Extract useTextArea hook from TextArea component @km/silvery #task #P2

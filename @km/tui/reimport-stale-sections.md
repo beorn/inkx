@@ -6,6 +6,8 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-19T19:11:46Z
 closed_at: 2026-02-19T22:58:43Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Re-import to remove 30 stale (no section) nodes from Asana data @km/tui #task #P4 @claude:8f007ba9

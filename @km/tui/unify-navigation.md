@@ -10,6 +10,7 @@ close_reason: Legacy navigation fallback deleted (navigateVertical,
   navigateHorizontal, getSibling, findAncestorAtDepth, filterMeaningfulBody,
   cardAt). NavState.viewTree/viewIndex now required. -579 lines. Commit
   216eadb8.
+owner: bjorn@stabell.org
 ---
 
 # [x] Delete legacy navigation — ViewNode-only cursor movement @km/tui #task #P2

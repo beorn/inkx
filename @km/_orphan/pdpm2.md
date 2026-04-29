@@ -10,6 +10,8 @@ close_reason: "Two fixes: (1) vault rule changed from ./inbox/** to ./inbox/**
   and 4 \\![[ai-summary]] embeds from @next.md. (2) buildEmbedChild no longer
   copies source content — embed nodes stay empty so display resolves target's
   current content dynamically. state.db deleted for rebuild."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Rule-created embed nodes should not copy target content @km/_orphan #bug #P2 @claude:f8196c1c

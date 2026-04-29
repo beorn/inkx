@@ -5,6 +5,14 @@ aliases:
   - km-tui-omnibox-mockup
 created_by: Bjørn Stabell
 created_at: 2026-04-14T23:23:11Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.omnibox-mockup
+    depends_on_id: km-tui.omnibox-unified
+    type: parent-child
+    created_at: 2026-04-14T16:23:31Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Omnibox static mockup app — 6+ scenes showing dialog forms, operators, filters @km/tui #task #P1

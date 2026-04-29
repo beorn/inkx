@@ -6,6 +6,7 @@ aliases:
 created_by: claude:d1f60fb4
 created_at: 2026-02-25T23:27:32Z
 closed_at: 2026-02-25T23:37:05Z
+owner: bjorn@stabell.org
 ---
 
 # [x] DA1/DA2/DA3 + XTVERSION — device attributes and terminal identification @km/inkx #feature #P3

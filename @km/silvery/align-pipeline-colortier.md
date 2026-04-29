@@ -7,6 +7,14 @@ created_by: claude:c6244087
 created_at: 2026-04-23T19:40:40Z
 closed_at: 2026-04-23T19:59:19Z
 close_reason: Closed
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.align-pipeline-colortier
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T12:40:53Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Rename pipeline ColorLevel → ColorTier (drop local alias) @km/silvery #task #P3

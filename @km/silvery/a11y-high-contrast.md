@@ -5,6 +5,14 @@ aliases:
   - km-silvery-a11y-high-contrast
 created_by: Bjørn Stabell
 created_at: 2026-04-15T23:19:36Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.a11y-high-contrast
+    depends_on_id: km-silvery.opentui-parity
+    type: parent-child
+    created_at: 2026-04-15T16:19:36Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] A11y: high-contrast mode detection + useHighContrast() @km/silvery #feature #P4

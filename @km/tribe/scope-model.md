@@ -8,6 +8,14 @@ created_at: 2026-04-19T17:55:26Z
 closed_at: 2026-04-20T18:46:26Z
 close_reason: "Dissolved. Scope via tree placement + remote: URI per chatlog
   node (hub/km/design/tribe-matrix.md). No global scope model needed."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.scope-model
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-19T10:55:26Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] tribe: decide per-project vs global-user daemon and make the code reflect it @km/tribe #feature #P2

@@ -16,6 +16,7 @@ close_reason: "Investigated. The top-level await is safe in practice: (1) Bun
   browser/older-bundler compat concern. If this ever becomes a standalone
   published package, the logger should be refactored to lazy initialization, but
   that's a publishing concern, not a current one."
+owner: bjorn@stabell.org
 ---
 
 # [x] Quality: logger.ts top-level await complicates sync initialization story @km/flexily #task #P2

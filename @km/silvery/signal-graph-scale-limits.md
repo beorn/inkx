@@ -5,6 +5,14 @@ aliases:
   - km-silvery-signal-graph-scale-limits
 created_by: claude:8b5b9e1c
 created_at: 2026-04-21T08:37:21Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.signal-graph-scale-limits
+    depends_on_id: km-all.plateau
+    type: parent-child
+    created_at: 2026-04-21T01:37:21Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [ ] Signal graph scale ceiling — alien-signals + React reconciliation at 100K+ nodes @km/silvery #task #P1

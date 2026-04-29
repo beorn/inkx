@@ -12,6 +12,15 @@ close_reason: "Shipped 3-step cascade per §3.2/§3.3: Step 1 repo-wide inode
   rename support. 4 focused tests in reconcile-inode-cascade.test.ts. Harness
   unlocked: slow 6→10 pass, fuzz 0→4 pass. Post-git-restore Step 3 deferred
   (needs tombstone retention window). Total 7083 pass."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.identity-recovery-cascade
+    depends_on_id: km-storage.fs-mount
+    type: parent-child
+    created_at: 2026-04-21T13:25:50Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Identity recovery — paths-of-.name (primary) + content-hash/inode/structural heuristics (secondary) @km/storage #feature #P1 @claude:8b5b9e1c

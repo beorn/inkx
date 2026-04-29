@@ -10,6 +10,20 @@ close_reason: OTEL bridge scaffold implemented at src/otel.ts. toOtel({ api })
   creates a transparent Stage that forwards LogEvent→OTLP LogRecord and
   SpanEvent→OTLP Span. Subpath export at loggily/otel. 4 tests.
   @opentelemetry/api as optional peer dep.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-loggily.otel
+    depends_on_id: km-loggily
+    type: parent-child
+    created_at: 2026-04-11T23:58:29Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-loggily.otel
+    depends_on_id: km-loggily.v2-phase3
+    type: blocks
+    created_at: 2026-04-11T23:59:05Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] OTEL bridge — OpenTelemetry integration @km/loggily #feature #P3

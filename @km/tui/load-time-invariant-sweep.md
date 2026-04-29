@@ -5,6 +5,14 @@ aliases:
   - km-tui-load-time-invariant-sweep
 created_by: Bjørn Stabell
 created_at: 2026-04-15T04:25:50Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.load-time-invariant-sweep
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T21:25:51Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Run checkInvariants once post-restore to silently heal stale state @km/tui #task #P3

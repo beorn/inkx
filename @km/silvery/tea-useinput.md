@@ -17,6 +17,15 @@ close_reason: "TEA Phase 2 wiring shipped on feat/selection-plateau: e4030611d
   1200 target — extract providers/lifecycle/press). Verified: non-vendor tsc 0,
   silvery tsc 154 (≤155 baseline), substrate 90/90, features 1299 + 6
   pre-existing unrelated."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-silvery.tea-useinput
+    depends_on_id: km-silvery.selection-focus-plateau
+    type: parent-child
+    created_at: 2026-04-15T11:31:03Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] TEA Phase 2: Fix useInput precedence inside createApp @km/silvery #task #P1 @Bjørn Stabell

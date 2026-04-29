@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T12:21:15Z
 closed_at: 2026-02-25T17:18:56Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] Pane focus styling: dim selection when unfocused, grey/white top bar @km/tui #feature #P2 @claude:d697f216

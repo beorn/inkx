@@ -6,6 +6,7 @@ aliases:
   - "@km/test-simplify/7"
 created_at: 2026-01-23T22:41:25Z
 closed_at: 2026-01-26T18:11:13Z
+assignee: beorn
 ---
 
 # [x] Investigate mdtest speed via run() hook @km/test-simplify #task #P4 @beorn

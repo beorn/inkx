@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fbad9cb1
 created_at: 2026-03-04T16:14:47Z
 closed_at: 2026-03-04T16:24:34Z
+owner: bjorn@stabell.org
+assignee: claude:fbad9cb1
 ---
 
 # [x] Phase 1: Published benchmarks — ?. overhead vs pino/winston/debug noop @km/logger #task #P2 @claude:fbad9cb1

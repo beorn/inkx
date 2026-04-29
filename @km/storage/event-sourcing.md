@@ -11,6 +11,7 @@ close_reason: "Shipped: Emitter split into commit() + project(). commit() does
   backwards compat. Reconciliation uses commit() directly — structural echo
   prevention. origin field added to Event type. 7 tests. Commits 08c180ca,
   1a9f9d9d."
+owner: bjorn@stabell.org
 ---
 
 # [x] Decouple emitter into EventLog + StateDB + Projections @km/storage #task #P2

@@ -8,6 +8,8 @@ created_at: 2026-04-03T07:18:55Z
 closed_at: 2026-04-03T07:44:23Z
 close_reason: Implemented CheckboxIcon with arm-on-hover (inverse+bold), pointer
   cursor, click toggles todo<->done. Integrated in TreeNode.tsx. 6 tests.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Checkboxes: arm on hover, click to toggle — everywhere they appear @km/silvery #feature #P2 @Bjørn Stabell

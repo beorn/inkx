@@ -10,6 +10,8 @@ close_reason: "Fixed: BodyBlockEditor now renders non-active body blocks via
   TreeNode (display mode, isBody=true), preserving bullets, checkboxes,
   indentation, and width constraints. Active block still uses BodyEditField.
   TreeNode is injected via prop to break circular import."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] Body block editing flattens tree structure — no bullets, no nesting, border overflow @km/tui #bug #P1 @Bjørn Stabell

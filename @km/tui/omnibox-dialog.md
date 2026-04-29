@@ -19,6 +19,50 @@ close_reason: "Shipped 2026-04-17 as W3 v1 ship. 11/12 acceptance criteria met:
   tracked in km-tui.itempicker-unify. 747/747 omnibox tests pass. tsc 0. Key
   commits: cd7b96ba0 (tests), d639c8476 (reroute), b7e205cf5 (fix), de6e25bbc
   (shift gate), 3700d785c (FavoritesDialog delete)."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.omnibox-dialog
+    depends_on_id: km-tui.omnibox-command-projection
+    type: blocks
+    created_at: 2026-04-14T16:26:16Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.omnibox-dialog
+    depends_on_id: km-tui.omnibox-default-command
+    type: blocks
+    created_at: 2026-04-14T18:17:14Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.omnibox-dialog
+    depends_on_id: km-tui.omnibox-query-syntax
+    type: blocks
+    created_at: 2026-04-14T16:26:17Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.omnibox-dialog
+    depends_on_id: km-tui.omnibox-ranker
+    type: blocks
+    created_at: 2026-04-14T16:26:15Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.omnibox-dialog
+    depends_on_id: km-tui.omnibox-recents
+    type: blocks
+    created_at: 2026-04-14T16:37:28Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.omnibox-dialog
+    depends_on_id: km-tui.omnibox-row
+    type: blocks
+    created_at: 2026-04-14T16:26:14Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.omnibox-dialog
+    depends_on_id: km-tui.omnibox-unified
+    type: parent-child
+    created_at: 2026-04-14T16:24:58Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Unified omnibox dialog component (Phase 5 — v1 ship) @km/tui #feature #P1

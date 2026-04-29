@@ -9,6 +9,8 @@ closed_at: 2026-03-30T20:01:09Z
 close_reason: 22 console.warn/error calls migrated to loggily across 8
   namespaces (silvery:keys, reconciler, render, pipeline, output, content,
   devtools, app). All warnings now suppressible via DEBUG env.
+owner: bjorn@stabell.org
+assignee: claude:db326126
 ---
 
 # [x] Migrate console.warn/error to loggily in silvery @km/silvery #task #P1 @claude:db326126

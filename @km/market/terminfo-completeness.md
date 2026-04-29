@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-06T04:09:04Z
 closed_at: 2026-04-26T06:24:17Z
 close_reason: All children completed
+owner: bjorn@stabell.org
 ---
 
 # [x] terminfo.dev content completeness + CI/CD @km/market #epic #P2

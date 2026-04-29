@@ -5,6 +5,14 @@ aliases:
   - km-silvery-hybrid-output-default
 created_by: claude:cc081a9a
 created_at: 2026-04-27T05:46:02Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.hybrid-output-default
+    depends_on_id: km-all.codepath-collapse
+    type: parent-child
+    created_at: 2026-04-26T23:18:25Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] Make hybrid output the only path — finish phase 3 migration @km/silvery #feature #P2

@@ -6,6 +6,7 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-22T07:35:44Z
 closed_at: 2026-02-22T21:04:38Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Windowing: workspace save/restore persistence @km/tui #task #P3

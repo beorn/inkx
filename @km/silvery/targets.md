@@ -9,6 +9,7 @@ closed_at: 2026-03-09T19:13:58Z
 close_reason: "9 stub packages created and published to npm (0.0.1):
   @silvery/dom, canvas, native, pdf, img, svelte, vue, solid, preact. Names
   reserved. Monorepo structure in place."
+owner: bjorn@stabell.org
 ---
 
 # [x] silvery: additional render targets and framework engines @km/silvery #feature #P4

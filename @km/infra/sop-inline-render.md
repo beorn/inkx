@@ -9,6 +9,14 @@ closed_at: 2026-04-13T00:52:23Z
 close_reason: "Pushed back: silvery inline rendering is overkill for a dev tool
   with mixed stderr/stdout, streaming progress, and piping needs. createStyle
   with correct theme colors is the right level."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.sop-inline-render
+    depends_on_id: km-infra.sop
+    type: parent-child
+    created_at: 2026-04-12T17:51:16Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] SOP tool: convert output to silvery inline rendering @km/infra #task #P3

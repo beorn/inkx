@@ -6,6 +6,7 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T21:57:00Z
 closed_at: 2026-02-15T17:47:57Z
+owner: bjorn@stabell.org
 ---
 
 # [x] l from body column goes to board title instead of next column @km/tui #bug #P2

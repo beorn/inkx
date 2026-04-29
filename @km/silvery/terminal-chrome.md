@@ -5,6 +5,7 @@ aliases:
   - km-silvery-terminal-chrome
 created_by: claude:4929065a
 created_at: 2026-04-02T17:43:58Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] TerminalChrome component: styled terminal frame for React, Vue, MDX, SVG @km/silvery #feature #P2

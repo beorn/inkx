@@ -8,6 +8,8 @@ created_at: 2026-03-28T07:29:17Z
 closed_at: 2026-03-28T08:16:44Z
 close_reason: All 41 callers migrated, 27 new tests, architecture doc written,
   /code review updated
+owner: bjorn@stabell.org
+assignee: claude:ceb7c9cb
 ---
 
 # [x] Phase 1: Position + KNode namespaces to km-core @km/core #task #P2 @claude:ceb7c9cb

@@ -7,6 +7,7 @@ created_by: claude:db326126
 created_at: 2026-03-30T18:10:07Z
 closed_at: 2026-03-30T18:16:15Z
 close_reason: Closed
+owner: bjorn@stabell.org
 ---
 
 # [x] [bug] Backspace/delete keys don't work in inline edit mode (Ghostty) @km/tui #bug #P1

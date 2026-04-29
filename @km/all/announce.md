@@ -5,6 +5,7 @@ aliases:
   - km-all-announce
 created_by: claude:ee8efc0f
 created_at: 2026-02-23T11:14:26Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Public GitHub presence and community setup for silvery and flexily @km/all #task #P3

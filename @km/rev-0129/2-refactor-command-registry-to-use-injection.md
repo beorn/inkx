@@ -6,6 +6,7 @@ aliases:
   - "@km/rev-0129/2"
 created_at: 2026-01-29T16:36:05Z
 closed_at: 2026-01-29T18:09:24Z
+assignee: claude:298008b9
 ---
 
 # [x] Refactor command registry to use injection @km/rev-0129 #task #P2 @claude:298008b9

@@ -9,6 +9,8 @@ closed_at: 2026-03-15T17:39:28Z
 close_reason: "All 15 findings implemented: cascade predicates, scroll planner,
   naming, STRICT fixes, diff pool bug, artifact tests, loggily diagnostics,
   renderNodeToBuffer decomposition"
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] Pipeline review: algorithm clarity, test coverage, docs, env vars @km/silvery #epic #P2 @claude:c9beade3

@@ -8,6 +8,7 @@ closed_at: 2026-03-15T07:35:35Z
 close_reason: "Extracted cascade predicates to cascade-predicates.ts. Exhaustive
   tests: 16384 combinations + 10 structural invariants + 16 named scenarios.
   Truth table added to content-phase.ts and RENDERING.md."
+owner: bjorn@stabell.org
 ---
 
 # [x] Cascade formulas: truth table + exhaustive tests @km/_orphan #task #P3

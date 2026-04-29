@@ -7,6 +7,8 @@ created_by: Bjørn Stabell
 created_at: 2026-04-09T17:37:14Z
 closed_at: 2026-04-09T23:47:42Z
 close_reason: Shipped. Lazy Ag creation in createApp, reused across frames. Commit f5b33b9e.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Long-lived Ag instance — cache pipeline state across frames @km/silvery #feature #P2 @Bjørn Stabell

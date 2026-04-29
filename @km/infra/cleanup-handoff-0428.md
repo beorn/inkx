@@ -167,6 +167,16 @@ close_reason: >-
   - /private/tmp/km-* — 4 empty dirs removed
 
   - 4 stash entries from prior sessions retained (autostashes from bd hook)
+started_at: 2026-04-28T22:02:14Z
+owner: bjorn@stabell.org
+assignee: claude:da9990c5
+dependencies:
+  - issue_id: km-infra.cleanup-handoff-0428
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-28T15:01:12Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Hand off: triage all retained worktrees + branches per the new wip-triage discipline @km/infra #task #P0 @claude:da9990c5

@@ -53,6 +53,16 @@ close_reason: >-
 
   Did NOT modify session-store.ts, parse.ts, spawn.ts (out of scope per bead).
   Legacy AgentEvent surface preserved for gradual migration. Commit: 8fd218cb6.
+started_at: 2026-04-26T09:09:27Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-foundation
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T01:10:52Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] Foundation — silvercode canonical types + ACP boundary adapter @km/silvercode #feature #P1 @claude:cd034ca4

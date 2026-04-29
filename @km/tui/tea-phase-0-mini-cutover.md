@@ -49,6 +49,15 @@ close_reason: >-
 
 
   Commits: 5e388922a, 246663d69, 65837425f.
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-tui.tea-phase-0-mini-cutover
+    depends_on_id: km-tui.tea
+    type: parent-child
+    created_at: 2026-04-20T23:58:05Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Mini-cutover: withHelpOverlay plugin — TEA apply-chain on one real km dialog @km/tui #task #P1 @claude:8b5b9e1c

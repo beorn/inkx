@@ -6,6 +6,8 @@ aliases:
 created_by: claude:8fc35754
 created_at: 2026-03-03T08:27:36Z
 closed_at: 2026-03-03T08:30:58Z
+owner: bjorn@stabell.org
+assignee: claude:8fc35754
 ---
 
 # [x] Cross-terminal conformance matrix: automated compatibility reports @km/termless #feature #P2 @claude:8fc35754

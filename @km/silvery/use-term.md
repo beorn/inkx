@@ -5,6 +5,7 @@ aliases:
   - km-silvery-use-term
 created_by: claude:73d7a332
 created_at: 2026-03-11T19:31:03Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] useTerm(selector): fine-grained reactive terminal state @km/silvery #feature #P2

@@ -16,6 +16,8 @@ close_reason: "Consolidated mode and termRows into OutputContext. Added mode and
   Public API (outputPhase signature, OutputPhaseFn, createOutputPhase)
   unchanged. All 1636 tests pass (9 pre-existing xterm.js API failures
   unrelated)."
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] Introduce OutputContext type — consolidate termRows, mode, caps threading @km/silvery #task #P3 @claude:c9beade3

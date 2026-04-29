@@ -5,6 +5,8 @@ aliases:
 created_by: claude:b509d761
 created_at: 2026-02-10T12:11:05Z
 closed_at: 2026-02-14T09:08:05Z
+owner: bjorn@stabell.org
+assignee: claude:124bfbe5
 ---
 
 # [x] Extended fuzz seeds (10K) for CI nightly runs @km/_orphan #task #P3 @claude:124bfbe5

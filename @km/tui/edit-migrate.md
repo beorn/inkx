@@ -6,6 +6,8 @@ aliases:
 created_by: claude:97217d5d
 created_at: 2026-02-17T10:48:12Z
 closed_at: 2026-02-18T08:21:35Z
+owner: bjorn@stabell.org
+assignee: claude:97217d5d
 ---
 
 # [x] Migrate km-tui inline editing to EditContext @km/tui #task #P2 @claude:97217d5d

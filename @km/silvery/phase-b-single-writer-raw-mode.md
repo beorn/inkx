@@ -9,6 +9,20 @@ closed_at: 2026-04-23T00:55:08Z
 close_reason: Shipped silvery cb8df156. term-provider + input-owner route
   raw-mode + bracketed-paste through injected Modes when Term-driven; fallback
   remains for standalone. 69 silvery runtime/modes tests + 2511 km-tui pass.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.phase-b-single-writer-raw-mode
+    depends_on_id: km-silvery.phase-a3-streams-symbol
+    type: blocks
+    created_at: 2026-04-22T17:44:26Z
+    created_by: claude:019d032d
+    metadata: "{}"
+  - issue_id: km-silvery.phase-b-single-writer-raw-mode
+    depends_on_id: km-silvery.single-writer-raw-mode
+    type: parent-child
+    created_at: 2026-04-22T17:44:25Z
+    created_by: claude:019d032d
+    metadata: "{}"
 ---
 
 # [x] Phase B: term-provider + InputOwner hand off raw-mode / bracketed-paste to term.modes @km/silvery #task #P1

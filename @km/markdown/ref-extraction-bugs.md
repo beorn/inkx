@@ -10,6 +10,8 @@ close_reason: "Fixed in Pro Review Round 1: embed dedup removal, H1 metadata
   round-trip, code fence backtick handling, malformed frontmatter preservation,
   footnote cleanup, ref extraction cleanText, table alignment/escaping, list
   item multi-paragraph + ordered numbering. All with TDD (19+ new tests)."
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] Ref extraction scans inline property values, producing false-positive tags/mentions @km/markdown #bug #P1 @claude:c9beade3

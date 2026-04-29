@@ -12,6 +12,7 @@ close_reason: "Refactor was completed by another session in main worktree
   moved InputMode union locally, installDialogGuard(fm) replaces
   bindFocusManager. ModeStack type, createModeStack factory, and standalone
   tests all deleted."
+owner: bjorn@stabell.org
 ---
 
 # [x] Delete ModeStack — FocusManager scope stack is the single source @km/tui #task #P2

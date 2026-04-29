@@ -6,6 +6,7 @@ aliases:
 created_by: claude:5f0aee02
 created_at: 2026-02-18T10:01:06Z
 closed_at: 2026-02-19T21:30:07Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Use embeds (\![[^id]]) instead of title+link for cross-project task refs @km/tools #feature #P3

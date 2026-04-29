@@ -4,6 +4,7 @@ aliases:
   - km-flexx-parity
 created_at: 2026-01-31T07:47:43Z
 closed_at: 2026-01-31T09:01:29Z
+assignee: claude:b8b4780b
 ---
 
 # [x] Achieve flexx algorithm parity @km/_orphan #task #P2 @claude:b8b4780b

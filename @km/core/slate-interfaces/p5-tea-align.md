@@ -10,6 +10,7 @@ close_reason: "SEPARATED: TEA alignment is a different kind of change
   (architectural, not organizational). Create as independent epic when
   slate-interfaces is complete. Mixing consolidation with architecture change =
   scope creep."
+owner: bjorn@stabell.org
 ---
 
 # [x] TEA alignment — Board.apply() pure state machine (separate epic, follows slate-interfaces) @km/core #task #P3

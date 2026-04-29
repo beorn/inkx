@@ -9,6 +9,16 @@ closed_at: 2026-04-27T04:37:45Z
 close_reason: Fixed by silvery scrollTo recovery + 15-iter single-pass cap
   (cbefc8eb3 km / corresponding silvery). ai-chat.test.tsx:153 (resize) now
   passes. Only :115 (incremental-mismatch) remains failing — separate bead.
+started_at: 2026-04-27T04:27:44Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvery.listview-resize-scroll-target
+    depends_on_id: km-all.fix-sweep-vendor-fuzz
+    type: parent-child
+    created_at: 2026-04-26T21:26:51Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] [bug] ai-chat.test.tsx:153 — scrollTo target index does not intersect viewport after resize @km/silvery #bug #P2 @claude:cc081a9a

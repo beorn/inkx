@@ -11,6 +11,8 @@ close_reason: "Package rename complete: @silvery/tea → @silvery/create. 93 fil
   packages/tea/ deleted. 179 fast + 234 vendor test files pass. /complete
   criteria: grep for @silvery/tea → 0 hits in source (only bearlymade lock file,
   which is auto-generated)."
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Era2b Phase 0: tea() utility in @silvery/create @km/silvery #task #P1 @claude:fed8de9e

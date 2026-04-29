@@ -10,6 +10,21 @@ close_reason: Phase 2 complete. Daemon + socket + DB + CLI + reconnecting MCP
   client + SessionStart integration all shipped. 14 tests (7 daemon integration
   + 7 plugin library-fallback). Full test:fast (6583 pass) green. /complete
   audit found no gaps.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-bear.daemon
+    depends_on_id: km-bear
+    type: parent-child
+    created_at: 2026-04-17T08:13:04Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-bear.daemon
+    depends_on_id: km-bear.mcp-wrapper
+    type: blocks
+    created_at: 2026-04-17T08:13:04Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Phase 2: bear-daemon + workspace-state.db @km/bear #task #P2 @Bjørn Stabell

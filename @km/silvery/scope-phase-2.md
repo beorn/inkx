@@ -7,6 +7,22 @@ created_by: claude:2aefb4b6
 created_at: 2026-04-24T20:39:19Z
 closed_at: 2026-04-24T22:09:27Z
 close_reason: Closed
+started_at: 2026-04-24T21:54:27Z
+owner: bjorn@stabell.org
+assignee: claude:2aefb4b6
+dependencies:
+  - issue_id: km-silvery.scope-phase-2
+    depends_on_id: km-silvery.lifecycle-scope
+    type: parent-child
+    created_at: 2026-04-24T13:39:19Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
+  - issue_id: km-silvery.scope-phase-2
+    depends_on_id: km-silvery.scope-phase-1
+    type: blocks
+    created_at: 2026-04-24T13:39:19Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
 ---
 
 # [x] Phase 2: Silvery-owned APIs return Disposable (1 day) @km/silvery #task #P1 @claude:2aefb4b6

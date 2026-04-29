@@ -5,6 +5,8 @@ aliases:
   - "@km/_orphan/termless"
 created_by: claude:82965375
 created_at: 2026-03-02T12:59:30Z
+owner: bjorn@stabell.org
+assignee: claude:8fc35754
 ---
 
 # [ ] termless: headless terminal testing library @km/termless #epic #P3 @claude:8fc35754

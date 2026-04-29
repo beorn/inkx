@@ -6,6 +6,8 @@ aliases:
 created_by: claude:536645b5
 created_at: 2026-02-21T16:25:20Z
 closed_at: 2026-03-04T12:55:25Z
+owner: bjorn@stabell.org
+assignee: claude:0b75d39f
 ---
 
 # [x] Keybindings v2: cleanup stale code, fix conflicts, wire missing bindings @km/all #epic #P2 @claude:0b75d39f

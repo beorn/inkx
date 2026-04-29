@@ -5,6 +5,7 @@ aliases:
   - km-flexx-measure-height
 created_at: 2026-02-05T12:28:17Z
 closed_at: 2026-02-05T12:32:44Z
+assignee: claude:b53ef7e4
 ---
 
 # [x] fix(flexx): measure function height not constrained by parent main axis @km/flexx #bug #P2 @claude:b53ef7e4

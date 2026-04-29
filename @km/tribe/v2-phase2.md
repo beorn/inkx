@@ -8,6 +8,7 @@ created_at: 2026-03-31T06:15:32Z
 closed_at: 2026-03-31T06:32:47Z
 close_reason: "Implemented: peer sockets in proxy, discover handler in daemon,
   direct messaging with daemon fallback, peer socket cleanup"
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 2: peer sockets + direct messaging @km/tribe #task #P2

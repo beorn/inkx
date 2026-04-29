@@ -5,6 +5,14 @@ aliases:
   - km-tui-inscope-dialog-migration
 created_by: Bjørn Stabell
 created_at: 2026-04-15T04:25:38Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.inscope-dialog-migration
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T21:25:38Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Migrate inScope("dialog:*") → *DialogOpen predicates @km/tui #task #P2

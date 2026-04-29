@@ -6,6 +6,8 @@ aliases:
 created_by: claude:bca35d62
 created_at: 2026-02-11T16:43:10Z
 closed_at: 2026-02-11T17:03:36Z
+owner: bjorn@stabell.org
+assignee: claude:9b6678d0
 ---
 
 # [x] Migrate CLI commands to use Repo mutation methods @km/storage #task #P2 @claude:9b6678d0

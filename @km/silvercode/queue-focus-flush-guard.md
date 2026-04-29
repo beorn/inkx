@@ -8,6 +8,16 @@ created_at: 2026-04-26T05:44:27Z
 closed_at: 2026-04-26T06:38:33Z
 close_reason: "Shipped: b1930e6299b11c0754345a7a4b5af50c239ed4bc. tryFlush bails
   when focusedRegion===queue. 3 tests. Session: km-session.0425-evening"
+started_at: 2026-04-26T05:47:23Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.queue-focus-flush-guard
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-25T22:45:04Z
+    created_by: claude:1eb07bba
+    metadata: "{}"
 ---
 
 # [x] Queue auto-flushes even when cursor is in queue (not command box) @km/silvercode #bug #P2 @claude:2405c72e

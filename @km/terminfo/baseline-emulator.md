@@ -9,6 +9,7 @@ closed_at: 2026-03-31T21:09:58Z
 close_reason: "Decision made: @vterm/vt100 (baseline) + @vterm/modern (full).
   Design principle documented in memory/vt100-vterm-roles.md. Actual rename
   deferred to release cycle."
+owner: bjorn@stabell.org
 ---
 
 # [x] Baseline emulator naming: vt100.js is really VT220-era, consider rename or new package @km/terminfo #task #P3

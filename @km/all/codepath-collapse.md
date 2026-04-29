@@ -5,6 +5,14 @@ aliases:
   - km-all-codepath-collapse
 created_by: claude:cc081a9a
 created_at: 2026-04-27T06:18:05Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.codepath-collapse
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-26T23:18:17Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] [epic] Codepath collapse — delete dead/dual paths @km/all #feature #P3

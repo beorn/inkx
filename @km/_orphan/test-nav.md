@@ -4,6 +4,7 @@ aliases:
   - km-test-nav
 created_at: 2026-01-25T03:11:59Z
 closed_at: 2026-01-26T16:42:38Z
+assignee: beorn
 ---
 
 # [x] Fix board navigation test failures in board.spec.ts @km/_orphan #bug #P1 @beorn

@@ -9,6 +9,14 @@ closed_at: 2026-04-16T23:18:15Z
 close_reason: Folded into km-storage.link-model-canonical. Sigil is part of the
   node name; [[@Alice]] and @Alice are the same link to node '@Alice'. No
   separate namespace system.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-storage.sigils
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-15T12:25:37Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] [epic] km sigils — ~, +, @, #, [[]] — strict namespaces + global config @km/storage #epic #P1

@@ -7,6 +7,14 @@ created_by: Bjørn Stabell
 created_at: 2026-04-18T05:07:25Z
 closed_at: 2026-04-18T05:43:06Z
 close_reason: Merged into km-silvery.scheme-detect (unified detection bead)
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-detect-gaps
+    depends_on_id: km-silvery.design-system
+    type: parent-child
+    created_at: 2026-04-17T22:07:25Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Theme detection gaps — probe OSC 12/17/19, strengthen selection fallback @km/silvery #bug #P3

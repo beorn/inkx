@@ -5,6 +5,7 @@ aliases:
   - km-storage-node-differ-tests
 created_at: 2026-02-04T13:20:48Z
 closed_at: 2026-02-04T13:26:29Z
+assignee: claude:9e69175d
 ---
 
 # [x] Add unit tests for diffNodes @km/storage #task #P3 @claude:9e69175d

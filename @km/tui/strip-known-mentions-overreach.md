@@ -10,6 +10,8 @@ close_reason: "Fixed in 2e42f18ed: stripKnownMentions now strips ONLY known
   person @mentions; preserves #tags, +projects, **bold**, *italic*, ~~strike~~
   verbatim. Code/links/bareurls fall through to inlineNodesToPlainText
   (unchanged correct behavior). 8-test TDD suite in inline-rendering.test.ts."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] stripKnownMentions silently strips ALL tags/projects/formatting from card titles @km/tui #bug #P1 @Bjørn Stabell

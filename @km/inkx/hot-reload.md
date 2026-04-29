@@ -6,6 +6,7 @@ aliases:
 created_by: claude:ee8efc0f
 created_at: 2026-02-23T01:22:53Z
 closed_at: 2026-02-23T01:50:47Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Hot reload with state preservation @km/inkx #feature #P4

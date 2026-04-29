@@ -4,6 +4,7 @@ aliases:
   - km-flexx-pct-nested
 created_at: 2026-01-30T15:25:17Z
 closed_at: 2026-01-30T18:47:57Z
+assignee: claude:b8b4780b
 ---
 
 # [x] [flexx] Fix nested percentage resolution @km/_orphan #bug #P3 @claude:b8b4780b

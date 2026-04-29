@@ -14,6 +14,8 @@ close_reason: "Phase 2 fixed via dfae78e99 (skip in fold-all/unfold-all) +
   flip-and-collapse → clear. Sticky marker: inverse on the fold glyph across
   regular/workflowy/nerdfont/task icon styles. 539/539 km-commands tests pass;
   2136/2137 km-tui tests pass (1 pre-existing symlink failure unrelated)."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Sticky fold — persistent fold state immune to fold-all/unfold-all @km/tui #feature #P2 @Bjørn Stabell

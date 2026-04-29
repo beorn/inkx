@@ -9,6 +9,7 @@ closed_at: 2026-04-09T04:46:26Z
 close_reason: "14 as-any casts eliminated: 5 logger, 7 globalThis, 2 repo
   coercion. Typed globals in types.ts. 2 hidden type bugs fixed. Commit
   88005e39a."
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 8: Eliminate as-any casts — logger types + repo coercion @km/tui #task #P2

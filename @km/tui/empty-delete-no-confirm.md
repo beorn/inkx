@@ -6,6 +6,8 @@ aliases:
 created_by: claude:5770ce77
 created_at: 2026-02-17T10:35:41Z
 closed_at: 2026-02-17T10:39:25Z
+owner: bjorn@stabell.org
+assignee: claude:5770ce77
 ---
 
 # [x] Skip delete confirmation for completely empty nodes @km/tui #feature #P3 @claude:5770ce77

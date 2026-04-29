@@ -6,6 +6,7 @@ aliases:
 created_by: claude:aee18a0e
 created_at: 2026-02-27T12:56:17Z
 closed_at: 2026-03-04T16:23:29Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Remove macOS-specific detectMacOSDarkMode from inkx terminal-caps @km/inkx #bug #P2

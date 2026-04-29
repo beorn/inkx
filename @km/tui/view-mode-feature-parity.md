@@ -11,6 +11,8 @@ close_reason: "Fixed: columnFilters threaded to ColumnsView/ListView/TabsView.
   filtered footer in all views. Unskipped filter persistence test. Tests:
   column-rendering.test.ts (78/78), filter.test.ts (unskipped),
   navigation.slow.spec.ts (174/174). Commit d5aba56e3."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] View mode feature parity: fold/filter/max-lines/etc only work in 'cards' mode @km/tui #bug #P1 @Bjørn Stabell

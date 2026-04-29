@@ -4,6 +4,7 @@ aliases:
   - km-vitestx-chaos
 created_at: 2026-02-03T11:51:38Z
 closed_at: 2026-02-03T12:43:35Z
+assignee: claude:4731ed4e
 ---
 
 # [x] Rebase chaos testing on vitestx gen/take primitives @km/_orphan #task #P3 @claude:4731ed4e

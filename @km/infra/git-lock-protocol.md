@@ -6,6 +6,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-09T06:44:57Z
 closed_at: 2026-04-09T06:57:04Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Tribe git lock mediation — detect, attribute, coordinate @km/infra #feature #P2

@@ -97,6 +97,22 @@ close_reason: >-
   untouched (tribe-mcp + km-mcp-server territory respected). No conflict with
   parallel acp-adapter-claude (different package) or acp-storybook (different
   dir).
+started_at: 2026-04-26T09:52:19Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-multi-agent
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T01:42:22Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-multi-agent
+    depends_on_id: km-silvercode.acp-session
+    type: blocks
+    created_at: 2026-04-26T01:42:22Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] Cross-agent orchestration — coordinator MCP, cross-agent state, prompt projection @km/silvercode #feature #P2 @claude:cd034ca4

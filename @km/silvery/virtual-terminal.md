@@ -30,6 +30,8 @@ close_reason: >-
   8.5/10.
 
   Blog post updated. 3-mode demo shipped. Panes demo fixed.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Virtual terminal (v1.5): scrollback + search + select as tea surface @km/silvery #feature #P1 @Bjørn Stabell

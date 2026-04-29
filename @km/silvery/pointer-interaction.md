@@ -5,6 +5,7 @@ aliases:
   - km-silvery-pointer-interaction
 created_by: Bjørn Stabell
 created_at: 2026-04-06T03:52:04Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Pointer interaction model — userSelect, draggable, pointerEvents @km/silvery #feature #P2

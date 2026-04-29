@@ -6,6 +6,7 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T15:17:22Z
 closed_at: 2026-02-18T22:37:53Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Detail pane shows only one project — should show all projects with sections @km/tui #bug #P2

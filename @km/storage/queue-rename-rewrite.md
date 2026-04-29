@@ -10,6 +10,7 @@ close_reason: "Shipped: WriteQueue.renamePending + dropPending +
   renamePendingSubtree. Wired into handleFileRename/handleFolderRename before
   renameSync. Prevents stale-path writes after rename. 13 tests with edge cases.
   Commits 83888cc1, 1a4637a2, 1886350c."
+owner: bjorn@stabell.org
 ---
 
 # [x] [bug] WriteQueue pending writes not rewritten on rename — stale path flushed @km/storage #bug #P2

@@ -4,6 +4,7 @@ aliases:
   - km-d3eb
 created_at: 2026-01-22T23:03:46Z
 closed_at: 2026-01-22T23:10:06Z
+assignee: c9572d71
 ---
 
 # [x] Review codebase for verbose debug() simplification @km/_orphan #task #P3 @c9572d71

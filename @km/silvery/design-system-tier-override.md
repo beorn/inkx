@@ -7,6 +7,14 @@ created_by: Bjørn Stabell
 created_at: 2026-04-18T03:52:24Z
 closed_at: 2026-04-18T05:43:04Z
 close_reason: Merged into km-silvery.scheme-detect (unified detection bead)
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.design-system-tier-override
+    depends_on_id: km-silvery.design-system
+    type: parent-child
+    created_at: 2026-04-17T20:52:23Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] SILVERY_COLOR env var — force color tier for dev/test/screenshots @km/silvery #feature #P3

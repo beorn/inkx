@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-22T00:24:52Z
 closed_at: 2026-02-22T21:31:09Z
+owner: bjorn@stabell.org
+assignee: claude:28b14b32
 ---
 
 # [x] Pane windowing system: tiling, layouts, workspaces @km/tui #epic #P2 @claude:28b14b32

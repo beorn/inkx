@@ -69,6 +69,15 @@ close_reason: >-
 
   - 17a9a7b1f docs(hub/km): SearchDialog cutover verdict — dirty-but-resolved,
   Phase 1 GO
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-tui.tea-searchdialog-cutover
+    depends_on_id: km-tui.tea
+    type: parent-child
+    created_at: 2026-04-21T00:43:38Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] TEA cutover — SearchDialog (the real Phase 1 validator) @km/tui #feature #P1 @claude:8b5b9e1c

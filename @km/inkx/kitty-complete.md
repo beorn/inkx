@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-20T13:42:59Z
 closed_at: 2026-02-20T13:55:15Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Complete Kitty keyboard protocol support @km/inkx #task #P2 @claude:d3a7049b

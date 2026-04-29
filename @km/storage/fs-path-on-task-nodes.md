@@ -9,6 +9,7 @@ closed_at: 2026-04-25T06:02:15Z
 close_reason: Reverted — keeping all content/data-model issues consolidated on
   km-storage.content-issues for now (per Bjørn 2026-04-25). Spin-outs were
   premature; one running list is the chosen model.
+owner: bjorn@stabell.org
 ---
 
 # [x] Task nodes carry fs_path=NULL — schema asymmetry forces recursive walks @km/storage #chore #P3

@@ -10,6 +10,20 @@ close_reason: boxRect/scrollRect/screenRect as alien-signals.
   useReactiveRect/useCallbackRect now use effect() from @silvery/signals.
   WeakMap-backed, lazy allocation, backward-compatible (layoutSubscribers still
   works). Commit 1790d25a.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.rect-signals
+    depends_on_id: km-silvery.reactive-pipeline
+    type: parent-child
+    created_at: 2026-04-12T00:52:44Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-silvery.rect-signals
+    depends_on_id: km-silvery.test-runtime-parity
+    type: blocks
+    created_at: 2026-04-12T00:52:45Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] boxRect/screenRect as signal sources for useBoxRect/useScrollRect hooks @km/silvery #feature #P2

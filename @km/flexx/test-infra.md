@@ -6,6 +6,8 @@ aliases:
 created_by: claude:b509d761
 created_at: 2026-02-10T12:01:21Z
 closed_at: 2026-02-10T12:11:27Z
+owner: bjorn@stabell.org
+assignee: claude:b509d761
 ---
 
 # [x] Flexx re-layout testing infrastructure: instrumented mode + mutation testing @km/flexx #task #P2 @claude:b509d761

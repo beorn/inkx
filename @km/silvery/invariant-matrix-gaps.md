@@ -5,6 +5,20 @@ aliases:
   - km-silvery-invariant-matrix-gaps
 created_by: claude:950534f3
 created_at: 2026-04-24T08:32:29Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.invariant-matrix-gaps
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-24T01:32:37Z
+    created_by: claude:950534f3
+    metadata: "{}"
+  - issue_id: km-silvery.invariant-matrix-gaps
+    depends_on_id: km-silvery.cursor-contrast-unguarded
+    type: blocks
+    created_at: 2026-04-24T01:32:37Z
+    created_by: claude:950534f3
+    metadata: "{}"
 ---
 
 # [ ] Invariant matrix missing fg-muted/fg-cursor × many bg-* pairings @km/silvery #task #P2

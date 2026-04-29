@@ -6,6 +6,8 @@ aliases:
 created_by: claude:2f3fc9d8
 created_at: 2026-02-11T20:14:20Z
 closed_at: 2026-02-11T21:08:47Z
+owner: bjorn@stabell.org
+assignee: claude:2f3fc9d8
 ---
 
 # [x] Examples: consistent Esc to quit for all examples @km/inkx #task #P2 @claude:2f3fc9d8

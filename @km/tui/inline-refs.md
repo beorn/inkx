@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T15:41:44Z
 closed_at: 2026-02-19T16:17:15Z
+owner: bjorn@stabell.org
+assignee: claude:fcaad2fa
 ---
 
 # [x] Inline ^caret references show raw Asana GIDs in body text @km/tui #bug #P2 @claude:fcaad2fa

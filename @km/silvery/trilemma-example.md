@@ -5,6 +5,8 @@ aliases:
   - km-silvery-trilemma-example
 created_by: Bjørn Stabell
 created_at: 2026-04-02T16:58:14Z
+owner: bjorn@stabell.org
+metadata: '{"depends":"km-silvery.inline-bugs,km-silvery.selection-clipboard"}'
 ---
 
 # [ ] Create runnable trilemma example — agent chat with mode switching @km/silvery #task #P1

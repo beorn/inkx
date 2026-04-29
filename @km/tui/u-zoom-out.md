@@ -6,6 +6,7 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T23:34:47Z
 closed_at: 2026-02-15T09:07:10Z
+owner: bjorn@stabell.org
 ---
 
 # [x] u key: zoom out to parent (keep cursor), at repo root move cursor to parent @km/tui #feature #P2

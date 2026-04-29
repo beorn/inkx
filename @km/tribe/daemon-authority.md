@@ -9,6 +9,14 @@ closed_at: 2026-04-20T18:46:25Z
 close_reason: Dissolved. No custom tribe daemon under the new model
   (hub/km/design/tribe-matrix.md); Matrix homeserver + @km/connector-matrix
   replaces the daemon entirely.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.daemon-authority
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-19T10:54:50Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] tribe: delete P2P direct-send; gate pre-register connections @km/tribe #feature #P1

@@ -5,6 +5,8 @@ aliases:
 created_by: claude:53ab8041
 created_at: 2026-02-28T08:31:57Z
 closed_at: 2026-03-03T12:29:11Z
+owner: bjorn@stabell.org
+assignee: claude:53ab8041
 ---
 
 # [x] zustand-tea: Elm-style effects middleware for Zustand @km/_orphan #feature #P1 @claude:53ab8041

@@ -11,6 +11,8 @@ close_reason: "Implemented preloadDepth in storage layer. Default Infinity (no
   unexplored dirs with readdir child counts. Repo exposes expandDirectory() for
   on-demand expansion and expandAll() async generator for background indexing.
   10 tests in preload-depth.test.ts. All 4221 tests pass."
+owner: bjorn@stabell.org
+assignee: claude:55df8ef1
 ---
 
 # [x] km view: lazy loading for very large drives @km/tui #feature #P2 @claude:55df8ef1

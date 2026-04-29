@@ -6,6 +6,8 @@ aliases:
 created_by: claude:536645b5
 created_at: 2026-02-20T15:44:26Z
 closed_at: 2026-02-20T17:03:47Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Keybinding v2: rebind existing keys to match spec @km/all #task #P2 @claude:d3a7049b

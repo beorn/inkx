@@ -10,6 +10,8 @@ close_reason: "Published 3 stub packages to npm: silvery@0.0.1,
   @silvery/react@0.0.1, loggily@0.0.1 (renamed from omlog — npm blocked it for
   similarity to npmlog/tslog). Pipeline validated with granular access token
   (bypass 2FA). All verified on registry."
+owner: bjorn@stabell.org
+assignee: claude:55df8ef1
 ---
 
 # [x] Publish silvery + omlog stub packages to npm (validate pipeline) @km/silvery #task #P2 @claude:55df8ef1

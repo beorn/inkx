@@ -6,6 +6,7 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-12T16:43:49Z
 closed_at: 2026-02-12T16:50:09Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Virtual cards should be skipped for cursor navigation @km/tui #bug #P3

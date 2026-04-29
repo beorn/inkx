@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-09T07:52:59Z
 closed_at: 2026-04-09T23:50:37Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Migrate board action handlers to sel.transform() — eliminate manual cursor reconciliation @km/tui #task #P2 @Bjørn Stabell

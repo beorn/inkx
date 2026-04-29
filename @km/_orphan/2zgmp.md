@@ -4,6 +4,7 @@ aliases:
   - km-2zgmp
 created_at: 2026-02-02T21:39:48Z
 closed_at: 2026-02-02T21:45:43Z
+assignee: claude:1588825b
 ---
 
 # [x] Code review: VirtualList/scroll implementation improvements @km/_orphan #task #P2 @claude:1588825b

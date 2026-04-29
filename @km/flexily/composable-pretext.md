@@ -10,6 +10,7 @@ close_reason: Composable architecture shipped in km-flexx.v05-compose (v0.5.0).
   createFlexily, createBareFlexily, pipe, TextLayoutService, withMonospace,
   withTestMeasurer, withPretext all implemented. Pretext adapter exists but
   untested with real Canvas fonts — that's a v2.0 concern when ag-canvas ships.
+owner: bjorn@stabell.org
 ---
 
 # [x] Composable Flexily: withPretext() plugin + pipe() architecture @km/flexily #feature #P2

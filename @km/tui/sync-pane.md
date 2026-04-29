@@ -6,6 +6,8 @@ aliases:
 created_by: claude:703e68be
 created_at: 2026-02-11T14:58:36Z
 closed_at: 2026-02-18T08:09:31Z
+owner: bjorn@stabell.org
+assignee: claude:5f0aee02
 ---
 
 # [x] Sync activity pane: toggleable panel showing per-file sync operations @km/tui #feature #P3 @claude:5f0aee02

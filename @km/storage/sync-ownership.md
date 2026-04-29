@@ -11,6 +11,8 @@ close_reason: "Completed: WriteToken architecture implemented across 7 phases.
   skipFsSync), Phases 4+6 (silent failures F1-F10), Phase 5 (rename tokens +
   journal), Phase 7 (ordinal-drift + move-disk). See km-storage.sync-refactor
   epic for full history."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Sync ownership model: DB-authoritative for user edits, file-authoritative for external changes @km/storage #task #P1 @Bjørn Stabell

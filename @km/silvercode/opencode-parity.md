@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-opencode-parity
 created_by: claude:4de4a3ab
 created_at: 2026-04-27T18:16:24Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.opencode-parity
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-27T11:16:24Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] [epic] Reach feature parity with opencode — LSP integration, fork/branch ergonomics, file-watch diagnostics, single-binary distribution @km/silvercode #epic #P2

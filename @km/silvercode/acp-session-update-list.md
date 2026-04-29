@@ -7,6 +7,22 @@ created_by: claude:cd034ca4
 created_at: 2026-04-26T15:37:38Z
 closed_at: 2026-04-26T21:03:00Z
 close_reason: Closed
+started_at: 2026-04-26T20:38:36Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-session-update-list
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T08:37:52Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-session-update-list
+    depends_on_id: km-silvery.diff-code-accordion
+    type: blocks
+    created_at: 2026-04-26T08:37:56Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] silvercode <SessionUpdateList> — stream container with dividers and retry @km/silvercode #feature #P1 @claude:cd034ca4

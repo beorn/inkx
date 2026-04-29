@@ -8,6 +8,7 @@ created_at: 2026-04-10T23:42:42Z
 closed_at: 2026-04-11T18:12:31Z
 close_reason: "Superseded: docs centralized on app-composition.md as canonical.
   Conflicting docs archived to archive/tea-exploration/."
+owner: bjorn@stabell.org
 ---
 
 # [x] Docs era2 alignment — flag era1 patterns, add era2 references @km/silvery #task #P1

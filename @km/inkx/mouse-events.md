@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-20T15:57:19Z
 closed_at: 2026-02-21T08:11:54Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] DOM-level mouse events: scroll, click, double-click on components @km/inkx #feature #P2 @claude:d3a7049b

@@ -13,6 +13,7 @@ close_reason: "Added 10 missing test cases to layout.test.ts: (1)
   (7) POSITION_TYPE_STATIC behavior, (8) absolute child alignment with
   align-items:center, (9) justify-content:space-around, (10) EDGE_START/END in
   LTR direction. All 115 layout tests pass."
+owner: bjorn@stabell.org
 ---
 
 # [x] Testing: 10 concrete missing test cases — logical edges, static, absolute alignment, etc. @km/flexily #task #P1

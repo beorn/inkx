@@ -5,6 +5,7 @@ aliases:
   - km-silvery-clipboard-paste-cleanup
 created_by: Bjørn Stabell
 created_at: 2026-04-06T07:27:42Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Paste architecture + clipboard abstraction review @km/silvery #task #P3

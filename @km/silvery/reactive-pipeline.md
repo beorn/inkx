@@ -10,6 +10,15 @@ close_reason: "G1-G5 done (prior sessions), G6 DEFERRED (research: 22-32 days,
   current 90%+ skip rate), G7 useAgNode + useSignal done, G8 textContent+focused
   signals done, G9 rect-signals moved to @silvery/ag. Three-layer reactive stack
   complete."
+owner: bjorn@stabell.org
+assignee: beorn
+dependencies:
+  - issue_id: km-silvery.reactive-pipeline
+    depends_on_id: km-silvery.layout-quality-plateau
+    type: blocks
+    created_at: 2026-04-12T00:49:05Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Reactive pipeline — signals for dirty tracking, layout gating, incremental rendering @km/silvery #epic #P0 @beorn

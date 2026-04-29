@@ -10,6 +10,8 @@ close_reason: "withApp() implemented in @silvery/create/with-app: models
   registry, commands tree with when() guards, keymap registration, command
   invocation by path. 10 tests. Domain plugin contract validated (model +
   commands + keybindings in one plugin)."
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Era2b Phase 8: withApp() — registries, command execution, domain plugin contract @km/silvery #task #P1 @claude:fed8de9e

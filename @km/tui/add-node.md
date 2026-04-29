@@ -6,6 +6,8 @@ aliases:
 created_by: claude:703e68be
 created_at: 2026-02-11T15:25:34Z
 closed_at: 2026-02-11T15:57:32Z
+owner: bjorn@stabell.org
+assignee: claude:703e68be
 ---
 
 # [x] Add node function via Enter/Return (decker-style) @km/tui #feature #P2 @claude:703e68be

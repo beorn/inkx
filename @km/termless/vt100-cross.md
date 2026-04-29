@@ -8,6 +8,8 @@ created_at: 2026-03-22T16:40:15Z
 closed_at: 2026-03-22T16:50:38Z
 close_reason: "21 cross-comparison tests (TS vs Rust vt100): text rendering, SGR
   styles, cursor, modes, reset. Gracefully skips when native module not built."
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] Cross-compare vt100-ts vs vt100-rust conformance @km/termless #task #P2 @claude:4929065a

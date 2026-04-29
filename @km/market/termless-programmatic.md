@@ -10,6 +10,8 @@ close_reason: "Created 24 per-matcher reference pages in docs/matchers/: index +
   23 individual matchers (text, style, color, cursor, terminal state, snapshot).
   Each with signature, examples, accepts table, see also. Added Matcher
   Reference sidebar section."
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] termless.dev programmatic pages: per-matcher, per-backend generated docs @km/market #feature #P3 @claude:4929065a

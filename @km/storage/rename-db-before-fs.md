@@ -8,6 +8,7 @@ created_at: 2026-03-31T21:31:47Z
 closed_at: 2026-03-31T21:44:18Z
 close_reason: "Fixed: renames now use synchronous renameSync with in-flight
   tracking, DB update after FS success."
+owner: bjorn@stabell.org
 ---
 
 # [x] P1: DB path updated before queued rename succeeds @km/storage #bug #P1

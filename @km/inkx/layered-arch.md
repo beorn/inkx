@@ -6,6 +6,8 @@ aliases:
 created_by: claude:ee8efc0f
 created_at: 2026-02-23T11:14:23Z
 closed_at: 2026-02-23T11:42:08Z
+owner: bjorn@stabell.org
+assignee: claude:ee8efc0f
 ---
 
 # [x] Restructure inkx into layered entry points (minimal core + extensions) @km/inkx #task #P2 @claude:ee8efc0f

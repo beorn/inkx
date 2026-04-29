@@ -8,6 +8,7 @@ closed_at: 2026-03-27T15:40:40Z
 close_reason: Empty children (no name/title/content) no longer count in delete
   confirmation childCount. Both card-level and column-level delete paths filter
   empty nodes. 2 tests added.
+owner: bjorn@stabell.org
 ---
 
 # [x] feat: delete confirmation should ignore empty children @km/_orphan #feature #P2

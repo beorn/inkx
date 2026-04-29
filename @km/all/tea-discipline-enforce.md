@@ -5,6 +5,14 @@ aliases:
   - km-all-tea-discipline-enforce
 created_by: claude:da9990c5
 created_at: 2026-04-28T19:42:47Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.tea-discipline-enforce
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-28T12:42:49Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [ ] Enforce TEA discipline across all interactive subsystems (lint rule + migration plan) @km/all #epic #P2

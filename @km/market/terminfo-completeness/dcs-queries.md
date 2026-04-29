@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-06T06:08:28Z
 closed_at: 2026-04-06T06:12:10Z
 close_reason: consolidated into km-market.terminfo-completeness.query-protocols
+owner: bjorn@stabell.org
 ---
 
 # [x] Add DCS query granularity (DECRQSS, XTGETTCAP split) @km/market #task #P2

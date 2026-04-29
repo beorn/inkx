@@ -5,6 +5,7 @@ aliases:
   - km-silvery-showcase-procedures
 created_by: Bjørn Stabell
 created_at: 2026-04-03T17:25:13Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Silvery Runbook — showcase process, release, testing, docs, operational procedures @km/silvery #task #P2

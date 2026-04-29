@@ -15,6 +15,14 @@ close_reason: "Shipped in v0.18.0: Phase 1 — @deprecated markers on
   TextArea placeholder/disabled→$muted/$disabledfg, ErrorBoundary stack→$muted.
   Typography.<Small> retains dimColor internally (canonical realization site).
   Phase 2 (remove props from public types) deferred to next silvery major."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-dim-deprecate
+    depends_on_id: km-silvery.design-system
+    type: parent-child
+    created_at: 2026-04-17T23:08:02Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Deprecate dimColor prop on Text/Box — route everything through $faint / $muted / $disabledfg tokens @km/silvery #task #P3

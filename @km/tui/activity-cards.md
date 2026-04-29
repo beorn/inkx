@@ -6,6 +6,8 @@ aliases:
 created_by: claude:97b8de73
 created_at: 2026-02-23T00:30:27Z
 closed_at: 2026-02-23T12:38:33Z
+owner: bjorn@stabell.org
+assignee: claude:97b8de73
 ---
 
 # [x] Activity/Comments sections still show as cards on the board @km/tui #bug #P2 @claude:97b8de73

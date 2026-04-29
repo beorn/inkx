@@ -12,6 +12,16 @@ close_reason: "84c36a0af — replaced hand-rolled regex (/^\"(.*)\"$/, /^`(.*)`$
   commandHead() recognizes 'git grep' as compound. Added shell-quote@^1.8.3 +
   @types/shell-quote@^1.7.5. Verified: 41/41 tests incl. nested-quote cases
   (grep \"foo bar\", grep 'a \"b\" c', git grep -n \"ab\\\\\"cd\")."
+started_at: 2026-04-27T20:32:54Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-tools.bd-verify-quote-stripping
+    depends_on_id: km-all.bd-verify-primitive
+    type: parent-child
+    created_at: 2026-04-27T13:23:39Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] bd-verify: complete quote stripping in command parser @km/tools #task #P3 @claude:cc081a9a

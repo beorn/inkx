@@ -5,6 +5,7 @@ aliases:
   - km-inkx-textarea
 created_at: 2026-02-09T12:23:42Z
 closed_at: 2026-02-11T18:08:38Z
+assignee: claude:2f3fc9d8
 ---
 
 # [x] TextArea component for multi-line text input @km/inkx #feature #P3 @claude:2f3fc9d8

@@ -11,6 +11,7 @@ close_reason: "Fixed. Three issues: (1) termless isTerminalReadable rejected
   pointed at process.stdout instead of emulator, (3) run() emulator path used
   headless mode which skipped protocol setup. Also moved alt screen management
   into pause/resume in createApp."
+owner: bjorn@stabell.org
 ---
 
 # [x] Term wrapper should delegate all TerminalReadable methods from emulator backend @km/silvery #task #P2

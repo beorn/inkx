@@ -8,6 +8,8 @@ created_at: 2026-04-01T19:42:23Z
 closed_at: 2026-04-01T19:51:22Z
 close_reason: Implemented. walkTree (DFS generator with filter/maxDepth) +
   getVisibleBlocks. 15 tests. Exported from km-tree.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Configurable tree traversal iterator — walkTree with filter/visible/maxDepth @km/tree #task #P2 @Bjørn Stabell

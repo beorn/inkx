@@ -40,6 +40,16 @@ close_reason: >-
 
   23 sigils tests + 2534 km-tui tests pass. bun fix clean. No new package
   needed.
+started_at: 2026-04-28T19:48:41Z
+owner: bjorn@stabell.org
+assignee: claude:da9990c5
+dependencies:
+  - issue_id: km-spec.bootstrap
+    depends_on_id: km-all.km-spec-typed-primitives
+    type: parent-child
+    created_at: 2026-04-28T12:48:40Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] Bootstrap @km/spec package with NodePath, BdId, SigilChar types + namespaced functions + tests @km/spec #task #P2 @claude:da9990c5

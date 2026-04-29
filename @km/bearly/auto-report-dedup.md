@@ -10,6 +10,7 @@ close_reason: "Fixed: replaced line-count tracking with Map<id, status> dedup.
   Issues.jsonl is a full dump (rewritten on each bd op), not append-only — old
   approach re-reported same beads on every rewrite. Now tracks reported {id →
   claimed|closed} pairs, only sends notification on state transitions."
+owner: bjorn@stabell.org
 ---
 
 # [x] tribe auto-report fires duplicate close notifications @km/bearly #bug #P3

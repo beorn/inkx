@@ -8,6 +8,8 @@ created_at: 2026-04-03T01:54:49Z
 closed_at: 2026-04-03T02:31:05Z
 close_reason: setFsSync/FsSync/save removed from Emitter. withSync and
   withFsWriter wrap apply() directly. Zero SyncManager refs.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Remove setFsSync/FsSync — withSync and withFsWriter wrap apply() directly @km/storage #task #P2 @Bjørn Stabell

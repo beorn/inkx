@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-02T23:02:59Z
 closed_at: 2026-04-02T23:49:22Z
 close_reason: Shipped 287efe40
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 3: Extract bulk sync to BulkSync namespace @km/storage #task #P2

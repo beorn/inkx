@@ -8,6 +8,22 @@ created_at: 2026-04-26T05:58:25Z
 closed_at: 2026-04-26T06:38:50Z
 close_reason: "Shipped: c8a722b4 (silvery). defaultPrevented click skips
   startWord/startLine. 4 tests. Session: km-session.0425-evening"
+started_at: 2026-04-26T06:07:28Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvery.click-granularity-defaultprevented-gate
+    depends_on_id: km-silvery.architectural-plateau
+    type: parent-child
+    created_at: 2026-04-25T22:58:26Z
+    created_by: claude:2405c72e
+    metadata: "{}"
+  - issue_id: km-silvery.click-granularity-defaultprevented-gate
+    depends_on_id: km-silvery.click-granularity-selection
+    type: blocks
+    created_at: 2026-04-25T22:58:27Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Skip word/line auto-select if click handler called preventDefault @km/silvery #bug #P2 @claude:2405c72e

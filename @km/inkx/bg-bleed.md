@@ -5,6 +5,7 @@ aliases:
   - km-inkx-bg-bleed
 created_at: 2026-02-04T11:23:54Z
 closed_at: 2026-02-04T12:58:41Z
+assignee: claude:27f1a547
 ---
 
 # [x] inkx: Background color bleeds across wrapped text lines @km/inkx #bug #P2 @claude:27f1a547

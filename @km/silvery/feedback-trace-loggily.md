@@ -12,6 +12,14 @@ close_reason: Path A confirmed by team-lead 2026-04-27. Shipped state (silvery
   aggregation; /pro review confirmed log.span / loggily/metrics are wrong shape
   (durations meaningless, props dropped). 11367 vendor + 2534 km-tui pass. C3b's
   edge/node breakdown preserved.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.feedback-trace-loggily
+    depends_on_id: km-silvery.structural-hardening
+    type: parent-child
+    created_at: 2026-04-27T00:05:35Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Migrate pass-cause instrumentation to loggily @km/silvery #task #P2

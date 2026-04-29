@@ -6,6 +6,7 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T15:37:51Z
 closed_at: 2026-02-19T16:56:18Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Detail pane backlinks: show breadcrumb + title instead of raw block IDs @km/tui #bug #P2

@@ -6,6 +6,7 @@ aliases:
   - "@km/rev-code-0203/3"
 created_at: 2026-02-03T13:47:58Z
 closed_at: 2026-02-03T14:20:07Z
+assignee: claude:b3478afd
 ---
 
 # [x] Fix TUI layer violation: tree-node-helpers.ts imports @km/markdown @km/rev-code-0203 #bug #P2 @claude:b3478afd

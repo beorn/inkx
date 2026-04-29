@@ -9,6 +9,15 @@ closed_at: 2026-04-24T15:50:04Z
 close_reason: "Shipped in 1c59bceff: 10 MiB cap, 3-generation rotation, size()
   observer. 7 tests cover basic append/legacy
   signature/rotation/trim/multi-rotation preservation/memory backend unchanged."
+owner: bjorn@stabell.org
+assignee: claude:0940ca20
+dependencies:
+  - issue_id: km-silvercode.event-log-rotation
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-24T08:39:59Z
+    created_by: claude:0940ca20
+    metadata: "{}"
 ---
 
 # [x] event-log: rotate + cap per-session JSONL size @km/silvercode #task #P3 @claude:0940ca20

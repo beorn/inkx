@@ -5,6 +5,14 @@ aliases:
   - km-silvery-osc8-composable
 created_by: Bjørn Stabell
 created_at: 2026-04-15T23:19:21Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.osc8-composable
+    depends_on_id: km-silvery.opentui-parity
+    type: parent-child
+    created_at: 2026-04-15T16:19:21Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Protocol: OSC 8 hyperlinks composable in any component @km/silvery #feature #P3

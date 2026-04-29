@@ -6,6 +6,7 @@ aliases:
   - "@km/domain/3"
 created_at: 2026-01-25T23:36:36Z
 closed_at: 2026-01-26T08:13:04Z
+assignee: km
 ---
 
 # [x] Phase 3: FileTree interface + factories @km/domain #task #P2 @km

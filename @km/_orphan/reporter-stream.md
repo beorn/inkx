@@ -4,6 +4,7 @@ aliases:
   - km-reporter-stream
 created_at: 2026-01-28T10:27:56Z
 closed_at: 2026-01-28T10:32:46Z
+assignee: claude:18380d7e
 ---
 
 # [x] Reporter shows no streaming progress in terminal - all output at end @km/_orphan #bug #P2 @claude:18380d7e

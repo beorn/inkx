@@ -11,6 +11,7 @@ close_reason: Wrote 37 characterization tests for all 8 text collection
   collectTextForRender, collectPlainText, collectRawTextForContent).
   Consolidated 8→4 implementations while preserving exact semantics. 1753 vendor
   tests pass with SILVERY_STRICT=1.
+owner: bjorn@stabell.org
 ---
 
 # [x] collectTextContent: characterization tests + shared traversal @km/_orphan #task #P3

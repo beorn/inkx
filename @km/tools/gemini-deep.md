@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-21T00:50:06Z
 closed_at: 2026-02-21T08:08:18Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Add Google Gemini 3.1 Pro deep research to llm tool @km/tools #feature #P3 @claude:d3a7049b

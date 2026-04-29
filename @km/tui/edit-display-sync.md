@@ -6,6 +6,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-02T00:24:31Z
 closed_at: 2026-04-02T00:29:05Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Edit display shows stale content after ctrl-n/p navigation @km/tui #bug #P1

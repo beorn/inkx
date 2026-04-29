@@ -8,6 +8,8 @@ created_at: 2026-04-03T07:35:28Z
 closed_at: 2026-04-03T07:57:14Z
 close_reason: StoreProvider + withReactive(createStoreFromRepo(repo)) wired in
   tui.tsx. Signal hooks exported. Commit 469b8a2c.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Wire Store/withReactive into km TUI — fine-grained signals @km/storage #task #P2 @Bjørn Stabell

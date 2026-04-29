@@ -9,6 +9,14 @@ closed_at: 2026-04-21T22:27:53Z
 close_reason: Merged into km-silvery.tea-apply-helpers. Both address the same
   class of issue (effect/result shape footguns). One bead owns the helpers
   story.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.tea-wrap-effect-helper
+    depends_on_id: km-silvery.tea
+    type: parent-child
+    created_at: 2026-04-20T23:21:27Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] wrapEffect(namespace, eff) helper — prevent type-property spread footgun @km/silvery #task #P2

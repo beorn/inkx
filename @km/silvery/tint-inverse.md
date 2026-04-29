@@ -5,6 +5,7 @@ aliases:
   - km-silvery-tint-inverse
 created_by: Bjørn Stabell
 created_at: 2026-04-06T17:31:11Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Color blending ('/ amount') + inverse prop — unified visual modifiers @km/silvery #feature #P2

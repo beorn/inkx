@@ -15,6 +15,16 @@ close_reason: "Fixed: pre-flight validateResumeId() in index.tsx rejects
   instead of blank screen. 8 tests in resume-blank-screen.test.ts cover
   synthetic-id, missing-JSONL, existing-JSONL, and non-Claude-agent cases.
   Commit 6372314b2."
+started_at: 2026-04-28T01:52:18Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvercode.resume-blank-screen
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-27T18:52:18Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] [bug] --resume <bogus-id> blank screen — pre-flight validate before alt-screen @km/silvercode #bug #P1 @claude:cc081a9a

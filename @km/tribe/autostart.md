@@ -11,6 +11,14 @@ close_reason: "Fixed in bearly b53bc0a (km bump 17dc84f55): SessionStart hook
   New tests (22 pass) cover tribe and all-daemon paths. Runtime verified: lore
   socket spawns at ~/.local/share/lore/lore.sock, tribe socket at
   ~/.local/share/tribe/tribe.sock."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.autostart
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-18T10:29:05Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Tribe daemon missing from SessionStart autostart @km/tribe #bug #P1

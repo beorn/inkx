@@ -10,6 +10,14 @@ close_reason: Phase 1+2 shipped (fold lore internals + extract @bearly/recall).
   123 tests pass. Step A of the final sweep added @bearly/llm; Step B eliminated
   the last dot-dot escape by copying tribe/timers.ts into lore.
   plugins/{lore,recall,llm}/src have zero dot-dot escapes.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.lore-merge-recall
+    depends_on_id: km-infra.tribe-rebrand
+    type: parent-child
+    created_at: 2026-04-17T12:37:35Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Extract @bearly/recall + fold lore internals into plugins/lore/ @km/infra #task #P2

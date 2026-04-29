@@ -20,6 +20,8 @@ close_reason: |-
 
   Stats: ~6,500 lines removed, ~600 added, ~70 files touched across silvery + km-tui.
   Remaining: comment/docstring references to old names (cosmetic), PickerList/PickerDialog still use keyExtractor (deferred to km-silvery.pickerlist-v2).
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Phase 0: Naming audit — unified glossary across ListView/cache/search @km/silvery #task #P1 @Bjørn Stabell

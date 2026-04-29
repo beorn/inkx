@@ -9,6 +9,7 @@ closed_at: 2026-04-06T07:02:36Z
 close_reason: Completed in /max batch — 93 new features added, annotated,
   re-probed, rebuilt, pushed. See km-market.terminfo-completeness epic for
   summary.
+owner: bjorn@stabell.org
 ---
 
 # [x] terminfo.dev runbook + validation command @km/market #task #P2

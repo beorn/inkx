@@ -6,6 +6,7 @@ aliases:
   - "@km/tui/2"
 created_at: 2026-02-04T15:55:59Z
 closed_at: 2026-02-04T17:38:25Z
+assignee: claude:44a381e0
 ---
 
 # [x] Search dialog: ANSI escape [2 appears in input on backspace @km/tui #task #P2 @claude:44a381e0

@@ -12,6 +12,21 @@ close_reason: "Phase 3 complete. retrieve_memory dispatcher at
   tools/retrieve-memory.ts. 7 new tests on pointer-mode body suppression +
   retrieve round-trip (53 envelope tests total). Commits: bearly d1f3d3a, km
   58f637ab5."
+owner: bjorn@stabell.org
+assignee: claude:7e9436e8
+dependencies:
+  - issue_id: km-bearly.injection-pointer-mode
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-21T12:42:11Z
+    created_by: claude:7e9436e8
+    metadata: "{}"
+  - issue_id: km-bearly.injection-pointer-mode
+    depends_on_id: km-bearly.injection-envelope-lib
+    type: blocks
+    created_at: 2026-04-21T12:42:43Z
+    created_by: claude:7e9436e8
+    metadata: "{}"
 ---
 
 # [x] Pointer-based injection — ambient awareness without body content @km/bearly #feature #P1 @claude:7e9436e8

@@ -11,6 +11,14 @@ close_reason: Superseded by km-storage.identity-recovery-cascade. RFC v2
   using frontmatter id + inode + path + content hash), not a km-storage
   primitive. See hub/km/source-of-truth-rfc-v2-addendum-identity.md §7 for the
   adapter-architecture reframe.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-storage.stable-ids
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-21T12:03:48Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Stable identity primitives — DocId / BlockId / RepoId branded types @km/storage #feature #P1

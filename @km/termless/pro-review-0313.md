@@ -7,6 +7,7 @@ created_by: claude:c9beade3
 created_at: 2026-03-13T23:20:13Z
 closed_at: 2026-03-18T18:56:25Z
 close_reason: "Grooming: Parent review round complete. All actionable findings fixed."
+owner: bjorn@stabell.org
 ---
 
 # [x] Pro Review: termless (2026-03-13) @km/termless #task #P2

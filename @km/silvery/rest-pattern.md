@@ -8,6 +8,7 @@ created_at: 2026-03-16T21:10:46Z
 closed_at: 2026-03-16T21:29:13Z
 close_reason: "Applied ...rest prop forwarding to 16 components: Badge, Spinner,
   Button, Toggle, H1-HR (12 Typography). Tests: 1827 pass."
+owner: bjorn@stabell.org
 ---
 
 # [x] Apply ...rest prop forwarding pattern across silvery components @km/silvery #task #P2

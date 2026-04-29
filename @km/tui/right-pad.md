@@ -6,6 +6,7 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-12T21:59:18Z
 closed_at: 2026-02-14T22:30:50Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Cards and column header have extra whitespace on inner right padding @km/tui #bug #P3

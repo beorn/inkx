@@ -12,6 +12,21 @@ close_reason: "Phase 2 shipped. text-sizing.ts: 0 env reads (was 4 sites).
   keys; create-app.tsx derives once from caps. 10 new profile.test.ts contract
   tests migrate old heuristic coverage. text-sizing-probe.test.ts rewritten with
   fingerprint API. lint-env-reads: 0 violations. Silvery 4b41d6a6."
+owner: bjorn@stabell.org
+assignee: claude:c6244087
+dependencies:
+  - issue_id: km-silvery.unicode-plateau.phase-2
+    depends_on_id: km-silvery.unicode-plateau
+    type: parent-child
+    created_at: 2026-04-23T08:46:39Z
+    created_by: claude:c6244087
+    metadata: "{}"
+  - issue_id: km-silvery.unicode-plateau.phase-2
+    depends_on_id: km-silvery.unicode-plateau.phase-1
+    type: blocks
+    created_at: 2026-04-23T08:46:39Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Unicode plateau Phase 2: text-sizing.ts caps-only (no env fallback) @km/silvery #task #P1 @claude:c6244087

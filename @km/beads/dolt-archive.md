@@ -14,6 +14,38 @@ closeReason: "Resolved: .beads/dolt deleted entirely (was 892MB). Snapshots at
   /tmp/km-bd-archive-20260428-193507/ +
   /tmp/km-cutover-archive-20260428-194929/. Recoverable from git history if
   needed."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-beads.dolt-archive
+    depends_on_id: km-beads.advanced-subcommands
+    type: blocks
+    created_at: 2026-04-28T01:15:37Z
+    created_by: claude:da9990c5
+    metadata: "{}"
+  - issue_id: km-beads.dolt-archive
+    depends_on_id: km-beads.cutover
+    type: parent-child
+    created_at: 2026-04-27T23:12:42Z
+    created_by: claude:da9990c5
+    metadata: "{}"
+  - issue_id: km-beads.dolt-archive
+    depends_on_id: km-beads.hooks-rewrite
+    type: blocks
+    created_at: 2026-04-27T23:12:43Z
+    created_by: claude:da9990c5
+    metadata: "{}"
+  - issue_id: km-beads.dolt-archive
+    depends_on_id: km-beads.pm-skill-rewrite
+    type: blocks
+    created_at: 2026-04-27T23:12:43Z
+    created_by: claude:da9990c5
+    metadata: "{}"
+  - issue_id: km-beads.dolt-archive
+    depends_on_id: km-beads.split-backend
+    type: blocks
+    created_at: 2026-04-28T01:25:03Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] Retire embedded Dolt MySQL backing the Go bd binary @km/beads #task #P3

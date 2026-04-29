@@ -6,6 +6,7 @@ aliases:
 created_by: claude:66437c43
 created_at: 2026-03-03T12:47:42Z
 closed_at: 2026-03-03T13:31:54Z
+owner: bjorn@stabell.org
 ---
 
 # [x] VitePress docs site with theme gallery @km/themex #task #P3

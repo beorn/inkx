@@ -8,6 +8,8 @@ created_at: 2026-03-13T04:30:42Z
 closed_at: 2026-03-13T05:16:50Z
 close_reason: "Fixed: lineHasContent now checks VISIBLE_SPACE_ATTR_MASK
   (inverse, underline, strikethrough) in addition to char and bg."
+owner: bjorn@stabell.org
+assignee: claude:65d845d9
 ---
 
 # [x] lineHasContent/findLastContentLine ignore styled blank lines @km/silvery #bug #P2 @claude:65d845d9

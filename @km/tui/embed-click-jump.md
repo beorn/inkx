@@ -10,6 +10,8 @@ close_reason: fixed in 3d2a9c2ec — click handler now routes through
   dispatchBoard SELECT with cardNodeId hint, so embed sub-item clicks resolve
   via the visual card not the symlink target. Regression test added in
   symlink.test.ts.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] fix: clicking embed sub-item causes column jump (embed cursor routing) @km/tui #bug #P2 @Bjørn Stabell

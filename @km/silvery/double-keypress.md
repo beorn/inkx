@@ -12,6 +12,8 @@ close_reason: "Fixed: run.tsx useInput was missing release event filtering.
   causing double-move. Added key.eventType===release filter (matching ag-react's
   full useInput). Test: key-release.test.tsx 'run.tsx useInput release
   filtering' — verifies press-only semantics."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Double keypress in examples — j moves 2 spaces instead of 1 @km/silvery #bug #P1 @Bjørn Stabell

@@ -7,6 +7,7 @@ created_by: claude:a68f8191
 created_at: 2026-02-17T10:22:01Z
 closed_at: 2026-03-09T22:07:20Z
 close_reason: "Grooming: vendor rename already executed (silvery migration complete)"
+owner: bjorn@stabell.org
 ---
 
 # [x] Vendor rename: execute rename across monorepo @km/infra #task #P4

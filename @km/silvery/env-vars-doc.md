@@ -6,6 +6,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-10T16:27:17Z
 closed_at: 2026-04-10T20:08:32Z
+owner: bjorn@stabell.org
 ---
 
 # [x] SILVERY_ env vars reference page + glossary terms @km/silvery #task #P3

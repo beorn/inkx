@@ -8,6 +8,7 @@ created_at: 2026-03-16T15:22:24Z
 closed_at: 2026-03-18T18:56:26Z
 close_reason: "Grooming: Parent review round complete. Deferred findings tracked
   via km-silvery.era2."
+owner: bjorn@stabell.org
 ---
 
 # [x] Pro Review: silvery design docs (2026-03-16) @km/silvery #task #P2

@@ -6,6 +6,7 @@ aliases:
 created_by: claude:8fc35754
 created_at: 2026-03-03T11:10:15Z
 closed_at: 2026-03-03T11:29:45Z
+owner: bjorn@stabell.org
 ---
 
 # [x] MCP/peekaboo backend: OS-level terminal control (very slow) @km/termless #feature #P3

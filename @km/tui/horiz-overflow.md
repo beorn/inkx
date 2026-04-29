@@ -6,6 +6,7 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-12T22:29:18Z
 closed_at: 2026-02-12T23:41:38Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Horizontal overflow indicator not showing @km/tui #bug #P2

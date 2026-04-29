@@ -10,6 +10,27 @@ close_reason: "Phase E shipped: silvery de59e988 (silvery.dev refreshed for
   0.20.0/0.21.0) + 894fa7f1 (Vue-mustache pin), pushed to origin/main. 28 doc
   pages updated, new docs/guide/sterling.md primer added. km submodule pointer
   bumped via 894d5fd69."
+owner: bjorn@stabell.org
+assignee: claude:4274df30
+dependencies:
+  - issue_id: km-silvery.sterling-public-docs
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-24T16:12:57Z
+    created_by: claude:5e447b66
+    metadata: "{}"
+  - issue_id: km-silvery.sterling-public-docs
+    depends_on_id: km-silvery.sterling-2d-release
+    type: blocks
+    created_at: 2026-04-19T14:43:30Z
+    created_by: claude:4274df30
+    metadata: "{}"
+  - issue_id: km-silvery.sterling-public-docs
+    depends_on_id: km-silvery.sterling-2e-interior-migration
+    type: blocks
+    created_at: 2026-04-24T16:14:50Z
+    created_by: claude:5e447b66
+    metadata: "{}"
 ---
 
 # [x] Sterling: update silvery.dev public docs for 0.19.0 @km/silvery #task #P2 @claude:4274df30

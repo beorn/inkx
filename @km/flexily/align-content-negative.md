@@ -12,6 +12,7 @@ close_reason: "Fixed: alignContent guard condition (freeSpace > 0) blocked
   space-around/evenly collapse to center with negative space, space-between
   collapses to flex-start. Verified against Yoga 3.x behavior. Test:
   vendor/flexily/tests/align-content-negative.test.ts (7 tests)"
+owner: bjorn@stabell.org
 ---
 
 # [x] Bug: alignContent ignores negative free space — multi-line overflow alignment wrong @km/flexily #bug #P0

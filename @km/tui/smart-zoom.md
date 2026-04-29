@@ -6,6 +6,7 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-18T23:43:09Z
 closed_at: 2026-02-19T06:57:54Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Structure-aware ancestor walking in findZoomTarget @km/tui #task #P2

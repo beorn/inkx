@@ -5,6 +5,7 @@ aliases:
   - km-silvery-trilemma-demo
 created_by: Bjørn Stabell
 created_at: 2026-04-02T16:58:13Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Strengthen trilemma article — build the features it describes @km/silvery #epic #P1

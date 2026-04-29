@@ -13,6 +13,15 @@ close_reason: "Measurement complete: 4.0s median interactive (IMPROVED). Report:
   detect-theme 457ms + run-board ~766ms. No event-loop block fires. Separate
   --no-interactive 17s path still present (add-rule eval bound); tracked via
   parent bead."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-tui.cold-startup-rebaseline
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-21T00:43:39Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Cold-start rebaseline after C2 collapse-parse (30min measurement, not optimization) @km/tui #task #P2 @claude:8b5b9e1c

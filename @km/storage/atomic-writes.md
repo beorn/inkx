@@ -9,6 +9,7 @@ closed_at: 2026-04-02T22:21:04Z
 close_reason: "Shipped: WriteQueue uses temp+rename pattern (.km-tmp suffix).
   Watcher marks both temp and final paths in-flight. Temp file cleaned on rename
   failure. .km-tmp added to default ignore patterns. Commit efba271c."
+owner: bjorn@stabell.org
 ---
 
 # [x] Atomic file writes via temp+rename pattern @km/storage #task #P3

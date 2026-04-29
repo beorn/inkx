@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-02T00:11:17Z
 closed_at: 2026-04-02T00:16:24Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Sub-item edit changes not saved when cursoring out @km/tui #bug #P1 @Bjørn Stabell

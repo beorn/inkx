@@ -8,6 +8,15 @@ created_at: 2026-04-12T07:30:44Z
 closed_at: 2026-04-12T08:16:19Z
 close_reason: Deleted silvery layoutDirty tracking. Flexily isDirty() is sole
   layout gate. -90 lines, 13 files. Commit acfc7fd7.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-silvery.test-runtime-parity
+    depends_on_id: km-silvery.layout-quality-plateau
+    type: parent-child
+    created_at: 2026-04-12T00:46:40Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Delete silvery layoutDirty — use Flexily root.isDirty() as sole gate @km/silvery #task #P0 @Bjørn Stabell

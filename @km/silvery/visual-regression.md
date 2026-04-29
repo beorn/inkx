@@ -5,6 +5,7 @@ aliases:
   - km-silvery-visual-regression
 created_by: claude:474834b0
 created_at: 2026-03-09T21:59:07Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Visual regression testing via termless @km/silvery #task #P3

@@ -5,6 +5,7 @@ aliases:
   - km-tui-quality-plateau-pipe-composition
 created_by: Bjørn Stabell
 created_at: 2026-04-06T16:42:39Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Migrate event handling to pipe() composition (driver, board-app, tui) @km/tui #task #P3

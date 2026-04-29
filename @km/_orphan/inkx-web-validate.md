@@ -4,6 +4,7 @@ aliases:
   - km-inkx-web-validate
 created_at: 2026-02-02T14:21:41Z
 closed_at: 2026-02-02T14:34:24Z
+assignee: claude:5fa2decc
 ---
 
 # [x] inkx-web-adapters: Complete web adapter validation (Canvas + DOM) @km/_orphan #task #P2 @claude:5fa2decc

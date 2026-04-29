@@ -10,6 +10,14 @@ close_reason: "Shipped in v0.18.0: runThemed(<App />, { catalog, tokens }) in
   vendor/silvery/packages/ag-term/src/runtime/themed.tsx. Composes detectScheme
   + ThemeProvider + run. Exported from silvery/runtime barrel. Apps needing
   custom composition keep using createApp + pipe."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.create-themed-app
+    depends_on_id: km-silvery.theme-system-v2
+    type: parent-child
+    created_at: 2026-04-18T10:45:14Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] createThemedApp({ catalog }, <App />) one-line boot @km/silvery #task #P3

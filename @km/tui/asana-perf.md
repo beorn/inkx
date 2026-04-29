@@ -6,6 +6,7 @@ aliases:
 created_by: claude:97b8de73
 created_at: 2026-02-22T21:01:42Z
 closed_at: 2026-02-22T23:17:51Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Asana vault perf + UX fixes @km/tui #epic #P1

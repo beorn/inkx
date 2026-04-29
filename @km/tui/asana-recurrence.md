@@ -6,6 +6,7 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T21:25:39Z
 closed_at: 2026-02-25T23:43:38Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Set recur_prev links between Asana recurring task instances during import @km/tui #feature #P2

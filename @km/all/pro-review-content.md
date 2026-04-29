@@ -7,6 +7,8 @@ created_by: claude:f8196c1c
 created_at: 2026-03-25T07:02:43Z
 closed_at: 2026-03-25T07:20:49Z
 close_reason: Review complete. Findings integrated into docs/content-marketing-strategy.md.
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Pro Review: Content marketing strategy for silvery/termless/terminfo/flexily @km/all #task #P3 @claude:f8196c1c

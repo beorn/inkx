@@ -8,6 +8,8 @@ created_at: 2026-04-08T06:52:23Z
 closed_at: 2026-04-08T08:36:11Z
 close_reason: "Core refactoring complete. 2 follow-up items remain open:
   node-visual-spec (review) and tree-walk-reuse (P3 survey)."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Tree perf: output phase + hierarchical node state @km/tui #epic #P1 @Bjørn Stabell

@@ -37,6 +37,14 @@ close_reason: >-
   updated (mutations.test.tsx mutation regex now handles SessionCard's '▎'
   stripe added 14h ago; side-panel-stays-visible.test.tsx now documents
   post-CSS-flip silvery defaults instead of inverted historical premise).
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.scrollbar-flex-mode
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-25T22:12:41Z
+    created_by: claude:230fa25d
+    metadata: "{}"
 ---
 
 # [x] ListView scrollbar disabled in height-independent (flex) mode @km/silvery #bug #P2

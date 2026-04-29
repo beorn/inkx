@@ -6,6 +6,7 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-15T09:21:54Z
 closed_at: 2026-02-15T09:45:29Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Body nav still broken: right from body goes to top of next column, not visual navigation @km/tui #bug #P2

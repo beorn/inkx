@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-ambient-indicators
 created_by: claude:2405c72e
 created_at: 2026-04-28T19:36:38Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.ambient-indicators
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T12:36:38Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] Ambient stream / background tasks visible — sub-agent + bg-task chips @km/silvercode #feature #P2

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fd695049
 created_at: 2026-03-04T12:17:01Z
 closed_at: 2026-03-04T13:09:44Z
+owner: bjorn@stabell.org
+assignee: claude:fd695049
 ---
 
 # [x] Mouse click targeting unreliable — use DOM hit testing instead of Y-offset math @km/tui #bug #P1 @claude:fd695049

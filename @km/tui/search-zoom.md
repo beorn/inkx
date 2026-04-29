@@ -5,6 +5,7 @@ aliases:
   - km-tui-search-zoom
 created_at: 2026-02-04T13:59:56Z
 closed_at: 2026-02-04T14:17:05Z
+assignee: claude:44a381e0
 ---
 
 # [x] Search zoom/goto doesn't work for content items (sections/paragraphs/bullets) @km/tui #bug #P2 @claude:44a381e0

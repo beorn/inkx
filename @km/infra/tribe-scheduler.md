@@ -6,6 +6,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-09T06:09:56Z
 closed_at: 2026-04-09T06:16:37Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Tribe scheduler — deferred task queue in daemon @km/infra #feature #P3

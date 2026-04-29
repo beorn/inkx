@@ -5,6 +5,14 @@ aliases:
   - km-all-shared-substrate-review
 created_by: claude:8b5b9e1c
 created_at: 2026-04-21T19:31:51Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.shared-substrate-review
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-21T12:32:07Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [ ] Shared substrate across km + kimmi + cloudi — review the extraction opportunity @km/all #task #P0

@@ -13,6 +13,16 @@ close_reason: "Shipped: 94e371f7a. Root cause: replaySessionFromDisk left
   the queue buffer. Fix: synthetic turn-end after replay reusing last message's
   id (no phantom bubble). 2 tests + 22 resume+queue tests all pass. Session:
   km-session.0425-evening"
+started_at: 2026-04-26T08:42:50Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.resume-hangs-no-input
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-26T01:41:03Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] silvercode --resume hangs — agent runs mid-turn, command box doesn't accept input @km/silvercode #bug #P1 @claude:2405c72e

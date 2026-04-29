@@ -5,6 +5,7 @@ aliases:
   - km-termless-playwright-renderer
 created_by: claude:4929065a
 created_at: 2026-04-02T18:24:45Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Optional Playwright-based screenshot renderer for pixel-perfect output @km/termless #feature #P3

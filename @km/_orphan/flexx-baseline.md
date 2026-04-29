@@ -4,6 +4,7 @@ aliases:
   - km-flexx-baseline
 created_at: 2026-01-30T22:44:49Z
 closed_at: 2026-01-30T23:02:53Z
+assignee: claude:b8b4780b
 ---
 
 # [x] Complete baseline alignment in Flexx @km/_orphan #task #P3 @claude:b8b4780b

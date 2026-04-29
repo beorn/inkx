@@ -14,6 +14,14 @@ close_reason: "getDependencies now unions props-based blockers
   blocker. Verified on /tmp/km-bd-sample-11544: bd dep list
   silvercode/acp/session-prompt now reports silvercode/acp/rename as the
   blocker."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-beads.dep-list-from-links
+    depends_on_id: km-beads
+    type: parent-child
+    created_at: 2026-04-27T18:34:42Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] bd dep list reads from the links table, not data.blocked_by array @km/beads #bug #P2

@@ -7,6 +7,16 @@ created_by: claude:cc081a9a
 created_at: 2026-04-26T19:58:59Z
 closed_at: 2026-04-26T20:02:44Z
 close_reason: Closed
+started_at: 2026-04-26T19:59:42Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-all.fix-sweep-tsc-logview
+    depends_on_id: km-all.fix-sweep-0426
+    type: parent-child
+    created_at: 2026-04-26T12:59:13Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Fix km-logview test typecheck errors (79 errors) @km/all #task #P2 @claude:cc081a9a

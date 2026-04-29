@@ -6,6 +6,8 @@ aliases:
 created_by: claude:536645b5
 created_at: 2026-02-20T22:09:39Z
 closed_at: 2026-02-21T08:05:21Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Keybindings v2: chrome polish, local find, omnibox, detail interactive @km/all #epic #P2 @claude:d3a7049b

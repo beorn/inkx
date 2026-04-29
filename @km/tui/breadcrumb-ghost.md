@@ -6,6 +6,7 @@ aliases:
 created_by: claude:5f0aee02
 created_at: 2026-02-18T10:18:18Z
 closed_at: 2026-02-19T10:54:30Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Breadcrumb shows ghost prefix char from previous navigation target @km/tui #bug #P2

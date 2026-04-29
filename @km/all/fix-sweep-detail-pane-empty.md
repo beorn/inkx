@@ -11,6 +11,16 @@ close_reason: "fixed: test premise was wrong — Ctrl+l (add_link) closes detail
   bogus render-flush keypress; React reactivity propagates sel.deselect()
   naturally and the detail pane stays open with 'DETAIL VIEW' header. Full
   detail-pane.slow.test.ts suite: 85/85 pass."
+started_at: 2026-04-26T21:47:48Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-all.fix-sweep-detail-pane-empty
+    depends_on_id: km-all.fix-sweep-remaining-slow
+    type: parent-child
+    created_at: 2026-04-26T14:46:46Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Detail pane empty state fallback missing DETAIL VIEW header @km/all #bug #P2 @claude:cc081a9a

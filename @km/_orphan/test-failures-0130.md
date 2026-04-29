@@ -4,6 +4,7 @@ aliases:
   - km-test-failures-0130
 created_at: 2026-01-30T21:27:07Z
 closed_at: 2026-01-30T21:47:07Z
+assignee: claude:3e1beaa0
 ---
 
 # [x] Fix 8 failing tests (folding, move-mode, CLI resolution) @km/_orphan #bug #P1 @claude:3e1beaa0

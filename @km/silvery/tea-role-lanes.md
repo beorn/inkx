@@ -5,6 +5,14 @@ aliases:
   - km-silvery-tea-role-lanes
 created_by: claude:8b5b9e1c
 created_at: 2026-04-21T06:12:45Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.tea-role-lanes
+    depends_on_id: km-silvery.tea
+    type: parent-child
+    created_at: 2026-04-20T23:12:45Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [ ] Plugin role tag + lane precedence — 5 roles, enforced ordering @km/silvery #task #P3

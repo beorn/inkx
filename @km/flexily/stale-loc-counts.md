@@ -11,6 +11,7 @@ close_reason: "Fixed: Updated LOC counts in src/CLAUDE.md (architecture diagram
   layout-zero.ts 1781->2029, layout-helpers.ts 140->160, layout-flex-lines.ts
   346->349, layout-measure.ts 257->259, layout-stats.ts 43->41, types.ts
   229->232, utils.ts 217->240."
+owner: bjorn@stabell.org
 ---
 
 # [x] Docs: LOC counts and file descriptions stale in multiple docs @km/flexily #task #P3

@@ -5,6 +5,7 @@ aliases:
   - km-inkx-sync-update
 created_at: 2026-02-09T10:35:16Z
 closed_at: 2026-02-09T10:40:09Z
+assignee: claude:f471fe61
 ---
 
 # [x] DEC 2026 Synchronized Update Mode for flicker-free rendering @km/inkx #feature #P2 @claude:f471fe61

@@ -54,6 +54,15 @@ close_reason: >-
     - Adjacent domain slow failures (resize-garble, card-rendering date-badge, inline-edit) pre-existed and are unrelated — tracked under km-tui.nav-garble-wide and similar.
 
   Unblocks Phase 2 of km-all.plateau Stream A (selection-focus-plateau).
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-tui.zoomin-atomic-sync
+    depends_on_id: km-silvery.selection-focus-plateau
+    type: parent-child
+    created_at: 2026-04-15T11:31:14Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Verify ZOOM_IN+sel.root.set pairing is actually needed — delete pair sites if not @km/tui #task #P3 @claude:8b5b9e1c

@@ -9,6 +9,8 @@ closed_at: 2026-04-09T16:07:50Z
 close_reason: "Upgraded to Ink 7.0. 871/931 passing (99.0% effective). New
   shims: useAnimation, useIsScreenReaderEnabled. 48 intentional divergences
   documented. Commit d9ff769e."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Ink 7.0 compat upgrade — systematic workflow for staying current @km/silvery #task #P0 @Bjørn Stabell

@@ -13,6 +13,15 @@ close_reason: "Phases 1-4 complete on feat/selection-plateau. 175 of 178 writer
   (cleanup), 479b73be9 (test migration). Phase 4 writer-deletion in
   @silvery/selection deferred to km-tui.sel-reader-migration — requires bigger
   silvery redesign."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-tui.sel-migration
+    depends_on_id: km-silvery.selection-focus-plateau
+    type: parent-child
+    created_at: 2026-04-15T12:19:01Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Migrate 208 imperative sel.text/sel.node calls to unified selection dispatch @km/tui #task #P1 @Bjørn Stabell

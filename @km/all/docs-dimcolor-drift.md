@@ -5,6 +5,14 @@ aliases:
   - km-all-docs-dimcolor-drift
 created_by: claude:cc081a9a
 created_at: 2026-04-26T20:39:40Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.docs-dimcolor-drift
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-26T13:39:50Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] Doc drift: visual-spec/design/rendering still reference removed dimColor prop @km/all #task #P3

@@ -9,6 +9,7 @@ closed_at: 2026-03-13T05:18:37Z
 close_reason: "By design: Non-scroll sticky pre-clear uses bg:null to match
   fresh render semantics. Fresh renders start with null bg, so pre-clearing to
   inherited bg would diverge from STRICT checks."
+owner: bjorn@stabell.org
 ---
 
 # [x] Non-scroll sticky pre-clear uses bg:null instead of effective background @km/silvery #bug #P3

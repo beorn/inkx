@@ -10,6 +10,8 @@ close_reason: "Implemented: type-safe .option() chain inference via interface
   InferOptionType). Supports boolean flags, string values, parser functions,
   CLIType presets, Standard Schema, and array choices. 153 tests pass. README
   updated with extra-typings comparison."
+owner: bjorn@stabell.org
+assignee: beorn
 ---
 
 # [x] Inferred option types in @silvery/commander @km/_orphan #feature #P3 @beorn

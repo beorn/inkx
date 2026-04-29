@@ -9,6 +9,8 @@ closed_at: 2026-03-13T05:16:50Z
 close_reason: "Fixed: mapLinesToCharOffsets now returns display-width offsets
   (matching BgSegment coordinate system), and applyBgSegmentsToLine uses col-x
   (display width) instead of charIdx (grapheme count)."
+owner: bjorn@stabell.org
+assignee: claude:65d845d9
 ---
 
 # [x] Text bg segment offsets mix UTF-16 length, display width, and grapheme count @km/silvery #bug #P2 @claude:65d845d9

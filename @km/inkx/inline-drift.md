@@ -5,6 +5,7 @@ aliases:
   - km-inkx-inline-drift
 created_at: 2026-02-04T11:23:52Z
 closed_at: 2026-02-04T12:46:52Z
+assignee: claude:27f1a547
 ---
 
 # [x] inkx: inline mode cursor positioning drifts upward during streaming updates @km/inkx #bug #P1 @claude:27f1a547

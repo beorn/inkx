@@ -8,6 +8,8 @@ created_at: 2026-03-31T21:18:41Z
 closed_at: 2026-04-02T20:30:09Z
 close_reason: "Grooming: all 9 children (5 P0, 4 P1) closed. Storage sync bugs
   fixed and committed."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Pro Review: km-storage sync pipeline — 2026-03-31 @km/all #epic #P2 @Bjørn Stabell

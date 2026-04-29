@@ -12,6 +12,15 @@ close_reason: "Fixed in two commits: 0d9efb31b (resolver: ^id lookup for
   test at packages/km-storage/tests/e2e/block-id-roundtrip.test.ts verifies the
   full create + edit path through fs-watch. Taxes's workaround of inlining
   @next.md task content is no longer needed."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-markdown.block-id-prod-sync
+    depends_on_id: km-markdown
+    type: parent-child
+    created_at: 2026-04-14T11:16:12Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] kmBlockIdTransform doesn't run in prod sync path — block_id column stays null @km/markdown #bug #P1 @Bjørn Stabell

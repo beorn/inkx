@@ -8,6 +8,8 @@ closed_at: 2026-03-13T23:40:47Z
 close_reason: Fixed assertScrollbackLines to use Math.max(0, totalLines -
   screenLines) instead of totalLines. Updated tests in both assertions.test.ts
   and viterm/matchers.test.ts.
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] termless: toHaveScrollbackLines compares totalLines not scrollback @km/_orphan #bug #P0 @claude:c9beade3

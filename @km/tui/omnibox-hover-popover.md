@@ -5,6 +5,20 @@ aliases:
   - km-tui-omnibox-hover-popover
 created_by: Bjørn Stabell
 created_at: 2026-04-15T06:07:17Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.omnibox-hover-popover
+    depends_on_id: km-silvery.popover
+    type: blocks
+    created_at: 2026-04-14T23:07:18Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.omnibox-hover-popover
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T23:07:17Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Omnibox: hover effects + popover on result rows (tree-view style) @km/tui #feature #P1

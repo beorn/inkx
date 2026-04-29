@@ -13,6 +13,14 @@ created_at: 2026-04-28T08:25:03Z
 closeReason: "Resolved: by migrating .beads/issues.jsonl into root @km/ scope,
   both backends are now one. km bd reads markdown; markdown is canonical. No
   live sync needed."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-beads.split-backend
+    depends_on_id: km-beads
+    type: parent-child
+    created_at: 2026-04-28T01:25:03Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] km bd and Go bd use separate storage backends — beads created in one are invisible to the other @km/beads #bug #P1

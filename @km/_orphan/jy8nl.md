@@ -7,6 +7,8 @@ created_at: 2026-03-17T08:32:39Z
 closed_at: 2026-03-17T15:04:29Z
 close_reason: Shared extractSlotTargets() in km-tree. TUI now scans all index
   children for slots, not just sections.
+owner: bjorn@stabell.org
+assignee: claude:b92140a2
 ---
 
 # [x] P0: TUI slot resolution disagrees with writer — sections vs paragraphs @km/_orphan #bug #P0 @claude:b92140a2

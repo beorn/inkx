@@ -5,6 +5,14 @@ aliases:
   - km-silvery-focus-ink-parity
 created_by: Bjørn Stabell
 created_at: 2026-04-09T15:20:56Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.focus-ink-parity
+    depends_on_id: km-silvery.architectural-plateau
+    type: blocks
+    created_at: 2026-04-24T23:16:28Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] Focus system — unified, scope-aware, Ink-compatible @km/silvery #epic #P0

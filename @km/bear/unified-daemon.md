@@ -13,6 +13,14 @@ close_reason: Already shipped 2026-04-17 as part of 0.10.0 namespace purge.
   new capability gets JSON-RPC, hot-reload, idle-quit, and registration for
   free') and vendor/bearly/CLAUDE.md ('@bearly/lore was folded into
   @bearly/tribe on 2026-04-17'). Bead premise no longer holds.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bear.unified-daemon
+    depends_on_id: km-tribe.refactor
+    type: parent-child
+    created_at: 2026-04-27T00:17:30Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] km-bear: unified daemon merging tribe (coordination) and lore (memory) into one process @km/bear #feature #P2

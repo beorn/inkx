@@ -6,6 +6,8 @@ aliases:
 created_by: claude:53ab8041
 created_at: 2026-03-03T12:56:12Z
 closed_at: 2026-03-03T13:01:28Z
+owner: bjorn@stabell.org
+assignee: claude:53ab8041
 ---
 
 # [x] Detail nav crash: cursor has no ancestor under root (same ID) @km/tui #bug #P1 @claude:53ab8041

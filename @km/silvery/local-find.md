@@ -8,6 +8,7 @@ created_at: 2026-04-02T21:39:02Z
 closed_at: 2026-04-02T23:50:20Z
 close_reason: Implemented. Readline keybindings in SearchBar, 8 tests. ListView
   search end-to-end working.
+owner: bjorn@stabell.org
 ---
 
 # [x] withLocalFind() — Ctrl+F / vim-/ text search in ListView @km/silvery #feature #P1

@@ -6,6 +6,7 @@ aliases:
   - "@km/term-2/6"
 created_at: 2026-01-28T13:55:23Z
 closed_at: 2026-01-28T14:03:12Z
+assignee: claude:df8d3459
 ---
 
 # [x] Define and expose inkx/chalkx APIs needed by DotzReporter in term/tui @km/term-2 #feature #P2 @claude:df8d3459

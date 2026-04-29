@@ -5,6 +5,7 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-19T21:25:02Z
 closed_at: 2026-02-19T21:27:00Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Logger setOutputMode API — configurable output routing @km/_orphan #feature #P3

@@ -4,6 +4,7 @@ aliases:
   - km-flexx-analysis
 created_at: 2026-01-31T07:47:34Z
 closed_at: 2026-01-31T12:23:37Z
+assignee: claude:b8b4780b
 ---
 
 # [x] Compare flexx algorithms @km/_orphan #task #P1 @claude:b8b4780b

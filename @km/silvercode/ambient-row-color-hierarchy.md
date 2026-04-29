@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-ambient-row-color-hierarchy
 created_by: claude:2405c72e
 created_at: 2026-04-28T22:17:13Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.ambient-row-color-hierarchy
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T15:17:13Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] AmbientEventRow: revisit color hierarchy (loud sources vs muted) @km/silvercode #task #P3 #design

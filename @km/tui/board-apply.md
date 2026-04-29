@@ -5,6 +5,8 @@ aliases:
   - km-tui-board-apply
 created_by: Bjørn Stabell
 created_at: 2026-04-01T19:43:20Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [ ] Extract Board.apply() — pure state reducer from board-actions.ts @km/tui #task #P2 @Bjørn Stabell

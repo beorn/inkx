@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d1f60fb4
 created_at: 2026-02-25T23:49:21Z
 closed_at: 2026-02-26T08:10:47Z
+owner: bjorn@stabell.org
+assignee: claude:d1f60fb4
 ---
 
 # [x] ScrollbackList — virtual screen with terminal scrollback overflow @km/inkx #feature #P1 @claude:d1f60fb4

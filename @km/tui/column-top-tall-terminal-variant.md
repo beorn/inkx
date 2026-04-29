@@ -13,6 +13,15 @@ close_reason: "FIXED: verified at 240×117 on ~/Bear/Vault/@next.md after
   /tmp/repro-240x117-POST-ACTIVATION.png +
   ~/Desktop/km-verified-column-top-FIXED.png. Column 3 top renders Task board
   body block cleanly, no ghost text, no phantom gaps."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-tui.column-top-tall-terminal-variant
+    depends_on_id: km-tui.column-top-disappears
+    type: parent-child
+    created_at: 2026-04-20T17:33:19Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] [bug] Column-top-disappears variant: body block missing from adjacent column top at tall terminal (>100 rows) @km/tui #bug #P1 @claude:8b5b9e1c

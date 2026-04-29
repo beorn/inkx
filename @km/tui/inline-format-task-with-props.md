@@ -10,6 +10,15 @@ close_reason: Fixed in c08133942. ast2nodes stripPropsAndMetadataFromSource
   strips props/metadata from the raw source slice while preserving
   bold/link/code/wikilink markers. 5 new tests in kmast-integration.test.ts
   cover bold+props, URL+props, inline code+props, bold+wikilink+props.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-tui.inline-format-task-with-props
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T11:38:16Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Tasks with inline props lose bold/links/code in rendered content @km/tui #bug #P2 @Bjørn Stabell

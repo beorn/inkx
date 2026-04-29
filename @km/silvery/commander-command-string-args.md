@@ -12,6 +12,8 @@ close_reason: "Implemented: ParseCommandString template literal parser,
   commands. Both forms now coexist. 14 new tests (7 runtime + 7 type). 234/234
   commander tests pass. Vendored in silvery@a673982, bumped in km root.
   RejectArgSyntax type removed."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Accept positional args in .command("name <arg>") string form @km/silvery #feature #P3 @Bjørn Stabell

@@ -9,6 +9,14 @@ closed_at: 2026-04-14T19:31:45Z
 close_reason: "User confirmed 2026-04-14: seems fixed after 27db42fcf
   (computeColumnChildren expansion fix). If it resurfaces, reopen with
   DEBUG=km:storage:parse-worker log."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.slow-folder-discovery
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T10:40:21Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Folder loading indicator stuck 10+ seconds for a single-file folder @km/tui #bug #P3

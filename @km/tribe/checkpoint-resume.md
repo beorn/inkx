@@ -9,6 +9,8 @@ closed_at: 2026-03-28T14:47:39Z
 close_reason: "Fixed: pre-compact hook finds session's tracking bead and injects
   RESUME directive. Checkpoint skill writes RESUME as first line. Post-compact
   Claude sees 'RESUME: bd show <id>' immediately."
+owner: bjorn@stabell.org
+assignee: claude:19080504
 ---
 
 # [x] Sessions don't resume tracked bead after /compact — lose working context @km/tribe #bug #P1 @claude:19080504

@@ -5,6 +5,7 @@ aliases:
 created_by: claude:66437c43
 created_at: 2026-03-02T09:45:29Z
 closed_at: 2026-03-02T09:45:35Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Bottom bar disappears when detail pane is open @km/_orphan #bug #P2

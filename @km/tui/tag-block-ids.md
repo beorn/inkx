@@ -6,6 +6,8 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-20T22:36:38Z
 closed_at: 2026-02-20T23:33:12Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Tag files show bare numeric GIDs instead of resolved task titles @km/tui #bug #P1 @claude:8f007ba9

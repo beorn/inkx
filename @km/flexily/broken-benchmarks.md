@@ -11,6 +11,8 @@ close_reason: "Fixed: changed import from '../src/index.js' to
   bench/classic-vs-zero.bench.ts. Both imports pointed at the zero-alloc engine,
   making the comparison meaningless. Verified Classic.Node \\!== Zero.Node and
   both produce correct results."
+owner: bjorn@stabell.org
+assignee: claude:65d845d9
 ---
 
 # [x] Bug: Benchmark scripts import same engine twice — classic-vs-zero comparison broken @km/flexily #bug #P1 @claude:65d845d9

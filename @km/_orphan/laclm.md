@@ -8,6 +8,8 @@ closed_at: 2026-03-28T00:00:59Z
 close_reason: Fixed dedup in evaluateAddRule — uses fs_path (stable) instead of
   node ID (ULID, changes every parse). Cleaned @next.md from 6296 lines of
   duplicates to skeleton. Tests pass (1021/1021).
+owner: bjorn@stabell.org
+assignee: claude:f53c94c1
 ---
 
 # [x] km.add:: embed dedup bug — duplicates accumulate on every sync @km/_orphan #bug #P1 @claude:f53c94c1

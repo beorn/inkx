@@ -17,6 +17,14 @@ close_reason: Superseded by the dev-publish gap reframe (/big analysis). The
   ReleaseUnit redesign and achieves the same end. Verdaccio ephemeral registry
   (the one genuinely useful idea from this bead) can be added later as a point
   improvement to verify, not as a tool rewrite.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.release-tool-redesign
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-11T21:01:39Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Release tool: ReleaseUnit abstraction + two-phase verify + workflow reorder @km/infra #task #P2

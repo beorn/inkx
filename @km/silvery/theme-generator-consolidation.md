@@ -7,6 +7,14 @@ created_by: Bjørn Stabell
 created_at: 2026-04-18T18:44:09Z
 closed_at: 2026-04-18T19:34:29Z
 close_reason: Shipped at silvery 5a37a96b + km bump 3cc21edc8
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-generator-consolidation
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-18T11:44:09Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Consolidate 4 theme generators into 1 @km/silvery #task #P3

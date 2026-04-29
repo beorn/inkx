@@ -5,6 +5,7 @@ aliases:
   - km-tui-mouse-hover-tests
 created_by: claude:ceb7c9cb
 created_at: 2026-03-30T06:00:49Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Mouse hover/popover testing — fake timers + programmatic mouse events @km/tui #task #P3

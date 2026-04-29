@@ -12,6 +12,8 @@ close_reason: "Foundation API done (commit d7c57b320): sel.transform(op,
   as km-tui.transform-migrate (incremental work). Existing manual reconciliation
   in handlers works correctly — Invariant #11 doesn't fire — so migration is
   quality/elegance, not bug fix."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Inline transformSelection in tree ops — eliminate timing gap @km/tui #task #P2 @Bjørn Stabell

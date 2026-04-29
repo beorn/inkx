@@ -8,6 +8,7 @@ created_at: 2026-04-06T09:40:33Z
 closed_at: 2026-04-06T10:05:11Z
 close_reason: "Fixed: deferred press() binding — uses target.press at call time,
   not app.press.bind() at composition time."
+owner: bjorn@stabell.org
 ---
 
 # [x] withFocus crashes in pipe() — app.press accessed at composition time @km/silvery #bug #P1

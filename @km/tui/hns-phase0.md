@@ -8,6 +8,8 @@ created_at: 2026-04-08T07:30:41Z
 closed_at: 2026-04-08T07:59:24Z
 close_reason: Fixed symlink test, added 12 golden visual tests, all 216 test
   files passing. Commit b4507db28.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Phase 0: Characterize — golden tests + bench baseline @km/tui #task #P1 @Bjørn Stabell

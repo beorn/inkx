@@ -25,6 +25,14 @@ close_reason: >-
   Class-(B) bugs (scope-epic-in-_orphan, sigil-doubled, path-form-drift,
   mem-relocation-confusion) are bd-boundary translation bugs — their fix lives
   inside @km/beads, not in a new exported types package.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.km-spec-typed-primitives
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-28T12:42:48Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] @km/spec: typed primitives (NodePath, Sigil, BdId, Prefix) with mutation-time invariants @km/all #epic #P2

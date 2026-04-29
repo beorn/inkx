@@ -8,6 +8,7 @@ created_at: 2026-03-13T07:13:18Z
 closed_at: 2026-03-13T07:24:58Z
 close_reason: "Fixed: moveCursor collapses selection to edge on arrow keys
   (standard editor behavior). Tests in edit-context.test.ts."
+owner: bjorn@stabell.org
 ---
 
 # [x] moveCursor arrow with selection doesn't collapse correctly @km/silvery #bug #P1

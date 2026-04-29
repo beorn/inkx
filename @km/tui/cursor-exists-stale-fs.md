@@ -12,6 +12,14 @@ close_reason: "Fixed: added repairPaneCursor in board-app-store.ts
   next repo mutation. Tests: board-selection.spec.ts > stale cursor repair (2
   tests) — both failed before the fix (cursor-exists invariant fired on press
   Escape) and pass after. Full apps/km-tui/tests/ suite green (2130 tests)."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.cursor-exists-stale-fs
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T12:05:59Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Invariant violation [cursor-exists] after fs file replacement @km/tui #bug #P2

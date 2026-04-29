@@ -13,6 +13,16 @@ close_reason: "Shipped in flexily commit 2603966. CSS §4.5 flex-item auto
   uses max-content. Max-clamp + fit-content special case included. 13 new tests,
   1602 flexily tests pass under both presets. 1215 fuzz tests pass. Benchmarks
   neutral (~2x Yoga). /pro review (GPT-5.4 Pro + Kimi K2.6) signed off."
+started_at: 2026-04-25T15:24:10Z
+owner: bjorn@stabell.org
+assignee: claude:53042a7f
+dependencies:
+  - issue_id: km-flexily.auto-min-size-flex-items
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-25T00:27:55Z
+    created_by: claude:53042a7f
+    metadata: "{}"
 ---
 
 # [x] Implement CSS auto min-size for flex items (the missing CSS §4.5 item-side rule) @km/flexily #feature #P3 @claude:53042a7f

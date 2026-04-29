@@ -4,6 +4,7 @@ aliases:
   - km-flexx-measure-phase
 created_at: 2026-01-30T17:49:01Z
 closed_at: 2026-01-30T21:02:35Z
+assignee: claude:b8b4780b
 ---
 
 # [x] [flexx] Separate measure from layout phase @km/_orphan #feature #P1 @claude:b8b4780b

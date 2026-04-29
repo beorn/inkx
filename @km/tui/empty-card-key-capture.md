@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-06T19:39:26Z
 closed_at: 2026-04-06T20:08:27Z
 close_reason: "Fixed: 45b6db03e — clear orphaned text selection in buildCommandContexts"
+owner: bjorn@stabell.org
 ---
 
 # [x] [bug] Empty card heading captures nav keys as text input — data corruption @km/tui #bug #P1

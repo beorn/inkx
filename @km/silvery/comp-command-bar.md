@@ -5,6 +5,14 @@ aliases:
   - km-silvery-comp-command-bar
 created_by: Bjørn Stabell
 created_at: 2026-04-15T23:18:47Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.comp-command-bar
+    depends_on_id: km-silvery.opentui-parity
+    type: parent-child
+    created_at: 2026-04-15T16:18:47Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Component: CommandBar (bottom-anchored status+hint line) @km/silvery #feature #P3

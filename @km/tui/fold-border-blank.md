@@ -6,6 +6,7 @@ aliases:
 created_by: claude:586bad48
 created_at: 2026-02-12T14:16:49Z
 closed_at: 2026-02-19T16:56:19Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Fold (<) sometimes leaves bottom borders of cards blank/overwritten @km/tui #bug #P2

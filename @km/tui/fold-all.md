@@ -6,6 +6,7 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-22T07:54:19Z
 closed_at: 2026-02-22T08:19:20Z
+owner: bjorn@stabell.org
 ---
 
 # [x] < and > should fold/unfold entire board (H/L is item level) @km/tui #feature #P2

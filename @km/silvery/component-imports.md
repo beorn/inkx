@@ -5,6 +5,7 @@ aliases:
   - km-silvery-component-imports
 created_by: claude:4929065a
 created_at: 2026-04-01T21:17:03Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Docs show wrong import paths for components (ag-term instead of silvery) @km/silvery #bug #P2

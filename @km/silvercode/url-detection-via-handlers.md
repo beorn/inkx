@@ -17,6 +17,16 @@ close_reason: "Implemented in 33ae7d53c. Removed kind: 'url' builtin from
   (visual/url-via-handlers.test.tsx) that distinguishes new renderer from legacy
   by asserting kind=autolink + virtual=1 + absence of payload.url. 142
   autolinks/doctor/detection tests pass; tsc errors unchanged at 184."
+started_at: 2026-04-25T23:51:42Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.url-detection-via-handlers
+    depends_on_id: km-silvercode.autolinks-config
+    type: parent-child
+    created_at: 2026-04-25T16:50:58Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Migrate URL detection to flow through autolinks handler registry @km/silvercode #feature #P3 @claude:2405c72e

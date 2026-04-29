@@ -6,6 +6,7 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-22T08:24:31Z
 closed_at: 2026-02-22T23:17:55Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Optimize zoom so there are no freezes @km/tui #task #P3

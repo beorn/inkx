@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-15T09:21:46Z
 closed_at: 2026-02-15T21:07:29Z
+owner: bjorn@stabell.org
+assignee: claude:34ba82b6
 ---
 
 # [x] Copy/cut/paste: Ctrl-C/X/V (or Cmd-C/X/V) for node-level clipboard operations @km/tui #feature #P2 @claude:34ba82b6

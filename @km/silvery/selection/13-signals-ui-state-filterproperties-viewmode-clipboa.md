@@ -7,6 +7,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-05T07:41:52Z
 closed_at: 2026-04-05T07:52:30Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Signals: UI state (filterProperties, viewMode, clipboard, dialogs) @km/silvery #task #P3

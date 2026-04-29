@@ -5,6 +5,7 @@ aliases:
   - km-tui-knip-dead-files
 created_by: Bjørn Stabell
 created_at: 2026-04-16T21:07:46Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Audit and remove knip-flagged dead files in apps/km-tui @km/tui #task #P3

@@ -5,6 +5,7 @@ aliases:
   - km-inkx-cmds-fuzz
 created_at: 2026-02-04T15:40:27Z
 closed_at: 2026-02-05T10:19:55Z
+assignee: claude:10db6ea8
 ---
 
 # [x] AI fuzz testing infrastructure @km/inkx-cmds #feature #P3 @claude:10db6ea8

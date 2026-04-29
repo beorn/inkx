@@ -8,6 +8,20 @@ created_at: 2026-04-12T07:39:12Z
 closed_at: 2026-04-12T08:39:03Z
 close_reason: Deleted executeRender. 6 callers migrated to createAg directly.
   -215 net lines from pipeline/index.ts. Docs updated. Commit 4ec07b50.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.delete-execute-render
+    depends_on_id: km-silvery.layout-quality-plateau
+    type: parent-child
+    created_at: 2026-04-12T00:46:41Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-silvery.delete-execute-render
+    depends_on_id: km-silvery.test-runtime-parity
+    type: blocks
+    created_at: 2026-04-12T00:46:37Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Delete executeRender — legacy shim wrapping createAg @km/silvery #task #P1

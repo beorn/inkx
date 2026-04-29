@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-21T16:18:55Z
 closed_at: 2026-02-21T16:33:00Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Wire focusable/testID into render tree, remove fallbacks @km/tui #task #P1 @claude:d3a7049b

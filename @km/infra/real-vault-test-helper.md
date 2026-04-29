@@ -5,6 +5,14 @@ aliases:
   - km-infra-real-vault-test-helper
 created_by: claude:8b5b9e1c
 created_at: 2026-04-20T20:19:07Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.real-vault-test-helper
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-20T13:19:12Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [ ] Fast real-vault snapshot test helper for TDD @km/infra #feature #P3

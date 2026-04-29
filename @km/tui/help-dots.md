@@ -9,6 +9,8 @@ closed_at: 2026-03-17T22:40:19Z
 close_reason: "Fixed: Fill component needs flexDirection=column on fixed-width
   wrapper Box to propagate width constraint to inner flex row. Added
   flexDirection=column to column wrapper in buildContentLines."
+owner: bjorn@stabell.org
+assignee: claude:3c24fe4a
 ---
 
 # [x] Help dialog: dot leaders missing in multi-column sections @km/tui #bug #P1 @claude:3c24fe4a

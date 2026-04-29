@@ -5,6 +5,7 @@ aliases:
   - km-tui-storybook-styling-coverage
 created_by: Bjørn Stabell
 created_at: 2026-04-07T05:43:43Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Audit and refresh bun storybook — visualize all current styling states @km/tui #task #P2

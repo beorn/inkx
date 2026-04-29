@@ -8,6 +8,7 @@ created_at: 2026-04-01T15:10:20Z
 closed_at: 2026-04-01T15:38:21Z
 close_reason: Spec written at docs/design/outliner-spec.md. withOutliner pattern
   implemented in km-tree/src/outliner.ts with 49 tests. Pro review integrated.
+owner: bjorn@stabell.org
 ---
 
 # [x] Shared outliner behavior spec — Enter, Tab, Delete, Backspace, J/K for every context @km/tui #task #P2

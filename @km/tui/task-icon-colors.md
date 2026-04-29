@@ -5,6 +5,7 @@ aliases:
   - km-tui-task-icon-colors
 created_by: Bjørn Stabell
 created_at: 2026-04-06T20:42:28Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] [bug] WIP and Blocked status icons lose semantic colors @km/tui #bug #P2

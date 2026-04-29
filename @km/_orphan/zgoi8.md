@@ -4,6 +4,7 @@ aliases:
   - km-zgoi8
 created_at: 2026-01-29T20:49:14Z
 closed_at: 2026-01-29T21:00:11Z
+assignee: claude:85e4bbaf
 ---
 
 # [x] batch plugin: complete monorepo restructure and verify skill discovery @km/_orphan #task #P2 @claude:85e4bbaf

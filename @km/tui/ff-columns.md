@@ -11,6 +11,7 @@ close_reason: Implemented expandIndexFileColumns in use-columns.ts. Both
   and expand their sections as columns. Embed slots (## ![[./child]]) resolve to
   folder children, inline sections become columns, unlisted children are
   appended. 10 new tests in duplicate-columns.test.ts all pass.
+owner: bjorn@stabell.org
 ---
 
 # [x] Column promotion in deriveColumnsFromRepo @km/tui #task #P2

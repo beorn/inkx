@@ -10,6 +10,8 @@ close_reason: "Q1 2026 review complete. Checked 5 upstream issues (3 bad URLs
   fixed), verified versions (Screen 5.0.1 added), identified 5 high-priority new
   probes + xterm.js 6.1 kitty keyboard. Follow-up beads created:
   km-terminfo.new-probes-q1-2026, km-terminfo.xtermjs-6.1-kitty-keyboard."
+owner: bjorn@stabell.org
+assignee: claude:27beac99
 ---
 
 # [x] Quarterly terminal standards review — update database, changelog, and publish @km/termless #task #P2 @claude:27beac99

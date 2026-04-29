@@ -11,6 +11,8 @@ close_reason: Updated silvery-vs-ink.md, comparison.md, getting-started.md,
   claims about ink's capabilities (React 19, incremental rendering, kitty
   keyboard, useBoxMetrics, focus management). Identified 14 genuine silvery
   differentiators.
+owner: bjorn@stabell.org
+assignee: claude:474834b0
 ---
 
 # [x] Rethink silvery value prop vs ink based on compat audit learnings @km/silvery #task #P2 @claude:474834b0

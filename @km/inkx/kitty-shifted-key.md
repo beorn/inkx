@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-20T14:04:37Z
 closed_at: 2026-02-20T14:09:46Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Expose shifted key and base layout key from Kitty sequences @km/inkx #task #P3 @claude:d3a7049b

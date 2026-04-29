@@ -5,6 +5,7 @@ aliases:
   - km-infra-style-precedence-lint
 created_by: Bjørn Stabell
 created_at: 2026-04-07T04:30:42Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Lint/grep guard against hardcoded colors on inline Text leaves @km/infra #task #P3

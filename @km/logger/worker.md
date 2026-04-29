@@ -5,6 +5,7 @@ aliases:
   - km-logger-worker
 created_at: 2026-02-02T15:24:41Z
 closed_at: 2026-02-02T15:55:29Z
+assignee: claude:76fda6b0
 ---
 
 # [x] Add worker thread debug support to @beorn/logger @km/logger #feature #P4 @claude:76fda6b0

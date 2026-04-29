@@ -12,6 +12,8 @@ close_reason: "@silvery/commander@0.2.0 shipped with all planned features:
   .env(), Prettify<T>. 70 tests. @silvery/ansi@0.1.0 extracted for NO_COLOR
   support. Deployed to 8 CLIs, replaced @commander-js/extra-typings across 33
   files."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Silvery CLI ecosystem: @silvery/commander + explore replacing @commander-js/extra-typings @km/silvery #feature #P3 @claude:f8196c1c

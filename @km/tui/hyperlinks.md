@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-20T15:18:08Z
 closed_at: 2026-02-23T01:20:37Z
+owner: bjorn@stabell.org
+assignee: claude:97b8de73
 ---
 
 # [x] Click on hyperlinks/URLs to open in browser @km/tui #feature #P3 @claude:97b8de73

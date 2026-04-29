@@ -9,6 +9,7 @@ closed_at: 2026-03-13T05:22:37Z
 close_reason: "Deferred: Model-based state machine fuzzing requires a formal
   model of the pipeline state machine. Substantial test infrastructure. Current
   property-invariant fuzz tests provide good coverage."
+owner: bjorn@stabell.org
 ---
 
 # [x] Testing gap: model-based long-session state-machine fuzzing @km/silvery #task #P2

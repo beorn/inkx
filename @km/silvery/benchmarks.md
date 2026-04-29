@@ -5,6 +5,7 @@ aliases:
   - km-silvery-benchmarks
 created_by: claude:e4e70c9a
 created_at: 2026-03-11T07:31:41Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Benchmark page: side-by-side Silvery vs Ink performance @km/silvery #task #P1

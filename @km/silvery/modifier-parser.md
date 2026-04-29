@@ -8,6 +8,8 @@ created_at: 2026-04-10T23:04:50Z
 closed_at: 2026-04-10T23:14:58Z
 close_reason: parseKey now sets key.isModifierOnly; isModifierOnlyEvent() checks
   flag instead of heuristic
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Move isModifierOnly detection to parser (key.isModifierOnly flag) @km/silvery #task #P1 @Bjørn Stabell

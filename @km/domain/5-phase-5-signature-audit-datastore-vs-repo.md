@@ -6,6 +6,7 @@ aliases:
   - "@km/domain/5"
 created_at: 2026-01-25T23:36:36Z
 closed_at: 2026-01-26T08:13:18Z
+assignee: km
 ---
 
 # [x] Phase 5: Signature audit (DataStore vs Repo) @km/domain #task #P3 @km

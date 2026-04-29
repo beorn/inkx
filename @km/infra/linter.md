@@ -5,6 +5,7 @@ aliases:
   - km-infra-linter
 created_at: 2026-02-04T11:27:37Z
 closed_at: 2026-02-04T13:54:30Z
+assignee: claude:9e69175d
 ---
 
 # [x] Standardize on Biome or ESLint+Prettier across monorepo @km/infra #task #P4 @claude:9e69175d

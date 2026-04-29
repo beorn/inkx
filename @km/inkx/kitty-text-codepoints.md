@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-20T14:04:43Z
 closed_at: 2026-02-20T14:09:46Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Parse text-as-codepoints from Kitty sequences (flag 16) @km/inkx #task #P4 @claude:d3a7049b

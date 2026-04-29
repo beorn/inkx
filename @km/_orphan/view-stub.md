@@ -4,6 +4,7 @@ aliases:
   - km-view-stub
 created_at: 2026-01-30T16:21:15Z
 closed_at: 2026-01-30T16:26:16Z
+assignee: claude:cf38b4a6
 ---
 
 # [x] km view shows empty board when targeting stub file @km/_orphan #bug #P1 @claude:cf38b4a6

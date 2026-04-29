@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-osc8-hyperlinks
 created_by: claude:2405c72e
 created_at: 2026-04-28T19:36:00Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.osc8-hyperlinks
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T12:35:59Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] OSC 8 hyperlinks for file paths in chat — Cmd+click opens in editor @km/silvercode #feature #P2

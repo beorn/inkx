@@ -5,6 +5,7 @@ aliases:
   - km-storage-rename-tests
 created_at: 2026-02-04T13:20:47Z
 closed_at: 2026-02-04T13:26:29Z
+assignee: claude:9e69175d
 ---
 
 # [x] Add explicit tests for handleRename @km/storage #task #P3 @claude:9e69175d

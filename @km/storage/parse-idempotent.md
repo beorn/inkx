@@ -9,6 +9,8 @@ closed_at: 2026-03-19T17:31:13Z
 close_reason: "Fixed: added parsed flag to nodes table, guards in all 3 parse
   entry points (parseStubFile, parseOneFile, insertFileNodes). Schema migration.
   Test: parse-idempotent.test.ts (6 tests), all 1009 storage tests pass."
+owner: bjorn@stabell.org
+assignee: claude:21c57d63
 ---
 
 # [x] Storage: make deferred parsing idempotent — prevent double-parse and data loss @km/storage #task #P2 @claude:21c57d63

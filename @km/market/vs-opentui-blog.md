@@ -5,6 +5,26 @@ aliases:
   - km-market-vs-opentui-blog
 created_by: Bjørn Stabell
 created_at: 2026-04-15T23:22:36Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-market.vs-opentui-blog
+    depends_on_id: km-market
+    type: parent-child
+    created_at: 2026-04-15T16:22:36Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-market.vs-opentui-blog
+    depends_on_id: km-market.vs-opentui
+    type: blocks
+    created_at: 2026-04-15T16:22:37Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-market.vs-opentui-blog
+    depends_on_id: km-market.vs-opentui-bench
+    type: blocks
+    created_at: 2026-04-15T16:22:37Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Blog post: 'Why we didn't build on OpenTUI' @km/market #task #P3

@@ -11,6 +11,20 @@ close_reason: L1 fix shipped in 32d71e571 (gate status reducer arm on running
   km-silvercode.queue-stuck-thinking-l4. The 'blocking'
   km-silvercode.session-store-trace is preventative observability for future
   regressions, not a prerequisite for closing this bug.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.queue-stuck-thinking
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T12:39:55Z
+    created_by: claude:2405c72e
+    metadata: "{}"
+  - issue_id: km-silvercode.queue-stuck-thinking
+    depends_on_id: km-silvercode.session-store-trace
+    type: blocks
+    created_at: 2026-04-28T12:50:10Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Queue stuck — status flips back to 'thinking' minutes after turn-end, all sends queued @km/silvercode #bug #P0

@@ -8,6 +8,7 @@ created_at: 2026-03-13T05:32:04Z
 closed_at: 2026-03-13T05:32:38Z
 close_reason: P4 optimization — tracked but not blocking. Margin re-resolve is
   redundant but not harmful.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 9 re-resolves margins that are already cached in child.flex @km/flexily #task #P4

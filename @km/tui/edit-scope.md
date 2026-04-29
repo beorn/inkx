@@ -5,6 +5,7 @@ aliases:
   - km-tui-edit-scope
 created_by: Bjørn Stabell
 created_at: 2026-04-06T19:53:18Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Edit mode as bounded scope — constrain operations to card boundary @km/tui #feature #P2

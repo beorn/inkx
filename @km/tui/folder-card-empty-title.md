@@ -8,6 +8,14 @@ created_at: 2026-04-14T05:23:11Z
 closed_at: 2026-04-14T06:48:17Z
 close_reason: InlineMention no longer swallows single-sigil titles when the
   sigil matches column excludedSigils — see commit 0e6d8d545
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.folder-card-empty-title
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-13T22:23:31Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Folders without _index.md show empty/dim title above first child @km/tui #bug #P2

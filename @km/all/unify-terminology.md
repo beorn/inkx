@@ -8,6 +8,7 @@ created_at: 2026-04-03T22:08:41Z
 closed_at: 2026-04-03T23:12:37Z
 close_reason: Children moved under km-silvery.selection — terminology renames
   are prereqs for selection work
+owner: bjorn@stabell.org
 ---
 
 # [x] Unify terminology across the entire project @km/all #task #P2

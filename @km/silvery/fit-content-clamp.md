@@ -10,6 +10,15 @@ close_reason: Root cause identified and fixed in
   km-silvery.fit-content-measure-func. The fix (setMaxWidth + correction pass)
   handles the clamp. Separate bead for plain-Box-without-keyword remains
   test.fails.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-silvery.fit-content-clamp
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-11T21:29:16Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] fit-content ignores parent available width — children overflow narrow containers @km/silvery #bug #P1 @Bjørn Stabell

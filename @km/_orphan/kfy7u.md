@@ -5,6 +5,7 @@ aliases:
 created_by: claude:e7c823b8
 created_at: 2026-02-26T14:54:31Z
 closed_at: 2026-02-26T15:04:08Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Add padding after truncation ellipsis in TUI cards @km/_orphan #task #P3

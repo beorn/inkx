@@ -4,6 +4,7 @@ aliases:
   - km-inkx-keys
 created_at: 2026-02-01T23:18:59Z
 closed_at: 2026-02-01T23:29:22Z
+assignee: claude:5fa2decc
 ---
 
 # [x] inkx-loop: Port key parsing from old useInput @km/_orphan #task #P1 @claude:5fa2decc

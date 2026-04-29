@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-15T14:26:31Z
 closed_at: 2026-02-15T23:22:03Z
+owner: bjorn@stabell.org
+assignee: claude:a5c7f7de
 ---
 
 # [x] Column shift (opt+h/opt+left) doesn't work: log-only or boundary error @km/tui #bug #P2 @claude:a5c7f7de

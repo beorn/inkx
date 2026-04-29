@@ -49,6 +49,8 @@ close_reason: >-
   want to assert cleanup
 
   - silvery-knowledge.md postmortem entry
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
 ---
 
 # [x] Termless vitest workers leak memory — 25GB+ per worker in long test runs @km/silvery #bug #P1 @claude:8b5b9e1c

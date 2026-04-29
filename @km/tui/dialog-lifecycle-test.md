@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-17T23:53:04Z
 closed_at: 2026-02-18T01:14:23Z
+owner: bjorn@stabell.org
+assignee: claude:fcaad2fa
 ---
 
 # [x] Add createApp-lifecycle test for dialog confirm/cancel @km/tui #task #P2 @claude:fcaad2fa

@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-queue-stuck-thinking-l4
 created_by: claude:2405c72e
 created_at: 2026-04-28T21:19:41Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.queue-stuck-thinking-l4
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T14:19:44Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] L4 architectural reframe — Turn owner module + derived status getter @km/silvercode #task #P0

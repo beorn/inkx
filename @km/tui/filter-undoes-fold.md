@@ -17,6 +17,8 @@ close_reason: "Cannot reproduce: wrote 4 tests covering the exact repro (fold +
   computeDefaultFoldDepths at apps/km-tui/src/state/board-app-store.ts:1617.
   Regression tests added to apps/km-tui/tests/filter.slow.test.ts lock in the
   expected behavior. If symptom recurs, please attach exact step-by-step repro."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] Filter toggle silently undoes fold state @km/tui #bug #P2 @Bjørn Stabell

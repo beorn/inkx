@@ -5,6 +5,7 @@ aliases:
   - km-silvery-live-demos
 created_by: claude:4929065a
 created_at: 2026-04-02T18:24:44Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Live silvery demos in browser via xterm.js + server-side PTY @km/silvery #feature #P3

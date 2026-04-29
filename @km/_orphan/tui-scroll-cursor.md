@@ -4,6 +4,7 @@ aliases:
   - km-tui-scroll-cursor
 created_at: 2026-01-31T21:54:43Z
 closed_at: 2026-02-02T10:38:45Z
+assignee: claude:227cdc41
 ---
 
 # [x] Cursor jumps to top bar when scrolling down past screen in columns view @km/_orphan #bug #P2 @claude:227cdc41

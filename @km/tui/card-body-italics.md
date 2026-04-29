@@ -6,6 +6,7 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-20T07:45:35Z
 closed_at: 2026-02-20T08:09:10Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Card body shows li items as italics (* interpreted as markdown formatting) @km/tui #bug #P2

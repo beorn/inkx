@@ -6,6 +6,7 @@ aliases:
 created_by: claude:d1f60fb4
 created_at: 2026-02-25T23:27:28Z
 closed_at: 2026-02-25T23:37:05Z
+owner: bjorn@stabell.org
 ---
 
 # [x] DECRQM — query terminal mode states @km/inkx #feature #P3

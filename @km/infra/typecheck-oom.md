@@ -5,6 +5,14 @@ aliases:
   - km-infra-typecheck-oom
 created_by: claude:cc081a9a
 created_at: 2026-04-28T08:02:55Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.typecheck-oom
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-28T01:03:03Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] TypeScript typecheck runs out of memory (SIGABRT) @km/infra #bug #P2

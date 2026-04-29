@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T23:05:21Z
 closed_at: 2026-02-15T08:44:14Z
+owner: bjorn@stabell.org
+assignee: claude:a5c7f7de
 ---
 
 # [x] Selected cursor: strip colors, render black-on-yellow for readability @km/tui #bug #P2 @claude:a5c7f7de

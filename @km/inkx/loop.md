@@ -5,6 +5,7 @@ aliases:
   - km-inkx-loop
 created_at: 2026-02-04T11:23:53Z
 closed_at: 2026-02-04T13:01:07Z
+assignee: claude:27f1a547
 ---
 
 # [x] inkx-loop: Layered TUI framework on AsyncIterables @km/inkx #epic #P1 @claude:27f1a547

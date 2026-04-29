@@ -5,6 +5,14 @@ aliases:
   - km-silvery-tea-create-app-split
 created_by: Bjørn Stabell
 created_at: 2026-04-18T18:44:09Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.tea-create-app-split
+    depends_on_id: km-silvery.tea
+    type: parent-child
+    created_at: 2026-04-18T11:44:16Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Split create-app.tsx to hit ≤1200 LOC target @km/silvery #task #P3

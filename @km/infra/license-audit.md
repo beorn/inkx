@@ -8,6 +8,7 @@ created_at: 2026-04-01T19:04:41Z
 closed_at: 2026-04-01T19:14:45Z
 close_reason: "All fixed: vitepress-enrich LICENSE file added, terminfo.dev CC
   BY 4.0 + public. All repos licensed."
+owner: bjorn@stabell.org
 ---
 
 # [x] Fix missing licenses: terminfo.dev (CC BY 4.0), ansi (MIT), vitepress-enrich (MIT LICENSE file) @km/infra #task #P2

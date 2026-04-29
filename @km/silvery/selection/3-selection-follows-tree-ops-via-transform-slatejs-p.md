@@ -7,6 +7,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-04T16:03:15Z
 closed_at: 2026-04-04T20:21:53Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Selection follows tree ops via transform (SlateJS pattern) — eliminate reconciliation effect @km/silvery #task #P1 @Bjørn Stabell

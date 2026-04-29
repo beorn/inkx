@@ -6,6 +6,7 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-20T21:34:07Z
 closed_at: 2026-02-20T22:31:12Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Asana import quality: 12K issues across 60K nodes (20.3% rate) @km/storage #task #P2

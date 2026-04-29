@@ -6,6 +6,8 @@ aliases:
 created_by: claude:56a1fd6b
 created_at: 2026-03-04T07:22:05Z
 closed_at: 2026-03-04T07:43:30Z
+owner: bjorn@stabell.org
+assignee: claude:56a1fd6b
 ---
 
 # [x] Detail pane content lags 2-3s behind title on cursor change @km/tui #bug #P1 @claude:56a1fd6b

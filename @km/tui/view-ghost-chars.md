@@ -6,6 +6,7 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T16:27:07Z
 closed_at: 2026-02-14T20:48:45Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Ghost characters persist after view mode switching (CARDS/TABS/COLUMN) @km/tui #bug #P2

@@ -14,6 +14,15 @@ close_reason: "5 fixes shipped in vendor/bearly@ceda3be + km@84ce360dc: (1)
   + review.md document --fast vs --deep tradeoff. 9 unit tests pass
   (format.test.ts), bearly typecheck clean, bun llm --help renders, await
   argument validation verified. Not pushed."
+owner: bjorn@stabell.org
+assignee: claude:a1a0e667
+dependencies:
+  - issue_id: km-infra.llm-recover-ux
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-20T14:01:25Z
+    created_by: claude:88c0e764
+    metadata: "{}"
 ---
 
 # [x] /pro /llm recover: poll timeout too short, no write-to-file, stdout spam @km/infra #task #P0 @claude:a1a0e667

@@ -6,6 +6,7 @@ aliases:
   - "@km/defensive-chain/1"
 created_at: 2026-01-25T11:18:02Z
 closed_at: 2026-01-25T11:32:00Z
+assignee: claude
 ---
 
 # [x] Create ActionError types in @km/commands @km/defensive-chain #task #P1 @claude

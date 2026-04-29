@@ -15,6 +15,22 @@ close_reason: "Shipped at 3fb69fdfe (silvercode zero-config) + 8057ee61c (km-cli
   documented in commit body. Follow-ups: 'km config' top-level subcommand via
   mountConfigCommand needs a KmKind schema (separate bead if pursued);
   getFolderIndexConfig + getCollapseParseConfig stay sync."
+started_at: 2026-04-26T23:10:15Z
+owner: bjorn@stabell.org
+assignee: claude:4de4a3ab
+dependencies:
+  - issue_id: km-silvercode.zero-config
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-26T14:02:35Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
+  - issue_id: km-silvercode.zero-config
+    depends_on_id: km-silvercode.connection-system
+    type: blocks
+    created_at: 2026-04-26T14:02:35Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [x] silvercode: zero-config first-run via BUILTIN_AGENTS + env-var fallback @km/silvercode #feature #P2 @claude:4de4a3ab

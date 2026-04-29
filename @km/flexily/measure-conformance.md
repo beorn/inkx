@@ -5,6 +5,7 @@ aliases:
   - km-flexily-measure-conformance
 created_by: claude:fed8de9e
 created_at: 2026-03-30T23:49:01Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Yoga conformance: MeasureFunc + text height comparison tests @km/flexily #task #P2

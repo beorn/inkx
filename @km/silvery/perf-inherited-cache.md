@@ -11,6 +11,7 @@ close_reason: "Deferred: findInheritedBg walks ancestors ~6-8 times per node at
   passed down). Remaining calls are in clearNodeRegion, clearExcessArea,
   fillRegionWithColor — would need inheritedBg threaded through all helper
   functions. Non-trivial refactor, no measured bottleneck."
+owner: bjorn@stabell.org
 ---
 
 # [x] Perf: Cache findInheritedBg/Fg during traversal instead of repeated ancestor walks @km/silvery #task #P2

@@ -5,6 +5,7 @@ aliases:
   - km-tui-priority-colors
 created_by: Bjørn Stabell
 created_at: 2026-04-06T20:42:28Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] [bug] Priority colors not distinguishable (P0=P1, P2=P3) @km/tui #bug #P3

@@ -8,6 +8,7 @@ created_at: 2026-04-02T21:47:08Z
 closed_at: 2026-04-03T01:17:58Z
 close_reason: "All 5 compositions shipped: SelectList, Console, Table, TreeView,
   PickerList. All delegate to ListView, get cache/nav/search for free."
+owner: bjorn@stabell.org
 ---
 
 # [x] ListView as universal container — SelectList/Console/Table/TreeView compositions @km/silvery #feature #P2

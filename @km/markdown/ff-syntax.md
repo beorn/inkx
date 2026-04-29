@@ -9,6 +9,7 @@ closed_at: 2026-03-17T06:06:47Z
 close_reason: "Extended micromark wikilink extension to parse ./ prefix
   (relative: true flag). Updated both AST parser and regex-based parseWikiLinks.
   5 AST tests + 5 regex tests in packages/km-markdown/tests/ all pass."
+owner: bjorn@stabell.org
 ---
 
 # [x] Parser: ![[./child]] relative embed syntax @km/markdown #task #P2

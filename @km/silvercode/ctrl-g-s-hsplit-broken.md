@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-ctrl-g-s-hsplit-broken
 created_by: claude:87d20187
 created_at: 2026-04-28T16:10:28Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.ctrl-g-s-hsplit-broken
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T09:10:45Z
+    created_by: claude:87d20187
+    metadata: "{}"
 ---
 
 # [ ] Ctrl+G s (hsplit chord) doesn't produce horizontal divider in visual tests @km/silvercode #bug #P2

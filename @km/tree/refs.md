@@ -5,6 +5,14 @@ aliases:
   - km-tree-refs
 created_by: Bjørn Stabell
 created_at: 2026-04-03T03:56:38Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tree.refs
+    depends_on_id: km-tree
+    type: parent-child
+    created_at: 2026-04-21T23:05:00Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [ ] Phase 5a: Refs — auto-updating position handles (NodeRef, PointRef, RangeRef) @km/tree #task #P4

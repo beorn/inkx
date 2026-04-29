@@ -6,6 +6,7 @@ aliases:
 created_by: claude:d1f60fb4
 created_at: 2026-02-25T20:25:42Z
 closed_at: 2026-02-25T21:40:58Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Handle Ctrl+Z (SIGTSTP) for process suspend in render() @km/inkx #feature #P2

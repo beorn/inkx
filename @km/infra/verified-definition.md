@@ -5,6 +5,14 @@ aliases:
   - km-infra-verified-definition
 created_by: claude:8b5b9e1c
 created_at: 2026-04-20T20:18:55Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.verified-definition
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-20T13:19:06Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [ ] /complete skill: encode "verified" = user-visible symptom gone, not "tests pass" @km/infra #task #P2

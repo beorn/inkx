@@ -5,6 +5,7 @@ aliases:
   - km-silvery-ag-canvas
 created_by: Bjørn Stabell
 created_at: 2026-03-31T00:20:41Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] ag-canvas: prototype, test, and ship canvas rendering for silvery @km/silvery #epic #P2

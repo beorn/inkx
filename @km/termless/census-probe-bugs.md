@@ -7,6 +7,8 @@ created_by: claude:4929065a
 created_at: 2026-03-23T22:13:37Z
 closed_at: 2026-03-23T22:16:05Z
 close_reason: Not probe bugs — real @xterm/headless limitations. See notes.
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] Census probe bugs: scrollback accumulate + alt screen scrollback @km/termless #bug #P2 @claude:4929065a

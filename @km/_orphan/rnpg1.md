@@ -9,6 +9,7 @@ close_reason: "All 7 sub-beads closed. ink.ts: 2,252 → 1,572 lines (680 lines
   removed, 30% reduction). Moved to silvery core: useStderr, screen reader,
   colon SGR, kitty manager, ErrorBoundary (already done). Dead code removed.
   Static alignment investigated — correctly aligned, no change needed."
+owner: bjorn@stabell.org
 ---
 
 # [x] Ink compat: core alignment + thin the compat layer @km/_orphan #task #P2

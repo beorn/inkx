@@ -6,6 +6,8 @@ aliases:
 created_by: claude:1cef7d9e
 created_at: 2026-02-11T09:43:01Z
 closed_at: 2026-02-15T18:26:51Z
+owner: bjorn@stabell.org
+assignee: claude:d9855593
 ---
 
 # [x] VirtualColumns: framework-level horizontal+vertical virtualization with position tracking @km/inkx #feature #P3 @claude:d9855593

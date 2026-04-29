@@ -10,6 +10,7 @@ close_reason: Added hideInstance/unhideInstance render path tests in
   vendor/silvery/tests/hide-unhide.test.tsx — 6 tests covering Suspense fallback
   rendering, unhide content restoration, stale pixel prevention, display=none
   toggle, display=none pixel leak check, and hidden backgroundColor cleanup.
+owner: bjorn@stabell.org
 ---
 
 # [x] Testing: hideInstance/unhideInstance render path untested @km/silvery #task #P2

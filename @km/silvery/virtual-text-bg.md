@@ -10,6 +10,7 @@ close_reason: "Not a bug. The bgSegments pipeline works correctly end-to-end
   (buffer cells, ANSI output 48;2;R;G;B confirmed via termless test). The
   original #333333 was too low contrast against dark terminal backgrounds.
   Changed to #404050 — visible on all dark themes."
+owner: bjorn@stabell.org
 ---
 
 # [x] backgroundColor on nested <Text> inside <Text> is lost (virtual text flattening) @km/silvery #bug #P2

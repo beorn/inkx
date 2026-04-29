@@ -6,6 +6,7 @@ aliases:
 created_by: claude:65d845d9
 created_at: 2026-03-13T05:32:58Z
 closed_at: 2026-03-13T05:35:26Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Classic implementation is 2900 LOC duplicate of zero — divergence risk @km/flexily #task #P3

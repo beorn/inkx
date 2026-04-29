@@ -6,6 +6,8 @@ aliases:
 created_by: claude:2f3fc9d8
 created_at: 2026-02-11T19:02:05Z
 closed_at: 2026-02-11T19:19:34Z
+owner: bjorn@stabell.org
+assignee: claude:2f3fc9d8
 ---
 
 # [x] useInput state updates from child components don't trigger render flush @km/inkx #bug #P2 @claude:2f3fc9d8

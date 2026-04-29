@@ -15,6 +15,14 @@ close_reason: Shipped in bearly faeea22 + km 56b234c97. Tribe listener at
   ready-to-run jq one-liner. User's live ~/.claude/settings.json intentionally
   untouched (opt-in application per CLAUDE.md 'do not modify shared user state
   without approval' rule).
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.migrate-to-listener
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-22T19:38:38Z
+    created_by: claude:fa4168d9
+    metadata: "{}"
 ---
 
 # [x] Migrate tribe entries in settings.json to pluggable ingest/notify @km/bearly #task #P3

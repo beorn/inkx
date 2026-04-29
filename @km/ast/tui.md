@@ -6,6 +6,7 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-14T00:11:06Z
 closed_at: 2026-02-14T00:59:45Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Update TUI and commands for km-ast types @km/ast #task #P1

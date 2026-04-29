@@ -4,6 +4,7 @@ aliases:
   - km-reporter-tty
 created_at: 2026-01-28T07:26:28Z
 closed_at: 2026-01-28T07:57:10Z
+assignee: claude:8f1636c1
 ---
 
 # [x] vitest-reporter should auto-detect TTY instead of requiring TERM=dumb @km/_orphan #bug #P2 @claude:8f1636c1

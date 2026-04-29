@@ -6,6 +6,7 @@ aliases:
 created_by: claude:5f0aee02
 created_at: 2026-02-18T10:09:32Z
 closed_at: 2026-02-19T10:54:31Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Card truncation leaves partial lines — ellipsis should end full lines @km/tui #bug #P3

@@ -5,6 +5,14 @@ aliases:
   - km-silvery-ag-solid
 created_by: Bjørn Stabell
 created_at: 2026-04-15T23:19:00Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.ag-solid
+    depends_on_id: km-silvery.opentui-parity
+    type: parent-child
+    created_at: 2026-04-15T16:18:59Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] [epic] @silvery/ag-solid — Solid reconciler @km/silvery #epic #P1

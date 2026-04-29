@@ -5,6 +5,14 @@ aliases:
   - km-tui-backlog-view
 created_by: claude:18c72b43
 created_at: 2026-04-20T17:33:15Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.backlog-view
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-20T10:33:15Z
+    created_by: claude:18c72b43
+    metadata: "{}"
 ---
 
 # [ ] km-tui backlog view: ordered tree render with prominent short IDs @km/tui #feature #P3

@@ -5,6 +5,26 @@ aliases:
   - km-review-silvery-gap-analysis
 created_by: Bjørn Stabell
 created_at: 2026-04-15T14:41:44Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-review.silvery-gap-analysis
+    depends_on_id: km-silvery.selection-focus-plateau
+    type: parent-child
+    created_at: 2026-04-15T11:31:12Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-review.silvery-gap-analysis
+    depends_on_id: km-silvery.tea.migration
+    type: blocks
+    created_at: 2026-04-15T11:31:34Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-review.silvery-gap-analysis
+    depends_on_id: km-tui.tea
+    type: blocks
+    created_at: 2026-04-15T11:31:32Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Gap analysis: km vs silvery — what it takes for km to truly leverage silvery @km/review #task #P2

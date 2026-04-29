@@ -8,6 +8,8 @@ created_at: 2026-03-13T05:01:13Z
 closed_at: 2026-03-13T05:16:49Z
 close_reason: "Fixed: verifyOutputEquivalence() comparison loop now uses
   vtHeight instead of compareHeight, catching stale rows after height shrink."
+owner: bjorn@stabell.org
+assignee: claude:65d845d9
 ---
 
 # [x] Bug: verifyOutputEquivalence() misses stale rows after height shrink @km/silvery #bug #P0 @claude:65d845d9

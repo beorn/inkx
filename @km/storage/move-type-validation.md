@@ -8,6 +8,14 @@ created_at: 2026-04-15T06:55:02Z
 closed_at: 2026-04-15T06:55:19Z
 close_reason: Shipped in 6cda83b22. Write-time validator + Map-store mirror +
   doctor integrity + regression test. Vault repaired.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-storage.move-type-validation
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-14T23:55:18Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] moveNode write-time type validation — fs-backed children can only be parented to folders @km/storage #task #P2

@@ -13,6 +13,56 @@ close_reason: All 7 child beads complete (4.A ESLint @ km 1f317889a, leak
   backwards in the original plan — Phase 4.A was meant to gate Phase 3.2 timer
   migration, not vice versa. --force used because Phase 3 sub-beads stay open
   with their own gating (silvercode, lint-informed triage).
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.scope-phase-4
+    depends_on_id: km-silvery.lifecycle-scope
+    type: parent-child
+    created_at: 2026-04-24T13:40:38Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
+  - issue_id: km-silvery.scope-phase-4
+    depends_on_id: km-silvery.scope-phase-3-abort
+    type: blocks
+    created_at: 2026-04-24T13:40:40Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
+  - issue_id: km-silvery.scope-phase-4
+    depends_on_id: km-silvery.scope-phase-3-node-io
+    type: blocks
+    created_at: 2026-04-24T13:40:40Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
+  - issue_id: km-silvery.scope-phase-4
+    depends_on_id: km-silvery.scope-phase-3-signals
+    type: blocks
+    created_at: 2026-04-24T13:40:40Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
+  - issue_id: km-silvery.scope-phase-4
+    depends_on_id: km-silvery.scope-phase-3-stores
+    type: blocks
+    created_at: 2026-04-24T13:40:41Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
+  - issue_id: km-silvery.scope-phase-4
+    depends_on_id: km-silvery.scope-phase-3-subroots
+    type: blocks
+    created_at: 2026-04-24T13:40:39Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
+  - issue_id: km-silvery.scope-phase-4
+    depends_on_id: km-silvery.scope-phase-3-timers
+    type: blocks
+    created_at: 2026-04-24T13:40:39Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
+  - issue_id: km-silvery.scope-phase-4
+    depends_on_id: km-silvery.scope-phase-3-useexit
+    type: blocks
+    created_at: 2026-04-24T13:40:41Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
 ---
 
 # [x] Phase 4: Enforcement + systematic doc/example audit @km/silvery #task #P2

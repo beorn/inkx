@@ -7,6 +7,14 @@ created_by: claude:cd034ca4
 created_at: 2026-04-26T21:47:24Z
 closed_at: 2026-04-26T21:58:24Z
 close_reason: fixed at 0b1c2bbf7
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.worktree-clone-too-slow
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-26T14:47:24Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] Worktree clone too slow → Hook cancelled by Claude Code harness @km/infra #bug #P2

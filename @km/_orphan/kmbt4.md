@@ -5,6 +5,8 @@ aliases:
 created_by: claude:40fd010c
 created_at: 2026-03-02T22:49:39Z
 closed_at: 2026-03-03T00:45:53Z
+owner: bjorn@stabell.org
+assignee: claude:e039a9ca
 ---
 
 # [x] inkx: eliminate all module-level mutable state (PipelineContext + cursor + adapter + theme) @km/_orphan #task #P3 @claude:e039a9ca

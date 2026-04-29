@@ -5,6 +5,8 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-19T21:25:11Z
 closed_at: 2026-02-19T21:44:58Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Surface dependency data in TUI (deps/blocks already imported) @km/_orphan #feature #P2 @claude:8f007ba9

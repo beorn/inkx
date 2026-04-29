@@ -6,6 +6,8 @@ aliases:
 created_by: claude:949598cc
 created_at: 2026-02-12T09:52:13Z
 closed_at: 2026-02-12T10:12:45Z
+owner: bjorn@stabell.org
+assignee: claude:949598cc
 ---
 
 # [x] Indent/outdent type restrictions: only sections & list items @km/tui #feature #P3 @claude:949598cc

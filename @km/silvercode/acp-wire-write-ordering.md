@@ -10,6 +10,16 @@ close_reason: "Fixed in 849b4358d. Wire tracks pendingWrites set; settleNext
   drains via Promise.allSettled before resolving awaitTurn waiters. Tests in
   wire-write-ordering.test.ts (3 cases: drain ordering, multi-write drain,
   cross-turn no-deadlock). All 11 claude-acp tests pass."
+started_at: 2026-04-28T00:26:14Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvercode.acp-wire-write-ordering
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-27T17:23:08Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] ACP wire: await pending sessionUpdate writes before settling awaitTurn @km/silvercode #task #P2 @claude:cc081a9a

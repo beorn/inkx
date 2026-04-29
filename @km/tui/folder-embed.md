@@ -5,6 +5,7 @@ aliases:
   - km-tui-folder-embed
 created_at: 2026-02-04T11:27:21Z
 closed_at: 2026-02-04T12:41:17Z
+assignee: claude:a7826e85
 ---
 
 # [x] Folder embed shows !inbox instead of transcluded content in zoom view @km/tui #bug #P2 @claude:a7826e85

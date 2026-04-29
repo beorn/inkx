@@ -13,6 +13,8 @@ close_reason: Implemented @bearly/vitepress-enrich shared package with glossary
   TechArticle + BreadcrumbList JSON-LD, canonical URLs, and lastUpdated to all
   sites. Pro-reviews complete with roadmap for additional content (recipes, FAQ,
   comparison pages).
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] Glossary, SEO auto-linking, and content enrichment for silvery.dev + termless.dev — modular system @km/market #feature #P2 @claude:4929065a

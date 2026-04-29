@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fa5431cd
 created_at: 2026-03-03T18:25:31Z
 closed_at: 2026-03-03T22:52:04Z
+owner: bjorn@stabell.org
+assignee: claude:fa5431cd
 ---
 
 # [x] ScrollbackView: infinite compaction loop + resize corruption in run() runtime @km/inkx #bug #P1 @claude:fa5431cd

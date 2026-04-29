@@ -5,6 +5,7 @@ aliases:
   - km-infra-audit-all
 created_by: Bjørn Stabell
 created_at: 2026-04-07T01:40:01Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Unified audit framework + 'audit all' flow @km/infra #feature #P2

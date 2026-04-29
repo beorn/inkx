@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a7ba47d7
 created_at: 2026-02-22T22:15:19Z
 closed_at: 2026-02-23T00:29:00Z
+owner: bjorn@stabell.org
+assignee: claude:ee8efc0f
 ---
 
 # [x] inkx docs overhaul: FOSS-ready documentation @km/inkx #task #P3 @claude:ee8efc0f

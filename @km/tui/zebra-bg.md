@@ -11,6 +11,7 @@ close_reason: "Root cause: cursor ID included in selection set →
   depth-1 items got multiSelectedBg (14%) while depth-2+ inherited selectedBg
   (6%). Fix: exclude cursor from selectedSet before hydrate/setSelection. Commit
   f4454fbe5."
+owner: bjorn@stabell.org
 ---
 
 # [x] Zebra pattern — section heading bg stacks with card selectedBg @km/tui #bug #P0

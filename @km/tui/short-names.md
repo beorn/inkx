@@ -6,6 +6,8 @@ aliases:
 created_by: claude:5f0aee02
 created_at: 2026-02-18T08:42:00Z
 closed_at: 2026-02-19T18:50:00Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Short-name codes for nodes (@bjrn-stabell → @BS) @km/tui #feature #P2 @claude:8f007ba9

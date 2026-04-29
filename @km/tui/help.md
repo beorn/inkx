@@ -6,6 +6,8 @@ aliases:
 created_by: claude:536645b5
 created_at: 2026-02-20T16:11:39Z
 closed_at: 2026-02-21T08:01:31Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Help, hints, progress, chord menus, and dialog boxes @km/tui #epic #P2 @claude:d3a7049b

@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-03-31T06:56:25Z
 closed_at: 2026-03-31T07:32:39Z
 close_reason: "Implemented in c4e7e807 + 312abd8: tests, delta sync, editing, mouse, scroll"
+owner: bjorn@stabell.org
 ---
 
 # [x] Canvas virtual scrolling @km/silvery #feature #P3

@@ -6,6 +6,7 @@ aliases:
   - "@km/rev-code-0127/5"
 created_at: 2026-01-27T14:28:39Z
 closed_at: 2026-01-27T20:38:07Z
+assignee: claude:cacac722
 ---
 
 # [x] Cleanup: Remove unused files, deps, and exports @km/rev-code-0127 #task #P3 @claude:cacac722

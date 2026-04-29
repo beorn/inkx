@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-20T14:05:56Z
 closed_at: 2026-02-20T14:18:09Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Wire mouse events into runtime (run/createApp) @km/inkx #task #P3 @claude:d3a7049b

@@ -9,6 +9,7 @@ close_reason: "Extracted diffBuffers to diff-buffers.ts. 23 tests: no-changes,
   all-changes, wide→narrow transitions, resize growth/shrink, dirty row
   bounding, row pre-check skip, true-color map diffs, and soundness property
   test (applying diff to prev reconstructs next)."
+owner: bjorn@stabell.org
 ---
 
 # [x] diffBuffers: extract, edge-case + property tests @km/_orphan #task #P3

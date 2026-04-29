@@ -9,6 +9,20 @@ closed_at: 2026-04-23T00:51:36Z
 close_reason: Shipped silvery f530f4cf + km bump. Streams under symbols,
   mixed-proxy forwards all symbol lookups, 3 stream-privacy tests + km-tui
   2511/2511 pass.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.phase-a3-streams-symbol
+    depends_on_id: km-silvery.phase-a2-backend-term-signals
+    type: blocks
+    created_at: 2026-04-22T17:44:26Z
+    created_by: claude:019d032d
+    metadata: "{}"
+  - issue_id: km-silvery.phase-a3-streams-symbol
+    depends_on_id: km-silvery.pro-review-p1
+    type: parent-child
+    created_at: 2026-04-22T17:44:24Z
+    created_by: claude:019d032d
+    metadata: "{}"
 ---
 
 # [x] Phase A3: stdin/stdout hidden under Symbol at runtime @km/silvery #task #P2

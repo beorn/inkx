@@ -9,6 +9,8 @@ closed_at: 2026-03-31T01:29:52Z
 close_reason: "Phase 1 implemented: user-level socket path preference,
   resolveProjectName(), projectName in sessions/watch/cli_status. Cross-project
   addressing (project:name routing) deferred to follow-up."
+owner: bjorn@stabell.org
+assignee: claude:19080504
 ---
 
 # [x] Tribe: user-level daemon with project-namespaced sessions @km/bearly #feature #P3 @claude:19080504

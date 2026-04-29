@@ -9,6 +9,7 @@ closed_at: 2026-03-31T20:17:48Z
 close_reason: "Fixed: tuiEvents.emit('refresh') was a dead event — nothing
   subscribed. Replaced with repo.touch() which bumps version + notifies React
   subscribers. External edits now trigger re-render. Fix in tui.tsx:132."
+owner: bjorn@stabell.org
 ---
 
 # [x] External edit to @next.md doesn't appear in km view @km/tui #bug #P2

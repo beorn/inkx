@@ -10,6 +10,7 @@ close_reason: "Measured: 0.8% total frame overhead (257 bytes on 31KB frame, 35
   PUA chars on 200x70 screen). Per-char is 4.3x but total impact is negligible.
   OSC 66 spec has no region/persistent mode — per-char wrapping is unavoidable.
   textSizing is already opt-in (off by default). No action needed."
+owner: bjorn@stabell.org
 ---
 
 # [x] Find way to not triple ANSI size with PUA - enable for entire buffer? @km/inkx #task #P1

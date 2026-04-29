@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-session-store-and-switch
 created_by: claude:87d20187
 created_at: 2026-04-28T19:07:43Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.session-store-and-switch
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T12:07:43Z
+    created_by: claude:87d20187
+    metadata: "{}"
 ---
 
 # [ ] ACP session store + mid-conversation agent switch with context carry-over @km/silvercode #feature #P2

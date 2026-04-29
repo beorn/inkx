@@ -7,6 +7,8 @@ created_by: claude:c9beade3
 created_at: 2026-03-13T05:31:50Z
 closed_at: 2026-03-13T06:23:24Z
 close_reason: Review complete. 6 P0, 8 P1, 7 P2, 3 P3. Created child beads for findings.
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] km-markdown GPT 5.4 Pro code review — parser, serializer, round-trip fidelity @km/markdown #epic #P1 @claude:c9beade3

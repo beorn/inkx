@@ -22,6 +22,28 @@ close_reason: "Shipped ACP-named ToolCall component family in commit 064338c3b.
   open km-silvery.diff-code-accordion dep — that bead is for silvery primitive
   work, the consumer use here works against the already-shipped
   Diff/Accordion/AnimatedNumber/TextReveal/TextShimmer/LineNumber primitives."
+started_at: 2026-04-26T18:36:11Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-tool-call
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T08:37:52Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-tool-call
+    depends_on_id: km-silvery.animation-counters
+    type: blocks
+    created_at: 2026-04-26T08:37:55Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-tool-call
+    depends_on_id: km-silvery.diff-code-accordion
+    type: blocks
+    created_at: 2026-04-26T08:37:55Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] silvercode <ToolCall> rendering — kind/status variants, error envelope, count summary, apply-patch @km/silvercode #feature #P1 @claude:cd034ca4

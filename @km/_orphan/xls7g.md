@@ -5,6 +5,8 @@ aliases:
 created_by: claude:fd695049
 created_at: 2026-03-04T14:25:36Z
 closed_at: 2026-03-04T15:01:35Z
+owner: bjorn@stabell.org
+assignee: claude:fd695049
 ---
 
 # [x] Enter doesn't exit edit mode; edit content differs from saved content @km/_orphan #bug #P1 @claude:fd695049

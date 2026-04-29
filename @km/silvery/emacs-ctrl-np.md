@@ -8,6 +8,16 @@ created_at: 2026-04-26T05:44:46Z
 closed_at: 2026-04-26T06:38:38Z
 close_reason: "Shipped: 9f051ca2 (silvery). Ctrl-P/Ctrl-N aliases for Up/Down. 5
   tests. Session: km-session.0425-evening"
+started_at: 2026-04-26T05:47:27Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvery.emacs-ctrl-np
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-25T22:45:04Z
+    created_by: claude:1eb07bba
+    metadata: "{}"
 ---
 
 # [x] Emacs Ctrl-N/P bindings in TextArea (next/prev line) and queue-command edge handoff @km/silvery #feature #P3 @claude:2405c72e

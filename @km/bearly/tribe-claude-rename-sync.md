@@ -12,6 +12,14 @@ close_reason: "Parked per dual-model review (Gemini 3 Pro + K2.6): F2-A polling
   parent. Need either a SessionRename hook in Claude Code (doesn't exist today)
   or a custom /rename skill that calls tribe.rename directly. Re-file if
   Anthropic adds the hook or user wants the custom skill."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.tribe-claude-rename-sync
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-21T13:38:18Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Tribe: auto-sync tribe name when Claude /rename fires @km/bearly #feature #P2

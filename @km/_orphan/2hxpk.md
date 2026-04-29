@@ -5,6 +5,7 @@ aliases:
 created_by: claude:28b14b32
 created_at: 2026-02-23T17:24:17Z
 closed_at: 2026-02-23T17:37:20Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Folded embeds show raw \![[ @km/_orphan #bug #P1

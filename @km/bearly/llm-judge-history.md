@@ -15,6 +15,7 @@ close_reason: "Implemented `bun llm pro --judge-history [--limit N] [--quick]
   under cost-aware weighting due to 56% failure rate and $1.18/call cost;
   gemini-3-pro-preview dominates at rank 17.98. Commit: vendor/bearly 8fd0e31;
   km parent 2b1a93459. 104 llm tests pass."
+owner: bjorn@stabell.org
 ---
 
 # [x] Retroactive judge scoring for historical ab-pro.jsonl entries (where output files survived) @km/bearly #feature #P2

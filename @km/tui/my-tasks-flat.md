@@ -6,6 +6,7 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T16:01:03Z
 closed_at: 2026-02-18T16:29:37Z
+owner: bjorn@stabell.org
 ---
 
 # [x] My Tasks board is flat — missing section grouping from Asana @km/tui #bug #P2

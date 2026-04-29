@@ -6,6 +6,8 @@ aliases:
 created_by: claude:8fc35754
 created_at: 2026-03-03T00:34:51Z
 closed_at: 2026-03-04T16:36:50Z
+owner: bjorn@stabell.org
+assignee: claude:fbad9cb1
 ---
 
 # [x] Publish termless packages to npm @km/termless #task #P4 @claude:fbad9cb1

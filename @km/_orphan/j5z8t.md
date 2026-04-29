@@ -5,6 +5,8 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-12T21:36:22Z
 closed_at: 2026-02-12T21:45:12Z
+owner: bjorn@stabell.org
+assignee: claude:124bfbe5
 ---
 
 # [x] TUI: Help overlay keyboard shortcut improvements @km/_orphan #task #P3 @claude:124bfbe5

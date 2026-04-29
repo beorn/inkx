@@ -9,6 +9,7 @@ closed_at: 2026-04-10T06:39:35Z
 close_reason: All public pages consistent with PPP positioning. 12 pages
   updated, meta synced, benchmarks 3-6x (17 scenarios), 10-20x output. Ink
   fact-checked for 7.0. Blog draft ready (internal). Pro review pending.
+owner: bjorn@stabell.org
 ---
 
 # [x] Public copy consistency pass — tagline, principles, ecosystem framing across home/README/about/Silvery Way/vs-ink @km/silvery #task #P2

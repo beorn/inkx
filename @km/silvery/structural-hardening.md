@@ -5,6 +5,14 @@ aliases:
   - km-silvery-structural-hardening
 created_by: claude:cc081a9a
 created_at: 2026-04-27T06:17:45Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.structural-hardening
+    depends_on_id: km-all.plateau-90
+    type: parent-child
+    created_at: 2026-04-27T11:00:53Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] [epic] Silvery structural hardening — invariants over guards @km/silvery #feature #P1

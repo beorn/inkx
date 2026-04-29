@@ -13,6 +13,7 @@ close_reason: "Fixed: Absolute percent position offsets now resolve against
   description said 'padding box' but Yoga actually resolves against content box.
   Test: vendor/flexily/tests/absolute-positioning.test.ts (3 tests in 'absolute
   percent offsets' describe block)."
+owner: bjorn@stabell.org
 ---
 
 # [x] Bug: Absolute percent offsets resolve against border box, not padding box @km/flexily #bug #P0

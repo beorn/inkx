@@ -6,6 +6,8 @@ aliases:
 created_by: claude:703e68be
 created_at: 2026-02-11T13:10:57Z
 closed_at: 2026-02-11T13:32:31Z
+owner: bjorn@stabell.org
+assignee: claude:703e68be
 ---
 
 # [x] Selection model: Esc clears, Shift-H/L selects columns, coherent tree-selection @km/tui #feature #P2 @claude:703e68be

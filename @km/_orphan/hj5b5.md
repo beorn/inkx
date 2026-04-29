@@ -4,6 +4,7 @@ aliases:
   - km-hj5b5
 created_at: 2026-01-27T13:59:32Z
 closed_at: 2026-01-27T14:00:10Z
+assignee: claude:7ce6f6bf
 ---
 
 # [x] tap CLI doesn't accept explicit file paths, only globs @km/_orphan #bug #P2 @claude:7ce6f6bf

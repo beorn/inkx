@@ -40,6 +40,15 @@ close_reason: >-
 
   calcEdgeBasedScrollOffset stays exported — HorizontalVirtualList still uses it
   via useVirtualization.
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-silvery.virtualizer-single-mode
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-20T20:59:19Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Delete useVirtualizer bootstrap mode — containerNode is universal @km/silvery #feature #P3 @claude:8b5b9e1c

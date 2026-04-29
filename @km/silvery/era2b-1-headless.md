@@ -11,6 +11,8 @@ close_reason: "@silvery/headless package created with 3 pure state machines:
   ReadlineState (text editing with kill ring, history, undo). 100 tests passing.
   Extracted from silvery-internal prototype. Component refactor (using these
   machines in existing components) deferred to era2b-4-ui."
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Era2b Phase 1: @silvery/headless — extract pure state machines @km/silvery #task #P1 @claude:fed8de9e

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:97b8de73
 created_at: 2026-02-23T00:53:45Z
 closed_at: 2026-03-03T10:20:28Z
+owner: bjorn@stabell.org
+assignee: claude:97b8de73
 ---
 
 # [x] vitest doesn't type-check: stale types pass silently @km/infra #task #P2 @claude:97b8de73

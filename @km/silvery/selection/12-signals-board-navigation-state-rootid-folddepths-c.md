@@ -7,6 +7,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-05T07:41:52Z
 closed_at: 2026-04-05T07:52:27Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Signals: board navigation state (rootId, foldDepths, collapsedNodes) @km/silvery #task #P2

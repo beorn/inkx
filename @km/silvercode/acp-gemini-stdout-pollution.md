@@ -7,6 +7,16 @@ created_by: claude:cd034ca4
 created_at: 2026-04-26T16:09:43Z
 closed_at: 2026-04-26T22:13:13Z
 close_reason: Closed
+started_at: 2026-04-26T21:59:21Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-gemini-stdout-pollution
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T09:10:00Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] [bug] gemini-cli ACP mode emits non-JSON on stdout, breaks ACP stream parser @km/silvercode #bug #P3 @claude:cd034ca4

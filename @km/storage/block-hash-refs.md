@@ -9,6 +9,14 @@ closed_at: 2026-04-21T22:29:33Z
 close_reason: Folded into km-storage.identity-recovery-cascade — block hash refs
   and identity are tightly coupled and ship together. See consolidated scope
   there.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-storage.block-hash-refs
+    depends_on_id: km-storage.fs-mount
+    type: parent-child
+    created_at: 2026-04-21T13:26:24Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Block hash refs — hashBlockId(ulid), default 3 chars, per-ref auto-extend @km/storage #feature #P1

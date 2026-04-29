@@ -11,6 +11,7 @@ close_reason: "STRICT_TERMINAL now accepts comma-separated backend list
   isStrictOutput() maps to vt100 backend. replayAnsiWithStyles deprecated.
   Backward compat: =1→xterm, =both→xterm+ghostty. Added strict-terminal.test.tsx
   with 5 tests."
+owner: bjorn@stabell.org
 ---
 
 # [x] STRICT_TERMINAL: swappable backends, vt100 default, comma-separated @km/_orphan #task #P2

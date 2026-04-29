@@ -5,6 +5,7 @@ aliases:
   - km-storage-error-tests
 created_at: 2026-02-04T13:20:49Z
 closed_at: 2026-02-04T13:22:48Z
+assignee: claude:9e69175d
 ---
 
 # [x] Add tests for error classification and retry logic @km/storage #task #P3 @claude:9e69175d

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-20T14:04:23Z
 closed_at: 2026-02-20T14:18:09Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Auto-enable/disable Kitty protocol in runtime @km/inkx #task #P2 @claude:d3a7049b

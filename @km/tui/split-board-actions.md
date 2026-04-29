@@ -6,6 +6,7 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T13:28:56Z
 closed_at: 2026-02-19T16:17:34Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Split board-actions.ts (1605 lines) into domain modules @km/tui #task #P3

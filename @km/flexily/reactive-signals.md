@@ -5,6 +5,14 @@ aliases:
   - km-flexily-reactive-signals
 created_by: Bjørn Stabell
 created_at: 2026-04-12T16:50:30Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-flexily.reactive-signals
+    depends_on_id: km-flexily
+    type: parent-child
+    created_at: 2026-04-12T09:50:53Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] withSignals() plugin — optional reactive layout outputs @km/flexily #feature #P4

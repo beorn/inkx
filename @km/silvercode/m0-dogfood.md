@@ -10,6 +10,14 @@ close_reason: "Shipped in commit 48955bf47. Live dogfood: bun
   apps/silvercode/tests/live-spawn.ts ran 2-turn conversation with Read
   tool_use, cost $0.0329. 25 tests passing (9 parser + 6 silvercode + 5 km-mcp +
   5 tribe)."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.m0-dogfood
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-24T02:09:32Z
+    created_by: claude:0940ca20
+    metadata: "{}"
 ---
 
 # [x] M0: end-to-end dogfood verification @km/silvercode #task #P1

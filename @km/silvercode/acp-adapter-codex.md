@@ -16,6 +16,22 @@ close_reason: "Resolved: silvercode consumes Codex via @zed-industries/codex-acp
   correctness asserted in tests/registry-adapters.test.ts. Stream-json adapter
   deferred to P4 — only relevant if a future user has API-key access AND refuses
   to install codex-acp."
+started_at: 2026-04-26T09:58:41Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-adapter-codex
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T01:11:36Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-adapter-codex
+    depends_on_id: km-silvercode.acp-adapter-claude
+    type: blocks
+    created_at: 2026-04-26T01:11:36Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] ACP adapter — OpenAI Codex CLI stream-json → SessionUpdate @km/silvercode #feature #P4 @claude:cd034ca4

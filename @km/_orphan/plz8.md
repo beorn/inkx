@@ -4,6 +4,7 @@ aliases:
   - km-plz8
 created_at: 2026-01-26T13:19:38Z
 closed_at: 2026-01-26T13:37:54Z
+assignee: beorn
 ---
 
 # [x] batch plugin: ripgrep backend for text/markdown batch replace @km/_orphan #task #P2 @beorn

@@ -11,6 +11,8 @@ close_reason: "Strategy complete: docs/content-marketing-strategy.md (998 lines)
   generated pages), GPT Pro review, Greg Isenberg framework. /marketing skill
   created with 5 workflows. Terminal comparison pages (66) already implemented
   by another session."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Content marketing strategy & 200 article plans for silvery.dev, termless.dev, terminfo.dev, flexily.dev @km/market #task #P3 @claude:f8196c1c

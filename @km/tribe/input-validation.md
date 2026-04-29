@@ -7,6 +7,7 @@ created_by: claude:19080504
 created_at: 2026-03-26T17:11:34Z
 closed_at: 2026-03-26T17:25:40Z
 close_reason: All fixed and pushed. From GPT 5.4 Pro review triage.
+owner: bjorn@stabell.org
 ---
 
 # [x] Input validation: name regex, message length cap, control char stripping @km/tribe #feature #P2

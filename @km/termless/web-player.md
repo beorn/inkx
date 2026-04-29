@@ -5,6 +5,7 @@ aliases:
   - km-termless-web-player
 created_by: claude:4929065a
 created_at: 2026-04-02T18:24:43Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] xterm.js web player for .cast/.tape playback — embed on docs sites @km/termless #feature #P2

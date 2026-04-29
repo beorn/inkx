@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-02T22:26:11Z
 closed_at: 2026-04-02T22:32:18Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Write docs/design/navigation-architecture.md — map all 8 navigation paths @km/tui #task #P2 @Bjørn Stabell

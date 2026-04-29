@@ -6,6 +6,7 @@ aliases:
   - "@km/silvery/publish-1/0"
 created_by: claude:474834b0
 created_at: 2026-03-09T21:49:55Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Publish silvery@1.0.0 to npm @km/silvery #task #P4

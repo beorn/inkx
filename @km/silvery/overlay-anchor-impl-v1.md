@@ -10,6 +10,16 @@ close_reason: "Shipped: 11ea66c9 + 0dd0dd70 + 9c63d627 + 640cb27a + 13dcbf89 +
   e64c2381 (silvery) — 72 tests across BoxProps additions, placeFloating 12
   placements, findAnchor, decoration rects, OverlayLayer, STRICT=2 fixture.
   Session: km-session.0425-evening"
+started_at: 2026-04-26T04:55:28Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvery.overlay-anchor-impl-v1
+    depends_on_id: km-silvery.overlay-anchor-system
+    type: parent-child
+    created_at: 2026-04-25T14:23:36Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Implement overlay/anchor system v1 — anchorRef + decorations + OverlayLayer @km/silvery #task #P2 @claude:2405c72e

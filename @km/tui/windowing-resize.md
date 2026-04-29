@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-22T07:35:29Z
 closed_at: 2026-02-22T09:35:59Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Windowing: resize, zoom, close, swap commands @km/tui #task #P2 @claude:d3a7049b

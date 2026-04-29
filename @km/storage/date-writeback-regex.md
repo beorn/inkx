@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-03-31T21:31:46Z
 closed_at: 2026-03-31T21:44:21Z
 close_reason: "Fixed: inline date regex now handles timestamps with time component (T14:00)."
+owner: bjorn@stabell.org
 ---
 
 # [x] P1: date write-back regex mishandles inline timestamps with time @km/storage #bug #P1

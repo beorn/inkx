@@ -7,6 +7,7 @@ created_by: claude:65d845d9
 created_at: 2026-03-13T05:32:39Z
 closed_at: 2026-03-13T05:39:17Z
 close_reason: P4 — unused parameter, kept for API compatibility
+owner: bjorn@stabell.org
 ---
 
 # [x] Unused _flexDirection parameter in layout-helpers.ts and classic/layout.ts @km/flexily #task #P4

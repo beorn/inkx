@@ -6,6 +6,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-02T16:51:04Z
 closed_at: 2026-04-02T21:39:04Z
+owner: bjorn@stabell.org
 ---
 
 # [x] In-app content search (/ with n/N navigation) @km/silvery #feature #P2

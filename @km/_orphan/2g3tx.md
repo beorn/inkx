@@ -6,6 +6,8 @@ created_by: claude:f8196c1c
 created_at: 2026-03-23T19:29:41Z
 closed_at: 2026-03-23T22:21:21Z
 close_reason: "Done: render() beginner API added to silvery barrel with TTY auto-detection"
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Add render() beginner API — zero-ceremony entry point @km/_orphan #feature #P1 @claude:fed8de9e

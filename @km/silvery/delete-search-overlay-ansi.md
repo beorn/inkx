@@ -11,6 +11,14 @@ close_reason: "Both migrations landed and verified. Selection:
   trailing-cell fix at 18dc8845. Search highlight + bar:
   vendor/silvery@c4a0c9fd, d9d6bbaf, 7474f193. 124/124 selection+search tests
   pass with SILVERY_STRICT=1. km submodule pointer at d6dd9c8b6."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.delete-search-overlay-ansi
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-24T16:14:43Z
+    created_by: claude:5e447b66
+    metadata: "{}"
 ---
 
 # [x] Migrate search overlay (renderSearchHighlights/renderSearchBarOverlay) off ANSI-past-buffer pattern @km/silvery #task #P3

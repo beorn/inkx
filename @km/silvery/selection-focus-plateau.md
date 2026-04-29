@@ -5,6 +5,14 @@ aliases:
   - km-silvery-selection-focus-plateau
 created_by: Bjørn Stabell
 created_at: 2026-04-09T07:48:05Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.selection-focus-plateau
+    depends_on_id: km-silvery.architectural-plateau
+    type: blocks
+    created_at: 2026-04-24T23:16:27Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] Selection & Focus Quality Plateau — roadmap to elimination of seam fragility @km/silvery #epic #P0

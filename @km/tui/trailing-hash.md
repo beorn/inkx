@@ -6,6 +6,8 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-19T16:52:11Z
 closed_at: 2026-02-19T17:44:24Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Trailing # in task titles from unresolved tags @km/tui #bug #P2 @claude:8f007ba9

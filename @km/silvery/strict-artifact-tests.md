@@ -8,6 +8,7 @@ created_at: 2026-03-15T16:38:43Z
 closed_at: 2026-03-15T17:39:23Z
 close_reason: "Implemented: 20 artifact tests, loggily structured logging,
   renderNodeToBuffer decomposed into 4 sub-functions"
+owner: bjorn@stabell.org
 ---
 
 # [x] captureStrictFailureArtifacts: add unit tests @km/silvery #task #P3

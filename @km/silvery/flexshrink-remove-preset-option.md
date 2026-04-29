@@ -13,6 +13,14 @@ close_reason: Shipped in silvery commit a3a3be96. createFlexilyZeroEngine() now
   switched to the new ForInkCompat factory. Public API surface is now
   zero-config — production code can't accidentally pass 'yoga'. Docs updated in
   flexily + silvery + Prose docstring (Prose is now optional typography sugar).
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.flexshrink-remove-preset-option
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-25T09:03:28Z
+    created_by: claude:53042a7f
+    metadata: "{}"
 ---
 
 # [x] Remove createFlexilyZeroEngine preset option (hard-code CSS in adapter) @km/silvery #task #P3

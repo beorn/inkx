@@ -5,6 +5,16 @@ aliases:
   - km-shared-text-render-package
 created_by: claude:2405c72e
 created_at: 2026-04-28T19:44:55Z
+started_at: 2026-04-28T22:11:22Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-shared.text-render-package
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-28T12:44:55Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [/] Extract km-tui text pipeline into shared package — silvercode adopts, no duplication @km/shared #task #P1 @claude:2405c72e

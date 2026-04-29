@@ -6,6 +6,8 @@ aliases:
 created_by: claude:66437c43
 created_at: 2026-03-03T12:47:38Z
 closed_at: 2026-03-03T13:31:49Z
+owner: bjorn@stabell.org
+assignee: claude:66437c43
 ---
 
 # [x] themex CLI: browse, generate, detect, import/export @km/themex #feature #P3 @claude:66437c43

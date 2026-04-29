@@ -8,6 +8,8 @@ created_at: 2026-02-25T23:32:48Z
 closed_at: 2026-03-10T15:36:59Z
 close_reason: Heartbeat, spinner, elapsed timer all pause when terminal loses
   focus. Focus detection via ANSI focus reporting protocol in term-provider.
+owner: bjorn@stabell.org
+assignee: claude:55df8ef1
 ---
 
 # [x] Pause background timers when terminal loses focus @km/tui #feature #P2 @claude:55df8ef1

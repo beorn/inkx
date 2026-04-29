@@ -5,6 +5,7 @@ aliases:
   - km-all-ast-alignment
 created_by: Bjørn Stabell
 created_at: 2026-04-01T19:30:27Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Should km-ast types match KNode? Should content be an AST? @km/all #task #P3

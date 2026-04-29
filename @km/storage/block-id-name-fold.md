@@ -11,6 +11,15 @@ close_reason: "Shipped commit 393beab08. Schema v6: UPDATE name=block_id
   KNode.block_id removed. @km/markdown parse+serialize anchors via .name.
   node-differ Phase 1 is (parent, type, name). New identity-schema-v6.test.ts (5
   tests) verifies migration. 7182 tests pass, typecheck baseline."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.block-id-name-fold
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-22T08:33:03Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Fold block_id → .name (finish identity-schema) @km/storage #task #P1 @claude:8b5b9e1c

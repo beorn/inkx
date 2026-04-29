@@ -5,6 +5,14 @@ aliases:
   - km-silvery-tea-aichat-polish
 created_by: claude:73d7a332
 created_at: 2026-03-12T16:46:23Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.tea.aichat-polish
+    depends_on_id: km-silvery.design-review
+    type: blocks
+    created_at: 2026-04-16T12:48:09Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Polish AI Chat example for CLI — flagship demo quality @km/silvery #task #P2

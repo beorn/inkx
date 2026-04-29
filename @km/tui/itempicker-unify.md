@@ -12,6 +12,14 @@ close_reason: Shipped 2026-04-17 via agent-a6187715 (5 commits merged). 3 new
   SET_LABEL/SET_ASSIGNEE/PANE_SPLIT_AND_PICK route through openOmnibox. Deleted
   ItemPicker.tsx + picker-loaders.ts + activePicker state + 5 legacy handlers.
   735/735 tests pass; tsc=0.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.itempicker-unify
+    depends_on_id: km-tui.omnibox-dialog
+    type: parent-child
+    created_at: 2026-04-17T12:04:25Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Unify ItemPicker into omnibox — migrate SET_LABEL/SET_ASSIGNEE/PANE_SPLIT_AND_PICK @km/tui #feature #P2

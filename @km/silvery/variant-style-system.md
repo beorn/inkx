@@ -5,6 +5,7 @@ aliases:
   - km-silvery-variant-style-system
 created_by: Bjørn Stabell
 created_at: 2026-04-07T04:30:21Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Variant-based style system: leaves emit intent, composer resolves @km/silvery #feature #P2

@@ -5,6 +5,14 @@ aliases:
   - km-bearly-recall-memory-framing
 created_by: claude:632692f2
 created_at: 2026-04-20T20:52:42Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.recall-memory-framing
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-20T13:54:39Z
+    created_by: claude:632692f2
+    metadata: "{}"
 ---
 
 # [ ] Recall memory injection: XML framing + Haiku rewrite so memory doesn't look like user turns @km/bearly #task #P2

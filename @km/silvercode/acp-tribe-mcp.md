@@ -21,6 +21,22 @@ close_reason: "Implemented full tool surface
   only apps/silvercode/packages/tribe-mcp/. Note: the 'depends on
   acp-multi-agent' edge in the bead is reversed — tribe-mcp is a building block
   FOR multi-agent, hence --force."
+started_at: 2026-04-26T09:27:49Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-tribe-mcp
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T01:42:23Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-tribe-mcp
+    depends_on_id: km-silvercode.acp-multi-agent
+    type: blocks
+    created_at: 2026-04-26T01:42:23Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] tribe-mcp — wrap tribe's UDS bus as an MCP server for agent-callable cross-session sync @km/silvercode #feature #P2 @claude:cd034ca4

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:66437c43
 created_at: 2026-03-03T16:11:42Z
 closed_at: 2026-03-03T22:51:31Z
+owner: bjorn@stabell.org
+assignee: claude:66437c43
 ---
 
 # [x] Redesign: ColorPalette (22), DesignTokens (32), from*() generators, docs rewrite @km/themex #feature #P2 @claude:66437c43

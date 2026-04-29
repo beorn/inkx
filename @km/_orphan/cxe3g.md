@@ -5,6 +5,8 @@ aliases:
 created_by: claude:ee8efc0f
 created_at: 2026-02-23T12:30:39Z
 closed_at: 2026-02-23T13:07:16Z
+owner: bjorn@stabell.org
+assignee: claude:ee8efc0f
 ---
 
 # [x] Enable examples to render directly on the web page @km/_orphan #feature #P2 @claude:ee8efc0f

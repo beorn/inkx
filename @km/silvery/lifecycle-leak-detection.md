@@ -11,6 +11,14 @@ close_reason: "Resolved: C1 reached L5. Counter shipped (getActiveHandleCount,
   km-silvery.c1-fossil-sweep-broader (silvery commit f59384c4). Acceptance
   verified: git grep -E 'Bun.gc|globalThis.gc|warmup|MAX_LEAK_KB' origin/main --
   tests/memory/ → 0 hits."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.lifecycle-leak-detection
+    depends_on_id: km-silvery.structural-hardening
+    type: parent-child
+    created_at: 2026-04-26T23:18:24Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Replace Bun.gc workarounds with Scope-based handle accounting @km/silvery #feature #P1

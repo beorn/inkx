@@ -5,6 +5,14 @@ aliases:
   - km-bearly-pro-55-sprint
 created_by: claude:a7145ca5
 created_at: 2026-04-23T19:04:05Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.pro-55-sprint
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-23T12:04:24Z
+    created_by: claude:a7145ca5
+    metadata: "{}"
 ---
 
 # [ ] A/B sprint: gpt-5.4-pro vs gpt-5.5-pro (1-2 days) @km/bearly #task #P2

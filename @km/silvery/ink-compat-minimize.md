@@ -9,6 +9,8 @@ closed_at: 2026-03-10T08:31:16Z
 close_reason: "162/162 ink compat tests passing. Implemented: SGR native chalk
   compat (eliminated 200-line conversion layer), wrapRoot/stdin renderer
   options, position=static, and fixed 3 flexily min/max layout bugs."
+owner: bjorn@stabell.org
+assignee: claude:474834b0
 ---
 
 # [x] Minimize ink compat surface area and close remaining gaps @km/silvery #task #P2 @claude:474834b0

@@ -8,6 +8,8 @@ created_at: 2026-03-26T06:12:50Z
 closed_at: 2026-03-29T02:33:48Z
 close_reason: "Superseded by km-silvery.demos.design-pipeline. Research done,
   create.md workflow exists. Next: prototype with non-OpenAI models."
+owner: bjorn@stabell.org
+assignee: claude:491faf6c
 ---
 
 # [x] Design review method — scientific approach to 10/10 screenshots @km/silvery #feature #P2 @claude:491faf6c

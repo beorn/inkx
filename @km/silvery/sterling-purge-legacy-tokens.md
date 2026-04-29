@@ -13,6 +13,40 @@ close_reason: "Phase D shipped: silvery 7d23f8e2 (0.21.0 — purge
   4 pre-existing border WCAG). Acceptance grep returns 0 in scope (remaining
   matches are HTML hyperlink Style.link, VariantName 'link', MonoAttr 'inverse'
   SGR — all unrelated to legacy theme tokens)."
+started_at: 2026-04-25T06:21:08Z
+owner: bjorn@stabell.org
+assignee: claude:22c2717d
+dependencies:
+  - issue_id: km-silvery.sterling-purge-legacy-tokens
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-24T16:24:05Z
+    created_by: claude:5e447b66
+    metadata: "{}"
+  - issue_id: km-silvery.sterling-purge-legacy-tokens
+    depends_on_id: km-silvery.selection-theme-tokens
+    type: blocks
+    created_at: 2026-04-24T16:24:06Z
+    created_by: claude:5e447b66
+    metadata: "{}"
+  - issue_id: km-silvery.sterling-purge-legacy-tokens
+    depends_on_id: km-silvery.sterling-2e-interior-migration
+    type: blocks
+    created_at: 2026-04-24T16:24:07Z
+    created_by: claude:5e447b66
+    metadata: "{}"
+  - issue_id: km-silvery.sterling-purge-legacy-tokens
+    depends_on_id: km-silvery.sterling-km-tui-selection-migration
+    type: blocks
+    created_at: 2026-04-24T16:24:06Z
+    created_by: claude:5e447b66
+    metadata: "{}"
+  - issue_id: km-silvery.sterling-purge-legacy-tokens
+    depends_on_id: km-silvery.sterling-selection-tokens
+    type: blocks
+    created_at: 2026-04-24T16:24:06Z
+    created_by: claude:5e447b66
+    metadata: "{}"
 ---
 
 # [x] Phase D: Purge legacy selection/inverse/link tokens from Sterling theme schema (0.20.0 breaking) @km/silvery #task #P1 @claude:22c2717d

@@ -9,6 +9,8 @@ closed_at: 2026-03-10T01:22:53Z
 close_reason: "Made @silvery/term barrel React-free: 798KB→379KB. Extracted
   hit-registry-core.ts (pure logic), measure-stats.ts, errors.ts. Removed React
   hooks from barrel. All 14 entry points pass tree-shaking verification."
+owner: bjorn@stabell.org
+assignee: claude:474834b0
 ---
 
 # [x] Tree-shaking verification for layered entry points @km/silvery #task #P3 @claude:474834b0

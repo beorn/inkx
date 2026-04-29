@@ -5,6 +5,7 @@ aliases:
   - km-market-unified-search
 created_by: claude:4929065a
 created_at: 2026-04-02T18:28:52Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Integrated search across all ecosystem sites (silvery.dev, termless.dev, terminfo.dev, beorn.codes) @km/market #feature #P2

@@ -6,6 +6,7 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-20T07:43:35Z
 closed_at: 2026-02-20T08:03:19Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Body indicator (···) shows even when body content already visible @km/tui #bug #P2

@@ -5,6 +5,14 @@ aliases:
   - km-tribe-testing
 created_by: claude:19080504
 created_at: 2026-03-26T17:03:17Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.testing
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-18T11:00:13Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Tribe testing system: simulated multi-session environment with fake resources @km/tribe #feature #P2

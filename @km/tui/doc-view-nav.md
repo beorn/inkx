@@ -8,6 +8,7 @@ created_at: 2026-03-29T05:44:19Z
 closed_at: 2026-03-29T06:24:38Z
 close_reason: j/k navigates through flattened doc tree (items up to depth 3).
   flattenDocTree in view-navigation.ts matches DocContent rendering.
+owner: bjorn@stabell.org
 ---
 
 # [x] Doc view: j/k cursor navigation through nested content @km/tui #feature #P2

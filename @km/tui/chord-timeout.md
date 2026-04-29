@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-20T16:12:32Z
 closed_at: 2026-03-04T16:23:30Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Chord help popup disappears too quickly — leave open 1-2s @km/tui #bug #P2 @claude:d3a7049b

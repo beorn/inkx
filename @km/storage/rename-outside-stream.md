@@ -10,6 +10,8 @@ close_reason: "Fixed: Rename handlers now record WriteTokens (file + folder
   recursive). Journal entries appended to events.jsonl for rename DB mutations.
   Direct DB mutations kept for FS/DB atomicity. markInFlight kept as
   defense-in-depth. 5 new tests. Commits 84964dcf..61cc1031."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Rename handlers mutate DB directly outside the event stream @km/storage #bug #P1 @Bjørn Stabell

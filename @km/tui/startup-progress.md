@@ -5,6 +5,7 @@ aliases:
   - km-tui-startup-progress
 created_at: 2026-02-05T14:50:45Z
 closed_at: 2026-02-05T15:07:55Z
+assignee: claude:b53ef7e4
 ---
 
 # [x] Startup progress (Load repo, Apply rules) cleared when TUI enters alt screen @km/tui #bug #P2 @claude:b53ef7e4

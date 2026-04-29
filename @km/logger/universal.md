@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fbad9cb1
 created_at: 2026-03-04T16:14:43Z
 closed_at: 2026-03-04T16:22:40Z
+owner: bjorn@stabell.org
+assignee: claude:fbad9cb1
 ---
 
 # [x] Phase 1: Universal runtime — guard Node-specific patterns for browser/Deno/edge @km/logger #task #P2 @claude:fbad9cb1

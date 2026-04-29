@@ -6,6 +6,7 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T15:56:40Z
 closed_at: 2026-02-14T16:00:52Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Column stays too tall after uncollapsing @km/tui #bug #P2

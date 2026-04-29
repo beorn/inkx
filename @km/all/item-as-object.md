@@ -8,6 +8,7 @@ created_at: 2026-04-01T18:26:56Z
 closed_at: 2026-04-01T22:23:28Z
 close_reason: "Commit 1a69030e: item?: boolean → item?: ItemData. 189 files,
   5134 tests pass. DB unchanged (flat columns, TS mapping layer)."
+owner: bjorn@stabell.org
 ---
 
 # [x] Explore: item as object { list?, task?, embed? } instead of top-level fields @km/all #task #P2

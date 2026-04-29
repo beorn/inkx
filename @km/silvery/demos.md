@@ -5,6 +5,7 @@ aliases:
   - km-silvery-demos
 created_by: claude:f8196c1c
 created_at: 2026-03-23T19:30:27Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Silvery demos: examples, showcases, and runnable demo apps @km/silvery #epic #P1

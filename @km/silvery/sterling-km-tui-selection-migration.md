@@ -15,6 +15,22 @@ close_reason: "Phase C shipped: km 1d886ad2a (29 files renamed) + 2fd5f79b8
   bg-vs-fg ambiguity). 2521 km-tui tests pass; the 2 remaining failures
   (matchers.test.tsx::toBeContainedIn) are pre-existing and unrelated to
   Sterling. Pushed to origin/main."
+started_at: 2026-04-25T05:20:50Z
+owner: bjorn@stabell.org
+assignee: claude:22c2717d
+dependencies:
+  - issue_id: km-silvery.sterling-km-tui-selection-migration
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-24T16:24:04Z
+    created_by: claude:5e447b66
+    metadata: "{}"
+  - issue_id: km-silvery.sterling-km-tui-selection-migration
+    depends_on_id: km-silvery.sterling-selection-tokens
+    type: blocks
+    created_at: 2026-04-24T16:24:04Z
+    created_by: claude:5e447b66
+    metadata: "{}"
 ---
 
 # [x] Phase C: Migrate km-tui consumers from legacy selection/inverse/link tokens to Sterling flat tokens @km/silvery #task #P2 @claude:22c2717d

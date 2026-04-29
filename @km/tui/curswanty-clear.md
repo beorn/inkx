@@ -6,6 +6,8 @@ aliases:
 created_by: claude:1cef7d9e
 created_at: 2026-02-10T22:55:02Z
 closed_at: 2026-02-10T22:59:23Z
+owner: bjorn@stabell.org
+assignee: claude:1cef7d9e
 ---
 
 # [x] curswantY cleared by j/k - cross-column position lost after vertical movement @km/tui #bug #P2 @claude:1cef7d9e

@@ -5,6 +5,26 @@ aliases:
   - km-tui-omnibox-migration-cleanup
 created_by: Bjørn Stabell
 created_at: 2026-04-14T23:36:49Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.omnibox-migration-cleanup
+    depends_on_id: km-tui.omnibox-dialog
+    type: blocks
+    created_at: 2026-04-14T16:37:28Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.omnibox-migration-cleanup
+    depends_on_id: km-tui.omnibox-local-find
+    type: blocks
+    created_at: 2026-04-14T16:37:29Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.omnibox-migration-cleanup
+    depends_on_id: km-tui.omnibox-unified
+    type: parent-child
+    created_at: 2026-04-14T16:37:21Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Migration cleanup — delete legacy dialogs, parity tests, close palette-arrow-keys (Phase 10) @km/tui #task #P1

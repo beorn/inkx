@@ -6,6 +6,7 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T14:21:14Z
 closed_at: 2026-02-25T17:18:58Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Fix remaining test failures from palette-sweep  migration @km/tui #task #P1

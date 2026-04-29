@@ -8,6 +8,7 @@ created_at: 2026-03-11T07:32:38Z
 closed_at: 2026-03-27T19:02:14Z
 close_reason: "Grooming: superseded by era2 phase beads (km-silvery.era2b-0-tea
   through era2b-app)"
+owner: bjorn@stabell.org
 ---
 
 # [x] Implement silvery API redesign (state-api-redesign.md) @km/silvery #task #P2

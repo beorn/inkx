@@ -8,6 +8,14 @@ created_at: 2026-04-26T15:38:47Z
 closed_at: 2026-04-28T02:30:21Z
 close_reason: Test passes — apps/silvercode/tests/visual/markdown-bugs.test.tsx
   (3 tests) all green. Bug resolved by prior fixes; no offending lines detected.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.markdown-bullet-trailing-space
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-26T08:38:47Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] [bug] markdown bullets render without trailing space — visual test fails @km/silvercode #bug #P2

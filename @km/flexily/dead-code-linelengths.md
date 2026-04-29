@@ -8,6 +8,7 @@ created_at: 2026-03-13T05:31:27Z
 closed_at: 2026-03-13T05:32:38Z
 close_reason: P4 cleanup — tracked but not blocking. Dead _lineLengths can be
   removed in a future cleanup pass.
+owner: bjorn@stabell.org
 ---
 
 # [x] Remove dead _lineLengths array @km/flexily #task #P4

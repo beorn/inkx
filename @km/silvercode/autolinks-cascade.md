@@ -12,6 +12,16 @@ close_reason: "Shipped: km main dc218632c. Cascade: workspace
   otherwise append. Pure cascadeAutolinks() exported for unit testing. 20/20
   autolinks config tests pass (15 prior + 5 new cases: append,
   replace-preserves-position, mixed, empty-workspace, empty-vault)."
+started_at: 2026-04-25T12:49:46Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.autolinks-cascade
+    depends_on_id: km-silvercode.autolinks-config
+    type: parent-child
+    created_at: 2026-04-25T03:10:56Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Configurable autolinks: workspace-level + per-vault cascade @km/silvercode #task #P3 @claude:2405c72e

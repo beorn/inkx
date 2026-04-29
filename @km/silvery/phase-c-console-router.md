@@ -9,6 +9,20 @@ closed_at: 2026-04-23T01:04:23Z
 close_reason: Shipped silvery f8a9ab72 + km bump. Console tap + Output sink
   coexist on shared ConsoleRouter; 3 coexistence tests verify both orderings; 36
   owner tests + 2511 km-tui pass.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.phase-c-console-router
+    depends_on_id: km-silvery.console-output-one-patcher
+    type: parent-child
+    created_at: 2026-04-22T17:44:25Z
+    created_by: claude:019d032d
+    metadata: "{}"
+  - issue_id: km-silvery.phase-c-console-router
+    depends_on_id: km-silvery.phase-b-single-writer-raw-mode
+    type: blocks
+    created_at: 2026-04-22T17:44:26Z
+    created_by: claude:019d032d
+    metadata: "{}"
 ---
 
 # [x] Phase C: one shared ConsoleRouter (Console + Output register, no direct console.* patching) @km/silvery #task #P1

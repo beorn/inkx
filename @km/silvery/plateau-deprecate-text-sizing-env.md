@@ -5,6 +5,14 @@ aliases:
   - km-silvery-plateau-deprecate-text-sizing-env
 created_by: claude:c6244087
 created_at: 2026-04-23T10:11:56Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.plateau-deprecate-text-sizing-env
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T03:11:55Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [ ] Deprecate text-sizing.ts env fallback — route through TerminalCaps @km/silvery #task #P4

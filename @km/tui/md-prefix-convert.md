@@ -6,6 +6,8 @@ aliases:
 created_by: claude:97217d5d
 created_at: 2026-02-16T10:45:09Z
 closed_at: 2026-02-16T11:06:49Z
+owner: bjorn@stabell.org
+assignee: claude:22727d86
 ---
 
 # [x] Markdown prefix conversion: type '- ', '# ', '1. ', '[] ' to convert node type; backspace to strip @km/tui #feature #P2 @claude:22727d86

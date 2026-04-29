@@ -9,6 +9,14 @@ closed_at: 2026-04-18T18:27:37Z
 close_reason: Shipped in v0.18.0 — see
   hub/silvery/design/v10-terminal/theme-system-v2-plan.md and silvery v0.18.0
   changelog
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-auto-detect
+    depends_on_id: km-silvery.design-system
+    type: parent-child
+    created_at: 2026-04-17T21:47:47Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Theme auto-detect — probe + fingerprint + derive, with confidence metadata @km/silvery #feature #P3

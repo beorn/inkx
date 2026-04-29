@@ -6,6 +6,8 @@ aliases:
 created_by: claude:23485adf
 created_at: 2026-02-24T14:07:00Z
 closed_at: 2026-02-24T14:07:06Z
+owner: bjorn@stabell.org
+assignee: claude:23485adf
 ---
 
 # [x] INKX_STRICT verification gap: navigation renders never verified in createApp @km/inkx #bug #P1 @claude:23485adf

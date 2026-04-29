@@ -6,6 +6,8 @@ aliases:
 created_by: claude:949598cc
 created_at: 2026-02-11T20:12:17Z
 closed_at: 2026-02-12T14:14:09Z
+owner: bjorn@stabell.org
+assignee: claude:586bad48
 ---
 
 # [x] Structure keybindings as layered groups for clarity @km/tui #task #P3 @claude:586bad48

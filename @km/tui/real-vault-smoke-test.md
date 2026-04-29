@@ -5,6 +5,20 @@ aliases:
   - km-tui-real-vault-smoke-test
 created_by: Bjørn Stabell
 created_at: 2026-04-15T16:54:50Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.real-vault-smoke-test
+    depends_on_id: km-review.silvery-gap-analysis
+    type: blocks
+    created_at: 2026-04-15T11:31:37Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.real-vault-smoke-test
+    depends_on_id: km-silvery.selection-focus-plateau
+    type: parent-child
+    created_at: 2026-04-15T11:31:16Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Real-vault smoke test to catch dogfood bugs that unit tests miss @km/tui #task #P3

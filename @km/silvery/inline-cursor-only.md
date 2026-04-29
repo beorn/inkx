@@ -9,6 +9,7 @@ closed_at: 2026-03-13T05:18:37Z
 close_reason: "Won't fix: Cursor-only optimization would save ~33 bytes per
   keystroke in inline mode. Negligible compared to existing 28-192x reduction
   from incremental rendering. Not worth the complexity."
+owner: bjorn@stabell.org
 ---
 
 # [x] Inline incremental render suppresses cursor-only updates @km/silvery #bug #P3

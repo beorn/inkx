@@ -4,6 +4,7 @@ aliases:
   - km-vsv6l
 created_at: 2026-01-31T12:38:04Z
 closed_at: 2026-01-31T12:41:30Z
+assignee: claude:b8b4780b
 ---
 
 # [x] Port RTL support to Zero-alloc @km/_orphan #task #P2 @claude:b8b4780b

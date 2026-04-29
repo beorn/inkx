@@ -10,6 +10,21 @@ close_reason: Shipped 2026-04-20 as silvery 0.18.1 (commits 67bf8ec8, c6d1e29a,
   008164e6, 0644940e, cf73071b — all pushed) + km submodule bump (2c52b5d71).
   All acceptance criteria met. Closing now since 2e (0.20.0) just landed and
   2d's transitional 0.18.x window is over.
+owner: bjorn@stabell.org
+assignee: claude:4274df30
+dependencies:
+  - issue_id: km-silvery.sterling-2d-release
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-24T16:12:56Z
+    created_by: claude:5e447b66
+    metadata: "{}"
+  - issue_id: km-silvery.sterling-2d-release
+    depends_on_id: km-silvery.sterling-2c-km-migration
+    type: blocks
+    created_at: 2026-04-19T14:43:02Z
+    created_by: claude:4274df30
+    metadata: "{}"
 ---
 
 # [x] Sterling 2d: internal cleanup (0.18.x patch — not breaking) @km/silvery #task #P1 @claude:4274df30

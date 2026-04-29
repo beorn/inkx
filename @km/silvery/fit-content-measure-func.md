@@ -8,6 +8,21 @@ created_at: 2026-04-12T05:48:23Z
 closed_at: 2026-04-12T07:03:37Z
 close_reason: "Implemented two-part CSS fit-content fix. 9/10 regression tests
   passing. Benchmarks clean. Commits: silvery 492bea71, km ce4e915c2"
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-silvery.fit-content-measure-func
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-11T22:48:23Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-silvery.fit-content-measure-func
+    depends_on_id: km-silvery.fit-content-clamp
+    type: blocks
+    created_at: 2026-04-11T22:48:24Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] fit-content/snug-content should use Yoga measure function for proper parent-aware sizing @km/silvery #feature #P2 @Bjørn Stabell

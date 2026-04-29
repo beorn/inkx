@@ -9,6 +9,8 @@ closed_at: 2026-03-26T07:25:57Z
 close_reason: "5 fundamentals pages live: index, control characters, TTY
   architecture, stty, terminal detection. All with callouts, tables,
   cross-links."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Terminal Fundamentals pages: control characters, TTY architecture, stty, TERM @km/terminfo #feature #P4 @claude:f8196c1c

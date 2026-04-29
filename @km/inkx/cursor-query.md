@@ -6,6 +6,7 @@ aliases:
 created_by: claude:d1f60fb4
 created_at: 2026-02-25T23:25:54Z
 closed_at: 2026-02-25T23:37:05Z
+owner: bjorn@stabell.org
 ---
 
 # [x] queryCursorPosition() API — DSR cursor position query @km/inkx #feature #P2

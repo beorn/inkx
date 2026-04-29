@@ -10,6 +10,7 @@ closed_at: 2026-04-05T23:39:26Z
 close_reason: ViewTree + ViewNode + useNode + useViewTree implemented.
   createProjectedMap (11 tests), createViewTree (15 tests), useNode hook,
   PaneSignals.viewTree wired with effect sync. 1745 tests pass.
+owner: bjorn@stabell.org
 ---
 
 # [x] ViewTree implementation + ViewNode type + useNode hook @km/tui #task #P2

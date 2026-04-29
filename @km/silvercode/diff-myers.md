@@ -10,6 +10,15 @@ close_reason: Shipped via Agent-B — DiffRenderer.tsx + diff@9.0 dep in 7b32ccf
   (swept by concurrent commit); companion tests in bbf527ab3. Uses diffLines
   Myers/LCS, elides unchanged runs >3 lines, single column,
   $muted/$error/$success gutters.
+owner: bjorn@stabell.org
+assignee: claude:0940ca20
+dependencies:
+  - issue_id: km-silvercode.diff-myers
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-24T09:36:43Z
+    created_by: claude:0940ca20
+    metadata: "{}"
 ---
 
 # [x] Replace naive DiffRenderer with Myers LCS via diff npm package @km/silvercode #task #P2 @claude:0940ca20

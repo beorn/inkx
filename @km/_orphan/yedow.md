@@ -5,6 +5,7 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-19T23:57:09Z
 closed_at: 2026-02-20T00:26:00Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Eliminate ColumnState/CardState/ColumnsLayout — complete migration @km/_orphan #task #P1

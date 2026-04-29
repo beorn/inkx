@@ -9,6 +9,7 @@ closed_at: 2026-03-13T04:41:38Z
 close_reason: "Updated all 5 critical formulas in CLAUDE.md to match current
   code: added textPaintDirty to contentAreaAffected, added subtreeDirtyWithBg to
   skipBgFill and parentRegionChanged"
+owner: bjorn@stabell.org
 ---
 
 # [x] 3 of 5 critical formulas in pipeline/CLAUDE.md are stale @km/silvery #bug #P2

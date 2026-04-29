@@ -6,6 +6,7 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-18T23:42:50Z
 closed_at: 2026-02-19T12:03:47Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Global input mode state machine with push/pop context stack @km/tui #task #P2

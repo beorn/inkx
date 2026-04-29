@@ -8,6 +8,7 @@ created_at: 2026-04-05T15:51:42Z
 closed_at: 2026-04-05T15:53:39Z
 close_reason: Merged into km-tui.signals.4 — will add prev/next to ViewSnapshot
   as part of PaneSignals migration
+owner: bjorn@stabell.org
 ---
 
 # [x] Selection tree interface: next(id)/prev(id) instead of walkOrder array @km/silvery #task #P3

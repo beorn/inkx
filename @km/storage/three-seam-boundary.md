@@ -11,6 +11,20 @@ close_reason: Superseded by km-storage.adapter-architecture. Three bespoke
   uniform Adapter contract following kimmi's RemoteRegistry + Connector pattern
   and cloudi's unstorage+driver pattern. See
   hub/km/source-of-truth-rfc-v2-addendum-identity.md §7.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-storage.three-seam-boundary
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-21T12:04:07Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
+  - issue_id: km-storage.three-seam-boundary
+    depends_on_id: km-storage.stable-ids
+    type: blocks
+    created_at: 2026-04-21T12:04:07Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Three-seam storage boundary — RepoStore + MarkdownAdapter + WorkspaceFederation @km/storage #feature #P1

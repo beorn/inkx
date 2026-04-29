@@ -10,6 +10,15 @@ close_reason: D1-D6 locked in
   hub/silvery/design/v10-terminal/sterling-preflight.md (commit 9c24 pending).
   Unblocks sterling-2a-data-layer — implementation of Theme type + derivation
   can begin.
+owner: bjorn@stabell.org
+assignee: claude:4274df30
+dependencies:
+  - issue_id: km-silvery.sterling-preflight
+    depends_on_id: km-silvery.theme-v4
+    type: parent-child
+    created_at: 2026-04-19T14:42:36Z
+    created_by: claude:4274df30
+    metadata: "{}"
 ---
 
 # [x] Sterling: lock decisions D1-D6 (pre-flight) @km/silvery #task #P1 @claude:4274df30

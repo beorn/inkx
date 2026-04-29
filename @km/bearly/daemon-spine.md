@@ -5,6 +5,14 @@ aliases:
   - km-bearly-daemon-spine
 created_by: claude:2405c72e
 created_at: 2026-04-26T22:13:46Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.daemon-spine
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-26T15:13:56Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] [epic] Daemon-spine consolidation — extract @bearly/daemon-spine, delete ~750 LOC duplicate IPC across vendor/bearly @km/bearly #epic #P2

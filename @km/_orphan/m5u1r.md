@@ -5,6 +5,7 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-15T14:57:12Z
 closed_at: 2026-02-15T22:12:05Z
+owner: bjorn@stabell.org
 ---
 
 # [x] HR rendering uses content-based detection instead of type field @km/_orphan #bug #P2

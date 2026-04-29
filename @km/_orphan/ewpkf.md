@@ -7,6 +7,7 @@ created_at: 2026-03-17T15:29:17Z
 closed_at: 2026-03-17T17:16:17Z
 close_reason: Index file hidden from folder card list via findIndexFile() in
   kNodeToColumnView. Verified in Asana vault TTY.
+owner: bjorn@stabell.org
 ---
 
 # [x] Bug: early-orbit.md shows as column instead of board on zoom-out @km/_orphan #bug #P1

@@ -11,6 +11,8 @@ close_reason: Complete. @silvery/ansi 1.0 published — absorbed @silvery/style
   @silvery/theme, OSC query functions from ag-term. @silvery/style deprecated on
   npm. All consumers migrated. silvery.dev docs updated. 173 test files, 4636
   tests passing.
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] @silvery/style: theme-aware chalk replacement — unify ansi + style proxy + token resolution @km/silvery #feature #P2 @claude:f8196c1c

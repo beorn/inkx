@@ -11,6 +11,14 @@ close_reason: "Fixed in 6de2f918d: search-utils.ts fuzzyScore rewritten with
   '@delei' vs '@office/Finance/Accounts/Delei/SPD' case now ranks correctly.
   Regression test in apps/km-tui/tests/search-utils.test.ts covers the exact
   scenario from the bug. 13 tests passing."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.picker-rank-subpath
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T13:30:09Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Picker fuzzy ranking: subpath matches rank above exact root matches @km/tui #bug #P2

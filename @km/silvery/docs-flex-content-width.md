@@ -10,6 +10,14 @@ close_reason: Doc landed in silvery 416706f9 —
   vendor/silvery/docs/guide/recipes/flex-content-width-bubbles.md (638 words) +
   new Recipes section in guide/index.md. Replaces flexShrink={1} anti-pattern
   with alignItems={flex-end|flex-start} recipe for chat-bubble layouts.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.docs-flex-content-width
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T01:00:05Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Docs: content-width flex items with maxWidth cap need alignItems not flexShrink @km/silvery #task #P3

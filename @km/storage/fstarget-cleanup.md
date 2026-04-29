@@ -5,6 +5,7 @@ aliases:
   - km-storage-fstarget-cleanup
 created_by: Bjørn Stabell
 created_at: 2026-04-02T22:35:18Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Clean up FsWriteTarget — too many optional methods (9) @km/storage #task #P3

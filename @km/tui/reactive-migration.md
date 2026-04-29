@@ -7,6 +7,8 @@ created_by: Bjørn Stabell
 created_at: 2026-04-03T07:52:41Z
 closed_at: 2026-04-03T08:13:41Z
 close_reason: All 4 useSyncExternalStore(repo.subscribe) calls migrated to Store signals
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Migrate all TUI components from old reactive pattern to Store/withReactive signals @km/tui #task #P2 @Bjørn Stabell

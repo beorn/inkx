@@ -8,6 +8,7 @@ created_at: 2026-04-03T05:39:02Z
 closed_at: 2026-04-03T07:16:28Z
 close_reason: Implemented createSQLiteStore(db) in sqlite-store.ts with full
   test coverage (13 tests). Exports added to barrel.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 3: createSQLiteStore — Store + Reactive + Persistent @km/storage #task #P3

@@ -9,6 +9,14 @@ closed_at: 2026-04-24T15:00:45Z
 close_reason: "Fixed in silvery 51c97030: cursor.fg auto-lifts to AA via
   guard(against=cursor.bg). Espresso cursor.fg: #999 → #5D5D5D (1.96:1 →
   4.53:1). km-logview cross-domain bug fixed in e22852686."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.cursor-contrast-unguarded
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-24T01:32:28Z
+    created_by: claude:950534f3
+    metadata: "{}"
 ---
 
 # [x] Sterling cursor.fg/bg pass-through has no contrast guard — Espresso ships 1.96:1 @km/silvery #bug #P2

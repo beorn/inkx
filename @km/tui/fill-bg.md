@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T14:20:47Z
 closed_at: 2026-02-25T17:18:51Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] Fill bg with default bg color for CommandBox, dialogs, and other overlay areas @km/tui #feature #P2 @claude:d697f216

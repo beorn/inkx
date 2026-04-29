@@ -5,6 +5,7 @@ aliases:
 created_by: claude:f7f27703
 created_at: 2026-02-24T12:04:15Z
 closed_at: 2026-02-24T13:56:35Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Keybinding design guide implementation @km/_orphan #feature #P2

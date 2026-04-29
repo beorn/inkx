@@ -7,6 +7,7 @@ created_by: claude:65d845d9
 created_at: 2026-03-13T05:31:34Z
 closed_at: 2026-03-13T05:34:57Z
 close_reason: Duplicate of km-flexily.dead-stats (P2)
+owner: bjorn@stabell.org
 ---
 
 # [x] resolveEdgeCalls counter is never incremented in zero implementation @km/flexily #task #P4

@@ -5,6 +5,14 @@ aliases:
   - km-terminfo-bright-contrast
 created_by: Bjørn Stabell
 created_at: 2026-04-17T23:35:44Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-terminfo.bright-contrast
+    depends_on_id: km-terminfo
+    type: parent-child
+    created_at: 2026-04-17T16:35:58Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Capture per-terminal contrast between standard and bright colors @km/terminfo #feature #P3

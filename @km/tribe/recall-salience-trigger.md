@@ -5,6 +5,20 @@ aliases:
   - km-tribe-recall-salience-trigger
 created_by: claude:4de4a3ab
 created_at: 2026-04-28T06:33:20Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.recall-salience-trigger
+    depends_on_id: km-tribe.recall
+    type: parent-child
+    created_at: 2026-04-27T23:33:27Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
+  - issue_id: km-tribe.recall-salience-trigger
+    depends_on_id: km-tribe.recall-eval-corpus
+    type: blocks
+    created_at: 2026-04-27T23:33:27Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] Replace 5-min wall-clock probe with salience-change trigger @km/tribe #feature #P2

@@ -5,6 +5,7 @@ aliases:
   - km-silvery-pretext-pluggable-measure
 created_by: Bjørn Stabell
 created_at: 2026-04-10T20:21:08Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Pretext pluggable measurement — propose upstream API for terminal/canvas/server backends @km/silvery #feature #P4

@@ -4,6 +4,7 @@ aliases:
   - km-drizzle-typing
 created_at: 2026-01-25T12:20:04Z
 closed_at: 2026-01-25T12:31:15Z
+assignee: unimac
 ---
 
 # [x] Evaluate Drizzle ORM for type-safe database queries @km/_orphan #task #P3 @unimac

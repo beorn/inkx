@@ -5,6 +5,7 @@ aliases:
   - km-market-seo-monitoring
 created_by: Bjørn Stabell
 created_at: 2026-04-02T03:39:34Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Set up scheduled SEO health check (every 3 weeks) @km/market #task #P2

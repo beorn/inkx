@@ -11,6 +11,8 @@ close_reason: "Fixed in 4a5cba3c8 (failing test) + 6f8793c53 (fix).
   removed; chord-state bell handler in board-app.ts ~558 (chordCancelled→\\x07)
   was already wired. Tests: packages/km-commands 551 pass (+1). TSC baseline
   unchanged."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Invalid chord sequence should bell, not execute partial match @km/tui #bug #P3 @Bjørn Stabell

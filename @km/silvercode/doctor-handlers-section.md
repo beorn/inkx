@@ -14,6 +14,16 @@ close_reason: Implemented in 045721898. Doctor autolinks now lists 5 registered
   registered for scheme X'. listHandlers() registry helper added to
   handlers/index.ts; HTTPS_HOST_PARSERS exposed from https.ts. 5 new tests;
   25/25 doctor tests pass; 139/139 autolinks tests pass; tsc unchanged at 184.
+started_at: 2026-04-26T02:18:17Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.doctor-handlers-section
+    depends_on_id: km-silvercode.doctor
+    type: parent-child
+    created_at: 2026-04-25T19:17:30Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] doctor: introspect autolinks handler registry (schemes + URL hosts) @km/silvercode #feature #P3 @claude:2405c72e

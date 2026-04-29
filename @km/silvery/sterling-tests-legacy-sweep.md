@@ -57,6 +57,14 @@ close_reason: >-
   the 7 mechanically-migrated files. The 3 remaining files become the
 
   deletion/rewrite work item for 0.20.0.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.sterling-tests-legacy-sweep
+    depends_on_id: km-silvery.theme-v4
+    type: parent-child
+    created_at: 2026-04-20T14:46:21Z
+    created_by: claude:a1a0e667
+    metadata: "{}"
 ---
 
 # [x] Sweep legacy theme tokens in silvery/tests/ (~140 uses) — gated on 0.20.0 runtime-shim drop @km/silvery #task #P3

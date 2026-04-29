@@ -11,6 +11,14 @@ close_reason: "Shipped in parallel /max run. sigil-registry: 20ada24b3
   repo-getallnodes: 0b77848f3 (Repo interface widened, type hole closed).
   termless-repair: 4a8ae3279 (dispose ordering, cascade eliminated; individual
   test readiness follow-up orthogonal). 2354 km-tui tests pass."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.termless-backend-repair
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-18T21:10:42Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Termless backend fails to run omnibox tests — 'Terminal is closed' after first test @km/tui #bug #P3

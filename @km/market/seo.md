@@ -5,6 +5,7 @@ aliases:
   - km-market-seo
 created_by: Bjørn Stabell
 created_at: 2026-04-02T01:38:35Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] SEO optimization across all sites @km/market #epic #P2

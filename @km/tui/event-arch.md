@@ -5,6 +5,7 @@ aliases:
   - km-tui-event-arch
 created_at: 2026-02-08T08:16:57Z
 closed_at: 2026-02-18T08:21:35Z
+assignee: claude:5f0aee02
 ---
 
 # [x] Event architecture: stale layout during batches, module-level state, unnecessary re-renders @km/tui #task #P2 @claude:5f0aee02

@@ -5,6 +5,7 @@ aliases:
   - km-silvery-hover-visual
 created_by: claude:c0da815b
 created_at: 2026-03-23T14:36:58Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Hover visual system: alpha-blended bg tints for interactive elements @km/silvery #feature #P2

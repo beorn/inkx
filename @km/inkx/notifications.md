@@ -6,6 +6,8 @@ aliases:
 created_by: claude:ee8efc0f
 created_at: 2026-02-22T23:29:18Z
 closed_at: 2026-02-22T23:55:04Z
+owner: bjorn@stabell.org
+assignee: claude:ee8efc0f
 ---
 
 # [x] Terminal notifications: OSC 9 (iTerm2) + OSC 99 (Kitty) @km/inkx #task #P3 @claude:ee8efc0f

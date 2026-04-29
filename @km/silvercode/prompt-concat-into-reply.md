@@ -12,6 +12,16 @@ close_reason: "Fixed via commit bf10b28d7. Test:
   the most-recent user prompt from incoming text (text-delta + assistant-message
   paths). Replays suppressed bytes on mismatch so non-echoing agents pass
   through byte-equal."
+started_at: 2026-04-28T17:58:07Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.prompt-concat-into-reply
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T10:58:06Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] [bug] [P1] User prompt concatenated into start of assistant reply with no separator @km/silvercode #bug #P1 @claude:2405c72e

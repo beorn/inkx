@@ -10,6 +10,8 @@ close_reason: Session complete. Fresh Asana import (69 projects, 3322
   fix. Global km alias. Vault setup with sync scripts, beads, gitignore. Embed
   dedup bug fixed (fs_path + data.targetPath). Installed perles + bv. All tests
   pass, pushed.
+owner: bjorn@stabell.org
+assignee: claude:f53c94c1
 ---
 
 # [x] Session: asana-import + vault setup @km/_orphan #task #P3 @claude:f53c94c1

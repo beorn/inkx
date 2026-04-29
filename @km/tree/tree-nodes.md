@@ -9,6 +9,8 @@ closed_at: 2026-04-02T20:35:00Z
 close_reason: "Shipped by km-work: TreeWalk.nodes() with match+into+reverse, 30
   tests, object match shorthand, type-narrowing predicates. Commits 66566b68,
   580ebd74, 6456dbea."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Tree.nodes(): SlateJS-style pluggable tree traversal @km/tree #task #P2 @Bjørn Stabell

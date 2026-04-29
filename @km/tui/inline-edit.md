@@ -5,6 +5,7 @@ aliases:
   - km-tui-inline-edit
 created_at: 2026-02-05T12:52:43Z
 closed_at: 2026-02-05T15:29:26Z
+assignee: claude:49c1df8a
 ---
 
 # [x] Inline node editing in TUI (text mode) @km/tui #feature #P2 @claude:49c1df8a

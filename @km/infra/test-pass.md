@@ -5,6 +5,7 @@ aliases:
   - km-infra-test-pass
 created_at: 2026-02-05T01:31:37Z
 closed_at: 2026-02-06T11:12:55Z
+assignee: claude:10db6ea8
 ---
 
 # [x] Make 'bun test:all' pass without lint errors @km/infra #task #P1 @claude:10db6ea8

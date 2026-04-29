@@ -6,6 +6,7 @@ aliases:
 created_by: claude:3d4c9a23
 created_at: 2026-02-11T16:37:45Z
 closed_at: 2026-02-11T16:45:44Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Clean up stray debug/repro test files and prevent recurrence @km/infra #task #P2

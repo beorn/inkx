@@ -10,6 +10,14 @@ aliases:
   - "@km/_orphan/silvercode"
 created_by: claude:208595de
 created_at: 2026-04-24T09:00:35Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode
+    depends_on_id: km-code
+    type: parent-child
+    created_at: 2026-04-25T23:25:13Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] [epic] Silvercode — silvery-native agent workspace @km/silvercode #feature #P1

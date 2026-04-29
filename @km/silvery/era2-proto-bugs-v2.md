@@ -8,6 +8,8 @@ created_at: 2026-03-21T06:41:56Z
 closed_at: 2026-03-23T20:53:43Z
 close_reason: "All 3 bugs fixed: keystroke subscription recursion, term:key
   return exit, idle auto-submit direct call"
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Prototype bugs: keystrokes eaten, ctrl-d broken, idle auto-submit not working @km/silvery #bug #P0 @claude:f8196c1c

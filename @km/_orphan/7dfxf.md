@@ -9,6 +9,8 @@ close_reason: "Fixed by output-phase cursor tracking rewrite (cc8251f). ╰ bott
   borders are preserved - both on screen and in scrollback. Tests updated:
   scrollback-promotion.test.tsx, ai-chat.test.tsx verify borders survive in
   combined screen+scrollback text."
+owner: bjorn@stabell.org
+assignee: claude:73d7a332
 ---
 
 # [x] Fix scrollback promotion truncating bottom borders (╰) @km/_orphan #bug #P2 @claude:73d7a332

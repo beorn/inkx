@@ -10,6 +10,7 @@ close_reason: "Fixed: breakIntoLines() now uses hypothetical main size (clamped
   to min/max) instead of unclamped base size, per CSS spec 9.3.4. Changed
   layout-flex-lines.ts and classic/layout.ts. Test:
   vendor/flexily/tests/css-spec-fixes.test.ts (3 tests)"
+owner: bjorn@stabell.org
 ---
 
 # [x] Bug: Flex-wrap line breaking uses baseSize not hypothetical main size @km/flexily #bug #P0

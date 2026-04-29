@@ -6,6 +6,7 @@ created_by: claude:66437c43
 created_at: 2026-03-03T12:47:19Z
 closed_at: 2026-03-07T02:12:09Z
 close_reason: "Grooming: 100% children closed, package complete in vendor/swatch/"
+owner: bjorn@stabell.org
 ---
 
 # [x] swatch: universal color theme package @km/_orphan #epic #P2

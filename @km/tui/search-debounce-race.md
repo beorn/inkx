@@ -11,6 +11,8 @@ close_reason: Fixed via 3e1104cbe. handleLocalFindConfirm() now reads live query
   findMatchingNodeIds(ctx.tree, liveQuery), and commits fresh state before
   flipping isInputActive. Regression test 'Enter before debounce flushes pending
   query' passes. 19/19 local-find tests green.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] Search Enter before 150ms shows No matches @km/tui #bug #P1 @Bjørn Stabell

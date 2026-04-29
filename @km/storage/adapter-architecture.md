@@ -10,6 +10,14 @@ close_reason: Superseded by hub/km/storage-architecture.md v3. The 'adapter'
   framing was dropped in v3 after pro review round-1 warned against premature
   Adapter interface; replaced with concrete FsMount class (§6). Children
   reparented directly under km-storage scope epic.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-storage.adapter-architecture
+    depends_on_id: km-all.plateau
+    type: parent-child
+    created_at: 2026-04-21T13:24:47Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Adapter architecture — core km unaware of FS/sync/connector specifics @km/storage #epic #P1

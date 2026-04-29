@@ -6,6 +6,7 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T21:46:19Z
 closed_at: 2026-02-14T21:46:30Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Cursor placed on invisible card when first column is collapsed at init @km/tui #bug #P2

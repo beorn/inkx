@@ -5,6 +5,14 @@ aliases:
   - km-bearly-llm-dispatch-shatter
 created_by: claude:2405c72e
 created_at: 2026-04-27T06:58:45Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.llm-dispatch-shatter
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-26T23:59:18Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] Shatter llm dispatch.ts (1593 LOC) into per-command modules @km/bearly #task #P2

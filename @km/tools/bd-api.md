@@ -5,6 +5,7 @@ aliases:
   - km-tools-bd-api
 created_by: claude:73c2828f
 created_at: 2026-02-15T13:05:53Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Spec: km bd CLI wrapper covering full bd API surface @km/tools #feature #P4

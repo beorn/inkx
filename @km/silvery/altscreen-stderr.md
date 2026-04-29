@@ -10,6 +10,7 @@ close_reason: "Fixed: scheduler slow-frame and large-output warnings downgraded
   from log.warn to log.debug. Silent by default, visible via
   DEBUG=silvery:scheduler. Also replaced direct process.stderr.write with
   loggily calls in logDebug/logError methods."
+owner: bjorn@stabell.org
 ---
 
 # [x] Scheduler log.warn writes to stderr in alt screen mode, corrupting display @km/silvery #bug #P2

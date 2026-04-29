@@ -6,6 +6,8 @@ created_by: claude:c9beade3
 created_at: 2026-03-13T23:20:40Z
 closed_at: 2026-03-13T23:45:55Z
 close_reason: Closed
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] termless: scrollback/viewport coordinate contract inconsistent across backends @km/_orphan #bug #P0 @claude:c9beade3

@@ -4,6 +4,7 @@ aliases:
   - km-8pib7
 created_at: 2026-01-27T13:48:01Z
 closed_at: 2026-01-27T13:56:36Z
+assignee: claude:7ce6f6bf
 ---
 
 # [x] Parallel TUI: bun test results don't stream, appear all at once @km/_orphan #bug #P2 @claude:7ce6f6bf

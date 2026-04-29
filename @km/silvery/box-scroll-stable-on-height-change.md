@@ -11,6 +11,14 @@ close_reason: silvery 671a06b0 + km 1d3a51266 — memoize prevScrollTo in
   Zero consumer changes. Regression tests at both layers verify viewport stays
   anchored when visible items grow. 45+6+5+52 tests pass; tsc unchanged at
   baseline.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.box-scroll-stable-on-height-change
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T18:56:45Z
+    created_by: claude:c56dc5d6
+    metadata: "{}"
 ---
 
 # [x] Box overflow="scroll" shifts viewport when visible item grows @km/silvery #bug #P2

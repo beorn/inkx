@@ -8,6 +8,15 @@ created_at: 2026-04-22T19:09:26Z
 closed_at: 2026-04-22T20:11:13Z
 close_reason: folded into km-silvery.layout-churn-leaks-pixels (same root cause
   class — incremental-render pixel leak on layout churn)
+owner: bjorn@stabell.org
+assignee: claude:019d032d
+dependencies:
+  - issue_id: km-tui.single-col-missing-top-borders
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-22T12:09:48Z
+    created_by: claude:019d032d
+    metadata: "{}"
 ---
 
 # [x] Single-column card rendering: cards 2+ missing top border (╭─╮) — show only │ ... │ and ╰─╯ @km/tui #bug #P1 @claude:019d032d

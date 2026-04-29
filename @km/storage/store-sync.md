@@ -8,6 +8,7 @@ created_at: 2026-04-03T05:39:04Z
 closed_at: 2026-04-03T07:30:45Z
 close_reason: Done. withSync uses onApply subscriber instead of monkey-patch.
   skipFsSync removed. source-based filtering. Commit 8cf4760d.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 4: sync(a, b) — bidirectional store sync @km/storage #task #P3

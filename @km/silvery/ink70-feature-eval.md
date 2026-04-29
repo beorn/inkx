@@ -6,6 +6,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-09T19:11:18Z
 closed_at: 2026-04-09T23:34:33Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Evaluate Ink 7.0 features — adopt good designs, shim the rest @km/silvery #task #P2

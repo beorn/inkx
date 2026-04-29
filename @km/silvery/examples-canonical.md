@@ -10,6 +10,8 @@ close_reason: Converted app-todo.tsx to pipe() composition. Created
   pipe-composition.tsx example. Updated run-counter.tsx with pipe() doc comment.
   migrate-from-ink.md, silvery-vs-ink.md, compatibility.md updated with
   withInk() references.
+owner: bjorn@stabell.org
+assignee: claude:55df8ef1
 ---
 
 # [x] Review examples against new plugin APIs — adopt the Silvery Way @km/silvery #task #P2 @claude:55df8ef1

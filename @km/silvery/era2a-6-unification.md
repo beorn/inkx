@@ -13,6 +13,8 @@ close_reason: "Phase 6 complete: (1) Typed pipe() with 8 overloads + from()
   internal for browser adapters). (4) TermDef removed from all public barrels
   (ag, ag-term, ag-react) — render() still accepts it internally but it's not
   discoverable. (5) All 179 fast + 233 vendor test files pass."
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Era2a Phase 6: Term unification — one Term type, remove old APIs @km/silvery #task #P1 @claude:fed8de9e

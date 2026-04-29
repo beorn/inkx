@@ -11,6 +11,8 @@ close_reason: "Phase 4 absorb step: ag tree mutation API (createNode,
   interface. Handles both AgNode + LayoutNode trees in sync. Reconciler
   continues using its own node creation — migration deferred to Phase 5 where
   plugin composition makes ag mutations the standard path."
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Era2a Phase 4: ag tree mutation API + focus @km/silvery #task #P1 @claude:fed8de9e

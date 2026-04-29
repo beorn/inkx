@@ -9,6 +9,8 @@ closed_at: 2026-03-26T18:57:10Z
 close_reason: Enabled Cloudflare Web Analytics on terminfo.dev, termless.dev,
   silvery.dev via API. Beacon scripts added to all VitePress configs. Free, no
   cookies, GDPR-safe.
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Add Cloudflare Web Analytics to all dev sites @km/terminfo #task #P2 @claude:f8196c1c

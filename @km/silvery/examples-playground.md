@@ -5,6 +5,7 @@ aliases:
   - km-silvery-examples-playground
 created_by: claude:f8196c1c
 created_at: 2026-03-23T19:30:28Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Browser terminal playground for docs @km/silvery #feature #P3

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T14:20:59Z
 closed_at: 2026-02-25T17:18:55Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] Find & Replace dialog: focus outline, spacing, regexp checkbox @km/tui #bug #P2 @claude:d697f216

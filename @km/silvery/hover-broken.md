@@ -8,6 +8,7 @@ created_at: 2026-03-17T04:06:15Z
 closed_at: 2026-03-17T05:40:28Z
 close_reason: Fixed by km-silvery.inline-rects — virtual text nodes now have
   inlineRects for hit testing.
+owner: bjorn@stabell.org
 ---
 
 # [x] Link hover effect not working in real terminal despite mode 1003 @km/silvery #bug #P0

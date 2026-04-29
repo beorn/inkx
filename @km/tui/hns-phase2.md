@@ -8,6 +8,8 @@ created_at: 2026-04-08T07:31:03Z
 closed_at: 2026-04-08T08:13:19Z
 close_reason: Cut over cursorInDescendant reads to reduced signals. All 217
   tests pass. Commit 7adef8f4c.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Phase 2: Cutover — switch reads to reduced signals @km/tui #task #P1 @Bjørn Stabell

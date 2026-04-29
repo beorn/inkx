@@ -12,6 +12,15 @@ close_reason: Shipped option (d) via commit 0bbae47b4. Both packages already
   no-publish-private.test.ts (3/3 pass) wired into test:ci. Option (c) — extract
   @km/runtime — remains the long-term fix; tracked as follow-up when publishing
   becomes a goal.
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.break-storage-fs-mount-cycle
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-22T10:11:20Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Break @km/storage ↔ @km/fs-mount source-level cycle @km/storage #feature #P2 @claude:8b5b9e1c

@@ -7,6 +7,14 @@ created_by: claude:8b5b9e1c
 created_at: 2026-04-22T04:47:06Z
 closed_at: 2026-04-26T06:24:17Z
 close_reason: All children completed
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-storage.pathway-db-crdt
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-21T22:30:09Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Pathway tracker: Phase A → E (FS-truth → op log → DB-truth → CRDT → sync platform) @km/storage #epic #P3

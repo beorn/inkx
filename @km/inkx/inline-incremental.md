@@ -6,6 +6,7 @@ aliases:
 created_by: claude:891e3ce1
 created_at: 2026-03-01T08:32:24Z
 closed_at: 2026-03-01T09:04:16Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Incremental rendering for inline mode @km/inkx #feature #P2

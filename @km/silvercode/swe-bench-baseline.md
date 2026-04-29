@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-swe-bench-baseline
 created_by: claude:208595de
 created_at: 2026-04-24T09:01:24Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.swe-bench-baseline
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-24T02:01:33Z
+    created_by: claude:208595de
+    metadata: "{}"
 ---
 
 # [ ] Benchmark Silvercode vs vanilla Claude Code on SWE-bench @km/silvercode #task #P3

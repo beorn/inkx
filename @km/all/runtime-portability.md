@@ -6,6 +6,8 @@ aliases:
 created_by: claude:65d845d9
 created_at: 2026-03-15T16:12:15Z
 closed_at: 2026-03-15T16:24:06Z
+owner: bjorn@stabell.org
+assignee: claude:65d845d9
 ---
 
 # [x] Runtime portability: Bun + Node.js support across vendor packages @km/all #task #P2 @claude:65d845d9

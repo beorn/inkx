@@ -6,6 +6,7 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-19T17:26:14Z
 closed_at: 2026-02-19T17:44:24Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Detail pane props: values should always be colored, not grey-on-grey @km/tui #bug #P2

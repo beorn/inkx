@@ -8,6 +8,7 @@ created_at: 2026-04-10T20:09:19Z
 closed_at: 2026-04-10T20:57:04Z
 close_reason: Clone 0.08ms, culling exists, React reconciliation 87%. Use
   VirtualList for 1000+ items.
+owner: bjorn@stabell.org
 ---
 
 # [x] Large terminal performance (400x200) — buffer clone + viewport culling @km/silvery #task #P2

@@ -7,6 +7,8 @@ created_by: claude:c9beade3
 created_at: 2026-03-13T14:48:06Z
 closed_at: 2026-03-13T18:06:00Z
 close_reason: Fixed with TDD tests, all passing (1215 fuzz + unit)
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] content-phase-adapter: text collection loses nested styles, transforms, bg segments @km/silvery #bug #P1 @claude:c9beade3

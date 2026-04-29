@@ -4,6 +4,7 @@ aliases:
   - km-fix-sh-tests
 created_at: 2026-01-25T21:12:49Z
 closed_at: 2026-01-27T19:58:38Z
+assignee: beorn
 ---
 
 # [x] Fix disabled km sh test expectations @km/_orphan #task #P1 @beorn

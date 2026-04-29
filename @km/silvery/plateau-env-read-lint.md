@@ -49,6 +49,15 @@ close_reason: |-
   Commits
   - silvery: a2806b5b
   - km: 37aea09b7
+owner: bjorn@stabell.org
+assignee: claude:c6244087
+dependencies:
+  - issue_id: km-silvery.plateau-env-read-lint
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T02:49:48Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Lint rule: only @silvery/ansi/profile.ts may read process.env terminal signals @km/silvery #task #P3 @claude:c6244087

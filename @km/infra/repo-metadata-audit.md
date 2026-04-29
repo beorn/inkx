@@ -5,6 +5,7 @@ aliases:
   - km-infra-repo-metadata-audit
 created_by: Bjørn Stabell
 created_at: 2026-04-07T01:40:15Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Audit GitHub repo metadata across beorn/* (homepage, license, topics, description) @km/infra #task #P2

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:ee8efc0f
 created_at: 2026-02-23T23:57:32Z
 closed_at: 2026-02-25T20:05:17Z
+owner: bjorn@stabell.org
+assignee: claude:d1f60fb4
 ---
 
 # [x] Unify showcases and interactive examples @km/inkx #task #P2 @claude:d1f60fb4

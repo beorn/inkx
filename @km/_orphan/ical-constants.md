@@ -4,6 +4,7 @@ aliases:
   - km-ical-constants
 created_at: 2026-01-25T12:20:06Z
 closed_at: 2026-01-25T12:27:10Z
+assignee: unimac
 ---
 
 # [x] Extract RFC 5545 status constants to shared module @km/_orphan #chore #P4 @unimac

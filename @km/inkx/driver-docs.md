@@ -5,6 +5,7 @@ aliases:
   - km-inkx-driver-docs
 created_at: 2026-02-04T15:25:11Z
 closed_at: 2026-02-05T07:41:10Z
+assignee: claude:10db6ea8
 ---
 
 # [x] inkx: docs review and restructure @km/inkx #task #P2 @claude:10db6ea8

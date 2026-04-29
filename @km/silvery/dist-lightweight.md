@@ -7,6 +7,7 @@ created_by: claude:4929065a
 created_at: 2026-03-23T05:36:22Z
 closed_at: 2026-03-30T19:28:48Z
 close_reason: Merged into km-silvery.dist-bundling (now km-silvery.distribution)
+owner: bjorn@stabell.org
 ---
 
 # [x] Lightweight CLI rendering — silvery no heavier than ink/chalk @km/silvery #feature #P2

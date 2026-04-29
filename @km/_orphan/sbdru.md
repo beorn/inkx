@@ -5,6 +5,8 @@ aliases:
 created_by: claude:af6eb626
 created_at: 2026-03-04T15:05:44Z
 closed_at: 2026-03-04T16:36:06Z
+owner: bjorn@stabell.org
+assignee: claude:3c1481f8
 ---
 
 # [x] inkx: mouse SGR sequences leak into text on double-click @km/_orphan #bug #P0 @claude:3c1481f8

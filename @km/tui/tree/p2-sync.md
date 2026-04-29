@@ -9,6 +9,7 @@ closed_at: 2026-04-09T00:27:51Z
 close_reason: Sync methods deleted (syncCursor, syncSelected, syncEdit).
   Board.tsx writes signals directly. expandWithDescendants + collectDescendants
   purged from reactive.ts. Commit f63488fa5.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 2: Eliminate sync methods — Board.tsx writes signals directly @km/tui #task #P1

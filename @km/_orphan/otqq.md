@@ -4,6 +4,7 @@ aliases:
   - km-otqq
 created_at: 2026-01-26T07:57:04Z
 closed_at: 2026-01-26T08:05:50Z
+assignee: beorn
 ---
 
 # [x] ADR-002 Phase 6: Make createRepo a generator like createVault @km/_orphan #task #P1 @beorn

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:5f0aee02
 created_at: 2026-02-18T08:40:11Z
 closed_at: 2026-02-19T19:00:05Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Filtering on all views (Ctrl+/) @km/tui #feature #P2 @claude:8f007ba9

@@ -5,6 +5,14 @@ aliases:
   - km-silvery-focus-in-out-reporting
 created_by: Bjørn Stabell
 created_at: 2026-04-15T23:19:21Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.focus-in-out-reporting
+    depends_on_id: km-silvery.opentui-parity
+    type: parent-child
+    created_at: 2026-04-15T16:19:20Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Protocol: terminal focus in/out events (mode 1004) @km/silvery #feature #P3

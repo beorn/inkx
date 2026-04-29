@@ -9,6 +9,7 @@ closed_at: 2026-03-13T05:22:01Z
 close_reason: "Deferred: Text measure cache key is string concatenation
   (width+wrap+text). Allocation is minimal (short strings, interned by V8). No
   measured perf impact — measure runs once per dirty text node per frame."
+owner: bjorn@stabell.org
 ---
 
 # [x] Perf: Text measure cache uses string key allocation on every call @km/silvery #task #P3

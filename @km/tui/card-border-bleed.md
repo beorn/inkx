@@ -6,6 +6,7 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T16:27:25Z
 closed_at: 2026-02-18T23:40:29Z
+owner: bjorn@stabell.org
 ---
 
 # [x] inkx: text bleeds into right border of Box with borderStyle @km/tui #bug #P2

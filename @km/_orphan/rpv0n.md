@@ -7,6 +7,8 @@ created_at: 2026-03-16T20:44:01Z
 closed_at: 2026-03-18T19:32:05Z
 close_reason: "Fixed: added scrollOffsetChanged check to canSkipEntireSubtree in
   content-phase.ts. 6 STRICT tests added."
+owner: bjorn@stabell.org
+assignee: claude:d29abbfa
 ---
 
 # [x] Scroll offset change not dirtying content phase @km/_orphan #bug #P0 @claude:d29abbfa

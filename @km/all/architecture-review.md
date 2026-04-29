@@ -9,6 +9,8 @@ closed_at: 2026-04-02T03:49:22Z
 close_reason: Three-pass review complete. Findings at
   docs/architecture-review-findings.md. All 5 simplification opportunities
   addressed via km-all.simplification epic (now closed).
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Three-pass architectural review for dramatic simplification @km/all #task #P2 @Bjørn Stabell

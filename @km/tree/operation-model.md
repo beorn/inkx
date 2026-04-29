@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-03T03:56:05Z
 closed_at: 2026-04-03T04:23:10Z
 close_reason: Shipped b0556467. 7 op types + inverse() + applyOperation().
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 4: Operation model — low-level ops with inversion for op-based undo @km/tree #task #P3

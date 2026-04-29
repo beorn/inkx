@@ -9,6 +9,8 @@ closed_at: 2026-04-03T08:34:43Z
 close_reason: SelectionEngine extracted (expandWithDescendants, removeNesting,
   getRange, getSiblings) with 24 tests. Wired into reactive.ts and
   board-actions-selection.ts. Commit f5027677.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Review shift/extend and click/multi-selection against Decker and best practices @km/tui #task #P2 @Bjørn Stabell

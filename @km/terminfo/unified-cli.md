@@ -9,6 +9,8 @@ closed_at: 2026-03-25T19:48:55Z
 close_reason: "Implemented unified CLI: terminfo probe
   {termless|server|app|here}, report, status, detect, submit. Consistent UX
   pattern. Fresh daemon results for 3 terminals. Pushed and deploying."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Unified terminfo CLI: terminfo probe {termless|server|app|here} @km/terminfo #task #P2 @claude:f8196c1c

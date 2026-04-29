@@ -7,6 +7,16 @@ created_by: claude:cd034ca4
 created_at: 2026-04-26T18:52:48Z
 closed_at: 2026-04-26T23:19:05Z
 close_reason: Closed
+started_at: 2026-04-26T22:12:23Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvery.syntax-shiki
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-26T11:53:06Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] silvery <Code> via shiki — wire installed shiki packages behind silvercode SyntaxHighlighter @km/silvery #feature #P2 @claude:cd034ca4

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T13:42:42Z
 closed_at: 2026-02-19T22:20:20Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Move text truncation from ANSI-level to layout-level @km/inkx #task #P2 @claude:8f007ba9

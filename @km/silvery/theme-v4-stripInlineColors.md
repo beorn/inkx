@@ -16,6 +16,14 @@ close_reason: "Evaluation complete (km 09c7284b9): kept as-is, documented in
   intentional: TreeNode supports an ANSI16 fallback path where isSelected can
   occur without a title color override; NodeView always has one.
   Selection-style.ts gap note updated to record the decision."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-v4-stripInlineColors
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-24T16:14:48Z
+    created_by: claude:5e447b66
+    metadata: "{}"
 ---
 
 # [x] Phase 4: km-tui stripInlineColors prop tidy-up @km/silvery #task #P4

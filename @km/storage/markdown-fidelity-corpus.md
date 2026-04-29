@@ -10,6 +10,15 @@ close_reason: "Complete: 36 fixtures across 11 categories, round-trip test at
   packages/km-markdown/tests/fidelity-corpus.test.ts passes 95/100 (5 skipped
   for known drift — whitespace normalization + frontmatter YAML
   canonicalization). Gates writeback-cas."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.markdown-fidelity-corpus
+    depends_on_id: km-storage.fs-mount
+    type: parent-child
+    created_at: 2026-04-21T15:30:21Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Markdown fidelity test corpus — import/export round-trip regression bank @km/storage #task #P1 @claude:8b5b9e1c

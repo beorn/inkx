@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T15:17:16Z
 closed_at: 2026-02-19T11:07:09Z
+owner: bjorn@stabell.org
+assignee: claude:36393b5d
 ---
 
 # [x] Show subtask and comment counts on cards (like Asana) @km/tui #feature #P3 @claude:36393b5d

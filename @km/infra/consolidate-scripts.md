@@ -12,6 +12,7 @@ close_reason: "Moved all infra/ contents to packages/km-infra/scripts/. Updated
   script paths (REPO_ROOT, DATA_DIR, self-references). Verified: typecheck
   passes, bun fix clean, test:fast passes (only pre-existing flaky timeouts),
   lint:deps clean."
+owner: bjorn@stabell.org
 ---
 
 # [x] Consolidate infra/ scripts into packages/km-infra/ @km/infra #task #P3

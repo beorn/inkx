@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-autolinks-mcp-resolver
 created_by: claude:2405c72e
 created_at: 2026-04-25T10:10:38Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.autolinks-mcp-resolver
+    depends_on_id: km-silvercode.autolinks-config
+    type: parent-child
+    created_at: 2026-04-25T03:11:16Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] Autolinks: MCP-tool-backed pattern resolution @km/silvercode #task #P3

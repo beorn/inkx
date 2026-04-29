@@ -11,6 +11,15 @@ close_reason: "Shipped silvery 738c3ba7 + km add60e811. deriveAnsi16Theme now
   added. Tests: 145/145 package, 14/14 storybook, 10/10 new regression. 0
   slot-name assertions remain in vendor/silvery. Phase 2 kebab-rename now
   unblocked."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-silvery.theme-v4-ansi16-hex
+    depends_on_id: km-silvery.theme-v4
+    type: parent-child
+    created_at: 2026-04-19T10:59:02Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Phase 1: deriveAnsi16Theme returns hex, not ANSI slot names @km/silvery #task #P2 @Bjørn Stabell

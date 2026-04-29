@@ -9,6 +9,14 @@ closed_at: 2026-04-23T21:21:02Z
 close_reason: 6646c4cf3 — LogRowView + deriveRows split into focused
   sub-components; 0 complexity violations in apps/km-logview/src/row/; 42/42
   tests pass
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-logview.logrow-complexity
+    depends_on_id: km-logview
+    type: parent-child
+    created_at: 2026-04-23T14:05:38Z
+    created_by: claude:c56dc5d6
+    metadata: "{}"
 ---
 
 # [x] Refactor LogRowView + deriveRows to meet complexity limits @km/logview #task #P3

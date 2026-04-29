@@ -9,6 +9,8 @@ closed_at: 2026-03-26T04:35:04Z
 close_reason: Inline escape sequence example tables on /features (8 rows) and
   /standards (6 rows). vitepress-plugin-glossary installed for site-wide acronym
   tooltips. All deployed.
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Inline escape sequence examples on /standards and /features pages @km/terminfo #task #P3 @claude:f8196c1c

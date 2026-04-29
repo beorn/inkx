@@ -14,6 +14,15 @@ close_reason: "Fixed. Test: apps/km-tui/tests/breadcrumb.test.ts:355+380
   apps/km-tui/src/layout/path.ts; applied in BoardView.tsx before renderPath
   (width calc accuracy) and defensively in TopBarBreadcrumb; also applied in
   useBoardController.ts for OSC 2 window title. Commit 05e757517."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-tui.breadcrumb-multiline-content
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-20T16:34:11Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] [bug] Breadcrumb shows full body content — should clamp to first line @km/tui #bug #P2 @claude:8b5b9e1c

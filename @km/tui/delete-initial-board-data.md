@@ -11,6 +11,8 @@ close_reason: Complete. InitialBoardData deleted from types.ts. render.ts
   renamed to BoardStateResult in state.ts for test fixtures. runBoard takes
   (rootId, options) directly. testing.ts + driver.ts + screenshot.ts all derive
   from lens. 600 lines removed.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Delete InitialBoardData — runBoard takes (repo, rootId) directly @km/tui #task #P2 @Bjørn Stabell

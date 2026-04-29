@@ -9,6 +9,8 @@ closed_at: 2026-03-25T23:56:05Z
 close_reason: Fixed 9 hardcoded color issues across example apps (semantic
   tokens). Fixed inline-bench.tsx import.meta.main guard. Added padding to
   scroll.tsx.
+owner: bjorn@stabell.org
+assignee: claude:19080504
 ---
 
 # [x] silvery.dev examples: broken demos, missing padding, visual polish @km/silvery #bug #P2 @claude:19080504

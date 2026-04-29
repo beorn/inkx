@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T11:46:29Z
 closed_at: 2026-02-25T19:56:45Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] Coalesce input: batch key events before rendering to avoid lag @km/inkx #feature #P1 @claude:d697f216

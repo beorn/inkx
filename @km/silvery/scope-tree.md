@@ -5,6 +5,14 @@ aliases:
   - km-silvery-scope-tree
 created_by: claude:e4e70c9a
 created_at: 2026-03-12T06:45:52Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.scope-tree
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-22T14:53:43Z
+    created_by: claude:c1c8afe1
+    metadata: "{}"
 ---
 
 # [ ] Scope tree: generalize DisposableStack to structured concurrency primitive @km/silvery #feature #P4

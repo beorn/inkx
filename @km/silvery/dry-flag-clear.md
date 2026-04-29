@@ -9,6 +9,7 @@ closed_at: 2026-03-13T05:21:26Z
 close_reason: "Fixed: extracted clearNodeDirtyFlags() helper, replaced inline
   6-line clearing at line 647 and deduplicated
   clearDirtyFlags/clearVirtualTextFlags."
+owner: bjorn@stabell.org
 ---
 
 # [x] DRY: Extract shared dirty flag clearing helper @km/silvery #task #P2

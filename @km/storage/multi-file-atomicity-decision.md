@@ -13,6 +13,14 @@ close_reason: "Decision: km ships without a resumable-on-crash multi-file
   revisit any time if real incidents appear; (3) Phase B's op log will handle
   multi-file atomicity via semantic replay, a cleaner mechanism than a journal.
   If we hit multi-file corruption before Phase B, reopen."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-storage.multi-file-atomicity-decision
+    depends_on_id: km-storage.writeback-cas
+    type: parent-child
+    created_at: 2026-04-21T21:50:02Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Open decision: ship v1 without multi-file journal? @km/storage #task #P1

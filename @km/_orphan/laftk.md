@@ -6,6 +6,8 @@ created_by: claude:b92140a2
 created_at: 2026-03-17T08:33:08Z
 closed_at: 2026-03-17T15:04:32Z
 close_reason: finalizeBatchLinks now accepts fs parameter, threaded from both call sites.
+owner: bjorn@stabell.org
+assignee: claude:b92140a2
 ---
 
 # [x] P1: Re-materialization bypasses injected FS abstraction @km/_orphan #bug #P1 @claude:b92140a2

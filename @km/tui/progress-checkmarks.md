@@ -5,6 +5,7 @@ aliases:
   - km-tui-progress-checkmarks
 created_at: 2026-02-05T15:09:34Z
 closed_at: 2026-02-05T15:18:48Z
+assignee: claude:b53ef7e4
 ---
 
 # [x] Steps runner: final step not checked off, parent incomplete @km/tui #bug #P2 @claude:b53ef7e4

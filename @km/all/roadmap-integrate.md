@@ -5,6 +5,14 @@ aliases:
   - km-all-roadmap-integrate
 created_by: Bjørn Stabell
 created_at: 2026-04-17T07:18:15Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.roadmap-integrate
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-17T00:18:28Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Integrate docs/roadmap.md into docs/backlog.md (or retire) @km/all #task #P3

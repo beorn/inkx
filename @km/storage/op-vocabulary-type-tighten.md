@@ -5,6 +5,14 @@ aliases:
   - km-storage-op-vocabulary-type-tighten
 created_by: claude:8b5b9e1c
 created_at: 2026-04-22T17:30:52Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-storage.op-vocabulary-type-tighten
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-22T10:30:52Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [ ] Tighten NodeUpdatedData to closed union (audit recommendation) @km/storage #task #P3

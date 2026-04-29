@@ -4,6 +4,7 @@ aliases:
   - km-cli-tasks-vault
 created_at: 2026-01-25T08:27:53Z
 closed_at: 2026-01-25T08:38:56Z
+assignee: km
 ---
 
 # [x] Convert CLI task commands to use Vault API @km/_orphan #chore #P1 @km

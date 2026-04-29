@@ -6,6 +6,8 @@ aliases:
 created_by: claude:949598cc
 created_at: 2026-02-11T20:12:16Z
 closed_at: 2026-02-12T14:14:45Z
+owner: bjorn@stabell.org
+assignee: claude:586bad48
 ---
 
 # [x] Unify modal bypass into command system @km/tui #task #P3 @claude:586bad48

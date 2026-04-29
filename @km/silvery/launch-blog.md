@@ -5,6 +5,7 @@ aliases:
   - km-silvery-launch-blog
 created_by: Bjørn Stabell
 created_at: 2026-04-10T03:07:16Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Draft Silvery launch blog post — philosophy, ecosystem, origin story @km/silvery #task #P2

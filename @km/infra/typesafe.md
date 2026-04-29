@@ -6,6 +6,8 @@ aliases:
 created_by: claude:5f0aee02
 created_at: 2026-02-18T08:42:19Z
 closed_at: 2026-02-19T21:45:16Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Codebase-wide type safety pass @km/infra #task #P3 @claude:8f007ba9

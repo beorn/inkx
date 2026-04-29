@@ -5,6 +5,7 @@ aliases:
   - km-tribe-deprecate-userprompt-recall
 created_by: claude:87d20187
 created_at: 2026-04-27T14:52:15Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Deprecate UserPromptSubmit auto-recall once bg-recall A/B comparison settles @km/tribe #task #P3

@@ -5,6 +5,7 @@ aliases:
   - km-flexily-pro-review-4
 created_by: claude:65d845d9
 created_at: 2026-03-14T02:12:34Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Pro Review 4: flexily docs & positioning @km/flexily #task #P3

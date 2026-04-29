@@ -6,6 +6,7 @@ aliases:
   - "@km/rev-0203/3"
 created_at: 2026-02-03T15:13:25Z
 closed_at: 2026-02-03T15:24:42Z
+assignee: claude:da8e4a66
 ---
 
 # [x] Document tuiEvents singleton as intentional app-level exception @km/rev-0203 #task #P3 @claude:da8e4a66

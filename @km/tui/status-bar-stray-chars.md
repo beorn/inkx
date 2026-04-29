@@ -10,6 +10,8 @@ close_reason: Fixed in km a05888b8e successor (40d100030 mitigated km-tui side
   via stable-width templates + explicit emoji spacing). Underlying silvery
   wide-emoji continuation-cell stale-cell bug filed separately as
   km-silvery.wide-emoji-continuation-cell-stale (P3).
+owner: bjorn@stabell.org
+assignee: claude:019d032d
 ---
 
 # [x] Status bar shows stray chars between emoji and counts (y/n/s/: instead of plain numbers) @km/tui #bug #P2 @claude:019d032d

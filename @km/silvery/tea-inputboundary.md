@@ -14,6 +14,14 @@ close_reason: "DONE via silvery bb8f5349 (InputBoundary owns child BaseApp —
   unrelated. Scope creep (acceptable): fallback removal also broke
   createRenderer/render paths — fixed by installing ChainAppContext via
   chain-bridge there too."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.tea-inputboundary
+    depends_on_id: km-silvery.tea
+    type: parent-child
+    created_at: 2026-04-18T11:44:15Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] InputBoundary child BaseApp — delete rt.on fallback paths @km/silvery #task #P2

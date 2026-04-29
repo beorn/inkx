@@ -4,6 +4,7 @@ aliases:
   - km-vendor-ci
 created_at: 2026-01-31T08:30:20Z
 closed_at: 2026-01-31T11:53:11Z
+assignee: claude:227cdc41
 ---
 
 # [x] Standalone CI for vendor packages (flexx, chalkx, inkx, mdtest) @km/_orphan #feature #P2 @claude:227cdc41

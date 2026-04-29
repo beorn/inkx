@@ -11,6 +11,7 @@ close_reason: "Implemented: run() now auto-detects terminal caps and enables
   getting-started, runtime-getting-started, and terminal-capabilities reference.
   Also added textSizing:'auto' to km's tui.tsx (which uses createApp directly).
   All 4221 tests pass."
+owner: bjorn@stabell.org
 ---
 
 # [x] run() should auto-enable terminal features by default @km/_orphan #feature #P2

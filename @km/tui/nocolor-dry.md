@@ -6,6 +6,7 @@ aliases:
 created_by: claude:e7c823b8
 created_at: 2026-02-26T17:01:17Z
 closed_at: 2026-02-26T17:48:57Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Replace noColor with <StripColor> wrapper component @km/tui #task #P3

@@ -8,6 +8,7 @@ closed_at: 2026-03-13T23:35:48Z
 close_reason: "Fixed on feat/cell-type-unification branch: all 5 backends
   updated (text→char, faint→dim, underline:false, new fields). 719 tests pass.
   Close after merge."
+owner: bjorn@stabell.org
 ---
 
 # [x] termless: Cell contract broken across backends @km/_orphan #bug #P0

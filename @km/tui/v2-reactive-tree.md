@@ -9,6 +9,8 @@ closed_at: 2026-04-08T17:05:28Z
 close_reason: "Engine shipped: primary(), .reduce(), includeSelf, walk
   coalescing, 5 primaries + 5 reduced signals, useTreeNode hook. Consumer
   migration tracked in km-tui.v3-reactive-tree."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] v2 Reactive Tree — .reduce(), excludedSigils, factory function, all gaps @km/tui #task #P1 @Bjørn Stabell

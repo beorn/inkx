@@ -4,6 +4,7 @@ aliases:
   - km-rcf2y
 created_at: 2026-02-02T12:26:49Z
 closed_at: 2026-02-02T14:14:40Z
+assignee: claude:5fa2decc
 ---
 
 # [x] inkx Canvas prototype @km/_orphan #task #P2 @claude:5fa2decc

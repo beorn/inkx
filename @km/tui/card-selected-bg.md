@@ -5,6 +5,7 @@ aliases:
   - km-tui-card-selected-bg
 created_by: Bjørn Stabell
 created_at: 2026-04-01T14:45:00Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Show faint selected background on entire card when card-level cursor is on it @km/tui #feature #P3

@@ -6,6 +6,7 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T13:21:55Z
 closed_at: 2026-03-04T12:44:41Z
+owner: bjorn@stabell.org
 ---
 
 # [x] OSC 22: set mouse cursor shape (pointer on links) @km/inkx #feature #P2

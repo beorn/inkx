@@ -5,6 +5,14 @@ aliases:
   - km-all-oss-vs-private-2026-04-27
 created_by: claude:618d206c
 created_at: 2026-04-28T02:51:07Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.oss-vs-private-2026-04-27
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-27T19:51:26Z
+    created_by: claude:618d206c
+    metadata: "{}"
 ---
 
 # [ ] Strategic: OSS vs private across silvery/tribe/km/silvercode/agentroom @km/all #task #P2

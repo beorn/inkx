@@ -6,6 +6,7 @@ aliases:
 created_by: claude:65d845d9
 created_at: 2026-03-13T05:33:30Z
 closed_at: 2026-03-13T05:34:56Z
+owner: bjorn@stabell.org
 ---
 
 # [x] calculateLayout unconditionally calls Date.now() and countNodes() even when logging disabled @km/flexily #task #P3

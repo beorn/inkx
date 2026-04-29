@@ -8,6 +8,7 @@ created_at: 2026-03-31T07:44:20Z
 closed_at: 2026-03-31T07:53:05Z
 close_reason: GitHub plugin (464 lines) polls API, broadcasts to all sessions.
   15 tests. github-channel.ts deprecated.
+owner: bjorn@stabell.org
 ---
 
 # [x] GitHub as tribe resource — centralized notifications via daemon @km/tribe #feature #P3

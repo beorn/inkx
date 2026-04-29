@@ -9,6 +9,14 @@ closed_at: 2026-04-18T18:27:39Z
 close_reason: Shipped in v0.18.0 — see
   hub/silvery/design/v10-terminal/theme-system-v2-plan.md and silvery v0.18.0
   changelog
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-catalog
+    depends_on_id: km-silvery.design-system
+    type: parent-child
+    created_at: 2026-04-17T20:56:49Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Theme catalog — 30+ bundled themes (Silvery + Dracula / Tokyo Night / Solarized / Gruvbox / Nord / Catppuccin / ...) @km/silvery #feature #P3

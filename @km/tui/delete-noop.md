@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-01T05:47:54Z
 closed_at: 2026-04-02T20:00:25Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Delete sometimes doesn't remove node — cursor moves but card stays @km/tui #bug #P1 @Bjørn Stabell

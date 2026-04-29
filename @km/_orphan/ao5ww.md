@@ -10,6 +10,7 @@ close_reason: "Fixed: --branch flag now parsed as a named option. Branch value
   worktree create --branch km-ila18-theme-inherit` creates dir
   `km--km-ila18-theme-inherit` on branch `km-ila18-theme-inherit`). Previously,
   `--branch` was treated as a positional arg, creating `km---branch`."
+owner: bjorn@stabell.org
 ---
 
 # [x] Worktree tool: --branch flag mangles directory name @km/_orphan #bug #P2

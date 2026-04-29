@@ -8,6 +8,7 @@ created_at: 2026-04-09T04:10:57Z
 closed_at: 2026-04-09T04:25:59Z
 close_reason: syncFoldDepths + syncStickyFolds inlined in Board.tsx, deleted
   from reactive.ts. Commit 993102171.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 5: Eliminate syncFoldDepths + syncStickyFolds — direct signal writes @km/tui #task #P2

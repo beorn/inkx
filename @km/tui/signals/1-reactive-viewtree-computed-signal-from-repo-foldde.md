@@ -9,6 +9,8 @@ created_at: 2026-04-05T07:52:57Z
 closed_at: 2026-04-05T09:01:04Z
 close_reason: "Auto-refresh adapter eliminates all 8 refreshSelTree calls.
   Acceptance: grep refreshSelTree → 0 source hits. 62 test files pass."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Reactive ViewTree — computed signal from repo+foldDepths @km/tui #task #P2 @Bjørn Stabell

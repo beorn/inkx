@@ -11,6 +11,14 @@ close_reason: Implemented Path A (pre-filter at MCP source).
   (github:push/workflow/ci-recovered, status, health:*:warning) no longer fire
   as user-turn input. Effect after MCP server restart / next session.
   TRIBE_CHANNEL_VERBOSE=1 disables filter.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.tribe-channel-noise-hook
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-20T16:13:08Z
+    created_by: claude:a1a0e667
+    metadata: "{}"
 ---
 
 # [x] Tribe channel messages create empty H: turns even when assistant emits nothing — suppress at hook/daemon level @km/infra #bug #P3

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T22:54:15Z
 closed_at: 2026-02-14T23:00:53Z
+owner: bjorn@stabell.org
+assignee: claude:a5c7f7de
 ---
 
 # [x] Card overflow: embed indicator in bottom border (dimmed pattern + count) @km/tui #feature #P2 @claude:a5c7f7de

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:5f0aee02
 created_at: 2026-02-18T08:40:07Z
 closed_at: 2026-02-18T09:51:43Z
+owner: bjorn@stabell.org
+assignee: claude:5f0aee02
 ---
 
 # [x] Completed task metadata should not show colored due/start dates @km/tui #bug #P2 @claude:5f0aee02

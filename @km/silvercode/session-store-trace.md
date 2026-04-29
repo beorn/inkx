@@ -10,6 +10,14 @@ aliases:
   - km-silvercode-session-store-trace
 created_by: claude:2405c72e
 created_at: 2026-04-28T19:50:10Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.session-store-trace
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T12:50:10Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] Status transition trace — silvercode:status logger + dev-mode invariant check @km/silvercode #task #P0 ^session-store-trace

@@ -10,6 +10,8 @@ close_reason: "Consolidated: history-plugin.ts was dead code (never imported in
   production). Deleted 254 lines + 236 lines of tests. Active
   UndoStack+UndoableRepo system remains as the single undo mechanism. Commit
   7ecfa98a."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Consolidate undo — merge UndoStack + history-plugin into single mechanism @km/tui #task #P2 @Bjørn Stabell

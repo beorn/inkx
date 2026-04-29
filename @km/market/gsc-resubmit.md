@@ -8,6 +8,7 @@ created_at: 2026-04-02T02:03:35Z
 closed_at: 2026-04-02T02:14:42Z
 close_reason: Not needed — sitemaps already submitted 2026-04-01. Google will
   re-crawl automatically and pick up the SEO changes.
+owner: bjorn@stabell.org
 ---
 
 # [x] Resubmit updated sitemaps to Google Search Console @km/market #task #P0

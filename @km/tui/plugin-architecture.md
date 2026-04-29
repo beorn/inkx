@@ -5,6 +5,7 @@ aliases:
   - km-tui-plugin-architecture
 created_by: Bjørn Stabell
 created_at: 2026-04-01T19:30:06Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Plugin architecture: composition, validation, commands — align with era2 vision @km/tui #epic #P2

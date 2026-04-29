@@ -10,6 +10,8 @@ close_reason: "Split 1515-line static-scrollback.tsx into 4 modules: types.ts
   (interfaces), script.ts (data+constants), state.ts (TEA state machine),
   components.tsx (UI). Main file is 208 lines. Also simplified FooterControl
   from {setText,getText,getPlaceholder} to {submit()}."
+owner: bjorn@stabell.org
+assignee: claude:73d7a332
 ---
 
 # [x] Refactor ai-chat demo: lift footer state into TEA, make showcase-ready @km/silvery #task #P2 @claude:73d7a332

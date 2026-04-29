@@ -12,6 +12,16 @@ close_reason: "Implemented + deployed: reapStaleLock() + LOCK_REAP_AGE_MS (1s
   Tests: 5 new in describe('reapStaleLock'), 103/103 health-monitor tests pass.
   Shipped: bearly main a4cb8e0, km main 4be7cb2eb, silvery main 3fa23479 (FF for
   pre-push hook). Daemon hot-reloaded — live now."
+started_at: 2026-04-28T22:42:36Z
+owner: bjorn@stabell.org
+assignee: claude:51f52497
+dependencies:
+  - issue_id: km-infra.git-lock-stale-reap
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-28T15:40:26Z
+    created_by: claude:51f52497
+    metadata: "{}"
 ---
 
 # [x] Auto-reap stale .git/index.lock — silent, no warnings @km/infra #task #P2 @claude:51f52497

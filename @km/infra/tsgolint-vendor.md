@@ -5,6 +5,7 @@ aliases:
   - km-infra-tsgolint-vendor
 created_at: 2026-02-04T11:27:38Z
 closed_at: 2026-02-06T11:00:48Z
+assignee: claude:9e69175d
 ---
 
 # [x] tsgolint: no-unsafe false positives from vendor .ts exports @km/infra #bug #P3 @claude:9e69175d

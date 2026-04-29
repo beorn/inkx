@@ -110,6 +110,14 @@ close_reason: >-
   km-review.silvery-gap-analysis
 
   - km-silvery.popover still blocks hover-popover content
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.omnibox-use-silvery
+    depends_on_id: km-session.0415a
+    type: parent-child
+    created_at: 2026-04-15T08:25:29Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Replace UnifiedOmnibox internals with silvery PickerDialog + TextInput @km/tui #task #P2

@@ -82,6 +82,15 @@ close_reason: >-
     at 240 width, unrelated — uses driver.app.resize() not term-provider path)
   - km-tui nav-garble-wide.test.ts: 2 pre-existing failures at 200x50/160x40
     (createTestApp fixed dimensions, no term-provider involved)
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-tui.tab-switch-layout-shift
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T21:20:58Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Layout shifts 2-3 times after switching back to km view tab @km/tui #bug #P2 @claude:8b5b9e1c

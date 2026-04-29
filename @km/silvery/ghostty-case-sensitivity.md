@@ -35,6 +35,14 @@ close_reason: >-
 
   The underlying class-of-bug (consumers re-deriving from env instead of
   consuming caps) remains — see km-05lmx for the lint-rule hardening follow-up.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.ghostty-case-sensitivity
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T02:25:36Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] detectTerminalCapsFromEnv: TERM_PROGRAM=Ghostty never matches modern terminal (lowercase compare) @km/silvery #bug #P2

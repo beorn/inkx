@@ -7,6 +7,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-05T07:40:39Z
 closed_at: 2026-04-05T07:52:24Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Eliminate Zustand API bridge — useSignal for React components @km/silvery #task #P2

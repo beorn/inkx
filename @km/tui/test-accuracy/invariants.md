@@ -6,6 +6,8 @@ aliases:
 created_by: claude:b329c279
 created_at: 2026-02-16T10:21:25Z
 closed_at: 2026-02-18T08:22:54Z
+owner: bjorn@stabell.org
+assignee: test-infra
 ---
 
 # [x] Visual invariant assertion system @km/tui #task #P1 @test-infra

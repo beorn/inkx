@@ -5,6 +5,14 @@ aliases:
   - km-tribe-recall-eval-gbrain-dream
 created_by: claude:4de4a3ab
 created_at: 2026-04-28T01:38:01Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.recall-eval-gbrain-dream
+    depends_on_id: km-tribe.recall-dream
+    type: parent-child
+    created_at: 2026-04-27T18:38:01Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] Evaluate gbrain 'dream cycle' patterns for mem-dream Tier 4 design @km/tribe #task #P2

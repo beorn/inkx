@@ -10,6 +10,16 @@ close_reason: Implemented in 7d6cc03f2. fs.watch on file-backed previews
   (readme, first-paragraph) with 200ms debounce; TTL fallback for shell-out
   (bd-active). useScopeEffect cleanup in AutolinksContext. 11 autolinks tests
   pass including 5 new watcher tests.
+started_at: 2026-04-25T15:14:41Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.autolinks-cache-invalidation
+    depends_on_id: km-silvercode.autolinks-config
+    type: parent-child
+    created_at: 2026-04-25T03:11:16Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Autolinks cache invalidation via file watcher @km/silvercode #task #P3 @claude:2405c72e

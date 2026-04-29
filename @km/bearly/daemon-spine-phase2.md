@@ -5,6 +5,14 @@ aliases:
   - km-bearly-daemon-spine-phase2
 created_by: claude:2405c72e
 created_at: 2026-04-26T22:14:20Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.daemon-spine-phase2
+    depends_on_id: km-bearly.daemon-spine
+    type: parent-child
+    created_at: 2026-04-26T15:14:30Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] Phase 2: reduce tools/lib/tribe/socket.ts to thin re-exports (~320 LOC delete) @km/bearly #task #P3

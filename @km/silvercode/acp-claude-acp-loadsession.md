@@ -7,6 +7,22 @@ created_by: claude:cd034ca4
 created_at: 2026-04-26T16:18:21Z
 closed_at: 2026-04-26T22:03:07Z
 close_reason: Closed
+started_at: 2026-04-26T21:47:28Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-claude-acp-loadsession
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T09:18:37Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-claude-acp-loadsession
+    depends_on_id: km-silvercode.acp-session-load
+    type: blocks
+    created_at: 2026-04-26T09:18:37Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] @km/claude-acp loadSession — replay session JSONL as ACP SessionUpdate notifications @km/silvercode #feature #P3 @claude:cd034ca4

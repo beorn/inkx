@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T00:23:29Z
 closed_at: 2026-02-18T01:14:22Z
+owner: bjorn@stabell.org
+assignee: claude:fcaad2fa
 ---
 
 # [x] Chord second key leaks into dialog text input @km/tui #bug #P2 @claude:fcaad2fa

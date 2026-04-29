@@ -6,6 +6,7 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-15T09:26:22Z
 closed_at: 2026-02-15T22:11:39Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Embedded nodes: distinguish outline items vs body blocks for rendering @km/tui #task #P2

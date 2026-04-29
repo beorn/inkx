@@ -4,6 +4,7 @@ aliases:
   - km-flexx-stacks
 created_at: 2026-01-31T22:29:53Z
 closed_at: 2026-01-31T22:35:39Z
+assignee: claude:b8b4780b
 ---
 
 # [x] Consolidate duplicate _traversalStack arrays @km/_orphan #task #P3 @claude:b8b4780b

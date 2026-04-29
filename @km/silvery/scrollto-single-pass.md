@@ -15,6 +15,14 @@ close_reason: Folded into C3b bounded-convergence
   hub/silvery/design/convergence-bounds.md (Per-cause bound proofs §
   scrollto-settle). The recovery loop is now part of the documented bound model
   rather than ad-hoc symptom suppression.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.scrollto-single-pass
+    depends_on_id: km-silvery.structural-hardening
+    type: parent-child
+    created_at: 2026-04-26T23:18:25Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Deterministic single-pass scrollTo — drop same-intent recovery loop @km/silvery #bug #P3

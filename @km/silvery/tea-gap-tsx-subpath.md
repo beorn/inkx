@@ -12,6 +12,15 @@ close_reason: "Landed as 7161d643 on silvery main. Added explicit './create-app'
   create-app-context to tsdown entries. New tests/exports.test.ts imports every
   declared subpath (11 tests) and catches regressions where a new .tsx module
   lacks an explicit export entry. All 128 create tests pass."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-silvery.tea-gap-tsx-subpath
+    depends_on_id: km-silvery.tea
+    type: parent-child
+    created_at: 2026-04-18T12:01:49Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] TEA gap: @silvery/create/* subpath doesn't resolve .tsx files (create-app.tsx) @km/silvery #task #P3 @Bjørn Stabell

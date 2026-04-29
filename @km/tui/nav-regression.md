@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-15T07:55:42Z
 closed_at: 2026-02-15T08:05:15Z
+owner: bjorn@stabell.org
+assignee: claude:a5c7f7de
 ---
 
 # [x] Visual navigation regression on files with body content @km/tui #bug #P2 @claude:a5c7f7de

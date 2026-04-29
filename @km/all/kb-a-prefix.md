@@ -6,6 +6,7 @@ aliases:
 created_by: claude:536645b5
 created_at: 2026-02-20T15:47:57Z
 closed_at: 2026-02-20T18:18:38Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Keybinding v2: a-prefix add chords (a#, a@, a+, a[, etc.) @km/all #task #P2

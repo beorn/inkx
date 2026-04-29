@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T13:14:48Z
 closed_at: 2026-02-20T08:14:03Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Unified task/block/item rendering and styling pipeline @km/tui #task #P2 @claude:8f007ba9

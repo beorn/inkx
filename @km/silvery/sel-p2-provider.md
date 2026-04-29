@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-03T21:38:27Z
 closed_at: 2026-04-04T16:13:00Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Selection Phase 2: Store + signals (createSelection) @km/silvery #task #P1 @Bjørn Stabell

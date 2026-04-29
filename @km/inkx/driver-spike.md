@@ -5,6 +5,7 @@ aliases:
   - km-inkx-driver-spike
 created_at: 2026-02-04T15:25:02Z
 closed_at: 2026-02-04T15:29:57Z
+assignee: claude:10db6ea8
 ---
 
 # [x] inkx: withCommands + withKeybindings spike @km/inkx #task #P1 @claude:10db6ea8

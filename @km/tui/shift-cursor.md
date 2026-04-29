@@ -6,6 +6,7 @@ aliases:
 created_by: claude:d9855593
 created_at: 2026-02-15T17:15:29Z
 closed_at: 2026-02-15T18:26:49Z
+owner: bjorn@stabell.org
 ---
 
 # [x] TUI: column shift (Meta+l/Meta+h) moves cursor — should stay, shifting seems 'shifty' @km/tui #bug #P2

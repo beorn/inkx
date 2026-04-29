@@ -9,6 +9,7 @@ closed_at: 2026-04-06T08:52:24Z
 close_reason: CopyModeFeature (181 lines), withFocus extended with Esc+v chord +
   key dispatch at priority 200, COPY_MODE_CAPABILITY. Tests written. Silvery
   commit f5bac11.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 3c: Extend withFocus for keyboard copy-mode (Esc+v) @km/silvery #task #P1

@@ -8,6 +8,8 @@ closed_at: 2026-03-17T08:27:11Z
 close_reason: "Fixed: findInheritedFg/Bg read theme.fg/bg directly from Theme
   object on ancestor Box. Stateless — no context stack dependency. STRICT
   passes, TTY verified."
+owner: bjorn@stabell.org
+assignee: claude:efb76293
 ---
 
 # [x] Pipeline: auto-inherit $fg/$bg in Box theme={} subtrees @km/_orphan #task #P1 @claude:efb76293

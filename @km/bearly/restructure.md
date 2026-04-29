@@ -8,6 +8,8 @@ created_at: 2026-03-25T17:58:58Z
 closed_at: 2026-03-25T20:17:02Z
 close_reason: Renamed beorn/tools → beorn/bearly on GitHub, absorbed bearlymade
   packages, updated all km references, archived bearlymade
+owner: bjorn@stabell.org
+assignee: claude:19080504
 ---
 
 # [x] Restructure tools+bearlymade into beorn/bearly monorepo @km/bearly #task #P2 @claude:19080504

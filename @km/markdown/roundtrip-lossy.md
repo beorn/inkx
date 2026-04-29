@@ -10,6 +10,8 @@ close_reason: "Fixed in Pro Review Round 1: embed dedup removal, H1 metadata
   round-trip, code fence backtick handling, malformed frontmatter preservation,
   footnote cleanup, ref extraction cleanText, table alignment/escaping, list
   item multi-paragraph + ordered numbering. All with TDD (19+ new tests)."
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] Round-trip fidelity: 6 P0 silent data loss bugs found by GPT 5.4 Pro @km/markdown #epic #P1 @claude:c9beade3

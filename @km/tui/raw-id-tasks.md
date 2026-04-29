@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T11:24:02Z
 closed_at: 2026-02-25T13:22:03Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] All embedded links (wikilinks, blockrefs) must resolve to target titles @km/tui #bug #P1 @claude:d697f216

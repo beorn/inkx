@@ -10,6 +10,7 @@ close_reason: "Fixed: Updated createDefaultStyle() comments in types.ts to
   distinguish CSS vs Yoga defaults. Each property now indicates whether CSS and
   Yoga agree or differ (e.g., flexDirection: CSS=ROW, Yoga=COLUMN; flexShrink:
   CSS=1, Yoga=0; alignContent: CSS=STRETCH, Yoga=FLEX_START)."
+owner: bjorn@stabell.org
 ---
 
 # [x] Docs: createDefaultStyle() comments inaccurate — don't distinguish CSS vs Yoga defaults @km/flexily #task #P2

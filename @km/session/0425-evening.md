@@ -89,6 +89,16 @@ close_reason: >-
 
   Open follow-ups: km-silvercode.modal-dismiss-ghost (real-terminal repro
   needed).
+started_at: 2026-04-26T04:37:53Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-session.0425-evening
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-25T21:37:52Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Session plan: queue UX fixes + autolinks extraction + km-tui smartlinks adoption + overlay-anchor impl @km/session #epic #P1 @claude:2405c72e

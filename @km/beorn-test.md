@@ -5,6 +5,7 @@ aliases:
   - "@km/_orphan/beorn-test"
 created_at: 2026-02-02T14:11:44Z
 closed_at: 2026-02-04T11:27:27Z
+assignee: claude:4731ed4e
 ---
 
 # [x] Extract @beorn/test - unified test framework with fuzz and AI modes @km/beorn-test #epic #P2 @claude:4731ed4e

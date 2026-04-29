@@ -14,6 +14,16 @@ close_reason: "Fixed via two changes in silvery (commit 80570650): (1) AIChat
   console.warn(prefix, message, ...args) signature using mock.calls.some().
   pipeline-bugfixes.test.tsx and text-frame.test.ts already passed on main. km
   bumped via commit ab0da0352 on branch fix/silvery-feature-test-cluster."
+started_at: 2026-04-26T23:24:05Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvery.feature-test-cluster
+    depends_on_id: km-all.fix-sweep-vendor-fuzz
+    type: parent-child
+    created_at: 2026-04-26T16:22:35Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] [bug] vendor/silvery feature tests — 5 failures (4 files) @km/silvery #bug #P2 @claude:cc081a9a

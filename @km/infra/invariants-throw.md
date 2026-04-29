@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-02T22:01:40Z
 closed_at: 2026-04-02T22:08:56Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Invariant violations must throw, not log — update code + principles.md @km/infra #task #P1 @Bjørn Stabell

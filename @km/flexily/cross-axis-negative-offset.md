@@ -13,6 +13,7 @@ close_reason: "Fixed: Changed crossOffset guard from '> 0' to '\\!== 0' so
   layout-zero.ts and classic/layout.ts. Test:
   vendor/flexily/tests/absolute-positioning.test.ts (4 tests in 'cross-axis
   negative offset' describe block)."
+owner: bjorn@stabell.org
 ---
 
 # [x] Bug: Cross-axis alignment drops negative offsets — oversized children misplaced @km/flexily #bug #P0

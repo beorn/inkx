@@ -5,6 +5,7 @@ aliases:
   - km-infra-oxlint-wouldblock
 created_by: claude:5d8a81be
 created_at: 2026-03-13T00:48:42Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Remove oxlint WouldBlock workaround after upstream fix released @km/infra #task #P3

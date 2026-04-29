@@ -5,6 +5,20 @@ aliases:
   - km-silvery-input-owner
 created_by: claude:019d032d
 created_at: 2026-04-22T20:34:27Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.input-owner
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-22T13:34:29Z
+    created_by: claude:019d032d
+    metadata: "{}"
+  - issue_id: km-silvery.input-owner
+    depends_on_id: km-silvery.term-sub-owners
+    type: blocks
+    created_at: 2026-04-22T13:47:53Z
+    created_by: claude:019d032d
+    metadata: "{}"
 ---
 
 # [ ] Centralize stdin ownership (InputOwner) — eliminate the wasRaw race class @km/silvery #task #P1

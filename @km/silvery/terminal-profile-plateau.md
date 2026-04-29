@@ -80,6 +80,15 @@ close_reason: >-
   renderer.ts does not participate in caps/color detection and was intentionally
   not modified. If ever refactored to use the pipeline's caps, threading
   `profile` through RenderOptions is the natural shape.
+owner: bjorn@stabell.org
+assignee: claude:c6244087
+dependencies:
+  - issue_id: km-silvery.terminal-profile-plateau
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-22T23:53:39Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Terminal setup/detection is fragmented — off the quality plateau @km/silvery #feature #P1 @claude:c6244087

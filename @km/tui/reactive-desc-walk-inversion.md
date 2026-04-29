@@ -14,6 +14,15 @@ close_reason: "Fixed in commits 089b4629f (core inversion) + 03644e9e8
   reads via getActiveSub/setActiveSub, epoch counters instead of version
   self-reads, deferred bootstrap to avoid re-entrant construction. Superseded
   km-tui.board-mount-n-traversal."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-tui.reactive-desc-walk-inversion
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-18T11:47:07Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Invert descendants(some/count) walk — O(500K) per cursor move → O(depth) @km/tui #bug #P0 @Bjørn Stabell

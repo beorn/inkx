@@ -6,6 +6,7 @@ aliases:
 created_by: claude:5f0aee02
 created_at: 2026-02-18T09:58:41Z
 closed_at: 2026-02-19T10:54:33Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Show useful message when bell rings (unmapped keybinding) @km/tui #feature #P3

@@ -7,6 +7,7 @@ created_by: claude:19080504
 created_at: 2026-03-23T06:44:43Z
 closed_at: 2026-03-26T17:06:21Z
 close_reason: Superseded by km-tribe scope epic. Phase 1 shipped (v0.3.1).
+owner: bjorn@stabell.org
 ---
 
 # [x] Tribe: cross-session coordination for Claude Code @km/tribe #epic #P2

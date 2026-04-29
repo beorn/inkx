@@ -9,6 +9,7 @@ closed_at: 2026-03-13T05:22:00Z
 close_reason: "Deferred: sortPoolByPosition uses Array.sort (Timsort). For
   typical diffs (10-50 changes), Timsort is already near-optimal. Hybrid sort
   (radix+insertion) only benefits 1000+ element arrays. No measured bottleneck."
+owner: bjorn@stabell.org
 ---
 
 # [x] Perf: Use hybrid sort in sortPoolByPosition for large diffs @km/silvery #task #P3

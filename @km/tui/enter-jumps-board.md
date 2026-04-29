@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-01T05:48:00Z
 closed_at: 2026-04-02T19:48:53Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Enter after edit jumps to board level instead of creating sibling @km/tui #bug #P1 @Bjørn Stabell

@@ -9,6 +9,8 @@ closed_at: 2026-03-19T17:31:13Z
 close_reason: "Fixed: separate pty vitest project with setup-pty.ts (no isTTY
   breaking). Tests renamed to .pty.test.ts. Added test:pty script, updated
   test:all and CI. Test: 8 PTY tests pass."
+owner: bjorn@stabell.org
+assignee: claude:21c57d63
 ---
 
 # [x] vitest worker threads break Bun PTY input @km/termless #bug #P2 @claude:21c57d63

@@ -5,6 +5,7 @@ aliases:
   - "@km/_orphan/tree"
 created_by: claude:8b5b9e1c
 created_at: 2026-04-22T06:04:47Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Tree layer (KNode outliner, refs, operations) @km/tree #epic #P3

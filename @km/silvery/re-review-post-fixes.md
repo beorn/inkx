@@ -10,6 +10,8 @@ close_reason: "GPT 5.4 Pro re-review complete. 3 P1s, 7 P2s found. Beads created
   for P1s: clearContainer dirty (km-silvery.clear-container-dirty), adapter
   absolute order (km-silvery.adapter-absolute-order), adapter text styles
   (km-silvery.adapter-text-styles)."
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] Silvery re-review after P0/P1 fixes — verify fixes, find remaining issues @km/silvery #task #P2 @claude:c9beade3

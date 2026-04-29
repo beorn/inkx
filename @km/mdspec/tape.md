@@ -8,6 +8,8 @@ created_at: 2026-04-02T06:54:24Z
 closed_at: 2026-04-02T07:16:58Z
 close_reason: "Implemented: tape plugin with visual regression, plugin-aware
   language filter, SVG screenshot comparison. 21 tests."
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] mdspec tape plugin: executable terminal demos with visual regression @km/mdspec #feature #P2 @claude:4929065a

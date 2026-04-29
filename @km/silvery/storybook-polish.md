@@ -5,6 +5,16 @@ aliases:
   - km-silvery-storybook-polish
 created_by: Bjørn Stabell
 created_at: 2026-04-19T06:14:42Z
+started_at: 2026-04-25T16:51:40Z
+owner: bjorn@stabell.org
+assignee: claude:22c2717d
+dependencies:
+  - issue_id: km-silvery.storybook-polish
+    depends_on_id: km-silvery.sterling-storybook
+    type: parent-child
+    created_at: 2026-04-25T09:41:21Z
+    created_by: claude:22c2717d
+    metadata: "{}"
 ---
 
 # [/] Storybook polish: fullscreen palette gallery + tier preview + OKLCH triplet @km/silvery #task #P3 @claude:22c2717d

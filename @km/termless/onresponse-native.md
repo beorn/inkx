@@ -10,6 +10,8 @@ close_reason: "Wired onResponse for 6 native backends: alacritty, wezterm,
   ghostty-native (TS drain loops + native TODOs), kitty (Python bridge),
   libvterm (WASM bindings), vt100-rust (pre-wired). 153 lines, all 775 tests
   pass."
+owner: bjorn@stabell.org
+assignee: claude:19080504
 ---
 
 # [x] Wire onResponse for native backends — alacritty, wezterm, ghostty-native, kitty, libvterm @km/termless #task #P2 @claude:19080504

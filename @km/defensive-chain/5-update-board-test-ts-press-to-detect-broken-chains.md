@@ -6,6 +6,7 @@ aliases:
   - "@km/defensive-chain/5"
 created_at: 2026-01-25T11:18:05Z
 closed_at: 2026-01-25T11:42:29Z
+assignee: claude
 ---
 
 # [x] Update board-test.ts press() to detect broken chains @km/defensive-chain #task #P1 @claude

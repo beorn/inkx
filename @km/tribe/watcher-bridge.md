@@ -5,6 +5,14 @@ aliases:
   - km-tribe-watcher-bridge
 created_by: Bjørn Stabell
 created_at: 2026-04-14T21:02:29Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.watcher-bridge
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-18T11:00:14Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] km-tribe bridge: forward km watcher events to tribe broadcast @km/tribe #task #P4

@@ -9,6 +9,7 @@ closed_at: 2026-04-01T07:52:16Z
 close_reason: "Fixed. Tests were designed for inline mode but emulator path now
   defaults to fullscreen (alternateScreen: true). Added { alternateScreen: false
   } to all 8 run() calls. All pass."
+owner: bjorn@stabell.org
 ---
 
 # [x] 4 scrollback promotion tests failing — border preservation + blank screen @km/silvery #bug #P2

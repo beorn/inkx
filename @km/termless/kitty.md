@@ -10,6 +10,8 @@ close_reason: "Package scaffolded: backend.ts, build script (clones kitty GPL
   source), resolve() for registry. 9 backends in manifest. Build script
   documents integration approach — kitty parser extraction is complex due to
   tight coupling."
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] Backend: kitty VT parser (GPL build-script approach) @km/termless #feature #P2 @claude:4929065a

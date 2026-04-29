@@ -12,6 +12,22 @@ close_reason: "Stripped /pro, /deep, /ask SKILL.md files to lean decision
   km-bearly.llm-cli-json-output is intentionally future work that the skill
   cleanup was meant to predate. Commit: 1bf3f718a → cherry-picked to main
   4b583c870."
+started_at: 2026-04-27T07:13:48Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-all.pro-skill-strip
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-26T23:59:27Z
+    created_by: claude:2405c72e
+    metadata: "{}"
+  - issue_id: km-all.pro-skill-strip
+    depends_on_id: km-bearly.llm-cli-json-output
+    type: blocks
+    created_at: 2026-04-26T23:59:27Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Strip /pro skill to decision table; move workflow to CLI subcommand @km/all #task #P2 @claude:2405c72e

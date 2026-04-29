@@ -5,6 +5,20 @@ aliases:
   - km-tui-omnibox-pop-out
 created_by: Bjørn Stabell
 created_at: 2026-04-14T23:26:07Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.omnibox-pop-out
+    depends_on_id: km-tui.omnibox-interactions
+    type: blocks
+    created_at: 2026-04-14T16:26:21Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.omnibox-pop-out
+    depends_on_id: km-tui.omnibox-unified
+    type: parent-child
+    created_at: 2026-04-14T16:26:07Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] omnibox.pop_out — dialog → pane transition (Phase 11, post-v1) @km/tui #feature #P1

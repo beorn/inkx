@@ -10,6 +10,15 @@ close_reason: "Shipped a6a72d44c: scroll-to-cursor via CursorScrollRegistrar +
   useScrollRect + useLayoutEffect. Mirrors CardColumn's
   ScrollTrackingVirtualList pattern. 2515/2515 km-tui tests pass. Heading indent
   (paddingLeft=2) from 966618404 + visual polish from 414d65169 also landed."
+owner: bjorn@stabell.org
+assignee: claude:019d032d
+dependencies:
+  - issue_id: km-tui.detail-pane-polish-2
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-22T21:26:25Z
+    created_by: claude:019d032d
+    metadata: "{}"
 ---
 
 # [x] DetailView: indent heading children, HR width, done-item readability, nav diagnosis for Done section @km/tui #bug #P2 @claude:019d032d

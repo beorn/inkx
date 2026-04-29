@@ -5,6 +5,8 @@ aliases:
 created_by: claude:b509d761
 created_at: 2026-02-10T12:11:05Z
 closed_at: 2026-02-18T08:07:06Z
+owner: bjorn@stabell.org
+assignee: claude:5f0aee02
 ---
 
 # [x] Mutation testing for cache invalidation code paths @km/_orphan #task #P3 @claude:5f0aee02

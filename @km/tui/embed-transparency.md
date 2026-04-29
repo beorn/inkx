@@ -10,6 +10,8 @@ close_reason: "Detail pane now resolves embed_source to target node. Shows
   target's metadata (status, due, etc.) and children. Three resolution sites:
   DetailView render, openDetailPane cursor init, cursor sync. Tests: 2 new embed
   transparency tests pass."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Embed cards should transparently show target's title, icon, body, and children @km/tui #feature #P2 @claude:f8196c1c

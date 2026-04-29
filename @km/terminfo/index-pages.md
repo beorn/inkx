@@ -10,6 +10,8 @@ close_reason: "Two SEO index pages live: /standards (chronological walkthrough
   of 10 standards with historical tidbits) and /features (13 category cards with
   feature counts and probe methodology). 197 total analysis entries. Sidebar
   integrated."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] SEO index pages: /standards and /features — rich introductions with history and context @km/terminfo #feature #P3 @claude:f8196c1c

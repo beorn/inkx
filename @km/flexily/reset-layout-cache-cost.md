@@ -16,6 +16,7 @@ close_reason: "Investigated. resetLayoutCache() invalidates per-pass layout
   node-zero.ts (hot path) and adding a module-level mutable counter, which risks
   introducing caching bugs in an area where 3 bugs have already been found. Low
   benefit, meaningful risk. Deferring."
+owner: bjorn@stabell.org
 ---
 
 # [x] Perf: resetLayoutCache() is full-tree walk every pass — may be redundant @km/flexily #task #P2

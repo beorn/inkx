@@ -13,6 +13,15 @@ close_reason: "All 4 phases shipped. ~429 LOC net deletion in bearly. Sessions:
   expiry, stale aliases, pidfile confusion, heartbeat dead-row blocking rename,
   events table spurious cleanup. Phase 5 (km-bear merge) tracked separately
   under km-bear epic."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-tribe.plateau
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-18T11:20:42Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Tribe quality plateau — delete the redundant state machines @km/tribe #task #P2 @Bjørn Stabell

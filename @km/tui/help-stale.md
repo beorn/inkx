@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-20T16:12:33Z
 closed_at: 2026-02-20T16:16:11Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Help pane not updated with new keybindings @km/tui #bug #P2 @claude:d3a7049b

@@ -10,6 +10,7 @@ close_reason: Wrong framing — per user directive 'vendor/* is part of project
   for all purposes', exclusion is the wrong fix. Replaced with
   km-all.align-vendor-deps which proposes ALIGNING the conflicting versions
   across vendor/* and km root instead.
+owner: bjorn@stabell.org
 ---
 
 # [x] sherif: exclude vendor/* from workspace consistency checks @km/all #task #P3

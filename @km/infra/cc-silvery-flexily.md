@@ -5,6 +5,7 @@ aliases:
   - km-infra-cc-silvery-flexily
 created_by: claude:a7ba47d7
 created_at: 2026-02-22T21:20:19Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Reimplement Claude Code TUI on silvery+flexily @km/infra #feature #P4

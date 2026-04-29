@@ -6,6 +6,7 @@ aliases:
   - "@km/defensive-chain/8"
 created_at: 2026-01-25T12:12:13Z
 closed_at: 2026-01-25T12:49:29Z
+assignee: beorn-49853
 ---
 
 # [x] Phase 3: Cross-layer event system @km/defensive-chain #task #P2 @beorn-49853

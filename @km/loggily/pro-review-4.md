@@ -7,6 +7,7 @@ created_by: claude:65d845d9
 created_at: 2026-03-14T01:44:15Z
 closed_at: 2026-03-14T02:12:17Z
 close_reason: Wrong package — bead was for silvery/flexily/termless
+owner: bjorn@stabell.org
 ---
 
 # [x] Pro Review 4: loggily docs & positioning @km/loggily #task #P2

@@ -9,6 +9,8 @@ closed_at: 2026-03-11T07:41:31Z
 close_reason: "Updated the-silvery-way.md: principle #9 heading 'Adopt TEA
   Gradually', intro clarified '(best practices)' / '(common pitfalls)'
   parentheticals, summary updated."
+owner: bjorn@stabell.org
+assignee: claude:e4e70c9a
 ---
 
 # [x] Ensure plain-English equivalents for all metaphorical naming @km/silvery #task #P3 @claude:e4e70c9a

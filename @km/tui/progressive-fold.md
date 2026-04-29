@@ -6,6 +6,8 @@ aliases:
 created_by: claude:ee8efc0f
 created_at: 2026-02-22T00:42:29Z
 closed_at: 2026-02-22T00:59:34Z
+owner: bjorn@stabell.org
+assignee: claude:ee8efc0f
 ---
 
 # [x] H/L progressive fold/unfold — reveal more depth levels @km/tui #feature #P2 @claude:ee8efc0f

@@ -5,6 +5,7 @@ aliases:
   - km-tui-body-extraction-position
 created_by: claude:f8196c1c
 created_at: 2026-03-28T06:24:59Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Analyze extractBody position-based split — is it the right design? @km/tui #task #P2

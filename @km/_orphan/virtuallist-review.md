@@ -4,6 +4,7 @@ aliases:
   - km-virtuallist-review
 created_at: 2026-02-02T20:42:17Z
 closed_at: 2026-02-02T22:18:39Z
+assignee: claude:1588825b
 ---
 
 # [x] VirtualList/ColumnsView scroll and state management issues @km/_orphan #task #P1 @claude:1588825b

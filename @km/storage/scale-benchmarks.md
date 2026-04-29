@@ -11,6 +11,14 @@ close_reason: "Shipped. Harness + results committed at 4d516dda4. Results:
   perf stays good throughout. See
   hub/km/research/scale-bench-results-2026-04-21.md. The data underwrites the
   federation + lazy-hydration design in storage-architecture.md."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-storage.scale-benchmarks
+    depends_on_id: km-all.plateau
+    type: parent-child
+    created_at: 2026-04-21T01:37:20Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Scale benchmark harness — synthetic 2x/5x/10x corpus + workload runners @km/storage #feature #P1

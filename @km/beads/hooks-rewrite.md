@@ -16,6 +16,14 @@ close_reason: "Shipped in fa1858976. New .claude/hooks/bd-prime.sh wrapper
   .beads/) followed by recent mem/ entries, so the wrapper's fallback emits
   equivalent priming text. Smoke-tested: bd-prime.sh emits 110 lines of workflow
   context + memories."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-beads.hooks-rewrite
+    depends_on_id: km-beads.cutover
+    type: parent-child
+    created_at: 2026-04-27T23:12:42Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] Update Claude Code hooks to use km bd instead of bd binary @km/beads #task #P2

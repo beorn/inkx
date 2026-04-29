@@ -24,6 +24,8 @@ close_reason: >-
   km-silvery.scroll-incr-fuzz.
 
   Steering docs updated across 6 files.
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] Rendering regression diagnostics v2: unified system, property invariants, mutation testing @km/silvery #feature #P1 @claude:c9beade3

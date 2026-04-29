@@ -8,6 +8,8 @@ created_at: 2026-04-03T03:27:27Z
 closed_at: 2026-04-03T03:54:12Z
 close_reason: Fixed in 44c25829 + a08e115e. Uses result.survivorId, atomic
   wrapper prevents recurrence.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] Backspace at start of subitem deletes node but cursor jumps to card title instead of adjacent sibling @km/tui #bug #P1 @Bjørn Stabell

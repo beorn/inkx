@@ -9,6 +9,8 @@ closed_at: 2026-04-03T07:44:21Z
 close_reason: Implemented corner cascade positioning (computeOverlapPosition).
   TL->TR->BL->BR with viewport clamping. CardColumn passes cardRect via
   PopoverRectRegistrar. 12 tests.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Popover positioning: corner-aligned overlap with cascade fallback @km/silvery #feature #P2 @Bjørn Stabell

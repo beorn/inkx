@@ -5,6 +5,20 @@ aliases:
   - km-tui-cursor-gate-refactor
 created_by: Bjørn Stabell
 created_at: 2026-04-15T01:39:36Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.cursor-gate-refactor
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T18:39:36Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.cursor-gate-refactor
+    depends_on_id: km-tui.cursor-under-root-crash
+    type: blocks
+    created_at: 2026-04-14T18:39:45Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Find ghost writer of stale cursor + add write-time validation gate @km/tui #task #P3

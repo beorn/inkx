@@ -5,6 +5,8 @@ aliases:
 created_by: claude:e7c823b8
 created_at: 2026-02-26T12:40:39Z
 closed_at: 2026-02-26T12:48:26Z
+owner: bjorn@stabell.org
+assignee: claude:e7c823b8
 ---
 
 # [x] Wire up project/reparent picker (already implemented) @km/_orphan #task #P2 @claude:e7c823b8

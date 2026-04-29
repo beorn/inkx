@@ -16,6 +16,15 @@ close_reason: "Shipped in silvery 4b8dfa67 + km 91615556d. detectColor and
   exports. Tests migrated to createTerminalProfile equivalent. Term construction
   preserves the explicit-caps-wins-over-env contract via env: {} neutralization
   when caps provided."
+owner: bjorn@stabell.org
+assignee: claude:c6244087
+dependencies:
+  - issue_id: km-silvery.plateau-delete-legacy-shims
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T02:49:47Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Delete detectColor and detectTerminalCaps shims — use TerminalProfile everywhere @km/silvery #task #P3 @claude:c6244087

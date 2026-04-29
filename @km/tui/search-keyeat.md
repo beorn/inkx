@@ -5,6 +5,7 @@ aliases:
   - km-tui-search-keyeat
 created_at: 2026-02-04T14:29:50Z
 closed_at: 2026-02-04T14:48:39Z
+assignee: claude:44a381e0
 ---
 
 # [x] Search dialog eats keypresses while opening @km/tui #bug #P2 @claude:44a381e0

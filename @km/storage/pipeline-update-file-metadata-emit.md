@@ -11,6 +11,15 @@ close_reason: "Shipped commit e127ad7e3. updateFileMetadata queues into
   IMMEDIATE...COMMIT block (mirrors applyLinks carve-out — appendFileSync can't
   roll back with SQL). Bootstrap fallback (no emitter) preserved. 3 tests pass:
   single-file emitter, multi-file batch, bootstrap fallback."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.pipeline-update-file-metadata-emit
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-22T08:35:54Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Route pipeline updateFileMetadata through emitter (finish embed_of/block_id standardization) @km/storage #task #P3 @claude:8b5b9e1c

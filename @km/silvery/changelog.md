@@ -8,6 +8,7 @@ created_at: 2026-03-09T21:49:57Z
 closed_at: 2026-03-09T23:49:02Z
 close_reason: CHANGELOG.md exists and covers Unreleased, 0.2.0, 0.1.0, 0.0.x
   eras. Verified accurate against codebase.
+owner: bjorn@stabell.org
 ---
 
 # [x] CHANGELOG.md for silvery 1.0 @km/silvery #task #P3

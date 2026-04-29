@@ -55,6 +55,8 @@ close_reason: >-
   schema comments) — markdown paragraph coalescing permits multiple embed rows
   per host; embed-one invariant enforced at write time via
   buildEmbedChild/handlers for dedicated embed nodes (embed_of set).
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Links v1: ship KLink, 3-column cache, embed/link only @km/storage #task #P2 @Bjørn Stabell

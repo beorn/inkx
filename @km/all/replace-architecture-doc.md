@@ -8,6 +8,7 @@ created_at: 2026-04-02T01:35:21Z
 closed_at: 2026-04-02T03:49:22Z
 close_reason: architecture.md replaced with v2 content in commit 53c127e6.
   Cross-references updated in docs/README.md.
+owner: bjorn@stabell.org
 ---
 
 # [x] Replace architecture.md with architecture-v2.md — update all 15+ cross-references @km/all #task #P2

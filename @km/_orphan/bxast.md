@@ -9,6 +9,7 @@ close_reason: "False positive: silvery's Text backgroundColor semantics
   intentionally color text content only, not full layout width. The trailing
   clear correctly uses inheritedBg. Confirmed by existing test: 'Text-only
   backgroundColor colors text content but does not fill Box width'."
+owner: bjorn@stabell.org
 ---
 
 # [x] renderText trailing clear ignores text node explicit bg @km/_orphan #bug #P2

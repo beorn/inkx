@@ -8,6 +8,7 @@ created_at: 2026-03-31T21:31:45Z
 closed_at: 2026-03-31T21:44:19Z
 close_reason: "Fixed: task_claimed/released/completed events now trigger file
   regeneration in both SyncManager and FsWriter."
+owner: bjorn@stabell.org
 ---
 
 # [x] P1: task_claimed/released/completed never reach filesystem @km/storage #bug #P1

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T13:26:48Z
 closed_at: 2026-02-19T13:43:50Z
+owner: bjorn@stabell.org
+assignee: claude:36393b5d
 ---
 
 # [x] Card one-liner: COUNT first, dates right-aligned at end @km/tui #feature #P3 @claude:36393b5d

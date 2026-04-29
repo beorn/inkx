@@ -8,6 +8,7 @@ created_at: 2026-04-06T09:09:58Z
 closed_at: 2026-04-06T09:21:59Z
 close_reason: Heading component (h1-h6) with OSC 66 textSize, semantic colors,
   bold, graceful degradation. 14 tests. Demo updated. Silvery commit e209816.
+owner: bjorn@stabell.org
 ---
 
 # [x] <Heading> component with OSC 66 text sizing @km/silvery #feature #P3

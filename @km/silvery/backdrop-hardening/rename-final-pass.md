@@ -11,6 +11,15 @@ close_reason: Renamed forEachFadeRegionCell → forEachBackdropCell (14 refs
   hasBackdropMarkers documented syntactic. Generalized mixed-amount warning.
   Softened 'capability-independent' wording. Simplified BackdropOptions union
   types. 100 backdrop tests pass; km-tui showcase 15/15 pass. Commit 8b5db390.
+owner: bjorn@stabell.org
+assignee: claude:a1a0e667
+dependencies:
+  - issue_id: km-silvery.backdrop-hardening.rename-final-pass
+    depends_on_id: km-silvery.backdrop-hardening
+    type: parent-child
+    created_at: 2026-04-20T14:01:25Z
+    created_by: claude:88c0e764
+    metadata: "{}"
 ---
 
 # [x] Final rename pass: hasBackdropMarkers, forEachFadeRegionCell, naming policy @km/silvery #task #P0 @claude:a1a0e667

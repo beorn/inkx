@@ -32,6 +32,14 @@ close_reason: |-
   the 2026-04-20 notes for follow-up: delete expectScreen entirely
   (visual.test.ts coverage + TestApp interface), test.extend adoption,
   invariants-first reframe, property-tier expansion.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.test-system.plateau-enforcement
+    depends_on_id: km-all.test-system
+    type: parent-child
+    created_at: 2026-04-18T10:30:59Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Test system plateau enforcement — delete old APIs, force canonical @km/all #task #P1

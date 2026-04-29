@@ -6,6 +6,8 @@ aliases:
 created_by: claude:536645b5
 created_at: 2026-02-20T15:47:52Z
 closed_at: 2026-02-20T16:01:36Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Which-key: transient chord menus after g/m/a/t prefix @km/tui #feature #P3 @claude:d3a7049b

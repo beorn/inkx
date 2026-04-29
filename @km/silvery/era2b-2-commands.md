@@ -10,6 +10,8 @@ close_reason: "@silvery/commands package created: createCommandRegistry (typed
   defs with when() guards), withCommands (plugin), withKeybindings (keymap
   resolution), parseHotkey (key parser). 629 LOC extracted from @silvery/create.
   Source still remains in @silvery/create — consumers migrate in era2b-4-ui."
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Era2b Phase 2: @silvery/commands — extract command system @km/silvery #task #P1 @claude:fed8de9e

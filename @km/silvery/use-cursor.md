@@ -9,6 +9,7 @@ closed_at: 2026-03-10T04:18:43Z
 close_reason: "Fixed useCursor hook: cursor position now updates when col/row
   change without layout change. Added useLayoutEffect watching [col, row, shape,
   visible, set] that recomputes from lastRectRef. 11 tests. Committed & pushed."
+owner: bjorn@stabell.org
 ---
 
 # [x] useCursor() hook for terminal cursor positioning @km/silvery #feature #P2

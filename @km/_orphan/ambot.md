@@ -21,6 +21,8 @@ close_reason: |-
   Track B findings: hookSpecificOutput.systemMessage is UI-only, not a system-role relocation. Phase 4 of original plan cancelled (would require harness change; file as Anthropic feature request).
 
   Total: 137 new injection-defense tests, 6947 total passing (0 regressions), typecheck at baseline. Gate activates on NEW sessions (Claude Code snapshots hooks at session start).
+owner: bjorn@stabell.org
+assignee: claude:7e9436e8
 ---
 
 # [x] P0: /recall-skill injection hallucinated as user input; model acted on it + then confabulated source when questioned @km/_orphan #bug #P0 @claude:7e9436e8

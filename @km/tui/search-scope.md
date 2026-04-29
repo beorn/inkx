@@ -6,6 +6,7 @@ aliases:
 created_by: claude:717696c0
 created_at: 2026-02-15T22:21:19Z
 closed_at: 2026-02-16T09:52:52Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Search: option to search entire repo or selected nodes & descendants @km/tui #feature #P3

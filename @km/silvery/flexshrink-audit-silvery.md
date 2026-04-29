@@ -13,6 +13,14 @@ close_reason: "Superseded by empirical flip experiment in
   already have explicit flexShrink={0} on rigid rows; the regression isn't from
   missing component-level annotations but from silvery's scroll model assuming
   Yoga defaults."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.flexshrink-audit-silvery
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-24T23:52:56Z
+    created_by: claude:53042a7f
+    metadata: "{}"
 ---
 
 # [x] Audit silvery components for explicit flexShrink={0} on rigid widgets @km/silvery #task #P3

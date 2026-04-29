@@ -6,6 +6,8 @@ aliases:
 created_by: claude:8fc35754
 created_at: 2026-03-03T00:34:49Z
 closed_at: 2026-03-03T06:57:41Z
+owner: bjorn@stabell.org
+assignee: claude:8fc35754
 ---
 
 # [x] Switch km to termless MCP server @km/termless #task #P1 @claude:8fc35754

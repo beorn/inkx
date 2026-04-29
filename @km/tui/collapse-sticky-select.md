@@ -6,6 +6,7 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T16:14:18Z
 closed_at: 2026-02-14T20:37:35Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Collapsed column not shown as selected when stickyY is below column head @km/tui #bug #P2

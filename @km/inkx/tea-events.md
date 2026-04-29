@@ -8,6 +8,8 @@ created_at: 2026-03-04T12:47:39Z
 closed_at: 2026-03-07T02:12:09Z
 close_reason: "Grooming: already implemented —
   withCommands/withKeybindings/withDiagnostics plugin system"
+owner: bjorn@stabell.org
+assignee: claude:fbad9cb1
 ---
 
 # [x] Composable app plugin system: unified event handling, sources, and commands @km/inkx #feature #P2 @claude:fbad9cb1

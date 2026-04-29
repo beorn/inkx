@@ -11,6 +11,8 @@ close_reason: "Phase 5 absorb step: plugin composition foundation (create, pipe,
   continue working. withReact/withTest and old API removal (RunHandle,
   createRenderer) deferred — requires reconciler integration and massive test
   migration that exceeds single-session scope."
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Era2a Phase 5: Plugin composition — withAg, withTerm, withReact, withTest @km/silvery #task #P1 @claude:fed8de9e

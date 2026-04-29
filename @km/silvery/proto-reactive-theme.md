@@ -10,6 +10,7 @@ close_reason: useColorScheme hook, ReactiveThemeProvider,
   COLOR_SCHEME_CAPABILITY, withTerminal creates detector. Auto-switches
   dark/light theme when Mode 2031 reports change. 11 tests. Silvery commit
   4e79cfd.
+owner: bjorn@stabell.org
 ---
 
 # [x] Mode 2031 → reactive theme switching (auto dark/light) @km/silvery #feature #P2

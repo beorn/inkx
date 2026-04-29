@@ -70,6 +70,9 @@ close_reason: >-
 
   This session contributed verification, not code — fix was already on main when
   claimed. No new commits needed.
+started_at: 2026-04-26T09:43:42Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
 ---
 
 # [x] silvercode: Welcome card hidden — focus bar 200-char wrap text inflates pane width @km/silvercode #bug #P1 @claude:2405c72e

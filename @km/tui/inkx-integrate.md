@@ -6,6 +6,8 @@ aliases:
 created_by: claude:ee8efc0f
 created_at: 2026-02-23T00:48:05Z
 closed_at: 2026-02-23T01:21:00Z
+owner: bjorn@stabell.org
+assignee: claude:ee8efc0f
 ---
 
 # [x] Integrate new inkx features into km-tui @km/tui #task #P1 @claude:ee8efc0f

@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-03T21:38:19Z
 closed_at: 2026-04-04T16:12:59Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Selection Phase 1: Core value model + pure functions @km/silvery #task #P1 @Bjørn Stabell

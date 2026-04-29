@@ -8,6 +8,7 @@ created_at: 2026-03-25T15:29:01Z
 closed_at: 2026-03-25T17:23:27Z
 close_reason: "Done: TCD JSON API at /api/v1/data.json + 12 SVG badges,
   generated at build time via VitePress buildEnd hook and standalone script"
+owner: bjorn@stabell.org
 ---
 
 # [x] TCD: JSON API + embeddable badges at /api/v1/ @km/terminfo #feature #P1

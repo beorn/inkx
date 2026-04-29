@@ -17,6 +17,15 @@ close_reason: "Implemented full execute path in release.ts (commit b864a0197).
   plan, bun release execute --dry-run both work. Dry-run correctly computes
   versions for 6 repos (silvery patch, loggily patch, bearly patch, termless
   patch, vterm patch, watcher-chaos minor)."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-infra.release-execute-full
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-11T21:45:30Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Release execute: full bump+build+verify+publish+tag flow with safety net @km/infra #task #P2 @Bjørn Stabell

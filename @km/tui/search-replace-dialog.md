@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-21T17:10:04Z
 closed_at: 2026-02-21T17:12:52Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Search & Replace dialog: layout broken, overlaps content @km/tui #bug #P2 @claude:d3a7049b

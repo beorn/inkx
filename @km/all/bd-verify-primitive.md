@@ -17,6 +17,14 @@ close_reason: "Phase 1 shipped 2026-04-27 — origin/main 687641d8d (tool) +
   integration + acceptance-section schema enforcement) deferred to separate
   multi-session bead. Skill at .claude/skills/pm/verify.md; /pm verify <id>
   wired in pm/SKILL.md."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.bd-verify-primitive
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-27T12:14:10Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] bd verify <id> — executable acceptance criteria @km/all #feature #P3

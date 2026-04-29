@@ -48,6 +48,14 @@ close_reason: >-
   bead's 'rankResults(parsedQuery, candidates: KNode[])' signature applies to
   node candidates, while commands rank via the existing rankCommands path — both
   terminate at OmniboxRowData for the dialog.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.omnibox-command-projection
+    depends_on_id: km-silvery.selection-focus-plateau
+    type: parent-child
+    created_at: 2026-04-15T11:31:10Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Command-tree projection (TEA shim, Phase 3) @km/tui #task #P1

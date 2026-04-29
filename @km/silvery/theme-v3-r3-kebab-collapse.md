@@ -14,6 +14,14 @@ close_reason: Shipped in silvery 47718e69-7374d356 (already bumped in km
   Agent reported 145-callsite global rename not needed — the definitional-drift
   risk was eliminated by the state-variant kebab move. Full legacy camelCase →
   kebab field rename deferred as separate future work if desired.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-v3-r3-kebab-collapse
+    depends_on_id: km-silvery.theme-v3-plumbing
+    type: parent-child
+    created_at: 2026-04-18T21:09:19Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] R3: Collapse token names — Theme keys are kebab-strings, not camelCase @km/silvery #task #P3

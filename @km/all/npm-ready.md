@@ -8,6 +8,7 @@ created_at: 2026-02-23T11:14:18Z
 closed_at: 2026-03-09T22:07:21Z
 close_reason: "Grooming: superseded — flexily published, silvery tracked by
   km-silvery.publish-1.0"
+owner: bjorn@stabell.org
 ---
 
 # [x] npm-ready: publish flexture and hightea for public adoption @km/all #epic #P4

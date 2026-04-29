@@ -12,6 +12,8 @@ close_reason: "Fixed 3 bugs: (1) inline scrollback promotion - removed padding
   app exit fixed - React unmount + shouldExit early return in processEventBatch.
   Ctrl+C/Escape/double-Ctrl+D all exit cleanly now. Commits: cc8251f
   (output-phase), 419439f (exit fix) in silvery."
+owner: bjorn@stabell.org
+assignee: claude:73d7a332
 ---
 
 # [x] AI chat showcase: garbled output on Enter, Ctrl+D exit broken @km/silvery #bug #P2 @claude:73d7a332

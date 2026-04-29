@@ -6,6 +6,7 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T13:28:59Z
 closed_at: 2026-02-19T16:17:34Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Rename column/card/board terminology to node/item where generic @km/tui #task #P3

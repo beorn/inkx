@@ -10,6 +10,8 @@ close_reason: "Working: census versions runs probes against older upstream
   versions. JS backends via npm install to cache dir + Vite resolve.alias. Probe
   hash caching skips unchanged runs. 3 xtermjs versions tested (5.4.0, 5.5.0,
   6.0.0). WASM backends fail in vitest VM (known)."
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] Census: run probes against older backend versions via nix @km/termless #feature #P3 @claude:4929065a

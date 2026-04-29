@@ -11,6 +11,15 @@ close_reason: "Shipped d4db94236 — skip probeColors on theme-cache hit (gated 
   unit tests + live TTY verification. Audit: detectKittyFromStdio already
   short-circuits on capsOption.kittyKeyboard; queryDeviceAttributes +
   queryCursorFromStdio never invoked on the km startup path."
+owner: bjorn@stabell.org
+assignee: claude:019d032d
+dependencies:
+  - issue_id: km-tui.evaluate-probe-autoprobing
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-22T13:09:00Z
+    created_by: claude:019d032d
+    metadata: "{}"
 ---
 
 # [x] Evaluate dropping stdin auto-probing in km — uses synchronous caps instead, save the latency @km/tui #task #P0 @claude:019d032d

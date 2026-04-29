@@ -18,6 +18,16 @@ close_reason: "Fixed in silvery 67632b53 (now in km via c65be2b19 vendor bump â†
   Verified 10/10 reliable passes for memory.test.tsx +
   termless-memleak-harness.test.tsx; useBoxMetrics 7/7 was setup (missing
   submodules + bun install)."
+started_at: 2026-04-26T23:24:08Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvery.hooks-memory-perf
+    depends_on_id: km-all.fix-sweep-vendor-fuzz
+    type: parent-child
+    created_at: 2026-04-26T16:22:35Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] [bug] vendor/silvery hooks/memory/perf â€” 6 failures (3 files) @km/silvery #bug #P2 @claude:cc081a9a

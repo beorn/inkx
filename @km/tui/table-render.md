@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T20:53:24Z
 closed_at: 2026-02-14T20:59:42Z
+owner: bjorn@stabell.org
+assignee: claude:a5c7f7de
 ---
 
 # [x] Render tables as markdown with proper column alignment @km/tui #feature #P2 @claude:a5c7f7de

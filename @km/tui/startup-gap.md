@@ -6,6 +6,8 @@ aliases:
 created_by: claude:97b8de73
 created_at: 2026-02-23T00:54:21Z
 closed_at: 2026-02-23T01:20:37Z
+owner: bjorn@stabell.org
+assignee: claude:97b8de73
 ---
 
 # [x] Significant pause before board appears after progress steps complete @km/tui #bug #P2 @claude:97b8de73

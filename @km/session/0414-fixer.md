@@ -7,6 +7,15 @@ created_by: Bjørn Stabell
 created_at: 2026-04-14T18:56:08Z
 closed_at: 2026-04-26T06:24:19Z
 close_reason: Session complete — fixer work done, taxes filed
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-session.0414-fixer
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T11:56:34Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Session: fixer coordinating km bug fixes with taxes 2026-04-14 @km/session #task #P2 @Bjørn Stabell

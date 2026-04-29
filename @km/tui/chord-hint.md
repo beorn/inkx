@@ -6,6 +6,8 @@ aliases:
 created_by: claude:28b14b32
 created_at: 2026-02-23T10:56:10Z
 closed_at: 2026-02-23T14:44:27Z
+owner: bjorn@stabell.org
+assignee: claude:28b14b32
 ---
 
 # [x] Chord hint: show '?' prompt instead of full help popup on chord press @km/tui #feature #P2 @claude:28b14b32

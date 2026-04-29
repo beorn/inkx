@@ -14,6 +14,22 @@ close_reason: "Closed by 19ea18e21 (Phase 3 of view-as-layout-output).
   green. Force-close: parent km-silvery.view-as-layout-output is the
   meta-tracker for the multi-phase work; this leaf bug is fixed by Phase 3 even
   though Phases 4-6 still pending."
+started_at: 2026-04-25T15:14:36Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.message-wrap-truncation
+    depends_on_id: km-silvercode.wrap-ergonomic
+    type: parent-child
+    created_at: 2026-04-25T00:14:25Z
+    created_by: claude:2405c72e
+    metadata: "{}"
+  - issue_id: km-silvercode.message-wrap-truncation
+    depends_on_id: km-silvery.view-as-layout-output
+    type: blocks
+    created_at: 2026-04-25T00:14:25Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] [bug] Assistant message paragraphs truncate at 1 line in ListView (wrap broken in production) @km/silvercode #bug #P1 @claude:2405c72e

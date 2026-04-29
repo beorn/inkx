@@ -13,6 +13,15 @@ close_reason: "Shipped: all 6 rename sites in change-handlers.ts now use
   SQLite, can't be rolled back). journalRename deleted. rename-atomicity.test.ts
   5/5 including mid-cascade crash pairing invariant. Discovered + fixed:
   handleNodeMoved cascade was previously NEVER journaled (silent drift)."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.op-surface-rename-path
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-21T23:45:12Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Replace hand-rolled journalRename with emitter.apply (crash-safety P0) @km/storage #bug #P0 @claude:8b5b9e1c

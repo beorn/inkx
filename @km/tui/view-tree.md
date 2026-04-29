@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-01T23:59:51Z
 closed_at: 2026-04-02T23:16:18Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] ViewNode tree: explicit visual tree for board state derivation @km/tui #task #P2 @Bjørn Stabell

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:aee18a0e
 created_at: 2026-02-27T13:16:21Z
 closed_at: 2026-03-02T23:45:28Z
+owner: bjorn@stabell.org
+assignee: beorn-claude
 ---
 
 # [x] Priority as free-form string: priority:: P0, A, high, etc. @km/all #task #P2 @beorn-claude

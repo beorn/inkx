@@ -26,6 +26,15 @@ close_reason: "K2.6 + GPT-5.4 Pro dual review addressed across 3 commits (bearly
   openai-deep scaffolding cleanup. Reconciliation: K2.6 caught 14 items; Pro
   additionally caught 8 (including the Gemini recovery blocker). Both reviews
   delivered real value — strong evidence the /pro dual-mode is worth keeping."
+owner: bjorn@stabell.org
+assignee: claude:0590a583
+dependencies:
+  - issue_id: km-infra.llm-review-fixes
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-20T17:26:44Z
+    created_by: claude:0590a583
+    metadata: "{}"
 ---
 
 # [x] Address K2.6 review findings on @bearly/llm (blockers + majors + minors) @km/infra #task #P2 @claude:0590a583

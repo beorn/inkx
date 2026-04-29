@@ -9,6 +9,16 @@ closed_at: 2026-04-26T06:38:16Z
 close_reason: "Shipped: 6672788df + 49012d3a9 + 00350484a + a8041af37.
   packages/km-autolinks/ with 165 tests, silvercode imports @km/autolinks
   cleanly, 0 new TS errors. Session: km-session.0425-evening"
+started_at: 2026-04-26T04:55:27Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.autolinks-extract-to-package
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-25T21:55:08Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Extract apps/silvercode/src/autolinks → packages/km-autolinks @km/silvercode #task #P2 @claude:2405c72e

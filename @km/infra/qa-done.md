@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T20:45:36Z
 closed_at: 2026-02-14T21:04:46Z
+owner: bjorn@stabell.org
+assignee: claude:a5c7f7de
 ---
 
 # [x] QA: mandatory visual verification + full regression before close @km/infra #task #P1 @claude:a5c7f7de

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a3625ec3
 created_at: 2026-02-09T14:43:46Z
 closed_at: 2026-02-11T18:08:37Z
+owner: bjorn@stabell.org
+assignee: claude:2f3fc9d8
 ---
 
 # [x] onLayout callbacks cause rendering corruption when component is embedded @km/inkx #bug #P2 @claude:2f3fc9d8

@@ -5,6 +5,7 @@ aliases:
   - km-tui-block-edit
 created_at: 2026-02-06T10:32:05Z
 closed_at: 2026-02-06T11:03:16Z
+assignee: claude:21d4f294
 ---
 
 # [x] Block editing: per-paragraph body navigation @km/tui #feature #P2 @claude:21d4f294

@@ -10,6 +10,14 @@ close_reason: "Superseded by km-silvery.listview-scrollcap-stale-estimate
   (closed via Stream M, silvery 8c63cfb9) + km-silvery.listview-scroll-overshoot
   (Stream O in flight, fixing the M regression). Same bug class. Session:
   km-session.0425-evening"
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.listview-scroll-cap-too-low
+    depends_on_id: km-silvery.architectural-plateau
+    type: parent-child
+    created_at: 2026-04-25T23:50:05Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] ListView in height-independent mode caps scroll before actual bottom @km/silvery #bug #P2

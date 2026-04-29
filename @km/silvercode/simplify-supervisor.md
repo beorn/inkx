@@ -11,6 +11,16 @@ close_reason: "Shipped 4f9e9ebb5: -898 LOC. Deleted process-supervisor.ts +
   acquireSupervisor wiring + 3 test files. Added MAX_LIVE_SESSIONS=8 hard cap in
   controller + spawn-cap.test.ts. Kept detached:true (kernel-standard pgroup,
   parallel SIGTERM <200ms). 571/576 silvercode tests green."
+started_at: 2026-04-26T19:54:43Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.simplify-supervisor
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-26T12:54:42Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Simplify silvercode supervisor: process owns subs, no detached, no reaper @km/silvercode #task #P1 @claude:2405c72e

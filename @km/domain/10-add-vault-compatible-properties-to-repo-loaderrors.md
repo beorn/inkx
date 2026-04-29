@@ -6,6 +6,7 @@ aliases:
   - "@km/domain/10"
 created_at: 2026-01-26T08:28:47Z
 closed_at: 2026-01-26T17:42:05Z
+assignee: beorn
 ---
 
 # [x] Add Vault-compatible properties to Repo (loadErrors, stats, deferredFiles) @km/domain #task #P1 @beorn

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:703e68be
 created_at: 2026-02-11T13:23:21Z
 closed_at: 2026-02-11T13:39:53Z
+owner: bjorn@stabell.org
+assignee: claude:703e68be
 ---
 
 # [x] Selection model: convert anchor/focus from positional indices to nodeIds @km/tui #task #P4 @claude:703e68be

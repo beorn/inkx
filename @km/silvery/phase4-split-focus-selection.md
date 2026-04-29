@@ -10,6 +10,16 @@ close_reason: Phase 4a (focus) + 4b (selection) both shipped. 4a in silvery
   7b56b5c2 + km 16417c825; 4b in silvery da040837 + km 6f9e91291. Phase 4c
   (general overlay/anchor system) tracked separately at
   km-silvery.overlay-anchor-system.
+started_at: 2026-04-25T19:50:12Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvery.phase4-split-focus-selection
+    depends_on_id: km-silvery.view-as-layout-output
+    type: parent-child
+    created_at: 2026-04-25T09:15:17Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Phase 4 plan revision: split focus and selection; selection as overlay/decoration not single Range @km/silvery #feature #P1 @claude:2405c72e
