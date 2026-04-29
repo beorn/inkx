@@ -86,7 +86,7 @@ const flex = pipe(createBareFlexily(), withPretext(pretext))
 
 **Status**: Code shipped. Composable architecture shipped (v0.5.0). Canvas prototype working — proportional text via Pretext, 1,013 nodes in 35ms, full km kanban board rendering via WebSocket. Remaining: launch (flexily.dev polish, HN, benchmarks), standalone canvas examples.
 
-**Beads**: `bd list --label horizon:v0.5` — `km-silvery.demos`, `km-silvery.docs-reorg`
+**Beads**: `km bd list --label horizon:v0.5` — `km-silvery.demos`, `km-silvery.docs-reorg`
 **Design docs**: [silvery/design/v05-layout/](silvery/design/v05-layout/)
 
 ### v1.0 — Terminal UI Framework (tealess)
@@ -106,7 +106,7 @@ render(<App />).run() // that's it — no tea required
 
 **Strategy**: Polish what's shipping without tea. The renderer + components are excellent on their own. Tea design is still settling — don't ship it until it's right.
 
-**Beads**: `bd list --label horizon:v1.0` — 17 open (2 P1 bugs, 10 P2 features, 5 P3 infra)
+**Beads**: `km bd list --label horizon:v1.0` — 17 open (2 P1 bugs, 10 P2 features, 5 P3 infra)
 **Design docs**: [silvery/design/v10-terminal/](silvery/design/v10-terminal/)
 
 ### v1.5 — App Architecture (tea)
@@ -127,7 +127,7 @@ const app = pipe(withSignals(), withCommands(), withScopes())
 
 **Key packages**: @silvery/tea, @silvery/signals, @silvery/commands, @silvery/scope, @silvery/headless, @silvery/create
 
-**Beads**: `bd list --label horizon:v1.5` — `km-silvery.tea` (epic), virtual-terminal, zero-alloc, ai-apis
+**Beads**: `km bd list --label horizon:v1.5` — `km-silvery.tea` (epic), virtual-terminal, zero-alloc, ai-apis
 **Design docs**: [silvery/design/v15-tea/signals.md](silvery/design/v15-tea/signals.md), [silvery/design/v15-tea/commands.md](silvery/design/v15-tea/commands.md), [silvery/design/v15-tea/app.md](silvery/design/v15-tea/app.md), [silvery/design/v15-tea/headless.md](silvery/design/v15-tea/headless.md)
 
 ### v2.0 — Embeddable Layout + Text Engine
@@ -156,7 +156,7 @@ const app = pipe(withSignals(), withCommands(), withScopes())
 
 **Speculative: signals engine** — if canvas profiling shows the tree-walk pipeline as bottleneck, the rendering engine itself could become signal-based. Design doc: [silvery/design/v20-canvas/signals-engine.md](silvery/design/v20-canvas/signals-engine.md). Bead: `km-silvery.signals-engine` (P4).
 
-**Beads**: `bd list --label horizon:v2.0` — `km-silvery.ag-canvas` (epic), shared-components, ag-scene-ready, engine, signals-engine (speculative)
+**Beads**: `km bd list --label horizon:v2.0` — `km-silvery.ag-canvas` (epic), shared-components, ag-scene-ready, engine, signals-engine (speculative)
 **Design docs**: [silvery/design/v20-canvas/](silvery/design/v20-canvas/)
 
 ### v3.0 — Graphics UI Engine

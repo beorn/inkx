@@ -36,7 +36,7 @@ Pairs with the eventual-consistency model (`feedback-agent-isolation-eventual-co
 - Branch: !`git branch --show-current`
 - Uncommitted (main): !`git status --porcelain | head -20`
 - Recent commits (24h): !`git log --since="24 hours ago" --oneline | head -15`
-- In-progress beads (mine): !`bd list --status in_progress --assignee "$USER" 2>/dev/null | head -10 || bd list --status in_progress 2>/dev/null | head -10`
+- In-progress beads (mine): !`km bd list --status in_progress --assignee "$USER" 2>/dev/null | head -10 || km bd list --status in_progress 2>/dev/null | head -10`
 - Git worktrees: !`git worktree list | grep -v "^/Users/beorn/Code/pim/km " | head -15`
 - Bun worktrees: !`bun worktree list 2>/dev/null | head -10 || echo "(unsupported / none)"`
 - Local non-main branches: !`git for-each-ref --format='%(refname:short)' refs/heads/ | grep -v '^main$' | head -20`
@@ -68,7 +68,7 @@ for br in $(git for-each-ref --format='%(refname:short)' refs/heads/ | grep -v '
   ahead=$(git rev-list --count main..$br 2>/dev/null)
   behind=$(git rev-list --count $br..main 2>/dev/null)
   bead=$(echo "$br" | sed -nE 's|^(wip|bug|feat|fix|chore|docs|refactor|test|ci|style|perf)/(.*)|\2|p')
-  status=$(bd show "$bead" 2>/dev/null | head -1 || echo "(no bead)")
+  status=$(km bd show "$bead" 2>/dev/null | head -1 || echo "(no bead)")
   echo "$br  ahead=$ahead behind=$behind  $status"
 done
 ```
@@ -82,7 +82,7 @@ Build a row table: source kind (git-worktree / bun-worktree / branch / stash) ×
 Find beads with recent "wip retained at" notes (added by `--end`):
 
 ```bash
-bd list --status open --limit 50 2>/dev/null | xargs -I{} bd show {} 2>/dev/null | grep -B1 "wip retained at"
+km bd list --status open --limit 50 2>/dev/null | xargs -I{} km bd show {} 2>/dev/null | grep -B1 "wip retained at"
 ```
 
 Show: bead, retained worktree path, branch, SHA. The user picks resume / re-triage / stale-out per row.
@@ -105,8 +105,8 @@ Already in live context above (test-cadence-check.sh, sop-cadence-check.sh). Res
 ### 2d. bd-ready picks
 
 ```bash
-bd ready --priority 0 --limit 5
-bd ready --priority 1 --limit 10
+km bd ready --priority 0 --limit 5
+km bd ready --priority 1 --limit 10
 ```
 
 Orientation only — don't claim.
@@ -146,7 +146,7 @@ git stash drop <id>
 Note the carry-over in the relevant bead so `--start` finds it tomorrow:
 
 ```bash
-bd update <bead-id> --append-notes "$(date +%Y-%m-%d) — wip retained at <worktree-path> on <branch> (<sha>). Resume via: cd <path> && git switch <branch>"
+km bd update <bead-id> --append-notes "$(date +%Y-%m-%d) — wip retained at <worktree-path> on <branch> (<sha>). Resume via: cd <path> && git switch <branch>"
 ```
 
 **Rule**: a "leave" without a bead note is a soft-leave; those accumulate. Always note.
@@ -154,7 +154,7 @@ bd update <bead-id> --append-notes "$(date +%Y-%m-%d) — wip retained at <workt
 ## Step 4 (end mode only): hygiene beyond branches
 
 - **Main worktree uncommitted**: review `git status`. Stage + commit anything intentional; if accidental, decide before stopping.
-- **In-progress beads claimed by you**: are they being worked? If not, release: `bd update <id> --assignee "" --status open`.
+- **In-progress beads claimed by you**: are they being worked? If not, release: `km bd update <id> --assignee "" --status open`.
 - **Active /loop or /schedule**: stop them if you don't want them running while away.
 - **Tribe daemon**: leave or stop depending on whether other sessions need it.
 

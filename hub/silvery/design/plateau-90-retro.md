@@ -4,7 +4,7 @@
 **Session**: 2026-04-27 (continuation across compaction)
 **Outcome**: Phase 1 substrate + Phase 2/3 cleanup substantially shipped over 5 integration rounds. C3b at L5; C1 at L4.5 (broader fossil sweep in flight); C2 at L4 with multi-session L5 deferred (task #14); C3a at L2 (target); N1 at L2-L3.
 
-This document captures the post-ship state, what /pro and /why analyses surfaced, and where the residue lives. Authoritative reference for "what was plateau-90 and how did it go." Pairs with `bd show km-all.plateau-90` (the plan) and `hub/quality-rubric.md` (the L0-L5 framework).
+This document captures the post-ship state, what /pro and /why analyses surfaced, and where the residue lives. Authoritative reference for "what was plateau-90 and how did it go." Pairs with `km bd show km-all.plateau-90` (the plan) and `hub/quality-rubric.md` (the L0-L5 framework).
 
 ## What shipped
 
@@ -132,7 +132,7 @@ All filed under appropriate scope epics:
 
 ## Cross-references
 
-- Plan: `bd show km-all.plateau-90`
+- Plan: `km bd show km-all.plateau-90`
 - Rubric: `hub/quality-rubric.md`
 - Per-recast designs: `hub/silvery/design/{render-plan-commit,convergence-bounds,pass-cause-histogram,lifecycle-scope,failure-taxonomy}.md`
 - Pro review (raw): saved at `/tmp/llm-cc081a9a-how-far-are-we-bloh.txt` during this session; copy in this doc's "Pro plateau-distance review" section

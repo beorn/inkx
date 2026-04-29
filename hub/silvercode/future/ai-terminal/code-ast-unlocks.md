@@ -129,7 +129,7 @@ This is the **future-web target** territory — when silvery's canvas / DOM targ
 | Recency per symbol | Last-edited timestamp per AST node |
 | Annotation per AST node | Persistent notes attached to functions, surfaced when agent works in that area |
 
-This is where **bd memory + AST anchors** would compose into something genuinely new. Today bd memories are file/line-anchored; AST anchors would survive renames + reformats automatically.
+This is where **bd memory + AST anchors** would compose into something genuinely new. Today km bd memories are file/line-anchored; AST anchors would survive renames + reformats automatically.
 
 ## Tier 7 — compositional unlocks
 
@@ -182,7 +182,7 @@ The high-leverage pattern across the ecosystem: **AST-aware retrieval as an MCP 
 ### Phase U1 — understanding layer foundation
 - Wrap `vendor/bearly/tools/refactor.ts` as an MCP server. Expose ts-morph and ast-grep as MCP tools. Bead candidate: `km-bearly.refactor-mcp`.
 - Add an outline-as-context tool: given a file, return signatures + docstrings as a compact summary.
-- Add symbol-anchored bd memory: extend `bd remember` to accept `--anchor file.ts:functionName`.
+- Add symbol-anchored bd memory: extend `km bd remember` to accept `--anchor file.ts:functionName`.
 - Cost: ~1000-1500 LOC. Value: agents call rename/refs/outline as named tools instead of grepping.
 
 ### Phase R2 — only if editor surface lands

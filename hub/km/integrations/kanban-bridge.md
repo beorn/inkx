@@ -18,10 +18,10 @@ km shells out to `kanban hooks notify` when bead state changes or km-tui takes a
 
 ### Option B: bead ↔ card sync
 
-Bidirectional sync: new kanban card creates a bead; `bd close` trashes the card. Bead description markdown pairs with card prompt text.
+Bidirectional sync: new kanban card creates a bead; `km bd close` trashes the card. Bead description markdown pairs with card prompt text.
 
 - **Effort**: ~200 LOC (sync daemon, or hook-router listener that also watches kanban)
-- **Gain**: users can work from either surface — bd list or kanban board — with state staying consistent
+- **Gain**: users can work from either surface — km bd list or kanban board — with state staying consistent
 - **Risk**: low; bead is source of truth, kanban is a secondary view
 
 ### Option C: km-tui as kanban client

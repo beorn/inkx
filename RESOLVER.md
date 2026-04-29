@@ -26,7 +26,7 @@ Walk this decision tree before writing any documentation, knowledge, or persiste
 → STOP
 
 ### Q5. Is this about a SPECIFIC WORK ITEM (bug context, feature plan, investigation)?
-→ **Bead notes/design** (`bd update <id> --notes/--design`)
+→ **Bead notes/design** (`km bd update <id> --notes/--design`)
 → Ephemeral — tied to the work item's lifecycle.
 → STOP
 

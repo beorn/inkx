@@ -42,8 +42,8 @@ SHORT_ID="${CLAUDE_SESSION_ID:0:8}"
 
   # RESUME directive — must be FIRST so post-compact Claude sees it immediately
   if [ -n "$TRACKING_BEAD" ]; then
-    echo "# RESUME: bd show $TRACKING_BEAD"
-    echo "This session was working on $TRACKING_BEAD. After compact, run 'bd show $TRACKING_BEAD' FIRST to recover context."
+    echo "# RESUME: km bd show $TRACKING_BEAD"
+    echo "This session was working on $TRACKING_BEAD. After compact, run 'km bd show $TRACKING_BEAD' FIRST to recover context."
     echo "Do NOT list all beads or start new work — resume this bead."
     echo ""
   fi

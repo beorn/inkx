@@ -153,8 +153,8 @@ rg -o '`bun [^`]+`' .claude/skills/*/*.md | sed 's/.*`//;s/`//' | \
 For each documented command, count actual usage:
 
 ```bash
-# Example: check if "bd ready" is ever used
-rg -c '"bd ready' ~/.claude/projects/-Users-beorn-Code-pim-km/*.jsonl 2>/dev/null | \
+# Example: check if "km bd ready" is ever used
+rg -c '"km bd ready' ~/.claude/projects/-Users-beorn-Code-pim-km/*.jsonl 2>/dev/null | \
   awk -F: '{sum+=$2} END {print sum ? sum : 0}'
 ```
 
@@ -162,7 +162,7 @@ Batch check (outputs command + count):
 
 ```bash
 # Check multiple commands at once
-for cmd in "bd ready" "bd list --json" "bun run test:fast"; do
+for cmd in "km bd ready" "km bd list --json" "bun run test:fast"; do
   count=$(rg -c "\"$cmd" ~/.claude/projects/-Users-beorn-Code-pim-km/*.jsonl 2>/dev/null | \
     awk -F: '{sum+=$2} END {print sum ? sum : 0}')
   echo "$count\t$cmd"
@@ -186,14 +186,14 @@ Add to summary:
 
 | Command/Pattern   | Location     | Action |
 | ----------------- | ------------ | ------ |
-| `bd ready --type` | pm/bd.md:87  | Remove |
+| `km bd ready --type` | pm/bd.md:87  | Remove |
 | `bun km tasks`    | CLAUDE.md:12 | Remove |
 
 ### Low Usage (1-2 uses)
 
 | Command/Pattern | Uses | Location    | Action |
 | --------------- | ---- | ----------- | ------ |
-| `bd list --all` | 2    | pm/bd.md:38 | Review |
+| `km bd list --all` | 2    | pm/bd.md:38 | Review |
 ```
 
 ## Quick One-Liner

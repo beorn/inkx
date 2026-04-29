@@ -36,7 +36,7 @@ settings.json registrations that wire them to Claude Code events.
 
 ### PreCompact
 
-- [user] — `.claude/hooks/run-hook.sh bd-prime:PreCompact bd prime`
+- [user] — `.claude/hooks/run-hook.sh bd-prime:PreCompact km bd prime`
 
 ### PreToolUse
 

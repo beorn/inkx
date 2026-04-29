@@ -14,7 +14,7 @@ Save session context to a single tracking bead so it survives compaction and can
 1. **Find or create ONE tracking bead** for this session
 2. **Gather all context**: active beads, git status, recent commits, uncommitted changes
 3. **Update the bead** with a structured checkpoint including next steps
-4. **Report** the bead ID so the user (or post-compact) can recover with `bd show <id>`
+4. **Report** the bead ID so the user (or post-compact) can recover with `km bd show <id>`
 
 ## Instructions
 
@@ -23,13 +23,13 @@ Save session context to a single tracking bead so it survives compaction and can
 Look for an existing in-progress bead that serves as the session's tracking bead. Prefer:
 1. A bead the user explicitly mentioned as the tracking/epic bead
 2. The most recently claimed in-progress bead by this session (check `claimed_by` for `$CLAUDE_SESSION_ID`)
-3. If none exists, create one: `bd create --title="Session checkpoint: <brief work summary>" --type=task --priority=3`
+3. If none exists, create one: `km bd create --title="Session checkpoint: <brief work summary>" --type=task --priority=3`
 
 There must be exactly ONE tracking bead. If multiple candidates exist, pick the one most relevant to the current work.
 
 **IMPORTANT**: The tracking bead must be claimed by this session so the pre-compact hook can find it:
 ```bash
-bd update <BEAD_ID> --claim
+km bd update <BEAD_ID> --claim
 ```
 
 ### Step 2: Gather context
@@ -38,7 +38,7 @@ Collect ALL of these:
 
 ```bash
 # Active beads
-bd list --status=in_progress
+km bd list --status=in_progress
 
 # Git state
 git status --short | head -20
@@ -46,7 +46,7 @@ git log --oneline -10
 git branch --show-current
 
 # Any open beads this session created or closed
-bd list --status=open | head -10
+km bd list --status=open | head -10
 ```
 
 ### Step 3: Build the checkpoint
@@ -54,7 +54,7 @@ bd list --status=open | head -10
 Update the tracking bead with structured notes. The **first line MUST be the RESUME directive** — this is what post-compact Claude sees first:
 
 ```bash
-bd update <BEAD_ID> --notes="RESUME: bd show <BEAD_ID>
+km bd update <BEAD_ID> --notes="RESUME: km bd show <BEAD_ID>
 After compact, run the command above FIRST. Do not list all beads or start new work.
 
 ## Session Checkpoint
@@ -91,7 +91,7 @@ If the user provided an argument (message), include it as the primary "Next step
 
 Tell the user:
 - Which bead was updated (ID + title)
-- The exact command to recover: `bd show <id>`
+- The exact command to recover: `km bd show <id>`
 - That post-compact will automatically see the RESUME directive
 
 ## Multi-session awareness

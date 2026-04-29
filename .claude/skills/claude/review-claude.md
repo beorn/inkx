@@ -411,7 +411,7 @@ echo "Project MCP:" && cat .mcp.json 2>/dev/null
 echo "User MCP:" && cat ~/.claude.json 2>/dev/null | python3 -c "import sys,json; [print(f'  {k}') for k in json.load(sys.stdin).get('mcpServers',{})]"
 
 # 5. Hook output size
-echo "bd prime output:" && bd prime 2>&1 | wc -l
+echo "km bd prime output:" && km bd prime 2>&1 | wc -l
 
 # 6. Deferred tool count (from ToolSearch list in system prompt)
 # Count by inspecting available deferred tools
@@ -524,7 +524,7 @@ echo "MEMORY.md: ${lines}L (~$((lines * 4)) tok)"
 echo "Skills: $(ls -d .claude/skills/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ')"
 
 # Hooks output size
-bd prime 2>&1 | wc -l
+km bd prime 2>&1 | wc -l
 
 # MCP tool count (project)
 cat .mcp.json 2>/dev/null
@@ -567,7 +567,7 @@ jq -r '.hooks.PreToolUse[]?.hooks[]?.command // empty' ~/.claude/settings.json 2
 
 | Component                    | Size    | Est. Tokens | Notes                           |
 | ---------------------------- | ------- | ----------- | ------------------------------- |
-| SessionStart hook (bd prime) | X lines | ~XXX        | Beads workflow context           |
+| SessionStart hook (km bd prime) | X lines | ~XXX        | Beads workflow context           |
 | Everything from "every msg"  |         | ~XX,XXX     | (included above)                |
 | **Total first message**      |         | **~XX,XXX** | **X% of 200k**                  |
 
@@ -575,7 +575,7 @@ jq -r '.hooks.PreToolUse[]?.hooks[]?.command // empty' ~/.claude/settings.json 2
 
 | Component                    | Size    | Est. Tokens | Notes                           |
 | ---------------------------- | ------- | ----------- | ------------------------------- |
-| PreCompact hook (bd prime)   | X lines | ~XXX        | Re-injected after compression   |
+| PreCompact hook (km bd prime)   | X lines | ~XXX        | Re-injected after compression   |
 | Compressed conversation      | varies  | ~varies     | Prior turns summarized           |
 | Everything from "every msg"  |         | ~XX,XXX     | (re-loaded fresh)               |
 
@@ -753,17 +753,17 @@ For significant improvements identified:
 DATE_SUFFIX=$(date +%m%d)
 
 # Example: Fix session errors
-bd create --id "km-proc-claude-errors-$DATE_SUFFIX" --type=task --priority=1 \
+km bd create --id "km-proc-claude-errors-$DATE_SUFFIX" --type=task --priority=1 \
   --title="Fix top 3 Claude session error patterns" \
   --body="Add clarity to X, Y, Z based on session error analysis"
 
 # Example: Token optimization
-bd create --id "km-proc-claude-tokens-$DATE_SUFFIX" --type=task --priority=2 \
+km bd create --id "km-proc-claude-tokens-$DATE_SUFFIX" --type=task --priority=2 \
   --title="Reduce CLAUDE.md to <60 lines" \
   --body="Move X section to skill, delete Y redundant content, reference Z by file:line"
 
 # Example: Structural cleanup
-bd create --id "km-proc-claude-cleanup-$DATE_SUFFIX" --type=task --priority=3 \
+km bd create --id "km-proc-claude-cleanup-$DATE_SUFFIX" --type=task --priority=3 \
   --title="Remove orphan docs and fix links" \
   --body="Delete X files, update Y links in SKILL.md, add Z to .gitignore if needed"
 ```

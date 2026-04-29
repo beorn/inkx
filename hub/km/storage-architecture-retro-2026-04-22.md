@@ -50,7 +50,7 @@ All fixable in a single pass once named. The doc had the right ideas but hadn't 
 
 - **Doc drifted faster than it was read**. `§1.1` and `§1.2` had duplicate numbering for at least one full commit cycle before round-2 review caught it. Next time: after any major rewrite, run a quick `grep -n '^### '` and read the section index end-to-end.
 - **LOC cost estimates should never have been in the doc**. The `~300-400 LOC + ~500-800 LOC` numbers looked like analysis but were speculation. Reviewer called them "fantasy" and recommended removal. Rule going forward: if we haven't actually scoped it via a spike or a written plan, don't put a number on it.
-- **The fs-adapter → fs-mount rename wasn't executed on beads**. The doc says "renamed from `km-storage.fs-adapter`" but the bead is still named `km-storage.fs-adapter`. Easy to fix next session via `bd rename`, but it's current drift between doc and bead tree.
+- **The fs-adapter → fs-mount rename wasn't executed on beads**. The doc says "renamed from `km-storage.fs-adapter`" but the bead is still named `km-storage.fs-adapter`. Easy to fix next session via `km bd rename`, but it's current drift between doc and bead tree.
 - **Tribe daemon git-lock warnings were noise**. The daemon fired repeated `held >10s/30s/40s` warnings throughout the session; `ls .git/index.lock` always returned exit=2 (no lock). Likely a liveness-check bug in the daemon. Worth filing.
 - **Some multi-round rewriting was avoidable**. The block_id question went through "hash-derived" → "literal string" → "merge into .name" over three rounds, when the final answer is essentially what Obsidian already does. Could have reached it sooner by asking "what does Obsidian actually do here?" earlier. Rule: for Obsidian-compat features, check Obsidian's behavior before designing.
 - **Session ran long past natural wrap points**. The user had to say "wrap up" explicitly before I stopped adding to the doc. Several of the best additions (pathway framing, Phase E, Rust/Zig escape hatch) came *after* that wrap request — good ideas, awkward timing. Next time: offer to stop after each major commit and check for new directives before continuing.
@@ -75,7 +75,7 @@ Deferred to next bead-reshape session:
 
 1. **Pick a Phase A first-step and commit**. P0 (identity schema migration) is the blocker; it's 1-2 days; do it first. Don't accumulate more architecture without execution.
 2. **Make the multi-file-atomicity decision**. It's blocking P3 design and it's a yes/no question. My recommendation: ship v1 without the journal.
-3. **Run `bd rename` + supersession pass** to align bead tree with v3 doc.
+3. **Run `km bd rename` + supersession pass** to align bead tree with v3 doc.
 4. **If anything in Phase A reveals a Phase B/C/D/E dependency**, note it in the pathway bead immediately. The pathway bead is the place to record "this Phase A decision leaves us a cleaner Phase C exit."
 5. **Don't re-open the architecture doc** unless a Phase A task surfaces a genuine unknown. The doc is v3; further edits should be minor + evidence-driven.
 

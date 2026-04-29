@@ -79,7 +79,7 @@ Every spawned session automatically gets, with no user config required:
 - **Channel-event injection** — when a peer session sends a tribe message addressed to this session, harness injects a `[channel from <peer>: <message>]` line into the next user-prompt turn (push, not pull, since events are turn-relevant).
 - **UserPromptSubmit-equivalent injectors** (always-on, per-turn):
   - km active context (current bead, worktree, recent edits)
-  - bd prime output (replaces user's SessionStart hook when running `--bare`)
+  - km bd prime output (replaces user's SessionStart hook when running `--bare`)
   - tribe channel digest for new messages since last turn
   - silvery permission-inbox state (so the agent knows what's pending in peer sessions)
 - All injection runs through the harness pipeline. Sample injectors ship in `@silvery/agent-harness`; users add custom injectors via config.
@@ -88,7 +88,7 @@ Every spawned session automatically gets, with no user config required:
 
 Every assistant message and tool output is scanned for recognizable references; matches become hoverable/clickable popovers.
 
-- **Bead detection** — `bd-<scope>.<slug>` (or `bd:<id>`) → popover with bead title, status, recent activity, links. Backed by `bd show <id>`.
+- **Bead detection** — `bd-<scope>.<slug>` (or `bd:<id>`) → popover with bead title, status, recent activity, links. Backed by `km bd show <id>`.
 - **File path detection** — absolute and `~vault/...` style paths → popover with file tree position, recent edits, blame summary, optional preview
 - **URL detection** — `https?://...` → popover with title + favicon + WebFetch summary on hover
 - **km node references** (`#node-id` or `@-mention`) → popover with node title, body preview, parent breadcrumb
@@ -178,11 +178,11 @@ Both adapters expose the same typed surface:
 
 - Typed event stream (turn-start, tool-use, tool-result, permission-request, turn-end, session-end)
 - Input channel (feed user messages, respond to permission prompts)
-- **Context-injection pipeline** — harness-level UserPromptSubmit equivalent. Every user message is passed through a chain of injectors before being written to Claude's stdin. First-party injectors: km context (active bead, worktree, recent activity), cross-session state (permission-inbox summary, what peer sessions are doing), bd prime (replaces the user's bd SessionStart hook when running `--bare`). User-defined injectors plug in via config. Runs deterministically regardless of `--bare` vs non-bare.
+- **Context-injection pipeline** — harness-level UserPromptSubmit equivalent. Every user message is passed through a chain of injectors before being written to Claude's stdin. First-party injectors: km context (active bead, worktree, recent activity), cross-session state (permission-inbox summary, what peer sessions are doing), km bd prime (replaces the user's bd SessionStart hook when running `--bare`). User-defined injectors plug in via config. Runs deterministically regardless of `--bare` vs non-bare.
 - Policy gate (intercept tool calls, route to permission inbox when plan mode)
 - Session lifecycle (spawn, pause, resume, fork, kill)
 
-**Why `--bare` creates a context-injection design question.** `--bare` suppresses the user's `.claude/settings.json` hooks/plugins/MCP/skills for determinism — which means their own `SessionStart`, `UserPromptSubmit`, and `PreCompact` hooks don't fire inside the subprocess. For km users this specifically breaks `bd prime` (their SessionStart injection). The harness resolves this by making bd prime a first-party injector, not a user-hook replacement. General pattern: **if a user's hook was doing context injection, the harness owns it; if it was doing enforcement (like `silvery-read-gate`), that stays in the user's hooks and we run non-bare.** Per-session config picks which mode.
+**Why `--bare` creates a context-injection design question.** `--bare` suppresses the user's `.claude/settings.json` hooks/plugins/MCP/skills for determinism — which means their own `SessionStart`, `UserPromptSubmit`, and `PreCompact` hooks don't fire inside the subprocess. For km users this specifically breaks `km bd prime` (their SessionStart injection). The harness resolves this by making km bd prime a first-party injector, not a user-hook replacement. General pattern: **if a user's hook was doing context injection, the harness owns it; if it was doing enforcement (like `silvery-read-gate`), that stays in the user's hooks and we run non-bare.** Per-session config picks which mode.
 
 Side-effect: ships the **first standalone TypeScript stream-json parser** (currently an open ecosystem gap — [awesome-claude-code #1046](https://github.com/hesreallyhim/awesome-claude-code/issues/1046)). Consider publishing the parser as its own package (`@silvery/claude-stream-json`).
 
@@ -270,7 +270,7 @@ Layered onto MVA. Each milestone independently shippable; each is a testable, do
 
 **M3 — Auto-injection pipeline (1 week)**
 - Harness injection-pipeline plumbing: registry of injectors, per-turn invocation, append `additionalContext` to user-message events before stdin write
-- Sample injectors: km active context (current bead, worktree), bd prime equivalent
+- Sample injectors: km active context (current bead, worktree), km bd prime equivalent
 - Dogfood: every session knows what bead it's on without the user having to say
 
 **M4 — Tribe MCP + channel injection (1 week)**
@@ -300,7 +300,7 @@ Layered onto MVA. Each milestone independently shippable; each is a testable, do
 
 **M9 — Bead + file + URL detection popovers (1.5 weeks)**
 - Auto-scanner over assistant text + tool outputs for bead IDs, file paths, URLs, km node refs, code-fence file:line refs
-- Popover content per detection type: `bd show`, file tree position + recent edits, WebFetch preview, km node summary
+- Popover content per detection type: `km bd show`, file tree position + recent edits, WebFetch preview, km node summary
 
 **M10 — Replay + search + handoff (2 weeks)**
 - Tape recording via mdtest

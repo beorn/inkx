@@ -37,10 +37,10 @@ If the grep fails at origin/main, the round is **not closed**, regardless of wha
 
 ```bash
 # Ask the user, or check tasklist, or:
-bd list --status closed --closed-after <round-start-iso8601>
+km bd list --status closed --closed-after <round-start-iso8601>
 ```
 
-For each bead, `bd show <id>` and locate the `/complete` / `Acceptance` section.
+For each bead, `km bd show <id>` and locate the `/complete` / `Acceptance` section.
 
 ### 2. Extract grep patterns from each bead
 

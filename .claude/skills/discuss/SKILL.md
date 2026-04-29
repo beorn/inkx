@@ -17,7 +17,7 @@ allowed-tools: Bash, Read, Glob, Grep, Task, AskUserQuestion
 
 ## `/discuss <topic>` — Start
 
-1. Find active bead: `bd list --status in_progress --assignee "$USER" --limit 1`
+1. Find active bead: `km bd list --status in_progress --assignee "$USER" --limit 1`
 2. If bead found: gather state (`git status --short`, `git diff --stat`, current step, metrics), **prepend** checkpoint to bead notes:
    ```
    ## Discussion checkpoint (YYYY-MM-DD)
@@ -39,7 +39,7 @@ allowed-tools: Bash, Read, Glob, Grep, Task, AskUserQuestion
 
 ## `/discuss continue` — Resume
 
-1. `bd show <id>` — read checkpoint from notes
+1. `km bd show <id>` — read checkpoint from notes
 2. `git status --short` + `git diff --stat` — check working tree
 3. Present compact status:
    > **Resuming** `<id>`: <title>

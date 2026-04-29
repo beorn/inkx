@@ -43,7 +43,7 @@ Keep output concise. For `tribe.members`, format as a table. For `tribe.health`,
 Broadcast this message to all members:
 
 ```
-Sync: ensure work is tracked in beads (bd create/update/close as needed).
+Sync: ensure work is tracked in beads (km bd create/update/close as needed).
 
 Reply in ONE short message, plain text, no markdown:
 "Name | Idle: Xm | Created: N, Closed: N | Blockers: none | Status: idle/busy"

@@ -229,7 +229,7 @@ The vault layout is **node-tree-shaped on disk**. Directories and files become k
       decker-2026-04-29/                    # second import = own subdir
         @decker/...
         mem/...
-    mem/<key>.md                            # runtime `bd remember` writes here (not under imports/)
+    mem/<key>.md                            # runtime `km bd remember` writes here (not under imports/)
     ...existing vault content untouched...
   ```
   - Imports are containerized — multiple bd dbs don't pollute the vault root.
@@ -262,7 +262,7 @@ Before theorizing about a bug or issue, **search history first**: `bun recall "t
 
 ## Issue Tracking (km bd / beads)
 
-This project uses **`km bd`** for issue tracking — a km-native CLI that reads/writes the same `.beads/` store the Go `bd` binary maintains during the cutover. `bd prime` injects workflow context on session start via `.claude/hooks/bd-prime.sh` (prefers Go bd while installed for perf, falls back to `km bd prime` otherwise).
+This project uses **`km bd`** for issue tracking — a km-native CLI that reads/writes the same `.beads/` store the Go `bd` binary maintains during the cutover. `km bd prime` injects workflow context on session start via `.claude/hooks/bd-prime.sh` (prefers Go bd while installed for perf, falls back to `km bd prime` otherwise).
 
 ```bash
 km bd ready                    # Find available work

@@ -134,12 +134,12 @@ If larger refactors identified, track in beads:
 DATE_SUFFIX=$(date +%m%d)
 
 # Create review bead with findings
-bd create --id "km-rev-types-$DATE_SUFFIX" --type=task --priority=2 \
+km bd create --id "km-rev-types-$DATE_SUFFIX" --type=task --priority=2 \
   --title="Type safety review findings" --body-file /tmp/review.md
 
 # Child beads for each refactor (set parent AFTER creation - --id and --parent conflict)
-bd create --id "km-rev-types-$DATE_SUFFIX.a" --title="<finding 1>" --type=task
-bd update "km-rev-types-$DATE_SUFFIX.a" --parent "km-rev-types-$DATE_SUFFIX"
+km bd create --id "km-rev-types-$DATE_SUFFIX.a" --title="<finding 1>" --type=task
+km bd update "km-rev-types-$DATE_SUFFIX.a" --parent "km-rev-types-$DATE_SUFFIX"
 ```
 
 ---
@@ -217,17 +217,17 @@ For significant gaps identified:
 DATE_SUFFIX=$(date +%m%d)
 
 # Example: Missing type infrastructure
-bd create --id "km-proc-types-utils-$DATE_SUFFIX" --type=task --priority=3 \
+km bd create --id "km-proc-types-utils-$DATE_SUFFIX" --type=task --priority=3 \
   --title="Create type utilities package" \
   --body="Review found repeated inline types. Add shared utilities for common patterns."
 
 # Example: Documentation gap
-bd create --id "km-proc-types-docs-$DATE_SUFFIX" --type=task --priority=3 \
+km bd create --id "km-proc-types-docs-$DATE_SUFFIX" --type=task --priority=3 \
   --title="Document type safety patterns" \
   --body="Add FFI boundary examples, Result type patterns, and type guard recipes to docs/"
 
 # Example: Tooling improvement
-bd create --id "km-proc-type-coverage-$DATE_SUFFIX" --type=task --priority=3 \
+km bd create --id "km-proc-type-coverage-$DATE_SUFFIX" --type=task --priority=3 \
   --title="Add type-coverage to CI" \
   --body="Enforce 90%+ type coverage to prevent regression"
 ```

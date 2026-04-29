@@ -97,7 +97,7 @@ This does not invalidate Layer 1 — defense-in-depth still applies, the typed b
 
 **Followup if it ever matters**: a fuller reproduction harness with a real long session (CLAUDE.md + recall + 50 prior tool calls + accumulated assistant output) would test whether the failure scales in. Not currently worth the cost — Layer 3 closes the loop regardless.
 
-The original gate ("A < 1% AND B > 10%") is moot: the failure didn't reproduce, so the comparison is undefined. Recorded as INFORMATIONALLY FAILED in `bd close km-silvercode.ambient-phase-1-thesis-proof` with full evidence.
+The original gate ("A < 1% AND B > 10%") is moot: the failure didn't reproduce, so the comparison is undefined. Recorded as INFORMATIONALLY FAILED in `km bd close km-silvercode.ambient-phase-1-thesis-proof` with full evidence.
 
 ### Phase 2 — ACP boundary verification — SHIPPED 2026-04-27
 

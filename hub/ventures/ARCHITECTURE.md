@@ -125,7 +125,7 @@ All CLI commands are thin wrappers — they shell out to bd, write markdown, and
 
 ### Layer 4 — analytics
 
-The interesting queries that can't be answered by `bd list`:
+The interesting queries that can't be answered by `km bd list`:
 
 - **rank with decay weight**: `score × max(0, 1 - months_since_scored/6)`. A 19 from 2 years ago shouldn't outrank a 17 from yesterday.
 - **cluster detection**: tf-idf over the rationale strings; ventures with high overlap on Wedge/Win/Customer cluster. Heuristic, not ML — keep it simple.
@@ -171,7 +171,7 @@ Zero tooling. Pure markdown discipline.
 - `km-venture` scope created in bd
 - One bead per venture; YAML-frontmatter scores in `--notes`
 - Scoring is still manual (markdown-driven) but the structured data lands in bd
-- `bd list --parent km-venture` is the rank query
+- `km bd list --parent km-venture` is the rank query
 
 Deliverable: scoring 10 ventures takes ~1 hour and produces both a markdown narrative + 10 queryable beads.
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Hook: bd prime wrapper
+# Hook: km bd prime wrapper
 # Emits the beads workflow context + recent memories at SessionStart and PreCompact.
 #
 # Prefers the Go `bd` binary while it's installed (50ms vs km bd's 180ms);

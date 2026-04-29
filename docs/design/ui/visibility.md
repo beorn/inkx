@@ -66,7 +66,7 @@ There are three independent ways a node can be excluded from view, each operatin
 
 **Why not in the lens?** Filter text changes on every keystroke. If fold/filter lived in the lens (as construction options), every keypress would invalidate `walkOrder`, the children cache, and the visible-lens cache — kills the per-node-signal incremental rendering that makes cards view fast. The current design keeps fold at the React layer where NodeStore can flip a single per-node signal and only the affected `TreeNode` re-renders.
 
-**Caveat (current limitation)**: This means **only the cards view honors fold**. The alternate views (`columns`, `list`, `tabs`) consume the lens directly via `useSignal(ps.visibleLens)` and never read the node store. They render flat (one row per column-direct child) and have no per-card fold awareness. See `bd show km-tui.view-mode-feature-parity` for the planned fix — the alternate views need to graduate to consuming `ViewTree` (the React-side projection) the way cards view does.
+**Caveat (current limitation)**: This means **only the cards view honors fold**. The alternate views (`columns`, `list`, `tabs`) consume the lens directly via `useSignal(ps.visibleLens)` and never read the node store. They render flat (one row per column-direct child) and have no per-card fold awareness. See `km bd show km-tui.view-mode-feature-parity` for the planned fix — the alternate views need to graduate to consuming `ViewTree` (the React-side projection) the way cards view does.
 
 ## Choosing the Right API
 

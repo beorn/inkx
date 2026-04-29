@@ -120,7 +120,7 @@ echo "---CANONICAL PLUGINS---" >> /tmp/elegance-ctx.md
 cat apps/km-tui/src/plugins/with-help-overlay.ts >> /tmp/elegance-ctx.md
 # (add 1-2 more plugins)
 echo "---BEAD---" >> /tmp/elegance-ctx.md
-BEADS_DIR=/Users/beorn/Code/pim/km/.beads bd show km-silvery.authoring-elegance >> /tmp/elegance-ctx.md
+BEADS_DIR=/Users/beorn/Code/pim/km/.beads km bd show km-silvery.authoring-elegance >> /tmp/elegance-ctx.md
 
 # Fire
 bun llm pro -y --no-recover --context-file /tmp/elegance-ctx.md "$(cat hub/silvery/elegance-review-template.md | sed -n '/^## Review questions/,/^## Review output/p')"

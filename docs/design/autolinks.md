@@ -93,7 +93,7 @@ Two forms:
 |---|---|---|
 | `readme` | reads `resolves_to` (or its `README.md` if a directory); rendered via MarkdownView (rich) | `fs.watch` |
 | `first-paragraph` | reads `resolves_to`, shows the first non-blank paragraph; rendered via MarkdownView | `fs.watch` |
-| `bd-active` | runs `bd list --parent <resolves_to> --status open --limit 5` | 30s TTL |
+| `bd-active` | runs `km bd list --parent <resolves_to> --status open --limit 5` | 30s TTL |
 | `shell` | spawns `command.exec` with `command.args` (per-arg `${resolves_to}` substitution); 5s timeout, 4KB cap; output sanitized of ANSI/control sequences before render | 30s TTL |
 | `mcp` | calls an MCP tool with `args`; **stub** — rules dropped at config load until `km-silvercode.autolinks-mcp-resolver` lands (will be superseded by URI pivot) | n/a |
 

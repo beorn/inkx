@@ -39,7 +39,7 @@ PROXY (one per Claude session, runs in project cwd)
 │
 ├─── plugins (loaded based on cwd detection):
 │    ├── tribe   (always: sessions, send, leadership)
-│    ├── beads   (if .beads/: bd list, create, close)
+│    ├── beads   (if .beads/: km bd list, create, close)
 │    ├── git     (if .git/: commit notifications)
 │    └── linear  (if .linear/config: query API)
 │

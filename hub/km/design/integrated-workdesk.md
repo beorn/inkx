@@ -63,7 +63,7 @@ What lives here:
 - **Knowledge graph** — KNodes (the universal tree node), facets (typed frontmatter bundles), Links (typed relations including wikilinks, bead deps, mentions).
 - **Plans of any shape** — a roadmap is a tree of milestones; a kanban is a board projection over beads; a dep-graph is typed Links; a Symphony-shape autonomous-dispatch board is a subtree with `workflow` facet + a `WORKFLOW.md`-style node carrying YAML config + prompt body.
 - **Persona files** — `agents/<name>.md` carrying `persona_id`, mission, working memory, relationships. Survives session/machine/tool changes.
-- **Beads** — issue tracker as KNodes with `task` facet. `bd ready` queries the file tree.
+- **Beads** — issue tracker as KNodes with `task` facet. `km bd ready` queries the file tree.
 - **Vault structure** (canonical layout):
   ```
   ~/vault/

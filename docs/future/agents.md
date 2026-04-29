@@ -191,7 +191,7 @@ Agents integrate with beads issue tracking as workers:
 Agents find work the same way humans do:
 
 ```bash
-bd ready                    # Shows issues ready to work on
+km bd ready                    # Shows issues ready to work on
 bd agent claim agent-1      # Agent claims next ready issue
 ```
 
@@ -210,9 +210,9 @@ Agents close issues like humans:
 
 ```bash
 # Agent internally runs:
-bd update km-a1b2 --status wip --assignee agent-1
+km bd update km-a1b2 --status wip --assignee agent-1
 # ... does work ...
-bd close km-a1b2 --reason "Agent: Implemented feature X"
+km bd close km-a1b2 --reason "Agent: Implemented feature X"
 ```
 
 ### Session → Issue Linkage

@@ -16,8 +16,8 @@ Never skip steps. A finding without a proposal is noise. A proposal without appr
 
 | Action Type | Approval | Examples |
 |---|---|---|
-| Read-only scan | auto | typecheck, lint, `bd stale`, `npm audit` |
-| Idempotent fix | auto | `bun fix` (format), `bd close` stale beads |
+| Read-only scan | auto | typecheck, lint, `km bd stale`, `npm audit` |
+| Idempotent fix | auto | `bun fix` (format), `km bd close` stale beads |
 | Dep update for CVEs | auto | `bun update` — follow dep update protocol (baseline → update → verify → bisect if broken) |
 | Baseline update | **ask** | typecheck baseline reset, lockfile regeneration |
 | Publish/release | **ask** | npm publish, git push, GitHub issue creation |

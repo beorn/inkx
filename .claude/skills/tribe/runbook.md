@@ -22,7 +22,7 @@ If you detect multiple chiefs during a health check:
 
 1. `tribe.join(name: "chief", role: "chief", domains: [...])`
 2. `tribe.members()` — verify all expected sessions are connected, check for duplicate chiefs
-3. `bd ready` — check available work for assignment
+3. `km bd ready` — check available work for assignment
 
 ## Periodic Health Check (every ~15 min)
 
@@ -48,7 +48,7 @@ Any `member-*` names? Send them: `tribe.rename(new_name: "your-domain")`. Sugges
 
 ### 4. Blocker Check
 ```bash
-bd blocked
+km bd blocked
 ```
 Cross-match: if member A is blocked on something member B could unblock, coordinate immediately.
 
@@ -105,7 +105,7 @@ Don't wait for reports — actively investigate when you suspect problems:
 ## Work Assignment
 
 When idle members are available:
-1. `bd ready` — get top-priority unblocked beads
+1. `km bd ready` — get top-priority unblocked beads
 2. Match member domain expertise to bead scope
 3. `tribe.send(to: member, type: "assign", message: "Take km-foo.bar (P2): brief description")`
 4. Track assignment — follow up if no response in 10 min

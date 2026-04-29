@@ -66,7 +66,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **barrel export** — A re-export file (typically `index.ts`) that aggregates a package's public API into a single import path. Vendor packages export raw TypeScript source (no build step).
 
-**bd** — CLI command for the beads issue tracker (`bd list`, `bd create`, `bd update <id> --claim`).
+**bd** — CLI command for the beads issue tracker (`km bd list`, `km bd create`, `km bd update <id> --claim`).
 
 **bead** — An issue (bug, task, or feature) tracked in km's beads system. Beads have an ID (e.g., `km-silvery.selection`), priority (P1-P4), status, and description.
 

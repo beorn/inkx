@@ -11,7 +11,7 @@ Today there are two related but inconsistent operations:
 
 - `repo.renameNode(id, newContent, onProgress)` — already rewrites incoming wiki-form references via the link-cache backlink index, plus `updateRenameReferences` for `add::` rules and `blocked-by::` props. It is the only op that touches incoming references at all.
 - `repo.moveNode(id, newParentId, position)` — pure re-parent. The data-store updates `parent_id`/`parent_idx`. Nothing on disk moves; nothing referencing the old location is updated.
-- `bd rename <old-id> <new-id>` (apps/km-cli/src/commands/bd.ts:948) — patches `data.short_id` on the issue node and walks `blocked-by` props on every other issue, but ignores wikilinks, transclusions, dep edges (`blocks::`/`related::`), inline mentions (`@km/old-path`), and frontmatter `aliases`.
+- `km bd rename <old-id> <new-id>` (apps/km-cli/src/commands/bd.ts:948) — patches `data.short_id` on the issue node and walks `blocked-by` props on every other issue, but ignores wikilinks, transclusions, dep edges (`blocks::`/`related::`), inline mentions (`@km/old-path`), and frontmatter `aliases`.
 
 This means the four common user actions — rename a node, move a node, rename a bd id, restructure a folder — each rewrite a different subset of incoming references, and none rewrite all of them. The new primitive collapses these three call sites onto one canonical reference rewriter so every move/rename is total by default.
 
@@ -181,7 +181,7 @@ The bare-id mention case is the only body-content form not covered by the link c
 | `aliases` | yaml list, consumed by name resolver | `aliases: [@km/scope/old-slug, km-scope.old-slug]` | When a host file's aliases list contains the old short id (path-form or bd-form), rewrite to the new short id. **Preserve other aliases.** Iterates the host's `node.data.aliases` array. |
 | `parent_id` | km-beads/schema.ts:52 (bd v1.0 emits it) | `parent_id: @km/scope/old-slug` | Rewrite when it equals the old short id. |
 | `created_by`, `created_at`, `closed_at`, `close_reason` | bd metadata | n/a | Never references other nodes; ignored. |
-| Block-by prop string form | km-cli/src/commands/bd.ts:982 | `blocked-by: { type: "link", target: "km-scope.old-slug" }` | Already covered by `bd rename` today; the primitive subsumes it. The `target` field is a bare bd-id string, distinct from a wikilink. |
+| Block-by prop string form | km-cli/src/commands/bd.ts:982 | `blocked-by: { type: "link", target: "km-scope.old-slug" }` | Already covered by `km bd rename` today; the primitive subsumes it. The `target` field is a bare bd-id string, distinct from a wikilink. |
 
 ### 2.3 Heading rules (km.add, km.sync)
 
@@ -300,7 +300,7 @@ console.log(term.green("→"), `Moved ${nodeName} to ${targetName}` +
 
 Add `--no-rewrite` to the option set. Default behaviour is `noRewrite: false`.
 
-### 4.2 `bd rename <old-id> <new-id>` — apps/km-cli/src/commands/bd.ts:948
+### 4.2 `km bd rename <old-id> <new-id>` — apps/km-cli/src/commands/bd.ts:948
 
 Replace the hand-rolled `data.short_id` patch + the `blocked-by` property loop (lines 964-997) with:
 
@@ -441,7 +441,7 @@ Tests live in `packages/km-storage/tests/move-with-refs.test.ts` and `apps/km-cl
 
 - **`--no-rewrite` / `noRewrite: true`.** Data-layer move applies; backlinks untouched. Verify `rewroteHosts === 0`. Verify the link-cache `href` column is also untouched (so subsequent backlink queries still return the host with the stale ref).
 - **`rewriteForms: { aliases: false }`.** Frontmatter aliases not rewritten; everything else is.
-- **`rewriteForms: { bareIdMention: false }` on a bd rename.** Wikilinks rewritten; bare-id mentions stay.
+- **`rewriteForms: { bareIdMention: false }` on a km bd rename.** Wikilinks rewritten; bare-id mentions stay.
 
 ### 7.3 Integration — backlink count parity
 
@@ -452,8 +452,8 @@ Tests live in `packages/km-storage/tests/move-with-refs.test.ts` and `apps/km-cl
 
 - **`km move A B` rewrites refs by default.** Run command, assert exit message includes "rewrote N refs".
 - **`km move A B --no-rewrite`.** Move applied; refs untouched.
-- **`bd rename old-id new-id` rewrites refs.** Verify wikilinks, dep edges, frontmatter aliases, frontmatter parent_id, bare-id mentions all updated.
-- **`bd rename old-id new-id --no-rewrite`.** Only `data.short_id` updates (legacy behaviour).
+- **`km bd rename old-id new-id` rewrites refs.** Verify wikilinks, dep edges, frontmatter aliases, frontmatter parent_id, bare-id mentions all updated.
+- **`km bd rename old-id new-id --no-rewrite`.** Only `data.short_id` updates (legacy behaviour).
 
 ### 7.5 Integration — TUI background variant
 
@@ -481,11 +481,11 @@ Add to the existing slow-test fuzz suite (under `packages/km-infra/tests/fuzz` i
 ## 8. Open questions
 
 1. **fs sync coupling.** Should the primitive call `fs.renameSync` directly in phase 6, or enqueue the rename through the existing storage→fs sync layer? Direct is simpler; via sync layer respects watcher pause/resume. **Recommendation: direct, after a `repo.pauseSync()` / `repo.resumeSync()` bracket.** Needs design input from whoever owns the sync layer.
-2. **Default for `--no-rewrite` on `bd rename`.** Today `bd rename` rewrites only `blocked-by` props. The primitive rewrites everything. Is that an acceptable behaviour change, or do we want a deprecation period where `bd rename` requires `--rewrite` to opt in for one release? **Recommendation: rewrite by default — today's `bd rename` is undocumented as "limited", and the fuller rewrite is the intuitive behaviour. Mention in the release note.**
+2. **Default for `--no-rewrite` on `km bd rename`.** Today `km bd rename` rewrites only `blocked-by` props. The primitive rewrites everything. Is that an acceptable behaviour change, or do we want a deprecation period where `km bd rename` requires `--rewrite` to opt in for one release? **Recommendation: rewrite by default — today's `km bd rename` is undocumented as "limited", and the fuller rewrite is the intuitive behaviour. Mention in the release note.**
 3. **Rule rewrite scope tightening (§2.4).** The existing `updateRenameReferences` does a broad `node.content.replace(/oldName/g, newName)` whenever a rule changes. Should the primitive tighten this to lines matching `^(km\.add|km\.sync)::` only, or preserve the broad behaviour? **Recommendation: tighten — but ship behind a feature flag for one release so we can revert if a vault breaks.**
 4. **Name collision semantics.** When renaming to a name another node already owns, error or allow? **Recommendation: error by default; provide `MoveOptions.allowNameCollision: true` for power users.**
 5. **`bareIdMention` pass cost on huge vaults.** §5.3 estimates ~300ms for 5000 nodes. If profiling shows it's worse, add an FTS5 pre-filter. **Recommendation: ship without the pre-filter; add it in a follow-up bead if real vaults hit the threshold.**
-6. **Aliases promotion policy.** When the short id changes, do we always add the old short id to the moved node's `aliases` list? Or only when the rename came from `bd rename`? **Recommendation: always add — old prose mentions stay resolvable. User can `--rewriteForms='{aliases:false}'` to opt out.**
+6. **Aliases promotion policy.** When the short id changes, do we always add the old short id to the moved node's `aliases` list? Or only when the rename came from `km bd rename`? **Recommendation: always add — old prose mentions stay resolvable. User can `--rewriteForms='{aliases:false}'` to opt out.**
 7. **CRDT compatibility.** The primitive emits a fan-out of `updateNode` events. Memory `storage-crdt-direction.md` flags event-sourcing-lite as the direction. Does this primitive emit one composite event (`move-with-refs`) or N individual events (`update-node` × N)? **Recommendation: one composite event with the full diff payload — easier to replay, easier to invert for undo.** Coordinate with `km-storage` event design.
 8. **Undo semantics.** A composite move-with-refs op should undo as one unit. Verify with the undo proxy that the existing `updateNode`-fan-out shape produces a single undoable batch (the existing `renameNode` wraps the loop in `startBatch`/`endBatch`). The primitive does the same.
 
@@ -496,7 +496,7 @@ Add to the existing slow-test fuzz suite (under `packages/km-infra/tests/fuzz` i
 Code paths referenced in this design (file:line for traceability):
 
 - `apps/km-cli/src/commands/move.ts:107` — current `repo.moveNode` call site
-- `apps/km-cli/src/commands/bd.ts:948-1000` — current `bd rename` implementation
+- `apps/km-cli/src/commands/bd.ts:948-1000` — current `km bd rename` implementation
 - `apps/km-tui/src/views/tree-node-edit.tsx:153-167` — TUI rename via `jobRunner.submit`
 - `apps/km-tui/src/views/CardColumn.tsx:928-934` — TUI rename via `jobRunner.submit` (column header)
 - `packages/km-storage/src/repo/repo.ts:438-447` — current `moveNode` implementation

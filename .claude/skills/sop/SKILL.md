@@ -252,8 +252,8 @@ Start here. These are automatable and already have skill implementations.
 **Assets**: beads (.beads/), session history, roadmap
 **Cadence**: weekly
 **Checks**:
-- [ ] `stale-beads` — `bd stale` (no activity > 2 weeks)
-- [ ] `orphan-deps` — `bd orphans` (broken dependency links)
+- [ ] `stale-beads` — `km bd stale` (no activity > 2 weeks)
+- [ ] `orphan-deps` — `km bd orphans` (broken dependency links)
 - [ ] `unclosed-sessions` — session beads still in_progress
 - [ ] `priority-drift` — P0/P1 beads older than 1 week
 - [ ] `roadmap-alignment` — epic completion % (`bd epic status`)
@@ -351,7 +351,7 @@ token = resp['access_token']
 - [ ] `claude-config-drift` — `bun tools/lint-claude-config.ts` (hooks/skills/agents/MCP registration drift across `.claude/`)
 - [ ] `upstream-waiting` — review the perpetual upstream-blocked registry (workarounds awaiting upstream fixes). Authoritative workflow: [.claude/skills/pm/workflows/upstream.md](../pm/workflows/upstream.md) §8 "Register for tracking". Procedure:
   1. **Run the lint script first**: `bash packages/km-infra/scripts/check-upstream-markers.sh` — surfaces any bead↔code-marker drift (orphan markers, marker-less beads). Resolve mismatches before proceeding.
-  2. `bd list --parent km-all.upstream-waiting --status open` — list every open child
+  2. `km bd list --parent km-all.upstream-waiting --status open` — list every open child
   3. For each child, fetch the linked upstream URL (`gh issue view`, `gh pr view`, or `WebFetch`); compare against the bead's "Status:" line. Status is a 4-state enum: `filed-upstream` (issue/PR open, not yet merged — most beads sit here for months) | `merged-upstream` (PR landed, no release yet) | `released-upstream` (in a tagged release we COULD consume, but our deps still pin older) | `adopted-locally` (our package.json/lockfile actually consumes the fix — only state where unwind can run).
   4. Update "Last checked: <today>" in the bead description (always — even if nothing changed; this is how we detect orphaned beads later).
   5. **Check `Escalate by: <YYYY-MM-DD>`** — if within 30 days, surface for re-decision now (don't wait for the date to pass). Re-decision options: `vendorize` | `fork` | `accept owned divergence` | `continue waiting`. If "accept owned divergence" → move bead to `km-all.owned-divergence` (perpetual sibling registry) and update its code marker from `UPSTREAM-WAITING` to `OWNED-DIVERGENCE`. If "continue waiting" → bump `Escalate by` 6 months with a written reason.

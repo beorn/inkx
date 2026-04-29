@@ -236,7 +236,7 @@ Status: GREEN
 
 T=0 only kicks off when **all** of these hold. Each item is a hard gate.
 
-1. **Phase 6.b adapters live and dogfooded for ≥ 48 h.** All sources in `channel-sources.ts` (tribe, recall, sub-agent, CI, telegram, file-watch, permission) must have shipped, run cleanly in the user's silvercode for at least 2 days, and produced telemetry. Verified via `bd show km-silvercode.ambient-phase-6-completion` showing closed.
+1. **Phase 6.b adapters live and dogfooded for ≥ 48 h.** All sources in `channel-sources.ts` (tribe, recall, sub-agent, CI, telegram, file-watch, permission) must have shipped, run cleanly in the user's silvercode for at least 2 days, and produced telemetry. Verified via `km bd show km-silvercode.ambient-phase-6-completion` showing closed.
 2. **Phase 6.b circuit breaker + telemetry live with telemetry verified flowing.** `tail -f $LOGGILY_FILE_AMBIENT | jq` shows `silvercode:ambient:admit` records during a normal silvercode session. Breaker state changes on a manually-induced flood (e.g. spam tribe-broadcast 200 events in a minute, observe `breaker:opened` then `breaker:closed`).
 3. **`SILVERCODE_AMBIENT_DISABLED=1` smoke-tested as kill-switch.** Manual procedure: start silvercode without the env var, observe ambient flowing; quit; export `SILVERCODE_AMBIENT_DISABLED=1`, restart; verify zero `silvercode:ambient:admit` records and the user-facing disabled message renders. Restore by unsetting and restarting once.
 4. **Baseline file path set up.** `$HOME/.silvercode/` exists; `ambient-soak-T0` and (later) `ambient-soak-baseline.json` writable.

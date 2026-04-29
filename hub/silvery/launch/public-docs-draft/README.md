@@ -8,7 +8,7 @@ Internal drafts for silvery.dev's 12 theme-related pages, rewritten for Sterling
 
 These files are organized to mirror `vendor/silvery/docs/*` exactly. On 0.19.0 ship:
 
-1. `bd update km-silvery.sterling-public-docs --claim`
+1. `km bd update km-silvery.sterling-public-docs --claim`
 2. Copy each draft to the corresponding `vendor/silvery/docs/` path (1-to-1 tree mapping)
 3. Walk through the `<!-- TODO: verify after 0.19.0 ships -->` comments at the bottom of each page and confirm against the shipped API — remove when verified, update text if the guess was wrong
 4. `bun run docs:build` from `vendor/silvery/` to catch broken internal links

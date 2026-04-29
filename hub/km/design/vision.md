@@ -90,7 +90,7 @@ Agents can spawn agents. A chief can create a new persona (`km agent create omni
 
 km is **posture-agnostic**. The same primitives express:
 
-- **Top-down planning**: a quarterly roadmap as a tree of milestones; a kanban with explicit `blocks` dependencies; an autonomous-dispatch board where a daemon (Symphony-shape, kanban-hooks-shape, or homegrown) reads `bd ready` and spawns workers; a `WORKFLOW.md`-style node carrying the dispatch contract.
+- **Top-down planning**: a quarterly roadmap as a tree of milestones; a kanban with explicit `blocks` dependencies; an autonomous-dispatch board where a daemon (Symphony-shape, kanban-hooks-shape, or homegrown) reads `km bd ready` and spawns workers; a `WORKFLOW.md`-style node carrying the dispatch contract.
 - **Bottom-up coordination**: peers claim leases in tribe rooms; ambient broadcasts flow through `[AMBIENT — observation]` channels; handoff is an explicit post; recall surfaces prior context as personas pick up work.
 
 **The same bead can participate in both postures simultaneously.** A daemon may dispatch it; a human may reassign it; a peer may claim it; ambient activity may inform it. The bead is the artifact; the posture is the rendering.

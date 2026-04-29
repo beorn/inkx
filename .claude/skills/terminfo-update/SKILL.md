@@ -198,7 +198,7 @@ return `pass: true`.
 
 3. **Create a bead** for each in-scope failure:
    ```bash
-   bd create \
+   km bd create \
      --id km-termless.vterm-<feature-slug> \
      --type task \
      --priority 3 \

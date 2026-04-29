@@ -195,7 +195,7 @@ Update any docs references, example runner, tests.
 For each FIX example, create a bead:
 
 ```
-bd create --id km-silvery.showcase-<name> --type task \
+km bd create --id km-silvery.showcase-<name> --type task \
   --title "Fix <name> example for showcase" \
   --description "Issues: <list from triage>"
 ```

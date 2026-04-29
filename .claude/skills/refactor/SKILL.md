@@ -105,7 +105,7 @@ Run this **before** you think you're done, not after. If the count is non-zero, 
 
 **Closing a bead without running its acceptance criteria is a bug.** The definition of done is not "I did a lot of work." It's "every acceptance grep returns the expected result."
 
-### The gate: acceptance criteria MUST pass before `bd update -s closed`
+### The gate: acceptance criteria MUST pass before `km bd update -s closed`
 
 1. **Run every /complete criteria grep from the bead description.** Literally run the command. If it doesn't pass, the bead stays open. No exceptions.
 

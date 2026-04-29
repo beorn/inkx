@@ -206,7 +206,7 @@ Update silvery's positioning docs based on current state of both projects.
    - Silvery horizons: `hub/roadmap.md` § Track 2
 
 2. **Update positioning bead**
-   - `bd show km-silvery.positioning`
+   - `km bd show km-silvery.positioning`
    - Update numbers, feature table, elevator pitches
 
 3. **Update silvery.dev docs**

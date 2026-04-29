@@ -287,7 +287,7 @@ You are the chief. You coordinate work across the tribe:
 - Use tribe_sessions() to see who's online
 - Use tribe_send() to assign work or answer queries
 - Use tribe_broadcast() to announce changes that affect everyone
-- Use beads (bd create, bd update) for task tracking
+- Use beads (km bd create, km bd update) for task tracking
 - Messages from Telegram are external requests — translate them into beads and assign to members
 
 When a member reports status, update the relevant bead and reply to Telegram if the external user is waiting.
@@ -330,9 +330,9 @@ User (Telegram): "Fix the card flicker and add tests"
 
 Chief receives via Telegram channel
 Chief creates beads:
-  bd create --title="Fix card hover flicker" --type=bug --priority=1
-  bd create --title="Card hover flicker tests" --type=task --priority=2
-  bd dep add km-tui.flicker-tests km-tui.flicker-fix
+  km bd create --title="Fix card hover flicker" --type=bug --priority=1
+  km bd create --title="Card hover flicker tests" --type=task --priority=2
+  km bd dep add km-tui.flicker-tests km-tui.flicker-fix
 
 Chief checks tribe_sessions():
   [{ name: "tui-worker", domains: ["tui", "cards"], alive: true },
@@ -456,13 +456,13 @@ The tribe plugin watches for these events and auto-sends status messages:
 | Heartbeat | Every 10s, check if alive | (Silent, just updates `heartbeat` column) |
 | Bead claimed | `git log` detects "Claimed" message | `status` to chief: "Claimed km-tui.X" |
 | Commit pushed | `git log` new commit in this session's worktree | `status` to chief: "Committed {hash}, message: {summary}" |
-| Bead closed | Detects `bd close` command | `status` to chief: "Closed km-tui.X {reason}" |
-| Bead reopened | Detects `bd update --status open` | `status` to chief: "Reopened km-tui.X" |
+| Bead closed | Detects `km bd close` command | `status` to chief: "Closed km-tui.X {reason}" |
+| Bead reopened | Detects `km bd update --status open` | `status` to chief: "Reopened km-tui.X" |
 
 The plugin can watch these via:
 - **Git hooks** (post-commit, post-push) — if in a worktree
 - **File system watch** on `.beads/` — if bead changes are visible
-- **Polling** `bd list` periodically — less elegant but doesn't require integration
+- **Polling** `km bd list` periodically — less elegant but doesn't require integration
 
 ### Human-Decided (System Prompt Instructs)
 
@@ -474,7 +474,7 @@ The member's system prompt guides Claude when to send messages:
 | Blocked on another member's work | `status` to chief immediately | Chief can reprioritize or ask other member to accelerate |
 | Need to edit a shared/foundational file | `request` to chief before editing | Chief checks if another member is also editing it |
 | Made a breaking API change | `notify` broadcast | Everyone on the project needs to know |
-| Discovered a related bug while investigating | `notify` broadcast + `bd create` | Prevent others from wasting time on the same discovery |
+| Discovered a related bug while investigating | `notify` broadcast + `km bd create` | Prevent others from wasting time on the same discovery |
 | All assigned beads closed, ready for more | `status` to chief: "Available" | Chief knows capacity |
 | Soft-blocked (uncertain, need advice) | `query` to relevant member | "How does the scroll cache invalidate on resize?" |
 
@@ -515,7 +515,7 @@ Chief: tribe_send("tui-worker", "Claim km-tui.flicker-fix", "assign", "km-tui.fl
 
 tui-worker:
   1. Sees <channel source="tribe" from="chief" type="assign">
-  2. bd update km-tui.flicker-fix --claim
+  2. km bd update km-tui.flicker-fix --claim
      → Plugin auto-sends: status "Claimed km-tui.flicker-fix"
   3. Investigates, finds root cause
      → Claude sends: status "Root cause found: dirty flag not propagating through sticky children"
@@ -524,17 +524,17 @@ tui-worker:
   5. Runs tests, all pass
      → (No auto-send, Claude must choose:)
      → Sends: status "Tests pass, km-tui.flicker-fix ready for review"
-  6. bd close km-tui.flicker-fix
+  6. km bd close km-tui.flicker-fix
      → Plugin auto-sends: status "Closed km-tui.flicker-fix ✓"
 
 Chief:
   1. Receives status "Claimed..."
-     → bd update km-tui.flicker-fix --assignee tui-worker
+     → km bd update km-tui.flicker-fix --assignee tui-worker
   2. Receives status "Root cause found..."
      → (For external user waiting) Sends Telegram: "Found root cause, fix in progress"
   3. Receives status "Committed..."
      → Knows fix landed, can notify test-worker
-     → bd update km-tui.flicker-tests --status ready (if blocked)
+     → km bd update km-tui.flicker-tests --status ready (if blocked)
   4. Receives status "Closed..."
      → Updates Telegram: "Fix shipped"
 ```
@@ -652,7 +652,7 @@ SELECT * FROM events WHERE ts BETWEEN :tribe_start AND :tribe_end ORDER BY ts;
 - External user asked follow-up that chief couldn't answer
   → chief queried silvery-worker, 4 min round-trip
 
-### Lessons (→ bd remember)
+### Lessons (→ km bd remember)
 - "test-worker domain should include acceptance tests, not just unit tests"
 - "theme.ts is a coordination hotspot — consider worktree isolation by default"
 - "12 min block silence: add periodic self-check to member instructions"
@@ -662,7 +662,7 @@ SELECT * FROM events WHERE ts BETWEEN :tribe_start AND :tribe_end ORDER BY ts;
 
 | Destination | What | Why |
 |-------------|------|-----|
-| `bd remember` | Coordination lessons | Searchable across all future sessions via recall |
+| `km bd remember` | Coordination lessons | Searchable across all future sessions via recall |
 | Bead notes | Per-bead timing data | Attached to the work item for history |
 | `tribe.db` retros table | Full retro record | Queryable for trend analysis |
 
@@ -687,7 +687,7 @@ Retro insights feed forward into future tribes:
 Tribe Session N
   → events logged
   → retro generated
-  → lessons saved to bd remember + retros table
+  → lessons saved to km bd remember + retros table
 
 Tribe Session N+1
   → Chief startup: bun recall "tribe coordination"

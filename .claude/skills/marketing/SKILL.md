@@ -37,8 +37,8 @@ Coordinates the entire content marketing effort across silvery.dev, termless.dev
 Run this to see current state:
 
 ```bash
-bd children km-market
-bd show km-market
+km bd children km-market
+km bd show km-market
 ```
 
 Then check the execution tracker below.

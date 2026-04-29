@@ -32,7 +32,7 @@ docs/                    # Public documentation
 
 These directories add noise without value during search-driven exploration:
 
-- `.beads/` — dolt database files, jsonl logs (1M+ lines of issue history). Use `bd list`, `bd show <id>` instead.
+- `.beads/` — dolt database files, jsonl logs (1M+ lines of issue history). Use `km bd list`, `km bd show <id>` instead.
 - `node_modules/`, `.cache/`, `dist/`, `build/` — generated.
 - `vendor/*/dist/`, `vendor/*/node_modules/` — generated inside submodules.
 - `hub/` — internal-only drafts. Reference for context if asked, but don't propose changes here unless the user explicitly opens hub work.
@@ -65,23 +65,23 @@ tail -f /tmp/debug.log    # in another terminal
 This project uses **bd** for issue tracking. Bead IDs follow `km-<scope>.<slug>`.
 
 ```bash
-bd ready                 # Find available work
-bd show <id>             # View issue details
-bd update <id> --claim   # Claim before coding
-bd close <id>            # Complete
+km bd ready                 # Find available work
+km bd show <id>             # View issue details
+km bd update <id> --claim   # Claim before coding
+km bd close <id>            # Complete
 bd dolt push             # Push to dolt remote (before git push)
 ```
 
 When closing, include a brief reason:
 
 ```bash
-bd close km-foo.bar --reason "Fixed by <commit-sha>. Test: <path>."
+km bd close km-foo.bar --reason "Fixed by <commit-sha>. Test: <path>."
 ```
 
 ## Session workflow
 
-1. **Find work** — `bd ready` or pick up a user request
-2. **Claim if applicable** — `bd update <id> --claim`
+1. **Find work** — `km bd ready` or pick up a user request
+2. **Claim if applicable** — `km bd update <id> --claim`
 3. **Recall prior context** — `bun recall "<bead-id>"` (FTS5-indexed session history; <100ms)
 4. **Implement** — write a failing test first for bugs (`apps/silvercode/tests/<bug>.test.tsx`)
 5. **Verify** — `bun fix && bun vitest run <dir>` and `npx tsc --noEmit`

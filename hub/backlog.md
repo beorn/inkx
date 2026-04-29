@@ -4,7 +4,7 @@ Ordered by priority. Position is priority — top = next. Move the line to re-pr
 
 Related:
 - Holistic roadmap + silvery horizons: [`roadmap.md`](roadmap.md). Don't duplicate — link.
-- Bead details: `bd show <id>`.
+- Bead details: `km bd show <id>`.
 
 ## Now
 

@@ -729,7 +729,7 @@ Very little, on purpose. Phase A (§8) is what we're executing. But knowing the 
 
 ## 11. Current bead tracking
 
-Single tracking tree under the permanent scope epic **`km-storage`** (`bd show km-storage`). **This section lists architecture-path beads only**; standing cleanup/bug beads live under the same epic but are out-of-band from this doc's scope.
+Single tracking tree under the permanent scope epic **`km-storage`** (`km bd show km-storage`). **This section lists architecture-path beads only**; standing cleanup/bug beads live under the same epic but are out-of-band from this doc's scope.
 
 **Phase A architecture-path beads — all shipped (2026-04-22 session)**:
 

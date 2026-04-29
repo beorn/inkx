@@ -87,9 +87,9 @@ Hard-won lessons from big refactoring projects. Follow these to avoid common tra
 **Solution**: Before starting any refactoring work:
 
 ```bash
-bd list --status open   # Find related beads
+km bd list --status open   # Find related beads
 # Update each bead's description to reflect current state
-bd update <id> --description "Updated: now uses NewWay pattern..."
+km bd update <id> --description "Updated: now uses NewWay pattern..."
 ```
 
 ### 2. Break Intentionally

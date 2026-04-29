@@ -475,13 +475,13 @@ Standard km shortcuts work:
 The `/pm` skill changes from `bd` to `km bd`:
 
 ```diff
-- bd list --status open
+- km bd list --status open
 + km bd list --status open
 
-- bd ready --limit 15
+- km bd ready --limit 15
 + km bd ready --limit 15
 
-- bd close <id> --reason "..."
+- km bd close <id> --reason "..."
 + km bd close <id> -r "..."
 ```
 
@@ -659,7 +659,7 @@ closed_at: 2026-04-22T14:12:00Z
 Per `klink.md`, sigils (`@`, `+`, `#`) are name-prefixes. The same primitive carries multiple "domains" of nodes, distinguished by sigil:
 
 - **`@<prefix>/...`** — issues (`@km/storage/lazy-hydration`, `@cloudi/...`)
-- **`@mem/<slug>`** — memories (replaces `bd remember`); content is the insight, sectioned for paragraph-sized entries
+- **`@mem/<slug>`** — memories (replaces `km bd remember`); content is the insight, sectioned for paragraph-sized entries
 - **`@<Person>`** — people (existing convention)
 - **`#<tag>`** — tags (existing convention)
 - **`+<project>`** — projects (existing convention)
@@ -670,7 +670,7 @@ The `@` sigil is a render-mode hint. When a wikilink resolves to a sigil-prefixe
 
 ## Memories
 
-Replace `bd remember` with `@mem`-tagged sections in `mem/` (or `memory/`).
+Replace `km bd remember` with `@mem`-tagged sections in `mem/` (or `memory/`).
 
 ```markdown
 ## Dolt sync fix @memory
@@ -735,14 +735,14 @@ Ids accept both canonical and legacy forms: `km bd show @km/storage/lazy-hydrati
 
 ## Migration
 
-`km bd migrate` reads `.beads/issues.jsonl` (refreshed via `bd export`) and emits one .md file per issue under the configured `Parent:` directory.
+`km bd migrate` reads `.beads/issues.jsonl` (refreshed via `km bd export`) and emits one .md file per issue under the configured `Parent:` directory.
 
 Current state — structural cutover infrastructure shipped:
 
 - **Parser** (`packages/km-beads/src/schema.ts`) handles bd v1.0 export shape: numeric priority, `dependencies` array, `_type: "memory"` records parsed into a typed stream. 4666/4666 issues + 3/3 memories parse, 0 errors.
 - **Path-form filenames + aliases** (`bdIdToPathForm` / `bdIdToAliases`): `km-silvercode.acp-rename` → `silvercode/acp-rename.md` with frontmatter `id: silvercode/acp-rename` + `aliases: [km-silvercode.acp-rename, km-silvercode-acp-rename]`. Sub-issues with deeper dot-form (`km-silvery.backdrop-hardening.slim-barrel`) nest correctly. Auto-id beads (`km-q5hji`) park under `_orphan/`.
 - Cross-graph relations — bd v1.0 dependencies[] translates to blocks:: / blocked-by:: / related:: Logseq-style multi-value wikilink lines emitted at the top of the body. Targets are absolute path-form ([[silvery/backdrop-hardening]]) so they resolve regardless of host file location.
-- **Memories** (`bd remember`, `bd memories`, `bd prime`) write to `mem/<key>.md` with a single `## <Title> @memory` section. Migration writes the same shape, so memories survive the bd→km bd cutover round-trip.
+- **Memories** (`km bd remember`, `km bd memories`, `km bd prime`) write to `mem/<key>.md` with a single `## <Title> @memory` section. Migration writes the same shape, so memories survive the bd→km bd cutover round-trip.
 - **Legacy autolinks** rewritten *at import* (`rewriteLegacyIdMentions`) — bd-form ids in prose become `@<prefix>/<path-form>` once at migration time, not at every render. Skips matches inside existing wikilinks or inline code.
 - **Resolver** (`resolveShortId` in `short-ids.ts`) tries three forms in order: canonical path-form `data.id` → legacy `data.short_id` → frontmatter `aliases[]`. Sigil-prefixed input (`@km/silvercode/acp/rename`) is normalized to canonical path-form before lookup.
 - **Configurable prefix** — runtime new beads pull `beads.prefix` from `.km/config.yaml`; migration pulls `issue-prefix` from the source vault's `.beads/config.yaml` (or `--source <dir>` override). No hardcoded `"km"` in source.
@@ -750,7 +750,7 @@ Current state — structural cutover infrastructure shipped:
 Remaining cutover work (last mile):
 
 - **`@km/beads/pm-skill-rewrite`** — `.claude/skills/pm/` and CLAUDE.md examples switch from `bd` to `km bd`.
-- **`@km/beads/hooks-rewrite`** — SessionStart hooks call `km bd prime` instead of `bd prime`; `bd dolt pull` becomes `git pull` (markdown is the source of truth).
+- **`@km/beads/hooks-rewrite`** — SessionStart hooks call `km bd prime` instead of `km bd prime`; `bd dolt pull` becomes `git pull` (markdown is the source of truth).
 - **`@km/beads/dolt-archive`** — once both forms agree, archive `.beads/` to `.beads.bak/` and remove the brew dep.
 
 Resolution priority (canonical, served by `resolveShortId`):

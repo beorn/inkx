@@ -386,7 +386,7 @@ Five test files (83 tests, all green):
 2. `km-silvercode.connection-system` — silvercode adopts the package; CLI flag refactor; `acp` + `mcp` subcommands.
 3. `km-silvercode.zero-config` — built-in `BUILTIN_AGENTS` + cred-env auto-discovery for first-run.
 
-Each bead independently shippable; chain enforced via `bd dep`.
+Each bead independently shippable; chain enforced via `km bd dep`.
 
 ## Open questions for follow-up
 
