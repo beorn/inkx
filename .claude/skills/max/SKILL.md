@@ -112,57 +112,70 @@ For type restructurings, field renames, or interface changes touching 50+ files:
 
 **The agent's value is understanding the pattern, not applying it 189 times.** See `.claude/skills/refactor/migrate.md`.
 
-## Isolation: When to Use Worktrees
+## Isolation: claim a pool slot, don't create a new branch
 
-**Don't assume you're the only agent.** Other agents may be working on the same repo concurrently.
+**Use the worktree pool. Don't spawn `Agent({isolation: "worktree"})` for write work.**
 
-### HARD RULE: 2+ agents on the same submodule = worktree-isolate every agent
+The repo has a persistent pool: `.claude/worktrees/wt1`..`wt9`, each on a stable branch `wtN`. Lease beads `km-wt1`..`km-wt9` (parented under `km-wt`) are the locks. Slots are recycled in place — never destroyed, never per-task.
 
-If you're spawning two or more agents that will touch files inside the **same** `vendor/<pkg>/` submodule (silvery, bearly, flexily, loggily, termless, etc.), **every such agent MUST use `isolation: "worktree"`** — no exceptions based on blast-radius classification. This rule supersedes the blast-radius table below whenever it applies.
+Per CLAUDE.md "Branches and worktrees — the standing rule": ephemeral per-task branches caused branch-namespace pollution and silent HEAD-hops in the main repo. Pool slots use stable named branches (`wtN`) and bounded concurrency.
 
-**Why:** The 2026-04-20 backdrop+themedetect incident had exactly TWO agents on vendor/silvery and the failure already happened (orphaned commits + lying bead closure). Two is sufficient. The 2026-04-22 hook-router /max run repeated the rule violation (Agent A + Agent B both on vendor/bearly without isolation); it worked only because the agents happened to touch disjoint files — discipline, not luck, should be what prevents collisions.
+### How to spawn a write-agent in /max
 
-Checklist before launching the Agent calls:
+For each independent unit of write work:
 
-- Count: how many agents in this `/max` batch will write to `vendor/<same-pkg>/`?
-- If ≥ 2: add `isolation: "worktree"` to **every one of them** that touches that submodule, and append the CRITICAL commit block below
-- After launching: verify with `ls .claude/worktrees/` that each clone directory actually exists. `isolation: "worktree"` invokes `.claude/hooks/worktree-create.sh` which calls `.claude/lib/isolate.sh` (APFS `cp -c -R`) to materialize the clone. The hook blocks until the clone is ready (~20-25s on the km repo).
-- **Clones start from HEAD, not your WIP.** isolate.sh runs `git reset --hard HEAD && git clean -fd` (main repo + recursive submodules) after cp -c. If an agent needs to work on top of your uncommitted changes, commit them first. This prevents agents from accidentally committing your WIP as their own work.
-- Canonical memory: [feedback-worktree-shared-submodule.md](/Users/beorn/.config/claude-profiles/bjorns@gmail.com/projects/-Users-beorn-Code-pim-km/memory/feedback-worktree-shared-submodule.md)
+1. **Claim a pool slot:**
+   ```bash
+   km bd update km-wtN --claim   # pick the lowest-numbered open slot
+   ```
+2. **Refresh the slot:**
+   ```bash
+   cd .claude/worktrees/wtN && git fetch origin && git rebase origin/main && git submodule update --recursive
+   ```
+3. **Spawn the agent into the slot.** Pass the slot path in the prompt; do NOT pass `isolation: "worktree"`. The agent works in the existing pool slot, commits to branch `wtN`.
+4. **On agent finish:** lead cherry-picks `wtN` tip onto `main`, pushes, resets `wtN` back to `origin/main`, runs `git submodule update --recursive`, then `km bd close km-wtN`. The slot is now free for the next claim.
 
-### Blast-radius classification (applies when the submodule rule doesn't force isolation)
+### When to use `isolation: "worktree"` (rare)
+
+Only when: (a) the pool is full (all 9 slots claimed), (b) the agent is read-only and write isolation isn't needed (use Explore subagent in main instead — even better), or (c) the work is so short-lived that pool churn isn't worth it (sub-second one-shots — but those usually don't need isolation at all).
+
+**Default: pool slot. Fallback only if pool is full.**
+
+### HARD RULE: 2+ write-agents on the same submodule
+
+When ≥ 2 agents will write to `vendor/<pkg>/` (silvery, bearly, flexily, loggily, termless, etc.), **each agent MUST be in its own pool slot** (or fallback worktree). Never let two write-agents share a working tree on the same submodule.
+
+**Why:** silent corruption — orphaned commits, lying bead closure, format-reflow commits sweeping up half-staged work from the other agent. The 2026-04-20 backdrop+themedetect incident, the 2026-04-22 hook-router run, and the 2026-04-29 branch-hop on the bug/km-bearly.worktree-merge-origin-race-preflight branch — all variants of the same root cause.
+
+### Blast-radius classification
 
 | Blast Radius | Examples | Isolation |
 |---|---|---|
-| **Foundational** — changes to core libraries, rendering engines, test infrastructure, storage layer | silvery output phase, flexily layout, km-storage schema, vitest config | **Worktree** (`isolation: "worktree"`) — breakage here breaks every other agent |
-| **Cross-cutting migrations** — type changes touching 50+ files across packages | item-as-object, field renames, API restructuring | **NO worktree** — agent needs main state. Use batch-refactor on main. |
-| **Cross-cutting additive** — touches multiple packages but additive-only | New shared utility, package.json scripts | **Worktree** preferred, shared OK |
-| **Leaf** — isolated to one app/component, no downstream consumers | km-tui view component, CLI command handler, single test file | **Shared workspace** (default) — low risk of conflicts |
+| **Foundational** — changes to core libraries, rendering engines, test infrastructure, storage layer | silvery output phase, flexily layout, km-storage schema, vitest config | **Pool slot** (always). Foundational breakage cascades; isolation is mandatory. |
+| **Cross-cutting migrations** — type changes touching 50+ files across packages | item-as-object, field renames, API restructuring | **NO isolation** — use `/refactor migrate` on main. Migration is mechanical, not agentic. |
+| **Cross-cutting additive** — touches multiple packages but additive-only | New shared utility, package.json scripts | Pool slot if any chance of conflict; main if read-only |
+| **Leaf** — isolated to one app/component | km-tui view component, single test file | Pool slot still preferred; main acceptable for truly localized changes per the standing rule |
 
-**Worktree commit + branch convention (eventual-consistency model):**
-- Agents in worktrees **MUST commit incrementally**. Clones live at `.claude/worktrees/<name>/`. The WorktreeRemove hook auto-classifies on finish: clones with no uncommitted/unique work are deleted, clones with uncommitted or unmerged-unique work are preserved as the recovery anchor. The lead session triages preserved clones via `/sop infra wip-triage` (km-infra.orphan-branch-audit).
-- **Do NOT mandate `git push origin`.** The local branch in the clone IS the deliverable. Push-to-origin was scar tissue from past lost-work incidents; the eventual-consistency model handles termination differently — see canonical memory `feedback-agent-isolation-eventual-consistency.md`.
-- **Every worktree agent prompt MUST end with this block** (append to END of every `isolation: "worktree"` prompt):
+### Pool agent protocol (append to every /max write-agent prompt)
 
-  > CRITICAL: You are in a worktree at `.claude/worktrees/<your-name>/`.
-  > Commit incrementally to a branch named `wip/<bead-id>` (or
-  > `<type>/<bead-id>` if you're confident the work is finishable in
-  > this session — `bug/`, `feat/`, `fix/`, etc.). Use conventional
-  > commits. **Do NOT push to origin** — the local branch is the
-  > deliverable; the lead session triages and integrates.
-  >
-  > Your final message MUST include: branch name, worktree path
-  > (so the lead can `git fetch <worktree-path> <branch>:<branch>`),
-  > local SHA from `git rev-parse HEAD`, files changed (absolute paths),
-  > tests added/updated (paths + counts), and self-verify output
-  > (actual `tsc --noEmit | grep "error TS" | wc -l` count, vitest
-  > pass/skip/fail breakdown — not assertions).
+When the lead spawns an agent into a pool slot, include this in the prompt:
 
-  **Why this works**: Any actor (sub-agent, parent session, hook, harness) can stop without notice. The system is eventually consistent. Branches are a triage queue, not an integration API. Lost-work incidents are prevented by *commit incrementally* (the recovery anchor); push-to-origin doesn't help when the parent session — the would-be observer — is itself unreliable.
+> CRITICAL: You are in pool slot `.claude/worktrees/wtN/` on branch `wtN`. The slot was rebased on `origin/main` before you started.
+> - Commit incrementally to branch `wtN` with conventional commits. **Do NOT** create a new feature branch — that's exactly what the pool model replaces.
+> - **Do NOT push to origin** — the local branch is the deliverable; the lead session integrates via cherry-pick.
+> - When you finish, send a final message with: `wtN`, the worktree path, local SHA from `git rev-parse HEAD`, files changed (absolute paths), tests added/updated (paths + counts), and self-verify output (actual `tsc --noEmit | grep "error TS" | wc -l` count, vitest pass/skip/fail breakdown — not assertions).
+> - Do NOT close the bead `km-wtN` yourself — that's the lead's job after integration.
 
-- **Integration is the lead's job**, not the agent's. Lead runs `git fetch <worktree-path> <branch>:<branch>` then `git merge --ff-only <branch>` (or `cherry-pick -X theirs <sha>`). Worktree + branch get cleaned up via `/sop infra wip-triage` once the work is integrated.
+**Integration is the lead's job.** After the agent reports done:
+```bash
+cd /Users/beorn/Code/pim/km   # main repo
+git cherry-pick <wtN-tip-sha>   # or git merge --ff-only wtN
+git push origin main
+cd .claude/worktrees/wtN && git fetch origin && git reset --hard origin/main && git submodule update --recursive
+km bd close km-wtN --reason "shipped <main-tip-sha>"
+```
 
-**If `isolation: "worktree"` fails** (hook error, target already exists, non-APFS + tar failure): fall back to shared workspace but sequence foundational agents — don't run two foundational agents on the same package concurrently. Check `/tmp/worktree-create-hook.log` for the failure reason.
+**If pool fallback is needed** (`Agent({isolation: "worktree"})` because pool is full): the auto-clone uses APFS `cp -c -R` (~20-25s). Verify with `ls .claude/worktrees/` after spawn. Fallback agents commit to `wip/<bead-id>` branches; lead integrates via `git fetch <worktree-path> wip/<bead-id>:wip/<bead-id>` then cherry-pick. Branch gets garbage-collected when the clone is removed.
 
 ## Anti-Patterns
 

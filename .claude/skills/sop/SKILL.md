@@ -249,7 +249,7 @@ Start here. These are automatable and already have skill implementations.
 
 ### 4. backlog — is the house tidy?
 
-**Assets**: beads (.beads/), session history, roadmap
+**Assets**: beads (vault `@km/<scope>/<slug>.md`), session history, roadmap
 **Cadence**: weekly
 **Checks**:
 - [ ] `stale-beads` — `km bd stale` (no activity > 2 weeks)

@@ -214,7 +214,7 @@ Run tests and lint — table stakes, not the point of this skill:
 cd /Users/beorn/Code/pim/km ; bun fix && bun run test:fast | tail -30
 ```
 
-Close completed beads. Sync (`bd dolt push`). Commit and push.
+Close completed beads. Commit and push (beads ride normal git transport — no separate sync step).
 
 **BLOCK if tests or lint fail.**
 

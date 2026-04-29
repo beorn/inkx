@@ -1,7 +1,7 @@
 ---
 description: "Commit changes to git. Use when ready to commit staged or unstaged changes."
 argument-hint: "[message]"
-allowed-tools: Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git pull:*), Bash(bd dolt push:*), Bash(cd vendor/*), Bash(bun run lint:*), Bash(rm -f .git/index.lock:*), AskUserQuestion
+allowed-tools: Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git pull:*), Bash(cd vendor/*), Bash(bun run lint:*), Bash(rm -f .git/index.lock:*), AskUserQuestion
 ---
 
 # Commit
@@ -32,7 +32,6 @@ allowed-tools: Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git p
 
 ```bash
 set -e
-bd dolt push 2>/dev/null || true
 git add file1.ts file2.ts && \
   git diff --cached --quiet && echo "Nothing to commit" || \
   git commit -m "fix(scope): description
@@ -49,7 +48,6 @@ set -e
 
 Co-Authored-By: Claude <noreply@anthropic.com>")
 
-bd dolt push 2>/dev/null || true
 git add vendor/silvery file1.ts && \
   git diff --cached --quiet && echo "Nothing to commit" || \
   git commit -m "fix(tui): msg

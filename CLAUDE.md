@@ -264,22 +264,7 @@ Before theorizing about a bug or issue, **search history first**: `bun recall "t
 
 ## Issue Tracking (km bd / beads)
 
-This project uses **`km bd`** for issue tracking — a km-native CLI. The Go `bd` binary and Dolt backend were retired (`@km/beads/dolt-archive` + `@km/beads/split-backend` closed 2026-04-29; `bd` is no longer on PATH). Bead state lives as **markdown files in the vault** (`@km/<scope>/<slug>.md`) — git is the sync mechanism; there is no separate Dolt push.
-
-```bash
-km bd ready                    # Find available work
-km bd show <id>                # View issue details
-km bd create "title" -p 2      # Create a bead (P0–P4)
-km bd update <id> --claim      # Claim before starting
-km bd close <id>               # Complete work
-km bd list --status open       # List open beads
-git push                       # Sync beads to remote — beads ride with normal git
-```
-
-**All bead operations happen on the main repo's main worktree.** Bead state is checked-out per-worktree (the `@km/<scope>/<slug>.md` files), so an update from a sibling worktree doesn't propagate to main until commit + push + pull. To avoid that ceremony, run `km bd create / update / claim / close` from the main repo on `main`, regardless of which worktree owns the code change. The exception is the worktree-pool slot lifecycle — `km bd close km-wtN` runs from inside `wtN` to release a slot, since the slot's bead is the slot owner's own bead.
-
-`km bd prime` injects workflow context on session start via `.claude/hooks/bd-prime.sh`. Use `/pm` for the full workflow (create, claim, close, triage). Claim before coding. Any significant work (features, bug fixes, refactors) should have a bead — consider creating one when planning.
-**When `/pm` reports a bug requiring code changes, auto-run `/tdd`** — create the bead, then immediately reproduce with a failing test before fixing. See [.claude/skills/pm/] and [.claude/skills/tdd/].
+Issue tracking is **`/beads`** — see [.claude/skills/beads/SKILL.md](.claude/skills/beads/SKILL.md) for the canonical surface (CLI, lifecycle, ids, claim/release, storage model). Bead state is markdown in `@km/<scope>/<slug>.md` synced via normal git. **All bead ops on main repo's main worktree, except slot-bead self-close** (`km bd close km-wtN` from inside `wtN`). Claim before coding. `/pm` is an alias-and-deeper-recipes layer over `/beads`. **When `/pm` reports a bug requiring code changes, auto-run `/tdd`** — reproduce with a failing test before fixing.
 
 ## Commits
 
@@ -291,39 +276,9 @@ Use `/commit`. Follow [Conventional Commits](https://conventionalcommits.org): `
 
 ## Branches and worktrees — the standing rule
 
-**No branch hopping in main. Conflict-prone work goes in a pool worktree. Localized work in main is fine.**
+**Main repo's working dir stays on `main`. Conflict-prone work goes in a pool slot. Localized writes + read-only agents in main are fine.**
 
-The actual failure mode that motivates this rule is `git checkout feat/X` *in the main repo's working dir* — that hops HEAD between sessions, files leak between branches via the shared working dir, and "format reflow" commits accidentally sweep up half-staged work from a concurrent agent. Multiple agents adding tests in different files, or one editing `apps/km-cli/` while another edits `apps/silvercode/`, never collide. Optimize the rule for the real failure, not the imagined one.
-
-The rules:
-
-1. **Never `git checkout <feature-branch>` in the main repo's working dir.** Not for a quick edit, not for a one-off check, not for "just to verify." The main repo working tree is on `main` — pull, edit, commit, push. The only exception is the orchestrator's consolidation phase (cherry-pick branches, push, delete).
-
-2. **Multiple agents may operate in main concurrently** for *localized changes* — different files, different packages, no overlap. Read-only / search / diagnosis / planning agents always belong in main.
-
-3. **Conflict-prone work goes in a pool worktree slot.** Pool: `.claude/worktrees/wt1`..`wtN`, each on a stable branch `wtN` (no `feat/` prefix). Worktrees are persistent — never created/destroyed per task, always checked out, always present. Agents *move in*, do their work, *move out*; the slot persists.
-
-4. **Pool claim/release protocol** (bead-as-lock):
-   - Claim: `km bd update km-wt3 --claim` → if assigned_to is set, the slot is busy; pick another or wait.
-   - Move in: `cd .claude/worktrees/wt3 && git fetch origin && git rebase origin/main` — pick up latest main.
-   - Work: edits, commits on branch `wt3`. Multiple commits OK; no naming convention beyond conventional commits.
-   - Push: `git push origin wt3` — the orchestrator will cherry-pick to main, OR push directly to `main` (fast-forward) if no conflicts and you have the lease.
-   - Move out: reset wt3 back to `origin/main` (`git reset --hard origin/main && git submodule update --recursive`) and `km bd close km-wt3 --reason "shipped <SHA>"`. The slot is recycled, ready for next claim.
-
-5. **`Agent({isolation: "worktree"})` for sub-agents stays available** for ephemeral, single-shot agent runs. The pool is for sessions and longer-running work; ephemeral sub-agents can still spawn one-shot worktrees that auto-cleanup.
-
-6. **Verify isolation post-spawn** — `Agent({isolation: "worktree"})` can fail silently (lock contention, submodule failure). Check `git worktree list --porcelain` after spawn; fall back to claiming a pool slot if missing.
-
-7. **Never `git stash` / `git reset --hard` / `git checkout <ref> -- <path>` against another agent's working tree.** If the main repo's working dir has uncommitted files from another agent, ask the owner (broadcast on tribe) to commit or discard. Use `git show <ref>:<path> > <path>` for read-only retrieval. The reset-on-release inside a pool worktree is the only sanctioned destructive op, because the slot owns its branch.
-
-8. **Cherry-picks beat merges for cross-worktree integration.** The orchestrator's consolidation phase cherry-picks each branch's commits onto main, resolving conflicts inline. Direct `git merge wtN main` from outside the worktree fragments history and risks submodule pointer mismatches.
-
-**Incident log** (most recent first, motivating the rule):
-- 2026-04-29 morning: silvercode2 broadcast "branch hopped on me again" mid-write — main repo HEAD shifted from `feat/predicate-pre-map-filter` to `feat/km-tasks.blocked-filter` between read and write of the same file. `810edd137 chore(format): oxfmt reflow` accidentally swept up half-staged work from share-resolvetask's port-blocked-filter agent. Root cause: long-lived feat/ branches checked out in main repo.
-- 2026-04-28 evening: main repo's HEAD bounced through `feat/fuzz-migrate-roundtrip` → `feat/predicate-pre-map-filter` from concurrent agents committing to whatever was current.
-- Multiple sessions over 2026-04-Q2: `Agent({isolation: "worktree"})` silent failures fell back to main tree, causing same-tree concurrent edits.
-
-The pool reframe: instead of "every agent makes a new worktree" (high spawn cost, conflict-prone branch proliferation) → "agents claim from a small persistent pool" (zero spawn cost, visible contention via `km bd list`, bounded resource).
+The full rule, claim/release protocol, agent-spawn discipline, and incident log live in **[.claude/skills/worktree/SKILL.md](.claude/skills/worktree/SKILL.md)**. Load `/worktree` before spawning concurrent agents, asking "where do I work?", or planning anything that touches more than one branch. The 9 pool slots `wt1`..`wt9` (lease beads `km-wt1`..`km-wt9` under epic `km-wt`) are the canonical concurrency primitive — `Agent({isolation: "worktree"})` is the rare fallback. **Never `git checkout <feature>` in the main repo.**
 
 ## Shipping (push to main, version bumps, npm publish)
 

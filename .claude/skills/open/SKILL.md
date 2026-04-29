@@ -23,7 +23,7 @@ For each argument, resolve in this order and run `open [flags] <resolved>`:
 4. **Home-relative path** (`~/...`) → expand tilde
 5. **URL** (any `scheme://...` — `http`, `https`, `file`, `ftp`, `ssh`, etc.) → pass through; `open` routes to the default handler
 6. **km repo `~shortcut`** (a `~<name>` that does NOT start with `~/` and has no dots) → look up `<name>` in `~/.config/km/config.yml` under `repos:` or `shortlinks:`. Resolve to the absolute path (or URL for shortlinks) and open. Common ones: `~km`, `~silvery`, `~vterm`, `~vault`, `~fd`, `~taxprep`. Subpath supported: `~km/packages/km-markdown/src/extensions/km-block-id.ts`.
-7. **bd bead** (matches `^km-[a-z0-9-]+$`) → first try opening the bead's markdown file at `~/Code/pim/km/.beads/<id>.md` if it exists. If not, run `km bd show <id>` and present the output instead (since `open` can't launch a bd view).
+7. **bd bead** (matches `^km-[a-z0-9-]+$`) → resolve via `km bd show <id>` to find the markdown file path under `~/Code/pim/km/@km/<scope>/<slug>.md` (or `imports/<source>-<date>/...` for migrated beads), then `open` it. If the file doesn't exist, present `km bd show` output instead.
 8. **Bare filename** (no slash, not a URL, not a bead, not a `~` shortcut) → `git ls-files` under the current repo root, filter by basename match. Single match → open. Multiple → list matches and ask which one. Zero → fall through to (9).
 9. **Relative path** (contains a slash, doesn't start with `/` or `~/`) → resolve against current working directory.
 
@@ -55,7 +55,7 @@ Flags apply to the next target in the arg list. Mix freely: `/open -R config.yml
 | `/open ~silvery/src/index.ts` | `open /Users/beorn/Code/pim/km/vendor/silvery/src/index.ts` |
 | `/open ~/Desktop/screen.png` | `open /Users/beorn/Desktop/screen.png` |
 | `/open packages/km-markdown/src/extensions/km-block-id.ts` | `open $(pwd)/packages/km-markdown/src/extensions/km-block-id.ts` |
-| `/open km-9nvbg` | `open ~/Code/pim/km/.beads/km-9nvbg.md` (or `km bd show km-9nvbg` if the md file doesn't exist) |
+| `/open km-9nvbg` | `km bd show km-9nvbg` to find the path, then `open ~/Code/pim/km/@km/<scope>/<slug>.md` (or fall back to printing `km bd show` output) |
 | `/open https://github.com/beorn/km` | `open https://github.com/beorn/km` |
 | `/open -R bun.lock` | `open -R /Users/beorn/Code/pim/km/bun.lock` |
 | `/open -a 'Visual Studio Code' src/index.ts` | `open -a 'Visual Studio Code' src/index.ts` |
@@ -71,7 +71,7 @@ Each non-flag token is its own target. Opens run sequentially — don't batch in
 
 - **Unknown `~shortcut`**: not in `~/.config/km/config.yml` → report with the list of known shortcuts (read from config)
 - **Ambiguous bare filename**: multiple `git ls-files` matches → show the list and ask which one (don't open randomly)
-- **Bead not found**: neither `.beads/<id>.md` exists nor `km bd show` succeeds → report cleanly
+- **Bead not found**: neither the resolved markdown file exists nor `km bd show` succeeds → report cleanly
 - **File doesn't exist after resolution** → report the expected path so the user can correct the typo
 - **Non-macOS**: `open` is macOS-specific; if it's missing, say so
 
