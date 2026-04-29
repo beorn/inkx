@@ -300,11 +300,9 @@ export async function runClaudeAcpServer(opts: RunClaudeAcpServerOpts = {}): Pro
             }
             if (event.kind === "session-end" || event.kind === "session-lifecycle") {
               const ended =
-                event.kind === "session-end" ||
-                (event.kind === "session-lifecycle" && event.state === "ended")
+                event.kind === "session-end" || (event.kind === "session-lifecycle" && event.state === "ended")
               if (!ended) return
-              const reason =
-                event.kind === "session-end" && event.stopReason ? event.stopReason : "subprocess exited"
+              const reason = event.kind === "session-end" && event.stopReason ? event.stopReason : "subprocess exited"
               clearTimeout(timer)
               unsubscribe()
               reject(

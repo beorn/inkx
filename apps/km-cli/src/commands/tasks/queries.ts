@@ -167,6 +167,25 @@ export function taskPathMatches(repo: Repo, task: KNode, filter: string): boolea
 }
 
 /**
+ * True if the task has at least one open blocker via `data.props["blocked-by"]`.
+ *
+ * Mirrors the bd shape: prop type "link" carries a single `target`, type "list"
+ * carries `values[].target`. A task with no `blocked-by` prop, or with the prop
+ * present but empty, counts as unblocked.
+ */
+export function taskIsBlocked(task: KNode): boolean {
+  const data = task.data as Record<string, unknown> | undefined
+  const props = data?.props as
+    | Record<string, { type?: string; target?: string; values?: Array<{ target?: string }> }>
+    | undefined
+  const bb = props?.["blocked-by"]
+  if (!bb) return false
+  if (bb.type === "link") return Boolean(bb.target)
+  if (bb.type === "list") return Array.isArray(bb.values) && bb.values.some((v) => Boolean(v?.target))
+  return false
+}
+
+/**
  * Check if a string looks like a query (vs a path or ID)
  * Query indicators: starts with @, #, +, -, contains :, or is a known date shortcut
  */

@@ -12,6 +12,7 @@ import { resolvePathArg } from "@km/fs-mount"
 import { loadRepo } from "../../load-repo.ts"
 import { collapseAncestorsWithTypes } from "@km/tree"
 import { KNode, type KNode as KNodeType } from "@km/core"
+import { normalizePriority } from "@km/beads"
 import { getRootPath } from "../../program.ts"
 import { getNodeDisplayName, formatCollapsedAncestor, formatTaskWithPath, formatTaskLine } from "./formatters.ts"
 import {
@@ -19,18 +20,59 @@ import {
   getTasksUnderNode,
   buildTaskTree,
   sortByPath,
+  taskIsBlocked,
   taskPathMatches,
   looksLikeQuery,
 } from "./queries.ts"
 
 export interface ListTasksOptions {
   status?: string
+  priority?: string
   query?: string
   all?: boolean
   detail?: boolean
   flat?: boolean
   id?: boolean
   json?: boolean
+  blocked?: boolean
+  unblocked?: boolean
+}
+
+/**
+ * Filter tasks by priority (canonical `P0`..`P4` form on `node.priority`).
+ *
+ * Accepts the same input shapes as bd: "P0".."P4" / "p0".."p4" / "0".."4".
+ * Returns the input list verbatim when `priority` is undefined. Invalid
+ * inputs (anything not normalizable to `P0`..`P4`) match nothing —
+ * surfacing a typo as "no results" rather than silently passing through.
+ */
+function filterTasksByPriority(tasks: KNodeType[], priority: string | undefined): KNodeType[] {
+  if (priority === undefined) return tasks
+  const normalized = normalizePriority(priority)
+  if (normalized === null) return []
+  return tasks.filter((t) => t.priority === normalized)
+}
+
+/**
+ * Filter tasks by blocked / unblocked state.
+ *
+ * Mirrors `km bd list` semantics: `--blocked` keeps only tasks with at least one
+ * `blocked-by` target; `--unblocked` keeps only tasks with none. Both flags set
+ * is mutually exclusive — last-flag-wins isn't ergonomic, so we treat the
+ * combination as "no filter" (commander allows both, the user typed both, and
+ * intersecting blocked ∧ unblocked is empty by definition).
+ */
+function filterTasksByBlocked(
+  tasks: KNodeType[],
+  options: Pick<ListTasksOptions, "blocked" | "unblocked">,
+): KNodeType[] {
+  if (options.blocked && !options.unblocked) {
+    return tasks.filter((t) => taskIsBlocked(t))
+  }
+  if (options.unblocked && !options.blocked) {
+    return tasks.filter((t) => !taskIsBlocked(t))
+  }
+  return tasks
 }
 
 /** Result of resolving input arguments into a filtered task list */
@@ -71,7 +113,7 @@ function filterTasksByStatus(
 function resolveFromQuery(
   repo: Repo,
   queryArg: string,
-  options: Pick<ListTasksOptions, "status" | "all">,
+  options: Pick<ListTasksOptions, "status" | "all" | "priority" | "blocked" | "unblocked">,
 ): KNodeType[] {
   let queryStr = queryArg
   if (!options.all && !queryStr.includes("status:")) {
@@ -80,7 +122,7 @@ function resolveFromQuery(
   if (options.status) {
     queryStr = `status:${options.status} ${queryStr}`
   }
-  return repo.query(queryStr)
+  return filterTasksByBlocked(filterTasksByPriority(repo.query(queryStr), options.priority), options)
 }
 
 /**
@@ -90,7 +132,7 @@ function resolveFromQuery(
 function resolveFromPathOrId(
   repo: Repo,
   pathOrId: string,
-  options: Pick<ListTasksOptions, "status" | "all">,
+  options: Pick<ListTasksOptions, "status" | "all" | "priority" | "blocked" | "unblocked">,
 ): ResolvedInput | null {
   // Try to find an exact node match first
   const rootNode = findNodeByPathOrId(repo, pathOrId)
@@ -101,15 +143,21 @@ function resolveFromPathOrId(
       return null
     }
 
-    // Get tasks under this root, then apply status filter.
+    // Get tasks under this root, then apply status + priority + blocked filters.
     // Root-scoped listing defaults to active tasks only (todo + wip).
     const subtasks = getTasksUnderNode(repo, rootNode.id)
-    const tasks = filterTasksByStatus(subtasks, options, "active")
+    const tasks = filterTasksByBlocked(
+      filterTasksByPriority(filterTasksByStatus(subtasks, options, "active"), options.priority),
+      options,
+    )
     return { tasks, rootNode, pathFilter: null }
   }
 
   // No exact match - treat as path filter (like `bun test <filter>`)
-  const allTasks = filterTasksByStatus(repo.getAllTasks(), options)
+  const allTasks = filterTasksByBlocked(
+    filterTasksByPriority(filterTasksByStatus(repo.getAllTasks(), options), options.priority),
+    options,
+  )
   const tasks = allTasks.filter((t) => taskPathMatches(repo, t, pathOrId))
   return { tasks, rootNode: null, pathFilter: pathOrId }
 }
@@ -143,7 +191,10 @@ function resolveInput(repo: Repo, pathOrId: string | undefined, options: ListTas
   }
 
   // Global task list (no positional arg, no query)
-  const tasks = filterTasksByStatus(repo.getAllTasks(), options)
+  const tasks = filterTasksByBlocked(
+    filterTasksByPriority(filterTasksByStatus(repo.getAllTasks(), options), options.priority),
+    options,
+  )
   return { tasks, rootNode: null, pathFilter: null }
 }
 
