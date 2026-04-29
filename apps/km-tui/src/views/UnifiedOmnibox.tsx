@@ -132,6 +132,7 @@ function PreviewPane({ content }: { content: PreviewContent }): React.ReactEleme
     <Box
       data-testid="omnibox-preview"
       flexDirection="column"
+      width="100%"
       marginTop={1}
       paddingX={1}
       borderStyle="single"

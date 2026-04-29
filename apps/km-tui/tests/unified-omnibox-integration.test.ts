@@ -239,20 +239,29 @@ describe("unified omnibox — runtime integration", () => {
     app.press("cmd+k")
     app.expect("[data-dialog='unified-omnibox']").toExist()
 
-    // Scan one rendered screen for the dialog top-border corner pair and
-    // return { start, end, width } in columns. Supports both double-line
-    // (╔═══╗) and single-line / rounded (╭───╮, ┌───┐) borders since the
-    // opencode-style refresh changed the default.
+    // Scan rendered screen for the dialog top-border corner pair and
+    // return { start, end, width } in columns. Supports double-line
+    // (╔═══╗) and single-line / rounded (╭───╮, ┌───┐) borders.
+    //
+    // Constrain the scan to the dialog's bounding box columns so we don't
+    // accidentally pick up board card borders rendering BEHIND the dialog
+    // (the omnibox is opencode-style borderless, but the inner PreviewPane
+    // draws a single-line frame; we want THAT frame, not whatever the board
+    // happens to paint outside the dialog rect).
     const scanBorder = (): { start: number; end: number; width: number } | null => {
+      const dialogBox = app.q("[data-dialog='unified-omnibox']").boundingBox()
+      if (!dialogBox) return null
+      const minCol = dialogBox.x
+      const maxCol = dialogBox.x + dialogBox.width
       const screen = app.screen.text
       const topLeft = /[╔╭┌]/
       const topRight = /[╗╮┐]/
       for (const line of screen.split("\n")) {
         const startMatch = line.search(topLeft)
         const endMatch = line.search(topRight)
-        if (startMatch >= 0 && endMatch > startMatch) {
-          return { start: startMatch, end: endMatch, width: endMatch - startMatch + 1 }
-        }
+        if (startMatch < minCol || startMatch >= maxCol) continue
+        if (endMatch < startMatch || endMatch >= maxCol) continue
+        return { start: startMatch, end: endMatch, width: endMatch - startMatch + 1 }
       }
       return null
     }
@@ -296,26 +305,50 @@ describe("unified omnibox — runtime integration", () => {
     // Every frame must have the dialog mounted.
     for (const f of frames) {
       expect(f.box, `boundingBox must be present at ${f.label}`).not.toBeNull()
-      expect(f.border, `double-border must be painted at ${f.label}`).not.toBeNull()
     }
 
-    // All layout widths must equal the first — the dialog is pinned.
+    // All layout widths must equal the first — the dialog is pinned. This is
+    // the load-bearing invariant: the outer wrapper Box reports a stable
+    // column count regardless of result count or sigil mode.
+    //
+    // Border-stability used to be a separate assertion, but the dialog is
+    // intentionally borderless (opencode-style, `borderStyle={undefined}`
+    // on the inner ModalDialog). The only border in the dialog rect comes
+    // from the optional PreviewPane, which is mounted only when there's a
+    // selected row — so the border can legitimately come and go between
+    // frames. The bounding box is the right object to assert on.
     const firstBoxWidth = frames[0]!.box!.width
-    const firstBorder = frames[0]!.border!
     const history = frames
       .map((f) => `${f.label}: box.width=${f.box?.width} border=${f.border?.start}..${f.border?.end}`)
       .join("\n")
     for (const f of frames) {
       expect(f.box!.width, `layout width must be stable across frames:\n${history}`).toBe(firstBoxWidth)
-      expect(f.border!.start, `border start column must be stable:\n${history}`).toBe(firstBorder.start)
-      expect(f.border!.end, `border end column must be stable:\n${history}`).toBe(firstBorder.end)
+    }
+    // When the preview pane IS mounted (frames with a selected row), its
+    // border start/end must be stable across those frames — content-driven
+    // PreviewPane width regression guard.
+    const bordered = frames.filter((f) => f.border != null)
+    if (bordered.length >= 2) {
+      const firstBorder = bordered[0]!.border!
+      for (const f of bordered) {
+        expect(f.border!.start, `preview border start must be stable across populated frames:\n${history}`).toBe(
+          firstBorder.start,
+        )
+        expect(f.border!.end, `preview border end must be stable across populated frames:\n${history}`).toBe(
+          firstBorder.end,
+        )
+      }
     }
 
-    // The border must fit within the layout box (the ModalDialog may render
-    // an inner border inside an outer container with padding, so border.width
-    // ≤ box.width is the correct invariant — not strict equality).
-    expect(firstBorder.width).toBeLessThanOrEqual(firstBoxWidth)
-    expect(firstBorder.width).toBeGreaterThan(0)
+    // When a preview pane is mounted, its border must fit within the layout
+    // box (the ModalDialog may render an inner border inside an outer
+    // container with padding, so border.width ≤ box.width is the correct
+    // invariant — not strict equality).
+    if (bordered.length > 0) {
+      const sampleBorder = bordered[0]!.border!
+      expect(sampleBorder.width).toBeLessThanOrEqual(firstBoxWidth)
+      expect(sampleBorder.width).toBeGreaterThan(0)
+    }
   })
 
   // Regression: km-tui.omnibox-goto-no-cursor
