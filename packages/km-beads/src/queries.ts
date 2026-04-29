@@ -13,6 +13,44 @@ import { resolveShortId } from "./short-ids.ts"
 export interface BeadsQueryOptions {
   /** Repo to use for queries. Required for functions that access storage. */
   repo?: Repo
+  /**
+   * Pre-built dependent-count map (shortId → count of issues blocked by it).
+   * If provided, nodeToIssue uses this map instead of querying per-issue.
+   * Built via buildDependentCountMap(repo).
+   */
+  dependentCountMap?: Map<string, number>
+}
+
+/**
+ * Build a dependent-count map in a single pass.
+ *
+ * Replaces the per-issue countDependents() N+1 scan. The data shape is
+ * `data.props["blocked-by"]` with type "link" (single target) or "list"
+ * (multiple targets in `values[].target`). Each target is a canonical
+ * short-id of the issue being blocked.
+ *
+ * @returns Map of shortId → count of issues that block-by this id.
+ */
+export function buildDependentCountMap(repo: Repo): Map<string, number> {
+  const map = new Map<string, number>()
+  const sql = `
+    SELECT data FROM nodes
+    WHERE json_extract(data, '$.props."blocked-by"') IS NOT NULL
+  `
+  const rows = repo.rawQuery<{ data: string | Record<string, unknown> }>(sql)
+  for (const row of rows) {
+    const data = (typeof row.data === "string" ? JSON.parse(row.data) : row.data) as Record<string, unknown>
+    const props = data?.props as Record<string, { type?: string; target?: string; values?: Array<{ target?: string }> }>
+    const bb = props?.["blocked-by"]
+    if (!bb) continue
+    const targets: string[] = []
+    if (bb.type === "link" && bb.target) targets.push(bb.target)
+    if (bb.type === "list" && Array.isArray(bb.values)) {
+      for (const v of bb.values) if (v?.target) targets.push(v.target)
+    }
+    for (const t of targets) map.set(t, (map.get(t) ?? 0) + 1)
+  }
+  return map
 }
 
 /**
@@ -33,21 +71,35 @@ function getNodePath(node: KNode, repo?: Repo): string | undefined {
 }
 
 /**
- * Count how many issues are blocked by the given short ID
- * This performs a reverse dependency lookup
+ * Count how many issues are blocked by the given short ID.
+ *
+ * Slow path: scans all nodes once per call (unindexed JSON LIKE). Use
+ * buildDependentCountMap(repo) once and pass via options.dependentCountMap
+ * for batch queries — that turns 3463 × O(N) scans into 1 × O(N).
  */
-function countDependents(shortId: string, repo?: Repo): number {
-  if (!repo) {
-    return 0 // Can't count without repo access
+function countDependents(shortId: string, repo?: Repo, dependentCountMap?: Map<string, number>): number {
+  if (dependentCountMap) {
+    return dependentCountMap.get(shortId) ?? 0
   }
+  if (!repo) return 0
 
   const sql = `
-    SELECT COUNT(*) as count FROM nodes
-    WHERE json_extract(data, '$.blocked_by') LIKE ?
+    SELECT data FROM nodes
+    WHERE json_extract(data, '$.props."blocked-by"') IS NOT NULL
   `
-  const params = [`%"${shortId}"%`]
-  const result = repo.rawQuery<{ count: number }>(sql, params)
-  return result[0]?.count ?? 0
+  const rows = repo.rawQuery<{ data: string | Record<string, unknown> }>(sql)
+  let count = 0
+  for (const row of rows) {
+    const data = (typeof row.data === "string" ? JSON.parse(row.data) : row.data) as Record<string, unknown>
+    const props = data?.props as Record<string, { type?: string; target?: string; values?: Array<{ target?: string }> }>
+    const bb = props?.["blocked-by"]
+    if (!bb) continue
+    if (bb.type === "link" && bb.target === shortId) count++
+    if (bb.type === "list" && Array.isArray(bb.values)) {
+      for (const v of bb.values) if (v?.target === shortId) count++
+    }
+  }
+  return count
 }
 
 /**
@@ -168,8 +220,9 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
   // > ULID-suffix fallback for nodes that ship neither.
   const shortId = (data?.id as string) || (data?.short_id as string) || `km-${node.id.slice(-4).toLowerCase()}`
 
-  // Count dependents (issues that are blocked by this one)
-  const dependentCount = countDependents(shortId, repo)
+  // Count dependents (issues that are blocked by this one).
+  // Prefer pre-built map for batch queries (avoids N+1 scan).
+  const dependentCount = countDependents(shortId, repo, options?.dependentCountMap)
 
   return {
     id: node.id,
@@ -258,7 +311,10 @@ export function queryReady(
     return [] // Cannot query without repo
   }
   const nodes = repo.query(query)
-  let issues = nodes.map((n) => nodeToIssue(n, { repo }))
+  // Build the dependent-count map ONCE, not per-issue. Eliminates 3463 × O(N)
+  // unindexed scans on large vaults — see km-beads.list-status-perf.
+  const dependentCountMap = buildDependentCountMap(repo)
+  let issues = nodes.map((n) => nodeToIssue(n, { repo, dependentCountMap }))
 
   // Apply path scope filter after query (since path: syntax not supported)
   if (scopePath) {
@@ -319,7 +375,9 @@ export function queryIssues(
     return [] // Cannot query without repo
   }
   const nodes = repo.query(query.trim() || "*")
-  let issues = nodes.map((n) => nodeToIssue(n, { repo }))
+  // Build the dependent-count map ONCE — see queryReady for context.
+  const dependentCountMap = buildDependentCountMap(repo)
+  let issues = nodes.map((n) => nodeToIssue(n, { repo, dependentCountMap }))
 
   // Apply path scope filter after query (since path: syntax not supported)
   if (scopePath) {

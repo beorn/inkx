@@ -14,6 +14,7 @@ import {
   queryReady,
   queryIssues,
   nodeToIssue,
+  buildDependentCountMap,
   createIssueNode,
   updateIssueFields,
   closeIssueFields,
@@ -172,7 +173,9 @@ bdCommand
     const queryStr = buildQueryString(positionalQuery, flags, {})
 
     const nodes = repo.query(queryStr)
-    let issues = nodes.map((n) => nodeToIssue(n, { repo }))
+    // Build dependent-count map ONCE, not per-issue (eliminates N+1 scan).
+    const dependentCountMap = buildDependentCountMap(repo)
+    let issues = nodes.map((n) => nodeToIssue(n, { repo, dependentCountMap }))
 
     // Apply blocked/unblocked filter (not part of query DSL)
     if (opts.blocked) {
@@ -754,9 +757,10 @@ bdCommand
     const folderId = issueNode?.fs_path?.endsWith(".md") ? issueNode.fs_path.slice(0, -3) : null
     const pathChildren = folderId ? repo.getChildren(folderId) : []
     const allChildren = [...inFileChildren, ...pathChildren]
+    const dependentCountMap = buildDependentCountMap(repo)
     const childIssues = allChildren
       .filter((c) => c.item?.task?.status != null || c.fs_path?.endsWith(".md"))
-      .map((c) => nodeToIssue(c, { repo }))
+      .map((c) => nodeToIssue(c, { repo, dependentCountMap }))
 
     if (opts.json) {
       console.log(JSON.stringify(childIssues.map(issueToBdJson), null, 2))
@@ -937,7 +941,8 @@ bdCommand
     using repo = await loadRepo(resolved.repoRoot)
 
     const nodes = repo.query(expression)
-    const issues = nodes.map((n) => nodeToIssue(n, { repo }))
+    const dependentCountMap = buildDependentCountMap(repo)
+    const issues = nodes.map((n) => nodeToIssue(n, { repo, dependentCountMap }))
 
     if (opts.json) {
       console.log(JSON.stringify(issues.map(issueToBdJson), null, 2))
