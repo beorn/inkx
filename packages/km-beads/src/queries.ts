@@ -279,13 +279,18 @@ export function isBlocked(issue: Issue, options?: BeadsQueryOptions): boolean {
  * @param scopePath - Optional path to scope results to (e.g., "/repo/Projects")
  * @param boardTag - Optional board node name to filter by, sigil included (e.g., "@issues" or "#bug").
  *                   In km, the sigil is part of the node identity — pass the literal node name.
- * @param options - Optional query options (repo for DI)
+ * @param options - Optional query options (repo for DI, boardRoots for ancestor-chain
+ *                   membership filter; pass `resolveBeadsRoots(config, cliOverride)` —
+ *                   when set, only issues whose `fs_path` lives under one of the listed
+ *                   repo-relative root directories pass through. Without this filter,
+ *                   `bd ready` returns every checkbox in the vault — including markdown
+ *                   fixtures, archived notes, and any other todo-shaped node.)
  */
 export function queryReady(
   filter?: Partial<IssueFilter>,
   scopePath?: string,
   boardTag?: string,
-  options?: BeadsQueryOptions,
+  options?: BeadsQueryOptions & { boardRoots?: string[] },
 ): Issue[] {
   const repo = options?.repo
   // Build query for open tasks
@@ -315,6 +320,18 @@ export function queryReady(
   // unindexed scans on large vaults — see km-beads.list-status-perf.
   const dependentCountMap = buildDependentCountMap(repo)
   let issues = nodes.map((n) => nodeToIssue(n, { repo, dependentCountMap }))
+
+  // Board-membership predicate: keep only issues whose repo-relative
+  // fs_path lives under one of the configured beads roots. Trailing
+  // slash anchors the prefix so `beads-archive/` does not match `beads`.
+  const boardRoots = options?.boardRoots
+  if (boardRoots && boardRoots.length > 0) {
+    issues = issues.filter((issue) => {
+      const p = issue.path
+      if (!p) return false
+      return boardRoots.some((root) => p === root || p.startsWith(`${root}/`))
+    })
+  }
 
   // Apply path scope filter after query (since path: syntax not supported)
   if (scopePath) {
