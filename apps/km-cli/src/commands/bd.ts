@@ -307,17 +307,43 @@ bdCommand
       }
       return null
     })()
-    const parentRef = (opts.parent as string | undefined) || (customIdScope ? `${customIdScope}/` : null)
+    const explicitParent = opts.parent as string | undefined
+    const autoScopeParent = customIdScope ? `${customIdScope}/` : null
     let parentId: string | null = null
-    if (parentRef) {
-      const parentNode = repo.resolveNode(parentRef)
-      if (parentNode) {
-        parentId = parentNode.id
+
+    // Try the explicit --parent first; fall back to auto-derived scope.
+    // Explicit --parent must resolve — accept path-form (`@km/silvercode`),
+    // bare path-form (`silvercode/`), bd-form (`km-silvercode`), or short id
+    // (`km-q5hji`). Auto-scope is best-effort — silently fall through to
+    // root if the scope epic doesn't exist yet (newly-bootstrapped scopes).
+    if (explicitParent) {
+      // Try bd-form / sigil-id first (resolveIssueArg), then path-form.
+      const parentIssue = resolveIssueArg(repo, explicitParent)
+      if (parentIssue) {
+        parentId = parentIssue.id
       } else {
-        console.error(term.red(`Parent not found: ${parentRef}`))
-        process.exitCode = 1
-        return
+        const tries = [explicitParent]
+        const prefix = configObj.beads.prefix
+        if (explicitParent.startsWith(`${prefix}-`) && !explicitParent.includes(".")) {
+          tries.push(`${explicitParent.slice(prefix.length + 1)}/`)
+        }
+        let resolved = null
+        for (const ref of tries) {
+          resolved = repo.resolveNode(ref)
+          if (resolved) break
+        }
+        if (resolved) {
+          parentId = resolved.id
+        } else {
+          console.error(term.red(`Parent not found: ${explicitParent}`))
+          process.exitCode = 1
+          return
+        }
       }
+    } else if (autoScopeParent) {
+      const parentNode = repo.resolveNode(autoScopeParent)
+      if (parentNode) parentId = parentNode.id
+      // else: silently fall through to root — scope epic doesn't exist yet
     }
 
     const nodeId = repo.addNode(parentId, node)
@@ -354,6 +380,7 @@ const updateCmd = bdCommand
   .option("-d, --description <text>", "Set description (replaces first child paragraph)")
   .option("-n, --notes <text>", "Append notes (adds child paragraph)")
   .option("--type <type>", "Set issue type")
+  .option("--parent <id>", "Move issue under a new parent (path-form, bd-form, or short id)")
   .option("--claim", "Claim issue (set status=wip + assignee to you)")
   .actionMerged(async (opts) => {
     if (!opts.id) {
@@ -368,6 +395,36 @@ const updateCmd = bdCommand
       console.error(term.red(`Issue not found: ${opts.id}`))
       process.exitCode = 1
       return
+    }
+
+    // Resolve --parent up front so we fail fast before any mutation.
+    // Try bd-form short id first (resolveIssueArg understands km-foo, @km/foo,
+    // etc.), then fall back to path-form lookup (foo/, @km/foo/).
+    let newParentId: string | null = null
+    if (opts.parent) {
+      const parentRef = opts.parent as string
+      const parentIssue = resolveIssueArg(repo, parentRef)
+      if (parentIssue) {
+        newParentId = parentIssue.id
+      } else {
+        const cfg = await loadKmBdConfig(resolved.repoRoot)
+        const prefix = cfg.beads.prefix
+        const tries = [parentRef]
+        if (parentRef.startsWith(`${prefix}-`) && !parentRef.includes(".")) {
+          tries.push(`${parentRef.slice(prefix.length + 1)}/`)
+        }
+        let parentNode = null
+        for (const ref of tries) {
+          parentNode = repo.resolveNode(ref)
+          if (parentNode) break
+        }
+        if (!parentNode) {
+          console.error(term.red(`Parent not found: ${opts.parent}`))
+          process.exitCode = 1
+          return
+        }
+        newParentId = parentNode.id
+      }
     }
 
     // Handle --claim: set status + assignee atomically
@@ -392,6 +449,12 @@ const updateCmd = bdCommand
 
     const updates = updateIssueFields(issue, changes)
     repo.updateNode(issue.id, updates)
+
+    // Handle --parent: move under the resolved new parent at end-of-list.
+    if (newParentId) {
+      const siblings = repo.getChildren(newParentId)
+      repo.moveNode(issue.id, newParentId, siblings.length)
+    }
 
     // Handle --description: replace or create first child paragraph
     if (opts.description) {
@@ -420,6 +483,7 @@ const updateCmd = bdCommand
     }
 
     console.log(term.green(`Updated ${issue.shortId}:`))
+    if (newParentId) console.log(`  Moved under: ${opts.parent}`)
     if (opts.claim) console.log(`  Claimed by ${opts.assignee}`)
     if (updates.item?.task?.status && !opts.claim) console.log(`  Status: ${updates.item?.task?.status}`)
     if (updates.priority !== undefined) console.log(`  Priority: ${updates.priority}`)
