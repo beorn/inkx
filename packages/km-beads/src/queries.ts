@@ -217,7 +217,14 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
   // Calculate the short ID for this issue (needed for dependent count lookup).
   // Priority: frontmatter `id:` (canonical path-form, e.g. "silvercode/acp/rename")
   // > legacy `data.short_id` (bd-form like "km-a1b2")
-  // > ULID-suffix fallback for nodes that ship neither.
+  // > ULID-suffix fallback for non-bead checkbox nodes that happen to flow
+  //   through here. queryReady() runs the boardRoots predicate AFTER mapping
+  //   nodes to Issues, so any checkbox in the vault (markdown fixtures,
+  //   archived notes, ad-hoc todos) reaches nodeToIssue before being filtered
+  //   out. The fallback keeps mapping non-throwing for those out-of-scope
+  //   nodes; the resulting Issue is discarded by the boardRoots filter.
+  //   Within the beads roots, predicate-A + recapture-E ensure every bead
+  //   ships data.id or data.short_id — the third arm only fires for noise.
   const shortId = (data?.id as string) || (data?.short_id as string) || `km-${node.id.slice(-4).toLowerCase()}`
 
   // Count dependents (issues that are blocked by this one).
