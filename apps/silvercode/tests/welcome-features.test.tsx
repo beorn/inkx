@@ -487,38 +487,47 @@ describe("km-silvercode.welcome-bypassed-by-pane-grid-spawn — TextInput is liv
     s.dispose()
   })
 
-  test("submit in Welcome flips messages.length 0 → 1 (chat view mounts)", async () => {
-    // End-to-end via renderScenario + manual emission: user types a
-    // prompt in Welcome's TextInput, presses Enter — the optimistic
-    // user-message lands in the store immediately so SessionCard
-    // switches from <Welcome/> to <SessionUpdateList/> without waiting
-    // for the agent's session-init / turn-end roundtrip.
+  test("optimistic-apply: SessionStore.apply with `welcome-u-*` turnId flips messages.length 0 → 1", async () => {
+    // L1 reducer-level test for the Fix #2 optimistic-apply contract.
     //
-    // We can't drive Welcome's TextInput directly from renderScenario
-    // (no termless feed), so we exercise the path at the controller
-    // level: emit a session-init + manually call the same code path
-    // Welcome would invoke. The behavioral contract (optimistic apply
-    // → messages.length flips) is what matters — keystroke routing is
-    // covered by the App-level composer-hiding test above.
-    const s = await renderScenario({ script: welcome, cols: 120, rows: 50, agent: "claude-code" })
-    // Pre-condition: Welcome is showing.
-    expect(s.text).toContain("Type a message to start")
-    // Simulate a Welcome submit by emitting a user-message event into
-    // the fake session's stream (mirrors what Welcome.tsx's onSubmit
-    // does via handle.store.apply).
-    s.emit({
+    // Welcome's onSubmit applies a synthetic `user-message` event with a
+    // `welcome-u-${Date.now()}` turnId before delegating to App's
+    // handleSubmit. This is what makes the chat view mount IMMEDIATELY
+    // on submit, even when status !== "idle" and the controller's
+    // tryFlush would otherwise queue the prompt without applying it.
+    //
+    // The component-level "Welcome unmounts when messages.length
+    // transitions 0 → 1" test above (line 192) already pins the
+    // SessionCard re-render behavior; this test pins the reducer-level
+    // behavior the optimistic apply depends on. Together they cover
+    // the full Welcome → chat transition without depending on the
+    // renderScenario harness's autoEmit / re-render plumbing (which
+    // resample() doesn't trigger — by design, the harness re-renders
+    // only inside the autoEmit loop, not on ad-hoc emit() calls).
+    //
+    // Running the assertion at the reducer layer is the right level
+    // per `apps/silvercode/tests/CLAUDE.md` ("Default to the lowest
+    // layer that can express the assertion"). Bead:
+    // km-silvercode.welcome-bypassed-by-pane-grid-spawn.
+    const { createSessionStore } = await import("@km/agent-harness")
+    const store = createSessionStore()
+    // Pre-condition: empty store mirrors a fresh session (Welcome state).
+    expect(store.state.get().messages).toHaveLength(0)
+    // Apply the optimistic user-message exactly as Welcome.tsx does.
+    store.apply({
       kind: "user-message",
-      sessionId: "fake-url-via-handlers" as never,
-      turnId: "welcome-u-1" as never,
+      sessionId: "fake-session" as never,
+      turnId: `welcome-u-${Date.now()}` as never,
       text: "first prompt",
       ts: Date.now(),
     } as never)
-    const after = s.resample()
-    // Welcome unmounts: banner + placeholder gone.
-    expect(after.text).not.toContain("Type a message to start")
-    // Chat view: the user's prompt renders.
-    expect(after.text).toContain("first prompt")
-    s.dispose()
+    // Post-condition: messages.length flipped 0 → 1; SessionCard's
+    // `state.messages.length === 0` Welcome branch would now switch
+    // to SessionUpdateList on the next render.
+    const after = store.state.get()
+    expect(after.messages).toHaveLength(1)
+    expect(after.messages[0]?.role).toBe("user")
+    expect(after.messages[0]?.text).toBe("first prompt")
   })
 })
 
