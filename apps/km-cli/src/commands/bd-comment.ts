@@ -19,12 +19,18 @@ import { execSync } from "node:child_process"
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { resolvePathArg } from "@km/fs-mount"
+import { COMMENTS_SECTION_HEADING } from "@km/beads"
 import { loadRepo } from "../load-repo.ts"
 import { resolveIssueArg } from "./bd-query-helpers.ts"
 
 const term = createTerm(process)
 
-export const COMMENTS_HEADING = "## Comments @comments"
+/**
+ * Anchor heading for the bead's comment timeline. Re-exported from
+ * `@km/beads` so write side (migrate) and runtime side (this module)
+ * agree on the exact string.
+ */
+export const COMMENTS_HEADING = COMMENTS_SECTION_HEADING
 
 /** Get the commenting user — git config user.name, with `bjorn` fallback. */
 export function resolveCommentUser(): string {

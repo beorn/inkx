@@ -32,16 +32,9 @@ describe("bd-comment body primitives", () => {
   })
 
   test("appends to a body with an existing section — adds item, no duplicate header", () => {
-    const before = [
-      "# Bead",
-      "",
-      "Body.",
-      "",
-      COMMENTS_HEADING,
-      "",
-      "- @alice (2026-04-29T00:00:00Z): hello",
-      "",
-    ].join("\n")
+    const before = ["# Bead", "", "Body.", "", COMMENTS_HEADING, "", "- @alice (2026-04-29T00:00:00Z): hello", ""].join(
+      "\n",
+    )
     const line = "- @bjorn (2026-04-29T01:00:00Z): second"
     const after = appendCommentToBody(before, line)
 
@@ -74,15 +67,7 @@ describe("bd-comment body primitives", () => {
   })
 
   test("parseComments stops at the next heading", () => {
-    const body = [
-      COMMENTS_HEADING,
-      "",
-      "- @a (t1): kept",
-      "",
-      "## Other Section",
-      "",
-      "- not a comment",
-    ].join("\n")
+    const body = [COMMENTS_HEADING, "", "- @a (t1): kept", "", "## Other Section", "", "- not a comment"].join("\n")
     expect(parseComments(body)).toEqual(["@a (t1): kept"])
   })
 
