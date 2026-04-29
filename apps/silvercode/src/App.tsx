@@ -606,6 +606,30 @@ export function App(props: AppProps): React.ReactElement {
   // hook call. Otherwise React's hook queue desyncs between renders
   // ("Should have a queue" crash).
   const queueText = useQueue(controller, focused?.id ?? "")
+  // Welcome-state tracking — when the focused session has zero messages,
+  // SessionCard renders <Welcome/> instead of <SessionUpdateList/>. In that
+  // state Welcome's centered TextInput is the live keystroke surface, and
+  // the App-level SessionPromptComposer is HIDDEN — without this gate, two
+  // active TextInput surfaces would fight for keystrokes (the "foo &"
+  // chord etc. would be interpreted twice). Resolves when the user
+  // submits a prompt and messages.length flips 0 → 1, at which point
+  // Welcome unmounts and the composer takes over.
+  // Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn.
+  const [welcomeIsFocused, setWelcomeIsFocused] = useState<boolean>(() => {
+    const s = focused
+    return s ? s.store.state.get().messages.length === 0 : false
+  })
+  useEffect(() => {
+    if (!focused) {
+      setWelcomeIsFocused(false)
+      return undefined
+    }
+    const recompute = () => {
+      setWelcomeIsFocused(focused.store.state.get().messages.length === 0)
+    }
+    recompute()
+    return focused.store.state.subscribe(recompute)
+  }, [focused])
   const [focusedRegion, setFocusedRegion] = useState<"queue" | "command">("command")
   // Mirror focusedRegion into the ref the controller closes over (created
   // once at mount above) so its turn-end auto-flush guard sees the latest
@@ -1256,6 +1280,7 @@ export function App(props: AppProps): React.ReactElement {
                     onRegisterScrollList={registerScrollList}
                     showDebug={showDebug}
                     agent={props.agent}
+                    onSubmitText={handleSubmit}
                   />
                 )}
 
@@ -1296,7 +1321,16 @@ export function App(props: AppProps): React.ReactElement {
                 $fg-muted. Claude-Code-style. */}
                   <Box paddingX={2} paddingY={1} flexShrink={0} flexDirection="row">
                     <Box flexGrow={1} flexDirection="column">
-                      {focused && (
+                      {/* Composer is HIDDEN when the focused session is in
+                          Welcome state (messages.length === 0). In that
+                          state Welcome's centered TextInput owns
+                          keystrokes; mounting the composer here would
+                          dual-route every keystroke. Once the user
+                          submits and messages.length flips 0 → 1,
+                          welcomeIsFocused goes false and the composer
+                          takes over. Bead:
+                          km-silvercode.welcome-bypassed-by-pane-grid-spawn. */}
+                      {focused && !welcomeIsFocused && (
                         <SessionPromptComposer
                           queueText={queueText}
                           onQueueChange={(t) => controller.setQueuedText(focused.id, t)}

@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import { Box, Muted, Small, Text, TextInput, useBoxRect } from "silvery"
 import type { Controller, SessionHandle } from "../controller.ts"
+import type { AgentEvent, TurnId } from "@km/agent-harness"
 
 /**
  * Per-agent display label. Mirrors the `AGENT_DISPLAY` map in `SidePanel.tsx`
@@ -154,7 +155,7 @@ function FigletBlock({ rows, color }: { rows: ReadonlyArray<string>; color: stri
  *
  * Bead: km-cr94.
  */
-function SilverCodeBanner({
+export function SilverCodeBanner({
   agentLabel,
   availableWidth,
 }: {
@@ -215,7 +216,7 @@ function SilverCodeBanner({
  * default to a generous size so the banner doesn't flash through the
  * stacked fallback while layout settles.
  */
-function MeasuredBanner({ agentLabel }: { agentLabel?: string }): React.ReactElement {
+export function MeasuredBanner({ agentLabel }: { agentLabel?: string }): React.ReactElement {
   const { width } = useBoxRect()
   const effectiveWidth = width > 0 ? width : 80
   return (
@@ -229,17 +230,27 @@ function MeasuredBanner({ agentLabel }: { agentLabel?: string }): React.ReactEle
  * Centered command box (silvery TextInput in a rounded-border frame). Width
  * is capped at 70 cols so it doesn't span the full pane on wide terminals,
  * and shrinks on narrow ones via flex.
+ *
+ * `isActive` controls whether keystrokes route to this TextInput — when
+ * true, this is the live input surface and the App-level SessionPromptComposer
+ * is hidden (see App.tsx's `welcomeIsFocused` gate). When false, the
+ * box renders as a visual placeholder only and the composer owns
+ * keystrokes.
+ *
+ * Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn.
  */
 function CommandBox({
   draft,
   setDraft,
   onSubmit,
   placeholder,
+  isActive,
 }: {
   draft: string
   setDraft: (v: string) => void
   onSubmit: (v: string) => void
   placeholder: string
+  isActive: boolean
 }): React.ReactElement {
   return (
     <Box flexDirection="row" justifyContent="center">
@@ -249,14 +260,7 @@ function CommandBox({
           onChange={setDraft}
           onSubmit={onSubmit}
           placeholder={placeholder}
-          // `isActive=false` so this input is a visual placeholder only.
-          // The real keystroke surface for first-message entry remains the
-          // App-level SessionPromptComposer — without this guard, two
-          // active TextInputs would fight for keystrokes (the Welcome box
-          // would intercept "foo &" before the composer's strip-&-trailing
-          // path could run, breaking background-amp-suffix.test.tsx and
-          // friends). Bead: km-cr94.
-          isActive={false}
+          isActive={isActive}
           prompt="> "
           promptColor="$accent"
           borderStyle="round"
@@ -309,6 +313,24 @@ export function Welcome(props: {
    * tests) the input runs as a local-only buffer; the visual is identical.
    */
   controller?: Controller
+  /**
+   * When true, this session is the focused pane and the centered TextInput
+   * is the LIVE keystroke surface (the App-level SessionPromptComposer is
+   * hidden in this state). When false (multi-pane Welcome on a non-focused
+   * pane, OR component-level fixture tests where focus is unspecified),
+   * the input renders as a visual placeholder and the App composer owns
+   * keystrokes. Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn.
+   */
+  isFocused?: boolean
+  /**
+   * App-supplied submit handler. Routes through App's `handleSubmit` so
+   * trailing-`&` background, slash commands, thinking-keyword injection,
+   * etc. behave identically to a submit from the regular composer. When
+   * omitted (component-level fixture tests), Welcome falls back to a
+   * direct `controller.send` call. Bead:
+   * km-silvercode.welcome-bypassed-by-pane-grid-spawn.
+   */
+  onSubmitText?: (text: string) => void
 }): React.ReactElement {
   const agentLabel = props.agent ? AGENT_LABELS[props.agent] : undefined
   const resumeId = props.handle.resumeId
@@ -318,12 +340,48 @@ export function Welcome(props: {
   function onSubmit(value: string): void {
     const text = value.trim()
     if (text.length === 0) return
-    // `controller.send` writes the user-message to the store AND ships it
-    // to claude — or queues it if status !== "idle" yet. Either way, when
-    // messages.length flips 0 → 1 the SessionCard switches to chat view.
-    props.controller?.send(props.handle.id, text)
+    // Apply an optimistic `user-message` to the store so the chat view
+    // mounts immediately (messages.length flips 0 → 1) — even when the
+    // session is still spawning and `controller.send` would otherwise
+    // queue the prompt without applying it. The session-reducer's
+    // `findOptimisticEcho` dedup collapses this entry with the
+    // canonical user-message that `tryFlush` later applies once status
+    // flips to idle, so the prompt renders exactly once.
+    //
+    // Without the optimistic apply, typing in Welcome during spawn drops
+    // the prompt into a black hole (visually) until the agent's first
+    // session-init arrives — not a black hole semantically (it's queued
+    // and will eventually flush), just no UI feedback in the meantime.
+    // Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn.
+    if (props.handle.store && props.controller) {
+      const optimisticTurnId = `welcome-u-${Date.now()}` as unknown as TurnId
+      const evt: AgentEvent = {
+        kind: "user-message",
+        sessionId: props.handle.session.sessionId ?? props.handle.id,
+        turnId: optimisticTurnId,
+        text,
+        ts: Date.now(),
+      } as AgentEvent
+      props.handle.store.apply(evt)
+    }
+    // Route through App's submit when available (preserves trailing-&,
+    // slash commands, thinking-keyword injection); fall back to direct
+    // controller.send for fixture tests that don't supply onSubmitText.
+    if (props.onSubmitText) {
+      props.onSubmitText(text)
+    } else {
+      props.controller?.send(props.handle.id, text)
+    }
     setDraft("")
   }
+
+  // The command-box TextInput is LIVE when the session is focused. When
+  // not focused (multi-pane Welcome on a sibling pane, or fixture tests
+  // that don't specify focus), it renders as a visual placeholder so
+  // keystrokes route through the App composer instead. The fallback
+  // behavior is unchanged from the previous always-`isActive=false`
+  // contract for tests that don't supply isFocused.
+  const commandBoxIsActive = props.isFocused === true
 
   return (
     // Center the brand mark + affordance on both axes. `flexGrow={1}` claims
@@ -338,7 +396,13 @@ export function Welcome(props: {
         <Muted>Loading session {shortenSessionId(resumeId)}…</Muted>
       ) : (
         // Fresh path — centered command box.
-        <CommandBox draft={draft} setDraft={setDraft} onSubmit={onSubmit} placeholder="Type a message to start…" />
+        <CommandBox
+          draft={draft}
+          setDraft={setDraft}
+          onSubmit={onSubmit}
+          placeholder="Type a message to start…"
+          isActive={commandBoxIsActive}
+        />
       )}
     </Box>
   )
