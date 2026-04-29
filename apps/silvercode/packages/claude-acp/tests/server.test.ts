@@ -268,33 +268,11 @@ describe("runClaudeAcpServer — ACP wire end-to-end", () => {
     await serverPromise.catch(() => {})
   })
 
-  test("newSession falls back to synthetic id when session-init never arrives", async () => {
-    // Defensive: if Claude hangs without ever reaching session-init (auth
-    // failure, bad binary), newSession still returns within the timeout
-    // so the client doesn't deadlock. The synthetic id won't resolve to
-    // a JSONL but the spawn-failure error surfaces separately on stderr.
-    setScript([]) // No init event
-    const wire = createWirePair()
-    const { runClaudeAcpServer } = await import("../src/server.ts")
-
-    const serverPromise = runClaudeAcpServer({
-      stdin: wire.serverStdin,
-      stdout: wire.serverStdout,
-    })
-
-    const { conn } = buildClient(wire)
-    await conn.initialize({ protocolVersion: 1 })
-    // We can't wait the full 10s timeout in tests; instead we assert the
-    // synthetic-id branch's existence by inspecting server.ts. This case
-    // is exercised in production by users with a broken claude binary.
-    // (Skipping the slow timeout path — covered by the negative-space
-    // assertion in the previous test.)
-
-    wire.clientStdout.end()
-    wire.serverStdout.end()
-    await settle(20)
-    await serverPromise.catch(() => {})
-  })
+  // The "newSession falls back to synthetic id" test was removed when
+  // bead km-silvercode.claude-acp-init-timeout-no-fallback shipped: the
+  // synthetic-fallback codepath is gone. newSession now REJECTS on
+  // session-init timeout — see init-timeout.test.ts for the rejection
+  // test (uses fake timers to drive the 30s timeout in milliseconds).
 
   test("prompt round-trip — text deltas surface as agent_message_chunk notifications", async () => {
     setScript([

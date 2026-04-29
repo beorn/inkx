@@ -49,7 +49,7 @@
  */
 
 import { createReadStream } from "node:fs"
-import { stat } from "node:fs/promises"
+import { readdir, stat } from "node:fs/promises"
 import { homedir } from "node:os"
 import { join } from "node:path"
 import { Readable, Writable } from "node:stream"
@@ -85,6 +85,15 @@ export interface RunClaudeAcpServerOpts {
    * internal scope is created and cleaned up on stream close.
    */
   scope?: Scope
+  /**
+   * Override the session-init timeout (ms) for `newSession`. Defaults to
+   * 30s — generous enough for cold-boot Claude on M-series with multiple
+   * MCP children (typically 5-15s) without being indefinite. Tests
+   * override this to a small value to exercise the rejection path
+   * without waiting 30s of wall clock.
+   * @internal
+   */
+  sessionInitTimeoutMs?: number
 }
 
 /**
@@ -220,39 +229,70 @@ export async function runClaudeAcpServer(opts: RunClaudeAcpServerOpts = {}): Pro
       // ACP sessionId MUST equal the real Claude session UUID — that's what
       // the on-disk JSONL transcript at ~/.claude/projects/<cwd>/<id>.jsonl
       // is keyed by. Earlier this server synthesized `claude-acp-${ts}-N`
-      // and surfaced THAT to the client; the resume hint then printed the
-      // synthetic id, and the next `--resume <syntheticId>` failed with
-      // "session not found" because the JSONL's real filename is the
-      // Claude UUID. UI rendered that error to stderr behind the alt
-      // screen → user sees a blank screen.
+      // when session-init didn't arrive in time and surfaced THAT to the
+      // client; the resume hint then printed the synthetic id, and the
+      // next `--resume <syntheticId>` failed with "session not found"
+      // because the JSONL's real filename is the Claude UUID. UI rendered
+      // that error to stderr behind the alt screen → user saw a blank
+      // screen.
       //
-      // Fix: subscribe to the spawn's event stream BEFORE returning,
-      // buffer all events until session-init lands, then use
-      // `event.sessionId` as the ACP sessionId. The buffered events are
-      // replayed through the wire after attachWire so nothing's lost in
-      // the window between spawn and wire-attach. Falls back to a
-      // synthetic id if session-init doesn't arrive within
-      // SESSION_INIT_TIMEOUT_MS — at that point Claude is hung anyway
-      // and the spawn error will surface separately on stderr.
-      const SESSION_INIT_TIMEOUT_MS = 10_000
+      // Fix (km-silvercode.claude-acp-init-timeout-no-fallback): subscribe
+      // to the spawn's event stream BEFORE returning, buffer all events
+      // until session-init lands, then use `event.sessionId` as the ACP
+      // sessionId. If session-init doesn't arrive within
+      // SESSION_INIT_TIMEOUT_MS, REJECT newSession — no synthetic fallback,
+      // no phantom session. The client surfaces the error via its
+      // existing spawn-error mechanism (silvercode's controller wires
+      // `lastSpawnError` from a rejected newSession).
+      //
+      // 30s — cold-boot Claude on M-series with multiple MCP children
+      // regularly takes 5-15s. 10s was too tight; 30s is generous without
+      // being indefinite. The buffered events are replayed through the
+      // wire after attachWire so nothing's lost in the window between
+      // spawn and wire-attach.
+      const SESSION_INIT_TIMEOUT_MS = opts.sessionInitTimeoutMs ?? 30_000
       const buffered: AgentEvent[] = []
       let bufferingActive = true
       const stopBuffering = agentSession.subscribe((event) => {
         if (bufferingActive) buffered.push(event)
       })
-      const sessionId = await new Promise<string>((resolve) => {
-        const fallbackId = `claude-acp-${Date.now()}-${sessions.size + 1}`
-        const timer = setTimeout(() => {
-          unsubscribe()
-          resolve(fallbackId)
-        }, SESSION_INIT_TIMEOUT_MS)
-        const unsubscribe = agentSession.subscribe((event) => {
-          if (event.kind !== "session-init") return
-          clearTimeout(timer)
-          unsubscribe()
-          resolve(event.sessionId)
+      let sessionId: string
+      try {
+        sessionId = await new Promise<string>((resolve, reject) => {
+          const timer = setTimeout(() => {
+            unsubscribe()
+            reject(
+              new acp.RequestError(
+                -32000,
+                `claude failed to initialize within ${SESSION_INIT_TIMEOUT_MS / 1000}s — check Claude Code subscription auth and MCP server health (DEBUG=silvercode:* DEBUG_LOG=/tmp/sc.log)`,
+              ),
+            )
+          }, SESSION_INIT_TIMEOUT_MS)
+          const unsubscribe = agentSession.subscribe((event) => {
+            if (event.kind !== "session-init") return
+            clearTimeout(timer)
+            unsubscribe()
+            resolve(event.sessionId)
+          })
         })
-      })
+      } catch (err) {
+        // Init failed — stop buffering, drop the spawn, dispose the
+        // per-session scope (which kills the subprocess), and propagate
+        // the rejection to the ACP client. No synthetic id is ever
+        // minted; the client's spawn-error UI handles surfacing.
+        bufferingActive = false
+        try {
+          stopBuffering()
+        } catch {
+          // best-effort
+        }
+        try {
+          await sessionScope[Symbol.asyncDispose]()
+        } catch {
+          // best-effort
+        }
+        throw err
+      }
 
       // Wire events from the legacy AgentSession to ACP sessionUpdate
       // notifications. We attach AFTER we know the real sessionId, then
@@ -293,7 +333,19 @@ export async function runClaudeAcpServer(opts: RunClaudeAcpServerOpts = {}): Pro
       // where encodedCwd replaces every '/' with '-' (leading '-' is from '/'
       // at the root — it's the literal encoding Claude Code uses).
       const encodedCwd = cwd.replace(/\//g, "-")
-      const jsonlPath = join(homedir(), ".claude", "projects", encodedCwd, `${sessionId}.jsonl`)
+      const projectsDir = join(homedir(), ".claude", "projects", encodedCwd)
+      const jsonlPath = join(projectsDir, `${sessionId}.jsonl`)
+
+      // Synthetic-id detection: pre-fix silvercode versions minted ids of
+      // the form `claude-acp-<13-digit-millis>-<seq>` when session-init
+      // timed out. Those ids never resolve to a JSONL on disk — fail
+      // FAST with an actionable error that lists recent resumable
+      // sessions in this cwd, instead of the generic "session not found".
+      // Bead: km-silvercode.claude-acp-init-timeout-no-fallback.
+      if (SYNTHETIC_ACP_ID_RE.test(sessionId)) {
+        const recent = await listRecentSessions(projectsDir)
+        throw new acp.RequestError(-32000, syntheticIdErrorMessage(sessionId, recent))
+      }
 
       // Verify the file exists before doing anything else.
       try {
@@ -442,6 +494,164 @@ export async function runClaudeAcpServer(opts: RunClaudeAcpServerOpts = {}): Pro
   // Resolve when the connection closes. Callers (the bin entry) typically
   // run for the lifetime of the parent ACP client.
   await conn.closed
+}
+
+// ---------------------------------------------------------------------------
+// Synthetic-id detection — pre-fix silvercode versions minted ids of the
+// form `claude-acp-<13-digit-unix-millis>-<seq>` when session-init timed
+// out. The regex pins to 13 digits because real Claude session UUIDs use
+// hex with dashes (8-4-4-4-12) and never start with `claude-acp-`.
+// ---------------------------------------------------------------------------
+
+const SYNTHETIC_ACP_ID_RE = /^claude-acp-\d{13}-\d+$/
+
+interface RecentSession {
+  uuid: string
+  preview: string
+  ageMs: number
+}
+
+/**
+ * List the 5 most recent session JSONLs in a Claude projects dir, sorted
+ * by mtime descending. Each entry includes the session UUID (filename
+ * minus .jsonl), a 60-char preview of the first message, and its age in
+ * ms. Returns `[]` if the dir is missing, unreadable, or empty.
+ *
+ * Used by `loadSession` to render an actionable error when the user
+ * passes a synthetic / unknown id.
+ */
+async function listRecentSessions(projectsDir: string): Promise<RecentSession[]> {
+  let entries: string[]
+  try {
+    entries = await readdir(projectsDir)
+  } catch {
+    return []
+  }
+  const candidates: { uuid: string; mtimeMs: number; path: string }[] = []
+  for (const entry of entries) {
+    if (!entry.endsWith(".jsonl")) continue
+    const uuid = entry.slice(0, -".jsonl".length)
+    const path = join(projectsDir, entry)
+    try {
+      const st = await stat(path)
+      candidates.push({ uuid, mtimeMs: st.mtimeMs, path })
+    } catch {
+      // skip unreadable entries
+    }
+  }
+  candidates.sort((a, b) => b.mtimeMs - a.mtimeMs)
+  const top = candidates.slice(0, 5)
+  const now = Date.now()
+  const out: RecentSession[] = []
+  for (const c of top) {
+    out.push({
+      uuid: c.uuid,
+      preview: await firstMessagePreview(c.path),
+      ageMs: Math.max(0, now - c.mtimeMs),
+    })
+  }
+  return out
+}
+
+/**
+ * Read the first user-message text (up to 60 chars) from a JSONL
+ * transcript without loading the whole file. Returns "" if the file is
+ * unreadable or has no recognizable user-text entry in its first slice.
+ */
+async function firstMessagePreview(jsonlPath: string): Promise<string> {
+  return new Promise<string>((resolve) => {
+    let buffer = ""
+    let resolved = false
+    const finish = (preview: string): void => {
+      if (resolved) return
+      resolved = true
+      try {
+        stream.destroy()
+      } catch {
+        // best-effort
+      }
+      resolve(preview)
+    }
+    const stream = createReadStream(jsonlPath, { encoding: "utf8", end: 16384 })
+    stream.on("data", (chunk: string | Buffer) => {
+      buffer += typeof chunk === "string" ? chunk : chunk.toString("utf8")
+      const lines = buffer.split("\n")
+      // Hold the trailing partial line for the next chunk.
+      buffer = lines.pop() ?? ""
+      for (const line of lines) {
+        if (line.length === 0) continue
+        const text = extractFirstUserText(line)
+        if (text) {
+          const truncated = text.length > 60 ? text.slice(0, 57) + "..." : text
+          finish(truncated)
+          return
+        }
+      }
+    })
+    stream.on("end", () => finish(""))
+    stream.on("error", () => finish(""))
+  })
+}
+
+/**
+ * Best-effort extraction of the user text from a single JSONL line.
+ * Returns the text or `null` if the line doesn't carry a user message.
+ */
+function extractFirstUserText(line: string): string | null {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(line)
+  } catch {
+    return null
+  }
+  if (typeof parsed !== "object" || parsed === null) return null
+  const obj = parsed as { type?: string; message?: { role?: string; content?: unknown } }
+  if (obj.type !== "user") return null
+  const content = obj.message?.content
+  if (typeof content === "string") return content
+  if (Array.isArray(content)) {
+    for (const block of content) {
+      if (typeof block === "object" && (block as { type?: string })?.type === "text") {
+        const text = (block as { text?: unknown }).text
+        if (typeof text === "string" && text.length > 0) return text
+      }
+    }
+  }
+  return null
+}
+
+/** Render the actionable error message for a synthetic-id `loadSession`. */
+function syntheticIdErrorMessage(sessionId: string, recent: RecentSession[]): string {
+  const lines: string[] = []
+  lines.push(`silvercode: --resume ${sessionId} — synthetic session ids cannot be resumed.`)
+  lines.push(`This id was minted by an older silvercode that timed out waiting for`)
+  lines.push(`the real Claude session UUID (now fixed in claude-acp).`)
+  lines.push("")
+  if (recent.length === 0) {
+    lines.push("No resumable sessions found in this cwd. Omit --resume to start fresh.")
+  } else {
+    lines.push("Recent resumable sessions in this cwd:")
+    for (const r of recent) {
+      const ageLabel = formatAge(r.ageMs)
+      const previewLabel = r.preview ? `"${r.preview}"` : "(no preview)"
+      lines.push(`  ${r.uuid}  ${previewLabel}  (${ageLabel})`)
+    }
+    lines.push("")
+    lines.push("Or omit --resume to start fresh.")
+  }
+  return lines.join("\n")
+}
+
+/** Human-readable age string ("2h ago", "5d ago", "just now"). */
+function formatAge(ms: number): string {
+  const sec = Math.floor(ms / 1000)
+  if (sec < 60) return "just now"
+  const min = Math.floor(sec / 60)
+  if (min < 60) return `${min}m ago`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `${hr}h ago`
+  const day = Math.floor(hr / 24)
+  return `${day}d ago`
 }
 
 // ---------------------------------------------------------------------------
