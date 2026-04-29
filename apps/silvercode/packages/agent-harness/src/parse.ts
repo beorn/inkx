@@ -42,6 +42,23 @@ type ParserState = {
   toolInputByIndex: Map<number, { id: ToolUseId; name: string; jsonFragments: string[] }>
   /** Map message.id → turnId so message_delta can emit turn-end. */
   turnIdByMessageId: Map<string, TurnId>
+  /**
+   * Whether a session-init has been emitted yet (synthetic-from-hook OR real
+   * `subtype:"init"`). Modern claude (≥2.1.123) defers `subtype:"init"` until
+   * after the first user message arrives, so the first hook_started /
+   * hook_response event carrying a `session_id` synthesizes a placeholder
+   * session-init to unblock downstream consumers (silvercode-claude-acp's
+   * newSession waits for this event before resolving).
+   *
+   * Set when:
+   *   1. We synthesize from a hook_started/hook_response (placeholder fields).
+   *   2. We receive a real `subtype:"init"` (full populated fields — this
+   *      ALSO emits a second session-init so consumers can refresh metadata
+   *      that wasn't known at hook time).
+   *
+   * Bead: km-silvercode.claude-acp-modern-init-timing.
+   */
+  sessionInitSynthesized: boolean
 }
 
 function freshState(): ParserState {
@@ -51,6 +68,7 @@ function freshState(): ParserState {
     blockTypeByIndex: new Map(),
     toolInputByIndex: new Map(),
     turnIdByMessageId: new Map(),
+    sessionInitSynthesized: false,
   }
 }
 
@@ -193,6 +211,7 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
     if (subtype === "init") {
       const sid = toSessionId(obj.session_id)
       state.sessionId = sid
+      state.sessionInitSynthesized = true
       emit({
         kind: "session-init",
         sessionId: sid,
@@ -216,6 +235,52 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
         apiKeySource: typeof obj.apiKeySource === "string" ? (obj.apiKeySource as string) : "",
         ts: nowMs(),
       })
+      return
+    }
+    // Modern claude (≥2.1.123) defers `subtype:"init"` until AFTER the first
+    // user message arrives on stdin. With stdin held idle, the first events
+    // claude emits are the SessionStart hook envelopes —
+    //   {"type":"system","subtype":"hook_started", …, session_id:<UUID>}
+    //   {"type":"system","subtype":"hook_response", …, session_id:<UUID>}
+    // — each carrying the real session_id. silvercode-claude-acp's
+    // `newSession` waits for a session-init event before resolving; without
+    // recognizing hook envelopes the wire stalls forever (or hits the 30s
+    // timeout) and the user sees "spawn session failed: ACP connection
+    // closed" on every fresh session.
+    //
+    // Fix: synthesize a session-init with placeholder fields on the FIRST
+    // hook event seen (per parser instance), using the real session_id from
+    // the envelope. When the real `subtype:"init"` lands later, it ALSO
+    // emits a session-init (above branch) with the full populated metadata
+    // — downstream consumers see two events and can refresh.
+    //
+    // Bead: km-silvercode.claude-acp-modern-init-timing.
+    if (subtype === "hook_started" || subtype === "hook_response") {
+      if (!state.sessionInitSynthesized) {
+        const sid = toSessionId(obj.session_id)
+        state.sessionId = sid
+        state.sessionInitSynthesized = true
+        emit({
+          kind: "session-init",
+          sessionId: sid,
+          cwd: "",
+          model: "",
+          mode: "default",
+          tools: [],
+          mcp_servers: [],
+          slashCommands: [],
+          skills: [],
+          plugins: [],
+          claudeCodeVersion: "",
+          apiKeySource: "",
+          ts: nowMs(),
+        })
+      }
+      // Hook events themselves carry diagnostic info (output, exit_code,
+      // outcome) but no current AgentEvent variant maps them. Drop silently
+      // after the first one synthesizes init — adding a dedicated
+      // `hook-event` AgentEvent variant is future work if a consumer needs
+      // it.
       return
     }
     if (subtype === "status") {

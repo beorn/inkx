@@ -374,6 +374,176 @@ describe("stream-json parser — M0 fixtures", () => {
     ])
     expect(events.find((e) => e.kind === "user-message")).toBeUndefined()
   })
+
+  // ── Modern Claude (≥2.1.123) hook-event init timing ─────────────────────
+  // Symptom: `claude -p --input-format stream-json …` no longer emits
+  //   {"type":"system","subtype":"init",…}
+  // until AFTER the first user message arrives on stdin. With stdin held
+  // open and idle, claude FIRST emits a sequence of
+  //   {"type":"system","subtype":"hook_started",   …, session_id:<UUID>}
+  //   {"type":"system","subtype":"hook_response",  …, session_id:<UUID>}
+  // for each SessionStart hook, and only later (post-prompt) emits
+  // `subtype:"init"`. Without recognizing hook events the parser silently
+  // ignores them and the silvercode-claude-acp `newSession` flow stalls
+  // until its 30s timeout fires and rejects with "ACP connection closed".
+  //
+  // Contract: the FIRST hook_started / hook_response event for a given
+  // parser instance synthesizes a session-init event using the real
+  // `session_id` carried on the hook envelope. Subsequent hook events are
+  // ignored (the synthetic init was already emitted). When the real
+  // `subtype:"init"` event eventually lands, it ALSO emits a session-init
+  // (with the full populated fields — model, tools, slashCommands, etc.)
+  // so downstream consumers can refresh metadata that was unknown at
+  // hook-event time.
+  //
+  // Bead: km-silvercode.claude-acp-modern-init-timing.
+  test("hook_started synthesizes session-init with real session_id (modern claude ≥2.1.123)", () => {
+    const events = collect([
+      JSON.stringify({
+        type: "system",
+        subtype: "hook_started",
+        hook_id: "abc-123",
+        hook_name: "SessionStart:startup",
+        hook_event: "SessionStart",
+        uuid: "00000000-0000-0000-0000-000000000001",
+        session_id: "f7b851f9-de21-4628-bf3d-8c7fc8751f58",
+      }),
+    ])
+    expect(events).toHaveLength(1)
+    expect(events[0]).toMatchObject({
+      kind: "session-init",
+      sessionId: "f7b851f9-de21-4628-bf3d-8c7fc8751f58",
+      // Full fields are unknown at hook time — sensible empty defaults.
+      model: "",
+      tools: [],
+      mcp_servers: [],
+      slashCommands: [],
+      skills: [],
+      plugins: [],
+    })
+  })
+
+  test("hook_response also synthesizes session-init when no init has been seen yet", () => {
+    const events = collect([
+      JSON.stringify({
+        type: "system",
+        subtype: "hook_response",
+        hook_id: "def-456",
+        hook_name: "SessionStart:startup",
+        hook_event: "SessionStart",
+        output: "noop\n",
+        exit_code: 0,
+        outcome: "success",
+        uuid: "00000000-0000-0000-0000-000000000002",
+        session_id: "12345678-aaaa-bbbb-cccc-dddddddddddd",
+      }),
+    ])
+    expect(events).toHaveLength(1)
+    expect(events[0]).toMatchObject({
+      kind: "session-init",
+      sessionId: "12345678-aaaa-bbbb-cccc-dddddddddddd",
+    })
+  })
+
+  test("multiple hook events emit ONE synthetic session-init, not one per hook", () => {
+    // SessionStart fires 4-5 hooks in real claude — we must only synthesize
+    // ONE session-init event for newSession to resolve cleanly. Subsequent
+    // hook events are silently dropped (they have no useful state to add).
+    const lines: string[] = []
+    for (let i = 0; i < 4; i++) {
+      lines.push(
+        JSON.stringify({
+          type: "system",
+          subtype: i === 0 ? "hook_started" : "hook_response",
+          hook_id: `hook-${i}`,
+          hook_name: "SessionStart:startup",
+          hook_event: "SessionStart",
+          uuid: `00000000-0000-0000-0000-00000000000${i}`,
+          session_id: "shared-session-uuid-9999",
+        }),
+      )
+    }
+    const events = collect(lines)
+    const inits = events.filter((e) => e.kind === "session-init")
+    expect(inits).toHaveLength(1)
+    expect(inits[0]).toMatchObject({ sessionId: "shared-session-uuid-9999" })
+  })
+
+  test("real subtype:init that arrives AFTER hook events still emits a full session-init", () => {
+    // Once the real init lands (e.g. after a user message has been sent and
+    // claude finishes its post-prompt setup), it carries the full metadata
+    // (model, tools, slashCommands, plugins). Downstream consumers may need
+    // to refresh — so we emit a SECOND session-init with the populated
+    // fields. The session_id matches the synthetic one because claude's
+    // session_id is stable across the hook → init transition.
+    const events = collect([
+      JSON.stringify({
+        type: "system",
+        subtype: "hook_started",
+        hook_id: "h1",
+        hook_name: "SessionStart:startup",
+        hook_event: "SessionStart",
+        uuid: "00000000-0000-0000-0000-000000000010",
+        session_id: "stable-uuid-7777",
+      }),
+      JSON.stringify({
+        type: "system",
+        subtype: "init",
+        cwd: "/work",
+        session_id: "stable-uuid-7777",
+        tools: ["Bash", "Edit"],
+        mcp_servers: [{ name: "tty" }],
+        model: "claude-sonnet-4-6",
+        permissionMode: "auto",
+        slash_commands: ["/big", "/recall"],
+        skills: ["pm"],
+        plugins: [{ name: "tribe" }],
+        claude_code_version: "2.1.123",
+      }),
+    ])
+    const inits = events.filter((e) => e.kind === "session-init") as Array<
+      Extract<AgentEvent, { kind: "session-init" }>
+    >
+    expect(inits).toHaveLength(2)
+    expect(inits[0]).toMatchObject({
+      sessionId: "stable-uuid-7777",
+      model: "",
+      tools: [],
+    })
+    expect(inits[1]).toMatchObject({
+      sessionId: "stable-uuid-7777",
+      model: "claude-sonnet-4-6",
+      tools: ["Bash", "Edit"],
+      slashCommands: ["/big", "/recall"],
+      skills: ["pm"],
+      plugins: ["tribe"],
+      claudeCodeVersion: "2.1.123",
+    })
+  })
+
+  test("subtype:init received WITHOUT prior hook events still emits a single session-init", () => {
+    // Belt-and-suspenders: older claude (<2.1.123) emits init directly with
+    // no preceding hook events. The fix must not regress that path.
+    const events = collect([
+      JSON.stringify({
+        type: "system",
+        subtype: "init",
+        cwd: "/work",
+        session_id: "legacy-uuid-1",
+        tools: ["Bash"],
+        mcp_servers: [],
+        model: "claude-3-5-sonnet",
+        permissionMode: "auto",
+      }),
+    ])
+    const inits = events.filter((e) => e.kind === "session-init")
+    expect(inits).toHaveLength(1)
+    expect(inits[0]).toMatchObject({
+      sessionId: "legacy-uuid-1",
+      model: "claude-3-5-sonnet",
+      tools: ["Bash"],
+    })
+  })
 })
 
 describe("session-store — event folding", () => {
