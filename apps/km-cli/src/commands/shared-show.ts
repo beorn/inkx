@@ -60,7 +60,7 @@ function formatDate(ts: number): string {
  * issueToBdJson) can render without going through nodeToIssue twice.
  */
 function renderBd(issue: Issue): void {
-  console.log(`${term.bold(issue.shortId)}: ${issue.title}`)
+  console.log(`${term.bold(issue.shortId ?? issue.id)}: ${issue.title}`)
   console.log(`Status: ${bdStatus(issue.status)}`)
   console.log(`Priority: ${issue.priority}`)
   console.log(`Type: ${issue.type || "task"}`)
@@ -98,7 +98,7 @@ function renderBd(issue: Issue): void {
  */
 function renderTask(node: KNode, issue: Issue): void {
   console.log(`${term.bold("Task:")} ${issue.title}`)
-  console.log(`${term.dim("ID:")} ${issue.shortId}`)
+  console.log(`${term.dim("ID:")} ${issue.shortId ?? issue.id}`)
   console.log(`${term.dim("Status:")} ${node.item?.task?.status ?? "todo"}`)
   if (node.priority || (issue.priority && issue.priority !== "P2")) {
     // Show the structural priority verbatim — no "P2 default" injection.

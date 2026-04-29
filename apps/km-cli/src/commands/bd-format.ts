@@ -28,11 +28,20 @@ function bdStatus(status: Issue["status"]): string {
 }
 
 /**
+ * Display id for an issue. Real beads have `shortId`; bypass-path nodes
+ * (sub-checkboxes via `bd children`, raw `bd query` hits) don't, so fall
+ * back to the full node id.
+ */
+function displayId(issue: Issue): string {
+  return issue.shortId ?? issue.id
+}
+
+/**
  * Convert Issue to bd-compatible JSON format
  */
 export function issueToBdJson(issue: Issue): Record<string, unknown> {
   return {
-    id: issue.shortId,
+    id: displayId(issue),
     title: issue.title,
     description: issue.description || "",
     status: bdStatus(issue.status),
@@ -55,7 +64,7 @@ export function printIssue(issue: Issue): void {
   const status = bdStatus(issue.status)
   const type = issue.type || "task"
   const location = issue.parentContext ? term.dim(` (${issue.parentContext})`) : ""
-  console.log(`${term.cyan(issue.shortId)} [${issue.priority}] [${type}] ${status} - ${issue.title}${location}`)
+  console.log(`${term.cyan(displayId(issue))} [${issue.priority}] [${type}] ${status} - ${issue.title}${location}`)
 }
 
 /**
@@ -64,5 +73,7 @@ export function printIssue(issue: Issue): void {
 export function printReadyIssue(issue: Issue, index: number): void {
   const type = issue.type || "task"
   const location = issue.parentContext ? term.dim(` (${issue.parentContext})`) : ""
-  console.log(`${index}. [${issue.priority}] [${type}] ${term.cyan(issue.shortId)}: ${issue.title}${location}`)
+  console.log(
+    `${index}. [${issue.priority}] [${type}] ${term.cyan(displayId(issue))}: ${issue.title}${location}`,
+  )
 }

@@ -203,6 +203,14 @@ bdAgentCommand
       console.log(term.yellow("No ready issues to claim."))
       return
     }
+    // queryReady passes through the isBead predicate, so a ready issue
+    // is guaranteed to carry a canonical shortId. Guard for the type
+    // system; surface a clear error if the invariant is ever violated.
+    if (!issue.shortId) {
+      console.error(term.red(`Cannot claim issue without a canonical id: ${issue.id} (${issue.title})`))
+      process.exitCode = 1
+      return
+    }
 
     // Get the field updates for both agent and issue
     const { agentUpdate, issueAssignment } = claimIssueFields(agent.shortId, issue.shortId)

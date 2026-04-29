@@ -101,6 +101,9 @@ function buildBlockedByProps(blockers: string[]): {
 export function getDependencies(issue: Issue, repo?: Repo): string[] {
   const propsBased = issue.blockedBy ?? []
   if (!repo) return propsBased
+  // Non-beads have no shortId, so no inbound `blocks::` link can name
+  // them — only the props-based blockers apply.
+  if (!issue.shortId) return propsBased
 
   // Find paragraphs whose content starts with `blocks::` and contains
   // a wikilink resolving to this issue. Match against the issue's
@@ -124,6 +127,9 @@ export function getDependencies(issue: Issue, repo?: Repo): string[] {
     .map((r) => repo.getNode(r.parent_id))
     .filter((n): n is NonNullable<typeof n> => n != null)
     .map((n) => nodeToIssue(n, { repo }).shortId)
+    // Drop non-bead parents — they can't appear in a dependency list
+    // because they have no canonical id to reference.
+    .filter((sid): sid is string => sid !== undefined)
 
   // Union without duplicates, preserving order.
   return [...new Set([...propsBased, ...linkBased])]
@@ -133,6 +139,8 @@ export function getDependencies(issue: Issue, repo?: Repo): string[] {
  * Check if issue A depends on issue B
  */
 export function dependsOn(issueA: Issue, issueB: Issue): boolean {
+  // A non-bead (no shortId) cannot be a dependency target.
+  if (!issueB.shortId) return false
   return (issueA.blockedBy || []).includes(issueB.shortId)
 }
 

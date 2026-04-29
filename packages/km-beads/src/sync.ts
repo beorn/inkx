@@ -31,9 +31,19 @@ function convertStatus(status: Issue["status"]): BeadsIssue["status"] {
 }
 
 /**
- * Convert km Issue to beads JSONL format
+ * Convert km Issue to beads JSONL format.
+ *
+ * Throws when `issue.shortId` is undefined — bd JSONL requires a stable
+ * id, and non-beads (no `data.id`/`data.short_id`) cannot be exported.
+ * Callers should filter such issues before reaching this function (see
+ * `exportToBeads` below for the exception-handling pattern).
  */
 export function issueToBeadsJson(issue: Issue): BeadsIssue {
+  if (!issue.shortId) {
+    throw new Error(
+      `Cannot export non-bead to beads JSONL: ${issue.id} (${issue.title}) — node has no canonical id (data.id or data.short_id).`,
+    )
+  }
   const beadsIssue: BeadsIssue = {
     id: issue.shortId,
     title: issue.title,
@@ -185,6 +195,9 @@ export function findConflicts(
   const beadsById = new Map(beadsIssues.map((i) => [i.id, i]))
 
   for (const kmIssue of kmIssues) {
+    // Non-beads (no shortId) can't conflict with anything — they have
+    // no canonical id to look up in the beads JSONL map.
+    if (!kmIssue.shortId) continue
     const beadsIssue = beadsById.get(kmIssue.shortId)
     if (beadsIssue) {
       const kmTime = kmIssue.updatedAt
