@@ -7,15 +7,20 @@
  * augmentation behavior + the parent-path exemption.
  */
 
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { describe, it, expect } from "vitest"
+import { parse as parseYaml } from "yaml"
 import {
   bdIdToPathForm,
   bdIdToPathFormWithSlug,
   bdIdToAliases,
   buildIdMap,
+  issueToMarkdown,
   readBeadsExport,
   rewriteLegacyIdMentions,
 } from "../src/migrate.ts"
+import { parseBeadsIssuesJsonl } from "../src/schema.ts"
 import type { BeadsFs } from "../src/types.ts"
 import type { BeadsIssue } from "../src/schema.ts"
 
@@ -189,5 +194,110 @@ describe("readBeadsExport", () => {
     const fs = memFs({})
     expect(readBeadsExport(fs, "/missing/.beads")).toEqual({ issues: [], memories: [] })
     expect(readBeadsExport(fs, "/missing.jsonl")).toEqual({ issues: [], memories: [] })
+  })
+})
+
+/**
+ * Round-trip property test — every non-recomputable field bd export ships
+ * survives parse → emit → re-parse-frontmatter. Recomputable counts
+ * (dependency_count, dependent_count, comment_count) are intentionally
+ * dropped: they're derivable from the dependencies array and the comment
+ * markdown subsection, so persisting them risks drift.
+ *
+ * Fixture sources:
+ *   - 7 real issues from /tmp/km-bd-archive-20260428-193507/issues.jsonl
+ *     (lightly anonymized; cover started_at, defer_until, work_type,
+ *     metadata, dependencies, closed_at, assignee, owner, design,
+ *     acceptance_criteria, labels, simple)
+ *   - 1 synthetic pre-v1.0 issue covering blocked_by/blocks/children/
+ *     parent_id (real v1.0 exports have moved this graph into
+ *     `dependencies[]`; legacy fields only show up in older archives)
+ *
+ * Body-content fields (description, notes, design, acceptance_criteria,
+ * body) flow into the markdown body, not frontmatter. The round-trip
+ * for those is covered by separate tests; here we focus on
+ * frontmatter-level identity and graph fields.
+ */
+describe("issueToMarkdown — round-trip preserves all non-recomputable fields", () => {
+  const fixturePath = join(__dirname, "fixtures/bd-export-sample.jsonl")
+  const fixtureContent = readFileSync(fixturePath, "utf-8")
+  const { issues } = parseBeadsIssuesJsonl(fixtureContent)
+
+  function extractFrontmatter(md: string): Record<string, unknown> {
+    // Frontmatter delimited by --- on first/second line; body follows.
+    const match = md.match(/^---\n([\s\S]*?)\n---\n/)
+    if (!match) throw new Error(`no frontmatter in:\n${md.slice(0, 200)}`)
+    return parseYaml(match[1]!) as Record<string, unknown>
+  }
+
+  it("loaded fixture issues with full feature coverage", () => {
+    expect(issues.length).toBeGreaterThanOrEqual(7)
+    // Spot-check coverage so future fixture edits don't silently shrink
+    // the property surface this test exercises.
+    expect(issues.some((i) => i.started_at)).toBe(true)
+    expect(issues.some((i) => i.defer_until)).toBe(true)
+    expect(issues.some((i) => i.work_type)).toBe(true)
+    expect(issues.some((i) => i.metadata && i.metadata !== "{}")).toBe(true)
+    expect(issues.some((i) => i.dependencies && i.dependencies.length > 0)).toBe(true)
+    expect(issues.some((i) => i.children && i.children.length > 0)).toBe(true)
+    expect(issues.some((i) => i.blocked_by && i.blocked_by.length > 0)).toBe(true)
+  })
+
+  it.each(
+    issues.map((issue) => [issue.id, issue] as const),
+  )("preserves non-recomputable frontmatter fields for %s", (_id, issue) => {
+    const md = issueToMarkdown(issue, "km")
+    const fm = extractFrontmatter(md)
+
+    // Identity.
+    expect(fm.id).toBeTruthy()
+    if (issue.created_by !== undefined) expect(fm.created_by).toBe(issue.created_by)
+    expect(fm.created_at).toBe(issue.created_at)
+
+    // Lifecycle timestamps.
+    if (issue.started_at !== undefined) expect(fm.started_at).toBe(issue.started_at)
+    if (issue.closed_at !== undefined) expect(fm.closed_at).toBe(issue.closed_at)
+    if (issue.close_reason !== undefined) expect(fm.close_reason).toBe(issue.close_reason)
+    if (issue.defer_until !== undefined) expect(fm.defer_until).toBe(issue.defer_until)
+
+    // Ownership.
+    if (issue.owner !== undefined) expect(fm.owner).toBe(issue.owner)
+    if (issue.assignee !== undefined) expect(fm.assignee).toBe(issue.assignee)
+
+    // Graph — parent_id, children, dependencies (verbatim), legacy_deps.
+    if (issue.parent_id !== undefined) expect(fm.parent_id).toBe(issue.parent_id)
+    if (issue.children && issue.children.length > 0) {
+      expect(fm.children).toEqual(issue.children)
+    }
+    if (issue.dependencies && issue.dependencies.length > 0) {
+      expect(fm.dependencies).toEqual(issue.dependencies)
+    }
+    if ((issue.blocked_by && issue.blocked_by.length > 0) || (issue.blocks && issue.blocks.length > 0)) {
+      const expected: Record<string, string[]> = {}
+      if (issue.blocked_by?.length) expected.blocked_by = issue.blocked_by
+      if (issue.blocks?.length) expected.blocks = issue.blocks
+      expect(fm.legacy_deps).toEqual(expected)
+    }
+
+    // Freeform blob.
+    if (issue.metadata !== undefined && issue.metadata !== "{}") {
+      expect(fm.metadata).toBe(issue.metadata)
+    } else {
+      // Empty metadata is intentionally suppressed as noise.
+      expect(fm.metadata).toBeUndefined()
+    }
+
+    // work_type — present iff source had it.
+    if (issue.work_type !== undefined) expect(fm.work_type).toBe(issue.work_type)
+  })
+
+  it("never persists recomputable counts in frontmatter", () => {
+    for (const issue of issues) {
+      const md = issueToMarkdown(issue, "km")
+      const fm = extractFrontmatter(md)
+      expect(fm.dependency_count, `${issue.id} leaked dependency_count`).toBeUndefined()
+      expect(fm.dependent_count, `${issue.id} leaked dependent_count`).toBeUndefined()
+      expect(fm.comment_count, `${issue.id} leaked comment_count`).toBeUndefined()
+    }
   })
 })
