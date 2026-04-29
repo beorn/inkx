@@ -12,6 +12,7 @@ import { resolvePathArg } from "@km/fs-mount"
 import { loadRepo } from "../../load-repo.ts"
 import { getRootPath } from "../../program.ts"
 import { findNodeByPathOrId } from "./queries.ts"
+import { resolveAssignee } from "../../utils/assignee.ts"
 
 /**
  * Create a task under a parent
@@ -105,7 +106,7 @@ export async function claimTask(pathOrId: string | undefined, options: { json?: 
     process.exit(1)
   }
 
-  const actor = process.env.USER ?? "user"
+  const actor = resolveAssignee()
   repo.updateNode(task.id, {
     assigned_to: actor,
     item: { task: { status: "wip", marker: "[/]" } },
