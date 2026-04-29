@@ -61,6 +61,20 @@ import {
 } from "../pane-layout.ts"
 import { PaneHeader } from "./PaneHeader.tsx"
 import { SessionCard } from "./SessionCard.tsx"
+import { MeasuredBanner } from "./Welcome.tsx"
+
+/** Mirrors `AGENT_LABELS` in `Welcome.tsx` — kept local to PaneGrid so the
+ *  pre-spawn banner (rendered before any SessionHandle exists) can pick the
+ *  right per-agent label. Same map; if either drifts, both should update. */
+const AGENT_LABELS_FOR_PRESPAWN: Readonly<Record<string, string>> = {
+  "claude-code": "Claude Code",
+  "claude-code-spawn": "Claude Code",
+  "claude-code-sdk": "Claude Code",
+  codex: "Codex",
+  "codex-spawn": "Codex",
+  gemini: "Gemini",
+  "github-copilot-cli": "GitHub Copilot",
+}
 
 /** Width of a single divider column / row in cells. */
 const DIVIDER_SIZE = 1
@@ -129,6 +143,13 @@ export type PaneGridProps = {
    *  SessionCard so the welcome card can label itself per-agent. Bead:
    *  km-silvercode.welcome-claude-hardcoded. */
   agent?: string
+  /**
+   * App-supplied submit handler — forwarded to each SessionCard's Welcome
+   * surface so the centered TextInput on the empty-state screen routes
+   * through App's `handleSubmit` (preserving trailing-`&`, slash commands,
+   * etc.). Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn.
+   */
+  onSubmitText?: (text: string) => void
 }
 
 /**
@@ -192,6 +213,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
     showDebug = false,
     controller,
     agent,
+    onSubmitText,
   } = props
 
   const dragRef = useRef<DragState | null>(null)
@@ -390,6 +412,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
           showDebug={showDebug}
           controller={controller}
           agent={agent}
+          onSubmitText={onSubmitText}
         />
       )
     },
@@ -410,6 +433,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
       showDebug,
       controller,
       agent,
+      onSubmitText,
     ],
   )
 
@@ -420,13 +444,21 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
   void dragVersion
 
   // Empty-sessions placeholder. The initial spawn is fire-and-forget; until
-  // the first SessionHandle lands the layout tree has no leaves. Without this
-  // placeholder the entire pane area renders as blank space (the bug from
-  // bead km-silvercode.sidepanel-skeleton-mount: ~10s blank on startup).
+  // the first SessionHandle lands the layout tree has no leaves. Render the
+  // SILVER CODE banner from frame 0 so the user sees the brand mark + agent
+  // label immediately — visually identical to what the Welcome card paints
+  // once the SessionHandle materializes (a few hundred ms later for the
+  // legacy claude path, longer for ACP backends). The previous placeholder
+  // (`◈ Spawning session…`) flashed for 200-2000ms before being replaced
+  // by Welcome's banner, which read as a stale-skeleton bug rather than
+  // intentional chrome.
+  //
+  // Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn.
   if (sessions.length === 0) {
+    const agentLabel = agent ? AGENT_LABELS_FOR_PRESPAWN[agent] : undefined
     return (
-      <Box flexDirection="column" flexGrow={1} alignItems="center" justifyContent="center">
-        <Text color="$muted">◈ Spawning session…</Text>
+      <Box flexDirection="column" flexGrow={1} alignItems="center" justifyContent="center" paddingX={2}>
+        <MeasuredBanner agentLabel={agentLabel} />
       </Box>
     )
   }
@@ -448,6 +480,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
               showDebug={showDebug}
               controller={controller}
               agent={agent}
+              onSubmitText={onSubmitText}
             />
           </Box>
         </Box>
@@ -508,6 +541,7 @@ function LeafContainer({
   showDebug = false,
   controller,
   agent,
+  onSubmitText,
 }: {
   handle: SessionHandle
   isFocused: boolean
@@ -534,6 +568,9 @@ function LeafContainer({
   /** Agent id forwarded to SessionCard's Welcome card. Bead:
    *  km-silvercode.welcome-claude-hardcoded. */
   agent?: string
+  /** App-supplied submit handler — forwarded to SessionCard → Welcome.
+   *  Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn. */
+  onSubmitText?: (text: string) => void
 }): React.ReactElement {
   const rect = useBoxRect()
   // useBoxRect updates synchronously during render — write through
@@ -567,6 +604,7 @@ function LeafContainer({
           showDebug={showDebug}
           controller={controller}
           agent={agent}
+          onSubmitText={onSubmitText}
         />
       )}
       {/* Grab handle — 1×1 cell at top-left, painted over the active-bar.

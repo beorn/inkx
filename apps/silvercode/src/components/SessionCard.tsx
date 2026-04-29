@@ -56,6 +56,7 @@ export function SessionCard({
   showDebug = false,
   controller,
   agent,
+  onSubmitText,
 }: {
   handle: SessionHandle
   isFocused: boolean
@@ -90,6 +91,14 @@ export function SessionCard({
    *  H1 ("Silver Code for Codex" vs "Silver Code for Claude Code").
    *  Undefined falls back to bare "Silver Code". */
   agent?: string
+  /**
+   * App-supplied submit handler — forwarded to Welcome so the centered
+   * TextInput on the empty-state screen routes through the same code
+   * path as the App-level SessionPromptComposer (trailing-`&` background,
+   * slash commands, thinking-keyword injection, etc.). Bead:
+   * km-silvercode.welcome-bypassed-by-pane-grid-spawn.
+   */
+  onSubmitText?: (text: string) => void
 }): React.ReactElement {
   const state = useStoreSignal(handle.store)
   // Ambient stream — pre-filtered through the mute set so muted source
@@ -173,7 +182,14 @@ export function SessionCard({
       >
         <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} paddingX={1} paddingTop={1}>
           {state.messages.length === 0 ? (
-            <Welcome handle={handle} agent={agent} status={state.status} controller={controller} />
+            <Welcome
+              handle={handle}
+              agent={agent}
+              status={state.status}
+              controller={controller}
+              isFocused={isFocused}
+              onSubmitText={onSubmitText}
+            />
           ) : (
             <SessionUpdateList
               ref={scrollListRefCb}
