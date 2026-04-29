@@ -27,6 +27,7 @@ import { createUndoStack } from "./undo-stack.ts"
 import { createInitialUIState } from "./state/ui-reducer.ts"
 import { terminalFocused, lastKey, startupPhase, setStartupPhase } from "./diagnostics.ts"
 import { createGridNavigator, createViewLens, createVisibleLens } from "@km/board"
+import { computeInitialCursor } from "./initial-cursor.ts"
 import { saveWorkspace, loadWorkspace } from "./workspace-persist.ts"
 import { loadConfig, saveConfig, initLocations, onFavoritesChange, getAllLocations } from "@km/commands"
 import { loadAutolinksConfig, type AutolinkRule } from "@km/autolinks"
@@ -351,7 +352,10 @@ export async function runBoard(
     // See apps/km-tui/src/deferred-theme-provider.tsx for the swap logic.
     const defaultIconStyle = caps.maybeNerdFont ? "nerdfont" : "workflowy"
 
-    // Derive initial cursor from lens — first card of first column, or first column
+    // Derive initial cursor from lens — first card of first column, or first
+    // column. When the CLI arg resolved to a bare scope (a directory like
+    // `@km/beads`), snap one level shallower so the cursor doesn't dive into
+    // a sub-block of the first item. See bead @km/tui/bare-scope-snap-to-root.
     setStartupPhase("init-lens")
     let initialCursor: string | null = null
     {
@@ -359,10 +363,7 @@ export async function runBoard(
       const initLens = createVisibleLens(createViewLens(options.repo, { rootId, foldDepths: new Map() }), {
         collapsedNodes: collapsedNodeIds.size > 0 ? collapsedNodeIds : undefined,
       })
-      const initColIds = rootId ? initLens.children(rootId) : []
-      const firstColId = initColIds[0]
-      const firstCardId = firstColId ? initLens.children(firstColId)[0] : null
-      initialCursor = firstCardId ?? firstColId ?? null
+      initialCursor = computeInitialCursor(initLens, rootId, { bareScopeArrival: options.bareScopeArrival })
     }
 
     // Wrap the repo once so the SAME undoable proxy is installed in the
@@ -383,6 +384,7 @@ export async function runBoard(
       initialViewMode: viewMode,
       dimensions: { columns: cols, rows },
       savedWorkspace,
+      bareScopeArrival: options.bareScopeArrival,
     }
 
     // Create reactive store from repo: wrap Repo as Store, then add signal reactivity.

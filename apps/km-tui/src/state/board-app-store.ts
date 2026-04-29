@@ -309,6 +309,14 @@ export interface CreateBoardAppStoreParams {
   dimensions: { columns: number; rows: number }
   /** Saved workspace to restore (layout + panes). If provided, overrides the default single-pane workspace. */
   savedWorkspace?: PersistedWorkspace | null
+  /**
+   * "Bare scope arrival" — see TuiOptions.bareScopeArrival. When true, the
+   * default-and-restored panes snap their cursor to the first child of root
+   * (depth-1) instead of the first card (depth-2). Bypasses the saved
+   * cursor restoration so re-opening a scope doesn't land on a stale deep
+   * position from a prior session. See bead @km/tui/bare-scope-snap-to-root.
+   */
+  bareScopeArrival?: boolean
 }
 
 /**
@@ -322,6 +330,7 @@ function restoreWorkspaceFromPersisted(
   saved: PersistedWorkspace,
   repo: Repo,
   fallbackBoardState: BoardState,
+  opts: { bareScopeArrival?: boolean } = {},
 ): WorkspaceState | null {
   const panes = new Map<string, PaneState>()
 
@@ -341,9 +350,13 @@ function restoreWorkspaceFromPersisted(
       const resolvedBoard = resolvePersistedPane(persisted, repo, fallbackBoardState)
       // Compute initial cursor from repo so the pane starts with a valid cursor.
       // Without this, sel.node.cursor() is null after workspace restoration.
+      // For bare-scope arrivals (e.g. `km view beads`), snap one level shallower
+      // to avoid landing inside a sub-block of the first item.
       const rId = resolvedBoard.rootId
       const initialCursor = rId
-        ? (computeInitialCursorFromRepo(repo, rId) as import("@silvery/selection").ID | null)
+        ? (computeInitialCursorFromRepo(repo, rId, {
+            bareScopeArrival: opts.bareScopeArrival,
+          }) as import("@silvery/selection").ID | null)
         : null
       pane = createPaneState(persisted.id, resolvedBoard, {
         viewMode: persisted.viewMode as "cards" | "list" | "columns" | "tabs",
@@ -408,7 +421,11 @@ function resolvePersistedPane(persisted: PersistedPane, repo: Repo, fallback: Bo
  * `cursor-under-root` invariant from tripping on load.
  * See km-tui.cursor-under-root-crash.
  */
-function computeInitialCursorFromRepo(repo: Repo, rootId: string): string | null {
+function computeInitialCursorFromRepo(
+  repo: Repo,
+  rootId: string,
+  opts: { bareScopeArrival?: boolean } = {},
+): string | null {
   const isDescendant = (nodeId: string): boolean => {
     let current: string | null = nodeId
     for (let depth = 0; current && depth < 100; depth++) {
@@ -423,6 +440,13 @@ function computeInitialCursorFromRepo(repo: Repo, rootId: string): string | null
   if (columns.length === 0) return null
   const firstCol = columns[0]
   if (!firstCol) return null
+  // Bare-scope arrival: snap to the first child of root (a "column" by
+  // position) rather than descending into its first card. Prevents the
+  // cursor from landing inside a sub-block of the first bead when opening
+  // `@km/beads`. See bead @km/tui/bare-scope-snap-to-root.
+  if (opts.bareScopeArrival) {
+    return isDescendant(firstCol.id) ? firstCol.id : rootId
+  }
   const cards = repo.getChildren(firstCol.id)
   const firstCard = cards[0]
   if (firstCard && isDescendant(firstCard.id)) return firstCard.id
@@ -560,7 +584,9 @@ export function createBoardAppStoreState(
     let workspace: WorkspaceState
 
     if (params.savedWorkspace) {
-      const restored = restoreWorkspaceFromPersisted(params.savedWorkspace, params.repo, initialPaneBoard)
+      const restored = restoreWorkspaceFromPersisted(params.savedWorkspace, params.repo, initialPaneBoard, {
+        bareScopeArrival: params.bareScopeArrival,
+      })
       if (restored) {
         workspace = restored
       } else {
