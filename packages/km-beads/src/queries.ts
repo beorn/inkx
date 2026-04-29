@@ -525,36 +525,32 @@ export function queryIssues(
 }
 
 /**
- * Get a single issue by short ID
- * @param shortId - The short ID to look up
+ * Get a single issue by short ID.
+ *
+ * Resolves via the canonical chain: frontmatter `data.id` (canonical
+ * path-form), legacy `data.short_id` (bd-form), or any entry in
+ * `data.aliases`. Handles `scope/slug`, `@km/scope/slug`, and
+ * `km-scope.slug` inputs.
+ *
+ * Historical note (km-beads.retire-short-id-l4): a ULID-tail fallback
+ * (`km-<4chars>` matching the trailing 4 chars of `node.id`) used to live
+ * here as a last resort. It was load-bearing only while `nodeToIssue`
+ * synthesized `km-XXXX` display ids for non-beads (since retired in
+ * km-beads.purge-fallback-id-l5). Post-purge, no caller produces those
+ * ids, and the chain above is sufficient.
+ *
+ * @param idRef - canonical id, sigil-prefixed path-form, legacy bd-form,
+ *                or alias.
  * @param options - Optional query options (repo for DI)
  */
 export function getIssue(idRef: string, options?: BeadsQueryOptions): Issue | null {
   const repo = options?.repo
   if (!repo) return null
 
-  // First, the canonical resolver path: frontmatter id, legacy short_id, or
-  // any entry in the aliases list. Handles `silvercode/acp/rename`,
-  // `@km/silvercode/acp/rename`, and `km-silvercode.acp-rename`.
   const nodeId = resolveShortId(idRef, { repo })
   if (nodeId) {
     const node = repo.getNode(nodeId)
     if (node) return nodeToIssue(node, { repo })
-  }
-
-  // Last-resort: ULID-suffix fallback for nodes that ship neither
-  // frontmatter id nor data.short_id (e.g., bd-form ids derived purely from
-  // the trailing 4 chars of the node's ULID).
-  const tail = idRef.match(/^km-([a-z0-9]{4})$/i)?.[1]?.toLowerCase()
-  if (tail) {
-    const rows = repo.rawQuery<{ id: string }>(
-      `SELECT id FROM nodes WHERE lower(substr(id, length(id) - 3, 4)) = ? LIMIT 1`,
-      [tail],
-    )
-    if (rows[0]) {
-      const node = repo.getNode(rows[0].id)
-      if (node) return nodeToIssue(node, { repo })
-    }
   }
 
   return null

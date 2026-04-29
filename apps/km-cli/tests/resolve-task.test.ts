@@ -6,9 +6,14 @@
  *   2. Sigil-prefixed path-form     (`@<prefix>/<scope>/<slug>`)
  *   3. Legacy bd-form `data.short_id` (`km-<scope>.<slug>`)
  *   4. `data.aliases` entry          (historical names)
- *   5. ULID-tail fallback `km-XXXX`  (no data.id, no data.short_id —
- *      regression for km-beads.resolve-issue-arg-bug)
- *   6. Filesystem path / relative   (delegated to repo.resolveNode)
+ *   5. Filesystem path / relative   (delegated to repo.resolveNode)
+ *
+ * Historical: a ULID-tail fallback (`km-<4chars>` matching the trailing
+ * 4 chars of node.id) used to be arm 5, kept alive while `nodeToIssue`
+ * synthesized `km-XXXX` display ids for non-beads. Both have been
+ * retired (km-beads.purge-fallback-id-l5 + .retire-short-id-l4): non-
+ * beads now display the full ULID, and a bare `km-XXXX` only matches
+ * when it's a real `data.short_id`.
  */
 
 import { afterAll, describe, expect, test } from "vitest"
@@ -107,32 +112,46 @@ describe("resolveTaskNode", () => {
     expect(resolveTaskNode(repo, "legacy-id-2")?.id).toBe(id)
   })
 
-  test("path 5: bare km-XXXX ULID-tail (regression for resolve-issue-arg-bug)", () => {
-    const dir = freshDir("ulid-tail")
+  test("retired ULID-tail: bare km-XXXX no longer fabricates a hit on a non-bead", () => {
+    const dir = freshDir("ulid-tail-retired")
     using repo = openRepo(dir)
     const inbox = repo.resolveNode("inbox")!
 
-    // Bead with NO data.id and NO data.short_id — display id derives
-    // purely from ULID tail (the case nodeToIssue/queries.ts:228 falls
-    // through to). Prior to the unified resolver, `bd update km-XXXX`
-    // could fail on these even though `bd list` printed them.
+    // A node with NO data.id and NO data.short_id is not a bead. Pre-
+    // km-beads.retire-short-id-l4 the resolver matched `km-<tail>` against
+    // the node's ULID tail; that arm is gone. There is no longer any code
+    // path that prints `km-XXXX` for a node like this (Issue.shortId is
+    // undefined, displayId(issue) returns the full ULID), so a user
+    // cannot type a `km-XXXX` form that points at it.
     const nodeId = repo.addNode(inbox.id, {
       type: "p",
       item: { list: "-", task: { marker: "[ ]", status: "todo" } },
-      content: "derived-id bead",
+      content: "non-bead descendant",
       data: {},
     })
 
     const tail = nodeId.slice(-4).toLowerCase()
-    const displayId = `km-${tail}`
+    const fabricated = `km-${tail}`
 
-    const node = resolveTaskNode(repo, displayId)
-    expect(node, `bare display id ${displayId} should resolve`).toBeTruthy()
-    expect(node?.id).toBe(nodeId)
+    expect(
+      resolveTaskNode(repo, fabricated),
+      `${fabricated} should NOT resolve to a non-bead via ULID-tail synthesis`,
+    ).toBeNull()
+  })
 
-    // Case-insensitive: same id with mixed case still hits.
-    const upper = `KM-${tail.toUpperCase()}`
-    expect(resolveTaskNode(repo, upper)?.id).toBe(nodeId)
+  test("real km-<scope>.<slug> still resolves via data.short_id (arm 2, not via ULID tail)", () => {
+    const dir = freshDir("real-bd-form")
+    using repo = openRepo(dir)
+    const inbox = repo.resolveNode("inbox")!
+
+    const id = repo.addNode(inbox.id, {
+      type: "p",
+      item: { list: "-", task: { marker: "[ ]", status: "todo" } },
+      content: "real legacy bead",
+      data: { short_id: "km-abc1" },
+    })
+
+    expect(resolveTaskNode(repo, "km-abc1")?.id).toBe(id)
   })
 
   test("path 6a: full filesystem path resolves", () => {
