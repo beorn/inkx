@@ -662,6 +662,12 @@ Check: `curl -sI "https://$site" | head -1` for 200, verify sitemaps and robots.
 
 ---
 
+## Pairs with
+
+- **`/daily`** — the cadence-respecting wrapper. `/daily` invokes `/sop` for the subset of domains whose stamp has lapsed AND prompts before any weekly/monthly/quarterly routine. Use `/daily` for the morning ritual; reach for `/sop <domain>` directly for ad-hoc maintenance ("CVE alert came in — `/sop security` now").
+- **`/merge`** — orthogonal axis (WIP, not cadence). `/sop` doesn't drive worktrees back to main; `/merge` does.
+- **`/complete`** — feature/refactor closure audit; can surface findings that `/sop infra` should sweep up later.
+
 ## Agent Architecture (future)
 
 Each domain can optionally run as a separate subagent — keeps domain knowledge concentrated and context small. `/sop` orchestrator spawns domain agents in parallel (following `/max` pattern), collects findings, merges dashboard.

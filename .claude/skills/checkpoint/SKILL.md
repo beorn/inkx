@@ -102,3 +102,10 @@ Multiple sessions share the same repo. The tracking bead is identified by `claim
 
 This skill runs automatically via the pre-compact hook when the user types `/compact`.
 It can also be invoked manually with `/checkpoint` at any time.
+
+## Pairs with
+
+- **`/merge`** — orthogonal axis. `/checkpoint` preserves narrative for *resume*; `/merge` integrates *work* back to main. They compose: `/checkpoint` before `/compact`, `/merge` before stopping the workday.
+- **`/complete`** — different question. `/complete` audits whether the work is finished; `/checkpoint` saves the context whether or not it's finished.
+- **`/discuss`** — `/discuss` checkpoints to the bead automatically when entering discussion mode; uses the same machinery.
+- **`/recall`** — recovers checkpoint content in a future session via `bun recall "<bead-id>"` or `km bd show <bead-id>`.
