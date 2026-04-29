@@ -268,7 +268,8 @@ const doctorIntegrityCommand = new Command("integrity")
 const doctorPathsCommand = new Command("paths")
   .description("Detect drift between data.id (frontmatter) and derived parent path")
   .argument("[path]", "Path to repo (default: current directory)")
-  .action((path) => {
+  .option("--include-fixtures", "Scan test-fixture corpora (fidelity-corpus, __fixtures__, etc.) too")
+  .action((path, options) => {
     const { kmDir, repoPath } = resolveKmDir(path)
     const dbPath = join(kmDir, "state.db")
 
@@ -282,7 +283,7 @@ const doctorPathsCommand = new Command("paths")
     const db = new Database(dbPath, { readonly: true })
     try {
       const checked = countPathDriftCheckable(db)
-      const findings = findPathDrift(db)
+      const findings = findPathDrift(db, { includeFixtures: options.includeFixtures })
       if (findings.length === 0) {
         console.log(term.green(`  ✓ No drift across ${checked} bead(s) with data.id`))
         return
