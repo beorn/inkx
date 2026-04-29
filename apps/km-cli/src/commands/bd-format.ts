@@ -7,7 +7,7 @@
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
-import type { Issue } from "@km/beads"
+import { displayId, type Issue } from "@km/beads"
 
 /**
  * Convert internal status to bd-compatible status string
@@ -25,15 +25,6 @@ function bdStatus(status: Issue["status"]): string {
     case "dropped":
       return "dropped"
   }
-}
-
-/**
- * Display id for an issue. Real beads have `shortId`; bypass-path nodes
- * (sub-checkboxes via `bd children`, raw `bd query` hits) don't, so fall
- * back to the full node id.
- */
-function displayId(issue: Issue): string {
-  return issue.shortId ?? issue.id
 }
 
 /**
@@ -73,7 +64,5 @@ export function printIssue(issue: Issue): void {
 export function printReadyIssue(issue: Issue, index: number): void {
   const type = issue.type || "task"
   const location = issue.parentContext ? term.dim(` (${issue.parentContext})`) : ""
-  console.log(
-    `${index}. [${issue.priority}] [${type}] ${term.cyan(displayId(issue))}: ${issue.title}${location}`,
-  )
+  console.log(`${index}. [${issue.priority}] [${type}] ${term.cyan(displayId(issue))}: ${issue.title}${location}`)
 }

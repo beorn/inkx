@@ -198,6 +198,24 @@ function getParentContext(node: KNode, repo?: Repo): string | undefined {
 }
 
 /**
+ * Display id for an Issue.
+ *
+ * Real beads carry `data.id` (canonical path-form, e.g. `@km/scope/slug`)
+ * or legacy `data.short_id` (bd-form, e.g. `km-a1b2`); `nodeToIssue`
+ * surfaces both as `Issue.shortId`. Bypass-path nodes (sub-checkboxes via
+ * `bd children`, raw `bd query` hits, path-resolved nodes via
+ * `resolveTaskNode`) have no bead identity, so `Issue.shortId` is
+ * `undefined` and we fall back to the full node `Issue.id` (a ULID).
+ *
+ * This is the ONE reader of the `shortId ?? id` chain — every CLI
+ * formatter, JSON emitter, and log line goes through here so the display
+ * rule lives in one place.
+ */
+export function displayId(issue: Issue): string {
+  return issue.shortId ?? issue.id
+}
+
+/**
  * Convert a KNode to an Issue
  */
 export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
