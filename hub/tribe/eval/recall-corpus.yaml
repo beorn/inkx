@@ -227,3 +227,373 @@ pairs:
       Today's hypothesis-loop tool work. Right answer is this session +
       the deep-rounds bead. Watch for noise from any prior recall-hook
       discussion that doesn't address THIS architecture.
+
+  # ── Axis D: realistic-prompt distribution (sampled from real sessions) ──
+  #
+  # Pair 016-039 are real user prompts pulled from sessions 51f52497,
+  # da9990c5, ca24a540, 4de4a3ab. Each carries:
+  #   - the verbatim prompt
+  #   - source session_id + turn_index for provenance
+  #   - expected_action: skip(<reason>) | emit_inline | emit_pointer | needs_session_state
+  #   - expected_signal_source: S_t | P | both | none — where retrieval signal lives
+  #
+  # The current hot-path pipeline only handles `P`-class prompts. ~60% of
+  # this axis requires session-state awareness or the prompt is properly a
+  # skip. Use this axis to score the true signal-to-noise of recall on real
+  # traffic, not the synthetic anchor-rich pairs in axes A/B.
+
+  - id: pair-016
+    axis: D
+    query: "make sure all CI passes"
+    expected_action: needs_session_state
+    expected_action_hot_path: skip
+    expected_action_agent: emit_inline
+    expected_signal_source: S_t
+    expected_relevant_session_ids: []
+    expected_irrelevant_session_ids: []
+    notes: |
+      Real prompt from session 51f52497 (test-system migration).
+      Prompt has no anchors. The "CI" referent comes from session
+      context (which package's CI? what failures?). Current pipeline:
+      bypasses Stage 1 salience (length 22 > 15 but < 120 with no anchor
+      → low_salience skip). That's acceptable behavior — without S_t, no
+      useful retrieval is possible. Evaluator should mark this as
+      "correct skip" if pipeline returns low_salience.
+
+  - id: pair-017
+    axis: D
+    query: "i thought we had finished the migration - what's left?"
+    expected_action: needs_session_state
+    expected_action_hot_path: skip
+    expected_action_agent: emit_inline
+    expected_signal_source: S_t
+    expected_relevant_session_ids: []
+    expected_irrelevant_session_ids: []
+    notes: |
+      Anaphoric: "the migration" = unspecified without S_t. Current pipeline:
+      low_salience skip (no anchors). Right answer requires reading session
+      context (was km-all.test-system / testEnv migration). Mark "correct
+      skip" today; "correct emit with S_t-anchored snippet" after S_t lands.
+
+  - id: pair-018
+    axis: D
+    query: "how long until they finish"
+    expected_action: skip
+    expected_action_hot_path: skip
+    expected_action_agent: skip
+    expected_signal_source: S_t
+    expected_relevant_session_ids: []
+    expected_irrelevant_session_ids: []
+    notes: |
+      Anaphora ("they") + length 26. Current: low_salience skip. Right
+      behavior. Even with S_t, this is a state-query about running agents
+      — different system (tribe), not recall.
+
+  - id: pair-019
+    axis: D
+    query: "what are all the benefits of switching away from testEnv?"
+    expected_action: emit_inline
+    expected_action_hot_path: emit_inline
+    expected_action_agent: emit_inline
+    expected_signal_source: P
+    expected_relevant_session_ids: []
+    expected_relevant_artifacts:
+      - kind: bead
+        id: "km-all.test-system"
+    expected_irrelevant_session_ids: []
+    notes: |
+      Has anchor (testEnv, length 56). Should emit. Right answer: the
+      test-system bead's design discussion of testEnv replacement.
+
+  - id: pair-020
+    axis: D
+    query: "create a bead to close the gap completely - include as part of your work"
+    expected_action: needs_session_state
+    expected_action_hot_path: skip
+    expected_action_agent: emit_inline
+    expected_signal_source: S_t
+    expected_relevant_session_ids: []
+    expected_irrelevant_session_ids: []
+    notes: |
+      "the gap" = anaphora (length 70, no kebab). Current: low_salience.
+      Even with full pipeline, this is a directive needing S_t to know
+      which gap.
+
+  - id: pair-021
+    axis: D
+    query: "/max"
+    expected_action: skip
+    expected_action_hot_path: skip
+    expected_action_agent: skip
+    expected_signal_source: none
+    expected_relevant_session_ids: []
+    expected_irrelevant_session_ids: []
+    notes: |
+      Slash command. Current: slash_command skip. Correct.
+
+  - id: pair-022
+    axis: D
+    query: "ok"
+    expected_action: skip
+    expected_action_hot_path: skip
+    expected_action_agent: skip
+    expected_signal_source: none
+    expected_relevant_session_ids: []
+    expected_irrelevant_session_ids: []
+    notes: |
+      Trivial. Current: short skip. Correct.
+
+  - id: pair-023
+    axis: D
+    query: "btw, after doing this - i think we should review the CLAUDE.md for Silvery"
+    expected_action: emit_inline
+    expected_action_hot_path: emit_inline
+    expected_action_agent: emit_inline
+    expected_signal_source: both
+    expected_relevant_session_ids: []
+    expected_relevant_artifacts:
+      - kind: doc
+        path: "vendor/silvery/CLAUDE.md"
+      - kind: bead
+        id: "km-silvery.positioning"
+    expected_irrelevant_session_ids: []
+    notes: |
+      Topic-shift with anchors (CLAUDE.md, Silvery). Length 75. Should
+      emit silvery-related context. "After doing this" anchors S_t for
+      sequencing but content is about Silvery.
+
+  - id: pair-024
+    axis: D
+    query: "what does 'bd remember' do?"
+    expected_action: emit_inline
+    expected_action_hot_path: emit_inline
+    expected_action_agent: emit_inline
+    expected_signal_source: P
+    expected_relevant_session_ids: []
+    expected_relevant_artifacts:
+      - kind: bead
+        id: "km-beads.cutover"
+    expected_irrelevant_session_ids: []
+    notes: |
+      Specific question with backtick-quoted command. Current: should
+      pass salience (RE_BACKTICKED matches). Right answer: cutover bead
+      or `km bd remember` docs.
+
+  - id: pair-025
+    axis: D
+    query: "what will it take for us to replace beads with km?"
+    expected_action: emit_inline
+    expected_action_hot_path: emit_inline
+    expected_action_agent: emit_inline
+    expected_signal_source: P
+    expected_relevant_session_ids:
+      - "da9990c5"
+    expected_relevant_artifacts:
+      - kind: bead
+        id: "km-beads.cutover"
+    expected_irrelevant_session_ids: []
+    notes: |
+      Opening question with anchors (beads, km). Should emit the cutover
+      bead family.
+
+  - id: pair-026
+    axis: D
+    query: "you don't know what km's syntax is?"
+    expected_action: needs_session_state
+    expected_action_hot_path: skip
+    expected_action_agent: emit_inline
+    expected_signal_source: S_t
+    expected_relevant_session_ids: []
+    expected_irrelevant_session_ids: []
+    notes: |
+      Pushback question, length 36. "km's syntax" is the topic in S_t
+      (sigil syntax discussion). Current: low_salience. Right behavior
+      under v3 with S_t: emit km-block-id / sigil-syntax docs.
+
+  - id: pair-027
+    axis: D
+    query: "yes please integrate the changes"
+    expected_action: skip
+    expected_action_hot_path: skip
+    expected_action_agent: skip
+    expected_signal_source: S_t
+    expected_relevant_session_ids: []
+    expected_irrelevant_session_ids: []
+    notes: |
+      Ack + directive. "the changes" needs S_t. Skipping is correct;
+      emitting prior unrelated change-discussion would be wrong.
+
+  - id: pair-028
+    axis: D
+    query: "broadcast to the tribe - coordinate CPU - what's going on?"
+    expected_action: needs_session_state
+    expected_action_hot_path: skip
+    expected_action_agent: emit_inline
+    expected_signal_source: S_t
+    expected_relevant_session_ids: []
+    expected_irrelevant_session_ids: []
+    notes: |
+      Length 56, no kebab anchors. Current: low_salience. Right behavior
+      under v3 with S_t: emit recent CPU-related observations from session.
+
+  - id: pair-029
+    axis: D
+    query: "consider all failures as part of your work"
+    expected_action: skip
+    expected_action_hot_path: skip
+    expected_action_agent: skip
+    expected_signal_source: S_t
+    expected_relevant_session_ids: []
+    expected_irrelevant_session_ids: []
+    notes: |
+      Directive. "All failures" needs S_t. Skip if no S_t.
+
+  - id: pair-030
+    axis: D
+    query: "how is the memory system working now?"
+    expected_action: emit_inline
+    expected_action_hot_path: emit_inline
+    expected_action_agent: emit_inline
+    expected_signal_source: P
+    expected_relevant_session_ids: []
+    expected_relevant_artifacts:
+      - kind: bead
+        id: "km-bearly.recall-snippet-sanitize"
+      - kind: bead
+        id: "km-tribe.recall-eval-corpus"
+    expected_irrelevant_session_ids: []
+    notes: |
+      Specific question about recall. Length 38. Quoted-phrase rule
+      matches "memory system". Should emit the recall-related work.
+
+  - id: pair-031
+    axis: D
+    query: "fix all failures and new beads"
+    expected_action: skip
+    expected_action_hot_path: skip
+    expected_action_agent: skip
+    expected_signal_source: S_t
+    expected_relevant_session_ids: []
+    expected_irrelevant_session_ids: []
+    notes: |
+      Directive, no anchors. Skip without S_t. With S_t, right answer is
+      list of currently-failing tests + recently-filed beads.
+
+  - id: pair-032
+    axis: D
+    query: "create a bead km-bearly.recall-snippet-sanitize for this"
+    expected_action: emit_inline
+    expected_action_hot_path: emit_inline
+    expected_action_agent: emit_inline
+    expected_signal_source: both
+    expected_relevant_session_ids: []
+    expected_relevant_artifacts:
+      - kind: bead
+        id: "km-bearly.recall-snippet-sanitize"
+    expected_irrelevant_session_ids: []
+    notes: |
+      Has explicit kebab anchor + "for this" anaphora. Should emit
+      the bead's prior context if any exists.
+
+  - id: pair-033
+    axis: D
+    query: "show me the trash with more detail"
+    expected_action: needs_session_state
+    expected_action_hot_path: skip
+    expected_action_agent: emit_inline
+    expected_signal_source: S_t
+    expected_relevant_session_ids: []
+    expected_irrelevant_session_ids: []
+    notes: |
+      "the trash" = anaphora (was discussing fixture-bead phantoms). Current:
+      low_salience. Right under v3: surface the two trash beads from S_t.
+
+  - id: pair-034
+    axis: D
+    query: "i don't know, yes"
+    expected_action: skip
+    expected_action_hot_path: skip
+    expected_action_agent: skip
+    expected_signal_source: none
+    expected_relevant_session_ids: []
+    expected_irrelevant_session_ids: []
+    notes: |
+      Length 17, ambivalent ack. Current: low_salience. Correct skip.
+
+  - id: pair-035
+    axis: D
+    query: "let's move it to the side panel"
+    expected_action: needs_session_state
+    expected_action_hot_path: skip
+    expected_action_agent: emit_inline
+    expected_signal_source: S_t
+    expected_relevant_session_ids: []
+    expected_irrelevant_session_ids: []
+    notes: |
+      Length 31, "it" anaphora. UI directive. Current: low_salience.
+      Right v3: surface most-recently-discussed UI element.
+
+  - id: pair-036
+    axis: D
+    query: "what was that file we edited yesterday in km-storage?"
+    expected_action: emit_inline
+    expected_action_hot_path: emit_inline
+    expected_action_agent: emit_inline
+    expected_signal_source: P
+    expected_relevant_session_ids: []
+    expected_relevant_artifacts:
+      - kind: bead
+        id: "km-storage"
+    expected_irrelevant_session_ids: []
+    notes: |
+      Has kebab (km-storage) + temporal hint ("yesterday"). Should emit
+      with time_hint=1d. Right answer: recent km-storage commits/edits.
+
+  - id: pair-037
+    axis: D
+    query: "the test-system bead - what did it involve - are we still supposed to use testEnv?"
+    expected_action: emit_inline
+    expected_action_hot_path: emit_inline
+    expected_action_agent: emit_inline
+    expected_signal_source: P
+    expected_relevant_session_ids: []
+    expected_relevant_artifacts:
+      - kind: bead
+        id: "km-all.test-system"
+    expected_irrelevant_session_ids: []
+    notes: |
+      Has anchor "test-system" + "testEnv" (camelCase, doesn't match
+      RE_KEBAB but does match RE_QUOTED if quoted; here it's bare so
+      may fail salience). Edge case: testEnv should be recognized.
+
+  - id: pair-038
+    axis: D
+    query: "explain 345345"
+    expected_action: skip
+    expected_action_hot_path: skip
+    expected_action_agent: skip
+    expected_signal_source: none
+    expected_relevant_session_ids: []
+    expected_irrelevant_session_ids: []
+    notes: |
+      Length 14 → short skip. Correct.
+
+  - id: pair-039
+    axis: D
+    query: "btw, one agent got this - it looks like it's the age-old issue: km-infra.orphan-branch-audit"
+    expected_action: emit_inline
+    expected_action_hot_path: emit_inline
+    expected_action_agent: emit_inline
+    expected_signal_source: P
+    expected_relevant_session_ids: []
+    expected_relevant_artifacts:
+      - kind: bead
+        id: "km-infra.orphan-branch-audit"
+    expected_irrelevant_session_ids:
+      - "c56dc5d6"  # bg-tokens / km-logview noise that BM25 incorrectly ranks high
+    notes: |
+      Has anchor km-infra.orphan-branch-audit. The trap (c56dc5d6) is
+      what current pipeline emits — bg-tokens commit unrelated to orphan
+      branches. Anchor-overlap gate would skip it; LLM rerank would
+      down-weight it. This is the canonical "lexical noise wins BM25"
+      failure pair from session 4de4a3ab dogfooding 2026-04-28.

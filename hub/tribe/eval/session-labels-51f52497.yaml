@@ -1,0 +1,271 @@
+# Session-level eval labels for session 51f52497 (test-system migration)
+#
+# Each turn gets:
+#   expected_action     — what the recall pipeline should do for this prompt
+#   ideal_target        — vault path / bead ID / doc path that ANSWERS the prompt (when emit)
+#   ideal_source        — which DB / system should produce the answer
+#                         (vault-fts | glossary | session-fts | s_t | tribe | none)
+#   notes               — what makes this prompt hard / what algorithm change unlocks it
+#
+# expected_action values:
+#   skip            - prompt is non-substantive OR purely directive; no retrieval value
+#   emit_pointer    - retrieve a typed pointer + activation hint; agent fetches if relevant
+#   emit_inline     - retrieve full short content (when content is small + directly answers)
+#   needs_s_t       - prompt has retrieval value BUT requires session-state to resolve
+
+session_id: "51f52497"
+session_topic: "test-system migration / testEnv → createTestApp+termless"
+
+turns:
+  - turn: 1
+    prompt: "make sure all CI passes"
+    expected_action: skip
+    ideal_source: none
+    notes: |
+      Bare directive about CI. Even with S_t about CI state, recall isn't the right
+      surface — current CI failures live in GitHub Actions, not in our index.
+
+  - turn: 2
+    prompt: "why are things so slow? is it because we're also supporting termless?"
+    expected_action: emit_pointer
+    ideal_target: "vendor/termless"
+    ideal_source: glossary
+    notes: |
+      "termless" is a project-specific bare noun. Hot-path misses it (no kebab anchor).
+      Glossary should map "termless" → vendor/termless package + a preview of its role
+      in the test infrastructure.
+
+  - turn: 3
+    prompt: "the test-system bead - what did it involve - are we still supposed to use testEnv?"
+    expected_action: emit_pointer
+    ideal_target: "@km/all/test-system"
+    ideal_source: glossary
+    notes: |
+      Direct question about the bead. Glossary should resolve "test-system" → bead.
+      "testEnv" alias should also resolve to same bead. Current pipeline emits but
+      retrieves lexical-noise from session transcripts, not the bead body.
+
+  - turn: 4
+    prompt: "i thought we had finished the migration - what's left?"
+    expected_action: needs_s_t
+    ideal_target: "@km/all/test-system"
+    ideal_source: s_t
+    notes: |
+      "the migration" anaphora. S_t carries test-system from T03; should resolve
+      and emit pointer to bead's current acceptance/remainder.
+
+  - turn: 5
+    prompt: "where is the remainder captured?"
+    expected_action: needs_s_t
+    ideal_target: "@km/all/test-system"
+    ideal_source: s_t
+    notes: |
+      Anaphora ("the remainder"). S_t resolution required.
+
+  - turn: 6
+    prompt: "re-open the bead, make it P0, consider it part of your work to complete the migration now"
+    expected_action: skip
+    ideal_source: none
+    notes: |
+      Directive about bead state. Recall surface not the right answer.
+
+  - turn: 7
+    prompt: "ok"
+    expected_action: skip
+    notes: |
+      Trivial. Length 2.
+
+  - turn: 8
+    prompt: "how long until they finish"
+    expected_action: skip
+    ideal_source: tribe
+    notes: |
+      "they" = running agents. Live runtime state belongs to tribe, not recall.
+
+  - turn: 9
+    prompt: "what are all the benefits of switching away from testEnv?"
+    expected_action: emit_pointer
+    ideal_target: "@km/all/test-system"
+    ideal_source: glossary
+    notes: |
+      "testEnv" alias on the test-system bead. Glossary lookup should resolve.
+      Current: low_salience SKIP (camelCase, doesn't match kebab regex).
+
+  - turn: 10
+    prompt: "why do we lose these? [4-line list of testEnv features]"
+    expected_action: emit_pointer
+    ideal_target: "@km/all/test-system"
+    ideal_source: vault-fts
+    notes: |
+      Drill-in on prior context. Vault FTS over bead body should retrieve
+      discussion of testEnv-only features. Long prompt (>120) bypasses salience
+      gate today; current pipeline emits but irrelevantly.
+
+  - turn: 11
+    prompt: "should we have some kind of white-box feature - like passing the store to the createTestApp so we can also assert on the store?"
+    expected_action: emit_pointer
+    ideal_target: "apps/km-tui/tests/helpers/test-app.ts"
+    ideal_source: glossary
+    notes: |
+      "createTestApp" is a project-specific function name (camelCase). Glossary
+      should map createTestApp → test-app.ts. Long prompt bypasses salience but
+      retrieval doesn't find the right target.
+
+  - turn: 12
+    prompt: "create a bead to close the gap completely - include as part of your work"
+    expected_action: skip
+    ideal_source: none
+    notes: |
+      Directive. "the gap" anaphora but action is creation, not retrieval.
+
+  - turn: 13
+    prompt: "sure, check first, then go ahead /max"
+    expected_action: skip
+    notes: |
+      Trivial-ish + slash command.
+
+  - turn: 14
+    prompt: "retry"
+    expected_action: skip
+    notes: |
+      Trivial.
+
+  - turn: 15
+    prompt: "btw, after doing this - i think we should review the CLAUDE.md for Silvery - to make sure it acts as a great intro..."
+    expected_action: emit_pointer
+    ideal_target: "vendor/silvery/CLAUDE.md"
+    ideal_source: vault-fts
+    notes: |
+      Topic-shift to Silvery. "CLAUDE.md" + "Silvery" should both resolve via
+      glossary or path-rule. Current pipeline emits but with noise.
+
+  - turn: 16
+    prompt: "yes"
+    expected_action: skip
+    notes: |
+      Trivial.
+
+  - turn: 17
+    prompt: "create ONE bead for this - i'm not sure it's something we should do now but it's a good idea - we haven't yet stabilized the TEA infrastructure so it's perhaps a bit premature"
+    expected_action: skip
+    ideal_source: none
+    notes: |
+      Directive about bead creation. "TEA infrastructure" mentioned but as caveat
+      not query target. Long prompt bypasses salience but emit isn't useful.
+
+  - turn: 18
+    prompt: "fix all failures and new beads"
+    expected_action: skip
+    notes: |
+      Directive. No retrieval value.
+
+  - turn: 19
+    prompt: "do the fix: Fix: The vitest fork isolation should use signal: AbortSignal or parent-death detection. For now, this is a known trade-off of running many parallel agents."
+    expected_action: emit_pointer
+    ideal_target: "vitest config / fork-isolation"
+    ideal_source: vault-fts
+    notes: |
+      Technical content. Glossary: vitest, AbortSignal. Vault FTS over vitest
+      config files. Long prompt bypasses salience but content is informational
+      not query-shaped. Skip is also defensible.
+
+  - turn: 20
+    prompt: "this may apply to other systems that end up with this rate limiting error? the rate limiting happens when i switch from one claude code max account to another..."
+    expected_action: emit_pointer
+    ideal_target: "vendor/accountly/* OR rate-limit-handling docs"
+    ideal_source: vault-fts
+    notes: |
+      Question about rate-limit behavior. Vault FTS over accountly + max-account
+      docs. Glossary should know "rate limiting" + "claude code max account".
+
+  - turn: 21
+    prompt: "broadcast to the tribe - coordinate CPU - what's going on?"
+    expected_action: skip
+    ideal_source: tribe
+    notes: |
+      Tribe-runtime question. Recall not the answer.
+
+  - turn: 22
+    prompt: "consider all failures as part of your owrk"
+    expected_action: skip
+    notes: |
+      Directive (typo: 'owrk' = 'work').
+
+  - turn: 23
+    prompt: "after you get from pro and we confirm - make sure to go through all related skills"
+    expected_action: emit_pointer
+    ideal_target: ".claude/skills/pro/SKILL.md"
+    ideal_source: glossary
+    notes: |
+      "pro" anchor → /pro skill. Could also surface related skills index.
+
+  - turn: 24
+    prompt: "wait for pro - and perhaps invariants don't have to be after every action - i think it's perhaps enough to do them at end-of-test"
+    expected_action: emit_pointer
+    ideal_target: "SILVERY_STRICT docs / invariants design"
+    ideal_source: vault-fts
+    notes: |
+      "invariants" + "SILVERY_STRICT" related. Vault FTS over silvery test docs.
+
+  - turn: 25
+    prompt: "i also think there should be an env var controlling this"
+    expected_action: needs_s_t
+    ideal_target: "SILVERY_STRICT env var docs"
+    ideal_source: s_t
+    notes: |
+      Anaphora ("this" = invariants from T24). S_t resolution required.
+
+  - turn: 26
+    prompt: "which env vars do we flip on/off for the entire test suite? i think perhaps we could just hook into..."
+    expected_action: emit_pointer
+    ideal_target: "package.json test scripts + CLAUDE.md test section"
+    ideal_source: vault-fts
+    notes: |
+      Direct question about test env vars. Vault FTS over package.json + docs.
+
+  - turn: 27
+    prompt: "we basically have: - normal tests (do whatever is performant) - test everything (turn on all testing..."
+    expected_action: emit_pointer
+    ideal_target: "package.json test scripts"
+    ideal_source: vault-fts
+    notes: |
+      Description of test-system structure. Should retrieve canonical scripts list.
+
+  - turn: 28
+    prompt: "yes, all needs to be documented, and we should perhaps have a test:strictest - or something like that"
+    expected_action: skip
+    notes: |
+      Proposal/directive. No retrieval value at this point.
+
+  - turn: 29
+    prompt: "i like test:strictest"
+    expected_action: skip
+    notes: |
+      Short ack.
+
+  - turn: 30
+    prompt: "strictest - kind-of a cool name for a testing system"
+    expected_action: skip
+    notes: |
+      Meta-comment, no retrieval target.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AGGREGATE EXPECTED BEHAVIOR (30 turns)
+#
+# skip:           16  (T1, 6, 7, 8, 12, 13, 14, 16, 17, 18, 21, 22, 28, 29, 30 — 15 + T1)
+# emit_pointer:   11  (T2, 3, 9, 10, 11, 15, 19, 20, 23, 24, 26, 27 — 12)
+# needs_s_t:       3  (T4, 5, 25)
+#
+# Of the 11 emit_pointers, ideal sources are:
+#   glossary:    5  (T2, 3, 9, 11, 23)
+#   vault-fts:   6  (T10, 15, 19, 20, 24, 26, 27)
+#
+# Implication for algorithm priorities:
+#   1. Glossary alone unlocks 5/11 expected emits
+#   2. Vault FTS unlocks 6/11
+#   3. S_t resolution unlocks 3 needs_s_t turns
+#   Total: ~14/30 turns become correctly handled by these 3 changes
+#
+# Skip handling is already correct in current pipeline (16/16 expected skips
+# DO skip today via low_salience / short / slash filters). The work is all
+# on emit-recall — closing false_skips.
