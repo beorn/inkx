@@ -70,7 +70,7 @@ export async function markDone(pathOrId: string | undefined, options: { json?: b
   const resolved = resolvePathArg(process.cwd(), getRootPath())
   using repo = await loadRepo(resolved.repoRoot)
 
-  const task = repo.resolveNode(pathOrId, { taskOnly: true })
+  const task = findNodeByPathOrId(repo, pathOrId)
   if (!task) {
     console.error(term.red(`Task not found: ${pathOrId}`))
     process.exit(1)
@@ -100,7 +100,7 @@ export async function claimTask(pathOrId: string | undefined, options: { json?: 
   const resolved = resolvePathArg(process.cwd(), getRootPath())
   using repo = await loadRepo(resolved.repoRoot)
 
-  const task = repo.resolveNode(pathOrId, { taskOnly: true })
+  const task = findNodeByPathOrId(repo, pathOrId)
   if (!task) {
     console.error(term.red(`Task not found: ${pathOrId}`))
     process.exit(1)
@@ -138,7 +138,7 @@ export async function releaseTask(pathOrId: string | undefined, options: { json?
   const resolved = resolvePathArg(process.cwd(), getRootPath())
   using repo = await loadRepo(resolved.repoRoot)
 
-  const task = repo.resolveNode(pathOrId, { taskOnly: true })
+  const task = findNodeByPathOrId(repo, pathOrId)
   if (!task) {
     console.error(term.red(`Task not found: ${pathOrId}`))
     process.exit(1)
@@ -173,7 +173,7 @@ export async function assignTask(
   const resolved = resolvePathArg(process.cwd(), getRootPath())
   using repo = await loadRepo(resolved.repoRoot)
 
-  const task = repo.resolveNode(pathOrId, { taskOnly: true })
+  const task = findNodeByPathOrId(repo, pathOrId)
   if (!task) {
     console.error(term.red(`Task not found: ${pathOrId}`))
     process.exit(1)

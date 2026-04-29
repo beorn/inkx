@@ -9,27 +9,17 @@ import { normalizeName } from "@km/core"
 import { collapseAncestorsWithTypes, type CollapsedAncestor } from "@km/tree"
 import type { KNode } from "@km/core"
 import { getNodeDisplayName as getNodeDisplayNameWithRepo } from "./formatters.ts"
+import { resolveTaskNode } from "../../utils/resolve-task.ts"
 
 /**
- * Find a node by path or ID prefix/suffix
- * Returns the node if found, null otherwise
+ * Find a node by path or ID prefix/suffix.
+ *
+ * Re-export under the historical name so existing call sites stay
+ * stable; the implementation is the unified `resolveTaskNode` shared
+ * with `bd <id>`.
  */
 export function findNodeByPathOrId(repo: Repo, pathOrId: string): KNode | null {
-  // Try ID match via resolveNode (handles prefixes)
-  const node = repo.resolveNode(pathOrId)
-  if (node) return node
-
-  // Try path match with repo path prefix (user may provide relative path)
-  // Check if it looks like a relative path
-  if (!pathOrId.startsWith("/")) {
-    const cwd = process.cwd()
-    const fullPath = `${cwd}/${pathOrId}`
-    // Try resolving the full path
-    const byFullPath = repo.resolveNode(fullPath)
-    if (byFullPath) return byFullPath
-  }
-
-  return null
+  return resolveTaskNode(repo, pathOrId)
 }
 
 /**
