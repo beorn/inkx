@@ -290,37 +290,39 @@ Use `/commit`. Follow [Conventional Commits](https://conventionalcommits.org): `
 
 ## Branches and worktrees — the standing rule
 
-**Branches in the main repo are dead. Worktrees only.**
+**No branch hopping in main. Conflict-prone work goes in a pool worktree. Localized work in main is fine.**
 
-Multiple Claude agents are concurrent. Branches in the main repo's working tree cause silent corruption: one agent's `git checkout feat/X` hops the HEAD, another agent commits to whatever's checked out, files leak between branches via the shared working dir, and "format reflow" commits accidentally sweep up half-staged work from a concurrent agent. There is no recovery once trust in branch ownership is lost — only re-merge from snapshots.
+The actual failure mode that motivates this rule is `git checkout feat/X` *in the main repo's working dir* — that hops HEAD between sessions, files leak between branches via the shared working dir, and "format reflow" commits accidentally sweep up half-staged work from a concurrent agent. Multiple agents adding tests in different files, or one editing `apps/km-cli/` while another edits `apps/silvercode/`, never collide. Optimize the rule for the real failure, not the imagined one.
 
-The rules, in order of strictness:
+The rules:
 
-1. **The main repo's working directory stays on `main`. Always. No exceptions.**
-   - Never `git checkout <feature-branch>` in the main repo's working dir. Not for a quick edit, not for a one-off check, not for "just to verify."
-   - The only place `git checkout main` and `git merge --ff-only <branch>` are allowed is during the consolidation phase by the orchestrator session — and even then, the merge is the last step before deleting the branch.
+1. **Never `git checkout <feature-branch>` in the main repo's working dir.** Not for a quick edit, not for a one-off check, not for "just to verify." The main repo working tree is on `main` — pull, edit, commit, push. The only exception is the orchestrator's consolidation phase (cherry-pick branches, push, delete).
 
-2. **All agent work goes in a worktree.** Use `bun worktree create <name>` (preferred — handles submodules, deps, hooks) or `Agent({isolation: "worktree"})` for sub-agents. Each worktree gets its own throwaway branch (`feat/<name>` or `wip/<bead-id>`), isolated working dir, isolated dependencies.
+2. **Multiple agents may operate in main concurrently** for *localized changes* — different files, different packages, no overlap. Read-only / search / diagnosis / planning agents always belong in main.
 
-3. **Throwaway branches are merged-and-deleted on completion.** As soon as the work is merged into `main`:
-   - `git branch -d feat/<name>` (or `git push origin :feat/<name>` if pushed)
-   - `bun worktree remove <name>` (or let WorktreeRemove hook auto-classify if `.claude/worktrees/`)
-   - No long-lived feat branches. Branches are a *queue*, not a deliverable.
+3. **Conflict-prone work goes in a pool worktree slot.** Pool: `.claude/worktrees/wt1`..`wtN`, each on a stable branch `wtN` (no `feat/` prefix). Worktrees are persistent — never created/destroyed per task, always checked out, always present. Agents *move in*, do their work, *move out*; the slot persists.
 
-4. **Concurrent agents on the same files MUST be in worktrees** — default, not threshold (per memory `feedback-worktree-shared-submodule.md`). One worktree per agent. Two agents touching `vendor/silvery/` without isolation = corruption, full stop.
+4. **Pool claim/release protocol** (bead-as-lock):
+   - Claim: `km bd update km-wt3 --claim` → if assigned_to is set, the slot is busy; pick another or wait.
+   - Move in: `cd .claude/worktrees/wt3 && git fetch origin && git rebase origin/main` — pick up latest main.
+   - Work: edits, commits on branch `wt3`. Multiple commits OK; no naming convention beyond conventional commits.
+   - Push: `git push origin wt3` — the orchestrator will cherry-pick to main, OR push directly to `main` (fast-forward) if no conflicts and you have the lease.
+   - Move out: reset wt3 back to `origin/main` (`git reset --hard origin/main && git submodule update --recursive`) and `km bd close km-wt3 --reason "shipped <SHA>"`. The slot is recycled, ready for next claim.
 
-5. **Verify worktree isolation post-spawn** — `Agent({isolation: "worktree"})` can fail silently (lock contention on concurrent `git worktree add`, submodule clone failure). Check with `git worktree list --porcelain` after spawn; fall back to `bun worktree create` if missing. See `feedback-agent-worktree-verification.md`.
+5. **`Agent({isolation: "worktree"})` for sub-agents stays available** for ephemeral, single-shot agent runs. The pool is for sessions and longer-running work; ephemeral sub-agents can still spawn one-shot worktrees that auto-cleanup.
 
-6. **Never `git stash` / `git reset --hard` / `git checkout <ref> -- <path>` to enable a checkout.** If the main repo's working dir has uncommitted files from another agent, ask the owner (broadcast on tribe) to commit or discard. Use `git show <ref>:<path> > <path>` if you need read-only retrieval. Files in someone else's working tree are theirs until they commit.
+6. **Verify isolation post-spawn** — `Agent({isolation: "worktree"})` can fail silently (lock contention, submodule failure). Check `git worktree list --porcelain` after spawn; fall back to claiming a pool slot if missing.
 
-7. **Cherry-picks beat merges for cross-worktree integration.** The consolidation phase (orchestrator session) cherry-picks each worktree's commits onto `main`, resolving conflicts inline. Direct `git merge feat/X main` from outside the worktree fragments history and risks submodule pointer mismatches.
+7. **Never `git stash` / `git reset --hard` / `git checkout <ref> -- <path>` against another agent's working tree.** If the main repo's working dir has uncommitted files from another agent, ask the owner (broadcast on tribe) to commit or discard. Use `git show <ref>:<path> > <path>` for read-only retrieval. The reset-on-release inside a pool worktree is the only sanctioned destructive op, because the slot owns its branch.
 
-**The reason this rule exists** (incident log, most recent first):
-- 2026-04-29 morning: silvercode2 broadcast "branch hopped on me again" mid-write — main repo HEAD shifted from `feat/predicate-pre-map-filter` to `feat/km-tasks.blocked-filter` between read and write of the same file. `810edd137 chore(format): oxfmt reflow` accidentally swept up half-staged work from share-resolvetask's port-blocked-filter agent.
+8. **Cherry-picks beat merges for cross-worktree integration.** The orchestrator's consolidation phase cherry-picks each branch's commits onto main, resolving conflicts inline. Direct `git merge wtN main` from outside the worktree fragments history and risks submodule pointer mismatches.
+
+**Incident log** (most recent first, motivating the rule):
+- 2026-04-29 morning: silvercode2 broadcast "branch hopped on me again" mid-write — main repo HEAD shifted from `feat/predicate-pre-map-filter` to `feat/km-tasks.blocked-filter` between read and write of the same file. `810edd137 chore(format): oxfmt reflow` accidentally swept up half-staged work from share-resolvetask's port-blocked-filter agent. Root cause: long-lived feat/ branches checked out in main repo.
 - 2026-04-28 evening: main repo's HEAD bounced through `feat/fuzz-migrate-roundtrip` → `feat/predicate-pre-map-filter` from concurrent agents committing to whatever was current.
 - Multiple sessions over 2026-04-Q2: `Agent({isolation: "worktree"})` silent failures fell back to main tree, causing same-tree concurrent edits.
 
-The fix is procedural, not technical: agents stay in their own worktrees, main is the convergence point. Tooling (dcg, worktree hooks, isolation verification) catches violations but can't prevent them — discipline is the load-bearing layer.
+The pool reframe: instead of "every agent makes a new worktree" (high spawn cost, conflict-prone branch proliferation) → "agents claim from a small persistent pool" (zero spawn cost, visible contention via `km bd list`, bounded resource).
 
 ## Shipping (push to main, version bumps, npm publish)
 
