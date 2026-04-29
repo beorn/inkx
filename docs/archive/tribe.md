@@ -218,7 +218,7 @@ An MCP channel server (~200 lines) that each Claude Code session loads. It bridg
 
 2. For each message:
    a. Push to Claude Code as channel notification:
-      <channel source="tribe" from="silvery-worker" type="status" bead="km-tui.flicker">
+      <channel source="tribe" from="silvery-worker" type="status" bead="@km/tui/flicker">
       Fix committed as abc123, all tests pass.
       </channel>
    b. UPDATE messages SET read_at = NOW() WHERE id = ?
@@ -332,25 +332,25 @@ Chief receives via Telegram channel
 Chief creates beads:
   km bd create --title="Fix card hover flicker" --type=bug --priority=1
   km bd create --title="Card hover flicker tests" --type=task --priority=2
-  km bd dep add km-tui.flicker-tests km-tui.flicker-fix
+  km bd dep add @km/tui/flicker-tests @km/tui/flicker-fix
 
 Chief checks tribe_sessions():
   [{ name: "tui-worker", domains: ["tui", "cards"], alive: true },
    { name: "test-worker", domains: ["tests", "specs"], alive: true }]
 
 Chief sends:
-  tribe_send("tui-worker", "Claim km-tui.flicker-fix — card flickers on hover", "assign", "km-tui.flicker-fix")
-  tribe_send("test-worker", "Claim km-tui.flicker-tests — blocked by fix, will notify when ready", "assign", "km-tui.flicker-tests")
+  tribe_send("tui-worker", "Claim @km/tui/flicker-fix — card flickers on hover", "assign", "@km/tui/flicker-fix")
+  tribe_send("test-worker", "Claim @km/tui/flicker-tests — blocked by fix, will notify when ready", "assign", "@km/tui/flicker-tests")
 
 tui-worker receives <channel source="tribe" from="chief" type="assign">
   → Claims bead, investigates, fixes, commits
-  → tribe_send("chief", "km-tui.flicker-fix done, committed abc123", "status", "km-tui.flicker-fix")
+  → tribe_send("chief", "@km/tui/flicker-fix done, committed abc123", "status", "@km/tui/flicker-fix")
 
 Chief receives status, notifies test-worker:
-  tribe_send("test-worker", "Fix landed (abc123), km-tui.flicker-tests is unblocked", "notify")
+  tribe_send("test-worker", "Fix landed (abc123), @km/tui/flicker-tests is unblocked", "notify")
 
 test-worker receives, claims bead, writes tests, commits
-  → tribe_send("chief", "km-tui.flicker-tests done, 8 tests added", "status", "km-tui.flicker-tests")
+  → tribe_send("chief", "@km/tui/flicker-tests done, 8 tests added", "status", "@km/tui/flicker-tests")
 
 Chief aggregates, replies to Telegram:
   "Fixed card hover flicker (abc123) and added 8 tests (def456)."
@@ -511,30 +511,30 @@ If a member doesn't respond to a query within 2 minutes, the chief assumes they'
 ## Message Flow: Typical Workflow
 
 ```
-Chief: tribe_send("tui-worker", "Claim km-tui.flicker-fix", "assign", "km-tui.flicker-fix")
+Chief: tribe_send("tui-worker", "Claim @km/tui/flicker-fix", "assign", "@km/tui/flicker-fix")
 
 tui-worker:
   1. Sees <channel source="tribe" from="chief" type="assign">
-  2. km bd update km-tui.flicker-fix --claim
-     → Plugin auto-sends: status "Claimed km-tui.flicker-fix"
+  2. km bd update @km/tui/flicker-fix --claim
+     → Plugin auto-sends: status "Claimed @km/tui/flicker-fix"
   3. Investigates, finds root cause
      → Claude sends: status "Root cause found: dirty flag not propagating through sticky children"
   4. Fixes, commits
      → Plugin auto-sends: status "Committed abc123, message: 'fix: propagate dirty flag through sticky'"
   5. Runs tests, all pass
      → (No auto-send, Claude must choose:)
-     → Sends: status "Tests pass, km-tui.flicker-fix ready for review"
-  6. km bd close km-tui.flicker-fix
-     → Plugin auto-sends: status "Closed km-tui.flicker-fix ✓"
+     → Sends: status "Tests pass, @km/tui/flicker-fix ready for review"
+  6. km bd close @km/tui/flicker-fix
+     → Plugin auto-sends: status "Closed @km/tui/flicker-fix ✓"
 
 Chief:
   1. Receives status "Claimed..."
-     → km bd update km-tui.flicker-fix --assignee tui-worker
+     → km bd update @km/tui/flicker-fix --assignee tui-worker
   2. Receives status "Root cause found..."
      → (For external user waiting) Sends Telegram: "Found root cause, fix in progress"
   3. Receives status "Committed..."
      → Knows fix landed, can notify test-worker
-     → km bd update km-tui.flicker-tests --status ready (if blocked)
+     → km bd update @km/tui/flicker-tests --status ready (if blocked)
   4. Receives status "Closed..."
      → Updates Telegram: "Fix shipped"
 ```
@@ -730,8 +730,8 @@ The `tribe_health()` tool is particularly useful — it returns a diagnostic:
     { "name": "test-worker", "status": "silent", "last_message": "18 min ago", "beads": 1, "warning": "no status in 18 min" }
   ],
   "beads": [
-    { "id": "km-tui.flicker", "assignee": "tui-worker", "age": "25 min", "status": "in_progress" },
-    { "id": "km-tui.tests", "assignee": "test-worker", "age": "18 min", "status": "blocked", "warning": "blocked 12 min, no update" }
+    { "id": "@km/tui/flicker", "assignee": "tui-worker", "age": "25 min", "status": "in_progress" },
+    { "id": "@km/tui/tests", "assignee": "test-worker", "age": "18 min", "status": "blocked", "warning": "blocked 12 min, no update" }
   ],
   "conflicts": [],
   "external_waiting": [

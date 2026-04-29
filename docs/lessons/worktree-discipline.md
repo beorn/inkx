@@ -34,7 +34,7 @@ Multiple agents may operate on the same main branch simultaneously. Worktrees ex
 
 ## Case Study: The Blanket Revert (2026-04-09)
 
-**What happened**: During the km-tui.tree.v4.detail-unify epic, a test fix agent (`/max` parallel) accumulated ~617 lines of broken uncommitted changes across `apps/km-tui/`. To unblock the work, the lead asked the user to run `git checkout -- apps/km-tui/`.
+**What happened**: During the @km/tui/tree/v4/detail-unify epic, a test fix agent (`/max` parallel) accumulated ~617 lines of broken uncommitted changes across `apps/km-tui/`. To unblock the work, the lead asked the user to run `git checkout -- apps/km-tui/`.
 
 The blanket directory revert wiped the agent's bad changes — but it also wiped concurrent uncommitted work from a different session (km-4, the test-system agent) on the same files: `test-app.ts` (568 lines of expanded API), `fold.slow.spec.ts` (testEnv migration), and others. km-4 had to re-apply all of its work from scratch.
 

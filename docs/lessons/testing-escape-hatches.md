@@ -8,7 +8,7 @@ Two rendering bugs persisted for weeks despite SILVERY_STRICT (including vt100 o
 
 `wrapTextSizing()` wraps wide characters in `ESC]66;w=2;<char>BEL` to declare width to the terminal. A widechar refactoring changed it to wrap ALL wide characters (was previously PUA/nerdfont only). Ghostty was assumed to support OSC 66 via heuristic (`termProgram === "ghostty"`). In reality, Ghostty v1.3.0 parses OSC 66 but does NOT render it — it silently swallows the wrapped content. All emoji disappeared from the TUI.
 
-This bug had already occurred and been fixed once (bead `km-inkx.text-sizing-osc66`, 2026-02-28), then was re-introduced by the widechar refactoring two weeks later.
+This bug had already occurred and been fixed once (bead `@km/inkx/text-sizing-osc66`, 2026-02-28), then was re-introduced by the widechar refactoring two weeks later.
 
 ### Bug 2: Buffer Overflow Causing Scroll Desync (Zoom Garble)
 

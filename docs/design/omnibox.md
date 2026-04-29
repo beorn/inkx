@@ -2,7 +2,7 @@
 
 Unified picker + command palette + search, one component, sigil-dispatched.
 
-> **Status (2026-04-17): v1 shipped.** The migration described by Phases 1–12 below is complete. Every legacy component named in "The problem" section (`Omnibox.tsx`, `ItemPicker.tsx`, `FavoritesDialog.tsx`), every legacy state field (`activePicker`, `showFavoritesDialog`, `favoritesSelectedKey`), every legacy op (`FAVORITES_*`), and every legacy command (`favorites.select_key`, `favorites.assign`, `favorites.clear`, `favorites.back`) has been deleted. Live code: `apps/km-tui/src/state/{omnibox,omnibox-parser,omnibox-ranker,omnibox-projection,recents-store}.ts` + `apps/km-tui/src/views/UnifiedOmnibox.tsx`. Closed beads: `km-tui.omnibox-dialog`, `km-tui.itempicker-unify`, `km-tui.omnibox-{row,ranker,query-syntax,recents,command-projection,when,default-command}`. Remaining beads: Phase 6–11 polish/feature work (`km-tui.omnibox-{cursor,interactions,pre-select,local-find,migration-cleanup,pop-out}` + extras).
+> **Status (2026-04-17): v1 shipped.** The migration described by Phases 1–12 below is complete. Every legacy component named in "The problem" section (`Omnibox.tsx`, `ItemPicker.tsx`, `FavoritesDialog.tsx`), every legacy state field (`activePicker`, `showFavoritesDialog`, `favoritesSelectedKey`), every legacy op (`FAVORITES_*`), and every legacy command (`favorites.select_key`, `favorites.assign`, `favorites.clear`, `favorites.back`) has been deleted. Live code: `apps/km-tui/src/state/{omnibox,omnibox-parser,omnibox-ranker,omnibox-projection,recents-store}.ts` + `apps/km-tui/src/views/UnifiedOmnibox.tsx`. Closed beads: `@km/tui/omnibox-dialog`, `@km/tui/itempicker-unify`, `@km/tui/omnibox-{row,ranker,query-syntax,recents,command-projection,when,default-command}`. Remaining beads: Phase 6–11 polish/feature work (`@km/tui/omnibox-{cursor,interactions,pre-select,local-find,migration-cleanup,pop-out}` + extras).
 
 **Prerequisites**: [data-model.md](data-model.md) (nodes, sigils, contexts), [navigation-architecture.md](navigation-architecture.md) (goto/zoom/nav-history).
 
@@ -21,8 +21,8 @@ Today km has ~five near-duplicate modal components:
 Each owns its own input buffer, result list, row renderer, hover state, popover wiring, keybinding scope, dialog mode, and confirm/cancel callbacks. They share `NodeLine` (row) and `useDialogInput` (key plumbing) but diverge in every other respect. Every new "pick a thing" feature gets a new dialog.
 
 Bugs this shape has caused, in the last month alone:
-- **km-tui.palette-arrow-keys** — arrow keys fell through to `cursor_up` because dialog-guard wasn't installed in production; once one of five dialogs was visible, all should have worked but none did.
-- **km-tui.picker-rank-subpath** — `ItemPicker`'s fuzzy scorer ranks `@office/Finance/Accounts/Delei/SPD` above `@delei` for query "Delei"; the shared `NodeLine` renders fine but the dialog-local ranking is broken.
+- **@km/tui/palette-arrow-keys** — arrow keys fell through to `cursor_up` because dialog-guard wasn't installed in production; once one of five dialogs was visible, all should have worked but none did.
+- **@km/tui/picker-rank-subpath** — `ItemPicker`'s fuzzy scorer ranks `@office/Finance/Accounts/Delei/SPD` above `@delei` for query "Delei"; the shared `NodeLine` renders fine but the dialog-local ranking is broken.
 - **Go-to verb fragmentation** — `goto @`, `goto #`, `goto +`, `goto [` each push a different picker type even though they're the same input with a different filter.
 - **Command discovery** — `cmd-k` shows commands, but there is no way to search nodes from the same box. Users must remember to close the palette and open a different one.
 
@@ -165,7 +165,7 @@ state:        { buffer: "", defaultCommand: "default", selectedArgument: <cursor
   buffer      : ▸ _
 
   results     : @ omnibox.md                +km/docs/design         ←   (cursor node = selected arg)
-              : + km-tui.omnibox-unified    beads              P0
+              : + @km/tui/omnibox-unified    beads              P0
               : @ delei                     context
               : # urgent                    47 uses
               : board.tsx                   +km/apps/km-tui/src
@@ -972,7 +972,7 @@ This is a refactor-then-feature, not a rewrite. The codebase already has most of
 Create `OmniboxRow` (the node-based one). Migrate the existing `Omnibox.tsx`, `ItemPicker.tsx`, `FavoritesDialog.tsx` to use it — adapter layer converts today's result shapes to `KNode`-compatible rows. No behavior change. Catches divergence bugs.
 
 ### Phase 2 — shared ranker
-Extract `rankResults(query, KNode[])` with the ranking rules above. Add `omnibox-ranking.test.ts` table. Migrate `ItemPicker.filterOptions` and `Omnibox`'s scorer to use it. Fixes **km-tui.picker-rank-subpath**. Also extract `highlightMatches(text, query)` as a shared helper used by Phase 9's local-find view.
+Extract `rankResults(query, KNode[])` with the ranking rules above. Add `omnibox-ranking.test.ts` table. Migrate `ItemPicker.filterOptions` and `Omnibox`'s scorer to use it. Fixes **@km/tui/picker-rank-subpath**. Also extract `highlightMatches(text, query)` as a shared helper used by Phase 9's local-find view.
 
 ### Phase 3 — command-tree projection (TEA shim)
 Build a read-only projection function that returns the `@km/commands` registry as `KNode`-shaped rows. No schema change to `CommandDef` — the projection is pure adapter. The synthetic `commands/` view is computed on demand. When TEA lands, this projection retargets at the silvery command proxy (canonical spelling `app.cmd.<id>` — formerly referred to as `app.commands.*` in design-era docs) without touching the row renderer. Tests: every registered `CommandDef` appears as a `KNode` with `type: "command"` and round-trips through the row renderer.
@@ -1002,7 +1002,7 @@ Ensure `cmd-k` / `cmd-f` / `g g` / `l g` / generic `g` chords propagate the prev
 Wire `/` to open the omnibox dialog with `{ defaultCommand: "local_find" }`. Derive `layout: "bottom-left"` from that. Replace `apps/km-tui/src/views/FindBar.tsx` with the omnibox dialog in local-find mode. In-place board highlighting reads from the omnibox's argument buffer and uses `highlightMatches()`.
 
 ### Phase 10 — shelves
-Delete legacy code (`Omnibox.tsx`, `ItemPicker.tsx`, `FavoritesDialog.tsx`, `FindBar.tsx`, `CommandBox.tsx`, the `dialog:omnibox` scope plumbing). Update `docs/ref/commands.md` with the new routing. Add integration tests for each chord path. Close **km-tui.palette-arrow-keys** — with the reframe, the bug class is gone because there's no dialog-scope layering for commands.
+Delete legacy code (`Omnibox.tsx`, `ItemPicker.tsx`, `FavoritesDialog.tsx`, `FindBar.tsx`, `CommandBox.tsx`, the `dialog:omnibox` scope plumbing). Update `docs/ref/commands.md` with the new routing. Add integration tests for each chord path. Close **@km/tui/palette-arrow-keys** — with the reframe, the bug class is gone because there's no dialog-scope layering for commands.
 
 ### Phase 11 (post-v1) — omnibox pane ("pop it out")
 Add `viewMode: "omnibox"` to the board pane view-mode enum. Add the `omnibox.pop_out` command: takes the current dialog's `OmniboxBaseState`, creates a new pane with `viewMode: "omnibox"` seeded from that state, and dismisses the dialog. The pane form is persistent — `OMNIBOX_CONFIRM` clears the buffers but keeps the pane open. Workspace pane manager treats it like any other pane (split, resize, focus cycling). Users get a permanent triage / navigator surface — e.g., a docked `goto` omnibox for keyboard-driven browsing or a docked `move` omnibox for bulk organization. Not as urgent as v1.
@@ -1064,7 +1064,7 @@ No new command IDs are introduced for the omnibox's verbs. The new work is: (a) 
 
 ## TEA alignment
 
-The omnibox is effectively the first concrete consumer of the km/silvery TEA framework (km-tui.tea, km-silvery.tea). Every piece of this design maps to TEA machinery. Design in TEA-shape from day one; ship pre-TEA via a thin shim that is trivial to retarget when the framework migration lands.
+The omnibox is effectively the first concrete consumer of the km/silvery TEA framework (@km/tui/tea, @km/silvery/tea). Every piece of this design maps to TEA machinery. Design in TEA-shape from day one; ship pre-TEA via a thin shim that is trivial to retarget when the framework migration lands.
 
 ### Four direct mappings
 
@@ -1099,18 +1099,18 @@ The omnibox is effectively the first concrete consumer of the km/silvery TEA fra
 
 ### Interactions with other domain plugins
 
-- **`withSelection()`** (km-tui.tea): the omnibox's "selected argument row" should be represented as a `NodeSelection` in the unified `Selection = TextSelection | NodeSelection | GapSelection` type — not as a separate `selectedArgument` field. Arrowing in the omnibox updates `sel` through the same dispatch path that arrowing in a cards pane uses. One selection system, one normalization pass after tree mutations, one set of commands that read it. The `selectedArgument` in `OmniboxBaseState` becomes a derived view over `sel`, not primary state.
+- **`withSelection()`** (@km/tui/tea): the omnibox's "selected argument row" should be represented as a `NodeSelection` in the unified `Selection = TextSelection | NodeSelection | GapSelection` type — not as a separate `selectedArgument` field. Arrowing in the omnibox updates `sel` through the same dispatch path that arrowing in a cards pane uses. One selection system, one normalization pass after tree mutations, one set of commands that read it. The `selectedArgument` in `OmniboxBaseState` becomes a derived view over `sel`, not primary state.
 
-- **`withTree()`** (km-tui.tea): structural ops from the omnibox (`move`, `create_at`, `add_link`, `reparent`) fire through the same atomic tree-op apply chain. No separate dispatch path; the omnibox is a normal command producer. Undo works through the shared middleware.
+- **`withTree()`** (@km/tui/tea): structural ops from the omnibox (`move`, `create_at`, `add_link`, `reparent`) fire through the same atomic tree-op apply chain. No separate dispatch path; the omnibox is a normal command producer. Undo works through the shared middleware.
 
-- **`withDialogs()`** (km-tui.tea): the current plan lists `open_omnibox` as a dialog command under `withDialogs()`. **Partially right.** The v1 omnibox IS a dialog, so hosting the omnibox dialog under `withDialogs()` is fine. What the km-tui.tea plan should be updated to reflect:
+- **`withDialogs()`** (@km/tui/tea): the current plan lists `open_omnibox` as a dialog command under `withDialogs()`. **Partially right.** The v1 omnibox IS a dialog, so hosting the omnibox dialog under `withDialogs()` is fine. What the @km/tui/tea plan should be updated to reflect:
   - Rename `open_omnibox` → `omnibox.open` (and the command owner moves from `withDialogs()` to `withOmnibox()`, but `withDialogs()` still provides the overlay slot it renders into).
   - Post-v1, `withOmnibox()` also contributes a `viewMode: "omnibox"` to `withBoard()` for the pop-out pane form. `withDialogs()` doesn't own the pane form at all.
   - Keep `withDialogs()` for genuinely modal affordances (toast, delete-confirm, help overlay, console palette) in addition to hosting the omnibox dialog.
 
-- **`withEditor()`** (km-tui.tea): the buffer uses Silvery's `TextInput` (already supports ghost-text autocomplete). Once `withEditor()` exists, both fields become consumers of `PlainText.apply()` and the ghost-text logic runs inside the shared editor model. No special case.
+- **`withEditor()`** (@km/tui/tea): the buffer uses Silvery's `TextInput` (already supports ghost-text autocomplete). Once `withEditor()` exists, both fields become consumers of `PlainText.apply()` and the ghost-text logic runs inside the shared editor model. No special case.
 
-- **`withUndo()`** (km-tui.tea): opening/closing the omnibox is not itself undoable (like opening a cards view isn't). The commands the omnibox dispatches ARE undoable, through the normal middleware. `Escape → dismiss` restores focus to the previous pane but doesn't undo any work.
+- **`withUndo()`** (@km/tui/tea): opening/closing the omnibox is not itself undoable (like opening a cards view isn't). The commands the omnibox dispatches ARE undoable, through the normal middleware. `Escape → dismiss` restores focus to the previous pane but doesn't undo any work.
 
 ### What this changes in the migration phases
 
@@ -1123,15 +1123,15 @@ The omnibox is effectively the first concrete consumer of the km/silvery TEA fra
 
 ## Relationship to other work
 
-- **km-tui.picker-rank-subpath** — absorbed into Phase 2.
-- **km-tui.palette-arrow-keys** — absorbed into Phase 5+6 (the bug class goes away once the omnibox uses standard text-input scoping instead of a dialog overlay with its own scope stack).
-- **km-silvery.focus** — the omnibox is a single focusable component (dialog or pane), not five near-duplicate dialogs, making the focus system's job simpler.
-- **km-silvery.selection-focus-plateau** — 5 fewer components to keep in sync across selection/focus state.
-- **km-tui.tea** — the `OmniboxBaseState` reducer is an obvious TEA machine candidate. **Build the design in the shape TEA wants from day one** (see § TEA alignment above). `open_omnibox` in `withDialogs()` should be renamed `omnibox.open` and moved to a new `withOmnibox()` plugin; `withDialogs()` still provides the overlay slot for the dialog form.
-- **km-silvery.tea** — the omnibox is the first non-trivial consumer of `when()`, `resolveInvocation()`, signal-defaulted args, and the silvery command tree (canonical `app.cmd.<id>`; `app.commands.*` in design-era docs). Validating the omnibox validates those primitives.
-- **km-tui.atomic-tree-ops** — the omnibox is the main producer of structural ops that aren't "edit current node" (goto, move, add, create_at, reparent).
-- **km-tui.detail-unify-real** — same shape: unify `detail` pane as a board view-mode rather than a special pane class. The omnibox unification follows the same pattern.
-- **km-all.unified-selection** — the omnibox's selected argument row IS a `NodeSelection`; this design assumes the unified selection type lands first (or is implemented alongside).
+- **@km/tui/picker-rank-subpath** — absorbed into Phase 2.
+- **@km/tui/palette-arrow-keys** — absorbed into Phase 5+6 (the bug class goes away once the omnibox uses standard text-input scoping instead of a dialog overlay with its own scope stack).
+- **@km/silvery/focus** — the omnibox is a single focusable component (dialog or pane), not five near-duplicate dialogs, making the focus system's job simpler.
+- **@km/silvery/selection-focus-plateau** — 5 fewer components to keep in sync across selection/focus state.
+- **@km/tui/tea** — the `OmniboxBaseState` reducer is an obvious TEA machine candidate. **Build the design in the shape TEA wants from day one** (see § TEA alignment above). `open_omnibox` in `withDialogs()` should be renamed `omnibox.open` and moved to a new `withOmnibox()` plugin; `withDialogs()` still provides the overlay slot for the dialog form.
+- **@km/silvery/tea** — the omnibox is the first non-trivial consumer of `when()`, `resolveInvocation()`, signal-defaulted args, and the silvery command tree (canonical `app.cmd.<id>`; `app.commands.*` in design-era docs). Validating the omnibox validates those primitives.
+- **@km/tui/atomic-tree-ops** — the omnibox is the main producer of structural ops that aren't "edit current node" (goto, move, add, create_at, reparent).
+- **@km/tui/detail-unify-real** — same shape: unify `detail` pane as a board view-mode rather than a special pane class. The omnibox unification follows the same pattern.
+- **@km/all/unified-selection** — the omnibox's selected argument row IS a `NodeSelection`; this design assumes the unified selection type lands first (or is implemented alongside).
 
 ## References
 

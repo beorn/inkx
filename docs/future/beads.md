@@ -194,10 +194,10 @@ km bd create "Auth system overhaul" --id auth-epic #epic
 # Creates: km-auth-epic
 
 km bd create "Fix login timeout" --parent km-auth-epic
-# Creates: km-auth-epic.1
+# Creates: @km/auth-epic/1
 
 km bd create "Add OAuth support" --parent km-auth-epic
-# Creates: km-auth-epic.2
+# Creates: @km/auth-epic/2
 ```
 
 ### Epic Sub-IDs
@@ -206,9 +206,9 @@ Issues under an epic automatically get sequential sub-IDs:
 
 ```
 km-auth-epic         # Epic
-km-auth-epic.1       # First child issue
-km-auth-epic.2       # Second child issue
-km-auth-epic.3       # Third child issue
+@km/auth-epic/1       # First child issue
+@km/auth-epic/2       # Second child issue
+@km/auth-epic/3       # Third child issue
 ```
 
 ### Configuration
@@ -361,7 +361,7 @@ Flags:
   - If `--parent`, generate next sub-ID (e.g., `parent.3`)
   - Otherwise, derive from ULID
 4. If `--parent`, add `[[parent-id|parent]]` link
-5. Return display ID (e.g., `km-auth-epic` or `km-auth-epic.1`)
+5. Return display ID (e.g., `km-auth-epic` or `@km/auth-epic/1`)
 
 ### `km bd update <id>`
 
@@ -578,7 +578,7 @@ Issues are addressed by **`@<prefix>/<scope>/<slug>`**, where `<prefix>` is the 
 - `~/Code/pim/pam/`: would be `@pam/...`
 - Multi-repo aggregation distinguishes natively (`@km/...` alongside `@cloudi/...`)
 
-**Inline wikilinks within content drop the `@`**: `[[km/storage/lazy-hydration]]`. The `@` is a render-mode hint ("show this node as a board card / kanban view"), the path is the canonical name.
+**Inline wikilinks within content drop the `@`**: `[[@km/storage/lazy-hydration]]`. The `@` is a render-mode hint ("show this node as a board card / kanban view"), the path is the canonical name.
 
 **Legacy bd-form ids** (`km-storage.lazy-hydration`, `km-storage-lazy-hydration`, `km-flexx-diag-passes`) keep working via two mechanisms:
 
@@ -674,7 +674,7 @@ Replace `km bd remember` with `@mem`-tagged sections in `mem/` (or `memory/`).
 
 ```markdown
 ## Dolt sync fix @memory
-id:: km-mem.dolt-sync-fix
+id:: @km/mem/dolt-sync-fix
 
 After "cannot merge with uncommitted changes" errors:
 
@@ -683,7 +683,7 @@ After "cannot merge with uncommitted changes" errors:
 If a conflict is detected, resolve via SQL: …
 
 ## Upstream workaround tracking @memory
-id:: km-mem.upstream-tracking
+id:: @km/mem/upstream-tracking
 
 When our code gets a workaround for an upstream bug, file a bead under
 `@km/all/upstream-waiting` …
@@ -729,7 +729,7 @@ km bd prime                     # emit memories + ready snapshot for hook inject
 km bd migrate                   # one-shot import from .beads/issues.jsonl
 ```
 
-Ids accept both canonical and legacy forms: `km bd show @km/storage/lazy-hydration` and `km bd show km-storage.lazy-hydration` both resolve.
+Ids accept both canonical and legacy forms: `km bd show @km/storage/lazy-hydration` and `km bd show @km/storage/lazy-hydration` both resolve.
 
 ---
 
@@ -757,7 +757,7 @@ Resolution priority (canonical, served by `resolveShortId`):
 
 1. `data.id` — frontmatter canonical path-form (`silvercode/acp/rename`)
 2. `data.short_id` — legacy bd-form set on nodes that ship neither frontmatter `id` nor `aliases`
-3. `data.aliases[]` — explicit alternate names (`km-silvercode.acp-rename`, `km-silvercode-acp-rename`)
+3. `data.aliases[]` — explicit alternate names (`@km/silvercode/acp-rename`, `km-silvercode-acp-rename`)
 4. Fallback: ULID-suffix match on the raw node id (`km-a1b2` → trailing 4 chars match)
 
 Sigil-prefixed input (`@<prefix>/<path>`) is stripped to bare canonical path-form before lookup so `@km/silvercode/acp/rename` and `silvercode/acp/rename` both resolve to the same node.

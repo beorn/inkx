@@ -163,7 +163,7 @@ function useInputLayer(id: string, handler: InputHandler) {
 
 ### Implementation
 
-**Completed in km-silvery.driver.1**
+**Completed in @km/silvery/driver/1**
 
 Files created:
 - `vendor/silvery/src/contexts/InputLayerContext.tsx` - Context and provider
@@ -222,7 +222,7 @@ Migrate driver to use `createApp()` from Silvery/runtime:
 2. Board component uses `useApp(selector)` for state
 3. Driver accesses state via `app.store.getState()` directly
 
-See bead: `km-tui.4` (refactor: Migrate Board to createApp() store pattern)
+See bead: `@km/tui/4` (refactor: Migrate Board to createApp() store pattern)
 
 ## Sources
 

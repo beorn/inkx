@@ -1,6 +1,6 @@
 # Hook Router Design
 
-**Status**: Implemented (lives in bearly). Tracking bead: `km-infra.hook-router` (P3).
+**Status**: Implemented (lives in bearly). Tracking bead: `@km/infra/hook-router` (P3).
 
 Unified Claude Code hook dispatch. Implemented in **bearly** (`vendor/bearly/tools/lib/hooks/`) — the canonical home for Claude Code coordination infrastructure alongside tribe, recall, autostart, and friends. Invoked via `tribe hook ingest` / `tribe hook notify`.
 

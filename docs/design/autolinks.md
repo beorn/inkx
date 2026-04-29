@@ -95,7 +95,7 @@ Two forms:
 | `first-paragraph` | reads `resolves_to`, shows the first non-blank paragraph; rendered via MarkdownView | `fs.watch` |
 | `bd-active` | runs `km bd list --parent <resolves_to> --status open --limit 5` | 30s TTL |
 | `shell` | spawns `command.exec` with `command.args` (per-arg `${resolves_to}` substitution); 5s timeout, 4KB cap; output sanitized of ANSI/control sequences before render | 30s TTL |
-| `mcp` | calls an MCP tool with `args`; **stub** — rules dropped at config load until `km-silvercode.autolinks-mcp-resolver` lands (will be superseded by URI pivot) | n/a |
+| `mcp` | calls an MCP tool with `args`; **stub** — rules dropped at config load until `@km/silvercode/autolinks-mcp-resolver` lands (will be superseded by URI pivot) | n/a |
 
 ### Validation
 
@@ -166,10 +166,10 @@ Doctor introspection (`silvercode doctor autolinks`) lists registered schemes an
 
 Future direction:
 - v2 will expose `[[handlers]]` in `.km/config.yaml` for user-defined handlers (additive — v1 user-facing schema unchanged).
-- `mcp` will become a fully implemented handler scheme (currently a stub at `packages/km-autolinks/src/handlers/mcp.ts`); see `km-silvercode.autolinks-mcp-resolver`.
+- `mcp` will become a fully implemented handler scheme (currently a stub at `packages/km-autolinks/src/handlers/mcp.ts`); see `@km/silvercode/autolinks-mcp-resolver`.
 - The `https:` handler will gain a real webcard fetcher (OG metadata + sandboxed fetch).
 
-Tracking: `km-silvercode.autolinks-uri-pivot` (URI dispatch landed); `km-silvercode.autolinks-mcp-resolver` (mcp handler implementation, deferred).
+Tracking: `@km/silvercode/autolinks-uri-pivot` (URI dispatch landed); `@km/silvercode/autolinks-mcp-resolver` (mcp handler implementation, deferred).
 
 ## Term linker (website)
 
@@ -204,7 +204,7 @@ The term linker is owned by the website build pipeline.
 - Implementation: `packages/km-autolinks/src/` (config, match, previews, uri, handlers)
 - Tests: `packages/km-autolinks/tests/`, plus silvercode integration tests in `apps/silvercode/tests/autolinks/` and `apps/silvercode/tests/visual/autolinks*`
 - Beads:
-  - `km-silvercode.autolinks-config` (parent — v1 ships)
-  - `km-silvercode.autolinks-uri-pivot` (URI dispatch refactor)
-  - `km-silvercode.autolinks-mcp-resolver` (mcp scheme — superseded by URI pivot)
-  - `km-all.autolinks-extraction` (cross-app sharing — landed)
+  - `@km/silvercode/autolinks-config` (parent — v1 ships)
+  - `@km/silvercode/autolinks-uri-pivot` (URI dispatch refactor)
+  - `@km/silvercode/autolinks-mcp-resolver` (mcp scheme — superseded by URI pivot)
+  - `@km/all/autolinks-extraction` (cross-app sharing — landed)

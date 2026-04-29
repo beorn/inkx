@@ -3,7 +3,7 @@
 Comprehensive keybinding redesign for km TUI. Three binding layers (vim/Ctrl/Cmd),
 verb×location system (g/m/a), unified modal interface, smart pane toggle.
 
-Bead: `km-all.keybindings-v2`.
+Bead: `@km/all/keybindings-v2`.
 
 ## Design Principles
 
@@ -376,7 +376,7 @@ and all verb chords (a#, a@, m+, m[, etc.).
 
 > Bare `q` is intentionally **unbound**. A single fat-finger keystroke must
 > never destroy the session — especially after an incomplete chord like `vq`
-> where the user meant `vs`. See bead km-tui.q-quits-no-confirm.
+> where the user meant `vs`. See bead @km/tui/q-quits-no-confirm.
 
 ## Mouse
 
@@ -431,7 +431,7 @@ Cmd+w (close pane), Cmd+b/i (bold/italic in text edit),
 Cmd+[/] (history), Cmd+, (settings)
 
 Kitty protocol support is forward-looking — most TUI apps don't bother, but it
-gives Mac users native-feel shortcuts. Requires km-infra.kitty-proto (bead).
+gives Mac users native-feel shortcuts. Requires @km/infra/kitty-proto (bead).
 
 ## Quick Reference
 

@@ -1,7 +1,7 @@
 # Universal Editing Platform - Spec
 
 **Status:** Future vision -- packages referenced here (runly, docily, textily, termily) do not yet exist. This describes the target architecture, not current state.
-**Bead:** km-all.universal-editor
+**Bead:** @km/all/universal-editor
 **Last Updated:** 2026-02-27
 **See also:** [tea.md](../design/tea.md) — phased implementation plan (PlainText → SlateJS → Tree); [phases.md](../design/phases.md) — current implementation status
 
@@ -561,7 +561,7 @@ Extracting packages from an ~80K-line monolith and building a shared app layer h
 9. **runly abstraction boundary**: How much of the React reconciler is shared vs platform-specific? The fiber tree is universal but the host config is per-platform.
 10. **docily vs km-commands**: How much of the existing command system is reusable vs km-specific? Keybindings are reusable, but command implementations may reference km types.
 11. **Schema validation scope**: Minimal (parent/child type rules) or rich (ProseMirror-style content expressions)? Plugin or core?
-12. **Package naming finality**: runly/docily/textily/termily/flexily are tentative — all available on npm. Final decision tracked in `km-infra.vendor-rename`.
+12. **Package naming finality**: runly/docily/textily/termily/flexily are tentative — all available on npm. Final decision tracked in `@km/infra/vendor-rename`.
 13. **DocumentStore async strategy**: Some backends (IndexedDB, CRDT) are inherently async. How does the app layer handle navigating to an unloaded subtree? Pre-load into memory? Suspense-style loading boundaries? WASM SQLite in a worker for sync access?
 14. **Clipboard format**: What structured format for clipboard data? JSON representation of node subtrees? How to handle paste from external sources (HTML, markdown, plain text)? Conversion pipeline?
 15. **Concurrent tree moves in CRDT**: `node.move` must be atomic at the CRDT level to avoid node duplication. Does the chosen CRDT library support move as a primitive, or do we need a higher-level protocol?

@@ -832,7 +832,7 @@ Without custom `equals`, array-valued signals use reference equality and may wri
 | `expandedEditCardId === nodeId` for expansion | `editingDescendant` (reduced signal) |
 | `tree-concerns.ts` (prototype) | `alien-trees` (production, `alien-trees` (vendor/bearly/packages/alien-trees/src/index.ts)) |
 
-### v2 — Remaining (km-tui.v2-reactive-tree)
+### v2 — Remaining (@km/tui/v2-reactive-tree)
 
 | Old | New (planned) | Blocker |
 |-----|-----|-----|
@@ -943,7 +943,7 @@ Run `cursor-perf` bench at each milestone to catch regressions and verify improv
 | `selectedAncestor` | `tree.ancestors(s => s.selected).some()` | Done |
 | `editingDescendant` | `tree.descendants(s => s.editing).some()` | Done |
 
-### v2 (km-tui.v2-reactive-tree)
+### v2 (@km/tui/v2-reactive-tree)
 
 | Signal | Definition | Blocked by |
 |--------|-----------|------------|

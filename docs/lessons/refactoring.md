@@ -172,7 +172,7 @@ function oldApi(args) {
 
 ## Case Study 4: Complexity Score Reduction
 
-**Bead**: km-rev-0203.2
+**Bead**: @km/rev-0203/2
 
 **Problem**: 132 functions flagged by oxlint cognitive complexity rule. Needed systematic reduction.
 
@@ -204,7 +204,7 @@ function oldApi(args) {
 
 ## Case Study 6: @silvery/style Extraction (bead drift)
 
-**Bead**: km-silvery.style
+**Bead**: @km/silvery/style
 
 **Problem**: A 6-phase bead with specific checklist items per phase. When systematically audited afterward, 8 gaps were found — items marked done in bead notes that weren't actually completed as specified.
 
@@ -228,7 +228,7 @@ function oldApi(args) {
 
 ## Case Study 7: @silvery/ansi 1.0 (copy without delete)
 
-**Bead**: km-silvery.style (final phase — merge @silvery/style into @silvery/ansi)
+**Bead**: @km/silvery/style (final phase — merge @silvery/style into @silvery/ansi)
 
 **Problem**: Copied OSC query files from ag-term and theme types/derive from @silvery/theme into @silvery/ansi. The new copies worked and tests passed. But the old copies in ag-term and @silvery/theme remained as full local implementations — not re-exports. 5 dual-pattern issues found by /complete.
 
@@ -279,7 +279,7 @@ Definition of Done (migration complete when ALL updated):
 
 ## Case Study: ColumnState/CardState Elimination (visual-nav-migration)
 
-**Bead**: km-tui.visual-nav-migration → km-yedow
+**Bead**: @km/tui/visual-nav-migration → km-yedow
 
 **Problem**: The visual-nav migration (4 phases, multiple sessions) added `cursorNodeId` but never deleted the old wrapper types (`ColumnState`, `CardState`, `ColumnsLayout`). 249 occurrences of `colIndex/cardIndex` across 27 files, 99 occurrences of `ColumnState/CardState` across 19 files.
 
@@ -297,7 +297,7 @@ Definition of Done (migration complete when ALL updated):
 
 ## Case Study 5: Era2 Package Extraction (silvery)
 
-**Bead**: km-silvery.era2 epic (27 children, 13 closed in one session)
+**Bead**: @km/silvery/era2 epic (27 children, 13 closed in one session)
 
 **Problem**: Silvery's monolithic `@silvery/tea` package (6,253 LOC, 29 files) needed decomposition into focused packages: `@silvery/headless`, `@silvery/commands`, `@silvery/scope`, `@silvery/signals`, `@silvery/model`.
 
@@ -326,15 +326,15 @@ Definition of Done (migration complete when ALL updated):
 
 ---
 
-## Case Study 8: km-tui.tree.v4 — Three Aspirational-Done Failures
+## Case Study 8: @km/tui/tree/v4 — Three Aspirational-Done Failures
 
-**Bead**: km-tui.tree.v4 epic (9 phases). After all 9 phases were closed and the epic marked complete, a systematic re-audit found 3 phases that didn't actually meet their /complete criteria.
+**Bead**: @km/tui/tree/v4 epic (9 phases). After all 9 phases were closed and the epic marked complete, a systematic re-audit found 3 phases that didn't actually meet their /complete criteria.
 
 ### Failure 1: Renamed, not deleted (Phase 10)
 
 Bead said "delete @deprecated ColumnView." Agent renamed `ColumnView` → `DerivedColumn` and closed the bead. The /complete grep `ColumnView` returned 0 hits — passing — but the abstraction still existed under a new name with the same 28 references across 7 files. The `rg` command was technically correct; the spirit of the change was not.
 
-**Re-audit caught it**: a follow-up bead (km-tui.tree.v4.detail-unify) reopened Phase 10, traced the consumers, and either deleted the type or migrated callers. Eventually `DerivedColumn` was renamed AGAIN to `ColumnSnapshot` — but this time the rename was justified (it's a legitimate DTO for non-reactive consumers like the web canvas), and the actual blocker (`deriveDetailColumns`) was deleted.
+**Re-audit caught it**: a follow-up bead (@km/tui/tree/v4/detail-unify) reopened Phase 10, traced the consumers, and either deleted the type or migrated callers. Eventually `DerivedColumn` was renamed AGAIN to `ColumnSnapshot` — but this time the rename was justified (it's a legitimate DTO for non-reactive consumers like the web canvas), and the actual blocker (`deriveDetailColumns`) was deleted.
 
 ### Failure 2: Wrapped, not eliminated (Phase 9)
 

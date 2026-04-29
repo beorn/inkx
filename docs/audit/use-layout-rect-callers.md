@@ -1,6 +1,6 @@
 # useBoxRect / useScrollRect / useScreenRect — caller audit
 
-**Phase 1 of `km-silvery.view-as-layout-output` (deep scope, ~1 week pre-TEA).**
+**Phase 1 of `@km/silvery/view-as-layout-output` (deep scope, ~1 week pre-TEA).**
 
 Generated 2026-04-25 from `grep -rEn "use(Box|Scroll|Screen)Rect\(" apps/ vendor/silvery/`. Excludes test files, dist artifacts, and docstring references — only actual call sites.
 
@@ -22,7 +22,7 @@ After the migration, **(a)** sites become props, **(b)** sites stay as-is, and *
 | `apps/km-tui/src/views/BodyEditField.tsx:39` | BodyEditField | `width` | (a) | Same as InlineEditField |
 | `apps/km-tui/src/views/BoardView.tsx:359` | BoardView | `parentRect` (full) | (c) | BoardView's column layout depends on actual pane pixel width — keep with caveat. Could potentially move to layout-signals if the column sizing logic moves into the layout phase |
 | `apps/km-tui/src/views/useBoardController.ts:564` | useBoardController | `paneRect` | (c) | Same as BoardView — pane width drives column count |
-| `apps/silvercode/src/components/SessionUpdateList.tsx` | SessionUpdateList | (resolved) | — | MessageList → SessionUpdateList migration (bead km-silvercode.acp-session-update-list) dropped the `useBoxRect` call. ListView now uses `follow="end"` without a height prop. |
+| `apps/silvercode/src/components/SessionUpdateList.tsx` | SessionUpdateList | (resolved) | — | MessageList → SessionUpdateList migration (bead @km/silvercode/acp-session-update-list) dropped the `useBoxRect` call. ListView now uses `follow="end"` without a height prop. |
 | `apps/silvercode/src/components/CommandBox.tsx:194` | CommandBox | `width: contentWidth` | (a) | Likely for the inline TextArea wrap. If TextArea handles its own width via flex, delete this read |
 | `apps/silvercode/src/components/PaneGrid.tsx:87` | PaneGrid | `gridRect` | (b) | Already mostly callback-shaped (used for drag-resize math); could move to ref+onLayout if the read isn't reactive-required |
 | `vendor/silvery/packages/ag-react/src/ui/components/ProgressBar.tsx:63` | ProgressBar | `layoutRect` | (a) | Progress bar width can be a `width` prop or filled via flex |
@@ -64,8 +64,8 @@ These fire AFTER layout completes via `useBoxRect((rect) => …)` or `useScrollR
 
 ## References
 
-- Bead: `km-silvery.view-as-layout-output` (P1, pre-TEA, deep scope)
-- Tracking: `km-silvery.architectural-plateau`
+- Bead: `@km/silvery/view-as-layout-output` (P1, pre-TEA, deep scope)
+- Tracking: `@km/silvery/architectural-plateau`
 - Failing regression tests already pinning the bug class:
   - `vendor/silvery/tests/features/cursor-conditional-mount.test.tsx` (cursor)
   - `apps/silvercode/tests/visual/message-wrap-truncation.test.tsx` (wrap via ListView)

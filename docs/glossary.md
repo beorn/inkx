@@ -68,7 +68,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **bd** — CLI command for the beads issue tracker (`km bd list`, `km bd create`, `km bd update <id> --claim`).
 
-**bead** — An issue (bug, task, or feature) tracked in km's beads system. Beads have an ID (e.g., `km-silvery.selection`), priority (P1-P4), status, and description.
+**bead** — An issue (bug, task, or feature) tracked in km's beads system. Beads have an ID (e.g., `@km/silvery/selection`), priority (P1-P4), status, and description.
 
 **block** — A leaf content node in the KNode tree where `item` is absent. Blocks cannot have children and are not directly selectable. Examples: paragraphs, code fences, blockquotes. Contrast with *item*.
 
@@ -509,7 +509,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 **visibility model** — Three independent visibility mechanisms, each at a different layer of the lens pipeline. See [docs/design/ui/visibility.md](design/ui/visibility.md) for the full picture.
 - **Structural exclusion** (ViewLens construction): nodes never appear in `walkOrder` — `isCollapsedChild`, `isDetailOnly`, `hiddenNodeIds`
 - **Collapsed columns** (VisibleLens construction): card children of collapsed columns excluded
-- **Per-node fold** (NodeStore, React layer): subtree rendering skipped in cards view; alternate views currently bypass this — see `km-tui.view-mode-feature-parity`
+- **Per-node fold** (NodeStore, React layer): subtree rendering skipped in cards view; alternate views currently bypass this — see `@km/tui/view-mode-feature-parity`
 
 **visual lasso** — During area-select gestures, a rectangular overlay (inverse video + dim background) showing the drag selection region.
 

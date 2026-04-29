@@ -1,7 +1,7 @@
 # Ambient Boundary Thesis — Phase 1 Empirical Proof
 
 **Date:** 2026-04-27
-**Bead:** [km-silvercode.ambient-phase-1-thesis-proof](bd-show:km-silvercode.ambient-phase-1-thesis-proof)
+**Bead:** [@km/silvercode/ambient-phase-1-thesis-proof](bd-show:@km/silvercode/ambient-phase-1-thesis-proof)
 **Design:** [hub/silvercode/design/ambient-context-safety.md §4 Phase 1](../hub/silvercode/design/ambient-context-safety.md)
 **Driver:** `apps/silvercode/tests/eval/thesis-proof.ts`
 **Trials per variant:** 100

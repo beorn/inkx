@@ -434,7 +434,7 @@ links, selection, editing, search.
 | Go to first/last | `g` / `G` | `gg` / `G` | Good (single `g` is fine for "first") |
 | Search | `/` | `/` | Perfect |
 | Help | `?` | `?` | Perfect |
-| Quit | `:q` / `Ctrl+C` | `q` | Diverge (bead km-tui.q-quits-no-confirm — bare `q` must not destroy the session) |
+| Quit | `:q` / `Ctrl+C` | `q` | Diverge (bead @km/tui/q-quits-no-confirm — bare `q` must not destroy the session) |
 | Back/forward | `[` / `]` | Various | Good (unique but logical) |
 | Extend selection | `S-hjkl` | `S-j`/`S-k` | Perfect |
 | Move nodes | `M-hjkl` | `M-arrows` | Perfect (plus M-arrows) |

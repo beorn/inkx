@@ -248,11 +248,11 @@ This is implemented via direct Repo walks (`repo.getChildren`, `repo.getNode`), 
 
 ## Known Redundancies and Planned Cleanup
 
-Epic: `km-tui.nav-clarity` (P2)
+Epic: `@km/tui/nav-clarity` (P2)
 
-1. **Edit navigation uses Repo walks** (bead: `km-tui.edit-nav-viewtree`). `findAdjacentEditNode` and `findDeepestLast` walk the Repo directly, which can diverge from what's rendered. Should migrate to ViewTree traversal like block/outline nav already do.
+1. **Edit navigation uses Repo walks** (bead: `@km/tui/edit-nav-viewtree`). `findAdjacentEditNode` and `findDeepestLast` walk the Repo directly, which can diverge from what's rendered. Should migrate to ViewTree traversal like block/outline nav already do.
 
-2. **Three list-nav wrappers are near-identical** (bead: `km-tui.unify-list-nav`). `applyBlockNav`, `applyOutlineNav`, and `applyPageJump` all delegate to `applyListNav` with slightly different parameters. The dispatch layer could call `applyListNav` directly, but the wrappers provide call-site readability and map to the `BoardNavOp` discriminated union.
+2. **Three list-nav wrappers are near-identical** (bead: `@km/tui/unify-list-nav`). `applyBlockNav`, `applyOutlineNav`, and `applyPageJump` all delegate to `applyListNav` with slightly different parameters. The dispatch layer could call `applyListNav` directly, but the wrappers provide call-site readability and map to the `BoardNavOp` discriminated union.
 
 3. **Tree navigation ignores ViewTree**. `handleTreeNavigation` in `navigation-handlers.ts` uses `repo.getChildren` for sibling/parent/child lookups. This works correctly today because tree nav directions (first/last/child/parent) don't need visibility filtering in the same way spatial nav does, but unifying on ViewTree would reduce the number of traversal strategies.
 

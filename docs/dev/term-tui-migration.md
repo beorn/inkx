@@ -42,7 +42,7 @@ grep -r "from.*@silvery/ansi" --include="*.ts" --include="*.tsx"
 
 **IMPORTANT:** tui must NOT depend on Silvery. It needs its own implementation.
 
-### Current Problem (km-term-2.5)
+### Current Problem (@km/term-2/5)
 
 tui currently wraps Silvery, causing module resolution issues (km-infra-tui-silvery-module).
 
@@ -74,7 +74,7 @@ Silvery remains as-is for apps/km-tui. No migration needed - km-tui continues us
 Currently also uses @beorn/tui for components (Box, Text, useTerm), but this creates the module resolution issue. Options:
 
 1. Use Silvery directly for components
-2. Wait for tui to have own implementation (km-term-2.5)
+2. Wait for tui to have own implementation (@km/term-2/5)
 
 ### @silvery/ansi Usage
 
@@ -109,6 +109,6 @@ Current names are fine:
 - [x] Create GitHub repos for term and tui
 - [x] Set up as git submodules in km
 - [x] Create epic bead (km-term-2)
-- [ ] **km-term-2.5**: Remove tui's dependency on Silvery (P1)
-- [ ] km-term-2.1: Export detection override functions from term
-- [ ] km-term-2.2: Port storybook demo to term
+- [ ] **@km/term-2/5**: Remove tui's dependency on Silvery (P1)
+- [ ] @km/term-2/1: Export detection override functions from term
+- [ ] @km/term-2/2: Port storybook demo to term

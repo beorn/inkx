@@ -66,7 +66,7 @@ There are three independent ways a node can be excluded from view, each operatin
 
 **Why not in the lens?** Filter text changes on every keystroke. If fold/filter lived in the lens (as construction options), every keypress would invalidate `walkOrder`, the children cache, and the visible-lens cache — kills the per-node-signal incremental rendering that makes cards view fast. The current design keeps fold at the React layer where NodeStore can flip a single per-node signal and only the affected `TreeNode` re-renders.
 
-**Caveat (current limitation)**: This means **only the cards view honors fold**. The alternate views (`columns`, `list`, `tabs`) consume the lens directly via `useSignal(ps.visibleLens)` and never read the node store. They render flat (one row per column-direct child) and have no per-card fold awareness. See `km bd show km-tui.view-mode-feature-parity` for the planned fix — the alternate views need to graduate to consuming `ViewTree` (the React-side projection) the way cards view does.
+**Caveat (current limitation)**: This means **only the cards view honors fold**. The alternate views (`columns`, `list`, `tabs`) consume the lens directly via `useSignal(ps.visibleLens)` and never read the node store. They render flat (one row per column-direct child) and have no per-card fold awareness. See `km bd show @km/tui/view-mode-feature-parity` for the planned fix — the alternate views need to graduate to consuming `ViewTree` (the React-side projection) the way cards view does.
 
 ## Choosing the Right API
 
@@ -84,7 +84,7 @@ There are three independent ways a node can be excluded from view, each operatin
 
 ## Historical: The Semantic Mismatch (Resolved)
 
-Previously, **rendering used the ViewNode tree but navigation/counting used raw repo traversal with `foldDepths`** (`walkVisibleDescendants`, `getVisibleDescendantIds`). This caused bugs where navigation could reach invisible nodes or miss visible ones (see bead `km-tui.j-skips-grandchildren`).
+Previously, **rendering used the ViewNode tree but navigation/counting used raw repo traversal with `foldDepths`** (`walkVisibleDescendants`, `getVisibleDescendantIds`). This caused bugs where navigation could reach invisible nodes or miss visible ones (see bead `@km/tui/j-skips-grandchildren`).
 
 **Resolution**: The lens migration (commits `fabf49e8c`, `ce58aca85`, completed in `2910f2dd8` which deleted the legacy `view-tree.ts` + `view-snapshot.ts`) replaced both paths. Navigation now uses `viewTree.nodes()` and `viewTree.next()/prev()`, and rendering uses the same TreeLens via `useNode(id)`. Both layers read from the same source of truth.
 
@@ -96,9 +96,9 @@ The old bare functions (`walkVisibleDescendants`, `countVisibleDescendants`, `ge
 |---|---|---|---|
 | Structural exclusion | ViewLens construction | Predicates on KNode + `hiddenNodeIds` set | Nodes never appear in `walkOrder` at all |
 | Collapsed columns | VisibleLens construction | `collapsedNodes` set | Card children of collapsed columns excluded |
-| Per-node fold | NodeStore (React layer) | `foldDepths` map → per-node signals | Subtree rendering skipped in cards view; alternate views currently bypassed (see km-tui.view-mode-feature-parity) |
+| Per-node fold | NodeStore (React layer) | `foldDepths` map → per-node signals | Subtree rendering skipped in cards view; alternate views currently bypassed (see @km/tui/view-mode-feature-parity) |
 
-**Open work**: pushing fold into the lens layer would simplify the architecture (alternate views would honor it for free) but conflicts with per-node-signal incremental rendering performance. Tracked in `km-tui.view-mode-feature-parity` — the proposed approach is to keep fold at the React layer but graduate alternate views to consume `ViewTree` (and per-node signals) instead of the raw lens.
+**Open work**: pushing fold into the lens layer would simplify the architecture (alternate views would honor it for free) but conflicts with per-node-signal incremental rendering performance. Tracked in `@km/tui/view-mode-feature-parity` — the proposed approach is to keep fold at the React layer but graduate alternate views to consume `ViewTree` (and per-node signals) instead of the raw lens.
 
 
 ---
@@ -106,7 +106,7 @@ The old bare functions (`walkVisibleDescendants`, `countVisibleDescendants`, `ge
 # Folder-note model
 
 **Status**: parked — design discussion, not implementing yet.
-**Tracking bead**: `km-tui.folder-note-model` (to be created)
+**Tracking bead**: `@km/tui/folder-note-model` (to be created)
 **Date parked**: 2026-04-14
 
 Related fixes landed this week (which the refined model would partially revert):
@@ -116,7 +116,7 @@ Related fixes landed this week (which the refined model would partially revert):
 
 ## Problem
 
-When a folder contains a file with the same name (`tst2/tst2.md`, `_index.md`, `.md`), km treats that file as the folder's "index" / "folder-note". The current implementation merges the file into the folder at view time, which produces two classes of bugs (`km-tui.zoom-stack-overflow`, `km-tui.folder-note-same-name`) and makes the DB tree shape diverge from the view tree shape. The question: what's the right merge model?
+When a folder contains a file with the same name (`tst2/tst2.md`, `_index.md`, `.md`), km treats that file as the folder's "index" / "folder-note". The current implementation merges the file into the folder at view time, which produces two classes of bugs (`@km/tui/zoom-stack-overflow`, `@km/tui/folder-note-same-name`) and makes the DB tree shape diverge from the view tree shape. The question: what's the right merge model?
 
 ## Current architecture — hybrid DB + view
 
@@ -194,7 +194,7 @@ The view layer lies about tree shape: in the DB, `tst2` has one child (`tst2.md`
    - Always merge: title (DB-level, unchanged), body paragraphs, slot-referenced children.
    - When `hasNonSlotSections(indexFile)`: keep the index file as a visible subitem of the folder. Position: probably after slot-referenced children. Open question: is it a card (with the non-slot sections as its own cards on zoom-in), or a body card at the bottom of the column?
 3. Update view-lens tests in `packages/km-board/tests/view-lens.test.ts` — add cases for (a) pure dashboard folder-file, (b) dashboard + own content, (c) plain content.
-4. Verify `km-tui.slow-folder-discovery` symptom — may resolve if less view recomputation is needed under the refined model. Separate investigation path: look at storage parsing (~1400 files → 10s is not obviously O(n)-bad, may be fine).
+4. Verify `@km/tui/slow-folder-discovery` symptom — may resolve if less view recomputation is needed under the refined model. Separate investigation path: look at storage parsing (~1400 files → 10s is not obviously O(n)-bad, may be fine).
 
 ## Open questions
 

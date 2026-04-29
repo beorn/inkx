@@ -202,7 +202,7 @@ Every time the user corrects a filing decision, record the rule here.
 - **2026-04-17** — Historical-snapshot review docs (e.g. `architecture-review-findings.md`) go to `archive/` with a date suffix (`-2026-04`), not top-level. → § 7
 - **2026-04-17** — Single-file subdirs are an anti-pattern. Collapse or move. Example: `docs/architecture/brain.md` (single-file dir) moved to `docs/future/brain.md`; `docs/adr/` removed when its contents fit under `archive/`. → § 6
 - **2026-04-17** — `packages.md` moved from top-level to `ref/packages.md` (reference-shaped, not hub-level). → § 4 + § 7
-- **2026-04-20** — `roadmap.md` + `backlog.md` consolidated into `hub/roadmap.md` + `hub/backlog.md` (absorbed `hub/silvery/horizons.md`). No roadmap/backlog/horizons docs live under `docs/` anymore. Bead: `km-all.roadmap-consolidation`. → § 1
+- **2026-04-20** — `roadmap.md` + `backlog.md` consolidated into `hub/roadmap.md` + `hub/backlog.md` (absorbed `hub/silvery/horizons.md`). No roadmap/backlog/horizons docs live under `docs/` anymore. Bead: `@km/all/roadmap-consolidation`. → § 1
 
 ---
 

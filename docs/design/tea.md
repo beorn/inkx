@@ -2,10 +2,10 @@
 
 > Every interactive subsystem's **inner reducer** is a pure state machine: `(state, op) → [state, effects]`.
 
-**Bead:** km-all.tea-machines
+**Bead:** @km/all/tea-machines
 **Status:** Partially implemented (Phase 2a navigation reducer shipped; see [phases.md](phases.md) for roadmap)
 
-> **Scope note (2026-04-21)**: this doc describes the **inner** layer — pure domain reducers. The silvery apply-chain (outer plugin bus) uses a different, complementary signature: `apply(op) → false | Effect[]`. A plugin is typically an outer `apply(op)` wrapper owning a slice of state (via closure over zustand `set`) that optionally calls an inner `(state, op) → [state, effects]` reducer to compute the next slice state. See `km-all.tea-discuss` §3 for the outer contract and the two-layer framing. Earlier text in this doc said the inner signature was universal "no exceptions" — that is correct *for inner domain reducers* but does not describe the outer plugin bus, which has a different contract by design.
+> **Scope note (2026-04-21)**: this doc describes the **inner** layer — pure domain reducers. The silvery apply-chain (outer plugin bus) uses a different, complementary signature: `apply(op) → false | Effect[]`. A plugin is typically an outer `apply(op)` wrapper owning a slice of state (via closure over zustand `set`) that optionally calls an inner `(state, op) → [state, effects]` reducer to compute the next slice state. See `@km/all/tea-discuss` §3 for the outer contract and the two-layer framing. Earlier text in this doc said the inner signature was universal "no exceptions" — that is correct *for inner domain reducers* but does not describe the outer plugin bus, which has a different contract by design.
 
 ## The Principle
 
@@ -106,7 +106,7 @@ The method name IS the op type. The arguments ARE the op data. Plugins (undo, tr
 - `createSlice()` — always, for defining state machines with typed handlers and apply
 - `op()` proxy — when mutations need interception (undo, recording, collaboration). The caller decides per-call whether to use `op(model).method()` (intercepted) or `model.method()` (direct)
 
-See `hub/silvery/design/v15-tea/app.md` § `op() Proxy` for the full design. Bead: km-all.1.
+See `hub/silvery/design/v15-tea/app.md` § `op() Proxy` for the full design. Bead: @km/all/1.
 
 ### Unified pipeline
 
@@ -132,7 +132,7 @@ event → command/handler → op → apply(state, op) → [state, effects]
 
 ```ts
 // The inner-reducer signature — every domain reducer's .apply() follows this shape.
-// (The outer plugin bus uses a different signature; see km-all.tea-discuss §3.)
+// (The outer plugin bus uses a different signature; see @km/all/tea-discuss §3.)
 type Apply<State, Op, Eff> = (state: State, op: Op) → [State, Eff[]]
 ```
 
@@ -353,7 +353,7 @@ Board.apply(state, op)      → [BoardState, Effect[]]        // app coordinatio
 
 The inner `.apply()` is always a pure function taking exactly two arguments and returning `[newState, effects]`. Effects are data. The runtime applies them.
 
-**Outer plugin bus (different signature by design)**: the silvery apply-chain that wires plugins together uses `apply(op) → false | Effect[]` — slice state is owned privately inside the plugin (via closure over zustand `set`), so it is not threaded through the cross-plugin signature. See `km-all.tea-discuss` §3 and the `@silvery/create/runtime/` substrate for the outer contract. A single plugin typically has an outer `apply(op)` wrapper that internally calls an inner `(state, op) → [state, effects]` reducer to compute next slice state, then returns `Effect[]` (handled) or `false` (delegate to `prev(op)`).
+**Outer plugin bus (different signature by design)**: the silvery apply-chain that wires plugins together uses `apply(op) → false | Effect[]` — slice state is owned privately inside the plugin (via closure over zustand `set`), so it is not threaded through the cross-plugin signature. See `@km/all/tea-discuss` §3 and the `@silvery/create/runtime/` substrate for the outer contract. A single plugin typically has an outer `apply(op)` wrapper that internally calls an inner `(state, op) → [state, effects]` reducer to compute next slice state, then returns `Effect[]` (handled) or `false` (delegate to `prev(op)`).
 
 ### ID-Based Addressing (the "++" in SlateJS++)
 

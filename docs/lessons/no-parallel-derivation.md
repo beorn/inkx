@@ -2,7 +2,7 @@
 
 ## Incident
 
-**`km-tui.column-top-disappears`** — April 2026. User reported: "top of column disappears on cursor-down, reappears on cursor-up." Then: "blank space at top of adjacent column at tall terminals." Then: "same bug, different shape, still there."
+**`@km/tui/column-top-disappears`** — April 2026. User reported: "top of column disappears on cursor-down, reappears on cursor-up." Then: "blank space at top of adjacent column at tall terminals." Then: "same bug, different shape, still there."
 
 Five fix rounds before resolution:
 
@@ -37,7 +37,7 @@ The problem wasn't the math in any one place. The problem was **two systems comp
 
 ## Resolution
 
-`km-silvery.virtualizer-from-layout` — rewrite `useVirtualizer` as a consumer of `layout-signals`' scroll state. One computation, one source, no divergence.
+`@km/silvery/virtualizer-from-layout` — rewrite `useVirtualizer` as a consumer of `layout-signals`' scroll state. One computation, one source, no divergence.
 
 Bootstrap (first render, before layout): use estimates. Steady state: read `useScrollState(containerNode)`, render items at the indices layout-phase just computed, compute `leadingHeight = sumHeights(0, firstVisible)` from the same measured heights layout-phase used. By construction, `leadingHeight == scrollOffset`.
 
@@ -56,4 +56,4 @@ Bootstrap (first render, before layout): use estimates. Steady state: read `useS
 
 - Principle: [No Parallel Derivation](../principles.md#no-parallel-derivation)
 - Principle: [Signal Ownership](../principles.md#signal-ownership) — closely related, covers single-writer-per-signal within one process
-- Beads: `km-tui.column-top-disappears`, `km-silvery.virtualizer-from-layout`, `km-silvery.implicit-invariants-audit`
+- Beads: `@km/tui/column-top-disappears`, `@km/silvery/virtualizer-from-layout`, `@km/silvery/implicit-invariants-audit`

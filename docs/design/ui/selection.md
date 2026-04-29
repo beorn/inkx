@@ -39,7 +39,7 @@ tldraw is the gold standard for canvas selection. Our architecture aligns on the
 
 ### Per-node interactive signals
 
-The selection store writes `node.selected` directly on ag nodes (bead: km-silvery.1). Planned extension — not just selection but all interactive state as per-node signals:
+The selection store writes `node.selected` directly on ag nodes (bead: @km/silvery/1). Planned extension — not just selection but all interactive state as per-node signals:
 
 ```ts
 agNode.hovered       // pointer over this node (written by pointer system)
@@ -228,7 +228,7 @@ All in one place:
 
 **Current implementation**: reconciliation as an effect triggered by ag tree changes. This works but has a gap between tree change and selection fixup.
 
-**Target architecture** (bead: km-silvery.selection.3): eliminate the reconciliation effect. Instead, every tree op transforms selection in the same `apply()` call — one transaction, atomic:
+**Target architecture** (bead: @km/silvery/selection/3): eliminate the reconciliation effect. Instead, every tree op transforms selection in the same `apply()` call — one transaction, atomic:
 
 ```ts
 function applyTreeOp(state: AppState, op: TreeOp): AppState {
@@ -622,7 +622,7 @@ const cursorColumnId = computed(() => deriveColumnAncestor(sel.node.cursor, view
 
 # Selection State Spec
 
-Defines the 5 state concepts that govern cursor, selection, editing, focus scoping, and visual treatment in km-tui. Implementation reference for `km-tui.focus` epic and `km-tui.hierarchical-node-state`.
+Defines the 5 state concepts that govern cursor, selection, editing, focus scoping, and visual treatment in km-tui. Implementation reference for `@km/tui/focus` epic and `@km/tui/hierarchical-node-state`.
 
 ## Core Principle: TEA Owns All Input
 
@@ -798,7 +798,7 @@ editTarget: { nodeId, offset }  // sel.text()
 ```
 Plus derived: cursorCardNodeId, cursorColumnNodeId, cursorDepth — computed in Board.tsx and written directly to NodeStore signals. Editing scope detected via `editingDescendant` reduced signal (per-node, not store-level).
 
-### Target (Phase F of km-tui.focus)
+### Target (Phase F of @km/tui/focus)
 ```ts
 cursor: { nodeId: string, path: Path } | null
 selection: { anchor: { nodeId, path }, focus: { nodeId, path } }
@@ -836,6 +836,6 @@ Batch commands (delete, move, cut, task status) operate on the full selection se
 ## See Also
 
 - `apps/km-tui/src/views/selection-style.ts` — implementation rules (to be rewritten around this spec)
-- `km-tui.focus` — epic tracking the unification
-- `km-tui.hierarchical-node-state` — signals implementation
+- `@km/tui/focus` — epic tracking the unification
+- `@km/tui/hierarchical-node-state` — signals implementation
 - `docs/design/ui/selection.md` — @silvery/selection API design

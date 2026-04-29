@@ -219,7 +219,7 @@ Canvas should be a **first-class silvery target** with capability parity for por
 ## References
 
 - GPT 5.4 Pro design review: `/tmp/llm-manual-design-review-render-neutral-tui-tgmt.txt`
-- Bead: `km-silvery.ag-canvas` (tracking epic)
-- Bead: `km-silvery.ag-canvas.shared-components` (this work)
+- Bead: `@km/silvery/ag-canvas` (tracking epic)
+- Bead: `@km/silvery/ag-canvas/shared-components` (this work)
 - TEA state machines vision: `docs/design/tea-state-machines.md`
-- Era2b commands: `km-silvery.tea` epic
+- Era2b commands: `@km/silvery/tea` epic

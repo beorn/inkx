@@ -98,7 +98,7 @@ dispatch completes.
 
 This is exactly the pattern the 2026-04-21 TEA nav spike validated
 (`hub/silvery/experiments/tea-nav-spike/with-commands-spike.ts`). Bead
-`km-silvery.tea-useinput-cannot-dispatch` documents the finding.
+`@km/silvery/tea-useinput-cannot-dispatch` documents the finding.
 
 ### Signals / zustand stores are a DIFFERENT layer
 
@@ -109,7 +109,7 @@ the apply-chain dispatch queue and has no re-entrancy guard today.
 It is still good hygiene to keep store mutations out of render phases
 (prefer `useEffect` or event handlers over inline calls during render), but
 the specific "Reentrant dispatch" failure mode does not apply to
-`dispatchBoard`. When km-tui migrates to TEA (`km-silvery.tea` epic),
+`dispatchBoard`. When km-tui migrates to TEA (`@km/silvery/tea` epic),
 `dispatchBoard` call sites that currently live inside `useEffect` or
 `useCallback` event handlers must either:
 
