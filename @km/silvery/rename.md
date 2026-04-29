@@ -9,6 +9,7 @@ closed_at: 2026-03-09T19:22:13Z
 close_reason: "Renamed hightea → silvery across 63 files: docs (27), skills
   (23), CLAUDE.md, configs, scripts. Vendor submodule contents untouched (to be
   replaced). Code import rewrites deferred to km-silvery.km-migrate."
+owner: bjorn@stabell.org
 ---
 
 # [x] Global rename: hightea→silvery, decant→loggily, swatch→@silvery/theme across codebase @km/silvery #task #P2

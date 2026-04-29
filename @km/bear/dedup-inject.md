@@ -13,6 +13,21 @@ close_reason: Phase 5 shipped. bear.inject_delta RPC + MCP tool landed (bearly
   errors in touched files. Docs (CHANGELOG, README, bearly CLAUDE.md, km
   npm-packages.md, recall SKILL.md) updated. Unrelated 16 km-tui failures from
   concurrent omnibox work — not blockers for this bead.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-bear.dedup-inject
+    depends_on_id: km-bear
+    type: parent-child
+    created_at: 2026-04-17T10:38:03Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-bear.dedup-inject
+    depends_on_id: km-bear.summarizer
+    type: blocks
+    created_at: 2026-04-17T10:38:04Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Phase 5: dedup + bear.inject_delta @km/bear #task #P2 @Bjørn Stabell

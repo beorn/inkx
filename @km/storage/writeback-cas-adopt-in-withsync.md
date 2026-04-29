@@ -13,6 +13,15 @@ close_reason: "Shipped commit c71f9dc3b. withSync now uses safeWriteFile via
   updateBaselineHash/updateContentBaseline. Tests:
   withsync-safe-write.slow.test.ts (3), withsync-echo-guard.slow.test.ts (2),
   writequeue.test.ts rewritten (78 tests)."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.writeback-cas-adopt-in-withsync
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-22T08:35:55Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Adopt safe-write + echo-guard in withSync path (TUI writer) @km/storage #task #P1 @claude:8b5b9e1c

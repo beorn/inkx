@@ -9,6 +9,8 @@ closed_at: 2026-03-10T15:37:00Z
 close_reason: Added km doctor links subcommand. Queries links table for
   unresolved targets, groups by source file. Broken link count in main health
   check.
+owner: bjorn@stabell.org
+assignee: claude:55df8ef1
 ---
 
 # [x] km doctor: detect and report broken wikilinks @km/cli #feature #P2 @claude:55df8ef1

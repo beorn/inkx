@@ -6,6 +6,8 @@ created_by: claude:c9beade3
 created_at: 2026-03-13T23:20:41Z
 closed_at: 2026-03-13T23:37:43Z
 close_reason: Closed
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] termless: Peekaboo visual+data sessions are different processes @km/_orphan #bug #P0 @claude:c9beade3

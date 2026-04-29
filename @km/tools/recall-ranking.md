@@ -6,6 +6,8 @@ aliases:
 created_by: claude:1d8b0fc3
 created_at: 2026-02-15T16:52:45Z
 closed_at: 2026-02-15T21:07:27Z
+owner: bjorn@stabell.org
+assignee: claude:34ba82b6
 ---
 
 # [x] Recall: ranking improvements — recency boost, session proximity, query expansion @km/tools #task #P2 @claude:34ba82b6

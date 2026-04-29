@@ -6,6 +6,7 @@ aliases:
 created_by: claude:dffe6eeb
 created_at: 2026-02-09T13:48:19Z
 closed_at: 2026-02-09T13:48:24Z
+owner: bjorn@stabell.org
 ---
 
 # [x] LLM tool: background task output truncation loses file path @km/tools #bug #P1

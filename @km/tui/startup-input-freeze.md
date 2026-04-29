@@ -23,6 +23,14 @@ close_reason: "Fixed via commit 5484d34c5. Root cause:
   --noEmit = 6 errors (baseline maintained), bun vitest run apps/km-tui/tests
   packages/km-storage/tests packages/km-commands/tests = 173 files / 4045 tests
   pass / 0 failures."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.startup-input-freeze
+    depends_on_id: km-session.0415a
+    type: parent-child
+    created_at: 2026-04-15T08:25:28Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] 2-5s input freeze after app open — arrow keys blocked @km/tui #bug #P1

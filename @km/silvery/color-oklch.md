@@ -9,6 +9,15 @@ closed_at: 2026-04-18T07:40:21Z
 close_reason: OKLCH migration complete — all in-scope acceptance criteria
   verified. Generators.ts HSL migration intentionally deferred to
   km-silvery.theme-generators (called out in that bead).
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-silvery.color-oklch
+    depends_on_id: km-silvery.design-system
+    type: parent-child
+    created_at: 2026-04-17T23:26:41Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Migrate @silvery/color to OKLCH-native — blend, lighten, complement, contrast in perceptually-uniform space @km/silvery #task #P3 @Bjørn Stabell

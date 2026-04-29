@@ -6,6 +6,8 @@ aliases:
 created_by: claude:28b14b32
 created_at: 2026-02-23T16:44:37Z
 closed_at: 2026-02-25T20:10:45Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] 'D' opens detail pane AND empty workspace pane @km/tui #bug #P2 @claude:d697f216

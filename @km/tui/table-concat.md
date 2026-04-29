@@ -6,6 +6,7 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T16:27:09Z
 closed_at: 2026-02-14T20:46:03Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Markdown table rendered as concatenated text without delimiters @km/tui #bug #P3

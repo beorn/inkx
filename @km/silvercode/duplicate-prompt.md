@@ -9,6 +9,14 @@ closed_at: 2026-04-28T00:14:59Z
 close_reason: "Fixed in session-store.ts user-message reducer (echo dedup with
   5s window). 3 new tests pin: collapse, distinct-text-across-windows,
   meta-only. All 653 silvercode + 190 agent-harness tests pass."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.duplicate-prompt
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-27T17:14:59Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Duplicate user prompt: optimistic apply + agent echo render twice @km/silvercode #bug #P1

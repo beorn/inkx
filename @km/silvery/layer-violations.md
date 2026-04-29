@@ -10,6 +10,7 @@ close_reason: "Fixed all layer violations. V1-V5 resolved: types moved from
   ag-term/create to ag, focus-queries moved to ag, commands decoupled via
   CommandableApp, TermDef/RenderOptions moved to ag-term. ag now has zero
   dependencies. Pattern detection clean. 4854 tests pass."
+owner: bjorn@stabell.org
 ---
 
 # [x] Fix silvery package layer violations: ag imports from ag-term @km/silvery #bug #P2

@@ -5,6 +5,7 @@ aliases:
   - km-flexx-sticky-tall
 created_at: 2026-02-04T11:24:02Z
 closed_at: 2026-02-04T12:48:12Z
+assignee: claude:27f1a547
 ---
 
 # [x] inkx layout-phase: Sticky children taller than viewport misaligned @km/flexx #bug #P3 @claude:27f1a547

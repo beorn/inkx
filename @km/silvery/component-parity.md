@@ -5,6 +5,7 @@ aliases:
   - km-silvery-component-parity
 created_by: claude:e8fd4b92
 created_at: 2026-03-10T21:21:22Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Component parity: adopt shadcn-level features across all input/form components @km/silvery #task #P2

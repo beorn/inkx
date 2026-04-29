@@ -9,6 +9,8 @@ closed_at: 2026-04-01T15:38:20Z
 close_reason: Implemented spatial J/K navigation. Flat visible-block list, pure
   index arithmetic, strict inverses. J=next visible block below, K=previous
   visible block above. Not tree traversal — pure spatial/visual.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] J/K navigates to next/previous visible block (document-order traversal) @km/tui #feature #P2 @Bjørn Stabell

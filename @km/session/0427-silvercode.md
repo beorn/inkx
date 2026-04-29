@@ -18,6 +18,7 @@ close_reason: "Explored silvercode via TTY MCP — launched welcome screen,
   on sub-agent row after panel toggle). 8/8 silvercode welcome+cursor-startup
   tests pass; 658/666 total silvercode tests pass (3 remaining failures are the
   new pane-chord bead — pre-existing, not caused by this session)."
+owner: bjorn@stabell.org
 ---
 
 # [x] Session: silvercode exploratory testing — find + fix bugs @km/session #task #P2

@@ -9,6 +9,8 @@ closed_at: 2026-03-24T14:56:03Z
 close_reason: "Fixed: Dev Tools/Kanban contrast (-fg), Components keyboard
   scrolling. Colors were already working. Scrolling in iframes has fundamental
   limits but keyboard scrolling now works."
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Fix web showcases — broken examples, duplicates, missing source tabs @km/silvery #bug #P1 @claude:fed8de9e

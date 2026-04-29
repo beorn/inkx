@@ -5,6 +5,7 @@ aliases:
   - km-tools-tty-robust
 created_at: 2026-02-07T22:17:35Z
 closed_at: 2026-02-07T22:26:26Z
+assignee: claude:88dcecbc
 ---
 
 # [x] Make TTY tools robust and fast (headless screenshots + new engine) @km/tools #feature #P2 @claude:88dcecbc

@@ -9,6 +9,8 @@ closed_at: 2026-03-18T18:56:29Z
 close_reason: "Grooming: All 5 children closed. VirtualScrollback, ListDocument,
   TextSurface, ListView implemented with tests. Design validated by
   pro-review-6."
+owner: bjorn@stabell.org
+assignee: claude:def7f8a1
 ---
 
 # [x] Fix virtual inline mode architecture — semantic scrollback, not frame snapshots @km/silvery #task #P1 @claude:def7f8a1

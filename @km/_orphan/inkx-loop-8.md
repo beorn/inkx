@@ -4,6 +4,7 @@ aliases:
   - km-inkx-loop-8
 created_at: 2026-02-01T23:07:26Z
 closed_at: 2026-02-01T23:16:00Z
+assignee: claude:5fa2decc
 ---
 
 # [x] inkx-loop Step 8: Migration path @km/_orphan #task #P2 @claude:5fa2decc

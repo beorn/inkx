@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T16:27:05Z
 closed_at: 2026-02-14T21:12:38Z
+owner: bjorn@stabell.org
+assignee: claude:a5c7f7de
 ---
 
 # [x] TUI: 'j' on Inbox header inside zoomed @next exits zoom entirely @km/tui #bug #P2 @claude:a5c7f7de

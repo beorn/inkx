@@ -9,6 +9,7 @@ closed_at: 2026-03-30T19:42:14Z
 close_reason: "Fixed in this session: added underlineStyle/underlineColor to
   StyleContext, mergeStyleContext, and styleToAnsi in render-text.ts. Tests in
   vendor/silvery/tests/features/nested-text-styles.test.tsx (9 tests)."
+owner: bjorn@stabell.org
 ---
 
 # [x] underlineStyle lost on nested Text inside wrap=truncate parent @km/silvery #bug #P2

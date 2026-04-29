@@ -5,6 +5,7 @@ aliases:
   - km-silvery-ai-chat
 created_by: claude:e4e70c9a
 created_at: 2026-03-11T20:56:26Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] AIChat component: embedded AI with command + code mode integration @km/silvery #feature #P3

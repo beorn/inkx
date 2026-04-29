@@ -5,6 +5,14 @@ aliases:
   - km-silvery-known-limits
 created_by: claude:cc081a9a
 created_at: 2026-04-26T22:13:59Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.known-limits
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-26T15:15:04Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] Silvery known limits — sweep and fix all @km/silvery #task #P2

@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-06T06:07:52Z
 closed_at: 2026-04-06T06:12:09Z
 close_reason: consolidated into km-market.terminfo-completeness.query-protocols
+owner: bjorn@stabell.org
 ---
 
 # [x] Add XTWINOPS window operation probes (CSI t) @km/market #task #P2

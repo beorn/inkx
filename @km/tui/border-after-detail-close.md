@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-20T10:33:20Z
 closed_at: 2026-02-20T12:35:02Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Border rendering issues after closing detail pane @km/tui #bug #P2 @claude:d3a7049b

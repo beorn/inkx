@@ -6,6 +6,8 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-19T16:00:07Z
 closed_at: 2026-02-19T17:01:52Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Detail pane: prop values sometimes grey:grey instead of grey:color @km/tui #bug #P2 @claude:8f007ba9

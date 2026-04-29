@@ -11,6 +11,14 @@ close_reason: Shipped F1-B (rename reclaims dead names via liveness check) +
   register). bearly 947c6a5, km e438cc661. 4 new tests pass. F1-A (identity
   file) left as future work if cross-machine resume becomes a shipping
   requirement.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.tribe-session-resume
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-21T13:37:53Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Tribe: session resume across Claude sessions (stable identity handle) @km/bearly #feature #P2

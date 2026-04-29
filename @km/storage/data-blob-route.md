@@ -6,6 +6,8 @@ aliases:
 created_by: claude:499eee95
 created_at: 2026-02-13T22:16:38Z
 closed_at: 2026-02-13T22:29:45Z
+owner: bjorn@stabell.org
+assignee: claude:499eee95
 ---
 
 # [x] SQLiteError: no such column: due_time — data-blob fields crash updateNode @km/storage #bug #P1 @claude:499eee95

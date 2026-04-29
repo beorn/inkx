@@ -5,6 +5,14 @@ aliases:
   - km-bearly-worktree-gc
 created_by: claude:cc081a9a
 created_at: 2026-04-27T15:34:14Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.worktree-gc
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-27T08:34:13Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] Worktree GC: sweep stale .claude/worktrees/agent-* clones @km/bearly #task #P3

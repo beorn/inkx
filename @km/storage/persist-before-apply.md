@@ -9,6 +9,8 @@ closed_at: 2026-03-31T23:00:23Z
 close_reason: "Reversed order in emitter.emit(): DB apply first (step 1),
   events.jsonl persist second (step 2). Crash between steps loses journal entry
   but DB is correct — strictly safer. README.md updated."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] Event persisted to events.jsonl before DB apply — crash leaves ghost events @km/storage #bug #P2 @Bjørn Stabell

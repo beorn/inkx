@@ -6,6 +6,7 @@ aliases:
   - "@km/test-4/9"
 created_at: 2026-01-27T14:26:13Z
 closed_at: 2026-01-27T15:43:04Z
+assignee: claude:bb984f7c
 ---
 
 # [x] Optimize orchestrator for unified Vitest @km/test-4 #task #P2 @claude:bb984f7c

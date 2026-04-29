@@ -10,6 +10,7 @@ close_reason: "Fixed: Removed resolveEdgeCalls counter from layout-stats.ts,
   layout-zero.ts, index.ts, index-classic.ts, and classic/layout.ts. It was
   exported and reset but never incremented (no incResolveEdgeCalls function
   existed). Tests still pass (1483/1495)."
+owner: bjorn@stabell.org
 ---
 
 # [x] DRY: resolveEdgeCalls counter exported but never incremented @km/flexily #task #P2

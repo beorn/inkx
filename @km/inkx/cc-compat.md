@@ -6,6 +6,8 @@ aliases:
 created_by: claude:ee8efc0f
 created_at: 2026-02-22T23:29:41Z
 closed_at: 2026-02-22T23:55:05Z
+owner: bjorn@stabell.org
+assignee: claude:ee8efc0f
 ---
 
 # [x] CC compatibility: Transform component + useFocus shim @km/inkx #task #P2 @claude:ee8efc0f

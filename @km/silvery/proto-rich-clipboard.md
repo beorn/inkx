@@ -9,6 +9,7 @@ closed_at: 2026-04-06T09:24:17Z
 close_reason: "Rich clipboard: SelectionFeature.copy() sends text/plain +
   text/html via OSC 5522 when available, falls back to OSC 52. extractHtml()
   converts buffer cells to styled HTML. 13 tests. Silvery commit d5b8bbc."
+owner: bjorn@stabell.org
 ---
 
 # [x] OSC 5522 → rich copy (text/plain + text/html from selection) @km/silvery #feature #P3

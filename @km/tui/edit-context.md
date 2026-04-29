@@ -6,6 +6,8 @@ aliases:
 created_by: claude:97217d5d
 created_at: 2026-02-17T10:47:57Z
 closed_at: 2026-02-17T11:24:46Z
+owner: bjorn@stabell.org
+assignee: claude:97217d5d
 ---
 
 # [x] EditContext: unified text editing primitives in inkx @km/tui #feature #P2 @claude:97217d5d

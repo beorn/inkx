@@ -9,6 +9,8 @@ closed_at: 2026-04-02T02:19:52Z
 close_reason: classifyCursorFromViewIndex() replaces deriveCursorAncestors — 15
   lines vs 70. ViewNode parent pointers derive card/column/selectionLevel.
   cursor-store.ts 209→91 lines. Commit 216eadb8.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] CursorContext: single computed context replaces 3-field cursor model @km/tui #task #P2 @Bjørn Stabell

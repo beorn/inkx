@@ -5,6 +5,14 @@ aliases:
   - km-bearly-llm-test-coverage
 created_by: Bjørn Stabell
 created_at: 2026-04-17T21:52:24Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.llm-test-coverage
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-17T14:52:37Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Add direct tests for @bearly/llm (0 tests, 4.8k LOC) @km/bearly #task #P3

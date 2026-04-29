@@ -5,6 +5,14 @@ aliases:
   - km-silvery-conditional-unmount-stale-pixels
 created_by: claude:8b5b9e1c
 created_at: 2026-04-21T06:54:04Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.conditional-unmount-stale-pixels
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-20T23:54:04Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [ ] Conditional sibling unmount leaves stale cells on screen @km/silvery #bug #P2

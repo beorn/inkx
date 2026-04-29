@@ -7,6 +7,7 @@ created_by: claude:65d845d9
 created_at: 2026-03-13T05:31:45Z
 closed_at: 2026-03-13T05:34:57Z
 close_reason: Duplicate of km-flexily.logger-top-level-await (P2)
+owner: bjorn@stabell.org
 ---
 
 # [x] Top-level await in logger.ts forces all importers to be async modules @km/flexily #task #P3

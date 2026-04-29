@@ -6,6 +6,16 @@ created_by: claude:cc081a9a
 created_at: 2026-04-26T21:13:02Z
 closed_at: 2026-04-26T22:43:14Z
 close_reason: Closed
+started_at: 2026-04-26T22:12:20Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-otm6c
+    depends_on_id: km-all.fix-sweep-strict-cluster
+    type: parent-child
+    created_at: 2026-04-26T14:13:06Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] TUI: td chord Escape doesn't close datePrompt dialog @km/_orphan #bug #P2 @claude:cc081a9a

@@ -6,6 +6,7 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-18T23:43:11Z
 closed_at: 2026-02-19T07:19:01Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Show breadcrumb path when zoomed deep from search @km/tui #feature #P3

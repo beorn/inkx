@@ -6,6 +6,7 @@ aliases:
   - "@km/rev-code-0203/1"
 created_at: 2026-02-03T13:47:54Z
 closed_at: 2026-02-03T14:20:08Z
+assignee: claude:b3478afd
 ---
 
 # [x] Remove ensureOpen() anti-pattern (70+ calls) @km/rev-code-0203 #task #P2 @claude:b3478afd

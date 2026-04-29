@@ -5,6 +5,7 @@ aliases:
   - km-storage-remove-skipfssync
 created_by: Bjørn Stabell
 created_at: 2026-04-02T22:35:10Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Remove skipFsSync option — redundant with commit/project split @km/storage #task #P3

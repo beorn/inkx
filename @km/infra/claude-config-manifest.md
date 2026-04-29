@@ -59,6 +59,15 @@ close_reason: >-
 
   17 skills remain with "no keywords" soft warnings — non-fatal, tracked as
   follow-up.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-infra.claude-config-manifest
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-18T22:11:04Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] MECE Claude config manifest + drift-checker + activation skill @km/infra #task #P2 @Bjørn Stabell

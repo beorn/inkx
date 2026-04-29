@@ -23,6 +23,22 @@ close_reason: "Shipped spawnClaudeAcpSession convenience wrapper composing
   spawnClaudeAcpSession + SpawnClaudeAcpOpts), CLAUDE.md (new section
   documenting subscription-auth path and migration). All 131 agent-harness tests
   pass; bun fix clean on new files; tsc clean (no new errors)."
+started_at: 2026-04-26T09:52:15Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-adapter-claude
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T01:11:35Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-adapter-claude
+    depends_on_id: km-silvercode.acp-session
+    type: blocks
+    created_at: 2026-04-26T01:11:35Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] ACP adapter — Claude Code stream-json → SessionUpdate @km/silvercode #feature #P1 @claude:cd034ca4

@@ -13,6 +13,14 @@ close_reason: "Replaced verify.yml with verdaccio gate (silvery dad4172b, km
   publishConfig.exports, (b) missing dist file, (c) private:true on a
   should-be-public package. release.yml runs the same gate before publish;
   local: bun run verify-publishable."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.verify-publishable-broken
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-20T14:37:14Z
+    created_by: claude:a1a0e667
+    metadata: "{}"
 ---
 
 # [x] Verify Publishable workflow chicken-and-egg: cross-pkg install pre-publish @km/silvery #bug #P2

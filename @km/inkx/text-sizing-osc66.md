@@ -6,6 +6,7 @@ aliases:
 created_by: claude:66aeba27
 created_at: 2026-02-28T08:46:26Z
 closed_at: 2026-02-28T09:38:13Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Fix rendering corruption @km/inkx #bug #P1

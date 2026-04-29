@@ -6,6 +6,7 @@ aliases:
 created_by: claude:536645b5
 created_at: 2026-02-20T22:33:19Z
 closed_at: 2026-02-20T23:17:18Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Local find: highlight all matches, current match distinct @km/tui #feature #P2

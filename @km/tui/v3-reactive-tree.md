@@ -10,6 +10,8 @@ close_reason: "All v3 phases complete. P1: computed engine (d32fe0b1a). P2:
   cutover (5ffd355ae). P3: store merge (762b7468f). P4 (sync elimination) and
   factory conversion done under km-tui.tree epic. 18 test failures from P3 fixed
   in km-tui.tree.p1-fix."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] v3 reactiveTree — computed-based engine, same DSL, -800 LOC @km/tui #task #P2 @Bjørn Stabell

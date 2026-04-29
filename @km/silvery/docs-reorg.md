@@ -5,6 +5,7 @@ aliases:
   - km-silvery-docs-reorg
 created_by: claude:491faf6c
 created_at: 2026-03-25T18:22:11Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] silvery.dev docs reorganization — fix duplication, narrative flow, and information architecture @km/silvery #task #P1

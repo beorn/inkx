@@ -5,6 +5,7 @@ aliases:
   - km-silvery-examples-gallery
 created_by: claude:73d7a332
 created_at: 2026-03-12T16:20:38Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Example: gallery (Kitty images, pixel art, drawing, truecolor) @km/silvery #task #P3

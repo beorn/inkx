@@ -6,6 +6,8 @@ aliases:
 created_by: claude:97b8de73
 created_at: 2026-02-23T02:16:47Z
 closed_at: 2026-02-23T02:31:12Z
+owner: bjorn@stabell.org
+assignee: claude:97b8de73
 ---
 
 # [x] Eliminate 20k getChildren calls from buildNodeIndex @km/tui #task #P1 @claude:97b8de73

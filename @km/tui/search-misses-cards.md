@@ -14,6 +14,8 @@ close_reason: "Fixed in 6fb5970fe. findMatchingNodeIds now walks tree.walkOrder
   node.content/node.name. Verified with 2 new regression tests in
   local-find.slow.test.ts covering (a) sub-items 3+ levels deep, (b) cards with
   matching sub-items. All 18 local-find tests pass."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] Search fails to find card items in default view (P0) @km/tui #bug #P0 @Bjørn Stabell

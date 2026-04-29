@@ -5,6 +5,14 @@ aliases:
   - km-all-autolinks-extraction
 created_by: claude:2405c72e
 created_at: 2026-04-25T15:43:59Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.autolinks-extraction
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-25T08:44:18Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] Extract smart-link infrastructure into shared package (silvercode + km + website) @km/all #epic #P3

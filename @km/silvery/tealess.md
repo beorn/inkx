@@ -8,6 +8,8 @@ created_at: 2026-03-23T18:03:43Z
 closed_at: 2026-03-25T22:37:08Z
 close_reason: "All children complete: 8 packages published to npm at v0.4.1,
   then renamed/absorbed into era2b. silvery v0.5.0 released."
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Decouple silvery from TEA — packaging, docs, examples, positioning @km/silvery #epic #P1 @claude:fed8de9e

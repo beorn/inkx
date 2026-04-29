@@ -11,6 +11,14 @@ close_reason: Largely complete via @silvery/selection's sel.transform() — that
   REPO_DELETE, REPO_ADD in board-effect-runner.ts and from executeBatchDelete.
   Manual findNearestSurvivor logic replaced by transformSelection. See
   feat/selection-plateau (and silvery-selection/src/transform.ts).
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.selection-normalization
+    depends_on_id: km-silvery.selection-focus-plateau
+    type: parent-child
+    created_at: 2026-04-15T12:19:01Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Selection normalization: auto-adjust selection after tree mutations @km/tui #feature #P1

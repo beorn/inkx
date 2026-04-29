@@ -9,6 +9,8 @@ created_at: 2026-04-05T07:53:01Z
 closed_at: 2026-04-05T09:32:02Z
 close_reason: ServicesProvider created. 5 consumer useAppStore calls migrated to
   useToastQueue/useJobRunner/useUndoHandle. 62 test files pass.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Services to React context (repo, toastQueue, jobRunner) @km/tui #task #P3 @Bjørn Stabell

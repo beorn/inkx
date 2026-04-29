@@ -5,6 +5,7 @@ aliases:
   - km-tools-commit-perf
 created_at: 2026-02-04T11:55:27Z
 closed_at: 2026-02-04T12:30:39Z
+assignee: claude:a7826e85
 ---
 
 # [x] Commit skill: LLM ignores investigation constraints, takes 2m+ @km/tools #task #P4 @claude:a7826e85

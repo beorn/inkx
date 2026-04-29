@@ -5,6 +5,20 @@ aliases:
   - km-silvercode-acp-comp-marketplace-dialogs
 created_by: claude:cd034ca4
 created_at: 2026-04-26T15:37:40Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.acp-comp-marketplace-dialogs
+    depends_on_id: km-silvercode.ide-shell
+    type: parent-child
+    created_at: 2026-04-26T08:55:13Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-comp-marketplace-dialogs
+    depends_on_id: km-silvery.overlay-vocabulary
+    type: blocks
+    created_at: 2026-04-26T08:37:58Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [ ] silvercode marketplace dialogs — Model/Provider/MCP pickers @km/silvercode #feature #P4

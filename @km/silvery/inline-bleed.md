@@ -9,6 +9,8 @@ closed_at: 2026-03-11T08:26:17Z
 close_reason: Fixed by removing inline padding approach in output-phase.ts
   (cc8251f). Frozen content no longer bleeds below the active render area -
   cursor state properly tracks frozen line count.
+owner: bjorn@stabell.org
+assignee: claude:73d7a332
 ---
 
 # [x] Inline mode: old content bleeds below active render area after ScrollbackList advances @km/silvery #bug #P2 @claude:73d7a332

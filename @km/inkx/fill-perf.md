@@ -6,6 +6,8 @@ aliases:
 created_by: claude:28b14b32
 created_at: 2026-02-23T13:13:19Z
 closed_at: 2026-02-23T13:42:06Z
+owner: bjorn@stabell.org
+assignee: claude:28b14b32
 ---
 
 # [x] Fill component causes layout cascade delay (useContentRect re-renders) @km/inkx #bug #P3 @claude:28b14b32

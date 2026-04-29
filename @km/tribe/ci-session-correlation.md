@@ -8,6 +8,8 @@ created_at: 2026-04-01T06:11:35Z
 closed_at: 2026-04-01T06:19:18Z
 close_reason: "Implemented: track recent pushers per repo, DM sessions matching
   repo name on 3x failure"
+owner: bjorn@stabell.org
+assignee: claude:19080504
 ---
 
 # [x] CI: correlate failures to tribe sessions via commit/push timestamps @km/tribe #feature #P3 @claude:19080504

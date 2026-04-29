@@ -10,6 +10,7 @@ close_reason: "Restructured terminfo.dev: content/ at root (editorial JSON +
   probes-apps/ + probes-libs/ + probes-mux/), packages/ (probes/ + cli/ + api/),
   docs/data/ (probes.data.ts + load-probes.ts). All imports updated, build
   passes, CLI works."
+owner: bjorn@stabell.org
 ---
 
 # [x] terminfo.dev directory restructure: content/, data/, src/probes/, src/cli/, src/api/ @km/terminfo #task #P3

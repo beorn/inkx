@@ -8,6 +8,8 @@ created_at: 2026-03-26T17:00:08Z
 closed_at: 2026-03-26T17:00:14Z
 close_reason: Built allTerminals from terminals.json, deduplicated by slug,
   removed empty Backends sidebar section. Nav now shows all 15 terminals.
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Fix empty Terminals nav dropdown on terminfo.dev @km/terminfo #bug #P2 @claude:f8196c1c

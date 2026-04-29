@@ -5,6 +5,7 @@ aliases:
   - km-tui-empty-board-edit
 created_by: Bjørn Stabell
 created_at: 2026-03-31T01:56:25Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] [bug] Can't add content to empty board — Enter should create first column/card @km/tui #bug #P2

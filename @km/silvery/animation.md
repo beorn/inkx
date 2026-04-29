@@ -7,6 +7,8 @@ created_by: Bjørn Stabell
 created_at: 2026-04-09T14:38:34Z
 closed_at: 2026-04-09T15:56:16Z
 close_reason: Phase 1 implemented. useAnimation hook + 8 tests. Commit 0c4109c4.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Review Ink's useAnimation — design a better silvery version @km/silvery #task #P1 @Bjørn Stabell

@@ -4,6 +4,7 @@ aliases:
   - km-board-10
 created_at: 2026-01-27T15:39:24Z
 closed_at: 2026-01-27T16:06:48Z
+assignee: claude:193f30b3
 ---
 
 # [x] TUI cursor cannot navigate into board title, only column title @km/_orphan #bug #P2 @claude:193f30b3

@@ -8,6 +8,7 @@ created_at: 2026-04-10T08:22:59Z
 closed_at: 2026-04-10T08:40:17Z
 close_reason: "3 new test files: command-contracts (5 tests), round-trip-laws (8
   tests), failure artifacts (onTestFailed hook). Committed f2dffdddf."
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 4: New test suites — command contracts, round-trip laws, failure artifacts @km/all #task #P2

@@ -12,6 +12,8 @@ close_reason: "Codified in docs/principles.md (5 code patterns: scoped ops, !=
   real+synthetic split, parallel files, aggressive bead updates), and
   .claude/skills/refactor/SKILL.md (7-layer rename checklist). Commit
   ad80dabad."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Session learnings 2026-04-06: 15 patterns from explore session — codify in skills @km/all #task #P3 @Bjørn Stabell

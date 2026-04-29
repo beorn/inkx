@@ -7,6 +7,8 @@ created_by: claude:c9beade3
 created_at: 2026-03-13T15:10:24Z
 closed_at: 2026-03-13T18:06:00Z
 close_reason: Fixed with TDD tests, all passing (1215 fuzz + unit)
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] Fingerprint caching ignores absX/absY — stale rounded edges on fractional moves @km/flexily #bug #P1 @claude:c9beade3

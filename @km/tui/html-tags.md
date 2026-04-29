@@ -5,6 +5,7 @@ aliases:
   - km-tui-html-tags
 created_at: 2026-02-04T11:27:20Z
 closed_at: 2026-02-04T12:33:24Z
+assignee: claude:a7826e85
 ---
 
 # [x] HTML anchor tags show as '<a' instead of being hidden/rendered @km/tui #bug #P2 @claude:a7826e85

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:703e68be
 created_at: 2026-02-11T14:19:30Z
 closed_at: 2026-02-12T14:18:11Z
+owner: bjorn@stabell.org
+assignee: claude:586bad48
 ---
 
 # [x] Non-shift cursor moves reset selection @km/tui #task #P3 @claude:586bad48

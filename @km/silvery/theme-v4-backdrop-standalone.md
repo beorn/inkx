@@ -11,6 +11,14 @@ close_reason: "Shipped silvery 7d2f76d6 + km 4b53ba6d8. 3 new tests in
   blend with ThemeProvider, legacy fallback without, incremental correctness
   across 4 frames. Docs section 10 in styling.md. 11 backdrop tests now pass at
   STRICT=2."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-v4-backdrop-standalone
+    depends_on_id: km-silvery.theme-v4
+    type: parent-child
+    created_at: 2026-04-19T10:59:05Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Phase 6: Backdrop standalone test + docs @km/silvery #task #P4

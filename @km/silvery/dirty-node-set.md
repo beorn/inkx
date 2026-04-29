@@ -8,6 +8,8 @@ created_at: 2026-04-09T17:37:12Z
 closed_at: 2026-04-09T23:47:41Z
 close_reason: Shipped. O(1) hasLayoutDirty check via Set-based tracking in
   @silvery/ag/dirty-tracking. Commit 00e3df10.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Dirty node SET — pipeline phases iterate dirty nodes, not tree @km/silvery #feature #P2 @Bjørn Stabell

@@ -18,6 +18,26 @@ close_reason: "Shipped in silvery commit 8d9ce3a6. Production silvery (ag-term,
   examples/dashboard (1), theme-explorer (1), stability/long-running (1). Step D
   (remove preset option from createFlexilyZeroEngine) deferred to follow-up to
   reduce blast radius — option stays as opt-out for now."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.flexshrink-flip-silvery-only
+    depends_on_id: km-flexily.auto-min-size-flex-items
+    type: blocks
+    created_at: 2026-04-25T00:27:55Z
+    created_by: claude:53042a7f
+    metadata: "{}"
+  - issue_id: km-silvery.flexshrink-flip-silvery-only
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-24T23:52:42Z
+    created_by: claude:53042a7f
+    metadata: "{}"
+  - issue_id: km-silvery.flexshrink-flip-silvery-only
+    depends_on_id: km-silvery.flexshrink-audit-silvery
+    type: blocks
+    created_at: 2026-04-24T23:52:57Z
+    created_by: claude:53042a7f
+    metadata: "{}"
 ---
 
 # [x] Flip silvery to CSS preset via createFlexilyZeroEngine({defaults:'css'}) (no global flexily flip) @km/silvery #feature #P2

@@ -34,6 +34,16 @@ close_reason: >-
 
   Local override for claude-code (private package, not on npm yet) lives in the
   probe itself; will retire when @km/claude-acp publishes.
+started_at: 2026-04-26T16:00:05Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-probe-runner
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T09:00:03Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] silvercode probe-acp — smoke test runner for connectAcpRegistry across all 5 agents @km/silvercode #feature #P2 @claude:cd034ca4

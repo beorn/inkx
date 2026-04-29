@@ -8,6 +8,7 @@ created_at: 2026-04-02T21:38:47Z
 closed_at: 2026-04-02T23:34:14Z
 close_reason: Implemented. ListView auto-registers as Searchable. SearchProvider
   dispatch+deferred effects. 18 tests.
+owner: bjorn@stabell.org
 ---
 
 # [x] createSearchMachine<M> — generic TEA search building block @km/silvery #feature #P1

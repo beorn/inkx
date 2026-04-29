@@ -26,6 +26,8 @@ close_reason: |-
   The computed() caching eliminates redundant rebuilds entirely.
   Before: 3 builds per mutation = 8.6ms (500 nodes).
   After: 1 cached build, 0ms on cache hit. 34x improvement.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Bench before/after: PaneSignals + ViewSnapshot migration @km/tui #task #P2 @Bjørn Stabell

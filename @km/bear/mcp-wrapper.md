@@ -18,6 +18,21 @@ close_reason: "Phase 1 done: @bearly/bear MCP server wrapping recall library.
   package dir + 4 files exist, 7 test cases (≥3 target), 1 MCP entry, 0 hits of
   old skill guidance, 2 bear.ask mentions in skill, server starts cleanly. Ready
   for Phase 2 (daemon)."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-bear.mcp-wrapper
+    depends_on_id: km-bear
+    type: parent-child
+    created_at: 2026-04-16T23:28:53Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-bear.mcp-wrapper
+    depends_on_id: km-bear.test-infra
+    type: blocks
+    created_at: 2026-04-16T23:28:53Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Phase 1: @bearly/bear MCP server wrapping existing recall library @km/bear #task #P2 @Bjørn Stabell

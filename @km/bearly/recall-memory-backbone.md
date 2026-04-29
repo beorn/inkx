@@ -5,6 +5,14 @@ aliases:
   - km-bearly-recall-memory-backbone
 created_by: claude:2405c72e
 created_at: 2026-04-27T21:57:34Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.recall-memory-backbone
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-27T14:57:47Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] Recall as multi-agent/provider memory backbone @km/bearly #feature #P2

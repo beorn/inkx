@@ -6,6 +6,7 @@ aliases:
   - "@km/rev-0129/11"
 created_at: 2026-01-29T16:36:06Z
 closed_at: 2026-01-29T18:09:24Z
+assignee: claude:298008b9
 ---
 
 # [x] Organize km-tui src/ into subdirectories @km/rev-0129 #task #P4 @claude:298008b9

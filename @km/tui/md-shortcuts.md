@@ -9,6 +9,8 @@ closed_at: 2026-04-01T04:58:21Z
 close_reason: "detectPrefixConversion changed from exact equality to prefix
   matching (startsWith). All markdown shortcuts (-, *, 1., #, [], >) now work
   with existing content. 10 new tests."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Markdown shortcuts: []<space> etc. should work with existing content @km/tui #feature #P2 @Bjørn Stabell

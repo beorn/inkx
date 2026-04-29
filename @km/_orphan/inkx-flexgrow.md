@@ -4,6 +4,7 @@ aliases:
   - km-inkx-flexgrow
 created_at: 2026-02-02T14:32:45Z
 closed_at: 2026-02-02T15:17:05Z
+assignee: claude:227cdc41
 ---
 
 # [x] inkx: flexGrow siblings don't measure intrinsic width correctly @km/_orphan #bug #P2 @claude:227cdc41

@@ -5,6 +5,7 @@ aliases:
   - km-tui-slate-edit
 created_at: 2026-02-06T10:32:12Z
 closed_at: 2026-02-11T17:10:17Z
+assignee: claude:9b6678d0
 ---
 
 # [x] Per-item Slate editor: rich text + split/merge + undo/redo @km/tui #feature #P3 @claude:9b6678d0

@@ -22,6 +22,15 @@ close_reason: >-
 
 
   Commits: bearly 8848a6a + dbd11de + 4650f47; km 728163c3f.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-tribe.message-durability
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-18T21:29:01Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] tribe: message durability across daemon restart @km/tribe #feature #P3 @Bjørn Stabell

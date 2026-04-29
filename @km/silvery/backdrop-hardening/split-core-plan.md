@@ -10,6 +10,15 @@ close_reason: CorePlan + TerminalPlan types added; buildCorePlan strips
   kittyEnabled. Active plans frozen, PlanRect.rect cloned. 5 new tests (JSON
   round-trip, freeze, rect clone, type extension, parity). 95→100 backdrop tests
   pass. Commit 491a15de.
+owner: bjorn@stabell.org
+assignee: claude:a1a0e667
+dependencies:
+  - issue_id: km-silvery.backdrop-hardening.split-core-plan
+    depends_on_id: km-silvery.backdrop-hardening
+    type: parent-child
+    created_at: 2026-04-20T14:01:25Z
+    created_by: claude:88c0e764
+    metadata: "{}"
 ---
 
 # [x] Split CorePlan from TerminalPlan (cross-platform forward-compat) @km/silvery #task #P0 @claude:a1a0e667

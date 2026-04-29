@@ -10,6 +10,8 @@ close_reason: "Implemented Playwright-grade backend management: backends.json
   manifest, registry API (resolveBackend, createTerminalByName, health checks),
   CLI commands (backends, install, upgrade, doctor), async test fixture, 27
   registry tests, 4 doc updates"
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] Backend version management system (Playwright-grade) @km/termless #feature #P1 @claude:4929065a

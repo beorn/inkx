@@ -13,6 +13,15 @@ close_reason: "Work already landed in 73db39348 (refactor: retire legacy Omnibox
   dispatches OPEN_UNIFIED_OMNIBOX with ':' prefix for command mode; open_omnibox
   does empty buffer for Cmd+K). SearchDialog/NodeLine cleanup moved to
   km-tui.omnibox-migration-cleanup parent."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-tui.omnibox-quality-plateau
+    depends_on_id: km-silvery.selection-focus-plateau
+    type: parent-child
+    created_at: 2026-04-15T11:31:08Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Omnibox quality plateau — delete legacy Omnibox.tsx and reroute : / Cmd+K @km/tui #task #P1 @Bjørn Stabell

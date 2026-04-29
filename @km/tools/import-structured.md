@@ -6,6 +6,7 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T11:35:15Z
 closed_at: 2026-02-18T12:20:42Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Import: task body content runs together — need structured KNode parsing from html_notes @km/tools #bug #P2

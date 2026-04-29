@@ -13,6 +13,14 @@ close_reason: "Shipped in ebfc61c8a. 4 enforcement rules in
   require-spec-barrel-import. 27 violations fixed (7 raw RGBs extracted to
   helpers/theme.ts constants; 20 app.expectScreen → expect(app.text).toContain).
   2354 tests pass; grep-based acceptance returns 0 hits."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.test-enforcement-plateau
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-18T21:10:21Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Test system enforcement layer — oxlint rules + codemod adoption to reach quality plateau @km/all #feature #P3

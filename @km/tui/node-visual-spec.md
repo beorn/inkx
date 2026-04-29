@@ -9,6 +9,7 @@ closed_at: 2026-04-09T05:37:38Z
 close_reason: "All 3 open questions resolved: muted borders invisible (no layout
   shift), cursor sub-item shows yellow breadcrumb title (no selectedBg), hover
   is universal. Commit 53392715c."
+owner: bjorn@stabell.org
 ---
 
 # [x] Review node visual spec — state × role matrix @km/tui #task #P1

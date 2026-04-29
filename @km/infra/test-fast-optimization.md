@@ -6,6 +6,8 @@ aliases:
 created_by: claude:7f2b8028
 created_at: 2026-02-28T22:25:02Z
 closed_at: 2026-03-01T09:12:31Z
+owner: bjorn@stabell.org
+assignee: claude:7f2b8028
 ---
 
 # [x] test:fast optimization — consolidation + import chain @km/infra #task #P1 @claude:7f2b8028

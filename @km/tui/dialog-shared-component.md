@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T14:20:56Z
 closed_at: 2026-02-25T17:18:55Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] Shared dialog component: title, help key, blank line, content, footer @km/tui #feature #P2 @claude:d697f216

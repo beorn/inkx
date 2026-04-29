@@ -11,6 +11,15 @@ close_reason: Added gpt-5.5 ($5/$30) + gpt-5.5-pro ($30/$180) to bearly model
   Kept runtime defaults on gpt-5.4-pro (dispatch.ts, cli.ts) until OpenAI API
   exposes 5.5. All existing tests pass (pricing-sanity, pro-fire-and-forget,
   cli-argv, dual-pro-failure-modes).
+owner: bjorn@stabell.org
+assignee: claude:a7145ca5
+dependencies:
+  - issue_id: km-bearly.gpt-5-5
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-23T11:48:59Z
+    created_by: claude:a7145ca5
+    metadata: "{}"
 ---
 
 # [x] Add GPT-5.5 model + update llm skills @km/bearly #task #P2 @claude:a7145ca5

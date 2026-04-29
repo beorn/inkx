@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a3625ec3
 created_at: 2026-02-09T14:43:52Z
 closed_at: 2026-02-11T17:56:55Z
+owner: bjorn@stabell.org
+assignee: claude:2f3fc9d8
 ---
 
 # [x] Suspense staggered loading corrupts incremental renderer when embedded @km/inkx #bug #P3 @claude:2f3fc9d8

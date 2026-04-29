@@ -9,6 +9,7 @@ closed_at: 2026-03-29T15:00:30Z
 close_reason: "Root cause: getNodeDisplayName uses node.title which stores raw
   [[wikilinks]]. stripInlineRules only stripped ![[embeds]], not regular
   [[links]]. Fixed by adding wikilink regex to stripInlineRules."
+owner: bjorn@stabell.org
 ---
 
 # [x] Wikilinks show raw [[brackets]] in card titles despite InlineText being wired @km/tui #bug #P1

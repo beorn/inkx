@@ -7,6 +7,7 @@ created_by: claude:ee8efc0f
 created_at: 2026-02-23T11:14:19Z
 closed_at: 2026-03-09T22:07:27Z
 close_reason: "Grooming: already published as flexily"
+owner: bjorn@stabell.org
 ---
 
 # [x] Publish flexture to npm @km/flexx #task #P4

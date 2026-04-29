@@ -11,6 +11,14 @@ close_reason: "Shipped at silvery a83b4439 + km e7530ac74. Two-channel transform
   dark themes) or pure white (#ffffff on light themes), derived from rootBg
   luminance. ag.ts finds rootBg via ThemeProvider's Box theme prop. Null/default
   bg cells stay untouched. 8 tests pass at STRICT=2. No public API change."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.backdrop-fade-toward-bg
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-19T00:06:40Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Backdrop-fade: mix both fg AND bg toward theme $bg (stronger spotlight) @km/silvery #feature #P2

@@ -5,6 +5,16 @@ aliases:
   - km-silvery-sterling-render-strategy
 created_by: claude:4274df30
 created_at: 2026-04-19T23:17:47Z
+started_at: 2026-04-25T07:14:19Z
+owner: bjorn@stabell.org
+assignee: claude:22c2717d
+dependencies:
+  - issue_id: km-silvery.sterling-render-strategy
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-24T16:12:59Z
+    created_by: claude:5e447b66
+    metadata: "{}"
 ---
 
 # [ ] Sterling: pluggable RenderStrategy (output-side composability) @km/silvery #feature #P3 @claude:22c2717d

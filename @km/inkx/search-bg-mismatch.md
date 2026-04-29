@@ -5,6 +5,7 @@ aliases:
   - km-inkx-search-bg-mismatch
 created_at: 2026-02-05T01:44:12Z
 closed_at: 2026-02-05T07:54:20Z
+assignee: claude:10db6ea8
 ---
 
 # [x] Search dialog incremental render mismatch (bg=6 vs bg=0) @km/inkx #bug #P2 @claude:10db6ea8

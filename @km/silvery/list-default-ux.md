@@ -11,6 +11,14 @@ close_reason: Shipped at silvery 5f9121ec + km b09ef0070. SelectList defaults to
   onItemHover + onItemClick (hover moves cursor, click confirms); Tabs hover
   state via $bg-muted on inactive tabs. 21 new tests pass. Backward-compat
   retained via explicit indicator prop.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.list-default-ux
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-18T23:44:49Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Make SelectList + ListView + Tabs default to omnibox-style UX (no arrow, mouse, hover) @km/silvery #feature #P2

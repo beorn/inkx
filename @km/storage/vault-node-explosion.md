@@ -62,6 +62,15 @@ close_reason: >-
       patterns:
         - "raw/chats/**"
         - "archive/**"
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-storage.vault-node-explosion
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-18T11:14:20Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Investigate 549K nodes in vault — likely needs different strategy @km/storage #task #P1 @Bjørn Stabell

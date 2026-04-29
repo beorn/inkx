@@ -5,6 +5,14 @@ aliases:
   - km-market-vs-opentui-bench
 created_by: Bjørn Stabell
 created_at: 2026-04-15T23:22:36Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-market.vs-opentui-bench
+    depends_on_id: km-market
+    type: parent-child
+    created_at: 2026-04-15T16:22:36Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Benchmark suite: silvery vs OpenTUI (harness + scenarios) @km/market #task #P2

@@ -5,6 +5,7 @@ aliases:
   - km-all-test-trace-replay
 created_by: Bjørn Stabell
 created_at: 2026-04-10T03:19:02Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Trace-replay testing — action traces as the test model (long-term vision) @km/all #epic #P3

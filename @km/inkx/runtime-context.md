@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d1f60fb4
 created_at: 2026-02-27T15:36:31Z
 closed_at: 2026-02-27T19:16:37Z
+owner: bjorn@stabell.org
+assignee: claude:d1f60fb4
 ---
 
 # [x] RuntimeContext: collapse Input/Stdin/Events contexts into unified runtime @km/inkx #feature #P1 @claude:d1f60fb4

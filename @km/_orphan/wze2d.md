@@ -7,6 +7,8 @@ created_at: 2026-03-23T20:03:17Z
 closed_at: 2026-03-23T22:39:27Z
 close_reason: "Done: Bun.build() script with 24 targets. silvery 264KB gzip, tea
   106KB, test 89KB. Dual-mode exports (bun→TS, import→JS). dist/ gitignored."
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Bundle silvery packages into pre-built JS (like Ink 5) @km/_orphan #task #P1 @claude:fed8de9e

@@ -8,6 +8,7 @@ created_at: 2026-03-31T21:31:18Z
 closed_at: 2026-03-31T21:39:20Z
 close_reason: "Fixed: stop() now calls writeQueue.flush() instead of clear().
   Pending writes are flushed to disk before shutdown. Regression test added."
+owner: bjorn@stabell.org
 ---
 
 # [x] P0: SyncManager.stop() drops pending WriteQueue writes @km/storage #bug #P0

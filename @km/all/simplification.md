@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-02T01:31:16Z
 closed_at: 2026-04-02T03:49:07Z
 close_reason: all steps complete
+owner: bjorn@stabell.org
 ---
 
 # [x] Post-view-tree architectural simplification — eliminate redundancy, unify mechanisms @km/all #epic #P2

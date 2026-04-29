@@ -9,6 +9,8 @@ closed_at: 2026-03-28T07:20:01Z
 close_reason: CardView extends KNode with pre-resolved embed data.
   virtualCardIds deleted. Column construction batch-resolves via getNodesBatch.
   TreeNode uses CardView at depth 0. 4717 tests pass.
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Resolve embeds + body/structural at column construction, not render time @km/tui #task #P1 @claude:f8196c1c

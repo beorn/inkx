@@ -9,6 +9,8 @@ closed_at: 2026-03-10T19:49:20Z
 close_reason: "Rewrote withInk() to compose withInkCursor() + withInkFocus().
   Removed InkErrorBoundary (now in silvery core), removed createInkWrapRoot.
   File: 435 → 322 lines, withInk() body: ~10 lines."
+owner: bjorn@stabell.org
+assignee: claude:474834b0
 ---
 
 # [x] Decompose withInk() into pipe(withInkCursor(), withInkFocus()) + default ErrorBoundary @km/silvery #task #P2 @claude:474834b0

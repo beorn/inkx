@@ -5,6 +5,14 @@ aliases:
   - km-silvery-modes-system-restore
 created_by: claude:019d032d
 created_at: 2026-04-22T21:17:17Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.modes-system-restore
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-22T14:17:41Z
+    created_by: claude:019d032d
+    metadata: "{}"
 ---
 
 # [ ] Modes.systemRestore(writeSyncFn) — writeSync-capable mode reset for signal handlers @km/silvery #task #P3

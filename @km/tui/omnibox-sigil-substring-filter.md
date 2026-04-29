@@ -13,6 +13,14 @@ close_reason: Fixed in 7bfea0a8c — preserve identity sigil (+/#/@/~) on first
   FTS sees '+t*' and returns +-prefixed matches directly. 3 new tests in
   apps/km-tui/tests/omnibox.test.ts ('nodeResultsForOmnibox — sigil-preserving
   FTS'). 2344/2344 km-tui tests pass.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.omnibox-sigil-substring-filter
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-18T12:17:34Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] +t shows no items but + shows projects — sigil mode substring filter broken @km/tui #bug #P2

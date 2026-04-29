@@ -5,6 +5,14 @@ aliases:
   - km-infra-submodule-integrity-check
 created_by: claude:cc081a9a
 created_at: 2026-04-27T05:46:17Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.submodule-integrity-check
+    depends_on_id: km-infra.guardrails
+    type: parent-child
+    created_at: 2026-04-26T23:18:26Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] Pre-commit / bun worktree check for stale submodule gitlinks @km/infra #feature #P3

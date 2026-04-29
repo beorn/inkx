@@ -4,6 +4,7 @@ aliases:
   - km-cwn2
 created_at: 2026-01-25T08:27:13Z
 closed_at: 2026-01-25T08:47:36Z
+assignee: beorn-claude-78480
 ---
 
 # [x] TUI: App crashes when scrolling right at edge @km/_orphan #bug #P0 @beorn-claude-78480

@@ -11,6 +11,16 @@ close_reason: "silvery 168b4989 (clearExcessArea hasPrevBuffer guard) + km
   children even when parent's absoluteChildMutated cascade had already
   re-rendered siblings. Fix: gate on hasPrevBuffer. ai-chat 5/5 pass, fuzz 21/21
   files / 722/722 tests pass."
+started_at: 2026-04-27T04:27:39Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvery.ai-chat-incremental-mismatch
+    depends_on_id: km-all.fix-sweep-vendor-fuzz
+    type: parent-child
+    created_at: 2026-04-26T21:26:51Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] [bug] ai-chat.test.tsx:110 — IncrementalRenderMismatchError on render #20 (bg null vs object) @km/silvery #bug #P2 @claude:cc081a9a

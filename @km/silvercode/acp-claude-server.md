@@ -21,6 +21,22 @@ close_reason: "Shipped @km/claude-acp standalone ACP server package extracting
   code (3 require-await warnings on Agent interface methods, consistent with
   existing acp-client.ts). Ready for npm publish (renamed) when external demand
   surfaces."
+started_at: 2026-04-26T10:06:48Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-claude-server
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T02:00:40Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-claude-server
+    depends_on_id: km-silvercode.acp-adapter-claude
+    type: blocks
+    created_at: 2026-04-26T02:00:40Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] [FUTURE] silvercode-claude-acp standalone npm package — extract from internal adapter @km/silvercode #feature #P4 @claude:cd034ca4

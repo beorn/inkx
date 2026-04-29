@@ -5,6 +5,7 @@ aliases:
 created_by: claude:97b8de73
 created_at: 2026-02-22T21:01:07Z
 closed_at: 2026-02-22T22:14:51Z
+owner: bjorn@stabell.org
 ---
 
 # [x] L (unfold) on card skips levels — should unfold one level at a time @km/_orphan #bug #P2

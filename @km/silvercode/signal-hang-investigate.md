@@ -5,6 +5,9 @@ aliases:
   - km-silvercode-signal-hang-investigate
 created_by: claude:cc081a9a
 created_at: 2026-04-28T04:37:18Z
+started_at: 2026-04-28T04:47:41Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
 ---
 
 # [/] [bug] silvercode bootstrap can wedge at 100% CPU and ignores SIGTERM (only SIGKILL reaps it) @km/silvercode #bug #P1 @claude:cc081a9a

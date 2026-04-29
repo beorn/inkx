@@ -7,6 +7,15 @@ created_by: claude:18c72b43
 created_at: 2026-04-20T18:48:12Z
 closed_at: 2026-04-26T06:24:20Z
 close_reason: Session complete — tribe matrix design simplified and documented
+owner: bjorn@stabell.org
+assignee: claude:18c72b43
+dependencies:
+  - issue_id: km-session.0420-tribe-matrix
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-20T11:48:20Z
+    created_by: claude:18c72b43
+    metadata: "{}"
 ---
 
 # [x] Session 2026-04-20: tribe design simplified to matrix-connector + km primitives @km/session #task #P2 @claude:18c72b43

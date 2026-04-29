@@ -6,6 +6,8 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-12T22:29:33Z
 closed_at: 2026-02-14T08:45:26Z
+owner: bjorn@stabell.org
+assignee: claude:124bfbe5
 ---
 
 # [x] 'V' doesn't cycle icon/border card styles @km/tui #bug #P3 @claude:124bfbe5

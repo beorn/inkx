@@ -9,6 +9,8 @@ closed_at: 2026-04-01T15:38:20Z
 close_reason: Fixed. indent/outdent now targets the edited sub-item (via
   inlineEditBlock.nodeId), not the parent card. First-child guard prevents
   indent when no previous sibling.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Tab on first child of card indents entire card (should be no-op with bell) @km/tui #bug #P1 @Bjørn Stabell

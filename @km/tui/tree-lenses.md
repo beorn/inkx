@@ -12,6 +12,8 @@ close_reason: "Quality plateau architecture achieved. 14/14 children closed. All
   string IDs and self-resolve via useNode(). Legacy pipeline fully deleted:
   viewNodeToColumnViews=0, buildViewTree=0, ViewSnapshot=0, CardView=0.
   ColumnView confined to initialization and test harness only."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] ViewTree: RepoTree + ViewTree with useNode(id) — quality plateau architecture @km/tui #feature #P2 @Bjørn Stabell

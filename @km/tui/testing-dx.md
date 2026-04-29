@@ -5,6 +5,7 @@ aliases:
   - km-tui-testing-dx
 created_at: 2026-02-04T11:27:23Z
 closed_at: 2026-02-04T13:49:17Z
+assignee: claude:27f1a547
 ---
 
 # [x] Invest in TUI testing DX (storybook, visual regression, state inspection) @km/tui #epic #P3 @claude:27f1a547

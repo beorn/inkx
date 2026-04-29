@@ -6,6 +6,7 @@ aliases:
   - "@km/test-simplify/9"
 created_at: 2026-01-23T22:47:26Z
 closed_at: 2026-01-25T01:31:39Z
+assignee: claude-MacBookPro.localdomain
 ---
 
 # [x] Review test quality per file @km/test-simplify #task #P2 @claude-MacBookPro.localdomain

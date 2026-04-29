@@ -6,6 +6,7 @@ aliases:
   - "@km/test-simplify/10"
 created_at: 2026-01-23T22:47:27Z
 closed_at: 2026-01-25T01:27:22Z
+assignee: claude-MacBookPro.localdomain
 ---
 
 # [x] Verify Test Architecture covers all existing test types @km/test-simplify #task #P2 @claude-MacBookPro.localdomain

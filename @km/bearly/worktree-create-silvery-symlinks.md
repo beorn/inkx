@@ -6,6 +6,14 @@ aliases:
 created_by: claude:cc081a9a
 created_at: 2026-04-27T07:05:36Z
 closed_at: 2026-04-27T07:29:29Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.worktree-create-silvery-symlinks
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-27T00:05:36Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] bun worktree create: symlink @silvery/* sub-packages @km/bearly #bug #P3

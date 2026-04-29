@@ -13,6 +13,15 @@ close_reason: Shipped bun npm-registry CLI (.claude/skills/npm/registry.ts) with
   package.json gains npm-registry script. Audit found 7 version drifts (silvery
   family + loggily + vimonkey) annotated in npm-packages.md as HTML comment for
   the next sync. Commits 570ed1cf9, 992962864.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-infra.npm-registry-tools
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-11T22:11:11Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] NPM registry management tools/skill @km/infra #task #P3 @Bjørn Stabell

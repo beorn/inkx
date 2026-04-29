@@ -13,6 +13,8 @@ close_reason: "Merged via 2483ebe7e (squash of worktree-agent-a85f3d65 —
   lines), inlined deriveColumnsFromLens. Acceptance greps PASS. 29/29 board.test
   + helper tests pass. Deferred: deriveColumnsFromRepo (web/km-canvas + 10 test
   files use it) and ColumnView type — broader tree-lens migration follow-up."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Delete remaining ColumnView/buildBoardState legacy code @km/tui #task #P0 @Bjørn Stabell

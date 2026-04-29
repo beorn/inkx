@@ -13,6 +13,14 @@ close_reason: "Shipped: /raw + /debug slash commands toggle a debug view that
   session-store + MessageEntry plumb additionalContext through; UserMessageBlock
   renders chip+optional body. 6 new raw-context tests + 2 new parse tests;
   564/564 silvercode tests pass."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.resume-show-everything-collapsed
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-26T09:01:52Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Resume: show everything from JSONL but collapse non-essential into expandable detail @km/silvercode #feature #P2

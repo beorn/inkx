@@ -13,6 +13,16 @@ close_reason: "Implemented `bun llm quota` subcommand + `--quota` flag on
   cache at ~/.cache/bearly-llm/last-quota-by-provider.json. 26 new tests. Live
   verified: bun llm 'ping' --json --quota returns rate-limit envelope. bearly
   main 19f8640. Bumped 0.3.0 → 0.4.0."
+started_at: 2026-04-27T17:51:04Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-bearly.llm-quota-tracking
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-27T07:44:48Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Quota + balance tracking — surface remaining credit/rate-limit per provider after each call @km/bearly #feature #P1 @claude:2405c72e

@@ -9,6 +9,14 @@ closed_at: 2026-04-18T18:01:11Z
 close_reason: Direct scope complete. Remaining sub-items live as independent
   siblings under km-tribe. Shipped across 2026-04-15 and 2026-04-18 sessions
   (see notes on bead).
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.reliability-sweep-0415
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-18T11:00:12Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Tribe + daemon reliability sweep (from 2026-04-15 session) @km/tribe #task #P1

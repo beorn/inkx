@@ -9,6 +9,7 @@ closed_at: 2026-04-16T01:50:23Z
 close_reason: Fixed in 4f8dc38fe — non-discoverOnly rebuild path now re-queues
   unparsed stubs for deferred parsing. H1 titles survive state.db rebuild. 4 new
   tests.
+owner: bjorn@stabell.org
 ---
 
 # [x] [bug] Rebuilding state.db from WAL produces different column titles than runtime @km/storage #bug #P2

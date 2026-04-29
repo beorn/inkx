@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T15:04:11Z
 closed_at: 2026-02-19T10:54:58Z
+owner: bjorn@stabell.org
+assignee: claude:36393b5d
 ---
 
 # [x] Show section grouping headers above task cards (like Asana) @km/tui #feature #P3 @claude:36393b5d

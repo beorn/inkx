@@ -9,6 +9,8 @@ closed_at: 2026-03-28T01:38:47Z
 close_reason: "Fixed: resolvePersistedPane now computes initial cursor for
   restored boards instead of null. Cursor stores synced after workspace
   restoration."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Cursor lost on board resume — 'no cursor' state should be an invariant violation @km/tui #bug #P1 @claude:f8196c1c

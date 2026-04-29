@@ -9,6 +9,8 @@ closed_at: 2026-03-27T06:32:54Z
 close_reason: "Implemented: MD5 hash of tribe.ts + lib/tribe/*.ts checked on
   startup. Re-execs with BUN_RUNTIME_TRANSPILER_CACHE=0 if hash changed.
   Published as @bearly/tribe v0.6.0."
+owner: bjorn@stabell.org
+assignee: claude:19080504
 ---
 
 # [x] Check source hash on startup — force reload if code changed since last run @km/tribe #feature #P2 @claude:19080504

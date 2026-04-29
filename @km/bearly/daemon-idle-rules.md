@@ -12,6 +12,14 @@ close_reason: "Superseded by elegance review (2026-04-26 /pro): the IdleRule DSL
   Fold into createMcpPlugin({idleTimeoutMs, maxLifetimeMs}) directly. Two
   event-driven setTimeout calls replace the heartbeat + rule evaluator. Full
   review: /tmp/llm-2405c72e-elegance-review-of-the-wrw1.txt."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.daemon-idle-rules
+    depends_on_id: km-silvercode.process-mgmt
+    type: parent-child
+    created_at: 2026-04-26T14:09:57Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Daemon idle-rule API: composable predicates over IdleCtx (no tagged union) @km/bearly #feature #P2

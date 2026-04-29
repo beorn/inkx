@@ -5,6 +5,7 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T10:47:13Z
 closed_at: 2026-02-18T21:10:11Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Import: within-file duplicate cross-references for multi-section tasks @km/_orphan #bug #P3

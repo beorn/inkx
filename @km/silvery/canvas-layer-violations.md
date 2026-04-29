@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fed8de9e
 created_at: 2026-03-30T21:31:13Z
 closed_at: 2026-03-30T21:31:33Z
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Canvas imports terminal/node modules — layer violations @km/silvery #bug #P1 @claude:fed8de9e

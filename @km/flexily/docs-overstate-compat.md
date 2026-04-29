@@ -11,6 +11,7 @@ close_reason: "Fixed: Toned down claims across README, docs/index.md,
   compatibility' -> 'Yoga-compatible API'. 'full CSS flexbox spec' ->
   'comprehensive CSS flexbox support'. Added note about unimplemented features
   (order property, writing modes)."
+owner: bjorn@stabell.org
 ---
 
 # [x] Docs: Claims of '100% Yoga API compatibility' and 'full CSS flexbox' are too strong @km/flexily #task #P2

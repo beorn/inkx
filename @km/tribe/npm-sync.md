@@ -8,6 +8,7 @@ created_at: 2026-03-26T16:59:03Z
 closed_at: 2026-03-26T17:02:01Z
 close_reason: "Fixed: prepublishOnly bundles tools/tribe.ts into
   plugins/tribe/server.ts. Published as @bearly/tribe@0.3.1."
+owner: bjorn@stabell.org
 ---
 
 # [x] Published tribe server.ts is stale @km/tribe #bug #P2

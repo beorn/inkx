@@ -5,6 +5,7 @@ aliases:
   - "@km/_orphan/market"
 created_by: claude:f8196c1c
 created_at: 2026-03-25T17:34:33Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Marketing & positioning — public docs, comparisons, benchmarks, blog posts @km/market #epic #P2

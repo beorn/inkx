@@ -10,6 +10,7 @@ close_reason: VirtualList now measures actual rendered heights via onLayout
   callbacks. MeasuredItem wraps each item, reports height to useVirtualizer
   cache. Falls back to estimateHeight for unmeasured items. 7 new tests. All 5
   km consumers auto-benefit. Docs updated.
+owner: bjorn@stabell.org
 ---
 
 # [x] VirtualList: variable item height via measurement — eliminate fixed itemHeight @km/silvery #feature #P2

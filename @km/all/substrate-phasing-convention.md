@@ -11,6 +11,14 @@ close_reason: "Documented in /refactor SKILL.md (commit pending). Convention:
   /complete criteria includes 'L5 cleanup bead exists in open state, blocked by
   this'. Acceptance: skill section added at .claude/skills/refactor/SKILL.md
   before Tribe Coordination section."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.substrate-phasing-convention
+    depends_on_id: km-all.plateau-90
+    type: parent-child
+    created_at: 2026-04-27T11:00:55Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Substrate-phasing convention: file L5 cleanup bead at the same time as L4 substrate @km/all #task #P2

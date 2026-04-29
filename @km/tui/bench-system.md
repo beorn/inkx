@@ -15,6 +15,8 @@ close_reason: "Implemented in 7e4d317d9 (portable realistic-board fixture +
   from agent's profiling: silvery output phase = 73-89% of cursor wall time on
   synthetic boards. React reconcile = 0%, layout = 1%, content = 8%. The cursor
   sluggishness is in silvery's diff/ANSI generation, not km-tui rendering."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Manual + tribe-coordinated bench ritual with per-phase timing breakdown @km/tui #feature #P1 @Bjørn Stabell

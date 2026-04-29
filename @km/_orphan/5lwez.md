@@ -5,6 +5,8 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T10:47:13Z
 closed_at: 2026-02-19T11:07:08Z
+owner: bjorn@stabell.org
+assignee: claude:36393b5d
 ---
 
 # [x] Import: tag aggregation emits duplicate entries for double-tagged tasks @km/_orphan #bug #P4 @claude:36393b5d

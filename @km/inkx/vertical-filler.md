@@ -8,6 +8,7 @@ created_at: 2026-02-25T23:37:59Z
 closed_at: 2026-03-07T02:12:20Z
 close_reason: "Grooming: merged into km-inkx.viewport-fill — same goal (pad
   inline mode to terminal bottom)"
+owner: bjorn@stabell.org
 ---
 
 # [x] VerticalFiller component — pad cursor to terminal bottom for inline scrollback @km/inkx #feature #P2

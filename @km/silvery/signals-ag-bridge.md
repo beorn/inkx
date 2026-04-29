@@ -5,6 +5,7 @@ aliases:
   - km-silvery-signals-ag-bridge
 created_by: Bjørn Stabell
 created_at: 2026-04-09T17:37:11Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Signals->ag bridge — reactive rendering without React @km/silvery #feature #P4

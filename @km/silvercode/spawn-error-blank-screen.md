@@ -10,6 +10,16 @@ close_reason: "Fixed in d42adb18b. Controller exposes
   lastSpawnError()/onSpawnError(); App.tsx renders alt-screen-visible banner
   when sessions empty + spawn error set. Verified: bun fix clean, 4/4 cli-smoke
   tests pass, manual welcome screen unaffected."
+started_at: 2026-04-28T03:08:05Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvercode.spawn-error-blank-screen
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-27T20:08:05Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] [bug] silvercode shows blank screen when initial spawn fails — stderr hidden by alt-screen @km/silvercode #bug #P1 @claude:cc081a9a

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:8fc35754
 created_at: 2026-03-03T00:34:54Z
 closed_at: 2026-03-03T08:05:09Z
+owner: bjorn@stabell.org
+assignee: claude:8fc35754
 ---
 
 # [x] SVG snapshot testing workflow @km/termless #feature #P2 @claude:8fc35754

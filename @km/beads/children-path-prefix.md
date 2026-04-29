@@ -11,6 +11,14 @@ close_reason: "bd children resolved 'silvercode/acp' to the file node (acp.md)
   in the sibling folder 'acp/'. Fixed bd children to walk both the file's
   in-file children AND the folder node's children. Verified on
   /tmp/km-bd-sample-11544 fixture: returns rename + session-prompt + tool-call."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-beads.children-path-prefix
+    depends_on_id: km-beads
+    type: parent-child
+    created_at: 2026-04-27T18:34:41Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] bd children traverses path-prefix sibling files instead of parent_id @km/beads #bug #P2

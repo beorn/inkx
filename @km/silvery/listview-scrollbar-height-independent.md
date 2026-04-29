@@ -10,6 +10,16 @@ close_reason: "Shipped: 1c360b80 (silvery) + 1989817f2 (km bump). Two root
   causes: scrollbar invisibility (estimateHeight×items vs measured rows
   mismatch) + bump-flicker (bumpedEdge held across grow). 2 tests. Session:
   km-session.0425-evening"
+started_at: 2026-04-26T06:26:11Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvery.listview-scrollbar-height-independent
+    depends_on_id: km-silvery.architectural-plateau
+    type: parent-child
+    created_at: 2026-04-25T23:12:03Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Scrollbar invisible in height-independent ListView mode @km/silvery #bug #P2 @claude:2405c72e

@@ -5,6 +5,7 @@ aliases:
   - km-silvery-scrollbar
 created_by: Bjørn Stabell
 created_at: 2026-04-03T07:26:35Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Scrollbar — configurable, mouse-clickable, draggable (CC doesn't have) @km/silvery #feature #P2

@@ -17,6 +17,16 @@ close_reason: "Locked 6 invariants in silvery fc798f8c + km bump 101f825d9. (1)
   focus state at terminal-layer. 15 new tests in cursor-invariants.test.tsx, all
   31 cursor-related tests pass, silvercode cursor-startup green, tsc baseline
   unchanged (548)."
+started_at: 2026-04-25T18:19:15Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvery.cursor-invariants
+    depends_on_id: km-silvery.view-as-layout-output
+    type: parent-child
+    created_at: 2026-04-25T09:14:00Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Cursor as layout output: lock down precedence, clipping, content-origin, prop-change recompute @km/silvery #feature #P1 @claude:2405c72e

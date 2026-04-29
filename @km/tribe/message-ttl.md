@@ -7,6 +7,7 @@ created_by: claude:19080504
 created_at: 2026-03-31T18:24:51Z
 closed_at: 2026-03-31T18:27:08Z
 close_reason: Messages, events, event_log auto-deleted after 7 days in cleanupOldData()
+owner: bjorn@stabell.org
 ---
 
 # [x] Message TTL — auto-delete messages older than 7 days @km/tribe #task #P4

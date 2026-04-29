@@ -13,6 +13,27 @@ close_reason: "Shipped §7 Phase A safe writeback: safeWriteFile (content-as-CAS
   paths now keep fs_content_hash in lockstep with disk. 26 tests pass (incl.
   subprocess-kill atomicity). No multi-file journal (Phase A non-goal §7.3).
   withSync path deferred to follow-up."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.writeback-cas
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-21T22:30:08Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
+  - issue_id: km-storage.writeback-cas
+    depends_on_id: km-storage.fs-mount
+    type: blocks
+    created_at: 2026-04-21T23:05:22Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
+  - issue_id: km-storage.writeback-cas
+    depends_on_id: km-storage.markdown-fidelity-corpus
+    type: blocks
+    created_at: 2026-04-21T23:05:22Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Safe markdown writeback — content-as-CAS + minimal-patch + echo suppression + multi-file journal @km/storage #feature #P1 @claude:8b5b9e1c

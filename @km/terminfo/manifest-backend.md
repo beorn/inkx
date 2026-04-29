@@ -12,6 +12,8 @@ close_reason: Fixed in km 994453526 (vendor/terminfo.dev e9faf12). Page
   source for unprobed terminals. Adds inheritedFrom params + rendered note. cmux
   now shows ghostty's stats (total=251, yes=232, pct=92). Non-recursive — source
   must have its own probes.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Unprobed terminals with manifestBackend should inherit probe results (cmux shows no stats) @km/terminfo #bug #P1 @Bjørn Stabell

@@ -14,6 +14,16 @@ close_reason: "Landed via tribe-refactor team (compose, qualgate, bgrecall,
   export-path gate), a0c9bfb5b (compose hub doc cleanup), f4e8fac6a (bgrecall
   worktree commit, integrated). See km-tribe.refactor for epic close +
   integration details."
+started_at: 2026-04-27T07:27:23Z
+owner: bjorn@stabell.org
+assignee: claude:87d20187
+dependencies:
+  - issue_id: km-tribe.event-classification
+    depends_on_id: km-tribe.refactor
+    type: parent-child
+    created_at: 2026-04-27T00:17:30Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Tribe event classification: actionable vs ambient delivery filter @km/tribe #feature #P2 @claude:87d20187

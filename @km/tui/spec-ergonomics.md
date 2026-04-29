@@ -11,6 +11,15 @@ close_reason: Barrel import, public app.state.omnibox/status,
   removed from omnibox.spec, 4 getStatus()?.message replaced with toHaveStatus
   in board.spec. 65/65 spec tests pass, 2331/2331 km-tui fast suite passes.
   Commit 69ae7c618.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-tui.spec-ergonomics
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-18T11:34:14Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Make .spec.ts files even more ergonomic @km/tui #task #P2 @Bjørn Stabell

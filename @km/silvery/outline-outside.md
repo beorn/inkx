@@ -14,6 +14,14 @@ close_reason: Shipped in silvery 0f745f50. Outside outline implemented via
   tests pass at SILVERY_STRICT=2 (basic, realistic 100-node scale, edge
   overflow). km view runs cleanly. Tests consolidated into one file. Generalizes
   to focus rings, hover halos, selection borders.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.outline-outside
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-13T16:07:11Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Silvery: outside outline (CSS-correct semantics) @km/silvery #task #P1

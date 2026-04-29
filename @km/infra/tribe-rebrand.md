@@ -11,6 +11,8 @@ close_reason: All objectives shipped. @bearly/bear renamed to @bearly/lore;
   CLAUDE.md; domain model established in tribe README.
   plugins/{tribe,lore,recall,llm} are self-contained with zero dot-dot escapes.
   km-infra.lore-test-gaps stays open for follow-up test coverage work.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Rename @bearly/bear → @bearly/lore @km/infra #task #P2 @Bjørn Stabell

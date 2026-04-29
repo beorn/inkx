@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-config-empty-list-silent
 created_by: claude:cc081a9a
 created_at: 2026-04-28T03:32:19Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.config-empty-list-silent
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-27T20:32:19Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] [bug] silvercode config <kind> with no entries prints nothing (no 'no presets configured' indicator) @km/silvercode #bug #P3

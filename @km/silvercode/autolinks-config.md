@@ -16,6 +16,16 @@ close_reason: "Shipped: km main 8e92ba275. TOML config at
   shadows ~repo-style patterns — documented in tests; +km/AGENTS.md/ref/foo work
   cleanly. UX hover popover not visually verified (createRenderer doesn't drive
   mouse dwell) — needs live bun km pass to close that loop."
+started_at: 2026-04-25T09:59:48Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.autolinks-config
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-25T00:24:20Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Configurable autolinks: resolve + popover preview for ~repo, +km, AGENTS.md, ref/ etc. @km/silvercode #feature #P2 @claude:2405c72e

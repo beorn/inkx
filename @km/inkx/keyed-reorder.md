@@ -5,6 +5,7 @@ aliases:
   - km-inkx-keyed-reorder
 created_at: 2026-02-04T11:23:58Z
 closed_at: 2026-02-04T12:48:23Z
+assignee: claude:27f1a547
 ---
 
 # [x] inkx: Keyed children don't render content after reorder during horizontal scroll @km/inkx #bug #P2 @claude:27f1a547

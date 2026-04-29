@@ -8,6 +8,8 @@ created_at: 2026-03-10T20:36:29Z
 closed_at: 2026-03-12T23:36:15Z
 close_reason: Ink compat at 98.9% (804/813), Chalk 100% (32/32). Auto-generated
   vitest layer, DRY cleanup done. Superseded by compat-autogen and compat-dry.
+owner: bjorn@stabell.org
+assignee: claude:73d7a332
 ---
 
 # [x] Ink compat test suite: fix bundle crash, reach 90%+ @km/silvery #task #P2 @claude:73d7a332

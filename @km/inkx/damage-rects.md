@@ -6,6 +6,8 @@ aliases:
 created_by: claude:ee8efc0f
 created_at: 2026-02-22T23:29:30Z
 closed_at: 2026-02-23T00:29:00Z
+owner: bjorn@stabell.org
+assignee: claude:ee8efc0f
 ---
 
 # [x] Evaluate: damage rectangles vs row ranges for diff optimization @km/inkx #task #P3 @claude:ee8efc0f

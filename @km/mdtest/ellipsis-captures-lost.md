@@ -7,6 +7,7 @@ created_by: claude:65d845d9
 created_at: 2026-03-14T00:12:51Z
 closed_at: 2026-03-14T01:28:39Z
 close_reason: Closed
+owner: bjorn@stabell.org
 ---
 
 # [x] mdtest: ellipsis matching loses captured placeholders @km/mdtest #bug #P1

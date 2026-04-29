@@ -62,6 +62,16 @@ close_reason: >-
   - Typecheck: 2 pre-existing errors (injection-envelope adversarial test
   rootDir mismatch + silvery ansi types — both unchanged from baseline). Zero
   new TS errors from this change.
+started_at: 2026-04-28T06:16:41Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-bearly.llm-path-leakage
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-27T22:07:11Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] @bearly/llm: relativize file: path field in JSON envelope (path leakage R3) @km/bearly #bug #P3 @claude:cc081a9a

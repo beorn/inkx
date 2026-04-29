@@ -9,6 +9,7 @@ closed_at: 2026-03-17T06:06:47Z
 close_reason: Implemented findIndexFile, isIndexFile, getChildSlotTarget in
   packages/km-tree/src/index-file.ts. 22 unit tests in
   packages/km-tree/tests/index-file.test.ts all pass.
+owner: bjorn@stabell.org
 ---
 
 # [x] Index file detection utility (km-tree) @km/storage #task #P2

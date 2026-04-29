@@ -13,6 +13,16 @@ close_reason: "Implemented --json flag for
   singleton + emitJson/emitContent. 11 new tests passing. Live verified: bun llm
   'ping' --model gpt-5-nano --json | jq .file works. Commit: vendor/bearly
   c2731e1 (cherry-picked from worktree 5efc6c4)."
+started_at: 2026-04-27T07:13:48Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-bearly.llm-cli-json-output
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-26T23:58:44Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Add --json flag to llm CLI for skill consumption @km/bearly #feature #P2 @claude:2405c72e

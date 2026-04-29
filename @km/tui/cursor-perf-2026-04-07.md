@@ -9,6 +9,7 @@ closed_at: 2026-04-08T06:54:18Z
 close_reason: "Triaged: root cause is silvery output phase (76-89% of wall
   time), not node state. Work split into km-silvery.output-phase-perf (P0) and
   km-tui.hierarchical-node-state (P1), both under km-tui.tree-perf."
+owner: bjorn@stabell.org
 ---
 
 # [x] Cursor j-press latency at ~104-111ms (felt sluggish in km view) @km/tui #bug #P1

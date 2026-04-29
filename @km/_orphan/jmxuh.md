@@ -4,6 +4,7 @@ aliases:
   - km-jmxuh
 created_at: 2026-02-03T11:29:06Z
 closed_at: 2026-02-04T11:23:52Z
+assignee: claude:227cdc41
 ---
 
 # [x] inkx: output-phase ANSI diff leaves stale colored backgrounds @km/_orphan #bug #P1 @claude:227cdc41

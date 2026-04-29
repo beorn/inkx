@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-02T22:39:14Z
 closed_at: 2026-04-03T00:00:06Z
 close_reason: Implemented. 220-line demo showing ChatApp in 3 modes. Committed 02e9c5d.
+owner: bjorn@stabell.org
 ---
 
 # [x] Virtual terminal demo — same app in inline vs vterm vs fullscreen @km/silvery #task #P1

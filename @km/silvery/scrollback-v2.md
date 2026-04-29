@@ -8,6 +8,7 @@ created_at: 2026-03-12T20:47:25Z
 closed_at: 2026-03-27T19:02:21Z
 close_reason: "Grooming: superseded by km-silvery.virtual-terminal — ListView v5
   design explicitly replaces ScrollbackView"
+owner: bjorn@stabell.org
 ---
 
 # [x] ScrollbackView v2: virtual viewport with dynamic scrollback @km/silvery #feature #P2

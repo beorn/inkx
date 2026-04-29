@@ -8,6 +8,16 @@ created_at: 2026-04-26T06:05:15Z
 closed_at: 2026-04-26T06:38:57Z
 close_reason: "Shipped: 4a2257f2c. FILE_RE negative-lookbehind so /word inside
   vendor/silvery doesn't match. 4 tests. Session: km-session.0425-evening"
+started_at: 2026-04-26T06:07:27Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.file-detection-false-positive
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-25T23:06:01Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] File detection FILE_RE matches /word inside vendor/silvery (false positive) @km/silvercode #bug #P2 @claude:2405c72e

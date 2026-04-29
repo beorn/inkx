@@ -7,6 +7,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-05T07:41:51Z
 closed_at: 2026-04-05T07:52:25Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Signals: cursor + selection reads (Board, TreeNode, CardColumn, WorkspaceChrome) @km/silvery #task #P2

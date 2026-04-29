@@ -5,6 +5,14 @@ aliases:
   - km-infra-git-lock-recovery
 created_by: Bjørn Stabell
 created_at: 2026-04-12T17:53:27Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.git-lock-recovery
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-12T10:53:45Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Auto-recover stale git index.lock in multi-session environments @km/infra #task #P2

@@ -7,6 +7,8 @@ created_by: claude:4929065a
 created_at: 2026-04-01T19:03:30Z
 closed_at: 2026-04-01T19:14:45Z
 close_reason: CC BY 4.0 LICENSE added, repo made public, issues enabled, submit page created.
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] Add CC BY 4.0 license + make repo public @km/terminfo #task #P2 @claude:4929065a

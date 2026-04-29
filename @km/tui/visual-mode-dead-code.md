@@ -5,6 +5,7 @@ aliases:
   - km-tui-visual-mode-dead-code
 created_by: Bjørn Stabell
 created_at: 2026-04-06T20:46:37Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] [bug] Visual mode chord entry exists but UI hidden — dead state @km/tui #bug #P2

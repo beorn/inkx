@@ -8,6 +8,8 @@ closed_at: 2026-03-13T23:40:48Z
 close_reason: Fixed toMatchTerminalSnapshot and toMatchSvgSnapshot to delegate
   to Vitest's built-in expect().toMatchSnapshot(). Snapshots are now created and
   mismatches properly detected.
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] termless: snapshot matchers don't actually snapshot @km/_orphan #bug #P0 @claude:c9beade3

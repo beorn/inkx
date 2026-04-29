@@ -6,6 +6,8 @@ aliases:
 created_by: claude:73c2828f
 created_at: 2026-02-15T13:14:29Z
 closed_at: 2026-02-18T08:05:58Z
+owner: bjorn@stabell.org
+assignee: claude:34ba82b6
 ---
 
 # [x] Collapse due_date/time/tz and scheduled_date/time/tz into due_at and start_at @km/storage #task #P3 @claude:34ba82b6

@@ -7,6 +7,7 @@ created_by: claude:23485adf
 created_at: 2026-02-24T12:10:17Z
 closed_at: 2026-03-07T02:12:08Z
 close_reason: "Grooming: already implemented — terminal-caps.ts with detectTerminalCaps"
+owner: bjorn@stabell.org
 ---
 
 # [x] Detect terminal capabilities and gracefully degrade rendering @km/inkx #feature #P2

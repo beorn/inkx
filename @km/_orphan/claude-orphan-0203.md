@@ -4,6 +4,7 @@ aliases:
   - km-claude-orphan-0203
 created_at: 2026-02-03T13:41:56Z
 closed_at: 2026-02-03T13:52:01Z
+assignee: claude:4574d033
 ---
 
 # [x] Link tests/real.md from tests/SKILL.md @km/_orphan #task #P3 @claude:4574d033

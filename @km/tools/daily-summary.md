@@ -5,6 +5,7 @@ aliases:
   - km-tools-daily-summary
 created_at: 2026-02-06T23:30:29Z
 closed_at: 2026-02-06T23:35:52Z
+assignee: claude:0ebbe1f2
 ---
 
 # [x] Daily session summary replacing per-session remember @km/tools #feature #P2 @claude:0ebbe1f2

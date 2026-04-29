@@ -6,6 +6,7 @@ aliases:
   - "@km/test-4/3"
 created_at: 2026-01-27T14:26:07Z
 closed_at: 2026-01-27T15:25:53Z
+assignee: claude:bb984f7c
 ---
 
 # [x] Add Vitest producer to @beorn/tap @km/test-4 #task #P2 @claude:bb984f7c

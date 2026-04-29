@@ -9,6 +9,7 @@ close_reason: "Fixed in f057896d. Two root causes: (1) clearExcessArea on fresh
   buffers — added bufferIsCloned guard to NodeRenderState. (2) singlePassLayout
   loop limited to 2 passes — increased to 3 (MAX_SINGLE_PASS_ITERATIONS).
   Regression tests in resize-garble.slow.test.ts (4 tests)."
+owner: bjorn@stabell.org
 ---
 
 # [x] Resize garble: zoom out 2-3x causes garbled rendering @km/_orphan #bug #P1

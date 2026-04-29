@@ -4,6 +4,7 @@ aliases:
   - km-init-db-bug
 created_at: 2026-01-25T12:23:14Z
 closed_at: 2026-01-25T12:51:19Z
+assignee: 3f5ed42b
 ---
 
 # [x] Fix km init database error - db.query is undefined @km/_orphan #bug #P1 @3f5ed42b

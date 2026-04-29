@@ -6,6 +6,7 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-14T00:10:32Z
 closed_at: 2026-02-14T00:59:41Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Update markdown parser and serializer for km-ast types @km/ast #task #P1

@@ -8,6 +8,8 @@ closed_at: 2026-03-19T17:31:12Z
 close_reason: "Fixed: view.ts handleFatalError() + restoreTerminalState() exits
   alt screen before printing errors. uncaughtException/unhandledRejection
   handlers + try/catch/finally wrapper. Test: pre-existing tests pass."
+owner: bjorn@stabell.org
+assignee: claude:21c57d63
 ---
 
 # [x] Fatal errors in alt screen are lost — switch to normal screen before printing @km/_orphan #bug #P2 @claude:21c57d63

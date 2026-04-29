@@ -6,6 +6,8 @@ aliases:
 created_by: claude:717696c0
 created_at: 2026-02-15T22:20:07Z
 closed_at: 2026-02-17T22:05:48Z
+owner: bjorn@stabell.org
+assignee: claude:5770ce77
 ---
 
 # [x] j from board header enters off-screen column without scrolling to it @km/tui #bug #P3 @claude:5770ce77

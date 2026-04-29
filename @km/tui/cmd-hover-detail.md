@@ -10,6 +10,8 @@ close_reason: Cmd+hover shows detail popover via singleton PopoverProvider.
   nodeDetailPopoverContent builds lines from node metadata/children/backlinks.
   Uses existing 400ms SHOW_DELAY. Link hover takes precedence naturally (last
   show wins).
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Cmd+hover detail popup — hold Cmd to preview any item inline @km/tui #feature #P2 @claude:f8196c1c

@@ -7,6 +7,7 @@ created_by: claude:656602a3
 created_at: 2026-03-16T21:40:27Z
 closed_at: 2026-03-16T22:00:25Z
 close_reason: useMouseCursor hook + Link pointer cursor on Cmd+hover. 8 tests. Docs updated.
+owner: bjorn@stabell.org
 ---
 
 # [x] Modifier-aware mouse cursors (Cmd=pointer, Alt=crosshair) @km/silvery #feature #P2

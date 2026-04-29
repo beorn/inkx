@@ -17,6 +17,16 @@ close_reason: "L1→L4 structural promotion shipped via silvery c7cf93904 + km
   because BufferSink output remains authoritative on default path. L5 (guard
   deletion + BufferSink retirement) split to follow-up bead
   km-silvery.paint-clear-l5-bufferssink-retire."
+started_at: 2026-04-28T04:47:54Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvery.paint-clear-invariant
+    depends_on_id: km-silvery.structural-hardening
+    type: parent-child
+    created_at: 2026-04-26T23:18:24Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Promote clearExcessArea hasPrevBuffer guard to structural invariant @km/silvery #feature #P2 @claude:cc081a9a

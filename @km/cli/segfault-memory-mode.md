@@ -5,6 +5,7 @@ aliases:
   - km-cli-segfault-memory-mode
 created_by: claude:8b5b9e1c
 created_at: 2026-04-20T17:38:31Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] km view segfaults on non-vault cwd (memory mode) @km/cli #bug #P2

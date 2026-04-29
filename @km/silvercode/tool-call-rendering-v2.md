@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-tool-call-rendering-v2
 created_by: claude:2405c72e
 created_at: 2026-04-28T19:35:16Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.tool-call-rendering-v2
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T12:35:20Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] Tool-call rendering — opencode-style: blend in, leading →, no bg, no heavy yellow, type differentiation, collapse repeats @km/silvercode #feature #P1

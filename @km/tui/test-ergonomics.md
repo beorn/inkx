@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-01T23:30:43Z
 closed_at: 2026-04-02T19:35:20Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Test ergonomics: editNode/setUI/expectState helpers + migrate all tests @km/tui #task #P2 @Bjørn Stabell

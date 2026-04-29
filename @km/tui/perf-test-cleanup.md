@@ -6,6 +6,8 @@ aliases:
 created_by: claude:e7ea0892
 created_at: 2026-02-12T09:54:13Z
 closed_at: 2026-02-12T09:56:03Z
+owner: bjorn@stabell.org
+assignee: claude:e7ea0892
 ---
 
 # [x] Clean up cursor perf test files: consolidate, remove real-vault deps, fix console.log @km/tui #task #P2 @claude:e7ea0892

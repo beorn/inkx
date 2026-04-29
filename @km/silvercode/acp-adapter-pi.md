@@ -14,6 +14,22 @@ close_reason: "Resolved: silvercode consumes pi via the community pi-acp package
   Registry spawn correctness asserted in tests/registry-adapters.test.ts.
   Stream-json adapter for pi --mode rpc deferred indefinitely (Registry path
   covers all current cases)."
+started_at: 2026-04-26T09:58:32Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-adapter-pi
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T01:11:38Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-adapter-pi
+    depends_on_id: km-silvercode.acp-adapter-claude
+    type: blocks
+    created_at: 2026-04-26T01:11:38Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] ACP adapter — pi (badlogic) via pi-acp bridge or pi --mode rpc @km/silvercode #feature #P3 @claude:cd034ca4

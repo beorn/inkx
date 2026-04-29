@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T22:44:19Z
 closed_at: 2026-02-14T22:48:06Z
+owner: bjorn@stabell.org
+assignee: claude:a5c7f7de
 ---
 
 # [x] u (zoom out) at repo root: move cursor up toward root instead of no-op @km/tui #bug #P2 @claude:a5c7f7de

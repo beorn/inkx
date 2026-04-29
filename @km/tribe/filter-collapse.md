@@ -10,6 +10,16 @@ close_reason: "Integrated to main via /max. filter-collapse: bearly merge
   33fa6e1 (5 commits: schema v11 + wire v4 + tool collapse + tests + 0.13.0
   release), km bump a81915bb2. matrix-shape: km 98025468f exercises
   rooms/room_members tables. Both pushed to origin."
+started_at: 2026-04-27T18:15:25Z
+owner: bjorn@stabell.org
+assignee: claude:87d20187
+dependencies:
+  - issue_id: km-tribe.filter-collapse
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-27T10:42:36Z
+    created_by: claude:87d20187
+    metadata: "{}"
 ---
 
 # [x] Collapse tribe.mode + tribe.snooze + tribe.dismiss → single tribe.filter; drop responseExpected @km/tribe #task #P2 @claude:87d20187

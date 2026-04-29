@@ -5,6 +5,7 @@ aliases:
 created_by: claude:66437c43
 created_at: 2026-03-02T17:06:01Z
 closed_at: 2026-03-02T17:10:35Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Detail pane: Enter during inline edit creates stray board sibling @km/_orphan #bug #P2

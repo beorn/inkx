@@ -10,6 +10,7 @@ close_reason: "No concrete driver. Pure architectural taxonomy (structural vs
   update vs read-only events) with no user-visible pain, no referenced design
   doc, and no blocker it unblocks. Per round-4 pro review: P3 speculation.
   Reopen if event-routing pain point forces the distinction."
+owner: bjorn@stabell.org
 ---
 
 # [x] Typed event categories — structural vs update vs read-only @km/storage #task #P3

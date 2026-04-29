@@ -7,6 +7,15 @@ created_by: claude:c6244087
 created_at: 2026-04-23T05:56:40Z
 closed_at: 2026-04-23T06:09:37Z
 close_reason: Closed
+owner: bjorn@stabell.org
+assignee: claude:c6244087
+dependencies:
+  - issue_id: km-logview.scaffold-v0
+    depends_on_id: km-logview
+    type: parent-child
+    created_at: 2026-04-22T22:56:47Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Scaffold km-logview: silverized TS log viewer @km/logview #feature #P2 @claude:c6244087

@@ -11,6 +11,16 @@ close_reason: Phase 0 complete. Commit 3c785e87 on feat/scope-phase-0 branch in
   design. 23 unit tests green. Typecheck clean on scope files. Branch pushed.
   Ready to merge into silvery main when approved. Phase 1 blocks on merge +
   silvercode flurry settling.
+started_at: 2026-04-24T21:34:45Z
+owner: bjorn@stabell.org
+assignee: claude:2aefb4b6
+dependencies:
+  - issue_id: km-silvery.scope-phase-0
+    depends_on_id: km-silvery.lifecycle-scope
+    type: parent-child
+    created_at: 2026-04-24T13:39:17Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
 ---
 
 # [x] Phase 0: Rewrite @silvery/scope as AsyncDisposableStack subclass (half day) @km/silvery #task #P1 @claude:2aefb4b6

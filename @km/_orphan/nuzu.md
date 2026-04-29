@@ -4,6 +4,7 @@ aliases:
   - km-nuzu
 created_at: 2026-01-25T08:27:05Z
 closed_at: 2026-01-25T08:47:36Z
+assignee: beorn-claude-78480
 ---
 
 # [x] TUI: First keypress eaten/ignored on startup @km/_orphan #bug #P1 @beorn-claude-78480

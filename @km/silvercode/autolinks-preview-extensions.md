@@ -17,6 +17,16 @@ close_reason: "Implemented in commit 7d8e4d23d. Added shell + mcp preview kinds
   previews tests + 2 new visual popover-markdown tests; 61 autolinks tests pass
   total. Zero new tsc errors (185 baseline all in PaneGrid.tsx, another agent's
   territory)."
+started_at: 2026-04-25T15:24:32Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.autolinks-preview-extensions
+    depends_on_id: km-silvercode.autolinks-config
+    type: parent-child
+    created_at: 2026-04-25T03:11:16Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Autolinks preview kinds: shell + mcp @km/silvercode #task #P3 @claude:2405c72e

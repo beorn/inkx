@@ -9,6 +9,8 @@ closed_at: 2026-04-03T03:54:11Z
 close_reason: "Shipped a08e115e. All 8 renames done: split, mergeBackward,
   mergeForward, KNode.string, KNode.setString, KTree.previous, KTree.next,
   degrade."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Rename tree operations to SlateJS vocabulary — split, mergeBackward, insertNode, etc. @km/tree #task #P2 @Bjørn Stabell

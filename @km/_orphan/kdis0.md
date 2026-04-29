@@ -5,6 +5,7 @@ aliases:
 created_by: claude:40fd010c
 created_at: 2026-03-02T23:00:30Z
 closed_at: 2026-03-02T23:04:34Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Extract embed alias resolver from TreeNode.tsx @km/_orphan #task #P3

@@ -6,6 +6,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-09T20:12:24Z
 closed_at: 2026-04-09T23:35:25Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Match Ink's CJK (wide-char) overlap resolution at style boundaries @km/silvery #feature #P2

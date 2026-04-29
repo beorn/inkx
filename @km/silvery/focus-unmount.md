@@ -9,6 +9,7 @@ closed_at: 2026-03-13T07:24:57Z
 close_reason: "Fixed: handleSubtreeRemoved() blurs focus on unmount,
   setOnNodeRemoved() hook wired in all render paths. Tests in
   focus-manager-unit.test.ts."
+owner: bjorn@stabell.org
 ---
 
 # [x] Focus manager retains references to deleted/unmounted nodes @km/silvery #bug #P0

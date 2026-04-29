@@ -12,6 +12,15 @@ close_reason: "Fixed in d1f2a0eca (feat/test-system). Root cause: test driver's
   overlay and skip originalPress for that keystroke. Also updated 2 stale test
   expectations. 27/27 omnibox-integration tests pass, 2334/2334 full km-tui fast
   suite passes."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-tui.unskip-omnibox-integration
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-18T12:15:18Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Unskip 3 omnibox-integration tests blocked on sigil double-echo @km/tui #task #P2 @Bjørn Stabell

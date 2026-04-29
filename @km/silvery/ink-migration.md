@@ -5,6 +5,7 @@ aliases:
   - km-silvery-ink-migration
 created_by: claude:e4e70c9a
 created_at: 2026-03-11T07:31:42Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Ink migration: guide + codemod (npx silvery migrate-ink) @km/silvery #task #P3

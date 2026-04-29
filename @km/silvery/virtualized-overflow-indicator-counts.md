@@ -13,6 +13,15 @@ close_reason: "Fixed via BoxProps.representsItems + per-child logicalCount in
   representsItems makes ▲N/▼N exact for a scrolled virtualized list'). Full
   vendor silvery suite green at STRICT=2 for scroll-contract + overflow-fits +
   variable-heights (21 tests). Commit 1d8d6220."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-silvery.virtualized-overflow-indicator-counts
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-20T15:27:55Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Overflow indicator counts wrong for virtualized lists (▼1 means N hidden, not 1) @km/silvery #bug #P2 @claude:8b5b9e1c

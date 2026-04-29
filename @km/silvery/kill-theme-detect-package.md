@@ -5,6 +5,21 @@ aliases:
   - km-silvery-kill-theme-detect-package
 created_by: claude:4274df30
 created_at: 2026-04-20T21:13:16Z
+owner: bjorn@stabell.org
+assignee: claude:a1a0e667
+dependencies:
+  - issue_id: km-silvery.kill-theme-detect-package
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-24T16:14:48Z
+    created_by: claude:5e447b66
+    metadata: "{}"
+  - issue_id: km-silvery.kill-theme-detect-package
+    depends_on_id: km-silvery.publishconfig-exports-fix
+    type: blocks
+    created_at: 2026-04-20T14:13:16Z
+    created_by: claude:4274df30
+    metadata: "{}"
 ---
 
 # [/] Kill @silvery/theme-detect; move OSC probe to @silvery/ansi, scheme fingerprint to @silvery/theme @km/silvery #task #P2 @claude:a1a0e667

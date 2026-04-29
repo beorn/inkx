@@ -6,6 +6,8 @@ aliases:
 created_by: claude:536645b5
 created_at: 2026-02-20T15:48:01Z
 closed_at: 2026-02-20T18:50:33Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Search/replace dialog (F / Cmd+f): regex, replace, scope @km/tui #feature #P3 @claude:d3a7049b

@@ -5,6 +5,7 @@ aliases:
   - km-silvery-pretext-upstream
 created_by: Bjørn Stabell
 created_at: 2026-04-10T19:18:17Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Explore Pretext upstream collaboration — use pretext lib for canvas/DOM, contribute terminal algorithms @km/silvery #task #P4

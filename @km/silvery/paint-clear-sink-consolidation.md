@@ -5,6 +5,14 @@ aliases:
   - km-silvery-paint-clear-sink-consolidation
 created_by: claude:cc081a9a
 created_at: 2026-04-27T20:22:42Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.paint-clear-sink-consolidation
+    depends_on_id: km-silvery.paint-clear-l5-final
+    type: parent-child
+    created_at: 2026-04-27T13:26:26Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] Paint-clear Step 2 — consolidate sink sprawl to one threaded sink @km/silvery #task #P2

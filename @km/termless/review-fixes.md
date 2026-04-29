@@ -6,6 +6,8 @@ aliases:
 created_by: claude:8fc35754
 created_at: 2026-03-03T11:47:28Z
 closed_at: 2026-03-03T11:56:51Z
+owner: bjorn@stabell.org
+assignee: claude:8fc35754
 ---
 
 # [x] Fix all code review findings from deep audit @km/termless #task #P1 @claude:8fc35754

@@ -10,6 +10,8 @@ close_reason: Ollama provider added to /llm (233-line client, streaming, vision
   support). --model ollama:* syntax, list-models subcommand. Updated
   /design-review with tiered local→cloud workflow. Updated /llm skill with local
   model docs. Models still pulling (llava:7b).
+owner: bjorn@stabell.org
+assignee: claude:19080504
 ---
 
 # [x] Local + multi-runtime vision models for /llm and /design-review @km/bearly #feature #P2 @claude:19080504

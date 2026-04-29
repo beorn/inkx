@@ -12,6 +12,14 @@ close_reason: "All 6 sub-beads closed. Theme v3 complete: R1 one-provider, R2
   now at the quality plateau — single provider, single canonical detectTheme,
   single derivation helper, tree-flow theme without globals, build-time contrast
   gate."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-v3-plumbing
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-18T21:06:02Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Theme v3: Finish the plumbing (drop legacy provider, kill global, collapse token names) @km/silvery #task #P3

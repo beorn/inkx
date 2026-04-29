@@ -13,6 +13,8 @@ close_reason: "All Pro review fixes implemented: renamed bench labels
   mocked stdout, Node.js pending), updated all public docs with qualified 3-6x
   claims. Fresh numbers: 2.7-6.1x range. Commits: 5fdb3d01, 5e01bd38 in
   silvery."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Fair benchmark methodology + fix loggily span overhead + re-validate claims @km/silvery #task #P1 @Bjørn Stabell

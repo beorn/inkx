@@ -5,6 +5,7 @@ aliases:
   - km-infra-orphan-cleanup
 created_by: Bjørn Stabell
 created_at: 2026-04-10T04:29:59Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Session-level orphan cleanup on account switch / rate limit @km/infra #task #P2

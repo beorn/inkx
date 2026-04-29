@@ -6,6 +6,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-09T20:12:23Z
 closed_at: 2026-04-09T23:34:24Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Match Ink's kitty protocol negotiation byte sequence @km/silvery #feature #P2

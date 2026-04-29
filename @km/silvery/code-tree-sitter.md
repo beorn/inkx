@@ -13,6 +13,20 @@ close_reason: "SUPERSEDED by km-silvery.syntax-shiki. Per /big analysis: shiki
   km-silvery.diff-code-accordion (Phase 1 already shipped) is unrelated to the
   highlighting choice — Phase 1 was Accordion+LineNumber+Diff, no parser
   dependency."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.code-tree-sitter
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-26T09:27:52Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvery.code-tree-sitter
+    depends_on_id: km-silvery.diff-code-accordion
+    type: blocks
+    created_at: 2026-04-26T09:27:52Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] silvery <Code> + tree-sitter highlighting pipeline (split from diff-code-accordion) @km/silvery #feature #P2

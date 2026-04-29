@@ -9,6 +9,8 @@ closed_at: 2026-04-18T05:04:05Z
 close_reason: All 35 missing vterm features implemented faithfully. 43 new unit
   tests + 233 terminfo.dev probe tests passing. vterm now at 100% terminfo.dev
   coverage (zero false entries).
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Implement all missing vterm features (OSC colors, tab stops, rect edits, XTWINOPS, etc.) @km/vterm #feature #P1 @Bjørn Stabell

@@ -11,6 +11,8 @@ close_reason: "Fixed: (1) proxy auto-reconnects with exponential backoff on
   session name, (3) daemon deduplicates session names on register, (4) all tribe
   tools migrated from process.stderr.write to loggily, (5) added socket to
   TribeArgs type"
+owner: bjorn@stabell.org
+assignee: claude:19080504
 ---
 
 # [x] Tribe: proxy auto-reconnect + duplicate name/key bugs @km/bearly #bug #P2 @claude:19080504

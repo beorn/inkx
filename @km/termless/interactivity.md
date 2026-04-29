@@ -12,6 +12,7 @@ close_reason: "Implemented Playwright-parity mouse API: click, dblclick,
   MouseModifiers types. Updated docs (best-practices.md, terminal.md API
   reference, CLAUDE.md, README.md). Auto-retry matchers accept { timeout }
   option."
+owner: bjorn@stabell.org
 ---
 
 # [x] termless interactivity: click, dblclick, Playwright-style ergonomics @km/termless #feature #P3

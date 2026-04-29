@@ -8,6 +8,8 @@ closed_at: 2026-03-23T19:35:31Z
 close_reason: README rewritten rendering-first, Silvery Way principle 9
   replaced. TEA optional. Further docs work tracked in km-79ubt (examples),
   km-4gzec (full Silvery Way), km-uf4yd (docs site).
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Fix onboarding: hooks-first README and Getting Started @km/_orphan #task #P0 @claude:f8196c1c

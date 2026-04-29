@@ -5,6 +5,7 @@ aliases:
   - km-inkx-incremental-content
 created_at: 2026-02-04T11:23:57Z
 closed_at: 2026-02-04T12:52:31Z
+assignee: claude:27f1a547
 ---
 
 # [x] inkx: incremental contentPhase rendering @km/inkx #feature #P2 @claude:27f1a547

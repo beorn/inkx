@@ -9,6 +9,7 @@ closed_at: 2026-04-06T10:01:01Z
 close_reason: "Health monitor plugin: 10s sampling, sustained CPU/memory alerts,
   process count tracking, top offenders, on-demand snapshot via tribe_health.
   Wired into daemon. 24 tests. Bearly commit b196b45."
+owner: bjorn@stabell.org
 ---
 
 # [x] Machine health monitoring — detect CPU/memory pressure and report to tribe @km/tribe #feature #P2

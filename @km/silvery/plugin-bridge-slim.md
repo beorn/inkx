@@ -5,6 +5,14 @@ aliases:
   - km-silvery-plugin-bridge-slim
 created_by: claude:8b5b9e1c
 created_at: 2026-04-21T09:06:35Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.plugin-bridge-slim
+    depends_on_id: km-silvery.authoring-elegance
+    type: parent-child
+    created_at: 2026-04-21T02:06:44Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [ ] Strip SearchDialogBridge of migration-only code; separate chrome from boilerplate @km/silvery #task #P2

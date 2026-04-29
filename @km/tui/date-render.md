@@ -6,6 +6,8 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-18T22:18:42Z
 closed_at: 2026-02-19T06:42:01Z
+owner: bjorn@stabell.org
+assignee: claude:36393b5d
 ---
 
 # [x] Card date: show one date (due > start), colorized distinctly from text @km/tui #feature #P2 @claude:36393b5d

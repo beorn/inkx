@@ -11,6 +11,16 @@ close_reason: Implemented in 250eb5fd9. Tree-based 2D layout
   splitLeaf/removeLeaf/setSplitWeight/leafIds/reconcileTree. Ctrl+W s for
   horizontal split. Direction-aware PaneDivider. 3 new tests pass; 15/15
   pane-related visual tests green.
+started_at: 2026-04-25T15:14:40Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.pane-2d-layout
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-25T00:45:44Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] 2D pane layout (binary-split tree, horizontal splits, Ctrl+W s) @km/silvercode #feature #P3 @claude:2405c72e

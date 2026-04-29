@@ -34,6 +34,16 @@ close_reason: >-
 
   - km main: 148f57902 chore(vendor): bump silvery — fix(ag-react) missing dev
   exports for ui/components subpaths
+started_at: 2026-04-26T23:23:48Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvery.editcontext-export
+    depends_on_id: km-all.fix-sweep-vendor-fuzz
+    type: parent-child
+    created_at: 2026-04-26T16:22:34Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] [bug] @silvery/ag-react/ui/components/EditContextDisplay missing export — 4 test failures @km/silvery #bug #P2 @claude:cc081a9a

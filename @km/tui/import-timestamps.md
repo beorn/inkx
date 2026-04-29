@@ -6,6 +6,8 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T13:24:53Z
 closed_at: 2026-02-19T18:46:23Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Import: all items should have created/modified times @km/tui #bug #P2 @claude:8f007ba9

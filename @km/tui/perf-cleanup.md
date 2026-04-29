@@ -5,6 +5,7 @@ aliases:
   - km-tui-perf-cleanup
 created_at: 2026-02-08T12:40:58Z
 closed_at: 2026-02-08T13:23:22Z
+assignee: claude:a3625ec3
 ---
 
 # [x] Remove old layout system @km/tui #task #P2 @claude:a3625ec3

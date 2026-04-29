@@ -5,6 +5,7 @@ aliases:
   - km-tui-verb-grid-cmds
 created_by: claude:28b14b32
 created_at: 2026-02-23T02:01:02Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Implement verb grid stub commands (goto/move for tags, projects, assignees, backlinks) @km/tui #task #P3

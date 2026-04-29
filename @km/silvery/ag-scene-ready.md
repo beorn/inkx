@@ -5,6 +5,7 @@ aliases:
   - km-silvery-ag-scene-ready
 created_by: claude:fed8de9e
 created_at: 2026-03-30T17:42:00Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] ag scene-ready (v2.0 prep): incremental refactors toward SceneNode @km/silvery #epic #P3

@@ -12,6 +12,8 @@ close_reason: "Done. Mouse events wired in showcase-app.tsx (SGR mouse mode +
   handlers. CLIWizardShowcase got a new click handler for select steps. Verified
   mouse clicking works via onBinary.fire() test in browser. Commits: c581a27
   (mouse wiring), 13787df (backspace fix found during testing)."
+owner: bjorn@stabell.org
+assignee: claude:55df8ef1
 ---
 
 # [x] Wire mouse events to silvery.dev web examples @km/silvery #task #P2 @claude:55df8ef1

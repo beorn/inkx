@@ -4,6 +4,7 @@ aliases:
   - km-flexx-nested
 created_at: 2026-01-30T21:19:50Z
 closed_at: 2026-01-30T21:27:31Z
+assignee: claude:b8b4780b
 ---
 
 # [x] Optimize flexx nested layout performance @km/_orphan #task #P2 @claude:b8b4780b

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T14:33:41Z
 closed_at: 2026-02-18T14:53:43Z
+owner: bjorn@stabell.org
+assignee: claude:fcaad2fa
 ---
 
 # [x] Search: still doesn't navigate to the matched node — should zoom to grandparent so node becomes a card @km/tui #bug #P2 @claude:fcaad2fa

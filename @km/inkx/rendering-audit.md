@@ -6,6 +6,8 @@ aliases:
 created_by: claude:23485adf
 created_at: 2026-02-24T21:58:29Z
 closed_at: 2026-02-25T12:33:54Z
+owner: bjorn@stabell.org
+assignee: claude:23485adf
 ---
 
 # [x] Rendering audit: garble, content-phase perf, zoom crash @km/inkx #task #P1 @claude:23485adf

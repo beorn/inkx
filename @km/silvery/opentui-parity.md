@@ -5,6 +5,14 @@ aliases:
   - km-silvery-opentui-parity
 created_by: Bjørn Stabell
 created_at: 2026-04-15T23:17:43Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.opentui-parity
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-15T16:17:56Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] [epic] OpenTUI parity gaps — features Silvery is missing vs OpenTUI @km/silvery #epic #P1

@@ -10,6 +10,7 @@ close_reason: Scope absorbed into km-silvery.era2. All completed work preserved
   (doc-drift, modifier-parser, input-event-model closed). Open beads reparented
   under era2 epic. Design doc updated with plugin-centric model + era2
   reference.
+owner: bjorn@stabell.org
 ---
 
 # [x] ag* package architecture — clean layers, no duplication, quality plateau @km/silvery #epic #P0

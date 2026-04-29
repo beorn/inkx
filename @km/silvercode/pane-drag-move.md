@@ -19,6 +19,16 @@ close_reason: "Implemented swapLeaves/moveLeafTo/findNeighbor pure functions in
   pre-existing on App.tsx:512 not introduced). Files:
   apps/silvercode/src/{pane-layout.ts,App.tsx,components/PaneGrid.tsx,component\
   s/SessionCard.tsx} + 2 new test files. Commit: 19ea18e21."
+started_at: 2026-04-25T15:26:50Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.pane-drag-move
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-25T00:45:31Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Drag-move panes to reorder / swap / re-tile @km/silvercode #feature #P3 @claude:2405c72e

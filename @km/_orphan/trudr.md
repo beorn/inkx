@@ -5,6 +5,7 @@ aliases:
 created_by: claude:af6eb626
 created_at: 2026-03-04T07:53:39Z
 closed_at: 2026-03-04T10:44:19Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Vendor package deep dive recommendations @km/_orphan #task #P4

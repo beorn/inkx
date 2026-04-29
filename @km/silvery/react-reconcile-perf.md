@@ -9,6 +9,7 @@ closed_at: 2026-04-10T21:14:31Z
 close_reason: "Fixed: lazy TextFrame. Was 87% of frame time — 80K Cell objects
   created eagerly every frame. Now lazy. 100 items: 0.15ms (15.7x vs Ink). 1000
   items: 1.5ms (16.0x vs Ink). 400x200: 14.8ms→2.0ms."
+owner: bjorn@stabell.org
 ---
 
 # [x] Per-frame buffer scaling at 400x200 — lazy TextFrame + skip createTextFrame @km/silvery #task #P2

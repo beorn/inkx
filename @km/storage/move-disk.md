@@ -10,6 +10,8 @@ close_reason: "Fixed: handleNodeMoved now detects file/folder items, performs
   fs.rename, updates fs_path, cascades for folder descendants. Guards for
   target-exists, source-missing, same-path. Uses markInFlight + write tokens. 3
   integration tests. Commit 7a568cb3."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] handleNodeMoved doesn't handle moving file/folder items on disk @km/storage #bug #P1 @Bjørn Stabell

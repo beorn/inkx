@@ -11,6 +11,21 @@ close_reason: Shipped at vendor/silvery ffe72837. 196/196 Sterling tests pass,
   during impl (muted uses 3:1 AA-Large gate; accent.fg may diverge from
   accent.bg after auto-lift in light schemes; autoLift uses binary-search via
   ensureContrast). Unblocks sterling-2b, sterling-storybook-mvp.
+owner: bjorn@stabell.org
+assignee: claude:4274df30
+dependencies:
+  - issue_id: km-silvery.sterling-2a-data-layer
+    depends_on_id: km-silvery.sterling-preflight
+    type: blocks
+    created_at: 2026-04-19T14:42:37Z
+    created_by: claude:4274df30
+    metadata: "{}"
+  - issue_id: km-silvery.sterling-2a-data-layer
+    depends_on_id: km-silvery.theme-v4
+    type: parent-child
+    created_at: 2026-04-19T14:42:37Z
+    created_by: claude:4274df30
+    metadata: "{}"
 ---
 
 # [x] Sterling Phase 2a: Theme type + derivation + guardrails (additive) @km/silvery #task #P2 @claude:4274df30

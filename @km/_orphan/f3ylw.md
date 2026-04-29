@@ -5,6 +5,7 @@ aliases:
 created_by: claude:d1f60fb4
 created_at: 2026-02-26T14:29:17Z
 closed_at: 2026-02-26T14:38:40Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 2: Viewport architecture (Screen, ScrollView, VirtualScrollView, useVirtualizer) @km/_orphan #feature #P2

@@ -5,6 +5,7 @@ aliases:
   - km-termless-record-ux
 created_by: claude:4929065a
 created_at: 2026-04-02T17:00:46Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Recording UX: separator lines, window title, post-session summary @km/termless #feature #P2

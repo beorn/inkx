@@ -9,6 +9,8 @@ closed_at: 2026-03-10T01:22:52Z
 close_reason: Moved ink-compat hooks (useFocus, useInkFocusManager) from
   @silvery/react/hooks/ink-compat to @silvery/compat/src/ink-focus.ts. Removed
   exports from @silvery/react barrel. Deleted original file.
+owner: bjorn@stabell.org
+assignee: claude:474834b0
 ---
 
 # [x] Move ink/chalk compat from @silvery/react to @silvery/compat @km/silvery #task #P2 @claude:474834b0

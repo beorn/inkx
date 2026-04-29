@@ -14,6 +14,16 @@ close_reason: "184710af3 — replaced pass:boolean with
   all pass->0. Internals exported via __test for unit tests; main() gated by
   import.meta.main. Verified: 41/41 tests incl. exit-code matrix (all-pass=0,
   fail+skip=1, only-skipped=2, pass+skipped=2)."
+started_at: 2026-04-27T20:32:54Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-tools.bd-verify-allowlist-skip
+    depends_on_id: km-all.bd-verify-primitive
+    type: parent-child
+    created_at: 2026-04-27T13:23:40Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] bd-verify: cmd-head allowlist silently skips legitimate commands @km/tools #task #P3 @claude:cc081a9a

@@ -70,6 +70,16 @@ close_reason: >-
   is rebased onto feat/hybrid-output-phase3, the standard @silvery/
 
   imports resolve correctly through the symlink chain.
+started_at: 2026-04-26T23:25:17Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvery.hybrid-output-phase3
+    depends_on_id: km-all.fix-sweep-vendor-fuzz
+    type: parent-child
+    created_at: 2026-04-26T16:22:37Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] [task] Hybrid-output Phase 3: wire SILVERY_HYBRID_OUTPUT=1 + reconcile constants @km/silvery #task #P2 @claude:cc081a9a

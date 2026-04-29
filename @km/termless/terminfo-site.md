@@ -8,6 +8,7 @@ created_at: 2026-03-23T19:29:29Z
 closed_at: 2026-03-23T19:39:33Z
 close_reason: VitePress site + census package in separate beorn/terminfo.dev
   repo. 8 probes, 61 features, silvery CLI, colored matrix.
+owner: bjorn@stabell.org
 ---
 
 # [x] terminfo.dev: VitePress site with census matrix @km/termless #task #P2

@@ -5,6 +5,7 @@ aliases:
   - km-tui-reactive-viewtree
 created_by: Bjørn Stabell
 created_at: 2026-04-09T14:31:06Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Reactive ViewTree — derive from repo+foldDepths as computed signal @km/tui #task #P2

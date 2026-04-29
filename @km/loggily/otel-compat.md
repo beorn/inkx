@@ -5,6 +5,14 @@ aliases:
   - km-loggily-otel-compat
 created_by: Bjørn Stabell
 created_at: 2026-04-11T22:57:21Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-loggily.otel-compat
+    depends_on_id: km-loggily
+    type: parent-child
+    created_at: 2026-04-11T15:58:29Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] OpenTelemetry compatibility layer @km/loggily #feature #P4

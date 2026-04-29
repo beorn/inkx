@@ -9,6 +9,7 @@ closed_at: 2026-03-13T05:26:39Z
 close_reason: "Fixed: Added comprehensive divergence documentation header to
   content-phase-adapter.ts — lists all differences from content-phase.ts and
   future direction"
+owner: bjorn@stabell.org
 ---
 
 # [x] content-phase-adapter.ts is a divergent second renderer — document or unify @km/silvery #task #P3

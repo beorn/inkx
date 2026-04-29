@@ -6,6 +6,7 @@ aliases:
 created_by: claude:97217d5d
 created_at: 2026-02-17T07:35:41Z
 closed_at: 2026-02-19T22:11:57Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Text cursor nav: ghost cursor, wrong line positions, exits edit on block cross @km/tui #bug #P1

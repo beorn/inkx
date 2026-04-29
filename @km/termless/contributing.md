@@ -6,6 +6,7 @@ aliases:
 created_by: claude:8fc35754
 created_at: 2026-03-03T11:10:20Z
 closed_at: 2026-03-03T11:29:45Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Add 'Adding a New Backend' workflow to CONTRIBUTING.md @km/termless #task #P2

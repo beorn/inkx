@@ -6,6 +6,7 @@ aliases:
 created_by: claude:ea392ebd
 created_at: 2026-02-11T15:10:52Z
 closed_at: 2026-02-11T18:33:46Z
+owner: bjorn@stabell.org
 ---
 
 # [x] CLI mutations don't write back to .md files (km add creates DB nodes but file never updates) @km/storage #bug #P2

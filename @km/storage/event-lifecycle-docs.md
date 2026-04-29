@@ -9,6 +9,7 @@ closed_at: 2026-03-31T21:54:02Z
 close_reason: "Written: packages/km-storage/src/watch/README.md — complete
   architecture reference with pipeline diagrams, module map, error handling
   rules, event type table, and known limitations."
+owner: bjorn@stabell.org
 ---
 
 # [x] Document end-to-end event lifecycle with state diagram @km/storage #task #P2

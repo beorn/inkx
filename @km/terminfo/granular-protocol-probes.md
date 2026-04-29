@@ -11,6 +11,8 @@ close_reason: "11 new probes: 5 kitty keyboard flags (disambiguate,
   graphics sub-features (transmit, display, animation, unicode-placeholders), 2
   OSC 52 variants (read, write). 38 annotations. Feature count now 164. Pushed
   124ca97."
+owner: bjorn@stabell.org
+assignee: claude:27beac99
 ---
 
 # [x] Granular protocol probes: Kitty keyboard flags, Kitty graphics sub-features, mouse modes, OSC clipboard variants @km/terminfo #feature #P2 @claude:27beac99

@@ -5,6 +5,7 @@ aliases:
   - km-inkx-abs-pos-repaint
 created_at: 2026-02-09T09:17:36Z
 closed_at: 2026-02-09T17:35:14Z
+assignee: claude:dffe6eeb
 ---
 
 # [x] Incremental rendering skips absolute-positioned elements when siblings change @km/inkx #bug #P2 @claude:dffe6eeb

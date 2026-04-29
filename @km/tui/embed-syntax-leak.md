@@ -6,6 +6,8 @@ aliases:
 created_by: claude:23485adf
 created_at: 2026-02-24T07:40:51Z
 closed_at: 2026-02-24T20:36:47Z
+owner: bjorn@stabell.org
+assignee: claude:23485adf
 ---
 
 # [x] Card content shows raw \!%5B%5B embed syntax @km/tui #bug #P1 @claude:23485adf

@@ -6,6 +6,7 @@ aliases:
 created_by: claude:b509d761
 created_at: 2026-02-11T10:18:16Z
 closed_at: 2026-02-11T16:45:35Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Centralize logging routing: single config for debug/logger/console output destinations @km/infra #task #P3

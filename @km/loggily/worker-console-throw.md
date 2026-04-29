@@ -7,6 +7,7 @@ created_by: claude:65d845d9
 created_at: 2026-03-14T00:12:53Z
 closed_at: 2026-03-14T01:27:53Z
 close_reason: Closed
+owner: bjorn@stabell.org
 ---
 
 # [x] loggily: main-thread worker console handlers throw formatting args @km/loggily #bug #P2

@@ -10,6 +10,15 @@ close_reason: "Phase 4 shipped 2026-04-17: daemon-internal RPC migrated to
   tribe.* namespace. Lore daemon proto v2→v3. Both daemons accept legacy names
   as silent aliases (removal 0.10). bearly commit ee5dbb01, km commit 3fbd6fc3.
   All phases complete."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-bearly.system-unification
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-17T15:31:25Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Tribe system unification — fold lore into tribe, unify CLI/MCP/env @km/bearly #task #P2 @Bjørn Stabell

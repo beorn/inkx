@@ -17,6 +17,22 @@ close_reason: "v2 mutation stubs + dangerous flag landed. Read: km_search,
   WorkspaceProvider. README + 25 passing tests. Force-closed: dep on
   km-silvercode.acp-session is parallel work and doesn't block this MCP-only
   deliverable."
+started_at: 2026-04-26T09:27:53Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-km-mcp
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T01:32:06Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-km-mcp
+    depends_on_id: km-silvercode.acp-session
+    type: blocks
+    created_at: 2026-04-26T01:32:06Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] km-mcp server — expose km board/tree/selection as MCP tools and virtual filesystem @km/silvercode #feature #P2 @claude:cd034ca4

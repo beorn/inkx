@@ -8,6 +8,7 @@ created_at: 2026-03-16T21:40:11Z
 closed_at: 2026-03-16T21:40:12Z
 close_reason: "Implemented: default flags changed, useInput filters releases,
   useModifierKeys tracks modifier state. Tests: 1839 pass."
+owner: bjorn@stabell.org
 ---
 
 # [x] Kitty protocol: DISAMBIGUATE | REPORT_EVENTS | REPORT_ALL_KEYS default @km/silvery #task #P2

@@ -5,6 +5,7 @@ aliases:
   - km-terminfo-content-enrichment
 created_by: claude:4929065a
 created_at: 2026-04-02T18:26:30Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Enrich standards/category pages — UTF-8 prominence, better descriptions @km/terminfo #task #P3

@@ -9,6 +9,15 @@ closed_at: 2026-04-12T18:23:26Z
 close_reason: "All 8 P0/P1 findings fixed: browser export, conditional
   SpanLogger, otel throw, baseCreateLogger export, DEBUG wildcard, context tags
   in error logs, worker child props, setOutputMode throws. 263 tests pass."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-loggily.pro-review-5
+    depends_on_id: km-loggily
+    type: parent-child
+    created_at: 2026-04-12T11:17:09Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Pro Review 5: loggily v0.7.0 — GPT 5.4 deep research @km/loggily #task #P2 @Bjørn Stabell

@@ -6,6 +6,7 @@ aliases:
 created_by: claude:ee8efc0f
 created_at: 2026-02-22T23:54:47Z
 closed_at: 2026-02-23T00:11:37Z
+owner: bjorn@stabell.org
 ---
 
 # [x] inkx feature roadmap: graphics, clipboard, bracketed paste, devtools, animations @km/inkx #task #P3

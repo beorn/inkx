@@ -5,6 +5,7 @@ aliases:
   - km-tools-recall-perf
 created_at: 2026-02-06T15:49:14Z
 closed_at: 2026-02-06T21:37:25Z
+assignee: claude:2ef9759e
 ---
 
 # [x] Recall performance: AbortController, model racing, benchmark diagnostics @km/tools #task #P2 @claude:2ef9759e

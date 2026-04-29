@@ -10,6 +10,8 @@ close_reason: "Design done
   (vendor/internal/silvery/design/v-undecided/focus-parity.md). Implementation
   shipped as part of km-silvery.focus-unify. Remaining: InkFocusContext deletion
   tracked in km-silvery.focus epic."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Review silvery focus vs Ink's useFocus — API parity check @km/silvery #task #P1 @Bjørn Stabell

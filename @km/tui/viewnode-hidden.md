@@ -9,6 +9,8 @@ closed_at: 2026-04-02T03:49:07Z
 close_reason: Hidden node filtering moved to buildViewTree construction time.
   hiddenNodeIds removed from NavState, ActionCtx, BoardNavState. 1523 km-tui +
   120 km-board tests pass. Done by tribe session km-4-9r1.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Filter hidden nodes in buildViewTree — eliminate threading through navigation @km/tui #task #P2 @Bjørn Stabell

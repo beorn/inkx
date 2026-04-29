@@ -11,6 +11,7 @@ close_reason: "Complete. Legacy expandedEditCardId purged (commit d3dc1c229).
   cardlike behavior in CardColumn.tsx and TreeNode.tsx. depth===0 remains for
   styling only (bold title, body detection, parent-of-cursor highlight) — NOT
   card detection. Verified: grep expandedEditCardId → 0 hits."
+owner: bjorn@stabell.org
 ---
 
 # [x] Use silvery focus system to define cardlike/editable containers @km/tui #feature #P2

@@ -5,6 +5,15 @@ aliases:
   - km-infra-sop
 created_by: Bjørn Stabell
 created_at: 2026-04-12T17:14:37Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-infra.sop
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-12T10:15:00Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [/] SOP: unified scan→propose→execute framework for all project maintenance @km/infra #task #P2 @Bjørn Stabell

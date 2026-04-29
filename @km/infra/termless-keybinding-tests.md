@@ -10,6 +10,8 @@ close_reason: "Created keybinding-matrix.slow.test.ts with 268 tests. Full
   roundtrip: extract keybindings → encode to ANSI → parse back → verify match.
   Found real issues: keyToString missing PageUp/PageDown, legacy ANSI ambiguity
   for ctrl-i/j/m, Cmd+Arrow terminal consumption."
+owner: bjorn@stabell.org
+assignee: claude:656602a3
 ---
 
 # [x] Termless PTY test suite for keybindings: verify real terminal delivers expected key events @km/infra #task #P1 @claude:656602a3

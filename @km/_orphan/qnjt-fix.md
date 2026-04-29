@@ -4,6 +4,7 @@ aliases:
   - km-qnjt-fix
 created_at: 2026-01-24T19:48:04Z
 closed_at: 2026-01-24T19:51:22Z
+assignee: beorn
 ---
 
 # [x] Fix h/l visual navigation for unrendered columns @km/_orphan #task #P1 @beorn

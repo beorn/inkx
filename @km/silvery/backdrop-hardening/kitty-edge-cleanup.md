@@ -11,6 +11,15 @@ close_reason: applyBackdrop returns EMPTY_RESULT for inactive plan regardless of
   removed' and 'plan inactive with markers' cases). 4 new tests in
   backdrop-hardening.test.ts (active overlay still emits, inactive silent in
   both kittyGraphics modes). Commit 572c5f75. 83→87 backdrop tests pass.
+owner: bjorn@stabell.org
+assignee: claude:a1a0e667
+dependencies:
+  - issue_id: km-silvery.backdrop-hardening.kitty-edge-cleanup
+    depends_on_id: km-silvery.backdrop-hardening
+    type: parent-child
+    created_at: 2026-04-20T14:00:07Z
+    created_by: claude:88c0e764
+    metadata: "{}"
 ---
 
 # [x] Inactive Kitty cleanup fires every frame when fade={0} + kittyGraphics @km/silvery #bug #P0 @claude:a1a0e667

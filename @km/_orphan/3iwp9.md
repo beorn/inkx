@@ -7,6 +7,7 @@ created_at: 2026-03-17T07:38:54Z
 closed_at: 2026-03-17T07:56:39Z
 close_reason: "Implemented: findInheritedFg returns $fg when inside Box theme={}
   subtree. Zero test failures."
+owner: bjorn@stabell.org
 ---
 
 # [x] Pipeline: findInheritedFg falls back to $fg from active theme @km/_orphan #task #P1

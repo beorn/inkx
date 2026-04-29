@@ -16,6 +16,8 @@ close_reason: Renamed embed→symlink across display layer in commit b78137bbc.
   structural concept. 41 files changed, 442 insertions, 320 deletions. All 43
   symlink.test.ts tests pass; 2 unrelated 'clicking an embed sub-item' tests
   added by parallel agent are failing but not part of this rename.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Finish embed→symlink rename — display layer still uses 'embed' terminology @km/tui #task #P3 @Bjørn Stabell

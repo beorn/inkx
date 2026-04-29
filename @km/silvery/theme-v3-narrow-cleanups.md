@@ -9,6 +9,14 @@ closed_at: 2026-04-19T04:27:35Z
 close_reason: Shipped at silvery 47718e69 (N1/N2/N3) + 4dcf66a4 (N4). All 4
   compat shims deleted, types stub removed, 8 brand* aliases dropped,
   detectTheme unified.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-v3-narrow-cleanups
+    depends_on_id: km-silvery.theme-v3-plumbing
+    type: parent-child
+    created_at: 2026-04-18T21:09:18Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Narrow cleanups: compat shims, deprecated aliases, double detectTheme, types stub @km/silvery #task #P3

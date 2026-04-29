@@ -10,6 +10,7 @@ close_reason: "Added SILVERY_STRICT mode phase invariant assertions: (1)
   layout-phase.ts: validates layoutChangedThisFrame consistency with actual
   prevLayout vs contentRect comparison; (2) content-phase.ts: validates Scroll
   Tier 1 (buffer shift) never activates with sticky children"
+owner: bjorn@stabell.org
 ---
 
 # [x] Testing gap: runtime phase invariant assertions in strict mode @km/silvery #task #P2

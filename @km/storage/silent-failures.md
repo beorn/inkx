@@ -11,6 +11,8 @@ close_reason: "All 17 silent failure modes addressed. F1: emitter error
   mtime updated on hash-match. F6: statSync errors logged. F7: directory errors
   don't abort sync. F8: dead reconcileIfChanged removed. F9: parse errors skip
   (no stubs). F10: parse errors at WARN. Commits across Phases 4+6."
+owner: bjorn@stabell.org
+assignee: claude:km-work2
 ---
 
 # [x] Audit: silent failure modes in bidirectional sync layer @km/storage #task #P0 @claude:km-work2

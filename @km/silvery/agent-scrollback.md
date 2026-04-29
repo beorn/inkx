@@ -10,6 +10,8 @@ close_reason: "Fixed: removed sliding window (maxVisible/visibleExchanges),
   added justifyContent=flex-end for bottom anchoring, added marginTop={1} for
   vertical whitespace between exchanges, removed hiddenCount from
   AgentStatusBar."
+owner: bjorn@stabell.org
+assignee: claude:55df8ef1
 ---
 
 # [x] Fix coding agent web showcase: eliminate jumping + add vertical whitespace @km/silvery #bug #P2 @claude:55df8ef1

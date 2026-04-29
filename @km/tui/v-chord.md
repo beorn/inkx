@@ -6,6 +6,8 @@ aliases:
 created_by: claude:28b14b32
 created_at: 2026-02-23T11:49:55Z
 closed_at: 2026-02-23T11:54:32Z
+owner: bjorn@stabell.org
+assignee: claude:28b14b32
 ---
 
 # [x] v-prefix chord: view/visual commands (v␣=visual, vv=cycle view, vV=icons, vc=collapse, vf=filter) @km/tui #feature #P2 @claude:28b14b32

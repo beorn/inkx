@@ -10,6 +10,8 @@ close_reason: Won't fix. Classic is a debugging reference only. The drift is
   intentional CSS spec-compliance improvements in zero-alloc (overflow:hidden
   flexShrink, measure NaN semantics) documented in Intentional Divergences.
   Backporting would be wasted effort.
+owner: bjorn@stabell.org
+assignee: claude:65d845d9
 ---
 
 # [x] Bug: Classic implementation has drifted from zero-alloc — not behaviorally equivalent @km/flexily #bug #P1 @claude:65d845d9

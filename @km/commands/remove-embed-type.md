@@ -9,6 +9,8 @@ closed_at: 2026-03-28T06:19:30Z
 close_reason: Removed type:embed from BlockType. Embeds determined by
   embed_source field, orthogonal to type. isEmbed(node) checks embed_source. 34
   files changed.
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Remove type:'embed' from BlockType — embeds are orthogonal to types @km/commands #task #P1 @claude:f8196c1c

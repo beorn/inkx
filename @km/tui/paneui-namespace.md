@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-02T23:19:38Z
 closed_at: 2026-04-02T23:25:54Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Extract PaneUI namespace — editMode, isInDialog, isBusy, isTextInputFocused @km/tui #task #P2 @Bjørn Stabell

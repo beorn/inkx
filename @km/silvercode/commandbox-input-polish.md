@@ -5,6 +5,16 @@ aliases:
   - km-silvercode-commandbox-input-polish
 created_by: claude:611e701e
 created_at: 2026-04-26T06:19:05Z
+started_at: 2026-04-26T06:19:29Z
+owner: bjorn@stabell.org
+assignee: claude:611e701e
+dependencies:
+  - issue_id: km-silvercode.commandbox-input-polish
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-25T23:19:28Z
+    created_by: claude:611e701e
+    metadata: "{}"
 ---
 
 # [/] silvercode CommandBox: soft-wrap input, free Ctrl-E for readline @km/silvercode #bug #P2 @claude:611e701e

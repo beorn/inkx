@@ -11,6 +11,7 @@ close_reason: "GPT 5.4 review complete (/bin/zsh.22). Found 6 P0, 10 P1, 7 P2.
   km-silvery.focus-unmount, km-silvery.focus-hidden,
   km-silvery.edit-cursor-collapse, km-silvery.adapter-text-divergence. Full
   output: /tmp/llm-c9beade3-1773385181212-0h97.txt"
+owner: bjorn@stabell.org
 ---
 
 # [x] Silvery deep GPT 5.4 Pro review — reconciler, render-text, and remaining pipeline @km/silvery #epic #P1

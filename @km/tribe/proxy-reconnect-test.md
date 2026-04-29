@@ -10,6 +10,14 @@ close_reason: "Shipped: tests/tribe-self-heal.slow.test.ts verifies all three
   README invariants. 5/5 tests pass. Bearly commit 0655dc4 (merged as 5e68a9a),
   km bump 5e1cb7d20. Documented gap: in-flight socket buffers at moment of crash
   NOT covered — tracked in km-tribe.message-durability."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.proxy-reconnect-test
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-18T21:29:01Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] tribe: integration test for proxy reconnect-on-disconnect @km/tribe #task #P2

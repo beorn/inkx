@@ -10,6 +10,8 @@ close_reason: "Fixed: reordered cleanup in create-app.tsx — terminal protocol
   disable (mouse, kitty, focus, alt screen) now happens BEFORE provider cleanup
   (which disables raw mode). Uses writeSync for reliability. Added ordering test
   in inline-mouse-default.test.tsx."
+owner: bjorn@stabell.org
+assignee: claude:d29abbfa
 ---
 
 # [x] Mouse tracking bytes leak to shell on exit — cleanup order wrong @km/silvery #bug #P1 @claude:d29abbfa

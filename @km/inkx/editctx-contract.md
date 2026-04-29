@@ -6,6 +6,7 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-17T23:52:56Z
 closed_at: 2026-02-18T00:23:16Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Document and enforce useEditContext confirm/cancel contract @km/inkx #task #P2

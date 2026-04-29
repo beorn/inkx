@@ -13,6 +13,22 @@ close_reason: Phase 7 ghost completion + Enter chord intents shipped. ghostFor
   (force-create-at, force-goto, force-verb). Sigil auto-replace and sticky
   memory already covered by Phase 5 (omnibox-state.test.ts). 21 unit tests + 4
   render tests, all green.
+started_at: 2026-04-28T22:12:44Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-tui.omnibox-interactions
+    depends_on_id: km-tui.omnibox-cursor
+    type: blocks
+    created_at: 2026-04-14T16:26:18Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.omnibox-interactions
+    depends_on_id: km-tui.omnibox-unified
+    type: parent-child
+    created_at: 2026-04-14T16:25:25Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Interaction polish — sigil auto-replace, sticky memory, ghost accept, modifier chords (Phase 7) @km/tui #feature #P1 @claude:2405c72e

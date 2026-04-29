@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-06T19:55:50Z
 closed_at: 2026-04-06T20:08:27Z
 close_reason: "Fixed: 8046918d8 — new enter_or_zoom command, headings zoom, leaves edit"
+owner: bjorn@stabell.org
 ---
 
 # [x] [bug] Enter on section heading triggers INSERT mode unexpectedly @km/tui #bug #P2

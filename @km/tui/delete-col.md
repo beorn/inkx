@@ -6,6 +6,7 @@ aliases:
 created_by: claude:949598cc
 created_at: 2026-02-12T09:52:33Z
 closed_at: 2026-02-12T10:10:28Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Del on column/board should work with confirmation dialog @km/tui #feature #P2

@@ -9,6 +9,8 @@ closed_at: 2026-03-25T22:09:06Z
 close_reason: "Done: serve.ts dynamically loads probes on each /probe request
   via require.cache invalidation. Server never needs restarting when probes
   change."
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] Thin probe server — auto-updates when probes change, no re-launch needed @km/terminfo #feature #P2 @claude:4929065a

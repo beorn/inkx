@@ -6,6 +6,7 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T13:38:35Z
 closed_at: 2026-02-18T14:03:07Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Card shows greyed-out text for non-done tasks @km/tui #bug #P2

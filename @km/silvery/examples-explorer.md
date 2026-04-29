@@ -5,6 +5,7 @@ aliases:
   - km-silvery-examples-explorer
 created_by: claude:73d7a332
 created_at: 2026-03-12T16:33:36Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Example: explorer (log viewer, VirtualList 2000+ rows, search) @km/silvery #task #P3

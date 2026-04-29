@@ -5,6 +5,14 @@ aliases:
   - km-silvery-role-lanes-decide
 created_by: claude:8b5b9e1c
 created_at: 2026-04-21T09:06:32Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.role-lanes-decide
+    depends_on_id: km-silvery.authoring-elegance
+    type: parent-child
+    created_at: 2026-04-21T02:06:44Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [ ] Role lanes — explicit DEFER decision, revisit at Cycle 3 @km/silvery #decision #P3

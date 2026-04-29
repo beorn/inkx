@@ -9,6 +9,7 @@ closed_at: 2026-03-17T05:40:28Z
 close_reason: Virtual text nodes get inlineRects during render. hitTest checks
   them. Mouse events (enter/leave/click) work on nested Text. 7 tests, no perf
   regression. Unlocks Link hover, Cmd+click, future interactive inline elements.
+owner: bjorn@stabell.org
 ---
 
 # [x] Virtual text inline rects: enable hit testing on nested Text (links, checkboxes, tags) @km/silvery #feature #P0

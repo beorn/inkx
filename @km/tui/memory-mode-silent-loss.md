@@ -66,6 +66,7 @@ close_reason: >-
   introduced by these commits — the driver defaults showMemoryModeBanner
 
   to false so existing fixed-row-coordinate tests are unaffected.
+owner: bjorn@stabell.org
 ---
 
 # [x] [bug] Memory mode silently discards edits — user thinks changes saved @km/tui #bug #P2

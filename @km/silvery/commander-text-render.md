@@ -11,6 +11,8 @@ close_reason: "Implemented: tokenize.ts (private), styleSectionTerm refactored
   descriptions, padWidth uses longest line. 26 new tests (21 tokenize + 5
   multi-line section). 220/220 commander tests pass. Vendored in
   silvery@1e50183, bumped in km root. No public API additions."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] @silvery/commander: refine the default text help renderer (stop-gap) @km/silvery #feature #P2 @Bjørn Stabell

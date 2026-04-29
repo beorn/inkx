@@ -12,6 +12,9 @@ close_reason: Unable to reproduce. Silvery agent followed pipeline mandate
   c022d937. 5 new STRICT scaffold tests landed in vendor/silvery 752bbc576 + km
   main 596e16bc7 — will fail noisily if regression returns. File a fresh bead if
   the symptom re-emerges.
+started_at: 2026-04-25T06:32:04Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
 ---
 
 # [x] Layout churn: silvery pipeline leaks pixels when columns reflow on staged content hydration @km/silvery #bug #P0 @claude:2405c72e

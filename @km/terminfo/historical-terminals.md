@@ -10,6 +10,8 @@ close_reason: "5 historical terminal pages live: DEC VT52 (1975), DEC VT100
   (1978), DEC VT220 (1983), xterm (1984), DEC VT510 (1993). Rich narratives,
   historical badges, significance sections, sidebar integration, analysis
   entries. 204 total analysis entries."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Historical terminal pages: VT100, VT220, VT510, xterm — rich detail pages with history @km/terminfo #feature #P3 @claude:f8196c1c

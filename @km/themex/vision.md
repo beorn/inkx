@@ -6,6 +6,8 @@ aliases:
 created_by: claude:f47d1ff0
 created_at: 2026-03-04T07:46:13Z
 closed_at: 2026-03-04T16:40:34Z
+owner: bjorn@stabell.org
+assignee: claude:fbad9cb1
 ---
 
 # [x] themex: W3C Design Tokens native (with shadcn/Tailwind compatibility) @km/themex #feature #P2 @claude:fbad9cb1

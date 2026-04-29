@@ -5,6 +5,20 @@ aliases:
   - km-silvery-column-resize-incremental-mismatch
 created_by: claude:da9990c5
 created_at: 2026-04-28T19:00:51Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.column-resize-incremental-mismatch
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-28T12:00:54Z
+    created_by: claude:da9990c5
+    metadata: "{}"
+  - issue_id: km-silvery.column-resize-incremental-mismatch
+    depends_on_id: km-tui.focused-card-overflow
+    type: blocks
+    created_at: 2026-04-28T12:01:08Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [ ] Strict-mode incremental-vs-fresh mismatch on column-height resize after card-overflow fix @km/silvery #bug #P2

@@ -9,6 +9,14 @@ closed_at: 2026-04-20T18:46:27Z
 close_reason: Most items dissolve under the simpler model
   (hub/km/design/tribe-matrix.md). Any residual polish becomes specific bugs as
   they surface.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.polish-v2
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-19T10:55:28Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] tribe: pro-review polish sweep — docs, shape, naming consistency @km/tribe #task #P4

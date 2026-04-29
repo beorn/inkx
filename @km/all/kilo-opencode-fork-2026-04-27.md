@@ -5,6 +5,14 @@ aliases:
   - km-all-kilo-opencode-fork-2026-04-27
 created_by: claude:618d206c
 created_at: 2026-04-28T01:30:46Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.kilo-opencode-fork-2026-04-27
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-27T18:31:03Z
+    created_by: claude:618d206c
+    metadata: "{}"
 ---
 
 # [ ] Doc updates: Kilo Code is now an opencode fork (April 2026) @km/all #task #P3

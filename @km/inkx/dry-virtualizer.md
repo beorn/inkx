@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d1f60fb4
 created_at: 2026-02-26T14:41:01Z
 closed_at: 2026-02-26T14:53:48Z
+owner: bjorn@stabell.org
+assignee: claude:d1f60fb4
 ---
 
 # [x] DRY: consolidate useVirtualization into useVirtualizer @km/inkx #task #P2 @claude:d1f60fb4

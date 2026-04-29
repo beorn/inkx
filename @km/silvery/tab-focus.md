@@ -11,6 +11,7 @@ close_reason: "Tab/Shift+Tab global focus cycling already works —
   Test renderer and production runtime both dispatch Tab without guards. Added
   12 tests confirming: Tab cycles forward, Shift+Tab backward, wrapping, Escape
   blur, skip non-focusable. All pass."
+owner: bjorn@stabell.org
 ---
 
 # [x] Tab/Shift+Tab global focus cycling @km/silvery #feature #P2

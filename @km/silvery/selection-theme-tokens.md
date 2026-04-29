@@ -11,6 +11,22 @@ close_reason: "Phase B shipped: silvery e69b80d9 (paintFrame plumbs
   selectionbg fallback retained for transition). 8/8 contract tests + 158/158
   selection suite green with SILVERY_STRICT=1. New
   tests/contracts/selection-theme.contract.test.ts. Pushed to origin/main."
+started_at: 2026-04-25T05:20:31Z
+owner: bjorn@stabell.org
+assignee: claude:22c2717d
+dependencies:
+  - issue_id: km-silvery.selection-theme-tokens
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-24T16:13:01Z
+    created_by: claude:5e447b66
+    metadata: "{}"
+  - issue_id: km-silvery.selection-theme-tokens
+    depends_on_id: km-silvery.sterling-selection-tokens
+    type: blocks
+    created_at: 2026-04-24T16:14:49Z
+    created_by: claude:5e447b66
+    metadata: "{}"
 ---
 
 # [x] Plumb $selectionbg / $selectionfg theme tokens through paintFrame's applySelectionToPaintBuffer call @km/silvery #task #P3 @claude:22c2717d

@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-02T21:59:37Z
 closed_at: 2026-04-03T01:08:54Z
 close_reason: Implemented. Console delegates to ListView, gains cache+search. Commit 7158542.
+owner: bjorn@stabell.org
 ---
 
 # [x] Console as ListView composition @km/silvery #task #P2

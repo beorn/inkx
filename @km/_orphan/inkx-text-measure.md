@@ -4,6 +4,7 @@ aliases:
   - km-inkx-text-measure
 created_at: 2026-02-02T13:54:17Z
 closed_at: 2026-02-02T14:21:45Z
+assignee: claude:227cdc41
 ---
 
 # [x] Nested Text elements measure intrinsic width instead of parent constraint @km/_orphan #bug #P1 @claude:227cdc41

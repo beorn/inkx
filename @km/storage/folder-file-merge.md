@@ -5,6 +5,7 @@ aliases:
   - km-storage-folder-file-merge
 created_by: claude:b92140a2
 created_at: 2026-03-17T03:44:40Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Folder-file merge: designated index file merges with folder node @km/storage #feature #P2

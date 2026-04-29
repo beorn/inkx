@@ -5,6 +5,7 @@ aliases:
   - km-beorn-test-chaos
 created_at: 2026-02-03T12:51:04Z
 closed_at: 2026-02-03T13:03:16Z
+assignee: claude:4731ed4e
 ---
 
 # [x] vitestx: Extract generic chaos stream transformers @km/beorn-test #task #P2 @claude:4731ed4e

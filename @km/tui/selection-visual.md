@@ -6,6 +6,8 @@ aliases:
 created_by: claude:703e68be
 created_at: 2026-02-11T14:19:31Z
 closed_at: 2026-02-12T14:20:59Z
+owner: bjorn@stabell.org
+assignee: claude:586bad48
 ---
 
 # [x] Visual style for column/board-level selection @km/tui #feature #P3 @claude:586bad48

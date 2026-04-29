@@ -9,6 +9,7 @@ closed_at: 2026-04-06T09:17:50Z
 close_reason: 3 observer hooks (useFindState, useCopyModeState, useDragState) +
   useSelection already existed. All follow CapabilityRegistryContext +
   useSyncExternalStore pattern. 30 tests. Silvery commit 3b9ce47.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 4: Remaining observer hooks (useFindState, useCopyModeState, useDragState) @km/silvery #task #P1

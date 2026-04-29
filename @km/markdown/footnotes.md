@@ -5,6 +5,7 @@ aliases:
   - km-markdown-footnotes
 created_by: claude:4c413aae
 created_at: 2026-02-21T23:21:44Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Footnote support via item.marker @km/markdown #feature #P4

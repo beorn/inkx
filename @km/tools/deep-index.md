@@ -6,6 +6,8 @@ aliases:
 created_by: claude:b509d761
 created_at: 2026-02-10T13:00:43Z
 closed_at: 2026-02-10T13:11:39Z
+owner: bjorn@stabell.org
+assignee: claude:d7f245c9
 ---
 
 # [x] Store and index deep research outputs in recall @km/tools #feature #P3 @claude:d7f245c9

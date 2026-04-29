@@ -10,6 +10,7 @@ close_reason: Deleted 6 old hooks (useTerminalSelection, usePointerState,
   useFind, useFindProvider, useCopyMode, useCopyProvider) — 1182 lines removed.
   Renamed semantic-copy.ts → copy-extraction.ts. All imports updated. Silvery
   commit 6e45465.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 5: Purge old selection/find/copy-mode/drag hooks (scope-limited) @km/silvery #task #P1

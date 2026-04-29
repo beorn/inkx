@@ -5,6 +5,7 @@ aliases:
   - km-inkx-ink-comparison-bench
 created_at: 2026-02-06T15:46:28Z
 closed_at: 2026-02-09T12:16:14Z
+assignee: claude:a3625ec3
 ---
 
 # [x] Head-to-head feature & performance comparison vs Ink @km/inkx #feature #P1 @claude:a3625ec3

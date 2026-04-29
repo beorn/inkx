@@ -12,6 +12,7 @@ close_reason: ColumnView removed from view component props.
   useNode/lens. BoardCore takes columnIds. ColumnView type moved to
   use-columns.ts internal. 2 renderBoard static tests need PaneSignals fix
   (tracked).
+owner: bjorn@stabell.org
 ---
 
 # [x] Delete ColumnView type — Board/Column/view modes take IDs @km/tui #task #P3

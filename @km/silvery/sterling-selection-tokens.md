@@ -13,6 +13,16 @@ close_reason: "Phase A shipped: silvery 2fa3bfe2 + km 4283d8d11. All 6 Sterling
   visibility invariant passes. Unblocks: selection-theme-tokens (Phase B),
   sterling-km-tui-selection-migration (Phase C), sterling-purge-legacy-tokens
   (Phase D)."
+started_at: 2026-04-25T04:55:56Z
+owner: bjorn@stabell.org
+assignee: claude:22c2717d
+dependencies:
+  - issue_id: km-silvery.sterling-selection-tokens
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-24T16:13:02Z
+    created_by: claude:5e447b66
+    metadata: "{}"
 ---
 
 # [x] Add Sterling tokens for selection / inverse / link (`bg-selected`, `fg-on-selected`, `bg-inverse`, `bg-link`, `fg-on-link`) @km/silvery #task #P2 @claude:22c2717d

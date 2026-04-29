@@ -11,6 +11,15 @@ close_reason: "DONE: 1486→70 hits in apps/km-tui/src +
   Sterling-has-no-equivalent (selection 49, link 17, inverse 4). 4 commits, 112
   files. Follow-up: km-silvery.sterling-tests-legacy-sweep for
   vendor/silvery/tests/ (gated on 0.20.0)."
+owner: bjorn@stabell.org
+assignee: claude:a1a0e667
+dependencies:
+  - issue_id: km-silvery.sterling-consumer-migration
+    depends_on_id: km-silvery.theme-v4
+    type: parent-child
+    created_at: 2026-04-20T13:40:00Z
+    created_by: claude:4274df30
+    metadata: "{}"
 ---
 
 # [x] Sterling consumer migration: rename $primary/$muted/etc. to Sterling flat tokens across km-tui + ag-react @km/silvery #task #P0 @claude:a1a0e667

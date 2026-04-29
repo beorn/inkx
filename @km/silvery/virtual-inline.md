@@ -10,6 +10,8 @@ close_reason: "Implemented: virtual-scrollback.ts (circular buffer 10K lines),
   search-overlay.ts (TEA search), virtualInline mode in create-app.tsx + run.tsx
   (altscreen + scroll + Ctrl+F search + scroll indicators). code-agent.tsx demo
   app. 40 tests pass."
+owner: bjorn@stabell.org
+assignee: claude:def7f8a1
 ---
 
 # [x] Virtual inline mode: altscreen with native terminal features (Cmd+F, selection, copy/paste) @km/silvery #feature #P2 @claude:def7f8a1

@@ -9,6 +9,14 @@ closed_at: 2026-04-25T06:02:15Z
 close_reason: Reverted — keeping all content/data-model issues consolidated on
   km-storage.content-issues for now (per Bjørn 2026-04-25). Spin-outs were
   premature; one running list is the chosen model.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-storage.doctor-rebuild-empties-db
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-24T22:59:53Z
+    created_by: claude:adeac868
+    metadata: "{}"
 ---
 
 # [x] km doctor rebuild empties state.db; sync cannot repopulate @km/storage #bug #P1

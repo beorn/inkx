@@ -9,6 +9,8 @@ close_reason: "Fixed: buffer.setCell now maintains wide/continuation pair
   consistency. When a border │ overwrites a CJK char's continuation cell, the
   wide flag on the main cell is cleared (and vice versa). Commit b91e3ca
   (silvery), 9e884c18 (km)."
+owner: bjorn@stabell.org
+assignee: claude:ceb7c9cb
 ---
 
 # [x] fix: card borders broken on initial app render @km/_orphan #bug #P2 @claude:ceb7c9cb

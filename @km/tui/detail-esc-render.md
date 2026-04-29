@@ -6,6 +6,8 @@ aliases:
 created_by: claude:536645b5
 created_at: 2026-02-20T22:41:08Z
 closed_at: 2026-02-20T23:17:18Z
+owner: bjorn@stabell.org
+assignee: claude:536645b5
 ---
 
 # [x] Detail pane: Esc causes rendering issues, l doesn't switch focus @km/tui #bug #P1 @claude:536645b5

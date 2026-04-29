@@ -11,6 +11,22 @@ close_reason: "Shipped: vendor/silvery/docs/guide/scope.md @ silvery 98472d04,
   (useDispose/SIGINT/term.signals/setTimeout/spawn/fs.watch/AbortController),
   withScope plugin, SILVERY_SCOPE_TRACE debugging, pitfalls, end-to-end example.
   grep clean (no vendor/ or hub/ paths)."
+started_at: 2026-04-24T22:43:44Z
+owner: bjorn@stabell.org
+assignee: claude:2aefb4b6
+dependencies:
+  - issue_id: km-silvery.scope-phase-4-migration-guide
+    depends_on_id: km-silvery.scope-phase-4
+    type: parent-child
+    created_at: 2026-04-24T13:40:48Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
+  - issue_id: km-silvery.scope-phase-4-migration-guide
+    depends_on_id: km-silvery.scope-phase-4-eslint
+    type: blocks
+    created_at: 2026-04-24T13:40:48Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
 ---
 
 # [x] Phase 4.F: Migration guide (new doc) @km/silvery #task #P2 @claude:2aefb4b6

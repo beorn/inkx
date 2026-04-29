@@ -5,6 +5,7 @@ aliases:
   - km-storage-write-exceptions
 created_at: 2026-02-08T13:46:28Z
 closed_at: 2026-02-08T21:03:53Z
+assignee: claude:dffe6eeb
 ---
 
 # [x] Write failures in SyncManager/WriteQueue must throw exceptions, not silently fail @km/storage #bug #P2 @claude:dffe6eeb

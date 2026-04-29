@@ -13,6 +13,15 @@ close_reason: Shipped commit d59dd9c68. ReconcileContext now carries optional
   delta.linkChanges on CommitResult. backlinksState signals now fire on
   FS-driven link changes. 4 end-to-end tests in backlinks-fs-reconcile.test.ts
   pass. 7185 fast-suite tests.
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.lazy-hydration-linkchanges-emit
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-22T08:35:53Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Wire linkChanges delta emission from FS reconcile path @km/storage #task #P1 @claude:8b5b9e1c

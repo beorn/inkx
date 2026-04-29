@@ -10,6 +10,7 @@ close_reason: "Sidebar split into Guides + Building Apps. Top nav points to
   packages section shows 4 public packages, Coming section added. State
   management and terminal apps guides have 'most apps stop here' callouts.
   Duplicate getting-started redirected."
+owner: bjorn@stabell.org
 ---
 
 # [x] Restructure docs site: intent-based navigation @km/_orphan #task #P2

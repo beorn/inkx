@@ -14,6 +14,15 @@ close_reason: "Phase 0 done: LLM-mock harness (mock.ts 160 LOC:
   tests pass (84 existing + 9 new). /complete verified: mock.ts exists, 1 test
   import of mock, 9 test cases (≥6 target), 0 live API calls during test run.
   Ready for Phase 1 (mcp-wrapper) which depends on this."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-bear.test-infra
+    depends_on_id: km-bear
+    type: parent-child
+    created_at: 2026-04-16T23:28:52Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Phase 0: Test infra for agent-mode (LLM mocking harness) @km/bear #task #P1 @Bjørn Stabell

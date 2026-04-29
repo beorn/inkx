@@ -9,6 +9,8 @@ closed_at: 2026-04-18T07:31:27Z
 close_reason: "/complete criteria met: grep testEnv in tests/ (excl helpers) =
   0, grep testEnvWithRepo = 0. All test files migrated to createTestApp.
   Verified in worktree km-test-system at feat/test-system."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Phase 2: Migrate ALL remaining testEnv files to createTestApp @km/all #task #P0 @Bjørn Stabell

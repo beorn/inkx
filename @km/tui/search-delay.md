@@ -5,6 +5,7 @@ aliases:
   - km-tui-search-delay
 created_at: 2026-02-04T14:00:26Z
 closed_at: 2026-02-04T14:17:06Z
+assignee: claude:44a381e0
 ---
 
 # [x] Search dialog has input delay - keypresses eaten before dialog opens @km/tui #bug #P2 @claude:44a381e0

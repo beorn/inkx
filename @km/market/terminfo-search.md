@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-02T19:33:01Z
 closed_at: 2026-04-02T19:33:26Z
 close_reason: Local search added to terminfo.dev. Committed and pushed.
+owner: bjorn@stabell.org
 ---
 
 # [x] Add local search to terminfo.dev @km/market #task #P0

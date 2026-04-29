@@ -5,6 +5,20 @@ aliases:
   - km-tribe-recall-multipath-rrf
 created_by: claude:4de4a3ab
 created_at: 2026-04-28T07:05:56Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.recall-multipath-rrf
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-28T00:05:56Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
+  - issue_id: km-tribe.recall-multipath-rrf
+    depends_on_id: km-tribe.recall-eval-corpus
+    type: blocks
+    created_at: 2026-04-28T00:05:56Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] Multi-pathway retrieval with reciprocal rank fusion (read-side, zero storage change) @km/tribe #feature #P3

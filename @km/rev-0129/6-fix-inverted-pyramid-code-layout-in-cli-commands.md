@@ -6,6 +6,7 @@ aliases:
   - "@km/rev-0129/6"
 created_at: 2026-01-29T16:36:05Z
 closed_at: 2026-01-29T18:09:24Z
+assignee: claude:298008b9
 ---
 
 # [x] Fix inverted pyramid code layout in CLI commands @km/rev-0129 #task #P3 @claude:298008b9

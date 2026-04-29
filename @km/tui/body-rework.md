@@ -6,6 +6,7 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T16:46:15Z
 closed_at: 2026-02-18T21:06:57Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Import: map Asana notes to .body nodes instead of blockquote @km/tui #task #P2

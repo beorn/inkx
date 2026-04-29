@@ -8,6 +8,7 @@ created_at: 2026-03-13T05:03:15Z
 closed_at: 2026-03-13T05:26:37Z
 close_reason: "Fixed: Added SGR 5 (blink) and SGR 8 (hidden) to styleToAnsi() in
   output-phase.ts"
+owner: bjorn@stabell.org
 ---
 
 # [x] Bug: styleToAnsi() omits blink and hidden while styleTransition() handles them @km/silvery #bug #P3

@@ -7,6 +7,8 @@ created_by: claude:ceb7c9cb
 created_at: 2026-03-28T06:12:18Z
 closed_at: 2026-03-28T07:32:51Z
 close_reason: Superseded by km-core.slate-interfaces epic — broader scope with phased plan
+owner: bjorn@stabell.org
+assignee: claude:ceb7c9cb
 ---
 
 # [x] Domain objects & interface helpers — ergonomic typed APIs for tree operations @km/commands #feature #P2 @claude:ceb7c9cb

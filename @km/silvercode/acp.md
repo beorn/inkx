@@ -14,6 +14,14 @@ close_reason: "All 28 sub-beads closed. ACP boundary adapter shipped
   gate (per description): keep boundary adapter until Zed reaches 100% spec
   coverage AND protocol bumps to v2 — neither holds yet, so the adapter stays.
   Reopen if either gate flips."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.acp
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-26T01:10:52Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] [TRACKING] ACP adoption — silvercode's bet on Agent Client Protocol as canonical domain model @km/silvercode #feature #P1

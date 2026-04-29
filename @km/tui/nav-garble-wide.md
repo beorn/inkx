@@ -20,6 +20,14 @@ close_reason: "Test assertion bug, not a rendering bug. The 2026-03-27 migration
   cursor drift in output phase' is stale — the original output-phase bug was
   fixed in silvery commit a487c3288; the remaining failures were purely the
   wrong assertion. Verified: all 6 tests pass. Commit: ee4d67c7f."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.nav-garble-wide
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-20T22:46:30Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Navigation garble at wide terminals (160/200 cols) with flag-emoji titles @km/tui #bug #P2

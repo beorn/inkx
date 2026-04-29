@@ -10,6 +10,8 @@ close_reason: All 47 child beads resolved (bugs fixed with tests, testing gaps
   filled, items deferred with reasoning). 7 bug fixes committed in silvery, 5
   new test suites (pipeline-bugfixes, theme-change, hide-unhide,
   fuzz-properties, inline-fuzz). All tests passing.
+owner: bjorn@stabell.org
+assignee: claude:65d845d9
 ---
 
 # [x] Pipeline review: GPT findings (2026-03-12) @km/silvery #epic #P2 @claude:65d845d9

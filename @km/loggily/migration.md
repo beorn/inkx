@@ -10,6 +10,20 @@ close_reason: "v1→v2 migration guide written at docs/guide/migration-v2.md.
   Covers: global setters→config arrays, file writers→{ file }, custom
   writers→stages, .logger()→.child(), env vars, branches. Added to VitePress
   sidebar."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-loggily.migration
+    depends_on_id: km-loggily.api-v2
+    type: parent-child
+    created_at: 2026-04-11T23:58:31Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-loggily.migration
+    depends_on_id: km-loggily.v2-phase2
+    type: blocks
+    created_at: 2026-04-11T23:59:05Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] v1→v2 migration guide + km monorepo migration @km/loggily #task #P2

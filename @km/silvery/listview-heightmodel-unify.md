@@ -13,6 +13,16 @@ close_reason: "Shipped Phase 1+2: silvery c5e58336 + 7c3afbc5 + 98eaadd3.
   documented. Phase 3 (incremental delta + STRICT cross-check rewire) deferred.
   22 HeightModel tests + 8 follow-end + 62 listview total all green. Session:
   km-session.0425-evening"
+started_at: 2026-04-26T07:59:39Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvery.listview-heightmodel-unify
+    depends_on_id: km-silvery.architectural-plateau
+    type: parent-child
+    created_at: 2026-04-26T00:48:08Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] ListView: unify height truths into single prefix-summed HeightModel @km/silvery #epic #P2 @claude:2405c72e

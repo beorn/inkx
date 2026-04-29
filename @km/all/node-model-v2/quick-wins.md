@@ -6,6 +6,7 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T01:24:42Z
 closed_at: 2026-02-19T01:54:01Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Quick wins: Asana import li->oi + reconvert @km/all #task #P2

@@ -11,6 +11,14 @@ close_reason: "Shipped in v0.18.0: <Backdrop fade={n}> primitive + new pipeline
   regression tests + ff768681 incremental-invariant fix (separates pre-fade
   carry-forward from post-fade paint). Tests pass at SILVERY_STRICT=2 with
   realistic 140+ node fixture. ANSI16 emits SGR 2; mono no-op."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.backdrop-fade
+    depends_on_id: km-silvery.design-system
+    type: parent-child
+    created_at: 2026-04-17T23:09:47Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Backdrop fade effect — render-time cell blend for modal backgrounds and drag overlays @km/silvery #feature #P3

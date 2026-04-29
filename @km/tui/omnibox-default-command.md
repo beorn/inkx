@@ -17,6 +17,20 @@ close_reason: "Already shipped in commit 56fe7b317 (feat(km-commands,km-tui):
   confirm handler strips cmd:/node: prefixes before invoking default.execute(),
   and the dialog-wiring side is Phase 5 (km-tui.omnibox-dialog). Typecheck clean
   (0 errors); km-commands 550/550 tests pass."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.omnibox-default-command
+    depends_on_id: km-tui.omnibox-command-projection
+    type: blocks
+    created_at: 2026-04-14T18:17:13Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.omnibox-default-command
+    depends_on_id: km-tui.omnibox-unified
+    type: parent-child
+    created_at: 2026-04-14T18:17:13Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] The 'default' command — universal type-dispatch fallback @km/tui #task #P1

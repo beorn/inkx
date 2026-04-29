@@ -21,6 +21,8 @@ close_reason: "Fixed: (1) renameNode in real repo + fakeRepo now updates
   normalizing against the rebuilt walkOrder. Five Whys analysis identified the
   deeper structural cause as overlapping name/data.name fields and missing
   rename spec — bead candidates for follow-up."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] Renaming column (folder) to sigil name causes cursor-null crash @km/tui #bug #P1 @Bjørn Stabell

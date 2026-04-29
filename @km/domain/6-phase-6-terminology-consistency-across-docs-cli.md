@@ -6,6 +6,7 @@ aliases:
   - "@km/domain/6"
 created_at: 2026-01-25T23:36:36Z
 closed_at: 2026-01-26T08:22:11Z
+assignee: km
 ---
 
 # [x] Phase 6: Terminology consistency across docs/CLI @km/domain #task #P3 @km

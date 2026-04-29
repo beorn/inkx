@@ -10,6 +10,14 @@ close_reason: "All three tasks completed and merged:
   normalizeNodeName/normalizeRefHref (4caab6f5b), rebuild-titles fix
   (4f8dc38fe), column-order-persist (ab086b508..e3d92db2d). 6502 tests pass. 70
   new tests added across the sprint."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-storage.quality-sprint
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-15T18:27:35Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Storage data-model quality sprint — normalizeRefHref + column-persist + rebuild-titles @km/storage #task #P2

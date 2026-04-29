@@ -7,6 +7,16 @@ created_by: claude:4de4a3ab
 created_at: 2026-04-27T21:52:27Z
 closed_at: 2026-04-27T22:04:25Z
 close_reason: Closed
+started_at: 2026-04-27T21:52:50Z
+owner: bjorn@stabell.org
+assignee: claude:4de4a3ab
+dependencies:
+  - issue_id: km-silvercode.ambient-recall-real
+    depends_on_id: km-silvercode.ambient-context-excellence
+    type: parent-child
+    created_at: 2026-04-27T14:52:49Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [x] Recall ambient adapter — real query path + controller hook @km/silvercode #feature #P2 @claude:4de4a3ab

@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-user-turn-bg-only
 created_by: claude:2405c72e
 created_at: 2026-04-28T19:35:20Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.user-turn-bg-only
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T12:35:19Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] User turns get bg color; agent turns plain; hover-bg only on clickable ops @km/silvercode #feature #P2

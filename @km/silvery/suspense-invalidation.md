@@ -8,6 +8,7 @@ created_at: 2026-03-13T07:13:11Z
 closed_at: 2026-03-13T07:24:57Z
 close_reason: "Fixed: hide/unhide now sets paintDirty + layoutDirty +
   markLayoutAncestorDirty. Tests in hide-unhide.test.tsx."
+owner: bjorn@stabell.org
 ---
 
 # [x] Suspense hide/unhide insufficient layout/paint invalidation @km/silvery #bug #P0

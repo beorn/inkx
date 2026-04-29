@@ -5,6 +5,7 @@ aliases:
   - km-terminfo-auto-link-entities
 created_by: claude:4929065a
 created_at: 2026-04-02T18:26:29Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Auto-link terminal names, features, and standards across all terminfo.dev pages @km/terminfo #feature #P2

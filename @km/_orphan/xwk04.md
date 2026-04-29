@@ -6,6 +6,7 @@ created_by: claude:f8196c1c
 created_at: 2026-03-20T20:08:26Z
 closed_at: 2026-03-20T20:16:12Z
 close_reason: Published alien-resources@0.1.0 to npm. 120 lines, 14 tests, types clean.
+owner: bjorn@stabell.org
 ---
 
 # [x] Create alien-resources package in vendor/bearlymade @km/_orphan #task #P2

@@ -5,6 +5,14 @@ aliases:
   - km-tui-omnibox-unified
 created_by: Bjørn Stabell
 created_at: 2026-04-14T20:30:10Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.omnibox-unified
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T13:30:10Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Unified omnibox: command palette + all pickers as one component @km/tui #feature #P1

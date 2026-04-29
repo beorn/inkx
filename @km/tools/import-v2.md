@@ -6,6 +6,8 @@ aliases:
 created_by: claude:54aefa32
 created_at: 2026-02-17T21:30:01Z
 closed_at: 2026-02-18T07:50:46Z
+owner: bjorn@stabell.org
+assignee: claude:54aefa32
 ---
 
 # [x] Import pipeline v2: metadata, naming, reconciliation, comment filtering @km/tools #task #P2 @claude:54aefa32

@@ -9,6 +9,8 @@ close_reason: "Fixed: DetailView children now render through Card +
   ScrollTrackingVirtualList (same as CardColumn). Exported Card/CardProps from
   CardColumn. Children get borders, fold indicators, virtualization. Test:
   detail-pane.slow.spec.ts (105 detail tests pass)."
+owner: bjorn@stabell.org
+assignee: claude:21c57d63
 ---
 
 # [x] Unify detail view children with column card rendering @km/_orphan #task #P2 @claude:21c57d63

@@ -12,6 +12,14 @@ close_reason: "Superseded. The scale-architecture decision is resolved: Family A
   km-storage.adapter-architecture and its sub-beads. CRDT reopen trigger moved
   out as km-storage.crdt-trigger (standalone P3). Design canonicalized at
   hub/km/storage-architecture.md."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-storage.scale-architecture
+    depends_on_id: km-all.plateau
+    type: parent-child
+    created_at: 2026-04-21T01:25:27Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Scale architecture — forced decision under benchmarked workloads (not survey) @km/storage #epic #P1

@@ -5,6 +5,14 @@ aliases:
   - km-all-test-pro-findings
 created_by: Bjørn Stabell
 created_at: 2026-04-10T05:56:57Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.test-pro-findings
+    depends_on_id: km-all.test-system
+    type: parent-child
+    created_at: 2026-04-15T12:25:10Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Pro review findings — semantic model, differential tests, generated sequences, matchers @km/all #task #P1

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:5f0aee02
 created_at: 2026-02-18T10:18:23Z
 closed_at: 2026-02-19T06:57:23Z
+owner: bjorn@stabell.org
+assignee: claude:36393b5d
 ---
 
 # [x] Navigation keys captured as text input on card title — data corruption @km/tui #bug #P1 @claude:36393b5d

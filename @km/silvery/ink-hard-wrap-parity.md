@@ -6,6 +6,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-09T20:12:24Z
 closed_at: 2026-04-09T23:34:25Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Match Ink's hard-wrap truncation formula (1 edge case) @km/silvery #feature #P3

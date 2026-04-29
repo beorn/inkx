@@ -6,6 +6,7 @@ aliases:
 created_by: claude:97217d5d
 created_at: 2026-02-16T23:11:14Z
 closed_at: 2026-02-17T00:53:56Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Text typed during inline edit doesn't display (but saves on Enter) @km/tui #bug #P1

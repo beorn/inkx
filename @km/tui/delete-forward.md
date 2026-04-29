@@ -6,6 +6,8 @@ aliases:
 created_by: claude:22727d86
 created_at: 2026-02-16T10:50:14Z
 closed_at: 2026-02-16T10:55:46Z
+owner: bjorn@stabell.org
+assignee: claude:22727d86
 ---
 
 # [x] Delete key: forward delete with merge-with-next at boundary @km/tui #feature #P2 @claude:22727d86

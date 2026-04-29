@@ -9,6 +9,7 @@ closed_at: 2026-03-28T07:39:11Z
 close_reason: "KILLED: DRY audit folded into each phase's /complete. 'Phase N
   will handle cleanup' NEVER HAPPENS (refactoring.md Case Study 5). Each phase
   audits its own blast radius."
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 6: Codebase-wide DRY audit — migrate all code to use new interfaces @km/core #task #P3

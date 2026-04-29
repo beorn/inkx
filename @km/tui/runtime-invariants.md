@@ -5,6 +5,7 @@ aliases:
   - km-tui-runtime-invariants
 created_by: Bjørn Stabell
 created_at: 2026-04-01T05:48:06Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Add runtime invariant checks after every action — crash on corrupt state @km/tui #task #P2

@@ -7,6 +7,7 @@ created_at: 2026-03-11T18:57:13Z
 closed_at: 2026-03-11T19:27:35Z
 close_reason: Already done by error-boundary agent — parseStackLine,
   cleanupPath, getCodeExcerpt moved to silvery core error-boundary.tsx
+owner: bjorn@stabell.org
 ---
 
 # [x] ink.ts: extract stack parsing utils to shared module @km/_orphan #task #P4

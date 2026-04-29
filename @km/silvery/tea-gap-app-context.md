@@ -12,6 +12,15 @@ close_reason: Landed as d5a1a548 on silvery main. New helper
   throws with configurable error message, default/custom name displayName,
   nested providers, independent contexts, TS generic inference. All 117 create
   tests pass (108 + 9 new).
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-silvery.tea-gap-app-context
+    depends_on_id: km-silvery.tea
+    type: parent-child
+    created_at: 2026-04-18T12:01:38Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] TEA gap: createAppContext<T>() helper for domain-plugin React bridge @km/silvery #task #P3 @Bjørn Stabell

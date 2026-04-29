@@ -27,6 +27,8 @@ close_reason: >-
 
 
   All 566 silvery tests pass. Docs site builds successfully.
+owner: bjorn@stabell.org
+assignee: claude:55df8ef1
 ---
 
 # [x] Unify render API: xterm.js is just another terminal adapter, not a special render function @km/silvery #task #P2 @claude:55df8ef1

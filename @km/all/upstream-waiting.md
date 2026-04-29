@@ -5,6 +5,7 @@ aliases:
   - km-all-upstream-waiting
 created_by: claude:cc081a9a
 created_at: 2026-04-27T05:46:33Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] [epic] Upstream-blocked items — review monthly @km/all #feature #P3

@@ -8,6 +8,7 @@ created_at: 2026-03-15T07:21:15Z
 closed_at: 2026-03-19T16:43:58Z
 close_reason: "Grooming: empty epic with 0 children, no defined scope. Recreate
   with actual tasks when work materializes."
+owner: bjorn@stabell.org
 ---
 
 # [x] Close @silvery/web platform gap: abstract model must cover web capabilities @km/silvery #epic #P3

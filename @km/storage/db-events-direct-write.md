@@ -8,6 +8,7 @@ created_at: 2026-03-31T21:31:15Z
 closed_at: 2026-03-31T21:43:24Z
 close_reason: "Fixed: removed all direct Bun.write() from db-events.ts. Task
   events now flow through SyncManager/FsWriter. No more racing write paths."
+owner: bjorn@stabell.org
 ---
 
 # [x] P0: db-events.ts direct FS writes bypass sync pipeline @km/storage #bug #P0

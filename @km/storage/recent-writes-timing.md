@@ -8,6 +8,8 @@ created_at: 2026-04-01T06:11:06Z
 closed_at: 2026-04-02T20:57:03Z
 close_reason: "Fixed: recentWrites replaced with WriteTokenMap content-hash
   based ownership. No more timestamp window. Commits d044d1d8..30bb85ec."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] recentWrites anchored to queue time, not write time; many paths bypass it @km/storage #bug #P1 @Bjørn Stabell

@@ -5,6 +5,7 @@ aliases:
   - km-termless-contour
 created_by: claude:8fc35754
 created_at: 2026-03-03T08:27:55Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Contour backend via C++ terminal core @km/termless #task #P4

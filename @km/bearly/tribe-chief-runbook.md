@@ -9,6 +9,8 @@ closed_at: 2026-03-26T16:48:16Z
 close_reason: Runbook created, noise fix landed (dedup + cursor recovery),
   message format rules in MCP instructions, sync protocol updated, all committed
   and pushed
+owner: bjorn@stabell.org
+assignee: claude:19080504
 ---
 
 # [x] Tribe chief runbook: noise, readability, health checks, auto-reload @km/bearly #feature #P1 @claude:19080504

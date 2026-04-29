@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-sterling-token-migration
 created_by: claude:2405c72e
 created_at: 2026-04-28T22:15:59Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.sterling-token-migration
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T15:15:58Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] Migrate silvercode legacy tokens to Sterling flat tokens @km/silvercode #task #P2 #design #sterling

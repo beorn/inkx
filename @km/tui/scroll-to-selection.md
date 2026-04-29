@@ -6,6 +6,7 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-18T23:42:53Z
 closed_at: 2026-02-19T07:19:12Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Scroll to selected card after zoom (card may be off-screen) @km/tui #bug #P2

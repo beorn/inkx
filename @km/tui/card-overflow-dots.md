@@ -6,6 +6,7 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T21:52:58Z
 closed_at: 2026-02-14T22:16:09Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Card overflow: single ... indicator at end of card @km/tui #feature #P3

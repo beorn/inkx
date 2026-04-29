@@ -8,6 +8,7 @@ created_at: 2026-04-05T15:45:30Z
 closed_at: 2026-04-05T17:49:04Z
 close_reason: "Exploration complete: per-node computeds rejected. Current
   architecture is already optimal for km's tree sizes. See design doc."
+owner: bjorn@stabell.org
 ---
 
 # [x] Exploration: per-node view computeds (GPT-5.4 pattern) @km/tui #task #P4

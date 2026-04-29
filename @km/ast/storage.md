@@ -6,6 +6,7 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-14T00:10:54Z
 closed_at: 2026-02-14T00:59:41Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Update storage schema and queries for km-ast types @km/ast #task #P1

@@ -8,6 +8,7 @@ created_at: 2026-03-31T21:31:21Z
 closed_at: 2026-03-31T21:43:26Z
 close_reason: "Fixed: node_moved now includes old_parent_id and regenerates both
   source and destination files."
+owner: bjorn@stabell.org
 ---
 
 # [x] P0: cross-file node_moved only rewrites destination file @km/storage #bug #P0

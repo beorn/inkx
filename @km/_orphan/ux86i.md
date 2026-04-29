@@ -5,6 +5,8 @@ aliases:
 created_by: claude:b509d761
 created_at: 2026-02-10T12:11:04Z
 closed_at: 2026-02-18T08:14:06Z
+owner: bjorn@stabell.org
+assignee: claude:5f0aee02
 ---
 
 # [x] Instrumented layout mode: debug flag for fingerprint/cache tracing @km/_orphan #task #P3 @claude:5f0aee02

@@ -5,6 +5,14 @@ aliases:
   - km-silvery-tea-apply-helpers
 created_by: claude:8b5b9e1c
 created_at: 2026-04-21T06:12:43Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.tea-apply-helpers
+    depends_on_id: km-silvery.tea
+    type: parent-child
+    created_at: 2026-04-20T23:12:43Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [ ] ApplyResult helpers: passThrough / consumed() to avoid [] vs false footgun @km/silvery #task #P2

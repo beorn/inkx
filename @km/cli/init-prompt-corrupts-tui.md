@@ -8,6 +8,8 @@ created_at: 2026-04-22T18:58:53Z
 closed_at: 2026-04-22T20:11:12Z
 close_reason: superseded by km-silvery.layout-churn-leaks-pixels (root cause is
   silvery pipeline, not km-cli)
+owner: bjorn@stabell.org
+assignee: claude:019d032d
 ---
 
 # [x] Init-prompt path corrupts TUI rendering: broken borders, leaked chars, full-height scroll indicators @km/cli #bug #P0 @claude:019d032d

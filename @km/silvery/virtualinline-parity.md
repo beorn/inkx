@@ -5,6 +5,7 @@ aliases:
   - km-silvery-virtualinline-parity
 created_by: Bjørn Stabell
 created_at: 2026-04-03T05:59:22Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] altInline — seamless alt-screen rendering with zero-config defaults @km/silvery #epic #P1

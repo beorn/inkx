@@ -5,6 +5,7 @@ aliases:
   - km-all-align-vendor-deps
 created_by: Bjørn Stabell
 created_at: 2026-04-16T21:29:19Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Align vendor/* dep versions with km root (vitest, @types, playwright, yaml) @km/all #task #P3

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:97b8de73
 created_at: 2026-02-23T00:30:36Z
 closed_at: 2026-02-23T12:38:33Z
+owner: bjorn@stabell.org
+assignee: claude:97b8de73
 ---
 
 # [x] Don't import activities into DB - just adds clutter @km/storage #feature #P2 @claude:97b8de73

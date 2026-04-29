@@ -5,6 +5,7 @@ aliases:
   - km-silvery-cursor-visibility
 created_by: Bjørn Stabell
 created_at: 2026-04-01T07:28:32Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Test cursor visibility via termless (DECTCEM) @km/silvery #task #P3

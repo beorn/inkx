@@ -15,6 +15,16 @@ close_reason: Six refinements landed at vendor/silvery d28ae1d2 + km bump
   broader silvery features tests no new failures (1695 pass, 26 pre-existing
   baseline failures). silvercode message-wrap-truncation + markdown regression
   tests still pass.
+started_at: 2026-04-25T19:05:29Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvery.listview-refinements
+    depends_on_id: km-silvery.view-as-layout-output
+    type: parent-child
+    created_at: 2026-04-25T09:14:28Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] ListView height-independence: row-budget, width-keyed cache, scroll spacers, escape hatch @km/silvery #feature #P1 @claude:2405c72e

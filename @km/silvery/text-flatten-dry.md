@@ -11,6 +11,7 @@ close_reason: "Deferred: 4 simple collectTextContent variants + 1 complex
   (partial fix in measure-fit-gaps). Full consolidation needs a shared
   collectTextContent with transform support exported from a utils module.
   Mechanical but touches measure/render/adapter."
+owner: bjorn@stabell.org
 ---
 
 # [x] DRY: Text flattening logic duplicated 5x and drifting @km/silvery #task #P2

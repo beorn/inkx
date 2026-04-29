@@ -31,6 +31,8 @@ close_reason: >-
 
   15/15 mouse-click tests pass. km-tui suite 1596/1605 (only pre-existing
   symlink flake).
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Clicking column empty space below last card should deselect, not select column @km/tui #bug #P2 @Bjørn Stabell

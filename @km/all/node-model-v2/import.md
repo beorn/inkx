@@ -6,6 +6,7 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T01:25:53Z
 closed_at: 2026-02-19T06:57:54Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Import: Asana tasks as oi, reconvert, attachment timestamps @km/all #task #P2

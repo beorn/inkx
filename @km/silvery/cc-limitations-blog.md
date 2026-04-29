@@ -5,6 +5,14 @@ aliases:
   - km-silvery-cc-limitations-blog
 created_by: Bjørn Stabell
 created_at: 2026-04-16T19:06:21Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.cc-limitations-blog
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-16T12:06:38Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Track Claude Code limitations for silvery blog post @km/silvery #task #P3

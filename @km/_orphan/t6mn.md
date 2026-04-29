@@ -4,6 +4,7 @@ aliases:
   - km-t6mn
 created_at: 2026-01-24T22:27:49Z
 closed_at: 2026-01-24T22:53:53Z
+assignee: claude-1769322905
 ---
 
 # [x] km view creates unexpected .km file in vault root @km/_orphan #bug #P2 @claude-1769322905

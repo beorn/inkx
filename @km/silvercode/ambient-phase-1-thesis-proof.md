@@ -44,6 +44,16 @@ close_reason: >-
     - docs/ambient-thesis-proof-2026-04-27.md (commit daef3abea)
 
   Cost: ≈$3-5 across 600 trials.
+started_at: 2026-04-27T20:23:14Z
+owner: bjorn@stabell.org
+assignee: claude:4de4a3ab
+dependencies:
+  - issue_id: km-silvercode.ambient-phase-1-thesis-proof
+    depends_on_id: km-silvercode.ambient-context-excellence
+    type: parent-child
+    created_at: 2026-04-27T13:23:14Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [x] Phase 1: empirical proof of boundary thesis on Anthropic (A vs B) @km/silvercode #task #P0 @claude:4de4a3ab

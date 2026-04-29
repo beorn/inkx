@@ -6,6 +6,7 @@ aliases:
 created_by: claude:ee8efc0f
 created_at: 2026-02-23T00:33:12Z
 closed_at: 2026-02-23T01:50:47Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Live docs site: xterm.js + canvas example viewer @km/inkx #feature #P3

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-20T22:54:20Z
 closed_at: 2026-02-21T08:42:03Z
+owner: bjorn@stabell.org
+assignee: claude:4c413aae
 ---
 
 # [x] Asana import v2: markdown quality fixes @km/storage #task #P2 @claude:4c413aae

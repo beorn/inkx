@@ -5,6 +5,14 @@ aliases:
   - km-silvery-tea-state-delta-convention
 created_by: claude:8b5b9e1c
 created_at: 2026-04-21T06:12:44Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.tea-state-delta-convention
+    depends_on_id: km-silvery.tea
+    type: parent-child
+    created_at: 2026-04-20T23:12:44Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [ ] state_delta effect convention: undo + storage visibility @km/silvery #feature #P1

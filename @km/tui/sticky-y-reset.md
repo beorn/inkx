@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T23:51:08Z
 closed_at: 2026-02-15T00:00:53Z
+owner: bjorn@stabell.org
+assignee: claude:a5c7f7de
 ---
 
 # [x] Non-successful cursor action at board level should reset stickyY @km/tui #bug #P3 @claude:a5c7f7de

@@ -5,6 +5,7 @@ aliases:
 created_by: claude:d1f60fb4
 created_at: 2026-02-27T10:32:23Z
 closed_at: 2026-02-27T10:37:43Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Add process.exit(0) to all inkx examples @km/_orphan #task #P2

@@ -8,6 +8,8 @@ closed_at: 2026-03-18T19:32:06Z
 close_reason: "Fixed: added getNavigableChildren() that filters index files from
   navigation. Changed 4 call sites in view-navigation.ts + initial cursor in
   state.ts. 7 tests added."
+owner: bjorn@stabell.org
+assignee: claude:d29abbfa
 ---
 
 # [x] Bug: early-orbit/.md column + ghost cursor on j navigation @km/_orphan #bug #P1 @claude:d29abbfa

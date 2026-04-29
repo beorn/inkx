@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-bounded-scroll-cap-tuning
 created_by: claude:2405c72e
 created_at: 2026-04-28T22:17:28Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.bounded-scroll-cap-tuning
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T15:17:31Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] BoundedScroll: 30-row default — calibrate cap per disclosure type @km/silvercode #task #P3 #design

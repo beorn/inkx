@@ -4,6 +4,7 @@ aliases:
   - km-flexx-foss-export
 created_at: 2026-01-31T16:00:25Z
 closed_at: 2026-01-31T16:08:35Z
+assignee: claude:b8b4780b
 ---
 
 # [x] FOSS publication: export only zero-alloc @km/_orphan #task #P0 @claude:b8b4780b

@@ -14,6 +14,21 @@ close_reason: Shipped in vendor/silvery commit bfc017a5. Pruned
   aligned. Paired with km-silvery.sterling-derivation-adaptive (dce80b83).
   sterling-2d-release forward-blocks are for the 0.19.0 release cut — this bead
   was a prerequisite, unblocking it is correct.
+owner: bjorn@stabell.org
+assignee: claude:4274df30
+dependencies:
+  - issue_id: km-silvery.sterling-prune-state-variants
+    depends_on_id: km-silvery.sterling-2d-release
+    type: blocks
+    created_at: 2026-04-19T20:18:05Z
+    created_by: claude:4274df30
+    metadata: "{}"
+  - issue_id: km-silvery.sterling-prune-state-variants
+    depends_on_id: km-silvery.theme-v4
+    type: parent-child
+    created_at: 2026-04-19T20:18:04Z
+    created_by: claude:4274df30
+    metadata: "{}"
 ---
 
 # [x] Sterling: prune meaningless fg.hover / fg.active variants (design-system grammar) @km/silvery #feature #P2 @claude:4274df30

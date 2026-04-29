@@ -8,6 +8,7 @@ closed_at: 2026-03-17T20:28:01Z
 close_reason: "6 fuzz tests covering index file chaos: random child ops,
   priority cascade, body preservation, concurrent edits, same-name convention,
   deep nesting."
+owner: bjorn@stabell.org
 ---
 
 # [x] Index-file-aware chaos/fuzz tests @km/_orphan #task #P4

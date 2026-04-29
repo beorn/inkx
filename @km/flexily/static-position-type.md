@@ -11,6 +11,7 @@ close_reason: "Fixed: POSITION_TYPE_STATIC no longer applies position insets
   1254) and classic/layout.ts (lines 531, 1268) to only check
   POSITION_TYPE_RELATIVE. Test: vendor/flexily/tests/css-spec-fixes.test.ts (4
   tests)"
+owner: bjorn@stabell.org
 ---
 
 # [x] Bug: POSITION_TYPE_STATIC applies offsets like relative — should ignore insets @km/flexily #bug #P0

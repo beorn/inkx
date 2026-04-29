@@ -9,6 +9,7 @@ closed_at: 2026-03-09T23:48:59Z
 close_reason: "Already implemented: Decoration, DecorationStyle,
   splitIntoSegments, createSearchDecorations, adjustDecorations in
   packages/tea/src/text-decorations.ts. Barrel export added. 25 tests pass."
+owner: bjorn@stabell.org
 ---
 
 # [x] Text decorations API (SlateJS-style ranges) for search highlighting @km/silvery #feature #P3

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T13:21:50Z
 closed_at: 2026-02-25T13:58:51Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] OSC 0/2: set window/icon title @km/inkx #feature #P2 @claude:d697f216

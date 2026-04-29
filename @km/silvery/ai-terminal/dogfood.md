@@ -5,6 +5,14 @@ aliases:
   - km-silvery-ai-terminal-dogfood
 created_by: claude:c56dc5d6
 created_at: 2026-04-24T07:20:07Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.ai-terminal.dogfood
+    depends_on_id: km-silvery.ai-terminal
+    type: parent-child
+    created_at: 2026-04-24T00:20:07Z
+    created_by: claude:c56dc5d6
+    metadata: "{}"
 ---
 
 # [ ] Dogfood vehicle — silvery eats its own building blocks (interactive terminal + ai-repl) @km/silvery #feature #P2

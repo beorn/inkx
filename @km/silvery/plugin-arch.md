@@ -8,6 +8,8 @@ created_at: 2026-03-10T07:34:49Z
 closed_at: 2026-03-10T15:36:57Z
 close_reason: Design doc created at docs/design/plugin-architecture.md.
   Composable Plugin = (el) => el pattern, three implementation phases defined.
+owner: bjorn@stabell.org
+assignee: claude:55df8ef1
 ---
 
 # [x] Plugin architecture: withReact() + withInk() composable pattern @km/silvery #task #P2 @claude:55df8ef1

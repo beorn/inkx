@@ -6,6 +6,8 @@ aliases:
 created_by: claude:bca35d62
 created_at: 2026-02-11T16:42:49Z
 closed_at: 2026-02-11T17:47:09Z
+owner: bjorn@stabell.org
+assignee: claude:9b6678d0
 ---
 
 # [x] DRY mutation pipeline: single consistent path for all callers @km/storage #task #P2 @claude:9b6678d0

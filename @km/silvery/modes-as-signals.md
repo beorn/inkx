@@ -11,6 +11,14 @@ close_reason: Shipped silvery 7b9c5da7 + km bump 854ac2afb. term.modes now
   rawMode/altScreen/bracketedPaste/kittyKeyboard/mouse/focusReporting signals).
   Internal effects emit ANSI on change. All 39/39 silvery runtime+modes tests
   pass, km-tui 2511/2511 pass, tsc 0 non-vendor errors.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.modes-as-signals
+    depends_on_id: km-silvery.term-sub-owners
+    type: parent-child
+    created_at: 2026-04-22T15:01:58Z
+    created_by: claude:019d032d
+    metadata: "{}"
 ---
 
 # [x] term.modes: expose alien-signals as public API, drop set* methods @km/silvery #task #P1

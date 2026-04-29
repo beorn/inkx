@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-02T20:46:24Z
 closed_at: 2026-04-03T00:40:24Z
 close_reason: All phases shipped. withSync(config)(repo) decorator pattern. 10 commits total.
+owner: bjorn@stabell.org
 ---
 
 # [x] [epic] Sync module refactor — class to factory, dedup, extract heartbeat+bulk @km/storage #epic #P2

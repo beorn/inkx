@@ -5,6 +5,14 @@ aliases:
   - km-all-sterling
 created_by: claude:5e447b66
 created_at: 2026-04-24T23:12:15Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.sterling
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-24T16:12:19Z
+    created_by: claude:5e447b66
+    metadata: "{}"
 ---
 
 # [ ] Sterling design system — tracking epic @km/all #task #P1

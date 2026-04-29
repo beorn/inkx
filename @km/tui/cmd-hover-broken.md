@@ -10,6 +10,7 @@ close_reason: "Fixed: replaced useModifierKeys (requires Kitty REPORT_ALL_KEYS
   which breaks hover) with mouse event metaKey tracking. Cmd state is now
   detected from onMouseEnter/onMouseMove e.metaKey — works with standard mouse
   mode 1003. Cmd+hover shows popover, Cmd+click zooms to target."
+owner: bjorn@stabell.org
 ---
 
 # [x] Cmd+hover detail popup not working — bead closed prematurely @km/tui #bug #P2

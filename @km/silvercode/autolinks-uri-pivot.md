@@ -13,6 +13,16 @@ close_reason: Implemented internal URI dispatch in d30140205. URI parsing of
   doctor introspects registered schemes + per-rule bindings. v1 user-facing
   schema unchanged (78+39 = 134 tests pass, baseline tsc 184 errors preserved).
   v2 [[handlers]] config block deferred.
+started_at: 2026-04-25T22:36:31Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.autolinks-uri-pivot
+    depends_on_id: km-silvercode.autolinks-config
+    type: parent-child
+    created_at: 2026-04-25T08:38:11Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Autolinks: URI-scheme pivot — pattern→URI linkifier + URI→preview handler dispatch @km/silvercode #feature #P3 @claude:2405c72e

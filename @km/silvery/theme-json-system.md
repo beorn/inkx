@@ -13,6 +13,14 @@ close_reason: Redundant — @silvery/theme already ships 50 built-in schemes
   without checking current implementation. If a published .json schema for
   external *.theme.json editing is wanted later, it's a 30-line follow-up not
   worth a P1 bead.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-json-system
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-26T08:37:51Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] silvery theme JSON Schema + 5-10 starter themes @km/silvery #feature #P1

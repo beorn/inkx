@@ -10,6 +10,26 @@ close_reason: Duplicate of km-tribe.recall-thought (Tier 3 sub-agent — same
   concept, exists since 2026-04-27). Folded eval-gate clarification + 40%
   per-thread overlap floor into recall-thought notes + added dep on
   recall-eval-corpus. This bead's framing was redundant.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.recall-compiled-state
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-27T23:34:07Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
+  - issue_id: km-tribe.recall-compiled-state
+    depends_on_id: km-tribe.recall-eval-corpus
+    type: blocks
+    created_at: 2026-04-27T23:34:06Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
+  - issue_id: km-tribe.recall-compiled-state
+    depends_on_id: km-tribe.recall-salience-trigger
+    type: blocks
+    created_at: 2026-04-27T23:34:06Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [x] Compiled-state sub-agent for multi-turn retrieval caching @km/tribe #feature #P3

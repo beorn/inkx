@@ -14,6 +14,7 @@ close_reason: "Legacy pipeline deleted: viewNodeToColumnViews=0,
   (InitialBoardData — runs once at startup), test harness
   (testing.ts/driver.ts), and detail-mode cursor derivation. Live rendering
   pipeline is fully tree-based."
+owner: bjorn@stabell.org
 ---
 
 # [x] Delete legacy pipeline: CardView, ColumnView, viewNodeToColumnViews, buildViewTree, ViewSnapshot @km/tui #task #P2

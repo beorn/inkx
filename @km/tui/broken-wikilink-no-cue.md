@@ -9,6 +9,8 @@ closed_at: 2026-04-07T01:16:19Z
 close_reason: "Fixed in 47a7945ab: unresolved wikilinks render with $error fg +
   dashed underline in $error. Hover popover preserved. Test in
   inline-rendering.test.ts 'broken wikilink rendering'."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] Broken wikilinks have no visual cue — look like normal text @km/tui #bug #P2 @Bjørn Stabell

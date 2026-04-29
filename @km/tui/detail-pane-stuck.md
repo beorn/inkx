@@ -6,6 +6,7 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-20T07:43:27Z
 closed_at: 2026-02-20T08:10:43Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Detail pane cannot be closed after opening on link node @km/tui #bug #P1

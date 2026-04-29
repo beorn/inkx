@@ -4,6 +4,7 @@ aliases:
   - km-chore-add-to-new
 created_at: 2026-01-27T09:19:27Z
 closed_at: 2026-01-27T09:27:59Z
+assignee: beorn
 ---
 
 # [x] Rename 'add' to 'new' for creating objects (not linking) @km/_orphan #chore #P2 @beorn

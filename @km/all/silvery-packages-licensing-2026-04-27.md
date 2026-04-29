@@ -5,6 +5,14 @@ aliases:
   - km-all-silvery-packages-licensing-2026-04-27
 created_by: claude:618d206c
 created_at: 2026-04-28T04:44:34Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.silvery-packages-licensing-2026-04-27
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-27T21:44:51Z
+    created_by: claude:618d206c
+    metadata: "{}"
 ---
 
 # [ ] Per-package licensing analysis: silvery + terminfo + termless + 60 others @km/all #task #P2

@@ -6,6 +6,7 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-26T12:55:06Z
 closed_at: 2026-03-01T07:58:24Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Refactor inkx: eliminate module-level globals, pass config through create* factory functions @km/inkx #task #P2

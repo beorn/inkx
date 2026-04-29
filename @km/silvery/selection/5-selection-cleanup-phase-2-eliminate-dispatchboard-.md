@@ -7,6 +7,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-04T23:05:03Z
 closed_at: 2026-04-04T23:05:20Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Selection cleanup Phase 2 — eliminate dispatchBoard SELECT + cursorNodeId write path @km/silvery #task #P1

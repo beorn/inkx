@@ -8,6 +8,8 @@ created_at: 2026-04-09T06:45:51Z
 closed_at: 2026-04-15T19:24:55Z
 close_reason: "Grooming 2026-04-15: duplicate of km-all.test-system.p2-migrate.
   Work tracked there."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Migrate ALL existing slow tests to createTestApp() @km/all #task #P0 @Bjørn Stabell

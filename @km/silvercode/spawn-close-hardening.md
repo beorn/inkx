@@ -9,6 +9,16 @@ closed_at: 2026-04-26T21:55:13Z
 close_reason: "Shipped: AsyncDisposable + sentTerm + exitPromise + 10s SIGKILL
   fallback. 6 new tests in spawn-close.test.ts. 155/155 agent-harness suite
   passing."
+started_at: 2026-04-26T21:34:55Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.spawn-close-hardening
+    depends_on_id: km-silvercode.process-mgmt
+    type: parent-child
+    created_at: 2026-04-26T14:08:34Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] spawn factories return native AsyncDisposable; gracefulKillTree() helper @km/silvercode #bug #P1 @claude:2405c72e

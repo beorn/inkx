@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fed8de9e
 created_at: 2026-03-30T03:47:56Z
 closed_at: 2026-03-31T01:25:35Z
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] TextLayoutService + Pretext (v0.5): proportional text on canvas @km/silvery #task #P2 @claude:fed8de9e

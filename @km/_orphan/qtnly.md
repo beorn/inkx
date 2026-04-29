@@ -7,6 +7,7 @@ created_at: 2026-03-13T02:26:48Z
 closed_at: 2026-03-13T02:36:42Z
 close_reason: "Fixed: clearDirtyFlags(node) called before returning for
   hidden/display:none nodes"
+owner: bjorn@stabell.org
 ---
 
 # [x] Hidden/display:none nodes leave stale dirty flags @km/_orphan #bug #P1

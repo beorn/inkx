@@ -9,6 +9,7 @@ created_at: 2026-04-05T23:17:41Z
 closed_at: 2026-04-06T03:09:50Z
 close_reason: embed_source renamed to symlink_to across 104 files. DB schema
   updated with ALTER TABLE migration. All tests pass.
+owner: bjorn@stabell.org
 ---
 
 # [x] Rename embed_source → symlink_to across codebase @km/tui #task #P3

@@ -13,6 +13,14 @@ close_reason: "Shipped view-lens.fuzz.ts with 3 invariants: walkOrder
   where parent() returns an ancestor whose children() doesn't include the node.
   Simple paragraph+heading trees for now — embeds are a natural extension if
   another regression hits."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.view-lens-robustness
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T13:01:20Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] View-lens robustness: fuzz + downward walk guard @km/tui #task #P3

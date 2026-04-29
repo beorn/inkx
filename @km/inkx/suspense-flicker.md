@@ -5,6 +5,7 @@ aliases:
   - km-inkx-suspense-flicker
 created_at: 2026-02-05T14:36:47Z
 closed_at: 2026-02-05T14:57:31Z
+assignee: claude:ed93d0af
 ---
 
 # [x] bug(inkx): Suspense transitions cause UI flicker — committed tree not preserved @km/inkx #bug #P2 @claude:ed93d0af

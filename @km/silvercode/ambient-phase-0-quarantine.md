@@ -14,6 +14,16 @@ close_reason: "Phase 0 SHIPPED. Canonical mechanism: ~/.claude/.recall-ignore
   ~/.claude/role-prefix-incidents.log deleted; silvercode hook file confirmed
   non-existent. Pending: vendor/bearly push needs operator PR (sandbox blocked
   direct push to main)."
+started_at: 2026-04-27T20:22:04Z
+owner: bjorn@stabell.org
+assignee: claude:4de4a3ab
+dependencies:
+  - issue_id: km-silvercode.ambient-phase-0-quarantine
+    depends_on_id: km-silvercode.ambient-context-excellence
+    type: parent-child
+    created_at: 2026-04-27T13:22:04Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [x] Phase 0: forensic-content quarantine + Layer-4 cleanup @km/silvercode #task #P0 @claude:4de4a3ab

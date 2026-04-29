@@ -5,6 +5,7 @@ aliases:
   - km-silvery-frame-recorder
 created_by: Bjørn Stabell
 created_at: 2026-04-06T19:59:31Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Frame-by-frame cell-level testing — record, diff, replay render frames @km/silvery #feature #P3

@@ -5,6 +5,8 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-20T11:25:30Z
 closed_at: 2026-02-20T15:26:10Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Unified km.collapse for any node — columns, cards, sections @km/_orphan #feature #P3 @claude:d3a7049b

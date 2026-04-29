@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T14:49:06Z
 closed_at: 2026-02-19T16:17:17Z
+owner: bjorn@stabell.org
+assignee: claude:fcaad2fa
 ---
 
 # [x] Remove manual dimension calculations — use inkx/flexx layout @km/tui #task #P2 @claude:fcaad2fa

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:b509d761
 created_at: 2026-02-11T10:18:15Z
 closed_at: 2026-02-12T14:25:04Z
+owner: bjorn@stabell.org
+assignee: claude:586bad48
 ---
 
 # [x] Console component: fixed height to prevent layout cascades from debug output @km/tui #task #P3 @claude:586bad48

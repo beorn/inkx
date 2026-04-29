@@ -5,6 +5,7 @@ aliases:
   - km-infra-vite-plus
 created_by: claude:fed8de9e
 created_at: 2026-03-25T21:10:36Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Explore Vite Plus (VoidZero) as unified toolchain — keep Bun as runtime @km/infra #task #P2

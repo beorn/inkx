@@ -12,6 +12,8 @@ close_reason: "Design docs converted from spec to reference (4 files). Glossary
   terminfo.dev), and external tools. Comparison articles fixed (language, links,
   layout-first, better examples). Cross-links added (5 component pages → design
   docs). Bead references removed. Broken table fixed."
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] silvery.dev docs review: design docs as reference, glossary expansion, comparison fixes @km/market #task #P2 @claude:4929065a

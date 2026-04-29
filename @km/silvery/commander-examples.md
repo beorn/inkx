@@ -10,6 +10,7 @@ close_reason: Subsumed by km-silvery.commander-text-render. The new default text
   renderer generalizes $ console-block detection across all sections, making
   addExamples() unnecessary as a separate API — addHelpSection('Examples:', ...)
   gets the same styling automatically.
+owner: bjorn@stabell.org
 ---
 
 # [x] @silvery/commander: addExamples() method with auto-colorized command lines @km/silvery #feature #P3

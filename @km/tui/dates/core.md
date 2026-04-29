@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fb2a14c0
 created_at: 2026-02-12T23:06:23Z
 closed_at: 2026-02-12T23:17:40Z
+owner: bjorn@stabell.org
+assignee: claude:fb2a14c0
 ---
 
 # [x] Core infrastructure: recurrence, date resolver, markdown, GTD templates @km/tui #task #P2 @claude:fb2a14c0

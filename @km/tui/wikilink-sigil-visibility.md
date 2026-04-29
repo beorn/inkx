@@ -11,6 +11,8 @@ close_reason: "Shipped in 776ba959d: wikilinks colored $link at rest, sigils
   normalization asymmetry filed separately as
   km-storage.link-resolution-ambiguity and fixed by normalizeNodeName in
   4caab6f5b."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Make wikilinks visible at rest + sigils navigable @km/tui #bug #P2 @Bjørn Stabell

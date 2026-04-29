@@ -5,6 +5,7 @@ aliases:
   - km-tui-tree-v4-p10-columns
 created_by: Bjørn Stabell
 created_at: 2026-04-09T04:11:33Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Phase 10: Delete @deprecated ColumnView + useColumns legacy wrapper @km/tui #task #P3

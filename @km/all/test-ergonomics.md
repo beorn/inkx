@@ -10,6 +10,7 @@ close_reason: "Grooming 2026-04-15: vision absorbed into km-all.test-system
   (which has active phase children and is in_progress).
   Snapshot/DSL/record-replay phases (2-4) remain tracked in test-system
   description."
+owner: bjorn@stabell.org
 ---
 
 # [x] Test ergonomics — make tests efficient, authoring-cheap, refactor-proof @km/all #epic #P0

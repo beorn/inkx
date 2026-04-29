@@ -9,6 +9,15 @@ closed_at: 2026-04-20T18:31:41Z
 close_reason: Shipped at vendor/silvery 917e7e9a. Button accepts tone prop
   mapping to Sterling flat tokens. destructive alias of error at component layer
   (D1). 10 new tests. Storybook IntentDemo refactored to use real Button.
+owner: bjorn@stabell.org
+assignee: claude:4274df30
+dependencies:
+  - issue_id: km-silvery.ui-button-tone
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-19T20:58:02Z
+    created_by: claude:4274df30
+    metadata: "{}"
 ---
 
 # [x] @silvery/ui: Button — add tone prop (error/warning/success/info/accent/destructive) @km/silvery #feature #P3 @claude:4274df30

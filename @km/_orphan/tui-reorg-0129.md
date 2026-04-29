@@ -4,6 +4,7 @@ aliases:
   - km-tui-reorg-0129
 created_at: 2026-01-29T18:20:44Z
 closed_at: 2026-01-29T18:33:12Z
+assignee: claude:298008b9
 ---
 
 # [x] Reorganize km-tui src/ into board/, keyboard/, handlers/ subdirectories @km/_orphan #task #P1 @claude:298008b9

@@ -7,6 +7,8 @@ created_by: claude:65d845d9
 created_at: 2026-03-13T17:29:56Z
 closed_at: 2026-03-14T23:45:44Z
 close_reason: Implemented and committed in silvery 5b25c8f + termless 3887c47
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] SILVERY_STRICT_TERMINAL: buffer-vs-backend cell comparison invariant @km/silvery #task #P1 @claude:c9beade3

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:0087e729
 created_at: 2026-02-11T17:32:40Z
 closed_at: 2026-02-11T22:50:04Z
+owner: bjorn@stabell.org
+assignee: claude:2f3fc9d8
 ---
 
 # [x] Inline mode rendering corruption when switching sections (storybook) @km/inkx #bug #P2 @claude:2f3fc9d8

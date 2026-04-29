@@ -8,6 +8,8 @@ created_at: 2026-04-02T00:00:16Z
 closed_at: 2026-04-02T03:49:21Z
 close_reason: docs/architecture.md replaced with v2 content (commit 53c127e6).
   271 lines, ViewNode, building blocks, flows, composition model.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Concise architecture synthesis doc (km + silvery reference) @km/all #task #P2 @Bjørn Stabell

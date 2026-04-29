@@ -12,6 +12,14 @@ close_reason: Implemented in cacf304d7. Schema migrated string→{exec,args};
   ANSI/CSI/OSC/DCS/PM/APC/SOS/C0-controls/DEL — defense-in-depth even when
   TERM=dumb is ignored. 23 new tests across config + previews + sanitizer; 78/78
   autolinks tests green.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.shell-preview-argv-security
+    depends_on_id: km-silvercode.autolinks-config
+    type: parent-child
+    created_at: 2026-04-25T09:13:30Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] shell preview kind: argv form + ANSI sanitization (security) @km/silvercode #bug #P0

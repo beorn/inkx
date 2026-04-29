@@ -5,6 +5,14 @@ aliases:
   - km-silvery-test-handletabcycling-default
 created_by: claude:cc081a9a
 created_at: 2026-04-27T05:46:04Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.test-handletabcycling-default
+    depends_on_id: km-infra.guardrails
+    type: parent-child
+    created_at: 2026-04-26T23:18:26Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] Default handleTabCycling: false in run() options for tests @km/silvery #task #P4

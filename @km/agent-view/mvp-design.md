@@ -9,6 +9,14 @@ closed_at: 2026-04-23T08:00:06Z
 close_reason: "v0 shipped in commits 35caec8d0 (feat exports), 4216d4c5d
   (silvery bump), 3eb59bdd0 (style format). 6/6 tests green. Follow-ons:
   km-silvery.listview-flex-sibling, km-silvery.docs-flex-content-width."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-agent-view.mvp-design
+    depends_on_id: km-agent-view
+    type: parent-child
+    created_at: 2026-04-22T23:13:35Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] MVP design: iMessage-style chat view, progressive disclosure, pill clustering @km/agent-view #feature #P1

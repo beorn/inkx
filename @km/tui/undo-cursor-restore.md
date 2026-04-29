@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T22:44:23Z
 closed_at: 2026-02-14T22:50:26Z
+owner: bjorn@stabell.org
+assignee: claude:a5c7f7de
 ---
 
 # [x] Undo after duplicate moves cursor to root instead of preserving position @km/tui #bug #P2 @claude:a5c7f7de

@@ -6,6 +6,7 @@ aliases:
   - "@km/rev-0203/1"
 created_at: 2026-02-03T15:13:09Z
 closed_at: 2026-02-03T15:24:42Z
+assignee: claude:da8e4a66
 ---
 
 # [x] Clean up unused exports from knip (117 exports, 132 types) @km/rev-0203 #task #P3 @claude:da8e4a66

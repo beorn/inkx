@@ -6,6 +6,8 @@ aliases:
 created_by: claude:e719173f
 created_at: 2026-03-04T13:07:17Z
 closed_at: 2026-03-04T16:26:18Z
+owner: bjorn@stabell.org
+assignee: claude:fbad9cb1
 ---
 
 # [x] Vision: @beorn/logger as universal logging replacement @km/logger #feature #P2 @claude:fbad9cb1

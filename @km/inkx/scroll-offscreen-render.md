@@ -6,6 +6,8 @@ aliases:
 created_by: claude:5f0aee02
 created_at: 2026-02-18T08:25:26Z
 closed_at: 2026-02-19T08:58:53Z
+owner: bjorn@stabell.org
+assignee: claude:36393b5d
 ---
 
 # [x] Scroll container: off-screen content renders blank when scrolled into view @km/inkx #bug #P3 @claude:36393b5d

@@ -10,6 +10,14 @@ close_reason: Moved out of beads (2026-04-23). Speculative brainstorming, not
   roadmap — docs at hub/silvery/future/ai-terminal/. Revisit after km + silvery
   1.0 ship, or when a concrete trigger emerges (showcase demo needs panes,
   CAP-adjacent opportunity, etc.).
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.multiplex
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T19:38:47Z
+    created_by: claude:6443387f
+    metadata: "{}"
 ---
 
 # [x] Silvery multiplex: tmux-shape primitives as components, not an app @km/silvery #feature #P4

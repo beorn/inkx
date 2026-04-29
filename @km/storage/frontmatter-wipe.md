@@ -38,6 +38,8 @@ close_reason: |-
   Verification: bun fix clean on touched files; bun vitest run
   packages/km-storage packages/km-markdown (1783 + 51) + --project slow
   (52) + apps/km-tui (2259) all pass.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] File watch wipes user-added frontmatter on task update @km/storage #bug #P1 @Bjørn Stabell

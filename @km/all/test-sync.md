@@ -9,6 +9,8 @@ closed_at: 2026-04-09T15:55:14Z
 close_reason: Implemented. createTestApp is fully synchronous. All TestApp
   methods return TestApp (not Promise). Batch-replaced ~2000 await + ~520 async
   across 38 files. Verified 43/43 pass. Commit 50dc257dc.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Question: can createTestApp be fully synchronous? @km/all #task #P0 @Bjørn Stabell

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:54aefa32
 created_at: 2026-02-18T00:35:08Z
 closed_at: 2026-02-19T18:50:42Z
+owner: bjorn@stabell.org
+assignee: claude:5f0aee02
 ---
 
 # [x] Show skeleton columns/cards with loading animation while data loads @km/tui #feature #P2 @claude:5f0aee02

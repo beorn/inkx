@@ -9,6 +9,7 @@ closed_at: 2026-03-10T06:00:02Z
 close_reason: "Enhanced existing kitty support: printability tracking, text
   field, enhanced special keys, modifier separation, expanded codepoint map. 77
   tests."
+owner: bjorn@stabell.org
 ---
 
 # [x] Kitty keyboard protocol detection and negotiation @km/silvery #feature #P2

@@ -7,6 +7,7 @@ created_at: 2026-03-27T15:57:03Z
 closed_at: 2026-03-27T15:57:08Z
 close_reason: Changed slice(0, 8) to slice(-8) in getNodeDisplayName() — shows
   random suffix instead of timestamp prefix. Tests updated.
+owner: bjorn@stabell.org
 ---
 
 # [x] Short ID fallback shows ULID timestamp prefix instead of random suffix @km/_orphan #bug #P2

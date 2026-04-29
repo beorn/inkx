@@ -13,6 +13,8 @@ close_reason: "Simplified compat render() test path from ~350 lines to ~80 lines
   combined), ANSI color conversion in renderToString helper. Compat test score:
   124/134 (92.5%). Remaining 10 failures are deeper gaps tracked in
   km-silvery.ink-compat-audit."
+owner: bjorn@stabell.org
+assignee: claude:474834b0
 ---
 
 # [x] Simplify compat render() to delegate to silvery render directly @km/silvery #task #P2 @claude:474834b0

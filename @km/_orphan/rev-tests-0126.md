@@ -4,6 +4,7 @@ aliases:
   - km-rev-tests-0126
 created_at: 2026-01-26T17:14:16Z
 closed_at: 2026-01-27T12:16:13Z
+assignee: claude:5f8fa618
 ---
 
 # [x] Test review: merge navigation tests, parameterize roundtrip, fix timing @km/_orphan #task #P2 @claude:5f8fa618

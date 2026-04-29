@@ -8,6 +8,7 @@ created_at: 2026-04-03T03:34:20Z
 closed_at: 2026-04-03T04:23:12Z
 close_reason: "All 7 phases shipped. Full SlateJS alignment: vocabulary, atomic
   cursor, normalization, operations, selection, plugins, op log."
+owner: bjorn@stabell.org
 ---
 
 # [x] [epic] SlateJS alignment — operations vocabulary, atomic cursor, normalization @km/tree #epic #P2

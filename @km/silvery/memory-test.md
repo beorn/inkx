@@ -8,6 +8,7 @@ created_at: 2026-03-09T21:49:49Z
 closed_at: 2026-03-09T23:49:06Z
 close_reason: 10 memory tests exist at tests/memory/memory.test.tsx covering
   re-render stability, mount/unmount cycles, cleanup. All pass.
+owner: bjorn@stabell.org
 ---
 
 # [x] Long-running memory test (10k+ render cycles) @km/silvery #task #P3

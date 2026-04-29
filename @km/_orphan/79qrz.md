@@ -8,6 +8,7 @@ closed_at: 2026-03-13T23:31:14Z
 close_reason: "Fixed in feat/cell-type-unification branch: all views made lazy
   (screen, scrollback, viewport, range use inner getRange()/getBase() that
   recalculate per access)"
+owner: bjorn@stabell.org
 ---
 
 # [x] termless: selectors snapshot too early, not live like Playwright locators @km/_orphan #bug #P1

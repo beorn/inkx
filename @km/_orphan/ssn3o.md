@@ -5,6 +5,7 @@ aliases:
 created_by: claude:97b8de73
 created_at: 2026-02-22T20:48:13Z
 closed_at: 2026-02-22T22:14:51Z
+owner: bjorn@stabell.org
 ---
 
 # [x] ctrl-c/ctrl-z don't work during loading or in board @km/_orphan #bug #P2

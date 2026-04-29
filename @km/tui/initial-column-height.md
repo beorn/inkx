@@ -15,6 +15,15 @@ close_reason: "Fixed in 0d1eb0188 by passing explicit cols/rows + stdout to
   only the 5 pre-existing omnibox failures remain; column-rendering md-file test
   went from failing to green. See task notification from worktree agent
   a3d0ec07a for the detailed trace of where the two reads happen."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-tui.initial-column-height
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-18T11:12:19Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Board first-render uses wrong column height — fixes on resize @km/tui #bug #P1 @Bjørn Stabell

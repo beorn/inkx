@@ -6,6 +6,7 @@ aliases:
   - "@km/remove-singletons/7"
 created_at: 2026-01-23T23:39:25Z
 closed_at: 2026-01-24T08:01:21Z
+assignee: 15d108d7
 ---
 
 # [x] Make ensureState() return store instead of using getStore() @km/remove-singletons #task #P2 @15d108d7

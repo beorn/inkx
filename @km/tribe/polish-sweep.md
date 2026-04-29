@@ -13,6 +13,14 @@ close_reason: "3 of 9 items shipped (safe subset that didn't conflict with
   skipped — grep found active READERS in
   session.ts/handlers.ts/retro.ts/tribe-cli.ts. Items 2, 3, 5, 6, 9 deferred to
   a follow-up sweep (schema-risky or conflicted with event-bus work)."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.polish-sweep
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-18T22:51:48Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] tribe: polish sweep — 8 narrow cleanups post-plateau @km/tribe #task #P4

@@ -12,6 +12,8 @@ close_reason: "Phase 3 core complete: createAg(root, { measurer }) factory
   createAg — all 4636 tests pass. 6 new tests. Caller migration to use createAg
   directly (removing executeRender) deferred to Phase 5 (plugin composition)
   where withTerm wires ag + term.paint together."
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Era2a Phase 3: ag.layout() + ag.render() — decompose pipeline @km/silvery #task #P1 @claude:fed8de9e

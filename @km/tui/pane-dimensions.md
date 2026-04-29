@@ -6,6 +6,8 @@ aliases:
 created_by: claude:28b14b32
 created_at: 2026-02-23T09:31:37Z
 closed_at: 2026-02-23T10:04:05Z
+owner: bjorn@stabell.org
+assignee: claude:28b14b32
 ---
 
 # [x] Split panes: Board uses full terminal width, second pane invisible @km/tui #bug #P2 @claude:28b14b32

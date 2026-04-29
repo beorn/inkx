@@ -7,6 +7,14 @@ created_by: claude:cc081a9a
 created_at: 2026-04-27T06:58:54Z
 closed_at: 2026-04-27T07:03:42Z
 close_reason: "fixed in 27b6fe8cd — postinstall: bun run build:info"
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.ci-build-info-gen
+    depends_on_id: km-infra.guardrails
+    type: parent-child
+    created_at: 2026-04-26T23:58:54Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] CI: km-core build-info.gen.ts missing in fuzz workflow (and any vitest run from clean install) @km/infra #bug #P2

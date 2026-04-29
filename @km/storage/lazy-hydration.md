@@ -13,6 +13,33 @@ close_reason: "Shipped: peek* now SQLite-on-demand for repo-backed stores
   (construction <50ms on 10k, peekNode median <1ms). fs-mount package extraction
   deferred as cosmetic refactor (BaseStore boundary already exists in
   practice)."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.lazy-hydration
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-21T22:30:07Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
+  - issue_id: km-storage.lazy-hydration
+    depends_on_id: km-storage.fs-mount
+    type: blocks
+    created_at: 2026-04-21T15:30:39Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
+  - issue_id: km-storage.lazy-hydration
+    depends_on_id: km-storage.identity-schema
+    type: blocks
+    created_at: 2026-04-21T21:50:02Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
+  - issue_id: km-storage.lazy-hydration
+    depends_on_id: km-storage.three-seam-boundary
+    type: blocks
+    created_at: 2026-04-21T12:05:30Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Lazy hydration (the scale fix): SQLite-on-demand queries, <500ms cold start on 100k files @km/storage #feature #P0 @claude:8b5b9e1c

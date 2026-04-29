@@ -10,6 +10,7 @@ close_reason: "Fixed: Renamed createFlexxEngine to createFlexilyEngine and
   FlexxLayoutEngine to FlexilyLayoutEngine in
   vendor/silvery/docs/guide/layout-engine.md (16 occurrences). The actual export
   from silvery is createFlexilyEngine (aliased from createFlexilyZeroEngine)."
+owner: bjorn@stabell.org
 ---
 
 # [x] Docs: Silvery integration docs reference wrong function name createFlexxEngine @km/flexily #task #P3

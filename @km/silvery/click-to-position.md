@@ -40,6 +40,8 @@ close_reason: >-
   Tests: vendor/silvery/tests/features/click-to-position.test.tsx (26 tests) -
   component rendering, useEditContext setCursorOffset, offset calculation unit
   tests, edge cases.
+owner: bjorn@stabell.org
+assignee: claude:4a5961be
 ---
 
 # [x] Click-to-position cursor in TextInput/TextArea @km/silvery #feature #P2 @claude:4a5961be

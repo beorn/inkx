@@ -10,6 +10,8 @@ close_reason: "All 3 sites already fully configured: robots.txt,
   sitemap.hostname, meta descriptions, canonical URLs, JSON-LD schemas. Manual
   step remains: user must log into Google Search Console, add properties, verify
   ownership (DNS TXT or HTML file), and submit sitemap URLs."
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] Submit all 4 sites to Google Search Console @km/market #task #P3 @claude:4929065a

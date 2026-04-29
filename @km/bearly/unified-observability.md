@@ -69,6 +69,16 @@ close_reason: >-
   packages/km-infra/scripts/check-no-raw-logging.sh enforces 'no local
   createLogger / no appendFileSync to .log/.jsonl / no _DEBUG_LOG env vars' —
   turns 'two paths can drift' into 'there is no second path'.
+started_at: 2026-04-27T17:25:31Z
+owner: bjorn@stabell.org
+assignee: claude:87d20187
+dependencies:
+  - issue_id: km-bearly.unified-observability
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-27T10:25:20Z
+    created_by: claude:87d20187
+    metadata: "{}"
 ---
 
 # [x] Unified observability — fold BG_RECALL_DEBUG_LOG + INJECTION_DEBUG_LOG into loggily namespaces @km/bearly #task #P2 @claude:87d20187

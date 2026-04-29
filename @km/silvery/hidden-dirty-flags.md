@@ -9,6 +9,7 @@ closed_at: 2026-03-13T04:51:08Z
 close_reason: "Fixed in 895190a. theme-stack-leak: try/finally around
   pushContextTheme/popContextTheme in content-phase.ts. hidden-dirty-flags:
   clearDirtyFlags() called on early return for hidden and display:none nodes."
+owner: bjorn@stabell.org
 ---
 
 # [x] Hidden/display:none nodes leak stale dirty flags — blocks future propagation @km/silvery #bug #P1

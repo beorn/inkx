@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T21:46:23Z
 closed_at: 2026-02-17T01:26:04Z
+owner: bjorn@stabell.org
+assignee: claude:97217d5d
 ---
 
 # [x] Text edit mode: arrow keys move text cursor within/across blocks, preserve stickyX @km/tui #feature #P2 @claude:97217d5d

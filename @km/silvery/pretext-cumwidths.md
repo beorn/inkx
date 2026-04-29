@@ -5,6 +5,7 @@ aliases:
   - km-silvery-pretext-cumwidths
 created_by: Bjørn Stabell
 created_at: 2026-04-10T18:53:28Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Full Pretext model: cumWidths + shrinkwrap + Knuth-Plass + novel text layout @km/silvery #feature #P3

@@ -5,6 +5,7 @@ aliases:
   - km-silvery-ag-canvas-npm-package
 created_by: Bjørn Stabell
 created_at: 2026-03-31T07:08:40Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Ship @silvery/canvas as standalone npm package @km/silvery #feature #P4

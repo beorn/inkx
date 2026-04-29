@@ -8,6 +8,8 @@ created_at: 2026-04-02T06:54:38Z
 closed_at: 2026-04-02T07:16:57Z
 close_reason: "Implemented: reader, writer, streaming writer, replay,
   bidirectional convert. 38 tests."
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] asciicast v2 format: read/write for ecosystem compatibility @km/termless #feature #P3 @claude:4929065a

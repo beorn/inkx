@@ -8,6 +8,7 @@ closed_at: 2026-04-28T02:29:34Z
 close_reason: Already fixed in commit 0be048527 (chordRef ref-mirror in
   apps/silvercode/src/App.tsx:367-372). Verified at App.tsx:850 the chord
   handler reads chordRef.current synchronously, no longer state-stale.
+owner: bjorn@stabell.org
 ---
 
 # [x] Ctrl+G chord state-stale: chord set but follow-up key inserts as text @km/_orphan #bug #P1

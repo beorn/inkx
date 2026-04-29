@@ -10,6 +10,20 @@ close_reason: Flexily native fit-content/snug-content (UNIT_FIT_CONTENT,
   UNIT_SNUG_CONTENT). 10 new tests, 1572+1215 pass. Silvery measure-phase
   simplified (correction pass now no-op). Flexily commit 4752c6f, silvery commit
   f695b6b2.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-flexily.native-fit-content
+    depends_on_id: km-silvery.layout-quality-plateau
+    type: parent-child
+    created_at: 2026-04-12T00:46:43Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-flexily.native-fit-content
+    depends_on_id: km-silvery.strict-layout-overflow
+    type: blocks
+    created_at: 2026-04-12T00:46:39Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Flexily native fit-content width mode — eliminate measure/correction passes @km/flexily #feature #P2

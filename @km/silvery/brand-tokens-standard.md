@@ -12,6 +12,14 @@ close_reason: "Shipped in v0.18.0: Theme.brand/brandHover/brandActive (app
   maps to named slots. Resolver kebab-case→camelCase aliases for $brand-hover
   etc. Renamed from $brand-<hue> → $<hue> for ergonomics; old names kept as
   @deprecated aliases."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.brand-tokens-standard
+    depends_on_id: km-silvery.theme-system-v2
+    type: parent-child
+    created_at: 2026-04-18T10:45:12Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Standard brand tokens (Apple system-color model) @km/silvery #task #P3

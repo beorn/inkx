@@ -5,6 +5,7 @@ aliases:
   - km-tui-body-trunc
 created_by: claude:ee8efc0f
 created_at: 2026-02-22T00:46:45Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Body truncation: independent from fold, hide overflow paragraphs @km/tui #feature #P3

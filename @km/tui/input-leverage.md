@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-20T14:11:46Z
 closed_at: 2026-02-20T14:49:58Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Leverage full Kitty + mouse input in km TUI @km/tui #feature #P2 @claude:d3a7049b

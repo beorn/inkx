@@ -9,6 +9,8 @@ closed_at: 2026-03-13T17:05:08Z
 close_reason: "GPT 5.4 Pro re-review complete. 1 P0, 9 P1, 4 P2 found. Beads
   created for P0+P1s: reentrant corruption (km-flexily.reentrant-corruption),
   fingerprint abs pos, auto cross NaN, measure flex grow, wrapped line cross."
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] Flexily re-review after P0/P1 fixes — verify fixes, find remaining issues @km/flexily #task #P2 @claude:c9beade3

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fb2a14c0
 created_at: 2026-02-12T23:06:24Z
 closed_at: 2026-02-12T23:27:20Z
+owner: bjorn@stabell.org
+assignee: claude:fb2a14c0
 ---
 
 # [x] TUI: commands, UI state, handlers, dialog, display, help @km/tui #task #P2 @claude:fb2a14c0

@@ -7,6 +7,7 @@ created_by: claude:e4e70c9a
 created_at: 2026-03-11T07:33:10Z
 closed_at: 2026-03-30T19:28:53Z
 close_reason: Absorbed into km-silvery.tea epic — standalone exploration is tea strategy
+owner: bjorn@stabell.org
 ---
 
 # [x] @silvery/tea standalone ecosystem exploration @km/silvery #task #P3

@@ -5,6 +5,20 @@ aliases:
   - km-silvercode-signal-hang-reproducer
 created_by: claude:cc081a9a
 created_at: 2026-04-28T04:58:53Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.signal-hang-reproducer
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-27T21:58:57Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
+  - issue_id: km-silvercode.signal-hang-reproducer
+    depends_on_id: km-silvercode.signal-hang-investigate
+    type: discovered-from
+    created_at: 2026-04-27T21:58:53Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] [bug] silvercode wedge needs reliable reproducer + root cause @km/silvercode #bug #P2

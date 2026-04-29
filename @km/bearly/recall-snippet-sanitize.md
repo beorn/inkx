@@ -5,6 +5,14 @@ aliases:
   - km-bearly-recall-snippet-sanitize
 created_by: claude:4de4a3ab
 created_at: 2026-04-28T23:03:58Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.recall-snippet-sanitize
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-28T16:04:01Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] LLM-rewrite snippets to neutralize role-prefix and transcript-shape triggers before emit + indexer-side regex strip on assistant text @km/bearly #bug #P1

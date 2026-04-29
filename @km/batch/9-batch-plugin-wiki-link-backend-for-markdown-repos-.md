@@ -6,6 +6,7 @@ aliases:
   - "@km/batch/9"
 created_at: 2026-01-26T13:38:13Z
 closed_at: 2026-01-27T12:24:20Z
+assignee: beorn
 ---
 
 # [x] batch plugin: Wiki-link backend for markdown repos (Obsidian, Foam, etc.) @km/batch #feature #P2 @beorn

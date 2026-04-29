@@ -86,6 +86,16 @@ close_reason: >-
   rarer in practice: receivers can decline path C ('execute anyway despite
   evidence') with a short 'bead is closed per the bead_state field — see commit
   X' instead of full A/B/C escalation.
+started_at: 2026-04-28T06:17:00Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-tribe.task-assignment-stale-snapshot
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-27T22:09:42Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Tribe task_assignment auto-regenerates stale bead snapshots, ignoring agent evidence + bead NOTES re-verification @km/tribe #bug #P2 @claude:cc081a9a

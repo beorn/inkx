@@ -5,6 +5,7 @@ aliases:
   - km-all-board-test-split
 created_by: claude:aee18a0e
 created_at: 2026-02-27T14:33:33Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Split board-test.ts into modules + namespace assertions @km/all #task #P3

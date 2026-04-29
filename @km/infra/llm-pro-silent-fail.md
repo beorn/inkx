@@ -12,6 +12,7 @@ close_reason: "Fixed: finishResponse now writes error details to the output file
   runDeep to route genuine failures (no responseId + no content) through
   finishResponse instead of silently returning. Background callers can now find
   the output file and see what happened."
+owner: bjorn@stabell.org
 ---
 
 # [x] LLM Pro silent failure — empty response exits without visible error @km/infra #bug #P2

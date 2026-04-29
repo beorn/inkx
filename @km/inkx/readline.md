@@ -5,6 +5,7 @@ aliases:
   - km-inkx-readline
 created_at: 2026-02-04T14:10:57Z
 closed_at: 2026-02-04T14:23:16Z
+assignee: claude:44a381e0
 ---
 
 # [x] Complete readline implementation with components @km/inkx #feature #P2 @claude:44a381e0

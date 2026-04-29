@@ -11,6 +11,14 @@ close_reason: Obsolete. The assignee surface now reads node.assigned_to (the
   parser-side question of whether @issue should land in mentions at all is moot
   for this concern — no bd consumer reads mentions for assignee anymore.
   Resolved in commit 47087a563.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-beads.board-sigil-distinction
+    depends_on_id: km-beads
+    type: parent-child
+    created_at: 2026-04-27T18:34:40Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] Parser: distinguish board sigil from person mention @km/beads #bug #P2

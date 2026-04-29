@@ -10,6 +10,16 @@ close_reason: "Shipped: silvery d089c603 (CSS-aligned fieldSizing API, drops
   legacy height, defaults to content+minRows=1+maxRows=8 for chat-input shape) +
   km root 0a1452980 (silvercode CommandBox migration). Companion docs in same
   commit."
+started_at: 2026-04-26T06:40:59Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvery.textarea-autosize
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-25T23:30:11Z
+    created_by: claude:611e701e
+    metadata: "{}"
 ---
 
 # [x] silvery TextArea: replace required `height` with `fieldSizing` + `rows` (CSS field-sizing model) @km/silvery #feature #P2 @claude:2405c72e

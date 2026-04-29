@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d1f60fb4
 created_at: 2026-02-27T14:29:10Z
 closed_at: 2026-02-27T14:29:28Z
+owner: bjorn@stabell.org
+assignee: claude:d1f60fb4
 ---
 
 # [x] run() runtime: TextInput/TextArea silently disabled — hooks/useInput gets no events @km/inkx #bug #P1 @claude:d1f60fb4

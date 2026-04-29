@@ -9,6 +9,8 @@ closed_at: 2026-03-25T07:23:01Z
 close_reason: "@silvery/scope package created: createScope (AbortSignal + defer
   + child + sleep + timeout), withScope plugin (adds root scope to app). 19
   tests passing. Zero dependencies."
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Era2b Phase 2.5: @silvery/scope — extract withScope, createScope @km/silvery #task #P1 @claude:fed8de9e

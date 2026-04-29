@@ -6,6 +6,7 @@ aliases:
 created_by: claude:d1f60fb4
 created_at: 2026-02-25T23:27:39Z
 closed_at: 2026-02-25T23:37:05Z
+owner: bjorn@stabell.org
 ---
 
 # [x] OSC 12 — query/set cursor color @km/inkx #feature #P4

@@ -8,6 +8,8 @@ created_at: 2026-04-01T14:42:28Z
 closed_at: 2026-04-01T15:03:55Z
 close_reason: "Fixed: card now expands when editing sub-items via cardNodeId
   tracking in inlineEditBlock + editingCardNodeId reactive signal in TreeNode"
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Editing a sub-item should expand the full card, not just the sub-item @km/tui #bug #P2 @Bjørn Stabell

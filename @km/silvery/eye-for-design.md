@@ -8,6 +8,8 @@ created_at: 2026-03-25T21:52:31Z
 closed_at: 2026-03-25T23:56:02Z
 close_reason: Added --local and --multi modes to /design-review skill. Local
   uses ollama vision, multi compares local+cloud findings.
+owner: bjorn@stabell.org
+assignee: claude:19080504
 ---
 
 # [x] Eye for Design skill — AI-powered visual design review using multimodal LLMs @km/silvery #feature #P2 @claude:19080504

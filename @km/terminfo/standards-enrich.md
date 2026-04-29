@@ -10,6 +10,8 @@ close_reason: "Standards page enriched: short heading anchors (#ecma-48 etc.),
   VT100/VT220/DEC mode inline examples, character set history table
   (ASCII→UTF-8), width problem examples, Powerline/Nerd Fonts/prompt art
   section."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Enrich /standards page: inline examples, character set history, powerline/prompt art @km/terminfo #task #P3 @claude:f8196c1c

@@ -6,6 +6,7 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-15T07:55:53Z
 closed_at: 2026-02-15T08:44:14Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Embedded nodes still render with \! prefix after 'km add' @km/tui #bug #P2

@@ -16,6 +16,15 @@ close_reason: "Fixed via hybrid restore: every @silvery/* package now declares
   errors / 55 files, 45 lines smaller than the interim). Verified: test:fast
   6227/0, test:vendor 9244/1pre-existing, all 4 km-8 verification targets green.
   silvery commit 3a42cc3c, km root commit 91d6c030c."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-infra.silvery-exports-drift
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-11T21:29:20Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] v0.17.3 silvery packages narrowed exports to only . — broke vendor test imports @km/infra #bug #P2 @Bjørn Stabell

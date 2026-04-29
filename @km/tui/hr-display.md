@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T21:32:58Z
 closed_at: 2026-02-15T09:07:10Z
+owner: bjorn@stabell.org
+assignee: claude:a5c7f7de
 ---
 
 # [x] HR nodes (---) show ID instead of horizontal rule on board @km/tui #bug #P2 @claude:a5c7f7de

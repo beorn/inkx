@@ -13,6 +13,14 @@ close_reason: "Shipped 2026-04-27. Preventive hook at tools/bd-parent-hook.ts
   Smoke-tested 4 branches: auto-chain, already-parented passthrough, non-bd
   passthrough, no-matching-epic soft hint. Reactive workflow (/complete Step 0a,
   /pm retro Step 1b) handles historical drift; this hook prevents new drift."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.bead-parent-discipline
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-27T11:02:18Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Bead parent-link discipline — preventive hook + retroactive doctor @km/all #task #P2

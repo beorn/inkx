@@ -26,6 +26,15 @@ close_reason: >-
 
   248 loggily tests pass. 0 km test regressions (80 failures are silvery
   reactive pipeline, not loggily).
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-loggily.v2-ergonomics
+    depends_on_id: km-loggily.api-v2
+    type: parent-child
+    created_at: 2026-04-12T00:58:12Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] v2 API ergonomics issues (7 items) @km/loggily #bug #P0 @Bjørn Stabell

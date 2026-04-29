@@ -5,6 +5,7 @@ aliases:
   - km-tui-perf-column-skip
 created_at: 2026-02-08T21:30:24Z
 closed_at: 2026-02-09T00:15:23Z
+assignee: claude:a3625ec3
 ---
 
 # [x] Prevent Column re-render on within-column cursor movement @km/tui #task #P1 @claude:a3625ec3

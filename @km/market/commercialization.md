@@ -5,6 +5,7 @@ aliases:
   - km-market-commercialization
 created_by: claude:4929065a
 created_at: 2026-04-01T21:08:03Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Commercialization strategy: terminfo.dev + termless ecosystem @km/market #feature #P3

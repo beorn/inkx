@@ -5,6 +5,7 @@ aliases:
   - km-tui-rich-detail
 created_at: 2026-02-05T14:21:10Z
 closed_at: 2026-02-05T14:23:29Z
+assignee: claude:ed93d0af
 ---
 
 # [x] feat(tui): render detail pane text as rich/ANSI instead of raw @km/tui #feature #P2 @claude:ed93d0af

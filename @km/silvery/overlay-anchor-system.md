@@ -5,6 +5,16 @@ aliases:
   - km-silvery-overlay-anchor-system
 created_by: claude:2405c72e
 created_at: 2026-04-25T16:15:55Z
+started_at: 2026-04-25T21:19:11Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvery.overlay-anchor-system
+    depends_on_id: km-silvery.view-as-layout-output
+    type: parent-child
+    created_at: 2026-04-25T09:15:55Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [/] General overlay/anchor system: caret + selection + focus + popovers + tooltips as one mechanism @km/silvery #feature #P2 @claude:2405c72e

@@ -8,6 +8,8 @@ closed_at: 2026-03-23T22:37:24Z
 close_reason: "Done: 3 public packages (silvery, @silvery/tea, @silvery/test).
   ag/ag-react/ag-term/theme marked private. Subpath re-exports: silvery/runtime,
   silvery/theme, silvery/ui"
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Collapse public packages: silvery + @silvery/tea + @silvery/test @km/_orphan #task #P1 @claude:fed8de9e

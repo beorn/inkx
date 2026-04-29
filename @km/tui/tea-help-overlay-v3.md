@@ -37,6 +37,16 @@ close_reason: >-
   surface; their removal is a separate vendor/silvery cleanup. The km top-level
   pipe() chain that would let v3 own ui.showHelp directly is tracked by
   km-tui.tea-withDialogs.
+started_at: 2026-04-28T22:12:05Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-tui.tea-help-overlay-v3
+    depends_on_id: km-silvery.authoring-elegance
+    type: parent-child
+    created_at: 2026-04-21T12:06:40Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] HelpOverlay v3 — migrate to withHelpOverlay(app) AppPlugin shape @km/tui #feature #P1 @claude:2405c72e

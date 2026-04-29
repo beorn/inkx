@@ -4,6 +4,7 @@ aliases:
   - km-inkx-batch
 created_at: 2026-02-01T23:18:59Z
 closed_at: 2026-02-01T23:29:23Z
+assignee: claude:5fa2decc
 ---
 
 # [x] inkx-loop: Add render batching to run() @km/_orphan #task #P1 @claude:5fa2decc

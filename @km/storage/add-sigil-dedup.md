@@ -6,6 +6,8 @@ aliases:
 created_by: claude:e7ea0892
 created_at: 2026-02-11T18:33:55Z
 closed_at: 2026-02-11T18:34:01Z
+owner: bjorn@stabell.org
+assignee: claude:e7ea0892
 ---
 
 # [x] km add: sigil tags + four-way dedup + Removed section rule @km/storage #feature #P2 @claude:e7ea0892

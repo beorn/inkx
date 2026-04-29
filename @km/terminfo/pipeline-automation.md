@@ -19,6 +19,8 @@ close_reason: >-
   (8 terminals tracked)
 
   Also: /terminfo-update skill updated with vterm upgrade bead generator.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] terminfo.dev pipeline automation — single runner, auto-probeStatus, release watcher @km/terminfo #task #P2 @Bjørn Stabell

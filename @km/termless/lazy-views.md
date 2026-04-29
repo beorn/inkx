@@ -8,6 +8,8 @@ created_at: 2026-03-16T22:05:54Z
 closed_at: 2026-03-23T14:45:07Z
 close_reason: Converted 17 waitFor calls to auto-retry matchers across 4 test
   files. Added Lazy Views & Auto-Retry section to writing-tests.md.
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] termless lazy views + auto-retry matchers @km/termless #feature #P3 @claude:4929065a

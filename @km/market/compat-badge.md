@@ -5,6 +5,7 @@ aliases:
   - km-market-compat-badge
 created_by: Bjørn Stabell
 created_at: 2026-04-02T19:55:49Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] terminfo.dev README compatibility badge generator @km/market #feature #P2

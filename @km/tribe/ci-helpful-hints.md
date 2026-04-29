@@ -8,6 +8,8 @@ created_at: 2026-04-01T06:11:52Z
 closed_at: 2026-04-01T06:19:19Z
 close_reason: "Implemented: CI protocol in system prompt instructs sessions to
   send fix hints on CI alerts"
+owner: bjorn@stabell.org
+assignee: claude:19080504
 ---
 
 # [x] CI: sessions provide helpful hints when they see failures in their domain @km/tribe #feature #P3 @claude:19080504

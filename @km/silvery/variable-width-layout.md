@@ -5,6 +5,14 @@ aliases:
   - km-silvery-variable-width-layout
 created_by: Bjørn Stabell
 created_at: 2026-04-14T20:01:18Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.variable-width-layout
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-14T13:01:18Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Pretext variable-width layout (layoutNextLineRange) @km/silvery #feature #P3

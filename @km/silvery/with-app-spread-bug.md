@@ -11,6 +11,14 @@ close_reason: Fixed in vendor/silvery commit 11e6a641 (Object.assign instead of
   pins both reference-identity and apply-wrapper-fires invariants. All 131 tests
   in vendor/silvery/packages/create/tests/ pass. km submodule pointer updated in
   commit 3309b3512.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.with-app-spread-bug
+    depends_on_id: km-silvery.authoring-elegance
+    type: parent-child
+    created_at: 2026-04-21T12:55:05Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] withApp() object-spread breaks apply-chain contract @km/silvery #bug #P1

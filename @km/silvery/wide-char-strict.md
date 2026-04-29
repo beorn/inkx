@@ -11,6 +11,7 @@ close_reason: "Fixed in eaeff0e5. Root cause: STRICT verifier VT parser
   Added graphemeWidth-based processing for surrogates, ZWJ, variation selectors,
   combining marks. Buffer rendering was correct — only the verification parser
   was wrong."
+owner: bjorn@stabell.org
 ---
 
 # [x] Wide character (CJK/emoji) STRICT mismatch — continuation cells not cleared @km/silvery #bug #P2

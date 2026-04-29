@@ -5,6 +5,7 @@ aliases:
   - km-storage-fs-rename
 created_at: 2026-02-08T23:41:43Z
 closed_at: 2026-02-08T23:52:44Z
+assignee: claude:dffe6eeb
 ---
 
 # [x] File & folder renames: sync title edits to filesystem names @km/storage #feature #P1 @claude:dffe6eeb

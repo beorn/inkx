@@ -7,6 +7,16 @@ created_by: claude:cc081a9a
 created_at: 2026-04-26T20:55:40Z
 closed_at: 2026-04-26T22:43:15Z
 close_reason: Closed
+started_at: 2026-04-26T20:56:39Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-all.fix-sweep-strict-cluster
+    depends_on_id: km-all.fix-sweep-0426
+    type: parent-child
+    created_at: 2026-04-26T13:55:57Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] SILVERY_STRICT incremental-render mismatch cluster (~4 km-tui slow tests) @km/all #bug #P1 @claude:cc081a9a

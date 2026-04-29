@@ -10,6 +10,7 @@ close_reason: "Deferred: Major architectural change — replacing recursive
   dirty-flag clearing with frame-generation counters. Would change the
   fundamental incremental rendering model. Needs design doc first, not a quick
   fix."
+owner: bjorn@stabell.org
 ---
 
 # [x] Structural: Replace recursive dirty-flag clearing with generation counters @km/silvery #task #P2

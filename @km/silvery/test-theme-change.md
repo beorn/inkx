@@ -10,6 +10,7 @@ close_reason: Added theme change regression tests in
   vendor/silvery/tests/theme-change.test.tsx — 5 tests covering bgDirty marking,
   subtree token inheritance, theme cascading through clean parents, nested Box
   bg/fg updates, and incremental vs fresh render equivalence.
+owner: bjorn@stabell.org
 ---
 
 # [x] Testing: Theme change regression tests needed @km/silvery #task #P2

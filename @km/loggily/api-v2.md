@@ -10,6 +10,15 @@ close_reason: "Quality plateau reached. Architecture: withSpans() decomposed,
   Logger exposes level/dispatch/dispose, PluginCtx for composition. Docs: every
   feature documented, README+CLAUDE.md canonical. Tests: 283 pass (13 new). All
   Pro review findings fixed."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-loggily.api-v2
+    depends_on_id: km-loggily
+    type: parent-child
+    created_at: 2026-04-11T17:13:46Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] API v2: composable primitives with ergonomic API @km/loggily #feature #P1 @Bjørn Stabell

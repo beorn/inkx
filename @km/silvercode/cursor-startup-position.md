@@ -36,6 +36,22 @@ close_reason: >-
   Commit: km@327b31880 (bumps silvery to bd6a94f8).
 
   New invariants: `vendor/silvery/tests/features/cursor-offset-prop.test.tsx`.
+started_at: 2026-04-25T05:23:04Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.cursor-startup-position
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-24T22:07:12Z
+    created_by: claude:2405c72e
+    metadata: "{}"
+  - issue_id: km-silvercode.cursor-startup-position
+    depends_on_id: km-silvery.view-as-layout-output
+    type: blocks
+    created_at: 2026-04-24T23:08:12Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] [bug] Cursor lands in side panel at startup; restored to command box only after first interaction @km/silvercode #bug #P1 @claude:2405c72e

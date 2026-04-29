@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T16:05:07Z
 closed_at: 2026-02-19T08:38:09Z
+owner: bjorn@stabell.org
+assignee: claude:36393b5d
 ---
 
 # [x] Vitest worker processes become zombies when agents are stopped @km/infra #bug #P0 @claude:36393b5d

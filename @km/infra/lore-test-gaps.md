@@ -11,6 +11,14 @@ close_reason: "All 3 items addressed: (1) TTL turn-counter test added at daemon
   inject_delta/workspace_state/session_state library-fallback behavior added,
   (3) daemon-down fallback is now covered by the library-fallback tests (no
   daemon spawn-and-kill needed). 415/415 vendor tests pass."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.lore-test-gaps
+    depends_on_id: km-infra.tribe-rebrand
+    type: parent-child
+    created_at: 2026-04-17T13:35:12Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Lore test coverage gaps — MCP plugin handlers, fallback path, TTL expiry @km/infra #task #P3

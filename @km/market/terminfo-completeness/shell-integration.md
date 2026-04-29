@@ -9,6 +9,8 @@ closed_at: 2026-04-06T07:02:35Z
 close_reason: Completed in /max batch — 93 new features added, annotated,
   re-probed, rebuilt, pushed. See km-market.terminfo-completeness epic for
   summary.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Split OSC 133 / OSC 633 into sub-command probes @km/market #task #P2 @Bjørn Stabell

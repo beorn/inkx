@@ -8,6 +8,8 @@ created_at: 2026-04-08T07:31:25Z
 closed_at: 2026-04-08T08:15:07Z
 close_reason: Purged cursorInDescendant signal, prevDescendantCardId, manual
   sync. Reduced signals are sole source. All 217 tests pass. Commit d739625f0.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Phase 3: Purge + Remove — delete old sync @km/tui #task #P1 @Bjørn Stabell

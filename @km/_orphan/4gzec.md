@@ -8,6 +8,7 @@ closed_at: 2026-03-23T20:53:18Z
 close_reason: "Principle #9 rewritten from 'Adopt TEA Gradually' to 'Start
   Simple, Scale Architecture'. Summary line at bottom of doc also updated. Full
   TEA sip progression replaced with hooks-first escalation ladder."
+owner: bjorn@stabell.org
 ---
 
 # [x] Rewrite The Silvery Way — rendering-focused, not TEA-focused @km/_orphan #task #P1

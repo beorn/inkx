@@ -6,6 +6,7 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T13:39:00Z
 closed_at: 2026-02-18T14:03:07Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Detail pane: Mentions shows assignee (should be filtered out) @km/tui #bug #P3

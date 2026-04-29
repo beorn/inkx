@@ -31,6 +31,9 @@ close_reason: >-
   Stale parallel branches (deleted 2026-04-28): ambient-recall-real,
   feat/ambient-subagent-real, ambient-phase-6-breaker-telemetry,
   agent/ambient-phase-6b-adapters, ambient-phase-5-soak-plan.
+started_at: 2026-04-27T21:08:36Z
+owner: bjorn@stabell.org
+assignee: claude:4de4a3ab
 ---
 
 # [x] Ambient Phase 6.b — wire real source adapters (tribe, recall, subagent, ci, filewatch) @km/_orphan #task #P1 @claude:4de4a3ab

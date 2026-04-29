@@ -5,6 +5,7 @@ aliases:
   - km-silvery-cc-rendering-issues
 created_by: Bjørn Stabell
 created_at: 2026-04-05T07:47:44Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Track Claude Code rendering issues for blog accuracy @km/silvery #task #P3

@@ -5,6 +5,7 @@ aliases:
   - km-tui-pty-testing
 created_at: 2026-02-08T08:17:29Z
 closed_at: 2026-02-09T17:35:14Z
+assignee: claude:dffe6eeb
 ---
 
 # [x] PTY integration tests: close the headless-vs-production testing gap @km/tui #task #P1 @claude:dffe6eeb

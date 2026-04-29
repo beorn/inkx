@@ -9,6 +9,7 @@ closed_at: 2026-03-28T05:59:19Z
 close_reason: All 3 phases complete. 15+ stringly-typed action types
   consolidated into 1 VerbAction shape. Position resolver extracted with 71
   tests.
+owner: bjorn@stabell.org
 ---
 
 # [x] [epic] Universal Position type — verb × location orthogonality @km/commands #epic #P2

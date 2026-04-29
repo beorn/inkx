@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-02T22:35:35Z
 closed_at: 2026-04-03T02:31:07Z
 close_reason: Tombstone tracking in WriteTokenMap. 10 tests.
+owner: bjorn@stabell.org
 ---
 
 # [x] Add delete/unlink ownership suppression — writes and renames covered, deletes not @km/storage #task #P2

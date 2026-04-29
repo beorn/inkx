@@ -6,6 +6,7 @@ aliases:
 created_by: claude:28b14b32
 created_at: 2026-02-23T15:12:19Z
 closed_at: 2026-02-23T15:47:04Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Help dialog: rename CHORDS to SHORTCUTS, add favorites and create columns @km/tui #task #P3

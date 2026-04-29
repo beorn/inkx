@@ -5,6 +5,7 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-26T14:27:59Z
 closed_at: 2026-02-27T15:04:49Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Pipeline takes Term: caps flow from terminal @km/_orphan #feature #P1

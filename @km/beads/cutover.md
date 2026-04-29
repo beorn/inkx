@@ -15,6 +15,16 @@ closeReason: "Phase A+B+C complete: bd→km bd skill rewrite (e39e49710), Go bd
   archived, .beads/ deleted (77f9e2bd9), 4754 beads migrated into root @km/
   scope. .gitignore adjusted to allow imports/km-bd-cutover-*. km bd is sole
   tracker; live data at @km/<scope>/<slug>.md + mem/<key>.md."
+started_at: 2026-04-27T22:03:34Z
+owner: bjorn@stabell.org
+assignee: claude:da9990c5
+dependencies:
+  - issue_id: km-beads.cutover
+    depends_on_id: km-beads
+    type: parent-child
+    created_at: 2026-04-27T15:03:33Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] km bd cutover — fix migrate parser, validate dry-run on full issues.jsonl @km/beads #task #P1 @claude:da9990c5

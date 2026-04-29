@@ -10,6 +10,7 @@ close_reason: Added inline mode fuzz tests in
   vendor/silvery/tests/inline-fuzz.fuzz.ts — 6 test cases covering resize
   roundtrip, content changes (incremental vs full), cursor-only changes (minimal
   output), combined mutations, grow/shrink cycles, and scrollback promotion
+owner: bjorn@stabell.org
 ---
 
 # [x] Testing: Inline mode needs its own fuzz suite @km/silvery #task #P2

@@ -5,6 +5,8 @@ aliases:
 created_by: claude:84903949
 created_at: 2026-02-23T23:48:25Z
 closed_at: 2026-02-25T15:15:24Z
+owner: bjorn@stabell.org
+assignee: claude:d1f60fb4
 ---
 
 # [x] Experiment: Static scrollback preservation for tall content in inkx @km/_orphan #task #P3 @claude:d1f60fb4

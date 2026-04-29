@@ -5,6 +5,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-06T06:20:26Z
 closed_at: 2026-04-06T06:55:04Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Move interaction state machines into silvery runtime (selection as infrastructure) @km/_orphan #chore #P1

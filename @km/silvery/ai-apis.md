@@ -5,6 +5,7 @@ aliases:
   - km-silvery-ai-apis
 created_by: claude:e4e70c9a
 created_at: 2026-03-11T07:32:07Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] AI-first APIs: screen model queries and command surface @km/silvery #feature #P3

@@ -4,6 +4,7 @@ aliases:
   - km-llm-1
 created_at: 2026-02-02T12:44:46Z
 closed_at: 2026-02-02T15:49:12Z
+assignee: claude:2b15b408
 ---
 
 # [x] llm deep: persist partial results to prevent loss on interruption @km/_orphan #feature #P2 @claude:2b15b408

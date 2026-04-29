@@ -5,6 +5,14 @@ aliases:
   - km-bearly-bun-keepalive-url-shim
 created_by: claude:cc081a9a
 created_at: 2026-04-27T06:19:09Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.bun-keepalive-url-shim
+    depends_on_id: km-all.upstream-waiting
+    type: parent-child
+    created_at: 2026-04-28T08:04:37Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] Unwind URL.toString() Request shim when Bun #7716 lands @km/bearly #bug #P3

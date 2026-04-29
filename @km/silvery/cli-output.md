@@ -5,6 +5,7 @@ aliases:
   - km-silvery-cli-output
 created_by: claude:4929065a
 created_at: 2026-04-02T15:15:59Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] @silvery/cli: three-stream output model (data/status/log) with React components @km/silvery #feature #P2

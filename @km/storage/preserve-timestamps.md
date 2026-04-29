@@ -6,6 +6,7 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-19T12:49:10Z
 closed_at: 2026-02-19T13:23:52Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Preserve original timestamps during import and DB reload @km/storage #feature #P2

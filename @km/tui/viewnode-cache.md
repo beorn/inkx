@@ -10,6 +10,7 @@ close_reason: Done by view-tree agent. ViewNodeColumnCache with childrenRef
   identity checks in view-tree.ts. buildColumnNodeCached() reuses subtrees when
   repo.getChildren() returns same reference. Cache reused across buildActionCtx
   calls. Commit f7c39545.
+owner: bjorn@stabell.org
 ---
 
 # [x] ViewNode memoization — per-column cache equivalent to prevent perf regression @km/tui #task #P2

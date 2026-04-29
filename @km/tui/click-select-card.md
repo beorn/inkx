@@ -9,6 +9,8 @@ closed_at: 2026-03-18T19:32:06Z
 close_reason: "Fixed: reordered ancestor walk in handleMouse — isColumnNode now
   derived as firstIdIsColumn && !cardId. Added data-card-id to Card wrappers. 6
   tests pass."
+owner: bjorn@stabell.org
+assignee: claude:d29abbfa
 ---
 
 # [x] Click on any part of a card should select the card (not just the title node) @km/tui #bug #P0 @claude:d29abbfa

@@ -9,6 +9,16 @@ closed_at: 2026-04-25T06:18:21Z
 close_reason: Implemented in commits 5faefbfce + 7d5d83071 (km) and a3229df +
   22c73c6 (bearly). All bead requirements verified via /complete audit; 9 new
   tests pass; cascade detection added in audit pass.
+started_at: 2026-04-25T05:57:10Z
+owner: bjorn@stabell.org
+assignee: claude:11bf6f91
+dependencies:
+  - issue_id: km-infra.worktree-gc
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-24T22:46:19Z
+    created_by: claude:11bf6f91
+    metadata: "{}"
 ---
 
 # [x] Add 'bun worktree gc' to auto-prune .claude/worktrees/ clones @km/infra #task #P1 @claude:11bf6f91

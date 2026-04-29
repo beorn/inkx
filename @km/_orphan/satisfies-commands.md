@@ -4,6 +4,7 @@ aliases:
   - km-satisfies-commands
 created_at: 2026-01-25T12:20:05Z
 closed_at: 2026-01-25T12:30:21Z
+assignee: unimac
 ---
 
 # [x] Convert CommandDef exports to use satisfies pattern @km/_orphan #chore #P4 @unimac

@@ -8,6 +8,7 @@ created_at: 2026-03-23T03:45:18Z
 closed_at: 2026-03-23T05:35:56Z
 close_reason: "All items complete: census v4 (dot-path IDs + expect), deprecated
   shim removal, doc fixes, update command, CLI improvements."
+owner: bjorn@stabell.org
 ---
 
 # [x] termless: backend management + census system @km/termless #epic #P2

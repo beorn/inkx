@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-22T20:25:00Z
 closed_at: 2026-02-22T21:30:43Z
+owner: bjorn@stabell.org
+assignee: claude:28b14b32
 ---
 
 # [x] Windowing: mouse click-to-focus + border drag resize @km/tui #task #P3 @claude:28b14b32

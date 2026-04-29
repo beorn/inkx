@@ -122,6 +122,8 @@ close_reason: >-
   forbidden-console-output check when aggregate runs accumulate virtualizer
   callbacks. Individual test runs are clean. Not in scope for this bead; sibling
   agent owns it.
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
 ---
 
 # [x] [bug] Body blocks in columns render with phantom whitespace above @km/tui #bug #P2 @claude:8b5b9e1c

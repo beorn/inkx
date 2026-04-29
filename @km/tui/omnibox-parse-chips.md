@@ -11,6 +11,22 @@ close_reason: Live parse chips shipped. Pure chipsFromQuery derives 10 kinds
   the buffer; ParseChips component renders them between TextInput and PickerList
   in UnifiedOmnibox. 23 unit tests + 3 render tests, all green. Acceptance
   (a)-(d) + (g) covered; (e) esthetic parity will land in mockup app.
+started_at: 2026-04-28T22:12:43Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-tui.omnibox-parse-chips
+    depends_on_id: km-tui.omnibox-query-syntax
+    type: blocks
+    created_at: 2026-04-14T17:09:33Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.omnibox-parse-chips
+    depends_on_id: km-tui.omnibox-unified
+    type: parent-child
+    created_at: 2026-04-14T17:09:32Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Live parse chips — visible query tokens above input @km/tui #feature #P1 @claude:2405c72e

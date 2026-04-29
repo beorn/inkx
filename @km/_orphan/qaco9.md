@@ -5,6 +5,8 @@ aliases:
 created_by: claude:5770ce77
 created_at: 2026-02-17T13:50:33Z
 closed_at: 2026-02-17T23:21:33Z
+owner: bjorn@stabell.org
+assignee: claude:5770ce77
 ---
 
 # [x] TUI: td dialog Return/Escape goes to background editor instead of dialog input @km/_orphan #bug #P1 @claude:5770ce77

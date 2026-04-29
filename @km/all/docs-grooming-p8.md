@@ -8,6 +8,15 @@ created_at: 2026-04-17T06:15:04Z
 closed_at: 2026-04-17T06:35:16Z
 close_reason: Shipped. Rename only; testing-doc split deferred (already distinct
   from test-system.md).
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-all.docs-grooming-p8
+    depends_on_id: km-all.docs-grooming
+    type: parent-child
+    created_at: 2026-04-16T23:15:04Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] P8: dev/ — testing split + monorepo rename @km/all #task #P2 @Bjørn Stabell

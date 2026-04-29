@@ -10,6 +10,7 @@ close_reason: Implemented sanitizeAnsi() and tokenizeAnsi() in @silvery/term.
   Tokenizer handles all ANSI sequence types (CSI, OSC, DCS, PM, APC, SOS, C1).
   Sanitizer keeps text + SGR styling + OSC hyperlinks, strips dangerous
   sequences. 63 tests. Exported from @silvery/term barrel.
+owner: bjorn@stabell.org
 ---
 
 # [x] ANSI escape sequence sanitizer in @silvery/term @km/silvery #feature #P2

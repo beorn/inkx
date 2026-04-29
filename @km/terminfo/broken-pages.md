@@ -9,6 +9,7 @@ closed_at: 2026-03-25T20:18:50Z
 close_reason: "Fixed all 3: (1) vscode→vs-code slug in terminals.json, (2)
   xterm-js removed from sidebar (subsumed by VS Code), (3) sgr-23-reset-italic
   probe added to all 14 backends"
+owner: bjorn@stabell.org
 ---
 
 # [x] terminfo.dev: 3 broken pages (404) — vscode, xterm-js, sgr-23-reset-italic @km/terminfo #bug #P2

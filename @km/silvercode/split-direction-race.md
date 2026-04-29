@@ -45,6 +45,22 @@ close_reason: >-
   The orthogonal silvery investigation (km-silvery.flexdirection-reuse-bug)
   confirmed silvery's flexDirection prop-reuse path is correct (5 STRICT tests
   pass) — bug was 100% App-side, as suspected.
+started_at: 2026-04-28T17:16:03Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvercode.split-direction-race
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T10:06:32Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
+  - issue_id: km-silvercode.split-direction-race
+    depends_on_id: km-silvery.flexdirection-reuse-bug
+    type: blocks
+    created_at: 2026-04-28T10:28:50Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] reconcileTree hardcodes 'row' for new-session append, ignoring user-requested split direction @km/silvercode #bug #P1 @claude:cc081a9a

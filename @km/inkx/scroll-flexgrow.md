@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a3625ec3
 created_at: 2026-02-09T14:43:38Z
 closed_at: 2026-02-09T15:21:33Z
+owner: bjorn@stabell.org
+assignee: claude:a3625ec3
 ---
 
 # [x] overflow=scroll/hidden + flexGrow shows bottom of content instead of top @km/inkx #bug #P2 @claude:a3625ec3

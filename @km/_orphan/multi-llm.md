@@ -4,6 +4,7 @@ aliases:
   - km-multi-llm
 created_at: 2026-01-30T07:14:26Z
 closed_at: 2026-01-30T07:34:27Z
+assignee: claude:895eaf4c
 ---
 
 # [x] Multi-LLM research skill with consensus and deep research @km/_orphan #feature #P1 @claude:895eaf4c

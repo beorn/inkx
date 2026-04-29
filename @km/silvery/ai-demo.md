@@ -5,6 +5,7 @@ aliases:
   - km-silvery-ai-demo
 created_by: claude:e4e70c9a
 created_at: 2026-03-11T07:31:40Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Demo: AI agent driving a Silvery TUI @km/silvery #task #P3

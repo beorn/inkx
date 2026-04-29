@@ -11,6 +11,7 @@ close_reason: "Fixed in f84e1375a: handleCursorTo cross-parent branch now
   preventing stranded cursors + Z 'Can't move up' bell. Regression test in
   apps/km-tui/tests/unified-omnibox-integration.test.ts — test was verified to
   catch the bug by temporarily reverting the fix. 265 tests green."
+owner: bjorn@stabell.org
 ---
 
 # [x] Omnibox goto lands without cursor — zoom out fails @km/tui #bug #P1

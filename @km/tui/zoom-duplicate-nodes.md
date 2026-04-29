@@ -12,6 +12,8 @@ close_reason: "partial: could not reproduce on synthetic fixtures. Added 2
   require something specific to the user's vault. 5 Whys analysis and possible
   root causes documented in notes. Will reopen with vault data when the user can
   share the exact structure that triggers duplication."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] Zoom out shows duplicated nodes (Design phase appears twice) @km/tui #bug #P2 @Bjørn Stabell

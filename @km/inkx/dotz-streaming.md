@@ -5,6 +5,7 @@ aliases:
   - km-inkx-dotz-streaming
 created_at: 2026-02-04T11:23:57Z
 closed_at: 2026-02-04T11:27:40Z
+assignee: claude:374dab1f
 ---
 
 # [x] Move vitest-dotz to vitestx package and fix streaming mode @km/inkx #task #P2 @claude:374dab1f

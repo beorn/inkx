@@ -10,6 +10,8 @@ close_reason: All vendor packages published with tsdown + publishConfig pattern.
   npx @silvery/examples works. Smoke tests pass. Cross-dep versions fixed.
   engines.node lowered. Audit tool created (bun infra/audit-packages.ts).
   Remaining work tracked in km-infra.release-workflow.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] npm publishing: bundle all vendor packages for Node.js compatibility @km/infra #task #P1 @Bjørn Stabell

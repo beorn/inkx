@@ -11,6 +11,8 @@ close_reason: "Consistent tooltips across all 5 page types: terminal headers
   (colored backgrounds), scorecard bars (segment counts), compare headers
   (tooltips+links). Removed local CSS overrides blocking shared
   result-cells.css."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Standardized reusable table components across all terminfo.dev pages @km/terminfo #task #P2 @claude:f8196c1c

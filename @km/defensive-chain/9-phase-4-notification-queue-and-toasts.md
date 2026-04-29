@@ -6,6 +6,7 @@ aliases:
   - "@km/defensive-chain/9"
 created_at: 2026-01-25T12:12:29Z
 closed_at: 2026-01-25T13:01:08Z
+assignee: beorn-15362
 ---
 
 # [x] Phase 4: Notification queue and toasts @km/defensive-chain #task #P3 @beorn-15362

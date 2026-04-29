@@ -6,6 +6,7 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T15:11:12Z
 closed_at: 2026-02-19T15:11:22Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Body text: hard line breaks lost — text runs together @km/tui #bug #P2

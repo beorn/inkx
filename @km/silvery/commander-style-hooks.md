@@ -10,6 +10,7 @@ close_reason: Obsoleted by km-silvery.commander-text-render. The refined default
   renderer builds colored output via @silvery/ansi directly instead of going
   through Commander's style hooks (styleOptionText etc.), so the Commander 13+
   requirement question becomes moot.
+owner: bjorn@stabell.org
 ---
 
 # [x] @silvery/commander colorizeHelp style hooks may require Commander 13+ @km/silvery #bug #P3

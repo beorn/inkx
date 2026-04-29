@@ -10,6 +10,8 @@ close_reason: "Fixed: added deleteSubtreeChildren() in 3 code paths
   before re-inserting parsed ones. Root cause: double-parse creates duplicate
   children with fresh ULIDs. Verified in real TUI with Asana vault — no
   duplicates. Regression test in repo.test.ts."
+owner: bjorn@stabell.org
+assignee: claude:d29abbfa
 ---
 
 # [x] P0: Detail pane fold/unfold broken — no fold indicators, can't unfold, duplicate items @km/_orphan #bug #P0 @claude:d29abbfa

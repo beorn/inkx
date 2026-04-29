@@ -4,6 +4,7 @@ aliases:
   - km-test-storage-migrate
 created_at: 2026-01-23T13:18:27Z
 closed_at: 2026-01-23T22:20:49Z
+assignee: 95b4fc6d
 ---
 
 # [x] Migrate storage tests from singletons to domain objects @km/_orphan #task #P3 @95b4fc6d

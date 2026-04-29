@@ -6,6 +6,7 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-22T07:33:59Z
 closed_at: 2026-02-22T08:19:54Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Z (go to root) hangs — slow render, needs loading indicator @km/tui #bug #P0

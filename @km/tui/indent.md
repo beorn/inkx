@@ -6,6 +6,8 @@ aliases:
 created_by: claude:949598cc
 created_at: 2026-02-12T06:56:45Z
 closed_at: 2026-02-12T07:01:08Z
+owner: bjorn@stabell.org
+assignee: claude:949598cc
 ---
 
 # [x] Tab indent: reparent under previous sibling (not visual shift_right) @km/tui #task #P2 @claude:949598cc

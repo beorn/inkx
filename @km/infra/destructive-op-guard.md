@@ -5,6 +5,7 @@ aliases:
   - km-infra-destructive-op-guard
 created_by: Bjørn Stabell
 created_at: 2026-04-09T06:47:21Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Guard destructive operations when concurrent agents are active @km/infra #feature #P2

@@ -12,6 +12,7 @@ close_reason: Investigated. markSubtreeLayoutSeen clears _isDirty and sets
   prior bugs in this area). _hasNewLayout is unused by any consumer (silvery,
   km). Walk is O(n) trivial work (~2 field writes per node), adds <5% overhead
   vs actual layout. Risk exceeds benefit. Deferring.
+owner: bjorn@stabell.org
 ---
 
 # [x] Perf: markSubtreeLayoutSeen() adds another full-tree walk after every layout @km/flexily #task #P2

@@ -5,6 +5,7 @@ aliases:
   - km-storage-contact-sync
 created_by: Bjørn Stabell
 created_at: 2026-03-31T17:38:31Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Bidirectional contact sync: vdirsyncer + markdown bridge @km/storage #feature #P3

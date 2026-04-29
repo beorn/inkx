@@ -10,6 +10,7 @@ close_reason: "Fixed: finishResponse() now exits 1 on empty content,
   finalizeOutput() awaits Bun.write() and exits 1 on failure, deep research
   error path exits 1 when no content. Broader robustness work tracked in
   km-bearly.llm-robustness."
+owner: bjorn@stabell.org
 ---
 
 # [x] LLM tool exits 0 but produces no output file — silent failure @km/bearly #bug #P2

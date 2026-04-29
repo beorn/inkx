@@ -11,6 +11,7 @@ close_reason: Superseded by km-storage.pathway-db-crdt. The old Phase 6
   comes with a Rust/Zig native-rewrite escape hatch (see
   hub/km/storage-architecture.md §9). Carrying both beads creates a false
   parallel roadmap.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 6: createAutomergeStore — Store + Syncable (CRDT collab) @km/storage #task #P4

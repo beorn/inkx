@@ -7,6 +7,16 @@ created_by: claude:22c2717d
 created_at: 2026-04-25T15:49:06Z
 closed_at: 2026-04-25T16:38:06Z
 close_reason: Closed
+started_at: 2026-04-25T16:01:58Z
+owner: bjorn@stabell.org
+assignee: claude:22c2717d
+dependencies:
+  - issue_id: km-silvery.sterling-no-negative-surprises
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-25T08:49:19Z
+    created_by: claude:22c2717d
+    metadata: "{}"
 ---
 
 # [x] Sterling v1 completeness — no negative surprises @km/silvery #task #P1 @claude:22c2717d

@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-06T19:18:02Z
 closed_at: 2026-04-06T20:04:23Z
 close_reason: "Fixed: 55b3e42f8 — down direction drills into first child"
+owner: bjorn@stabell.org
 ---
 
 # [x] [bug] Ctrl+N from last card in column jumps to next column header @km/tui #bug #P1

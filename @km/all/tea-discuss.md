@@ -9,6 +9,14 @@ closed_at: 2026-04-21T22:27:51Z
 close_reason: Description self-describes as 'ADDS to km-tui.tea, does not
   replace' — not a distinct thread. Content covered by km-silvery.tea
   (framework) + km-tui.tea (consumer). Closing as duplicate.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.tea-discuss
+    depends_on_id: km-silvery.tea
+    type: parent-child
+    created_at: 2026-04-20T22:55:28Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] TEA / apply-chain reference — ADDS to km-tui.tea, does not replace @km/all #task #P0

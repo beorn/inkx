@@ -9,6 +9,7 @@ close_reason: Created docs/guide/debugging.md as canonical reference. Updated
   silvery CLAUDE.md, pipeline CLAUDE.md, and RENDERING.md to link to it instead
   of duplicating. Docs reference new STRICT_TERMINAL syntax that km-kuphm will
   implement.
+owner: bjorn@stabell.org
 ---
 
 # [x] Debug doc consolidation: canonical debugging.md @km/_orphan #task #P3

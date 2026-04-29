@@ -8,6 +8,14 @@ created_at: 2026-04-18T05:37:43Z
 closed_at: 2026-04-18T05:43:08Z
 close_reason: Merged into km-silvery.theme-custom (brand is a use-case of
   defineTokens fixed-rgb path)
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.design-system-brand
+    depends_on_id: km-silvery.design-system
+    type: parent-child
+    created_at: 2026-04-17T22:37:44Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Brand colors — conventions for app-specific identity tokens that resist scheme flex @km/silvery #feature #P3

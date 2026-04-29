@@ -10,6 +10,8 @@ close_reason: "Shipped: --image flag sends Uint8Array to multimodal models via
   Vercel AI SDK. Tested with GPT-4o and GPT-5.4 (both 7/10 on dashboard). Grok-3
   doesn't support images via API. v0.dev Playwright automation deferred to
   separate bead."
+owner: bjorn@stabell.org
+assignee: claude:491faf6c
 ---
 
 # [x] bun llm --image: send screenshots to multimodal LLMs + v0.dev visual review @km/bearly #feature #P1 @claude:491faf6c

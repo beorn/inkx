@@ -5,6 +5,7 @@ aliases:
   - km-market-youtube-demo
 created_by: Bjørn Stabell
 created_at: 2026-04-02T02:03:32Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Create YouTube demo video for silvery.dev @km/market #task #P2

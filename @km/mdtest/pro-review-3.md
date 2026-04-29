@@ -7,6 +7,7 @@ created_by: claude:65d845d9
 created_at: 2026-03-14T00:12:29Z
 closed_at: 2026-03-14T02:00:00Z
 close_reason: All P0/P1 bugs fixed, 374 tests pass
+owner: bjorn@stabell.org
 ---
 
 # [x] Pro Review 3: mdtest — 8 P0, 3 P1, 2 P2 @km/mdtest #task #P2

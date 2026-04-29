@@ -5,6 +5,14 @@ aliases:
   - km-silvery-bracketed-paste-multiline
 created_by: Bjørn Stabell
 created_at: 2026-04-15T23:19:37Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.bracketed-paste-multiline
+    depends_on_id: km-silvery.opentui-parity
+    type: parent-child
+    created_at: 2026-04-15T16:19:37Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Paste: bracketed-paste multiline + large-paste handling @km/silvery #feature #P3

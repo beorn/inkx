@@ -10,6 +10,7 @@ close_reason: "Shipped: 15 chaos tests covering error classes (EBUSY, EACCES,
   ENOENT, ENOSPC), retry logic, conflict detection (mtime mismatch), concurrent
   flush, rapid edit coalescing, atomic write cleanup. 69 total writequeue tests.
   Commit a9a13006."
+owner: bjorn@stabell.org
 ---
 
 # [x] Comprehensive WriteQueue + chaos test suite @km/storage #task #P3

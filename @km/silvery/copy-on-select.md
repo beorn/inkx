@@ -5,6 +5,7 @@ aliases:
   - km-silvery-copy-on-select
 created_by: Bjørn Stabell
 created_at: 2026-04-02T16:51:02Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Copy-on-select: auto-copy to clipboard on mouse release (OSC 52 + tmux paste buffer) @km/silvery #feature #P1

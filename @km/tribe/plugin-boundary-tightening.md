@@ -8,6 +8,14 @@ created_at: 2026-04-19T17:55:27Z
 closed_at: 2026-04-20T18:46:26Z
 close_reason: Dissolved. No plugins in the new model; observers are independent
   connectors per hub/km/design/tribe-matrix.md.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.plugin-boundary-tightening
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-19T10:55:27Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] tribe: tighten plugin boundary — remove db/session-name leaks @km/tribe #feature #P3

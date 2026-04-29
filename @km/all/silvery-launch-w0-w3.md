@@ -5,6 +5,14 @@ aliases:
   - km-all-silvery-launch-w0-w3
 created_by: claude:618d206c
 created_at: 2026-04-28T16:52:14Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.silvery-launch-w0-w3
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-28T09:52:20Z
+    created_by: claude:618d206c
+    metadata: "{}"
 ---
 
 # [ ] Silvery launch — Week 0-3 execution epic @km/all #feature #P1

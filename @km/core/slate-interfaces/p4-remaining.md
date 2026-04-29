@@ -9,6 +9,8 @@ closed_at: 2026-03-28T14:29:12Z
 close_reason: Selection.moveTo and forEach added,
   handleReparentTo/handleTaskStatusCycle/handleClearTask simplified, 10 tests
   added
+owner: bjorn@stabell.org
+assignee: claude:ceb7c9cb
 ---
 
 # [x] P4 remaining: Selection.moveTo + Selection.forEach @km/core #task #P3 @claude:ceb7c9cb

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:23485adf
 created_at: 2026-02-24T15:42:09Z
 closed_at: 2026-02-24T19:48:36Z
+owner: bjorn@stabell.org
+assignee: claude:23485adf
 ---
 
 # [x] Incremental rendering garble: clearOps overwrite text content after column resize @km/inkx #bug #P1 @claude:23485adf

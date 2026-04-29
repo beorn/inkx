@@ -5,6 +5,7 @@ aliases:
   - km-tools-deep-agent
 created_at: 2026-02-08T08:22:46Z
 closed_at: 2026-02-08T08:23:49Z
+assignee: claude:a3625ec3
 ---
 
 # [x] Deep research via subagent: agent sleep-polls instead of using TaskOutput @km/tools #bug #P2 @claude:a3625ec3

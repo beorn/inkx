@@ -10,6 +10,16 @@ close_reason: "Shipped: 242d0eb83. Root cause: filter stripping 'pending'
   sessionIds when user quit before session-init. Fixed: removed filter at
   storage, applied at format time, fallback message when no resumable sessions.
   5 tests. Session: km-session.0425-evening"
+started_at: 2026-04-26T06:07:28Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.resume-hint-not-shown
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-25T23:07:11Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Resume hint not printed on Ctrl+C / Ctrl+D quit @km/silvercode #bug #P2 @claude:2405c72e

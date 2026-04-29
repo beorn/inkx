@@ -5,6 +5,20 @@ aliases:
   - km-tribe-recall-eval-external-data
 created_by: claude:4de4a3ab
 created_at: 2026-04-28T07:07:13Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.recall-eval-external-data
+    depends_on_id: km-tribe.recall
+    type: parent-child
+    created_at: 2026-04-28T00:07:12Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
+  - issue_id: km-tribe.recall-eval-external-data
+    depends_on_id: km-tribe.recall-eval-corpus
+    type: blocks
+    created_at: 2026-04-28T00:07:13Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] Eval: external-data integration (beads/docs/commits surfaced from conversation context) @km/tribe #task #P2

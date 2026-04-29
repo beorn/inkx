@@ -12,6 +12,16 @@ close_reason: "Fixed: parse.ts strips
   from blocks on assistant-message replay; bullet glyph rendered with
   gap+flexShrink for stable spacing. Markdown.test rows bumped to 200 for narrow
   viewport tail-follow. 16 new tests, 553/553 silvercode tests pass."
+started_at: 2026-04-26T15:45:30Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.resume-renders-system-reminders
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-26T08:45:29Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Resume renders system-reminder + command tags as raw user prompts @km/silvercode #bug #P1 @claude:2405c72e

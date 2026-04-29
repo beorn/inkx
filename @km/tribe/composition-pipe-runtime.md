@@ -6,6 +6,16 @@ aliases:
 created_by: claude:87d20187
 created_at: 2026-04-27T08:08:09Z
 closed_at: 2026-04-27T09:16:40Z
+started_at: 2026-04-27T08:26:22Z
+owner: bjorn@stabell.org
+assignee: claude:87d20187
+dependencies:
+  - issue_id: km-tribe.composition-pipe-runtime
+    depends_on_id: km-tribe.refactor
+    type: parent-child
+    created_at: 2026-04-27T01:08:28Z
+    created_by: claude:87d20187
+    metadata: "{}"
 ---
 
 # [x] Decompose tribe-daemon imperative runtime into withX factories @km/tribe #feature #P2 @claude:87d20187

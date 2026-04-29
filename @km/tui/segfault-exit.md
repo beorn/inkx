@@ -5,6 +5,7 @@ aliases:
   - km-tui-segfault-exit
 created_at: 2026-02-09T00:15:52Z
 closed_at: 2026-02-09T00:24:26Z
+assignee: claude:a3625ec3
 ---
 
 # [x] Bun segmentation fault on normal app exit (/tmp/vt repo) @km/tui #bug #P2 @claude:a3625ec3

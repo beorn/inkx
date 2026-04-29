@@ -13,6 +13,7 @@ close_reason: "Four fixes applied: (1) repo.ts renameNode no longer
   reconciliation skips recently-written files within 10s window. (5) nodes2md.ts
   uses || not ?? for title fallback (empty string was blocking content).
   Verified in real vault: Enter+type+Enter persists across restarts."
+owner: bjorn@stabell.org
 ---
 
 # [x] Watcher reconciliation overwrites inline edit content from stale file @km/storage #bug #P0

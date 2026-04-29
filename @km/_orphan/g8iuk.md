@@ -6,6 +6,8 @@ created_by: claude:b92140a2
 created_at: 2026-03-17T08:32:40Z
 closed_at: 2026-03-17T15:04:30Z
 close_reason: handleFolderIndexUpdate preserves existing body via isSlotNode() filtering.
+owner: bjorn@stabell.org
+assignee: claude:b92140a2
 ---
 
 # [x] P0: Index file body content silently discarded on rewrite @km/_orphan #bug #P0 @claude:b92140a2

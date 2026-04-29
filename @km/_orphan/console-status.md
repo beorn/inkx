@@ -4,6 +4,7 @@ aliases:
   - km-console-status
 created_at: 2026-02-01T23:34:42Z
 closed_at: 2026-02-01T23:40:29Z
+assignee: claude:b8b4780b
 ---
 
 # [x] Console view: status bar indicator + fix log line styling @km/_orphan #feature #P2 @claude:b8b4780b

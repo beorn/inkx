@@ -7,6 +7,20 @@ created_by: claude:da9990c5
 created_at: 2026-04-28T00:10:38Z
 closed_at: 2026-04-28T02:53:42Z
 close_reason: Shipped in commit ede04bd5a alongside path-ids/memories/legacy-autolinks.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-beads.dep-graph
+    depends_on_id: km-beads
+    type: parent-child
+    created_at: 2026-04-27T17:10:48Z
+    created_by: claude:da9990c5
+    metadata: "{}"
+  - issue_id: km-beads.dep-graph
+    depends_on_id: km-beads.cutover
+    type: blocks
+    created_at: 2026-04-27T17:10:48Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] Derive blocks/blocked-by/parent from bd v1.0 dependencies[] on import @km/beads #task #P1

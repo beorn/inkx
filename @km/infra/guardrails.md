@@ -5,6 +5,14 @@ aliases:
   - km-infra-guardrails
 created_by: claude:cc081a9a
 created_at: 2026-04-27T06:18:13Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.guardrails
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-26T23:18:17Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] [epic] Infra guardrails — CI + pre-commit checks @km/infra #feature #P2

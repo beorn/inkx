@@ -4,6 +4,7 @@ aliases:
   - km-v9frt
 created_at: 2026-01-27T17:27:55Z
 closed_at: 2026-01-27T17:36:49Z
+assignee: claude:9892b704
 ---
 
 # [x] Fix test failures: import.meta.dir and help text mismatches @km/_orphan #bug #P1 @claude:9892b704

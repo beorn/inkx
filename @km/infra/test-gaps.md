@@ -10,6 +10,8 @@ close_reason: "Fixed: (1) targeted STRICT whitelist replacing 10 blanket
   suppressions, (2) fuzz vitest project added to test:all, (3) test:daily script
   with 8 phases, (4-6) zoom bg-color assertion tests. Test:
   board-zoom.slow.spec.ts (6 new tests)."
+owner: bjorn@stabell.org
+assignee: claude:21c57d63
 ---
 
 # [x] Test infrastructure gaps: STRICT suppression, missing CI, manual-only fuzz @km/infra #epic #P1 @claude:21c57d63

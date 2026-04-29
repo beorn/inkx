@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-06T20:03:03Z
 closed_at: 2026-04-06T20:09:13Z
 close_reason: "Fixed: shortName falls back to content then 'this item', never internal IDs"
+owner: bjorn@stabell.org
 ---
 
 # [x] [bug] Toast messages show internal node IDs instead of names @km/tui #bug #P3

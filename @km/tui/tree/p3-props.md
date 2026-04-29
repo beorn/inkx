@@ -9,6 +9,7 @@ closed_at: 2026-04-09T00:29:26Z
 close_reason: ancestorDone prop deleted from NodeView.tsx, replaced with
   doneAncestor signal via useDoneAncestor hook. shouldStripColor comment updated
   (4→2 implementations). Commit 699f6f4f3.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 3: Eliminate prop drilling — ancestorDone + shouldStripColor via signals @km/tui #task #P1

@@ -8,6 +8,15 @@ created_at: 2026-04-11T00:40:57Z
 closed_at: 2026-04-18T08:16:07Z
 close_reason: "Phase 0 shipped on feat/selection-plateau: Selection union +
   setSelection dispatcher. See commit 7a6367c86."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-all.unified-selection
+    depends_on_id: km-silvery.selection-focus-plateau
+    type: parent-child
+    created_at: 2026-04-15T08:36:40Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Unified Selection type: TextSelection | NodeSelection | GapSelection on BoardState @km/all #feature #P0 @Bjørn Stabell

@@ -10,6 +10,8 @@ close_reason: Selection namespace created (selection.ts), getSelectedCards and
   getSelectedCardIndices deleted, 5 callers fixed (board-actions.ts x3,
   board-actions-edit.ts x3, keyboard-card-ops.ts x4), docs updated (design.md,
   km-commands/types.ts, 2 test comments), 14 unit tests added
+owner: bjorn@stabell.org
+assignee: claude:ceb7c9cb
 ---
 
 # [x] Phase 4: Selection typed object @km/core #task #P3 @claude:ceb7c9cb

@@ -5,6 +5,14 @@ aliases:
   - km-tui-detail-unify-real
 created_by: Bjørn Stabell
 created_at: 2026-04-09T07:48:31Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.detail-unify-real
+    depends_on_id: km-all.surface-freeze
+    type: blocks
+    created_at: 2026-04-16T15:55:44Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [!] Unify detail view as board viewMode — same lens, same tree, same signals @km/tui #task #P0

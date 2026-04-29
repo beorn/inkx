@@ -5,6 +5,7 @@ aliases:
   - km-tui-perf-clean
 created_at: 2026-02-08T13:33:03Z
 closed_at: 2026-02-08T13:43:11Z
+assignee: claude:a3625ec3
 ---
 
 # [x] Clean up perf-arch refactored code @km/tui #task #P2 @claude:a3625ec3

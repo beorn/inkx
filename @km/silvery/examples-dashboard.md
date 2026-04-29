@@ -7,6 +7,8 @@ created_by: claude:73d7a332
 created_at: 2026-03-12T16:20:43Z
 closed_at: 2026-03-29T07:03:39Z
 close_reason: Closed
+owner: bjorn@stabell.org
+assignee: claude:db326126
 ---
 
 # [x] Example: dashboard (btop-style, responsive, live metrics, charts) @km/silvery #task #P1 @claude:db326126

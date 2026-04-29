@@ -9,6 +9,7 @@ closed_at: 2026-04-10T19:56:49Z
 close_reason: "RED verdict: fundamentally incompatible with top-down cascade
   architecture. Current skip logic is already near-O(dirty). Better investments:
   dirty-node jump table, buffer region caching."
+owner: bjorn@stabell.org
 ---
 
 # [x] G6: Effect-driven rendering — O(dirty) instead of O(tree) @km/silvery #feature #P3

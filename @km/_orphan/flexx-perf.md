@@ -4,6 +4,7 @@ aliases:
   - km-flexx-perf
 created_at: 2026-01-30T17:51:13Z
 closed_at: 2026-01-30T21:20:18Z
+assignee: claude:b8b4780b
 ---
 
 # [x] Flexx layout performance optimization @km/_orphan #epic #P1 @claude:b8b4780b

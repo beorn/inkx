@@ -5,6 +5,7 @@ aliases:
   - km-tui-search-truncate
 created_at: 2026-02-04T14:16:07Z
 closed_at: 2026-02-04T14:40:20Z
+assignee: claude:44a381e0
 ---
 
 # [x] Search results truncated prematurely @km/tui #bug #P3 @claude:44a381e0

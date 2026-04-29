@@ -12,6 +12,15 @@ close_reason: "Wired deriveMonochromeTheme / monoAttrsFor into the render +
   strips fg/bg SGR at caps.colorLevel=none. 28 regression tests in
   vendor/silvery/tests/features/mono-tier-attrs.test.tsx. Silvery commits:
   4dd6cca5 (feat), 34f91c31 (test). km commit: c090593ad (bump)."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-silvery.mono-tier-wiring
+    depends_on_id: km-silvery.theme-system-v2
+    type: parent-child
+    created_at: 2026-04-18T10:45:12Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Output phase emits per-token SGR attrs at mono tier @km/silvery #task #P3 @Bjørn Stabell

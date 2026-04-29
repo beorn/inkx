@@ -5,6 +5,7 @@ aliases:
   - km-infra-terminal-matrix
 created_by: claude:d697f216
 created_at: 2026-02-26T12:36:45Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Cross-terminal testing matrix: automated visual verification across terminals and platforms @km/infra #task #P4

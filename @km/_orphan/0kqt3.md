@@ -7,6 +7,8 @@ created_at: 2026-04-01T06:10:05Z
 closed_at: 2026-04-02T04:09:52Z
 close_reason: Already fixed — reconcileIfChanged removed from all DB-origin
   handlers in prior work. Cleaned up unused import in sync.ts (commit a229e29e).
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] reconcileIfChanged still called for create/delete/move/task handlers — data loss @km/_orphan #bug #P0 @Bjørn Stabell

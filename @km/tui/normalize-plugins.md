@@ -8,6 +8,8 @@ created_at: 2026-04-02T05:29:31Z
 closed_at: 2026-04-02T05:44:39Z
 close_reason: "Shipped: withTitle + withName plugins + validateEffects invariant
   checker. Wired into board-effect-runner. 16 tests. Commit 90202575."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Normalization plugins: withTitle, withName — auto-derive fields on mutation @km/tui #task #P2 @Bjørn Stabell

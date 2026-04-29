@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-02T22:07:13Z
 closed_at: 2026-04-02T22:19:53Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Outline nav (j/k normal mode) uses foldDepth not ViewTree — same class of bug as block nav @km/tui #bug #P1 @Bjørn Stabell

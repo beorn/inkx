@@ -5,6 +5,7 @@ aliases:
 created_by: claude:97b8de73
 created_at: 2026-02-22T20:57:18Z
 closed_at: 2026-02-22T22:14:51Z
+owner: bjorn@stabell.org
 ---
 
 # [x] 10s+ startup freeze: preloadSubtree called twice, no progress @km/_orphan #bug #P1

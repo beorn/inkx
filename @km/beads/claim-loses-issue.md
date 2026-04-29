@@ -12,6 +12,14 @@ close_reason: Fixed in commit d14054dd6 (preserve data blob on update; remove
   packages/km-beads/src/mutations.ts:142-183 and
   apps/km-cli/src/commands/bd.ts:340-341 caller passing node.data through.
   Sister fix for close/drop in commit 3309b3512.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-beads.claim-loses-issue
+    depends_on_id: km-beads
+    type: parent-child
+    created_at: 2026-04-27T18:45:57Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] bd update --claim removes issue from indexable set @km/beads #bug #P1

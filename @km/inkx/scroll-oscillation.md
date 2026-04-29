@@ -6,6 +6,7 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-18T23:45:16Z
 closed_at: 2026-02-18T23:45:16Z
+owner: bjorn@stabell.org
 ---
 
 # [x] inkx: scroll oscillation when viewport fits 1 item causes infinite loop @km/inkx #bug #P1

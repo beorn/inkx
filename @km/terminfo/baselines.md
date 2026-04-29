@@ -9,6 +9,7 @@ closed_at: 2026-03-25T17:23:27Z
 close_reason: "Done: Terminal Baseline 2026 with core/modern/rich/unicode
   definitions. All 133 features have baseline field. Home page shows
   per-terminal baseline coverage cards. API includes baseline field."
+owner: bjorn@stabell.org
 ---
 
 # [x] Terminal Baseline 2026: core/modern/rich/unicode baseline definitions @km/terminfo #feature #P2

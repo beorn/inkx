@@ -8,6 +8,7 @@ created_at: 2026-04-06T16:42:32Z
 closed_at: 2026-04-09T05:07:30Z
 close_reason: Absorbed into km-tui.tree.v4.p8-type-safety. All 14 as-any casts
   eliminated in commit 88005e39a.
+owner: bjorn@stabell.org
 ---
 
 # [x] Fix 'as any' casts — logger types + repo type coercion @km/tui #task #P2

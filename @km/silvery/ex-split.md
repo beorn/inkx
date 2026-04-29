@@ -7,6 +7,7 @@ created_by: claude:474834b0
 created_at: 2026-03-10T17:24:55Z
 closed_at: 2026-03-10T17:34:38Z
 close_reason: Split showcases.tsx into 13 files in showcases/ dir
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 4: Split showcases.tsx into individual files @km/silvery #task #P3

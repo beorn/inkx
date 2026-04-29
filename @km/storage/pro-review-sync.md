@@ -11,6 +11,8 @@ close_reason: "All P0/P1 findings from GPT 5.4 Pro review addressed:
   move-disk (fs.rename + cascade), rename-outside-stream (write tokens +
   journal), ordinal-drift (3-phase matching), diff-empty-guard (removed). Across
   7 phases of km-storage.sync-refactor."
+owner: bjorn@stabell.org
+assignee: claude:km-work2
 ---
 
 # [x] Pro Review: km-storage sync pipeline ownership model @km/storage #task #P1 @claude:km-work2

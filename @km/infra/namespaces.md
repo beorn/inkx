@@ -9,6 +9,14 @@ closed_at: 2026-04-20T18:46:41Z
 close_reason: Dissolved. name = short_id = identity under the new model
   (hub/km/design/tribe-matrix.md). No separate namespace facet needed;
   name-minting per parent remains in km-beads.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.namespaces
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-20T10:31:01Z
+    created_by: claude:18c72b43
+    metadata: "{}"
 ---
 
 # [x] Namespaces: short-ID minting via per-node namespace facet @km/infra #task #P3

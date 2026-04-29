@@ -105,6 +105,15 @@ close_reason: >-
   on bordered cards. So the unification is in list-rendering mechanics — one
   frame enum, one gap rule, one prop — while the per-frame overflow policies
   remain documented and deliberately distinct.
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-tui.column-primitive
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-20T20:59:20Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Unify CardColumn structural + body render branches into Column primitive @km/tui #feature #P3 @claude:8b5b9e1c

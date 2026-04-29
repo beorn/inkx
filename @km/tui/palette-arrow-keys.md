@@ -13,6 +13,8 @@ close_reason: "Fixed in 83645c2b3: BoardApp now reads FocusManagerContext and
   ArrowUp while a picker or palette was open fell through to cursor_up instead
   of dialog.nav_up. Tests didn't catch it because test helpers (board-test.ts,
   real-board.ts) install the guard via their own paths."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Arrow keys move board when command palette is open @km/tui #bug #P2 @Bjørn Stabell

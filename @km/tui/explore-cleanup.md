@@ -6,6 +6,7 @@ aliases:
 created_by: claude:499eee95
 created_at: 2026-02-13T18:27:46Z
 closed_at: 2026-02-13T18:45:28Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Restructure explore-* tests: merge valuable, /tmp for generation @km/tui #task #P1

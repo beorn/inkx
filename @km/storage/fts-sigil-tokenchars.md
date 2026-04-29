@@ -16,6 +16,15 @@ close_reason: "Landed in 314d9a4fd. FTS5 nodes_fts now indexes
   tokenization, triggers, migration path, idempotency. 1234 km-storage tests +
   2292 km-tui tests green. JS-side findByNameOrTitle fallback in Omnibox
   preserved pending dogfooding verification — removal is a follow-up bead."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-storage.fts-sigil-tokenchars
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-14T21:33:37Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] FTS5 schema: sigil tokenchars + name/title columns @km/storage #task #P2 @Bjørn Stabell

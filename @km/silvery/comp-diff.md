@@ -5,6 +5,14 @@ aliases:
   - km-silvery-comp-diff
 created_by: Bjørn Stabell
 created_at: 2026-04-15T23:18:43Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.comp-diff
+    depends_on_id: km-silvery.opentui-parity
+    type: parent-child
+    created_at: 2026-04-15T16:18:43Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Component: Diff view (side-by-side + unified) @km/silvery #feature #P3

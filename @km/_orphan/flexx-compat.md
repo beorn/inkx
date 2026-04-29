@@ -4,6 +4,7 @@ aliases:
   - km-flexx-compat
 created_at: 2026-01-30T18:17:57Z
 closed_at: 2026-01-30T20:51:54Z
+assignee: claude:b8b4780b
 ---
 
 # [x] [flexx] Yoga Compatibility - All Remaining Work @km/_orphan #epic #P1 @claude:b8b4780b

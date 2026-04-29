@@ -6,6 +6,8 @@ aliases:
 created_by: claude:97217d5d
 created_at: 2026-02-16T22:19:00Z
 closed_at: 2026-02-23T00:29:00Z
+owner: bjorn@stabell.org
+assignee: claude:ee8efc0f
 ---
 
 # [x] Outline prop: visual border that doesn't affect layout dimensions @km/inkx #feature #P4 @claude:ee8efc0f

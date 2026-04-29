@@ -9,6 +9,7 @@ closed_at: 2026-03-09T23:48:50Z
 close_reason: "Already fixed: padCenter returns empty for width<=0, truncates
   when text>width. renderScrollIndicators bounds writes to content area. 4 tests
   pass."
+owner: bjorn@stabell.org
 ---
 
 # [x] Fix border text overflow bug @km/silvery #bug #P3

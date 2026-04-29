@@ -9,6 +9,7 @@ closed_at: 2026-03-10T04:18:36Z
 close_reason: "Fixed Phase 7a fallback in layout-zero.ts: calls cachedMeasure
   for auto-sized children with measureFunc instead of equal-dividing all cross
   space. 4 tests added. All 1408 flexily tests pass."
+owner: bjorn@stabell.org
 ---
 
 # [x] alignContent ignored when children use measureFunc @km/flexily #bug #P2

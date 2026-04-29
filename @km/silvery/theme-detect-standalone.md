@@ -13,6 +13,14 @@ close_reason: "Shipped in v0.18.0: @silvery/theme-detect@0.18.0 published to npm
   monochrome attrs, custom tokens, types. Zero framework deps beyond
   @silvery/color + @silvery/ansi. 14 export-verification + end-to-end tests
   pass."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-detect-standalone
+    depends_on_id: km-silvery.design-system
+    type: parent-child
+    created_at: 2026-04-18T00:08:18Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Theme detection as standalone library — useful beyond silvery @km/silvery #feature #P3

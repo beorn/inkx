@@ -5,6 +5,8 @@ aliases:
   - km-termless-commercial
 created_by: claude:8fc35754
 created_at: 2026-03-03T09:59:07Z
+owner: bjorn@stabell.org
+assignee: claude:8fc35754
 ---
 
 # [ ] Commercial prospects analysis and recommendations for termless @km/termless #task #P4 @claude:8fc35754

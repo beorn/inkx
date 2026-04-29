@@ -6,6 +6,7 @@ aliases:
 created_by: claude:fbad9cb1
 created_at: 2026-03-06T09:26:50Z
 closed_at: 2026-03-06T09:44:52Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Playwright tests for web showcase demos on hightea.dev @km/hightea #task #P1

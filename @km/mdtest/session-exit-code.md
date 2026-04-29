@@ -7,6 +7,7 @@ created_by: claude:65d845d9
 created_at: 2026-03-14T00:12:55Z
 closed_at: 2026-03-14T01:34:31Z
 close_reason: Closed
+owner: bjorn@stabell.org
 ---
 
 # [x] mdtest: custom session reports exitCode=0 without OSC 133 @km/mdtest #bug #P1

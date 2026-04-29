@@ -5,6 +5,7 @@ aliases:
   - km-tui-text-mode
 created_at: 2026-02-06T10:32:11Z
 closed_at: 2026-02-19T22:19:35Z
+assignee: claude:8f007ba9
 ---
 
 # [x] Node mode / Text mode keybinding separation @km/tui #feature #P3 @claude:8f007ba9

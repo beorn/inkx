@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-03T03:56:05Z
 closed_at: 2026-04-03T04:23:10Z
 close_reason: Shipped 4e26909e. withNormalization decorator.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 3: Auto-normalization — schema enforcement after every tree operation @km/tree #task #P3

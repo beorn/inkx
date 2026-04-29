@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T22:51:37Z
 closed_at: 2026-02-16T11:54:02Z
+owner: bjorn@stabell.org
+assignee: claude:a5c7f7de
 ---
 
 # [x] Context-dependent body block rendering: cards (compact) vs columns (spaced, no border) @km/tui #feature #P3 @claude:a5c7f7de

@@ -5,6 +5,7 @@ aliases:
   - km-silvery-wheel-windowed-buffer
 created_by: claude:c56dc5d6
 created_at: 2026-04-23T18:53:26Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Replace scalar velocity + heuristics with windowed event buffer for wheel momentum @km/silvery #feature #P2

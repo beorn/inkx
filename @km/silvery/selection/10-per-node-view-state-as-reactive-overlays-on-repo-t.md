@@ -10,6 +10,7 @@ closed_at: 2026-04-05T17:49:05Z
 close_reason: "Exploration complete: per-node reactive overlays rejected in
   favor of current ViewSnapshot + column cache. The procedural build is simpler
   and faster for km's 20-2000 node trees."
+owner: bjorn@stabell.org
 ---
 
 # [x] Per-node view state as reactive overlays on repo tree @km/silvery #task #P3

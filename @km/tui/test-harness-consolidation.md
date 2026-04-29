@@ -11,6 +11,15 @@ close_reason: Agent B shipped unified createTestApp() entry at
   contract suite at
   vendor/silvery/tests/contracts/create-renderer-defaults.contract.test.tsx.
   km-tui 1824 tests pass. Silvery 9912d7df + km e2ac4ae54 + 1f4676652.
+owner: bjorn@stabell.org
+assignee: claude:c6244087
+dependencies:
+  - issue_id: km-tui.test-harness-consolidation
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-23T10:27:24Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] km-tui test harness: consolidate 3 overlapping helpers into 1 @km/tui #task #P2 @claude:c6244087

@@ -13,6 +13,15 @@ close_reason: "Shipped: 80 lines of re-exports (40 value + 20 type) removed from
   packages/km-storage/src/index.ts returns 0 lines. Typecheck baseline, 7172
   fast-suite tests pass. Not added: storage→fs-mount formal dep (would cycle
   with fs-mount→storage)."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.fs-mount-delete-compat-reexports
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-22T08:33:09Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Delete @km/storage → @km/fs-mount re-exports (finish fs-mount) @km/storage #task #P2 @claude:8b5b9e1c

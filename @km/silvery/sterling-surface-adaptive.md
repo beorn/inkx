@@ -10,6 +10,16 @@ close_reason: "Fixed in silvery c0072dae: surface ramp lift mirrors legacy fg
   lift (ensureContrast against blend(bg, fg, 0.08)). 81/84 → 84/84 on
   fg/bg-surface-overlay AND fg/bg-surface-hover. inline.ts now overwrites
   bg-surface-hover (preventing legacy stop-gap leak)."
+started_at: 2026-04-25T06:43:56Z
+owner: bjorn@stabell.org
+assignee: claude:22c2717d
+dependencies:
+  - issue_id: km-silvery.sterling-surface-adaptive
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-24T16:12:59Z
+    created_by: claude:5e447b66
+    metadata: "{}"
 ---
 
 # [x] Sterling: bg-surface-overlay near-misses AA on light schemes @km/silvery #bug #P4 @claude:22c2717d

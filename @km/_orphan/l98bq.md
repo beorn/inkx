@@ -4,6 +4,7 @@ aliases:
   - km-l98bq
 created_by: Bjørn Stabell
 created_at: 2026-04-16T06:18:18Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] km enrich: LLM-powered backlink and timeline enrichment @km/_orphan #task #P1

@@ -21,6 +21,15 @@ close_reason: >-
   toward pure black/white scrim, sRGB space. User's perceptual observation
   (blue-more-saturated-when-darkened) is resolved because sRGB source-over
   scales all channels uniformly — r:g:b ratios preserved.
+owner: bjorn@stabell.org
+assignee: claude:88c0e764
+dependencies:
+  - issue_id: km-silvery.backdrop-scrim-redesign
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-19T15:31:11Z
+    created_by: claude:88c0e764
+    metadata: "{}"
 ---
 
 # [x] Backdrop fade: industry-standard source-over sRGB alpha compositing @km/silvery #task #P2 @claude:88c0e764

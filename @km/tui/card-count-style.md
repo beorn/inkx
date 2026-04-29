@@ -6,6 +6,7 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-12T22:29:32Z
 closed_at: 2026-02-12T23:41:46Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Card count: only show when folded, style same as title @km/tui #feature #P3

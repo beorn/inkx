@@ -6,6 +6,8 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T13:24:44Z
 closed_at: 2026-02-19T13:43:50Z
+owner: bjorn@stabell.org
+assignee: claude:36393b5d
 ---
 
 # [x] Detail pane: mysterious · · · dots between subitems @km/tui #bug #P2 @claude:36393b5d

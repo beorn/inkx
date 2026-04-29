@@ -6,6 +6,7 @@ aliases:
   - "@km/domain/4"
 created_at: 2026-01-25T23:36:36Z
 closed_at: 2026-01-26T08:13:05Z
+assignee: km
 ---
 
 # [x] Phase 4: Repo composition + migrate callers @km/domain #task #P2 @km

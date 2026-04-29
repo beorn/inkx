@@ -7,6 +7,8 @@ created_at: 2026-03-23T19:30:22Z
 closed_at: 2026-03-23T22:26:11Z
 close_reason: "Done: TeaNode → AgNode across 55 files in silvery,
   silvery-internal, and km-tui"
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Rename TeaNode → AgNode across silvery codebase @km/_orphan #task #P1 @claude:fed8de9e

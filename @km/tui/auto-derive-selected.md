@@ -12,6 +12,8 @@ close_reason: "Selection writes consolidated to single source of truth in
   writes to 1 centralized writer. 5833/5833 tests pass. Commit 9e7bd3440. Note:
   full computed-from-store auto-derivation requires reactive-graph rebind
   invalidation fix (separate concern)."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Auto-derive node.selected from sel store — eliminate dual writes @km/tui #task #P2 @Bjørn Stabell

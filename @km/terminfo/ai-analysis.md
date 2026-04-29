@@ -11,6 +11,8 @@ close_reason: "Implemented: generate-analysis.ts (template-based, strict
   compare, category, standard), all templates wired with shared analysis.css,
   content/analysis.json generated and rendering. CLI: bun analysis / bun
   analysis:validate."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] AI-generated analysis commentary on terminal/baseline/compare/feature pages @km/terminfo #feature #P3 @claude:f8196c1c

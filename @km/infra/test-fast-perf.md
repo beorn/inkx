@@ -6,6 +6,8 @@ aliases:
 created_by: claude:3d4c9a23
 created_at: 2026-02-11T16:31:01Z
 closed_at: 2026-02-11T16:38:20Z
+owner: bjorn@stabell.org
+assignee: claude:3d4c9a23
 ---
 
 # [x] Fix test:fast performance regression (<10s target) and add test:changed @km/infra #task #P2 @claude:3d4c9a23

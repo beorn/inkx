@@ -5,6 +5,9 @@ aliases:
   - km-silvercode-wrap-ergonomic
 created_by: claude:0940ca20
 created_at: 2026-04-24T21:50:44Z
+started_at: 2026-04-25T05:13:25Z
+owner: bjorn@stabell.org
+assignee: claude:53042a7f
 ---
 
 # [/] [epic] Ergonomic text wrapping in silvercode — flexily root fix + <Prose> primitive + migrate silvercode @km/silvercode #feature #P1 @claude:53042a7f

@@ -10,6 +10,7 @@ close_reason: SelectionFeature (180 lines), ClipboardCapability (OSC 52),
   capability symbols, withDomEvents extended with selection+invalidation,
   withTerminal extended with clipboard. 36 new tests pass. Silvery commit
   4c5f03a.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 3: SelectionFeature + withDomEvents selection integration (architecture validation) @km/silvery #task #P1

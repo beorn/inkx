@@ -7,6 +7,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-04T00:01:12Z
 closed_at: 2026-04-04T21:07:24Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Selection Phase 5: Remove Zustand — one reactive system @km/silvery #task #P2 @Bjørn Stabell

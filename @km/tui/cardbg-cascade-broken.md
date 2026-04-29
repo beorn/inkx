@@ -11,6 +11,14 @@ close_reason: Stale Sterling-renamed token in test (theme.selectionbg →
   undefined and falling back to selectedBg(theme) blend. Fixed in commit
   51017489e — test now reads bg-selected first with back-compat fallback. All 4
   tests in the file pass.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.cardbg-cascade-broken
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-26T01:11:09Z
+    created_by: claude:53042a7f
+    metadata: "{}"
 ---
 
 # [x] card-bg cascade: sub-items don't inherit cursor-card's $bg-selected @km/tui #bug #P3

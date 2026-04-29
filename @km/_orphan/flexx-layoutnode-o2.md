@@ -4,6 +4,7 @@ aliases:
   - km-flexx-layoutnode-o2
 created_at: 2026-01-30T17:17:30Z
 closed_at: 2026-01-30T17:49:24Z
+assignee: claude:b8b4780b
 ---
 
 # [x] Investigate Flexx O(n²) recursive layoutNode calls @km/_orphan #bug #P1 @claude:b8b4780b

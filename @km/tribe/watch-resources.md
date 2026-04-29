@@ -8,6 +8,7 @@ created_at: 2026-03-31T07:44:28Z
 closed_at: 2026-03-31T07:53:06Z
 close_reason: RES column shows active resources per session (git,beads,github).
   Daemon shows its plugins.
+owner: bjorn@stabell.org
 ---
 
 # [x] Watch TUI: show resource providers per session @km/tribe #task #P2

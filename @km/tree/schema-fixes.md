@@ -9,6 +9,7 @@ closed_at: 2026-04-01T20:23:32Z
 close_reason: "Commit 6c251625: schema layer
   (canHaveChildren/canParent/canBecomeBlock), joinBackward child guard,
   body-prefix validation, getEditableText/setEditableText. 407 tests pass."
+owner: bjorn@stabell.org
 ---
 
 # [x] Fix 6 schema/spec contradictions before Phase 1 (from pro review) @km/tree #task #P1

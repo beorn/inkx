@@ -10,6 +10,7 @@ close_reason: "Mostly covered by linkifyContent() in paths.ts +
   @bearly/vitepress-enrich glossary plugin. All body/description/probe content
   is linkified. Remaining: minor labels in v-for category listings — low impact,
   not worth a dedicated effort."
+owner: bjorn@stabell.org
 ---
 
 # [x] Linkify entity names in Vue template table content (SGR in tables, etc.) @km/terminfo #task #P3

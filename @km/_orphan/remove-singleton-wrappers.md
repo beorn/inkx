@@ -4,6 +4,7 @@ aliases:
   - km-remove-singleton-wrappers
 created_at: 2026-01-25T08:25:11Z
 closed_at: 2026-01-26T00:10:09Z
+assignee: km
 ---
 
 # [x] Remove singleton wrapper functions from db.ts @km/_orphan #chore #P2 @km

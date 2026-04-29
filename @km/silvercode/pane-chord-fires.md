@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-pane-chord-fires
 created_by: claude:cc081a9a
 created_at: 2026-04-28T03:32:11Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.pane-chord-fires
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-27T20:32:12Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] [bug] Ctrl+G pane chord (v/s/x/z) doesn't fire from PTY input — 3 visual tests fail @km/silvercode #bug #P2

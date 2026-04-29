@@ -5,6 +5,20 @@ aliases:
   - km-tribe-recall-eval-longmemeval
 created_by: claude:4de4a3ab
 created_at: 2026-04-28T07:05:50Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.recall-eval-longmemeval
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-28T00:05:53Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
+  - issue_id: km-tribe.recall-eval-longmemeval
+    depends_on_id: km-tribe.recall-eval-corpus
+    type: blocks
+    created_at: 2026-04-28T00:05:53Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] Score recall pipeline on LongMemEval public benchmark (substrate sanity floor) @km/tribe #task #P3

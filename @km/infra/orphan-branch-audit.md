@@ -18,6 +18,16 @@ close_reason: "Shipped wip-triage tool: bun tools/wip-triage.ts (525 LOC) +
   Out-of-scope items already filed:
   km-infra.max-skill-update-eventual-consistency (P2),
   km-infra.worktree-hook-align (P3)."
+started_at: 2026-04-28T22:22:14Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-infra.orphan-branch-audit
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-28T14:49:09Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] /sop infra check — orphan branches (no open bead) + stale worktrees (>24h idle) @km/infra #task #P1 @claude:2405c72e

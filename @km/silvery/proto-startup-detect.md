@@ -10,6 +10,7 @@ close_reason: withTerminal auto-detects Mode 2031 (color scheme) + DEC 1020-1023
   (width) at startup. Parallel queries, 200ms timeout, non-blocking.
   colorSchemeDetector + widthDetector exposed on app. 15 tests. Silvery commit
   2d7c789.
+owner: bjorn@stabell.org
 ---
 
 # [x] withTerminal auto-detects Mode 2031 + DEC 1020-1023 at startup @km/silvery #task #P2

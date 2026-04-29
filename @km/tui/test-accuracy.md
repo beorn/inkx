@@ -6,6 +6,8 @@ aliases:
 created_by: claude:b329c279
 created_at: 2026-02-16T10:21:10Z
 closed_at: 2026-02-18T08:23:01Z
+owner: bjorn@stabell.org
+assignee: test-infra
 ---
 
 # [x] TUI test accuracy: unify testEnv/createApp + visual invariants @km/tui #feature #P1 @test-infra

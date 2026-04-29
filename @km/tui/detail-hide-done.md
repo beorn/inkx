@@ -6,6 +6,8 @@ aliases:
 created_by: claude:f47d1ff0
 created_at: 2026-03-04T07:41:54Z
 closed_at: 2026-03-04T07:46:05Z
+owner: bjorn@stabell.org
+assignee: claude:f47d1ff0
 ---
 
 # [x] Detail pane shows done items when 'v d' (hide done) is active @km/tui #bug #P1 @claude:f47d1ff0

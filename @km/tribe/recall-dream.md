@@ -5,6 +5,14 @@ aliases:
   - km-tribe-recall-dream
 created_by: claude:4de4a3ab
 created_at: 2026-04-27T23:06:11Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.recall-dream
+    depends_on_id: km-tribe.recall
+    type: parent-child
+    created_at: 2026-04-27T16:10:45Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] Mem dream: offline corpus consolidation (atomic facts, dedup, conflict resolution, generalization) @km/tribe #feature #P3

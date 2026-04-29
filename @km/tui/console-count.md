@@ -5,6 +5,7 @@ aliases:
   - km-tui-console-count
 created_at: 2026-02-05T12:16:46Z
 closed_at: 2026-02-05T12:19:11Z
+assignee: claude:3d543eef
 ---
 
 # [x] bug(tui): console status bar count doesn't update when log messages appear @km/tui #bug #P3 @claude:3d543eef

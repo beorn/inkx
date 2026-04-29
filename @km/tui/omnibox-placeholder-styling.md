@@ -12,6 +12,14 @@ close_reason: "Fixed in 504bf996b. InputBox placeholder rendering: removed the
   dimColor>. Fixes both the 'not left-aligned' and 'too white' complaints — the
   cursor IS the first ghost char, and dimColor renders more reliably dim than
   <Muted> across themes."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.omnibox-placeholder-styling
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T23:07:38Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Omnibox placeholder: 'ghosted' text too white + not left-aligned (extra leading space) @km/tui #bug #P3

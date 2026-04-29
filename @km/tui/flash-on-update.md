@@ -5,6 +5,7 @@ aliases:
   - km-tui-flash-on-update
 created_at: 2026-02-05T15:09:11Z
 closed_at: 2026-02-06T21:45:43Z
+assignee: claude:a3625ec3
 ---
 
 # [x] Bottom bar flash-on-update: bright white text that fades to grey @km/tui #feature #P2 @claude:a3625ec3

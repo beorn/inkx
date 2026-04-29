@@ -9,6 +9,16 @@ closed_at: 2026-04-25T06:00:12Z
 close_reason: "Shipped: vendor/silvery 773f5bbe (Prose component + tests +
   docs), km main 0da58709c (4 silvercode components migrated). Both commits +
   test files referenced in agent task report."
+started_at: 2026-04-25T05:46:59Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.prose-primitive
+    depends_on_id: km-silvercode.wrap-ergonomic
+    type: parent-child
+    created_at: 2026-04-24T14:51:12Z
+    created_by: claude:0940ca20
+    metadata: "{}"
 ---
 
 # [x] <Prose>/<MessageBody> component: drop-in text-wrapping primitive that encapsulates flex/shrink/minWidth/overflow @km/silvercode #feature #P2 @claude:2405c72e

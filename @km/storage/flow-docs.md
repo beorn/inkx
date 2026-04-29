@@ -5,6 +5,7 @@ aliases:
   - km-storage-flow-docs
 created_by: Bjørn Stabell
 created_at: 2026-04-02T22:35:14Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Create FLOW.md — document both sync directions with exact file paths @km/storage #task #P3

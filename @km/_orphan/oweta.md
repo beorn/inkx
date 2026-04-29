@@ -5,6 +5,8 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-12T17:08:04Z
 closed_at: 2026-02-12T19:45:41Z
+owner: bjorn@stabell.org
+assignee: claude:124bfbe5
 ---
 
 # [x] TUI: Z (unfold all) collapses column instead of unfolding cards @km/_orphan #bug #P3 @claude:124bfbe5

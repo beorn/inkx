@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T14:21:33Z
 closed_at: 2026-02-25T20:02:31Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] Blank line between rightmost overflow indicator and cards @km/tui #bug #P2 @claude:d697f216

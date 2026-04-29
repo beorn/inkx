@@ -6,6 +6,7 @@ aliases:
 created_by: claude:23485adf
 created_at: 2026-02-23T22:27:42Z
 closed_at: 2026-02-23T23:28:57Z
+owner: bjorn@stabell.org
 ---
 
 # [x] wrap=wrap text in bordered card doesn't expand height — text bleeds into border @km/inkx #bug #P2

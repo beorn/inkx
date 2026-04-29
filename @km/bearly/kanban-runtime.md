@@ -11,6 +11,14 @@ close_reason: Shipped in bearly ca6b56d + km 4f9edbd67. Listener at
   (createKanbanBridge), event mapping per bead description, timeoutMs 200 safety
   cap, spawn failures swallowed so kanban-down never propagates to agent loop.
   10/10 tests pass. User activates by copying to ~/.claude/hooks.d/.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.kanban-runtime
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-22T19:38:36Z
+    created_by: claude:fa4168d9
+    metadata: "{}"
 ---
 
 # [x] Kanban-bridge listener — forward events to Cline Kanban @km/bearly #feature #P3

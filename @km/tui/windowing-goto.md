@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-22T07:35:36Z
 closed_at: 2026-02-22T09:46:51Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Windowing: wire go-to commands to panes (gp, gn, Ctrl+D, Shift+Enter) @km/tui #task #P2 @claude:d3a7049b

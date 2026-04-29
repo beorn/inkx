@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-05T07:42:09Z
 closed_at: 2026-04-06T16:38:57Z
 close_reason: all steps complete
+owner: bjorn@stabell.org
 ---
 
 # [x] km-tui signals migration — all subsystems to alien-signals @km/tui #epic #P2

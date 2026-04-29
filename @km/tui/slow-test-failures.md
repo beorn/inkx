@@ -10,6 +10,8 @@ close_reason: "Fixed 11 of 84 failures: CLI help colorization, indent/outdent
   cursor assertions, column move verification, tab cursor expectation. Remaining
   73 are vendor (silvery keybinding-matrix 65, OSC 8 hyperlinks 7, incremental
   render 1)."
+owner: bjorn@stabell.org
+assignee: claude:ceb7c9cb
 ---
 
 # [x] Pre-existing slow test failures — dialogs, ANSI replay, keybinding matrix @km/tui #bug #P2 @claude:ceb7c9cb

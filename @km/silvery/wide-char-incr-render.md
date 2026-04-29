@@ -7,6 +7,16 @@ created_by: claude:cc081a9a
 created_at: 2026-04-26T20:48:25Z
 closed_at: 2026-04-26T22:43:14Z
 close_reason: Closed
+started_at: 2026-04-26T22:12:00Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvery.wide-char-incr-render
+    depends_on_id: km-all.fix-sweep-0426
+    type: parent-child
+    created_at: 2026-04-26T13:48:28Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Wide-char incremental render duplicates new emoji when prev frame had wide char in same vicinity @km/silvery #bug #P2 @claude:cc081a9a

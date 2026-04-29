@@ -5,6 +5,7 @@ aliases:
   - km-all-plugin-composability
 created_by: Bjørn Stabell
 created_at: 2026-03-31T21:58:01Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Review all km-* packages for plugin composability — withSync, withEventLog, with* architecture @km/all #task #P2

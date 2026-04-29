@@ -5,6 +5,14 @@ aliases:
   - km-infra-doc-edit-safety
 created_by: Bjørn Stabell
 created_at: 2026-04-15T01:48:50Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.doc-edit-safety
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-14T18:48:53Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Encode doc-edit safety rule: never use perl/sed for markdown with pipe-heavy content @km/infra #task #P2

@@ -7,6 +7,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-04T09:05:51Z
 closed_at: 2026-04-05T07:52:28Z
+owner: bjorn@stabell.org
 ---
 
 # [x] km adopts ag-node interactive signals — use node.selected/hovered/armed/focused throughout km-tui @km/silvery #task #P1

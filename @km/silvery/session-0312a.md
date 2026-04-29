@@ -9,6 +9,8 @@ closed_at: 2026-03-12T23:36:17Z
 close_reason: "Session complete: ink compat auto-generated (98.9%), compat DRY
   cleanup (-729 lines), aichat-incr bug fixed, typography adoption, inline
   scrollback tests, docs updated."
+owner: bjorn@stabell.org
+assignee: claude:73d7a332
 ---
 
 # [x] Session: ink compat + inline bugs + ink.ts simplification @km/silvery #task #P2 @claude:73d7a332

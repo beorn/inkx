@@ -18,6 +18,15 @@ close_reason: "Fixed by commit b02d159e8. Test:
   ModalDialog so they can't drift. Verification: test fails (border end: 104 →
   93) when ModalDialog.width prop is removed, passes with it. All 2258 km-tui
   tests pass; bun fix clean."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-tui.omnibox-fixed-width
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T23:07:16Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Omnibox: search box should be fixed width @km/tui #task #P1 @Bjørn Stabell

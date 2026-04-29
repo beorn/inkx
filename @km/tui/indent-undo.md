@@ -6,6 +6,8 @@ aliases:
 created_by: claude:949598cc
 created_at: 2026-02-12T09:29:00Z
 closed_at: 2026-02-12T09:36:57Z
+owner: bjorn@stabell.org
+assignee: claude:949598cc
 ---
 
 # [x] Undo/redo support for indent/outdent operations @km/tui #feature #P2 @claude:949598cc

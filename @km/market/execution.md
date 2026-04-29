@@ -8,6 +8,7 @@ created_at: 2026-03-25T17:17:46Z
 closed_at: 2026-03-25T22:18:17Z
 close_reason: "Grooming: duplicate of parent km-market epic (69% similarity).
   All marketing work tracked under dedicated beads."
+owner: bjorn@stabell.org
 ---
 
 # [x] Content marketing execution across silvery ecosystem @km/market #epic #P3

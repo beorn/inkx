@@ -6,6 +6,16 @@ aliases:
 created_by: claude:53042a7f
 created_at: 2026-04-26T05:24:39Z
 closed_at: 2026-04-26T07:52:36Z
+started_at: 2026-04-26T05:26:07Z
+owner: bjorn@stabell.org
+assignee: claude:53042a7f
+dependencies:
+  - issue_id: km-silvery.text-intrinsic-vs-render
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-25T22:24:43Z
+    created_by: claude:53042a7f
+    metadata: "{}"
 ---
 
 # [x] Separate intrinsic measurement from render-time clipping in silvery Text + flexily min-content @km/silvery #feature #P2 @claude:53042a7f

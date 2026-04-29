@@ -6,6 +6,7 @@ aliases:
 created_by: claude:d1f60fb4
 created_at: 2026-02-25T23:27:25Z
 closed_at: 2026-02-25T23:37:05Z
+owner: bjorn@stabell.org
 ---
 
 # [x] OSC 10/11 — query terminal foreground/background colors @km/inkx #feature #P2

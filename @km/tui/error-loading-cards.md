@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T14:20:25Z
 closed_at: 2026-02-19T08:10:20Z
+owner: bjorn@stabell.org
+assignee: claude:36393b5d
 ---
 
 # [x] Error loading cards view after search navigation + detail pane close @km/tui #bug #P2 @claude:36393b5d

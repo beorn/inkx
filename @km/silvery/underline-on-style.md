@@ -10,6 +10,15 @@ close_reason: Phase 6 shipped. underline-ext.ts deleted; 7 bare exports folded
   into Style/Term methods. Caps bound once at createStyle(caps) — per-call
   threading eliminated. NodeView.tsx uses term.styledUnderline(...). 258 silvery
   + 1813 km-tui tests pass. Silvery 2ca070c7.
+owner: bjorn@stabell.org
+assignee: claude:c6244087
+dependencies:
+  - issue_id: km-silvery.underline-on-style
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T10:12:11Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Phase 6: merge underline-ext helpers into createStyle @km/silvery #task #P1 @claude:c6244087

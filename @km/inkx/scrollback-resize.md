@@ -6,6 +6,8 @@ aliases:
 created_by: claude:891e3ce1
 created_at: 2026-03-02T15:56:07Z
 closed_at: 2026-03-02T18:05:56Z
+owner: bjorn@stabell.org
+assignee: beorn
 ---
 
 # [x] Inline mode resize: frozen scrollback items disappear on terminal resize @km/inkx #bug #P1 @beorn

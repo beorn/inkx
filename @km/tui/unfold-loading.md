@@ -6,6 +6,8 @@ aliases:
 created_by: claude:23485adf
 created_at: 2026-02-23T17:14:16Z
 closed_at: 2026-02-23T17:22:03Z
+owner: bjorn@stabell.org
+assignee: claude:23485adf
 ---
 
 # [x] Unfold (L) shows loading indicators on current + all right columns @km/tui #bug #P1 @claude:23485adf

@@ -5,6 +5,14 @@ aliases:
   - km-all-reactive-tree-library
 created_by: Bjørn Stabell
 created_at: 2026-04-18T19:01:48Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.reactive-tree-library
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-18T12:01:48Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Extract reactive-graph as vendor/reactive-tree — infrastructure library @km/all #feature #P2

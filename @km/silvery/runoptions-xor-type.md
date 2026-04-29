@@ -9,6 +9,15 @@ closed_at: 2026-04-23T10:48:22Z
 close_reason: done in silvery fcddf897 + km 4a2ccbfb4. RunOptions =
   RunOptionsCommon & (profile XOR {caps,colorLevel}) via TS ?:never idiom.
   Runtime warn-once for JS violators. Mixed-options test pins behavior.
+owner: bjorn@stabell.org
+assignee: claude:c6244087
+dependencies:
+  - issue_id: km-silvery.runoptions-xor-type
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T03:24:06Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Type-level XOR: RunOptions accepts profile OR caps/colorLevel, not both @km/silvery #task #P2 @claude:c6244087

@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-agent-verification-matrix
 created_by: claude:4de4a3ab
 created_at: 2026-04-27T17:59:03Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.agent-verification-matrix
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-27T10:59:15Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] Verify all 7 agents end-to-end + research missing capability configs (gemini, copilot) @km/silvercode #task #P2

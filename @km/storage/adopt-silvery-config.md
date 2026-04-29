@@ -15,6 +15,22 @@ close_reason: "Shipped at 3fb69fdfe (silvercode zero-config) + 8057ee61c (km-cli
   documented in commit body. Follow-ups: 'km config' top-level subcommand via
   mountConfigCommand needs a KmKind schema (separate bead if pursued);
   getFolderIndexConfig + getCollapseParseConfig stay sync."
+started_at: 2026-04-26T23:10:26Z
+owner: bjorn@stabell.org
+assignee: claude:4de4a3ab
+dependencies:
+  - issue_id: km-storage.adopt-silvery-config
+    depends_on_id: km-silvery.config-package
+    type: blocks
+    created_at: 2026-04-26T16:05:08Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
+  - issue_id: km-storage.adopt-silvery-config
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-26T16:05:08Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [x] km/km-cli adopt @silvery/config — replace @km/storage's loadConfigObject + cosmiconfig wrapper @km/storage #task #P3 @claude:4de4a3ab

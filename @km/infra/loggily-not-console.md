@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-02T22:01:38Z
 closed_at: 2026-04-02T22:06:42Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Replace console.log/error/warn with loggily across all packages @km/infra #task #P2 @Bjørn Stabell

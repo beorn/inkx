@@ -6,6 +6,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-03T21:38:33Z
 closed_at: 2026-04-04T09:20:56Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Selection Phase 3: Pointer gestures @km/silvery #task #P1

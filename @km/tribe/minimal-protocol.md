@@ -9,6 +9,14 @@ closed_at: 2026-04-20T18:46:07Z
 close_reason: Superseded by hub/km/design/tribe-matrix.md (simplified model).
   Matrix connector + chatlog nodes + tree-based threads + sigil-routing via
   transclusion. No custom wire protocol. See DR for full details.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.minimal-protocol
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-19T11:02:21Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Reframe: tribe as journal + fanout, everything else derived @km/tribe #task #P3

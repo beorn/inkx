@@ -10,6 +10,8 @@ close_reason: "@silvery/commander shipped: colorizeHelp (ANSI style hooks),
   createCLI (typed opts via const generics), Commander re-exports. 22 tests.
   Deployed to 8 CLIs. Replaced @commander-js/extra-typings across 33 files via
   direct import swap."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Colorized Commander.js help output using silvery theme tokens @km/silvery #feature #P2 @claude:f8196c1c

@@ -32,6 +32,8 @@ close_reason: |-
   Files:
     vendor/silvery/packages/ink/src/ink-render.ts (003d4f94)
     vendor/silvery/packages/ink/scripts/gen-vitest.ts (e6aa3706)
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Expose Ink-compatible debug cursor API alongside SILVERY_DEV=1 @km/silvery #feature #P2 @Bjørn Stabell

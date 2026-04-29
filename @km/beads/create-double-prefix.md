@@ -33,6 +33,14 @@ close_reason: >-
 
   Smoke: 'bun km bd create' with each of the 4 input forms produces 'Created
   issue: km-beads.smoke-<slug>' — no doubling.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-beads.create-double-prefix
+    depends_on_id: km-beads
+    type: parent-child
+    created_at: 2026-04-28T01:24:43Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] km bd create double-prefixes the --id (km-beads.X → km-km-beads.X) @km/beads #bug #P2

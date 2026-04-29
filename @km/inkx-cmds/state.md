@@ -5,6 +5,7 @@ aliases:
   - km-inkx-cmds-state
 created_at: 2026-02-04T15:40:18Z
 closed_at: 2026-02-05T07:43:35Z
+assignee: claude:10db6ea8
 ---
 
 # [x] Rich state capture for TUI debugging @km/inkx-cmds #feature #P2 @claude:10db6ea8

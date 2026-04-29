@@ -5,6 +5,7 @@ aliases:
   - km-tui-auto-layout
 created_at: 2026-02-04T13:01:27Z
 closed_at: 2026-02-04T13:56:35Z
+assignee: claude:27f1a547
 ---
 
 # [x] Audit TUI for manual width/height calculations — migrate to flex layout @km/tui #task #P3 @claude:27f1a547

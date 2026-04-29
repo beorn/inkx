@@ -6,6 +6,8 @@ aliases:
 created_by: claude:23485adf
 created_at: 2026-02-24T08:47:15Z
 closed_at: 2026-02-25T20:09:50Z
+owner: bjorn@stabell.org
+assignee: claude:23485adf
 ---
 
 # [x] Column header rendered twice when cursor at column level @km/tui #bug #P1 @claude:23485adf

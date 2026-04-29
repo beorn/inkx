@@ -18,6 +18,7 @@ close_reason: "Investigated. Value.unit takes 4 values (UNIT_UNDEFINED=0,
   works. This is cosmetic type refinement, not a correctness issue. Low priority
   relative to the ceremony it introduces across types.ts, constants.ts, and
   every Value creation site."
+owner: bjorn@stabell.org
 ---
 
 # [x] Quality: Value.unit is plain number — should use literal unions or branded types @km/flexily #task #P2

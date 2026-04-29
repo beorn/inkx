@@ -7,6 +7,8 @@ created_by: claude:8b5b9e1c
 created_at: 2026-04-21T03:14:45Z
 closed_at: 2026-04-21T04:03:39Z
 close_reason: Closed
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
 ---
 
 # [x] Phantom ▼1 when scrollTo=lastItem and item is taller than viewport @km/silvery #task #P2 @claude:8b5b9e1c

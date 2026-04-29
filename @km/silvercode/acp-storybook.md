@@ -89,6 +89,28 @@ close_reason: >-
   - No conflict with parallel acp-multi-agent agent (its work is in
   src/{cross-agent-state,coordinator-mcp,controller}.ts) or acp-adapter-claude
   (in agent-harness package)
+started_at: 2026-04-26T09:52:19Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-storybook
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T01:12:02Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-storybook
+    depends_on_id: km-silvercode.acp-fake
+    type: blocks
+    created_at: 2026-04-26T02:04:57Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-storybook
+    depends_on_id: km-silvercode.acp-session
+    type: blocks
+    created_at: 2026-04-26T01:12:03Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] Silvercode component storybook — visual showcase for design iteration @km/silvercode #feature #P2 @claude:cd034ca4

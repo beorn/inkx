@@ -10,6 +10,8 @@ close_reason: "Fixed all 19 vacuous termless probes that returned { pass: true }
   without verification. Each now checks actual terminal state (getMode, getCell,
   getCursor, feedCapture, capabilities). Updated probe metadata in
   features.json. Added ~95 annotations. All result files regenerated."
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] Fix remaining vacuous termless probes + update probe metadata @km/terminfo #task #P2 @claude:4929065a

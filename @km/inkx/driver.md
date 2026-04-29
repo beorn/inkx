@@ -5,6 +5,7 @@ aliases:
   - km-inkx-driver
 created_at: 2026-02-04T14:49:04Z
 closed_at: 2026-02-05T10:09:11Z
+assignee: claude:10db6ea8
 ---
 
 # [x] inkx: Driver abstraction for AI/test automation @km/inkx #feature #P2 @claude:10db6ea8

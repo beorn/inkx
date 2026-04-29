@@ -10,6 +10,8 @@ close_reason: "Created 174-line Playwright smoke test at
   tests/site-smoke.test.ts: 7 categories, ~35 tests covering doc pages,
   screenshots, iframe demos, gallery interaction, static HTML demos, broken
   links."
+owner: bjorn@stabell.org
+assignee: claude:19080504
 ---
 
 # [x] Automated smoke test for silvery.dev — verify all live demos and embedded apps @km/silvery #task #P2 @claude:19080504

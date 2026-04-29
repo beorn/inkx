@@ -14,6 +14,14 @@ closeReason: "Obsoleted by cutover: Go bd binary archived (Phase B), .beads/
   deleted (Phase B finale). The bd v1.0.2 worktree-export bug can no longer
   occur because there is no Go bd hook running. Test + script + package.json
   gates removed in this commit."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-beads.upstream-bd-1.0.3-export-path
+    depends_on_id: km-all.upstream-waiting
+    type: parent-child
+    created_at: 2026-04-28T08:04:34Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Remove check-no-stray-issues-jsonl gate when bd >=1.0.3 is universal @km/beads #bug #P3

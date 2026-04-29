@@ -17,6 +17,8 @@ close_reason: "Fixed all 6 contradictions: (1) Qualified '5 stages' claim to
   useInput.ts, now imports from @silvery/ag/keys (matching canonical location
   table); (6) Removed unused FocusCallback type from runtime-subscribers.ts
   (YAGNI)"
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Architecture doc has 6 contradictions vs code (Pro review finding) @km/silvery #bug #P0 @Bjørn Stabell

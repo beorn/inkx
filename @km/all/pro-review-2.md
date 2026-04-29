@@ -8,6 +8,8 @@ created_at: 2026-03-13T22:44:49Z
 closed_at: 2026-03-18T18:56:24Z
 close_reason: "Grooming: Review complete. 9/11 P0+P1 fixed, 2 on feature
   branches. P2s tracked separately."
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] Pro Review Round 2: 2026-03-13 — termless @km/all #epic #P2 @claude:c9beade3

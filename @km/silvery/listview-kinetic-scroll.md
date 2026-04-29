@@ -5,6 +5,15 @@ aliases:
   - km-silvery-listview-kinetic-scroll
 created_by: claude:c56dc5d6
 created_at: 2026-04-23T16:52:44Z
+owner: bjorn@stabell.org
+assignee: claude:c56dc5d6
+dependencies:
+  - issue_id: km-silvery.listview-kinetic-scroll
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T09:52:47Z
+    created_by: claude:c56dc5d6
+    metadata: "{}"
 ---
 
 # [/] ListView: default kinetic viewport scroll (iOS-style) @km/silvery #feature #P2 @claude:c56dc5d6

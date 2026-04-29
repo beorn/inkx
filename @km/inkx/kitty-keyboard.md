@@ -5,6 +5,7 @@ aliases:
   - km-inkx-kitty-keyboard
 created_at: 2026-02-09T12:23:37Z
 closed_at: 2026-02-09T12:50:07Z
+assignee: claude:a3625ec3
 ---
 
 # [x] Kitty keyboard protocol support @km/inkx #feature #P3 @claude:a3625ec3

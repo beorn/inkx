@@ -10,6 +10,22 @@ close_reason: "Phase F shipped: silvery d5b23cf9 + km afbe9f89a. Audit found ~17
   actual uses (vs bead's 137 — most cleaned up incidentally during Phase D). 2
   test files migrated. Other legacy refs (primary/accent/muted/cursor)
   intentionally retained — still emitted by deriveTheme."
+started_at: 2026-04-25T06:43:55Z
+owner: bjorn@stabell.org
+assignee: claude:22c2717d
+dependencies:
+  - issue_id: km-silvery.sterling-package-tests-sweep
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-24T16:12:58Z
+    created_by: claude:5e447b66
+    metadata: "{}"
+  - issue_id: km-silvery.sterling-package-tests-sweep
+    depends_on_id: km-silvery.sterling-2e-interior-migration
+    type: blocks
+    created_at: 2026-04-24T16:14:50Z
+    created_by: claude:5e447b66
+    metadata: "{}"
 ---
 
 # [x] Sweep legacy theme tokens in vendor/silvery/packages/*/tests/ (~137 uses) — rewrite test expectations alongside 0.20.0 inlineSterlingTokens drop @km/silvery #task #P3 @claude:22c2717d

@@ -8,6 +8,7 @@ created_at: 2026-04-07T19:34:47Z
 closed_at: 2026-04-08T16:05:43Z
 close_reason: "WONTFIX: 73-89% was SILVERY_STRICT overhead. Real output phase is
   0.2ms/frame. Content phase (153ms) is the actual bottleneck."
+owner: bjorn@stabell.org
 ---
 
 # [x] Silvery output phase (diff/ANSI) is 73-89% of cursor wall time @km/silvery #bug #P0

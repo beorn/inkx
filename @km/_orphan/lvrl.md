@@ -4,6 +4,7 @@ aliases:
   - km-lvrl
 created_at: 2026-01-24T22:27:48Z
 closed_at: 2026-01-24T22:34:50Z
+assignee: claude-1769322742
 ---
 
 # [x] debug() output appears in console instead of DEBUG_LOG @km/_orphan #bug #P2 @claude-1769322742

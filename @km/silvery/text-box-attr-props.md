@@ -68,6 +68,8 @@ close_reason: >-
 
   ✓ km-logview overscroll indicator migrated to transparent Box underline
   overlay
+owner: bjorn@stabell.org
+assignee: claude:c56dc5d6
 ---
 
 # [x] Unified attr props on Text AND Box with spelled-out underline styles @km/silvery #feature #P2 @claude:c56dc5d6

@@ -6,6 +6,7 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-13T17:18:23Z
 closed_at: 2026-02-14T00:11:14Z
+owner: bjorn@stabell.org
 ---
 
 # [x] km-ast: domain model for knowledge tree @km/tui #task #P3

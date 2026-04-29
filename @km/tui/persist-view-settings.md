@@ -10,6 +10,7 @@ close_reason: "Implemented filterProperties persistence in workspace-persist.ts.
   Serialize: Sets to arrays (omitted when empty). Deserialize: arrays to Sets
   (backwards compatible). Restore in board-app-store.ts applies to all board
   panes. 12 new tests cover full round-trip."
+owner: bjorn@stabell.org
 ---
 
 # [x] Persist view settings (hide done, filters) across sessions @km/tui #feature #P2

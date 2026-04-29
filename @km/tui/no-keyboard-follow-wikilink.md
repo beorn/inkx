@@ -10,6 +10,8 @@ close_reason: "Fixed in 19ec66794: follow_wikilink command bound to 'g f' /
   'Ctrl+g f'. Walks current card subtree BFS, picks first [[target]], resolves
   via repo.resolveByName + id fallback, zooms via shared zoomToTargetInContext.
   Unresolved targets show warning toast."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] No keyboard way to follow a wikilink in a card @km/tui #bug #P2 @Bjørn Stabell

@@ -8,6 +8,8 @@ closed_at: 2026-03-17T06:00:47Z
 close_reason: Wired clickToCursorOffset into handleMouse. Same-node click
   repositions cursor via setCursorOffset. Different-node-in-card click saves and
   re-enters edit. idNode tracked during ancestor walk for rect lookup.
+owner: bjorn@stabell.org
+assignee: claude:656602a3
 ---
 
 # [x] Wire clickToCursorOffset into handleMouse @km/_orphan #task #P2 @claude:656602a3

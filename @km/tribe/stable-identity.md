@@ -9,6 +9,14 @@ closed_at: 2026-04-20T18:46:25Z
 close_reason: Dissolved. Under the new model (hub/km/design/tribe-matrix.md)
   name IS the stable identity. No separate persona_id or short_id field. Rename
   handled by km's existing link-rewriting.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.stable-identity
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-19T10:54:49Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] tribe: route/address by stable sessionId, not mutable name @km/tribe #feature #P1

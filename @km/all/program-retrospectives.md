@@ -6,6 +6,14 @@ aliases:
 created_by: claude:cc081a9a
 created_at: 2026-04-27T17:23:49Z
 closed_at: 2026-04-27T17:43:34Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.program-retrospectives
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-27T10:24:06Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Program-level retrospective protocol — /program-close skill or /refactor Phase 8 enforcement @km/all #task #P3

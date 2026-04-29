@@ -8,6 +8,7 @@ created_at: 2026-04-10T23:04:47Z
 closed_at: 2026-04-11T18:12:35Z
 close_reason: "Superseded: merged into km-silvery.tea-useinput — fix useInput
   precedence inside createApp."
+owner: bjorn@stabell.org
 ---
 
 # [x] Event precedence: focused components before global hooks (3-lane model) @km/silvery #task #P0

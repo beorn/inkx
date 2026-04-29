@@ -6,6 +6,8 @@ aliases:
 created_by: claude:5770ce77
 created_at: 2026-02-17T10:41:13Z
 closed_at: 2026-02-17T10:51:34Z
+owner: bjorn@stabell.org
+assignee: claude:5770ce77
 ---
 
 # [x] Show focus outline when editing in columns/tabs/lists views @km/tui #feature #P2 @claude:5770ce77

@@ -5,6 +5,20 @@ aliases:
   - km-tribe-recall-drop-synthesis
 created_by: claude:4de4a3ab
 created_at: 2026-04-28T06:33:44Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.recall-drop-synthesis
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-27T23:33:45Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
+  - issue_id: km-tribe.recall-drop-synthesis
+    depends_on_id: km-tribe.recall-eval-corpus
+    type: blocks
+    created_at: 2026-04-27T23:33:45Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] Drop synthesis from ambient injection path @km/tribe #task #P3

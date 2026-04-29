@@ -5,6 +5,15 @@ aliases:
   - km-infra-bd-v1-compat
 created_by: Bjørn Stabell
 created_at: 2026-04-11T19:39:05Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-infra.bd-v1-compat
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-11T12:39:27Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [/] km bd: bd-compatible CLI backed by km's markdown/SQLite store @km/infra #task #P2 @Bjørn Stabell

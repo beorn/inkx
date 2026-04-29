@@ -5,6 +5,7 @@ aliases:
   - km-market-trilemma-post
 created_by: Bjørn Stabell
 created_at: 2026-04-02T16:57:27Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Blog: Claude Code's Rendering Dilemma — publish when ready @km/market #task #P1

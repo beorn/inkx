@@ -5,6 +5,7 @@ aliases:
   - km-market-claude-code-outreach
 created_by: Bjørn Stabell
 created_at: 2026-04-09T21:24:15Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Marketing outreach re: Claude Code rendering (NOT READY — human-gated, no auto-execution) @km/market #task #P3

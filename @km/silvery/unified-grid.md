@@ -12,6 +12,8 @@ close_reason: "This was the original era2a tracking bead. All work completed
   cleanup (Phase 6), withReact + withTest (cleanup). The 'unified grid' =
   TextFrame, which is now the universal output type across silvery and
   termless."
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Unified grid type across silvery + termless — same shape everywhere @km/silvery #feature #P1 @claude:fed8de9e

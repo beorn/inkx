@@ -6,6 +6,8 @@ aliases:
 created_by: claude:97217d5d
 created_at: 2026-02-17T11:39:16Z
 closed_at: 2026-02-17T11:42:51Z
+owner: bjorn@stabell.org
+assignee: claude:97217d5d
 ---
 
 # [x] cursorMoveDown/Up stuck at wrap boundaries when stickyX=0 @km/inkx #bug #P2 @claude:97217d5d

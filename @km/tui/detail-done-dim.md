@@ -6,6 +6,8 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-20T23:42:55Z
 closed_at: 2026-02-20T23:44:17Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Detail pane: completed deep subitems show unfolded bright body @km/tui #bug #P2 @claude:8f007ba9

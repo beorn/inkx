@@ -6,6 +6,7 @@ aliases:
 created_by: claude:fed8de9e
 created_at: 2026-03-30T19:37:20Z
 closed_at: 2026-03-31T01:22:31Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Prototype: shrinkwrap chat (v0.5 exploration) @km/silvery #task #P2

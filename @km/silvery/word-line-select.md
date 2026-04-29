@@ -5,6 +5,7 @@ aliases:
   - km-silvery-word-line-select
 created_by: Bjørn Stabell
 created_at: 2026-04-02T16:51:03Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Double-click word select + triple-click line select with smart boundaries @km/silvery #feature #P2

@@ -5,6 +5,7 @@ aliases:
   - km-silvery-web-target
 created_by: claude:4929065a
 created_at: 2026-04-02T18:24:47Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] silvery web target — render to DOM/Canvas for terminal apps in the browser @km/silvery #feature #P4

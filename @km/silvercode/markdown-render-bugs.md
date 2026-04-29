@@ -13,6 +13,16 @@ close_reason: "Shipped: km main 145d5ff71. Single root cause for all 3 bugs:
   nested Text as virtual children → one wrappable text run with per-span style
   projection. Tests at apps/silvercode/tests/visual/markdown-bugs.test.tsx (3
   cases — bullet spacing, URL+colon flow, bold/italic cell attrs)."
+started_at: 2026-04-25T06:41:23Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.markdown-render-bugs
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-24T23:39:25Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Markdown rendering bugs: inconsistent bullet spacing, stray colon, no bold/italic @km/silvercode #bug #P2 @claude:2405c72e

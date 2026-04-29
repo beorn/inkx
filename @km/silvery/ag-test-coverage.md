@@ -9,6 +9,8 @@ closed_at: 2026-04-16T05:54:38Z
 close_reason: "54 tests added across 4 files: input-layer (22), paste-callback
   (14), use-exit (6), pipeline-input-stages (12). All passing. Committed to
   silvery main (315c038d), km main (60e91f94)."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Pipeline test coverage — usePaste, useExit, useInputLayer, stage behavior @km/silvery #task #P0 @Bjørn Stabell

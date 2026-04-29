@@ -6,6 +6,7 @@ aliases:
 created_by: claude:550b034d
 created_at: 2026-02-12T13:31:00Z
 closed_at: 2026-02-12T13:54:05Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Disk mode doesn't reconcile with filesystem on startup — new files invisible @km/storage #bug #P0

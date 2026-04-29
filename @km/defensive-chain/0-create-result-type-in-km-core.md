@@ -6,6 +6,7 @@ aliases:
   - "@km/defensive-chain/0"
 created_at: 2026-01-25T11:18:22Z
 closed_at: 2026-01-25T11:30:42Z
+assignee: claude
 ---
 
 # [x] Create Result type in @km/core @km/defensive-chain #task #P1 @claude

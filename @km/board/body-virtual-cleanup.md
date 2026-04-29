@@ -5,6 +5,14 @@ aliases:
   - km-board-body-virtual-cleanup
 created_by: Bjørn Stabell
 created_at: 2026-04-09T15:17:40Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-board.body-virtual-cleanup
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-15T12:19:02Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Replace __body__ virtual KNode pattern with cleaner abstraction @km/board #task #P3

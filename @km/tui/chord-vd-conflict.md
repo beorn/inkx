@@ -5,6 +5,7 @@ aliases:
   - km-tui-chord-vd-conflict
 created_by: claude:ceb7c9cb
 created_at: 2026-03-30T14:53:18Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Revisit v-chord keybinding conflicts: v d (hide done) vs due date mental model @km/tui #task #P3

@@ -9,6 +9,8 @@ closed_at: 2026-04-06T21:04:35Z
 close_reason: Split TASK_SET_STATUS (explicit status for
   toggle_task_done/set_status_*) from TASK_CYCLE_STATUS (per-card cycle for
   cycle_task_status). Commit f08bd8237.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] x key cycles task status instead of toggling done — TASK_SET_STATUS ignores status field @km/tui #bug #P1 @Bjørn Stabell

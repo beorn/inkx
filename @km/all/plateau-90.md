@@ -5,6 +5,7 @@ aliases:
   - km-all-plateau-90
 created_by: claude:cc081a9a
 created_at: 2026-04-27T05:44:43Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] [epic] Structural hardening program — pro/Kimi-corrected (2026-04-27) @km/all #feature #P2

@@ -14,6 +14,16 @@ close_reason: "Three symptoms (status stuck, ambient batching, duplicate error)
   (c) failed tool_call_update is single SessionUpdate (legacy error AgentEvents
   are dropped by wire). Tests: 209 passed in agent-harness + claude-acp suites.
   bun fix clean. tsc errors introduced: 0."
+started_at: 2026-04-28T04:47:24Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvercode.claude-acp-wire-bugs
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-27T15:37:21Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] claude-acp session: stuck status + ambient batching + duplicate errors @km/silvercode #bug #P1 @claude:cc081a9a

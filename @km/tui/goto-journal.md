@@ -10,6 +10,8 @@ close_reason: "Fixed: autoCreateDateTemplateFile now adds folder+file nodes to
   DB immediately via repo.addNode(), then navigates in a single press. No longer
   depends on watcher pickup. Also handles the case where file exists on disk but
   not in DB (watcher lag)."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] g j (goto journal) doesn't work — file not created, no navigation @km/tui #task #P1 @Bjørn Stabell

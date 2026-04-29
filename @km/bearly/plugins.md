@@ -9,6 +9,8 @@ closed_at: 2026-03-25T17:25:27Z
 close_reason: 5 plugins created (tribe, tty, llm, recall, batch-refactor).
   Marketplace registered and tribe install verified. tribe-wire published on
   npm. Type errors fixed, 12 tests pass.
+owner: bjorn@stabell.org
+assignee: claude:19080504
 ---
 
 # [x] Restructure tools repo as multi-plugin Claude Code marketplace @km/bearly #feature #P2 @claude:19080504

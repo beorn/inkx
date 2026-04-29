@@ -8,6 +8,7 @@ closed_at: 2026-03-19T16:44:08Z
 close_reason: "Grooming: duplicate of km-tui.zoom-render-artifacts — same root
   cause (incremental diff doesn't clear cells on layout width changes). Notes
   merged into canonical bead."
+owner: bjorn@stabell.org
 ---
 
 # [x] Bug: Rendering artifacts after detail pane open/close cycle @km/_orphan #bug #P2

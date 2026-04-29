@@ -9,6 +9,8 @@ closed_at: 2026-03-25T23:56:03Z
 close_reason: "Created 235-line inventory at docs/showcase-inventory.md: 48
   demos cataloged across 8 categories. Found 19 orphaned demos, 3 wrong
   screenshots, 6 missing screenshots."
+owner: bjorn@stabell.org
+assignee: claude:19080504
 ---
 
 # [x] Showcase inventory: catalog all demos, where they're used, issues per demo @km/silvery #task #P2 @claude:19080504

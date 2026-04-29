@@ -6,6 +6,7 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T16:01:00Z
 closed_at: 2026-02-19T08:23:56Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Column headers truncated: missing last character (SCHEDUL, PORTFOLI) @km/tui #bug #P2

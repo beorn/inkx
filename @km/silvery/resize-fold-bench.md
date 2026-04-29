@@ -8,6 +8,7 @@ created_at: 2026-04-10T18:53:41Z
 closed_at: 2026-04-10T19:00:08Z
 close_reason: "Resize bench added (cad36ec0). PreparedText cache: 27-49% faster
   on resize, 18-47% on oscillation. Largest at 1000 items (49%)."
+owner: bjorn@stabell.org
 ---
 
 # [x] Resize/fold benchmark — prove PreparedText cache wins @km/silvery #task #P2

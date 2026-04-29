@@ -25,6 +25,14 @@ close_reason: >-
   Sibling P1 (km-silvercode.cursor-startup-position) remains OPEN — the fix
   isn't in this bead; this bead provides the test infra to verify the fix when
   it lands.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.test-process-harness
+    depends_on_id: km-silvercode.test-system
+    type: parent-child
+    created_at: 2026-04-24T14:49:51Z
+    created_by: claude:0940ca20
+    metadata: "{}"
 ---
 
 # [x] Silvercode test system v2 — process harness for alt-screen / stderr @km/silvercode #feature #P2

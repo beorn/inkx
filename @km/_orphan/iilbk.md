@@ -5,6 +5,7 @@ aliases:
 created_by: claude:af6eb626
 created_at: 2026-03-04T09:01:40Z
 closed_at: 2026-03-04T12:44:50Z
+owner: bjorn@stabell.org
 ---
 
 # [x] shadcn-style TUI component system (inkx + themex + chalkx) @km/_orphan #feature #P2

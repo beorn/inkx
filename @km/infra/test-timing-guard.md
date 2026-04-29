@@ -6,6 +6,7 @@ aliases:
 created_by: claude:3d4c9a23
 created_at: 2026-02-11T16:38:00Z
 closed_at: 2026-02-11T16:45:42Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Add test:fast timing guard — alarm when >15s @km/infra #task #P0

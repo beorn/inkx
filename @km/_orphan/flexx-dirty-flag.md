@@ -4,6 +4,7 @@ aliases:
   - km-flexx-dirty-flag
 created_at: 2026-01-31T08:28:01Z
 closed_at: 2026-01-31T09:01:21Z
+assignee: claude:b8b4780b
 ---
 
 # [x] Implement dirty-flag incremental layout @km/_orphan #task #P2 @claude:b8b4780b

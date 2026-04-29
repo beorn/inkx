@@ -10,6 +10,8 @@ close_reason: "Implemented $default bg token (SGR 49). Changes: buffer.ts
   (DEFAULT_BG sentinel, isDefaultBg), render-helpers.ts (parseColor),
   output-phase.ts (styleToAnsi), buffer.ts CSS export. 7 tests in
   default-bg.test.tsx. Documented in reference/theming.md."
+owner: bjorn@stabell.org
+assignee: claude:474834b0
 ---
 
 # [x] Support default-bg for overlay elements (opaque dialogs without hardcoded color) @km/silvery #feature #P2 @claude:474834b0

@@ -9,6 +9,7 @@ closed_at: 2026-03-17T06:45:54Z
 close_reason: "E2E roundtrip tests: index file creates sections in DB, reorder
   syncs to folder, title syncs to folder, materialization modes tested, naming
   conventions tested"
+owner: bjorn@stabell.org
 ---
 
 # [x] E2E roundtrip tests (DB→file→DB) @km/storage #task #P2

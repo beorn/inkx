@@ -16,6 +16,14 @@ close_reason: "Already shipped in commit 0d79abcc7 'feat(km-commands,km-tui):
   not(textInputFocused)), and both-gate composition (550 tests pass); (4) tsc
   stays at 0 non-vendor errors; (5) no migration of existing commands (scope
   preserved)."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.omnibox-when
+    depends_on_id: km-tui.omnibox-unified
+    type: parent-child
+    created_at: 2026-04-14T16:24:56Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Predicate-function availability — when?: (ctx) => boolean (Phase 4) @km/tui #task #P1

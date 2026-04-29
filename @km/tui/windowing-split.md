@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-22T07:35:17Z
 closed_at: 2026-02-22T09:20:53Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Windowing: basic splitting (Ctrl+W v/s) + empty pane welcome @km/tui #task #P2 @claude:d3a7049b

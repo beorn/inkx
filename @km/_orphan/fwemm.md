@@ -4,6 +4,7 @@ aliases:
   - km-fwemm
 created_at: 2026-02-02T21:20:05Z
 closed_at: 2026-02-02T21:30:15Z
+assignee: claude:1588825b
 ---
 
 # [x] Code review: VirtualList/ColumnsView scroll implementation improvements @km/_orphan #task #P2 @claude:1588825b

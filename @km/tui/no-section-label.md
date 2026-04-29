@@ -6,6 +6,8 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-19T18:54:01Z
 closed_at: 2026-02-19T19:04:42Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Import: '(no section)' header renders as visible section @km/tui #bug #P3 @claude:8f007ba9

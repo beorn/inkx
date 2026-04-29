@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-21T07:55:41Z
 closed_at: 2026-02-21T08:11:44Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Integrate focusManager into mouse-events.ts for click-to-focus @km/inkx #task #P2 @claude:d3a7049b

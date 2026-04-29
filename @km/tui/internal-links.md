@@ -9,6 +9,8 @@ closed_at: 2026-03-19T17:31:14Z
 close_reason: "Fixed: internal-link.ts with parseKmUrl + resolveKmLink
   supporting km://node/, km://wiki/, km://block/ schemes. Board.tsx
   handleInternalLink updated. Test: internal-link.test.ts (20 tests)."
+owner: bjorn@stabell.org
+assignee: claude:21c57d63
 ---
 
 # [x] Internal link navigation (km:// wiki/block refs) @km/tui #feature #P2 @claude:21c57d63

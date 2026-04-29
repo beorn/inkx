@@ -8,6 +8,7 @@ created_at: 2026-03-31T21:31:24Z
 closed_at: 2026-03-31T21:43:27Z
 close_reason: "Fixed: handleNodeCreated and handleNodeDeleted now reconcile
   before writing, matching handleNodeUpdated pattern."
+owner: bjorn@stabell.org
 ---
 
 # [x] P0: create/delete paths skip reconcile-before-write @km/storage #bug #P0

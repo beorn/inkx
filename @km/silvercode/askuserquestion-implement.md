@@ -21,6 +21,16 @@ close_reason: "AskUserQuestion now surfaces as InlineAskUserQuestionPrompt
   apps/silvercode/storybook/support/fake-session-handle.ts. Pushed:
   feat/km-silvercode.askuserquestion-implement @
   d10f4d7a8a07f64ffaaf0e5c86d7c8fd6d343ae6."
+started_at: 2026-04-28T21:44:09Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.askuserquestion-implement
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T12:35:20Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Implement AskUserQuestion tool properly — currently fails, agent falls back to inline prose @km/silvercode #feature #P0 @claude:2405c72e

@@ -7,6 +7,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-05T07:40:38Z
 closed_at: 2026-04-05T07:52:23Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Reactive ViewTree — computed signal derived from repo+foldDepths @km/silvery #task #P2

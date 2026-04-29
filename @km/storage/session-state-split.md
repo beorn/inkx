@@ -11,6 +11,21 @@ close_reason: "Complete: packages/km-storage/src/session/session-db.ts with
   (cursor/recent/collapsed/pane_layout/undo), KM_SESSION_DB env override, WAL,
   migration helper for legacy .km/state.db session state. 11 tests passing.
   Consumer wires once at app startup."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.session-state-split
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-21T15:30:39Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
+  - issue_id: km-storage.session-state-split
+    depends_on_id: km-storage.stable-ids
+    type: blocks
+    created_at: 2026-04-21T12:05:03Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Split session state from content state — three durability tiers @km/storage #task #P2 @claude:8b5b9e1c

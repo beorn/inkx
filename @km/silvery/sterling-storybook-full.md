@@ -10,6 +10,21 @@ close_reason: "Shipped 2026-04-19 across 5 commits (ecf9e576 → bafdbba8). All 
   Full features green: OKLCH visualizer, WCAG contrast audit, intent-vs-role
   demo, urgency-is-not-a-token demo, scheme-author grid + help overlay. 1086 →
   2273 LOC. 219/219 Sterling tests pass."
+owner: bjorn@stabell.org
+assignee: claude:4274df30
+dependencies:
+  - issue_id: km-silvery.sterling-storybook-full
+    depends_on_id: km-silvery.sterling-storybook
+    type: parent-child
+    created_at: 2026-04-19T14:43:33Z
+    created_by: claude:4274df30
+    metadata: "{}"
+  - issue_id: km-silvery.sterling-storybook-full
+    depends_on_id: km-silvery.sterling-storybook-mvp
+    type: blocks
+    created_at: 2026-04-19T14:43:33Z
+    created_by: claude:4274df30
+    metadata: "{}"
 ---
 
 # [x] Sterling Storybook Full — derivation viz + contrast audit + demos @km/silvery #task #P3 @claude:4274df30

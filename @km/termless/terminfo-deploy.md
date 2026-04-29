@@ -8,6 +8,7 @@ created_at: 2026-03-23T19:29:30Z
 closed_at: 2026-03-23T20:53:04Z
 close_reason: Deployed to Cloudflare Pages. Custom domain terminfo.dev +
   www.terminfo.dev configured. Live at https://terminfo.dev
+owner: bjorn@stabell.org
 ---
 
 # [x] terminfo.dev: Cloudflare Pages deployment @km/termless #task #P2

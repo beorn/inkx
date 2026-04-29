@@ -14,6 +14,8 @@ close_reason: "Fixed: setUI post-set signal sync was guarded by 'typeof partial
   function and object variants behave identically. Tests: 7 hide tests now pass
   (including 2 pre-existing failing ones). See
   apps/km-tui/src/state/board-app-store.ts setUI block."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] vX (hide column) doesn't actually hide the column @km/tui #bug #P2 @Bjørn Stabell

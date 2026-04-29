@@ -6,6 +6,7 @@ aliases:
 created_by: claude:ee8efc0f
 created_at: 2026-02-23T21:16:18Z
 closed_at: 2026-02-23T22:22:20Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Split layout-zero.ts into phase modules (2501 lines) @km/flexx #task #P2

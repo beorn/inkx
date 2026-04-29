@@ -4,6 +4,7 @@ aliases:
   - km-sh-c-bug
 created_at: 2026-01-25T23:44:04Z
 closed_at: 2026-01-27T08:38:41Z
+assignee: beorn
 ---
 
 # [x] km sh -c doesn't preserve state between semicolon-separated commands @km/_orphan #bug #P1 @beorn

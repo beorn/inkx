@@ -9,6 +9,14 @@ closed_at: 2026-04-28T19:01:08Z
 close_reason: Fixed in this session — columnHeight-aware expandedRowBudget in
   CardColumn.tsx + matching maxExpandedChildren in TreeNode.tsx. Failing test
   card-rendering.slow.test.ts:246 now passes.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.focused-card-overflow
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-28T12:01:08Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] Focused card overflow: bottom border + +N more clipped when cursor inside @km/tui #bug #P1

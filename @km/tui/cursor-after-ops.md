@@ -6,6 +6,8 @@ aliases:
 created_by: claude:949598cc
 created_at: 2026-02-12T09:28:59Z
 closed_at: 2026-02-12T09:36:51Z
+owner: bjorn@stabell.org
+assignee: claude:949598cc
 ---
 
 # [x] Verify cursor position and selection state after indent/outdent operations @km/tui #task #P2 @claude:949598cc

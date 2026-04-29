@@ -9,6 +9,8 @@ closed_at: 2026-03-13T05:16:49Z
 close_reason: "Fixed: alignSelf=auto now explicitly calls
   layoutNode.setAlignSelf(c.ALIGN_AUTO) instead of being filtered out by the !==
   auto condition."
+owner: bjorn@stabell.org
+assignee: claude:65d845d9
 ---
 
 # [x] Bug: alignSelf=auto explicit prop doesn't reset in applyBoxProps() @km/silvery #bug #P1 @claude:65d845d9

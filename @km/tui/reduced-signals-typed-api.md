@@ -9,6 +9,8 @@ closed_at: 2026-04-08T15:03:36Z
 close_reason: Function-accessor API shipped. tree.descendants(s =>
   s.cursor).some() + store.node(id).cursor(true). Proxy captures keys at
   definition time. All 216 tests pass. Commit 54176e7d0.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Reduced signals: function-accessor API (s => s.cursor) instead of string keys @km/tui #task #P1 @Bjørn Stabell

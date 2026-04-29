@@ -5,6 +5,28 @@ aliases:
   - km-silvery-design-package-rename
 created_by: Bjørn Stabell
 created_at: 2026-04-19T20:30:18Z
+started_at: 2026-04-25T07:15:28Z
+owner: bjorn@stabell.org
+assignee: claude:22c2717d
+dependencies:
+  - issue_id: km-silvery.design-package-rename
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-24T16:13:01Z
+    created_by: claude:5e447b66
+    metadata: "{}"
+  - issue_id: km-silvery.design-package-rename
+    depends_on_id: km-silvery.sterling-2d-release
+    type: blocks
+    created_at: 2026-04-19T14:43:58Z
+    created_by: claude:4274df30
+    metadata: "{}"
+  - issue_id: km-silvery.design-package-rename
+    depends_on_id: km-silvery.sterling-2e-interior-migration
+    type: blocks
+    created_at: 2026-04-19T21:08:12Z
+    created_by: claude:4274df30
+    metadata: "{}"
 ---
 
 # [ ] Phase 3b: Rename @silvery/theme → @silvery/design + @silvery/schemes @km/silvery #task #P3 @claude:22c2717d

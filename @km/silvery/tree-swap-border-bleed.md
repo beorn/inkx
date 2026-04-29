@@ -5,6 +5,14 @@ aliases:
   - km-silvery-tree-swap-border-bleed
 created_by: Bjørn Stabell
 created_at: 2026-04-12T04:29:00Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.tree-swap-border-bleed
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-11T21:29:19Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] incremental render leaves stale border chars when demo tree swaps at same position @km/silvery #bug #P2

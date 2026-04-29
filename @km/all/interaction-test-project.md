@@ -5,6 +5,14 @@ aliases:
   - km-all-interaction-test-project
 created_by: claude:da9990c5
 created_at: 2026-04-28T19:42:49Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.interaction-test-project
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-28T12:42:49Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [ ] Add 'interaction' vitest project for feature⊕feature property tests @km/all #task #P2

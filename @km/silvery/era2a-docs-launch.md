@@ -12,6 +12,8 @@ close_reason: "Docs launch complete: (1) Removed Signals and Plugins from
   createApp/AppHandle as Coming Soon. (5) signals.md and plugins.md: added
   Coming Soon warnings. (6) Barrel exports verified clean — no era2b APIs in
   silvery or silvery/runtime barrels."
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Era2a launch: gate/remove era2b content from silvery.dev @km/silvery #task #P1 @claude:fed8de9e

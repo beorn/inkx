@@ -5,6 +5,14 @@ aliases:
   - km-silvery-text-input-readonly
 created_by: Bjørn Stabell
 created_at: 2026-04-19T06:52:51Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.text-input-readonly
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-18T23:53:05Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Add readonly/visual-only mode to TextInput so previews can show the cursor without capturing input @km/silvery #task #P4

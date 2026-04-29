@@ -6,6 +6,7 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-20T09:43:04Z
 closed_at: 2026-02-20T09:46:53Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Re-convert all Asana data and verify output quality @km/tools #task #P2

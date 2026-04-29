@@ -4,6 +4,7 @@ aliases:
   - km-flexx-colrev
 created_at: 2026-01-30T17:17:14Z
 closed_at: 2026-01-30T18:40:26Z
+assignee: claude:b8b4780b
 ---
 
 # [x] Fix column-reverse layout causing negative array size @km/_orphan #bug #P2 @claude:b8b4780b

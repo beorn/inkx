@@ -8,6 +8,7 @@ created_at: 2026-04-06T07:06:58Z
 closed_at: 2026-04-06T08:56:38Z
 close_reason: FindFeature service (find-feature.ts), FIND_CAPABILITY, withFocus
   extended with Ctrl+F/Escape, 34 tests. Silvery commit d100bbb.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 3b: Extend withFocus for find (Ctrl+F) @km/silvery #task #P1

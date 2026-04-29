@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T23:44:22Z
 closed_at: 2026-02-15T15:06:08Z
+owner: bjorn@stabell.org
+assignee: claude:73c2828f
 ---
 
 # [x] Operation-based undo/redo system (SlateJS-quality) @km/tui #feature #P2 @claude:73c2828f

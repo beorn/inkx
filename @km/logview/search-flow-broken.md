@@ -30,6 +30,15 @@ close_reason: >-
 
   Test delta: +3 new tests in km-logview (34→37, all green); silvery
   search/listview: 53 tests all green; no tsc regression (baseline 56).
+owner: bjorn@stabell.org
+assignee: claude:c6244087
+dependencies:
+  - issue_id: km-logview.search-flow-broken
+    depends_on_id: km-logview
+    type: parent-child
+    created_at: 2026-04-23T00:54:13Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] km-logview /-search is cosmetic only: Enter→detail, n/N dead, cursor doesn't track matches @km/logview #bug #P1 @claude:c6244087

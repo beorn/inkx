@@ -9,6 +9,8 @@ closed_at: 2026-04-01T19:51:23Z
 close_reason: Implemented. withValidation (wraps mutations, calls validate,
   gated by KM_STRICT), withTreeValidation (block-has-children, orphan-node,
   invalid-sort-order), withBatch. 13 tests.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Tree invariant checker — validateNode / validateTree after mutations @km/tree #task #P2 @Bjørn Stabell

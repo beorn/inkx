@@ -10,6 +10,8 @@ close_reason: Moved createKittyManager + initKittyAutoDetection (~106 lines)
   @silvery/term. ink.ts now imports and uses a 10-line adapter
   (resolveKittyManagerOptions) to convert Ink flag names to bitmask. 223 compat
   tests pass.
+owner: bjorn@stabell.org
+assignee: claude:73d7a332
 ---
 
 # [x] ink.ts: consolidate kitty protocol with @silvery/term @km/_orphan #task #P3 @claude:73d7a332

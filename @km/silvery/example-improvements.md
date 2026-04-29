@@ -22,6 +22,8 @@ close_reason: >-
 
   - showcase-app.tsx and viewer-app.tsx updated to use renderToXterm input
   option
+owner: bjorn@stabell.org
+assignee: claude:55df8ef1
 ---
 
 # [x] Improve silvery.dev live demo showcases @km/silvery #task #P2 @claude:55df8ef1

@@ -8,6 +8,7 @@ created_at: 2026-03-05T07:45:30Z
 closed_at: 2026-03-09T18:28:40Z
 close_reason: "All naming decided: @silvery (registered), omlog (available),
   @bearly (registered), silvery.dev (acquired). Tracked under km-silvery epic."
+owner: bjorn@stabell.org
 ---
 
 # [x] npm naming: hightea scope + logger + misc scope @km/infra #task #P2

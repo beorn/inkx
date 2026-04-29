@@ -5,6 +5,7 @@ aliases:
   - km-silvery-bunx-examples
 created_by: claude:e4e70c9a
 created_at: 2026-03-11T07:43:08Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] bunx silvery example <name> — runnable examples CLI @km/silvery #feature #P2

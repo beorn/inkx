@@ -7,6 +7,7 @@ created_by: claude:d1f60fb4
 created_at: 2026-02-25T23:32:56Z
 closed_at: 2026-03-07T02:12:08Z
 close_reason: "Grooming: already implemented — docs/reference/terminal-capabilities.md etc"
+owner: bjorn@stabell.org
 ---
 
 # [x] Update docs and examples for new terminal query APIs @km/inkx #task #P2

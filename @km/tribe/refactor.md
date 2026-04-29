@@ -102,6 +102,16 @@ close_reason: >-
   - withMCPServer extraction (Phase 5 deferred — tribe-daemon has no in-process
   stdio MCP today; lives in tribe-proxy.ts. Filed as runtime-discovered work for
   when the proxy migrates in-daemon.)
+started_at: 2026-04-27T07:27:23Z
+owner: bjorn@stabell.org
+assignee: claude:87d20187
+dependencies:
+  - issue_id: km-tribe.refactor
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-27T00:17:29Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Tribe daemon refactor — pipe-composition + unified daemon + observable lifecycle @km/tribe #epic #P2 @claude:87d20187

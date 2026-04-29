@@ -6,6 +6,8 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T13:24:56Z
 closed_at: 2026-02-19T13:42:03Z
+owner: bjorn@stabell.org
+assignee: claude:36393b5d
 ---
 
 # [x] Import: Mama Muse LLC split into two items, content mangled @km/tui #bug #P1 @claude:36393b5d

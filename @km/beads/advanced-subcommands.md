@@ -15,6 +15,14 @@ close_reason: "km bd orphans (the only advanced subcommand actively invoked by
   documentation references only, not used by active automation — defer porting
   until concrete need surfaces. The split-backend bug (km-beads.split-backend)
   is the real cutover blocker, not subcommand parity."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-beads.advanced-subcommands
+    depends_on_id: km-beads
+    type: parent-child
+    created_at: 2026-04-28T01:15:37Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] Port advanced bd subcommands to km bd (defer/undefer/count/epic/lint/search bundle) @km/beads #task #P2

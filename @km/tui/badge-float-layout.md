@@ -5,6 +5,14 @@ aliases:
   - km-tui-badge-float-layout
 created_by: Bjørn Stabell
 created_at: 2026-04-14T18:59:53Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.badge-float-layout
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T11:59:53Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Render priority/date badges as floating elements, not a reserved column @km/tui #feature #P3

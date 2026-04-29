@@ -5,6 +5,20 @@ aliases:
   - km-silvery-sterling-design-material
 created_by: claude:4274df30
 created_at: 2026-04-19T21:43:31Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.sterling-design-material
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-24T16:13:00Z
+    created_by: claude:5e447b66
+    metadata: "{}"
+  - issue_id: km-silvery.sterling-design-material
+    depends_on_id: km-silvery.design-package-rename
+    type: blocks
+    created_at: 2026-04-19T14:43:31Z
+    created_by: claude:4274df30
+    metadata: "{}"
 ---
 
 # [ ] Sterling Phase 5: @silvery/design-material reference impl @km/silvery #task #P4

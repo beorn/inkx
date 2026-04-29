@@ -14,6 +14,16 @@ close_reason: "Shipped: silvery 97306156 + km f5e4d93a9. Both test files
   contrast loop was comparing fg-on-accent vs fg-accent (text vs text); now
   correctly compares fg-on-accent vs bg-accent (text on filled surface). Tests:
   1447/1447 pass. Typecheck clean for both files (24 NEW errors → 0)."
+started_at: 2026-04-25T07:23:55Z
+owner: bjorn@stabell.org
+assignee: claude:22c2717d
+dependencies:
+  - issue_id: km-silvery.sterling-tests-typecheck-cleanup
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-25T00:09:47Z
+    created_by: claude:22c2717d
+    metadata: "{}"
 ---
 
 # [x] Migrate vendor/silvery/tests/{theme-change,theme-contrast} to Sterling Theme shape @km/silvery #task #P3 @claude:22c2717d

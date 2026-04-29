@@ -9,6 +9,8 @@ closed_at: 2026-04-08T08:18:12Z
 close_reason: Added editingDescendant reduced signal. CardColumn + TreeNode
   expansion now use reduced signals. expandedEditCardId kept for 1 global
   reader. All 217 tests pass. Commit 825c2d424.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Phase 4: Editing + sigils — extend reduced signals @km/tui #task #P1 @Bjørn Stabell

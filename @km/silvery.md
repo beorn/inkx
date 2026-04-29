@@ -5,6 +5,7 @@ aliases:
   - "@km/_orphan/silvery"
 created_by: claude:55df8ef1
 created_at: 2026-03-09T18:27:29Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Silvery ecosystem (v1.0): packaging, release, adoption @km/silvery #epic #P2

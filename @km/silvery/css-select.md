@@ -9,6 +9,7 @@ closed_at: 2026-04-10T08:14:52Z
 close_reason: "Replaced hand-rolled CSS parser with css-select (full CSS3
   engine). ~280 lines deleted, 30 lines of AgNode adapter added. All 1700 km-tui
   tests + 4906 silvery tests pass. Committed: silvery 33d02053, km afd04a196."
+owner: bjorn@stabell.org
 ---
 
 # [x] AutoLocator: adopt css-select for full CSS selector spec compliance @km/silvery #feature #P2

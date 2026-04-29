@@ -6,6 +6,8 @@ aliases:
 created_by: claude:ee8efc0f
 created_at: 2026-02-22T00:42:38Z
 closed_at: 2026-02-23T12:38:33Z
+owner: bjorn@stabell.org
+assignee: claude:97b8de73
 ---
 
 # [x] Board-spec keypress tests for all commands and dialogs @km/tui #task #P2 @claude:97b8de73

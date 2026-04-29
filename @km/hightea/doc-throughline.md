@@ -6,6 +6,7 @@ aliases:
 created_by: claude:2ce3230f
 created_at: 2026-03-05T07:53:17Z
 closed_at: 2026-03-05T08:57:52Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Docs: throughline narrative restructuring — gradualness + invisible→data @km/hightea #task #P2

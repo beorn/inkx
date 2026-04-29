@@ -5,6 +5,8 @@ aliases:
 created_by: claude:550b034d
 created_at: 2026-02-12T13:06:38Z
 closed_at: 2026-02-12T13:35:06Z
+owner: bjorn@stabell.org
+assignee: claude:550b034d
 ---
 
 # [x] Follow directory symlinks safely during file discovery @km/_orphan #feature #P2 @claude:550b034d

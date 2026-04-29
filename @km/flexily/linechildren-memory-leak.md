@@ -8,6 +8,7 @@ created_at: 2026-03-13T05:31:21Z
 closed_at: 2026-03-13T05:32:46Z
 close_reason: P3 — Module-level _lineChildren is cleared per-layout call
   (resetLayoutCache). Not a real leak in practice since layout runs frequently.
+owner: bjorn@stabell.org
 ---
 
 # [x] Module-level _lineChildren arrays retain Node references after layout @km/flexily #bug #P3

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:97b8de73
 created_at: 2026-02-23T02:04:49Z
 closed_at: 2026-02-23T07:44:49Z
+owner: bjorn@stabell.org
+assignee: claude:97b8de73
 ---
 
 # [x] Ergonomic Zustand + Suspense pattern for sync/async data loading @km/inkx #task #P3 @claude:97b8de73

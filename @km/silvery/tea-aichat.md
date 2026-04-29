@@ -103,6 +103,14 @@ close_reason: |-
   - vendor/silvery/packages/ag-react/src/context.ts
   - 5 ag-react hooks (useInput, useModifierKeys, useTerminalFocused,
     usePasteEvents, usePasteCallback)
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.tea-aichat
+    depends_on_id: km-silvery.tea
+    type: parent-child
+    created_at: 2026-04-18T12:05:44Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] TEA Phase 3: Validate TEA design via aichat-v2 spike @km/silvery #task #P2

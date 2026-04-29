@@ -12,6 +12,9 @@ close_reason: "Shipped: flexily c34237b + silvery 90bdec7a + km 69f6a83be. Root
   min-content work tipped layouts into the affected path. Fix: track
   _flexShrinkExplicit flag; bridge skips when explicit. 4 flexily tests + 3
   silvery regression tests. Session: km-session.0425-evening"
+started_at: 2026-04-26T11:33:16Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
 ---
 
 # [x] Layout corrupts during streaming when queue receives input @km/silvercode #bug #P1 @claude:2405c72e

@@ -34,6 +34,14 @@ close_reason: |-
   `@silvery/ansi` so the bare detect functions there also emit flat tokens.
   That kills the "two Theme shapes" architecture entirely. Larger refactor;
   file as a separate bead when prioritized.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.fallback-theme-empty-bg-tokens
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T23:12:38Z
+    created_by: claude:c56dc5d6
+    metadata: "{}"
 ---
 
 # [x] fallback default-dark theme leaves 31/32 bg tokens as empty strings @km/silvery #bug #P2

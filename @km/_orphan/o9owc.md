@@ -5,6 +5,7 @@ aliases:
 created_by: claude:e719173f
 created_at: 2026-03-04T12:57:20Z
 closed_at: 2026-03-04T13:07:30Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Vision: @beorn/logger as universal logging replacement @km/_orphan #feature #P2

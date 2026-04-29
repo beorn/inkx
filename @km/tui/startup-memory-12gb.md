@@ -5,6 +5,14 @@ aliases:
   - km-tui-startup-memory-12gb
 created_by: Bjørn Stabell
 created_at: 2026-04-15T07:44:18Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.startup-memory-12gb
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-15T00:44:18Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] km view allocates 12 GB RSS on startup even for empty vault @km/tui #task #P2

@@ -9,6 +9,7 @@ closed_at: 2026-04-09T04:55:37Z
 close_reason: "22 characterization tests added across 5 files: cursor signals
   (3), board spec (5), fold persistence (3), signal propagation (7), undo
   interactions (4). Safety net for Phase 9. Commit 44dd10121."
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 7: Characterization tests — lock down Board/store behavior before rewrite @km/tui #task #P2

@@ -14,6 +14,7 @@ close_reason: "Expanded buildRandomTree in relayout-consistency.test.ts to
   support direction from BuildTreeResult. Also relaxed assertLayoutSanity to
   allow negative positions and NaN widths for absolute children in auto-sized
   containers. All 1215 fuzz tests pass."
+owner: bjorn@stabell.org
 ---
 
 # [x] Testing: Fuzz suite much narrower than docs imply — missing wrap, RTL, absolute, etc. @km/flexily #task #P1

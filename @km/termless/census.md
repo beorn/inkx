@@ -10,6 +10,8 @@ close_reason: "Census package scaffolded (types + runner). Probes and CLI
   deferred — design captured in bead description. Concept: tests as single
   source of truth, per-probe cache invalidation by source hash, nix for
   version-pinned builds."
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] caniuse: test-driven terminal capability database + web page @km/termless #feature #P2 @claude:4929065a

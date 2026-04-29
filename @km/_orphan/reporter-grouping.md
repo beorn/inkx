@@ -4,6 +4,7 @@ aliases:
   - km-reporter-grouping
 created_at: 2026-01-28T07:30:03Z
 closed_at: 2026-01-28T07:57:15Z
+assignee: claude:8f1636c1
 ---
 
 # [x] vitest-reporter: smart grouping based on file/package count @km/_orphan #feature #P3 @claude:8f1636c1

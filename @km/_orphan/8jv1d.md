@@ -5,6 +5,8 @@ aliases:
 created_by: claude:891e3ce1
 created_at: 2026-02-28T21:48:28Z
 closed_at: 2026-03-02T22:50:19Z
+owner: bjorn@stabell.org
+assignee: claude:e039a9ca
 ---
 
 # [x] Website: AI assistants example doesn't accept input @km/_orphan #bug #P2 @claude:e039a9ca

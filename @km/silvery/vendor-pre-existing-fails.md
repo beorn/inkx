@@ -5,6 +5,14 @@ aliases:
   - km-silvery-vendor-pre-existing-fails
 created_by: claude:c6244087
 created_at: 2026-04-23T09:08:47Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.vendor-pre-existing-fails
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T02:08:47Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [ ] Triage 27 pre-existing vendor test failures — focus×3, useBoxMetrics×4, use-ag-node×3, others @km/silvery #task #P2

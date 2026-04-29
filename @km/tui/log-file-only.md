@@ -6,6 +6,8 @@ aliases:
 created_by: claude:b509d761
 created_at: 2026-02-11T10:18:14Z
 closed_at: 2026-02-12T14:25:04Z
+owner: bjorn@stabell.org
+assignee: claude:586bad48
 ---
 
 # [x] Suppress console.debug when DEBUG_LOG set to avoid TUI re-renders @km/tui #task #P3 @claude:586bad48

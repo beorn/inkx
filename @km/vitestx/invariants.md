@@ -5,6 +5,7 @@ aliases:
   - km-vitestx-invariants
 created_at: 2026-02-04T18:20:38Z
 closed_at: 2026-02-04T18:27:46Z
+assignee: claude:10db6ea8
 ---
 
 # [x] Buffer stability & render invariants for TUI testing @km/vitestx #feature #P2 @claude:10db6ea8

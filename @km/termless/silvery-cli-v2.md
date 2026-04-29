@@ -8,6 +8,8 @@ created_at: 2026-03-23T05:48:54Z
 closed_at: 2026-03-23T06:10:32Z
 close_reason: "Done: all CLI commands use silvery renderString with semantic
   colors and Table/Box/Text components"
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] Use silvery renderString for CLI output — backends, install, update, doctor @km/termless #task #P2 @claude:4929065a

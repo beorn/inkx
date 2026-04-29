@@ -5,6 +5,7 @@ aliases:
   - km-terminfo-auto-scroll-probe
 created_by: Bjørn Stabell
 created_at: 2026-04-02T17:21:37Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] terminfo.dev probe: auto-scroll-to-bottom behavior on output while scrolled up @km/terminfo #feature #P2

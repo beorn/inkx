@@ -12,6 +12,7 @@ close_reason: "Implemented 4 metamorphic fuzz property invariants (7 tests) in
   order produce same layout, (3) cursor-only mutation no-cell-change - cursor
   moves don't corrupt cell content, (4) replay chunking invariance - same
   actions in different chunk sizes produce same result"
+owner: bjorn@stabell.org
 ---
 
 # [x] Testing: Add metamorphic fuzz properties — 7 invariants @km/silvery #task #P2

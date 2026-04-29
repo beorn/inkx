@@ -10,6 +10,20 @@ close_reason: Scope absorbed by the 2a/2b/2c/2d series (sterling-2a-data-layer �
   sterling-2d-release). The monolithic 'kebab rename' was too big for one
   session and conflated type design, component migration, consumer refactor, and
   release work. Superseded 2026-04-19.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-v4-kebab-rename
+    depends_on_id: km-silvery.theme-v4
+    type: parent-child
+    created_at: 2026-04-19T10:59:03Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-silvery.theme-v4-kebab-rename
+    depends_on_id: km-silvery.theme-v4-ansi16-hex
+    type: blocks
+    created_at: 2026-04-19T10:59:03Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Phase 2: Structured tokens + Material vocabulary migration @km/silvery #task #P2

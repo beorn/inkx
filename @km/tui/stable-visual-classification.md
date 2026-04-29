@@ -8,6 +8,8 @@ created_at: 2026-04-06T19:53:19Z
 closed_at: 2026-04-07T01:31:32Z
 close_reason: "Grooming: landed in commit ed99dec6d 'fix(tui): stable body
   classification immune to cursor expansion' per session 0406a notes."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Stable visual classification — data-derived, not cursor-derived @km/tui #feature #P3 @Bjørn Stabell

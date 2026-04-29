@@ -9,6 +9,7 @@ closed_at: 2026-04-02T22:30:12Z
 close_reason: "Shipped: reprojectDirtyPaths() runs after heartbeat — regenerates
   FS from DB for dirty paths. clearDirty() on sync_state. Permanent WriteQueue
   errors mark paths dirty. ~25 lines added to heartbeat cycle."
+owner: bjorn@stabell.org
 ---
 
 # [x] FS-DB consistency heartbeat with idempotent replay @km/storage #task #P2

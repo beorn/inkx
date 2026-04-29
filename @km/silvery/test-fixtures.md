@@ -8,6 +8,7 @@ created_at: 2026-03-09T21:59:07Z
 closed_at: 2026-03-09T23:49:20Z
 close_reason: 12 shared fixtures at tests/fixtures/index.tsx (SimpleBox,
   ComplexLayout, NestedFlex, InteractiveForm, etc.). Used by all test suites.
+owner: bjorn@stabell.org
 ---
 
 # [x] Shared test fixtures: simple/complex layouts, interactive forms, large lists @km/silvery #task #P3

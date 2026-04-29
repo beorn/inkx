@@ -19,6 +19,16 @@ close_reason: "Replaced RequestPermissionInbox modal with InlinePermissionPrompt
   other files); inline-permission-prompt suite 3/3 green; full
   apps/silvercode/tests/ 708 passed 5 skipped; oxlint+oxfmt clean on my files
   (12 files, 0 errors); 4 verification greps all return zero hits."
+started_at: 2026-04-28T19:26:17Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.permission-inline-prompt
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T12:26:17Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Replace permission inbox modal with inline prompt — interactive, not queued @km/silvercode #feature #P1 @claude:2405c72e

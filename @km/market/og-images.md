@@ -8,6 +8,7 @@ created_at: 2026-03-28T05:46:37Z
 closed_at: 2026-03-31T19:12:55Z
 close_reason: Created OG image SVGs for all 4 sites (terminfo.dev, silvery.dev,
   termless.dev, flexily.dev). Updated meta tags to point to SVGs.
+owner: bjorn@stabell.org
 ---
 
 # [x] Generate OG image PNGs for all 4 sites @km/market #task #P3

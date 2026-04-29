@@ -6,6 +6,8 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-20T07:48:29Z
 closed_at: 2026-02-20T08:31:38Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Card border rendering issues with wrapped text @km/tui #bug #P2 @claude:8f007ba9

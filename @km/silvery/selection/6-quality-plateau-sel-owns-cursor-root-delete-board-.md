@@ -7,6 +7,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-05T04:29:41Z
 closed_at: 2026-04-05T06:05:59Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Quality plateau: sel owns cursor + root, delete board-reducer cursor path, fix init race @km/silvery #task #P1 @Bjørn Stabell

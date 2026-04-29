@@ -5,6 +5,7 @@ aliases:
   - km-tools-recall-enhance
 created_by: claude:1d8b0fc3
 created_at: 2026-02-15T16:02:10Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Agent memory: implement Cloudi ADR01 SPO memory system for km @km/tools #feature #P4

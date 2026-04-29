@@ -7,6 +7,8 @@ created_by: claude:fa5431cd
 created_at: 2026-03-03T09:56:55Z
 closed_at: 2026-03-07T02:12:07Z
 close_reason: "Grooming: already implemented — maxHistory prop in ScrollbackView.tsx"
+owner: bjorn@stabell.org
+assignee: claude:fa5431cd
 ---
 
 # [x] ScrollbackView maxHistory: frozen→static promotion with visual separator @km/inkx #feature #P2 @claude:fa5431cd

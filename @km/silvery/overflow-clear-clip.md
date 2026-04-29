@@ -9,6 +9,7 @@ closed_at: 2026-03-13T04:51:48Z
 close_reason: "False positive: clearDescendantOverflowRegions correctly uses
   full rect (not content area) — overflow extends beyond layout box by
   definition."
+owner: bjorn@stabell.org
 ---
 
 # [x] clearDescendantOverflowRegions uses ancestor full rect, not content area @km/silvery #bug #P2

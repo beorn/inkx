@@ -10,6 +10,7 @@ close_reason: "Fixed: when a card title has ownColor (heading colors),
   colorOverride is now set to null, stripping link blue. Wikilinks in heading
   titles use the heading's own color with pill bg (#404050) for visual
   distinction instead of clashing blue text."
+owner: bjorn@stabell.org
 ---
 
 # [x] Wikilink + heading color interactions — link blue clashes with heading colors @km/tui #bug #P1

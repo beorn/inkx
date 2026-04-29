@@ -5,6 +5,7 @@ aliases:
   - km-terminfo-os-pages
 created_by: claude:f8196c1c
 created_at: 2026-03-26T00:07:59Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] OS pages: /os/{macos,linux,windows} — which terminals and features per platform @km/terminfo #feature #P4

@@ -8,6 +8,8 @@ created_at: 2026-03-17T07:13:22Z
 closed_at: 2026-03-17T07:56:26Z
 close_reason: SurfaceRegistry + SearchProvider + SearchBar. 15 tests. Existing
   SelectionProvider unchanged (works as-is).
+owner: bjorn@stabell.org
+assignee: claude:def7f8a1
 ---
 
 # [x] App-global search + selection providers @km/silvery #task #P1 @claude:def7f8a1

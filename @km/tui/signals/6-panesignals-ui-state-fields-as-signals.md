@@ -9,6 +9,7 @@ created_at: 2026-04-05T07:53:00Z
 closed_at: 2026-04-05T16:32:49Z
 close_reason: "Acceptance: grep useAppShallow.*PaneUI in views/ = 0 hits.
   Board.tsx uses usePaneUI() hook (now pane-aware via usePaneId)."
+owner: bjorn@stabell.org
 ---
 
 # [x] PaneSignals: UI state fields as signals @km/tui #task #P3

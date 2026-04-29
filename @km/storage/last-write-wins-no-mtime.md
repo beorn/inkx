@@ -10,6 +10,8 @@ close_reason: "Fixed in acdc7db46: mtime baseline capture in repo write path,
   hash-based conflict detection in writequeue, conflict events emitted with
   backup paths. UI loop closed in 7b8cf46d1 (sync-conflict toast). 88 writequeue
   tests + storage-bugs.slow.test.ts coverage."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] P0: Concurrent external edits silently overwritten — last_write_wins never checks mtime @km/storage #bug #P0 @Bjørn Stabell

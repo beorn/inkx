@@ -14,6 +14,14 @@ close_reason: "Shipped in flexily commit 8a24f17. Tracked contentMinSize
   path when auto-min doesn't apply. Three new tests (1604 flexily total).
   Remaining gaps deferred (wrapping row text uses max-content not min-content;
   nodes-with-children with definite flex-basis falls back to baseSize)."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-flexily.auto-min-size-flex-basis-zero
+    depends_on_id: km-flexily
+    type: parent-child
+    created_at: 2026-04-25T09:03:08Z
+    created_by: claude:53042a7f
+    metadata: "{}"
 ---
 
 # [x] Auto min-size: handle flex-basis:0 / flex:1 (use min-content separately from baseSize) @km/flexily #feature #P3

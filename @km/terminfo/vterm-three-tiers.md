@@ -9,6 +9,8 @@ closed_at: 2026-03-31T23:47:39Z
 close_reason: "Three-tier emulators implemented: vt100.js (strict VT100,
   monochrome), vt220.js (new, 8 colors + IRM + DECSED), vterm.js (unchanged,
   161/161). Termless backends created for all three. CLAUDE.md updated."
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] Three-tier emulator packages: vt100.js (strict VT100), vt220.js (VT220), vterm.js (modern) @km/terminfo #task #P3 @claude:4929065a

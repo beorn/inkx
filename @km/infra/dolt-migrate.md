@@ -7,6 +7,7 @@ created_by: claude:73c2828f
 created_at: 2026-02-15T13:14:42Z
 closed_at: 2026-03-09T22:07:21Z
 close_reason: "Grooming: experimental, abandoned, 17+ days stale"
+owner: bjorn@stabell.org
 ---
 
 # [x] Retry bd SQLite → Dolt migration @km/infra #task #P4

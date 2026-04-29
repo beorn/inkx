@@ -11,6 +11,15 @@ close_reason: "Phase 1 shipped. detectUnicode and detectExtendedUnderline
   caps.unicode was hardcoded true, now env-sensitive. Underline-ext.ts helpers
   take optional caps. /complete criteria met: 0 runtime references to deleted
   functions. 11 new regression tests. Silvery b716c500, km 908c5b790."
+owner: bjorn@stabell.org
+assignee: claude:c6244087
+dependencies:
+  - issue_id: km-silvery.unicode-plateau.phase-1
+    depends_on_id: km-silvery.unicode-plateau
+    type: parent-child
+    created_at: 2026-04-23T08:46:38Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Unicode plateau Phase 1: canonicalize unicode + underline detection in profile @km/silvery #task #P1 @claude:c6244087

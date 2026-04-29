@@ -6,6 +6,7 @@ aliases:
 created_by: claude:8fc35754
 created_at: 2026-03-03T11:10:17Z
 closed_at: 2026-03-03T11:29:45Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Complete test coverage for all termless features @km/termless #task #P2

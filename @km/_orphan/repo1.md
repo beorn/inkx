@@ -4,6 +4,7 @@ aliases:
   - km-repo1
 created_at: 2026-01-26T10:30:00Z
 closed_at: 2026-01-26T12:43:11Z
+assignee: claude-opus-4-5
 ---
 
 # [x] Vault→Repo terminology migration - incomplete @km/_orphan #task #P1 @claude-opus-4-5

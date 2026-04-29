@@ -11,6 +11,8 @@ close_reason: "Fixed in 2317d0656 (cherry-picked from worktree b9cd25ab7).
   console.close. Quit reachable via Ctrl+C, command palette ':q', and contextual
   close_or_quit on Escape. New regression tests in keybindings.test.ts.
   Followups noted: Backspace/Delete delete_node confirm gating audit."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] Bare q key quits without confirmation @km/tui #bug #P1 @Bjørn Stabell

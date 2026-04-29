@@ -12,6 +12,9 @@ close_reason: "Implemented two-stage pipeline: discovery side-effect on `bun llm
   markdown decision table, optionally writes /tmp/llm-new-models.patch (unified
   diff for human review — never auto-applies). Cost ~$0.02 per 30-candidate
   scan. 39 new tests. Wired into /sop packages domain. bearly main 911c87f."
+started_at: 2026-04-27T17:51:05Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
 ---
 
 # [x] Auto-discover new models from provider docs + LLM gating before adding to registry @km/bearly #feature #P2 @claude:2405c72e

@@ -12,6 +12,13 @@ close_reason: 3a8f0aad silvery + 72bdfb502 km bump — StyleProps.dim and
   (internal SGR 2 bit, still stamped by token resolution at ANSI 16 / mono
   tiers). 2523 km-tui + 46 STRICT ag-react + 8 listview-overscroll-bump tests
   pass; tsc unchanged (113 pre-existing).
+dependencies:
+  - issue_id: km-silvery.delete-dim-dimcolor
+    depends_on_id: km-all.plateau
+    type: parent-child
+    created_at: 2026-04-20T22:58:01Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Delete silvery types.ts::dim + dimColor StyleProps — migrate to semantic tokens ($muted, $faint via <Small>, $disabledfg) @km/silvery #task #P3

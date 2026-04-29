@@ -10,6 +10,7 @@ close_reason: "Fixed: Before deleting displaced nodes during rename
   reconciliation, now verifies the node is stale by comparing DB inode vs FS
   inode. Concurrent creations with no tracked inode are preserved (rename
   skipped). 3 new tests. Commit 984ad8cb."
+owner: bjorn@stabell.org
 ---
 
 # [x] [bug] reconcile displaced-node detection can delete user content on concurrent renames @km/storage #bug #P1

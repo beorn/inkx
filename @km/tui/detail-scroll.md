@@ -6,6 +6,7 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T14:34:38Z
 closed_at: 2026-02-19T18:48:11Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Detail pane: virtual scrollable with arrow key navigation @km/tui #feature #P2

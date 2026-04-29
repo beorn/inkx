@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-22T07:35:24Z
 closed_at: 2026-02-22T09:27:51Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Windowing: focus navigation (Ctrl+W hjkl, Tab, Ctrl+1-9) @km/tui #task #P2 @claude:d3a7049b

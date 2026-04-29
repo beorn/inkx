@@ -7,6 +7,7 @@ created_by: claude:f8196c1c
 created_at: 2026-03-23T19:30:28Z
 closed_at: 2026-03-30T19:28:52Z
 close_reason: Merged into km-silvery.ink-migration
+owner: bjorn@stabell.org
 ---
 
 # [x] Ink compat codemod: npx silvery migrate-ink @km/silvery #feature #P2

@@ -8,6 +8,8 @@ created_at: 2026-03-28T00:39:05Z
 closed_at: 2026-03-28T02:09:00Z
 close_reason: VerbAction type introduced. goTo returns CURSOR_TO { locationKey
   }. GOTO_BOARD + JUMP_TO_FAVORITE deleted. All 4646 tests pass.
+owner: bjorn@stabell.org
+assignee: claude:ceb7c9cb
 ---
 
 # [x] Phase 1: VerbAction + goto @km/commands #task #P2 @claude:ceb7c9cb

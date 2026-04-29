@@ -8,6 +8,7 @@ created_at: 2026-03-28T15:21:08Z
 closed_at: 2026-03-28T15:49:38Z
 close_reason: itemHeight 3→4, overscan 2→5. Band-aid — real fix is
   km-silvery.vlist-variable-height (variable measurement).
+owner: bjorn@stabell.org
 ---
 
 # [x] VirtualList scroll gap: blank space at top when scrolling in tall terminal @km/tui #bug #P2

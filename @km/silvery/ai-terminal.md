@@ -5,6 +5,14 @@ aliases:
   - km-silvery-ai-terminal
 created_by: claude:c56dc5d6
 created_at: 2026-04-24T07:17:56Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.ai-terminal
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-24T00:18:21Z
+    created_by: claude:c56dc5d6
+    metadata: "{}"
 ---
 
 # [ ] AI-era terminal — thesis parked until silvery is mature + wedge validated @km/silvery #epic #P3

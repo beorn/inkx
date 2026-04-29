@@ -6,6 +6,8 @@ aliases:
 created_by: claude:66356066
 created_at: 2026-02-24T22:38:07Z
 closed_at: 2026-03-04T12:55:25Z
+owner: bjorn@stabell.org
+assignee: claude:0b75d39f
 ---
 
 # [x] Workspace chrome, shared PaneBar, detail as view type @km/5us8s #epic #P2 @claude:0b75d39f

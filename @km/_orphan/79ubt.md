@@ -7,6 +7,8 @@ created_at: 2026-03-23T19:30:24Z
 closed_at: 2026-03-23T22:21:22Z
 close_reason: "Done: 22 examples moved to apps/, 7 new component-tier examples
   in components/"
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Split examples: component-tier (no TEA) and app-tier (with TEA) @km/_orphan #task #P1 @claude:fed8de9e

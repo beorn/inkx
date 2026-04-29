@@ -5,6 +5,8 @@ aliases:
 created_by: claude:34ba82b6
 created_at: 2026-02-15T18:39:58Z
 closed_at: 2026-02-15T18:51:17Z
+owner: bjorn@stabell.org
+assignee: claude:34ba82b6
 ---
 
 # [x] TUI: l from body column after zoom goes to board root instead of next column @km/_orphan #bug #P2 @claude:34ba82b6

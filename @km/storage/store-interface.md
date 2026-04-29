@@ -9,6 +9,7 @@ closed_at: 2026-04-03T06:40:08Z
 close_reason: "Done. Store + Observable + Replicated interfaces,
   createStoreFromRepo wrapper, committed change log. Commits: 7425f739,
   a38afe4d."
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 1: Store + trait interfaces — base API design @km/storage #task #P3

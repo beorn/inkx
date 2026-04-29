@@ -8,6 +8,7 @@ created_at: 2026-04-02T02:03:33Z
 closed_at: 2026-04-02T03:46:36Z
 close_reason: Blog infrastructure set up on silvery.dev with welcome post. Blog
   index + hello-world post + nav link. Commit 3d386a1, pushed and deploying.
+owner: bjorn@stabell.org
 ---
 
 # [x] Set up blog infrastructure on silvery.dev @km/market #task #P0

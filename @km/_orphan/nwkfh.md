@@ -7,6 +7,8 @@ created_at: 2026-03-22T07:02:02Z
 closed_at: 2026-03-22T07:27:34Z
 close_reason: "First run complete: +33.4% bench geomean, -5.5% profile. 12
   experiments, 10 kept. Branch: autoresearch/mar21"
+owner: bjorn@stabell.org
+assignee: claude:825fd398
 ---
 
 # [x] Autoresearch: autonomous perf optimization loop @km/_orphan #feature #P2 @claude:825fd398

@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-ambient-phase-5-soak
 created_by: claude:4de4a3ab
 created_at: 2026-04-27T21:21:01Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.ambient-phase-5-soak
+    depends_on_id: km-silvercode.ambient-context-excellence
+    type: parent-child
+    created_at: 2026-04-27T14:21:20Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] Phase 5 — 7-day Anthropic-only soak for ambient context @km/silvercode #task #P1

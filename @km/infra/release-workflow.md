@@ -10,6 +10,7 @@ close_reason: "/release skill redesigned with: --status dashboard, --audit,
   coordinated silvery release, tsdown build, pnpm publish, smoke tests,
   dependency-order publishing. Changesets integration deferred — manual
   coordinated bumps work for now."
+owner: bjorn@stabell.org
 ---
 
 # [x] Redesign /release as complete multi-package release workflow @km/infra #task #P2

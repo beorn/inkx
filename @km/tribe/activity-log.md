@@ -5,6 +5,15 @@ aliases:
   - km-tribe-activity-log
 created_by: claude:b6ff8550
 created_at: 2026-04-21T21:09:24Z
+owner: bjorn@stabell.org
+assignee: claude:b6ff8550
+dependencies:
+  - issue_id: km-tribe.activity-log
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-21T14:09:51Z
+    created_by: claude:b6ff8550
+    metadata: "{}"
 ---
 
 # [/] Unified tribe session-activity log — tail -f across DMs + recall injections + gate decisions @km/tribe #feature #P1 @claude:b6ff8550

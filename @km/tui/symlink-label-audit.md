@@ -5,6 +5,7 @@ aliases:
   - km-tui-symlink-label-audit
 created_by: Bjørn Stabell
 created_at: 2026-04-06T21:08:32Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Audit TUI for stale 'embed' labels (should be 'symlink') @km/tui #task #P3

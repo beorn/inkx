@@ -10,6 +10,7 @@ close_reason: "Fixed: key.text field preserves actual typed character before
   normalization. Three insertion points updated to use key.text ?? input:
   readline-ops.ts (new TextInput), old TextInput.tsx, and km-commands
   processKey. Removed !key.meta filter to allow opt+key composed characters."
+owner: bjorn@stabell.org
 ---
 
 # [x] [bug] Shift+key inserts unshifted character in text editor (shift+3 → 3 not #) @km/tui #bug #P2

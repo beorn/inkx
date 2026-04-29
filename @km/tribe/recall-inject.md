@@ -9,6 +9,14 @@ closed_at: 2026-04-28T20:30:29Z
 close_reason: V2 5-stage gate shipped. bearly 7750f39 + km 67f606d69. Remaining
   V2 work (compiled-state, outcome-aware bd lookup) captured in notes; reopen if
   measured useful-rate stays below target after dogfooding 30+ prompts.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.recall-inject
+    depends_on_id: km-tribe.recall
+    type: parent-child
+    created_at: 2026-04-27T16:11:05Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [x] Mem inject (Tier 2): rebuild UserPromptSubmit recall hook with dedupe + skip-on-no-salience + outcome-aware ranking @km/tribe #feature #P3

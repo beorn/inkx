@@ -11,6 +11,8 @@ close_reason: "TreeNode now uses useNode(id) for: embed resolution
   (display/isSymlink/isBrokenSymlink), hasBody, children (viewNode.childIds).
   resolveEmbed kept for FoldedChildRow fallback. Memo simplification deferred to
   .4 (needs node prop removal)."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Migrate TreeNode.tsx to useNode(id) @km/tui #task #P2 @Bjørn Stabell

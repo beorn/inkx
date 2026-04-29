@@ -6,6 +6,8 @@ aliases:
 created_by: claude:536645b5
 created_at: 2026-02-19T21:44:03Z
 closed_at: 2026-02-20T15:26:05Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Visual mode (v) for range selection with hjkl @km/all #feature #P4 @claude:d3a7049b

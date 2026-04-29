@@ -17,6 +17,15 @@ close_reason: "Fixed via e31e81210 — converted collectDescendantsInto() in
   trace and extend tests. Verification: npx tsc --noEmit → 0 errors
   (non-vendor); bun vitest run --project=slow
   apps/km-tui/tests/zoom-stack-overflow.slow.test.ts → 4/4 passing."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-tui.zoom-stack-overflow
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-13T14:14:20Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Stack overflow on zoom out after file rename @km/tui #bug #P2 @claude:8b5b9e1c

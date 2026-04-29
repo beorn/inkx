@@ -57,6 +57,16 @@ close_reason: >-
   Sibling lint script `lint-no-async-unmount.ts` was reviewed but does NOT need
   the fix — it walks specific subdirs only (`packages/`, `src/`, `examples/`,
   `apps/`, `bin/`, `components/`, `layout/`), never touches `.claude/`.
+started_at: 2026-04-28T20:46:24Z
+owner: bjorn@stabell.org
+assignee: claude:da9990c5
+dependencies:
+  - issue_id: km-all.lint-env-worktree-scan
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-28T13:42:55Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] lint-env-reads scans .claude/worktrees/ and trips on sibling agents' isolated copies @km/all #bug #P0 @claude:da9990c5

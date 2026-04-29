@@ -9,6 +9,7 @@ closed_at: 2026-03-17T07:25:57Z
 close_reason: Added checkUnpushedSubmodules() call in mergeWorktree() after
   merge succeeds, before tests. Uses existing getSubmodulePaths() and
   checkUnpushedSubmodules() functions.
+owner: bjorn@stabell.org
 ---
 
 # [x] bun worktree: validate submodule commits are pushed after merge @km/tools #bug #P1

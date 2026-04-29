@@ -5,6 +5,14 @@ aliases:
   - km-tui-body-block-highlight
 created_by: Bjørn Stabell
 created_at: 2026-04-15T06:11:06Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.body-block-highlight
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T23:11:06Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Body block highlighting: unify sibling + cursor into one enclosing region @km/tui #bug #P3

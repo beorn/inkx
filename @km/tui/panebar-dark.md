@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T14:42:37Z
 closed_at: 2026-02-25T17:18:53Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] Top pane bar dark theme: bright bg + dark fg for all elements @km/tui #bug #P1 @claude:d697f216

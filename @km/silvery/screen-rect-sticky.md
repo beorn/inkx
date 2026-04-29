@@ -9,6 +9,7 @@ closed_at: 2026-03-13T05:26:38Z
 close_reason: "Fixed: Added renderRect/prevRenderRect to TeaNode,
   computeStickyRenderRects() in layout-phase.ts,
   useRenderRect/useRenderRectCallback hooks exported"
+owner: bjorn@stabell.org
 ---
 
 # [x] screenRect doesn't account for sticky render offsets — need renderRect @km/silvery #task #P2

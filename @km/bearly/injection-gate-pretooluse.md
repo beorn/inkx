@@ -13,6 +13,21 @@ close_reason: "Phase 1 complete. tools/injection-gate.ts + 12 tests covering
   detection. Settings wiring documented in tools/injection-gate.README.md —
   awaiting user confirmation to add to ~/.claude/settings.json. Commit:
   8ed976c63."
+owner: bjorn@stabell.org
+assignee: claude:7e9436e8
+dependencies:
+  - issue_id: km-bearly.injection-gate-pretooluse
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-21T12:41:49Z
+    created_by: claude:7e9436e8
+    metadata: "{}"
+  - issue_id: km-bearly.injection-gate-pretooluse
+    depends_on_id: km-bearly.injection-envelope-lib
+    type: blocks
+    created_at: 2026-04-21T12:42:43Z
+    created_by: claude:7e9436e8
+    metadata: "{}"
 ---
 
 # [x] PreToolUse authority gate — block mutating tools driven by injected content @km/bearly #feature #P0 @claude:7e9436e8

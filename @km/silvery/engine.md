@@ -7,6 +7,7 @@ created_by: claude:fed8de9e
 created_at: 2026-03-29T23:15:00Z
 closed_at: 2026-04-06T08:23:46Z
 close_reason: "Grooming: 100% children closed, bd epic status marked eligible"
+owner: bjorn@stabell.org
 ---
 
 # [x] Silvery engine (v2.0+): multi-surface rendering, display list, projections @km/silvery #epic #P3

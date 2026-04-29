@@ -12,6 +12,14 @@ close_reason: Split into km-bearly.bun-keepalive-url-shim +
   upstream-waiting (parent km-all.upstream-waiting); the lease-tracking refactor
   is permanent local design (request-as-lease is semantically correct on both
   Bun and Node — see commit 634b2af and mcp-plugin.ts:374-389).
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.mcp-plugin-bun-keepalive
+    depends_on_id: km-all.upstream-waiting
+    type: parent-child
+    created_at: 2026-04-26T22:46:45Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Remove URL.toString() / lease-tracking workaround when Bun #7716 lands @km/bearly #bug #P3

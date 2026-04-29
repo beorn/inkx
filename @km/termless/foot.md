@@ -5,6 +5,7 @@ aliases:
   - km-termless-foot
 created_by: claude:8fc35754
 created_at: 2026-03-03T08:27:54Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] foot backend via C library @km/termless #task #P4

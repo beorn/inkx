@@ -5,6 +5,7 @@ aliases:
   - km-inkx-incremental
 created_at: 2026-02-05T00:15:20Z
 closed_at: 2026-02-05T12:21:31Z
+assignee: claude:b53ef7e4
 ---
 
 # [x] Incremental rendering bugs (INKX_STRICT failures) @km/inkx #feature #P2 @claude:b53ef7e4

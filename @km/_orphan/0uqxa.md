@@ -5,6 +5,7 @@ aliases:
 created_by: claude:b3bb3c86
 created_at: 2026-02-24T10:59:41Z
 closed_at: 2026-02-24T11:13:19Z
+owner: bjorn@stabell.org
 ---
 
 # [x] ctrl-w q quits app instead of closing pane @km/_orphan #bug #P1

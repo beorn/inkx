@@ -11,6 +11,14 @@ close_reason: "Phase 1 shipped in v0.18.0: PRIMER_ALIASES table in
   (fg-muted, bg-surface, border-focus, etc.) to legacy Theme keys. Resolver
   tries direct → alias fallback. 13 alias tests + backward-compat test green.
   Phase 2 (rename Theme fields themselves) deferred to next major."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.token-rename-primer
+    depends_on_id: km-silvery.theme-system-v2
+    type: parent-child
+    created_at: 2026-04-18T10:45:11Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Primer-style token names (fg-muted, bg-muted, fg-disabled, border-focus, …) @km/silvery #task #P3

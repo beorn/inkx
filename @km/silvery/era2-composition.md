@@ -10,6 +10,8 @@ close_reason: "Completed: app-composition.md design doc written, GPT Pro
   reviewed twice, 00-overview.md created with full file map + implementation
   phases + package mapping. Decisions 36 (providers dissolve) and 37
   (era2a/era2b split) captured. Remaining work tracked as era2a phase beads."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Era2 composition: plugins, providers, typed deps, effects @km/silvery #task #P0 @claude:f8196c1c

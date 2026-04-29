@@ -6,6 +6,7 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-18T23:42:46Z
 closed_at: 2026-02-19T07:19:01Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Unified navigateToNode() replacing findZoomTarget + inline zoom logic @km/tui #task #P2

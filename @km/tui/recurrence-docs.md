@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T22:25:25Z
 closed_at: 2026-02-25T22:31:45Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] Document recurrence design, cross-system research, and Asana import mapping @km/tui #task #P2 @claude:d697f216

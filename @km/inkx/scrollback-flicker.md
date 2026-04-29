@@ -6,6 +6,7 @@ aliases:
 created_by: claude:fa5431cd
 created_at: 2026-03-03T00:34:35Z
 closed_at: 2026-03-03T00:40:20Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Scrollback flicker + header-in-scrollback + jump-up on freeze @km/inkx #bug #P1

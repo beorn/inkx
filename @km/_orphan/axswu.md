@@ -5,6 +5,8 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-12T15:01:50Z
 closed_at: 2026-02-14T20:48:43Z
+owner: bjorn@stabell.org
+assignee: claude:124bfbe5
 ---
 
 # [x] TUI: breadcrumb text corruption on h/l column navigation @km/_orphan #bug #P2 @claude:124bfbe5

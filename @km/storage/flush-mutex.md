@@ -10,6 +10,7 @@ close_reason: "Fixed: (1) flushGeneration map pruned when exceeding 10K entries,
   cleared on queue teardown. (2) flush() now re-drains pending items accumulated
   during doFlush, preventing orphaned writes. 2 new tests. Commits 5389b100,
   940c4340."
+owner: bjorn@stabell.org
 ---
 
 # [x] [bug] WriteQueue flush mutex incomplete — race between flush() and queue() @km/storage #bug #P2

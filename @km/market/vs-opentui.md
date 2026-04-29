@@ -5,6 +5,14 @@ aliases:
   - km-market-vs-opentui
 created_by: Bjørn Stabell
 created_at: 2026-04-15T23:20:31Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-market.vs-opentui
+    depends_on_id: km-market
+    type: parent-child
+    created_at: 2026-04-15T16:22:35Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Ship public silvery-vs-opentui.md comparison page @km/market #task #P2

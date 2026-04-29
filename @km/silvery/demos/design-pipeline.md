@@ -7,6 +7,8 @@ created_by: claude:db326126
 created_at: 2026-03-29T02:33:34Z
 closed_at: 2026-03-29T07:29:14Z
 close_reason: Closed
+owner: bjorn@stabell.org
+assignee: claude:db326126
 ---
 
 # [x] Design pipeline: ANSI mockup > approve > implement (non-OpenAI) @km/silvery #task #P0 @claude:db326126

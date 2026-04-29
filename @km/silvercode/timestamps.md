@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-timestamps
 created_by: claude:2405c72e
 created_at: 2026-04-28T19:36:37Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.timestamps
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T12:36:37Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] Relative timestamps for turn boundaries — '(2m ago)' next to user/assistant heads @km/silvercode #feature #P2

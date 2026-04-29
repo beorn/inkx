@@ -5,6 +5,8 @@ aliases:
 created_by: claude:66437c43
 created_at: 2026-03-03T11:56:04Z
 closed_at: 2026-03-03T12:10:58Z
+owner: bjorn@stabell.org
+assignee: claude:66437c43
 ---
 
 # [x] Extract themex — universal theme package from inkx @km/_orphan #feature #P2 @claude:66437c43

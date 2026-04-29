@@ -8,6 +8,7 @@ created_at: 2026-04-08T23:59:11Z
 closed_at: 2026-04-09T00:35:08Z
 close_reason: ReactiveNodeStore class converted to createNodeStore() factory.
   NodeStore type alias exported. 4 consumers updated. Commit 11422cefa.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 4: Convert ReactiveNodeStore class to createNodeStore() factory @km/tui #task #P2

@@ -9,6 +9,7 @@ closed_at: 2026-04-01T07:37:16Z
 close_reason: Extracted 4 shared helpers (parseInputEvents, createEventQueue,
   createEmulatorStdout, finalizeTerm). 755→692 lines. All 3 factories now
   compose helpers.
+owner: bjorn@stabell.org
 ---
 
 # [x] Deduplicate 3 Term factories (real, headless, emulator) into composable builder @km/silvery #task #P3

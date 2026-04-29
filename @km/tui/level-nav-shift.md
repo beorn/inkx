@@ -5,6 +5,7 @@ aliases:
   - km-tui-level-nav-shift
 created_at: 2026-02-04T17:49:50Z
 closed_at: 2026-02-05T10:09:06Z
+assignee: claude:10db6ea8
 ---
 
 # [x] Board content shifts after level navigation round-trip @km/tui #bug #P2 @claude:10db6ea8

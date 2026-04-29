@@ -5,6 +5,14 @@ aliases:
   - km-storage-op-surface-deferred-emitter-required
 created_by: claude:8b5b9e1c
 created_at: 2026-04-22T17:30:50Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-storage.op-surface-deferred-emitter-required
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-22T10:30:50Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [ ] Deferred parser must emit via emitter (audit G2) @km/storage #task #P2

@@ -5,6 +5,14 @@ aliases:
   - km-tui-sel-reader-migration
 created_by: Bjørn Stabell
 created_at: 2026-04-18T15:27:31Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.sel-reader-migration
+    depends_on_id: km-silvery.selection-focus-plateau
+    type: parent-child
+    created_at: 2026-04-18T08:27:36Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Reader migration + deferred toggle/remove patterns (sel-migration Phase 5) @km/tui #task #P2

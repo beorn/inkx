@@ -10,6 +10,8 @@ close_reason: "All 6 children complete: DA1 sentinel pattern, Unicode width
   probes (ucs-detect), esctest2 edge cases (10 probes), iTerm2 feature reporting
   (XTVERSION, OSC 1337), probe methodology on feature pages, SVG badges. 145
   features total."
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] Integrate best ideas from esctest2, ucs-detect, notcurses, and terminal-wg into terminfo.dev @km/terminfo #task #P1 @claude:4929065a

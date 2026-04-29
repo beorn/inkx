@@ -9,6 +9,8 @@ closed_at: 2026-03-13T06:46:10Z
 close_reason: "Fixed: calcActualVisibleCount uses floor semantics, rendering
   loop stops before overflow. 25 tests added (boundary parametric + property
   invariants)."
+owner: bjorn@stabell.org
+assignee: claude:65d845d9
 ---
 
 # [x] HVL calcActualVisibleCount uses ceil — layout corruption at boundary widths @km/silvery #bug #P1 @claude:65d845d9

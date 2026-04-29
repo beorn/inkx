@@ -5,6 +5,14 @@ aliases:
   - km-silvery-paint-clear-clear-region-decouple
 created_by: claude:cc081a9a
 created_at: 2026-04-27T20:23:06Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.paint-clear-clear-region-decouple
+    depends_on_id: km-silvery.paint-clear-l5-final
+    type: parent-child
+    created_at: 2026-04-27T13:23:05Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] Paint-clear Step 2 — decouple clearNodeRegion from clearExcessArea @km/silvery #task #P2

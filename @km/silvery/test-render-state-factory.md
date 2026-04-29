@@ -5,6 +5,14 @@ aliases:
   - km-silvery-test-render-state-factory
 created_by: claude:cc081a9a
 created_at: 2026-04-27T20:23:07Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.test-render-state-factory
+    depends_on_id: km-silvery.paint-clear-l5-final
+    type: parent-child
+    created_at: 2026-04-27T13:23:07Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] Test infra: createTestRenderState factory replacing @ts-expect-error partials @km/silvery #task #P3

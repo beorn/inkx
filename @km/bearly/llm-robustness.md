@@ -5,6 +5,7 @@ aliases:
   - km-bearly-llm-robustness
 created_by: claude:19080504
 created_at: 2026-03-30T20:11:33Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] LLM tool robustness: fake providers, failure simulation, comprehensive error tests @km/bearly #task #P3

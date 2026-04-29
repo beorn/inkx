@@ -8,6 +8,8 @@ created_at: 2026-04-02T01:39:26Z
 closed_at: 2026-04-02T03:39:37Z
 close_reason: "Audit (72/100) + fixes shipped: BreadcrumbList template fix, OG
   PNG, Dataset schema, OG tags, author bio. Commits: fbe5352, 4b81620"
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] terminfo.dev SEO audit and optimization @km/market #task #P2 @Bjørn Stabell

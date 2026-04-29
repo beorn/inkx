@@ -6,6 +6,7 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T13:36:29Z
 closed_at: 2026-02-25T20:10:45Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Detail pane: tag children show as empty # without names @km/tui #bug #P1

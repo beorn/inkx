@@ -7,6 +7,7 @@ created_by: claude:65d845d9
 created_at: 2026-03-13T05:33:10Z
 closed_at: 2026-03-13T05:39:16Z
 close_reason: P4 — cosmetic TypeScript cleanup, not blocking
+owner: bjorn@stabell.org
 ---
 
 # [x] Unnecessary non-null assertions on always-defined variables @km/flexily #task #P4

@@ -9,6 +9,8 @@ closed_at: 2026-03-11T07:41:31Z
 close_reason: Expanded sip 2→3 transition in state-management.md with compelling
   pain moment story (sidebar+detail+palette growth, undo/AI/keybindings all need
   data-as-ops), zero-rewrite guarantee.
+owner: bjorn@stabell.org
+assignee: claude:e4e70c9a
 ---
 
 # [x] Polish sip 3 docs: the useState → createModel transition @km/silvery #task #P2 @claude:e4e70c9a

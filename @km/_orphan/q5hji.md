@@ -11,6 +11,8 @@ close_reason: "3-phase refactor landed: config surface renamed
   inactive-files-do-not-emit-tasks + block-id-collision-active-wins. Commits
   36ee6d7c2, f772897c1, 2c4361603. All acceptance greps clean; 1103 storage
   tests pass (+14 vs baseline); tsc errors: 0→0."
+owner: bjorn@stabell.org
+assignee: claude:c56dc5d6
 ---
 
 # [x] [bug] consolidate .km/config → yaml, rename collapseParse→inactive, wire into task-indexer @km/_orphan #bug #P0 #data-integrity #task-indexer #vault-hygiene @claude:c56dc5d6

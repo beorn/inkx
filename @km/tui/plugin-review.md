@@ -9,6 +9,8 @@ closed_at: 2026-04-01T19:42:47Z
 close_reason: "Audit complete. See notes for findings. Key gap: no domain-level
   .apply() pattern yet — withOutliner needs reshaping, createApp needs pipe()
   migration."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Review current with* composition — map against era2 TEA vision @km/tui #task #P2 @Bjørn Stabell

@@ -11,6 +11,21 @@ close_reason: Shipped at vendor/silvery 5c895d0a + 7d1a8cf8.
   Alert.Title/Body/Actions. 13 new tests. Storybook UrgencyDemo refactored to
   use real components. _tone.ts shared helper dries up Button + Alert + Badge +
   Toast.
+owner: bjorn@stabell.org
+assignee: claude:4274df30
+dependencies:
+  - issue_id: km-silvery.ui-alert-primitives
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-19T20:58:02Z
+    created_by: claude:4274df30
+    metadata: "{}"
+  - issue_id: km-silvery.ui-alert-primitives
+    depends_on_id: km-silvery.ui-button-tone
+    type: blocks
+    created_at: 2026-04-19T20:58:03Z
+    created_by: claude:4274df30
+    metadata: "{}"
 ---
 
 # [x] @silvery/ui: Alert / Banner / InlineAlert primitives with tone + urgency semantics @km/silvery #feature #P3 @claude:4274df30

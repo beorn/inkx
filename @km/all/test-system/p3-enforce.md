@@ -11,6 +11,8 @@ close_reason: "Phase 3 complete: testEnv exports already removed;
   (37 callsites migrated across 5 files in feat/test-system worktree, commit
   8f26c465a). Type-level lock achieved. All migrated tests pass (62 fast + 118
   slow)."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Phase 3: Delete testEnv/testEnvWithRepo + lint enforcement @km/all #task #P1 @Bjørn Stabell

@@ -6,6 +6,7 @@ aliases:
   - "@km/rev-code-0203/2"
 created_at: 2026-02-03T13:47:56Z
 closed_at: 2026-02-03T14:20:10Z
+assignee: claude:b3478afd
 ---
 
 # [x] Convert getters to plain properties in repo.ts @km/rev-code-0203 #task #P3 @claude:b3478afd

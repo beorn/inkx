@@ -5,6 +5,7 @@ aliases:
   - km-termless-libghostty-stable-api
 created_by: claude:4929065a
 created_at: 2026-03-23T06:50:45Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Switch ghostty-native to stable C API when available @km/termless #task #P2

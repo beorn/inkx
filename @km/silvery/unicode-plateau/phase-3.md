@@ -11,6 +11,21 @@ close_reason: "Phase 3 shipped. lint-env-reads allowlist 6->4 files
   caps.cursor (last env read in detection.ts is gone). README.md +
   docs/reference/text-sizing.md synced to caps-based API. 4 new contract tests
   pin caps.cursor. 323 silvery tests pass. Silvery e1980971."
+owner: bjorn@stabell.org
+assignee: claude:c6244087
+dependencies:
+  - issue_id: km-silvery.unicode-plateau.phase-3
+    depends_on_id: km-silvery.unicode-plateau
+    type: parent-child
+    created_at: 2026-04-23T08:46:40Z
+    created_by: claude:c6244087
+    metadata: "{}"
+  - issue_id: km-silvery.unicode-plateau.phase-3
+    depends_on_id: km-silvery.unicode-plateau.phase-2
+    type: blocks
+    created_at: 2026-04-23T08:46:40Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Unicode plateau Phase 3: lint rule + docs sync @km/silvery #task #P1 @claude:c6244087

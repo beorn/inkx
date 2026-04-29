@@ -6,6 +6,8 @@ aliases:
 created_by: claude:536645b5
 created_at: 2026-02-20T15:47:51Z
 closed_at: 2026-02-23T01:20:37Z
+owner: bjorn@stabell.org
+assignee: claude:97b8de73
 ---
 
 # [x] Detail pane interactivity: selection, all ops, prop editing @km/tui #feature #P2 @claude:97b8de73

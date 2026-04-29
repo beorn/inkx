@@ -6,6 +6,7 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T16:17:33Z
 closed_at: 2026-02-18T21:11:23Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Asana import: expanded fields + full re-import with new data @km/tui #task #P2

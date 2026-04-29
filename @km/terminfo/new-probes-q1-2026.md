@@ -11,6 +11,8 @@ close_reason: "Implemented 5 new probes: extensions.osc9-progress (term-only),
   modes.color-scheme-reporting (Mode 2031 + DECDSR 997),
   input.modify-other-keys-3. All with dual termless/term implementations,
   features.json metadata, 27 annotations. Site builds."
+owner: bjorn@stabell.org
+assignee: claude:27beac99
 ---
 
 # [x] New probes: OSC 9;4 progress, Mode 2031 color-scheme, OSC 66 text-sizing, OSC 5522 clipboard @km/terminfo #feature #P2 @claude:27beac99

@@ -11,6 +11,8 @@ close_reason: Replaced virtual __meta__ KNodes with focusable React components
   Board.tsx + board-app.ts simplified for flat detail mode. 1711 fast tests
   pass, 68 slow detail tests pass, 4 previously-failing windowing tests fixed.
   Commit 9f24941eb.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Detail pane: spatial navigation + metadata as React components (not tree nodes) @km/tui #feature #P0 @Bjørn Stabell

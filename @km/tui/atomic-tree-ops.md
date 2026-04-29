@@ -12,6 +12,20 @@ close_reason: Largely complete via existing sel.transform() infrastructure.
   split/merge use setSelection atomically. Residual manual move/reorder sites
   (board-actions-edit.ts lines 485, 734, 767) don't change selection and don't
   need atomic wrapping. See feat/selection-plateau.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.atomic-tree-ops
+    depends_on_id: km-all.unified-selection
+    type: blocks
+    created_at: 2026-04-15T08:36:38Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.atomic-tree-ops
+    depends_on_id: km-silvery.selection-focus-plateau
+    type: parent-child
+    created_at: 2026-04-15T08:36:40Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Atomic tree+selection operations: structural ops include selection update @km/tui #feature #P0

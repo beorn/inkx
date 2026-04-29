@@ -6,6 +6,8 @@ aliases:
 created_by: claude:586bad48
 created_at: 2026-02-12T14:08:00Z
 closed_at: 2026-02-12T14:32:44Z
+owner: bjorn@stabell.org
+assignee: claude:586bad48
 ---
 
 # [x] Space shows detail view for folders (outline of contents) @km/tui #feature #P2 @claude:586bad48

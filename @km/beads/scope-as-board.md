@@ -15,6 +15,16 @@ close_reason: Shipped this session. BeadsConfig stripped to {prefix} only;
   verified @km/<scope> per-issue tags + scope dirs at vault root. Stray
   ~/Code/pim/km/issue/km-infra-typecheck-oom.md moved to infra/typecheck-oom.md.
   All 1494 tests pass across km-storage, km-beads, km-cli.
+started_at: 2026-04-28T06:29:57Z
+owner: bjorn@stabell.org
+assignee: claude:da9990c5
+dependencies:
+  - issue_id: km-beads.scope-as-board
+    depends_on_id: km-beads
+    type: parent-child
+    created_at: 2026-04-27T23:29:38Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] Drop beads.board/beads.parent — id scope IS the board (km-beads.X → beads/X.md, @km/beads/X) @km/beads #feature #P2 @claude:da9990c5

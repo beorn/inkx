@@ -5,6 +5,14 @@ aliases:
   - km-tribe-plugin-v2
 created_by: claude:19080504
 created_at: 2026-03-26T07:45:29Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.plugin-v2
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-18T11:00:14Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] TribePlugin v2: pipe() composition + provides/requires (SlateJS/TEA pattern) @km/tribe #feature #P3

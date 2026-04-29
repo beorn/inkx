@@ -10,6 +10,7 @@ close_reason: "Fixed: zero-dim terminal crash (pass undefined not 0 for
   cols/rows), empty frame capture (remove premature initial frame), font loading
   (loadSystemFonts: true). Screenshots now render correctly with Menlo
   monospace."
+owner: bjorn@stabell.org
 ---
 
 # [x] play screenshots broken: vterm crashes, xterm captures empty frames @km/termless #bug #P1

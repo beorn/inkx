@@ -11,6 +11,15 @@ close_reason: "Phase 2 complete. Library at
   accountly/recall.ts both route through it. CI lint
   tools/lint-injection-emitters.ts wired into bun fix + test:ci. Commits: bearly
   c656387, km root 5f5b96b73. Dep-free (0 externals)."
+owner: bjorn@stabell.org
+assignee: claude:7e9436e8
+dependencies:
+  - issue_id: km-bearly.injection-envelope-lib
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-21T12:41:25Z
+    created_by: claude:7e9436e8
+    metadata: "{}"
 ---
 
 # [x] Extract shared @bearly/injection-envelope library @km/bearly #task #P0 @claude:7e9436e8

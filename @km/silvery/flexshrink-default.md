@@ -15,6 +15,16 @@ close_reason: "Phase 1-4 + 9-10 landed. Foundation (defaults preset config)
   km-silvery.flexshrink-flip-silvery-only and
   km-silvery.flexshrink-audit-silvery — cleaner architectural path of
   silvery-only opt-in vs global flip."
+started_at: 2026-04-25T06:20:34Z
+owner: bjorn@stabell.org
+assignee: claude:53042a7f
+dependencies:
+  - issue_id: km-silvery.flexshrink-default
+    depends_on_id: km-silvercode.wrap-ergonomic
+    type: parent-child
+    created_at: 2026-04-24T15:12:11Z
+    created_by: claude:0940ca20
+    metadata: "{}"
 ---
 
 # [x] Evaluate flipping flexily flexShrink default from 0 → 1 (CSS parity) @km/silvery #task #P2 @claude:53042a7f

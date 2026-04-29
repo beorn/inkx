@@ -7,6 +7,15 @@ created_by: claude:c6244087
 created_at: 2026-04-23T18:45:45Z
 closed_at: 2026-04-23T19:10:57Z
 close_reason: Closed
+owner: bjorn@stabell.org
+assignee: claude:c6244087
+dependencies:
+  - issue_id: km-silvery.plateau-naming-polish
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T11:46:05Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Rename identity→emulator, drop heuristics namespace, TERM/maybe* naming @km/silvery #task #P2 @claude:c6244087

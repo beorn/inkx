@@ -16,6 +16,16 @@ close_reason: Implemented `silvercode doctor` + `silvercode doctor autolinks`
   (within baseline). Slash-command path (/doctor in TUI) deferred — engine
   returns structured DoctorReport so future TUI integration can render without
   re-running checks. Commit d9ab32db0.
+started_at: 2026-04-25T16:36:31Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.doctor
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-25T09:16:32Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] silvercode doctor: introspect autolinks config, environment, integrations @km/silvercode #feature #P3 @claude:2405c72e

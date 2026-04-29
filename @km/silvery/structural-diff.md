@@ -5,6 +5,7 @@ aliases:
   - km-silvery-structural-diff
 created_by: Bjørn Stabell
 created_at: 2026-04-02T17:14:03Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Structural diffing in output phase — IL/DL/scroll ops instead of cell-by-cell rewrite @km/silvery #feature #P2

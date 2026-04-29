@@ -6,6 +6,21 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-14T23:25:23Z
 closed_at: 2026-04-20T19:42:13Z
+owner: bjorn@stabell.org
+assignee: claude:6093040b
+dependencies:
+  - issue_id: km-tui.omnibox-cursor
+    depends_on_id: km-tui.omnibox-dialog
+    type: blocks
+    created_at: 2026-04-14T16:26:17Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-tui.omnibox-cursor
+    depends_on_id: km-tui.omnibox-unified
+    type: parent-child
+    created_at: 2026-04-14T16:25:23Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Cursor unification via focus (Phase 6) @km/tui #task #P1 @claude:6093040b

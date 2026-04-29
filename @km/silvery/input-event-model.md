@@ -11,6 +11,8 @@ close_reason: "Levels 1-2 complete (release filtering, type unification, shared
   km-silvery.event-precedence (3-lane model), km-silvery.paste-unification
   (unified hook), km-silvery.ag-test-coverage (hook tests), km-silvery.doc-drift
   (6 contradictions)."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Input event model: filter release events from useInput, add semantic input layer @km/silvery #feature #P0 @Bjørn Stabell

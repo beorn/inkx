@@ -4,6 +4,7 @@ aliases:
   - km-flexx-rtl
 created_at: 2026-01-30T22:44:41Z
 closed_at: 2026-01-30T22:58:38Z
+assignee: claude:b8b4780b
 ---
 
 # [x] Implement RTL (right-to-left) support in Flexx @km/_orphan #task #P2 @claude:b8b4780b

@@ -9,6 +9,8 @@ closed_at: 2026-03-28T08:38:39Z
 close_reason: "All 4 phases complete. P1: KNode+Position namespaces (50 files).
   P2: TreeOps (km-tree). P3: CommandAction split (8 sub-unions). P4: Selection
   namespace. 4791 tests pass, docs updated."
+owner: bjorn@stabell.org
+assignee: claude:ceb7c9cb
 ---
 
 # [x] SlateJS-style domain interfaces — typed tree vocabulary with static helpers @km/core #epic #P2 @claude:ceb7c9cb

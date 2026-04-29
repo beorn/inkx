@@ -66,6 +66,14 @@ close_reason: >-
   - bun fix: clean
 
   - bun vitest run apps/silvercode/tests/: 709 passed | 5 skipped (714) in 7.96s
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.sidepanel-skeleton-mount
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T12:36:37Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Render SidePanel + skeleton pane immediately, don't wait for spawn (fixes 10s blank screen) @km/silvercode #bug #P0

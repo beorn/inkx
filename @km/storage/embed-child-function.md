@@ -10,6 +10,8 @@ close_reason: "buildEmbedChild() in db-ops.ts unifies db-rules and CLI add embed
   creation. Raw SQL replaced with createDbOps().addNode(). Wikilink fallback
   removed. Task traits only on type:p (list items). Doc updated:
   design/km-ast/model.md reflects embed-as-trait."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Single 'add embedded child' function — unify db-rules, CLI, link-resolution @km/storage #task #P1 @claude:f8196c1c

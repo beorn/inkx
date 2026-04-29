@@ -10,8 +10,9 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it, expect } from "vitest"
-import { parse as parseYaml } from "yaml"
+import { parse as parseYaml, stringify as stringifyYaml } from "yaml"
 import {
+  applyAddOnlyPatch,
   bdIdToPathForm,
   bdIdToPathFormWithSlug,
   bdIdToAliases,
@@ -19,7 +20,9 @@ import {
   issueToMarkdown,
   migrateBeadsToMarkdown,
   readBeadsExport,
+  recaptureFromExport,
   rewriteLegacyIdMentions,
+  splitFrontmatter,
 } from "../src/migrate.ts"
 import { parseBeadsIssuesJsonl } from "../src/schema.ts"
 import type { BeadsFs } from "../src/types.ts"
@@ -451,6 +454,151 @@ describe("migrateBeadsToMarkdown — flat @memory layout", () => {
       files,
       dirs,
       existsSync: (p: string) => files[p] !== undefined || dirs.has(p),
+ * Recapture (--update-only) — ADD missing fields from the export onto
+ * already-migrated vault beads, never overwrite present-and-non-empty.
+ *
+ * The diff property: for any field set in the target before recapture,
+ * its value is byte-identical after. The only changes the function may
+ * introduce are filling in fields whose target value was absent or
+ * empty (with `metadata` allowed to merge).
+ */
+describe("applyAddOnlyPatch — ADD missing, NEVER overwrite", () => {
+  function baseIssue(overrides: Partial<BeadsIssue> = {}): BeadsIssue {
+    return {
+      id: "km-test.foo",
+      title: "Foo",
+      description: "",
+      status: "open",
+      priority: 2,
+      issue_type: "task",
+      created_at: "2026-04-28T00:00:00Z",
+      updated_at: "2026-04-28T00:00:00Z",
+      ...overrides,
+    } as BeadsIssue
+  }
+
+  it("ADDs started_at when target is missing it", () => {
+    const fm: Record<string, unknown> = { id: "@km/test/foo" }
+    const changed = applyAddOnlyPatch(fm, baseIssue({ started_at: "2026-04-01T00:00:00Z" }))
+    expect(fm.started_at).toBe("2026-04-01T00:00:00Z")
+    expect(changed).toContain("started_at")
+  })
+
+  it("NEVER overwrites started_at when target already has it", () => {
+    const fm: Record<string, unknown> = { id: "@km/test/foo", started_at: "2025-01-01T00:00:00Z" }
+    const changed = applyAddOnlyPatch(fm, baseIssue({ started_at: "2026-04-01T00:00:00Z" }))
+    expect(fm.started_at).toBe("2025-01-01T00:00:00Z")
+    expect(changed).not.toContain("started_at")
+  })
+
+  it("ADDs owner/assignee when missing", () => {
+    const fm: Record<string, unknown> = { id: "@km/test/foo" }
+    const changed = applyAddOnlyPatch(fm, baseIssue({ owner: "beorn", assignee: "beorn" }))
+    expect(fm.owner).toBe("beorn")
+    expect(fm.assignee).toBe("beorn")
+    expect(changed).toEqual(expect.arrayContaining(["owner", "assignee"]))
+  })
+
+  it("ADDs dependencies array when target has none", () => {
+    const fm: Record<string, unknown> = { id: "@km/test/foo" }
+    const deps = [{ type: "blocks", issue_id: "km-test.foo", depends_on_id: "km-test.bar" }]
+    const changed = applyAddOnlyPatch(fm, baseIssue({ dependencies: deps as BeadsIssue["dependencies"] }))
+    expect(fm.dependencies).toEqual(deps)
+    expect(changed).toContain("dependencies")
+  })
+
+  it("NEVER overwrites a non-empty dependencies array", () => {
+    const existing = [{ type: "blocks", issue_id: "km-test.foo", depends_on_id: "km-test.legacy" }]
+    const fm: Record<string, unknown> = { id: "@km/test/foo", dependencies: existing }
+    const sourceDeps = [{ type: "blocks", issue_id: "km-test.foo", depends_on_id: "km-test.bar" }]
+    const changed = applyAddOnlyPatch(fm, baseIssue({ dependencies: sourceDeps as BeadsIssue["dependencies"] }))
+    expect(fm.dependencies).toEqual(existing)
+    expect(changed).not.toContain("dependencies")
+  })
+
+  it("ADDs legacy_deps from blocked_by/blocks when target has none", () => {
+    const fm: Record<string, unknown> = { id: "@km/test/foo" }
+    const changed = applyAddOnlyPatch(
+      fm,
+      baseIssue({ blocked_by: ["km-test.up"], blocks: ["km-test.down"] }),
+    )
+    expect(fm.legacy_deps).toEqual({ blocked_by: ["km-test.up"], blocks: ["km-test.down"] })
+    expect(changed).toContain("legacy_deps")
+  })
+
+  it("ADDs children when target has none", () => {
+    const fm: Record<string, unknown> = { id: "@km/test/foo" }
+    const changed = applyAddOnlyPatch(fm, baseIssue({ children: ["km-test.foo.1"] }))
+    expect(fm.children).toEqual(["km-test.foo.1"])
+    expect(changed).toContain("children")
+  })
+
+  it("MERGES metadata when both target and source non-empty", () => {
+    const fm: Record<string, unknown> = { id: "@km/test/foo", metadata: '{"vault":"existing"}' }
+    const changed = applyAddOnlyPatch(fm, baseIssue({ metadata: '{"export":"original"}' }))
+    expect(fm.metadata).toBe('{"vault":"existing"}\n---\n{"export":"original"}')
+    expect(changed).toContain("metadata")
+  })
+
+  it("ADDs metadata as-is when target empty", () => {
+    const fm: Record<string, unknown> = { id: "@km/test/foo" }
+    const changed = applyAddOnlyPatch(fm, baseIssue({ metadata: '{"export":"original"}' }))
+    expect(fm.metadata).toBe('{"export":"original"}')
+    expect(changed).toContain("metadata")
+  })
+
+  it("treats {} metadata as empty (no-op when source is also {})", () => {
+    const fm: Record<string, unknown> = { id: "@km/test/foo", metadata: "{}" }
+    const changed = applyAddOnlyPatch(fm, baseIssue({ metadata: "{}" }))
+    expect(changed).toEqual([])
+  })
+
+  it("NEVER touches scalar fields outside the recapture set", () => {
+    const fm: Record<string, unknown> = {
+      id: "@km/test/foo",
+      title: "vault title",
+      status: "closed",
+      priority: 0,
+      created_at: "2025-01-01T00:00:00Z",
+      updated_at: "2025-06-01T00:00:00Z",
+      closed_at: "2025-12-01T00:00:00Z",
+    }
+    const before = JSON.stringify(fm)
+    applyAddOnlyPatch(
+      fm,
+      baseIssue({
+        title: "export title",
+        status: "open",
+        priority: 4,
+        created_at: "2026-04-28T00:00:00Z",
+        closed_at: "2026-04-28T00:00:00Z",
+        started_at: "2026-04-01T00:00:00Z",
+      }),
+    )
+    // Only started_at is added; everything else is untouched.
+    expect(fm.title).toBe("vault title")
+    expect(fm.status).toBe("closed")
+    expect(fm.priority).toBe(0)
+    expect(fm.created_at).toBe("2025-01-01T00:00:00Z")
+    expect(fm.updated_at).toBe("2025-06-01T00:00:00Z")
+    expect(fm.closed_at).toBe("2025-12-01T00:00:00Z")
+    expect(fm.started_at).toBe("2026-04-01T00:00:00Z")
+    // Sanity: only the started_at key changed.
+    const after = JSON.parse(JSON.stringify(fm)) as Record<string, unknown>
+    delete after.started_at
+    expect(JSON.stringify(after)).toBe(before)
+  })
+})
+
+describe("recaptureFromExport — diff(before, after) ⊆ {fields previously empty}", () => {
+  /**
+   * In-memory fs sufficient for recapture: tracks file content, supports
+   * the read/write methods recapture and `readBeadsExport` need.
+   */
+  function memFs(initial: Record<string, string>): { fs: BeadsFs; files: Record<string, string> } {
+    const files = { ...initial }
+    const fs: BeadsFs = {
+      existsSync: (p: string) => files[p] !== undefined,
       readFileSync: (p: string) => files[p] ?? "",
       writeFileSync: (p: string, content: string) => {
         files[p] = content
@@ -552,5 +700,202 @@ describe("migrateBeadsToMarkdown — flat @memory layout", () => {
 
     expect(result.memoriesSkipped).toBe(1)
     expect(fs.files["/repo/beads/@memory/k.md"]).not.toContain("second")
+      mkdirSync: () => {},
+    }
+    return { fs, files }
+  }
+
+  function buildVaultBead(id: string, missingFields: string[], existingFields: Record<string, unknown> = {}): string {
+    const fm: Record<string, unknown> = { id }
+    // existingFields are the ones that should NOT be overwritten by recapture.
+    Object.assign(fm, existingFields)
+    void missingFields
+    // Use yaml.stringify so values starting with `@` (sigils) round-trip
+    // correctly — bare emission breaks because `@` is a reserved YAML
+    // indicator outside quoted scalars.
+    return [
+      "---",
+      stringifyYaml(fm).trimEnd(),
+      "---",
+      "",
+      "# [x] Existing body — must NOT be touched.",
+      "",
+      "Some user-edited prose with `inline code` and a [[wikilink]].",
+      "",
+    ].join("\n")
+  }
+
+  function exportLine(issue: BeadsIssue): string {
+    return JSON.stringify({ ...issue, _type: "issue" })
+  }
+
+  it("update-only: ADDs missing fields, never overwrites existing fields, never touches body", () => {
+    // Vault has 3 beads. Each is missing a different subset of recapture fields.
+    // Source export has all recapture fields populated for each.
+    const issuesPath = "/src/issues.jsonl"
+    const beadA = "/vault/@km/test/a.md"
+    const beadB = "/vault/@km/test/b.md"
+    const beadC = "/vault/@km/test/c.md"
+
+    const aBefore = buildVaultBead("@km/test/a", ["started_at", "owner"])
+    const bBefore = buildVaultBead("@km/test/b", ["dependencies"], {
+      started_at: "2025-01-01T00:00:00Z",
+      owner: "alice",
+    })
+    const cBefore = buildVaultBead("@km/test/c", [], {
+      started_at: "2025-02-02T00:00:00Z",
+      owner: "bob",
+      dependencies: [{ type: "blocks", issue_id: "km-test.c", depends_on_id: "km-test.x" }],
+    })
+
+    const exportIssues: BeadsIssue[] = [
+      {
+        id: "km-test.a",
+        title: "A",
+        description: "",
+        status: "open",
+        priority: 2,
+        issue_type: "task",
+        created_at: "2026-04-28T00:00:00Z",
+        updated_at: "2026-04-28T00:00:00Z",
+        started_at: "2026-04-01T00:00:00Z",
+        owner: "beorn",
+      } as BeadsIssue,
+      {
+        id: "km-test.b",
+        title: "B",
+        description: "",
+        status: "open",
+        priority: 2,
+        issue_type: "task",
+        created_at: "2026-04-28T00:00:00Z",
+        updated_at: "2026-04-28T00:00:00Z",
+        started_at: "2026-04-01T00:00:00Z", // should NOT overwrite alice's
+        owner: "beorn", // should NOT overwrite alice
+        dependencies: [{ type: "blocks", issue_id: "km-test.b", depends_on_id: "km-test.y" }],
+      } as BeadsIssue,
+      {
+        id: "km-test.c",
+        title: "C",
+        description: "",
+        status: "open",
+        priority: 2,
+        issue_type: "task",
+        created_at: "2026-04-28T00:00:00Z",
+        updated_at: "2026-04-28T00:00:00Z",
+        started_at: "2026-04-01T00:00:00Z", // should NOT overwrite
+        owner: "beorn", // should NOT overwrite
+        dependencies: [{ type: "blocks", issue_id: "km-test.c", depends_on_id: "km-test.z" }], // should NOT overwrite
+      } as BeadsIssue,
+    ]
+
+    const { fs, files } = memFs({
+      [issuesPath]: exportIssues.map(exportLine).join("\n"),
+      [beadA]: aBefore,
+      [beadB]: bBefore,
+      [beadC]: cBefore,
+    })
+
+    const targetByBdId: Record<string, string> = {
+      "km-test.a": beadA,
+      "km-test.b": beadB,
+      "km-test.c": beadC,
+    }
+
+    const result = recaptureFromExport(issuesPath, {
+      fs,
+      resolveTarget: (issue) => targetByBdId[issue.id] ?? null,
+    })
+
+    expect(result.errors).toEqual([])
+    expect(result.skipped).toEqual([])
+    // A: 2 fields added; B: 1 field added; C: nothing changed (already complete).
+    expect(result.patched.map((p) => p.bdId).sort()).toEqual(["km-test.a", "km-test.b"])
+    expect(result.unchanged).toBe(1)
+
+    // === Property: diff ⊆ {fields previously empty} ===
+
+    // A — was missing started_at + owner; both should now be set, body unchanged.
+    {
+      const before = parseYaml(splitFrontmatter(aBefore)!.frontmatter) as Record<string, unknown>
+      const after = parseYaml(splitFrontmatter(files[beadA]!)!.frontmatter) as Record<string, unknown>
+      expect(before.started_at).toBeUndefined()
+      expect(before.owner).toBeUndefined()
+      expect(after.started_at).toBe("2026-04-01T00:00:00Z")
+      expect(after.owner).toBe("beorn")
+      // Body byte-identical.
+      expect(splitFrontmatter(files[beadA]!)!.body).toBe(splitFrontmatter(aBefore)!.body)
+    }
+
+    // B — had started_at + owner; export should NOT have overwritten them.
+    {
+      const after = parseYaml(splitFrontmatter(files[beadB]!)!.frontmatter) as Record<string, unknown>
+      expect(after.started_at).toBe("2025-01-01T00:00:00Z") // pre-existing wins
+      expect(after.owner).toBe("alice")
+      expect(after.dependencies).toEqual([
+        { type: "blocks", issue_id: "km-test.b", depends_on_id: "km-test.y" },
+      ])
+      expect(splitFrontmatter(files[beadB]!)!.body).toBe(splitFrontmatter(bBefore)!.body)
+    }
+
+    // C — fully populated already; file should be byte-identical.
+    expect(files[beadC]).toBe(cBefore)
+  })
+
+  it("update-only: skips beads with no resolvable target (no --restore semantics yet)", () => {
+    const issuesPath = "/src/issues.jsonl"
+    const exportIssues: BeadsIssue[] = [
+      {
+        id: "km-test.missing",
+        title: "Missing",
+        description: "",
+        status: "open",
+        priority: 2,
+        issue_type: "task",
+        created_at: "2026-04-28T00:00:00Z",
+        updated_at: "2026-04-28T00:00:00Z",
+        started_at: "2026-04-01T00:00:00Z",
+      } as BeadsIssue,
+    ]
+    const { fs } = memFs({
+      [issuesPath]: exportIssues.map(exportLine).join("\n"),
+    })
+    const result = recaptureFromExport(issuesPath, {
+      fs,
+      resolveTarget: () => null,
+    })
+    expect(result.patched).toEqual([])
+    expect(result.unchanged).toBe(0)
+    expect(result.skipped).toEqual([{ bdId: "km-test.missing", reason: "no target file" }])
+  })
+
+  it("update-only: dryRun does not write to disk", () => {
+    const issuesPath = "/src/issues.jsonl"
+    const beadPath = "/vault/@km/test/foo.md"
+    const before = buildVaultBead("@km/test/foo", ["started_at"])
+    const exportLine = JSON.stringify({
+      _type: "issue",
+      id: "km-test.foo",
+      title: "Foo",
+      description: "",
+      status: "open",
+      priority: 2,
+      issue_type: "task",
+      created_at: "2026-04-28T00:00:00Z",
+      updated_at: "2026-04-28T00:00:00Z",
+      started_at: "2026-04-01T00:00:00Z",
+    })
+    const { fs, files } = memFs({ [issuesPath]: exportLine, [beadPath]: before })
+
+    const result = recaptureFromExport(issuesPath, {
+      fs,
+      dryRun: true,
+      resolveTarget: () => beadPath,
+    })
+
+    expect(result.patched).toHaveLength(1)
+    expect(result.patched[0]!.fieldsChanged).toContain("started_at")
+    // File on disk is unchanged in dry-run.
+    expect(files[beadPath]).toBe(before)
   })
 })

@@ -5,6 +5,7 @@ aliases:
   - km-tui-config-pkg
 created_by: Bjørn Stabell
 created_at: 2026-03-31T20:26:31Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Extract @km/config package — consolidate config types, defaults, I/O @km/tui #task #P2

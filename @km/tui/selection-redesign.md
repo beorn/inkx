@@ -8,6 +8,7 @@ created_at: 2026-04-03T17:07:50Z
 closed_at: 2026-04-03T20:22:40Z
 close_reason: Superseded by km-silvery.selection — design moved to
   @silvery/selection package level
+owner: bjorn@stabell.org
 ---
 
 # [x] Selection redesign: single value type + VisibleTree invariant @km/tui #task #P3

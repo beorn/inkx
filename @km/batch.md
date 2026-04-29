@@ -5,6 +5,7 @@ aliases:
   - "@km/_orphan/batch"
 created_at: 2026-01-26T13:35:29Z
 closed_at: 2026-01-27T12:25:09Z
+assignee: claude:5f8fa618
 ---
 
 # [x] batch plugin: Parent epic for beorn-claude-tools batch refactoring @km/batch #epic #P2 @claude:5f8fa618

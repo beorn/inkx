@@ -5,6 +5,7 @@ aliases:
   - "@km/_orphan/tribe"
 created_by: claude:19080504
 created_at: 2026-03-26T17:05:43Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Tribe: cross-session coordination system @km/tribe #epic #P2

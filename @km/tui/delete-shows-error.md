@@ -10,6 +10,8 @@ close_reason: "Fixed: ErrorBoundary resetKey was static (node.id+depth) — neve
   reset when children changed. Now uses resetKeys=[node.id, depth,
   children.length] so it auto-recovers on delete/add/move. Also added onError
   logging via loggily. Commit 7c96e384."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Deleting sub-sub-item shows [error] instead of crashing or logging @km/tui #bug #P2 @Bjørn Stabell

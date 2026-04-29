@@ -7,6 +7,7 @@ created_at: 2026-03-10T06:25:21Z
 closed_at: 2026-03-10T22:57:52Z
 close_reason: Work completed and committed as 73de145 in silvery submodule.
   Closing during grooming.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 6: Consolidate why-silvery.md — fold into silvery-vs-ink or homepage @km/_orphan #task #P3

@@ -6,6 +6,7 @@ aliases:
   - "@km/domain/7"
 created_at: 2026-01-26T07:57:29Z
 closed_at: 2026-01-26T15:48:08Z
+assignee: db124dfa
 ---
 
 # [x] ADR-002: Complete Vault→Repo terminology migration @km/domain #task #P2 @db124dfa

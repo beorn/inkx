@@ -6,6 +6,7 @@ aliases:
 created_by: claude:66437c43
 created_at: 2026-03-03T12:47:45Z
 closed_at: 2026-03-03T20:27:33Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Deep research review of themex design and docs @km/themex #task #P3

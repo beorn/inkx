@@ -5,6 +5,20 @@ aliases:
   - km-silvery-tea
 created_by: claude:491faf6c
 created_at: 2026-03-25T05:56:19Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.tea
+    depends_on_id: km-silvery.architectural-plateau
+    type: blocks
+    created_at: 2026-04-24T23:16:27Z
+    created_by: claude:2405c72e
+    metadata: "{}"
+  - issue_id: km-silvery.tea
+    depends_on_id: km-silvery.selection-focus-plateau
+    type: parent-child
+    created_at: 2026-04-15T08:36:42Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Silvery tea (v1.5): app architecture — signals, commands, scopes @km/silvery #epic #P0

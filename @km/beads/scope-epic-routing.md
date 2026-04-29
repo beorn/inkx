@@ -22,6 +22,16 @@ close_reason: >-
   @km/silvery, aliases include km-silvery + back-compat @km/_orphan/silvery)
   sits next to @km/silvery/ directory of children. _orphan/ has only genuine
   auto-ids.
+started_at: 2026-04-28T19:10:50Z
+owner: bjorn@stabell.org
+assignee: claude:da9990c5
+dependencies:
+  - issue_id: km-beads.scope-epic-routing
+    depends_on_id: km-beads
+    type: parent-child
+    created_at: 2026-04-28T12:10:43Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] bdIdToPathForm: scope-level beads (km-<scope>, no dot) should land at @<prefix>/<scope>.md, not _orphan/ @km/beads #bug #P2 @claude:da9990c5

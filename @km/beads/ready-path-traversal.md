@@ -12,6 +12,14 @@ close_reason: The actual bug is in 'bd list --status <bd-flavor>'. The CLI
   nothing. 'bd ready' itself works on path-form hierarchy. Fixed via
   normalizeStatus translation at the input boundary in shared-query.ts (commit
   pending).
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-beads.ready-path-traversal
+    depends_on_id: km-beads
+    type: parent-child
+    created_at: 2026-04-27T18:34:41Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] bd ready: traverse path-form hierarchy and recognize file-level task_status @km/beads #bug #P2

@@ -12,6 +12,7 @@ close_reason: "Hold-? shortcut overlay: shows contextual keybindings while ? is
   (legacy). Implementation: board-app.ts handleKey early-returns on release
   events (only ? release dismisses help), keybindings.ts splits ? binding into
   Kitty/non-Kitty variants."
+owner: bjorn@stabell.org
 ---
 
 # [x] Hold-? shortcut overlay (uses key release events) @km/tui #feature #P2

@@ -7,6 +7,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-05T07:41:53Z
 closed_at: 2026-04-05T07:52:31Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Signals: workspace/pane management (panes, focusedPaneId, layout) @km/silvery #task #P3

@@ -11,6 +11,14 @@ close_reason: "Shipped in v0.18.0: silvery.dev/guide × 4 — color-schemes.md,
   tree for all 6 token categories with anti-patterns). terminfo.dev/fundamentals
   × 3 — color-fundamentals.md, color-schemes.md, color-detection.md. All
   cross-linked. VitePress sidebar entries + transformPageData SEO metadata."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-public-docs
+    depends_on_id: km-silvery.design-system
+    type: parent-child
+    created_at: 2026-04-17T22:37:44Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Theme public docs — silvery.dev guides + terminfo.dev fundamentals @km/silvery #feature #P3

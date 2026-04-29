@@ -4,6 +4,7 @@ aliases:
   - km-cli-main-vault
 created_at: 2026-01-25T08:30:34Z
 closed_at: 2026-01-25T08:44:13Z
+assignee: km
 ---
 
 # [x] Convert main CLI commands to use Vault API @km/_orphan #task #P1 @km

@@ -5,6 +5,14 @@ aliases:
   - km-all-vision-reframe-2026-04-27
 created_by: claude:618d206c
 created_at: 2026-04-28T00:04:26Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.vision-reframe-2026-04-27
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-27T17:04:42Z
+    created_by: claude:618d206c
+    metadata: "{}"
 ---
 
 # [ ] Vision reframe: km as plan+doc surface, tribe as coordination substrate @km/all #task #P2

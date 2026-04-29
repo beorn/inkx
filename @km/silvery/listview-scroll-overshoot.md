@@ -10,6 +10,16 @@ close_reason: "Shipped: silvery 76bfa8bb + 4c7958d8 + km root 6273feb44.
   Reverted Stream M's max(totalRowsStable, totalRowsMeasured) overshoot to
   totalRowsMeasured only. 3 regression tests + Stream M's 5 still pass. Session:
   km-session.0425-evening"
+started_at: 2026-04-26T07:43:29Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvery.listview-scroll-overshoot
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-26T00:43:28Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] ListView scroll cap overshoots actual content end (user scrolls into empty viewport) @km/silvery #bug #P1 @claude:2405c72e

@@ -11,6 +11,15 @@ close_reason: "Fixed: parseStubFile now walks parser wikilinks, resolves via
   mirrors embed_of. Fixture in
   packages/km-storage/tests/parse-stub-links-gap.test.ts (2 tests). Adjacent
   collapsed-file-links test updated to assert new contract."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.parse-stub-links-gap
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-21T00:02:40Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] parseStubFile promotion doesn't populate links table — backlinks stay invisible until next full-load @km/storage #bug #P2 @claude:8b5b9e1c

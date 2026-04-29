@@ -5,6 +5,7 @@ aliases:
   - km-tui-docs-consistency
 created_by: Bjørn Stabell
 created_at: 2026-04-01T19:45:25Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Review all docs + beads + test structure for consistency with plugin architecture @km/tui #task #P2

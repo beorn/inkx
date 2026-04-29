@@ -15,6 +15,7 @@ close_reason: "Resolved: @silvery/commander now has a single .action() overload
   silvery@4116a60, bearly@1c6afbe, terminfo.dev@b197500, termless@d9ed069,
   km@0660d4584. Design analysis in session history; prior art:
   @commander-js/extra-typings uses native-only too."
+owner: bjorn@stabell.org
 ---
 
 # [x] silvery commander auto-detection of action signature is dangerous @km/silvery #task #P1

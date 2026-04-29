@@ -6,6 +6,20 @@ aliases:
 created_by: claude:0940ca20
 created_at: 2026-04-24T20:43:25Z
 closed_at: 2026-04-24T20:49:32Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.inproc-mcp
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-24T13:43:35Z
+    created_by: claude:0940ca20
+    metadata: "{}"
+  - issue_id: km-silvercode.inproc-mcp
+    depends_on_id: km-silvercode.mcp-daemon
+    type: supersedes
+    created_at: 2026-04-24T13:49:31Z
+    created_by: claude:0940ca20
+    metadata: "{}"
 ---
 
 # [x] In-process MCP — eliminate km-mcp/tribe-mcp grandchild subprocesses @km/silvercode #task #P2

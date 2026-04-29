@@ -32,6 +32,16 @@ close_reason: "Not a flexily defect — test-harness artifact. Investigation
   wrap-clipping bug was a separate issue, fixed by silvercode commits cdf14b592
   + 363deaf6f (flexShrink/minWidth propagation through DetectionText +
   AssistantBlock outer rows). All 11 tests pass."
+started_at: 2026-04-25T05:13:13Z
+owner: bjorn@stabell.org
+assignee: claude:53042a7f
+dependencies:
+  - issue_id: km-silvery.wrap-measurement
+    depends_on_id: km-silvercode.wrap-ergonomic
+    type: parent-child
+    created_at: 2026-04-24T14:51:07Z
+    created_by: claude:0940ca20
+    metadata: "{}"
 ---
 
 # [x] flexily: nested flexGrow columns break <Text wrap=wrap> measurement (grandchild gets outer max-content instead of inner available) @km/silvery #bug #P1 @claude:53042a7f

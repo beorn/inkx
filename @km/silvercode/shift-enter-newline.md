@@ -37,6 +37,16 @@ close_reason: >-
   updated (mutations.test.tsx mutation regex now handles SessionCard's '▎'
   stripe added 14h ago; side-panel-stays-visible.test.tsx now documents
   post-CSS-flip silvery defaults instead of inverted historical premise).
+started_at: 2026-04-26T05:20:30Z
+owner: bjorn@stabell.org
+assignee: claude:230fa25d
+dependencies:
+  - issue_id: km-silvercode.shift-enter-newline
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-25T22:17:31Z
+    created_by: claude:230fa25d
+    metadata: "{}"
 ---
 
 # [x] Shift+Enter inserts newline in command input (multi-line commands) @km/silvercode #feature #P2 @claude:230fa25d

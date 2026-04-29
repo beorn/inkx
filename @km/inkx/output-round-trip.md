@@ -6,6 +6,7 @@ aliases:
 created_by: claude:23485adf
 created_at: 2026-02-24T11:03:21Z
 closed_at: 2026-03-04T16:23:38Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Output-level testing: parse ANSI output back to buffer and compare @km/inkx #feature #P2

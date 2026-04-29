@@ -18,6 +18,15 @@ close_reason: "Completed in commit fa5144c1028277f4667c546d08d03142b6dbdb1e.
   anti-patterns. 213 insertions across 7 files; self-verified every relative
   link resolves (except silvery-components.md, intentionally referenced ahead of
   sibling agent's work)."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-infra.activation-rules-audit
+    depends_on_id: km-session.0415a
+    type: parent-child
+    created_at: 2026-04-15T08:25:29Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Audit activation rules: CLAUDE.md pre-flight checks for every package @km/infra #task #P2 @Bjørn Stabell

@@ -9,6 +9,7 @@ closed_at: 2026-03-10T06:01:06Z
 close_reason: Created docs/guide/css-alignment.md (comparison table, 10
   properties) and docs/guide/ansi-layering.md (cell-buffer architecture, 6
   benefits with code examples). Added to sidebar.
+owner: bjorn@stabell.org
 ---
 
 # [x] Document silvery W3C CSS alignment and smart ANSI layering @km/silvery #task #P2

@@ -5,6 +5,14 @@ aliases:
   - km-silvery-plugin-authoring-doc
 created_by: claude:8b5b9e1c
 created_at: 2026-04-21T09:06:20Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.plugin-authoring-doc
+    depends_on_id: km-silvery.authoring-elegance
+    type: parent-child
+    created_at: 2026-04-21T02:06:44Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [ ] Public plugin-authoring doc — walk external dev through HelpOverlay @km/silvery #task #P2

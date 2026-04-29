@@ -5,6 +5,20 @@ aliases:
   - km-silvery-scope-phase-3-useexit
 created_by: claude:2aefb4b6
 created_at: 2026-04-24T20:39:55Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.scope-phase-3-useexit
+    depends_on_id: km-silvery.lifecycle-scope
+    type: parent-child
+    created_at: 2026-04-24T13:39:55Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
+  - issue_id: km-silvery.scope-phase-3-useexit
+    depends_on_id: km-silvery.scope-phase-2
+    type: blocks
+    created_at: 2026-04-24T13:39:56Z
+    created_by: claude:2aefb4b6
+    metadata: "{}"
 ---
 
 # [ ] Phase 3.6: useExit migration @km/silvery #task #P2

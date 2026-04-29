@@ -4,6 +4,7 @@ aliases:
   - km-test-vendor
 created_at: 2026-01-27T19:27:33Z
 closed_at: 2026-01-27T19:31:09Z
+assignee: claude:5df0e9da
 ---
 
 # [x] Set up test:vendor for Node.js runtime testing @km/_orphan #task #P1 @claude:5df0e9da

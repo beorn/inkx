@@ -5,6 +5,14 @@ aliases:
   - km-bearly-watchdog-framework
 created_by: Bjørn Stabell
 created_at: 2026-04-15T18:29:41Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.watchdog-framework
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-15T11:33:21Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Watchdog framework — defineWatchdog() + migrate qmd + add bd-dolt-server @km/bearly #task #P1

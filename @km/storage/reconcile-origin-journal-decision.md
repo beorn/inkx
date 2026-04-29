@@ -10,6 +10,15 @@ close_reason: "Decision: reconcile-origin ops journal with
   origin='fs-reconcile', filtered on replay (same treatment as fs-watch).
   Documented in phase-b-replay-contract-2026-04-22.md §4.5. Implementation
   trigger: flip skipPersist when op-surface closure ships."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.reconcile-origin-journal-decision
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-22T08:35:55Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Design decision: should reconcile-origin node_createds journal? @km/storage #task #P3 @claude:8b5b9e1c

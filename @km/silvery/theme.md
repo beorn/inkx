@@ -9,6 +9,8 @@ closed_at: 2026-03-10T01:54:32Z
 close_reason: "Enhanced ThemeExplorer Vue component: browser-side deriveTheme(),
   3 detail tabs (Preview TUI mockup, Semantic Tokens, Palette Colors), added
   cursor/selection data to all 45 palettes. Build passes."
+owner: bjorn@stabell.org
+assignee: claude:474834b0
 ---
 
 # [x] @silvery/theme web app for silvery docs @km/silvery #feature #P2 @claude:474834b0

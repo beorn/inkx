@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T14:51:51Z
 closed_at: 2026-02-25T17:18:54Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] Find & Replace dialog: broken layout after ModalDialog migration @km/tui #bug #P1 @claude:d697f216

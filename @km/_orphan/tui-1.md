@@ -4,6 +4,7 @@ aliases:
   - km-tui-1
 created_at: 2026-01-27T09:52:45Z
 closed_at: 2026-01-27T17:28:11Z
+assignee: claude:279f285c
 ---
 
 # [x] Columns View tests fail when run in full suite (test isolation) @km/_orphan #bug #P1 @claude:279f285c

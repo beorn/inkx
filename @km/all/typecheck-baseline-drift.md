@@ -5,6 +5,14 @@ aliases:
   - km-all-typecheck-baseline-drift
 created_by: claude:cc081a9a
 created_at: 2026-04-28T15:07:47Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.typecheck-baseline-drift
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-28T08:07:47Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] 8 new typecheck errors after Phase 3 merges (silvercode tests, silvery test, storybook) @km/all #bug #P2

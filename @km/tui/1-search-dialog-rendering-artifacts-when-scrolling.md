@@ -6,6 +6,7 @@ aliases:
   - "@km/tui/1"
 created_at: 2026-02-04T13:38:30Z
 closed_at: 2026-02-04T13:54:46Z
+assignee: claude:27f1a547
 ---
 
 # [x] Search dialog rendering artifacts when scrolling @km/tui #bug #P2 @claude:27f1a547

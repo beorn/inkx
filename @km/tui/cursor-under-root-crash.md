@@ -11,6 +11,15 @@ close_reason: "Reactive fix shipped in 791067dd1: cursor-under-root,
   auto-reset to rootId + warning toast. km view no longer crashes on load with a
   stale cursor. Root-cause investigation (find the ghost writer) deferred to
   km-tui.cursor-gate-refactor."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-tui.cursor-under-root-crash
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T18:30:34Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] km view crashes on load: cursor-under-root invariant violation @km/tui #bug #P1 @Bjørn Stabell

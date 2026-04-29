@@ -12,6 +12,14 @@ close_reason: Fixed in silvery 915b4bf9 + km bump 4216d4c5d. Bugs 2
   layer — 7 regression tests added as lock-in. Ergonomic
   term.mouse.*/term.clipboard API landed alongside in
   vendor/silvery/packages/test/src/index.tsx.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.mouse-drag-vs-click
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T00:34:56Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Mouse drag selection: shrink broken + mouseUp fires onClick/onSelect @km/silvery #bug #P1

@@ -10,6 +10,8 @@ close_reason: "@silvery/ansi@0.1.0 published. Extracted detection.ts,
   sgr-codes.ts, constants.ts, utils.ts, types.ts from ag-term. ag-term now
   re-exports from @silvery/ansi. @silvery/commander uses it for shouldColorize()
   (NO_COLOR/FORCE_COLOR/isTTY). One dep: string-width."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Extract @silvery/ansi as standalone zero-dep package from ag-term @km/silvery #task #P2 @claude:f8196c1c

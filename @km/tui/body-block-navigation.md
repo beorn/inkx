@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-02T20:57:22Z
 closed_at: 2026-04-02T22:01:20Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] ctrl-n fails on body block nodes — navigation model assumes outline items @km/tui #bug #P1 @Bjørn Stabell

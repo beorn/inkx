@@ -6,6 +6,8 @@ aliases:
 created_by: claude:536645b5
 created_at: 2026-02-20T15:47:45Z
 closed_at: 2026-02-20T18:18:49Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Omnibox: universal command palette (: / Ctrl+k / Cmd+k) @km/tui #feature #P2 @claude:d3a7049b

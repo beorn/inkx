@@ -5,6 +5,14 @@ aliases:
   - km-silvery-theme-multi-target
 created_by: Bjørn Stabell
 created_at: 2026-04-18T07:01:47Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-multi-target
+    depends_on_id: km-silvery.design-system
+    type: parent-child
+    created_at: 2026-04-18T00:01:47Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Theme multi-target — canvas + web renderers consume the same 20 tokens @km/silvery #feature #P4

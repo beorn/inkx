@@ -10,6 +10,8 @@ close_reason: "Done: packages/probe-defs/ with 133 probe definitions. Each has
   termless (sync cell-state) and term (async TTY) callbacks. Vitest adapter at
   packages/probes/run-unified.probe.ts (926 pass, 138 expected fail — matches
   originals). CLI adapter at cli/src/probes/unified.ts."
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] Unified probe system — define once, run on termless + CLI + app + server @km/terminfo #feature #P2 @claude:4929065a

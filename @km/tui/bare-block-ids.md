@@ -6,6 +6,7 @@ aliases:
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T20:41:12Z
 closed_at: 2026-02-18T23:40:55Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Recurring tasks show bare ^numericId as card content @km/tui #bug #P2

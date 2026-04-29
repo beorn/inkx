@@ -6,6 +6,7 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-20T07:43:18Z
 closed_at: 2026-02-20T07:56:27Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Tag columns show bare IDs instead of resolved task titles @km/tui #bug #P1

@@ -5,6 +5,7 @@ aliases:
 created_by: claude:fd695049
 created_at: 2026-03-04T22:09:56Z
 closed_at: 2026-03-04T22:33:16Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Rename INKX_ env vars and Ink code symbols to hightea @km/_orphan #task #P3

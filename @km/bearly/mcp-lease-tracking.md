@@ -5,6 +5,14 @@ aliases:
   - km-bearly-mcp-lease-tracking
 created_by: claude:cc081a9a
 created_at: 2026-04-27T06:19:55Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-bearly.mcp-lease-tracking
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-26T23:20:10Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] Evaluate request-as-lease model — keep as permanent design or fold into url-shim @km/bearly #feature #P4

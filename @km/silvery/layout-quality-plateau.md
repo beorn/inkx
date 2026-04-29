@@ -12,6 +12,14 @@ close_reason: "All 4 phases complete. Phase 1: delete layoutDirty (-90 lines).
   silvery). Total: clean pipeline with one API (createAg), one dirty source
   (Flexily isDirty), reactive layout hooks (alien-signals), and native
   fit-content."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.layout-quality-plateau
+    depends_on_id: km-silvery.reactive-pipeline
+    type: parent-child
+    created_at: 2026-04-12T00:49:04Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Layout quality plateau — 4 phases to clean pipeline @km/silvery #epic #P1

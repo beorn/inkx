@@ -6,6 +6,7 @@ aliases:
 created_by: claude:536645b5
 created_at: 2026-02-20T15:47:49Z
 closed_at: 2026-02-20T18:18:38Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Smart-P toggle: closed→open, unfocused→focus, focused→close @km/tui #feature #P2

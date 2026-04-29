@@ -11,6 +11,7 @@ close_reason: "Root cause fixed in 89b694ad5 (PREFIX_WIDTH=2 + BODY_PREFIX
   in 0fb432d18: apps/km-tui/tests/checkbox-click.test.ts asserts
   [marker][space][title] for all 5 statuses + with cursor on done, at both
   string and cell level. 9/9 checkbox tests pass."
+owner: bjorn@stabell.org
 ---
 
 # [x] No space between checkbox icon and text @km/tui #bug #P2

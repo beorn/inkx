@@ -6,6 +6,7 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-15T07:55:50Z
 closed_at: 2026-02-15T23:38:48Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Collapsed columns shifted right — too much left margin, broken right border @km/tui #bug #P2

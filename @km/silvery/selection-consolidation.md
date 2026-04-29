@@ -13,6 +13,7 @@ close_reason: "Consolidated dual selection systems via bridge pattern.
   handler registration for selection. Kept: capabilityRegistry, inputRouter,
   copy-mode proxy, find feature. 114 tests pass. Commit 974a1e71 (silvery
   worktree), bc5dde34 (silvery main)."
+owner: bjorn@stabell.org
 ---
 
 # [x] Consolidate dual selection systems — create-app + SelectionFeature @km/silvery #task #P2

@@ -9,6 +9,7 @@ closed_at: 2026-04-02T21:59:46Z
 close_reason: Blog post updated 2026-04-02 with unified ListView cache story,
   layered architecture, search section. Will reopen if updates needed when
   implementation lands.
+owner: bjorn@stabell.org
 ---
 
 # [x] Update blog post for unified ListView cache story @km/silvery #task #P2

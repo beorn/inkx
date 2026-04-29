@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T23:08:44Z
 closed_at: 2026-02-14T23:15:36Z
+owner: bjorn@stabell.org
+assignee: claude:a5c7f7de
 ---
 
 # [x] Due date not persisted — lost on quit/reload, not shown in detail view @km/storage #bug #P1 @claude:a5c7f7de

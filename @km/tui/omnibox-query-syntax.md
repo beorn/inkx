@@ -13,6 +13,15 @@ close_reason: "Shipped v1 subset 2026-04-17:
   deferred-behavior pins so upgrade is a visible diff. Files:
   apps/km-tui/src/state/omnibox-query-parser.ts (162 LOC),
   apps/km-tui/tests/omnibox-query-parser.test.ts (33 tests). Commit: f2852b2e7."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-tui.omnibox-query-syntax
+    depends_on_id: km-tui.omnibox-unified
+    type: parent-child
+    created_at: 2026-04-14T16:23:57Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Query syntax parser: Google + fzf operators, prop filters, bracket family @km/tui #feature #P1 @Bjørn Stabell

@@ -6,6 +6,7 @@ aliases:
 created_by: claude:28b14b32
 created_at: 2026-02-23T17:01:30Z
 closed_at: 2026-02-24T18:05:50Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Ctrl+w q quits app instead of closing pane @km/tui #bug #P2

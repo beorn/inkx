@@ -17,6 +17,8 @@ close_reason: "completed: cherry-picked e3c806e (feat(create): performance.mark
   @silvery/test) rather than initApp from create-app.tsx — the new
   instrumentation is in the initApp reconcile path. Wiring up createRenderer
   reconcile timing is a follow-up improvement, not part of this bump."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Bump vendor/silvery to include bench phase markers (e3c806e) when other session unblocks @km/tui #task #P2 @Bjørn Stabell

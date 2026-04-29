@@ -7,6 +7,16 @@ created_by: claude:cd034ca4
 created_at: 2026-04-26T22:10:10Z
 closed_at: 2026-04-26T22:43:39Z
 close_reason: Closed
+started_at: 2026-04-26T22:11:58Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-comp-stories
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T15:10:38Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] silvercode storybook — missing stories for ACP component family @km/silvercode #task #P2 @claude:cd034ca4

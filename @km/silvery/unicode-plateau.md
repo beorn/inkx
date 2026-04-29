@@ -15,6 +15,15 @@ close_reason: "All 3 phases shipped. Plateau complete: only
   pass (+74 new contract tests). km-tui 1813 tests pass. Silvery commits:
   b716c500 + 4b41d6a6 + e1980971. km commits: 908c5b790 + 556bd99ce +
   62f41bcc2."
+owner: bjorn@stabell.org
+assignee: claude:c6244087
+dependencies:
+  - issue_id: km-silvery.unicode-plateau
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T03:24:07Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Unicode/text-sizing plateau — same shape as color-tier plateau @km/silvery #task #P1 @claude:c6244087

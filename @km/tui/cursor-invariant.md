@@ -5,6 +5,7 @@ aliases:
   - km-tui-cursor-invariant
 created_by: claude:f8196c1c
 created_at: 2026-03-28T01:52:14Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Assert on null cursor with non-empty board — catch future cursor-loss bugs @km/tui #task #P4

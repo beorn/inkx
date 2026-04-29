@@ -8,6 +8,8 @@ created_at: 2026-03-09T21:18:10Z
 closed_at: 2026-03-10T15:37:00Z
 close_reason: Created GitHub Actions release workflows for accountly, tap,
   watcher-chaos, silvery (monorepo), termless. Tag-triggered npm publish.
+owner: bjorn@stabell.org
+assignee: claude:55df8ef1
 ---
 
 # [x] Set up npm release workflows for all vendor packages @km/infra #task #P2 @claude:55df8ef1

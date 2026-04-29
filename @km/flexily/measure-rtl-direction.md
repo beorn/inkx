@@ -12,6 +12,7 @@ close_reason: "Fixed: 3 measureNode() calls in layout-zero.ts (Phase 5 base
   margin/padding resolution in RTL, producing incorrect baseSize when both
   logical and physical edges were set. Test:
   vendor/flexily/tests/measure-rtl-direction.test.ts (3 tests)"
+owner: bjorn@stabell.org
 ---
 
 # [x] Bug: measureNode() called without direction in RTL-sensitive paths @km/flexily #bug #P0

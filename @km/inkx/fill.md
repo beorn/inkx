@@ -6,6 +6,8 @@ aliases:
 created_by: claude:28b14b32
 created_at: 2026-02-23T02:09:31Z
 closed_at: 2026-02-23T02:37:58Z
+owner: bjorn@stabell.org
+assignee: claude:28b14b32
 ---
 
 # [x] Repeat component: repeat children to fill available space @km/inkx #feature #P2 @claude:28b14b32

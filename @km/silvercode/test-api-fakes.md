@@ -18,6 +18,16 @@ close_reason: "Fake factories for accountly (account+plan+quotas), claude
   (one per faked boundary). Verification: tsc --noEmit clean; HOME=/tmp/empty
   bun vitest run apps/silvercode/tests/visual/ passes 20/20; full silvercode
   suite 19 files/73 tests pass. Commit 6be6ef66e."
+started_at: 2026-04-24T22:37:05Z
+owner: bjorn@stabell.org
+assignee: claude:0940ca20
+dependencies:
+  - issue_id: km-silvercode.test-api-fakes
+    depends_on_id: km-silvercode.test-system
+    type: parent-child
+    created_at: 2026-04-24T14:55:56Z
+    created_by: claude:0940ca20
+    metadata: "{}"
 ---
 
 # [x] Visual tests: fake accountly / git / version probe / fs reads @km/silvercode #feature #P2 @claude:0940ca20

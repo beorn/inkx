@@ -10,6 +10,14 @@ close_reason: Merged into km-silvercode.acp-session-update-list — that bead's
   MessageList rewrite naturally drops both <ToolCallBlock> + <ToolResultBlock>
   consumers, after which the legacy files become unreferenced. Combining avoids
   two agents modifying MessageList in parallel.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.acp-tool-call-sweep
+    depends_on_id: km-silvercode.acp-rename
+    type: parent-child
+    created_at: 2026-04-26T11:50:01Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] Delete legacy ToolCallBlock + ToolResultBlock; migrate MessageList to <ToolCall> @km/silvercode #task #P2

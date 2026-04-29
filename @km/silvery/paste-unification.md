@@ -8,6 +8,7 @@ created_at: 2026-04-10T23:02:52Z
 closed_at: 2026-04-11T18:12:37Z
 close_reason: "Superseded: merged into km-silvery.tea-useinput — paste routing
   is part of the same event precedence fix."
+owner: bjorn@stabell.org
 ---
 
 # [x] Paste unification — one hook, two modes (simple + rich) @km/silvery #task #P0

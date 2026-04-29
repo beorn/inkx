@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-02T22:26:09Z
 closed_at: 2026-04-02T22:31:45Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Unify applyBlockNav/applyOutlineNav/applyPageJump into applyListNav @km/tui #task #P2 @Bjørn Stabell

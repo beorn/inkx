@@ -7,6 +7,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-04T15:40:00Z
 closed_at: 2026-04-04T21:20:34Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Selection extensibility design — open sub-selection registry, per-node signal architecture, pointer state extensibility @km/silvery #task #P2 @Bjørn Stabell

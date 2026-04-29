@@ -9,6 +9,7 @@ closed_at: 2026-03-13T05:42:57Z
 close_reason: "Fixed: Added cycle guard to insertChild() in both node-zero.ts
   and classic/node.ts. Self-insertion and ancestor-insertion throw errors. Test
   added."
+owner: bjorn@stabell.org
 ---
 
 # [x] Bug: No cycle guard in insertChild() — self-insertion causes infinite loops @km/flexily #bug #P1

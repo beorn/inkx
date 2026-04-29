@@ -6,6 +6,8 @@ aliases:
 created_by: claude:fbad9cb1
 created_at: 2026-03-04T16:14:54Z
 closed_at: 2026-03-04T16:38:21Z
+owner: bjorn@stabell.org
+assignee: claude:fbad9cb1
 ---
 
 # [x] Phase 2: Distributed tracing — W3C traceparent, OTel-compatible export @km/logger #feature #P3 @claude:fbad9cb1

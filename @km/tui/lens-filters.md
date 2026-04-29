@@ -9,6 +9,7 @@ closed_at: 2026-04-06T03:37:24Z
 close_reason: taskStatusFilter moved into createVisibleLens with 8 tests.
   hiddenNodeIds already at viewLens level. Text/property filters stay at Board
   level (transient UI state).
+owner: bjorn@stabell.org
 ---
 
 # [x] Move UI filters (hide-done, text search) into visible lens @km/tui #feature #P2

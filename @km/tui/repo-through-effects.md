@@ -11,6 +11,8 @@ close_reason: "All content-touching mutations routed through
   Phase B: board-actions via runRepoEffect (462f7885). Phase C: view files via
   useRepoEffect hook (5bfffb3c). Remaining direct repo calls are non-content
   mutations (type changes, metadata-only)."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Route all repo mutations through effect pipeline — normalization + validation coverage @km/tui #task #P1 @Bjørn Stabell

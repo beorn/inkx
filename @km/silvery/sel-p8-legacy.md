@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-03T21:39:10Z
 closed_at: 2026-04-04T16:13:00Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Selection Phase 8: Migrate silvery legacy SelectionProvider @km/silvery #task #P2 @Bjørn Stabell

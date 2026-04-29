@@ -9,6 +9,8 @@ closed_at: 2026-03-10T15:36:56Z
 close_reason: Fixed horizontal text clipping in content-phase-adapter.ts. Added
   ClipRect with horizontal bounds, truncateToWidth(), and overflow=hidden
   clipping. 3 new tests.
+owner: bjorn@stabell.org
+assignee: claude:55df8ef1
 ---
 
 # [x] Coding Agent showcase on silvery.dev has rendering artifacts @km/silvery #bug #P2 @claude:55df8ef1

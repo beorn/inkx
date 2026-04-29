@@ -11,6 +11,8 @@ close_reason: "Fixed 3 N+1 query patterns in evaluateAddRule: (1) board dedup
   tree walks replaced with batch file ancestor cache, (3) onNodeChanged now
   caches getNodesWithRule result across loop iterations. Also deduplicated a
   redundant getChildren(sectionId) call. All 4821 fast tests pass."
+owner: bjorn@stabell.org
+assignee: claude:ceb7c9cb
 ---
 
 # [x] Investigate sync/reconciliation speed regression @km/tui #bug #P2 @claude:ceb7c9cb

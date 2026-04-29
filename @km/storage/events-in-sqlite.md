@@ -5,6 +5,7 @@ aliases:
   - km-storage-events-in-sqlite
 created_by: Bjørn Stabell
 created_at: 2026-04-02T22:35:27Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Move events.jsonl into SQLite — transactional with DB apply @km/storage #task #P3

@@ -5,6 +5,7 @@ aliases:
   - km-tools-session-exit-perf
 created_at: 2026-02-06T22:50:56Z
 closed_at: 2026-02-06T22:52:33Z
+assignee: claude:3e210840
 ---
 
 # [x] Session summarize hook should fork background task so Claude exits immediately @km/tools #task #P2 @claude:3e210840

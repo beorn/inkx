@@ -11,6 +11,15 @@ close_reason: Fixed in bc2141776. Heading handler in ast2nodes.ts now reads
   handler). km.* keys still route to node.rules (unchanged); user-level keys
   (priority::, status::) now route to headingData.propsRaw. 4 new regression
   tests in kmast-integration.test.ts.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-markdown.heading-task-refs
+    depends_on_id: km-markdown
+    type: parent-child
+    created_at: 2026-04-14T11:29:08Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Heading-level tasks skip refs/props/tags extraction @km/markdown #bug #P2 @Bjørn Stabell

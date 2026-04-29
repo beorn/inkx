@@ -11,6 +11,8 @@ close_reason: "Docs reorganized into era2a/era2b/refs/archive structure:
   decisions+migration+playground+landscape → refs/,
   architecture+rendering+packaging → archive/ (with deprecation headers).
   Overview and headless stay at root."
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Era2 docs: file move to era2a/era2b/refs/archive structure @km/silvery #task #P2 @claude:fed8de9e

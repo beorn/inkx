@@ -10,6 +10,8 @@ close_reason: "Phase 1 complete: architecture agreed. Consumer API stable (run,
   createApp, useInput). TEA internals are black box behind createApp. Design
   specs committed. Spawned phase 2 (km-silvery.tea-useinput) and phase 3
   (km-silvery.tea-aichat)."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Plugin system: V1 refinement — handled return, effects as data, observer lane @km/silvery #task #P1 @Bjørn Stabell

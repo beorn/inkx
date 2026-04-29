@@ -5,6 +5,8 @@ aliases:
 created_by: claude:b509d761
 created_at: 2026-02-10T07:11:05Z
 closed_at: 2026-02-10T08:38:13Z
+owner: bjorn@stabell.org
+assignee: claude:b509d761
 ---
 
 # [x] Card text wraps past border into adjacent cards (DMV Updates) @km/_orphan #bug #P2 @claude:b509d761

@@ -9,6 +9,8 @@ closed_at: 2026-03-10T19:49:20Z
 close_reason: Created withInkFocus() thin adapter in
   @silvery/compat/with-ink-focus. ~45 lines — wraps InkFocusProvider into
   standalone composable plugin.
+owner: bjorn@stabell.org
+assignee: claude:474834b0
 ---
 
 # [x] withInkFocus() — thin adapter from Ink useFocus/useFocusManager to silvery FocusManager @km/silvery #task #P2 @claude:474834b0

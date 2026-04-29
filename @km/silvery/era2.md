@@ -5,6 +5,14 @@ aliases:
   - km-silvery-era2
 created_by: claude:e4e70c9a
 created_at: 2026-03-16T17:48:05Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.era2
+    depends_on_id: km-silvery.tea
+    type: parent-child
+    created_at: 2026-04-15T12:25:10Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Era2 alignment — dispatch/apply pipeline, plugin stores, signals substrate @km/silvery #epic #P1

@@ -10,6 +10,15 @@ close_reason: Removed forEachFadeRegionCell, mixSrgb, deemphasizeOklch,
   deemphasizeOklchToward from public barrel. Tests now import internals from
   source modules directly (region.ts, color-compat.ts). 100 backdrop tests pass.
   Commit 7172d5c4.
+owner: bjorn@stabell.org
+assignee: claude:a1a0e667
+dependencies:
+  - issue_id: km-silvery.backdrop-hardening.slim-barrel
+    depends_on_id: km-silvery.backdrop-hardening
+    type: parent-child
+    created_at: 2026-04-20T14:01:25Z
+    created_by: claude:88c0e764
+    metadata: "{}"
 ---
 
 # [x] Slim public barrel — stop re-exporting internals @km/silvery #task #P0 @claude:a1a0e667

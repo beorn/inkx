@@ -8,6 +8,7 @@ created_at: 2026-03-23T21:48:06Z
 closed_at: 2026-03-23T22:21:56Z
 close_reason: "Fixed: WASM init (call initLibvterm before create), absolute
   import paths. 7/9 backends load. libvterm has pre-existing WASM struct error."
+owner: bjorn@stabell.org
 ---
 
 # [x] Fix libvterm WASM loading in vitest for census probes @km/termless #bug #P2

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:4c413aae
 created_at: 2026-02-21T17:30:09Z
 closed_at: 2026-02-21T18:22:07Z
+owner: bjorn@stabell.org
+assignee: claude:4c413aae
 ---
 
 # [x] kmast: proper micromark extensions for km markdown syntax @km/markdown #feature #P2 @claude:4c413aae

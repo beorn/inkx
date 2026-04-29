@@ -6,6 +6,7 @@ aliases:
 created_by: claude:23485adf
 created_at: 2026-02-24T14:26:09Z
 closed_at: 2026-02-26T22:13:19Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Fix dirty flag bugs to enable layoutChangedThisFrame skip optimization @km/inkx #task #P2

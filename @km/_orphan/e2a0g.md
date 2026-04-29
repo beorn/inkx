@@ -5,6 +5,8 @@ aliases:
 created_by: claude:b509d761
 created_at: 2026-02-10T22:42:18Z
 closed_at: 2026-02-12T14:10:35Z
+owner: bjorn@stabell.org
+assignee: claude:586bad48
 ---
 
 # [x] Span-instrument input event handling and investigate cursor performance @km/_orphan #feature #P2 @claude:586bad48

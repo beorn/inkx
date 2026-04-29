@@ -10,6 +10,7 @@ close_reason: Added 3 layout-logic mutations (skip-display-none,
   skip-overflow-flexShrink-override, wrong-edge-rounding-leaf) with per-mutation
   test file targeting. Updated runner to use --project vendor and support
   testFiles field. All 1511 vendor tests pass.
+owner: bjorn@stabell.org
 ---
 
 # [x] Testing: Mutation testing misses real fault classes — only covers caching @km/flexily #task #P1

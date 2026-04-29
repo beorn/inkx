@@ -5,6 +5,7 @@ aliases:
   - km-silvery-demo-integration-tests
 created_by: Bjørn Stabell
 created_at: 2026-04-06T10:06:08Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Termless integration tests for every interactive demo @km/silvery #task #P2

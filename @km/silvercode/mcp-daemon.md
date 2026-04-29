@@ -12,6 +12,14 @@ close_reason: Superseded by km-silvercode.mcp-as-tribe-plugin. Standalone-binary
   (/tmp/llm-2405c72e-elegance-review-of-the-wrw1.txt). The plugin approach
   reuses tribe's existing JSON-RPC, hot-reload, idle-quit, and registration; no
   parallel daemon to maintain.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.mcp-daemon
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-24T13:49:19Z
+    created_by: claude:0940ca20
+    metadata: "{}"
 ---
 
 # [x] Shared on-demand MCP daemon: eliminate per-session km-mcp + tribe-mcp subprocesses @km/silvercode #feature #P2

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a3625ec3
 created_at: 2026-02-09T14:44:01Z
 closed_at: 2026-02-11T18:08:38Z
+owner: bjorn@stabell.org
+assignee: claude:2f3fc9d8
 ---
 
 # [x] InputLayerProvider: isolate embedded component input from parent @km/inkx #feature #P3 @claude:2f3fc9d8

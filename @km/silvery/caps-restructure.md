@@ -7,6 +7,15 @@ created_by: claude:c6244087
 created_at: 2026-04-23T17:27:24Z
 closed_at: 2026-04-23T18:03:59Z
 close_reason: Closed
+owner: bjorn@stabell.org
+assignee: claude:c6244087
+dependencies:
+  - issue_id: km-silvery.caps-restructure
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T10:27:24Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] [epic] Phase 7: split TerminalCaps into identity+heuristics+caps (Pro verdict) @km/silvery #epic #P1 @claude:c6244087

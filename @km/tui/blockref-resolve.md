@@ -9,6 +9,7 @@ closed_at: 2026-04-28T02:33:16Z
 close_reason: "Test passes — apps/km-tui/tests/blockref-resolve.test.ts (7
   tests) all green including 'full board: [[^nodeId]] resolves to target title'.
   Bug resolved by prior fixes."
+owner: bjorn@stabell.org
 ---
 
 # [x] blockref-resolve test: full board [[^nodeId]] resolution fails @km/tui #bug #P3

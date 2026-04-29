@@ -11,6 +11,14 @@ close_reason: "Phase 1 landed: silvery 349a76fd — 26 tests in
   convention (selection auto-on, detectTerminalCaps FORCE_COLOR, mouseDown+Up
   null range). CLAUDE.md updated. Phase 2 backlog is a TODO block in each file
   enumerating remaining @default options."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.defaults-contract-tests
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T00:38:01Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Defaults-contract tests: mechanically verify every documented default @km/silvery #feature #P1

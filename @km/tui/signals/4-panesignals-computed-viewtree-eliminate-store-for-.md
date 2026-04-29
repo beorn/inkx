@@ -10,6 +10,8 @@ closed_at: 2026-04-05T16:27:41Z
 close_reason: All acceptance criteria pass. 20 useAppStore calls eliminated,
   layout cache deleted, buildOpCtx reads ViewSnapshot from computed. ColumnView
   elimination deferred.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] PaneSignals + computed ViewTree — eliminate store for nav state @km/tui #task #P2 @Bjørn Stabell

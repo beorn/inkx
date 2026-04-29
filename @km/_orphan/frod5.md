@@ -5,6 +5,7 @@ aliases:
 created_by: claude:b509d761
 created_at: 2026-02-10T11:22:32Z
 closed_at: 2026-02-10T12:01:11Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Flexx re-layout inconsistency: incremental layout differs from fresh (fuzz seed=73) @km/_orphan #bug #P2

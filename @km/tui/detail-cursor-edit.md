@@ -9,6 +9,8 @@ closed_at: 2026-04-03T15:09:43Z
 close_reason: "Fixed: empty content nodes returned <></> (fragment) with no id,
   breaking cursor navigation. Restored <Box id={node.id} /> so cursor can find
   all nodes."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] Detail view: cursor disappears on cursor-down, editing non-functional @km/tui #bug #P1 @Bjørn Stabell

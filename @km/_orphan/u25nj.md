@@ -5,6 +5,8 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-12T17:09:43Z
 closed_at: 2026-02-12T19:06:45Z
+owner: bjorn@stabell.org
+assignee: claude:124bfbe5
 ---
 
 # [x] TUI: Stale cursor after deleting all cards in column @km/_orphan #bug #P3 @claude:124bfbe5

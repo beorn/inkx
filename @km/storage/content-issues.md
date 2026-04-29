@@ -5,6 +5,7 @@ aliases:
   - km-storage-content-issues
 created_by: Bjørn Stabell
 created_at: 2026-04-25T05:33:50Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Content / data-model issues discovered during vault use — running list @km/storage #chore #P2 #content-model #km-storage #vault-feedback

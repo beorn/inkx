@@ -9,6 +9,8 @@ closed_at: 2026-03-28T14:28:13Z
 close_reason: NodeQuery namespace created (parent/children/ancestors/siblings),
   Position.after/before added, 32 tests passing. indent/outdent stay in km-tui
   (scoped down — too coupled to ActionCtx).
+owner: bjorn@stabell.org
+assignee: claude:ceb7c9cb
 ---
 
 # [x] P2 remaining: indent/outdent/shift/split/merge to TreeOps + NodeQuery @km/core #task #P3 @claude:ceb7c9cb

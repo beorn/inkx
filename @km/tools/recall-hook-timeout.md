@@ -6,6 +6,7 @@ aliases:
 created_by: claude:22727d86
 created_at: 2026-02-16T23:39:34Z
 closed_at: 2026-02-16T23:44:47Z
+owner: bjorn@stabell.org
 ---
 
 # [x] UserPromptSubmit recall hook always times out (2s timeout, needs ~5s) @km/tools #bug #P1

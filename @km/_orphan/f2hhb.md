@@ -9,6 +9,8 @@ close_reason: "Already done — SilveryErrorBoundary already has: formatted erro
   message (red label), parsed stack traces (bold function names), source code
   excerpts (±3 lines with highlighted error line), clean file paths. No changes
   needed."
+owner: bjorn@stabell.org
+assignee: claude:73d7a332
 ---
 
 # [x] ErrorBoundary: enhance with source excerpts and stack traces @km/_orphan #task #P2 @claude:73d7a332

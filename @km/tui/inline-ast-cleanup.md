@@ -6,6 +6,8 @@ aliases:
 created_by: claude:4c413aae
 created_at: 2026-02-21T16:21:26Z
 closed_at: 2026-02-21T16:39:08Z
+owner: bjorn@stabell.org
+assignee: claude:4c413aae
 ---
 
 # [x] Inline AST cleanup: eliminate stripForDisplay and stripFgColor holdovers @km/tui #task #P2 @claude:4c413aae

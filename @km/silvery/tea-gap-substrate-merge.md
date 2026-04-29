@@ -5,6 +5,14 @@ aliases:
   - km-silvery-tea-gap-substrate-merge
 created_by: Bjørn Stabell
 created_at: 2026-04-18T19:01:25Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.tea-gap-substrate-merge
+    depends_on_id: km-silvery.tea
+    type: parent-child
+    created_at: 2026-04-18T12:02:05Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] TEA gap: substrate stuck on feat/tea-apply-chain-types branch — merge to main @km/silvery #task #P1

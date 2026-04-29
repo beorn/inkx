@@ -5,6 +5,7 @@ aliases:
   - km-tui-reactive-tree-unification
 created_by: Bjørn Stabell
 created_at: 2026-04-08T15:06:26Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Unify projections (filters) + reduced signals (aggregates) into ReactiveTree @km/tui #feature #P3

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:97b8de73
 created_at: 2026-02-23T13:27:45Z
 closed_at: 2026-02-23T15:42:41Z
+owner: bjorn@stabell.org
+assignee: claude:ee8efc0f
 ---
 
 # [x] Overflow indicator (+11) should show after last card, not at screen bottom @km/tui #bug #P2 @claude:ee8efc0f

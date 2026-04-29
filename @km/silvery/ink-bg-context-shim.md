@@ -6,6 +6,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-09T20:12:23Z
 closed_at: 2026-04-09T23:34:23Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Ink 7.0 BackgroundContext shim — expose Provider + hook, wire to findInheritedBg @km/silvery #feature #P1

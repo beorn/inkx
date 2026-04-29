@@ -6,6 +6,8 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-20T16:53:21Z
 closed_at: 2026-02-20T22:48:43Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Detail pane rendering: bare links, partial bracket stripping, raw block IDs, ANSI artifacts @km/tui #bug #P1 @claude:8f007ba9

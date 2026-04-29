@@ -7,6 +7,15 @@ created_by: claude:019d032d
 created_at: 2026-04-22T18:59:24Z
 closed_at: 2026-04-22T19:09:53Z
 close_reason: forwardConsole pattern verified — worker loggers no longer leak to TUI stdout
+owner: bjorn@stabell.org
+assignee: claude:019d032d
+dependencies:
+  - issue_id: km-storage.parse-worker-stdout-leak
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-22T11:59:31Z
+    created_by: claude:019d032d
+    metadata: "{}"
 ---
 
 # [x] parse-worker debug logs leak to stdout, corrupting TUI when DEBUG is set @km/storage #bug #P1 @claude:019d032d

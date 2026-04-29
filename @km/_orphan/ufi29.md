@@ -7,6 +7,7 @@ created_at: 2026-03-21T00:58:17Z
 closed_at: 2026-03-21T01:03:36Z
 close_reason: Created /release skill with vendor package support, bead
   integration, changelog generation
+owner: bjorn@stabell.org
 ---
 
 # [x] Release skill: bead-integrated changelog + vendor publish @km/_orphan #feature #P2

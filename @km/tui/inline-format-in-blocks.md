@@ -13,6 +13,14 @@ close_reason: "Fixed in efb1db1ff. Two root causes: (1) nodeToText flattens
   their marker. Test: apps/km-tui/tests/text/inline-rendering.test.ts 'inline
   formatting in body blocks' — 43 passed in file, 2119 passed in km-tui fast
   suite."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.inline-format-in-blocks
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T10:31:51Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Bullets and bold render as plain p-blocks in body content @km/tui #bug #P2

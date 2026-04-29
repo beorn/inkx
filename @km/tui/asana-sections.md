@@ -6,6 +6,8 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-20T16:55:32Z
 closed_at: 2026-02-20T17:48:46Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Asana import: group items by assignee_section in detail pane @km/tui #feature #P2 @claude:8f007ba9

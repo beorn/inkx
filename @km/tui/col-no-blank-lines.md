@@ -6,6 +6,8 @@ aliases:
 created_by: claude:5770ce77
 created_at: 2026-02-17T10:41:11Z
 closed_at: 2026-02-17T10:51:34Z
+owner: bjorn@stabell.org
+assignee: claude:5770ce77
 ---
 
 # [x] Columns view: remove blank lines between blocks/items @km/tui #bug #P2 @claude:5770ce77

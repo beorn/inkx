@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T22:30:47Z
 closed_at: 2026-02-14T23:02:23Z
+owner: bjorn@stabell.org
+assignee: claude:a5c7f7de
 ---
 
 # [x] Text content bleeds into right border of Box with borderStyle @km/inkx #bug #P2 @claude:a5c7f7de

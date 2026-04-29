@@ -5,6 +5,14 @@ aliases:
   - km-tui-vault-body-empty
 created_by: Bjørn Stabell
 created_at: 2026-04-14T20:30:12Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.vault-body-empty
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T13:30:12Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [ ] Vault folder card shows no body content despite content lines set to max @km/tui #bug #P3

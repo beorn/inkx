@@ -5,6 +5,7 @@ aliases:
   - km-silvery-commander-fs-types
 created_by: claude:f8196c1c
 created_at: 2026-03-27T05:45:37Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] @silvery/commander: filesystem types (file, dir, glob) via fx effects @km/silvery #feature #P4

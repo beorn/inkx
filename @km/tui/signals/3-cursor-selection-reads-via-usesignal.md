@@ -9,6 +9,8 @@ created_at: 2026-04-05T07:52:58Z
 closed_at: 2026-04-05T09:22:35Z
 close_reason: All 7 sel useAppStore selectors migrated to useSignal. Bridge
   deleted. grep useAppStore.*sel in views → 0 hits. 62 test files pass.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Cursor + selection reads via useSignal @km/tui #task #P2 @Bjørn Stabell

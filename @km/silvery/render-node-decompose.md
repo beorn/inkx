@@ -8,6 +8,7 @@ created_at: 2026-03-15T16:38:49Z
 closed_at: 2026-03-15T17:39:23Z
 close_reason: "Implemented: 20 artifact tests, loggily structured logging,
   renderNodeToBuffer decomposed into 4 sub-functions"
+owner: bjorn@stabell.org
 ---
 
 # [x] Decompose renderNodeToBuffer into plan/execute @km/silvery #task #P3

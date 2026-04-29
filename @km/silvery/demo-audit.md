@@ -9,6 +9,8 @@ closed_at: 2026-03-24T17:01:34Z
 close_reason: Fixed 7 broken LiveDemo embeds + removed 1 unused import. All 11
   demos now reference existing showcases (dashboard, components, textarea,
   kanban).
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Audit all silvery.dev inlined demos — verify they work @km/silvery #task #P1 @claude:fed8de9e

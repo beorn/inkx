@@ -7,6 +7,14 @@ created_by: Bjørn Stabell
 created_at: 2026-04-12T15:09:44Z
 closed_at: 2026-04-12T15:26:17Z
 close_reason: "useAgNode() + useSignal() hooks. Commits: 19a78113, b32b5821."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.use-ag-node
+    depends_on_id: km-silvery.reactive-pipeline
+    type: parent-child
+    created_at: 2026-04-12T08:10:08Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] useAgNode() hook — expose reactive rect signals as public primitive @km/silvery #feature #P1

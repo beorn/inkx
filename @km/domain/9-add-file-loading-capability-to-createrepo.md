@@ -6,6 +6,7 @@ aliases:
   - "@km/domain/9"
 created_at: 2026-01-26T08:28:46Z
 closed_at: 2026-01-26T08:33:25Z
+assignee: beorn
 ---
 
 # [x] Add file loading capability to createRepo @km/domain #task #P1 @beorn

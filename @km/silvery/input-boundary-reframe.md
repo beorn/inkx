@@ -5,6 +5,14 @@ aliases:
   - km-silvery-input-boundary-reframe
 created_by: claude:c56dc5d6
 created_at: 2026-04-24T07:01:23Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.input-boundary-reframe
+    depends_on_id: km-silvery.tea
+    type: parent-child
+    created_at: 2026-04-24T00:09:52Z
+    created_by: claude:c56dc5d6
+    metadata: "{}"
 ---
 
 # [ ] Input boundary reframe — kill the 'two views of one event' smell @km/silvery #epic #P1

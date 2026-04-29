@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-15T07:55:44Z
 closed_at: 2026-02-15T08:13:16Z
+owner: bjorn@stabell.org
+assignee: claude:a5c7f7de
 ---
 
 # [x] stickyX should also reset on out-of-bounds navigation @km/tui #bug #P2 @claude:a5c7f7de

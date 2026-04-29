@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d1f60fb4
 created_at: 2026-02-25T15:14:27Z
 closed_at: 2026-02-25T15:36:42Z
+owner: bjorn@stabell.org
+assignee: claude:d1f60fb4
 ---
 
 # [x] Inline mode: DECAWM auto-wrap causes visual overflow on full-width lines @km/inkx #bug #P1 @claude:d1f60fb4

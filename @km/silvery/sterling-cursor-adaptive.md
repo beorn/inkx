@@ -9,6 +9,22 @@ closed_at: 2026-04-25T07:04:16Z
 close_reason: "Fixed in silvery c0072dae: new repairCursorBg ΔE≥0.15 with 0.005
   safety margin (handles one-half-light OKLCH→hex round-trip quantization).
   78/84 → 84/84."
+started_at: 2026-04-25T06:43:56Z
+owner: bjorn@stabell.org
+assignee: claude:22c2717d
+dependencies:
+  - issue_id: km-silvery.sterling-cursor-adaptive
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-24T16:12:58Z
+    created_by: claude:5e447b66
+    metadata: "{}"
+  - issue_id: km-silvery.sterling-cursor-adaptive
+    depends_on_id: km-silvery.sterling-2e-interior-migration
+    type: blocks
+    created_at: 2026-04-24T16:16:08Z
+    created_by: claude:5e447b66
+    metadata: "{}"
 ---
 
 # [x] Sterling: cursor derivation needs repairCursorBg pass @km/silvery #bug #P2 @claude:22c2717d

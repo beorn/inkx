@@ -8,6 +8,7 @@ created_at: 2026-03-10T17:25:04Z
 closed_at: 2026-03-10T17:34:46Z
 close_reason: "All 8 doc pages follow consistent template: description, live
   demo, key benefits, source code, key patterns, features used table, exercises"
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 6: Doc page template consistency @km/silvery #task #P3

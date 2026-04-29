@@ -44,6 +44,14 @@ close_reason: >-
 
   Scope-doc + frictions assessment at `hub/km/tea-phase1-withDialogs-scope.md`.
   No new friction emerged — verdict carries forward.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.tea-deleteConfirm-cutover
+    depends_on_id: km-tui.tea-withDialogs
+    type: parent-child
+    created_at: 2026-04-21T02:17:51Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] TEA cutover — DeleteConfirm (withDialogs Phase 1, easy win) @km/tui #feature #P2

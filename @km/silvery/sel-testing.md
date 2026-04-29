@@ -6,6 +6,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-03T21:46:41Z
 closed_at: 2026-04-04T20:21:52Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Selection testing infrastructure — 4-layer test plan @km/silvery #task #P1

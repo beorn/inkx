@@ -6,6 +6,8 @@ aliases:
 created_by: claude:703e68be
 created_at: 2026-02-11T13:23:27Z
 closed_at: 2026-02-19T16:17:19Z
+owner: bjorn@stabell.org
+assignee: claude:5f0aee02
 ---
 
 # [x] Selection model: abstract text selection and node selection into unified anchor/focus pattern @km/tui #task #P3 @claude:5f0aee02

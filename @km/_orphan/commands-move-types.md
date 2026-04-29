@@ -4,6 +4,7 @@ aliases:
   - km-commands-move-types
 created_at: 2026-01-25T12:29:28Z
 closed_at: 2026-01-25T12:40:05Z
+assignee: unimac
 ---
 
 # [x] Fix move mode command action types @km/_orphan #task #P3 @unimac

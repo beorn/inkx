@@ -5,6 +5,8 @@ aliases:
 created_by: claude:ea392ebd
 created_at: 2026-02-11T13:12:30Z
 closed_at: 2026-02-11T13:42:08Z
+owner: bjorn@stabell.org
+assignee: claude:ea392ebd
 ---
 
 # [x] Screen blanks when log toast appears after opt-j shift @km/_orphan #bug #P2 @claude:ea392ebd

@@ -4,6 +4,7 @@ aliases:
   - km-empty-board
 created_at: 2026-02-03T13:12:42Z
 closed_at: 2026-02-03T13:41:35Z
+assignee: claude:a9dd3b69
 ---
 
 # [x] km view shows empty board when .km/state.db has stale partial data @km/_orphan #bug #P1 @claude:a9dd3b69

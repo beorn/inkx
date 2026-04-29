@@ -5,6 +5,7 @@ aliases:
   - km-inkx-driver-split
 created_at: 2026-02-04T15:25:21Z
 closed_at: 2026-02-05T10:10:14Z
+assignee: claude:10db6ea8
 ---
 
 # [x] inkx: evaluate core vs app composition split @km/inkx #task #P3 @claude:10db6ea8

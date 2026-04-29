@@ -7,6 +7,16 @@ created_by: claude:cc081a9a
 created_at: 2026-04-26T19:59:04Z
 closed_at: 2026-04-26T20:04:04Z
 close_reason: Closed
+started_at: 2026-04-26T20:00:00Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-all.fix-sweep-tsc-kmtui
+    depends_on_id: km-all.fix-sweep-0426
+    type: parent-child
+    created_at: 2026-04-26T12:59:13Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Fix km-tui test typecheck errors (94 errors) @km/all #task #P2 @claude:cc081a9a

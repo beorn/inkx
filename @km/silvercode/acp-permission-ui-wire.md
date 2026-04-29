@@ -7,6 +7,16 @@ created_by: claude:cd034ca4
 created_at: 2026-04-26T16:26:15Z
 closed_at: 2026-04-26T21:34:29Z
 close_reason: Closed
+started_at: 2026-04-26T21:21:46Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-permission-ui-wire
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T09:26:32Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] silvercode ACP permission UI integration — bridge connectAcp permissionHandler to PermissionInbox @km/silvercode #feature #P2 @claude:cd034ca4

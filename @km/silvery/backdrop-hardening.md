@@ -9,6 +9,15 @@ closed_at: 2026-04-20T21:49:28Z
 close_reason: "All 8 P0 sub-beads closed. 100 backdrop tests pass (started at
   81; +19 new tests). km-tui showcase still green. Commits: ea8d0368, 572c5f75,
   969ca994, d02e7604, 491a15de, 7172d5c4, 2ed6523a, 8b5db390 in vendor/silvery."
+owner: bjorn@stabell.org
+assignee: claude:a1a0e667
+dependencies:
+  - issue_id: km-silvery.backdrop-hardening
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-20T13:59:18Z
+    created_by: claude:88c0e764
+    metadata: "{}"
 ---
 
 # [x] Backdrop module hardening — Pro review b335f1f6 followups @km/silvery #epic #P0 @claude:a1a0e667

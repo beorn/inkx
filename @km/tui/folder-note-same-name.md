@@ -8,6 +8,14 @@ created_at: 2026-04-14T17:15:46Z
 closed_at: 2026-04-14T17:37:32Z
 close_reason: Fixed in 27db42fcf — computeColumnChildren now expands folder-note
   children into the column when the folder has an index file.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.folder-note-same-name
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T10:37:31Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] <folder>.md folder-note renders empty in column view @km/tui #bug #P2

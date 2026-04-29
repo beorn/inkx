@@ -6,6 +6,8 @@ aliases:
 created_by: claude:b509d761
 created_at: 2026-02-10T13:51:54Z
 closed_at: 2026-02-12T14:19:42Z
+owner: bjorn@stabell.org
+assignee: claude:586bad48
 ---
 
 # [x] Separate TUI/text-specific parts from flexx core @km/flexx #task #P3 @claude:586bad48

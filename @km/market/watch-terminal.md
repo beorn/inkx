@@ -5,6 +5,7 @@ aliases:
   - km-market-watch-terminal
 created_by: Bjørn Stabell
 created_at: 2026-04-02T20:00:51Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] terminfo.dev 'Watch this terminal' — email when features change @km/market #feature #P2

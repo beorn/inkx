@@ -5,6 +5,7 @@ aliases:
   - km-infra-feat-1-tui-reporter
 created_at: 2026-01-28T13:25:09Z
 closed_at: 2026-01-28T17:48:20Z
+assignee: claude:18380d7e
 ---
 
 # [x] React TUI vitest reporter with live updates and keyboard controls @km/infra #feature #P2 @claude:18380d7e

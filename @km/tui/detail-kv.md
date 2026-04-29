@@ -6,6 +6,7 @@ aliases:
 created_by: claude:1d8b0fc3
 created_at: 2026-02-15T15:28:16Z
 closed_at: 2026-02-15T15:29:17Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Detail pane: show unknown node.data fields as key:value @km/tui #task #P2

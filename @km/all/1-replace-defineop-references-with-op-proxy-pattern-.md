@@ -7,6 +7,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-04T09:16:07Z
 closed_at: 2026-04-04T16:13:01Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Replace defineOp references with op() proxy pattern in architecture docs @km/all #task #P1 @Bjørn Stabell

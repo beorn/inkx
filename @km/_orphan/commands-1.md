@@ -4,6 +4,7 @@ aliases:
   - km-commands-1
 created_at: 2026-01-25T23:50:07Z
 closed_at: 2026-01-27T20:38:07Z
+assignee: claude:cacac722
 ---
 
 # [x] Fix pre-existing TypeScript errors in CLI and tests @km/_orphan #chore #P3 @claude:cacac722

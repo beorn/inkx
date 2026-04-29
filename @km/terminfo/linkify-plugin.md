@@ -10,6 +10,8 @@ close_reason: Custom markdown-it glossary-links plugin replaces
   vitepress-plugin-glossary. 147 links on /standards page (was 1).
   Longest-match-first, every occurrence, works inside bold/italic, skips
   code/headings/existing links. data-tooltip for hover descriptions.
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] Custom markdown-it plugin: glossary tooltips + entity auto-linking (replace vitepress-plugin-glossary) @km/terminfo #task #P2 @claude:f8196c1c

@@ -9,6 +9,8 @@ closed_at: 2026-04-01T14:47:55Z
 close_reason: "Fixed: Tab/Shift+Tab now punch through the inline-edit-barrier
   wildcard in keybindings Layer 5b. Added explicit bindings before the
   catch-all. Commit 3f7adfb0."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Cannot indent/outdent while in text edit mode @km/tui #bug #P2 @Bjørn Stabell

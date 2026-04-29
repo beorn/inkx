@@ -8,6 +8,8 @@ created_at: 2026-03-23T00:39:20Z
 closed_at: 2026-03-23T00:45:19Z
 close_reason: "Fixed: CLI backends/install output clearer, census loads all
   available backends (4 of 9), per-backend result files written"
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] Census polish: per-backend results, CLI improvements, all backends @km/termless #task #P1 @claude:4929065a

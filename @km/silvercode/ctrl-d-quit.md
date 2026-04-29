@@ -8,6 +8,16 @@ created_at: 2026-04-26T06:05:58Z
 closed_at: 2026-04-26T06:39:01Z
 close_reason: "Shipped: 0d2fab393. Ctrl+D×2 chord at App-level useInput. 3
   tests. Session: km-session.0425-evening"
+started_at: 2026-04-26T06:07:27Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.ctrl-d-quit
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-25T23:06:01Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Ctrl+D twice quits the app @km/silvercode #feature #P2 @claude:2405c72e

@@ -5,6 +5,7 @@ aliases:
   - km-tui-q-close
 created_at: 2026-02-05T12:15:02Z
 closed_at: 2026-02-05T12:19:11Z
+assignee: claude:3d543eef
 ---
 
 # [x] feat(tui): 'q' closes dialog boxes @km/tui #feature #P3 @claude:3d543eef

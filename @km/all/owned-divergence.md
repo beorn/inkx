@@ -5,6 +5,14 @@ aliases:
   - km-all-owned-divergence
 created_by: claude:cc081a9a
 created_at: 2026-04-27T06:21:50Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.owned-divergence
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-26T23:21:55Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] [epic] Owned divergence — workarounds we maintain forever @km/all #feature #P3

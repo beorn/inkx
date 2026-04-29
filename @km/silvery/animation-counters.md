@@ -10,6 +10,16 @@ close_reason: "Shipped at silvery 865fbabc. 4 components: AnimatedNumber
   (integer roll with format hook), TextShimmer (active-pulse between
   $primary/$muted), TextReveal (typewriter), TimeToFirstDraw (perf marker). 8/8
   tests pass. Built on existing useAnimation hook."
+started_at: 2026-04-26T16:36:40Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvery.animation-counters
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-26T08:37:52Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] silvery animations — AnimatedNumber, TextShimmer, TextReveal, TimeToFirstDraw @km/silvery #feature #P2 @claude:cd034ca4

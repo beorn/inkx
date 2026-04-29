@@ -6,6 +6,8 @@ aliases:
 created_by: claude:f7f27703
 created_at: 2026-02-24T14:05:56Z
 closed_at: 2026-02-25T17:18:59Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] Command box: hide in normal mode, show with outline when active @km/tui #feature #P2 @claude:d697f216

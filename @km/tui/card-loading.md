@@ -5,6 +5,7 @@ aliases:
   - km-tui-card-loading
 created_by: claude:23485adf
 created_at: 2026-02-23T17:29:52Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Per-card loading indicator for fold/unfold operations @km/tui #feature #P3

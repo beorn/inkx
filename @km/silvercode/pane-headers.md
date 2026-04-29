@@ -10,6 +10,16 @@ close_reason: "Shipped: 77f2d26c6 + 32b2c9622. PaneHeader component +
   --pane-headers CLI flag opt-in (default off preserves v1 chrome-minimal). 4
   buttons: ⇄ (placeholder), + (split), _ (minimize), ×. 5 tests + regression
   guard for default off. Session: km-session.0425-evening"
+started_at: 2026-04-26T07:51:50Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.pane-headers
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-25T00:45:11Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Per-pane header strip with add/close/minimize buttons @km/silvercode #feature #P3 @claude:2405c72e

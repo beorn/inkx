@@ -11,6 +11,7 @@ close_reason: Fixed in vendor/mdspec 2c59d31. Added
   fixed stale cell-width assertion (8.4 → 9.6, matching termless
   DEFAULT_CELL_WIDTH). All 143 mdspec tests pass; pre-commit hook unblocked. km
   submodule pointer bumped in 4319f9239.
+owner: bjorn@stabell.org
 ---
 
 # [x] [bug] mdspec vitest cannot run standalone — resolves km-infra setup path @km/all #bug #P2

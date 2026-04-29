@@ -10,6 +10,8 @@ close_reason: "Fixed in Pro Review Round 1: recursive CTE delete, link
   disambiguation, section-scoped resolution, rename target scoping, cache
   invalidation on mutations, phrase search, negated ref scoping, compaction
   dependency preservation. All with TDD (31 new tests)."
+owner: bjorn@stabell.org
+assignee: claude:c9beade3
 ---
 
 # [x] Event compaction can produce unreplayable events.jsonl @km/storage #bug #P1 @claude:c9beade3

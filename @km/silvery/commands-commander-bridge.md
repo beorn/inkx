@@ -5,6 +5,7 @@ aliases:
   - km-silvery-commands-commander-bridge
 created_by: Bjørn Stabell
 created_at: 2026-04-10T03:07:15Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Explore bridging @silvery/commands and @silvery/commander — unified command model @km/silvery #task #P3

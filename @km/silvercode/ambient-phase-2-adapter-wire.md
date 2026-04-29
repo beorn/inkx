@@ -84,6 +84,16 @@ close_reason: >-
   extending to capture and verify that wire too. Currently sdk-adapter.ts is the
   only such path; it's not on the ambient/channel-queue route, so it's out of
   scope today.
+started_at: 2026-04-27T20:22:56Z
+owner: bjorn@stabell.org
+assignee: claude:4de4a3ab
+dependencies:
+  - issue_id: km-silvercode.ambient-phase-2-adapter-wire
+    depends_on_id: km-silvercode.ambient-context-excellence
+    type: parent-child
+    created_at: 2026-04-27T13:22:55Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [x] Phase 2: per-backend adapter wire-byte verification @km/silvercode #task #P0 @claude:4de4a3ab

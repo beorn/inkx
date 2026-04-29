@@ -7,6 +7,16 @@ created_by: claude:cc081a9a
 created_at: 2026-04-26T20:24:58Z
 closed_at: 2026-04-26T20:50:20Z
 close_reason: Closed
+started_at: 2026-04-26T20:37:12Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-all.fix-sweep-vendor-bearly
+    depends_on_id: km-all.fix-sweep-0426
+    type: parent-child
+    created_at: 2026-04-26T13:25:02Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Fix vendor/bearly test failures + 20 tsc errors @km/all #task #P2 @claude:cc081a9a

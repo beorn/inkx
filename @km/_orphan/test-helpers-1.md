@@ -4,6 +4,7 @@ aliases:
   - km-test-helpers-1
 created_at: 2026-01-28T21:42:10Z
 closed_at: 2026-01-28T21:50:32Z
+assignee: claude:1fbd8fe1
 ---
 
 # [x] Harmonize TUI test fixtures and rendering helpers @km/_orphan #task #P3 @claude:1fbd8fe1

@@ -9,6 +9,7 @@ closed_at: 2026-03-30T21:29:38Z
 close_reason: "Not a bug — render() supports patchConsole option (defaults to
   true). Was calling render() without options. Fixed by using render(el, term, {
   patchConsole: true }) and handle.run()."
+owner: bjorn@stabell.org
 ---
 
 # [x] Console output leaks into alt screen in fullscreen render mode @km/silvery #bug #P2

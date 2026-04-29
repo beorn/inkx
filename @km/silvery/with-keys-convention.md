@@ -5,6 +5,14 @@ aliases:
   - km-silvery-with-keys-convention
 created_by: claude:8b5b9e1c
 created_at: 2026-04-21T09:17:52Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.with-keys-convention
+    depends_on_id: km-silvery.authoring-elegance
+    type: parent-child
+    created_at: 2026-04-21T02:18:07Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [ ] withKeys() — honour definePlugin 'keys:' shorthand at runtime @km/silvery #feature #P2

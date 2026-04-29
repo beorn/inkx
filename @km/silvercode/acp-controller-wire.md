@@ -45,6 +45,28 @@ close_reason: >-
 
   - Injectors (bd-prime, channels, cwd) not applied to session/prompt:
   km-silvercode.acp-channels covers this on the new pipeline
+started_at: 2026-04-26T16:19:05Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-controller-wire
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T09:00:04Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-controller-wire
+    depends_on_id: km-silvercode.acp-probe-runner
+    type: blocks
+    created_at: 2026-04-26T09:00:04Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-controller-wire
+    depends_on_id: km-silvercode.acp-session-load
+    type: blocks
+    created_at: 2026-04-26T09:01:51Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] silvercode controller — route via connectAcpRegistry, add --agent CLI flag @km/silvercode #feature #P2 @claude:cd034ca4

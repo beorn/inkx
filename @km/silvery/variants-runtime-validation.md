@@ -9,6 +9,14 @@ closed_at: 2026-04-19T06:04:47Z
 close_reason: Shipped at silvery a92b57f2 + km 43a799918.
   WeakMap<Theme,Set<string>> dedup (per-theme, not session-global),
   NODE_ENV=production guard, spec-format warning message. 4 new tests pass.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.variants-runtime-validation
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-18T22:56:57Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Runtime KnownVariant validation — dev warning on unknown variant names @km/silvery #task #P3

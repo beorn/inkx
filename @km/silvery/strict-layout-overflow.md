@@ -12,6 +12,20 @@ close_reason: Implemented strictLayoutOverflowCheck() in layout-phase.ts. Walks
   STRICT=2 throws. Wired into ag.ts after fitContentCorrectionPass. 3207 vendor
   tests pass at STRICT=1, 509 at STRICT=2 — zero false positives. Committed as
   0b060360.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.strict-layout-overflow
+    depends_on_id: km-silvery.layout-quality-plateau
+    type: parent-child
+    created_at: 2026-04-12T00:46:42Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-silvery.strict-layout-overflow
+    depends_on_id: km-silvery.test-runtime-parity
+    type: blocks
+    created_at: 2026-04-12T00:46:38Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] SILVERY_STRICT layout overflow invariant — no child wider than parent @km/silvery #feature #P1

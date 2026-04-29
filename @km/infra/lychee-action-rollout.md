@@ -5,6 +5,7 @@ aliases:
   - km-infra-lychee-action-rollout
 created_by: Bjørn Stabell
 created_at: 2026-04-07T01:42:19Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Roll out lychee-action to 5 vendor docs CI workflows @km/infra #task #P2

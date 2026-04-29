@@ -5,6 +5,7 @@ aliases:
   - km-silvery-usecursor-race
 created_by: claude:0940ca20
 created_at: 2026-04-24T22:50:19Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] useCursor race: multiple sibling TextInputs with mixed isActive stomp cursor state (last-writer-wins) @km/silvery #bug #P2

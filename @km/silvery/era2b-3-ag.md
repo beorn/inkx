@@ -10,6 +10,7 @@ close_reason: Already completed by km-kk0x1 (tealess). @silvery/ag package
   already exists at vendor/silvery/packages/ag/ with node types (types.ts),
   focus system (focus-manager.ts, focus-events.ts), keys (keys.ts), and
   tree-utils — exactly what this bead described.
+owner: bjorn@stabell.org
 ---
 
 # [x] Era2b Phase 3: @silvery/ag — extract node types + focus @km/silvery #task #P1

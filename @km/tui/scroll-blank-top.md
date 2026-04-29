@@ -9,6 +9,7 @@ closed_at: 2026-03-30T19:55:03Z
 close_reason: "Fixed: useVirtualizer sumHeights() now uses average measured
   height for unmeasured items instead of ESTIMATED_CARD_HEIGHT. Tests in
   vendor/silvery/tests/ui/virtualizer-scroll-bugs.test.tsx."
+owner: bjorn@stabell.org
 ---
 
 # [x] VirtualList: blank space at top of column when scrolled down @km/tui #bug #P2

@@ -5,6 +5,7 @@ aliases:
   - "@km/_orphan/term-1"
 created_at: 2026-01-28T12:47:13Z
 closed_at: 2026-01-28T13:04:11Z
+assignee: claude:df8d3459
 ---
 
 # [x] term + tui Package Redesign & vitest-reporter Migration @km/term-1 #epic #P2 @claude:df8d3459

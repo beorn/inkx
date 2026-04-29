@@ -5,6 +5,7 @@ aliases:
   - km-silvery-test-suspend-resume
 created_by: Bjørn Stabell
 created_at: 2026-04-01T07:28:34Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Termless test for Ctrl+Z suspend/resume terminal state @km/silvery #task #P3

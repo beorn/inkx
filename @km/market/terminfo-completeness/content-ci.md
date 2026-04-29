@@ -5,6 +5,7 @@ aliases:
   - km-market-terminfo-completeness-content-ci
 created_by: Bjørn Stabell
 created_at: 2026-04-06T03:58:54Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Content CI/CD system for terminfo.dev @km/market #task #P2

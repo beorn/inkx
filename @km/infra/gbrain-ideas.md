@@ -11,6 +11,15 @@ close_reason: "Phase B complete: benefits-from/escalate-to frontmatter added to
   explore, infra, docs, npm, complete, perf, fresh, refactor, big, why, sop).
   gbrain added as benefits-from for knowledge-heavy skills. RESOLVER.md already
   existed. Session promotion pipeline built."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-infra.gbrain-ideas
+    depends_on_id: km-infra.org-redesign
+    type: parent-child
+    created_at: 2026-04-12T13:13:00Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Phase B: Integrate gbrain/gstack ideas into /sop and km @km/infra #task #P2 @Bjørn Stabell

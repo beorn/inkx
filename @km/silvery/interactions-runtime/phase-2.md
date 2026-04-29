@@ -9,6 +9,7 @@ closed_at: 2026-04-06T08:08:29Z
 close_reason: 4 machines moved to headless, pointer-state renamed to pointer, 23
   import sites updated, tests renamed and pass. Commits e402846+51f5b28 in
   silvery.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 2: Move pure machines to @silvery/headless @km/silvery #task #P1

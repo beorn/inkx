@@ -15,6 +15,16 @@ close_reason: "Slash commands no longer post optimistic user-message echo.
   chat empty, normal send still posts optimistic user-message regression guard,
   slash text still reaches agent session). Fix: SHA a8116b8 on
   bug/km-silvercode.prompt-echo branch."
+started_at: 2026-04-28T21:43:42Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.prompt-echo-in-chat
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T14:20:15Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Slash commands echo into chat as user message + duplicate prompt @km/silvercode #bug #P0 @claude:2405c72e

@@ -4,6 +4,7 @@ aliases:
   - km-sh-db-bug
 created_at: 2026-01-25T13:15:36Z
 closed_at: 2026-01-25T20:57:25Z
+assignee: Claude Sonnet 4.5
 ---
 
 # [x] km sh fails with db initialization errors @km/_orphan #bug #P1 @Claude Sonnet 4.5

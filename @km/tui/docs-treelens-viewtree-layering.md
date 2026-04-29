@@ -13,6 +13,8 @@ close_reason: "Implemented: rewrote visibility-model.md (no more
   block to packages/km-board/src/index.ts, added JSDoc to TreeLens interface +
   createViewLens + createVisibleLens warning React consumers to use ViewTree. No
   source-code logic changes. Commit 13e55d810."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Document TreeLens vs ViewTree layering; rewrite stale visibility-model.md @km/tui #task #P3 @Bjørn Stabell

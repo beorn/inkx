@@ -57,6 +57,15 @@ close_reason: >-
   path
 
   - km 3721a2830: bump bearly submodule
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-infra.llm-fire-and-forget-pro
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-20T22:35:15Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Standard pro calls should be fire-and-forget + recoverable like --deep @km/infra #feature #P2 @claude:8b5b9e1c

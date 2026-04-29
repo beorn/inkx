@@ -13,6 +13,14 @@ close_reason: Shipped at silvery 138c667a + km bump a2cccf66d. ThemeProvider now
   in prepared-text.ts where ANSI codes were baked into cached text — now cache
   keyed on context theme identity. 3 new theme-provider-cascade tests pass
   (nested isolation, incremental rerender, 3-level nesting).
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.theme-v3-r2-agnode-cascade
+    depends_on_id: km-silvery.theme-v3-plumbing
+    type: parent-child
+    created_at: 2026-04-18T21:09:18Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] R2: Pipeline reads theme via AgNode cascade, not getActiveTheme() global @km/silvery #task #P3

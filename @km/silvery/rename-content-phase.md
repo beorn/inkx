@@ -8,6 +8,8 @@ created_at: 2026-03-25T03:46:00Z
 closed_at: 2026-03-25T03:56:53Z
 close_reason: "Done: 46 files, zero remaining references in .ts/.tsx. CHANGELOG
   preserved. Tests: 227/229 pass (2 unrelated termless failures)."
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Rename 'content phase' to 'render phase' across silvery codebase @km/silvery #task #P3 @claude:fed8de9e

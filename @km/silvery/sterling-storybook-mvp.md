@@ -11,6 +11,21 @@ close_reason: "Shipped at vendor/silvery ee61e167. 1086 LOC, 8 files. 3-pane
   toggle 1-4. Reads derivationTrace from 2a. Launch: bun run example:storybook.
   Deferrals to sterling-storybook-full: OKLCH viz, contrast audit, scheme
   authoring, intent/urgency demos, cross-target preview."
+owner: bjorn@stabell.org
+assignee: claude:4274df30
+dependencies:
+  - issue_id: km-silvery.sterling-storybook-mvp
+    depends_on_id: km-silvery.sterling-2a-data-layer
+    type: blocks
+    created_at: 2026-04-19T14:43:32Z
+    created_by: claude:4274df30
+    metadata: "{}"
+  - issue_id: km-silvery.sterling-storybook-mvp
+    depends_on_id: km-silvery.sterling-storybook
+    type: parent-child
+    created_at: 2026-04-19T14:43:32Z
+    created_by: claude:4274df30
+    metadata: "{}"
 ---
 
 # [x] Sterling Storybook MVP — 3-pane layout @km/silvery #task #P2 @claude:4274df30

@@ -7,6 +7,7 @@ created_by: claude:65d845d9
 created_at: 2026-03-13T05:32:47Z
 closed_at: 2026-03-13T05:39:15Z
 close_reason: P4 — trivial export addition, not blocking
+owner: bjorn@stabell.org
 ---
 
 # [x] measureNodeCalls stat not exported from index.ts @km/flexily #task #P4

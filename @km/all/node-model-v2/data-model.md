@@ -6,6 +6,8 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T01:25:36Z
 closed_at: 2026-02-19T21:36:50Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Data model changes: flat children, li~oi unification, lazy loading @km/all #task #P2 @claude:8f007ba9

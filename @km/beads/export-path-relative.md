@@ -84,6 +84,16 @@ close_reason: >-
   for user to revert; not pushed to origin.
 closeReason: Obsoleted by cutover — Go bd binary is gone, the
   export-path-relative bug class no longer applicable.
+started_at: 2026-04-28T06:16:37Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-beads.export-path-relative
+    depends_on_id: km-beads.cutover
+    type: parent-child
+    created_at: 2026-04-27T22:06:48Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] bd export hook writes issues.jsonl to worktree root instead of .beads/ — three agents hit it concurrently @km/beads #bug #P2 @claude:cc081a9a

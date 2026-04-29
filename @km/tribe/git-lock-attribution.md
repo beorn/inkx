@@ -12,6 +12,14 @@ close_reason: "Shipped in bearly a77d619 (km bump 8641be2c9). Tribe daemon
   Git lock messages now include session+PID. Broadcast self-filter verified
   already in place at DB query level, added verbatim-query regression tests (317
   bearly tests pass)."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.git-lock-attribution
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-18T11:01:34Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Git lock warnings should attribute to tribe member, not just PID @km/tribe #feature #P3

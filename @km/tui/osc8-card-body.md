@@ -6,6 +6,8 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T13:24:37Z
 closed_at: 2026-02-19T13:43:50Z
+owner: bjorn@stabell.org
+assignee: claude:36393b5d
 ---
 
 # [x] Cards: OSC 8 escape garbage in body content from links @km/tui #bug #P2 @claude:36393b5d

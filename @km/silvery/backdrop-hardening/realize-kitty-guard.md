@@ -9,6 +9,15 @@ closed_at: 2026-04-20T21:21:42Z
 close_reason: "realizeToKitty early-out now: !plan.active || !plan.kittyEnabled
   || amount<=0 || scrim===null. 5 new tests cover all guard branches. 87→92
   backdrop tests pass. Commit 969ca994."
+owner: bjorn@stabell.org
+assignee: claude:a1a0e667
+dependencies:
+  - issue_id: km-silvery.backdrop-hardening.realize-kitty-guard
+    depends_on_id: km-silvery.backdrop-hardening
+    type: parent-child
+    created_at: 2026-04-20T14:00:07Z
+    created_by: claude:88c0e764
+    metadata: "{}"
 ---
 
 # [x] realizeToKitty doesn't honor plan.kittyEnabled — public API contract @km/silvery #bug #P0 @claude:a1a0e667

@@ -5,6 +5,7 @@ aliases:
   - km-termless-screenshot-tools
 created_by: Bjørn Stabell
 created_at: 2026-04-05T05:26:48Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Research termshot/carbon-now-cli for termless screen/tape integration @km/termless #feature #P3

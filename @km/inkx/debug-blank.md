@@ -6,6 +6,7 @@ aliases:
 created_by: claude:b509d761
 created_at: 2026-02-11T10:18:13Z
 closed_at: 2026-02-11T12:16:16Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Blank screen when debug logging triggers Console layout cascade in incremental renderer @km/inkx #bug #P2

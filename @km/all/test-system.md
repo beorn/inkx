@@ -5,6 +5,8 @@ aliases:
   - km-all-test-system
 created_by: Bjørn Stabell
 created_at: 2026-04-09T05:28:36Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [/] Strictest — km's testing system @km/all #epic #P0 @Bjørn Stabell

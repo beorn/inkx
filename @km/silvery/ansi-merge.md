@@ -7,6 +7,8 @@ created_by: claude:55df8ef1
 created_at: 2026-03-09T21:14:13Z
 closed_at: 2026-03-09T22:40:07Z
 close_reason: Merged @silvery/ansi into @silvery/term/ansi. Commit 81950f5e.
+owner: bjorn@stabell.org
+assignee: claude:474834b0
 ---
 
 # [x] Merge @silvery/ansi into @silvery/term @km/silvery #task #P2 @claude:474834b0

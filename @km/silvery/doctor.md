@@ -5,6 +5,7 @@ aliases:
   - km-silvery-doctor
 created_by: claude:f8196c1c
 created_at: 2026-03-23T19:30:26Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] silvery doctor — terminal capability diagnostics @km/silvery #feature #P3

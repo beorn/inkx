@@ -15,6 +15,21 @@ close_reason: "Phase 2e shipped: silvery 7ef96bb4 (0.20.0 — Sterling is THE
   Theme interface deleted; export type Theme = SterlingTheme. Files touched: 24
   in silvery (versions + intra-pkg deps + types/inline/derive/generate boundary
   casts + ThemeProvider variants cast)."
+owner: bjorn@stabell.org
+assignee: claude:4274df30
+dependencies:
+  - issue_id: km-silvery.sterling-2e-interior-migration
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-24T16:12:57Z
+    created_by: claude:5e447b66
+    metadata: "{}"
+  - issue_id: km-silvery.sterling-2e-interior-migration
+    depends_on_id: km-silvery.sterling-2d-release
+    type: blocks
+    created_at: 2026-04-19T21:08:11Z
+    created_by: claude:4274df30
+    metadata: "{}"
 ---
 
 # [x] Sterling 2e: Migrate silvery interior + ship 0.19.0 breaking release @km/silvery #task #P1 @claude:4274df30

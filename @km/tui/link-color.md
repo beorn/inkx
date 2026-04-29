@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T11:58:42Z
 closed_at: 2026-02-25T12:33:21Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] Link styling: remove nested Text inside Link, use Link props for variants @km/tui #bug #P2 @claude:d697f216

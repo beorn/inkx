@@ -14,6 +14,16 @@ close_reason: "Migrated tribe-daemon to pipe + with* composition.
   owns the 2 ambient-inbox failures). Hub docs trimmed to current-state per
   acceptance NOTES. Commits: bearly 8444223, d947597, dace517; km a0c9bfb5b.
   Follow-on bead filed for runtime decomposition."
+started_at: 2026-04-27T07:27:22Z
+owner: bjorn@stabell.org
+assignee: claude:87d20187
+dependencies:
+  - issue_id: km-tribe.composition-pipe
+    depends_on_id: km-tribe.refactor
+    type: parent-child
+    created_at: 2026-04-27T00:17:29Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Migrate tribe-daemon to pipe + with* composition @km/tribe #feature #P2 @claude:87d20187

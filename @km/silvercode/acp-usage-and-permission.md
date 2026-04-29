@@ -7,6 +7,28 @@ created_by: claude:cd034ca4
 created_at: 2026-04-26T15:37:40Z
 closed_at: 2026-04-26T21:34:19Z
 close_reason: Closed
+started_at: 2026-04-26T21:21:27Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-usage-and-permission
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T08:37:54Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-usage-and-permission
+    depends_on_id: km-silvery.animation-counters
+    type: blocks
+    created_at: 2026-04-26T08:37:58Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-usage-and-permission
+    depends_on_id: km-silvery.diff-code-accordion
+    type: blocks
+    created_at: 2026-04-26T08:37:58Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] silvercode <UsageUpdate> meter + extended <RequestPermission> structured Q&A @km/silvercode #feature #P1 @claude:cd034ca4

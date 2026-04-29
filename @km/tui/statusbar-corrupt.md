@@ -6,6 +6,7 @@ aliases:
 created_by: claude:5f0aee02
 created_at: 2026-02-18T10:18:20Z
 closed_at: 2026-02-19T07:27:27Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Status bar text corruption: view name bleeds into sync count @km/tui #bug #P2

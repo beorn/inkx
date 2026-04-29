@@ -5,6 +5,7 @@ aliases:
   - km-inkx-scrollback-mode
 created_at: 2026-02-05T10:21:45Z
 closed_at: 2026-02-09T12:50:07Z
+assignee: claude:a3625ec3
 ---
 
 # [x] feat(inkx): Scrollback mode for ergonomic CLI output @km/inkx #feature #P4 @claude:a3625ec3

@@ -5,6 +5,7 @@ aliases:
   - km-silvery-user-select
 created_by: Bjørn Stabell
 created_at: 2026-04-06T03:23:56Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] userSelect prop + text selection for silvery @km/silvery #feature #P2

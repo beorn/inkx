@@ -5,6 +5,7 @@ aliases:
   - km-silvery-osc66-demo
 created_by: Bjørn Stabell
 created_at: 2026-04-06T08:52:36Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] OSC 66 text sizing demo — variable text sizes in terminal @km/silvery #task #P3

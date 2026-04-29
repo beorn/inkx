@@ -6,6 +6,7 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-09T07:43:50Z
 closed_at: 2026-04-09T23:35:18Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Analyze bench results and recommend strategic actions @km/silvery #task #P0

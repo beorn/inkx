@@ -10,6 +10,16 @@ close_reason: "Fixed all 21 baseline-drift errors. silvery bump to 06498f0c (17
   stripAnsi(app.lines[0]!) + 2 prevBuffer!.markAllRowsDirty()). km-side:
   session-reducer Map<TurnId, StripState> generic + km-beads issues[0]!
   non-null. tsc count 0."
+started_at: 2026-04-28T22:46:23Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-infra.typecheck-baseline-drift-0428
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-28T15:44:31Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Typecheck baseline drift: 21 new errors after Wave 2 integration (silvery-side) @km/infra #bug #P1 @claude:2405c72e

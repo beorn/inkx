@@ -4,6 +4,7 @@ aliases:
   - km-test-legacy
 created_at: 2026-01-25T02:12:58Z
 closed_at: 2026-01-25T02:31:56Z
+assignee: beorn
 ---
 
 # [x] Remove legacy handleKey() from tests @km/_orphan #task #P1 @beorn

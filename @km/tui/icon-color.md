@@ -6,6 +6,7 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-12T22:54:27Z
 closed_at: 2026-02-12T22:54:53Z
+owner: bjorn@stabell.org
 ---
 
 # [x] File icon darker (gray) than folder icon (white) @km/tui #bug #P3

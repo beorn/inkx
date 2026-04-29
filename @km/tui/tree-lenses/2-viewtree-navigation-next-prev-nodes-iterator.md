@@ -9,6 +9,7 @@ created_at: 2026-04-05T23:17:39Z
 closed_at: 2026-04-05T23:39:40Z
 close_reason: "Already implemented in createViewTree (ce58aca8): next(), prev(),
   nodes({ from?, reverse? }), walkOrder. 4 tests cover navigation behavior."
+owner: bjorn@stabell.org
 ---
 
 # [x] ViewTree navigation: next/prev/nodes() iterator @km/tui #task #P2

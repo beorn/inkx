@@ -8,6 +8,14 @@ created_at: 2026-04-12T20:12:33Z
 closed_at: 2026-04-12T23:06:28Z
 close_reason: gbrain installed at ~/Code/gbrain/, proactive trigger in
   ~/CLAUDE.md, recall vs gbrain scope defined
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.gbrain-install
+    depends_on_id: km-infra.org-redesign
+    type: parent-child
+    created_at: 2026-04-12T13:12:59Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Phase A: Install gbrain in ~vault @km/infra #task #P2

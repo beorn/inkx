@@ -5,6 +5,7 @@ aliases:
   - km-storage-split-query
 created_at: 2026-02-04T11:50:49Z
 closed_at: 2026-02-04T13:09:35Z
+assignee: claude:9e69175d
 ---
 
 # [x] Investigate splitting query.test.ts (1635 lines) @km/storage #task #P3 @claude:9e69175d

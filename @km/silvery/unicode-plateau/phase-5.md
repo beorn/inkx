@@ -10,6 +10,15 @@ close_reason: Phase 5 shipped per /pro (Gemini) review. underline-ext.ts helpers
   require explicit caps. _ambientCaps module state + _resetAmbientCapsForTesting
   hook deleted. NodeView.tsx threads caps via useTerm. storybook.ts uses ucaps
   fixture. 0 lint violations. Silvery 4e884258.
+owner: bjorn@stabell.org
+assignee: claude:c6244087
+dependencies:
+  - issue_id: km-silvery.unicode-plateau.phase-5
+    depends_on_id: km-silvery.unicode-plateau
+    type: parent-child
+    created_at: 2026-04-23T09:50:19Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Unicode plateau Phase 5: require caps in underline-ext (fix ambient-authority leak) @km/silvery #task #P1 @claude:c6244087

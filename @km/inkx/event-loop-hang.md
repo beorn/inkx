@@ -6,6 +6,7 @@ aliases:
 created_by: claude:d1f60fb4
 created_at: 2026-02-25T20:47:31Z
 closed_at: 2026-02-27T13:15:20Z
+owner: bjorn@stabell.org
 ---
 
 # [x] render() unmount doesn't release all event loop references @km/inkx #bug #P2

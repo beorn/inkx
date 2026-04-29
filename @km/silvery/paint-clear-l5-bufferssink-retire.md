@@ -5,6 +5,16 @@ aliases:
   - km-silvery-paint-clear-l5-bufferssink-retire
 created_by: claude:cc081a9a
 created_at: 2026-04-28T05:06:17Z
+started_at: 2026-04-28T06:17:16Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvery.paint-clear-l5-bufferssink-retire
+    depends_on_id: km-silvery.structural-hardening
+    type: parent-child
+    created_at: 2026-04-27T22:06:21Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [/] L5: retire BufferSink as authoritative; eliminate intra-frame buffer reads; delete clearExcessArea + drop hasPrevBuffer arg @km/silvery #task #P2 @claude:cc081a9a

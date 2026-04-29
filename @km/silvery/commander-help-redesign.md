@@ -5,6 +5,7 @@ aliases:
   - km-silvery-commander-help-redesign
 created_by: Bjørn Stabell
 created_at: 2026-04-07T19:14:55Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] @silvery/commander: rethink help rendering (design pass) @km/silvery #task #P4

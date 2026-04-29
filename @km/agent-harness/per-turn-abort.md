@@ -5,6 +5,7 @@ aliases:
   - km-agent-harness-per-turn-abort
 created_by: claude:2405c72e
 created_at: 2026-04-25T06:20:50Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] agent-harness: per-turn abort / interrupt API @km/agent-harness #feature #P2

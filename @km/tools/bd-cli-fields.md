@@ -9,6 +9,8 @@ closed_at: 2026-03-27T23:25:42Z
 close_reason: "Done. Added to km bd: create --description/--notes, update
   --description/--notes/--type/--claim, rename subcommand with reference
   updates."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] km bd: add --description, --notes, --claim, --labels, rename to create/update @km/tools #task #P2 @claude:f8196c1c

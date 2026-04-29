@@ -5,6 +5,7 @@ aliases:
   - km-inkx-wide-char-truncate
 created_at: 2026-02-04T11:23:56Z
 closed_at: 2026-02-04T12:57:46Z
+assignee: claude:27f1a547
 ---
 
 # [x] renderStatic truncates text after wide characters (⚠ ☑) @km/inkx #bug #P2 @claude:27f1a547

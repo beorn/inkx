@@ -6,6 +6,8 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T15:23:19Z
 closed_at: 2026-02-19T16:17:15Z
+owner: bjorn@stabell.org
+assignee: claude:36393b5d
 ---
 
 # [x] Verify sigil stripping works for embedded/linked nodes under ancestor sigil columns @km/tui #bug #P2 @claude:36393b5d

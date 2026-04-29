@@ -8,6 +8,8 @@ created_at: 2026-03-04T16:35:02Z
 closed_at: 2026-03-10T15:36:59Z
 close_reason: Added files, publishConfig, repository, license to all 16 vendor
   packages. Created .npmignore files. Verified with npm pack --dry-run.
+owner: bjorn@stabell.org
+assignee: claude:55df8ef1
 ---
 
 # [x] Set up npm publish configuration for all vendor packages @km/infra #task #P2 @claude:55df8ef1

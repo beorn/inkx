@@ -5,6 +5,16 @@ aliases:
   - km-silvery-sterling-inline-hex-quantize
 created_by: claude:4274df30
 created_at: 2026-04-19T23:47:42Z
+started_at: 2026-04-25T07:14:19Z
+owner: bjorn@stabell.org
+assignee: claude:22c2717d
+dependencies:
+  - issue_id: km-silvery.sterling-inline-hex-quantize
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-24T16:13:00Z
+    created_by: claude:5e447b66
+    metadata: "{}"
 ---
 
 # [ ] Sterling: quantize inline hex values per caps.colorLevel @km/silvery #feature #P4 @claude:22c2717d

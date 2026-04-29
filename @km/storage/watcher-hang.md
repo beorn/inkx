@@ -6,6 +6,7 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-19T19:13:54Z
 closed_at: 2026-02-19T21:24:53Z
+owner: bjorn@stabell.org
 ---
 
 # [x] App hangs intermittently — possibly watcher sync blocking event loop @km/storage #bug #P1

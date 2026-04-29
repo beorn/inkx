@@ -8,6 +8,7 @@ created_at: 2026-04-10T02:34:55Z
 closed_at: 2026-04-15T19:25:09Z
 close_reason: "Grooming 2026-04-15: duplicate of km-all.test-system.p1-whitebox
   (already closed). Typed white-box API work is done."
+owner: bjorn@stabell.org
 ---
 
 # [x] Close FREEZE bucket — typed white-box APIs on createTestApp @km/all #feature #P0

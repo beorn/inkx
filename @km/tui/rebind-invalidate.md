@@ -5,6 +5,7 @@ aliases:
   - km-tui-rebind-invalidate
 created_by: Bjørn Stabell
 created_at: 2026-04-09T14:30:51Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] reactive-graph: rebind() must invalidate cached computeds @km/tui #task #P2

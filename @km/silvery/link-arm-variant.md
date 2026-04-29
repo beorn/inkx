@@ -11,6 +11,8 @@ close_reason: "Implemented both deliverables: (1) Link variant='arm-on-hover'
   fixOsc8AcrossWrappedLines() post-processes wrapped lines to ensure each line
   has self-contained open/close sequences. 12 new tests (4 variant + 8 OSC 8).
   All 6037 vendor tests pass."
+owner: bjorn@stabell.org
+assignee: claude:c0da815b
 ---
 
 # [x] Link: arm-on-hover variant + fix OSC 8 wrapping @km/silvery #feature #P0 @claude:c0da815b

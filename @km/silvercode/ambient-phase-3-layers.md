@@ -77,6 +77,16 @@ close_reason: >-
   source/test file — built via shell pipe (jq | base64) and char-code
 
   construction. Loaded via tests/eval/load-corpus.ts.
+started_at: 2026-04-27T20:23:09Z
+owner: bjorn@stabell.org
+assignee: claude:4de4a3ab
+dependencies:
+  - issue_id: km-silvercode.ambient-phase-3-layers
+    depends_on_id: km-silvercode.ambient-context-excellence
+    type: parent-child
+    created_at: 2026-04-27T13:23:08Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [x] Phase 3: boundary tests + ambient-sanitize + transcript loop-closure + sys prompt + CI gate @km/silvercode #task #P0 @claude:4de4a3ab

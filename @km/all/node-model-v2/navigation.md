@@ -6,6 +6,8 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T01:25:53Z
 closed_at: 2026-02-20T07:37:08Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Navigation: cursorNodeId, navigateToNode, smart zoom @km/all #task #P2 @claude:8f007ba9

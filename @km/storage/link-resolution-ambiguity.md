@@ -9,6 +9,20 @@ closed_at: 2026-04-16T01:50:22Z
 close_reason: Fixed by normalizeNodeName() in 4caab6f5b — both write paths now
   produce consistent node names. The broader to_ids[] cardinality work remains
   on km-storage.link-model-canonical but the acute @office bug is resolved.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-storage.link-resolution-ambiguity
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-15T17:16:10Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-storage.link-resolution-ambiguity
+    depends_on_id: km-storage.link-model-canonical
+    type: blocks
+    created_at: 2026-04-15T17:16:10Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Link resolution silently collapses ambiguous names to null @km/storage #bug #P2

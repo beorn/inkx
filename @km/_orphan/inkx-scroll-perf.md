@@ -4,6 +4,7 @@ aliases:
   - km-inkx-scroll-perf
 created_at: 2026-01-30T15:29:46Z
 closed_at: 2026-01-30T15:31:39Z
+assignee: claude:b8b4780b
 ---
 
 # [x] [inkx] scrollTo in LAYOUT_PROPS causes unnecessary layout recalculation @km/_orphan #bug #P1 @claude:b8b4780b

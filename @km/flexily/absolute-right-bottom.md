@@ -5,6 +5,7 @@ aliases:
   - km-flexily-absolute-right-bottom
 created_by: claude:3c24fe4a
 created_at: 2026-03-17T21:33:15Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Support right/bottom positioning for absolute elements @km/flexily #feature #P2

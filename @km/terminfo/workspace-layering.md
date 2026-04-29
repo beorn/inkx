@@ -5,6 +5,7 @@ aliases:
   - km-terminfo-workspace-layering
 created_by: claude:4929065a
 created_at: 2026-04-01T23:01:50Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] terminfo.dev: add bun workspaces for packages/ — clean dependency layering @km/terminfo #task #P3

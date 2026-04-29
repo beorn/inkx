@@ -6,6 +6,7 @@ aliases:
   - "@km/rev-arch-0130/5"
 created_at: 2026-01-30T00:35:40Z
 closed_at: 2026-02-03T15:24:42Z
+assignee: claude:da8e4a66
 ---
 
 # [x] Unify TUI term initialization pattern (5 files) @km/rev-arch-0130 #task #P2 @claude:da8e4a66

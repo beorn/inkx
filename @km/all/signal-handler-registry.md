@@ -5,6 +5,20 @@ aliases:
   - km-all-signal-handler-registry
 created_by: claude:019d032d
 created_at: 2026-04-22T20:41:38Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.signal-handler-registry
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-22T13:41:52Z
+    created_by: claude:019d032d
+    metadata: "{}"
+  - issue_id: km-all.signal-handler-registry
+    depends_on_id: km-silvery.term-sub-owners
+    type: blocks
+    created_at: 2026-04-22T13:47:54Z
+    created_by: claude:019d032d
+    metadata: "{}"
 ---
 
 # [ ] Signal handler dependency registry — order-safe SIGINT/TERM/exit cleanup @km/all #task #P2

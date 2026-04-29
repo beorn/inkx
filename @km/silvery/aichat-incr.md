@@ -16,6 +16,8 @@ close_reason: "Fixed IncrementalRenderMismatchError caused by descendant
   clearDescendantOverflowRegions(). Also cleaned up cell debug instrumentation
   (SILVERY_CELL_DEBUG=x,y env var). All 22 ai-chat-bugs tests pass with
   SILVERY_STRICT=1. Test: status-bar-stale-text.test.tsx (3 tests)."
+owner: bjorn@stabell.org
+assignee: claude:73d7a332
 ---
 
 # [x] IncrementalRenderMismatchError in ai-chat-bugs.test.tsx status bar @km/silvery #bug #P2 @claude:73d7a332

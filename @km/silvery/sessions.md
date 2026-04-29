@@ -10,6 +10,26 @@ close_reason: Moved out of beads (2026-04-23). Speculative brainstorming, not
   roadmap — docs at hub/silvery/future/ai-terminal/. Revisit after km + silvery
   1.0 ship, or when a concrete trigger emerges (showcase demo needs panes,
   CAP-adjacent opportunity, etc.).
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.sessions
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T22:47:41Z
+    created_by: claude:6443387f
+    metadata: "{}"
+  - issue_id: km-silvery.sessions
+    depends_on_id: km-silvery.commander-protocol
+    type: blocks
+    created_at: 2026-04-23T22:47:42Z
+    created_by: claude:6443387f
+    metadata: "{}"
+  - issue_id: km-silvery.sessions
+    depends_on_id: km-silvery.multiplex
+    type: blocks
+    created_at: 2026-04-23T22:47:42Z
+    created_by: claude:6443387f
+    metadata: "{}"
 ---
 
 # [x] Session job control: typed multi-agent orchestration across humans/sessions/sub-agents @km/silvery #feature #P4

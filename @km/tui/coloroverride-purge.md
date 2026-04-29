@@ -11,6 +11,14 @@ close_reason: Shipped at 089b4629f. All 36 colorOverride sites migrated to
   deleted, replaced by stripInlineColors boolean. resolveColor helper deleted.
   Pre-existing test failures (unified-omnibox, which-key, config) confirmed
   unrelated.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.coloroverride-purge
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-18T11:44:00Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Migrate all colorOverride → color='inherit' @km/tui #task #P2

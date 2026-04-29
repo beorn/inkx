@@ -9,6 +9,7 @@ closed_at: 2026-03-28T07:45:20Z
 close_reason: Ambiguous links now resolve to first match instead of null.
   Serializer writes qualified paths (file#section). isAmbiguous() available for
   future display differentiation.
+owner: bjorn@stabell.org
 ---
 
 # [x] Ambiguous embed links resolve to nothing instead of first match @km/storage #bug #P2

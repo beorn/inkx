@@ -13,6 +13,7 @@ close_reason: "Won't fix: Not a bug. The architecture doc explicitly states 'Not
   usage. The shared pre-allocated arrays (Float64Array, traversalStack) are
   documented as non-reentrant. A measure callback calling calculateLayout on a
   separate tree already works correctly in practice (tested)."
+owner: bjorn@stabell.org
 ---
 
 # [x] Bug: No reentrancy guard despite shared module-level mutable state @km/flexily #bug #P1

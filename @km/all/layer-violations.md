@@ -8,6 +8,7 @@ created_at: 2026-03-30T05:52:05Z
 closed_at: 2026-03-30T06:22:39Z
 close_reason: "Fixed: moved 7 utility functions from @km/tree to @km/core,
   updated all consumers (no re-exports). 1701 tests pass."
+owner: bjorn@stabell.org
 ---
 
 # [x] Fix km package layer violations @km/all #bug #P2

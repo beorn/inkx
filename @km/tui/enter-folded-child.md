@@ -9,6 +9,8 @@ closed_at: 2026-04-03T08:34:13Z
 close_reason: "Fixed: hasVisibleChildren and hasVisibleItemChildren now check
   ViewTree.areChildrenFolded() to detect when children are rendered as
   FoldedChildRow. Enter creates sibling instead of hidden child."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] Enter on folded node creates invisible child instead of sibling @km/tui #bug #P2 @Bjørn Stabell

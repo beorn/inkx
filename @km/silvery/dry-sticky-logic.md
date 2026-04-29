@@ -11,6 +11,7 @@ close_reason: "Deferred: Duplication between renderScrollContainerChildren and
   child override, and second-pass rendering. Context differs enough (viewport
   clear mechanics, clip bounds) that direct extraction is non-trivial. Document
   the pattern, extract when next modifying sticky logic."
+owner: bjorn@stabell.org
 ---
 
 # [x] DRY: Deduplicate sticky rendering logic between scroll and normal containers @km/silvery #task #P2

@@ -10,6 +10,14 @@ close_reason: "Shipped 2026-04-27 — silvery main f59384c4, km main bdfae3f5b.
   Acceptance verified: rg 'Bun\\.gc|globalThis\\.gc|warmup|MAX_LEAK_KB'
   tests/memory/ → 0 hits. 13884 tests pass with SILVERY_STRICT=1. C1 recast L4.5
   → L5."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.c1-fossil-sweep-broader
+    depends_on_id: km-all.plateau-90
+    type: parent-child
+    created_at: 2026-04-27T11:00:54Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] C1 fossil sweep: extend Bun.gc deletion to heap-snapshot.slow.test.tsx + production-paths.test.tsx @km/silvery #task #P2

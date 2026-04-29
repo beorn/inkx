@@ -17,6 +17,16 @@ close_reason: "Shipped: km main 40faa9d47. PaneGrid with 1-col │ dividers (no
   createRenderer-based renderScenario harness fail due to pre-existing
   useScopeEffect/ScopeProvider issue from lifecycle-scope landing (84ac75043) —
   orthogonal to this feature."
+started_at: 2026-04-25T07:29:24Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.pane-management
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-25T00:27:44Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Better pane management: borders, drag-resize, split keybindings, focused-pane indicator @km/silvercode #feature #P2 @claude:2405c72e

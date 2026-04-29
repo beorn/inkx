@@ -11,6 +11,8 @@ close_reason: "Both phases complete. Phase 1: parseTreeGlob parser + fstype
   d, s, x) + nodetype (i, l) + SQL translation + $ hack removed. @next.md: 6
   rules → 3. Full docs at docs/ref/tree-globs.md. 35 parser tests, 4857 total
   pass."
+owner: bjorn@stabell.org
+assignee: claude:f8196c1c
 ---
 
 # [x] tree globs — zsh-style path globs with node qualifiers for selecting nodes in the km tree @km/storage #feature #P2 @claude:f8196c1c

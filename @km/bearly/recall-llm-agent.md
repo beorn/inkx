@@ -14,6 +14,15 @@ close_reason: "v1 landed: LLM planner + 2-round fanout (wider/deeper
   exact error strings). v2 leftovers: explicit --planner model override, latency
   optimization (currently ~12s for 2 rounds vs 2-3s target), iterative round 3+
   if round 2 under-delivers. Commits: bearly 46763a4, km 5b3b0e15f."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-bearly.recall-llm-agent
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-16T15:50:32Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Recall: LLM-driven multi-query search agent @km/bearly #feature #P2 @Bjørn Stabell

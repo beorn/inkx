@@ -26,6 +26,8 @@ close_reason: >-
 
   Tests: 243 files pass (6225 tests). key-release, run-exit, run-writable,
   clipboard-providers all green.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Zero hook implementations in run.tsx — all hooks in ag-react @km/silvery #task #P0 @Bjørn Stabell

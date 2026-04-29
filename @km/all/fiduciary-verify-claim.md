@@ -5,6 +5,14 @@ aliases:
   - km-all-fiduciary-verify-claim
 created_by: claude:7e9436e8
 created_at: 2026-04-21T20:36:02Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.fiduciary-verify-claim
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-21T13:36:02Z
+    created_by: claude:7e9436e8
+    metadata: "{}"
 ---
 
 # [ ] Fiduciary mode — re-verify numbers/dates against primary source before asserting @km/all #feature #P2

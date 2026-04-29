@@ -10,6 +10,8 @@ close_reason: "ListView has history/surfaceId/textAdapter props. Panes demo
   verified: split panes, virtual history (frozen items), Tab focus, Ctrl+F
   search, Esc close. 110 tests pass. Era2 integration tracked in
   km-silvery.virtual-terminal."
+owner: bjorn@stabell.org
+assignee: claude:def7f8a1
 ---
 
 # [x] ScrollbackView wrapper + showcase demo @km/silvery #task #P2 @claude:def7f8a1

@@ -5,6 +5,7 @@ aliases:
   - km-tui-slow-quit
 created_at: 2026-02-05T16:58:27Z
 closed_at: 2026-02-05T17:45:20Z
+assignee: claude:b53ef7e4
 ---
 
 # [x] 5-10 second delay after pressing q to quit @km/tui #bug #P2 @claude:b53ef7e4

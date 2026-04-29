@@ -8,6 +8,14 @@ created_at: 2026-04-11T22:51:32Z
 closed_at: 2026-04-11T22:59:33Z
 close_reason: All 40 examples now export main(), CLI uses dynamic import. Commit
   b0551013 in silvery, 39cad524b in km.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.examples-import
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-11T15:51:32Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Examples: switch from spawn to dynamic import @km/silvery #task #P0

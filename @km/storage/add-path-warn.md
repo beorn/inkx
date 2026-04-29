@@ -6,6 +6,8 @@ aliases:
 created_by: claude:084f044c
 created_at: 2026-02-12T13:13:15Z
 closed_at: 2026-02-12T14:12:15Z
+owner: bjorn@stabell.org
+assignee: claude:586bad48
 ---
 
 # [x] Warn when add= rule paths point outside the repo @km/storage #bug #P3 @claude:586bad48

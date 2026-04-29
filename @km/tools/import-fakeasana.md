@@ -6,6 +6,8 @@ aliases:
 created_by: claude:54aefa32
 created_at: 2026-02-17T23:19:35Z
 closed_at: 2026-02-18T07:46:44Z
+owner: bjorn@stabell.org
+assignee: claude:5f0aee02
 ---
 
 # [x] Update tests & FakeAsana to be representative of Asana export behavior @km/tools #task #P2 @claude:5f0aee02

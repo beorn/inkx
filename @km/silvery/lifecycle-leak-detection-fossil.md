@@ -5,6 +5,14 @@ aliases:
   - km-silvery-lifecycle-leak-detection-fossil
 created_by: claude:cc081a9a
 created_at: 2026-04-27T14:51:22Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.lifecycle-leak-detection-fossil
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-27T07:51:46Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] Delete L0 memory-leak workarounds (Bun.gc + warmup + 600KB threshold) — fossils after C1 Phase 2 @km/silvery #task #P2

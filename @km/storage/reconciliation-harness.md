@@ -11,6 +11,15 @@ close_reason: "Scaffolding complete: reconcile-cascade.slow.test.ts (6 pass + 4
   verifier extended
   (snapshotUlidsByPath/verifyUlidStability/verifyUlidFreshness), transformers
   extended. Skipped tests gated on km-storage.identity-recovery-cascade."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.reconciliation-harness
+    depends_on_id: km-storage.fs-mount
+    type: parent-child
+    created_at: 2026-04-21T21:50:01Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Reconciliation test harness: extend existing chaos+fuzz suite with inode-primary cascade + ULID-stability invariants @km/storage #task #P1 @claude:8b5b9e1c

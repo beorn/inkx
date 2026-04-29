@@ -5,6 +5,7 @@ aliases:
   - km-silvery-examples-theme
 created_by: claude:73d7a332
 created_at: 2026-03-12T16:46:46Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Example: theme explorer (38 palettes, live preview, semantic tokens) @km/silvery #task #P3

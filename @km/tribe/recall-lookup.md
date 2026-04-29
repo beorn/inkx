@@ -5,6 +5,14 @@ aliases:
   - km-tribe-recall-lookup
 created_by: claude:4de4a3ab
 created_at: 2026-04-27T23:11:04Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.recall-lookup
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-27T16:11:05Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] Mem lookup (Tier 1): polish tribe.ask MCP tool descriptions for ACP-spawned agents @km/tribe #task #P3

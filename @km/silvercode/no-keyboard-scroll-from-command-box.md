@@ -9,6 +9,16 @@ closed_at: 2026-04-26T09:34:16Z
 close_reason: Fixed via silvery imperative scroll API + app-level Shift+nav
   bindings. See bead notes for commit refs (silvery 703cc7d9, silvercode
   4fa47ef94, km root 00042ee20). 6 silvery tests + 1 silvercode smoke test pass.
+started_at: 2026-04-26T09:01:39Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.no-keyboard-scroll-from-command-box
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-26T02:00:10Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] No keyboard way to scroll MessageList from CommandBox focus @km/silvercode #bug #P1 @claude:2405c72e

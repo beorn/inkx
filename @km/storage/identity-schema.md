@@ -11,6 +11,15 @@ close_reason: "Schema-additive pass done: branded NodeId/RepoId in @km/core,
   composite (fs_dev, fs_ino) index. Block_id→name fold deferred to
   km-storage.block-id-name-fold. Tests: identity-schema-v5.test.ts (7 passing).
   Committed in 98b74de9e & follow-up."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.identity-schema
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-21T22:30:07Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Identity schema migration (P0 prereq): fold block_id into .name + branded types + file basename/path split @km/storage #task #P0 @claude:8b5b9e1c

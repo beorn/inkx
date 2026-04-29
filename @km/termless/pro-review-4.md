@@ -5,6 +5,7 @@ aliases:
   - km-termless-pro-review-4
 created_by: claude:65d845d9
 created_at: 2026-03-14T02:12:49Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Pro Review 4: termless docs & positioning @km/termless #task #P3

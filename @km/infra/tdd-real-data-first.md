@@ -5,6 +5,14 @@ aliases:
   - km-infra-tdd-real-data-first
 created_by: claude:8b5b9e1c
 created_at: 2026-04-20T20:18:46Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.tdd-real-data-first
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-20T13:18:54Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [ ] /tdd skill: require real-vault repro step 0 for bugs reported on real data @km/infra #task #P2

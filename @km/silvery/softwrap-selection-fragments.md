@@ -12,6 +12,16 @@ close_reason: "Implemented in silvery bae47310 + km 239f0819.
   Fallback to \\n-split when no measurer registered. STRICT test: 60-char
   paragraph at width 20 with selection (5,35) emits 2 fragments (y=0 width 15 +
   y=1 width 15). Closes Phase 4b deferred wrap-spanning."
+started_at: 2026-04-25T21:52:25Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvery.softwrap-selection-fragments
+    depends_on_id: km-silvery.overlay-anchor-system
+    type: parent-child
+    created_at: 2026-04-25T14:23:55Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Soft-wrap aware selectionFragments — Option B wrap measurer registration @km/silvery #task #P2 @claude:2405c72e

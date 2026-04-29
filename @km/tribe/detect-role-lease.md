@@ -8,6 +8,7 @@ created_at: 2026-03-30T19:45:15Z
 closed_at: 2026-03-30T19:46:44Z
 close_reason: "Fixed: detectRole checks leadership table first. If valid lease
   exists, new sessions always become members. Published v0.6.1."
+owner: bjorn@stabell.org
 ---
 
 # [x] detectRole() should check leader lease, not just heartbeats @km/tribe #bug #P2

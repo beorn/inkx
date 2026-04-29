@@ -4,6 +4,7 @@ aliases:
   - km-storage-2
 created_at: 2026-01-27T01:53:36Z
 closed_at: 2026-01-27T15:33:30Z
+assignee: beorn
 ---
 
 # [x] Remove all remaining singletons from km-storage @km/_orphan #task #P1 @beorn

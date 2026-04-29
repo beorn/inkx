@@ -14,6 +14,16 @@ close_reason: "Session complete. Shipped: queue Option-B tests, ctrl-b
   layout-churn un-repro, flexshrink preset Phase 1-4+9-10 by testfix-2).
   Cursor-startup remains open (deps on view-as-layout-output → post-TEA). All
   code committed to origin/main via afbe9f89a."
+started_at: 2026-04-25T05:17:10Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-session.0424-silvercode
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-24T22:17:10Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Session 2026-04-24: silvercode resume — Agents 0/0, queue tests, cursor-startup bug @km/session #task #P1 @claude:2405c72e

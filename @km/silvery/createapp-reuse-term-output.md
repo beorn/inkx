@@ -11,6 +11,15 @@ close_reason: Shipped (silvery b158cac2 + km bump). createApp.run() now prefers
   is injected or the Term has no output (headless/emulator). Ownership tracked
   via ownsOutput — dispose only tears down locally-constructed Outputs. km-tui
   2511 pass; silvery 1595/1602 (7 pre-existing fails unchanged).
+owner: bjorn@stabell.org
+assignee: claude:019d032d
+dependencies:
+  - issue_id: km-silvery.createapp-reuse-term-output
+    depends_on_id: km-silvery.term-sub-owners
+    type: parent-child
+    created_at: 2026-04-22T18:26:31Z
+    created_by: claude:019d032d
+    metadata: "{}"
 ---
 
 # [x] createApp uses injectedTerm.output when present (eliminate latent dual-Output) @km/silvery #task #P2 @claude:019d032d

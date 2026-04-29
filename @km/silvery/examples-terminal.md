@@ -5,6 +5,7 @@ aliases:
   - km-silvery-examples-terminal
 created_by: claude:73d7a332
 created_at: 2026-03-12T16:20:36Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Example: terminal kitchensink (clipboard, paste, mouse, keys, focus, truecolor) @km/silvery #task #P3

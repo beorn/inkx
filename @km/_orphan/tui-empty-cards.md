@@ -4,6 +4,7 @@ aliases:
   - km-tui-empty-cards
 created_at: 2026-02-01T07:59:14Z
 closed_at: 2026-02-01T22:09:42Z
+assignee: claude:3e1beaa0
 ---
 
 # [x] Cards render as empty boxes when content should be visible @km/_orphan #bug #P1 @claude:3e1beaa0

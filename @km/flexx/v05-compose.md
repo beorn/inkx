@@ -9,6 +9,8 @@ closed_at: 2026-03-30T19:57:03Z
 close_reason: "Implemented composable layout engine: createFlexily,
   createBareFlexily, pipe, TextLayoutService with 3 backends, FlexilyNode mixin.
   31 tests, all 1561 Flexily tests pass, zero type errors."
+owner: bjorn@stabell.org
+assignee: claude:9abd72d2
 ---
 
 # [x] v0.5: Composable layout engine @km/flexx #feature #P1 @claude:9abd72d2

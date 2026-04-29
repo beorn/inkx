@@ -9,6 +9,16 @@ closed_at: 2026-04-26T07:39:08Z
 close_reason: "Shipped: silvery 8c63cfb9 + km root f0b6691e8. Switched
   maxScrollRow to totalRowsMeasured (same root class as Stream J). 5 tests.
   Session: km-session.0425-evening"
+started_at: 2026-04-26T07:26:07Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvery.listview-scrollcap-stale-estimate
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-26T00:26:07Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] ListView maxScrollRow uses estimate × items in height-independent mode @km/silvery #bug #P1 @claude:2405c72e

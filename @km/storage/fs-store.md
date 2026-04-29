@@ -10,6 +10,7 @@ close_reason: Implemented createFsStore wrapping filesystem as Store &
   Observable. Internal in-memory SQLite DB, EventHandlers for DB→FS projection,
   ReconciliationEngine for FS→DB, BulkSync.fromFs for initial population. 10
   tests passing.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 5: createFsStore — FS as sync peer @km/storage #task #P3

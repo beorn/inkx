@@ -4,6 +4,7 @@ aliases:
   - km-test-output-2
 created_at: 2026-01-27T22:01:24Z
 closed_at: 2026-01-27T22:12:10Z
+assignee: claude:8f1636c1
 ---
 
 # [x] Blank lines in bun test:all output @km/_orphan #bug #P2 @claude:8f1636c1

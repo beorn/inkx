@@ -6,6 +6,7 @@ aliases:
 created_by: claude:b3bb3c86
 created_at: 2026-02-24T16:16:46Z
 closed_at: 2026-02-24T18:05:45Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Unify view + pane keybindings under v prefix @km/tui #feature #P1

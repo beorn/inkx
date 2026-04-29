@@ -10,6 +10,8 @@ close_reason: "Implemented: selection.ts (TEA state machine),
   selection-renderer.ts (inverse overlay), useSelection.tsx (React hook), wired
   into create-app.tsx mouse interception + OSC 52 clipboard. 23 tests pass.
   Termless OSC 52 capture added for testing."
+owner: bjorn@stabell.org
+assignee: claude:def7f8a1
 ---
 
 # [x] App-level text selection (mouse drag, highlight, OSC 52 clipboard) @km/silvery #feature #P2 @claude:def7f8a1

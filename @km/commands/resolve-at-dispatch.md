@@ -8,6 +8,8 @@ created_at: 2026-03-28T06:31:15Z
 closed_at: 2026-03-28T06:34:16Z
 close_reason: All 4 handlers accept Position, resolution at dispatch,
   reparentToNode deleted, -33 net lines
+owner: bjorn@stabell.org
+assignee: claude:ceb7c9cb
 ---
 
 # [x] Resolve Position at dispatch time — eliminate string parsing in verb handlers @km/commands #task #P2 @claude:ceb7c9cb

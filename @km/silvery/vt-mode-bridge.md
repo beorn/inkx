@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-02T21:08:11Z
 closed_at: 2026-04-02T23:50:20Z
 close_reason: Implemented. CacheBackendContext, auto-selection from mode, 8 tests.
+owner: bjorn@stabell.org
 ---
 
 # [x] Mode-agnostic cache: createApp(mode) → ListCache backend auto-selection @km/silvery #task #P1

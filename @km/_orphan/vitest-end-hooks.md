@@ -4,6 +4,7 @@ aliases:
   - km-vitest-end-hooks
 created_at: 2026-01-28T16:51:13Z
 closed_at: 2026-01-28T16:55:57Z
+assignee: claude:18380d7e
 ---
 
 # [x] vitest onTestRunEnd/onFinished hooks not called with many specs @km/_orphan #bug #P1 @claude:18380d7e

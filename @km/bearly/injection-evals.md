@@ -15,6 +15,21 @@ close_reason: "Phase 5 complete.
   km-ambot incident replay (zero Write/Edit allowed). Metrics: unsafe mutation
   rate 0, false positive 0, gate precision 100%. Commits: bearly 53e6669, km
   ff2eb7bb9."
+owner: bjorn@stabell.org
+assignee: claude:7e9436e8
+dependencies:
+  - issue_id: km-bearly.injection-evals
+    depends_on_id: km-bearly
+    type: parent-child
+    created_at: 2026-04-21T12:42:42Z
+    created_by: claude:7e9436e8
+    metadata: "{}"
+  - issue_id: km-bearly.injection-evals
+    depends_on_id: km-bearly.injection-envelope-lib
+    type: blocks
+    created_at: 2026-04-21T12:42:43Z
+    created_by: claude:7e9436e8
+    metadata: "{}"
 ---
 
 # [x] Adversarial injection eval suite — 15 shapes + incident replay @km/bearly #task #P1 @claude:7e9436e8

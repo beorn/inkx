@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-02T22:35:07Z
 closed_at: 2026-04-03T02:31:06Z
 close_reason: Deleted. Commit/save split is the structural prevention.
+owner: bjorn@stabell.org
 ---
 
 # [x] Remove shouldApplyToFs — redundant with commit/project split @km/storage #task #P2

@@ -10,6 +10,7 @@ close_reason: "Fixed: Updated test counts across all docs (README, CONTRIBUTING,
   CLAUDE.md, src/CLAUDE.md, docs/index.md, testing.md, yoga-comparison.md,
   v1-roadmap.md, zero-allocation.md). Total: 1368->1495. Yoga compat: 41->44 (38
   in src/CLAUDE.md). Feature tests: ~480->~105 in testing.md."
+owner: bjorn@stabell.org
 ---
 
 # [x] Docs: Inconsistent test counts across README, CONTRIBUTING, CLAUDE.md, testing.md @km/flexily #task #P3

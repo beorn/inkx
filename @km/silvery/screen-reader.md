@@ -8,6 +8,7 @@ created_at: 2026-03-10T05:32:47Z
 closed_at: 2026-03-10T06:00:02Z
 close_reason: "Screen reader mode in compat renderToString: walks React tree
   with ARIA roles/labels/states. 25 tests."
+owner: bjorn@stabell.org
 ---
 
 # [x] Screen reader mode: ARIA-based text rendering for accessibility @km/silvery #feature #P2

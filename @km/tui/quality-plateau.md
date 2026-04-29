@@ -5,6 +5,7 @@ aliases:
   - km-tui-quality-plateau
 created_by: Bjørn Stabell
 created_at: 2026-04-05T17:48:04Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Quality plateau: reduce 5 state containers to 2 (signals + repo) @km/tui #epic #P2

@@ -9,6 +9,7 @@ closed_at: 2026-04-09T04:25:59Z
 close_reason: All view components migrated to useTreeNode().
   ReactiveNodeStoreContext/Provider compat re-exports already gone. Commit
   9795cfaf0.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 6: useTreeNode adoption + compat re-export cleanup @km/tui #task #P2

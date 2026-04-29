@@ -8,6 +8,7 @@ created_at: 2026-03-13T07:13:17Z
 closed_at: 2026-03-13T07:24:58Z
 close_reason: "Fixed: isFocusable() now checks node.hidden — Suspense hidden
   nodes not focusable. Test in focus-manager-unit.test.ts."
+owner: bjorn@stabell.org
 ---
 
 # [x] Hidden nodes remain focusable — isFocusable ignores node.hidden @km/silvery #bug #P1

@@ -10,6 +10,8 @@ close_reason: "Fixed: configureHelp formatHelp/padWidth now check cmd === self
   to prevent parent sections leaking into subcommand help. Also migrated all
   addHelpText calls to addHelpSection across termless, terminfo.dev, and
   km-cli."
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] @silvery/commander: addHelpSection propagates to subcommands via afterAll @km/silvery #bug #P2 @claude:4929065a

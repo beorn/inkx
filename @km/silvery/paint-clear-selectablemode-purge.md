@@ -5,6 +5,14 @@ aliases:
   - km-silvery-paint-clear-selectablemode-purge
 created_by: claude:cc081a9a
 created_at: 2026-04-27T20:23:06Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.paint-clear-selectablemode-purge
+    depends_on_id: km-silvery.paint-clear-l5-final
+    type: parent-child
+    created_at: 2026-04-27T13:23:06Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [ ] Paint-clear Step 2 — delete selectableMode state machine from RenderSink + buffer @km/silvery #task #P3

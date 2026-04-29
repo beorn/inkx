@@ -6,6 +6,7 @@ aliases:
   - "@km/sync-m5/0"
 created_at: 2026-01-23T15:16:19Z
 closed_at: 2026-01-23T23:00:19Z
+assignee: 20ff2ff9
 ---
 
 # [x] Create named regression tests for discovered sync bugs @km/sync-m5 #task #P3 @20ff2ff9

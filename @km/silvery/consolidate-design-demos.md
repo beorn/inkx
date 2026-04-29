@@ -7,6 +7,22 @@ created_by: claude:c56dc5d6
 created_at: 2026-04-23T17:47:51Z
 closed_at: 2026-04-25T16:41:33Z
 close_reason: Closed
+started_at: 2026-04-25T15:26:31Z
+owner: bjorn@stabell.org
+assignee: claude:22c2717d
+dependencies:
+  - issue_id: km-silvery.consolidate-design-demos
+    depends_on_id: km-silvery.sterling-no-negative-surprises
+    type: blocks
+    created_at: 2026-04-25T08:49:33Z
+    created_by: claude:22c2717d
+    metadata: "{}"
+  - issue_id: km-silvery.consolidate-design-demos
+    depends_on_id: km-silvery.sterling-storybook
+    type: parent-child
+    created_at: 2026-04-24T16:16:10Z
+    created_by: claude:5e447b66
+    metadata: "{}"
 ---
 
 # [x] Consolidate design/theme viewer demos into one; document sterling tokens @km/silvery #feature #P2 @claude:22c2717d

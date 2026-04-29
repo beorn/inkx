@@ -11,6 +11,8 @@ close_reason: "Probed 6.0.0 and 6.1.0-beta.195, added to version catalog.
   (hardcoded false). 32 new annotations added. Remaining: update
   @termless/xtermjs to detect version and report kittyKeyboard=true for 6.1+
   (separate termless bead)."
+owner: bjorn@stabell.org
+assignee: claude:27beac99
 ---
 
 # [x] xterm.js 6.1: kitty keyboard protocol — update headless backend + version catalog @km/terminfo #task #P2 @claude:27beac99

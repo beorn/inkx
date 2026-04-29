@@ -11,6 +11,15 @@ close_reason: "Fixed region.ts to do single-pass scan over union of excludes
   vendor/silvery/tests/pipeline/backdrop-hardening.test.ts: disjoint excludes
   preserve both holes, overlapping excludes preserve union, includes+excludes
   correctly compose. All 83 backdrop tests pass. Commit ea8d0368."
+owner: bjorn@stabell.org
+assignee: claude:a1a0e667
+dependencies:
+  - issue_id: km-silvery.backdrop-hardening.multi-exclude
+    depends_on_id: km-silvery.backdrop-hardening
+    type: parent-child
+    created_at: 2026-04-20T14:00:07Z
+    created_by: claude:88c0e764
+    metadata: "{}"
 ---
 
 # [x] region.ts: multiple exclude rects visits hole interiors (correctness bug) @km/silvery #bug #P0 @claude:a1a0e667

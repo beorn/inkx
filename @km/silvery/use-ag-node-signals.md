@@ -10,6 +10,16 @@ close_reason: silvery 354da34a / km 1157841bc. Tests had wrong expectations from
   creation (commit 953afc44, never passed) — useAgNode reads parent NodeContext
   correctly, but tests assumed function components own AgNodes. Fixed to invoke
   Inspector inside the Box instead of returning it. 6/6 pass.
+started_at: 2026-04-27T04:29:13Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvery.use-ag-node-signals
+    depends_on_id: km-all.fix-sweep-vendor-fuzz
+    type: parent-child
+    created_at: 2026-04-26T17:09:58Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] [bug] vendor/silvery use-ag-node — 3 unrelated layout/signal bugs (lines 16, 69, 171) @km/silvery #bug #P2 @claude:cc081a9a

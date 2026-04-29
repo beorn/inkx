@@ -10,6 +10,7 @@ close_reason: "Added captureStrictFailureArtifacts() to output-phase.ts. On
   /tmp/silvery-strict-failure-<timestamp>/: meta.json, error.txt,
   incremental.ansi, fresh.ansi, prev-buffer.txt, next-buffer.txt,
   fresh-prev.ansi. Artifact path included in error message."
+owner: bjorn@stabell.org
 ---
 
 # [x] STRICT failure: auto-capture debug artifacts @km/_orphan #task #P3

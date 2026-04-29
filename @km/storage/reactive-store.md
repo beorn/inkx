@@ -5,6 +5,7 @@ aliases:
   - km-storage-reactive-store
 created_by: Bjørn Stabell
 created_at: 2026-04-03T05:37:00Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] [epic] Reactive Store — trait-based, backend-swappable, signals as UI bridge @km/storage #epic #P2

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:97b8de73
 created_at: 2026-02-23T13:23:41Z
 closed_at: 2026-02-23T15:42:43Z
+owner: bjorn@stabell.org
+assignee: claude:ee8efc0f
 ---
 
 # [x] Card title wraps too aggressively (SLT3103 Smarthome) @km/tui #bug #P3 @claude:ee8efc0f

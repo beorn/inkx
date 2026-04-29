@@ -10,6 +10,8 @@ close_reason: "Fixed: backend.ts header docs clarified async init contract,
   improved error message, added _resetSharedForTesting(). Test: backend.test.ts
   — init guard, re-init cleanup, destroy lifecycle (3 new tests). Verified: 555
   termless tests pass."
+owner: bjorn@stabell.org
+assignee: claude:21c57d63
 ---
 
 # [x] Async Ghostty init doesn't fit sync backend interface @km/termless #bug #P2 @claude:21c57d63

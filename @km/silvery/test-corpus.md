@@ -9,6 +9,7 @@ closed_at: 2026-03-13T05:22:38Z
 close_reason: "Deferred: Real-app render tree corpus replay needs infrastructure
   to capture and serialize render trees from live apps. Current fuzz tests
   generate synthetic trees that cover the same code paths."
+owner: bjorn@stabell.org
 ---
 
 # [x] Testing gap: real-app render tree corpus replay @km/silvery #task #P3

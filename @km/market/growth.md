@@ -5,6 +5,7 @@ aliases:
   - km-market-growth
 created_by: Bjørn Stabell
 created_at: 2026-04-02T19:55:47Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Growth plan: 0 → 10K developers in 6 months @km/market #epic #P2

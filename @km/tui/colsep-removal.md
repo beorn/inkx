@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d697f216
 created_at: 2026-02-25T14:21:31Z
 closed_at: 2026-02-25T17:18:49Z
+owner: bjorn@stabell.org
+assignee: claude:d697f216
 ---
 
 # [x] Column separator removal: evaluate 0-width separator between columns @km/tui #task #P2 @claude:d697f216

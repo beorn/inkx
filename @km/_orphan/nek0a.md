@@ -7,6 +7,8 @@ created_at: 2026-03-17T08:33:07Z
 closed_at: 2026-03-17T15:04:31Z
 close_reason: foldersToRefresh in ReconcileContext tracks all affected parents
   for create/delete/move.
+owner: bjorn@stabell.org
+assignee: claude:b92140a2
 ---
 
 # [x] P1: Parent-folder index refresh inconsistent across lifecycle events @km/_orphan #bug #P1 @claude:b92140a2

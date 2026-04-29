@@ -5,6 +5,14 @@ aliases:
   - km-all-connector-matrix
 created_by: claude:18c72b43
 created_at: 2026-04-20T18:47:14Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-all.connector-matrix
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-20T11:47:14Z
+    created_by: claude:18c72b43
+    metadata: "{}"
 ---
 
 # [ ] @km/connector-matrix — Matrix homeserver sync @km/all #feature #P3

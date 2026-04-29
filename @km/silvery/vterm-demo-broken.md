@@ -10,6 +10,7 @@ close_reason: "Root cause: ListView virtual cache unmounts items in fullscreen
   (no scrollback to display them). Fix: added 'retain' cache backend — cached
   but kept in render tree. Also fixed demos to use useWindowSize() instead of
   process.stdout.rows."
+owner: bjorn@stabell.org
 ---
 
 # [x] [bug] Demo apps (vterm-demo, aichat): fullscreen mode shows only one rotating line @km/silvery #bug #P3

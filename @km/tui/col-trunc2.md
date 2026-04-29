@@ -6,6 +6,8 @@ aliases:
 created_by: claude:97b8de73
 created_at: 2026-02-23T13:23:39Z
 closed_at: 2026-02-24T08:34:38Z
+owner: bjorn@stabell.org
+assignee: claude:97b8de73
 ---
 
 # [x] Column header still truncated by 1 char (FAMILY SPRIN) @km/tui #bug #P2 @claude:97b8de73

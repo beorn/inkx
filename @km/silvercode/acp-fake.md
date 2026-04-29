@@ -59,6 +59,22 @@ close_reason: >-
   - queueMicrotask doesn't fire under vi.useFakeTimers. setTimeout does. Use
   setTimeout-based scheduling everywhere if Layer 2 wants
   test-time-controllability.
+started_at: 2026-04-26T09:09:31Z
+owner: bjorn@stabell.org
+assignee: claude:cd034ca4
+dependencies:
+  - issue_id: km-silvercode.acp-fake
+    depends_on_id: km-silvercode.acp
+    type: parent-child
+    created_at: 2026-04-26T02:04:56Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
+  - issue_id: km-silvercode.acp-fake
+    depends_on_id: km-silvercode.acp-foundation
+    type: blocks
+    created_at: 2026-04-26T02:04:57Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [x] ACP fake — deterministic test double for components, adapters, and orchestration @km/silvercode #feature #P1 @claude:cd034ca4

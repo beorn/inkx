@@ -4,6 +4,7 @@ aliases:
   - km-flexx-stress-cache
 created_at: 2026-01-31T14:03:35Z
 closed_at: 2026-01-31T14:05:54Z
+assignee: claude:b8b4780b
 ---
 
 # [x] Add caching correctness stress tests @km/_orphan #task #P1 @claude:b8b4780b

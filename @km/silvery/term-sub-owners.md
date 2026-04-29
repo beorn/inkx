@@ -13,6 +13,15 @@ close_reason: "Phase D shipped silvery 47245067 + km 960ce5d15. Console exposes
   pro-review-p1 (4/4 items done: A1 name-uniqueness, A2 backendTerm signals, A3
   symbol hiding, D console perf); parent epic term-sub-owners done (all 4 phases
   A/B/C/D + Phase 9b shipped)."
+owner: bjorn@stabell.org
+assignee: claude:019d032d
+dependencies:
+  - issue_id: km-silvery.term-sub-owners
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-22T13:47:52Z
+    created_by: claude:019d032d
+    metadata: "{}"
 ---
 
 # [x] Promote Term to typed-sub-owner umbrella (input/output/modes/size/signals/console) @km/silvery #task #P1 @claude:019d032d

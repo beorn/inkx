@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-03T23:05:44Z
 closed_at: 2026-04-04T09:49:00Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Terminology Phase 3: Event → Change rename (storage) @km/all #task #P1 @Bjørn Stabell

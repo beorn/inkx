@@ -6,6 +6,8 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-18T23:43:37Z
 closed_at: 2026-02-20T07:37:05Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Visual navigation migration: eliminate colIndex/cardIndex, simplify store @km/tui #task #P2 @claude:8f007ba9

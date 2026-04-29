@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-06T06:07:59Z
 closed_at: 2026-04-06T06:12:07Z
 close_reason: consolidated into km-market.terminfo-completeness.sgr-visual
+owner: bjorn@stabell.org
 ---
 
 # [x] Add underline color + SGR gaps (SGR 58/59) @km/market #task #P1

@@ -4,6 +4,7 @@ aliases:
   - km-flexx-for-loops
 created_at: 2026-01-30T20:25:38Z
 closed_at: 2026-01-30T20:28:43Z
+assignee: claude:b8b4780b
 ---
 
 # [x] [flexx] Replace reduce/some with for-loops in hot paths @km/_orphan #task #P3 @claude:b8b4780b

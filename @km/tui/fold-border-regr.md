@@ -6,6 +6,8 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-12T16:50:21Z
 closed_at: 2026-02-12T20:16:04Z
+owner: bjorn@stabell.org
+assignee: claude:124bfbe5
 ---
 
 # [x] Fold (<) bottom border disappears — regression @km/tui #bug #P4 @claude:124bfbe5

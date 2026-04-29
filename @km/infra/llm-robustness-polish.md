@@ -18,6 +18,15 @@ close_reason: "Landed in bearly@e0702ae + km@6a2ab98b. 12 regression tests pass
   plumbing. Test agent hit rate limit mid-session and left a deliberate
   regression in dispatch.ts (cacheCurrentPricing on pricing failure); caught +
   reverted before commit. Net source LOC DOWN; test LOC UP from 52 → 777."
+owner: bjorn@stabell.org
+assignee: claude:0590a583
+dependencies:
+  - issue_id: km-infra.llm-robustness-polish
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-20T18:19:12Z
+    created_by: claude:0590a583
+    metadata: "{}"
 ---
 
 # [x] @bearly/llm robustness, DRY, and elegance polish @km/infra #task #P1 @claude:0590a583

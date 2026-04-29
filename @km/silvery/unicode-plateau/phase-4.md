@@ -10,6 +10,21 @@ close_reason: "Phase 4 shipped. detectInput absorbed into caps.input. Profile
   factory takes optional stdin. 5 new contract tests pin caps.input semantics. 0
   bare detector exports in @silvery/ansi detection surface. lint-env-reads: 0
   violations, 4-file allowlist. Silvery ad727819."
+owner: bjorn@stabell.org
+assignee: claude:c6244087
+dependencies:
+  - issue_id: km-silvery.unicode-plateau.phase-4
+    depends_on_id: km-silvery.unicode-plateau
+    type: parent-child
+    created_at: 2026-04-23T09:44:36Z
+    created_by: claude:c6244087
+    metadata: "{}"
+  - issue_id: km-silvery.unicode-plateau.phase-4
+    depends_on_id: km-silvery.unicode-plateau.phase-3
+    type: blocks
+    created_at: 2026-04-23T09:44:37Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Unicode plateau Phase 4: caps.input symmetry (absorb detectInput) @km/silvery #task #P1 @claude:c6244087

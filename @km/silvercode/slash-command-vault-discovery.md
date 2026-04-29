@@ -7,6 +7,16 @@ created_by: claude:da9990c5
 created_at: 2026-04-28T19:25:34Z
 closed_at: 2026-04-28T19:36:59Z
 close_reason: Closed
+started_at: 2026-04-28T19:25:47Z
+owner: bjorn@stabell.org
+assignee: claude:da9990c5
+dependencies:
+  - issue_id: km-silvercode.slash-command-vault-discovery
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T12:25:41Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] Slash-command auto-complete doesn't surface vault-local commands @km/silvercode #bug #P2 @claude:da9990c5

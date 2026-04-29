@@ -6,6 +6,7 @@ aliases:
   - "@km/test-simplify/11"
 created_at: 2026-01-23T23:40:08Z
 closed_at: 2026-01-24T18:03:10Z
+assignee: "11507516"
 ---
 
 # [x] Use MockWatcher in mock mode instead of skipping tests @km/test-simplify #task #P3 @11507516

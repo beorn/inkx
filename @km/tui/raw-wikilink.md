@@ -6,6 +6,8 @@ aliases:
 created_by: claude:28b14b32
 created_at: 2026-02-23T16:28:19Z
 closed_at: 2026-02-23T16:42:37Z
+owner: bjorn@stabell.org
+assignee: claude:28b14b32
 ---
 
 # [x] Card body shows raw \![[  wikilink embed syntax instead of rendering it @km/tui #bug #P2 @claude:28b14b32

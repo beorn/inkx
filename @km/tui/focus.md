@@ -10,6 +10,7 @@ close_reason: "Grooming 2026-04-15: 3/4 children closed (focus-cardlike,
   detail-spatial-nav, focusscope-inputlayer). km-tui.anchor-focus-selection (P4
   vision) reparented to km-tui. Focus/selection unification now tracked under
   km-silvery.selection-focus-plateau."
+owner: bjorn@stabell.org
 ---
 
 # [x] Focus & selection unification — from spatial nav to tree Paths @km/tui #epic #P1

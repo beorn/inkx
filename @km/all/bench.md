@@ -5,6 +5,7 @@ aliases:
   - km-all-bench
 created_by: Bjørn Stabell
 created_at: 2026-04-08T23:54:18Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Benchmarking & perf observability @km/all #epic #P2

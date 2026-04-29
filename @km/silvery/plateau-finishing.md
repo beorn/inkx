@@ -7,6 +7,14 @@ created_by: claude:c6244087
 created_at: 2026-04-23T20:18:41Z
 closed_at: 2026-04-23T20:40:03Z
 close_reason: Closed
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.plateau-finishing
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T13:18:56Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Finishing touches: un-deprecate run({colorLevel}), drop @deprecated cruft, relocate types @km/silvery #task #P3

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:5f0aee02
 created_at: 2026-02-18T10:09:28Z
 closed_at: 2026-02-18T10:19:09Z
+owner: bjorn@stabell.org
+assignee: claude:5f0aee02
 ---
 
 # [x] Completed tasks: date badge not dimmed, colors not fully stripped @km/tui #bug #P2 @claude:5f0aee02

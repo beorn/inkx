@@ -10,6 +10,16 @@ close_reason: Implemented in a38aae82d. github.com (repo, PR, issue, file),
   gist.github.com, JIRA (atlassian.net + self-hosted via /jira/ regex +
   /browse/KEY-n path), linear.app (with/without slug). Pattern-only — no HTTP
   fetching (separate bead). Generic webcard fallback for unmatched hosts.
+started_at: 2026-04-26T01:46:34Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.url-host-handlers
+    depends_on_id: km-silvercode.autolinks-config
+    type: parent-child
+    created_at: 2026-04-25T18:45:57Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Per-host autolinks handlers — pattern-only (no HTTP fetching) @km/silvercode #feature #P3 @claude:2405c72e

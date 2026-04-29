@@ -8,6 +8,7 @@ created_at: 2026-03-25T05:22:37Z
 closed_at: 2026-03-25T05:24:58Z
 close_reason: Merged into km-silvery.era2a-1-textframe — convergence happens in
   Phase 1, not separately
+owner: bjorn@stabell.org
 ---
 
 # [x] Era2a Phase 1b: converge cell/frame types — one FrameCell, one TextFrame @km/silvery #task #P1

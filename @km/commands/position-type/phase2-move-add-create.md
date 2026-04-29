@@ -9,6 +9,8 @@ closed_at: 2026-03-28T02:17:35Z
 close_reason: moveTo→REPARENT_TO, addTo→LINK_TO, createIn→CREATE_AT. 6 action
   types deleted. Structural handlers (no card/column branching). All 4646 tests
   pass.
+owner: bjorn@stabell.org
+assignee: claude:ceb7c9cb
 ---
 
 # [x] Phase 2: move + add + create + structural cleanup @km/commands #task #P2 @claude:ceb7c9cb

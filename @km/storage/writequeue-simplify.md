@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-03T01:07:08Z
 closed_at: 2026-04-03T02:31:06Z
 close_reason: Direct writeFileSync. No temp files, no fsync, no atomic rename.
+owner: bjorn@stabell.org
 ---
 
 # [x] WriteQueue: default to direct writes, atomic opt-in @km/storage #task #P3

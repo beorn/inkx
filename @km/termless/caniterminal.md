@@ -9,6 +9,8 @@ closed_at: 2026-03-23T14:44:36Z
 close_reason: Added census.md + census.data.ts to termless docs. VitePress page
   renders colored matrix from per-backend JSON at build time. 5 backends, 66
   features, 8 categories.
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] caniterminal: the caniuse.com for terminal emulators @km/termless #feature #P2 @claude:4929065a

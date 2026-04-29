@@ -5,6 +5,7 @@ aliases:
   - km-storage-sync-architecture
 created_by: Bjørn Stabell
 created_at: 2026-03-31T21:42:54Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Sync architecture consolidation — centralize flows, clear layers, quality plateau @km/storage #task #P2

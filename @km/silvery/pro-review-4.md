@@ -8,6 +8,8 @@ created_at: 2026-03-14T02:12:20Z
 closed_at: 2026-03-14T02:28:19Z
 close_reason: Homepage simplified, Ink migration guide, respectful comparison,
   benchmark methodology, SEO
+owner: bjorn@stabell.org
+assignee: claude:65d845d9
 ---
 
 # [x] Pro Review 4: silvery docs & positioning — 4 critical, 7 important @km/silvery #task #P2 @claude:65d845d9

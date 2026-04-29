@@ -10,6 +10,14 @@ close_reason: "All 4 children shipped: MVP (3-pane layout), Full
   (DerivationPanel + ContrastAudit + IntentDemo + UrgencyDemo + SchemeAuthor),
   consolidate-design-demos (deleted predecessor apps), storybook-polish
   (PaletteGallery + tier ladder)."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.sterling-storybook
+    depends_on_id: km-all.sterling
+    type: parent-child
+    created_at: 2026-04-24T16:12:57Z
+    created_by: claude:5e447b66
+    metadata: "{}"
 ---
 
 # [x] Sterling Storybook — interactive system explorer @km/silvery #epic #P2

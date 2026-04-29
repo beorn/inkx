@@ -62,6 +62,16 @@ close_reason: >-
   Branch: ambient-phase-6-breaker-telemetry
 
   Remote SHA: 39555c125a86535e78d8bd7c659e34f1968e9560
+started_at: 2026-04-27T21:17:58Z
+owner: bjorn@stabell.org
+assignee: claude:4de4a3ab
+dependencies:
+  - issue_id: km-silvercode.ambient-phase-6-breaker-telemetry
+    depends_on_id: km-silvercode.ambient-context-excellence
+    type: parent-child
+    created_at: 2026-04-27T14:17:45Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [x] Ambient Phase 6.b — circuit breaker + Layer 4 telemetry @km/silvercode #feature #P1 @claude:4de4a3ab

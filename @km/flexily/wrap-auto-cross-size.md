@@ -12,6 +12,7 @@ close_reason: "Fixed: Phase 7a now estimates cross-size for auto-sized container
   layoutNode calls in Phase 8 corrupted global pre-allocated line arrays —
   multi-line data is now saved into local arrays before Phase 8. Test:
   vendor/flexily/tests/css-spec-fixes.test.ts (3 tests)"
+owner: bjorn@stabell.org
 ---
 
 # [x] Bug: Wrapped auto-sized child containers get line cross-size 0 @km/flexily #bug #P0

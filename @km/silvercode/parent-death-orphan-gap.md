@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-parent-death-orphan-gap
 created_by: claude:2405c72e
 created_at: 2026-04-26T23:12:52Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.parent-death-orphan-gap
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-26T16:13:01Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] Parent SIGKILL/OOM leaks orphan claude processes — add PR_SET_PDEATHSIG (Linux) + kqueue NOTE_EXIT (macOS) only when reported @km/silvercode #task #P4

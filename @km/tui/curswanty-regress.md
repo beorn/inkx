@@ -6,6 +6,7 @@ aliases:
 created_by: claude:e7ea0892
 created_at: 2026-02-11T21:30:20Z
 closed_at: 2026-02-11T22:50:05Z
+owner: bjorn@stabell.org
 ---
 
 # [x] curswantY regression: j3→l→j3→l lands at card 1 not 2+ @km/tui #bug #P2

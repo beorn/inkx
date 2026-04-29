@@ -10,6 +10,8 @@ close_reason: "All 3 packages reorganized: km-storage (43→12 root files, 5
   subdirs), km-tree (19→13 root files, ops/ subdir), km-tui (44→28 root files,
   state/ + navigation/ + board/ absorption). Commits b20f13bd, 4203d90a,
   f6312033."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Reorganize flat src/ dirs into subdirectories — km-storage, km-tui, km-tree @km/infra #task #P2 @Bjørn Stabell

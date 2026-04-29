@@ -8,6 +8,7 @@ created_at: 2026-04-10T08:22:56Z
 closed_at: 2026-04-10T08:40:17Z
 close_reason: "All 5 APIs shipped: click, expectNodeBorder, expectNodeColor,
   expectNoGhostChars, screen.ansi. 10 tests pass. Committed f2dffdddf."
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 1: White-box APIs on TestApp (click, expectNodeBorder/Color, expectNoGhostChars) @km/all #task #P0

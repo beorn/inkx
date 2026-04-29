@@ -6,6 +6,8 @@ aliases:
 created_by: claude:499eee95
 created_at: 2026-02-14T00:14:35Z
 closed_at: 2026-02-14T08:59:40Z
+owner: bjorn@stabell.org
+assignee: claude:124bfbe5
 ---
 
 # [x] Card memo: use reference equality with structural sharing instead of field-by-field comparison @km/tui #task #P3 @claude:124bfbe5

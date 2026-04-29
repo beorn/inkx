@@ -4,6 +4,7 @@ aliases:
   - km-tui-fake-vaults
 created_at: 2026-01-25T01:32:50Z
 closed_at: 2026-01-25T01:39:46Z
+assignee: km-tui-fake-vaults
 ---
 
 # [x] Migrate TUI tests to use createFakeVault @km/_orphan #task #P2 @km-tui-fake-vaults

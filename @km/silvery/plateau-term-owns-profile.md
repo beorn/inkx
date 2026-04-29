@@ -13,6 +13,15 @@ close_reason: Shipped in silvery a9f7d010. Every Term variant (Node, headless,
   createTerminalProfile call unless colorLevel override. 3 new contract tests in
   create-term-defaults.contract.test.tsx pin the invariants (262/262 contract
   tests pass, 2552/2552 km-tui+km-logview pass, tsc at baseline 210).
+owner: bjorn@stabell.org
+assignee: claude:c6244087
+dependencies:
+  - issue_id: km-silvery.plateau-term-owns-profile
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-23T02:49:50Z
+    created_by: claude:c6244087
+    metadata: "{}"
 ---
 
 # [x] Term.profile — Term instances own their resolved TerminalProfile @km/silvery #task #P3 @claude:c6244087

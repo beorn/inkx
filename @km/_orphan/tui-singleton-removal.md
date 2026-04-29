@@ -4,6 +4,7 @@ aliases:
   - km-tui-singleton-removal
 created_at: 2026-01-24T00:39:31Z
 closed_at: 2026-01-24T16:33:02Z
+assignee: 15d108d7
 ---
 
 # [x] Remove singleton usage from TUI layer @km/_orphan #task #P2 @15d108d7

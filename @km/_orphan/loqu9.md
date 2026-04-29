@@ -6,6 +6,8 @@ created_by: claude:fed8de9e
 created_at: 2026-03-29T05:20:47Z
 closed_at: 2026-03-29T05:30:59Z
 close_reason: "Fixed: shifted punctuation text normalization in Kitty key parsing"
+owner: bjorn@stabell.org
+assignee: claude:fed8de9e
 ---
 
 # [x] Normalize shifted punctuation in Kitty key parsing @km/_orphan #bug #P2 @claude:fed8de9e

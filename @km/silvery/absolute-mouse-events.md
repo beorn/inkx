@@ -50,6 +50,7 @@ close_reason: >-
   grace timer, and the link-swap suppression that depended on it. HIDE_DELAY
   (300ms grace) preserved as an ergonomics feature (mouse-jitter tolerance), not
   a workaround.
+owner: bjorn@stabell.org
 ---
 
 # [x] Mouse events not dispatched to absolutely positioned elements @km/silvery #bug #P1

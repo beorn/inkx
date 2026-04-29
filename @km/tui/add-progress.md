@@ -6,6 +6,8 @@ aliases:
 created_by: claude:bca35d62
 created_at: 2026-02-11T16:29:25Z
 closed_at: 2026-02-18T07:58:52Z
+owner: bjorn@stabell.org
+assignee: claude:5f0aee02
 ---
 
 # [x] km add: show progress for query, resolve, and link creation phases @km/tui #feature #P3 @claude:5f0aee02

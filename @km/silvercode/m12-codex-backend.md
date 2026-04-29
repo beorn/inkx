@@ -11,6 +11,14 @@ close_reason: "Shipped in commit 48955bf47 as part of the M0-M12 landing. See
   markdown/syntax for @silvery/markdown + @silvery/syntax when they ship; evolve
   Codex Track 1 parser as the CLI stabilizes; harden km-mcp backend when real
   @km/storage queries are wired in apps/silvercode/controller.ts."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.m12-codex-backend
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-24T02:09:54Z
+    created_by: claude:0940ca20
+    metadata: "{}"
 ---
 
 # [x] M12: Codex Track 1 + Track 2 @km/silvercode #task #P2

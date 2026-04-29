@@ -6,6 +6,8 @@ aliases:
 created_by: claude:ee8efc0f
 created_at: 2026-02-22T00:42:26Z
 closed_at: 2026-02-22T00:59:34Z
+owner: bjorn@stabell.org
+assignee: claude:ee8efc0f
 ---
 
 # [x] J/K block navigation is stub — should drill into/out of cards @km/tui #bug #P2 @claude:ee8efc0f

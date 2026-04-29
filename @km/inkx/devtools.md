@@ -5,6 +5,7 @@ aliases:
   - km-inkx-devtools
 created_at: 2026-02-04T11:24:00Z
 closed_at: 2026-02-04T12:50:52Z
+assignee: claude:27f1a547
 ---
 
 # [x] Add React DevTools support to inkx @km/inkx #feature #P4 @claude:27f1a547

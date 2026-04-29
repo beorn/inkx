@@ -6,6 +6,8 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-12T22:08:39Z
 closed_at: 2026-02-14T08:06:55Z
+owner: bjorn@stabell.org
+assignee: claude:124bfbe5
 ---
 
 # [x] Cards view looks different when zoomed into .md file vs board root — borders gone @km/tui #bug #P3 @claude:124bfbe5

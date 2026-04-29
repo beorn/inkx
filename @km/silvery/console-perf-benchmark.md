@@ -38,6 +38,14 @@ close_reason: >-
     - Existing console.test.ts + console-output-coexistence.test.ts: 21 passed
     - tsc --noEmit: 0 errors on new file
     - Without PERF: 1 skipped ✓
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.console-perf-benchmark
+    depends_on_id: km-silvery.term-sub-owners
+    type: parent-child
+    created_at: 2026-04-22T18:26:32Z
+    created_by: claude:019d032d
+    metadata: "{}"
 ---
 
 # [x] Verify Console.count/entriesSnapshot refactor is O(n) amortized (Pro P1-9 claim) @km/silvery #task #P3

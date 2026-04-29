@@ -9,6 +9,7 @@ close_reason: "README: Familiar/Better structure, 100+ protocols, 177KB gzipped,
   composability, dynamic scrollback. Landing page aligned. Ink comparison is
   respectful and factual. Coming section shows vision (renderers, frameworks,
   tea)."
+owner: bjorn@stabell.org
 ---
 
 # [x] Website positioning: React for terminals, AI-native niche @km/_orphan #task #P2

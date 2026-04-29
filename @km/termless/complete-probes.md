@@ -8,6 +8,8 @@ created_at: 2026-03-24T14:49:12Z
 closed_at: 2026-03-24T19:04:44Z
 close_reason: 106 features across 11 categories with body content, slugs, spec
   URLs. 45 real-terminal probes in terminfo CLI.
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] Systematically review all terminal standards and implement probes for all features @km/termless #task #P1 @claude:4929065a

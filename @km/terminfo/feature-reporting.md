@@ -10,6 +10,7 @@ close_reason: "Done: Added device.xtversion (XTVERSION CSI > 0 q),
   device.term-features (env var), extensions.osc1337-cellsize,
   extensions.osc1337-capabilities. Probes in both probe-defs and termless
   runner. All backends tested."
+owner: bjorn@stabell.org
 ---
 
 # [x] iTerm2 Feature Reporting probes — TERM_FEATURES + OSC 1337 Capabilities @km/terminfo #task #P2

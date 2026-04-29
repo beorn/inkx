@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-06T06:08:14Z
 closed_at: 2026-04-06T06:12:11Z
 close_reason: consolidated into km-market.terminfo-completeness.modes-columns
+owner: bjorn@stabell.org
 ---
 
 # [x] Add column editing + horizontal scroll (SL, SR, DECIC, DECDC) @km/market #task #P2

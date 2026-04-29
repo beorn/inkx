@@ -6,6 +6,8 @@ aliases:
 created_by: claude:97b8de73
 created_at: 2026-02-23T13:55:19Z
 closed_at: 2026-02-23T14:01:08Z
+owner: bjorn@stabell.org
+assignee: claude:97b8de73
 ---
 
 # [x] Integrate React DevTools for profiling TUI component trees @km/tui #task #P2 @claude:97b8de73

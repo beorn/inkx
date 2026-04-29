@@ -6,6 +6,7 @@ aliases:
   - "@km/rev-0129/1"
 created_at: 2026-01-29T16:36:05Z
 closed_at: 2026-01-29T18:09:24Z
+assignee: claude:298008b9
 ---
 
 # [x] Fix APP layer imports from storage/internal @km/rev-0129 #task #P1 @claude:298008b9

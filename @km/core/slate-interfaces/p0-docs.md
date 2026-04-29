@@ -9,6 +9,7 @@ closed_at: 2026-03-28T07:39:03Z
 close_reason: "KILLED: Merged into P1. Docs-before-code violates 'docstrings
   document reality, not plans.' Architecture doc written AS the pattern is
   implemented, not before."
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 0: Document the target architecture + update /code review layer rules @km/core #task #P2

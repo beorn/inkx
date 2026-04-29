@@ -12,6 +12,15 @@ close_reason: "0.19.2 published. Workflow now uses pnpm publish + build:all +
   0.19.1). Local smoke: npm install + import works for all four scoped packages
   and root silvery. CI smoke: green on rerun (initial CDN race). Vendor:
   silvery@32812ba1. km root: bump committed (not pushed; user verifies)."
+owner: bjorn@stabell.org
+assignee: claude:a1a0e667
+dependencies:
+  - issue_id: km-silvery.publishconfig-exports-fix
+    depends_on_id: km-silvery.theme-v4
+    type: parent-child
+    created_at: 2026-04-20T14:08:04Z
+    created_by: claude:4274df30
+    metadata: "{}"
 ---
 
 # [x] Sterling 0.19.1: republish with pnpm to fix broken exports @km/silvery #bug #P0 @claude:a1a0e667

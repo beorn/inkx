@@ -13,6 +13,8 @@ close_reason: Fixed via 3c65d0cee. Adds multiSelectedBg(theme) helper (14%
   rule 6 rewritten to document the actual implementation. Termless test
   'multi-selected cards show multi-select bg' confirms 3 distinct bg values
   (cursor=3 yellow, multi-select=8 blackBright, none=null).
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] Multi-selection has no visual highlight @km/tui #bug #P1 @Bjørn Stabell

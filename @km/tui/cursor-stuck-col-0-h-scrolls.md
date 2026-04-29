@@ -12,6 +12,8 @@ close_reason: "Fixed via silvery 6df747b6 (useVirtualizer edge-based scroll) +
   leftmost-visible. Fix: only update anchor when scrollTo lands outside the
   current visible window. Two regression tests in
   apps/km-tui/tests/scroll-and-cursor.test.tsx. Verified live in TTY MCP."
+owner: bjorn@stabell.org
+assignee: claude:019d032d
 ---
 
 # [x] Horizontal nav scrolls board instead of moving cursor across columns @km/tui #bug #P1 @claude:019d032d

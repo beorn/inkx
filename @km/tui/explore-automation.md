@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-06T19:41:02Z
 closed_at: 2026-04-06T21:02:35Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Automated explorative testing — invariant-driven TTY exploration @km/tui #feature #P2 @Bjørn Stabell

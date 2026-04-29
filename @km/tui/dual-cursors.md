@@ -6,6 +6,8 @@ aliases:
 created_by: claude:536645b5
 created_at: 2026-02-20T15:47:48Z
 closed_at: 2026-02-20T16:02:14Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Dual cursors: active bright yellow, inactive dim yellow @km/tui #feature #P2 @claude:d3a7049b

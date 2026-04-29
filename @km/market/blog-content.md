@@ -5,6 +5,7 @@ aliases:
   - km-market-blog-content
 created_by: Bjørn Stabell
 created_at: 2026-04-02T04:11:56Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Write 5 blog articles for silvery.dev, get Pro review, publish @km/market #task #P1

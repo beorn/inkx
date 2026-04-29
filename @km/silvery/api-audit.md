@@ -8,6 +8,7 @@ created_at: 2026-03-09T21:49:46Z
 closed_at: 2026-03-09T23:49:31Z
 close_reason: "api-audit.md updated: added @silvery/term/ansi entry point that
   was missing. Full export catalog documented."
+owner: bjorn@stabell.org
 ---
 
 # [x] API surface audit: remove accidental public exports @km/silvery #task #P2

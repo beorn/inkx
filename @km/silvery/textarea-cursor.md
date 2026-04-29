@@ -9,6 +9,7 @@ closed_at: 2026-03-24T14:56:02Z
 close_reason: "Fixed: useCursor didn't account for inner border+padding offset.
   Added borderColOffset/borderRowOffset to TextArea.tsx and TextInput.tsx. 4 new
   tests."
+owner: bjorn@stabell.org
 ---
 
 # [x] TextArea: cursor renders on last character instead of after it @km/silvery #bug #P2

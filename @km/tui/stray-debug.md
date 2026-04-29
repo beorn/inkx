@@ -6,6 +6,7 @@ aliases:
 created_by: claude:499eee95
 created_at: 2026-02-13T18:27:48Z
 closed_at: 2026-02-13T18:45:28Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Delete 3 stray debug test files @km/tui #task #P3

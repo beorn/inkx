@@ -4,6 +4,7 @@ aliases:
   - km-cli-progress
 created_at: 2026-01-27T09:26:35Z
 closed_at: 2026-01-27T09:41:02Z
+assignee: beorn
 ---
 
 # [x] Add progress reporting to sync operations (CLI and TUI) @km/_orphan #feature #P3 @beorn

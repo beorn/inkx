@@ -5,6 +5,7 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-12T21:36:23Z
 closed_at: 2026-02-12T22:28:37Z
+owner: bjorn@stabell.org
 ---
 
 # [x] TUI: Terminal resizing messes up display @km/_orphan #bug #P3

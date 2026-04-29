@@ -9,6 +9,15 @@ closed_at: 2026-04-13T00:57:27Z
 close_reason: Audit complete, 5 merges + 5 deletes executed. 57→~30 skills. Kept
   /pro /ask /fresh /big /tdd /deep /explore per user. /silverize updated with
   CLI typography + addHelpSection rules.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-infra.skill-consolidation
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-12T11:01:09Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Consolidate 55 skills → ~15: /sop absorbs audits, merge thinking skills, delete granular wrappers @km/infra #task #P2 @Bjørn Stabell

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-14T15:56:38Z
 closed_at: 2026-02-14T23:05:46Z
+owner: bjorn@stabell.org
+assignee: claude:a5c7f7de
 ---
 
 # [x] Collapsed column too wide when selected — overlaps adjacent columns @km/tui #bug #P2 @claude:a5c7f7de

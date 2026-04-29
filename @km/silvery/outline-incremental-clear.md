@@ -73,6 +73,16 @@ close_reason: >-
   node_modules/silvery/packages/ag-term/src/renderer.ts` — if real path is in
   main km, recreate node_modules in the worktree. Documented in
   silvery-knowledge.md.
+started_at: 2026-04-28T20:46:09Z
+owner: bjorn@stabell.org
+assignee: claude:da9990c5
+dependencies:
+  - issue_id: km-silvery.outline-incremental-clear
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-28T13:42:55Z
+    created_by: claude:da9990c5
+    metadata: "{}"
 ---
 
 # [x] Incremental fast-path doesn't clear outline pixels outside parent rect when only child dirty signal is set @km/silvery #bug #P0 @claude:da9990c5

@@ -8,6 +8,7 @@ created_at: 2026-04-06T10:01:43Z
 closed_at: 2026-04-06T10:05:13Z
 close_reason: "Fixed: removed explicit createTerm() — render() auto-wires TTY.
   Added isTTY guard for kitty detection."
+owner: bjorn@stabell.org
 ---
 
 # [x] terminal-caps-demo: can't quit — text input echoed to terminal instead of captured @km/silvery #bug #P2

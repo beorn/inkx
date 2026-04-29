@@ -9,6 +9,7 @@ closed_at: 2026-04-06T09:45:16Z
 close_reason: DEC 1020-1023 width detection wired into create-app.tsx startup
   pipeline. Detected emoji/CJK widths override heuristic defaults.
   widthDetection option on run/withTerminal. 22 tests. Silvery commit 289e818.
+owner: bjorn@stabell.org
 ---
 
 # [x] DEC 1020-1023 → accurate width measurement (fixes emoji/CJK bugs) @km/silvery #feature #P2

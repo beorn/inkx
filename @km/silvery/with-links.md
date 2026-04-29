@@ -11,6 +11,8 @@ close_reason: "Created withLinks plugin in
   withCommands/withKeybindings pattern: dual calling convention (direct +
   curried for pipe), LinkEventBus interface, runtime-swappable handler, dispose
   cleanup. Exported from @silvery/tea."
+owner: bjorn@stabell.org
+assignee: claude:656602a3
 ---
 
 # [x] withLinks plugin: link activation, navigation, and open effects @km/silvery #feature #P2 @claude:656602a3

@@ -73,6 +73,15 @@ close_reason: >-
   links those collapsed files would otherwise hide from the backlink
 
   graph. Together they close the storage direction on the plateau arc.
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.collapsed-file-links
+    depends_on_id: km-all.plateau
+    type: parent-child
+    created_at: 2026-04-20T23:37:19Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Link-edge extraction for collapsed files @km/storage #feature #P1 @claude:8b5b9e1c

@@ -9,6 +9,8 @@ closed_at: 2026-03-13T05:16:48Z
 close_reason: "Fixed: moved wrap and internal_transform from styleProps to
   contentProps in contentPropsChanged(). They now correctly trigger
   contentDirty+layoutDirty instead of just paintDirty."
+owner: bjorn@stabell.org
+assignee: claude:65d845d9
 ---
 
 # [x] Bug: wrap and internal_transform misclassified as style-only in contentPropsChanged() @km/silvery #bug #P0 @claude:65d845d9

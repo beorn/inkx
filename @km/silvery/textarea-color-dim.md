@@ -8,6 +8,16 @@ created_at: 2026-04-26T05:44:52Z
 closed_at: 2026-04-26T06:38:43Z
 close_reason: "Shipped: 1110d888 (silvery). color + dim props for muted body
   text. 3 tests. Session: km-session.0425-evening"
+started_at: 2026-04-26T05:47:28Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvery.textarea-color-dim
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-25T22:45:05Z
+    created_by: claude:1eb07bba
+    metadata: "{}"
 ---
 
 # [x] TextArea: color/dim prop so unfocused TextArea body renders muted @km/silvery #feature #P3 @claude:2405c72e

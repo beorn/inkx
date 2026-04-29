@@ -5,6 +5,7 @@ aliases:
   - km-silvery-expandable
 created_by: Bjørn Stabell
 created_at: 2026-04-02T16:51:05Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Click-to-expand/collapse component for tool output, long content @km/silvery #feature #P2

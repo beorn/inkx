@@ -68,6 +68,16 @@ close_reason: >-
   (wrap=truncate|clip|false) where min-content==max-content==naturalWidth — that
   case still needs explicit minWidth=0 per silvery's escape-hatch contract. Not
   in scope here.
+started_at: 2026-04-28T19:12:36Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvercode.wrap-unbreakable-audit
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T11:12:13Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Audit silvercode <Text wrap="wrap"> sites for long-unbreakable-token overflow @km/silvercode #task #P3 @claude:cc081a9a

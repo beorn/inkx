@@ -8,6 +8,8 @@ created_at: 2026-04-09T14:30:24Z
 closed_at: 2026-04-09T15:54:38Z
 close_reason: "Scenarios added. Critical finding: Ink 24-32x faster on memo'd
   trees. Created km-silvery.memo-pipeline-regression P0."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Add useState benchmarks — prove real incremental advantage @km/silvery #task #P0 @Bjørn Stabell

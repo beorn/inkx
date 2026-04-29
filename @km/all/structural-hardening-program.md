@@ -8,6 +8,7 @@ created_at: 2026-04-27T06:06:48Z
 closed_at: 2026-04-27T06:07:10Z
 close_reason: Folded into km-all.plateau-90 per user direction — that's the
   existing tracking bead; this duplicate was created before realizing.
+owner: bjorn@stabell.org
 ---
 
 # [x] [program] Restructure + execute plateau work per pro/Kimi review (2026-04-27) @km/all #feature #P1

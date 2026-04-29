@@ -9,6 +9,7 @@ closed_at: 2026-04-02T03:47:50Z
 close_reason: Added /marketing seo and /marketing check commands, created
   seo-check.md workflow, updated execution tracker with audit results. Rate
   limit hit during agent run but all changes completed manually.
+owner: bjorn@stabell.org
 ---
 
 # [x] Update /marketing skill — add /marketing seo, check, status commands @km/market #task #P1

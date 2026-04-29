@@ -5,6 +5,7 @@ aliases:
   - km-storage-batch-reconcile-tx
 created_by: Bjørn Stabell
 created_at: 2026-04-02T22:35:31Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Batch reconciliation events in a transaction — prevent flicker @km/storage #task #P3

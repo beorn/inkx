@@ -6,6 +6,8 @@ aliases:
 created_by: claude:124bfbe5
 created_at: 2026-02-14T00:10:15Z
 closed_at: 2026-02-14T00:16:56Z
+owner: bjorn@stabell.org
+assignee: claude:124bfbe5
 ---
 
 # [x] Core type definitions: NodeType, KNode, predicates @km/ast #task #P1 @claude:124bfbe5

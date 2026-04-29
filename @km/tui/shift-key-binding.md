@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-03-31T22:03:49Z
 closed_at: 2026-03-31T22:04:06Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Kitty Shift+/ keybinding regression: show_help not triggered @km/tui #bug #P2 @Bjørn Stabell

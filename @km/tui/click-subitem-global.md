@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-20T16:58:20Z
 closed_at: 2026-02-20T17:45:53Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Click on card subitem selects subitems on all cards @km/tui #bug #P2 @claude:d3a7049b

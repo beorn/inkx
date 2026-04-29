@@ -21,6 +21,14 @@ close_reason: "C3b complete: MAX_SINGLE_PASS_ITERATIONS=15,
   km-tui 2534/2534 (1 unrelated bearly LLM failure). Design doc:
   hub/silvery/design/convergence-bounds.md. Folded in:
   km-silvery.scrollto-single-pass."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.renderer-convergence-by-design
+    depends_on_id: km-silvery.structural-hardening
+    type: parent-child
+    created_at: 2026-04-26T23:18:24Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Eliminate MAX_SINGLE_PASS_ITERATIONS — convergence by construction @km/silvery #feature #P2

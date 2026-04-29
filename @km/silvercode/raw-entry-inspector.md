@@ -5,6 +5,14 @@ aliases:
   - km-silvercode-raw-entry-inspector
 created_by: claude:cd034ca4
 created_at: 2026-04-26T23:38:54Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.raw-entry-inspector
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-26T16:39:09Z
+    created_by: claude:cd034ca4
+    metadata: "{}"
 ---
 
 # [ ] silvercode — per-entry raw inspector (popover + below/above modes) @km/silvercode #feature #P2

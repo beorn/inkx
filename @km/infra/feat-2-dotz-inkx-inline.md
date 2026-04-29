@@ -5,6 +5,7 @@ aliases:
   - km-infra-feat-2-dotz-inkx-inline
 created_at: 2026-01-28T23:07:41Z
 closed_at: 2026-01-29T01:03:02Z
+assignee: claude:18380d7e
 ---
 
 # [x] DotzReporter: use inkx inline mode with single component @km/infra #feature #P2 @claude:18380d7e

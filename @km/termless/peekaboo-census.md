@@ -9,6 +9,8 @@ closed_at: 2026-03-23T23:46:11Z
 close_reason: "Done: app-harness.ts (30 probes, runs inside terminal) +
   app-runner.ts (launches via AppleScript). 5 apps detected: Ghostty, iTerm2,
   Terminal.app, Kitty, Warp. Usage: bun census:apps"
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] Peekaboo census: probe real terminal apps (iTerm2, Terminal.app, Kitty, Ghostty, Warp) @km/termless #feature #P2 @claude:4929065a

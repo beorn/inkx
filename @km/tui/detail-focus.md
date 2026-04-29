@@ -6,6 +6,8 @@ aliases:
 created_by: claude:53ab8041
 created_at: 2026-02-28T09:21:18Z
 closed_at: 2026-03-01T16:55:17Z
+owner: bjorn@stabell.org
+assignee: claude:53ab8041
 ---
 
 # [x] Detail pane: column-like focus, navigation, and selection highlighting @km/tui #feature #P1 @claude:53ab8041

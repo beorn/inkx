@@ -6,6 +6,8 @@ aliases:
 created_by: claude:a5c7f7de
 created_at: 2026-02-15T09:18:47Z
 closed_at: 2026-02-16T11:54:02Z
+owner: bjorn@stabell.org
+assignee: claude:a5c7f7de
 ---
 
 # [x] Editing HR stops keyboard input; HR not converted to editable '---' card @km/tui #bug #P2 @claude:a5c7f7de

@@ -26,6 +26,16 @@ close_reason: |-
   - km-silvery.divider-focused-title (P3)
 
   No code changes under this bead per its design — review beads describe; change beads ship.
+started_at: 2026-04-28T22:12:10Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.design-review
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-27T16:59:41Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Design review pass — tweak every silvercode component via All/together storybook @km/silvercode #task #P1 @claude:2405c72e

@@ -8,6 +8,15 @@ created_at: 2026-04-17T06:15:01Z
 closed_at: 2026-04-17T06:18:24Z
 close_reason: Shipped. 4 Ink references replaced with silvery in ref/ui.md,
   ref/commands.md (2 spots), vs-decker.md.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-all.docs-grooming-p2
+    depends_on_id: km-all.docs-grooming
+    type: parent-child
+    created_at: 2026-04-16T23:15:00Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] P2: drift fixes — remove Ink references from active docs @km/all #task #P2 @Bjørn Stabell

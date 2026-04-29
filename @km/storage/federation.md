@@ -10,6 +10,33 @@ close_reason: "Shipped: readOrMintRepoId + loadWorkspace + parseKmUri. Bun.TOML
   parser + handwritten flat-kv writer (zero-dep). 49 tests passing. Phase
   A-appropriate: parse + resolve only; Repo-lifecycle wiring is a follow-up.
   fs-mount package extraction deferred as cosmetic refactor."
+owner: bjorn@stabell.org
+assignee: claude:8b5b9e1c
+dependencies:
+  - issue_id: km-storage.federation
+    depends_on_id: km-storage
+    type: parent-child
+    created_at: 2026-04-21T22:30:08Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
+  - issue_id: km-storage.federation
+    depends_on_id: km-storage.fs-mount
+    type: blocks
+    created_at: 2026-04-21T23:05:22Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
+  - issue_id: km-storage.federation
+    depends_on_id: km-storage.identity-schema
+    type: blocks
+    created_at: 2026-04-21T23:05:22Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
+  - issue_id: km-storage.federation
+    depends_on_id: km-storage.three-seam-boundary
+    type: blocks
+    created_at: 2026-04-21T12:04:30Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] Per-repo federation — .km/state.db per mounted repo + workspace composition @km/storage #feature #P2 @claude:8b5b9e1c

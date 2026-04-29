@@ -6,6 +6,16 @@ aliases:
 created_by: claude:cc081a9a
 created_at: 2026-04-27T06:33:10Z
 closed_at: 2026-04-27T06:58:41Z
+started_at: 2026-04-27T06:33:24Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-silvery.renderer-feedback-trace
+    depends_on_id: km-silvery.structural-hardening
+    type: parent-child
+    created_at: 2026-04-26T23:33:24Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] renderer-feedback-trace — pass-cause instrumentation @km/silvery #feature #P1 @claude:cc081a9a

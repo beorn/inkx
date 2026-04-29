@@ -12,6 +12,15 @@ close_reason: "Audited 14 entries (2 plugin CLIs + 12 tools/*); 0 double-firing;
   (tools/{llm,recall}.ts → guarded plugin cli.ts, tests → worktree.ts also
   guarded). 8 spawn-only tools have unguarded top-level work but are safe today
   (never imported). Report: /tmp/bearly-entry-audit.md"
+owner: bjorn@stabell.org
+assignee: claude:0590a583
+dependencies:
+  - issue_id: km-infra.llm-entry-point-audit
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-20T16:31:52Z
+    created_by: claude:0590a583
+    metadata: "{}"
 ---
 
 # [x] Audit bearly CLI entry wrappers for double-fire pattern @km/infra #task #P2 @claude:0590a583

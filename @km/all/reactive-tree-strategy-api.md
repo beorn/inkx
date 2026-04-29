@@ -71,6 +71,15 @@ close_reason: >-
   Phase 3 would extend to onNodeAdded/Removed/Moved streaming deltas. Waiting
   for a second consumer (or a second perf crisis) to force the API shape.
   Captured in km-all.reactive-tree-library.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-all.reactive-tree-strategy-api
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-18T21:35:17Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] reactive-tree: strategy as first-class function/API (composable, not string) @km/all #feature #P1 @Bjørn Stabell

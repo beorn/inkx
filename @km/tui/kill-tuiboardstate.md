@@ -6,6 +6,7 @@ aliases:
 created_by: claude:36393b5d
 created_at: 2026-02-19T13:28:53Z
 closed_at: 2026-02-19T13:31:34Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Slim down InitialBoardData — remove dead fields, keep as UI state bundle @km/tui #task #P2

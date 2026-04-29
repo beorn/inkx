@@ -14,6 +14,7 @@ close_reason: "Implemented navigable parent breadcrumb links. Changes: (1) Added
   useLinkOpen with onInternalLink handler that parses km://node/ URLs and
   dispatches navigateToNode (SELECT/ZOOM_IN/DETAIL_VIEW). All existing tests
   pass, no new type errors."
+owner: bjorn@stabell.org
 ---
 
 # [x] Make all embedded node references navigable Links (parent breadcrumb, block refs, wiki links) @km/tui #feature #P2

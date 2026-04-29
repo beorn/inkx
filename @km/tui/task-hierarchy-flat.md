@@ -15,6 +15,14 @@ close_reason: "Fixed: TreeNode head-row paddingLeft changed from max(0, depth -
   TreeNodeImpl and FoldedChildRow main rows. Test:
   apps/km-tui/tests/text/inline-rendering.test.ts 'nested task list items are
   visually indented under their parent'. Commit 202eb2efa."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tui.task-hierarchy-flat
+    depends_on_id: km-tui
+    type: parent-child
+    created_at: 2026-04-14T10:37:20Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Nested task list items render flat (lose parent/child hierarchy) @km/tui #bug #P2

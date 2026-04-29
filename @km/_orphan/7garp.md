@@ -9,6 +9,8 @@ close_reason: Rewrote README with honest positioning, genuine differentiators
   (layout feedback, scroll, dirty tracking, input layers, spatial focus,
   commands, mouse, TextArea, 30+ components, themes, multi-target), code
   examples, package table, and performance comparison.
+owner: bjorn@stabell.org
+assignee: claude:474834b0
 ---
 
 # [x] Craft compelling silvery README narrative @km/_orphan #task #P3 @claude:474834b0

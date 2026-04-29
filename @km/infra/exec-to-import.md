@@ -16,6 +16,15 @@ close_reason: "Audit found no valid targets. 28 exec/spawn sites: all 26 KEEP
   The @silvery/examples static-registry pattern works inside ONE CLI but doesn't
   generalize to cross-package invocation in km. Pattern proven where it applies;
   no further migration warranted."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-infra.exec-to-import
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-11T22:11:09Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Switch from exec/spawn to dynamic import everywhere @km/infra #task #P2 @Bjørn Stabell

@@ -11,6 +11,8 @@ close_reason: "Fixed in d402c2f26: parser captures verbatim inline source slice
   when content matches the parse-time baseline. Unedited nodes preserve
   formatting through file-watch cycles. New test suite at
   packages/km-markdown/tests/inline-format-preserve.test.ts."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] P0: Edit silently strips ALL inline formatting (bold/italic/code/links/strike) from entire file @km/markdown #bug #P0 @Bjørn Stabell

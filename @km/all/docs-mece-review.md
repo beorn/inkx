@@ -15,6 +15,21 @@ close_reason: "Shipped 2026-04-16. Full-tree MECE audit: 92 docs + 6 package
   taxonomy) + 2 code renames (resolvedSymlink, ViewRole) tracked in
   docs/backlog.md W2 follow-ups section for pickup between phases. Commit:
   6c79c4db6."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-all.docs-mece-review
+    depends_on_id: km-all
+    type: parent-child
+    created_at: 2026-04-16T15:30:16Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
+  - issue_id: km-all.docs-mece-review
+    depends_on_id: km-storage.link-model-canonical
+    type: blocks
+    created_at: 2026-04-16T15:30:17Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Docs MECE review: one canonical source per concept @km/all #task #P2 @Bjørn Stabell

@@ -6,6 +6,7 @@ aliases:
 created_by: claude:fed8de9e
 created_at: 2026-03-30T20:28:00Z
 closed_at: 2026-03-31T01:40:13Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Prototype: km on canvas (v0.5 exploration) @km/silvery #task #P2

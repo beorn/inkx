@@ -5,6 +5,7 @@ aliases:
 created_by: claude:32d8f2d5
 created_at: 2026-03-01T08:49:06Z
 closed_at: 2026-03-01T10:08:46Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Eliminate module-level mutable state across km-tui and inkx @km/_orphan #task #P2

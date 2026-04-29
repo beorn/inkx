@@ -10,6 +10,7 @@ close_reason: "False positive: bgDirty is only set inside the if(contentChanged)
   block in host-config.ts which always sets paintDirty=true first (line 436).
   Since paintDirty IS in the fast-path skip condition, bgDirty is always caught.
   No code path sets bgDirty without paintDirty."
+owner: bjorn@stabell.org
 ---
 
 # [x] Fast-path skip condition doesn't include bgDirty @km/silvery #bug #P2

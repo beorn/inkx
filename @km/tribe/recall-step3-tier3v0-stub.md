@@ -5,6 +5,20 @@ aliases:
   - km-tribe-recall-step3-tier3v0-stub
 created_by: claude:4de4a3ab
 created_at: 2026-04-28T01:52:23Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.recall-step3-tier3v0-stub
+    depends_on_id: km-tribe.recall
+    type: parent-child
+    created_at: 2026-04-27T18:52:22Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
+  - issue_id: km-tribe.recall-step3-tier3v0-stub
+    depends_on_id: km-tribe.recall-step1-hypothesis-test
+    type: blocks
+    created_at: 2026-04-27T18:52:24Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] Step 3 (Days 2-3): Tier 3 v0 stub — paced echo, no LLM, raw FTS hits @km/tribe #task #P2

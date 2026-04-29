@@ -9,6 +9,8 @@ closed_at: 2026-04-01T21:07:26Z
 close_reason: "Done: all manual ANSI codes replaced with @silvery/ansi
   createStyle(). Interactive post-test SelectList prompt (Submit/Skip) for new
   and known terminals. Non-TTY fallback. Commit 8e810cd."
+owner: bjorn@stabell.org
+assignee: claude:4929065a
 ---
 
 # [x] terminfo.dev CLI: switch to silvery + @silvery/commander for rich TUI output @km/terminfo #feature #P3 @claude:4929065a

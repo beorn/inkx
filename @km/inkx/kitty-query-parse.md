@@ -6,6 +6,8 @@ aliases:
 created_by: claude:d3a7049b
 created_at: 2026-02-20T14:04:30Z
 closed_at: 2026-02-20T14:08:53Z
+owner: bjorn@stabell.org
+assignee: claude:d3a7049b
 ---
 
 # [x] Parse Kitty protocol query response @km/inkx #task #P2 @claude:d3a7049b

@@ -73,6 +73,14 @@ close_reason: >-
   expected path — the 60s poll expired silently. This is benign (hook exits
   cleanly) but suggests Claude Code may abort some worktree creations before
   they hit disk. Worth a separate bead if it recurs.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-infra.worktree-submodule-isolation
+    depends_on_id: km-infra
+    type: parent-child
+    created_at: 2026-04-18T21:28:38Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Per-worktree submodule isolation — bun worktree --recurse-submodules @km/infra #task #P1

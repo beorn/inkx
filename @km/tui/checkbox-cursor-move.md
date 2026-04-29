@@ -10,6 +10,8 @@ close_reason: "Root cause: app-level handleMouse (board-app.ts:849) runs on
   mousedown before click, dispatching SELECT to the sub-item. Fix: onMouseDown
   preventDefault on CheckboxIcon opts out of app click-to-select. Also re-SELECT
   current cursor after toggle (mirrors keyboard path)."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] [bug] Checkbox click moves cursor to sub-item — reactive signal side effect @km/tui #bug #P2 @Bjørn Stabell

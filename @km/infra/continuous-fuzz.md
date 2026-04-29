@@ -18,6 +18,16 @@ close_reason: "Acceptance met: workflow file at .github/workflows/fuzz.yml
   stub, build-info.gen.ts) explicitly noted as parent scope, NOT this bead.
   Target L0 → L3 reached: api/lifecycle structure (CI workflow + script +
   persistent corpus + auto bead creation)."
+started_at: 2026-04-28T04:48:14Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-infra.continuous-fuzz
+    depends_on_id: km-infra.guardrails
+    type: parent-child
+    created_at: 2026-04-26T23:34:15Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] Continuous fuzz CI — nightly + persistent corpus @km/infra #feature #P1 @claude:cc081a9a

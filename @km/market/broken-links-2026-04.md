@@ -11,6 +11,8 @@ close_reason: "Fixed 42 broken links across 3 sites (18 files). Before:
   404s). All actual 404s resolved. Remaining are lychee fragment-check false
   positives on invisible-island.net, kitty docs, and VitePress heading anchors.
   mdspec favicon (10 errors) not fixable — repo not checked out locally."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Fix 97 broken links found by /marketing link-check 2026-04-06 @km/market #task #P1 @Bjørn Stabell

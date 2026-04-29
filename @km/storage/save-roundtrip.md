@@ -5,6 +5,7 @@ aliases:
   - km-storage-save-roundtrip
 created_at: 2026-02-08T22:05:18Z
 closed_at: 2026-02-11T16:51:16Z
+assignee: claude:dffe6eeb
 ---
 
 # [x] Save roundtrip: TUI edit doesn't write to filesystem and board doesn't re-render @km/storage #bug #P2 @claude:dffe6eeb

@@ -6,6 +6,8 @@ aliases:
 created_by: claude:8f007ba9
 created_at: 2026-02-19T16:52:06Z
 closed_at: 2026-02-19T17:25:03Z
+owner: bjorn@stabell.org
+assignee: claude:8f007ba9
 ---
 
 # [x] Expanded sections show raw Asana embed IDs instead of task titles @km/tui #bug #P1 @claude:8f007ba9

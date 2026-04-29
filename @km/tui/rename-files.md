@@ -6,6 +6,7 @@ aliases:
 created_by: claude:550b034d
 created_at: 2026-02-12T13:31:02Z
 closed_at: 2026-02-12T13:54:05Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Support renaming files (including non-md) from TUI @km/tui #feature #P0

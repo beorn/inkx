@@ -11,6 +11,8 @@ close_reason: "All dialog components (11 files) and view components (12 files)
   SearchReplaceDialog, DatePromptDialog, Omnibox, SearchDialog,
   shared-components, NodeView, TreeNode, key-bar. Remaining render.ts/text/
   pipeline intentionally skipped (infrastructure uses raw ANSI)."
+owner: bjorn@stabell.org
+assignee: claude:3c24fe4a
 ---
 
 # [x] Audit all views for semantic typography tokens @km/tui #task #P1 @claude:3c24fe4a

@@ -14,6 +14,16 @@ close_reason: "Landed via tribe-refactor team (compose, qualgate, bgrecall,
   export-path gate), a0c9bfb5b (compose hub doc cleanup), f4e8fac6a (bgrecall
   worktree commit, integrated). See km-tribe.refactor for epic close +
   integration details."
+started_at: 2026-04-27T07:27:22Z
+owner: bjorn@stabell.org
+assignee: claude:87d20187
+dependencies:
+  - issue_id: km-tribe.recall-quality-gate
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-21T14:01:50Z
+    created_by: claude:7e9436e8
+    metadata: "{}"
 ---
 
 # [x] Recall quality gate — reject corrupted/decayed/stuck-loop sessions at index + query time @km/tribe #bug #P1 @claude:87d20187

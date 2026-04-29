@@ -13,6 +13,15 @@ close_reason: "Two-layer SOP architecture shipped. sop-runner.ts (382 lines) =
   LoC of parsers deleted). Caching works: second run skips 28/29 tools (lint
   always runs as mutating pre-step). Parallel wave execution via toposort +
   Promise.all. All 5 acceptance criteria verified."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
+dependencies:
+  - issue_id: km-infra.sop-v2
+    depends_on_id: km-infra.sop
+    type: parent-child
+    created_at: 2026-04-13T00:25:50Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] SOP v2: domain-per-file + shared tool cache @km/infra #task #P0 @Bjørn Stabell

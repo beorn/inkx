@@ -11,6 +11,8 @@ close_reason: "Phase 1 complete: tribe channel plugin
   heartbeat, 6 MCP tools (send/broadcast/sessions/history/rename/health),
   per-session read tracking, priority ordering, alias-based rename support. 12
   tests passing."
+owner: bjorn@stabell.org
+assignee: claude:19080504
 ---
 
 # [x] Phase 1: Tribe MCP channel plugin @km/bearly #feature #P1 @claude:19080504

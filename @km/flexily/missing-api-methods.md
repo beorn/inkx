@@ -10,6 +10,7 @@ close_reason: "Fixed: Added freeRecursive(), getComputedRight(),
   getComputedBottom(), getComputedPadding(edge), getComputedMargin(edge),
   getComputedBorder(edge) to both node-zero.ts and classic/node.ts. All match
   the API reference docs."
+owner: bjorn@stabell.org
 ---
 
 # [x] Bug: Documented API methods missing — freeRecursive, computed getters @km/flexily #bug #P1

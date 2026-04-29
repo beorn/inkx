@@ -7,6 +7,14 @@ created_by: Bjørn Stabell
 created_at: 2026-04-12T15:28:36Z
 closed_at: 2026-04-12T15:28:38Z
 close_reason: Session complete. All phases delivered, published v0.7.0, all tests pass.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-loggily.v2-session
+    depends_on_id: km-loggily
+    type: parent-child
+    created_at: 2026-04-12T08:28:37Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Session: loggily v2 API — design, implement, release, polish @km/loggily #task #P0

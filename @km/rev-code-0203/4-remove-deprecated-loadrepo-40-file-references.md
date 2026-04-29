@@ -6,6 +6,7 @@ aliases:
   - "@km/rev-code-0203/4"
 created_at: 2026-02-03T13:48:00Z
 closed_at: 2026-02-03T14:20:12Z
+assignee: claude:b3478afd
 ---
 
 # [x] Remove deprecated loadRepo() (40 file references) @km/rev-code-0203 #task #P4 @claude:b3478afd

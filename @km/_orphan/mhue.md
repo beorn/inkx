@@ -4,6 +4,7 @@ aliases:
   - km-mhue
 created_at: 2026-01-26T13:19:49Z
 closed_at: 2026-01-26T13:24:29Z
+assignee: beorn
 ---
 
 # [x] batch plugin: fix docs to match current capabilities @km/_orphan #task #P1 @beorn

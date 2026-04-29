@@ -10,6 +10,7 @@ close_reason: Created withInk() composable plugin and createInkWrapRoot() in
   @silvery/compat/with-ink. Wraps root with CursorProvider, InkCursorStoreCtx,
   InkFocusProvider, InkErrorBoundary. Exported from @silvery/compat and
   re-exported from @silvery/tea/plugins.
+owner: bjorn@stabell.org
 ---
 
 # [x] withInk() — Ink compatibility as a composable plugin @km/silvery #task #P2

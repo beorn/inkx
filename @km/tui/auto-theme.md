@@ -6,6 +6,7 @@ aliases:
 created_by: claude:d1f60fb4
 created_at: 2026-02-25T23:32:43Z
 closed_at: 2026-03-04T16:23:53Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Auto-detect light/dark terminal theme via OSC 10/11 @km/tui #feature #P2

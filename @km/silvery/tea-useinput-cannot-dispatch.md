@@ -15,6 +15,14 @@ close_reason: Preflight complete. Audit + docs + CI guard landed in 036aeda46.
   packages/km-infra/scripts/check-test-patterns.sh (baseline 0, verified against
   synthetic fixture). Phase 1 unblocked on this concern. Full evidence in commit
   message + detailed audit in session output.
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.tea-useinput-cannot-dispatch
+    depends_on_id: km-silvery.tea
+    type: parent-child
+    created_at: 2026-04-20T23:21:27Z
+    created_by: claude:8b5b9e1c
+    metadata: "{}"
 ---
 
 # [x] useInput handlers cannot emit effects or dispatch — must use keybinding plugin pattern @km/silvery #task #P1

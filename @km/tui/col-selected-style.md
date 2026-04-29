@@ -6,6 +6,8 @@ aliases:
 created_by: claude:97217d5d
 created_at: 2026-02-16T22:57:39Z
 closed_at: 2026-02-17T22:28:37Z
+owner: bjorn@stabell.org
+assignee: claude:5770ce77
 ---
 
 # [x] Columns should have selected style (yellow bg?) when cursor is at column level @km/tui #bug #P3 @claude:5770ce77

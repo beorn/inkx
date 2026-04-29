@@ -6,6 +6,8 @@ aliases:
 created_by: claude:ee8efc0f
 created_at: 2026-02-23T00:03:32Z
 closed_at: 2026-02-23T00:28:59Z
+owner: bjorn@stabell.org
+assignee: claude:ee8efc0f
 ---
 
 # [x] Wide character handling improvements for CJK/emoji @km/inkx #task #P2 @claude:ee8efc0f

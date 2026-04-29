@@ -5,6 +5,7 @@ aliases:
   - km-inkx-cursor-api
 created_at: 2026-02-09T12:23:40Z
 closed_at: 2026-02-09T12:50:07Z
+assignee: claude:a3625ec3
 ---
 
 # [x] useCursor() hook for terminal cursor management @km/inkx #feature #P3 @claude:a3625ec3

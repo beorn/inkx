@@ -7,6 +7,7 @@ created_by: Bjørn Stabell
 created_at: 2026-04-03T03:56:07Z
 closed_at: 2026-04-03T04:23:11Z
 close_reason: Shipped 7e3a1896. withHistory op-based undo/redo.
+owner: bjorn@stabell.org
 ---
 
 # [x] Phase 6: Plugin composition — withHistory, withNormalization, withVim decorators @km/tree #task #P3

@@ -5,6 +5,7 @@ aliases:
   - km-silvery-signals-engine
 created_by: Bjørn Stabell
 created_at: 2026-04-09T17:58:16Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Speculative: end-to-end signals engine — reactive layout + content + output @km/silvery #feature #P4

@@ -11,6 +11,16 @@ close_reason: "Deduped consecutive identical errors via 5s window in
   layer. Public lastError now {message, count, ts}; renderers show '(×N)' when
   count > 1. Test: error-dedup.test.ts (6 cases). Branch:
   bug/km-silvercode.error-dedup, commit d2a2cc2ce."
+started_at: 2026-04-28T21:43:19Z
+owner: bjorn@stabell.org
+assignee: claude:2405c72e
+dependencies:
+  - issue_id: km-silvercode.error-dedup
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-04-28T14:20:03Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [x] Repeated error toast — Request failed with status code 402 @km/silvercode #bug #P0 @claude:2405c72e

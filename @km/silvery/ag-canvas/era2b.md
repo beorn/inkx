@@ -5,6 +5,7 @@ aliases:
   - km-silvery-ag-canvas-era2b
 created_by: Bjørn Stabell
 created_at: 2026-03-31T07:08:32Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Era2b migration: commands + signals for canvas @km/silvery #feature #P4

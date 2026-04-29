@@ -10,6 +10,8 @@ close_reason: Fixed via km 1fed20fad (silvery 3649785). Plumbs contain scope
   into terminalSelectionUpdate, extends
   extractText/renderSelectionOverlay/composeSelectionCells to clip per-row col
   range to scope. New termless e2e test passes. 103/103 selection tests green.
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Selection ignores contain boundary — highlight spills outside container @km/silvery #bug #P1 @Bjørn Stabell

@@ -8,6 +8,7 @@ created_at: 2026-03-23T00:57:43Z
 closed_at: 2026-03-23T05:35:56Z
 close_reason: "Implemented: bun cli update checks npm/crates.io/github for newer
   upstream versions. --apply to write backends.json."
+owner: bjorn@stabell.org
 ---
 
 # [x] CLI: termless update — check upstream versions + update backends @km/termless #feature #P2

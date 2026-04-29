@@ -11,6 +11,8 @@ close_reason: "Fixed: multi-line wikilinks (3+ lines) caused micromark
   Fix: added newline rejection to all 5 tokenizer state functions. Test: 3
   regression tests + vault sync verified. File: ref/Tech/km-user-guide.md
   contained ![[...]] transclusions spanning 5+ lines with embedded git diffs."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] km sync crashes on vault after Asana integration @km/_orphan #task #P2 @Bjørn Stabell

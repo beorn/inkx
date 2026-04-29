@@ -4,6 +4,7 @@ aliases:
   - km-u0l9o
 created_at: 2026-01-27T13:54:29Z
 closed_at: 2026-01-27T14:05:22Z
+assignee: claude:77f7a68e
 ---
 
 # [x] Add inline mode to inkx for progress indicators @km/_orphan #feature #P2 @claude:77f7a68e

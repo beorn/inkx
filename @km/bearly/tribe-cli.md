@@ -8,6 +8,8 @@ created_at: 2026-03-23T07:01:35Z
 closed_at: 2026-03-25T22:36:08Z
 close_reason: "Standalone CLI: bun tribe {status,send,log,health,sessions}. 219
   lines, uses bun:sqlite directly."
+owner: bjorn@stabell.org
+assignee: claude:19080504
 ---
 
 # [x] Phase 3: tribe CLI subcommand @km/bearly #feature #P3 @claude:19080504

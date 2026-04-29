@@ -6,6 +6,8 @@ aliases:
 created_by: claude:9b6678d0
 created_at: 2026-02-11T23:31:42Z
 closed_at: 2026-02-11T23:41:26Z
+owner: bjorn@stabell.org
+assignee: claude:9b6678d0
 ---
 
 # [x] Content round-trip fuzz: DB→serialize→write→reparse→verify @km/storage #task #P2 @claude:9b6678d0

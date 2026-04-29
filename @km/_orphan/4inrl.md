@@ -8,6 +8,8 @@ closed_at: 2026-03-12T01:32:24Z
 close_reason: Already done — colon-format SGR parsing delegated to
   @silvery/term/ansi-sanitize (ink.ts:39). createColonSGRTracker imported from
   silvery core.
+owner: bjorn@stabell.org
+assignee: claude:73d7a332
 ---
 
 # [x] ink.ts: move colon-format SGR parsing to @silvery/term @km/_orphan #task #P3 @claude:73d7a332

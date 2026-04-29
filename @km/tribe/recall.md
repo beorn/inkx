@@ -5,6 +5,14 @@ aliases:
   - km-tribe-recall
 created_by: claude:4de4a3ab
 created_at: 2026-04-27T23:10:29Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.recall
+    depends_on_id: km-tribe
+    type: parent-child
+    created_at: 2026-04-27T16:10:33Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] Recall: four-tier memory architecture (lookup / inject / thought / dream) @km/tribe #epic #P1

@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-02T23:19:41Z
 closed_at: 2026-04-02T23:22:15Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Update principles.md — domain object inventory, centralized flows, discoverability test @km/infra #task #P2 @Bjørn Stabell

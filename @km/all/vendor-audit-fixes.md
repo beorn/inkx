@@ -15,6 +15,7 @@ close_reason: "Audit fixes committed in b3b8ce40 (silvery agent's commit
   entry), 3 dead doc links. Deferred: mdspec major bumps (zod v3→v4, vitest
   v3→v4) need explicit per-package decision; releases need user approval
   (loggily +80, silvery +17, @bearly/tribe +55 etc)"
+owner: bjorn@stabell.org
 ---
 
 # [x] Fix vendor audit findings (2026-04-19) @km/all #task #P2

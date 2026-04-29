@@ -10,6 +10,14 @@ close_reason: "Grooming 2026-04-15: 3/3 action sub-beads closed
   (selection-contain-bug, selection-consolidation, InputRouter cleanup). Only
   km-silvery.demo-integration-tests survives as its own bead. Superseded by
   km-silvery.selection-focus-plateau."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.selection-quality
+    depends_on_id: km-silvery.selection-focus-plateau
+    type: parent-child
+    created_at: 2026-04-15T11:31:06Z
+    created_by: Bjørn Stabell
+    metadata: "{}"
 ---
 
 # [x] Selection quality plateau — fix bugs, consolidate dual systems, add integration tests @km/silvery #task #P1

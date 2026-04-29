@@ -6,6 +6,8 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-03T21:38:52Z
 closed_at: 2026-04-04T20:21:51Z
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Selection Phase 3: km migration — /refactor clean cut @km/silvery #task #P1 @Bjørn Stabell

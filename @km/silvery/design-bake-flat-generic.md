@@ -12,6 +12,14 @@ close_reason: "Shipped. Silvery: 8d4c34ac (feat(ansi): bakeFlat + FlattenRule),
   feature). Tests 215 → 232 (17 new). All sterling/theme tests green. Sterling
   consumers see identical behaviour; alternative systems now get flat-projection
   for free via defineDesignSystem({ flatten: true }) or custom FlattenRule."
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.design-bake-flat-generic
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-20T10:07:43Z
+    created_by: claude:4274df30
+    metadata: "{}"
 ---
 
 # [x] DesignSystem contract: generic bakeFlat helper for any token system @km/silvery #feature #P3

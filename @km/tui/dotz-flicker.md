@@ -5,6 +5,7 @@ aliases:
   - km-tui-dotz-flicker
 created_at: 2026-02-04T11:27:26Z
 closed_at: 2026-02-04T12:42:37Z
+assignee: claude:a7826e85
 ---
 
 # [x] DotzReporter flickers when view exceeds screen height @km/tui #bug #P2 @claude:a7826e85

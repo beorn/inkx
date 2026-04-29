@@ -5,6 +5,7 @@ aliases:
   - km-tools-bd-cli-sync
 created_by: claude:f8196c1c
 created_at: 2026-03-27T23:13:56Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] km bd: full capability sync — search, count, defer, reopen, graph, advanced filters @km/tools #task #P4

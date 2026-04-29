@@ -8,6 +8,7 @@ created_at: 2026-03-13T05:32:14Z
 closed_at: 2026-03-13T05:32:39Z
 close_reason: P4 quality — tracked but not blocking. Value aliasing risk is
   theoretical; no bugs reported from it.
+owner: bjorn@stabell.org
 ---
 
 # [x] setEdgeValue shares Value object for HORIZONTAL/VERTICAL/ALL edges @km/flexily #task #P4

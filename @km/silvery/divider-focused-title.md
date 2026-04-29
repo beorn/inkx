@@ -5,6 +5,14 @@ aliases:
   - km-silvery-divider-focused-title
 created_by: claude:2405c72e
 created_at: 2026-04-28T22:16:45Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvery.divider-focused-title
+    depends_on_id: km-silvery
+    type: parent-child
+    created_at: 2026-04-28T15:16:44Z
+    created_by: claude:2405c72e
+    metadata: "{}"
 ---
 
 # [ ] <Divider> needs colored-title + focused variant (silvery) @km/silvery #task #P3 #design

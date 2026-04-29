@@ -5,6 +5,20 @@ aliases:
   - km-tribe-recall-thought
 created_by: claude:4de4a3ab
 created_at: 2026-04-27T22:31:17Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-tribe.recall-thought
+    depends_on_id: km-tribe.recall
+    type: parent-child
+    created_at: 2026-04-27T16:10:44Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
+  - issue_id: km-tribe.recall-thought
+    depends_on_id: km-tribe.recall-eval-corpus
+    type: blocks
+    created_at: 2026-04-27T23:35:21Z
+    created_by: claude:4de4a3ab
+    metadata: "{}"
 ---
 
 # [ ] Mem thought (Tier 3): private context sub-agent — LSP + memory + delta injection + visibility UI @km/tribe #feature #P2

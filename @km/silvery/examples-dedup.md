@@ -9,6 +9,7 @@ closed_at: 2026-04-10T21:53:23Z
 close_reason: examples/ is now the @silvery/examples package. Uncurated examples
   moved to vendor/internal/silvery/examples-wip/. Single source of truth, zero
   duplication.
+owner: bjorn@stabell.org
 ---
 
 # [x] Deduplicate examples — single location in packages/examples/examples/ @km/silvery #task #P3

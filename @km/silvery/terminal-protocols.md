@@ -5,6 +5,7 @@ aliases:
   - km-silvery-terminal-protocols
 created_by: Bjørn Stabell
 created_at: 2026-04-06T08:34:52Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] Adopt terminal protocols discovered via terminfo.dev radar @km/silvery #task #P2

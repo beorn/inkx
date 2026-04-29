@@ -5,6 +5,7 @@ aliases:
 created_by: claude:b3bb3c86
 created_at: 2026-02-24T09:46:38Z
 closed_at: 2026-02-24T10:35:20Z
+owner: bjorn@stabell.org
 ---
 
 # [x] Align keybindings to help dialog spec @km/_orphan #task #P1

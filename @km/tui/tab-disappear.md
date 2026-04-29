@@ -10,6 +10,8 @@ close_reason: "Stale useMemo in Card component: repo.getChildren cached with
   stable deps, never invalidated after reparent. Fix:
   useSyncExternalStore(repo.subscribe, repo.getSnapshot) + repoVersion in deps.
   Same fix in DetailView.tsx. 5 new visibility regression tests."
+owner: bjorn@stabell.org
+assignee: Bjørn Stabell
 ---
 
 # [x] Tab indent on subsection makes node disappear from view @km/tui #bug #P0 @Bjørn Stabell

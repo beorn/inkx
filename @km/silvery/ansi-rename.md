@@ -10,6 +10,7 @@ close_reason: Not needed — Term/createTerm is already the terminal abstraction
   (not just ANSI styling). It has stdin/stdout, dims, caps, I/O, and is already
   passed to render(). The plan is to extend createTerm() with Provider
   capabilities, not rename it.
+owner: bjorn@stabell.org
 ---
 
 # [x] Rename Term/createTerm/useTerm to Style/createStyle/useStyle @km/silvery #task #P2

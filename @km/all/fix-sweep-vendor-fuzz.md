@@ -14,6 +14,16 @@ close_reason: "All 14 child beads closed. Vendor: 49→0 failures (12040 tests
   fix, MCP plugin lease tracking on Bun, scope.test.ts AsyncDisposableStack
   rewrite, ag-react dev exports, handleTabCycling fix, useAgNode test
   corrections, termless matcher delegation, vendor/termless gitlink unblock."
+started_at: 2026-04-26T23:22:40Z
+owner: bjorn@stabell.org
+assignee: claude:cc081a9a
+dependencies:
+  - issue_id: km-all.fix-sweep-vendor-fuzz
+    depends_on_id: km-all.fix-sweep-0426
+    type: parent-child
+    created_at: 2026-04-26T16:26:13Z
+    created_by: claude:cc081a9a
+    metadata: "{}"
 ---
 
 # [x] [epic] Fix sweep — 49 vendor + 5 fuzz test failures + hybrid-output phase 3 @km/all #epic #P1 @claude:cc081a9a

@@ -5,6 +5,7 @@ aliases:
   - km-markdown-html-url-stripping
 created_by: Bjørn Stabell
 created_at: 2026-04-06T20:46:38Z
+owner: bjorn@stabell.org
 ---
 
 # [ ] [bug] Markdown parser drops <corge> and https:// scheme — data loss in display @km/markdown #bug #P2

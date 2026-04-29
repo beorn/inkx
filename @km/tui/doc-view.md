@@ -9,6 +9,8 @@ closed_at: 2026-03-29T04:46:50Z
 close_reason: "Detail view now renders as doc-style: headings with # markers,
   body paragraphs inline, task items with markers, nested indentation up to 4
   levels, code/quote styling, cursor highlighting."
+owner: bjorn@stabell.org
+assignee: claude:ceb7c9cb
 ---
 
 # [x] Doc view — render node as markdown document in TUI @km/tui #feature #P2 @claude:ceb7c9cb
