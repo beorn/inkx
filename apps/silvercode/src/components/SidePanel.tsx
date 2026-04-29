@@ -1103,15 +1103,16 @@ function SidePanelChrome({
           3) Tokens + cost (hover details)
           4) Version block — Silver Code on / Claude Code (brand colors) */}
 
-      {/* cwd + git branch. Full row in $fg (not muted) with `km:main` bold
-          so the project + branch pop while the preceding path reads as
-          normal text. Opencode-style "where am I" anchor. */}
+      {/* cwd + git branch. Path in $fg, project name bold, `:branch`
+          portion muted so the branch reads as a secondary annotation
+          rather than competing with the project name for emphasis.
+          Opencode-style "where am I" anchor. */}
       <Box flexDirection="row" flexShrink={0}>
         <Text color="$fg">{shortCwd(cwd).replace(/\/[^/]+$/, "/")}</Text>
         <Text bold color="$fg">
           {shortCwd(cwd).split("/").pop()}
-          {branch ? `:${branch}` : ""}
         </Text>
+        {branch ? <Text color="$muted">:{branch}</Text> : null}
       </Box>
 
       {/* Quota + cost block — plan (bold) then email (muted), then a
