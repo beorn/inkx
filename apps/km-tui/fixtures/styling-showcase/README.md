@@ -30,7 +30,7 @@ For each inline construct, the cell should look correct in ALL of these contexts
 4. **Row is body content under a heading sibling** — dim cascade applies
 5. **Task is done/dropped** — inline colors stripped, dim, strikethrough where applicable
 
-If any cell looks inconsistent across those contexts, that's a styling precedence bug — refer to `apps/km-tui/src/views/selection-style.ts` for the precedence rules, and file against `km-silvery.variant-style-system` (the long-term reframe) or `km-infra.style-precedence-lint` (the short-term guard).
+If any cell looks inconsistent across those contexts, that's a styling precedence bug — refer to `apps/km-tui/src/views/selection-style.ts` for the precedence rules, and file against `@km/silvery/variant-style-system` (the long-term reframe) or `@km/infra/style-precedence-lint` (the short-term guard).
 
 ## Files
 

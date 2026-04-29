@@ -3,7 +3,7 @@
 PreToolUse authority gate for Claude Code. Structural backstop for
 `km-ambot` — blocks mutating tool calls driven by injected recall
 rather than user-typed text. See `tools/injection-gate.ts` for the
-algorithm and `km-bearly.injection-gate-pretooluse` for the design.
+algorithm and `@km/bearly/injection-gate-pretooluse` for the design.
 
 ## Wire into `~/.claude/settings.json`
 

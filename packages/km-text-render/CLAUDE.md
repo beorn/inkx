@@ -41,5 +41,5 @@ If silvercode wants the same React rendering shape, the next step is to extract 
 
 ## See also
 
-- Bead `km-shared.text-render-package` — the extraction itself.
-- Bead `km-silvercode.markdown-table-render` (P0) — the consumer this unblocked.
+- Bead `@km/shared/text-render-package` — the extraction itself.
+- Bead `@km/silvercode/markdown-table-render` (P0) — the consumer this unblocked.

@@ -147,4 +147,4 @@ Adding a new invariant:
 - `apps/km-tui/src/invariants.ts` — state-level runtime invariants (throws)
 - `apps/km-tui/tests/helpers/fuzz-invariants.ts` — fuzz-test invariants (vitest expect)
 - `.claude/skills/explore/` — exploration session workflow
-- Bead `km-tui.explore-automation` — the tracking bead for this feature
+- Bead `@km/tui/explore-automation` — the tracking bead for this feature

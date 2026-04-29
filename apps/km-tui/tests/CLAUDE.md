@@ -6,7 +6,7 @@ This is the largest test directory (~112 files). Tests here verify what the user
 
 ## Writing new tests
 
-New tests MUST use `createTestApp()` from `./helpers/create-test-app.ts` — the single canonical entry point. It re-exports `item()`, `createDriverTest`, `createDriverTestWithRepo`, `realisticBoard`, and `renderBoardWithStore` so one import covers every fixture shape (inline, markdown, fixture vault, real vault). The `createDriverTest`/`createDriverTestWithRepo` API is for driver-level integration tests that genuinely need low-level access (raw buffer comparison, direct driver creation, registry, cell attribute inspection). See the FREEZE bucket in `km-all.test-system` bead.
+New tests MUST use `createTestApp()` from `./helpers/create-test-app.ts` — the single canonical entry point. It re-exports `item()`, `createDriverTest`, `createDriverTestWithRepo`, `realisticBoard`, and `renderBoardWithStore` so one import covers every fixture shape (inline, markdown, fixture vault, real vault). The `createDriverTest`/`createDriverTestWithRepo` API is for driver-level integration tests that genuinely need low-level access (raw buffer comparison, direct driver creation, registry, cell attribute inspection). See the FREEZE bucket in `@km/all/test-system` bead.
 
 Legacy imports from `./helpers/test-app.ts`, `./helpers/board-test.ts`, and `./helpers/real-board.ts` still work (those files back the consolidated API), but new code should prefer `./helpers/create-test-app.ts`.
 
@@ -76,7 +76,7 @@ See `.claude/skills/tests/reference.md#createTestApp` for the full API.
 - `board.screen.ansi` raw ANSI access
 - `board._result` raw renderer access
 
-For all other cases, use `createTestApp()`. See km-all.test-reclassify for migration plan.
+For all other cases, use `createTestApp()`. See @km/all/test-reclassify for migration plan.
 
 ```typescript
 // Driver-level test pattern (only for the cases above):
@@ -299,7 +299,7 @@ app.press("j")
 
 ### Semantic Tree Queries (AutoLocator)
 
-The AutoLocator is the semantic screen model. It supports CSS-style selectors on the AgNode tree. If a useful query pattern isn't supported, implement it in `vendor/silvery/packages/test/src/auto-locator.ts` — extend on-demand. See bead `km-silvery.css-select` for planned adoption of a full CSS selector engine.
+The AutoLocator is the semantic screen model. It supports CSS-style selectors on the AgNode tree. If a useful query pattern isn't supported, implement it in `vendor/silvery/packages/test/src/auto-locator.ts` — extend on-demand. See bead `@km/silvery/css-select` for planned adoption of a full CSS selector engine.
 
 **Note**: Child combinator (`>`) and adjacent sibling (`+`) operate on the AgNode tree, which has React wrapper nodes between data-model nodes. Use **descendant** (space) for data-model relationships.
 
@@ -523,7 +523,7 @@ board.expectNodeColor("Buy milk", "whiteBright")
 
 ## Efficiency
 
-- **Use `createTestApp()`** — in-memory, no disk I/O, backend-agnostic. Never use `withTestEnv()` (real DB) in fast TUI tests. `createDriverTest()` is for driver-level integration tests only — see the FREEZE bucket in `km-all.test-system`.
+- **Use `createTestApp()`** — in-memory, no disk I/O, backend-agnostic. Never use `withTestEnv()` (real DB) in fast TUI tests. `createDriverTest()` is for driver-level integration tests only — see the FREEZE bucket in `@km/all/test-system`.
 - **Share fixtures**: If multiple tests use the same `item()` tree, combine into a journey test with one `createTestApp()` call. Each test-app creation costs ~1.8s import overhead per file.
 - **Prefer lower layers**: If your test doesn't need screen assertions, write it in km-board (pure state) or km-storage (pipeline) instead — cheaper and faster.
 - **Tests >2s → `.slow.test.ts`** or `.slow.spec.ts`. The fast suite is capped at 20s.

@@ -151,4 +151,4 @@ The user explicitly rejected CI integration: vitest bench numbers fluctuate by 2
 
 - **`exclude: alwaysExclude` in `vitest.config.ts` benchmark section** is required so vitest bench doesn't walk into `.claude/worktrees/` subtrees and `.direnv/` flake mirrors. Removing it brings back `bun:sqlite import error` cascades.
 - **`bunx --bun vitest bench`** is required: without `--bun`, vitest runs under node and `bun:sqlite` imports fail.
-- **Cursor latency is fixed-cost, not per-node** at the time of writing. 100 cards and 3700 cards both clock ~2050ms per 20-press iteration at 200x60. The bottleneck is `output` phase (~77% of wall) — each frame regenerates a lot of ANSI even though only the cursor styling changed. See bead `km-tui.cursor-output-cost` if it gets created from this finding.
+- **Cursor latency is fixed-cost, not per-node** at the time of writing. 100 cards and 3700 cards both clock ~2050ms per 20-press iteration at 200x60. The bottleneck is `output` phase (~77% of wall) — each frame regenerates a lot of ANSI even though only the cursor styling changed. See bead `@km/tui/cursor-output-cost` if it gets created from this finding.

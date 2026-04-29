@@ -50,7 +50,7 @@ This package has only 2 test files. Most board behaviors are currently tested th
 4. Selection invariants: cursor always points to valid node, selection is consistent after mutations
 5. Empty/degenerate states: empty board, single column, single card
 
-See `km-all.board-test-migration` (blocked on TEA machines refactor).
+See `@km/all/board-test-migration` (blocked on TEA machines refactor).
 
 ## Ad-Hoc Testing
 
