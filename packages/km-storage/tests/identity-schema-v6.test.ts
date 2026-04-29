@@ -20,8 +20,10 @@ function freshDb(): Database {
 }
 
 describe("identity-schema v6 (block_id → name fold)", () => {
-  test("SCHEMA_VERSION is 6", () => {
-    expect(SCHEMA_VERSION).toBe(6)
+  test("SCHEMA_VERSION is at or past 6", () => {
+    // The block_id → name fold landed in v6 and is permanent; bumps after
+    // v6 (e.g. v7's deps index) leave the migration path intact.
+    expect(SCHEMA_VERSION).toBeGreaterThanOrEqual(6)
   })
 
   test("fresh DB has no block_id column", () => {

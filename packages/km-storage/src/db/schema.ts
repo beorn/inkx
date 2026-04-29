@@ -44,8 +44,16 @@
  *       block_id WHERE block_id IS NOT NULL AND block_id != ''` before
  *       `ALTER TABLE nodes DROP COLUMN block_id`. Also drops
  *       `idx_nodes_block_id`. No separate block-id / anchor field remains.
+ *   7 — deps: add an indexed `(host_id, target, kind)` table populated by
+ *       SQLite triggers from `nodes.data.props["blocked-by"]`. Replaces the
+ *       per-call O(N) JSON scan in `km-beads` dependent/blocker queries.
+ *       Both single-link (`{type:"link", target}`) and list-link
+ *       (`{type:"list", values:[{target}, …]}`) shapes index. Migration
+ *       creates the table + triggers, then backfills from existing rows.
+ *       Triggers run on INSERT / UPDATE / DELETE of `nodes`, keeping deps
+ *       tight to the JSON without an extra application-level write path.
  */
-export const SCHEMA_VERSION = 6
+export const SCHEMA_VERSION = 7
 
 /**
  * Data version — bump when application-logic changes invalidate derived data
@@ -65,6 +73,81 @@ export const SCHEMA_VERSION = 6
  *       from .md files so `href` rows are re-derived from the content.
  */
 export const DATA_VERSION = 2
+
+/**
+ * SQL for the `deps` table + indexes + triggers (v7).
+ *
+ * Extracted into its own constant so the v6 → v7 migration can install the
+ * same objects on databases that haven't run SCHEMA yet (production order
+ * is `migrateSchema()` first, `db.run(SCHEMA)` second). SCHEMA includes
+ * this fragment via string interpolation, so the two paths cannot drift.
+ *
+ * Trigger semantics:
+ *   - INSERT: derive deps rows from blocked-by JSON. Two SELECT branches —
+ *     `link` (one target) and `list` (json_each fan-out over .values).
+ *   - UPDATE OF data: delete-then-insert reconcile. Cheaper than a diff
+ *     in SQL; host's deps fan-out is small (typically 0..few).
+ *   - DELETE: cascade so the table never carries rows for missing hosts.
+ *
+ * `INSERT OR IGNORE` guards against duplicate targets in the JSON list.
+ */
+const DEPS_DDL = `
+CREATE TABLE IF NOT EXISTS deps (
+  host_id TEXT NOT NULL,
+  target  TEXT NOT NULL,
+  kind    TEXT NOT NULL,
+  PRIMARY KEY (host_id, target, kind)
+);
+
+CREATE INDEX IF NOT EXISTS idx_deps_target_kind ON deps(target, kind);
+CREATE INDEX IF NOT EXISTS idx_deps_host        ON deps(host_id);
+
+CREATE TRIGGER IF NOT EXISTS deps_after_insert
+AFTER INSERT ON nodes
+BEGIN
+  INSERT OR IGNORE INTO deps(host_id, target, kind)
+  SELECT NEW.id,
+         json_extract(NEW.data, '$.props."blocked-by".target'),
+         'blocked-by'
+  WHERE json_extract(NEW.data, '$.props."blocked-by".type') = 'link'
+    AND json_extract(NEW.data, '$.props."blocked-by".target') IS NOT NULL;
+
+  INSERT OR IGNORE INTO deps(host_id, target, kind)
+  SELECT NEW.id,
+         json_extract(value, '$.target'),
+         'blocked-by'
+  FROM json_each(json_extract(NEW.data, '$.props."blocked-by".values'))
+  WHERE json_extract(NEW.data, '$.props."blocked-by".type') = 'list'
+    AND json_extract(value, '$.target') IS NOT NULL;
+END;
+
+CREATE TRIGGER IF NOT EXISTS deps_after_update
+AFTER UPDATE OF data ON nodes
+BEGIN
+  DELETE FROM deps WHERE host_id = NEW.id;
+
+  INSERT OR IGNORE INTO deps(host_id, target, kind)
+  SELECT NEW.id,
+         json_extract(NEW.data, '$.props."blocked-by".target'),
+         'blocked-by'
+  WHERE json_extract(NEW.data, '$.props."blocked-by".type') = 'link'
+    AND json_extract(NEW.data, '$.props."blocked-by".target') IS NOT NULL;
+
+  INSERT OR IGNORE INTO deps(host_id, target, kind)
+  SELECT NEW.id,
+         json_extract(value, '$.target'),
+         'blocked-by'
+  FROM json_each(json_extract(NEW.data, '$.props."blocked-by".values'))
+  WHERE json_extract(NEW.data, '$.props."blocked-by".type') = 'list'
+    AND json_extract(value, '$.target') IS NOT NULL;
+END;
+
+CREATE TRIGGER IF NOT EXISTS deps_after_delete
+AFTER DELETE ON nodes
+BEGIN
+  DELETE FROM deps WHERE host_id = OLD.id;
+END;
+`
 
 export const SCHEMA = `
 -- Core node table
@@ -307,6 +390,13 @@ CREATE TABLE IF NOT EXISTS referenced_anchors (
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ra_file_anchor ON referenced_anchors(file_id, anchor);
 CREATE INDEX IF NOT EXISTS idx_ra_file ON referenced_anchors(file_id);
+
+-- Bead dependency edges (v7) — indexed mirror of
+-- nodes.data.props["blocked-by"]. The DDL lives in DEPS_DDL above so the
+-- v6 → v7 migration can install the same objects on a DB that hasn't run
+-- SCHEMA yet (production order is migrateSchema → SCHEMA). One constant,
+-- two callers, no drift.
+${DEPS_DDL}
 `
 
 /**
@@ -505,6 +595,22 @@ function migrateVersioned(db: import("bun:sqlite").Database): MigrateResult {
     migrateBlockIdToName(db)
   }
 
+  // v6 → v7: backfill the `deps` index from existing nodes.
+  //
+  // The `deps` table + triggers are already in SCHEMA, so a re-run of the
+  // CREATE TABLE / TRIGGER stanza above this function will have shipped
+  // them by the time we reach this branch. The triggers only catch FUTURE
+  // writes, though — pre-v7 rows already in the database carry their
+  // `blocked-by` data only in the JSON blob and have no deps rows yet.
+  // Backfill walks every row that has a `blocked-by` property and writes
+  // the matching deps tuples in a single transaction.
+  //
+  // Idempotent: backfillDepsFromNodes is a DELETE+INSERT inside one
+  // transaction, so running it twice produces the same final state.
+  if (current < 7) {
+    backfillDepsFromNodes(db)
+  }
+
   writeSchemaVersion(db, SCHEMA_VERSION)
   return result
 }
@@ -536,6 +642,82 @@ function migrateBlockIdToName(db: import("bun:sqlite").Database): void {
     db.run("UPDATE nodes SET name = block_id WHERE block_id IS NOT NULL AND block_id != ''")
     db.run("DROP INDEX IF EXISTS idx_nodes_block_id")
     db.run("ALTER TABLE nodes DROP COLUMN block_id")
+    db.run("COMMIT")
+  } catch (error) {
+    db.run("ROLLBACK")
+    throw error
+  }
+}
+
+/**
+ * Install the deps table + indexes + triggers if not already present.
+ *
+ * Used by both:
+ *   - SCHEMA (via string interpolation) — fresh DB path
+ *   - backfillDepsFromNodes — pre-v7 DBs that hit migrateSchema before SCHEMA
+ *
+ * All statements use IF NOT EXISTS so calling this on a v7 DB is a no-op.
+ */
+function ensureDepsObjects(db: import("bun:sqlite").Database): void {
+  db.run(DEPS_DDL)
+}
+
+/**
+ * Backfill the `deps` index from existing `nodes` rows (v6 → v7).
+ *
+ * The deps triggers only fire on future writes; pre-v7 rows that already
+ * carry `data.props["blocked-by"]` need a one-shot pass to land their
+ * tuples. The two SELECT branches mirror the trigger bodies — one for the
+ * single-link shape (`{type:"link", target}`) and one for the list shape
+ * (`{type:"list", values:[{target}, …]}`).
+ *
+ * Idempotent: the `DELETE FROM deps` at the start clears any rows from a
+ * partial prior run, so a second pass yields the same final state.
+ */
+function backfillDepsFromNodes(db: import("bun:sqlite").Database): void {
+  // The deps table + triggers may or may not exist yet — production order
+  // is `migrateSchema()` THEN `db.run(SCHEMA)`, so on the first v6 → v7
+  // migration the table is absent. Create the canonical shape locally
+  // (mirroring the SCHEMA constant); SCHEMA's CREATE TABLE IF NOT EXISTS
+  // when it runs afterward is a no-op against this shape.
+  ensureDepsObjects(db)
+
+  // Defensive: pre-v5 / stripped-down test fixtures may lack the `data`
+  // column on `nodes`. The backfill SELECTs `json_extract(data, …)`, which
+  // fails to compile against such a shape. Skip — there's nothing to
+  // backfill from a column that doesn't exist, and SCHEMA's run after
+  // this migration will add the canonical shape (with `data`) before any
+  // future writes.
+  const nodeCols = db.query("PRAGMA table_info(nodes)").all() as { name: string }[]
+  if (!nodeCols.some((c) => c.name === "data")) return
+
+  db.run("BEGIN IMMEDIATE")
+  try {
+    db.run("DELETE FROM deps")
+
+    // Single-link shape.
+    db.run(`
+      INSERT OR IGNORE INTO deps(host_id, target, kind)
+      SELECT id,
+             json_extract(data, '$.props."blocked-by".target'),
+             'blocked-by'
+      FROM nodes
+      WHERE json_extract(data, '$.props."blocked-by".type') = 'link'
+        AND json_extract(data, '$.props."blocked-by".target') IS NOT NULL
+    `)
+
+    // List shape — fan out via json_each.
+    db.run(`
+      INSERT OR IGNORE INTO deps(host_id, target, kind)
+      SELECT n.id,
+             json_extract(v.value, '$.target'),
+             'blocked-by'
+      FROM nodes AS n,
+           json_each(json_extract(n.data, '$.props."blocked-by".values')) AS v
+      WHERE json_extract(n.data, '$.props."blocked-by".type') = 'list'
+        AND json_extract(v.value, '$.target') IS NOT NULL
+    `)
+
     db.run("COMMIT")
   } catch (error) {
     db.run("ROLLBACK")
