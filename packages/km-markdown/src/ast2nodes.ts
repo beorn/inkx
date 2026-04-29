@@ -633,7 +633,16 @@ function convertListItem(
     md_pos: item.position?.start.offset,
     md_line: item.position?.start.line ? item.position.start.line - 1 : undefined, // Convert 1-indexed to 0-indexed
     // Anchor literal → `.name` (§2.3). List items have no slug fallback.
-    name: blockId,
+    //
+    // km-beads.bead-sigil-elevation: `+` bullet marker is a load-bearing
+    // sigil meaning "elevated sub-bead" — a sub-list-item that should be
+    // treated as a first-class bead despite living deeper than the depth-2
+    // default. The sigil prefixes `node.name`, so consumers can detect it
+    // via `node.name?.startsWith("+")`. Other bullet chars (`-`, `*`) stay
+    // verbatim in `data._mdBullet` only. The `+` does NOT participate in
+    // anchor lookup — `+abc` means "elevated AND has anchor abc"; the
+    // serializer rebuilds it from `name` + `_mdBullet`.
+    name: mdBullet === "+" ? `+${blockId ?? ""}` : blockId,
     content: displayContent,
     content_hash: undefined,
     due_at: metadata.dueAt,

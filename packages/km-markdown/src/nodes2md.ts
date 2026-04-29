@@ -30,13 +30,19 @@ import { serializeRules, normalizeNodeName } from "./parser.ts"
  */
 function anchorLiteralFor(node: KNode): string | undefined {
   if (!node.name) return undefined
-  // List items / blocks: name is always the anchor.
-  if (node.type !== "h") return node.name
+  // km-beads.bead-sigil-elevation: strip `+` sigil prefix before treating the
+  // name as an anchor. `+abc` means "elevated sub-bead with anchor abc";
+  // `+` alone means "elevated sub-bead, no anchor". The bullet character
+  // round-trips through `_mdBullet`, not the anchor.
+  const stripped = node.name.startsWith("+") ? node.name.slice(1) : node.name
+  if (!stripped) return undefined
+  // List items / blocks: name is always the anchor (after sigil strip).
+  if (node.type !== "h") return stripped
   // Headings: anchor wins when `.name` doesn't equal the slug derived from
   // the heading's display text. The title is the clean heading text
   // post-strip; fall back to content if absent.
   const slugSource = node.title ?? node.content ?? ""
-  return node.name === normalizeNodeName(slugSource) ? undefined : node.name
+  return stripped === normalizeNodeName(slugSource) ? undefined : stripped
 }
 
 const log = createLogger("km:markdown:nodes2md")
