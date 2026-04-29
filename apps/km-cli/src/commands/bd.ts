@@ -49,6 +49,34 @@ function formatScopeMessage(scopePath?: string): string {
   return scopePath ? ` in ${scopePath}` : ""
 }
 
+/**
+ * Parse the `--limit N` flag value. Non-numeric, missing, zero, and
+ * negative values all collapse to 0 ("no limit"). Exported for unit tests.
+ */
+export function parseLimitFlag(raw: unknown): number {
+  if (raw === undefined || raw === null || raw === "") return 0
+  const n = Number.parseInt(String(raw), 10)
+  if (!Number.isFinite(n) || n <= 0) return 0
+  return n
+}
+
+/**
+ * Apply `--limit N` to a list of issues. Returns the (possibly truncated)
+ * slice plus the message fragment for the "Issues (X[ of Y])" header.
+ *
+ * The header reports "X of Y" only when truncation actually happened, so
+ * `--limit 100` on a 5-issue list looks identical to no limit.
+ */
+export function applyLimit<T>(items: T[], limit: number): { items: T[]; totalMsg: string } {
+  const totalCount = items.length
+  const limited = limit > 0 ? items.slice(0, limit) : items
+  const truncated = limit > 0 && totalCount > limited.length
+  return {
+    items: limited,
+    totalMsg: truncated ? `${limited.length} of ${totalCount}` : `${limited.length}`,
+  }
+}
+
 export const bdCommand = new Command("bd")
   .description("Issue tracking (beads-compatible)")
   .addHelpSection(
@@ -152,8 +180,8 @@ bdCommand
       // Scope IS the board — no global board filter (queryIssues narrows
       // by scope path or query string instead).
       const allIssues = queryIssues(filter, scopePath, undefined, { repo })
-      const limit = opts.limit ? Number.parseInt(opts.limit as string, 10) : 0
-      const issues = limit > 0 ? allIssues.slice(0, limit) : allIssues
+      const limit = parseLimitFlag(opts.limit)
+      const { items: issues, totalMsg } = applyLimit(allIssues, limit)
 
       if (opts.json) {
         console.log(JSON.stringify(issues.map(issueToBdJson), null, 2))
@@ -166,8 +194,6 @@ bdCommand
       }
 
       const scopeMsg = formatScopeMessage(scopePath)
-      const totalMsg =
-        limit > 0 && allIssues.length > issues.length ? `${issues.length} of ${allIssues.length}` : `${issues.length}`
       console.log(term.bold(`Issues (${totalMsg}${scopeMsg}):\n`))
       for (const issue of issues) {
         printIssue(issue)
@@ -199,9 +225,9 @@ bdCommand
       issues = issues.filter((i) => !i.blockedBy || i.blockedBy.length === 0)
     }
 
-    const totalCount = issues.length
-    const limit = opts.limit ? Number.parseInt(opts.limit as string, 10) : 0
-    if (limit > 0) issues = issues.slice(0, limit)
+    const limit = parseLimitFlag(opts.limit)
+    const limited = applyLimit(issues, limit)
+    issues = limited.items
 
     if (opts.json) {
       console.log(JSON.stringify(issues.map(issueToBdJson), null, 2))
@@ -213,8 +239,7 @@ bdCommand
       return
     }
 
-    const totalMsg = limit > 0 && totalCount > issues.length ? `${issues.length} of ${totalCount}` : `${issues.length}`
-    console.log(term.bold(`Issues (${totalMsg}):\n`))
+    console.log(term.bold(`Issues (${limited.totalMsg}):\n`))
     for (const issue of issues) {
       printIssue(issue)
     }
