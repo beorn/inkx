@@ -575,7 +575,14 @@ function serializeLi(
   if (node.item?.task) {
     const marker = statusToMarker(node.item.task.status, node.item.task.marker)
     const content = source !== undefined ? source : appendTaskMetadata(node)
-    line = `${indentStr}- ${marker} ${content}`
+    // Preserve the original bullet for tasks too (mostly relevant for `+`,
+    // the elevated-sub-bead sigil — see km-beads.bead-sigil-elevation).
+    // `*` is also valid for task list items in CommonMark.
+    const bulletMarker =
+      originalBullet && (originalBullet === "*" || originalBullet === "+" || originalBullet === "-")
+        ? originalBullet
+        : "-"
+    line = `${indentStr}${bulletMarker} ${marker} ${content}`
   } else {
     let listMarker: string
     if (node.item?.list === "1.") {
