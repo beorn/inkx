@@ -266,13 +266,13 @@ function collectDependencyEdges(issue: BeadsIssue, rel: "blocks" | "blocked-by" 
   const out = new Set<string>()
   if (issue.dependencies) {
     for (const dep of issue.dependencies) {
-      // dep_type values from bd v1.0: "blocks" | "parent-child" | "related"
-      // The dep is described from issue_id's perspective: issue_id <rel> depends_on_id.
-      // For our purposes:
-      //   - dep_type "blocks" + issue_id == self → "blocks" edge to depends_on_id
-      //   - dep_type "blocks" + depends_on_id == self → "blocked-by" edge from issue_id
-      //   - dep_type "related" → symmetric
-      const depType = dep.dep_type ?? "blocks"
+      // bd v1.0 emits `type`; older internal docs / tests used `dep_type`.
+      // Values: "blocks" | "parent-child" | "related". The dep is described
+      // from issue_id's perspective: issue_id <rel> depends_on_id.
+      //   - "blocks" + issue_id == self → "blocks" edge to depends_on_id
+      //   - "blocks" + depends_on_id == self → "blocked-by" edge from issue_id
+      //   - "related" → symmetric
+      const depType = dep.type ?? dep.dep_type ?? "blocks"
       if (depType === "blocks") {
         if (rel === "blocks" && dep.issue_id === issue.id) out.add(dep.depends_on_id)
         else if (rel === "blocked-by" && dep.depends_on_id === issue.id) out.add(dep.issue_id)

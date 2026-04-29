@@ -14,14 +14,23 @@ export const beadsStatusSchema = z.enum(["open", "in_progress", "closed", "block
 
 /**
  * Dependency edge as emitted by bd v1.0+ in `bd export`.
- * dep_type values: "blocks" (this issue blocks depends_on_id),
- *                  "parent-child" (parent/child epic linkage),
- *                  "related" (general).
+ *
+ * Real exports use the field name `type` (values: "blocks", "parent-child",
+ * "related"). Earlier internal docs called it `dep_type`; we accept both for
+ * back-compat and surface both via the typed inference.
+ *
+ * Real exports also carry `created_at`, `created_by`, and a `metadata` blob
+ * per edge — preserved verbatim through migration so round-trip property
+ * tests pass and downstream consumers can re-derive the bd graph.
  */
 export const beadsDependencySchema = z.object({
   issue_id: z.string(),
   depends_on_id: z.string(),
+  type: z.string().optional(),
   dep_type: z.string().optional(),
+  created_at: z.string().optional(),
+  created_by: z.string().optional(),
+  metadata: z.string().optional(),
 })
 
 /**
@@ -57,7 +66,14 @@ export const beadsIssueSchema = z.object({
   // Metadata
   labels: z.array(z.string()).optional(),
   assignee: z.string().optional(),
+  // Freeform JSON-encoded blob bd uses for plug-in extensions. Preserved
+  // verbatim — never parsed or transformed during migration.
   metadata: z.string().optional(),
+  // Set by `bd defer <id> --until <ISO>`; presence implies status=deferred.
+  defer_until: z.string().optional(),
+  // bd v1.0 work-graph annotation (e.g. "mutex" — ids that should not run in
+  // parallel). Preserved as-is; km doesn't yet act on it.
+  work_type: z.string().optional(),
   // Body content fields
   notes: z.string().optional(),
   body: z.string().optional(),
