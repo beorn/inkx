@@ -24,6 +24,7 @@ import { AsideLayout } from "./components/AsideLayout.tsx"
 import { useResponsiveDisclosure } from "./hooks/useResponsiveDisclosure.ts"
 import { useInput } from "silvery/runtime"
 import { SessionPromptComposer } from "./components/SessionPromptComposer.tsx"
+import { shortenSessionId } from "./components/Welcome.tsx"
 import { SessionPromptHistory } from "./components/SessionPromptHistory.tsx"
 import { Notifications } from "./components/Notifications.tsx"
 import { PaneGrid, type PaneGridHandle } from "./components/PaneGrid.tsx"
@@ -606,14 +607,21 @@ export function App(props: AppProps): React.ReactElement {
   // hook call. Otherwise React's hook queue desyncs between renders
   // ("Should have a queue" crash).
   const queueText = useQueue(controller, focused?.id ?? "")
-  // Welcome-state tracking — when the focused session has zero messages,
-  // SessionCard renders <Welcome/> instead of <SessionUpdateList/>. In that
-  // state Welcome's centered TextInput is the live keystroke surface, and
-  // the App-level SessionPromptComposer is HIDDEN — without this gate, two
-  // active TextInput surfaces would fight for keystrokes (the "foo &"
-  // chord etc. would be interpreted twice). Resolves when the user
-  // submits a prompt and messages.length flips 0 → 1, at which point
-  // Welcome unmounts and the composer takes over.
+  // SessionPromptComposer is the single command-input surface. Its REACT
+  // ELEMENT is the same in every session state — only the parent slot
+  // differs:
+  //   - welcome (focused, messages.length === 0): rendered inside Welcome,
+  //     centered under the banner via the `composerSlot` prop;
+  //   - chat (focused, messages.length >= 1): rendered at the bottom of the
+  //     left column;
+  //   - pre-spawn (no focused, sessions.length === 0): rendered inside
+  //     PaneGrid's empty-sessions placeholder, centered under the banner.
+  //
+  // App owns the controlled state (inputValue, focusedRegion, queue, …) so
+  // the typed text persists across the welcome → chat transition even
+  // though the parent slot changes. `welcomeIsFocused` decides which slot
+  // gets the composer; bottom-of-layout suppresses its render in that case
+  // so only one composer is mounted at a time.
   // Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn.
   const [welcomeIsFocused, setWelcomeIsFocused] = useState<boolean>(() => {
     const s = focused
@@ -662,6 +670,22 @@ export function App(props: AppProps): React.ReactElement {
   // chord. See bead km-silvercode.ctrl-d-quit.
   const lastCtrlDAt = useRef<number>(0)
   const DOUBLE_CTRL_D_WINDOW_MS = 1500
+
+  // Pre-spawn first-prompt buffer. When the user types into the welcome
+  // composer before a SessionHandle exists, the submit lands here; an
+  // effect below flushes it through `handleSubmit` once the first
+  // session materializes. This is the "type during spawn" path — the
+  // welcome composer feels live from frame 0 even though `controller.send`
+  // doesn't exist yet.
+  const pendingFirstPromptRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (sessions.length === 0 || !focused) return
+    const pending = pendingFirstPromptRef.current
+    if (pending == null) return
+    pendingFirstPromptRef.current = null
+    handleSubmit(pending)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessions.length, focused])
 
   function handleSubmit(text: string): void {
     if (!focused) return
@@ -1280,7 +1304,64 @@ export function App(props: AppProps): React.ReactElement {
                     onRegisterScrollList={registerScrollList}
                     showDebug={showDebug}
                     agent={props.agent}
-                    onSubmitText={handleSubmit}
+                    composerSlot={
+                      // Welcome / pre-spawn slot. Loading sessions
+                      // (--resume X or handle.resumeId set) get a quiet
+                      // "Loading session <id>…" line INSTEAD of the
+                      // composer — the user is waiting on transcript
+                      // replay, not entering a fresh prompt. Fresh
+                      // sessions get the live composer (no "spawning…"
+                      // placeholder; just an empty surface ready to
+                      // type into). Chat state returns undefined and
+                      // the bottom-of-layout render below takes over.
+                      welcomeIsFocused || sessions.length === 0 ? (
+                        focused?.resumeId || (sessions.length === 0 && props.resume) ? (
+                          <Text color="$muted">
+                            {`Loading session ${shortenSessionId(focused?.resumeId ?? props.resume ?? "")}…`}
+                          </Text>
+                        ) : focused ? (
+                          <SessionPromptComposer
+                            queueText={queueText}
+                            onQueueChange={(t) => controller.setQueuedText(focused.id, t)}
+                            onQueueSubmit={() => {
+                              controller.flushQueue(focused.id)
+                              setFocusedRegion("command")
+                            }}
+                            focusedRegion={focusedRegion}
+                            onFocusRegion={setFocusedRegion}
+                            inputValue={inputValue}
+                            onInputChange={setInputValue}
+                            inputDisabled={pendingPermissions > 0 || pendingQuestions > 0}
+                            onSubmit={handleSubmit}
+                            onExit={requestExit}
+                            promptColor={promptColor}
+                          />
+                        ) : (
+                          // Pre-spawn fresh session — live composer,
+                          // typed input is buffered in App-owned
+                          // `inputValue` and dispatched once the
+                          // SessionHandle materializes. NO "spawning…"
+                          // placeholder; that's reserved for the
+                          // chat-view ActivityIndicator after the user
+                          // submits.
+                          <SessionPromptComposer
+                            queueText=""
+                            onQueueChange={() => {}}
+                            onQueueSubmit={() => {}}
+                            focusedRegion="command"
+                            onFocusRegion={() => {}}
+                            inputValue={inputValue}
+                            onInputChange={setInputValue}
+                            onSubmit={(text) => {
+                              setInputValue("")
+                              pendingFirstPromptRef.current = text
+                            }}
+                            onExit={requestExit}
+                            promptColor={promptColor}
+                          />
+                        )
+                      ) : undefined
+                    }
                   />
                 )}
 
@@ -1314,43 +1395,15 @@ export function App(props: AppProps): React.ReactElement {
                     />
                   )}
 
-                  {/* SessionPromptComposer — queue area (when non-empty) stacks on
-                top of the command input inside one filled surface with a
-                horizontal rule between them. Exactly one cursor is visible
-                at a time; focused side is bright, unfocused side dims to
-                $fg-muted. Claude-Code-style. */}
+                  {/* SessionPromptComposer at the bottom — chat state only.
+                      In welcome / pre-spawn states the SAME element is
+                      rendered inside Welcome's centered group via the
+                      `composerSlot` prop above; suppressing this render
+                      keeps exactly one composer mounted at a time.
+                      Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn. */}
                   <Box paddingX={2} paddingY={1} flexShrink={0} flexDirection="row">
                     <Box flexGrow={1} flexDirection="column">
-                      {/* Composer is HIDDEN when the focused session is in
-                          Welcome state (messages.length === 0). In that
-                          state Welcome's centered TextInput owns
-                          keystrokes; mounting the composer here would
-                          dual-route every keystroke. Once the user
-                          submits and messages.length flips 0 → 1,
-                          welcomeIsFocused goes false and the composer
-                          takes over. Bead:
-                          km-silvercode.welcome-bypassed-by-pane-grid-spawn. */}
-                      {focused && !welcomeIsFocused && (
-                        <SessionPromptComposer
-                          queueText={queueText}
-                          onQueueChange={(t) => controller.setQueuedText(focused.id, t)}
-                          onQueueSubmit={() => {
-                            // Force-flush the queue NOW (Enter in queue region).
-                            // After flush, queue is empty so focusedRegion's
-                            // empty-snap effect moves cursor back to command.
-                            controller.flushQueue(focused.id)
-                            setFocusedRegion("command")
-                          }}
-                          focusedRegion={focusedRegion}
-                          onFocusRegion={setFocusedRegion}
-                          inputValue={inputValue}
-                          onInputChange={setInputValue}
-                          inputDisabled={!focused || pendingPermissions > 0 || pendingQuestions > 0}
-                          onSubmit={handleSubmit}
-                          onExit={requestExit}
-                          promptColor={promptColor}
-                        />
-                      )}
+                      {focused && !welcomeIsFocused && renderComposer()}
                     </Box>
                   </Box>
                 </Box>
@@ -1361,4 +1414,51 @@ export function App(props: AppProps): React.ReactElement {
       </AutolinksProvider>
     </CwdProvider>
   )
+
+  // Build the SessionPromptComposer element. Called from two places (welcome
+  // slot + bottom slot); only one mounts at a time. App-owned state means
+  // the typed buffer persists across the welcome → chat slot transition.
+  function renderComposer(): React.ReactElement | null {
+    if (!focused) {
+      // Pre-spawn (sessions.length === 0): render a buffered composer that
+      // routes submits through `handleSubmit` (which queues into a pending
+      // ref until SessionHandle materializes — TODO bead). For now show a
+      // disabled placeholder so the user sees the surface without a wired
+      // backend.
+      return (
+        <SessionPromptComposer
+          queueText=""
+          onQueueChange={() => {}}
+          onQueueSubmit={() => {}}
+          focusedRegion="command"
+          onFocusRegion={() => {}}
+          inputValue={inputValue}
+          onInputChange={setInputValue}
+          inputDisabled
+          onSubmit={() => {}}
+          onExit={requestExit}
+          promptColor={promptColor}
+        />
+      )
+    }
+    const f = focused
+    return (
+      <SessionPromptComposer
+        queueText={queueText}
+        onQueueChange={(t) => controller.setQueuedText(f.id, t)}
+        onQueueSubmit={() => {
+          controller.flushQueue(f.id)
+          setFocusedRegion("command")
+        }}
+        focusedRegion={focusedRegion}
+        onFocusRegion={setFocusedRegion}
+        inputValue={inputValue}
+        onInputChange={setInputValue}
+        inputDisabled={pendingPermissions > 0 || pendingQuestions > 0}
+        onSubmit={handleSubmit}
+        onExit={requestExit}
+        promptColor={promptColor}
+      />
+    )
+  }
 }

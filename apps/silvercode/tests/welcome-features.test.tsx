@@ -124,21 +124,21 @@ function renderCard(handle: never, cols = 100, rows = 50) {
 // feature 1 — figlet banner
 // ============================================================================
 
-describe("feature 1 — figlet banner (Big primary tier)", () => {
-  test("Big tier renders at 120 cols (full app)", async () => {
+describe("feature 1 — shaded banner (primary tier)", () => {
+  test("Shaded tier renders at 120 cols (full app)", async () => {
     const s = await renderScenario({ script: welcome, cols: 120, rows: 50, agent: "claude-code" })
-    // Big tier: SILVER block is 6 rows, top row signature includes the
-    // unique "_____ _____ _ __" sequence (5 underscores, space, 5 more).
-    // CODE block is 6 rows, top row signature "_____ ____  _____".
-    const silverTop = s.lines.findIndex((l) => l.includes("_____ _____ _ __"))
-    const codeTop = s.lines.findIndex((l) => l.includes("_____ ____  _____"))
-    expect(silverTop).toBeGreaterThanOrEqual(0)
-    expect(codeTop).toBeGreaterThanOrEqual(0)
-    // CODE block sits below SILVER block.
+    // Positive-space shaded gradient: 7 rows of SILVER + 1 blank + 7
+    // rows of CODE. Each block fades ░ ░ ▒ ▒ ▓ ▓ █ top-to-bottom.
+    // SILVER row-1 signature: " ░░░░░░  ░░░░" (6-░ + 2 spaces + 4-░).
+    // CODE row-1 signature: " ░░░░░░   ░░░░░░░" (6-░ + 3 spaces + 7-░).
+    const silverTop = s.lines.findIndex((l) => / ░░░░░░  ░░░░/.test(l))
+    const codeTop = s.lines.findIndex((l) => / ░░░░░░   ░░░░░░░/.test(l))
+    expect(silverTop, "SILVER row 1 should render").toBeGreaterThanOrEqual(0)
+    expect(codeTop, "CODE row 1 should render").toBeGreaterThanOrEqual(0)
     expect(codeTop).toBeGreaterThan(silverTop)
-    // Big SILVER is 6 rows; gap between SILVER top and CODE top is at
-    // least 6 (6 SILVER rows + ≥1 gap).
-    expect(codeTop - silverTop).toBeGreaterThanOrEqual(6)
+    // SILVER is 7 rows + ≥1 blank line, so CODE top is at least 8 rows
+    // below SILVER top.
+    expect(codeTop - silverTop).toBeGreaterThanOrEqual(8)
     s.dispose()
   })
 
@@ -157,13 +157,10 @@ describe("feature 1 — figlet banner (Big primary tier)", () => {
 // ============================================================================
 
 describe("feature 2 — Welcome screen (fresh vs loading)", () => {
-  test("fresh session, status=spawning: banner + TextInput, no Loading line", () => {
+  test("fresh session, status=spawning: banner only, no Loading line", () => {
     const app = renderCard(makeHandle({ status: "spawning" }))
     // Banner renders (Big-tier signature).
-    expect(app.text).toContain("_____ _____ _ __")
-    // Command box renders — fresh session shows it in BOTH spawning and
-    // idle (status doesn't gate the visual on Welcome; only `resumeId` does).
-    expect(app.text).toContain("Type a message to start")
+    expect(app.text).toMatch(/ ░░░░░░  ░░░░/)
     // No loading line.
     expect(app.text).not.toContain("Loading session")
     // No help surface (retired in km-cr94).
@@ -171,35 +168,29 @@ describe("feature 2 — Welcome screen (fresh vs loading)", () => {
     expect(app.text).not.toContain("KEYBINDINGS")
   })
 
-  test("fresh session, status=idle: banner + TextInput, no Loading line", () => {
+  test("fresh session, status=idle: banner only, no Loading line", () => {
     const app = renderCard(makeHandle({ status: "idle" }))
-    expect(app.text).toContain("_____ _____ _ __")
-    expect(app.text).toContain("Type a message to start")
+    expect(app.text).toMatch(/ ░░░░░░  ░░░░/)
     expect(app.text).not.toContain("Loading session")
     expect(app.text).not.toContain("COMMANDS")
   })
 
-  test("loading session (resumeId set), status=spawning: banner + Loading line, no TextInput", () => {
+  test("loading session (resumeId set), status=spawning: banner + Loading line", () => {
     const app = renderCard(makeHandle({ status: "spawning", resumeId: "abc12345-de67-890a-bcde-f1234567890a" }))
-    expect(app.text).toContain("_____ _____ _ __")
+    expect(app.text).toMatch(/ ░░░░░░  ░░░░/)
     // Loading indicator with truncated session id.
     expect(app.text).toMatch(/Loading session abc12345…/)
-    // The TextInput placeholder must NOT be present in the loading variant
-    // — the user is waiting on transcript replay, not entering a fresh prompt.
-    expect(app.text).not.toContain("Type a message to start")
   })
 
   test("Welcome unmounts when messages.length transitions 0 → 1; chat view mounts", () => {
     // Render with empty messages first — Welcome screen.
     const before = renderCard(makeHandle({ status: "idle", messages: [] }))
-    expect(before.text).toContain("_____ _____ _ __")
-    expect(before.text).toContain("Type a message to start")
+    expect(before.text).toMatch(/ ░░░░░░  ░░░░/)
 
     // Render with one user message — chat view.
     const after = renderCard(makeHandle({ status: "idle", messages: [userEntry("first prompt")] }))
     // Banner + welcome chrome are GONE.
-    expect(after.text).not.toContain("_____ _____ _ __")
-    expect(after.text).not.toContain("Type a message to start")
+    expect(after.text).not.toMatch(/ ░░░░░░  ░░░░/)
     // Chat view shows the bubble's content (right-aligned bubble around
     // "first prompt" — that's the user message renderer).
     expect(after.text).toContain("first prompt")
@@ -404,7 +395,7 @@ describe("km-silvercode.welcome-bypassed-by-pane-grid-spawn — banner from fram
     const s = await renderScenario({ script: welcome, cols: 120, rows: 50, agent: "claude-code" })
     // The banner paints (figlet Big SILVER signature is unique to the
     // brand mark).
-    expect(s.text).toContain("_____ _____ _ __")
+    expect(s.text).toMatch(/ ░░░░░░  ░░░░/)
     // The legacy placeholder must NOT be visible. Pre-fix this string
     // appeared during the spawn-pending window before SessionCard mounted.
     expect(s.text).not.toContain("Spawning session…")
@@ -417,8 +408,9 @@ describe("km-silvercode.welcome-bypassed-by-pane-grid-spawn — banner from fram
     // against accidental reintroduction of the `◈ Spawning session…`
     // text in the empty-state branch.
     const s = await renderScenario({ script: welcome, cols: 120, rows: 50, agent: "claude-code" })
-    // Bigtier banner present.
-    const silverSig = s.lines.findIndex((l) => l.includes("_____ _____ _ __"))
+    // Shaded-tier banner present (positive-space: SILVER row 1 has the
+    // unique " ░░░░░░  ░░░░" signature).
+    const silverSig = s.lines.findIndex((l) => / ░░░░░░  ░░░░/.test(l))
     expect(silverSig).toBeGreaterThanOrEqual(0)
     // No legacy spawning text anywhere on screen.
     const spawnSessionLineIdx = s.lines.findIndex((l) => l.includes("Spawning session"))
@@ -427,63 +419,21 @@ describe("km-silvercode.welcome-bypassed-by-pane-grid-spawn — banner from fram
   })
 })
 
-describe("km-silvercode.welcome-bypassed-by-pane-grid-spawn — TextInput is live in Welcome", () => {
-  test("Welcome TextInput is active when its session is focused, inactive otherwise", () => {
-    // Component-level test: pass `isFocused` to SessionCard and assert
-    // the resulting Welcome TextInput is configured to receive keystrokes
-    // (silvery's TextInput cursor presence vs absence is the load-bearing
-    // signal — when isActive=true the cursor is drawn into the buffer).
+describe("km-silvercode.welcome-bypassed-by-pane-grid-spawn — SessionPromptComposer is the single command surface", () => {
+  test("App-level: SessionPromptComposer renders inside Welcome (centered with banner) when a session is focused with no messages yet", async () => {
+    // New contract: Welcome.tsx is banner + composerSlot (the App-level
+    // SessionPromptComposer threaded down). The composer is THE SAME
+    // element rendered at the bottom of the layout in chat state — only
+    // the parent slot differs. In welcome state the composer is centered
+    // with the banner, NOT bottom-anchored.
     //
-    // This protects the Fix #2 contract: in Welcome state, the centered
-    // TextInput is the LIVE keystroke surface; the App-level composer is
-    // hidden separately by App.tsx's `welcomeIsFocused` gate. Without
-    // both halves, two TextAreas would fight for keystrokes.
-    const focusedApp = renderCard(makeHandle({ status: "spawning" }))
-    // The placeholder text is rendered when the input is empty — this
-    // always renders regardless of isActive. The semantic test is that
-    // the input isn't a static label — to assert that, we verify the
-    // app rendered (no crash, banner + box present), and rely on the
-    // unit-level inactive case below to pin the contract.
-    expect(focusedApp.text).toContain("Type a message to start")
-  })
-
-  test("App-level: SessionPromptComposer is hidden when focused session is in Welcome state", async () => {
-    // Layer-4 assertion: the empty-session welcome path doesn't render
-    // the composer's TextArea at all — only Welcome's centered TextInput
-    // is visible. The composer's distinguishing feature is the leading
-    // `> ` prompt with the mode color; it sits at the bottom of the
-    // pane in steady state (post-message). When Welcome is mounted the
-    // composer must be unmounted, otherwise two cursors would compete.
-    //
-    // Detection: SessionPromptComposer renders inside a
-    // `backgroundColor="$bg-surface-subtle"` Box at the bottom of the
-    // App. The bottom rows of the rendered frame, when in Welcome
-    // state, MUST NOT carry that surface tint. We assert the composer
-    // marker (`>` prompt with bold / accent color) is absent — but
-    // since `>` glyphs appear in figlet output we use a stronger
-    // shape signal: the composer's filled-surface bg fills bottom rows
-    // with a specific bg color; in Welcome state that fill is gone.
-    //
-    // Actually — simplest assertion: the composer surfaces a known
-    // bottom-anchored marker text only when mounted. Welcome doesn't
-    // emit that marker. We use the inverse: the figlet banner spans
-    // the upper portion of the screen (banner is centered vertically
-    // when the composer is hidden, lower when composer takes a row).
-    // Direct shape assertion is fragile; instead assert the composer's
-    // padding box characteristic absence via the visible-frame contract.
+    // Detect the composer by scanning all rows for a line whose first
+    // non-whitespace token is the `>` prompt glyph. Figlet banner rows
+    // never start with `>` (they start with whitespace, underscores, or
+    // letter-fragments).
     const s = await renderScenario({ script: welcome, cols: 120, rows: 50, agent: "claude-code" })
-    // The "> " prompt that the composer renders (with bold, accent
-    // color) sits at a specific bottom-anchored row. When Welcome is
-    // active, no composer prompt is rendered. We can detect the
-    // composer's presence by looking for its bottom-of-screen prompt
-    // row: the composer outputs a `>` glyph at the start of its prompt
-    // line. The Welcome banner doesn't include `>` glyphs as line
-    // starts (figlet rows start with whitespace or letter-fragments).
-    // Find rows that START with `>` (after stripping indent) — Welcome
-    // shouldn't produce any such row in the bottom 5 rows.
-    const bottomFive = s.lines.slice(-5)
-    const composerBottomRow = bottomFive.find((l) => /^\s*>\s/.test(l))
-    expect(composerBottomRow, "composer prompt should not render in Welcome state").toBeUndefined()
+    const composerRow = s.lines.find((l) => /^\s*>\s/.test(l))
+    expect(composerRow, "composer prompt SHOULD render in Welcome state").toBeDefined()
     s.dispose()
   })
 

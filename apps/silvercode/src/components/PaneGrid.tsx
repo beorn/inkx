@@ -143,13 +143,12 @@ export type PaneGridProps = {
    *  SessionCard so the welcome card can label itself per-agent. Bead:
    *  km-silvercode.welcome-claude-hardcoded. */
   agent?: string
-  /**
-   * App-supplied submit handler — forwarded to each SessionCard's Welcome
-   * surface so the centered TextInput on the empty-state screen routes
-   * through App's `handleSubmit` (preserving trailing-`&`, slash commands,
-   * etc.). Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn.
-   */
-  onSubmitText?: (text: string) => void
+  /** App-level SessionPromptComposer element — rendered inside Welcome's
+   *  centered group (and inside the empty-sessions placeholder during
+   *  pre-spawn). Same React element as the bottom-anchored render in
+   *  chat state — App suppresses one render based on session state.
+   *  Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn. */
+  composerSlot?: React.ReactNode
 }
 
 /**
@@ -213,7 +212,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
     showDebug = false,
     controller,
     agent,
-    onSubmitText,
+    composerSlot,
   } = props
 
   const dragRef = useRef<DragState | null>(null)
@@ -412,7 +411,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
           showDebug={showDebug}
           controller={controller}
           agent={agent}
-          onSubmitText={onSubmitText}
+          composerSlot={composerSlot}
         />
       )
     },
@@ -433,7 +432,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
       showDebug,
       controller,
       agent,
-      onSubmitText,
+      composerSlot,
     ],
   )
 
@@ -457,8 +456,13 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
   if (sessions.length === 0) {
     const agentLabel = agent ? AGENT_LABELS_FOR_PRESPAWN[agent] : undefined
     return (
-      <Box flexDirection="column" flexGrow={1} alignItems="center" justifyContent="center" paddingX={2}>
+      <Box flexDirection="column" flexGrow={1} alignItems="center" justifyContent="center" gap={1} paddingX={2}>
         <MeasuredBanner agentLabel={agentLabel} />
+        {composerSlot ? (
+          <Box flexDirection="column" flexShrink={0} width={80} maxWidth={80} minWidth={0}>
+            {composerSlot}
+          </Box>
+        ) : null}
       </Box>
     )
   }
@@ -480,7 +484,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
               showDebug={showDebug}
               controller={controller}
               agent={agent}
-              onSubmitText={onSubmitText}
+              composerSlot={composerSlot}
             />
           </Box>
         </Box>
@@ -541,7 +545,7 @@ function LeafContainer({
   showDebug = false,
   controller,
   agent,
-  onSubmitText,
+  composerSlot,
 }: {
   handle: SessionHandle
   isFocused: boolean
@@ -568,9 +572,10 @@ function LeafContainer({
   /** Agent id forwarded to SessionCard's Welcome card. Bead:
    *  km-silvercode.welcome-claude-hardcoded. */
   agent?: string
-  /** App-supplied submit handler — forwarded to SessionCard → Welcome.
+  /** Forwarded to the FOCUSED leaf's SessionCard so it can render the
+   *  composer inside the welcome center. Non-focused leaves drop it.
    *  Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn. */
-  onSubmitText?: (text: string) => void
+  composerSlot?: React.ReactNode
 }): React.ReactElement {
   const rect = useBoxRect()
   // useBoxRect updates synchronously during render — write through
@@ -604,22 +609,12 @@ function LeafContainer({
           showDebug={showDebug}
           controller={controller}
           agent={agent}
-          onSubmitText={onSubmitText}
+          composerSlot={isFocused ? composerSlot : undefined}
         />
       )}
-      {/* Grab handle — 1×1 cell at top-left, painted over the active-bar.
-          Always visible (per design constraint: hover detection
-          unreliable, take the practical path). */}
-      <Box
-        position="absolute"
-        top={0}
-        left={0}
-        width={1}
-        height={1}
-        onMouseDown={(e) => onGrabMouseDown(e.clientX, e.clientY)}
-      >
-        <Text color={isFocused ? "$accent" : "$muted"}>▤</Text>
-      </Box>
+      {/* Grab handle removed (▤ at top-left) — the visual blue square
+          read as chrome cruft on single-pane layouts. Drag-move is still
+          available via the chord (Ctrl+G H/J/K/L). */}
       {/* Drop indicator overlay — colored 1-cell band on the relevant
           edge, or a 2-col center band for the swap zone. Rendered only
           when this leaf is the current drag target. */}

@@ -36,20 +36,19 @@ test("App paints the welcome card when a session can spawn (regression: d17afaa8
   // "no messages yet" state where the welcome card is the focused pane.
   const s = await renderScenario({ script: welcome, cols: 120, rows: 50 })
 
-  // Three load-bearing checks cover the regions that must paint:
+  // Two load-bearing checks cover the regions that must paint:
   // - figlet banner (multi-line ASCII art) → Welcome brand mark
-  // - "Type a message to start"            → Welcome command box
   // - "auto mode on"                        → SidePanel mode label
   //
   // The brand banner is figlet ASCII art (no literal "SILVER" / "CODE"
   // glyphs). At 120 cols the BIG tier renders, with unique top-row sig
   // "_____ _____ _ __" — only ever appears inside the brand banner.
-  // The COMMANDS / KEYBINDINGS help block was retired in km-cr94, so the
-  // load-bearing affordance check here is the command box placeholder.
-  // If the App was empty (the d17afaa82 failure mode), all three would
+  // Welcome is now banner-only chrome (no embedded command box); the
+  // single command surface is the App-level SessionPromptComposer at
+  // the bottom of the layout (covered by separate composer tests).
+  // If the App was empty (the d17afaa82 failure mode), both would
   // be missing. Bead: km-cr94.
-  expect(s.text).toContain("_____ _____ _ __")
-  expect(s.text).toContain("Type a message to start")
+  expect(s.text).toMatch(/ ░░░░░░  ░░░░/)
   expect(s.text).toContain("auto mode on")
 
   // Belt-and-suspenders: the rendered text must have substantial content.

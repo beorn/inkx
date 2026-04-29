@@ -56,7 +56,7 @@ export function SessionCard({
   showDebug = false,
   controller,
   agent,
-  onSubmitText,
+  composerSlot,
 }: {
   handle: SessionHandle
   isFocused: boolean
@@ -91,14 +91,12 @@ export function SessionCard({
    *  H1 ("Silver Code for Codex" vs "Silver Code for Claude Code").
    *  Undefined falls back to bare "Silver Code". */
   agent?: string
-  /**
-   * App-supplied submit handler — forwarded to Welcome so the centered
-   * TextInput on the empty-state screen routes through the same code
-   * path as the App-level SessionPromptComposer (trailing-`&` background,
-   * slash commands, thinking-keyword injection, etc.). Bead:
-   * km-silvercode.welcome-bypassed-by-pane-grid-spawn.
-   */
-  onSubmitText?: (text: string) => void
+  /** App-level SessionPromptComposer element — forwarded to the centered
+   *  Welcome screen so the same component appears under the banner during
+   *  the empty-state. App suppresses the bottom-anchored render in that
+   *  state so there's only ever one composer mounted. Bead:
+   *  km-silvercode.welcome-bypassed-by-pane-grid-spawn. */
+  composerSlot?: React.ReactNode
 }): React.ReactElement {
   const state = useStoreSignal(handle.store)
   // Ambient stream — pre-filtered through the mute set so muted source
@@ -154,23 +152,9 @@ export function SessionCard({
       backgroundColor={isDimmed ? "$bg-surface-subtle" : undefined}
       onClick={onFocus}
     >
-      {/* Left-edge accent bar = active-pane indicator. 1 col wide; visible
-          only when this pane is focused. Inactive panes render a same-width
-          blank column so the content origin (and any text-wrap math
-          downstream) stays stable across focus changes.
-          `overflow="hidden"` is load-bearing: without it, the 200-char wrap
-          text's max-content width inflates the column, pushing Welcome /
-          SessionUpdateList content right off the visible viewport (verified in
-          `tests/welcome-card-hidden.test.tsx`). flexBasis/width=1 alone
-          don't clamp — flex needs an overflow boundary on the wrap-content
-          item itself. */}
-      <Box flexShrink={0} flexGrow={0} flexBasis={1} width={1} flexDirection="column" overflow="hidden">
-        {isFocused ? (
-          <Text color="$accent" wrap="wrap">
-            {"▎".repeat(200)}
-          </Text>
-        ) : null}
-      </Box>
+      {/* Active-pane accent bar removed — the focused pane is implied by
+          the keyboard cursor and the bottom composer's color, no need
+          for a left-edge ▎ stripe in single-pane setups. */}
       <Box
         flexDirection="column"
         flexGrow={1}
@@ -182,14 +166,7 @@ export function SessionCard({
       >
         <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} paddingX={1} paddingTop={1}>
           {state.messages.length === 0 ? (
-            <Welcome
-              handle={handle}
-              agent={agent}
-              status={state.status}
-              controller={controller}
-              isFocused={isFocused}
-              onSubmitText={onSubmitText}
-            />
+            <Welcome handle={handle} agent={agent} status={state.status} composerSlot={composerSlot} />
           ) : (
             <SessionUpdateList
               ref={scrollListRefCb}

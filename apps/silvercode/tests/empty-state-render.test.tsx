@@ -92,9 +92,12 @@ test("App renders useful structure before the first session spawns (regression: 
   expect(text).toContain("Silver")
   expect(text).toContain("Claude Code")
 
-  // PaneGrid mounted with the empty-sessions placeholder. Without the fix
-  // the whole left column was a 10-line gap of blank space.
-  expect(text).toContain("Spawning session")
+  // PaneGrid mounted with the empty-sessions placeholder — the SILVER CODE
+  // figlet banner. Without the fix the whole left column was a 10-line
+  // gap of blank space. The banner's unique signature "_____ _____ _ __"
+  // is the figlet Big "SILVER" top row and only appears inside the
+  // brand banner.
+  expect(text).toMatch(/ ░░░░░░  ░░░░/)
 
   // Belt-and-suspenders: the rendered text has substantial content. The
   // original bug rendered ONLY the alt-screen background; a real frame
