@@ -29,6 +29,7 @@
  * Bead: km-silvercode.session-store-tea-refactor.
  */
 
+import { createLogger } from "loggily"
 import type { AgentEvent, ContentBlock, ToolUseId, TurnId } from "./events.ts"
 import type {
   AskUserQuestionItem,
@@ -38,12 +39,117 @@ import type {
   MessageOp,
   PendingQuestion,
   SessionState,
+  SessionStatus,
   Todo,
   ToolCallEntry,
   ToolResultEntry,
   WritableEntry,
 } from "./session-types.ts"
 import { initialSessionState, makeEntry } from "./session-types.ts"
+
+// ─────────────────────────────────────────────────────────────────────────
+// Status transition tracing — Phase A of the L4 reframe
+// (km-silvercode.session-store-trace, parent km-silvercode.queue-stuck-thinking-l4).
+//
+// Every `next.status = X` mutation in this file MUST go through `setStatus`
+// instead of being assigned directly. The helper:
+//   1. Emits `silvercode:status` debug log line ({from, to, reason, eventKind, turnId}).
+//   2. Asserts a dev-mode invariant: flipping to a "busy" status without an
+//      active turn (event turnId or tracked _activeTurnId) is a bug-class
+//      we want to catch loudly. Throws in dev, warns in prod.
+//   3. Optionally appends to a 30-entry ring buffer (`statusTrace`) for a
+//      future TUI dev overlay / forensics dump.
+//
+// The L1 guard at the `case "status"` arm (rejects stray `requesting` when
+// idle/ended) stays in place — Phase A only adds observability ON TOP of
+// the gate, it does not replace it. Phase B introduces the Turn-owner
+// module; Phase C deletes the stored writes; Phase D fuzz-tests the
+// derived getter and removes this scaffolding.
+// ─────────────────────────────────────────────────────────────────────────
+
+const dStatus = createLogger("silvercode:status")
+
+/** Status values where a turn must be in flight. */
+const BUSY_STATUSES: ReadonlySet<SessionStatus> = new Set<SessionStatus>([
+  "thinking",
+  "tool-running",
+  "awaiting-permission",
+])
+
+/** Maximum ring-buffer size for {@link InternalSessionState.statusTrace}. */
+const STATUS_TRACE_MAX = 30
+
+/** One entry in the optional status-transition ring buffer. */
+export type StatusTraceEntry = {
+  from: SessionStatus
+  to: SessionStatus
+  reason: string
+  eventKind: string
+  turnId: TurnId | null
+  ts: number
+}
+
+function isProd(): boolean {
+  return process.env.NODE_ENV === "production"
+}
+
+/**
+ * Centralised status-mutation helper. Wrap every `next.status = X` in this
+ * function. `reason` names the source ("session-init", "turn-start-assistant",
+ * "tool-use", …); `eventKind` mirrors the action.kind being processed.
+ *
+ * In dev (`NODE_ENV !== "production"`), if `to` is a busy status
+ * (`thinking` / `tool-running` / `awaiting-permission`) and no turnId is in
+ * scope (neither passed-in `turnId` nor tracked `_activeTurnId`), throws.
+ * In prod, logs `log.warn` instead of throwing. Either way the transition
+ * itself still applies — the invariant is observability, not correction
+ * (correction is Phase B's job).
+ */
+function setStatus(
+  next: InternalSessionState,
+  to: SessionStatus,
+  reason: string,
+  eventKind: string,
+  turnId?: TurnId | null,
+): void {
+  const from = next.status
+  const effectiveTurnId = turnId ?? next._activeTurnId ?? null
+
+  if (BUSY_STATUSES.has(to) && effectiveTurnId === null) {
+    const message =
+      `silvercode:status invariant violated — flip ${from} → ${to} without active turnId ` +
+      `(reason="${reason}", eventKind="${eventKind}")`
+    if (isProd()) {
+      dStatus.warn?.("invariant", { from, to, reason, eventKind, turnId: null })
+    } else {
+      throw new Error(message)
+    }
+  }
+
+  dStatus.debug?.("transition", {
+    from,
+    to,
+    reason,
+    eventKind,
+    turnId: effectiveTurnId,
+  })
+
+  next.status = to
+
+  // Ring buffer — append-only, capped at STATUS_TRACE_MAX. Dev/forensics
+  // affordance; consumers should treat as best-effort.
+  const entry: StatusTraceEntry = {
+    from,
+    to,
+    reason,
+    eventKind,
+    turnId: effectiveTurnId,
+    ts: Date.now(),
+  }
+  const prev = next.statusTrace ?? []
+  next.statusTrace =
+    prev.length >= STATUS_TRACE_MAX ? [...prev.slice(prev.length - STATUS_TRACE_MAX + 1), entry] : [...prev, entry]
+}
 
 /**
  * Window in ms within which consecutive identical error messages fold
@@ -114,12 +220,31 @@ export type StripRuntime = {
 export type InternalSessionState = SessionState & {
   /** Private — never exposed across the `createSessionStore()` boundary. */
   _strip: StripRuntime
+  /**
+   * Currently-active assistant turn id, or `null` when no turn is in flight.
+   * Set on `turn-start` (assistant role), cleared on `turn-end` /
+   * `session-end` / `session-lifecycle:ended`. Used by {@link setStatus} to
+   * decide whether a busy-status transition has a legitimate owner.
+   *
+   * This is observability scaffolding for Phase A of the L4 reframe —
+   * Phase B promotes it into a proper Turn-owner module. Private (`_`)
+   * because it's not part of the public store contract.
+   */
+  _activeTurnId: TurnId | null
+  /**
+   * Optional ring buffer of the last {@link STATUS_TRACE_MAX} status
+   * transitions, append-only and capped. Dev-only forensics surface for a
+   * future TUI overlay; ignore in prod paths. Public on the projected
+   * state but undefined when no transition has fired yet.
+   */
+  statusTrace?: ReadonlyArray<StatusTraceEntry>
 }
 
 export function initialInternalState(): InternalSessionState {
   return {
     ...initialSessionState(),
     _strip: { byTurn: new Map<TurnId, StripState>(), pending: "" },
+    _activeTurnId: null,
   }
 }
 
@@ -129,12 +254,15 @@ export function initialInternalState(): InternalSessionState {
  * `_strip` runtime is never observable to UI consumers.
  */
 export function publicView(state: InternalSessionState): SessionState {
-  // Cheap object copy with the private field omitted. Avoids leaking the
-  // `_strip` map to subscribers (and avoids accidentally being mutated by
-  // a downstream consumer).
-  const { _strip, ...rest } = state
+  // Cheap object copy with private fields omitted. Avoids leaking the
+  // `_strip` map and `_activeTurnId` to subscribers (and avoids
+  // accidentally being mutated by a downstream consumer). The
+  // `statusTrace` ring buffer is intentionally retained — it's part of
+  // the public dev-overlay surface.
+  const { _strip, _activeTurnId, ...rest } = state
   void _strip
-  return rest
+  void _activeTurnId
+  return rest as SessionState
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -332,7 +460,7 @@ function applySessionInit(next: InternalSessionState, action: Extract<AgentEvent
   next.plugins = action.plugins
   next.claudeCodeVersion = action.claudeCodeVersion
   next.apiKeySource = action.apiKeySource
-  next.status = "idle"
+  setStatus(next, "idle", "session-init", "session-init")
 }
 
 function applyTurnStart(next: InternalSessionState, action: Extract<AgentEvent, { kind: "turn-start" }>): void {
@@ -341,8 +469,13 @@ function applyTurnStart(next: InternalSessionState, action: Extract<AgentEvent, 
     role: action.role,
     ts: action.ts,
   }))
-  next.status = action.role === "assistant" ? "thinking" : "idle"
-  if (action.role === "assistant") next._strip = armStrip(next._strip, action.turnId)
+  if (action.role === "assistant") {
+    next._activeTurnId = action.turnId
+    setStatus(next, "thinking", "turn-start-assistant", "turn-start", action.turnId)
+    next._strip = armStrip(next._strip, action.turnId)
+  } else {
+    setStatus(next, "idle", "turn-start-user", "turn-start", action.turnId)
+  }
 }
 
 /**
@@ -479,7 +612,13 @@ function applyToolUse(next: InternalSessionState, action: Extract<AgentEvent, { 
     const parsed = parseAskUserQuestionInput(action.id, action.input)
     if (parsed) next.pendingQuestion = parsed
   }
-  next.status = "tool-running"
+  // tool-use implies a turn is in flight. In replay paths or harnesses
+  // that synthesize tool-use without a preceding turn-start (e.g., tests
+  // and some MCP-injection paths), upgrade `_activeTurnId` here so the
+  // matching tool-result's `tool-running → thinking` flip has a valid
+  // owner. Phase B will collapse this into a single turn-state mutation.
+  if (next._activeTurnId === null) next._activeTurnId = action.turnId
+  setStatus(next, "tool-running", "tool-use", "tool-use", action.turnId)
 }
 
 function applyToolResult(next: InternalSessionState, action: Extract<AgentEvent, { kind: "tool-result" }>): void {
@@ -526,7 +665,7 @@ function applyToolResult(next: InternalSessionState, action: Extract<AgentEvent,
   // turn-end fired by withTurnLifecycle. Bead
   // km-silvercode.acp-status-as-derived tracks the architectural fix;
   // this guard is the symptomatic patch.
-  if (next.status === "tool-running") next.status = "thinking"
+  if (next.status === "tool-running") setStatus(next, "thinking", "tool-result", "tool-result", next._activeTurnId)
 }
 
 /**
@@ -612,7 +751,8 @@ function applyTurnEnd(next: InternalSessionState, action: Extract<AgentEvent, { 
     ...m,
     stopReason: action.stopReason,
   }))
-  next.status = "idle"
+  setStatus(next, "idle", "turn-end", "turn-end", action.turnId)
+  if (next._activeTurnId === action.turnId) next._activeTurnId = null
   if (action.usage) {
     next.cost = {
       usd: next.cost.usd,
@@ -623,7 +763,8 @@ function applyTurnEnd(next: InternalSessionState, action: Extract<AgentEvent, { 
 }
 
 function applySessionEnd(next: InternalSessionState, action: Extract<AgentEvent, { kind: "session-end" }>): void {
-  next.status = "ended"
+  setStatus(next, "ended", "session-end-applied", "session-end")
+  next._activeTurnId = null
   if (typeof action.costUsd === "number") next.cost = { ...next.cost, usd: action.costUsd }
   if (action.usage) {
     next.cost = {
@@ -699,11 +840,33 @@ export function reduce(state: InternalSessionState, action: AgentEvent): [Intern
       break
     case "permission-request":
       next.permissions = [...next.permissions, { requestId: action.requestId, tool: action.tool, args: action.args }]
-      next.status = "awaiting-permission"
+      // permission-request carries no turnId on the wire (it's a side-channel
+      // event), but its `requestId` is itself a valid ownership id — a
+      // turn-end / session-end can't legitimately retire a permission-request
+      // without its requestId being known. Pass it as the synthetic turnId
+      // so the busy-status invariant doesn't false-trip when no upstream
+      // turn-start fired (replay / synthetic harness paths).
+      setStatus(
+        next,
+        "awaiting-permission",
+        "permission-request",
+        "permission-request",
+        action.requestId as unknown as TurnId,
+      )
       break
     case "permission-decision":
       next.permissions = next.permissions.filter((p) => p.requestId !== action.requestId)
-      next.status = next.permissions.length > 0 ? "awaiting-permission" : "idle"
+      if (next.permissions.length > 0) {
+        setStatus(
+          next,
+          "awaiting-permission",
+          "permission-decision-pending",
+          "permission-decision",
+          action.requestId as unknown as TurnId,
+        )
+      } else {
+        setStatus(next, "idle", "permission-decision-resolved", "permission-decision")
+      }
       break
     case "status":
       // Harness "status" events are low-level annotations on whatever the
@@ -713,15 +876,24 @@ export function reduce(state: InternalSessionState, action: AgentEvent): [Intern
       // would flip status to "thinking" with no active turn — and because
       // controller.send gates the queue on idle/ended, the queue wedges
       // forever. km-silvercode.queue-stuck-thinking.
+      //
+      // L1 GUARD — load-bearing until Phase C deletes the stored
+      // `next.status` writes. Phase A (this code) sits on top of the
+      // gate; the dStatus log line above gives us evidence the gate is
+      // doing its job (and would have caught any future regression
+      // earlier). Do not relax this condition.
       if (action.status === "requesting" && (next.status === "thinking" || next.status === "tool-running")) {
-        next.status = "thinking"
+        setStatus(next, "thinking", "status-event", "status", next._activeTurnId)
       }
       break
     case "session-end":
       applySessionEnd(next, action)
       break
     case "session-lifecycle":
-      if (action.state === "ended") next.status = "ended"
+      if (action.state === "ended") {
+        setStatus(next, "ended", "lifecycle-ended", "session-lifecycle")
+        next._activeTurnId = null
+      }
       break
 
     case "error":
