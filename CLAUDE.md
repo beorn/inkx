@@ -54,7 +54,7 @@ The marginal cost of completeness is near zero with AI. Do the whole thing. Do i
 ## Commands
 
 ```bash
-# all bun commands should be preceded with `cd ${repoRoot} ;` - they will not work if your cwd is a subdir
+# all bun commands should be preceded with `cd "$(git rev-parse --show-toplevel)" &&` - they will not work if your cwd is a subdir
 bun fix              # Lint + format - must pass
 bun km view <path>   # Run TUI
 
@@ -66,6 +66,8 @@ bun run test:ci              # Comprehensive: typecheck + lint + fast + slow + v
 bun vitest run <dir> # Tests in directory (excludes .slow. and vendor automatically)
 bun vitest run --changed  # Tests affected by uncommitted changes (~instant)
 ```
+
+**Always use `cd "$(git rev-parse --show-toplevel)" &&` — never a hardcoded path or template-substituted variable.** When agents run inside a `.claude/worktrees/<agent>/` worktree, template substitutions for "the repo root" resolve to the *main repo's* path — so Bash-tool invocations leak file writes back to main while Edit/Write tools correctly target the worktree. The standing rule is to derive the repo root *at command time* via `git rev-parse --show-toplevel`, which resolves to the current worktree's root regardless of which worktree the agent is in. This was re-learned on 2026-04-29 when `tasks/stale.ts` + `tasks/priority.ts` ended up in both main and a worktree (bead `km-all.agent-worktree-isolation-cd-repo-root-leak`).
 
 **`test:ci`** is the full suite -- run it periodically. It catches what `test:fast` misses: slow tests, vendor tests, fuzz tests.
 
