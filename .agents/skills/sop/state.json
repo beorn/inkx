@@ -1,0 +1,335 @@
+{
+  "lastRun": {
+    "backlog": "2026-04-27T19:07:31.855Z",
+    "code": "2026-04-27T19:07:31.855Z",
+    "packages": "2026-04-19T07:15:56.728Z",
+    "inbound": "2026-04-27T19:07:31.855Z",
+    "sites": "2026-04-19T07:15:56.728Z",
+    "security": "2026-04-27T19:07:31.855Z",
+    "packaging": "2026-04-19T07:15:56.728Z",
+    "infra": "2026-04-28T22:36:39.934Z",
+    "legal": "2026-04-16T18:15:25.059Z"
+  },
+  "lastFindings": {
+    "backlog": [
+      {
+        "tool": "bd-stale",
+        "domain": "backlog",
+        "status": "pass",
+        "label": "stale beads",
+        "durationMs": 542.3430829999998,
+        "cached": false
+      },
+      {
+        "tool": "bd-orphans",
+        "domain": "backlog",
+        "status": "pass",
+        "label": "orphan deps",
+        "durationMs": 845.0856669999994,
+        "cached": false
+      },
+      {
+        "tool": "bd-priority",
+        "domain": "backlog",
+        "status": "pass",
+        "label": "P0/P1 drift",
+        "durationMs": 123.59154099999978,
+        "cached": false
+      }
+    ],
+    "code": [
+      {
+        "tool": "tsc",
+        "domain": "code",
+        "status": "warn",
+        "label": "typecheck",
+        "durationMs": 15087.414458000001,
+        "cached": false
+      },
+      {
+        "tool": "lint",
+        "domain": "code",
+        "status": "warn",
+        "label": "lint + format",
+        "durationMs": 4693.802708,
+        "cached": false
+      },
+      {
+        "tool": "test-fast",
+        "domain": "code",
+        "status": "pass",
+        "label": "test suite",
+        "durationMs": 15120.929041000003,
+        "cached": false
+      },
+      {
+        "tool": "complexity",
+        "domain": "code",
+        "status": "warn",
+        "label": "complexity",
+        "durationMs": 2080.74575,
+        "cached": false
+      },
+      {
+        "tool": "knip",
+        "domain": "code",
+        "status": "warn",
+        "label": "dead code + dep analysis",
+        "durationMs": 11449.136959,
+        "cached": false
+      },
+      {
+        "tool": "depcruise",
+        "domain": "code",
+        "status": "pass",
+        "label": "layer violations",
+        "durationMs": 1704.3790410000001,
+        "cached": false
+      },
+      {
+        "tool": "type-coverage",
+        "domain": "code",
+        "status": "pass",
+        "label": "type coverage",
+        "durationMs": 10552.021667,
+        "cached": false
+      }
+    ],
+    "packages": [
+      {
+        "tool": "npm-registry",
+        "domain": "packages",
+        "status": "pass",
+        "label": "version drift",
+        "durationMs": 14608.887291000001,
+        "cached": false
+      },
+      {
+        "tool": "release-status",
+        "domain": "packages",
+        "status": "pass",
+        "label": "unreleased changes",
+        "durationMs": 20273.865917000003,
+        "cached": false
+      },
+      {
+        "tool": "audit-packages",
+        "domain": "packages",
+        "status": "warn",
+        "label": "publishability",
+        "durationMs": 11629.210292000002,
+        "cached": false
+      },
+      {
+        "tool": "knip",
+        "domain": "packages",
+        "status": "warn",
+        "label": "dead code + dep analysis",
+        "durationMs": 13103.634958999999,
+        "cached": false
+      },
+      {
+        "tool": "sherif",
+        "domain": "packages",
+        "status": "warn",
+        "label": "workspace consistency",
+        "durationMs": 911.3846670000003,
+        "cached": false
+      }
+    ],
+    "inbound": [
+      {
+        "tool": "gh-issues",
+        "domain": "inbound",
+        "status": "pass",
+        "label": "untriaged issues",
+        "durationMs": 377.6696659999998,
+        "cached": false
+      },
+      {
+        "tool": "bun-audit",
+        "domain": "inbound",
+        "status": "pass",
+        "label": "CVE scan",
+        "durationMs": 199.63479199999983,
+        "cached": false
+      }
+    ],
+    "sites": [
+      {
+        "tool": "doc-links",
+        "domain": "sites",
+        "status": "warn",
+        "label": "doc links",
+        "durationMs": 1163.8228749999998,
+        "cached": false
+      },
+      {
+        "tool": "doc-freshness",
+        "domain": "sites",
+        "status": "pass",
+        "label": "doc freshness",
+        "durationMs": 750.3465000000006,
+        "cached": false
+      }
+    ],
+    "security": [
+      {
+        "tool": "bun-audit",
+        "domain": "security",
+        "status": "pass",
+        "label": "CVE scan",
+        "durationMs": 199.63479199999983,
+        "cached": false
+      },
+      {
+        "tool": "secret-scan",
+        "domain": "security",
+        "status": "pass",
+        "label": "secret scan",
+        "durationMs": 345.2000420000004,
+        "cached": false
+      },
+      {
+        "tool": "lockfile",
+        "domain": "security",
+        "status": "pass",
+        "label": "lockfile integrity",
+        "durationMs": 762.8237079999999,
+        "cached": false
+      },
+      {
+        "tool": "nix-freshness",
+        "domain": "security",
+        "status": "pass",
+        "label": "nix freshness",
+        "durationMs": 89.14733299999989,
+        "cached": false
+      }
+    ],
+    "packaging": [
+      {
+        "tool": "bundle-sizes",
+        "domain": "packaging",
+        "status": "pass",
+        "label": "bundle sizes",
+        "durationMs": 122.56433299999935,
+        "cached": false
+      },
+      {
+        "tool": "zero-dep",
+        "domain": "packaging",
+        "status": "pass",
+        "label": "zero-dep check",
+        "durationMs": 9.142166000000543,
+        "cached": false
+      },
+      {
+        "tool": "cjs-esm",
+        "domain": "packaging",
+        "status": "pass",
+        "label": "CJS/ESM compat",
+        "durationMs": 14465.979292,
+        "cached": false
+      }
+    ],
+    "infra": [
+      {
+        "tool": "ci-health",
+        "domain": "infra",
+        "status": "pass",
+        "label": "CI health",
+        "durationMs": 560.824458,
+        "cached": false
+      },
+      {
+        "tool": "hook-integrity",
+        "domain": "infra",
+        "status": "pass",
+        "label": "hook integrity",
+        "durationMs": 17.80145900000025,
+        "cached": false
+      },
+      {
+        "tool": "tool-versions",
+        "domain": "infra",
+        "status": "pass",
+        "label": "tool versions",
+        "durationMs": 2415.075749999999,
+        "cached": false
+      },
+      {
+        "tool": "recall-eval-baseline",
+        "domain": "infra",
+        "status": "warn",
+        "label": "recall eval baseline (P@5/R@5/MRR vs baseline) (not run)",
+        "durationMs": 0,
+        "cached": false
+      },
+      {
+        "tool": "recall-emit-dashboard",
+        "domain": "infra",
+        "status": "warn",
+        "label": "Tier-2 ambient injection emit/skip dashboard (not run)",
+        "durationMs": 0,
+        "cached": false
+      },
+      {
+        "tool": "wip-triage",
+        "domain": "infra",
+        "status": "warn",
+        "label": "retained agent work (worktrees + branches + stashes)",
+        "durationMs": 472.042875,
+        "cached": false
+      }
+    ],
+    "legal": [
+      {
+        "tool": "license-files",
+        "domain": "legal",
+        "status": "pass",
+        "label": "LICENSE files",
+        "durationMs": 11.481082999999671,
+        "cached": false
+      },
+      {
+        "tool": "dep-licenses",
+        "domain": "legal",
+        "status": "pass",
+        "label": "dep licenses",
+        "durationMs": 856.1961670000001,
+        "cached": false
+      }
+    ]
+  },
+  "lastDomainTimings": {
+    "backlog": {
+      "durationMs": 0.045625000002473826
+    },
+    "inbound": {
+      "durationMs": 0.03504199999952107
+    },
+    "code": {
+      "durationMs": 0.2379579999978887
+    },
+    "packages": {
+      "durationMs": 0.3444579999995767
+    },
+    "security": {
+      "durationMs": 0.05237499999930151
+    },
+    "sites": {
+      "durationMs": 0.040582999998150626
+    },
+    "packaging": {
+      "durationMs": 0.055791999999200925
+    },
+    "infra": {
+      "durationMs": 5.453834000000029
+    },
+    "legal": {
+      "durationMs": 0.19883399999889662
+    }
+  },
+  "lastScanDurationMs": 570.3049159999999
+}

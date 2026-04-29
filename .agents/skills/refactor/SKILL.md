@@ -1,0 +1,244 @@
+---
+description: Plan and execute large refactors — phased migrations, API redesigns, package extractions. Use when a refactor spans multiple files/packages and needs a plan with phases, /complete criteria, and zero-WIP discipline.
+argument-hint: [plan|review|phase]
+allowed-tools: Task, Read, Glob, Grep, Bash, Agent, Edit, Write, AskUserQuestion
+benefits-from: [recall, tests, pm]
+escalate-to: {arch: "layer boundary or abstraction design decision", render: "refactor touches silvery pipeline internals"}
+---
+
+# Refactor — Large-Scale Refactoring Plans
+
+**Keywords**: refactor, migration, extract, decompose, split, rename, redesign, phase
+
+Plans and executes large refactors with phased discipline. Not for small renames or one-file cleanups — use `/code clean` for those.
+
+## MANDATORY FIRST STEP
+
+**Read [docs/lessons/refactoring.md](../../docs/lessons/refactoring.md) IN FULL before proceeding.** This is not optional. Use the `Read` tool to read the entire file now — every case study, every lesson. The reasoning behind the rules matters as much as the rules themselves. If you skip this, you will repeat the mistakes documented in it.
+
+## Quick Actions
+
+| Command | Purpose |
+|---|---|
+| `/refactor plan <scope>` | Create a phased plan for architectural changes |
+| `/refactor review` | Review existing plan for gaps and risks |
+| `/refactor phase <N>` | Execute a specific phase with /complete |
+| `/refactor migrate <desc>` | Mechanical migration (50+ files) — batch-refactor + tsc gates |
+
+`/refactor plan` and `/refactor phase` load [pm/workflows/refactor.md](../pm/workflows/refactor.md).
+`/refactor migrate` loads [migrate.md](migrate.md) — for type restructurings, field renames, interface changes.
+
+## When to Use Which
+
+**`/refactor plan`** — the code's **shape** changes (new types, new packages, new layers):
+- Extracting a package from a monolith
+- Decomposing a monolithic type/function into composable parts
+- Splitting a large file/module into multiple
+- Adding a new abstraction layer (e.g., Board.apply pure reducer)
+- Any architectural change that needs phased planning
+
+**`/refactor migrate`** — the code's shape stays the same, just **names/types change** across many files:
+- Rename a field/type across 50+ files (`task_marker` → `item.task.marker`)
+- Change an interface and update all consumers (`item: boolean` → `item: ItemData`)
+- API migration where 80%+ of changes are mechanical find-replace
+- Any migration where batch-refactor can handle the bulk
+
+**Decision rule**: If you could write a codemod/regex to do 80% of the work, use `/refactor migrate`. If each file needs different judgment about what to change, use `/refactor plan`.
+
+**They compose**: A large refactor might use `/refactor plan` for the architecture (Phase 1: new type, Phase 2: new package) and `/refactor migrate` within a phase for the mechanical consumer updates.
+
+## Package Extraction Rules (from era2)
+
+When extracting packages from a monolith:
+
+1. **Rename first, split later.** If the monolith is being renamed (e.g., @silvery/tea → @silvery/create), do the rename as one atomic operation before splitting into sub-packages. Renaming while splitting causes combinatorial breakage.
+
+2. **One package per session.** Extract one package fully (copy → delete from old → fix breaks → test) before starting the next. Extracting 5 packages in parallel leads to shallow implementations (copy without delete, missing tests).
+
+3. **Copy = debt until deletion.** When you copy code to a new package, the old copy is now tech debt. In the SAME commit: (a) verify the new copy works, (b) replace the old copy with a re-export from the new location (or delete it entirely), (c) run tests. Never leave both copies as independent implementations — duplicated code that compiles is invisible to tests and types, so it will never be caught unless you fix it now. (See Case Study 7 in docs/lessons/refactoring.md.)
+
+4. **Every new package needs tests in the same commit.** Not "will add tests later." At minimum: `test("exports are defined", () => expect(createFoo).toBeDefined())`. The era2 audit found @silvery/commands shipped with zero tests.
+
+5. **Docstrings document reality, not plans.** Only list APIs that exist. Future APIs belong in design docs (`hub/silvery/design/`), not source code comments. LLMs read docstrings literally — a listed-but-unimplemented function will be called and fail.
+
+6. **Barrel exports = discoverability.** If `withApp()` works and has tests but isn't in the barrel, users can't find it. Export from barrel or don't ship. Subpath-only exports are for internal/advanced use.
+
+7. **Write /complete criteria AFTER scoping, not before.** "grep for X → 0 hits" sounds good in a bead description but may be impossible if X has legitimate internal consumers. Update criteria when you discover the real blast radius.
+
+8. **Audit the entire feature set, not just your session's changes.** `/complete` checks what YOU changed. A systematic feature-by-feature audit (bead promise vs actual code) catches what `/complete` misses: unimplemented promises, missing tests, stale docstrings.
+
+## Rename Checklist
+
+Renames look trivial and are not. A "simple rename" session usually leaves half the old name scattered across the codebase because the agent stopped after fixing the compiler. The compiler only checks types — it won't catch a rename that lives in a comment, a test fixture, a file path, or a doc heading.
+
+**For every rename, sweep all seven layers in order:**
+
+| # | Layer | What to grep | Why it's missed |
+|---|-------|-------------|-----------------|
+| 1 | **Data** | DB schema, migrations, JSON/YAML fixtures, stored enums | TypeScript doesn't check runtime data shape |
+| 2 | **Types** | `interface`, `type`, `enum`, discriminated union tags | Usually the easy part — tsc catches these |
+| 3 | **Functions** | `function foo`, `const foo =`, method names, factory names | tsc catches call sites but not string-based lookups |
+| 4 | **Files** | file names, directory names, `import from '...'` paths | Git tracks content, not names — easy to forget |
+| 5 | **Comments** | `// foo`, JSDoc `@param foo`, TODO/FIXME references | Invisible to tsc and tests |
+| 6 | **Docs** | `docs/**/*.md`, `README.md`, `AGENTS.md`, bead descriptions | The biggest source of drift |
+| 7 | **Tests** | test names, `describe("foo")`, fixture data, snapshot files | Test name is a string, not checked |
+
+**The sweep command**:
+
+```bash
+# Find every mention, any layer. Review before editing.
+rg -i "old_name" --glob '!node_modules' --glob '!dist' --glob '!*.lock'
+```
+
+Run this **before** you think you're done, not after. If the count is non-zero, you're not done.
+
+**Common misses** (the ones that keep coming back):
+- DB column names when renaming a field (data layer outlives code)
+- String literals in `switch (type)` branches or lookup tables
+- File basenames that encode the old name (`old-name.test.ts`, `old-name.md`)
+- Heading anchors in markdown (`#old-name` links break silently)
+- Comment blocks that explain the old mental model
+
+**Don't trust `bun fix`**: lint catches unused imports, not stale names. `tsc --noEmit` catches type errors, not stale strings. Only the grep sweep is authoritative.
+
+## Phase Completion Protocol (MANDATORY — enforced, not advisory)
+
+**Closing a bead without running its acceptance criteria is a bug.** The definition of done is not "I did a lot of work." It's "every acceptance grep returns the expected result."
+
+### The gate: acceptance criteria MUST pass before `km bd update -s closed`
+
+1. **Run every /complete criteria grep from the bead description.** Literally run the command. If it doesn't pass, the bead stays open. No exceptions.
+
+2. **Report actual numbers, not claims.** "0 hits" must come from a grep you just ran, not from your belief. Paste the command output.
+
+3. **If criteria can't be met: update the bead, don't close it.**
+   - Discovered the scope is larger than expected? Update the bead description with the real scope. Keep it open.
+   - Got 80% done and ran out of time? Update notes with what's done, what's remaining, and exact counts. Keep it open.
+   - Decided some items are unnecessary? Mark them "SKIPPED: reason" in the bead. Don't silently close.
+
+4. **Never close a bead with known remaining work.** This is the #1 failure mode. "I'll track the rest in a follow-up" = the rest never happens. If there's remaining work, the bead stays open until it's either done or explicitly split into a tracked follow-up with its own acceptance criteria.
+
+5. **If you deviate from the plan: update the bead BEFORE closing.** Bead says "delete X" but you kept X? Update the bead to say "kept X (reason)" and adjust the acceptance criteria.
+
+### What "done" means for migrations
+
+A migration bead with grep acceptance criteria (e.g., `grep "oldPattern" → 0 hits`) is **not done** until:
+- The grep returns 0
+- Tests pass
+- No compat wrappers, re-exports, or bridges keeping the old pattern alive
+- No "deprecated" annotations standing in for actual deletion
+
+"Deprecated" is NOT "done." Deprecated fields with 299 references = 299 references, not done.
+
+### For agents closing beads
+
+When an agent claims a bead and tries to close it, it MUST:
+1. Run ALL acceptance criteria from the bead description
+2. Include the actual command output in its completion message
+3. If any criteria fails: report what passed and what didn't, leave bead open
+4. Never use words like "mostly done" or "remaining work is minor" as justification for closing
+
+### Case studies (why this matters)
+
+- **selection.4**: Agent closed bead claiming "per-pane sel done." Acceptance said `grep cursorNodeId → 0`. Reality: 299 hits. Bead had to be reopened.
+- **@silvery/style** (Case Study 6): 8 phase items marked done that weren't — nobody ran the greps before checking the box.
+- **ColumnState/CardState**: Each session found "still has consumers" and deferred to next phase. The old types survived indefinitely.
+
+## Substrate-Phasing Convention (file the cleanup bead at planning time)
+
+When a refactor splits into "Phase 1: build the new substrate alongside the old; Phase 2/3: delete the old," the substrate-phase bead closes at L4 (new structure proven, old code still present). The cleanup bead that deletes the old code at L5 must be **filed at planning time, before the substrate ships** — not discovered after when /complete catches the residue.
+
+**Why**: Plateau-90 (April 2026) phased C1, C2, C3a as "Phase 1 substrate, Phase 2/3 in notes." Three substrate beads closed at L4 with workaround fossils still in code as planned residue. The cleanup beads (`km-silvery.lifecycle-leak-detection-fossil`, `km-silvery.paint-clear-l5-final`) were filed AFTER the substrate shipped, when residue was rediscovered during /complete. That meant no bead tracked the L4-but-not-L5 state — it was implicit in NOTES, not explicit in the tree.
+
+**Convention**:
+1. When planning a substrate-then-cleanup migration, file BOTH beads at planning time:
+   - `<scope>.<recast>` — substrate bead (Phase 1)
+   - `<scope>.<recast>-cleanup` or `<scope>.<recast>-l5` — cleanup bead (Phase 2/3)
+2. Set `--depends-on <substrate>` on the cleanup bead so it can't close before substrate
+3. The substrate bead's `/complete` criteria includes: **"L5 cleanup bead exists in open state, blocked by this"**
+4. The cleanup bead's description references which fossils remain (function names, env flags, files)
+5. When substrate ships, cleanup bead is automatically the next-actionable item
+
+This makes L4-but-not-L5 fossils tracked from day 0 instead of surface-of-discovery. /complete Step 1 verification can then catch "substrate closed at L4 but cleanup bead missing" as a structural error, not a content gap.
+
+## Tribe Coordination
+
+When working on the main worktree (not an isolated git worktree), **notify the tribe before starting disruptive work**:
+
+- Before replacing imports across many files (tests may fail for other sessions)
+- Before changing shared config (package.json, tsconfig, .mcp.json)
+- Before modifying vendor/ packages that other sessions depend on
+- Before any multi-file refactor that could break the build for 5+ minutes
+
+Use `tribe.broadcast` or `tribe.send` to the chief: "Starting disruptive refactor on <scope>. Expect <description> to be broken for ~N min. Don't start <scope>-related work until all-clear."
+
+Send an all-clear when the refactor is stable (tests pass).
+
+**When to use a worktree instead**: If the refactor will take >30 min or touch >20 files, prefer `bun worktree` to avoid disrupting other sessions entirely. Worktrees are free — the overhead of creating one is far less than the cost of blocking the tribe.
+
+## Shadow Oracle Technique (special case)
+
+When replacing a complex stateful system (e.g., state propagation, caching, rendering pipeline), the default "break then fix" approach may be too risky — a subtle behavioral difference can silently change output. In these cases, use a **shadow oracle**:
+
+### When to use
+- Replacing a stateful system with many implicit behaviors
+- Can't fully characterize correct output with unit tests alone
+- Behavioral parity matters more than API parity
+
+### How it works
+1. **Rename + privatize** old methods (e.g., `syncCursor` → `private _legacySyncCursor`). This gives a compile error to any component trying to call the old API — structural prevention, not just comments.
+2. **Add `@deprecated REMOVING in <bead-id>`** annotation on every legacy method, linking to the phase bead that deletes it.
+3. **Run both** — new implementation drives UI, old runs as shadow for comparison.
+4. **Assert parity** — dev-mode assertion that old and new agree semantically (not byte-for-byte).
+5. **Delete immediately** — shadow window is ONE test suite run, not days. The next phase deletes the legacy code.
+
+### /complete annotations
+Phase beads must note which legacy artifacts are **expected** vs **gone**:
+
+```
+# Phase 1 /complete (shadow exists — expected):
+rg syncCursor → 0 (public name gone, renamed)
+rg _legacySyncCursor → 2-3 hits (expected: definition + shadow caller)
+# NOTE: _legacySyncCursor removed in Phase 3
+
+# Phase 3 /complete (shadow deleted — clean):
+rg _legacySyncCursor → 0
+rg '@deprecated.*phase3' → 0 (annotations deleted too)
+```
+
+Without these annotations, /complete will flag the shadow artifacts as leftover OldWay — confusing the implementer.
+
+### Anti-patterns
+- Shadow window > 1 day → dual-path trap. If parity fails, fix and re-run, don't "soak longer."
+- Both paths drive UI → guaranteed divergence. ONE path drives UI; the other compares only.
+- Skip the rename → someone will call the old public method. Private + rename is the guard.
+- Leave @deprecated annotations after deletion → stale noise. Delete annotations in the same phase as the code.
+
+### Reference implementation
+km-tui.hierarchical-node-state (2026-04) — 5 sync methods replaced by reduced signals. Shadow oracle in Phase 1, cutover in Phase 2, purge in Phase 3. See that bead's phase beads for the exact pattern.
+
+## Retrospective (after all phases complete)
+
+After closing a refactoring bead, write a brief retrospective in the bead notes or as a commit message. Include:
+
+### Impact Analysis
+- **Lines**: total added/removed across all repos (`git diff --shortstat`)
+- **Files touched**: count and categories (new package, migration, docs, tests)
+- **Dependencies**: added/removed/moved (e.g., "chalk moved from deps to devDeps")
+- **npm**: packages published, version bumps
+- **Test delta**: tests added, test files added, coverage changes
+
+### What Went Well
+- Techniques that worked (parallel agents, break-then-fix, specific tooling)
+- Design decisions that held up under implementation
+
+### What Didn't Go Well
+- Bead drift (items marked done that weren't)
+- Pragmatic deviations that weren't recorded
+- Scope creep or missed scope
+- Time spent on unexpected issues
+
+### Value Assessment
+- **Before**: describe the problem state (duplication, missing types, stale deps)
+- **After**: describe what's better (unified API, validated inputs, fewer deps)
+- **Was it worth it?**: honest assessment — some refactors don't pay off
