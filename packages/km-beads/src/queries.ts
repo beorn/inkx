@@ -369,12 +369,19 @@ export function isBlocked(issue: Issue, options?: BeadsQueryOptions): boolean {
       // Without repo, we can't check if blockers are done - assume blocked
       return true
     }
-    const blockers = repo.query(`short_id:${blockerId}`)
-    const [firstBlocker] = blockers
-    if (firstBlocker) {
-      const blocker = nodeToIssue(firstBlocker, { repo })
-      if (blocker.status !== "done" && blocker.status !== "dropped") {
-        return true
+    // Use resolveShortId so blockers stored as canonical path-form (data.id),
+    // legacy bd-form (data.short_id), or aliases all resolve. The previous
+    // `repo.query("short_id:...")` raw form only matched data.short_id and
+    // silently treated path-form blockers as not-found (= unblocked), which
+    // would mark items ready when they aren't.
+    const blockerNodeId = resolveShortId(blockerId, { repo })
+    if (blockerNodeId) {
+      const firstBlocker = repo.getNode(blockerNodeId)
+      if (firstBlocker) {
+        const blocker = nodeToIssue(firstBlocker, { repo })
+        if (blocker.status !== "done" && blocker.status !== "dropped") {
+          return true
+        }
       }
     }
   }

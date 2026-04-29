@@ -82,12 +82,21 @@ export function resolveShortId(input: string, options: ShortIdOptions): string |
   const repo = options.repo
 
   // Strip a leading `@<prefix>/` sigil to get the bare canonical path.
-  const canonical = input.replace(/^@[^/]+\//, "")
+  // We don't know whether `data.id` is stored with or without the sigil
+  // (verified 2026-04-29: existing vault stores WITH sigil, e.g. "@km/storage").
+  // Try all three forms so callers can pass either shape.
+  const stripped = input.replace(/^@[^/]+\//, "")
 
-  // 1. Frontmatter `id:` — the canonical path-form set on each .md file.
+  // 1. Frontmatter `id:` — exact match against either stored form.
+  //    Also matches via LIKE for foreign-prefix sigils (e.g. typed "scope/slug"
+  //    against stored "@anyprefix/scope/slug").
   const byCanonical = repo.rawQuery<{ id: string }>(
-    `SELECT id FROM nodes WHERE json_extract(data, '$.id') = ? LIMIT 1`,
-    [canonical],
+    `SELECT id FROM nodes
+     WHERE json_extract(data, '$.id') = ?
+        OR json_extract(data, '$.id') = ?
+        OR json_extract(data, '$.id') LIKE ?
+     LIMIT 1`,
+    [input, stripped, `%/${stripped}`],
   )
   if (byCanonical[0]) return byCanonical[0].id
 

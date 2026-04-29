@@ -18,7 +18,7 @@ import {
   claimIssueFields,
   type Agent,
 } from "@km/agent"
-import { queryReady, getIssue } from "@km/beads"
+import { queryReady, getIssue, displayId } from "@km/beads"
 import { resolvePathArg } from "@km/fs-mount"
 import { loadRepo } from "../load-repo.ts"
 import { getRootPath } from "../program.ts"
@@ -138,7 +138,7 @@ bdAgentCommand
     const assignment = assignIssueFields(agent.shortId)
     void assignment // Will be used for persistence
 
-    console.log(term.green(`Assigned ${issue.shortId} to ${agent.shortId}`))
+    console.log(term.green(`Assigned ${displayId(issue)} to ${agent.shortId}`))
     console.log(term.dim(`  ${issue.title}`))
     console.log(term.yellow("\nNote: Assignment not yet persisted to storage."))
   })
@@ -170,7 +170,7 @@ bdAgentCommand
     const assignment = unassignIssueFields()
     void assignment // Will be used for persistence
 
-    console.log(term.green(`Unassigned ${issue.shortId} from ${agent.shortId}`))
+    console.log(term.green(`Unassigned ${displayId(issue)} from ${agent.shortId}`))
     console.log(term.yellow("\nNote: Unassignment not yet persisted to storage."))
   })
 
@@ -222,7 +222,7 @@ bdAgentCommand
       return
     }
 
-    console.log(term.green(`${agent.shortId} claimed ${issue.shortId}`))
+    console.log(term.green(`${agent.shortId} claimed ${displayId(issue)}`))
     console.log(term.dim(`  ${issue.title}`))
     console.log(term.yellow("\nNote: Claim not yet persisted to storage."))
   })
