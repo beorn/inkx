@@ -22,6 +22,7 @@ import { findKmRootFromPath } from "@km/fs-mount"
 import { existsSync, unlinkSync } from "fs"
 import { formatPath } from "../utils/format-path.ts"
 import { getBrokenLinks, getBrokenLinkCount, printBrokenLinks } from "./broken-links.ts"
+import { findPathDrift, countPathDriftCheckable } from "./doctor-paths-check.ts"
 
 // ============================================
 // Subcommands
@@ -255,6 +256,51 @@ const doctorIntegrityCommand = new Command("integrity")
     }
   })
 
+// `km doctor paths` is a soft sanity check: for every node carrying a
+// frontmatter `id` (mirrored into `data.id`), derive the path by walking
+// the parent chain and joining `node.name` with "/". A drift between the
+// declared id and the derived path means the file was likely moved or
+// renamed without updating frontmatter (or without `km bd rename`).
+//
+// Soft check: no enforcement, no derive-on-read doctrine — just surface
+// the discrepancy so an operator can decide whether to fix the file or
+// re-run a migration.
+const doctorPathsCommand = new Command("paths")
+  .description("Detect drift between data.id (frontmatter) and derived parent path")
+  .argument("[path]", "Path to repo (default: current directory)")
+  .action((path) => {
+    const { kmDir, repoPath } = resolveKmDir(path)
+    const dbPath = join(kmDir, "state.db")
+
+    console.log(term.bold("km doctor paths"), term.dim(`(repo ${formatPath(repoPath)})`))
+
+    if (!existsSync(dbPath)) {
+      console.error(term.red("No state.db found. Run 'km doctor rebuild' first."))
+      process.exit(1)
+    }
+
+    const db = new Database(dbPath, { readonly: true })
+    try {
+      const checked = countPathDriftCheckable(db)
+      const findings = findPathDrift(db)
+      if (findings.length === 0) {
+        console.log(term.green(`  ✓ No drift across ${checked} bead(s) with data.id`))
+        return
+      }
+      console.log(term.yellow(`  Found ${findings.length} drift warning(s):`))
+      for (const f of findings) {
+        console.log(
+          `    ${term.dim(f.nodeId)}: data.id (${term.bold(f.declared)}) ≠ derived (${term.bold(f.derived)}). ` +
+            term.dim("File may have been moved without 'km bd rename'."),
+        )
+      }
+      console.log()
+      console.log(term.dim(`  Found ${findings.length} drift warning(s) out of ${checked} bead(s) checked.`))
+    } finally {
+      db.close()
+    }
+  })
+
 // `km doctor links` is a convenience alias for `km list --broken`.
 // Both paths call the same shared broken-links logic in ./broken-links.ts,
 // so output stays in sync. The only difference is the header line.
@@ -293,6 +339,7 @@ export const doctorCommand = new Command("doctor")
   .addCommand(doctorResetCommand)
   .addCommand(doctorIntegrityCommand)
   .addCommand(doctorLinksCommand)
+  .addCommand(doctorPathsCommand)
   .action((path) => {
     const { kmDir, repoPath } = resolveKmDir(path)
 
@@ -341,6 +388,17 @@ export const doctorCommand = new Command("doctor")
           )
         }
         console.log(`  Integrity      ${corrupt > 0 ? `${corrupt} corrupt fs-parent(s)` : term.green("clean")}`)
+      }
+
+      // Path drift: data.id ≠ derived parent path (file moved without `km bd rename`)
+      if (db) {
+        const drift = findPathDrift(db).length
+        if (drift > 0) {
+          health.issues.push(
+            `${drift} bead(s) with data.id ≠ derived path\n` + `      Run 'km doctor paths' to see details`,
+          )
+        }
+        console.log(`  Paths          ${drift > 0 ? `${drift} drift warning(s)` : term.green("aligned")}`)
       }
 
       // Issues
