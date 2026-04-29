@@ -290,7 +290,7 @@ export function SilverCodeBanner({
     const imgW = Math.min(IMG_MAX_COLS, Math.max(20, availableWidth - 4))
     const imgH = Math.max(5, Math.round((imgW * pngH) / (pngW * CELL_HEIGHT_TO_WIDTH)))
     block = (
-      <Box flexDirection="column" alignItems="center">
+      <Box flexDirection="column" alignItems="center" marginBottom={2}>
         <Image src={SILVER_CODE_PNG_PATH} width={imgW} height={imgH} fallback="SILVER CODE" />
       </Box>
     )
