@@ -34,8 +34,10 @@ import { join } from "path"
 import { existsSync } from "fs"
 
 // Import from extracted modules
-import { issueToBdJson, printIssue, printReadyIssue, printIssueDetails } from "./bd-format.ts"
+import { issueToBdJson, printIssue, printReadyIssue } from "./bd-format.ts"
 import { resolveIssueArg } from "./bd-query-helpers.ts"
+import { printTaskDetails } from "./shared-show.ts"
+import { resolveTaskNode } from "../utils/resolve-task.ts"
 import { resolveAssignee } from "../utils/assignee.ts"
 import { configCommand } from "./bd-config.ts"
 import { migrateCommand, exportCommand } from "./bd-migrate.ts"
@@ -232,20 +234,23 @@ const showCmd = bdCommand
 
     const resolved = resolvePathArg(undefined)
     using repo = await loadRepo(resolved.repoRoot)
-    const issue = resolveIssueArg(repo, opts.id)
+    const node = resolveTaskNode(repo, opts.id)
 
-    if (!issue) {
+    if (!node) {
       console.error(term.red(`Issue not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
 
     if (opts.json) {
-      console.log(JSON.stringify(issueToBdJson(issue), null, 2))
+      // Preserve bd-compatible JSON shape (snake_case fields like
+      // issue_type, dependency_count) by routing through issueToBdJson
+      // — printTaskDetails' JSON path emits the camelCase Issue shape.
+      console.log(JSON.stringify(issueToBdJson(nodeToIssue(node, { repo })), null, 2))
       return
     }
 
-    printIssueDetails(issue)
+    printTaskDetails(repo, node, { bd: true })
   })
 
 // bd create <title> - Create a new issue

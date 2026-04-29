@@ -28,14 +28,6 @@ function bdStatus(status: Issue["status"]): string {
 }
 
 /**
- * Format timestamp as bd-compatible date string
- */
-function formatDate(ts: number): string {
-  const d = new Date(ts)
-  return d.toISOString().replace("T", " ").slice(0, 16)
-}
-
-/**
  * Convert Issue to bd-compatible JSON format
  */
 export function issueToBdJson(issue: Issue): Record<string, unknown> {
@@ -73,39 +65,4 @@ export function printReadyIssue(issue: Issue, index: number): void {
   const type = issue.type || "task"
   const location = issue.parentContext ? term.dim(` (${issue.parentContext})`) : ""
   console.log(`${index}. [${issue.priority}] [${type}] ${term.cyan(issue.shortId)}: ${issue.title}${location}`)
-}
-
-/**
- * Print issue details in bd show format
- */
-export function printIssueDetails(issue: Issue): void {
-  console.log(`${term.bold(issue.shortId)}: ${issue.title}`)
-  console.log(`Status: ${bdStatus(issue.status)}`)
-  console.log(`Priority: ${issue.priority}`)
-  console.log(`Type: ${issue.type || "task"}`)
-  console.log(`Created: ${formatDate(issue.createdAt)}`)
-  if (issue.createdBy) console.log(`Created by: ${issue.createdBy}`)
-  console.log(`Updated: ${formatDate(issue.updatedAt)}`)
-
-  if (issue.path) {
-    console.log(`Path: ${issue.path}`)
-  }
-  if (issue.parentContext) {
-    console.log(`Context: ${issue.parentContext}`)
-  }
-
-  if (issue.assignee) {
-    console.log(`Assignee: @${issue.assignee}`)
-  }
-
-  if (issue.blockedBy && issue.blockedBy.length > 0) {
-    console.log(`\nBlocked by (${issue.blockedBy.length}):`)
-    for (const dep of issue.blockedBy) {
-      console.log(`  ↳ ${dep}`)
-    }
-  }
-
-  if (issue.description && issue.description !== issue.title) {
-    console.log(`\nDescription:\n${issue.description}`)
-  }
 }

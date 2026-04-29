@@ -16,6 +16,7 @@ import { normalizePriority } from "@km/beads"
 import { getRootPath } from "../../program.ts"
 import { resolveAssignee } from "../../utils/assignee.ts"
 import { getNodeDisplayName, formatCollapsedAncestor, formatTaskWithPath, formatTaskLine } from "./formatters.ts"
+import { printTaskDetails } from "../shared-show.ts"
 import {
   findNodeByPathOrId,
   getTasksUnderNode,
@@ -357,31 +358,16 @@ export async function listTasks(pathOrId: string | undefined, options: ListTasks
 }
 
 /**
- * Show task details
+ * Show task details — delegates to the shared `printTaskDetails` helper
+ * so `tasks <id>` and `bd show <id>` stay in sync, then appends the
+ * task-specific subtask listing.
  */
 function showTaskDetails(repo: Repo, task: KNodeType, options: { json?: boolean }): void {
-  if (options.json) {
-    console.log(JSON.stringify(task, null, 2))
-    return
-  }
+  printTaskDetails(repo, task, { json: options.json })
+  if (options.json) return
 
-  console.log(term.bold("Task:"), task.id)
-  console.log(term.dim("Status:"), task.item?.task?.status ?? "todo")
-  console.log(term.dim("Content:"), task.content ?? "(none)")
-  if (task.due_at) console.log(term.dim("Due:"), task.due_at)
-  if (task.start_at) {
-    console.log(term.dim("Start:"), task.start_at)
-  }
-  if (task.priority) console.log(term.dim("Priority:"), task.priority)
-  if (task.assigned_to) {
-    console.log(term.dim("Assigned:"), task.assigned_to)
-  }
-  if (task.parent_id) {
-    console.log(term.dim("Parent:"), task.parent_id.slice(-8))
-  }
-  console.log(term.dim("Created:"), new Date(task.created_at ?? Date.now()).toISOString())
-
-  // Show child tasks if any
+  // Subtask list is task-mode only — bd uses Blocked-by / dependency
+  // tree instead of a flat subtask roll-up.
   const children = getTasksUnderNode(repo, task.id)
   if (children.length > 0) {
     console.log()
