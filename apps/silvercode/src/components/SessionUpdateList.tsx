@@ -215,10 +215,29 @@ function BackgroundSystemRow({ text }: { text: string }): React.ReactElement {
 }
 
 /**
- * User turn row. The leading `>` glyph anchors the role visually — paired
- * with a subtle bg tint, the row reads as "user input" without the heavy
- * border-card chrome other agents use. `additionalContext` carries hidden
- * context (system-reminders, hook output) exposed via the `/debug` toggle.
+ * User turn row — right-aligned bubble with rounded border, no background fill.
+ *
+ * Visual: chat-app convention — the border IS the bubble (no background tint).
+ * The bubble snaps to the right via `justifyContent="flex-end"` and shrinks to
+ * fit its content with a max width cap (`maxWidth="80%"`) so long prompts wrap
+ * cleanly within the bubble instead of pushing the chrome edge-to-edge.
+ *
+ * Wrapping: silvery's `<Prose>` wrap primitive (canonical typography wrapper)
+ * + `<LinkifiedText>` handles word-boundary breaking. No mid-word breaks
+ * unless a single token exceeds the bubble's interior width — same behavior
+ * as the previous bg-tint UserRow, just chrome-only now.
+ *
+ * Selection: silvery's mouse-driven selection works at buffer level — the
+ * cells inside the bubble carry plain styled text (no replacement glyphs or
+ * non-text nodes), so drag-to-select inside the bubble continues to work.
+ * The rounded border adds chrome rectangles around the bubble but doesn't
+ * sit between text cells, so it doesn't break the selection rectangle math.
+ *
+ * `additionalContext` carries hidden context (system-reminders, hook output)
+ * exposed via the `/debug` toggle. The disclosure stays left-aligned and bg-
+ * less BELOW the bubble — it's metadata about the bubble, not part of it.
+ *
+ * Bead: km-cr94.
  */
 function UserRow({
   text,
@@ -234,22 +253,23 @@ function UserRow({
   const lineCount = additionalContext ? additionalContext.split("\n").length : 0
 
   return (
-    <Box
-      flexDirection="column"
-      flexShrink={1}
-      minWidth={0}
-      backgroundColor="$bg-surface-subtle"
-      paddingX={1}
-      paddingY={0}
-    >
+    <Box flexDirection="column" flexShrink={1} minWidth={0} paddingX={1} paddingY={0}>
       {!isMetaOnly && (
-        <Box flexDirection="row" gap={1} flexShrink={1} minWidth={0}>
-          <Text bold color="$accent">
-            {">"}
-          </Text>
-          <Prose flexGrow={1} flexShrink={1} minWidth={0}>
-            <LinkifiedText text={text} role="user" />
-          </Prose>
+        // Right-align via flex. The bubble shrinks to content; long content
+        // wraps inside the 80%-of-row maxWidth cap.
+        <Box flexDirection="row" justifyContent="flex-end" flexShrink={1} minWidth={0}>
+          <Box
+            flexDirection="row"
+            flexShrink={1}
+            minWidth={0}
+            borderStyle="round"
+            borderColor="$border-default"
+            paddingX={1}
+          >
+            <Prose flexGrow={0} flexShrink={1} minWidth={0}>
+              <LinkifiedText text={text} role="user" />
+            </Prose>
+          </Box>
         </Box>
       )}
       {hasContext && (

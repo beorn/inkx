@@ -296,17 +296,27 @@ function parseInputBox(lines: readonly string[], leftWidth: number): InputBoxReg
 }
 
 function parseWelcome(lines: readonly string[]): WelcomeRegion {
-  // Anchor on agent-agnostic "Silver Code" — the H1 reads
-  // "Silver Code for {Codex|Claude Code|Gemini|…}" or bare "Silver Code"
-  // when the agent is unknown. Bead: km-silvercode.welcome-claude-hardcoded.
-  const startRow = lines.findIndex((l) => /\bSilver Code\b/.test(l) && !l.includes("Silver Code v"))
+  // Welcome anchors on either:
+  //  - the figlet "Standard" SILVER block top-row signature ("____ ___ _ __"),
+  //    which is unique to the brand banner, or
+  //  - the figlet "Small" tier signature for narrow panes ("___ ___ _ __"),
+  //    or
+  //  - the stacked-text fallback "SILVER" line (very narrow panes only).
+  // None of these strings appear in any non-Welcome region. The previous
+  // anchor ("Silver Code" prose) was dropped in km-cr94 when the H1 was
+  // replaced by the colorized figlet block.
+  const startRow = lines.findIndex(
+    (l) => l.includes("____ ___ _ __") || l.includes("___ ___ _ __") || /^\s*SILVER\s*$/.test(l),
+  )
   if (startRow === -1) return { visible: false, rows: [] }
-  // Welcome ends when we hit a blank row AFTER we've seen the Keybindings
-  // heading, OR at end of frame.
+  // Welcome ends when we hit a blank row AFTER we've seen the KEYBINDINGS
+  // section header, OR at end of frame. Section headers render in upper-
+  // case via the new `<Small color="$muted">` style — the previous H2
+  // shape ("Keybindings", title-cased) has been retired in km-cr94.
   let endRow = lines.length
   let sawKeybindings = false
   for (let row = startRow; row < lines.length; row++) {
-    if (lines[row]!.trim() === "Keybindings") sawKeybindings = true
+    if (lines[row]!.trim() === "KEYBINDINGS") sawKeybindings = true
     else if (sawKeybindings && lines[row]!.trim() === "") {
       endRow = row
       break

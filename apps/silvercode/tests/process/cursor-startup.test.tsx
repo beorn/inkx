@@ -28,8 +28,12 @@ const ROWS = 40
 describe("silvercode startup cursor (process harness)", () => {
   test("welcome screen mounts and renders the product title", async () => {
     await using harness = await spawnSilvercode({ cols: COLS, rows: ROWS })
-    await harness.waitFor("Silver Code for Claude Code", { timeoutMs: 15_000 })
-    expect(harness.screen).toContainText("Silver Code for Claude Code")
+    // The brand title is now figlet ASCII art (km-cr94 replaced the H1
+    // "Silver Code for Claude Code" with two stacked block-letter blocks).
+    // Anchor on the figlet "Standard" SILVER top-row signature — unique to
+    // the brand banner.
+    await harness.waitFor("____ ___ _ __", { timeoutMs: 15_000 })
+    expect(harness.screen).toContainText("____ ___ _ __")
     expect(harness.alive).toBe(true)
   }, 30_000)
 
@@ -40,7 +44,7 @@ describe("silvercode startup cursor (process harness)", () => {
     // both regions have rendered. The bug manifests once both regions
     // exist — if we sample too early we miss the side-panel write that
     // parks the cursor.
-    await harness.waitFor("Silver Code for Claude Code", { timeoutMs: 15_000 })
+    await harness.waitFor("____ ___ _ __", { timeoutMs: 15_000 })
     await harness.waitForStable({ stableMs: 400, timeoutMs: 15_000 })
 
     const cursor = harness.term.getCursor()

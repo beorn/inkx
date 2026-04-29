@@ -152,7 +152,7 @@ export function SessionCard({
       >
         <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} paddingX={1} paddingTop={1}>
           {state.messages.length === 0 ? (
-            <Welcome handle={handle} agent={agent} />
+            <Welcome handle={handle} agent={agent} status={state.status} controller={controller} />
           ) : (
             <SessionUpdateList
               ref={scrollListRefCb}

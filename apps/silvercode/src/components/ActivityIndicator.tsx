@@ -134,6 +134,14 @@ export function ActivityIndicator({
   } else if (status === "tool-running") {
     label = inFlightTool ? `running ${inFlightTool}…` : "running tool…"
     color = "$info"
+  } else if (status === "spawning") {
+    // Distinct phrasing for the pre-init phase. The user just submitted a
+    // prompt from the Welcome card and the agent subprocess is still
+    // booting — "thinking…" would lie (claude isn't reading anything yet).
+    // Stays muted-info color so it reads as system status, not thinking.
+    // Bead: km-cr94.
+    label = "loading…"
+    color = "$info"
   } else {
     const verb = VERB_POOL[verbIdx % VERB_POOL.length]!
     label = `${verb}…`

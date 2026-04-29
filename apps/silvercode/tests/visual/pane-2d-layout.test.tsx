@@ -161,15 +161,27 @@ describe("pane management — 2D binary-split tree", () => {
 
       const after = term.screen?.getText() ?? ""
       // Zoom mode renders only the focused pane full-area — no
-      // pane-to-pane dividers should be present anywhere in the grid.
-      // We're guarding the row-divider specifically because a stray `─`
-      // is the regression we'd see if zoom skipped the column-split case
-      // (the more interesting v2 path).
-      expect(after).not.toContain("─")
-      // No leftover horizontal divider char anywhere on screen, even if
-      // a `│` happens to appear in some other UI element.
-      // We don't assert `not.toContain("│")` because the side panel and
-      // other chrome MAY emit lone `│` glyphs in unrelated contexts.
+      // pane-to-pane dividers should remain. Originally we asserted
+      // `not.toContain("─")` to catch a stray row-divider, but
+      // km-cr94 introduced a rounded-border TextInput in the idle Welcome
+      // card (centered "command box") whose top/bottom borders also use
+      // `─` glyphs. So `─` is now a legitimate Welcome chrome char.
+      //
+      // The test still pins the regression we care about by counting
+      // `─` runs of a specific length: pane-to-pane dividers span the
+      // full pane width (≥ 30 cols typically), while the Welcome
+      // command box border is bounded by `flexBasis={70}` so its
+      // longest single `─` run is ≤ 68 cols, AND it sits inside a
+      // single pane. The pane-divider-vs-bubble distinction is captured
+      // by checking no row contains a single `─` run that extends past
+      // the focused-pane chrome.
+      //
+      // Pragmatic check: the long pane-divider regression manifested
+      // as a horizontal line ≥ ~110 cols (full grid width minus side
+      // panel). Anything shorter is legitimately Welcome / bubble
+      // chrome. We assert no such "wide divider" row exists.
+      const longDivider = /─{100,}/
+      expect(after, "wide horizontal pane-divider should be hidden in zoom mode").not.toMatch(longDivider)
       // The focused pane content is the load-bearing assertion that
       // a single SessionCard now occupies the whole grid.
       expect(after).toContain("▎")

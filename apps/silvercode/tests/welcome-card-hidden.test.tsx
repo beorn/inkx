@@ -26,14 +26,30 @@ import { welcome } from "../src/test/scripts/welcome.ts"
 import { SessionCard } from "../src/components/SessionCard.tsx"
 
 test("Welcome content renders in focused pane (full app)", async () => {
-  const s = await renderScenario({ script: welcome, cols: 120, rows: 30, agent: "claude-code" })
-  // Title is the canonical Welcome marker. With agent=claude-code the
-  // suffix renders; without it the H1 falls back to bare "Silver Code".
-  // Bead: km-silvercode.welcome-claude-hardcoded.
-  expect(s.text).toContain("Silver Code for Claude Code")
-  // Commands + Keybindings sections must both render.
-  expect(s.text).toContain("Commands")
-  expect(s.text).toContain("Keybindings")
+  const s = await renderScenario({ script: welcome, cols: 120, rows: 40, agent: "claude-code" })
+  // Banner is figlet ASCII art at 120 cols (well above the 36-col cutoff for
+  // the "standard" tier). Assert structural signatures rather than literal
+  // text — "SILVER" / "CODE" no longer render as glyphs:
+  //   "____ ___ _ __" — unique top-row signature of figlet Standard "SILVER"
+  //   "____ ___  ____" — unique top-row signature of figlet Standard "CODE"
+  // These two strings only ever appear inside the brand banner, so their
+  // presence proves both blocks rendered AND on different lines.
+  // Bead: km-silvercode.welcome-claude-hardcoded, km-cr94.
+  const silverSig = s.lines.findIndex((l) => l.includes("____ ___ _ __"))
+  const codeSig = s.lines.findIndex((l) => l.includes("____ ___  ____"))
+  expect(silverSig, "figlet SILVER block top row should render").toBeGreaterThanOrEqual(0)
+  expect(codeSig, "figlet CODE block top row should render").toBeGreaterThanOrEqual(0)
+  expect(silverSig, "SILVER and CODE blocks must be on different lines").not.toBe(codeSig)
+  // CODE block sits below SILVER block (they're stacked vertically).
+  expect(codeSig).toBeGreaterThan(silverSig)
+  // Agent label muted line below the banner.
+  expect(s.text).toContain("Claude Code")
+  // Centered command box (TextInput placeholder text) — present in both
+  // idle + spawning. Bead: km-cr94.
+  expect(s.text).toMatch(/Type a message to start|Type your first message/)
+  // Help surface — uppercase Small section headers.
+  expect(s.text).toContain("COMMANDS")
+  expect(s.text).toContain("KEYBINDINGS")
   // At least one slash-command row.
   expect(s.text).toContain("/panel")
   s.dispose()
@@ -76,9 +92,16 @@ test("SessionCard with empty messages renders Welcome alongside the focus bar", 
       </Box>
     </Screen>,
   )
-  expect(app.text).toContain("Silver Code for Claude Code")
-  expect(app.text).toContain("Commands")
-  expect(app.text).toContain("Keybindings")
+  // Banner is figlet ASCII art. The 80-col viewport hosts the "standard"
+  // tier (33-col blocks fit comfortably). Assert via structural signatures
+  // — same approach as the "full app" test above. Bead: km-cr94.
+  const silverSig = app.lines.findIndex((l) => l.includes("____ ___ _ __"))
+  const codeSig = app.lines.findIndex((l) => l.includes("____ ___  ____"))
+  expect(silverSig, "figlet SILVER block should render").toBeGreaterThanOrEqual(0)
+  expect(codeSig, "figlet CODE block should render").toBeGreaterThanOrEqual(0)
+  expect(silverSig).not.toBe(codeSig)
+  expect(codeSig).toBeGreaterThan(silverSig)
+  expect(app.text).toContain("Claude Code")
   // Focus bar still paints in column 0.
   const lines = app.lines.filter((l) => l.startsWith("▎"))
   expect(lines.length).toBeGreaterThan(5)

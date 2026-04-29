@@ -36,16 +36,20 @@ test("App paints the welcome card when a session can spawn (regression: d17afaa8
   // "no messages yet" state where the welcome card is the focused pane.
   const s = await renderScenario({ script: welcome, cols: 120, rows: 40 })
 
-  // Three load-bearing strings cover the three regions that must paint:
-  // - "Silver Code"   → Welcome H1 (focused-pane content)
-  // - "Commands"      → Welcome H2 (command list, proves the body rendered)
-  // - "auto mode on"  → SidePanel mode label (proves the side panel mounted)
+  // Three load-bearing checks cover the regions that must paint:
+  // - figlet banner (multi-line ASCII art) → Welcome brand mark
+  // - "COMMANDS"                            → Welcome section header
+  // - "auto mode on"                        → SidePanel mode label
   //
-  // If the App was empty (the d17afaa82 failure mode), all three would
-  // be missing and the assertion would fail loudly with the actual
-  // rendered text in the diff.
-  expect(s.text).toContain("Silver Code")
-  expect(s.text).toContain("Commands")
+  // The brand banner is now figlet ASCII art (no literal "SILVER" / "CODE"
+  // glyphs in the rendered text), so assert structurally: the figlet
+  // "Standard" SILVER block contains the row "____ ___ _ __" — a unique
+  // glyph signature that only appears inside the brand banner. If the App
+  // was empty (the d17afaa82 failure mode), all three would be missing and
+  // the assertion would fail loudly with the actual rendered text in diff.
+  // Bead: km-cr94.
+  expect(s.text).toContain("____ ___ _ __")
+  expect(s.text).toContain("COMMANDS")
   expect(s.text).toContain("auto mode on")
 
   // Belt-and-suspenders: the rendered text must have substantial content.
