@@ -4,6 +4,8 @@
 **Session**: 2026-04-27 (continuation across compaction)
 **Outcome**: Phase 1 substrate + Phase 2/3 cleanup substantially shipped over 5 integration rounds. C3b at L5; C1 at L4.5 (broader fossil sweep in flight); C2 at L4 with multi-session L5 deferred (task #14); C3a at L2 (target); N1 at L2-L3.
 
+> **2026-04-29 update**: The `/round-close` skill recommended in this retro (Why 1, Why 2, lessons section) was retired and folded into `/complete`. Its Iron Rule (verify acceptance greps at `origin/main`, not local worktrees) and per-round acceptance-grep replay now live in `/complete`'s preamble. References below are preserved for historical accuracy — invoke `/complete` instead.
+
 This document captures the post-ship state, what /pro and /why analyses surfaced, and where the residue lives. Authoritative reference for "what was plateau-90 and how did it go." Pairs with `km bd show km-all.plateau-90` (the plan) and `hub/quality-rubric.md` (the L0-L5 framework).
 
 ## What shipped

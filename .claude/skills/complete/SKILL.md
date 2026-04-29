@@ -261,6 +261,6 @@ Close completed beads. Sync (`bd dolt push`). Commit and push.
 ## Pairs with
 
 - **`/merge`** — `/complete` verifies the work is **correct**; `/merge` verifies the work is **integrated**. Run `/complete` first (catch lies + residue), then `/merge` to land the worktree branch back on main and release the slot.
-- **`/round-close`** — `/complete` is bead-level / feature-level closure; `/round-close` is the lighter verification across a whole integration round of merged beads.
 - **`/checkpoint`** — orthogonal axis (narrative, not closure). Use `/checkpoint` to preserve context before `/compact`; `/complete` is for actually finishing the work.
 - **`/sop`** — completeness findings from `/complete` (stale docs, dead code) often want a follow-up `/sop` sweep on the relevant domain.
+- *(`/round-close` was folded into this skill on 2026-04-29 — its Iron Rule and acceptance-grep replay live in the preamble above.)*
