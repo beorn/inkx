@@ -148,7 +148,10 @@ export function getEmbedTargetsOnBoard(db: Database, boardRootId: string | null)
 /**
  * Get all embed paths on a board in a single query (for deduplication).
  * Returns both exact paths and file-level paths.
- * Replaces the N+1 pattern of getChildren(boardRoot) + getChildren(section) loops.
+ * Walks the full descendant subtree (recursive CTE) so embeds nested under
+ * deeper headings (e.g. board > section > subsection > embed) get included —
+ * a depth-2-only query would let those escape dedup and produce duplicates on
+ * each km.add rule re-evaluation.
  */
 export function getEmbedPathsOnBoard(
   db: Database,
@@ -158,12 +161,19 @@ export function getEmbedPathsOnBoard(
   const filePaths = new Set<string>()
   if (!boardRootId) return { exactPaths, filePaths }
 
-  // Single CTE query: get all embed nodes under the board root (depth 2: sections + their children)
+  // Recursive descendant walk: every embed node anywhere under the board root,
+  // not just at depth 2. Excludes the board root itself (only its descendants).
   const rows = db
     .query(
       `
+    WITH RECURSIVE descendants(id) AS (
+      SELECT id FROM nodes WHERE parent_id = ?
+      UNION ALL
+      SELECT n.id FROM nodes n
+      JOIN descendants d ON n.parent_id = d.id
+    )
     SELECT data, content FROM nodes
-    WHERE parent_id IN (SELECT id FROM nodes WHERE parent_id = ?)
+    WHERE id IN (SELECT id FROM descendants)
     AND embed_of IS NOT NULL
   `,
     )
