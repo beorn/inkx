@@ -246,8 +246,31 @@ export function issueToMarkdown(issue: BeadsIssue, sourcePrefix = "km", idMap?: 
     lines.push(rewriteLegacyIdMentions(issue.description, sourcePrefix, idMap))
   }
 
+  // Comments — render as a `## Comments @comments` body subsection,
+  // chronological by created_at. Same line format as runtime
+  // `bd comment add`: `- @<author> (<timestamp>): <text>`. Inner
+  // newlines are flattened to ` ↵ ` so each comment stays on a single
+  // markdown list item (round-trip with `bd comment list` works).
+  if (issue.comments && issue.comments.length > 0) {
+    const sorted = [...issue.comments].sort((a, b) => a.created_at.localeCompare(b.created_at))
+    if (issue.description) lines.push("")
+    lines.push(COMMENTS_SECTION_HEADING)
+    lines.push("")
+    for (const c of sorted) {
+      const text = c.text.replace(/\r?\n/g, " ↵ ")
+      lines.push(`- @${c.author} (${c.created_at}): ${text}`)
+    }
+  }
+
   return lines.join("\n")
 }
+
+/**
+ * Markdown heading used to delimit the bead's comment timeline. Both
+ * `issueToMarkdown` (write side) and `bd comment add/list` (runtime
+ * side) anchor on this exact string.
+ */
+export const COMMENTS_SECTION_HEADING = "## Comments @comments"
 
 /**
  * Rewrite `<prefix>-<scope>.<slug>` and `<prefix>-<scope>-<slug>`
