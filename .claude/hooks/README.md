@@ -16,6 +16,9 @@ settings.json registrations that wire them to Claude Code events.
 
 | Script | Status | Events | Description |
 | --- | --- | --- | --- |
+| `bd-prime.sh` | ACTIVE | PreCompact, SessionStart | Hook: km bd prime wrapper |
+| `check-role-prefix.sh` | INTERNAL | — | Detect if the assistant's most recent text block self-injected a role prefix |
+| `mem-thought-inject.sh` | ACTIVE | UserPromptSubmit | Step 1 of recall ship plan: inject the latest mem-thought hypothesis emit |
 | `post-bash-cleanup.sh` | INTERNAL | — | Utility: Kill orphaned vitest fork workers. |
 | `pre-compact.sh` | INTERNAL | — | Hook: Pre-compact checkpoint (called by user-prompt-submit.sh on /compact) |
 | `run-hook.sh` | ACTIVE | PreCompact | Universal hook runner — captures stderr to /tmp/claude-hooks.log |
@@ -24,7 +27,6 @@ settings.json registrations that wire them to Claude Code events.
 | `silvery-read-gate.sh` | ACTIVE | PreToolUse | PreToolUse gate: block Edit/Write/NotebookEdit in silvery-touching paths |
 | `silvery-read-mark.sh` | ACTIVE | PostToolUse | PostToolUse marker: when vendor/silvery/docs/guide/the-silvery-way.md is Read, |
 | `subagent-cleanup.sh` | ACTIVE | SubagentStop | Hook: SubagentStop |
-| `user-prompt-submit.sh` | ACTIVE | UserPromptSubmit | Hook: UserPromptSubmit |
 | `worktree-create.sh` | ACTIVE | WorktreeCreate | Hook: WorktreeCreate |
 | `worktree-remove.sh` | ACTIVE | WorktreeRemove | Hook: WorktreeRemove |
 
@@ -36,7 +38,8 @@ settings.json registrations that wire them to Claude Code events.
 
 ### PreCompact
 
-- [user] — `.claude/hooks/run-hook.sh bd-prime:PreCompact km bd prime`
+- [project] — `$CLAUDE_PROJECT_DIR/.claude/hooks/bd-prime.sh`
+- [user] — `.claude/hooks/run-hook.sh bd-prime:PreCompact bd prime`
 
 ### PreToolUse
 
@@ -48,6 +51,7 @@ settings.json registrations that wire them to Claude Code events.
 
 ### SessionStart
 
+- [project] — `$CLAUDE_PROJECT_DIR/.claude/hooks/bd-prime.sh`
 - [project] — `$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh`
 
 ### SubagentStop
@@ -56,7 +60,7 @@ settings.json registrations that wire them to Claude Code events.
 
 ### UserPromptSubmit
 
-- [project] — `$CLAUDE_PROJECT_DIR/.claude/hooks/user-prompt-submit.sh`
+- [project] — `$CLAUDE_PROJECT_DIR/.claude/hooks/mem-thought-inject.sh`
 
 ### WorktreeCreate
 
