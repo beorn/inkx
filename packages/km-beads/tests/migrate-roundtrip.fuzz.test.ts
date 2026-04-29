@@ -270,7 +270,11 @@ describe("migrate round-trip fuzz — every non-recomputable frontmatter field s
       try {
         fm = extractFrontmatter(md)
       } catch (e) {
-        failures.push({ seed, issue, reason: `extractFrontmatter threw: ${e instanceof Error ? e.message : String(e)}` })
+        failures.push({
+          seed,
+          issue,
+          reason: `extractFrontmatter threw: ${e instanceof Error ? e.message : String(e)}`,
+        })
         continue
       }
 
@@ -289,17 +293,18 @@ describe("migrate round-trip fuzz — every non-recomputable frontmatter field s
       }
 
       // Conditional verbatim fields.
-      const eqOrAbsent = (
-        key: keyof BeadsIssue & string,
-        fmKey: string = key,
-      ): { ok: boolean; reason?: string } => {
+      const eqOrAbsent = (key: keyof BeadsIssue & string, fmKey: string = key): { ok: boolean; reason?: string } => {
         const src = issue[key]
         const dst = fm[fmKey]
         if (src === undefined || src === "" || src === null) {
-          if (dst !== undefined) return { ok: false, reason: `${fmKey} should be absent (source is empty) but got ${JSON.stringify(dst)}` }
+          if (dst !== undefined) {
+            return { ok: false, reason: `${fmKey} should be absent (source is empty) but got ${JSON.stringify(dst)}` }
+          }
           return { ok: true }
         }
-        if (dst !== src) return { ok: false, reason: `${fmKey} drift: ${JSON.stringify(dst)} vs ${JSON.stringify(src)}` }
+        if (dst !== src) {
+          return { ok: false, reason: `${fmKey} drift: ${JSON.stringify(dst)} vs ${JSON.stringify(src)}` }
+        }
         return { ok: true }
       }
 
@@ -327,14 +332,22 @@ describe("migrate round-trip fuzz — every non-recomputable frontmatter field s
       // Children — array, identity-preserving when non-empty.
       const expectChildren = issue.children && issue.children.length > 0 ? issue.children : undefined
       if (JSON.stringify(fm.children) !== JSON.stringify(expectChildren)) {
-        failures.push({ seed, issue, reason: `children drift: ${JSON.stringify(fm.children)} vs ${JSON.stringify(expectChildren)}` })
+        failures.push({
+          seed,
+          issue,
+          reason: `children drift: ${JSON.stringify(fm.children)} vs ${JSON.stringify(expectChildren)}`,
+        })
         continue
       }
 
       // Dependencies — array of objects, preserved verbatim.
       const expectDeps = issue.dependencies && issue.dependencies.length > 0 ? issue.dependencies : undefined
       if (JSON.stringify(fm.dependencies) !== JSON.stringify(expectDeps)) {
-        failures.push({ seed, issue, reason: `dependencies drift: ${JSON.stringify(fm.dependencies)} vs ${JSON.stringify(expectDeps)}` })
+        failures.push({
+          seed,
+          issue,
+          reason: `dependencies drift: ${JSON.stringify(fm.dependencies)} vs ${JSON.stringify(expectDeps)}`,
+        })
         continue
       }
 
@@ -355,14 +368,22 @@ describe("migrate round-trip fuzz — every non-recomputable frontmatter field s
       // Metadata — verbatim iff non-empty and not "{}", else absent.
       const expectMeta = issue.metadata && issue.metadata !== "{}" ? issue.metadata : undefined
       if (fm.metadata !== expectMeta) {
-        failures.push({ seed, issue, reason: `metadata drift: ${JSON.stringify(fm.metadata)} vs ${JSON.stringify(expectMeta)}` })
+        failures.push({
+          seed,
+          issue,
+          reason: `metadata drift: ${JSON.stringify(fm.metadata)} vs ${JSON.stringify(expectMeta)}`,
+        })
         continue
       }
 
       // Recomputable counts — must NEVER appear in frontmatter.
       for (const k of ["dependency_count", "dependent_count", "comment_count"] as const) {
         if (fm[k] !== undefined) {
-          failures.push({ seed, issue, reason: `recomputable count leaked into frontmatter: ${k}=${JSON.stringify(fm[k])}` })
+          failures.push({
+            seed,
+            issue,
+            reason: `recomputable count leaked into frontmatter: ${k}=${JSON.stringify(fm[k])}`,
+          })
           issueFailed = true
           break
         }
@@ -371,7 +392,10 @@ describe("migrate round-trip fuzz — every non-recomputable frontmatter field s
     }
 
     if (failures.length > 0) {
-      const sample = failures.slice(0, 5).map((f) => `seed=${f.seed.toString(16)}: ${f.reason}\n  issue=${JSON.stringify(f.issue).slice(0, 400)}`).join("\n---\n")
+      const sample = failures
+        .slice(0, 5)
+        .map((f) => `seed=${f.seed.toString(16)}: ${f.reason}\n  issue=${JSON.stringify(f.issue).slice(0, 400)}`)
+        .join("\n---\n")
       throw new Error(`${failures.length}/${ITERATIONS} fuzz cases failed:\n${sample}`)
     }
   })

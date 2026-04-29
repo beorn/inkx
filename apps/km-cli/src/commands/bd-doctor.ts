@@ -8,13 +8,7 @@
 
 import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
-import {
-  existsSync,
-  readdirSync,
-  renameSync,
-  statSync,
-  mkdirSync,
-} from "node:fs"
+import { existsSync, readdirSync, renameSync, statSync, mkdirSync } from "node:fs"
 import { join } from "node:path"
 import { resolvePathArg } from "@km/fs-mount"
 import { resolveBeadsRoots, resolveMemDir } from "@km/beads"

@@ -24,15 +24,7 @@ function insertNode(db: Database, fixture: NodeFixture): void {
   db.prepare(
     `INSERT INTO nodes (id, type, parent_id, name, data, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
-  ).run(
-    fixture.id,
-    "h",
-    fixture.parent_id ?? null,
-    fixture.name ?? null,
-    JSON.stringify(fixture.data ?? {}),
-    now,
-    now,
-  )
+  ).run(fixture.id, "h", fixture.parent_id ?? null, fixture.name ?? null, JSON.stringify(fixture.data ?? {}), now, now)
 }
 
 describe.sequential("doctor paths drift check", () => {

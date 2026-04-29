@@ -755,10 +755,7 @@ export interface RecaptureResult {
  * non-recomputable field. This function recovers the lost state from
  * the original export without overwriting subsequent hand edits.
  */
-export function recaptureFromExport(
-  beadsDirOrFile: string,
-  options: RecaptureOptions,
-): RecaptureResult {
+export function recaptureFromExport(beadsDirOrFile: string, options: RecaptureOptions): RecaptureResult {
   const { fs } = options
   const { issues } = readBeadsExport(fs, beadsDirOrFile)
   const result: RecaptureResult = {

@@ -62,20 +62,14 @@ describe("resolveSourceBoardDir", () => {
 
   test("uses first config root as primary", () => {
     const config: BeadsConfig = { roots: ["imports/km-2026-04-28", "beads"] }
-    expect(resolveSourceBoardDir("/repo", "km", config)).toBe(
-      join("/repo", "imports/km-2026-04-28", "@km"),
-    )
+    expect(resolveSourceBoardDir("/repo", "km", config)).toBe(join("/repo", "imports/km-2026-04-28", "@km"))
   })
 
   test("CLI override determines source-board location", () => {
-    expect(resolveSourceBoardDir("/repo", "decker", {}, "override")).toBe(
-      join("/repo", "override", "@decker"),
-    )
+    expect(resolveSourceBoardDir("/repo", "decker", {}, "override")).toBe(join("/repo", "override", "@decker"))
   })
 
   test("preserves arbitrary source prefix verbatim", () => {
-    expect(resolveSourceBoardDir("/repo", "my-project", {})).toBe(
-      join("/repo", "beads", "@my-project"),
-    )
+    expect(resolveSourceBoardDir("/repo", "my-project", {})).toBe(join("/repo", "beads", "@my-project"))
   })
 })

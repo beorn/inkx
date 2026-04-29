@@ -51,9 +51,10 @@ function deriveNodePath(nodeId: string, nameMap: Map<string, NameRow>): string |
 }
 
 export function findPathDrift(db: Database): DriftFinding[] {
-  const rows = db
-    .query(`SELECT id, data FROM nodes WHERE json_extract(data, '$.id') IS NOT NULL`)
-    .all() as Array<{ id: string; data: string | Record<string, unknown> | null }>
+  const rows = db.query(`SELECT id, data FROM nodes WHERE json_extract(data, '$.id') IS NOT NULL`).all() as Array<{
+    id: string
+    data: string | Record<string, unknown> | null
+  }>
 
   const findings: DriftFinding[] = []
   if (rows.length === 0) return findings
@@ -78,8 +79,8 @@ export function findPathDrift(db: Database): DriftFinding[] {
 }
 
 export function countPathDriftCheckable(db: Database): number {
-  const row = db
-    .query(`SELECT COUNT(*) as count FROM nodes WHERE json_extract(data, '$.id') IS NOT NULL`)
-    .get() as { count: number }
+  const row = db.query(`SELECT COUNT(*) as count FROM nodes WHERE json_extract(data, '$.id') IS NOT NULL`).get() as {
+    count: number
+  }
   return row.count
 }

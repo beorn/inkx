@@ -247,53 +247,54 @@ describe("issueToMarkdown — round-trip preserves all non-recomputable fields",
     expect(issues.some((i) => i.blocked_by && i.blocked_by.length > 0)).toBe(true)
   })
 
-  it.each(
-    issues.map((issue) => [issue.id, issue] as const),
-  )("preserves non-recomputable frontmatter fields for %s", (_id, issue) => {
-    const md = issueToMarkdown(issue, "km")
-    const fm = extractFrontmatter(md)
+  it.each(issues.map((issue) => [issue.id, issue] as const))(
+    "preserves non-recomputable frontmatter fields for %s",
+    (_id, issue) => {
+      const md = issueToMarkdown(issue, "km")
+      const fm = extractFrontmatter(md)
 
-    // Identity.
-    expect(fm.id).toBeTruthy()
-    if (issue.created_by !== undefined) expect(fm.created_by).toBe(issue.created_by)
-    expect(fm.created_at).toBe(issue.created_at)
+      // Identity.
+      expect(fm.id).toBeTruthy()
+      if (issue.created_by !== undefined) expect(fm.created_by).toBe(issue.created_by)
+      expect(fm.created_at).toBe(issue.created_at)
 
-    // Lifecycle timestamps.
-    if (issue.started_at !== undefined) expect(fm.started_at).toBe(issue.started_at)
-    if (issue.closed_at !== undefined) expect(fm.closed_at).toBe(issue.closed_at)
-    if (issue.close_reason !== undefined) expect(fm.close_reason).toBe(issue.close_reason)
-    if (issue.defer_until !== undefined) expect(fm.defer_until).toBe(issue.defer_until)
+      // Lifecycle timestamps.
+      if (issue.started_at !== undefined) expect(fm.started_at).toBe(issue.started_at)
+      if (issue.closed_at !== undefined) expect(fm.closed_at).toBe(issue.closed_at)
+      if (issue.close_reason !== undefined) expect(fm.close_reason).toBe(issue.close_reason)
+      if (issue.defer_until !== undefined) expect(fm.defer_until).toBe(issue.defer_until)
 
-    // Ownership.
-    if (issue.owner !== undefined) expect(fm.owner).toBe(issue.owner)
-    if (issue.assignee !== undefined) expect(fm.assignee).toBe(issue.assignee)
+      // Ownership.
+      if (issue.owner !== undefined) expect(fm.owner).toBe(issue.owner)
+      if (issue.assignee !== undefined) expect(fm.assignee).toBe(issue.assignee)
 
-    // Graph — parent_id, children, dependencies (verbatim), legacy_deps.
-    if (issue.parent_id !== undefined) expect(fm.parent_id).toBe(issue.parent_id)
-    if (issue.children && issue.children.length > 0) {
-      expect(fm.children).toEqual(issue.children)
-    }
-    if (issue.dependencies && issue.dependencies.length > 0) {
-      expect(fm.dependencies).toEqual(issue.dependencies)
-    }
-    if ((issue.blocked_by && issue.blocked_by.length > 0) || (issue.blocks && issue.blocks.length > 0)) {
-      const expected: Record<string, string[]> = {}
-      if (issue.blocked_by?.length) expected.blocked_by = issue.blocked_by
-      if (issue.blocks?.length) expected.blocks = issue.blocks
-      expect(fm.legacy_deps).toEqual(expected)
-    }
+      // Graph — parent_id, children, dependencies (verbatim), legacy_deps.
+      if (issue.parent_id !== undefined) expect(fm.parent_id).toBe(issue.parent_id)
+      if (issue.children && issue.children.length > 0) {
+        expect(fm.children).toEqual(issue.children)
+      }
+      if (issue.dependencies && issue.dependencies.length > 0) {
+        expect(fm.dependencies).toEqual(issue.dependencies)
+      }
+      if ((issue.blocked_by && issue.blocked_by.length > 0) || (issue.blocks && issue.blocks.length > 0)) {
+        const expected: Record<string, string[]> = {}
+        if (issue.blocked_by?.length) expected.blocked_by = issue.blocked_by
+        if (issue.blocks?.length) expected.blocks = issue.blocks
+        expect(fm.legacy_deps).toEqual(expected)
+      }
 
-    // Freeform blob.
-    if (issue.metadata !== undefined && issue.metadata !== "{}") {
-      expect(fm.metadata).toBe(issue.metadata)
-    } else {
-      // Empty metadata is intentionally suppressed as noise.
-      expect(fm.metadata).toBeUndefined()
-    }
+      // Freeform blob.
+      if (issue.metadata !== undefined && issue.metadata !== "{}") {
+        expect(fm.metadata).toBe(issue.metadata)
+      } else {
+        // Empty metadata is intentionally suppressed as noise.
+        expect(fm.metadata).toBeUndefined()
+      }
 
-    // work_type — present iff source had it.
-    if (issue.work_type !== undefined) expect(fm.work_type).toBe(issue.work_type)
-  })
+      // work_type — present iff source had it.
+      if (issue.work_type !== undefined) expect(fm.work_type).toBe(issue.work_type)
+    },
+  )
 
   it("never persists recomputable counts in frontmatter", () => {
     for (const issue of issues) {
@@ -371,10 +372,7 @@ describe("applyAddOnlyPatch — ADD missing, NEVER overwrite", () => {
 
   it("ADDs legacy_deps from blocked_by/blocks when target has none", () => {
     const fm: Record<string, unknown> = { id: "@km/test/foo" }
-    const changed = applyAddOnlyPatch(
-      fm,
-      baseIssue({ blocked_by: ["km-test.up"], blocks: ["km-test.down"] }),
-    )
+    const changed = applyAddOnlyPatch(fm, baseIssue({ blocked_by: ["km-test.up"], blocks: ["km-test.down"] }))
     expect(fm.legacy_deps).toEqual({ blocked_by: ["km-test.up"], blocks: ["km-test.down"] })
     expect(changed).toContain("legacy_deps")
   })
@@ -588,9 +586,7 @@ describe("recaptureFromExport — diff(before, after) ⊆ {fields previously emp
       const after = parseYaml(splitFrontmatter(files[beadB]!)!.frontmatter) as Record<string, unknown>
       expect(after.started_at).toBe("2025-01-01T00:00:00Z") // pre-existing wins
       expect(after.owner).toBe("alice")
-      expect(after.dependencies).toEqual([
-        { type: "blocks", issue_id: "km-test.b", depends_on_id: "km-test.y" },
-      ])
+      expect(after.dependencies).toEqual([{ type: "blocks", issue_id: "km-test.b", depends_on_id: "km-test.y" }])
       expect(splitFrontmatter(files[beadB]!)!.body).toBe(splitFrontmatter(bBefore)!.body)
     }
 
@@ -695,10 +691,7 @@ describe("issueToMarkdown — comments[]", () => {
     const md = issueToMarkdown(issue, "km")
     expect(md).toContain("## Comments @comments")
     const parsed = parseCommentsFromMd(md)
-    expect(parsed).toEqual([
-      "@alice (2026-04-28T01:00:00Z): first",
-      "@bob (2026-04-28T02:00:00Z): second",
-    ])
+    expect(parsed).toEqual(["@alice (2026-04-28T01:00:00Z): first", "@bob (2026-04-28T02:00:00Z): second"])
   })
 
   it("orders comments chronologically by created_at regardless of input order", () => {
@@ -756,7 +749,9 @@ describe("issueToMarkdown — comments[]", () => {
     })
     const md = issueToMarkdown(issue, "km")
     expect(md).toContain("## Comments @comments")
-    expect(md).toContain("- @claude:cc081a9a (2026-04-28T04:53:55Z): Harness shipped on branch feat/ambient-split-test-harness.")
+    expect(md).toContain(
+      "- @claude:cc081a9a (2026-04-28T04:53:55Z): Harness shipped on branch feat/ambient-split-test-harness.",
+    )
     // Recomputable counts must not leak.
     expect(md).not.toMatch(/^comment_count:/m)
   })
