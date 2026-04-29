@@ -34,22 +34,22 @@ test("App paints the welcome card when a session can spawn (regression: d17afaa8
   // The welcome script has zero events — the app spawns a session, the fake
   // factory hands over a ScriptedFakeSession, and the App stays in the
   // "no messages yet" state where the welcome card is the focused pane.
-  const s = await renderScenario({ script: welcome, cols: 120, rows: 40 })
+  const s = await renderScenario({ script: welcome, cols: 120, rows: 50 })
 
   // Three load-bearing checks cover the regions that must paint:
   // - figlet banner (multi-line ASCII art) → Welcome brand mark
-  // - "COMMANDS"                            → Welcome section header
+  // - "Type a message to start"            → Welcome command box
   // - "auto mode on"                        → SidePanel mode label
   //
-  // The brand banner is now figlet ASCII art (no literal "SILVER" / "CODE"
-  // glyphs in the rendered text), so assert structurally: the figlet
-  // "Standard" SILVER block contains the row "____ ___ _ __" — a unique
-  // glyph signature that only appears inside the brand banner. If the App
-  // was empty (the d17afaa82 failure mode), all three would be missing and
-  // the assertion would fail loudly with the actual rendered text in diff.
-  // Bead: km-cr94.
-  expect(s.text).toContain("____ ___ _ __")
-  expect(s.text).toContain("COMMANDS")
+  // The brand banner is figlet ASCII art (no literal "SILVER" / "CODE"
+  // glyphs). At 120 cols the BIG tier renders, with unique top-row sig
+  // "_____ _____ _ __" — only ever appears inside the brand banner.
+  // The COMMANDS / KEYBINDINGS help block was retired in km-cr94, so the
+  // load-bearing affordance check here is the command box placeholder.
+  // If the App was empty (the d17afaa82 failure mode), all three would
+  // be missing. Bead: km-cr94.
+  expect(s.text).toContain("_____ _____ _ __")
+  expect(s.text).toContain("Type a message to start")
   expect(s.text).toContain("auto mode on")
 
   // Belt-and-suspenders: the rendered text must have substantial content.

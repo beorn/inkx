@@ -7,6 +7,27 @@ import { SessionUpdateList } from "./SessionUpdateList.tsx"
 import { Welcome } from "./Welcome.tsx"
 
 /**
+ * Per-agent display labels for the inline activity row's spawning state.
+ * Mirrors the AGENT_LABELS map in `Welcome.tsx` (and the AGENT_DISPLAY map
+ * in `SidePanel.tsx`) so the chat-side "Spawning Claude Code v…" label and
+ * the welcome-side "<agent label>" muted line stay in sync. Bead: km-cr94.
+ */
+const AGENT_LABELS_FOR_ACTIVITY: Readonly<Record<string, string>> = {
+  "claude-code": "Claude Code",
+  "claude-code-spawn": "Claude Code",
+  "claude-code-sdk": "Claude Code",
+  codex: "Codex",
+  "codex-spawn": "Codex",
+  gemini: "Gemini",
+  "github-copilot-cli": "GitHub Copilot",
+}
+
+function agentLabelFor(agent?: string): string | null {
+  if (!agent) return null
+  return AGENT_LABELS_FOR_ACTIVITY[agent] ?? null
+}
+
+/**
  * One session's visible card: scrollable message list + inline activity
  * indicator (delegated to SessionUpdateList's tail slot when status is active).
  *
@@ -168,6 +189,8 @@ export function SessionCard({
               inFlightTool={inFlightTool}
               showDebug={showDebug}
               ambientEntries={ambientEntries}
+              agentLabel={agentLabelFor(agent)}
+              agentVersion={state.claudeCodeVersion || null}
             />
           )}
         </Box>

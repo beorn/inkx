@@ -167,6 +167,16 @@ export type SessionHandle = {
    * directly against this session's identity.
    */
   readonly coordinatorMcp: CoordinatorMcpServer
+  /**
+   * Resume session id — set when the session was created via
+   * `silvercode --resume <id>` (i.e. `opts.resume` was non-empty at
+   * spawn time). Drives the Welcome card's "Loading session <id>…"
+   * variant: while replay is in flight + the live spawn is initializing
+   * we show a quiet loading indicator instead of a command box, because
+   * the user is waiting on a transcript replay rather than starting a
+   * fresh turn. `undefined` for fresh sessions. Bead: km-cr94.
+   */
+  readonly resumeId?: string
 }
 
 /**
@@ -1279,6 +1289,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       log,
       account: opts.account,
       coordinatorMcp,
+      resumeId: opts.resume,
     }
 
     // Welcome UI — rendered as a React component (see Welcome.tsx) when the

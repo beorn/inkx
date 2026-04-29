@@ -1,12 +1,18 @@
 /**
  * Welcome card feature tests for bead km-cr94.
  *
- * Covers four feature additions:
- *   1. Stacked SILVER / CODE banner (figlet ASCII art with width fallback,
- *      colorized with silvery semantic tokens).
- *   2. Loading-state command box — TextInput in spawning state, queues into
- *      controller, writes user-message to store synchronously so Welcome
- *      unmounts and the user sees the bubble immediately.
+ * Covers four feature additions (post-redesign per definitive spec):
+ *   1. Big SILVER / CODE banner (figlet ASCII art with width fallback,
+ *      colorized with silvery semantic tokens; Big primary tier).
+ *   2. Two-screen split:
+ *        - Welcome (messages.length === 0): banner + EITHER command box
+ *          (fresh session) OR "Loading session <id>…" (resume session).
+ *          No help surface, no spawning indicator on the welcome screen.
+ *        - Chat view (messages.length >= 1): standard scrollback. When
+ *          status === "spawning" AND the user's first prompt has been
+ *          submitted but claude hasn't responded yet, the inline activity
+ *          row reads "Spawning Claude Code v<version>…" — assistant-side
+ *          placeholder, replaced by real tokens once status flips.
  *   3. Right-aligned user prompt bubble — rounded border, no background fill.
  *   4. Text selection inside the bubble — silvery's mouse-driven selection
  *      works at buffer level; the bubble must not break drag-to-select.
@@ -16,12 +22,6 @@
  * the exact glyph row would couple the test to figlet implementation
  * details. We assert (a) the figlet row signature for SILVER and CODE both
  * appear, (b) on different lines, and (c) CODE below SILVER.
- *
- * Bubble selection tests run a layered check: the rendered cells in the
- * bubble's text region carry plain (non-replacement) chars — silvery's
- * selection works on every cell with `char` set, regardless of styling.
- * The rounded border adds chrome rectangles around the bubble but doesn't
- * sit between text cells, so the selection rectangle math still works.
  */
 
 import React from "react"
@@ -53,22 +53,92 @@ function userEntry(text: string, id = "u-1"): MessageEntry {
   } as unknown as MessageEntry
 }
 
-describe("feature 1 — figlet banner", () => {
-  test("standard tier renders at 120 cols (full app)", async () => {
-    const s = await renderScenario({ script: welcome, cols: 120, rows: 40, agent: "claude-code" })
-    // Standard tier: SILVER block is 5 rows, top row signature includes
-    // the unique "____ ___ _ __" sequence. CODE block is 5 rows, top row
-    // signature includes "____ ___  ____".
-    const silverTop = s.lines.findIndex((l) => l.includes("____ ___ _ __"))
-    const codeTop = s.lines.findIndex((l) => l.includes("____ ___  ____"))
+// ============================================================================
+// Shared fixture: SessionCard mount with controllable state + resume flag.
+// ============================================================================
+
+type Variant = {
+  status: "spawning" | "idle"
+  /** When set, the SessionHandle.resumeId is populated → "Loading…" path. */
+  resumeId?: string
+  messages?: MessageEntry[]
+  claudeCodeVersion?: string
+}
+
+function makeHandle(v: Variant) {
+  const fakeStore = {
+    state: {
+      get: () => ({
+        messages: v.messages ?? [],
+        status: v.status,
+        cost: { inputTokens: 0, outputTokens: 0 },
+        permissions: [],
+        claudeCodeVersion: v.claudeCodeVersion ?? "",
+      }),
+      subscribe: () => () => {},
+    },
+  } as never
+  return {
+    id: "test",
+    name: "test",
+    store: fakeStore,
+    session: { sessionId: "live-session-id" } as never,
+    unsubscribe: () => {},
+    log: { write: () => {}, sessionLogPath: "" } as never,
+    account: undefined,
+    resumeId: v.resumeId,
+  } as never
+}
+
+function renderCard(handle: never, cols = 100, rows = 50) {
+  // Stub process.stdout dims so silvery's <Screen> picks up the test
+  // virtual size (it reads `getTermDims()` from the host stdout). Same
+  // technique the production `renderScenario` harness uses.
+  const prevCols = process.stdout.columns
+  const prevRows = process.stdout.rows
+  Object.defineProperty(process.stdout, "columns", { configurable: true, get: () => cols })
+  Object.defineProperty(process.stdout, "rows", { configurable: true, get: () => rows })
+  try {
+    const renderer = createRenderer({ cols, rows })
+    return renderer(
+      <Screen flexDirection="row">
+        <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
+          <SessionCard
+            handle={handle}
+            isFocused
+            agent="claude-code"
+            onFocus={() => {}}
+            onApprove={() => {}}
+            onDeny={() => {}}
+          />
+        </Box>
+      </Screen>,
+    )
+  } finally {
+    Object.defineProperty(process.stdout, "columns", { configurable: true, value: prevCols })
+    Object.defineProperty(process.stdout, "rows", { configurable: true, value: prevRows })
+  }
+}
+
+// ============================================================================
+// feature 1 — figlet banner
+// ============================================================================
+
+describe("feature 1 — figlet banner (Big primary tier)", () => {
+  test("Big tier renders at 120 cols (full app)", async () => {
+    const s = await renderScenario({ script: welcome, cols: 120, rows: 50, agent: "claude-code" })
+    // Big tier: SILVER block is 6 rows, top row signature includes the
+    // unique "_____ _____ _ __" sequence (5 underscores, space, 5 more).
+    // CODE block is 6 rows, top row signature "_____ ____  _____".
+    const silverTop = s.lines.findIndex((l) => l.includes("_____ _____ _ __"))
+    const codeTop = s.lines.findIndex((l) => l.includes("_____ ____  _____"))
     expect(silverTop).toBeGreaterThanOrEqual(0)
     expect(codeTop).toBeGreaterThanOrEqual(0)
     // CODE block sits below SILVER block.
     expect(codeTop).toBeGreaterThan(silverTop)
-    // Standard SILVER is 5 rows; the gap between SILVER top and CODE top
-    // should be at least 5 (5 rows for SILVER + 1 gap). Loose lower bound
-    // accommodates any padding silvery's flex adds.
-    expect(codeTop - silverTop).toBeGreaterThanOrEqual(5)
+    // Big SILVER is 6 rows; gap between SILVER top and CODE top is at
+    // least 6 (6 SILVER rows + ≥1 gap).
+    expect(codeTop - silverTop).toBeGreaterThanOrEqual(6)
     s.dispose()
   })
 
@@ -82,105 +152,111 @@ describe("feature 1 — figlet banner", () => {
   // tested directly if we surface it (currently module-private).
 })
 
-describe("feature 2 — middle slot (spawning indicator vs command box)", () => {
-  function makeHandle(status: "spawning" | "idle", sessionId = "abc12345-de67-890a-bcde-f1234567890a") {
-    const fakeStore = {
-      state: {
-        get: () => ({
-          messages: [],
-          status,
-          cost: { inputTokens: 0, outputTokens: 0 },
-          permissions: [],
-        }),
-        subscribe: () => () => {},
-      },
-    } as never
-    return {
-      id: "test",
-      name: "test",
-      store: fakeStore,
-      session: { sessionId } as never,
-      unsubscribe: () => {},
-      log: { write: () => {}, sessionLogPath: "" } as never,
-      account: undefined,
-    } as never
-  }
+// ============================================================================
+// feature 2 — two-screen split (Welcome vs chat view)
+// ============================================================================
 
-  function renderWelcome(handle: never, cols = 100, rows = 40) {
-    // Stub process.stdout dims so silvery's <Screen> picks up the test
-    // virtual size (it reads `getTermDims()` from the host stdout). Same
-    // technique the production `renderScenario` harness uses.
-    const prevCols = process.stdout.columns
-    const prevRows = process.stdout.rows
-    Object.defineProperty(process.stdout, "columns", { configurable: true, get: () => cols })
-    Object.defineProperty(process.stdout, "rows", { configurable: true, get: () => rows })
-    try {
-      const renderer = createRenderer({ cols, rows })
-      return renderer(
-        <Screen flexDirection="row">
-          <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
-            <SessionCard
-              handle={handle}
-              isFocused
-              agent="claude-code"
-              onFocus={() => {}}
-              onApprove={() => {}}
-              onDeny={() => {}}
-            />
-          </Box>
-        </Screen>,
-      )
-    } finally {
-      Object.defineProperty(process.stdout, "columns", { configurable: true, value: prevCols })
-      Object.defineProperty(process.stdout, "rows", { configurable: true, value: prevRows })
-    }
-  }
-
-  test("spawning state: banner + 'Spawning … <id>…' line, no TextInput", () => {
-    const app = renderWelcome(makeHandle("spawning"))
-    // Banner renders (figlet signature).
-    expect(app.text).toContain("____ ___ _ __")
-    // Spawning indicator with agent label + truncated session id.
-    expect(app.text).toMatch(/Spawning Claude Code abc12345…/)
-    // The TextInput placeholder must NOT be present in spawning state —
-    // there's no command box to type into.
-    expect(app.text).not.toContain("Type a message to start")
-    // Help surface still renders below.
-    expect(app.text).toContain("COMMANDS")
-  })
-
-  test("idle state: banner + TextInput + help surface, no Spawning line", () => {
-    // 50 rows so the standard-tier banner (5 rows × 2 + gaps + agent label
-    // = ~15 rows) plus the command box and help surface all fit.
-    const app = renderWelcome(makeHandle("idle"), 100, 50)
-    // Banner renders.
-    expect(app.text).toContain("____ ___ _ __")
-    // TextInput command box renders with idle placeholder.
+describe("feature 2 — Welcome screen (fresh vs loading)", () => {
+  test("fresh session, status=spawning: banner + TextInput, no Loading line", () => {
+    const app = renderCard(makeHandle({ status: "spawning" }))
+    // Banner renders (Big-tier signature).
+    expect(app.text).toContain("_____ _____ _ __")
+    // Command box renders — fresh session shows it in BOTH spawning and
+    // idle (status doesn't gate the visual on Welcome; only `resumeId` does).
     expect(app.text).toContain("Type a message to start")
-    // Help surface.
-    expect(app.text).toContain("COMMANDS")
-    expect(app.text).toContain("/panel")
-    // No spawning line in idle state.
-    expect(app.text).not.toContain("Spawning")
+    // No loading line.
+    expect(app.text).not.toContain("Loading session")
+    // No help surface (retired in km-cr94).
+    expect(app.text).not.toContain("COMMANDS")
+    expect(app.text).not.toContain("KEYBINDINGS")
   })
 
-  test("status transition spawning → idle: spawning line replaced by TextInput", () => {
-    // Render spawning first, assert the spawning indicator. Then render
-    // idle in a fresh renderer and assert the command box is present.
-    // Two renderers (not one re-render of the same renderer) so each
-    // assertion runs against an independent tree — the original
-    // re-render-same-renderer version showed stale "Spawning" because
-    // createRenderer doesn't tear down the previous instance on re-call
-    // when the children diff is not React-driven. Bead: km-cr94.
-    const spawning = renderWelcome(makeHandle("spawning"), 100, 50)
-    expect(spawning.text).toContain("Spawning")
-    expect(spawning.text).not.toContain("Type a message to start")
+  test("fresh session, status=idle: banner + TextInput, no Loading line", () => {
+    const app = renderCard(makeHandle({ status: "idle" }))
+    expect(app.text).toContain("_____ _____ _ __")
+    expect(app.text).toContain("Type a message to start")
+    expect(app.text).not.toContain("Loading session")
+    expect(app.text).not.toContain("COMMANDS")
+  })
 
-    const idle = renderWelcome(makeHandle("idle"), 100, 50)
-    expect(idle.text).not.toContain("Spawning")
-    expect(idle.text).toContain("Type a message to start")
+  test("loading session (resumeId set), status=spawning: banner + Loading line, no TextInput", () => {
+    const app = renderCard(makeHandle({ status: "spawning", resumeId: "abc12345-de67-890a-bcde-f1234567890a" }))
+    expect(app.text).toContain("_____ _____ _ __")
+    // Loading indicator with truncated session id.
+    expect(app.text).toMatch(/Loading session abc12345…/)
+    // The TextInput placeholder must NOT be present in the loading variant
+    // — the user is waiting on transcript replay, not entering a fresh prompt.
+    expect(app.text).not.toContain("Type a message to start")
+  })
+
+  test("Welcome unmounts when messages.length transitions 0 → 1; chat view mounts", () => {
+    // Render with empty messages first — Welcome screen.
+    const before = renderCard(makeHandle({ status: "idle", messages: [] }))
+    expect(before.text).toContain("_____ _____ _ __")
+    expect(before.text).toContain("Type a message to start")
+
+    // Render with one user message — chat view.
+    const after = renderCard(makeHandle({ status: "idle", messages: [userEntry("first prompt")] }))
+    // Banner + welcome chrome are GONE.
+    expect(after.text).not.toContain("_____ _____ _ __")
+    expect(after.text).not.toContain("Type a message to start")
+    // Chat view shows the bubble's content (right-aligned bubble around
+    // "first prompt" — that's the user message renderer).
+    expect(after.text).toContain("first prompt")
   })
 })
+
+describe("feature 2 — chat view spawning placeholder", () => {
+  test("spawning status + first user turn → 'Spawning Claude Code…' inline placeholder", () => {
+    // Status="spawning" means session-init hasn't resolved → no version yet.
+    const app = renderCard(
+      makeHandle({
+        status: "spawning",
+        messages: [userEntry("hello claude")],
+        // claudeCodeVersion empty → label drops the version suffix.
+      }),
+    )
+    // The user's prompt rendered (we're in chat view).
+    expect(app.text).toContain("hello claude")
+    // ActivityIndicator shows the spawning label without version suffix.
+    // Format: "◈ Spawning Claude Code…" — the leading ◈ is the indicator
+    // pulse glyph.
+    expect(app.text).toMatch(/Spawning Claude Code…/)
+    // Other status labels must NOT leak.
+    expect(app.text).not.toContain("loading…")
+    expect(app.text).not.toContain("thinking")
+  })
+
+  test("spawning status + version known → label includes 'v<version>'", () => {
+    const app = renderCard(
+      makeHandle({
+        status: "spawning",
+        messages: [userEntry("hello claude")],
+        claudeCodeVersion: "2.1.119",
+      }),
+    )
+    // With version populated, the label reads "Spawning Claude Code v2.1.119…".
+    expect(app.text).toMatch(/Spawning Claude Code v2\.1\.119…/)
+  })
+
+  test("idle status: spawning placeholder is gone (real assistant flow takes over)", () => {
+    // Status="idle" + only-a-user-message means the turn is between user
+    // and assistant — but ActivityIndicator only renders when status is
+    // active (not idle/ended). So the spawning label must not appear.
+    const app = renderCard(
+      makeHandle({
+        status: "idle",
+        messages: [userEntry("hello claude")],
+      }),
+    )
+    expect(app.text).toContain("hello claude")
+    expect(app.text).not.toContain("Spawning Claude Code")
+  })
+})
+
+// ============================================================================
+// feature 3 — right-aligned user prompt bubble
+// ============================================================================
 
 describe("feature 3 — right-aligned user prompt bubble", () => {
   test("user message renders inside a rounded-border bubble, right-aligned, no background fill", () => {
@@ -301,6 +377,10 @@ describe("feature 3 — right-aligned user prompt bubble", () => {
   })
 })
 
+// ============================================================================
+// feature 4 — text selection compatibility
+// ============================================================================
+
 describe("feature 4 — text selection compatibility", () => {
   test("user message text inside the bubble is selectable (cells carry plain chars, no replacement)", () => {
     const messages: MessageEntry[] = [userEntry("selectable text")]
@@ -355,5 +435,87 @@ describe("feature 4 — text selection compatibility", () => {
       const cell = app.cell(startCol + i, row)
       expect(cell.char, `cell at (${startCol + i}, ${row}) should be "${word[i]}"`).toBe(word[i])
     }
+  })
+
+  test("extractText across soft-wrapped bubble lines: documents current behavior + tracks future fix", async () => {
+    // Selection across a wrapped user-prompt bubble: silvery's `extractText`
+    // (vendor/silvery/packages/headless/src/selection.ts:355) supports a
+    // soft-wrap join via `RowMetadata.softWrapped` — when set true on row N,
+    // the row→row+1 boundary inside the selection extracts WITHOUT a "\n".
+    //
+    // Today silvery's pipeline never sets `softWrapped: true` — every
+    // RowMetadata is initialised to `false` and no producer flips it
+    // (grep `softWrapped: true` across vendor/silvery/packages/ — zero hits
+    // in source). So `extractText` joins wrapped rows with "\n", which means
+    // copying a wrapped bubble lands a literal newline mid-prompt in the
+    // user's clipboard. Not a regression introduced by km-cr94 (the chat
+    // bubble shape changed but the wrap mechanism didn't), but a real UX
+    // gap users will notice once they actually drag-select a wrapped bubble.
+    //
+    // This test is a documenting fixture: it asserts the CURRENT behavior
+    // (newline-joined) and will FAIL when silvery starts setting
+    // `softWrapped: true` on the wrap rows the bubble lays out onto. When
+    // that happens, flip the assertion (no `\n` between the two halves).
+    // Tracking bead: @km/silvery/extract-text-soft-wrap-bubble (P3).
+    const { extractText } = await import("@silvery/headless")
+
+    const longText = "This is a fairly long user prompt that should wrap inside the bubble"
+    const messages: MessageEntry[] = [userEntry(longText)]
+    const renderer = createRenderer({ cols: 60, rows: 12 })
+    const app = renderer(
+      <Box width={60} height={12} flexDirection="column">
+        <SessionUpdateList
+          messages={messages}
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+          sessionId="test-session"
+          onApprove={() => {}}
+          onDeny={() => {}}
+        />
+      </Box>,
+    )
+    const buffer = app.lastBuffer()
+    expect(buffer, "lastBuffer should exist after a render").not.toBeUndefined()
+    if (!buffer) return
+
+    // Find two consecutive non-empty rows inside the bubble — those are the
+    // wrap rows we want to span across.
+    let firstContentRow = -1
+    for (let r = 0; r < app.height; r++) {
+      const line = app.lines[r] ?? ""
+      if (line.includes("This is a fairly")) {
+        firstContentRow = r
+        break
+      }
+    }
+    expect(firstContentRow, "first wrap row should contain 'This is a fairly'").toBeGreaterThanOrEqual(0)
+
+    // Find the first non-space col on `firstContentRow` and the last non-
+    // space col on `firstContentRow + 1`. That range covers the two-row
+    // selection inside the bubble. (Padding + border live outside the
+    // selection rectangle.)
+    const startLine = app.lines[firstContentRow]!
+    const endLine = app.lines[firstContentRow + 1] ?? ""
+    const startCol = startLine.search(/\S/)
+    const endCol = endLine.search(/\S\s*$/) // last non-space col
+    expect(startCol).toBeGreaterThan(0)
+    expect(endCol).toBeGreaterThan(0)
+
+    const extracted = extractText(buffer, {
+      anchor: { row: firstContentRow, col: startCol },
+      head: { row: firstContentRow + 1, col: endCol },
+    })
+
+    // Documenting assertion (current behavior). When silvery's wrap
+    // pipeline starts setting `softWrapped: true`, this becomes the
+    // load-bearing failure that signals the follow-up bead has landed.
+    expect(extracted).toContain("\n")
+    // Sanity: the two halves of the prompt are both present (just joined
+    // by a newline rather than a space).
+    expect(extracted.replace(/\s+/g, " ")).toContain("fairly long")
   })
 })

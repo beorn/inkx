@@ -78,6 +78,8 @@ export function ActivityIndicator({
   turnStartedAt = null,
   inputTokens = 0,
   outputTokens = 0,
+  agentLabel = null,
+  agentVersion = null,
 }: {
   status: ActivityStatus
   /** @default 0 */
@@ -90,6 +92,16 @@ export function ActivityIndicator({
   inputTokens?: number
   /** @default 0 */
   outputTokens?: number
+  /** Display name for the running agent (e.g. "Claude Code"). Drives the
+   *  spawning-state label "Spawning Claude Code v<X>…". `null` falls back
+   *  to bare "Spawning…". Bead: km-cr94. @default null */
+  agentLabel?: string | null
+  /** CLI version string from session-init (e.g. "2.1.119"). Appended as
+   *  `v<version>` when present in the spawning label. `null` (and during
+   *  the pre-session-init window) renders the label without a version
+   *  suffix — `Spawning Claude Code…` rather than a placeholder version.
+   *  @default null */
+  agentVersion?: string | null
 }): React.ReactElement | null {
   const isActive = status !== "idle" && status !== "ended"
 
@@ -135,12 +147,22 @@ export function ActivityIndicator({
     label = inFlightTool ? `running ${inFlightTool}…` : "running tool…"
     color = "$info"
   } else if (status === "spawning") {
-    // Distinct phrasing for the pre-init phase. The user just submitted a
-    // prompt from the Welcome card and the agent subprocess is still
-    // booting — "thinking…" would lie (claude isn't reading anything yet).
-    // Stays muted-info color so it reads as system status, not thinking.
-    // Bead: km-cr94.
-    label = "loading…"
+    // Pre-init phase. The user just submitted a prompt from the Welcome
+    // card (or sent a turn that arrived before session-init resolved) and
+    // the agent subprocess is still booting — "thinking…" would lie
+    // (claude isn't reading anything yet). The label reads "Spawning
+    // <agent> v<version>…" once session-init has populated `agentVersion`,
+    // and "Spawning <agent>…" before that. The version is non-strict —
+    // missing version (SDK adapter, codex, fake fixtures) drops the
+    // suffix without erroring. Stays muted-info color so it reads as
+    // system status, not thinking. This row is also the assistant-side
+    // placeholder rendered when the user's first prompt has been written
+    // to the store but claude hasn't responded yet (see
+    // SessionUpdateList — the activity row is appended via `__activity`
+    // when status !== "idle"). Bead: km-cr94.
+    const who = agentLabel ?? "session"
+    const versionSuffix = agentVersion ? ` v${agentVersion}` : ""
+    label = `Spawning ${who}${versionSuffix}…`
     color = "$info"
   } else {
     const verb = VERB_POOL[verbIdx % VERB_POOL.length]!

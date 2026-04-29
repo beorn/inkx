@@ -641,6 +641,13 @@ export const SessionUpdateList = React.forwardRef<
      * Bead: km-silvercode.ambient-inline-display.
      */
     ambientEntries?: readonly AmbientStreamEntry[]
+    /** Display name for the running agent. Forwarded to the inline
+     *  ActivityIndicator so the spawning-state label can read
+     *  "Spawning Claude Code v<version>…". Bead: km-cr94. */
+    agentLabel?: string | null
+    /** CLI version string from session-init (e.g. "2.1.119"). Forwarded
+     *  to ActivityIndicator. `null` until session-init resolves. */
+    agentVersion?: string | null
   }
 >(function SessionUpdateList(
   {
@@ -653,6 +660,8 @@ export const SessionUpdateList = React.forwardRef<
     inFlightTool,
     showDebug = false,
     ambientEntries,
+    agentLabel = null,
+    agentVersion = null,
   },
   ref,
 ): React.ReactElement {
@@ -690,6 +699,8 @@ export const SessionUpdateList = React.forwardRef<
             turnStartedAt={turnStartedAt}
             inputTokens={inputTokens}
             outputTokens={outputTokens}
+            agentLabel={agentLabel}
+            agentVersion={agentVersion}
           />
         ) : isAmbient(item) ? (
           <AmbientCluster entries={item.entries} />
