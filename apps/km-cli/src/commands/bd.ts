@@ -12,7 +12,9 @@ import { createTerm } from "@silvery/ag-react"
 const term = createTerm(process)
 import {
   Bead,
+  bdIdToPathForm,
   buildDependentCountMap,
+  renderBeadFile,
   renderInboxCapture,
   type Bead as BeadType,
   type BeadFilter,
@@ -460,10 +462,112 @@ bdCommand
       }
       return
     }
-    // else: bead has --parent and/or --id. Existing flow — addNode under the
-    // resolved parent (which already has an fs_path so the child file lands
-    // under that parent's directory via the storage reconciler).
 
+    // --parent and/or --id given: materialize a file at the canonical
+    // path-form id (`@<prefix>/<scope>/<leaf>.md`). Bead:
+    // `km-parent-id-leaf-materializes-inline`.
+    //
+    // Previously this lowered to `repo.addNode(parentId, node)`, which
+    // appended the bead as an inline checkbox child of the parent file
+    // (`@<prefix>/<scope>.md`) — `bd show` then reported `Path:
+    // @<prefix>/<scope>.md` instead of the leaf's own file. Filesystem is
+    // the source of truth, so the create path now writes a real file at
+    // `<repoRoot>/<canonical-id>.md`. The storage watcher picks it up on
+    // next sync; subsequent `bd show <id>` and link resolution see the
+    // canonical id natively.
+    //
+    // Equivalence: `--parent km-X --id <leaf>` and `--id @<prefix>/X/<leaf>`
+    // produce the same on-disk shape — both are aliases for the same
+    // canonical id.
+    const canonicalId = (() => {
+      const prefix = configObj.beads.prefix
+      const sigil = `@${prefix}/`
+      // 1. Fully-qualified path-form (`@<prefix>/scope/leaf`).
+      if (typeof opts.id === "string" && opts.id.startsWith(sigil)) {
+        return opts.id
+      }
+      // 2. Foreign sigil (`@otherprefix/scope/leaf`) — pass through.
+      if (typeof opts.id === "string" && opts.id.startsWith("@") && opts.id.includes("/")) {
+        return opts.id
+      }
+      // 3. Bd-form (`<prefix>-scope.leaf`) — translate to path-form.
+      if (typeof opts.id === "string" && opts.id.startsWith(`${prefix}-`)) {
+        const path = bdIdToPathForm(opts.id, prefix)
+        if (path) return path
+      }
+      // 4. Split form (`--parent <scope> --id <leaf>`). Build canonical
+      //    from the parent's path-form + leaf slug. Prefer the parent's
+      //    frontmatter id when set (it's already canonical); fall back to
+      //    the parent's fs_path with `.md` stripped.
+      if (explicitParent && parentId !== null && typeof opts.id === "string") {
+        const parentNode = repo.getNode(parentId)
+        const parentData = parentNode?.data as Record<string, unknown> | undefined
+        const parentCanonical = typeof parentData?.id === "string" ? parentData.id : null
+        const parentFromFsPath = parentNode?.fs_path?.endsWith(".md")
+          ? parentNode.fs_path.slice(0, -3)
+          : null
+        // fs_path may be bare (`@km/beads`) or sigil-prefixed depending on
+        // how the vault was loaded; prepend the sigil when missing so the
+        // canonical id always carries it.
+        const normalizedFromFs = parentFromFsPath
+          ? parentFromFsPath.startsWith(sigil) || parentFromFsPath.startsWith("@")
+            ? parentFromFsPath
+            : `${sigil}${parentFromFsPath}`
+          : null
+        const parentPath = parentCanonical ?? normalizedFromFs
+        if (parentPath) {
+          return `${parentPath}/${opts.id}`
+        }
+      }
+      // 5. --id given without --parent and not fully-qualified — park
+      //    under inbox like a bare auto-id. Mirrors `bdIdToPathForm`'s
+      //    no-dot inbox routing (`km-q5hji` → `@km/inbox/q5hji`).
+      if (typeof opts.id === "string" && !opts.id.includes("/") && !opts.id.includes(".")) {
+        return `${sigil}inbox/${opts.id}`
+      }
+      // 6. Fallback: use the legacy bd-form ULID. Caller flow drops back
+      //    to the inline-child path below — preserves legacy behavior for
+      //    edge cases nobody currently uses.
+      return null
+    })()
+
+    if (canonicalId !== null) {
+      const { filename, content } = renderBeadFile(canonicalId, opts.title, {
+        prefix: configObj.beads.prefix,
+        type: opts.type as string | undefined,
+        priority: opts.priority as string | undefined,
+        description: opts.description as string | undefined,
+        notes: opts.notes as string | undefined,
+      })
+      const filepath = join(resolved.repoRoot, filename)
+      if (existsSync(filepath)) {
+        console.error(term.red(`File already exists at ${filepath} — id collision; pick a different id.`))
+        process.exitCode = 1
+        return
+      }
+      mkdirSync(filepath.slice(0, filepath.lastIndexOf("/")), { recursive: true })
+      writeFileSync(filepath, content, "utf-8")
+
+      if (opts.json) {
+        console.log(JSON.stringify({ shortId, canonicalId, fs_path: filepath, node }, null, 2))
+        return
+      }
+
+      console.log(term.green(`Created issue: ${canonicalId}`))
+      console.log(`Title: ${opts.title}`)
+      if (opts.type) console.log(`Type: ${opts.type}`)
+      console.log(`Priority: ${opts.priority ?? "P2"}`)
+      console.log(term.dim(`Path: ${filepath}`))
+      if (opts.description) {
+        console.log(`Description: ${opts.description.slice(0, 60)}${opts.description.length > 60 ? "..." : ""}`)
+      }
+      return
+    }
+
+    // Fallback: legacy inline-addNode path for cases the canonical-id
+    // resolver couldn't classify. Preserves prior behavior so we don't
+    // break edge cases — but in practice the resolver covers every
+    // documented form (path-form, bd-form, split form, bare-id-no-parent).
     const nodeId = repo.addNode(parentId, node)
 
     // Add description/notes as child paragraph nodes

@@ -316,3 +316,77 @@ export function renderInboxCapture(
   const content = `---\n${fmYaml}\n---\n\n${sections}\n`
   return { filename: `${shortId}.md`, content }
 }
+
+/**
+ * Render a fully-qualified bead (with `--id` and/or `--parent <scope>`)
+ * as the markdown file that lands at `<repoRoot>/<canonical-id>.md`.
+ *
+ * Bead: `km-parent-id-leaf-materializes-inline`.
+ *
+ * The canonical id is path-form (`@<prefix>/<scope>/<leaf>`); the on-disk
+ * filename mirrors that 1:1, with `.md` appended. Frontmatter carries
+ * `id:` (canonical path-form) and `aliases:` (legacy bd-form variants —
+ * dot-form `<prefix>-<scope>.<leaf>` and dash-form
+ * `<prefix>-<scope>-<leaf>`) so historical references resolve via the
+ * alias resolver.
+ *
+ * Mirrors the recipe `migrate.ts` already uses for migrated beads
+ * (`bdIdToPathForm` / `bdIdToAliases` / `issueToMarkdown`), but at
+ * runtime when `km bd create` produces a new bead with a known scope.
+ *
+ * Without this path the CLI lowered every `--parent <scope> --id <leaf>`
+ * call to `repo.addNode(parentId, node)` — which appends `node` as an
+ * inline checkbox child of `<scope>.md` rather than creating a new file
+ * under `<scope>/`. `bd show` then reported `Path: @<prefix>/<scope>.md`
+ * (the parent file), and the leaf id never reached the frontmatter.
+ *
+ * Pure function: no I/O. Caller writes the file. Tests use this directly.
+ */
+export function renderBeadFile(
+  canonicalId: string,
+  title: string,
+  options: {
+    prefix: string
+    type?: string
+    priority?: string
+    description?: string
+    notes?: string
+    createdAt?: Date
+  },
+): { filename: string; content: string } {
+  const sigil = `@${options.prefix}/`
+  if (!canonicalId.startsWith(sigil)) {
+    throw new Error(
+      `renderBeadFile: canonicalId must start with @${options.prefix}/ (got: ${canonicalId})`,
+    )
+  }
+  const inner = canonicalId.slice(sigil.length)
+  if (!inner) {
+    throw new Error(`renderBeadFile: canonicalId has no path inside the sigil (got: ${canonicalId})`)
+  }
+
+  // Aliases: legacy bd-form (`<prefix>-<scope>.<leaf>` / `.<sub>.<leaf>`)
+  // and dash-form (`<prefix>-<scope>-<leaf>`). Mirrors `bdIdToAliases` in
+  // migrate.ts so prose / external tools / link resolvers that index by
+  // bd-form keep working.
+  const dotForm = `${options.prefix}-${inner.split("/").join(".")}`
+  const dashForm = dotForm.replace(/\./g, "-")
+  const aliases: string[] = [dotForm]
+  if (dashForm !== dotForm) aliases.push(dashForm)
+
+  const frontmatter: Record<string, unknown> = {
+    id: canonicalId,
+    aliases,
+    created_at: (options.createdAt ?? new Date()).toISOString(),
+  }
+  if (options.type) frontmatter.type = options.type
+  if (options.priority) frontmatter.priority = options.priority
+
+  const fmYaml = stringifyYaml(frontmatter).trimEnd()
+  const heading = `# ${title}`
+  const description = options.description?.trim() ?? ""
+  const notes = options.notes?.trim() ?? ""
+  const sections = [heading, description, notes].filter((s) => s.length > 0).join("\n\n")
+  const content = `---\n${fmYaml}\n---\n\n${sections}\n`
+  return { filename: `${canonicalId}.md`, content }
+}
