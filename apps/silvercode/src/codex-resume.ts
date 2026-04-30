@@ -37,6 +37,7 @@
  *   event_msg.agent_message      → ignored known duplicate
  *   event_msg.token_count        → ignored known usage metadata
  *   event_msg.web_search_end     → ignored known web-search metadata
+ *   event_msg.collab_agent_spawn_end → ignored known sub-agent metadata
  *   response_item.message:user   → ignored known bootstrap context
  *   response_item.message:dev    → ignored known instructions
  *   response_item.message:assist → text-delta
@@ -256,6 +257,7 @@ function applyEventMsg(rt: ReplayRuntime, payload: CodexEventMsgPayload, ts: num
     case "context_compacted":
     case "view_image_tool_call":
     case "web_search_end":
+    case "collab_agent_spawn_end":
       return
     case "exec_command_end": {
       const id = payload.call_id

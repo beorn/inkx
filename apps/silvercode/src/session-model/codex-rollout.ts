@@ -13,6 +13,7 @@ const knownEventMsgTypes = [
   "context_compacted",
   "view_image_tool_call",
   "web_search_end",
+  "collab_agent_spawn_end",
   "exec_command_end",
   "patch_apply_end",
 ] as const
@@ -42,6 +43,7 @@ export const codexEventMsgPayloadSchema = z.discriminatedUnion("type", [
     })
     .passthrough(),
   z.object({ type: z.literal("web_search_end"), call_id: z.string().optional() }).passthrough(),
+  z.object({ type: z.literal("collab_agent_spawn_end") }).passthrough(),
   z
     .object({
       type: z.literal("exec_command_end"),

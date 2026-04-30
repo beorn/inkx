@@ -506,6 +506,39 @@ describe("codex-resume: replayCodexSessionFromDisk", () => {
     expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(/schema drift/)
   })
 
+  test("known Codex sub-agent lifecycle events do not block resume", () => {
+    writeFakeRollout(
+      SESSION_ID,
+      lines(
+        {
+          timestamp: "2026-04-27T20:58:37.609Z",
+          type: "session_meta",
+          payload: { id: SESSION_ID, cwd: "/tmp", cli_version: "0.124.0" },
+        },
+        {
+          timestamp: "2026-04-27T20:58:38.000Z",
+          type: "event_msg",
+          payload: {
+            type: "collab_agent_spawn_end",
+            agent_id: "019ddd18-bbd8-7941-9766-101669b9b0b8",
+            status: "completed",
+          },
+        },
+        {
+          timestamp: "2026-04-27T20:58:39.000Z",
+          type: "event_msg",
+          payload: { type: "user_message", message: "resume after sub-agent event" },
+        },
+      ),
+    )
+
+    const store = createSessionStore()
+    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).not.toThrow()
+    expect(store.state.get().messages.some((m) => m.role === "user" && m.text === "resume after sub-agent event")).toBe(
+      true,
+    )
+  })
+
   test("unknown response_item variants throw", () => {
     writeFakeRollout(
       SESSION_ID,
