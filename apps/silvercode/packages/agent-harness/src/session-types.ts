@@ -9,6 +9,7 @@
  * Bead: km-silvercode.session-store-tea-refactor.
  */
 
+import type { PermissionOption } from "./acp-types.ts"
 import type { ContentBlock, SessionId, ToolUseId, TurnId } from "./events.ts"
 
 export type RoleIndicator = "user" | "assistant" | "system"
@@ -215,7 +216,7 @@ export type SessionState = {
   apiKeySource: string
   status: SessionStatus
   messages: MessageEntry[]
-  permissions: Array<{ requestId: string; tool: string; args: unknown }>
+  permissions: Array<{ requestId: string; tool: string; args: unknown; options?: PermissionOption[] }>
   /**
    * Active AskUserQuestion tool call awaiting a user choice. `null` when no
    * question is pending. Set when the agent emits a `tool-use` event with

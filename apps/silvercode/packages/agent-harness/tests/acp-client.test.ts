@@ -507,6 +507,65 @@ describe("connectAcp", () => {
     if (resp.outcome.outcome === "selected") expect(resp.outcome.optionId).toBe("allow")
   })
 
+  test("tool_call_update falls back to text content when rawOutput is absent", async () => {
+    let serverConn: acp.AgentSideConnection | null = null
+    const { spawn } = createFakeAcpServer({
+      agent: (conn) => {
+        serverConn = conn
+        return {
+          async initialize() {
+            return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] }
+          },
+          async newSession() {
+            return { sessionId: "session-tool-content-output" }
+          },
+          async authenticate() {
+            return {}
+          },
+          async prompt() {
+            await serverConn!.sessionUpdate({
+              sessionId: "session-tool-content-output",
+              update: {
+                sessionUpdate: "tool_call",
+                toolCallId: "tc-content-only",
+                title: "List models",
+                kind: "execute",
+                status: "in_progress",
+              },
+            })
+            await serverConn!.sessionUpdate({
+              sessionId: "session-tool-content-output",
+              update: {
+                sessionUpdate: "tool_call_update",
+                toolCallId: "tc-content-only",
+                status: "completed",
+                content: [{ type: "content", content: { type: "text", text: "model-a\nmodel-b" } }],
+              },
+            })
+            return { stopReason: "end_turn" as const }
+          },
+          async cancel() {
+            /* no-op */
+          },
+        }
+      },
+    })
+    __setAcpSpawnForTesting(spawn)
+
+    await using scope = createScope("test-tool-content-output")
+    const session = await connectAcp(scope, { command: "fake-acp" })
+    const events: AgentEvent[] = []
+    session.subscribe((e) => events.push(e))
+
+    session.send("list models")
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    await new Promise<void>((resolve) => setImmediate(resolve))
+
+    const result = events.find((e) => e.kind === "tool-result" && e.id === "tc-content-only")
+    expect(result).toBeTruthy()
+    if (result?.kind === "tool-result") expect(result.output).toBe("model-a\nmodel-b")
+  })
+
   test("missing permissionHandler defaults to cancelled outcome with error event", async () => {
     let serverConn: acp.AgentSideConnection | null = null
     const { spawn } = createFakeAcpServer({
@@ -551,7 +610,13 @@ describe("connectAcp", () => {
 
     expect(resp.outcome.outcome).toBe("cancelled")
     // We should have seen both a permission-request and an error event.
-    expect(events.some((e) => e.kind === "permission-request")).toBe(true)
+    const permissionRequest = events.find((e) => e.kind === "permission-request")
+    expect(permissionRequest).toBeDefined()
+    expect(permissionRequest).toMatchObject({
+      kind: "permission-request",
+      requestId: "tc-perm-2",
+      options: [{ optionId: "allow", name: "Allow", kind: "allow_once" }],
+    })
     expect(events.some((e) => e.kind === "error")).toBe(true)
   })
 

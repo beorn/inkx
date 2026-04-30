@@ -38,7 +38,7 @@ import { fileURLToPath } from "node:url"
 import * as acp from "@agentclientprotocol/sdk"
 import { Scope, disposable } from "@silvery/scope"
 import createDebug from "debug"
-import { acpToSilvercode } from "./acp-boundary.ts"
+import { acpRequestPermissionToSilvercode, acpToSilvercode } from "./acp-boundary.ts"
 import type {
   AgentEvent,
   AgentSession,
@@ -677,13 +677,15 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
 
     async requestPermission(req: acp.RequestPermissionRequest): Promise<acp.RequestPermissionResponse> {
       dWire("requestPermission tool=%s", req.toolCall.title ?? req.toolCall.toolCallId)
+      const scReq = acpRequestPermissionToSilvercode(req)
       // Surface a legacy permission-request event so existing UI sees it.
       emit({
         kind: "permission-request",
         sessionId,
-        requestId: String(req.toolCall.toolCallId) as PermissionRequestId,
-        tool: req.toolCall.title ?? "",
-        args: req.toolCall.rawInput,
+        requestId: String(scReq.toolCall.toolCallId) as PermissionRequestId,
+        tool: scReq.toolCall.title ?? "",
+        args: scReq.toolCall.rawInput,
+        options: scReq.options,
         ts: Date.now(),
       })
       if (!opts.permissionHandler) {
@@ -1027,7 +1029,7 @@ function mapSessionUpdateToLegacyEvents(
           kind: "tool-result",
           sessionId,
           id: String(scUpdate.toolCallId) as ToolUseId,
-          output: scUpdate.rawOutput,
+          output: toolCallOutput(scUpdate),
           is_error: scUpdate.status === "failed",
           ts,
         })
@@ -1098,4 +1100,14 @@ function contentBlockToLegacy(block: import("./acp-types.ts").ContentBlock): Leg
   // audio / resource_link / resource have no direct legacy slot. Surface as
   // empty text so the caller can decide to emit a status event instead.
   return { type: "text", text: "" }
+}
+
+function toolCallOutput(
+  update: Extract<import("./acp-types.ts").SessionUpdate, { sessionUpdate: "tool_call_update" }>,
+): unknown {
+  if (update.rawOutput !== undefined) return update.rawOutput
+  const text = update.content
+    ?.flatMap((item) => (item.type === "content" && item.content.type === "text" ? [item.content.text] : []))
+    .join("")
+  return text && text.length > 0 ? text : ""
 }

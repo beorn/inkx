@@ -839,7 +839,10 @@ export function reduce(state: InternalSessionState, action: AgentEvent): [Intern
       applyTurnEnd(next, action)
       break
     case "permission-request":
-      next.permissions = [...next.permissions, { requestId: action.requestId, tool: action.tool, args: action.args }]
+      next.permissions = [
+        ...next.permissions,
+        { requestId: action.requestId, tool: action.tool, args: action.args, options: action.options },
+      ]
       // permission-request carries no turnId on the wire (it's a side-channel
       // event), but its `requestId` is itself a valid ownership id — a
       // turn-end / session-end can't legitimately retire a permission-request

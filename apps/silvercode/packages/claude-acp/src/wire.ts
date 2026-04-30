@@ -225,6 +225,39 @@ export function attachWire(conn: acp.AgentSideConnection, agentSession: AgentSes
         return
       }
 
+      case "permission-request": {
+        const options: acp.PermissionOption[] = [
+          { optionId: "allow_once" as acp.PermissionOptionId, name: "Allow", kind: "allow_once" as const },
+          { optionId: "reject_once" as acp.PermissionOptionId, name: "Reject", kind: "reject_once" as const },
+        ]
+        void conn
+          .requestPermission({
+            sessionId: sessionId as acp.SessionId,
+            toolCall: {
+              toolCallId: String(event.requestId) as acp.ToolCallId,
+              title: event.tool || String(event.requestId),
+              status: "pending",
+              rawInput: event.args,
+            },
+            options,
+          })
+          .then((response) => {
+            const outcome = response.outcome
+            const approved =
+              outcome.outcome === "selected" &&
+              options.some(
+                (option) =>
+                  option.optionId === outcome.optionId &&
+                  (option.kind === "allow_once" || option.kind === "allow_always"),
+              )
+            agentSession.respondToPermission(event.requestId, approved)
+          })
+          .catch(() => {
+            agentSession.respondToPermission(event.requestId, false)
+          })
+        return
+      }
+
       case "session-end": {
         const reason = mapStopReason(event.stopReason)
         // Drain all pending waiters with the final stop reason.
@@ -269,7 +302,6 @@ export function attachWire(conn: acp.AgentSideConnection, agentSession: AgentSes
         return
       }
       case "turn-start":
-      case "permission-request":
       case "permission-decision":
       case "status":
       case "error":
