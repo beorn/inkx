@@ -42,12 +42,14 @@ Activated by requests about:
 ### `status` - Health Summary
 
 ```bash
-km bd info                                                 # Vault stats / counts
+km bd info                                                 # Vault stats / counts (un-scoped totals; counts every checkbox in the vault)
 km bd list --status open --json | jq 'group_by(.priority) | map({priority: .[0].priority, count: length})'  # Priority distribution
-km bd list --status open --limit 0                         # Full open backlog
-km bd list --status wip --limit 0                          # Work claimed but possibly stalled
-km bd stale --days 14 --limit 0                            # Issues needing attention
+km bd list --status open                                   # Open backlog (default-scoped to beads.roots; add `--all` for vault-wide)
+km bd list --status wip                                    # Work claimed but possibly stalled
+km bd stale --days 14                                      # Issues needing attention
 ```
+
+**Default scoping**: `bd list` / `bd ready` / `bd stats` filter to configured `beads.roots` by default. Pass `--all` to include vault-wide noise (test fixtures, archived markdown, in-file checkboxes). `bd info` totals are still un-scoped — divergence vs `bd list` is expected.
 
 Output a comprehensive table of all open beads with these columns (up to 100 beads):
 
@@ -101,9 +103,9 @@ Run these bash commands **in parallel** (single message, multiple Bash tool call
 
 | Command                                         | Purpose                           |
 | ----------------------------------------------- | --------------------------------- |
-| `km bd list --status open --limit 0`               | Full open backlog                 |
-| `km bd list --status wip --limit 0`                | Work claimed but possibly stalled |
-| `km bd stale --days 14 --limit 0`                  | Issues needing attention          |
+| `km bd list --status open`               | Full open backlog                 |
+| `km bd list --status wip`                | Work claimed but possibly stalled |
+| `km bd stale --days 14`                  | Issues needing attention          |
 | `km bd list --status open --json \| jq 'group_by(.title) \| map(select(length>1) \| .[0].title)'` | Title-near-dup detection (manual) |
 | `km bd children <epic-id>`                         | Per-epic completion status        |
 | `km bd blocked`                                    | Blocked issues and blockers       |
@@ -121,11 +123,11 @@ km bd list --status closed --limit 20 --sort updated  # Recent completions for c
 
 Before analyzing, get ground truth from tribe so you don't propose closing actively-worked beads:
 
-1. **List sessions**: `mcp__plugin_tribe_tribe__tribe_members()` — who's alive
+1. **List sessions**: `tribe.members()` — who's alive
 2. **Ask for status**:
 
 ```
-mcp__plugin_tribe_tribe__tribe_broadcast(type="notify",
+tribe.broadcast(type="notify",
   message="Backlog grooming starting. Quick status check — what beads are you actively working on right now? Just bead IDs + one-line status.")
 ```
 
@@ -242,13 +244,13 @@ done | sort -t: -k2 -rn
 
 **2. Orphan detection** — beads not under any epic:
 ```bash
-km bd list --status open --limit 0 | grep -v "│\|├\|└"  # Top-level beads without tree indentation
+km bd list --status open | grep -v "│\|├\|└"  # Top-level beads without tree indentation
 ```
 Every non-epic bead should have a parent. Assign orphans to the correct scope.
 
 **3. Opaque ID cleanup** — find auto-generated IDs:
 ```bash
-km bd list --status open --limit 0 2>&1 | grep -oP 'km-[a-z0-9]{5}\b' | sort -u
+km bd list --status open 2>&1 | grep -oP 'km-[a-z0-9]{5}\b' | sort -u
 ```
 Rename any that aren't legitimate scope names (km-board, km-tribe etc. are fine).
 
@@ -257,14 +259,15 @@ Rename any that aren't legitimate scope names (km-board, km-tribe etc. are fine)
 - Exception: specific blocking bugs can be P1 under a P2 epic
 
 **5. Cross-scope consistency** — check for beads in the wrong scope:
-- Beads mentioning "termless" under km-silvery → should be km-termless
+- Beads for vt100.js, vt220.js, or vterm.js → should be `@km/vterm`
+- Beads mentioning "termless" under km-silvery → should be `@km/termless`
 - Beads mentioning "test" infrastructure → km-vitestx or km-termless, not km-tui
 - Board-specific beads under km-all → should be km-tui
 - Marketing beads under km-silvery → should be km-market
 
 **6. Sub-epic grouping** — when 5+ beads in a scope share a prefix or theme:
-- Group under a sub-epic: `km bd create --id km-scope.theme --type epic`
-- Example: 9 `examples-*` beads → parent under `km-silvery.demos`
+- Group under a sub-epic: `km bd create "<theme>" --type epic --priority P2 --id @km/<scope>/<theme>`
+- Example: 9 `examples-*` beads → parent under `@km/silvery/demos`
 
 Run this review as part of every groom. Output findings in the Phase 3 report under a "### F. Organization" section.
 
@@ -274,6 +277,28 @@ Run this review as part of every groom. Output findings in the Phase 3 report un
 - Acceptance criteria unclear
 - Might be duplicate but need confirmation
 - Scope seems wrong
+
+#### G. Inbox triage (`@km/inbox/`)
+
+Beads created via bare `km bd create "title"` (no `--id`, no `--parent`) materialize at `@km/inbox/<auto-slug>.md`. Treat the inbox like an in-tray — it should not accumulate.
+
+```bash
+# All open inbox beads
+km bd list @km/inbox --status open
+
+# Sample for triage (just the IDs + titles)
+km bd list @km/inbox --status open --json | jq -r '.[] | "\(.id)\t\(.title)"' | head -40
+```
+
+For each inbox bead, decide one of three actions:
+
+| Action | When | How |
+|---|---|---|
+| **Scope it** | Bead is real work, has a clear destination scope | Move file: `mv @km/inbox/<slug>.md @km/<scope>/<slug>.md`, update frontmatter `id:` to match new path, append old path to `aliases:` for legacy refs, then grep-and-replace any incoming wikilink references (`[[@km/inbox/<slug>]]` → `[[@km/<scope>/<slug>]]`). |
+| **Close** | Quick capture that's no longer relevant, dup of an existing bead, or just thinking-out-loud | `km bd close <id> --reason "Inbox triage: <why>"` |
+| **Leave** | Genuinely scopeless still-active work (rare) | Add a verification note: `km bd update <id> --notes "Inbox-leave YYYY-MM-DD: still scopeless because <why>"`. Re-evaluate on the next groom. |
+
+**Auto-id-form-only inbox beads** (`@km/inbox/<5-char-hex>.md`, e.g. `@km/inbox/q5hji.md`) need extra care — these were captured without thinking about a name, so the slug is meaningless. Either give them a real id during scoping (rename + new path) or close.
 
 ### Phase 2½: Verify Close Candidates
 
@@ -374,11 +399,11 @@ Output structured report:
 
 **Never execute grooming changes without tribe feedback.** Tribe members have ground truth about what's actively worked on, what's blocked, and what's about to change.
 
-1. **Check who's online**: `mcp__plugin_tribe_tribe__tribe_members()` — know who can respond
+1. **Check who's online**: `tribe.members()` — know who can respond
 2. **Broadcast the full plan**: Send the entire Phase 3 report to tribe, asking for:
 
 ```
-mcp__plugin_tribe_tribe__tribe_broadcast(type="notify",
+tribe.broadcast(type="notify",
   message="Backlog grooming — proposed changes below. Please reply with:
   1. Objections to any close/merge/reprioritize/restructure
   2. Status update for ALL beads you know about (in_progress, claimed, or related to your work)
@@ -432,8 +457,8 @@ km bd update <id> --parent ""
 After execution:
 
 ```bash
-km bd list --status open --limit 0 | wc -l   # Should decrease
-km bd stale --days 14 --limit 0 | wc -l      # Should decrease
+km bd list --status open | wc -l   # Should decrease
+km bd stale --days 14 | wc -l      # Should decrease
 km bd ready --limit 10                        # Should look actionable
 ```
 
