@@ -10,9 +10,10 @@ aliases:
   - km-silvery-kitty-images-quality-plateau
 created_by: Codex
 created_at: 2026-04-30T06:28:00Z
+closed_at: 2026-04-30T08:09:00Z
 ---
 
-# [ ] Bring Kitty images to quality plateau @km/silvery #task #P0
+# [x] Bring Kitty images to quality plateau @km/silvery #task #P0
 
 Move Kitty image rendering from L2/L3 toward L4/L5 quality plateau.
 
@@ -45,6 +46,6 @@ Verification:
 
 - `bun vitest run --project vendor vendor/silvery/tests/features/image-placement-plan.test.ts vendor/silvery/tests/features/image-no-retransmit-on-move.test.tsx vendor/silvery/tests/features/image-stdout-routing.test.tsx`
 - `bunx oxlint vendor/silvery/packages/ag-react/src/ui/image/Image.tsx vendor/silvery/packages/ag-react/src/ui/image/image-placement.ts vendor/silvery/tests/features/image-placement-plan.test.ts`
+- `bun run typecheck` in `vendor/silvery`
 
-Note: `bun run typecheck` in `vendor/silvery` still fails on pre-existing
-repo-wide TS config/import-extension errors outside this patch.
+Implemented by silvery commit `76859222` and parent repo commit `dfe3e15a8`.

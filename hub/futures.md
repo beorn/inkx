@@ -63,6 +63,21 @@ The composition pattern keeps all three options open: the same `pipe + with*` fa
 - Tracked in: `km-silvery.tea` (the signal-store shape is coupled to the dispatch/apply contract).
 - Today: plugins reach for `alien-signals` themselves; no shared registry.
 
+## Rich text document model
+
+Silvery's `TextArea` / `TextInput` today operate on a flat string buffer with cursor offset. A future direction is a Slate.js / ProseMirror-style document model — `Segment[]` of `text | atom | mark`, with cursor positions as `{segIdx, offsetInSeg}` rather than a single offset.
+
+Driving consumers (none shipped):
+
+- **Paste-collapse atoms** — Claude-Code-style `[Pasted Content N chars] #M` placeholder for large pastes. The atom is structurally identical to a Slate "void inline" element. Tracked in `km-silvery.text-paste-collapse`.
+- **Inline mentions / @-references** — `@username`, `#channel`, `[[wikilink]]` as opaque tokens that don't fragment under arrow-key navigation or backspace.
+- **Mid-edit syntax highlighting** — segments carry mark metadata (bold, code, link target) without the renderer having to re-tokenize on every keystroke.
+
+Open question — promote to a tracked bead only when the first concrete consumer is picked up. The shape of the segment model should be driven by that consumer's needs (likely paste-collapse), not designed in the abstract.
+
+- No bead for the model itself — speculative direction.
+- See: `km-silvery.text-paste-collapse` (the first consumer that would force the design).
+
 ## Plugin/factory abstractions explicitly rejected
 
 Three abstractions were considered during the 2026-04-27 retrospective and explicitly rejected (or deferred). Documented here so future sessions don't reinvent them.
