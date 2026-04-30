@@ -288,8 +288,8 @@ km bd create "Sprint: <theme>" --type epic --priority P2 \
   --description "Umbrella for related work identified during rebase"
 
 # Add children
-km bd update km-child-1 --parent km-epic-$NEXT_ID
-km bd update km-child-2 --parent km-epic-$NEXT_ID
+km bd update @km/<scope>/child-1 --parent @km/<scope>/sprint-$NEXT_ID
+km bd update @km/<scope>/child-2 --parent @km/<scope>/sprint-$NEXT_ID
 ```
 
 ### 7c. Update Dependencies

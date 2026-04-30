@@ -199,14 +199,14 @@ This resets the staleness clock for ~1-2 weeks. During grooming, check the `note
 **Consolidation pattern** (for scattered beads sharing a theme):
 
 1. **Identify clusters**: Search for beads by keyword across IDs, titles, descriptions
-2. **Create tracking epic**: `km-<scope>` with `--type epic` and a clean scope description title (e.g., "silvery & ansi issues"). Use `km bd children <epic-id> --json | jq` to inspect children and gauge epic health.
-3. **Rename sub-beads**: Use `km bd rename <old-id> <new-id>` to move beads to `km-<scope>.<suffix>` dot notation, then `km bd update <new-id> --parent km-<scope>`
+2. **Create tracking epic**: `@km/<scope>` with `--type epic` and a clean scope description title (e.g., "silvery & ansi issues"). Use `km bd children <epic-id> --json | jq` to inspect children and gauge epic health.
+3. **Rename sub-beads**: Use `km bd rename <old-id> @km/<scope>/<suffix>` to move beads to path-form scoped ids, then `km bd update @km/<scope>/<suffix> --parent @km/<scope>`
 4. **Categorize carefully**: A bead mentioning X isn't always *about* X — check if it's the primary subject
 5. **Verify**: `km bd children <epic-id>` to confirm structure
 
 **Bead re-ID pattern** (for beads with random/opaque IDs):
 
-Every bead should have a human-readable scoped ID (`km-<scope>.<topic>`). During grooming, identify beads with auto-generated 5-char hex IDs and rename them:
+Every bead should have a human-readable scoped path ID (`@km/<scope>/<topic>`). During grooming, identify beads with auto-generated 5-char hex IDs and rename them:
 
 1. **Find random IDs**: `km bd list --status open | grep -E 'km-[a-z0-9]{5} '`
 2. **Determine scope**: Which epic does this bead belong to? (silvery, tui, infra, etc.)
@@ -217,9 +217,9 @@ Every bead should have a human-readable scoped ID (`km-<scope>.<topic>`). During
    - `ai-*` for AI-related features (ai-chat, ai-demo, ai-apis)
    - `tea.*` for TEA sub-beads (tea.migration, tea.standalone)
    - `ink-*` for Ink migration (ink-codemod, ink-migration)
-5. **Rename**: `km bd rename km-<random> km-<scope>.<suffix>` — this updates all internal references (deps, descriptions, events)
+5. **Rename**: `km bd rename km-<random> @km/<scope>/<suffix>` — this updates all internal references (deps, descriptions, events)
 6. **Search codebase**: `Grep pattern="km-<random>" glob="*.{ts,md,json}"` — update any references in code, docs, or config
-7. **Parent**: `km bd update km-<scope>.<suffix> --parent km-<scope>`
+7. **Parent**: `km bd update @km/<scope>/<suffix> --parent @km/<scope>`
 
 #### E. Organization Review (scope health)
 

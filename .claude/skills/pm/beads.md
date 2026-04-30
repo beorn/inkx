@@ -140,13 +140,13 @@ km bd create "Search bar" --type feature --id search-bar \
 ## Updating beads
 
 ```bash
-km bd update km-abc123 --status wip
-km bd update km-abc123 --notes "Progress: fixed X, still need Y"   # Appends a child paragraph
-km bd update km-abc123 --priority P1
-km bd update km-abc123 --title "New title"
-km bd update km-abc123 --description "Updated description"         # Replaces first child paragraph
-km bd update km-abc123 --type task
-km bd update km-abc123 --parent km-tui                             # Move under a new parent
+km bd update @km/tui/normal-mode-nav --status wip
+km bd update @km/tui/normal-mode-nav --notes "Progress: fixed X, still need Y"   # Appends a child paragraph
+km bd update @km/tui/normal-mode-nav --priority P1
+km bd update @km/tui/normal-mode-nav --title "New title"
+km bd update @km/tui/normal-mode-nav --description "Updated description"         # Replaces first child paragraph
+km bd update @km/tui/normal-mode-nav --type task
+km bd update @km/tui/normal-mode-nav --parent @km/tui                             # Move under a new parent
 ```
 
 Notes vs description:
