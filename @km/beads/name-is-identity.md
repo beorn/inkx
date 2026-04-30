@@ -81,6 +81,44 @@ The single legitimate architectural question:
 
 1-2 hours TDD. Single session. No /refactor migrate planning needed.
 
+## Also in scope: bead commands take path positionally everywhere
+
+Today, `update / close / show / claim / drop` already accept the bead handle as a positional argument:
+
+```bash
+km bd update @km/tui/normal-mode-nav --status wip
+km bd close @km/tui/normal-mode-nav --reason "shipped at <SHA>"
+km bd show @km/tui/normal-mode-nav
+```
+
+`create` still uses a flag:
+
+```bash
+km bd create "Normal mode nav" --id @km/tui/normal-mode-nav --type task
+```
+
+Direction (per user, 2026-04-30): make `create` symmetric — accept the path positionally so all bead commands look the same.
+
+```bash
+km bd create @km/tui/normal-mode-nav "Normal mode nav" --type task
+# or, equivalently, with the title as a flag:
+km bd create @km/tui/normal-mode-nav --title "Normal mode nav" --type task
+```
+
+`--parent` falls out entirely (the path encodes the parent), and `--id` is no longer needed.
+
+### Acceptance (CLI portion)
+
+- `km bd create <path> <title>` works; `--id <path>` continues to work as a back-compat alias for one cycle.
+- `--parent` is removed from all skill examples (already mostly done).
+- `km bd create --help` shows path-positional as the canonical form.
+- All `.claude/skills/` and `.agents/skills/` examples use path-positional in `create`.
+- A bare `km bd create "Title"` (no path) still lands in `@km/inbox/<auto-slug>.md`.
+
+### Effort (CLI portion)
+
+~30 min. Single argv shape change in `apps/km-cli/src/commands/bd-create.ts` + arg-shuffling test, then a doc sweep.
+
 ## Children (re-parented)
 
 - `@km/beads/close-resolver-asymmetric` — already fixed at `2bdab7fb6` regression test. Independent of this bead.

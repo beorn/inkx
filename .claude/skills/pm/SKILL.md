@@ -203,7 +203,17 @@ Every Acceptance bullet on a new bead must name a current consumer or workflow (
 
 ## Quick Reference: Common Flag Mistakes
 
-**CRITICAL**: Prefer path-form ids for scoped beads. Avoid create-time `--parent + --id` split forms; they are easy to misuse and drift across tools.
+**Bead commands take the path positionally.** `update / close / show / claim / drop / children / blocked / comment / dep` accept the path-form id as a positional argument — no flag needed:
+
+```bash
+km bd update @km/tui/normal-mode-nav --status wip
+km bd close  @km/tui/normal-mode-nav --reason "shipped at <SHA>"
+km bd show   @km/tui/normal-mode-nav
+km bd children @km/silvery
+```
+
+**`bd create` still uses `--id`** today; positional path on `create` is tracked under `@km/beads/name-is-identity` (CLI portion). Until that lands, write the path-form id explicitly with `--id` and **do not** pass `--parent` (path encodes parent):
+
 ```bash
 km bd create "Foo" --type task --priority P2 --id @km/tui/foo
 ```
@@ -211,6 +221,7 @@ km bd create "Foo" --type task --priority P2 --id @km/tui/foo
 | Command     | Wrong                         | Correct                                      |
 | ----------- | ----------------------------- | -------------------------------------------- |
 | `km bd create` | `--parent km-tui --id foo`    | `km bd create "Foo" --id @km/tui/foo`       |
+| `km bd update` | `--id @km/tui/foo --status wip` | `km bd update @km/tui/foo --status wip`    |
 | `km bd update` | `--desc`                      | `--description` or `-d`                      |
 | `km bd close`  | `--note`                      | `--reason` or `-r`                           |
 | `km bd create` | `--name`                      | `--title` or positional: `km bd create <title>` |
