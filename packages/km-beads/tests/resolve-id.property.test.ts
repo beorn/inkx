@@ -57,9 +57,7 @@ const slug = fc
   .map((parts) => parts.join("-"))
   .filter((s) => s.length > 0)
 
-const prefix = fc
-  .stringMatching(/^[a-z]{2,5}$/)
-  .filter((p) => p.length >= 2)
+const prefix = fc.stringMatching(/^[a-z]{2,5}$/).filter((p) => p.length >= 2)
 
 /**
  * (scope, slug, prefix) — the basic coordinate space for a bead.
@@ -182,28 +180,22 @@ describe("id-resolution property: id-form × scope × bead-class", () => {
 describe("cross-scope disambiguation", () => {
   test("identical slugs under different scopes resolve to distinct beads", () => {
     fc.assert(
-      fc.property(
-        prefix,
-        scope,
-        scope,
-        slug,
-        (p, scopeA, scopeB, sharedSlug) => {
-          fc.pre(scopeA !== scopeB)
-          using repo = createTestRepo()
-          const a = seedBead(repo, { prefix: p, scope: scopeA, slug: sharedSlug })
-          const b = seedBead(repo, { prefix: p, scope: scopeB, slug: sharedSlug })
-          expect(a.nodeId).not.toBe(b.nodeId)
+      fc.property(prefix, scope, scope, slug, (p, scopeA, scopeB, sharedSlug) => {
+        fc.pre(scopeA !== scopeB)
+        using repo = createTestRepo()
+        const a = seedBead(repo, { prefix: p, scope: scopeA, slug: sharedSlug })
+        const b = seedBead(repo, { prefix: p, scope: scopeB, slug: sharedSlug })
+        expect(a.nodeId).not.toBe(b.nodeId)
 
-          // Each canonical form must resolve to its own bead — no
-          // slug-only collision picks the wrong scope.
-          expect(resolveShortId(a.forms.canonical, { repo })).toBe(a.nodeId)
-          expect(resolveShortId(b.forms.canonical, { repo })).toBe(b.nodeId)
-          expect(resolveShortId(a.forms.sigil, { repo })).toBe(a.nodeId)
-          expect(resolveShortId(b.forms.sigil, { repo })).toBe(b.nodeId)
-          expect(resolveShortId(a.forms.bdForm, { repo })).toBe(a.nodeId)
-          expect(resolveShortId(b.forms.bdForm, { repo })).toBe(b.nodeId)
-        },
-      ),
+        // Each canonical form must resolve to its own bead — no
+        // slug-only collision picks the wrong scope.
+        expect(resolveShortId(a.forms.canonical, { repo })).toBe(a.nodeId)
+        expect(resolveShortId(b.forms.canonical, { repo })).toBe(b.nodeId)
+        expect(resolveShortId(a.forms.sigil, { repo })).toBe(a.nodeId)
+        expect(resolveShortId(b.forms.sigil, { repo })).toBe(b.nodeId)
+        expect(resolveShortId(a.forms.bdForm, { repo })).toBe(a.nodeId)
+        expect(resolveShortId(b.forms.bdForm, { repo })).toBe(b.nodeId)
+      }),
       { numRuns: 50 },
     )
   })
@@ -244,31 +236,19 @@ describe("cross-scope disambiguation", () => {
     )
   })
 
-  // KNOWN BUG (filed as follow-up): the sigil-prefixed canonical form
-  // currently does NOT reliably disambiguate when two beads share the
-  // same `scope/slug` under different prefixes.
+  // Sigil-prefixed canonical form disambiguates across foreign prefixes.
   //
-  // Root cause: `resolveShortId` issues a single SQL statement with three
-  // OR-ed predicates against `data.id`:
+  // Previously a known bug: `resolveShortId` OR'd three predicates against
+  // `data.id` (exact, sigil-stripped, LIKE '%/<scope/slug>') in one SQL
+  // statement with `LIMIT 1`. The LIKE arm matched both prefixes and the
+  // `LIMIT 1` over an OR is order-undefined, so the result could flip to
+  // the foreign-prefix bead.
   //
-  //     data.id = ?              -- exact, with sigil
-  //   OR data.id = ?              -- exact, sigil-stripped
-  //   OR data.id LIKE ?           -- '%/<sigil-stripped>'
-  //   LIMIT 1
-  //
-  // The third predicate matches BOTH `@<prefixA>/scope/slug` AND
-  // `@<prefixB>/scope/slug`, and `LIMIT 1` over an OR is order-undefined,
-  // so the result can flip to the foreign-prefix bead even when arm 1's
-  // exact match would succeed.
-  //
-  // Expected fix: short-circuit — try exact match first; only fall back
-  // to LIKE when no exact match found. Tracked in follow-up bead
-  // `@km/beads/resolver-sigil-ambiguity`.
-  //
-  // Marked `.fails` so CI surfaces the bug without blocking the suite.
-  // Once the resolver is fixed, this test will pass and `.fails` should
-  // be removed.
-  test.fails("KNOWN BUG: sigil form should disambiguate across foreign prefixes", () => {
+  // Fix shipped 2026-04-30: resolveShortId now delegates path-shaped input
+  // to repo.resolveNode (which uses indexed fs_path lookup, exact match)
+  // and only retries sigil-stripped on miss — sequential, not OR'd. No
+  // more LIKE ambiguity.
+  test("sigil form disambiguates across foreign prefixes", () => {
     fc.assert(
       fc.property(prefix, prefix, scope, slug, (pA, pB, s, k) => {
         fc.pre(pA !== pB)

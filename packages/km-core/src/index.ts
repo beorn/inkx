@@ -143,3 +143,7 @@ export { createLinkResolver } from "./klink-resolver.ts"
 // Sigils — name-prefix characters with semantic meaning. See docs/design/model/klink.md.
 export type { SigilChar, SigilKind, SigilDefinition } from "./sigils.ts"
 export { SIGILS, isSigilChar, hasSigilPrefix, getSigilChar, stripSigil, isInlineSigilStart } from "./sigils.ts"
+
+// Path derivation — pathOf(node) materializes the user-facing path-form
+// from fs_path. See path.ts for the path/name/id three-concept rationale.
+export { pathOf } from "./path.ts"

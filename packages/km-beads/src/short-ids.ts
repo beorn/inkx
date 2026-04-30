@@ -70,15 +70,28 @@ export function generateSubId(parentShortId: string, childNumber: number): strin
 }
 
 /**
- * Resolve a user-supplied id reference to a full node ID.
+ * Resolve a user-supplied reference to a node id (ULID).
  *
- * Accepts three input forms, in priority order:
- *   1. Canonical path-form id    `silvercode/acp/rename`         → match `data.id`
- *   2. Sigil-prefixed path-form  `@km/silvercode/acp/rename`     → strip `@<prefix>/`, match `data.id`
- *   3. Legacy bd-form id         `km-silvercode.acp-rename`      → match `data.short_id` or any entry in `data.aliases`
+ * Three terms are distinct (per docs/design/model/storage.md:761-787):
+ *   - id   = ULID, opaque, internal. The pkey of nodes.
+ *   - name = path segment (one slug per node).
+ *   - path = composition of names by parent walk; the user-facing form.
  *
- * The three are tried in order; first match wins. The legacy paths are
- * compatibility shims for the bd→km bd cutover (see docs/future/beads.md).
+ * Resolution priority:
+ *   1. id (direct ULID)               → exact nodes.id match
+ *   2. path (full or relative)         → repo.resolveNode (uses indexed fs_path)
+ *      handles: `@km/beads/foo`, `@km/silvercode/acp/rename`, `silvercode/acp/rename`
+ *   3. legacy bd-form short_id/alias  → json_each scan over data.aliases
+ *      handles: `km-silvercode.acp-rename`, `km-silvercode-acp-rename`
+ *
+ * Step 2 used to do three sequential json_extract scans against `data.id` /
+ * `data.short_id` — that work is now done by repo.resolveNode against
+ * fs_path with index `idx_nodes_fs_path` (smart-resolver.ts:278-305). Since
+ * `data.id` value equals `fs_path` minus `.md`, the json_extract scans were
+ * redundant duplicates of the indexed lookup.
+ *
+ * Step 3 (aliases) stays as the legacy bd-form fallback — those forms don't
+ * appear in fs_path, so resolveNode won't find them.
  */
 export function resolveShortId(input: string, options: ShortIdOptions): string | null {
   if (!options.repo) {
@@ -86,33 +99,26 @@ export function resolveShortId(input: string, options: ShortIdOptions): string |
   }
   const repo = options.repo
 
-  // Strip a leading `@<prefix>/` sigil to get the bare canonical path.
-  // We don't know whether `data.id` is stored with or without the sigil
-  // (verified 2026-04-29: existing vault stores WITH sigil, e.g. "@km/storage").
-  // Try all three forms so callers can pass either shape.
-  const stripped = input.replace(/^@[^/]+\//, "")
+  // 1. id (direct ULID) — exact nodes.id match. Cheap pkey lookup.
+  if (repo.getNode(input)) return input
 
-  // 1. Frontmatter `id:` — exact match against either stored form.
-  //    Also matches via LIKE for foreign-prefix sigils (e.g. typed "scope/slug"
-  //    against stored "@anyprefix/scope/slug").
-  const byCanonical = repo.rawQuery<{ id: string }>(
-    `SELECT id FROM nodes
-     WHERE json_extract(data, '$.id') = ?
-        OR json_extract(data, '$.id') = ?
-        OR json_extract(data, '$.id') LIKE ?
-     LIMIT 1`,
-    [input, stripped, `%/${stripped}`],
-  )
-  if (byCanonical[0]) return byCanonical[0].id
+  // 2. path — delegate to repo.resolveNode for path-shaped input
+  //    (contains "/" or starts with sigil "@<prefix>/").
+  if (input.includes("/")) {
+    const node = repo.resolveNode(input)
+    if (node) return node.id
+    // Strip a leading `@<prefix>/` sigil and retry — handles cross-vault
+    // references where the stored fs_path may be without the sigil.
+    const stripped = input.replace(/^@[^/]+\//, "")
+    if (stripped !== input) {
+      const node2 = repo.resolveNode(stripped)
+      if (node2) return node2.id
+    }
+  }
 
-  // 2. Legacy bd-form short_id — still emitted by km bd create / generateShortId.
-  const byShortId = repo.rawQuery<{ id: string }>(
-    `SELECT id FROM nodes WHERE json_extract(data, '$.short_id') = ? LIMIT 1`,
-    [input],
-  )
-  if (byShortId[0]) return byShortId[0].id
-
-  // 3. Frontmatter `aliases:` list — bd-form ids registered as historical names.
+  // 3. legacy bd-form — scan data.aliases for ids that don't appear as paths.
+  //    These are bd-flavored ids (e.g. `km-silvercode.acp-rename`) emitted
+  //    by `generateShortId` and migration; preserved as historical names.
   const byAlias = repo.rawQuery<{ id: string }>(
     `SELECT id FROM nodes
      WHERE EXISTS (
