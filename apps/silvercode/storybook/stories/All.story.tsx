@@ -30,19 +30,16 @@
  * Bead: km-silvercode.acp-storybook
  */
 import React, { useState } from "react"
-import { Box, ListView, Muted, Prose, Screen, Small, Strong, Text, useKineticScroll } from "silvery"
+import { Box, ListView, Muted, Screen, Small, Strong, Text, useKineticScroll } from "silvery"
 import type { AmbientStreamEntry } from "../../src/components/AmbientEventRow.tsx"
-import { AmbientNotificationStack } from "../../src/components/AmbientEventRow.tsx"
 import { ActivityIndicator } from "../../src/components/ActivityIndicator.tsx"
 import { ApplyPatch } from "../../src/components/ApplyPatch.tsx"
 import { InlinePermissionPrompt } from "../../src/components/InlinePermissionPrompt.tsx"
 import { InlineAskUserQuestionPrompt } from "../../src/components/InlineAskUserQuestionPrompt.tsx"
-import { LinkifiedText } from "../../src/components/LinkifiedText.tsx"
-import { MarkdownView } from "../../src/components/MarkdownView.tsx"
 import { SessionExchangeDivider } from "../../src/components/SessionExchangeDivider.tsx"
 import { SessionPromptComposer } from "../../src/components/SessionPromptComposer.tsx"
 import { SessionRetry } from "../../src/components/SessionRetry.tsx"
-import { SessionUpdateList } from "../../src/components/SessionUpdateList.tsx"
+import { SessionCard } from "../../src/components/SessionCard.tsx"
 import { SubAgentExchange } from "../../src/components/SubAgentExchange.tsx"
 import {
   MODE_COLORS,
@@ -94,62 +91,35 @@ function PanelScroll({ children }: { children: React.ReactNode }): React.ReactEl
   )
 }
 
-function fakeController(): Controller {
+function fakeController(ambientBySession: ReadonlyMap<string, readonly AmbientStreamEntry[]> = new Map()): Controller {
   const muted = new Set<string>()
+  const streamSubscribers = new Set<(sessionId: string, entry: AmbientStreamEntry) => void>()
+  const muteSubscribers = new Set<(muted: ReadonlySet<string>) => void>()
   return {
     ambientMuteState: {
       muted: () => muted,
-      subscribe: () => () => {},
+      subscribe: (fn: (muted: ReadonlySet<string>) => void) => {
+        muteSubscribers.add(fn)
+        return () => muteSubscribers.delete(fn)
+      },
       toggle: (source: string) => {
         if (muted.has(source)) muted.delete(source)
         else muted.add(source)
+        for (const fn of muteSubscribers) fn(muted)
       },
     },
     ambientStream: {
-      entries: () => [],
-      subscribe: () => () => {},
+      entries: (sessionId: string) => ambientBySession.get(sessionId) ?? [],
+      subscribe: (fn: (sessionId: string, entry: AmbientStreamEntry) => void) => {
+        streamSubscribers.add(fn)
+        return () => streamSubscribers.delete(fn)
+      },
     },
     backgroundTasks: () => [],
     onBackgroundTasksChange: () => () => {},
     cancelBackgroundTask: () => {},
     foregroundTask: () => {},
   } as unknown as Controller
-}
-
-function UserRow({ text }: { text: string }): React.ReactElement {
-  return (
-    <Box
-      flexDirection="row"
-      backgroundColor="$bg-surface-subtle"
-      borderStyle="single"
-      borderColor="$accent"
-      borderTop={false}
-      borderRight={false}
-      borderBottom={false}
-      paddingY={0}
-    >
-      <Prose flexGrow={1}>
-        <LinkifiedText text={text} role="user" />
-      </Prose>
-    </Box>
-  )
-}
-
-function AssistantRow({ text }: { text: string }): React.ReactElement {
-  return (
-    <Box
-      flexDirection="row"
-      borderStyle="single"
-      borderColor="$primary"
-      borderTop={false}
-      borderRight={false}
-      borderBottom={false}
-    >
-      <Prose flexGrow={1}>
-        <MarkdownView source={text} />
-      </Prose>
-    </Box>
-  )
 }
 
 function StoryWelcomeComposer({
@@ -185,10 +155,6 @@ function SectionLabel({ children }: { children: string }): React.ReactElement {
       </Box>
     </Box>
   )
-}
-
-function AmbientStack({ entries }: { entries: AmbientStreamEntry[] }): React.ReactElement {
-  return <AmbientNotificationStack entries={entries} />
 }
 
 // ──────────────────────────── Side panel stub ────────────────────────────
@@ -446,15 +412,6 @@ const sidePanelSessionJson = {
 
 function AllStoryBody(): React.ReactElement {
   const [composerInput, setComposerInput] = useState("Now run the test suite and confirm everything passes")
-  const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const toggle = (eid: string): void => {
-    setExpanded((prev) => {
-      const next = new Set(prev)
-      if (next.has(eid)) next.delete(eid)
-      else next.add(eid)
-      return next
-    })
-  }
 
   const handle = fakeSessionHandle({
     id: "story-all",
@@ -462,7 +419,29 @@ function AllStoryBody(): React.ReactElement {
     state: sidePanelSessionJson as any,
   })
 
-  const controller = fakeController()
+  const normalSessionId = "story-normal-session"
+  const activeSessionId = "story-active-session"
+  const controller = fakeController(new Map([[normalSessionId, allAmbientEntries]]))
+  const normalHandle = fakeSessionHandle({
+    id: normalSessionId,
+    name: "Normal transcript",
+    state: {
+      messages: LONG_TOOL_SESSION,
+      status: "idle",
+      cost: { usd: 0.0089, inputTokens: 9456, outputTokens: 4000 },
+      claudeCodeVersion: "0.1.0",
+    },
+  })
+  const activeHandle = fakeSessionHandle({
+    id: activeSessionId,
+    name: "Active turn",
+    state: {
+      messages: MULTI_TURN.slice(0, 2),
+      status: "thinking",
+      cost: { usd: 0.0021, inputTokens: 1200, outputTokens: 320 },
+      claudeCodeVersion: "0.1.0",
+    },
+  })
   const mainItems: Array<{ key: string; node: React.ReactNode }> = [
     {
       key: "welcome",
@@ -497,21 +476,15 @@ function AllStoryBody(): React.ReactElement {
       node: (
         <>
           <SectionLabel>Session — normal transcript with ambient events</SectionLabel>
-          <Box flexDirection="column" paddingY={1}>
-            <SessionUpdateList
-              messages={LONG_TOOL_SESSION}
-              ambientEntries={allAmbientEntries}
+          <Box flexDirection="column">
+            <SessionCard
+              handle={normalHandle}
+              isFocused
+              onFocus={() => {}}
               onApprove={() => {}}
               onDeny={() => {}}
-              sessionId="story-normal-session"
-              status="idle"
-              turnStartedAt={null}
-              inputTokens={9456}
-              outputTokens={4000}
-              pendingPermissions={0}
-              inFlightTool={null}
-              agentLabel="Codex"
-              agentVersion="0.1.0"
+              controller={controller}
+              agent="codex"
               follow={false}
             />
           </Box>
@@ -523,20 +496,15 @@ function AllStoryBody(): React.ReactElement {
       node: (
         <>
           <SectionLabel>Session — active turn</SectionLabel>
-          <Box flexDirection="column" paddingY={1}>
-            <SessionUpdateList
-              messages={MULTI_TURN.slice(0, 2)}
+          <Box flexDirection="column">
+            <SessionCard
+              handle={activeHandle}
+              isFocused
+              onFocus={() => {}}
               onApprove={() => {}}
               onDeny={() => {}}
-              sessionId="story-active-session"
-              status="thinking"
-              turnStartedAt={Date.now() - 3000}
-              inputTokens={1200}
-              outputTokens={320}
-              pendingPermissions={0}
-              inFlightTool="Bash"
-              agentLabel="Codex"
-              agentVersion="0.1.0"
+              controller={controller}
+              agent="codex"
               follow={false}
             />
           </Box>
@@ -637,6 +605,7 @@ export const allTogether: Story = {
   component: "All",
   variant: "together",
   description: "Representative 2-panel app layout.",
+  ownsScroll: true,
   render() {
     return <AllStoryBody />
   },

@@ -189,6 +189,10 @@ function dedupeSourcePrefix(label: string, source: string, preview: string): str
   return preview
 }
 
+function normalizeDisclosureText(text: string): string {
+  return text.replace(/\s+/g, " ").trim()
+}
+
 export interface AmbientEventRowProps {
   entry: AmbientStreamEntry
   /** When true, the full body is rendered inline below the row. */
@@ -233,6 +237,10 @@ export function AmbientEventRow({ entry, expanded = false, onToggleExpand }: Amb
   const time = formatTime(entry.timestamp)
   const formatted = formatContent(entry.content)
   const preview = dedupeSourcePrefix(label, entry.source, formatted.preview)
+  const hasAdditionalContent =
+    normalizeDisclosureText(formatted.body).length > 0 &&
+    normalizeDisclosureText(formatted.body) !== normalizeDisclosureText(preview) &&
+    normalizeDisclosureText(formatted.body) !== normalizeDisclosureText(formatted.preview)
 
   // Hover popover: full body, plus the source anchor and a top-right
   // timestamp. Reuses the same popover mechanism the SidePanel hover rows
@@ -262,14 +270,14 @@ export function AmbientEventRow({ entry, expanded = false, onToggleExpand }: Amb
   // handlers expect the SilveryMouseEvent — forward it through.
   const onEnter = (e: Parameters<typeof onMouseEnter>[0]): void => {
     onMouseEnter(e)
-    popover.onMouseEnter(e)
+    if (hasAdditionalContent) popover.onMouseEnter(e)
   }
   const onLeave = (e: Parameters<typeof onMouseLeave>[0]): void => {
     onMouseLeave(e)
-    popover.onMouseLeave(e)
+    if (hasAdditionalContent) popover.onMouseLeave(e)
   }
 
-  const clickable = typeof onToggleExpand === "function" && formatted.body.trim().length > 0
+  const clickable = typeof onToggleExpand === "function" && hasAdditionalContent
   const rowBg = clickable && isHovered ? "$bg-surface-hover" : undefined
 
   return (

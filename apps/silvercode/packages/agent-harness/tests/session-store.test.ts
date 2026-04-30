@@ -62,6 +62,28 @@ function turn(
 }
 
 describe("session-store — ops-order preservation (codex bundling fix)", () => {
+  test("late user-message with earlier timestamp renders before assistant response", () => {
+    const store = createSessionStore()
+    const userTurn = "u-late" as TurnId
+    const assistantTurn = tid(1)
+
+    store.apply({ kind: "turn-start", sessionId: sid, turnId: assistantTurn, role: "assistant", ts: 20 })
+    store.apply({
+      kind: "text-delta",
+      sessionId: sid,
+      turnId: assistantTurn,
+      blockIndex: 0,
+      text: "assistant response",
+      ts: 21,
+    })
+    store.apply({ kind: "user-message", sessionId: sid, turnId: userTurn, text: "user prompt", ts: 10 })
+
+    expect(store.state.get().messages.map((m) => [m.role, m.text])).toEqual([
+      ["user", "user prompt"],
+      ["assistant", "assistant response"],
+    ])
+  })
+
   test("codex-shape interleave: text → tool → text → tool produces 4 ops in order", () => {
     const store = createSessionStore()
     const t = tid(1)

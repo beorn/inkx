@@ -57,6 +57,7 @@ export function SessionCard({
   controller,
   agent,
   composerSlot,
+  follow = "end",
 }: {
   handle: SessionHandle
   isFocused: boolean
@@ -97,6 +98,8 @@ export function SessionCard({
    *  state so there's only ever one composer mounted. Bead:
    *  km-silvercode.welcome-bypassed-by-pane-grid-spawn. */
   composerSlot?: React.ReactNode
+  /** Chat panes follow the latest turn; natural-height story previews can disable it. */
+  follow?: "end" | false
 }): React.ReactElement {
   const state = useStoreSignal(handle.store)
   // Ambient stream — pre-filtered through the mute set so muted source
@@ -187,6 +190,7 @@ export function SessionCard({
               ambientEntries={ambientEntries}
               agentLabel={agentLabelFor(agent)}
               agentVersion={state.claudeCodeVersion || null}
+              follow={follow}
             />
           )}
         </Box>

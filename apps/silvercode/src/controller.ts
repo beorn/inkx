@@ -20,7 +20,9 @@ import {
   type PermissionRequestId,
   type RequestPermissionRequest,
   type RequestPermissionResponse,
+  type SessionId,
   type SessionStore,
+  type TurnId,
   acpRequestPermissionToSilvercode,
   silvercodeRequestPermissionResponseToAcp,
   channelDigestInjector,
@@ -57,6 +59,47 @@ import { replaySessionFromDisk } from "./resume.ts"
 const dQueue = createDebug("silvercode:queue")
 const dBackground = createDebug("silvercode:background")
 const dRecall = createDebug("silvercode:recall")
+
+function createReplayOnlySession(sessionId: string, sendFailureMessage: string): AgentSession {
+  const subscribers = new Set<(event: AgentEvent) => void>()
+  let closed = false
+  const sid = sessionId as SessionId
+
+  function emit(event: AgentEvent): void {
+    if (closed) return
+    for (const handler of Array.from(subscribers)) handler(event)
+  }
+
+  return {
+    sessionId: sid,
+    send(text: string): void {
+      if (closed) return
+      const ts = Date.now()
+      const turnId = `offline-${ts}` as TurnId
+      emit({ kind: "user-message", sessionId: sid, turnId, text, ts })
+      emit({ kind: "error", sessionId: sid, message: sendFailureMessage, ts: ts + 1 })
+    },
+    respondToPermission(requestId: PermissionRequestId, approved: boolean): void {
+      if (closed) return
+      emit({ kind: "permission-decision", sessionId: sid, requestId, approved, ts: Date.now() })
+    },
+    subscribe(handler: (event: AgentEvent) => void): () => void {
+      subscribers.add(handler)
+      return () => subscribers.delete(handler)
+    },
+    close(): Promise<void> {
+      closed = true
+      subscribers.clear()
+      return Promise.resolve()
+    },
+    get closed(): boolean {
+      return closed
+    },
+    [Symbol.asyncDispose](): Promise<void> {
+      return this.close()
+    },
+  }
+}
 
 /**
  * Trigger a recall probe every Nth assistant `turn-end` per session.
@@ -1193,18 +1236,34 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       replayCodexSessionFromDisk(store, opts.resume)
     }
 
-    const session = await Promise.resolve(
-      factory({
-        id,
-        name: givenName,
-        agent: opts.agent,
-        cwd: opts.cwd,
-        model: opts.model,
-        resume: opts.resume,
-        bare: opts.bare,
-        account: opts.account,
-      }),
-    )
+    let session: AgentSession
+    try {
+      session = await Promise.resolve(
+        factory({
+          id,
+          name: givenName,
+          agent: opts.agent,
+          cwd: opts.cwd,
+          model: opts.model,
+          resume: opts.resume,
+          bare: opts.bare,
+          account: opts.account,
+        }),
+      )
+    } catch (err) {
+      if (!(opts.resume && isCodexAgent)) throw err
+      const message = err instanceof Error ? err.message : String(err)
+      const replayOnlyMessage =
+        `Live Codex resume failed: ${message}. ` +
+        "Showing the recovered transcript only; start a fresh session to continue."
+      store.apply({
+        kind: "error",
+        sessionId: opts.resume as SessionId,
+        message: replayOnlyMessage,
+        ts: Date.now(),
+      })
+      session = createReplayOnlySession(opts.resume, replayOnlyMessage)
+    }
 
     let log: EventLog | undefined
     if (opts.logDir) log = createFileEventLog(opts.logDir)

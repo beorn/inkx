@@ -152,8 +152,10 @@ export function InlinePermissionPrompt({
         gap={1}
       >
         <Box flexDirection="row" gap={1}>
-          <Text>Allow</Text>
-          <Text bold>{permissionAction(current.tool)}?</Text>
+          <Text color="$warning">Allow</Text>
+          <Text bold color="$warning">
+            {permissionAction(current.tool)}?
+          </Text>
         </Box>
 
         {argSummary.length > 0 && (

@@ -63,10 +63,21 @@ import { BACKGROUND_MESSAGE_PREFIX } from "../controller.ts"
  * PascalCase ("Bash", "Edit", "Read", etc.); ACP uses lowercase snake_case
  * `ToolKind`. Unknown names fall back to "other".
  */
-function toolKindFromName(name: string): ToolKind {
+function toolKindFromName(name: string, input?: unknown): ToolKind {
+  const codexKind = codexExecToolKind(name, input)
+  if (codexKind) return codexKind
   const lower = name.toLowerCase()
-  if (lower === "bash" || lower === "execute" || lower === "computer") return "execute"
-  if (lower === "edit" || lower === "write" || lower === "multiedit") return "edit"
+  if (
+    lower === "bash" ||
+    lower === "execute" ||
+    lower === "exec_command" ||
+    lower === "run_command" ||
+    lower === "shell" ||
+    lower === "computer"
+  ) {
+    return "execute"
+  }
+  if (lower === "edit" || lower === "write" || lower === "multiedit" || lower === "apply_patch") return "edit"
   if (lower === "read") return "read"
   if (lower === "glob" || lower === "grep" || lower === "search" || lower === "websearch") return "search"
   if (lower === "todowrite") return "think"
@@ -83,10 +94,13 @@ function toolKindFromName(name: string): ToolKind {
  * not for discovering what the row did.
  */
 function toolTitle(name: string, input: unknown): string {
+  const patchTitle = patchToolTitle(name, input)
+  if (patchTitle) return patchTitle
   if (!input || typeof input !== "object") return name
   const o = input as Record<string, unknown>
   return (
     claudeFileToolTitle(name, o) ??
+    codexExecToolTitle(name, o) ??
     shellToolTitle(name, o) ??
     codexFileToolTitle(name, o) ??
     searchToolTitle(name, o) ??
@@ -96,6 +110,60 @@ function toolTitle(name: string, input: unknown): string {
   )
 }
 
+function codexExecToolKind(name: string, input: unknown): ToolKind | null {
+  if (name !== "exec_command" || !input || typeof input !== "object") return null
+  const parsed = firstCodexParsedCommand(input as Record<string, unknown>)
+  if (!parsed) return null
+  const type = stringProp(parsed, "type")
+  if (type === "read") return "read"
+  if (type === "search" || type === "list_files") return "search"
+  return null
+}
+
+type PatchSummary = {
+  files: string[]
+  additions: number
+  deletions: number
+  action: "Added" | "Deleted" | "Edited"
+}
+
+function patchToolTitle(name: string, input: unknown): string | null {
+  if (name !== "apply_patch") return null
+  const patch = typeof input === "string" ? input : null
+  if (!patch) return null
+  const summary = summarizePatch(patch)
+  if (!summary) return null
+  const target = summary.files.length === 1 ? summary.files[0] : `${summary.files.length} files`
+  return `${summary.action} ${target} (+${summary.additions} -${summary.deletions})`
+}
+
+function summarizePatch(patch: string): PatchSummary | null {
+  const files: string[] = []
+  let action: PatchSummary["action"] = "Edited"
+  let additions = 0
+  let deletions = 0
+  for (const line of patch.split("\n")) {
+    if (line.startsWith("*** Add File: ")) {
+      files.push(line.slice("*** Add File: ".length))
+      action = action === "Deleted" ? "Edited" : "Added"
+      continue
+    }
+    if (line.startsWith("*** Delete File: ")) {
+      files.push(line.slice("*** Delete File: ".length))
+      action = action === "Added" ? "Edited" : "Deleted"
+      continue
+    }
+    if (line.startsWith("*** Update File: ")) {
+      files.push(line.slice("*** Update File: ".length))
+      action = "Edited"
+      continue
+    }
+    if (line.startsWith("+") && !line.startsWith("+++")) additions++
+    else if (line.startsWith("-") && !line.startsWith("---")) deletions++
+  }
+  return files.length > 0 ? { files, additions, deletions, action } : null
+}
+
 function compactTitle(text: string): string {
   return text.length > 80 ? `${text.slice(0, 80)}…` : text
 }
@@ -103,6 +171,13 @@ function compactTitle(text: string): string {
 function stringProp(o: Record<string, unknown>, key: string): string | null {
   const value = o[key]
   return typeof value === "string" ? value : null
+}
+
+function firstCodexParsedCommand(o: Record<string, unknown>): Record<string, unknown> | null {
+  const parsed = o.parsed_cmd
+  if (!Array.isArray(parsed)) return null
+  const first = parsed.find((item) => item && typeof item === "object")
+  return first ? (first as Record<string, unknown>) : null
 }
 
 function claudeFileToolTitle(name: string, o: Record<string, unknown>): string | null {
@@ -127,6 +202,23 @@ function shellToolTitle(name: string, o: Record<string, unknown>): string | null
   return null
 }
 
+function codexExecToolTitle(name: string, o: Record<string, unknown>): string | null {
+  if (name !== "exec_command") return null
+  const parsed = firstCodexParsedCommand(o)
+  if (!parsed) return null
+  const type = stringProp(parsed, "type")
+  const path = stringProp(parsed, "path")
+  const query = stringProp(parsed, "query")
+  const command = stringProp(parsed, "cmd")
+  if (type === "read") return `Read ${path ?? stringProp(parsed, "name") ?? command ?? "file"}`
+  if (type === "search") {
+    const target = path ? ` in ${path}` : ""
+    return query ? `Searched ${query}${target}` : `Searched${target}`
+  }
+  if (type === "list_files") return `Explored ${path ?? command ?? "files"}`
+  return null
+}
+
 function codexFileToolTitle(name: string, o: Record<string, unknown>): string | null {
   const path = stringProp(o, "path")
   if (!path) return null
@@ -144,7 +236,7 @@ function searchToolTitle(name: string, o: Record<string, unknown>): string | nul
   }
   if (name === "Glob") {
     const pattern = stringProp(o, "pattern")
-    return pattern ? `Matched ${pattern}` : null
+    return pattern ? `Find ${pattern}` : null
   }
   if (name === "WebFetch") {
     const url = stringProp(o, "url")
@@ -182,6 +274,14 @@ function agentToolTitle(name: string, o: Record<string, unknown>): string | null
  * via silvery's `<Diff>` component automatically (the "diff" content type).
  */
 function editToolContent(input: unknown): ToolCallContent[] | undefined {
+  if (typeof input === "string" && input.startsWith("*** Begin Patch")) {
+    return [
+      {
+        type: "content",
+        content: { type: "text", text: input },
+      },
+    ]
+  }
   if (!input || typeof input !== "object") return undefined
   const o = input as Record<string, unknown>
   if (typeof o.old_string === "string" && typeof o.new_string === "string") {
@@ -223,7 +323,7 @@ function adaptToolCall(
   result: { output: unknown; is_error?: boolean } | undefined,
   running: boolean,
 ): ToolCallType {
-  const kind = toolKindFromName(c.name)
+  const kind = toolKindFromName(c.name, c.input)
   const status: ToolCallStatus = running ? "in_progress" : result?.is_error ? "failed" : "completed"
   const display = c.mcp_server ? `${c.mcp_server}:${c.name}` : c.name
   const title = toolTitle(c.name, c.input)
@@ -232,7 +332,7 @@ function adaptToolCall(
   // the result text (if a result has arrived) or the raw input as JSON.
   let content: ToolCallContent[] | undefined
   if (!running) {
-    if (c.name === "Edit" || c.name === "MultiEdit") {
+    if (c.name === "Edit" || c.name === "MultiEdit" || c.name === "apply_patch") {
       const diffContent = editToolContent(c.input)
       if (diffContent) {
         content = diffContent

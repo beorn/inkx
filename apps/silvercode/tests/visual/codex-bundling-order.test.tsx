@@ -105,6 +105,28 @@ describe("SessionUpdateList — codex tool-call interleaving (km-silvercode.code
             input: { todos: [{ content: "Review auth refactor PR", status: "pending" }] },
           },
         },
+        {
+          kind: "tool",
+          toolCall: { id: "tu_exec" as ToolUseId, name: "exec_command", input: { cmd: "ls src" } },
+        },
+        {
+          kind: "tool",
+          toolCall: {
+            id: "tu_patch" as ToolUseId,
+            name: "apply_patch",
+            input:
+              "*** Begin Patch\n" +
+              "*** Update File: apps/silvercode/src/foo.ts\n" +
+              "@@\n" +
+              "-old\n" +
+              "+new\n" +
+              "*** End Patch\n",
+          },
+          result: {
+            id: "tu_patch" as ToolUseId,
+            output: "Success. Updated the following files:\nM apps/silvercode/src/foo.ts\n",
+          },
+        },
       ],
     })
 
@@ -130,6 +152,8 @@ describe("SessionUpdateList — codex tool-call interleaving (km-silvercode.code
     expect(app.text).toContain("Deleted old.ts")
     expect(app.text).toContain("Fetched https://example.com")
     expect(app.text).toContain("Todo added Review auth refactor PR")
+    expect(app.text).toMatch(/\$.*ls src/)
+    expect(app.text).toContain("Edited apps/silvercode/src/foo.ts (+1 -1)")
   })
 
   test("renders text and tool cards in arrival order (text → tool → text → tool)", () => {

@@ -1,207 +1,147 @@
 ---
-description: "META-PROTOCOL for reframing the problem (10-20 hypotheses, 2 rounds, find the design where the bug can't happen). Calls /pro or /deep internally — not itself an LLM tool. Use when the fix feels like a patch or the same area keeps breaking. Subsumes /fresh."
-argument-hint: [problem or area]
-benefits-from: [recall, pm, gbrain]
-escalate-to: {arch: "reframing reveals missing abstraction or layer", render: "root cause is in silvery pipeline design"}
+name: big
+description: "META-PROTOCOL for reframing the problem: generate 10-20 hypotheses, run at least two rounds, and find the design where the bug cannot happen. Use when a fix feels like a patch, the same area keeps breaking, or the user asks to think bigger. Subsumes /fresh."
+argument-hint: "[problem or area]"
+benefits-from: [recall, beads, ask, pro, deep, csw]
 ---
 
-# Think Big — What If This Problem Didn't Need to Exist?
+# /big - Think Big
 
-**This is a meta-protocol, not an LLM tool.** It calls `/pro` or `/deep` internally during Phase 3 — its value is the structured 10-20-hypothesis reframing workflow, not the model call.
+This is a Codex skill, not a standalone LLM tool. Its job is to stop a patch spiral and find the design where the current problem becomes impossible or much harder to create.
 
-**STOP fixing. START reframing.**
+Use this when:
+- The same class of bug has appeared repeatedly.
+- The next fix would add another special case.
+- The user says "think bigger", "why does this keep breaking", or similar.
+- You have been debugging for long enough that the root cause keeps shifting.
 
-You're here because either: (a) the user asked you to think bigger, (b) you're about to write a patch that feels wrong, or (c) the same class of bug keeps appearing. The goal is not to solve the problem in front of you — it's to find the design where this problem **can't happen**.
+If the user names a problem, use that. If not, infer it from the recent conversation and current worktree; do not ask just to restate the obvious.
 
-## The Problem
+## Phase 1: Frame the Problem Five Ways
 
-$ARGUMENTS
+Write 1-2 sentences for each:
 
-**If no arguments**: Infer from recent conversation — what bugs keep appearing? What area feels fragile? What did the user just report? Don't ask "what should I think about?"
+1. User words: what they literally saw or asked for.
+2. System state: what transition, invariant, or lifecycle failed.
+3. Architecture: which ownership boundary, layer, or abstraction is missing or leaking.
+4. History: run `bun recall "<keywords>"` when useful and summarize prior attempts.
+5. Counterfactual: in a better design, why could this problem not happen?
 
-## Phase 1: See the Problem Five Ways
+The counterfactual matters most; it points at the real fix.
 
-Before generating solutions, understand the problem from 5 different angles. Write 1-2 sentences for each:
+## Phase 2: Generate Hypotheses
 
-1. **The user's words** — What did they literally say/see? (not your interpretation)
-2. **The system's perspective** — What state transition or invariant was violated?
-3. **The architectural view** — Which layer boundary was crossed, leaked, or missing?
-4. **The historical view** — `bun recall "keywords"` — has this class of problem appeared before? How many times? What was tried?
-5. **The counterfactual** — In a perfectly designed system, why would this problem be impossible?
+Before exploring, list 10-20 framings. These are not solutions yet; each should name a different possible root cause or a way to eliminate the class of problem.
 
-The counterfactual (#5) is the most important. It points toward the real fix.
+Force breadth:
+- Missing abstraction: what concept should exist?
+- Wrong ownership: who should own this state instead?
+- Missing invariant: what rule is enforced by convention but should be enforced by code?
+- Unnecessary complexity: what subsystem could disappear?
+- Wrong layer: where should this logic really live?
+- Prior art: how do comparable tools avoid this problem?
+- Inverse: what if the opposite default were true?
+- Composition: can two simpler mechanisms replace one complex one?
+- Deletion: what code path exists only to compensate for a bad design?
+- Unification: are there multiple mechanisms that should be one?
 
-## Phase 2: Generate Hypotheses (Round 1)
+Write the full list before exploring. Breadth first, depth second.
 
-Generate **10-20 hypotheses** — not solutions, but *framings*. Each hypothesis proposes a different root cause or a different way to eliminate the problem entirely.
+## Phase 3: Explore Round 1
 
-Categories to force breadth:
+For each hypothesis:
 
-| Category | Question | Example hypothesis |
-|---|---|---|
-| **Missing abstraction** | What concept should exist but doesn't? | "There should be a CursorScope that guarantees valid cursor at all times" |
-| **Wrong ownership** | Who owns this state? Should someone else? | "The view owns cursor state but the model should — then undo gets it free" |
-| **Missing invariant** | What rule is enforced by convention but should be enforced by code? | "Node parent_id validity is checked at render time but should be checked at mutation time" |
-| **Unnecessary complexity** | What if this entire subsystem didn't exist? | "If cards auto-expanded during edit, the expand-on-edit bug can't exist" |
-| **Wrong layer** | Is this logic in the right place? | "This is a view concern solved in the model — move it to the view" |
-| **Prior art** | How do VS Code / Obsidian / Notion / Asana handle this? | "Notion doesn't have this problem because editing is always inline, never modal" |
-| **Inverse** | What if we did the opposite of what we're doing? | "Instead of detecting edit mode and special-casing, make edit mode the default" |
-| **Composition** | Can two simpler things replace one complex thing? | "Split the monolithic action handler into keyboard-layer + mutation-layer" |
-| **Deletion** | What if we deleted this code entirely? | "The [error] fallback exists because we handle missing nodes — what if we didn't allow missing nodes?" |
-| **Unification** | Are there 2-3 similar mechanisms that should be one? | "Card edit, sub-item edit, and title edit are 3 code paths — should be 1" |
+1. Grep/read relevant code. Use `rg` first.
+2. Estimate blast radius: files, packages, user-visible behavior, test scope.
+3. Score it:
+   - `NARROW`: fixes only the reported bug.
+   - `BROAD`: fixes a class of related bugs.
+   - `REFRAME`: makes the problem impossible by construction.
 
-**Write all hypotheses as a numbered list before exploring any of them.** Breadth first, depth second.
+Do not spend forever on each hypothesis; 2-5 minutes is enough unless one clearly unlocks the design.
 
-## Phase 3: Explore (Round 1)
+## External Perspective
 
-For each hypothesis, spend 2-5 minutes:
-1. **Grep/read** the relevant code to check feasibility
-2. **Estimate blast radius** — how many files change? Is it additive or rewrite?
-3. **Score**: Does this solve just the immediate problem, or a whole class of problems?
+Use at least one external perspective unless the user has explicitly forbidden model/API spend. Pick the cheapest tool that fits:
 
-Mark each: `NARROW` (fixes this bug only), `BROAD` (fixes a class), `REFRAME` (makes the problem impossible).
+- Quick prior art or a second opinion: use the `ask` skill and run `bun llm ...`.
+- Hard architecture or code review: use the `pro` skill and run `bun llm pro -y --no-recover --context-file <ctx> "..."`.
+- Web research with citations: use the `deep` skill and run `bun llm --deep -y --no-recover --context-file <ctx> "..."`.
+- Four-plus internal options with a decision matrix: use the `csw` skill.
 
-### Ask an External LLM (REQUIRED)
+Build a context file when code matters. Include full files, relevant tests, exact errors, and failed approaches last so the outside model is not anchored.
 
-Your own hypotheses have blind spots. **Always consult at least one external perspective** during exploration. Pick the right tool:
+For silvery-related questions, include `docs/silvery-positioning-brief.md` in the context as required by the `ask`/`pro`/`deep` skills.
 
-| Tool | Best for | Cost |
-|---|---|---|
-| **`/pro "question"`** | "Is this design sound? What am I missing?" — 3-leg + judge with code context | ~$0.20 |
-| **`/ask "question"`** | Quick prior art — "how does VS Code handle X?" — single model | ~$0.02 |
-| **`/llm --deep`** | Research with web search + citations | ~$2-5 |
-| **`/csw`** | Compare 4+ approaches with decision matrix | Free (internal) |
-| **`bun recall "keywords"`** | Check if prior sessions already explored this | Free |
+## Phase 4: Synthesize Round 1
 
-**How to ask well** (from `/fresh`):
-- Lead with **symptoms**, not diagnosis — let the LLM form its own model
-- Include **full source files**, not snippets — the LLM needs to see how functions interact
-- Ask **open discovery questions** ("What mechanism could cause X?"), not confirmation questions ("Is my fix correct?")
-- State **failed approaches last** — constrain the solution space without anchoring
+Write 3-5 sentences:
 
-Build a context file with the relevant code, then:
-```bash
-bun llm --deep -y --no-recover --context-file /tmp/big-context.md "What design would make [problem] impossible?"
-```
+- Which hypotheses were `BROAD` or `REFRAME`?
+- What pattern do they share?
+- What did code inspection rule out?
+- What new question should Round 2 answer?
 
-## Phase 4: Synthesize (Round 1)
+## Phase 5: Iterate
 
-Write a 3-5 sentence synthesis:
-- Which hypotheses were `REFRAME` or `BROAD`?
-- What patterns do they share?
-- What new questions emerged?
-- What didn't you consider in Phase 2 that's now obvious?
+Run at least one second round. Generate 5-20 new hypotheses based on Round 1, then explore and synthesize again.
 
-## Phases 5-6: Iterate (Rounds 2-5)
+Stop after Round 2 only if the recommendation is clear. Continue when the synthesis is still producing new facts or multiple reframes are plausible.
 
-**Repeat the generate→explore→synthesize cycle.** Each round builds on the previous:
+## Phase 6: Quality Level
 
-- **Round 2**: Combinations of Round 1 ideas + deeper exploration of REFRAME scores
-- **Round 3+**: Only if the synthesis raises new questions or the REFRAME ideas aren't converging yet
+Use this rubric instead of percentages:
 
-**Stop iterating when**: the synthesis stops producing new insights, or you have a clear REFRAME with high confidence. Most problems need 2-3 rounds. Complex architectural questions may need 4-5.
+- `L0`: workaround, threshold, config tweak.
+- `L1`: runtime guard catches it.
+- `L2`: invariant asserted plus useful diagnostics.
+- `L3`: API or lifecycle structure makes invalid state hard.
+- `L4`: architecture makes invalid state impossible by construction.
+- `L5`: old workaround deleted plus property/fuzz/regression tests cover it.
 
-**Each round**: Generate **5-20 hypotheses** (scale with problem complexity — a simple guard bug needs 5, an architectural reframe needs 15-20). Explore each. Synthesize.
+If needed, read `hub/quality-rubric.md` from the repo root for the full rubric. State current level and target level, for example `L1 -> L4`.
 
-## Phase 7: Final Synthesis
+## Phase 7: Recommendation
 
-### Quality levels (preferred over "plateau distance %")
-
-When framing how far the current state is from a real fix, **use the L0-L5 rubric, not percentages**. Percentages drift to vibe ("this is 65% to plateau"); the rubric is verifiable per-bead.
-
-- **L0** — workaround / threshold / env tweak
-- **L1** — runtime guard catches it
-- **L2** — invariant asserted + debug diagnostics
-- **L3** — API/lifecycle structure makes invalid state hard
-- **L4** — architecture makes invalid state impossible by construction
-- **L5** — old workaround code deleted + property/fuzz tests cover regression
-
-Full definitions, examples, and anti-patterns: [hub/quality-rubric.md](../../../hub/quality-rubric.md).
-
-State both the **current level** and the **target level** in the recommendation. "Current L1 → target L4" frames the work honestly; "65% → 90%" doesn't.
-
-Write the recommendation:
+Use this shape:
 
 ```markdown
 ### Reframing: [problem]
 
-**The real problem is**: [1 sentence — what's actually wrong at the design level]
-
-**Current level → target level**: Lx → Ly (see [hub/quality-rubric.md](../../../hub/quality-rubric.md))
-
-**The solution that makes it unnecessary**: [1-3 sentences — the design change that moves the bead from Lx to Ly]
-
-**What it solves beyond the immediate bug**: [list of related problems this also fixes]
-
-**Effort**: [rough scope — files, risk, phases]
-
-**First step**: [the smallest move toward this design]
+**The real problem is**: [one sentence]
+**Current level -> target level**: Lx -> Ly
+**The design that makes it unnecessary**: [1-3 sentences]
+**What it solves beyond this bug**: [related failures]
+**Effort**: [files/packages/risk/phases]
+**First step**: [smallest move toward the design]
 ```
 
-## Phase 8: Action Plan
+## Phase 8: Actions
 
-Convert findings into concrete actions. Classify each by confidence:
+Split follow-up into `DO` and `ASK`.
 
-### DO (obvious, low-risk — execute immediately)
-- Ship the narrow fix for the immediate bug
-- Create beads for reframes with `--design` capturing the analysis
-- Delete dead code identified during exploration
-- Add missing invariants that are clearly correct
+`DO` items are obvious and low-risk:
+- Ship a narrow fix needed to unblock the user.
+- Add missing tests or invariants.
+- Delete clearly dead compensating code.
+- Create beads for larger reframes.
 
-### ASK (significant, needs user approval — present and wait)
-- Architectural changes touching 3+ packages
-- Reframes that change public API or user-visible behavior
-- Changes that conflict with existing beads or in-progress work
-- Anything where the "right" answer depends on product direction
+`ASK` items need user approval:
+- Public API changes.
+- Multi-package architecture changes.
+- Product behavior changes.
+- Work that conflicts with active beads or visible WIP.
 
-Present each ASK item with: what, why, effort, and what you'd recommend.
+For bead creation, use the `beads` skill and the current Codex bead command style, for example:
 
-### Format
-
-```markdown
-## Actions
-
-### Doing now:
-1. Fix [immediate bug] — [1 sentence]
-2. Create bead km-<scope>.<reframe> — [title] (P3, design captured)
-3. [any other obvious actions]
-
-### Need your call:
-1. **[Change X]** — [why it's better]. Effort: [scope]. Recommend: [yes/no/defer].
-2. **[Change Y]** — [why]. Effort: [scope]. Recommend: [yes/no/defer].
+```bash
+bd create --id km-<scope>.<slug> --title "<title>" --priority P3 --description "<design summary>"
 ```
 
-**Execute the DO items. Ask about the ASK items. Don't stall on asking — ship what's obvious.**
+Do not use legacy Claude command forms such as `--parent km-silvery --id better-scroll-defaults`; prefer a full bead id like `km-silvery.better-scroll-defaults`.
 
-## /big vs /fresh
+## Output Discipline
 
-Both involve stepping back from implementation. The difference:
+Lead with findings and the recommended direction. Keep the full hypothesis list visible enough that the user can audit the reasoning, but do not bury the action plan under transcript-like detail.
 
-| | `/big` | `/fresh` |
-|---|---|---|
-| **Trigger** | Proactive — before coding, when the fix feels wrong | Reactive — after 20+ min stuck, going in circles |
-| **Core activity** | Generate 10-20 hypotheses, 2 rounds, score NARROW/BROAD/REFRAME | Gather context (full files), structure question, ask external LLM |
-| **External LLM** | Required (Phase 3) | Required (Phase 4) |
-| **Output** | Action plan with DO/ASK items | LLM response + concrete plan |
-| **Best at** | Finding the design where the problem can't happen | Getting unstuck on a specific implementation problem |
-
-**Use `/big` when the problem is the design. Use `/fresh` when the problem is you're stuck.** `/big` subsumes `/fresh` — if you're running `/big`, you don't also need `/fresh`.
-
-## When to Use This
-
-- The fix you're about to write feels like duct tape
-- The same area has had 3+ bugs in the last month
-- You're adding a special case to handle an edge case of a special case
-- The user says "this keeps happening" or "why does this keep breaking"
-- You've been debugging for 20+ minutes and the root cause keeps shifting
-
-## Anti-Patterns
-
-| Don't | Why |
-|---|---|
-| Jump to the first good hypothesis | You'll miss the reframe — explore all 10-20 |
-| Only generate "fix" hypotheses | Include deletion, inversion, and unification |
-| Skip the synthesis between rounds | Round 2 hypotheses should build on Round 1 learnings |
-| Propose a massive rewrite without a narrow fix | Ship the narrow fix, bead the reframe |
-| Think big without checking code | Hypotheses must be grounded — grep and read |
-| Stop at Round 1 | The best ideas come from Round 2, after you've learned what doesn't work |
+When implementation is clearly part of the request, execute the `DO` items after the analysis. Ask only for the `ASK` items.

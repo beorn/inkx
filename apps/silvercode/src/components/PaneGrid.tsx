@@ -61,7 +61,7 @@ import {
 } from "../pane-layout.ts"
 import { PaneHeader } from "./PaneHeader.tsx"
 import { SessionCard } from "./SessionCard.tsx"
-import { MeasuredBanner } from "./Welcome.tsx"
+import { StaticTextBanner } from "./Welcome.tsx"
 
 /** Mirrors `AGENT_LABELS` in `Welcome.tsx` — kept local to PaneGrid so the
  *  pre-spawn banner (rendered before any SessionHandle exists) can pick the
@@ -443,21 +443,17 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
   void dragVersion
 
   // Empty-sessions placeholder. The initial spawn is fire-and-forget; until
-  // the first SessionHandle lands the layout tree has no leaves. Render the
-  // SILVER CODE banner from frame 0 so the user sees the brand mark + agent
-  // label immediately — visually identical to what the Welcome card paints
-  // once the SessionHandle materializes (a few hundred ms later for the
-  // legacy claude path, longer for ACP backends). The previous placeholder
-  // (`◈ Spawning session…`) flashed for 200-2000ms before being replaced
-  // by Welcome's banner, which read as a stale-skeleton bug rather than
-  // intentional chrome.
+  // the first SessionHandle lands the layout tree has no leaves. Use the
+  // static text banner here, matching SessionCard's loading/resume Welcome:
+  // Kitty bitmap placements emitted during this transient frame can remain
+  // visible or jump when the transcript appears and the user scrolls.
   //
   // Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn.
   if (sessions.length === 0) {
     const agentLabel = agent ? AGENT_LABELS_FOR_PRESPAWN[agent] : undefined
     return (
       <Box flexDirection="column" flexGrow={1} alignItems="center" justifyContent="center" gap={1}>
-        <MeasuredBanner agentLabel={agentLabel} />
+        <StaticTextBanner agentLabel={agentLabel} />
         {composerSlot ? (
           <Box flexDirection="column" flexShrink={0} width={80} maxWidth={80} minWidth={0}>
             {composerSlot}

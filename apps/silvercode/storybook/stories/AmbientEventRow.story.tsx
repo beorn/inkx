@@ -16,14 +16,14 @@
  */
 
 import React from "react"
-import { Box, Prose, Screen, Text } from "silvery"
+import { Box, Screen } from "silvery"
 import {
   AmbientEventRow,
   AmbientNotificationStack,
   type AmbientStreamEntry,
 } from "../../src/components/AmbientEventRow.tsx"
-import { LinkifiedText } from "../../src/components/LinkifiedText.tsx"
-import { MarkdownView } from "../../src/components/MarkdownView.tsx"
+import { SessionUpdateList } from "../../src/components/SessionUpdateList.tsx"
+import { MULTI_TURN } from "../support/sample-messages.ts"
 import type { Story } from "../types.ts"
 
 const NOW = 1_700_000_000_000
@@ -119,40 +119,6 @@ export const ambientEventRowAllSources: Story = {
 }
 
 /**
- * Minimal user / assistant rows — local stand-ins so the sequence story
- * doesn't depend on the full SessionUpdateList machinery (turn ids,
- * scrollback policy, status sentinel). The visual treatment matches
- * SessionUpdateList's UserRow / AssistantRow closely enough to read as
- * a real exchange. The point of this story is to verify ambient rows
- * render correctly between turns at their actual timestamps.
- */
-function StoryUserRow({ text }: { text: string }): React.ReactElement {
-  return (
-    <Box flexDirection="row" gap={1} backgroundColor="$bg-surface-subtle" paddingY={0}>
-      <Text bold color="$accent">
-        {">"}
-      </Text>
-      <Prose flexGrow={1}>
-        <LinkifiedText text={text} role="user" />
-      </Prose>
-    </Box>
-  )
-}
-
-function StoryAssistantRow({ text }: { text: string }): React.ReactElement {
-  return (
-    <Box flexDirection="row" gap={1}>
-      <Text bold color="$primary">
-        ●
-      </Text>
-      <Prose flexGrow={1}>
-        <MarkdownView source={text} />
-      </Prose>
-    </Box>
-  )
-}
-
-/**
  * The full inline sequence: user prompt, assistant response, two ambient
  * observations arriving while the next turn is composed, then a follow-up
  * user prompt and assistant response. The ambient rows sit BETWEEN the
@@ -188,14 +154,21 @@ function InlineSequenceStory(): React.ReactElement {
 
   return (
     <Screen flexDirection="column">
-      <Box flexDirection="column" gap={1}>
-        <StoryUserRow text="what's on the team's plate today?" />
-        <StoryAssistantRow text="Here's what I can see so far. Let me check the channel feed." />
-
-        <AmbientNotificationStack entries={[ambient1, ambient2]} />
-
-        <StoryUserRow text="anything else come in while you were thinking?" />
-        <StoryAssistantRow text="Two ambient observations landed: a peer PR (alice/#42) and a green CI run on main. Want me to summarise the PR diff?" />
+      <Box flexDirection="column" flexGrow={1} minHeight={0}>
+        <SessionUpdateList
+          messages={MULTI_TURN}
+          ambientEntries={[ambient1, ambient2]}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          sessionId="ambient-inline-sequence"
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={1532}
+          outputTokens={412}
+          pendingPermissions={0}
+          inFlightTool={null}
+          follow={false}
+        />
       </Box>
     </Screen>
   )

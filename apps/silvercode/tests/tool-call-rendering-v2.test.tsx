@@ -228,6 +228,47 @@ describe("ToolCall v2 — body preview and toggle", () => {
       handle.unmount()
     }
   })
+
+  test("clicking content equal to the visible title does not disclose a duplicate body", async () => {
+    using term = createTermless({ cols: 100, rows: 20 })
+    const handle = await run(
+      <Box flexDirection="column">
+        <ToolCall
+          toolCall={tc({
+            kind: "other",
+            status: "completed",
+            title: "Recall feedback-quiet-tribe-ack",
+            content: [
+              {
+                type: "content",
+                content: { type: "text", text: "Recall feedback-quiet-tribe-ack" },
+              },
+            ],
+          })}
+        />
+        <Text>NEXT-ROW</Text>
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle(80)
+      const before = term.screen.getLines()
+      const titleRow = before.findIndex((l) => l.includes("Recall feedback-quiet-tribe-ack"))
+      expect(titleRow).toBeGreaterThanOrEqual(0)
+      expect(before.findIndex((l) => l.includes("NEXT-ROW"))).toBe(titleRow + 1)
+
+      const col = before[titleRow]!.indexOf("Recall")
+      await term.mouse.click(col + 1, titleRow)
+      await settle(80)
+
+      const after = term.screen.getLines()
+      expect(after.findIndex((l) => l.includes("NEXT-ROW"))).toBe(titleRow + 1)
+      expect(after.filter((l) => l.includes("Recall feedback-quiet-tribe-ack")).length).toBe(1)
+    } finally {
+      handle.unmount()
+    }
+  })
 })
 
 // =============================================================================

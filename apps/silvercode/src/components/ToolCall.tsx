@@ -40,12 +40,7 @@ import {
   useHover,
   usePopoverHandlers,
 } from "silvery"
-import type {
-  ToolCall as ToolCallType,
-  ToolCallContent,
-  ToolCallLocation,
-  ContentBlock,
-} from "@km/agent-harness"
+import type { ToolCall as ToolCallType, ToolCallContent, ToolCallLocation, ContentBlock } from "@km/agent-harness"
 import { ToolCallStatusTitle } from "./ToolCallStatusTitle.tsx"
 import { BoundedScroll } from "./BoundedScroll.tsx"
 import { formatPathForDisplay } from "../utils/format-path.ts"
@@ -264,6 +259,33 @@ function hasVisibleContent(content: ToolCallContent): boolean {
   return content.terminalId.trim().length > 0
 }
 
+function normalizeDisclosureText(text: string): string {
+  return text.replace(/\s+/g, " ").trim()
+}
+
+function contentDisclosureText(content: ToolCallContent): string {
+  if (content.type === "content") {
+    const block = content.content
+    if (block.type === "text") return block.text
+    if (block.type === "image") return `[image: ${block.mimeType}]`
+    if (block.type === "audio") return `[audio: ${block.mimeType}]`
+    if (block.type === "resource_link") return `[resource: ${block.name} ${block.uri}]`
+    if ("text" in block.resource) return block.resource.text
+    return block.resource.uri
+  }
+  if (content.type === "diff") return `${content.path}\n${content.oldText ?? ""}\n${content.newText}`
+  return content.terminalId
+}
+
+function hasAdditionalContent(title: string, content: ToolCallContent[]): boolean {
+  const titleText = normalizeDisclosureText(title)
+  return content.some((c) => {
+    if (!hasVisibleContent(c)) return false
+    const bodyText = normalizeDisclosureText(contentDisclosureText(c))
+    return bodyText.length > 0 && bodyText !== titleText
+  })
+}
+
 function ToolCallContentBody({
   content,
   bounded = false,
@@ -351,7 +373,7 @@ export function ToolCall({ toolCall, errorMessage, onRetry, defaultExpanded }: T
   const status = toolCall.status ?? "pending"
   const kind = toolCall.kind ?? "other"
   const content = toolCall.content ?? []
-  const hasContent = content.some(hasVisibleContent)
+  const hasContent = hasAdditionalContent(toolCall.title, content)
   const shell = kind === "execute"
 
   // Hover arms the row and, for real content, shows a popover preview.
@@ -377,52 +399,60 @@ export function ToolCall({ toolCall, errorMessage, onRetry, defaultExpanded }: T
     if (hasContent) popover.onMouseLeave(e)
   }
   const onToggle = hasContent ? () => setExpanded((v) => !v) : undefined
+  const armedBg = hasContent && isHovered ? "$bg-surface-hover" : undefined
 
   return (
-    <Box flexDirection="column">
-      {/* Always-visible row — single line, no border, no per-tool color.
-          Non-shell calls use one neutral bullet; shell calls use `$`. */}
-      <Box
-        flexDirection="row"
-        gap={1}
-        backgroundColor={isHovered ? "$bg-surface-hover" : undefined}
-        onMouseEnter={onEnter}
-        onMouseLeave={onLeave}
-        onClick={onToggle}
-      >
-        <Text color={shell ? "$fg" : "$muted"}>{shell ? "$" : "•"}</Text>
-        {status === "in_progress" ? (
-          // Spinner is paired with the title for in-progress signal — small,
-          // unobtrusive, and matches opencode's mid-task signal.
-          <Spinner type="dots" />
+    <Box
+      flexDirection="row"
+      gap={1}
+      width="100%"
+      backgroundColor={armedBg}
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
+      onClick={onToggle}
+    >
+      <Box flexShrink={0}>
+        <Text color="$muted">{shell ? "$" : "•"}</Text>
+      </Box>
+
+      <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0}>
+        {/* Always-visible row — single line, no border, no per-tool color.
+            The marker is a section marker; title and expanded output share
+            this content column's left edge. */}
+        <Box flexDirection="row" gap={1} width="100%">
+          {status === "in_progress" ? (
+            // Spinner is paired with the title for in-progress signal — small,
+            // unobtrusive, and matches opencode's mid-task signal.
+            <Spinner type="dots" />
+          ) : null}
+          <ToolCallStatusTitle status={status} kind={kind} title={shortenTitlePath(toolCall.title)} shell={shell} />
+          {renderLocations(toolCall.locations)}
+          <Box flexGrow={1} />
+          {status === "failed" && onRetry ? (
+            <Box onClick={onRetry}>
+              <Muted>↻ retry</Muted>
+            </Box>
+          ) : null}
+        </Box>
+
+        {/* Body reveals only when clicked (or initially via defaultExpanded).
+            It is aligned with the command/title, not with the marker. */}
+        {expanded && hasContent ? (
+          <Box flexDirection="column">
+            <ToolCallContentBody content={content} />
+          </Box>
         ) : null}
-        <ToolCallStatusTitle status={status} kind={kind} title={shortenTitlePath(toolCall.title)} shell={shell} />
-        {renderLocations(toolCall.locations)}
-        <Box flexGrow={1} />
-        {status === "failed" && onRetry ? (
-          <Box onClick={onRetry}>
-            <Muted>↻ retry</Muted>
+        {/* Failed calls inline the error message immediately under the row.
+            No border, no bg, and no red tool color; shell failures read as
+            command + inline stderr. */}
+        {status === "failed" ? (
+          <Box flexDirection="column">
+            <Text color="$muted" wrap="wrap">
+              {errorMessage ?? "Tool call failed"}
+            </Text>
           </Box>
         ) : null}
       </Box>
-      {/* Body reveals only when clicked (or initially via defaultExpanded). Indent 2 cols, dim
-          fg, no border, no bg. Tight density — opencode emits tool output as
-          plain text in the chat scrollback. */}
-      {expanded && hasContent ? (
-        <Box flexDirection="column">
-          <ToolCallContentBody content={content} />
-        </Box>
-      ) : null}
-      {/* Failed calls inline the error message immediately under the row.
-          No border, no bg, and no red tool color; shell failures read as
-          command + inline stderr. */}
-      {status === "failed" ? (
-        <Box flexDirection="column">
-          <Text color="$muted" wrap="wrap">
-            {errorMessage ?? "Tool call failed"}
-          </Text>
-        </Box>
-      ) : null}
     </Box>
   )
 }

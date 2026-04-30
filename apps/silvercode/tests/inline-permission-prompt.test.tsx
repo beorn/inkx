@@ -200,6 +200,10 @@ describe("InlinePermissionPrompt — ACP multi-option flow", () => {
     expect(headerRow).toBeGreaterThanOrEqual(0)
     expect(app.lines[headerRow]!.indexOf("Allow Run bash?")).toBe(3)
     expect(app.cell(79, headerRow).bg).not.toBeNull()
+    const allowCol = app.lines[headerRow]!.indexOf("Allow")
+    const runCol = app.lines[headerRow]!.indexOf("Run bash")
+    expect(app.cell(allowCol, headerRow).fg).not.toBeNull()
+    expect(app.cell(runCol, headerRow).fg).toEqual(app.cell(allowCol, headerRow).fg)
 
     // Move the SelectList focus down then Enter to select the second option.
     // createRenderer's `app.press` accepts string key names.
