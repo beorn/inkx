@@ -3,9 +3,169 @@ topic: "path-vs-ulid-as-sqlite-pkey"
 date: 2026-04-30
 session: km-bjorns-2026-04-30-arch-skill-shipped
 arch_agent_report: "Hybrid — promote data.id to top-level column with UNIQUE partial index; do not make pkey polymorphic"
-verdict: "ADOPTED"
-related_topics: ["storage", "identity"]
+verdict: "FINAL — nodes.id stays ULID (stable). nodes.name is the path segment. Path = walk parent_id chain, collect names, join with `/`. Path is materialized in markdown frontmatter `id:` for user-friendliness; the DB never stores a duplicate of it."
+related_topics: ["storage", "identity", "renames", "name-as-segment"]
 ---
+
+## CORRECTED FINAL VERDICT (set by user, 2026-04-30 ~09:18)
+
+**Two distinct things held in two distinct places, no duplication anywhere.**
+
+```
+nodes.id       = ULID      ← stable, opaque, pkey, never changes
+nodes.name     = "foo"     ← path SEGMENT (single slug, not full path)
+nodes.parent_id = <ULID>   ← reference to parent's stable ULID
+
+Full path "@km/beads/foo" = walk(parent_id from this node up to root),
+                            collect each node's `name`, reverse, join with "/".
+
+Markdown materializes the path for user-friendliness:
+  frontmatter id: "@km/beads/foo"   ← derived from parent walk + name; not a stored duplicate
+```
+
+**User's argument, verbatim** (the correction):
+
+> no
+> node.id is the ULID
+> node.name is a path segment which if you follow to the root gives you the path
+
+And, two messages earlier:
+
+> the primary key in sqlite is always nodes.id - but we materialized it as a path in md because it's more userfriendly and md is all about user-friendliness
+
+**Translation**: the path is the *materialization* of identity in markdown. The DB doesn't store the materialized form. The DB stores the *ingredients* — `parent_id` chain plus per-node `name` segments — from which the materialization is computed on demand.
+
+## What this dissolves
+
+- **(B), (C)** — store `data.id` (or promote to a column). Both store a duplicate of the materialized path in the DB. Stale on rename. Rejected.
+- **(β) — pkey IS the path** — the path lives in `nodes.id` directly. Renames cascade through DB references. Rejected: cleaner to keep pkey opaque/stable and let `name` carry the per-segment identity.
+- **(D) — unify all node IDs to path-form** — same problem as (β), wider blast radius. Rejected.
+
+## What this commits to
+
+- **`nodes.id` stays a ULID.** Pkey shape is uniform across all node types. Memory mode keeps `path:line` form for ephemeral nodes; disk mode keeps ULID. No per-type pkey-shape branching.
+- **`nodes.name` (already a column, already indexed via `idx_nodes_name` at `schema.ts:219`) carries the per-parent identity slug.** For beads, `name` is the slug portion of the path-form (e.g. `name = "foo"` for `@km/beads/foo`). For files, `name` is the filename without `.md`. For sections, `name` is the heading slug.
+- **Path is computed, not stored.** Resolution `bd show @km/beads/foo` does: split path → walk root by `(parent_id, name)` chain → land on the ULID → fetch row.
+- **The full-path materialization in markdown frontmatter (`id: "@km/beads/foo"`) is for human readers and round-trip fidelity.** The DB does not need the materialized form to function — it can recompute it for the renderer/serializer.
+- **Cross-references inside the DB use ULIDs** (per "in the DB we can store references as ulids of course"). `parent_id`, `host_id`, deps `target` — all ULIDs. Stable across rename.
+- **Renames are local.** Renaming `@km/beads/foo` → `@km/beads/bar` is `UPDATE nodes SET name = 'bar' WHERE id = <ulid>`. Children's `parent_id` stays valid (still points at the same ULID). Links/deps `host_id`/`target` stay valid. **No DB-level cascade.**
+- **Wikilink/mention updates are content-level, not DB-level.** When `@km/beads/foo` is renamed to `@km/beads/bar`, every markdown file that contains `[[@km/beads/foo]]` needs the text rewritten to `[[@km/beads/bar]]`. That's the cross-cutting "batch/background update system" the user asked for — applies to *every* km rename use case, not just bead pkey renames.
+- **`(parent_id, name)` should be unique among siblings** for nodes whose name carries identity — same parent shouldn't have two children both named `foo` if they're path-resolvable. Add `UNIQUE (parent_id, name)` partial index for the relevant types (beads, files, named sections).
+
+## Migration delta from current state
+
+Current state (per `packages/km-beads/src/migrate.ts` and `short-ids.ts`):
+- `nodes.id` = ULID ✓ (already correct)
+- `nodes.name` = slug ✓ (already correct — for `@km/beads/foo`, name = "foo")
+- `parent_id` = parent's ULID ✓ (already correct)
+- `data.id` = full path-form ← **redundant**; remove from new writes
+- `data.aliases` = legacy bd-form ids ← keep for backward compat; resolver tries this fallback
+- `resolveShortId` does 3 json_extract scans ← **replace with parent-walk recursive CTE**
+
+Migration is mostly **subtractive at the DB level** + **additive at the resolver level**:
+- Add: `UNIQUE (parent_id, name) WHERE type IN (...)` partial index for path-resolvable types.
+- Add: recursive-CTE resolver for path-form input (`@km/beads/foo` → walk `(parent_id, name)` chain from root).
+- Subtract: `data.id` write path in mutations. Existing rows' `data.id` becomes a fossil; resolver no longer reads it.
+- Keep: `data.aliases` resolver fallback.
+- Keep: ULID generation for new bead nodes.
+
+## Why this is right
+
+1. **No duplicated state.** The path's value is `(parent_walk + name)`. Storing it elsewhere creates a sync invariant. Computing it eliminates the invariant.
+2. **Stable references.** Every `parent_id`, `host_id`, deps `target` points at a ULID. Renames don't cascade through the DB. The DB only knows about stable ids.
+3. **The user-friendly form lives in the user-friendly place.** Markdown gets the path. SQLite gets ULIDs. Each layer holds the form natural to its consumer.
+4. **`idx_nodes_name` was already pointing the way.** The schema (`schema.ts:219`) already indexes `name`. The namespaces close-reason ("name = short_id = identity under the new model") is the design hypothesis that aligns. The /arch agent surfaced this as the "out-of-bundle" alternative; turns out that alternative IS the answer.
+5. **Cross-cutting rename machinery is needed anyway.** Wikilinks, mentions, and inline references in markdown content all need batch update on rename. Building that engine once serves every rename use case.
+
+## Beads filed (2026-04-30 09:23)
+
+Sequenced by dependency:
+
+1. `@km/storage/parent-name-unique` (P1) — UNIQUE (parent_id, name) partial index for path-resolvable types. Schema migration. SCHEMA_VERSION → 8.
+2. `@km/beads/resolver-path-via-name-walk` (P1) — `resolveShortId` rewrite using parent-walk. Depends on (1).
+3. `@km/beads/directory-nesting-bd-create` (P1) — agenda item #4: `bd create @km/beads/foo` infers parent + mints fresh ULID. Path-positional CLI is canonical km usage. `--id` and `--parent` flags KEPT for bd compat per user ("we should allow for --id and --parent - but we should not encourage using it for ourselves … we should just use the path"). Depends on (2).
+4. `@km/beads/data-id-stop-writing` (P2) — mutations stop writing `data.id` on insert/update (redundant with the path-walk derivation). Existing rows' `data.id` becomes a fossil. Depends on (2).
+5. `@km/all/path-derivation-helper` (P2) — `pathOf(repo, id) → "@km/beads/foo"` utility. Single source of truth for path materialization.
+6. `@km/all/rename-content-cascade` (P2 — softened from P1) — content-level batch update of wikilinks/mentions when a node's path changes. Per "either form resolves" insight, this is UX freshness, not correctness — both `[[<path>]]` and `[[<id>]]` resolve, so stale paths in content still work.
+7. `@km/all/id-name-path-code-cleanup` (P2) — sweep of code variable/function/parameter names: places where we say "id" but mean "path" or "name". Internal vocabulary discipline; bd-compat flags `--id` / `--parent` stay (long-horizon: "eventually we will likely migrate to the task system instead of bd").
+8. `@km/all/storage-doc-three-concepts` (P3) — docs side of the same vocabulary discipline. Updates `docs/design/model/storage.md:761-787`, `knode.md:13`, `packages/km-storage/CLAUDE.md`.
+9. `@km/beads/frontmatter-path-rename` (P3) — frontmatter `id:` is misnamed (holds a path). Decision deferred: rename to `path:` or remove entirely (path is derivable from filename + walk). Cleanup, not load-bearing.
+
+Build order: 1 → 2 → 3 unblocks the agenda's directory-nesting work. 4–9 are follow-ups that can run concurrently after 2 lands.
+
+---
+
+## SUPERSEDED — earlier "FINAL VERDICT (β)" block (path-as-pkey)
+
+The block below was based on user message 4 ("the primary key in sqlite is always nodes.id - but we materialized it as a path in md"). I read it as "pkey *holds* the path"; the user clarified it means "pkey IS what SQLite calls the primary key, and we materialize the path in markdown — the DB stores the ingredients, not the materialized form." Kept for audit.
+
+**The id IS the path. SQLite pkey `nodes.id` is the materialized path-form (`@km/beads/foo`). Markdown frontmatter `id:` is the same value. They're the same thing, not two things kept in sync.**
+
+**User's argument, verbatim**:
+
+> we will have to update all backlinks anyways - it's a problem we have across the entire 'km' - i'd rather we made a good system to batch / background update things
+>
+> the primary key in sqlite is always nodes.id - but we materialized it as a path in md because it's more userfriendly and md is all about user-friendliness
+
+**What this means for implementation**:
+
+1. `nodes.id` for bead-typed rows becomes the path-form (`@km/beads/foo`, `@pim/storage/bar`, etc.). For nodes whose path is NOT their identity (paragraphs, list items, sections without anchors), `nodes.id` stays ULID-shaped.
+2. Schema is heterogeneous in pkey *value shape* but homogeneous in pkey *type* (`TEXT`). That's fine — SQLite doesn't care.
+3. **Rename cascade is real and intentional.** Renaming `@km/beads/foo` → `@km/beads/bar` means UPDATE the pkey + cascade through every row that references it (`parent_id` of children, `host_id` in links, `target` in deps, JSON-stored `blocked-by` arrays).
+4. **The cascade is not a reason to dodge path-as-pkey.** km already has cascade-update needs everywhere (backlinks, wikilinks, inline mentions). Per the user: "i'd rather we made a good system to batch / background update things". The right move is to build the rename-update engine ONCE, then use it for pkey-rename + every other cross-reference update km needs.
+5. `data.id` (JSON) and `data_id` (proposed column) are NEITHER added — they'd be duplicates. The `data` JSON keeps `aliases:` for legacy bd-form id resolution, but the canonical id IS `nodes.id`.
+
+## Why this dissolves the prior framings
+
+- **(α) ULID-stable, path derived** — was attractive to me because it avoids rename cascade. But: the cascade is needed anyway for backlinks/wikilinks/mentions across km. Dodging it via opaque ids is solving the wrong problem.
+- **(C) Hybrid `data_id` column** — was the agent's recommendation. Caching the path in a separate column re-creates the staleness problem we were trying to fix.
+- **(B) Status quo** — same as (C) but in JSON. Same problem.
+- **(D) Unify all node IDs to path-form** — overshoots. Only nodes whose path IS their identity (beads, files, sections with anchors) need path pkeys. Paragraphs and unanchored list items keep ULIDs.
+
+## Lessons captured
+
+1. **The /arch agent's verdict was wrong, despite passing every gate.** It met all five gate criteria (5+ doc quotes, 3+ close-reasons, contradictions named, no draft-doc citations, no phantom file paths) and still recommended a structurally flawed option (C). The lead initially adopted that verdict without catching the staleness issue. The user caught it.
+2. **Gate criteria catch sloppy investigation, not design errors.** Running the protocol does not substitute for thinking through the design implications. This is itself an architectural lesson about /arch: the protocol's job is to prevent the *un-investigated* mistake (the 2026-04-30 morning failure), not to certify that the design is right.
+3. **The framing matters more than the analysis.** The agent (and I) were comparing options A/B/C/D/E. The user reframed: it's binary — global stable id (with derived path) OR path-as-id (with rename cascade). All "hybrid" options reduce to one or the other in disguise.
+4. **Filing follow-up memory: `feedback-arch-protocol-doesnt-substitute-for-thinking.md`** — the lead must engage with the *design* of the recommendation, not just verify the *citation gates*. /arch lowers the floor on bad-investigation mistakes; it does not raise the ceiling on design quality.
+
+## Beads to file
+
+- `@km/storage/nodes-id-as-path-form` (P1) — schema migration: bead-typed rows have path-form pkeys (`@km/beads/foo`); ULID stays for paragraphs/unanchored items. Includes backfill from current `data.id`. Resync required (delete `.km/state.db`).
+- `@km/all/rename-cascade-engine` (P1) — generic batch/background update system covering pkey rename + all cross-reference updates km needs (backlinks, wikilinks, mentions, deps `blocked-by`, link table `host_id`, JSON-array refs). Per user: "i'd rather we made a good system to batch / background update things." Cross-cutting; many consumers.
+- `@km/beads/resolver-pkey-direct` (P1) — `resolveShortId` becomes a direct `WHERE id = ?` for path-form input; aliases path remains as `json_each` fallback for legacy bd-form ids.
+- `@km/beads/data-id-removal` (P2) — drop `data.id` from new writes (it equals `nodes.id` now). Existing rows' `data.id` becomes a no-op; resolver no longer reads it. Migration: leave existing `data.id` values as fossils; future commit removes the JSON path fully once we're confident.
+- `@km/beads/directory-nesting-bd-create` (P1) — agenda item #4. Under (β) this is straightforward: `bd create @km/beads/foo` infers `parent_id = "@km/beads"` from the leading path segments, mints `id = "@km/beads/foo"`, and INSERTs. Depends on `nodes-id-as-path-form`.
+- `@km/all/knode-storage-doc-update` (P3) — update `docs/design/model/knode.md:13`, `docs/design/model/storage.md:373-787`, `packages/km-storage/CLAUDE.md` to reflect that nodes-with-stable-paths use path-as-pkey.
+
+---
+
+## ORIGINAL RETRO (kept verbatim for audit; superseded by the FINAL VERDICT above)
+
+
+
+## REVERSAL FROM /arch AGENT VERDICT (2026-04-30, immediately post-retro)
+
+**The /arch agent's recommendation of (C) was wrong. The lead initially accepted it without catching the flaw. The user caught it.**
+
+**User's argument, verbatim**:
+
+> (A) we don't have a choice - it's a path - if you put the path-like thing in a data.id it'll also be stale if you move the node - it'll be the path-that-the-node-had-when-it-was-created which is not useful and confusing
+> (C) rename only breaks the path - the node.id is the same
+
+**The flaw in (C)**: `data_id` is a stored copy of the current path-form. Under any rename, `data_id` either (a) gets updated atomically with the rename — at which point we have a duplicated mutable cache that must be kept in sync with the file location and parent walk, OR (b) doesn't get updated — at which point `data_id` is "the path the node had when it was created", which is misleading. (C) does not actually fix the duplication problem of (B); it just moves the cached copy from JSON to a column. The cache-coherence problem (which is what produced the claim-loses-issue / close-drop-data-wipe class of bugs in the first place) is unchanged.
+
+**Why (A) is forced**: the canonical user-visible identity for these nodes IS the path. There is no second source of truth that exists independently of the path. Therefore the path must BE the pkey, not stored alongside it. Rename = pkey change. Cascade through `parent_id` of children + `host_id` in links + deps materialization is mechanical, not a duplication.
+
+**Final verdict: (A) path-form pkey for bead nodes** (and any other node where path == rename-stable identity by construction). ULID stays as pkey for nodes whose path is NOT their identity (paragraphs, list items, sections without stable anchors). Schema is heterogeneous in pkey *shape* but homogeneous in pkey *type* (`TEXT`).
+
+**This is a structural lesson for /arch**: the agent's report had 8+ doc citations and 5 close-reason quotes, met all gate criteria, and was still wrong on the core question. The gate criteria don't catch design errors; they catch sloppy investigation. The lead has to think — running the protocol doesn't substitute for thinking. Filing this as feedback memory `feedback-arch-protocol-doesnt-substitute-for-thinking.md`.
+
+---
+
+## ORIGINAL RETRO (kept verbatim for audit; superseded by the reversal above)
+
+
 
 # Arch retro — path-vs-ULID-as-SQLite-pkey
 
