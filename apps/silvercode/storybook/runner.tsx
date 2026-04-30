@@ -251,11 +251,7 @@ function ContentSizer({
  * NodeContext (`useBoxRect`) and reports it upward. Empty render so
  * it adds no visible chrome — pure measurement glue.
  */
-function ContentMeasureProbe({
-  onMeasure,
-}: {
-  onMeasure: (height: number) => void
-}): null {
+function ContentMeasureProbe({ onMeasure }: { onMeasure: (height: number) => void }): null {
   const rect = useBoxRect()
   React.useEffect(() => {
     onMeasure(rect.height)

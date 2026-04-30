@@ -66,12 +66,7 @@ function makeStubController(): Controller {
   } as unknown as Controller
 }
 
-function makeAccount(opts: {
-  name: string
-  email: string
-  plan: string
-  isActive?: boolean
-}): AccountSummary {
+function makeAccount(opts: { name: string; email: string; plan: string; isActive?: boolean }): AccountSummary {
   return {
     name: opts.name,
     email: opts.email,

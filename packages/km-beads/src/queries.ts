@@ -163,10 +163,9 @@ function countDependents(shortId: string | undefined, repo?: Repo, dependentCoun
   }
   if (!repo) return 0
 
-  const row = repo.rawQuery<{ n: number }>(
-    "SELECT COUNT(*) AS n FROM deps WHERE target = ? AND kind = 'blocked-by'",
-    [shortId],
-  )[0]
+  const row = repo.rawQuery<{ n: number }>("SELECT COUNT(*) AS n FROM deps WHERE target = ? AND kind = 'blocked-by'", [
+    shortId,
+  ])[0]
   return row?.n ?? 0
 }
 

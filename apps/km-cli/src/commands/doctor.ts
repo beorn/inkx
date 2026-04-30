@@ -475,7 +475,9 @@ async function loadAndReport(repoPath: string, stepLabel: string, successMessage
           console.log(term.dim(`      ${f.error}`))
         }
         console.log()
-        console.log(term.dim("  Re-run after fixing the listed files. Set DEBUG=km:* DEBUG_LOG=/tmp/km.log for trace output."))
+        console.log(
+          term.dim("  Re-run after fixing the listed files. Set DEBUG=km:* DEBUG_LOG=/tmp/km.log for trace output."),
+        )
         process.exit(1)
       } else {
         console.log(term.dim(`  Rebuild complete: ${summary}`))

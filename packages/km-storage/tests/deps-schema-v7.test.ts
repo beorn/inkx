@@ -49,9 +49,10 @@ function listBlockedBy(targets: string[]): Record<string, unknown> {
 }
 
 function readDeps(db: Database, hostId: string): Array<{ target: string; kind: string }> {
-  return db
-    .query("SELECT target, kind FROM deps WHERE host_id = ? ORDER BY target")
-    .all(hostId) as Array<{ target: string; kind: string }>
+  return db.query("SELECT target, kind FROM deps WHERE host_id = ? ORDER BY target").all(hostId) as Array<{
+    target: string
+    kind: string
+  }>
 }
 
 describe("schema v7 — deps table", () => {
@@ -70,9 +71,9 @@ describe("schema v7 — deps table", () => {
 
   test("fresh DB has the deps lookup indexes", () => {
     const db = freshDb()
-    const idx = db
-      .query("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='deps'")
-      .all() as { name: string }[]
+    const idx = db.query("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='deps'").all() as {
+      name: string
+    }[]
     const names = new Set(idx.map((r) => r.name))
     expect(names.has("idx_deps_target_kind")).toBe(true)
     expect(names.has("idx_deps_host")).toBe(true)
@@ -105,10 +106,7 @@ describe("schema v7 — deps table", () => {
     insertNode(db, "host-4", listBlockedBy(["km-a", "km-b"]))
     expect(readDeps(db, "host-4")).toHaveLength(2)
 
-    db.prepare("UPDATE nodes SET data = ? WHERE id = ?").run(
-      JSON.stringify(singleBlockedBy("km-c")),
-      "host-4",
-    )
+    db.prepare("UPDATE nodes SET data = ? WHERE id = ?").run(JSON.stringify(singleBlockedBy("km-c")), "host-4")
 
     expect(readDeps(db, "host-4")).toEqual([{ target: "km-c", kind: "blocked-by" }])
   })
@@ -181,9 +179,7 @@ describe("schema v7 — deps table", () => {
     ])
     expect(readDeps(db, "legacy-3")).toEqual([])
 
-    const recorded = db
-      .query("SELECT value FROM meta WHERE key = 'schema_version'")
-      .get() as { value: string }
+    const recorded = db.query("SELECT value FROM meta WHERE key = 'schema_version'").get() as { value: string }
     expect(parseInt(recorded.value, 10)).toBe(SCHEMA_VERSION)
   })
 

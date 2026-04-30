@@ -188,8 +188,9 @@ export const LONG_TOOL_SESSION: MessageEntry[] = [
           name: "Edit",
           input: {
             file_path: "apps/silvercode/storybook/stories/All.story.tsx",
-            old_string: "<Screen flexDirection=\"row\" overflow=\"hidden\">",
-            new_string: "<Box flexDirection=\"row\" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} overflow=\"hidden\">",
+            old_string: '<Screen flexDirection="row" overflow="hidden">',
+            new_string:
+              '<Box flexDirection="row" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} overflow="hidden">',
           },
         },
         result: { id: "tu_edit_story" as ToolUseId, output: "Patch applied.", is_error: false },
@@ -302,7 +303,8 @@ export const LONG_TOOL_SESSION: MessageEntry[] = [
           name: "Task",
           input: {
             description: "Review storybook session coverage",
-            prompt: "Check whether the representative session exercises user, assistant, tools, failures, and ambient rows.",
+            prompt:
+              "Check whether the representative session exercises user, assistant, tools, failures, and ambient rows.",
           },
         },
         result: {

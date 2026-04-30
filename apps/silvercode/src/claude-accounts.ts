@@ -171,7 +171,7 @@ export async function probeAllAccounts(forceRefresh = false): Promise<AccountSum
   // something to render.
   if (summaries.length === 0 || !summaries.some((s) => s.isActive)) {
     const fallback: AccountSummary = {
-      name: active ? active.split("/").pop() ?? "active" : "active",
+      name: active ? (active.split("/").pop() ?? "active") : "active",
       email: resolveActiveEmail(),
       plan: null,
       quotas: [],

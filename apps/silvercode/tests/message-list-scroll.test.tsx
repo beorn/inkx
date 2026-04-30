@@ -68,8 +68,6 @@ describe("SessionUpdateList scroll", () => {
       await app.wheel(20, 9, -1)
     }
 
-    expect(app.text.includes("data:image") || app.text.includes("prompt ") || app.text.includes("response ")).toBe(
-      true,
-    )
+    expect(app.text.includes("data:image") || app.text.includes("prompt ") || app.text.includes("response ")).toBe(true)
   })
 })
