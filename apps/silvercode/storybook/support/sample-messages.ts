@@ -345,3 +345,124 @@ export const LONG_TOOL_SESSION: MessageEntry[] = [
     ts: NOW + 44_000,
   }),
 ]
+
+export const TURN_ACTIVITY_RICH: MessageEntry[] = [
+  makeFixtureEntry({
+    id: tid(30),
+    role: "user",
+    ops: [{ kind: "text", text: "Implement TurnActivitySummary and verify the transcript surface." }],
+    ts: NOW + 60_000,
+  }),
+  makeFixtureEntry({
+    id: tid(31),
+    role: "assistant",
+    ops: [
+      { kind: "text", text: "I’m checking the session renderer, adding the component, and running focused tests." },
+      {
+        kind: "tool",
+        toolCall: {
+          id: "tu_activity_read_1" as ToolUseId,
+          name: "Read",
+          input: { file_path: "apps/silvercode/src/components/SessionUpdateList.tsx" },
+        },
+        result: {
+          id: "tu_activity_read_1" as ToolUseId,
+          output: "function ExchangeItem(...) {\n  // render text and tool runs\n}\n",
+        },
+      },
+      {
+        kind: "tool",
+        toolCall: {
+          id: "tu_activity_read_2" as ToolUseId,
+          name: "Read",
+          input: { file_path: "apps/silvercode/src/components/ToolCall.tsx" },
+        },
+        result: {
+          id: "tu_activity_read_2" as ToolUseId,
+          output: "export function ToolCall(...) {\n  // hover popover + click expansion\n}\n",
+        },
+      },
+      {
+        kind: "tool",
+        toolCall: {
+          id: "tu_activity_bash_long" as ToolUseId,
+          name: "Bash",
+          input: { command: "bun vitest run apps/silvercode/tests/turn-activity-summary.test.tsx" },
+        },
+        result: {
+          id: "tu_activity_bash_long" as ToolUseId,
+          output:
+            "RUN  v4.1.4 /Users/beorn/Code/pim/km\n" +
+            "✓ TurnActivitySummary keeps a single low-content tool call inline\n" +
+            "✓ TurnActivitySummary groups high-content tool work\n" +
+            "✓ TurnActivitySummary expands recoverable raw details\n" +
+            "Test Files 1 passed\n" +
+            "Tests 3 passed\n" +
+            "Duration 1.9s\n",
+        },
+      },
+      {
+        kind: "tool",
+        toolCall: {
+          id: "tu_activity_edit" as ToolUseId,
+          name: "Edit",
+          input: {
+            file_path: "apps/silvercode/src/components/SessionUpdateList.tsx",
+            old_string: "<ToolCall toolCall={adaptedCall} />",
+            new_string: "<TurnActivitySummary items={items} />",
+          },
+        },
+        result: { id: "tu_activity_edit" as ToolUseId, output: "Patch applied.", is_error: false },
+      },
+      {
+        kind: "tool",
+        toolCall: {
+          id: "tu_activity_todo" as ToolUseId,
+          name: "TodoWrite",
+          input: {
+            todos: [
+              { content: "Write focused renderer tests", status: "completed" },
+              { content: "Add storybook coverage", status: "in_progress" },
+              { content: "Run focused tests", status: "pending" },
+            ],
+          },
+        },
+        result: { id: "tu_activity_todo" as ToolUseId, output: "Todo list updated.", is_error: false },
+      },
+      {
+        kind: "tool",
+        toolCall: {
+          id: "tu_activity_bash_fail" as ToolUseId,
+          name: "Bash",
+          input: { command: "bun vitest run apps/silvercode/tests/missing.test.tsx" },
+        },
+        result: {
+          id: "tu_activity_bash_fail" as ToolUseId,
+          output: "No test files found, exiting with code 1\n",
+          is_error: true,
+        },
+      },
+    ],
+    ts: NOW + 61_000,
+  }),
+]
+
+export const TURN_ACTIVITY_AMBIENT = [
+  {
+    kind: "ambient" as const,
+    id: "ambient-turn-activity-1",
+    source: "file-watch",
+    timestamp: NOW + 60_500,
+    content: "apps/silvercode/src/components/SessionUpdateList.tsx changed on disk",
+    actionable: true,
+  },
+  {
+    kind: "ambient" as const,
+    id: "ambient-turn-activity-2",
+    source: "tribe",
+    timestamp: NOW + 61_500,
+    content:
+      '<channel source="tribe" from="reviewer" type="note">Watch for raw backend labels in the primary row.</channel>',
+    actionable: true,
+  },
+]

@@ -25,6 +25,10 @@ import { toolCallExecute } from "./stories/ToolCall.execute.story.tsx"
 import { toolCallFailed } from "./stories/ToolCall.failed.story.tsx"
 import { toolCallBashSummary } from "./stories/ToolCall.bash-summary.story.tsx"
 import { toolCallSummary } from "./stories/ToolCallSummary.story.tsx"
+import {
+  sessionUpdateListTurnActivityRich,
+  turnActivitySummaryRich,
+} from "./stories/TurnActivitySummary.rich.story.tsx"
 import { applyPatch, applyPatchMulti } from "./stories/ApplyPatch.story.tsx"
 import { sessionUpdateListEmpty } from "./stories/SessionUpdateList.empty.story.tsx"
 import { sessionUpdateListMultiTurn } from "./stories/SessionUpdateList.multi-turn.story.tsx"
@@ -63,11 +67,13 @@ export const STORIES: readonly Story[] = [
   toolCallFailed,
   toolCallBashSummary,
   toolCallSummary,
+  turnActivitySummaryRich,
   applyPatch,
   applyPatchMulti,
   // Higher-order: full conversation via SessionUpdateList
   sessionUpdateListEmpty,
   sessionUpdateListMultiTurn,
+  sessionUpdateListTurnActivityRich,
   // Conversation structure
   sessionExchangeDividerBetweenExchanges,
   sessionRetryFailedExchange,

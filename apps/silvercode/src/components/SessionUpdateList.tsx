@@ -33,7 +33,7 @@
  */
 
 import React, { useMemo } from "react"
-import type { MessageEntry, ToolCallId, ToolCallStatus, ToolKind } from "@km/agent-harness"
+import type { MessageEntry, MessageOp, ToolCallId, ToolCallStatus, ToolKind } from "@km/agent-harness"
 import type { ToolCall as ToolCallType, ToolCallContent } from "@km/agent-harness"
 import {
   Box,
@@ -51,6 +51,7 @@ import { AmbientNotificationStack, type AmbientStreamEntry } from "./AmbientEven
 import { MarkdownView } from "./MarkdownView.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
 import { ToolCall } from "./ToolCall.tsx"
+import { TurnActivitySummary, type TurnActivitySummaryItem } from "./TurnActivitySummary.tsx"
 import { LinkifiedText } from "./LinkifiedText.tsx"
 import { BACKGROUND_MESSAGE_PREFIX } from "../controller.ts"
 
@@ -325,7 +326,6 @@ function adaptToolCall(
 ): ToolCallType {
   const kind = toolKindFromName(c.name, c.input)
   const status: ToolCallStatus = running ? "in_progress" : result?.is_error ? "failed" : "completed"
-  const display = c.mcp_server ? `${c.mcp_server}:${c.name}` : c.name
   const title = toolTitle(c.name, c.input)
 
   // Build content: for Edit tools, show the diff. For everything else, show
@@ -354,7 +354,7 @@ function adaptToolCall(
 
   return {
     toolCallId: c.id as ToolCallId,
-    title: display !== c.name ? `${display}: ${title}` : title,
+    title,
     kind,
     status,
     content,
@@ -627,6 +627,24 @@ function RawInspector({ payload, children }: { payload: unknown; children: React
   )
 }
 
+function isHighContentToolRun(run: Array<{ op: MessageOp; index: number }>): boolean {
+  const toolOps = run.filter(({ op }) => op.kind === "tool")
+  if (toolOps.length < 3) return false
+  const resultCount = toolOps.filter(({ op }) => op.kind === "tool" && op.result !== undefined).length
+  if (resultCount >= 2) return true
+  return toolOps.some(({ op }) => op.kind === "tool" && op.result?.is_error === true)
+}
+
+function turnActivityItemForOp(op: MessageOp): TurnActivitySummaryItem | null {
+  if (op.kind !== "tool") return null
+  const adaptedCall = adaptToolCall(op.toolCall, op.result, op.result === undefined)
+  return {
+    id: op.toolCall.id,
+    toolCall: adaptedCall,
+    errorMessage: op.result?.is_error ? String(op.result.output ?? "Tool call failed") : undefined,
+  }
+}
+
 function ExchangeItem({ m, showDebug }: { m: MessageEntry; showDebug: boolean }): React.ReactElement {
   // Background-task system messages: user-role entries with a "bg-" turnId
   // prefix AND the BACKGROUND_MESSAGE_PREFIX text prefix.
@@ -678,28 +696,34 @@ function ExchangeItem({ m, showDebug }: { m: MessageEntry; showDebug: boolean })
         // ops) render contiguously. The outer `gap={1}` only applies
         // BETWEEN runs.
         <Box key={runIdx} flexDirection="column">
-          {run.ops.map(({ op, index }) => {
-            if (op.kind === "text") {
-              if (op.text.length === 0) return null
+          {run.kind === "tool" && isHighContentToolRun(run.ops) ? (
+            <RawInspector key={`turn-activity-${runIdx}`} payload={run.ops.map(({ op }) => op)}>
+              <TurnActivitySummary items={run.ops.flatMap(({ op }) => turnActivityItemForOp(op) ?? [])} />
+            </RawInspector>
+          ) : (
+            run.ops.map(({ op, index }) => {
+              if (op.kind === "text") {
+                if (op.text.length === 0) return null
+                return (
+                  <RawInspector key={`text-${index}`} payload={op}>
+                    <AssistantRow text={op.text} />
+                  </RawInspector>
+                )
+              }
+              const c = op.toolCall
+              const result = op.result
+              const running = result === undefined
+              const adaptedCall = adaptToolCall(c, result, running)
               return (
-                <RawInspector key={`text-${index}`} payload={op}>
-                  <AssistantRow text={op.text} />
+                <RawInspector key={c.id} payload={op}>
+                  <ToolCall
+                    toolCall={adaptedCall}
+                    errorMessage={result?.is_error ? String(result.output ?? "Tool call failed") : undefined}
+                  />
                 </RawInspector>
               )
-            }
-            const c = op.toolCall
-            const result = op.result
-            const running = result === undefined
-            const adaptedCall = adaptToolCall(c, result, running)
-            return (
-              <RawInspector key={c.id} payload={op}>
-                <ToolCall
-                  toolCall={adaptedCall}
-                  errorMessage={result?.is_error ? String(result.output ?? "Tool call failed") : undefined}
-                />
-              </RawInspector>
-            )
-          })}
+            })
+          )}
         </Box>
       ))}
     </Box>
