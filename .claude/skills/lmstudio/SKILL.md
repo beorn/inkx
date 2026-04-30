@@ -6,6 +6,8 @@ allowed-tools: Bash(curl:*), Bash(/Users/beorn/.lmstudio/bin/lms:*), Bash(~/.lms
 
 # lmstudio
 
+**Keywords**: lmstudio, local model, lms, llm
+
 Run a question through LM Studio's OpenAI-compatible server on `localhost:1234`, starting it on demand.
 
 ## Config

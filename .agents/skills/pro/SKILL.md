@@ -1,6 +1,6 @@
 ---
 description: "Multi-leg dual-pro dispatch (DeepSeek R1 + Kimi K2.6 + rotating challenger) — second opinions, code reviews, architectural advice. Parallel models judged on a rubric. Heavier than /ask, lighter than /deep."
-argument-hint: ["<question>" | review [<package>] [--deep]]
+argument-hint: "\"<question>\" | review [<package>] [--deep]"
 ---
 
 # /pro — multi-leg second opinion + code review

@@ -6,6 +6,8 @@ allowed-tools: Read
 
 # Sync — Deprecated
 
+**Keywords**: sync, merge, daily, deprecated
+
 **Replaced 2026-04-29.** The "daily rhythm" framing conflated two orthogonal axes: WIP reduction and cadence-based maintenance. They're now separate skills.
 
 | Old `/sync` flag | Use instead |

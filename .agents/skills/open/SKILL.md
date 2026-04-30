@@ -1,5 +1,6 @@
 ---
 description: "Open files, folders, URLs, beads, and ~shortcuts in the default macOS app via the `open` command"
+keywords: [open, file, folder, url, shortcut]
 argument-hint: "[flags] <path|url|~shortcut|km-XXX|...>"
 allowed-tools: Bash(open:*), Bash(cat:*), Bash(test:*), Bash(realpath:*), Bash(km bd show:*), Read
 model: haiku

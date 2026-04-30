@@ -216,10 +216,9 @@ km bd close <id> --reason "Implemented: <what, where>. Tests: <names>. Verified:
 For features needing 5+ subtasks:
 
 ```bash
-km bd create --id km-epic-<slug> --type epic --title "<name>"
-km bd create --id km-epic-<slug>.a --type task --title "<first>"
-km bd update km-epic-<slug>.a --parent km-epic-<slug>  # Set parent AFTER creation (--id and --parent conflict)
-km bd update km-epic-<slug>.a --claim
+km bd create "<name>" --type epic --priority P2 --id @km/<scope>/<slug>
+km bd create "<first>" --type task --priority P2 --id @km/<scope>/<slug>-first
+km bd update @km/<scope>/<slug>-first --claim
 ```
 
 **Multi-package epics**: Use `/max` to parallelize subtasks across packages.

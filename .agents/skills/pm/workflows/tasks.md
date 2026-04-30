@@ -19,7 +19,7 @@ bun recall "keywords from task description"
 bun recall --raw "affected module or function"
 ```
 
-Prior sessions may have already started this refactoring, documented constraints, or made related changes. Skip only if recall auto-context (hook) already surfaced relevant results.
+Prior sessions may have already started this refactoring, documented constraints, or made related changes. Skip only if recall auto-context already surfaced relevant results. In Codex, do not assume Claude Code's recall hook fired; run recall explicitly when in doubt.
 
 ## Common TDD Cycle
 

@@ -1,5 +1,6 @@
 ---
 description: "Pressure-test a skill with adversarial subagent scenarios. TDD for skills — write the test, watch it fail, fix the skill, watch it pass."
+keywords: [skill test, adversarial, pressure test, tdd]
 argument-hint: [skill name to test, e.g. "tdd", "diagram", "review"]
 ---
 

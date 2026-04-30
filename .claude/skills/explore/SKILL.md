@@ -7,6 +7,8 @@ escalate-to: {render: "discovered silvery pipeline bug", km: "discovered interac
 
 # TUI Exploration
 
+**Keywords**: explore, tui, bug hunting, terminal, randomized
+
 **This skill is now part of the centralized testing docs.**
 
 See [tests/exploratory.md](../tests/exploratory.md) for the full exploratory testing protocol.

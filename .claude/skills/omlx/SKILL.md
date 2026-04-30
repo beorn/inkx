@@ -6,6 +6,8 @@ allowed-tools: Bash(curl:*), Bash(pgrep:*), Bash(jq:*), Bash(python3:*)
 
 # omlx
 
+**Keywords**: omlx, mlx, local model, llm
+
 Query a user-managed `mlx_lm.server` on `localhost:8080`.
 
 ## Config

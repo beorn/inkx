@@ -5,6 +5,8 @@ argument-hint: "[message]"
 
 # Checkpoint
 
+**Keywords**: checkpoint, compact, resume, context, bead
+
 Save session context to a single tracking bead so it survives compaction and can be recovered by the next session or post-compact continuation.
 
 **Argument**: $ARGUMENTS
@@ -23,7 +25,7 @@ Save session context to a single tracking bead so it survives compaction and can
 Look for an existing in-progress bead that serves as the session's tracking bead. Prefer:
 1. A bead the user explicitly mentioned as the tracking/epic bead
 2. The most recently claimed in-progress bead by this session (check `claimed_by` for `$CLAUDE_SESSION_ID`)
-3. If none exists, create one: `km bd create --title="Session checkpoint: <brief work summary>" --type=task --priority=3`
+3. If none exists, create one: `km bd create "Session checkpoint: <brief work summary>" --type task --priority P3`
 
 There must be exactly ONE tracking bead. If multiple candidates exist, pick the one most relevant to the current work.
 

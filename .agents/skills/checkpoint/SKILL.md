@@ -1,9 +1,12 @@
 ---
-description: "Checkpoint session context to a tracking bead. Ensures ONE bead captures all active work, recent commits, uncommitted changes, and next steps. Use before /compact, at natural breakpoints, or when context is getting long. Also runs automatically via pre-compact hook."
+description: "Checkpoint session context to a tracking bead. Ensures ONE bead captures all active work, recent commits, uncommitted changes, and next steps. Use before /compact, at natural breakpoints, or when context is getting long."
+keywords: [checkpoint, compact, resume, context, bead]
 argument-hint: "[message]"
 ---
 
 # Checkpoint
+
+**Keywords**: checkpoint, compact, resume, context, bead
 
 Save session context to a single tracking bead so it survives compaction and can be recovered by the next session or post-compact continuation.
 
@@ -22,12 +25,15 @@ Save session context to a single tracking bead so it survives compaction and can
 
 Look for an existing in-progress bead that serves as the session's tracking bead. Prefer:
 1. A bead the user explicitly mentioned as the tracking/epic bead
-2. The most recently claimed in-progress bead by this session (check `claimed_by` for `$CLAUDE_SESSION_ID`)
-3. If none exists, create one: `km bd create --title="Session checkpoint: <brief work summary>" --type=task --priority=3`
+2. The most recently claimed in-progress bead by this session. In Claude Code,
+   check `claimed_by` for `$CLAUDE_SESSION_ID`; in Codex, prefer the active bead
+   named in the current task or recent session context.
+3. If none exists, create one: `km bd create "Session checkpoint: <brief work summary>" --type task --priority P3`
 
 There must be exactly ONE tracking bead. If multiple candidates exist, pick the one most relevant to the current work.
 
-**IMPORTANT**: The tracking bead must be claimed by this session so the pre-compact hook can find it:
+**IMPORTANT**: Claim the tracking bead so future session recovery can identify
+the intended work item. Claude Code's pre-compact hook also depends on this:
 ```bash
 km bd update <BEAD_ID> --claim
 ```
@@ -58,7 +64,7 @@ km bd update <BEAD_ID> --notes="RESUME: km bd show <BEAD_ID>
 After compact, run the command above FIRST. Do not list all beads or start new work.
 
 ## Session Checkpoint
-**Session:** $CLAUDE_SESSION_ID
+**Session:** <session id if available; otherwise "codex">
 **Branch:** <branch>
 **Time:** <timestamp>
 
@@ -96,12 +102,17 @@ Tell the user:
 
 ## Multi-session awareness
 
-Multiple sessions share the same repo. The tracking bead is identified by `claimed_by` matching this session's `CLAUDE_SESSION_ID`. The pre-compact hook searches for beads claimed by the current session — if the bead isn't claimed, the hook can't find it and context is lost.
+Multiple sessions share the same repo. In Claude Code, the tracking bead is
+identified by `claimed_by` matching that session's `CLAUDE_SESSION_ID`, and the
+pre-compact hook searches for beads claimed by the current session. In Codex,
+do not assume that hook or env var exists; make the bead reference explicit in
+the checkpoint.
 
 ## Auto-trigger
 
-This skill runs automatically via the pre-compact hook when the user types `/compact`.
-It can also be invoked manually with `/checkpoint` at any time.
+In Claude Code, this skill may run automatically via the pre-compact hook when
+the user types `/compact`. In Codex, invoke it manually with `/checkpoint` or
+when context is getting long.
 
 ## Pairs with
 

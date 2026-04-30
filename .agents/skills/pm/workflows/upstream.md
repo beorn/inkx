@@ -258,16 +258,16 @@ If steps 5–7 left a workaround in our code, **register the bead in `km-all.ups
 
 ```bash
 # Create the tracking bead under the upstream-waiting epic
-km bd create --id km-<scope>.<descriptive-slug> \
-  --title "Remove <workaround-description> when <upstream-ref> lands" \
-  --type=bug --priority=3 \
-  --description="<see template below>"
-km bd update km-<scope>.<slug> --parent km-all.upstream-waiting
+km bd create "Remove <workaround-description> when <upstream-ref> lands" \
+  --type bug --priority P3 \
+  --id @km/<scope>/<descriptive-slug> \
+  --description "<see template below>"
+km bd update @km/<scope>/<descriptive-slug> --parent @km/all/upstream-waiting
 
 # REQUIRED: record the next-review date in the description's `Last checked`
 # / `Escalate by` fields (template below). km bd has no `defer` primitive
 # — the parent epic km-all.upstream-waiting is itself the surfacing
-# mechanism, walked monthly via `km bd children km-all.upstream-waiting`
+# mechanism, walked monthly via `km bd children @km/all/upstream-waiting`
 # during /sop infra. The defer machinery from the Go-bd era is retired.
 ```
 

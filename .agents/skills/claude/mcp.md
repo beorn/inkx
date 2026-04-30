@@ -1,12 +1,30 @@
 ---
-description: Configure MCP servers for Claude Code
+description: Configure MCP servers for Codex and document Claude Code-only extras
 ---
 
 # MCP Servers
 
 **Keywords**: MCP, mcp server, add mcp, configure mcp
 
-## Quick Setup (CLI)
+## Quick Setup (Codex)
+
+Prefer checked-in project config via `.mcp.json` so all agent runtimes see the
+same server definitions after restart/reload.
+
+```json
+{
+  "mcpServers": {
+    "server-name": {
+      "command": "bunx",
+      "args": ["server-package"]
+    }
+  }
+}
+```
+
+Use `codex mcp list` to inspect what the current Codex runtime loaded.
+
+## Claude Code CLI
 
 ```bash
 # Add to project (shared via .mcp.json)
@@ -42,11 +60,11 @@ MCP servers configured in `.mcp.json` (project root):
 | Scope   | Location         | Purpose                  |
 | ------- | ---------------- | ------------------------ |
 | Project | `.mcp.json`      | Shared with team via git |
-| User    | `~/.claude.json` | All projects             |
+| User    | runtime-specific user config | All projects             |
 
-## Enabling Permissions
+## Claude Code Permissions
 
-Add to `.claude/settings.json`:
+Claude Code can gate MCP tools through `.claude/settings.json`:
 
 ```json
 {
@@ -56,9 +74,9 @@ Add to `.claude/settings.json`:
 }
 ```
 
-## Hooks
+## Claude Code Hooks
 
-Run shell commands on Claude events:
+Run shell commands on Claude Code events. These are not Codex hooks:
 
 ```json
 {
@@ -80,7 +98,8 @@ Run shell commands on Claude events:
 }
 ```
 
-Events: `PreToolUse`, `PostToolUse`, `Notification`, `SessionStart`, `SessionEnd`
+Claude Code events: `PreToolUse`, `PostToolUse`, `Notification`,
+`SessionStart`, `SessionEnd`.
 
 ## Permissions
 
@@ -98,6 +117,6 @@ Events: `PreToolUse`, `PostToolUse`, `Notification`, `SessionStart`, `SessionEnd
 
 | Issue                 | Fix                                            |
 | --------------------- | ---------------------------------------------- |
-| Server not connecting | Check `claude mcp list`, verify command exists |
-| Permission denied     | Add to `permissions.allow` in settings         |
-| Server failing        | `claude mcp logs server-name`, restart Claude  |
+| Server not connecting | Check `codex mcp list` or runtime MCP status, verify command exists |
+| Permission denied     | Check runtime-specific permissions             |
+| Server failing        | Restart/reload the agent runtime               |

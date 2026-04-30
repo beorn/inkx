@@ -31,7 +31,7 @@ Pairs with the worktree-pool standing rule (CLAUDE.md "Branches and worktrees"):
 git worktree list --porcelain                       # named worktrees + pool slots
 git for-each-ref --format='%(refname:short)' refs/heads/ | grep -v '^main$'
 git stash list
-km bd list --status in_progress --assignee "$USER"  # claimed-but-stale check
+km bd list --status wip --assignee "$USER"  # claimed-but-stale check
 git submodule foreach 'git rev-parse HEAD'          # vs each submodule's origin/main
 git status --porcelain                              # main repo dirty?
 ps -ef | grep -E 'claude.*loop|claude.*routine' | grep -v grep

@@ -116,7 +116,7 @@ Run these bash commands **in parallel** (single message, multiple Bash tool call
 Then run:
 
 ```bash
-km bd list --status closed --limit 20 --sort updated  # Recent completions for context
+km bd list --status done --limit 20 --sort updated  # Recent completions for context
 ```
 
 #### Tribe Status Sync
@@ -324,7 +324,7 @@ This step is critical — it catches beads that *look* done from the description
 6. **Track deferred items**: When a bead has "deferred", "tracked only", "P2 items", or "P1s deferred" items in its description/notes, these MUST be tracked before closing:
    - For each deferred item, find the covering bead (the one that should eventually address it).
    - If a covering bead exists: `km bd update <covering-bead> --notes "Deferred from <closing-bead>: <item description>"` — so the item is explicitly mentioned and won't be forgotten.
-   - If NO covering bead exists: create one with `km bd create --id <scope>.<suffix> --type <type> --priority <N> --title "<title>" --description "Deferred <priority> from <closing-bead> (<date>). <details>"`, then parent it.
+   - If NO covering bead exists: create one with `km bd create "<title>" --type <type> --priority P<N> --id @km/<scope>/<suffix> --description "Deferred <priority> from <closing-bead> (<date>). <details>"`, then parent it if needed.
    - **Never close a bead with deferred items that have no tracking destination.** This is how work gets lost across sessions.
 
 ### Phase 3: Present Plan
@@ -602,23 +602,23 @@ For significant process gaps identified:
 DATE_SUFFIX=$(date +%m%d)
 
 # Example: Workflow improvement
-km bd create --id "km-proc-groom-cadence-$DATE_SUFFIX" --type=task --priority=3 \
-  --title="Establish monthly grooming cadence" \
+km bd create "Establish monthly grooming cadence" --type task --priority P3 \
+  --id "@km/proc/groom-cadence-$DATE_SUFFIX" \
   --body="Review found 50+ stale P4 issues. Add recurring grooming schedule."
 
 # Example: Tooling gap
-km bd create --id "km-proc-bd-validate-$DATE_SUFFIX" --type=task --priority=3 \
-  --title="Add bd validate command for health checks" \
+km bd create "Add bd validate command for health checks" --type task --priority P3 \
+  --id "@km/proc/bd-validate-$DATE_SUFFIX" \
   --body="Auto-detect circular deps, orphans, priority inflation, etc."
 
 # Example: Documentation gap
-km bd create --id "km-proc-priority-guide-$DATE_SUFFIX" --type=task --priority=3 \
-  --title="Document priority decision criteria" \
+km bd create "Document priority decision criteria" --type task --priority P3 \
+  --id "@km/proc/priority-guide-$DATE_SUFFIX" \
   --body="Create flowchart: user-facing bug > blocking > standalone > nice-to-have"
 
 # Example: Template improvement
-km bd create --id "km-proc-issue-templates-$DATE_SUFFIX" --type=task --priority=3 \
-  --title="Create issue templates for bd" \
+km bd create "Create issue templates for bd" --type task --priority P3 \
+  --id "@km/proc/issue-templates-$DATE_SUFFIX" \
   --body="Templates for bug, task, epic, feature with required fields"
 ```
 

@@ -7,6 +7,8 @@ escalate-to: {render: "dirty flag or incremental rendering issue", arch: "layer 
 
 # TDD — Reproduce First, Fix Second
 
+**Keywords**: tdd, test first, reproduce, bug, fix
+
 **STOP.** Before you touch any source code, you need a failing test. No exceptions. No "quick fix." No "I think the problem is..." without proof.
 
 This applies to **bugs AND features**. For bugs: reproduce the broken behavior. For features: write the test that describes the desired behavior. Both must fail before you write implementation code.
@@ -15,14 +17,14 @@ This applies to **bugs AND features**. For bugs: reproduce the broken behavior. 
 
 $ARGUMENTS
 
-**If no arguments**: Look at the recent conversation for bug reports, feature requests, or user-described issues. Check active beads (`km bd list --status in_progress`). Infer what needs TDD from context — don't ask "what should I test?"
+**If no arguments**: Look at the recent conversation for bug reports, feature requests, or user-described issues. Check active beads (`km bd list --status wip`). Infer what needs TDD from context — don't ask "what should I test?"
 
 ## Step 0: Context Before Code
 
 Before writing anything:
 1. **`bun recall "keywords"`** — has this been diagnosed before?
 2. **Check screenshots** — if the user mentioned one, `ls -lt ~/Desktop/*.png | head -5` and read it
-3. **Create/claim a bead** if one doesn't exist — `km bd create --id km-tui.<slug> --type bug ...`
+3. **Create/claim a bead** if one doesn't exist — `km bd create "<title>" --type bug --priority P2 --id @km/tui/<slug>`
 
 ## Step 1: Pick the Right Reproduction Tool
 

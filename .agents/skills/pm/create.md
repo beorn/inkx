@@ -201,11 +201,11 @@ Background: doc-led drift (the 2026-04-27 retrospective) — "(rename pending)" 
 
 ```bash
 km bd create \
-  --id @km/<scope>/<generated-slug> \
+  "<concise title from description>" \
   --type <type> \
-  --title "<concise title from description>" \
   --description "<expanded description with context and acceptance criteria>" \
-  --priority <inferred-priority>
+  --priority <P0..P4> \
+  --id @km/<scope>/<generated-slug>
 ```
 
 **Error handling:**
@@ -223,7 +223,7 @@ Every new bead **must** be a sub-bead of its tracking epic (see [SKILL.md Scope 
 # ID format: @km/<scope>/<suffix>
 # Example: @km/silvery/better-scroll-defaults, @km/tui/emptybody, @km/infra/ci-fuzz
 
-km bd create --id @km/tui/emptybody --type bug --title "Empty body rendering" --priority 2
+km bd create "Empty body rendering" --type bug --priority P2 --id @km/tui/emptybody
 ```
 
 If no tracking epic fits, the bead can be standalone (e.g., `km-<keyword>`).

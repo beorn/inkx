@@ -6,6 +6,8 @@ allowed-tools: mcp__plugin_tribe_tribe__tribe_members, mcp__plugin_tribe_tribe__
 
 # Tribe
 
+**Keywords**: tribe, sessions, agents, coordination
+
 Cross-session coordination. Parse the subcommand from ARGUMENTS.
 
 > **Namespace** (@bearly/tribe 0.10.0): every MCP tool lives under the unified `tribe.*` namespace. The old `tribe_*` underscored names were removed in 0.10.0 — calling them now returns "unknown tool". See `vendor/bearly/plugins/tribe/CHANGELOG.md` for the full purge scope.

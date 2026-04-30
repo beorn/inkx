@@ -1,5 +1,6 @@
 ---
 description: "Query local oMLX server on :8080 (mlx_lm.server). Does NOT auto-start; user runs `omlx` in a foreground shell. Use when the user wants a local-model answer via oMLX."
+keywords: [omlx, mlx, local model, llm]
 argument-hint: "[question]"
 allowed-tools: Bash(curl:*), Bash(pgrep:*), Bash(jq:*), Bash(python3:*)
 ---

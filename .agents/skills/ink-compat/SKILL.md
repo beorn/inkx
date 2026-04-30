@@ -1,9 +1,12 @@
 ---
 description: Silvery vs Ink comparison, compat upgrade, benchmarking, and positioning analysis. One skill for all Ink-related work. Use when Ink releases a new version, when updating silvery-vs-ink docs, when benchmarking, or when planning silvery's positioning.
-argument-hint: [mode] — bench | upgrade | analyze | position | all (default: all)
+keywords: [ink, compatibility, benchmark, positioning, silvery]
+argument-hint: "[mode] - bench | upgrade | analyze | position | all (default: all)"
 ---
 
 # Ink Compatibility, Benchmarking & Positioning
+
+**Keywords**: ink, compatibility, benchmark, positioning, silvery
 
 **Mode**: $ARGUMENTS (default: `all`)
 
@@ -206,7 +209,7 @@ Update silvery's positioning docs based on current state of both projects.
    - Silvery horizons: `hub/roadmap.md` § Track 2
 
 2. **Update positioning bead**
-   - `km bd show km-silvery.positioning`
+   - `km bd show @km/silvery/positioning`
    - Update numbers, feature table, elevator pitches
 
 3. **Update silvery.dev docs**

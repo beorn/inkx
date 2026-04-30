@@ -1,11 +1,14 @@
 ---
 description: TUI exploration - interactive AI probing + targeted testing + randomized bug hunting. Use when exercising km view to find bugs, test scenarios, or inspect the live terminal.
+keywords: [explore, tui, bug hunting, terminal, randomized]
 argument-hint: [scenario | --gui | --fuzz | --path <vault> | km view <path>]
 benefits-from: [recall, tests, pm]
 escalate-to: {render: "discovered silvery pipeline bug", km: "discovered interaction or command bug"}
 ---
 
 # TUI Exploration
+
+**Keywords**: explore, tui, bug hunting, terminal, randomized
 
 **This skill is now part of the centralized testing docs.**
 

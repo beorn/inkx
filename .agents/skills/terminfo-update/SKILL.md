@@ -198,11 +198,10 @@ return `pass: true`.
 
 3. **Create a bead** for each in-scope failure:
    ```bash
-   km bd create \
-     --id km-termless.vterm-<feature-slug> \
+   km bd create "vterm: implement <feature-name>" \
      --type task \
-     --priority 3 \
-     --title "vterm: implement <feature-name>"
+     --priority P3 \
+     --id @km/vterm/<feature-slug>
    ```
 
 4. **Bead description** should include:
@@ -210,7 +209,7 @@ return `pass: true`.
    - The expected behavior from the probe definition — this is the acceptance test
    - Brief note on what the implementation requires (e.g., "handle CSI Ps ; Ps ; Ps ; Ps $ v")
 
-5. **Parent all beads under `km-termless`** — they are vterm implementation tasks.
+5. **Parent all vterm/vt100.js/vt220.js/vterm.js implementation beads under `@km/vterm`** — they are vterm implementation tasks, not termless tasks.
 
 ### Key Constraint
 
@@ -228,5 +227,5 @@ probe passes with correct output verification.
 ## Related Beads
 
 - km-terminfo (epic) — terminfo.dev feature database
-- km-termless.terminfo-probe-coverage — upgrade partial probes to full verification
+- @km/vterm/terminfo-probe-coverage — upgrade partial probes to full verification
 - km-market.terminfo-completeness — content completeness + CI/CD

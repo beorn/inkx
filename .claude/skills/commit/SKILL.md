@@ -6,6 +6,8 @@ allowed-tools: Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git p
 
 # Commit
 
+**Keywords**: commit, git commit, staged, unstaged
+
 ## Context
 
 - Branch: !`git branch --show-current`
@@ -13,7 +15,7 @@ allowed-tools: Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git p
 - Diff stats: !`git diff --stat`
 - Diffs (excluding vendor): !`git diff -U2 -- ':!vendor' | head -300`
 - Submodules: !`{ for d in vendor/*/; do [ -e "$d.git" ] || continue; pd=$(git diff -- "$d" 2>/dev/null | head -5); ss=$(cd "$d" && git status --porcelain 2>/dev/null); sl=$(cd "$d" && git log --oneline -3 2>/dev/null); sd=$(cd "$d" && git diff --stat 2>/dev/null); [ -z "$pd" ] && [ -z "$ss" ] && continue; echo "--- $d ---"; echo "pointer: ${pd:-(clean)}"; echo "status: ${ss:-(clean)}"; echo "log: $sl"; echo "diff: ${sd:-(none)}"; done; }`
-- Beads: !`km bd list --status in_progress 2>/dev/null | head -5 || echo "(none)"`
+- Beads: !`km bd list --status wip 2>/dev/null | head -5 || echo "(none)"`
 - Recent commits: !`git log --oneline -5`
 
 ## Instructions

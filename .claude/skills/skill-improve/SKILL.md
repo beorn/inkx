@@ -5,6 +5,8 @@ argument-hint: [skill name to improve]
 
 # Skill Improve — Automated Refinement Loop
 
+**Keywords**: skill improve, refine skill, polish skill
+
 **Skills decay. Requirements shift. Patterns evolve. This skill keeps other skills sharp.**
 
 Runs an automated fix-review cycle: execute the skill on real or synthetic tasks, observe where it underperforms, fix it, verify the fix, repeat until stable.

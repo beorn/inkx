@@ -1,5 +1,6 @@
 ---
 description: "TDD mode — reproduce first, fix second. Use PROACTIVELY when the user reports a bug, requests a feature, or says 'fix'. Also use when you catch yourself reading source code before writing a test."
+keywords: [tdd, test first, reproduce, bug, fix]
 argument-hint: [bug or feature description]
 benefits-from: [pm, recall]
 escalate-to: {render: "dirty flag or incremental rendering issue", arch: "layer boundary or invariant question"}
@@ -15,14 +16,14 @@ This applies to **bugs AND features**. For bugs: reproduce the broken behavior. 
 
 $ARGUMENTS
 
-**If no arguments**: Look at the recent conversation for bug reports, feature requests, or user-described issues. Check active beads (`km bd list --status in_progress`). Infer what needs TDD from context — don't ask "what should I test?"
+**If no arguments**: Look at the recent conversation for bug reports, feature requests, or user-described issues. Check active beads (`km bd list --status wip`). Infer what needs TDD from context — don't ask "what should I test?"
 
 ## Step 0: Context Before Code
 
 Before writing anything:
 1. **`bun recall "keywords"`** — has this been diagnosed before?
 2. **Check screenshots** — if the user mentioned one, `ls -lt ~/Desktop/*.png | head -5` and read it
-3. **Create/claim a bead** if one doesn't exist — `km bd create --id km-tui.<slug> --type bug ...`
+3. **Create/claim a bead** if one doesn't exist — `km bd create "<title>" --type bug --priority P2 --id @km/tui/<slug>`
 
 ## Step 1: Pick the Right Reproduction Tool
 

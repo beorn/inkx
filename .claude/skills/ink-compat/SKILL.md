@@ -1,9 +1,11 @@
 ---
 description: Silvery vs Ink comparison, compat upgrade, benchmarking, and positioning analysis. One skill for all Ink-related work. Use when Ink releases a new version, when updating silvery-vs-ink docs, when benchmarking, or when planning silvery's positioning.
-argument-hint: [mode] — bench | upgrade | analyze | position | all (default: all)
+argument-hint: "[mode] - bench | upgrade | analyze | position | all (default: all)"
 ---
 
 # Ink Compatibility, Benchmarking & Positioning
+
+**Keywords**: ink, compatibility, benchmark, positioning, silvery
 
 **Mode**: $ARGUMENTS (default: `all`)
 

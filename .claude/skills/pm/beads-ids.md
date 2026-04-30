@@ -60,10 +60,10 @@ km-<scope>-<N>
 **Metadata carries classification:**
 
 ```bash
-km bd create --id km-storage-15 \
+km bd create "Race condition in file sync" \
   --type bug \
-  --title "Race condition in file sync" \
-  --priority 0 \
+  --priority P0 \
+  --id @km/storage/race-condition-file-sync \
   --labels sync,phase:testing
 ```
 
@@ -292,11 +292,11 @@ km bd list --all | grep "km-storage-"
 # km-storage-1, km-storage-2 exist
 
 # 2. Create with full ID
-km bd create --id km-storage-10 \
+km bd create "Race condition in file sync" \
   --type bug \
-  --title "Race condition in file sync" \
   --description "Files occasionally not written when..." \
-  --priority 0 \
+  --priority P0 \
+  --id @km/storage/race-condition-file-sync \
   --labels sync
 ```
 
@@ -304,30 +304,31 @@ km bd create --id km-storage-10 \
 
 ```bash
 # Parent feature
-km bd create --id km-tui-8 \
-  --type feat \
-  --title "Add vim keybindings"
+km bd create "Add vim keybindings" \
+  --type feature \
+  --priority P2 \
+  --id @km/tui/vim-keybindings
 
-# Subtasks (NOTE: --id and --parent CANNOT be combined, use two steps)
-km bd create --id @km/tui-8/1 --type task --title "Normal mode navigation"
-km bd update @km/tui-8/1 --parent km-tui-8
+# Subtasks
+km bd create "Normal mode navigation" --type task --priority P2 --id @km/tui/vim-keybindings-normal-mode
 
-km bd create --id @km/tui-8/2 --type task --title "Visual selection mode"
-km bd update @km/tui-8/2 --parent km-tui-8
+km bd create "Visual selection mode" --type task --priority P2 --id @km/tui/vim-keybindings-visual-selection
 ```
 
 ### Cross-Cutting Epic
 
 ```bash
 # Epic (keyword-based, no scope number)
-km bd create --id km-dark-mode \
+km bd create "Dark mode support" \
   --type epic \
-  --title "Dark mode support"
+  --priority P2 \
+  --id @km/ui/dark-mode
 
 # Related feature in specific package
-km bd create --id km-tui-9 \
-  --type feat \
-  --title "Theme toggle component" \
+km bd create "Theme toggle component" \
+  --type feature \
+  --priority P2 \
+  --id @km/tui/theme-toggle-component \
   --deps "blocks:km-dark-mode"
 ```
 
@@ -335,16 +336,16 @@ km bd create --id km-tui-9 \
 
 ```bash
 # Let bd generate opaque ID
-km bd create --type bug \
-  --title "CLI crashes on --help" \
-  --priority 0
+km bd create "CLI crashes on --help" \
+  --type bug \
+  --priority P0
 # → Creates km-xxxxx
 
 # Or specify a keyword
-km bd create --id km-help-crash \
+km bd create "CLI crashes on --help" \
   --type bug \
-  --title "CLI crashes on --help" \
-  --priority 0
+  --priority P0 \
+  --id @km/cli/help-crash
 ```
 
 ## Renaming IDs

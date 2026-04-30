@@ -68,7 +68,7 @@ km bd list --status open
 km bd list --status wip
 km bd list --type bug
 km bd list --priority P0            # P0 only
-km bd list --priority 0             # numeric form also accepted
+km bd list --priority P0
 km bd list --assignee beorn
 km bd list --all                    # Include all statuses
 km bd list --blocked                # Only blocked
@@ -125,9 +125,9 @@ km bd create "Race in file sync" --type bug \
   --description "Files occasionally not written when..." \
   --priority P0 --id race-in-file-sync
 
-# Create under a parent (split shortcut: --parent + --id)
+# Create under a scope with a path-form id
 km bd create "Normal mode navigation" --type task \
-  --parent km-tui --id normal-mode-nav
+  --priority P2 --id @km/tui/normal-mode-nav
 
 # With acceptance criteria and design notes
 km bd create "Search bar" --type feature --id search-bar \
@@ -135,7 +135,7 @@ km bd create "Search bar" --type feature --id search-bar \
   --design "Use fuzzy matching via fzf algorithm"
 ```
 
-**`--id` is the full identity. `--parent` is a split shortcut for `--id <parent>/<leaf>`.** If both are passed and they overlap (e.g. `--parent foo --id foo/bar`), the command errors. Auto-scope-derive (`--id wt.1` → parent `@km/wt`) was removed 2026-04-29.
+**`--id` is the full identity.** Prefer path-form ids for scoped beads, e.g. `--id @km/tui/normal-mode-nav`. Avoid create-time `--parent + --id` split forms; auto-scope-derive (`--id wt.1` → parent `@km/wt`) was removed 2026-04-29.
 
 ## Updating beads
 
@@ -316,20 +316,18 @@ km bd prime                       # Print workflow context + recent memories
 
 ### `--id` and `--parent` overlap
 
-`--id` is the full identity. `--parent X --id <leaf>` is a split shortcut. Passing both with overlap (`--parent foo --id foo/bar`) errors out.
+`--id` is the full identity. Prefer path-form ids for scoped beads. Create-time `--parent + --id` split forms are easy to misuse and should not appear in skill examples.
 
 ```bash
-# These are equivalent:
+# Preferred:
 km bd create "Normal mode nav" --id @km/tui/normal-mode-nav --type task
-km bd create "Normal mode nav" --parent km-tui --id normal-mode-nav --type task
 
-# This errors (overlap):
-km bd create "Normal mode nav" --parent km-tui --id @km/tui/normal-mode-nav --type task
+# This is a bad split form; do not use it in skills:
+km bd create "Normal mode nav" --parent @km/tui --id normal-mode-nav --type task
 
 # This is just the literal id "wt.1" (no auto-scope-derive):
 km bd create "Slot 1" --id wt.1
-# To put it under @km/wt, write either form explicitly:
-km bd create "Slot 1" --parent km-wt --id 1
+# To put it under @km/wt, write the path form explicitly:
 km bd create "Slot 1" --id @km/wt/1
 ```
 
@@ -341,7 +339,7 @@ These flags DON'T EXIST — check `km bd <cmd> --help` if unsure:
 | ---------------------------------- | ----------------------------------------------------- |
 | `km bd close --note "x"`           | `km bd close --reason "x"`                            |
 | `km bd update --id km-x`           | `km bd update km-x` (positional)                      |
-| `km bd create --name`              | `km bd create --title` or `km bd create <title>` (positional) |
+| `km bd create --name`              | `km bd create <title>` (positional)                           |
 | `km bd update --desc`              | `km bd update --description` or `-d`                  |
 | `km bd update --append-notes`      | `km bd update --notes` (already appends)              |
 | Use bare `bd` (no `km` prefix)     | Always `km bd` — the Go binary is gone                |

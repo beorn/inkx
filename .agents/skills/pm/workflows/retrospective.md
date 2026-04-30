@@ -46,13 +46,13 @@ km bd update <slice-epic> --parent <program-epic>
 
 **Don't bulk-rewrite.** Each re-parent is a reporting-hierarchy change. Manual confirmation per bead. Slice epics that are 100% the program → re-parent. Slice epics that contain non-program work too → leave parented to their natural home, accept that the program retro is the canonical aggregator.
 
-**This is the work the original /pm skill missed.** `km bd create --id` can't combine with `--parent`, so the second step gets forgotten under load. Future fix: see km-all.bead-parent-discipline (file if not yet created).
+**This is the work the original /pm skill missed.** Use path-form scoped ids (`@km/<scope>/<slug>`) at creation time so the bead lands in the right namespace without a separate parent-repair step. Future fix: see @km/all/bead-parent-discipline (file if not yet created).
 
 ## Step 2: Locate the program's evidence
 
 ```bash
 git log --oneline --since=<start> --until=<end> -- <scope-paths>
-km bd list --parent <epic-id> --status closed
+km bd list --parent <epic-id> --status done
 bun recall --raw "<program-keyword>" -n 30
 ```
 

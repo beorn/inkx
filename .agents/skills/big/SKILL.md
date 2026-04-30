@@ -1,13 +1,18 @@
 ---
 name: big
 description: "META-PROTOCOL for reframing the problem: generate 10-20 hypotheses, run at least two rounds, and find the design where the bug cannot happen. Use when a fix feels like a patch, the same area keeps breaking, or the user asks to think bigger. Subsumes /fresh."
+keywords: [big, think big, reframe, hypotheses, architecture]
 argument-hint: "[problem or area]"
 benefits-from: [recall, beads, ask, pro, deep, csw]
 ---
 
 # /big - Think Big
 
+**Keywords**: big, think big, reframe, hypotheses, architecture
+
 This is a Codex skill, not a standalone LLM tool. Its job is to stop a patch spiral and find the design where the current problem becomes impossible or much harder to create.
+
+**STOP fixing. START reframing.**
 
 Use this when:
 - The same class of bug has appeared repeatedly.
@@ -62,7 +67,7 @@ Do not spend forever on each hypothesis; 2-5 minutes is enough unless one clearl
 
 ## External Perspective
 
-Use at least one external perspective unless the user has explicitly forbidden model/API spend. Pick the cheapest tool that fits:
+Your own hypotheses have blind spots. Use at least one external perspective unless the user has explicitly forbidden model/API spend. Pick the cheapest tool that fits:
 
 - Quick prior art or a second opinion: use the `ask` skill and run `bun llm ...`.
 - Hard architecture or code review: use the `pro` skill and run `bun llm pro -y --no-recover --context-file <ctx> "..."`.
@@ -135,10 +140,10 @@ Split follow-up into `DO` and `ASK`.
 For bead creation, use the `beads` skill and the current Codex bead command style, for example:
 
 ```bash
-bd create --id km-<scope>.<slug> --title "<title>" --priority P3 --description "<design summary>"
+km bd create "<title>" --type task --priority P3 --id @km/<scope>/<slug>
 ```
 
-Do not use legacy Claude command forms such as `--parent km-silvery --id better-scroll-defaults`; prefer a full bead id like `km-silvery.better-scroll-defaults`.
+Do not use legacy Claude command forms such as `--parent km-silvery --id better-scroll-defaults`; prefer the path form used by the current bead workflow, such as `@km/silvery/better-scroll-defaults`.
 
 ## Output Discipline
 

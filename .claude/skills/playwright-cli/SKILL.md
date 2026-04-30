@@ -7,6 +7,8 @@ allowed-tools: Bash(bunx @playwright/cli*)
 
 # Browser Automation with playwright-cli (via bunx)
 
+**Keywords**: playwright, browser, screenshot, form, web test
+
 ## Quick start
 
 ```bash

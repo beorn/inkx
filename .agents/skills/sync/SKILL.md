@@ -1,5 +1,6 @@
 ---
 description: "Deprecated — split into /merge (reduce WIP) and /daily (cadence routines). This skill redirects."
+keywords: [sync, merge, daily, deprecated]
 argument-hint: ""
 allowed-tools: Read
 ---

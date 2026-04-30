@@ -1,18 +1,22 @@
 ---
-description: Codex configuration drift — audit, register, and repair hooks, skills, sub-agents, and MCP servers. Use when adding a hook, checking why a hook isn't firing, resolving drift-checker failures, or reviewing the full Codex config surface.
-keywords: hook, hooks, MCP, skill, agent, sub-agent, settings.json, WorktreeCreate, PreToolUse, PostToolUse, SessionStart, SessionEnd, PreCompact, UserPromptSubmit, SubagentStop, Codex config, config drift, lint-claude-config, orphan hook, manifest
+description: Agent configuration drift — audit skills and MCP, plus Claude Code hooks/sub-agents. Use when adding MCP servers, fixing skill drift, or checking Claude Code hook registration.
+keywords: MCP, skill, agent, sub-agent, settings.json, WorktreeCreate, PreToolUse, PostToolUse, SessionStart, SessionEnd, PreCompact, UserPromptSubmit, SubagentStop, Claude Code hooks, Codex config, config drift, lint-claude-config, orphan hook, manifest
 argument-hint: [audit|manifests|fix]
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
-# Codex Config — Drift Audit, Manifests, and Registration Recipes
+# Agent Config — Drift Audit, Manifests, and Registration Recipes
 
-**Keywords**: hook, MCP, skill, agent, settings.json, WorktreeCreate, PreToolUse, PostToolUse, SessionStart, SessionEnd, PreCompact, UserPromptSubmit, SubagentStop, Codex config, config drift, orphan hook, manifest
+**Keywords**: MCP, skill, agent, settings.json, WorktreeCreate, PreToolUse, PostToolUse, SessionStart, SessionEnd, PreCompact, UserPromptSubmit, SubagentStop, Claude Code hooks, Codex config, config drift, orphan hook, manifest
 
-This skill is the single entry point for anything touching Codex's
-per-project configuration surface in km: hooks, skills, sub-agents, MCP
-servers, and project config. Load it whenever you need to add, debug, or
-audit any of those things.
+This skill is the single entry point for agent-facing configuration drift in
+km: Codex skills and MCP servers, plus Claude Code hooks and sub-agents. Load
+it whenever you need to add, debug, or audit any of those things.
+
+Important boundary: hook events such as `UserPromptSubmit`, `SessionStart`,
+`PreCompact`, and `SubagentStop` are Claude Code hooks in this repo. They are
+not currently a Codex hook surface. For Codex MCP setup, use `.mcp.json` and
+restart/reload the agent runtime so the server is loaded into the session.
 
 ## Why this exists
 
@@ -52,12 +56,14 @@ These are the first thing to read when you're asked to "add a hook" or
 ## Key files
 
 ```
-.codex/config.toml             # project Codex config
+.codex/config.toml             # project Codex trust/config
 ~/.codex/config.toml           # user-level Codex config
-.claude/hooks/*.sh             # hook scripts
-.agents/skills/<name>/SKILL.md # skills
-.claude/agents/<group>/*.md    # sub-agents
-.mcp.json                      # MCP servers
+.agents/skills/<name>/SKILL.md # Codex skills
+.mcp.json                      # MCP servers loaded by agent runtimes
+.claude/settings.json          # Claude Code project hooks
+~/.claude/settings.json        # Claude Code user hooks
+.claude/hooks/*.sh             # Claude Code hook scripts
+.claude/agents/<group>/*.md    # Claude Code sub-agents
 ```
 
 ## Registration recipes
@@ -65,7 +71,7 @@ These are the first thing to read when you're asked to "add a hook" or
 ### Hook
 
 ```jsonc
-// .codex/config.toml
+// .claude/settings.json
 {
   "hooks": {
     "WorktreeCreate": [
@@ -153,7 +159,7 @@ System prompt body ...
 
 | Failure | Root cause | Fix |
 | --- | --- | --- |
-| Orphan hook script | file exists, no registration | register it in `.codex/config.toml`, or add `# Hook-Status: internal`, or delete the script |
+| Orphan hook script | file exists, no registration | register it in Claude Code settings, or add `# Hook-Status: internal`, or delete the script |
 | Broken registration | `.sh` path referenced in config doesn't exist | fix the path or remove the registration |
 | Invalid skill | `SKILL.md` missing or no `description` in frontmatter | add frontmatter |
 | Invalid agent | agent `.md` missing `name` or `description` | add frontmatter |

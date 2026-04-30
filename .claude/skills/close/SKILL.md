@@ -115,7 +115,7 @@ Build the kill list before touching anything. Seven surfaces, in priority order 
    `git log origin/main..HEAD` per worktree. Only flag worktrees this session created
    (others belong to peer sessions).
 
-6. **In-progress beads claimed by this session** — `km bd list --status in_progress --assignee "$USER" 2>/dev/null | head -20`.
+6. **In-progress beads claimed by this session** — `km bd list --status wip --assignee "$USER" 2>/dev/null | head -20`.
 
 7. **Uncommitted changes** in the main repo and any worktree this session touched — `git status --porcelain`.
 

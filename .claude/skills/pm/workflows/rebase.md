@@ -33,8 +33,8 @@ Assess recent work by running these commands **in parallel**:
 | Command | Purpose |
 |---------|---------|
 | `git log --oneline -20 --since="8 hours ago"` | Recent commits this session |
-| `km bd list --status in_progress --long` | Currently claimed beads |
-| `km bd list --assignee "$USER" --status closed --limit 10 --sort updated` | Recently closed by me |
+| `km bd list --status wip --long` | Currently claimed beads |
+| `km bd list --assignee "$USER" --status done --limit 10 --sort updated` | Recently closed by me |
 | `git status --short` | Uncommitted changes |
 
 Output summary table:
@@ -71,7 +71,7 @@ Only ask if genuinely ambiguous (e.g., partial commits, unclear if done).
 
 After all beads processed, sync:
 ```bash
-git add .beads && git commit -m "chore: sync beads (rebase)"
+git add @km/ && git commit -m "chore: sync beads (rebase)"
 ```
 
 ---
@@ -175,9 +175,9 @@ km bd update km-target --notes "Absorbed km-dupe scope"
 **Split** - Break large bead into smaller pieces:
 ```bash
 # Create child beads, update parent to epic
-km bd update km-big --type epic
-km bd create --id @km/big/1 --title "First part" --parent km-big
-km bd create --id @km/big/2 --title "Second part" --parent km-big
+km bd update @km/big --type epic
+km bd create "First part" --type task --priority P2 --id @km/big/first-part
+km bd create "Second part" --type task --priority P2 --id @km/big/second-part
 ```
 
 **Delete** - Remove obsolete or invalid beads:
@@ -188,8 +188,8 @@ km bd close km-obsolete --reason "No longer relevant after <context>"
 **Create** - Capture new work that emerged:
 ```bash
 # Work discovered during implementation
-km bd create --id km-new-thing --title "Handle edge case X" \
-  --description "Discovered while working on km-original"
+km bd create "Handle edge case X" --type task --priority P2 --id @km/new/thing \
+  --description "Discovered while working on @km/original"
 ```
 
 **Keep** - No changes needed (default, no action required)
@@ -283,8 +283,8 @@ If user chose to group multiple beads:
 # Find next ID
 NEXT_ID=$(km bd list --json | jq -r '[.[] | .id | select(startswith("km-epic-"))] | map(split("-")[2] | tonumber) | max + 1')
 
-km bd create --id "km-epic-$NEXT_ID" --type epic \
-  --title "Sprint: <theme>" \
+km bd create "Sprint: <theme>" --type epic --priority P2 \
+  --id "@km/<scope>/sprint-$NEXT_ID" \
   --description "Umbrella for related work identified during rebase"
 
 # Add children
@@ -302,7 +302,7 @@ km bd dep add km-second km-first  # second depends on first
 ### 7d. Sync Changes
 
 ```bash
-git add .beads && git commit -m "chore: reorganize beads (rebase)"
+git add @km/ && git commit -m "chore: reorganize beads (rebase)"
 ```
 
 ---
@@ -368,7 +368,7 @@ For fast rebase (skip confirmations):
 
 ```bash
 # Close all my in_progress as complete
-km bd list --status in_progress --assignee "$USER" --json | \
+km bd list --status wip --assignee "$USER" --json | \
   jq -r '.[].id' | \
   xargs -I{} km bd close {} --reason "Closed during quick rebase"
 

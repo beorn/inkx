@@ -34,7 +34,7 @@ Common origin-vs-local divergence we've hit:
 
 - Branch: !`git branch --show-current`
 - Uncommitted: !`git status --porcelain`
-- In-progress beads: !`km bd list --status in_progress 2>/dev/null | head -10 || echo "(none)"`
+- In-progress beads: !`km bd list --status wip 2>/dev/null | head -10 || echo "(none)"`
 - Recent commits: !`git log --oneline -10`
 - Diffs (truncated): !`git diff -U2 HEAD~5 -- ':!vendor' 2>/dev/null | head -200 || git diff -U2 -- ':!vendor' | head -200`
 - Uncommitted diffs: !`git diff -U2 | head -100`
@@ -47,7 +47,7 @@ A "program" is a multi-week multi-bead epic (e.g., plateau-90, tree-lenses, era2
 
 ### Step 0a: Re-parent orphaned program beads (retroactive fix)
 
-Before walking the parent tree, **fix unparented and mis-parented beads from this session.** Beads created mid-program often skip the `km bd update <id> --parent <epic>` step (because `km bd create --id` and `--parent` can't combine). Or they get parented to a slice-level epic but the cross-cutting program epic stays empty.
+Before walking the parent tree, **fix unparented and mis-parented beads from this session.** Beads created mid-program should usually use path-form ids such as `--id @km/silvery/better-scroll-defaults`, which encode the parent scope at creation time. If a bead still landed standalone, attach it deliberately with `km bd update <id> --parent <epic>`.
 
 ```bash
 # 1. Orphaned beads (no parent) with ID prefix matching a known epic
@@ -73,13 +73,13 @@ For each finding: confirm the new parent makes sense, then `km bd update <id> --
 
 ```bash
 # For each bead closed this session, check its parent epic transitively
-for id in $(km bd list --status closed --closed-after <session-start>); do
+for id in $(km bd list --status done --closed-after <session-start>); do
   parent=$(km bd show "$id" 2>&1 | grep -A1 PARENT | tail -1 | awk '{print $3}')
   [ -z "$parent" ] && continue
   # Walk UP the tree — slice epics may roll up to a program epic
   while [ -n "$parent" ]; do
     remaining=$(km bd list --parent "$parent" --status open 2>&1 | grep -c "^○")
-    closed=$(km bd list --parent "$parent" --status closed 2>&1 | grep -c "✓")
+    closed=$(km bd list --parent "$parent" --status done 2>&1 | grep -c "✓")
     if [ "$remaining" -eq 0 ] && [ "$closed" -ge 3 ]; then
       echo "EPIC-CLOSE: $parent has all $closed sub-beads closed — route to /pm retro $parent"
       break
@@ -119,7 +119,7 @@ For EVERY bead closed during this session (or this epic if auditing an epic):
 
 ```bash
 # Batch-verify all criteria for an epic — run this as ONE block
-km bd list --parent <epic-id> --status closed | while read id; do
+km bd list --parent <epic-id> --status done | while read id; do
   echo "=== $id ===" && km bd show $id 2>&1 | grep -A1 '/complete'
 done
 # Then run each grep command from the output

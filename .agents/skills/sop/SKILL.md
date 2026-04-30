@@ -334,7 +334,7 @@ token = resp['access_token']
 **Boundary**: owns tooling/automation/credentials/hosting — not product correctness, not package content
 **Checks**:
 - [ ] `ci-health` — `/infra ci` (GitHub Actions status across repos)
-- [ ] `hook-integrity` — are hooks registered and functional?
+- [ ] `hook-integrity` — are Claude Code hooks registered and functional?
 - [ ] `skill-health` — audit skills for MECE, staleness, dead stubs (see [_skill-health.md](_skill-health.md))
 - [ ] `tool-versions` — tsdown, vitest, oxlint up to date?
 - [ ] `account-health` — `bun accountly status` (credentials, quotas)
@@ -347,11 +347,11 @@ token = resp['access_token']
 - [ ] `llm-judge-pending` — `bun llm pro --judge-history --quick` dry-run (count of unjudged historical entries; informational — does not auto-fire judge)
 - [ ] `recall-index-staleness` — recall FTS5 index age <7 days (`bun recall status`) — stale index = degraded session-history surface
 - [ ] `recall-eval-baseline` — `bun tools/recall-eval.ts --quiet --mode baseline` against `hub/tribe/eval/recall-corpus.yaml` (15 pairs). Compares P@5 / R@5 / MRR / trap-hit rate against the baseline recorded in bead `km-tribe.recall-eval-corpus`. Catches retrieval-quality regressions from corpus drift, FTS5 index changes, planner edits, or upstream `bun recall` library changes. Cost ~$0.10/run (15 pairs × Haiku synth). Monthly is enough for regression detection; quarterly window uses `--runs 3` for noise reduction.
-- [ ] `tribe-doctor` — `bun tribe doctor` (daemon + MCP + hooks + env health). Tribe is the per-project coordination spine; broken daemon = silent session-coordination loss
-- [ ] `claude-config-drift` — `bun tools/lint-claude-config.ts` (hooks/skills/agents/MCP registration drift across `.claude/`)
+- [ ] `tribe-doctor` — `bun tribe doctor` (daemon + MCP + Claude Code hooks + env health). Tribe is the per-project coordination spine; broken daemon = silent session-coordination loss
+- [ ] `claude-config-drift` — `bun tools/lint-claude-config.ts` (Claude Code hooks, skills, agents, and MCP registration drift)
 - [ ] `upstream-waiting` — review the perpetual upstream-blocked registry (workarounds awaiting upstream fixes). Authoritative workflow: [.agents/skills/pm/workflows/upstream.md](../pm/workflows/upstream.md) §8 "Register for tracking". Procedure:
   1. **Run the lint script first**: `bash packages/km-infra/scripts/check-upstream-markers.sh` — surfaces any bead↔code-marker drift (orphan markers, marker-less beads). Resolve mismatches before proceeding.
-  2. `km bd list --parent km-all.upstream-waiting --status open` — list every open child
+  2. `km bd list --parent @km/all/upstream-waiting --status open` — list every open child
   3. For each child, fetch the linked upstream URL (`gh issue view`, `gh pr view`, or `WebFetch`); compare against the bead's "Status:" line. Status is a 4-state enum: `filed-upstream` (issue/PR open, not yet merged — most beads sit here for months) | `merged-upstream` (PR landed, no release yet) | `released-upstream` (in a tagged release we COULD consume, but our deps still pin older) | `adopted-locally` (our package.json/lockfile actually consumes the fix — only state where unwind can run).
   4. Update "Last checked: <today>" in the bead description (always — even if nothing changed; this is how we detect orphaned beads later).
   5. **Check `Escalate by: <YYYY-MM-DD>`** — if within 30 days, surface for re-decision now (don't wait for the date to pass). Re-decision options: `vendorize` | `fork` | `accept owned divergence` | `continue waiting`. If "accept owned divergence" → move bead to `km-all.owned-divergence` (perpetual sibling registry) and update its code marker from `UPSTREAM-WAITING` to `OWNED-DIVERGENCE`. If "continue waiting" → bump `Escalate by` 6 months with a written reason.
@@ -634,7 +634,7 @@ When a CI failure is found:
 
 ### Hook Debugging
 
-Expected hooks: PreToolUse:Bash (DCG safety), UserPromptSubmit (auto-recall), PreCompact (beads context), SessionStart (BD_ACTOR, recall index), SessionEnd (kill vitests, prune tribe), SubagentCleanup, WorktreeCreate.
+Expected Claude Code hooks: PreToolUse:Bash (DCG safety), UserPromptSubmit (auto-recall), PreCompact (beads context), SessionStart (BD_ACTOR, recall index), SessionEnd (kill vitests, prune tribe), SubagentCleanup, WorktreeCreate. Do not assume these hooks exist in Codex; Codex integration is via `.agents/skills` and `.mcp.json`.
 
 Check hooks are executable: `for hook in .claude/hooks/*.sh; do [ -x "$hook" ] && echo "OK: $hook" || echo "NOT EXECUTABLE: $hook"; done`
 

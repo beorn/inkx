@@ -134,12 +134,12 @@ If larger refactors identified, track in beads:
 DATE_SUFFIX=$(date +%m%d)
 
 # Create review bead with findings
-km bd create --id "km-rev-types-$DATE_SUFFIX" --type=task --priority=2 \
-  --title="Type safety review findings" --body-file /tmp/review.md
+km bd create "Type safety review findings" --type task --priority P2 \
+  --id "@km/rev/types-$DATE_SUFFIX" --body-file /tmp/review.md
 
-# Child beads for each refactor (set parent AFTER creation - --id and --parent conflict)
-km bd create --id "km-rev-types-$DATE_SUFFIX.a" --title="<finding 1>" --type=task
-km bd update "km-rev-types-$DATE_SUFFIX.a" --parent "km-rev-types-$DATE_SUFFIX"
+# Child beads for each refactor
+km bd create "<finding 1>" --type task --priority P2 --id "@km/rev/types-$DATE_SUFFIX-a"
+km bd update "@km/rev/types-$DATE_SUFFIX-a" --parent "@km/rev/types-$DATE_SUFFIX"
 ```
 
 ---
@@ -217,18 +217,18 @@ For significant gaps identified:
 DATE_SUFFIX=$(date +%m%d)
 
 # Example: Missing type infrastructure
-km bd create --id "km-proc-types-utils-$DATE_SUFFIX" --type=task --priority=3 \
-  --title="Create type utilities package" \
+km bd create "Create type utilities package" --type task --priority P3 \
+  --id "@km/proc/types-utils-$DATE_SUFFIX" \
   --body="Review found repeated inline types. Add shared utilities for common patterns."
 
 # Example: Documentation gap
-km bd create --id "km-proc-types-docs-$DATE_SUFFIX" --type=task --priority=3 \
-  --title="Document type safety patterns" \
+km bd create "Document type safety patterns" --type task --priority P3 \
+  --id "@km/proc/types-docs-$DATE_SUFFIX" \
   --body="Add FFI boundary examples, Result type patterns, and type guard recipes to docs/"
 
 # Example: Tooling improvement
-km bd create --id "km-proc-type-coverage-$DATE_SUFFIX" --type=task --priority=3 \
-  --title="Add type-coverage to CI" \
+km bd create "Add type-coverage to CI" --type task --priority P3 \
+  --id "@km/proc/type-coverage-$DATE_SUFFIX" \
   --body="Enforce 90%+ type coverage to prevent regression"
 ```
 

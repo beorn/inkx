@@ -6,6 +6,8 @@ allowed-tools: Bash, Read, Glob, Grep, Task, AskUserQuestion
 
 # /discuss — Implementation Discussion Mode
 
+**Keywords**: discuss, pause, architecture, alternatives
+
 ## Commands
 
 | Command | Action |
@@ -17,7 +19,7 @@ allowed-tools: Bash, Read, Glob, Grep, Task, AskUserQuestion
 
 ## `/discuss <topic>` — Start
 
-1. Find active bead: `km bd list --status in_progress --assignee "$USER" --limit 1`
+1. Find active bead: `km bd list --status wip --assignee "$USER" --limit 1`
 2. If bead found: gather state (`git status --short`, `git diff --stat`, current step, metrics), **prepend** checkpoint to bead notes:
    ```
    ## Discussion checkpoint (YYYY-MM-DD)

@@ -32,7 +32,7 @@ Everything below depends on knowing the current Codex session id. It's the join 
 between team configs, task ledgers, transcript jsonl, and process tree.
 
 ```bash
-# Option A: env var (set by some harnesses)
+# Option A: env var (set by some harnesses; the name is historical)
 sid="${CLAUDE_SESSION_ID:-}"
 
 # Option B (fallback): newest jsonl in this project's transcript dir
@@ -55,7 +55,8 @@ Build the kill list before touching anything. Seven surfaces, in priority order 
    `TaskList` only shows the current session's tasks. Teams created in a prior session
    (especially ones rolled over through `/compact`) won't appear there. The fix:
    ```bash
-   # CLAUDE_SESSION_ID may not be set — derive it from the most recent transcript jsonl
+   # CLAUDE_SESSION_ID may not be set — derive it from the most recent transcript jsonl.
+   # Do not infer from Claude Code hook state; Codex does not use that hook surface.
    sid="${CLAUDE_SESSION_ID:-$(ls -t ~/.codex/projects/$(pwd | sed 's|/|-|g')/*.jsonl 2>/dev/null | head -1 | xargs -I{} basename {} .jsonl)}"
 
    # Find every team where I am the lead
@@ -115,7 +116,7 @@ Build the kill list before touching anything. Seven surfaces, in priority order 
    `git log origin/main..HEAD` per worktree. Only flag worktrees this session created
    (others belong to peer sessions).
 
-6. **In-progress beads claimed by this session** — `km bd list --status in_progress --assignee "$USER" 2>/dev/null | head -20`.
+6. **In-progress beads claimed by this session** — `km bd list --status wip --assignee "$USER" 2>/dev/null | head -20`.
 
 7. **Uncommitted changes** in the main repo and any worktree this session touched — `git status --porcelain`.
 

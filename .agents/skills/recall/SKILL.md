@@ -16,12 +16,12 @@ Unified CLI for searching, managing, and recovering Codex session history.
 
 ## Auto-Recall
 
-Memory recall fires automatically on every non-trivial prompt via UserPromptSubmit hook.
-You usually don't need to search manually — prior knowledge appears as "Session Memory" context.
-When the lore daemon is up, the hook routes through `tribe.inject_delta` so dedup
-state is held in memory per session (no tmpfile I/O, no 400 ms subprocess spawn).
-The hook falls back to the library `hookRecall` path (tmpfile dedup) when the
-daemon is unreachable.
+In Claude Code, memory recall can fire automatically on every non-trivial
+prompt via the Claude-specific `UserPromptSubmit` hook. In Codex, do not assume
+that hook exists; use the `tribe.*` MCP tools or `bun recall` explicitly.
+When the lore daemon is up, `tribe.inject_delta` holds dedup state in memory per
+session. The library `hookRecall` path remains the Claude hook fallback when
+the daemon is unreachable.
 
 ## Recommended calling pattern
 
@@ -64,24 +64,27 @@ planner sees what the user was actually doing.
 
 **Session detection** (best to fallback):
 1. `CLAUDE_SESSION_ID` env var (if set)
-2. **Sentinel file** written by a SessionStart hook — deterministic; recommended
+2. **Sentinel file** written by a Claude Code SessionStart hook — deterministic
+   when running under Claude Code
 3. Most-recently-modified JSONL for the current project (fallback heuristic)
 
-For reliable detection under parallel sessions, install the SessionStart/SessionEnd
-hooks in `.codex/config.toml`. Use the unified `tribe` CLI (0.9.0+):
+For reliable detection under parallel Claude Code sessions, install the
+SessionStart/SessionEnd hooks in Claude Code settings. Use the unified `tribe`
+CLI (0.9.0+):
 
 ```bash
-bun tribe install           # writes hooks for SessionStart + SessionEnd
+bun tribe install           # writes Claude Code hooks + project MCP config
 bun tribe hook session-start  # the command the hook actually runs
 bun tribe hook session-end    # same, for session end
-bun tribe uninstall         # removes them
-bun tribe doctor            # verify daemon + MCP + hooks
+bun tribe uninstall         # removes the Claude Code hooks
+bun tribe doctor            # verify daemon + MCP + Claude hooks
 ```
 
 The old entry points (`bun recall session-start`, `bun recall session-end`,
 `bun recall hook`) still work but print a one-line stderr deprecation.
 
-The resulting `.codex/config.toml` hook block looks like:
+The resulting Claude Code hook block in `.claude/settings.json` or
+`~/.claude/settings.json` looks like:
 
 ```json
 {
@@ -118,8 +121,8 @@ Background index logs go to `~/.codex/bearly-sessions/index-bg.log`. Set
 `RECALL_NO_BG_INDEX=1` to disable auto-refresh. Both hooks are non-blocking —
 session start/end never wait on indexing.
 
-**Without the hooks**: run `bun recall index --incremental` manually; the mtime
-fallback keeps session detection working for single-session use.
+**Without the Claude hooks**: run `bun recall index --incremental` manually; the
+mtime fallback keeps session detection working for single-session use.
 
 ## Troubleshooting empty results
 
@@ -130,9 +133,9 @@ index freshness before assuming absence**:
 bun recall status | head -5   # shows "Last rebuild: Nd ago (stale)" if indexer is behind
 ```
 
-If stale, run `bun recall index --incremental` (or just start a new session —
-the SessionStart hook does it automatically). Empty results ≠ absent when the
-index hasn't caught up to recent sessions.
+If stale, run `bun recall index --incremental` (or, in Claude Code, start a new
+session so the SessionStart hook can do it automatically). Empty results ≠
+absent when the index hasn't caught up to recent sessions.
 
 `bun recall current-brief` exposes the detected session + paths/beads/tokens/tail
 for inspection. `tribe.brief()` (MCP) returns the same data but via the
@@ -245,11 +248,12 @@ bun recall --session abc123 "bug"
 ## Status Dashboard
 
 ```bash
-bun recall status          # Index health, activity, hooks, recommendations
+bun recall status          # Index health, activity, Claude hook config, recommendations
 bun recall status --json   # Structured output
 ```
 
-Shows: index health, active sessions, today's activity, message breakdown, hook config, recommendations.
+Shows: index health, active sessions, today's activity, message breakdown,
+Claude hook config, recommendations.
 
 ## Sessions
 

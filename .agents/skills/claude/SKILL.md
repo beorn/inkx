@@ -6,9 +6,11 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 # Codex Configuration
 
-**Keywords**: Codex skill, slash command, /command, MCP, AGENTS.md, hooks, permissions, plugin
+**Keywords**: Codex skill, slash command, /command, MCP, AGENTS.md, permissions, plugin
 
-Manage Codex: slash commands, plugins, MCP servers.
+Manage Codex: skills, plugins, MCP servers. Claude Code hook docs may be
+referenced for shared repo machinery, but Claude hook events are not Codex
+configuration.
 
 ## Quick Reference
 

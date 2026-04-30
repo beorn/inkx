@@ -5,6 +5,8 @@ argument-hint: [skill name to test, e.g. "tdd", "diagram", "review"]
 
 # Skill Test — TDD for Skills
 
+**Keywords**: skill test, adversarial, pressure test, tdd
+
 **Every skill has failure modes. Find them before users do.**
 
 Inspired by obra/superpowers' pressure testing approach: spawn subagents that exercise a skill under adversarial conditions, observe where the skill's instructions break down, then fix the skill.

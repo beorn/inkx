@@ -211,15 +211,15 @@ Verified: TUI test + GUI/TTY screenshot + user confirmed"
 Example (visual bug — all three layers):
 
 ```bash
-km bd close km-tui.xyz --reason "Fixed: CardColumn.tsx:42 — guard against empty children array
+km bd close @km/tui/xyz --reason "Fixed: CardColumn.tsx:42 — guard against empty children array
 Test: apps/km-tui/tests/card-column.test.tsx 'handles empty children'
-Verified: TUI test (expectNodeBorder passes) + GUI/TTY screenshot (/tmp/verify-km-tui.xyz.png) + user confirmed"
+Verified: TUI test (expectNodeBorder passes) + GUI/TTY screenshot (/tmp/verify-km-tui-xyz.png) + user confirmed"
 ```
 
 Example (logic bug — no GUI/TTY or user confirmation needed):
 
 ```bash
-km bd close km-tui.abc --reason "Fixed: state.ts:128 — reset stickyX on OOB
+km bd close @km/tui/abc --reason "Fixed: state.ts:128 — reset stickyX on OOB
 Test: apps/km-tui/tests/keyboard-navigation.test.tsx 'stickyX resets on boundary'
 Verified: TUI tests only — pure state bug, no visual component"
 ```

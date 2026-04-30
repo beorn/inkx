@@ -1,9 +1,12 @@
 ---
 description: "ASCII diagram creation — aligned boxes, trees, flow diagrams. Use when creating diagrams in markdown docs. Prevents the chronic misalignment bug."
+keywords: [diagram, ascii, flow, boxes, tree]
 argument-hint: [description of diagram to create]
 ---
 
 # Diagram — Aligned ASCII Art
+
+**Keywords**: diagram, ascii, flow, boxes, tree
 
 **LLMs cannot reliably align box-drawing characters by visual estimation.** Every box diagram you create will have misaligned borders unless you follow this protocol. This is not optional — it's a known limitation of token-by-token generation.
 

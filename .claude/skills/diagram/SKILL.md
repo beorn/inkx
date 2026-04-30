@@ -5,6 +5,8 @@ argument-hint: [description of diagram to create]
 
 # Diagram — Aligned ASCII Art
 
+**Keywords**: diagram, ascii, flow, boxes, tree
+
 **LLMs cannot reliably align box-drawing characters by visual estimation.** Every box diagram you create will have misaligned borders unless you follow this protocol. This is not optional — it's a known limitation of token-by-token generation.
 
 ## The Task

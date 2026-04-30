@@ -1,5 +1,6 @@
 ---
 description: "Tribe coordination — check sessions, send messages, view health/history. Use when user says /tribe."
+keywords: [tribe, sessions, agents, coordination]
 argument-hint: [sessions|send|health|history|retro|rename]
 allowed-tools: mcp__plugin_tribe_tribe__tribe_members, mcp__plugin_tribe_tribe__tribe_send, mcp__plugin_tribe_tribe__tribe_broadcast, mcp__plugin_tribe_tribe__tribe_history, mcp__plugin_tribe_tribe__tribe_rename, mcp__plugin_tribe_tribe__tribe_health, Bash(sqlite3:*)
 ---
@@ -98,14 +99,18 @@ bun tribe start            # Start daemon foreground
 bun tribe stop             # Stop daemon
 bun tribe reload           # Hot-reload daemon
 bun tribe watch            # Live event dashboard
-bun tribe install          # Install Codex hooks (SessionStart/SessionEnd)
-bun tribe uninstall        # Remove installed hooks
-bun tribe doctor           # Verify daemon + MCP + hooks + env
+bun tribe install          # Install Claude Code hooks + project MCP config
+bun tribe uninstall        # Remove installed Claude Code hooks
+bun tribe doctor           # Verify daemon + MCP + Claude Code hooks + env
 ```
 
 ## Notes
 
-- If tribe tools are not available (MCP server not loaded), tell the user to run `claude-tribe` instead of `Codex`
+- For Codex, the relevant integration is the `tribe` MCP server in `.mcp.json`.
+  Claude Code hook events such as `UserPromptSubmit`, `SessionStart`, and
+  `PreCompact` are Claude-specific and do not configure this Codex session.
+- If tribe tools are not available, the MCP server was not loaded into the
+  current session; restart/reload the agent runtime after changing `.mcp.json`.
 - The tribe DB is at `~/.local/share/tribe/tribe.db` (user-global default since 2026-04-18; legacy `.beads/tribe.db` is auto-migrated on first start)
 - `/tribe whoami` reads from the MCP server instructions (check if "chief" or "member" appears)
 - After updating tribe.ts, use `tribe.reload` to pick up changes without restarting the session

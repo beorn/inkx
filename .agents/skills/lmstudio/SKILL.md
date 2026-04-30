@@ -1,10 +1,13 @@
 ---
 description: "Query local LM Studio server on :1234; auto-starts via `lms server start` if down. Use when the user wants a local-model answer via LM Studio."
+keywords: [lmstudio, local model, lms, llm]
 argument-hint: "[question]"
 allowed-tools: Bash(curl:*), Bash(/Users/beorn/.lmstudio/bin/lms:*), Bash(~/.lmstudio/bin/lms:*), Bash(jq:*), Bash(python3:*), Bash(sleep:*)
 ---
 
 # lmstudio
+
+**Keywords**: lmstudio, local model, lms, llm
 
 Run a question through LM Studio's OpenAI-compatible server on `localhost:1234`, starting it on demand.
 

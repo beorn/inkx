@@ -7,7 +7,7 @@
         "mcp"
       ]
     },
-    "lore": {
+    "tribe": {
       "command": "bun",
       "args": [
         "vendor/bearly/plugins/tribe/lore/server.ts"

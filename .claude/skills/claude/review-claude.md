@@ -753,18 +753,18 @@ For significant improvements identified:
 DATE_SUFFIX=$(date +%m%d)
 
 # Example: Fix session errors
-km bd create --id "km-proc-claude-errors-$DATE_SUFFIX" --type=task --priority=1 \
-  --title="Fix top 3 Claude session error patterns" \
+km bd create "Fix top 3 Claude session error patterns" --type task --priority P1 \
+  --id "@km/proc/claude-errors-$DATE_SUFFIX" \
   --body="Add clarity to X, Y, Z based on session error analysis"
 
 # Example: Token optimization
-km bd create --id "km-proc-claude-tokens-$DATE_SUFFIX" --type=task --priority=2 \
-  --title="Reduce CLAUDE.md to <60 lines" \
+km bd create "Reduce CLAUDE.md to <60 lines" --type task --priority P2 \
+  --id "@km/proc/claude-tokens-$DATE_SUFFIX" \
   --body="Move X section to skill, delete Y redundant content, reference Z by file:line"
 
 # Example: Structural cleanup
-km bd create --id "km-proc-claude-cleanup-$DATE_SUFFIX" --type=task --priority=3 \
-  --title="Remove orphan docs and fix links" \
+km bd create "Remove orphan docs and fix links" --type task --priority P3 \
+  --id "@km/proc/claude-cleanup-$DATE_SUFFIX" \
   --body="Delete X files, update Y links in SKILL.md, add Z to .gitignore if needed"
 ```
 

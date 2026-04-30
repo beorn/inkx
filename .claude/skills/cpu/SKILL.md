@@ -219,7 +219,7 @@ grep -r "<relevant pattern>" vendor/bearly/tools/ --include="*.ts" | head -5
 Decision:
 - **Fix exists but process was running old code** → "Restart required — fix deployed in commit <hash>"
 - **Simple fix (add guard, cleanup handler)** → implement directly, commit
-- **Complex fix (architecture change)** → create a bead: `km bd create --id km-tribe.<slug> --type task --title "<title>"`
+- **Complex fix (architecture change)** → create a bead: `km bd create "<title>" --type task --priority P2 --id @km/tribe/<slug>`
 
 ## Phase 5: Verify
 

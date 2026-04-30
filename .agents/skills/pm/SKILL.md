@@ -1,6 +1,6 @@
 ---
 description: Issue tracking with beads. Use when creating, claiming, closing issues or coordinating work across sessions.
-argument-hint: [ready|review|work|do|show|close|sync|my|create|list] [id]
+argument-hint: "[ready|review|work|do|show|close|sync|my|create|list] [id]"
 allowed-tools: Bash, Read, TodoWrite, Task, EnterPlanMode, AskUserQuestion
 benefits-from: [recall, gbrain]
 ---
@@ -47,7 +47,7 @@ When user says `/pm <action>`, run these commands:
 | `/pm rebase`        | Load [workflows/rebase.md](workflows/rebase.md) for session reset | ask         |
 | `/pm replan`        | Load [workflows/rebase.md](workflows/rebase.md) (alias)      | ask         |
 | `/pm regroup`       | Load [workflows/rebase.md](workflows/rebase.md) (alias)      | ask         |
-| `/pm new <id> "t"`  | `km bd create --id <id> --title "t"` (check prefix: `km bd list --limit 1`) | action      |
+| `/pm new <id> "t"`  | `km bd create "t" --id <id>` (check prefix: `km bd list --limit 1`) | action      |
 | `/pm create ...`    | See [beads.md](beads.md) for full create syntax              | action      |
 | `/pm session start <focus>` | Create session bead, print ID (see below)              | action      |
 | `/pm session status` | Show current session bead's description                      | info        |
@@ -70,7 +70,7 @@ Commands have different intents that determine follow-up behavior:
 
 When user says `/pm work <id>` or `/pm do <id>`:
 
-1. **Claim the bead**: `km bd update <id> --claim` (sets assignee + status=in_progress)
+1. **Claim the bead**: `km bd update <id> --claim` (sets assignee + status=wip)
 2. **Get bead details**: `km bd show <id>` to determine type
 3. **Recall context**: `bun recall "<bead-id>"` — the session that created a bead contains the richest context (problem analysis, discussion, reasoning). The bead ID appears in that `km bd create` call and in subsequent `km bd show`/`km bd update` calls, so searching by ID surfaces all sessions that touched it. Supplement with `bun recall "<keywords>"` for related work that didn't reference the bead. If recall reveals the work is already done or the approach was already tried, update/close the bead accordingly.
 4. **Staleness check**: If bead is >1 week old and type is feature/task, verify requirements against current codebase before implementing. Update notes if verified. (Bugs: just verify repro still applies.)
@@ -84,25 +84,25 @@ The user's command IS the confirmation. Never re-ask intent that was already exp
 
 ## Scope Epics (Backlogs)
 
-Every bead belongs under a scope epic via `km-<scope>.<suffix>` dot notation. Scope epics are `type=epic` and serve as backlogs — their children are the open work for that scope.
+Every scoped bead should use path-form `@km/<scope>/<bead-name>` ids. Scope epics are `type=epic` and serve as backlogs — their children are the open work for that scope.
 
 | Epic | Scope | Example |
 |------|-------|---------|
-| `km-silvery` | silvery rendering engine | `km-silvery.bg-bleed` |
-| `km-flexily` | Flexily layout engine | `km-flexily.cold-start` |
-| `km-tui` | TUI app views/interaction | `km-tui.emptybody` |
-| `km-vitestx` | Test framework package | `km-vitestx.mdspec` |
-| `km-infra` | Monorepo infra (cross-cutting: CI, benchmarks, packaging) | `km-infra.ci-fuzz` |
-| `km-storage` | Storage layer | `km-storage.split-query` |
-| `km-tools` | km CLI tools & agent capabilities | `km-tools.bd-api` |
-| `km-bearly` | bearly: reusable Codex tools (@bearly/*) | `km-bearly.batch-refactor` |
-| `km-tribe` | Tribe coordination system | `km-tribe.testing` |
-| `km-markdown` | Markdown parser/serializer | `km-markdown.split-roundtrip` |
-| `km-review` | Code reviews (cross-cutting quality) | `km-review.feb-0203` |
+| `@km/silvery` | silvery rendering engine | `@km/silvery/bg-bleed` |
+| `@km/flexily` | Flexily layout engine | `@km/flexily/cold-start` |
+| `@km/tui` | TUI app views/interaction | `@km/tui/emptybody` |
+| `@km/vitestx` | Test framework package | `@km/vitestx/mdspec` |
+| `@km/infra` | Monorepo infra (cross-cutting: CI, benchmarks, packaging) | `@km/infra/ci-fuzz` |
+| `@km/storage` | Storage layer | `@km/storage/split-query` |
+| `@km/tools` | km CLI tools & agent capabilities | `@km/tools/bd-api` |
+| `@km/bearly` | bearly: reusable Codex tools (@bearly/*) | `@km/bearly/batch-refactor` |
+| `@km/tribe` | Tribe coordination system | `@km/tribe/testing` |
+| `@km/markdown` | Markdown parser/serializer | `@km/markdown/split-roundtrip` |
+| `@km/review` | Code reviews (cross-cutting quality) | `@km/review/feb-0203` |
 
 **Scoping rule**: If a bead belongs to a specific package, use `km-<package>`. If cross-cutting infra (CI, benchmarks, packaging), use `km-infra`. If cross-cutting non-infra (code reviews, multi-package quality), use `km-review`.
 
-**Creating**: Use `km-<scope>.<suffix>` ID, then `km bd update <id> --parent <epic>`.
+**Creating**: Prefer path-form IDs such as `@km/<scope>/<suffix>` so the bead lands under the scope at creation time.
 **Closing**: The parent-child link is preserved on closed beads automatically.
 
 ### Two Kinds of Epics
@@ -110,7 +110,7 @@ Every bead belongs under a scope epic via `km-<scope>.<suffix>` dot notation. Sc
 | Kind | Examples | Closes? | Meaning of 98% |
 |------|----------|---------|-----------------|
 | **Scope epic** (backlog) | `km-tui`, `km-silvery`, `km-infra` | **Never** — permanent backlog | "Only a few open items left" |
-| **Project epic** (finite) | `km-silvery.era2`, `km-silvery.tea` | **Yes** — when all children done | "Project complete" |
+| **Project epic** (finite) | `@km/silvery/era2`, `@km/silvery/tea` | **Yes** — when all children done | "Project complete" |
 
 **Scope epics are backlogs.** New bugs/features keep getting added. Don't close them even at 98%. Auto-close logic is gone (the old `bd epic close-eligible` was retired); project epics close manually via `km bd close` after verifying all children are done.
 
@@ -135,10 +135,9 @@ Session beads record what happened during a work session (especially `/explore` 
 ### `/pm session start <focus>`
 
 ```bash
-# Generate date-based ID: km-session.<MMDD><seq> (a, b, c for multiple same-day sessions)
-km bd create --id km-session.0215a --type task --title "Session: <focus>"
-km bd update km-session.0215a --parent km-tui  # or appropriate epic
-km bd update km-session.0215a --claim
+# Generate date-based ID: @km/session/<MMDD><seq> (a, b, c for multiple same-day sessions)
+km bd create "Session: <focus>" --type task --priority P2 --id @km/session/0215a
+km bd update @km/session/0215a --claim
 ```
 
 Print the session bead ID. This ID is used for all subsequent session updates.
@@ -196,7 +195,7 @@ Beads older than **1 week** are suspect — requirements may have drifted. Befor
 4. **Staleness check**: If bead is >1 week old, verify requirements (see above)
 5. **Implement**: Do the work
 6. **Complete**: `km bd close <id> --reason "..."`
-7. **Commit**: `git add .beads && git commit -m "chore: sync beads"`
+7. **Commit**: `git add @km/ && git commit -m "chore: sync beads"`
 
 ## Acceptance Bullet Rule
 
@@ -204,15 +203,14 @@ Every Acceptance bullet on a new bead must name a current consumer or workflow (
 
 ## Quick Reference: Common Flag Mistakes
 
-**CRITICAL**: `--id` and `--parent` CANNOT be combined on `km bd create`. Always two-step:
+**CRITICAL**: Prefer path-form ids for scoped beads. Avoid create-time `--parent + --id` split forms; they are easy to misuse and drift across tools.
 ```bash
-km bd create --id km-tui.foo --type task --title "Foo"   # Step 1
-km bd update km-tui.foo --parent km-tui                    # Step 2
+km bd create "Foo" --type task --priority P2 --id @km/tui/foo
 ```
 
 | Command     | Wrong                         | Correct                                      |
 | ----------- | ----------------------------- | -------------------------------------------- |
-| `km bd create` | `--id X --parent Y`           | Create first, then `km bd update X --parent Y`  |
+| `km bd create` | `--parent km-tui --id foo`    | `km bd create "Foo" --id @km/tui/foo`       |
 | `km bd update` | `--desc`                      | `--description` or `-d`                      |
 | `km bd close`  | `--note`                      | `--reason` or `-r`                           |
 | `km bd create` | `--name`                      | `--title` or positional: `km bd create <title>` |
@@ -223,7 +221,9 @@ km bd update km-tui.foo --parent km-tui                    # Step 2
 
 **Before creating new beads**: Check `bun recall "topic"` for similar past issues.
 
-**Actor tracking**: Automatic via session prehook (`BD_ACTOR=Codex:<sessionId>`). See [beads.md](beads.md#actor-attribution-audit-trail).
+**Actor tracking**: Use `$BD_ACTOR` when the runtime/wrapper sets it, or pass
+`--actor` explicitly. Claude Code may set this from its session hook; Codex does
+not currently get it from a hook. See [beads.md](beads.md#actor-attribution-audit-trail).
 
 **Claims**: `km bd update <id> --claim` to start, `km bd update <id> --assignee "" --status open` to release. Agent claims stale after ~20 min, user claims after ~24h.
 

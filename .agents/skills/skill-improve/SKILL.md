@@ -1,5 +1,6 @@
 ---
 description: "Iterative skill refinement — run a skill, observe gaps, fix, re-run. Automated improvement loop. Use after /skill-test finds issues, or to polish any skill."
+keywords: [skill improve, refine skill, polish skill]
 argument-hint: [skill name to improve]
 ---
 

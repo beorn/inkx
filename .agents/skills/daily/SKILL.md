@@ -70,8 +70,8 @@ For each: bead id, retained worktree path, branch, sha. The user picks resume / 
 ## Step 4 — bd ready picks
 
 ```bash
-km bd ready --priority 0 --limit 5
-km bd ready --priority 1 --limit 10
+km bd ready --priority P0 --limit 5
+km bd ready --priority P1 --limit 10
 ```
 
 Orientation only — don't claim.

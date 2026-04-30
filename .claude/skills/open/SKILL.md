@@ -7,6 +7,8 @@ model: haiku
 
 # Open
 
+**Keywords**: open, file, folder, url, shortcut
+
 Wraps macOS `open(1)` to launch files, folders, URLs, and km-specific references (repo `~shortcut`s, bd bead IDs) in the default handler. Resolves the target, quotes it correctly, passes through `open` flags, and returns immediately (fire-and-forget).
 
 **Argument**: $ARGUMENTS

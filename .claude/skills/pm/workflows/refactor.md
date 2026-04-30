@@ -111,8 +111,8 @@ If work truly cannot be completed in the current phase (e.g., a dependency hasn'
 Every large refactor needs **one canonical tracking bead** (type=epic) that serves as the top-down status dashboard. Anyone should be able to `km bd show <tracking-bead>` at any time and understand: what's done, what's in progress, what's blocked, what's next.
 
 ```bash
-km bd create --id km-<scope>.<refactor-name> --type epic --priority 1 \
-  --title "[epic] <Refactor Name>" \
+km bd create "[epic] <Refactor Name>" --type epic --priority P1 \
+  --id @km/<scope>/<refactor-name> \
   --description "<Overview: what, why, target state, design doc link, phase summary>"
 ```
 
@@ -140,12 +140,12 @@ For each phase, create a child bead:
 - **Notes**: `MANDATORY first step: Read docs/lessons/refactoring.md IN FULL before writing any code.`
 
 ```bash
-km bd create --id km-<scope>.phase-N-name --type task --priority 1 \
-  --title "Phase N: <Name>" \
+km bd create "Phase N: <Name>" --type task --priority P1 \
+  --id @km/<scope>/<refactor-name>-phase-N-name \
   --description "<paste phase template>"
-km bd update km-<scope>.phase-N-name --parent km-<scope>.<refactor-name>
-km bd dep add km-<scope>.phase-N-name km-<scope>.phase-N-1-name
-km bd update km-<scope>.phase-N-name --notes "MANDATORY first step: Read docs/lessons/refactoring.md IN FULL before writing any code."
+km bd update @km/<scope>/<refactor-name>-phase-N-name --parent @km/<scope>/<refactor-name>
+km bd dep add @km/<scope>/<refactor-name>-phase-N-name @km/<scope>/<refactor-name>-phase-N-1-name
+km bd update @km/<scope>/<refactor-name>-phase-N-name --notes "MANDATORY first step: Read docs/lessons/refactoring.md IN FULL before writing any code."
 ```
 
 ## Step 5: Review the Plan

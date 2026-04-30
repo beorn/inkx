@@ -7,6 +7,8 @@ escalate-to: {arch: "reframing reveals missing abstraction or layer", render: "r
 
 # Think Big — What If This Problem Didn't Need to Exist?
 
+**Keywords**: big, think big, reframe, hypotheses, architecture
+
 **This is a meta-protocol, not an LLM tool.** It calls `/pro` or `/deep` internally during Phase 3 — its value is the structured 10-20-hypothesis reframing workflow, not the model call.
 
 **STOP fixing. START reframing.**

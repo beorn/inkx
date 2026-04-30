@@ -19,7 +19,7 @@ km bd create "Race condition in file sync" \
   --type bug \
   --priority P0 \
   --label sync watcher phase:testing \
-  --id km-storage-15 --parent km-storage
+  --id @km/storage/race-condition-file-sync
 ```
 
 ## Label Categories
@@ -47,7 +47,8 @@ Use when work spans multiple packages or when the ID prefix isn't specific enoug
 
 ```bash
 # Epic spanning storage + tui
-km bd create --id km-domain-refactor \
+km bd create "Domain refactor" \
+  --id @km/domain/refactor \
   --type epic \
   --labels storage,tui,cross-pkg
 ```
@@ -77,7 +78,8 @@ Classify by system or feature area within packages.
 
 ```bash
 # Sync-related storage bug
-km bd create --id km-storage-16 \
+km bd create "Sync watcher bug" \
+  --id @km/storage/sync-watcher-bug \
   --type bug \
   --labels sync,watcher
 ```
@@ -101,9 +103,9 @@ Track progress through large initiatives.
 
 ```bash
 # Epic in testing phase
-km bd create --id km-storage-8 \
+km bd create "Supertags: Typed Sigil Links" \
+  --id @km/storage/supertags-typed-sigil-links \
   --type epic \
-  --title "Supertags: Typed Sigil Links" \
   --labels phase:testing
 
 # Query all testing-phase work
@@ -125,9 +127,10 @@ Use when you need more nuance than P0-P4.
 **When to use**: Complement priority field for nuanced prioritization.
 
 ```bash
-km bd create --id km-storage-17 \
+km bd create "Sync blocker" \
+  --id @km/storage/sync-blocker \
   --type bug \
-  --priority 0 \
+  --priority P0 \
   --labels blocker,sync  # Blocks sync work
 ```
 
@@ -148,9 +151,9 @@ Classify by nature of work.
 **When to use**: Signal approach or impact to others.
 
 ```bash
-km bd create --id km-storage-18 \
+km bd create "Prototype event sourcing for content" \
+  --id @km/storage/prototype-event-sourcing \
   --type task \
-  --title "Prototype event sourcing for content" \
   --labels prototype,spike
 ```
 
@@ -252,7 +255,7 @@ km bd list --json | jq -r '.[] | .labels // [] | .[]' | sort | uniq -c | sort -r
 ```bash
 # Frontmatter form (in @km/<scope>/<slug>.md):
 # ---
-# id: km-storage-15
+# id: @km/storage/race-condition-file-sync
 # labels: [sync, watcher, phase:testing]
 # ---
 ```
@@ -266,10 +269,10 @@ km bd list --json | jq -r '.[] | .labels // [] | .[]' | sort | uniq -c | sort -r
 - Scope labels if cross-package
 
 ```bash
-km bd create --id km-storage-19 \
+km bd create "Watcher misses rapid file changes" \
+  --id @km/storage/watcher-misses-rapid-file-changes \
   --type bug \
-  --title "Watcher misses rapid file changes" \
-  --priority 0 \
+  --priority P0 \
   --labels sync,watcher,blocker
 ```
 
@@ -280,10 +283,10 @@ km bd create --id km-storage-19 \
 - Work type (prototype, breaking) if applicable
 
 ```bash
-km bd create --id km-tui-10 \
+km bd create "Mouse click-to-select" \
+  --id @km/tui/mouse-click-to-select \
   --type feat \
-  --title "Mouse click-to-select" \
-  --priority 1 \
+  --priority P1 \
   --labels mouse,phase:components
 ```
 
@@ -294,10 +297,10 @@ km bd create --id km-tui-10 \
 - Cross-pkg if spanning multiple packages
 
 ```bash
-km bd create --id km-domain \
+km bd create "Domain object refactor" \
+  --id @km/domain/object-refactor \
   --type epic \
-  --title "Domain object refactor" \
-  --priority 1 \
+  --priority P1 \
   --labels storage,tree,board,cross-pkg,phase:infrastructure
 ```
 
@@ -308,10 +311,10 @@ km bd create --id km-domain \
 - Scope if multi-package
 
 ```bash
-km bd create --id km-storage-20 \
+km bd create "Split store.ts into modules" \
+  --id @km/storage/split-store-modules \
   --type task \
-  --title "Split store.ts into modules" \
-  --priority 2 \
+  --priority P2 \
   --labels refactor,cleanup
 ```
 
@@ -321,10 +324,10 @@ km bd create --id km-storage-20 \
 - Work type (migration, cleanup)
 
 ```bash
-km bd create --id km-chore-2 \
+km bd create "Migrate all tests to new fake-repo API" \
+  --id @km/chore/migrate-tests-to-fake-repo-api \
   --type chore \
-  --title "Migrate all tests to new fake-repo API" \
-  --priority 3 \
+  --priority P3 \
   --labels test,storage,migration
 ```
 

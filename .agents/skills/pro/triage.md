@@ -22,12 +22,11 @@ Group findings by classification level.
 ### 2. Create Per-Package Review Bead
 
 ```bash
-# Format: km-<scope>.pro-review-<MMDD>
-km bd create --id km-<scope>.pro-review-<MMDD> --type task \
-  --title "Pro Review: <package> (<date>)" \
+km bd create "Pro Review: <package> (<date>)" --type task \
+  --id @km/<scope>/pro-review-<MMDD> \
   --description "GPT 5.4 Pro code review of <package>. N findings: X P0, Y P1, Z P2, W P3." \
-  --priority 2
-km bd update km-<scope>.pro-review-<MMDD> --parent km-all.pro-review-<N>
+  --priority P2
+km bd update @km/<scope>/pro-review-<MMDD> --parent @km/all/pro-review-<N>
 ```
 
 **Scope mapping**:
@@ -42,8 +41,7 @@ km bd update km-<scope>.pro-review-<MMDD> --parent km-all.pro-review-<N>
 For each P0/P1 finding:
 
 ```bash
-km bd create --type bug \
-  --title "<brief finding description>" \
+km bd create "<brief finding description>" --type bug \
   --description "Found by GPT 5.4 Pro review (<date>).
 
 File: <file>:<line-range>
@@ -52,8 +50,8 @@ Classification: <P0|P1>
 <finding description>
 
 Suggested fix: <suggested fix>" \
-  --priority <0 for P0, 1 for P1>
-km bd update <new-id> --parent km-<scope>.pro-review-<MMDD>
+  --priority <P0|P1> \
+  --id @km/<scope>/<finding-slug>
 ```
 
 ### 4. Update Tracking Bead
@@ -61,7 +59,7 @@ km bd update <new-id> --parent km-<scope>.pro-review-<MMDD>
 Update the tracking epic's description with cumulative dashboard:
 
 ```bash
-km bd update km-all.pro-review-<N> --description "Pro Review Round N: <date>
+km bd update @km/all/pro-review-<N> --description "Pro Review Round N: <date>
 
 ## Progress
 | Package | Status | P0 | P1 | P2 | P3 | Cost |
