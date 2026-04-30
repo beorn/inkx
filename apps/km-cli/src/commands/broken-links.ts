@@ -15,6 +15,7 @@
  */
 
 import type { Database } from "bun:sqlite"
+import { pathOf } from "@km/core"
 import type { createTerm } from "@silvery/ag-react"
 
 export interface BrokenLink {
@@ -62,10 +63,8 @@ export function getBrokenLinks(db: Database): BrokenLink[] {
   }>
   for (const n of nodeRows) {
     if (n.name) known.add(n.name.toLowerCase())
-    if (n.fs_path) {
-      const stem = n.fs_path.replace(/^\.\//, "").replace(/\.md$/, "")
-      if (stem) known.add(stem.toLowerCase())
-    }
+    const stem = pathOf(n)
+    if (stem) known.add(stem.toLowerCase())
   }
 
   return rows.filter((row) => {

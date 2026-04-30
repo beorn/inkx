@@ -6,11 +6,11 @@ aliases:
 created_by: claude:bjorns-2026-04-30
 created_at: 2026-04-30T09:23:00Z
 type: refactor
-priority: P2
+priority: P1
 parent: "@km/all"
 ---
 
-# id/name/path code cleanup — variables, functions, parameters use the right term @km/all #refactor #P2
+# id/name/path code cleanup — variables, functions, parameters use the right term @km/all #refactor #P1
 
 Sweep the codebase for misnamed identifiers — places where a variable / function / parameter is named `id` but carries a path or name, or named `name` but carries a path. Per user: "include the id=>name cleanup in your work."
 

@@ -30,6 +30,7 @@ import { basename, dirname, join } from "path"
 
 import type { Database } from "bun:sqlite"
 import type { KNode } from "@km/core"
+import { pathOf } from "@km/core"
 import { normalizeLinkHref, normalizeNodeName } from "@km/markdown"
 
 import type { DataStore } from "../data-store.ts"
@@ -283,10 +284,8 @@ function snapshotNode(node: KNode): MoveSnapshot {
     : []
   const hrefs = new Set<string>()
   if (node.name) hrefs.add(normalizeLinkHref("wiki", node.name))
-  if (node.fs_path) {
-    const stem = node.fs_path.replace(/^\.\//, "").replace(/\.md$/, "")
-    if (stem) hrefs.add(normalizeLinkHref("wiki", stem))
-  }
+  const stem = pathOf(node)
+  if (stem) hrefs.add(normalizeLinkHref("wiki", stem))
   return {
     oldName: node.name ?? "",
     oldCanonicalId: canonicalId,
@@ -514,10 +513,8 @@ export function moveNodeWithRefs(id: string, spec: MoveSpec, deps: MoveDeps, opt
   // post-rename row when relevant).
   const newHrefs = new Set<string>()
   if (newName) newHrefs.add(normalizeLinkHref("wiki", newName))
-  if (newFsPath) {
-    const stem = newFsPath.replace(/^\.\//, "").replace(/\.md$/, "")
-    if (stem) newHrefs.add(normalizeLinkHref("wiki", stem))
-  }
+  const newStem = pathOf({ fs_path: newFsPath })
+  if (newStem) newHrefs.add(normalizeLinkHref("wiki", newStem))
 
   if (noRewrite) {
     onProgress?.({ phase: "rewrite-apply", visited: 0, total: 0, refsRewritten: 0 })

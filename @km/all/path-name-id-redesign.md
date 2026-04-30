@@ -61,14 +61,21 @@ Three concepts, distinct (per `docs/design/model/storage.md:761-787`):
 
 ### Backlog (revised after /pro 4-leg review on 2026-04-30 — see "Plan corrections" below)
 
-- 📋 `@km/beads/path-name-id-test-bolster` (P0, NEW) — audit + bolster regression tests in this area before further refactors land; add `seedBead()` helper for file-materialization fixtures; run `/explore` on real-data copy. **First bead to work on.**
-- 📋 `@km/tree/ktree-path-method` (P2) — add `KTree.path(tree, id)` to canonical namespace (Discoverability Test). Cache-free walk; foreshadows `drop-fs-path-derive-from-name`.
-- 📋 `@km/all/id-name-path-code-cleanup` (P2) — sweep variable/function/parameter names where "id" is used to mean "path" or "name". Includes 6-site migration of inline `fs_path.replace(/^\.\//, "").replace(/\.md$/, "")` → `pathOf()`. Internal vocabulary discipline; `--id`/`--parent` flags STAY for bd compat. **Note: branded `NodeId` and `RepoId` types ALREADY exist in `packages/km-core/src/types.ts:260,266` (storage v5).** Path branding deemed unnecessary (pathOf returns plain string; shape `@<prefix>/...` is unambiguous in practice).
+- ✅ `@km/beads/path-name-id-test-bolster` (P0) — regression tests landed in commit `ab0d2f082` (`apps/km-cli/tests/bd-create-arg-shapes.test.ts`, 13 tests across 3 layers). `seedBead()` helper still local in `resolve-id.property.test.ts`; promoting to shared deferred to `data-id-stop-writing`.
+- ✅ `@km/tree/ktree-path-method` (P2) — `KTree.path(tree, id)` shipped in `packages/km-tree/src/walk.ts` with 7 tests. Cache-free walk, `KTree.PATH_MAX_DEPTH = 64`.
+- ✅ `@km/all/id-name-path-code-cleanup` (**P1, promoted from P2** per arch-agent recommendation) — partial: 6-site `pathOf()` migration **shipped** (km-storage `repo.ts`, `move-with-refs.ts` ×2, `db/links.ts`, `testing/fake-repo.ts`; km-cli `commands/broken-links.ts`). Variable/function-name sweep (`resolveShortId` → `resolveRef`, `bdIdToPathForm` → `bdRefToPath`, etc.) still pending.
 - 📋 `@km/all/rename-content-cascade` (**P1, was P2**) — content-layer batch update of wikilinks/mentions when a node's path changes. **CORRECTNESS, not UX**: per Gemini's argument, DB rebuild from disk reads stale `[[@km/beads/foo]]` text → fails to resolve → DB link table records broken link. Text content IS canonical in markdown-based system.
 - 📋 `@km/beads/data-id-stop-writing` (P2) — stop writing `data.id` (= path-form) into bead frontmatter. Coupled with next bead; ship together.
 - 📋 `@km/beads/frontmatter-path-rename` (**P2, was P3**) — rename frontmatter `id:` → `path:` OR remove entirely. **Promoted from P3** because it's atomically coupled with `data-id-stop-writing` per /pro consensus.
-- 📋 `@km/storage/parent-name-unique-partial` (NEW, P2) — re-file the dropped `parent-name-unique` bead, this time as `UNIQUE (parent_id, name) WHERE fstype IS NOT NULL` partial index. Even with `fs_path` retained, this catches watcher-bug ambiguity and is a prerequisite for the eventual recursive-walk resolver. The previously-dropped flat version was right to drop; the partial-by-fstype version is needed.
-- 📋 `@km/all/storage-doc-three-concepts` (P3) — update docs with consistent path/name/id vocabulary. Add: clarify `fstype` vs `type` distinction; explicit anchor handling story (`file#section`); slug stability invariant (title changes do NOT auto-rename); slug case-normalization invariant.
+- 📋 `@km/storage/parent-name-unique-partial` (P2) — `UNIQUE (parent_id, name) WHERE fstype IS NOT NULL AND name IS NOT NULL` partial index. Watcher-bug defense + prerequisite for recursive-walk resolver.
+- 📋 `@km/all/storage-doc-three-concepts` (P3) — bead body updated 2026-04-30 with /pro additions: `fstype` vs `type`, anchor handling, slug stability invariant, slug case-normalization, formalize `fs_path` as canonical cache. Doc edits to `docs/design/model/storage.md` still pending.
+
+### YAGNI verdict on new domain interface objects (re-verified 2026-04-30)
+
+Second arch-agent independent review confirmed the prior /big YAGNI verdict
+on `Path` brand / `NodeRef` discriminated union / `PathManipulation`
+namespace / `Resolver` unifying interface. Strongest action item identified
+was the 6-site `pathOf()` migration, now shipped. No new abstractions filed.
 
 ### Dropped (decided not to do)
 

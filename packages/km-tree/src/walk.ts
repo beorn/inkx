@@ -181,6 +181,42 @@ export const KTree = {
     const index = siblings.findIndex((s) => s.id === nodeId)
     return index < siblings.length - 1 ? (siblings[index + 1] ?? null) : null
   },
+
+  /**
+   * Compose the user-facing path-form by walking the parent chain.
+   *
+   * For a node with `name` segments going up to the root, returns `seg1/seg2/.../segN`
+   * (e.g. `"@km/beads/foo"`). Returns null when:
+   *  - the node doesn't exist
+   *  - the node has no `name` (paragraph or other unanchored block — not addressable by path)
+   *
+   * Walks at most {@link KTree.PATH_MAX_DEPTH} ancestors as a safety bound. If a
+   * nameless ancestor is encountered, the walk stops there (the chain is broken
+   * and prefix segments above the gap are not part of the path-form).
+   *
+   * Cache-free: never reads `fs_path`. Foreshadows
+   * `@km/storage/drop-fs-path-derive-from-name` — once that lands, the storage-side
+   * `pathOf(node)` becomes a wrapper around `KTree.path()`.
+   */
+  path(tree: TreeMutator, nodeId: string): string | null {
+    const node = tree.getNode(nodeId)
+    if (!node) return null
+    if (!node.name) return null
+
+    const segments: string[] = []
+    let current: KNode | null = node
+    let depth = 0
+    while (current && depth < KTree.PATH_MAX_DEPTH) {
+      if (!current.name) break
+      segments.unshift(current.name)
+      current = current.parent_id ? tree.getNode(current.parent_id) : null
+      depth++
+    }
+    return segments.join("/")
+  },
+
+  /** Maximum ancestors `KTree.path()` walks before bailing out. */
+  PATH_MAX_DEPTH: 64,
 }
 
 /**

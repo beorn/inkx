@@ -359,3 +359,82 @@ describe("KTree.nodes", () => {
     expect(result).toEqual(["A1", "A2", "B1a"])
   })
 })
+
+// =============================================================================
+// KTree.path — compose user-facing path-form by walking parent chain
+// =============================================================================
+
+describe("KTree.path", () => {
+  /** Build a path-shaped tree:
+   *
+   *   (anonymous root)
+   *   └── @km            (name="@km")
+   *       └── beads      (name="beads")
+   *           └── foo    (name="foo")
+   *               └── (paragraph, no name)
+   */
+  function setupPathTree() {
+    const repo = createTestRepo()
+    const rootId = repo.addNode(null, { type: "h", item: {} })
+    const kmId = repo.addNode(rootId, { type: "h", item: {}, name: "@km", parent_idx: 1 })
+    const beadsId = repo.addNode(kmId, { type: "h", item: {}, name: "beads", parent_idx: 1 })
+    const fooId = repo.addNode(beadsId, { type: "h", item: {}, name: "foo", parent_idx: 1 })
+    const paragraphId = repo.addNode(fooId, { type: "p", item: {}, content: "body", parent_idx: 1 })
+    return { repo, rootId, kmId, beadsId, fooId, paragraphId }
+  }
+
+  test("returns full composed path for a deeply-nested named node", () => {
+    const { repo, fooId } = setupPathTree()
+    expect(KTree.path(repo, fooId)).toBe("@km/beads/foo")
+  })
+
+  test("returns single-segment path for a top-level named node", () => {
+    const { repo, kmId } = setupPathTree()
+    expect(KTree.path(repo, kmId)).toBe("@km")
+  })
+
+  test("returns null for a paragraph (no name — not addressable by path)", () => {
+    const { repo, paragraphId } = setupPathTree()
+    expect(KTree.path(repo, paragraphId)).toBeNull()
+  })
+
+  test("returns null for a nonexistent node id", () => {
+    const { repo } = setupPathTree()
+    expect(KTree.path(repo, "does-not-exist")).toBeNull()
+  })
+
+  test("anonymous root contributes no segment", () => {
+    const { repo, kmId } = setupPathTree()
+    // The root node (no name) is the parent of @km; it must not prefix the path.
+    expect(KTree.path(repo, kmId)).toBe("@km")
+  })
+
+  test("walk stops at a nameless ancestor (gap in chain)", () => {
+    // Construct: root → unnamed-mid → leaf("foo"). The walk should stop at
+    // unnamed-mid and return just "foo" (not include nameless segments).
+    const repo = createTestRepo()
+    const rootId = repo.addNode(null, { type: "h", item: {}, name: "@km" })
+    const midId = repo.addNode(rootId, { type: "p", item: {}, content: "body", parent_idx: 1 })
+    const leafId = repo.addNode(midId, { type: "h", item: {}, name: "foo", parent_idx: 1 })
+    expect(KTree.path(repo, leafId)).toBe("foo")
+  })
+
+  test("PATH_MAX_DEPTH bounds the walk", () => {
+    expect(KTree.PATH_MAX_DEPTH).toBeGreaterThanOrEqual(64)
+    // Build a chain of named nodes deeper than the bound and confirm the
+    // walk truncates instead of looping/exhausting.
+    const repo = createTestRepo()
+    let parentId: string | null = null
+    let lastId = ""
+    const N = KTree.PATH_MAX_DEPTH + 5
+    for (let i = 0; i < N; i++) {
+      const id: string = repo.addNode(parentId, { type: "h", item: {}, name: `n${i}`, parent_idx: 1 })
+      parentId = id
+      lastId = id
+    }
+    const result = KTree.path(repo, lastId)
+    expect(result).not.toBeNull()
+    // Truncated to PATH_MAX_DEPTH segments.
+    expect(result!.split("/").length).toBe(KTree.PATH_MAX_DEPTH)
+  })
+})
