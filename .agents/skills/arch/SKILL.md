@@ -40,6 +40,37 @@ If `/arch` was NOT mandatory but you ran it anyway, no harm done. If it was mand
 
 **Do this yourself; do NOT delegate to an agent.** The point is that the lead has read the canonical material before forming an opinion.
 
+### 1.0 — Orientation (mandatory; do BEFORE 1a)
+
+**Before assembling the bundle, audit existing infrastructure in the topic area.** The 2026-04-30 dogfood run failed because the bundle named `resolveShortId` (the slow path) but never asked "what other resolution code exists in this codebase?" The agent opined on incomplete inputs, recommended a structurally flawed option, and the user spent multiple messages walking the lead through reversals to land on the correct (much smaller) design.
+
+The orientation pass:
+
+1. **Grep for adjacent surface area**:
+   ```bash
+   # If the topic involves resolution → grep for resolve/lookup/find/by-name across the whole repo
+   rg -n "(resolve|lookup|byName|byId|findBy|getNode|matchBy|searchBy)\b" packages/ apps/ --glob '!*.test.ts'
+   # If the topic involves storage → grep for tables, indexes, schema files
+   rg -n "CREATE (TABLE|INDEX|VIRTUAL TABLE)" packages/km-storage/src/
+   # If the topic involves identity → grep for column / data / json_extract usages
+   rg -n "(json_extract|nodes\.id|nodes\.name|nodes\.fs_path)" packages/
+   ```
+
+2. **Read the source files in full** for the top 3-5 hits — not just the doc references. Confirm what they DO, not just what they're documented to do.
+
+3. **Inventory existing infrastructure that touches the topic**:
+   - Tables and columns
+   - Indexes
+   - Functions and their callers (use grep to find call sites)
+   - Existing query patterns (recursive CTEs, FTS tables, materialized caches)
+   - Background machinery (watchers, reconcilers, sync engines)
+
+4. **Audit each piece for sufficiency, not novelty**: for every existing piece of infrastructure that touches the topic, ask "is this sufficient for what we need, or genuinely insufficient?" If sufficient: the recommendation should reuse it, not replace it. If insufficient: state explicitly why (e.g., "current resolveNode doesn't handle aliases, so the alias scan in resolveShortId is needed").
+
+5. **Write the orientation findings into the bundle** as a top-of-file section called "Existing infrastructure (audited)". Each entry: file:line, one-line summary, and the verdict ("sufficient" / "insufficient: <reason>" / "tangentially relevant").
+
+**The orientation prevents the failure mode**: recommending new machinery when existing machinery already does the job. Skipping orientation produces over-scoped recommendations that the user has to walk back. (See `feedback-arch-protocol-doesnt-substitute-for-thinking.md` for the 2026-04-30 incident — `resolveNode` + `idx_nodes_fs_path` already existed; the agent's bundle never named them.)
+
 ### 1a. Build the canonical doc list
 
 Read EVERY canonical doc that touches `<topic>`:
@@ -256,7 +287,10 @@ See [tools/check-arch-required.ts](../../tools/check-arch-required.ts) for the i
 
 A run is complete when:
 
-1. `/tmp/arch-<topic>.md` (Phase 1 bundle) exists and has 5+ canonical doc entries + 3+ close-reasons.
+1. `/tmp/arch-<topic>.md` (Phase 1 bundle) exists and has:
+   - **An "Existing infrastructure (audited)" section from Phase 1.0** with file:line citations and per-entry sufficiency verdicts
+   - 5+ canonical doc entries
+   - 3+ close-reason verbatims
 2. The arch agent returned a Phase 2 report with all 5 sections + 5+ doc quotes + 3+ close-reason quotes.
 3. `.claude/arch-decisions/YYYY-MM-DD-<topic-slug>.md` exists with verdict + reversal check + line-numbered "actually read" entries.
 4. `bun tools/check-arch-required.ts` returns exit 0 for the changed paths.
