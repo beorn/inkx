@@ -35,7 +35,23 @@ Per `.claude/arch-decisions/2026-04-30-path-vs-ulid-as-sqlite-pkey.md`: id, name
 
 ## Depends on
 
-- `@km/beads/resolver-path-via-name-walk` — must land first so the resolver isn't reading `data.id` anymore.
+- `@km/beads/resolver-path-via-name-walk` — must land first so the resolver isn't reading `data.id` anymore. **SHIPPED 2026-04-30** (commit 4727f3a4e). Note: a compat fallback to read `data.id` was retained for test seeding patterns (raw `repo.addNode({ data: { id: ... } })` without file materialization). Removing the fallback is part of this bead.
+
+## Tighter coupling than originally scoped (added 2026-04-30 implementation pass)
+
+When attempting to land this in the same session as `resolver-path-via-name-walk`, the cascade turned out to be larger than the bead description implied:
+
+- `renderBeadFile` (mutations.ts:376) writes `frontmatter.id = canonicalId`. Stopping the write means **new beads' .md files won't have an `id:` field** — only `aliases:`.
+- ~20 tests explicitly assert that `frontmatter.id` matches the canonical path-form: `create-materializes-file.test.ts:57,157`, `bead-invariants.property.test.ts:449,479`, `migrate-postcondition.test.ts:20,44`, plus 7+ in `migrate.test.ts`. Each one expects the field to be present.
+- Removing the write requires updating those tests AND deciding what (if anything) replaces the frontmatter field.
+
+This is the same decision as `@km/beads/frontmatter-path-rename` (P3): rename to `path:` or remove entirely. **The two beads should land together.** Original sequencing (P2 first, P3 later) was wrong — they're one change, not two.
+
+**Recommended approach for the combined bead**:
+
+1. Decide: remove the field entirely (path is derivable from filename + walk) OR rename to `path:` (still emit, just for human ergonomics).
+2. Update all asserting tests in one PR.
+3. Drop the `data.id` json_extract compat fallback in `resolveShortId` (added 4621393af) once tests no longer seed via raw addNode-with-data.id pattern. This may require migrating those test fixtures to file-materialization.
 
 ## Follow-up
 
