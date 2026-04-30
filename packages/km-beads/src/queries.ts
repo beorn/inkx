@@ -185,25 +185,35 @@ function getParentContext(node: KNode, repo?: Repo): string | undefined {
 }
 
 /**
- * Display id for an Issue.
+ * Display id for a Bead/Issue.
  *
  * Real beads carry `data.id` (canonical path-form, e.g. `@km/scope/slug`)
  * or legacy `data.short_id` (bd-form, e.g. `km-a1b2`); `nodeToIssue`
- * surfaces both as `Issue.shortId`. Bypass-path nodes (sub-checkboxes via
+ * surfaces both as `shortId`. Bypass-path nodes (sub-checkboxes via
  * `bd children`, raw `bd query` hits, path-resolved nodes via
- * `resolveTaskNode`) have no bead identity, so `Issue.shortId` is
- * `undefined` and we fall back to the full node `Issue.id` (a ULID).
+ * `resolveTaskNode`) have no bead identity, so `shortId` is `undefined`
+ * and we fall back to the full node `id` (a ULID).
  *
  * This is the ONE reader of the `shortId ?? id` chain — every CLI
  * formatter, JSON emitter, and log line goes through here so the display
- * rule lives in one place.
+ * rule lives in one place. New code should call `Bead.displayId`; the
+ * fallback chain is harmless under `Bead.from`-filtered values (shortId
+ * is always defined there) and load-bearing only for legacy callers that
+ * still construct an `Issue` directly.
+ *
+ * @deprecated Use `Bead.displayId` from the Bead namespace.
  */
 export function displayId(issue: Issue): string {
   return issue.shortId ?? issue.id
 }
 
 /**
- * Convert a KNode to an Issue
+ * Convert a KNode to an Issue (the legacy never-null shape).
+ *
+ * @deprecated Use `Bead.from` — it returns `Bead | null`, filtering out
+ *   nodes that aren't real beads (no `data.id` AND no `data.short_id`).
+ *   Direct use here will keep returning `shortId === undefined` for
+ *   non-beads.
  */
 export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
   const repo = options?.repo
@@ -343,6 +353,7 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
  * Check if an issue is blocked (has unresolved blockers)
  * @param issue - The issue to check
  * @param options - Optional query options (repo for DI)
+ * @deprecated Use `Bead.isBlocked`.
  */
 export function isBlocked(issue: Issue, options?: BeadsQueryOptions): boolean {
   const repo = options?.repo

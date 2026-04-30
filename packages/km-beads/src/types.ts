@@ -1,4 +1,11 @@
-export interface Issue {
+/**
+ * Bead — bd-tracked issue value type.
+ *
+ * `Issue` (legacy alias) and `IssueFilter` / `CreateIssueOptions` remain
+ * as one-commit deprecated re-exports. New code uses `Bead`, `BeadFilter`,
+ * `BeadCreateOptions`. See `./bead.ts` for the namespace.
+ */
+export interface Bead {
   id: string // Full node ID (ULID)
   /**
    * Short ID — frontmatter `id:` (canonical path-form, e.g.
@@ -6,8 +13,10 @@ export interface Issue {
    *
    * `undefined` when neither is present — i.e. the KNode is not a real
    * bead (sub-checkbox descendant, raw `bd query` hit, in-file paragraph
-   * surfaced via `bd children`, etc.). Display sites use `displayId(issue)`
-   * (from `@km/beads`) which falls back to `issue.id` for non-beads.
+   * surfaced via `bd children`, etc.). At the namespace boundary,
+   * `Bead.from(node)` returns `null` for such nodes; consumers that get
+   * a `Bead` value can rely on `shortId` being defined. Legacy callers
+   * that go through `nodeToIssue` directly may still see `undefined`.
    */
   shortId: string | undefined
   title: string
@@ -28,6 +37,9 @@ export interface Issue {
   dependentCount?: number // Number of issues that depend on this
 }
 
+/** @deprecated Use `Bead`. */
+export type Issue = Bead
+
 /**
  * Minimal filesystem interface for DI.
  *
@@ -41,7 +53,7 @@ export interface BeadsFs {
   mkdirSync(path: string, options: { recursive: boolean }): void
 }
 
-export interface IssueFilter {
+export interface BeadFilter {
   status?: string | string[]
   priority?: string
   type?: string
@@ -49,7 +61,10 @@ export interface IssueFilter {
   blocked?: boolean
 }
 
-export interface CreateIssueOptions {
+/** @deprecated Use `BeadFilter`. */
+export type IssueFilter = BeadFilter
+
+export interface BeadCreateOptions {
   type?: string
   priority?: string
   assignee?: string
@@ -67,3 +82,6 @@ export interface CreateIssueOptions {
    */
   prefix: string
 }
+
+/** @deprecated Use `BeadCreateOptions`. */
+export type CreateIssueOptions = BeadCreateOptions

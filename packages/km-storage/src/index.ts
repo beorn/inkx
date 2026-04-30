@@ -1,3 +1,7 @@
+// Task — domain interface (namespace) for task-shaped KNodes. See task.ts.
+export { Task } from "./task.ts"
+export type { TaskTreeEntry, ShortIdResolver } from "./task.ts"
+
 // Database schema (for testing with in-memory databases)
 export { SCHEMA, migrateSchema, migrateData, DATA_VERSION } from "./db/schema.ts"
 
