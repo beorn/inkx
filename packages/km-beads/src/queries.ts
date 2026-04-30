@@ -129,7 +129,7 @@ function depthUnderRoots(path: string | undefined, roots: string[]): number {
  *
  * See km-beads.bead-sigil-elevation for the design rationale.
  */
-function isBead(node: KNode, roots: string[], repo: Repo | undefined): boolean {
+export function isBead(node: KNode, roots: string[], repo: Repo | undefined): boolean {
   const path = getNodePath(node, repo)
   if (!isUnderRoots(path, roots)) return false
   // Structural: the node IS the bead file at depth-2 under the root.

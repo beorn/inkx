@@ -13,6 +13,7 @@ const term = createTerm(process)
 import {
   queryReady,
   queryIssues,
+  isBead,
   nodeToIssue,
   buildDependentCountMap,
   createIssueNode,
@@ -28,6 +29,7 @@ import {
   type Issue,
   type IssueFilter,
 } from "@km/beads"
+import type { Repo } from "@km/storage"
 import { resolvePathArg } from "@km/fs-mount"
 import { loadKmBdConfig } from "./bd-load-config.ts"
 import { loadRepo } from "../load-repo.ts"
@@ -66,6 +68,24 @@ import { attachCommentCommands } from "./bd-comment.ts"
 import { attachDoctorCommands } from "./bd-doctor.ts"
 import { buildQueryString, normalizeStatus, type SharedQueryFlags } from "./shared-query.ts"
 import { parseLimitFlag, applyLimit } from "../utils/limit.ts"
+
+/**
+ * Resolve the board-membership root list for a query command.
+ *
+ * Returns `undefined` when the user passed `--all` (opt-out), so the
+ * caller skips the bead-membership filter entirely. Otherwise returns
+ * the configured `beads.roots`, optionally overridden by a non-path
+ * positional arg (`bd ready @km`, `bd list @km`).
+ *
+ * Used by `bd ready`, `bd list`, and `bd stats` so they share one
+ * scoping contract: configured roots by default, `--all` to see
+ * everything (including vault-wide checkbox noise from fixtures and
+ * archived notes). See km-beads.bd-list-bead-scoping.
+ */
+function resolveBoardRoots(repo: Repo, opts: { all?: boolean }, cliRootOverride?: string): string[] | undefined {
+  if (opts.all) return undefined
+  return resolveBeadsRoots(repo.config.beads, cliRootOverride)
+}
 
 /** Format scope context for display messages (e.g., " in path") */
 function formatScopeMessage(scopePath?: string): string {
@@ -136,7 +156,7 @@ bdCommand
     // beads roots so vault-wide checkbox noise (markdown fixtures,
     // archived notes) doesn't drown out actual work. `--all` opts out
     // for the rare case of debugging unindexed beads.
-    const boardRoots = opts.all ? undefined : resolveBeadsRoots(repo.config.beads, cliRootOverride)
+    const boardRoots = resolveBoardRoots(repo, opts, cliRootOverride)
     const issues = queryReady(filter, scopePath, undefined, { repo, boardRoots })
 
     if (opts.json) {
@@ -202,9 +222,12 @@ bdCommand
       if (opts.blocked) filter.blocked = true
       if (opts.unblocked) filter.blocked = false
 
-      // Scope IS the board — no global board filter (queryIssues narrows
-      // by scope path or query string instead).
-      const allIssues = queryIssues(filter, scopePath, undefined, { repo })
+      // Apply board-membership predicate so vault-wide checkbox noise
+      // (markdown fixtures, archived notes) doesn't drown out actual
+      // beads. `--all` opts out for debugging unindexed nodes. Same
+      // contract as `bd ready` (km-beads.bd-list-bead-scoping).
+      const boardRoots = resolveBoardRoots(repo, opts)
+      const allIssues = queryIssues(filter, scopePath, undefined, { repo, boardRoots })
       const limit = parseLimitFlag(opts.limit)
       const { items: issues, totalMsg } = applyLimit(allIssues, limit)
 
@@ -237,7 +260,10 @@ bdCommand
     const flags: SharedQueryFlags = opts
     const queryStr = buildQueryString(positionalQuery, flags, {})
 
-    const nodes = repo.query(queryStr)
+    const allNodes = repo.query(queryStr)
+    // Apply board-membership predicate (km-beads.bd-list-bead-scoping).
+    const boardRoots = resolveBoardRoots(repo, opts)
+    const nodes = boardRoots ? allNodes.filter((n) => isBead(n, boardRoots, repo)) : allNodes
     // Build dependent-count map ONCE, not per-issue (eliminates N+1 scan).
     const dependentCountMap = buildDependentCountMap(repo)
     let issues = nodes.map((n) => nodeToIssue(n, { repo, dependentCountMap }))
@@ -1010,7 +1036,7 @@ bdCommand
     // debugging unindexed beads. Without this filter, `bd info` and
     // `bd list --status X` reported wildly divergent totals
     // (info-stats-mismatch).
-    const boardRoots = opts.all ? undefined : resolveBeadsRoots(repo.config.beads, cliRootOverride)
+    const boardRoots = resolveBoardRoots(repo, opts, cliRootOverride)
     const issues = queryIssues({}, scopePath, undefined, { repo, boardRoots })
 
     console.log(term.bold("Beads Configuration"))
