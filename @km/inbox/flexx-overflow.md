@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-overflow"
+id: "@km/inbox/flexx-overflow"
 aliases:
   - km-flexx-overflow
+  - "@km/_orphan/flexx-overflow"
 created_at: 2026-01-31T16:10:26Z
 closed_at: 2026-01-31T16:24:15Z
 ---

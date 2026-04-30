@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/refactor-repl"
+id: "@km/inbox/refactor-repl"
 aliases:
   - km-refactor-repl
+  - "@km/_orphan/refactor-repl"
 created_at: 2026-01-24T21:50:30Z
 closed_at: 2026-01-24T21:59:38Z
 assignee: beorn-14119

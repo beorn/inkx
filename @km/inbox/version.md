@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/version"
+id: "@km/inbox/version"
 aliases:
   - km-version
+  - "@km/_orphan/version"
 created_at: 2026-01-23T10:13:07Z
 closed_at: 2026-01-23T10:27:47Z
 ---

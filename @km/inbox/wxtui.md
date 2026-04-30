@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/wxtui"
+id: "@km/inbox/wxtui"
 aliases:
   - km-wxtui
+  - "@km/_orphan/wxtui"
 created_at: 2026-02-02T17:44:07Z
 closed_at: 2026-02-04T11:55:34Z
 ---

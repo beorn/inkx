@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/refactor-rename"
+id: "@km/inbox/refactor-rename"
 aliases:
   - km-refactor-rename
+  - "@km/_orphan/refactor-rename"
 created_at: 2026-01-24T21:50:37Z
 closed_at: 2026-01-24T22:10:34Z
 ---

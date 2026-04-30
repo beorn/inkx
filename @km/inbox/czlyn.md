@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/czlyn"
+id: "@km/inbox/czlyn"
 aliases:
   - km-czlyn
+  - "@km/_orphan/czlyn"
 created_by: claude:b3bb3c86
 created_at: 2026-02-24T10:59:41Z
 closed_at: 2026-02-24T11:13:19Z

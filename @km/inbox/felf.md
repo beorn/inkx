@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/felf"
+id: "@km/inbox/felf"
 aliases:
   - km-felf
+  - "@km/_orphan/felf"
 created_at: 2026-01-20T16:15:15Z
 closed_at: 2026-01-21T09:05:27Z
 ---

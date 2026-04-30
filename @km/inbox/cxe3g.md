@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/cxe3g"
+id: "@km/inbox/cxe3g"
 aliases:
   - km-cxe3g
+  - "@km/_orphan/cxe3g"
 created_by: claude:ee8efc0f
 created_at: 2026-02-23T12:30:39Z
 closed_at: 2026-02-23T13:07:16Z

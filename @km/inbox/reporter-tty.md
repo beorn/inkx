@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/reporter-tty"
+id: "@km/inbox/reporter-tty"
 aliases:
   - km-reporter-tty
+  - "@km/_orphan/reporter-tty"
 created_at: 2026-01-28T07:26:28Z
 closed_at: 2026-01-28T07:57:10Z
 assignee: claude:8f1636c1

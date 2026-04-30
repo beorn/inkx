@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/dil2"
+id: "@km/inbox/dil2"
 aliases:
   - km-dil2
+  - "@km/_orphan/dil2"
 created_at: 2026-01-22T14:07:33Z
 closed_at: 2026-01-23T11:26:45Z
 ---

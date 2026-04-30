@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/mkvf"
+id: "@km/inbox/mkvf"
 aliases:
   - km-mkvf
+  - "@km/_orphan/mkvf"
 created_at: 2026-01-21T09:44:48Z
 closed_at: 2026-01-21T09:58:10Z
 ---

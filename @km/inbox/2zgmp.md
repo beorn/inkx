@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/2zgmp"
+id: "@km/inbox/2zgmp"
 aliases:
   - km-2zgmp
+  - "@km/_orphan/2zgmp"
 created_at: 2026-02-02T21:39:48Z
 closed_at: 2026-02-02T21:45:43Z
 assignee: claude:1588825b

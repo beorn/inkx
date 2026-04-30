@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-percent"
+id: "@km/inbox/flexx-percent"
 aliases:
   - km-flexx-percent
+  - "@km/_orphan/flexx-percent"
 created_at: 2026-01-30T21:19:52Z
 closed_at: 2026-01-30T21:28:38Z
 assignee: claude:b8b4780b

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/ylxe"
+id: "@km/inbox/ylxe"
 aliases:
   - km-ylxe
+  - "@km/_orphan/ylxe"
 created_at: 2026-01-26T18:06:56Z
 closed_at: 2026-01-27T01:09:30Z
 assignee: "67570949"

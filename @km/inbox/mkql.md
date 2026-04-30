@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/mkql"
+id: "@km/inbox/mkql"
 aliases:
   - km-mkql
+  - "@km/_orphan/mkql"
 created_at: 2026-01-16T22:03:24Z
 closed_at: 2026-01-16T22:22:57Z
 ---

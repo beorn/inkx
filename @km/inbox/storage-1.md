@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/storage-1"
+id: "@km/inbox/storage-1"
 aliases:
   - km-storage-1
+  - "@km/_orphan/storage-1"
 created_at: 2026-01-16T16:34:02Z
 closed_at: 2026-03-09T22:07:22Z
 close_reason: "Grooming: 52 days stale, no longer relevant"

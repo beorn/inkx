@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/39obx"
+id: "@km/inbox/39obx"
 aliases:
   - km-39obx
+  - "@km/_orphan/39obx"
 created_by: claude:97b8de73
 created_at: 2026-02-22T20:57:19Z
 closed_at: 2026-02-22T22:14:51Z

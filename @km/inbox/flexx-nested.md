@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-nested"
+id: "@km/inbox/flexx-nested"
 aliases:
   - km-flexx-nested
+  - "@km/_orphan/flexx-nested"
 created_at: 2026-01-30T21:19:50Z
 closed_at: 2026-01-30T21:27:31Z
 assignee: claude:b8b4780b

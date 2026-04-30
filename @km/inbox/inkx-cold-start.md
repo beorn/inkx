@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/inkx-cold-start"
+id: "@km/inbox/inkx-cold-start"
 aliases:
   - km-inkx-cold-start
+  - "@km/_orphan/inkx-cold-start"
 created_at: 2026-02-01T20:16:55Z
 closed_at: 2026-02-04T11:24:02Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/sp1dp"
+id: "@km/inbox/sp1dp"
 aliases:
   - km-sp1dp
+  - "@km/_orphan/sp1dp"
 created_at: 2026-02-03T14:27:20Z
 closed_at: 2026-02-03T14:28:25Z
 assignee: claude:3c00d7cc

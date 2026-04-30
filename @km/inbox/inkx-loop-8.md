@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/inkx-loop-8"
+id: "@km/inbox/inkx-loop-8"
 aliases:
   - km-inkx-loop-8
+  - "@km/_orphan/inkx-loop-8"
 created_at: 2026-02-01T23:07:26Z
 closed_at: 2026-02-01T23:16:00Z
 assignee: claude:5fa2decc

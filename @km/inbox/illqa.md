@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/illqa"
+id: "@km/inbox/illqa"
 aliases:
   - km-illqa
+  - "@km/_orphan/illqa"
 created_by: claude:124bfbe5
 created_at: 2026-02-12T17:07:51Z
 closed_at: 2026-02-12T19:45:40Z

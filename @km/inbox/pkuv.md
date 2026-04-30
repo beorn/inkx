@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/pkuv"
+id: "@km/inbox/pkuv"
 aliases:
   - km-pkuv
+  - "@km/_orphan/pkuv"
 created_at: 2026-01-23T20:14:20Z
 closed_at: 2026-01-23T22:01:42Z
 ---

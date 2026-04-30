@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/zoom-derive"
+id: "@km/inbox/zoom-derive"
 aliases:
   - km-zoom-derive
+  - "@km/_orphan/zoom-derive"
 created_at: 2026-01-24T23:00:14Z
 closed_at: 2026-01-24T23:08:29Z
 ---

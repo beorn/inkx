@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/d3rq"
+id: "@km/inbox/d3rq"
 aliases:
   - km-d3rq
+  - "@km/_orphan/d3rq"
 created_at: 2026-01-19T14:34:54Z
 closed_at: 2026-01-19T14:46:06Z
 ---

@@ -1,8 +1,9 @@
 ---
-id: "@km/_orphan/1796-flexx-fix-marginx-marginy-calculation"
+id: "@km/inbox/1796-flexx-fix-marginx-marginy-calculation"
 aliases:
   - km-1796
   - "@km/_orphan/1796"
+  - "@km/_orphan/1796-flexx-fix-marginx-marginy-calculation"
 created_at: 2026-01-20T13:22:48Z
 closed_at: 2026-01-20T14:01:15Z
 ---

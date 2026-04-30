@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/8pib7"
+id: "@km/inbox/8pib7"
 aliases:
   - km-8pib7
+  - "@km/_orphan/8pib7"
 created_at: 2026-01-27T13:48:01Z
 closed_at: 2026-01-27T13:56:36Z
 assignee: claude:7ce6f6bf

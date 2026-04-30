@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/vitestx-adapters"
+id: "@km/inbox/vitestx-adapters"
 aliases:
   - km-vitestx-adapters
+  - "@km/_orphan/vitestx-adapters"
 created_at: 2026-02-03T11:48:37Z
 closed_at: 2026-02-04T11:27:30Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/sv85g"
+id: "@km/inbox/sv85g"
 aliases:
   - km-sv85g
+  - "@km/_orphan/sv85g"
 created_by: claude:e7c823b8
 created_at: 2026-02-26T12:40:35Z
 closed_at: 2026-02-26T12:48:26Z

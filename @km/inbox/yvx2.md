@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/yvx2"
+id: "@km/inbox/yvx2"
 aliases:
   - km-yvx2
+  - "@km/_orphan/yvx2"
 created_at: 2026-01-26T22:40:09Z
 closed_at: 2026-01-26T22:40:23Z
 ---

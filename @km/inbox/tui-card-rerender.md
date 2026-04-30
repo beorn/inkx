@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tui-card-rerender"
+id: "@km/inbox/tui-card-rerender"
 aliases:
   - km-tui-card-rerender
+  - "@km/_orphan/tui-card-rerender"
 created_at: 2026-02-02T20:43:01Z
 closed_at: 2026-02-02T22:14:40Z
 ---

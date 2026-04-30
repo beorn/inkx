@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/nx8af"
+id: "@km/inbox/nx8af"
 aliases:
   - km-nx8af
+  - "@km/_orphan/nx8af"
 created_by: claude:b92140a2
 created_at: 2026-03-17T21:51:35Z
 closed_at: 2026-03-18T19:32:06Z

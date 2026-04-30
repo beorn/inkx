@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/ogvk"
+id: "@km/inbox/ogvk"
 aliases:
   - km-ogvk
+  - "@km/_orphan/ogvk"
 created_at: 2026-01-22T07:57:26Z
 closed_at: 2026-01-22T08:01:25Z
 ---

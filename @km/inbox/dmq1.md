@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/dmq1"
+id: "@km/inbox/dmq1"
 aliases:
   - km-dmq1
+  - "@km/_orphan/dmq1"
 created_at: 2026-01-15T11:29:52Z
 closed_at: 2026-01-16T08:00:00Z
 ---

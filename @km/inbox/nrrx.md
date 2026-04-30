@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/nrrx"
+id: "@km/inbox/nrrx"
 aliases:
   - km-nrrx
+  - "@km/_orphan/nrrx"
 created_at: 2026-01-20T10:30:28Z
 closed_at: 2026-01-20T13:27:22Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-baseline"
+id: "@km/inbox/flexx-baseline"
 aliases:
   - km-flexx-baseline
+  - "@km/_orphan/flexx-baseline"
 created_at: 2026-01-30T22:44:49Z
 closed_at: 2026-01-30T23:02:53Z
 assignee: claude:b8b4780b

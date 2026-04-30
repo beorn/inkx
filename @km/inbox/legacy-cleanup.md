@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/legacy-cleanup"
+id: "@km/inbox/legacy-cleanup"
 aliases:
   - km-legacy-cleanup
+  - "@km/_orphan/legacy-cleanup"
 created_at: 2026-01-24T23:11:32Z
 closed_at: 2026-01-24T23:27:35Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-analysis"
+id: "@km/inbox/flexx-analysis"
 aliases:
   - km-flexx-analysis
+  - "@km/_orphan/flexx-analysis"
 created_at: 2026-01-31T07:47:34Z
 closed_at: 2026-01-31T12:23:37Z
 assignee: claude:b8b4780b

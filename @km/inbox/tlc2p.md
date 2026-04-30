@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tlc2p"
+id: "@km/inbox/tlc2p"
 aliases:
   - km-tlc2p
+  - "@km/_orphan/tlc2p"
 created_by: claude:124bfbe5
 created_at: 2026-02-12T14:57:24Z
 closed_at: 2026-02-12T14:59:57Z

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/hpgq"
+id: "@km/inbox/hpgq"
 aliases:
   - km-hpgq
+  - "@km/_orphan/hpgq"
 created_at: 2026-01-19T16:15:01Z
 closed_at: 2026-01-21T11:49:33Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tskgp"
+id: "@km/inbox/tskgp"
 aliases:
   - km-tskgp
+  - "@km/_orphan/tskgp"
 created_by: claude:af6eb626
 created_at: 2026-03-04T09:01:48Z
 closed_at: 2026-03-04T16:23:34Z

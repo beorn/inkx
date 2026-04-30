@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/commands-move-types"
+id: "@km/inbox/commands-move-types"
 aliases:
   - km-commands-move-types
+  - "@km/_orphan/commands-move-types"
 created_at: 2026-01-25T12:29:28Z
 closed_at: 2026-01-25T12:40:05Z
 assignee: unimac

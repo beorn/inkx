@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/wfehy"
+id: "@km/inbox/wfehy"
 aliases:
   - km-wfehy
+  - "@km/_orphan/wfehy"
 created_by: Bjørn Stabell
 created_at: 2026-04-06T16:50:27Z
 closed_at: 2026-04-06T17:24:03Z

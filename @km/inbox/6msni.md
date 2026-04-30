@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/6msni"
+id: "@km/inbox/6msni"
 aliases:
   - km-6msni
+  - "@km/_orphan/6msni"
 created_at: 2026-02-02T10:13:40Z
 closed_at: 2026-02-02T10:35:17Z
 assignee: claude:5fa2decc

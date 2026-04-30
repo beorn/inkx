@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/perf-analysis-5"
+id: "@km/inbox/perf-analysis-5"
 aliases:
   - km-perf-analysis-5
+  - "@km/_orphan/perf-analysis-5"
 created_at: 2026-02-01T16:20:08Z
 closed_at: 2026-02-01T20:09:31Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/xmc4"
+id: "@km/inbox/xmc4"
 aliases:
   - km-xmc4
+  - "@km/_orphan/xmc4"
 created_at: 2026-01-19T10:50:55Z
 closed_at: 2026-01-19T11:05:49Z
 ---

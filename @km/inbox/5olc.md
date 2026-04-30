@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/5olc"
+id: "@km/inbox/5olc"
 aliases:
   - km-5olc
+  - "@km/_orphan/5olc"
 created_at: 2026-01-26T13:15:57Z
 closed_at: 2026-01-27T12:21:59Z
 assignee: claude:5f8fa618

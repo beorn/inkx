@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/bhwg"
+id: "@km/inbox/bhwg"
 aliases:
   - km-bhwg
+  - "@km/_orphan/bhwg"
 created_at: 2026-01-22T00:11:26Z
 closed_at: 2026-01-22T00:15:35Z
 ---

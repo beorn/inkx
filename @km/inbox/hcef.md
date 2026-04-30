@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/hcef"
+id: "@km/inbox/hcef"
 aliases:
   - km-hcef
+  - "@km/_orphan/hcef"
 created_at: 2026-01-19T14:37:31Z
 closed_at: 2026-01-19T15:08:10Z
 ---

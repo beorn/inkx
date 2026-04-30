@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/reporter-grouping"
+id: "@km/inbox/reporter-grouping"
 aliases:
   - km-reporter-grouping
+  - "@km/_orphan/reporter-grouping"
 created_at: 2026-01-28T07:30:03Z
 closed_at: 2026-01-28T07:57:15Z
 assignee: claude:8f1636c1

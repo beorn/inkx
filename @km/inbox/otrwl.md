@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/otrwl"
+id: "@km/inbox/otrwl"
 aliases:
   - km-otrwl
+  - "@km/_orphan/otrwl"
 created_by: claude:c9beade3
 created_at: 2026-03-13T23:21:17Z
 closed_at: 2026-03-13T23:45:55Z

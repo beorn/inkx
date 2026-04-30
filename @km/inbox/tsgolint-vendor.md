@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tsgolint-vendor"
+id: "@km/inbox/tsgolint-vendor"
 aliases:
   - km-tsgolint-vendor
+  - "@km/_orphan/tsgolint-vendor"
 created_at: 2026-02-04T10:18:40Z
 closed_at: 2026-02-04T11:27:39Z
 ---

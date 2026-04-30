@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/utam"
+id: "@km/inbox/utam"
 aliases:
   - km-utam
+  - "@km/_orphan/utam"
 created_at: 2026-01-20T10:29:35Z
 closed_at: 2026-01-20T10:54:45Z
 ---

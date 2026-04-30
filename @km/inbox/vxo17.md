@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/vxo17"
+id: "@km/inbox/vxo17"
 aliases:
   - km-vxo17
+  - "@km/_orphan/vxo17"
 created_by: claude:84903949
 created_at: 2026-02-23T23:48:25Z
 closed_at: 2026-02-25T15:15:24Z

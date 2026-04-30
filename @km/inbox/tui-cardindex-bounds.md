@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tui-cardindex-bounds"
+id: "@km/inbox/tui-cardindex-bounds"
 aliases:
   - km-tui-cardindex-bounds
+  - "@km/_orphan/tui-cardindex-bounds"
 created_at: 2026-02-02T20:43:01Z
 closed_at: 2026-02-02T22:14:40Z
 ---

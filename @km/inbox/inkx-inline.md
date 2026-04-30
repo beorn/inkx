@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/inkx-inline"
+id: "@km/inbox/inkx-inline"
 aliases:
   - km-inkx-inline
+  - "@km/_orphan/inkx-inline"
 created_at: 2026-02-04T11:02:42Z
 closed_at: 2026-02-04T11:23:53Z
 ---

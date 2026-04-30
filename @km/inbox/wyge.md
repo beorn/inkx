@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/wyge"
+id: "@km/inbox/wyge"
 aliases:
   - km-wyge
+  - "@km/_orphan/wyge"
 created_at: 2026-01-22T23:32:01Z
 closed_at: 2026-01-23T15:03:43Z
 ---

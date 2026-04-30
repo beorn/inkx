@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tui-test-modes"
+id: "@km/inbox/tui-test-modes"
 aliases:
   - km-tui-test-modes
+  - "@km/_orphan/tui-test-modes"
 created_at: 2026-01-23T11:40:32Z
 closed_at: 2026-01-23T13:31:03Z
 ---

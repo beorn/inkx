@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/domain-coupling"
+id: "@km/inbox/domain-coupling"
 aliases:
   - km-domain-coupling
+  - "@km/_orphan/domain-coupling"
 created_at: 2026-01-25T12:55:30Z
 closed_at: 2026-01-25T13:07:46Z
 ---

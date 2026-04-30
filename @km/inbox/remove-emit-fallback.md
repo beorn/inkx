@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/remove-emit-fallback"
+id: "@km/inbox/remove-emit-fallback"
 aliases:
   - km-remove-emit-fallback
+  - "@km/_orphan/remove-emit-fallback"
 created_at: 2026-01-25T08:30:38Z
 closed_at: 2026-01-25T10:07:06Z
 ---

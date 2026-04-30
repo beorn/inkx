@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/mto9"
+id: "@km/inbox/mto9"
 aliases:
   - km-mto9
+  - "@km/_orphan/mto9"
 created_at: 2026-01-20T14:24:24Z
 closed_at: 2026-01-20T16:00:39Z
 ---

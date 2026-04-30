@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/claude-explore-0203"
+id: "@km/inbox/claude-explore-0203"
 aliases:
   - km-claude-explore-0203
+  - "@km/_orphan/claude-explore-0203"
 created_at: 2026-02-03T13:41:55Z
 closed_at: 2026-02-03T13:52:01Z
 assignee: claude:4574d033

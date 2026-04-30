@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/logger-cond"
+id: "@km/inbox/logger-cond"
 aliases:
   - km-logger-cond
+  - "@km/_orphan/logger-cond"
 created_at: 2026-02-02T11:12:16Z
 closed_at: 2026-02-02T11:17:34Z
 assignee: claude:3e1beaa0

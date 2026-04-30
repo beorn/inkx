@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/logger-spans-1"
+id: "@km/inbox/logger-spans-1"
 aliases:
   - km-logger-spans-1
+  - "@km/_orphan/logger-spans-1"
 created_at: 2026-02-01T16:20:03Z
 closed_at: 2026-02-01T16:20:15Z
 ---

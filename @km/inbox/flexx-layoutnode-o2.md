@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-layoutnode-o2"
+id: "@km/inbox/flexx-layoutnode-o2"
 aliases:
   - km-flexx-layoutnode-o2
+  - "@km/_orphan/flexx-layoutnode-o2"
 created_at: 2026-01-30T17:17:30Z
 closed_at: 2026-01-30T17:49:24Z
 assignee: claude:b8b4780b

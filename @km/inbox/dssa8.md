@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/dssa8"
+id: "@km/inbox/dssa8"
 aliases:
   - km-dssa8
+  - "@km/_orphan/dssa8"
 created_by: claude:ceb7c9cb
 created_at: 2026-03-27T15:10:02Z
 closed_at: 2026-03-27T17:28:57Z

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/jeb9"
+id: "@km/inbox/jeb9"
 aliases:
   - km-jeb9
+  - "@km/_orphan/jeb9"
 created_at: 2026-01-17T23:19:22Z
 closed_at: 2026-01-17T23:22:46Z
 ---

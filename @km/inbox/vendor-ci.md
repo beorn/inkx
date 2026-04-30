@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/vendor-ci"
+id: "@km/inbox/vendor-ci"
 aliases:
   - km-vendor-ci
+  - "@km/_orphan/vendor-ci"
 created_at: 2026-01-31T08:30:20Z
 closed_at: 2026-01-31T11:53:11Z
 assignee: claude:227cdc41

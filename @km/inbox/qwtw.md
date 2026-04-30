@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/qwtw"
+id: "@km/inbox/qwtw"
 aliases:
   - km-qwtw
+  - "@km/_orphan/qwtw"
 created_at: 2026-01-20T07:44:52Z
 closed_at: 2026-01-20T13:08:49Z
 ---

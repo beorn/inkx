@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/yg2ng"
+id: "@km/inbox/yg2ng"
 aliases:
   - km-yg2ng
+  - "@km/_orphan/yg2ng"
 created_by: claude:c9beade3
 created_at: 2026-03-13T23:20:39Z
 closed_at: 2026-03-13T23:35:48Z

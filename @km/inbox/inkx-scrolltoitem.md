@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/inkx-scrolltoitem"
+id: "@km/inbox/inkx-scrolltoitem"
 aliases:
   - km-inkx-scrolltoitem
+  - "@km/_orphan/inkx-scrolltoitem"
 created_at: 2026-02-02T20:42:33Z
 closed_at: 2026-02-02T22:14:34Z
 ---

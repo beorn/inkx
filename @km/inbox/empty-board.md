@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/empty-board"
+id: "@km/inbox/empty-board"
 aliases:
   - km-empty-board
+  - "@km/_orphan/empty-board"
 created_at: 2026-02-03T13:12:42Z
 closed_at: 2026-02-03T13:41:35Z
 assignee: claude:a9dd3b69

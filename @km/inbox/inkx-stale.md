@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/inkx-stale"
+id: "@km/inbox/inkx-stale"
 aliases:
   - km-inkx-stale
+  - "@km/_orphan/inkx-stale"
 created_at: 2026-02-03T12:11:11Z
 closed_at: 2026-02-04T11:23:52Z
 assignee: claude:227cdc41

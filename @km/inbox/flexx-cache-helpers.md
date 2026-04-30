@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-cache-helpers"
+id: "@km/inbox/flexx-cache-helpers"
 aliases:
   - km-flexx-cache-helpers
+  - "@km/_orphan/flexx-cache-helpers"
 created_at: 2026-01-30T20:25:37Z
 closed_at: 2026-01-30T21:23:54Z
 assignee: claude:b8b4780b

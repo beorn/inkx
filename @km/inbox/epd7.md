@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/epd7"
+id: "@km/inbox/epd7"
 aliases:
   - km-epd7
+  - "@km/_orphan/epd7"
 created_at: 2026-01-20T16:27:37Z
 closed_at: 2026-01-20T16:37:11Z
 ---

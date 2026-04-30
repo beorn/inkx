@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/ovuzg"
+id: "@km/inbox/ovuzg"
 aliases:
   - km-ovuzg
+  - "@km/_orphan/ovuzg"
 created_by: claude:97b8de73
 created_at: 2026-02-22T21:01:07Z
 closed_at: 2026-02-22T22:14:51Z

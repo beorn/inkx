@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/obd4l"
+id: "@km/inbox/obd4l"
 aliases:
   - km-obd4l
+  - "@km/_orphan/obd4l"
 created_at: 2026-02-04T10:55:47Z
 closed_at: 2026-02-04T11:00:32Z
 ---

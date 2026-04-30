@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-wraprev"
+id: "@km/inbox/flexx-wraprev"
 aliases:
   - km-flexx-wraprev
+  - "@km/_orphan/flexx-wraprev"
 created_at: 2026-01-30T15:25:16Z
 closed_at: 2026-01-30T18:29:15Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/df4b"
+id: "@km/inbox/df4b"
 aliases:
   - km-df4b
+  - "@km/_orphan/df4b"
 created_at: 2026-01-16T10:50:25Z
 closed_at: 2026-01-16T11:35:20Z
 ---

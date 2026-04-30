@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/9mle8"
+id: "@km/inbox/9mle8"
 aliases:
   - km-9mle8
+  - "@km/_orphan/9mle8"
 created_by: Bjørn Stabell
 created_at: 2026-04-16T04:44:26Z
 closed_at: 2026-04-16T05:34:30Z

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/reporter-stream"
+id: "@km/inbox/reporter-stream"
 aliases:
   - km-reporter-stream
+  - "@km/_orphan/reporter-stream"
 created_at: 2026-01-28T10:27:56Z
 closed_at: 2026-01-28T10:32:46Z
 assignee: claude:18380d7e

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/wze2d"
+id: "@km/inbox/wze2d"
 aliases:
   - km-wze2d
+  - "@km/_orphan/wze2d"
 created_by: claude:f8196c1c
 created_at: 2026-03-23T20:03:17Z
 closed_at: 2026-03-23T22:39:27Z

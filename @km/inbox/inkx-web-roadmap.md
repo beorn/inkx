@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/inkx-web-roadmap"
+id: "@km/inbox/inkx-web-roadmap"
 aliases:
   - km-inkx-web-roadmap
+  - "@km/_orphan/inkx-web-roadmap"
 created_at: 2026-02-02T14:49:02Z
 closed_at: 2026-02-04T11:23:59Z
 ---

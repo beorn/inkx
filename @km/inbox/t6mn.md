@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/t6mn"
+id: "@km/inbox/t6mn"
 aliases:
   - km-t6mn
+  - "@km/_orphan/t6mn"
 created_at: 2026-01-24T22:27:49Z
 closed_at: 2026-01-24T22:53:53Z
 assignee: claude-1769322905

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/esi2"
+id: "@km/inbox/esi2"
 aliases:
   - km-esi2
+  - "@km/_orphan/esi2"
 created_at: 2026-01-21T22:46:46Z
 closed_at: 2026-01-22T00:13:39Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/snkzg"
+id: "@km/inbox/snkzg"
 aliases:
   - km-snkzg
+  - "@km/_orphan/snkzg"
 created_by: claude:c9beade3
 created_at: 2026-03-15T15:40:14Z
 closed_at: 2026-03-15T17:39:32Z

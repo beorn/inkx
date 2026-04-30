@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-compat-matrix"
+id: "@km/inbox/flexx-compat-matrix"
 aliases:
   - km-flexx-compat-matrix
+  - "@km/_orphan/flexx-compat-matrix"
 created_at: 2026-01-31T16:13:17Z
 closed_at: 2026-01-31T16:14:04Z
 ---

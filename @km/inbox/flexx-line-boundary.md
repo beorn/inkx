@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-line-boundary"
+id: "@km/inbox/flexx-line-boundary"
 aliases:
   - km-flexx-line-boundary
+  - "@km/_orphan/flexx-line-boundary"
 created_at: 2026-01-31T08:27:57Z
 closed_at: 2026-01-31T08:59:04Z
 assignee: claude:b8b4780b

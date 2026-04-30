@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/search-filter"
+id: "@km/inbox/search-filter"
 aliases:
   - km-search-filter
+  - "@km/_orphan/search-filter"
 created_at: 2026-01-25T13:08:52Z
 closed_at: 2026-01-27T08:38:41Z
 assignee: beorn

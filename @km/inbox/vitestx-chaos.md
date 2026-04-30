@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/vitestx-chaos"
+id: "@km/inbox/vitestx-chaos"
 aliases:
   - km-vitestx-chaos
+  - "@km/_orphan/vitestx-chaos"
 created_at: 2026-02-03T11:51:38Z
 closed_at: 2026-02-03T12:43:35Z
 assignee: claude:4731ed4e

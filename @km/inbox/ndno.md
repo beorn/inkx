@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/ndno"
+id: "@km/inbox/ndno"
 aliases:
   - km-ndno
+  - "@km/_orphan/ndno"
 created_at: 2026-01-16T13:37:00Z
 closed_at: 2026-01-17T00:08:34Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/pii3"
+id: "@km/inbox/pii3"
 aliases:
   - km-pii3
+  - "@km/_orphan/pii3"
 created_at: 2026-01-20T08:11:10Z
 closed_at: 2026-01-20T11:02:47Z
 ---

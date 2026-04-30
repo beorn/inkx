@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/rgac"
+id: "@km/inbox/rgac"
 aliases:
   - km-rgac
+  - "@km/_orphan/rgac"
 created_at: 2026-01-20T15:05:51Z
 closed_at: 2026-01-20T15:15:25Z
 ---

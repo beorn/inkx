@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/nn27p"
+id: "@km/inbox/nn27p"
 aliases:
   - km-nn27p
+  - "@km/_orphan/nn27p"
 created_by: claude:2ce3230f
 created_at: 2026-03-10T06:25:21Z
 closed_at: 2026-03-10T22:57:52Z

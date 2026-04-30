@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/nnvd"
+id: "@km/inbox/nnvd"
 aliases:
   - km-nnvd
+  - "@km/_orphan/nnvd"
 created_at: 2026-01-20T15:54:59Z
 closed_at: 2026-01-20T16:00:39Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/sfv2"
+id: "@km/inbox/sfv2"
 aliases:
   - km-sfv2
+  - "@km/_orphan/sfv2"
 created_at: 2026-01-20T15:54:59Z
 closed_at: 2026-01-22T10:05:45Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/refactor1"
+id: "@km/inbox/refactor1"
 aliases:
   - km-refactor1
+  - "@km/_orphan/refactor1"
 created_at: 2026-01-21T23:10:50Z
 closed_at: 2026-01-22T11:43:20Z
 ---

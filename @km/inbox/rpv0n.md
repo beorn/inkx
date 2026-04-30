@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/rpv0n"
+id: "@km/inbox/rpv0n"
 aliases:
   - km-rpv0n
+  - "@km/_orphan/rpv0n"
 created_by: claude:656602a3
 created_at: 2026-03-16T20:44:01Z
 closed_at: 2026-03-18T19:32:05Z

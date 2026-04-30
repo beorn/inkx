@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/vnlce"
+id: "@km/inbox/vnlce"
 aliases:
   - km-vnlce
+  - "@km/_orphan/vnlce"
 created_by: claude:ceb7c9cb
 created_at: 2026-03-27T15:10:01Z
 closed_at: 2026-03-27T15:40:40Z

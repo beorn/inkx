@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/chore-1"
+id: "@km/inbox/chore-1"
 aliases:
   - km-chore-1
+  - "@km/_orphan/chore-1"
 created_at: 2026-01-26T17:22:32Z
 closed_at: 2026-01-27T15:33:30Z
 assignee: beorn

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/test-legacy"
+id: "@km/inbox/test-legacy"
 aliases:
   - km-test-legacy
+  - "@km/_orphan/test-legacy"
 created_at: 2026-01-25T02:12:58Z
 closed_at: 2026-01-25T02:31:56Z
 assignee: beorn

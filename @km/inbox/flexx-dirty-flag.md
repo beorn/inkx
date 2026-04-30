@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-dirty-flag"
+id: "@km/inbox/flexx-dirty-flag"
 aliases:
   - km-flexx-dirty-flag
+  - "@km/_orphan/flexx-dirty-flag"
 created_at: 2026-01-31T08:28:01Z
 closed_at: 2026-01-31T09:01:21Z
 assignee: claude:b8b4780b

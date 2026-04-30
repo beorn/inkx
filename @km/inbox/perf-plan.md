@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/perf-plan"
+id: "@km/inbox/perf-plan"
 aliases:
   - km-perf-plan
+  - "@km/_orphan/perf-plan"
 created_at: 2026-02-01T16:19:37Z
 closed_at: 2026-02-01T20:09:37Z
 ---

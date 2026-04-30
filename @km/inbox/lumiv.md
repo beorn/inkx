@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/lumiv"
+id: "@km/inbox/lumiv"
 aliases:
   - km-lumiv
+  - "@km/_orphan/lumiv"
 created_by: claude:ceb7c9cb
 created_at: 2026-03-24T20:05:56Z
 closed_at: 2026-03-24T20:13:31Z

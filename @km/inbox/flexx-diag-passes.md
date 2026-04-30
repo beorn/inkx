@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-diag-passes"
+id: "@km/inbox/flexx-diag-passes"
 aliases:
   - km-flexx-diag-passes
+  - "@km/_orphan/flexx-diag-passes"
 created_at: 2026-01-31T16:00:27Z
 closed_at: 2026-01-31T16:18:48Z
 assignee: claude:b8b4780b

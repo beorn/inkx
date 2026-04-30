@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tckfg"
+id: "@km/inbox/tckfg"
 aliases:
   - km-tckfg
+  - "@km/_orphan/tckfg"
 created_by: claude:b3bb3c86
 created_at: 2026-02-24T10:39:10Z
 closed_at: 2026-02-24T10:59:32Z

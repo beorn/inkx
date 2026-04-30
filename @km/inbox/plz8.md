@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/plz8"
+id: "@km/inbox/plz8"
 aliases:
   - km-plz8
+  - "@km/_orphan/plz8"
 created_at: 2026-01-26T13:19:38Z
 closed_at: 2026-01-26T13:37:54Z
 assignee: beorn

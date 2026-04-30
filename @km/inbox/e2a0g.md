@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/e2a0g"
+id: "@km/inbox/e2a0g"
 aliases:
   - km-e2a0g
+  - "@km/_orphan/e2a0g"
 created_by: claude:b509d761
 created_at: 2026-02-10T22:42:18Z
 closed_at: 2026-02-12T14:10:35Z

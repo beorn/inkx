@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/cfuv"
+id: "@km/inbox/cfuv"
 aliases:
   - km-cfuv
+  - "@km/_orphan/cfuv"
 created_at: 2026-01-20T07:44:50Z
 closed_at: 2026-01-20T13:08:49Z
 ---

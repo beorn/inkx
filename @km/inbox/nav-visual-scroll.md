@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/nav-visual-scroll"
+id: "@km/inbox/nav-visual-scroll"
 aliases:
   - km-nav-visual-scroll
+  - "@km/_orphan/nav-visual-scroll"
 created_at: 2026-01-23T11:44:10Z
 closed_at: 2026-01-23T21:39:29Z
 ---

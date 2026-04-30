@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/display-fallbacks"
+id: "@km/inbox/display-fallbacks"
 aliases:
   - km-display-fallbacks
+  - "@km/_orphan/display-fallbacks"
 created_at: 2026-01-23T09:43:46Z
 closed_at: 2026-01-23T10:08:19Z
 ---

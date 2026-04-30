@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/vfel"
+id: "@km/inbox/vfel"
 aliases:
   - km-vfel
+  - "@km/_orphan/vfel"
 created_at: 2026-01-20T07:44:23Z
 closed_at: 2026-01-20T20:48:17Z
 ---

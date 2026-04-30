@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/vault-reexport"
+id: "@km/inbox/vault-reexport"
 aliases:
   - km-vault-reexport
+  - "@km/_orphan/vault-reexport"
 created_at: 2026-01-24T08:29:32Z
 closed_at: 2026-01-24T15:47:13Z
 ---

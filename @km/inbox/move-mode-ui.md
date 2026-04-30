@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/move-mode-ui"
+id: "@km/inbox/move-mode-ui"
 aliases:
   - km-move-mode-ui
+  - "@km/_orphan/move-mode-ui"
 created_at: 2026-01-25T13:08:51Z
 closed_at: 2026-01-27T08:38:41Z
 assignee: beorn

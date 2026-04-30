@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/chaos-parallel"
+id: "@km/inbox/chaos-parallel"
 aliases:
   - km-chaos-parallel
+  - "@km/_orphan/chaos-parallel"
 created_at: 2026-01-23T11:05:13Z
 closed_at: 2026-01-23T14:41:50Z
 ---

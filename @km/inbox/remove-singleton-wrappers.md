@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/remove-singleton-wrappers"
+id: "@km/inbox/remove-singleton-wrappers"
 aliases:
   - km-remove-singleton-wrappers
+  - "@km/_orphan/remove-singleton-wrappers"
 created_at: 2026-01-25T08:25:11Z
 closed_at: 2026-01-26T00:10:09Z
 assignee: km

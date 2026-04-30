@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tpt8"
+id: "@km/inbox/tpt8"
 aliases:
   - km-tpt8
+  - "@km/_orphan/tpt8"
 created_at: 2026-01-20T15:54:59Z
 closed_at: 2026-01-20T16:00:39Z
 ---

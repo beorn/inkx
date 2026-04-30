@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/d1xdr"
+id: "@km/inbox/d1xdr"
 aliases:
   - km-d1xdr
+  - "@km/_orphan/d1xdr"
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T10:44:57Z
 closed_at: 2026-02-19T08:10:20Z

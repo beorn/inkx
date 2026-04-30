@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/xexz"
+id: "@km/inbox/xexz"
 aliases:
   - km-xexz
+  - "@km/_orphan/xexz"
 created_at: 2026-01-14T19:51:30Z
 closed_at: 2026-01-24T01:06:12Z
 ---

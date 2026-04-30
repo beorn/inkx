@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tui-empty-cards"
+id: "@km/inbox/tui-empty-cards"
 aliases:
   - km-tui-empty-cards
+  - "@km/_orphan/tui-empty-cards"
 created_at: 2026-02-01T07:59:14Z
 closed_at: 2026-02-01T22:09:42Z
 assignee: claude:3e1beaa0

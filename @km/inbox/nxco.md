@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/nxco"
+id: "@km/inbox/nxco"
 aliases:
   - km-nxco
+  - "@km/_orphan/nxco"
 created_at: 2026-01-15T14:05:24Z
 closed_at: 2026-01-15T23:56:54Z
 ---

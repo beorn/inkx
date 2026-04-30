@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/storage-2"
+id: "@km/inbox/storage-2"
 aliases:
   - km-storage-2
+  - "@km/_orphan/storage-2"
 created_at: 2026-01-27T01:53:36Z
 closed_at: 2026-01-27T15:33:30Z
 assignee: beorn

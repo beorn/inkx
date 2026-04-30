@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/mz2g"
+id: "@km/inbox/mz2g"
 aliases:
   - km-mz2g
+  - "@km/_orphan/mz2g"
 created_at: 2026-01-21T22:46:18Z
 closed_at: 2026-01-23T12:40:22Z
 ---

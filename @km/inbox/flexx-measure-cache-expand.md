@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-measure-cache-expand"
+id: "@km/inbox/flexx-measure-cache-expand"
 aliases:
   - km-flexx-measure-cache-expand
+  - "@km/_orphan/flexx-measure-cache-expand"
 created_at: 2026-01-30T17:49:28Z
 closed_at: 2026-01-30T18:11:40Z
 ---

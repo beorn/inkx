@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tui-loading-skeleton"
+id: "@km/inbox/tui-loading-skeleton"
 aliases:
   - km-tui-loading-skeleton
+  - "@km/_orphan/tui-loading-skeleton"
 created_at: 2026-01-31T22:00:11Z
 closed_at: 2026-02-04T11:27:21Z
 ---

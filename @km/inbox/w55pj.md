@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/w55pj"
+id: "@km/inbox/w55pj"
 aliases:
   - km-w55pj
+  - "@km/_orphan/w55pj"
 created_by: claude:efb76293
 created_at: 2026-03-17T03:58:00Z
 closed_at: 2026-03-17T04:09:16Z

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/repo1"
+id: "@km/inbox/repo1"
 aliases:
   - km-repo1
+  - "@km/_orphan/repo1"
 created_at: 2026-01-26T10:30:00Z
 closed_at: 2026-01-26T12:43:11Z
 assignee: claude-opus-4-5

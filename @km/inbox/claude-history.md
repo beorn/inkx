@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/claude-history"
+id: "@km/inbox/claude-history"
 aliases:
   - km-claude-history
+  - "@km/_orphan/claude-history"
 created_at: 2026-01-30T07:33:04Z
 closed_at: 2026-02-04T11:55:34Z
 ---

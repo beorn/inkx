@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/pcgs3"
+id: "@km/inbox/pcgs3"
 aliases:
   - km-pcgs3
+  - "@km/_orphan/pcgs3"
 created_by: claude:66437c43
 created_at: 2026-03-02T07:55:26Z
 closed_at: 2026-03-02T18:05:22Z

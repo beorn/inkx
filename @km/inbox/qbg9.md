@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/qbg9"
+id: "@km/inbox/qbg9"
 aliases:
   - km-qbg9
+  - "@km/_orphan/qbg9"
 created_at: 2026-01-20T14:25:48Z
 closed_at: 2026-01-20T14:36:55Z
 ---

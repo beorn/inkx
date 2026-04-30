@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/9zu9f"
+id: "@km/inbox/9zu9f"
 aliases:
   - km-9zu9f
+  - "@km/_orphan/9zu9f"
 created_by: claude:ea392ebd
 created_at: 2026-02-11T13:12:30Z
 closed_at: 2026-02-11T13:42:08Z

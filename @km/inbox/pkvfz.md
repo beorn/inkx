@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/pkvfz"
+id: "@km/inbox/pkvfz"
 aliases:
   - km-pkvfz
+  - "@km/_orphan/pkvfz"
 created_by: claude:f8196c1c
 created_at: 2026-03-23T19:30:29Z
 closed_at: 2026-03-23T20:53:20Z

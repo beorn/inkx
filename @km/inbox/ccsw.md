@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/ccsw"
+id: "@km/inbox/ccsw"
 aliases:
   - km-ccsw
+  - "@km/_orphan/ccsw"
 created_at: 2026-01-22T15:37:05Z
 closed_at: 2026-01-22T15:47:51Z
 ---

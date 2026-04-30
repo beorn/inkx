@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/hkk4"
+id: "@km/inbox/hkk4"
 aliases:
   - km-hkk4
+  - "@km/_orphan/hkk4"
 created_at: 2026-01-20T14:25:37Z
 closed_at: 2026-01-20T14:36:54Z
 ---

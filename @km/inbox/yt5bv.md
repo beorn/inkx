@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/yt5bv"
+id: "@km/inbox/yt5bv"
 aliases:
   - km-yt5bv
+  - "@km/_orphan/yt5bv"
 created_by: claude:b509d761
 created_at: 2026-02-10T07:11:05Z
 closed_at: 2026-02-10T08:38:13Z

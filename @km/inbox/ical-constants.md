@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/ical-constants"
+id: "@km/inbox/ical-constants"
 aliases:
   - km-ical-constants
+  - "@km/_orphan/ical-constants"
 created_at: 2026-01-25T12:20:06Z
 closed_at: 2026-01-25T12:27:10Z
 assignee: unimac

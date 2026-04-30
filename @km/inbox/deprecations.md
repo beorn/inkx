@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/deprecations"
+id: "@km/inbox/deprecations"
 aliases:
   - km-deprecations
+  - "@km/_orphan/deprecations"
 created_at: 2026-02-03T11:12:00Z
 closed_at: 2026-02-04T11:23:56Z
 ---

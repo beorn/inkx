@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-foss-export"
+id: "@km/inbox/flexx-foss-export"
 aliases:
   - km-flexx-foss-export
+  - "@km/_orphan/flexx-foss-export"
 created_at: 2026-01-31T16:00:25Z
 closed_at: 2026-01-31T16:08:35Z
 assignee: claude:b8b4780b

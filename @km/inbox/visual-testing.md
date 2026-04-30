@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/visual-testing"
+id: "@km/inbox/visual-testing"
 aliases:
   - km-visual-testing
+  - "@km/_orphan/visual-testing"
 created_at: 2026-01-23T17:14:54Z
 closed_at: 2026-01-24T01:20:46Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/rm-singletons"
+id: "@km/inbox/rm-singletons"
 aliases:
   - km-rm-singletons
+  - "@km/_orphan/rm-singletons"
 created_at: 2026-01-23T17:59:24Z
 closed_at: 2026-01-23T18:07:52Z
 ---

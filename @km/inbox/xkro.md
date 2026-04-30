@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/xkro"
+id: "@km/inbox/xkro"
 aliases:
   - km-xkro
+  - "@km/_orphan/xkro"
 created_at: 2026-01-20T13:58:35Z
 closed_at: 2026-01-20T14:01:28Z
 ---

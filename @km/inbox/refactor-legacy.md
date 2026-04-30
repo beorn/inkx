@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/refactor-legacy"
+id: "@km/inbox/refactor-legacy"
 aliases:
   - km-refactor-legacy
+  - "@km/_orphan/refactor-legacy"
 created_at: 2026-01-24T21:50:45Z
 closed_at: 2026-01-24T22:13:35Z
 ---

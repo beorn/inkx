@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-compat"
+id: "@km/inbox/flexx-compat"
 aliases:
   - km-flexx-compat
+  - "@km/_orphan/flexx-compat"
 created_at: 2026-01-30T18:17:57Z
 closed_at: 2026-01-30T20:51:54Z
 assignee: claude:b8b4780b

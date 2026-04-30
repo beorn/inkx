@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-zero-rtl"
+id: "@km/inbox/flexx-zero-rtl"
 aliases:
   - km-flexx-zero-rtl
+  - "@km/_orphan/flexx-zero-rtl"
 created_at: 2026-01-31T16:14:25Z
 closed_at: 2026-01-31T16:27:45Z
 ---

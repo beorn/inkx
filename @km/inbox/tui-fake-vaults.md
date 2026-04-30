@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tui-fake-vaults"
+id: "@km/inbox/tui-fake-vaults"
 aliases:
   - km-tui-fake-vaults
+  - "@km/_orphan/tui-fake-vaults"
 created_at: 2026-01-25T01:32:50Z
 closed_at: 2026-01-25T01:39:46Z
 assignee: km-tui-fake-vaults

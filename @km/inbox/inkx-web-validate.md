@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/inkx-web-validate"
+id: "@km/inbox/inkx-web-validate"
 aliases:
   - km-inkx-web-validate
+  - "@km/_orphan/inkx-web-validate"
 created_at: 2026-02-02T14:21:41Z
 closed_at: 2026-02-02T14:34:24Z
 assignee: claude:5fa2decc

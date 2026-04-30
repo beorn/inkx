@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/test-failures-0130"
+id: "@km/inbox/test-failures-0130"
 aliases:
   - km-test-failures-0130
+  - "@km/_orphan/test-failures-0130"
 created_at: 2026-01-30T21:27:07Z
 closed_at: 2026-01-30T21:47:07Z
 assignee: claude:3e1beaa0

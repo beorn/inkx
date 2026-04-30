@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/commands-1"
+id: "@km/inbox/commands-1"
 aliases:
   - km-commands-1
+  - "@km/_orphan/commands-1"
 created_at: 2026-01-25T23:50:07Z
 closed_at: 2026-01-27T20:38:07Z
 assignee: claude:cacac722

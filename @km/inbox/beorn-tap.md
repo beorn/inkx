@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/beorn-tap"
+id: "@km/inbox/beorn-tap"
 aliases:
   - km-beorn-tap
+  - "@km/_orphan/beorn-tap"
 created_at: 2026-01-27T03:00:33Z
 closed_at: 2026-01-27T03:11:51Z
 assignee: beorn

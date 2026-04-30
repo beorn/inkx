@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/inkx-text-measure"
+id: "@km/inbox/inkx-text-measure"
 aliases:
   - km-inkx-text-measure
+  - "@km/_orphan/inkx-text-measure"
 created_at: 2026-02-02T13:54:17Z
 closed_at: 2026-02-02T14:21:45Z
 assignee: claude:227cdc41

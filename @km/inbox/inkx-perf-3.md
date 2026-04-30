@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/inkx-perf-3"
+id: "@km/inbox/inkx-perf-3"
 aliases:
   - km-inkx-perf-3
+  - "@km/_orphan/inkx-perf-3"
 created_at: 2026-02-01T16:20:06Z
 closed_at: 2026-02-01T20:09:26Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/0kqt3"
+id: "@km/inbox/0kqt3"
 aliases:
   - km-0kqt3
+  - "@km/_orphan/0kqt3"
 created_by: Bjørn Stabell
 created_at: 2026-04-01T06:10:05Z
 closed_at: 2026-04-02T04:09:52Z

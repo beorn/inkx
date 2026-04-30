@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/cy82q"
+id: "@km/inbox/cy82q"
 aliases:
   - km-cy82q
+  - "@km/_orphan/cy82q"
 created_by: claude:f8196c1c
 created_at: 2026-03-23T19:30:24Z
 closed_at: 2026-03-23T22:37:24Z

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/wacsx"
+id: "@km/inbox/wacsx"
 aliases:
   - km-wacsx
+  - "@km/_orphan/wacsx"
 created_by: claude:124bfbe5
 created_at: 2026-02-12T17:01:43Z
 closed_at: 2026-02-12T17:04:52Z

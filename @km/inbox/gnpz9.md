@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/gnpz9"
+id: "@km/inbox/gnpz9"
 aliases:
   - km-gnpz9
+  - "@km/_orphan/gnpz9"
 created_at: 2026-01-28T13:41:23Z
 closed_at: 2026-01-28T13:45:41Z
 ---

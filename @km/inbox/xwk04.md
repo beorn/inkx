@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/xwk04"
+id: "@km/inbox/xwk04"
 aliases:
   - km-xwk04
+  - "@km/_orphan/xwk04"
 created_by: claude:f8196c1c
 created_at: 2026-03-20T20:08:26Z
 closed_at: 2026-03-20T20:16:12Z

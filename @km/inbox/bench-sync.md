@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/bench-sync"
+id: "@km/inbox/bench-sync"
 aliases:
   - km-bench-sync
+  - "@km/_orphan/bench-sync"
 created_at: 2026-01-27T23:12:59Z
 closed_at: 2026-02-04T11:27:35Z
 ---

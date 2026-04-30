@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/eait"
+id: "@km/inbox/eait"
 aliases:
   - km-eait
+  - "@km/_orphan/eait"
 created_at: 2026-01-20T14:30:40Z
 closed_at: 2026-01-20T14:51:47Z
 ---

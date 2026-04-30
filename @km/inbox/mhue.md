@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/mhue"
+id: "@km/inbox/mhue"
 aliases:
   - km-mhue
+  - "@km/_orphan/mhue"
 created_at: 2026-01-26T13:19:49Z
 closed_at: 2026-01-26T13:24:29Z
 assignee: beorn

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/so3x"
+id: "@km/inbox/so3x"
 aliases:
   - km-so3x
+  - "@km/_orphan/so3x"
 created_at: 2026-01-19T14:51:40Z
 closed_at: 2026-01-19T15:25:04Z
 ---

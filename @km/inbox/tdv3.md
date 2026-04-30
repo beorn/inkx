@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tdv3"
+id: "@km/inbox/tdv3"
 aliases:
   - km-tdv3
+  - "@km/_orphan/tdv3"
 created_at: 2026-01-20T07:44:56Z
 closed_at: 2026-01-20T12:58:19Z
 ---

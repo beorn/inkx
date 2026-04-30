@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/mouse"
+id: "@km/inbox/mouse"
 aliases:
   - km-mouse
+  - "@km/_orphan/mouse"
 created_at: 2026-01-31T19:30:28Z
 closed_at: 2026-02-04T11:24:01Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/loie"
+id: "@km/inbox/loie"
 aliases:
   - km-loie
+  - "@km/_orphan/loie"
 created_at: 2026-01-20T13:48:40Z
 closed_at: 2026-01-20T13:48:47Z
 ---

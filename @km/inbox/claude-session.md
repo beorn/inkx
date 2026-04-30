@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/claude-session"
+id: "@km/inbox/claude-session"
 aliases:
   - km-claude-session
+  - "@km/_orphan/claude-session"
 created_at: 2026-01-27T21:38:32Z
 closed_at: 2026-02-04T11:55:34Z
 ---

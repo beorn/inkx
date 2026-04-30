@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/dotz-flicker"
+id: "@km/inbox/dotz-flicker"
 aliases:
   - km-dotz-flicker
+  - "@km/_orphan/dotz-flicker"
 created_at: 2026-01-28T18:21:57Z
 closed_at: 2026-02-04T11:27:27Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/lzsi"
+id: "@km/inbox/lzsi"
 aliases:
   - km-lzsi
+  - "@km/_orphan/lzsi"
 created_at: 2026-01-19T15:06:05Z
 closed_at: 2026-01-19T15:15:24Z
 ---

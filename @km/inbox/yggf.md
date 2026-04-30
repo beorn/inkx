@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/yggf"
+id: "@km/inbox/yggf"
 aliases:
   - km-yggf
+  - "@km/_orphan/yggf"
 created_at: 2026-01-19T15:14:12Z
 closed_at: 2026-01-21T09:23:14Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tui-testable"
+id: "@km/inbox/tui-testable"
 aliases:
   - km-tui-testable
+  - "@km/_orphan/tui-testable"
 created_at: 2026-01-23T23:44:52Z
 closed_at: 2026-01-24T16:33:37Z
 ---

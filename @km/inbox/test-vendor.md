@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/test-vendor"
+id: "@km/inbox/test-vendor"
 aliases:
   - km-test-vendor
+  - "@km/_orphan/test-vendor"
 created_at: 2026-01-27T19:27:33Z
 closed_at: 2026-01-27T19:31:09Z
 assignee: claude:5df0e9da

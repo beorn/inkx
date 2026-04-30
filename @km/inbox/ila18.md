@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/ila18"
+id: "@km/inbox/ila18"
 aliases:
   - km-ila18
+  - "@km/_orphan/ila18"
 created_by: claude:efb76293
 created_at: 2026-03-17T08:12:37Z
 closed_at: 2026-03-17T08:27:11Z

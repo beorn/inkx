@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/10mat"
+id: "@km/inbox/10mat"
 aliases:
   - km-10mat
+  - "@km/_orphan/10mat"
 created_by: claude:b509d761
 created_at: 2026-02-10T09:33:22Z
 closed_at: 2026-02-10T12:53:47Z

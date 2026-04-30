@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/pdpm2"
+id: "@km/inbox/pdpm2"
 aliases:
   - km-pdpm2
+  - "@km/_orphan/pdpm2"
 created_by: claude:f53c94c1
 created_at: 2026-03-28T06:36:50Z
 closed_at: 2026-03-28T15:09:13Z

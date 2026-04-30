@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/storage-7"
+id: "@km/inbox/storage-7"
 aliases:
   - km-storage-7
+  - "@km/_orphan/storage-7"
 created_at: 2026-01-20T10:29:58Z
 closed_at: 2026-01-27T15:08:39Z
 assignee: claude:16d17ad6

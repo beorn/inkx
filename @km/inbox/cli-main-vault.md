@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/cli-main-vault"
+id: "@km/inbox/cli-main-vault"
 aliases:
   - km-cli-main-vault
+  - "@km/_orphan/cli-main-vault"
 created_at: 2026-01-25T08:30:34Z
 closed_at: 2026-01-25T08:44:13Z
 assignee: km

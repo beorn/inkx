@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/sh-c-bug"
+id: "@km/inbox/sh-c-bug"
 aliases:
   - km-sh-c-bug
+  - "@km/_orphan/sh-c-bug"
 created_at: 2026-01-25T23:44:04Z
 closed_at: 2026-01-27T08:38:41Z
 assignee: beorn

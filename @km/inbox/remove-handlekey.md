@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/remove-handlekey"
+id: "@km/inbox/remove-handlekey"
 aliases:
   - km-remove-handlekey
+  - "@km/_orphan/remove-handlekey"
 created_at: 2026-01-24T23:43:01Z
 closed_at: 2026-01-25T00:55:18Z
 ---

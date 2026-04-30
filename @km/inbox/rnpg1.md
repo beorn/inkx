@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/rnpg1"
+id: "@km/inbox/rnpg1"
 aliases:
   - km-rnpg1
+  - "@km/_orphan/rnpg1"
 created_by: claude:73d7a332
 created_at: 2026-03-11T18:44:56Z
 closed_at: 2026-03-12T01:39:08Z

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/anu3"
+id: "@km/inbox/anu3"
 aliases:
   - km-anu3
+  - "@km/_orphan/anu3"
 created_at: 2026-01-17T22:36:26Z
 closed_at: 2026-01-17T22:46:31Z
 ---

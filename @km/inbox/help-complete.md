@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/help-complete"
+id: "@km/inbox/help-complete"
 aliases:
   - km-help-complete
+  - "@km/_orphan/help-complete"
 created_at: 2026-01-25T13:08:55Z
 closed_at: 2026-01-27T12:15:04Z
 assignee: claude:5f8fa618

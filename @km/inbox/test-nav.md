@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/test-nav"
+id: "@km/inbox/test-nav"
 aliases:
   - km-test-nav
+  - "@km/_orphan/test-nav"
 created_at: 2026-01-25T03:11:59Z
 closed_at: 2026-01-26T16:42:38Z
 assignee: beorn

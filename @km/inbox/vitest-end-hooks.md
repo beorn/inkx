@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/vitest-end-hooks"
+id: "@km/inbox/vitest-end-hooks"
 aliases:
   - km-vitest-end-hooks
+  - "@km/_orphan/vitest-end-hooks"
 created_at: 2026-01-28T16:51:13Z
 closed_at: 2026-01-28T16:55:57Z
 assignee: claude:18380d7e

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/chaos-service"
+id: "@km/inbox/chaos-service"
 aliases:
   - km-chaos-service
+  - "@km/_orphan/chaos-service"
 created_at: 2026-01-23T11:04:59Z
 closed_at: 2026-01-23T11:24:40Z
 ---

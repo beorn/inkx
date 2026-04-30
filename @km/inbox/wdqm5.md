@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/wdqm5"
+id: "@km/inbox/wdqm5"
 aliases:
   - km-wdqm5
+  - "@km/_orphan/wdqm5"
 created_by: claude:ceb7c9cb
 created_at: 2026-03-27T21:02:47Z
 closed_at: 2026-03-27T21:54:21Z

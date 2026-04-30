@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/ggcy"
+id: "@km/inbox/ggcy"
 aliases:
   - km-ggcy
+  - "@km/_orphan/ggcy"
 created_at: 2026-01-20T19:19:56Z
 closed_at: 2026-01-20T19:20:09Z
 ---

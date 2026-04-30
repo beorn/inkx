@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/qnjt-fix"
+id: "@km/inbox/qnjt-fix"
 aliases:
   - km-qnjt-fix
+  - "@km/_orphan/qnjt-fix"
 created_at: 2026-01-24T19:48:04Z
 closed_at: 2026-01-24T19:51:22Z
 assignee: beorn

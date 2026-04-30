@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/xlb8"
+id: "@km/inbox/xlb8"
 aliases:
   - km-xlb8
+  - "@km/_orphan/xlb8"
 created_at: 2026-01-19T23:02:43Z
 closed_at: 2026-01-20T00:12:54Z
 ---

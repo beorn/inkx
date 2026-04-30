@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/rcf2y"
+id: "@km/inbox/rcf2y"
 aliases:
   - km-rcf2y
+  - "@km/_orphan/rcf2y"
 created_at: 2026-02-02T12:26:49Z
 closed_at: 2026-02-02T14:14:40Z
 assignee: claude:5fa2decc

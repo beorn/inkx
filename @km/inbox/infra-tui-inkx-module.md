@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/infra-tui-inkx-module"
+id: "@km/inbox/infra-tui-inkx-module"
 aliases:
   - km-infra-tui-inkx-module
+  - "@km/_orphan/infra-tui-inkx-module"
 created_at: 2026-01-28T13:46:09Z
 closed_at: 2026-01-28T14:33:01Z
 ---

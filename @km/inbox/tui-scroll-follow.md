@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tui-scroll-follow"
+id: "@km/inbox/tui-scroll-follow"
 aliases:
   - km-tui-scroll-follow
+  - "@km/_orphan/tui-scroll-follow"
 created_at: 2026-02-01T07:59:16Z
 closed_at: 2026-02-02T21:52:10Z
 ---

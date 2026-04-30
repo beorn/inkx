@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/markdown-1"
+id: "@km/inbox/markdown-1"
 aliases:
   - km-markdown-1
+  - "@km/_orphan/markdown-1"
 created_at: 2026-01-23T17:01:22Z
 closed_at: 2026-02-14T08:59:14Z
 assignee: claude:124bfbe5

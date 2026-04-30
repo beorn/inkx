@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/qcd5"
+id: "@km/inbox/qcd5"
 aliases:
   - km-qcd5
+  - "@km/_orphan/qcd5"
 created_at: 2026-01-21T15:39:25Z
 closed_at: 2026-01-21T15:46:10Z
 ---

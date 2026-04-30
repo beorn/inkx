@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/axswu"
+id: "@km/inbox/axswu"
 aliases:
   - km-axswu
+  - "@km/_orphan/axswu"
 created_by: claude:124bfbe5
 created_at: 2026-02-12T15:01:50Z
 closed_at: 2026-02-14T20:48:43Z

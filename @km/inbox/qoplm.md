@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/qoplm"
+id: "@km/inbox/qoplm"
 aliases:
   - km-qoplm
+  - "@km/_orphan/qoplm"
 created_by: claude:550b034d
 created_at: 2026-02-12T12:50:22Z
 closed_at: 2026-02-12T14:16:36Z

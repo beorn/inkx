@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/multi-llm"
+id: "@km/inbox/multi-llm"
 aliases:
   - km-multi-llm
+  - "@km/_orphan/multi-llm"
 created_at: 2026-01-30T07:14:26Z
 closed_at: 2026-01-30T07:34:27Z
 assignee: claude:895eaf4c

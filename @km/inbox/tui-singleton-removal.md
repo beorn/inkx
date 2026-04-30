@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tui-singleton-removal"
+id: "@km/inbox/tui-singleton-removal"
 aliases:
   - km-tui-singleton-removal
+  - "@km/_orphan/tui-singleton-removal"
 created_at: 2026-01-24T00:39:31Z
 closed_at: 2026-01-24T16:33:02Z
 assignee: 15d108d7

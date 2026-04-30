@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/gt0c"
+id: "@km/inbox/gt0c"
 aliases:
   - km-gt0c
+  - "@km/_orphan/gt0c"
 created_at: 2026-01-17T23:19:52Z
 closed_at: 2026-01-17T23:22:46Z
 ---

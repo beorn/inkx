@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/vendor-rename"
+id: "@km/inbox/vendor-rename"
 aliases:
   - km-vendor-rename
+  - "@km/_orphan/vendor-rename"
 created_at: 2026-02-03T09:46:11Z
 closed_at: 2026-02-04T11:27:38Z
 ---

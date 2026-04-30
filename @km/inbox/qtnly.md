@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/qtnly"
+id: "@km/inbox/qtnly"
 aliases:
   - km-qtnly
+  - "@km/_orphan/qtnly"
 created_by: claude:65d845d9
 created_at: 2026-03-13T02:26:48Z
 closed_at: 2026-03-13T02:36:42Z

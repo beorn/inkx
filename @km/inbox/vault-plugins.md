@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/vault-plugins"
+id: "@km/inbox/vault-plugins"
 aliases:
   - km-vault-plugins
+  - "@km/_orphan/vault-plugins"
 created_at: 2026-01-23T10:56:53Z
 closed_at: 2026-01-23T12:45:25Z
 ---

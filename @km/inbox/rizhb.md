@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/rizhb"
+id: "@km/inbox/rizhb"
 aliases:
   - km-rizhb
+  - "@km/_orphan/rizhb"
 created_by: claude:c9beade3
 created_at: 2026-03-13T23:20:39Z
 closed_at: 2026-03-13T23:40:48Z

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/nodf"
+id: "@km/inbox/nodf"
 aliases:
   - km-nodf
+  - "@km/_orphan/nodf"
 created_at: 2026-01-20T10:37:50Z
 closed_at: 2026-01-20T10:54:45Z
 ---

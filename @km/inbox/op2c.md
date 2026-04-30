@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/op2c"
+id: "@km/inbox/op2c"
 aliases:
   - km-op2c
+  - "@km/_orphan/op2c"
 created_at: 2026-01-20T13:43:59Z
 closed_at: 2026-01-20T13:47:31Z
 ---

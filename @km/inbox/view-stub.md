@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/view-stub"
+id: "@km/inbox/view-stub"
 aliases:
   - km-view-stub
+  - "@km/_orphan/view-stub"
 created_at: 2026-01-30T16:21:15Z
 closed_at: 2026-01-30T16:26:16Z
 assignee: claude:cf38b4a6

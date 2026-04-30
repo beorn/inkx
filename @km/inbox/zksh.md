@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/zksh"
+id: "@km/inbox/zksh"
 aliases:
   - km-zksh
+  - "@km/_orphan/zksh"
 created_at: 2026-01-16T17:03:55Z
 closed_at: 2026-01-16T17:20:43Z
 ---

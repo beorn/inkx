@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-packaging"
+id: "@km/inbox/flexx-packaging"
 aliases:
   - km-flexx-packaging
+  - "@km/_orphan/flexx-packaging"
 created_at: 2026-01-31T16:13:20Z
 closed_at: 2026-01-31T16:13:58Z
 ---

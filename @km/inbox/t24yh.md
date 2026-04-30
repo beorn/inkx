@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/t24yh"
+id: "@km/inbox/t24yh"
 aliases:
   - km-t24yh
+  - "@km/_orphan/t24yh"
 created_by: claude:97b8de73
 created_at: 2026-02-22T20:57:18Z
 closed_at: 2026-02-22T22:14:51Z

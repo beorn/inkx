@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/t3a7l"
+id: "@km/inbox/t3a7l"
 aliases:
   - km-t3a7l
+  - "@km/_orphan/t3a7l"
 created_by: claude:66437c43
 created_at: 2026-03-02T09:45:29Z
 closed_at: 2026-03-02T09:45:35Z

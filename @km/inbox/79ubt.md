@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/79ubt"
+id: "@km/inbox/79ubt"
 aliases:
   - km-79ubt
+  - "@km/_orphan/79ubt"
 created_by: claude:f8196c1c
 created_at: 2026-03-23T19:30:24Z
 closed_at: 2026-03-23T22:21:22Z

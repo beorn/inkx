@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-for-loops"
+id: "@km/inbox/flexx-for-loops"
 aliases:
   - km-flexx-for-loops
+  - "@km/_orphan/flexx-for-loops"
 created_at: 2026-01-30T20:25:38Z
 closed_at: 2026-01-30T20:28:43Z
 assignee: claude:b8b4780b

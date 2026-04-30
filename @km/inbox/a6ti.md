@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/a6ti"
+id: "@km/inbox/a6ti"
 aliases:
   - km-a6ti
+  - "@km/_orphan/a6ti"
 created_at: 2026-01-22T18:45:58Z
 closed_at: 2026-01-22T20:25:55Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/jatd"
+id: "@km/inbox/jatd"
 aliases:
   - km-jatd
+  - "@km/_orphan/jatd"
 created_at: 2026-01-20T10:38:19Z
 closed_at: 2026-01-20T10:54:45Z
 ---

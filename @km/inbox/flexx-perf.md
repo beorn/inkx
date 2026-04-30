@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-perf"
+id: "@km/inbox/flexx-perf"
 aliases:
   - km-flexx-perf
+  - "@km/_orphan/flexx-perf"
 created_at: 2026-01-30T17:51:13Z
 closed_at: 2026-01-30T21:20:18Z
 assignee: claude:b8b4780b

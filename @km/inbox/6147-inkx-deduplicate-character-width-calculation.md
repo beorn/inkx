@@ -1,8 +1,9 @@
 ---
-id: "@km/_orphan/6147-inkx-deduplicate-character-width-calculation"
+id: "@km/inbox/6147-inkx-deduplicate-character-width-calculation"
 aliases:
   - km-6147
   - "@km/_orphan/6147"
+  - "@km/_orphan/6147-inkx-deduplicate-character-width-calculation"
 created_at: 2026-01-20T07:43:44Z
 closed_at: 2026-01-20T10:14:27Z
 ---

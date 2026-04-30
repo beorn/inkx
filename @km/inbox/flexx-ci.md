@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-ci"
+id: "@km/inbox/flexx-ci"
 aliases:
   - km-flexx-ci
+  - "@km/_orphan/flexx-ci"
 created_at: 2026-01-31T16:13:25Z
 closed_at: 2026-01-31T16:20:03Z
 ---

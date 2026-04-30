@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/yczk"
+id: "@km/inbox/yczk"
 aliases:
   - km-yczk
+  - "@km/_orphan/yczk"
 created_at: 2026-01-20T13:51:26Z
 closed_at: 2026-01-20T13:56:26Z
 ---

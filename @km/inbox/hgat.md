@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/hgat"
+id: "@km/inbox/hgat"
 aliases:
   - km-hgat
+  - "@km/_orphan/hgat"
 created_at: 2026-01-16T13:36:44Z
 closed_at: 2026-01-16T13:42:59Z
 ---

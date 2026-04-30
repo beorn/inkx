@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/boiq"
+id: "@km/inbox/boiq"
 aliases:
   - km-boiq
+  - "@km/_orphan/boiq"
 created_at: 2026-01-20T14:30:58Z
 closed_at: 2026-01-20T14:36:08Z
 ---

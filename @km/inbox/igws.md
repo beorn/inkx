@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/igws"
+id: "@km/inbox/igws"
 aliases:
   - km-igws
+  - "@km/_orphan/igws"
 created_at: 2026-01-17T23:15:51Z
 closed_at: 2026-01-17T23:18:31Z
 ---

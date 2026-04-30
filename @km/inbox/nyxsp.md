@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/nyxsp"
+id: "@km/inbox/nyxsp"
 aliases:
   - km-nyxsp
+  - "@km/_orphan/nyxsp"
 created_by: claude:34ba82b6
 created_at: 2026-02-15T18:39:58Z
 closed_at: 2026-02-15T18:51:17Z

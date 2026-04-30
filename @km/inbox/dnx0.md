@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/dnx0"
+id: "@km/inbox/dnx0"
 aliases:
   - km-dnx0
+  - "@km/_orphan/dnx0"
 created_at: 2026-01-17T23:20:32Z
 closed_at: 2026-01-17T23:22:46Z
 ---

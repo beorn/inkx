@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-alloc-hot"
+id: "@km/inbox/flexx-alloc-hot"
 aliases:
   - km-flexx-alloc-hot
+  - "@km/_orphan/flexx-alloc-hot"
 created_at: 2026-01-30T17:49:19Z
 closed_at: 2026-01-30T20:34:10Z
 ---

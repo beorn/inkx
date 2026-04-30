@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/visd"
+id: "@km/inbox/visd"
 aliases:
   - km-visd
+  - "@km/_orphan/visd"
 created_at: 2026-01-15T22:31:19Z
 closed_at: 2026-01-15T23:10:52Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/mkzzr"
+id: "@km/inbox/mkzzr"
 aliases:
   - km-mkzzr
+  - "@km/_orphan/mkzzr"
 created_by: claude:b92140a2
 created_at: 2026-03-17T17:29:15Z
 closed_at: 2026-03-17T19:05:08Z

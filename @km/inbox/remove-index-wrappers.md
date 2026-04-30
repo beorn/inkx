@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/remove-index-wrappers"
+id: "@km/inbox/remove-index-wrappers"
 aliases:
   - km-remove-index-wrappers
+  - "@km/_orphan/remove-index-wrappers"
 created_at: 2026-01-25T08:30:37Z
 closed_at: 2026-01-25T10:07:30Z
 ---

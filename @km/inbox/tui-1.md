@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tui-1"
+id: "@km/inbox/tui-1"
 aliases:
   - km-tui-1
+  - "@km/_orphan/tui-1"
 created_at: 2026-01-27T09:52:45Z
 closed_at: 2026-01-27T17:28:11Z
 assignee: claude:279f285c

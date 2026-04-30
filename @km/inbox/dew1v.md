@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/dew1v"
+id: "@km/inbox/dew1v"
 aliases:
   - km-dew1v
+  - "@km/_orphan/dew1v"
 created_at: 2026-02-02T12:28:05Z
 closed_at: 2026-02-03T15:08:13Z
 assignee: claude:16781aa5

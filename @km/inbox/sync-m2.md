@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/sync-m2"
+id: "@km/inbox/sync-m2"
 aliases:
   - km-sync-m2
+  - "@km/_orphan/sync-m2"
 created_at: 2026-01-22T13:30:14Z
 closed_at: 2026-01-22T17:31:09Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/mr1km"
+id: "@km/inbox/mr1km"
 aliases:
   - km-mr1km
+  - "@km/_orphan/mr1km"
 created_at: 2026-02-02T15:25:21Z
 closed_at: 2026-02-02T16:33:53Z
 assignee: claude:227cdc41

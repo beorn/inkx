@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/mr5gj"
+id: "@km/inbox/mr5gj"
 aliases:
   - km-mr5gj
+  - "@km/_orphan/mr5gj"
 created_by: Bjørn Stabell
 created_at: 2026-04-06T07:27:32Z
 closed_at: 2026-04-06T08:23:47Z

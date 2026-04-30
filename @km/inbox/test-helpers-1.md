@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/test-helpers-1"
+id: "@km/inbox/test-helpers-1"
 aliases:
   - km-test-helpers-1
+  - "@km/_orphan/test-helpers-1"
 created_at: 2026-01-28T21:42:10Z
 closed_at: 2026-01-28T21:50:32Z
 assignee: claude:1fbd8fe1

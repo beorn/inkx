@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-yoga-compat"
+id: "@km/inbox/flexx-yoga-compat"
 aliases:
   - km-flexx-yoga-compat
+  - "@km/_orphan/flexx-yoga-compat"
 created_at: 2026-01-31T07:47:44Z
 closed_at: 2026-01-31T13:41:17Z
 ---

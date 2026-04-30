@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/remove-db-wrappers"
+id: "@km/inbox/remove-db-wrappers"
 aliases:
   - km-remove-db-wrappers
+  - "@km/_orphan/remove-db-wrappers"
 created_at: 2026-01-25T08:30:36Z
 closed_at: 2026-01-25T10:07:25Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-diff-fuzz"
+id: "@km/inbox/flexx-diff-fuzz"
 aliases:
   - km-flexx-diff-fuzz
+  - "@km/_orphan/flexx-diff-fuzz"
 created_at: 2026-01-31T16:13:23Z
 closed_at: 2026-01-31T16:28:43Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/ux86i"
+id: "@km/inbox/ux86i"
 aliases:
   - km-ux86i
+  - "@km/_orphan/ux86i"
 created_by: claude:b509d761
 created_at: 2026-02-10T12:11:04Z
 closed_at: 2026-02-18T08:14:06Z

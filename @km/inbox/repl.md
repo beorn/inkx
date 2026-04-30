@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/repl"
+id: "@km/inbox/repl"
 aliases:
   - km-repl
+  - "@km/_orphan/repl"
 created_at: 2026-01-15T13:47:24Z
 closed_at: 2026-01-16T09:35:26Z
 ---

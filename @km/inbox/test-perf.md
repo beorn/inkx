@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/test-perf"
+id: "@km/inbox/test-perf"
 aliases:
   - km-test-perf
+  - "@km/_orphan/test-perf"
 created_at: 2026-01-27T23:06:12Z
 closed_at: 2026-01-28T10:23:40Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-paranoid-tests"
+id: "@km/inbox/flexx-paranoid-tests"
 aliases:
   - km-flexx-paranoid-tests
+  - "@km/_orphan/flexx-paranoid-tests"
 created_at: 2026-01-31T16:00:28Z
 closed_at: 2026-01-31T16:13:58Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/commit-perf"
+id: "@km/inbox/commit-perf"
 aliases:
   - km-commit-perf
+  - "@km/_orphan/commit-perf"
 created_at: 2026-02-04T10:36:51Z
 closed_at: 2026-02-04T11:55:34Z
 ---

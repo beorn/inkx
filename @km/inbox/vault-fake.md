@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/vault-fake"
+id: "@km/inbox/vault-fake"
 aliases:
   - km-vault-fake
+  - "@km/_orphan/vault-fake"
 created_at: 2026-01-23T10:56:42Z
 closed_at: 2026-01-23T11:28:50Z
 ---

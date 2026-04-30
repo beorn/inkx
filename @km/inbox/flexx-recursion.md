@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-recursion"
+id: "@km/inbox/flexx-recursion"
 aliases:
   - km-flexx-recursion
+  - "@km/_orphan/flexx-recursion"
 created_at: 2026-01-31T21:00:28Z
 closed_at: 2026-01-31T21:05:53Z
 assignee: claude:b8b4780b

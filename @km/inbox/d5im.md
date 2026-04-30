@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/d5im"
+id: "@km/inbox/d5im"
 aliases:
   - km-d5im
+  - "@km/_orphan/d5im"
 created_at: 2026-01-20T07:43:48Z
 closed_at: 2026-01-20T07:51:25Z
 ---

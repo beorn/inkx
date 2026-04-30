@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/otmz"
+id: "@km/inbox/otmz"
 aliases:
   - km-otmz
+  - "@km/_orphan/otmz"
 created_at: 2026-01-23T11:28:53Z
 closed_at: 2026-01-23T15:42:40Z
 ---

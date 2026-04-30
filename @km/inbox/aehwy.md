@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/aehwy"
+id: "@km/inbox/aehwy"
 aliases:
   - km-aehwy
+  - "@km/_orphan/aehwy"
 created_by: Bjørn Stabell
 created_at: 2026-04-23T07:09:42Z
 owner: bjorn@stabell.org

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/vzeg"
+id: "@km/inbox/vzeg"
 aliases:
   - km-vzeg
+  - "@km/_orphan/vzeg"
 created_at: 2026-01-18T00:52:51Z
 closed_at: 2026-01-22T00:34:29Z
 ---

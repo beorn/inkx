@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/7tgjc"
+id: "@km/inbox/7tgjc"
 aliases:
   - km-7tgjc
+  - "@km/_orphan/7tgjc"
 created_by: claude:2ce3230f
 created_at: 2026-03-10T06:25:22Z
 closed_at: 2026-03-10T22:57:52Z

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/inkx-scroll-perf"
+id: "@km/inbox/inkx-scroll-perf"
 aliases:
   - km-inkx-scroll-perf
+  - "@km/_orphan/inkx-scroll-perf"
 created_at: 2026-01-30T15:29:46Z
 closed_at: 2026-01-30T15:31:39Z
 assignee: claude:b8b4780b

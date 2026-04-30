@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/satisfies-commands"
+id: "@km/inbox/satisfies-commands"
 aliases:
   - km-satisfies-commands
+  - "@km/_orphan/satisfies-commands"
 created_at: 2026-01-25T12:20:05Z
 closed_at: 2026-01-25T12:30:21Z
 assignee: unimac

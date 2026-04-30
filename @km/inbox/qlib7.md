@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/qlib7"
+id: "@km/inbox/qlib7"
 aliases:
   - km-qlib7
+  - "@km/_orphan/qlib7"
 created_by: claude:717696c0
 created_at: 2026-02-15T22:14:40Z
 closed_at: 2026-02-15T22:20:50Z

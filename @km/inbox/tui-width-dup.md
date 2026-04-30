@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tui-width-dup"
+id: "@km/inbox/tui-width-dup"
 aliases:
   - km-tui-width-dup
+  - "@km/_orphan/tui-width-dup"
 created_at: 2026-02-02T20:43:11Z
 closed_at: 2026-02-04T11:27:22Z
 ---

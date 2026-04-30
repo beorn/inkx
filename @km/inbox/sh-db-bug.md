@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/sh-db-bug"
+id: "@km/inbox/sh-db-bug"
 aliases:
   - km-sh-db-bug
+  - "@km/_orphan/sh-db-bug"
 created_at: 2026-01-25T13:15:36Z
 closed_at: 2026-01-25T20:57:25Z
 assignee: Claude Sonnet 4.5

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/chaos-hooks"
+id: "@km/inbox/chaos-hooks"
 aliases:
   - km-chaos-hooks
+  - "@km/_orphan/chaos-hooks"
 created_at: 2026-01-23T11:05:00Z
 closed_at: 2026-01-23T12:50:11Z
 ---

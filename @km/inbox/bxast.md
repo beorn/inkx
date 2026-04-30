@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/bxast"
+id: "@km/inbox/bxast"
 aliases:
   - km-bxast
+  - "@km/_orphan/bxast"
 created_by: claude:65d845d9
 created_at: 2026-03-13T02:27:06Z
 closed_at: 2026-03-13T02:33:58Z

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-zero-alloc"
+id: "@km/inbox/flexx-zero-alloc"
 aliases:
   - km-flexx-zero-alloc
+  - "@km/_orphan/flexx-zero-alloc"
 created_at: 2026-01-30T20:33:59Z
 closed_at: 2026-01-30T21:35:54Z
 assignee: claude:227cdc41

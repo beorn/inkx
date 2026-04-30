@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/wyjoy"
+id: "@km/inbox/wyjoy"
 aliases:
   - km-wyjoy
+  - "@km/_orphan/wyjoy"
 created_by: claude:b92140a2
 created_at: 2026-03-17T17:29:15Z
 closed_at: 2026-03-17T19:05:08Z

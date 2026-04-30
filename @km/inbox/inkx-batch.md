@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/inkx-batch"
+id: "@km/inbox/inkx-batch"
 aliases:
   - km-inkx-batch
+  - "@km/_orphan/inkx-batch"
 created_at: 2026-02-01T23:18:59Z
 closed_at: 2026-02-01T23:29:23Z
 assignee: claude:5fa2decc

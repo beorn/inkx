@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/ntul"
+id: "@km/inbox/ntul"
 aliases:
   - km-ntul
+  - "@km/_orphan/ntul"
 created_at: 2026-01-20T21:01:45Z
 closed_at: 2026-01-20T22:22:17Z
 ---

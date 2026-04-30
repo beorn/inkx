@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/kxwg"
+id: "@km/inbox/kxwg"
 aliases:
   - km-kxwg
+  - "@km/_orphan/kxwg"
 created_at: 2026-01-21T11:37:27Z
 closed_at: 2026-01-21T11:40:34Z
 ---

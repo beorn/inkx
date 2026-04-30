@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/nuzu"
+id: "@km/inbox/nuzu"
 aliases:
   - km-nuzu
+  - "@km/_orphan/nuzu"
 created_at: 2026-01-25T08:27:05Z
 closed_at: 2026-01-25T08:47:36Z
 assignee: beorn-claude-78480

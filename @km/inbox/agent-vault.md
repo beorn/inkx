@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/agent-vault"
+id: "@km/inbox/agent-vault"
 aliases:
   - km-agent-vault
+  - "@km/_orphan/agent-vault"
 created_at: 2026-01-25T08:30:35Z
 closed_at: 2026-01-26T00:10:09Z
 assignee: km

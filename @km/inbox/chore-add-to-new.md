@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/chore-add-to-new"
+id: "@km/inbox/chore-add-to-new"
 aliases:
   - km-chore-add-to-new
+  - "@km/_orphan/chore-add-to-new"
 created_at: 2026-01-27T09:19:27Z
 closed_at: 2026-01-27T09:27:59Z
 assignee: beorn

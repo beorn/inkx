@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/laftk"
+id: "@km/inbox/laftk"
 aliases:
   - km-laftk
+  - "@km/_orphan/laftk"
 created_by: claude:b92140a2
 created_at: 2026-03-17T08:33:08Z
 closed_at: 2026-03-17T15:04:32Z

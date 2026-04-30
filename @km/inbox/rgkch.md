@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/rgkch"
+id: "@km/inbox/rgkch"
 aliases:
   - km-rgkch
+  - "@km/_orphan/rgkch"
 created_by: claude:c9beade3
 created_at: 2026-03-15T07:30:16Z
 closed_at: 2026-03-15T07:35:44Z

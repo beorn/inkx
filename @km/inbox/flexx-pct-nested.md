@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-pct-nested"
+id: "@km/inbox/flexx-pct-nested"
 aliases:
   - km-flexx-pct-nested
+  - "@km/_orphan/flexx-pct-nested"
 created_at: 2026-01-30T15:25:17Z
 closed_at: 2026-01-30T18:47:57Z
 assignee: claude:b8b4780b

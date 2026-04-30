@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/mqmjp"
+id: "@km/inbox/mqmjp"
 aliases:
   - km-mqmjp
+  - "@km/_orphan/mqmjp"
 created_by: claude:717696c0
 created_at: 2026-02-15T22:22:32Z
 closed_at: 2026-02-15T22:23:24Z

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/sync-1"
+id: "@km/inbox/sync-1"
 aliases:
   - km-sync-1
+  - "@km/_orphan/sync-1"
 created_at: 2026-01-26T15:09:46Z
 closed_at: 2026-01-27T17:28:40Z
 assignee: claude:279f285c

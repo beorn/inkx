@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/hagm6"
+id: "@km/inbox/hagm6"
 aliases:
   - km-hagm6
+  - "@km/_orphan/hagm6"
 created_by: claude:73d7a332
 created_at: 2026-03-11T18:57:13Z
 closed_at: 2026-03-11T19:27:35Z

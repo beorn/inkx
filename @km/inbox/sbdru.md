@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/sbdru"
+id: "@km/inbox/sbdru"
 aliases:
   - km-sbdru
+  - "@km/_orphan/sbdru"
 created_by: claude:af6eb626
 created_at: 2026-03-04T15:05:44Z
 closed_at: 2026-03-04T16:36:06Z

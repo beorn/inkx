@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/js8s"
+id: "@km/inbox/js8s"
 aliases:
   - km-js8s
+  - "@km/_orphan/js8s"
 created_at: 2026-01-16T10:49:25Z
 closed_at: 2026-01-16T11:32:43Z
 ---

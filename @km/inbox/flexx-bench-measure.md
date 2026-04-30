@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-bench-measure"
+id: "@km/inbox/flexx-bench-measure"
 aliases:
   - km-flexx-bench-measure
+  - "@km/_orphan/flexx-bench-measure"
 created_at: 2026-01-30T17:17:21Z
 closed_at: 2026-01-30T17:50:58Z
 ---

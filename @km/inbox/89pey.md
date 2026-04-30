@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/89pey"
+id: "@km/inbox/89pey"
 aliases:
   - km-89pey
+  - "@km/_orphan/89pey"
 created_by: claude:53ab8041
 created_at: 2026-02-28T08:31:57Z
 closed_at: 2026-03-03T12:29:11Z

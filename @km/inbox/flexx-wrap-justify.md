@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-wrap-justify"
+id: "@km/inbox/flexx-wrap-justify"
 aliases:
   - km-flexx-wrap-justify
+  - "@km/_orphan/flexx-wrap-justify"
 created_at: 2026-01-31T21:00:26Z
 closed_at: 2026-01-31T21:08:35Z
 assignee: claude:b8b4780b

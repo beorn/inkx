@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/vhs4"
+id: "@km/inbox/vhs4"
 aliases:
   - km-vhs4
+  - "@km/_orphan/vhs4"
 created_at: 2026-01-24T22:27:48Z
 closed_at: 2026-01-24T22:53:38Z
 assignee: claude-1769322689

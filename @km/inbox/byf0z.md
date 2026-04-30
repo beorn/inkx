@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/byf0z"
+id: "@km/inbox/byf0z"
 aliases:
   - km-byf0z
+  - "@km/_orphan/byf0z"
 created_by: Bjørn Stabell
 created_at: 2026-04-01T06:10:18Z
 closed_at: 2026-04-02T04:14:56Z

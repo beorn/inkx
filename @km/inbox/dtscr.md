@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/dtscr"
+id: "@km/inbox/dtscr"
 aliases:
   - km-dtscr
+  - "@km/_orphan/dtscr"
 created_at: 2026-02-02T15:25:26Z
 closed_at: 2026-02-02T15:32:08Z
 assignee: claude:227cdc41

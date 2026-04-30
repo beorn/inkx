@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/ghz4"
+id: "@km/inbox/ghz4"
 aliases:
   - km-ghz4
+  - "@km/_orphan/ghz4"
 created_at: 2026-01-19T14:50:41Z
 closed_at: 2026-01-19T14:58:48Z
 ---

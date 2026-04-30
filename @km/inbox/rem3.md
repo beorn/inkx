@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/rem3"
+id: "@km/inbox/rem3"
 aliases:
   - km-rem3
+  - "@km/_orphan/rem3"
 created_at: 2026-01-20T10:30:03Z
 closed_at: 2026-01-20T13:27:33Z
 ---

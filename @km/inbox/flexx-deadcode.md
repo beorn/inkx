@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-deadcode"
+id: "@km/inbox/flexx-deadcode"
 aliases:
   - km-flexx-deadcode
+  - "@km/_orphan/flexx-deadcode"
 created_at: 2026-01-31T21:00:29Z
 closed_at: 2026-01-31T21:04:44Z
 assignee: claude:b8b4780b

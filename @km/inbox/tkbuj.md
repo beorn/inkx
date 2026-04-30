@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tkbuj"
+id: "@km/inbox/tkbuj"
 aliases:
   - km-tkbuj
+  - "@km/_orphan/tkbuj"
 created_by: claude:491faf6c
 created_at: 2026-03-25T05:15:40Z
 closed_at: 2026-03-25T05:55:48Z

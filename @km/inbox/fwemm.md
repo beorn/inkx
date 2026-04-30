@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/fwemm"
+id: "@km/inbox/fwemm"
 aliases:
   - km-fwemm
+  - "@km/_orphan/fwemm"
 created_at: 2026-02-02T21:20:05Z
 closed_at: 2026-02-02T21:30:15Z
 assignee: claude:1588825b

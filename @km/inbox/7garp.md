@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/7garp"
+id: "@km/inbox/7garp"
 aliases:
   - km-7garp
+  - "@km/_orphan/7garp"
 created_by: claude:2ce3230f
 created_at: 2026-03-09T22:55:08Z
 closed_at: 2026-03-10T01:27:13Z

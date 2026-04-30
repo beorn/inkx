@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/zlwa"
+id: "@km/inbox/zlwa"
 aliases:
   - km-zlwa
+  - "@km/_orphan/zlwa"
 created_at: 2026-01-25T02:05:15Z
 closed_at: 2026-01-25T02:13:17Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/jtze2"
+id: "@km/inbox/jtze2"
 aliases:
   - km-jtze2
+  - "@km/_orphan/jtze2"
 created_by: claude:8f007ba9
 created_at: 2026-02-20T11:25:30Z
 closed_at: 2026-02-20T15:26:10Z

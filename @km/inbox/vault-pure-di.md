@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/vault-pure-di"
+id: "@km/inbox/vault-pure-di"
 aliases:
   - km-vault-pure-di
+  - "@km/_orphan/vault-pure-di"
 created_at: 2026-01-25T12:47:21Z
 closed_at: 2026-01-25T13:06:53Z
 assignee: 4f15ead4-7d35-4730-bfaa-6e6c222d57fa

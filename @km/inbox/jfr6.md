@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/jfr6"
+id: "@km/inbox/jfr6"
 aliases:
   - km-jfr6
+  - "@km/_orphan/jfr6"
 created_at: 2026-01-24T22:27:50Z
 closed_at: 2026-01-24T22:31:24Z
 assignee: claude-1769322490

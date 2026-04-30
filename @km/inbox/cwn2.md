@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/cwn2"
+id: "@km/inbox/cwn2"
 aliases:
   - km-cwn2
+  - "@km/_orphan/cwn2"
 created_at: 2026-01-25T08:27:13Z
 closed_at: 2026-01-25T08:47:36Z
 assignee: beorn-claude-78480

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/release"
+id: "@km/inbox/release"
 aliases:
   - km-release
+  - "@km/_orphan/release"
 created_at: 2026-01-23T10:36:34Z
 closed_at: 2026-01-23T10:38:28Z
 ---

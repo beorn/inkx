@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/4lap"
+id: "@km/inbox/4lap"
 aliases:
   - km-4lap
+  - "@km/_orphan/4lap"
 created_at: 2026-01-20T07:44:26Z
 closed_at: 2026-01-20T11:52:12Z
 ---

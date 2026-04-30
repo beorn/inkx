@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/7nwpm"
+id: "@km/inbox/7nwpm"
 aliases:
   - km-7nwpm
+  - "@km/_orphan/7nwpm"
 created_at: 2026-01-31T13:30:58Z
 closed_at: 2026-01-31T13:48:04Z
 ---

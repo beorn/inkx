@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/cdt25"
+id: "@km/inbox/cdt25"
 aliases:
   - km-cdt25
+  - "@km/_orphan/cdt25"
 created_by: claude:8f007ba9
 created_at: 2026-02-19T21:25:14Z
 closed_at: 2026-02-19T21:44:51Z

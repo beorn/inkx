@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/loqu9"
+id: "@km/inbox/loqu9"
 aliases:
   - km-loqu9
+  - "@km/_orphan/loqu9"
 created_by: claude:fed8de9e
 created_at: 2026-03-29T05:20:47Z
 closed_at: 2026-03-29T05:30:59Z

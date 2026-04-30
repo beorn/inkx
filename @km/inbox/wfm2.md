@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/wfm2"
+id: "@km/inbox/wfm2"
 aliases:
   - km-wfm2
+  - "@km/_orphan/wfm2"
 created_at: 2026-01-20T16:49:10Z
 closed_at: 2026-01-20T16:54:02Z
 ---

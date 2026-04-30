@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-aligncontent"
+id: "@km/inbox/flexx-aligncontent"
 aliases:
   - km-flexx-aligncontent
+  - "@km/_orphan/flexx-aligncontent"
 created_at: 2026-01-30T15:24:33Z
 closed_at: 2026-01-31T13:41:02Z
 assignee: claude:b8b4780b

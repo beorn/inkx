@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tt3ki"
+id: "@km/inbox/tt3ki"
 aliases:
   - km-tt3ki
+  - "@km/_orphan/tt3ki"
 created_by: claude:c9beade3
 created_at: 2026-03-15T07:30:08Z
 closed_at: 2026-03-15T07:35:35Z

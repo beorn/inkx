@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/vixd"
+id: "@km/inbox/vixd"
 aliases:
   - km-vixd
+  - "@km/_orphan/vixd"
 created_at: 2026-01-19T14:04:28Z
 closed_at: 2026-01-19T14:13:14Z
 ---

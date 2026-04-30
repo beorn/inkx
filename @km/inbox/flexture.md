@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexture"
+id: "@km/inbox/flexture"
 aliases:
   - km-flexture
+  - "@km/_orphan/flexture"
 created_at: 2026-02-04T11:19:09Z
 closed_at: 2026-02-23T00:56:46Z
 ---

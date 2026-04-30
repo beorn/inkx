@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/amzv"
+id: "@km/inbox/amzv"
 aliases:
   - km-amzv
+  - "@km/_orphan/amzv"
 created_at: 2026-01-19T15:26:39Z
 closed_at: 2026-01-20T00:48:25Z
 ---

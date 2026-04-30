@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/nehtg"
+id: "@km/inbox/nehtg"
 aliases:
   - km-nehtg
+  - "@km/_orphan/nehtg"
 created_by: claude:65d845d9
 created_at: 2026-03-13T02:27:05Z
 closed_at: 2026-03-13T02:36:43Z

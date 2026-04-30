@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/6cfy"
+id: "@km/inbox/6cfy"
 aliases:
   - km-6cfy
+  - "@km/_orphan/6cfy"
 created_at: 2026-01-27T01:55:51Z
 closed_at: 2026-01-27T01:58:21Z
 assignee: beorn

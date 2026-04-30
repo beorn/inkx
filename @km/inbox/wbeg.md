@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/wbeg"
+id: "@km/inbox/wbeg"
 aliases:
   - km-wbeg
+  - "@km/_orphan/wbeg"
 created_at: 2026-01-21T23:11:54Z
 closed_at: 2026-01-21T23:19:15Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-overflow-shrink"
+id: "@km/inbox/flexx-overflow-shrink"
 aliases:
   - km-flexx-overflow-shrink
+  - "@km/_orphan/flexx-overflow-shrink"
 created_at: 2026-01-31T08:28:16Z
 closed_at: 2026-01-31T13:41:18Z
 ---

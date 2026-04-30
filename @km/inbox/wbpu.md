@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/wbpu"
+id: "@km/inbox/wbpu"
 aliases:
   - km-wbpu
+  - "@km/_orphan/wbpu"
 created_at: 2026-01-21T13:23:22Z
 closed_at: 2026-01-21T13:26:34Z
 ---

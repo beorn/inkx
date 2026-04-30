@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/ocwrx"
+id: "@km/inbox/ocwrx"
 aliases:
   - km-ocwrx
+  - "@km/_orphan/ocwrx"
 created_at: 2026-02-02T22:08:27Z
 closed_at: 2026-02-02T22:14:35Z
 assignee: claude:1588825b

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/xls7g"
+id: "@km/inbox/xls7g"
 aliases:
   - km-xls7g
+  - "@km/_orphan/xls7g"
 created_by: claude:fd695049
 created_at: 2026-03-04T14:25:36Z
 closed_at: 2026-03-04T15:01:35Z

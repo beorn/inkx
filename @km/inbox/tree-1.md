@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tree-1"
+id: "@km/inbox/tree-1"
 aliases:
   - km-tree-1
+  - "@km/_orphan/tree-1"
 created_at: 2026-01-20T21:42:07Z
 closed_at: 2026-02-04T11:27:26Z
 ---

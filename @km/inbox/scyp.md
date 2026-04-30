@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/scyp"
+id: "@km/inbox/scyp"
 aliases:
   - km-scyp
+  - "@km/_orphan/scyp"
 created_at: 2026-01-18T22:36:04Z
 closed_at: 2026-01-18T22:45:11Z
 ---

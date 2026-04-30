@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/fcpt0"
+id: "@km/inbox/fcpt0"
 aliases:
   - km-fcpt0
+  - "@km/_orphan/fcpt0"
 created_by: claude:124bfbe5
 created_at: 2026-02-12T21:36:23Z
 closed_at: 2026-02-14T21:11:00Z

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/inkx-render-purity"
+id: "@km/inbox/inkx-render-purity"
 aliases:
   - km-inkx-render-purity
+  - "@km/_orphan/inkx-render-purity"
 created_at: 2026-02-02T20:42:45Z
 closed_at: 2026-02-02T22:14:33Z
 ---

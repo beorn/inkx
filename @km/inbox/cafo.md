@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/cafo"
+id: "@km/inbox/cafo"
 aliases:
   - km-cafo
+  - "@km/_orphan/cafo"
 created_at: 2026-01-21T11:40:42Z
 closed_at: 2026-01-21T11:59:07Z
 ---

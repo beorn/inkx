@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-stress-cache"
+id: "@km/inbox/flexx-stress-cache"
 aliases:
   - km-flexx-stress-cache
+  - "@km/_orphan/flexx-stress-cache"
 created_at: 2026-01-31T14:03:35Z
 closed_at: 2026-01-31T14:05:54Z
 assignee: claude:b8b4780b

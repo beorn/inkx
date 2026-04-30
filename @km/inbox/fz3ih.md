@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/fz3ih"
+id: "@km/inbox/fz3ih"
 aliases:
   - km-fz3ih
+  - "@km/_orphan/fz3ih"
 created_by: claude:2405c72e
 created_at: 2026-04-26T12:52:16Z
 closed_at: 2026-04-28T02:29:34Z

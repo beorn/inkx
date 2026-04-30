@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/wsc4n"
+id: "@km/inbox/wsc4n"
 aliases:
   - km-wsc4n
+  - "@km/_orphan/wsc4n"
 created_by: claude:c9beade3
 created_at: 2026-03-13T23:21:16Z
 closed_at: 2026-03-13T23:45:55Z

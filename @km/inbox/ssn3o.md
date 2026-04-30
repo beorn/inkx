@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/ssn3o"
+id: "@km/inbox/ssn3o"
 aliases:
   - km-ssn3o
+  - "@km/_orphan/ssn3o"
 created_by: claude:97b8de73
 created_at: 2026-02-22T20:48:13Z
 closed_at: 2026-02-22T22:14:51Z

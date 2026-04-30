@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/ufi29"
+id: "@km/inbox/ufi29"
 aliases:
   - km-ufi29
+  - "@km/_orphan/ufi29"
 created_by: claude:148be06c
 created_at: 2026-03-21T00:58:17Z
 closed_at: 2026-03-21T01:03:36Z

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/init-db-bug"
+id: "@km/inbox/init-db-bug"
 aliases:
   - km-init-db-bug
+  - "@km/_orphan/init-db-bug"
 created_at: 2026-01-25T12:23:14Z
 closed_at: 2026-01-25T12:51:19Z
 assignee: 3f5ed42b

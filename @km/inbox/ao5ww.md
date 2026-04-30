@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/ao5ww"
+id: "@km/inbox/ao5ww"
 aliases:
   - km-ao5ww
+  - "@km/_orphan/ao5ww"
 created_by: claude:efb76293
 created_at: 2026-03-17T08:15:36Z
 closed_at: 2026-03-17T08:17:40Z

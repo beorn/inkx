@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/inkx-scrolltoindex"
+id: "@km/inbox/inkx-scrolltoindex"
 aliases:
   - km-inkx-scrolltoindex
+  - "@km/_orphan/inkx-scrolltoindex"
 created_at: 2026-02-02T20:42:45Z
 closed_at: 2026-02-02T22:14:32Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/snux"
+id: "@km/inbox/snux"
 aliases:
   - km-snux
+  - "@km/_orphan/snux"
 created_at: 2026-01-20T15:54:13Z
 closed_at: 2026-01-20T15:54:40Z
 ---

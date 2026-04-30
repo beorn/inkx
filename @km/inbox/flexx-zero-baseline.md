@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-zero-baseline"
+id: "@km/inbox/flexx-zero-baseline"
 aliases:
   - km-flexx-zero-baseline
+  - "@km/_orphan/flexx-zero-baseline"
 created_at: 2026-01-31T16:14:25Z
 closed_at: 2026-01-31T16:26:43Z
 ---

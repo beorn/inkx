@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/parse-worker-debug"
+id: "@km/inbox/parse-worker-debug"
 aliases:
   - km-parse-worker-debug
+  - "@km/_orphan/parse-worker-debug"
 created_at: 2026-01-24T00:33:05Z
 closed_at: 2026-01-24T00:38:44Z
 ---

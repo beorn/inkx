@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/csgn"
+id: "@km/inbox/csgn"
 aliases:
   - km-csgn
+  - "@km/_orphan/csgn"
 created_at: 2026-01-16T21:45:43Z
 closed_at: 2026-01-16T22:03:31Z
 ---

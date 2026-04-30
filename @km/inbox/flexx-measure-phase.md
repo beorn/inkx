@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-measure-phase"
+id: "@km/inbox/flexx-measure-phase"
 aliases:
   - km-flexx-measure-phase
+  - "@km/_orphan/flexx-measure-phase"
 created_at: 2026-01-30T17:49:01Z
 closed_at: 2026-01-30T21:02:35Z
 assignee: claude:b8b4780b

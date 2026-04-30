@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-guardrails"
+id: "@km/inbox/flexx-guardrails"
 aliases:
   - km-flexx-guardrails
+  - "@km/_orphan/flexx-guardrails"
 created_at: 2026-01-31T16:13:18Z
 closed_at: 2026-01-31T16:13:58Z
 ---

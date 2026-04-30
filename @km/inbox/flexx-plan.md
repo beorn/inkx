@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-plan"
+id: "@km/inbox/flexx-plan"
 aliases:
   - km-flexx-plan
+  - "@km/_orphan/flexx-plan"
 created_at: 2026-01-31T07:47:25Z
 closed_at: 2026-01-31T17:34:52Z
 ---

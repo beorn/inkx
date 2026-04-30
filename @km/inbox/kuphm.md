@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/kuphm"
+id: "@km/inbox/kuphm"
 aliases:
   - km-kuphm
+  - "@km/_orphan/kuphm"
 created_by: claude:c9beade3
 created_at: 2026-03-15T07:30:11Z
 closed_at: 2026-03-15T07:45:55Z

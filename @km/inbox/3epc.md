@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/3epc"
+id: "@km/inbox/3epc"
 aliases:
   - km-3epc
+  - "@km/_orphan/3epc"
 created_at: 2026-01-20T20:56:36Z
 closed_at: 2026-01-20T22:57:27Z
 ---

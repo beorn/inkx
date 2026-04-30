@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/ldsg"
+id: "@km/inbox/ldsg"
 aliases:
   - km-ldsg
+  - "@km/_orphan/ldsg"
 created_at: 2026-01-20T07:43:58Z
 closed_at: 2026-01-20T10:15:39Z
 ---

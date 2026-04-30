@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/jedj"
+id: "@km/inbox/jedj"
 aliases:
   - km-jedj
+  - "@km/_orphan/jedj"
 created_at: 2026-01-21T22:45:54Z
 closed_at: 2026-01-22T00:13:01Z
 ---

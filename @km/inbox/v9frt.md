@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/v9frt"
+id: "@km/inbox/v9frt"
 aliases:
   - km-v9frt
+  - "@km/_orphan/v9frt"
 created_at: 2026-01-27T17:27:55Z
 closed_at: 2026-01-27T17:36:49Z
 assignee: claude:9892b704

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/test-storage-migrate"
+id: "@km/inbox/test-storage-migrate"
 aliases:
   - km-test-storage-migrate
+  - "@km/_orphan/test-storage-migrate"
 created_at: 2026-01-23T13:18:27Z
 closed_at: 2026-01-23T22:20:49Z
 assignee: 95b4fc6d

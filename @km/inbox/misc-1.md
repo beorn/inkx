@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/misc-1"
+id: "@km/inbox/misc-1"
 aliases:
   - km-misc-1
+  - "@km/_orphan/misc-1"
 created_at: 2026-01-25T13:08:53Z
 closed_at: 2026-01-27T17:29:18Z
 assignee: claude:279f285c

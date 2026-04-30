@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/cbsae"
+id: "@km/inbox/cbsae"
 aliases:
   - km-cbsae
+  - "@km/_orphan/cbsae"
 created_at: 2026-02-05T23:00:41Z
 closed_at: 2026-02-05T23:47:19Z
 ---

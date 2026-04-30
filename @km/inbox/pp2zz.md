@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/pp2zz"
+id: "@km/inbox/pp2zz"
 aliases:
   - km-pp2zz
+  - "@km/_orphan/pp2zz"
 created_by: claude:b509d761
 created_at: 2026-02-10T12:11:05Z
 closed_at: 2026-02-18T08:07:06Z

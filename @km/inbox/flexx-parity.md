@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-parity"
+id: "@km/inbox/flexx-parity"
 aliases:
   - km-flexx-parity
+  - "@km/_orphan/flexx-parity"
 created_at: 2026-01-31T07:47:43Z
 closed_at: 2026-01-31T09:01:29Z
 assignee: claude:b8b4780b

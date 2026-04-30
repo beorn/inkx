@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tui-scroll-cursor"
+id: "@km/inbox/tui-scroll-cursor"
 aliases:
   - km-tui-scroll-cursor
+  - "@km/_orphan/tui-scroll-cursor"
 created_at: 2026-01-31T21:54:43Z
 closed_at: 2026-02-02T10:38:45Z
 assignee: claude:227cdc41

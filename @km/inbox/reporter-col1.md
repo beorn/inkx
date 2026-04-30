@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/reporter-col1"
+id: "@km/inbox/reporter-col1"
 aliases:
   - km-reporter-col1
+  - "@km/_orphan/reporter-col1"
 created_at: 2026-01-28T07:40:28Z
 closed_at: 2026-01-28T07:57:20Z
 ---

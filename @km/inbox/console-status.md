@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/console-status"
+id: "@km/inbox/console-status"
 aliases:
   - km-console-status
+  - "@km/_orphan/console-status"
 created_at: 2026-02-01T23:34:42Z
 closed_at: 2026-02-01T23:40:29Z
 assignee: claude:b8b4780b

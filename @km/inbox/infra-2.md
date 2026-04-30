@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/infra-2"
+id: "@km/inbox/infra-2"
 aliases:
   - km-infra-2
+  - "@km/_orphan/infra-2"
 created_at: 2026-02-03T09:52:28Z
 closed_at: 2026-02-04T11:27:37Z
 ---

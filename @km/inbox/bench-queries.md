@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/bench-queries"
+id: "@km/inbox/bench-queries"
 aliases:
   - km-bench-queries
+  - "@km/_orphan/bench-queries"
 created_at: 2026-01-27T23:12:58Z
 closed_at: 2026-02-04T11:27:35Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/trudr"
+id: "@km/inbox/trudr"
 aliases:
   - km-trudr
+  - "@km/_orphan/trudr"
 created_by: claude:af6eb626
 created_at: 2026-03-04T07:53:39Z
 closed_at: 2026-03-04T10:44:19Z

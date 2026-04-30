@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/53uqt"
+id: "@km/inbox/53uqt"
 aliases:
   - km-53uqt
+  - "@km/_orphan/53uqt"
 created_by: claude:9b6678d0
 created_at: 2026-02-12T11:20:26Z
 closed_at: 2026-02-12T11:22:10Z

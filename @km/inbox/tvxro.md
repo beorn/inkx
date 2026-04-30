@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tvxro"
+id: "@km/inbox/tvxro"
 aliases:
   - km-tvxro
+  - "@km/_orphan/tvxro"
 created_by: claude:fed8de9e
 created_at: 2026-03-29T07:11:33Z
 closed_at: 2026-03-29T15:38:06Z

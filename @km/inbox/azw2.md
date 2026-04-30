@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/azw2"
+id: "@km/inbox/azw2"
 aliases:
   - km-azw2
+  - "@km/_orphan/azw2"
 created_at: 2026-01-19T10:50:51Z
 closed_at: 2026-01-19T11:05:49Z
 ---

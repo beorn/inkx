@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/3rdgs"
+id: "@km/inbox/3rdgs"
 aliases:
   - km-3rdgs
+  - "@km/_orphan/3rdgs"
 created_by: claude:e7c823b8
 created_at: 2026-02-26T14:54:29Z
 closed_at: 2026-02-26T15:04:05Z

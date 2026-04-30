@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/qhbo"
+id: "@km/inbox/qhbo"
 aliases:
   - km-qhbo
+  - "@km/_orphan/qhbo"
 created_at: 2026-01-21T13:52:37Z
 closed_at: 2026-01-23T15:07:49Z
 ---

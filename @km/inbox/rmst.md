@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/rmst"
+id: "@km/inbox/rmst"
 aliases:
   - km-rmst
+  - "@km/_orphan/rmst"
 created_at: 2026-01-16T12:34:40Z
 closed_at: 2026-01-16T12:47:47Z
 ---

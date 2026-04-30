@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/virtuallist-review"
+id: "@km/inbox/virtuallist-review"
 aliases:
   - km-virtuallist-review
+  - "@km/_orphan/virtuallist-review"
 created_at: 2026-02-02T20:42:17Z
 closed_at: 2026-02-02T22:18:39Z
 assignee: claude:1588825b

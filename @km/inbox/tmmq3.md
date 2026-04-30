@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tmmq3"
+id: "@km/inbox/tmmq3"
 aliases:
   - km-tmmq3
+  - "@km/_orphan/tmmq3"
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T10:41:35Z
 closed_at: 2026-02-18T10:44:08Z

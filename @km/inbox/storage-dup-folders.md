@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/storage-dup-folders"
+id: "@km/inbox/storage-dup-folders"
 aliases:
   - km-storage-dup-folders
+  - "@km/_orphan/storage-dup-folders"
 created_at: 2026-02-01T16:11:59Z
 closed_at: 2026-02-02T21:56:15Z
 ---

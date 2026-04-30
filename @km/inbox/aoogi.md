@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/aoogi"
+id: "@km/inbox/aoogi"
 aliases:
   - km-aoogi
+  - "@km/_orphan/aoogi"
 created_by: claude:124bfbe5
 created_at: 2026-02-12T15:01:57Z
 closed_at: 2026-02-12T15:34:07Z

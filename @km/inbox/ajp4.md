@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/ajp4"
+id: "@km/inbox/ajp4"
 aliases:
   - km-ajp4
+  - "@km/_orphan/ajp4"
 created_at: 2026-01-15T22:31:46Z
 closed_at: 2026-01-16T07:40:27Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/psrg"
+id: "@km/inbox/psrg"
 aliases:
   - km-psrg
+  - "@km/_orphan/psrg"
 created_at: 2026-01-16T10:49:14Z
 closed_at: 2026-01-16T11:31:01Z
 ---

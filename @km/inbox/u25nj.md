@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/u25nj"
+id: "@km/inbox/u25nj"
 aliases:
   - km-u25nj
+  - "@km/_orphan/u25nj"
 created_by: claude:124bfbe5
 created_at: 2026-02-12T17:09:43Z
 closed_at: 2026-02-12T19:06:45Z

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/ambot"
+id: "@km/inbox/ambot"
 aliases:
   - km-ambot
+  - "@km/_orphan/ambot"
 created_by: Bjørn Stabell
 created_at: 2026-04-21T18:31:51Z
 closed_at: 2026-04-21T20:19:37Z

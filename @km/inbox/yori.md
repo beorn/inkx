@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/yori"
+id: "@km/inbox/yori"
 aliases:
   - km-yori
+  - "@km/_orphan/yori"
 created_at: 2026-01-16T13:36:51Z
 closed_at: 2026-01-16T14:13:18Z
 ---

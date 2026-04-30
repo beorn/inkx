@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/wqhr"
+id: "@km/inbox/wqhr"
 aliases:
   - km-wqhr
+  - "@km/_orphan/wqhr"
 created_at: 2026-01-20T14:51:59Z
 closed_at: 2026-01-20T15:01:06Z
 ---

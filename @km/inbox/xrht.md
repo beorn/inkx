@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/xrht"
+id: "@km/inbox/xrht"
 aliases:
   - km-xrht
+  - "@km/_orphan/xrht"
 created_at: 2026-01-20T07:44:25Z
 closed_at: 2026-01-20T07:52:10Z
 ---

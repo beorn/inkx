@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/wvgu"
+id: "@km/inbox/wvgu"
 aliases:
   - km-wvgu
+  - "@km/_orphan/wvgu"
 created_at: 2026-01-20T10:39:07Z
 closed_at: 2026-01-20T12:48:48Z
 ---

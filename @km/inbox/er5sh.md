@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/er5sh"
+id: "@km/inbox/er5sh"
 aliases:
   - km-er5sh
+  - "@km/_orphan/er5sh"
 created_by: claude:97b8de73
 created_at: 2026-02-22T07:36:08Z
 closed_at: 2026-02-22T12:37:09Z

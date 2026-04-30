@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/worktree"
+id: "@km/inbox/worktree"
 aliases:
   - km-worktree
+  - "@km/_orphan/worktree"
 created_at: 2026-01-30T12:52:42Z
 closed_at: 2026-01-30T13:08:19Z
 assignee: claude:17efd9ed

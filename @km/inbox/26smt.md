@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/26smt"
+id: "@km/inbox/26smt"
 aliases:
   - km-26smt
+  - "@km/_orphan/26smt"
 created_by: claude:fd695049
 created_at: 2026-03-04T22:09:56Z
 closed_at: 2026-03-04T22:33:16Z

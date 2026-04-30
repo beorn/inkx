@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/otqq"
+id: "@km/inbox/otqq"
 aliases:
   - km-otqq
+  - "@km/_orphan/otqq"
 created_at: 2026-01-26T07:57:04Z
 closed_at: 2026-01-26T08:05:50Z
 assignee: beorn

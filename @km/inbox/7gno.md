@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/7gno"
+id: "@km/inbox/7gno"
 aliases:
   - km-7gno
+  - "@km/_orphan/7gno"
 created_at: 2026-01-22T22:07:44Z
 closed_at: 2026-01-22T23:01:09Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-changesets"
+id: "@km/inbox/flexx-changesets"
 aliases:
   - km-flexx-changesets
+  - "@km/_orphan/flexx-changesets"
 created_at: 2026-01-31T16:13:26Z
 closed_at: 2026-01-31T16:13:58Z
 ---

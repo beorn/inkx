@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/kdis0"
+id: "@km/inbox/kdis0"
 aliases:
   - km-kdis0
+  - "@km/_orphan/kdis0"
 created_by: claude:40fd010c
 created_at: 2026-03-02T23:00:30Z
 closed_at: 2026-03-02T23:04:34Z

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/lvrl"
+id: "@km/inbox/lvrl"
 aliases:
   - km-lvrl
+  - "@km/_orphan/lvrl"
 created_at: 2026-01-24T22:27:48Z
 closed_at: 2026-01-24T22:34:50Z
 assignee: claude-1769322742

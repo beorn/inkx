@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/zepe"
+id: "@km/inbox/zepe"
 aliases:
   - km-zepe
+  - "@km/_orphan/zepe"
 created_at: 2026-01-20T21:37:49Z
 closed_at: 2026-01-22T11:44:30Z
 ---

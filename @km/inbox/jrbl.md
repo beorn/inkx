@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/jrbl"
+id: "@km/inbox/jrbl"
 aliases:
   - km-jrbl
+  - "@km/_orphan/jrbl"
 created_at: 2026-01-20T10:30:13Z
 closed_at: 2026-01-20T10:47:33Z
 ---

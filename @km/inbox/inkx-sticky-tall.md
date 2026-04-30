@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/inkx-sticky-tall"
+id: "@km/inbox/inkx-sticky-tall"
 aliases:
   - km-inkx-sticky-tall
+  - "@km/_orphan/inkx-sticky-tall"
 created_at: 2026-02-02T20:43:11Z
 closed_at: 2026-02-04T11:24:02Z
 ---

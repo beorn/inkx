@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/7hfik"
+id: "@km/inbox/7hfik"
 aliases:
   - km-7hfik
+  - "@km/_orphan/7hfik"
 created_by: Bjørn Stabell
 created_at: 2026-04-06T06:20:26Z
 closed_at: 2026-04-06T06:55:04Z

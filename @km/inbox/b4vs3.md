@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/b4vs3"
+id: "@km/inbox/b4vs3"
 aliases:
   - km-b4vs3
+  - "@km/_orphan/b4vs3"
 created_by: claude:b92140a2
 created_at: 2026-03-17T15:05:10Z
 closed_at: 2026-03-17T20:28:00Z

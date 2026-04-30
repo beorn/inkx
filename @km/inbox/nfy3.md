@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/nfy3"
+id: "@km/inbox/nfy3"
 aliases:
   - km-nfy3
+  - "@km/_orphan/nfy3"
 created_at: 2026-01-21T22:46:38Z
 closed_at: 2026-01-22T00:25:54Z
 ---

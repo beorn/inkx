@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/m4ca"
+id: "@km/inbox/m4ca"
 aliases:
   - km-m4ca
+  - "@km/_orphan/m4ca"
 created_at: 2026-01-16T12:13:01Z
 closed_at: 2026-01-16T12:24:19Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/hvlist"
+id: "@km/inbox/hvlist"
 aliases:
   - km-hvlist
+  - "@km/_orphan/hvlist"
 created_at: 2026-02-02T20:33:30Z
 closed_at: 2026-02-02T22:14:35Z
 assignee: claude:227cdc41

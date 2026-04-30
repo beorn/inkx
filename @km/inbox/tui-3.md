@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tui-3"
+id: "@km/inbox/tui-3"
 aliases:
   - km-tui-3
+  - "@km/_orphan/tui-3"
 created_at: 2026-01-27T13:39:38Z
 closed_at: 2026-02-04T11:27:22Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/cli-screenshot-root"
+id: "@km/inbox/cli-screenshot-root"
 aliases:
   - km-cli-screenshot-root
+  - "@km/_orphan/cli-screenshot-root"
 created_at: 2026-02-01T16:07:35Z
 closed_at: 2026-02-01T16:09:40Z
 ---

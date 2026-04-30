@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/sg2c"
+id: "@km/inbox/sg2c"
 aliases:
   - km-sg2c
+  - "@km/_orphan/sg2c"
 created_at: 2026-01-26T12:33:16Z
 closed_at: 2026-01-26T12:43:19Z
 ---

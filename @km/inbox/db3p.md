@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/db3p"
+id: "@km/inbox/db3p"
 aliases:
   - km-db3p
+  - "@km/_orphan/db3p"
 created_at: 2026-01-16T23:48:04Z
 closed_at: 2026-01-16T23:52:26Z
 ---

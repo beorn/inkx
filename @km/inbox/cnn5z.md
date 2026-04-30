@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/cnn5z"
+id: "@km/inbox/cnn5z"
 aliases:
   - km-cnn5z
+  - "@km/_orphan/cnn5z"
 created_by: claude:124bfbe5
 created_at: 2026-02-12T14:54:44Z
 closed_at: 2026-02-12T14:58:30Z

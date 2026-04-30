@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/ykub3"
+id: "@km/inbox/ykub3"
 aliases:
   - km-ykub3
+  - "@km/_orphan/ykub3"
 created_by: claude:8f007ba9
 created_at: 2026-02-19T21:25:09Z
 closed_at: 2026-02-19T21:37:58Z

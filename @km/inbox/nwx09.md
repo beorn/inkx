@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/nwx09"
+id: "@km/inbox/nwx09"
 aliases:
   - km-nwx09
+  - "@km/_orphan/nwx09"
 created_at: 2026-02-02T18:23:37Z
 closed_at: 2026-02-02T18:58:20Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/me0n"
+id: "@km/inbox/me0n"
 aliases:
   - km-me0n
+  - "@km/_orphan/me0n"
 created_at: 2026-01-22T15:51:22Z
 closed_at: 2026-01-22T18:38:43Z
 ---

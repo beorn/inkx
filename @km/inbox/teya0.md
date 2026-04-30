@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/teya0"
+id: "@km/inbox/teya0"
 aliases:
   - km-teya0
+  - "@km/_orphan/teya0"
 created_by: claude:65d845d9
 created_at: 2026-03-13T01:36:34Z
 closed_at: 2026-03-13T01:36:40Z

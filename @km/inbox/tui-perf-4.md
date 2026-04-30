@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tui-perf-4"
+id: "@km/inbox/tui-perf-4"
 aliases:
   - km-tui-perf-4
+  - "@km/_orphan/tui-perf-4"
 created_at: 2026-02-01T16:20:07Z
 closed_at: 2026-02-01T20:09:28Z
 ---

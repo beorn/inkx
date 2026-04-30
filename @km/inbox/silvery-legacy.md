@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/silvery-legacy"
+id: "@km/inbox/silvery-legacy"
 aliases:
   - km-silvery-legacy
+  - "@km/_orphan/silvery-legacy"
 created_at: 2026-02-04T11:18:52Z
 closed_at: 2026-03-09T22:07:53Z
 close_reason: "Grooming: 96% complete, remaining children moved to km-silvery.

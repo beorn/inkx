@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/fni1y"
+id: "@km/inbox/fni1y"
 aliases:
   - km-fni1y
+  - "@km/_orphan/fni1y"
 created_by: claude:891e3ce1
 created_at: 2026-03-01T23:04:25Z
 closed_at: 2026-03-01T23:14:56Z

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/yedow"
+id: "@km/inbox/yedow"
 aliases:
   - km-yedow
+  - "@km/_orphan/yedow"
 created_by: claude:8f007ba9
 created_at: 2026-02-19T23:57:09Z
 closed_at: 2026-02-20T00:26:00Z

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/resolver-ambiguity"
+id: "@km/inbox/resolver-ambiguity"
 aliases:
   - km-resolver-ambiguity
+  - "@km/_orphan/resolver-ambiguity"
 created_at: 2026-01-30T16:43:25Z
 closed_at: 2026-01-30T16:47:12Z
 assignee: claude:cf38b4a6

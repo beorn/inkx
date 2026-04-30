@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/remove-deprecated"
+id: "@km/inbox/remove-deprecated"
 aliases:
   - km-remove-deprecated
+  - "@km/_orphan/remove-deprecated"
 created_at: 2026-01-23T18:27:33Z
 closed_at: 2026-01-23T20:09:16Z
 ---

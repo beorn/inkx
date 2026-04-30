@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/chalkx-displayLength"
+id: "@km/inbox/chalkx-displayLength"
 aliases:
   - km-chalkx-displayLength
+  - "@km/_orphan/chalkx-displayLength"
 created_at: 2026-01-20T14:25:24Z
 closed_at: 2026-01-20T14:36:54Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/nco09"
+id: "@km/inbox/nco09"
 aliases:
   - km-nco09
+  - "@km/_orphan/nco09"
 created_by: Bjørn Stabell
 created_at: 2026-04-01T06:10:39Z
 closed_at: 2026-04-02T04:05:43Z

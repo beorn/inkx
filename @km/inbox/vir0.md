@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/vir0"
+id: "@km/inbox/vir0"
 aliases:
   - km-vir0
+  - "@km/_orphan/vir0"
 created_at: 2026-01-19T10:51:04Z
 closed_at: 2026-01-19T11:05:49Z
 ---

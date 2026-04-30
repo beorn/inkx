@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/kmbt4"
+id: "@km/inbox/kmbt4"
 aliases:
   - km-kmbt4
+  - "@km/_orphan/kmbt4"
 created_by: claude:40fd010c
 created_at: 2026-03-02T22:49:39Z
 closed_at: 2026-03-03T00:45:53Z

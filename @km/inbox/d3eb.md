@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/d3eb"
+id: "@km/inbox/d3eb"
 aliases:
   - km-d3eb
+  - "@km/_orphan/d3eb"
 created_at: 2026-01-22T23:03:46Z
 closed_at: 2026-01-22T23:10:06Z
 assignee: c9572d71

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/oweta"
+id: "@km/inbox/oweta"
 aliases:
   - km-oweta
+  - "@km/_orphan/oweta"
 created_by: claude:124bfbe5
 created_at: 2026-02-12T17:08:04Z
 closed_at: 2026-02-12T19:45:41Z

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-rtl-edge"
+id: "@km/inbox/flexx-rtl-edge"
 aliases:
   - km-flexx-rtl-edge
+  - "@km/_orphan/flexx-rtl-edge"
 created_at: 2026-01-31T16:34:22Z
 closed_at: 2026-01-31T17:34:21Z
 assignee: claude:b8b4780b

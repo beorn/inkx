@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/mpjzs"
+id: "@km/inbox/mpjzs"
 aliases:
   - km-mpjzs
+  - "@km/_orphan/mpjzs"
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T10:43:25Z
 closed_at: 2026-02-18T11:17:54Z

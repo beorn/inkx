@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/mchcv"
+id: "@km/inbox/mchcv"
 aliases:
   - km-mchcv
+  - "@km/_orphan/mchcv"
 created_by: claude:124bfbe5
 created_at: 2026-02-12T21:36:23Z
 closed_at: 2026-02-12T22:28:37Z

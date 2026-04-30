@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/afsg"
+id: "@km/inbox/afsg"
 aliases:
   - km-afsg
+  - "@km/_orphan/afsg"
 created_at: 2026-01-20T16:57:26Z
 closed_at: 2026-01-20T16:59:49Z
 ---

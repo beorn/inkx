@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tui-emptybody"
+id: "@km/inbox/tui-emptybody"
 aliases:
   - km-tui-emptybody
+  - "@km/_orphan/tui-emptybody"
 created_at: 2026-01-30T16:32:51Z
 closed_at: 2026-02-04T11:27:20Z
 ---

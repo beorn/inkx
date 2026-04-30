@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/swatch"
+id: "@km/inbox/swatch"
 aliases:
   - km-swatch
+  - "@km/_orphan/swatch"
 created_by: claude:66437c43
 created_at: 2026-03-03T12:47:19Z
 closed_at: 2026-03-07T02:12:09Z

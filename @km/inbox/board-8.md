@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/board-8"
+id: "@km/inbox/board-8"
 aliases:
   - km-board-8
+  - "@km/_orphan/board-8"
 created_at: 2026-01-19T15:26:57Z
 closed_at: 2026-02-04T11:27:23Z
 ---

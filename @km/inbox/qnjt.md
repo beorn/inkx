@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/qnjt"
+id: "@km/inbox/qnjt"
 aliases:
   - km-qnjt
+  - "@km/_orphan/qnjt"
 created_at: 2026-01-24T16:38:48Z
 closed_at: 2026-01-24T19:51:43Z
 ---

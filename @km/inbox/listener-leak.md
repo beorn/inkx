@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/listener-leak"
+id: "@km/inbox/listener-leak"
 aliases:
   - km-listener-leak
+  - "@km/_orphan/listener-leak"
 created_at: 2026-01-27T01:49:42Z
 closed_at: 2026-01-27T02:53:28Z
 assignee: beorn

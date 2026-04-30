@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/cngk"
+id: "@km/inbox/cngk"
 aliases:
   - km-cngk
+  - "@km/_orphan/cngk"
 created_at: 2026-01-16T13:36:50Z
 closed_at: 2026-01-16T14:13:18Z
 ---

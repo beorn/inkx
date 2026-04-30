@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/beads-validation"
+id: "@km/inbox/beads-validation"
 aliases:
   - km-beads-validation
+  - "@km/_orphan/beads-validation"
 created_at: 2026-01-25T12:20:04Z
 closed_at: 2026-01-25T12:25:16Z
 assignee: unimac

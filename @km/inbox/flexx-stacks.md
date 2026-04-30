@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/flexx-stacks"
+id: "@km/inbox/flexx-stacks"
 aliases:
   - km-flexx-stacks
+  - "@km/_orphan/flexx-stacks"
 created_at: 2026-01-31T22:29:53Z
 closed_at: 2026-01-31T22:35:39Z
 assignee: claude:b8b4780b

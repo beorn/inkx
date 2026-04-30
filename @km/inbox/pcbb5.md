@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/pcbb5"
+id: "@km/inbox/pcbb5"
 aliases:
   - km-pcbb5
+  - "@km/_orphan/pcbb5"
 created_at: 2026-01-31T12:23:30Z
 closed_at: 2026-01-31T12:37:47Z
 assignee: claude:b8b4780b

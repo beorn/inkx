@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/bzpyt"
+id: "@km/inbox/bzpyt"
 aliases:
   - km-bzpyt
+  - "@km/_orphan/bzpyt"
 created_by: claude:d29abbfa
 created_at: 2026-03-18T22:36:50Z
 closed_at: 2026-03-19T16:44:08Z

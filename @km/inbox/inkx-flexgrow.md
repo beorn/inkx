@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/inkx-flexgrow"
+id: "@km/inbox/inkx-flexgrow"
 aliases:
   - km-inkx-flexgrow
+  - "@km/_orphan/inkx-flexgrow"
 created_at: 2026-02-02T14:32:45Z
 closed_at: 2026-02-02T15:17:05Z
 assignee: claude:227cdc41

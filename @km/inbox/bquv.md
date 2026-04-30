@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/bquv"
+id: "@km/inbox/bquv"
 aliases:
   - km-bquv
+  - "@km/_orphan/bquv"
 created_at: 2026-01-20T10:38:38Z
 closed_at: 2026-01-20T11:52:12Z
 ---

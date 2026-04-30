@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/focsb"
+id: "@km/inbox/focsb"
 aliases:
   - km-focsb
+  - "@km/_orphan/focsb"
 created_by: claude:fcaad2fa
 created_at: 2026-02-18T10:44:17Z
 closed_at: 2026-02-18T10:49:49Z

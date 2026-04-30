@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/refactor-audit"
+id: "@km/inbox/refactor-audit"
 aliases:
   - km-refactor-audit
+  - "@km/_orphan/refactor-audit"
 created_at: 2026-01-24T21:50:57Z
 closed_at: 2026-01-24T22:24:58Z
 ---

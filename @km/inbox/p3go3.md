@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/p3go3"
+id: "@km/inbox/p3go3"
 aliases:
   - km-p3go3
+  - "@km/_orphan/p3go3"
 created_by: claude:36393b5d
 created_at: 2026-02-19T11:44:22Z
 closed_at: 2026-02-19T11:48:13Z

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/txwa"
+id: "@km/inbox/txwa"
 aliases:
   - km-txwa
+  - "@km/_orphan/txwa"
 created_at: 2026-01-20T07:43:35Z
 closed_at: 2026-01-20T08:34:22Z
 ---

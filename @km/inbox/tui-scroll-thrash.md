@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tui-scroll-thrash"
+id: "@km/inbox/tui-scroll-thrash"
 aliases:
   - km-tui-scroll-thrash
+  - "@km/_orphan/tui-scroll-thrash"
 created_at: 2026-02-02T20:43:01Z
 closed_at: 2026-02-02T21:52:08Z
 ---

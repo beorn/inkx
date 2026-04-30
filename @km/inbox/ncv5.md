@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/ncv5"
+id: "@km/inbox/ncv5"
 aliases:
   - km-ncv5
+  - "@km/_orphan/ncv5"
 created_at: 2026-01-22T16:10:19Z
 closed_at: 2026-01-23T11:39:45Z
 ---

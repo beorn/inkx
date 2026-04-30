@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/tdwc4"
+id: "@km/inbox/tdwc4"
 aliases:
   - km-tdwc4
+  - "@km/_orphan/tdwc4"
 created_by: claude:73d7a332
 created_at: 2026-03-11T18:56:46Z
 closed_at: 2026-03-12T01:32:24Z

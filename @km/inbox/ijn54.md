@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/ijn54"
+id: "@km/inbox/ijn54"
 aliases:
   - km-ijn54
+  - "@km/_orphan/ijn54"
 created_by: claude:73d7a332
 created_at: 2026-03-11T18:57:07Z
 closed_at: 2026-03-12T01:38:53Z

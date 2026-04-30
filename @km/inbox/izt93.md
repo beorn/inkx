@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/izt93"
+id: "@km/inbox/izt93"
 aliases:
   - km-izt93
+  - "@km/_orphan/izt93"
 created_by: claude:f8196c1c
 created_at: 2026-03-20T20:03:06Z
 closed_at: 2026-03-20T20:32:20Z

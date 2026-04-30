@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/1wnsi"
+id: "@km/inbox/1wnsi"
 aliases:
   - km-1wnsi
+  - "@km/_orphan/1wnsi"
 created_by: claude:2ce3230f
 created_at: 2026-03-10T06:25:20Z
 closed_at: 2026-03-10T22:57:52Z

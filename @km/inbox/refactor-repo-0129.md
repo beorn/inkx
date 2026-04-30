@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/refactor-repo-0129"
+id: "@km/inbox/refactor-repo-0129"
 aliases:
   - km-refactor-repo-0129
+  - "@km/_orphan/refactor-repo-0129"
 created_at: 2026-01-29T18:20:44Z
 closed_at: 2026-01-29T18:33:12Z
 assignee: claude:298008b9

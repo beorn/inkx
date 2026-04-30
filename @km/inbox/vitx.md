@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/vitx"
+id: "@km/inbox/vitx"
 aliases:
   - km-vitx
+  - "@km/_orphan/vitx"
 created_at: 2026-01-20T14:30:58Z
 closed_at: 2026-01-20T14:51:47Z
 ---

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/test-output-2"
+id: "@km/inbox/test-output-2"
 aliases:
   - km-test-output-2
+  - "@km/_orphan/test-output-2"
 created_at: 2026-01-27T22:01:24Z
 closed_at: 2026-01-27T22:12:10Z
 assignee: claude:8f1636c1

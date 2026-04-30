@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/l98bq"
+id: "@km/inbox/l98bq"
 aliases:
   - km-l98bq
+  - "@km/_orphan/l98bq"
 created_by: Bjørn Stabell
 created_at: 2026-04-16T06:18:18Z
 owner: bjorn@stabell.org

@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/mvcn"
+id: "@km/inbox/mvcn"
 aliases:
   - km-mvcn
+  - "@km/_orphan/mvcn"
 created_at: 2026-01-20T10:38:20Z
 closed_at: 2026-01-20T10:54:45Z
 ---

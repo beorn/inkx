@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/drizzle-typing"
+id: "@km/inbox/drizzle-typing"
 aliases:
   - km-drizzle-typing
+  - "@km/_orphan/drizzle-typing"
 created_at: 2026-01-25T12:20:04Z
 closed_at: 2026-01-25T12:31:15Z
 assignee: unimac

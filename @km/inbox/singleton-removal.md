@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/singleton-removal"
+id: "@km/inbox/singleton-removal"
 aliases:
   - km-singleton-removal
+  - "@km/_orphan/singleton-removal"
 created_at: 2026-01-23T18:13:14Z
 closed_at: 2026-01-23T18:20:09Z
 ---

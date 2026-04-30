@@ -1,7 +1,8 @@
 ---
-id: "@km/_orphan/9hev"
+id: "@km/inbox/9hev"
 aliases:
   - km-9hev
+  - "@km/_orphan/9hev"
 created_at: 2026-01-16T13:36:43Z
 closed_at: 2026-01-16T13:38:12Z
 ---
