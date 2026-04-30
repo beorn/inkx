@@ -71,15 +71,15 @@ export function StorybookApp({ initialStoryId }: AppProps): React.ReactElement {
   if (showHelp) {
     return (
       <Screen flexDirection="column">
-        <Box flexDirection="column" paddingX={2} paddingY={1}>
+        <Box flexDirection="column" paddingY={1}>
           <Strong>Silvercode Storybook — keys</Strong>
-          <Box flexDirection="column" paddingTop={1}>
+          <Box flexDirection="column">
             <Text>j / k or ↓ / ↑ — move story cursor</Text>
             <Text>Tab / h / l — switch focus (list / preview)</Text>
             <Text>? — toggle this help</Text>
             <Text>q / Ctrl-C — quit</Text>
           </Box>
-          <Box paddingTop={1}>
+          <Box>
             <Muted>Press any key to dismiss.</Muted>
           </Box>
         </Box>
@@ -99,7 +99,6 @@ export function StorybookApp({ initialStoryId }: AppProps): React.ReactElement {
         maxWidth={LIST_PANE_WIDTH}
         overflow="hidden"
         backgroundColor="$bg-surface-subtle"
-        paddingX={1}
         paddingY={1}
         userSelect="contain"
       >
@@ -107,7 +106,7 @@ export function StorybookApp({ initialStoryId }: AppProps): React.ReactElement {
           <Strong>Stories</Strong>
           <Muted>{STORIES.length}</Muted>
         </Box>
-        <Box flexDirection="column" flexGrow={1} minHeight={0} paddingTop={1}>
+        <Box flexDirection="column" flexGrow={1} minHeight={0}>
           <SelectList
             items={STORIES.map((s) => ({ label: truncateLabel(s.id, LIST_LABEL_WIDTH), value: s.id }))}
             highlightedIndex={cursor}
@@ -120,7 +119,7 @@ export function StorybookApp({ initialStoryId }: AppProps): React.ReactElement {
             maxVisible={20}
           />
         </Box>
-        <Box paddingTop={1}>
+        <Box>
           <Muted>{focus === "list" ? "list" : "preview"} focus</Muted>
         </Box>
       </Box>
@@ -133,7 +132,6 @@ export function StorybookApp({ initialStoryId }: AppProps): React.ReactElement {
         minWidth={0}
         minHeight={0}
         overflow="hidden"
-        paddingX={1}
         paddingY={1}
         userSelect="contain"
       >
@@ -152,7 +150,7 @@ function StoryFrame({ story }: { story: Story }): React.ReactElement {
         <Muted>— {story.description}</Muted>
       </Box>
       {(story.knobs ?? []).length > 0 && (
-        <Box flexDirection="row" gap={1} paddingTop={1}>
+        <Box flexDirection="row" gap={1}>
           <Muted>knobs:</Muted>
           {(story.knobs ?? []).map((k) => (
             <Muted key={k.id}>
@@ -162,7 +160,12 @@ function StoryFrame({ story }: { story: Story }): React.ReactElement {
         </Box>
       )}
       <Divider />
-      <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} overflow="hidden" paddingTop={1}>
+      {/* Story render area — `overflow="scroll"` so wheel events scroll
+          the content vertically when it overflows the pane. The story
+          itself owns horizontal scroll if any. `userSelect="contain"`
+          (already set on the surrounding pane) scopes selection drags
+          to this pane so a drag here can't extend into the list pane. */}
+      <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} overflow="scroll">
         {story.render(knobs)}
       </Box>
     </Box>
