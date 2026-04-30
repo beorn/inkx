@@ -90,7 +90,7 @@ configCommand
 configCommand
   .command("set")
   .argument("<key>", "Config key (beads.prefix, beads.roots, beads.default_scope; bare names also accepted)")
-  .argument("<value>", "Config value (for beads.roots, JSON array literal e.g. '[\"@km\",\"imports/x\"]')")
+  .argument("<value>", 'Config value (for beads.roots, JSON array literal e.g. \'["@km","imports/x"]\')')
   .description("Set a configuration value (edits .km/config.yaml)")
   .actionMerged(async (opts) => {
     const canonical = normalizeKey(opts.key)

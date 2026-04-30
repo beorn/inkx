@@ -26,7 +26,7 @@
  */
 
 import { existsSync, renameSync } from "fs"
-import { dirname, join } from "path"
+import { basename, dirname, join } from "path"
 
 import type { Database } from "bun:sqlite"
 import type { KNode } from "@km/core"
@@ -43,15 +43,17 @@ import { getBacklinksByHref } from "../db/links.ts"
 export interface MoveSpec {
   /** New display content (heading text). When set, drives a rename. */
   newContent?: string
+  /** New canonical path-form id, e.g. `@km/scope/slug`, for bead moves. */
+  newCanonicalId?: string
+  /** Explicit target filesystem path, relative to the repo root. */
+  newFsPath?: string
   /** New parent id, or null for root. When set, drives a re-parent. */
   newParentId?: string | null
   /** Insertion index inside newParentId. Default: end-of-list (uses Date.now()). */
   position?: number
   /**
-   * For bd-id renames: explicit new short id (`@km/scope/slug`) when the
-   * rename is not a name change but an id-canonicalisation. Promoted to
-   * `data.short_id`; old short id is added to `data.aliases` (capped, see
-   * `preserveAliases`).
+   * Legacy bd-form identity. New scoped beads should use `newCanonicalId`;
+   * this remains for imported / older nodes that only carry `data.short_id`.
    */
   newShortId?: string
 }
@@ -264,6 +266,7 @@ function rewriteRuleField(field: string | string[] | undefined, oldName: string,
 /** Snapshot taken at the start of the operation, before any mutation. */
 interface MoveSnapshot {
   oldName: string
+  oldCanonicalId: string | null
   oldShortId: string | null
   oldFsPath: string | null
   oldParentId: string | null
@@ -274,6 +277,7 @@ interface MoveSnapshot {
 function snapshotNode(node: KNode): MoveSnapshot {
   const data = (node.data ?? {}) as Record<string, unknown>
   const shortId = typeof data.short_id === "string" ? data.short_id : null
+  const canonicalId = typeof data.id === "string" ? data.id : null
   const aliases = Array.isArray(data.aliases)
     ? (data.aliases as unknown[]).filter((a): a is string => typeof a === "string")
     : []
@@ -285,6 +289,7 @@ function snapshotNode(node: KNode): MoveSnapshot {
   }
   return {
     oldName: node.name ?? "",
+    oldCanonicalId: canonicalId,
     oldShortId: shortId,
     oldFsPath: node.fs_path ?? null,
     oldParentId: node.parent_id ?? null,
@@ -301,6 +306,12 @@ function snapshotNode(node: KNode): MoveSnapshot {
 function deriveNewName(snapshot: MoveSnapshot, spec: MoveSpec): string {
   if (spec.newContent === undefined) return snapshot.oldName
   return normalizeNodeName(spec.newContent)
+}
+
+function deriveCanonicalName(canonicalId: string): string | null {
+  const fsPath = canonicalIdToFsPath(canonicalId)
+  if (!fsPath) return null
+  return basename(fsPath, ".md")
 }
 
 /**
@@ -327,6 +338,11 @@ function deriveNewFsPath(snapshot: MoveSnapshot, newName: string, newParentFsPat
   return newPath
 }
 
+function canonicalIdToFsPath(canonicalId: string): string | null {
+  if (!canonicalId.startsWith("@") || !canonicalId.includes("/")) return null
+  return `${canonicalId}.md`
+}
+
 /**
  * Promote old name + old short id onto the moved node's `aliases` list,
  * capped at `preserveAliases`. Returns the updated aliases array (most
@@ -335,12 +351,14 @@ function deriveNewFsPath(snapshot: MoveSnapshot, newName: string, newParentFsPat
 function promoteAliases(
   snapshot: MoveSnapshot,
   newName: string,
+  newCanonicalId: string | null,
   newShortId: string | null,
   preserveAliases: number,
 ): string[] | null {
   if (preserveAliases <= 0) return null
   const promote = new Set<string>()
   if (snapshot.oldName && snapshot.oldName !== newName) promote.add(snapshot.oldName)
+  if (snapshot.oldCanonicalId && snapshot.oldCanonicalId !== newCanonicalId) promote.add(snapshot.oldCanonicalId)
   if (snapshot.oldShortId && snapshot.oldShortId !== newShortId) promote.add(snapshot.oldShortId)
   if (promote.size === 0) return null
   // Newest aliases first; existing aliases follow.
@@ -380,13 +398,25 @@ export function moveNodeWithRefs(id: string, spec: MoveSpec, deps: MoveDeps, opt
   if (!node) throw new Error(`Node not found: ${id}`)
 
   const snapshot = snapshotNode(node)
-  const newName = deriveNewName(snapshot, spec)
+  const newName = spec.newContent !== undefined
+    ? deriveNewName(snapshot, spec)
+    : spec.newCanonicalId
+      ? (deriveCanonicalName(spec.newCanonicalId) ?? snapshot.oldName)
+      : snapshot.oldName
+  const newCanonicalId = spec.newCanonicalId !== undefined ? spec.newCanonicalId : snapshot.oldCanonicalId
   const newShortId = spec.newShortId !== undefined ? spec.newShortId : snapshot.oldShortId
   const newParentId = spec.newParentId !== undefined ? spec.newParentId : snapshot.oldParentId
+  const newReferenceId = newCanonicalId ?? newShortId ?? null
+  const oldReferenceIds = [
+    snapshot.oldCanonicalId,
+    snapshot.oldShortId,
+    ...snapshot.oldAliases,
+  ].filter((ref, index, refs): ref is string => typeof ref === "string" && ref.length > 0 && refs.indexOf(ref) === index)
 
   // Idempotent no-op detection: same name, same short id, same parent.
   const isNoOp =
     newName === snapshot.oldName &&
+    (newCanonicalId ?? null) === (snapshot.oldCanonicalId ?? null) &&
     (newShortId ?? null) === (snapshot.oldShortId ?? null) &&
     (newParentId ?? null) === (snapshot.oldParentId ?? null) &&
     spec.newContent === undefined
@@ -397,8 +427,8 @@ export function moveNodeWithRefs(id: string, spec: MoveSpec, deps: MoveDeps, opt
       nodeId: id,
       oldName: snapshot.oldName || null,
       newName: newName || null,
-      oldShortId: snapshot.oldShortId,
-      newShortId: newShortId ?? null,
+      oldShortId: snapshot.oldShortId ?? snapshot.oldCanonicalId,
+      newShortId: newShortId ?? newCanonicalId ?? null,
       oldFsPath: snapshot.oldFsPath,
       newFsPath: snapshot.oldFsPath,
       rewroteHosts: 0,
@@ -427,16 +457,21 @@ export function moveNodeWithRefs(id: string, spec: MoveSpec, deps: MoveDeps, opt
   // Compute new fs_path. We don't have direct access to the new parent's
   // fs_path from here — derive it lazily via dataStore.
   const newParentNode = newParentId ? dataStore.getNode(newParentId) : null
-  const newFsPath = deriveNewFsPath(snapshot, newName, newParentNode?.fs_path ?? null)
+  const newFsPath =
+    spec.newFsPath ?? (spec.newCanonicalId ? canonicalIdToFsPath(spec.newCanonicalId) : null) ?? deriveNewFsPath(snapshot, newName, newParentNode?.fs_path ?? null)
 
   // ---- Phase 1: data-layer mutations on the moved node ----
   onProgress?.({ phase: "data-layer", visited: 0, total: 0, refsRewritten: 0 })
 
-  const newAliases = promoteAliases(snapshot, newName, newShortId ?? null, preserveAliases)
+  const newAliases = promoteAliases(snapshot, newName, newCanonicalId ?? null, newShortId ?? null, preserveAliases)
 
   const dataChanges: Record<string, unknown> = {}
   const existingData = (node.data ?? {}) as Record<string, unknown>
   let dataChanged = false
+  if (newCanonicalId !== undefined && newCanonicalId !== snapshot.oldCanonicalId) {
+    dataChanges.id = newCanonicalId
+    dataChanged = true
+  }
   if (newShortId !== undefined && newShortId !== snapshot.oldShortId) {
     dataChanges.short_id = newShortId
     dataChanged = true
@@ -490,8 +525,8 @@ export function moveNodeWithRefs(id: string, spec: MoveSpec, deps: MoveDeps, opt
       nodeId: id,
       oldName: snapshot.oldName || null,
       newName: newName || null,
-      oldShortId: snapshot.oldShortId,
-      newShortId: newShortId ?? null,
+      oldShortId: snapshot.oldShortId ?? snapshot.oldCanonicalId,
+      newShortId: newShortId ?? newCanonicalId ?? null,
       oldFsPath: snapshot.oldFsPath,
       newFsPath,
       rewroteHosts: 0,
@@ -581,11 +616,11 @@ export function moveNodeWithRefs(id: string, spec: MoveSpec, deps: MoveDeps, opt
     // old short id with the corresponding new value (preserves order).
     if (
       existingAliases &&
-      (snapshot.oldName !== newName || (snapshot.oldShortId && snapshot.oldShortId !== newShortId))
+      (snapshot.oldName !== newName || (newReferenceId && oldReferenceIds.some((ref) => ref !== newReferenceId)))
     ) {
       const updated = existingAliases.map((alias) => {
         if (snapshot.oldName && alias === snapshot.oldName) return newName
-        if (snapshot.oldShortId && alias === snapshot.oldShortId && newShortId) return newShortId
+        if (newReferenceId && oldReferenceIds.includes(alias)) return newReferenceId
         return alias
       })
       if (updated.some((a, i) => a !== existingAliases[i])) {
@@ -596,18 +631,17 @@ export function moveNodeWithRefs(id: string, spec: MoveSpec, deps: MoveDeps, opt
     // Frontmatter parent_id
     if (
       existingParentId &&
-      snapshot.oldShortId &&
-      existingParentId === snapshot.oldShortId &&
-      newShortId &&
-      newShortId !== snapshot.oldShortId
+      newReferenceId &&
+      oldReferenceIds.includes(existingParentId) &&
+      existingParentId !== newReferenceId
     ) {
-      nextData = { ...(nextData ?? existingData), parent_id: newShortId }
+      nextData = { ...(nextData ?? existingData), parent_id: newReferenceId }
     }
 
     // blocked-by props (link form + list form)
     if (
       existingProps &&
-      (snapshot.oldName !== newName || (snapshot.oldShortId && newShortId && snapshot.oldShortId !== newShortId))
+      (snapshot.oldName !== newName || (newReferenceId && oldReferenceIds.some((ref) => ref !== newReferenceId)))
     ) {
       let propsChanged = false
       const newProps = { ...existingProps }
@@ -617,11 +651,11 @@ export function moveNodeWithRefs(id: string, spec: MoveSpec, deps: MoveDeps, opt
           if (!target) return false
           const lower = target.toLowerCase()
           if (snapshot.oldName && lower === snapshot.oldName.toLowerCase()) return true
-          if (snapshot.oldShortId && target === snapshot.oldShortId) return true
+          if (oldReferenceIds.includes(target)) return true
           return false
         }
         const replacementFor = (target: string): string => {
-          if (snapshot.oldShortId && target === snapshot.oldShortId && newShortId) return newShortId
+          if (newReferenceId && oldReferenceIds.includes(target)) return newReferenceId
           return newName
         }
         if (p.type === "link" && p.target && matches(p.target)) {
@@ -671,16 +705,19 @@ export function moveNodeWithRefs(id: string, spec: MoveSpec, deps: MoveDeps, opt
   }
 
   // ---- Phase 4: bare-id mention pass (opt-in) ----
-  if (includeProse && snapshot.oldShortId && newShortId && snapshot.oldShortId !== newShortId) {
-    for (const n of allNodes) {
-      if (n.id === id) continue
-      const baseContent = pendingHostContent.get(n.id) ?? n.content
-      if (!baseContent) continue
-      const { text, count } = rewriteBareIdMentions(baseContent, snapshot.oldShortId, newShortId)
-      if (count > 0) {
-        pendingHostContent.set(n.id, text)
-        touchedHosts.add(n.id)
-        rewroteRefs += count
+  if (includeProse && newReferenceId) {
+    for (const oldReferenceId of oldReferenceIds) {
+      if (oldReferenceId === newReferenceId) continue
+      for (const n of allNodes) {
+        if (n.id === id) continue
+        const baseContent = pendingHostContent.get(n.id) ?? n.content
+        if (!baseContent) continue
+        const { text, count } = rewriteBareIdMentions(baseContent, oldReferenceId, newReferenceId)
+        if (count > 0) {
+          pendingHostContent.set(n.id, text)
+          touchedHosts.add(n.id)
+          rewroteRefs += count
+        }
       }
     }
   }
@@ -730,8 +767,8 @@ export function moveNodeWithRefs(id: string, spec: MoveSpec, deps: MoveDeps, opt
     nodeId: id,
     oldName: snapshot.oldName || null,
     newName: newName || null,
-    oldShortId: snapshot.oldShortId,
-    newShortId: newShortId ?? null,
+    oldShortId: snapshot.oldShortId ?? snapshot.oldCanonicalId,
+    newShortId: newShortId ?? newCanonicalId ?? null,
     oldFsPath: snapshot.oldFsPath,
     newFsPath,
     rewroteHosts: touchedHosts.size,
