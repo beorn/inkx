@@ -2,7 +2,7 @@
  * Tests for the shared `printTaskDetails` helper used by both
  * `bd show <id>` and `tasks <id>`.
  *
- * Both modes route through `nodeToIssue`, so the field-extraction logic
+ * Both modes route through `nodeToBead`, so the field-extraction logic
  * is shared by construction. These tests pin the rendering contract
  * for each mode (bd vs task) and the JSON contract.
  */
@@ -156,7 +156,7 @@ describe("printTaskDetails", () => {
     const node = repo.getNode(id)!
     const out = stripAnsi(captureOutput(() => printTaskDetails(repo, node, { bd: false })))
 
-    // nodeToIssue defaults to P2; task mode shouldn't surface it as
+    // nodeToBead defaults to P2; task mode shouldn't surface it as
     // "Priority: P2" when the node never declared one.
     expect(out).not.toMatch(/Priority:/)
   })
@@ -180,7 +180,7 @@ describe("printTaskDetails", () => {
     expect(out).toContain("Priority: P2")
   })
 
-  test("json mode dumps the Issue shape regardless of bd flag", () => {
+  test("json mode dumps the Bead shape regardless of bd flag", () => {
     const dir = freshDir("json")
     using repo = openRepo(dir)
     const inbox = repo.resolveNode("inbox")!
@@ -201,7 +201,7 @@ describe("printTaskDetails", () => {
   })
 
   test("both modes share the field set (parity check)", () => {
-    // Sanity check the load-bearing claim: anything nodeToIssue extracts
+    // Sanity check the load-bearing claim: anything nodeToBead extracts
     // is available to both modes. We hit the helper twice with the same
     // input and assert that fields the user populated appear in BOTH
     // outputs. If a field falls out of one mode it'll show up here as a

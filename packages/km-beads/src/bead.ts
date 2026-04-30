@@ -16,10 +16,12 @@
  * etc.). Repo is the FIRST arg of every Repo-bound function (km
  * convention; matches `KTree.nodes(tree, ...)`).
  *
- * Migration shape (km-bead-domain-interface): legacy module-level functions
- * (`nodeToIssue`, `displayId`, `queryReady`, …) and the legacy `Issue` type
- * remain exported as deprecated aliases from their original modules.
- * New code should use `Bead.*`.
+ * Migration shape (km-bead-domain-interface): the legacy module-level
+ * function names (`nodeToBead`, `displayId`, `createBeadNode`, …) and
+ * type aliases (`Issue`, `IssueFilter`, `CreateIssueOptions`) have been
+ * removed in the L4 cutover. The implementations live under non-legacy
+ * names (`nodeToBead`, `formatBeadId`, `createBeadNode`, …) and are
+ * imported here. External callers must use `Bead.*`.
  */
 
 import type { KNode } from "@km/core"
@@ -27,20 +29,20 @@ import type { Repo } from "@km/storage"
 import type { Bead as BeadInterface, BeadCreateOptions, BeadFilter } from "./types.ts"
 import {
   type BeadsQueryOptions,
-  displayId as fnDisplayId,
+  formatBeadId as fnDisplayId,
   getIssue as fnGetIssue,
   isBead as fnIsBead,
   isBlocked as fnIsBlocked,
-  nodeToIssue as fnNodeToIssue,
+  nodeToBead as fnNodeToBead,
   queryIssues as fnQueryIssues,
   queryReady as fnQueryReady,
 } from "./queries.ts"
 import {
-  closeIssueFields as fnCloseIssueFields,
-  createIssueNode as fnCreateIssueNode,
-  dropIssueFields as fnDropIssueFields,
-  type UpdateIssueChanges,
-  updateIssueFields as fnUpdateIssueFields,
+  closeBeadFields as fnCloseBeadFields,
+  createBeadNode as fnCreateBeadNode,
+  dropBeadFields as fnDropBeadFields,
+  type UpdateBeadChanges,
+  updateBeadFields as fnUpdateBeadFields,
 } from "./mutations.ts"
 import {
   addDependency as fnAddDependency,
@@ -92,7 +94,7 @@ export const Bead = {
    * A node is a real bead iff it carries either `data.id` (canonical
    * path-form) or `data.short_id` (legacy bd-form). Sub-checkbox
    * descendants, raw `bd query` hits, and in-file paragraphs surfaced via
-   * `bd children` lack both — they used to surface as `Issue` with
+   * `bd children` lack both — they used to surface as `Bead` with
    * `shortId === undefined` (the load-bearing discriminator that callers
    * had to handle in `displayId`); now they're filtered at the namespace
    * boundary.
@@ -101,9 +103,9 @@ export const Bead = {
    * "is this really a bead?" check around. See km-bead-domain-interface.
    */
   from(node: KNode, opts?: BeadsQueryOptions): Bead | null {
-    const issue = fnNodeToIssue(node, opts)
-    if (issue.shortId === undefined) return null
-    return issue as Bead
+    const bead = fnNodeToBead(node, opts)
+    if (bead.shortId === undefined) return null
+    return bead as Bead
   },
 
   // ---------------------------------------------------------------------
@@ -203,22 +205,22 @@ export const Bead = {
     title: string,
     options: BeadCreateOptions,
   ): { node: KNode; shortId: string; children: KNode[] } {
-    return fnCreateIssueNode(title, options)
+    return fnCreateBeadNode(title, options)
   },
 
   /** Update bead fields. Returns a partial node for `repo.updateNode`. */
-  update(_repo: Repo, bead: Bead, changes: UpdateIssueChanges): Partial<KNode> {
-    return fnUpdateIssueFields(bead, changes)
+  update(_repo: Repo, bead: Bead, changes: UpdateBeadChanges): Partial<KNode> {
+    return fnUpdateBeadFields(bead, changes)
   },
 
   /** Close (mark done). Returns a partial node for `repo.updateNode`. */
   close(_repo: Repo, _bead: Bead, reason?: string, currentData?: Record<string, unknown>): Partial<KNode> {
-    return fnCloseIssueFields(reason, currentData)
+    return fnCloseBeadFields(reason, currentData)
   },
 
   /** Drop (mark won't-do). Returns a partial node for `repo.updateNode`. */
   drop(_repo: Repo, _bead: Bead, reason?: string, currentData?: Record<string, unknown>): Partial<KNode> {
-    return fnDropIssueFields(reason, currentData)
+    return fnDropBeadFields(reason, currentData)
   },
 
   // ---------------------------------------------------------------------

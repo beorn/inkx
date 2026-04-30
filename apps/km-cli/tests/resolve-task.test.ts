@@ -9,7 +9,7 @@
  *   5. Filesystem path / relative   (delegated to repo.resolveNode)
  *
  * Historical: a ULID-tail fallback (`km-<4chars>` matching the trailing
- * 4 chars of node.id) used to be arm 5, kept alive while `nodeToIssue`
+ * 4 chars of node.id) used to be arm 5, kept alive while `nodeToBead`
  * synthesized `km-XXXX` display ids for non-beads. Both have been
  * retired (km-beads.purge-fallback-id-l5 + .retire-short-id-l4): non-
  * beads now display the full ULID, and a bare `km-XXXX` only matches
@@ -120,8 +120,8 @@ describe("resolveTaskNode", () => {
     // A node with NO data.id and NO data.short_id is not a bead. Pre-
     // km-beads.retire-short-id-l4 the resolver matched `km-<tail>` against
     // the node's ULID tail; that arm is gone. There is no longer any code
-    // path that prints `km-XXXX` for a node like this (Issue.shortId is
-    // undefined, displayId(issue) returns the full ULID), so a user
+    // path that prints `km-XXXX` for a node like this (Bead.shortId is
+    // undefined, Bead.displayId(bead) returns the full ULID), so a user
     // cannot type a `km-XXXX` form that points at it.
     const nodeId = repo.addNode(inbox.id, {
       type: "p",
@@ -180,7 +180,7 @@ describe("resolveTaskNode", () => {
 })
 
 describe("resolveIssue", () => {
-  test("wraps resolveTaskNode + nodeToIssue", () => {
+  test("wraps resolveTaskNode + nodeToBead", () => {
     const dir = freshDir("issue-wrap")
     using repo = openRepo(dir)
     const inbox = repo.resolveNode("inbox")!

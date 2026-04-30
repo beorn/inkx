@@ -112,7 +112,7 @@ export const migrateCommand = new Command("migrate")
     if (originalConfigPath) {
       console.log(`  Original config: ${originalConfigPath}`)
       if (originalConfig?.["issue-prefix"]) {
-        console.log(`  Issue prefix: ${originalConfig["issue-prefix"]}`)
+        console.log(`  Bead prefix: ${originalConfig["issue-prefix"]}`)
       }
     }
     console.log(`  Total issues: ${stats.total}`)

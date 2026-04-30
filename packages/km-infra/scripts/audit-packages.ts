@@ -147,15 +147,15 @@ function discoverPackages(): PkgInfo[] {
 
 // ─── Checks ─────────────────────────────────────────────────────────────────
 
-interface Issue {
+interface Bead {
   pkg: string
   severity: "error" | "warn" | "info"
   check: string
   message: string
 }
 
-function audit(packages: PkgInfo[]): Issue[] {
-  const issues: Issue[] = []
+function audit(packages: PkgInfo[]): Bead[] {
+  const issues: Bead[] = []
 
   for (const pkg of packages) {
     if (pkg.private) continue // Skip private packages

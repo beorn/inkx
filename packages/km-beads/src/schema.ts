@@ -1,5 +1,5 @@
 /**
- * Beads Issue Schema
+ * Beads Bead Schema
  *
  * Zod schema for runtime validation of BeadsIssue JSON data.
  */

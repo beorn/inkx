@@ -11,13 +11,13 @@
  *   3. Filesystem path / relative path   → repo.resolveNode (smart resolver)
  *
  * Returns the matched KNode (or null). `resolveIssue` is a thin wrapper
- * that converts to the @km/beads Issue shape.
+ * that converts to the @km/beads Bead shape.
  *
  * Historical note (km-beads.purge-fallback-id-l5 / .retire-short-id-l4):
  * a fourth arm matched bare `km-<4chars>` against the node's ULID tail.
  * That arm only existed because the now-retired ULID-tail synthesis in
- * `nodeToIssue` could print `km-XXXX` for non-beads. Post-purge,
- * `Issue.shortId` is `undefined` for non-beads, `bd list` displays the
+ * `nodeToBead` could print `km-XXXX` for non-beads. Post-purge,
+ * `Bead.shortId` is `undefined` for non-beads, `bd list` displays the
  * full ULID, and no user-typed `km-XXXX` ever points at a non-bead. Real
  * `km-<scope>.<slug>` ids resolve through arm #2 (`data.short_id`).
  */

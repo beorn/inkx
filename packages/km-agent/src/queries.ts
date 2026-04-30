@@ -83,7 +83,7 @@ export function nodeToAgent(node: KNode): Agent {
 /**
  * Get issues in an agent's work queue (assigned to this agent).
  *
- * Note: This returns Issue objects from @km/beads.
+ * Note: This returns Bead objects from @km/beads.
  * Agents claim issues by having issues assigned to them via the assignee field.
  */
 export function getAgentQueue(repo: Repo, agentId: string): AgentQueueItem[] {

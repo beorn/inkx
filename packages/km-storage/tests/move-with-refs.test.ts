@@ -364,8 +364,8 @@ describe("moveNodeWithRefs", () => {
       type: "h",
       item: {},
       fstype: "mdfile",
-      content: "Issue",
-      name: "Issue",
+      content: "Bead",
+      name: "Bead",
       data: { short_id: "@km/scope/old" } as never,
     })
     repo.moveNodeWithRefs(id, { newShortId: "@km/scope/new" })
@@ -404,8 +404,8 @@ describe("moveNodeWithRefs", () => {
       type: "h",
       item: {},
       fstype: "mdfile",
-      content: "Issue",
-      name: "Issue",
+      content: "Bead",
+      name: "Bead",
       data: { short_id: "@km/scope/old" } as never,
     })
     const otherId = repo.addNode(null, {
@@ -430,8 +430,8 @@ describe("moveNodeWithRefs", () => {
       type: "h",
       item: {},
       fstype: "mdfile",
-      content: "Issue",
-      name: "Issue",
+      content: "Bead",
+      name: "Bead",
       data: { short_id: "@km/scope/old" } as never,
     })
     const otherId = repo.addNode(null, {

@@ -17,7 +17,7 @@ import { fileURLToPath } from "url"
 import { spawn } from "child_process"
 import { runGenerator } from "@km/core"
 import { createRepo } from "@km/storage"
-import { createIssueNode } from "@km/beads"
+import { Bead } from "@km/beads"
 import { mkdtempSync, mkdirSync, writeFileSync } from "fs"
 import { tmpdir } from "os"
 
@@ -38,7 +38,7 @@ function seedRepoWithBeads(count: number): string {
   using repo = runGenerator(createRepo(dir, { loadFiles: true }))
   for (let i = 0; i < count; i++) {
     const filler = "filler content to push payload size past the pipe-buffer threshold ".repeat(8)
-    const { node, children } = createIssueNode(`Bead ${i} — ${filler}`, {
+    const { node, children } = Bead.create(repo, `Bead ${i} — ${filler}`, {
       type: "task",
       priority: "P2",
       prefix: "km",

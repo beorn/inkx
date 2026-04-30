@@ -5,8 +5,8 @@
  */
 
 import type { Repo } from "@km/storage"
-import type { Issue } from "./types.ts"
-import { nodeToIssue } from "./queries.ts"
+import type { Bead } from "./types.ts"
+import { nodeToBead } from "./queries.ts"
 
 /**
  * Add a dependency (blocked-by relationship)
@@ -14,7 +14,7 @@ import { nodeToIssue } from "./queries.ts"
  * Returns updated data field for the node.
  */
 export function addDependency(
-  issue: Issue,
+  issue: Bead,
   dependsOn: string, // Short ID of the blocker
 ): { props: Record<string, unknown>; propsRaw: Record<string, string> } {
   const currentBlockers = issue.blockedBy || []
@@ -32,7 +32,7 @@ export function addDependency(
  * Remove a dependency
  */
 export function removeDependency(
-  issue: Issue,
+  issue: Bead,
   dependsOn: string,
 ): { props: Record<string, unknown>; propsRaw: Record<string, string> } | null {
   const currentBlockers = issue.blockedBy || []
@@ -98,7 +98,7 @@ function buildBlockedByProps(blockers: string[]): {
  *     parser doesn't yet emit a typed `rel: "blocks"` taxonomy on the
  *     links table (tracked at @km/storage/link-rel-taxonomy).
  */
-export function getDependencies(issue: Issue, repo?: Repo): string[] {
+export function getDependencies(issue: Bead, repo?: Repo): string[] {
   const propsBased = issue.blockedBy ?? []
   if (!repo) return propsBased
   // Non-beads have no shortId, so no inbound `blocks::` link can name
@@ -126,7 +126,7 @@ export function getDependencies(issue: Issue, repo?: Repo): string[] {
   const linkBased = rows
     .map((r) => repo.getNode(r.parent_id))
     .filter((n): n is NonNullable<typeof n> => n != null)
-    .map((n) => nodeToIssue(n, { repo }).shortId)
+    .map((n) => nodeToBead(n, { repo }).shortId)
     // Drop non-bead parents — they can't appear in a dependency list
     // because they have no canonical id to reference.
     .filter((sid): sid is string => sid !== undefined)
@@ -138,7 +138,7 @@ export function getDependencies(issue: Issue, repo?: Repo): string[] {
 /**
  * Check if issue A depends on issue B
  */
-export function dependsOn(issueA: Issue, issueB: Issue): boolean {
+export function dependsOn(issueA: Bead, issueB: Bead): boolean {
   // A non-bead (no shortId) cannot be a dependency target.
   if (!issueB.shortId) return false
   return (issueA.blockedBy || []).includes(issueB.shortId)

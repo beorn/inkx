@@ -6,7 +6,7 @@
 
 import { join } from "node:path"
 import { createLogger } from "loggily"
-import type { Issue, BeadsFs } from "./types.ts"
+import type { Bead, BeadsFs } from "./types.ts"
 import { parseBeadsIssuesJsonl, type BeadsIssue } from "./schema.ts"
 
 const log = createLogger("km:beads:sync")
@@ -14,7 +14,7 @@ const log = createLogger("km:beads:sync")
 /**
  * Convert km status to beads status
  */
-function convertStatus(status: Issue["status"]): BeadsIssue["status"] {
+function convertStatus(status: Bead["status"]): BeadsIssue["status"] {
   switch (status) {
     case "todo":
       return "open"
@@ -31,14 +31,14 @@ function convertStatus(status: Issue["status"]): BeadsIssue["status"] {
 }
 
 /**
- * Convert km Issue to beads JSONL format.
+ * Convert km Bead to beads JSONL format.
  *
  * Throws when `issue.shortId` is undefined — bd JSONL requires a stable
  * id, and non-beads (no `data.id`/`data.short_id`) cannot be exported.
  * Callers should filter such issues before reaching this function (see
  * `exportToBeads` below for the exception-handling pattern).
  */
-export function issueToBeadsJson(issue: Issue): BeadsIssue {
+export function issueToBeadsJson(issue: Bead): BeadsIssue {
   if (!issue.shortId) {
     throw new Error(
       `Cannot export non-bead to beads JSONL: ${issue.id} (${issue.title}) — node has no canonical id (data.id or data.short_id).`,
@@ -104,7 +104,7 @@ export interface SyncResult {
 /**
  * Export km issues to .beads/issues.jsonl
  */
-export function exportToBeads(issues: Issue[], options: SyncOptions): SyncResult {
+export function exportToBeads(issues: Bead[], options: SyncOptions): SyncResult {
   const result: SyncResult = {
     exported: 0,
     errors: [],
@@ -175,20 +175,20 @@ export interface BidirectionalSyncResult {
  * Compare timestamps to find which version is newer
  */
 export function findConflicts(
-  kmIssues: Issue[],
+  kmIssues: Bead[],
   beadsIssues: BeadsIssue[],
 ): Array<{
   id: string
   kmUpdated: number
   beadsUpdated: string
-  kmIssue: Issue
+  kmIssue: Bead
   beadsIssue: BeadsIssue
 }> {
   const conflicts: Array<{
     id: string
     kmUpdated: number
     beadsUpdated: string
-    kmIssue: Issue
+    kmIssue: Bead
     beadsIssue: BeadsIssue
   }> = []
 

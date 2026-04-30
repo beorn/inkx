@@ -35,7 +35,7 @@ import { parse as parseYaml } from "yaml"
 const log = createLogger("km:storage:config")
 
 export interface BeadsConfig {
-  /** Issue ID prefix (e.g., "km" for km-xxxx). The vault sigil for cross-vault refs. */
+  /** Bead ID prefix (e.g., "km" for km-xxxx). The vault sigil for cross-vault refs. */
   prefix?: string
   /**
    * Search roots for beads content within the repo (relative paths). Multiple

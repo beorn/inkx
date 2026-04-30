@@ -145,7 +145,7 @@ export async function addCommentAction(idArg: string, text: string): Promise<num
   using repo = await loadRepo(resolved.repoRoot)
   const issue = resolveIssueArg(repo, idArg)
   if (!issue) {
-    console.error(term.red(`Issue not found: ${idArg}`))
+    console.error(term.red(`Bead not found: ${idArg}`))
     return 1
   }
 
@@ -174,7 +174,7 @@ export async function listCommentAction(idArg: string): Promise<number> {
   using repo = await loadRepo(resolved.repoRoot)
   const issue = resolveIssueArg(repo, idArg)
   if (!issue) {
-    console.error(term.red(`Issue not found: ${idArg}`))
+    console.error(term.red(`Bead not found: ${idArg}`))
     return 1
   }
 

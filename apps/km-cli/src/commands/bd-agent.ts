@@ -115,7 +115,7 @@ bdAgentCommand
 bdAgentCommand
   .command("assign")
   .argument("<agent-id>", "Agent ID")
-  .argument("<issue-id>", "Issue ID")
+  .argument("<issue-id>", "Bead ID")
   .description("Assign an issue to an agent's queue")
   .actionMerged(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
@@ -129,7 +129,7 @@ bdAgentCommand
 
     const issue = Bead.get(repo, opts.issueId)
     if (!issue) {
-      console.error(term.red(`Issue not found: ${opts.issueId}`))
+      console.error(term.red(`Bead not found: ${opts.issueId}`))
       process.exitCode = 1
       return
     }
@@ -147,7 +147,7 @@ bdAgentCommand
 bdAgentCommand
   .command("unassign")
   .argument("<agent-id>", "Agent ID")
-  .argument("<issue-id>", "Issue ID")
+  .argument("<issue-id>", "Bead ID")
   .description("Remove an issue from agent's queue")
   .actionMerged(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
@@ -161,7 +161,7 @@ bdAgentCommand
 
     const issue = Bead.get(repo, opts.issueId)
     if (!issue) {
-      console.error(term.red(`Issue not found: ${opts.issueId}`))
+      console.error(term.red(`Bead not found: ${opts.issueId}`))
       process.exitCode = 1
       return
     }

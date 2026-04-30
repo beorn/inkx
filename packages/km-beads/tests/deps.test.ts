@@ -1,10 +1,10 @@
 import { describe, test, expect } from "vitest"
 import { addDependency, removeDependency, getDependencies, dependsOn, mergeDepProps } from "../src/deps.ts"
-import type { Issue } from "../src/types.ts"
+import type { Bead } from "../src/types.ts"
 
 describe("addDependency", () => {
   test("adds first dependency", () => {
-    const issue: Issue = {
+    const issue: Bead = {
       id: "01ABC123",
       shortId: "km-abc1",
       title: "Test issue",
@@ -24,7 +24,7 @@ describe("addDependency", () => {
   })
 
   test("adds second dependency creates list", () => {
-    const issue: Issue = {
+    const issue: Bead = {
       id: "01ABC123",
       shortId: "km-abc1",
       title: "Test issue",
@@ -48,7 +48,7 @@ describe("addDependency", () => {
   })
 
   test("does not add duplicate dependency", () => {
-    const issue: Issue = {
+    const issue: Bead = {
       id: "01ABC123",
       shortId: "km-abc1",
       title: "Test issue",
@@ -70,7 +70,7 @@ describe("addDependency", () => {
 
 describe("removeDependency", () => {
   test("removes single dependency returns empty props", () => {
-    const issue: Issue = {
+    const issue: Bead = {
       id: "01ABC123",
       shortId: "km-abc1",
       title: "Test issue",
@@ -87,7 +87,7 @@ describe("removeDependency", () => {
   })
 
   test("removes one of multiple dependencies", () => {
-    const issue: Issue = {
+    const issue: Bead = {
       id: "01ABC123",
       shortId: "km-abc1",
       title: "Test issue",
@@ -107,7 +107,7 @@ describe("removeDependency", () => {
   })
 
   test("returns null for non-existent dependency", () => {
-    const issue: Issue = {
+    const issue: Bead = {
       id: "01ABC123",
       shortId: "km-abc1",
       title: "Test issue",
@@ -126,7 +126,7 @@ describe("removeDependency", () => {
 
 describe("getDependencies", () => {
   test("returns empty array for issue without blockers", () => {
-    const issue: Issue = {
+    const issue: Bead = {
       id: "01ABC123",
       shortId: "km-abc1",
       title: "Test issue",
@@ -140,7 +140,7 @@ describe("getDependencies", () => {
   })
 
   test("returns blockedBy array", () => {
-    const issue: Issue = {
+    const issue: Bead = {
       id: "01ABC123",
       shortId: "km-abc1",
       title: "Test issue",
@@ -157,10 +157,10 @@ describe("getDependencies", () => {
 
 describe("dependsOn", () => {
   test("returns true when issue A depends on issue B", () => {
-    const issueA: Issue = {
+    const issueA: Bead = {
       id: "01ABC123",
       shortId: "km-abc1",
-      title: "Issue A",
+      title: "Bead A",
       status: "todo",
       priority: "P2",
       blockedBy: ["km-xyz9"],
@@ -168,10 +168,10 @@ describe("dependsOn", () => {
       updatedAt: Date.now(),
     }
 
-    const issueB: Issue = {
+    const issueB: Bead = {
       id: "01XYZ999",
       shortId: "km-xyz9",
-      title: "Issue B",
+      title: "Bead B",
       status: "todo",
       priority: "P2",
       createdAt: Date.now(),
@@ -182,20 +182,20 @@ describe("dependsOn", () => {
   })
 
   test("returns false when issue A does not depend on issue B", () => {
-    const issueA: Issue = {
+    const issueA: Bead = {
       id: "01ABC123",
       shortId: "km-abc1",
-      title: "Issue A",
+      title: "Bead A",
       status: "todo",
       priority: "P2",
       createdAt: Date.now(),
       updatedAt: Date.now(),
     }
 
-    const issueB: Issue = {
+    const issueB: Bead = {
       id: "01XYZ999",
       shortId: "km-xyz9",
-      title: "Issue B",
+      title: "Bead B",
       status: "todo",
       priority: "P2",
       createdAt: Date.now(),

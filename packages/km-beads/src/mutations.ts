@@ -8,7 +8,7 @@ import { ulid } from "ulid"
 import { stringify as stringifyYaml } from "yaml"
 import type { KNode } from "@km/core"
 import { getMarkerForStatus } from "@km/core"
-import type { Issue, CreateIssueOptions } from "./types.ts"
+import type { Bead, BeadCreateOptions } from "./types.ts"
 import { generateShortId, generateCustomId, generateSubId } from "./short-ids.ts"
 import { normalizePriority } from "./priority.ts"
 
@@ -19,9 +19,9 @@ import { normalizePriority } from "./priority.ts"
  * Callers pass the node to `repo.addNode(parentId, node)` which persists
  * through the `@km/storage` emitter down to the markdown file.
  */
-export function createIssueNode(
+export function createBeadNode(
   title: string,
-  options: CreateIssueOptions,
+  options: BeadCreateOptions,
 ): { node: KNode; shortId: string; children: KNode[] } {
   const now = Date.now()
   const id = ulid()
@@ -31,7 +31,7 @@ export function createIssueNode(
   // silently produce `km-…` ids in non-`km` repos (cloudi, pam, pim vault).
   if (!options.prefix) {
     throw new Error(
-      "createIssueNode: options.prefix is required — read from .km/config.yaml `beads.prefix` (e.g. via loadKmBdConfig).",
+      "createBeadNode: options.prefix is required — read from .km/config.yaml `beads.prefix` (e.g. via loadKmBdConfig).",
     )
   }
   const prefix = options.prefix
@@ -63,7 +63,7 @@ export function createIssueNode(
   //   --priority p0  → "P0"
   // Without this, `bd create --priority 0` wrote tag `#0` while peer beads
   // had `#P0`, and `bd list --priority 0` (query `#0`) would miss the
-  // canonical-form ones (and vice versa). Both `nodeToIssue` (read) and
+  // canonical-form ones (and vice versa). Both `nodeToBead` (read) and
   // queryIssues (filter) normalize input, but the on-disk tag stays in
   // whatever form was first written — so we canonicalize at the boundary.
   const priority = normalizePriority(options.priority) ?? "P2"
@@ -142,8 +142,8 @@ export function createIssueNode(
  * priority, item, assigned_to) to the SQL schema and patches the `data`
  * blob for sigil-mirrored tags/mentions.
  */
-export interface UpdateIssueChanges {
-  status?: Issue["status"]
+export interface UpdateBeadChanges {
+  status?: Bead["status"]
   priority?: string
   assignee?: string
   title?: string
@@ -159,7 +159,7 @@ export interface UpdateIssueChanges {
   currentData?: Record<string, unknown>
 }
 
-export function updateIssueFields(issue: Issue, changes: UpdateIssueChanges): Partial<KNode> {
+export function updateBeadFields(bead: Bead, changes: UpdateBeadChanges): Partial<KNode> {
   const updates: Partial<KNode> = {
     updated_at: Date.now(),
   }
@@ -198,7 +198,7 @@ export function updateIssueFields(issue: Issue, changes: UpdateIssueChanges): Pa
     const currentTags =
       changes.currentTags ??
       (changes.currentData?.tags as string[] | undefined) ??
-      [issue.type, issue.priority].filter((t): t is string => typeof t === "string" && t.length > 0)
+      [bead.type, bead.priority].filter((t): t is string => typeof t === "string" && t.length > 0)
     const nextTags = rewriteTypeAndPriorityTags(currentTags, {
       priority: normalizedPriority,
       type: changes.type,
@@ -241,7 +241,7 @@ function rewriteTypeAndPriorityTags(tags: string[], next: { priority?: string; t
  *
  * Bead: km-beads.close-drop-data-wipe.
  */
-export function closeIssueFields(reason?: string, currentData?: Record<string, unknown>): Partial<KNode> {
+export function closeBeadFields(reason?: string, currentData?: Record<string, unknown>): Partial<KNode> {
   const updates: Partial<KNode> = {
     item: { task: { status: "done", marker: getMarkerForStatus("done") } },
     updated_at: Date.now(),
@@ -257,12 +257,12 @@ export function closeIssueFields(reason?: string, currentData?: Record<string, u
 /**
  * Drop an issue (mark as won't do).
  *
- * Same `currentData` discipline as `closeIssueFields`. See its docstring
+ * Same `currentData` discipline as `closeBeadFields`. See its docstring
  * for the rationale.
  *
  * Bead: km-beads.close-drop-data-wipe.
  */
-export function dropIssueFields(reason?: string, currentData?: Record<string, unknown>): Partial<KNode> {
+export function dropBeadFields(reason?: string, currentData?: Record<string, unknown>): Partial<KNode> {
   const updates: Partial<KNode> = {
     item: { task: { status: "dropped", marker: getMarkerForStatus("dropped") } },
     updated_at: Date.now(),

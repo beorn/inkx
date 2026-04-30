@@ -10,7 +10,7 @@
  *
  * Pinning the contract here so the renderer can't silently drift the
  * frontmatter shape — which would break the round-trip with
- * `nodeToIssue` / `resolveShortId` (alias resolution depends on the
+ * `nodeToBead` / `resolveShortId` (alias resolution depends on the
  * `aliases:` array carrying both forms).
  */
 

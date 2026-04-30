@@ -172,9 +172,10 @@ export function printTaskDetails(repo: Repo, node: KNode, opts: PrintTaskDetails
   }
 }
 
-// Local re-import of the legacy never-null shape. Centralized here so the
-// deprecation lint stays scoped to this one site.
-import { nodeToIssue as nodeToIssueRaw } from "@km/beads"
+// Local re-import of the never-null impl shape. Centralized here so the
+// `nodeToBead` (raw, never-null) usage stays scoped to this one site —
+// every other caller goes through `Bead.from` (nullable).
+import { nodeToBead as nodeToBeadRaw } from "@km/beads"
 function nodeToIssueLegacy(node: KNode, repo: Repo): BeadType {
-  return nodeToIssueRaw(node, { repo })
+  return nodeToBeadRaw(node, { repo })
 }

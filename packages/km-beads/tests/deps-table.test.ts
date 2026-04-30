@@ -2,7 +2,7 @@
  * Indexed deps lookups for km-beads queries.
  *
  * Verifies that `buildDependentCountMap` and `countDependents` (via the
- * exported `nodeToIssue.dependentCount`) read from the v7 deps table
+ * exported `nodeToBead.dependentCount`) read from the v7 deps table
  * populated by SQLite triggers — not from a JSON scan.
  *
  * Wires real Repo objects so the schema's INSERT/UPDATE triggers actually
@@ -13,7 +13,7 @@
 
 import { describe, test, expect } from "vitest"
 import { createTestRepo } from "@km/storage"
-import { buildDependentCountMap, nodeToIssue } from "../src/queries.ts"
+import { buildDependentCountMap, nodeToBead } from "../src/queries.ts"
 
 function blockedByLink(target: string): Record<string, unknown> {
   return { props: { "blocked-by": { type: "link", target } } }
@@ -74,7 +74,7 @@ describe("buildDependentCountMap (deps-table)", () => {
   })
 })
 
-describe("nodeToIssue.dependentCount (deps-table)", () => {
+describe("nodeToBead.dependentCount (deps-table)", () => {
   test("dependentCount reflects deps rows for the issue's shortId", () => {
     using repo = createTestRepo()
 
@@ -103,7 +103,7 @@ describe("nodeToIssue.dependentCount (deps-table)", () => {
 
     const node = repo.getNode(beadId)
     if (!node) throw new Error("bead node missing")
-    const issue = nodeToIssue(node, { repo })
+    const issue = nodeToBead(node, { repo })
     expect(issue.dependentCount).toBe(2)
   })
 

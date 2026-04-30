@@ -527,7 +527,7 @@ export interface MigrateOptions {
   /** Filesystem implementation (DI - avoids direct node:fs import) */
   fs: BeadsFs
   /**
-   * Issue id prefix in the source vault, read from
+   * Bead id prefix in the source vault, read from
    * `<source>/.beads/config.yaml` `issue-prefix` (e.g. `"km"`,
    * `"gbrain"`). Used to strip the prefix when computing canonical
    * path-form ids and to recognize self-vault dependency references.
@@ -708,7 +708,7 @@ export interface RecaptureOptions {
   /** When true, skip writing files (still computes the patch report). */
   dryRun?: boolean
   /**
-   * Issue id prefix in the source vault (mirrors {@link MigrateOptions}).
+   * Bead id prefix in the source vault (mirrors {@link MigrateOptions}).
    * Currently unused by recapture proper but kept on the surface so
    * future logic that path-form-translates new fields has it available.
    */

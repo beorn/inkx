@@ -1,8 +1,9 @@
 /**
  * Bead — bd-tracked issue value type.
  *
- * `Issue` (legacy alias) and `IssueFilter` / `CreateIssueOptions` remain
- * as one-commit deprecated re-exports. New code uses `Bead`, `BeadFilter`,
+ * The legacy aliases (`Issue`, `IssueFilter`, `CreateIssueOptions`) and the
+ * legacy module-level functions (`nodeToBead`, `displayId`, etc.) have
+ * been removed in the L4 cutover. New code uses `Bead`, `BeadFilter`,
  * `BeadCreateOptions`. See `./bead.ts` for the namespace.
  */
 export interface Bead {
@@ -16,7 +17,7 @@ export interface Bead {
    * surfaced via `bd children`, etc.). At the namespace boundary,
    * `Bead.from(node)` returns `null` for such nodes; consumers that get
    * a `Bead` value can rely on `shortId` being defined. Legacy callers
-   * that go through `nodeToIssue` directly may still see `undefined`.
+   * that go through `nodeToBead` directly may still see `undefined`.
    */
   shortId: string | undefined
   title: string
@@ -33,12 +34,9 @@ export interface Bead {
   parentContext?: string // Parent section/file name for embedded nodes
   // bd-compatible fields
   createdBy?: string // Author
-  dependencyCount?: number // Number of issues this depends on
-  dependentCount?: number // Number of issues that depend on this
+  dependencyCount?: number // Number of beads this depends on
+  dependentCount?: number // Number of beads that depend on this
 }
-
-/** @deprecated Use `Bead`. */
-export type Issue = Bead
 
 /**
  * Minimal filesystem interface for DI.
@@ -61,9 +59,6 @@ export interface BeadFilter {
   blocked?: boolean
 }
 
-/** @deprecated Use `BeadFilter`. */
-export type IssueFilter = BeadFilter
-
 export interface BeadCreateOptions {
   type?: string
   priority?: string
@@ -75,7 +70,7 @@ export interface BeadCreateOptions {
   description?: string // Body text (created as child paragraph)
   notes?: string // Additional notes (created as child paragraph after description)
   /**
-   * Issue id prefix (e.g. `km`, `gbrain`, `pim`). Required — comes from the
+   * Bead id prefix (e.g. `km`, `gbrain`, `pim`). Required — comes from the
    * repo's `.km/config.yaml` `beads.prefix` (read via `loadKmBdConfig` or
    * `getBeadsConfig`). No default: a missing prefix would silently produce
    * `km-…` ids in non-`km` repos (cloudi, pam, pim vault).
@@ -83,5 +78,3 @@ export interface BeadCreateOptions {
   prefix: string
 }
 
-/** @deprecated Use `BeadCreateOptions`. */
-export type CreateIssueOptions = BeadCreateOptions

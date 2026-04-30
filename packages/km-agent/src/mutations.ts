@@ -186,7 +186,7 @@ export function claimIssueFields(
 }
 
 /**
- * Issue assignment result.
+ * Bead assignment result.
  */
 export interface IssueAssignment {
   assignee?: string

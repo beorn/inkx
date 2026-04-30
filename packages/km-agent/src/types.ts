@@ -57,7 +57,7 @@ export interface HarnessConstraints {
 export interface Session {
   id: string // Session ULID
   agentId: string
-  taskId?: string // Issue being worked on
+  taskId?: string // Bead being worked on
   model: string
   status: SessionStatus
   startedAt: number

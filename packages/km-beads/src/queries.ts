@@ -6,7 +6,7 @@
 
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
-import type { Issue, IssueFilter } from "./types.ts"
+import type { Bead, BeadFilter } from "./types.ts"
 import { resolveShortId } from "./short-ids.ts"
 
 /** Options for beads query functions */
@@ -15,7 +15,7 @@ export interface BeadsQueryOptions {
   repo?: Repo
   /**
    * Pre-built dependent-count map (shortId → count of issues blocked by it).
-   * If provided, nodeToIssue uses this map instead of querying per-issue.
+   * If provided, nodeToBead uses this map instead of querying per-issue.
    * Built via buildDependentCountMap(repo).
    */
   dependentCountMap?: Map<string, number>
@@ -125,7 +125,7 @@ function depthUnderRoots(path: string | undefined, roots: string[]): number {
  * bead under either branch — it has no `+` and lives at depth ≥ 3 — so
  * it falls out of `bd ready` / `bd list` results, eliminating the
  * sub-item noise that previously required a ULID-suffix synthesis in
- * `nodeToIssue` (since retired in km-beads.purge-fallback-id-l5 / -l4).
+ * `nodeToBead` (since retired in km-beads.purge-fallback-id-l5 / -l4).
  *
  * See km-beads.bead-sigil-elevation for the design rationale.
  */
@@ -185,10 +185,10 @@ function getParentContext(node: KNode, repo?: Repo): string | undefined {
 }
 
 /**
- * Display id for a Bead/Issue.
+ * Display id for a Bead/Bead.
  *
  * Real beads carry `data.id` (canonical path-form, e.g. `@km/scope/slug`)
- * or legacy `data.short_id` (bd-form, e.g. `km-a1b2`); `nodeToIssue`
+ * or legacy `data.short_id` (bd-form, e.g. `km-a1b2`); `nodeToBead`
  * surfaces both as `shortId`. Bypass-path nodes (sub-checkboxes via
  * `bd children`, raw `bd query` hits, path-resolved nodes via
  * `resolveTaskNode`) have no bead identity, so `shortId` is `undefined`
@@ -199,23 +199,25 @@ function getParentContext(node: KNode, repo?: Repo): string | undefined {
  * rule lives in one place. New code should call `Bead.displayId`; the
  * fallback chain is harmless under `Bead.from`-filtered values (shortId
  * is always defined there) and load-bearing only for legacy callers that
- * still construct an `Issue` directly.
+ * still construct an `Bead` directly.
  *
- * @deprecated Use `Bead.displayId` from the Bead namespace.
+ * Internal impl — exposed to `./bead.ts` only. External callers use
+ * `Bead.displayId` from the Bead namespace.
  */
-export function displayId(issue: Issue): string {
-  return issue.shortId ?? issue.id
+export function formatBeadId(bead: Bead): string {
+  return bead.shortId ?? bead.id
 }
 
 /**
- * Convert a KNode to an Issue (the legacy never-null shape).
+ * Convert a KNode to a Bead (the legacy never-null shape).
  *
- * @deprecated Use `Bead.from` — it returns `Bead | null`, filtering out
- *   nodes that aren't real beads (no `data.id` AND no `data.short_id`).
- *   Direct use here will keep returning `shortId === undefined` for
- *   non-beads.
+ * Internal impl — exposed to `./bead.ts` only and to the one legacy
+ * holdout in `apps/km-cli/src/commands/shared-show.ts` (which needs the
+ * never-null shape so it can render synthesized non-beads). External
+ * callers use `Bead.from` — it returns `Bead | null`, filtering out
+ * nodes that aren't real beads (no `data.id` AND no `data.short_id`).
  */
-export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
+export function nodeToBead(node: KNode, options?: BeadsQueryOptions): Bead {
   const repo = options?.repo
   const data = node.data as Record<string, unknown> | undefined
   const props = data?.props as
@@ -242,7 +244,7 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
   }
 
   // Determine status from task_status
-  let status: Issue["status"] = "todo"
+  let status: Bead["status"] = "todo"
   switch (node.item?.task?.status) {
     case "done":
       status = "done"
@@ -314,7 +316,7 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
   // > legacy `data.short_id` (bd-form like "km-a1b2")
   // > undefined (not a real bead).
   //
-  // Invariant: any node reaching `nodeToIssue` from queryReady / queryIssues
+  // Invariant: any node reaching `nodeToBead` from queryReady / queryIssues
   // is a bead (km-beads.bead-sigil-elevation: depth-2 file under boardRoots OR
   // `+` sigil prefix on `name`) and therefore carries `data.id` or
   // `data.short_id`. Bypass paths — `bd children` (in-file paragraphs),
@@ -322,7 +324,7 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
   // `getDependencies` (parents of `blocks::` paragraphs) — may pass a non-
   // bead node; for those, `shortId` is honestly `undefined`.
   //
-  // Display sites use `displayId(issue)` (which falls back to `issue.id`)
+  // Display sites use `Bead.displayId(bead)` (which falls back to `issue.id`)
   // to render non-beads.
   const shortId = (data?.id as string | undefined) ?? (data?.short_id as string | undefined)
 
@@ -355,7 +357,7 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
  * @param options - Optional query options (repo for DI)
  * @deprecated Use `Bead.isBlocked`.
  */
-export function isBlocked(issue: Issue, options?: BeadsQueryOptions): boolean {
+export function isBlocked(issue: Bead, options?: BeadsQueryOptions): boolean {
   const repo = options?.repo
   if (!issue.blockedBy || issue.blockedBy.length === 0) {
     return false
@@ -376,7 +378,7 @@ export function isBlocked(issue: Issue, options?: BeadsQueryOptions): boolean {
     if (blockerNodeId) {
       const firstBlocker = repo.getNode(blockerNodeId)
       if (firstBlocker) {
-        const blocker = nodeToIssue(firstBlocker, { repo })
+        const blocker = nodeToBead(firstBlocker, { repo })
         if (blocker.status !== "done" && blocker.status !== "dropped") {
           return true
         }
@@ -401,11 +403,11 @@ export function isBlocked(issue: Issue, options?: BeadsQueryOptions): boolean {
  *                   fixtures, archived notes, and any other todo-shaped node.)
  */
 export function queryReady(
-  filter?: Partial<IssueFilter>,
+  filter?: Partial<BeadFilter>,
   scopePath?: string,
   boardTag?: string,
   options?: BeadsQueryOptions & { boardRoots?: string[] },
-): Issue[] {
+): Bead[] {
   const repo = options?.repo
   // Build query for open tasks
   let query = "status:todo"
@@ -435,7 +437,7 @@ export function queryReady(
   // `<root>/<scope>/<slug>.md` shape). Declarative escape hatch =
   // `node.name?.startsWith("+")`, the elevated-sub-bead sigil. Sub-
   // checkboxes inside bead files (depth ≥ 3, no sigil) are correctly
-  // excluded — these now produce `Issue.shortId === undefined`
+  // excluded — these now produce `Bead.shortId === undefined`
   // (post km-beads.purge-fallback-id-l5) so callers can distinguish
   // real beads from generic nodes.
   const boardRoots = options?.boardRoots
@@ -443,7 +445,7 @@ export function queryReady(
   // Build the dependent-count map ONCE, not per-issue. Eliminates 3463 × O(N)
   // unindexed scans on large vaults — see km-beads.list-status-perf.
   const dependentCountMap = buildDependentCountMap(repo)
-  let issues = nodes.map((n) => nodeToIssue(n, { repo, dependentCountMap }))
+  let issues = nodes.map((n) => nodeToBead(n, { repo, dependentCountMap }))
 
   // Apply path scope filter after query (since path: syntax not supported)
   if (scopePath) {
@@ -472,11 +474,11 @@ export function queryReady(
  * @param options - Optional query options (repo for DI)
  */
 export function queryIssues(
-  filter?: IssueFilter,
+  filter?: BeadFilter,
   scopePath?: string,
   boardTag?: string,
   options?: BeadsQueryOptions & { boardRoots?: string[] },
-): Issue[] {
+): Bead[] {
   const repo = options?.repo
   let query = ""
 
@@ -516,7 +518,7 @@ export function queryIssues(
   const nodes = boardRoots && boardRoots.length > 0 ? allNodes.filter((n) => isBead(n, boardRoots, repo)) : allNodes
   // Build the dependent-count map ONCE — see queryReady for context.
   const dependentCountMap = buildDependentCountMap(repo)
-  let issues = nodes.map((n) => nodeToIssue(n, { repo, dependentCountMap }))
+  let issues = nodes.map((n) => nodeToBead(n, { repo, dependentCountMap }))
 
   // Apply path scope filter after query (since path: syntax not supported)
   if (scopePath) {
@@ -545,7 +547,7 @@ export function queryIssues(
  *
  * Historical note (km-beads.retire-short-id-l4): a ULID-tail fallback
  * (`km-<4chars>` matching the trailing 4 chars of `node.id`) used to live
- * here as a last resort. It was load-bearing only while `nodeToIssue`
+ * here as a last resort. It was load-bearing only while `nodeToBead`
  * synthesized `km-XXXX` display ids for non-beads (since retired in
  * km-beads.purge-fallback-id-l5). Post-purge, no caller produces those
  * ids, and the chain above is sufficient.
@@ -554,14 +556,14 @@ export function queryIssues(
  *                or alias.
  * @param options - Optional query options (repo for DI)
  */
-export function getIssue(idRef: string, options?: BeadsQueryOptions): Issue | null {
+export function getIssue(idRef: string, options?: BeadsQueryOptions): Bead | null {
   const repo = options?.repo
   if (!repo) return null
 
   const nodeId = resolveShortId(idRef, { repo })
   if (nodeId) {
     const node = repo.getNode(nodeId)
-    if (node) return nodeToIssue(node, { repo })
+    if (node) return nodeToBead(node, { repo })
   }
 
   return null

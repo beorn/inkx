@@ -2,7 +2,7 @@
 /**
  * Beads Command (bd)
  *
- * Issue tracking integrated with km storage.
+ * Bead tracking integrated with km storage.
  * Thin CLI wrapper around @km/beads package.
  */
 
@@ -18,7 +18,7 @@ import {
   renderInboxCapture,
   type Bead as BeadType,
   type BeadFilter,
-  type UpdateIssueChanges,
+  type UpdateBeadChanges,
 } from "@km/beads"
 import type { Repo } from "@km/storage"
 import { resolvePathArg } from "@km/fs-mount"
@@ -106,7 +106,7 @@ function printEmptyDefaultBoardHint(subcommand: string, boardRoots: readonly str
 }
 
 export const bdCommand = new Command("bd")
-  .description("Issue tracking (beads-compatible)")
+  .description("Bead tracking (beads-compatible)")
   .addHelpSection(
     "Note:",
     "Markdown tasks ARE the issues. Each scope (`km-<scope>.<slug>`) is its own board\n(file `<scope>/<slug>.md`, heading sigil `@<prefix>/<scope>`, e.g. `@km/beads`).\nSee 'km bd config' for the prefix knob, 'km bd info' for stats.",
@@ -258,7 +258,7 @@ bdCommand
     // Build dependent-count map ONCE, not per-issue (eliminates N+1 scan).
     const dependentCountMap = buildDependentCountMap(repo)
     // Bead.from returns null for non-beads (no data.id, no data.short_id);
-    // those used to surface as Issue with shortId === undefined and now
+    // those used to surface as Bead with shortId === undefined and now
     // drop out at the namespace boundary.
     let issues: BeadType[] = nodes
       .map((n) => Bead.from(n, { repo, dependentCountMap }))
@@ -295,7 +295,7 @@ bdCommand
 // bd show [id] - Show issue details
 const showCmd = bdCommand
   .command("show")
-  .argument("[id]", "Issue ID")
+  .argument("[id]", "Bead ID")
   .description("Show issue details")
   .option("--json", "Output as JSON")
   .actionMerged(async (opts) => {
@@ -309,7 +309,7 @@ const showCmd = bdCommand
     const node = resolveTaskNode(repo, opts.id)
 
     if (!node) {
-      console.error(term.red(`Issue not found: ${opts.id}`))
+      console.error(term.red(`Bead not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
@@ -332,13 +332,13 @@ const showCmd = bdCommand
 // bd create <title> - Create a new issue
 bdCommand
   .command("create")
-  .argument("<title>", "Issue title")
+  .argument("<title>", "Bead title")
   .description("Create a new issue")
-  .option("-t, --type <type>", "Issue type (bug, feature, epic, task, docs)")
+  .option("-t, --type <type>", "Bead type (bug, feature, epic, task, docs)")
   .option("-p, --priority <value>", "Priority (e.g. P0-P4 or 0-4, default: P2)")
   .option("-a, --assignee <name>", "Assign to person")
   .option("-l, --label <labels...>", "Add labels")
-  .option("-d, --description <text>", "Issue description")
+  .option("-d, --description <text>", "Bead description")
   .option("-n, --notes <text>", "Additional notes")
   .option("--id <custom>", "Custom short ID")
   .option("--parent <id>", "Parent issue for sub-issues")
@@ -593,7 +593,7 @@ bdCommand
 // bd update [id] - Update issue fields
 const updateCmd = bdCommand
   .command("update")
-  .argument("[id]", "Issue ID")
+  .argument("[id]", "Bead ID")
   .description("Update issue fields")
   .option("-s, --status <status>", "Set status (todo, wip, blocked, done, dropped)")
   .option("-p, --priority <value>", "Set priority (e.g. P0-P4 or 0-4)")
@@ -614,7 +614,7 @@ const updateCmd = bdCommand
     using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, opts.id)
     if (!issue) {
-      console.error(term.red(`Issue not found: ${opts.id}`))
+      console.error(term.red(`Bead not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
@@ -655,7 +655,7 @@ const updateCmd = bdCommand
       opts.assignee = opts.assignee ?? resolveAssignee()
     }
 
-    const changes: UpdateIssueChanges = {}
+    const changes: UpdateBeadChanges = {}
     if (opts.status) changes.status = opts.status as Bead["status"]
     if (opts.priority !== undefined) changes.priority = opts.priority
     if (opts.assignee) changes.assignee = opts.assignee
@@ -717,7 +717,7 @@ const updateCmd = bdCommand
 // bd close [id] - Close an issue
 const closeCmd = bdCommand
   .command("close")
-  .argument("[id]", "Issue ID")
+  .argument("[id]", "Bead ID")
   .description("Close an issue (mark as done)")
   .option("-r, --reason <reason>", "Close reason")
   .actionMerged(async (opts) => {
@@ -730,7 +730,7 @@ const closeCmd = bdCommand
     using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, opts.id)
     if (!issue) {
-      console.error(term.red(`Issue not found: ${opts.id}`))
+      console.error(term.red(`Bead not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
@@ -747,7 +747,7 @@ const closeCmd = bdCommand
 // bd drop [id] - Drop an issue
 const dropCmd = bdCommand
   .command("drop")
-  .argument("[id]", "Issue ID")
+  .argument("[id]", "Bead ID")
   .description("Drop an issue (mark as won't do)")
   .option("-r, --reason <reason>", "Drop reason")
   .actionMerged(async (opts) => {
@@ -760,7 +760,7 @@ const dropCmd = bdCommand
     using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, opts.id)
     if (!issue) {
-      console.error(term.red(`Issue not found: ${opts.id}`))
+      console.error(term.red(`Bead not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
@@ -779,7 +779,7 @@ const depCommand = new Command("dep").description("Manage issue dependencies")
 
 const depAddCmd = depCommand
   .command("add")
-  .argument("[id]", "Issue ID")
+  .argument("[id]", "Bead ID")
   .argument("[depends-on]", "Blocking issue ID")
   .description("Add a dependency (issue is blocked by depends-on)")
   .actionMerged(async (opts) => {
@@ -792,7 +792,7 @@ const depAddCmd = depCommand
     using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, opts.id)
     if (!issue) {
-      console.error(term.red(`Issue not found: ${opts.id}`))
+      console.error(term.red(`Bead not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
@@ -806,7 +806,7 @@ const depAddCmd = depCommand
 
 const depRemoveCmd = depCommand
   .command("remove")
-  .argument("[id]", "Issue ID")
+  .argument("[id]", "Bead ID")
   .argument("[depends-on]", "Blocking issue ID")
   .description("Remove a dependency")
   .actionMerged(async (opts) => {
@@ -819,7 +819,7 @@ const depRemoveCmd = depCommand
     using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, opts.id)
     if (!issue) {
-      console.error(term.red(`Issue not found: ${opts.id}`))
+      console.error(term.red(`Bead not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
@@ -838,7 +838,7 @@ const depRemoveCmd = depCommand
 
 const depListCmd = depCommand
   .command("list")
-  .argument("[id]", "Issue ID")
+  .argument("[id]", "Bead ID")
   .description("List dependencies for an issue")
   .actionMerged(async (opts) => {
     if (!opts.id) {
@@ -850,7 +850,7 @@ const depListCmd = depCommand
     using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, opts.id)
     if (!issue) {
-      console.error(term.red(`Issue not found: ${opts.id}`))
+      console.error(term.red(`Bead not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
@@ -994,14 +994,14 @@ bdCommand
 // bd claim <id> - Claim an issue (set status=wip + assignee)
 bdCommand
   .command("claim")
-  .argument("<id>", "Issue ID")
+  .argument("<id>", "Bead ID")
   .description("Claim an issue (set status to wip and assign to you)")
   .actionMerged(async (opts) => {
     const resolved = resolvePathArg(undefined)
     using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, opts.id)
     if (!issue) {
-      console.error(term.red(`Issue not found: ${opts.id}`))
+      console.error(term.red(`Bead not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
@@ -1018,7 +1018,7 @@ bdCommand
 // bd children <id> - List children of an epic
 bdCommand
   .command("children")
-  .argument("<id>", "Issue ID")
+  .argument("<id>", "Bead ID")
   .description("List children of an issue (e.g., sub-tasks of an epic)")
   .option("--json", "Output as JSON")
   .actionMerged(async (opts) => {
@@ -1026,7 +1026,7 @@ bdCommand
     using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, opts.id)
     if (!issue) {
-      console.error(term.red(`Issue not found: ${opts.id}`))
+      console.error(term.red(`Bead not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
@@ -1292,7 +1292,7 @@ bdCommand
     using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, opts.oldId)
     if (!issue) {
-      console.error(term.red(`Issue not found: ${opts.oldId}`))
+      console.error(term.red(`Bead not found: ${opts.oldId}`))
       process.exitCode = 1
       return
     }

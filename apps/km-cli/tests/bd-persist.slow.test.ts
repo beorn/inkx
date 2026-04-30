@@ -18,16 +18,7 @@ import { join } from "path"
 import { runGenerator } from "@km/core"
 import { createRepo } from "@km/storage"
 import type { Repo } from "@km/storage"
-import {
-  addDependency,
-  closeIssueFields,
-  createIssueNode,
-  dropIssueFields,
-  mergeDepProps,
-  nodeToIssue,
-  removeDependency,
-  updateIssueFields,
-} from "@km/beads"
+import { Bead, nodeToBead } from "@km/beads"
 
 // Unique per test file/pid/run so parallel vitest workers don't collide.
 const BASE = join("/tmp", `kmtest-bdpersist-${process.pid}-${Date.now().toString(36)}`)
@@ -81,7 +72,7 @@ function allMarkdown(dir: string): string {
 }
 
 /**
- * Find a task node whose content contains `needle`, mapped to an Issue.
+ * Find a task node whose content contains `needle`, mapped to an Bead.
  *
  * We reach below `queryIssues` (which relies on a non-trivial DSL query +
  * board filter) because this harness targets the persistence contract:
@@ -90,8 +81,12 @@ function allMarkdown(dir: string): string {
  * truth for what actually lives in the rebuilt database.
  */
 function findIssueByContent(repo: Repo, needle: string) {
+  // Use the never-null `nodeToBead` here (not `Bead.from`) — the harness
+  // targets the persistence contract: "the task is still there, with
+  // correct fields." Some seeded nodes may lose `data.short_id` after a
+  // markdown round-trip; we still want to inspect their other fields.
   const match = repo.data.getAllNodes().find((n) => n.item?.task != null && (n.content ?? "").includes(needle))
-  return match ? nodeToIssue(match, { repo }) : undefined
+  return match ? nodeToBead(match, { repo }) : undefined
 }
 
 afterAll(() => {
@@ -108,14 +103,14 @@ describe("km bd write-path persistence", () => {
       const inbox = repo.resolveNode("inbox")
       expect(inbox, "inbox.md must resolve").toBeTruthy()
 
-      const { node, children } = createIssueNode("persist me please", { prefix: "km", type: "bug" })
+      const { node, children } = Bead.create(repo, "persist me please", { prefix: "km", type: "bug" })
       const nodeId = repo.addNode(inbox!.id, node)
       for (const child of children) {
         repo.addNode(nodeId, child)
       }
     }
 
-    // Issue must be serialized to the .md file after the repo is disposed.
+    // Bead must be serialized to the .md file after the repo is disposed.
     expect(allMarkdown(dir), "issue text must appear in markdown").toContain("persist me please")
 
     // Simulate a CLI restart — rebuild state.db from the journal.
@@ -132,11 +127,11 @@ describe("km bd write-path persistence", () => {
     {
       using repo = openRepo(dir)
       const inbox = repo.resolveNode("inbox")!
-      const { node } = createIssueNode("before edit", { prefix: "km", priority: "P3" })
+      const { node } = Bead.create(repo, "before edit", { prefix: "km", priority: "P3" })
       const issueId = repo.addNode(inbox.id, node)
 
-      const issue = nodeToIssue(repo.getNode(issueId)!, { repo })
-      const updates = updateIssueFields(issue, { title: "after edit @issue", priority: "P1" })
+      const issue = Bead.from(repo.getNode(issueId)!, { repo })!
+      const updates = Bead.update(repo, issue, { title: "after edit @issue", priority: "P1" })
       repo.updateNode(issueId, updates)
     }
 
@@ -156,10 +151,11 @@ describe("km bd write-path persistence", () => {
     {
       using repo = openRepo(dir)
       const inbox = repo.resolveNode("inbox")!
-      const { node } = createIssueNode("close me", { prefix: "km" })
+      const { node } = Bead.create(repo, "close me", { prefix: "km" })
       const issueId = repo.addNode(inbox.id, node)
+      const issue = Bead.from(repo.getNode(issueId)!, { repo })!
 
-      repo.updateNode(issueId, closeIssueFields("resolved"))
+      repo.updateNode(issueId, Bead.close(repo, issue, "resolved"))
     }
 
     wipeDbCache(dir)
@@ -174,11 +170,11 @@ describe("km bd write-path persistence", () => {
     {
       using repo = openRepo(dir)
       const inbox = repo.resolveNode("inbox")!
-      const { node } = createIssueNode("claim me @alice", { prefix: "km" })
+      const { node } = Bead.create(repo, "claim me @alice", { prefix: "km" })
       const issueId = repo.addNode(inbox.id, node)
 
-      const issue = nodeToIssue(repo.getNode(issueId)!, { repo })
-      const updates = updateIssueFields(issue, { status: "wip", assignee: "alice" })
+      const issue = Bead.from(repo.getNode(issueId)!, { repo })!
+      const updates = Bead.update(repo, issue, { status: "wip", assignee: "alice" })
       repo.updateNode(issueId, updates)
     }
 
@@ -194,9 +190,10 @@ describe("km bd write-path persistence", () => {
     {
       using repo = openRepo(dir)
       const inbox = repo.resolveNode("inbox")!
-      const { node } = createIssueNode("drop this", { prefix: "km" })
+      const { node } = Bead.create(repo, "drop this", { prefix: "km" })
       const issueId = repo.addNode(inbox.id, node)
-      repo.updateNode(issueId, dropIssueFields("wontfix"))
+      const issue = Bead.from(repo.getNode(issueId)!, { repo })!
+      repo.updateNode(issueId, Bead.drop(repo, issue, "wontfix"))
     }
 
     wipeDbCache(dir)
@@ -214,17 +211,17 @@ describe("km bd write-path persistence", () => {
       using repo = openRepo(dir)
       const inbox = repo.resolveNode("inbox")!
 
-      const blocker = createIssueNode("the blocker", { prefix: "km", customId: "test-blocker-1" })
+      const blocker = Bead.create(repo, "the blocker", { prefix: "km", customId: "test-blocker-1" })
       repo.addNode(inbox.id, blocker.node)
       blockerShort = blocker.shortId
 
-      const blocked = createIssueNode("the blocked", { prefix: "km" })
+      const blocked = Bead.create(repo, "the blocked", { prefix: "km" })
       const blockedId = repo.addNode(inbox.id, blocked.node)
 
-      const issue = nodeToIssue(repo.getNode(blockedId)!, { repo })
-      const props = addDependency(issue, blockerShort)
+      const issue = Bead.from(repo.getNode(blockedId)!, { repo })!
+      const props = Bead.addDependency(repo, issue, blockerShort)
       const existingData = (repo.getNode(blockedId)?.data as Record<string, unknown>) ?? {}
-      repo.updateNode(blockedId, { data: mergeDepProps(existingData, props) })
+      repo.updateNode(blockedId, { data: Bead.mergeDepProps(undefined, existingData, props) })
     }
 
     // Session 2: restart, verify blockedBy survives.
@@ -241,10 +238,10 @@ describe("km bd write-path persistence", () => {
       using repo3 = openRepo(dir)
       const blockedIssue = findIssueByContent(repo3, "the blocked")
       expect(blockedIssue, "blocked issue must still exist before removing dep").toBeTruthy()
-      const result = removeDependency(blockedIssue!, blockerShort)
+      const result = Bead.removeDependency(repo3, blockedIssue!, blockerShort)
       expect(result).not.toBeNull()
       const existingData = (repo3.getNode(blockedIssue!.id)?.data as Record<string, unknown>) ?? {}
-      repo3.updateNode(blockedIssue!.id, { data: mergeDepProps(existingData, result!) })
+      repo3.updateNode(blockedIssue!.id, { data: Bead.mergeDepProps(undefined, existingData, result!) })
     }
 
     // Session 4: restart, verify blockedBy is gone.

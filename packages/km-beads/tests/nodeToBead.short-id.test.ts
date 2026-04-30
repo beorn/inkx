@@ -1,8 +1,8 @@
 /**
- * nodeToIssue shortId resolution tests — km-beads.purge-fallback-id-l5
+ * nodeToBead shortId resolution tests — km-beads.purge-fallback-id-l5
  *
  * After the bead-sigil-elevation predicate landed (km-beads.bead-sigil-
- * elevation @ 18efb7abd), nodes reaching `nodeToIssue` from queryReady /
+ * elevation @ 18efb7abd), nodes reaching `nodeToBead` from queryReady /
  * queryIssues are guaranteed beads (depth-2 fs_path under boardRoots OR
  * `+` sigil prefix on name). Real beads always carry frontmatter `id:`
  * (canonical path-form) or legacy `data.short_id` (bd-form).
@@ -25,9 +25,9 @@
 
 import { describe, test, expect } from "vitest"
 import { createTestRepo } from "@km/storage"
-import { nodeToIssue } from "../src/queries.ts"
+import { nodeToBead } from "../src/queries.ts"
 
-describe("nodeToIssue.shortId — no ULID-tail fallback", () => {
+describe("nodeToBead.shortId — no ULID-tail fallback", () => {
   test("uses data.id when present (canonical path-form)", () => {
     const repo = createTestRepo()
     const id = repo.addNode(null, {
@@ -40,7 +40,7 @@ describe("nodeToIssue.shortId — no ULID-tail fallback", () => {
     const node = repo.getNode(id)
     expect(node).toBeDefined()
     if (!node) return
-    const issue = nodeToIssue(node, { repo })
+    const issue = nodeToBead(node, { repo })
     expect(issue.shortId).toBe("@km/scope/real")
   })
 
@@ -55,7 +55,7 @@ describe("nodeToIssue.shortId — no ULID-tail fallback", () => {
     })
     const node = repo.getNode(id)
     if (!node) return
-    const issue = nodeToIssue(node, { repo })
+    const issue = nodeToBead(node, { repo })
     expect(issue.shortId).toBe("km-abc1")
   })
 
@@ -69,7 +69,7 @@ describe("nodeToIssue.shortId — no ULID-tail fallback", () => {
     })
     const node = repo.getNode(id)
     if (!node) return
-    const issue = nodeToIssue(node, { repo })
+    const issue = nodeToBead(node, { repo })
     expect(issue.shortId).toBe("@km/scope/migrated")
   })
 
@@ -85,7 +85,7 @@ describe("nodeToIssue.shortId — no ULID-tail fallback", () => {
     })
     const node = repo.getNode(id)
     if (!node) return
-    const issue = nodeToIssue(node, { repo })
+    const issue = nodeToBead(node, { repo })
     expect(issue.shortId).toBeUndefined()
   })
 
@@ -100,7 +100,7 @@ describe("nodeToIssue.shortId — no ULID-tail fallback", () => {
     })
     const node = repo.getNode(id)
     if (!node) return
-    const issue = nodeToIssue(node, { repo })
+    const issue = nodeToBead(node, { repo })
     expect(issue.shortId).toBeUndefined()
     // Sanity: even a node.id like 01KQABCD has a 4-char suffix.
     expect(node.id.length).toBeGreaterThanOrEqual(4)
