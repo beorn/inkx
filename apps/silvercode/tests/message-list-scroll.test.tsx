@@ -29,7 +29,19 @@ function assistantMessage(id: string, text: string, ts: number): MessageEntry {
   } as unknown as MessageEntry
 }
 
-function renderList(messages: MessageEntry[], rows = 18) {
+function systemMessage(id: string, text: string, ts: number): MessageEntry {
+  return {
+    id: id as TurnId,
+    role: "system",
+    ops: [{ kind: "text", text }],
+    text,
+    toolCalls: [],
+    toolResults: [],
+    ts,
+  } as unknown as MessageEntry
+}
+
+function renderList(messages: MessageEntry[], rows = 18, follow: "end" | false = "end") {
   const renderer = createRenderer({ cols: 90, rows })
   return renderer(
     <Box width={90} height={rows} flexDirection="column">
@@ -44,9 +56,14 @@ function renderList(messages: MessageEntry[], rows = 18) {
         sessionId="scroll-test"
         onApprove={() => {}}
         onDeny={() => {}}
+        follow={follow}
       />
     </Box>,
   )
+}
+
+function lineIndex(lines: string[], needle: string): number {
+  return lines.findIndex((line) => line.includes(needle))
 }
 
 describe("SessionUpdateList scroll", () => {
@@ -69,5 +86,30 @@ describe("SessionUpdateList scroll", () => {
     }
 
     expect(app.text.includes("data:image") || app.text.includes("prompt ") || app.text.includes("response ")).toBe(true)
+  })
+
+  test("adjacent user messages render without an outer blank row between them", () => {
+    const app = renderList([userMessage("u-1", "first user", 1000), userMessage("u-2", "second user", 1001)], 12, false)
+
+    const first = lineIndex(app.lines, "first user")
+    const second = lineIndex(app.lines, "second user")
+
+    expect(first).toBeGreaterThanOrEqual(0)
+    expect(second).toBeGreaterThan(first)
+    expect(second - first).toBe(3)
+  })
+
+  test("adjacent system messages render without an outer blank row between them", () => {
+    const app = renderList(
+      [systemMessage("s-1", "first system", 1000), systemMessage("s-2", "second system", 1001)],
+      8,
+      false,
+    )
+
+    const first = lineIndex(app.lines, "first system")
+    const second = lineIndex(app.lines, "second system")
+
+    expect(first).toBeGreaterThanOrEqual(0)
+    expect(second).toBe(first + 1)
   })
 })

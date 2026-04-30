@@ -630,7 +630,7 @@ function RawInspector({ payload, children }: { payload: unknown; children: React
 function ExchangeItem({ m, showDebug }: { m: MessageEntry; showDebug: boolean }): React.ReactElement {
   // Background-task system messages: user-role entries with a "bg-" turnId
   // prefix AND the BACKGROUND_MESSAGE_PREFIX text prefix.
-  if (m.role === "user" && (m.id as string).startsWith("bg-") && m.text.startsWith(BACKGROUND_MESSAGE_PREFIX)) {
+  if (isBackgroundSystemMessage(m)) {
     return <BackgroundSystemRow text={m.text} />
   }
   if (m.role === "user") {
@@ -713,6 +713,9 @@ function ExchangeItem({ m, showDebug }: { m: MessageEntry; showDebug: boolean })
 type ActivityItem = { __activity: true }
 type AmbientItem = { __ambient: true; entries: AmbientStreamEntry[] }
 type Item = MessageEntry | ActivityItem | AmbientItem
+type SimilarGroupKind = "user" | "system" | "ambient"
+type GroupedItem = { __group: true; kind: SimilarGroupKind; items: Item[] }
+type RenderItem = Item | GroupedItem
 
 function isActivity(item: Item): item is ActivityItem {
   return (item as ActivityItem).__activity === true
@@ -720,6 +723,48 @@ function isActivity(item: Item): item is ActivityItem {
 
 function isAmbient(item: Item): item is AmbientItem {
   return (item as AmbientItem).__ambient === true
+}
+
+function isGrouped(item: RenderItem): item is GroupedItem {
+  return (item as GroupedItem).__group === true
+}
+
+function isBackgroundSystemMessage(m: MessageEntry): boolean {
+  return m.role === "user" && (m.id as string).startsWith("bg-") && m.text.startsWith(BACKGROUND_MESSAGE_PREFIX)
+}
+
+function similarGroupKind(item: Item): SimilarGroupKind | null {
+  if (isAmbient(item)) return "ambient"
+  if (isActivity(item)) return null
+  if (isBackgroundSystemMessage(item) || item.role === "system") return "system"
+  if (item.role === "user") return "user"
+  return null
+}
+
+function groupSimilarItems(items: Item[]): RenderItem[] {
+  const grouped: RenderItem[] = []
+  for (const item of items) {
+    const kind = similarGroupKind(item)
+    const last = grouped[grouped.length - 1]
+    if (kind && last && isGrouped(last) && last.kind === kind) {
+      last.items.push(item)
+      continue
+    }
+    grouped.push(kind ? { __group: true, kind, items: [item] } : item)
+  }
+  return grouped
+}
+
+function itemKey(item: Item, i: number): string {
+  if (isActivity(item)) return "__activity"
+  if (isAmbient(item)) return `ambient-cluster:${item.entries[0]?.id ?? i}`
+  return String(item.id ?? i)
+}
+
+function renderItemKey(item: RenderItem, i: number): string {
+  if (!isGrouped(item)) return itemKey(item, i)
+  const first = item.items[0]
+  return `group:${item.kind}:${first ? itemKey(first, i) : i}`
 }
 
 /**
@@ -843,6 +888,7 @@ export const SessionUpdateList = React.forwardRef<
   const showActivity = status !== "idle" && status !== "ended"
   const merged = ambientEntries && ambientEntries.length > 0 ? interleave(messages, ambientEntries) : [...messages]
   const items: Item[] = showActivity ? [...merged, { __activity: true }] : merged
+  const renderItems = groupSimilarItems(items)
   const renderSessionItem = (item: Item, _i: number): React.ReactNode =>
     isActivity(item) ? (
       <ActivityIndicator
@@ -867,18 +913,25 @@ export const SessionUpdateList = React.forwardRef<
         <ExchangeItem m={item} showDebug={showDebug} />
       </RawInspector>
     )
+  const renderGroupedItem = (item: RenderItem, i: number): React.ReactNode =>
+    isGrouped(item) ? (
+      <Box flexDirection="column" gap={0} alignSelf="stretch" width="100%">
+        {item.items.map((child, childIndex) => (
+          <Box key={itemKey(child, childIndex)} flexDirection="column" alignSelf="stretch" width="100%">
+            {renderSessionItem(child, childIndex)}
+          </Box>
+        ))}
+      </Box>
+    ) : (
+      renderSessionItem(item, i)
+    )
 
   if (follow === false) {
     return (
       <Box flexDirection="column" gap={1} alignSelf="stretch" width="100%">
-        {items.map((item, i) => (
-          <Box
-            key={isActivity(item) ? "__activity" : isAmbient(item) ? `ambient-cluster:${item.entries[0]?.id ?? i}` : i}
-            flexDirection="column"
-            alignSelf="stretch"
-            width="100%"
-          >
-            {renderSessionItem(item, i)}
+        {renderItems.map((item, i) => (
+          <Box key={renderItemKey(item, i)} flexDirection="column" alignSelf="stretch" width="100%">
+            {renderGroupedItem(item, i)}
           </Box>
         ))}
       </Box>
@@ -899,14 +952,12 @@ export const SessionUpdateList = React.forwardRef<
   return (
     <ListView
       ref={ref}
-      items={items}
-      getKey={(item, i) =>
-        isActivity(item) ? "__activity" : isAmbient(item) ? `ambient-cluster:${item.entries[0]?.id ?? i}` : i
-      }
+      items={renderItems}
+      getKey={renderItemKey}
       gap={1}
       maxRendered={200}
       follow={follow}
-      renderItem={renderSessionItem}
+      renderItem={renderGroupedItem}
     />
   )
 })

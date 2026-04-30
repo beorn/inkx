@@ -61,7 +61,7 @@ import {
 } from "../pane-layout.ts"
 import { PaneHeader } from "./PaneHeader.tsx"
 import { SessionCard } from "./SessionCard.tsx"
-import { StaticTextBanner } from "./Welcome.tsx"
+import { MeasuredBanner } from "./Welcome.tsx"
 
 /** Mirrors `AGENT_LABELS` in `Welcome.tsx` — kept local to PaneGrid so the
  *  pre-spawn banner (rendered before any SessionHandle exists) can pick the
@@ -453,7 +453,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
     const agentLabel = agent ? AGENT_LABELS_FOR_PRESPAWN[agent] : undefined
     return (
       <Box flexDirection="column" flexGrow={1} alignItems="center" justifyContent="center" gap={1}>
-        <StaticTextBanner agentLabel={agentLabel} />
+        <MeasuredBanner agentLabel={agentLabel} />
         {composerSlot ? (
           <Box flexDirection="column" flexShrink={0} width={80} maxWidth={80} minWidth={0}>
             {composerSlot}
