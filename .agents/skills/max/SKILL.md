@@ -9,6 +9,20 @@ argument-hint: "[task description or bead IDs]"
 
 **User Request**: $ARGUMENTS
 
+## Step 0: Arch Gate (MANDATORY — block before decomposing)
+
+Before parallelizing anything, run the architectural drift-checker:
+
+```bash
+bun tools/check-arch-required.ts
+```
+
+If exit 0 → proceed to Step 1.
+
+If exit 1 → STOP. The output names topics that need an `/arch` retro before code changes can ship. Run `/arch <topic>` for each uncovered topic, write the retro to `.claude/arch-decisions/`, then re-run `/max`. Do NOT bypass.
+
+This gate exists because `/max` is for parallel execution, not architectural design. Identity, storage, persistence, loader, public-API, and rendering-pipeline changes need `/arch` first. (See `.agents/skills/arch/SKILL.md`, memory `feedback-architectural-decisions-need-big-before-max.md`.)
+
 ## Step 1: Decompose (MANDATORY)
 
 Analyze the user's request and break it into independent work units. Ask:
