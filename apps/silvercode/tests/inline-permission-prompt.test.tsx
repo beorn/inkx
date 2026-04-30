@@ -104,7 +104,7 @@ describe("InlinePermissionPrompt — legacy binary flow", () => {
     try {
       // Inline prompt is on screen — header + Bash tool + the rm command
       // summary all surface in the rendered frame.
-      expect(term.screen).toContainText("Permission requested")
+      expect(term.screen).toContainText("Permission required")
       expect(term.screen).toContainText("Bash")
       expect(term.screen).toContainText("rm -rf /")
 
@@ -125,7 +125,7 @@ describe("InlinePermissionPrompt — legacy binary flow", () => {
   test("n denies the focused session's pending permission", async () => {
     const { term, fake, handle, fakes } = await bootAppWithPendingPermission()
     try {
-      expect(term.screen).toContainText("Permission requested")
+      expect(term.screen).toContainText("Permission required")
 
       feed(term, "n")
       await settle(120)
@@ -189,7 +189,7 @@ describe("InlinePermissionPrompt — ACP multi-option flow", () => {
     )
 
     // Both option labels visible in the rendered frame.
-    expect(app.text).toContain("Permission requested")
+    expect(app.text).toContain("Permission required")
     expect(app.text).toContain("Bash")
     expect(app.text).toContain("Allow")
     expect(app.text).toContain("Reject")
