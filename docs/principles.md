@@ -136,6 +136,8 @@ If your narrative needs technical jargon to make sense, the names are wrong. If 
 | View | `ViewNode` | `ViewTree` | `.nodes()`, `.next()`, `.prev()`, `.ancestors()`, `.get()` |
 | Storage | `Repo` | — | `.apply()`, `.commit()`, `.getNode()`, `.getChildren()` |
 | Storage | `Sync` | `withSync()` | `.start()`, `.stop()`, `.save()`, `.forceHeartbeat()` |
+| Storage | `KNode` (task) | `Task` | `.isTask()`, `.isBlocked()`, `.under()`, `.findByPathOrId()`, `.tree()` |
+| Beads | `Bead` | `Bead` | `.from()`, `.displayId()`, `.query()`, `.queryReady()`, `.create()`, `.update()`, `.close()`, `.drop()`, `.addDependency()`, `.removeDependency()`, `.getDependencies()` |
 | State | `BoardNavState` | `applyListNav` | list-based cursor navigation |
 | UI | `PaneUI` | `PaneUI` | `.editMode()`, `.isInDialog()` |
 
@@ -1685,6 +1687,8 @@ For terminology used throughout, see [glossary.md](glossary.md).
 | Data | `Point`, `Range` | `Point`, `Range` | text-level selection, transforms |
 | Data | `HistoryEditor` | `withHistory` | `.undo()`, `.redo()`, `.batch()` |
 | View | `ViewNode` | `ViewTree` | `.nodes()`, `.sibling()` |
+| Storage | `KNode` (task) | `Task` | `.isTask()`, `.isBlocked()`, `.under()`, `.findByPathOrId()`, `.tree()` |
+| Beads | `Bead` | `Bead` | `.from()`, `.displayId()`, `.query()`, `.queryReady()`, `.create()`, `.update()`, `.close()`, `.drop()` |
 | State | `BoardNavState` | `applyListNav` | list-based cursor navigation |
 | UI | `PaneUI` | `PaneUI` | `.editMode()`, `.isInDialog()` |
 
