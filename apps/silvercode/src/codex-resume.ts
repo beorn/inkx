@@ -37,7 +37,7 @@
  *   event_msg.agent_message      → ignored known duplicate
  *   event_msg.token_count        → ignored known usage metadata
  *   event_msg.web_search_end     → ignored known web-search metadata
- *   event_msg.collab_agent_spawn_end → ignored known sub-agent metadata
+ *   event_msg.collab_*          → ignored known sub-agent metadata
  *   response_item.message:user   → ignored known bootstrap context
  *   response_item.message:dev    → ignored known instructions
  *   response_item.message:assist → text-delta
@@ -253,11 +253,80 @@ function applyEventMsg(rt: ReplayRuntime, payload: CodexEventMsgPayload, ts: num
       return
     }
     case "agent_message":
+    case "agent_message_content_delta":
+    case "agent_message_delta":
+    case "agent_reasoning":
+    case "agent_reasoning_delta":
+    case "agent_reasoning_raw_content":
+    case "agent_reasoning_raw_content_delta":
+    case "agent_reasoning_section_break":
+    case "apply_patch_approval_request":
+    case "background_event":
+    case "collab_agent_interaction_begin":
+    case "collab_agent_interaction_end":
+    case "collab_agent_spawn_begin":
+    case "collab_agent_spawn_end":
+    case "collab_close_begin":
+    case "collab_close_end":
+    case "collab_resume_begin":
+    case "collab_resume_end":
+    case "collab_waiting_begin":
+    case "collab_waiting_end":
     case "token_count":
     case "context_compacted":
+    case "deprecation_notice":
+    case "dynamic_tool_call_request":
+    case "dynamic_tool_call_response":
+    case "elicitation_request":
+    case "entered_review_mode":
+    case "error":
+    case "exec_approval_request":
+    case "exec_command_begin":
+    case "exec_command_output_delta":
+    case "exited_review_mode":
+    case "get_history_entry_response":
+    case "guardian_assessment":
+    case "hook_completed":
+    case "hook_started":
+    case "image_generation_begin":
+    case "image_generation_end":
+    case "item_completed":
+    case "item_started":
+    case "list_skills_response":
+    case "mcp_list_tools_response":
+    case "mcp_startup_complete":
+    case "mcp_startup_update":
+    case "mcp_tool_call_begin":
+    case "mcp_tool_call_end":
+    case "model_rerout":
+    case "model_verification":
+    case "patch_apply_begin":
+    case "patch_apply_updated":
+    case "plan_delta":
+    case "plan_update":
+    case "raw_response_item":
+    case "reasoning_content_delta":
+    case "reasoning_raw_content_delta":
+    case "realtime_conversation_closed":
+    case "realtime_conversation_list_voices_response":
+    case "realtime_conversation_realtime":
+    case "realtime_conversation_sdp":
+    case "realtime_conversation_started":
+    case "request_user_input":
+    case "session_configured":
+    case "shutdown_complete":
+    case "skills_update_available":
+    case "stream_error":
+    case "terminal_interaction":
+    case "thread_name_updated":
+    case "thread_rolled_back":
+    case "turn_diff":
+    case "undo_completed":
+    case "undo_started":
     case "view_image_tool_call":
+    case "web_search_begin":
     case "web_search_end":
-    case "collab_agent_spawn_end":
+    case "warning":
       return
     case "exec_command_end": {
       const id = payload.call_id
@@ -383,7 +452,15 @@ function applyResponseItem(rt: ReplayRuntime, payload: CodexResponseItemPayload,
       })
       return
     }
+    case "compaction":
+    case "execution":
+    case "ghost_commit":
+    case "ghost_snapshot":
+    case "image_generation_call":
+    case "other":
     case "reasoning":
+    case "summary":
+    case "tool_search_output":
     case "web_search_call":
       return
     default:

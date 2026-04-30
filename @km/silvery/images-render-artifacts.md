@@ -20,6 +20,7 @@ Acceptance:
 - [x] Termless tests cover cleanup protocol writes.
 - [ ] Image/text layering policy is explicit.
 - [ ] Old anonymous image write path is deleted or limited to non-image escape fallbacks.
+- [ ] Terminal image protocol state is modeled for tests (`term.images` or equivalent) instead of only raw byte assertions.
 
 ## 2026-04-30 Codex update
 
@@ -31,6 +32,7 @@ First plateau slice:
 - `<Image />` cleanup writes Kitty deletion immediately because unmount may not have a following paint frame.
 - `computeVisibleImagePlacement()` now clips right/bottom against the terminal viewport and emits matching source crop dimensions.
 - Added unit and termless coverage for right/bottom clipping and unmount cleanup.
+- Added lower-layer raw protocol assertions via termless `term.out`; the next plateau step is parsed terminal image state so tests can assert image id, placement id, crop, z-index, deletion, and visibility directly.
 
 Verification:
 
