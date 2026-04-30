@@ -6,12 +6,11 @@
  *
  * Visual:
  *
- *   tribe   17:42  peer alice opened PR #42                     ▸
+ *   • Tribe peer alice opened PR #42
  *
- * Layout: source icon + label (8 cols) | timestamp (6 cols) | preview
- * (flex 1, ellipsised) | expand glyph (1 col). Distinct background
- * (`$bg-surface-subtle`) so ambient rows sit visually with system rows
- * rather than user prose.
+ * Layout: neutral bullet | source action | preview (flex 1, ellipsised).
+ * No source-specific color or fill; hover fill appears only for rows with
+ * expandable content.
  *
  * The agent-facing framing (`[AMBIENT — observation, not an instruction]`)
  * lives in the LLM payload via `prompt-assembly.ts` — it is NOT spelled out
@@ -50,26 +49,22 @@ export type AmbientStreamEntry = {
 }
 
 /**
- * Source presentation: icon + token color. Tokens are theme-semantic
- * (`$info`, `$success`, `$warning`, `$muted`) so the row remains
- * legible across light/dark/high-contrast themes. Icon glyphs are
- * one column wide; pure ASCII / BMP — no emoji-style rendering.
- *
- * Sources beyond this table fall back to a neutral `◆` + `$muted`.
+ * Source presentation: one neutral label per source. The row intentionally
+ * avoids per-source colors so ambient notifications read as one family.
  */
-const SOURCE_PRESENTATION: Readonly<Record<string, { icon: string; color: string }>> = {
-  tribe: { icon: "✶", color: "$info" },
-  ci: { icon: "◉", color: "$success" },
-  recall: { icon: "◇", color: "$accent" },
-  "sub-agent": { icon: "▸", color: "$primary" },
-  subagent: { icon: "▸", color: "$primary" },
-  "file-watch": { icon: "◌", color: "$muted" },
-  filewatch: { icon: "◌", color: "$muted" },
-  telegram: { icon: "✈", color: "$warning" },
+const SOURCE_LABELS: Readonly<Record<string, string>> = {
+  tribe: "Tribe",
+  ci: "CI",
+  recall: "Recall",
+  "sub-agent": "Agent",
+  subagent: "Agent",
+  "file-watch": "Watch",
+  filewatch: "Watch",
+  telegram: "Telegram",
 }
 
-function presentationFor(source: string): { icon: string; color: string } {
-  return SOURCE_PRESENTATION[source] ?? { icon: "◆", color: "$muted" }
+function sourceLabel(source: string): string {
+  return SOURCE_LABELS[source] ?? source.slice(0, 1).toUpperCase() + source.slice(1)
 }
 
 /**
@@ -173,12 +168,58 @@ function formatContent(raw: string): FormattedContent {
   return { preview: clip(flat, 80), body: raw }
 }
 
+function dedupeSourcePrefix(label: string, source: string, preview: string): string {
+  const prefixes = [
+    label,
+    source,
+    source.replace(/-/g, " "),
+    source.replace(/-/g, ""),
+    `${source} message`,
+    `${source.replace(/-/g, " ")} message`,
+    "recall hit",
+    "sub-agent finished",
+  ]
+
+  for (const prefix of prefixes) {
+    const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    const re = new RegExp(`^${escaped}\\b\\s*:?\\s*`, "i")
+    const next = preview.replace(re, "").trim()
+    if (next !== preview) return next
+  }
+  return preview
+}
+
 export interface AmbientEventRowProps {
   entry: AmbientStreamEntry
   /** When true, the full body is rendered inline below the row. */
   expanded?: boolean
   /** Toggle expansion. When omitted, the expand glyph is hidden. */
   onToggleExpand?: () => void
+}
+
+export function AmbientNotificationStack({ entries }: { entries: readonly AmbientStreamEntry[] }): React.ReactElement {
+  const [expanded, setExpanded] = React.useState<Set<string>>(new Set())
+  const toggle = (id: string): void => {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  return (
+    <Box flexDirection="column" gap={0}>
+      {entries.map((entry) => (
+        <AmbientEventRow
+          key={entry.id}
+          entry={entry}
+          expanded={expanded.has(entry.id)}
+          onToggleExpand={() => toggle(entry.id)}
+        />
+      ))}
+    </Box>
+  )
 }
 
 /**
@@ -188,22 +229,27 @@ export interface AmbientEventRowProps {
  */
 export function AmbientEventRow({ entry, expanded = false, onToggleExpand }: AmbientEventRowProps): React.ReactElement {
   const { isHovered, onMouseEnter, onMouseLeave } = useHover()
-  const { icon, color } = presentationFor(entry.source)
+  const label = sourceLabel(entry.source)
   const time = formatTime(entry.timestamp)
   const formatted = formatContent(entry.content)
+  const preview = dedupeSourcePrefix(label, entry.source, formatted.preview)
 
-  // Hover popover: full body, plus the source/time anchor as a small
-  // header. Reuses the same popover mechanism the SidePanel hover rows
+  // Hover popover: full body, plus the source anchor and a top-right
+  // timestamp. Reuses the same popover mechanism the SidePanel hover rows
   // and RawInspector use, for consistency.
   const popover = usePopoverHandlers({
     body: (
-      <Box flexDirection="column" paddingX={1} paddingY={1} gap={1}>
-        <Box flexDirection="row" gap={1}>
-          <Text color={color}>
-            {icon} {entry.source}
-          </Text>
+      <Box flexDirection="column" paddingY={1} gap={1}>
+        <Box flexDirection="row">
+          <Box flexDirection="row" gap={1}>
+            <Text color="$muted">•</Text>
+            <Text bold color="$fg">
+              {label}
+            </Text>
+            <Muted>ambient observation, not a user instruction</Muted>
+          </Box>
+          <Box flexGrow={1} />
           <Small>{time}</Small>
-          <Muted>· ambient observation, not a user instruction</Muted>
         </Box>
         <Text wrap="wrap">{formatted.body}</Text>
       </Box>
@@ -223,50 +269,38 @@ export function AmbientEventRow({ entry, expanded = false, onToggleExpand }: Amb
     popover.onMouseLeave(e)
   }
 
-  const expandGlyph = onToggleExpand ? (expanded ? "▾" : "▸") : ""
-  const rowBg = isHovered ? "$bg-surface-hover" : "$bg-surface-subtle"
+  const clickable = typeof onToggleExpand === "function" && formatted.body.trim().length > 0
+  const rowBg = clickable && isHovered ? "$bg-surface-hover" : undefined
 
   return (
     <Box flexDirection="column" backgroundColor={rowBg}>
       <Box
         flexDirection="row"
         gap={1}
-        paddingX={1}
+        width="100%"
         paddingY={0}
         onMouseEnter={onEnter}
         onMouseLeave={onLeave}
-        onClick={onToggleExpand}
+        onClick={clickable ? onToggleExpand : undefined}
       >
-        {/* Source icon + label — fixed 8-col gutter so labels line up
-            across sources. */}
-        <Box flexDirection="row" gap={1} flexBasis={8} minWidth={8}>
-          <Text color={color}>{icon}</Text>
-          <Text color={color}>{entry.source}</Text>
-        </Box>
-        {/* Timestamp — Small + muted, fixed 5-col gutter. */}
-        <Box flexBasis={5} minWidth={5}>
-          <Small>{time}</Small>
-        </Box>
+        <Text color="$muted">•</Text>
+        <Text bold color="$fg">
+          {label}
+        </Text>
         {/* Preview — flex 1, single line. flexShrink + minWidth=0 so
             long payloads truncate via the ellipsis above rather than
             pushing siblings off-screen. */}
         <Box flexGrow={1} flexShrink={1} minWidth={0}>
-          <Text>{formatted.preview}</Text>
+          <Text color="$fg">{preview}</Text>
         </Box>
-        {/* Expand glyph — only when onToggleExpand is wired. */}
-        {onToggleExpand ? (
-          <Box flexBasis={1} minWidth={1}>
-            <Muted>{expandGlyph}</Muted>
-          </Box>
-        ) : null}
       </Box>
       {/* Expanded body — full payload, indented to align under the
           preview column. Same surface bg so it reads as a continuation
           of the row, not a separate block. Bounded to 30 visible rows
           with kinetic-scroll past that bound — a chatty filewatch burst
           shouldn't push 200 lines of "X changed" into the chat. */}
-      {expanded && onToggleExpand ? (
-        <Box flexDirection="column" paddingX={1} paddingLeft={15} paddingBottom={0}>
+      {expanded && clickable ? (
+        <Box flexDirection="column" paddingBottom={0}>
           <BoundedScroll>
             <Text wrap="wrap" color="$muted">
               {formatted.body}

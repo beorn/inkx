@@ -86,7 +86,6 @@ export function ToolCallSummary({
   return (
     <Box
       flexDirection="column"
-      paddingX={1}
       borderStyle="single"
       borderColor="$border"
       borderTop={false}
@@ -103,10 +102,9 @@ export function ToolCallSummary({
         <AnimatedNumber value={count} duration={400} bold color="$primary" />
         <Text color="$primary"> {trail}</Text>
         <Box flexGrow={1} />
-        {canExpand ? <Muted>{expanded ? "▾" : "▸"}</Muted> : null}
       </Box>
       {expanded && breakdown ? (
-        <Box paddingLeft={2} flexDirection="column">
+        <Box flexDirection="column">
           {breakdown.map((entry) => (
             <Box key={entry.id} flexDirection="row" gap={1}>
               <Muted>·</Muted>

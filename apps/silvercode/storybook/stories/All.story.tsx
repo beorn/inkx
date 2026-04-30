@@ -32,7 +32,7 @@
 import React, { useState } from "react"
 import { Box, ListView, Muted, Prose, Screen, Small, Strong, Text, useKineticScroll } from "silvery"
 import type { AmbientStreamEntry } from "../../src/components/AmbientEventRow.tsx"
-import { AmbientEventRow } from "../../src/components/AmbientEventRow.tsx"
+import { AmbientNotificationStack } from "../../src/components/AmbientEventRow.tsx"
 import { ActivityIndicator } from "../../src/components/ActivityIndicator.tsx"
 import { ApplyPatch } from "../../src/components/ApplyPatch.tsx"
 import { InlinePermissionPrompt } from "../../src/components/InlinePermissionPrompt.tsx"
@@ -126,7 +126,6 @@ function UserRow({ text }: { text: string }): React.ReactElement {
       borderTop={false}
       borderRight={false}
       borderBottom={false}
-      paddingX={1}
       paddingY={0}
     >
       <Prose flexGrow={1}>
@@ -145,7 +144,6 @@ function AssistantRow({ text }: { text: string }): React.ReactElement {
       borderTop={false}
       borderRight={false}
       borderBottom={false}
-      paddingX={1}
     >
       <Prose flexGrow={1}>
         <MarkdownView source={text} />
@@ -179,8 +177,8 @@ function StoryWelcomeComposer({
 
 function SectionLabel({ children }: { children: string }): React.ReactElement {
   return (
-    <Box paddingTop={1} paddingBottom={0} width="100%">
-      <Box width="100%" backgroundColor="$fg-muted" paddingX={1}>
+    <Box paddingBottom={0} width="100%">
+      <Box width="100%" backgroundColor="$fg-muted">
         <Text color="$bg" wrap="truncate">
           {children}
         </Text>
@@ -190,22 +188,7 @@ function SectionLabel({ children }: { children: string }): React.ReactElement {
 }
 
 function AmbientStack({ entries }: { entries: AmbientStreamEntry[] }): React.ReactElement {
-  const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const toggle = (eid: string): void => {
-    setExpanded((prev) => {
-      const next = new Set(prev)
-      if (next.has(eid)) next.delete(eid)
-      else next.add(eid)
-      return next
-    })
-  }
-  return (
-    <Box flexDirection="column" gap={0}>
-      {entries.map((e) => (
-        <AmbientEventRow key={e.id} entry={e} expanded={expanded.has(e.id)} onToggleExpand={() => toggle(e.id)} />
-      ))}
-    </Box>
-  )
+  return <AmbientNotificationStack entries={entries} />
 }
 
 // ──────────────────────────── Side panel stub ────────────────────────────
@@ -247,18 +230,25 @@ function SidePanelStub(): React.ReactElement {
   const thinking = "normal" as string
 
   return (
-    <Box flexDirection="column" paddingX={1} paddingY={1} gap={0}>
+    <Box flexDirection="column" paddingY={1} gap={0}>
       {/* Sessions */}
-      <Text bold color="$primary">Sessions</Text>
+      <Text bold color="$primary">
+        Sessions
+      </Text>
       {sessions.map((s) => (
-        <Text key={s.id} color={s.id === "s1" ? undefined : "$muted"}>{s.id === "s1" ? "▸ " : ""}{s.label}</Text>
+        <Text key={s.id} color={s.id === "s1" ? undefined : "$muted"}>
+          {s.id === "s1" ? "▸ " : ""}
+          {s.label}
+        </Text>
       ))}
 
       <Box flexShrink={0} height={1} />
 
       {/* Todos */}
       <Box flexDirection="row" gap={1}>
-        <Text bold color="$primary">Todos</Text>
+        <Text bold color="$primary">
+          Todos
+        </Text>
         <Text color="$muted">{todos.length}</Text>
       </Box>
 
@@ -266,7 +256,9 @@ function SidePanelStub(): React.ReactElement {
 
       {/* Agents */}
       <Box flexDirection="row" gap={1}>
-        <Text bold color="$primary">Agents</Text>
+        <Text bold color="$primary">
+          Agents
+        </Text>
         <Text color="$muted">0/2</Text>
       </Box>
 
@@ -274,14 +266,18 @@ function SidePanelStub(): React.ReactElement {
 
       {/* Shells */}
       <Box flexDirection="row" gap={1}>
-        <Text bold color="$primary">Shells</Text>
+        <Text bold color="$primary">
+          Shells
+        </Text>
         <Text color="$muted">0/0</Text>
       </Box>
 
       <Box flexShrink={0} height={1} />
 
       {/* Ambient */}
-      <Text bold color="$primary">Ambient</Text>
+      <Text bold color="$primary">
+        Ambient
+      </Text>
       {ambientSources.map((s) => (
         <Box key={s.id} flexDirection="row" gap={1}>
           <Text color={s.muted ? "$muted" : "$fg"}>{s.muted ? "☐" : "☑"}</Text>
@@ -293,7 +289,9 @@ function SidePanelStub(): React.ReactElement {
 
       {/* Background tasks */}
       <Box flexDirection="row" gap={1}>
-        <Text bold color="$primary">Background</Text>
+        <Text bold color="$primary">
+          Background
+        </Text>
         <Text color="$muted">0/1</Text>
       </Box>
 
@@ -305,8 +303,13 @@ function SidePanelStub(): React.ReactElement {
         <Muted>bjorn@stabell.org</Muted>
         {quotas.map((q) => (
           <Box key={q.name} flexDirection="row" gap={1}>
-            <Box flexBasis={4}><Muted>{q.name}</Muted></Box>
-            <Text color={q.utilization >= 70 ? "$warning" : "$fg-muted"}>{"█".repeat(Math.round(q.utilization / 5))}{"░".repeat(20 - Math.round(q.utilization / 5))}</Text>
+            <Box flexBasis={4}>
+              <Muted>{q.name}</Muted>
+            </Box>
+            <Text color={q.utilization >= 70 ? "$warning" : "$fg-muted"}>
+              {"█".repeat(Math.round(q.utilization / 5))}
+              {"░".repeat(20 - Math.round(q.utilization / 5))}
+            </Text>
             <Small>{q.utilization}%</Small>
           </Box>
         ))}
@@ -314,7 +317,9 @@ function SidePanelStub(): React.ReactElement {
         <Text bold>Session</Text>
         <Box flexDirection="row" gap={1}>
           <Muted>context</Muted>
-          <Text>{totalTokens.toLocaleString()} / {window.toLocaleString()} ({pct}%)</Text>
+          <Text>
+            {totalTokens.toLocaleString()} / {window.toLocaleString()} ({pct}%)
+          </Text>
         </Box>
         <Box flexDirection="row" gap={1}>
           <Muted>cost</Muted>
@@ -329,7 +334,9 @@ function SidePanelStub(): React.ReactElement {
         <Box flexDirection="row" gap={1}>
           <Text color="$fg">◈</Text>
           <Box flexDirection="row">
-            <Text bold color="$fg">Silver</Text>
+            <Text bold color="$fg">
+              Silver
+            </Text>
             <Text color="$fg"> Code v0.1.0 </Text>
             <Small>on</Small>
           </Box>
@@ -337,7 +344,9 @@ function SidePanelStub(): React.ReactElement {
         <Box flexDirection="row" gap={1}>
           <Text color="$fg">✻</Text>
           <Box flexDirection="row">
-            <Text bold color="$fg">Claude Code</Text>
+            <Text bold color="$fg">
+              Claude Code
+            </Text>
             <Text color="$fg"> v2.1.119</Text>
           </Box>
         </Box>
@@ -349,8 +358,12 @@ function SidePanelStub(): React.ReactElement {
         </Box>
         {/* Mode */}
         <Box flexDirection="row" gap={1}>
-          <Text color={MODE_COLORS[mode] ?? "$muted"} bold>{MODE_ICONS[mode]}</Text>
-          <Text color={MODE_COLORS[mode] ?? "$muted"} bold>{MODE_LABELS[mode]}</Text>
+          <Text color={MODE_COLORS[mode] ?? "$muted"} bold>
+            {MODE_ICONS[mode]}
+          </Text>
+          <Text color={MODE_COLORS[mode] ?? "$muted"} bold>
+            {MODE_LABELS[mode]}
+          </Text>
         </Box>
       </Box>
     </Box>
@@ -454,7 +467,7 @@ function AllStoryBody(): React.ReactElement {
     {
       key: "welcome",
       node: (
-        <Box flexDirection="column" paddingTop={1} gap={1}>
+        <Box flexDirection="column" gap={1}>
           <SectionLabel>Welcome</SectionLabel>
           <Welcome
             handle={fakeSessionHandle()}
@@ -484,7 +497,7 @@ function AllStoryBody(): React.ReactElement {
       node: (
         <>
           <SectionLabel>Session — normal transcript with ambient events</SectionLabel>
-          <Box flexDirection="column" paddingX={2} paddingY={1}>
+          <Box flexDirection="column" paddingY={1}>
             <SessionUpdateList
               messages={LONG_TOOL_SESSION}
               ambientEntries={allAmbientEntries}
@@ -510,7 +523,7 @@ function AllStoryBody(): React.ReactElement {
       node: (
         <>
           <SectionLabel>Session — active turn</SectionLabel>
-          <Box flexDirection="column" paddingX={2} paddingY={1}>
+          <Box flexDirection="column" paddingY={1}>
             <SessionUpdateList
               messages={MULTI_TURN.slice(0, 2)}
               onApprove={() => {}}
@@ -581,17 +594,12 @@ function AllStoryBody(): React.ReactElement {
         overflow="hidden"
       >
         <Box flexDirection="row" flexGrow={1} flexShrink={1} minHeight={0} minWidth={0}>
-          <Box width={1} flexShrink={0} backgroundColor="$border" />
           <ListView
             items={mainItems}
             getKey={(item) => item.key}
             gap={1}
             maxRendered={20}
-            renderItem={(item) => (
-              <Box flexDirection="column" paddingLeft={2} paddingRight={1} paddingTop={item.key === "welcome" ? 1 : 0}>
-                {item.node}
-              </Box>
-            )}
+            renderItem={(item) => <Box flexDirection="column">{item.node}</Box>}
           />
         </Box>
       </Box>

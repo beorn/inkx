@@ -244,7 +244,6 @@ function FigletBlock({ rows, color }: { rows: ReadonlyArray<string>; color: stri
   )
 }
 
-
 /**
  * Silver Code banner — block letters + agent label.
  *
@@ -368,7 +367,7 @@ export function MeasuredBanner({ agentLabel }: { agentLabel?: string }): React.R
 
 export function StaticTextBanner({ agentLabel }: { agentLabel?: string }): React.ReactElement {
   return (
-    <Box flexDirection="column" alignItems="center" gap={1} paddingTop={1}>
+    <Box flexDirection="column" alignItems="center" gap={1}>
       <FigletBlock rows={SILVER_SHADED} color="$primary" />
       <FigletBlock rows={CODE_SHADED} color="$accent" />
       {agentLabel ? <Small color="$muted">{agentLabel}</Small> : null}
@@ -439,9 +438,12 @@ export function Welcome(props: {
       alignItems="center"
       justifyContent={centerVertically ? "center" : "flex-start"}
       gap={1}
-      paddingX={2}
     >
-      {props.bitmapBanner === false ? <StaticTextBanner agentLabel={agentLabel} /> : <MeasuredBanner agentLabel={agentLabel} />}
+      {props.bitmapBanner === false ? (
+        <StaticTextBanner agentLabel={agentLabel} />
+      ) : (
+        <MeasuredBanner agentLabel={agentLabel} />
+      )}
 
       {isLoading ? (
         <Box flexDirection="column" alignItems="center">

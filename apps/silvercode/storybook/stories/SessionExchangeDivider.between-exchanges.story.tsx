@@ -18,7 +18,7 @@ export const sessionExchangeDividerBetweenExchanges: Story = {
   render() {
     return (
       <Screen flexDirection="column">
-        <Box flexDirection="column" padding={1} gap={0}>
+        <Box flexDirection="column" gap={0}>
           {/* Exchange 1 */}
           <Box flexDirection="column" paddingY={1}>
             <Text bold color="$primary">

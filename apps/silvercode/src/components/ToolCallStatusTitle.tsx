@@ -1,19 +1,13 @@
 /**
  * <ToolCallStatusTitle>
  *
- * Tool-call title with status-aware animation. The parent `<ToolCall>` row
- * paints the verb color (per `ToolKind`); this component owns only the
- * text + lifecycle animation (shimmer while in progress, typewriter on
- * completion). No verb prefix — opencode keeps the title stable across
- * phases so the eye locks on the identifier (filename, command).
+ * Tool-call title with a neutral transcript grammar:
  *
- *   pending      → title in `color`        (caller-supplied kind color)
- *   in_progress  → title in shimmer (TextShimmer wraps the resolved color)
- *   completed    → TextReveal in `color`   (typewrites from 0 chars)
- *   failed       → title in `color`        (caller passes `$error`)
+ *   <bold first word> rest of title
  *
- * The animation primitives (TextShimmer, TextReveal) are silvery-owned;
- * this component just feeds them the title and the caller-supplied color.
+ * Examples: `Read filename`, `Wrote filename`, `Todo added item`.
+ * Bash/execute rows pass `shell`, which renders the entire command bold
+ * after a `$` marker owned by the parent `<ToolCall>` row.
  * The `kind` prop is retained on the API for callers that branch on it
  * but no longer affects the rendered text.
  *
@@ -21,7 +15,7 @@
  */
 
 import React from "react"
-import { Text, TextReveal, TextShimmer } from "silvery"
+import { Box, Text, TextShimmer } from "silvery"
 import type { ToolCallStatus, ToolKind } from "@km/agent-harness"
 
 // =============================================================================
@@ -40,13 +34,8 @@ export interface ToolCallStatusTitleProps {
    * structured phrase that doesn't fit the verb scaffolding ("Read 3 files").
    */
   label?: string
-  /**
-   * Verb color token (e.g. `$info`, `$success`, `$error`). The parent
-   * `<ToolCall>` row computes this from `ToolKind` + `status` and passes
-   * it down so the row glyph and the title share one resolved color.
-   * Defaults to `$muted` when no caller opinion.
-   */
-  color?: string
+  /** Shell commands render the whole command in bold after the `$` marker. */
+  shell?: boolean
 }
 
 export function ToolCallStatusTitle({
@@ -54,7 +43,7 @@ export function ToolCallStatusTitle({
   kind: _kind,
   title,
   label,
-  color = "$muted",
+  shell = false,
 }: ToolCallStatusTitleProps): React.ReactElement {
   const text = label ?? title
 
@@ -66,16 +55,24 @@ export function ToolCallStatusTitle({
     )
   }
 
-  if (status === "completed") {
-    // Typewriter the title so the eye catches the lifecycle transition.
-    // Short duration — anything longer feels laggy.
-    return <TextReveal text={text} duration={200} bold color={color} />
+  if (shell) {
+    return (
+      <Text bold color="$fg">
+        {text}
+      </Text>
+    )
   }
 
-  // pending and failed share the same shape — caller-supplied color, bold.
+  const split = text.match(/^(\S+)(?:\s+([\s\S]*))?$/)
+  const action = split?.[1] ?? text
+  const rest = split?.[2] ?? ""
+
   return (
-    <Text bold color={color}>
-      {text}
-    </Text>
+    <Box flexDirection="row" gap={0} flexShrink={1} minWidth={0}>
+      <Text bold color="$fg">
+        {action}
+      </Text>
+      {rest.length > 0 ? <Text color="$fg"> {rest}</Text> : null}
+    </Box>
   )
 }

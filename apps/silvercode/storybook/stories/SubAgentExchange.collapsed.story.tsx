@@ -35,7 +35,7 @@ export const subAgentExchangeCollapsed: Story = {
     // Wrap the component in a stateful shell so "expanded" knob pre-opens it.
     return (
       <Screen flexDirection="column">
-        <Box flexDirection="column" padding={1} gap={1}>
+        <Box flexDirection="column" gap={1}>
           <Text bold color="$primary">
             You
           </Text>

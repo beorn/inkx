@@ -117,7 +117,7 @@ export function SyntaxHighlighter({
   }
 
   return (
-    <Box flexDirection="column" paddingX={1} backgroundColor="$surfacebg" borderStyle="single" borderColor="$border">
+    <Box flexDirection="column" backgroundColor="$surfacebg" borderStyle="single" borderColor="$border">
       <Box flexDirection="row">
         <Text color="$muted">{lang}</Text>
       </Box>

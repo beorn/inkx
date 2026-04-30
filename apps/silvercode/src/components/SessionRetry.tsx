@@ -26,7 +26,6 @@ export function SessionRetry({ lastPrompt, onRetry }: SessionRetryProps): React.
     <Box
       flexDirection="row"
       gap={1}
-      paddingX={1}
       paddingY={0}
       onClick={onRetry}
       borderStyle="single"

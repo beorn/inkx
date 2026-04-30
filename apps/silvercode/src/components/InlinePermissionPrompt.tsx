@@ -140,34 +140,36 @@ export function InlinePermissionPrompt({
   const argSummary = summarizeArgs(current.args)
 
   return (
-    <Box flexDirection="row" width="fit-content" maxWidth="100%">
+    <Box flexDirection="row" width="100%" alignSelf="stretch">
       <Box width={1} flexShrink={0} backgroundColor="$warning" />
-      <Box flexDirection="column" backgroundColor="$bg-surface-subtle" paddingX={1} paddingY={1} gap={1}>
-        <Box flexDirection="column">
-          <Box flexDirection="row" gap={1}>
-            <Text color="$warning">△</Text>
-            <Text bold>Permission required</Text>
-          </Box>
-          <Box flexDirection="row" gap={1} paddingLeft={2}>
-            <Muted>↳</Muted>
-            <Text>{permissionVerb(current.tool)} {current.tool}</Text>
-          </Box>
+      <Box
+        flexDirection="column"
+        flexGrow={1}
+        minWidth={0}
+        backgroundColor="$bg-surface-subtle"
+        paddingX={2}
+        paddingY={1}
+        gap={1}
+      >
+        <Box flexDirection="row" gap={1}>
+          <Text>Allow</Text>
+          <Text bold>{permissionAction(current.tool)}?</Text>
         </Box>
 
         {argSummary.length > 0 && (
-          <Box paddingLeft={2} paddingRight={2}>
+          <Box flexDirection="row" gap={1}>
+            {current.tool === "Bash" ? <Text color="$muted">$</Text> : null}
             <Text wrap="wrap">{argSummary}</Text>
           </Box>
         )}
 
         {isMultiOption ? (
-          <Box flexDirection="column" paddingLeft={2} gap={0}>
+          <Box flexDirection="column" gap={0}>
             {optionItems.map((opt, i) => (
               <ActionButton
                 key={opt.optionId}
                 active={i === optionCursor}
                 label={opt.name}
-                keyHint={i === optionCursor ? "enter" : ""}
                 tone={isApproveKind(opt.kind) ? "allow" : "deny"}
                 onClick={() => {
                   setOptionCursor(i)
@@ -178,14 +180,9 @@ export function InlinePermissionPrompt({
             <Muted>↑/↓ select</Muted>
           </Box>
         ) : (
-          <Box flexDirection="row" gap={1} paddingLeft={2}>
-            <ActionButton label="Deny" keyHint="n" tone="deny" onClick={() => onDeny(current.sessionId, current.requestId)} />
-            <ActionButton
-              label="Allow"
-              keyHint="y"
-              tone="allow"
-              onClick={() => onApprove(current.sessionId, current.requestId)}
-            />
+          <Box flexDirection="row" gap={1}>
+            <ActionButton label="Yes" tone="allow" onClick={() => onApprove(current.sessionId, current.requestId)} />
+            <ActionButton label="No" tone="deny" onClick={() => onDeny(current.sessionId, current.requestId)} />
           </Box>
         )}
       </Box>
@@ -222,40 +219,33 @@ type InlinePermissionPromptProps = {
   onSelectOption?: (sessionId: string, requestId: string, optionId: PermissionOptionId, approved: boolean) => void
 }
 
-function permissionVerb(tool: string): string {
-  return tool === "Bash" ? "Run" : "Use"
+function permissionAction(tool: string): string {
+  return tool === "Bash" ? "Run bash" : `Use ${tool}`
 }
 
 function ActionButton({
   active,
   label,
-  keyHint,
-  tone,
   onClick,
 }: {
   active?: boolean
   label: string
-  keyHint: string
   tone: "allow" | "deny"
   onClick: () => void
 }): React.ReactElement {
   const hover = useHover()
   const armed = active === true || hover.isHovered
-  const bg = armed ? (tone === "allow" ? "$warning" : "$bg-surface-hover") : undefined
-  const labelColor = armed && tone === "allow" ? "$bg" : tone === "allow" ? "$warning" : "$fg"
-  const hintColor = armed && tone === "allow" ? "$bg" : "$muted"
+  const bg = armed ? "$warning" : "$bg-inverse"
+  const labelColor = armed ? "$bg" : "$fg-on-inverse"
   return (
     <Box
       flexDirection="row"
-      gap={1}
-      paddingX={1}
       backgroundColor={bg}
       onMouseEnter={hover.onMouseEnter}
       onMouseLeave={hover.onMouseLeave}
       onClick={onClick}
     >
-      <Text color={labelColor}>{label}</Text>
-      {keyHint ? <Text color={hintColor}>{keyHint}</Text> : null}
+      <Text color={labelColor}> {label} </Text>
     </Box>
   )
 }

@@ -43,7 +43,6 @@ export function ToolCallError({ label, message, onRetry }: ToolCallErrorProps): 
   return (
     <Box
       flexDirection="column"
-      paddingX={1}
       paddingY={0}
       borderStyle="single"
       borderColor="$error"
@@ -68,7 +67,7 @@ export function ToolCallError({ label, message, onRetry }: ToolCallErrorProps): 
           </Box>
         ) : null}
       </Box>
-      <Box paddingLeft={2} flexDirection="column">
+      <Box flexDirection="column">
         <Text color="$error" wrap="wrap">
           {message}
         </Text>

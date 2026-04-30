@@ -129,14 +129,7 @@ export function SessionPromptComposer({
     // `userSelect="contain"` scopes drag-selection to the command box —
     // drags starting in the input/queue area can't extend into cards or
     // the side panel.
-    <Box
-      backgroundColor="$bg-surface-subtle"
-      paddingX={2}
-      paddingY={1}
-      flexShrink={0}
-      flexDirection="column"
-      userSelect="contain"
-    >
+    <Box backgroundColor="$bg-surface-subtle" paddingY={1} flexShrink={0} flexDirection="column" userSelect="contain">
       {/* Queue region — silvery TextArea, always live. Hidden entirely
           when the buffer is empty (no divider, no widget).
 

@@ -186,10 +186,7 @@ export function ActivityIndicator({
   const pulse = Math.floor(now / 1000) % 2 === 0
 
   return (
-    // paddingX=1 (not 2) so the glyph aligns with the `●` assistant glyph
-    // and the `▸` user glyph — same inset as the rest of the
-    // session update stream.
-    <Box flexDirection="row" gap={1} paddingX={1}>
+    <Box flexDirection="row" gap={1}>
       <Text bold={pulse} color={color}>
         ◈
       </Text>

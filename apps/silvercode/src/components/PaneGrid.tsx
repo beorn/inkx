@@ -456,7 +456,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
   if (sessions.length === 0) {
     const agentLabel = agent ? AGENT_LABELS_FOR_PRESPAWN[agent] : undefined
     return (
-      <Box flexDirection="column" flexGrow={1} alignItems="center" justifyContent="center" gap={1} paddingX={2}>
+      <Box flexDirection="column" flexGrow={1} alignItems="center" justifyContent="center" gap={1}>
         <MeasuredBanner agentLabel={agentLabel} />
         {composerSlot ? (
           <Box flexDirection="column" flexShrink={0} width={80} maxWidth={80} minWidth={0}>

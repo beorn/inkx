@@ -15,9 +15,13 @@
  * Bead: km-silvercode.ambient-inline-display.
  */
 
-import React, { useState } from "react"
+import React from "react"
 import { Box, Prose, Screen, Text } from "silvery"
-import { AmbientEventRow, type AmbientStreamEntry } from "../../src/components/AmbientEventRow.tsx"
+import {
+  AmbientEventRow,
+  AmbientNotificationStack,
+  type AmbientStreamEntry,
+} from "../../src/components/AmbientEventRow.tsx"
 import { LinkifiedText } from "../../src/components/LinkifiedText.tsx"
 import { MarkdownView } from "../../src/components/MarkdownView.tsx"
 import type { Story } from "../types.ts"
@@ -93,18 +97,22 @@ export const ambientEventRowAllSources: Story = {
     const expanded = knobs.expanded === true
     return (
       <Screen flexDirection="column">
-        <Box flexDirection="column" padding={1} gap={0}>
-          {ALL_SOURCES_FIXTURES.map((entry) => (
-            <AmbientEventRow
-              key={entry.id}
-              entry={entry}
-              expanded={expanded}
-              onToggleExpand={() => {
-                /* fixture story — no real toggle handler */
-              }}
-            />
-          ))}
-        </Box>
+        {expanded ? (
+          <Box flexDirection="column" gap={0}>
+            {ALL_SOURCES_FIXTURES.map((entry) => (
+              <AmbientEventRow
+                key={entry.id}
+                entry={entry}
+                expanded
+                onToggleExpand={() => {
+                  /* fixture story — no real toggle handler */
+                }}
+              />
+            ))}
+          </Box>
+        ) : (
+          <AmbientNotificationStack entries={ALL_SOURCES_FIXTURES} />
+        )}
       </Screen>
     )
   },
@@ -120,7 +128,7 @@ export const ambientEventRowAllSources: Story = {
  */
 function StoryUserRow({ text }: { text: string }): React.ReactElement {
   return (
-    <Box flexDirection="row" gap={1} backgroundColor="$bg-surface-subtle" paddingX={1} paddingY={0}>
+    <Box flexDirection="row" gap={1} backgroundColor="$bg-surface-subtle" paddingY={0}>
       <Text bold color="$accent">
         {">"}
       </Text>
@@ -133,7 +141,7 @@ function StoryUserRow({ text }: { text: string }): React.ReactElement {
 
 function StoryAssistantRow({ text }: { text: string }): React.ReactElement {
   return (
-    <Box flexDirection="row" gap={1} paddingX={1}>
+    <Box flexDirection="row" gap={1}>
       <Text bold color="$primary">
         ●
       </Text>
@@ -163,18 +171,6 @@ export const ambientEventRowInlineSequence: Story = {
 }
 
 function InlineSequenceStory(): React.ReactElement {
-  // Local expand state so the story is interactive — clicking an ambient
-  // row toggles its body inline, just like in the live app.
-  const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const toggle = (id: string): void => {
-    setExpanded((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
   const ambient1: AmbientStreamEntry = {
     kind: "ambient",
     id: "seq-1",
@@ -192,20 +188,11 @@ function InlineSequenceStory(): React.ReactElement {
 
   return (
     <Screen flexDirection="column">
-      <Box flexDirection="column" padding={1} gap={1}>
+      <Box flexDirection="column" gap={1}>
         <StoryUserRow text="what's on the team's plate today?" />
         <StoryAssistantRow text="Here's what I can see so far. Let me check the channel feed." />
 
-        <AmbientEventRow
-          entry={ambient1}
-          expanded={expanded.has(ambient1.id)}
-          onToggleExpand={() => toggle(ambient1.id)}
-        />
-        <AmbientEventRow
-          entry={ambient2}
-          expanded={expanded.has(ambient2.id)}
-          onToggleExpand={() => toggle(ambient2.id)}
-        />
+        <AmbientNotificationStack entries={[ambient1, ambient2]} />
 
         <StoryUserRow text="anything else come in while you were thinking?" />
         <StoryAssistantRow text="Two ambient observations landed: a peer PR (alice/#42) and a green CI run on main. Want me to summarise the PR diff?" />

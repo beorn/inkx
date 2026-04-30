@@ -399,7 +399,7 @@ function AmbientMuteRow({
   const { isHovered, onMouseEnter, onMouseLeave } = useHover()
   const popover = usePopoverHandlers({
     body: (
-      <Box flexDirection="column" paddingX={1} paddingY={1} gap={1}>
+      <Box flexDirection="column" paddingY={1} gap={1}>
         <Text bold>Mute {label}</Text>
         <Muted>
           Hides {label} ambient rows from this chat scrollback. The agent still receives the events — this is a visual
@@ -444,7 +444,7 @@ function AmbientMuteSection({ controller }: { controller: Controller }): React.R
   const muted = useAmbientMuteState(controller)
   const headingHover = usePopoverHandlers({
     body: (
-      <Box flexDirection="column" paddingX={1} paddingY={1} gap={1}>
+      <Box flexDirection="column" paddingY={1} gap={1}>
         <Text bold>Ambient</Text>
         <Muted>
           Ambient observations (tribe broadcasts, CI status, recall hits, sub-agent updates, file changes, telegram
@@ -842,7 +842,7 @@ function SidePanelChrome({
   // exposes (codex has plan/normal; Claude has ask/plan/accept-edits/auto/bypass).
   const modeHover = usePopoverHandlers({
     body: (
-      <Box flexDirection="column" paddingX={1} paddingY={1} gap={1}>
+      <Box flexDirection="column" paddingY={1} gap={1}>
         <Text bold>Mode</Text>
         <Muted>Controls what the agent is allowed to do without asking. Click the label to cycle.</Muted>
         <Box flexDirection="column" gap={1}>
@@ -892,7 +892,7 @@ function SidePanelChrome({
   })
   const thinkingHover = usePopoverHandlers({
     body: (
-      <Box flexDirection="column" paddingX={1} paddingY={1} gap={1}>
+      <Box flexDirection="column" paddingY={1} gap={1}>
         <Text bold>Thinking</Text>
         <Muted>
           Reasoning intensity for the agent. Higher = more thorough answers, more tokens spent. Click to cycle.
@@ -947,7 +947,7 @@ function SidePanelChrome({
         {account.email && <Muted>{account.email}</Muted>}
 
         {account.quotas.length > 0 ? (
-          <Box flexDirection="column" paddingTop={1}>
+          <Box flexDirection="column">
             {account.quotas.map((w) => (
               <Box key={w.name} flexDirection="column">
                 <QuotaPopoverRow w={w} />
@@ -983,7 +983,7 @@ function SidePanelChrome({
   return (
     // `userSelect="contain"` scopes drag-selection to the side panel —
     // drags starting here can't extend into the card area.
-    <Box flexDirection="column" flexGrow={1} paddingX={2} paddingY={1} userSelect="contain">
+    <Box flexDirection="column" flexGrow={1} paddingY={1} userSelect="contain">
       {/* Sessions section — heading is a hover target with help. Keybinding
           hint (Ctrl+O) sits top-right as a dim reminder of how to toggle
           the panel, opencode-style. */}

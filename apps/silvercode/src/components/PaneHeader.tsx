@@ -69,7 +69,6 @@ export function PaneHeader({
       flexShrink={0}
       height={1}
       backgroundColor={isFocused ? "$bg-surface" : "$bg-surface-subtle"}
-      paddingX={1}
     >
       {/* Title — flexGrow=1 so it eats the slack and buttons stay flush right.
           minWidth={0} is still required for truncate-Text: a non-wrappable
@@ -95,8 +94,7 @@ export function PaneHeader({
 /**
  * One clickable header glyph. Hover lifts it to $accent so the user
  * sees the affordance — without hover it stays $muted to keep the strip
- * visually quiet. The 1-cell gap between buttons (paddingLeft=1) gives
- * mouse hit-testing some slack on narrow displays.
+ * visually quiet.
  */
 function HeaderButton({
   glyph,
@@ -110,7 +108,7 @@ function HeaderButton({
 }): React.ReactElement {
   const { isHovered, onMouseEnter, onMouseLeave } = useHover()
   return (
-    <Box flexShrink={0} paddingLeft={1} onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+    <Box flexShrink={0} onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
       <Text color={isHovered ? "$accent" : "$muted"}>{glyph}</Text>
     </Box>
   )

@@ -155,16 +155,8 @@ export function SessionCard({
       {/* Active-pane accent bar removed — the focused pane is implied by
           the keyboard cursor and the bottom composer's color, no need
           for a left-edge ▎ stripe in single-pane setups. */}
-      <Box
-        flexDirection="column"
-        flexGrow={1}
-        flexShrink={1}
-        minWidth={0}
-        minHeight={0}
-        paddingLeft={1}
-        paddingRight={2}
-      >
-        <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} paddingX={1} paddingTop={1}>
+      <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0}>
+        <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0}>
           {state.messages.length === 0 ? (
             // Keep the production welcome in the normal cell renderer. The
             // Kitty bitmap banner writes terminal image escapes directly to
