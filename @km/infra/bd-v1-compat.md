@@ -1,4 +1,10 @@
 ---
+tags:
+  - task
+  - P2
+mentions:
+  - km
+  - Bjørn
 id: "@km/infra/bd-v1-compat"
 aliases:
   - km-infra.bd-v1-compat
@@ -14,22 +20,27 @@ dependencies:
     created_at: 2026-04-11T12:39:27Z
     created_by: Bjørn Stabell
     metadata: "{}"
+closeReason: "Grooming 2026-04-30: WIP 18d. km bd is shipped and dogfooded daily
+  — 'bd' compat is the only implementation now, Go binary retired. Close."
 ---
 
-# [/] km bd: bd-compatible CLI backed by km's markdown/SQLite store @km/infra #task #P2 @Bjørn Stabell
+# [x] km bd: bd-compatible CLI backed by km's markdown/SQLite store @km/infra #task #P2 @Bjørn Stabell
 
 blocks:: [[@km/infra]]
 
 ## What
+
 km bd is a bd-compatible CLI that operates on km's own data (markdown nodes in SQLite), not on .beads/. It lets Claude agents and users query/mutate issues that live in the same tree as notes and tasks.
 
 ## Status (2026-04-20)
+
 - Read queries work: ready, list, show, stale, blocked, children, info, query
 - **Write persistence NOW WORKS** for: create, update, close, claim, drop, dep add/remove.
   Verified by `apps/km-cli/tests/bd-persist.slow.test.ts` (6 round-trip tests: write → process restart → read).
 - rename persistence has not been exercised by a round-trip test yet (uses the same repo.updateNode path as the others, should work).
 
 ## Key fix — save() baseline invariant
+
 The #1 persistence bug was in `packages/km-storage/src/watch/change-handlers.ts` `save()`:
 nodes.content_hash was never updated after writing a file, so mergeExternalDrift on the
 next save() saw the disk as "drifted" and re-folded the just-written content back into
@@ -38,6 +49,7 @@ updateBaselineHash(fileNode.id, hashContent(content)) after fsTarget.writeFile. 
 both CLI FsWriter and TUI withSync paths.
 
 ## Also fixed
+
 - `updateIssueFields` now syncs `data.tags` / `data.mentions` alongside the priority/
   assignee columns so stale sigil tags don't out-vote authoritative fields after replay.
 - `nodeToIssue` now reads `node.priority` before falling back to `data.tags` for priority
@@ -46,6 +58,7 @@ both CLI FsWriter and TUI withSync paths.
   the last blocker actually removes the property (was a no-op before).
 
 ## Remaining bd v1.0 work (deferred — not blocking this bead's close if scope shrinks)
+
 - [ ] comment/comments — append notes to issues
 - [ ] search — full-text search (FTS5 already exists in km)
 - [ ] reopen — reopen closed issues
@@ -54,7 +67,9 @@ both CLI FsWriter and TUI withSync paths.
 - [ ] export — already exists, verify v1.0 format compat
 
 ## Architecture
+
 - CLI: apps/@km/_orphan/cli/src/commands/bd.ts (871 lines)
 - Data layer: packages/@km/beads/ (types, queries, mutations, deps, schema)
 - Storage: .km/state.db SQLite (nodes table with task_status, priority, data JSON blob)
 - Issues are KNodes with task metadata stored in data.tags, data.mentions, data.props
+
