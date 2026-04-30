@@ -83,7 +83,7 @@ export function Notifications({ sessions }: { sessions: SessionHandle[] }): Reac
 
   if (toasts.length === 0) return <Box />
   return (
-    <Box flexDirection="column" paddingX={1}>
+    <Box flexDirection="column">
       {toasts.map((t) => (
         <Text key={t.id} color={t.kind === "error" ? "$error" : t.kind === "warn" ? "$warning" : "$info"}>
           🔔 {t.text}

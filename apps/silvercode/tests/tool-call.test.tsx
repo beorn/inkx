@@ -160,13 +160,15 @@ describe("ToolCallSummary", () => {
     expect(freshRender()(<ToolCallSummary kind="search" count={1} />).text).toContain("Searched")
   })
 
-  test("chevron only shows when breakdown is non-empty", () => {
+  test("summary never renders disclosure triangles", () => {
     const noBreakdown = freshRender()(<ToolCallSummary kind="read" count={5} />)
     expect(noBreakdown.text).not.toContain("▸")
+    expect(noBreakdown.text).not.toContain("▾")
     const withBreakdown = freshRender()(
       <ToolCallSummary kind="read" count={5} breakdown={[{ id: "1", label: "/tmp/a" }]} />,
     )
-    expect(withBreakdown.text).toContain("▸")
+    expect(withBreakdown.text).not.toContain("▸")
+    expect(withBreakdown.text).not.toContain("▾")
   })
 })
 
@@ -278,19 +280,18 @@ describe("ToolCall", () => {
     expect(app.text).not.toContain("Running")
   })
 
-  test("kind=read failed renders → glyph + title + inline error message", () => {
+  test("kind=read failed renders neutral bullet + title + inline error message", () => {
     const app = freshRender()(
       <ToolCall
         toolCall={tc({ kind: "read", status: "failed", title: "src/foo.ts" })}
         errorMessage="ENOENT: missing file"
       />,
     )
-    // v2 contract (km-silvercode.tool-call-rendering-v2): one row with `→`
-    // glyph + title (in `$error` color), one inline message body. No
-    // separate "Error" envelope, no `✗` glyph — failure is signaled by the
-    // verb color + the inline message.
+    // v2 contract (km-silvercode.tool-call-rendering-v2): one neutral
+    // marker row + title, one inline message body. No separate "Error"
+    // envelope and no `✗` glyph.
     expect(app.text).toContain("src/foo.ts")
-    expect(app.text).toMatch(/→\s+src\/foo\.ts/)
+    expect(app.text).toMatch(/•\s+src\/foo\.ts/)
     expect(app.text).toContain("ENOENT: missing file")
     expect(app.text).not.toMatch(/✗\s+Error\b/)
     expect(app.text).not.toContain("Read failed")
@@ -404,15 +405,15 @@ describe("ToolCall", () => {
     expect(app.text).toContain("term-42")
   })
 
-  test("no content → no chevron", () => {
+  test("no content → no disclosure triangle", () => {
     const app = freshRender()(<ToolCall toolCall={tc({ kind: "read", status: "pending", title: "x" })} />)
     expect(app.text).not.toContain("▸")
     expect(app.text).not.toContain("▾")
   })
 
-  test("content present + not hovered → body hidden (no chevron either)", () => {
-    // v2 contract: hover drives reveal, no chevron affordance. With no
-    // hover and no `defaultExpanded`, the body is simply not visible.
+  test("content present + not toggled → body hidden (no disclosure triangle either)", () => {
+    // v2 contract: hover previews via popover; click toggles inline body.
+    // With no click and no `defaultExpanded`, the body is simply not visible.
     const app = freshRender()(
       <ToolCall
         toolCall={tc({

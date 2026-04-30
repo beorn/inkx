@@ -18,6 +18,7 @@ import { homedir } from "node:os"
 import { join } from "node:path"
 import type { AgentEvent, SessionStore } from "@km/agent-harness"
 import { createStreamJsonParser } from "@km/agent-harness"
+import { findCodexTranscript } from "./codex-resume.ts"
 
 /**
  * Convert a project cwd to Claude's on-disk project-dir naming.
@@ -60,10 +61,11 @@ const SYNTHETIC_ACP_ID_RE = /^claude-acp-\d{10,}-\d+$/
  * Scope:
  * - Synthetic `claude-acp-<ts>-<n>` ids — always rejected
  * - Claude-Code agents with missing JSONL — rejected
- * - Other agents (codex, gemini, copilot, pi-acp) — skipped (their
- *   transcript layouts differ and the in-process loadSession path
- *   already returns a clean error to the controller, which DOES surface
- *   as a stderr write via spawnSession's catch)
+ * - Codex agents with missing rollout JSONL — rejected
+ * - Other agents (gemini, copilot, pi-acp) — skipped (their transcript
+ *   layouts differ and the in-process loadSession path already returns a
+ *   clean error to the controller, which DOES surface as a stderr write via
+ *   spawnSession's catch)
  */
 export function validateResumeId(opts: { agent: string | undefined; sessionId: string; cwd: string }): string | null {
   const { agent, sessionId, cwd } = opts
@@ -91,6 +93,16 @@ export function validateResumeId(opts: { agent: string | undefined; sessionId: s
         `or omit --resume to start fresh.\n`
       )
     }
+  }
+
+  const isCodexAgent = agent === "codex" || agent === "codex-spawn"
+
+  if (isCodexAgent && findCodexTranscript(sessionId) === null) {
+    return (
+      `silvercode: --resume ${sessionId} not found.\n` +
+      `no codex transcript under ~/.codex/sessions/YYYY/MM/DD/rollout-*-${sessionId}.jsonl.\n` +
+      `Check ~/.codex/sessions/ for the right session id, or omit --resume to start fresh.\n`
+    )
   }
 
   return null

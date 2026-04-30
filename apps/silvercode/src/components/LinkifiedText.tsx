@@ -65,7 +65,7 @@ function renderAutolinkPopover(d: Detection): React.ReactNode {
       <Muted>
         {preview} · {resolvesTo}
       </Muted>
-      <Box flexDirection="column" paddingTop={1}>
+      <Box flexDirection="column">
         {isMarkdownKind(preview) ? (
           <Prose flexShrink={1} minWidth={0}>
             <MarkdownView source={result.body} />

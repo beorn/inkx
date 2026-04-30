@@ -17,6 +17,8 @@ import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, test } from "vitest"
 import { createSessionStore } from "@km/agent-harness"
 import { findCodexTranscript, replayCodexSessionFromDisk } from "../src/codex-resume.ts"
+import { createSilvercodeController } from "../src/controller.ts"
+import { validateResumeId } from "../src/resume.ts"
 
 const SESSION_ID = "019dd09d-test-codex-replay-fixture-aaaa"
 
@@ -159,6 +161,74 @@ describe("codex-resume: replayCodexSessionFromDisk", () => {
     expect(state.status).toBe("idle")
   })
 
+  test("replays Codex custom apply_patch calls instead of dropping file edits", () => {
+    const body = lines(
+      {
+        timestamp: "2026-04-27T20:58:37.609Z",
+        type: "session_meta",
+        payload: {
+          id: SESSION_ID,
+          cwd: "/Users/beorn/Code/pim/km",
+          cli_version: "0.124.0",
+          model_provider: "openai",
+        },
+      },
+      {
+        timestamp: "2026-04-27T20:58:37.612Z",
+        type: "event_msg",
+        payload: { type: "task_started", turn_id: "turn-patch" },
+      },
+      {
+        timestamp: "2026-04-27T20:58:42.427Z",
+        type: "response_item",
+        payload: {
+          type: "custom_tool_call",
+          status: "completed",
+          name: "apply_patch",
+          call_id: "call_PATCH",
+          input:
+            "*** Begin Patch\n" +
+            "*** Update File: apps/silvercode/src/foo.ts\n" +
+            "@@\n" +
+            "-old\n" +
+            "+new\n" +
+            "*** End Patch\n",
+        },
+      },
+      {
+        timestamp: "2026-04-27T20:58:42.523Z",
+        type: "response_item",
+        payload: {
+          type: "custom_tool_call_output",
+          call_id: "call_PATCH",
+          output:
+            '{"output":"Success. Updated the following files:\\nM apps/silvercode/src/foo.ts\\n","metadata":{"exit_code":0}}',
+        },
+      },
+      {
+        timestamp: "2026-04-27T20:58:50.491Z",
+        type: "event_msg",
+        payload: { type: "task_complete", turn_id: "turn-patch" },
+      },
+    )
+    writeFakeRollout(SESSION_ID, body)
+
+    const store = createSessionStore()
+    replayCodexSessionFromDisk(store, SESSION_ID)
+    const assistantMsg = store.state.get().messages.find((m) => m.role === "assistant")
+    const toolOp = assistantMsg?.ops.find((op) => op.kind === "tool")
+
+    expect(toolOp).toMatchObject({
+      kind: "tool",
+      toolCall: { id: "call_PATCH", name: "apply_patch" },
+      result: { id: "call_PATCH", is_error: false },
+    })
+    if (toolOp?.kind === "tool") {
+      expect(toolOp.toolCall.input).toContain("*** Update File: apps/silvercode/src/foo.ts")
+      expect(toolOp.result?.output).toContain("Success. Updated the following files")
+    }
+  })
+
   test("transcript ending mid-turn (no task_complete) still settles to idle via synthetic turn-end", () => {
     const body = lines(
       {
@@ -192,6 +262,120 @@ describe("codex-resume: replayCodexSessionFromDisk", () => {
     expect(store.state.get().status).toBe("idle")
   })
 
+  test("validateResumeId allows Codex transcripts that ended without task_complete", () => {
+    const body = lines(
+      {
+        timestamp: "2026-04-29T21:40:32.693Z",
+        type: "session_meta",
+        payload: { id: SESSION_ID, cwd: "/tmp", cli_version: "0.124.0" },
+      },
+      {
+        timestamp: "2026-04-29T21:40:32.693Z",
+        type: "event_msg",
+        payload: { type: "task_started", turn_id: "t-stale-process" },
+      },
+      {
+        timestamp: "2026-04-29T21:40:37.258Z",
+        type: "response_item",
+        payload: {
+          type: "function_call",
+          name: "write_stdin",
+          arguments: '{"session_id":76609,"chars":"","yield_time_ms":15000}',
+          call_id: "call_stale_process",
+        },
+      },
+      {
+        timestamp: "2026-04-29T21:40:52.261Z",
+        type: "response_item",
+        payload: {
+          type: "function_call_output",
+          call_id: "call_stale_process",
+          output: "Chunk ID: 742bc3\nWall time: 15.0024 seconds\nProcess running with session ID 76609\nOutput:\n",
+        },
+      },
+    )
+    writeFakeRollout(SESSION_ID, body)
+
+    const err = validateResumeId({ agent: "codex", sessionId: SESSION_ID, cwd: "/tmp" })
+    expect(err).toBeNull()
+  })
+
+  test("known Codex compaction transcript entries are ignored without failing resume", () => {
+    const body = lines(
+      {
+        timestamp: "2026-04-29T23:01:36.338Z",
+        type: "session_meta",
+        payload: { id: SESSION_ID, cwd: "/tmp", cli_version: "0.124.0" },
+      },
+      {
+        timestamp: "2026-04-29T23:01:36.338Z",
+        type: "compacted",
+        payload: {
+          message: "",
+          replacement_history: [
+            {
+              type: "message",
+              role: "user",
+              content: [{ type: "input_text", text: "fix the .agents/skills" }],
+            },
+          ],
+        },
+      },
+      {
+        timestamp: "2026-04-29T23:01:36.339Z",
+        type: "event_msg",
+        payload: { type: "context_compacted" },
+      },
+      {
+        timestamp: "2026-04-29T23:01:36.340Z",
+        type: "event_msg",
+        payload: { type: "view_image_tool_call", call_id: "call_IMG", path: "/tmp/screenshot.png" },
+      },
+    )
+    writeFakeRollout(SESSION_ID, body)
+
+    const store = createSessionStore()
+    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).not.toThrow()
+    expect(store.state.get().status).toBe("idle")
+  })
+
+  test("controller keeps recovered Codex transcript visible when live ACP attach closes", async () => {
+    const body = lines(
+      {
+        timestamp: "2026-04-29T23:01:36.338Z",
+        type: "session_meta",
+        payload: { id: SESSION_ID, cwd: "/tmp", cli_version: "0.124.0", model_provider: "openai" },
+      },
+      {
+        timestamp: "2026-04-29T23:01:36.339Z",
+        type: "event_msg",
+        payload: { type: "user_message", message: "recover this transcript" },
+      },
+    )
+    writeFakeRollout(SESSION_ID, body)
+
+    const controller = createSilvercodeController({
+      cwd: "/tmp",
+      bare: true,
+      agent: "codex",
+      resume: SESSION_ID,
+      initialSessions: 0,
+      spawnFactory: () => {
+        throw new Error("ACP connection closed")
+      },
+    })
+
+    const handle = await controller.spawnSession("codex replay")
+    const state = handle.store.state.get()
+
+    expect(controller.lastSpawnError()).toBeNull()
+    expect(state.messages.some((m) => m.role === "user" && m.text === "recover this transcript")).toBe(true)
+    expect(state.lastError?.message).toContain("Live Codex resume failed: ACP connection closed")
+    expect(state.lastError?.message).toContain("recovered transcript only")
+
+    await controller.closeAll()
+  })
+
   test("findCodexTranscript locates the rollout by sessionId suffix", () => {
     writeFakeRollout(SESSION_ID, "")
     const path = findCodexTranscript(SESSION_ID)
@@ -204,7 +388,7 @@ describe("codex-resume: replayCodexSessionFromDisk", () => {
     expect(findCodexTranscript("nonexistent-id")).toBeNull()
   })
 
-  test("malformed JSONL lines are skipped without throwing", () => {
+  test("malformed JSONL lines throw instead of being silently skipped", () => {
     const body =
       lines({
         timestamp: "2026-04-27T20:58:37.609Z",
@@ -220,8 +404,51 @@ describe("codex-resume: replayCodexSessionFromDisk", () => {
     writeFakeRollout(SESSION_ID, body)
 
     const store = createSessionStore()
-    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).not.toThrow()
-    const state = store.state.get()
-    expect(state.messages.find((m) => m.role === "user")?.text).toBe("hi")
+    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(/:2: unparseable JSONL line/)
+  })
+
+  test("unknown top-level transcript types throw", () => {
+    writeFakeRollout(
+      SESSION_ID,
+      lines({
+        timestamp: "2026-04-27T20:58:37.609Z",
+        type: "mystery_item",
+        payload: {},
+      }),
+    )
+
+    const store = createSessionStore()
+    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(/invalid Codex transcript line/)
+    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(/type/)
+  })
+
+  test("unknown event_msg variants throw", () => {
+    writeFakeRollout(
+      SESSION_ID,
+      lines({
+        timestamp: "2026-04-27T20:58:37.609Z",
+        type: "event_msg",
+        payload: { type: "mystery_event" },
+      }),
+    )
+
+    const store = createSessionStore()
+    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(/invalid Codex transcript line/)
+    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(/payload\.type/)
+  })
+
+  test("unknown response_item variants throw", () => {
+    writeFakeRollout(
+      SESSION_ID,
+      lines({
+        timestamp: "2026-04-27T20:58:37.609Z",
+        type: "response_item",
+        payload: { type: "mystery_response" },
+      }),
+    )
+
+    const store = createSessionStore()
+    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(/invalid Codex transcript line/)
+    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(/payload\.type/)
   })
 })

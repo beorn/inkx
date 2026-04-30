@@ -48,7 +48,7 @@ export function AvailableCommandsPalette({
   )
   if (filtered.length === 0) return null
   return (
-    <Box flexDirection="column" paddingX={1} backgroundColor="$surfacebg">
+    <Box flexDirection="column" backgroundColor="$surfacebg">
       <Box flexDirection="row" gap={1}>
         <Text bold color="$accent">
           Slash commands

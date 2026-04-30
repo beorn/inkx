@@ -102,10 +102,12 @@ describe("InlinePermissionPrompt — legacy binary flow", () => {
   test("y approves the focused session's pending permission", async () => {
     const { term, fake, handle, fakes } = await bootAppWithPendingPermission()
     try {
-      // Inline prompt is on screen — header + Bash tool + the rm command
-      // summary all surface in the rendered frame.
-      expect(term.screen).toContainText("Permission requested")
-      expect(term.screen).toContainText("Bash")
+      // Inline prompt is on screen — action header, shell-command marker,
+      // command summary, and binary actions all surface in the rendered frame.
+      expect(term.screen).toContainText("Allow Run bash?")
+      expect(term.screen).toContainText("$ rm -rf /")
+      expect(term.screen).toContainText(" Yes ")
+      expect(term.screen).toContainText("No")
       expect(term.screen).toContainText("rm -rf /")
 
       // Approve.
@@ -125,7 +127,7 @@ describe("InlinePermissionPrompt — legacy binary flow", () => {
   test("n denies the focused session's pending permission", async () => {
     const { term, fake, handle, fakes } = await bootAppWithPendingPermission()
     try {
-      expect(term.screen).toContainText("Permission requested")
+      expect(term.screen).toContainText("Allow Run bash?")
 
       feed(term, "n")
       await settle(120)
@@ -189,10 +191,19 @@ describe("InlinePermissionPrompt — ACP multi-option flow", () => {
     )
 
     // Both option labels visible in the rendered frame.
-    expect(app.text).toContain("Permission requested")
-    expect(app.text).toContain("Bash")
-    expect(app.text).toContain("Allow")
-    expect(app.text).toContain("Reject")
+    expect(app.text).toContain("Allow Run bash?")
+    expect(app.text).toContain("$ rm -rf /")
+    expect(app.text).toContain(" Allow ")
+    expect(app.text).toContain(" Reject ")
+
+    const headerRow = app.lines.findIndex((line) => line.includes("Allow Run bash?"))
+    expect(headerRow).toBeGreaterThanOrEqual(0)
+    expect(app.lines[headerRow]!.indexOf("Allow Run bash?")).toBe(3)
+    expect(app.cell(79, headerRow).bg).not.toBeNull()
+    const allowCol = app.lines[headerRow]!.indexOf("Allow")
+    const runCol = app.lines[headerRow]!.indexOf("Run bash")
+    expect(app.cell(allowCol, headerRow).fg).not.toBeNull()
+    expect(app.cell(runCol, headerRow).fg).toEqual(app.cell(allowCol, headerRow).fg)
 
     // Move the SelectList focus down then Enter to select the second option.
     // createRenderer's `app.press` accepts string key names.

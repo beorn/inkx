@@ -27,7 +27,7 @@ export const sessionRetryFailedExchange: Story = {
     const showLastPrompt = knobs.showLastPrompt as boolean
     return (
       <Screen flexDirection="column">
-        <Box flexDirection="column" padding={1} gap={1}>
+        <Box flexDirection="column" gap={1}>
           {/* Simulated failed agent response */}
           <Box flexDirection="column" gap={0}>
             <Text bold color="$accent">

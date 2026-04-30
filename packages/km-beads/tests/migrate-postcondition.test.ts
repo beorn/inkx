@@ -33,12 +33,7 @@ import { tmpdir } from "node:os"
 import { join, relative } from "node:path"
 import { describe, it, expect, afterEach } from "vitest"
 import { parse as parseYaml } from "yaml"
-import {
-  bdIdToPathForm,
-  buildIdMap,
-  migrateBeadsToMarkdown,
-  splitFrontmatter,
-} from "../src/migrate.ts"
+import { bdIdToPathForm, buildIdMap, migrateBeadsToMarkdown, splitFrontmatter } from "../src/migrate.ts"
 import type { BeadsFs } from "../src/types.ts"
 import type { BeadsIssue } from "../src/schema.ts"
 
@@ -184,7 +179,12 @@ describe("migrateBeadsToMarkdown — post-condition: every input id is resolvabl
         ],
       },
       // Status variants — closed bead must still migrate.
-      { id: "km-beads.closed-example", title: "Already-closed bead", status: "closed" as const, closed_at: "2026-04-01T00:00:00Z" },
+      {
+        id: "km-beads.closed-example",
+        title: "Already-closed bead",
+        status: "closed" as const,
+        closed_at: "2026-04-01T00:00:00Z",
+      },
     ]
 
     const lines = issues.map(issueLine)

@@ -173,7 +173,8 @@ export function updateIssueFields(issue: Issue, changes: UpdateIssueChanges): Pa
   // `#0` tag in content and adds `P0` separately (yields ["0","P0"]).
   // Falsy normalize result preserves caller's literal value (caller is
   // free to set non-canonical priority strings if they really want).
-  const normalizedPriority = changes.priority !== undefined ? (normalizePriority(changes.priority) ?? changes.priority) : undefined
+  const normalizedPriority =
+    changes.priority !== undefined ? (normalizePriority(changes.priority) ?? changes.priority) : undefined
   if (normalizedPriority !== undefined) {
     updates.priority = normalizedPriority
   }

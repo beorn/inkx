@@ -71,6 +71,37 @@ describe("ACP permission queue — legacy path (stream-json)", () => {
 
     controller.closeAll()
   })
+
+  test("respondPermission(true) does not fall through to unsupported ACP respondToPermission", async () => {
+    const fake = Object.assign(createFakeSession({ sessionId: SESSION }), {
+      agent: {},
+      capabilities: {},
+      authMethods: [],
+      protocolVersion: 1,
+    })
+    const controller = createSilvercodeController({
+      cwd: "/tmp/fake",
+      bare: true,
+      initialSessions: 0,
+      spawnFactory: () => fake,
+    })
+    const handle = await controller.spawnSession("test-acp-race")
+
+    fake.emit({
+      kind: "permission-request",
+      sessionId: SESSION,
+      requestId: "race-req-1" as PermissionRequestId,
+      tool: "Bash",
+      args: { command: "ruby /tmp/update_openclaude.rb" },
+      ts: Date.now(),
+    })
+    expect(handle.store.state.get().status).toBe("awaiting-permission")
+
+    controller.respondPermission(handle.id, "race-req-1", true)
+    expect(fake.sent).toHaveLength(0)
+
+    controller.closeAll()
+  })
 })
 
 describe("ACP permission queue — simulated ACP handler", () => {

@@ -70,6 +70,17 @@ describe("silvercode CLI smoke — pre-flight resume validation", () => {
     expect(r.stdout).not.toContain("\x1b[?1049h")
   })
 
+  test("--resume <missing-uuid> for Codex exits 2 before ACP loadSession", () => {
+    const sid = "019ddb5f-2c6d-7861-a927-e13423f9e89"
+    const r = silvercode(["--resume", `codex:${sid}`])
+    expect(r.status).toBe(2)
+    expect(r.stderr).toContain(`--resume ${sid}`)
+    expect(r.stderr).toContain("no codex transcript")
+    expect(r.stderr).toContain("~/.codex/sessions/")
+    expect(r.stderr).not.toContain("Resource not found")
+    expect(r.stdout).not.toContain("\x1b[?1049h")
+  })
+
   test("--agent + sid prefix conflict exits 2 with conflict text", () => {
     const r = silvercode(["--agent", "codex", "--resume", "claude-code:00000000-aaaa-bbbb-cccc-dddddddddddd"])
     expect(r.status).toBe(2)

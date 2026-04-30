@@ -3,10 +3,11 @@
  *
  * Verifies the new visual contract:
  *   1. No border, no bg color on the always-visible row
- *   2. Body is hidden by default; revealed on hover (via useHover)
+ *   2. Body is hidden by default; previewed in a popover on hover and
+ *      toggled inline on click
  *   3. Consecutive tool calls render contiguously (no blank line gap)
- *   4. Failed call uses $error color on the verb token
- *   5. Leading `→` glyph prefixes the title
+ *   4. Failed call keeps the neutral shell row and shows error inline
+ *   5. Neutral marker prefixes the title (`•`, or `$` for shell)
  *
  * Bead: km-silvercode.tool-call-rendering-v2.
  */
@@ -14,7 +15,7 @@
 import React from "react"
 import { describe, expect, test } from "vitest"
 import { createRenderer, createTermless } from "@silvery/test"
-import { Box } from "silvery"
+import { Box, Text } from "silvery"
 import { run } from "silvery/runtime"
 import type { ToolCall as ToolCallType, ToolCallId } from "@km/agent-harness"
 import { ToolCall } from "../src/components/ToolCall.tsx"
@@ -85,10 +86,10 @@ describe("ToolCall v2 — no border / no bg", () => {
 })
 
 // =============================================================================
-// 2. Body hidden by default; revealed on hover
+// 2. Body hidden by default; previewed on hover, toggled inline on click
 // =============================================================================
 
-describe("ToolCall v2 — body reveals on hover", () => {
+describe("ToolCall v2 — body preview and toggle", () => {
   test("default state: body content not visible", () => {
     const app = freshRender()(
       <ToolCall
@@ -104,7 +105,7 @@ describe("ToolCall v2 — body reveals on hover", () => {
     expect(app.text).not.toContain("BODY-MARKER")
   })
 
-  test("hovered: body content reveals", async () => {
+  test("hovered: does not reveal body inline or move following rows", async () => {
     using term = createTermless({ cols: 100, rows: 20 })
     const handle = await run(
       <Box flexDirection="column">
@@ -116,6 +117,7 @@ describe("ToolCall v2 — body reveals on hover", () => {
             content: [{ type: "content", content: { type: "text", text: "BODY-MARKER-HOVER" } }],
           })}
         />
+        <Text>NEXT-ROW</Text>
       </Box>,
       term,
       { mouse: true } as never,
@@ -128,13 +130,141 @@ describe("ToolCall v2 — body reveals on hover", () => {
       // Move mouse over the title row.
       const lines = term.screen.getLines()
       const rowIdx = lines.findIndex((l) => l.includes("src/foo.ts"))
+      const nextBefore = lines.findIndex((l) => l.includes("NEXT-ROW"))
       expect(rowIdx).toBeGreaterThanOrEqual(0)
+      expect(nextBefore).toBe(rowIdx + 1)
       const col = lines[rowIdx]!.indexOf("src/foo.ts")
       await term.mouse.move(col + 1, rowIdx)
       await settle(80)
 
-      // Body should now be visible.
-      expect(term.screen.getText()).toContain("BODY-MARKER-HOVER")
+      // Hover owns popover preview, not inline disclosure. Termless does not
+      // expose the popover overlay in this assertion surface, so the stable
+      // contract we pin here is: no inline body and no layout jump.
+      expect(term.screen.getText()).not.toContain("BODY-MARKER-HOVER")
+      const after = term.screen.getLines()
+      const nextAfter = after.findIndex((l) => l.includes("NEXT-ROW"))
+      expect(nextAfter).toBe(rowIdx + 1)
+    } finally {
+      handle.unmount()
+    }
+  })
+
+  test("click toggles body content inline", async () => {
+    using term = createTermless({ cols: 100, rows: 20 })
+    const handle = await run(
+      <Box flexDirection="column">
+        <ToolCall
+          toolCall={tc({
+            kind: "read",
+            status: "pending",
+            title: "src/foo.ts",
+            content: [{ type: "content", content: { type: "text", text: "BODY-MARKER-CLICK" } }],
+          })}
+        />
+        <Text>NEXT-ROW</Text>
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle(80)
+      const lines = term.screen.getLines()
+      const rowIdx = lines.findIndex((l) => l.includes("src/foo.ts"))
+      expect(rowIdx).toBeGreaterThanOrEqual(0)
+      expect(lines.findIndex((l) => l.includes("NEXT-ROW"))).toBe(rowIdx + 1)
+
+      const col = lines[rowIdx]!.indexOf("src/foo.ts")
+      await term.mouse.click(col + 1, rowIdx)
+      await settle(80)
+
+      const expanded = term.screen.getLines()
+      expect(expanded.findIndex((l) => l.includes("BODY-MARKER-CLICK"))).toBe(rowIdx + 1)
+      expect(expanded.findIndex((l) => l.includes("NEXT-ROW"))).toBe(rowIdx + 2)
+
+      await term.mouse.click(col + 1, rowIdx)
+      await settle(80)
+
+      const collapsed = term.screen.getLines()
+      expect(collapsed.findIndex((l) => l.includes("BODY-MARKER-CLICK"))).toBe(-1)
+      expect(collapsed.findIndex((l) => l.includes("NEXT-ROW"))).toBe(rowIdx + 1)
+    } finally {
+      handle.unmount()
+    }
+  })
+
+  test("hovered empty text content does not reserve a blank body row", async () => {
+    using term = createTermless({ cols: 100, rows: 20 })
+    const handle = await run(
+      <Box flexDirection="column">
+        <ToolCall
+          toolCall={tc({
+            kind: "think",
+            status: "pending",
+            title: "TodoWrite",
+            content: [{ type: "content", content: { type: "text", text: "" } }],
+          })}
+        />
+        <Text>NEXT-ROW</Text>
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle(80)
+      const before = term.screen.getLines()
+      const titleRow = before.findIndex((l) => l.includes("TodoWrite"))
+      const nextBefore = before.findIndex((l) => l.includes("NEXT-ROW"))
+      expect(titleRow).toBeGreaterThanOrEqual(0)
+      expect(nextBefore).toBe(titleRow + 1)
+
+      const col = before[titleRow]!.indexOf("TodoWrite")
+      await term.mouse.move(col + 1, titleRow)
+      await settle(80)
+
+      const after = term.screen.getLines()
+      const nextAfter = after.findIndex((l) => l.includes("NEXT-ROW"))
+      expect(nextAfter).toBe(titleRow + 1)
+    } finally {
+      handle.unmount()
+    }
+  })
+
+  test("clicking content equal to the visible title does not disclose a duplicate body", async () => {
+    using term = createTermless({ cols: 100, rows: 20 })
+    const handle = await run(
+      <Box flexDirection="column">
+        <ToolCall
+          toolCall={tc({
+            kind: "other",
+            status: "completed",
+            title: "Recall feedback-quiet-tribe-ack",
+            content: [
+              {
+                type: "content",
+                content: { type: "text", text: "Recall feedback-quiet-tribe-ack" },
+              },
+            ],
+          })}
+        />
+        <Text>NEXT-ROW</Text>
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle(80)
+      const before = term.screen.getLines()
+      const titleRow = before.findIndex((l) => l.includes("Recall feedback-quiet-tribe-ack"))
+      expect(titleRow).toBeGreaterThanOrEqual(0)
+      expect(before.findIndex((l) => l.includes("NEXT-ROW"))).toBe(titleRow + 1)
+
+      const col = before[titleRow]!.indexOf("Recall")
+      await term.mouse.click(col + 1, titleRow)
+      await settle(80)
+
+      const after = term.screen.getLines()
+      expect(after.findIndex((l) => l.includes("NEXT-ROW"))).toBe(titleRow + 1)
+      expect(after.filter((l) => l.includes("Recall feedback-quiet-tribe-ack")).length).toBe(1)
     } finally {
       handle.unmount()
     }
@@ -142,11 +272,11 @@ describe("ToolCall v2 — body reveals on hover", () => {
 })
 
 // =============================================================================
-// 3. Failed call: $error on verb token + inline error message
+// 3. Failed call: neutral shell row + inline error message
 // =============================================================================
 
-describe("ToolCall v2 — failed status uses $error", () => {
-  test("failed Bash: title rendered with $error semantic color", () => {
+describe("ToolCall v2 — failed status stays neutral", () => {
+  test("failed Bash: command stays bold and error is inline", () => {
     const app = freshRender()(
       <ToolCall
         toolCall={tc({
@@ -159,36 +289,38 @@ describe("ToolCall v2 — failed status uses $error", () => {
     )
     expect(app.text).toContain("rm -rf /tmp/x")
     expect(app.text).toContain("permission denied")
-    // Find the title row and confirm fg is set (not the default).
     const lines = app.text.split("\n")
     const rowIdx = lines.findIndex((l) => l.includes("rm -rf"))
     expect(rowIdx).toBeGreaterThanOrEqual(0)
+    expect(lines[rowIdx]).toMatch(/\$\s+rm -rf/)
     const col = lines[rowIdx]!.indexOf("rm")
     const cell = app.cell(col, rowIdx)
-    // The verb is bold colored ($error). We assert that fg is non-null —
-    // the resolved-color match against the active theme is brittle, so
-    // structural "has fg" is the contract.
     expect(cell.fg).not.toBe(null)
     expect(cell.bold).toBe(true)
   })
 })
 
 // =============================================================================
-// 4. Leading `→` glyph
+// 4. Neutral marker glyph
 // =============================================================================
 
-describe("ToolCall v2 — leading arrow glyph", () => {
-  test("Read renders with `→ ` prefix", () => {
-    const app = freshRender()(<ToolCall toolCall={tc({ kind: "read", status: "pending", title: "src/foo.ts" })} />)
-    // The `→ ` glyph + title appear on the same row.
-    expect(app.text).toMatch(/→\s+src\/foo\.ts/)
+describe("ToolCall v2 — neutral marker glyph", () => {
+  test("Read renders with bullet prefix and bold action word", () => {
+    const app = freshRender()(<ToolCall toolCall={tc({ kind: "read", status: "pending", title: "Read src/foo.ts" })} />)
+    expect(app.text).toMatch(/•\s+Read src\/foo\.ts/)
+    const row = app.lines.findIndex((l) => l.includes("Read src/foo.ts"))
+    expect(row).toBeGreaterThanOrEqual(0)
+    const readCol = app.lines[row]!.indexOf("Read")
+    const pathCol = app.lines[row]!.indexOf("src/foo.ts")
+    expect(app.cell(readCol, row).bold).toBe(true)
+    expect(app.cell(pathCol, row).bold).toBe(false)
   })
 
-  test("failed call also has `→ ` prefix", () => {
+  test("Bash renders with `$ ` prefix", () => {
     const app = freshRender()(
       <ToolCall toolCall={tc({ kind: "execute", status: "failed", title: "bun fix" })} errorMessage="boom" />,
     )
-    expect(app.text).toMatch(/→\s+bun fix/)
+    expect(app.text).toMatch(/\$\s+bun fix/)
   })
 })
 

@@ -98,7 +98,7 @@ export const usageMeterFull: Story = {
 
     return (
       <Screen flexDirection="column">
-        <Box flexDirection="column" gap={2} padding={2}>
+        <Box flexDirection="column" gap={2}>
           {/* UsageMeter — slim bar */}
           <Box flexDirection="column" gap={0}>
             <Box>

@@ -11,8 +11,7 @@
  * Two variants — match the legacy + ACP shapes the controller surfaces:
  *
  *   - Legacy (no `options` on the permission entry): show tool + args +
- *     a `[y]es / [n]o` keyboard hint. `y` calls onApprove, `n` calls
- *     onDeny.
+ *     compact action chips. `y` calls onApprove, `n` calls onDeny.
  *
  *   - ACP multi-option (`options[]` present): show tool + args + a
  *     <SelectList> of the agent-supplied options. Enter selects the
@@ -25,7 +24,7 @@
  * Bead: km-silvercode.permission-inline-prompt.
  */
 import React, { useEffect, useMemo, useState } from "react"
-import { Box, Muted, SelectList, Text } from "silvery"
+import { Box, Muted, Text, useHover } from "silvery"
 import { useInput } from "silvery/runtime"
 import type { PermissionOptionId } from "@km/agent-harness"
 import type { SessionHandle } from "../controller.ts"
@@ -95,14 +94,7 @@ export function InlinePermissionPrompt({
 
   const [optionCursor, setOptionCursor] = useState(0)
 
-  const optionItems = useMemo(() => {
-    if (!current?.options.length) return []
-    return current.options.map((o, i) => ({
-      label: o.name,
-      value: String(i),
-      kind: o.kind,
-    }))
-  }, [current])
+  const optionItems = useMemo(() => current?.options ?? [], [current])
 
   const isMultiOption = optionItems.length > 0
 
@@ -114,17 +106,21 @@ export function InlinePermissionPrompt({
     (input, _key) => {
       if (!current) return
       if (isMultiOption) {
+        if (_key.upArrow) {
+          setOptionCursor((i) => Math.max(0, i - 1))
+          return
+        }
+        if (_key.downArrow) {
+          setOptionCursor((i) => Math.min(current.options.length - 1, i + 1))
+          return
+        }
+        if (_key.return) {
+          selectPermissionOption(current, optionCursor, onSelectOption, onApprove, onDeny)
+          setOptionCursor(0)
+          return
+        }
         if (input === "y" || input === "n") {
-          const opt = current.options[optionCursor]
-          if (!opt) return
-          const approved = opt.kind === "allow_once" || opt.kind === "allow_always"
-          if (onSelectOption) {
-            onSelectOption(current.sessionId, current.requestId, opt.optionId, approved)
-          } else if (approved) {
-            onApprove(current.sessionId, current.requestId)
-          } else {
-            onDeny(current.sessionId, current.requestId)
-          }
+          selectPermissionOption(current, optionCursor, onSelectOption, onApprove, onDeny)
           setOptionCursor(0)
         }
         return
@@ -144,42 +140,114 @@ export function InlinePermissionPrompt({
   const argSummary = summarizeArgs(current.args)
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="$warning" paddingX={1}>
-      <Box flexDirection="row" gap={1}>
-        <Text bold color="$warning">
-          Permission requested
-        </Text>
-        <Muted>·</Muted>
-        <Text bold>{current.tool}</Text>
-      </Box>
-      {argSummary.length > 0 && <Text color="$muted">{argSummary}</Text>}
-      {isMultiOption ? (
-        <Box flexDirection="column">
-          <SelectList
-            items={optionItems}
-            isActive
-            highlightedIndex={optionCursor}
-            onHighlight={setOptionCursor}
-            onSelect={(opt) => {
-              const idx = Number(opt.value)
-              const o = current.options[idx]
-              if (!o) return
-              const approved = o.kind === "allow_once" || o.kind === "allow_always"
-              if (onSelectOption) {
-                onSelectOption(current.sessionId, current.requestId, o.optionId, approved)
-              } else if (approved) {
-                onApprove(current.sessionId, current.requestId)
-              } else {
-                onDeny(current.sessionId, current.requestId)
-              }
-              setOptionCursor(0)
-            }}
-          />
-          <Muted>Enter to select</Muted>
+    <Box flexDirection="row" width="100%" alignSelf="stretch">
+      <Box width={1} flexShrink={0} backgroundColor="$warning" />
+      <Box
+        flexDirection="column"
+        flexGrow={1}
+        minWidth={0}
+        backgroundColor="$bg-surface-subtle"
+        paddingX={2}
+        paddingY={1}
+        gap={1}
+      >
+        <Box flexDirection="row" gap={1}>
+          <Text color="$warning">Allow</Text>
+          <Text bold color="$warning">
+            {permissionAction(current.tool)}?
+          </Text>
         </Box>
-      ) : (
-        <Muted>[y]es to approve · [n]o to deny</Muted>
-      )}
+
+        {argSummary.length > 0 && (
+          <Box flexDirection="row" gap={1}>
+            {current.tool === "Bash" ? <Text color="$muted">$</Text> : null}
+            <Text wrap="wrap">{argSummary}</Text>
+          </Box>
+        )}
+
+        {isMultiOption ? (
+          <Box flexDirection="column" gap={0}>
+            {optionItems.map((opt, i) => (
+              <ActionButton
+                key={opt.optionId}
+                active={i === optionCursor}
+                label={opt.name}
+                tone={isApproveKind(opt.kind) ? "allow" : "deny"}
+                onClick={() => {
+                  setOptionCursor(i)
+                  selectPermissionOption(current, i, onSelectOption, onApprove, onDeny)
+                }}
+              />
+            ))}
+            <Muted>↑/↓ select</Muted>
+          </Box>
+        ) : (
+          <Box flexDirection="row" gap={1}>
+            <ActionButton label="Yes" tone="allow" onClick={() => onApprove(current.sessionId, current.requestId)} />
+            <ActionButton label="No" tone="deny" onClick={() => onDeny(current.sessionId, current.requestId)} />
+          </Box>
+        )}
+      </Box>
+    </Box>
+  )
+}
+
+function isApproveKind(kind: PermissionOption["kind"]): boolean {
+  return kind === "allow_once" || kind === "allow_always"
+}
+
+function selectPermissionOption(
+  current: PendingPermission,
+  optionCursor: number,
+  onSelectOption: InlinePermissionPromptProps["onSelectOption"],
+  onApprove: InlinePermissionPromptProps["onApprove"],
+  onDeny: InlinePermissionPromptProps["onDeny"],
+): void {
+  const opt = current.options[optionCursor]
+  if (!opt) return
+  const approved = isApproveKind(opt.kind)
+  if (onSelectOption) {
+    onSelectOption(current.sessionId, current.requestId, opt.optionId, approved)
+  } else if (approved) {
+    onApprove(current.sessionId, current.requestId)
+  } else {
+    onDeny(current.sessionId, current.requestId)
+  }
+}
+
+type InlinePermissionPromptProps = {
+  onApprove: (sessionId: string, requestId: string) => void
+  onDeny: (sessionId: string, requestId: string) => void
+  onSelectOption?: (sessionId: string, requestId: string, optionId: PermissionOptionId, approved: boolean) => void
+}
+
+function permissionAction(tool: string): string {
+  return tool === "Bash" ? "Run bash" : `Use ${tool}`
+}
+
+function ActionButton({
+  active,
+  label,
+  onClick,
+}: {
+  active?: boolean
+  label: string
+  tone: "allow" | "deny"
+  onClick: () => void
+}): React.ReactElement {
+  const hover = useHover()
+  const armed = active === true || hover.isHovered
+  const bg = armed ? "$warning" : "$bg-inverse"
+  const labelColor = armed ? "$bg" : "$fg-on-inverse"
+  return (
+    <Box
+      flexDirection="row"
+      backgroundColor={bg}
+      onMouseEnter={hover.onMouseEnter}
+      onMouseLeave={hover.onMouseLeave}
+      onClick={onClick}
+    >
+      <Text color={labelColor}> {label} </Text>
     </Box>
   )
 }

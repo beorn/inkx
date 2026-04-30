@@ -76,6 +76,86 @@ function makeEntry(opts: { id: string; role: "assistant" | "user"; ops: MessageO
 }
 
 describe("SessionUpdateList — codex tool-call interleaving (km-silvercode.codex-bundling-order)", () => {
+  test("renders low-content tool calls as inline action labels", () => {
+    const entry = makeEntry({
+      id: "m1",
+      role: "assistant",
+      ops: [
+        {
+          kind: "tool",
+          toolCall: { id: "tu_read" as ToolUseId, name: "Read", input: { file_path: "alpha.ts" } },
+        },
+        {
+          kind: "tool",
+          toolCall: { id: "tu_write" as ToolUseId, name: "Write", input: { file_path: "beta.ts" } },
+        },
+        {
+          kind: "tool",
+          toolCall: { id: "tu_delete" as ToolUseId, name: "Delete", input: { file_path: "old.ts" } },
+        },
+        {
+          kind: "tool",
+          toolCall: { id: "tu_fetch" as ToolUseId, name: "WebFetch", input: { url: "https://example.com" } },
+        },
+        {
+          kind: "tool",
+          toolCall: {
+            id: "tu_todo" as ToolUseId,
+            name: "TodoWrite",
+            input: { todos: [{ content: "Review auth refactor PR", status: "pending" }] },
+          },
+        },
+        {
+          kind: "tool",
+          toolCall: { id: "tu_exec" as ToolUseId, name: "exec_command", input: { cmd: "ls src" } },
+        },
+        {
+          kind: "tool",
+          toolCall: {
+            id: "tu_patch" as ToolUseId,
+            name: "apply_patch",
+            input:
+              "*** Begin Patch\n" +
+              "*** Update File: apps/silvercode/src/foo.ts\n" +
+              "@@\n" +
+              "-old\n" +
+              "+new\n" +
+              "*** End Patch\n",
+          },
+          result: {
+            id: "tu_patch" as ToolUseId,
+            output: "Success. Updated the following files:\nM apps/silvercode/src/foo.ts\n",
+          },
+        },
+      ],
+    })
+
+    const app = createRenderer({ cols: 100, rows: 20 })(
+      <Box width={100} height={20} flexDirection="column">
+        <SessionUpdateList
+          messages={[entry]}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          sessionId="s1"
+          status="idle"
+          turnStartedAt={0}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+        />
+      </Box>,
+    )
+
+    expect(app.text).toContain("Read alpha.ts")
+    expect(app.text).toContain("Wrote beta.ts")
+    expect(app.text).toContain("Deleted old.ts")
+    expect(app.text).toContain("Fetched https://example.com")
+    expect(app.text).toContain("Todo added Review auth refactor PR")
+    expect(app.text).toMatch(/\$.*ls src/)
+    expect(app.text).toContain("Edited apps/silvercode/src/foo.ts (+1 -1)")
+  })
+
   test("renders text and tool cards in arrival order (text → tool → text → tool)", () => {
     // Codex-shape: 4 ops alternating text and tool. Each text op contains
     // a unique anchor string so we can locate it in the rendered frame.
@@ -139,13 +219,13 @@ describe("SessionUpdateList — codex tool-call interleaving (km-silvercode.code
     expect(idxBeta).toBeGreaterThan(idxAlpha)
 
     // Between the two anchors, the rendered frame must contain a tool
-    // call glyph. v2 contract (km-silvercode.tool-call-rendering-v2):
-    // tool calls render as flat rows prefixed with `→` (no border, no
-    // bg, no ⚙ status glyph). The presence of `→` between anchors is
-    // what makes the arrival order observable — without the intervening
+    // call marker. v2 contract (km-silvercode.tool-call-rendering-v2):
+    // tool calls render as flat rows prefixed with a neutral marker (no
+    // border, no bg, no ⚙ status glyph). The presence of `•` between anchors
+    // is what makes the arrival order observable — without the intervening
     // tool call, the two anchors would be adjacent (whitespace only).
     const between = frame.slice(idxAlpha + "ANCHOR_ALPHA".length, idxBeta)
-    expect(between).toMatch(/→/)
+    expect(between).toMatch(/•/)
   })
 
   test("legacy projections (text/toolCalls/toolResults) reflect ops correctly", () => {

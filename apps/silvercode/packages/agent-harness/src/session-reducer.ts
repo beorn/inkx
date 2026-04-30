@@ -341,6 +341,16 @@ function consumeStrip(strip: StripRuntime, turnId: TurnId, text: string): [Strip
 // ─────────────────────────────────────────────────────────────────────────
 // Message helpers — pure functions over messages array
 
+function orderMessagesByTimestamp(messages: readonly MessageEntry[]): MessageEntry[] {
+  return messages
+    .map((message, index) => ({ message, index }))
+    .sort((a, b) => {
+      const byTimestamp = a.message.ts - b.message.ts
+      return byTimestamp !== 0 ? byTimestamp : a.index - b.index
+    })
+    .map(({ message }) => message)
+}
+
 /**
  * Build an updated messages array. The mutator is given a fresh
  * `WritableEntry` (the input is destructured so callers can return
@@ -368,10 +378,10 @@ function upsertMessage(
       ts: prevEntry.ts,
     }
     const updated = makeEntry(init(writable))
-    return [...messages.slice(0, idx), updated, ...messages.slice(idx + 1)]
+    return orderMessagesByTimestamp([...messages.slice(0, idx), updated, ...messages.slice(idx + 1)])
   }
   const fresh = makeEntry(init({ id, role: "assistant", ops: [], ts: Date.now() }))
-  return [...messages, fresh]
+  return orderMessagesByTimestamp([...messages, fresh])
 }
 
 /**
@@ -839,7 +849,10 @@ export function reduce(state: InternalSessionState, action: AgentEvent): [Intern
       applyTurnEnd(next, action)
       break
     case "permission-request":
-      next.permissions = [...next.permissions, { requestId: action.requestId, tool: action.tool, args: action.args }]
+      next.permissions = [
+        ...next.permissions,
+        { requestId: action.requestId, tool: action.tool, args: action.args, options: action.options },
+      ]
       // permission-request carries no turnId on the wire (it's a side-channel
       // event), but its `requestId` is itself a valid ownership id — a
       // turn-end / session-end can't legitimately retire a permission-request

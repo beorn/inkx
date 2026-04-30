@@ -1,4 +1,9 @@
 ---
+tags:
+  - epic
+  - P2
+mentions:
+  - km
 id: "@km/silvery"
 aliases:
   - km-silvery
@@ -11,6 +16,10 @@ owner: bjorn@stabell.org
 # [ ] Silvery ecosystem (v1.0): packaging, release, adoption @km/silvery #epic #P2
 
 Master tracking bead for the silvery ecosystem.
+
+- [ ] Make silvery scrolling default visual less noisy #bug #P0 @issue priority:: P0
+
+  P0: raw silvery scroll containers should default to the calmer visual used by ListView: a normal scrollbar while scrolling, with top/bottom edge feedback connected to that scrollbar, not the numbered km-board overflow indicator. Triggered by silvercode/storybook raw scroll surfaces exposing the noisy default.
 
 ## Completed (migration)
 
@@ -62,3 +71,6 @@ Release sequence: tree-shaking → bundle audit → border overflow fix → migr
 ## Positioning
 
 silvery = the shiny new renderer. Better ink/chalk (drop-in compat), with a path to cross-platform rendering. TEA is optional gradual migration, not a prerequisite.
+
+- [ ] silvery Image: visible flicker on scroll because each re-emit deletes the prior placement #P2 @issue priority:: P1
+

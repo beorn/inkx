@@ -21,10 +21,11 @@
  * the card. After replay, codex-acp's `loadSession` continues the live
  * session; new events stream in on top of the replayed history.
  *
- * Defensive contract: never throws. Missing file / empty file / corrupt
- * line / unrecognized variant → at most an `error` event applied to the
- * store (so the UI surfaces an actionable message) and the function
- * returns. Mirrors `resume.ts`'s contract for Claude Code.
+ * Strict schema contract: known variants are replayed or explicitly ignored.
+ * Malformed lines and unknown variants throw with line-number context so
+ * Codex schema drift cannot silently drop transcript content. Missing files
+ * still surface as store errors because that is an environmental resume
+ * failure, not an unrecognized transcript shape.
  *
  * Mapping table:
  *
@@ -32,17 +33,17 @@
  *   event_msg.user_message       → user-message
  *   event_msg.task_started       → turn-start
  *   event_msg.task_complete      → turn-end
- *   event_msg.agent_message      → (skipped; same text appears in response_item)
- *   event_msg.token_count        → (skipped; usage delta not represented in
- *                                   AgentEvent.turn-end yet)
- *   response_item.message:user   → (skipped; system bootstrap context, not
- *                                   user-typed text — that comes via event_msg)
- *   response_item.message:dev    → (skipped; system instructions)
+ *   event_msg.agent_message      → ignored known duplicate
+ *   event_msg.token_count        → ignored known usage metadata
+ *   response_item.message:user   → ignored known bootstrap context
+ *   response_item.message:dev    → ignored known instructions
  *   response_item.message:assist → text-delta
  *   response_item.function_call  → tool-use
  *   response_item.function_call_output → tool-result
- *   response_item.reasoning      → (skipped; not displayed in v1)
- *   turn_context                 → (skipped; per-turn metadata)
+ *   response_item.custom_tool_call → tool-use
+ *   response_item.custom_tool_call_output → tool-result
+ *   response_item.reasoning      → ignored known reasoning metadata
+ *   turn_context                 → ignored known per-turn metadata
  *
  * Synthetic turn-end: if the transcript ends mid-turn (no final
  * task_complete after the last task_started), emit one so the store's
@@ -53,7 +54,15 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs"
 import { homedir } from "node:os"
 import { join } from "node:path"
-import type { AgentEvent, SessionId, SessionStore, ToolUseId, TurnId } from "@km/agent-harness"
+import type { SessionId, SessionStore, ToolUseId, TurnId } from "@km/agent-harness"
+import {
+  commandText,
+  parseCodexRolloutLine,
+  parseCustomToolOutput,
+  type CodexEventMsgPayload,
+  type CodexResponseItemPayload,
+  type CodexResponseMessagePayload,
+} from "./session-model/codex-rollout.ts"
 
 function codexSessionsRoot(): string {
   // Lazy: tests override HOME per-case, and we want each call to honor the
@@ -122,7 +131,22 @@ export function findCodexTranscript(sessionId: string): string | null {
   return null
 }
 
-type CodexLine = { timestamp?: string; type?: string; payload?: Record<string, unknown> }
+type ReplayRuntime = {
+  readonly store: SessionStore
+  readonly sessionId: SessionId
+  readonly path: string
+  currentTurnId: TurnId | null
+  blockIndex: number
+  initEmitted: boolean
+  cwd: string
+  model: string
+  execCommandEndCallIds: Set<string>
+  patchApplyEndCallIds: Set<string>
+}
+
+function assertNever(value: never): never {
+  throw new Error(`unreachable Codex transcript variant: ${JSON.stringify(value)}`)
+}
 
 function parseTs(s: string | undefined): number {
   if (!s) return Date.now()
@@ -159,10 +183,203 @@ function extractTextContent(content: unknown): string {
   return out
 }
 
+function ensureTurn(rt: ReplayRuntime, ts: number, role: "user" | "assistant" = "assistant"): TurnId {
+  if (rt.currentTurnId !== null) return rt.currentTurnId
+  const synth = `synthetic-${ts}` as TurnId
+  rt.store.apply({ kind: "turn-start", sessionId: rt.sessionId, turnId: synth, role, ts })
+  rt.currentTurnId = synth
+  rt.blockIndex = 0
+  return synth
+}
+
+function applySessionMeta(rt: ReplayRuntime, payload: Record<string, unknown>, ts: number): void {
+  if (rt.initEmitted) return
+  rt.cwd = typeof payload.cwd === "string" ? payload.cwd : ""
+  const provider = typeof payload.model_provider === "string" ? payload.model_provider : ""
+  rt.model = provider ? `codex (${provider})` : "codex"
+  rt.store.apply({
+    kind: "session-init",
+    sessionId: rt.sessionId,
+    cwd: rt.cwd,
+    model: rt.model,
+    mode: "",
+    tools: [],
+    mcp_servers: [],
+    slashCommands: [],
+    skills: [],
+    plugins: [],
+    claudeCodeVersion: typeof payload.cli_version === "string" ? payload.cli_version : "",
+    apiKeySource: "",
+    ts,
+  })
+  rt.initEmitted = true
+}
+
+function applyEventMsg(rt: ReplayRuntime, payload: CodexEventMsgPayload, ts: number): void {
+  switch (payload.type) {
+    case "task_started": {
+      const turnId = (typeof payload.turn_id === "string" ? payload.turn_id : `t-${ts}`) as TurnId
+      rt.store.apply({ kind: "turn-start", sessionId: rt.sessionId, turnId, role: "assistant", ts })
+      rt.currentTurnId = turnId
+      rt.blockIndex = 0
+      return
+    }
+    case "task_complete": {
+      const turnId = (typeof payload.turn_id === "string" ? payload.turn_id : rt.currentTurnId) as TurnId | null
+      if (turnId) {
+        rt.store.apply({ kind: "turn-end", sessionId: rt.sessionId, turnId, stopReason: "end_turn", ts })
+        rt.currentTurnId = null
+      }
+      return
+    }
+    case "user_message": {
+      const text = typeof payload.message === "string" ? payload.message : ""
+      if (text.length > 0) {
+        const turnId = `u-${ts}` as TurnId
+        rt.store.apply({ kind: "user-message", sessionId: rt.sessionId, turnId, text, ts })
+      }
+      return
+    }
+    case "agent_message":
+    case "token_count":
+    case "context_compacted":
+    case "view_image_tool_call":
+      return
+    case "exec_command_end": {
+      const id = payload.call_id
+      if (!id) return
+      rt.execCommandEndCallIds.add(id)
+      const turnId = ensureTurn(rt, ts, "assistant")
+      const parsed = Array.isArray(payload.parsed_cmd) ? payload.parsed_cmd : []
+      const firstParsed = parsed.find((item) => item && typeof item === "object") as Record<string, unknown> | undefined
+      const input = {
+        cmd: typeof firstParsed?.cmd === "string" ? firstParsed.cmd : commandText(payload.command),
+        cwd: payload.cwd,
+        parsed_cmd: parsed,
+        exit_code: payload.exit_code,
+        status: payload.status,
+      }
+      rt.store.apply({
+        kind: "tool-use",
+        sessionId: rt.sessionId,
+        turnId,
+        id: id as ToolUseId,
+        name: "exec_command",
+        input,
+        ts,
+      })
+      const exitCode = typeof payload.exit_code === "number" ? payload.exit_code : null
+      rt.store.apply({
+        kind: "tool-result",
+        sessionId: rt.sessionId,
+        id: id as ToolUseId,
+        output: payload.aggregated_output ?? payload.stdout ?? "",
+        is_error: payload.status === "failed" || (exitCode !== null && exitCode !== 0),
+        ts,
+      })
+      return
+    }
+    case "patch_apply_end": {
+      const id = payload.call_id
+      if (!id) return
+      rt.patchApplyEndCallIds.add(id)
+      rt.store.apply({
+        kind: "tool-result",
+        sessionId: rt.sessionId,
+        id: id as ToolUseId,
+        output: payload.stdout ?? payload.stderr ?? "",
+        is_error: payload.success === false || payload.status === "failed",
+        ts,
+      })
+      return
+    }
+    default:
+      assertNever(payload)
+  }
+}
+
+function applyMessageResponse(rt: ReplayRuntime, payload: CodexResponseMessagePayload, ts: number): void {
+  switch (payload.role) {
+    case "assistant": {
+      const text = extractTextContent(payload.content)
+      if (text.length > 0) {
+        const turnId = ensureTurn(rt, ts, "assistant")
+        rt.store.apply({ kind: "text-delta", sessionId: rt.sessionId, turnId, blockIndex: rt.blockIndex, text, ts })
+        rt.blockIndex++
+      }
+      return
+    }
+    case "user":
+    case "developer":
+    case "system":
+      return
+    default:
+      assertNever(payload.role)
+  }
+}
+
+function applyResponseItem(rt: ReplayRuntime, payload: CodexResponseItemPayload, ts: number): void {
+  switch (payload.type) {
+    case "message":
+      applyMessageResponse(rt, payload, ts)
+      return
+    case "function_call": {
+      const turnId = ensureTurn(rt, ts, "assistant")
+      const id = (typeof payload.call_id === "string" ? payload.call_id : `tu-${ts}`) as ToolUseId
+      const name = typeof payload.name === "string" ? payload.name : "unknown"
+      const input = parseArgs(payload.arguments)
+      rt.store.apply({ kind: "tool-use", sessionId: rt.sessionId, turnId, id, name, input, ts })
+      return
+    }
+    case "function_call_output": {
+      const id = (typeof payload.call_id === "string" ? payload.call_id : `tu-${ts}`) as ToolUseId
+      if (rt.execCommandEndCallIds.has(id)) return
+      const output = payload.output ?? ""
+      rt.store.apply({ kind: "tool-result", sessionId: rt.sessionId, id, output, ts })
+      return
+    }
+    case "custom_tool_call": {
+      const turnId = ensureTurn(rt, ts, "assistant")
+      const id = (typeof payload.call_id === "string" ? payload.call_id : `tu-${ts}`) as ToolUseId
+      const name = typeof payload.name === "string" ? payload.name : "unknown"
+      const input = payload.input ?? {}
+      rt.store.apply({ kind: "tool-use", sessionId: rt.sessionId, turnId, id, name, input, ts })
+      if (payload.status === "failed") {
+        rt.store.apply({
+          kind: "tool-result",
+          sessionId: rt.sessionId,
+          id,
+          output: typeof payload.error === "string" ? payload.error : "",
+          is_error: true,
+          ts,
+        })
+      }
+      return
+    }
+    case "custom_tool_call_output": {
+      const id = (typeof payload.call_id === "string" ? payload.call_id : `tu-${ts}`) as ToolUseId
+      if (rt.patchApplyEndCallIds.has(id)) return
+      rt.store.apply({
+        kind: "tool-result",
+        sessionId: rt.sessionId,
+        id,
+        output: parseCustomToolOutput(payload.output),
+        is_error: false,
+        ts,
+      })
+      return
+    }
+    case "reasoning":
+      return
+    default:
+      assertNever(payload)
+  }
+}
+
 /**
  * Read the codex JSONL transcript and apply transformed AgentEvents to the
- * store. Best-effort: malformed lines or unrecognized variants are silently
- * skipped (parser errors surface via the store error event only when fatal).
+ * store. Unknown schema variants throw; known-but-ignored variants are
+ * represented as explicit switch cases in the handlers above.
  */
 export function replayCodexSessionFromDisk(store: SessionStore, sessionId: string): void {
   const path = findCodexTranscript(sessionId)
@@ -191,140 +408,67 @@ export function replayCodexSessionFromDisk(store: SessionStore, sessionId: strin
     return
   }
 
-  const sid = sessionId as SessionId
-  let currentTurnId: TurnId | null = null
-  let blockIndex = 0
-  let initEmitted = false
-  let cwd = ""
-  let model = ""
-
-  const ensureTurn = (ts: number, role: "user" | "assistant" = "assistant"): TurnId => {
-    if (currentTurnId !== null) return currentTurnId
-    const synth = `synthetic-${ts}` as TurnId
-    store.apply({ kind: "turn-start", sessionId: sid, turnId: synth, role, ts })
-    currentTurnId = synth
-    blockIndex = 0
-    return synth
+  const rt: ReplayRuntime = {
+    store,
+    sessionId: sessionId as SessionId,
+    path,
+    currentTurnId: null,
+    blockIndex: 0,
+    initEmitted: false,
+    cwd: "",
+    model: "",
+    execCommandEndCallIds: new Set(),
+    patchApplyEndCallIds: new Set(),
   }
 
-  for (const line of raw.split("\n")) {
+  for (const [index, line] of raw.split("\n").entries()) {
     if (line.length === 0) continue
-    let parsed: CodexLine
-    try {
-      parsed = JSON.parse(line) as CodexLine
-    } catch {
-      continue
-    }
+    const lineNumber = index + 1
+    const parsed = parseCodexRolloutLine(path, line, lineNumber)
     const ts = parseTs(parsed.timestamp)
-    const payload = (parsed.payload ?? {}) as Record<string, unknown>
 
-    if (parsed.type === "session_meta") {
-      if (initEmitted) continue
-      cwd = typeof payload.cwd === "string" ? payload.cwd : ""
-      const provider = typeof payload.model_provider === "string" ? payload.model_provider : ""
-      model = provider ? `codex (${provider})` : "codex"
-      store.apply({
-        kind: "session-init",
-        sessionId: sid,
-        cwd,
-        model,
-        mode: "",
-        tools: [],
-        mcp_servers: [],
-        slashCommands: [],
-        skills: [],
-        plugins: [],
-        claudeCodeVersion: typeof payload.cli_version === "string" ? payload.cli_version : "",
-        apiKeySource: "",
-        ts,
-      })
-      initEmitted = true
-      continue
+    switch (parsed.type) {
+      case "session_meta":
+        applySessionMeta(rt, parsed.payload, ts)
+        break
+      case "event_msg":
+        applyEventMsg(rt, parsed.payload, ts)
+        break
+      case "response_item":
+        applyResponseItem(rt, parsed.payload, ts)
+        break
+      case "turn_context":
+        break
+      case "compacted":
+        break
+      default:
+        assertNever(parsed)
     }
-
-    if (parsed.type === "event_msg") {
-      const sub = payload.type
-      if (sub === "task_started") {
-        const turnId = (typeof payload.turn_id === "string" ? payload.turn_id : `t-${ts}`) as TurnId
-        store.apply({ kind: "turn-start", sessionId: sid, turnId, role: "assistant", ts })
-        currentTurnId = turnId
-        blockIndex = 0
-      } else if (sub === "task_complete") {
-        const turnId = (typeof payload.turn_id === "string" ? payload.turn_id : currentTurnId) as TurnId | null
-        if (turnId) {
-          store.apply({ kind: "turn-end", sessionId: sid, turnId, stopReason: "end_turn", ts })
-          currentTurnId = null
-        }
-      } else if (sub === "user_message") {
-        const text = typeof payload.message === "string" ? payload.message : ""
-        if (text.length > 0) {
-          // User messages get their own turn-id; pick a stable one from the
-          // timestamp so reapplies dedupe.
-          const turnId = `u-${ts}` as TurnId
-          store.apply({ kind: "user-message", sessionId: sid, turnId, text, ts })
-        }
-      }
-      // event_msg.agent_message and event_msg.token_count are intentionally
-      // skipped — agent_message duplicates the response_item.message content,
-      // and token_count has no current consumer.
-      continue
-    }
-
-    if (parsed.type === "response_item") {
-      const sub = payload.type
-      if (sub === "message") {
-        const role = payload.role
-        if (role === "assistant") {
-          const text = extractTextContent(payload.content)
-          if (text.length > 0) {
-            const turnId = ensureTurn(ts, "assistant")
-            store.apply({ kind: "text-delta", sessionId: sid, turnId, blockIndex, text, ts })
-            blockIndex++
-          }
-        }
-        // role:user and role:developer are skipped — system bootstrap context
-        // and instructions, not user-visible turns.
-      } else if (sub === "function_call") {
-        const turnId = ensureTurn(ts, "assistant")
-        const id = (typeof payload.call_id === "string" ? payload.call_id : `tu-${ts}`) as ToolUseId
-        const name = typeof payload.name === "string" ? payload.name : "unknown"
-        const input = parseArgs(payload.arguments)
-        store.apply({ kind: "tool-use", sessionId: sid, turnId, id, name, input, ts })
-      } else if (sub === "function_call_output") {
-        const id = (typeof payload.call_id === "string" ? payload.call_id : `tu-${ts}`) as ToolUseId
-        const output = payload.output ?? ""
-        store.apply({ kind: "tool-result", sessionId: sid, id, output, ts })
-      }
-      // reasoning is skipped — not displayed in v1.
-      continue
-    }
-
-    // turn_context and any unknown top-level types are silently dropped.
   }
 
   // Synthetic turn-end if the transcript ended mid-turn — same rationale as
   // Claude's resume path. Without this, status stays non-idle and
   // controller.send() routes all input into the queue buffer forever.
-  if (currentTurnId !== null) {
+  if (rt.currentTurnId !== null) {
     store.apply({
       kind: "turn-end",
-      sessionId: sid,
-      turnId: currentTurnId,
+      sessionId: rt.sessionId,
+      turnId: rt.currentTurnId,
       stopReason: "end_turn",
       ts: Date.now(),
     })
-    currentTurnId = null
+    rt.currentTurnId = null
   }
 
   // If we never emitted an init (transcript started without session_meta —
   // shouldn't happen, but be defensive), surface a minimal one so the UI
   // has a session-id baseline.
-  if (!initEmitted) {
+  if (!rt.initEmitted) {
     store.apply({
       kind: "session-init",
-      sessionId: sid,
-      cwd,
-      model,
+      sessionId: rt.sessionId,
+      cwd: rt.cwd,
+      model: rt.model,
       mode: "",
       tools: [],
       mcp_servers: [],

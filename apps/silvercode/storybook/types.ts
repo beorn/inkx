@@ -47,6 +47,12 @@ export interface Story {
   /** Optional knob descriptors. Runner threads resolved values into `render`. */
   knobs?: readonly StoryKnob[]
   /**
+   * When true, the story render owns its own scroll surfaces. The runner
+   * mounts it directly instead of wrapping it in the generic preview
+   * scrollbar, avoiding nested/double scrollbars for full-app stories.
+   */
+  ownsScroll?: boolean
+  /**
    * Render function. Returns the React element to mount in the runner /
    * tests. Receives the resolved knob values (defaults applied) so the
    * story can branch on them.

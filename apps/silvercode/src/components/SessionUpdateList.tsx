@@ -35,9 +35,19 @@
 import React, { useMemo } from "react"
 import type { MessageEntry, ToolCallId, ToolCallStatus, ToolKind } from "@km/agent-harness"
 import type { ToolCall as ToolCallType, ToolCallContent } from "@km/agent-harness"
-import { Box, ListView, type ListViewHandle, Prose, Text, useModifierKeys, usePopoverHandlers } from "silvery"
+import {
+  Box,
+  ListView,
+  type ListViewHandle,
+  Prose,
+  Small,
+  Text,
+  type SilveryMouseEvent,
+  useModifierKeys,
+  usePopoverHandlers,
+} from "silvery"
 import { ActivityIndicator, type ActivityStatus } from "./ActivityIndicator.tsx"
-import { AmbientEventRow, type AmbientStreamEntry } from "./AmbientEventRow.tsx"
+import { AmbientNotificationStack, type AmbientStreamEntry } from "./AmbientEventRow.tsx"
 import { MarkdownView } from "./MarkdownView.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
 import { ToolCall } from "./ToolCall.tsx"
@@ -53,10 +63,21 @@ import { BACKGROUND_MESSAGE_PREFIX } from "../controller.ts"
  * PascalCase ("Bash", "Edit", "Read", etc.); ACP uses lowercase snake_case
  * `ToolKind`. Unknown names fall back to "other".
  */
-function toolKindFromName(name: string): ToolKind {
+function toolKindFromName(name: string, input?: unknown): ToolKind {
+  const codexKind = codexExecToolKind(name, input)
+  if (codexKind) return codexKind
   const lower = name.toLowerCase()
-  if (lower === "bash" || lower === "execute" || lower === "computer") return "execute"
-  if (lower === "edit" || lower === "write" || lower === "multiedit") return "edit"
+  if (
+    lower === "bash" ||
+    lower === "execute" ||
+    lower === "exec_command" ||
+    lower === "run_command" ||
+    lower === "shell" ||
+    lower === "computer"
+  ) {
+    return "execute"
+  }
+  if (lower === "edit" || lower === "write" || lower === "multiedit" || lower === "apply_patch") return "edit"
   if (lower === "read") return "read"
   if (lower === "glob" || lower === "grep" || lower === "search" || lower === "websearch") return "search"
   if (lower === "todowrite") return "think"
@@ -67,47 +88,184 @@ function toolKindFromName(name: string): ToolKind {
 }
 
 /**
- * Build the brief one-line title the ToolCallStatusTitle shows alongside
- * the verb. For file-operating tools this is the `file_path`; for Bash it's
- * the command (truncated); for everything else it's the tool name itself.
+ * Build the brief one-line title shown by ToolCallStatusTitle. Keep
+ * low-content tool calls self-describing inline ("Read file.ts",
+ * "Deleted old.ts") so click-to-expand is reserved for the payload body,
+ * not for discovering what the row did.
  */
 function toolTitle(name: string, input: unknown): string {
+  const patchTitle = patchToolTitle(name, input)
+  if (patchTitle) return patchTitle
   if (!input || typeof input !== "object") return name
   const o = input as Record<string, unknown>
-  if (
-    (name === "Read" || name === "Edit" || name === "Write" || name === "MultiEdit") &&
-    typeof o.file_path === "string"
-  ) {
-    return o.file_path as string
-  }
-  if ((name === "Bash" || name === "Execute") && typeof o.command === "string") {
-    const cmd = o.command as string
-    // Truncate very long commands in the title — body shows the full text.
-    return cmd.length > 80 ? `${cmd.slice(0, 80)}…` : cmd
-  }
-  // Codex uses `exec_command` with a `cmd` arg (vs Claude's Bash/`command`).
-  if (name === "exec_command" && typeof o.cmd === "string") {
-    const cmd = o.cmd as string
-    return cmd.length > 80 ? `${cmd.slice(0, 80)}…` : cmd
-  }
-  // Codex file ops: read_file / write_file / apply_patch / list_dir use `path`.
-  if (
-    (name === "read_file" || name === "write_file" || name === "apply_patch" || name === "list_dir") &&
-    typeof o.path === "string"
-  ) {
-    return o.path as string
-  }
-  if ((name === "Grep" || name === "Search") && typeof o.pattern === "string") return o.pattern as string
-  if (name === "Glob" && typeof o.pattern === "string") return o.pattern as string
-  if ((name === "WebFetch" || name === "WebSearch") && typeof o.url === "string") return o.url as string
-  if (name === "Agent" || name === "Task") {
-    if (typeof o.description === "string") return o.description as string
-    if (typeof o.prompt === "string") {
-      const p = o.prompt as string
-      return p.length > 80 ? `${p.slice(0, 80)}…` : p
+  return (
+    claudeFileToolTitle(name, o) ??
+    codexExecToolTitle(name, o) ??
+    shellToolTitle(name, o) ??
+    codexFileToolTitle(name, o) ??
+    searchToolTitle(name, o) ??
+    todoToolTitle(name, o) ??
+    agentToolTitle(name, o) ??
+    name
+  )
+}
+
+function codexExecToolKind(name: string, input: unknown): ToolKind | null {
+  if (name !== "exec_command" || !input || typeof input !== "object") return null
+  const parsed = firstCodexParsedCommand(input as Record<string, unknown>)
+  if (!parsed) return null
+  const type = stringProp(parsed, "type")
+  if (type === "read") return "read"
+  if (type === "search" || type === "list_files") return "search"
+  return null
+}
+
+type PatchSummary = {
+  files: string[]
+  additions: number
+  deletions: number
+  action: "Added" | "Deleted" | "Edited"
+}
+
+function patchToolTitle(name: string, input: unknown): string | null {
+  if (name !== "apply_patch") return null
+  const patch = typeof input === "string" ? input : null
+  if (!patch) return null
+  const summary = summarizePatch(patch)
+  if (!summary) return null
+  const target = summary.files.length === 1 ? summary.files[0] : `${summary.files.length} files`
+  return `${summary.action} ${target} (+${summary.additions} -${summary.deletions})`
+}
+
+function summarizePatch(patch: string): PatchSummary | null {
+  const files: string[] = []
+  let action: PatchSummary["action"] = "Edited"
+  let additions = 0
+  let deletions = 0
+  for (const line of patch.split("\n")) {
+    if (line.startsWith("*** Add File: ")) {
+      files.push(line.slice("*** Add File: ".length))
+      action = action === "Deleted" ? "Edited" : "Added"
+      continue
     }
+    if (line.startsWith("*** Delete File: ")) {
+      files.push(line.slice("*** Delete File: ".length))
+      action = action === "Added" ? "Edited" : "Deleted"
+      continue
+    }
+    if (line.startsWith("*** Update File: ")) {
+      files.push(line.slice("*** Update File: ".length))
+      action = "Edited"
+      continue
+    }
+    if (line.startsWith("+") && !line.startsWith("+++")) additions++
+    else if (line.startsWith("-") && !line.startsWith("---")) deletions++
   }
-  return name
+  return files.length > 0 ? { files, additions, deletions, action } : null
+}
+
+function compactTitle(text: string): string {
+  return text.length > 80 ? `${text.slice(0, 80)}…` : text
+}
+
+function stringProp(o: Record<string, unknown>, key: string): string | null {
+  const value = o[key]
+  return typeof value === "string" ? value : null
+}
+
+function firstCodexParsedCommand(o: Record<string, unknown>): Record<string, unknown> | null {
+  const parsed = o.parsed_cmd
+  if (!Array.isArray(parsed)) return null
+  const first = parsed.find((item) => item && typeof item === "object")
+  return first ? (first as Record<string, unknown>) : null
+}
+
+function claudeFileToolTitle(name: string, o: Record<string, unknown>): string | null {
+  const filePath = stringProp(o, "file_path")
+  if (name === "Read" && filePath) return `Read ${filePath}`
+  if ((name === "Edit" || name === "MultiEdit") && filePath) return `Edited ${filePath}`
+  if (name === "Write" && filePath) return `Wrote ${filePath}`
+  if (name !== "Delete") return null
+  const path = filePath ?? stringProp(o, "path")
+  return path ? `Deleted ${path}` : null
+}
+
+function shellToolTitle(name: string, o: Record<string, unknown>): string | null {
+  if (name === "Bash" || name === "Execute") {
+    const command = stringProp(o, "command")
+    return command ? compactTitle(command) : null
+  }
+  if (name === "exec_command") {
+    const command = stringProp(o, "cmd")
+    return command ? compactTitle(command) : null
+  }
+  return null
+}
+
+function codexExecToolTitle(name: string, o: Record<string, unknown>): string | null {
+  if (name !== "exec_command") return null
+  const parsed = firstCodexParsedCommand(o)
+  if (!parsed) return null
+  const type = stringProp(parsed, "type")
+  const path = stringProp(parsed, "path")
+  const query = stringProp(parsed, "query")
+  const command = stringProp(parsed, "cmd")
+  if (type === "read") return `Read ${path ?? stringProp(parsed, "name") ?? command ?? "file"}`
+  if (type === "search") {
+    const target = path ? ` in ${path}` : ""
+    return query ? `Searched ${query}${target}` : `Searched${target}`
+  }
+  if (type === "list_files") return `Explored ${path ?? command ?? "files"}`
+  return null
+}
+
+function codexFileToolTitle(name: string, o: Record<string, unknown>): string | null {
+  const path = stringProp(o, "path")
+  if (!path) return null
+  if (name === "read_file") return `Read ${path}`
+  if (name === "write_file") return `Wrote ${path}`
+  if (name === "apply_patch") return `Patched ${path}`
+  if (name === "list_dir") return `Listed ${path}`
+  return null
+}
+
+function searchToolTitle(name: string, o: Record<string, unknown>): string | null {
+  if (name === "Grep" || name === "Search") {
+    const pattern = stringProp(o, "pattern")
+    return pattern ? `Searched ${pattern}` : null
+  }
+  if (name === "Glob") {
+    const pattern = stringProp(o, "pattern")
+    return pattern ? `Find ${pattern}` : null
+  }
+  if (name === "WebFetch") {
+    const url = stringProp(o, "url")
+    return url ? `Fetched ${url}` : null
+  }
+  if (name !== "WebSearch") return null
+  const query = stringProp(o, "query")
+  const url = stringProp(o, "url")
+  return query ? `Searched ${query}` : url ? `Searched ${url}` : null
+}
+
+function todoToolTitle(name: string, o: Record<string, unknown>): string | null {
+  if (name !== "TodoWrite" || !Array.isArray(o.todos)) return null
+  const todos = o.todos as Array<Record<string, unknown>>
+  if (todos.length > 1) return `Todos updated ${todos.length} items`
+  const todo = todos[0]
+  const content = todo ? stringProp(todo, "content") : null
+  if (!content) return null
+  const status = todo?.status
+  const verb = status === "completed" ? "completed" : status === "in_progress" ? "started" : "added"
+  return `Todo ${verb} ${content}`
+}
+
+function agentToolTitle(name: string, o: Record<string, unknown>): string | null {
+  if (name !== "Agent" && name !== "Task") return null
+  const description = stringProp(o, "description")
+  if (description) return description
+  const prompt = stringProp(o, "prompt")
+  return prompt ? compactTitle(prompt) : null
 }
 
 /**
@@ -116,6 +274,14 @@ function toolTitle(name: string, input: unknown): string {
  * via silvery's `<Diff>` component automatically (the "diff" content type).
  */
 function editToolContent(input: unknown): ToolCallContent[] | undefined {
+  if (typeof input === "string" && input.startsWith("*** Begin Patch")) {
+    return [
+      {
+        type: "content",
+        content: { type: "text", text: input },
+      },
+    ]
+  }
   if (!input || typeof input !== "object") return undefined
   const o = input as Record<string, unknown>
   if (typeof o.old_string === "string" && typeof o.new_string === "string") {
@@ -157,7 +323,7 @@ function adaptToolCall(
   result: { output: unknown; is_error?: boolean } | undefined,
   running: boolean,
 ): ToolCallType {
-  const kind = toolKindFromName(c.name)
+  const kind = toolKindFromName(c.name, c.input)
   const status: ToolCallStatus = running ? "in_progress" : result?.is_error ? "failed" : "completed"
   const display = c.mcp_server ? `${c.mcp_server}:${c.name}` : c.name
   const title = toolTitle(c.name, c.input)
@@ -166,7 +332,7 @@ function adaptToolCall(
   // the result text (if a result has arrived) or the raw input as JSON.
   let content: ToolCallContent[] | undefined
   if (!running) {
-    if (c.name === "Edit" || c.name === "MultiEdit") {
+    if (c.name === "Edit" || c.name === "MultiEdit" || c.name === "apply_patch") {
       const diffContent = editToolContent(c.input)
       if (diffContent) {
         content = diffContent
@@ -208,7 +374,7 @@ function adaptToolCall(
  */
 function BackgroundSystemRow({ text }: { text: string }): React.ReactElement {
   return (
-    <Box flexDirection="row" gap={1} paddingX={1} paddingY={0} backgroundColor="$bg-surface-subtle">
+    <Box flexDirection="row" gap={1} paddingY={0} backgroundColor="$bg-surface-subtle">
       <Text color="$info">{text}</Text>
     </Box>
   )
@@ -253,20 +419,20 @@ function UserRow({
   const lineCount = additionalContext ? additionalContext.split("\n").length : 0
 
   return (
-    <Box flexDirection="column" flexShrink={1} minWidth={0} paddingX={1} paddingY={0}>
+    <Box flexDirection="column" alignSelf="stretch" width="100%" flexShrink={1} minWidth={0} paddingY={0}>
       {!isMetaOnly && (
-        // Right-align via flex. The bubble shrinks to content; long content
-        // wraps inside the 80%-of-row maxWidth cap.
-        <Box flexDirection="row" justifyContent="flex-end" flexShrink={1} minWidth={0}>
+        <Box flexDirection="row" width="100%" justifyContent="flex-end" flexShrink={1} minWidth={0}>
           <Box
             flexDirection="row"
+            width="snug-content"
+            maxWidth="80%"
             flexShrink={1}
             minWidth={0}
             borderStyle="round"
             borderColor="$border-default"
             paddingX={1}
           >
-            <Prose flexGrow={0} flexShrink={1} minWidth={0}>
+            <Prose flexShrink={1} minWidth={0}>
               <LinkifiedText text={text} role="user" />
             </Prose>
           </Box>
@@ -275,11 +441,10 @@ function UserRow({
       {hasContext && (
         <Box flexDirection="column" flexShrink={1} minWidth={0}>
           <Text color="$muted">
-            {showDebug ? "▾" : "▸"} {lineCount} line{lineCount === 1 ? "" : "s"} of hidden context (run `/debug` to
-            toggle)
+            {lineCount} line{lineCount === 1 ? "" : "s"} of hidden context (run `/debug` to toggle)
           </Text>
           {showDebug && (
-            <Box flexDirection="column" flexShrink={1} minWidth={0} paddingLeft={2}>
+            <Box flexDirection="column" flexShrink={1} minWidth={0}>
               <Text color="$muted" wrap="wrap">
                 {additionalContext}
               </Text>
@@ -298,7 +463,7 @@ function UserRow({
  */
 function AssistantRow({ text }: { text: string }): React.ReactElement {
   return (
-    <Box flexDirection="row" gap={1} paddingX={1} flexShrink={1} minWidth={0}>
+    <Box flexDirection="row" gap={1} flexShrink={1} minWidth={0}>
       <Text bold color="$primary">
         ●
       </Text>
@@ -350,12 +515,13 @@ function prettyYamlForDebug(value: unknown, indent = 0): string {
       .map((v) => {
         const inner = prettyYamlForDebug(v, indent + 1)
         const lines = inner.split("\n")
+        const first = lines[0] ?? ""
         // YAML idiom: `- ` substitutes for two chars of leading indent on
         // the first line. Continuation lines stay at indent+1.
-        if (lines[0]!.startsWith(childIndent)) {
-          lines[0] = pad + "- " + lines[0]!.slice(childIndent.length)
+        if (first.startsWith(childIndent)) {
+          lines[0] = pad + "- " + first.slice(childIndent.length)
         } else {
-          lines[0] = pad + "- " + lines[0]
+          lines[0] = pad + "- " + first
         }
         return lines.join("\n")
       })
@@ -377,11 +543,21 @@ function prettyYamlForDebug(value: unknown, indent = 0): string {
   return String(value)
 }
 
+function timestampFromPayload(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null
+  const ts = (payload as { ts?: unknown }).ts
+  if (typeof ts !== "number" || !Number.isFinite(ts)) return null
+  const d = new Date(ts)
+  const hh = d.getHours().toString().padStart(2, "0")
+  const mm = d.getMinutes().toString().padStart(2, "0")
+  return `${hh}:${mm}`
+}
+
 /**
  * RawInspector — secret debug trick. Wraps each chat entry so that hovering
- * with Cmd+Shift held shows a popover with the entry's raw JSON. When the
- * modifiers aren't held, the wrapper is a transparent passthrough — no popover
- * trigger, no event cost beyond the modifier-state hook.
+ * with Cmd+Shift held shows a popover with the entry's raw JSON. The wrapper
+ * always listens for hover so a modifier-aware mouse-enter can trigger the
+ * popover even when the terminal did not emit standalone modifier key events.
  *
  * Why: debugging a verbose-tool-result or thinking-loop bug usually means
  * inspecting what the wire actually delivered. Without this, the only path is
@@ -397,10 +573,7 @@ function prettyYamlForDebug(value: unknown, indent = 0): string {
 function RawInspector({ payload, children }: { payload: unknown; children: React.ReactNode }): React.ReactElement {
   const { super: cmdHeld, shift: shiftHeld } = useModifierKeys()
   const debugMode = cmdHeld && shiftHeld
-  // Always compute a valid PopoverContent (the hook requires non-null), but
-  // only attach mouse handlers when debug mode is active. When the modifiers
-  // aren't held, the wrapper is a transparent fragment — no handlers, no
-  // hover-event cost.
+  // Always compute a valid PopoverContent (the hook requires non-null).
   const popoverContent = useMemo(() => {
     // Pretty-print: when a string value contains newlines, render the body
     // as an indented block under the key (no JSON escapes, no surrounding
@@ -412,9 +585,16 @@ function RawInspector({ payload, children }: { payload: unknown; children: React
     const allLines = yaml.split("\n")
     const truncated =
       allLines.length > 60 ? [...allLines.slice(0, 60), `# … (${allLines.length - 60} more lines)`].join("\n") : yaml
+    const timestamp = timestampFromPayload(payload)
     return {
       body: (
-        <Box flexDirection="column" paddingX={2} paddingY={1}>
+        <Box flexDirection="column" paddingY={1}>
+          {timestamp ? (
+            <Box flexDirection="row">
+              <Box flexGrow={1} />
+              <Small>{timestamp}</Small>
+            </Box>
+          ) : null}
           {/* YAML — shiki's YAML highlighter handles `|` block scalars
               natively and colors prose bodies as plain string content
               (no italic-pink JSON-string fallback). `bare` drops chrome
@@ -435,7 +615,16 @@ function RawInspector({ payload, children }: { payload: unknown; children: React
     }
   }, [payload])
   const handlers = usePopoverHandlers(popoverContent)
-  return debugMode ? <Box {...handlers}>{children}</Box> : <>{children}</>
+  function onMouseEnter(e: SilveryMouseEvent): void {
+    if (debugMode || (e.metaKey && e.shiftKey)) {
+      handlers.onMouseEnter(e)
+    }
+  }
+  return (
+    <Box onMouseEnter={onMouseEnter} onMouseLeave={handlers.onMouseLeave}>
+      {children}
+    </Box>
+  )
 }
 
 function ExchangeItem({ m, showDebug }: { m: MessageEntry; showDebug: boolean }): React.ReactElement {
@@ -571,45 +760,28 @@ function interleave(messages: MessageEntry[], ambient: readonly AmbientStreamEnt
   let i = 0
   let j = 0
   while (i < messages.length && j < ambient.length) {
-    const mts = messageTimestamp(messages[i]!)
-    const ats = ambient[j]!.timestamp
+    const message = messages[i]
+    const ambientEntry = ambient[j]
+    if (!message || !ambientEntry) break
+    const mts = messageTimestamp(message)
+    const ats = ambientEntry.timestamp
     if (mts <= ats) {
-      out.push(messages[i]!)
+      out.push(message)
       i++
     } else {
-      pushAmbient(out, ambient[j]!)
+      pushAmbient(out, ambientEntry)
       j++
     }
   }
-  while (i < messages.length) out.push(messages[i++]!)
-  while (j < ambient.length) pushAmbient(out, ambient[j++]!)
+  while (i < messages.length) {
+    const message = messages[i++]
+    if (message) out.push(message)
+  }
+  while (j < ambient.length) {
+    const ambientEntry = ambient[j++]
+    if (ambientEntry) pushAmbient(out, ambientEntry)
+  }
   return out
-}
-
-/**
- * Inline ambient row wrapper — owns the `expanded` state so toggling one
- * row does not re-render the whole list. The expand state is local and
- * resets on remount; rotation through ambient rows is bounded so this is
- * acceptable for Phase 6.a.
- */
-function AmbientRow({ entry }: { entry: AmbientStreamEntry }): React.ReactElement {
-  const [expanded, setExpanded] = React.useState(false)
-  return <AmbientEventRow entry={entry} expanded={expanded} onToggleExpand={() => setExpanded((v) => !v)} />
-}
-
-/**
- * Cluster wrapper — a tight stack of ambient rows with no gap between
- * them, so a burst (e.g. filewatch events for one save) reads as one
- * coherent block in the chat scrollback.
- */
-function AmbientCluster({ entries }: { entries: AmbientStreamEntry[] }): React.ReactElement {
-  return (
-    <Box flexDirection="column">
-      {entries.map((e) => (
-        <AmbientRow key={e.id} entry={e} />
-      ))}
-    </Box>
-  )
 }
 
 // =============================================================================
@@ -648,6 +820,8 @@ export const SessionUpdateList = React.forwardRef<
     /** CLI version string from session-init (e.g. "2.1.119"). Forwarded
      *  to ActivityIndicator. `null` until session-init resolves. */
     agentVersion?: string | null
+    /** Chat panes follow the latest turn; natural-height story previews can disable it. */
+    follow?: "end" | false
   }
 >(function SessionUpdateList(
   {
@@ -662,12 +836,54 @@ export const SessionUpdateList = React.forwardRef<
     ambientEntries,
     agentLabel = null,
     agentVersion = null,
+    follow = "end",
   },
   ref,
 ): React.ReactElement {
   const showActivity = status !== "idle" && status !== "ended"
   const merged = ambientEntries && ambientEntries.length > 0 ? interleave(messages, ambientEntries) : [...messages]
   const items: Item[] = showActivity ? [...merged, { __activity: true }] : merged
+  const renderSessionItem = (item: Item, _i: number): React.ReactNode =>
+    isActivity(item) ? (
+      <ActivityIndicator
+        status={status}
+        pendingPermissions={pendingPermissions}
+        inFlightTool={inFlightTool}
+        turnStartedAt={turnStartedAt}
+        inputTokens={inputTokens}
+        outputTokens={outputTokens}
+        agentLabel={agentLabel}
+        agentVersion={agentVersion}
+      />
+    ) : isAmbient(item) ? (
+      <AmbientNotificationStack entries={item.entries} />
+    ) : item.role === "assistant" ? (
+      // Assistant turns wrap each op (text/tool) individually inside
+      // ExchangeItem so the hover popover shows ONLY the hovered op,
+      // not the whole turn's combined JSON.
+      <ExchangeItem m={item} showDebug={showDebug} />
+    ) : (
+      <RawInspector payload={item}>
+        <ExchangeItem m={item} showDebug={showDebug} />
+      </RawInspector>
+    )
+
+  if (follow === false) {
+    return (
+      <Box flexDirection="column" gap={1} alignSelf="stretch" width="100%">
+        {items.map((item, i) => (
+          <Box
+            key={isActivity(item) ? "__activity" : isAmbient(item) ? `ambient-cluster:${item.entries[0]?.id ?? i}` : i}
+            flexDirection="column"
+            alignSelf="stretch"
+            width="100%"
+          >
+            {renderSessionItem(item, i)}
+          </Box>
+        ))}
+      </Box>
+    )
+  }
 
   // `follow="end"` is the canonical chat-style auto-follow API
   // (silvery bead `km-silvery.listview-followpolicy-split`). It owns
@@ -689,32 +905,8 @@ export const SessionUpdateList = React.forwardRef<
       }
       gap={1}
       maxRendered={200}
-      follow="end"
-      renderItem={(item) =>
-        isActivity(item) ? (
-          <ActivityIndicator
-            status={status}
-            pendingPermissions={pendingPermissions}
-            inFlightTool={inFlightTool}
-            turnStartedAt={turnStartedAt}
-            inputTokens={inputTokens}
-            outputTokens={outputTokens}
-            agentLabel={agentLabel}
-            agentVersion={agentVersion}
-          />
-        ) : isAmbient(item) ? (
-          <AmbientCluster entries={item.entries} />
-        ) : item.role === "assistant" ? (
-          // Assistant turns wrap each op (text/tool) individually inside
-          // ExchangeItem so the hover popover shows ONLY the hovered op,
-          // not the whole turn's combined JSON.
-          <ExchangeItem m={item} showDebug={showDebug} />
-        ) : (
-          <RawInspector payload={item}>
-            <ExchangeItem m={item} showDebug={showDebug} />
-          </RawInspector>
-        )
-      }
+      follow={follow}
+      renderItem={renderSessionItem}
     />
   )
 })

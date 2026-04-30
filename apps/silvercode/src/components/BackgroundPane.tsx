@@ -60,14 +60,14 @@ export function BackgroundPane({
 }): React.ReactElement {
   if (tasks.length === 0) {
     return (
-      <Box flexDirection="column" paddingX={1} paddingY={1}>
+      <Box flexDirection="column" paddingY={1}>
         <Muted>No background tasks.</Muted>
       </Box>
     )
   }
   const now = Date.now()
   return (
-    <Box flexDirection="column" paddingX={1} paddingY={1} gap={1}>
+    <Box flexDirection="column" paddingY={1} gap={1}>
       <Text bold>Background tasks</Text>
       <Muted>Backgrounded turns keep streaming; results land in the conversation.</Muted>
       <Box flexDirection="column">
@@ -80,10 +80,10 @@ export function BackgroundPane({
                 <Text color={statusColor(t.status)}>{statusLabel(t.status)}</Text>
                 <Small color="$muted">· {elapsed}</Small>
               </Box>
-              <Box flexDirection="row" paddingLeft={2}>
+              <Box flexDirection="row">
                 <Text>{t.snippet}</Text>
               </Box>
-              <Box flexDirection="row" gap={1} paddingLeft={2}>
+              <Box flexDirection="row" gap={1}>
                 {t.status === "running" && (
                   <Box onClick={() => onCancel(t.id)}>
                     <Small color="$error">[cancel]</Small>

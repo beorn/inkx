@@ -177,7 +177,7 @@ This prevents accidental duplicates when sessions crash mid-creation or multiple
 
 ### Create bead:
 
-**WARNING**: `--id` and `--parent` cannot be combined — see [SKILL.md Quick Reference](../SKILL.md#quick-reference-common-flag-mistakes).
+**Use path-form ids for scoped beads.** If the tracking epic is `@km/silvery`, create the child directly as `--id @km/silvery/better-scroll-defaults`; do not create it with `--parent km-silvery --id better-scroll-defaults`, and do not create a flat id and parent it afterward.
 
 **Include acceptance criteria** in the description — explicit "done when" conditions help future sessions know when the bead is truly complete. Anchor to design docs or skill files where relevant (e.g., "See docs/design/X.md for context").
 
@@ -200,16 +200,12 @@ If you cannot name a current consumer, the work is speculative. Two options:
 Background: doc-led drift (the 2026-04-27 retrospective) — "(rename pending)" annotations and `withMCPServer` example code drove three concrete drift incidents because nobody required acceptance bullets to name a consumer.
 
 ```bash
-# Step 1: Create (NO --parent flag here!)
 km bd create \
-  --id <generated-id> \
+  --id @km/<scope>/<generated-slug> \
   --type <type> \
   --title "<concise title from description>" \
   --description "<expanded description with context and acceptance criteria>" \
   --priority <inferred-priority>
-
-# Step 2: Set parent AFTER creation
-km bd update <generated-id> --parent <tracking-epic-id>
 ```
 
 **Error handling:**
@@ -221,11 +217,11 @@ km bd update <generated-id> --parent <tracking-epic-id>
 
 ### Assign to tracking epic (REQUIRED):
 
-Every new bead **must** be a sub-bead of its tracking epic (see [SKILL.md Scope Epics](../SKILL.md#scope-epics-backlogs) for the full list). Use two-step create + parent:
+Every new bead **must** be a sub-bead of its tracking epic (see [SKILL.md Scope Epics](../SKILL.md#scope-epics-backlogs) for the full list). Use a full path-form id at creation time:
 
 ```bash
-# ID format: km-<scope>.<suffix>
-# Example: @km/silvery/bg-bleed, @km/tui/emptybody, @km/infra/ci-fuzz
+# ID format: @km/<scope>/<suffix>
+# Example: @km/silvery/better-scroll-defaults, @km/tui/emptybody, @km/infra/ci-fuzz
 
 # Step 1: Create
 km bd create --id @km/tui/emptybody --type bug --title "Empty body rendering" --priority 2

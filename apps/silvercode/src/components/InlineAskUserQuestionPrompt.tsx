@@ -135,7 +135,7 @@ export function InlineAskUserQuestionPrompt({
   }
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="$primary" paddingX={1}>
+    <Box flexDirection="column" borderStyle="round" borderColor="$primary">
       <Box flexDirection="row" gap={1}>
         <Text bold color="$primary">
           Question

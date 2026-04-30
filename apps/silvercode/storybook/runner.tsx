@@ -14,7 +14,21 @@
  */
 
 import React, { useMemo, useState } from "react"
-import { Box, Divider, Muted, Screen, SelectList, Strong, Text, useApp, useInput, type Key } from "silvery"
+import {
+  Box,
+  Divider,
+  Muted,
+  Screen,
+  Scrollbar,
+  SelectList,
+  Strong,
+  Text,
+  useApp,
+  useBoxRect,
+  useInput,
+  useKineticScroll,
+  type Key,
+} from "silvery"
 // `Divider` here renders the horizontal rule under the story header. The
 // vertical separator between panes is the implicit layout boundary.
 import { createTerm } from "silvery"
@@ -24,12 +38,21 @@ import { resolveKnobs, type Story } from "./types.ts"
 
 type Focus = "list" | "preview"
 
+const LIST_PANE_WIDTH = 34
+const LIST_LABEL_WIDTH = LIST_PANE_WIDTH - 4
+
+function truncateLabel(label: string, width: number): string {
+  if (label.length <= width) return label
+  if (width <= 1) return "…"
+  return `${label.slice(0, width - 1)}…`
+}
+
 interface AppProps {
   /** Optional: open this story id directly (skip the list cursor). */
   initialStoryId?: string
 }
 
-function StorybookApp({ initialStoryId }: AppProps): React.ReactElement {
+export function StorybookApp({ initialStoryId }: AppProps): React.ReactElement {
   const { exit } = useApp()
   const [focus, setFocus] = useState<Focus>("list")
   const [cursor, setCursor] = useState(() => {
@@ -62,15 +85,15 @@ function StorybookApp({ initialStoryId }: AppProps): React.ReactElement {
   if (showHelp) {
     return (
       <Screen flexDirection="column">
-        <Box flexDirection="column" paddingX={2} paddingY={1}>
+        <Box flexDirection="column" paddingY={1}>
           <Strong>Silvercode Storybook — keys</Strong>
-          <Box flexDirection="column" paddingTop={1}>
+          <Box flexDirection="column">
             <Text>j / k or ↓ / ↑ — move story cursor</Text>
             <Text>Tab / h / l — switch focus (list / preview)</Text>
             <Text>? — toggle this help</Text>
             <Text>q / Ctrl-C — quit</Text>
           </Box>
-          <Box paddingTop={1}>
+          <Box>
             <Muted>Press any key to dismiss.</Muted>
           </Box>
         </Box>
@@ -80,11 +103,26 @@ function StorybookApp({ initialStoryId }: AppProps): React.ReactElement {
 
   return (
     <Screen flexDirection="row">
-      <Box flexDirection="column" width={32} flexShrink={0} paddingX={1} paddingY={1}>
-        <Strong>Stories ({STORIES.length})</Strong>
-        <Box flexDirection="column" flexGrow={1} minHeight={0} paddingTop={1}>
+      <Box
+        id="storybook-list-pane"
+        flexDirection="column"
+        width={LIST_PANE_WIDTH}
+        flexGrow={0}
+        flexShrink={0}
+        minWidth={LIST_PANE_WIDTH}
+        maxWidth={LIST_PANE_WIDTH}
+        overflow="hidden"
+        backgroundColor="$bg-surface-subtle"
+        paddingY={1}
+        userSelect="contain"
+      >
+        <Box flexDirection="row" gap={1} paddingBottom={1}>
+          <Strong>Stories</Strong>
+          <Muted>{STORIES.length}</Muted>
+        </Box>
+        <Box flexDirection="column" flexGrow={1} minHeight={0}>
           <SelectList
-            items={STORIES.map((s) => ({ label: s.id, value: s.id }))}
+            items={STORIES.map((s) => ({ label: truncateLabel(s.id, LIST_LABEL_WIDTH), value: s.id }))}
             highlightedIndex={cursor}
             onHighlight={setCursor}
             onSelect={(opt) => {
@@ -95,11 +133,22 @@ function StorybookApp({ initialStoryId }: AppProps): React.ReactElement {
             maxVisible={20}
           />
         </Box>
-        <Box paddingTop={1}>
-          <Muted>{focus === "list" ? "list focus" : "preview focus"} — ? for help</Muted>
+        <Box>
+          <Muted>{focus === "list" ? "list" : "preview"} focus</Muted>
         </Box>
       </Box>
-      <Box flexDirection="column" flexGrow={1} minHeight={0} paddingX={1} paddingY={1}>
+      <Box flexDirection="column" width={1} flexGrow={0} flexShrink={0} backgroundColor="$border" />
+      <Box
+        id="storybook-preview-pane"
+        flexDirection="column"
+        flexGrow={1}
+        flexShrink={1}
+        minWidth={0}
+        minHeight={0}
+        overflow="hidden"
+        paddingY={1}
+        userSelect="contain"
+      >
         {story ? <StoryFrame story={story} /> : <Muted>No stories registered.</Muted>}
       </Box>
     </Screen>
@@ -115,7 +164,7 @@ function StoryFrame({ story }: { story: Story }): React.ReactElement {
         <Muted>— {story.description}</Muted>
       </Box>
       {(story.knobs ?? []).length > 0 && (
-        <Box flexDirection="row" gap={1} paddingTop={1}>
+        <Box flexDirection="row" gap={1}>
           <Muted>knobs:</Muted>
           {(story.knobs ?? []).map((k) => (
             <Muted key={k.id}>
@@ -125,10 +174,118 @@ function StoryFrame({ story }: { story: Story }): React.ReactElement {
         </Box>
       )}
       <Divider />
-      <Box flexDirection="column" flexGrow={1} minHeight={0} paddingTop={1}>
-        {story.render(knobs)}
-      </Box>
+      {story.ownsScroll ? (
+        <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0}>
+          {story.render(knobs)}
+        </Box>
+      ) : (
+        // Story render area — `overflow="scroll"` enables wheel scroll;
+        // `<Scrollbar>` gives the pane a draggable scrollbar with click-
+        // to-position + drag-while-held UX. `userSelect="contain"`
+        // (already set on the surrounding pane) scopes selection drags
+        // to this pane so a drag here can't extend into the list pane.
+        <ScrollableStoryArea>{story.render(knobs)}</ScrollableStoryArea>
+      )}
     </Box>
+  )
+}
+
+/**
+ * Story render container with wheel scroll + draggable scrollbar.
+ *
+ * Owns its own scroll state via `useKineticScroll` so different stories
+ * each get a fresh viewport position on switch. Content height is
+ * inferred from the inner Box's `boxRect.height` (the scrollable
+ * extent — what the layout engine measured for the children).
+ */
+function ScrollableStoryArea({ children }: { children: React.ReactNode }): React.ReactElement {
+  const [contentHeight, setContentHeight] = useState(0)
+  const { scrollOffset, onWheel, setScrollOffset } = useKineticScroll({})
+  return (
+    <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} position="relative">
+      <Box
+        flexDirection="column"
+        flexGrow={1}
+        flexShrink={1}
+        minWidth={0}
+        minHeight={0}
+        overflow="scroll"
+        scrollOffset={scrollOffset}
+        onWheel={onWheel}
+      >
+        <ContentSizer onMeasure={setContentHeight}>{children}</ContentSizer>
+      </Box>
+      <ScrollbarWithMeasure
+        scrollOffset={scrollOffset}
+        setScrollOffset={setScrollOffset}
+        contentHeight={contentHeight}
+      />
+    </Box>
+  )
+}
+
+/**
+ * Wrap the scrollable content in a measured Box. The wrapper sizes
+ * to fit children (default flex column, no min/max height), so its
+ * `boxRect.height` reflects the full content extent — exactly what
+ * the scrollbar needs to compute proportional thumb size and the
+ * scroll cap.
+ */
+function ContentSizer({
+  children,
+  onMeasure,
+}: {
+  children: React.ReactNode
+  onMeasure: (height: number) => void
+}): React.ReactElement {
+  return (
+    <Box flexDirection="column" flexShrink={0}>
+      <ContentMeasureProbe onMeasure={onMeasure} />
+      {children}
+    </Box>
+  )
+}
+
+/**
+ * Sibling probe that reads the surrounding Box's measured rect via
+ * NodeContext (`useBoxRect`) and reports it upward. Empty render so
+ * it adds no visible chrome — pure measurement glue.
+ */
+function ContentMeasureProbe({ onMeasure }: { onMeasure: (height: number) => void }): null {
+  const rect = useBoxRect()
+  React.useEffect(() => {
+    onMeasure(rect.height)
+  }, [rect.height, onMeasure])
+  return null
+}
+
+/**
+ * Scrollbar overlay measured against the parent viewport rect. Reads
+ * the layout-derived height of its parent Box (`useBoxRect`) so the
+ * track always matches the current viewport size; `contentHeight`
+ * comes from `ContentSizer` so the thumb size + scroll cap reflect
+ * the actual overflow rather than a conservative half-thumb estimate.
+ */
+function ScrollbarWithMeasure({
+  scrollOffset,
+  setScrollOffset,
+  contentHeight,
+}: {
+  scrollOffset: number
+  setScrollOffset: (offset: number) => void
+  contentHeight: number
+}): React.ReactElement | null {
+  const rect = useBoxRect()
+  const trackHeight = rect.height
+  if (trackHeight <= 0) return null
+  const scrollableRows = Math.max(0, contentHeight - trackHeight)
+  return (
+    <Scrollbar
+      trackHeight={trackHeight}
+      scrollableRows={scrollableRows}
+      scrollOffset={scrollOffset}
+      onScrollOffsetChange={setScrollOffset}
+    />
   )
 }
 

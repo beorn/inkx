@@ -57,6 +57,7 @@ export function SessionCard({
   controller,
   agent,
   composerSlot,
+  follow = "end",
 }: {
   handle: SessionHandle
   isFocused: boolean
@@ -97,6 +98,8 @@ export function SessionCard({
    *  state so there's only ever one composer mounted. Bead:
    *  km-silvercode.welcome-bypassed-by-pane-grid-spawn. */
   composerSlot?: React.ReactNode
+  /** Chat panes follow the latest turn; natural-height story previews can disable it. */
+  follow?: "end" | false
 }): React.ReactElement {
   const state = useStoreSignal(handle.store)
   // Ambient stream — pre-filtered through the mute set so muted source
@@ -155,18 +158,21 @@ export function SessionCard({
       {/* Active-pane accent bar removed — the focused pane is implied by
           the keyboard cursor and the bottom composer's color, no need
           for a left-edge ▎ stripe in single-pane setups. */}
-      <Box
-        flexDirection="column"
-        flexGrow={1}
-        flexShrink={1}
-        minWidth={0}
-        minHeight={0}
-        paddingLeft={1}
-        paddingRight={2}
-      >
-        <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} paddingX={1} paddingTop={1}>
+      <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0}>
+        <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0}>
           {state.messages.length === 0 ? (
-            <Welcome handle={handle} agent={agent} status={state.status} composerSlot={composerSlot} />
+            // Keep the production welcome in the normal cell renderer. The
+            // Kitty bitmap banner writes terminal image escapes directly to
+            // stdout; during resume/load it can unmount exactly as the chat
+            // list appears, which makes some terminals expose stale image
+            // state in scrollback.
+            <Welcome
+              handle={handle}
+              agent={agent}
+              status={state.status}
+              composerSlot={composerSlot}
+              bitmapBanner={false}
+            />
           ) : (
             <SessionUpdateList
               ref={scrollListRefCb}
@@ -184,6 +190,7 @@ export function SessionCard({
               ambientEntries={ambientEntries}
               agentLabel={agentLabelFor(agent)}
               agentVersion={state.claudeCodeVersion || null}
+              follow={follow}
             />
           )}
         </Box>

@@ -199,7 +199,7 @@ function MarkdownTable({
   // Header rule is always present.
   const showRowDividers = block.rows.length > 0 && block.rows.length < 5
   return (
-    <Box flexDirection="column" borderStyle="single" borderColor="$border" paddingX={1}>
+    <Box flexDirection="column" borderStyle="single" borderColor="$border">
       <Text>
         {block.headers.map((h, col) => (
           <React.Fragment key={col}>

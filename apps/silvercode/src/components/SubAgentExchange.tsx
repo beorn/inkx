@@ -16,7 +16,7 @@
  * Bead: km-silvercode.acp-session-update-list.
  */
 import React, { useState } from "react"
-import { Box, Muted, Small, Spinner, Text } from "silvery"
+import { Box, Muted, Spinner, Text } from "silvery"
 import { BoundedScroll } from "./BoundedScroll.tsx"
 
 export interface SubAgentExchangeProps {
@@ -44,7 +44,6 @@ export function SubAgentExchange({
     <Box flexDirection="column">
       <Box
         flexDirection="column"
-        paddingX={1}
         borderStyle="single"
         borderColor={expanded ? accentColor : "$border"}
         borderTop={false}
@@ -63,10 +62,9 @@ export function SubAgentExchange({
             <Muted wrap={expanded ? "wrap" : "truncate"}>{description}</Muted>
           </Box>
           <Box flexGrow={1} />
-          {hasChildren ? <Small>{expanded ? "▾" : "▸"}</Small> : null}
         </Box>
         {expanded && children ? (
-          <Box paddingLeft={2} flexDirection="column">
+          <Box flexDirection="column">
             <BoundedScroll>{children}</BoundedScroll>
           </Box>
         ) : null}

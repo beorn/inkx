@@ -20,7 +20,9 @@ import {
   type PermissionRequestId,
   type RequestPermissionRequest,
   type RequestPermissionResponse,
+  type SessionId,
   type SessionStore,
+  type TurnId,
   acpRequestPermissionToSilvercode,
   silvercodeRequestPermissionResponseToAcp,
   channelDigestInjector,
@@ -57,6 +59,47 @@ import { replaySessionFromDisk } from "./resume.ts"
 const dQueue = createDebug("silvercode:queue")
 const dBackground = createDebug("silvercode:background")
 const dRecall = createDebug("silvercode:recall")
+
+function createReplayOnlySession(sessionId: string, sendFailureMessage: string): AgentSession {
+  const subscribers = new Set<(event: AgentEvent) => void>()
+  let closed = false
+  const sid = sessionId as SessionId
+
+  function emit(event: AgentEvent): void {
+    if (closed) return
+    for (const handler of Array.from(subscribers)) handler(event)
+  }
+
+  return {
+    sessionId: sid,
+    send(text: string): void {
+      if (closed) return
+      const ts = Date.now()
+      const turnId = `offline-${ts}` as TurnId
+      emit({ kind: "user-message", sessionId: sid, turnId, text, ts })
+      emit({ kind: "error", sessionId: sid, message: sendFailureMessage, ts: ts + 1 })
+    },
+    respondToPermission(requestId: PermissionRequestId, approved: boolean): void {
+      if (closed) return
+      emit({ kind: "permission-decision", sessionId: sid, requestId, approved, ts: Date.now() })
+    },
+    subscribe(handler: (event: AgentEvent) => void): () => void {
+      subscribers.add(handler)
+      return () => subscribers.delete(handler)
+    },
+    close(): Promise<void> {
+      closed = true
+      subscribers.clear()
+      return Promise.resolve()
+    },
+    get closed(): boolean {
+      return closed
+    },
+    [Symbol.asyncDispose](): Promise<void> {
+      return this.close()
+    },
+  }
+}
 
 /**
  * Trigger a recall probe every Nth assistant `turn-end` per session.
@@ -699,7 +742,46 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     readonly req: RequestPermissionRequest
     readonly resolve: AcpPermResolver
   }
+  type AcpPermDecision = { readonly approved: boolean; readonly optionId?: PermissionOptionId }
   const acpPermQueues = new Map<string, Map<string, AcpPermEntry>>()
+  const deferredAcpPermDecisions = new Map<string, Map<string, AcpPermDecision>>()
+  function isAcpSession(session: AgentSession): boolean {
+    const value = session as { agent?: unknown; protocolVersion?: unknown }
+    return value.agent !== undefined && typeof value.protocolVersion === "number"
+  }
+  function resolveAcpPermission(entry: AcpPermEntry, decision: AcpPermDecision): void {
+    if (!decision.approved) {
+      entry.resolve({ outcome: { outcome: "cancelled" } })
+      return
+    }
+    if (decision.optionId) {
+      entry.resolve({ outcome: { outcome: "selected", optionId: decision.optionId } })
+      return
+    }
+    const allowOpt =
+      entry.req.options.find((o) => o.kind === "allow_once" || o.kind === "allow_always") ?? entry.req.options[0]
+    entry.resolve(
+      allowOpt
+        ? { outcome: { outcome: "selected", optionId: allowOpt.optionId } }
+        : { outcome: { outcome: "cancelled" } },
+    )
+  }
+  function takeDeferredAcpDecision(sessionId: string, requestId: string): AcpPermDecision | undefined {
+    const queue = deferredAcpPermDecisions.get(sessionId)
+    const decision = queue?.get(requestId)
+    if (!queue || !decision) return undefined
+    queue.delete(requestId)
+    if (queue.size === 0) deferredAcpPermDecisions.delete(sessionId)
+    return decision
+  }
+  function deferAcpDecision(sessionId: string, requestId: string, decision: AcpPermDecision): void {
+    let queue = deferredAcpPermDecisions.get(sessionId)
+    if (!queue) {
+      queue = new Map()
+      deferredAcpPermDecisions.set(sessionId, queue)
+    }
+    queue.set(requestId, decision)
+  }
   function notifyQueue(sessionId: string): void {
     const t = queues.get(sessionId) ?? ""
     for (const fn of queueSubs) fn(sessionId, t)
@@ -1072,7 +1154,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
           const requestId = String(scReq.toolCall.toolCallId)
           // Push onto the queue. The promise resolves when the user approves
           // or denies via respondPermission / respondPermissionOption.
-          const scResponse = await new Promise<RequestPermissionResponse>((resolvePromise) => {
+          const scResponse = await new Promise<RequestPermissionResponse>((resolve) => {
             let queueForSession = acpPermQueues.get(sessionId)
             if (!queueForSession) {
               queueForSession = new Map()
@@ -1081,8 +1163,16 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
             queueForSession.set(requestId, {
               requestId,
               req: scReq,
-              resolve: resolvePromise,
+              resolve,
             })
+            const deferred = takeDeferredAcpDecision(sessionId, requestId)
+            if (deferred) {
+              const entry = queueForSession.get(requestId)
+              if (!entry) return
+              queueForSession.delete(requestId)
+              if (queueForSession.size === 0) acpPermQueues.delete(sessionId)
+              resolveAcpPermission(entry, deferred)
+            }
           })
           // Convert silvercode response back to SDK type for the ACP wire.
           return silvercodeRequestPermissionResponseToAcp(scResponse)
@@ -1146,18 +1236,34 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       replayCodexSessionFromDisk(store, opts.resume)
     }
 
-    const session = await Promise.resolve(
-      factory({
-        id,
-        name: givenName,
-        agent: opts.agent,
-        cwd: opts.cwd,
-        model: opts.model,
-        resume: opts.resume,
-        bare: opts.bare,
-        account: opts.account,
-      }),
-    )
+    let session: AgentSession
+    try {
+      session = await Promise.resolve(
+        factory({
+          id,
+          name: givenName,
+          agent: opts.agent,
+          cwd: opts.cwd,
+          model: opts.model,
+          resume: opts.resume,
+          bare: opts.bare,
+          account: opts.account,
+        }),
+      )
+    } catch (err) {
+      if (!(opts.resume && isCodexAgent)) throw err
+      const message = err instanceof Error ? err.message : String(err)
+      const replayOnlyMessage =
+        `Live Codex resume failed: ${message}. ` +
+        "Showing the recovered transcript only; start a fresh session to continue."
+      store.apply({
+        kind: "error",
+        sessionId: opts.resume as SessionId,
+        message: replayOnlyMessage,
+        ts: Date.now(),
+      })
+      session = createReplayOnlySession(opts.resume, replayOnlyMessage)
+    }
 
     let log: EventLog | undefined
     if (opts.logDir) log = createFileEventLog(opts.logDir)
@@ -1446,25 +1552,20 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       // requestId, resolve it with the binary approved/cancelled outcome.
       const acpQueue = acpPermQueues.get(sessionId)
       if (acpQueue?.has(requestId)) {
-        const entry = acpQueue.get(requestId)!
+        const entry = acpQueue.get(requestId)
+        if (!entry) return
         acpQueue.delete(requestId)
-        if (approved) {
-          // Pick the first allow_once / allow_always option, or just the first option.
-          const allowOpt =
-            entry.req.options.find((o) => o.kind === "allow_once" || o.kind === "allow_always") ?? entry.req.options[0]
-          if (allowOpt) {
-            entry.resolve({ outcome: { outcome: "selected", optionId: allowOpt.optionId } })
-          } else {
-            entry.resolve({ outcome: { outcome: "cancelled" } })
-          }
-        } else {
-          entry.resolve({ outcome: { outcome: "cancelled" } })
-        }
+        if (acpQueue.size === 0) acpPermQueues.delete(sessionId)
+        resolveAcpPermission(entry, { approved })
         return
       }
       // Legacy stream-json path.
       const s = sessions.find((h) => h.id === sessionId)
       if (!s) return
+      if (isAcpSession(s.session)) {
+        deferAcpDecision(sessionId, requestId, { approved })
+        return
+      }
       s.session.respondToPermission(requestId as PermissionRequestId, approved)
     },
     respondPermissionOption(
@@ -1478,18 +1579,20 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       // legacy sessions that don't use multi-option permissions.
       const acpQueue = acpPermQueues.get(sessionId)
       if (acpQueue?.has(requestId)) {
-        const entry = acpQueue.get(requestId)!
+        const entry = acpQueue.get(requestId)
+        if (!entry) return
         acpQueue.delete(requestId)
-        if (approved) {
-          entry.resolve({ outcome: { outcome: "selected", optionId } })
-        } else {
-          entry.resolve({ outcome: { outcome: "cancelled" } })
-        }
+        if (acpQueue.size === 0) acpPermQueues.delete(sessionId)
+        resolveAcpPermission(entry, { approved, optionId })
         return
       }
       // Fallback: legacy binary path.
       const s = sessions.find((h) => h.id === sessionId)
       if (!s) return
+      if (isAcpSession(s.session)) {
+        deferAcpDecision(sessionId, requestId, { approved, optionId })
+        return
+      }
       s.session.respondToPermission(requestId as PermissionRequestId, approved)
     },
     respondAskUserQuestion(

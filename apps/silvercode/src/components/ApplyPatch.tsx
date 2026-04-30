@@ -55,7 +55,7 @@ export function ApplyPatch({ filePath, hunks, showLineNumbers = true }: ApplyPat
   const lineNumberWidth = String(maxN).length
 
   return (
-    <Box flexDirection="column" borderStyle="single" borderColor="$border" paddingX={1}>
+    <Box flexDirection="column" borderStyle="single" borderColor="$border">
       {filePath ? <Muted>--- {filePath}</Muted> : null}
       {hunks.map((hunk, i) => (
         <Box key={i} flexDirection="column">

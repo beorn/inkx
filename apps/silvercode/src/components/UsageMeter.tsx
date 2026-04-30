@@ -80,7 +80,7 @@ export function UsageBreakdown({ usage, rows = [], defaultExpanded = false }: Us
     <Box flexDirection="column" gap={0}>
       <UsageMeter usage={usage} width={16} />
       <Accordion title={title} expanded={expanded} onToggle={setExpanded}>
-        <Box flexDirection="column" paddingLeft={2} gap={0}>
+        <Box flexDirection="column" gap={0}>
           {rows.map((row) => (
             <Box key={row.label} flexDirection="row" gap={1}>
               <Muted>{row.label}</Muted>
@@ -173,7 +173,7 @@ export function StructuredQuestion({
   highlightedIndex = 0,
 }: StructuredQuestionProps): React.ReactElement {
   return (
-    <Box flexDirection="column" borderStyle="single" borderColor="$info" padding={1} gap={1}>
+    <Box flexDirection="column" borderStyle="single" borderColor="$info" paddingY={1} gap={1}>
       <Text bold color="$info">
         {question}
       </Text>
@@ -212,7 +212,7 @@ export interface StructuredAnswerProps {
  */
 export function StructuredAnswer({ question, answer }: StructuredAnswerProps): React.ReactElement {
   return (
-    <Box flexDirection="column" borderStyle="single" borderColor="$border" padding={1} gap={0}>
+    <Box flexDirection="column" borderStyle="single" borderColor="$border" paddingY={1} gap={0}>
       <Muted>{question}</Muted>
       <Text bold>{answer}</Text>
     </Box>

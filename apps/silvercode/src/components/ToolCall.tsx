@@ -5,13 +5,8 @@
  *
  * Visual contract (v2, bead km-silvercode.tool-call-rendering-v2):
  *   - One single line per call. NO border, NO bg color on the row.
- *   - Format: `→ <title>` where `→` (U+2192) is a literal arrow glyph.
- *   - Verb token (the title) is colored by tool kind via semantic tokens:
- *       read / search / fetch  → `$info`     (calm cyan)
- *       edit / move            → `$success`  (calm green)
- *       execute                → `$muted`    (neutral)
- *       think / other          → `$accent`   (subtle highlight)
- *       failed (any kind)      → `$error`    (red)
+ *   - Format: `• <Action> rest` for non-shell calls and `$ <command>` for
+ *     shell calls. No per-tool color coding; white/grey only.
  *   - Body (file content / stdout / diff) hidden by default. Reveals on
  *     mouse hover (`useHover` from silvery). NO "click to expand" affordance
  *     text. Hover is the entire interaction surface.
@@ -22,7 +17,7 @@
  *
  * Component family (all in `apps/silvercode/src/components/`):
  *   - <ToolCall>             — this component, top-level row
- *   - <ToolCallStatusTitle>  — kind-coloured title with shimmer/reveal animations
+ *   - <ToolCallStatusTitle>  — neutral title with bold action word
  *   - <ToolCallError>        — standalone error envelope (used directly,
  *                              NOT composed inside ToolCall)
  *   - <ToolCallSummary>      — aggregate "Read 12 files" with rolling count
@@ -33,15 +28,19 @@
  * Bead: km-silvercode.tool-call-rendering-v2 (was: km-silvercode.acp-tool-call).
  */
 
-import React from "react"
-import { Accordion, Box, Diff as SilveryDiff, type DiffHunk, Muted, Spinner, Text, useHover } from "silvery"
-import type {
-  ToolCall as ToolCallType,
-  ToolCallContent,
-  ToolCallLocation,
-  ContentBlock,
-  ToolKind,
-} from "@km/agent-harness"
+import React, { useState } from "react"
+import {
+  Accordion,
+  Box,
+  Diff as SilveryDiff,
+  type DiffHunk,
+  Muted,
+  Spinner,
+  Text,
+  useHover,
+  usePopoverHandlers,
+} from "silvery"
+import type { ToolCall as ToolCallType, ToolCallContent, ToolCallLocation, ContentBlock } from "@km/agent-harness"
 import { ToolCallStatusTitle } from "./ToolCallStatusTitle.tsx"
 import { BoundedScroll } from "./BoundedScroll.tsx"
 import { formatPathForDisplay } from "../utils/format-path.ts"
@@ -243,6 +242,61 @@ function renderContent(content: ToolCallContent, key: number): React.ReactElemen
   )
 }
 
+function hasVisibleContentBlock(block: ContentBlock): boolean {
+  if (block.type === "text") return block.text.trim().length > 0
+  if (block.type === "image" || block.type === "audio" || block.type === "resource_link") return true
+  if ("text" in block.resource) return block.resource.text.trim().length > 0
+  return true
+}
+
+function hasVisibleContent(content: ToolCallContent): boolean {
+  if (content.type === "content") return hasVisibleContentBlock(content.content)
+  if (content.type === "diff") {
+    return (
+      content.path.trim().length > 0 || (content.oldText ?? "").trim().length > 0 || content.newText.trim().length > 0
+    )
+  }
+  return content.terminalId.trim().length > 0
+}
+
+function normalizeDisclosureText(text: string): string {
+  return text.replace(/\s+/g, " ").trim()
+}
+
+function contentDisclosureText(content: ToolCallContent): string {
+  if (content.type === "content") {
+    const block = content.content
+    if (block.type === "text") return block.text
+    if (block.type === "image") return `[image: ${block.mimeType}]`
+    if (block.type === "audio") return `[audio: ${block.mimeType}]`
+    if (block.type === "resource_link") return `[resource: ${block.name} ${block.uri}]`
+    if ("text" in block.resource) return block.resource.text
+    return block.resource.uri
+  }
+  if (content.type === "diff") return `${content.path}\n${content.oldText ?? ""}\n${content.newText}`
+  return content.terminalId
+}
+
+function hasAdditionalContent(title: string, content: ToolCallContent[]): boolean {
+  const titleText = normalizeDisclosureText(title)
+  return content.some((c) => {
+    if (!hasVisibleContent(c)) return false
+    const bodyText = normalizeDisclosureText(contentDisclosureText(c))
+    return bodyText.length > 0 && bodyText !== titleText
+  })
+}
+
+function ToolCallContentBody({
+  content,
+  bounded = false,
+}: {
+  content: ToolCallContent[]
+  bounded?: boolean
+}): React.ReactElement {
+  const body = <>{content.map((c, i) => renderContent(c, i))}</>
+  return bounded ? <BoundedScroll>{body}</BoundedScroll> : <Box flexDirection="column">{body}</Box>
+}
+
 /**
  * Compact location chip for the header — "src/foo.ts:42" or "src/foo.ts"
  * if no line. Multiple locations render as a comma-separated list,
@@ -271,45 +325,6 @@ function renderLocations(locations: ReadonlyArray<ToolCallLocation> | undefined)
       </Muted>
     </Box>
   )
-}
-
-/**
- * Map ACP `ToolKind` to a semantic theme token for the verb token color.
- *
- * Failed status is handled by the caller (always `$error`, regardless of kind)
- * so this function only returns the idle-success palette. Tokens chosen
- * to match opencode's calm density:
- *
- *   read / search / fetch  → `$info`     (calm cyan — passive observation)
- *   edit / move            → `$success`  (calm green — successful mutation)
- *   execute                → `$muted`    (neutral — shell commands have noisy
- *                                          output; muting the verb keeps focus
- *                                          on the command text itself)
- *   think                  → `$accent`   (subtle highlight)
- *   delete                 → `$error`    (red — destructive)
- *   switch_mode / other    → `$accent`
- *
- * `$warning` is intentionally NOT used for any idle/success state — yellow
- * was the loud color the v1 redesign explicitly removed.
- */
-function kindColor(kind: ToolKind): string {
-  switch (kind) {
-    case "read":
-    case "search":
-    case "fetch":
-      return "$info"
-    case "edit":
-    case "move":
-      return "$success"
-    case "execute":
-      return "$muted"
-    case "think":
-      return "$accent"
-    case "delete":
-      return "$error"
-    default:
-      return "$accent"
-  }
 }
 
 // =============================================================================
@@ -343,7 +358,7 @@ export interface ToolCallProps {
  *
  * Structure:
  *   ```
- *   → src/foo.ts                                    ← always visible row
+ *   • Read src/foo.ts                               ← always visible row
  *     content from BoundedScroll if hovered/expanded
  *     error message if failed
  *   ```
@@ -357,58 +372,87 @@ export interface ToolCallProps {
 export function ToolCall({ toolCall, errorMessage, onRetry, defaultExpanded }: ToolCallProps): React.ReactElement {
   const status = toolCall.status ?? "pending"
   const kind = toolCall.kind ?? "other"
-  const hasContent = (toolCall.content?.length ?? 0) > 0
+  const content = toolCall.content ?? []
+  const hasContent = hasAdditionalContent(toolCall.title, content)
+  const shell = kind === "execute"
 
-  // Hover drives body reveal. `defaultExpanded` (when explicitly set) wins
-  // over hover so test fixtures and replay views can pin the body open.
+  // Hover arms the row and, for real content, shows a popover preview.
+  // Inline expansion is click-only so transcript rows do not jump around
+  // while the pointer moves across them.
   const { isHovered, onMouseEnter, onMouseLeave } = useHover()
-  const expanded = defaultExpanded ?? isHovered
+  const [expanded, setExpanded] = useState(defaultExpanded ?? false)
+  const popover = usePopoverHandlers({
+    body: (
+      <Box flexDirection="column" paddingY={1}>
+        <ToolCallContentBody content={content} bounded />
+      </Box>
+    ),
+    maxWidth: 100,
+  })
 
-  // Verb colour: red for any failure, kind-mapped semantic token otherwise.
-  // No `$warning` — yellow was the loud colour the redesign removed.
-  const verbColor = status === "failed" ? "$error" : kindColor(kind)
+  const onEnter = (e: Parameters<typeof onMouseEnter>[0]): void => {
+    onMouseEnter(e)
+    if (hasContent) popover.onMouseEnter(e)
+  }
+  const onLeave = (e: Parameters<typeof onMouseLeave>[0]): void => {
+    onMouseLeave(e)
+    if (hasContent) popover.onMouseLeave(e)
+  }
+  const onToggle = hasContent ? () => setExpanded((v) => !v) : undefined
+  const armedBg = hasContent && isHovered ? "$bg-surface-hover" : undefined
 
   return (
-    <Box flexDirection="column" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
-      {/* Always-visible row — single line, NO border, NO bg. The leading `→`
-          glyph anchors the row visually; the title carries the meaning;
-          `kindColor` gives the verb a subtle hue. Status (in_progress) is
-          conveyed by `<ToolCallStatusTitle>`'s shimmer wrapper, not by a
-          separate glyph — opencode emits no spinner / ✓ / ✗ here either. */}
-      <Box flexDirection="row" gap={1}>
-        <Text color={verbColor}>→</Text>
-        {status === "in_progress" ? (
-          // Spinner is paired with the title for in-progress signal — small,
-          // unobtrusive, and matches opencode's mid-task signal.
-          <Spinner type="dots" />
+    <Box
+      flexDirection="row"
+      gap={1}
+      width="100%"
+      backgroundColor={armedBg}
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
+      onClick={onToggle}
+    >
+      <Box flexShrink={0}>
+        <Text color="$muted">{shell ? "$" : "•"}</Text>
+      </Box>
+
+      <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0}>
+        {/* Always-visible row — single line, no border, no per-tool color.
+            The marker is a section marker; title and expanded output share
+            this content column's left edge. */}
+        <Box flexDirection="row" gap={1} width="100%">
+          {status === "in_progress" ? (
+            // Spinner is paired with the title for in-progress signal — small,
+            // unobtrusive, and matches opencode's mid-task signal.
+            <Spinner type="dots" />
+          ) : null}
+          <ToolCallStatusTitle status={status} kind={kind} title={shortenTitlePath(toolCall.title)} shell={shell} />
+          {renderLocations(toolCall.locations)}
+          <Box flexGrow={1} />
+          {status === "failed" && onRetry ? (
+            <Box onClick={onRetry}>
+              <Muted>↻ retry</Muted>
+            </Box>
+          ) : null}
+        </Box>
+
+        {/* Body reveals only when clicked (or initially via defaultExpanded).
+            It is aligned with the command/title, not with the marker. */}
+        {expanded && hasContent ? (
+          <Box flexDirection="column">
+            <ToolCallContentBody content={content} />
+          </Box>
         ) : null}
-        <ToolCallStatusTitle status={status} kind={kind} title={shortenTitlePath(toolCall.title)} color={verbColor} />
-        {renderLocations(toolCall.locations)}
-        <Box flexGrow={1} />
-        {status === "failed" && onRetry ? (
-          <Box onClick={onRetry}>
-            <Muted>↻ retry</Muted>
+        {/* Failed calls inline the error message immediately under the row.
+            No border, no bg, and no red tool color; shell failures read as
+            command + inline stderr. */}
+        {status === "failed" ? (
+          <Box flexDirection="column">
+            <Text color="$muted" wrap="wrap">
+              {errorMessage ?? "Tool call failed"}
+            </Text>
           </Box>
         ) : null}
       </Box>
-      {/* Body reveals on hover (or when defaultExpanded). Indent 2 cols, dim
-          fg, no border, no bg. Tight density — opencode emits tool output as
-          plain text in the chat scrollback. */}
-      {expanded && hasContent ? (
-        <Box paddingLeft={2} flexDirection="column">
-          <BoundedScroll>{(toolCall.content ?? []).map((c, i) => renderContent(c, i))}</BoundedScroll>
-        </Box>
-      ) : null}
-      {/* Failed calls inline the error message immediately under the row.
-          No border, no bg — the `$error` colour on the verb plus the
-          message body carries the failure signal. */}
-      {status === "failed" ? (
-        <Box paddingLeft={2} flexDirection="column">
-          <Text color="$error" wrap="wrap">
-            {errorMessage ?? "Tool call failed"}
-          </Text>
-        </Box>
-      ) : null}
     </Box>
   )
 }

@@ -18,7 +18,7 @@ import { EventEmitter } from "node:events"
 import * as acp from "@agentclientprotocol/sdk"
 import { createScope } from "@silvery/scope"
 import { describe, expect, test } from "vitest"
-import type { AgentEvent, AgentSession, SessionId, TurnId } from "@km/agent-harness"
+import type { AgentEvent, AgentSession, PermissionRequestId, SessionId, TurnId } from "@km/agent-harness"
 import { attachWire } from "../src/wire.ts"
 import { createAmbientStream } from "../../../src/ambient-stream.ts"
 import { createChannelQueue } from "../../../src/channel-queue.ts"
@@ -31,8 +31,12 @@ const TID = "turn-bug-test" as TurnId
 // Stubs (re-used pattern from wire-write-ordering.test.ts)
 // ---------------------------------------------------------------------------
 
-function makeFakeAgentSession(): AgentSession & { push(e: AgentEvent): void } {
+function makeFakeAgentSession(): AgentSession & {
+  push(e: AgentEvent): void
+  permissionResponses: Array<{ requestId: string; approved: boolean }>
+} {
   const bus = new EventEmitter()
+  const permissionResponses: Array<{ requestId: string; approved: boolean }> = []
   return {
     sessionId: SID as SessionId,
     closed: false,
@@ -43,8 +47,8 @@ function makeFakeAgentSession(): AgentSession & { push(e: AgentEvent): void } {
     send(_text: string): void {
       // unused
     },
-    respondToPermission(): void {
-      // unused
+    respondToPermission(requestId: Parameters<AgentSession["respondToPermission"]>[0], approved: boolean): void {
+      permissionResponses.push({ requestId: String(requestId), approved })
     },
     close(): Promise<void> {
       return Promise.resolve()
@@ -55,21 +59,31 @@ function makeFakeAgentSession(): AgentSession & { push(e: AgentEvent): void } {
     push(e: AgentEvent): void {
       bus.emit("event", e)
     },
-  } as unknown as AgentSession & { push(e: AgentEvent): void }
+    permissionResponses,
+  } as unknown as AgentSession & {
+    push(e: AgentEvent): void
+    permissionResponses: Array<{ requestId: string; approved: boolean }>
+  }
 }
 
 function makeRecordingConnection(): {
   conn: acp.AgentSideConnection
   updates: acp.SessionNotification[]
+  permissionRequests: acp.RequestPermissionRequest[]
 } {
   const updates: acp.SessionNotification[] = []
+  const permissionRequests: acp.RequestPermissionRequest[] = []
   const conn = {
     sessionUpdate(payload: acp.SessionNotification): Promise<void> {
       updates.push(payload)
       return Promise.resolve()
     },
+    requestPermission(payload: acp.RequestPermissionRequest): Promise<acp.RequestPermissionResponse> {
+      permissionRequests.push(payload)
+      return Promise.resolve({ outcome: { outcome: "selected", optionId: "allow_once" } })
+    },
   } as unknown as acp.AgentSideConnection
-  return { conn, updates }
+  return { conn, updates, permissionRequests }
 }
 
 // ===========================================================================
@@ -117,6 +131,31 @@ describe("bug 1 — claude-acp wire emits turn-end on prompt resolve", () => {
 
     const result = await turnPromise
     expect(result.stopReason).toBe("cancelled")
+    wire.detach()
+  })
+})
+
+describe("bug 4 — claude-acp wire routes permissions through ACP", () => {
+  test("legacy permission-request becomes conn.requestPermission and resolves the subprocess", async () => {
+    const session = makeFakeAgentSession()
+    const { conn, permissionRequests } = makeRecordingConnection()
+    const wire = attachWire(conn, session, SID)
+
+    session.push({
+      kind: "permission-request",
+      sessionId: SID as SessionId,
+      requestId: "perm-open" as PermissionRequestId,
+      tool: "Bash",
+      args: { command: 'open -a "LM Studio"' },
+      ts: Date.now(),
+    } as AgentEvent)
+
+    await new Promise<void>((resolve) => setImmediate(resolve))
+
+    expect(permissionRequests).toHaveLength(1)
+    expect(permissionRequests[0]!.toolCall.toolCallId).toBe("perm-open")
+    expect(permissionRequests[0]!.toolCall.title).toBe("Bash")
+    expect(session.permissionResponses).toEqual([{ requestId: "perm-open", approved: true }])
     wire.detach()
   })
 })

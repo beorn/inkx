@@ -33,3 +33,18 @@ describe("storybook stories — smoke render", () => {
     })
   }
 })
+
+describe("All/together layout", () => {
+  test("uses only the runner navigation; story body has fixed right side panel and no local sections nav", () => {
+    const story = STORIES.find((s) => s.id === "All/together")
+    expect(story).toBeDefined()
+    const renderer = createRenderer({ cols: 120, rows: 30 })
+    const app = renderer(story!.render(resolveKnobs(story!)))
+
+    expect(app.text).not.toContain("Sections")
+    expect(app.text).not.toContain("Exchange 1\n")
+    expect(app.text).toContain("Sessions")
+    expect(app.locator("#all-side-panel").boundingBox()?.width).toBe(40)
+    expect(app.locator("#all-main-panel").boundingBox()?.width).toBe(79)
+  })
+})

@@ -11,6 +11,8 @@
  * rendering.
  */
 
+import type { PermissionOption } from "./acp-types.ts"
+
 export type SessionId = string & { readonly __brand: "SessionId" }
 export type TurnId = string & { readonly __brand: "TurnId" }
 export type ToolUseId = string & { readonly __brand: "ToolUseId" }
@@ -73,6 +75,7 @@ export type AgentEvent =
       requestId: PermissionRequestId
       tool: string
       args: unknown
+      options?: PermissionOption[]
       ts: number
     }
   | { kind: "permission-decision"; sessionId: SessionId; requestId: PermissionRequestId; approved: boolean; ts: number }
