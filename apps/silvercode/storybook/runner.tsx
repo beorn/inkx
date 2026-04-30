@@ -14,7 +14,21 @@
  */
 
 import React, { useMemo, useState } from "react"
-import { Box, Divider, Muted, Screen, SelectList, Strong, Text, useApp, useInput, type Key } from "silvery"
+import {
+  Box,
+  Divider,
+  Muted,
+  Screen,
+  Scrollbar,
+  SelectList,
+  Strong,
+  Text,
+  useApp,
+  useBoxRect,
+  useInput,
+  useKineticScroll,
+  type Key,
+} from "silvery"
 // `Divider` here renders the horizontal rule under the story header. The
 // vertical separator between panes is the implicit layout boundary.
 import { createTerm } from "silvery"
@@ -160,15 +174,78 @@ function StoryFrame({ story }: { story: Story }): React.ReactElement {
         </Box>
       )}
       <Divider />
-      {/* Story render area — `overflow="scroll"` so wheel events scroll
-          the content vertically when it overflows the pane. The story
-          itself owns horizontal scroll if any. `userSelect="contain"`
+      {/* Story render area — `overflow="scroll"` enables wheel scroll;
+          `<Scrollbar>` gives the pane a draggable scrollbar with click-
+          to-position + drag-while-held UX. `userSelect="contain"`
           (already set on the surrounding pane) scopes selection drags
           to this pane so a drag here can't extend into the list pane. */}
-      <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} overflow="scroll">
-        {story.render(knobs)}
-      </Box>
+      <ScrollableStoryArea>{story.render(knobs)}</ScrollableStoryArea>
     </Box>
+  )
+}
+
+/**
+ * Story render container with wheel scroll + draggable scrollbar.
+ *
+ * Owns its own scroll state via `useKineticScroll` so different stories
+ * each get a fresh viewport position on switch. Content height is
+ * inferred from the inner Box's `boxRect.height` (the scrollable
+ * extent — what the layout engine measured for the children).
+ */
+function ScrollableStoryArea({ children }: { children: React.ReactNode }): React.ReactElement {
+  const { scrollOffset, onWheel, setScrollOffset } = useKineticScroll({})
+  return (
+    <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} position="relative">
+      <Box
+        flexDirection="column"
+        flexGrow={1}
+        flexShrink={1}
+        minWidth={0}
+        minHeight={0}
+        overflow="scroll"
+        scrollOffset={scrollOffset}
+        onWheel={onWheel}
+      >
+        {children}
+      </Box>
+      <ScrollbarWithMeasure scrollOffset={scrollOffset} setScrollOffset={setScrollOffset} />
+    </Box>
+  )
+}
+
+/**
+ * Scrollbar overlay measured against the parent viewport rect. Reads
+ * the layout-derived height of its parent Box (`useBoxRect`) so the
+ * track always matches the current viewport size. `scrollableRows`
+ * is unknown to the host (children determine content height) — we
+ * use a conservative estimate equal to the viewport height itself,
+ * which means the scrollbar always renders at "halfway capacity"
+ * (thumb = 1/2 track). This is a v1 approximation; a follow-up
+ * (`km-silvery.scrollable-content-measurement`) wires content extent
+ * properly so the thumb size + scroll cap reflect actual overflow.
+ */
+function ScrollbarWithMeasure({
+  scrollOffset,
+  setScrollOffset,
+}: {
+  scrollOffset: number
+  setScrollOffset: (offset: number) => void
+}): React.ReactElement | null {
+  const rect = useBoxRect()
+  const trackHeight = rect.height
+  if (trackHeight <= 0) return null
+  // Conservative scrollableRows: trackHeight (half-thumb estimate).
+  // The Box's overflow="scroll" already clamps internally, so the
+  // user can't scroll past actual content; this estimate just sizes
+  // the visible thumb.
+  const scrollableRows = trackHeight
+  return (
+    <Scrollbar
+      trackHeight={trackHeight}
+      scrollableRows={scrollableRows}
+      scrollOffset={scrollOffset}
+      onScrollOffsetChange={setScrollOffset}
+    />
   )
 }
 
