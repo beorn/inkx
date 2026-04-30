@@ -129,5 +129,24 @@ export function resolveShortId(input: string, options: ShortIdOptions): string |
   )
   if (byAlias[0]) return byAlias[0].id
 
+  // 4. compat fallback: data.id / data.short_id json_extract.
+  //    In production, beads always have fs_path set (they're materialized
+  //    files on disk), so step 2 always finds them. This fallback exists
+  //    for tests that seed beads via raw `repo.addNode({ data: { id: ... } })`
+  //    without writing a file — the lookup-by-data.id pattern that the
+  //    pre-2026-04-30 resolver used. Will be removed once test fixtures
+  //    migrate to file-materialization (tracked in
+  //    @km/beads/data-id-stop-writing follow-up).
+  const stripped = input.replace(/^@[^/]+\//, "")
+  const byCanonical = repo.rawQuery<{ id: string }>(
+    `SELECT id FROM nodes
+     WHERE json_extract(data, '$.id') = ?
+        OR json_extract(data, '$.id') = ?
+        OR json_extract(data, '$.short_id') = ?
+     LIMIT 1`,
+    [input, stripped, input],
+  )
+  if (byCanonical[0]) return byCanonical[0].id
+
   return null
 }

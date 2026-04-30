@@ -332,33 +332,79 @@ const showCmd = bdCommand
 // bd create <title> - Create a new issue
 bdCommand
   .command("create")
-  .argument("<title>", "Bead title")
-  .description("Create a new issue")
+  .argument("<arg>", "Path-form id (e.g. @km/beads/foo) — or, in legacy form, the bead title")
+  .description("Create a new issue. Canonical form: bd create @<prefix>/<scope>/<slug> --title \"...\"")
+  .option("--title <title>", "Bead title (required when arg is a path; legacy callers may pass title as arg)")
   .option("-t, --type <type>", "Bead type (bug, feature, epic, task, docs)")
   .option("-p, --priority <value>", "Priority (e.g. P0-P4 or 0-4, default: P2)")
   .option("-a, --assignee <name>", "Assign to person")
   .option("-l, --label <labels...>", "Add labels")
   .option("-d, --description <text>", "Bead description")
   .option("-n, --notes <text>", "Additional notes")
-  .option("--id <custom>", "Custom short ID")
-  .option("--parent <id>", "Parent issue for sub-issues")
+  .option("--id <custom>", "(bd compat) Custom short ID — prefer the positional path arg")
+  .option("--parent <id>", "(bd compat) Parent issue — prefer encoding the parent in the positional path arg")
   .option("--json", "Output as JSON")
   .actionMerged(async (opts) => {
     const resolved = resolvePathArg(undefined)
     const configObj = await loadKmBdConfig(resolved.repoRoot)
     using repo = await loadRepo(resolved.repoRoot)
 
-    const { node, shortId, children } = Bead.create(repo, opts.title, {
+    // Smart positional: the `arg` value is either a path-form id (canonical
+    // km usage: `bd create @km/beads/foo --title "..."`) or a bead title
+    // (legacy bd usage: `bd create "Title"`). Detect by shape.
+    //
+    // A path-form id either starts with `@<prefix>/` (sigil-prefixed) or
+    // contains a `/` (foreign-sigil or relative path). Anything else is
+    // treated as a title for backward compat with bd-style callers.
+    const rawArg = opts.arg as string
+    const prefix = configObj.beads.prefix
+    const argIsPath = rawArg.startsWith(`@${prefix}/`) || rawArg.startsWith("@") || rawArg.includes("/")
+
+    let titleForCreate: string
+    let customIdForCreate: string | undefined = opts.id
+    if (argIsPath) {
+      // Canonical km form: positional is the path; title comes from --title
+      // or is derived from the leaf segment if --title is omitted.
+      const titleFlag = opts.title as string | undefined
+      titleForCreate = titleFlag ?? rawArg.split("/").pop() ?? rawArg
+      // The positional path becomes the customId, replacing any --id flag
+      // (warn on conflict — user is expressing intent twice).
+      if (opts.id && opts.id !== rawArg) {
+        console.error(
+          term.yellow(
+            `Warning: both positional path and --id given (path=${rawArg}, --id=${opts.id}). Using positional path.`,
+          ),
+        )
+      }
+      customIdForCreate = rawArg
+    } else {
+      // Legacy bd form: positional is the title.
+      if (opts.title) {
+        console.error(term.yellow(`Warning: --title given with title-positional arg. Using --title (${opts.title}).`))
+        titleForCreate = opts.title as string
+      } else {
+        titleForCreate = rawArg
+      }
+    }
+
+    const { node, shortId, children } = Bead.create(repo, titleForCreate, {
       type: opts.type,
       priority: opts.priority,
       assignee: opts.assignee,
       labels: opts.label as string[] | undefined,
-      customId: opts.id,
+      customId: customIdForCreate,
       parentId: opts.parent,
       description: opts.description,
       notes: opts.notes,
       prefix: configObj.beads.prefix,
     })
+
+    // For downstream code, keep `opts.id` consistent with the resolved
+    // customId so the existing canonical-id resolver sees the path-positional
+    // input the same way it sees --id.
+    if (argIsPath && customIdForCreate) {
+      opts.id = customIdForCreate
+    }
 
     // Parent resolution rule:
     //   `--id @km/wt/1` (or `km-wt.1`)            → full identity, parent encoded in id
@@ -428,7 +474,7 @@ bdCommand
       const primaryRoot = configObj.beads.roots[0] ?? "@km"
       const inboxScope = configObj.beads.default_scope
       const inboxDir = join(resolved.repoRoot, primaryRoot, inboxScope)
-      const { filename, content } = renderInboxCapture(shortId, opts.title, {
+      const { filename, content } = renderInboxCapture(shortId, titleForCreate, {
         prefix: configObj.beads.prefix,
         type: opts.type as string | undefined,
         priority: opts.priority as string | undefined,
@@ -450,7 +496,7 @@ bdCommand
         console.log(JSON.stringify({ shortId, fs_path: filepath }, null, 2))
       } else {
         console.log(term.green(`Created issue: ${shortId}`))
-        console.log(`Title: ${opts.title}`)
+        console.log(`Title: ${titleForCreate}`)
         if (opts.type) console.log(`Type: ${opts.type}`)
         console.log(`Priority: ${opts.priority ?? "P2"}`)
         console.log(term.dim(`Path: ${filepath}`))
@@ -503,9 +549,7 @@ bdCommand
         const parentNode = repo.getNode(parentId)
         const parentData = parentNode?.data as Record<string, unknown> | undefined
         const parentCanonical = typeof parentData?.id === "string" ? parentData.id : null
-        const parentFromFsPath = parentNode?.fs_path?.endsWith(".md")
-          ? parentNode.fs_path.slice(0, -3)
-          : null
+        const parentFromFsPath = parentNode?.fs_path?.endsWith(".md") ? parentNode.fs_path.slice(0, -3) : null
         // fs_path may be bare (`@km/beads`) or sigil-prefixed depending on
         // how the vault was loaded; prepend the sigil when missing so the
         // canonical id always carries it.
@@ -532,7 +576,7 @@ bdCommand
     })()
 
     if (canonicalId !== null) {
-      const { filename, content } = renderBeadFile(canonicalId, opts.title, {
+      const { filename, content } = renderBeadFile(canonicalId, titleForCreate, {
         prefix: configObj.beads.prefix,
         type: opts.type as string | undefined,
         priority: opts.priority as string | undefined,
@@ -554,7 +598,7 @@ bdCommand
       }
 
       console.log(term.green(`Created issue: ${canonicalId}`))
-      console.log(`Title: ${opts.title}`)
+      console.log(`Title: ${titleForCreate}`)
       if (opts.type) console.log(`Type: ${opts.type}`)
       console.log(`Priority: ${opts.priority ?? "P2"}`)
       console.log(term.dim(`Path: ${filepath}`))
@@ -582,7 +626,7 @@ bdCommand
     }
 
     console.log(term.green(`Created issue: ${shortId}`))
-    console.log(`Title: ${opts.title}`)
+    console.log(`Title: ${titleForCreate}`)
     if (opts.type) console.log(`Type: ${opts.type}`)
     console.log(`Priority: ${opts.priority ?? "P2"}`)
     if (opts.description) {
@@ -799,7 +843,9 @@ const depAddCmd = depCommand
 
     const props = Bead.addDependency(repo, issue, opts.dependsOn)
     const node = repo.getNode(issue.id)
-    repo.updateNode(issue.id, { data: Bead.mergeDepProps(repo, node?.data as Record<string, unknown> | undefined, props) })
+    repo.updateNode(issue.id, {
+      data: Bead.mergeDepProps(repo, node?.data as Record<string, unknown> | undefined, props),
+    })
 
     console.log(term.green(`Added dependency: ${issue.shortId} blocked-by ${opts.dependsOn}`))
   })
@@ -831,7 +877,9 @@ const depRemoveCmd = depCommand
     }
 
     const node = repo.getNode(issue.id)
-    repo.updateNode(issue.id, { data: Bead.mergeDepProps(repo, node?.data as Record<string, unknown> | undefined, result) })
+    repo.updateNode(issue.id, {
+      data: Bead.mergeDepProps(repo, node?.data as Record<string, unknown> | undefined, result),
+    })
 
     console.log(term.green(`Removed dependency: ${issue.shortId} no longer blocked-by ${opts.dependsOn}`))
   })
