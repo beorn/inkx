@@ -13,7 +13,7 @@
  *
  * - **Forward equivalence** — for a bead seeded with all three id forms,
  *   `resolveShortId` resolves each form to the same node id.
- * - **`getIssue` consistency** — `getIssue(form)` returns the same `Issue`
+ * - **`getIssue` consistency** — `getIssue(form)` returns the same `Bead`
  *   (same `id`, `shortId`, `path`) regardless of which id-form the caller
  *   passes.
  * - **Cross-scope disambiguation** — two beads with identical slug under
@@ -146,7 +146,7 @@ describe("id-resolution property: id-form × scope × bead-class", () => {
     )
   })
 
-  test("getIssue returns a structurally-equal Issue regardless of input form", () => {
+  test("getIssue returns a structurally-equal Bead regardless of input form", () => {
     fc.assert(
       fc.property(beadCoord, (b) => {
         using repo = createTestRepo()

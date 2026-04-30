@@ -143,7 +143,7 @@ describe("beadDataSchema", () => {
   })
 
   test("validates the post-create newly-authored bead shape", () => {
-    // Captured from mutations.createIssueNode — what km-beads writes
+    // Captured from mutations.createBeadNode — what km-beads writes
     // when `bd create` lands.
     const data = {
       short_id: "km-abc1",
@@ -155,7 +155,7 @@ describe("beadDataSchema", () => {
   })
 
   test("validates the post-close shape (closeReason layered onto existing data)", () => {
-    // Captured from mutations.closeIssueFields — merges closeReason onto
+    // Captured from mutations.closeBeadFields — merges closeReason onto
     // the existing data blob.
     const data = {
       id: "@km/beads/foo",
