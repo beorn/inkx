@@ -17,7 +17,7 @@ Acceptance:
 - [x] Typed frame-artifact queue owns image protocol writes.
 - [x] Viewport clipping handles all four terminal edges.
 - [x] Termless tests cover post-paint ordering, clipping, and no retransmit-on-scroll.
-- [ ] Termless tests cover cleanup protocol writes.
+- [x] Termless tests cover cleanup protocol writes.
 - [ ] Image/text layering policy is explicit.
 - [ ] Old anonymous image write path is deleted or limited to non-image escape fallbacks.
 
@@ -28,8 +28,9 @@ First plateau slice:
 - Added `TerminalFrameArtifact` and `StdoutContext.queueFrameArtifact`.
 - `createApp()` now flushes typed frame artifacts after `runtime.render()`, sorted by `zIndex`, before legacy raw post-paint writes.
 - `<Image />` queues Kitty/Sixel protocol writes as typed image artifacts.
+- `<Image />` cleanup writes Kitty deletion immediately because unmount may not have a following paint frame.
 - `computeVisibleImagePlacement()` now clips right/bottom against the terminal viewport and emits matching source crop dimensions.
-- Added unit and termless coverage for right/bottom clipping.
+- Added unit and termless coverage for right/bottom clipping and unmount cleanup.
 
 Verification:
 
