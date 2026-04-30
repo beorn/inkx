@@ -332,59 +332,47 @@ const showCmd = bdCommand
 // bd create <title> - Create a new issue
 bdCommand
   .command("create")
-  .argument("<arg>", "Path-form id (e.g. @km/beads/foo) — or, in legacy form, the bead title")
-  .description("Create a new issue. Canonical form: bd create @<prefix>/<scope>/<slug> --title \"...\"")
-  .option("--title <title>", "Bead title (required when arg is a path; legacy callers may pass title as arg)")
+  .argument("<title>", "Bead title")
+  .description("Create a new issue")
+  .option("--path <path>", "Canonical path-form id (e.g. @km/beads/foo) — encodes scope + leaf in one arg")
   .option("-t, --type <type>", "Bead type (bug, feature, epic, task, docs)")
   .option("-p, --priority <value>", "Priority (e.g. P0-P4 or 0-4, default: P2)")
   .option("-a, --assignee <name>", "Assign to person")
   .option("-l, --label <labels...>", "Add labels")
   .option("-d, --description <text>", "Bead description")
   .option("-n, --notes <text>", "Additional notes")
-  .option("--id <custom>", "(bd compat) Custom short ID — prefer the positional path arg")
-  .option("--parent <id>", "(bd compat) Parent issue — prefer encoding the parent in the positional path arg")
+  .option("--id <custom>", "(bd compat) Custom short ID; prefer --path for new code")
+  .option("--parent <id>", "(bd compat) Parent issue; prefer --path for new code")
   .option("--json", "Output as JSON")
   .actionMerged(async (opts) => {
     const resolved = resolvePathArg(undefined)
     const configObj = await loadKmBdConfig(resolved.repoRoot)
     using repo = await loadRepo(resolved.repoRoot)
 
-    // Smart positional: the `arg` value is either a path-form id (canonical
-    // km usage: `bd create @km/beads/foo --title "..."`) or a bead title
-    // (legacy bd usage: `bd create "Title"`). Detect by shape.
+    // Surface model (deliberately explicit, no smart-positional heuristic):
+    //   bd create "Title"                                  → bd compat, lands in inbox
+    //   bd create "Title" --path @km/beads/foo             → km canonical (full path encodes scope+leaf)
+    //   bd create "Title" --id @km/beads/foo               → bd compat (--id accepts path-form too)
+    //   bd create "Title" --parent @km/beads --id foo      → bd compat (split form)
     //
-    // A path-form id either starts with `@<prefix>/` (sigil-prefixed) or
-    // contains a `/` (foreign-sigil or relative path). Anything else is
-    // treated as a title for backward compat with bd-style callers.
-    const rawArg = opts.arg as string
-    const prefix = configObj.beads.prefix
-    const argIsPath = rawArg.startsWith(`@${prefix}/`) || rawArg.startsWith("@") || rawArg.includes("/")
-
-    let titleForCreate: string
+    // The earlier "smart positional" (treat arg as path if it starts with @
+    // or contains /) was removed — it misclassified realistic titles like
+    // "fix: handle / in regex" or "@alice please review", and made
+    // `bd create km-beads.foo` (legacy bd-form id) silently land as a title.
+    // /pro 4-leg review 2026-04-30 confirmed the heuristic was unsafe.
+    //
+    // --path takes precedence over --id when both are given (warns).
+    const titleForCreate = opts.title as string
     let customIdForCreate: string | undefined = opts.id
-    if (argIsPath) {
-      // Canonical km form: positional is the path; title comes from --title
-      // or is derived from the leaf segment if --title is omitted.
-      const titleFlag = opts.title as string | undefined
-      titleForCreate = titleFlag ?? rawArg.split("/").pop() ?? rawArg
-      // The positional path becomes the customId, replacing any --id flag
-      // (warn on conflict — user is expressing intent twice).
-      if (opts.id && opts.id !== rawArg) {
+    if (opts.path) {
+      if (opts.id && opts.id !== opts.path) {
         console.error(
           term.yellow(
-            `Warning: both positional path and --id given (path=${rawArg}, --id=${opts.id}). Using positional path.`,
+            `Warning: both --path and --id given (path=${opts.path}, --id=${opts.id}). Using --path.`,
           ),
         )
       }
-      customIdForCreate = rawArg
-    } else {
-      // Legacy bd form: positional is the title.
-      if (opts.title) {
-        console.error(term.yellow(`Warning: --title given with title-positional arg. Using --title (${opts.title}).`))
-        titleForCreate = opts.title as string
-      } else {
-        titleForCreate = rawArg
-      }
+      customIdForCreate = opts.path as string
     }
 
     const { node, shortId, children } = Bead.create(repo, titleForCreate, {
@@ -399,10 +387,8 @@ bdCommand
       prefix: configObj.beads.prefix,
     })
 
-    // For downstream code, keep `opts.id` consistent with the resolved
-    // customId so the existing canonical-id resolver sees the path-positional
-    // input the same way it sees --id.
-    if (argIsPath && customIdForCreate) {
+    // Downstream canonical-id resolver reads opts.id; keep --path routed to it.
+    if (opts.path && customIdForCreate) {
       opts.id = customIdForCreate
     }
 
