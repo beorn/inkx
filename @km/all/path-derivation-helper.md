@@ -45,9 +45,9 @@ Centralizing into one helper:
 
 ## Implementation notes
 
-- Walk uses `repo.getNode(id).parent_id` chain. With `parent_id` indexed via `idx_nodes_parent_order`, the walk is O(depth).
-- For repo root: the leading sigil comes from the `prefix` config in `.km/config.yaml` (matching how `bdIdToPathForm` reads `sourcePrefix` today).
-- Memoization: a per-repo cache keyed by id, busted on any mutation that changes a node's `name` or `parent_id`. The repo's existing children-cache invalidation mechanism is the right hook.
+- **Fast path**: for fs-materialized nodes (`fstype IS NOT NULL`), the path is already stored as `fs_path`. `pathOf` becomes a one-liner: `node.fs_path?.replace(/\.md$/, '') ?? null`. No walk needed.
+- **Fallback path**: for nodes without an `fs_path` (mdsections inside files, or any future sub-file-level node with stable identity), walk the parent_id chain collecting names, reverse, join with `/`. Stops at the nearest ancestor with `fs_path`; prepends that.
+- Memoization: optional. The fast path is already O(1) (one column read); the walk is O(depth) bounded by 3-5 levels for beads. Cache only if a profiler shows hotness.
 
 ## Acceptance
 

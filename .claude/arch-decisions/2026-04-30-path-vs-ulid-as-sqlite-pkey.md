@@ -77,21 +77,33 @@ Migration is mostly **subtractive at the DB level** + **additive at the resolver
 4. **`idx_nodes_name` was already pointing the way.** The schema (`schema.ts:219`) already indexes `name`. The namespaces close-reason ("name = short_id = identity under the new model") is the design hypothesis that aligns. The /arch agent surfaced this as the "out-of-bundle" alternative; turns out that alternative IS the answer.
 5. **Cross-cutting rename machinery is needed anyway.** Wikilinks, mentions, and inline references in markdown content all need batch update on rename. Building that engine once serves every rename use case.
 
-## Beads filed (2026-04-30 09:23)
+## Beads filed (2026-04-30 09:23, pruned ~09:38 after user pointed out path-walking is already implemented)
 
-Sequenced by dependency:
+User correction at 09:34: "this sounds like you think this is new — this is already implemented — path-walking i mean (i think the resolver does it). i'm pretty sure — but perhaps not at the schema level. btw, i thought h/file/folder fs_type or something like that? it's purely an fs materialization thing."
 
-1. `@km/storage/parent-name-unique` (P1) — UNIQUE (parent_id, name) partial index for path-resolvable types. Schema migration. SCHEMA_VERSION → 8.
-2. `@km/beads/resolver-path-via-name-walk` (P1) — `resolveShortId` rewrite using parent-walk. Depends on (1).
-3. `@km/beads/directory-nesting-bd-create` (P1) — agenda item #4: `bd create @km/beads/foo` infers parent + mints fresh ULID. Path-positional CLI is canonical km usage. `--id` and `--parent` flags KEPT for bd compat per user ("we should allow for --id and --parent - but we should not encourage using it for ourselves … we should just use the path"). Depends on (2).
-4. `@km/beads/data-id-stop-writing` (P2) — mutations stop writing `data.id` on insert/update (redundant with the path-walk derivation). Existing rows' `data.id` becomes a fossil. Depends on (2).
-5. `@km/all/path-derivation-helper` (P2) — `pathOf(repo, id) → "@km/beads/foo"` utility. Single source of truth for path materialization.
-6. `@km/all/rename-content-cascade` (P2 — softened from P1) — content-level batch update of wikilinks/mentions when a node's path changes. Per "either form resolves" insight, this is UX freshness, not correctness — both `[[<path>]]` and `[[<id>]]` resolve, so stale paths in content still work.
-7. `@km/all/id-name-path-code-cleanup` (P2) — sweep of code variable/function/parameter names: places where we say "id" but mean "path" or "name". Internal vocabulary discipline; bd-compat flags `--id` / `--parent` stay (long-horizon: "eventually we will likely migrate to the task system instead of bd").
-8. `@km/all/storage-doc-three-concepts` (P3) — docs side of the same vocabulary discipline. Updates `docs/design/model/storage.md:761-787`, `knode.md:13`, `packages/km-storage/CLAUDE.md`.
-9. `@km/beads/frontmatter-path-rename` (P3) — frontmatter `id:` is misnamed (holds a path). Decision deferred: rename to `path:` or remove entirely (path is derivable from filename + walk). Cleanup, not load-bearing.
+Two corrections:
 
-Build order: 1 → 2 → 3 unblocks the agenda's directory-nesting work. 4–9 are follow-ups that can run concurrently after 2 lands.
+1. **Path resolution via `fs_path` already exists** in `packages/km-storage/src/db/queries/smart-resolver.ts:278-305` (`resolveRelativePath`). Routes through indexed `idx_nodes_fs_path`. The slowness is in `resolveShortId` (km-beads-specific) doing redundant `json_extract` scans on `data.id`, not in path resolution itself. The fix is much smaller: delegate `resolveShortId` to `resolveNode` for path inputs.
+
+2. **`fstype` (filesystem materialization: `repo`/`folder`/`file`/`mdsection`) is the right column**, not `type` (markdown shape: `h`/`p`/`code`/...). I'd conflated them. The path-resolvable concept is purely about fs-materialized nodes (`fstype IS NOT NULL`).
+
+Pruned bead set:
+
+| # | Bead | Status |
+|---|------|--------|
+| ~~1~~ | `@km/storage/parent-name-unique` | **DROPPED** — fs_path uniqueness enforced by OS filesystem; mdsection name collisions are valid. Marked closed in the bead file. |
+| 2 | `@km/beads/resolver-path-via-name-walk` | **REFRAMED** — small refactor: `resolveShortId` delegates to `resolveNode` for path inputs; aliases scan stays for legacy bd-form. ~10 lines. |
+| 3 | `@km/beads/directory-nesting-bd-create` | Unchanged. Agenda item #4. Now only depends on (2). |
+| 4 | `@km/beads/data-id-stop-writing` | Unchanged. |
+| 5 | `@km/all/path-derivation-helper` | Updated — fast path: `pathOf` reads `fs_path` for fs-materialized nodes (one-liner); walk fallback for sub-file nodes. |
+| 6 | `@km/all/rename-content-cascade` | Unchanged. P2 (UX freshness, not correctness). |
+| 7 | `@km/all/id-name-path-code-cleanup` | Unchanged. |
+| 8 | `@km/all/storage-doc-three-concepts` | Unchanged. Adds: clarify `fstype` vs `type` distinction in docs that conflate them. |
+| 9 | `@km/beads/frontmatter-path-rename` | Unchanged. P3. |
+
+Net scope reduction: the schema migration is gone (no SCHEMA_VERSION bump, no `km doctor name-collisions` subcommand needed). The "resolver rewrite" becomes "delegate to existing infrastructure". The agenda's task #4 (directory-nesting `bd create`) is now ~½ day work, not ~1.5 days.
+
+**Larger lesson** (added to memory): the /arch agent and the lead spent considerable effort designing storage and resolver changes WITHOUT noticing that the relevant infrastructure (`resolveNode`, `idx_nodes_fs_path`, `fstype`-indexed lookup) already existed. Both gate-passed reports failed to surface it. The bead's bundle "Current code state" section listed `short-ids.ts:resolveShortId` but didn't audit `resolveNode` as the broader-scope alternative path that already worked. Adding an `arch` Phase 1 step: "before recommending new resolution machinery, grep for existing resolution code and confirm it's *insufficient*, not just *unused-here*."
 
 ---
 

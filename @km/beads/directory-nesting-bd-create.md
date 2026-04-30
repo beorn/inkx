@@ -60,8 +60,9 @@ So:
 
 ## Depends on
 
-- `@km/storage/parent-name-unique` — UNIQUE (parent_id, name) collision detection.
-- `@km/beads/resolver-path-via-name-walk` — name-walk resolution used by parent lookup.
+- `@km/beads/resolver-path-via-name-walk` (now reframed as "delegate to resolveNode") — used to look up the parent path.
+
+(Original draft listed `@km/storage/parent-name-unique` as a dependency; that bead was dropped — fs_path uniqueness is enforced by the OS filesystem, no DB-level UNIQUE needed. Collision detection on `bd create` happens via `pathExists`-style check before insert, not via a SQL constraint.)
 
 ## Acceptance
 
