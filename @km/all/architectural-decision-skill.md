@@ -4,8 +4,29 @@ aliases:
   - km-all.architectural-decision-skill
   - km-all-architectural-decision-skill
 created_at: 2026-04-30T07:49:25.046Z
+closed_at: 2026-04-30T08:50:00.000Z
+status: closed
 type: feature
 priority: P1
+close_reason: |
+  Shipped /arch skill at .claude/skills/arch/SKILL.md (mirrored to .agents/skills/arch/SKILL.md),
+  drift-checker at tools/check-arch-required.ts, retro archive at .claude/arch-decisions/,
+  and /max Step 0 gate calling the drift-checker. All four bead acceptance criteria pass:
+
+  1. .claude/skills/arch/SKILL.md exists with the 4-phase protocol — Discovery (canonical-only,
+     EXCLUDES hub/<project>/design/*), Arch agent invocation (5+ doc quotes / 3+ close-reason
+     verbatim quotes required), Mandatory retro (line-numbered "actually read" + REVERSAL
+     check), Gating. Mirrored to .agents/skills/arch/SKILL.md.
+  2. /arch <topic> invocable via the harness skill list — appears as a top-level skill.
+  3. tools/check-arch-required.ts blocks /max for identity / storage / persistence / loader /
+     public-API / rendering-pipeline path changes without a recent (<7 days) retro covering
+     the topic. Verified: exit 0 on non-triggering paths, exit 1 on triggering paths without
+     retros, exit 0 once a topic-matching retro exists in .claude/arch-decisions/. /max
+     Step 0 calls the script — exit 1 aborts /max with the list of uncovered topics.
+  4. .claude/arch-decisions/ directory + README.md created. Retros use
+     YYYY-MM-DD-<topic-slug>.md format with topic / verdict frontmatter.
+
+  Commit: e540ec95c.
 ---
 
 # /arch skill: doc-first architectural-decision protocol with required retro
