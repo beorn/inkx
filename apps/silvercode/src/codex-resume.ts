@@ -33,8 +33,10 @@
  *   event_msg.user_message       → user-message
  *   event_msg.task_started       → turn-start
  *   event_msg.task_complete      → turn-end
+ *   event_msg.turn_aborted       → turn-end (interrupted)
  *   event_msg.agent_message      → ignored known duplicate
  *   event_msg.token_count        → ignored known usage metadata
+ *   event_msg.web_search_end     → ignored known web-search metadata
  *   response_item.message:user   → ignored known bootstrap context
  *   response_item.message:dev    → ignored known instructions
  *   response_item.message:assist → text-delta
@@ -42,6 +44,7 @@
  *   response_item.function_call_output → tool-result
  *   response_item.custom_tool_call → tool-use
  *   response_item.custom_tool_call_output → tool-result
+ *   response_item.web_search_call → ignored known web-search metadata
  *   response_item.reasoning      → ignored known reasoning metadata
  *   turn_context                 → ignored known per-turn metadata
  *
@@ -232,6 +235,14 @@ function applyEventMsg(rt: ReplayRuntime, payload: CodexEventMsgPayload, ts: num
       }
       return
     }
+    case "turn_aborted": {
+      const turnId = (typeof payload.turn_id === "string" ? payload.turn_id : rt.currentTurnId) as TurnId | null
+      if (turnId) {
+        rt.store.apply({ kind: "turn-end", sessionId: rt.sessionId, turnId, stopReason: "interrupted", ts })
+        if (rt.currentTurnId === turnId) rt.currentTurnId = null
+      }
+      return
+    }
     case "user_message": {
       const text = typeof payload.message === "string" ? payload.message : ""
       if (text.length > 0) {
@@ -244,6 +255,7 @@ function applyEventMsg(rt: ReplayRuntime, payload: CodexEventMsgPayload, ts: num
     case "token_count":
     case "context_compacted":
     case "view_image_tool_call":
+    case "web_search_end":
       return
     case "exec_command_end": {
       const id = payload.call_id
@@ -370,6 +382,7 @@ function applyResponseItem(rt: ReplayRuntime, payload: CodexResponseItemPayload,
       return
     }
     case "reasoning":
+    case "web_search_call":
       return
     default:
       assertNever(payload)

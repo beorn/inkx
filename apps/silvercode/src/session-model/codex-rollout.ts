@@ -2,9 +2,34 @@ import { z } from "zod"
 
 const recordSchema = z.record(z.string(), z.unknown())
 
+const knownTopLevelTypes = ["session_meta", "event_msg", "response_item", "turn_context", "compacted"] as const
+const knownEventMsgTypes = [
+  "task_started",
+  "task_complete",
+  "turn_aborted",
+  "user_message",
+  "agent_message",
+  "token_count",
+  "context_compacted",
+  "view_image_tool_call",
+  "web_search_end",
+  "exec_command_end",
+  "patch_apply_end",
+] as const
+const knownResponseItemTypes = [
+  "message",
+  "function_call",
+  "function_call_output",
+  "custom_tool_call",
+  "custom_tool_call_output",
+  "web_search_call",
+  "reasoning",
+] as const
+
 export const codexEventMsgPayloadSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("task_started"), turn_id: z.string().optional() }).passthrough(),
   z.object({ type: z.literal("task_complete"), turn_id: z.string().optional() }).passthrough(),
+  z.object({ type: z.literal("turn_aborted"), turn_id: z.string().optional() }).passthrough(),
   z.object({ type: z.literal("user_message"), message: z.string().optional() }).passthrough(),
   z.object({ type: z.literal("agent_message") }).passthrough(),
   z.object({ type: z.literal("token_count") }).passthrough(),
@@ -16,6 +41,7 @@ export const codexEventMsgPayloadSchema = z.discriminatedUnion("type", [
       path: z.string().optional(),
     })
     .passthrough(),
+  z.object({ type: z.literal("web_search_end"), call_id: z.string().optional() }).passthrough(),
   z
     .object({
       type: z.literal("exec_command_end"),
@@ -83,6 +109,7 @@ export const codexResponseItemPayloadSchema = z.discriminatedUnion("type", [
       output: z.unknown().optional(),
     })
     .passthrough(),
+  z.object({ type: z.literal("web_search_call") }).passthrough(),
   z.object({ type: z.literal("reasoning") }).passthrough(),
 ])
 
@@ -140,6 +167,53 @@ export class CodexRolloutParseError extends Error {
   }
 }
 
+function typeOf(value: unknown): string | undefined {
+  if (!value || typeof value !== "object") return undefined
+  const type = (value as { type?: unknown }).type
+  return typeof type === "string" ? type : undefined
+}
+
+function payloadTypeOf(value: unknown): string | undefined {
+  if (!value || typeof value !== "object") return undefined
+  const payload = (value as { payload?: unknown }).payload
+  return typeOf(payload)
+}
+
+function describeParseFailure(raw: unknown, error: z.ZodError): string {
+  const topLevelType = typeOf(raw)
+  const payloadType = payloadTypeOf(raw)
+
+  if (topLevelType && !(knownTopLevelTypes as readonly string[]).includes(topLevelType)) {
+    return (
+      `unsupported Codex transcript record type "${topLevelType}". ` +
+      `silvercode only knows: ${knownTopLevelTypes.join(", ")}. ` +
+      `This is Codex transcript schema drift; update the resume parser to classify the new record as replayed or ignored.`
+    )
+  }
+
+  if (topLevelType === "event_msg" && payloadType && !(knownEventMsgTypes as readonly string[]).includes(payloadType)) {
+    return (
+      `unsupported Codex event_msg payload.type "${payloadType}". ` +
+      `silvercode only knows: ${knownEventMsgTypes.join(", ")}. ` +
+      `This is Codex transcript schema drift; update the resume parser to classify the new event as replayed or ignored.`
+    )
+  }
+
+  if (
+    topLevelType === "response_item" &&
+    payloadType &&
+    !(knownResponseItemTypes as readonly string[]).includes(payloadType)
+  ) {
+    return (
+      `unsupported Codex response_item payload.type "${payloadType}". ` +
+      `silvercode only knows: ${knownResponseItemTypes.join(", ")}. ` +
+      `This is Codex transcript schema drift; update the resume parser to classify the new item as replayed or ignored.`
+    )
+  }
+
+  return `invalid Codex transcript line: ${z.prettifyError(error)}`
+}
+
 export function parseCodexRolloutLine(path: string, line: string, lineNumber: number): CodexRolloutLine {
   let raw: unknown
   try {
@@ -150,11 +224,7 @@ export function parseCodexRolloutLine(path: string, line: string, lineNumber: nu
 
   const parsed = codexLineSchema.safeParse(raw)
   if (!parsed.success) {
-    throw new CodexRolloutParseError(
-      path,
-      lineNumber,
-      `invalid Codex transcript line: ${z.prettifyError(parsed.error)}`,
-    )
+    throw new CodexRolloutParseError(path, lineNumber, describeParseFailure(raw, parsed.error))
   }
   return parsed.data
 }

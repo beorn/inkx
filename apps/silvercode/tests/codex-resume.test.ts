@@ -339,6 +339,71 @@ describe("codex-resume: replayCodexSessionFromDisk", () => {
     expect(store.state.get().status).toBe("idle")
   })
 
+  test("known Codex interrupted-turn entries are ignored without failing resume", () => {
+    const body = lines(
+      {
+        timestamp: "2026-04-30T05:18:17.609Z",
+        type: "session_meta",
+        payload: { id: SESSION_ID, cwd: "/tmp", cli_version: "0.124.0" },
+      },
+      {
+        timestamp: "2026-04-30T05:18:18.000Z",
+        type: "event_msg",
+        payload: { type: "task_started", turn_id: "turn-aborted" },
+      },
+      {
+        timestamp: "2026-04-30T05:18:20.350Z",
+        type: "event_msg",
+        payload: {
+          type: "turn_aborted",
+          turn_id: "turn-aborted",
+          reason: "interrupted",
+          completed_at: 1777526300,
+          duration_ms: 178877,
+        },
+      },
+    )
+    writeFakeRollout(SESSION_ID, body)
+
+    const store = createSessionStore()
+    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).not.toThrow()
+    expect(store.state.get().status).toBe("idle")
+  })
+
+  test("known Codex web-search transcript entries are ignored without failing resume", () => {
+    const body = lines(
+      {
+        timestamp: "2026-04-30T05:37:17.711Z",
+        type: "session_meta",
+        payload: { id: SESSION_ID, cwd: "/tmp", cli_version: "0.124.0" },
+      },
+      {
+        timestamp: "2026-04-30T05:37:17.711Z",
+        type: "event_msg",
+        payload: {
+          type: "web_search_end",
+          call_id: "ws_test",
+          query: "Kitty graphics protocol virtual placements",
+          action: { type: "search", query: "Kitty graphics protocol virtual placements" },
+        },
+      },
+      {
+        timestamp: "2026-04-30T05:37:17.711Z",
+        type: "response_item",
+        payload: {
+          type: "web_search_call",
+          status: "completed",
+          action: { type: "search", query: "Kitty graphics protocol virtual placements" },
+        },
+      },
+    )
+    writeFakeRollout(SESSION_ID, body)
+
+    const store = createSessionStore()
+    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).not.toThrow()
+    expect(store.state.get().status).toBe("idle")
+  })
+
   test("controller keeps recovered Codex transcript visible when live ACP attach closes", async () => {
     const body = lines(
       {
@@ -418,8 +483,10 @@ describe("codex-resume: replayCodexSessionFromDisk", () => {
     )
 
     const store = createSessionStore()
-    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(/invalid Codex transcript line/)
-    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(/type/)
+    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(
+      /unsupported Codex transcript record type "mystery_item"/,
+    )
+    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(/schema drift/)
   })
 
   test("unknown event_msg variants throw", () => {
@@ -433,8 +500,10 @@ describe("codex-resume: replayCodexSessionFromDisk", () => {
     )
 
     const store = createSessionStore()
-    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(/invalid Codex transcript line/)
-    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(/payload\.type/)
+    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(
+      /unsupported Codex event_msg payload\.type "mystery_event"/,
+    )
+    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(/schema drift/)
   })
 
   test("unknown response_item variants throw", () => {
@@ -448,7 +517,9 @@ describe("codex-resume: replayCodexSessionFromDisk", () => {
     )
 
     const store = createSessionStore()
-    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(/invalid Codex transcript line/)
-    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(/payload\.type/)
+    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(
+      /unsupported Codex response_item payload\.type "mystery_response"/,
+    )
+    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(/schema drift/)
   })
 })
