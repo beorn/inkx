@@ -81,12 +81,44 @@ Default to `ref` when a function accepts user input that could be any form. Reso
 - A short comment block at the top of `packages/km-beads/src/short-ids.ts` (or the renamed file) restates the path/name/id distinction.
 - Tests still pass (no behavior change).
 
+## Inline strip-regex migration (added 2026-04-30 from /big arch agent)
+
+The most concrete win in this bead is migrating 6 sites that hand-roll `fs_path.replace(/^\.\//, "").replace(/\.md$/, "")` to use `pathOf()`:
+
+- `packages/km-storage/src/testing/fake-repo.ts:81`
+- `packages/km-storage/src/db/links.ts:128`
+- `packages/km-storage/src/repo/move-with-refs.ts:287`
+- `packages/km-storage/src/repo/repo.ts:1310`
+- `apps/km-cli/src/commands/broken-links.ts:66`
+- (one more — re-grep at implementation time)
+
+Mechanical replace; ≤1 hr. Add a grep-gate or oxlint rule blocking reintroduction of the inline pattern.
+
+## YAGNI verdict on Path/Name typed wrappers (added 2026-04-30 from /big)
+
+Per arch-agent opinion in /big session 2026-04-30 (high confidence): **do NOT add `Path`, `Name`, `NodeRef`, `PathBuilder`, `PathDelta`, `PathScope`, `PathPattern`, `PathSegment`, `MaterializedPath`, `AliasIndex`, `Resolver` unifying interface, or other typed wrappers.**
+
+Rationale:
+- Three concepts (id, name, path) are already modeled — id and name as KNode fields, path as the derivation `pathOf` consolidates.
+- Per `docs/principles.md` Plain Domain Language: "the system's quality scales with the richness of a few core domain objects — not the number of ad-hoc helpers."
+- Per `docs/principles.md` Domain Object Inventory: KNode/KTree/Position are the load-bearing namespaces; new operations should join them, not spawn parallel ones.
+- KLink/KLinkRef justifies its weight via URI grammar (scheme + anchors + percent-encoding); paths in km don't have that complexity — they're `name`-segment chains with a sigil rule and `.md` extension. Two regexes, not a value object.
+- `NameIndex` (`packages/km-core/src/klink-resolver.ts:19`) uses bare strings as keys — the codebase has actively voted against branded `Name`/`Path` types at the load-bearing layer.
+- Hypothesis 17 ("mirror node:path") is already partially shipped: `packages/km-fs-mount/src/fs/path-utils.ts` owns `toRelativeFsPath`, `toAbsoluteFsPath`, `findKmRootFromPath`, `resolveFsPath`. Don't duplicate.
+
+If a future session asks the same question, point them at this bead's verdict + the /big retro at `.claude/arch-decisions/2026-04-30-path-vs-ulid-as-sqlite-pkey.md`.
+
+## Pairs with
+
+- `@km/tree/ktree-path-method` (P2, NEW) — adds `KTree.path(tree, id)` to the canonical namespace; the second of the two real wins from the /big session.
+
 ## Out of scope
 
 - Frontmatter field rename (`id:` → `path:`) — see `@km/beads/frontmatter-path-rename`.
 - CLI flag rename — keep `--id` / `--parent` for bd compat per user direction.
 - `nodes.id` SQL column rename — this is correct as-is (it IS the id).
 - Doc updates — see `@km/all/storage-doc-three-concepts`.
+- Adding `Path` / `Name` / `NodeRef` typed wrappers — explicitly rejected (see YAGNI verdict above).
 
 ## Long-horizon note
 
