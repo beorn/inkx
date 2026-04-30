@@ -9,7 +9,7 @@ import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 import {
-  queryIssues,
+  Bead,
   findBeadsDir,
   getMigrationStats,
   migrateBeadsToMarkdown,
@@ -29,6 +29,7 @@ import { spawnSync } from "node:child_process"
 import { getOriginalBeadsConfig, loadConfigObject } from "@km/storage"
 import { resolvePathArg } from "@km/fs-mount"
 import { loadKmBdConfig } from "./bd-load-config.ts"
+import { loadRepo } from "../load-repo.ts"
 
 /** Real filesystem implementation for BeadsFs DI */
 const nodeFs: BeadsFs = { existsSync, readFileSync, writeFileSync, mkdirSync }
@@ -270,7 +271,8 @@ export const exportCommand = new Command("export")
 
     // Get issues from km — no global board filter; scope is derived per-issue
     // from the canonical id, so every scope-tagged item is an issue.
-    const issues = queryIssues({}, undefined, undefined)
+    using repo = await loadRepo(resolved.repoRoot)
+    const issues = Bead.query(repo, {}, undefined, undefined)
 
     console.log(term.bold("Export Source"))
     console.log(`  km issues: ${issues.length}`)

@@ -18,7 +18,7 @@ import {
   claimIssueFields,
   type Agent,
 } from "@km/agent"
-import { queryReady, getIssue, displayId } from "@km/beads"
+import { Bead } from "@km/beads"
 import { resolvePathArg } from "@km/fs-mount"
 import { loadRepo } from "../load-repo.ts"
 import { getRootPath } from "../program.ts"
@@ -127,7 +127,7 @@ bdAgentCommand
       return
     }
 
-    const issue = getIssue(opts.issueId, { repo })
+    const issue = Bead.get(repo, opts.issueId)
     if (!issue) {
       console.error(term.red(`Issue not found: ${opts.issueId}`))
       process.exitCode = 1
@@ -138,7 +138,7 @@ bdAgentCommand
     const assignment = assignIssueFields(agent.shortId)
     void assignment // Will be used for persistence
 
-    console.log(term.green(`Assigned ${displayId(issue)} to ${agent.shortId}`))
+    console.log(term.green(`Assigned ${Bead.displayId(issue)} to ${agent.shortId}`))
     console.log(term.dim(`  ${issue.title}`))
     console.log(term.yellow("\nNote: Assignment not yet persisted to storage."))
   })
@@ -159,7 +159,7 @@ bdAgentCommand
       return
     }
 
-    const issue = getIssue(opts.issueId, { repo })
+    const issue = Bead.get(repo, opts.issueId)
     if (!issue) {
       console.error(term.red(`Issue not found: ${opts.issueId}`))
       process.exitCode = 1
@@ -170,7 +170,7 @@ bdAgentCommand
     const assignment = unassignIssueFields()
     void assignment // Will be used for persistence
 
-    console.log(term.green(`Unassigned ${displayId(issue)} from ${agent.shortId}`))
+    console.log(term.green(`Unassigned ${Bead.displayId(issue)} from ${agent.shortId}`))
     console.log(term.yellow("\nNote: Unassignment not yet persisted to storage."))
   })
 
@@ -191,7 +191,7 @@ bdAgentCommand
     }
 
     // Get ready issues sorted by priority
-    const ready = queryReady({}, undefined, undefined, { repo })
+    const ready = Bead.queryReady(repo, {}, undefined, undefined)
     if (ready.length === 0) {
       console.log(term.yellow("No ready issues to claim."))
       return
@@ -222,7 +222,7 @@ bdAgentCommand
       return
     }
 
-    console.log(term.green(`${agent.shortId} claimed ${displayId(issue)}`))
+    console.log(term.green(`${agent.shortId} claimed ${Bead.displayId(issue)}`))
     console.log(term.dim(`  ${issue.title}`))
     console.log(term.yellow("\nNote: Claim not yet persisted to storage."))
   })

@@ -1,33 +1,36 @@
 /**
  * Task Query Helpers
  *
- * Functions for finding and querying tasks - now accept Repo parameter.
+ * Thin CLI-side wrappers around the `Task` domain interface in `@km/storage`.
+ * All find / under / tree / blocked logic lives in `Task.*`; this file holds
+ * only CLI display-side concerns (per-task ancestor type-suffix collapsing,
+ * sort-by-path, segment-filter matching).
  */
 
-import type { Repo } from "@km/storage"
+import { Task, type Repo } from "@km/storage"
 import { normalizeName } from "@km/core"
 import { collapseAncestorsWithTypes, type CollapsedAncestor } from "@km/tree"
 import type { KNode } from "@km/core"
 import { getNodeDisplayName as getNodeDisplayNameWithRepo } from "./formatters.ts"
-import { resolveTaskNode } from "../../utils/resolve-task.ts"
+import { Bead } from "@km/beads"
 
 /**
  * Find a node by path or ID prefix/suffix.
  *
- * Re-export under the historical name so existing call sites stay
- * stable; the implementation is the unified `resolveTaskNode` shared
- * with `bd <id>`.
+ * @deprecated Use `Task.findByPathOrId(repo, ref, (r) => Bead.resolve(repo, r))`
+ *   directly. This wrapper preserves the legacy CLI signature.
  */
 export function findNodeByPathOrId(repo: Repo, pathOrId: string): KNode | null {
-  return resolveTaskNode(repo, pathOrId)
+  return Task.findByPathOrId(repo, pathOrId, (ref) => Bead.resolve(repo, ref))
 }
 
 /**
- * Get all tasks under a root node (recursive)
+ * Get all tasks under a root node (recursive).
+ *
+ * @deprecated Use `Task.under(repo, nodeId)` from `@km/storage`.
  */
 export function getTasksUnderNode(repo: Repo, nodeId: string): KNode[] {
-  const subtree = repo.getSubtree(nodeId)
-  return subtree.filter((n) => n.item?.task?.marker !== undefined || n.item?.task?.status !== undefined)
+  return Task.under(repo, nodeId)
 }
 
 /**
@@ -159,20 +162,10 @@ export function taskPathMatches(repo: Repo, task: KNode, filter: string): boolea
 /**
  * True if the task has at least one open blocker via `data.props["blocked-by"]`.
  *
- * Mirrors the bd shape: prop type "link" carries a single `target`, type "list"
- * carries `values[].target`. A task with no `blocked-by` prop, or with the prop
- * present but empty, counts as unblocked.
+ * @deprecated Use `Task.isBlocked(node)` from `@km/storage`.
  */
 export function taskIsBlocked(task: KNode): boolean {
-  const data = task.data as Record<string, unknown> | undefined
-  const props = data?.props as
-    | Record<string, { type?: string; target?: string; values?: Array<{ target?: string }> }>
-    | undefined
-  const bb = props?.["blocked-by"]
-  if (!bb) return false
-  if (bb.type === "link") return Boolean(bb.target)
-  if (bb.type === "list") return Array.isArray(bb.values) && bb.values.some((v) => Boolean(v?.target))
-  return false
+  return Task.isBlocked(task)
 }
 
 /**

@@ -11,23 +11,12 @@ import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 import {
-  queryReady,
-  queryIssues,
-  isBead,
-  nodeToIssue,
+  Bead,
   buildDependentCountMap,
-  createIssueNode,
   renderInboxCapture,
-  updateIssueFields,
-  closeIssueFields,
-  dropIssueFields,
-  addDependency,
-  removeDependency,
-  getDependencies,
-  mergeDepProps,
-  resolveBeadsRoots,
-  type Issue,
-  type IssueFilter,
+  type Bead as BeadType,
+  type BeadFilter,
+  type UpdateIssueChanges,
 } from "@km/beads"
 import type { Repo } from "@km/storage"
 import { resolvePathArg } from "@km/fs-mount"
@@ -84,7 +73,7 @@ import { parseLimitFlag, applyLimit } from "../utils/limit.ts"
  */
 function resolveBoardRoots(repo: Repo, opts: { all?: boolean }, cliRootOverride?: string): string[] | undefined {
   if (opts.all) return undefined
-  return resolveBeadsRoots(repo.config.beads, cliRootOverride)
+  return Bead.roots(repo, cliRootOverride)
 }
 
 /** Format scope context for display messages (e.g., " in path") */
@@ -147,7 +136,7 @@ bdCommand
 
     using repo = await loadRepo(resolved.repoRoot)
 
-    const filter: Partial<IssueFilter> = {}
+    const filter: Partial<BeadFilter> = {}
     if (opts.type) filter.type = opts.type
     if (opts.assignee) filter.assignee = opts.assignee
     if (opts.priority !== undefined) filter.priority = opts.priority
@@ -157,7 +146,7 @@ bdCommand
     // archived notes) doesn't drown out actual work. `--all` opts out
     // for the rare case of debugging unindexed beads.
     const boardRoots = resolveBoardRoots(repo, opts, cliRootOverride)
-    const issues = queryReady(filter, scopePath, undefined, { repo, boardRoots })
+    const issues = Bead.queryReady(repo, filter, scopePath, undefined, { boardRoots })
 
     if (opts.json) {
       await writeJsonOut(issues.map(issueToBdJson))
@@ -214,7 +203,7 @@ bdCommand
 
       using repo = await loadRepo(resolved.repoRoot)
 
-      const filter: IssueFilter = {}
+      const filter: BeadFilter = {}
       if (opts.status) filter.status = opts.status.split(",").map(normalizeStatus)
       if (opts.type) filter.type = opts.type
       if (opts.assignee) filter.assignee = opts.assignee
@@ -227,7 +216,7 @@ bdCommand
       // beads. `--all` opts out for debugging unindexed nodes. Same
       // contract as `bd ready` (km-beads.bd-list-bead-scoping).
       const boardRoots = resolveBoardRoots(repo, opts)
-      const allIssues = queryIssues(filter, scopePath, undefined, { repo, boardRoots })
+      const allIssues = Bead.query(repo, filter, scopePath, undefined, { boardRoots })
       const limit = parseLimitFlag(opts.limit)
       const { items: issues, totalMsg } = applyLimit(allIssues, limit)
 
@@ -263,10 +252,15 @@ bdCommand
     const allNodes = repo.query(queryStr)
     // Apply board-membership predicate (km-beads.bd-list-bead-scoping).
     const boardRoots = resolveBoardRoots(repo, opts)
-    const nodes = boardRoots ? allNodes.filter((n) => isBead(n, boardRoots, repo)) : allNodes
+    const nodes = boardRoots ? allNodes.filter((n) => Bead.isBead(n, boardRoots, repo)) : allNodes
     // Build dependent-count map ONCE, not per-issue (eliminates N+1 scan).
     const dependentCountMap = buildDependentCountMap(repo)
-    let issues = nodes.map((n) => nodeToIssue(n, { repo, dependentCountMap }))
+    // Bead.from returns null for non-beads (no data.id, no data.short_id);
+    // those used to surface as Issue with shortId === undefined and now
+    // drop out at the namespace boundary.
+    let issues: BeadType[] = nodes
+      .map((n) => Bead.from(n, { repo, dependentCountMap }))
+      .filter((b): b is BeadType => b !== null)
 
     // Apply blocked/unblocked filter (not part of query DSL)
     if (opts.blocked) {
@@ -321,8 +315,12 @@ const showCmd = bdCommand
     if (opts.json) {
       // Preserve bd-compatible JSON shape (snake_case fields like
       // issue_type, dependency_count) by routing through issueToBdJson
-      // — printTaskDetails' JSON path emits the camelCase Issue shape.
-      console.log(JSON.stringify(issueToBdJson(nodeToIssue(node, { repo })), null, 2))
+      // — printTaskDetails' JSON path emits the camelCase Bead shape.
+      // For non-bead nodes (no data.id), Bead.from returns null; emit a
+      // bare {} to preserve the legacy "show always emits something"
+      // contract — the user got a node match, just not a bead-shaped one.
+      const bead = Bead.from(node, { repo })
+      console.log(JSON.stringify(bead ? issueToBdJson(bead) : {}, null, 2))
       return
     }
 
@@ -348,7 +346,7 @@ bdCommand
     const configObj = await loadKmBdConfig(resolved.repoRoot)
     using repo = await loadRepo(resolved.repoRoot)
 
-    const { node, shortId, children } = createIssueNode(opts.title, {
+    const { node, shortId, children } = Bead.create(repo, opts.title, {
       type: opts.type,
       priority: opts.priority,
       assignee: opts.assignee,
@@ -553,8 +551,8 @@ const updateCmd = bdCommand
       opts.assignee = opts.assignee ?? resolveAssignee()
     }
 
-    const changes: Parameters<typeof updateIssueFields>[1] = {}
-    if (opts.status) changes.status = opts.status as Issue["status"]
+    const changes: UpdateIssueChanges = {}
+    if (opts.status) changes.status = opts.status as Bead["status"]
     if (opts.priority !== undefined) changes.priority = opts.priority
     if (opts.assignee) changes.assignee = opts.assignee
     if (opts.title) changes.title = opts.title
@@ -567,7 +565,7 @@ const updateCmd = bdCommand
       changes.currentData = node?.data as Record<string, unknown> | undefined
     }
 
-    const updates = updateIssueFields(issue, changes)
+    const updates = Bead.update(repo, issue, changes)
     repo.updateNode(issue.id, updates)
 
     // Handle --parent: move under the resolved new parent at end-of-list.
@@ -635,7 +633,7 @@ const closeCmd = bdCommand
 
     const node = repo.getNode(issue.id)
     const currentData = node?.data as Record<string, unknown> | undefined
-    const updates = closeIssueFields(opts.reason, currentData)
+    const updates = Bead.close(repo, issue, opts.reason, currentData)
     repo.updateNode(issue.id, updates)
 
     console.log(term.green(`Closed ${issue.shortId}`))
@@ -665,7 +663,7 @@ const dropCmd = bdCommand
 
     const node = repo.getNode(issue.id)
     const currentData = node?.data as Record<string, unknown> | undefined
-    const updates = dropIssueFields(opts.reason, currentData)
+    const updates = Bead.drop(repo, issue, opts.reason, currentData)
     repo.updateNode(issue.id, updates)
 
     console.log(term.yellow(`Dropped ${issue.shortId}`))
@@ -695,9 +693,9 @@ const depAddCmd = depCommand
       return
     }
 
-    const props = addDependency(issue, opts.dependsOn)
+    const props = Bead.addDependency(repo, issue, opts.dependsOn)
     const node = repo.getNode(issue.id)
-    repo.updateNode(issue.id, { data: mergeDepProps(node?.data as Record<string, unknown> | undefined, props) })
+    repo.updateNode(issue.id, { data: Bead.mergeDepProps(repo, node?.data as Record<string, unknown> | undefined, props) })
 
     console.log(term.green(`Added dependency: ${issue.shortId} blocked-by ${opts.dependsOn}`))
   })
@@ -722,14 +720,14 @@ const depRemoveCmd = depCommand
       return
     }
 
-    const result = removeDependency(issue, opts.dependsOn)
+    const result = Bead.removeDependency(repo, issue, opts.dependsOn)
     if (!result) {
       console.error(term.yellow(`${issue.shortId} does not depend on ${opts.dependsOn}`))
       return
     }
 
     const node = repo.getNode(issue.id)
-    repo.updateNode(issue.id, { data: mergeDepProps(node?.data as Record<string, unknown> | undefined, result) })
+    repo.updateNode(issue.id, { data: Bead.mergeDepProps(repo, node?.data as Record<string, unknown> | undefined, result) })
 
     console.log(term.green(`Removed dependency: ${issue.shortId} no longer blocked-by ${opts.dependsOn}`))
   })
@@ -753,7 +751,7 @@ const depListCmd = depCommand
       return
     }
 
-    const deps = getDependencies(issue, repo)
+    const deps = Bead.getDependencies(repo, issue)
     if (deps.length === 0) {
       console.log(term.dim(`${issue.shortId} has no dependencies`))
       return
@@ -778,7 +776,7 @@ bdCommand
     await loadKmBdConfig(resolved.repoRoot)
     using repo = await loadRepo(resolved.repoRoot)
 
-    const issues = queryIssues({}, undefined, undefined, { repo })
+    const issues = Bead.query(repo, {}, undefined, undefined)
     const threshold = Date.now() - opts.days! * 86400000
     const stale = issues.filter((i) => i.updatedAt < threshold && i.status !== "done" && i.status !== "dropped")
 
@@ -812,7 +810,7 @@ bdCommand
     using repo = await loadRepo(resolved.repoRoot)
 
     // Collect open / in-progress / blocked beads — done/dropped are not orphans by definition.
-    const issues = queryIssues({}, undefined, undefined, { repo }).filter(
+    const issues = Bead.query(repo, {}, undefined, undefined).filter(
       (i) => i.status === "todo" || i.status === "wip" || i.status === "blocked",
     )
     if (issues.length === 0) {
@@ -905,7 +903,7 @@ bdCommand
     }
 
     const assignee = resolveAssignee()
-    const updates = updateIssueFields(issue, { status: "wip", assignee })
+    const updates = Bead.update(repo, issue, { status: "wip", assignee })
     repo.updateNode(issue.id, updates)
 
     console.log(term.green(`Claimed ${issue.shortId}`))
@@ -947,9 +945,10 @@ bdCommand
     const pathChildren = folderId ? repo.getChildren(folderId) : []
     const allChildren = [...inFileChildren, ...pathChildren]
     const dependentCountMap = buildDependentCountMap(repo)
-    const childIssues = allChildren
+    const childIssues: BeadType[] = allChildren
       .filter((c) => c.item?.task?.status != null || c.fs_path?.endsWith(".md"))
-      .map((c) => nodeToIssue(c, { repo, dependentCountMap }))
+      .map((c) => Bead.from(c, { repo, dependentCountMap }))
+      .filter((b): b is BeadType => b !== null)
 
     if (opts.json) {
       await writeJsonOut(childIssues.map(issueToBdJson))
@@ -977,7 +976,7 @@ bdCommand
     await loadKmBdConfig(resolved.repoRoot)
     using repo = await loadRepo(resolved.repoRoot)
 
-    const issues = queryIssues({}, undefined, undefined, { repo })
+    const issues = Bead.query(repo, {}, undefined, undefined)
     const blocked = issues.filter(
       (i) => i.blockedBy && i.blockedBy.length > 0 && i.status !== "done" && i.status !== "dropped",
     )
@@ -1037,7 +1036,7 @@ bdCommand
     // `bd list --status X` reported wildly divergent totals
     // (info-stats-mismatch).
     const boardRoots = resolveBoardRoots(repo, opts, cliRootOverride)
-    const issues = queryIssues({}, scopePath, undefined, { repo, boardRoots })
+    const issues = Bead.query(repo, {}, scopePath, undefined, { boardRoots })
 
     console.log(term.bold("Beads Configuration"))
     console.log("===================")
@@ -1156,7 +1155,9 @@ bdCommand
 
     const nodes = repo.query(expression)
     const dependentCountMap = buildDependentCountMap(repo)
-    const issues = nodes.map((n) => nodeToIssue(n, { repo, dependentCountMap }))
+    const issues: BeadType[] = nodes
+      .map((n) => Bead.from(n, { repo, dependentCountMap }))
+      .filter((b): b is BeadType => b !== null)
 
     if (opts.json) {
       await writeJsonOut(issues.map(issueToBdJson))

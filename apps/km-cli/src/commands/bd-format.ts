@@ -7,12 +7,12 @@
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
-import { displayId, type Issue } from "@km/beads"
+import { Bead } from "@km/beads"
 
 /**
  * Convert internal status to bd-compatible status string
  */
-function bdStatus(status: Issue["status"]): string {
+function bdStatus(status: Bead["status"]): string {
   switch (status) {
     case "todo":
       return "open"
@@ -28,11 +28,11 @@ function bdStatus(status: Issue["status"]): string {
 }
 
 /**
- * Convert Issue to bd-compatible JSON format
+ * Convert Bead to bd-compatible JSON format
  */
-export function issueToBdJson(issue: Issue): Record<string, unknown> {
+export function issueToBdJson(issue: Bead): Record<string, unknown> {
   return {
-    id: displayId(issue),
+    id: Bead.displayId(issue),
     title: issue.title,
     description: issue.description || "",
     status: bdStatus(issue.status),
@@ -51,18 +51,18 @@ export function issueToBdJson(issue: Issue): Record<string, unknown> {
 /**
  * Print issue in bd list format: km-abc1 [P2] [task] open - Title
  */
-export function printIssue(issue: Issue): void {
+export function printIssue(issue: Bead): void {
   const status = bdStatus(issue.status)
   const type = issue.type || "task"
   const location = issue.parentContext ? term.dim(` (${issue.parentContext})`) : ""
-  console.log(`${term.cyan(displayId(issue))} [${issue.priority}] [${type}] ${status} - ${issue.title}${location}`)
+  console.log(`${term.cyan(Bead.displayId(issue))} [${issue.priority}] [${type}] ${status} - ${issue.title}${location}`)
 }
 
 /**
  * Print issue in bd ready format: 1. [P0] [task] km-abc1: Title
  */
-export function printReadyIssue(issue: Issue, index: number): void {
+export function printReadyIssue(issue: Bead, index: number): void {
   const type = issue.type || "task"
   const location = issue.parentContext ? term.dim(` (${issue.parentContext})`) : ""
-  console.log(`${index}. [${issue.priority}] [${type}] ${term.cyan(displayId(issue))}: ${issue.title}${location}`)
+  console.log(`${index}. [${issue.priority}] [${type}] ${term.cyan(Bead.displayId(issue))}: ${issue.title}${location}`)
 }

@@ -7,11 +7,11 @@
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
-import { parseTaskMetadata, extractTags } from "@km/storage"
+import { parseTaskMetadata, extractTags, Task } from "@km/storage"
 import { resolvePathArg } from "@km/fs-mount"
 import { loadRepo } from "../../load-repo.ts"
 import { getRootPath } from "../../program.ts"
-import { findNodeByPathOrId } from "./queries.ts"
+import { Bead } from "@km/beads"
 import { resolveAssignee } from "../../utils/assignee.ts"
 
 /**
@@ -32,7 +32,7 @@ export async function createTask(
   // Resolve parent
   let parentId: string | null = null
   if (pathOrId) {
-    const parent = findNodeByPathOrId(repo, pathOrId)
+    const parent = Task.findByPathOrId(repo, pathOrId, (r) => Bead.resolve(repo, r))
     if (!parent) {
       console.error(term.red(`Parent not found: ${pathOrId}`))
       process.exit(1)
@@ -70,7 +70,7 @@ export async function markDone(pathOrId: string | undefined, options: { json?: b
   const resolved = resolvePathArg(process.cwd(), getRootPath())
   using repo = await loadRepo(resolved.repoRoot)
 
-  const task = findNodeByPathOrId(repo, pathOrId)
+  const task = Task.findByPathOrId(repo, pathOrId, (r) => Bead.resolve(repo, r))
   if (!task) {
     console.error(term.red(`Task not found: ${pathOrId}`))
     process.exit(1)
@@ -100,7 +100,7 @@ export async function claimTask(pathOrId: string | undefined, options: { json?: 
   const resolved = resolvePathArg(process.cwd(), getRootPath())
   using repo = await loadRepo(resolved.repoRoot)
 
-  const task = findNodeByPathOrId(repo, pathOrId)
+  const task = Task.findByPathOrId(repo, pathOrId, (r) => Bead.resolve(repo, r))
   if (!task) {
     console.error(term.red(`Task not found: ${pathOrId}`))
     process.exit(1)
@@ -138,7 +138,7 @@ export async function releaseTask(pathOrId: string | undefined, options: { json?
   const resolved = resolvePathArg(process.cwd(), getRootPath())
   using repo = await loadRepo(resolved.repoRoot)
 
-  const task = findNodeByPathOrId(repo, pathOrId)
+  const task = Task.findByPathOrId(repo, pathOrId, (r) => Bead.resolve(repo, r))
   if (!task) {
     console.error(term.red(`Task not found: ${pathOrId}`))
     process.exit(1)
@@ -173,7 +173,7 @@ export async function assignTask(
   const resolved = resolvePathArg(process.cwd(), getRootPath())
   using repo = await loadRepo(resolved.repoRoot)
 
-  const task = findNodeByPathOrId(repo, pathOrId)
+  const task = Task.findByPathOrId(repo, pathOrId, (r) => Bead.resolve(repo, r))
   if (!task) {
     console.error(term.red(`Task not found: ${pathOrId}`))
     process.exit(1)

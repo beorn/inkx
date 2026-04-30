@@ -7,25 +7,17 @@
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
-import { type Repo } from "@km/storage"
+import { Task, type Repo } from "@km/storage"
 import { resolvePathArg } from "@km/fs-mount"
 import { loadRepo } from "../../load-repo.ts"
 import { collapseAncestorsWithTypes } from "@km/tree"
 import { KNode, type KNode as KNodeType } from "@km/core"
-import { normalizePriority } from "@km/beads"
+import { Bead, normalizePriority } from "@km/beads"
 import { getRootPath } from "../../program.ts"
 import { resolveAssignee } from "../../utils/assignee.ts"
 import { getNodeDisplayName, formatCollapsedAncestor, formatTaskWithPath, formatTaskLine } from "./formatters.ts"
 import { printTaskDetails } from "../shared-show.ts"
-import {
-  findNodeByPathOrId,
-  getTasksUnderNode,
-  buildTaskTree,
-  sortByPath,
-  taskIsBlocked,
-  taskPathMatches,
-  looksLikeQuery,
-} from "./queries.ts"
+import { buildTaskTree, sortByPath, taskPathMatches, looksLikeQuery } from "./queries.ts"
 import { parseLimitFlag, applyLimit } from "../../utils/limit.ts"
 
 export interface ListTasksOptions {
@@ -72,10 +64,10 @@ function filterTasksByBlocked(
   options: Pick<ListTasksOptions, "blocked" | "unblocked">,
 ): KNodeType[] {
   if (options.blocked && !options.unblocked) {
-    return tasks.filter((t) => taskIsBlocked(t))
+    return tasks.filter((t) => Task.isBlocked(t))
   }
   if (options.unblocked && !options.blocked) {
-    return tasks.filter((t) => !taskIsBlocked(t))
+    return tasks.filter((t) => !Task.isBlocked(t))
   }
   return tasks
 }
@@ -160,7 +152,7 @@ function resolveFromPathOrId(
   options: Pick<ListTasksOptions, "status" | "all" | "priority" | "blocked" | "unblocked">,
 ): ResolvedInput | null {
   // Try to find an exact node match first
-  const rootNode = findNodeByPathOrId(repo, pathOrId)
+  const rootNode = Task.findByPathOrId(repo, pathOrId, (r) => Bead.resolve(repo, r))
 
   if (rootNode) {
     // If the root IS a task, signal the caller to show details
@@ -170,7 +162,7 @@ function resolveFromPathOrId(
 
     // Get tasks under this root, then apply status + priority + blocked filters.
     // Root-scoped listing defaults to active tasks only (todo + wip).
-    const subtasks = getTasksUnderNode(repo, rootNode.id)
+    const subtasks = Task.under(repo, rootNode.id)
     const tasks = filterTasksByBlocked(
       filterTasksByPriority(filterTasksByStatus(subtasks, options, "active"), options.priority),
       options,
@@ -209,7 +201,7 @@ function resolveInput(repo: Repo, pathOrId: string | undefined, options: ListTas
     const result = resolveFromPathOrId(repo, pathOrId, options)
     if (!result) {
       // pathOrId resolved to a single task - show details as side-effect
-      const rootNode = findNodeByPathOrId(repo, pathOrId)
+      const rootNode = Task.findByPathOrId(repo, pathOrId, (r) => Bead.resolve(repo, r))
       if (rootNode) showTaskDetails(repo, rootNode, options)
       return null
     }
@@ -368,7 +360,7 @@ function showTaskDetails(repo: Repo, task: KNodeType, options: { json?: boolean 
 
   // Subtask list is task-mode only — bd uses Blocked-by / dependency
   // tree instead of a flat subtask roll-up.
-  const children = getTasksUnderNode(repo, task.id)
+  const children = Task.under(repo, task.id)
   if (children.length > 0) {
     console.log()
     console.log(term.dim(`${children.length} subtask(s):`))

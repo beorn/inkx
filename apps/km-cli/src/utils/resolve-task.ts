@@ -22,51 +22,35 @@
  * `km-<scope>.<slug>` ids resolve through arm #2 (`data.short_id`).
  */
 
-import { nodeToIssue, resolveShortId, type Issue } from "@km/beads"
+import { Bead, type Bead as BeadType } from "@km/beads"
+import { Task } from "@km/storage"
 import type { KNode } from "@km/core"
 import type { Repo } from "@km/storage"
 
 /**
  * Resolve a user-supplied id-or-path to a single node.
  *
- * Tries every form `bd list` / `tasks list` may print, in priority order.
- * Returns null when nothing matches.
+ * Delegates to `Task.findByPathOrId` from `@km/storage`, with the `Bead.resolve`
+ * short-id resolver wired in so canonical path-form / legacy bd-form / aliases
+ * all resolve. Tries every form `bd list` / `tasks list` may print, in priority
+ * order. Returns null when nothing matches.
  */
 export function resolveTaskNode(repo: Repo, arg: string): KNode | null {
-  if (!arg?.trim()) return null
-
-  // 1-2. Canonical id, legacy short_id, aliases — the @km/beads short-id chain.
-  const nodeId = resolveShortId(arg, { repo })
-  if (nodeId) {
-    const node = repo.getNode(nodeId)
-    if (node) return node
-  }
-
-  // 3. Filesystem path / relative path — delegate to the smart resolver.
-  //    `repo.resolveNode` handles explicit paths (/, ./, ../), relative
-  //    paths (contains /), bare names, ID prefix/suffix, and content match.
-  const byPath = repo.resolveNode(arg)
-  if (byPath) return byPath
-
-  // Relative-path fallback: user may type `beads/foo.md` from any subdir.
-  if (!arg.startsWith("/") && !arg.includes("\0")) {
-    const cwdRelative = `${process.cwd()}/${arg}`
-    const byCwdRelative = repo.resolveNode(cwdRelative)
-    if (byCwdRelative) return byCwdRelative
-  }
-
-  return null
+  return Task.findByPathOrId(repo, arg, (ref) => Bead.resolve(repo, ref))
 }
 
 /**
- * Resolve a user-supplied id-or-path to a beads Issue.
+ * Resolve a user-supplied id-or-path to a Bead.
  *
- * Thin wrapper around {@link resolveTaskNode} + `nodeToIssue`. Used by
- * every `bd <subcmd> <id>` callsite (show, update, close, drop, claim,
- * comment, mention, …).
+ * Thin wrapper around {@link resolveTaskNode} + `Bead.from`. Used by every
+ * `bd <subcmd> <id>` callsite (show, update, close, drop, claim, comment,
+ * mention, …).
+ *
+ * Returns null when the input doesn't resolve OR when it resolves to a
+ * non-bead node (no `data.id` and no `data.short_id`).
  */
-export function resolveIssue(repo: Repo, arg: string): Issue | null {
+export function resolveIssue(repo: Repo, arg: string): BeadType | null {
   const node = resolveTaskNode(repo, arg)
   if (!node) return null
-  return nodeToIssue(node, { repo })
+  return Bead.from(node, { repo })
 }

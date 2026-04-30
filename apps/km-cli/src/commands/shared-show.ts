@@ -8,7 +8,7 @@
  *
  * The pipeline is:
  *
- *   KNode ──► nodeToIssue() ──► Issue ──► render
+ *   KNode ──► Bead.from() ──► BeadType ──► render
  *
  * Routing both modes through `nodeToIssue` means anything the bead layer
  * learns to extract (assignee normalization, blocked-by resolution,
@@ -16,7 +16,7 @@
  */
 
 import { createTerm } from "@silvery/ag-react"
-import { displayId, nodeToIssue, type Issue } from "@km/beads"
+import { Bead, type Bead as BeadType } from "@km/beads"
 import type { KNode } from "@km/core"
 import type { Repo } from "@km/storage"
 
@@ -31,10 +31,10 @@ export interface PrintTaskDetailsOptions {
 }
 
 /**
- * Map an Issue status to the bd-compatible status string used in
+ * Map an BeadType status to the bd-compatible status string used in
  * `bd show` / `bd list` output.
  */
-function bdStatus(status: Issue["status"]): string {
+function bdStatus(status: BeadType["status"]): string {
   switch (status) {
     case "todo":
       return "open"
@@ -55,12 +55,12 @@ function formatDate(ts: number): string {
 }
 
 /**
- * Render an Issue in bd-show format — full path, blocked-by section, etc.
- * Extracted so callers that already have an `Issue` (e.g. JSON callers via
+ * Render an BeadType in bd-show format — full path, blocked-by section, etc.
+ * Extracted so callers that already have an `BeadType` (e.g. JSON callers via
  * issueToBdJson) can render without going through nodeToIssue twice.
  */
-function renderBd(issue: Issue): void {
-  console.log(`${term.bold(displayId(issue))}: ${issue.title}`)
+function renderBd(issue: BeadType): void {
+  console.log(`${term.bold(Bead.displayId(issue))}: ${issue.title}`)
   console.log(`Status: ${bdStatus(issue.status)}`)
   console.log(`Priority: ${issue.priority}`)
   console.log(`Type: ${issue.type || "task"}`)
@@ -92,13 +92,13 @@ function renderBd(issue: Issue): void {
 }
 
 /**
- * Render an Issue in task format — raw status, no priority chip, no
- * bd-flavored term mapping. Reads from the same Issue shape as bd mode so
+ * Render an BeadType in task format — raw status, no priority chip, no
+ * bd-flavored term mapping. Reads from the same BeadType shape as bd mode so
  * any extraction improvement to nodeToIssue benefits both views.
  */
-function renderTask(node: KNode, issue: Issue): void {
+function renderTask(node: KNode, issue: BeadType): void {
   console.log(`${term.bold("Task:")} ${issue.title}`)
-  console.log(`${term.dim("ID:")} ${displayId(issue)}`)
+  console.log(`${term.dim("ID:")} ${Bead.displayId(issue)}`)
   console.log(`${term.dim("Status:")} ${node.item?.task?.status ?? "todo"}`)
   if (node.priority || (issue.priority && issue.priority !== "P2")) {
     // Show the structural priority verbatim — no "P2 default" injection.
@@ -143,9 +143,22 @@ function renderTask(node: KNode, issue: Issue): void {
  * Both `bd show <id>` and `tasks <id>` route through this helper so the
  * field set stays in sync between the two views; formatting branches on
  * `opts.bd`.
+ *
+ * For nodes that aren't real beads (no `data.id` / `data.short_id`),
+ * `Bead.from` returns null. We still want to render the task — the user
+ * pointed at this node — so we synthesize a minimal `BeadType` from the
+ * raw KNode fields. The legacy code path went through `nodeToIssue`,
+ * which always returned a value with `shortId === undefined` and the
+ * `displayId` reader fell back to `id`. We keep the same display-side
+ * contract by routing through `nodeToIssue` (deprecated) here — this
+ * one site needs the never-null shape.
  */
 export function printTaskDetails(repo: Repo, node: KNode, opts: PrintTaskDetailsOptions = {}): void {
-  const issue = nodeToIssue(node, { repo })
+  // Use the legacy never-null helper here; non-beads still render via
+  // the displayId fallback chain. Bead.from would return null and lose
+  // the user's "show me this node" intent.
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  const issue = nodeToIssueLegacy(node, repo)
 
   if (opts.json) {
     console.log(JSON.stringify(issue, null, 2))
@@ -157,4 +170,11 @@ export function printTaskDetails(repo: Repo, node: KNode, opts: PrintTaskDetails
   } else {
     renderTask(node, issue)
   }
+}
+
+// Local re-import of the legacy never-null shape. Centralized here so the
+// deprecation lint stays scoped to this one site.
+import { nodeToIssue as nodeToIssueRaw } from "@km/beads"
+function nodeToIssueLegacy(node: KNode, repo: Repo): BeadType {
+  return nodeToIssueRaw(node, { repo })
 }
