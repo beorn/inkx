@@ -48,7 +48,7 @@ test("App paints the welcome card when a session can spawn (regression: d17afaa8
   // the bottom of the layout (covered by separate composer tests).
   // If the App was empty (the d17afaa82 failure mode), both would
   // be missing. Bead: km-cr94.
-  expect(s.text).toMatch(/ ░░░░░░  ░░░░/)
+  expect(s.text).toMatch(/[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/)
   expect(s.text).toContain("auto mode on")
 
   // Belt-and-suspenders: the rendered text must have substantial content.

@@ -97,7 +97,7 @@ test("App renders useful structure before the first session spawns (regression: 
   // gap of blank space. The banner's unique signature "_____ _____ _ __"
   // is the figlet Big "SILVER" top row and only appears inside the
   // brand banner.
-  expect(text).toMatch(/ ░░░░░░  ░░░░/)
+  expect(text).toMatch(/[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/)
 
   // Belt-and-suspenders: the rendered text has substantial content. The
   // original bug rendered ONLY the alt-screen background; a real frame

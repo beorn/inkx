@@ -29,8 +29,8 @@ test("Welcome content renders in focused pane (full app)", async () => {
   const s = await renderScenario({ script: welcome, cols: 120, rows: 50, agent: "claude-code" })
   // Positive-space shaded gradient — SILVER row 1 sig " ░░░░░░  ░░░░",
   // CODE row 1 sig " ░░░░░░   ░░░░░░░". SILVER appears above CODE.
-  const silverSig = s.lines.findIndex((l) => / ░░░░░░  ░░░░/.test(l))
-  const codeSig = s.lines.findIndex((l) => / ░░░░░░   ░░░░░░░/.test(l))
+  const silverSig = s.lines.findIndex((l) => /[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/.test(l))
+  const codeSig = s.lines.findIndex((l) => /[ \u00a0]░░░░░░[ \u00a0]{3}░░░░░░░/.test(l))
   expect(silverSig, "Shaded SILVER row 1 should render").toBeGreaterThanOrEqual(0)
   expect(codeSig, "Shaded CODE row 1 should render").toBeGreaterThanOrEqual(0)
   expect(silverSig).not.toBe(codeSig)
@@ -84,8 +84,8 @@ test("SessionCard with empty messages renders Welcome alongside the focus bar", 
     </Screen>,
   )
   // Positive-space shaded gradient — SILVER + CODE row-1 signatures.
-  const silverSig = app.lines.findIndex((l) => / ░░░░░░  ░░░░/.test(l))
-  const codeSig = app.lines.findIndex((l) => / ░░░░░░   ░░░░░░░/.test(l))
+  const silverSig = app.lines.findIndex((l) => /[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/.test(l))
+  const codeSig = app.lines.findIndex((l) => /[ \u00a0]░░░░░░[ \u00a0]{3}░░░░░░░/.test(l))
   expect(silverSig, "SILVER row 1 should render").toBeGreaterThanOrEqual(0)
   expect(codeSig, "CODE row 1 should render").toBeGreaterThanOrEqual(0)
   expect(silverSig).not.toBe(codeSig)

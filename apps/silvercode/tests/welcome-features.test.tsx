@@ -131,8 +131,8 @@ describe("feature 1 — shaded banner (primary tier)", () => {
     // rows of CODE. Each block fades ░ ░ ▒ ▒ ▓ ▓ █ top-to-bottom.
     // SILVER row-1 signature: " ░░░░░░  ░░░░" (6-░ + 2 spaces + 4-░).
     // CODE row-1 signature: " ░░░░░░   ░░░░░░░" (6-░ + 3 spaces + 7-░).
-    const silverTop = s.lines.findIndex((l) => / ░░░░░░  ░░░░/.test(l))
-    const codeTop = s.lines.findIndex((l) => / ░░░░░░   ░░░░░░░/.test(l))
+    const silverTop = s.lines.findIndex((l) => /[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/.test(l))
+    const codeTop = s.lines.findIndex((l) => /[ \u00a0]░░░░░░[ \u00a0]{3}░░░░░░░/.test(l))
     expect(silverTop, "SILVER row 1 should render").toBeGreaterThanOrEqual(0)
     expect(codeTop, "CODE row 1 should render").toBeGreaterThanOrEqual(0)
     expect(codeTop).toBeGreaterThan(silverTop)
@@ -160,7 +160,7 @@ describe("feature 2 — Welcome screen (fresh vs loading)", () => {
   test("fresh session, status=spawning: banner only, no Loading line", () => {
     const app = renderCard(makeHandle({ status: "spawning" }))
     // Banner renders (Big-tier signature).
-    expect(app.text).toMatch(/ ░░░░░░  ░░░░/)
+    expect(app.text).toMatch(/[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/)
     // No loading line.
     expect(app.text).not.toContain("Loading session")
     // No help surface (retired in km-cr94).
@@ -170,7 +170,7 @@ describe("feature 2 — Welcome screen (fresh vs loading)", () => {
 
   test("fresh session, status=idle: banner only, no Loading line", () => {
     const app = renderCard(makeHandle({ status: "idle" }))
-    expect(app.text).toMatch(/ ░░░░░░  ░░░░/)
+    expect(app.text).toMatch(/[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/)
     expect(app.text).not.toContain("Loading session")
     expect(app.text).not.toContain("COMMANDS")
   })
@@ -179,7 +179,7 @@ describe("feature 2 — Welcome screen (fresh vs loading)", () => {
     const resumeId = "019ddb63-6e8d-7141-a603-f7c86c135be6"
     const idText = `codex:${resumeId}`
     const app = renderCard(makeHandle({ status: "spawning", resumeId }), 100, 50, "codex")
-    expect(app.text).toMatch(/ ░░░░░░  ░░░░/)
+    expect(app.text).toMatch(/[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/)
     expect(app.text).toContain("Loading session")
     expect(app.text).toContain(idText)
 
@@ -200,12 +200,12 @@ describe("feature 2 — Welcome screen (fresh vs loading)", () => {
   test("Welcome unmounts when messages.length transitions 0 → 1; chat view mounts", () => {
     // Render with empty messages first — Welcome screen.
     const before = renderCard(makeHandle({ status: "idle", messages: [] }))
-    expect(before.text).toMatch(/ ░░░░░░  ░░░░/)
+    expect(before.text).toMatch(/[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/)
 
     // Render with one user message — chat view.
     const after = renderCard(makeHandle({ status: "idle", messages: [userEntry("first prompt")] }))
     // Banner + welcome chrome are GONE.
-    expect(after.text).not.toMatch(/ ░░░░░░  ░░░░/)
+    expect(after.text).not.toMatch(/[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/)
     // Chat view shows the bubble's content (right-aligned bubble around
     // "first prompt" — that's the user message renderer).
     expect(after.text).toContain("first prompt")
@@ -417,7 +417,7 @@ describe("km-silvercode.welcome-bypassed-by-pane-grid-spawn — banner from fram
     const s = await renderScenario({ script: welcome, cols: 120, rows: 50, agent: "claude-code" })
     // The banner paints (figlet Big SILVER signature is unique to the
     // brand mark).
-    expect(s.text).toMatch(/ ░░░░░░  ░░░░/)
+    expect(s.text).toMatch(/[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/)
     // The legacy placeholder must NOT be visible. Pre-fix this string
     // appeared during the spawn-pending window before SessionCard mounted.
     expect(s.text).not.toContain("Spawning session…")
@@ -432,7 +432,7 @@ describe("km-silvercode.welcome-bypassed-by-pane-grid-spawn — banner from fram
     const s = await renderScenario({ script: welcome, cols: 120, rows: 50, agent: "claude-code" })
     // Shaded-tier banner present (positive-space: SILVER row 1 has the
     // unique " ░░░░░░  ░░░░" signature).
-    const silverSig = s.lines.findIndex((l) => / ░░░░░░  ░░░░/.test(l))
+    const silverSig = s.lines.findIndex((l) => /[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/.test(l))
     expect(silverSig).toBeGreaterThanOrEqual(0)
     // No legacy spawning text anywhere on screen.
     const spawnSessionLineIdx = s.lines.findIndex((l) => l.includes("Spawning session"))
