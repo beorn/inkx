@@ -56,8 +56,8 @@ function readDeps(db: Database, hostId: string): Array<{ target: string; kind: s
 }
 
 describe("schema v7 — deps table", () => {
-  test("SCHEMA_VERSION is 7", () => {
-    expect(SCHEMA_VERSION).toBe(7)
+  test("SCHEMA_VERSION is at least 7 (deps table introduced in v7)", () => {
+    expect(SCHEMA_VERSION).toBeGreaterThanOrEqual(7)
   })
 
   test("fresh DB exposes the deps table with the canonical column shape", () => {

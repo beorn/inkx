@@ -758,15 +758,82 @@ interface NodeStore {
 
 ### Names, Paths, and IDs
 
-km distinguishes between three concepts:
+km distinguishes between three concepts. **None of them are equal to each other** — there is no "the path is the id" or "the id is the name."
 
-| Concept | Example | Unique? | Purpose |
-|---------|---------|---------|---------|
-| **Name** | `inbox`, `readme` | No | Human-friendly identifier, multiple files can have same name |
-| **Path** | `projects/inbox.md` | Yes | Filesystem location, composed of names |
-| **ID** | `01H5XJKM...` (disk) or `projects/inbox.md:42` (memory) | Yes | Internal reference, stable across renames |
+| Concept | Stored as | Example | Unique? | Stable across renames? | Purpose |
+|---------|-----------|---------|---------|------------------------|---------|
+| **id** | `nodes.id` (PRIMARY KEY) | `01H5XJKM7B...` (ULID) | Yes | Yes — internal handle never changes | Internal reference; what `parent_id`, `embed_of`, deps `target` all carry |
+| **name** | `nodes.name` (indexed) | `@km`, `beads`, `foo` | No (per-parent unique for fs-materialized nodes — see `idx_nodes_parent_name_fstype`) | Changes when the node is renamed | One **path segment** per node — the slug at this level |
+| **path** | DERIVED — composed by parent walk; cached in `nodes.fs_path` for fs-materialized nodes | `@km/beads/foo` | Yes (within a vault) | Changes when any ancestor's name changes | Human-facing form; what wikilinks `[[@km/beads/foo]]` and CLI flags use |
 
-**Key insight:** Names are not unique. `inbox.md` could exist at `/inbox.md`, `/archive/inbox.md`, and `/projects/inbox.md`. Resolution must handle this ambiguity.
+**Key insights:**
+
+- **Path is composed FROM names by parent walk**, but path ≠ name. `@km/beads/foo` is the composition of three names (`@km`, `beads`, `foo`).
+- **`nodes.name` holds one segment**, not the full path. Older docs sometimes called this a "slug" — same concept.
+- **DB references (`parent_id`, `host_id`, deps `target`, `embed_of`) → id only.** The DB never references a node by path or by name; renames cost zero referential updates.
+- **Markdown content (wikilinks, mentions, frontmatter) → path** for human friendliness. Path drift in markdown is an eventual-consistency concern handled by `@km/all/rename-content-cascade`, not a correctness bug.
+- **CLI accepts either form** — the resolver translates path/alias → id before query.
+
+**Resolution order** (in `resolveShortId`, `packages/km-beads/src/short-ids.ts`):
+
+1. id (direct ULID match via `repo.getNode`)
+2. path-form (delegate to `repo.resolveNode`, indexed `fs_path` lookup)
+3. legacy bd-form aliases (json_each scan over `data.aliases`)
+4. compat fallback: `data.id` json_extract scan (deprecated; will be removed once test fixtures migrate)
+
+#### `fstype` vs `type` — orthogonal columns
+
+Two columns split orthogonally:
+
+- **`type`** — the markdown shape. Values: `h` (heading), `p` (paragraph), `code`, `quote`, etc. Tells the parser/serializer what to render.
+- **`fstype`** — the filesystem materialization tier. Values: `repo`, `folder`, `file`, `mdsection`, or NULL (for unanchored blocks). Tells the sync layer whether and where to write to disk.
+
+A node's `(type, fstype)` pair lets storage answer:
+
+- *"Is this a backlinkable target?"* → `fstype IS NOT NULL`
+- *"What content tag does the markdown serializer use?"* → `type`
+
+The `idx_nodes_parent_name_fstype` partial UNIQUE index (schema v8) constrains `(parent_id, name)` uniqueness only for `fstype IS NOT NULL` rows — because mdsections (e.g. `## Goals` appearing twice in one file) can legitimately collide on name.
+
+#### Anchor handling (`file#section`)
+
+A wikilink like `[[@km/beads/foo#Goals]]` addresses an mdsection inside a file:
+
+- The path-form `@km/beads/foo` resolves to the file node (`fstype = "file"`).
+- The fragment `#Goals` is a secondary lookup against that file's mdsection children by name.
+- The mdsection itself shares the file's `fs_path` — section nodes carry `fstype = "mdsection"` and parent the file's id, but they don't have a separate filesystem path.
+- Backlink semantics: link rows record the href against the **file** as `host_id`. Section-level backlink granularity is out of scope for v1 — `#section` is a display hint, not a separate target.
+
+#### Slug stability invariant — titles do NOT auto-rename
+
+Changing a node's display title (heading content) **does not** rename the file. The `name` column (the slug / path segment) is decoupled from the title. Renames happen only via:
+
+- `bd move <old-path> <new-path>` (or `move-with-refs`)
+- Filesystem rename detected by the watcher
+- Explicit `repo.renameNode(id, newName)` calls
+
+This is load-bearing for content references — wikilinks pointing at a path keep working when the user edits the title, and break (or trigger `@km/all/rename-content-cascade`) only when the slug actually changes.
+
+#### Slug case-normalization invariant
+
+Slugs are stored case-preserved but **resolved case-insensitive** (per `docs/design/model/klink.md`, wikilink resolution is case-insensitive):
+
+- `nodes.name` stores the slug as authored (`Foo`, `FOO`, `foo` — all preserved verbatim).
+- The resolver lower-cases both the input and the indexed name on lookup.
+- `idx_nodes_parent_name_fstype` enforces case-sensitive uniqueness at the SQL layer; case-collisions among files are detected by the OS filesystem on case-insensitive systems (macOS default, Windows) and pass through on case-sensitive systems (Linux).
+
+#### `fs_path` is a canonical cache, not the source of truth
+
+The `fs_path` column mirrors the on-disk path-form for fs-materialized nodes. It is **canonical cache**, not duplicated state:
+
+- The OS filesystem owns file paths; km mirrors to `fs_path` on each sync for O(log N) queries via `idx_nodes_fs_path`.
+- Recomputing path-form on every resolve via recursive CTE / parent-walk is O(depth) per query — measurable on hot paths.
+- Watcher / reconciler / move-detection all need a stable column to compare against on file events.
+- The duplication concern that motivated `@km/storage/drop-fs-path-derive-from-name` (dropped) applied to `data.id` (which the resolver no longer reads — fully redundant), NOT to `fs_path` (which remains the only column carrying the materialized path-form).
+
+Read `fs_path` for fast indexed lookup; write only when the OS filesystem confirms the move.
+
+**Key insight:** Names are not unique across the whole tree. `inbox` could be the name of nodes at `/inbox.md`, `/archive/inbox.md`, and `/projects/inbox.md`. The partial UNIQUE index above only enforces uniqueness *per parent* for fs-materialized rows. Bare-name resolution (path with no `/`) must handle multi-match via the resolver's name index.
 
 #### Block References (`^id`)
 

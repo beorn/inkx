@@ -5,6 +5,23 @@ aliases:
   - km-storage-parent-name-unique-partial
 created_by: claude:bjorns-2026-04-30
 created_at: 2026-04-30T16:00:00Z
+closed_at: 2026-05-01T17:30:00Z
+status: closed
+close_reason: |
+  Shipped: schema v7 → v8 migration in `packages/km-storage/src/db/schema.ts`
+  with partial UNIQUE INDEX `idx_nodes_parent_name_fstype` ON `nodes(parent_id,
+  name) WHERE fstype IS NOT NULL AND name IS NOT NULL`. Pre-flight
+  duplicate check throws a descriptive error listing up to 5 collisions
+  before refusing to bump schema_version (no half-migration).
+
+  Tests: `packages/km-storage/tests/parent-name-unique-schema-v8.test.ts`
+  with 11 test cases — index existence + partial predicate, blocks
+  fs-materialized duplicates (file vs file, file vs folder), allows
+  mdsection collisions (fstype IS NULL), allows repo root with name=NULL,
+  allows different parents with same name, idempotent re-migration, and
+  refuses to upgrade a v7 DB with existing duplicates.
+
+  All acceptance criteria met. Closing.
 type: feature
 priority: P2
 parent: "@km/storage"

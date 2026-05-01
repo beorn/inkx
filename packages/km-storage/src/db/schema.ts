@@ -52,8 +52,20 @@
  *       creates the table + triggers, then backfills from existing rows.
  *       Triggers run on INSERT / UPDATE / DELETE of `nodes`, keeping deps
  *       tight to the JSON without an extra application-level write path.
+ *   8 — nodes: partial UNIQUE INDEX on (parent_id, name) restricted to
+ *       fs-materialized rows. Catches watcher-bug ambiguity at the storage
+ *       seam (when rename / atomic-write events briefly produce two rows
+ *       sharing the same parent and name for the same fstype). Predicate is
+ *       `WHERE fstype IS NOT NULL AND name IS NOT NULL` — mdsections
+ *       (fstype = NULL) deliberately keep the right to share names because
+ *       `## Goals` appearing twice in one file is valid markdown, and the
+ *       repo root row (fstype set, name NULL) is excluded by the second
+ *       conjunct. Migration runs an explicit pre-flight duplicate check and
+ *       refuses to run on a vault with violations rather than silently
+ *       failing or losing data — the user is told exactly what to fix.
+ *       Tracked by `@km/storage/parent-name-unique-partial`.
  */
-export const SCHEMA_VERSION = 7
+export const SCHEMA_VERSION = 8
 
 /**
  * Data version — bump when application-logic changes invalidate derived data
@@ -217,6 +229,12 @@ CREATE INDEX IF NOT EXISTS idx_nodes_task_status ON nodes(task_status);
 CREATE INDEX IF NOT EXISTS idx_nodes_assigned ON nodes(assigned_to);
 CREATE INDEX IF NOT EXISTS idx_nodes_due_at ON nodes(due_at);
 CREATE INDEX IF NOT EXISTS idx_nodes_name ON nodes(name);
+-- Partial UNIQUE on (parent_id, name) for filesystem-materialized nodes only.
+-- See SCHEMA_VERSION=8 history above. mdsections (fstype IS NULL) deliberately
+-- keep the right to collide on name; the repo root (fstype set, name IS NULL)
+-- is excluded by the second conjunct.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_nodes_parent_name_fstype
+  ON nodes(parent_id, name) WHERE fstype IS NOT NULL AND name IS NOT NULL;
 
 -- Full-text search
 -- unicode61 tokenchars keeps @#+~ as part of tokens so sigil queries like
@@ -611,8 +629,63 @@ function migrateVersioned(db: import("bun:sqlite").Database): MigrateResult {
     backfillDepsFromNodes(db)
   }
 
+  // v7 → v8: install the partial UNIQUE INDEX on (parent_id, name) for
+  // fs-materialized nodes. The CREATE statement is idempotent at the SQL
+  // level (`IF NOT EXISTS`), but `CREATE UNIQUE INDEX` will fail if any
+  // existing rows already violate the constraint. We run an explicit
+  // pre-flight check first so the user gets a clear error pointing at the
+  // exact (parent_id, name) collisions to clean up — better than the raw
+  // SQLITE_CONSTRAINT message and avoids leaving the meta.schema_version
+  // half-bumped.
+  if (current < 8) {
+    enforceParentNameUniqueOrThrow(db)
+    // CREATE statement runs as part of the SCHEMA stanza above this
+    // function, so by the time we reach here the index already exists on a
+    // fresh DB. For an upgrading DB the SCHEMA stanza above already ran
+    // (idempotent) and either succeeded or threw — but it can also fail
+    // silently if SQLite skips the CREATE (it shouldn't, but be defensive).
+    // Re-run it here so the migration is self-contained.
+    db.run(
+      "CREATE UNIQUE INDEX IF NOT EXISTS idx_nodes_parent_name_fstype " +
+        "ON nodes(parent_id, name) WHERE fstype IS NOT NULL AND name IS NOT NULL",
+    )
+  }
+
   writeSchemaVersion(db, SCHEMA_VERSION)
   return result
+}
+
+/**
+ * Pre-flight check for the v7 → v8 partial UNIQUE migration.
+ *
+ * Throws a descriptive error if any (parent_id, name) collision exists among
+ * fs-materialized rows with non-null names. Lists up to the first 5
+ * offending tuples so the user knows what to fix without sifting through
+ * raw SQL output.
+ */
+function enforceParentNameUniqueOrThrow(db: import("bun:sqlite").Database): void {
+  const dupes = db
+    .query(
+      `SELECT parent_id, name, COUNT(*) AS n
+         FROM nodes
+        WHERE fstype IS NOT NULL AND name IS NOT NULL
+        GROUP BY parent_id, name
+        HAVING COUNT(*) > 1
+        LIMIT 5`,
+    )
+    .all() as Array<{ parent_id: string | null; name: string; n: number }>
+
+  if (dupes.length === 0) return
+
+  const lines = dupes.map((d) => `  parent_id=${d.parent_id ?? "(root)"}  name=${JSON.stringify(d.name)}  count=${d.n}`)
+  throw new Error(
+    "v7 → v8 migration aborted: existing rows violate the partial UNIQUE " +
+      "INDEX (parent_id, name) WHERE fstype IS NOT NULL AND name IS NOT NULL.\n" +
+      "Resolve these duplicates and re-run:\n" +
+      lines.join("\n") +
+      "\n(Showing up to 5; query nodes WHERE fstype IS NOT NULL GROUP BY parent_id, name " +
+      "HAVING COUNT(*) > 1 for the full list.)",
+  )
 }
 
 /**
