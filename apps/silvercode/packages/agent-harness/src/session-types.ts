@@ -79,6 +79,8 @@ export type ToolResultEntry = { id: ToolUseId; output: unknown; is_error?: boole
  */
 export type MessageOp =
   | { kind: "text"; text: string }
+  | { kind: "thinking"; text: string }
+  | { kind: "raw"; label: string; raw: unknown }
   | { kind: "tool"; toolCall: ToolCallEntry; result?: ToolResultEntry }
 
 /**

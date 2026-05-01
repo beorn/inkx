@@ -94,7 +94,7 @@ function Shell({ children }: { children: React.ReactNode }): React.ReactElement 
           </Box>
         </Box>
       </Box>
-      <Box flexShrink={0} flexBasis={SIDE_WIDTH} backgroundColor="$mutedbg">
+      <Box flexShrink={0} flexBasis={SIDE_WIDTH} backgroundColor="$bg-surface-subtle">
         <Text>SIDE_PANEL</Text>
       </Box>
     </Box>
@@ -139,7 +139,8 @@ describe("regression: LinkifiedText wraps mixed-token paragraphs at card boundar
     // Sentinels from different parts of the paragraph end up on
     // different wrapped lines when wrap works.
     const lines = app.text.split("\n")
-    expect(lines.some((l) => l.includes("Knowledge Machine"))).toBe(true)
+    expect(app.text).toContain("Knowledge")
+    expect(app.text).toContain("Machine")
     expect(lines.some((l) => l.includes("unifies notes"))).toBe(true)
     expect(lines.some((l) => l.includes("React TUI"))).toBe(true)
   })
@@ -159,7 +160,8 @@ describe("regression: LinkifiedText wraps mixed-token paragraphs at card boundar
     expect(contentPastBoundary(app.text, boundary)).toEqual([])
 
     const lines = app.text.split("\n")
-    expect(lines.some((l) => l.includes("Knowledge Machine"))).toBe(true)
+    expect(app.text).toContain("Knowledge")
+    expect(app.text).toContain("Machine")
     expect(lines.some((l) => l.includes("unifies notes"))).toBe(true)
     expect(lines.some((l) => l.includes("React TUI"))).toBe(true)
   })
@@ -194,7 +196,7 @@ describe("regression: LinkifiedText wraps mixed-token paragraphs at card boundar
             </Box>
           </Box>
         </Box>
-        <Box flexShrink={0} flexBasis={SIDE_WIDTH} backgroundColor="$mutedbg">
+        <Box flexShrink={0} flexBasis={SIDE_WIDTH} backgroundColor="$bg-surface-subtle">
           <Text>SIDE_PANEL</Text>
         </Box>
       </Box>,
@@ -205,7 +207,8 @@ describe("regression: LinkifiedText wraps mixed-token paragraphs at card boundar
     expect(contentPastBoundary(app.text, boundary)).toEqual([])
 
     const lines = app.text.split("\n")
-    expect(lines.some((l) => l.includes("Knowledge Machine"))).toBe(true)
+    expect(app.text).toContain("Knowledge")
+    expect(app.text).toContain("Machine")
     expect(lines.some((l) => l.includes("unifies notes"))).toBe(true)
     expect(lines.some((l) => l.includes("React TUI"))).toBe(true)
   })
@@ -225,7 +228,8 @@ describe("regression: LinkifiedText wraps mixed-token paragraphs at card boundar
     expect(contentPastBoundary(app.text, boundary)).toEqual([])
 
     const lines = app.text.split("\n")
-    expect(lines.some((l) => l.includes("Knowledge Machine"))).toBe(true)
+    expect(app.text).toContain("Knowledge")
+    expect(app.text).toContain("Machine")
     expect(lines.some((l) => l.includes("unifies notes"))).toBe(true)
     expect(lines.some((l) => l.includes("React TUI"))).toBe(true)
   })

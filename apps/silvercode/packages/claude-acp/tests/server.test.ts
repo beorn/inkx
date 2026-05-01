@@ -170,7 +170,7 @@ interface ClientHarness {
 function buildClient(wire: WirePair): ClientHarness {
   const updates: acp.SessionNotification[] = []
   const writable = Writable.toWeb(wire.clientStdout) as WritableStream<Uint8Array>
-  const readable = Readable.toWeb(wire.clientStdin) as ReadableStream<Uint8Array>
+  const readable = Readable.toWeb(wire.clientStdin) as unknown as ReadableStream<Uint8Array>
   const stream = acp.ndJsonStream(writable, readable)
 
   const conn = new acp.ClientSideConnection(

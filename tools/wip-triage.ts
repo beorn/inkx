@@ -614,9 +614,16 @@ async function actIntegrate(repoRoot: string, row: TriageRow): Promise<ActionRes
 async function readLine(): Promise<string> {
   const decoder = new TextDecoder()
   const chunks: string[] = []
-  for await (const chunk of Bun.stdin.stream()) {
-    chunks.push(decoder.decode(chunk))
-    if (chunks.join("").includes("\n")) break
+  const reader = Bun.stdin.stream().getReader()
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      chunks.push(decoder.decode(value))
+      if (chunks.join("").includes("\n")) break
+    }
+  } finally {
+    reader.releaseLock()
   }
   return chunks.join("").split("\n")[0]!.trim().toLowerCase()
 }

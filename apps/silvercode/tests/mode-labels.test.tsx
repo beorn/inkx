@@ -26,6 +26,13 @@ import { createSessionStore } from "@km/agent-harness"
 const TOTAL_COLS = 120
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..")
 
+function sameRgb(a: unknown, b: unknown): boolean {
+  if (a == null || b == null) return a === b
+  const left = a as { r?: number; g?: number; b?: number }
+  const right = b as { r?: number; g?: number; b?: number }
+  return left.r === right.r && left.g === right.g && left.b === right.b
+}
+
 function makeStubSession(id = "fake"): SessionHandle {
   // Minimal SessionHandle: just enough state for SidePanel to render
   // without blowing up. Store is a real store so useStoreSignal works.
@@ -120,6 +127,36 @@ describe("SidePanel mode row in `ask` mode", () => {
     )
     expect(app.text).toContain("always ask")
     expect(app.text).toContain("?")
+  })
+
+  test("interactive side-panel rows use a visible hover surface", async () => {
+    const render = createRenderer({ cols: TOTAL_COLS, rows: 40 })
+    const focused = makeStubSession()
+    const controller = makeStubController()
+    const tree = (
+      <SidePanel
+        focused={focused}
+        sessions={[focused]}
+        focusedSessionId={focused.id}
+        onFocusSession={() => {}}
+        mode="ask"
+        onCycleMode={() => {}}
+        cwd="/tmp/fake"
+        controller={controller}
+      />
+    )
+    const app = render(tree)
+    const row = app.lines.findIndex((line) => line.includes("Sessions"))
+    expect(row, app.text).toBeGreaterThanOrEqual(0)
+    const col = app.lines[row]!.indexOf("Sessions")
+    const before = app.cell(col, row).bg
+
+    await app.hover(col, row)
+    render(tree)
+    const after = app.cell(col, row).bg
+
+    expect(after).not.toBeNull()
+    expect(sameRgb(after, before)).toBe(false)
   })
 })
 

@@ -63,7 +63,7 @@ function createCapturingSpawn(): { spawn: AcpSpawn; capture: SpawnCapture } {
     const serverToParent = pair()
 
     const serverWritable = Writable.toWeb(serverToParent.writable as Writable) as WritableStream<Uint8Array>
-    const serverReadable = Readable.toWeb(parentToServer.readable as Readable) as ReadableStream<Uint8Array>
+    const serverReadable = Readable.toWeb(parentToServer.readable as Readable) as unknown as ReadableStream<Uint8Array>
     const serverStream = acp.ndJsonStream(serverWritable, serverReadable)
     void new acp.AgentSideConnection(
       () => ({

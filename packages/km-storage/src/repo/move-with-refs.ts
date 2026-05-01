@@ -397,20 +397,19 @@ export function moveNodeWithRefs(id: string, spec: MoveSpec, deps: MoveDeps, opt
   if (!node) throw new Error(`Node not found: ${id}`)
 
   const snapshot = snapshotNode(node)
-  const newName = spec.newContent !== undefined
-    ? deriveNewName(snapshot, spec)
-    : spec.newCanonicalId
-      ? (deriveCanonicalName(spec.newCanonicalId) ?? snapshot.oldName)
-      : snapshot.oldName
+  const newName =
+    spec.newContent !== undefined
+      ? deriveNewName(snapshot, spec)
+      : spec.newCanonicalId
+        ? (deriveCanonicalName(spec.newCanonicalId) ?? snapshot.oldName)
+        : snapshot.oldName
   const newCanonicalId = spec.newCanonicalId !== undefined ? spec.newCanonicalId : snapshot.oldCanonicalId
   const newShortId = spec.newShortId !== undefined ? spec.newShortId : snapshot.oldShortId
   const newParentId = spec.newParentId !== undefined ? spec.newParentId : snapshot.oldParentId
   const newReferenceId = newCanonicalId ?? newShortId ?? null
-  const oldReferenceIds = [
-    snapshot.oldCanonicalId,
-    snapshot.oldShortId,
-    ...snapshot.oldAliases,
-  ].filter((ref, index, refs): ref is string => typeof ref === "string" && ref.length > 0 && refs.indexOf(ref) === index)
+  const oldReferenceIds = [snapshot.oldCanonicalId, snapshot.oldShortId, ...snapshot.oldAliases].filter(
+    (ref, index, refs): ref is string => typeof ref === "string" && ref.length > 0 && refs.indexOf(ref) === index,
+  )
 
   // Idempotent no-op detection: same name, same short id, same parent.
   const isNoOp =
@@ -457,7 +456,9 @@ export function moveNodeWithRefs(id: string, spec: MoveSpec, deps: MoveDeps, opt
   // fs_path from here — derive it lazily via dataStore.
   const newParentNode = newParentId ? dataStore.getNode(newParentId) : null
   const newFsPath =
-    spec.newFsPath ?? (spec.newCanonicalId ? canonicalIdToFsPath(spec.newCanonicalId) : null) ?? deriveNewFsPath(snapshot, newName, newParentNode?.fs_path ?? null)
+    spec.newFsPath ??
+    (spec.newCanonicalId ? canonicalIdToFsPath(spec.newCanonicalId) : null) ??
+    deriveNewFsPath(snapshot, newName, newParentNode?.fs_path ?? null)
 
   // ---- Phase 1: data-layer mutations on the moved node ----
   onProgress?.({ phase: "data-layer", visited: 0, total: 0, refsRewritten: 0 })

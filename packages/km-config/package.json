@@ -1,0 +1,9 @@
+{
+  "name": "@km/config",
+  "private": true,
+  "description": "Shared configuration and filesystem path conventions for km",
+  "type": "module",
+  "exports": {
+    "./paths": "./paths/index.ts"
+  }
+}

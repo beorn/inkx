@@ -244,6 +244,74 @@ describe("session-store — ops-order preservation (codex bundling fix)", () => 
     expect(msg.ops[2]).toEqual({ kind: "text", text: "Then grep:" })
     expect(msg.ops[3]).toMatchObject({ kind: "tool", toolCall: { id: tu(2), name: "Grep" } })
   })
+
+  test("resumed transcript: split assistant aggregates with the same message id append into one turn", () => {
+    // Claude's on-disk JSONL can store a parallel tool-use turn as
+    // several adjacent `assistant` rows with the same `message.id`, each
+    // carrying one `tool_use` block. Live streaming exposes those as
+    // multiple blocks in one turn. Replay must normalize to the same
+    // `MessageEntry.ops` shape so UI affordances like TurnActivitySummary
+    // do not depend on whether the session is live or loaded from disk.
+    const store = createSessionStore()
+    const t = tid(1)
+    store.apply({
+      kind: "assistant-message",
+      sessionId: sid,
+      turnId: t,
+      content: [{ type: "tool_use", id: tu(1), name: "Bash", input: { command: "rg foo" } }],
+      ts: 0,
+    })
+    store.apply({
+      kind: "assistant-message",
+      sessionId: sid,
+      turnId: t,
+      content: [{ type: "tool_use", id: tu(2), name: "Bash", input: { command: "sed -n '1,80p' file.ts" } }],
+      ts: 1,
+    })
+    store.apply({
+      kind: "assistant-message",
+      sessionId: sid,
+      turnId: t,
+      content: [{ type: "tool_use", id: tu(3), name: "Read", input: { file_path: "file.ts" } }],
+      ts: 2,
+    })
+    store.apply({ kind: "tool-result", sessionId: sid, id: tu(1), output: "hits", ts: 3 })
+    store.apply({ kind: "tool-result", sessionId: sid, id: tu(2), output: "snippet", ts: 4 })
+    store.apply({ kind: "tool-result", sessionId: sid, id: tu(3), output: "contents", ts: 5 })
+
+    const messages = store.state.get().messages
+    expect(messages).toHaveLength(1)
+    const msg = messages[0]!
+    expect(msg.ops).toHaveLength(3)
+    expect(msg.ops.map((op) => (op.kind === "tool" ? op.toolCall.name : op.kind))).toEqual(["Bash", "Bash", "Read"])
+    for (const op of msg.ops) {
+      if (op.kind === "tool") expect(op.result).toBeDefined()
+    }
+  })
+
+  test("resumed transcript: assistant-message tool_result blocks attach or render as raw", () => {
+    const store = createSessionStore()
+    const t = tid(1)
+    store.apply({
+      kind: "assistant-message",
+      sessionId: sid,
+      turnId: t,
+      content: [
+        { type: "tool_use", id: tu(1), name: "Read", input: { file_path: "a.ts" } },
+        { type: "tool_result", tool_use_id: tu(1), output: "contents", is_error: false },
+        { type: "tool_result", tool_use_id: tu(2), output: "orphan", is_error: true },
+      ],
+      ts: 0,
+    })
+
+    const msg = store.state.get().messages[0]!
+    expect(msg.ops[0]).toMatchObject({
+      kind: "tool",
+      toolCall: { id: tu(1), name: "Read" },
+      result: { id: tu(1), output: "contents" },
+    })
+    expect(msg.ops[1]).toMatchObject({ kind: "raw", label: `Orphan tool result ${tu(2)}` })
+  })
 })
 
 describe("user-message — optimistic + echo dedup", () => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import { Box, Text } from "silvery"
+import { Box, Text, useHover } from "silvery"
 import { highlight, type TokenLine } from "@silvery/syntax"
 
 /**
@@ -78,7 +78,11 @@ export function SyntaxHighlighter({
   bare = false,
 }: SyntaxHighlighterProps): React.ReactElement {
   const lang = (language || "plain").toLowerCase()
+  const hover = useHover()
   const lines = useSyntaxTokens(code, lang, theme)
+  const tokenSignature = lines
+    .map((line) => line.tokens.map((token) => `${token.text}:${token.color ?? ""}:${token.bold ? "b" : ""}:${token.italic ? "i" : ""}`).join("|"))
+    .join("\n")
 
   // Two render modes:
   //
@@ -101,12 +105,15 @@ export function SyntaxHighlighter({
         ))}
       </Text>
     ) : (
-      <Box key={i} flexDirection="row" overflow="hidden">
+      <Box key={i} flexDirection="row" width="100%" minWidth={0} overflow="hidden">
+        <Text>  </Text>
         {line.tokens.map((tok, j) => (
           <Text key={j} color={tok.color} bold={tok.bold} italic={tok.italic}>
             {tok.text}
           </Text>
         ))}
+        <Box flexGrow={1} minWidth={0} />
+        <Text>  </Text>
       </Box>
     ),
   )
@@ -117,11 +124,29 @@ export function SyntaxHighlighter({
   }
 
   return (
-    <Box flexDirection="column" backgroundColor="$surfacebg" borderStyle="single" borderColor="$border">
-      <Box flexDirection="row">
-        <Text color="$muted">{lang}</Text>
-      </Box>
+    <Box
+      key={`${lang}:${tokenSignature}`}
+      flexDirection="column"
+      position="relative"
+      width="100%"
+      maxWidth="100%"
+      minWidth={0}
+      backgroundColor="$bg-surface-subtle"
+      onMouseEnter={hover.onMouseEnter}
+      onMouseLeave={hover.onMouseLeave}
+    >
+      <Text> </Text>
+      {hover.isHovered ? (
+        <Box position="absolute" top={1} right={0} flexDirection="row" backgroundColor="$bg-surface-subtle">
+          <Text backgroundColor="$bg-surface-subtle">  </Text>
+          <Text color="$fg-muted" dim backgroundColor="$bg-surface-subtle">
+            {lang}
+          </Text>
+          <Text backgroundColor="$bg-surface-subtle">  </Text>
+        </Box>
+      ) : null}
       {body}
+      <Text> </Text>
     </Box>
   )
 }

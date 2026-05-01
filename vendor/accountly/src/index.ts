@@ -11,6 +11,13 @@ export {
 
 export { discoverAccounts, type DiscoveredAccount } from "./discover.ts"
 
+export {
+  getAccountStatuses,
+  type AccountStatus,
+  type AccountStatusKind,
+  type AccountStatusOptions,
+} from "./account-status.ts"
+
 // Profile-based multi-account management — the primary accountly API.
 // See src/profile.ts for the full architecture.
 export {

@@ -86,7 +86,7 @@ function Shell({ children }: { children: React.ReactNode }): React.ReactElement 
           </Box>
         </Box>
       </Box>
-      <Box flexShrink={0} flexBasis={SIDE_WIDTH} backgroundColor="$mutedbg">
+      <Box flexShrink={0} flexBasis={SIDE_WIDTH} backgroundColor="$bg-surface-subtle">
         <Text>SIDE_PANEL</Text>
       </Box>
     </Box>
@@ -192,7 +192,7 @@ function MinimalShell({ children }: { children: React.ReactNode }): React.ReactE
           <Box paddingX={1}>{children}</Box>
         </Box>
       </Box>
-      <Box flexShrink={0} flexBasis={SIDE_WIDTH} backgroundColor="$mutedbg">
+      <Box flexShrink={0} flexBasis={SIDE_WIDTH} backgroundColor="$bg-surface-subtle">
         <Text>SIDE_PANEL</Text>
       </Box>
     </Box>

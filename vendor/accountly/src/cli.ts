@@ -12,7 +12,6 @@ import {
   keychainSlot,
   readKeychainForProfile,
   checkAllProfileQuotas,
-  checkLegacyDefaultQuota,
   getLegacyDefaultProfile,
   findBestProfile,
   fetchProfileEmail,
@@ -23,12 +22,9 @@ import {
   diagnoseAllProfiles,
   adoptStockProfile,
   type ProfileInfo,
-  type ProfileQuotaResult,
   type HealthCheck,
 } from "./profile.ts"
-import { discoverAccounts, type DiscoveredAccount } from "./discover.ts"
-import { getProvider } from "./providers/index.ts"
-import type { QuotaInfo } from "./types.ts"
+import { getAccountStatuses, type AccountStatus } from "./account-status.ts"
 
 const program = new Command()
 
@@ -74,10 +70,10 @@ program.addHelpSection(
 // Running `accountly` with no arguments shows both the status table and the
 // full help text. `accountly status` shows only the table.
 program.action(async () => {
-  const profiles = listProfiles()
-  const envAccounts = discoverAccounts().filter((d) => d.config.provider !== "claude-oauth")
+  const hasProfiles = listProfiles().length > 0 || !!getLegacyDefaultProfile()
+  const statuses = await getAccountStatuses()
 
-  if (profiles.length === 0 && envAccounts.length === 0) {
+  if (!hasProfiles && statuses.length === 0) {
     console.log(pc.bold("accountly") + " — Multi-profile manager for Claude Code\n")
     console.log(`No profiles found under ${profileRoot()}.\n`)
     console.log(`Run ${pc.cyan("accountly claude --user <email>")} to bootstrap one,`)
@@ -86,27 +82,7 @@ program.action(async () => {
     return
   }
 
-  process.stdout.write(pc.dim("Checking profile quotas…\r"))
-  const [profileResults, stockResult] = await Promise.all([checkAllProfileQuotas(), checkLegacyDefaultQuota()])
-  process.stdout.write(" ".repeat(30) + "\r")
-
-  const stockEmail = stockResult?.profile.email
-  const profileNames = new Set(profileResults.map((r) => r.profile.name))
-  // Fold stock into the matching profile row if possible; otherwise show it standalone.
-  const stockFolded = !!(stockEmail && profileNames.has(stockEmail))
-  const allResults = stockFolded ? profileResults : stockResult ? [stockResult, ...profileResults] : profileResults
-  if (allResults.length > 0) {
-    renderStatusTable(allResults, stockEmail)
-  }
-
-  if (envAccounts.length > 0) {
-    if (profiles.length > 0) console.log()
-    console.log(pc.bold("API-key providers") + pc.dim("  (from environment variables)"))
-    process.stdout.write(pc.dim("Checking API key quotas…\r"))
-    const envQuotas = await checkEnvAccountQuotas(envAccounts)
-    process.stdout.write(" ".repeat(30) + "\r")
-    renderEnvAccountsTable(envAccounts, envQuotas)
-  }
+  renderAccountStatusTable(statuses)
 
   console.log()
   program.outputHelp()
@@ -118,20 +94,25 @@ program
   .description("Show all profiles (including stock ~/.claude) with quota usage")
   .option("--json", "Output raw JSON for automation")
   .action(async (opts: { json?: boolean }) => {
-    const [profileResults, stockResult] = await Promise.all([checkAllProfileQuotas(), checkLegacyDefaultQuota()])
-    const stockEmail = stockResult?.profile.email
-    const profileNames = new Set(profileResults.map((r) => r.profile.name))
-    const stockFolded = !!(stockEmail && profileNames.has(stockEmail))
-    const results = stockFolded ? profileResults : stockResult ? [stockResult, ...profileResults] : profileResults
+    const results = await getAccountStatuses()
     if (opts.json) {
       console.log(
         JSON.stringify(
           results.map((r) => ({
-            profile: r.profile.name,
-            dir: r.profile.dir,
-            authenticated: r.profile.authenticated,
-            error: r.error ?? r.quota?.error,
-            windows: r.quota?.windows ?? [],
+            kind: r.kind,
+            name: r.name,
+            provider: r.provider,
+            label: r.label,
+            email: r.email,
+            dir: r.dir,
+            authenticated: r.authenticated,
+            current: r.current,
+            default: r.default,
+            stock: r.stock,
+            sourceEnvVar: r.sourceEnvVar,
+            credentialHint: r.credentialHint,
+            error: r.error,
+            windows: r.quotas,
           })),
           null,
           2,
@@ -139,7 +120,7 @@ program
       )
       return
     }
-    renderStatusTable(results, stockEmail)
+    renderAccountStatusTable(results)
   })
 
 // ── claude ──────────────────────────────────────────────────────────────
@@ -530,38 +511,46 @@ interface StatusRow {
   markerWidth: number
   name: string
   email?: string
-  plan: string
+  group: string
   line: string
 }
 
-function renderStatusTable(results: ProfileQuotaResult[], stockEmail: string | undefined): void {
+function statusMarker(status: AccountStatus): { str: string; width: number } {
+  const parts: string[] = []
+  if (status.default) parts.push(pc.yellow("★"))
+  if (status.current) parts.push(pc.green("●"))
+  if (status.stock) parts.push(pc.magenta("~"))
+  return { str: parts.join(""), width: parts.length }
+}
+
+function renderAccountStatusTable(results: AccountStatus[]): void {
   if (results.length === 0) {
-    console.log(pc.dim("no profiles found"))
+    console.log(pc.dim("no accounts found"))
     return
   }
-  const defaultName = getDefaultProfile()
   const rows: StatusRow[] = results.map((r) => {
-    const name = r.profile.name
-    const { str: marker, width: markerWidth } = buildMarker(name, defaultName, stockEmail)
-    const email = r.profile.email
-    const plan = prettyPlan(r.profile.plan)
-    const authed = r.profile.authenticated
-    if (!authed) {
-      return { marker, markerWidth, name, email, plan, line: pc.yellow("missing login — run /login inside claude") }
+    const name = r.name
+    const { str: marker, width: markerWidth } = statusMarker(r)
+    const email = r.email
+    const group = r.kind === "claude-profile" ? `${r.label} ${prettyPlan(r.plan)}`.trim() : r.label
+    if (r.kind === "claude-profile" && !r.authenticated) {
+      return { marker, markerWidth, name, email, group, line: pc.yellow("missing login — run /login inside claude") }
     }
     if (r.error) {
-      return { marker, markerWidth, name, email, plan, line: pc.red(r.error) }
+      return { marker, markerWidth, name, email, group, line: pc.red(r.error) }
     }
-    const q = r.quota
-    if (!q || q.error) {
-      return { marker, markerWidth, name, email, plan, line: pc.red(q?.error ?? "unknown error") }
+    if (r.quotas.length === 0) {
+      const hint = r.credentialHint ? pc.dim(` ${r.credentialHint}`) : ""
+      const source = r.sourceEnvVar ? pc.dim(` (${r.sourceEnvVar})`) : ""
+      const note = r.available ? pc.green("✓ key valid") : pc.red("no quota data")
+      return { marker, markerWidth, name, email, group, line: `${note}${hint}${source}` }
     }
-    const parts = q.windows.map((w) => {
+    const parts = r.quotas.map((w) => {
       const util = w.utilization
       const bar = utilizationBar(util)
       return `${w.name} ${bar} ${util.toString().padStart(3)}%`
     })
-    return { marker, markerWidth, name, email, plan, line: parts.join("  ") }
+    return { marker, markerWidth, name, email, group, line: parts.join("  ") }
   })
   // Marker counts as part of name cell width so the QUOTAS column aligns across all groups.
   const markerSize = (r: StatusRow) => (r.markerWidth > 0 ? 1 + r.markerWidth : 0)
@@ -570,7 +559,7 @@ function renderStatusTable(results: ProfileQuotaResult[], stockEmail: string | u
   // Group rows by plan label so each subscription tier gets its own header.
   const groups = new Map<string, StatusRow[]>()
   for (const r of rows) {
-    const key = r.plan || "Unknown"
+    const key = r.group || "Unknown"
     const existing = groups.get(key)
     if (existing) existing.push(r)
     else groups.set(key, [r])
@@ -579,7 +568,7 @@ function renderStatusTable(results: ProfileQuotaResult[], stockEmail: string | u
   for (const [plan, groupRows] of groups) {
     if (!first) console.log()
     first = false
-    console.log(`${pc.bold("CLAUDE CODE")} ${plan.toUpperCase()}`)
+    console.log(pc.bold(plan))
     for (const r of groupRows) {
       const nameCell = pc.cyan(r.name)
       const markerPart = r.markerWidth > 0 ? ` ${r.marker}` : ""
@@ -590,13 +579,7 @@ function renderStatusTable(results: ProfileQuotaResult[], stockEmail: string | u
   }
 
   const stockLegend = `${pc.magenta("~")} stock ~/.claude`
-  const profileLegend: string[] = []
-  if (defaultName) profileLegend.push(`${pc.yellow("★")} default`)
-  const activeMode = process.env.CLAUDE_PROFILE
-    ? `CLAUDE_PROFILE=${process.env.CLAUDE_PROFILE}`
-    : "stock ~/.claude (no profile pinned)"
-  profileLegend.push(`${pc.green("●")} active · ${activeMode}`)
-  console.log(pc.dim(`${stockLegend}       ${profileLegend.join("   ")}`))
+  console.log(pc.dim(`${stockLegend}       ${pc.yellow("★")} default   ${pc.green("●")} current`))
 }
 
 function utilizationBar(util: number): string {
@@ -607,51 +590,6 @@ function utilizationBar(util: number): string {
   if (util >= 90) return pc.red(bar)
   if (util >= 60) return pc.yellow(bar)
   return pc.green(bar)
-}
-
-async function checkEnvAccountQuotas(accounts: DiscoveredAccount[]): Promise<QuotaInfo[]> {
-  return Promise.all(
-    accounts.map(async (a) => {
-      const provider = getProvider(a.config.provider)
-      const result = await provider.checkQuota(a.credential)
-      result.accountName = a.config.name
-      return result
-    }),
-  )
-}
-
-function apiKeyHint(cred: unknown): string {
-  if (typeof cred !== "object" || cred === null) return ""
-  const key = (cred as Record<string, unknown>).apiKey
-  if (typeof key !== "string" || key.length < 4) return ""
-  return `…${key.slice(-4)}`
-}
-
-function renderEnvAccountsTable(accounts: DiscoveredAccount[], quotas: QuotaInfo[]): void {
-  const nameWidth = Math.max(10, ...accounts.map((a) => a.config.name.length))
-  const hintWidth = Math.max(0, ...accounts.map((a) => apiKeyHint(a.credential).length))
-  for (let i = 0; i < accounts.length; i++) {
-    const a = accounts[i]!
-    const q = quotas[i]!
-    const name = pc.cyan(a.config.name.padEnd(nameWidth))
-    const hint = apiKeyHint(a.credential)
-    const hintCell = pc.dim(hint.padEnd(hintWidth))
-    const prefix = hintWidth > 0 ? `${name} ${hintCell}` : name
-    if (q.error) {
-      console.log(`${prefix}  ${pc.red(q.error)}`)
-      continue
-    }
-    if (q.windows.length === 0) {
-      const note = q.available ? pc.green("✓ key valid") : pc.red("no quota data")
-      console.log(`${prefix}  ${note}`)
-      continue
-    }
-    const parts = q.windows.map((w) => {
-      const util = w.utilization
-      return `${w.name} ${utilizationBar(util)} ${util.toString().padStart(3)}%`
-    })
-    console.log(`${prefix}  ${parts.join("  ")}`)
-  }
 }
 
 program.parse()

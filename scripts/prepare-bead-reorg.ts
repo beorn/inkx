@@ -272,7 +272,9 @@ function chooseTargetScope(bead: BeadFile): { target?: TargetScope; reason: stri
     const allowedReviewScopes = ["docs", "testing", "architecture", "perf"] as const
     const reviewHits = allowedReviewScopes.filter((scope) => scores.has(scope))
     if (reviewHits.length === 1) {
-      return { target: { root: "km", scope: reviewHits[0] }, reason: `legacy review scope with ${scores.get(reviewHits[0])!.reasons.join("; ")}` }
+      const scope = reviewHits[0]
+      if (!scope) return { reason: "legacy review scope needs manual destination" }
+      return { target: { root: "km", scope }, reason: `legacy review scope with ${scores.get(scope)!.reasons.join("; ")}` }
     }
     return {
       reason: reviewHits.length === 0
@@ -287,7 +289,9 @@ function chooseTargetScope(bead: BeadFile): { target?: TargetScope; reason: stri
     if (ranked.length > 1 && ranked[0]![1].score === ranked[1]![1].score) {
       return { reason: `${bead.scope} item matched multiple destinations: ${ranked.map(([scope]) => scope).join(", ")}` }
     }
-    const [scope, reasons] = ranked[0]!
+    const best = ranked[0]
+    if (!best) return { reason: `${bead.scope} item has no strong scope signal` }
+    const [scope, reasons] = best
     const externalRoot = EXTERNAL_SCOPE_ROOTS.get(scope)
     if (externalRoot) return { target: { root: externalRoot }, reason: reasons.reasons.join("; ") }
     return { target: { root: "km", scope }, reason: reasons.reasons.join("; ") }

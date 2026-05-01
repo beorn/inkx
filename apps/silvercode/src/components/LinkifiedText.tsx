@@ -200,12 +200,28 @@ function colorFor(d: Detection): string {
   }
 }
 
-export function LinkifiedText({ text, role }: { text: string; role?: "assistant" | "user" }): React.ReactElement {
+function visibleLinkText(d: Detection): { linked: string; suffix: string } {
+  if (d.kind !== "file" && d.kind !== "code-ref") return { linked: d.match, suffix: "" }
+  const path = d.payload.path ?? ""
+  if (path.length === 0 || !d.match.startsWith(path)) return { linked: d.match, suffix: "" }
+  return { linked: path, suffix: d.match.slice(path.length) }
+}
+
+export function LinkifiedText({
+  text,
+  role,
+  backgroundColor,
+}: {
+  text: string
+  role?: "assistant" | "user"
+  backgroundColor?: string
+}): React.ReactElement {
   const popover = usePopover()
   const { rules } = useAutolinks()
   const cwd = useCwd()
   // `process.env.HOME` is read once at render — stable across the session.
   const home = process.env["HOME"]
+  const wrapMode = role === "user" ? "even" : "wrap"
   const detections = React.useMemo(() => {
     const builtins = detectReferences(text)
     if (rules.length === 0) return builtins
@@ -213,7 +229,7 @@ export function LinkifiedText({ text, role }: { text: string; role?: "assistant"
     return mergeDetections(builtins, auto)
   }, [text, rules])
 
-  // Each markdown line renders as a SINGLE outer <Text wrap="wrap"> with
+  // Each markdown line renders as a SINGLE outer wrapping <Text> with
   // nested styled Text spans for detected references. This is the only
   // shape that gives correct word-wrap across detection boundaries — the
   // earlier `<Box flexDirection="row" flexWrap="wrap">` over per-piece
@@ -239,7 +255,7 @@ export function LinkifiedText({ text, role }: { text: string; role?: "assistant"
         offset = lineEnd + 1
         if (lineDetections.length === 0) {
           return (
-            <Text key={lineIdx} color={role === "user" ? "$fg" : undefined} wrap="wrap">
+            <Text key={lineIdx} color={role === "user" ? "$fg" : undefined} backgroundColor={backgroundColor} wrap={wrapMode}>
               {line}
             </Text>
           )
@@ -260,7 +276,11 @@ export function LinkifiedText({ text, role }: { text: string; role?: "assistant"
         let cursor = lineStart
         for (const d of lineDetections) {
           if (d.start > cursor) {
-            pieces.push(<Text key={`t${cursor}`}>{line.slice(cursor - lineStart, d.start - lineStart)}</Text>)
+            pieces.push(
+              <Text key={`t${cursor}`} backgroundColor={backgroundColor}>
+                {line.slice(cursor - lineStart, d.start - lineStart)}
+              </Text>,
+            )
           }
           // Two render paths:
           //   - href != null  → silvery <Link> emits OSC 8; Ghostty / Kitty /
@@ -272,24 +292,48 @@ export function LinkifiedText({ text, role }: { text: string; role?: "assistant"
           //     can't help; keep the click-to-popover affordance.
           const href = hrefFor(d, cwd, home)
           const showPopover = () => popover?.show({ body: renderPopoverContent(d) }, { x: 0, y: 0 })
+          const visible = visibleLinkText(d)
           pieces.push(
             href ? (
-              <Link key={`d${d.start}`} href={href} color={colorFor(d)} onClick={showPopover}>
-                {d.match}
+              <Link
+                key={`d${d.start}`}
+                href={href}
+                color={colorFor(d)}
+                backgroundColor={backgroundColor}
+                onClick={showPopover}
+              >
+                {visible.linked}
               </Link>
             ) : (
-              <Text key={`d${d.start}`} color={colorFor(d)} underline onClick={showPopover}>
-                {d.match}
+              <Text
+                key={`d${d.start}`}
+                color={colorFor(d)}
+                backgroundColor={backgroundColor}
+                underline
+                onClick={showPopover}
+              >
+                {visible.linked}
               </Text>
             ),
           )
+          if (visible.suffix.length > 0) {
+            pieces.push(
+              <Text key={`d${d.start}-suffix`} backgroundColor={backgroundColor}>
+                {visible.suffix}
+              </Text>,
+            )
+          }
           cursor = d.end
         }
         if (cursor < lineEnd) {
-          pieces.push(<Text key={`tail${cursor}`}>{line.slice(cursor - lineStart)}</Text>)
+          pieces.push(
+            <Text key={`tail${cursor}`} backgroundColor={backgroundColor}>
+              {line.slice(cursor - lineStart)}
+            </Text>,
+          )
         }
         return (
-          <Text key={lineIdx} color={role === "user" ? "$fg" : undefined} wrap="wrap">
+          <Text key={lineIdx} color={role === "user" ? "$fg" : undefined} backgroundColor={backgroundColor} wrap={wrapMode}>
             {pieces}
           </Text>
         )

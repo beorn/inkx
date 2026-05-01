@@ -356,9 +356,7 @@ export function renderBeadFile(
 ): { filename: string; content: string } {
   const sigil = `@${options.prefix}/`
   if (!canonicalId.startsWith(sigil)) {
-    throw new Error(
-      `renderBeadFile: canonicalId must start with @${options.prefix}/ (got: ${canonicalId})`,
-    )
+    throw new Error(`renderBeadFile: canonicalId must start with @${options.prefix}/ (got: ${canonicalId})`)
   }
   const inner = canonicalId.slice(sigil.length)
   if (!inner) {

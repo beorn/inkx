@@ -5,6 +5,8 @@ import { useAmbientStream } from "../hooks/use-ambient-stream.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 import { SessionUpdateList } from "./SessionUpdateList.tsx"
 import { Welcome } from "./Welcome.tsx"
+import { Content } from "./Content.tsx"
+import type { MessageEntry } from "@km/agent-harness"
 
 /**
  * Per-agent display labels for the inline activity row's spawning state.
@@ -25,6 +27,16 @@ const AGENT_LABELS_FOR_ACTIVITY: Readonly<Record<string, string>> = {
 function agentLabelFor(agent?: string): string | null {
   if (!agent) return null
   return AGENT_LABELS_FOR_ACTIVITY[agent] ?? null
+}
+
+function hasVisibleTranscriptContent(messages: readonly MessageEntry[]): boolean {
+  return messages.some((m) => {
+    if (m.text.trim().length > 0) return true
+    return m.ops.some((op) => {
+      if (op.kind === "text" || op.kind === "thinking") return op.text.trim().length > 0
+      return true
+    })
+  })
 }
 
 /**
@@ -58,6 +70,7 @@ export function SessionCard({
   agent,
   composerSlot,
   follow = "end",
+  showFocusBar = false,
 }: {
   handle: SessionHandle
   isFocused: boolean
@@ -100,6 +113,8 @@ export function SessionCard({
   composerSlot?: React.ReactNode
   /** Chat panes follow the latest turn; natural-height story previews can disable it. */
   follow?: "end" | false
+  /** PaneGrid enables this when pane chrome is meaningful; standalone cards stay chrome-free. */
+  showFocusBar?: boolean
 }): React.ReactElement {
   const state = useStoreSignal(handle.store)
   // Ambient stream — pre-filtered through the mute set so muted source
@@ -136,14 +151,15 @@ export function SessionCard({
   // recent turn, user or assistant); if there are no messages yet we
   // pass null and the indicator omits the elapsed segment.
   const turnStartedAt = state.messages.length > 0 ? state.messages[state.messages.length - 1]!.ts : null
+  const hasTranscriptContent = hasVisibleTranscriptContent(state.messages)
+  const [composerHeight, setComposerHeight] = React.useState(0)
+  const composerOverlayHeight = composerSlot ? Math.max(3, composerHeight) : 0
+  const transcriptBottomPadding = composerSlot ? composerOverlayHeight + 1 : hasTranscriptContent ? 1 : 0
 
   return (
-    // `userSelect="contain"` scopes mouse-drag selection to this card —
-    // drags that start here can't extend into neighboring cards or the
-    // side panel (silvery's findContainBoundary walks up to this ancestor
-    // and clips the drag to its scrollRect). Without it, drag selects
-    // across the whole screen, which is messy when multiple sessions
-    // are laid out side-by-side.
+    // `userSelect="contain"` is a hard CSS-style selection boundary here:
+    // document-aware selection can expand within the card, but not into
+    // neighboring cards or the side panel.
     <Box
       flexDirection="row"
       flexGrow={1}
@@ -154,33 +170,97 @@ export function SessionCard({
       userSelect="contain"
       backgroundColor={isDimmed ? "$bg-surface-subtle" : undefined}
       onClick={onFocus}
+      position="relative"
     >
-      {/* Active-pane accent bar removed — the focused pane is implied by
-          the keyboard cursor and the bottom composer's color, no need
-          for a left-edge ▎ stripe in single-pane setups. */}
+      <Box flexShrink={0} width={showFocusBar ? 1 : 0}>
+        {showFocusBar ? <Text color={isFocused ? "$accent" : undefined}>{isFocused ? "▎" : " "}</Text> : null}
+      </Box>
+      {showFocusBar && isFocused ? (
+        <Box position="absolute" top={1} left={0} width={1} height={1} flexShrink={0}>
+          <Text color="$accent">▎</Text>
+        </Box>
+      ) : null}
       <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0}>
         <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0}>
-          {state.messages.length === 0 ? (
-            <Welcome handle={handle} agent={agent} status={state.status} composerSlot={composerSlot} />
+          {!hasTranscriptContent ? (
+              <Welcome
+                handle={handle}
+                agent={agent}
+                model={state.model || handle.metadata?.model}
+                status={state.status}
+                composerSlot={composerSlot}
+              />
           ) : (
-            <SessionUpdateList
-              ref={scrollListRefCb}
-              messages={state.messages}
-              onApprove={onApprove}
-              onDeny={onDeny}
-              sessionId={handle.id}
-              status={state.status}
-              turnStartedAt={turnStartedAt}
-              inputTokens={state.cost.inputTokens}
-              outputTokens={state.cost.outputTokens}
-              pendingPermissions={state.permissions.length}
-              inFlightTool={inFlightTool}
-              showDebug={showDebug}
-              ambientEntries={ambientEntries}
-              agentLabel={agentLabelFor(agent)}
-              agentVersion={state.claudeCodeVersion || null}
-              follow={follow}
-            />
+            <Box
+              flexGrow={1}
+              flexShrink={1}
+              minWidth={0}
+              minHeight={0}
+              paddingX={hasTranscriptContent ? 1 : 0}
+            >
+              <Content.Layout>
+                <Box
+                  flexDirection="column"
+                  flexGrow={1}
+                  flexShrink={1}
+                  minWidth={0}
+                  minHeight={0}
+                  position="relative"
+                >
+                  <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} overflow="hidden">
+                    <SessionUpdateList
+                      ref={scrollListRefCb}
+                      messages={state.messages}
+                      onApprove={onApprove}
+                      onDeny={onDeny}
+                      sessionId={handle.id}
+                      status={state.status}
+                      turnStartedAt={turnStartedAt}
+                      inputTokens={state.cost.inputTokens}
+                      outputTokens={state.cost.outputTokens}
+                      pendingPermissions={state.permissions.length}
+                      inFlightTool={inFlightTool}
+                      showDebug={showDebug}
+                      ambientEntries={ambientEntries}
+                      sessionMetadata={handle.metadata}
+                      agentLabel={agentLabelFor(agent)}
+                      agentVersion={state.claudeCodeVersion || null}
+                      follow={follow}
+                      paddingTop={hasTranscriptContent ? 1 : 0}
+                      paddingBottom={transcriptBottomPadding}
+                    />
+                  </Box>
+                  {composerSlot ? (
+                    <Box
+                      position="absolute"
+                      left={0}
+                      right={0}
+                      bottom={0}
+                      paddingY={1}
+                      backgroundColor="$bg-surface-default"
+                      flexDirection="row"
+                      onLayout={(rect) => {
+                        const height = Math.max(0, Math.round(rect.height))
+                        setComposerHeight((previous) => (previous === height ? previous : height))
+                      }}
+                    >
+                      <Content.Row>
+                        <Content.Body width="auto">
+                          <Box
+                            flexDirection="column"
+                            width="100%"
+                            minWidth={0}
+                            backgroundColor="$bg-surface-raised"
+                          >
+                            {composerSlot}
+                          </Box>
+                        </Content.Body>
+                      </Content.Row>
+                    </Box>
+                  ) : null}
+                </Box>
+              </Content.Layout>
+            </Box>
           )}
         </Box>
       </Box>

@@ -5,6 +5,7 @@ import { createOpenAIProvider } from "./openai.ts"
 import { createXaiProvider } from "./xai.ts"
 import { createGoogleProvider } from "./google.ts"
 import { createOpenRouterProvider } from "./openrouter.ts"
+import { createCursorApiProvider } from "./cursor-api.ts"
 
 const providers = new Map<AccountProvider, QuotaProvider>()
 
@@ -17,6 +18,7 @@ function ensureProviders(): void {
     createXaiProvider(),
     createGoogleProvider(),
     createOpenRouterProvider(),
+    createCursorApiProvider(),
   ]
   for (const p of all) {
     providers.set(p.providerType, p)

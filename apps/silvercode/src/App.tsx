@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { createLogger } from "loggily"
-import type { AgentSession, SessionStore } from "@km/agent-harness"
+import type { AgentSession, MessageEntry, SessionStore } from "@km/agent-harness"
 
 const appStartupLog = createLogger("silvercode:startup")
 const appBootT0 = (globalThis as { __SILVERCODE_BOOT_T0?: number }).__SILVERCODE_BOOT_T0 ?? Date.now()
@@ -35,6 +35,7 @@ import { SidePanel } from "./components/SidePanel.tsx"
 import { prefixSid } from "./sid-prefix.ts"
 import { BUILTIN_AGENTS } from "./config-schema.ts"
 import { AvailableCommandsPalette } from "./components/AvailableCommandsPalette.tsx"
+import { Content } from "./components/Content.tsx"
 import { createSilvercodeController, type Controller, type SessionHandle } from "./controller.ts"
 import { isLocal } from "./slash-commands.ts"
 import { AutolinksProvider } from "./AutolinksContext.tsx"
@@ -67,6 +68,16 @@ const MESSAGE_LIST_PAGE_STEP = 10
 
 // Side panel column count when rendered (inline or overlay).
 const SIDE_PANEL_WIDTH = 40
+
+function hasConversationContent(messages: readonly MessageEntry[]): boolean {
+  return messages.some((m) => {
+    if (m.text.trim().length > 0) return true
+    return m.ops.some((op) => {
+      if (op.kind === "text" || op.kind === "thinking") return op.text.trim().length > 0
+      return true
+    })
+  })
+}
 
 // Side panel responsive policy:
 //   - cols >= lg (120): panel auto-open, inline as a 40-col gutter beside
@@ -640,7 +651,7 @@ export function App(props: AppProps): React.ReactElement {
   // Bead: km-silvery.startup-layout-cascade (L3 trigger).
   const conversationStarted = useSyncExternalStore(
     (cb) => (focused ? focused.store.state.subscribe(cb) : () => {}),
-    () => (focused ? focused.store.state.get().messages.length > 0 : false),
+    () => (focused ? hasConversationContent(focused.store.state.get().messages) : false),
   )
   const welcomeIsFocused = !conversationStarted
   const [focusedRegion, setFocusedRegion] = useState<"queue" | "command">("command")
@@ -1273,111 +1284,54 @@ export function App(props: AppProps): React.ReactElement {
               to shrink=0 — `minWidth={0}` alone does nothing without an
               overflow boundary in the chain. */}
               <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
-                {sessions.length === 0 && spawnError ? (
-                  <Box flexDirection="column" flexGrow={1} paddingX={2} paddingY={1}>
-                    <Text bold color="$error">
-                      {"Spawn failed"}
-                    </Text>
-                    <Text>{""}</Text>
-                    <Text color="$fg">{spawnError}</Text>
-                    <Text>{""}</Text>
-                    <Text color="$muted">{"Common causes:"}</Text>
-                    <Text color="$muted">{" - Agent binary missing or misconfigured"}</Text>
-                    <Text color="$muted">{" - Account credentials missing"}</Text>
-                    <Text color="$muted">{" - ACP server initialize timeout / connection closed"}</Text>
-                    <Text>{""}</Text>
-                    <Text color="$muted">{"Press Ctrl+D twice to quit."}</Text>
-                  </Box>
-                ) : (
-                  <PaneGrid
-                    ref={paneGridRef}
-                    controller={controller}
-                    sessions={sessions}
-                    focusedSessionId={focusedSessionId}
-                    zoomedPaneId={zoomedPaneId}
-                    tree={paneTree}
-                    onTreeChange={onTreeChange}
-                    cwd={props.cwd}
-                    onFocusSession={(id) => controller.focus(id)}
-                    onApprovePermission={(sid, rid) => controller.respondPermission(sid, rid, true)}
-                    onDenyPermission={(sid, rid) => controller.respondPermission(sid, rid, false)}
-                    paneHeaders={props.paneHeaders === true}
-                    onSplitRightPane={splitPaneRightById}
-                    onClosePane={closePaneById}
-                    onToggleMinimizePane={toggleMinimizePane}
-                    minimizedPaneIds={minimizedPaneIds}
-                    onRegisterScrollList={registerScrollList}
-                    showDebug={showDebug}
-                    agent={props.agent}
-                    composerSlot={
-                      // Welcome / pre-spawn slot. Loading sessions
-                      // (--resume X or handle.resumeId set) get a quiet
-                      // "Loading session <id>…" line INSTEAD of the
-                      // composer — the user is waiting on transcript
-                      // replay, not entering a fresh prompt. Fresh
-                      // sessions get the live composer (no "spawning…"
-                      // placeholder; just an empty surface ready to
-                      // type into). Chat state returns undefined and
-                      // the bottom-of-layout render below takes over.
-                      //
-                      // Identity stability: ONE SessionPromptComposer
-                      // element across the pre-spawn → post-spawn
-                      // transition. Earlier code rendered two distinct
-                      // <SessionPromptComposer> JSX expressions (frozen
-                      // pre-spawn handlers vs live post-spawn handlers)
-                      // — when `focused` flipped from null to an object,
-                      // React saw two different element ownerships at
-                      // the same position and reset the underlying
-                      // readline cursor (bug: command-box cursor jumps
-                      // to front after the second layout shift, bead
-                      // km-silvery.composer-cursor-reset). Now: a single
-                      // SessionPromptComposer with handlers that branch
-                      // on `focused` internally.
-                      welcomeIsFocused || sessions.length === 0 ? (
-                        focused?.resumeId || (sessions.length === 0 && props.resume) ? (
-                          <Box flexDirection="column" alignItems="center">
-                            <Text color="$muted">Loading session</Text>
-                            <Text color="$muted">
-                              {formatLoadingSessionId(focused?.resumeId ?? props.resume ?? "", props.agent)}
-                            </Text>
-                          </Box>
-                        ) : (
-                          <SessionPromptComposer
-                            queueText={focused ? queueText : ""}
-                            onQueueChange={(t) => {
-                              if (focused) controller.setQueuedText(focused.id, t)
-                            }}
-                            onQueueSubmit={() => {
-                              if (focused) {
-                                controller.flushQueue(focused.id)
-                                setFocusedRegion("command")
-                              }
-                            }}
-                            focusedRegion={focused ? focusedRegion : "command"}
-                            onFocusRegion={focused ? setFocusedRegion : () => {}}
-                            inputValue={inputValue}
-                            onInputChange={setInputValue}
-                            inputDisabled={focused ? pendingPermissions > 0 || pendingQuestions > 0 : false}
-                            onSubmit={(text) => {
-                              if (focused) {
-                                handleSubmit(text)
-                              } else {
-                                // Pre-spawn fresh session — buffer the
-                                // typed text in pendingFirstPromptRef;
-                                // an effect dispatches it once the
-                                // SessionHandle materializes.
-                                setInputValue("")
-                                pendingFirstPromptRef.current = text
-                              }
-                            }}
-                            onExit={requestExit}
-                            promptColor={promptColor}
-                          />
-                        )
-                      ) : undefined
-                    }
-                  />
-                )}
+                <Content.Layout>
+                  {sessions.length === 0 && spawnError ? (
+                    <Box flexDirection="column" flexGrow={1} paddingX={2} paddingY={1}>
+                      <Text bold color="$error">
+                        {"Spawn failed"}
+                      </Text>
+                      <Text>{""}</Text>
+                      <Text color="$fg">{spawnError}</Text>
+                      <Text>{""}</Text>
+                      <Text color="$muted">{"Common causes:"}</Text>
+                      <Text color="$muted">{" - Agent binary missing or misconfigured"}</Text>
+                      <Text color="$muted">{" - Account credentials missing"}</Text>
+                      <Text color="$muted">{" - ACP server initialize timeout / connection closed"}</Text>
+                      <Text>{""}</Text>
+                      <Text color="$muted">{"Press Ctrl+D twice to quit."}</Text>
+                    </Box>
+                  ) : (
+                    <PaneGrid
+                      ref={paneGridRef}
+                      controller={controller}
+                      sessions={sessions}
+                      focusedSessionId={focusedSessionId}
+                      zoomedPaneId={zoomedPaneId}
+                      tree={paneTree}
+                      onTreeChange={onTreeChange}
+                      cwd={props.cwd}
+                      onFocusSession={(id) => controller.focus(id)}
+                      onApprovePermission={(sid, rid) => controller.respondPermission(sid, rid, true)}
+                      onDenyPermission={(sid, rid) => controller.respondPermission(sid, rid, false)}
+                      paneHeaders={props.paneHeaders === true}
+                      onSplitRightPane={splitPaneRightById}
+                      onClosePane={closePaneById}
+                      onToggleMinimizePane={toggleMinimizePane}
+                      minimizedPaneIds={minimizedPaneIds}
+                      onRegisterScrollList={registerScrollList}
+                      showDebug={showDebug}
+                      agent={props.agent}
+                      model={props.model}
+                      resume={props.resume}
+                      composerSlot={
+                        // Focused-pane command surface. SessionCard renders
+                        // it inside the same Content.Layout as the transcript;
+                        // Welcome may also show a resume-loading notice above
+                        // it, but loading must not replace the input.
+                        renderCommandSurface()
+                      }
+                    />
+                  )}
 
                 {/* Bottom chrome (left column). flexShrink=0 prevents overflow. */}
                 <Box flexDirection="column" flexShrink={0}>
@@ -1400,18 +1354,8 @@ export function App(props: AppProps): React.ReactElement {
                     />
                   )}
 
-                  {/* SessionPromptComposer at the bottom — chat state only.
-                      In welcome / pre-spawn states the SAME element is
-                      rendered inside Welcome's centered group via the
-                      `composerSlot` prop above; suppressing this render
-                      keeps exactly one composer mounted at a time.
-                      Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn. */}
-                  <Box paddingX={2} paddingY={1} flexShrink={0} flexDirection="row">
-                    <Box flexGrow={1} flexDirection="column">
-                      {focused && !welcomeIsFocused && renderCommandSurface()}
-                    </Box>
-                  </Box>
                 </Box>
+                </Content.Layout>
               </Box>
             </AsideLayout>
           </Screen>
@@ -1427,9 +1371,9 @@ export function App(props: AppProps): React.ReactElement {
     if (!focused) {
       // Pre-spawn (sessions.length === 0): render a buffered composer that
       // routes submits through `handleSubmit` (which queues into a pending
-      // ref until SessionHandle materializes — TODO bead). For now show a
-      // disabled placeholder so the user sees the surface without a wired
-      // backend.
+      // ref until SessionHandle materializes). Fresh startup begins spawning
+      // immediately, but the command surface stays live and the first prompt
+      // is replayed into the session as soon as the handle exists.
       return (
         <SessionPromptComposer
           queueText=""
@@ -1439,8 +1383,13 @@ export function App(props: AppProps): React.ReactElement {
           onFocusRegion={() => {}}
           inputValue={inputValue}
           onInputChange={setInputValue}
-          inputDisabled
-          onSubmit={() => {}}
+          inputDisabled={Boolean(props.resume)}
+          onSubmit={(text) => {
+            const trimmed = text.trim()
+            if (!trimmed || props.resume) return
+            pendingFirstPromptRef.current = trimmed
+            setInputValue("")
+          }}
           onExit={requestExit}
           promptColor={promptColor}
         />

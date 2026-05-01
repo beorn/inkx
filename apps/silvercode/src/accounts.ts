@@ -20,8 +20,8 @@
  */
 
 import { existsSync, mkdirSync, readdirSync, statSync } from "node:fs"
-import { homedir } from "node:os"
 import { join } from "node:path"
+import { claudeProfileDir, claudeProfilesRoot } from "@km/config/paths"
 
 /**
  * Root of the silvercode account store. Mirrors `~/.claude/` layout per name.
@@ -41,8 +41,7 @@ import { join } from "node:path"
  * set on login shells.
  */
 export function accountsRoot(): string {
-  const home = process.env.HOME ?? homedir()
-  return join(home, ".config", "claude-profiles")
+  return claudeProfilesRoot()
 }
 
 /**
@@ -54,7 +53,7 @@ export function accountsRoot(): string {
 export function resolveAccountDir(name: string): string {
   const root = accountsRoot()
   if (!existsSync(root)) mkdirSync(root, { recursive: true })
-  return join(root, name)
+  return claudeProfileDir(name)
 }
 
 /**

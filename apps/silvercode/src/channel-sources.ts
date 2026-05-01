@@ -23,10 +23,9 @@
  */
 
 import { createReadStream, existsSync, statSync, watch } from "node:fs"
-import { homedir } from "node:os"
-import { join } from "node:path"
 import createDebug from "debug"
 import type { Scope } from "@silvery/scope"
+import { defaultTribeBusPath } from "@km/config/paths"
 import type { ChannelEvent, ChannelQueue } from "./channel-queue.ts"
 
 const dSources = createDebug("silvercode:channel-sources")
@@ -55,7 +54,7 @@ function makeId(source: string): string {
  * can add directory watching to pick the file up on creation.
  */
 export function subscribeTribe(scope: Scope, queue: ChannelQueue, opts: { busPath?: string } = {}): void {
-  const busPath = opts.busPath ?? process.env.TRIBE_BUS_PATH ?? join(homedir(), ".km", "tribe-bus.jsonl")
+  const busPath = opts.busPath ?? process.env.TRIBE_BUS_PATH ?? defaultTribeBusPath()
   if (!existsSync(busPath)) {
     dSources("subscribeTribe — %s does not exist, no-op", busPath)
     return

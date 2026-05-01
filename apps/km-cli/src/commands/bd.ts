@@ -367,9 +367,7 @@ bdCommand
     if (opts.path) {
       if (opts.id && opts.id !== opts.path) {
         console.error(
-          term.yellow(
-            `Warning: both --path and --id given (path=${opts.path}, --id=${opts.id}). Using --path.`,
-          ),
+          term.yellow(`Warning: both --path and --id given (path=${opts.path}, --id=${opts.id}). Using --path.`),
         )
       }
       customIdForCreate = opts.path as string
@@ -1316,6 +1314,7 @@ bdCommand
 // bd rename <old-id> <new-id> - Rename an issue
 bdCommand
   .command("rename")
+  .alias("move")
   .argument("<old-id>", "Current issue ID")
   .argument("<new-id>", "New issue ID")
   .description("Rename an issue ID (rewrites all incoming references by default)")

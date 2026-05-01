@@ -16,13 +16,37 @@
  */
 
 import type { AgentEvent, SessionId, TurnId } from "@km/agent-harness"
-import { describe, expect, test } from "vitest"
-import { renderScenario } from "../../src/test/render-harness.tsx"
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
+import { leftWidthFor, renderScenario } from "../../src/test/render-harness.tsx"
 import { welcome } from "../../src/test/scripts/welcome.ts"
 
 const COLS = 120
 const ROWS = 30
 const SESSION = "fake-session-1" as SessionId
+let consoleSpies: Array<ReturnType<typeof vi.spyOn>> = []
+
+const silentWrite = ((
+  _chunk: string | Uint8Array,
+  encodingOrCallback?: BufferEncoding | ((err?: Error) => void),
+  callback?: (err?: Error) => void,
+): boolean => {
+  const cb = typeof encodingOrCallback === "function" ? encodingOrCallback : callback
+  cb?.()
+  return true
+}) as typeof process.stdout.write
+
+beforeEach(() => {
+  consoleSpies = (["log", "info", "debug", "warn", "error"] as const).map((method) =>
+    vi.spyOn(console, method).mockImplementation(() => {}),
+  )
+  vi.spyOn(process.stdout, "write").mockImplementation(silentWrite)
+  vi.spyOn(process.stderr, "write").mockImplementation(silentWrite as typeof process.stderr.write)
+})
+
+afterEach(() => {
+  for (const spy of consoleSpies) spy.mockRestore()
+  consoleSpies = []
+})
 
 function turnStart(turnId: string): AgentEvent {
   return { kind: "turn-start", sessionId: SESSION, turnId: turnId as TurnId, role: "assistant", ts: 1010 }
@@ -205,6 +229,25 @@ describe("A3 — plain Enter in queue inserts newline, does NOT flush", () => {
       expect(last.payload).toBe("one\n\ntwo")
       // Queue cleared → divider gone.
       expect(s.text).not.toContain("QUEUE")
+    } finally {
+      s.dispose()
+    }
+  })
+})
+
+describe("command box padding", () => {
+  test("command input leaves one blank cell at the right edge of the pane", async () => {
+    const s = await renderScenario({ script: welcome, cols: COLS, rows: ROWS })
+    try {
+      const leftWidth = leftWidthFor(COLS)
+      for (const ch of "x".repeat(leftWidth - 3)) await s.app.press(ch)
+
+      const commandRow = s.lines.findIndex((line) => line.includes(" > ") && line.includes("x"))
+      expect(commandRow, `Could not locate typed command row.\nFrame:\n${s.text}`).toBeGreaterThanOrEqual(0)
+      expect(
+        s.app.cell(leftWidth - 1, commandRow).char,
+        `Command input should reserve one trailing blank cell before the side pane.\nFrame:\n${s.text}`,
+      ).toBe(" ")
     } finally {
       s.dispose()
     }

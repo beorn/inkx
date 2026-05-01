@@ -1,5 +1,5 @@
 import React, { useRef } from "react"
-import { Box, Text, TextArea, useBoxRect } from "silvery"
+import { Box, Text, TextArea, useBoxRect, useHover } from "silvery"
 import type { TextAreaHandle } from "silvery"
 
 /**
@@ -90,6 +90,7 @@ export function SessionPromptComposer({
   promptColor?: string
 }): React.ReactElement {
   const armedAt = useRef<number>(0)
+  const hover = useHover()
   // Refs to the two TextAreas for cursor placement on boundary handoff.
   // Up→queue: cursor lands at end of last queue line. Down→command:
   // cursor lands at offset 0.
@@ -126,10 +127,20 @@ export function SessionPromptComposer({
   // already correct; this is a polish pass.
 
   return (
-    // `userSelect="contain"` scopes drag-selection to the command box —
-    // drags starting in the input/queue area can't extend into cards or
-    // the side panel.
-    <Box backgroundColor="$bg-surface-subtle" paddingY={1} flexShrink={0} flexDirection="column" userSelect="contain">
+    // `userSelect="contain"` keeps command-box selection inside the composer;
+    // Shift+drag remains available for raw buffer selection.
+    <Box
+      backgroundColor={hover.isHovered ? "$bg-surface-overlay" : "$bg-surface-raised"}
+      paddingY={1}
+      paddingRight={1}
+      flexShrink={0}
+      flexDirection="column"
+      width="100%"
+      minWidth={0}
+      userSelect="contain"
+      onMouseEnter={hover.onMouseEnter}
+      onMouseLeave={hover.onMouseLeave}
+    >
       {/* Queue region — silvery TextArea, always live. Hidden entirely
           when the buffer is empty (no divider, no widget).
 
@@ -146,11 +157,11 @@ export function SessionPromptComposer({
             <Box flexDirection="column" flexShrink={0}>
               {Array.from({ length: queueRows }, (_, i) => (
                 <Text key={i} color="$fg-muted">
-                  {i < queueDisplayLines.length ? "> " : "  "}
+                  {i < queueDisplayLines.length ? " > " : "   "}
                 </Text>
               ))}
             </Box>
-            <Box flexGrow={1}>
+            <Box flexGrow={1} minWidth={0} paddingRight={1}>
               <TextArea
                 ref={queueRef}
                 value={displayQueueText}
@@ -195,9 +206,9 @@ export function SessionPromptComposer({
       {/* Command region — silvery TextArea, always live. */}
       <Box flexDirection="row">
         <Text color={commandIsFocused ? promptColor : "$fg-muted"} bold>
-          {"> "}
+          {" > "}
         </Text>
-        <Box flexGrow={1}>
+        <Box flexGrow={1} minWidth={0} paddingRight={1}>
           <TextArea
             ref={commandRef}
             value={inputValue}

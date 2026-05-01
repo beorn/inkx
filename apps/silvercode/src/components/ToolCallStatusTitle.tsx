@@ -1,13 +1,9 @@
 /**
  * <ToolCallStatusTitle>
  *
- * Tool-call title with a neutral transcript grammar:
- *
- *   <bold first word> rest of title
- *
- * Examples: `Read filename`, `Wrote filename`, `Todo added item`.
- * Bash/execute rows pass `shell`, which renders the entire command bold
- * after a `$` marker owned by the parent `<ToolCall>` row.
+ * Tool-call title with a neutral transcript grammar. Tool rows are muted and
+ * non-bold by default so commands, reads, writes, and miscellaneous tools read
+ * as one activity stream; failures pass an error color from the parent.
  * The `kind` prop is retained on the API for callers that branch on it
  * but no longer affects the rendered text.
  *
@@ -15,7 +11,7 @@
  */
 
 import React from "react"
-import { Box, Text, TextShimmer } from "silvery"
+import { Box, Text } from "silvery"
 import type { ToolCallStatus, ToolKind } from "@km/agent-harness"
 
 // =============================================================================
@@ -34,45 +30,37 @@ export interface ToolCallStatusTitleProps {
    * structured phrase that doesn't fit the verb scaffolding ("Read 3 files").
    */
   label?: string
-  /** Shell commands render the whole command in bold after the `$` marker. */
+  /** Shell commands render the whole command after the `$` marker. */
   shell?: boolean
+  /** Optional text color override, used to mute collapsed shell commands. */
+  color?: string
 }
 
 export function ToolCallStatusTitle({
-  status,
+  status: _status,
   kind: _kind,
   title,
   label,
   shell = false,
+  color,
 }: ToolCallStatusTitleProps): React.ReactElement {
   const text = label ?? title
 
-  if (status === "in_progress") {
-    return (
-      <TextShimmer active bold>
-        {text}
-      </TextShimmer>
-    )
-  }
-
   if (shell) {
     return (
-      <Text bold color="$fg">
-        {text}
-      </Text>
+      <Box flexShrink={1} minWidth={0}>
+        <Text color={color ?? "$muted"} wrap="truncate">
+          {text}
+        </Text>
+      </Box>
     )
   }
 
-  const split = text.match(/^(\S+)(?:\s+([\s\S]*))?$/)
-  const action = split?.[1] ?? text
-  const rest = split?.[2] ?? ""
-
   return (
-    <Box flexDirection="row" gap={0} flexShrink={1} minWidth={0}>
-      <Text bold color="$fg">
-        {action}
+    <Box flexShrink={1} minWidth={0}>
+      <Text color={color ?? "$muted"} wrap="truncate">
+        {text}
       </Text>
-      {rest.length > 0 ? <Text color="$fg"> {rest}</Text> : null}
     </Box>
   )
 }

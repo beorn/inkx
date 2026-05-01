@@ -845,9 +845,7 @@ describe("inline-code-quoted km.<key>:: must not be extracted as a rule", () => 
   })
 
   test("paragraph with km.add:: appearing only inside inline code stays clean", () => {
-    const tree = parse(
-      "Tree globs select nodes via `km.add::` rules, CLI commands, search, view filters.",
-    )
+    const tree = parse("Tree globs select nodes via `km.add::` rules, CLI commands, search, view filters.")
     const para = tree.children[0]!
     expect(para.data?.propsRaw?.["km.add"]).toBeUndefined()
   })

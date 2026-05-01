@@ -49,14 +49,14 @@ import { leftWidthFor } from "./render-harness.tsx"
  * back-compat with snapshot fixtures and tests that still match on it.
  */
 export const STREAM_GLYPHS = {
-  assistant: "●",
+  assistant: "•",
   user: ">",
   activity: "◈",
   /**
    * v2 tool-call leading glyph — opencode-style flat row.
    * Bead: km-silvercode.tool-call-rendering-v2.
    */
-  toolV2: "→",
+  toolV2: "$",
   /** Legacy tool-call glyphs (pre-v2 contract — kept for back-compat). */
   tool: "⚙",
   toolDone: "✓",
@@ -64,7 +64,7 @@ export const STREAM_GLYPHS = {
 } as const
 
 /** Glyphs whose columns MUST align. Tool call is excluded by design. */
-export const FLUSH_STREAM_GLYPHS = ["●", ">", "◈"] as const
+export const FLUSH_STREAM_GLYPHS = ["•", ">", "◈"] as const
 /**
  * Glyphs in the tool-call family — separate alignment.
  *
@@ -74,7 +74,7 @@ export const FLUSH_STREAM_GLYPHS = ["●", ">", "◈"] as const
  *    fixtures that still emit them continue to parse, but new code
  *    should expect `→`.
  */
-export const INSET_STREAM_GLYPHS = ["→", "⚙", "✓", "✗"] as const
+export const INSET_STREAM_GLYPHS = ["$", "→", "⚙", "✓", "✗"] as const
 /** True when the glyph belongs to the tool-call family (any status). */
 export function isToolGlyph(g: string): boolean {
   return INSET_STREAM_GLYPHS.includes(g as (typeof INSET_STREAM_GLYPHS)[number])
@@ -184,7 +184,7 @@ export function parseFrame(s: RenderedScenario, opts: { leftWidth?: number } = {
     cardStream: parseCardStream(padded, leftWidth, inputBoxRowsToSkip),
     sidePanel: parseSidePanel(padded, leftWidth),
     inputBox,
-    welcome: parseWelcome(padded),
+    welcome: parseWelcome(padded, leftWidth),
   }
 }
 
@@ -283,7 +283,9 @@ function parseSidePanel(lines: readonly string[], leftWidth: number): SidePanelR
 
 function parseInputBox(lines: readonly string[], leftWidth: number): InputBoxRegion {
   // Walk from the bottom up to find the first `>` leading-glyph row in
-  // the left region. That's the command input prompt.
+  // the left region. That's the command input prompt. The composer may
+  // be bare (`> ` at the lane start) or framed as a floating surface
+  // (`│ > ` inside a border); both are input chrome, not transcript rows.
   for (let row = lines.length - 1; row >= 0; row--) {
     const line = lines[row]!.slice(0, leftWidth)
     // Prompt shape: optional leading space, then `>`, then space or end.
@@ -291,11 +293,15 @@ function parseInputBox(lines: readonly string[], leftWidth: number): InputBoxReg
     if (m) {
       return { promptRow: row, promptCol: m[1]!.length, present: true }
     }
+    const framed = /^(\s*)[│┃▏▕]\s*>\s?/.exec(line)
+    if (framed) {
+      return { promptRow: row, promptCol: line.indexOf(">"), present: true }
+    }
   }
   return { promptRow: -1, promptCol: -1, present: false }
 }
 
-function parseWelcome(lines: readonly string[]): WelcomeRegion {
+function parseWelcome(lines: readonly string[], leftWidth: number): WelcomeRegion {
   // Welcome anchors on the figlet SILVER block top-row signature. Each
   // tier produces a distinct top row, so we test for any of them:
   //   Big      tier: "_____ _____ _ __"   (≥ 44 cols, primary)
@@ -310,13 +316,16 @@ function parseWelcome(lines: readonly string[]): WelcomeRegion {
   // between Welcome's centered content and whatever comes after (or the
   // end of frame). Coarse but sufficient — callers only need
   // `welcome.visible`. Bead: km-cr94.
-  const startRow = lines.findIndex(
-    (l) =>
+  const startRow = lines.findIndex((line) => {
+    const l = line.slice(0, leftWidth)
+    return (
       l.includes("_____ _____ _ __") ||
       l.includes("____ ___ _ __") ||
       l.includes("___ ___ _ __") ||
-      /^\s*SILVER\s*$/.test(l),
-  )
+      l.includes("░░░░░░") ||
+      /\bSILVER\b/.test(l)
+    )
+  })
   if (startRow === -1) return { visible: false, rows: [] }
   let endRow = lines.length
   let blankRun = 0

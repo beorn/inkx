@@ -14,10 +14,10 @@
  */
 
 import { existsSync, readFileSync } from "node:fs"
-import { homedir } from "node:os"
 import { join } from "node:path"
 import type { AgentEvent, SessionStore } from "@km/agent-harness"
 import { createStreamJsonParser } from "@km/agent-harness"
+import { claudeProjectsRoot } from "@km/config/paths"
 import { findCodexTranscript } from "./codex-resume.ts"
 
 /**
@@ -30,7 +30,7 @@ export function claudeProjDir(cwd: string): string {
 
 /** Resolve the absolute path to a resumed session's JSONL transcript. */
 export function sessionJsonlPath(cwd: string, sessionId: string): string {
-  return join(homedir(), ".claude", "projects", claudeProjDir(cwd), `${sessionId}.jsonl`)
+  return join(claudeProjectsRoot(), claudeProjDir(cwd), `${sessionId}.jsonl`)
 }
 
 /**

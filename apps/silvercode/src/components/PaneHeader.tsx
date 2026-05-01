@@ -68,7 +68,7 @@ export function PaneHeader({
       flexDirection="row"
       flexShrink={0}
       height={1}
-      backgroundColor={isFocused ? "$bg-surface" : "$bg-surface-subtle"}
+      backgroundColor={isFocused ? "$bg-surface-default" : "$bg-surface-subtle"}
     >
       {/* Title — flexGrow=1 so it eats the slack and buttons stay flush right.
           minWidth={0} is still required for truncate-Text: a non-wrappable

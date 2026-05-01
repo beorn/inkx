@@ -3,6 +3,9 @@
   "compilerOptions": {
     // DO NOT add "paths" - packages resolve via node_modules symlinks
     // See docs/dev/monorepo.md
+    // If imports resolve incorrectly, fix workspace dependency/symlink hygiene
+    // with `bun install`; do not special-case vendor packages here.
+    "lib": ["ESNext", "DOM", "DOM.Iterable"]
   },
   "exclude": [
     "node_modules",

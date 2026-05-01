@@ -117,6 +117,11 @@ Then `bun install` creates symlinks:
 
 TypeScript and Vite then resolve via standard node_modules lookup.
 
+If resolution breaks in this mode, run `bun install` and inspect the generated
+workspace symlinks. Do not add package-specific `paths` to the root
+`tsconfig.json`; that mixes resolution strategies and can mask stale nested
+`node_modules` installs instead of fixing them.
+
 ### Option B: Postinstall script
 
 Create symlinks manually in a postinstall script. More complex, less idiomatic.

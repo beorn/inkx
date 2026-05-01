@@ -38,7 +38,7 @@
  *   event_msg.token_count        → ignored known usage metadata
  *   event_msg.web_search_end     → ignored known web-search metadata
  *   event_msg.collab_*          → ignored known sub-agent metadata
- *   response_item.message:user   → ignored known bootstrap context
+ *   response_item.message:user   → user-message, except bootstrap context
  *   response_item.message:dev    → ignored known instructions
  *   response_item.message:assist → text-delta
  *   response_item.function_call  → tool-use
@@ -56,9 +56,9 @@
  */
 
 import { existsSync, readFileSync, readdirSync } from "node:fs"
-import { homedir } from "node:os"
 import { join } from "node:path"
 import type { SessionId, SessionStore, ToolUseId, TurnId } from "@km/agent-harness"
+import { codexSessionsRoot } from "@km/config/paths"
 import {
   commandText,
   parseCodexRolloutLine,
@@ -67,12 +67,6 @@ import {
   type CodexResponseItemPayload,
   type CodexResponseMessagePayload,
 } from "./session-model/codex-rollout.ts"
-
-function codexSessionsRoot(): string {
-  // Lazy: tests override HOME per-case, and we want each call to honor the
-  // current env. Production callers see no behavioral change.
-  return join(process.env.HOME ?? homedir(), ".codex", "sessions")
-}
 
 /**
  * Locate the rollout JSONL for a codex session id by walking
@@ -140,12 +134,15 @@ type ReplayRuntime = {
   readonly sessionId: SessionId
   readonly path: string
   currentTurnId: TurnId | null
+  currentTurnStartedAt: number | null
   blockIndex: number
   initEmitted: boolean
   cwd: string
   model: string
   execCommandEndCallIds: Set<string>
   patchApplyEndCallIds: Set<string>
+  openToolIds: Set<string>
+  seenUserMessages: Set<string>
 }
 
 function assertNever(value: never): never {
@@ -156,6 +153,15 @@ function parseTs(s: string | undefined): number {
   if (!s) return Date.now()
   const t = Date.parse(s)
   return Number.isFinite(t) ? t : Date.now()
+}
+
+function unexpectedShape(context: string, detail: string): never {
+  throw new Error(`unsupported Codex transcript shape for ${context}: ${detail}`)
+}
+
+function requiredString(value: unknown, context: string, field: string): string {
+  if (typeof value === "string") return value
+  unexpectedShape(context, `${field} must be a string`)
 }
 
 /**
@@ -173,18 +179,38 @@ function parseArgs(raw: unknown): unknown {
   }
 }
 
-function extractTextContent(content: unknown): string {
-  if (!Array.isArray(content)) return ""
+function extractTextContent(content: unknown, context: string): string {
+  if (!Array.isArray(content)) unexpectedShape(context, "content must be an array")
   let out = ""
-  for (const part of content) {
-    if (part && typeof part === "object") {
-      const p = part as { type?: string; text?: string }
-      if ((p.type === "output_text" || p.type === "input_text") && typeof p.text === "string") {
-        out += p.text
-      }
+  for (const [index, part] of content.entries()) {
+    if (!part || typeof part !== "object") {
+      unexpectedShape(context, `content[${index}] must be an object`)
     }
+    const p = part as { type?: unknown; text?: unknown }
+    if (p.type !== "output_text" && p.type !== "input_text") {
+      unexpectedShape(context, `content[${index}].type must be input_text or output_text`)
+    }
+    if (typeof p.text !== "string") unexpectedShape(context, `content[${index}].text must be a string`)
+    out += p.text
   }
   return out
+}
+
+function isBootstrapUserContext(text: string): boolean {
+  return text.includes("<INSTRUCTIONS>") || text.includes("<environment_context>")
+}
+
+function userMessageTs(rt: ReplayRuntime, ts: number): number {
+  if (rt.currentTurnStartedAt === null) return ts
+  return Math.min(ts, rt.currentTurnStartedAt - 1)
+}
+
+function applyUserMessage(rt: ReplayRuntime, text: string, ts: number): void {
+  if (text.length === 0 || isBootstrapUserContext(text) || rt.seenUserMessages.has(text)) return
+  rt.seenUserMessages.add(text)
+  const adjustedTs = userMessageTs(rt, ts)
+  const turnId = `u-${adjustedTs}` as TurnId
+  rt.store.apply({ kind: "user-message", sessionId: rt.sessionId, turnId, text, ts: adjustedTs })
 }
 
 function ensureTurn(rt: ReplayRuntime, ts: number, role: "user" | "assistant" = "assistant"): TurnId {
@@ -192,6 +218,7 @@ function ensureTurn(rt: ReplayRuntime, ts: number, role: "user" | "assistant" = 
   const synth = `synthetic-${ts}` as TurnId
   rt.store.apply({ kind: "turn-start", sessionId: rt.sessionId, turnId: synth, role, ts })
   rt.currentTurnId = synth
+  rt.currentTurnStartedAt = ts
   rt.blockIndex = 0
   return synth
 }
@@ -225,31 +252,33 @@ function applyEventMsg(rt: ReplayRuntime, payload: CodexEventMsgPayload, ts: num
       const turnId = (typeof payload.turn_id === "string" ? payload.turn_id : `t-${ts}`) as TurnId
       rt.store.apply({ kind: "turn-start", sessionId: rt.sessionId, turnId, role: "assistant", ts })
       rt.currentTurnId = turnId
+      rt.currentTurnStartedAt = ts
       rt.blockIndex = 0
       return
     }
     case "task_complete": {
       const turnId = (typeof payload.turn_id === "string" ? payload.turn_id : rt.currentTurnId) as TurnId | null
       if (turnId) {
+        settleOpenTools(rt, ts, "Codex completed this turn before this tool produced a result.", false)
         rt.store.apply({ kind: "turn-end", sessionId: rt.sessionId, turnId, stopReason: "end_turn", ts })
         rt.currentTurnId = null
+        rt.currentTurnStartedAt = null
       }
       return
     }
     case "turn_aborted": {
       const turnId = (typeof payload.turn_id === "string" ? payload.turn_id : rt.currentTurnId) as TurnId | null
       if (turnId) {
+        settleOpenTools(rt, ts, "Codex interrupted this turn before this tool produced a result.", true)
         rt.store.apply({ kind: "turn-end", sessionId: rt.sessionId, turnId, stopReason: "interrupted", ts })
         if (rt.currentTurnId === turnId) rt.currentTurnId = null
+        if (rt.currentTurnId === null) rt.currentTurnStartedAt = null
       }
       return
     }
     case "user_message": {
-      const text = typeof payload.message === "string" ? payload.message : ""
-      if (text.length > 0) {
-        const turnId = `u-${ts}` as TurnId
-        rt.store.apply({ kind: "user-message", sessionId: rt.sessionId, turnId, text, ts })
-      }
+      const text = requiredString(payload.message, "event_msg.user_message", "message")
+      applyUserMessage(rt, text, ts)
       return
     }
     case "agent_message":
@@ -329,8 +358,7 @@ function applyEventMsg(rt: ReplayRuntime, payload: CodexEventMsgPayload, ts: num
     case "warning":
       return
     case "exec_command_end": {
-      const id = payload.call_id
-      if (!id) return
+      const id = requiredString(payload.call_id, "event_msg.exec_command_end", "call_id")
       rt.execCommandEndCallIds.add(id)
       const turnId = ensureTurn(rt, ts, "assistant")
       const parsed = Array.isArray(payload.parsed_cmd) ? payload.parsed_cmd : []
@@ -351,6 +379,7 @@ function applyEventMsg(rt: ReplayRuntime, payload: CodexEventMsgPayload, ts: num
         input,
         ts,
       })
+      rt.openToolIds.add(id)
       const exitCode = typeof payload.exit_code === "number" ? payload.exit_code : null
       rt.store.apply({
         kind: "tool-result",
@@ -360,11 +389,11 @@ function applyEventMsg(rt: ReplayRuntime, payload: CodexEventMsgPayload, ts: num
         is_error: payload.status === "failed" || (exitCode !== null && exitCode !== 0),
         ts,
       })
+      rt.openToolIds.delete(id)
       return
     }
     case "patch_apply_end": {
-      const id = payload.call_id
-      if (!id) return
+      const id = requiredString(payload.call_id, "event_msg.patch_apply_end", "call_id")
       rt.patchApplyEndCallIds.add(id)
       rt.store.apply({
         kind: "tool-result",
@@ -374,6 +403,7 @@ function applyEventMsg(rt: ReplayRuntime, payload: CodexEventMsgPayload, ts: num
         is_error: payload.success === false || payload.status === "failed",
         ts,
       })
+      rt.openToolIds.delete(id)
       return
     }
     default:
@@ -381,10 +411,25 @@ function applyEventMsg(rt: ReplayRuntime, payload: CodexEventMsgPayload, ts: num
   }
 }
 
+function settleOpenTools(rt: ReplayRuntime, ts: number, output: string, isError: boolean): void {
+  if (rt.openToolIds.size === 0) return
+  for (const id of rt.openToolIds) {
+    rt.store.apply({
+      kind: "tool-result",
+      sessionId: rt.sessionId,
+      id: id as ToolUseId,
+      output,
+      is_error: isError,
+      ts,
+    })
+  }
+  rt.openToolIds.clear()
+}
+
 function applyMessageResponse(rt: ReplayRuntime, payload: CodexResponseMessagePayload, ts: number): void {
   switch (payload.role) {
     case "assistant": {
-      const text = extractTextContent(payload.content)
+      const text = extractTextContent(payload.content, "response_item.message:assistant")
       if (text.length > 0) {
         const turnId = ensureTurn(rt, ts, "assistant")
         rt.store.apply({ kind: "text-delta", sessionId: rt.sessionId, turnId, blockIndex: rt.blockIndex, text, ts })
@@ -392,9 +437,16 @@ function applyMessageResponse(rt: ReplayRuntime, payload: CodexResponseMessagePa
       }
       return
     }
-    case "user":
+    case "user": {
+      const text = extractTextContent(payload.content, "response_item.message:user")
+      applyUserMessage(rt, text, ts)
+      return
+    }
     case "developer":
     case "system":
+      // Known bootstrap/instruction roles are intentionally not replayed,
+      // but their shape still has to match the transcript format we know.
+      extractTextContent(payload.content, `response_item.message:${payload.role}`)
       return
     default:
       assertNever(payload.role)
@@ -408,25 +460,28 @@ function applyResponseItem(rt: ReplayRuntime, payload: CodexResponseItemPayload,
       return
     case "function_call": {
       const turnId = ensureTurn(rt, ts, "assistant")
-      const id = (typeof payload.call_id === "string" ? payload.call_id : `tu-${ts}`) as ToolUseId
-      const name = typeof payload.name === "string" ? payload.name : "unknown"
+      const id = requiredString(payload.call_id, "response_item.function_call", "call_id") as ToolUseId
+      const name = requiredString(payload.name, "response_item.function_call", "name")
       const input = parseArgs(payload.arguments)
       rt.store.apply({ kind: "tool-use", sessionId: rt.sessionId, turnId, id, name, input, ts })
+      rt.openToolIds.add(id)
       return
     }
     case "function_call_output": {
-      const id = (typeof payload.call_id === "string" ? payload.call_id : `tu-${ts}`) as ToolUseId
+      const id = requiredString(payload.call_id, "response_item.function_call_output", "call_id") as ToolUseId
       if (rt.execCommandEndCallIds.has(id)) return
       const output = payload.output ?? ""
       rt.store.apply({ kind: "tool-result", sessionId: rt.sessionId, id, output, ts })
+      rt.openToolIds.delete(id)
       return
     }
     case "custom_tool_call": {
       const turnId = ensureTurn(rt, ts, "assistant")
-      const id = (typeof payload.call_id === "string" ? payload.call_id : `tu-${ts}`) as ToolUseId
-      const name = typeof payload.name === "string" ? payload.name : "unknown"
+      const id = requiredString(payload.call_id, "response_item.custom_tool_call", "call_id") as ToolUseId
+      const name = requiredString(payload.name, "response_item.custom_tool_call", "name")
       const input = payload.input ?? {}
       rt.store.apply({ kind: "tool-use", sessionId: rt.sessionId, turnId, id, name, input, ts })
+      rt.openToolIds.add(id)
       if (payload.status === "failed") {
         rt.store.apply({
           kind: "tool-result",
@@ -436,11 +491,12 @@ function applyResponseItem(rt: ReplayRuntime, payload: CodexResponseItemPayload,
           is_error: true,
           ts,
         })
+        rt.openToolIds.delete(id)
       }
       return
     }
     case "custom_tool_call_output": {
-      const id = (typeof payload.call_id === "string" ? payload.call_id : `tu-${ts}`) as ToolUseId
+      const id = requiredString(payload.call_id, "response_item.custom_tool_call_output", "call_id") as ToolUseId
       if (rt.patchApplyEndCallIds.has(id)) return
       rt.store.apply({
         kind: "tool-result",
@@ -450,6 +506,7 @@ function applyResponseItem(rt: ReplayRuntime, payload: CodexResponseItemPayload,
         is_error: false,
         ts,
       })
+      rt.openToolIds.delete(id)
       return
     }
     case "compaction":
@@ -505,12 +562,15 @@ export function replayCodexSessionFromDisk(store: SessionStore, sessionId: strin
     sessionId: sessionId as SessionId,
     path,
     currentTurnId: null,
+    currentTurnStartedAt: null,
     blockIndex: 0,
     initEmitted: false,
     cwd: "",
     model: "",
     execCommandEndCallIds: new Set(),
     patchApplyEndCallIds: new Set(),
+    openToolIds: new Set(),
+    seenUserMessages: new Set(),
   }
 
   for (const [index, line] of raw.split("\n").entries()) {
@@ -519,22 +579,26 @@ export function replayCodexSessionFromDisk(store: SessionStore, sessionId: strin
     const parsed = parseCodexRolloutLine(path, line, lineNumber)
     const ts = parseTs(parsed.timestamp)
 
-    switch (parsed.type) {
-      case "session_meta":
-        applySessionMeta(rt, parsed.payload, ts)
-        break
-      case "event_msg":
-        applyEventMsg(rt, parsed.payload, ts)
-        break
-      case "response_item":
-        applyResponseItem(rt, parsed.payload, ts)
-        break
-      case "turn_context":
-        break
-      case "compacted":
-        break
-      default:
-        assertNever(parsed)
+    try {
+      switch (parsed.type) {
+        case "session_meta":
+          applySessionMeta(rt, parsed.payload, ts)
+          break
+        case "event_msg":
+          applyEventMsg(rt, parsed.payload, ts)
+          break
+        case "response_item":
+          applyResponseItem(rt, parsed.payload, ts)
+          break
+        case "turn_context":
+          break
+        case "compacted":
+          break
+        default:
+          assertNever(parsed)
+      }
+    } catch (err) {
+      throw new Error(`--resume: ${path}:${lineNumber}: ${(err as Error).message}`)
     }
   }
 
@@ -542,6 +606,7 @@ export function replayCodexSessionFromDisk(store: SessionStore, sessionId: strin
   // Claude's resume path. Without this, status stays non-idle and
   // controller.send() routes all input into the queue buffer forever.
   if (rt.currentTurnId !== null) {
+    settleOpenTools(rt, Date.now(), "Resume transcript ended before this tool produced a result.", true)
     store.apply({
       kind: "turn-end",
       sessionId: rt.sessionId,
@@ -550,6 +615,7 @@ export function replayCodexSessionFromDisk(store: SessionStore, sessionId: strin
       ts: Date.now(),
     })
     rt.currentTurnId = null
+    rt.currentTurnStartedAt = null
   }
 
   // If we never emitted an init (transcript started without session_meta —

@@ -200,9 +200,7 @@ export function parseBeadData(input: Record<string, unknown> | undefined | null)
 export function assertBeadDataPatch(patch: Record<string, unknown>): void {
   const result = beadDataSchema.safeParse(patch)
   if (!result.success) {
-    const issues = result.error.issues
-      .map((i) => `  ${i.path.join(".") || "(root)"}: ${i.message}`)
-      .join("\n")
+    const issues = result.error.issues.map((i) => `  ${i.path.join(".") || "(root)"}: ${i.message}`).join("\n")
     throw new BeadDataValidationError(`bead data patch failed schema validation:\n${issues}`, result.error.issues)
   }
 }

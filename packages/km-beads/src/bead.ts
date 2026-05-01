@@ -200,11 +200,7 @@ export const Bead = {
    * symmetry; the prefix for short-id generation MUST come from
    * `options.prefix` (read from `.km/config.yaml`), not from `repo`.
    */
-  create(
-    _repo: Repo,
-    title: string,
-    options: BeadCreateOptions,
-  ): { node: KNode; shortId: string; children: KNode[] } {
+  create(_repo: Repo, title: string, options: BeadCreateOptions): { node: KNode; shortId: string; children: KNode[] } {
     return fnCreateBeadNode(title, options)
   },
 

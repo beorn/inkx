@@ -12,13 +12,18 @@
  */
 import React from "react"
 import { describe, expect, test } from "vitest"
-import { createRenderer } from "@silvery/test"
+import { createRenderer, createTermless } from "@silvery/test"
+import { run } from "silvery/runtime"
+import { PopoverProvider } from "silvery"
 import { createSessionStore } from "@km/agent-harness"
 import { SidePanel } from "../src/components/SidePanel.tsx"
-import { setAllAccountsFactoryOverride, type AccountSummary } from "../src/claude-accounts.ts"
+import { setAllAccountsFactoryOverride, type AccountSummary } from "../src/account-status.ts"
+import { setAccountFactoryOverride } from "../src/claude-account.ts"
 import type { Controller, SessionHandle } from "../src/controller.ts"
 
 const TOTAL_COLS = 120
+const SUPER_DOWN = "\x1b[57444;9:1u"
+const SUPER_UP = "\x1b[57444;1:3u"
 
 function makeStubSession(id = "fake"): SessionHandle {
   const store = createSessionStore()
@@ -68,9 +73,18 @@ function makeStubController(): Controller {
 
 function makeAccount(opts: { name: string; email: string; plan: string; isActive?: boolean }): AccountSummary {
   return {
+    kind: "claude-profile",
     name: opts.name,
+    label: "Claude Code",
+    provider: "claude-oauth",
     email: opts.email,
     plan: opts.plan,
+    dir: `/profiles/${opts.name}`,
+    authenticated: true,
+    default: opts.isActive ?? false,
+    stock: false,
+    available: true,
+    current: opts.isActive ?? false,
     isActive: opts.isActive ?? false,
     quotas: [
       { name: "5-hour", utilization: 12, remaining: 880, limit: 1000 },
@@ -83,11 +97,54 @@ function makeAccount(opts: { name: string; email: string; plan: string; isActive
 
 const THREE_ACCOUNTS: AccountSummary[] = [
   makeAccount({ name: "personal", email: "personal@example.com", plan: "claude_max_20x", isActive: true }),
-  makeAccount({ name: "work", email: "work@example.com", plan: "claude_pro" }),
+  makeAccount({ name: "work", email: "work@example.com", plan: "claude_max_20x" }),
   makeAccount({ name: "experimental", email: "exp@example.com", plan: "claude_team" }),
 ]
 
-function renderPanel() {
+const API_KEY_ACCOUNT: AccountSummary = {
+  kind: "api-key",
+  name: "cursor",
+  label: "Cursor API",
+  provider: "cursor-api",
+  email: "cursor@example.com",
+  plan: null,
+  quotas: [],
+  error: null,
+  current: false,
+  isActive: false,
+  sourceEnvVar: "CURSOR_API_KEY",
+  credentialHint: "…test",
+  available: true,
+  metadata: {
+    apiKeyName: "Cursor SDK",
+    createdAt: "2026-04-30T12:00:00Z",
+  },
+  loading: false,
+}
+
+const CODEX_ACCOUNT: AccountSummary = {
+  kind: "api-key",
+  name: "codex",
+  label: "Codex",
+  provider: "openai",
+  email: null,
+  plan: null,
+  quotas: [
+    { name: "RPM", utilization: 0, remaining: 499, limit: 500 },
+    { name: "TPM", utilization: 12, remaining: 176000, limit: 200000 },
+  ],
+  error: null,
+  current: false,
+  isActive: false,
+  sourceEnvVar: "CODEX_API_KEY",
+  credentialHint: "...dex",
+  available: true,
+  loading: false,
+}
+
+const settle = (ms = 80) => new Promise<void>((r) => setTimeout(r, ms))
+
+function renderPanel(opts: { agent?: string } = {}) {
   const render = createRenderer({ cols: TOTAL_COLS, rows: 60 })
   const focused = makeStubSession()
   const controller = makeStubController()
@@ -101,12 +158,13 @@ function renderPanel() {
       onCycleMode={() => {}}
       cwd="/Users/beorn/Code/pim/km"
       controller={controller}
+      agent={opts.agent}
     />,
   )
 }
 
 describe("SidePanel — multi-account view", () => {
-  test("renders one account panel per accountly profile", () => {
+  test("renders only the selected Claude account by default", () => {
     setAllAccountsFactoryOverride({
       readCached: () => THREE_ACCOUNTS,
       probe: async () => THREE_ACCOUNTS,
@@ -114,14 +172,73 @@ describe("SidePanel — multi-account view", () => {
     try {
       const app = renderPanel()
       const text = app.text
-      // Plan labels for all three accounts present (humanized via planLabel).
       expect(text).toContain("Claude Code Max 20")
-      expect(text).toContain("Claude Pro")
-      expect(text).toContain("Claude Team")
-      // Email rows for all three.
       expect(text).toContain("personal@example.com")
-      expect(text).toContain("work@example.com")
-      expect(text).toContain("exp@example.com")
+      expect(text).not.toContain("Claude Team")
+      expect(text).not.toContain("work@example.com")
+      expect(text).not.toContain("exp@example.com")
+      expect(text).toContain("5hr")
+    } finally {
+      setAllAccountsFactoryOverride(null)
+    }
+  })
+
+  test("active-account probe overrides a transient 429 from all-accounts for the selected Claude row", () => {
+    const allAccounts = [
+      {
+        ...THREE_ACCOUNTS[0]!,
+        quotas: [],
+        error: "HTTP 429: Too Many Requests",
+        available: false,
+      },
+      THREE_ACCOUNTS[1]!,
+    ]
+    setAllAccountsFactoryOverride({
+      readCached: () => allAccounts,
+      probe: async () => allAccounts,
+    })
+    setAccountFactoryOverride({
+      readCached: () => ({
+        email: "personal@example.com",
+        plan: "claude_max_20x",
+        quotas: THREE_ACCOUNTS[0]!.quotas,
+        error: null,
+        loading: false,
+      }),
+      probe: async () => ({
+        email: "personal@example.com",
+        plan: "claude_max_20x",
+        quotas: THREE_ACCOUNTS[0]!.quotas,
+        error: null,
+        loading: false,
+      }),
+    })
+    try {
+      const app = renderPanel()
+      expect(app.text).toContain("Claude Code Max 20")
+      expect(app.text).toContain("personal@example.com")
+      expect(app.text).toContain("5hr")
+      expect(app.text).not.toContain("HTTP 429")
+      expect(app.text).not.toContain("Too Many Requests")
+    } finally {
+      setAllAccountsFactoryOverride(null)
+      setAccountFactoryOverride(null)
+    }
+  })
+
+  test("Codex selects the Codex/OpenAI account instead of the active Claude profile", () => {
+    const accounts = [...THREE_ACCOUNTS, API_KEY_ACCOUNT, CODEX_ACCOUNT]
+    setAllAccountsFactoryOverride({
+      readCached: () => accounts,
+      probe: async () => accounts,
+    })
+    try {
+      const app = renderPanel({ agent: "codex" })
+      expect(app.text).toContain("Codex")
+      expect(app.text).toContain("CODEX_API_KEY ...dex")
+      expect(app.text).toContain("RPM")
+      expect(app.text).not.toContain("Claude Code Max 20")
+      expect(app.text).not.toContain("personal@example.com")
     } finally {
       setAllAccountsFactoryOverride(null)
     }
@@ -136,11 +253,7 @@ describe("SidePanel — multi-account view", () => {
       const app = renderPanel()
       const lines = app.lines
       const findRow = (needle: string): number => lines.findIndex((l) => l.includes(needle))
-      const lastAccountRow = Math.max(
-        findRow("personal@example.com"),
-        findRow("work@example.com"),
-        findRow("exp@example.com"),
-      )
+      const lastAccountRow = findRow("personal@example.com")
       const cwdRow = findRow("Code/pim/km")
       const silverCodeRow = findRow("Silver Code")
       expect(lastAccountRow).toBeGreaterThan(-1)
@@ -151,7 +264,42 @@ describe("SidePanel — multi-account view", () => {
     }
   })
 
-  test("inactive account email cells render in $muted, active in $fg/$primary", () => {
+  test("content starts after two cells of side-panel inner margin", () => {
+    setAllAccountsFactoryOverride({
+      readCached: () => THREE_ACCOUNTS,
+      probe: async () => THREE_ACCOUNTS,
+    })
+    try {
+      const app = renderPanel()
+      const row = app.lines.findIndex((l) => l.includes("Claude Code Max 20"))
+      expect(row).toBeGreaterThan(-1)
+      expect(app.lines[row]!.indexOf("Claude Code Max 20")).toBe(2)
+    } finally {
+      setAllAccountsFactoryOverride(null)
+    }
+  })
+
+  test("bottom account block has one blank line before cwd", () => {
+    setAllAccountsFactoryOverride({
+      readCached: () => THREE_ACCOUNTS,
+      probe: async () => THREE_ACCOUNTS,
+    })
+    try {
+      const app = renderPanel()
+      const lines = app.lines
+      const accountRow = lines.findIndex((l) => l.includes("personal@example.com"))
+      const cwdRow = lines.findIndex((l) => l.includes("Code/pim/km"))
+      expect(accountRow).toBeGreaterThan(-1)
+      const blankBeforeCwd = cwdRow - 1
+      expect(lines[blankBeforeCwd]!.trim()).toBe("")
+      const lastAccountContentRow = blankBeforeCwd - 1
+      expect(lastAccountContentRow).toBeGreaterThan(accountRow)
+    } finally {
+      setAllAccountsFactoryOverride(null)
+    }
+  })
+
+  test("plan group header is highlighted once; selected account row stays compact", () => {
     setAllAccountsFactoryOverride({
       readCached: () => THREE_ACCOUNTS,
       probe: async () => THREE_ACCOUNTS,
@@ -160,24 +308,72 @@ describe("SidePanel — multi-account view", () => {
       const app = renderPanel()
       const lines = app.lines
       const findRow = (needle: string): number => lines.findIndex((l) => l.includes(needle))
-      const activeRow = findRow("Claude Code Max 20")
-      const inactiveRowA = findRow("Claude Pro")
-      const inactiveRowB = findRow("Claude Team")
-      expect(activeRow).toBeGreaterThan(-1)
-      expect(inactiveRowA).toBeGreaterThan(-1)
-      expect(inactiveRowB).toBeGreaterThan(-1)
+      const groupRow = findRow("Claude Code Max 20")
+      const personalRow = findRow("personal@example.com")
+      expect(groupRow).toBeGreaterThan(-1)
+      expect(personalRow).toBeGreaterThan(groupRow)
 
-      // The active plan label is rendered as $fg (not $muted). The
-      // inactive plan labels are $muted. We sample one cell of each.
-      const activeCell = app.cell(activeRow, lines[activeRow]!.indexOf("Claude"))
-      const inactiveCellA = app.cell(inactiveRowA, lines[inactiveRowA]!.indexOf("Claude"))
+      const personalCell = app.cell(personalRow, lines[personalRow]!.indexOf("personal"))
+      expect(personalCell.bold).toBe(false)
+    } finally {
+      setAllAccountsFactoryOverride(null)
+    }
+  })
 
-      // Active cell foreground must NOT match the muted color used by the
-      // inactive cells. We don't pin to a specific resolved RGB (theme can
-      // shift); we assert the active cell's fg differs from the inactive
-      // cell's fg — which is the visual contract: inactive is uniformly
-      // muted, active is not.
-      expect(activeCell.fg).not.toBe(inactiveCellA.fg)
+  test("All Accounts popover action switches the side panel to the full account list", async () => {
+    const accounts = [...THREE_ACCOUNTS, API_KEY_ACCOUNT, CODEX_ACCOUNT]
+    setAllAccountsFactoryOverride({
+      readCached: () => accounts,
+      probe: async () => accounts,
+    })
+    try {
+      using term = createTermless({ cols: TOTAL_COLS, rows: 80 })
+      const focused = makeStubSession()
+      const controller = makeStubController()
+      const handle = await run(
+        <PopoverProvider>
+          <SidePanel
+            focused={focused}
+            sessions={[focused]}
+            focusedSessionId={focused.id}
+            onFocusSession={() => {}}
+            mode="auto"
+            onCycleMode={() => {}}
+            cwd="/Users/beorn/Code/pim/km"
+            controller={controller}
+          />
+        </PopoverProvider>,
+        term,
+        { kitty: true, mouse: true } as never,
+      )
+      try {
+        await settle()
+        expect(term.screen.getText()).toContain("personal@example.com")
+        expect(term.screen.getText()).not.toContain("work@example.com")
+
+        const accountRow = term.screen.getLines().findIndex((line) => line.includes("personal@example.com"))
+        const accountCol = term.screen.getLines()[accountRow]!.indexOf("personal@example.com")
+        ;(term as unknown as { sendInput: (s: string) => void }).sendInput(SUPER_DOWN)
+        await settle()
+        await term.mouse.move(accountCol + 1, accountRow)
+        await settle(650)
+        const linkRow = term.screen.getLines().findIndex((line) => line.includes("All Accounts"))
+        expect(linkRow).toBeGreaterThanOrEqual(0)
+        const linkCol = term.screen.getLines()[linkRow]!.indexOf("All Accounts")
+        await term.mouse.click(linkCol + 1, linkRow)
+        ;(term as unknown as { sendInput: (s: string) => void }).sendInput(SUPER_UP)
+        await term.mouse.move(0, 0)
+        await settle()
+
+        const text = term.screen.getText()
+        expect(text).toContain("< Back")
+        expect(text).toContain("work@example.com")
+        expect(text).toContain("Claude Team")
+        expect(text).toContain("RPM")
+        expect(text).toContain("TPM")
+      } finally {
+        handle.unmount()
+      }
     } finally {
       setAllAccountsFactoryOverride(null)
     }

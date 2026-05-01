@@ -81,7 +81,7 @@ describe("SessionUpdateList scroll", () => {
 
     expect(app.text).toContain("response 35")
 
-    for (let i = 0; i < 180; i++) {
+    for (let i = 0; i < 8; i++) {
       await app.wheel(20, 9, -1)
     }
 

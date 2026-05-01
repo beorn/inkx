@@ -35,7 +35,10 @@ function freshRepo(): string {
 
 async function km(repo: string, args: string[]) {
   try {
-    const result = await $`bun ${CLI_PATH} ${args}`.cwd(repo).env({ ...process.env, KM_DIR: join(repo, ".km") }).quiet()
+    const result = await $`bun ${CLI_PATH} ${args}`
+      .cwd(repo)
+      .env({ ...process.env, KM_DIR: join(repo, ".km") })
+      .quiet()
     return {
       stdout: result.stdout.toString(),
       stderr: result.stderr.toString(),
@@ -57,27 +60,20 @@ describe("km bd move", () => {
     const oldPath = join(repo, "@km", "scope", "old.md")
     const childPath = join(repo, "@km", "scope", "child.md")
 
-    writeFileSync(
-      oldPath,
-      `---
-id: "@km/scope/old"
-aliases:
-  - km-scope.old
----
-# Old issue
-`,
-    )
-    writeFileSync(
-      childPath,
-      `---
-id: "@km/scope/child"
-parent_id: "@km/scope/old"
----
-# Child issue
-
-See @km/scope/old and km-scope.old for context.
-`,
-    )
+    const createOld = await km(repo, ["bd", "create", "Old issue", "--path", "@km/scope/old", "--type", "bug"])
+    expect(createOld.exitCode, createOld.stderr || createOld.stdout).toBe(0)
+    const createChild = await km(repo, [
+      "bd",
+      "create",
+      "Child issue",
+      "--parent",
+      "@km/scope/old",
+      "--id",
+      "child",
+      "--description",
+      "See @km/scope/old and km-scope.old for context.",
+    ])
+    expect(createChild.exitCode, createChild.stderr || createChild.stdout).toBe(0)
 
     const result = await km(repo, ["bd", "move", "@km/scope/old", "@km/scope/new", "--include-prose"])
 

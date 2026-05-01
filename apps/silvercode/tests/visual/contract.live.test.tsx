@@ -79,8 +79,8 @@ describe.each([
       const s = await renderScenario({ script: helloWorld, cols: COLS, rows: ROWS, live })
       try {
         const p = parseFrame(s)
-        const assistant = p.cardStream.find((b) => b.glyph === "●")
-        expect(assistant, `${label}: missing ● assistant block`).toBeDefined()
+        const assistant = p.cardStream.find((b) => b.glyph === "•")
+        expect(assistant, `${label}: missing • assistant block`).toBeDefined()
         expect(assistant!.firstLineText).toContain("Hi")
       } finally {
         s.dispose()

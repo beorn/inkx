@@ -72,6 +72,8 @@ export type RenderScenarioOptions = {
    *  unset falls back to bare "Silver Code". Bead:
    *  km-silvercode.welcome-claude-hardcoded. */
   agent?: string
+  /** Pass-through resume id for resume-loading UI tests. */
+  resume?: string
   /** CWD for the App. Default "/tmp/silvercode-test". */
   cwd?: string
   /**
@@ -114,6 +116,8 @@ export type RenderScenarioOptions = {
    * boundary runs against the production implementation.
    */
   live?: boolean
+  /** Match production's one-pass render loop for layout-measurement regressions. */
+  singlePassLayout?: boolean
 }
 
 /** Returned by `renderScenario` so tests can clean up if they hold on. */
@@ -176,14 +180,14 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
   Object.defineProperty(process.stdout, "rows", { configurable: true, get: () => rows })
 
   const fake = opts.fake ?? createFakeSession()
-  const renderer = createRenderer({ cols, rows })
+  const renderer = createRenderer({ cols, rows, singlePassLayout: opts.singlePassLayout })
   // In live mode, omit spawnFactory so the App uses its default
   // spawnClaude / spawnSdk / spawnCodex path. The script (if any) is
   // ignored — the real subprocess produces the events.
   const agent = opts.agent
   const elementProps = live
-    ? { cwd, bare, layout, model, agent }
-    : { cwd, bare, layout, model, agent, spawnFactory: () => fake }
+    ? { cwd, bare, layout, model, agent, resume: opts.resume }
+    : { cwd, bare, layout, model, agent, resume: opts.resume, spawnFactory: () => fake }
   // ScopeProvider wraps App so the lifecycle-scope hooks (useScopeEffect /
   // useScope, shipped with vendor/silvery 7d9ee808) have an ambient scope
   // to register against. createApp/run() do this for production paths;
@@ -239,8 +243,10 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
     fake,
     emit(event: AgentEvent): void {
       fake.emit(event)
+      app.rerender(tree)
     },
     resample(): { text: string; lines: readonly string[] } {
+      app.rerender(tree)
       return { text: app.text, lines: app.lines }
     },
     dispose(): void {

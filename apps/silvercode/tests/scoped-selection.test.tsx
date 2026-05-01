@@ -66,6 +66,23 @@ function SilvercodeShape(): React.ReactElement {
   )
 }
 
+function DocumentSelectionShape(): React.ReactElement {
+  return (
+    <Box flexDirection="row">
+      <Box width={20} height={3} flexDirection="column">
+        <Text>LLLLLLLLLLLLLLLLLLL</Text>
+        <Text>LLLLLLLLLLLLLLLLLLL</Text>
+        <Text>LLLLLLLLLLLLLLLLLLL</Text>
+      </Box>
+      <Box width={20} height={3} flexDirection="column">
+        <Text>RRRRRRRRRRRRRRRRRRR</Text>
+        <Text>RRRRRRRRRRRRRRRRRRR</Text>
+        <Text>RRRRRRRRRRRRRRRRRRR</Text>
+      </Box>
+    </Box>
+  )
+}
+
 function decodeLastOsc52(chunks: string[]): string | null {
   const osc = chunks.findLast((s) => s.includes("\x1b]52;c;"))
   if (!osc) return null
@@ -75,6 +92,37 @@ function decodeLastOsc52(chunks: string[]): string | null {
 }
 
 describe("silvercode: drag selection is scoped to the origin surface", () => {
+  test("default document selection uses the smallest common node, not the raw buffer row", async () => {
+    using term = createTermless({ cols: 60, rows: 8 })
+    const chunks: string[] = []
+    const emulator = (term as unknown as { _emulator: { feed: (s: string) => void } })._emulator
+    const origFeed = emulator.feed.bind(emulator)
+    emulator.feed = (data: string) => {
+      chunks.push(data)
+      origFeed(data)
+    }
+
+    const handle = await run(<DocumentSelectionShape />, term, { selection: true, mouse: true } as never)
+    await settle()
+    chunks.length = 0
+
+    // Start and end inside the left document node over multiple rows. Raw
+    // buffer selection would include the right sibling on the first row.
+    mouseDown(term, 2, 0)
+    await settle(80)
+    mouseMove(term, 10, 1)
+    await settle(80)
+    mouseUp(term, 10, 1)
+    await settle(300)
+
+    const decoded = decodeLastOsc52(chunks)
+    expect(decoded).not.toBeNull()
+    expect(decoded).toMatch(/L/)
+    expect(decoded).not.toMatch(/R/)
+
+    handle.unmount()
+  })
+
   test("drag from left card into right card selects only L content", async () => {
     using term = createTermless({ cols: 80, rows: 10 })
     const chunks: string[] = []

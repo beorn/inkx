@@ -117,7 +117,7 @@ export function assertSidePanelVisible(s: RenderedScenario, opts: { leftWidth?: 
 
 export function assertIconFamilyAligned(s: RenderedScenario, opts: { leftWidth?: number } = {}): void {
   const p = parseFrame(s, { leftWidth: opts.leftWidth })
-  const flush = p.cardStream.filter((b) => b.glyph === "●" || b.glyph === ">" || b.glyph === "◈")
+  const flush = p.cardStream.filter((b) => b.glyph === "•" || b.glyph === ">" || b.glyph === "◈")
   if (flush.length < 2) return
   const columns = [...new Set(flush.map((b) => b.glyphCol))]
   if (columns.length === 1) return

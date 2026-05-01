@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { Box, Image, MeasuredBox, Muted, Small, Text, isKittyGraphicsSupported } from "silvery"
 import type { SessionHandle } from "../controller.ts"
 import { prefixSid } from "../sid-prefix.ts"
+import { Content } from "./Content.tsx"
 
 /**
  * Per-agent display label. Mirrors the `AGENT_DISPLAY` map in `SidePanel.tsx`
@@ -390,6 +391,16 @@ export function formatLoadingSessionId(id: string | undefined, agent: string | u
   return agent ? prefixSid(agent, id) : id
 }
 
+function formatAgentModelDetails({
+  agentLabel,
+  model,
+}: {
+  agentLabel?: string
+  model?: string
+}): string {
+  return [agentLabel, model].filter((part): part is string => Boolean(part && part.length > 0)).join(" · ")
+}
+
 /**
  * Empty-state screen — banner + the App-level `SessionPromptComposer`,
  * both centered. The composer is THE SAME element rendered at the bottom
@@ -397,18 +408,20 @@ export function formatLoadingSessionId(id: string | undefined, agent: string | u
  * so we keep one component and one set of state. Only its parent slot
  * differs (centered here vs bottom-anchored in chat state).
  *
- * Visually: banner + agent label, followed by either the composer
- * (fresh session) or a quiet two-line loading state (resume), stacked
- * and centered both axes in the available pane height. Bead:
- * km-cr94.
+ * Visually: banner + agent label, optionally a quiet two-line loading
+ * state (resume), and the composer when supplied. Resume replay is a
+ * loading state, so it suppresses the input surface until the transcript
+ * has loaded enough to enter the normal chat layout.
  */
 export function Welcome(props: {
   handle: SessionHandle
   /** Canonical agent id — drives the `<agent label>` muted line below the banner. */
   agent?: string
-  /** Session status from the store. Currently informational only — the
-   *  fresh/loading split is driven by `handle.resumeId`, not status. */
+  /** Session status from the store. `spawning` is still a loading state:
+   *  the backend is not ready to accept input yet, so the composer stays hidden. */
   status?: string
+  /** Model label for the loading line. Falls back to handle metadata. */
+  model?: string
   /**
    * The App-level `SessionPromptComposer` element, threaded through
    * PaneGrid → SessionCard so the composer here and the (suppressed)
@@ -427,7 +440,15 @@ export function Welcome(props: {
 }): React.ReactElement {
   const agentLabel = props.agent ? AGENT_LABELS[props.agent] : undefined
   const resumeId = formatLoadingSessionId(props.handle.resumeId, props.agent)
-  const isLoading = typeof resumeId === "string" && resumeId.length > 0
+  const hasResumeId = typeof resumeId === "string" && resumeId.length > 0
+  const isLoading = hasResumeId || props.status === "spawning"
+  const loadingSessionId = hasResumeId
+    ? resumeId
+    : props.handle.metadata?.sessionId || props.handle.id || props.handle.name
+  const agentModelDetails = formatAgentModelDetails({
+    agentLabel,
+    model: props.model || props.handle.metadata?.model,
+  })
   const centerVertically = props.centerVertically !== false
 
   return (
@@ -442,21 +463,25 @@ export function Welcome(props: {
       justifyContent={centerVertically ? "center" : "flex-start"}
       gap={1}
     >
-      {props.bitmapBanner === false ? (
-        <StaticTextBanner agentLabel={agentLabel} />
-      ) : (
-        <MeasuredBanner agentLabel={agentLabel} />
-      )}
+      {props.bitmapBanner === false ? <StaticTextBanner /> : <MeasuredBanner />}
+
+      {agentModelDetails.length > 0 ? <Muted>{agentModelDetails}</Muted> : null}
 
       {isLoading ? (
         <Box flexDirection="column" alignItems="center">
           <Muted>Loading session</Muted>
-          <Muted>{resumeId}</Muted>
+          {loadingSessionId.length > 0 ? <Muted>{loadingSessionId}</Muted> : null}
         </Box>
-      ) : props.composerSlot ? (
-        <Box flexDirection="column" flexShrink={0} width={80} maxWidth={80} minWidth={0}>
-          {props.composerSlot}
-        </Box>
+      ) : null}
+
+      {props.composerSlot && !isLoading ? (
+        <Content.Row>
+          <Content.Body width="auto">
+            <Box alignSelf="center" width="70%" minWidth={0}>
+              {props.composerSlot}
+            </Box>
+          </Content.Body>
+        </Content.Row>
       ) : null}
     </Box>
   )

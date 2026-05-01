@@ -153,7 +153,7 @@ describe("SessionUpdateList — codex tool-call interleaving (km-silvercode.code
     expect(app.text).toContain("Fetched https://example.com")
     expect(app.text).toContain("Todo added Review auth refactor PR")
     expect(app.text).toMatch(/\$.*ls src/)
-    expect(app.text).toContain("Edited apps/silvercode/src/foo.ts (+1 -1)")
+    expect(app.text).toContain("Editing 2 files +1 -1")
   })
 
   test("renders text and tool cards in arrival order (text → tool → text → tool)", () => {
@@ -237,6 +237,7 @@ describe("SessionUpdateList — codex tool-call interleaving (km-silvercode.code
       role: "assistant",
       ops: [
         { kind: "text", text: "first chunk " },
+        { kind: "thinking", text: "thinking chunk " },
         {
           kind: "tool",
           toolCall: { id: "tu_1" as ToolUseId, name: "Read", input: {} },
@@ -255,5 +256,38 @@ describe("SessionUpdateList — codex tool-call interleaving (km-silvercode.code
     expect(entry.toolCalls.map((c) => c.name)).toEqual(["Read", "Grep"])
     expect(entry.toolResults).toHaveLength(1)
     expect(entry.toolResults[0]?.id).toBe("tu_1")
+  })
+
+  test("renders thinking ops inline without adding them to assistant prose projection", () => {
+    const entry = makeEntry({
+      id: "m1",
+      role: "assistant",
+      ops: [
+        { kind: "thinking", text: 'Right — "reference" just means "thing that resolves".' },
+        { kind: "text", text: "Visible answer." },
+      ],
+    })
+
+    const app = createRenderer({ cols: 80, rows: 10 })(
+      <Box width={80} height={10} flexDirection="column">
+        <SessionUpdateList
+          messages={[entry]}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          sessionId="s1"
+          status="idle"
+          turnStartedAt={0}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+        />
+      </Box>,
+    )
+
+    expect(entry.text).toBe("Visible answer.")
+    expect(app.text).toContain('"reference" just means')
+    expect(app.text).toContain("Visible answer.")
+    expect(app.text.indexOf('"reference" just means')).toBeLessThan(app.text.indexOf("Visible answer."))
   })
 })

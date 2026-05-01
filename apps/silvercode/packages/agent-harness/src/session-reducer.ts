@@ -78,6 +78,7 @@ const BUSY_STATUSES: ReadonlySet<SessionStatus> = new Set<SessionStatus>([
 
 /** Maximum ring-buffer size for {@link InternalSessionState.statusTrace}. */
 const STATUS_TRACE_MAX = 30
+const DEFAULT_LIVENESS_STALE_MS = 30_000
 
 /** One entry in the optional status-transition ring buffer. */
 export type StatusTraceEntry = {
@@ -87,6 +88,21 @@ export type StatusTraceEntry = {
   eventKind: string
   turnId: TurnId | null
   ts: number
+}
+
+type LivenessObligation = {
+  id: string
+  kind: "permission" | "tool" | "turn"
+  label: string
+  openedAt: number
+  ownerTurnId?: TurnId
+}
+
+type LivenessRuntime = {
+  permissions: ReadonlyMap<string, LivenessObligation>
+  tools: ReadonlyMap<string, LivenessObligation>
+  turns: ReadonlyMap<string, LivenessObligation>
+  reported: ReadonlySet<string>
 }
 
 function isProd(): boolean {
@@ -183,6 +199,85 @@ function mergeError(prev: ErrorEntry | null, message: string, ts: number): Error
   return { message, count: 1, ts }
 }
 
+function livenessKey(kind: LivenessObligation["kind"], id: string): string {
+  return `${kind}:${id}`
+}
+
+function openLiveness(
+  next: InternalSessionState,
+  bucket: keyof Pick<LivenessRuntime, "permissions" | "tools" | "turns">,
+  obligation: LivenessObligation,
+): void {
+  const map = new Map(next._liveness[bucket])
+  map.set(obligation.id, obligation)
+  const reported = new Set(next._liveness.reported)
+  reported.delete(livenessKey(obligation.kind, obligation.id))
+  next._liveness = { ...next._liveness, [bucket]: map, reported }
+}
+
+function closeLiveness(
+  next: InternalSessionState,
+  bucket: keyof Pick<LivenessRuntime, "permissions" | "tools" | "turns">,
+  kind: LivenessObligation["kind"],
+  id: string,
+): void {
+  const map = new Map(next._liveness[bucket])
+  map.delete(id)
+  const reported = new Set(next._liveness.reported)
+  reported.delete(livenessKey(kind, id))
+  next._liveness = { ...next._liveness, [bucket]: map, reported }
+}
+
+function clearLiveness(next: InternalSessionState): void {
+  next._liveness = { permissions: new Map(), tools: new Map(), turns: new Map(), reported: new Set() }
+}
+
+function reportLiveness(next: InternalSessionState, message: string, ts: number): void {
+  next.lastError = mergeError(next.lastError, message, ts)
+  dStatus.debug?.("liveness", { message })
+}
+
+function applyLivenessCheck(next: InternalSessionState, action: Extract<AgentEvent, { kind: "liveness-check" }>): void {
+  const staleAfterMs = action.staleAfterMs ?? DEFAULT_LIVENESS_STALE_MS
+  const reported = new Set(next._liveness.reported)
+
+  function reportOnce(obligation: LivenessObligation, missing: string): void {
+    const ageMs = Math.max(0, action.ts - obligation.openedAt)
+    if (ageMs < staleAfterMs) return
+    const key = livenessKey(obligation.kind, obligation.id)
+    if (reported.has(key)) return
+    reported.add(key)
+    reportLiveness(
+      next,
+      `silvercode:liveness stalled — ${obligation.kind} "${obligation.id}" ` +
+        `(${obligation.label}) pending ${ageMs}ms; missing=${missing}`,
+      action.ts,
+    )
+  }
+
+  for (const obligation of next._liveness.permissions.values()) {
+    reportOnce(obligation, `permission-decision(${obligation.id})`)
+  }
+  for (const obligation of next._liveness.tools.values()) {
+    reportOnce(obligation, `tool-result(${obligation.id})`)
+  }
+  for (const obligation of next._liveness.turns.values()) {
+    reportOnce(obligation, `turn-end(${obligation.id})`)
+  }
+
+  if (next.status === "awaiting-permission" && next.permissions.length === 0) {
+    reportLiveness(next, "silvercode:liveness invariant violated — status=awaiting-permission but no permissions pending", action.ts)
+  }
+  if (next.status === "tool-running" && next._liveness.tools.size === 0) {
+    reportLiveness(next, "silvercode:liveness invariant violated — status=tool-running but no tools pending", action.ts)
+  }
+  if ((next.status === "thinking" || next.status === "tool-running") && next._activeTurnId === null) {
+    reportLiveness(next, `silvercode:liveness invariant violated — status=${next.status} but no active turn`, action.ts)
+  }
+
+  next._liveness = { ...next._liveness, reported }
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 // State
 
@@ -238,6 +333,7 @@ export type InternalSessionState = SessionState & {
    * state but undefined when no transition has fired yet.
    */
   statusTrace?: ReadonlyArray<StatusTraceEntry>
+  _liveness: LivenessRuntime
 }
 
 export function initialInternalState(): InternalSessionState {
@@ -245,6 +341,7 @@ export function initialInternalState(): InternalSessionState {
     ...initialSessionState(),
     _strip: { byTurn: new Map<TurnId, StripState>(), pending: "" },
     _activeTurnId: null,
+    _liveness: { permissions: new Map(), tools: new Map(), turns: new Map(), reported: new Set() },
   }
 }
 
@@ -259,9 +356,10 @@ export function publicView(state: InternalSessionState): SessionState {
   // accidentally being mutated by a downstream consumer). The
   // `statusTrace` ring buffer is intentionally retained — it's part of
   // the public dev-overlay surface.
-  const { _strip, _activeTurnId, ...rest } = state
+  const { _strip, _activeTurnId, _liveness, ...rest } = state
   void _strip
   void _activeTurnId
+  void _liveness
   return rest as SessionState
 }
 
@@ -481,6 +579,12 @@ function applyTurnStart(next: InternalSessionState, action: Extract<AgentEvent, 
   }))
   if (action.role === "assistant") {
     next._activeTurnId = action.turnId
+    openLiveness(next, "turns", {
+      id: action.turnId,
+      kind: "turn",
+      label: "assistant turn",
+      openedAt: action.ts,
+    })
     setStatus(next, "thinking", "turn-start-assistant", "turn-start", action.turnId)
     next._strip = armStrip(next._strip, action.turnId)
   } else {
@@ -587,6 +691,23 @@ function applyTextDelta(next: InternalSessionState, action: Extract<AgentEvent, 
   })
 }
 
+function applyThinkingDelta(next: InternalSessionState, action: Extract<AgentEvent, { kind: "thinking-delta" }>): void {
+  if (action.text.length === 0) {
+    next.messages = upsertMessage(next.messages, action.turnId, (m) => m)
+    return
+  }
+  next.messages = upsertMessage(next.messages, action.turnId, (m) => {
+    const ops = [...m.ops]
+    const last = ops[ops.length - 1]
+    if (last?.kind === "thinking") {
+      ops[ops.length - 1] = { kind: "thinking", text: last.text + action.text }
+    } else {
+      ops.push({ kind: "thinking", text: action.text })
+    }
+    return { ...m, ops }
+  })
+}
+
 function applyToolUse(next: InternalSessionState, action: Extract<AgentEvent, { kind: "tool-use" }>): void {
   next.messages = upsertMessage(next.messages, action.turnId, (m) => {
     const ops = [...m.ops]
@@ -628,6 +749,13 @@ function applyToolUse(next: InternalSessionState, action: Extract<AgentEvent, { 
   // matching tool-result's `tool-running → thinking` flip has a valid
   // owner. Phase B will collapse this into a single turn-state mutation.
   if (next._activeTurnId === null) next._activeTurnId = action.turnId
+  openLiveness(next, "tools", {
+    id: action.id,
+    kind: "tool",
+    label: action.name,
+    openedAt: action.ts,
+    ownerTurnId: action.turnId,
+  })
   setStatus(next, "tool-running", "tool-use", "tool-use", action.turnId)
 }
 
@@ -667,6 +795,7 @@ function applyToolResult(next: InternalSessionState, action: Extract<AgentEvent,
   if (next.pendingQuestion && next.pendingQuestion.toolUseId === action.id) {
     next.pendingQuestion = null
   }
+  closeLiveness(next, "tools", "tool", action.id)
   // Status guard: only transition `tool-running → thinking`. A late
   // tool-result that arrives AFTER turn-end must NOT re-arm the spinner
   // — the ACP wire emits sessionUpdate notifications fire-and-forget
@@ -710,11 +839,31 @@ function deriveOpsFromBlocks(
         kind: "tool",
         toolCall: { id: b.id, name: b.name, input: b.input, mcp_server: b.mcp_server },
       })
+    } else if (b.type === "tool_result") {
+      const idx = ops.findIndex((op) => op.kind === "tool" && op.toolCall.id === b.tool_use_id)
+      if (idx >= 0) {
+        const op = ops[idx]
+        if (op?.kind === "tool") {
+          ops[idx] = {
+            kind: "tool",
+            toolCall: op.toolCall,
+            result: { id: b.tool_use_id, output: b.output, is_error: b.is_error },
+          }
+        }
+      } else {
+        ops.push({ kind: "raw", label: `Orphan tool result ${b.tool_use_id}`, raw: b })
+      }
+    } else if (b.type === "thinking" && b.text.length > 0) {
+      const last = ops[ops.length - 1]
+      if (last?.kind === "thinking") {
+        ops[ops.length - 1] = { kind: "thinking", text: last.text + b.text }
+      } else {
+        ops.push({ kind: "thinking", text: b.text })
+      }
+    } else if (b.type === "raw") {
+      ops.push({ kind: "raw", label: b.label, raw: b.raw })
     }
-    // tool_result / thinking / image blocks: not represented in ops
-    // directly. tool_results inside assistant-message are unusual
-    // (claude emits them as separate events); thinking and image are
-    // intentionally skipped at the ops layer.
+    // Image blocks are currently handled by backend-specific surfaces.
   }
   return [ops, s]
 }
@@ -740,8 +889,9 @@ function applyAssistantMessage(
   const existingIdx = next.messages.findIndex((m) => m.id === action.turnId)
   const existing = existingIdx >= 0 ? next.messages[existingIdx] : undefined
   const existingHasOps = existing ? existing.ops.length > 0 : false
+  const existingCameFromAggregate = existing?.blocks !== undefined
   let derivedOps: MessageOp[] | null = null
-  if (!existingHasOps) {
+  if (!existingHasOps || existingCameFromAggregate) {
     const [ops, finalStrip] = deriveOpsFromBlocks(strip, action.turnId, action.content)
     strip = finalStrip
     derivedOps = ops
@@ -749,8 +899,11 @@ function applyAssistantMessage(
   next._strip = strip
   next.messages = upsertMessage(next.messages, action.turnId, (m) => {
     if (derivedOps !== null) {
-      // m.ops was empty at the time we computed; pin our derived ops.
-      return { ...m, blocks: action.content as ContentBlock[], ops: derivedOps }
+      const ops = existingHasOps && existingCameFromAggregate ? [...m.ops, ...derivedOps] : derivedOps
+      const blocks = existingCameFromAggregate
+        ? [...(m.blocks ?? []), ...(action.content as ContentBlock[])]
+        : action.content
+      return { ...m, blocks: blocks as ContentBlock[], ops }
     }
     return { ...m, blocks: action.content as ContentBlock[] }
   })
@@ -762,6 +915,7 @@ function applyTurnEnd(next: InternalSessionState, action: Extract<AgentEvent, { 
     stopReason: action.stopReason,
   }))
   setStatus(next, "idle", "turn-end", "turn-end", action.turnId)
+  closeLiveness(next, "turns", "turn", action.turnId)
   if (next._activeTurnId === action.turnId) next._activeTurnId = null
   if (action.usage) {
     next.cost = {
@@ -775,6 +929,7 @@ function applyTurnEnd(next: InternalSessionState, action: Extract<AgentEvent, { 
 function applySessionEnd(next: InternalSessionState, action: Extract<AgentEvent, { kind: "session-end" }>): void {
   setStatus(next, "ended", "session-end-applied", "session-end")
   next._activeTurnId = null
+  clearLiveness(next)
   if (typeof action.costUsd === "number") next.cost = { ...next.cost, usd: action.costUsd }
   if (action.usage) {
     next.cost = {
@@ -827,14 +982,20 @@ export function reduce(state: InternalSessionState, action: AgentEvent): [Intern
     case "user-message":
       applyUserMessage(next, action)
       break
+    case "raw-transcript":
+      next.messages = upsertMessage(next.messages, action.turnId, () => ({
+        id: action.turnId,
+        role: "system",
+        ops: [{ kind: "text", text: action.label }],
+        additionalContext: JSON.stringify(action.raw, null, 2),
+        ts: action.ts,
+      }))
+      break
     case "text-delta":
       applyTextDelta(next, action)
       break
     case "thinking-delta":
-      // No-op for ops stream: thinking deltas don't surface in rendered
-      // ops. Keep the message slot for completeness (so a thinking-only
-      // turn still has a MessageEntry).
-      next.messages = upsertMessage(next.messages, action.turnId, (m) => m)
+      applyThinkingDelta(next, action)
       break
     case "tool-use":
       applyToolUse(next, action)
@@ -853,6 +1014,12 @@ export function reduce(state: InternalSessionState, action: AgentEvent): [Intern
         ...next.permissions,
         { requestId: action.requestId, tool: action.tool, args: action.args, options: action.options },
       ]
+      openLiveness(next, "permissions", {
+        id: action.requestId,
+        kind: "permission",
+        label: action.tool,
+        openedAt: action.ts,
+      })
       // permission-request carries no turnId on the wire (it's a side-channel
       // event), but its `requestId` is itself a valid ownership id — a
       // turn-end / session-end can't legitimately retire a permission-request
@@ -869,6 +1036,7 @@ export function reduce(state: InternalSessionState, action: AgentEvent): [Intern
       break
     case "permission-decision":
       next.permissions = next.permissions.filter((p) => p.requestId !== action.requestId)
+      closeLiveness(next, "permissions", "permission", action.requestId)
       if (next.permissions.length > 0) {
         setStatus(
           next,
@@ -880,6 +1048,9 @@ export function reduce(state: InternalSessionState, action: AgentEvent): [Intern
       } else {
         setStatus(next, "idle", "permission-decision-resolved", "permission-decision")
       }
+      break
+    case "liveness-check":
+      applyLivenessCheck(next, action)
       break
     case "status":
       // Harness "status" events are low-level annotations on whatever the
@@ -906,6 +1077,7 @@ export function reduce(state: InternalSessionState, action: AgentEvent): [Intern
       if (action.state === "ended") {
         setStatus(next, "ended", "lifecycle-ended", "session-lifecycle")
         next._activeTurnId = null
+        clearLiveness(next)
       }
       break
 

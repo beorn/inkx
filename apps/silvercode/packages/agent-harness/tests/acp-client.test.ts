@@ -44,7 +44,7 @@ function createFakeAcpServer(opts: ServerWiring): { spawn: AcpSpawn; child: Fake
   //   - it READS what the parent WROTE (parentToServer)
   //   - it WRITES what the parent will READ (serverToParent)
   const serverWritable = Writable.toWeb(serverToParent.writable as Writable) as WritableStream<Uint8Array>
-  const serverReadable = Readable.toWeb(parentToServer.readable as Readable) as ReadableStream<Uint8Array>
+  const serverReadable = Readable.toWeb(parentToServer.readable as Readable) as unknown as ReadableStream<Uint8Array>
   const serverStream = acp.ndJsonStream(serverWritable, serverReadable)
   const serverConn = new acp.AgentSideConnection(opts.agent, serverStream)
   void serverConn // hold reference
@@ -487,6 +487,8 @@ describe("connectAcp", () => {
         outcome: { outcome: "selected", optionId: req.options[0]!.optionId },
       }),
     })
+    const events: AgentEvent[] = []
+    session.subscribe((e) => events.push(e))
 
     // Server-initiated permission request.
     const resp = await serverConn!.requestPermission({
@@ -505,6 +507,19 @@ describe("connectAcp", () => {
 
     expect(resp.outcome.outcome).toBe("selected")
     if (resp.outcome.outcome === "selected") expect(resp.outcome.optionId).toBe("allow")
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        kind: "permission-request",
+        requestId: "tc-perm-1",
+      }),
+    )
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        kind: "permission-decision",
+        requestId: "tc-perm-1",
+        approved: true,
+      }),
+    )
   })
 
   test("tool_call_update falls back to text content when rawOutput is absent", async () => {

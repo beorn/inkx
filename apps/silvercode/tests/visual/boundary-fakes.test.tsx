@@ -14,7 +14,7 @@
 
 import { existsSync } from "node:fs"
 import { join } from "node:path"
-import { describe, expect, test } from "vitest"
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import { renderScenario } from "../../src/test/render-harness.tsx"
 import { warningQuotas } from "../../src/test/fake-boundaries.ts"
 import { welcome } from "../../src/test/scripts/welcome.ts"
@@ -22,6 +22,30 @@ import { parseFrame } from "../../src/test/parse-frame.ts"
 
 const COLS = 120
 const ROWS = 30
+let consoleSpies: Array<ReturnType<typeof vi.spyOn>> = []
+
+const silentWrite = ((
+  _chunk: string | Uint8Array,
+  encodingOrCallback?: BufferEncoding | ((err?: Error) => void),
+  callback?: (err?: Error) => void,
+): boolean => {
+  const cb = typeof encodingOrCallback === "function" ? encodingOrCallback : callback
+  cb?.()
+  return true
+}) as typeof process.stdout.write
+
+beforeEach(() => {
+  consoleSpies = (["log", "info", "debug", "warn", "error"] as const).map((method) =>
+    vi.spyOn(console, method).mockImplementation(() => {}),
+  )
+  vi.spyOn(process.stdout, "write").mockImplementation(silentWrite)
+  vi.spyOn(process.stderr, "write").mockImplementation(silentWrite as typeof process.stderr.write)
+})
+
+afterEach(() => {
+  for (const spy of consoleSpies) spy.mockRestore()
+  consoleSpies = []
+})
 
 describe("boundary fakes — one contract per faked third-party API", () => {
   test("accountFactory — quota-warning scenario lights up the 5hr bar", async () => {
@@ -102,6 +126,52 @@ describe("boundary fakes — one contract per faked third-party API", () => {
       const panelText = p.sidePanel?.lines.join("\n") ?? ""
       // The plan label maps "claude_pro" → "Claude Pro" (planLabel).
       expect(panelText).toContain("Claude Pro")
+    } finally {
+      s.dispose()
+    }
+  })
+
+  test("accountFactory — Xtra stays hidden while primary quota bars are neutral", async () => {
+    const s = await renderScenario({
+      script: welcome,
+      cols: COLS,
+      rows: ROWS,
+      account: {
+        plan: "claude_max_20x",
+        quotas: [
+          { name: "5-hour", utilization: 0, remaining: 1000, limit: 1000 },
+          { name: "7-day", utilization: 48, remaining: 5200, limit: 10000 },
+          { name: "7-day (Sonnet)", utilization: 0, remaining: 10000, limit: 10000 },
+          { name: "Xtra", utilization: 100, remaining: 0, limit: 100 },
+        ],
+      },
+    })
+    try {
+      const panelText = parseFrame(s).sidePanel?.lines.join("\n") ?? ""
+      expect(panelText).not.toContain("Xtra")
+    } finally {
+      s.dispose()
+    }
+  })
+
+  test("accountFactory — Xtra shows when a 7-day variant is warning-level", async () => {
+    const s = await renderScenario({
+      script: welcome,
+      cols: COLS,
+      rows: ROWS,
+      account: {
+        plan: "claude_max_20x",
+        quotas: [
+          { name: "5-hour", utilization: 0, remaining: 1000, limit: 1000 },
+          { name: "7-day (Sonnet)", utilization: 72, remaining: 2800, limit: 10000 },
+          { name: "Xtra", utilization: 10, remaining: 90, limit: 100 },
+        ],
+      },
+    })
+    try {
+      const panelText = parseFrame(s).sidePanel?.lines.join("\n") ?? ""
+      expect(panelText).toContain("7ds")
+      expect(panelText).toContain("Xtra")
     } finally {
       s.dispose()
     }

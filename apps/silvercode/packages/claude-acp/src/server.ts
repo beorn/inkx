@@ -115,7 +115,7 @@ export async function runClaudeAcpServer(opts: RunClaudeAcpServerOpts = {}): Pro
 
   // Stream wiring — convert Node streams to Web streams for the SDK.
   const writable = Writable.toWeb(stdout as Writable) as WritableStream<Uint8Array>
-  const readable = Readable.toWeb(stdin as Readable) as ReadableStream<Uint8Array>
+  const readable = Readable.toWeb(stdin as Readable) as unknown as ReadableStream<Uint8Array>
   const stream = acp.ndJsonStream(writable, readable)
 
   // Per-session state. Indexed by ACP session id.

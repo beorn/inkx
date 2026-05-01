@@ -32,9 +32,10 @@
  * Bead: km-silvercode.acp-session-update-list.
  */
 
-import React, { useMemo } from "react"
-import type { MessageEntry, MessageOp, ToolCallId, ToolCallStatus, ToolKind } from "@km/agent-harness"
+import React, { useCallback, useEffect, useMemo, useState } from "react"
+import type { ContentBlock, MessageEntry, MessageOp, ToolCallId, ToolCallStatus, ToolKind } from "@km/agent-harness"
 import type { ToolCall as ToolCallType, ToolCallContent } from "@km/agent-harness"
+import { buildTextAnalysis, shrinkwrapWidth } from "@silvery/ag-term/pipeline/pretext"
 import {
   Box,
   ListView,
@@ -43,6 +44,7 @@ import {
   Small,
   Text,
   type SilveryMouseEvent,
+  useHover,
   useModifierKeys,
   usePopoverHandlers,
 } from "silvery"
@@ -52,8 +54,11 @@ import { MarkdownView } from "./MarkdownView.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
 import { ToolCall } from "./ToolCall.tsx"
 import { TurnActivitySummary, type TurnActivitySummaryItem } from "./TurnActivitySummary.tsx"
-import { LinkifiedText } from "./LinkifiedText.tsx"
 import { BACKGROUND_MESSAGE_PREFIX } from "../controller.ts"
+import { Content, useContentLayout, useHasContentLayout } from "./Content.tsx"
+import { parseBlocks, type MdBlock } from "../markdown.ts"
+import { SessionEntry } from "./SessionEntry.tsx"
+import type { SessionHistoryMetadata } from "../session-metadata.ts"
 
 // =============================================================================
 // Helpers — adapt legacy MessageEntry tool shapes to ACP ToolCall
@@ -72,6 +77,7 @@ function toolKindFromName(name: string, input?: unknown): ToolKind {
     lower === "bash" ||
     lower === "execute" ||
     lower === "exec_command" ||
+    lower === "write_stdin" ||
     lower === "run_command" ||
     lower === "shell" ||
     lower === "computer"
@@ -166,7 +172,7 @@ function summarizePatch(patch: string): PatchSummary | null {
 }
 
 function compactTitle(text: string): string {
-  return text.length > 80 ? `${text.slice(0, 80)}…` : text
+  return text.length > 80 ? `${text.slice(0, 80)}...` : text
 }
 
 function stringProp(o: Record<string, unknown>, key: string): string | null {
@@ -194,11 +200,17 @@ function claudeFileToolTitle(name: string, o: Record<string, unknown>): string |
 function shellToolTitle(name: string, o: Record<string, unknown>): string | null {
   if (name === "Bash" || name === "Execute") {
     const command = stringProp(o, "command")
-    return command ? compactTitle(command) : null
+    return command
   }
   if (name === "exec_command") {
     const command = stringProp(o, "cmd")
-    return command ? compactTitle(command) : null
+    return command
+  }
+  if (name === "write_stdin") {
+    const chars = stringProp(o, "chars")
+    const sessionId = o.session_id
+    const suffix = typeof sessionId === "number" || typeof sessionId === "string" ? ` ${sessionId}` : ""
+    return chars && chars.length > 0 ? `Sent input to command${suffix}` : `Waited for command output${suffix}`
   }
   return null
 }
@@ -304,14 +316,62 @@ function editToolContent(input: unknown): ToolCallContent[] | undefined {
  * ACP `Content` with a `text` content block so `<ToolCall>` renders it in
  * the body section.
  */
-function toolResultContent(output: unknown, _isError?: boolean): ToolCallContent[] {
-  const text = typeof output === "string" ? output : JSON.stringify(output, null, 2)
+function stripCommandEcho(text: string, title: string): string {
+  const lines = text.split("\n")
+  const first = lines[0]?.trim()
+  const trimmedTitle = title.trim()
+  if (first !== `$ ${trimmedTitle}` && first !== trimmedTitle) return text
+  if (lines[1]?.trim() === "") lines.splice(0, 2)
+  else lines.splice(0, 1)
+  return lines.join("\n")
+}
+
+function toolResultContent(output: unknown, _isError?: boolean, title?: string): ToolCallContent[] {
+  if (output && typeof output === "object") {
+    const o = output as Record<string, unknown>
+    const stdout = typeof o.stdout === "string" ? (title ? stripCommandEcho(o.stdout, title) : o.stdout) : ""
+    const rawStderr = typeof o.stderr === "string" ? stripShellRunnerMetadata(o.stderr) : ""
+    const stderr = title ? stripCommandEcho(rawStderr, title) : rawStderr
+    const blocks: ToolCallContent[] = []
+    if (stdout.length > 0) blocks.push({ type: "content", content: { type: "text", text: stdout } })
+    if (stderr.length > 0) {
+      blocks.push({
+        type: "content",
+        content: { type: "text", text: stderr, stream: "stderr" } as ContentBlock,
+      })
+    }
+    if (blocks.length > 0) return blocks
+  }
+  const rawText = typeof output === "string" ? output : JSON.stringify(output, null, 2)
+  const text = title ? stripCommandEcho(rawText, title) : rawText
   return [
     {
       type: "content",
       content: { type: "text", text: text ?? "" },
     },
   ]
+}
+
+function toolErrorMessage(output: unknown, title?: string): string {
+  if (output && typeof output === "object") {
+    const o = output as Record<string, unknown>
+    const rawStderr = typeof o.stderr === "string" ? stripShellRunnerMetadata(o.stderr).trim() : ""
+    const stderr = title ? stripCommandEcho(rawStderr, title).trim() : rawStderr
+    if (stderr.length > 0) return stderr
+    const content = typeof o.content === "string" ? o.content.trim() : ""
+    if (content.length > 0) return content
+    const stdout = typeof o.stdout === "string" ? o.stdout.trim() : ""
+    if (stdout.length > 0) return stdout
+  }
+  return String(output ?? "Tool call failed")
+}
+
+function stripShellRunnerMetadata(text: string): string {
+  return text
+    .split("\n")
+    .filter((line) => !/^Shell cwd was reset to /.test(line.trim()))
+    .join("\n")
+    .trim()
 }
 
 /**
@@ -339,7 +399,7 @@ function adaptToolCall(
       }
     }
     if (!content && result) {
-      content = toolResultContent(result.output, result.is_error)
+      content = toolResultContent(result.output, result.is_error, kind === "execute" ? title : undefined)
     }
     if (!content && c.input) {
       // Fallback: show the raw input as a text content block.
@@ -374,30 +434,76 @@ function adaptToolCall(
  */
 function BackgroundSystemRow({ text }: { text: string }): React.ReactElement {
   return (
-    <Box flexDirection="row" gap={1} paddingY={0} backgroundColor="$bg-surface-subtle">
-      <Text color="$info">{text}</Text>
+    <Box flexDirection="row" flexShrink={1} minWidth={0}>
+      <Text color="$info">
+        {text}
+      </Text>
     </Box>
   )
 }
 
+const USER_BUBBLE_PADDING_X = 2
+const USER_BUBBLE_HORIZONTAL_CHROME = USER_BUBBLE_PADDING_X * 2
+const USER_PROMPT_BUBBLE_BG = "$bg-surface-raised"
+
+function shrinkTextMeasure(text: string, maxWidth: number): number {
+  const cap = Math.max(1, maxWidth)
+  if (text.length === 0) return 0
+  return Math.max(1, shrinkwrapWidth(buildTextAnalysis(text), cap))
+}
+
+function userBlockVisualWidth(block: MdBlock, maxInnerWidth: number): number {
+  switch (block.kind) {
+    case "heading":
+    case "paragraph":
+    case "quote":
+      return shrinkTextMeasure(block.text, maxInnerWidth)
+    case "bullet": {
+      const markerWidth = block.depth * 2 + 2
+      return markerWidth + shrinkTextMeasure(block.text, maxInnerWidth - markerWidth)
+    }
+    case "ordered": {
+      const markerWidth = block.depth * 2 + `${block.number}.`.length + 1
+      return markerWidth + shrinkTextMeasure(block.text, maxInnerWidth - markerWidth)
+    }
+    case "code":
+      return Math.min(maxInnerWidth, Math.max(block.language.length, ...block.code.split("\n").map((line) => line.length)))
+    case "table":
+      return maxInnerWidth
+    case "rule":
+    case "blank":
+      return 0
+  }
+}
+
+function userBubbleWidthForText(text: string, maxBubbleWidth: number): number {
+  const maxInnerWidth = Math.max(1, maxBubbleWidth - USER_BUBBLE_HORIZONTAL_CHROME)
+  const blocks = parseBlocks(text)
+  const visualWidth =
+    blocks.length > 0
+      ? Math.max(1, ...blocks.map((block) => userBlockVisualWidth(block, maxInnerWidth)))
+      : Math.max(1, ...text.split("\n").map((line) => line.length))
+  return Math.max(1, Math.min(maxBubbleWidth, visualWidth + USER_BUBBLE_HORIZONTAL_CHROME))
+}
+
 /**
- * User turn row — right-aligned bubble with rounded border, no background fill.
+ * User turn row — right-aligned bubble using the same quiet surface as the
+ * command composer.
  *
- * Visual: chat-app convention — the border IS the bubble (no background tint).
- * The bubble snaps to the right via `justifyContent="flex-end"` and shrinks to
- * fit its content with a max width cap (`maxWidth="80%"`) so long prompts wrap
- * cleanly within the bubble instead of pushing the chrome edge-to-edge.
+ * Visual: submitted prompts stay visually related to the command box by using
+ * `$bg-surface-raised` and no border. The bubble snaps to the right via
+ * `justifyContent="flex-end"` and shrinks to fit its content with a max width
+ * cap so long prompts wrap cleanly within the bubble instead of pushing the
+ * chrome edge-to-edge.
  *
  * Wrapping: silvery's `<Prose>` wrap primitive (canonical typography wrapper)
- * + `<LinkifiedText>` handles word-boundary breaking. No mid-word breaks
+ * + `<MarkdownView role="user">` handles markdown and word-boundary breaking. No mid-word breaks
  * unless a single token exceeds the bubble's interior width — same behavior
  * as the previous bg-tint UserRow, just chrome-only now.
  *
  * Selection: silvery's mouse-driven selection works at buffer level — the
  * cells inside the bubble carry plain styled text (no replacement glyphs or
  * non-text nodes), so drag-to-select inside the bubble continues to work.
- * The rounded border adds chrome rectangles around the bubble but doesn't
- * sit between text cells, so it doesn't break the selection rectangle math.
  *
  * `additionalContext` carries hidden context (system-reminders, hook output)
  * exposed via the `/debug` toggle. The disclosure stays left-aligned and bg-
@@ -417,23 +523,35 @@ function UserRow({
   const hasContext = (additionalContext?.length ?? 0) > 0
   const isMetaOnly = text.length === 0 && hasContext
   const lineCount = additionalContext ? additionalContext.split("\n").length : 0
+  const content = useContentLayout()
+  const maxBubbleWidth = Math.max(1, Math.min(58, Math.floor(content.measure * 0.8)))
+  const bubbleWidth = userBubbleWidthForText(text, maxBubbleWidth)
 
   return (
-    <Box flexDirection="column" alignSelf="stretch" width="100%" flexShrink={1} minWidth={0} paddingY={0}>
+    <Box
+      flexDirection="column"
+      alignSelf="stretch"
+      width="100%"
+      flexShrink={1}
+      minWidth={0}
+      paddingY={0}
+    >
       {!isMetaOnly && (
-        <Box flexDirection="row" width="100%" justifyContent="flex-end" flexShrink={1} minWidth={0}>
+        <Box flexDirection="column" width="100%" flexShrink={1} minWidth={0}>
           <Box
+            key={`${content.available}:${bubbleWidth}`}
             flexDirection="row"
-            width="snug-content"
-            maxWidth="80%"
-            flexShrink={1}
+            alignSelf="flex-end"
+            width={bubbleWidth}
+            maxWidth={maxBubbleWidth}
+            flexShrink={0}
             minWidth={0}
-            borderStyle="round"
-            borderColor="$border-default"
-            paddingX={1}
+            backgroundColor={USER_PROMPT_BUBBLE_BG}
+            paddingX={USER_BUBBLE_PADDING_X}
+            paddingY={1}
           >
-            <Prose flexShrink={1} minWidth={0}>
-              <LinkifiedText text={text} role="user" />
+            <Prose width="100%" flexGrow={1} flexShrink={1} minWidth={0}>
+              <MarkdownView source={text} role="user" layout="inline" />
             </Prose>
           </Box>
         </Box>
@@ -457,20 +575,108 @@ function UserRow({
 }
 
 /**
- * Assistant turn row. Leading `●` glyph in `$primary` for clear role
- * identity at a glance — same structural notes as UserRow apply
+ * Assistant turn row. Leading `●` glyph uses regular foreground so role
+ * identity stays visible without adding another accent color. Same structural notes as UserRow apply
  * (flexShrink + minWidth=0 chain so MarkdownView's wrap fires).
  */
 function AssistantRow({ text }: { text: string }): React.ReactElement {
+  const hasCode = hasCodeMarkdownBlock(text)
+  const hasTable = hasTableMarkdownBlock(text)
+  const layout = hasCode || hasTable ? "content" : "inline"
+  if (hasCode) {
+    return (
+      <Box flexDirection="column" position="relative" width="100%" maxWidth="100%" minWidth={0}>
+        <Prose flexGrow={1} minWidth={0}>
+          <MarkdownView source={text} layout="inline" />
+        </Prose>
+      </Box>
+    )
+  }
   return (
-    <Box flexDirection="row" gap={1} flexShrink={1} minWidth={0}>
-      <Text bold color="$primary">
-        ●
-      </Text>
-      <Prose flexGrow={1}>
-        <MarkdownView source={text} />
+    <SessionEntry marker="•" markerColor="$fg" width={hasTable ? "100%" : "90%"}>
+      <Prose flexGrow={1} minWidth={0}>
+        <MarkdownView source={text} layout={layout} />
       </Prose>
+    </SessionEntry>
+  )
+}
+
+function StandaloneProseFrame({
+  children,
+  paddingBefore,
+  paddingAfter,
+}: {
+  children: React.ReactNode
+  paddingBefore: boolean
+  paddingAfter: boolean
+}): React.ReactElement {
+  if (!paddingBefore && !paddingAfter) return <>{children}</>
+  return (
+    <Box flexDirection="column" alignSelf="stretch" width="100%" minWidth={0} flexShrink={0}>
+      {paddingBefore ? <Box height={1} flexShrink={0} /> : null}
+      {children}
+      {paddingAfter ? <Box height={1} flexShrink={0} /> : null}
     </Box>
+  )
+}
+
+function hasCodeMarkdownBlock(text: string): boolean {
+  return parseBlocks(text).some((block) => block.kind === "code")
+}
+
+function hasTableMarkdownBlock(text: string): boolean {
+  return parseBlocks(text).some((block) => block.kind === "table")
+}
+
+function isVisibleTurnOp(op: MessageOp | undefined): boolean {
+  if (!op) return false
+  return op.kind !== "text" || op.text.length > 0
+}
+
+function hasVisibleTurnOpBefore(ops: readonly MessageOp[], index: number): boolean {
+  for (let i = index - 1; i >= 0; i--) {
+    if (isVisibleTurnOp(ops[i])) return true
+  }
+  return false
+}
+
+function hasVisibleTurnOpAfter(ops: readonly MessageOp[], index: number): boolean {
+  for (let i = index + 1; i < ops.length; i++) {
+    if (isVisibleTurnOp(ops[i])) return true
+  }
+  return false
+}
+
+function ThinkingRow({ text }: { text: string }): React.ReactElement {
+  return (
+    <SessionEntry marker="•" markerColor="$muted">
+      <Prose flexGrow={1}>
+        <Text color="$muted" wrap="wrap">
+          {text}
+        </Text>
+      </Prose>
+    </SessionEntry>
+  )
+}
+
+function RawRow({ label }: { label: string }): React.ReactElement {
+  return (
+    <SessionEntry marker="•" markerColor="$error">
+      <Text color="$error" wrap="wrap">
+        {label}
+      </Text>
+    </SessionEntry>
+  )
+}
+
+function InterruptedRow(): React.ReactElement {
+  return (
+    <SessionEntry marker="▪" markerColor="$error">
+      <Text color="$error" wrap="wrap">
+        Conversation interrupted - tell the model what to do differently. Something went wrong? Hit `/feedback` to
+        report the issue.
+      </Text>
+    </SessionEntry>
   )
 }
 
@@ -553,6 +759,278 @@ function timestampFromPayload(payload: unknown): string | null {
   return `${hh}:${mm}`
 }
 
+function formatTime(ts: number): string {
+  const d = new Date(ts)
+  const hh = d.getHours().toString().padStart(2, "0")
+  const mm = d.getMinutes().toString().padStart(2, "0")
+  return `${hh}:${mm}`
+}
+
+function formatDateTime(ts: number | undefined): string | undefined {
+  if (typeof ts !== "number" || !Number.isFinite(ts)) return undefined
+  const d = new Date(ts)
+  const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+  return `${date} ${formatTime(ts)}`
+}
+
+function shortPath(path: string | undefined): string | undefined {
+  if (!path) return undefined
+  const home = process.env.HOME
+  return home && path.startsWith(home) ? `~${path.slice(home.length)}` : path
+}
+
+function metadataPairs(fields: Record<string, string | number | undefined>): Array<[string, string]> {
+  return Object.entries(fields).flatMap(([key, value]) =>
+    value === undefined || value === "" ? [] : ([[key, String(value)]] as Array<[string, string]>),
+  )
+}
+
+function durationLabel(start: number | undefined, end: number | undefined): string | undefined {
+  if (typeof start !== "number" || typeof end !== "number" || end < start) return undefined
+  const seconds = Math.round((end - start) / 1000)
+  if (seconds < 60) return `${seconds}s`
+  const minutes = Math.floor(seconds / 60)
+  const rem = seconds % 60
+  if (minutes < 60) return rem > 0 ? `${minutes}m ${rem}s` : `${minutes}m`
+  const hours = Math.floor(minutes / 60)
+  const remMinutes = minutes % 60
+  return remMinutes > 0 ? `${hours}h ${remMinutes}m` : `${hours}h`
+}
+
+type SessionMetadataRowKind = "start" | "loaded" | "ended"
+
+type SessionMetadataRowData = {
+  kind: SessionMetadataRowKind
+  title: string
+  timestamp?: string
+  parts: string[]
+  fields: Array<[string, string]>
+}
+
+function MutedDivider({ title, width }: { title: string; width: number }): React.ReactElement {
+  const total = Math.max(1, width)
+  const padded = ` ${title} `
+  const remaining = Math.max(0, total - padded.length)
+  const left = Math.floor(remaining / 2)
+  const right = remaining - left
+  return (
+    <Box flexDirection="row">
+      <Text color="$border-default">{"─".repeat(left)}</Text>
+      <Text color="$fg-muted">{padded}</Text>
+      <Text color="$border-default">{"─".repeat(right)}</Text>
+    </Box>
+  )
+}
+
+function SessionMetadataRow({ data }: { data: SessionMetadataRowData }): React.ReactElement {
+  const [expanded, setExpanded] = useState(false)
+  const hover = useHover()
+  const { super: cmdHeld } = useModifierKeys({ enabled: hover.isHovered })
+  const content = useContentLayout()
+  const marker = expanded ? "▾" : hover.isHovered || data.kind === "loaded" ? "▸" : " "
+  const bg = hover.isHovered ? "$bg-surface-hover" : undefined
+  const isDivider = data.kind === "loaded"
+  const headerMaxWidth = Math.max(1, isDivider ? content.wide : content.measure)
+  const showTimestamp = hover.isHovered && cmdHeld
+  const label = [data.title, ...data.parts].join(" · ")
+  const dividerLabel = isDivider ? `${marker} ${label}` : label
+  const titleWidth = data.title.length + data.parts.reduce((sum, part) => sum + part.length + 3, 0)
+  const trailingFill = " ".repeat(Math.max(1, headerMaxWidth - 2 - titleWidth))
+  const header = isDivider ? (
+    <MutedDivider title={dividerLabel} width={headerMaxWidth} />
+  ) : (
+    <Box flexDirection="row" width="100%" maxWidth={headerMaxWidth} minWidth={0} backgroundColor={bg}>
+      <Box width={1} flexShrink={0} backgroundColor={bg}>
+        <Text color={marker === " " ? "$fg-muted" : "$fg"} backgroundColor={bg}>
+          {marker}
+        </Text>
+      </Box>
+      <Box width={1} flexShrink={0} backgroundColor={bg}>
+        <Text backgroundColor={bg}> </Text>
+      </Box>
+      <Box flexDirection="row" flexGrow={1} flexShrink={1} minWidth={0} backgroundColor={bg}>
+        <Text color={expanded ? "$fg" : "$fg-muted"} bold={expanded} wrap="truncate" backgroundColor={bg}>
+          <Text backgroundColor={bg}>{data.title}</Text>
+          {data.parts.map((part, i) => (
+            <React.Fragment key={`${part}-${i}`}>
+              <Text color="$muted" backgroundColor={bg}>
+                {" · "}
+              </Text>
+              <Text backgroundColor={bg}>{part}</Text>
+            </React.Fragment>
+          ))}
+        </Text>
+        <Text backgroundColor={bg}>{trailingFill}</Text>
+      </Box>
+    </Box>
+  )
+  const row = (
+    <Content.Row>
+      {data.timestamp ? (
+        <Content.Left>
+          <Content.Aside show={showTimestamp}>{data.timestamp}</Content.Aside>
+        </Content.Left>
+      ) : null}
+      <Content.Body width={isDivider || expanded ? "wide" : "prose"}>
+        <Box flexDirection="column" width="100%" minWidth={0}>
+          <Box
+            width="100%"
+            minWidth={0}
+            backgroundColor={bg}
+            onMouseEnter={hover.onMouseEnter}
+            onMouseLeave={hover.onMouseLeave}
+            onClick={() => setExpanded((v) => !v)}
+          >
+            {header}
+          </Box>
+          {expanded ? (
+            <Box flexDirection="column" paddingLeft={2}>
+              {data.fields.map(([key, value]) => (
+                <Text key={key} color="$fg-muted" wrap="wrap">
+                  <Text color="$muted">{key}: </Text>
+                  {value}
+                </Text>
+              ))}
+            </Box>
+          ) : null}
+        </Box>
+      </Content.Body>
+    </Content.Row>
+  )
+  if (data.kind === "loaded") {
+    return (
+      <Box flexDirection="column" width="100%" minWidth={0}>
+        <Text> </Text>
+        {row}
+        <Text> </Text>
+      </Box>
+    )
+  }
+  return row
+}
+
+function sessionMetadataItems(
+  metadata: SessionHistoryMetadata | undefined,
+): { start?: SessionMetadataItem; loaded?: SessionMetadataItem; ended?: SessionMetadataItem } {
+  if (!metadata) return {}
+  const agent = metadata.agent ?? "agent"
+  const model = metadata.model
+  const cwd = shortPath(metadata.cwd)
+  const startFields = metadataPairs({
+    agent,
+    sessionId: metadata.sessionId,
+    cwd,
+    model,
+    account: metadata.account,
+    resumeId: metadata.resumeId,
+    spawnedAt: formatDateTime(metadata.spawnedAt),
+    sessionInitAt: formatDateTime(metadata.sessionInitAt),
+  })
+  const start: SessionMetadataItem = {
+    __sessionMetadata: true,
+    id: "session-metadata:start",
+    data: {
+      kind: "start",
+      title: "Session started",
+      timestamp: formatTime(metadata.spawnedAt),
+      parts: [agent, model, cwd].filter((p): p is string => !!p),
+      fields: startFields,
+    },
+  }
+
+  const loaded =
+    metadata.resumeId && metadata.replayCompletedAt
+      ? {
+          __sessionMetadata: true as const,
+          id: "session-metadata:loaded",
+          data: {
+            kind: "loaded" as const,
+            title: `Session resumed ${displaySessionId(metadata.resumeId)}`,
+            timestamp: formatTime(metadata.replayCompletedAt),
+            parts: [metadata.replayMessageCount !== undefined ? `${metadata.replayMessageCount} entries` : undefined].filter(
+              (p): p is string => !!p,
+            ),
+            fields: metadataPairs({
+              resumeId: metadata.resumeId,
+              transcriptPath: metadata.transcriptPath,
+              replayStartedAt: formatDateTime(metadata.replayStartedAt),
+              replayCompletedAt: formatDateTime(metadata.replayCompletedAt),
+              replayMessageCount: metadata.replayMessageCount,
+              replayBoundaryMessageId: metadata.replayBoundaryMessageId,
+            }),
+          },
+        }
+      : undefined
+
+  const ended =
+    metadata.endedAt !== undefined
+      ? {
+          __sessionMetadata: true as const,
+          id: "session-metadata:ended",
+          data: {
+            kind: "ended" as const,
+            title: "Session ended",
+            timestamp: formatTime(metadata.endedAt),
+            parts: [durationLabel(metadata.spawnedAt, metadata.endedAt)].filter((p): p is string => !!p),
+            fields: metadataPairs({
+              endedAt: formatDateTime(metadata.endedAt),
+              duration: durationLabel(metadata.spawnedAt, metadata.endedAt),
+            }),
+          },
+        }
+      : undefined
+  return { start, loaded, ended }
+}
+
+function displaySessionId(id: string): string {
+  const value = id.includes(":") ? (id.split(":").pop() ?? id) : id
+  return value.length > 18 ? `${value.slice(0, 8)}…${value.slice(-6)}` : value
+}
+
+function TimestampedRow({
+  timestamp,
+  side,
+  width = "prose",
+  children,
+}: {
+  timestamp: string
+  side: "left" | "right"
+  width?: "prose" | "wide"
+  children: React.ReactNode
+}): React.ReactElement {
+  const hover = useHover()
+  const content = useContentLayout()
+  const { super: cmdHeld } = useModifierKeys({ enabled: hover.isHovered })
+  const laneWidth = width === "wide" ? content.wide : content.measure
+  const sideGutter = Math.max(0, Math.floor(((content.available || laneWidth) - laneWidth) / 2))
+  const showTimestamp = hover.isHovered && cmdHeld && sideGutter >= timestamp.length + 1
+  return (
+    <Box
+      key={`${content.available}:${content.measure}:${content.wide}:${side}`}
+      flexDirection="row"
+      alignSelf="stretch"
+      width="100%"
+      minWidth={0}
+      flexShrink={0}
+      onMouseEnter={hover.onMouseEnter}
+      onMouseLeave={hover.onMouseLeave}
+    >
+      <Content.Row>
+        {side === "left" ? (
+          <Content.Left>
+            <Content.Aside side="left" show={showTimestamp}>{timestamp}</Content.Aside>
+          </Content.Left>
+        ) : null}
+        {width === "wide" ? <Content.Body width="wide">{children}</Content.Body> : <Content.Prose>{children}</Content.Prose>}
+        {side === "right" ? (
+          <Content.Right>
+            <Content.Aside side="right" show={showTimestamp} paddingTop={1}>{timestamp}</Content.Aside>
+          </Content.Right>
+        ) : null}
+      </Content.Row>
+    </Box>
+  )
+}
 /**
  * RawInspector — secret debug trick. Wraps each chat entry so that hovering
  * with Cmd+Shift held shows a popover with the entry's raw JSON. The wrapper
@@ -588,7 +1066,7 @@ function RawInspector({ payload, children }: { payload: unknown; children: React
     const timestamp = timestampFromPayload(payload)
     return {
       body: (
-        <Box flexDirection="column" paddingY={1}>
+        <Box flexDirection="column">
           {timestamp ? (
             <Box flexDirection="row">
               <Box flexGrow={1} />
@@ -629,7 +1107,10 @@ function RawInspector({ payload, children }: { payload: unknown; children: React
 
 function isHighContentToolRun(run: Array<{ op: MessageOp; index: number }>): boolean {
   const toolOps = run.filter(({ op }) => op.kind === "tool")
-  if (toolOps.length < 3) return false
+  if (toolOps.length === 1) {
+    const item = turnActivityItemForOp(toolOps[0]!.op)
+    return item?.toolCall.kind === "execute"
+  }
   const resultCount = toolOps.filter(({ op }) => op.kind === "tool" && op.result !== undefined).length
   if (resultCount >= 2) return true
   return toolOps.some(({ op }) => op.kind === "tool" && op.result?.is_error === true)
@@ -641,21 +1122,132 @@ function turnActivityItemForOp(op: MessageOp): TurnActivitySummaryItem | null {
   return {
     id: op.toolCall.id,
     toolCall: adaptedCall,
-    errorMessage: op.result?.is_error ? String(op.result.output ?? "Tool call failed") : undefined,
+    errorMessage: op.result?.is_error ? toolErrorMessage(op.result.output, adaptedCall.title) : undefined,
   }
 }
 
-function ExchangeItem({ m, showDebug }: { m: MessageEntry; showDebug: boolean }): React.ReactElement {
+function ActivityDetails({ ops }: { ops: readonly MessageOp[] }): React.ReactElement {
+  return (
+    <Box flexDirection="column" gap={0}>
+      {ops.map((op, index) => {
+        if (op.kind === "thinking") {
+          if (op.text.length === 0) return null
+          return (
+            <RawInspector key={`thinking-${index}`} payload={op}>
+              <ThinkingRow text={op.text} />
+            </RawInspector>
+          )
+        }
+        if (op.kind === "text") {
+          if (op.text.length === 0) return null
+          return (
+            <RawInspector key={`text-${index}`} payload={op}>
+              <AssistantRow text={op.text} />
+            </RawInspector>
+          )
+        }
+        if (op.kind === "raw") {
+          return (
+            <RawInspector key={`raw-${index}`} payload={op.raw}>
+              <RawRow label={op.label} />
+            </RawInspector>
+          )
+        }
+        const adaptedCall = adaptToolCall(op.toolCall, op.result, op.result === undefined)
+        return (
+          <RawInspector key={op.toolCall.id} payload={op}>
+            <ToolCall
+              toolCall={adaptedCall}
+              errorMessage={op.result?.is_error ? toolErrorMessage(op.result.output, adaptedCall.title) : undefined}
+            />
+          </RawInspector>
+        )
+      })}
+    </Box>
+  )
+}
+
+function ActivityLivePreview({ ops }: { ops: readonly MessageOp[] }): React.ReactElement | null {
+  const runningTools = ops.filter((op) => op.kind === "tool" && op.result === undefined)
+  const thinking = ops.filter((op) => op.kind === "thinking" && op.text.trim().length > 0)
+  if (runningTools.length === 0 && thinking.length === 0) return null
+  return (
+    <Box flexDirection="column" gap={0}>
+      {runningTools.map((op) => {
+        if (op.kind !== "tool") return null
+        return (
+          <ToolCall key={op.toolCall.id} toolCall={adaptToolCall(op.toolCall, op.result, true)} interactive={false} />
+        )
+      })}
+      {thinking.map((op, index) => {
+        if (op.kind !== "thinking") return null
+        return <ThinkingRow key={`thinking-${index}`} text={op.text} />
+      })}
+    </Box>
+  )
+}
+
+function ActivitySummaryForOps({
+  ops,
+  timestamp,
+  onDisclosureToggle,
+}: {
+  ops: readonly MessageOp[]
+  timestamp?: string
+  onDisclosureToggle?: () => void
+}): React.ReactElement {
+  const items = ops.flatMap((op) => turnActivityItemForOp(op) ?? [])
+  return (
+    <TurnActivitySummary
+      items={items}
+      timestamp={timestamp}
+      details={<ActivityDetails ops={ops} />}
+      livePreview={<ActivityLivePreview ops={ops} />}
+      onDisclosureToggle={onDisclosureToggle}
+    />
+  )
+}
+
+function ExchangeItem({
+  m,
+  showDebug,
+  onDisclosureToggle,
+}: {
+  m: MessageEntry
+  showDebug: boolean
+  onDisclosureToggle?: () => void
+}): React.ReactElement {
   // Background-task system messages: user-role entries with a "bg-" turnId
   // prefix AND the BACKGROUND_MESSAGE_PREFIX text prefix.
   if (isBackgroundSystemMessage(m)) {
-    return <BackgroundSystemRow text={m.text} />
+    return (
+      <TimestampedRow timestamp={formatTime(m.ts)} side="left">
+        <BackgroundSystemRow text={m.text} />
+      </TimestampedRow>
+    )
   }
   if (m.role === "user") {
-    return <UserRow text={m.text} additionalContext={m.additionalContext} showDebug={showDebug} />
+    return (
+      <TimestampedRow timestamp={formatTime(m.ts)} side="right">
+        <UserRow text={m.text} additionalContext={m.additionalContext} showDebug={showDebug} />
+      </TimestampedRow>
+    )
   }
   if (m.role === "system") {
-    return <BackgroundSystemRow text={m.text} />
+    if (m.additionalContext) {
+      return (
+        <RawInspector payload={{ text: m.text, raw: m.additionalContext }}>
+          <TimestampedRow timestamp={formatTime(m.ts)} side="left">
+            <RawRow label={m.text} />
+          </TimestampedRow>
+        </RawInspector>
+      )
+    }
+    return (
+      <RawInspector payload={m.additionalContext ? { text: m.text, raw: m.additionalContext } : m}>
+        <BackgroundSystemRow text={m.text} />
+      </RawInspector>
+    )
   }
   // Assistant turn: render `m.ops` in arrival order. Each text op is an
   // AssistantRow; each tool op is a ToolCall row. Order matters — codex
@@ -677,10 +1269,10 @@ function ExchangeItem({ m, showDebug }: { m: MessageEntry; showDebug: boolean })
   // CSS §4.5 auto min-size with recursive intrinsic min-content). See
   // regression tests in apps/silvercode/tests/wrap-unbreakable-overflow.test.tsx
   // (bead: km-silvercode.wrap-unbreakable-audit, closed 2026-04-28).
-  type OpRun = { kind: "text" | "tool"; ops: Array<{ op: (typeof m.ops)[number]; index: number }> }
+  type OpRun = { kind: MessageOp["kind"]; ops: Array<{ op: (typeof m.ops)[number]; index: number }> }
   const runs: OpRun[] = []
   m.ops.forEach((op, i) => {
-    const k = op.kind === "text" ? "text" : "tool"
+    const k = op.kind
     const tail = runs[runs.length - 1]
     if (tail && tail.kind === k) {
       tail.ops.push({ op, index: i })
@@ -690,23 +1282,53 @@ function ExchangeItem({ m, showDebug }: { m: MessageEntry; showDebug: boolean })
   })
 
   return (
-    <Box flexDirection="column" gap={1}>
+    <Box flexDirection="column" gap={1} flexShrink={0}>
       {runs.map((run, runIdx) => (
         // gap=0 inside a run → consecutive tool calls (or coalesced text
         // ops) render contiguously. The outer `gap={1}` only applies
         // BETWEEN runs.
-        <Box key={runIdx} flexDirection="column">
+        <Box key={runIdx} flexDirection="column" flexShrink={0}>
           {run.kind === "tool" && isHighContentToolRun(run.ops) ? (
-            <RawInspector key={`turn-activity-${runIdx}`} payload={run.ops.map(({ op }) => op)}>
-              <TurnActivitySummary items={run.ops.flatMap(({ op }) => turnActivityItemForOp(op) ?? [])} />
-            </RawInspector>
+            <ActivitySummaryForOps
+              ops={run.ops.map(({ op }) => op)}
+              timestamp={formatTime(m.ts)}
+              onDisclosureToggle={onDisclosureToggle}
+            />
           ) : (
             run.ops.map(({ op, index }) => {
               if (op.kind === "text") {
                 if (op.text.length === 0) return null
-                return (
+                const standalone = textNeedsStandaloneSpacing(op.text)
+                const row = (
                   <RawInspector key={`text-${index}`} payload={op}>
-                    <AssistantRow text={op.text} />
+                    <StandaloneProseFrame
+                      paddingBefore={standalone && hasVisibleTurnOpBefore(m.ops, index)}
+                      paddingAfter={standalone && hasVisibleTurnOpAfter(m.ops, index)}
+                    >
+                      <TimestampedRow timestamp={formatTime(m.ts)} side="left" width={hasTableMarkdownBlock(op.text) ? "wide" : "prose"}>
+                        <AssistantRow text={op.text} />
+                      </TimestampedRow>
+                    </StandaloneProseFrame>
+                  </RawInspector>
+                )
+                return row
+              }
+              if (op.kind === "thinking") {
+                if (op.text.length === 0) return null
+                return (
+                  <RawInspector key={`thinking-${index}`} payload={op}>
+                    <TimestampedRow timestamp={formatTime(m.ts)} side="left">
+                      <ThinkingRow text={op.text} />
+                    </TimestampedRow>
+                  </RawInspector>
+                )
+              }
+              if (op.kind === "raw") {
+                return (
+                  <RawInspector key={`raw-${index}`} payload={op.raw}>
+                    <TimestampedRow timestamp={formatTime(m.ts)} side="left">
+                      <RawRow label={op.label} />
+                    </TimestampedRow>
                   </RawInspector>
                 )
               }
@@ -716,16 +1338,23 @@ function ExchangeItem({ m, showDebug }: { m: MessageEntry; showDebug: boolean })
               const adaptedCall = adaptToolCall(c, result, running)
               return (
                 <RawInspector key={c.id} payload={op}>
-                  <ToolCall
-                    toolCall={adaptedCall}
-                    errorMessage={result?.is_error ? String(result.output ?? "Tool call failed") : undefined}
-                  />
+                  <TimestampedRow timestamp={formatTime(m.ts)} side="left">
+                    <ToolCall
+                      toolCall={adaptedCall}
+                      errorMessage={result?.is_error ? toolErrorMessage(result.output, adaptedCall.title) : undefined}
+                    />
+                  </TimestampedRow>
                 </RawInspector>
               )
             })
           )}
         </Box>
       ))}
+      {m.stopReason === "interrupted" ? (
+        <TimestampedRow timestamp={formatTime(m.ts)} side="left">
+          <InterruptedRow />
+        </TimestampedRow>
+      ) : null}
     </Box>
   )
 }
@@ -736,8 +1365,11 @@ function ExchangeItem({ m, showDebug }: { m: MessageEntry; showDebug: boolean })
 
 type ActivityItem = { __activity: true }
 type AmbientItem = { __ambient: true; entries: AmbientStreamEntry[] }
-type Item = MessageEntry | ActivityItem | AmbientItem
-type SimilarGroupKind = "user" | "system" | "ambient"
+type AssistantActivitySlice = { __assistantActivity: true; id: string; message: MessageEntry; ops: MessageOp[] }
+type SessionMetadataItem = { __sessionMetadata: true; id: string; data: SessionMetadataRowData }
+type PaddingItem = { __padding: true; id: string; height: number }
+type Item = MessageEntry | ActivityItem | AmbientItem | AssistantActivitySlice | SessionMetadataItem | PaddingItem
+type SimilarGroupKind = "user" | "system" | "ambient" | "assistant-tool-activity"
 type GroupedItem = { __group: true; kind: SimilarGroupKind; items: Item[] }
 type RenderItem = Item | GroupedItem
 
@@ -747,6 +1379,143 @@ function isActivity(item: Item): item is ActivityItem {
 
 function isAmbient(item: Item): item is AmbientItem {
   return (item as AmbientItem).__ambient === true
+}
+
+function isSessionMetadata(item: Item): item is SessionMetadataItem {
+  return (item as SessionMetadataItem).__sessionMetadata === true
+}
+
+function isPadding(item: Item): item is PaddingItem {
+  return (item as PaddingItem).__padding === true
+}
+
+function isAssistantActivitySlice(item: Item): item is AssistantActivitySlice {
+  return (item as AssistantActivitySlice).__assistantActivity === true
+}
+
+function isMessageEntry(item: Item): item is MessageEntry {
+  return !isActivity(item) && !isAmbient(item) && !isSessionMetadata(item) && !isPadding(item) && !isAssistantActivitySlice(item)
+}
+
+function sliceMessage(message: MessageEntry, ops: MessageOp[], suffix: string): MessageEntry {
+  const out = {
+    ...message,
+    id: `${message.id}:${suffix}` as MessageEntry["id"],
+    ops,
+  } as MessageEntry
+  Object.defineProperty(out, "text", {
+    get() {
+      return ops.flatMap((op) => (op.kind === "text" ? [op.text] : [])).join("")
+    },
+    enumerable: true,
+    configurable: true,
+  })
+  Object.defineProperty(out, "toolCalls", {
+    get() {
+      return ops.flatMap((op) => (op.kind === "tool" ? [op.toolCall] : []))
+    },
+    enumerable: true,
+    configurable: true,
+  })
+  Object.defineProperty(out, "toolResults", {
+    get() {
+      return ops.flatMap((op) => (op.kind === "tool" && op.result ? [op.result] : []))
+    },
+    enumerable: true,
+    configurable: true,
+  })
+  return out
+}
+
+function splitAssistantToolActivity(item: Item): Item[] {
+  if (
+    isActivity(item) ||
+    isAmbient(item) ||
+    isSessionMetadata(item) ||
+    isPadding(item) ||
+    isAssistantActivitySlice(item) ||
+    item.role !== "assistant"
+  )
+    return [item]
+  const toolCount = item.ops.filter((op) => op.kind === "tool").length
+  if (toolCount >= 8) {
+    const out: Item[] = []
+    const activityOps = item.ops.filter((op) => op.kind === "tool" || op.kind === "thinking")
+    let textOps: MessageOp[] = []
+    let insertedActivity = false
+    let seq = 0
+    const flushText = (): void => {
+      if (textOps.length === 0) return
+      out.push(sliceMessage(item, textOps, `text-${seq++}`))
+      textOps = []
+    }
+    for (const op of item.ops) {
+      if (op.kind === "tool" || op.kind === "thinking") {
+        if (!insertedActivity) {
+          flushText()
+          out.push({ __assistantActivity: true, id: `${item.id}:tools-all`, message: item, ops: activityOps })
+          insertedActivity = true
+        }
+      } else {
+        textOps.push(op)
+      }
+    }
+    flushText()
+    return out.length > 0 ? out : [item]
+  }
+  const out: Item[] = []
+  let nonToolOps: MessageOp[] = []
+  let toolOps: MessageOp[] = []
+  let pendingThinkingOps: MessageOp[] = []
+  let hasTool = false
+  let seq = 0
+  const flushNonTool = (): void => {
+    if (nonToolOps.length === 0) return
+    out.push(sliceMessage(item, nonToolOps, `text-${seq++}`))
+    nonToolOps = []
+  }
+  const flushTool = (): void => {
+    if (toolOps.length === 0) return
+    out.push({ __assistantActivity: true, id: `${item.id}:tools-${seq++}`, message: item, ops: toolOps })
+    toolOps = []
+  }
+  for (const op of item.ops) {
+    if (op.kind === "tool") {
+      hasTool = true
+      flushNonTool()
+      if (toolOps.length === 0 && pendingThinkingOps.length > 0) {
+        toolOps.push(...pendingThinkingOps)
+        pendingThinkingOps = []
+      }
+      toolOps.push(op)
+    } else if (op.kind === "thinking") {
+      if (toolOps.length > 0) toolOps.push(op)
+      else pendingThinkingOps.push(op)
+    } else {
+      flushTool()
+      nonToolOps.push(op)
+    }
+  }
+  flushTool()
+  flushNonTool()
+  return hasTool && out.length > 0 ? out : [item]
+}
+
+function isAssistantToolActivity(item: Item): boolean {
+  if (isAssistantActivitySlice(item)) return true
+  if (isActivity(item) || isAmbient(item) || isSessionMetadata(item) || isPadding(item) || item.role !== "assistant")
+    return false
+  let hasTool = false
+  for (const op of item.ops) {
+    if (op.kind === "tool") {
+      hasTool = true
+      continue
+    }
+    if (op.kind === "thinking") continue
+    if (op.kind === "text" && op.text.trim().length === 0) continue
+    return false
+  }
+  return hasTool
 }
 
 function isGrouped(item: RenderItem): item is GroupedItem {
@@ -760,7 +1529,11 @@ function isBackgroundSystemMessage(m: MessageEntry): boolean {
 function similarGroupKind(item: Item): SimilarGroupKind | null {
   if (isAmbient(item)) return "ambient"
   if (isActivity(item)) return null
-  if (isBackgroundSystemMessage(item) || item.role === "system") return "system"
+  if (isSessionMetadata(item)) return null
+  if (isPadding(item)) return null
+  if (isAssistantActivitySlice(item)) return "assistant-tool-activity"
+  if (isAssistantToolActivity(item)) return "assistant-tool-activity"
+  if (isBackgroundSystemMessage(item)) return "system"
   if (item.role === "user") return "user"
   return null
 }
@@ -782,6 +1555,9 @@ function groupSimilarItems(items: Item[]): RenderItem[] {
 function itemKey(item: Item, i: number): string {
   if (isActivity(item)) return "__activity"
   if (isAmbient(item)) return `ambient-cluster:${item.entries[0]?.id ?? i}`
+  if (isSessionMetadata(item)) return item.id
+  if (isPadding(item)) return `__padding:${item.id}`
+  if (isAssistantActivitySlice(item)) return item.id
   return String(item.id ?? i)
 }
 
@@ -789,6 +1565,85 @@ function renderItemKey(item: RenderItem, i: number): string {
   if (!isGrouped(item)) return itemKey(item, i)
   const first = item.items[0]
   return `group:${item.kind}:${first ? itemKey(first, i) : i}`
+}
+
+function insertRenderGaps(items: RenderItem[]): RenderItem[] {
+  const out: RenderItem[] = []
+  for (const item of items) {
+    const prev = out[out.length - 1]
+    if (!prev && needsBreathingBefore(item) && !ownsVerticalSpacing(item)) {
+      out.push({ __padding: true, id: `gap:start:${renderItemKey(item, out.length)}`, height: 1 })
+    } else if (
+      prev &&
+      !(isPaddingRenderItem(prev) || isPaddingRenderItem(item)) &&
+      !areDenseAdjacentItems(prev, item) &&
+      !(ownsVerticalSpacing(prev) || ownsVerticalSpacing(item))
+    ) {
+      out.push({ __padding: true, id: `gap:${renderItemKey(prev, out.length)}:${renderItemKey(item, out.length)}`, height: 1 })
+    }
+    out.push(item)
+  }
+  const last = out[out.length - 1]
+  if (last && !isPaddingRenderItem(last) && needsBreathingAfter(last) && !ownsVerticalSpacing(last)) {
+    out.push({ __padding: true, id: `gap:${renderItemKey(last, out.length)}:end`, height: 1 })
+  }
+  return out
+}
+
+function isPaddingRenderItem(item: RenderItem): item is PaddingItem {
+  return !isGrouped(item) && isPadding(item)
+}
+
+function areDenseAdjacentItems(prev: RenderItem, item: RenderItem): boolean {
+  if (isGrouped(prev) || isGrouped(item)) return false
+  if (isPadding(prev) || isPadding(item)) return false
+  if (isActivity(prev) || isActivity(item)) return false
+  if (isAmbient(prev) || isAmbient(item)) return false
+  if (isSessionMetadata(prev) || isSessionMetadata(item)) return false
+  if (isAssistantActivitySlice(prev) || isAssistantActivitySlice(item)) return false
+  return prev.role === "system" && item.role === "system"
+}
+
+function renderItemHasInternalBlankLine(item: RenderItem): boolean {
+  if (isGrouped(item)) return item.items.some(itemHasInternalBlankLine)
+  return itemHasInternalBlankLine(item)
+}
+
+function needsBreathingBefore(item: RenderItem): boolean {
+  return renderItemHasInternalBlankLine(item)
+}
+
+function needsBreathingAfter(item: RenderItem): boolean {
+  return needsBreathingBefore(item)
+}
+
+function ownsVerticalSpacing(item: RenderItem): boolean {
+  return !isGrouped(item) && isSessionMetadata(item) && item.data.kind === "loaded"
+}
+
+function itemTimestamp(item: Item): number | null {
+  if (isActivity(item) || isAmbient(item) || isSessionMetadata(item) || isPadding(item)) return null
+  if (isAssistantActivitySlice(item)) return item.message.ts
+  return item.ts
+}
+
+function itemBlockText(item: Item): string {
+  if (isActivity(item) || isAmbient(item) || isSessionMetadata(item) || isPadding(item)) return ""
+  const ops = isAssistantActivitySlice(item) ? item.ops : item.ops
+  return ops
+    .flatMap((op) => {
+      if (op.kind === "text" || op.kind === "thinking") return [op.text]
+      return []
+    })
+    .join("")
+}
+
+function itemHasInternalBlankLine(item: Item): boolean {
+  return /\n[ \t]*\n/.test(itemBlockText(item))
+}
+
+function textNeedsStandaloneSpacing(text: string): boolean {
+  return /\n[ \t]*\n/.test(text)
 }
 
 /**
@@ -882,6 +1737,7 @@ export const SessionUpdateList = React.forwardRef<
      * Bead: km-silvercode.ambient-inline-display.
      */
     ambientEntries?: readonly AmbientStreamEntry[]
+    sessionMetadata?: SessionHistoryMetadata
     /** Display name for the running agent. Forwarded to the inline
      *  ActivityIndicator so the spawning-state label can read
      *  "Spawning Claude Code v<version>…". Bead: km-cr94. */
@@ -891,6 +1747,12 @@ export const SessionUpdateList = React.forwardRef<
     agentVersion?: string | null
     /** Chat panes follow the latest turn; natural-height story previews can disable it. */
     follow?: "end" | false
+    /** Vertical breathing room rendered inside the scroll content. */
+    paddingY?: number
+    /** Overrides paddingY for the top edge when the viewport has asymmetric chrome. */
+    paddingTop?: number
+    /** Overrides paddingY for the bottom edge when floating chrome overlays the list. */
+    paddingBottom?: number
   }
 >(function SessionUpdateList(
   {
@@ -903,18 +1765,71 @@ export const SessionUpdateList = React.forwardRef<
     inFlightTool,
     showDebug = false,
     ambientEntries,
+    sessionMetadata,
     agentLabel = null,
     agentVersion = null,
     follow = "end",
+    paddingY = 0,
+    paddingTop,
+    paddingBottom,
   },
   ref,
 ): React.ReactElement {
+  const [followPausedByDisclosure, setFollowPausedByDisclosure] = useState(false)
+  const hasContentLayout = useHasContentLayout()
+  const pauseFollowForDisclosure = useCallback(() => {
+    setFollowPausedByDisclosure(true)
+  }, [])
+  useEffect(() => {
+    setFollowPausedByDisclosure(false)
+  }, [messages.length, status])
+
   const showActivity = status !== "idle" && status !== "ended"
   const merged = ambientEntries && ambientEntries.length > 0 ? interleave(messages, ambientEntries) : [...messages]
-  const items: Item[] = showActivity ? [...merged, { __activity: true }] : merged
-  const renderItems = groupSimilarItems(items)
+  const metadata = sessionMetadataItems(sessionMetadata)
+  const replayMessageCount = Math.max(0, sessionMetadata?.replayMessageCount ?? 0)
+  const replayBoundaryMessageId = sessionMetadata?.replayBoundaryMessageId
+  const visibleItems: Item[] = []
+  if (metadata.start) visibleItems.push(metadata.start)
+  let seenReplayMessages = 0
+  let insertedLoadedMetadata = false
+  for (const item of merged) {
+    visibleItems.push(...splitAssistantToolActivity(item))
+    if (isMessageEntry(item)) seenReplayMessages++
+    const isReplayBoundary =
+      replayBoundaryMessageId !== undefined
+        ? isMessageEntry(item) && item.id === replayBoundaryMessageId
+        : replayMessageCount > 0 && seenReplayMessages === replayMessageCount
+    if (metadata.loaded && !insertedLoadedMetadata && isReplayBoundary) {
+      visibleItems.push(metadata.loaded)
+      insertedLoadedMetadata = true
+    }
+  }
+  if (metadata.loaded && !insertedLoadedMetadata) {
+    visibleItems.push(metadata.loaded)
+  }
+  if (metadata.ended) visibleItems.push(metadata.ended)
+  const contentItems: Item[] = showActivity ? [...visibleItems, { __activity: true }] : visibleItems
+  const topPadding = Math.max(0, paddingTop ?? paddingY)
+  const bottomPadding = Math.max(0, paddingBottom ?? paddingY)
+  const items: Item[] =
+    (topPadding > 0 || bottomPadding > 0) && contentItems.length > 0
+      ? [
+          ...(topPadding > 0 ? [{ __padding: true as const, id: "viewport-top", height: topPadding }] : []),
+          ...contentItems,
+          ...(bottomPadding > 0 ? [{ __padding: true as const, id: "viewport-bottom", height: bottomPadding }] : []),
+        ]
+      : contentItems
+  const renderItems = insertRenderGaps(groupSimilarItems(items))
+  const listEpoch = sessionMetadata?.replayCompletedAt ? `replay:${sessionMetadata.replayCompletedAt}` : "live"
   const renderSessionItem = (item: Item, _i: number): React.ReactNode =>
-    isActivity(item) ? (
+    isPadding(item) ? (
+      <Box flexDirection="column" flexShrink={0}>
+        {Array.from({ length: item.height }, (_, i) => (
+          <Text key={i}> </Text>
+        ))}
+      </Box>
+    ) : isActivity(item) ? (
       <ActivityIndicator
         status={status}
         pendingPermissions={pendingPermissions}
@@ -927,21 +1842,43 @@ export const SessionUpdateList = React.forwardRef<
       />
     ) : isAmbient(item) ? (
       <AmbientNotificationStack entries={item.entries} />
+    ) : isSessionMetadata(item) ? (
+      <SessionMetadataRow data={item.data} />
+    ) : isAssistantActivitySlice(item) ? (
+      <ActivitySummaryForOps
+        ops={item.ops}
+        timestamp={formatTime(item.message.ts)}
+        onDisclosureToggle={pauseFollowForDisclosure}
+      />
     ) : item.role === "assistant" ? (
       // Assistant turns wrap each op (text/tool) individually inside
       // ExchangeItem so the hover popover shows ONLY the hovered op,
       // not the whole turn's combined JSON.
-      <ExchangeItem m={item} showDebug={showDebug} />
+      <ExchangeItem m={item} showDebug={showDebug} onDisclosureToggle={pauseFollowForDisclosure} />
     ) : (
       <RawInspector payload={item}>
-        <ExchangeItem m={item} showDebug={showDebug} />
+        <ExchangeItem m={item} showDebug={showDebug} onDisclosureToggle={pauseFollowForDisclosure} />
       </RawInspector>
     )
   const renderGroupedItem = (item: RenderItem, i: number): React.ReactNode =>
-    isGrouped(item) ? (
-      <Box flexDirection="column" gap={0} alignSelf="stretch" width="100%">
+    isGrouped(item) && item.kind === "assistant-tool-activity" && item.items.length >= 2 ? (
+      <ActivitySummaryForOps
+        timestamp={formatTime(item.items.flatMap((child) => itemTimestamp(child) ?? [])[0] ?? 0)}
+        onDisclosureToggle={pauseFollowForDisclosure}
+        ops={item.items.flatMap((child) =>
+          isActivity(child) || isAmbient(child) || isSessionMetadata(child)
+            ? []
+            : isAssistantActivitySlice(child)
+              ? child.ops
+              : isPadding(child)
+                ? []
+                : child.ops,
+        )}
+      />
+    ) : isGrouped(item) ? (
+      <Box flexDirection="column" gap={0} alignSelf="stretch" width="100%" flexShrink={0}>
         {item.items.map((child, childIndex) => (
-          <Box key={itemKey(child, childIndex)} flexDirection="column" alignSelf="stretch" width="100%">
+          <Box key={itemKey(child, childIndex)} flexDirection="column" alignSelf="stretch" width="100%" flexShrink={0}>
             {renderSessionItem(child, childIndex)}
           </Box>
         ))}
@@ -951,37 +1888,36 @@ export const SessionUpdateList = React.forwardRef<
     )
 
   if (follow === false) {
-    return (
-      <Box flexDirection="column" gap={1} alignSelf="stretch" width="100%">
+    const body = (
+      <Box flexDirection="column" gap={0} alignSelf="stretch" width="100%" flexShrink={0}>
         {renderItems.map((item, i) => (
-          <Box key={renderItemKey(item, i)} flexDirection="column" alignSelf="stretch" width="100%">
+          <Box key={renderItemKey(item, i)} flexDirection="column" alignSelf="stretch" width="100%" flexShrink={0}>
             {renderGroupedItem(item, i)}
           </Box>
         ))}
       </Box>
     )
+    return hasContentLayout ? body : <Content.Layout>{body}</Content.Layout>
   }
 
-  // `follow="end"` is the canonical chat-style auto-follow API
-  // (silvery bead `km-silvery.listview-followpolicy-split`). It owns
-  // viewport position via row-space snap math while atEnd; cursor is
-  // a SELECTION marker only and does NOT drive the viewport.
-  //
-  // `nav` is intentionally OFF. ListView with `nav={true}` registers a
-  // `useInput` that consumes Ctrl+D / Ctrl+U as vim half-page-down/up
-  // and j/k/arrows as cursor moves. SessionUpdateList has no item-selection
-  // — chat updates are not a select-list. App-level Shift+Up/Down/PageUp/
-  // PageDown/Home/End are the canonical scroll surface. See the full rationale
-  // in the original source (bead km-silvercode.ctrl-d-scrolls-to-top).
-  return (
+  const list = (
     <ListView
+      key={listEpoch}
       ref={ref}
       items={renderItems}
       getKey={renderItemKey}
-      gap={1}
+      gap={0}
       maxRendered={200}
-      follow={follow}
+      nav={false}
+      follow={followPausedByDisclosure ? undefined : follow}
       renderItem={renderGroupedItem}
     />
+  )
+  return hasContentLayout ? (
+    list
+  ) : (
+    <Content.Layout>
+      {list}
+    </Content.Layout>
   )
 })

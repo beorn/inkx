@@ -61,17 +61,16 @@ describe("markdown rendering bugs", () => {
       </Box>,
     )
 
-    // Every line that starts with `•` (after leading whitespace) must have a
-    // space immediately after the glyph. The bug shape was `•Issue`, `•Code`,
-    // `•State` — i.e. `•` directly followed by a letter.
-    const offendingLines = app.lines.filter((line) => /•[^\s]/.test(line))
+    // Every line that starts with the assistant markdown bullet (after
+    // leading whitespace) must have a space immediately after the glyph.
+    const offendingLines = app.lines.filter((line) => /·[^\s]/.test(line))
     expect(
       offendingLines,
       `bullets without trailing space:\n${offendingLines.join("\n")}\n\nfull frame:\n${app.text}`,
     ).toEqual([])
 
     // Sanity: at least one bullet glyph must actually render.
-    expect(app.text, "no bullet glyphs rendered").toMatch(/•/)
+    expect(app.text, "no bullet glyphs rendered").toMatch(/·/)
   })
 
   test("B: URL followed by colon flows inline (no orphan colon line)", () => {

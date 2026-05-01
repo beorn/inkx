@@ -1,5 +1,12 @@
 /** Supported account provider types */
-export type AccountProvider = "claude-oauth" | "anthropic-api" | "openai" | "xai" | "google" | "openrouter"
+export type AccountProvider =
+  | "claude-oauth"
+  | "anthropic-api"
+  | "openai"
+  | "xai"
+  | "google"
+  | "openrouter"
+  | "cursor-api"
 
 /**
  * Account configuration — used by the env-var discovery path (discover.ts)
@@ -39,6 +46,7 @@ export interface QuotaInfo {
   windows: QuotaWindow[]
   error?: string // if check failed
   checkedAt: number // Date.now()
+  metadata?: Record<string, string>
 }
 
 /** Interface that quota providers must implement */

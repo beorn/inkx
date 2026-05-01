@@ -30,7 +30,6 @@ import { bashTool } from "../../src/test/scripts/bashTool.ts"
 import { longToolResult } from "../../src/test/scripts/longToolResult.ts"
 import { permissionRequest } from "../../src/test/scripts/permissionRequest.ts"
 import { expectLayoutInvariants, parseFrame } from "./_invariants.ts"
-import { isToolGlyph } from "../../src/test/parse-frame.ts"
 
 const COLS = 120
 const ROWS = 30
@@ -50,9 +49,14 @@ describe("visual scenarios — layout invariants hold", () => {
     const s = await renderScenario({ script: helloWorld, cols: COLS, rows: ROWS })
     const p = parseFrame(s)
     expect(p.welcome.visible).toBe(false)
-    const assistant = p.cardStream.find((b) => b.glyph === "●")
-    expect(assistant, "missing ● assistant block").toBeDefined()
+    const assistant = p.cardStream.find((b) => b.glyph === "•")
+    expect(assistant, "missing • assistant block").toBeDefined()
     expect(assistant!.firstLineText).toContain("Hi")
+    expect(s.text, "chat-state composer should not use border glyphs").not.toMatch(/[┌┐└┘╭╮╰╯▀▄▌▐▔▁▏▕▘▝▖▗]/u)
+    expect(p.inputBox.present, "floating composer prompt should parse as input chrome").toBe(true)
+    expect(p.cardStream.some((b) => b.row === p.inputBox.promptRow), "composer prompt must not parse as transcript").toBe(
+      false,
+    )
     expectLayoutInvariants(s)
   })
 
@@ -60,7 +64,7 @@ describe("visual scenarios — layout invariants hold", () => {
     const s = await renderScenario({ script: multiTurn, cols: COLS, rows: ROWS })
     const p = parseFrame(s)
     // The multiTurn script has 2 user messages + 2 assistant replies.
-    const assistants = p.cardStream.filter((b) => b.glyph === "●")
+    const assistants = p.cardStream.filter((b) => b.glyph === "•")
     expect(assistants.length, `expected at least 1 assistant block`).toBeGreaterThanOrEqual(1)
     expectLayoutInvariants(s)
   })
@@ -68,12 +72,9 @@ describe("visual scenarios — layout invariants hold", () => {
   test("bashTool: tool-call block + assistant text render together", async () => {
     const s = await renderScenario({ script: bashTool, cols: COLS, rows: ROWS })
     const p = parseFrame(s)
-    // Tool-call status palette: `⚙` (legacy / pending fallback), `✓`
-    // (completed), `✗` (failed), or a Spinner (in_progress, no static
-    // glyph). The bash script includes a tool-result so the call is
-    // complete — accept any of the static tool glyphs.
-    const tool = p.cardStream.find((b) => isToolGlyph(b.glyph))
-    expect(tool, `expected tool-call glyph (⚙/✓/✗) in card stream.\n${s.text}`).toBeDefined()
+    const activity = p.cardStream.find((b) => b.glyph === "•" && b.firstLineText.includes("Clean tree"))
+    expect(activity, `expected assistant result in card stream.\n${s.text}`).toBeDefined()
+    expect(s.text).toContain("Ran 1 command")
     expectLayoutInvariants(s)
   })
 

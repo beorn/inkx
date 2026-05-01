@@ -571,6 +571,13 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
     currentTurnId = turnId
     lastMessageTurnId = null
     lastActivityTs = Date.now()
+    emit({
+      kind: "turn-start",
+      sessionId,
+      turnId,
+      role: "assistant",
+      ts: Date.now(),
+    })
     armWatchdog(turnId)
     let stopReason: acp.StopReason = "end_turn"
     try {
@@ -644,7 +651,7 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
     dWire("stdout-filter dropped non-JSON line: %s", dropped)
     emit({ kind: "error", sessionId, message: `[acp stdout] ${dropped}`, ts: Date.now() })
   })
-  const readable = Readable.toWeb(filteredReadable) as ReadableStream<Uint8Array>
+  const readable = Readable.toWeb(filteredReadable) as unknown as ReadableStream<Uint8Array>
   const stream = acp.ndJsonStream(writable, readable)
 
   // Build the Client callback bridge.
@@ -678,11 +685,21 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
     async requestPermission(req: acp.RequestPermissionRequest): Promise<acp.RequestPermissionResponse> {
       dWire("requestPermission tool=%s", req.toolCall.title ?? req.toolCall.toolCallId)
       const scReq = acpRequestPermissionToSilvercode(req)
+      const requestId = String(scReq.toolCall.toolCallId) as PermissionRequestId
+      const emitDecision = (response: acp.RequestPermissionResponse): void => {
+        emit({
+          kind: "permission-decision",
+          sessionId,
+          requestId,
+          approved: response.outcome.outcome === "selected",
+          ts: Date.now(),
+        })
+      }
       // Surface a legacy permission-request event so existing UI sees it.
       emit({
         kind: "permission-request",
         sessionId,
-        requestId: String(scReq.toolCall.toolCallId) as PermissionRequestId,
+        requestId,
         tool: scReq.toolCall.title ?? "",
         args: scReq.toolCall.rawInput,
         options: scReq.options,
@@ -697,10 +714,30 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
             "Wire AcpConnectOpts.permissionHandler to surface this in the UI.",
           ts: Date.now(),
         })
-        return { outcome: { outcome: "cancelled" } }
+        const cancelled = { outcome: { outcome: "cancelled" } } satisfies acp.RequestPermissionResponse
+        emitDecision(cancelled)
+        return cancelled
       }
-      const handled = await opts.permissionHandler(req)
-      if (!handled) return { outcome: { outcome: "cancelled" } }
+      let handled: acp.RequestPermissionResponse | null
+      try {
+        handled = await opts.permissionHandler(req)
+      } catch (err) {
+        const cancelled = { outcome: { outcome: "cancelled" } } satisfies acp.RequestPermissionResponse
+        emitDecision(cancelled)
+        emit({
+          kind: "error",
+          sessionId,
+          message: `acp permissionHandler failed: ${(err as Error).message}`,
+          ts: Date.now(),
+        })
+        throw err
+      }
+      if (!handled) {
+        const cancelled = { outcome: { outcome: "cancelled" } } satisfies acp.RequestPermissionResponse
+        emitDecision(cancelled)
+        return cancelled
+      }
+      emitDecision(handled)
       return handled
     },
 

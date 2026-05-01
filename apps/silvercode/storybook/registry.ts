@@ -32,7 +32,7 @@ import {
 import { applyPatch, applyPatchMulti } from "./stories/ApplyPatch.story.tsx"
 import { sessionUpdateListEmpty } from "./stories/SessionUpdateList.empty.story.tsx"
 import { sessionUpdateListMultiTurn } from "./stories/SessionUpdateList.multi-turn.story.tsx"
-import { welcomeBasic } from "./stories/Welcome.basic.story.tsx"
+import { welcomeBasic, welcomeFreshWithDraft, welcomeLoadingResume } from "./stories/Welcome.basic.story.tsx"
 // Wave B — ACP component family stories
 import { sessionPromptComposerEmpty } from "./stories/SessionPromptComposer.empty.story.tsx"
 import { sessionPromptComposerWithText } from "./stories/SessionPromptComposer.with-text.story.tsx"
@@ -43,6 +43,7 @@ import { sessionExchangeDividerBetweenExchanges } from "./stories/SessionExchang
 import { sessionRetryFailedExchange } from "./stories/SessionRetry.failed-exchange.story.tsx"
 import { subAgentExchangeCollapsed } from "./stories/SubAgentExchange.collapsed.story.tsx"
 import { ambientEventRowAllSources, ambientEventRowInlineSequence } from "./stories/AmbientEventRow.story.tsx"
+import { contentLayout } from "./stories/Content.layout.story.tsx"
 import { allTogether } from "./stories/All.story.tsx"
 
 /**
@@ -56,6 +57,9 @@ export const STORIES: readonly Story[] = [
   allTogether,
   // Welcome surface
   welcomeBasic,
+  welcomeFreshWithDraft,
+  welcomeLoadingResume,
+  contentLayout,
   // Activity / status
   activityIndicatorThinking,
   // Tool calls — ACP-named ToolCall family (kind/status variants on the canonical

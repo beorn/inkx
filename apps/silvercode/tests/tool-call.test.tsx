@@ -455,12 +455,10 @@ describe("ToolCall text summarization", () => {
     }
   }
 
-  test("28-line bash output: expanded body does NOT show all 28 lines inline", () => {
-    // All 28 lines inline is the bug — after the fix, only 3 preview lines
-    // and a "N more lines" accordion should be visible initially.
+  test("28-line bash output: expanded body shows all lines inline", () => {
     const app = freshRender()(<ToolCall toolCall={bashLsToolCall()} defaultExpanded />)
     const lineCount = app.text.split("\n").filter((l) => l.trim().startsWith("file")).length
-    expect(lineCount).toBeLessThanOrEqual(3)
+    expect(lineCount).toBe(28)
   })
 
   test("28-line bash output: preview shows first 3 lines", () => {
@@ -470,16 +468,15 @@ describe("ToolCall text summarization", () => {
     expect(app.text).toContain("file03.ts")
   })
 
-  test("28-line bash output: accordion shows '25 more lines' summary", () => {
+  test("28-line bash output: expanded body has no inner hidden-lines accordion", () => {
     const app = freshRender()(<ToolCall toolCall={bashLsToolCall()} defaultExpanded />)
-    expect(app.text).toContain("25 more lines")
+    expect(app.text).not.toContain("25 more lines")
   })
 
-  test("28-line bash output: lines 4-28 are NOT visible by default (accordion collapsed)", () => {
+  test("28-line bash output: lines 4-28 are visible when expanded", () => {
     const app = freshRender()(<ToolCall toolCall={bashLsToolCall()} defaultExpanded />)
-    // file04 onward should be hidden until the accordion is expanded.
-    expect(app.text).not.toContain("file04.ts")
-    expect(app.text).not.toContain("file28.ts")
+    expect(app.text).toContain("file04.ts")
+    expect(app.text).toContain("file28.ts")
   })
 
   test("short output (≤5 lines) renders verbatim — no accordion", () => {
@@ -521,7 +518,7 @@ describe("ToolCall text summarization", () => {
     expect(app.text).not.toContain("more lines")
   })
 
-  test("6-line output gets summarized (just over threshold)", () => {
+  test("6-line output renders verbatim when expanded", () => {
     const text = Array.from({ length: 6 }, (_, i) => `line${i + 1}`).join("\n")
     const app = freshRender()(
       <ToolCall
@@ -535,13 +532,12 @@ describe("ToolCall text summarization", () => {
         defaultExpanded
       />,
     )
-    // 6 lines → preview 3, accordion "3 more lines".
-    expect(app.text).toContain("3 more lines")
-    expect(app.text).not.toContain("line4")
+    expect(app.text).toContain("line4")
+    expect(app.text).toContain("line6")
+    expect(app.text).not.toContain("more lines")
   })
 
-  test("1 more line uses singular grammar", () => {
-    // 4 preview lines + 1 remainder → "1 more line" (not "lines").
+  test("just-over-threshold output has no inner summary when expanded", () => {
     const text = Array.from({ length: SUMMARY_THRESHOLD + 1 }, (_, i) => `x${i}`).join("\n")
     const app = freshRender()(
       <ToolCall
@@ -555,8 +551,8 @@ describe("ToolCall text summarization", () => {
         defaultExpanded
       />,
     )
-    // SUMMARY_THRESHOLD=5, SUMMARY_PREVIEW_LINES=3 → 3 shown, 3 in accordion.
-    expect(app.text).toContain("more line")
+    expect(app.text).toContain("x5")
+    expect(app.text).not.toContain("more line")
   })
 })
 

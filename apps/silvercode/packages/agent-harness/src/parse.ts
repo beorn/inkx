@@ -89,6 +89,85 @@ function nowMs(): number {
   return Date.now()
 }
 
+function rawLabel(raw: unknown): string {
+  if (!raw || typeof raw !== "object") return "Raw transcript entry"
+  const o = raw as Record<string, unknown>
+  const type = typeof o.type === "string" ? o.type : "unknown"
+  const nested =
+    o.attachment &&
+    typeof o.attachment === "object" &&
+    typeof (o.attachment as Record<string, unknown>).type === "string"
+      ? ` ${(o.attachment as Record<string, unknown>).type}`
+      : ""
+  return `Raw ${type}${nested}`
+}
+
+function isTrivialHookStdout(text: string): boolean {
+  const trimmed = text.trim()
+  return trimmed.length === 0 || trimmed === "{}" || trimmed === '{"continue":true}'
+}
+
+function hookLabel(attachment: Record<string, unknown>): string {
+  const event = typeof attachment.hookEvent === "string" ? attachment.hookEvent : "Hook"
+  const hookName = typeof attachment.hookName === "string" ? attachment.hookName : ""
+  const command = typeof attachment.command === "string" ? attachment.command : ""
+  const target = hookName.length > 0 ? hookName : command.length > 0 ? command : "hook"
+  const exitCode = typeof attachment.exitCode === "number" ? attachment.exitCode : null
+  return exitCode !== null && exitCode !== 0 ? `${event} failed: ${target}` : `${event}: ${target}`
+}
+
+function hookIsVisible(attachment: Record<string, unknown>): boolean {
+  const exitCode = typeof attachment.exitCode === "number" ? attachment.exitCode : 0
+  if (exitCode !== 0) return true
+  if (attachment.hookEvent === "SessionStart") return false
+  const content = typeof attachment.content === "string" ? attachment.content : ""
+  const stdout = typeof attachment.stdout === "string" ? attachment.stdout : ""
+  const stderr = typeof attachment.stderr === "string" ? attachment.stderr : ""
+  return content.trim().length > 0 || stderr.trim().length > 0 || !isTrivialHookStdout(stdout)
+}
+
+function attachmentIsKnownBookkeeping(attachment: Record<string, unknown>): boolean {
+  return (
+    attachment.type === "todo_reminder" ||
+    attachment.type === "task_reminder" ||
+    attachment.type === "deferred_tools_delta" ||
+    attachment.type === "mcp_instructions_delta" ||
+    attachment.type === "skill_listing" ||
+    attachment.type === "auto_mode"
+  )
+}
+
+function structuredToolResultOutput(obj: Record<string, unknown>, item: Record<string, unknown>): unknown {
+  const fallback = (item.content as unknown) ?? (item.output as unknown) ?? ""
+  const result = obj.toolUseResult
+  if (result && typeof result === "object") {
+    const r = result as Record<string, unknown>
+    const stdout = typeof r.stdout === "string" ? r.stdout : ""
+    const stderr = typeof r.stderr === "string" ? r.stderr : ""
+    const exitCode = typeof r.exitCode === "number" ? r.exitCode : typeof r.exit_code === "number" ? r.exit_code : null
+    if (stdout.length > 0 || stderr.length > 0 || exitCode !== null) {
+      return {
+        stdout,
+        stderr,
+        exitCode,
+        content: fallback,
+      }
+    }
+  }
+  if (typeof result === "string") {
+    const m = result.match(/(?:^Error:\s*)?Exit code (\d+)/)
+    if (m?.[1]) {
+      return {
+        stdout: "",
+        stderr: String(fallback),
+        exitCode: Number(m[1]),
+        content: fallback,
+      }
+    }
+  }
+  return fallback
+}
+
 /**
  * Result of normalizing on-disk user-message text:
  *   - `text` — the visible chat surface (what the user typed)
@@ -469,11 +548,11 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
               return {
                 type: "tool_result",
                 tool_use_id: toToolUseId(b.tool_use_id),
-                output: (b.content as unknown) ?? (b.output as unknown) ?? "",
+                output: structuredToolResultOutput(obj, b),
                 is_error: Boolean(b.is_error),
               }
             }
-            return null
+            return { type: "raw", label: `Unknown assistant block ${String(t)}`, raw: b }
           })
           .filter((b): b is ContentBlock => b != null)
       : []
@@ -484,6 +563,17 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
       content: blocks,
       ts: nowMs(),
     })
+    const stopReason = typeof msg.stop_reason === "string" ? (msg.stop_reason as string) : undefined
+    if (stopReason === "end_turn") {
+      emit({
+        kind: "turn-end",
+        sessionId: sid,
+        turnId,
+        stopReason,
+        usage: pickUsage(msg.usage),
+        ts: nowMs(),
+      })
+    }
   }
 
   function handleUserEcho(obj: Record<string, unknown>): void {
@@ -541,7 +631,7 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
             kind: "tool-result",
             sessionId: sid,
             id: toToolUseId(item.tool_use_id),
-            output: (item.content as unknown) ?? (item.output as unknown) ?? "",
+            output: structuredToolResultOutput(obj, item),
             is_error: Boolean(item.is_error),
             ts: nowMs(),
           })
@@ -628,8 +718,33 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
       else if (type === "user") handleUserEcho(obj)
       else if (type === "result") handleResult(obj)
       else if (type === "permission-request") handlePermission(obj)
-      // Other types (queue-operation, last-prompt, file-history-snapshot, etc.)
-      // appear in on-disk JSONL but not in stream-json live output; safe to ignore.
+      else if (type === "permission-mode") return
+      else if (type === "last-prompt") return
+      else if (type === "queue-operation") return
+      else if (type === "attachment" && obj.attachment && typeof obj.attachment === "object") {
+        const attachment = obj.attachment as Record<string, unknown>
+        if (attachmentIsKnownBookkeeping(attachment)) return
+        if (attachment.type === "hook_success" && !hookIsVisible(attachment)) return
+        const sid = state.sessionId ?? toSessionId(obj.session_id ?? obj.sessionId)
+        emit({
+          kind: "raw-transcript",
+          sessionId: sid,
+          turnId: toTurnId((obj.uuid as string | undefined) ?? `raw-${nowMs()}`),
+          label: attachment.type === "hook_success" ? hookLabel(attachment) : rawLabel(obj),
+          raw: obj,
+          ts: nowMs(),
+        })
+      } else {
+        const sid = state.sessionId ?? toSessionId(obj.session_id ?? obj.sessionId)
+        emit({
+          kind: "raw-transcript",
+          sessionId: sid,
+          turnId: toTurnId((obj.uuid as string | undefined) ?? `raw-${nowMs()}`),
+          label: rawLabel(obj),
+          raw: obj,
+          ts: nowMs(),
+        })
+      }
     },
     flush(): void {
       /* no buffering — lines are pushed complete */

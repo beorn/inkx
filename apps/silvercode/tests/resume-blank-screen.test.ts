@@ -148,12 +148,13 @@ describe("replaySessionFromDisk: defensive contract (never throws)", () => {
     expect(err).toBeNull()
   })
 
-  test("non-Claude agents skip JSONL existence check (returns null even when missing)", () => {
-    // Codex stores transcripts elsewhere; pre-flight only validates Claude.
+  test("non-Claude/non-Codex agents skip JSONL existence check (returns null even when missing)", () => {
+    // Claude and Codex have known transcript stores; other agents are
+    // validated by their in-process loadSession paths.
     // For other agents, the in-process loadSession path returns a clean
     // error to the controller's spawn catch, which writes to stderr.
     const err = validateResumeId({
-      agent: "codex",
+      agent: "gemini",
       sessionId: "any-id-here",
       cwd: "/some/cwd",
     })

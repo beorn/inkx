@@ -222,7 +222,7 @@ describe("ambient-adapter/recall", () => {
           { token: "km-board", summary: "third hit — should be in +N more" },
         ],
       },
-      "km-board status",
+      "@km/board status",
     )
     expect(emitted).toBe(1)
     const event = queue.peek()[0]

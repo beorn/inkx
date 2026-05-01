@@ -13,12 +13,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import {
-  beadDataSchema,
-  parseBeadData,
-  assertBeadDataPatch,
-  BeadDataValidationError,
-} from "../src/data-schema.ts"
+import { beadDataSchema, parseBeadData, assertBeadDataPatch, BeadDataValidationError } from "../src/data-schema.ts"
 
 describe("beadDataSchema", () => {
   test("validates a real file-bead frontmatter shape (cutover.md)", () => {

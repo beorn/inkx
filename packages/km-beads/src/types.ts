@@ -77,4 +77,3 @@ export interface BeadCreateOptions {
    */
   prefix: string
 }
-

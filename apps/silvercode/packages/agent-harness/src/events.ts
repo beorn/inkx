@@ -33,6 +33,7 @@ export type ContentBlock =
   | { type: "tool_result"; tool_use_id: ToolUseId; output: unknown; is_error?: boolean }
   | { type: "thinking"; text: string }
   | { type: "image"; mediaType: string; bytes?: number }
+  | { type: "raw"; label: string; raw: unknown }
 
 export type AgentEvent =
   | {
@@ -79,9 +80,11 @@ export type AgentEvent =
       ts: number
     }
   | { kind: "permission-decision"; sessionId: SessionId; requestId: PermissionRequestId; approved: boolean; ts: number }
+  | { kind: "liveness-check"; sessionId: SessionId; ts: number; staleAfterMs?: number }
   | { kind: "turn-end"; sessionId: SessionId; turnId: TurnId; stopReason?: string; usage?: TokenCounts; ts: number }
   | { kind: "assistant-message"; sessionId: SessionId; turnId: TurnId; content: ContentBlock[]; ts: number }
   | { kind: "user-message"; sessionId: SessionId; turnId: TurnId; text: string; additionalContext?: string; ts: number }
+  | { kind: "raw-transcript"; sessionId: SessionId; turnId: TurnId; label: string; raw: unknown; ts: number }
   | { kind: "status"; sessionId: SessionId; status: string; ts: number }
   /**
    * Mid-session slash-command list update. Emitted whenever the agent

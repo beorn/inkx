@@ -19,6 +19,7 @@
     "@beorn/accountly": "workspace:*",
     "@km/agent-harness": "workspace:*",
     "@km/autolinks": "workspace:*",
+    "@km/config": "workspace:*",
     "@km/markdown": "workspace:*",
     "@km/mcp-server": "workspace:*",
     "@km/text-render": "workspace:*",

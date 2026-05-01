@@ -49,7 +49,7 @@ function TestLayout({
       <Box flexDirection="column" flexGrow={1} {...leftProps}>
         {children}
       </Box>
-      <Box flexShrink={0} flexBasis={SIDE_WIDTH} backgroundColor="$mutedbg">
+      <Box flexShrink={0} flexBasis={SIDE_WIDTH} backgroundColor="$bg-surface-subtle">
         <Text>SIDE_PANEL</Text>
       </Box>
     </Box>

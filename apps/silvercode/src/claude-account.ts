@@ -17,9 +17,9 @@
  */
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
-import { homedir } from "node:os"
-import { basename, join } from "node:path"
+import { basename, dirname } from "node:path"
 import { checkProfileQuota, keychainSlot, isLoggedIn, type QuotaWindow, type ProfileInfo } from "@beorn/accountly"
+import { silvercodeActiveAccountCachePath } from "@km/config/paths"
 
 export type { QuotaWindow } from "@beorn/accountly"
 
@@ -42,7 +42,7 @@ export interface AccountProbe {
 /**
  * Test-only factory installed via `setAccountFactoryOverride`. When set,
  * `probeActiveAccount` and `readCachedProbeSync` route through it instead
- * of touching the keychain, network, or `~/.cache/km/`. The
+ * of touching the keychain, network, or `~/.cache/silvercode/`. The
  * factory may return `null` from `readCached` to simulate cold-start.
  */
 export interface AccountFactory {
@@ -96,8 +96,7 @@ function activeProfile(): ProfileInfo | null {
  * against the same quota endpoint. A disk cache keyed by profile dir
  * lets successive spawns reuse a recent response.
  */
-const QUOTA_CACHE_TTL_MS = 60_000
-const QUOTA_CACHE_DIR = join(homedir(), ".cache", "silvercode")
+const QUOTA_CACHE_TTL_MS = 120_000
 
 interface CachedProbe {
   fetchedAt: number
@@ -105,24 +104,22 @@ interface CachedProbe {
 }
 
 function cachePath(profileDir: string): string {
-  // sha1-like: replace slashes with `-` so the filename encodes the
-  // profile dir uniquely without needing a hash import.
-  const slug = profileDir.replace(/[^a-zA-Z0-9@._-]/g, "_")
-  return join(QUOTA_CACHE_DIR, `quota-${slug}.json`)
+  return silvercodeActiveAccountCachePath(profileDir)
 }
 
 /**
  * Sync read of the latest cached probe for the ACTIVE profile — for hooks
  * that want to show quota numbers on first render instead of flashing
- * "Loading…". Returns null when no cache exists or it's expired.
+ * "Loading…". Returns null when no cache exists or, unless allowStale is set,
+ * when the cache is expired.
  */
-export function readCachedProbeSync(): AccountProbe | null {
+export function readCachedProbeSync(opts: { allowStale?: boolean } = {}): AccountProbe | null {
   if (accountOverride) return accountOverride.readCached()
   const profile = activeProfile()
   if (!profile) return null
   const cached = readCache(profile.dir)
   if (!cached) return null
-  if (Date.now() - cached.fetchedAt >= QUOTA_CACHE_TTL_MS) return null
+  if (opts.allowStale !== true && Date.now() - cached.fetchedAt >= QUOTA_CACHE_TTL_MS) return null
   return cached.probe
 }
 
@@ -137,9 +134,19 @@ function readCache(profileDir: string): CachedProbe | null {
   }
 }
 
+export function readCachedProbeForProfileDir(
+  profileDir: string,
+  opts: { allowStale?: boolean } = {},
+): AccountProbe | null {
+  const cached = readCache(profileDir)
+  if (!cached) return null
+  if (opts.allowStale !== true && Date.now() - cached.fetchedAt >= QUOTA_CACHE_TTL_MS) return null
+  return cached.probe
+}
+
 function writeCache(profileDir: string, probe: AccountProbe): void {
   try {
-    mkdirSync(QUOTA_CACHE_DIR, { recursive: true })
+    mkdirSync(dirname(cachePath(profileDir)), { recursive: true })
     writeFileSync(cachePath(profileDir), JSON.stringify({ fetchedAt: Date.now(), probe }))
   } catch {
     /* cache write is best-effort; ignore permission / fs errors */
@@ -152,7 +159,7 @@ function writeCache(profileDir: string, probe: AccountProbe): void {
  * and `error` carries the first failure reason. Consumers render partial
  * state gracefully.
  *
- * Persistent disk cache (TTL: 60s, ~/.cache/km/quota-*.json) is
+ * Persistent disk cache (TTL: 2 minutes, ~/.cache/silvercode/quota-*.json) is
  * consulted first — close+reopen cycles reuse a fresh response instead of
  * hammering the API and hitting 429. Set `forceRefresh` to bypass.
  */
@@ -250,6 +257,14 @@ export function windowShortLabel(name: string): string {
       return "7do"
     case "Xtra":
       return "Xtra"
+    case "RPM":
+      return "RPM"
+    case "TPM":
+      return "TPM"
+    case "Input TPM":
+      return "In"
+    case "Output TPM":
+      return "Out"
     default:
       return name.slice(0, 4)
   }

@@ -161,6 +161,162 @@ describe("codex-resume: replayCodexSessionFromDisk", () => {
     expect(state.status).toBe("idle")
   })
 
+  test("replays real user prompts from response_item.message:user and ignores bootstrap context", () => {
+    const body = lines(
+      {
+        timestamp: "2026-04-30T19:06:18.987Z",
+        type: "session_meta",
+        payload: { id: SESSION_ID, cwd: "/tmp", cli_version: "0.124.0", model_provider: "openai" },
+      },
+      {
+        timestamp: "2026-04-30T19:06:18.989Z",
+        type: "response_item",
+        payload: {
+          type: "message",
+          role: "user",
+          content: [
+            { type: "input_text", text: "# AGENTS.md instructions\n\n<INSTRUCTIONS>\n...\n</INSTRUCTIONS>" },
+            { type: "input_text", text: "<environment_context>\n  <cwd>/tmp</cwd>\n</environment_context>" },
+          ],
+        },
+      },
+      {
+        timestamp: "2026-04-30T19:06:18.990Z",
+        type: "response_item",
+        payload: {
+          type: "message",
+          role: "user",
+          content: [{ type: "input_text", text: "see screenshots from silvercode" }],
+        },
+      },
+      {
+        timestamp: "2026-04-30T19:06:18.991Z",
+        type: "response_item",
+        payload: {
+          type: "message",
+          role: "assistant",
+          content: [{ type: "output_text", text: "I'll inspect the UI path." }],
+        },
+      },
+    )
+    writeFakeRollout(SESSION_ID, body)
+
+    const store = createSessionStore()
+    replayCodexSessionFromDisk(store, SESSION_ID)
+
+    const userMessages = store.state.get().messages.filter((m) => m.role === "user").map((m) => m.text)
+    expect(userMessages).toEqual(["see screenshots from silvercode"])
+  })
+
+  test("does not duplicate user prompts present as both response_item and event_msg", () => {
+    const body = lines(
+      {
+        timestamp: "2026-04-30T19:06:18.987Z",
+        type: "session_meta",
+        payload: { id: SESSION_ID, cwd: "/tmp", cli_version: "0.124.0", model_provider: "openai" },
+      },
+      {
+        timestamp: "2026-04-30T19:06:18.990Z",
+        type: "response_item",
+        payload: {
+          type: "message",
+          role: "user",
+          content: [{ type: "input_text", text: "fix the permission prompt" }],
+        },
+      },
+      {
+        timestamp: "2026-04-30T19:06:18.991Z",
+        type: "event_msg",
+        payload: { type: "user_message", message: "fix the permission prompt" },
+      },
+    )
+    writeFakeRollout(SESSION_ID, body)
+
+    const store = createSessionStore()
+    replayCodexSessionFromDisk(store, SESSION_ID)
+
+    const userMessages = store.state.get().messages.filter((m) => m.role === "user").map((m) => m.text)
+    expect(userMessages).toEqual(["fix the permission prompt"])
+  })
+
+  test("orders the recovered user prompt before its assistant turn when Codex logs task_started first", () => {
+    const body = lines(
+      {
+        timestamp: "2026-04-30T19:06:18.987Z",
+        type: "session_meta",
+        payload: { id: SESSION_ID, cwd: "/tmp", cli_version: "0.124.0", model_provider: "openai" },
+      },
+      {
+        timestamp: "2026-04-30T19:06:18.989Z",
+        type: "event_msg",
+        payload: { type: "task_started", turn_id: "turn-after-user" },
+      },
+      {
+        timestamp: "2026-04-30T19:06:18.989Z",
+        type: "event_msg",
+        payload: { type: "user_message", message: "fix resume ordering" },
+      },
+      {
+        timestamp: "2026-04-30T19:06:19.100Z",
+        type: "response_item",
+        payload: {
+          type: "message",
+          role: "assistant",
+          content: [{ type: "output_text", text: "Working on it." }],
+        },
+      },
+    )
+    writeFakeRollout(SESSION_ID, body)
+
+    const store = createSessionStore()
+    replayCodexSessionFromDisk(store, SESSION_ID)
+    const messages = store.state.get().messages
+
+    expect(messages.map((m) => m.role)).toEqual(["user", "assistant"])
+    expect(messages[0]?.text).toBe("fix resume ordering")
+    expect(messages[1]?.text).toContain("Working on it.")
+  })
+
+  test("known message variants with unexpected content shape throw with line context", () => {
+    writeFakeRollout(
+      SESSION_ID,
+      lines({
+        timestamp: "2026-04-30T19:06:18.990Z",
+        type: "response_item",
+        payload: {
+          type: "message",
+          role: "user",
+          content: { type: "input_text", text: "not an array" },
+        },
+      }),
+    )
+
+    const store = createSessionStore()
+    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(
+      /:1: unsupported Codex transcript shape for response_item\.message:user: content must be an array/,
+    )
+  })
+
+  test("known tool-call variants with missing required fields throw with line context", () => {
+    writeFakeRollout(
+      SESSION_ID,
+      lines({
+        timestamp: "2026-04-30T19:06:18.990Z",
+        type: "response_item",
+        payload: {
+          type: "function_call",
+          call_id: "call_1",
+          arguments: "{}",
+        },
+      }),
+    )
+
+    const store = createSessionStore()
+    expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).toThrow(
+      /:1: unsupported Codex transcript shape for response_item\.function_call: name must be a string/,
+    )
+  })
+
   test("replays Codex custom apply_patch calls instead of dropping file edits", () => {
     const body = lines(
       {
@@ -259,7 +415,18 @@ describe("codex-resume: replayCodexSessionFromDisk", () => {
 
     const store = createSessionStore()
     replayCodexSessionFromDisk(store, SESSION_ID)
-    expect(store.state.get().status).toBe("idle")
+    const state = store.state.get()
+    expect(state.status).toBe("idle")
+    const assistant = state.messages.find((m) => m.role === "assistant")
+    const tool = assistant?.ops.find((op) => op.kind === "tool")
+    expect(tool).toMatchObject({
+      kind: "tool",
+      toolCall: { id: "call_X", name: "exec_command" },
+      result: { id: "call_X", is_error: true },
+    })
+    if (tool?.kind === "tool") {
+      expect(tool.result?.output).toContain("transcript ended before this tool produced a result")
+    }
   })
 
   test("validateResumeId allows Codex transcripts that ended without task_complete", () => {
@@ -368,6 +535,57 @@ describe("codex-resume: replayCodexSessionFromDisk", () => {
     const store = createSessionStore()
     expect(() => replayCodexSessionFromDisk(store, SESSION_ID)).not.toThrow()
     expect(store.state.get().status).toBe("idle")
+  })
+
+  test("turn_aborted settles unmatched tool calls so resumed commands do not look running", () => {
+    const body = lines(
+      {
+        timestamp: "2026-04-30T05:18:17.609Z",
+        type: "session_meta",
+        payload: { id: SESSION_ID, cwd: "/tmp", cli_version: "0.124.0" },
+      },
+      {
+        timestamp: "2026-04-30T05:18:18.000Z",
+        type: "event_msg",
+        payload: { type: "task_started", turn_id: "turn-aborted" },
+      },
+      {
+        timestamp: "2026-04-30T05:18:19.000Z",
+        type: "response_item",
+        payload: {
+          type: "function_call",
+          name: "exec_command",
+          arguments: '{"cmd": "silvercode --resume codex:019ddfc8"}',
+          call_id: "call_STILL_OPEN",
+        },
+      },
+      {
+        timestamp: "2026-04-30T05:18:20.350Z",
+        type: "event_msg",
+        payload: {
+          type: "turn_aborted",
+          turn_id: "turn-aborted",
+          reason: "interrupted",
+          completed_at: 1777526300,
+          duration_ms: 178877,
+        },
+      },
+    )
+    writeFakeRollout(SESSION_ID, body)
+
+    const store = createSessionStore()
+    replayCodexSessionFromDisk(store, SESSION_ID)
+    const state = store.state.get()
+    const assistant = state.messages.find((m) => m.role === "assistant")
+    const tool = assistant?.ops.find((op) => op.kind === "tool")
+
+    expect(state.status).toBe("idle")
+    expect(tool).toMatchObject({
+      kind: "tool",
+      toolCall: { id: "call_STILL_OPEN", name: "exec_command" },
+      result: { id: "call_STILL_OPEN", is_error: true },
+    })
+    if (tool?.kind === "tool") expect(tool.result?.output).toContain("interrupted")
   })
 
   test("known Codex web-search transcript entries are ignored without failing resume", () => {

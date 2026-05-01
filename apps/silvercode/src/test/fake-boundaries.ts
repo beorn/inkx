@@ -26,6 +26,7 @@ import {
   type QuotaWindow,
   setAccountFactoryOverride,
 } from "../claude-account.ts"
+import { type AccountSummary, type AllAccountsFactory, setAllAccountsFactoryOverride } from "../account-status.ts"
 import { setVersionFactoryOverride } from "../claude-version.ts"
 import { setGitFactoryOverride } from "../git-branch.ts"
 
@@ -35,6 +36,8 @@ export type AccountScenario = {
   quotas?: QuotaWindow[]
   error?: string | null
   loading?: boolean
+  /** Delay the async probe to exercise late startup side-panel repaints. */
+  probeDelayMs?: number
 }
 
 /**
@@ -49,12 +52,79 @@ export function fakeAccountFactory(scenario: AccountScenario = {}): AccountFacto
     error: scenario.error ?? null,
     loading: scenario.loading ?? false,
   }
+  const cachedProbe: AccountProbe | null =
+    scenario.probeDelayMs && scenario.probeDelayMs > 0
+      ? {
+          email: scenario.email ?? "test@silvercode.dev",
+          plan: null,
+          quotas: [],
+          error: null,
+          loading: true,
+        }
+      : probe
   return {
     readCached(): AccountProbe | null {
-      return probe
+      return cachedProbe
     },
     async probe(): Promise<AccountProbe> {
+      if (scenario.probeDelayMs && scenario.probeDelayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, scenario.probeDelayMs))
+      }
       return probe
+    },
+  }
+}
+
+function summaryFromProbe(probe: AccountProbe): AccountSummary {
+  return {
+    kind: "claude-profile",
+    name: probe.email ?? "active",
+    label: "Claude Code",
+    provider: "claude-oauth",
+    email: probe.email,
+    plan: probe.plan,
+    quotas: probe.quotas,
+    error: probe.error,
+    current: true,
+    isActive: true,
+    authenticated: probe.error === null,
+    available: probe.error === null,
+    loading: probe.loading,
+  }
+}
+
+/**
+ * List-shaped companion to fakeAccountFactory. The side panel uses both the
+ * active-account hook and the all-accounts hook; tests must fake both or the
+ * process harness leaks through to the user's real account cache.
+ */
+export function fakeAllAccountsFactory(scenario: AccountScenario = {}): AllAccountsFactory {
+  const probe: AccountProbe = {
+    email: scenario.email ?? "test@silvercode.dev",
+    plan: scenario.plan ?? "claude_max_20x",
+    quotas: scenario.quotas ?? [],
+    error: scenario.error ?? null,
+    loading: scenario.loading ?? false,
+  }
+  const cachedProbe: AccountProbe =
+    scenario.probeDelayMs && scenario.probeDelayMs > 0
+      ? {
+          email: scenario.email ?? "test@silvercode.dev",
+          plan: null,
+          quotas: [],
+          error: null,
+          loading: true,
+        }
+      : probe
+  return {
+    readCached(): AccountSummary[] | null {
+      return [summaryFromProbe(cachedProbe)]
+    },
+    async probe(): Promise<AccountSummary[]> {
+      if (scenario.probeDelayMs && scenario.probeDelayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, scenario.probeDelayMs))
+      }
+      return [summaryFromProbe(probe)]
     },
   }
 }
@@ -121,12 +191,12 @@ export function installFakes(opts: InstallFakesOptions = {}): InstalledFakes {
   }
 
   if (opts.account !== null) {
-    setAccountFactoryOverride(
-      fakeAccountFactory({
-        quotas: defaultQuotas(),
-        ...opts.account,
-      }),
-    )
+    const scenario = {
+      quotas: defaultQuotas(),
+      ...opts.account,
+    }
+    setAccountFactoryOverride(fakeAccountFactory(scenario))
+    setAllAccountsFactoryOverride(fakeAllAccountsFactory(scenario))
   }
 
   if (opts.version !== null) {
@@ -143,6 +213,7 @@ export function installFakes(opts: InstallFakesOptions = {}): InstalledFakes {
     fsRoot: activeRoot,
     dispose(): void {
       setAccountFactoryOverride(null)
+      setAllAccountsFactoryOverride(null)
       setVersionFactoryOverride(null)
       setGitFactoryOverride(null)
       if (previousHome === undefined) delete process.env.HOME

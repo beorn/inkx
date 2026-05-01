@@ -30,12 +30,10 @@
 
 import React, { useState } from "react"
 import {
-  Accordion,
   Box,
   Diff as SilveryDiff,
   type DiffHunk,
   Muted,
-  Spinner,
   Text,
   useHover,
   usePopoverHandlers,
@@ -44,24 +42,30 @@ import type { ToolCall as ToolCallType, ToolCallContent, ToolCallLocation, Conte
 import { ToolCallStatusTitle } from "./ToolCallStatusTitle.tsx"
 import { BoundedScroll } from "./BoundedScroll.tsx"
 import { formatPathForDisplay } from "../utils/format-path.ts"
+import { StatusGlyph } from "./StatusGlyph.tsx"
 
-// =============================================================================
-// Constants — summarization thresholds
-// =============================================================================
+const ToolMarkerBackgroundContext = React.createContext<string | undefined>(undefined)
+const ToolContentForceExpandedContext = React.createContext(false)
 
-/**
- * Text blocks with more than this many lines get summarized: the first
- * SUMMARY_PREVIEW_LINES are shown inline; the rest are tucked behind an
- * Accordion so the user can expand on demand.
- *
- * Rationale: a `ls` of a 28-file directory should not dump 28 lines inline.
- * Native Claude Code renders "Listed 1 directory" — we match that terse
- * spirit while still making the full output accessible with one click.
- */
-const SUMMARY_THRESHOLD = 5
+export function ToolMarkerBackgroundProvider({
+  value,
+  children,
+}: {
+  value?: string
+  children: React.ReactNode
+}): React.ReactElement {
+  return <ToolMarkerBackgroundContext.Provider value={value}>{children}</ToolMarkerBackgroundContext.Provider>
+}
 
-/** Lines shown verbatim before the "N more lines" accordion. */
-const SUMMARY_PREVIEW_LINES = 3
+export function ToolContentForceExpandedProvider({
+  value,
+  children,
+}: {
+  value: boolean
+  children: React.ReactNode
+}): React.ReactElement {
+  return <ToolContentForceExpandedContext.Provider value={value}>{children}</ToolContentForceExpandedContext.Provider>
+}
 
 // =============================================================================
 // Title path shortening
@@ -120,9 +124,16 @@ function shortenTitlePath(title: string): string {
  * Myers/LCS reduction; for v1 we punt and show the full old/new pair so
  * the user sees the shape without us re-implementing diff logic here.
  */
+function splitDiffLines(text: string): string[] {
+  if (text.length === 0) return []
+  const lines = text.split("\n")
+  if (lines[lines.length - 1] === "") lines.pop()
+  return lines
+}
+
 function diffContentToHunks(content: { newText: string; oldText?: string | null }): DiffHunk[] {
-  const oldLines = (content.oldText ?? "").split("\n")
-  const newLines = content.newText.split("\n")
+  const oldLines = splitDiffLines(content.oldText ?? "")
+  const newLines = splitDiffLines(content.newText)
   // Render every old line as a remove and every new line as an add. This
   // is structurally lossy vs a real diff but matches what ACP gives us
   // (two opaque strings) without hiding information. The mutable array
@@ -135,45 +146,32 @@ function diffContentToHunks(content: { newText: string; oldText?: string | null 
 }
 
 /**
- * Render a long text block with summary-by-default behaviour.
- *
- * If the text has more than SUMMARY_THRESHOLD lines, only the first
- * SUMMARY_PREVIEW_LINES are shown inline. The remaining lines are hidden
- * behind a silvery `<Accordion>` with title "N more lines" (collapsed by
- * default). The user can press Enter / click to expand.
- *
- * Short texts (≤ SUMMARY_THRESHOLD lines) render verbatim — no accordion.
+ * Render text output verbatim. Height bounding belongs to the containing
+ * scrollbox/popover, not to a line-count summary inside the content.
  */
-function renderTextContent(text: string, key: number | string): React.ReactElement {
+const SUMMARY_THRESHOLD = 5
+const SUMMARY_PREVIEW_LINES = 3
+
+function renderTextContent(text: string, key: number | string, summarize = true): React.ReactElement {
   const lines = text.split("\n")
-  if (lines.length <= SUMMARY_THRESHOLD) {
+  if (summarize && lines.length > SUMMARY_THRESHOLD) {
+    const preview = lines.slice(0, SUMMARY_PREVIEW_LINES).join("\n")
+    const hidden = lines.length - SUMMARY_PREVIEW_LINES
     return (
-      <Text key={key} wrap="wrap">
-        {text}
-      </Text>
+      <Box key={key} flexDirection="column">
+        <Text color="$fg-muted" wrap="wrap">
+          {preview}
+        </Text>
+        <Muted>
+          {hidden} more line{hidden === 1 ? "" : "s"}
+        </Muted>
+      </Box>
     )
   }
-  // Long text: preview + accordion for the remainder.
-  const preview = lines.slice(0, SUMMARY_PREVIEW_LINES)
-  const rest = lines.slice(SUMMARY_PREVIEW_LINES)
-  const moreCount = rest.length
   return (
-    <Box key={key} flexDirection="column">
-      {preview.map((line, i) => (
-        <Text key={i} wrap="wrap">
-          {line}
-        </Text>
-      ))}
-      <Accordion title={`${moreCount} more line${moreCount === 1 ? "" : "s"}`}>
-        <BoundedScroll>
-          {rest.map((line, i) => (
-            <Text key={i} wrap="wrap">
-              {line}
-            </Text>
-          ))}
-        </BoundedScroll>
-      </Accordion>
-    </Box>
+    <Text key={key} color="$fg-muted" wrap="wrap">
+      {text}
+    </Text>
   )
 }
 
@@ -185,9 +183,17 @@ function renderTextContent(text: string, key: number | string): React.ReactEleme
  * Text blocks with many lines use `renderTextContent` for summary-by-default
  * rendering — see that function's doc for the threshold logic.
  */
-function renderContentBlock(block: ContentBlock, key: number | string): React.ReactElement {
+function renderContentBlock(block: ContentBlock, key: number | string, summarize = true): React.ReactElement {
   if (block.type === "text") {
-    return renderTextContent(block.text, key)
+    const stream = (block as { stream?: unknown }).stream
+    if (stream === "stderr") {
+      return (
+        <Text key={key} color="$error" wrap="wrap">
+          {block.text}
+        </Text>
+      )
+    }
+    return renderTextContent(block.text, key, summarize)
   }
   if (block.type === "image") {
     return <Muted key={key}>[image: {block.mimeType}]</Muted>
@@ -207,7 +213,7 @@ function renderContentBlock(block: ContentBlock, key: number | string): React.Re
     return (
       <Box key={key} flexDirection="column">
         <Muted>resource: {block.resource.uri}</Muted>
-        {renderTextContent(block.resource.text, `${key}-body`)}
+        {renderTextContent(block.resource.text, `${key}-body`, summarize)}
       </Box>
     )
   }
@@ -221,15 +227,15 @@ function renderContentBlock(block: ContentBlock, key: number | string): React.Re
  * in v1 — wiring real terminal playback to a `<TerminalContent>` widget is
  * a follow-up bead.
  */
-function renderContent(content: ToolCallContent, key: number): React.ReactElement {
+function renderContent(content: ToolCallContent, key: number, summarize = true): React.ReactElement {
   if (content.type === "content") {
-    return <Box key={key}>{renderContentBlock(content.content, key)}</Box>
+    return <Box key={key}>{renderContentBlock(content.content, key, summarize)}</Box>
   }
   if (content.type === "diff") {
     const hunks = diffContentToHunks(content)
     return (
       <Box key={key} flexDirection="column">
-        <Muted>--- {formatPathForDisplay(content.path)}</Muted>
+        {content.path.trim().length > 0 ? <Muted>--- {formatPathForDisplay(content.path)}</Muted> : null}
         <SilveryDiff hunks={hunks} mode="unified" showLineNumbers />
       </Box>
     )
@@ -293,8 +299,25 @@ function ToolCallContentBody({
   content: ToolCallContent[]
   bounded?: boolean
 }): React.ReactElement {
-  const body = <>{content.map((c, i) => renderContent(c, i))}</>
+  const body = <>{content.map((c, i) => renderContent(c, i, bounded))}</>
   return bounded ? <BoundedScroll>{body}</BoundedScroll> : <Box flexDirection="column">{body}</Box>
+}
+
+function shellExitCode(toolCall: ToolCallType): number | null {
+  const input = toolCall.rawInput
+  const output = toolCall.rawOutput
+  const inputValue = input && typeof input === "object" ? (input as Record<string, unknown>).exit_code : null
+  const outputValue = output && typeof output === "object" ? (output as Record<string, unknown>).exitCode : null
+  const value = inputValue ?? outputValue
+  return typeof value === "number" && Number.isFinite(value) ? value : null
+}
+
+function shellErrorSummary(toolCall: ToolCallType, exitCode: number | null): string | null {
+  if (exitCode === null) return null
+  const raw = typeof toolCall.title === "string" ? toolCall.title.trim() : ""
+  const script = raw.match(/\b(?:bun|npm|pnpm|yarn)\s+(?:run\s+)?([A-Za-z0-9:_./-]+)/)?.[1]
+  const command = script ?? raw.split(/\s+/)[0] ?? "command"
+  return `error: ${command} exited with code ${exitCode}`
 }
 
 /**
@@ -351,6 +374,16 @@ export interface ToolCallProps {
    * this to seed a stream as fully-expanded for replay/debug views.
    */
   defaultExpanded?: boolean
+  /**
+   * When false, render the row as presentational content inside a larger
+   * clickable surface. Used by grouped turn summaries so hover/click belongs
+   * to the whole group, not each nested tool row.
+   */
+  interactive?: boolean
+  /** When true, shell command titles render as foreground text. */
+  titleEmphasis?: "normal" | "muted"
+  /** Optional background for the one-cell marker column. */
+  markerBackgroundColor?: string
 }
 
 /**
@@ -369,12 +402,26 @@ export interface ToolCallProps {
  * message — failure is signaled by the colour + the message, not by an
  * always-open body.
  */
-export function ToolCall({ toolCall, errorMessage, onRetry, defaultExpanded }: ToolCallProps): React.ReactElement {
+export function ToolCall({
+  toolCall,
+  errorMessage,
+  onRetry,
+  defaultExpanded,
+  interactive = true,
+  titleEmphasis = defaultExpanded ? "normal" : "muted",
+  markerBackgroundColor,
+}: ToolCallProps): React.ReactElement {
+  const contextMarkerBackgroundColor = React.useContext(ToolMarkerBackgroundContext)
+  const forceExpanded = React.useContext(ToolContentForceExpandedContext)
+  const markerBg = markerBackgroundColor ?? contextMarkerBackgroundColor
   const status = toolCall.status ?? "pending"
   const kind = toolCall.kind ?? "other"
   const content = toolCall.content ?? []
   const hasContent = hasAdditionalContent(toolCall.title, content)
   const shell = kind === "execute"
+  const exitCode = shell ? shellExitCode(toolCall) : null
+  const errorSummary = shell && status === "failed" ? shellErrorSummary(toolCall, exitCode) : null
+  const titleColor = status === "failed" ? "$error" : titleEmphasis === "normal" ? "$muted" : "$muted"
 
   // Hover arms the row and, for real content, shows a popover preview.
   // Inline expansion is click-only so transcript rows do not jump around
@@ -383,7 +430,8 @@ export function ToolCall({ toolCall, errorMessage, onRetry, defaultExpanded }: T
   const [expanded, setExpanded] = useState(defaultExpanded ?? false)
   const popover = usePopoverHandlers({
     body: (
-      <Box flexDirection="column" paddingY={1}>
+      <Box flexDirection="column">
+        {exitCode !== null ? <Muted>Exit code {exitCode}</Muted> : null}
         <ToolCallContentBody content={content} bounded />
       </Box>
     ),
@@ -392,14 +440,20 @@ export function ToolCall({ toolCall, errorMessage, onRetry, defaultExpanded }: T
 
   const onEnter = (e: Parameters<typeof onMouseEnter>[0]): void => {
     onMouseEnter(e)
-    if (hasContent) popover.onMouseEnter(e)
+    if (interactive && hasContent && !expanded) popover.onMouseEnter(e)
   }
   const onLeave = (e: Parameters<typeof onMouseLeave>[0]): void => {
     onMouseLeave(e)
-    if (hasContent) popover.onMouseLeave(e)
+    if (interactive && hasContent && !expanded) popover.onMouseLeave(e)
   }
-  const onToggle = hasContent ? () => setExpanded((v) => !v) : undefined
-  const armedBg = hasContent && isHovered ? "$bg-surface-hover" : undefined
+  const effectiveExpanded = expanded || forceExpanded
+  const onToggle = interactive && hasContent ? () => setExpanded((v) => !v) : undefined
+  const armedBg =
+    interactive && hasContent && isHovered
+      ? "$bg-surface-hover"
+        : effectiveExpanded && hasContent
+        ? "$bg-surface-subtle"
+        : undefined
 
   return (
     <Box
@@ -409,10 +463,17 @@ export function ToolCall({ toolCall, errorMessage, onRetry, defaultExpanded }: T
       backgroundColor={armedBg}
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
-      onClick={onToggle}
+      onClick={(e) => {
+        e.stopPropagation()
+        onToggle?.()
+      }}
     >
-      <Box flexShrink={0}>
-        <Text color="$muted">{shell ? "$" : "•"}</Text>
+      <Box width={1} flexShrink={0} backgroundColor={markerBg}>
+        <StatusGlyph
+          glyph={shell ? "$" : "•"}
+          active={shell && status === "in_progress"}
+          color={status === "failed" ? "$error" : "$muted"}
+        />
       </Box>
 
       <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0}>
@@ -420,12 +481,13 @@ export function ToolCall({ toolCall, errorMessage, onRetry, defaultExpanded }: T
             The marker is a section marker; title and expanded output share
             this content column's left edge. */}
         <Box flexDirection="row" gap={1} width="100%">
-          {status === "in_progress" ? (
-            // Spinner is paired with the title for in-progress signal — small,
-            // unobtrusive, and matches opencode's mid-task signal.
-            <Spinner type="dots" />
-          ) : null}
-          <ToolCallStatusTitle status={status} kind={kind} title={shortenTitlePath(toolCall.title)} shell={shell} />
+          <ToolCallStatusTitle
+            status={status}
+            kind={kind}
+            title={shortenTitlePath(toolCall.title)}
+            shell={shell}
+            color={titleColor}
+          />
           {renderLocations(toolCall.locations)}
           <Box flexGrow={1} />
           {status === "failed" && onRetry ? (
@@ -437,7 +499,7 @@ export function ToolCall({ toolCall, errorMessage, onRetry, defaultExpanded }: T
 
         {/* Body reveals only when clicked (or initially via defaultExpanded).
             It is aligned with the command/title, not with the marker. */}
-        {expanded && hasContent ? (
+        {effectiveExpanded && hasContent ? (
           <Box flexDirection="column">
             <ToolCallContentBody content={content} />
           </Box>
@@ -447,9 +509,14 @@ export function ToolCall({ toolCall, errorMessage, onRetry, defaultExpanded }: T
             command + inline stderr. */}
         {status === "failed" ? (
           <Box flexDirection="column">
-            <Text color="$muted" wrap="wrap">
-              {errorMessage ?? "Tool call failed"}
+            <Text color="$error" wrap="wrap">
+              {errorSummary ?? errorMessage ?? "Tool call failed"}
             </Text>
+            {errorSummary && errorMessage && normalizeDisclosureText(errorMessage) !== normalizeDisclosureText(errorSummary) ? (
+              <Text color="$error" wrap="wrap">
+                {errorMessage}
+              </Text>
+            ) : null}
           </Box>
         ) : null}
       </Box>

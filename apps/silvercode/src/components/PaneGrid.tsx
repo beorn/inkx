@@ -61,7 +61,8 @@ import {
 } from "../pane-layout.ts"
 import { PaneHeader } from "./PaneHeader.tsx"
 import { SessionCard } from "./SessionCard.tsx"
-import { MeasuredBanner } from "./Welcome.tsx"
+import { Content } from "./Content.tsx"
+import { formatLoadingSessionId, MeasuredBanner } from "./Welcome.tsx"
 
 /** Mirrors `AGENT_LABELS` in `Welcome.tsx` — kept local to PaneGrid so the
  *  pre-spawn banner (rendered before any SessionHandle exists) can pick the
@@ -143,6 +144,10 @@ export type PaneGridProps = {
    *  SessionCard so the welcome card can label itself per-agent. Bead:
    *  km-silvercode.welcome-claude-hardcoded. */
   agent?: string
+  /** App-level model label, used before a SessionHandle exists. */
+  model?: string
+  /** Resume id, present while the app is loading an existing transcript before any SessionHandle exists. */
+  resume?: string
   /** App-level SessionPromptComposer element — rendered inside Welcome's
    *  centered group (and inside the empty-sessions placeholder during
    *  pre-spawn). Same React element as the bottom-anchored render in
@@ -451,13 +456,28 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
   // Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn.
   if (sessions.length === 0) {
     const agentLabel = agent ? AGENT_LABELS_FOR_PRESPAWN[agent] : undefined
+    const loadingSessionId = props.resume ? formatLoadingSessionId(props.resume, agent) : "pending"
+    const agentModelDetails = [agentLabel, props.model]
+      .filter((part): part is string => Boolean(part && part.length > 0))
+      .join(" · ")
+    const isResumeLoading = Boolean(props.resume)
     return (
       <Box flexDirection="column" flexGrow={1} alignItems="center" justifyContent="center" gap={1}>
-        <MeasuredBanner agentLabel={agentLabel} />
-        {composerSlot ? (
-          <Box flexDirection="column" flexShrink={0} width={80} maxWidth={80} minWidth={0}>
-            {composerSlot}
-          </Box>
+        <MeasuredBanner />
+        {agentModelDetails.length > 0 ? <Text color="$muted">{agentModelDetails}</Text> : null}
+        {isResumeLoading ? (
+          <>
+            <Text color="$muted">Loading session</Text>
+            {loadingSessionId.length > 0 ? <Text color="$muted">{loadingSessionId}</Text> : null}
+          </>
+        ) : composerSlot ? (
+          <Content.Row>
+            <Content.Body width="auto">
+              <Box alignSelf="center" width="70%" minWidth={0}>
+                {composerSlot}
+              </Box>
+            </Content.Body>
+          </Content.Row>
         ) : null}
       </Box>
     )
@@ -606,11 +626,20 @@ function LeafContainer({
           controller={controller}
           agent={agent}
           composerSlot={isFocused ? composerSlot : undefined}
+          showFocusBar
         />
       )}
-      {/* Grab handle removed (▤ at top-left) — the visual blue square
-          read as chrome cruft on single-pane layouts. Drag-move is still
-          available via the chord (Ctrl+G H/J/K/L). */}
+      <Box
+        position="absolute"
+        top={0}
+        left={0}
+        width={1}
+        height={1}
+        flexShrink={0}
+        onMouseDown={(e) => onGrabMouseDown(e.clientX, e.clientY)}
+      >
+        <Text color={isFocused ? "$accent" : "$muted"}>▤</Text>
+      </Box>
       {/* Drop indicator overlay — colored 1-cell band on the relevant
           edge, or a 2-col center band for the swap zone. Rendered only
           when this leaf is the current drag target. */}

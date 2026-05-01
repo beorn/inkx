@@ -3,7 +3,7 @@
  *
  * Fetches identity, plan, and per-window utilization from the active
  * profile's keychain slot (via accountly) on mount and every REFRESH_MS
- * thereafter. Backed by a 60s disk cache so close+reopen cycles reuse
+ * thereafter. Backed by a 2-minute disk cache so close+reopen cycles reuse
  * the recent response instead of hitting Anthropic's /api/usage and
  * getting rate-limited.
  *
@@ -32,7 +32,7 @@ export function useClaudeAccount(accountFactory?: AccountFactory): AccountProbe 
   // only runs once on mount, not on every render.
   const [state, setState] = useState<AccountProbe>(
     () =>
-      (accountFactory ? accountFactory.readCached() : readCachedProbeSync()) ?? {
+      (accountFactory ? accountFactory.readCached() : readCachedProbeSync({ allowStale: true })) ?? {
         email: resolveActiveEmail(),
         plan: null,
         quotas: [],

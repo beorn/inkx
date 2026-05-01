@@ -41,8 +41,8 @@ const settle = (ms = 60) => new Promise<void>((r) => setTimeout(r, ms))
 // =============================================================================
 
 describe("ToolCall v2 — no border / no bg", () => {
-  // Use status="pending" for static-frame assertions because completed/in-progress
-  // wrap the title in TextReveal/TextShimmer which animate from 0 chars.
+  // Use status="pending" for static-frame assertions. Running state animation
+  // belongs to the leading glyph only; titles stay stable.
   test("pending Read: row container has no border", () => {
     const app = freshRender()(
       <ToolCall
@@ -275,19 +275,23 @@ describe("ToolCall v2 — body preview and toggle", () => {
 // 3. Failed call: neutral shell row + inline error message
 // =============================================================================
 
-describe("ToolCall v2 — failed status stays neutral", () => {
-  test("failed Bash: command stays bold and error is inline", () => {
+describe("ToolCall v2 — failed shell status is visible", () => {
+  test("failed Bash: command row and marker render in error color", () => {
     const app = freshRender()(
       <ToolCall
         toolCall={tc({
           kind: "execute",
           status: "failed",
           title: "rm -rf /tmp/x",
+          rawOutput: { stderr: "permission denied", exitCode: 9 },
         })}
         errorMessage="permission denied"
       />,
     )
     expect(app.text).toContain("rm -rf /tmp/x")
+    expect(app.text).not.toContain("exit 9")
+    expect(app.text).not.toContain("failed")
+    expect(app.text).toContain("error: rm exited with code 9")
     expect(app.text).toContain("permission denied")
     const lines = app.text.split("\n")
     const rowIdx = lines.findIndex((l) => l.includes("rm -rf"))
@@ -296,7 +300,113 @@ describe("ToolCall v2 — failed status stays neutral", () => {
     const col = lines[rowIdx]!.indexOf("rm")
     const cell = app.cell(col, rowIdx)
     expect(cell.fg).not.toBe(null)
-    expect(cell.bold).toBe(true)
+    expect(cell.bold).toBe(false)
+    const markerCol = lines[rowIdx]!.indexOf("$")
+    expect(app.cell(markerCol, rowIdx).fg).toStrictEqual(cell.fg)
+    const errRow = lines.findIndex((l) => l.includes("permission denied"))
+    const errCol = lines[errRow]!.indexOf("permission")
+    expect(app.cell(errCol, errRow).fg).toStrictEqual(cell.fg)
+  })
+
+  test("failed Read: row, marker, and inline error render in error color", () => {
+    const app = freshRender()(
+      <ToolCall
+        toolCall={tc({
+          kind: "read",
+          status: "failed",
+          title: "Read src/missing.ts",
+        })}
+        errorMessage="ENOENT: no such file"
+      />,
+    )
+    const lines = app.text.split("\n")
+    const rowIdx = lines.findIndex((l) => l.includes("Read src/missing.ts"))
+    const errRow = lines.findIndex((l) => l.includes("ENOENT"))
+    expect(rowIdx).toBeGreaterThanOrEqual(0)
+    expect(errRow).toBeGreaterThanOrEqual(0)
+    const titleCol = lines[rowIdx]!.indexOf("Read")
+    const markerCol = lines[rowIdx]!.indexOf("•")
+    const errCol = lines[errRow]!.indexOf("ENOENT")
+    expect(app.cell(titleCol, rowIdx).fg).toStrictEqual(app.cell(markerCol, rowIdx).fg)
+    expect(app.cell(errCol, errRow).fg).toStrictEqual(app.cell(titleCol, rowIdx).fg)
+    expect(app.cell(titleCol, rowIdx).bold).toBe(false)
+  })
+
+  test("failed Bash does not repeat an equivalent command error line", () => {
+    const app = freshRender()(
+      <ToolCall
+        toolCall={tc({
+          kind: "execute",
+          status: "failed",
+          title: "bun vitest run apps/silvercode/tests/foo.test.tsx",
+          rawOutput: { exitCode: 1 },
+        })}
+        errorMessage="error: vitest exited with code 1"
+      />,
+    )
+
+    expect(app.text.match(/error: vitest exited with code 1/g)?.length).toBe(1)
+  })
+
+  test("failed package script uses the script name in the error sentence", () => {
+    const app = freshRender()(
+      <ToolCall
+        toolCall={tc({
+          kind: "execute",
+          status: "failed",
+          title: "bun vitest run apps/silvercode/tests/tool-call-rendering-v2.test.tsx",
+          rawOutput: { stderr: "AssertionError", exitCode: 1 },
+        })}
+        errorMessage="AssertionError"
+      />,
+    )
+
+    expect(app.text).toContain("error: vitest exited with code 1")
+    expect(app.text).not.toContain("exit 1")
+  })
+
+  test("expanded Bash command and output are muted and not bold", () => {
+    const app = freshRender()(
+      <ToolCall
+        defaultExpanded
+        toolCall={tc({
+          kind: "execute",
+          status: "completed",
+          title: "ls",
+          content: [{ type: "content", content: { type: "text", text: "file-a\nfile-b" } }],
+        })}
+      />,
+    )
+    const commandRow = app.lines.findIndex((l) => l.includes("ls"))
+    const outputRow = app.lines.findIndex((l) => l.includes("file-a"))
+    expect(commandRow).toBeGreaterThanOrEqual(0)
+    expect(outputRow).toBeGreaterThanOrEqual(0)
+    const commandCol = app.lines[commandRow]!.indexOf("ls")
+    const outputCol = app.lines[outputRow]!.indexOf("file-a")
+    expect(app.cell(commandCol, commandRow).bold).toBe(false)
+    expect(app.cell(outputCol, outputRow).bold).toBe(false)
+    expect(app.cell(commandCol, commandRow).fg).not.toBe(null)
+    expect(app.cell(outputCol, outputRow).fg).not.toBe(null)
+    expect(app.cell(commandCol, commandRow).bg).not.toBe(null)
+  })
+
+  test("expanded Bash output renders all lines without an inner hidden-lines accordion", () => {
+    const output = Array.from({ length: 10 }, (_, i) => `line-${i + 1}`).join("\n")
+    const app = freshRender()(
+      <ToolCall
+        defaultExpanded
+        toolCall={tc({
+          kind: "execute",
+          status: "completed",
+          title: "printf lines",
+          content: [{ type: "content", content: { type: "text", text: output } }],
+        })}
+      />,
+    )
+
+    expect(app.text).toContain("line-1")
+    expect(app.text).toContain("line-10")
+    expect(app.text).not.toContain("more lines")
   })
 })
 
@@ -305,15 +415,15 @@ describe("ToolCall v2 — failed status stays neutral", () => {
 // =============================================================================
 
 describe("ToolCall v2 — neutral marker glyph", () => {
-  test("Read renders with bullet prefix and bold action word", () => {
+  test("Read renders with bullet prefix and muted non-bold title", () => {
     const app = freshRender()(<ToolCall toolCall={tc({ kind: "read", status: "pending", title: "Read src/foo.ts" })} />)
     expect(app.text).toMatch(/•\s+Read src\/foo\.ts/)
     const row = app.lines.findIndex((l) => l.includes("Read src/foo.ts"))
     expect(row).toBeGreaterThanOrEqual(0)
     const readCol = app.lines[row]!.indexOf("Read")
-    const pathCol = app.lines[row]!.indexOf("src/foo.ts")
-    expect(app.cell(readCol, row).bold).toBe(true)
-    expect(app.cell(pathCol, row).bold).toBe(false)
+    const markerCol = app.lines[row]!.indexOf("•")
+    expect(app.cell(readCol, row).bold).toBe(false)
+    expect(app.cell(readCol, row).fg).toStrictEqual(app.cell(markerCol, row).fg)
   })
 
   test("Bash renders with `$ ` prefix", () => {
@@ -321,6 +431,22 @@ describe("ToolCall v2 — neutral marker glyph", () => {
       <ToolCall toolCall={tc({ kind: "execute", status: "failed", title: "bun fix" })} errorMessage="boom" />,
     )
     expect(app.text).toMatch(/\$\s+bun fix/)
+  })
+
+  test("running Bash uses the dollar marker without a separate spinner", () => {
+    const app = freshRender()(<ToolCall toolCall={tc({ kind: "execute", status: "in_progress", title: "bun test" })} />)
+
+    expect(app.text).toMatch(/\$\s+bun test/)
+    expect(app.text).not.toContain("•")
+    expect(app.text).not.toContain("⠋")
+  })
+
+  test("running non-shell tool uses stable bullet and title without spinner", () => {
+    const app = freshRender()(<ToolCall toolCall={tc({ kind: "read", status: "in_progress", title: "Read src/foo.ts" })} />)
+
+    expect(app.text).toMatch(/•\s+Read src\/foo\.ts/)
+    expect(app.text).not.toContain("⠋")
+    expect(app.text).not.toContain("$")
   })
 })
 

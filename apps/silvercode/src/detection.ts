@@ -144,8 +144,8 @@ export function detectReferences(text: string): Detection[] {
     // Strip the optional `:line[:col]` suffix from `match` so the visible
     // text on the page matches the raw token, while `payload.line/col`
     // captures the navigation target.
-    const line = m[2] ?? ""
-    const col = m[3] ?? ""
+    const line = m[1] ?? ""
+    const col = m[2] ?? ""
     const lineSuffixLen = (line ? 1 + line.length : 0) + (col ? 1 + col.length : 0)
     const pathOnly = m[0].slice(0, m[0].length - lineSuffixLen)
     out.push({

@@ -32,6 +32,8 @@
 import React from "react"
 import { Box, Muted, Small, Text, useHover, usePopoverHandlers } from "silvery"
 import { BoundedScroll } from "./BoundedScroll.tsx"
+import { Content, useHasContentLayout } from "./Content.tsx"
+import { SessionEntry } from "./SessionEntry.tsx"
 
 /**
  * One ambient observation. Mirrors the wire-shape of `ChannelEvent` but
@@ -103,7 +105,7 @@ function formatTime(ts: number): string {
  * preview (clipped) and body (full text). Pure-text content shouldn't
  * regress here.
  */
-type FormattedContent = { preview: string; body: string }
+type FormattedContent = { preview: string; body: string; disclosureBody?: string }
 
 function clip(s: string, max: number): string {
   const flat = s.replace(/\s+/g, " ").trim()
@@ -154,9 +156,9 @@ function parseChannelTag(raw: string): FormattedContent | null {
   const from = attrs.match(/\bfrom="([^"]*)"/)?.[1] ?? "?"
   const type = attrs.match(/\btype="([^"]*)"/)?.[1] ?? "channel"
   const innerFlat = inner.replace(/\s+/g, " ").trim()
-  const preview = clip(`${type} from ${from} — ${innerFlat}`, 80)
-  const body = `${type} · from ${from}\n\n${inner}`
-  return { preview, body }
+  const preview = clip(innerFlat.length > 0 ? `${type} from ${from} — ${innerFlat}` : `${type} from ${from}`, 80)
+  const body = innerFlat.length > 0 ? `${type} · from ${from}\n\n${inner}` : preview
+  return { preview, body, disclosureBody: inner }
 }
 
 function formatContent(raw: string): FormattedContent {
@@ -169,24 +171,71 @@ function formatContent(raw: string): FormattedContent {
 }
 
 function dedupeSourcePrefix(label: string, source: string, preview: string): string {
+  const polishSourcePreview = (value: string): string => {
+    if (source === "tribe") {
+      return value.replace(/^(.+?)\s+joined\s+\(([^)]+)\)(\s+.*)?$/i, (_match, name, role, tail) => {
+        return `${role} ${name} joined${tail ?? ""}`.trim()
+      })
+    }
+    if (source === "ci") {
+      return value.replace(/^failure:\s+(.+?) Builds:\s+(.+)$/i, (_match, system, names) => {
+        const prefix = `${system} Builds:`
+        const jobs = String(names)
+          .split(",")
+          .map((part) => part.trim().replace(new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*`, "i"), ""))
+          .filter((part) => part.length > 0)
+        return jobs.length > 0 ? `failed ${system} builds: ${jobs.join(", ")}` : value
+      })
+    }
+    return value
+  }
+  const stripSourceTags = (value: string): string => {
+    const sourceTokens = new Set(
+      [label, source, source.replace(/-/g, " "), source.replace(/-/g, "")]
+        .flatMap((part) => part.split(/\s+/))
+        .map((part) => part.replace(/[^a-z0-9]/gi, "").toLowerCase())
+        .filter((part) => part.length > 0),
+    )
+    let out = value.trim()
+    while (true) {
+      const match = out.match(/^\[([^\]]+)\]\s*/)
+      if (!match) return out
+      const tagTokens = (match[1] ?? "")
+        .split(/\s+/)
+        .map((part) => part.replace(/[^a-z0-9]/gi, "").toLowerCase())
+        .filter((part) => part.length > 0)
+      if (!tagTokens.some((token) => sourceTokens.has(token))) return out
+      out = out.slice(match[0].length).trimStart()
+    }
+  }
   const prefixes = [
     label,
     source,
     source.replace(/-/g, " "),
     source.replace(/-/g, ""),
+    `${label} message`,
     `${source} message`,
     `${source.replace(/-/g, " ")} message`,
     "recall hit",
     "sub-agent finished",
-  ]
+  ].sort((a, b) => b.length - a.length)
 
-  for (const prefix of prefixes) {
-    const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-    const re = new RegExp(`^${escaped}\\b\\s*:?\\s*`, "i")
-    const next = preview.replace(re, "").trim()
-    if (next !== preview) return next
+  let out = preview.trim()
+  while (true) {
+    let changed = false
+    for (const prefix of prefixes) {
+      const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+      const re = new RegExp(`^${escaped}\\b\\s*:?\\s*`, "i")
+      const next = out.replace(re, "").trim()
+      if (next !== out) {
+        out = next
+        changed = true
+        break
+      }
+    }
+    if (!changed) break
   }
-  return preview
+  return polishSourcePreview(stripSourceTags(out))
 }
 
 function normalizeDisclosureText(text: string): string {
@@ -195,14 +244,62 @@ function normalizeDisclosureText(text: string): string {
 
 export interface AmbientEventRowProps {
   entry: AmbientStreamEntry
+  previewOverride?: string
+  bodyOverride?: string
   /** When true, the full body is rendered inline below the row. */
   expanded?: boolean
   /** Toggle expansion. When omitted, the expand glyph is hidden. */
   onToggleExpand?: () => void
 }
 
+type AmbientStackItem =
+  | { kind: "single"; entry: AmbientStreamEntry }
+  | { kind: "group"; key: string; entries: readonly AmbientStreamEntry[]; preview: string; body: string }
+
+function isFilewatchSource(source: string): boolean {
+  return source === "filewatch" || source === "file-watch"
+}
+
+function groupedPreview(source: string, formattedPreview: string, count: number): string {
+  if (count <= 1) return formattedPreview
+  if (isFilewatchSource(source)) return `file (${count}x)`
+  return `${formattedPreview} (${count}x)`
+}
+
+function groupAmbientEntries(entries: readonly AmbientStreamEntry[]): AmbientStackItem[] {
+  const items: AmbientStackItem[] = []
+  const byKey = new Map<string, Extract<AmbientStackItem, { kind: "group" }>>()
+
+  for (const entry of entries) {
+    const label = sourceLabel(entry.source)
+    const formatted = formatContent(entry.content)
+    const preview = dedupeSourcePrefix(label, entry.source, formatted.preview)
+    const key = isFilewatchSource(entry.source) ? entry.source : `${entry.source}:${preview}`
+    const existing = byKey.get(key)
+    if (existing) {
+      const nextEntries = [...existing.entries, entry]
+      existing.entries = nextEntries
+      existing.preview = groupedPreview(entry.source, preview, nextEntries.length)
+      existing.body = nextEntries.map((e) => formatContent(e.content).body).join("\n")
+      continue
+    }
+    const group: Extract<AmbientStackItem, { kind: "group" }> = {
+      kind: "group",
+      key,
+      entries: [entry],
+      preview,
+      body: formatted.body,
+    }
+    byKey.set(key, group)
+    items.push(group)
+  }
+
+  return items.map((item) => (item.kind === "group" && item.entries.length === 1 ? { kind: "single", entry: item.entries[0]! } : item))
+}
+
 export function AmbientNotificationStack({ entries }: { entries: readonly AmbientStreamEntry[] }): React.ReactElement {
   const [expanded, setExpanded] = React.useState<Set<string>>(new Set())
+  const hasContentLayout = useHasContentLayout()
   const toggle = (id: string): void => {
     setExpanded((prev) => {
       const next = new Set(prev)
@@ -211,18 +308,45 @@ export function AmbientNotificationStack({ entries }: { entries: readonly Ambien
       return next
     })
   }
+  const items = groupAmbientEntries(entries)
+
+  const stack = (
+    <Box flexDirection="column" gap={0} width="100%" flexGrow={1} flexShrink={1} minWidth={0}>
+        {items.map((item) => {
+          if (item.kind === "single") {
+            return (
+              <AmbientEventRow
+                key={item.entry.id}
+                entry={item.entry}
+                expanded={expanded.has(item.entry.id)}
+                onToggleExpand={() => toggle(item.entry.id)}
+              />
+            )
+          }
+          const first = item.entries[0]!
+          return (
+            <AmbientEventRow
+              key={`group:${item.key}:${first.id}`}
+              entry={first}
+              previewOverride={item.preview}
+              bodyOverride={item.body}
+              expanded={expanded.has(item.key)}
+              onToggleExpand={() => toggle(item.key)}
+            />
+          )
+        })}
+    </Box>
+  )
+
+  if (!hasContentLayout) return stack
 
   return (
-    <Box flexDirection="column" gap={0}>
-      {entries.map((entry) => (
-        <AmbientEventRow
-          key={entry.id}
-          entry={entry}
-          expanded={expanded.has(entry.id)}
-          onToggleExpand={() => toggle(entry.id)}
-        />
-      ))}
-    </Box>
+    <Content.Row>
+      <Content.Left>
+        <Content.Aside show={false}>00:00</Content.Aside>
+      </Content.Left>
+      <Content.Prose>{stack}</Content.Prose>
+    </Content.Row>
   )
 }
 
@@ -231,23 +355,30 @@ export function AmbientNotificationStack({ entries }: { entries: readonly Ambien
  * in `SessionCard`, so by the time an entry reaches this component it
  * should be rendered.
  */
-export function AmbientEventRow({ entry, expanded = false, onToggleExpand }: AmbientEventRowProps): React.ReactElement {
+export function AmbientEventRow({
+  entry,
+  previewOverride,
+  bodyOverride,
+  expanded = false,
+  onToggleExpand,
+}: AmbientEventRowProps): React.ReactElement {
   const { isHovered, onMouseEnter, onMouseLeave } = useHover()
   const label = sourceLabel(entry.source)
   const time = formatTime(entry.timestamp)
   const formatted = formatContent(entry.content)
-  const preview = dedupeSourcePrefix(label, entry.source, formatted.preview)
+  const preview = previewOverride ?? dedupeSourcePrefix(label, entry.source, formatted.preview)
+  const disclosureBody = bodyOverride ?? formatted.disclosureBody ?? formatted.body
   const hasAdditionalContent =
-    normalizeDisclosureText(formatted.body).length > 0 &&
-    normalizeDisclosureText(formatted.body) !== normalizeDisclosureText(preview) &&
-    normalizeDisclosureText(formatted.body) !== normalizeDisclosureText(formatted.preview)
+    normalizeDisclosureText(disclosureBody).length > 0 &&
+    normalizeDisclosureText(disclosureBody) !== normalizeDisclosureText(preview) &&
+    normalizeDisclosureText(disclosureBody) !== normalizeDisclosureText(formatted.preview)
 
   // Hover popover: full body, plus the source anchor and a top-right
   // timestamp. Reuses the same popover mechanism the SidePanel hover rows
   // and RawInspector use, for consistency.
   const popover = usePopoverHandlers({
     body: (
-      <Box flexDirection="column" paddingY={1} gap={1}>
+      <Box flexDirection="column" gap={1}>
         <Box flexDirection="row">
           <Box flexDirection="row" gap={1}>
             <Text color="$muted">•</Text>
@@ -259,7 +390,7 @@ export function AmbientEventRow({ entry, expanded = false, onToggleExpand }: Amb
           <Box flexGrow={1} />
           <Small>{time}</Small>
         </Box>
-        <Text wrap="wrap">{formatted.body}</Text>
+        <Text wrap="wrap">{bodyOverride ?? formatted.body}</Text>
       </Box>
     ),
     maxWidth: 80,
@@ -282,26 +413,29 @@ export function AmbientEventRow({ entry, expanded = false, onToggleExpand }: Amb
 
   return (
     <Box flexDirection="column" backgroundColor={rowBg}>
-      <Box
-        flexDirection="row"
-        gap={1}
-        width="100%"
-        paddingY={0}
-        onMouseEnter={onEnter}
-        onMouseLeave={onLeave}
-        onClick={clickable ? onToggleExpand : undefined}
-      >
-        <Text color="$muted">•</Text>
-        <Text bold color="$fg">
-          {label}
-        </Text>
-        {/* Preview — flex 1, single line. flexShrink + minWidth=0 so
-            long payloads truncate via the ellipsis above rather than
-            pushing siblings off-screen. */}
-        <Box flexGrow={1} flexShrink={1} minWidth={0}>
-          <Text color="$fg">{preview}</Text>
+      <SessionEntry marker="•" markerColor="$muted">
+        <Box
+          flexDirection="row"
+          gap={1}
+          width="100%"
+          paddingY={0}
+          onMouseEnter={onEnter}
+          onMouseLeave={onLeave}
+          onClick={clickable ? onToggleExpand : undefined}
+        >
+          <Text bold color="$muted">
+            {label}
+          </Text>
+          {/* Preview — flex 1, single line. flexShrink + minWidth=0 so
+              long payloads truncate via the ellipsis above rather than
+              pushing siblings off-screen. */}
+          <Box flexGrow={1} flexShrink={1} minWidth={0}>
+            <Text color="$muted" wrap="truncate">
+              {preview}
+            </Text>
+          </Box>
         </Box>
-      </Box>
+      </SessionEntry>
       {/* Expanded body — full payload, indented to align under the
           preview column. Same surface bg so it reads as a continuation
           of the row, not a separate block. Bounded to 30 visible rows
@@ -311,7 +445,7 @@ export function AmbientEventRow({ entry, expanded = false, onToggleExpand }: Amb
         <Box flexDirection="column" paddingBottom={0}>
           <BoundedScroll>
             <Text wrap="wrap" color="$muted">
-              {formatted.body}
+              {bodyOverride ?? formatted.body}
             </Text>
           </BoundedScroll>
         </Box>

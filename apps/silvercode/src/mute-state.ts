@@ -44,7 +44,7 @@ export type MuteState = {
 }
 
 export function createMuteState(scope: Scope): MuteState {
-  const muted = new Set<string>()
+  const muted = new Set<string>(["filewatch"])
   const subs = new Set<(muted: ReadonlySet<string>) => void>()
   const version = signal(0)
   let disposed = false

@@ -1,10 +1,10 @@
 /**
- * React hook — list every accountly profile + their quotas, with a
- * 5-minute disk-backed cache and periodic refresh.
+ * React hook — list every accountly account + its quota/status, with a
+ * 2-minute disk-backed cache and periodic refresh.
  *
- * Consumed by the side panel to render one account panel per profile
- * (active + inactive). Refresh cadence matches the cache TTL so users
- * see fresh data without hammering Anthropic's /api/usage on every
+ * Consumed by the side panel to render one panel per known account.
+ * Refresh cadence matches the cache TTL so users
+ * see fresh data without hammering provider endpoints on every
  * silvercode spawn.
  */
 
@@ -14,13 +14,13 @@ import {
   type AllAccountsFactory,
   probeAllAccounts,
   readAllAccountsCacheSync,
-} from "../claude-accounts.ts"
+} from "../account-status.ts"
 
-const REFRESH_MS = 5 * 60 * 1000
+const REFRESH_MS = 2 * 60 * 1000
 
-export function useAllClaudeAccounts(factory?: AllAccountsFactory): AccountSummary[] {
+export function useAllAccounts(factory?: AllAccountsFactory): AccountSummary[] {
   const [state, setState] = useState<AccountSummary[]>(
-    () => (factory ? factory.readCached() : readAllAccountsCacheSync()) ?? [],
+    () => (factory ? factory.readCached() : readAllAccountsCacheSync({ allowStale: true })) ?? [],
   )
 
   useEffect(() => {

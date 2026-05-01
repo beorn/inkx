@@ -16,8 +16,9 @@
  * Bead: km-silvercode.acp-session-update-list.
  */
 import React, { useState } from "react"
-import { Box, Muted, Spinner, Text } from "silvery"
+import { Box, Muted, Text } from "silvery"
 import { BoundedScroll } from "./BoundedScroll.tsx"
+import { StatusGlyph } from "./StatusGlyph.tsx"
 
 export interface SubAgentExchangeProps {
   /** Short description of the sub-agent task (from Task tool `description`). */
@@ -49,12 +50,11 @@ export function SubAgentExchange({
         borderTop={false}
         borderBottom={false}
         borderRight={false}
-        backgroundColor={expanded ? "$surfacebg" : "$mutedbg"}
+        backgroundColor={expanded ? "$bg-surface-raised" : "$bg-surface-subtle"}
         onClick={hasChildren ? () => setExpanded((v) => !v) : undefined}
       >
         <Box flexDirection="row" gap={1}>
-          {/* Leading status glyph — spinner when running, ↳ otherwise. */}
-          {running ? <Spinner type="dots" /> : <Text color={accentColor}>↳</Text>}
+          <StatusGlyph glyph="↳" active={running} color={accentColor} />
           <Text bold color={failed ? "$error" : "$primary"}>
             Task
           </Text>

@@ -226,6 +226,7 @@
         "@beorn/accountly": "workspace:*",
         "@km/agent-harness": "workspace:*",
         "@km/autolinks": "workspace:*",
+        "@km/config": "workspace:*",
         "@km/markdown": "workspace:*",
         "@km/mcp-server": "workspace:*",
         "@km/text-render": "workspace:*",
@@ -351,6 +352,9 @@
         "@km/board": "workspace:*",
         "@km/core": "workspace:*",
       },
+    },
+    "packages/km-config": {
+      "name": "@km/config",
     },
     "packages/km-connector-caldav": {
       "name": "@km/connector-caldav",
@@ -721,7 +725,7 @@
         "@silvery/commander": "0.21.0",
         "css-select": "^7.0.0",
         "css-what": "^8.0.0",
-        "loggily": "0.9.0",
+        "loggily": "^0.8.0",
         "react-reconciler": "^0.33.0",
         "slice-ansi": "^8.0.0",
         "string-width": "^8.2.0",
@@ -1434,6 +1438,8 @@
     "@km/cli-app": ["@km/cli-app@workspace:apps/km-cli"],
 
     "@km/commands": ["@km/commands@workspace:packages/km-commands"],
+
+    "@km/config": ["@km/config@workspace:packages/km-config"],
 
     "@km/connector-caldav": ["@km/connector-caldav@workspace:packages/km-connector-caldav"],
 

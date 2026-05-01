@@ -1,5 +1,5 @@
-import React, { Suspense, use, useMemo } from "react"
-import { Box, Muted, ProgressBar, Small, Text, useHover, usePopoverHandlers } from "silvery"
+import React, { Suspense, use, useMemo, useState } from "react"
+import { Box, Muted, ProgressBar, Small, Text, useHover, usePopover, usePopoverHandlers } from "silvery"
 import { BackgroundPane } from "./BackgroundPane.tsx"
 import type { Controller, SessionHandle } from "../controller.ts"
 import { planLabel, type QuotaWindow, windowShortLabel } from "../claude-account.ts"
@@ -14,9 +14,11 @@ import {
 } from "../context-windows.ts"
 import { gitBranchFor } from "../git-branch.ts"
 import { useAmbientMuteState } from "../hooks/use-ambient-stream.ts"
+import { useAllAccounts } from "../hooks/use-all-accounts.ts"
 import { useBackgroundTasks } from "../hooks/use-background-tasks.ts"
 import { useClaudeAccount } from "../hooks/use-claude-account.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
+import { isTransientAccountError, type AccountSummary } from "../account-status.ts"
 
 /**
  * Claude CLI version suffix — Suspense-aware. The async probe runs once
@@ -247,6 +249,17 @@ function isWarningLevel(util: number): boolean {
   return util >= 70
 }
 
+function isPrimaryQuotaWindow(name: string): boolean {
+  return (
+    name === "5-hour" ||
+    name === "7-day" ||
+    name === "7-day (Sonnet)" ||
+    name === "Sonnet 7-day" ||
+    name === "7-day (Opus)" ||
+    name === "Opus 7-day"
+  )
+}
+
 /**
  * Color for a quota row. Extra usage is special: any presence of Extra
  * usage is worth flagging since it means the user is spending beyond the
@@ -273,16 +286,10 @@ function quotaColor(w: QuotaWindow): string {
  * The popover always renders ALL of them regardless.
  */
 function filterVisibleQuotas(all: QuotaWindow[]): QuotaWindow[] {
-  const primaryYellow = all.some((q) => (q.name === "5-hour" || q.name === "7-day") && isWarningLevel(q.utilization))
+  const primaryYellow = all.some((q) => isPrimaryQuotaWindow(q.name) && isWarningLevel(q.utilization))
   return all.filter((w) => {
     if (w.name === "5-hour") return true
-    if (
-      w.name === "7-day" ||
-      w.name === "7-day (Sonnet)" ||
-      w.name === "Sonnet 7-day" ||
-      w.name === "7-day (Opus)" ||
-      w.name === "Opus 7-day"
-    ) {
+    if (isPrimaryQuotaWindow(w.name)) {
       return isWarningLevel(w.utilization)
     }
     if (w.name === "Xtra") {
@@ -299,19 +306,289 @@ function filterVisibleQuotas(all: QuotaWindow[]): QuotaWindow[] {
  * The "Xtra" label is rendered yellow (matching the bar color policy) so
  * the user notices the overage window when it shows up.
  */
-function QuotaRow({ w }: { w: QuotaWindow }): React.ReactElement {
+function QuotaRow({ w, muted = false }: { w: QuotaWindow; muted?: boolean }): React.ReactElement {
   const isExtra = w.name === "Xtra"
+  const color = muted ? "$muted" : quotaColor(w)
   return (
     <Box flexDirection="row" gap={1}>
       <Box flexBasis={4} minWidth={4}>
-        {isExtra ? <Text color="$warning">{windowShortLabel(w.name)}</Text> : <Muted>{windowShortLabel(w.name)}</Muted>}
+        {isExtra && !muted ? (
+          <Text color="$warning">{windowShortLabel(w.name)}</Text>
+        ) : (
+          <Muted>{windowShortLabel(w.name)}</Muted>
+        )}
       </Box>
-      <ProgressBar
-        value={Math.max(0, Math.min(1, w.utilization / 100))}
-        width={20}
-        color={quotaColor(w)}
-        showPercentage
-      />
+      <ProgressBar value={Math.max(0, Math.min(1, w.utilization / 100))} width={20} color={color} showPercentage />
+    </Box>
+  )
+}
+
+function quotaAmount(w: QuotaWindow): string | null {
+  if (typeof w.limit === "number" && typeof w.remaining === "number") {
+    return `${w.remaining.toLocaleString()} / ${w.limit.toLocaleString()}`
+  }
+  if (typeof w.remaining === "number") return `${w.remaining.toLocaleString()} left`
+  if (typeof w.limit === "number") return `${w.limit.toLocaleString()} limit`
+  return null
+}
+
+function resetLabel(raw: string | undefined): string | null {
+  if (!raw) return null
+  const date = new Date(raw)
+  if (Number.isNaN(date.getTime())) return null
+  return date.toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })
+}
+
+function accountDisplayName(account: AccountSummary): string {
+  return account.email ?? account.name
+}
+
+function accountDetailLines(account: AccountSummary, exclude: ReadonlySet<string> = new Set()): string[] {
+  const details: string[] = []
+  const add = (detail: string | undefined): void => {
+    if (detail && !exclude.has(detail)) details.push(detail)
+  }
+  add(account.email && account.email !== account.name ? account.email : undefined)
+  add(account.sourceEnvVar)
+  add(account.credentialHint)
+  add(account.metadata?.apiKeyName ? `key ${account.metadata.apiKeyName}` : undefined)
+  add(account.metadata?.createdAt ? `created ${new Date(account.metadata.createdAt).toLocaleDateString()}` : undefined)
+  add(account.dir)
+  add(account.current ? "current" : undefined)
+  add(account.default ? "default" : undefined)
+  add(account.stock ? "stock" : undefined)
+  add(account.authenticated === false ? "missing login" : undefined)
+  return details
+}
+
+function hasAccountPopoverDetails(account: AccountSummary): boolean {
+  return account.quotas.length > 0 || accountDetailLines(account, inlineAccountDetails(account)).length > 0
+}
+
+function inlineAccountDetails(account: AccountSummary): ReadonlySet<string> {
+  const inline = new Set<string>()
+  if (account.kind === "api-key") {
+    if (account.sourceEnvVar) inline.add(account.sourceEnvVar)
+    if (account.credentialHint) inline.add(account.credentialHint)
+  }
+  return inline
+}
+
+function groupAccountsByPlan(accounts: AccountSummary[]): Array<{ label: string; accounts: AccountSummary[] }> {
+  const groups: Array<{ label: string; accounts: AccountSummary[] }> = []
+  for (const account of accounts) {
+    const label = account.kind === "api-key" ? account.label : planLabel(account.plan)
+    const existing = groups.find((g) => g.label === label)
+    if (existing) existing.accounts.push(account)
+    else groups.push({ label, accounts: [account] })
+  }
+  return groups
+}
+
+function selectedAccountForAgent(accounts: AccountSummary[], agent: string | undefined): AccountSummary | null {
+  if (accounts.length === 0) return null
+  const id = agent ?? "claude-code"
+  if (id === "codex" || id === "codex-spawn") {
+    return accounts.find((a) => a.provider === "openai" || a.label === "Codex") ?? accounts.find((a) => a.current) ?? accounts[0]!
+  }
+  if (id === "github-copilot-cli") {
+    return accounts.find((a) => /copilot/i.test(a.label) || /copilot/i.test(String(a.provider))) ?? accounts[0]!
+  }
+  if (id === "gemini") {
+    return accounts.find((a) => /gemini/i.test(a.label) || /google/i.test(String(a.provider))) ?? accounts[0]!
+  }
+  return (
+    accounts.find((a) => a.current && a.provider === "claude-oauth") ??
+    accounts.find((a) => a.provider === "claude-oauth") ??
+    accounts.find((a) => a.current) ??
+    accounts[0]!
+  )
+}
+
+type ActiveAccountProbe = ReturnType<typeof useClaudeAccount>
+
+function accountSummaryFromActiveProbe(account: ActiveAccountProbe): AccountSummary | null {
+  if (account.email === null && account.quotas.length === 0 && !account.loading && !account.error) return null
+  return {
+    kind: "claude-profile",
+    name: account.email ?? "active",
+    label: "Claude Code",
+    provider: "claude-oauth",
+    email: account.email,
+    plan: account.plan,
+    quotas: account.quotas,
+    error: account.error,
+    current: true,
+    isActive: true,
+    loading: account.loading,
+  }
+}
+
+function shouldUseActiveProbeForAllAccountsRow(row: AccountSummary, active: AccountSummary): boolean {
+  if (row.provider !== "claude-oauth" || !row.current) return false
+  if (active.provider !== "claude-oauth" || !active.current) return false
+  if (active.error !== null || active.quotas.length === 0) return false
+  return row.quotas.length === 0 && isTransientAccountError(row.error)
+}
+
+function mergeActiveProbeIntoAccounts(allAccounts: AccountSummary[], active: AccountSummary | null): AccountSummary[] {
+  if (!active) return allAccounts
+  if (allAccounts.length === 0) return [active]
+  let sawCurrentClaude = false
+  const merged = allAccounts.map((row) => {
+    if (row.provider === "claude-oauth" && row.current) {
+      sawCurrentClaude = true
+      if (shouldUseActiveProbeForAllAccountsRow(row, active)) {
+        return {
+          ...active,
+          name: row.name,
+          dir: row.dir,
+          default: row.default,
+          stock: row.stock,
+          authenticated: row.authenticated,
+          available: active.available ?? row.available,
+        }
+      }
+    }
+    return row
+  })
+  return sawCurrentClaude ? merged : [active, ...merged]
+}
+
+function AccountPanel({
+  account,
+  onShowAllAccounts,
+}: {
+  account: AccountSummary
+  onShowAllAccounts?: () => void
+}): React.ReactElement {
+  const active = account.isActive
+  const visibleQuotas = filterVisibleQuotas(account.quotas)
+  const hasPopover = hasAccountPopoverDetails(account)
+  const popover = usePopoverHandlers({
+    body: <AccountPopover account={account} onShowAllAccounts={onShowAllAccounts} />,
+    maxWidth: 64,
+  })
+  return (
+    <Box
+      flexDirection="column"
+      flexShrink={0}
+      onMouseEnter={hasPopover ? popover.onMouseEnter : undefined}
+      onMouseLeave={hasPopover ? popover.onMouseLeave : undefined}
+      backgroundColor={hasPopover && popover.isHovered ? "$bg-surface-hover" : undefined}
+    >
+      <Text bold={active} color={active ? "$fg" : "$muted"}>
+        {accountDisplayName(account)}
+      </Text>
+      {account.loading ? (
+        <Muted>Loading quota...</Muted>
+      ) : account.error ? (
+        <Muted>{account.error}</Muted>
+      ) : account.kind === "api-key" ? (
+        <Muted>{[account.sourceEnvVar, account.credentialHint].filter(Boolean).join(" ")}</Muted>
+      ) : null}
+      {visibleQuotas.length > 0 ? (
+        <Box flexDirection="column">
+          {visibleQuotas.map((w) => (
+            <QuotaRow key={w.name} w={w} muted={!active} />
+          ))}
+        </Box>
+      ) : null}
+    </Box>
+  )
+}
+
+function AccountNavButton({ label, onClick }: { label: string; onClick: () => void }): React.ReactElement {
+  const hover = useHover()
+  const popover = usePopover()
+  const armed = hover.isHovered
+  return (
+    <Box
+      flexDirection="row"
+      alignSelf="flex-start"
+      backgroundColor={armed ? "$warning" : "$bg-inverse"}
+      onMouseEnter={hover.onMouseEnter}
+      onMouseLeave={hover.onMouseLeave}
+      onClick={() => {
+        popover?.hide({ immediate: true })
+        onClick()
+      }}
+    >
+      <Text color={armed ? "$bg" : "$fg-on-inverse"}> {label} </Text>
+    </Box>
+  )
+}
+
+function AccountDetailLines({
+  account,
+  exclude = new Set(),
+}: {
+  account: AccountSummary
+  exclude?: ReadonlySet<string>
+}): React.ReactElement {
+  const details = accountDetailLines(account, exclude)
+  return (
+    <Box flexDirection="column">
+      {details.map((detail) => (
+        <Muted key={detail}>{detail}</Muted>
+      ))}
+    </Box>
+  )
+}
+
+function AccountPopover({
+  account,
+  onShowAllAccounts,
+}: {
+  account: AccountSummary
+  onShowAllAccounts?: () => void
+}): React.ReactElement {
+  return (
+    <Box flexDirection="column">
+      <Text bold>{accountDisplayName(account)}</Text>
+      <AccountDetailLines account={account} exclude={inlineAccountDetails(account)} />
+      {account.quotas.length > 0 ? (
+        <Box flexDirection="column">
+          {account.quotas.map((w) => (
+            <Box key={w.name} flexDirection="column">
+              <QuotaPopoverRow w={w} />
+            </Box>
+          ))}
+        </Box>
+      ) : account.loading || account.error ? (
+        <Muted>{account.loading ? "Loading quota..." : account.error}</Muted>
+      ) : null}
+      {onShowAllAccounts ? (
+        <>
+          <Box flexShrink={0} height={1} />
+          <AccountNavButton label="All Accounts" onClick={onShowAllAccounts} />
+          <Box flexShrink={0} height={1} />
+        </>
+      ) : null}
+    </Box>
+  )
+}
+
+function AccountGroup({
+  label,
+  accounts,
+  onShowAllAccounts,
+}: {
+  label: string
+  accounts: AccountSummary[]
+  onShowAllAccounts?: () => void
+}): React.ReactElement {
+  return (
+    <Box flexDirection="column" flexShrink={0}>
+      <Text bold color="$fg">
+        {label}
+      </Text>
+      {accounts.map((account, i) => (
+        <React.Fragment key={account.name}>
+          <AccountPanel account={account} onShowAllAccounts={onShowAllAccounts} />
+          {i < accounts.length - 1 ? <Box flexShrink={0} height={1} /> : null}
+        </React.Fragment>
+      ))}
     </Box>
   )
 }
@@ -325,32 +602,22 @@ function QuotaRow({ w }: { w: QuotaWindow }): React.ReactElement {
  */
 function QuotaPopoverRow({ w }: { w: QuotaWindow }): React.ReactElement {
   const isExtra = w.name === "Xtra"
+  const amount = quotaAmount(w)
+  const reset = resetLabel(w.resetsAt)
   return (
-    <Box flexDirection="column">
-      <Box flexDirection="row" gap={1}>
-        {isExtra ? <Text color="$warning">{w.name}</Text> : <Muted>{w.name}</Muted>}
+    <Box flexDirection="row" gap={1}>
+      <Box width={4} flexShrink={0}>
+        {isExtra ? <Text color="$warning">{windowShortLabel(w.name)}</Text> : <Muted>{windowShortLabel(w.name)}</Muted>}
       </Box>
-      <Box flexDirection="row" gap={1}>
-        <ProgressBar
-          value={Math.max(0, Math.min(1, w.utilization / 100))}
-          width={20}
-          color={quotaColor(w)}
-          showPercentage
-        />
-        {w.resetsAt && (
-          <Small>
-            · resets{" "}
-            {new Date(w.resetsAt).toLocaleString(undefined, {
-              dateStyle: "short",
-              timeStyle: "short",
-            })}
-          </Small>
-        )}
-        {typeof w.limit === "number" && typeof w.remaining === "number" && (
-          <Small>
-            · {w.remaining.toLocaleString()} / {w.limit.toLocaleString()}
-          </Small>
-        )}
+      <ProgressBar
+        value={Math.max(0, Math.min(1, w.utilization / 100))}
+        width={14}
+        color={quotaColor(w)}
+        showPercentage
+      />
+      <Box flexDirection="column" flexGrow={1} minWidth={0}>
+        {amount ? <Small>{amount}</Small> : null}
+        {reset ? <Small>resets {reset}</Small> : null}
       </Box>
     </Box>
   )
@@ -376,7 +643,7 @@ const AMBIENT_SOURCES: ReadonlyArray<{ id: string; label: string }> = [
   { id: "ci", label: "CI" },
   { id: "recall", label: "recall" },
   { id: "sub-agent", label: "sub-agent" },
-  { id: "file-watch", label: "file-watch" },
+  { id: "filewatch", label: "file-watch" },
   { id: "telegram", label: "telegram" },
 ]
 
@@ -399,7 +666,7 @@ function AmbientMuteRow({
   const { isHovered, onMouseEnter, onMouseLeave } = useHover()
   const popover = usePopoverHandlers({
     body: (
-      <Box flexDirection="column" paddingY={1} gap={1}>
+      <Box flexDirection="column" gap={1}>
         <Text bold>Mute {label}</Text>
         <Muted>
           Hides {label} ambient rows from this chat scrollback. The agent still receives the events — this is a visual
@@ -444,7 +711,7 @@ function AmbientMuteSection({ controller }: { controller: Controller }): React.R
   const muted = useAmbientMuteState(controller)
   const headingHover = usePopoverHandlers({
     body: (
-      <Box flexDirection="column" paddingY={1} gap={1}>
+      <Box flexDirection="column" gap={1}>
         <Text bold>Ambient</Text>
         <Muted>
           Ambient observations (tribe broadcasts, CI status, recall hits, sub-agent updates, file changes, telegram
@@ -668,6 +935,7 @@ function SidePanelChrome({
   setMode,
   defaultModel,
 }: SidePanelChromeProps): React.ReactElement {
+  const [accountView, setAccountView] = useState<"selected" | "all">("selected")
   const modeColor = MODE_COLORS[mode] ?? "$muted"
   const modeIcon = MODE_ICONS[mode] ?? "?"
   const modeLabel = MODE_LABELS[mode] ?? mode
@@ -689,7 +957,13 @@ function SidePanelChrome({
   // plan + per-window utilization arrive async from Anthropic's /api/usage
   // via accountly. Refreshes every 2 min.
   const account = useClaudeAccount()
-  const hasAccount = account.email !== null || account.quotas.length > 0
+  const allAccounts = useAllAccounts()
+  const activeAccount = accountSummaryFromActiveProbe(account)
+  const accounts: AccountSummary[] = mergeActiveProbeIntoAccounts(allAccounts, activeAccount)
+  const hasAccount = accounts.length > 0
+  const selectedAccount = selectedAccountForAgent(accounts, agent)
+  const selectedAccountGroups = selectedAccount ? groupAccountsByPlan([selectedAccount]) : []
+  const accountGroups = groupAccountsByPlan(accounts)
 
   const todosCount = todos.length
   const agentsTotal = messages.reduce(
@@ -842,7 +1116,7 @@ function SidePanelChrome({
   // exposes (codex has plan/normal; Claude has ask/plan/accept-edits/auto/bypass).
   const modeHover = usePopoverHandlers({
     body: (
-      <Box flexDirection="column" paddingY={1} gap={1}>
+      <Box flexDirection="column" gap={1}>
         <Text bold>Mode</Text>
         <Muted>Controls what the agent is allowed to do without asking. Click the label to cycle.</Muted>
         <Box flexDirection="column" gap={1}>
@@ -892,7 +1166,7 @@ function SidePanelChrome({
   })
   const thinkingHover = usePopoverHandlers({
     body: (
-      <Box flexDirection="column" paddingY={1} gap={1}>
+      <Box flexDirection="column" gap={1}>
         <Text bold>Thinking</Text>
         <Muted>
           Reasoning intensity for the agent. Higher = more thorough answers, more tokens spent. Click to cycle.
@@ -935,55 +1209,12 @@ function SidePanelChrome({
     ),
     maxWidth: 72,
   })
-  // Single hover popover for the whole quota block — plan + email at top,
-  // then every window (unfiltered) with a tiny reset/credits caption per
-  // row, then a session-totals footer. Compact layout: no per-row padding,
-  // reset info sits next to each bar as Small text so the rows stay one
-  // logical group rather than fragmented sub-blocks.
-  const quotaHover = usePopoverHandlers({
-    body: (
-      <Box flexDirection="column">
-        <Text bold>{planLabel(account.plan)}</Text>
-        {account.email && <Muted>{account.email}</Muted>}
-
-        {account.quotas.length > 0 ? (
-          <Box flexDirection="column">
-            {account.quotas.map((w) => (
-              <Box key={w.name} flexDirection="column">
-                <QuotaPopoverRow w={w} />
-              </Box>
-            ))}
-          </Box>
-        ) : (
-          <Muted>{account.loading ? "Loading quota…" : (account.error ?? "No quota data available.")}</Muted>
-        )}
-
-        <Box flexShrink={0} height={1} />
-        <Text bold>This session</Text>
-        <Box flexDirection="row" gap={1}>
-          <Muted>context</Muted>
-          <Text>
-            {totalTokens.toLocaleString()} / {window.toLocaleString()} ({pct}%)
-          </Text>
-        </Box>
-        <Box flexDirection="row" gap={1}>
-          <Muted>cost</Muted>
-          <Text>${cost.usd.toFixed(4)}</Text>
-          <Muted>
-            ({cost.inputTokens.toLocaleString()} in / {cost.outputTokens.toLocaleString()} out)
-          </Muted>
-        </Box>
-      </Box>
-    ),
-    maxWidth: 58,
-  })
-
   const hoveredBg = (h: boolean): string | undefined => (h ? "$bg-surface-hover" : undefined)
 
   return (
     // `userSelect="contain"` scopes drag-selection to the side panel —
     // drags starting here can't extend into the card area.
-    <Box flexDirection="column" flexGrow={1} paddingY={1} userSelect="contain">
+    <Box flexDirection="column" flexGrow={1} paddingX={2} paddingY={1} userSelect="contain">
       {/* Sessions section — heading is a hover target with help. Keybinding
           hint (Ctrl+O) sits top-right as a dim reminder of how to toggle
           the panel, opencode-style. */}
@@ -1098,24 +1329,12 @@ function SidePanelChrome({
       <Box flexGrow={1} />
 
       {/* ───── bottom meta, top to bottom ─────
-          1) cwd + git branch (km:main bold)
-          2) Mode (clickable, hover help, armed bg)
-          3) Tokens + cost (hover details)
-          4) Version block — Silver Code on / Claude Code (brand colors) */}
+          1) accounts + quotas
+          2) cwd + git branch (km:main bold)
+          3) Version block — Silver Code on / active agent
+          4) Thinking + mode controls */}
 
-      {/* cwd + git branch. Path in $fg, project name bold, `:branch`
-          portion muted so the branch reads as a secondary annotation
-          rather than competing with the project name for emphasis.
-          Opencode-style "where am I" anchor. */}
-      <Box flexDirection="row" flexShrink={0}>
-        <Text color="$fg">{shortCwd(cwd).replace(/\/[^/]+$/, "/")}</Text>
-        <Text bold color="$fg">
-          {shortCwd(cwd).split("/").pop()}
-        </Text>
-        {branch ? <Text color="$muted">:{branch}</Text> : null}
-      </Box>
-
-      {/* Quota + cost block — plan (bold) then email (muted), then a
+      {/* Account quota block — plan (bold) then email (muted), then a
           per-window progress bar for each subscription quota.
           Visibility rules (skip rows that aren't relevant):
           - 5-hour: always shown (primary gauge)
@@ -1128,17 +1347,30 @@ function SidePanelChrome({
           $warning at ≥70%, $error at ≥90%. No green — healthy bars don't
           demand attention. */}
       <Box flexShrink={0} height={1} />
-      <Box
-        flexDirection="column"
-        flexShrink={0}
-        onMouseEnter={quotaHover.onMouseEnter}
-        onMouseLeave={quotaHover.onMouseLeave}
-        backgroundColor={hoveredBg(quotaHover.isHovered)}
-      >
-        {hasAccount && account.plan && <Text color="$fg">{planLabel(account.plan)}</Text>}
-        {account.email && <Muted>{account.email}</Muted>}
-        {account.quotas.length > 0 ? (
-          filterVisibleQuotas(account.quotas).map((w) => <QuotaRow key={w.name} w={w} />)
+      <Box flexDirection="column" flexShrink={0}>
+        {hasAccount && accountView === "all" ? (
+          <>
+            {accountGroups.map((group, i) => (
+              <React.Fragment key={group.label}>
+                {i > 0 ? <Box flexShrink={0} height={1} /> : null}
+                <AccountGroup label={group.label} accounts={group.accounts} />
+              </React.Fragment>
+            ))}
+            <Box flexShrink={0} height={1} />
+            <AccountNavButton label="< Back" onClick={() => setAccountView("selected")} />
+            <Box flexShrink={0} height={1} />
+          </>
+        ) : hasAccount && selectedAccountGroups.length > 0 ? (
+          selectedAccountGroups.map((group, i) => (
+            <React.Fragment key={group.label}>
+              {i > 0 ? <Box flexShrink={0} height={1} /> : null}
+              <AccountGroup
+                label={group.label}
+                accounts={group.accounts}
+                onShowAllAccounts={accounts.length > 1 ? () => setAccountView("all") : undefined}
+              />
+            </React.Fragment>
+          ))
         ) : totalTokens > 0 || cost.usd > 0 ? (
           // Only show the local ctx fallback bar when we have actual data to
           // display. An empty 0% / $0.0000 bar is worse than no bar — it
@@ -1156,6 +1388,19 @@ function SidePanelChrome({
             <Muted>${cost.usd.toFixed(4)}</Muted>
           </Box>
         ) : null}
+      </Box>
+
+      {/* cwd + git branch. Path in $fg, project name bold, `:branch`
+          portion muted so the branch reads as a secondary annotation
+          rather than competing with the project name for emphasis.
+          Opencode-style "where am I" anchor. */}
+      <Box flexShrink={0} height={1} />
+      <Box flexDirection="row" flexShrink={0}>
+        <Text color="$fg">{shortCwd(cwd).replace(/\/[^/]+$/, "/")}</Text>
+        <Text bold color="$fg">
+          {shortCwd(cwd).split("/").pop()}
+        </Text>
+        {branch ? <Text color="$muted">:{branch}</Text> : null}
       </Box>
 
       {/* Version block — absolute bottom. Iconography + brand styling:

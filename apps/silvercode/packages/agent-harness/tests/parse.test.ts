@@ -148,6 +148,190 @@ describe("stream-json parser — M0 fixtures", () => {
     expect(events[0]?.kind).toBe("error")
   })
 
+  test("assistant aggregate with stop_reason=end_turn emits turn-end", () => {
+    const events = collect([
+      JSON.stringify({
+        type: "assistant",
+        sessionId: "sess-aggregate",
+        message: {
+          id: "msg-final",
+          role: "assistant",
+          content: [{ type: "text", text: "Done." }],
+          stop_reason: "end_turn",
+          usage: { input_tokens: 10, output_tokens: 2 },
+        },
+      }),
+    ])
+
+    expect(events.map((event) => event.kind)).toEqual(["assistant-message", "turn-end"])
+    expect(events[0]).toMatchObject({ kind: "assistant-message", turnId: "msg-final" })
+    expect(events[1]).toMatchObject({ kind: "turn-end", turnId: "msg-final", stopReason: "end_turn" })
+  })
+
+  test("unknown top-level transcript records surface as raw transcript entries", () => {
+    const events = collect([
+      JSON.stringify({
+        type: "attachment",
+        uuid: "att-1",
+        attachment: { type: "future_attachment_type", content: "surprise..." },
+      }),
+    ])
+
+    expect(events).toHaveLength(1)
+    expect(events[0]).toMatchObject({
+      kind: "raw-transcript",
+      turnId: "att-1",
+      label: "Raw attachment future_attachment_type",
+    })
+  })
+
+  test("trivial successful hook attachments are hidden, meaningful hooks are surfaced", () => {
+    const events = collect([
+      JSON.stringify({
+        type: "attachment",
+        uuid: "hook-1",
+        attachment: {
+          type: "hook_success",
+          hookEvent: "PreToolUse",
+          hookName: "PreToolUse:Bash",
+          stdout: "{}",
+          stderr: "",
+          content: "",
+          exitCode: 0,
+        },
+      }),
+      JSON.stringify({
+        type: "attachment",
+        uuid: "hook-2",
+        attachment: {
+          type: "hook_success",
+          hookEvent: "UserPromptSubmit",
+          hookName: "UserPromptSubmit",
+          stdout: "injected context",
+          stderr: "",
+          content: "injected context",
+          exitCode: 0,
+        },
+      }),
+    ])
+
+    expect(events).toHaveLength(1)
+    expect(events[0]).toMatchObject({
+      kind: "raw-transcript",
+      turnId: "hook-2",
+      label: "UserPromptSubmit: UserPromptSubmit",
+    })
+  })
+
+  test("known transcript bookkeeping records are hidden instead of rendered as raw", () => {
+    const events = collect([
+      JSON.stringify({
+        type: "permission-mode",
+        permissionMode: "auto",
+        sessionId: "sess-1",
+      }),
+      JSON.stringify({
+        type: "last-prompt",
+        lastPrompt: "already represented by the real user message",
+        leafUuid: "leaf-1",
+        sessionId: "sess-1",
+      }),
+      JSON.stringify({
+        type: "attachment",
+        uuid: "todo-1",
+        attachment: { type: "todo_reminder", content: [] },
+      }),
+      JSON.stringify({
+        type: "attachment",
+        uuid: "task-1",
+        attachment: { type: "task_reminder", content: [] },
+      }),
+      JSON.stringify({
+        type: "queue-operation",
+        operation: "enqueue",
+        content: "queued user prompt",
+      }),
+      JSON.stringify({
+        type: "attachment",
+        uuid: "session-start-1",
+        attachment: {
+          type: "hook_success",
+          hookEvent: "SessionStart",
+          hookName: "SessionStart:startup",
+          stderr: "[recall session-start] sentinel=ok\n",
+          stdout: "",
+          content: "",
+          exitCode: 0,
+        },
+      }),
+      JSON.stringify({
+        type: "attachment",
+        uuid: "tools-1",
+        attachment: { type: "deferred_tools_delta", addedNames: ["TaskCreate"] },
+      }),
+      JSON.stringify({
+        type: "attachment",
+        uuid: "mcp-1",
+        attachment: { type: "mcp_instructions_delta", addedNames: ["tribe"], addedBlocks: ["..."] },
+      }),
+      JSON.stringify({
+        type: "attachment",
+        uuid: "skills-1",
+        attachment: { type: "skill_listing", content: "- skill: docs" },
+      }),
+      JSON.stringify({
+        type: "attachment",
+        uuid: "auto-1",
+        attachment: { type: "auto_mode", reminderType: "full" },
+      }),
+    ])
+
+    expect(events).toEqual([])
+  })
+
+  test("tool_result preserves split stdout/stderr and exit code when Claude records toolUseResult", () => {
+    const events = collect([
+      JSON.stringify({
+        type: "user",
+        session_id: "sess-1",
+        message: {
+          role: "user",
+          content: [{ type: "tool_result", tool_use_id: "tool-1", content: "combined", is_error: true }],
+        },
+        toolUseResult: {
+          stdout: "visible output",
+          stderr: "permission denied",
+          exitCode: 9,
+        },
+      }),
+    ])
+    expect(events[0]).toMatchObject({
+      kind: "tool-result",
+      output: { stdout: "visible output", stderr: "permission denied", exitCode: 9 },
+      is_error: true,
+    })
+  })
+
+  test("unknown assistant content blocks become raw ordered ops instead of disappearing", () => {
+    const store = createSessionStore()
+    const events = collect([
+      JSON.stringify({
+        type: "assistant",
+        sessionId: "sess-raw",
+        message: {
+          id: "msg-raw",
+          role: "assistant",
+          content: [{ type: "new_block_type", value: "keep me" }],
+        },
+      }),
+    ])
+    for (const event of events) store.apply(event)
+
+    expect(store.state.get().messages[0]?.ops).toMatchObject([
+      { kind: "raw", label: "Unknown assistant block new_block_type" },
+    ])
+  })
+
   // ── On-disk JSONL replay shape ──────────────────────────────────────────
   // The on-disk transcript at ~/.claude/projects/<proj>/<sid>.jsonl uses a
   // SUPERSET of the live stream-json format. User entries store the raw

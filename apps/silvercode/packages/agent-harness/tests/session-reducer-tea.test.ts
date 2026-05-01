@@ -297,4 +297,32 @@ describe("session-reducer — TEA discipline (action → effects, pure)", () => 
       s = next
     }
   })
+
+  test("thinking-delta is preserved as an ordered non-prose op", () => {
+    let s: InternalSessionState = initialInternalState()
+    ;[s] = reduce(s, { kind: "turn-start", sessionId: sid, turnId: tid("a"), role: "assistant", ts: 1 })
+    ;[s] = reduce(s, {
+      kind: "thinking-delta",
+      sessionId: sid,
+      turnId: tid("a"),
+      blockIndex: 0,
+      text: 'Right — "reference" just means "thing that resolves".',
+      ts: 2,
+    })
+    ;[s] = reduce(s, {
+      kind: "text-delta",
+      sessionId: sid,
+      turnId: tid("a"),
+      blockIndex: 1,
+      text: "Visible reply.",
+      ts: 3,
+    })
+
+    const view = publicView(s)
+    expect(view.messages[0]!.ops).toEqual([
+      { kind: "thinking", text: 'Right — "reference" just means "thing that resolves".' },
+      { kind: "text", text: "Visible reply." },
+    ])
+    expect(view.messages[0]!.text).toBe("Visible reply.")
+  })
 })

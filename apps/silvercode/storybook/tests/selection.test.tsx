@@ -43,7 +43,7 @@ describe("storybook runner selection", () => {
     } as never)
     await settle()
     expect(term.screen).toContainText("Stories")
-    expect(term.screen).toContainText("read a file")
+    expect(term.screen).toContainText("ACP read-kind")
     chunks.length = 0
 
     // Start in the left list pane and drag well into the right preview.
@@ -56,8 +56,8 @@ describe("storybook runner selection", () => {
 
     const decoded = decodeLastOsc52(chunks)
     expect(decoded).not.toBeNull()
-    expect(decoded).toContain("Stories")
-    expect(decoded).not.toContain("read a file")
+    expect(decoded).toContain("All/together")
+    expect(decoded).not.toContain("ACP read-kind")
 
     handle.unmount()
   })

@@ -1,5 +1,6 @@
 import React from "react"
 import { Box, Text } from "silvery"
+import { SessionEntry } from "./SessionEntry.tsx"
 
 /**
  * Playful verb pool — metallurgy / blacksmithing / jewellery / high tea
@@ -186,12 +187,17 @@ export function ActivityIndicator({
   const pulse = Math.floor(now / 1000) % 2 === 0
 
   return (
-    <Box flexDirection="row" gap={1}>
-      <Text bold={pulse} color={color}>
-        ◈
-      </Text>
-      <Text color={color}>{label}</Text>
-      {tail ? <Text color="$muted">{tail}</Text> : null}
-    </Box>
+    <SessionEntry
+      marker={
+        <Text bold={pulse} color={color}>
+          ◈
+        </Text>
+      }
+    >
+      <Box flexDirection="row" gap={0} minWidth={0} flexShrink={1}>
+        <Text color={color}>{label}</Text>
+        {tail ? <Text color="$muted">{tail}</Text> : null}
+      </Box>
+    </SessionEntry>
   )
 }

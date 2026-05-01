@@ -45,11 +45,12 @@ import { type AmbientStream, createAmbientStream } from "./ambient-stream.ts"
 import { type MuteState, createMuteState } from "./mute-state.ts"
 import { wireChannelSources } from "./channel-sources.ts"
 import { registerAllAmbientAdapters } from "./ambient-adapters/index.ts"
-import { replayCodexSessionFromDisk } from "./codex-resume.ts"
+import { findCodexTranscript, replayCodexSessionFromDisk } from "./codex-resume.ts"
 import { triggerRecallProbe } from "./ambient-adapters/recall.ts"
 import { type CoordinatorMcpServer, createCoordinatorMcpServer } from "./coordinator-mcp.ts"
 import { type CrossAgentState, createCrossAgentState } from "./cross-agent-state.ts"
-import { replaySessionFromDisk } from "./resume.ts"
+import { replaySessionFromDisk, sessionJsonlPath } from "./resume.ts"
+import type { SessionHistoryMetadata } from "./session-metadata.ts"
 
 // Queue diagnostics — enable with `DEBUG=silvercode:queue` (combined with
 // `DEBUG_LOG=<path>` when running the TUI so the alt-screen UI isn't
@@ -210,6 +211,7 @@ export type SessionHandle = {
    * directly against this session's identity.
    */
   readonly coordinatorMcp: CoordinatorMcpServer
+  readonly metadata: SessionHistoryMetadata
   /**
    * Resume session id — set when the session was created via
    * `silvercode --resume <id>` (i.e. `opts.resume` was non-empty at
@@ -1208,6 +1210,14 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     const givenName = name ?? `session ${nextId}`
     nextId++
     const store = createSessionStore()
+    const metadata: SessionHistoryMetadata = {
+      agent: opts.agent,
+      cwd: opts.cwd,
+      model: opts.model,
+      account: opts.account,
+      resumeId: opts.resume,
+      spawnedAt: Date.now(),
+    }
 
     // --resume backfill: replay the on-disk JSONL transcript into the store
     // BEFORE spawning so the card shows prior turns immediately. Claude Code
@@ -1227,13 +1237,29 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       opts.agent === "claude-code-sdk"
     const isCodexAgent = opts.agent === "codex" || opts.agent === "codex-spawn"
     if (opts.resume && isClaudeAgent) {
+      metadata.transcriptPath = sessionJsonlPath(opts.cwd, opts.resume)
+      metadata.replayStartedAt = Date.now()
       replaySessionFromDisk(store, opts.cwd, opts.resume)
+      metadata.replayCompletedAt = Date.now()
+      {
+        const replayedMessages = store.state.get().messages
+        metadata.replayMessageCount = replayedMessages.length
+        metadata.replayBoundaryMessageId = replayedMessages.at(-1)?.id
+      }
     } else if (opts.resume && isCodexAgent) {
       // Codex stores rollouts at ~/.codex/sessions/YYYY/MM/DD/rollout-*-<sid>.jsonl
       // with a different schema than Claude's stream-json. The codex parser
       // walks them and emits canonical AgentEvents into the store so prior
       // turns appear in the card. See codex-resume.ts for the mapping table.
+      metadata.transcriptPath = findCodexTranscript(opts.resume) ?? undefined
+      metadata.replayStartedAt = Date.now()
       replayCodexSessionFromDisk(store, opts.resume)
+      metadata.replayCompletedAt = Date.now()
+      {
+        const replayedMessages = store.state.get().messages
+        metadata.replayMessageCount = replayedMessages.length
+        metadata.replayBoundaryMessageId = replayedMessages.at(-1)?.id
+      }
     }
 
     let session: AgentSession
@@ -1356,6 +1382,10 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       // We only flip on events that have an unambiguous meaning — fine-
       // grained spinner states stay inside the per-session SessionStore.
       if (event.kind === "session-init") {
+        metadata.sessionId = event.sessionId
+        metadata.model = event.model || metadata.model
+        metadata.cwd = event.cwd || metadata.cwd
+        metadata.sessionInitAt = event.ts
         crossAgentState.updateSessionStatus(id, "idle")
         ctrlStartupTick("session-init:received", { sessionId: id })
       } else if (event.kind === "turn-start") {
@@ -1369,6 +1399,10 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         // See `ambient-adapters/recall.ts` for the full pipeline.
         maybeProbeRecall(id)
       } else if (event.kind === "session-end") {
+        metadata.endedAt = event.ts
+        crossAgentState.updateSessionStatus(id, "ended")
+      } else if (event.kind === "session-lifecycle" && event.state === "ended") {
+        metadata.endedAt = event.ts
         crossAgentState.updateSessionStatus(id, "ended")
       }
     })
@@ -1395,6 +1429,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       log,
       account: opts.account,
       coordinatorMcp,
+      metadata,
       resumeId: opts.resume,
     }
 

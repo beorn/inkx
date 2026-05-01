@@ -11,11 +11,13 @@ import type { AccountConfig, AccountProvider, Credential } from "./types.ts"
  */
 const ENV_SOURCES: { envVar: string; provider: AccountProvider; name: string }[] = [
   { envVar: "ANTHROPIC_API_KEY", provider: "anthropic-api", name: "anthropic" },
+  { envVar: "CODEX_API_KEY", provider: "openai", name: "codex" },
   { envVar: "OPENAI_API_KEY", provider: "openai", name: "openai" },
   { envVar: "XAI_API_KEY", provider: "xai", name: "xai" },
   { envVar: "GEMINI_API_KEY", provider: "google", name: "gemini" },
   { envVar: "GOOGLE_API_KEY", provider: "google", name: "google" },
   { envVar: "OPENROUTER_API_KEY", provider: "openrouter", name: "openrouter" },
+  { envVar: "CURSOR_API_KEY", provider: "cursor-api", name: "cursor" },
 ]
 
 export interface DiscoveredAccount {
@@ -33,7 +35,7 @@ export function discoverAccounts(): DiscoveredAccount[] {
     if (!apiKey) continue
     seenProviders.add(provider)
     results.push({
-      config: { name, provider },
+      config: { name, provider, metadata: { envVar } },
       credential: { apiKey },
     })
   }
