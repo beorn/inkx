@@ -67,8 +67,8 @@ Three concepts, distinct (per `docs/design/model/storage.md:761-787`):
 - 📋 `@km/all/rename-content-cascade` (**P1, was P2**) — content-layer batch update of wikilinks/mentions when a node's path changes. **CORRECTNESS, not UX**: per Gemini's argument, DB rebuild from disk reads stale `[[@km/beads/foo]]` text → fails to resolve → DB link table records broken link. Text content IS canonical in markdown-based system.
 - 📋 `@km/beads/data-id-stop-writing` (P2) — stop writing `data.id` (= path-form) into bead frontmatter. Coupled with next bead; ship together.
 - 📋 `@km/beads/frontmatter-path-rename` (**P2, was P3**) — rename frontmatter `id:` → `path:` OR remove entirely. **Promoted from P3** because it's atomically coupled with `data-id-stop-writing` per /pro consensus.
-- 📋 `@km/storage/parent-name-unique-partial` (P2) — `UNIQUE (parent_id, name) WHERE fstype IS NOT NULL AND name IS NOT NULL` partial index. Watcher-bug defense + prerequisite for recursive-walk resolver.
-- 📋 `@km/all/storage-doc-three-concepts` (P3) — bead body updated 2026-04-30 with /pro additions: `fstype` vs `type`, anchor handling, slug stability invariant, slug case-normalization, formalize `fs_path` as canonical cache. Doc edits to `docs/design/model/storage.md` still pending.
+- ✅ `@km/storage/parent-name-unique-partial` (P2) — schema v8 partial UNIQUE shipped in commit `6e7846a1d`. Pre-flight duplicate check, 11 tests, idempotent migration.
+- ✅ `@km/all/storage-doc-three-concepts` (P3) — `docs/design/model/storage.md` updated 2026-05-01 with /pro additions in same commit `6e7846a1d`: three-concept resolution-order callout, `fstype` vs `type`, anchor handling, slug stability, slug case-normalization, `fs_path` canonical-cache. Bead remains open for downstream doc updates (knode.md, package CLAUDE.mds).
 
 ### YAGNI verdict on new domain interface objects (re-verified 2026-04-30)
 
