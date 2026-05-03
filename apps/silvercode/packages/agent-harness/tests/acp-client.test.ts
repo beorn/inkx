@@ -96,6 +96,24 @@ function createFakeAcpServer(opts: ServerWiring): { spawn: AcpSpawn; child: Fake
       } else if (event === "error") errorListeners.push(listener as (err: Error) => void)
       return child
     },
+    once(event: string, listener: (...args: unknown[]) => void): unknown {
+      if (event === "exit") {
+        const wrapped = (code: number | null, signal: NodeJS.Signals | null) => {
+          const index = exitListeners.indexOf(wrapped)
+          if (index >= 0) exitListeners.splice(index, 1)
+          listener(code, signal)
+        }
+        exitListeners.push(wrapped)
+      } else if (event === "error") {
+        const wrapped = (err: Error) => {
+          const index = errorListeners.indexOf(wrapped)
+          if (index >= 0) errorListeners.splice(index, 1)
+          listener(err)
+        }
+        errorListeners.push(wrapped)
+      }
+      return child
+    },
   }
 
   const spawn: AcpSpawn = () => child as unknown as AcpSpawnedChild
@@ -166,6 +184,47 @@ afterEach(() => {
 })
 
 describe("connectAcp", () => {
+  test("scope.dispose() kills the child process group, not only the wrapper", async () => {
+    const originalKill = process.kill
+    const kills: Array<{ pid: number; signal: string | number | undefined }> = []
+    process.kill = ((pid: number, signal?: string | number): true => {
+      kills.push({ pid, signal })
+      if (pid === -99999) return true
+      return originalKill(pid, signal as NodeJS.Signals)
+    }) as typeof process.kill
+    try {
+      const { spawn, child } = createFakeAcpServer({
+        agent: () => ({
+          async initialize() {
+            return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] }
+          },
+          async newSession() {
+            return { sessionId: "s1" }
+          },
+          async authenticate() {
+            return {}
+          },
+          async prompt() {
+            return { stopReason: "end_turn" as const }
+          },
+          async cancel() {
+            /* no-op */
+          },
+        }),
+      })
+      __setAcpSpawnForTesting(spawn)
+
+      const scope = createScope("test-dispose-process-group")
+      await connectAcp(scope, { command: "fake-acp" })
+      expect(child.killed.signal.aborted).toBe(false)
+
+      await scope[Symbol.asyncDispose]()
+      expect(kills.some((k) => k.pid === -99999 && k.signal === "SIGTERM")).toBe(true)
+    } finally {
+      process.kill = originalKill
+    }
+  })
+
   test("initialize + newSession round-trip; capabilities surface in handle", async () => {
     const { spawn } = createFakeAcpServer({
       agent: () => ({
@@ -217,6 +276,7 @@ describe("connectAcp", () => {
   })
 
   test("scope.dispose() kills the child process", async () => {
+    const originalKill = process.kill
     const { spawn, child } = createFakeAcpServer({
       agent: () => ({
         async initialize() {
@@ -238,14 +298,24 @@ describe("connectAcp", () => {
     })
     __setAcpSpawnForTesting(spawn)
 
-    const scope = createScope("test-dispose")
-    await connectAcp(scope, { command: "fake-acp" })
-    expect(child.killed.signal.aborted).toBe(false)
+    process.kill = ((pid: number, signal?: string | number): true => {
+      if (pid === -99999) {
+        child.triggerExit(null, signal as NodeJS.Signals)
+        return true
+      }
+      return originalKill(pid, signal as NodeJS.Signals)
+    }) as typeof process.kill
 
-    await scope[Symbol.asyncDispose]()
-    expect(child.killed.signal.aborted).toBe(true)
-    const sig = await child.killSignal
-    expect(sig).toBe("SIGTERM")
+    try {
+      const scope = createScope("test-dispose")
+      await connectAcp(scope, { command: "fake-acp" })
+      expect(child.killed.signal.aborted).toBe(false)
+
+      await scope[Symbol.asyncDispose]()
+      expect(child.killed.signal.aborted).toBe(false)
+    } finally {
+      process.kill = originalKill
+    }
   })
 
   test("sessionUpdate notifications trigger AgentEvent subscribers", async () => {

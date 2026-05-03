@@ -1759,8 +1759,23 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       // Synchronous SIGTERM to every child, then unsubscribe. Children
       // shut down gracefully in the background; we don't wait. Listen on
       // session.subscribe('session-end') if a caller needs confirmation.
+      const reportCloseFailure = (s: SessionHandle, err: unknown): void => {
+        const message = err instanceof Error ? err.message : String(err)
+        dBackground("session close failed session=%s error=%s", s.id, message)
+        s.store.apply({
+          kind: "error",
+          sessionId: s.id as SessionId,
+          message: `session close failed: ${message}`,
+          raw: err,
+          ts: Date.now(),
+        })
+      }
       for (const s of sessions) {
-        s.session.close()
+        try {
+          void s.session.close().catch((err: unknown) => reportCloseFailure(s, err))
+        } catch (err) {
+          reportCloseFailure(s, err)
+        }
         s.unsubscribe()
         // Drop the session from cross-agent state too — releases any
         // claims it held so peers don't see ghost holders.
@@ -1781,8 +1796,9 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       if (ownsScope) {
         // Fire-and-forget — Scope[Symbol.asyncDispose] returns a Promise
         // we don't await (matches the rest of closeAll's sync contract).
-        void controllerScope[Symbol.asyncDispose]().catch(() => {
-          /* swallow — disposal errors are non-fatal */
+        void controllerScope[Symbol.asyncDispose]().catch((err: unknown) => {
+          const message = err instanceof Error ? err.message : String(err)
+          dBackground("controller scope dispose failed: %s", message)
         })
       }
     },

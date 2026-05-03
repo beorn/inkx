@@ -878,4 +878,51 @@ describe("TurnActivitySummary", () => {
       handle.unmount()
     }
   })
+
+  test("expanding an activity summary near the viewport bottom preserves the clicked summary row", async () => {
+    using term = createTermless({ cols: 110, rows: 14 })
+    const filler = Array.from({ length: 7 }, (_, i) => makeUserEntry(`u-${i}`, `filler prompt ${i}`, 1000 + i))
+    const entry = makeEntry({
+      id: "assistant-summary-header-anchor",
+      ts: 2000,
+      ops: [
+        tool("cmd-1", "Bash", { command: "printf one" }, "one"),
+        tool("cmd-2", "Bash", { command: "printf two" }, "two"),
+      ],
+    })
+    const handle = await run(
+      <Box width={110} height={14} flexDirection="column">
+        <SessionUpdateList
+          messages={[...filler, entry]}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          sessionId="turn-summary-header-anchor-test"
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+        />
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle(80)
+      const beforeLines = term.screen.getLines()
+      const summaryRow = beforeLines.findIndex((line) => line.includes("Ran 2 commands"))
+      expect(summaryRow, beforeLines.join("\n")).toBeGreaterThanOrEqual(0)
+      const summaryCol = beforeLines[summaryRow]!.indexOf("Ran 2 commands")
+
+      await term.mouse.click(summaryCol, summaryRow)
+      await settle(80)
+
+      const afterRow = term.screen.getLines().findIndex((line) => line.includes("Ran 2 commands"))
+      expect(afterRow).toBe(summaryRow)
+      expect(term.screen.getLines()[afterRow]).toContain("▾")
+    } finally {
+      handle.unmount()
+    }
+  })
 })

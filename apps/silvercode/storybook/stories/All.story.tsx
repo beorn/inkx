@@ -302,13 +302,17 @@ function StoryWelcomeComposer({
 
 function SectionLabel({ children }: { children: string }): React.ReactElement {
   return (
-    <Box paddingBottom={0} width="100%">
-      <Box width="100%" backgroundColor="$fg-muted">
-        <Text color="$bg" wrap="truncate">
-          {children}
-        </Text>
-      </Box>
-    </Box>
+    <Content.Row>
+      <Content.Body width="prose">
+        <Box paddingBottom={0} width="100%">
+          <Box width="100%" backgroundColor="$fg-muted">
+            <Text color="$bg" wrap="truncate">
+              {children}
+            </Text>
+          </Box>
+        </Box>
+      </Content.Body>
+    </Content.Row>
   )
 }
 
@@ -782,13 +786,15 @@ function AllStoryBody(): React.ReactElement {
         overflow="hidden"
       >
         <Box flexDirection="row" flexGrow={1} flexShrink={1} minHeight={0} minWidth={0}>
-          <ListView
-            items={mainItems}
-            getKey={(item) => item.key}
-            gap={1}
-            maxRendered={20}
-            renderItem={(item) => <Box flexDirection="column">{item.node}</Box>}
-          />
+          <Content.Layout>
+            <ListView
+              items={mainItems}
+              getKey={(item) => item.key}
+              gap={1}
+              maxRendered={20}
+              renderItem={(item) => <Box flexDirection="column">{item.node}</Box>}
+            />
+          </Content.Layout>
         </Box>
       </Box>
 

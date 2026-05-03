@@ -306,6 +306,7 @@ export interface AcpSpawnedChild {
   readonly signalCode: NodeJS.Signals | null
   kill(signal?: NodeJS.Signals | number): boolean
   on(event: "exit", listener: (code: number | null, signal: NodeJS.Signals | null) => void): unknown
+  once(event: "exit", listener: (code: number | null, signal: NodeJS.Signals | null) => void): unknown
   on(event: "error", listener: (err: Error) => void): unknown
 }
 
@@ -432,23 +433,17 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
   scope.use(
     disposable({ pid: child.pid }, () => {
       if (exited) return
+      if (child.pid !== undefined) {
+        gracefulKillTree(child.pid, child as unknown as Parameters<typeof gracefulKillTree>[1], {
+          fallbackAfterMs: 250,
+        })
+        return
+      }
       try {
         child.kill("SIGTERM")
       } catch {
         // already gone
       }
-      // Give the agent ~250ms to flush; if still alive, SIGKILL.
-      const t = setTimeout(() => {
-        if (exited) return
-        try {
-          child.kill("SIGKILL")
-        } catch {
-          // already gone
-        }
-      }, 250)
-      // setTimeout returns a NodeJS.Timeout (not a number) under @types/node;
-      // unref keeps the dispose timer from holding the event loop open.
-      ;(t as unknown as { unref?: () => void }).unref?.()
     }),
   )
 

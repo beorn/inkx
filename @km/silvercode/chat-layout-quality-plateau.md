@@ -59,7 +59,8 @@ Do not mark acceptance criteria done yet; these are implementation notes only.
 
 - 2026-05-01: The flexily overlap root cause was traced to core layout, not silvercode component placement. `layout-zero.ts` now gates flex-grow main-axis constraint on a definite parent main-axis budget. Flexily, silvery contract, and focused silvercode content-layout tests passed in the working tree, but user confirmation and integration cleanup are still pending.
 - 2026-05-01: Timestamp gutter alignment and standalone prose spacing have focused strict tests passing in `apps/silvercode/tests/content-layout.test.tsx`. Keep criteria unchecked until the user confirms in the real app screenshots.
-- 2026-05-01: New blocker: after the welcome screen repaints after a few seconds, a visual fragment appears at the top-left and persists into the chat session. Current hypothesis is an orphaned Kitty/Ghostty image placement from the graphic logo path. This should be fixed at the silvery image/graphics lifecycle layer if confirmed, not worked around by hiding the bitmap banner.
+- 2026-05-01: New blocker: after the welcome screen repaints after a few seconds, a visual fragment appears at the top-left and persists into the chat session. Follow-up inspection showed at least one reported top-left artifact was ambient Tribe/broadcast text, not a Kitty bitmap fragment. The normal `SessionCard` path is now covered by `apps/silvercode/tests/ambient-welcome-artifact.test.tsx`: ambient entries before transcript content do not render on the Welcome screen, and ambient entries after transcript content stay inside the content lane. If the top-left artifact persists, investigate the separate surface or stale external process output instead of carrying the obsolete image-only hypothesis.
+- 2026-05-01: Process cleanup gap: stale `bun -e ... renderScenario` probes and orphaned `@zed-industries/codex-acp` daemons were observed after earlier runs. The ACP client spawn path now uses `detached: true` plus `gracefulKillTree()` for both `close()` and scope disposal, and focused strict tests prove scope disposal signals the process group. Keep monitoring real Ctrl-C and resume-session exits for orphaned grandchildren.
 - 2026-05-01: `km bd show @km/silvercode/chat-layout-quality-plateau` is currently blocked by km-storage v7→v8 duplicate-name migration errors. This bead was updated directly as markdown; do not treat the failed CLI read as normal.
 
 ## Implementation Organization
@@ -71,6 +72,7 @@ Work through these tracks in order. Each track should end with focused tests at 
 Goal: terminal bitmap/image output is owned by silvery and cannot outlive the React node or its screen rect.
 
 - Reproduce the top-left artifact with the real welcome repaint path in Ghostty or a capture harness.
+- Distinguish terminal bitmap artifacts from ambient/log text artifacts. Ambient rows must only render through the transcript/content lane; stale external process output must be treated as a lifecycle leak, not a layout row.
 - Add a silvery-level regression around `<Image>` placement lifecycle:
   - initial placement is not emitted at `(0,0)` before layout coordinates are known;
   - movement updates replace/delete the previous placement;
@@ -118,6 +120,7 @@ Goal: resumed and active sessions show truthful status and metadata, with no stu
 - Investigate Claude session `6c17eef9-b26e-422d-bd1a-fe0017acaad2` for stuck/appears-stuck state. If active, show what it is blocked on; if ended, render ended state and no running command.
 - Keep first prompt visible on resume for Codex and Claude sessions.
 - Add liveness/deadlock detection around in-flight turns and permission prompts so a turn cannot silently remain open forever.
+- Ensure every session close path reaps spawned backends and their grandchildren. Normal close, Ctrl-C, app unmount, scope disposal, and test harness disposal should all converge on process-group cleanup; no ACP wrapper daemon should survive with PPID 1 after the parent exits.
 
 ### Track F — Storybook And Verification Harness
 
