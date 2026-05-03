@@ -6,9 +6,14 @@ aliases:
 created_at: 2026-05-01T18:16:00.000Z
 type: feature
 priority: P0
+tags:
+  - P0
+  - refactor
+  - chat
+  - architecture
 ---
 
-# Design Chat component hierarchy for turn envelopes
+# [ ] Design `Chat.Turn.*` component hierarchy for turn envelopes @km/silvercode #feature #P0
 
 ## Problem
 
@@ -194,3 +199,8 @@ Rules:
 ## Notes
 
 This bead is intentionally architectural and P0 because it should stop the recurring layout/progressive-disclosure churn in `SessionUpdateList`. The expected end state is a thinner `SessionUpdateList` that builds a chat model and maps it to `Chat.*`, rather than hand-authoring transcript semantics inline.
+
+## Related
+
+- [[@km/silvercode/chat-layout-quality-plateau]]
+- [[@km/silvercode/runtime-error-tracking-plateau]]
