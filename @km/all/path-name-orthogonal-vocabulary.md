@@ -101,23 +101,34 @@ markdown package's `parseFrontmatter` etc. stay (parser concerns are
 fine), but the *result* of parsing is props, not frontmatter.
 
 This is captured in detail in the sister bead
-`@km/markdown/props-not-frontmatter`.
+`@km/all/props-not-frontmatter`.
 
 ### 5. (deferred) `treeNameOf(node)`
 
 Trivial accessor for `node.name`. YAGNI — direct field access works.
 
+### 6. (deferred) `fsNameOf(node)`
+
+Per the 2026-05-03 arch review: only **one** caller of inline
+`basename(node.fs_path)` exists in the codebase
+(`packages/km-fs-mount/src/watch/change-handlers.ts:580`). YAGNI for now —
+introduce only when a second consumer materializes. The 2×2 doc still
+names the cell ("fs-name = basename on disk"); just don't ship a helper
+yet.
+
 ## Acceptance
 
-- `treePathOf` exists in `@km/core`; `pathOf` becomes a `@deprecated`
-  re-export for one transitional release.
-- `fsNameOf` exists in `@km/core`.
-- All callers of the inline `basename(fs_path)` pattern migrate to
-  `fsNameOf`.
+- `fsPathOf` exists in `@km/core`; `pathOf` becomes a `@deprecated`
+  re-export for one transitional release. (Corrected 2026-05-03: the
+  rename target is `fsPathOf`, NOT `treePathOf` — `pathOf` reads
+  `fs_path` and strips, so it's the fs-cache reader, not a tree walker.
+  `KTree.path()` is the cache-free tree walker; already shipped.)
+- A `treePathOf` helper is intentionally NOT introduced. No consumer.
+- `fsNameOf` is **deferred** until a second caller materializes (only
+  one inline `basename(fs_path)` exists today).
 - Storage.md, knode.md, and the two CLAUDE.mds carry the 2×2 vocabulary.
 - A grep gate (oxlint rule or shell check) blocks reintroduction of inline
-  `basename(*.fs_path)` (similar to the rule we wanted around
-  `fs_path.replace(...)`).
+  `fs_path.replace(...)` patterns (the 6-site fix that already shipped).
 
 ## Out of scope
 

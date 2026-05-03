@@ -79,7 +79,9 @@ from `data.aliases` JSON) — same query shape, indexed seam.
 - New tests in `packages/km-storage/tests/resolve-ref.test.ts` cover:
   - ULID match returns the node
   - path-form match returns the node
-  - alias match returns the node (after `aliases-first-class` lands)
+  - alias match returns the node — works on initial extract via the
+    existing `data.aliases` JSON read (no need to wait for
+    `aliases-first-class`; that bead changes only the underlying SQL)
   - missing input returns null
 - All existing resolver tests in
   `packages/km-beads/tests/resolve-id.property.test.ts` continue to pass.

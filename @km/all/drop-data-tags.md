@@ -34,40 +34,84 @@ already indexes wikilinks; queries like "all P1 beads" are
   exist as its own thing — it's just links to other sigil-prefixed nodes
   (`#tag` is a link to a node named `#tag`).
 
-## Implementation sketch
+## ⚠️ Prerequisite NOT satisfied today (per 2026-05-03 arch review)
 
-1. Inventory consumers of `data.tags`:
-   - `grep -rn 'data\.tags\|data\["tags"\]' packages/ apps/` — find every
-     reader.
-2. For each reader, replace with a `links` table query:
+The bead's plan assumes "the markdown serializer emits `#P1` / `#task`
+wikilinks in the body so the `links` table picks them up automatically."
+**That emission does NOT exist today.** Verified via grep:
+
+- `packages/km-beads/src/migrate.ts:207-213` (`issueToMarkdown` body
+  assembly) puts tags into the `content`, but those land as plain text
+  in the H1 line — not as wikilinks parsed into the `links` table.
+- No code in `packages/km-markdown/` emits `#P<n>` or `#<type>` from
+  priority/type fields when serializing a bead.
+- Therefore: **dropping `data.tags` reads today would break
+  `bd list --priority P1`** (returns 0 rows) and any other
+  filter-by-tag query backed by the `data.tags` array.
+
+**Two consumer surfaces use `data.tags`** — the bead's first draft only
+named one:
+
+1. **Beads** (`packages/km-beads/src/mutations.ts:206`,
+   `apps/km-cli/src/commands/show.ts:259`,
+   `packages/km-agent/src/queries.ts:130`,
+   `packages/km-beads/src/queries.ts:266`) — priority/type denormalization.
+2. **Parser hashtag-tagging** (`packages/km-markdown/src/extensions/km-refs.ts:25,36`)
+   — paragraph nodes get `data.tags` from inline `#tag` markers in their
+   own content. This is unrelated to bead priority/type but uses the same
+   field name. Don't conflate.
+
+## Phased implementation
+
+**Phase A — establish the wikilink emission:**
+
+1. In `packages/km-beads/src/migrate.ts` (`issueToMarkdown`) and any
+   other bead serializer, emit `#P<n>` for priority and `#<type>` for
+   type as inline wikilinks (or hashtag-tagged inline props) so the
+   parser picks them up and writes link rows.
+2. Add a parser/serializer round-trip test asserting the `links` table
+   contains `(host_id, href='#P1')` for any bead with priority P1.
+3. Land Phase A as a single PR. `data.tags` reads still work — nothing
+   regresses.
+
+**Phase B — migrate readers to the `links` table:**
+
+4. Inventory consumers of `data.tags` (the 4 beads-side readers above —
+   the parser-side at `km-refs.ts:25,36` is **out of scope** for this
+   bead, see "Out of scope" below).
+5. Replace each beads-side reader with a `links` table query:
    - "Is this bead tagged P1?" → `SELECT 1 FROM links WHERE host_id = ?
      AND href = '#P1'`
    - "List all P1 beads" → `SELECT host_id FROM links WHERE href = '#P1'`
-3. Stop writing `data.tags`:
-   - Remove the sync from `packages/km-beads/src/mutations.ts:190`.
-   - The implicit "priority P1 → emit a `#P1` wikilink" rule stays: when
-     priority/type are written, the markdown serializer emits `#P1` /
-     `#task` in the body (or as inline props), so the `links` table picks
-     them up automatically. (Confirm during implementation that the
-     serializer does this; if not, add it.)
-4. Migration: existing rows with `data.tags` keep the JSON entry as a
-   fossil — no read paths consume it after this bead, so it's harmless.
+6. Verify `bd list --priority P1` returns the same set as before.
+
+**Phase C — stop writing `data.tags` (beads-side only):**
+
+7. Remove the priority/type sync at
+   `packages/km-beads/src/mutations.ts:206`.
+8. Existing rows keep their `data.tags` entries as fossils — harmless
+   since no reader consumes them.
 
 ## Acceptance
 
-- No code reads `data.tags` after this bead.
-- No code writes `data.tags` after this bead.
-- `bd list --priority P1` (or equivalent) returns the same set as before,
-  via the `links` table.
-- A test asserts that priority/type changes update the link rows so the
-  indexed query stays in sync.
+- Phase A: round-trip test confirms `links` table contains `#P<n>` and
+  `#<type>` rows for beads.
+- Phase B: no beads-side code reads `data.tags`. `bd list --priority P1`
+  parity confirmed.
+- Phase C: beads-side mutations stop writing `data.tags`.
+- Parser-side `data.tags` (km-refs.ts) is **not touched** by this bead.
 
 ## Out of scope
 
+- The parser-side `data.tags` writer at
+  `packages/km-markdown/src/extensions/km-refs.ts:25,36`. Different
+  consumer (paragraph hashtag-tagging), different concept; if it should
+  also be removed, file a separate bead.
 - Removing the `data.tags` JSON entries from existing rows. Pure cleanup;
   defer to a follow-up like `@km/storage/data-fossil-removal`.
 - The frontmatter `tags:` YAML list authored by the user. That stays —
-  but is parsed as wikilinks at read time, not stored as a parallel list.
+  it is parsed into wikilinks at read time, not stored as a parallel
+  list (after Phase A).
 
 ## Pairs with
 

@@ -42,14 +42,30 @@ field carries no information the file's location doesn't already provide.
 
 - Serializer stops emitting the `id:` YAML field on new writes. Existing
   entries stay as fossils — harmless.
-- Loader stops reading the `id:` YAML field. Node identity is determined
-  by:
+- Loader stops reading the `id:` YAML field into `data.id`. Node
+  identity is determined by:
   - File location on disk → path (derived) → resolver delegation to id
   - `aliases:` YAML field (universal alias mechanism, see
     `@km/storage/aliases-first-class`) — for legacy bd-form ids in
     imported vaults
 - Tests that grep `id: "@km/..."` in fresh beads either drop the
   assertion or rewrite to assert the absence of the field.
+
+### Existing `data.id` reads to migrate (per 2026-05-03 arch review)
+
+Three production code paths currently read `data.id`:
+
+1. `packages/km-storage/src/repo/loader.ts:1189` — canonical-id stamping
+   during file ingest.
+2. `packages/km-storage/src/repo/repo.ts:1416` — bead-related lookup.
+3. `packages/km-storage/src/repo/move-with-refs.ts:281` — rename/move
+   alias-preservation snapshot.
+
+When the loader stops populating `data.id` from the YAML field, these
+three readers degrade. The fix is to derive the canonical id from the
+file's location on disk (`fs_path` → strip `./` and `.md`) at each read
+site instead. **This is part of the paired `data-id-stop-writing` work**
+— ship together.
 
 ## Acceptance
 

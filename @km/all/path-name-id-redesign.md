@@ -173,8 +173,50 @@ The earlier "Phase C: rename `bd` to `task`" idea is dropped.
   **not** `treePathOf`. The pure tree-walk version is already shipped as
   `KTree.path()`.
 - A `treePathOf` helper is intentionally not introduced — no consumer.
+- `fsNameOf` helper deferred — only ONE inline `basename(node.fs_path)`
+  caller exists today.
 - `node_plane_map` table for future multi-plane materialization is
   speculative-generality; dropped from backlog.
+
+### 2026-05-03 deep-dive arch review of newly-filed beads
+
+After filing the universal-data-model bead set, ran an arch-agent
+deep-dive review checking each bead against existing code for
+duplication and mis-placement. Three real issues caught + several
+clarifications:
+
+1. **`@km/markdown/props-not-frontmatter` was misfiled.** All work
+   happens **outside** `@km/markdown`. **Re-parented to `@km/all`.**
+2. **`@km/all/drop-data-tags` had an unverified prerequisite.** The
+   bead assumed the markdown serializer emits `#P<n>` / `#<type>`
+   wikilinks for priority/type — it does NOT. Bead reframed as a
+   3-phase plan: Phase A adds the wikilink emission + round-trip test;
+   only after that ships do Phase B (migrate readers to `links` table)
+   and Phase C (stop writing `data.tags`). Without Phase A,
+   `bd list --priority P1` would return zero rows.
+3. **`@km/storage/deps-first-class` proposed a column when a function
+   suffices.** Existing `deps` SQLite table (schema v7) already
+   trigger-indexes `data.props["blocked-by"]`. Simpler fix: have the
+   YAML-frontmatter loader feed `data.dependencies` into
+   `data.props["blocked-by"]` so both authoring forms hit the existing
+   trigger path. No new column. Bead rewritten.
+4. **`@km/all/path-name-orthogonal-vocabulary` had an internal
+   contradiction** — acceptance section said `treePathOf` exists; body
+   said don't introduce it. Acceptance fixed; `fsNameOf` deferred to
+   YAGNI (only one inline caller).
+5. **`@km/storage/extract-resolveref` had a soft "after
+   `aliases-first-class` lands" qualifier on alias resolution** —
+   removed; alias resolution works on initial extract via the existing
+   JSON read.
+6. **`@km/all/drop-shortid-concept` external-caller count: 2** for
+   `resolveShortId` (both in km-cli), and zero for the generators.
+   Smaller sweep than originally implied.
+7. **`@km/beads/frontmatter-path-rename` enumerated the 3 storage-side
+   `data.id` reads** (loader.ts:1189, repo.ts:1416, move-with-refs.ts:281)
+   that need to migrate alongside the YAML drop.
+
+The arch agent's full report is in this session's transcript on
+2026-05-03; key file:line refs are captured in each affected bead.
 
 ## Plan corrections from /pro 4-leg review (2026-04-30)
 

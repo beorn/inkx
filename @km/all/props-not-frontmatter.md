@@ -1,16 +1,22 @@
 ---
-id: "@km/markdown/props-not-frontmatter"
+id: "@km/all/props-not-frontmatter"
 aliases:
+  - km-all.props-not-frontmatter
+  - km-all-props-not-frontmatter
   - km-markdown.props-not-frontmatter
   - km-markdown-props-not-frontmatter
 created_by: claude:bjorns-2026-05-03
 created_at: 2026-05-03T15:30:00Z
 type: docs
 priority: P3
-parent: "@km/markdown"
+parent: "@km/all"
 ---
 
-# Vocabulary: "frontmatter" is markdown serialization, "props" is the data concept @km/markdown #docs #P3
+# Vocabulary: "frontmatter" is markdown serialization, "props" is the data concept @km/all #docs #P3
+
+(Re-parented from `@km/markdown/props-not-frontmatter` on 2026-05-03 per
+arch review — the bead's work happens **outside** `@km/markdown`, so
+`@km/all` is the correct cross-cutting parent. Old aliases retained.)
 
 Per the 2026-05-03 reframe of the path/name/id epic: in km's universal data
 model, **there is no "frontmatter."** Frontmatter is a markdown
@@ -39,6 +45,12 @@ used in the right place.
 ```
 rg -n 'frontmatter' packages/km-* apps/km-* --type ts | grep -v 'km-markdown'
 ```
+
+Per the 2026-05-03 arch review: **~213 mentions outside `@km/markdown`**
+(of 302 total in the codebase). Hot files: `packages/km-storage/src/repo/{repo,move-with-refs,loader}.ts`,
+`packages/km-fs-mount/src/watch/`, `apps/km-cli/src/import/`,
+`packages/km-board/src/{tree-lens,view-lens-helpers}.ts`. Larger sweep
+than first scoped — judge per-line, not a blind replace.
 
 For each hit, judge:
 

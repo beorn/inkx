@@ -10,63 +10,72 @@ priority: P2
 parent: "@km/storage"
 ---
 
-# Consolidate `deps` as a first-class universal prop @km/storage #refactor #P2
+# Consolidate frontmatter `dependencies:` into the existing inline `blocked-by` index @km/storage #refactor #P2
 
-Today, dependencies live in two places with different shapes:
+Today, dependencies have two source-of-truth representations:
 
-- `data.dependencies` — frontmatter `dependencies:` array on file beads.
-- `data.props["blocked-by"]` — Logseq-style inline property; indexed by the
-  `deps` SQLite table via triggers.
+- `data.dependencies` — YAML-frontmatter `dependencies:` array on file beads
+  (`packages/km-beads/src/migrate.ts:187-189`,
+  `packages/km-beads/src/data-schema.ts:137`). **Round-trips for serialization
+  but no SQL reads it.** Effectively a write-only fossil today.
+- `data.props["blocked-by"]` — Logseq-style inline property. Indexed by the
+  `deps` SQLite table (`packages/km-storage/src/db/schema.ts:117-172`) via
+  triggers that read `data.props["blocked-by"]` JSON only.
 
-Per the 2026-05-03 reframe: dependencies are a **universal** node concept (a
-note can depend on a note, a calendar entry on a task, anything on anything)
-and the data model should have one canonical home for them. This bead
-consolidates the two representations into one first-class authored list,
-keeping the indexed `deps` table as the reverse-lookup cache.
+Per the 2026-05-03 arch review: this is a **real divergence** (frontmatter
+form is unindexed; inline form is indexed). But the simplest fix is **not** a
+new column — the `deps` table already does what we need. The fix is to make
+the YAML-frontmatter loader populate `data.props["blocked-by"]` so both
+authoring forms feed the existing trigger-indexed path.
 
 ## Why
 
-- Two parallel representations of the same concept invite drift —
-  authoring tools can write one and not the other; the resolver has to
-  check both.
-- Logseq-style inline `blocked-by::` is the more general pattern (it
-  works on any block, not just file headers); the frontmatter list is a
-  YAML-specific affordance.
-- Once `node.deps` is first-class, the indexed `deps` table becomes pure
-  reverse-lookup (target → host), no longer needing different paths for
-  frontmatter vs. inline.
+- Two parallel representations invite drift — `bd create --dependency
+  @km/foo` (writes frontmatter) and an inline `blocked-by:: [[@km/foo]]`
+  (writes prop) end up in different storage shapes; the trigger only
+  catches the second.
+- Logseq-style inline `blocked-by::` is the more general pattern (works
+  on any block) and is already trigger-indexed.
+- A new `node.deps` column would duplicate the existing `deps` table's
+  job. **YAGNI** — extend the loader, not the schema.
 
 ## Implementation sketch
 
-1. Promote to first-class authored list:
-   - Either a `nodes.deps` column (JSON-encoded) or a normalized
-     `node_deps(node_id, target, kind?)` table. Lean toward normalized —
-     the indexed `deps` table already exists in this shape, and the
-     authored list could just BE the `deps` table.
-2. Reconcile representations:
-   - On read: parse both `data.dependencies` (legacy frontmatter) and
-     `data.props["blocked-by"]` (inline) into the same `node.deps`.
-   - On write: emit one canonical form per consumer (frontmatter for file
-     beads, inline for in-body deps).
-3. Indexed lookup stays unchanged: `SELECT host_id FROM deps WHERE target
-   = ?` for "what depends on X."
+1. **Loader-side merge**: in the bead/frontmatter loader, when
+   `data.dependencies: [target1, target2, ...]` is parsed, write each
+   target into `data.props["blocked-by"]` in the inline-prop shape:
+   ```json
+   { "type": "list", "values": [
+     { "type": "link", "target": "target1" },
+     { "type": "link", "target": "target2" }
+   ]}
+   ```
+   (Match the shape the trigger at `schema.ts:127-133` already expects.)
+2. The existing INSERT/UPDATE triggers (`schema.ts:117-156`) then write
+   the `deps` rows. Indexing is automatic.
+3. **No schema change.** No new column. No new table.
+4. Frontmatter `dependencies:` stays as a write-side affordance for
+   YAML-first authoring; inline `blocked-by::` stays as the body-prose
+   form. Both feed the same trigger-indexed `data.props["blocked-by"]`.
 
 ## Acceptance
 
-- `node.deps` (or equivalent) is the single read-side surface for
-  authored dependencies, regardless of authoring form.
-- The indexed `deps` table stays the reverse-lookup primitive.
-- Writes: existing producers (frontmatter parser, inline-prop parser) feed
-  the same path.
-- Round-trip test: file bead with `dependencies: [@km/foo]` and bead
-  with `blocked-by:: [[@km/foo]]` both surface the same `node.deps`.
+- A bead with frontmatter `dependencies: [@km/foo]` produces a row in
+  the `deps` table after `repo.sync()`.
+- A bead with inline `blocked-by:: [[@km/foo]]` produces the same row.
+- Round-trip test asserts `SELECT target FROM deps WHERE host_id = ?`
+  returns the dep regardless of authoring form.
+- No new schema column or table. The fix is in the loader, not the DB.
 
 ## Out of scope
 
 - Removing the inline-prop syntax. Logseq-style props are universal and
   stay.
 - Removing the frontmatter `dependencies:` syntax. Stays for YAML-first
-  consumers.
+  authoring; this bead just wires the parser to feed the existing index.
+- A `node.deps` column or `node_deps` table. The arch review (2026-05-03)
+  explicitly rejected this as YAGNI — the `deps` table already exists
+  and serves the read pattern.
 
 ## Pairs with
 

@@ -55,6 +55,17 @@ This bead removes the concept from the surface.
   reintroduction of `shortId` as a fresh identifier outside the migrate
   package.
 
+## Sweep size (verified 2026-05-03 arch review)
+
+- **`generateShortId` / `generateCustomId` / `generateSubId`**: zero
+  external callers. Pure internal rename in `@km/beads`.
+- **`resolveShortId`**: 2 external callers —
+  `apps/km-cli/src/utils/resolve-task.ts:9` (comment only),
+  `apps/km-cli/tests/resolve-task.test.ts:78`. Update both.
+
+The full sweep is small. Most of the work is the rename inside
+`@km/beads` itself; cross-package surface is minimal.
+
 ## Depends on
 
 - `@km/storage/extract-resolveref` — universal resolver must exist before
