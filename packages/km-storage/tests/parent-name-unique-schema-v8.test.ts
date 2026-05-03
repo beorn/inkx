@@ -1,15 +1,20 @@
 /**
- * Schema v8 — partial UNIQUE INDEX on (parent_id, name) for fs-materialized
- * nodes (`fstype IS NOT NULL AND name IS NOT NULL`).
+ * Schema v8 — partial UNIQUE INDEX on (parent_id, name) for on-disk
+ * materialized rows only (`fstype IN ('repo','folder','file','mdfile',
+ * 'txtfile') AND name IS NOT NULL`).
  *
  * Catches watcher-bug ambiguity at the storage seam: when a rename or atomic
  * write briefly produces two rows sharing parent_id + name for the same
  * fstype, the constraint fails the bad write atomically instead of leaking
- * an "ambiguous resolution" condition further down the stack. Mdsections
- * (fstype IS NULL) are deliberately excluded because `## Goals` appearing
- * twice in one file is valid markdown.
+ * an "ambiguous resolution" condition further down the stack. Mdsection
+ * rows (fstype = "mdsection") are deliberately excluded because `## Goals`
+ * appearing twice in one file is valid markdown.
  *
  * Tracked by `@km/storage/parent-name-unique-partial`.
+ *
+ * 2026-05-03 hotfix: original predicate was `fstype IS NOT NULL` which
+ * incorrectly caught `mdsection` rows (they have `fstype = "mdsection"`,
+ * not NULL). Predicate narrowed to the explicit on-disk tier list.
  */
 
 import { Database, SQLiteError } from "bun:sqlite"
@@ -38,21 +43,27 @@ function insertNode(db: Database, opts: InsertOpts): void {
   ).run(opts.id, opts.parentId, opts.name, opts.fstype, NOW, NOW)
 }
 
-describe("schema v8 — partial UNIQUE (parent_id, name) WHERE fstype IS NOT NULL", () => {
+describe("schema v8 — partial UNIQUE (parent_id, name) for on-disk-materialized rows", () => {
   test("SCHEMA_VERSION is 8", () => {
     expect(SCHEMA_VERSION).toBe(8)
   })
 
-  test("fresh DB has idx_nodes_parent_name_fstype", () => {
+  test("fresh DB has idx_nodes_parent_name_fstype with the on-disk-tier predicate", () => {
     const db = freshDb()
     const row = db
       .query("SELECT name, sql FROM sqlite_master WHERE type='index' AND name='idx_nodes_parent_name_fstype'")
       .get() as { name: string; sql: string } | null
     expect(row).not.toBeNull()
-    // Confirm the partial predicate is present — guards against a future
-    // edit that promotes it to a non-partial UNIQUE (which would clobber
-    // legitimate mdsection name collisions).
-    expect(row!.sql).toMatch(/WHERE.*fstype\s+IS\s+NOT\s+NULL/i)
+    // Confirm the partial predicate enumerates the on-disk tier explicitly.
+    // Guards against a future edit that broadens the predicate back to
+    // `fstype IS NOT NULL` (which catches legitimate mdsection collisions)
+    // or narrows it further (which would miss watcher-rename windows).
+    expect(row!.sql).toMatch(/WHERE.*fstype\s+IN\s*\([^)]*'repo'/i)
+    expect(row!.sql).toMatch(/'folder'/i)
+    expect(row!.sql).toMatch(/'file'/i)
+    expect(row!.sql).toMatch(/'mdfile'/i)
+    expect(row!.sql).toMatch(/'txtfile'/i)
+    expect(row!.sql).not.toMatch(/'mdsection'/i)
     expect(row!.sql).toMatch(/name\s+IS\s+NOT\s+NULL/i)
   })
 
@@ -68,18 +79,28 @@ describe("schema v8 — partial UNIQUE (parent_id, name) WHERE fstype IS NOT NUL
     expect(() => insertNode(db, { id: "b", parentId: "parent-1", name: "foo", fstype: "file" })).toThrow(SQLiteError)
   })
 
-  test("ALLOWS: two mdsections (fstype = NULL) with same (parent_id, name)", () => {
+  test("ALLOWS: two mdsections (fstype = 'mdsection') with same (parent_id, name)", () => {
     const db = freshDb()
     // `## Goals` twice in the same file is valid markdown.
-    insertNode(db, { id: "a", parentId: "file-1", name: "Goals", fstype: null })
-    expect(() => insertNode(db, { id: "b", parentId: "file-1", name: "Goals", fstype: null })).not.toThrow()
+    insertNode(db, { id: "a", parentId: "file-1", name: "Goals", fstype: "mdsection" })
+    expect(() => insertNode(db, { id: "b", parentId: "file-1", name: "Goals", fstype: "mdsection" })).not.toThrow()
   })
 
-  test("ALLOWS: an fs row alongside a section row with the same name", () => {
+  test("ALLOWS: an fs row alongside an mdsection row with the same name", () => {
     const db = freshDb()
     // The partial predicate excludes the mdsection from the unique set.
     insertNode(db, { id: "file", parentId: "parent-1", name: "foo", fstype: "file" })
-    expect(() => insertNode(db, { id: "section", parentId: "parent-1", name: "foo", fstype: null })).not.toThrow()
+    expect(() =>
+      insertNode(db, { id: "section", parentId: "parent-1", name: "foo", fstype: "mdsection" }),
+    ).not.toThrow()
+  })
+
+  test("ALLOWS: two unanchored blocks (fstype = NULL) with same (parent_id, name)", () => {
+    const db = freshDb()
+    // Paragraphs and other unanchored blocks have fstype = NULL and are
+    // also excluded from the unique set.
+    insertNode(db, { id: "a", parentId: "file-1", name: null, fstype: null })
+    expect(() => insertNode(db, { id: "b", parentId: "file-1", name: null, fstype: null })).not.toThrow()
   })
 
   test("ALLOWS: row with fstype set but name = NULL (repo root)", () => {

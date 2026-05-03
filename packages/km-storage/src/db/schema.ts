@@ -53,17 +53,27 @@
  *       Triggers run on INSERT / UPDATE / DELETE of `nodes`, keeping deps
  *       tight to the JSON without an extra application-level write path.
  *   8 — nodes: partial UNIQUE INDEX on (parent_id, name) restricted to
- *       fs-materialized rows. Catches watcher-bug ambiguity at the storage
- *       seam (when rename / atomic-write events briefly produce two rows
- *       sharing the same parent and name for the same fstype). Predicate is
- *       `WHERE fstype IS NOT NULL AND name IS NOT NULL` — mdsections
- *       (fstype = NULL) deliberately keep the right to share names because
- *       `## Goals` appearing twice in one file is valid markdown, and the
- *       repo root row (fstype set, name NULL) is excluded by the second
- *       conjunct. Migration runs an explicit pre-flight duplicate check and
- *       refuses to run on a vault with violations rather than silently
- *       failing or losing data — the user is told exactly what to fix.
- *       Tracked by `@km/storage/parent-name-unique-partial`.
+ *       on-disk-materialized rows. Catches watcher-bug ambiguity at the
+ *       storage seam (when rename / atomic-write events briefly produce
+ *       two rows sharing the same parent and name for the same fstype).
+ *       Predicate is `WHERE fstype IN ('repo','folder','file','mdfile',
+ *       'txtfile') AND name IS NOT NULL` — `mdsection` is excluded
+ *       deliberately because `## Goals` appearing twice in one file is
+ *       valid markdown, and the repo root row (fstype='repo', name NULL)
+ *       is excluded by the second conjunct. The OS filesystem already
+ *       enforces uniqueness for repo/folder/file/mdfile/txtfile rows, so
+ *       this index mirrors that invariant in SQL. Migration runs an
+ *       explicit pre-flight duplicate check and refuses to run on a vault
+ *       with violations rather than silently failing or losing data — the
+ *       user is told exactly what to fix. Tracked by
+ *       `@km/storage/parent-name-unique-partial`.
+ *
+ *       2026-05-03 hotfix: original predicate `fstype IS NOT NULL` was
+ *       wrong — `mdsection` rows do have `fstype = "mdsection"` (not NULL),
+ *       so the constraint caught legitimate duplicate `## Section`
+ *       headings. Predicate narrowed to the explicit on-disk tier list.
+ *       The OS-already-enforces-uniqueness argument (originally cited as
+ *       reason to drop the index) applies exactly to this tier list.
  */
 export const SCHEMA_VERSION = 8
 
@@ -229,12 +239,15 @@ CREATE INDEX IF NOT EXISTS idx_nodes_task_status ON nodes(task_status);
 CREATE INDEX IF NOT EXISTS idx_nodes_assigned ON nodes(assigned_to);
 CREATE INDEX IF NOT EXISTS idx_nodes_due_at ON nodes(due_at);
 CREATE INDEX IF NOT EXISTS idx_nodes_name ON nodes(name);
--- Partial UNIQUE on (parent_id, name) for filesystem-materialized nodes only.
--- See SCHEMA_VERSION=8 history above. mdsections (fstype IS NULL) deliberately
--- keep the right to collide on name; the repo root (fstype set, name IS NULL)
--- is excluded by the second conjunct.
+-- Partial UNIQUE on (parent_id, name) for on-disk-materialized rows only.
+-- See SCHEMA_VERSION=8 history above. mdsection (fstype = "mdsection")
+-- rows are excluded so duplicate "## Goals" headings in the same file
+-- stay legal; the repo root row (fstype='repo', name IS NULL) is excluded
+-- by the second conjunct.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_nodes_parent_name_fstype
-  ON nodes(parent_id, name) WHERE fstype IS NOT NULL AND name IS NOT NULL;
+  ON nodes(parent_id, name)
+  WHERE fstype IN ('repo', 'folder', 'file', 'mdfile', 'txtfile')
+    AND name IS NOT NULL;
 
 -- Full-text search
 -- unicode61 tokenchars keeps @#+~ as part of tokens so sigil queries like
@@ -647,7 +660,9 @@ function migrateVersioned(db: import("bun:sqlite").Database): MigrateResult {
     // Re-run it here so the migration is self-contained.
     db.run(
       "CREATE UNIQUE INDEX IF NOT EXISTS idx_nodes_parent_name_fstype " +
-        "ON nodes(parent_id, name) WHERE fstype IS NOT NULL AND name IS NOT NULL",
+        "ON nodes(parent_id, name) " +
+        "WHERE fstype IN ('repo', 'folder', 'file', 'mdfile', 'txtfile') " +
+        "AND name IS NOT NULL",
     )
   }
 
@@ -668,7 +683,8 @@ function enforceParentNameUniqueOrThrow(db: import("bun:sqlite").Database): void
     .query(
       `SELECT parent_id, name, COUNT(*) AS n
          FROM nodes
-        WHERE fstype IS NOT NULL AND name IS NOT NULL
+        WHERE fstype IN ('repo', 'folder', 'file', 'mdfile', 'txtfile')
+          AND name IS NOT NULL
         GROUP BY parent_id, name
         HAVING COUNT(*) > 1
         LIMIT 5`,
@@ -680,10 +696,12 @@ function enforceParentNameUniqueOrThrow(db: import("bun:sqlite").Database): void
   const lines = dupes.map((d) => `  parent_id=${d.parent_id ?? "(root)"}  name=${JSON.stringify(d.name)}  count=${d.n}`)
   throw new Error(
     "v7 → v8 migration aborted: existing rows violate the partial UNIQUE " +
-      "INDEX (parent_id, name) WHERE fstype IS NOT NULL AND name IS NOT NULL.\n" +
+      "INDEX (parent_id, name) WHERE fstype IN " +
+      "('repo','folder','file','mdfile','txtfile') AND name IS NOT NULL.\n" +
       "Resolve these duplicates and re-run:\n" +
       lines.join("\n") +
-      "\n(Showing up to 5; query nodes WHERE fstype IS NOT NULL GROUP BY parent_id, name " +
+      "\n(Showing up to 5; query nodes WHERE fstype IN " +
+      "('repo','folder','file','mdfile','txtfile') GROUP BY parent_id, name " +
       "HAVING COUNT(*) > 1 for the full list.)",
   )
 }
