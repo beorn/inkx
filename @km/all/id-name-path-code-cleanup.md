@@ -51,10 +51,17 @@ Don't rename the FLAGS themselves — that breaks bd compat. Rename the INTERNAL
 
 **Function and module names:**
 
-- `resolveShortId` → `resolveRef` (or `resolveBeadRef`) — the function resolves any reference form, not "short ids" specifically.
-- `bdIdToPathForm` → `bdRefToPath` (or fold into `pathOf` from `@km/all/path-derivation-helper`).
-- `bdIdToPathFormWithSlug` → `bdRefToPathWithSlug` or similar.
-- `generateShortId` → `generateInternalId` or `mintBeadUlid`.
+The `shortId` family rename is **out of scope of this bead** — it has its
+own focused bead now: `@km/all/drop-shortid-concept` (P2). That bead
+handles `resolveShortId → resolveRef`, `generateShortId → mintBeadName`,
+`generateCustomId → bdRefToPath`, and the `shortId` variable-name sweep.
+
+This bead's remaining function-rename scope:
+
+- `bdIdToPathForm` (in `@km/beads/migrate.ts` if it stays bd-import-only,
+  otherwise universal) — confirm location after the migrate package
+  reorganization settles.
+- Other id-vs-name-vs-path-vs-ref discipline issues found by grep.
 
 **Frontmatter field:**
 

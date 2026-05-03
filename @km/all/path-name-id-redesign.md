@@ -59,27 +59,122 @@ Three concepts, distinct (per `docs/design/model/storage.md:761-787`):
 - ❌ `@km/storage/parent-name-unique` — fs_path uniqueness is enforced by the OS filesystem; mdsection name collisions are valid. Not needed.
 - ❌ Path / Name / NodeRef value objects, PathBuilder, PathDelta, PathScope, PathPattern, PathSegment enum, MaterializedPath, AliasIndex registry, Resolver unifying interface — YAGNI verdict from /big session. Three concepts already modeled correctly via KNode fields + pathOf derivation.
 
-### Backlog (revised after /pro 4-leg review on 2026-04-30 — see "Plan corrections" below)
+### Backlog (revised through 2026-05-03 — see "Plan corrections" + "2026-05-03 reframe" below)
 
-- ✅ `@km/beads/path-name-id-test-bolster` (P0) — regression tests landed in commit `ab0d2f082` (`apps/km-cli/tests/bd-create-arg-shapes.test.ts`, 13 tests across 3 layers). `seedBead()` helper still local in `resolve-id.property.test.ts`; promoting to shared deferred to `data-id-stop-writing`.
-- ✅ `@km/tree/ktree-path-method` (P2) — `KTree.path(tree, id)` shipped in `packages/km-tree/src/walk.ts` with 7 tests. Cache-free walk, `KTree.PATH_MAX_DEPTH = 64`.
-- ✅ `@km/all/id-name-path-code-cleanup` (**P1, promoted from P2** per arch-agent recommendation) — partial: 6-site `pathOf()` migration **shipped** (km-storage `repo.ts`, `move-with-refs.ts` ×2, `db/links.ts`, `testing/fake-repo.ts`; km-cli `commands/broken-links.ts`). Variable/function-name sweep (`resolveShortId` → `resolveRef`, `bdIdToPathForm` → `bdRefToPath`, etc.) still pending.
-- 📋 `@km/all/rename-content-cascade` (**P1, was P2**) — content-layer batch update of wikilinks/mentions when a node's path changes. **CORRECTNESS, not UX**: per Gemini's argument, DB rebuild from disk reads stale `[[@km/beads/foo]]` text → fails to resolve → DB link table records broken link. Text content IS canonical in markdown-based system.
-- 📋 `@km/beads/data-id-stop-writing` (P2) — stop writing `data.id` (= path-form) into bead frontmatter. Coupled with next bead; ship together.
-- 📋 `@km/beads/frontmatter-path-rename` (**P2, was P3**) — rename frontmatter `id:` → `path:` OR remove entirely. **Promoted from P3** because it's atomically coupled with `data-id-stop-writing` per /pro consensus.
-- ✅ `@km/storage/parent-name-unique-partial` (P2) — schema v8 partial UNIQUE shipped in commit `6e7846a1d`. Pre-flight duplicate check, 11 tests, idempotent migration.
-- ✅ `@km/all/storage-doc-three-concepts` (P3) — `docs/design/model/storage.md` updated 2026-05-01 with /pro additions in same commit `6e7846a1d`: three-concept resolution-order callout, `fstype` vs `type`, anchor handling, slug stability, slug case-normalization, `fs_path` canonical-cache. Bead remains open for downstream doc updates (knode.md, package CLAUDE.mds).
+**Shipped:**
 
-### YAGNI verdict on new domain interface objects (re-verified 2026-04-30)
+- ✅ `@km/beads/path-name-id-test-bolster` (P0) — regression tests landed in commit `ab0d2f082` (`apps/km-cli/tests/bd-create-arg-shapes.test.ts`, 13 tests across 3 layers).
+- ✅ `@km/tree/ktree-path-method` (P2) — `KTree.path(tree, id)` shipped in commit `c8c98bfd1`. Cache-free walk, `KTree.PATH_MAX_DEPTH = 64`.
+- ✅ `@km/all/id-name-path-code-cleanup` (P1, **partial**) — 6-site `pathOf()` migration shipped in `c8c98bfd1`. Function-rename sweep moved to a focused sister bead (`@km/all/drop-shortid-concept`). This bead's remaining scope is general id/name/path/ref vocabulary discipline.
+- ✅ `@km/storage/parent-name-unique-partial` (P2) — schema v8 partial UNIQUE shipped in commit `6e7846a1d`; predicate hotfix in `fe08e9734` (mdsection has fstype="mdsection", not NULL, so predicate narrowed to explicit on-disk tier list).
+- ✅ `@km/all/storage-doc-three-concepts` (P3, **partial**) — `docs/design/model/storage.md` updated in `6e7846a1d` with /pro additions. Per-package CLAUDE.mds + `knode.md` updates still pending.
 
-Second arch-agent independent review confirmed the prior /big YAGNI verdict
-on `Path` brand / `NodeRef` discriminated union / `PathManipulation`
-namespace / `Resolver` unifying interface. Strongest action item identified
-was the 6-site `pathOf()` migration, now shipped. No new abstractions filed.
+**Pending (universal data model — high priority):**
+
+- 📋 `@km/storage/extract-resolveref` (P1) — universal `resolveRef` in `@km/storage`. The 4-step ladder is now considered all-universal (alias step is universal once `aliases-first-class` lands). `resolveShortId` becomes a deprecated re-export.
+- 📋 `@km/storage/aliases-first-class` (P2, NEW 2026-05-03) — promote `data.aliases` JSON to a first-class node field. Aliases are universal, not bead-specific. Prerequisite for clean resolver step-3.
+- 📋 `@km/storage/deps-first-class` (P2, NEW 2026-05-03) — consolidate `data.dependencies` (frontmatter list) and `data.props["blocked-by"]` (inline) into one canonical `node.deps` field. Indexed `deps` table stays as reverse-lookup cache.
+- 📋 `@km/all/drop-shortid-concept` (P2, NEW 2026-05-03) — remove the "shortId" name. `resolveShortId` → `resolveRef`, `generateShortId` → `mintBeadName`, `generateCustomId` → `bdRefToPath`. Variable-name sweep.
+- 📋 `@km/all/path-name-orthogonal-vocabulary` (P3) — document the 2×2 (tree × fs × name × path), rename `pathOf` → `fsPathOf` (NOT `treePathOf`), add `fsNameOf`. Updated 2026-05-03 with the corrected rename target.
+- 📋 `@km/storage/seed-file-node-helper` (P2) — universal test helper for fs-materialized node seeding. Prerequisite for deleting the deprecated step-4 fallback in the resolver.
+- 📋 `@km/beads/seed-bead-as-thin-wrapper` (P3) — 5-line bd-CLI-side wrapper around `seedFileNode` with bd-conventional defaults.
+
+**Pending (universal data model — medium priority):**
+
+- 📋 `@km/all/rename-content-cascade` (**P1, was P2**) — content-layer batch update of wikilinks/mentions when a node's path changes. Correctness, not UX.
+- 📋 `@km/beads/data-id-stop-writing` (P2) — stop writing `data.id` JSON. Pairs with `frontmatter-path-rename`.
+- 📋 `@km/beads/frontmatter-path-rename` (P2, **reframed 2026-05-03**) — drop the redundant `id:` YAML field (do NOT rename to `path:`). The data model has props, not frontmatter; the YAML key was redundant with the file's location.
+- 📋 `@km/markdown/props-not-frontmatter` (P3, NEW 2026-05-03) — vocabulary discipline: outside `@km/markdown`, use "props" not "frontmatter". The data model has no frontmatter concept.
+- 📋 `@km/all/drop-data-tags` (P3, NEW 2026-05-03) — drop the `data.tags` denormalization. Tags are wikilinks; queries go through the `links` table.
+
+### YAGNI verdict on new domain interface objects (re-verified 2026-04-30, re-confirmed 2026-05-03)
+
+Three independent arch-agent reviews + two /pro 4-leg reviews converged on the
+same verdict: no `Path` brand, no `NodeRef` discriminated union, no
+`PathBuilder`/`PathDelta`/`PathScope`/`PathPattern`/`PathSegment`/`MaterializedPath`/`AliasIndex`/`Resolver`
+unifying interface. Plain strings + KNode fields + named seam functions
+(`pathOf`, `KTree.path`, `resolveRef`) cover every actual consumer.
+
+The 2026-05-03 reframe also dropped a candidate from the GPT-5.4 Pro
+review: `node_plane_map(node_id, plane, key)` table for future
+multi-plane materialization. Speculative-generality before the second
+plane exists; vocabulary > schema for now.
 
 ### Dropped (decided not to do)
 
 - ❌ `@km/storage/drop-fs-path-derive-from-name` — DROPPED on /pro review reflection. Reasoning: `fs_path` is a legitimate canonical cache mirrored from the filesystem (which is ground truth, not km). The OS owns file paths; we mirror to `fs_path` for O(log N) queries. The duplication concern applied to `data.id` (TWO places we maintain — JSON + would-be column); `fs_path` is ONE place, kept consistent with the OS. Watcher/reconciler/move-detection all need it. Performance: O(log N) index hit vs O(depth) recursive CTE per resolve. **Formalize fs_path as canonical cache in `storage-doc-three-concepts` instead of dropping it.**
+
+## 2026-05-03 reframe — universal data model, beads as CLI surface only
+
+Multi-day discussion (user + /pro 4-leg + multiple arch-agent reviews) converged
+on a sharper framing than the original epic captured. The shifts:
+
+### What "thin beads" actually means
+
+`@km/beads` is over-scoped. It bundles four concerns that each have a more
+natural home:
+
+1. **Universal node operations** (resolver, file materialization, `Bead.create`
+   factory, lifecycle verbs like close/drop/claim) → `@km/storage`.
+2. **Universal frontmatter shape concerns** → `@km/markdown` (parser owns YAML;
+   data layer talks "props," not "frontmatter").
+3. **bd CLI surface** (`km bd create`, `km bd list`, …) → stays as a CLI
+   profile. The `bd` verb prefix supports bd-compatibility; the underlying
+   operations are universal.
+4. **bd-import / bd-form alias translation** → `@km/migrate` (or stays in
+   `@km/beads/migrate.ts` as a focused module).
+
+After distribution, `@km/beads` is essentially the bd CLI compat module
+plus a name generator. The data model carries **zero** beads-specific
+concepts — no `type: "bead"`, no isBead predicate, no Bead aggregate.
+
+### What `bd create` needs is auto-name-generation, not a "shortId"
+
+The `shortId` concept does not exist in km's data model. The three handles
+are id (ULID), name (segment), path (composed); plus the alias mechanism
+(an extra string that resolves to a node). When `bd create` runs without
+an explicit `--id`/`--path`, it auto-generates a node `name` (e.g.
+`km-q5hji`) — that's a name generator, not a separate handle type.
+
+Captured in `@km/all/drop-shortid-concept` (P2).
+
+### Universal data model: aliases, deps, no frontmatter, no tags
+
+Per the user's direction:
+
+- **Frontmatter doesn't exist in the data model.** It's a markdown
+  serialization concept. The data model has props — typed columns
+  (status, priority, due_at, …) plus a `data` JSON escape hatch.
+- **Tags don't exist as a separate field.** A hashtag like `#P1` is a
+  wikilink to a node named `#P1`. The `links` table indexes wikilinks;
+  `data.tags` is a denormalization that goes away.
+- **Aliases are universal.** `data.aliases` becomes `node.aliases` —
+  any node can have alternate names.
+- **Deps are universal.** `data.dependencies` and `data.props["blocked-by"]`
+  consolidate into one canonical `node.deps` field.
+
+Captured in `@km/markdown/props-not-frontmatter`, `@km/all/drop-data-tags`,
+`@km/storage/aliases-first-class`, `@km/storage/deps-first-class`.
+
+### km CLI is verb-first; no `task <subcommand>` namespace
+
+The km CLI gets verb-first commands operating on `<ref>`:
+`km view`, `km add`, `km close`, `km status`, `km claim`, `km move`, …
+There is no `task <subcommand>` namespace because **task is a property of
+a node, not an object type**. A node is a task when its props say so.
+`km bd <subcommand>` stays as a bd-compat profile that maps to the
+universal verbs underneath.
+
+The earlier "Phase C: rename `bd` to `task`" idea is dropped.
+
+### Vocabulary corrections from arch-agent reviews
+
+- The rename target for `pathOf` is `fsPathOf` (it reads `fs_path`),
+  **not** `treePathOf`. The pure tree-walk version is already shipped as
+  `KTree.path()`.
+- A `treePathOf` helper is intentionally not introduced — no consumer.
+- `node_plane_map` table for future multi-plane materialization is
+  speculative-generality; dropped from backlog.
 
 ## Plan corrections from /pro 4-leg review (2026-04-30)
 

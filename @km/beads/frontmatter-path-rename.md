@@ -10,39 +10,64 @@ priority: P3
 parent: "@km/beads"
 ---
 
-# Rename frontmatter `id:` to `path:` (or remove) — value is a path, not an id @km/beads #task #P3
+# Drop the redundant `id:` field from bead YAML — path is the file location @km/beads #task #P3
 
-The bead frontmatter field currently called `id:` holds a path-form value (`@km/beads/foo`), not an id. Per the consistent path/name/id vocabulary established in `.claude/arch-decisions/2026-04-30-path-vs-ulid-as-sqlite-pkey.md`, this is a misnomer. Either rename to `path:` or remove the field entirely (the path is derivable from filename + parent walk).
+The bead-frontmatter YAML field currently called `id:` holds a path-form
+value (`@km/beads/foo`), which is redundant with the file's location on
+disk. Per the 2026-05-03 reframe (see `@km/all/path-name-id-redesign`):
 
-## Decision: rename or remove?
+- "Frontmatter" is a markdown serialization concern, not a data-model
+  concept (see `@km/markdown/props-not-frontmatter`).
+- The data model has props (id, name, path, status, …); some are
+  serialized as YAML keys, some as inline body markers, some derived.
+- Path is a derived prop — composed by parent-walk over names. Storing
+  it in YAML duplicates the file's on-disk location.
 
-**Lean: remove.** The path is derivable from the file's location on disk + name. Storing it in frontmatter creates the same staleness risk as `data.id`. The serializer can emit it for human-readable display (rendered preview), but it doesn't need to be the source of truth.
+**Decision: remove the `id:` YAML field.** Don't rename to `path:`. The
+field carries no information the file's location doesn't already provide.
 
-Counter-argument for `rename to path:`: makes the value easy to copy-paste into queries, useful for offline reading where the file's tree position isn't obvious. Mild ergonomic win.
+## Why remove (not rename)
 
-This is a P3 cleanup — defer the decision until the resolver and `data.id-stop-writing` work has settled. Once `data.id` is no longer load-bearing, evaluate whether the frontmatter field carries any non-redundant information.
+- The path is derivable from the file's location on disk + name. Storing
+  it in YAML creates the same staleness risk as `data.id`.
+- "Renaming to path:" would imply the YAML key is authoritative — but it
+  isn't; the file location is. Two sources of truth for path is the bug
+  this whole epic was started to address.
+- Counter-argument (originally cited): "easier to copy-paste from
+  rendered preview." Weak — rendered preview can show derived path as
+  display-only metadata; users copy from URL bars or path columns, not
+  from YAML.
 
-## If renaming
+## Implementation
 
-- Markdown serializer writes `path:` instead of `id:`.
-- Bead loader (`packages/km-beads/src/migrate.ts`?, plus the `.md → KNode` parser) reads either `path:` or `id:` (legacy fallback) for one transitional release.
-- Emit a deprecation warning when reading the legacy `id:` field.
-- After ≥1 release with the warning, drop the `id:` reader.
+- Serializer stops emitting the `id:` YAML field on new writes. Existing
+  entries stay as fossils — harmless.
+- Loader stops reading the `id:` YAML field. Node identity is determined
+  by:
+  - File location on disk → path (derived) → resolver delegation to id
+  - `aliases:` YAML field (universal alias mechanism, see
+    `@km/storage/aliases-first-class`) — for legacy bd-form ids in
+    imported vaults
+- Tests that grep `id: "@km/..."` in fresh beads either drop the
+  assertion or rewrite to assert the absence of the field.
 
-## If removing entirely
+## Acceptance
 
-- Serializer stops emitting the field on new writes. Existing `id:` entries stay (fossils).
-- Loader stops reading the field. Bead identity is fully determined by:
-  - File location on disk → path → walk → id
-  - Frontmatter `aliases:` (legacy bd-form ids for resolver fallback)
+- `bd show @km/beads/foo` works on freshly created beads (no `id:` field)
+  and on existing beads (with `id:` field, ignored).
+- New beads' `.md` files do not contain an `id:` YAML key.
+- Existing tests pass.
 
-## Acceptance (depends on which option lands)
+## Pairs with
 
-- For both: `bd show @km/beads/foo` works on freshly created beads (without `id:` field) and on existing beads (with `id:` field, ignored).
-- For remove: existing tests that grep `id: "@km/..."` in fresh beads stop passing (rewrite to grep `path:` if renamed, or drop the assertion if removed).
-- For rename: deprecation warning fires when reading legacy `id:`.
+- `@km/beads/data-id-stop-writing` (P2) — must ship together. The
+  serializer's emit of the `id:` YAML field is what motivated `data.id`
+  in the first place; both go away in one PR.
+- `@km/markdown/props-not-frontmatter` (P3) — establishes the vocabulary
+  this bead operates under.
 
 ## Related
 
-- Origin: `.claude/arch-decisions/2026-04-30-path-vs-ulid-as-sqlite-pkey.md`.
-- Depends on: `@km/beads/data-id-stop-writing` landing first.
+- Tracking epic: `@km/all/path-name-id-redesign`.
+- Origin: `.claude/arch-decisions/2026-04-30-path-vs-ulid-as-sqlite-pkey.md`,
+  reframed 2026-05-03.
