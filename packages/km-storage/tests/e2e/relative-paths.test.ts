@@ -93,35 +93,33 @@ describe("relative fs_path storage", () => {
 })
 
 describe("absolute path detection", () => {
-  test("throws IncompleteDatabase when disk DB contains absolute fs_path", () => {
+  test("schema migration auto-cleans absolute fs_path rows (pre-migration DB rebuilds from disk)", () => {
+    // Updated 2026-05-04: previously this test asserted that createRepo
+    // throws IncompleteDatabase when it encountered absolute fs_path. The
+    // schema migration now auto-cleans those rows (fs_path must be
+    // vault-relative; absolute values are illegal). Cleaned rows get
+    // re-discovered with correct shape on the next file walk — better UX
+    // than refusing to open the DB and forcing manual rebuild.
     const dir = createTempDir("abs-detect")
     setupFiles(dir)
     mkdirSync(join(dir, ".km"), { recursive: true })
 
-    // Manually create a state.db with absolute paths (simulates pre-migration DB)
     const dbPath = join(dir, ".km/state.db")
     const db = new Database(dbPath)
     db.run(SCHEMA)
-    // Set data_version to the current value so the data migration doesn't
-    // wipe these nodes before the absolute-path detection can check them.
-    // Bump in lockstep with DATA_VERSION in packages/km-storage/src/db/schema.ts.
     db.run("INSERT OR REPLACE INTO meta (key, value) VALUES ('data_version', '2')")
-    db.run(
-      `INSERT INTO nodes (id, type, parent_id, parent_idx, fs_path, created_at, updated_at, version, data)
-       VALUES ('.', 'oi', NULL, 0, '/old/absolute/repo', ${Date.now()}, ${Date.now()}, '1', '{}')`,
-    )
     db.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx, fs_path, created_at, updated_at, version, data)
        VALUES ('file1', 'oi', '.', 0, '/old/absolute/repo/@next.md', ${Date.now()}, ${Date.now()}, '1', '{}')`,
     )
-    // Write changes.jsonl so the DB isn't considered "fresh"
     writeFileSync(join(dir, ".km/changes.jsonl"), "")
     db.close()
 
-    // Reopening in disk mode should throw due to absolute paths
+    // Reopening should NOT throw — migration cleans the absolute-path row,
+    // then file walk rediscovers @next.md with the correct relative fs_path.
     expect(() => {
       runGenerator(createRepo(dir, { loadFiles: true }))
-    }).toThrow(IncompleteDatabase)
+    }).not.toThrow(IncompleteDatabase)
   })
 
   test("does not throw when disk DB has only relative paths", () => {

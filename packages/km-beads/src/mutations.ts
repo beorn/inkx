@@ -148,15 +148,6 @@ export interface UpdateBeadChanges {
   assignee?: string
   title?: string
   type?: string
-  /** Current sigil tags from the node's data blob (for in-place update). */
-  currentTags?: string[]
-  /**
-   * Full current `data` blob from the node. Required when `priority` or
-   * `type` change — without it, the partial-replace semantics of the
-   * storage `updateNode` path would wipe sibling keys (`id`, `aliases`,
-   * `short_id`, `mentions`, …). Pass `node.data` from the caller.
-   */
-  currentData?: Record<string, unknown>
 }
 
 export function updateBeadFields(bead: Bead, changes: UpdateBeadChanges): Partial<KNode> {
@@ -187,24 +178,13 @@ export function updateBeadFields(bead: Bead, changes: UpdateBeadChanges): Partia
     updates.assigned_to = changes.assignee
   }
 
-  // Sync the derived `data.tags` blob when priority/type change so the
-  // markdown round-trip (`#P1`, `#feature`) stays consistent with the
-  // structural `node.priority` column. Storage's updateNode path treats
-  // `data: {...}` as a full replacement, so we MUST merge with the
-  // node's existing data blob to preserve `id`, `aliases`, `short_id`,
-  // `mentions`, etc. Assignee no longer mirrors into `data.mentions` —
-  // `node.assigned_to` is the authoritative source.
-  if (normalizedPriority !== undefined || changes.type !== undefined) {
-    const currentTags =
-      changes.currentTags ??
-      (changes.currentData?.tags as string[] | undefined) ??
-      [bead.type, bead.priority].filter((t): t is string => typeof t === "string" && t.length > 0)
-    const nextTags = rewriteTypeAndPriorityTags(currentTags, {
-      priority: normalizedPriority,
-      type: changes.type,
-    })
-    updates.data = { ...changes.currentData, tags: nextTags }
-  }
+  // `data.tags` is no longer synced from priority/type changes here —
+  // the parser-side `kmRefsTransform` (km-markdown/extensions/km-refs.ts)
+  // already populates `node.data.tags` from inline `#tag` markers in the
+  // H1 line. When the bead's content is rewritten through the markdown
+  // round-trip, the new tags land via the parser. The mutations-side
+  // mirror was a redundant denormalization of the same source.
+  // See @km/all/drop-data-tags.
 
   return updates
 }

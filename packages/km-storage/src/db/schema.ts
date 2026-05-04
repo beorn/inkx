@@ -5,6 +5,10 @@
  * to ensure consistent table structure.
  */
 
+import { createLogger } from "loggily"
+
+const log = createLogger("km:storage:schema")
+
 /**
  * Schema version — bump when the FTS table layout or tokenizer changes, or
  * when any other irreversible schema change needs re-running on existing DBs.
@@ -797,11 +801,15 @@ function migrateVersioned(db: import("bun:sqlite").Database): MigrateResult {
  * Idempotent: DELETE WHERE clause is a no-op when no rows match.
  */
 function cleanupAbsoluteFsPathRows(db: import("bun:sqlite").Database): void {
+  // Defensive: stripped-down test fixtures may lack the `fs_path` column.
+  // Skip — there's nothing to clean up on a column that doesn't exist.
+  const cols = db.query("PRAGMA table_info(nodes)").all() as { name: string }[]
+  if (!cols.some((c) => c.name === "fs_path")) return
+
   const result = db.run("DELETE FROM nodes WHERE fs_path LIKE '/%'")
   if (result.changes > 0) {
-    // eslint-disable-next-line no-console
-    console.log(
-      `[km-storage] schema migration: cleaned up ${result.changes} corrupted rows ` +
+    log.info?.(
+      `schema migration: cleaned up ${result.changes} corrupted rows ` +
         `with absolute fs_path (will be rediscovered on next file walk).`,
     )
   }
