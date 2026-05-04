@@ -312,7 +312,7 @@ export function nodeToBead(node: KNode, options?: BeadsQueryOptions): Bead {
   const dependencyCount = blockedBy?.length || 0
 
   // Calculate the short ID for this issue (needed for dependent count lookup).
-  // Priority: frontmatter `id:` (canonical path-form, e.g. "silvercode/acp/rename")
+  // Priority: `id` prop (canonical path-form, e.g. "silvercode/acp/rename")
   // > legacy `data.short_id` (bd-form like "km-a1b2")
   // > undefined (not a real bead).
   //
@@ -540,7 +540,7 @@ export function queryIssues(
 /**
  * Get a single issue by short ID.
  *
- * Resolves via the canonical chain: frontmatter `data.id` (canonical
+ * Resolves via the canonical chain: `data.id` prop (canonical
  * path-form), legacy `data.short_id` (bd-form), or any entry in
  * `data.aliases`. Handles `scope/slug`, `@km/scope/slug`, and
  * `km-scope.slug` inputs.

@@ -293,7 +293,7 @@ export const COMMENTS_SECTION_HEADING = "## Comments @comments"
  * occurrences in prose to `@<prefix>/<scope>/<slug>` (canonical
  * sigil-prefixed path-form). Skips matches already inside a wikilink
  * (`[[…]]`) or fenced code block — those are either intentional
- * verbatim or already addressed by frontmatter aliases.
+ * verbatim or already addressed by alias props.
  *
  * The rewrite is generous on slug shape (any `[a-z0-9.-]+`) and
  * conservative on word boundaries to avoid mangling unrelated tokens
@@ -454,7 +454,7 @@ export function bdIdToPathFormWithSlug(bdId: string, title: string, sourcePrefix
  *      the child directory path).
  *
  * Used by {@link migrateBeadsToMarkdown} so wikilink targets,
- * frontmatter ids, and filenames all agree on the same resolved form
+ * id props, and filenames all agree on the same resolved form
  * within a single migration pass. Callers fall back via
  * `idMap.get(id) ?? bdIdToPathForm(id)` — the map only contains
  * entries that differ from the default routing.
@@ -589,7 +589,7 @@ export function migrateBeadsToMarkdown(beadsDir: string, options: MigrateOptions
   }
 
   const sourcePrefix = options.sourcePrefix ?? "km"
-  // Resolve every id once up-front so wikilink targets, frontmatter ids,
+  // Resolve every id once up-front so wikilink targets, id props,
   // and filenames agree across the batch (numeric-leaf ids get a
   // title-derived slug appended; see bdIdToPathFormWithSlug).
   const idMap = buildIdMap(filtered, sourcePrefix)

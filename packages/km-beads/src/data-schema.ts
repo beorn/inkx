@@ -4,12 +4,12 @@
  * Zod schema for the `node.data` blob *as interpreted by km-beads*.
  *
  * `node.data` is a polymorphic `Record<string, unknown>` shared by every
- * km consumer: parser internals (`_mdSource`, `_mdBullet`, …), markdown
- * frontmatter for file nodes (`id`, `aliases`, `dependencies`, …), and
- * Logseq-style inline properties (`props`, `propsRaw`). km-beads cares
- * only about the bead-relevant subset; this module pins those fields'
- * shapes and lets everything else passthrough verbatim so the markdown
- * round-trip stays lossless.
+ * km consumer: parser internals (`_mdSource`, `_mdBullet`, …), file-node
+ * props (`id`, `aliases`, `dependencies`, … — usually serialized as YAML
+ * frontmatter), and Logseq-style inline properties (`props`, `propsRaw`).
+ * km-beads cares only about the bead-relevant subset; this module pins
+ * those fields' shapes and lets everything else passthrough verbatim so
+ * the markdown round-trip stays lossless.
  *
  * Two entry points:
  *   - `parseBeadData(data)` — read path. Returns `{ data, warnings }`;
@@ -69,9 +69,10 @@ export const beadPropsSchema = z.record(z.string(), beadPropSchema)
 export const beadPropsRawSchema = z.record(z.string(), z.string())
 
 /**
- * `data.dependencies` — frontmatter `dependencies:` array on file beads.
- * Mirrors `BeadsDependency` from `schema.ts` but lives on the read path
- * (frontmatter → `node.data.dependencies`), not the JSONL import path.
+ * `data.dependencies` — `dependencies:` prop on file beads (typically
+ * serialized as YAML frontmatter). Mirrors `BeadsDependency` from
+ * `schema.ts` but lives on the read path (markdown → `node.data.dependencies`),
+ * not the JSONL import path.
  */
 export const beadDataDependencySchema = z.object({
   issue_id: z.string(),
@@ -91,7 +92,8 @@ export const beadDataDependencySchema = z.object({
  *
  * Field provenance (where each appears):
  *
- *   File-bead frontmatter (top-level beads at `<root>/<scope>/<slug>.md`)
+ *   File-bead props (top-level beads at `<root>/<scope>/<slug>.md` —
+ *   serialized as YAML frontmatter)
  *     id, aliases, created_at, created_by, owner, assignee, started_at,
  *     closed_at, close_reason, closeReason, dropReason, dependencies,
  *     metadata, defer_until, work_type
@@ -120,7 +122,7 @@ export const beadDataSchema = z
     short_id: z.string().optional(),
     aliases: z.array(z.string()).optional(),
 
-    // Lifecycle (mirror of BeadsIssue lifecycle fields when present in frontmatter)
+    // Lifecycle (mirror of BeadsIssue lifecycle fields when present in props)
     created_at: z.string().optional(),
     created_by: z.string().optional(),
     started_at: z.string().optional(),
@@ -133,7 +135,7 @@ export const beadDataSchema = z
     defer_until: z.string().optional(),
     work_type: z.string().optional(),
 
-    // Dependencies (frontmatter on file beads)
+    // Dependencies (file-bead props)
     dependencies: z.array(beadDataDependencySchema).optional(),
 
     // Inline properties

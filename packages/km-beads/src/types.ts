@@ -9,7 +9,7 @@
 export interface Bead {
   id: string // Full node ID (ULID)
   /**
-   * Short ID — frontmatter `id:` (canonical path-form, e.g.
+   * Short ID — `id` prop (canonical path-form, e.g.
    * `@km/scope/slug`) or legacy `data.short_id` (bd-form, e.g. `km-a1b2`).
    *
    * `undefined` when neither is present — i.e. the KNode is not a real
