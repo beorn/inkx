@@ -1,9 +1,9 @@
 /**
  * Doctor: data.id vs derived parent-path drift check
  *
- * Soft sanity check that surfaces when a bead's frontmatter `id` no longer
+ * Soft sanity check that surfaces when a bead's `id` prop no longer
  * matches the path you'd derive by walking the parent chain. Drift means
- * the file was likely moved or renamed without updating frontmatter.
+ * the file was likely moved or renamed without updating the `id` prop.
  */
 
 import { describe, test, expect } from "vitest"

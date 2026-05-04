@@ -427,7 +427,7 @@ export async function fetchFromAsana(
     console.log(term.yellow(`  Re-fetching:`), `${emptyOnDisk} empty project(s) on disk`)
   }
 
-  // Fetch projects (with metadata for frontmatter)
+  // Fetch projects (with metadata for props)
   console.log(term.dim("  Fetching projects..."))
   const projects = await client.getAll<{
     gid: string

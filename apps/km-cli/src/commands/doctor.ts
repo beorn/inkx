@@ -256,17 +256,17 @@ const doctorIntegrityCommand = new Command("integrity")
     }
   })
 
-// `km doctor paths` is a soft sanity check: for every node carrying a
-// frontmatter `id` (mirrored into `data.id`), derive the path by walking
-// the parent chain and joining `node.name` with "/". A drift between the
-// declared id and the derived path means the file was likely moved or
-// renamed without updating frontmatter (or without `km bd rename`).
+// `km doctor paths` is a soft sanity check: for every node carrying an
+// `id` prop (in `data.id`), derive the path by walking the parent chain
+// and joining `node.name` with "/". A drift between the declared id and
+// the derived path means the file was likely moved or renamed without
+// updating the `id` prop (or without `km bd rename`).
 //
 // Soft check: no enforcement, no derive-on-read doctrine — just surface
 // the discrepancy so an operator can decide whether to fix the file or
 // re-run a migration.
 const doctorPathsCommand = new Command("paths")
-  .description("Detect drift between data.id (frontmatter) and derived parent path")
+  .description("Detect drift between data.id (id prop) and derived parent path")
   .argument("[path]", "Path to repo (default: current directory)")
   .option("--include-fixtures", "Scan test-fixture corpora (fidelity-corpus, __fixtures__, etc.) too")
   .action((path, options) => {

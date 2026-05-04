@@ -93,7 +93,7 @@ function DeleteConfirmDialogWrapper({
   if (payload.backlinkCount > 0) {
     warnings.push(`${payload.backlinkCount} backlink${payload.backlinkCount !== 1 ? "s" : ""} will break`)
   }
-  if (payload.hasMetadata) warnings.push("Has metadata (frontmatter)")
+  if (payload.hasMetadata) warnings.push("Has metadata (props)")
 
   return (
     <Box

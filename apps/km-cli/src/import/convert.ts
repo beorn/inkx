@@ -723,12 +723,12 @@ function projectToNodes(
   // Track sourceIds within this project to skip within-file duplicates
   const localRendered = new Set<string>()
 
-  // File root node — data becomes frontmatter, content becomes H1
+  // File root node — data carries props (serialized as YAML frontmatter), content becomes H1
   const fileId = `file-${project.sourceId}`
-  const frontmatter: Record<string, unknown> = {}
+  const props: Record<string, unknown> = {}
   if (project.owner) {
     const ownerSlug = userSlugMap ? resolveUserSlug(project.owner, userSlugMap) : slugify(project.owner)
-    frontmatter.owner = `@${ownerSlug}`
+    props.owner = `@${ownerSlug}`
   }
 
   const projectTitle = project.title.trim() || "(untitled)"
@@ -739,7 +739,7 @@ function projectToNodes(
       item: {},
       fstype: "mdfile",
       content: projectTitle,
-      data: frontmatter,
+      data: props,
       created_at: project.createdAt ? new Date(project.createdAt).getTime() : Date.now(),
       updated_at: project.modifiedAt ? new Date(project.modifiedAt).getTime() : Date.now(),
     }),

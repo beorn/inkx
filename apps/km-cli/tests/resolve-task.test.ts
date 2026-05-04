@@ -2,7 +2,7 @@
  * Unified resolver tests — `resolveTaskNode` / `resolveIssue`.
  *
  * Covers every resolution path that `bd list` / `tasks list` may print:
- *   1. Frontmatter `data.id`        (canonical path-form)
+ *   1. `data.id` prop               (canonical path-form)
  *   2. Sigil-prefixed path-form     (`@<prefix>/<scope>/<slug>`)
  *   3. Legacy bd-form `data.short_id` (`km-<scope>.<slug>`)
  *   4. `data.aliases` entry          (historical names)
@@ -47,7 +47,7 @@ afterAll(() => {
 })
 
 describe("resolveTaskNode", () => {
-  test("path 1: frontmatter data.id (canonical path-form)", () => {
+  test("path 1: data.id prop (canonical path-form)", () => {
     const dir = freshDir("data-id")
     using repo = openRepo(dir)
     const inbox = repo.resolveNode("inbox")!
@@ -55,7 +55,7 @@ describe("resolveTaskNode", () => {
     const id = repo.addNode(inbox.id, {
       type: "p",
       item: { list: "-", task: { marker: "[ ]", status: "todo" } },
-      content: "task with frontmatter id",
+      content: "task with id prop",
       data: { id: "scope/slug" },
     })
 

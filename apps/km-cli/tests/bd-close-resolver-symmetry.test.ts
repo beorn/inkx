@@ -52,7 +52,7 @@ afterAll(() => {
 })
 
 /**
- * Create a node that mimics a migrated bead — frontmatter `id` is the
+ * Create a node that mimics a migrated bead — the `id` prop is the
  * canonical path-form, `aliases` carries the legacy bd-form (dot) and
  * dash-form. This matches what `packages/km-beads/src/migrate.ts`
  * (`bdIdToPathForm` + `bdIdToAliases`) produces on `bd migrate`.

@@ -1,8 +1,8 @@
 /**
  * Doctor: data.id vs derived parent-path drift check.
  *
- * Soft sanity check. For every node carrying a frontmatter `id`
- * (mirrored to `data.id` on import), derive the path by walking the
+ * Soft sanity check. For every node carrying an `id` prop
+ * (in `data.id`), derive the path by walking the
  * parent chain and joining `node.name` with "/". Drift between the
  * declared id and the derived path means the file was likely moved or
  * renamed without `km bd rename`. We only report — no enforcement, no

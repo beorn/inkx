@@ -527,7 +527,7 @@ bdCommand
       }
       // 4. Split form (`--parent <scope> --id <leaf>`). Build canonical
       //    from the parent's path-form + leaf slug. Prefer the parent's
-      //    frontmatter id when set (it's already canonical); fall back to
+      //    `id` prop when set (it's already canonical); fall back to
       //    the parent's fs_path with `.md` stripped.
       if (explicitParent && parentId !== null && typeof opts.id === "string") {
         const parentNode = repo.getNode(parentId)
@@ -1331,8 +1331,8 @@ bdCommand
     }
 
     // Use the canonical move-with-refs primitive. Default behaviour:
-    //   - rewrites wikilinks, transclusions, dep-edges, frontmatter aliases,
-    //     frontmatter parent_id, blocked-by props
+    //   - rewrites wikilinks, transclusions, dep-edges, alias props,
+    //     parent_id prop, blocked-by props
     //   - bare-id prose mentions opt-in via --include-prose
     //   - --no-rewrite skips the walk entirely (legacy behaviour preserved
     //     for callers that need it)
