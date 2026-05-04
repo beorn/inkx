@@ -242,7 +242,7 @@ interface KNode {
   rules?: NodeRules
 
   // Metadata
-  data: Record<string, unknown> // Frontmatter, custom fields
+  data: Record<string, unknown> // Props (typically serialized as YAML frontmatter)
   created_at: number // Unix timestamp (ms)
   updated_at: number // Unix timestamp (ms)
   version: string // Last change ID that modified this node
@@ -279,7 +279,7 @@ interface KNode {
 | `content_hash`   | string         | CAS hash for large content                    |
 | `title`          | string         | Display title (for sections)                  |
 | `rules`          | NodeRules      | Column/section behavior rules                 |
-| `data`           | object         | Frontmatter and custom fields                 |
+| `data`           | object         | Props (serialized as YAML frontmatter on disk) |
 | `created_at`     | number         | Creation timestamp (Unix ms)                  |
 | `updated_at`     | number         | Last update timestamp (Unix ms)               |
 | `version`        | string         | Change ID of last modification                |
@@ -421,7 +421,7 @@ CREATE TABLE nodes (
   content_hash TEXT,             -- CAS reference
 
   -- Metadata
-  data JSON DEFAULT '{}',        -- Frontmatter, custom fields
+  data JSON DEFAULT '{}',        -- Props (typically serialized as YAML frontmatter)
   created_at INTEGER,            -- Unix ms
   updated_at INTEGER,            -- Unix ms
   version TEXT                   -- Last change ID
@@ -757,6 +757,13 @@ interface NodeStore {
 ```
 
 ### Names, Paths, and IDs
+
+**Vocabulary**: in km's data model, every node has *props* — some are
+first-class fields (id, name, status, priority, …), others live in
+`node.data` JSON. *Frontmatter* is one way props get serialized in
+`.md` files (YAML between `---` fences); other materializations
+render the same props differently. Use "props" in the data layer; use
+"frontmatter" only when discussing markdown serialization specifically.
 
 km distinguishes between three concepts. **None of them are equal to each other** — there is no "the path is the id" or "the id is the name."
 
