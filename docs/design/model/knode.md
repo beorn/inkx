@@ -17,7 +17,7 @@ Every piece of content is a **KNode** — a flat record with parent-child relati
 │ parent_idx: number ← sibling order              │
 │                                                 │
 │ content: string   ← text content                │
-│ name: string      ← slug/identifier             │
+│ name: string      ← slug/identifier (tree-name) │
 │ title: string     ← display title (materialized)│
 │                                                 │
 │ ItemData: { list?: string, task?: {marker,status} }
@@ -30,6 +30,8 @@ Every piece of content is a **KNode** — a flat record with parent-child relati
 │   rules: { collapse, limit, color, ... }        │
 └─────────────────────────────────────────────────┘
 ```
+
+**Names and paths — tree vs fs.** `node.name` is the **tree-name** (a single path segment in the logical tree) and the `node.fs_path` cache (set on fs-materialized nodes — files, folders, repo root) is the **fs-path** (the on-disk materialization, including `./` prefix and `.md` extension). They sit in different cells of the path/name × tree/fs 2×2 — the tree-row is what the data IS, the fs-row is how it's mirrored to disk. See [storage.md "Tree vs FS — the 2×2 vocabulary"](storage.md#tree-vs-fs--the-22-vocabulary) for the full table and the matching primitives (`KTree.path()` for tree-path, `fsPathOf()` for fs-path).
 
 ## Items and Blocks
 

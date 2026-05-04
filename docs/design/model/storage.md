@@ -774,6 +774,19 @@ km distinguishes between three concepts. **None of them are equal to each other*
 - **Markdown content (wikilinks, mentions, frontmatter) → path** for human friendliness. Path drift in markdown is an eventual-consistency concern handled by `@km/all/rename-content-cascade`, not a correctness bug.
 - **CLI accepts either form** — the resolver translates path/alias → id before query.
 
+#### Tree vs FS — the 2×2 vocabulary
+
+The (segment, composed) split above is one axis. The orthogonal axis is **logical model vs filesystem materialization**: every name and path has a tree-side (the data model) and an fs-side (how it's mirrored to disk for human editing). Crossing the two axes gives a 2×2 with one canonical primitive per cell:
+
+|              | **Tree (logical)**                   | **FS (materialized)**                                                   |
+|--------------|--------------------------------------|-------------------------------------------------------------------------|
+| **segment**  | tree-name — `node.name`              | fs-name — basename on disk (`foo.md` for files; `foo` for folders)      |
+| **composed** | tree-path — `KTree.path(tree, id)`   | fs-path — `node.fs_path` cache (`./@km/beads/foo.md`); read via `fsPathOf` |
+
+The tree-row is the canonical model (what the data IS); the fs-row is the materialization (how it's mirrored to disk for human editing). `fsPathOf(node)` strips fs-isms (`./` prefix, `.md` extension) from `node.fs_path` to yield the user-facing path-form — it lives in the **fs-path** cell. `KTree.path(tree, id)` does a pure parent walk and lives in the **tree-path** cell; never reads `fs_path`.
+
+The legacy name `pathOf` (from `@km/core`) is a deprecated alias for `fsPathOf`. Don't reach for `treePathOf` — it intentionally doesn't exist; `KTree.path()` already covers that cell. See `@km/all/path-name-orthogonal-vocabulary` for the rationale and the deferred decision on a `fsNameOf` helper.
+
 **Resolution order** (in `resolveShortId`, `packages/km-beads/src/short-ids.ts`):
 
 1. id (direct ULID match via `repo.getNode`)

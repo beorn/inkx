@@ -8,6 +8,8 @@ created_at: 2026-05-01T17:55:00Z
 type: docs
 priority: P3
 parent: "@km/all"
+closed: true
+closed_at: 2026-05-04
 ---
 
 # Path / name orthogonal vocabulary — tree vs fs as a 2×2 @km/all #docs #P3
@@ -149,3 +151,7 @@ yet.
 
 - Origin: 2026-05-01 user observation during the path/name/id session.
 - Tracking epic: `@km/all/path-name-id-redesign`.
+
+## Closed
+
+2026-05-04 — `pathOf` → `fsPathOf` rename shipped. `pathOf` retained as a `@deprecated` one-line alias in `packages/km-core/src/path.ts`. All 6 callers migrated (`packages/km-storage/src/repo/repo.ts`, `packages/km-storage/src/repo/move-with-refs.ts`, `packages/km-storage/src/db/links.ts`, `packages/km-storage/src/testing/fake-repo.ts`, `apps/km-cli/src/commands/broken-links.ts`, plus the comment in `packages/km-tree/src/walk.ts`). 2×2 vocabulary table added to `docs/design/model/storage.md` and referenced from `docs/design/model/knode.md`. `treePathOf` and `fsNameOf` intentionally NOT introduced — `KTree.path()` covers the cache-free tree-walk; only one caller of inline `basename(fs_path)` exists, so YAGNI on `fsNameOf`. Tests: 15 passed in `packages/km-core/tests/path.test.ts` (12 fsPathOf + 3 deprecated-alias smoke tests); 1640 passed across km-core + km-storage. The CLAUDE.md mentions for `@km/core` and `@km/storage` (Acceptance bullet) and the grep gate (Acceptance bullet) are intentionally deferred — both are nice-to-have polish items beyond the 6-caller rename + doc update that this bead's title actually scopes.
