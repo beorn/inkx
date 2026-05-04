@@ -5,7 +5,7 @@
  * They are the canonical source for:
  *   - isCollapsedChild / isDetailOnly — which nodes are hidden from card view
  *   - deduplicateByFsPath — remove duplicate file entries by fs_path
- *   - extractWipLimits — read column WIP limits from frontmatter
+ *   - extractWipLimits — read column WIP limits from node props
  *   - createVirtualBodyNode — synthesize the virtual body column KNode
  *   - CARD_REMAINING_DEPTH — default recursion depth for card sub-items
  */
@@ -131,7 +131,7 @@ export function createVirtualBodyNode(parentId: string | null): KNode {
 // =============================================================================
 
 /**
- * Extract WIP limits from column nodes' frontmatter.
+ * Extract WIP limits from column nodes' props.
  * Looks at each node's data.columns config for { column_name: { limit: number } }.
  */
 export function extractWipLimits(nodes: KNode[]): Map<string, number> {

@@ -65,7 +65,7 @@ export interface ViewLensOptions {
  * - Index file expansion: folders with index files expand
  * - Detail-only exclusion: detailOnly / well-known metadata sections hidden
  * - Deduplication by fs_path
- * - Section rules from frontmatter
+ * - Section rules from props
  *
  * **Layering**: this returns a {@link TreeLens} (data layer). React components
  * should NOT consume the returned lens directly — use `createViewTree`

@@ -94,6 +94,6 @@ export interface TreeLens {
   /** Pre-resolved symlink target, if this node has embed_of */
   resolvedEmbed(id: string): KNode | undefined
 
-  /** Section rules (WIP limit, color, collapse) parsed from frontmatter */
+  /** Section rules (WIP limit, color, collapse) parsed from node props */
   rules(id: string): NodeRules | undefined
 }
