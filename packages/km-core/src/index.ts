@@ -144,6 +144,9 @@ export { createLinkResolver } from "./klink-resolver.ts"
 export type { SigilChar, SigilKind, SigilDefinition } from "./sigils.ts"
 export { SIGILS, isSigilChar, hasSigilPrefix, getSigilChar, stripSigil, isInlineSigilStart } from "./sigils.ts"
 
-// Path derivation — pathOf(node) materializes the user-facing path-form
-// from fs_path. See path.ts for the path/name/id three-concept rationale.
-export { pathOf } from "./path.ts"
+// Path derivation — fsPathOf(node) materializes the user-facing path-form
+// from the fs_path cache. See path.ts for the path/name/id three-concept
+// rationale and the path/name × tree/fs 2×2 vocabulary.
+// `pathOf` is a deprecated alias retained for one transitional release —
+// see `@km/all/path-name-orthogonal-vocabulary`.
+export { fsPathOf, pathOf } from "./path.ts"

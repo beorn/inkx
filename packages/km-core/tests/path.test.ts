@@ -1,54 +1,68 @@
 import { describe, expect, test } from "vitest"
-import { pathOf } from "../src/path.ts"
+import { fsPathOf, pathOf } from "../src/path.ts"
 
-describe("pathOf", () => {
+describe("fsPathOf", () => {
   test("strips .md extension from file path", () => {
-    expect(pathOf({ fs_path: "@km/beads/foo.md" })).toBe("@km/beads/foo")
+    expect(fsPathOf({ fs_path: "@km/beads/foo.md" })).toBe("@km/beads/foo")
   })
 
   test("returns folder path unchanged", () => {
-    expect(pathOf({ fs_path: "@km/beads" })).toBe("@km/beads")
+    expect(fsPathOf({ fs_path: "@km/beads" })).toBe("@km/beads")
   })
 
   test("strips legacy ./ prefix", () => {
-    expect(pathOf({ fs_path: "./@km/beads/foo.md" })).toBe("@km/beads/foo")
+    expect(fsPathOf({ fs_path: "./@km/beads/foo.md" })).toBe("@km/beads/foo")
   })
 
   test("strips both ./ and .md", () => {
-    expect(pathOf({ fs_path: "./docs/readme.md" })).toBe("docs/readme")
+    expect(fsPathOf({ fs_path: "./docs/readme.md" })).toBe("docs/readme")
   })
 
   test("repo root . returns empty string", () => {
-    expect(pathOf({ fs_path: "." })).toBe("")
+    expect(fsPathOf({ fs_path: "." })).toBe("")
   })
 
   test("null fs_path returns null", () => {
-    expect(pathOf({ fs_path: null })).toBeNull()
+    expect(fsPathOf({ fs_path: null })).toBeNull()
   })
 
   test("undefined fs_path returns null", () => {
-    expect(pathOf({ fs_path: undefined })).toBeNull()
+    expect(fsPathOf({ fs_path: undefined })).toBeNull()
   })
 
   test("missing fs_path returns null", () => {
-    expect(pathOf({})).toBeNull()
+    expect(fsPathOf({})).toBeNull()
   })
 
   test("empty fs_path returns null", () => {
-    expect(pathOf({ fs_path: "" })).toBeNull()
+    expect(fsPathOf({ fs_path: "" })).toBeNull()
   })
 
   test("case-insensitive .md extension stripping", () => {
-    expect(pathOf({ fs_path: "@km/beads/foo.MD" })).toBe("@km/beads/foo")
-    expect(pathOf({ fs_path: "@km/beads/foo.Md" })).toBe("@km/beads/foo")
+    expect(fsPathOf({ fs_path: "@km/beads/foo.MD" })).toBe("@km/beads/foo")
+    expect(fsPathOf({ fs_path: "@km/beads/foo.Md" })).toBe("@km/beads/foo")
   })
 
   test("does not strip non-.md extensions", () => {
-    expect(pathOf({ fs_path: "config.yaml" })).toBe("config.yaml")
-    expect(pathOf({ fs_path: "@km/beads/foo.json" })).toBe("@km/beads/foo.json")
+    expect(fsPathOf({ fs_path: "config.yaml" })).toBe("config.yaml")
+    expect(fsPathOf({ fs_path: "@km/beads/foo.json" })).toBe("@km/beads/foo.json")
   })
 
   test("does not strip .md from middle of path", () => {
-    expect(pathOf({ fs_path: "foo.md/bar.md" })).toBe("foo.md/bar")
+    expect(fsPathOf({ fs_path: "foo.md/bar.md" })).toBe("foo.md/bar")
+  })
+})
+
+describe("pathOf (deprecated alias)", () => {
+  test("is the same function as fsPathOf", () => {
+    expect(pathOf).toBe(fsPathOf)
+  })
+
+  test("smoke: deprecated alias still strips .md", () => {
+    expect(pathOf({ fs_path: "@km/beads/foo.md" })).toBe("@km/beads/foo")
+  })
+
+  test("smoke: deprecated alias returns null for missing fs_path", () => {
+    expect(pathOf({})).toBeNull()
   })
 })
