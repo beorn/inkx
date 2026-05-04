@@ -4,14 +4,26 @@ import { resolveRef, type Repo } from "@km/storage"
 const SEPARATOR = "-"
 const AUTO_LENGTH = 4
 
-/** Options for short ID functions */
+/**
+ * Options for the legacy `resolveShortId` wrapper.
+ *
+ * @deprecated New code uses `resolveRef(repo, ref)` from `@km/storage` —
+ * a positional `repo` argument, no options object. This shape exists only
+ * for the legacy wrapper.
+ */
 export interface ShortIdOptions {
   /** Repo to use for queries. Required for functions that access storage. */
   repo?: Repo
 }
 
 /**
- * Generate a fresh short id of the form `<prefix>-<4chars>`.
+ * Mint a fresh node `name` for a bd-CLI-created bead — `<prefix>-<4chars>`.
+ *
+ * "shortId" is no longer a concept in km's data model. The three handles
+ * are id (ULID), name (segment), path (composed). When `bd create` runs
+ * without an explicit `--id`/`--path`, it auto-generates a `node.name`
+ * via this minter — the result is just a `name`, not a separate handle
+ * type. See @km/all/drop-shortid-concept.
  *
  * `prefix` MUST come from the destination repo's `.km/config.yaml`
  * (`beads.prefix`) — read via `getBeadsConfig` from `@km/storage`, or via
@@ -19,18 +31,18 @@ export interface ShortIdOptions {
  * forward the source `.beads/config.yaml` `issue-prefix` instead.
  *
  * No default — passing the wrong prefix in a non-`km` repo (cloudi, pam,
- * pim vault) silently produced `km-…` ids. Required-arg makes the bug
+ * pim vault) silently produced `km-…` names. Required-arg makes the bug
  * visible at the type level.
  */
-export function generateShortId(prefix: string): string {
+export function mintBeadName(prefix: string): string {
   const id = ulid()
   const suffix = id.slice(-AUTO_LENGTH).toLowerCase()
   return `${prefix}${SEPARATOR}${suffix}`
 }
 
 /**
- * Normalize a user-supplied id into the canonical bd-form short_id
- * (`<prefix>-<scope>.<slug>`). Accepts:
+ * Normalize a user-supplied bd-flavored reference into the canonical
+ * bd-form short_id (`<prefix>-<scope>.<slug>`). Accepts:
  *
  *   km-beads.foo            (bd-form, already prefixed — idempotent)
  *   beads.foo               (bd-form scope, no prefix — prepend)
@@ -42,9 +54,14 @@ export function generateShortId(prefix: string): string {
  * fixes the double-prefix bug (km-beads.create-double-prefix) where
  * `--id km-beads.foo` was producing `km-km-beads.foo`.
  *
- * `prefix` is required — see `generateShortId` for why.
+ * The output is bd-form (dotted), suitable for storage in `data.aliases`
+ * for legacy lookup. The corresponding path-form (`@km/beads/foo`) is the
+ * file's location on disk; both forms resolve to the same node via
+ * `resolveRef`.
+ *
+ * `prefix` is required — see `mintBeadName` for why.
  */
-export function generateCustomId(custom: string, prefix: string): string {
+export function normalizeBdRef(custom: string, prefix: string): string {
   let s = custom.trim()
   // Strip a leading `@<prefix>/` sigil — canonical cross-vault reference.
   if (s.startsWith(`@${prefix}/`)) {
@@ -65,8 +82,12 @@ export function generateCustomId(custom: string, prefix: string): string {
   return `${prefix}${SEPARATOR}${s}`
 }
 
-export function generateSubId(parentShortId: string, childNumber: number): string {
-  return `${parentShortId}.${childNumber}`
+/**
+ * Mint a sub-bead `name` by appending `.N` to a parent bead's name.
+ * Used when bd auto-generates child names like `km-foo.1`, `km-foo.2`.
+ */
+export function mintSubBeadName(parentName: string, childNumber: number): string {
+  return `${parentName}.${childNumber}`
 }
 
 /**

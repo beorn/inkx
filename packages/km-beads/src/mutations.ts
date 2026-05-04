@@ -9,7 +9,7 @@ import { stringify as stringifyYaml } from "yaml"
 import type { KNode } from "@km/core"
 import { getMarkerForStatus } from "@km/core"
 import type { Bead, BeadCreateOptions } from "./types.ts"
-import { generateShortId, generateCustomId, generateSubId } from "./short-ids.ts"
+import { mintBeadName, normalizeBdRef, mintSubBeadName } from "./short-ids.ts"
 import { normalizePriority } from "./priority.ts"
 
 /**
@@ -37,14 +37,14 @@ export function createBeadNode(
   const prefix = options.prefix
   let shortId: string
   if (options.customId) {
-    shortId = generateCustomId(options.customId, prefix)
+    shortId = normalizeBdRef(options.customId, prefix)
   } else if (options.parentId) {
     // For sub-issues, we'd need to query existing children
     // For now, use timestamp-based suffix
     const childNum = Math.floor(Date.now() % 1000)
-    shortId = generateSubId(options.parentId, childNum)
+    shortId = mintSubBeadName(options.parentId, childNum)
   } else {
-    shortId = generateShortId(prefix)
+    shortId = mintBeadName(prefix)
   }
 
   // Build content with metadata
