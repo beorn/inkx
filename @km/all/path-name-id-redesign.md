@@ -79,18 +79,18 @@ Three concepts, distinct (per `docs/design/model/storage.md:761-787`):
 - ✅ `@km/storage/deps-first-class` (P2) — loader-merge: frontmatter `dependencies:` array now feeds `data.props["blocked-by"]` so the existing v7 `deps` trigger indexes both authoring forms. NO new column, NO new table (commit `6e1c2f5ca`). 13 new tests.
 - ✅ `@km/all/props-not-frontmatter` (P3) — full sweep across km-board, km-storage, km-tree, km-fs-mount, km-beads, km-cli, km-tui (commits `b98adfec8`, `5f43d546b`, `80864695e`, `abbb811be`, `0ef7af5c4`, `5128745e4`). 22 files changed; before 213 mentions, after 178 — the 178 remaining are legitimate parser-surface references (`splitFrontmatter`, `extractFrontmatter`, `mergeFileFrontmatter`), fixture filenames, local YAML-rendering variables, and km-fs-mount drift-preservation paths that genuinely refer to YAML-on-disk. Vocabulary paragraph added to `docs/design/model/storage.md`.
 
-**Pending (Phase D — data.id removal, paired):**
+**Shipped 2026-05-04 (Phase D — frontmatter id field dropped):**
 
-- 📋 `@km/beads/data-id-stop-writing` (P2) — stop writing `data.id` JSON. Migrate 3 production data.id reads (loader.ts:1189, repo.ts:1416, move-with-refs.ts:281) to derive from fs_path. Drop step-4 fallback in resolveShortId.
-- 📋 `@km/beads/frontmatter-path-rename` (P2, **reframed 2026-05-03**) — drop the redundant `id:` YAML field (do NOT rename to `path:`). Update ~20 tests asserting frontmatter.id. **Must ship paired with data-id-stop-writing.**
+- ✅ `@km/beads/frontmatter-path-rename` (P2) — `renderBeadFile` and `issueToMarkdown` (bd-import) no longer emit the `id:` YAML field (commit `c356e75d9`). The file's path-form IS the canonical id. 9 tests updated to assert absence. Existing rows retain their `id:` YAML as harmless fossils.
+- ✅ `@km/beads/data-id-stop-writing` (P2, **partial**) — production write paths no longer emit `id:` (paired with frontmatter-path-rename). The `resolveShortId` step-4 `data.id` json_extract fallback stays for one transitional release; deletable once test fixtures fully migrate to `seedFileNode`.
 
 **Pending (Phase E — drop-data-tags, 3-phase):**
 
-- 📋 `@km/all/drop-data-tags` (P3) — drop the `data.tags` denormalization. Phase A: emit `#P<n>` / `#<type>` wikilinks in bead serializer. Phase B: migrate 4 readers to `links` table. Phase C: stop writing `data.tags`.
+- 📋 `@km/all/drop-data-tags` (P3) — drop the `data.tags` denormalization. Phase A: pass `{ tags: true }` to `extractLinks` in the loader so `#P<n>` / `#<type>` hashtags emitted by `issueToMarkdown` H1 land in the `links` table. Phase B: migrate 4 readers (mutations:206, show.ts:259, agent/queries:130, beads/queries:266) to SELECT FROM links WHERE href = '#PX'. Phase C: stop writing `data.tags`.
 
 **Pending (Phase F — rename-content-cascade):**
 
-- 📋 `@km/all/rename-content-cascade` (P1) — content-layer batch update of wikilinks/mentions when a node's path changes. Background worker subscribing to node-renamed events; persist queue at `.km/rename-queue.jsonl`; crash-resumable. Biggest remaining work.
+- 📋 `@km/all/rename-content-cascade` (P1) — content-layer batch update of wikilinks/mentions when a node's path changes. Background worker subscribing to node-renamed events; persist queue at `.km/rename-queue.jsonl`; crash-resumable. Biggest remaining work — own session recommended.
 
 ### YAGNI verdict on new domain interface objects (re-verified 2026-04-30, re-confirmed 2026-05-03)
 
