@@ -1,5 +1,5 @@
 import { ulid } from "ulid"
-import type { Repo } from "@km/storage"
+import { resolveRef, type Repo } from "@km/storage"
 
 const SEPARATOR = "-"
 const AUTO_LENGTH = 4
@@ -72,26 +72,20 @@ export function generateSubId(parentShortId: string, childNumber: number): strin
 /**
  * Resolve a user-supplied reference to a node id (ULID).
  *
- * Three terms are distinct (per docs/design/model/storage.md:761-787):
- *   - id   = ULID, opaque, internal. The pkey of nodes.
- *   - name = path segment (one slug per node).
- *   - path = composition of names by parent walk; the user-facing form.
+ * @deprecated New code should call `resolveRef(repo, ref)` from `@km/storage`
+ * directly. This wrapper exists only to preserve the test-fixture compat
+ * fallback (step 4 below) until `@km/beads/data-id-stop-writing` migrates
+ * fixtures to file-materialization. Once that lands, this function can be
+ * deleted entirely.
  *
  * Resolution priority:
- *   1. id (direct ULID)               → exact nodes.id match
- *   2. path (full or relative)         → repo.resolveNode (uses indexed fs_path)
- *      handles: `@km/beads/foo`, `@km/silvercode/acp/rename`, `silvercode/acp/rename`
- *   3. legacy bd-form short_id/alias  → json_each scan over data.aliases
- *      handles: `km-silvercode.acp-rename`, `km-silvercode-acp-rename`
- *
- * Step 2 used to do three sequential json_extract scans against `data.id` /
- * `data.short_id` — that work is now done by repo.resolveNode against
- * fs_path with index `idx_nodes_fs_path` (smart-resolver.ts:278-305). Since
- * `data.id` value equals `fs_path` minus `.md`, the json_extract scans were
- * redundant duplicates of the indexed lookup.
- *
- * Step 3 (aliases) stays as the legacy bd-form fallback — those forms don't
- * appear in fs_path, so resolveNode won't find them.
+ *   1–3. universal: ULID / path-form / alias — delegated to `resolveRef`.
+ *   4. compat fallback: `data.id` / `data.short_id` json_extract.
+ *      In production, beads always have fs_path set (they're materialized
+ *      files on disk), so step 2 always finds them. This fallback exists
+ *      for tests that seed beads via raw `repo.addNode({ data: { id: ... } })`
+ *      without writing a file — the lookup-by-data.id pattern that the
+ *      pre-2026-04-30 resolver used.
  */
 export function resolveShortId(input: string, options: ShortIdOptions): string | null {
   if (!options.repo) {
@@ -99,44 +93,11 @@ export function resolveShortId(input: string, options: ShortIdOptions): string |
   }
   const repo = options.repo
 
-  // 1. id (direct ULID) — exact nodes.id match. Cheap pkey lookup.
-  if (repo.getNode(input)) return input
+  const universal = resolveRef(repo, input)
+  if (universal !== null) return universal
 
-  // 2. path — delegate to repo.resolveNode for path-shaped input
-  //    (contains "/" or starts with sigil "@<prefix>/").
-  if (input.includes("/")) {
-    const node = repo.resolveNode(input)
-    if (node) return node.id
-    // Strip a leading `@<prefix>/` sigil and retry — handles cross-vault
-    // references where the stored fs_path may be without the sigil.
-    const stripped = input.replace(/^@[^/]+\//, "")
-    if (stripped !== input) {
-      const node2 = repo.resolveNode(stripped)
-      if (node2) return node2.id
-    }
-  }
-
-  // 3. legacy bd-form — scan data.aliases for ids that don't appear as paths.
-  //    These are bd-flavored ids (e.g. `km-silvercode.acp-rename`) emitted
-  //    by `generateShortId` and migration; preserved as historical names.
-  const byAlias = repo.rawQuery<{ id: string }>(
-    `SELECT id FROM nodes
-     WHERE EXISTS (
-       SELECT 1 FROM json_each(json_extract(data, '$.aliases')) WHERE value = ?
-     )
-     LIMIT 1`,
-    [input],
-  )
-  if (byAlias[0]) return byAlias[0].id
-
-  // 4. compat fallback: data.id / data.short_id json_extract.
-  //    In production, beads always have fs_path set (they're materialized
-  //    files on disk), so step 2 always finds them. This fallback exists
-  //    for tests that seed beads via raw `repo.addNode({ data: { id: ... } })`
-  //    without writing a file — the lookup-by-data.id pattern that the
-  //    pre-2026-04-30 resolver used. Will be removed once test fixtures
-  //    migrate to file-materialization (tracked in
-  //    @km/beads/data-id-stop-writing follow-up).
+  // Step 4 — beads-side test-fixture compat fallback. Removed in
+  // @km/beads/data-id-stop-writing.
   const stripped = input.replace(/^@[^/]+\//, "")
   const byCanonical = repo.rawQuery<{ id: string }>(
     `SELECT id FROM nodes

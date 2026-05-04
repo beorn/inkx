@@ -319,6 +319,10 @@ export { rewriteWikilinks, rewriteBareIdMentions } from "./repo/move-with-refs.t
 
 export type { MoveSpec, MoveOptions, MoveResult, MoveProgress } from "./repo/move-with-refs.ts"
 
+// Universal reference resolver — id / path / alias ladder.
+// See repo/resolve-ref.ts for full semantics.
+export { resolveRef } from "./repo/resolve-ref.ts"
+
 export type { UnexploredDir } from "./discovery.ts"
 
 // Testing utilities
