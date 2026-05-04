@@ -88,13 +88,17 @@ Three concepts, distinct (per `docs/design/model/storage.md:761-787`):
 
 - ✅ `@km/storage/parent-name-unique-folder-file-coexistence` — schema v10 (commit `f42b3bde9`). The v8 partial UNIQUE INDEX `(parent_id, name)` rejected the legitimate Obsidian/Logseq pattern where `Foo/` (folder) and `Foo.md` (file) coexist at the same parent (real-vault repro: `@inbox/` + `@inbox.md`, `Tax/` + `Tax.md`). v10 adds `fstype` as a key column so folder-vs-file pairs coexist as the OS already allows. Pre-flight check now keys on `(parent_id, name, fstype)` — same-fstype duplicates (the actual OS invariant) still rejected with descriptive error.
 
-**Pending (Phase E — drop-data-tags, 3-phase):**
+**Shipped 2026-05-04 (Phase E.C — drop redundant data.tags write):**
 
-- 📋 `@km/all/drop-data-tags` (P3) — design constraint surfaced 2026-05-04: the parser (`km-refs.ts:25`) already writes `node.data.tags` from inline `#tag` markers in heading/paragraph text — that's the SAME field but a different concept (parser hashtag-tagging) and explicitly out of scope per bead's "Out of scope" section. The bead's Phase A wants `#P<n>` / `#<type>` from beads' H1 lines indexed into the `links` table. Two implementation paths possible: (a) emit them as `[[#P1]]` wikilinks instead of bare `#P1` hashtags so the wikilink parser picks them up — clean but changes the bead markdown surface; (b) pass `{ tags: true }` to `extractLinks` for collapsed-file extraction (currently false because it's noisy in chat transcripts) — works for collapsed beads but parsed beads use the mdast pipeline not regex. Path (a) is correct long-term but requires updating `issueToMarkdown` and migrating ~all existing beads. Recommendation: file follow-up with explicit decision before Phase B/C.
+- ✅ `@km/all/drop-data-tags` (P3, partial) — Phase C only (commit `888813d4b`). The bead-side `data.tags` denormalization in `updateBeadFields` removed; the parser-side `kmRefsTransform` already populates `node.data.tags` from inline `#tag` markers in the H1 line, so readers (queries.ts, show.ts, agent/queries) continue to see the same values. Phase A (links-table indexing of beads' H1 hashtags) deferred — design choice between emitting `[[#P1]]` wikilinks vs enabling `tags: true` in extractLinks; either path requires careful testing of `bd list --priority` flow.
 
-**Pending (Phase F — rename-content-cascade):**
+**Shipped 2026-05-04 (Phase F — synchronous rename-content-cascade):**
 
-- 📋 `@km/all/rename-content-cascade` (P1) — content-layer batch update of wikilinks/mentions when a node's path changes. Background worker subscribing to node-renamed events; persist queue at `.km/rename-queue.jsonl`; crash-resumable. Biggest remaining work — own session recommended (1-2 day project).
+- ✅ `@km/all/rename-content-cascade` (P1, synchronous) — `moveNodeWithRefs` now rewrites BOTH leaf-name wikilinks (`[[Child]]`) AND path-form wikilinks (`[[p1/Child]]` → `[[p2/Child]]`) in a single transaction (commit `ffdf54eef`). The bead's vision of an async/background-queue with `.km/rename-queue.jsonl` persistence and crash recovery remains a future enhancement — the synchronous version covers the canonical case (`bd move @km/beads/foo @km/storage/foo`) atomically, so there's no eventual-consistency window where surface refs are stale. New test `re-parent only: path-form wikilinks ARE rewritten` pins the acceptance.
+
+**Real-vault hotfixes shipped 2026-05-04:**
+
+- ✅ Schema migration auto-cleans rows with absolute `fs_path` (`13716cc13`). Real-vault repro: `km bd ready` failed at v9 → v10 with 369 corrupted rows under `/Users/.../@km/...` (older write paths bypassed vault-relative normalization). Migration now deletes them so the file walk rebuilds with correct relative paths. State.db is a rebuildable cache; deletion is safe.
 
 ### YAGNI verdict on new domain interface objects (re-verified 2026-04-30, re-confirmed 2026-05-03)
 
