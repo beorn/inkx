@@ -498,7 +498,7 @@ describe("moveNodeWithRefs", () => {
     expect(repo.getNode(sourceId)?.content).toBe("See [[New Name]] for details")
   })
 
-  test("re-parent only: no name change leaves backlinks alone", () => {
+  test("re-parent only: leaf-name wikilinks unchanged (name didn't change)", () => {
     const repo = createTestRepo()
     const parent1 = repo.addNode(null, {
       type: "h",
@@ -532,8 +532,51 @@ describe("moveNodeWithRefs", () => {
 
     repo.moveNodeWithRefs(child, { newParentId: parent2 })
     expect(repo.getNode(child)?.parent_id).toBe(parent2)
-    // Wikilink unchanged because name didn't change
+    // Leaf-name wikilink `[[Child]]` unchanged because name didn't change.
     expect(repo.getNode(sourceId)?.content).toBe("See [[Child]]")
+  })
+
+  test("re-parent only: path-form wikilinks ARE rewritten (rename-content-cascade)", () => {
+    // Phase F of @km/all/path-name-id-redesign: when a node moves to a new
+    // parent, path-form wikilinks `[[p1/Child]]` get rewritten to
+    // `[[p2/Child]]` even though the leaf name is unchanged.
+    const repo = createTestRepo()
+    const parent1 = repo.addNode(null, {
+      type: "h",
+      item: {},
+      fstype: "folder",
+      content: "p1",
+      name: "p1",
+      fs_path: "p1",
+    })
+    const parent2 = repo.addNode(null, {
+      type: "h",
+      item: {},
+      fstype: "folder",
+      content: "p2",
+      name: "p2",
+      fs_path: "p2",
+    })
+    const child = repo.addNode(parent1, {
+      type: "h",
+      item: {},
+      fstype: "mdfile",
+      content: "Child",
+      name: "Child",
+      fs_path: "p1/Child.md",
+    })
+    // Source uses path-form to avoid ambiguity. Index a backlink to the
+    // path-form so the candidate-host scan finds it.
+    const sourceId = repo.addNode(null, {
+      type: "p",
+      content: "See [[p1/Child]] for details",
+    })
+    addLink(repo.database, { host_id: sourceId, href: "km:p1/Child", rel: "link" })
+
+    repo.moveNodeWithRefs(child, { newParentId: parent2 })
+
+    // Path-form wikilink should now point at the new parent.
+    expect(repo.getNode(sourceId)?.content).toBe("See [[p2/Child]] for details")
   })
 
   test("link cache href row repointed after rewrite", () => {

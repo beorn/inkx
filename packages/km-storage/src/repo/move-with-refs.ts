@@ -542,7 +542,25 @@ export function moveNodeWithRefs(id: string, spec: MoveSpec, deps: MoveDeps, opt
   let rewroteRefs = 0
   const touchedHosts = new Set<string>()
 
-  if (snapshot.oldName !== newName) {
+  // Determine which forms changed and need rewriting. Two cases:
+  //  (a) leaf name changed: `[[foo]]` → `[[bar]]` (covered by oldName/newName)
+  //  (b) parent path changed but leaf same: `[[@km/beads/foo]]` →
+  //      `[[@km/storage/foo]]` (covered by oldStem/newStem path-form)
+  // Both must run when applicable — a single move can change either or
+  // both. Implements @km/all/rename-content-cascade synchronously: any
+  // backlinker pointing at the old name/path gets rewritten in the same
+  // transaction as the move. (Async/batch background-queue version is a
+  // future bead.)
+  const oldStem = fsPathOf({ fs_path: snapshot.oldFsPath })
+  const renames: Array<{ oldRef: string; newRef: string }> = []
+  if (snapshot.oldName && newName && snapshot.oldName !== newName) {
+    renames.push({ oldRef: snapshot.oldName, newRef: newName })
+  }
+  if (oldStem && newStem && oldStem !== newStem) {
+    renames.push({ oldRef: oldStem, newRef: newStem })
+  }
+
+  if (renames.length > 0) {
     const candidateHostIds = new Set<string>()
     for (const oldHref of snapshot.oldHrefs) {
       const links = getBacklinksByHref(db, oldHref)
@@ -562,11 +580,20 @@ export function moveNodeWithRefs(id: string, spec: MoveSpec, deps: MoveDeps, opt
         visited++
         continue
       }
-      const { text, count } = rewriteWikilinks(hostNode.content, snapshot.oldName, newName)
-      if (count > 0) {
-        pendingHostContent.set(hostId, text)
+      // Apply each rename in sequence to the same content. A host may have
+      // multiple occurrences (some name-form, some path-form) — both get
+      // covered.
+      let workingText = hostNode.content
+      let totalCount = 0
+      for (const { oldRef, newRef } of renames) {
+        const { text, count } = rewriteWikilinks(workingText, oldRef, newRef)
+        workingText = text
+        totalCount += count
+      }
+      if (totalCount > 0) {
+        pendingHostContent.set(hostId, workingText)
         touchedHosts.add(hostId)
-        rewroteRefs += count
+        rewroteRefs += totalCount
       }
       visited++
       onProgress?.({ phase: "rewrite-apply", visited, total: candidateHostIds.size, refsRewritten: rewroteRefs })
