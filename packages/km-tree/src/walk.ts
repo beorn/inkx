@@ -194,9 +194,10 @@ export const KTree = {
    * nameless ancestor is encountered, the walk stops there (the chain is broken
    * and prefix segments above the gap are not part of the path-form).
    *
-   * Cache-free: never reads `fs_path`. Foreshadows
-   * `@km/storage/drop-fs-path-derive-from-name` — once that lands, the storage-side
-   * `pathOf(node)` becomes a wrapper around `KTree.path()`.
+   * Cache-free: never reads `fs_path`. This is the **tree-path** cell of the
+   * path/name × tree/fs 2×2 vocabulary (see `@km/all/path-name-orthogonal-vocabulary`
+   * and `docs/design/model/storage.md`); `@km/core`'s `fsPathOf(node)` is the
+   * fs-cache reader that occupies the **fs-path** cell.
    */
   path(tree: TreeMutator, nodeId: string): string | null {
     const node = tree.getNode(nodeId)

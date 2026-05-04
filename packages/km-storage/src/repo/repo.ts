@@ -20,7 +20,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameS
 import { basename, dirname, join } from "path"
 
 import type { Change, KNode, RepoId, TaskStatus } from "@km/core"
-import { pathOf } from "@km/core"
+import { fsPathOf } from "@km/core"
 import { mintRepoId, readOrMintRepoId } from "../federation/repo-id.ts"
 import { composeItem } from "../item-helpers.ts"
 import type { Config } from "../config-object.ts"
@@ -1305,7 +1305,7 @@ function backlinksForNodeId(db: Database, dataStore: DataStore, nodeId: string):
 
   const hrefs = new Set<string>()
   if (node.name) hrefs.add(normalizeLinkHref("wiki", node.name))
-  const stem = pathOf(node)
+  const stem = fsPathOf(node)
   if (stem) hrefs.add(normalizeLinkHref("wiki", stem))
   if (hrefs.size === 0) return []
 

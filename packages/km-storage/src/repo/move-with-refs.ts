@@ -30,7 +30,7 @@ import { basename, dirname, join } from "path"
 
 import type { Database } from "bun:sqlite"
 import type { KNode } from "@km/core"
-import { pathOf } from "@km/core"
+import { fsPathOf } from "@km/core"
 import { normalizeLinkHref, normalizeNodeName } from "@km/markdown"
 
 import type { DataStore } from "../data-store.ts"
@@ -284,7 +284,7 @@ function snapshotNode(node: KNode): MoveSnapshot {
     : []
   const hrefs = new Set<string>()
   if (node.name) hrefs.add(normalizeLinkHref("wiki", node.name))
-  const stem = pathOf(node)
+  const stem = fsPathOf(node)
   if (stem) hrefs.add(normalizeLinkHref("wiki", stem))
   return {
     oldName: node.name ?? "",
@@ -514,7 +514,7 @@ export function moveNodeWithRefs(id: string, spec: MoveSpec, deps: MoveDeps, opt
   // post-rename row when relevant).
   const newHrefs = new Set<string>()
   if (newName) newHrefs.add(normalizeLinkHref("wiki", newName))
-  const newStem = pathOf({ fs_path: newFsPath })
+  const newStem = fsPathOf({ fs_path: newFsPath })
   if (newStem) newHrefs.add(normalizeLinkHref("wiki", newStem))
 
   if (noRewrite) {

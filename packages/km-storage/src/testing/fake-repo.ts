@@ -6,7 +6,7 @@
  */
 /* oxlint-disable complexity/complexity -- Test helper — setup complexity is acceptable */
 
-import { KNode, pathOf, type Change } from "@km/core"
+import { KNode, fsPathOf, type Change } from "@km/core"
 import { normalizeLinkHref } from "@km/markdown"
 import { mintRepoId } from "../federation/repo-id.ts"
 import type { Repo, RepoStats } from "../repo/repo.ts"
@@ -77,7 +77,7 @@ export interface FakeRepo extends Repo {
  */
 function fakeHrefForNode(node: KNode): string | null {
   if (node.name) return normalizeLinkHref("wiki", node.name)
-  const stem = pathOf(node)
+  const stem = fsPathOf(node)
   if (stem) return normalizeLinkHref("wiki", stem)
   return null
 }

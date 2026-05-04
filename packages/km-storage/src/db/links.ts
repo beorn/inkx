@@ -14,7 +14,7 @@
  */
 
 import type { Database } from "bun:sqlite"
-import { pathOf } from "@km/core"
+import { fsPathOf } from "@km/core"
 import { normalizeLinkHref } from "@km/markdown"
 
 // =============================================================================
@@ -125,7 +125,7 @@ function rowToLink(row: Record<string, unknown>): KLink {
 export function computeHrefsForNode(node: { name?: string | null; fs_path?: string | null }): string[] {
   const hrefs = new Set<string>()
   if (node.name) hrefs.add(normalizeLinkHref("wiki", node.name))
-  const stem = pathOf(node)
+  const stem = fsPathOf(node)
   if (stem) hrefs.add(normalizeLinkHref("wiki", stem))
   return [...hrefs]
 }
