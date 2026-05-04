@@ -88,9 +88,11 @@ Three concepts, distinct (per `docs/design/model/storage.md:761-787`):
 
 - ✅ `@km/storage/parent-name-unique-folder-file-coexistence` — schema v10 (commit `f42b3bde9`). The v8 partial UNIQUE INDEX `(parent_id, name)` rejected the legitimate Obsidian/Logseq pattern where `Foo/` (folder) and `Foo.md` (file) coexist at the same parent (real-vault repro: `@inbox/` + `@inbox.md`, `Tax/` + `Tax.md`). v10 adds `fstype` as a key column so folder-vs-file pairs coexist as the OS already allows. Pre-flight check now keys on `(parent_id, name, fstype)` — same-fstype duplicates (the actual OS invariant) still rejected with descriptive error.
 
-**Shipped 2026-05-04 (Phase E.C — drop redundant data.tags write):**
+**Shipped 2026-05-04 (Phase E — drop redundant data.tags write):**
 
-- ✅ `@km/all/drop-data-tags` (P3, partial) — Phase C only (commit `888813d4b`). The bead-side `data.tags` denormalization in `updateBeadFields` removed; the parser-side `kmRefsTransform` already populates `node.data.tags` from inline `#tag` markers in the H1 line, so readers (queries.ts, show.ts, agent/queries) continue to see the same values. Phase A (links-table indexing of beads' H1 hashtags) deferred — design choice between emitting `[[#P1]]` wikilinks vs enabling `tags: true` in extractLinks; either path requires careful testing of `bd list --priority` flow.
+- ✅ `@km/all/drop-data-tags` (P3) — Phase C only needed (commit `888813d4b`). The bead-side `data.tags` denormalization in `updateBeadFields` was removed; the parser-side `kmRefsTransform` already populates `node.data.tags` from inline `#tag` markers in the H1 line, so readers (queries.ts:271 priority fallback, show.ts:259 display) continue to see the same values.
+
+  **Phases A and B turned out unnecessary** (verified 2026-05-04): the bead's premise ("migrate readers to the `links` table") assumed filter queries like `bd list --priority P1` scanned `data.tags` JSON. They don't — `bd list` builds an FTS query string `#P1` and uses `repo.query()`, which goes through `nodes_fts` with `tokenchars '@#+~'`. The hashtag is already indexed at the FTS layer. The remaining `data.tags` consumers are per-row reads that don't benefit from indexing. No `[[#P1]]` wikilink emission, no parser changes needed. Bead is fully done.
 
 **Shipped 2026-05-04 (Phase F — synchronous rename-content-cascade):**
 
