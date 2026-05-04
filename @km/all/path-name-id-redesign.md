@@ -86,11 +86,11 @@ Three concepts, distinct (per `docs/design/model/storage.md:761-787`):
 
 **Pending (Phase E — drop-data-tags, 3-phase):**
 
-- 📋 `@km/all/drop-data-tags` (P3) — drop the `data.tags` denormalization. Phase A: pass `{ tags: true }` to `extractLinks` in the loader so `#P<n>` / `#<type>` hashtags emitted by `issueToMarkdown` H1 land in the `links` table. Phase B: migrate 4 readers (mutations:206, show.ts:259, agent/queries:130, beads/queries:266) to SELECT FROM links WHERE href = '#PX'. Phase C: stop writing `data.tags`.
+- 📋 `@km/all/drop-data-tags` (P3) — design constraint surfaced 2026-05-04: the parser (`km-refs.ts:25`) already writes `node.data.tags` from inline `#tag` markers in heading/paragraph text — that's the SAME field but a different concept (parser hashtag-tagging) and explicitly out of scope per bead's "Out of scope" section. The bead's Phase A wants `#P<n>` / `#<type>` from beads' H1 lines indexed into the `links` table. Two implementation paths possible: (a) emit them as `[[#P1]]` wikilinks instead of bare `#P1` hashtags so the wikilink parser picks them up — clean but changes the bead markdown surface; (b) pass `{ tags: true }` to `extractLinks` for collapsed-file extraction (currently false because it's noisy in chat transcripts) — works for collapsed beads but parsed beads use the mdast pipeline not regex. Path (a) is correct long-term but requires updating `issueToMarkdown` and migrating ~all existing beads. Recommendation: file follow-up with explicit decision before Phase B/C.
 
 **Pending (Phase F — rename-content-cascade):**
 
-- 📋 `@km/all/rename-content-cascade` (P1) — content-layer batch update of wikilinks/mentions when a node's path changes. Background worker subscribing to node-renamed events; persist queue at `.km/rename-queue.jsonl`; crash-resumable. Biggest remaining work — own session recommended.
+- 📋 `@km/all/rename-content-cascade` (P1) — content-layer batch update of wikilinks/mentions when a node's path changes. Background worker subscribing to node-renamed events; persist queue at `.km/rename-queue.jsonl`; crash-resumable. Biggest remaining work — own session recommended (1-2 day project).
 
 ### YAGNI verdict on new domain interface objects (re-verified 2026-04-30, re-confirmed 2026-05-03)
 
