@@ -733,6 +733,7 @@ function migrateVersioned(db: import("bun:sqlite").Database): MigrateResult {
     // Migrate path: jump straight to the v10 index. Drop any legacy v8
     // index first if it somehow exists (idempotent).
     db.run("DROP INDEX IF EXISTS idx_nodes_parent_name_fstype")
+    cleanupAbsoluteFsPathRows(db)
     enforceParentNameAndFstypeUniqueOrThrow(db)
     db.run(
       "CREATE UNIQUE INDEX IF NOT EXISTS idx_nodes_parent_name_fstype " +
@@ -760,8 +761,16 @@ function migrateVersioned(db: import("bun:sqlite").Database): MigrateResult {
   // (idempotent — IF EXISTS) and recreate. fs reality has always allowed
   // `Foo/` + `Foo.md` to coexist at the same parent; this aligns the SQL
   // invariant with the OS invariant.
+  //
+  // Also: clean up rows with absolute `fs_path` values (a corruption
+  // pattern from older write paths that bypassed vault-relative
+  // normalization — fs_path must be vault-relative, never absolute).
+  // These rows get re-discovered with correct relative fs_path + parent_id
+  // on the next file walk; deleting them here is safe because state.db
+  // is a rebuildable cache.
   if (current < 10) {
     db.run("DROP INDEX IF EXISTS idx_nodes_parent_name_fstype")
+    cleanupAbsoluteFsPathRows(db)
     enforceParentNameAndFstypeUniqueOrThrow(db)
     db.run(
       "CREATE UNIQUE INDEX IF NOT EXISTS idx_nodes_parent_name_fstype " +
@@ -773,6 +782,29 @@ function migrateVersioned(db: import("bun:sqlite").Database): MigrateResult {
 
   writeSchemaVersion(db, SCHEMA_VERSION)
   return result
+}
+
+/**
+ * Delete rows with absolute `fs_path` values. These are corruption from
+ * older code paths that bypassed vault-relative path normalization —
+ * `fs_path` must always be vault-relative (e.g. `@km/foo.md`), never
+ * absolute (`/Users/.../@km/foo.md`).
+ *
+ * These rows get re-discovered with correct relative fs_path + parent_id
+ * on the next file walk. state.db is a rebuildable cache, so deletion is
+ * safe.
+ *
+ * Idempotent: DELETE WHERE clause is a no-op when no rows match.
+ */
+function cleanupAbsoluteFsPathRows(db: import("bun:sqlite").Database): void {
+  const result = db.run("DELETE FROM nodes WHERE fs_path LIKE '/%'")
+  if (result.changes > 0) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `[km-storage] schema migration: cleaned up ${result.changes} corrupted rows ` +
+        `with absolute fs_path (will be rediscovered on next file walk).`,
+    )
+  }
 }
 
 /**
