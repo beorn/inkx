@@ -20,3 +20,6 @@ export * from "./schema.ts"
 export * from "./data-schema.ts"
 export * from "./migrate.ts"
 export * from "./sync.ts"
+
+// Test helpers — bd-CLI-conventional thin wrapper around @km/storage seedFileNode.
+export { seedBead, type SeedBeadOptions } from "./testing/seed-bead.ts"

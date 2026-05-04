@@ -48,3 +48,8 @@ export {
 
 // Fake watcher for testing without real filesystem
 export { createFakeWatcher, type FakeWatcher } from "./fake-watcher.ts"
+
+// Universal fs-materialized node seeder. Use instead of raw
+// `repo.addNode({ data: { id: ... } })` — see seed-file-node.ts.
+export { seedFileNode } from "./seed-file-node.ts"
+export type { SeedFileNodeOptions, SeededFileNode } from "./seed-file-node.ts"

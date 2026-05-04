@@ -350,6 +350,7 @@ export {
   SIMPLE_BOARD,
   NESTED_BOARD,
   BODY_CONTENT_BOARD,
+  seedFileNode,
 } from "./testing/index.ts"
 
 export type {
@@ -373,4 +374,6 @@ export type {
   TestMode,
   FakeWatcher,
   BoardFixture,
+  SeedFileNodeOptions,
+  SeededFileNode,
 } from "./testing/index.ts"
