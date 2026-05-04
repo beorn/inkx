@@ -73,10 +73,14 @@ describe("schema v8 — partial UNIQUE (parent_id, name) for on-disk-materialize
     expect(() => insertNode(db, { id: "b", parentId: "parent-1", name: "foo", fstype: "file" })).toThrow(SQLiteError)
   })
 
-  test("BLOCKS: even when fstypes differ (file vs folder both materialize)", () => {
+  test("ALLOWS (v10): file vs folder coexist with same (parent_id, name) — distinct on disk", () => {
+    // The v10 form keys on (parent_id, name, fstype) so the legitimate
+    // Obsidian/Logseq pattern `Foo/` (folder) + `Foo.md` (file) coexists.
+    // The v8 form rejected this; the user's real vault hit it on
+    // areas/@office/Finance/Tax/ + Tax.md.
     const db = freshDb()
     insertNode(db, { id: "a", parentId: "parent-1", name: "foo", fstype: "folder" })
-    expect(() => insertNode(db, { id: "b", parentId: "parent-1", name: "foo", fstype: "file" })).toThrow(SQLiteError)
+    expect(() => insertNode(db, { id: "b", parentId: "parent-1", name: "foo", fstype: "file" })).not.toThrow()
   })
 
   test("ALLOWS: two mdsections (fstype = 'mdsection') with same (parent_id, name)", () => {
@@ -123,17 +127,18 @@ describe("schema v8 — partial UNIQUE (parent_id, name) for on-disk-materialize
     expect(() => migrateSchema(db)).not.toThrow()
   })
 
-  test("migrateSchema refuses to upgrade a v7 DB with existing duplicates", () => {
+  test("migrateSchema refuses to upgrade a v7 DB with same-fstype duplicates", () => {
     // Simulate a pre-v8 DB by stamping schema_version=7 and seeding two
-    // colliding fs rows. The partial UNIQUE doesn't exist yet at v7, so
-    // the duplicates can be inserted.
+    // colliding fs rows of the SAME fstype. The OS doesn't allow two
+    // `foo.md` files in the same directory, so neither does the v10
+    // index. The pre-flight check should catch this and refuse to migrate.
     const db = freshDb()
     db.run("DROP INDEX IF EXISTS idx_nodes_parent_name_fstype")
     db.run("INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '7')")
     insertNode(db, { id: "a", parentId: "parent-1", name: "foo", fstype: "file" })
     insertNode(db, { id: "b", parentId: "parent-1", name: "foo", fstype: "file" })
 
-    expect(() => migrateSchema(db)).toThrow(/v7 → v8 migration aborted/)
+    expect(() => migrateSchema(db)).toThrow(/schema migration aborted/)
     // Version was NOT bumped — half-migration would be worse than failing.
     const row = db.query("SELECT value FROM meta WHERE key='schema_version'").get() as {
       value: string

@@ -83,8 +83,18 @@
  *       `resolveRef` uses an indexed `WHERE alias = ?` lookup against the
  *       new table. Migration creates the table + triggers, then backfills
  *       from existing rows. Tracked by `@km/storage/aliases-first-class`.
+ *  10 — idx_nodes_parent_name_fstype: include `fstype` as a KEY column
+ *       (was: predicate-only). The v8 form `(parent_id, name)` collided
+ *       on the legitimate Obsidian/Logseq pattern where `Foo/` (folder)
+ *       and `Foo.md` (file) coexist at the same parent — both compute
+ *       `name = "Foo"` after `.md` stripping but they are distinct on
+ *       disk. The OS already allows them; the index now matches that
+ *       reality by keying on `(parent_id, name, fstype)`. Migration
+ *       drops the v8 index (DROP INDEX IF EXISTS) and recreates with
+ *       the corrected key set. Tracked by
+ *       `@km/storage/parent-name-unique-folder-file-coexistence`.
  */
-export const SCHEMA_VERSION = 9
+export const SCHEMA_VERSION = 10
 
 /**
  * Data version — bump when application-logic changes invalidate derived data
@@ -307,7 +317,7 @@ CREATE INDEX IF NOT EXISTS idx_nodes_name ON nodes(name);
 -- stay legal; the repo root row (fstype='repo', name IS NULL) is excluded
 -- by the second conjunct.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_nodes_parent_name_fstype
-  ON nodes(parent_id, name)
+  ON nodes(parent_id, name, fstype)
   WHERE fstype IN ('repo', 'folder', 'file', 'mdfile', 'txtfile')
     AND name IS NOT NULL;
 
@@ -710,25 +720,23 @@ function migrateVersioned(db: import("bun:sqlite").Database): MigrateResult {
     backfillDepsFromNodes(db)
   }
 
-  // v7 → v8: install the partial UNIQUE INDEX on (parent_id, name) for
-  // fs-materialized nodes. The CREATE statement is idempotent at the SQL
-  // level (`IF NOT EXISTS`), but `CREATE UNIQUE INDEX` will fail if any
-  // existing rows already violate the constraint. We run an explicit
-  // pre-flight check first so the user gets a clear error pointing at the
-  // exact (parent_id, name) collisions to clean up — better than the raw
-  // SQLITE_CONSTRAINT message and avoids leaving the meta.schema_version
-  // half-bumped.
+  // v7 → v8 (superseded by v9 → v10): the v8 form keyed the partial
+  // UNIQUE INDEX on `(parent_id, name)`, which collided on the legitimate
+  // Obsidian/Logseq pattern where `Foo/` (folder) and `Foo.md` (file)
+  // coexist at the same parent. Both compute `name = "Foo"` after `.md`
+  // stripping but they are distinct on disk. v10 fixes the index by
+  // adding `fstype` as a key column. We skip running the v8 install
+  // (the v10 step below replaces it) but still need to write the
+  // schema_version bump so older v6/v7 DBs follow the path correctly.
+  // Fresh DBs get the v10 form directly via SCHEMA above.
   if (current < 8) {
-    enforceParentNameUniqueOrThrow(db)
-    // CREATE statement runs as part of the SCHEMA stanza above this
-    // function, so by the time we reach here the index already exists on a
-    // fresh DB. For an upgrading DB the SCHEMA stanza above already ran
-    // (idempotent) and either succeeded or threw — but it can also fail
-    // silently if SQLite skips the CREATE (it shouldn't, but be defensive).
-    // Re-run it here so the migration is self-contained.
+    // Migrate path: jump straight to the v10 index. Drop any legacy v8
+    // index first if it somehow exists (idempotent).
+    db.run("DROP INDEX IF EXISTS idx_nodes_parent_name_fstype")
+    enforceParentNameAndFstypeUniqueOrThrow(db)
     db.run(
       "CREATE UNIQUE INDEX IF NOT EXISTS idx_nodes_parent_name_fstype " +
-        "ON nodes(parent_id, name) " +
+        "ON nodes(parent_id, name, fstype) " +
         "WHERE fstype IN ('repo', 'folder', 'file', 'mdfile', 'txtfile') " +
         "AND name IS NOT NULL",
     )
@@ -747,42 +755,64 @@ function migrateVersioned(db: import("bun:sqlite").Database): MigrateResult {
     backfillAliasesFromNodes(db)
   }
 
+  // v9 → v10: replace the v8 partial UNIQUE index with the corrected
+  // `(parent_id, name, fstype)` key set. Drop the old index unconditionally
+  // (idempotent — IF EXISTS) and recreate. fs reality has always allowed
+  // `Foo/` + `Foo.md` to coexist at the same parent; this aligns the SQL
+  // invariant with the OS invariant.
+  if (current < 10) {
+    db.run("DROP INDEX IF EXISTS idx_nodes_parent_name_fstype")
+    enforceParentNameAndFstypeUniqueOrThrow(db)
+    db.run(
+      "CREATE UNIQUE INDEX IF NOT EXISTS idx_nodes_parent_name_fstype " +
+        "ON nodes(parent_id, name, fstype) " +
+        "WHERE fstype IN ('repo', 'folder', 'file', 'mdfile', 'txtfile') " +
+        "AND name IS NOT NULL",
+    )
+  }
+
   writeSchemaVersion(db, SCHEMA_VERSION)
   return result
 }
 
 /**
- * Pre-flight check for the v7 → v8 partial UNIQUE migration.
+ * Pre-flight check for the v9 → v10 partial UNIQUE migration.
  *
- * Throws a descriptive error if any (parent_id, name) collision exists among
- * fs-materialized rows with non-null names. Lists up to the first 5
- * offending tuples so the user knows what to fix without sifting through
- * raw SQL output.
+ * Throws a descriptive error if any `(parent_id, name, fstype)` collision
+ * exists among fs-materialized rows with non-null names. The v10 form
+ * (with `fstype` as a key column) tolerates the legitimate
+ * `Foo/` + `Foo.md` coexistence pattern that v8 incorrectly rejected.
+ *
+ * Same-fstype collisions (e.g. two `mdfile` rows both named `Foo`) are
+ * still rejected — the OS doesn't allow two `Foo.md` files in the same
+ * directory, so neither does the index.
  */
-function enforceParentNameUniqueOrThrow(db: import("bun:sqlite").Database): void {
+function enforceParentNameAndFstypeUniqueOrThrow(db: import("bun:sqlite").Database): void {
   const dupes = db
     .query(
-      `SELECT parent_id, name, COUNT(*) AS n
+      `SELECT parent_id, name, fstype, COUNT(*) AS n
          FROM nodes
         WHERE fstype IN ('repo', 'folder', 'file', 'mdfile', 'txtfile')
           AND name IS NOT NULL
-        GROUP BY parent_id, name
+        GROUP BY parent_id, name, fstype
         HAVING COUNT(*) > 1
         LIMIT 5`,
     )
-    .all() as Array<{ parent_id: string | null; name: string; n: number }>
+    .all() as Array<{ parent_id: string | null; name: string; fstype: string; n: number }>
 
   if (dupes.length === 0) return
 
-  const lines = dupes.map((d) => `  parent_id=${d.parent_id ?? "(root)"}  name=${JSON.stringify(d.name)}  count=${d.n}`)
+  const lines = dupes.map(
+    (d) => `  parent_id=${d.parent_id ?? "(root)"}  name=${JSON.stringify(d.name)}  fstype=${d.fstype}  count=${d.n}`,
+  )
   throw new Error(
-    "v7 → v8 migration aborted: existing rows violate the partial UNIQUE " +
-      "INDEX (parent_id, name) WHERE fstype IN " +
+    "schema migration aborted: existing rows violate the partial UNIQUE " +
+      "INDEX (parent_id, name, fstype) WHERE fstype IN " +
       "('repo','folder','file','mdfile','txtfile') AND name IS NOT NULL.\n" +
       "Resolve these duplicates and re-run:\n" +
       lines.join("\n") +
       "\n(Showing up to 5; query nodes WHERE fstype IN " +
-      "('repo','folder','file','mdfile','txtfile') GROUP BY parent_id, name " +
+      "('repo','folder','file','mdfile','txtfile') GROUP BY parent_id, name, fstype " +
       "HAVING COUNT(*) > 1 for the full list.)",
   )
 }
