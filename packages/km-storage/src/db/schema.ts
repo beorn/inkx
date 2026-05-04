@@ -74,8 +74,17 @@
  *       headings. Predicate narrowed to the explicit on-disk tier list.
  *       The OS-already-enforces-uniqueness argument (originally cited as
  *       reason to drop the index) applies exactly to this tier list.
+ *   9 — node_aliases: indexed (node_id, alias) table populated by SQLite
+ *       triggers from `nodes.data.aliases` JSON. Aliases are universal —
+ *       any node can carry alternate names that resolve to it (legacy
+ *       bd-form ids from imports, cross-vault refs, link rewrites). Pre-v9
+ *       resolution scanned `json_each(json_extract(data, '$.aliases'))`
+ *       per query (slow path, no index). Post-v9 the alias step in
+ *       `resolveRef` uses an indexed `WHERE alias = ?` lookup against the
+ *       new table. Migration creates the table + triggers, then backfills
+ *       from existing rows. Tracked by `@km/storage/aliases-first-class`.
  */
-export const SCHEMA_VERSION = 8
+export const SCHEMA_VERSION = 9
 
 /**
  * Data version — bump when application-logic changes invalidate derived data
@@ -168,6 +177,59 @@ CREATE TRIGGER IF NOT EXISTS deps_after_delete
 AFTER DELETE ON nodes
 BEGIN
   DELETE FROM deps WHERE host_id = OLD.id;
+END;
+`
+
+/**
+ * SQL for the `node_aliases` table + indexes + triggers (v9).
+ *
+ * Aliases are universal — any node may carry alternate names. Pre-v9 the
+ * resolver scanned `json_each(json_extract(data, '$.aliases'))` per query;
+ * v9 promotes aliases to a normalized indexed table so reverse lookups
+ * (`WHERE alias = ?`) hit a btree.
+ *
+ * Trigger semantics mirror the deps pattern (v7):
+ *   - INSERT: derive alias rows from `data.aliases` JSON array.
+ *   - UPDATE OF data: delete-then-insert reconcile.
+ *   - DELETE: cascade so the table never carries rows for missing nodes.
+ *
+ * `INSERT OR IGNORE` guards against duplicate alias values within a single
+ * node's aliases array.
+ */
+const ALIASES_DDL = `
+CREATE TABLE IF NOT EXISTS node_aliases (
+  node_id TEXT NOT NULL,
+  alias   TEXT NOT NULL,
+  PRIMARY KEY (node_id, alias)
+);
+
+CREATE INDEX IF NOT EXISTS idx_node_aliases_alias ON node_aliases(alias);
+CREATE INDEX IF NOT EXISTS idx_node_aliases_node  ON node_aliases(node_id);
+
+CREATE TRIGGER IF NOT EXISTS node_aliases_after_insert
+AFTER INSERT ON nodes
+BEGIN
+  INSERT OR IGNORE INTO node_aliases(node_id, alias)
+  SELECT NEW.id, value
+  FROM json_each(json_extract(NEW.data, '$.aliases'))
+  WHERE value IS NOT NULL AND value != '';
+END;
+
+CREATE TRIGGER IF NOT EXISTS node_aliases_after_update
+AFTER UPDATE OF data ON nodes
+BEGIN
+  DELETE FROM node_aliases WHERE node_id = NEW.id;
+
+  INSERT OR IGNORE INTO node_aliases(node_id, alias)
+  SELECT NEW.id, value
+  FROM json_each(json_extract(NEW.data, '$.aliases'))
+  WHERE value IS NOT NULL AND value != '';
+END;
+
+CREATE TRIGGER IF NOT EXISTS node_aliases_after_delete
+AFTER DELETE ON nodes
+BEGIN
+  DELETE FROM node_aliases WHERE node_id = OLD.id;
 END;
 `
 
@@ -428,6 +490,12 @@ CREATE INDEX IF NOT EXISTS idx_ra_file ON referenced_anchors(file_id);
 -- SCHEMA yet (production order is migrateSchema → SCHEMA). One constant,
 -- two callers, no drift.
 ${DEPS_DDL}
+
+-- Universal node aliases (v9) — indexed mirror of nodes.data.aliases JSON.
+-- Same trigger-cascade pattern as deps; same one-constant-two-callers
+-- discipline. The resolver's alias step uses idx_node_aliases_alias for
+-- O(log N) reverse lookup instead of a per-query json_each scan.
+${ALIASES_DDL}
 `
 
 /**
@@ -666,6 +734,19 @@ function migrateVersioned(db: import("bun:sqlite").Database): MigrateResult {
     )
   }
 
+  // v8 → v9: backfill the `node_aliases` index from existing nodes.
+  //
+  // Same pattern as v6 → v7 deps backfill. The triggers only fire on
+  // future writes; pre-v9 rows whose `data.aliases` JSON arrays already
+  // carry alias strings need a one-shot backfill so the resolver's alias
+  // step can use the indexed table immediately.
+  //
+  // Idempotent: backfillAliasesFromNodes is a DELETE+INSERT inside one
+  // transaction, so running it twice produces the same final state.
+  if (current < 9) {
+    backfillAliasesFromNodes(db)
+  }
+
   writeSchemaVersion(db, SCHEMA_VERSION)
   return result
 }
@@ -807,6 +888,60 @@ function backfillDepsFromNodes(db: import("bun:sqlite").Database): void {
            json_each(json_extract(n.data, '$.props."blocked-by".values')) AS v
       WHERE json_extract(n.data, '$.props."blocked-by".type') = 'list'
         AND json_extract(v.value, '$.target') IS NOT NULL
+    `)
+
+    db.run("COMMIT")
+  } catch (error) {
+    db.run("ROLLBACK")
+    throw error
+  }
+}
+
+/**
+ * Install the node_aliases table + indexes + triggers if not already present.
+ *
+ * Used by both:
+ *   - SCHEMA (via string interpolation) — fresh DB path
+ *   - backfillAliasesFromNodes — pre-v9 DBs that hit migrateSchema before SCHEMA
+ *
+ * All statements use IF NOT EXISTS so calling this on a v9 DB is a no-op.
+ */
+function ensureAliasesObjects(db: import("bun:sqlite").Database): void {
+  db.run(ALIASES_DDL)
+}
+
+/**
+ * Backfill the `node_aliases` index from existing `nodes` rows (v8 → v9).
+ *
+ * Mirrors the v6 → v7 deps backfill pattern. The aliases triggers only
+ * fire on future writes; pre-v9 rows whose `data.aliases` JSON arrays
+ * already carry strings need a one-shot pass to land their tuples.
+ *
+ * Idempotent: the `DELETE FROM node_aliases` at the start clears any rows
+ * from a partial prior run, so a second pass yields the same final state.
+ */
+function backfillAliasesFromNodes(db: import("bun:sqlite").Database): void {
+  // Production order is migrateSchema THEN db.run(SCHEMA), so on the first
+  // v8 → v9 migration the table is absent. Create the canonical shape
+  // locally; SCHEMA's CREATE TABLE IF NOT EXISTS afterwards is a no-op.
+  ensureAliasesObjects(db)
+
+  // Defensive: stripped-down test fixtures may lack the `data` column on
+  // `nodes`. Skip — there's nothing to backfill, and SCHEMA's run after
+  // this migration will add the canonical shape before any future writes.
+  const nodeCols = db.query("PRAGMA table_info(nodes)").all() as { name: string }[]
+  if (!nodeCols.some((c) => c.name === "data")) return
+
+  db.run("BEGIN IMMEDIATE")
+  try {
+    db.run("DELETE FROM node_aliases")
+
+    db.run(`
+      INSERT OR IGNORE INTO node_aliases(node_id, alias)
+      SELECT n.id, v.value
+      FROM nodes AS n,
+           json_each(json_extract(n.data, '$.aliases')) AS v
+      WHERE v.value IS NOT NULL AND v.value != ''
     `)
 
     db.run("COMMIT")

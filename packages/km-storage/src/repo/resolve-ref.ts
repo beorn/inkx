@@ -44,20 +44,18 @@ export function resolveRef(repo: Repo, ref: string): string | null {
     }
   }
 
-  // 3. alias — scan data.aliases for ids that don't appear as paths.
-  //    These are bd-flavored ids (e.g. `km-silvercode.acp-rename`) emitted
-  //    by `mintBeadName` and migration; preserved as historical names.
-  //    Aliases are universal (any node can carry them) — see
-  //    @km/storage/aliases-first-class for the indexed-table promotion.
-  const byAlias = repo.rawQuery<{ id: string }>(
-    `SELECT id FROM nodes
-     WHERE EXISTS (
-       SELECT 1 FROM json_each(json_extract(data, '$.aliases')) WHERE value = ?
-     )
-     LIMIT 1`,
+  // 3. alias — indexed lookup against node_aliases (schema v9).
+  //    These are user-supplied alternate names — typically bd-flavored ids
+  //    (e.g. `km-silvercode.acp-rename`) emitted by `normalizeBdRef` and
+  //    migration; preserved as historical names. Aliases are universal —
+  //    any node can carry them. The `node_aliases` table is kept in sync
+  //    with `data.aliases` JSON via SQLite triggers; reads here go through
+  //    `idx_node_aliases_alias` for O(log N) reverse lookup.
+  const byAlias = repo.rawQuery<{ node_id: string }>(
+    `SELECT node_id FROM node_aliases WHERE alias = ? LIMIT 1`,
     [ref],
   )
-  if (byAlias[0]) return byAlias[0].id
+  if (byAlias[0]) return byAlias[0].node_id
 
   return null
 }

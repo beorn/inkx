@@ -44,8 +44,8 @@ function insertNode(db: Database, opts: InsertOpts): void {
 }
 
 describe("schema v8 — partial UNIQUE (parent_id, name) for on-disk-materialized rows", () => {
-  test("SCHEMA_VERSION is 8", () => {
-    expect(SCHEMA_VERSION).toBe(8)
+  test("SCHEMA_VERSION is >= 8 (v8 introduced this constraint)", () => {
+    expect(SCHEMA_VERSION).toBeGreaterThanOrEqual(8)
   })
 
   test("fresh DB has idx_nodes_parent_name_fstype with the on-disk-tier predicate", () => {
