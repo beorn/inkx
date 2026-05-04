@@ -77,7 +77,7 @@ Three concepts, distinct (per `docs/design/model/storage.md:761-787`):
 - ✅ `@km/storage/seed-file-node-helper` (P2) + `@km/beads/seed-bead-as-thin-wrapper` (P3) — universal `seedFileNode(repo, path, opts)` in `@km/storage/testing` and 11-LOC bd-conventional `seedBead` wrapper in `@km/beads/testing` (commit `e56be3722`). 13 new tests.
 - ✅ `@km/all/path-name-orthogonal-vocabulary` (P3) — `pathOf` → `fsPathOf` rename in `@km/core` with deprecated alias, 6 callers migrated, 2×2 vocabulary in `storage.md` and `knode.md` (commits `3c963242b`, `5072218a2`, `6986fa6cb`).
 - ✅ `@km/storage/deps-first-class` (P2) — loader-merge: frontmatter `dependencies:` array now feeds `data.props["blocked-by"]` so the existing v7 `deps` trigger indexes both authoring forms. NO new column, NO new table (commit `6e1c2f5ca`). 13 new tests.
-- ✅ `@km/all/props-not-frontmatter` (P3, **partial**) — initial sweep across km-board, km-storage, km-tree, km-fs-mount, km-beads (commits `b98adfec8`, `5f43d546b`, `80864695e`, `abbb811be`). Wider sweep across ~213 mentions still pending.
+- ✅ `@km/all/props-not-frontmatter` (P3) — full sweep across km-board, km-storage, km-tree, km-fs-mount, km-beads, km-cli, km-tui (commits `b98adfec8`, `5f43d546b`, `80864695e`, `abbb811be`, `0ef7af5c4`, `5128745e4`). 22 files changed; before 213 mentions, after 178 — the 178 remaining are legitimate parser-surface references (`splitFrontmatter`, `extractFrontmatter`, `mergeFileFrontmatter`), fixture filenames, local YAML-rendering variables, and km-fs-mount drift-preservation paths that genuinely refer to YAML-on-disk. Vocabulary paragraph added to `docs/design/model/storage.md`.
 
 **Pending (Phase D — data.id removal, paired):**
 
