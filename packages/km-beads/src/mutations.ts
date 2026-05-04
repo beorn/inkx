@@ -325,10 +325,14 @@ export function renderInboxCapture(
  *
  * The canonical id is path-form (`@<prefix>/<scope>/<leaf>`); the on-disk
  * filename mirrors that 1:1, with `.md` appended. Frontmatter carries
- * `id:` (canonical path-form) and `aliases:` (legacy bd-form variants —
- * dot-form `<prefix>-<scope>.<leaf>` and dash-form
- * `<prefix>-<scope>-<leaf>`) so historical references resolve via the
- * alias resolver.
+ * `aliases:` only (legacy bd-form variants — dot-form
+ * `<prefix>-<scope>.<leaf>` and dash-form `<prefix>-<scope>-<leaf>`) so
+ * historical references resolve via the alias resolver.
+ *
+ * The redundant `id:` YAML field is NOT emitted — the file's location on
+ * disk IS the canonical id. Storing it in YAML duplicated the file's
+ * fs_path and created two sources of truth. See
+ * @km/beads/frontmatter-path-rename.
  *
  * Mirrors the recipe `migrate.ts` already uses for migrated beads
  * (`bdIdToPathForm` / `bdIdToAliases` / `issueToMarkdown`), but at
@@ -373,7 +377,6 @@ export function renderBeadFile(
   if (dashForm !== dotForm) aliases.push(dashForm)
 
   const frontmatter: Record<string, unknown> = {
-    id: canonicalId,
     aliases,
     created_at: (options.createdAt ?? new Date()).toISOString(),
   }

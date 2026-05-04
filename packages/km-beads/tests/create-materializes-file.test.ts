@@ -54,10 +54,12 @@ describe("renderBeadFile — fully-qualified path-form materialization", () => {
     expect(filename).toBe("@km/beads/foo-bar-001.md")
   })
 
-  test("frontmatter id is the canonical path-form (sigil-rooted)", () => {
+  test("frontmatter does NOT include `id:` — file's on-disk path IS the canonical id", () => {
+    // See @km/beads/frontmatter-path-rename: the `id:` YAML field was
+    // redundant with the filename and created two sources of truth.
     const { content } = renderBeadFile("@km/beads/foo-bar-001", "Title", { prefix: "km" })
     const fm = parseYaml(extractFrontmatter(content))
-    expect(fm.id).toBe("@km/beads/foo-bar-001")
+    expect(fm.id).toBeUndefined()
   })
 
   test("frontmatter aliases include both bd-form (dot) and dash-form variants", () => {
@@ -70,7 +72,7 @@ describe("renderBeadFile — fully-qualified path-form materialization", () => {
   test("dynamic prefix produces correct aliases", () => {
     const { content } = renderBeadFile("@pim/inbox/xyz9", "Title", { prefix: "pim" })
     const fm = parseYaml(extractFrontmatter(content))
-    expect(fm.id).toBe("@pim/inbox/xyz9")
+    expect(fm.id).toBeUndefined()
     expect(fm.aliases).toContain("pim-inbox.xyz9")
     expect(fm.aliases).toContain("pim-inbox-xyz9")
   })
@@ -79,7 +81,7 @@ describe("renderBeadFile — fully-qualified path-form materialization", () => {
     const { filename, content } = renderBeadFile("@km/silvercode/acp/rename", "Rename ACP", { prefix: "km" })
     expect(filename).toBe("@km/silvercode/acp/rename.md")
     const fm = parseYaml(extractFrontmatter(content))
-    expect(fm.id).toBe("@km/silvercode/acp/rename")
+    expect(fm.id).toBeUndefined()
     expect(fm.aliases).toContain("km-silvercode.acp.rename")
   })
 
@@ -154,11 +156,12 @@ describe("Bead.create — file materialization at @<prefix>/<scope>/<leaf>.md", 
     expect(existsSync(path)).toBe(true)
   })
 
-  test("frontmatter id is canonical path-form", () => {
+  test("file's on-disk path IS the canonical id (no redundant `id:` YAML)", () => {
     const repo = freshRepo()
     const path = fileCreate(repo, "@km/beads/foo-bar-001", "T")
+    expect(path.endsWith("/@km/beads/foo-bar-001.md")).toBe(true)
     const fm = parseYaml(extractFrontmatter(readFileSync(path, "utf-8")))
-    expect(fm.id).toBe("@km/beads/foo-bar-001")
+    expect(fm.id).toBeUndefined()
   })
 
   test("frontmatter aliases contain both bd-form and dash-form for legacy compatibility", () => {
@@ -184,11 +187,12 @@ describe("Bead.create — file materialization at @<prefix>/<scope>/<leaf>.md", 
 
     const fmA = parseYaml(extractFrontmatter(readFileSync(pathA, "utf-8")))
     const fmB = parseYaml(extractFrontmatter(readFileSync(pathB, "utf-8")))
-    // Same shape — id field is the canonical path-form for both.
-    expect(typeof fmA.id).toBe("string")
-    expect(typeof fmB.id).toBe("string")
-    expect(fmA.id.startsWith("@km/beads/")).toBe(true)
-    expect(fmB.id.startsWith("@km/beads/")).toBe(true)
+    // Same shape — neither emits the redundant `id:` field; aliases land
+    // legacy bd-form lookups.
+    expect(fmA.id).toBeUndefined()
+    expect(fmB.id).toBeUndefined()
+    expect(Array.isArray(fmA.aliases)).toBe(true)
+    expect(Array.isArray(fmB.aliases)).toBe(true)
   })
 })
 

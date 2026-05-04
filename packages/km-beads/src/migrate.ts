@@ -167,7 +167,11 @@ export function issueToMarkdown(issue: BeadsIssue, sourcePrefix = "km", idMap?: 
   // they're derivable from `dependencies` + comment-section markdown).
   // Order: identity → authorship → lifecycle → ownership → graph → blob.
   // Anything missing or empty is omitted entirely.
-  const frontmatter: Record<string, unknown> = { id: canonicalId }
+  // No `id:` field — the file's location on disk IS the canonical id
+  // (path-form mirrors fs_path 1:1). Storing it in YAML duplicated the
+  // file's location and created two sources of truth. See
+  // @km/beads/frontmatter-path-rename.
+  const frontmatter: Record<string, unknown> = {}
   if (aliases.length > 0) frontmatter.aliases = aliases
   if (issue.created_by) frontmatter.created_by = issue.created_by
   frontmatter.created_at = issue.created_at

@@ -446,9 +446,10 @@ describe("invariant 3: Bead.create file materialization — both call shapes", (
         expect(existsSync(path)).toBe(true)
         expect(path).toBe(join(repoRoot, `${canonicalId}.md`))
 
-        // (b) frontmatter id matches canonical
+        // (b) frontmatter does NOT include redundant `id:` — the file's
+        // on-disk path IS the canonical id (see frontmatter-path-rename).
         const fm = parseYaml(extractFrontmatter(readFileSync(path, "utf-8")))
-        expect(fm.id).toBe(canonicalId)
+        expect(fm.id).toBeUndefined()
 
         // (c) aliases includes bd-form
         const bdForm = `${b.prefix}-${b.scope}.${b.slug}`
@@ -476,9 +477,9 @@ describe("invariant 3: Bead.create file materialization — both call shapes", (
         expect(existsSync(path)).toBe(true)
         expect(path).toBe(join(repoRoot, `${canonicalId}.md`))
 
-        // (b) frontmatter id matches canonical
+        // (b) frontmatter does NOT include redundant `id:` (see comment above).
         const fm = parseYaml(extractFrontmatter(readFileSync(path, "utf-8")))
-        expect(fm.id).toBe(canonicalId)
+        expect(fm.id).toBeUndefined()
 
         // (c) aliases includes bd-form
         expect(fm.aliases).toContain(`${b.prefix}-${b.scope}.${b.slug}`)
@@ -499,7 +500,10 @@ describe("invariant 3: Bead.create file materialization — both call shapes", (
 
         const fmA = parseYaml(extractFrontmatter(readFileSync(pathA, "utf-8")))
         const fmB = parseYaml(extractFrontmatter(readFileSync(pathB, "utf-8")))
-        expect(fmA.id).toBe(fmB.id)
+        // Neither emits the redundant `id:` field — both rely on the
+        // file's on-disk location for canonical identity.
+        expect(fmA.id).toBeUndefined()
+        expect(fmB.id).toBeUndefined()
         // Sort aliases for stable equality (order is implementation detail).
         expect([...(fmA.aliases as string[])].sort()).toStrictEqual([...(fmB.aliases as string[])].sort())
       }),

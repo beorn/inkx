@@ -253,8 +253,10 @@ describe("issueToMarkdown — round-trip preserves all non-recomputable fields",
       const md = issueToMarkdown(issue, "km")
       const fm = extractFrontmatter(md)
 
-      // Identity.
-      expect(fm.id).toBeTruthy()
+      // Identity. The redundant `id:` YAML field is no longer emitted —
+      // the file's location on disk IS the canonical id (see
+      // @km/beads/frontmatter-path-rename). Aliases preserve legacy bd-form.
+      expect(fm.id).toBeUndefined()
       if (issue.created_by !== undefined) expect(fm.created_by).toBe(issue.created_by)
       expect(fm.created_at).toBe(issue.created_at)
 

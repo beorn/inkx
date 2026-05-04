@@ -67,11 +67,14 @@ function buildVaultIndex(vaultRoot: string): Map<string, string> {
       const split = splitFrontmatter(content)
       if (!split) continue
       const fm = (parseYaml(split.frontmatter) ?? {}) as Record<string, unknown>
-      const id = typeof fm.id === "string" ? fm.id : null
+      // Derive canonical id from the file's location, not from a YAML field.
+      // The `id:` frontmatter was dropped (frontmatter-path-rename) — the
+      // file's path-form IS the canonical id.
+      const relPath = relative(vaultRoot, full).replace(/\.md$/, "")
       const aliases = Array.isArray(fm.aliases)
         ? (fm.aliases as unknown[]).filter((x): x is string => typeof x === "string")
         : []
-      for (const key of [id, ...aliases]) {
+      for (const key of [relPath, ...aliases]) {
         if (!key) continue
         if (!index.has(key)) index.set(key, full)
       }

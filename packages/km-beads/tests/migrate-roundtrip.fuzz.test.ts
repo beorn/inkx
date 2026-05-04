@@ -278,11 +278,11 @@ describe("migrate round-trip fuzz — every non-recomputable frontmatter field s
         continue
       }
 
-      // Identity field — always present. The canonical id may be a
-      // path-form translation of the bd-form input (or the raw input
-      // for orphan auto-ids); we just assert it exists.
-      if (!fm.id || typeof fm.id !== "string") {
-        failures.push({ seed, issue, reason: `frontmatter.id missing or non-string: ${JSON.stringify(fm.id)}` })
+      // Identity. The redundant `id:` field was dropped (see
+      // @km/beads/frontmatter-path-rename) — the file's location on disk
+      // IS the canonical id. Assert the field is NOT emitted.
+      if (fm.id !== undefined) {
+        failures.push({ seed, issue, reason: `frontmatter.id should not be emitted, got: ${JSON.stringify(fm.id)}` })
         continue
       }
 
