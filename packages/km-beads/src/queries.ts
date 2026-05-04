@@ -262,35 +262,25 @@ export function nodeToBead(node: KNode, options?: BeadsQueryOptions): Bead {
       status = blockedBy && blockedBy.length > 0 ? "blocked" : "todo"
   }
 
-  // Priority resolution: node.priority (authoritative — matches the
-  // serialized `priority::` property) > data.tags (content sigils) >
-  // default. Always returns canonical `P0`..`P4`: the column may carry
-  // legacy bare-numeric (`1`) or lowercase (`p1`) values from older
-  // imports, and we normalize at this boundary so consumers never need
-  // to.
-  const tags = data?.tags as string[] | undefined
+  // Priority resolution: node.priority is the sole source. The parser
+  // elevates the H1 `#P[0-4]` hashtag to this column at parse time
+  // (ast2nodes.ts priorityFromTags). The column is always derived from
+  // the authored hashtag — no separate fallback path needed.
   let priority = "P2" // Default to P2 (medium)
-  const normalize = (v: string): string | null => {
-    const m = v.match(/^P?([0-4])$/i)
-    return m?.[1] ? `P${m[1]}` : null
-  }
   if (node.priority) {
-    priority = normalize(node.priority) ?? node.priority
-  } else if (tags) {
-    for (const tag of tags) {
-      const n = normalize(tag)
-      if (n) {
-        priority = n
-        break
-      }
-    }
+    const m = node.priority.match(/^P?([0-4])$/i)
+    priority = m?.[1] ? `P${m[1]}` : node.priority
   }
 
-  // Extract type from tags
+  // Extract type from data.tags (the parser puts H1 / list-item title
+  // hashtags here via kmRefsTransform). Bead type is bd-conventional —
+  // one of the known keywords; user labels are also in data.tags but
+  // ignored for type detection.
   let type: string | undefined
   const typeKeywords = ["bug", "feature", "epic", "task", "docs", "question"]
-  if (tags) {
-    for (const tag of tags) {
+  const dataTags = data?.tags as string[] | undefined
+  if (dataTags) {
+    for (const tag of dataTags) {
       if (typeKeywords.includes(tag.toLowerCase())) {
         type = tag.toLowerCase()
         break

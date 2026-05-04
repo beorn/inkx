@@ -66,7 +66,10 @@ describe("renderInboxCapture", () => {
     expect(fm.created_at).toBe("2026-04-29T12:34:56.000Z")
   })
 
-  test("type and priority hints land in frontmatter when provided, omitted when absent", () => {
+  test("type and priority hints land as #hashtags in H1, NOT in frontmatter", () => {
+    // Updated: per docs/future/beads.md, type and priority are encoded
+    // as hashtags in the H1 heading. The parser elevates them to
+    // node.type / node.priority columns; YAML duplication is dropped.
     const { content: bare } = renderInboxCapture("abc12", "T", { prefix: "km" })
     const fmBare = parseYaml(extractFrontmatter(bare))
     expect(fmBare).not.toHaveProperty("type")
@@ -78,8 +81,10 @@ describe("renderInboxCapture", () => {
       priority: "P1",
     })
     const fmHints = parseYaml(extractFrontmatter(withHints))
-    expect(fmHints.type).toBe("bug")
-    expect(fmHints.priority).toBe("P1")
+    // Frontmatter has neither — H1 has both as hashtags.
+    expect(fmHints).not.toHaveProperty("type")
+    expect(fmHints).not.toHaveProperty("priority")
+    expect(extractBody(withHints)).toContain("# T #bug #P1")
   })
 
   test("output is valid YAML frontmatter + body — round-trips cleanly", () => {

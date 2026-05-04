@@ -106,10 +106,17 @@ export function getAgentQueue(repo: Repo, agentId: string): AgentQueueItem[] {
       issueId: node.id,
       issueShortId: shortId,
       title: node.content || node.title || "",
-      priority: extractPriority(data),
+      // Priority comes from node.priority (column populated by the
+      // parser from H1 `#P[0-4]` hashtag). Default P2 when unset.
+      priority: node.priority ? normalizePriority(node.priority) : "P2",
       assignedAt: node.updated_at, // Approximate - would need event tracking for exact time
     }
   })
+}
+
+function normalizePriority(p: string): string {
+  const m = p.match(/^P?([0-4])$/i)
+  return m?.[1] ? `P${m[1]}` : p
 }
 
 /**
@@ -123,18 +130,3 @@ export interface AgentQueueItem {
   assignedAt: number
 }
 
-/**
- * Extract priority from node data tags.
- */
-function extractPriority(data: Record<string, unknown>): string {
-  const tags = data.tags as string[] | undefined
-  if (tags) {
-    for (const tag of tags) {
-      const pMatch = tag.match(/^P([0-4])$/i)
-      if (pMatch?.[1]) {
-        return `P${pMatch[1]}`
-      }
-    }
-  }
-  return "P2" // Default P2
-}

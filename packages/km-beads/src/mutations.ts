@@ -281,15 +281,17 @@ export function renderInboxCapture(
   },
 ): { filename: string; content: string } {
   const aliases = [shortId, `${options.prefix}-${shortId}`]
+  // No `type:` or `priority:` in YAML — those are encoded as hashtags in
+  // the H1 heading per docs/future/beads.md "Issue Type Tags" / "Priority
+  // Tags". Single source of truth = the hashtag in the title; the parser
+  // elevates it to node.type / node.priority columns at parse time.
   const frontmatter: Record<string, unknown> = {
     aliases,
     created_at: (options.createdAt ?? new Date()).toISOString(),
   }
-  if (options.type) frontmatter.type = options.type
-  if (options.priority) frontmatter.priority = options.priority
 
   const fmYaml = stringifyYaml(frontmatter).trimEnd()
-  const heading = `# ${title}`
+  const heading = buildBeadHeading(title, { type: options.type, priority: options.priority })
   const description = options.description?.trim() ?? ""
   const notes = options.notes?.trim() ?? ""
   const sections = [heading, description, notes].filter((s) => s.length > 0).join("\n\n")
@@ -356,18 +358,36 @@ export function renderBeadFile(
   const aliases: string[] = [dotForm]
   if (dashForm !== dotForm) aliases.push(dashForm)
 
+  // No `type:` or `priority:` in YAML — those are encoded as hashtags in
+  // the H1 per docs/future/beads.md. The parser elevates them to
+  // node.type / node.priority columns; the hashtag is the single source.
   const frontmatter: Record<string, unknown> = {
     aliases,
     created_at: (options.createdAt ?? new Date()).toISOString(),
   }
-  if (options.type) frontmatter.type = options.type
-  if (options.priority) frontmatter.priority = options.priority
 
   const fmYaml = stringifyYaml(frontmatter).trimEnd()
-  const heading = `# ${title}`
+  const heading = buildBeadHeading(title, { type: options.type, priority: options.priority })
   const description = options.description?.trim() ?? ""
   const notes = options.notes?.trim() ?? ""
   const sections = [heading, description, notes].filter((s) => s.length > 0).join("\n\n")
   const content = `---\n${fmYaml}\n---\n\n${sections}\n`
   return { filename: `${canonicalId}.md`, content }
+}
+
+/**
+ * Build the H1 heading for a bead, encoding type and priority as hashtags
+ * (`# Title #task #P1`). This is the canonical authored form per
+ * docs/future/beads.md — single source of truth, no YAML duplication.
+ */
+function buildBeadHeading(title: string, opts: { type?: string; priority?: string }): string {
+  const tags: string[] = []
+  if (opts.type) tags.push(`#${opts.type}`)
+  if (opts.priority) {
+    // Normalize to `#P[0-4]` regardless of input shape (numeric, lowercase, etc).
+    const normalized = opts.priority.match(/^P?([0-4])$/i)
+    if (normalized?.[1]) tags.push(`#P${normalized[1]}`)
+  }
+  const suffix = tags.length > 0 ? ` ${tags.join(" ")}` : ""
+  return `# ${title}${suffix}`
 }

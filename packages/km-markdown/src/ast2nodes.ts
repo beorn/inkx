@@ -49,6 +49,23 @@ import type { NodeRules } from "@km/core"
  * Reads km.* keys from propsRaw and builds NodeRules.
  * km.add values are comma-separated in propsRaw (concatenated by the transform).
  */
+/**
+ * Extract canonical `P0`..`P4` priority from a tags array. Returns the
+ * first matching tag (case-insensitive), or undefined when none match.
+ *
+ * Per docs/future/beads.md, `#P0`-`#P4` in the H1 / list-item title is
+ * the canonical authored form for bead priority. The parser captures
+ * these into `data.tags` via kmRefsTransform; this helper elevates them
+ * to the structural `node.priority` column for SQL filter/sort.
+ */
+function priorityFromTags(tags: string[]): string | undefined {
+  for (const tag of tags) {
+    const m = tag.match(/^P([0-4])$/i)
+    if (m?.[1]) return `P${m[1]}`
+  }
+  return undefined
+}
+
 function interpretHeadingRules(propsRaw: Record<string, string>): NodeRules {
   const rules: NodeRules = {}
   for (const [fullKey, value] of Object.entries(propsRaw)) {
@@ -558,8 +575,20 @@ function convertListItem(
     cleanText: (item.data?.cleanText as string | undefined) ?? text,
   }
 
-  // Priority from metadata only (now a free-form string)
-  const priority: string | undefined = metadata.priority
+  // Priority resolution (single source of truth = hashtag in title):
+  //   1. metadata.priority — from `priority::` inline-prop or YAML
+  //      frontmatter `priority:` (legacy authoring forms; new beads stop
+  //      using these)
+  //   2. fall back to `#P[0-4]` hashtag captured into data.tags by
+  //      kmRefsTransform — the canonical authored form per
+  //      docs/future/beads.md
+  // Result is canonical `P0`..`P4` form. Both sources should agree;
+  // `metadata.priority` wins when both are set so explicit `priority::`
+  // can override (rare).
+  let priority: string | undefined = metadata.priority
+  if (priority === undefined) {
+    priority = priorityFromTags((item.data?.tags as string[] | undefined) ?? [])
+  }
 
   // Strip metadata from content for tasks only.
   // The serializer (nodes2md appendTaskMetadata) reconstructs task metadata from node fields
