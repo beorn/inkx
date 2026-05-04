@@ -67,25 +67,30 @@ Three concepts, distinct (per `docs/design/model/storage.md:761-787`):
 - ✅ `@km/tree/ktree-path-method` (P2) — `KTree.path(tree, id)` shipped in commit `c8c98bfd1`. Cache-free walk, `KTree.PATH_MAX_DEPTH = 64`.
 - ✅ `@km/all/id-name-path-code-cleanup` (P1, **partial**) — 6-site `pathOf()` migration shipped in `c8c98bfd1`. Function-rename sweep moved to a focused sister bead (`@km/all/drop-shortid-concept`). This bead's remaining scope is general id/name/path/ref vocabulary discipline.
 - ✅ `@km/storage/parent-name-unique-partial` (P2) — schema v8 partial UNIQUE shipped in commit `6e7846a1d`; predicate hotfix in `fe08e9734` (mdsection has fstype="mdsection", not NULL, so predicate narrowed to explicit on-disk tier list).
-- ✅ `@km/all/storage-doc-three-concepts` (P3, **partial**) — `docs/design/model/storage.md` updated in `6e7846a1d` with /pro additions. Per-package CLAUDE.mds + `knode.md` updates still pending.
+- ✅ `@km/all/storage-doc-three-concepts` (P3, **partial**) — `docs/design/model/storage.md` updated in `6e7846a1d` with /pro additions + 2×2 vocabulary in `6986fa6cb` (Phase B1). Per-package CLAUDE.mds + `knode.md` updates still partial.
 
-**Pending (universal data model — high priority):**
+**Shipped 2026-05-04 (Phase A + Phase B + Phase C):**
 
-- 📋 `@km/storage/extract-resolveref` (P1) — universal `resolveRef` in `@km/storage`. The 4-step ladder is now considered all-universal (alias step is universal once `aliases-first-class` lands). `resolveShortId` becomes a deprecated re-export.
-- 📋 `@km/storage/aliases-first-class` (P2, NEW 2026-05-03) — promote `data.aliases` JSON to a first-class node field. Aliases are universal, not bead-specific. Prerequisite for clean resolver step-3.
-- 📋 `@km/storage/deps-first-class` (P2, NEW 2026-05-03) — consolidate `data.dependencies` (frontmatter list) and `data.props["blocked-by"]` (inline) into one canonical `node.deps` field. Indexed `deps` table stays as reverse-lookup cache.
-- 📋 `@km/all/drop-shortid-concept` (P2, NEW 2026-05-03) — remove the "shortId" name. `resolveShortId` → `resolveRef`, `generateShortId` → `mintBeadName`, `generateCustomId` → `bdRefToPath`. Variable-name sweep.
-- 📋 `@km/all/path-name-orthogonal-vocabulary` (P3) — document the 2×2 (tree × fs × name × path), rename `pathOf` → `fsPathOf` (NOT `treePathOf`), add `fsNameOf`. Updated 2026-05-03 with the corrected rename target.
-- 📋 `@km/storage/seed-file-node-helper` (P2) — universal test helper for fs-materialized node seeding. Prerequisite for deleting the deprecated step-4 fallback in the resolver.
-- 📋 `@km/beads/seed-bead-as-thin-wrapper` (P3) — 5-line bd-CLI-side wrapper around `seedFileNode` with bd-conventional defaults.
+- ✅ `@km/storage/extract-resolveref` (P1) — universal `resolveRef(repo, ref)` in `@km/storage` (commit `9b2196021`). 7 new tests at `packages/km-storage/tests/resolve-ref.test.ts`. `resolveShortId` in `@km/beads` keeps step-4 compat fallback as a thin wrapper that delegates steps 1–3 to `resolveRef`.
+- ✅ `@km/all/drop-shortid-concept` (P2) — `generateShortId` → `mintBeadName`, `generateCustomId` → `normalizeBdRef` (deviation: name reflects actual behavior — function returns bd-form not path-form, see commit message), `generateSubId` → `mintSubBeadName` (commit `856b1ab38`). Zero external generator callers.
+- ✅ `@km/storage/aliases-first-class` (P2) — schema v9 with `node_aliases(node_id, alias)` table + `idx_node_aliases_alias` + INSERT/UPDATE/DELETE triggers + backfill (commit `25b4e256e`). `resolveRef` step 3 now uses indexed lookup. 9 new tests.
+- ✅ `@km/storage/seed-file-node-helper` (P2) + `@km/beads/seed-bead-as-thin-wrapper` (P3) — universal `seedFileNode(repo, path, opts)` in `@km/storage/testing` and 11-LOC bd-conventional `seedBead` wrapper in `@km/beads/testing` (commit `e56be3722`). 13 new tests.
+- ✅ `@km/all/path-name-orthogonal-vocabulary` (P3) — `pathOf` → `fsPathOf` rename in `@km/core` with deprecated alias, 6 callers migrated, 2×2 vocabulary in `storage.md` and `knode.md` (commits `3c963242b`, `5072218a2`, `6986fa6cb`).
+- ✅ `@km/storage/deps-first-class` (P2) — loader-merge: frontmatter `dependencies:` array now feeds `data.props["blocked-by"]` so the existing v7 `deps` trigger indexes both authoring forms. NO new column, NO new table (commit `6e1c2f5ca`). 13 new tests.
+- ✅ `@km/all/props-not-frontmatter` (P3, **partial**) — initial sweep across km-board, km-storage, km-tree, km-fs-mount, km-beads (commits `b98adfec8`, `5f43d546b`, `80864695e`, `abbb811be`). Wider sweep across ~213 mentions still pending.
 
-**Pending (universal data model — medium priority):**
+**Pending (Phase D — data.id removal, paired):**
 
-- 📋 `@km/all/rename-content-cascade` (**P1, was P2**) — content-layer batch update of wikilinks/mentions when a node's path changes. Correctness, not UX.
-- 📋 `@km/beads/data-id-stop-writing` (P2) — stop writing `data.id` JSON. Pairs with `frontmatter-path-rename`.
-- 📋 `@km/beads/frontmatter-path-rename` (P2, **reframed 2026-05-03**) — drop the redundant `id:` YAML field (do NOT rename to `path:`). The data model has props, not frontmatter; the YAML key was redundant with the file's location.
-- 📋 `@km/all/props-not-frontmatter` (P3, NEW 2026-05-03) — vocabulary discipline: outside `@km/markdown`, use "props" not "frontmatter". The data model has no frontmatter concept. Re-parented from `@km/markdown` to `@km/all` on 2026-05-03 (work happens in other packages).
-- 📋 `@km/all/drop-data-tags` (P3, NEW 2026-05-03) — drop the `data.tags` denormalization. Tags are wikilinks; queries go through the `links` table.
+- 📋 `@km/beads/data-id-stop-writing` (P2) — stop writing `data.id` JSON. Migrate 3 production data.id reads (loader.ts:1189, repo.ts:1416, move-with-refs.ts:281) to derive from fs_path. Drop step-4 fallback in resolveShortId.
+- 📋 `@km/beads/frontmatter-path-rename` (P2, **reframed 2026-05-03**) — drop the redundant `id:` YAML field (do NOT rename to `path:`). Update ~20 tests asserting frontmatter.id. **Must ship paired with data-id-stop-writing.**
+
+**Pending (Phase E — drop-data-tags, 3-phase):**
+
+- 📋 `@km/all/drop-data-tags` (P3) — drop the `data.tags` denormalization. Phase A: emit `#P<n>` / `#<type>` wikilinks in bead serializer. Phase B: migrate 4 readers to `links` table. Phase C: stop writing `data.tags`.
+
+**Pending (Phase F — rename-content-cascade):**
+
+- 📋 `@km/all/rename-content-cascade` (P1) — content-layer batch update of wikilinks/mentions when a node's path changes. Background worker subscribing to node-renamed events; persist queue at `.km/rename-queue.jsonl`; crash-resumable. Biggest remaining work.
 
 ### YAGNI verdict on new domain interface objects (re-verified 2026-04-30, re-confirmed 2026-05-03)
 
