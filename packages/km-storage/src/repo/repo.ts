@@ -531,7 +531,7 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
       }
 
       // 1. Rename the node itself (update content, name, title, and data.name).
-      // data.name (the frontmatter title override) takes priority in
+      // data.name (the props name override) takes priority in
       // getNodeDisplayName, so leaving it stale would make the column header
       // keep showing the old label after a successful rename.
       // Compute the old/new canonical hrefs BEFORE the node update so
@@ -983,7 +983,7 @@ export interface Repo extends Disposable {
    * Move and/or rename a node, rewriting every incoming reference in the
    * same vault. Default behaviour of every move/rename command — the
    * canonical primitive that subsumes `renameNode` and `moveNode` plus
-   * frontmatter aliases, dep-edges, bare-id mentions, and fs-path moves.
+   * alias props, dep-edges, bare-id mentions, and fs-path moves.
    *
    * See hub/km/design/move-rewrite-refs.md for the design.
    */

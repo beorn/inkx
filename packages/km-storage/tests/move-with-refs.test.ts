@@ -213,7 +213,7 @@ describe("moveNodeWithRefs", () => {
     expect(repo.getNode(sourceId)?.content).toBe("Here: ![[Renamed]]")
   })
 
-  test("rename rewrites frontmatter aliases", () => {
+  test("rename rewrites alias props", () => {
     const repo = createTestRepo()
     const targetId = repo.addNode(null, {
       type: "h",
@@ -374,7 +374,7 @@ describe("moveNodeWithRefs", () => {
     expect(data?.aliases).toContain("@km/scope/old")
   })
 
-  test("bd-id rewrite updates frontmatter parent_id on other nodes", () => {
+  test("bd-id rewrite updates parent_id prop on other nodes", () => {
     const repo = createTestRepo()
     const epicId = repo.addNode(null, {
       type: "h",

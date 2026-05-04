@@ -2,8 +2,8 @@
  * Move/Rename with Reference Rewriting
  *
  * Canonical primitive that subsumes `renameNode` and `moveNode` plus the
- * additional reference forms today's surface doesn't cover (frontmatter
- * aliases, dep-edges, bare-id mentions in prose, fs-path moves).
+ * additional reference forms today's surface doesn't cover (alias props,
+ * dep-edges, bare-id mentions in prose, fs-path moves).
  *
  * See hub/km/design/move-rewrite-refs.md for the full design.
  *
@@ -13,13 +13,13 @@
  *   1. Compute new path-form / new name from spec
  *   2. Update node row (parent, name, position) in transaction
  *   3. Indexed wikilink/transclusion/dep-edge rewrite via getBacklinksByHref
- *   4. Frontmatter aliases + parent_id + bd-shaped prop targets
+ *   4. Alias props + parent_id + bd-shaped prop targets
  *   5. Optional bare-id mention scan when --include-prose
  *   6. UPDATE links SET href row + post-commit fs rename (idempotent)
  *
  * Default behaviour:
  *   - Structured rewrites (wikilink, transclusion, dep-edge, aliases,
- *     blocked-by props, frontmatter parent_id) ON
+ *     blocked-by props, parent_id prop) ON
  *   - Bare-id prose mention scan OFF (set `includeProse: true` to enable)
  *   - On-disk fs rename happens AFTER the SQLite commit, so a partial
  *     failure is recoverable by re-running with the same spec.
@@ -384,7 +384,7 @@ interface MoveDeps {
  * Implementation of `repo.moveNodeWithRefs`. Wired into the Repo via
  * `attachMoveWithRefs(repo, deps)`.
  */
-// oxlint-disable-next-line complexity/complexity -- six-phase rewriter (snapshot, name+parent+short-id, indexed wikilink walk, frontmatter scan, prose scan, link-cache repoint, fs rename) coordinates per-host pending content + idempotence + collision check; phases share the snapshot so splitting forces argument-passing without simplification gain
+// oxlint-disable-next-line complexity/complexity -- six-phase rewriter (snapshot, name+parent+short-id, indexed wikilink walk, props scan, prose scan, link-cache repoint, fs rename) coordinates per-host pending content + idempotence + collision check; phases share the snapshot so splitting forces argument-passing without simplification gain
 export function moveNodeWithRefs(id: string, spec: MoveSpec, deps: MoveDeps, options: MoveOptions = {}): MoveResult {
   const { db, dataStore, mutations } = deps
   const errorOnNameCollision = options.errorOnNameCollision ?? true
@@ -480,7 +480,7 @@ export function moveNodeWithRefs(id: string, spec: MoveSpec, deps: MoveDeps, opt
     dataChanges.aliases = newAliases
     dataChanged = true
   }
-  // When renaming, also keep the frontmatter `name` override in sync if present
+  // When renaming, also keep the props `name` override in sync if present
   if (spec.newContent !== undefined && typeof existingData.name === "string" && existingData.name !== newName) {
     dataChanges.name = newName
     dataChanged = true
@@ -573,9 +573,9 @@ export function moveNodeWithRefs(id: string, spec: MoveSpec, deps: MoveDeps, opt
     }
   }
 
-  // ---- Phase 3: rules + frontmatter scan over getAllNodes ----
+  // ---- Phase 3: rules + props scan over getAllNodes ----
   // updateRenameReferences-style sweep, but also handles aliases and
-  // frontmatter parent_id.
+  // parent_id prop.
   const allNodes = dataStore.getAllNodes()
   for (const n of allNodes) {
     if (n.id === id) continue // skip the moved node — already updated in phase 1

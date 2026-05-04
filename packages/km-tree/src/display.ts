@@ -61,7 +61,7 @@ function stripInlineRules(text: string): string {
  * Get display name for a node
  *
  * Priority:
- * 1. frontmatter title (data.name)
+ * 1. props name override (data.name)
  * 2. node.title (pre-parsed clean title, for sections)
  * 3. For files: first section's title or content (H1 heading)
  * 4. node.content (first line, for tasks)
@@ -72,7 +72,7 @@ function stripInlineRules(text: string): string {
  * @param getChildren Optional function to get children (needed for file nodes to find H1)
  */
 export function getNodeDisplayName(node: KNode, getChildren?: GetChildrenFn): string {
-  // 1. Frontmatter title takes priority
+  // 1. Props name override (data.name) takes priority
   if (node.data?.name) {
     return node.data.name as string
   }

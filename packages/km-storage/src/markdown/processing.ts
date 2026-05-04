@@ -75,7 +75,7 @@ export interface WikilinkRef {
   }
   /** Canonical href — always set by @km/markdown ≥ Phase 2. */
   href: string
-  /** Relationship type (from frontmatter) */
+  /** Relationship type (from node props) */
   relationship?: string
 }
 

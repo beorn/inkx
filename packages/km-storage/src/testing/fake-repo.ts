@@ -574,7 +574,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       const oldName = node.name ?? ""
       const newName = newContent.replace(/^- \[.\]\s*/, "")
 
-      // Mirror real repo: when data.name is set (frontmatter title override),
+      // Mirror real repo: when data.name is set (props name override),
       // it takes priority in getNodeDisplayName and must be updated too.
       const nextData =
         node.data && typeof node.data === "object" && "name" in (node.data as Record<string, unknown>)

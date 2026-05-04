@@ -56,7 +56,7 @@ function createNodeChain(specs: NodeChainSpec[]): KNode[] {
 // =============================================================================
 
 describe("getNodeDisplayName", () => {
-  describe("priority 1: frontmatter title (data.name)", () => {
+  describe("priority 1: props name override (data.name)", () => {
     it("returns data.name when present", () => {
       const node = createNode("abc123", {
         data: { name: "My Project" },
