@@ -866,6 +866,16 @@ function createFileNode(
   const name = filename.replace(/\.md$/i, "")
   const data = frontmatter ? parseFrontmatter(frontmatter) : {}
 
+  // YAML-frontmatter `dependencies:` is a write-side authoring affordance for
+  // bead blockers. It rounds-trips on its own but is NOT indexed by the
+  // SQLite `deps` table — the trigger only reads `data.props["blocked-by"]`.
+  // Merge frontmatter dep targets into the inline-prop shape on load so both
+  // authoring forms (frontmatter `dependencies:` and inline `blocked-by::`)
+  // feed the same trigger-indexed path. Frontmatter form stays for YAML-first
+  // authoring; inline form stays for body-prose authoring. Both produce deps
+  // rows. See bead `@km/storage/deps-first-class`.
+  mergeFrontmatterDepsIntoBlockedBy(data)
+
   // Extract timestamps from frontmatter (created_at, modified_at, or created/modified date strings)
   const createdAt = parseFrontmatterTimestamp(data.created_at ?? data.created) ?? now
   const updatedAt = parseFrontmatterTimestamp(data.modified_at ?? data.modified) ?? now
@@ -888,6 +898,86 @@ function createFileNode(
     updated_at: updatedAt,
     version: "",
   }
+}
+
+/**
+ * Merge frontmatter `dependencies:` targets into `data.props["blocked-by"]`.
+ *
+ * Today there are two source-of-truth shapes for bead blockers:
+ *   - Frontmatter `dependencies:` — write-side YAML authoring affordance,
+ *     unindexed (no SQL reads it). Round-trips through serialization.
+ *   - Inline `blocked-by:: [[X]]` — body-prose form, indexed by the SQLite
+ *     `deps` table via triggers reading `data.props["blocked-by"]` JSON.
+ *
+ * The trigger only sees the inline-prop path. Without this merge, frontmatter
+ * `dependencies:` was effectively a write-only fossil — visible in YAML, not
+ * in any query. Mutates `data` in place.
+ *
+ * Accepted entry shapes inside `data.dependencies`:
+ *   - Plain string: the target id directly (`["@km/foo"]`).
+ *   - Edge object `{ target: string }`: explicit target field.
+ *   - Edge object `{ depends_on_id, issue_id, type? }`: bd v1.0 export
+ *     shape. `type` defaults to `"blocks"`. We treat `depends_on_id` as
+ *     the blocker target. (For symmetric parent-child / outbound `blocks`
+ *     edges with `issue_id == self`, they describe outbound work and are
+ *     not "things blocking me" — but the bd-export form preserved by
+ *     `migrate.ts` always carries inbound + outbound in the same array, so
+ *     we conservatively pick `depends_on_id` as the target. Authors who
+ *     want the strict directional semantic should use inline `blocks::` /
+ *     `blocked-by::`, which already do the right thing.)
+ *
+ * Existing `data.props["blocked-by"]` is preserved — frontmatter targets
+ * union with whatever the inline-prop already declared (e.g. when the
+ * frontmatter parses through here while the H1 also carried a
+ * `blocked-by::` line). Duplicates are de-duped.
+ */
+export function mergeFrontmatterDepsIntoBlockedBy(data: Record<string, unknown>): void {
+  const deps = data.dependencies
+  if (!Array.isArray(deps) || deps.length === 0) return
+
+  const targets = new Set<string>()
+  for (const dep of deps) {
+    const t = extractDependencyTarget(dep)
+    if (t) targets.add(t)
+  }
+  if (targets.size === 0) return
+
+  // Pull existing blocked-by targets (from inline `blocked-by::` parsing,
+  // which may have run on an earlier merge or arrive via H1 data merge) and
+  // union them in.
+  const props = (data.props ??= {}) as Record<string, unknown>
+  const existingProp = props["blocked-by"] as
+    | { type?: string; target?: string; values?: Array<{ target?: string }> }
+    | undefined
+  if (existingProp) {
+    if (existingProp.type === "link" && typeof existingProp.target === "string") {
+      targets.add(existingProp.target)
+    } else if (existingProp.type === "list" && Array.isArray(existingProp.values)) {
+      for (const v of existingProp.values) {
+        if (v && typeof v.target === "string") targets.add(v.target)
+      }
+    }
+  }
+
+  const list = [...targets]
+  if (list.length === 1) {
+    props["blocked-by"] = { type: "link", target: list[0]! }
+  } else {
+    props["blocked-by"] = {
+      type: "list",
+      values: list.map((target) => ({ type: "link", target })),
+    }
+  }
+}
+
+/** Pull a target string from one frontmatter `dependencies` entry. */
+function extractDependencyTarget(dep: unknown): string | null {
+  if (typeof dep === "string") return dep || null
+  if (!dep || typeof dep !== "object") return null
+  const obj = dep as { target?: unknown; depends_on_id?: unknown }
+  if (typeof obj.target === "string" && obj.target) return obj.target
+  if (typeof obj.depends_on_id === "string" && obj.depends_on_id) return obj.depends_on_id
+  return null
 }
 
 /** Parse a frontmatter value (ISO date string, Date object, or epoch ms) into a Unix timestamp in ms.

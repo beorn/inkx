@@ -117,9 +117,7 @@ describe("mergeFrontmatterDepsIntoBlockedBy (unit)", () => {
     const props = data.props as Record<string, unknown>
     const blockedBy = props["blocked-by"] as { type: string; values: Array<{ target: string }> }
     expect(blockedBy.type).toBe("list")
-    expect(new Set(blockedBy.values.map((v) => v.target))).toEqual(
-      new Set(["@km/foo", "@km/shared", "@km/inline"]),
-    )
+    expect(new Set(blockedBy.values.map((v) => v.target))).toEqual(new Set(["@km/foo", "@km/shared", "@km/inline"]))
   })
 
   test("preserves single-link existing blocked-by when frontmatter adds another target", () => {

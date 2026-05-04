@@ -335,6 +335,7 @@
         "zod": "^4.3.6",
       },
       "devDependencies": {
+        "@km/markdown": "workspace:*",
         "@types/bun": "latest",
         "fast-check": "^4.6.0",
       },
