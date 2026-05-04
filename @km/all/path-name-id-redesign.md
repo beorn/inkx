@@ -84,7 +84,7 @@ Three concepts, distinct (per `docs/design/model/storage.md:761-787`):
 - 📋 `@km/all/rename-content-cascade` (**P1, was P2**) — content-layer batch update of wikilinks/mentions when a node's path changes. Correctness, not UX.
 - 📋 `@km/beads/data-id-stop-writing` (P2) — stop writing `data.id` JSON. Pairs with `frontmatter-path-rename`.
 - 📋 `@km/beads/frontmatter-path-rename` (P2, **reframed 2026-05-03**) — drop the redundant `id:` YAML field (do NOT rename to `path:`). The data model has props, not frontmatter; the YAML key was redundant with the file's location.
-- 📋 `@km/markdown/props-not-frontmatter` (P3, NEW 2026-05-03) — vocabulary discipline: outside `@km/markdown`, use "props" not "frontmatter". The data model has no frontmatter concept.
+- 📋 `@km/all/props-not-frontmatter` (P3, NEW 2026-05-03) — vocabulary discipline: outside `@km/markdown`, use "props" not "frontmatter". The data model has no frontmatter concept. Re-parented from `@km/markdown` to `@km/all` on 2026-05-03 (work happens in other packages).
 - 📋 `@km/all/drop-data-tags` (P3, NEW 2026-05-03) — drop the `data.tags` denormalization. Tags are wikilinks; queries go through the `links` table.
 
 ### YAGNI verdict on new domain interface objects (re-verified 2026-04-30, re-confirmed 2026-05-03)
