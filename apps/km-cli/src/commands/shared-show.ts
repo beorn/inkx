@@ -18,6 +18,7 @@
 import { createTerm } from "@silvery/ag-react"
 import { Bead, type Bead as BeadType } from "@km/beads"
 import type { KNode } from "@km/core"
+import { getNodePriority } from "@km/core"
 import type { Repo } from "@km/storage"
 
 const term = createTerm(process)
@@ -100,12 +101,11 @@ function renderTask(node: KNode, issue: BeadType): void {
   console.log(`${term.bold("Task:")} ${issue.title}`)
   console.log(`${term.dim("ID:")} ${Bead.displayId(issue)}`)
   console.log(`${term.dim("Status:")} ${node.item?.task?.status ?? "todo"}`)
-  if (node.priority || (issue.priority && issue.priority !== "P2")) {
-    // Show the structural priority verbatim — no "P2 default" injection.
-    // (nodeToIssue defaults priority to "P2"; we only show it if the
-    // node actually carries one, to avoid a misleading "Priority: P2" on
-    // tasks that never declared one.)
-    if (node.priority) console.log(`${term.dim("Priority:")} ${node.priority}`)
+  // Priority comes from the H1 `#P[0-4]` hashtag (via getNodePriority);
+  // skip "P2 default" injection — only show when actually declared.
+  const nodePriority = getNodePriority(node)
+  if (nodePriority || (issue.priority && issue.priority !== "P2")) {
+    if (nodePriority) console.log(`${term.dim("Priority:")} ${nodePriority}`)
   }
   if (issue.assignee) {
     console.log(`${term.dim("Assigned:")} ${issue.assignee}`)

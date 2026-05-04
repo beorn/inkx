@@ -50,6 +50,43 @@ const STRIP_EMOJI_RECURRENCE = /\s*🔁\s*.+?(?=\s*[📅⏳]|$)/u
 // =============================================================================
 
 /** Result of extracting task metadata from text */
+/**
+ * Get a node's priority. Returns `P0`-`P4` (canonical form) or `undefined`.
+ *
+ * Source-of-truth chain:
+ *   1. `node.priority` column (legacy/transition — populated by the parser
+ *      from explicit `priority::` or YAML `priority:`)
+ *   2. `data.tags` `#P[0-4]` (canonical authored form per
+ *      docs/future/beads.md — captured by kmRefsTransform from the H1)
+ *   3. `data._allTags` aggregated from descendants (for file nodes whose
+ *      H1 priority lives on a child heading row)
+ *
+ * The column is staged for removal — future schema bump dissolves it and
+ * this helper falls back to data.tags / _allTags. All callers should use
+ * this helper rather than `node.priority` directly so the migration is
+ * a one-line change at this seam.
+ */
+export function getNodePriority(node: {
+  priority?: string
+  data?: Record<string, unknown>
+}): string | undefined {
+  if (node.priority) {
+    const m = node.priority.match(/^P?([0-4])$/i)
+    return m?.[1] ? `P${m[1]}` : node.priority
+  }
+  const tags = (node.data?.tags as string[] | undefined) ?? []
+  for (const tag of tags) {
+    const m = tag.match(/^P([0-4])$/i)
+    if (m?.[1]) return `P${m[1]}`
+  }
+  const allTags = (node.data?._allTags as string[] | undefined) ?? []
+  for (const tag of allTags) {
+    const m = tag.match(/^P([0-4])$/i)
+    if (m?.[1]) return `P${m[1]}`
+  }
+  return undefined
+}
+
 export interface ExtractedTaskMetadata {
   dueDate?: string
   dueTime?: string

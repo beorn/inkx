@@ -63,7 +63,12 @@ export { composeDatetime, decomposeDatetime, extractTaskDates, dateOnly, timeOnl
 export type { DateParts } from "./date-utils.ts"
 
 // Task metadata (shared between parser, serializer, and TUI editor)
-export { extractTaskMetadata, stringifyTaskMetadata, parseTaskMetadataFromText } from "./task-metadata.ts"
+export {
+  extractTaskMetadata,
+  stringifyTaskMetadata,
+  parseTaskMetadataFromText,
+  getNodePriority,
+} from "./task-metadata.ts"
 export type { ExtractedTaskMetadata } from "./task-metadata.ts"
 
 // Unified inline metadata (key:: value format)
