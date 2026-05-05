@@ -11,11 +11,13 @@ status: todo
 parent: km-cli
 ---
 
-# [ ] Collapse `km bd` into `km task`; bd becomes thin back-compat shim @km/cli #feature #P1
+# [ ] Collapse `km bd` into `km task` + `km` generic verbs; bd becomes thin back-compat shim @km/cli #feature #P1
 
-Unify the two near-identical task/bead CLI surfaces (`km tasks` 1368 LOC, `km bd` 3022 LOC) into one canonical surface `km task`. Make `km bd` thin wrappers that delegate to `km task` for backwards compatibility. Drop ~3000 LOC of duplication; close the dependency-mutation gap; rationalize default scope and lifecycle verbs.
+Unify the two near-identical task/bead CLI surfaces (`km tasks` 1368 LOC, `km bd` 3022 LOC) into one canonical task surface `km task` (workflow-only) + a fattened generic `km` (set, clear, move, children, stale, query). `km task` stays thin: just the verbs that need task-domain knowledge. `km bd` becomes thin wrappers delegating to `km task`/`km` for backwards compatibility. Drop ~3000 LOC of duplication; close the dependency-mutation gap; rationalize default scope and lifecycle verbs.
 
-Created from `/pro` 3-leg consultation (GPT-5.4 Pro + Claude Opus 4.6 + Gemini 3 Pro, judge winner Opus, $1.98 spend, 405s wallclock).
+**Quality plateau target: L4 across the wave acceptance criteria** — make invalid state impossible by construction (closed subcommand set, no auto-detect ambiguity, pure planners testable without I/O chain, emitter not on public Repo surface), with property/fuzz tests pinning regressions per L5 where it pays.
+
+Created from `/pro` 3-leg consultation (GPT-5.4 Pro + Claude Opus 4.6 + Gemini 3 Pro, judge winner Opus, $1.98 spend, 405s wallclock); refined after the "thin task / fat km" review and "rename → move" canonicalization.
 
 ## Problem
 
@@ -31,55 +33,84 @@ Overlap: 9 of 11 bd verbs already exist in `tasks`. The two real gaps are `dep` 
 ## Goal
 
 1. Rename `tasks` → `task` (singular — matches `gh issue`, `git branch`, `kubectl get pod`).
-2. Make `task` the canonical mutation + view surface for tasks/beads.
-3. Add the two real gaps: bead-frontmatter as `task set` fields; `task dep add/rm/ls`.
-4. `km bd` becomes a thin alias layer that delegates to `km task` (back-compat for muscle memory).
-5. Drop residue: `bd info`/`bd where` → `km doctor`/`km config`; `bd migrate` → `km import bd`.
+2. Make `km task` thin — only verbs that genuinely need task-domain knowledge (board view, ready/blocked/orphans, claim/release/close/drop/reopen, dep).
+3. Push generic node-graph verbs to top-level `km` (set, clear, move, children, stale, query) — "tasks are nodes" mental model.
+4. Add the two real gaps: bead-frontmatter via `km set` (also re-aliased as `task set`); `task dep add/rm/ls` (delegating to a generic `km link` infra layer underneath).
+5. **Canonical verb is `move`, not `rename`.** Rename is a special-case of move (rewrites refs, possibly changes id). `km move <node> <parent-or-new-id>` covers both. `km rename` exists as an alias for muscle-memory.
+6. `km bd` becomes a thin alias layer that delegates to `km task` / `km` (back-compat for muscle memory).
+7. Drop residue: `bd info`/`bd where` → `km doctor`/`km config`; `bd migrate` → `km import bd`.
 
-## Final command list (opinionated, distilled from /pro)
+## Final command list (opinionated, after "thin task / fat km" review)
+
+### `km` — generic node-graph verbs (extended)
 
 ```
-# ─── Views ──────────────────────────────────────────────────────
-km task                                # board view: open tasks, sorted by priority
-km task <query>                        # board view, filtered by query string
-km task ready                          # todo + unblocked
-km task blocked                        # blocked tasks
-km task stale [-d N]                   # untouched ≥N days (default 7)
-km task orphans                        # commit-referenced but still open
-km task children <id>                  # children of a parent/epic
-km task show <id>                      # full detail (deps, history, body)
-km task query <dsl>                    # raw DSL, no default scoping/sorting
+# Existing (no change)
+km list / ls [query]                   # list nodes with filters
+km show <id>                           # node details
+km new <content> [--type --parent --aliases --id --priority --owner --due --start]
+km import <source>                     # km import bd <vault>, km import asana, ...
 
-# ─── Creation ───────────────────────────────────────────────────
-km task new <title> [field:value...] [flags]
-  # Flags: --type, --id, --parent, --priority, --owner,
-  #        --due, --start, --alias (repeatable), -i interactive, -e editor
+# New (added by this work)
+km set <id...> field:value...          # generic field mutation (also: --flag form)
+km clear <id...> field...              # generic field clear
+km move <node> <target>                # CANONICAL: reparent OR rename — rewrites refs
+km rename <id> <new-id>                # alias of `km move <id> <new-id>` (muscle memory)
+km children <id>                       # alias of `km show <id> -c` (discoverability)
+km stale [-d N]                        # untouched-≥N-days across any node
+km query <dsl>                         # alias of `km list --raw <dsl>`
 
-# ─── Mutation ───────────────────────────────────────────────────
-km task set <id...> field:value...     # set fields (also accepts --flag form)
-km task clear <id...> field...         # clear fields
-# Bulk: accepts multiple ids OR --where "<query>"
-
-# ─── Lifecycle (workflow transitions, not sugar) ────────────────
-km task claim <id>                     # → wip + owner=$USER
-km task release <id>                   # → clear owner
-km task close <id> [--reason TEXT]     # → done + closedAt + optional reason
-km task drop <id> [--reason TEXT]      # → dropped + closedAt + optional reason
-km task reopen <id>                    # → todo (from done/dropped)
-
-# ─── Graph ──────────────────────────────────────────────────────
-km task dep add <id> <blocker...>      # add dependency
-km task dep rm <id> <blocker...>       # remove dependency
-km task dep ls <id>                    # list both directions (blocks / blocked-by)
-km task rename <id> <new-id>           # rename + rewrite all references
-km task move <id> <parent>             # reparent
-
-# ─── Output (every list command) ────────────────────────────────
+# Output flags (every list-shaped command)
   --json                               # JSON output
   --jq <expr>                          # filter JSON (implies --json)
   --all                                # include done/dropped
-  -o short|wide|json                   # output format (kubectl-style)
+  -o short|wide|json                   # output format
 ```
+
+`km move <a> <b>` resolves `<b>` polymorphically:
+- If `<b>` is an existing node id → reparent
+- If `<b>` is a new path-form id (no node exists) → rename + ref-rewrite
+- If `<b>` is `--root` → move to root
+Both shapes go through one ref-rewrite engine (`@km/storage/move-with-rewrite-refs`).
+
+### `km task` — workflow-specific (thin)
+
+```
+# Views
+km task                                # board view: open tasks, sorted by priority
+km task <query>                        # board view, filtered
+km task ready                          # todo + unblocked
+km task blocked                        # blocked tasks
+km task orphans                        # commit-referenced but still open
+km task show <id>                      # alias of `km show <id>` for ergonomics
+
+# Creation
+km task new <title> [field:value...] [--type --parent --priority --owner --due --start --aliases --id -i -e]
+  # task-shaped wrapper around `km new` with task defaults (type=task, etc.)
+  # field:value and flags share one parser (derived from field schema)
+
+# Mutation (alias for ergonomics — delegates to `km set`/`km clear`)
+km task set <id...> field:value...     # alias: `km set` with task field-name validation
+km task clear <id...> field...         # alias: `km clear`
+
+# Lifecycle (workflow transitions — validation + side effects, NOT sugar over `set`)
+km task claim <id>                     # → wip + owner=$USER (validates not-already-claimed-by-other)
+km task release <id>                   # → clear owner
+km task close <id> [--reason TEXT]     # → done + closedAt + optional reason + child-cascade hooks
+km task drop <id> [--reason TEXT]      # → dropped + closedAt + optional reason
+km task reopen <id>                    # → todo (from done/dropped); validates source state
+
+# Graph (task-domain semantic on top of generic km link infra)
+km task dep add <id> <blocker...>      # add blocked-by edge (delegates to km link --rel blocks)
+km task dep rm <id> <blocker...>       # remove
+km task dep ls <id>                    # list both directions
+```
+
+### Verbs that are NOT under `km task`
+
+`stale`, `query`, `children`, `move`, `rename` are NOT re-aliased on `km task`. The "tasks are nodes" mental model is reinforced by forcing the user up to `km` for these. Aliasing every generic verb on `task` adds help-screen surface for no real ergonomic win.
+
+Three exceptions are aliased for daily-driver ergonomics: `task show` → `km show`, `task set` → `km set`, `task new` → `km new` (task-defaulted). Everything else is `km <verb>`.
 
 ## Tension resolutions (from /pro consensus)
 
@@ -94,6 +125,8 @@ km task move <id> <parent>             # reparent
 | 7 | Preset views | **Subcommands (ready/blocked/stale/orphans)** — small, named, evolvable | Memorable, completable, can grow flags (`stale -d 14`). Better than arbitrary preset config for a personal tool. |
 | 8 | Dep surface | **`task dep` user-facing; `km link` infra underneath, exposed later** | Users think "blockers" not "graph edges". Build the generic system; expose the domain verb. Exposing `km link` waits for a second consumer. |
 | 9 | ID vs query parsing | **No auto-detect. Bare positional = query filter. Explicit verb (`show`) = id.** | Auto-detect breaks. Subcommand set is closed; everything else is a query string. If list result is exactly one item, append a "Tip: use `km task show <id>` for full detail" hint that suppresses after a few uses. |
+| 10 | Generic vs task-domain split | **Thin `task` (workflow only); fat `km` (generic node verbs)**. Re-alias `show`/`set`/`new` for daily ergonomics; everything else is `km <verb>` only. | "Tasks are nodes" mental model. Aliasing every generic verb under `task` doubles help-screen surface with no ergonomic win. |
+| 11 | Rename vs move | **`move` is canonical**. `rename` is an alias. `km move <node> <target>` polymorphically dispatches: existing node → reparent; new id → rename + ref-rewrite. | One ref-rewrite engine (`@km/storage/move-with-rewrite-refs`), one verb. Avoids two near-identical mutation paths. Rename keeps muscle memory. |
 
 ## What gets cut from the current `tasks` surface
 
@@ -119,6 +152,7 @@ km task move <id> <parent>             # reparent
 
 ```typescript
 const BD_ALIASES: Record<string, string[]> = {
+  // Task-domain verbs → task subcommand
   ready:    ["task", "ready"],
   list:     ["task"],
   show:     ["task", "show"],
@@ -127,13 +161,15 @@ const BD_ALIASES: Record<string, string[]> = {
   close:    ["task", "close"],
   drop:     ["task", "drop"],
   claim:    ["task", "claim"],
-  dep:      ["task", "dep"],     // pass through sub-verb + args
-  stale:    ["task", "stale"],
+  dep:      ["task", "dep"],
   orphans:  ["task", "orphans"],
-  children: ["task", "children"],
   blocked:  ["task", "blocked"],
-  query:    ["task", "query"],
-  rename:   ["task", "rename"],
+
+  // Generic verbs → top-level km
+  stale:    ["stale"],            // km stale (any node, not just tasks)
+  children: ["show", "-c"],       // km show <id> -c
+  query:    ["list", "--raw"],    // km list --raw <dsl>
+  rename:   ["move"],             // km move (canonical; `rename` exists as km alias)
 }
 
 // Dropped from bd (no alias):
@@ -159,63 +195,127 @@ Print a once-per-session deprecation notice on first `bd` use: `bd is an alias f
 11. **Working-directory scoping** (git-style): `cd ~/vault/@km/storage` then bare `km task` is implicitly scoped to the storage subtree. `--global` overrides.
 12. **Default-command config**: `defaultCommand: task` in `.km/config.yaml` lets bare `km` invoke `km task`. One keystroke board view.
 
-## Wave breakdown
+## Wave breakdown (each wave aims for L4 plateau on its acceptance criteria)
 
-### Wave 1 — additive to existing `tasks` (in flight via tasks-unification agent, session f9eb64dc)
+### Wave 1 — additive to existing `tasks` (SHIPPED in this session)
 
-- Add bead-frontmatter fields to `tasks set`: `type`, `parent`, `aliases`, `id`
-- Add bead-frontmatter flags to `tasks --new`: `--type`, `--id`, `--aliases`, `--parent`
-- Add `tasks ready` subcommand
-- Drift fix: `packages/km-fs-mount/src/watch/sync.ts:149` `repo.emitter` reference
+- ✅ `tasks set <id> field:value` learned `type`, `parent`, `aliases` fields (commit `5879b20cf`)
+- ✅ `tasks --new` learned `--type`, `--id`, `--aliases`, `--parent`, `--owner` flags (commits `78762a3c1` + `fafae54ce`)
+- ✅ `tasks ready` subcommand exists (commit `91352d6ab`)
+- ✅ Pure-planner extraction pattern established (`set-clear-plan.ts`, `mutations-plan.ts`) — tests immune to silvery import-chain failure
+- ⏸ `sync.ts:149 repo.emitter` drift — agent stopped at scope boundary; promoted to standalone Wave 1.5
 
-### Wave 2 — rename + lifecycle hardening
+**L4 evidence:** new test files import pure planners directly, do not transitively pull `program.ts` → `@silvery/ag-react/ui/*`. Tests pass even while silvery WIP is mid-flight in vendor.
 
+### Wave 1.5 — emitter off public Repo surface (in flight)
+
+- Move `emitter` from `SyncableRepo`/`Repo` readonly field to `SyncConfig` argument (or close over in `withSync`/`withFsWriter` constructor)
+- Acceptance: zero `repo.emitter` reads in `packages/{km-storage,km-fs-mount}/src/`, `apps/{km-tui,km-cli}/src/`
+- Property test: pin "emitter not on Repo public surface" so the closed-bead invariant holds going forward
+- Supersedes / closes `@km/storage/sync-legacy-cleanup` (the original close-claim was wrong — emitter was still public)
+
+**L4 evidence:** access to the deprecated field becomes a TS error at compile time; can't drift back.
+
+### Wave 2 — pure-planner extraction propagation (in flight)
+
+- Extend planner pattern from `set-clear`/`mutations` to `list`, `status`, `stale`, plus pin `queries`/`formatters` as already-pure
+- New unit-test files for each planner; total 16+ new tests
+- Acceptance: every `*-plan.ts` file has zero imports from `@silvery/{commander,ag-react}`, `program.ts`, `load-repo`, `createTerm`. Verified by grep gate in CI.
+
+**L4 evidence:** pure modules can be tested without booting commander or silvery. Infrastructure-fragility-induced test failures become impossible by construction in this layer.
+
+### Wave 3 — flag rename + lifecycle hardening
+
+- ✅ `tasks -i, --id` (boolean) → `-i, --show-ids`; `--task-id` → `--id` (in flight via flag-rename agent)
 - Rename `tasks` → `task` (singular), keep `tasks` as undocumented alias
-- Drop top-level mutation flags (`--new`, `--done`, `--claim`, `--release`, `--assign`)
+- Drop top-level mutation flags (`--new`, `--done`, `--claim`, `--release`, `--assign`) — POSIX-violating, parser-confusing
 - Add `task reopen <id>`
-- Convert lifecycle verbs (`close`, `drop`, `claim`) into proper workflow transitions: validation, `closedAt`, optional reason, hook surface
+- Convert lifecycle verbs (`close`, `drop`, `claim`, `release`, `reopen`) into proper workflow transitions: validation, `closedAt`, optional reason, hook surface
 - Add `task close --reason TEXT`, `task drop --reason TEXT`
+- **L4/L5 acceptance**: lifecycle transitions are atomic + invariant-preserving (tested with property/fuzz: random sequences of claim/release/close/drop never leave inconsistent state). `set status:done` and `close <id>` are documented as different operations; tests pin the difference (close has `closedAt`; set does not).
 
-### Wave 3 — graph + power features
+### Wave 4 — generic km verbs (the "fat km" extension)
 
-- Add `task dep add/rm/ls` (filling the real gap)
-- Build `km link` infra underneath; `task dep` delegates
-- Wait for `@km/storage/move-with-rewrite-refs` (in progress); then `task rename` and `task move` delegate to that
-- Add `--json` and `--jq` to every list command
-- Add bulk-by-multiple-ids and `--where` to mutations
+- Add `km set <id...> field:value...` and `km clear <id...> field...` (generic mutation; `task set`/`task clear` become aliases that add task-field validation)
+- Add `km move <node> <target>` polymorphic dispatch: existing-id → reparent; new-id → rename + ref-rewrite. Wait for `@km/storage/move-with-rewrite-refs` to land. Add `km rename` as alias of `km move`.
+- Add `km stale [-d N]` for any node (tasks-only is `km task stale` if needed)
+- Add `km children <id>` (alias for `km show <id> -c`)
+- Add `km query <dsl>` (alias for `km list --raw`)
+- Add `--json` + `--jq` to every list-shaped command in stock km
+- **L4 acceptance**: `km move` has one ref-rewrite engine for both reparent and rename; bd's old `bd rename` and `move` paths cannot diverge by construction. Property test: ref-rewrite count + content-hash invariants hold across random move sequences.
 
-### Wave 4 — bd → task alias layer
+### Wave 5 — graph + bulk
 
-- `bd <subcmd> args` argv-translates to `km task <translated> args`, preserving bd defaults (hide done, sort by priority, scope to issue-prefix subtree — these become flags on `task`, not bd-only)
-- Once-per-session deprecation notice
-- Drop `bd info`/`bd where`/`bd migrate` from the alias map; redirect to `km doctor`/`km config`/`km import bd`
+- Add `task dep add/rm/ls` (filling the real gap; delegates to `km link --rel blocks` infra)
+- Build the generic `km link` infra (internal API; not yet user-exposed at top-level)
+- Add bulk-by-multiple-ids OR `--where "<query>"` to mutations + lifecycle verbs
+- **L4 acceptance**: `task dep` and `km link --rel blocks` go through the same writer; bulk operations preserve atomicity (all-or-nothing per id, with dry-run preview).
 
-### Wave 5 — delight (the ergonomic tricks above)
+### Wave 6 — bd → task/km alias layer
 
-- Short-id resolution (slug → scope/slug → full path)
+- `bd <subcmd> args` argv-translates to `km task <translated> args` OR `km <translated> args` (per the alias table above)
+- Preserve bd defaults (hide done, sort by priority, scope to issue-prefix subtree) as `--board` / `--issue-prefix-scope` flags on `task`
+- Once-per-session deprecation notice on first `bd` use
+- Drop `bd info`/`bd where`/`bd migrate` from alias map; redirect to `km doctor`/`km config`/`km import bd`
+- `apps/km-cli/src/commands/bd*.ts` shrinks to ≤500 LOC, mostly argv translation
+- **L5 acceptance**: zero duplicated logic between `bd` and `task`/`km`; legacy bd code paths deleted (not just deprecated). Property test: every bd command has identical effect to its task/km equivalent on a corpus of 100 random invocations.
+
+### Wave 7 — delight
+
+- Short-id resolution (slug → scope/slug → full path), with ambiguity error showing candidates
 - Natural-language dates via chrono-node
-- Shell completion (bash/zsh/fish generated)
-- Status-bar header in list output
-- Working-directory scoping
+- Shell completion (bash/zsh/fish generated, context-aware: subcommands, ids, field names, enum values)
+- Status-bar header in list output (counts: open / wip / blocked / closed-this-week)
+- Working-directory scoping (git-style: `cd vault/@km/storage` → bare `km task` scopes there)
 - Editor integration (`task edit`, `task new -e`)
-- Smart hints on near-miss
-- Dry-run for destructive ops
+- Smart hints on near-miss (typo'd field, looks-like-id, missing reason)
+- Dry-run for destructive ops (`move`, `rename`, bulk `set`/`close`)
+- **L4 acceptance**: every destructive op (`move`, bulk operations) supports `--dry-run` with diff preview. CI gate: a destructive op without `--dry-run` support is a build failure.
 
-## Acceptance criteria
+## Acceptance criteria (L4 plateau target across the board)
 
-- [ ] `km task` is the canonical surface; `km tasks` works as undocumented alias
-- [ ] `km bd` works as a thin alias layer that translates argv to `km task` (no duplicated logic)
-- [ ] All 11 bd verbs have a `task` equivalent, with bd's defaults preserved (as flags on `task`)
-- [ ] `task dep add/rm/ls` exists and creates/queries `blocks`/`blocked-by` link rows
-- [ ] `task set <id> field:value...` accepts `type`, `parent`, `aliases`, `id` fields
+### Surface
+
+- [ ] `km task` is the canonical task-workflow surface; `km tasks` works as undocumented alias
+- [ ] `km bd` works as a thin alias layer translating argv to `km task` / `km <verb>` (no duplicated logic)
+- [ ] All 11 bd verbs map to either `task` or `km` per the alias table
+- [ ] `apps/km-cli/src/commands/bd*.ts` is ≤500 LOC, argv-translation only (L5: legacy logic deleted, not deprecated)
+
+### Generic km verbs
+
+- [ ] `km set <id...> field:value...` and `km clear <id...> field...` exist
+- [ ] `km move <node> <target>` polymorphic: existing-id → reparent; new-id → rename+ref-rewrite. One engine.
+- [ ] `km rename <id> <new-id>` exists as alias of `km move`
+- [ ] `km stale [-d N]`, `km children <id>`, `km query <dsl>` exist
+- [ ] All list-shaped km commands accept `--json`, `--jq`, `--all`, `-o`
+
+### Task-domain verbs
+
+- [ ] `task dep add/rm/ls` creates/queries `blocks`/`blocked-by` link rows via shared `km link --rel blocks` infra
 - [ ] `task new` accepts `--type`, `--id`, `--aliases`, `--parent` flags
-- [ ] All list commands accept `--json`, `--jq`, `--all`, `-o`
-- [ ] `task close`/`drop`/`claim`/`release`/`reopen` are workflow transitions with validation, not raw field writes (each runs `set status:X` plus the workflow side effects: `closedAt`, optional `--reason`, hook surface)
-- [ ] Short-id resolution: `task show foo` resolves to a unique `@km/scope/foo` or errors with candidates
-- [ ] `bd` prints once-per-session deprecation notice on first use
-- [ ] `apps/km-cli/src/commands/bd*.ts` is thin (≤500 LOC, mostly argv translation)
-- [ ] All existing tests still pass; new tests cover dep mutations and bead-frontmatter field setters
-- [ ] Documentation in `docs/ref/cli.md` (or wherever) reflects the unified surface
+- [ ] `task set <id> field:value...` accepts `type`, `parent`, `aliases`, `id` fields (delegates to `km set` with task-field validation)
+- [ ] `task close`/`drop`/`claim`/`release`/`reopen` are workflow transitions with validation + side effects (`closedAt`, optional `--reason`, hook surface, child-cascade) — NOT raw `set status:X`. Distinction documented + tested.
+- [ ] Short-id resolution: `task show foo` resolves to `@km/scope/foo` if unambiguous; errors with candidates otherwise
+
+### L4 invariants (impossible-by-construction)
+
+- [ ] **Pure planners** for every command: zero imports of `@silvery/{commander,ag-react}`/`program.ts`/`load-repo`/`createTerm` in any `*-plan.ts` file. CI gate enforces.
+- [ ] **`repo.emitter` not on public Repo surface**: zero hits of `repo\.emitter` in `packages/{km-storage,km-fs-mount}/src/`, `apps/{km-tui,km-cli}/src/`. CI gate enforces.
+- [ ] **One ref-rewrite engine** for `km move` reparent and `km move` rename — they share the same code path; can't drift. Property test: random move/rename sequences preserve ref integrity.
+- [ ] **Closed subcommand set on `km task`**: bare positional that isn't a subcommand → unambiguously a query. No auto-detect heuristic.
+- [ ] **Lifecycle vs set semantic distinction tested**: `close <id>` always sets `closedAt`; `set status:done` never does. Property test holds over random sequences.
+
+### L5 invariants (regression-pinned)
+
+- [ ] **Property test for bd⇔task equivalence**: random invocations of bd commands produce identical state to their task/km equivalents on a 100+ corpus.
+- [ ] **Property test for lifecycle atomicity**: random sequences of claim/release/close/drop/reopen never leave inconsistent state (e.g., claimed but not assigned, closed without closedAt).
+- [ ] **Legacy code deleted, not deprecated**: bd's duplicated planning code is removed (not commented out). Old field-mutation paths in `tasks status` for non-status fields are removed (the documentation-side argument moves to `set`).
+
+### Documentation
+
+- [ ] `docs/ref/cli.md` (or equivalent) reflects the unified surface
+- [ ] `apps/km-cli/CLAUDE.md` documents the lifecycle vs set distinction and the thin-task / fat-km split
+- [ ] `bd` prints once-per-session deprecation notice on first use, with the equivalent `km` invocation
 
 ## Out of scope
 
