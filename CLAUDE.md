@@ -77,6 +77,8 @@ bun vitest run --changed  # Tests affected by uncommitted changes (~instant)
 
 `bun run test:strictest` runs all projects with `SILVERY_STRICT=2` -- every-action invariants (cursor visibility, border integrity) plus end-of-test checks. SILVERY_STRICT=1 is already the default for all tests.
 
+**`SILVERY_STRICT` is the only knob for runtime checks.** Accepts numeric tiers (1/2/3) and check slugs (`canary`, `incremental`, `residue`) comma-separated; `!slug` skips a specific check. New checks land as slugs under this umbrella — **never as new `SILVERY_*` env vars**. See [vendor/silvery/CLAUDE.md](vendor/silvery/CLAUDE.md#mandatory-silvery_strict-is-the-only-knob) and [vendor/silvery/docs/guide/debugging.md](vendor/silvery/docs/guide/debugging.md) for the full contract.
+
 **Never** use bare `bun test`. You must read [.claude/skills/tests/] for test commands, test types, and TDD workflow to use.
 
 **Canonical test example**: `apps/km-tui/tests/showcase.spec.ts` -- demonstrates the full test API (CSS selectors, typed handles, declarative state, custom matchers, snapshots, fromMarkdown). Read it before writing new tests.
