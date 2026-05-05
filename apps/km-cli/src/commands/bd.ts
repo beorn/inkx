@@ -25,8 +25,8 @@ import { setPriorityInContent } from "@km/core"
 import { resolvePathArg } from "@km/fs-mount"
 import { loadKmBdConfig } from "./bd-load-config.ts"
 import { loadRepo } from "../load-repo.ts"
-import { join } from "path"
-import { existsSync, mkdirSync, writeFileSync } from "fs"
+import { dirname, join } from "path"
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "fs"
 
 /**
  * Write a large JSON payload to stdout and append a newline. Plain
@@ -561,12 +561,33 @@ bdCommand
     })()
 
     if (canonicalId !== null) {
+      // Derive `parent_id` for the frontmatter from the canonical id when
+      // it has a parent path-form (i.e. more than `@<prefix>/<leaf>`).
+      // Examples:
+      //   `@km/scope/leaf` → parentId = `@km/scope`
+      //   `@km/scope/old/child` → parentId = `@km/scope/old`
+      //   `@km/inbox/foo` → parentId = `@km/inbox` (skipped — inbox is the
+      //                                            default scope, not a real parent)
+      // Skipping inbox keeps single-segment beads (auto-id at root) free of
+      // a trivial `parent_id: @<prefix>/inbox` stamp.
+      const parentIdForFrontmatter = (() => {
+        const sigil = `@${configObj.beads.prefix}/`
+        if (!canonicalId.startsWith(sigil)) return undefined
+        const inner = canonicalId.slice(sigil.length)
+        const segments = inner.split("/")
+        if (segments.length < 2) return undefined
+        const parentInner = segments.slice(0, -1).join("/")
+        // Default-scope inbox: not a meaningful parent id to track.
+        if (parentInner === "inbox") return undefined
+        return `${sigil}${parentInner}`
+      })()
       const { filename, content } = renderBeadFile(canonicalId, titleForCreate, {
         prefix: configObj.beads.prefix,
         type: opts.type as string | undefined,
         priority: opts.priority as string | undefined,
         description: opts.description as string | undefined,
         notes: opts.notes as string | undefined,
+        parentId: parentIdForFrontmatter,
       })
       const filepath = join(resolved.repoRoot, filename)
       if (existsSync(filepath)) {
@@ -1362,6 +1383,11 @@ bdCommand
     const isPathForm = opts.newId.includes("/")
     const spec = isPathForm ? { newCanonicalId: opts.newId } : { newShortId: opts.newId }
 
+    // Capture old fs_path BEFORE the move so the post-move directory rename
+    // and DB fs_path-rewrite can locate the affected children.
+    const oldFsPath = node.fs_path ?? null
+    const oldDirRel = oldFsPath?.endsWith(".md") ? oldFsPath.slice(0, -3) : oldFsPath
+
     // Use the canonical move-with-refs primitive. Default behaviour:
     //   - rewrites wikilinks, transclusions, dep-edges, alias props,
     //     parent_id prop, blocked-by props
@@ -1372,6 +1398,128 @@ bdCommand
       noRewrite: opts.rewrite === false,
       includeProse: opts.includeProse === true,
     })
+
+    // Post-move: when the moved file's `<old>.md` had a sibling directory
+    // `<old>/`, rename that directory on disk, rewrite each child file's
+    // bd-form alias / parent_id / prose mentions, and update DB fs_paths
+    // for every descendant whose path was inside it.
+    //
+    // moveNodeWithRefs handles only the single `.md` file; the sibling
+    // tree is invisible to it (children may even still be in stub state
+    // with no parsed content). We rewrite the on-disk text directly here
+    // — going through the rewrite-walk + writeback would force-parse
+    // stubs whose new IDs don't match the disk, then mergeExternalDrift
+    // would mis-detect the disk paragraphs as "new" and append them
+    // alongside the rewritten ones (duplicate-paragraph artifact). Direct
+    // file rewrite is the simpler, drift-free path.
+    const oldRefs = (() => {
+      // Build the set of strings to rewrite in child files: the old
+      // canonical path-form, its bd-form variants, and the old display name.
+      const out = new Set<string>()
+      if (oldDirRel) out.add(oldDirRel)
+      // bd-form variants of the path-form: `@km/scope/old` → `km-scope.old` + `km-scope-old`
+      if (oldDirRel?.startsWith("@")) {
+        const m = oldDirRel.match(/^@([a-z0-9]+)\/(.+)$/i)
+        if (m) {
+          const [, p, rest] = m
+          if (p && rest) {
+            out.add(`${p}-${rest.replace(/\//g, ".")}`)
+            out.add(`${p}-${rest.replace(/\//g, "-")}`)
+          }
+        }
+      }
+      return [...out]
+    })()
+    const newRef = result.newFsPath?.endsWith(".md") ? result.newFsPath.slice(0, -3) : null
+
+    if (isPathForm && oldDirRel && result.newFsPath?.endsWith(".md") && newRef) {
+      const newDirRel = result.newFsPath.slice(0, -3)
+      if (oldDirRel !== newDirRel) {
+        const oldDirAbs = join(resolved.repoRoot, oldDirRel)
+        const newDirAbs = join(resolved.repoRoot, newDirRel)
+
+        // 1. Rewrite child file content on disk BEFORE renaming so we touch
+        //    the existing (still-at-old-location) files. This is the simple
+        //    text-substitution path — no parsing, no writeback, no merge.
+        const rewriteFileContent = (absPath: string): boolean => {
+          try {
+            let text = readFileSync(absPath, "utf-8")
+            let changed = false
+            for (const oldRef of oldRefs) {
+              if (oldRef === newRef) continue
+              if (text.includes(oldRef)) {
+                // Replace oldRef with newRef (literal substring). The
+                // canonical path-form rewrites cleanly; bd-form variants
+                // are also redirected to the path-form per the move
+                // contract (matches Phase 4's `rewriteBareIdMentions`).
+                text = text.split(oldRef).join(newRef)
+                changed = true
+              }
+            }
+            if (changed) writeFileSync(absPath, text, "utf-8")
+            return changed
+          } catch {
+            return false
+          }
+        }
+
+        if (existsSync(oldDirAbs)) {
+          // Walk the dir for .md files and rewrite each.
+          const walk = (abs: string) => {
+            for (const entry of readdirSync(abs, { withFileTypes: true })) {
+              const child = join(abs, entry.name)
+              if (entry.isDirectory()) walk(child)
+              else if (entry.isFile() && entry.name.endsWith(".md")) rewriteFileContent(child)
+            }
+          }
+          walk(oldDirAbs)
+        }
+
+        // 2. Rename the on-disk directory (if it exists). Skip when target
+        //    already exists (idempotent recovery from a partial run).
+        if (existsSync(oldDirAbs) && !existsSync(newDirAbs)) {
+          mkdirSync(dirname(newDirAbs), { recursive: true })
+          try {
+            renameSync(oldDirAbs, newDirAbs)
+          } catch (err) {
+            console.warn(
+              term.yellow(
+                `Warning: failed to rename child directory ${oldDirRel} → ${newDirRel}: ${err instanceof Error ? err.message : String(err)}`,
+              ),
+            )
+          }
+        }
+        // 3. Update DB fs_path for every descendant via raw SQL —
+        //    `repo.updateNode(...)` would emit `node_updated` events and
+        //    fire the fs-writer's save() which serializes the in-memory
+        //    subtree to disk. For stub-state children, save() reads the
+        //    just-rewritten disk content, sees a "drift" vs the empty
+        //    stub data, and folds the disk paragraphs in as
+        //    "unmatched children" — clobbering the file with a
+        //    `_stub: true`-only frontmatter and a duplicated body.
+        //    Bypassing the emitter keeps the DB index in sync with disk
+        //    without triggering writeback.
+        //
+        //    Note: the node `id` is left as-is — moves preserve identity
+        //    so backlinks keep working. Only fs_path tracks the new
+        //    location on disk.
+        const db = repo.database
+        // Folder-style node at the bare path-form id (no .md extension).
+        db.prepare(`UPDATE nodes SET fs_path = ?, name = ? WHERE id = ?`).run(
+          newDirRel,
+          newDirRel.split("/").pop() ?? oldDirRel,
+          oldDirRel,
+        )
+        // Descendant rows: rewrite each fs_path that starts with the old
+        // directory prefix. Done with a single UPDATE using SQL substring
+        // composition (LENGTH + SUBSTR) so we don't N+1 the DB.
+        db.prepare(
+          `UPDATE nodes
+             SET fs_path = ? || SUBSTR(fs_path, ?)
+             WHERE fs_path LIKE ?`,
+        ).run(newDirRel, oldDirRel.length + 1, `${oldDirRel}/%`)
+      }
+    }
 
     console.log(term.green(`Renamed ${opts.oldId} → ${opts.newId}`))
     if (result.rewroteRefs > 0) {

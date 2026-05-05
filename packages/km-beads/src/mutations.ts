@@ -325,6 +325,13 @@ export function renderBeadFile(
     description?: string
     notes?: string
     createdAt?: Date
+    /**
+     * Parent canonical id (e.g. `@km/scope/old`). When set, written to
+     * `parent_id:` in the YAML frontmatter so the move/rename pipeline
+     * can rewrite it via the alias-resolver path. Mirrors
+     * `bdIdToParentId` used by `migrate.ts`.
+     */
+    parentId?: string
   },
 ): { filename: string; content: string } {
   const sigil = `@${options.prefix}/`
@@ -351,6 +358,12 @@ export function renderBeadFile(
   const frontmatter: Record<string, unknown> = {
     aliases,
     created_at: (options.createdAt ?? new Date()).toISOString(),
+  }
+  // Emit `parent_id:` so the move/rename pipeline can rewrite it via the
+  // alias-resolver path. Without this, child files have no explicit
+  // parent reference and stub-state reparenting silently no-ops.
+  if (options.parentId) {
+    frontmatter.parent_id = options.parentId
   }
 
   const fmYaml = stringifyYaml(frontmatter).trimEnd()
