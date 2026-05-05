@@ -36,10 +36,44 @@ Each frame: build a new Buffer from scratch; diff against last-flushed Buffer at
 
 ## Phased plan
 
-1. **Audit cross-frame state** in `packages/ag-term/src/pipeline/*` and `ag-term/src/buffer.ts`. Catalogue every `prev*` ref, every cache, every accumulator. Document what each one's job is and what would break if it didn't survive a frame.
-2. **Phase 1**: move pipeline caches to per-frame scope (`outlineSnapshots` first; smallest blast radius).
-3. **Phase 2**: rebuild Buffer from scratch each frame; output stage owns the prev-buffer for diff.
-4. **Phase 3**: retire downstream invariants no longer needed (`SILVERY_STRICT_RESIDUE`, the "incremental ≡ fresh" check becomes trivial).
+### Phase 0 — Audit cross-frame state (preparation, no code changes)
+
+Catalogue every place mutable state survives a frame in `packages/ag-term/src/pipeline/*` + `ag-term/src/buffer.ts` + `ag-term/src/renderer.ts`. For each: what's the cache for, what would break if it didn't survive, what's the cost of recreating it per-frame.
+
+**Targets to inspect (start here):**
+
+- `RenderPostState` (`ag.ts`) — the explicit "carry-over" container. Every field is a candidate.
+- `outlineSnapshots` (hoisted onto `RenderPostState` in `78c63075`) — outline rectangles painted last frame, used to clear stale outlines this frame.
+- `ExcessClearGate` accumulators (`c7cf9390`) — structural invariant for excess-area clears.
+- `clearNodeRegion` / `clearExcessArea` decoupling (`5c3a266c`) — region-clear coordinator state.
+- `TerminalBuffer` itself (`buffer.ts`) — incremental `setCell`/`fill`/`scrollRegion` ops mutate prev-frame buffer in place.
+- `prevBuffer` / `currBuffer` clone-then-mutate flow in `renderer.ts` (`render()`).
+- `instance.prevBuffer` + `instance.prevPostState` references that live on the renderer instance across frames.
+- Any `stateRef.current` / `useRef` patterns inside pipeline phases that bypass React's per-render scope.
+
+**Output of Phase 0**: a table in this bead with columns `(cache, owner, purpose, perf cost if rebuilt fresh, hidden state risk, recommended phase)`. Filed as a sub-bead `@km/silvery/render-stateless-pipeline-audit` with the table.
+
+### Phase 1 — Move pipeline caches to per-frame scope
+
+Smallest blast radius first: `outlineSnapshots`. Currently lives on `RenderPostState` and survives across `render()` calls. New shape: created at the top of each `render()` call, populated during the frame, discarded at end. Outline-clear logic that needed prev-frame snapshots either reads from the prev-buffer's actual contents or doesn't need them at all (depends on what `clearPreviousOutlines` actually uses them for — Phase 0 audit determines).
+
+Then `ExcessClearGate` and `clearNodeRegion` caches. Each migrated independently with STRICT regression tests at every step.
+
+### Phase 2 — Rebuild Buffer from scratch each frame
+
+The big change. Each `render()` call:
+1. Allocates a fresh `Buffer` (or reuses a pre-allocated one, zeroed out).
+2. Renders into it from layout + model. No reads from `prevBuffer`.
+3. The output stage diffs the new buffer against the last-flushed buffer (kept by the Term, not by the pipeline) and emits the minimal ANSI delta.
+
+`scrollRegion` becomes a pre-render hint to the diff output stage, not a buffer mutation. `restyleRegion` and `mergeAttrsInRect` become layout/style annotations consumed during the fresh paint, not in-place mutations.
+
+### Phase 3 — Retire downstream invariants
+
+Once Phases 1+2 land:
+- `SILVERY_STRICT=incremental` (the "incremental ≡ fresh" check) becomes trivial — they ARE the same render. Remove it from the suite once it's been a no-op for one release cycle.
+- `SILVERY_STRICT=residue` (sentinel-compare) becomes structurally impossible to fail — every cell is painted from a clean slate every frame. Mark as deprecated, remove after one release cycle.
+- The degenerate-frame canary (`SILVERY_STRICT=canary`) remains useful — it catches harness misconfigs orthogonal to pipeline state.
 
 ## Effort
 

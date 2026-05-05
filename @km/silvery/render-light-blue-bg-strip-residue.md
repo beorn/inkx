@@ -98,3 +98,12 @@ After fixing @km/all/test-system/test-board-empty-frame (testBoard now renders a
 ### Next concrete step
 
 If the user reports the strip again: ask whether it correlates with rows containing flag emoji or other wide graphemes. If yes, the user-visible bug is the wide-char STRICT divergence (already filed). If no, we need a different reproduction.
+
+## Resolution gate (2026-05-05, round 4 framing)
+
+This bead remains open as a **gate** on the flag-emoji fix landing. Plan:
+
+1. Once `@km/silvery/strict-output-flag-emoji-width-divergence` lands (silvery agent in flight in pool slot wt1 as of 22:35), run km against the real vault again and confirm the strips are gone.
+2. If gone → close this bead. The user-visible "cyan strip" was the wide-char displacement all along.
+3. If still present → reopen with a fresh screenshot at known terminal dims, capture `DEBUG=silvery:* DEBUG_LOG=/tmp/silvery.log` of the bad frame, and escalate. Possible alternate causes: ghostty-specific OSC artefacts (the vt100 STRICT backend doesn't catch these), a slow-cadence outline-snapshot leak that hasn't surfaced in 280 presses, or selection-cluster bg leak through view-mode transitions not yet covered by `outline-in-flex-row.test.tsx`.
+4. The architectural reframe `@km/silvery/render-stateless-pipeline-reframe` (P1 epic) eventually retires this entire bug class — once landed, this bead is moot.
