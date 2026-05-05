@@ -10,6 +10,7 @@ import { createTask, markDone, claimTask, releaseTask, assignTask } from "./muta
 import { createStatusCommand } from "./status.ts"
 import { createSetCommand, createClearCommand } from "./set-clear.ts"
 import { listStaleTasks } from "./stale.ts"
+import { createDepCommand } from "./dep.ts"
 
 /**
  * Task command - unified task management
@@ -81,6 +82,7 @@ export const taskCommand = new Command("tasks")
 taskCommand.addCommand(createStatusCommand())
 taskCommand.addCommand(createSetCommand())
 taskCommand.addCommand(createClearCommand())
+taskCommand.addCommand(createDepCommand())
 
 // Add claim subcommand
 taskCommand
