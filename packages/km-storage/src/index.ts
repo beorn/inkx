@@ -202,9 +202,10 @@ export {
   // For km-watch sync layer
   parseMarkdownWithLinks,
   nodesToMarkdown,
+  buildNodeLookup,
 } from "@km/markdown"
 
-export type { ParseResult, ParseWarning } from "@km/markdown"
+export type { ParseResult, ParseWarning, NodeLookup } from "@km/markdown"
 
 // Markdown processing utilities (shared between loading and syncing)
 export {

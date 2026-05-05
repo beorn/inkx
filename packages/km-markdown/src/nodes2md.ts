@@ -115,11 +115,41 @@ function getUneditedInlineSource(node: KNode): string | undefined {
 }
 
 /**
+ * Pre-built lookup data shared across many `nodesToMarkdown` calls.
+ *
+ * Bulk operations (sync write-back, rule materialization) call this
+ * function once per file but pass the same `lookupNodes` array
+ * (typically `getAllNodes(db)` — 740k entries on a real vault). Each
+ * call re-built a `Map<id, node>` and an `existingBlockIds` set from
+ * scratch — for 38 file write-backs that's 28M+ wasted map ops. Pass
+ * a pre-built `NodeLookup` to share the work; otherwise the function
+ * builds its own from `lookupNodes ?? nodes`.
+ */
+export interface NodeLookup {
+  nodeMap: Map<string, KNode>
+  existingBlockIds: Set<string>
+}
+
+/**
+ * Build a `NodeLookup` from a node array. Call once before a batch of
+ * `nodesToMarkdown` calls to avoid rebuilding the map per invocation.
+ */
+export function buildNodeLookup(nodes: KNode[]): NodeLookup {
+  const nodeMap = new Map<string, KNode>()
+  const existingBlockIds = new Set<string>()
+  for (const n of nodes) {
+    nodeMap.set(n.id, n)
+    if (n.name) existingBlockIds.add(n.name)
+  }
+  return { nodeMap, existingBlockIds }
+}
+
+/**
  * Convert nodes to markdown
  */
 export function nodesToMarkdown(
   nodes: KNode[],
-  lookupNodes?: KNode[],
+  lookupNodes?: KNode[] | NodeLookup,
   assignBlockId?: (nodeId: string, blockId: string) => void,
 ): string {
   log.debug?.(`nodesToMarkdown: ${nodes.length} nodes`)
@@ -130,17 +160,9 @@ export function nodesToMarkdown(
   // Build tree structure from file's subtree, but use broader lookup for
   // embedding target resolution (targets may be in other files)
   const tree = buildNodeTree(nodes)
-  const mapSource = lookupNodes ?? nodes
-  const nodeMap = new Map(mapSource.map((n) => [n.id, n]))
-
-  // Collect existing anchor literals to avoid collisions when minting new
-  // anchors during serialization. Post-v6 anchors live in `.name`; we
-  // include slug-derived names too — worst case we dodge a collision that
-  // wouldn't have happened. Safe-conservative.
-  const existingBlockIds = new Set<string>()
-  for (const n of mapSource) {
-    if (n.name) existingBlockIds.add(n.name)
-  }
+  const lookup =
+    lookupNodes != null && !Array.isArray(lookupNodes) ? lookupNodes : buildNodeLookup(lookupNodes ?? nodes)
+  const { nodeMap, existingBlockIds } = lookup
 
   const ctx: SerializeContext = {
     tree,

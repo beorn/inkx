@@ -30,6 +30,7 @@ import {
   getAllNodes,
   getSubtree,
   nodesToMarkdown,
+  buildNodeLookup,
   evaluateAllRules,
   createRuleContext,
   type StepYield,
@@ -286,9 +287,44 @@ export const BulkSync = {
 
     // Phase 3: Rules
     yield "Rules"
+
+    // Skip rule eval entirely when nothing has changed since the last
+    // pass. The rule outputs (embed children, derived structures) are a
+    // pure function of the node tree; if no ops landed AND no journal
+    // events were applied since the last rules pass, the result is
+    // identical to last time. Track via `meta.last_rules_eval` against
+    // `meta.last_event`.
+    //
+    // First-run / forced-rebuild semantics: when the cursor isn't set,
+    // we always run. When it equals last_event, skip. We update the
+    // cursor only after a clean pass, so a partial pass never leaves
+    // the cursor ahead of the actual state.
+    const lastEventRow = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event") as
+      | { value: string }
+      | undefined
+    const lastRulesEvalRow = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_rules_eval") as
+      | { value: string }
+      | undefined
+    const ranAnyOps = allOps.length > 0
+    const lastEvent = lastEventRow?.value ?? null
+    const lastRulesEval = lastRulesEvalRow?.value ?? null
+    const skipRules = !ranAnyOps && lastEvent != null && lastEvent === lastRulesEval
+
     const ruleCtx = createRuleContext()
-    for (const progress of evaluateAllRules(db, ruleCtx)) {
-      yield { current: progress.current, total: progress.total }
+    if (!skipRules) {
+      for (const progress of evaluateAllRules(db, ruleCtx)) {
+        yield { current: progress.current, total: progress.total }
+      }
+      // Park the cursor at the head event we evaluated against. On a
+      // fresh DB with no events the cursor is set to '' (empty string)
+      // — still distinct from `null`, so the next no-op sync skips.
+      db.run(
+        "INSERT INTO meta (key, value) VALUES ('last_rules_eval', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        [lastEvent ?? ""],
+      )
+    } else {
+      log.debug?.(`fromFs: rules skipped — last_rules_eval matches last_event (${lastEvent})`)
+      yield { current: 1, total: 1 }
     }
 
     const pendingFiles = Array.from(ruleCtx.pendingWriteBack)
@@ -304,6 +340,10 @@ export const BulkSync = {
       for (const n of allNodesForWriteback) {
         if (n.fs_path) nodesByPath.set(n.fs_path, n)
       }
+      // Pre-build the lookup once. Without this, `nodesToMarkdown` rebuilt
+      // a 740k-entry Map on every file write — for 38 files that's 28M
+      // wasted Map insertions plus a fresh `existingBlockIds` Set scan.
+      const writebackLookup = buildNodeLookup(allNodesForWriteback)
 
       let written = 0
       let skippedIdentical = 0
@@ -319,7 +359,7 @@ export const BulkSync = {
         const anchors = createAnchorAssigner("rule-evaluation")
         const absPath = toAbsoluteFsPath(repoPath, filePath)
         const subtree = getSubtree(db, fileNode.id)
-        const content = nodesToMarkdown(subtree, allNodesForWriteback, anchors.assign)
+        const content = nodesToMarkdown(subtree, writebackLookup, anchors.assign)
 
         // CAS-skip: if the rendered content's hash matches the DB's
         // `fs_content_hash` (last-known on-disk hash), the rule eval

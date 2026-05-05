@@ -60,4 +60,5 @@ export {
 export type { ParseResult, ParseWarning, ExtractedLink } from "./ast2nodes.ts"
 
 // Nodes to markdown
-export { nodesToMarkdown, regenerateFile } from "./nodes2md.ts"
+export { nodesToMarkdown, regenerateFile, buildNodeLookup } from "./nodes2md.ts"
+export type { NodeLookup } from "./nodes2md.ts"
