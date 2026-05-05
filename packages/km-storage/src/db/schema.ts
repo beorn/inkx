@@ -1248,7 +1248,7 @@ export const NODE_COLUMNS = new Set([
   "assigned_to",
   "due_at",
   "start_at",
-  "priority",
+  // priority column dropped at SCHEMA_VERSION=11
   "content",
   "content_hash",
   "parsed",

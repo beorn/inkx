@@ -37,19 +37,33 @@ export function createTestDatabase(): Database {
 /**
  * Insert test nodes into the database.
  * Handles default values and timestamps automatically.
+ *
+ * priority dropped as a column at SCHEMA_VERSION=11 — the helper mirrors
+ * any `priority` field into `data.tags` as the canonical `#P[0-4]`
+ * hashtag so getNodePriority() can resolve it.
  */
 export function seedTestData(db: Database, nodes: TestNode[]): void {
   const now = Date.now()
   const stmt = db.prepare(`
     INSERT INTO nodes (
-      id, type, item, fstype, name, task_status, task_marker, priority, content,
+      id, type, item, fstype, name, task_status, task_marker, content,
       fs_path, due_at, start_at, data,
       created_at, updated_at, version, parent_idx
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
 
   for (let i = 0; i < nodes.length; i++) {
     const n = nodes[i]!
+    // Mirror priority into data.tags so getNodePriority() resolves it.
+    let dataStr = n.data ?? "{}"
+    if (n.priority) {
+      const dataObj = JSON.parse(dataStr) as Record<string, unknown>
+      const tags = (dataObj.tags as string[] | undefined) ?? []
+      if (!tags.some((t) => /^P[0-4]$/i.test(t))) {
+        dataObj.tags = [...tags, n.priority]
+        dataStr = JSON.stringify(dataObj)
+      }
+    }
     stmt.run(
       n.id,
       n.type,
@@ -58,12 +72,11 @@ export function seedTestData(db: Database, nodes: TestNode[]): void {
       n.name ?? null,
       n.item?.task?.status ?? null,
       n.item?.task?.marker ?? null,
-      n.priority ?? null,
       n.content,
       n.fs_path ?? null,
       n.due_at ?? null,
       n.start_at ?? null,
-      n.data ?? "{}",
+      dataStr,
       now,
       now,
       `v${i + 1}`,

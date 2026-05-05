@@ -245,7 +245,7 @@ const ALLOWED_QUERY_FIELDS: ReadonlySet<string> = new Set([
   "start_at",
   "due_date",
   "scheduled_date",
-  "priority",
+  // priority column dropped at SCHEMA_VERSION=11 — read via getNodePriority
   "content",
   "content_hash",
   "parsed",
@@ -291,6 +291,13 @@ export class QueryFieldError extends Error {
 /** Handle date shortcut resolution and general field conditions */
 function buildFieldCondition(cond: QueryCondition, params: (string | number)[]): string {
   const { field, op, value } = cond
+
+  // priority column dropped at SCHEMA_VERSION=11 — `priority:P1` queries
+  // route through `data.tags` (canonical authored form per
+  // docs/future/beads.md). The column was a denormalization.
+  if (field === "priority") {
+    return buildPriorityTagCondition(op, value, params)
+  }
 
   // Validate field name against the schema allowlist BEFORE composing SQL
   // — otherwise an unknown column reaches SQLite and surfaces as a raw
@@ -363,6 +370,54 @@ function buildDateCondition(field: string, op: string, dateRange: DateRange, par
   }
   params.push(dateRange.start, dateRange.end)
   return ` AND (${field} < ? OR ${field} > ? OR ${field} IS NULL)`
+}
+
+/**
+ * Build SQL for `priority:Px` queries against `data.tags`.
+ *
+ * The legacy `nodes.priority` column was dropped at SCHEMA_VERSION=11.
+ * The H1 `#P[0-4]` hashtag (captured into `data.tags` by
+ * kmRefsTransform) is the canonical authored form. Comma-separated
+ * values produce an OR over each tag.
+ */
+function buildPriorityTagCondition(op: string, value: string, params: (string | number)[]): string {
+  const values = value.split(",").filter((v) => v.length > 0)
+  if (values.length === 0) return ""
+
+  const tagLike = (v: string) => `%"${v}"%`
+
+  if (op === "=") {
+    if (values.length === 1) {
+      params.push(tagLike(value))
+      return ` AND json_extract(data, '$.tags') LIKE ?`
+    }
+    const ors = values.map(() => `json_extract(data, '$.tags') LIKE ?`).join(" OR ")
+    params.push(...values.map(tagLike))
+    return ` AND (${ors})`
+  }
+  if (op === "!=") {
+    if (values.length === 1) {
+      params.push(tagLike(value))
+      return ` AND (data IS NULL OR json_extract(data, '$.tags') IS NULL OR json_extract(data, '$.tags') NOT LIKE ?)`
+    }
+    const ands = values
+      .map(() => `(data IS NULL OR json_extract(data, '$.tags') IS NULL OR json_extract(data, '$.tags') NOT LIKE ?)`)
+      .join(" AND ")
+    params.push(...values.map(tagLike))
+    return ` AND ${ands}`
+  }
+  // Comparison ops (>, <, >=, <=) on priority compare canonical strings —
+  // P0 < P1 < P2 < P3 < P4 by ASCII order. We can't push that through
+  // json_extract LIKE — fall back to raw json_extract value comparison.
+  // Use json_each to extract each tag and check against P[0-4] pattern.
+  if (op === ">" || op === "<" || op === ">=" || op === "<=") {
+    params.push(value)
+    return ` AND EXISTS (
+      SELECT 1 FROM json_each(json_extract(data, '$.tags')) je
+      WHERE je.value GLOB 'P[0-4]' AND je.value ${op} ?
+    )`
+  }
+  return ""
 }
 
 /** Build SQL for reference filters (person/tag/project stored in JSON data) */

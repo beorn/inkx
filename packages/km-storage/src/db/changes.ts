@@ -119,6 +119,7 @@ function applyNodeCreated(db: Database, change: Change): void {
       (data.assigned_to as string) ?? null,
       (data.due_at as string) ?? null,
       (data.start_at as string) ?? null,
+      // priority column dropped at SCHEMA_VERSION=11
       (data.content as string) ?? null,
       (data.content_hash as string) ?? null,
       JSON.stringify(data.data ?? {}),

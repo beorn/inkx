@@ -90,6 +90,7 @@ export function getTasksFiltered(
     sql += " AND task_status IN ('todo', 'wip')"
   }
 
+  // priority column dropped at SCHEMA_VERSION=11 — order by due then created
   sql += " ORDER BY due_at ASC NULLS LAST, created_at DESC"
 
   const rows = db.prepare(sql).all(...params) as Record<string, unknown>[]

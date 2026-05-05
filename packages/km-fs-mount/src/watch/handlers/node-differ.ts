@@ -300,7 +300,10 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
  * to a task, kmBlockIdTransform strips the marker into `.name` during parse
  * (storage-architecture §2.3), but without this field in the diff, the
  * update event never carries the new anchor to the DB. */
-const CHILD_DIFF_FIELDS = ["content", "md_pos", "due_at", "start_at", "priority", "embed_of", "name", "title"] as const
+// priority column dropped at SCHEMA_VERSION=11 — diff via data.tags through
+// the data JSON comparison (see diffNodeFields below, which always compares
+// data via JSON.stringify).
+const CHILD_DIFF_FIELDS = ["content", "md_pos", "due_at", "start_at", "embed_of", "name", "title"] as const
 
 /** Fields to compare for file nodes */
 const FILE_DIFF_FIELDS = ["content", "title"] as const
