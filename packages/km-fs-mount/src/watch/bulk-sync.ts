@@ -11,6 +11,8 @@
 import { createLogger } from "loggily"
 import { dirname } from "path"
 import { readFileSync } from "fs"
+import { hashContent } from "../fs/cas.ts"
+// readFileSync used at line ~268 for sync_state baseline observation.
 import type { Database } from "bun:sqlite"
 import { toAbsoluteFsPath } from "../fs/path-utils.ts"
 import { scanDirectoryRecursiveGen, type ScanEntry } from "./watcher.ts"
@@ -292,26 +294,56 @@ export const BulkSync = {
     const pendingFiles = Array.from(ruleCtx.pendingWriteBack)
     if (pendingFiles.length > 0) {
       log.debug?.(`fromFs: writing back ${pendingFiles.length} files after rule evaluation`)
+      // Fetch the full node list ONCE for the writeback loop. Previous
+      // implementation called `getAllNodes` per pending file (for the
+      // fs_path lookup) AND a second time inside `nodesToMarkdown` —
+      // that's 2× N×M behaviour on a 5,000-file vault. Build a path-keyed
+      // map up front, then reuse.
+      const allNodesForWriteback = getAllNodes(db)
+      const nodesByPath = new Map<string, (typeof allNodesForWriteback)[number]>()
+      for (const n of allNodesForWriteback) {
+        if (n.fs_path) nodesByPath.set(n.fs_path, n)
+      }
+
+      let written = 0
+      let skippedIdentical = 0
       for (const filePath of pendingFiles) {
         if (!filePath.endsWith(".md")) {
           log.debug?.(`fromFs: SKIPPING non-.md file in write-back filePath=${filePath}`)
           continue
         }
 
-        const fileNode = getAllNodes(db).find((n) => n.fs_path === filePath)
-        if (fileNode) {
-          const anchors = createAnchorAssigner("rule-evaluation")
-          const absPath = toAbsoluteFsPath(repoPath, filePath)
-          const subtree = getSubtree(db, fileNode.id)
-          const content = nodesToMarkdown(subtree, getAllNodes(db), anchors.assign)
-          writeQueue.queue({
-            path: absPath,
-            content,
-            sourceEventId: "rule-evaluation",
-          })
+        const fileNode = nodesByPath.get(filePath)
+        if (!fileNode) continue
+
+        const anchors = createAnchorAssigner("rule-evaluation")
+        const absPath = toAbsoluteFsPath(repoPath, filePath)
+        const subtree = getSubtree(db, fileNode.id)
+        const content = nodesToMarkdown(subtree, allNodesForWriteback, anchors.assign)
+
+        // CAS-skip: if the rendered content's hash matches the DB's
+        // `fs_content_hash` (last-known on-disk hash), the rule eval
+        // produced a no-op write — skip the queue. Hashing avoids a
+        // readFileSync on multi-MB files; we trust fs_content_hash as
+        // the canonical "what's on disk now" reference because the
+        // reconcile pass we just ran updated it for any file whose
+        // mtime/inode changed.
+        const newHash = hashContent(content)
+        if (fileNode.fs_content_hash && fileNode.fs_content_hash === newHash) {
+          skippedIdentical++
           anchors.rewriteSourceFiles(fileNode.id)
+          continue
         }
+
+        writeQueue.queue({
+          path: absPath,
+          content,
+          sourceEventId: "rule-evaluation",
+        })
+        anchors.rewriteSourceFiles(fileNode.id)
+        written++
       }
+      log.debug?.(`fromFs: writeback queued=${written} skipped-identical=${skippedIdentical}`)
       await writeQueue.forceFlush()
     }
 
