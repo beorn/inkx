@@ -61,7 +61,7 @@ function createSyncFsTarget(db: Database, repoPath: string, emitter: Emitter): F
             },
           },
           // Don't re-project this meta-change to the FS; it's purely a
-          // notification. skipPersist=false so it still lands in changes.jsonl
+          // notification. skipPersist=false so it still lands in the events table
           // for audit.
           { source: "fs-import" },
         )

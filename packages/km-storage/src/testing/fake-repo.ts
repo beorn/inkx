@@ -163,7 +163,6 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
 
   const fakeEmitter: Emitter = {
     kmDir: "/fake/.km",
-    changesPath: "/fake/.km/changes.jsonl",
     apply(event) {
       const full = { id: ulid(), ts: Date.now(), ...event } as Change
       applyToNodes(full)

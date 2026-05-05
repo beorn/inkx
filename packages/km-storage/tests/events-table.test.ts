@@ -73,7 +73,7 @@ describe("events table — atomic write with state mutation", () => {
     expect(events[0]!.type).toBe("node_created")
     expect(events[0]!.actor).toBe("user")
     expect(events[0]!.target).toBe(null) // node_created uses data.id, not target
-    const parsed = JSON.parse(events[0]!.data)
+    const parsed = JSON.parse(events[0]!.data) as { data: { id: string } }
     expect(parsed.data.id).toBe("n1")
   })
 
@@ -146,9 +146,7 @@ describe("events table — atomic write with state mutation", () => {
     expect(updateRow!.target).toBe("n4")
 
     // Indexed lookup by target works (this is the audit-query shape).
-    const byTarget = db
-      .query("SELECT type FROM events WHERE target = ? ORDER BY ts")
-      .all("n4") as { type: string }[]
+    const byTarget = db.query("SELECT type FROM events WHERE target = ? ORDER BY ts").all("n4") as { type: string }[]
     expect(byTarget.map((r) => r.type)).toEqual(["node_updated"])
   })
 
@@ -203,9 +201,7 @@ describe("events table — atomic write with state mutation", () => {
 
     // CHECK(json_valid(data)) is enforced.
     expect(() =>
-      db.run(
-        "INSERT INTO events (id, ts, type, actor, data) VALUES ('id-x', 1, 'node_created', 'user', 'not json')",
-      ),
+      db.run("INSERT INTO events (id, ts, type, actor, data) VALUES ('id-x', 1, 'node_created', 'user', 'not json')"),
     ).toThrow()
   })
 })

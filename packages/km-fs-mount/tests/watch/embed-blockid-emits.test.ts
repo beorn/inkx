@@ -1,7 +1,7 @@
 /**
  * Embed back-write + anchor minting + baseline-hash realignment —
  * every derived DB mutation routes through `emitter.commit()` so DB and
- * `changes.jsonl` are paired per row (op-vocabulary audit gaps G4/G7/G9).
+ * events-table rows are paired with the DB write (op-vocabulary audit gaps G4/G7/G9).
  *
  * Post-v6 anchor literals live in `.name` per storage-architecture §2.3
  * (no separate `block_id` column).
@@ -47,7 +47,7 @@ function createRealFsTarget(): FsWriteTarget {
 
 /**
  * Read the journal from the SCHEMA_VERSION 12 events table inside state.db.
- * Pre-v12 this read changes.jsonl from the filesystem; the events table
+ * The events table inside state.db
  * supersedes the jsonl as the canonical journal.
  */
 function readJournal(db: Database): Array<Record<string, unknown>> {

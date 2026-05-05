@@ -6,21 +6,21 @@ Modes, KNode schema, events, and bidirectional sync.
 
 ## Two Modes
 
-| Mode       | Trigger       | SQLite         | Change Log         | Node IDs  |
-| ---------- | ------------- | -------------- | ------------------ | --------- |
-| **Memory** | No `.km/`     | `:memory:`     | None               | Ephemeral |
-| **Disk**   | `.km/` exists | `.km/state.db` | `.km/changes.jsonl` | Stable    |
+| Mode       | Trigger       | SQLite         | Change Log                          | Node IDs  |
+| ---------- | ------------- | -------------- | ----------------------------------- | --------- |
+| **Memory** | No `.km/`     | `:memory:`     | None                                | Ephemeral |
+| **Disk**   | `.km/` exists | `.km/state.db` | `events` table inside `.km/state.db` | Stable    |
 
 **Both modes are read-write.** The key differences:
 
-| Aspect         | Memory Mode                 | Disk Mode                                   |
-| -------------- | --------------------------- | ------------------------------------------- |
-| **SQLite**     | Rebuilt from `.md` each run | Persisted in `.km/state.db`                 |
-| **Change log** | None                        | All changes in `changes.jsonl`               |
-| **Node IDs**   | `path:line` (session-local) | ULIDs (permanent)                           |
-| **Write path** | Direct to `.md` files       | Change → SQLite → (optionally sync to `.md`) |
-| **Startup**    | Scan filesystem             | Load SQLite                                 |
-| **History**    | None                        | Full audit trail                            |
+| Aspect         | Memory Mode                 | Disk Mode                                                              |
+| -------------- | --------------------------- | ---------------------------------------------------------------------- |
+| **SQLite**     | Rebuilt from `.md` each run | Persisted in `.km/state.db`                                            |
+| **Change log** | None                        | All changes in the `events` table inside state.db (atomic with mutate) |
+| **Node IDs**   | `path:line` (session-local) | ULIDs (permanent)                                                      |
+| **Write path** | Direct to `.md` files       | Change → SQLite (nodes + events row) → (optionally sync to `.md`)      |
+| **Startup**    | Scan filesystem             | Load SQLite                                                            |
+| **History**    | None                        | Full audit trail                                                       |
 
 ### Memory Mode
 
@@ -41,19 +41,19 @@ km tasks              # Scans again, new IDs
 
 ### Disk Mode
 
-SQLite and events persist in `.km/`:
+SQLite and events persist in `.km/state.db` (the events table lives inside the same database file):
 
 ```bash
-km init               # Creates .km/state.db, changes.jsonl
+km init               # Creates .km/state.db (with events table)
 km tasks              # Loads from SQLite (fast)
-km status abc123 done # Appends to changes.jsonl, updates SQLite
+km status abc123 done # Updates SQLite + writes events row in the same transaction
 # exit
 km show abc123        # Same ID still works
 ```
 
 - Run `km init` once to enable
-- All changes logged to `changes.jsonl`
-- SQLite is a rebuildable cache
+- All changes logged to the events table inside state.db, atomically with the state mutation
+- The `nodes` projection is a rebuildable cache; events are the canonical journal
 - IDs are stable ULIDs
 - Enables: history, undo, sync, cross-session references
 
@@ -118,7 +118,7 @@ The repo root node (`id = "."`) is created by `ensureRepoRootNode()` before disc
 - `fs_path = "."`, `is_repo_root = true` in data
 - Only node with `parent_id = NULL` — all other nodes must have a parent
 
-In `applyEvents`, any `parent_id: null` from old changes.jsonl is normalized to `"."`.
+In `applyEvents`, any `parent_id: null` from older event payloads is normalized to `"."`.
 
 `km doctor` detects orphan nodes and absolute `fs_path` values as health issues.
 
@@ -509,9 +509,9 @@ Used for tracking change replay cursor and other internal state.
 
 ## Changes (Disk Mode Only)
 
-Changes are append-only records in `.km/changes.jsonl`. The `emit()` function is the central mutation path in @km/storage.
+Changes are rows in the `events` table inside `.km/state.db`. The `emit()` function is the central mutation path in @km/storage; every commit writes the events row inside the same SAVEPOINT as the state mutation, so the snapshot and journal cannot drift.
 
-> **Planned**: The [brain architecture](future/brain.md) evolves changes.jsonl into per-chat JSONL files (`.km/chats/`), where all interactions — agent conversations, edit sessions, sync operations — are modeled as chats. The emit() pipeline and change types below remain the foundation.
+> **Planned**: The [brain architecture](future/brain.md) evolves the events table into per-chat tables, where all interactions — agent conversations, edit sessions, sync operations — are modeled as chats. The emit() pipeline and change types below remain the foundation.
 
 ### The 4-Path Multiplexer
 
@@ -519,10 +519,10 @@ Every mutation flows through `emit()`, which triggers four parallel operations:
 
 ```
 emit(change)
-    ├─ Persist   → changes.jsonl   (immutable audit log)
-    ├─ Project   → state.db       (SQLite cache)
-    ├─ Broadcast → WebSocket      (real-time to other clients)
-    └─ Sync      → filesystem     (write back to .md files)
+    ├─ Persist   → events row in state.db   (immutable audit log)
+    ├─ Project   → nodes / links in state.db (SQLite cache)
+    ├─ Broadcast → WebSocket                 (real-time to other clients)
+    └─ Sync      → filesystem                (write back to .md files)
 ```
 
 ### Actor-Based Routing
@@ -576,7 +576,7 @@ async function rebuildState(): Promise<Database> {
   db.exec("DROP TABLE IF EXISTS nodes; ...")
   db.exec(CREATE_SCHEMA)
 
-  const changes = readChangesSync(".km/changes.jsonl")
+  const changes = readEventsAfter(db, 0)
   for (const change of changes) {
     applyChange(db, change)
   }
@@ -621,7 +621,7 @@ interface LoadOptions {
 
 | Phase           | Memory Mode                   | Disk Mode                         |
 | --------------- | ----------------------------- | --------------------------------- |
-| **discover**    | Count markdown files          | Count changes in changes.jsonl     |
+| **discover**    | Count markdown files          | Read pending events from state.db |
 | **parse**       | Parse files → generate events | (skipped - events already parsed) |
 | **apply**       | Insert nodes into SQLite      | Apply events to SQLite            |
 | **resolve**     | Resolve wikilinks             | (skipped - resolved during apply) |

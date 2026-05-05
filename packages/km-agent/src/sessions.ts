@@ -2,24 +2,36 @@
  * Session Queries
  *
  * Query functions for agent sessions.
- * Sessions are stored as changes in changes.jsonl.
+ * Sessions are stored as session_started/session_ended events in the
+ * events table inside `.km/state.db`.
  */
 
+import { existsSync } from "fs"
+import { join } from "path"
+import { Database } from "bun:sqlite"
 import type { SessionStartedData, SessionEndedData } from "@km/core"
-import { readChanges } from "@km/storage"
+import { readEventsAfter } from "@km/storage"
 import type { Session, SessionFilter, SessionStatus } from "./types.ts"
 
 /**
  * Query sessions, optionally filtered.
  *
- * Reads session_started and session_ended changes from changes.jsonl,
+ * Reads session_started and session_ended events from the events table,
  * reconstructs Session objects, and applies filters.
  *
- * @param kmDir - Path to .km directory containing changes.jsonl
+ * @param kmDir - Path to .km directory containing state.db
  * @param filter - Optional filter criteria
  */
 export function querySessions(kmDir: string, filter?: SessionFilter): Session[] {
-  const events = readChanges(kmDir)
+  const dbPath = join(kmDir, "state.db")
+  if (!existsSync(dbPath)) return []
+  const db = new Database(dbPath, { readonly: true })
+  let events
+  try {
+    events = readEventsAfter(db, 0)
+  } finally {
+    db.close()
+  }
 
   // Build sessions from events
   const sessionMap = new Map<string, Session>()

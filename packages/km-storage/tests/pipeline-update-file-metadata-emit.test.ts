@@ -100,15 +100,15 @@ describe("applyNodes() updateFileMetadata — emitter path (G9)", () => {
     expect(node.content_hash).toBe("newhash")
 
     // Events table: exactly one node_updated for file1 carrying the metadata.
-    // Post-SCHEMA_VERSION 12 the events table is canonical (changes.jsonl
-    // is gated behind KM_LEGACY_JSONL=1 for legacy vaults).
     const rows = db
       .query("SELECT data FROM events WHERE type = 'node_updated' AND target = 'file1' ORDER BY seq")
       .all() as { data: string }[]
-    const matching = rows.map((r) => JSON.parse(r.data) as Record<string, unknown>).filter((e) => {
-      const data = e.data as Record<string, unknown>
-      return data?.content_hash === "newhash"
-    })
+    const matching = rows
+      .map((r) => JSON.parse(r.data) as Record<string, unknown>)
+      .filter((e) => {
+        const data = e.data as Record<string, unknown>
+        return data?.content_hash === "newhash"
+      })
     expect(matching.length).toBe(1)
 
     const entry = matching[0]!
@@ -141,12 +141,11 @@ describe("applyNodes() updateFileMetadata — emitter path (G9)", () => {
 
     await collect(applyNodes(fromArray(parsed), db, { emitter }))
 
-    // Exactly 3 node_updated rows in the events table (one per file), all
-    // fs-watch. Post-v12 the events table replaces changes.jsonl as the
-    // canonical journal.
-    const updates = db
-      .query("SELECT actor FROM events WHERE type = 'node_updated' ORDER BY seq")
-      .all() as { actor: string }[]
+    // Exactly 3 node_updated rows in the events table (one per file),
+    // all fs-watch.
+    const updates = db.query("SELECT actor FROM events WHERE type = 'node_updated' ORDER BY seq").all() as {
+      actor: string
+    }[]
     expect(updates.length).toBe(3)
     for (const u of updates) {
       expect(u.actor).toBe("fs-watch")

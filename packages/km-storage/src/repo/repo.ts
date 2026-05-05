@@ -684,56 +684,24 @@ function updateRenameReferences(
 function checkNeedsRebuild(rootPath: string, db: Database): boolean {
   const kmDir = join(rootPath, ".km")
   const dbPath = join(kmDir, "state.db")
-  const changesPath = join(kmDir, "changes.jsonl")
 
   if (!existsSync(dbPath)) {
     log.debug?.("needsRebuild: yes (no state.db)")
     return true
   }
 
-  if (!existsSync(changesPath)) {
-    log.debug?.("needsRebuild: no (no changes.jsonl)")
-    return false
-  }
-
-  // Check if there are unapplied events
-  const lastApplied = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event") as
+  // Post-SCHEMA_VERSION-12 the events table is canonical and lives inside
+  // state.db. The high-water mark is meta.last_event_seq; anything in
+  // events.seq above it is unapplied.
+  const lastSeqRow = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event_seq") as
     | { value: string }
     | undefined
-
-  const lastAppliedId = lastApplied?.value
-  if (!lastAppliedId) {
-    const content = existsSync(changesPath) ? readFileSync(changesPath, "utf-8") : ""
-    const hasEvents = content.trim().length > 0
-    log.debug?.(`needsRebuild result=${hasEvents ? "yes" : "no"} reason=no last_event`)
-    return hasEvents
-  }
-
-  // Check if events file has newer events
-  const content = readFileSync(changesPath, "utf-8")
-  const lines = content.split("\n").filter((l: string) => l.trim())
-  if (lines.length === 0) {
-    log.debug?.("needsRebuild: no (no events)")
-    return false
-  }
-
-  const lastLine = lines.at(-1)
-  if (!lastLine) {
-    log.debug?.("needsRebuild: no (empty last line)")
-    return false
-  }
-
-  try {
-    const lastEvent = JSON.parse(lastLine) as { id: string }
-    const needs = lastEvent.id > lastAppliedId
-    log.debug?.(
-      `needsRebuild result=${needs ? "yes" : "no"} last=${lastEvent.id.slice(-8)} applied=${(lastAppliedId as string).slice(-8)}`,
-    )
-    return needs
-  } catch {
-    log.debug?.("needsRebuild: yes (malformed events)")
-    return true
-  }
+  const lastSeq = lastSeqRow?.value !== undefined ? Number(lastSeqRow.value) : 0
+  const maxRow = db.prepare("SELECT MAX(seq) AS max FROM events").get() as { max: number | null }
+  const maxSeq = maxRow?.max ?? 0
+  const needs = maxSeq > lastSeq
+  log.debug?.(`needsRebuild result=${needs ? "yes" : "no"} maxSeq=${maxSeq} lastSeq=${lastSeq}`)
+  return needs
 }
 
 // =============================================================================
@@ -1060,7 +1028,7 @@ export interface Repo extends Disposable {
 
   /**
    * Run a function with FS sync paused.
-   * Mutations inside `fn` write to DB/changes.jsonl but skip FS regeneration.
+   * Mutations inside `fn` write to the DB + events table but skip FS regeneration.
    * After `fn` completes, call `syncToFs(nodeId)` to regenerate affected files.
    */
   withDeferredFs<T>(fn: () => T): T
@@ -1211,7 +1179,7 @@ function quarantineCorruptDb(dbPath: string, reason: string): string {
  * If opening or configuring the database fails with a corruption error, the corrupt
  * state.db (and its -wal/-shm sidecars) is moved aside with a timestamped suffix and
  * a fresh database is created at the original path. Callers are responsible for
- * replaying changes.jsonl into the fresh database afterwards (loadRepo does this).
+ * replaying the events table into the fresh database afterwards (loadRepo does this).
  */
 function openDiskDatabase(dbPath: string): Database {
   try {
@@ -1251,19 +1219,14 @@ function detectAbsolutePaths(db: Database): string | null {
  *
  * Returns a descriptive string if incomplete, or null if OK.
  * Checks:
- * 1. Events.jsonl has content (fresh init with no events is not corrupt)
+ * 1. Events table has rows (fresh init with no events is not corrupt)
  * 2. Root node has no structural children (file/folder) despite filesystem having entries
  * 3. Database has very few nodes overall (<=1, original check)
  */
-function isDatabaseIncomplete(db: Database, rootPath: string, kmDir: string): string | null {
-  // Fresh init: missing or empty changes.jsonl means sync hasn't run yet — not corrupt.
-  // Check file size via statSync instead of reading the full file — changes.jsonl
-  // is append-only and grows to GBs on mature repos, so readFileSync here cost
-  // ~380ms on a 1.2GB vault. We only need to know it's non-empty.
-  const changesPath = join(kmDir, "changes.jsonl")
-  if (!existsSync(changesPath)) return null
-  const changesStat = statSync(changesPath)
-  if (changesStat.size === 0) return null
+function isDatabaseIncomplete(db: Database, rootPath: string, _kmDir: string): string | null {
+  // Fresh init: empty events table means sync hasn't run yet — not corrupt.
+  const eventCount = (db.prepare("SELECT COUNT(*) as cnt FROM events").get() as { cnt: number }).cnt
+  if (eventCount === 0) return null
 
   // Count filesystem entries that should be indexed
   if (!existsSync(rootPath)) return null
@@ -1390,7 +1353,7 @@ function expandUnexploredDirectory(
   // Apply changes to database
   //
   // Route through emitter.apply({..., source: "fs-import"}) so:
-  //  1. Each scanned node produces a node_created entry in changes.jsonl
+  //  1. Each scanned node produces a node_created row in the events table
   //     (op-surface uniformity — Phase B oplog can reconstruct state from
   //     the journal; see hub/km/research/op-vocabulary-audit-2026-04-22.md G1)
   //  2. onApply subscribers (fs-writer) filter source === "fs-import" and
@@ -1681,8 +1644,8 @@ function* initWithFileLoading(
 
   // Create emitter early - needed for disk mode DataStore.
   // In memory mode there's no .km/ directory — skipPersist avoids creating
-  // changes.jsonl for ephemeral scans (forceMemory tests, lazy-expand without
-  // a real vault). In disk mode the emitter writes to .km/changes.jsonl.
+  // the events table for ephemeral scans (forceMemory tests, lazy-expand without
+  // a real vault). In disk mode the emitter writes events into the events table inside state.db.
   const emitter = createEmitter({ kmDir, skipPersist: mode === "memory" })
 
   let db: Database
@@ -1743,7 +1706,7 @@ function* initWithFileLoading(
     db, // ADR-002: pass db to avoid singleton
     // Route replay + reconcile changes through the emitter so the op surface
     // stays uniform (the loader commits via emitter.commit, which bypasses
-    // onApply — the journal IS the source during replay).
+    // onApply — the events table IS the source during replay).
     emitter,
   })
   _loadSpan.end()
@@ -1807,8 +1770,8 @@ function* initEmptyDb(kmDir: string, options: CreateRepoOptions): Generator<Step
   const mode = hasKmDir ? "disk" : "memory"
 
   // Create emitter early - needed for disk mode DataStore.
-  // In memory mode, skipPersist avoids creating changes.jsonl files under
-  // an ephemeral .km/ that doesn't really exist.
+  // In memory mode, skipPersist avoids writing event rows under an
+  // ephemeral .km/ that doesn't really exist.
   const emitter = createEmitter({ kmDir, skipPersist: mode === "memory" })
 
   log.debug?.(`detected mode: ${mode} (hasKmDir=${hasKmDir})`)
@@ -2287,7 +2250,7 @@ export interface CreateBareRepoOptions {
   hooks?: RepoHooks
   /** Pre-created emitter (if not provided, one is created) */
   emitter?: Emitter
-  /** Skip persisting events to changes.jsonl (useful for tests) */
+  /** Skip persisting events to the events table (useful for tests) */
   skipPersist?: boolean
 }
 

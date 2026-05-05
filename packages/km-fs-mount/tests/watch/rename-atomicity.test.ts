@@ -1,5 +1,5 @@
 /**
- * Rename atomicity — DB + changes.jsonl stay paired per row.
+ * Rename atomicity — DB + events table stay paired per row.
  *
  * The rename paths in ChangeHandlers historically did `db.run("UPDATE
  * nodes SET fs_path = ?")` then hand-rolled a journal append — two writes
@@ -7,7 +7,7 @@
  * journal (silent corruption).
  *
  * These tests pin down the fix: every rename routes through
- * `emitter.commit()`, which pairs the DB write with a `changes.jsonl`
+ * `emitter.commit()`, which pairs the DB write with an events-table
  * append per row. Cascades become N node_updated ops, one per descendant.
  * FS-origin changes use `commit()` (not `apply()`) so onApply subscribers
  * do not re-project them back to disk (echo-loop prevention).
@@ -70,7 +70,7 @@ function insertDescendantFile(
 
 /**
  * Read the journal from the SCHEMA_VERSION 12 events table inside state.db.
- * Pre-v12 this read changes.jsonl from the filesystem; the events table
+ * The events table inside state.db
  * supersedes the jsonl as the canonical journal.
  */
 function readJournal(db: Database): Array<Record<string, unknown>> {

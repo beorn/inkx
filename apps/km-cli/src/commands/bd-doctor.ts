@@ -2,7 +2,7 @@
  * Beads Doctor Commands — `km bd doctor <subcommand>`
  *
  * Diagnostic + repair helpers for the beads layout. Distinct from
- * `km doctor` (which targets the storage layer: state.db, changes.jsonl,
+ * `km doctor` (which targets the storage layer: state.db,
  * worktree integrity).
  */
 

@@ -378,8 +378,8 @@ describe("Repo.needsRebuild", () => {
     expect(repo.needsRebuild()).toBe(false)
   })
 
-  test("returns false for disk mode with no changes.jsonl", () => {
-    // Create .km directory but no events file
+  test("returns false for disk mode with an empty events table", () => {
+    // Create .km directory but no events
     const kmDir = join(tempDir, ".km")
     mkdirSync(kmDir, { recursive: true })
 
@@ -389,27 +389,32 @@ describe("Repo.needsRebuild", () => {
     expect(repo.needsRebuild()).toBe(false)
   })
 
-  test("returns true for disk mode with unapplied events", () => {
-    // Create .km directory with events
+  test("returns true for disk mode with unapplied events", async () => {
+    // Create .km directory and initialize state.db via createRepo
     const kmDir = join(tempDir, ".km")
     mkdirSync(kmDir, { recursive: true })
 
-    // First create repo to initialize state.db
     {
       using repo = runGenerator(createRepo(tempDir))
-      // Add a node to generate an event
       repo.data.addNode(null, { type: "p", item: {}, content: "Test task" })
     }
 
-    // Manually add an event that wasn't applied (simulate external write)
-    const changesPath = join(kmDir, "changes.jsonl")
-    const newEvent = JSON.stringify({
-      id: "zzzzzzzz-test-event-id",
-      type: "update",
-      nodeId: "fake",
-      ts: Date.now(),
-    })
-    writeFileSync(changesPath, newEvent + "\n", { flag: "a" })
+    // Manually insert an unapplied event row (simulate external write that
+    // bumped events.seq past meta.last_event_seq).
+    const { Database } = await import("bun:sqlite")
+    const probe = new Database(join(kmDir, "state.db"))
+    probe.run(
+      `INSERT INTO events (id, ts, type, actor, target, data) VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        "zzzzzzzz-test-event-id",
+        Date.now(),
+        "node_updated",
+        "test",
+        "fake",
+        JSON.stringify({ type: "node_updated", actor: "test", target: "fake", data: {} }),
+      ],
+    )
+    probe.close()
 
     // Reopen repo and check
     using repo = runGenerator(createRepo(tempDir))
@@ -430,78 +435,62 @@ describe("Repo.needsRebuild", () => {
 
 describe("Repo corrupt state.db recovery", () => {
   let tempDir: string
-  let prevLegacy: string | undefined
 
   beforeEach(() => {
     tempDir = createTempDir()
-    // Pin the legacy jsonl write path for THIS test: post-SCHEMA_VERSION 12
-    // the events table inside state.db replaces changes.jsonl, but if
-    // state.db corrupts we lose the events table too. The recovery contract
-    // we're verifying here is "the journal is safe even if state.db is
-    // gone" — that property only holds when the journal is its own file.
-    prevLegacy = process.env.KM_LEGACY_JSONL
-    process.env.KM_LEGACY_JSONL = "1"
   })
 
   afterEach(() => {
     cleanupTempDir(tempDir)
-    if (prevLegacy === undefined) delete process.env.KM_LEGACY_JSONL
-    else process.env.KM_LEGACY_JSONL = prevLegacy
   })
 
-  test("rebuilds from changes.jsonl when state.db is corrupt", async () => {
+  test("recovers from worktree when state.db corrupts and a VACUUM INTO snapshot exists", async () => {
     const { readdirSync: readdirFs } = await import("fs")
-    // Step 1: create a healthy repo with .km directory and actual files so
-    // changes.jsonl gets populated from file discovery.
+    const { backupViaVacuumInto } = await import("../src/index.ts")
+
     const kmDir = join(tempDir, ".km")
     mkdirSync(kmDir, { recursive: true })
     writeFileSync(
       join(tempDir, "notes.md"),
       "# Notes\n\n- [ ] corrupt-recovery-marker-1\n- [ ] corrupt-recovery-marker-2\n",
     )
+
+    // First open: populate state.db (events table + nodes) and capture a
+    // VACUUM INTO snapshot. The snapshot is a standalone consistent copy of
+    // state.db — it doubles as a cold-load restore point per the
+    // events-table-replaces-jsonl design.
     {
       using repo = runGenerator(createRepo(tempDir, { loadFiles: true }))
       expect(repo.stats.nodeCount).toBeGreaterThan(0)
-      // Make a mutation so changes.jsonl gets written through the emitter
-      repo.data.addNode(null, { type: "p", item: {}, content: "corrupt-recovery-marker-3" })
     }
+    const snapshotPath = join(kmDir, "snapshot.db")
+    backupViaVacuumInto(kmDir, snapshotPath)
+    expect(existsSync(snapshotPath)).toBe(true)
+    expect(statSync(snapshotPath).size).toBeGreaterThan(0)
 
-    // Sanity: state.db + changes.jsonl should both exist after first open
+    // Corrupt state.db (and nuke the WAL/SHM so the corruption isn't masked).
     const dbPath = join(kmDir, "state.db")
-    const changesPath = join(kmDir, "changes.jsonl")
-    expect(existsSync(dbPath)).toBe(true)
-    expect(existsSync(changesPath)).toBe(true)
-    expect(readFileSync(changesPath, "utf-8").trim().length).toBeGreaterThan(0)
-
-    // Step 2: corrupt state.db by overwriting with garbage bytes.
-    // Also nuke the WAL/SHM so corruption isn't masked by a clean WAL.
     for (const sidecar of ["-wal", "-shm"]) {
       const p = dbPath + sidecar
       if (existsSync(p)) rmSync(p, { force: true })
     }
     writeFileSync(dbPath, "NOT A SQLITE DATABASE — this is corrupt garbage")
 
-    // Step 3: reopening must NOT throw, must recover cleanly
+    // Reopening must not throw — the loader quarantines the corrupt file
+    // and rebuilds a fresh state.db from the worktree.
     using repo = runGenerator(createRepo(tempDir, { loadFiles: true }))
 
-    // Step 4: the corrupt file should have been moved aside with a timestamped suffix
     const kmFiles = readdirFs(kmDir) as string[]
     const quarantined = kmFiles.filter((f) => f.startsWith("state.db.corrupt-"))
     expect(quarantined.length).toBeGreaterThan(0)
 
-    // Step 5: the new state.db must be a healthy sqlite file (not the garbage)
     const head = readFileSync(dbPath).subarray(0, 15).toString("utf-8")
     expect(head.startsWith("SQLite format")).toBe(true)
-
-    // Step 6: the recovered repo should have content back — both worktree and
-    // changes.jsonl markers must be present.
     expect(repo.stats.nodeCount).toBeGreaterThan(0)
-    const recoveredContent = repo.data
-      .getAllNodes()
-      .map((n) => n.content ?? "")
-      .join("\n")
-    // From changes.jsonl (replayed)
-    expect(recoveredContent).toContain("corrupt-recovery-marker-3")
+
+    // The VACUUM INTO snapshot must still be a valid SQLite file.
+    const snapshotHead = readFileSync(snapshotPath).subarray(0, 15).toString("utf-8")
+    expect(snapshotHead.startsWith("SQLite format")).toBe(true)
   })
 })
 

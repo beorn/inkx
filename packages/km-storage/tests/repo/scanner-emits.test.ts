@@ -13,7 +13,7 @@
  *  - the emitter's `onApply` subscribers observe each discovered node,
  *  - fs-writer subscribers filter `source === "fs-import"` and skip
  *    projection — the filesystem is the source, echoing back would loop,
- *  - in disk mode the emitter also appends to changes.jsonl.
+ *  - in disk mode the emitter also writes to the events table.
  *
  * Lazy expansion (`preloadDepth`) is a memory-mode feature — the in-memory
  * emitter uses `skipPersist: true` so it has no journal. We verify the op

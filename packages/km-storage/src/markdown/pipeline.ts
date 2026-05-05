@@ -193,7 +193,7 @@ export async function* applyNodes(
 
   // Collect metadata back-writes for post-batch emission. When an emitter is
   // provided, updateFileMetadata queues the update here instead of writing
-  // directly — so DB + changes.jsonl are paired per row via emitter.commit
+  // directly — so DB + events table row are paired via emitter.commit
   // (op-vocabulary audit G9). An outer SQL txn cannot help: appendFileSync is
   // not part of SQLite and cannot be rolled back, so emitting inside BEGIN
   // IMMEDIATE would leave an orphan journal entry if the batch rolled back.
@@ -516,7 +516,7 @@ function insertFileNodes(
  *
  * When `emitter` is provided, queues the update into `pendingEmits` so the
  * caller can route it through `emitter.commit()` after the batch transaction
- * commits — DB + changes.jsonl paired per row (op-vocabulary audit G9).
+ * commits — DB + events table row paired (op-vocabulary audit G9).
  * Using `commit` (not `apply`) avoids firing onApply subscribers — same
  * carve-out as the sibling back-writes in change-handlers.ts.
  *
@@ -538,7 +538,7 @@ function updateFileMetadata(
 
   if (emitter) {
     // Queue for post-batch emission. The single emitter.commit call will
-    // perform the UPDATE via applyChangeWithDb AND append to changes.jsonl.
+    // perform the UPDATE via applyChangeWithDb AND insert the events row.
     pendingEmits.push({
       nodeId: file.nodeId,
       data: {

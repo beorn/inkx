@@ -107,7 +107,7 @@ export interface TestEnv {
   testId: string
   /** Root test directory (deleted on cleanup) */
   testDir: string
-  /** .km directory for state.db and changes.jsonl */
+  /** .km directory for state.db (events table inside) */
   kmDir: string
   /** Repo directory for markdown files */
   repoDir: string
@@ -204,7 +204,7 @@ function setupTestEnv(options?: { mode?: TestMode }): TestEnv {
   db.run(SCHEMA)
 
   // Use createTestEnvRepo to wire everything together
-  // skipPersist: true for non-real mode avoids writing changes.jsonl to /tmp
+  // skipPersist: true for non-real mode avoids writing extraneous event rows to /tmp
   const isDiskMode = mode === "real"
   const { emitter, data } = createTestEnvRepo({
     db,

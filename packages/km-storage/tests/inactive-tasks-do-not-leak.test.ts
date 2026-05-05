@@ -38,7 +38,7 @@ function runLoad(tmpDir: string, db: Database): void {
   // Must NOT pass an explicit collapseMatcher — we want the loader to read
   // `.km/config.yaml` and construct one itself (that's the code path the
   // original bug lived in). Force memory mode: these tests care about the
-  // parse + aggregate pipeline, not changes.jsonl replay (which disk mode
+  // parse + aggregate pipeline, not events-table replay (which disk mode
   // would require).
   const gen = loadRepo(tmpDir, { db, mode: "memory" })
   let r = gen.next()

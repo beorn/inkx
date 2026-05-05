@@ -30,8 +30,8 @@ import { loadRepo } from "../load-repo.ts"
 // ============================================
 
 /**
- * Create `.km/` in `targetDir` plus an empty `changes.jsonl`, and optionally
- * scaffold the GTD folder structure (inbox/, archive/, @next.md, @someday.md).
+ * Create `.km/` in `targetDir`, and optionally scaffold the GTD folder
+ * structure (inbox/, archive/, @next.md, @someday.md).
  *
  * Does NOT walk up ancestor directories — callers have already decided the
  * exact path to initialize. No ancestor-collision warning, no `--force`
@@ -46,10 +46,6 @@ export function initKmDirectory(targetDir: string, options: { withGtd?: boolean 
   const kmDir = join(targetDir, ".km")
   if (!existsSync(kmDir)) {
     mkdirSync(kmDir, { recursive: true })
-  }
-  const changesPath = join(kmDir, "changes.jsonl")
-  if (!existsSync(changesPath)) {
-    writeFileSync(changesPath, "")
   }
   if (options.withGtd !== false) {
     createGtdStructure(targetDir, false)
@@ -99,10 +95,6 @@ export const initCommand = new Command("init")
       const staleDb = join(kmDir, "state.db")
       if (existsSync(staleDb)) unlinkSync(staleDb)
     }
-
-    // Create empty changes.jsonl
-    const changesPath = join(kmDir, "changes.jsonl")
-    writeFileSync(changesPath, "")
 
     console.log(term.bold("Initializing .km"), term.dim(`(repo ${formatPath(targetDir)})`))
     console.log(term.green("✓"), "Created .km/")

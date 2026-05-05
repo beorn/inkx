@@ -3,7 +3,7 @@
  *
  * Verifies that rename handlers:
  * 1. Record write tokens at new paths (watcher suppression)
- * 2. Journal rename operations to changes.jsonl
+ * 2. Journal rename operations to the events table
  */
 
 import { describe, test, expect } from "vitest"
@@ -156,7 +156,7 @@ describe("rename write tokens", () => {
 })
 
 describe("rename journal entries", () => {
-  test("file rename creates journal entry in changes.jsonl", () =>
+  test("file rename creates a row in the events table", () =>
     withTestEnv(({ repoDir, db, kmDir }) => {
       // Create file on disk
       const oldPath = join(repoDir, "Journal Test.md")

@@ -4,7 +4,7 @@
  * file state. Otherwise the next reconcile loop sees `entry.mtime !==
  * existingByPath.fs_mtime` and emits a spurious update op → re-parse →
  * re-emit node_created/updated/deleted events → leak recomputable noise
- * into changes.jsonl.
+ * into the events table.
  *
  * This is the @km/storage/dont-journal-rule-derived-events fix: refresh
  * fs_mtime + fs_size + fs_ino + fs_content_hash atomically in the

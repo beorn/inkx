@@ -132,8 +132,6 @@ export type { NodeStore, Store, Observable, Replicated } from "./store/store.ts"
 
 // Unified repo loading
 export {
-  readChanges,
-  readLastEventOffset,
   readEventsAfter,
   readLastEventSeq,
   writeLastEventSeq,
@@ -168,24 +166,10 @@ export {
 
 export type { ReferencedAnchorRow } from "./db/referenced-anchors.ts"
 
-// Change compaction & store health diagnostics
-export {
-  identifyStaleChanges,
-  compactChanges,
-  compactJournal,
-  backupViaVacuumInto,
-  retainEvents,
-  vacuumDb,
-  getStoreHealth,
-} from "./change-compaction.ts"
+// Events-table retention & store health diagnostics
+export { backupViaVacuumInto, retainEvents, vacuumDb, getStoreHealth } from "./change-compaction.ts"
 
-export type {
-  CompactionResult,
-  JournalCompactionResult,
-  RetainEventsOptions,
-  RetainEventsResult,
-  StoreHealth,
-} from "./change-compaction.ts"
+export type { RetainEventsOptions, RetainEventsResult, StoreHealth } from "./change-compaction.ts"
 
 // km-fast-md.6: Worker pool for parallel parsing
 // km-disposable.3: Service factory pattern

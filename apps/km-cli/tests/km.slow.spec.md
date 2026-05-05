@@ -131,7 +131,6 @@ Next steps:
 [...]
 
 $ ls "$INIT_DIR/.km"
-changes.jsonl
 state.db
 [...]
 

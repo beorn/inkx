@@ -14,7 +14,7 @@ DB-ORIGIN EVENTS (TUI edit, CLI command, agent action)
        |
        |-- commit():
        |     1. Apply to DB ------> applyChangeWithDb() [changes.ts]
-       |     2. Persist ----------> append to .km/changes.jsonl
+       |     2. Persist ----------> insert events row (state.db, atomic with #1)
        |     3. Broadcast --------> changeHub.broadcast(change)
        |
        '-- save():
@@ -259,9 +259,9 @@ Periodic anti-entropy check (configurable interval, default 60s, only when idle 
 3. **Two-tier write suppression**: OwnershipTracker L1 (hot) + L2 (durable) prevent
    the watcher from reconciling files we just wrote.
 
-4. **Apply before persist**: The DB is updated before changes.jsonl is appended.
-   A crash between steps 1 and 2 loses the change from the journal but the DB is
-   correct — safer than the reverse.
+4. **Apply before persist**: The events row is inserted in the same SAVEPOINT
+   that mutates the nodes/links tables, so a crash either commits both or
+   neither — drift between snapshot and journal is structurally impossible.
 
 5. **Direct writes**: WriteQueue writes directly to the target path, preserving
    inode identity. This avoids inode churn that would confuse the reconciler.

@@ -18,8 +18,7 @@ Bead state is **per-vault markdown** under `@km/<scope>/<slug>.md` (path-form) o
 | Surface | What's there |
 |---|---|
 | `@km/<scope>/<slug>.md` | The bead — markdown body with frontmatter (id, aliases, type, priority, status, parent) |
-| `.km/state.db` | Local FTS5 index (gitignored, rebuilt from markdown on `km doctor rebuild`) |
-| `.km/changes.jsonl` | Event journal for in-flight mutations (gitignored) |
+| `.km/state.db` | Local FTS5 index + events table (gitignored, rebuilt from markdown on `km doctor rebuild`) |
 
 **Sync**: `git add @km/<scope>/<slug>.md && git commit && git push` — that's it. Don't ever run `bd dolt push` (the Go bd binary and Dolt backend were retired 2026-04-29; `bd` is no longer on PATH).
 

@@ -12,7 +12,14 @@ import { join, isAbsolute } from "path"
 import { Database } from "bun:sqlite"
 
 import { runGenerator } from "@km/core"
-import { createRepo, IncompleteDatabase, SCHEMA } from "../../src/index.ts"
+import {
+  applyConnectionPragmas,
+  createRepo,
+  IncompleteDatabase,
+  migrateData,
+  migrateSchema,
+  SCHEMA,
+} from "../../src/index.ts"
 
 const createdDirs: string[] = []
 
@@ -112,7 +119,6 @@ describe("absolute path detection", () => {
       `INSERT INTO nodes (id, type, parent_id, parent_idx, fs_path, created_at, updated_at, version, data)
        VALUES ('file1', 'oi', '.', 0, '/old/absolute/repo/@next.md', ${Date.now()}, ${Date.now()}, '1', '{}')`,
     )
-    writeFileSync(join(dir, ".km/changes.jsonl"), "")
     db.close()
 
     // Reopening should NOT throw — migration cleans the absolute-path row,
@@ -139,7 +145,6 @@ describe("absolute path detection", () => {
       `INSERT INTO nodes (id, type, parent_id, parent_idx, fs_path, created_at, updated_at, version, data)
        VALUES ('file1', 'oi', '.', 0, '@next.md', ${Date.now()}, ${Date.now()}, '1', '{}')`,
     )
-    writeFileSync(join(dir, ".km/changes.jsonl"), "")
     db.close()
 
     // Should open without error
@@ -150,15 +155,15 @@ describe("absolute path detection", () => {
 })
 
 describe("disk mode root node", () => {
-  test("changes.jsonl with parent_id:null folders get reparented under root '.'", () => {
+  test("events with parent_id:null folders get reparented under root '.'", () => {
     const dir = createTempDir("disk-root")
     setupFiles(dir)
     // Create directories referenced by events so filesystem reconciliation doesn't delete them
     mkdirSync(join(dir, "ref"), { recursive: true })
     mkdirSync(join(dir, ".km"), { recursive: true })
 
-    // Create changes.jsonl with top-level folders having parent_id: null
-    // (this is how older changes.jsonl files look — folders are root-level)
+    // Seed the events table with top-level folders that have parent_id: null
+    // (this is how older event-table content looks — folders are root-level)
     const now = Date.now()
     const events = [
       {
@@ -214,7 +219,23 @@ describe("disk mode root node", () => {
       },
     ]
 
-    writeFileSync(join(dir, ".km/changes.jsonl"), events.map((e) => JSON.stringify(e)).join("\n") + "\n")
+    const dbPath = join(dir, ".km/state.db")
+    const seedDb = new Database(dbPath)
+    applyConnectionPragmas(seedDb)
+    migrateSchema(seedDb)
+    seedDb.run(SCHEMA)
+    migrateData(seedDb)
+    for (const e of events) {
+      seedDb.run(`INSERT INTO events (id, ts, type, actor, target, data) VALUES (?, ?, ?, ?, ?, ?)`, [
+        e.id,
+        e.ts,
+        e.type,
+        e.actor,
+        null,
+        JSON.stringify(e),
+      ])
+    }
+    seedDb.close()
 
     using repo = runGenerator(createRepo(dir, { loadFiles: true }))
 
@@ -244,7 +265,6 @@ describe("km init: withSync creates nodes under root '.'", () => {
     const dir = createTempDir("sync-root")
     setupFiles(dir)
     mkdirSync(join(dir, ".km"), { recursive: true })
-    writeFileSync(join(dir, ".km/changes.jsonl"), "")
 
     // Load repo (creates root "." node via ensureRepoRootNode)
     using repo = runGenerator(createRepo(dir, { loadFiles: true }))

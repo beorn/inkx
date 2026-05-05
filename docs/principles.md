@@ -1429,12 +1429,12 @@ throw new Error(
   `Data conflict: "${name}" was modified externally.\n` +
   `  File: ${fsPath}\n` +
   `  Your version: ${hash.slice(0,8)}...\n` +
-  `Recovery: Your edits are in .km/changes.jsonl`
+  `Recovery: Your edits are in the events table inside .km/state.db`
 )
 
 log.warn?.(
   `Stale event: "${name}" ${type} at ${fsPath} already exists. ` +
-  `Run 'km gc' to clean changes.jsonl.`
+  `Run 'km doctor gc' to compact the events table.`
 )
 ```
 

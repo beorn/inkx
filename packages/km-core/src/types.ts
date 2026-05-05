@@ -430,7 +430,7 @@ export type ChangeType =
   | "conflict_created"
 
 /**
- * Change — immutable record of a state change (persisted to changes.jsonl).
+ * Change — immutable record of a state change (persisted to the events table inside state.db).
  */
 export interface Change {
   id: string // ULID (globally unique, sortable)

@@ -1,7 +1,7 @@
 /**
  * Doctor Command
  *
- * Diagnose and repair km stores (worktree, changes.jsonl, state.db).
+ * Diagnose and repair km stores (worktree, events table, state.db).
  * Replaces the old rebuild command with a structured set of subcommands.
  */
 
@@ -20,8 +20,6 @@ import { Database } from "bun:sqlite"
 import {
   applyConnectionPragmas,
   backupViaVacuumInto,
-  compactChanges,
-  compactJournal,
   createRepo,
   getStoreHealth,
   parseDeferredAsync,
@@ -30,7 +28,7 @@ import {
   vacuumDb,
 } from "@km/storage"
 import { findKmRootFromPath } from "@km/fs-mount"
-import { existsSync, statSync, unlinkSync } from "fs"
+import { existsSync, unlinkSync } from "fs"
 import { formatPath } from "../utils/format-path.ts"
 import { getBrokenLinks, getBrokenLinkCount, printBrokenLinks } from "./broken-links.ts"
 import { findPathDrift, countPathDriftCheckable } from "./doctor-paths-check.ts"
@@ -40,13 +38,12 @@ import { findPathDrift, countPathDriftCheckable } from "./doctor-paths-check.ts"
 // ============================================
 
 const doctorGcCommand = new Command("gc")
-  .description("Compact events table + legacy stale events; vacuum database")
+  .description("Apply tiered retention compaction to the events table; vacuum database")
   .argument("[path]", "Path to repo (default: current directory)")
   .option("--dry-run", "Show what would be compacted without changing files")
-  .option("--truncate", "Drop the applied prefix of changes.jsonl (legacy snapshot compaction)")
   .option("--retention-days <n>", "Hot retention window in days (default: 30)", "30")
   .option("--bykey-days <n>", "By-key retention window in days (default: 90)", "90")
-  .action(async (path, options) => {
+  .action((path, options) => {
     const { kmDir, repoPath } = resolveKmDir(path)
     const dbPath = join(kmDir, "state.db")
 
@@ -61,115 +58,57 @@ const doctorGcCommand = new Command("gc")
     applyConnectionPragmas(db)
 
     try {
-      // Step 1: SCHEMA_VERSION 12 events table — apply tiered retention.
       const eventsCount = (db.prepare("SELECT COUNT(*) AS n FROM events").get() as { n: number }).n
-      if (eventsCount > 0) {
-        if (options.dryRun) {
-          const fullDays = Number(options.retentionDays)
-          const byKeyDays = Number(options.bykeyDays)
-          const now = Date.now()
-          const fullCutoff = now - fullDays * 86_400_000
-          const byKeyCutoff = now - byKeyDays * 86_400_000
-          const wouldDrop = (
-            db
-              .prepare(`SELECT COUNT(*) AS n FROM events WHERE ts < ? AND type != 'node_created'`)
-              .get(byKeyCutoff) as { n: number }
-          ).n
-          const wouldByKey = (
-            db
-              .prepare(`SELECT COUNT(*) AS n FROM events WHERE ts < ? AND ts >= ? AND type != 'node_created'`)
-              .get(fullCutoff, byKeyCutoff) as { n: number }
-          ).n
-          console.log(
-            `  events table   ${eventsCount.toLocaleString()} rows ` +
-              term.dim(
-                `(would by-key compact ${wouldByKey.toLocaleString()} rows older than ${fullDays}d, drop ${wouldDrop.toLocaleString()} older than ${byKeyDays}d)`,
-              ),
-          )
-        } else {
-          const result = retainEvents(kmDir, db, {
-            fullRetentionDays: Number(options.retentionDays),
-            byKeyRetentionDays: Number(options.bykeyDays),
-          })
-          console.log(
-            `  events table   ${result.rowsBefore.toLocaleString()} → ${result.rowsAfter.toLocaleString()} rows ` +
-              term.dim(`(dropped ${result.rowsDropped.toLocaleString()})`),
-          )
-        }
-      } else {
+      if (eventsCount === 0) {
         console.log(`  events table   ${term.dim("empty")}`)
+        return
       }
 
-      // Step 2: legacy changes.jsonl compaction (kept for vaults that
-      // haven't run `km doctor migrate-journal` yet).
-      const changesPath = join(kmDir, "changes.jsonl")
-      if (existsSync(changesPath)) {
-        if (options.dryRun) {
-          // Use identifyStaleChanges for dry run
-          const { identifyStaleChanges } = await import("@km/storage")
-          const result = identifyStaleChanges(kmDir, db)
-          if (result.staleCount > 0) {
-            console.log(
-              `  changes.jsonl  ${result.totalChanges} → ${result.totalChanges - result.staleCount} events ` +
-                term.dim(`(would remove ${result.staleCount} stale)`),
-            )
-          } else {
-            console.log(`  changes.jsonl  ${result.totalChanges} events`, term.dim("(no stale events)"))
+      if (options.dryRun) {
+        const fullDays = Number(options.retentionDays)
+        const byKeyDays = Number(options.bykeyDays)
+        const now = Date.now()
+        const fullCutoff = now - fullDays * 86_400_000
+        const byKeyCutoff = now - byKeyDays * 86_400_000
+        const wouldDrop = (
+          db.prepare(`SELECT COUNT(*) AS n FROM events WHERE ts < ? AND type != 'node_created'`).get(byKeyCutoff) as {
+            n: number
           }
-          if (options.truncate) {
-            const sizeBefore = statSync(changesPath).size
-            const offsetRow = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event_offset") as
-              | { value: string }
-              | undefined
-            const cursor = offsetRow ? Number(offsetRow.value) : 0
-            const tailBytes = Math.max(0, sizeBefore - cursor)
-            console.log(
-              term.dim(
-                `  --truncate    would drop applied prefix (${formatSize(cursor)}), keep tail (${formatSize(tailBytes)})`,
-              ),
-            )
-          }
-          console.log(term.dim("  state.db      VACUUM (dry run, skipped)"))
-          return
-        }
+        ).n
+        const wouldByKey = (
+          db
+            .prepare(`SELECT COUNT(*) AS n FROM events WHERE ts < ? AND ts >= ? AND type != 'node_created'`)
+            .get(fullCutoff, byKeyCutoff) as { n: number }
+        ).n
+        console.log(
+          `  events table   ${eventsCount.toLocaleString()} rows ` +
+            term.dim(
+              `(would by-key compact ${wouldByKey.toLocaleString()} rows older than ${fullDays}d, drop ${wouldDrop.toLocaleString()} older than ${byKeyDays}d)`,
+            ),
+        )
+        console.log(term.dim("  state.db      VACUUM (dry run, skipped)"))
+        return
+      }
 
-        const start = performance.now()
+      const start = performance.now()
+      const result = retainEvents(kmDir, db, {
+        fullRetentionDays: Number(options.retentionDays),
+        byKeyRetentionDays: Number(options.bykeyDays),
+      })
+      console.log(
+        `  events table   ${result.rowsBefore.toLocaleString()} → ${result.rowsAfter.toLocaleString()} rows ` +
+          term.dim(`(dropped ${result.rowsDropped.toLocaleString()})`),
+      )
 
-        if (options.truncate) {
-          const before = compactJournal(kmDir, db)
-          if (before.truncated) {
-            console.log(
-              `  changes.jsonl  ${formatSize(before.bytesBefore)} → ${formatSize(before.bytesAfter)} ` +
-                term.dim(`(truncated applied prefix, reclaimed ${formatSize(before.bytesReclaimed)})`),
-            )
-          } else {
-            console.log(`  changes.jsonl  ${formatSize(before.bytesBefore)}`, term.dim("(nothing to truncate)"))
-          }
-        } else {
-          const result = compactChanges(kmDir, db)
-          if (result.staleCount > 0) {
-            console.log(
-              `  changes.jsonl  ${result.totalChanges} → ${result.totalChanges - result.staleCount} events ` +
-                term.dim(`(removed ${result.staleCount} stale)`),
-            )
-          } else {
-            console.log(`  changes.jsonl  ${result.totalChanges} events`, term.dim("(no stale events)"))
-          }
-        }
-
-        // Vacuum
-        const saved = vacuumDb(kmDir)
-        if (saved > 0) {
-          console.log(`  state.db      VACUUM saved ${formatSize(saved)}`)
-        } else {
-          console.log(`  state.db      VACUUM`, term.dim("(no space reclaimed)"))
-        }
-
-        const elapsed = Math.round(performance.now() - start)
-        console.log(term.green("✓"), `Compacted in ${elapsed}ms`)
+      const saved = vacuumDb(kmDir)
+      if (saved > 0) {
+        console.log(`  state.db      VACUUM saved ${formatSize(saved)}`)
       } else {
-        console.log(term.dim("  No changes.jsonl found, nothing to compact"))
+        console.log(`  state.db      VACUUM`, term.dim("(no space reclaimed)"))
       }
+
+      const elapsed = Math.round(performance.now() - start)
+      console.log(term.green("✓"), `Compacted in ${elapsed}ms`)
     } finally {
       db.close()
     }
@@ -187,7 +126,7 @@ const doctorRebuildCommand = new Command("rebuild")
     if (options.dryRun) {
       const dbPath = join(kmDir, "state.db")
       console.log(`  Would delete: ${dbPath}`)
-      console.log(`  Would rebuild from changes.jsonl + worktree`)
+      console.log(`  Would rebuild from worktree files`)
       return
     }
 
@@ -204,7 +143,7 @@ const doctorRebuildCommand = new Command("rebuild")
   })
 
 const doctorResetCommand = new Command("reset")
-  .description("Reset from worktree only (deletes changes.jsonl + state.db)")
+  .description("Reset from worktree only (deletes state.db)")
   .argument("[path]", "Path to repo (default: current directory)")
   .option("--dry-run", "Show what would be reset without changing files")
   .action(async (path, options) => {
@@ -212,7 +151,7 @@ const doctorResetCommand = new Command("reset")
 
     console.log(term.bold("km doctor reset"), term.dim(`(repo ${formatPath(repoPath)})`))
 
-    const targets = ["changes.jsonl", "state.db", "state.db-wal", "state.db-shm"]
+    const targets = ["state.db", "state.db-wal", "state.db-shm"]
     const toDelete = targets.map((f) => join(kmDir, f)).filter((p) => existsSync(p))
 
     if (options.dryRun) {
@@ -228,7 +167,7 @@ const doctorResetCommand = new Command("reset")
       return
     }
 
-    // Delete changes.jsonl and state.db (preserve config/blobs)
+    // Delete state.db files (preserve config/blobs)
     for (const p of toDelete) {
       unlinkSync(p)
       log.debug?.(`deleted: ${p}`)
@@ -413,240 +352,6 @@ const doctorLinksCommand = new Command("links")
   })
 
 // ============================================
-// migrate-journal: import changes.jsonl into the events table
-// ============================================
-
-const doctorMigrateJournalCommand = new Command("migrate-journal")
-  .description("Import legacy changes.jsonl into the SCHEMA_VERSION 12 events table")
-  .argument("[path]", "Path to repo (default: current directory)")
-  .option("--dry-run", "Count rows that would be migrated, don't write")
-  .option("--batch-size <n>", "Rows per transaction (default: 10000)", "10000")
-  .action(async (path, options) => {
-    const { kmDir, repoPath } = resolveKmDir(path)
-    const dbPath = join(kmDir, "state.db")
-    const changesPath = join(kmDir, "changes.jsonl")
-
-    console.log(term.bold("km doctor migrate-journal"), term.dim(`(repo ${formatPath(repoPath)})`))
-
-    if (!existsSync(dbPath)) {
-      console.error(term.red("No state.db found. Run 'km doctor rebuild' first."))
-      process.exit(1)
-    }
-    if (!existsSync(changesPath)) {
-      console.log(term.dim("  No changes.jsonl found, nothing to migrate."))
-      return
-    }
-
-    const batchSize = Math.max(1, Number(options.batchSize) || 10_000)
-    const db = options.dryRun ? new Database(dbPath, { readonly: true }) : new Database(dbPath)
-    applyConnectionPragmas(db)
-
-    try {
-      // Ensure migrations are up to v12 so the events table exists.
-      const { migrateSchema, SCHEMA } = await import("@km/storage")
-      if (!options.dryRun) {
-        migrateSchema(db)
-        db.run(SCHEMA)
-      }
-
-      const start = performance.now()
-      const fileSize = statSync(changesPath).size
-      console.log(`  changes.jsonl: ${formatSize(fileSize)}`)
-
-      // Resume from where we left off (idempotent if migrate is re-run).
-      const offsetRow = db.prepare("SELECT value FROM meta WHERE key = ?").get("migrate_journal_offset") as
-        | { value: string }
-        | undefined
-      const startOffset = offsetRow ? Number(offsetRow.value) : 0
-      if (startOffset > 0) {
-        console.log(`  Resuming from byte offset ${formatSize(startOffset)}`)
-      }
-
-      // Stream the file line-by-line so we don't OOM on a multi-GB journal.
-      // Bun's File API supports streaming via createReadStream-like idioms,
-      // but for simplicity we read-and-process in chunks via Node's fs streams.
-      const file = Bun.file(changesPath)
-      const stream = file.stream()
-      const decoder = new TextDecoder("utf-8")
-      let buffer = ""
-      let bytesProcessed = startOffset
-      let imported = 0
-      let skipped = 0
-      let invalid = 0
-
-      // Skip ahead to startOffset by reading and discarding.
-      const reader = stream.getReader()
-      let bytesToSkip = startOffset
-      let firstChunk = true
-      let batch: { id: string; ts: number; type: string; actor: string; source: string | null; target: string | null; data: string }[] = []
-
-      const insertBatch = (): void => {
-        if (options.dryRun || batch.length === 0) {
-          batch = []
-          return
-        }
-        db.run("BEGIN IMMEDIATE")
-        try {
-          for (const row of batch) {
-            db.run(
-              `INSERT OR IGNORE INTO events (id, ts, type, actor, source, target, data)
-               VALUES (?, ?, ?, ?, ?, ?, ?)`,
-              [row.id, row.ts, row.type, row.actor, row.source, row.target, row.data],
-            )
-          }
-          // Persist progress so resume is bounded by the last committed batch.
-          db.run("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", [
-            "migrate_journal_offset",
-            String(bytesProcessed),
-          ])
-          db.run("COMMIT")
-        } catch (err) {
-          db.run("ROLLBACK")
-          throw err
-        }
-        batch = []
-        // Checkpoint WAL periodically so it doesn't balloon during multi-GB imports.
-        db.run("PRAGMA wal_checkpoint(PASSIVE)")
-      }
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        let chunk = decoder.decode(value, { stream: true })
-
-        // Skip leading bytes if resuming.
-        if (bytesToSkip > 0) {
-          const chunkBytes = Buffer.byteLength(chunk, "utf-8")
-          if (chunkBytes <= bytesToSkip) {
-            bytesToSkip -= chunkBytes
-            firstChunk = false
-            continue
-          }
-          // Slice off the part we want to skip. This is approximate at the byte
-          // level (multi-byte UTF-8) but good enough for line-based recovery —
-          // the next newline boundary will normalize.
-          const skipChars = Math.min(bytesToSkip, chunk.length)
-          chunk = chunk.slice(skipChars)
-          bytesToSkip = 0
-          // Drop the partial first line — we joined mid-line.
-          if (firstChunk) {
-            const nl = chunk.indexOf("\n")
-            if (nl >= 0) chunk = chunk.slice(nl + 1)
-          }
-        }
-
-        firstChunk = false
-        buffer += chunk
-
-        let nl: number
-        while ((nl = buffer.indexOf("\n")) >= 0) {
-          const line = buffer.slice(0, nl).trim()
-          buffer = buffer.slice(nl + 1)
-          bytesProcessed += Buffer.byteLength(line, "utf-8") + 1 // +1 for newline
-          if (!line) continue
-
-          try {
-            const change = JSON.parse(line) as {
-              id: string
-              ts: number
-              type: string
-              actor: string
-              source?: string
-              target?: string
-              data?: unknown
-            }
-            if (!change.id || !change.ts || !change.type || !change.actor) {
-              skipped++
-              continue
-            }
-            batch.push({
-              id: change.id,
-              ts: change.ts,
-              type: change.type,
-              actor: change.actor,
-              source: change.source ?? null,
-              target: change.target ?? null,
-              data: line, // store the full original JSON for round-trip fidelity
-            })
-
-            if (batch.length >= batchSize) {
-              insertBatch()
-              imported += batchSize
-              if (imported % 100_000 === 0) {
-                console.log(
-                  term.dim(`    progress: ${imported.toLocaleString()} imported (${formatSize(bytesProcessed)})`),
-                )
-              }
-            }
-          } catch {
-            invalid++
-          }
-        }
-      }
-      // Flush trailing partial line if any (no trailing newline in file).
-      if (buffer.trim()) {
-        try {
-          const change = JSON.parse(buffer.trim()) as {
-            id: string
-            ts: number
-            type: string
-            actor: string
-            source?: string
-            target?: string
-          }
-          batch.push({
-            id: change.id,
-            ts: change.ts,
-            type: change.type,
-            actor: change.actor,
-            source: change.source ?? null,
-            target: change.target ?? null,
-            data: buffer.trim(),
-          })
-        } catch {
-          invalid++
-        }
-      }
-      // Final batch.
-      const tail = batch.length
-      insertBatch()
-      imported += tail
-
-      const elapsed = Math.round(performance.now() - start)
-      console.log(
-        `  Imported: ${imported.toLocaleString()}, skipped: ${skipped.toLocaleString()}, invalid: ${invalid.toLocaleString()} in ${elapsed}ms`,
-      )
-
-      if (!options.dryRun) {
-        // Verify by spot-checking row counts vs jsonl line count.
-        const dbCount = (db.prepare("SELECT COUNT(*) AS n FROM events").get() as { n: number }).n
-        console.log(`  events table: ${dbCount.toLocaleString()} rows`)
-
-        // Clean up the migration cursor — the migration is complete.
-        db.run("DELETE FROM meta WHERE key = ?", ["migrate_journal_offset"])
-
-        // Stamp the high-water mark so future cold loads skip the journal.
-        const lastEventRow = db
-          .prepare("SELECT value FROM meta WHERE key = ?")
-          .get("last_event") as { value: string } | undefined
-        if (lastEventRow?.value) {
-          console.log(`  last_event marker: ${lastEventRow.value}`)
-        }
-
-        console.log(term.green("✓"), `Migration complete. The events table is now the canonical journal.`)
-        console.log(
-          term.dim(
-            `  Run km for a few sessions, verify behavior, then 'rm ${changesPath}' to reclaim disk (or 'gzip' it to keep an audit copy).`,
-          ),
-        )
-      }
-    } finally {
-      db.close()
-    }
-  })
-
-// ============================================
 // backup: VACUUM INTO a fresh standalone .db file
 // ============================================
 
@@ -665,7 +370,7 @@ const doctorBackupCommand = new Command("backup")
       process.exit(1)
     }
 
-    let outPath: string = options.output
+    let outPath = options.output as string | undefined
     if (!outPath) {
       const backupsDir = join(kmDir, "backups")
       const fs = await import("fs")
@@ -700,7 +405,6 @@ export const doctorCommand = new Command("doctor")
   .addCommand(doctorIntegrityCommand)
   .addCommand(doctorLinksCommand)
   .addCommand(doctorPathsCommand)
-  .addCommand(doctorMigrateJournalCommand)
   .addCommand(doctorBackupCommand)
   .action((path) => {
     const { kmDir, repoPath } = resolveKmDir(path)
@@ -718,16 +422,12 @@ export const doctorCommand = new Command("doctor")
       // Worktree
       console.log(`  Worktree       ${health.worktree.fileCount} files, ${health.worktree.dirCount} directories`)
 
-      // Events
-      if (health.changes) {
-        const staleInfo = health.changes.staleCount > 0 ? ` (${health.changes.staleCount} stale)` : ""
-        console.log(`  changes.jsonl   ${health.changes.count} events${staleInfo}, ${formatSize(health.changes.size)}`)
-      } else {
-        console.log(`  changes.jsonl   ${term.dim("(not found)")}`)
-      }
-
-      // Database
+      // Events table + database
       if (health.db) {
+        console.log(
+          `  events table   ${health.db.eventCount.toLocaleString()} rows` +
+            (health.db.lastEventId ? term.dim(`, last_event=${health.db.lastEventId.slice(-8)}`) : ""),
+        )
         console.log(`  state.db       ${health.db.nodeCount.toLocaleString()} nodes, ${formatSize(health.db.size)}`)
       } else {
         console.log(`  state.db       ${term.dim("(not found)")}`)

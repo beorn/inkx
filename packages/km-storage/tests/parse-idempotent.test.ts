@@ -252,12 +252,13 @@ Content B.
     expect(duplicates).toEqual([])
   })
 
-  test("changes.jsonl load + eager parse + deferred parse integration", async () => {
+  test("events table load + eager parse + deferred parse integration", async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "km-idempotent-disk-"))
     const { mkdirSync } = await import("fs")
     const { ulid } = await import("ulid")
+    const { applyConnectionPragmas, migrateData, migrateSchema } = await import("../src/index.ts")
 
-    // Create .km directory with changes.jsonl
+    // Create .km/state.db with the events table seeded
     const kmDir = join(tmpDir, ".km")
     mkdirSync(kmDir, { recursive: true })
 
@@ -282,7 +283,22 @@ Content B.
         },
       },
     ]
-    writeFileSync(join(kmDir, "changes.jsonl"), events.map((e) => JSON.stringify(e)).join("\n") + "\n")
+
+    const db = new Database(join(kmDir, "state.db"))
+    applyConnectionPragmas(db)
+    migrateSchema(db)
+    db.run(SCHEMA)
+    migrateData(db)
+    for (const e of events) {
+      db.run(`INSERT INTO events (id, ts, type, actor, target, data) VALUES (?, ?, ?, ?, ?, ?)`, [
+        e.id,
+        e.ts,
+        e.type,
+        e.actor,
+        null,
+        JSON.stringify(e),
+      ])
+    }
 
     // Create the actual markdown file
     writeFileSync(
@@ -300,13 +316,10 @@ Project overview content.
 `,
     )
 
-    const db = new Database(":memory:")
-    db.run(SCHEMA)
-
-    // Load in disk mode (reads changes.jsonl, reconciles filesystem)
+    // Load in disk mode (replays events table, reconciles filesystem)
     const result = runLoadRepo(tmpDir, { db, mode: "disk" })
 
-    // The stub from changes.jsonl should exist
+    // The stub from the events table should exist
     const fileNode = resolveNode(db, "project.md")
     expect(fileNode).toBeDefined()
 

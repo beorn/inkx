@@ -236,7 +236,7 @@ export function withSync(config?: Partial<SyncConfig>) {
       // sees `entry.mtime !== existingByPath.fs_mtime` → emits an
       // update op → re-parses → re-emits node_created/updated/deleted
       // events for every embed line the rule wrote. That's how
-      // rule-driven boards leak recomputable shape into changes.jsonl.
+      // rule-driven boards leak recomputable shape into the events table.
       // Refreshing the four fields atomically here closes the leak
       // (the @km/storage/dont-journal-rule-derived-events fix).
       //

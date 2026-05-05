@@ -12,15 +12,12 @@ import type { FullLogger } from "../logger-types.ts"
 const term = createTerm(process)
 import { steps } from "@silvery/ag-react/ui/progress"
 import { Database } from "bun:sqlite"
-import { existsSync, statSync } from "fs"
 import { dirname, resolve, join } from "path"
 
 const log = createLogger("km:cli:sync") as FullLogger
 import {
   applyConnectionPragmas,
   createEmitter,
-  readChanges,
-  readLastEventOffset,
   SCHEMA,
   ensureRepoRootNode,
   migrateSchema,
@@ -161,7 +158,7 @@ function startWatch(repoPath: string, debounceMs: number, db: Database): void {
  */
 async function runSync(
   repoPath: string,
-  kmRoot: string,
+  _kmRoot: string,
   options: { toFs?: boolean; dryRun?: boolean },
   db: Database,
 ): Promise<void> {
@@ -179,59 +176,10 @@ async function runSync(
   }
 
   try {
-    // Step 1: Pre-SCHEMA-VERSION-12, this step replayed pending events from
-    // changes.jsonl into state.db so this process saw events emitted by
-    // peer processes (km-tui, silvercode). Post-v12 the events table lives
-    // INSIDE state.db — every emitter.commit writes the event row inside
-    // the same transaction as the state mutation, so peer processes that
-    // share state.db (via SQLite WAL) already see each other's state.
-    // The replay step is a no-op in steady state.
-    //
-    // The legacy jsonl tail-read is preserved as a safety net for vaults
-    // that haven't yet run `km doctor migrate-journal`. If the events
-    // table is empty AND a non-empty changes.jsonl exists, fall back to
-    // the legacy path. Otherwise skip — events table is canonical.
-    const eventsTablePopulated = (db.prepare("SELECT COUNT(*) AS n FROM events").get() as { n: number }).n > 0
-    const changesPath = join(kmRoot, "changes.jsonl")
-    const jsonlExists = existsSync(changesPath) && statSync(changesPath).size > 0
-    const useLegacyJsonlReplay = !eventsTablePopulated && jsonlExists
-
-    if (useLegacyJsonlReplay) {
-      const fromOffset = readLastEventOffset(db)
-      const fileSizeBefore = statSync(changesPath).size
-      const events = readChanges(kmRoot, fromOffset)
-      const lastApplied = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event") as
-        | { value: string }
-        | undefined
-      const newEvents = events.filter((e) => !lastApplied?.value || e.id > lastApplied.value)
-
-      if (newEvents.length > 0) {
-        const { applyChangeWithDb } = await import("@km/storage")
-        db.run("BEGIN IMMEDIATE")
-        try {
-          for (const event of newEvents) {
-            applyChangeWithDb(db, event)
-          }
-          db.run("COMMIT")
-        } catch (error) {
-          db.run("ROLLBACK")
-          throw error
-        }
-        console.log(term.green("✓"), `Applied ${newEvents.length} event(s) from changes.jsonl (legacy path)`)
-      }
-
-      // Advance the cursor so the next sync's tail-read starts past EOF
-      // (single-line bug fix from c4cee6274 — without this every sync
-      // re-reads the entire 2.7 GB journal).
-      if (fileSizeBefore > 0 && fileSizeBefore !== fromOffset) {
-        db.run("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", [
-          "last_event_offset",
-          String(fileSizeBefore),
-        ])
-      }
-    }
-
-    // Step 2: Sync with filesystem
+    // Sync with filesystem. Events from peer processes are already visible
+    // because the events table lives inside state.db and every commit
+    // writes its row in the same transaction as the state mutation —
+    // SQLite WAL serializes the read-side automatically.
     const repo = buildSyncableRepo(db, repoPath)
     const manager = withSync({
       debounceFs: 0,

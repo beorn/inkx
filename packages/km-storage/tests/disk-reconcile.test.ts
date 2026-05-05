@@ -1,8 +1,9 @@
 /**
  * Tests for disk mode filesystem reconciliation (km-storage.disk-reconcile)
  *
- * When .km/ exists, loadRepo uses "disk mode" which reads changes.jsonl.
- * After applying events, reconciliation scans the filesystem to detect:
+ * When .km/ exists, loadRepo uses "disk mode" which replays pending events
+ * from state.db's events table. After applying events, reconciliation
+ * scans the filesystem to detect:
  * - Files present on disk but missing from the DB (externally added)
  * - Files in the DB that no longer exist on disk (externally deleted)
  */
@@ -13,7 +14,7 @@ import { join } from "path"
 import { tmpdir } from "os"
 import { ulid } from "ulid"
 
-import { SCHEMA } from "../src/db/schema.ts"
+import { SCHEMA, applyConnectionPragmas, migrateData, migrateSchema } from "../src/index.ts"
 import { loadRepo } from "../src/repo/loader.ts"
 
 /** Helper: exhaust a loadRepo generator and return the result */
@@ -26,7 +27,11 @@ function runLoadRepo(...args: Parameters<typeof loadRepo>) {
   return result.value
 }
 
-/** Helper: create a .km directory with changes.jsonl from given events */
+/**
+ * Helper: create `.km/state.db` at `repoRoot`, seed the events table with
+ * the given events, and return the open Database. Tests pass it to
+ * loadRepo so disk-mode replay sees the seeded rows.
+ */
 function setupDiskMode(
   repoRoot: string,
   events: Array<{
@@ -37,11 +42,17 @@ function setupDiskMode(
     ts?: number
     data: Record<string, unknown>
   }>,
-): void {
+): Database {
   const kmDir = join(repoRoot, ".km")
   mkdirSync(kmDir, { recursive: true })
 
-  const lines = events.map((e) => {
+  const db = new Database(join(kmDir, "state.db"))
+  applyConnectionPragmas(db)
+  migrateSchema(db)
+  db.run(SCHEMA)
+  migrateData(db)
+
+  for (const e of events) {
     const event = {
       id: e.id ?? ulid(),
       type: e.type,
@@ -50,10 +61,12 @@ function setupDiskMode(
       ts: e.ts ?? Date.now(),
       data: e.data,
     }
-    return JSON.stringify(event)
-  })
-
-  writeFileSync(join(kmDir, "changes.jsonl"), lines.join("\n") + "\n")
+    db.run(
+      `INSERT INTO events (id, ts, type, actor, target, data) VALUES (?, ?, ?, ?, ?, ?)`,
+      [event.id, event.ts, event.type, event.actor, event.target ?? null, JSON.stringify(event)],
+    )
+  }
+  return db
 }
 
 describe("disk mode filesystem reconciliation", () => {
@@ -63,7 +76,7 @@ describe("disk mode filesystem reconciliation", () => {
     // Set up disk mode with one existing file
     writeFileSync(join(tmpDir, "existing.md"), "# Existing\n\nSome content.")
 
-    setupDiskMode(tmpDir, [
+    const db = setupDiskMode(tmpDir, [
       {
         type: "node_created",
         data: {
@@ -82,9 +95,6 @@ describe("disk mode filesystem reconciliation", () => {
 
     // Now add a new file externally (not through events)
     writeFileSync(join(tmpDir, "new-file.md"), "# New File\n\nAdded externally.")
-
-    const db = new Database(":memory:")
-    db.run(SCHEMA)
 
     const result = runLoadRepo(tmpDir, { db })
 
@@ -114,13 +124,10 @@ describe("disk mode filesystem reconciliation", () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "km-reconcile-"))
 
     // Set up disk mode with empty events
-    setupDiskMode(tmpDir, [])
+    const db = setupDiskMode(tmpDir, [])
 
     // Add a PDF file externally
     writeFileSync(join(tmpDir, "document.pdf"), "fake pdf content")
-
-    const db = new Database(":memory:")
-    db.run(SCHEMA)
 
     const result = runLoadRepo(tmpDir, { db })
 
@@ -141,14 +148,11 @@ describe("disk mode filesystem reconciliation", () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "km-reconcile-"))
 
     // Set up disk mode with empty events
-    setupDiskMode(tmpDir, [])
+    const db = setupDiskMode(tmpDir, [])
 
     // Add a folder with files externally
     mkdirSync(join(tmpDir, "notes"))
     writeFileSync(join(tmpDir, "notes", "idea.md"), "# Idea\n\nMy great idea.")
-
-    const db = new Database(":memory:")
-    db.run(SCHEMA)
 
     const result = runLoadRepo(tmpDir, { db })
 
@@ -180,7 +184,7 @@ describe("disk mode filesystem reconciliation", () => {
 
     // Set up disk mode with a file that will be "deleted"
     // (event says it exists, but the file is NOT on disk)
-    setupDiskMode(tmpDir, [
+    const db = setupDiskMode(tmpDir, [
       {
         type: "node_created",
         data: {
@@ -199,9 +203,6 @@ describe("disk mode filesystem reconciliation", () => {
 
     // Note: we do NOT create "deleted.md" on disk
 
-    const db = new Database(":memory:")
-    db.run(SCHEMA)
-
     const result = runLoadRepo(tmpDir, { db })
 
     expect(result.mode).toBe("disk")
@@ -215,14 +216,11 @@ describe("disk mode filesystem reconciliation", () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "km-reconcile-"))
 
     // Set up disk mode with empty events
-    setupDiskMode(tmpDir, [])
+    const db = setupDiskMode(tmpDir, [])
 
     // Add hidden files
     writeFileSync(join(tmpDir, ".hidden-file"), "hidden content")
     writeFileSync(join(tmpDir, "visible.md"), "# Visible\n\nContent.")
-
-    const db = new Database(":memory:")
-    db.run(SCHEMA)
 
     runLoadRepo(tmpDir, { db })
 
@@ -239,7 +237,7 @@ describe("disk mode filesystem reconciliation", () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "km-reconcile-"))
 
     // Set up disk mode with empty events
-    setupDiskMode(tmpDir, [])
+    const db = setupDiskMode(tmpDir, [])
 
     // Add node_modules (should be ignored by default patterns)
     mkdirSync(join(tmpDir, "node_modules"))
@@ -247,9 +245,6 @@ describe("disk mode filesystem reconciliation", () => {
 
     // Add a normal file
     writeFileSync(join(tmpDir, "readme.md"), "# Readme")
-
-    const db = new Database(":memory:")
-    db.run(SCHEMA)
 
     runLoadRepo(tmpDir, { db })
 
@@ -268,7 +263,7 @@ describe("disk mode filesystem reconciliation", () => {
     // Create a file that matches the event
     writeFileSync(join(tmpDir, "existing.md"), "# Existing\n\nContent.")
 
-    setupDiskMode(tmpDir, [
+    const db = setupDiskMode(tmpDir, [
       {
         type: "node_created",
         data: {
@@ -285,9 +280,6 @@ describe("disk mode filesystem reconciliation", () => {
         },
       },
     ])
-
-    const db = new Database(":memory:")
-    db.run(SCHEMA)
 
     runLoadRepo(tmpDir, { db })
 
@@ -308,7 +300,6 @@ describe("disk mode filesystem reconciliation", () => {
 
     const db = new Database(":memory:")
     db.run(SCHEMA)
-
     const result = runLoadRepo(tmpDir, { db })
 
     expect(result.mode).toBe("memory")
@@ -329,7 +320,7 @@ describe("disk mode filesystem reconciliation", () => {
     // File only on disk (added externally)
     writeFileSync(join(tmpDir, "added.md"), "# Added\n\nNew file.")
 
-    setupDiskMode(tmpDir, [
+    const db = setupDiskMode(tmpDir, [
       {
         type: "node_created",
         data: {
@@ -355,9 +346,6 @@ describe("disk mode filesystem reconciliation", () => {
         },
       },
     ])
-
-    const db = new Database(":memory:")
-    db.run(SCHEMA)
 
     runLoadRepo(tmpDir, { db })
 

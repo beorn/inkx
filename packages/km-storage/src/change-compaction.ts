@@ -1,227 +1,23 @@
 /**
  * Change Compaction & Store Health
  *
- * Post-SCHEMA_VERSION 12: events live in a SQLite table inside state.db.
- * The legacy compactJournal / compactChanges / identifyStaleChanges
- * functions operate on the now-deprecated changes.jsonl file. They are
- * kept for vaults that haven't yet run `km doctor migrate-journal`. New
- * code should use:
- *
- *   - retainEvents(kmDir, db, options) — tiered retention compaction
- *   - backupViaVacuumInto(kmDir, path) — atomic backup
- *   - vacuumDb(kmDir) — VACUUM (rare; INCREMENTAL is the steady-state path)
- *
- * The legacy functions are scheduled for removal once every vault has
- * been migrated. See @km/storage/events-table-replaces-jsonl.
+ * The events table inside state.db is the canonical event log
+ * (SCHEMA_VERSION 12+). Tiered retention compaction prunes old rows;
+ * VACUUM INTO produces atomic backups in WAL mode. There is no separate
+ * journal file — see @km/storage/events-table-replaces-jsonl.
  */
 
 import { Database } from "bun:sqlite"
-import type { Change } from "@km/core"
-import { closeSync, existsSync, openSync, readdirSync, readSync, statSync, writeFileSync, writeSync } from "fs"
+import { existsSync, readdirSync, statSync } from "fs"
 import { join } from "path"
-import { readChanges } from "./repo/loader.ts"
 import { getNodeCount, getLastEventId } from "./db/db.ts"
 import { createIgnoreMatcher, shouldIgnore } from "@km/fs-mount"
 
-/** Result of identifying or compacting stale changes */
-export interface CompactionResult {
-  totalChanges: number
-  staleCount: number
-  keptChanges: Change[]
-}
-
-/** Health status of all three stores */
+/** Health status of the worktree + events table + node store */
 export interface StoreHealth {
   worktree: { fileCount: number; dirCount: number }
-  changes: { count: number; staleCount: number; size: number } | null
-  db: { nodeCount: number; size: number; lastEventId: string | null } | null
+  db: { nodeCount: number; eventCount: number; size: number; lastEventId: string | null } | null
   issues: string[]
-}
-
-/**
- * @deprecated Operates on the legacy changes.jsonl file. Post-v12 use
- *   retainEvents() against the events table inside state.db.
- *
- * Identify stale changes in changes.jsonl by replaying them against the database.
- * Stale changes are those whose node_created changes would hit UNIQUE constraint
- * failures — they reference nodes that already exist from file parsing.
- */
-export function identifyStaleChanges(kmDir: string, db: Database): CompactionResult {
-  const changes = readChanges(kmDir)
-  if (changes.length === 0) {
-    return { totalChanges: 0, staleCount: 0, keptChanges: [] }
-  }
-
-  // Check which node IDs already exist in the database
-  const existingIds = new Set<string>()
-  const rows = db.prepare("SELECT id FROM nodes").all() as { id: string }[]
-  for (const row of rows) {
-    existingIds.add(row.id)
-  }
-
-  // Build a set of node IDs that have later changes (update, delete, move, etc.)
-  const nodesWithLaterChanges = new Set<string>()
-  for (const change of changes) {
-    if (change.type !== "node_created" && change.target) {
-      nodesWithLaterChanges.add(change.target)
-    }
-  }
-
-  const kept: Change[] = []
-  let staleCount = 0
-
-  for (const change of changes) {
-    if (change.type === "node_created") {
-      const data = change.data as Record<string, unknown>
-      const id = data.id as string | undefined
-      // A node_created is only stale if the node exists in DB AND there are
-      // no later changes referencing it. If later changes exist, the create
-      // must be preserved for replay ordering.
-      if (id && existingIds.has(id) && !nodesWithLaterChanges.has(id)) {
-        staleCount++
-        continue
-      }
-    }
-    kept.push(change)
-  }
-
-  return { totalChanges: changes.length, staleCount, keptChanges: kept }
-}
-
-/**
- * @deprecated Operates on the legacy changes.jsonl file. Post-v12 use
- *   retainEvents() against the events table inside state.db.
- *
- * Compact changes.jsonl by removing stale changes and rewriting the file.
- * Returns the compaction result.
- */
-export function compactChanges(kmDir: string, db: Database): CompactionResult {
-  const result = identifyStaleChanges(kmDir, db)
-
-  if (result.staleCount > 0) {
-    const changesPath = join(kmDir, "changes.jsonl")
-    const lines = result.keptChanges.map((c) => JSON.stringify(c))
-    writeFileSync(changesPath, lines.join("\n") + (lines.length > 0 ? "\n" : ""))
-  }
-
-  return result
-}
-
-/** Result of compactJournal — drops the applied prefix and keeps the unapplied tail. */
-export interface JournalCompactionResult {
-  /** Bytes in the changes.jsonl file before compaction. */
-  bytesBefore: number
-  /** Bytes in the changes.jsonl file after compaction. */
-  bytesAfter: number
-  /** Bytes reclaimed (bytesBefore - bytesAfter). */
-  bytesReclaimed: number
-  /** True when meta cursors made compaction safe (always set after a successful run). */
-  truncated: boolean
-}
-
-/**
- * @deprecated Operates on the legacy changes.jsonl file. Post-v12 use
- *   retainEvents() against the events table inside state.db. The events
- *   table doesn't accumulate an "applied prefix" — every event is applied
- *   atomically with the state mutation that produced it, so the entire
- *   notion of journal-truncation is obsolete.
- *
- * Compact changes.jsonl by dropping the prefix that has already been applied to
- * state.db. The DB *is* the snapshot — every event whose id ≤ `meta.last_event`
- * has been folded into the node tree, so the corresponding journal lines are
- * recomputable noise. After compaction:
- *
- *   - `changes.jsonl` contains only the unapplied tail (bytes past the cursor).
- *     For most vaults that's ~0 bytes; for vaults with a pending unsynced tail
- *     it's the small bit that hasn't been folded yet.
- *   - `meta.last_event_offset` is reset to the new file size (== EOF) so the
- *     next sync's tail-read starts at the right place.
- *   - `meta.last_snapshot_event` is set to `meta.last_event` so callers that
- *     want to see "what was the highest event folded into the snapshot at
- *     compaction time" have a stable record.
- *
- * Trade-off: after compaction `km doctor rebuild` can no longer reconstruct
- * state.db from journal-replay alone (the prefix is gone). Recovery falls back
- * to memory-mode (FS scan) — which is the documented .md-is-source-of-truth
- * model. Callers that need full event history must NOT call this.
- */
-export function compactJournal(kmDir: string, db: Database): JournalCompactionResult {
-  const changesPath = join(kmDir, "changes.jsonl")
-
-  if (!existsSync(changesPath)) {
-    return { bytesBefore: 0, bytesAfter: 0, bytesReclaimed: 0, truncated: false }
-  }
-
-  const bytesBefore = statSync(changesPath).size
-  if (bytesBefore === 0) {
-    return { bytesBefore: 0, bytesAfter: 0, bytesReclaimed: 0, truncated: false }
-  }
-
-  // Read the byte cursor — events past this are NOT yet in state.db.
-  const offsetRow = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event_offset") as
-    | { value: string }
-    | undefined
-  const lastEventOffset = offsetRow?.value !== undefined ? Number(offsetRow.value) : 0
-
-  // Read the highest applied event id for the snapshot marker.
-  const lastEvent = getLastEventId(db) ?? ""
-
-  let tail = ""
-  if (lastEventOffset > 0 && lastEventOffset < bytesBefore) {
-    // Read the unapplied tail (bytes past the cursor) before truncation.
-    // The cursor *should* be on a newline boundary (the loader stamps it
-    // at file EOF after a clean read). When it isn't (corrupted cursor or
-    // crash mid-write), we fall back to scanning forward to the next `\n`
-    // so the resulting file always starts on a record boundary.
-    const fd = openSync(changesPath, "r")
-    try {
-      const buf = Buffer.alloc(bytesBefore - lastEventOffset)
-      readSync(fd, buf, 0, buf.length, lastEventOffset)
-      tail = buf.toString("utf-8")
-
-      // Only trim a partial-first-line when the cursor is genuinely
-      // mid-line. We detect that by reading the byte immediately BEFORE
-      // the cursor — if it's not `\n`, the cursor is mid-record and we
-      // skip ahead to the next newline.
-      const probe = Buffer.alloc(1)
-      readSync(fd, probe, 0, 1, lastEventOffset - 1)
-      const onBoundary = probe[0] === 0x0a // '\n'
-      if (!onBoundary) {
-        const firstNewline = tail.indexOf("\n")
-        if (firstNewline >= 0) {
-          tail = tail.slice(firstNewline + 1)
-        } else {
-          tail = ""
-        }
-      }
-    } finally {
-      closeSync(fd)
-    }
-  }
-
-  // Atomic write: rewrite the file with just the tail. Empty tail truncates
-  // to 0 bytes (the common case — everything's already applied).
-  const fd = openSync(changesPath, "w")
-  try {
-    if (tail.length > 0) writeSync(fd, tail)
-  } finally {
-    closeSync(fd)
-  }
-
-  const bytesAfter = statSync(changesPath).size
-
-  // Reset cursor to EOF — the next sync's tail-read starts here.
-  db.run("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", ["last_event_offset", String(bytesAfter)])
-  if (lastEvent) {
-    db.run("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", ["last_snapshot_event", lastEvent])
-  }
-
-  return {
-    bytesBefore,
-    bytesAfter,
-    bytesReclaimed: bytesBefore - bytesAfter,
-    truncated: true,
-  }
 }
 
 /** Result of `retainEvents` — what was kept, dropped, and reclaimed. */
@@ -258,7 +54,7 @@ export interface RetainEventsOptions {
 }
 
 /**
- * Tiered retention compaction for the SCHEMA_VERSION 12 events table.
+ * Tiered retention compaction for the events table.
  *
  * Default policy (consensus from /pro 4-leg, 2026-05-05):
  *   - 0 to N days (default 30): keep all events.
@@ -356,9 +152,9 @@ export function retainEvents(kmDir: string, db: Database, options: RetainEventsO
  * Safe to run while the source is being written to. Returns the size
  * of the resulting backup file in bytes.
  *
- * Recommended cadence: run nightly (or before `compactEvents` /
- * retainEvents) and keep the last 3-7 backups. Snapshots double as
- * cold-load restore points if state.db corrupts.
+ * Recommended cadence: run nightly (or before `retainEvents`) and keep
+ * the last 3-7 backups. Snapshots double as cold-load restore points
+ * if state.db corrupts.
  */
 export function backupViaVacuumInto(kmDir: string, backupPath: string): number {
   const dbPath = join(kmDir, "state.db")
@@ -369,7 +165,7 @@ export function backupViaVacuumInto(kmDir: string, backupPath: string): number {
     throw new Error(`backup path already exists: ${backupPath} — refusing to clobber`)
   }
 
-  const db = new Database(dbPath, { readonly: false })
+  const db = new Database(dbPath)
   try {
     db.run("VACUUM INTO ?", [backupPath])
   } finally {
@@ -397,42 +193,21 @@ export function vacuumDb(kmDir: string): number {
 }
 
 /**
- * Get health status of all three stores.
+ * Get health status of the worktree + events table + node store.
  */
 export function getStoreHealth(repoPath: string, kmDir: string, db: Database | null): StoreHealth {
   const issues: string[] = []
 
-  // Worktree stats
   const worktree = countWorktree(repoPath, kmDir)
 
-  // Changes stats
-  let changes: StoreHealth["changes"] = null
-  const changesPath = join(kmDir, "changes.jsonl")
-  if (existsSync(changesPath)) {
-    const size = statSync(changesPath).size
-    const allChanges = readChanges(kmDir)
-    let staleCount = 0
-
-    if (db) {
-      const result = identifyStaleChanges(kmDir, db)
-      staleCount = result.staleCount
-    }
-
-    changes = { count: allChanges.length, staleCount, size }
-
-    if (staleCount > 0) {
-      issues.push(`${staleCount} stale changes in changes.jsonl\n` + `      Run 'km doctor gc' to compact`)
-    }
-  }
-
-  // Database stats
   let dbInfo: StoreHealth["db"] = null
   const dbPath = join(kmDir, "state.db")
   if (db && existsSync(dbPath)) {
     const size = statSync(dbPath).size
     const nodeCount = getNodeCount(db)
+    const eventCount = (db.prepare("SELECT COUNT(*) AS n FROM events").get() as { n: number }).n
     const lastEventId = getLastEventId(db)
-    dbInfo = { nodeCount, size, lastEventId }
+    dbInfo = { nodeCount, eventCount, size, lastEventId }
 
     // Check for orphan nodes (parent_id IS NULL but not the root)
     const orphanCount = (
@@ -457,7 +232,7 @@ export function getStoreHealth(repoPath: string, kmDir: string, db: Database | n
     }
   }
 
-  return { worktree, changes, db: dbInfo, issues }
+  return { worktree, db: dbInfo, issues }
 }
 
 /** Count files and directories in the worktree (respecting ignore patterns) */

@@ -496,7 +496,7 @@ describe("km init", () => {
     const { result, dir } = await initInDir("new-project")
     expectSuccess(result, "Initializing")
     expect(existsSync(join(dir, ".km"))).toBe(true)
-    expect(existsSync(join(dir, ".km", "changes.jsonl"))).toBe(true)
+    expect(existsSync(join(dir, ".km", "state.db"))).toBe(true)
   })
 
   test("should warn if already initialized", async () => {
@@ -567,7 +567,6 @@ describe("km init", () => {
       expect(result.stderr).not.toContain("undefined is not an object")
 
       expect(existsSync(join(dir, ".km", "state.db"))).toBe(true)
-      expect(existsSync(join(dir, ".km", "changes.jsonl"))).toBe(true)
 
       const listResult = await km(["list"], {
         cwd: dir,

@@ -56,7 +56,7 @@ function measure(vaultRoot: string, patterns: string[]): Breakdown {
   try {
     const collapseMatcher = patterns.length > 0 ? createCollapseParseMatcher(patterns) : undefined
     // Force memory mode so we rebuild from the filesystem (bypass the vault's
-    // existing changes.jsonl, which contains historical parse events that
+    // existing events table, which contains historical parse events that
     // would mask the effect of collapse-parse). Also disable ancestor search
     // so we don't accidentally pick up a parent `.km/` dir.
     const gen = loadRepo(vaultRoot, {

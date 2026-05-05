@@ -121,9 +121,8 @@ describe("F1: Error isolation in apply()", () => {
 
     emitter.apply({ type: "node_created", actor: "test", data: { id: "n4", type: "h" } })
 
-    // Verify the events-table row landed (persist step). Post-SCHEMA_VERSION
-    // 12 the events table replaces changes.jsonl as the canonical journal;
-    // jsonl appends are gated behind KM_LEGACY_JSONL=1 for legacy vaults.
+    // Verify the events-table row landed (persist step) — the events
+    // table is the canonical journal post-SCHEMA_VERSION 12.
     const eventCount = (db.query("SELECT COUNT(*) AS n FROM events").get() as { n: number }).n
     expect(eventCount).toBe(1)
     order.unshift("persist")

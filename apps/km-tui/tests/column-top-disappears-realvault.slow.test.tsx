@@ -36,7 +36,7 @@ const vaultPath = resolveRealVaultPath()
 const describeWhenVault = vaultPath ? describe : describe.skip
 
 /**
- * When vault startup is too slow (e.g. huge changes.jsonl rebuild), skip the
+ * When vault startup is too slow (e.g. huge events-table rebuild), skip the
  * test with a diagnostic rather than failing. The forward-walk fix is covered
  * by the synthetic listview-variable-heights tests; this file is an
  * opportunistic end-to-end verifier, not a gatekeeper.

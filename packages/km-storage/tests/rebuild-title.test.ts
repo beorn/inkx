@@ -1,10 +1,10 @@
 /**
- * Tests for rebuild-from-WAL title derivation (km-storage.rebuild-different-titles)
+ * Tests for rebuild-from-events title derivation (km-storage.rebuild-different-titles)
  *
- * When state.db is deleted and rebuilt from changes.jsonl, stub nodes from a
- * prior discoverOnly session must be re-parsed so that H1-merged titles are
- * restored. Without the fix, stubs keep their filename-stem title (e.g., "TODO")
- * instead of the H1 heading title (e.g., "Project TODOs").
+ * When state.db is rebuilt by replaying the events table, stub nodes from
+ * a prior discoverOnly session must be re-parsed so that H1-merged titles
+ * are restored. Without the fix, stubs keep their filename-stem title
+ * (e.g., "TODO") instead of the H1 heading title (e.g., "Project TODOs").
  */
 import { test, expect, describe } from "vitest"
 import { Database } from "bun:sqlite"
@@ -13,7 +13,7 @@ import { join } from "path"
 import { tmpdir } from "os"
 import { ulid } from "ulid"
 
-import { SCHEMA } from "../src/db/schema.ts"
+import { SCHEMA, applyConnectionPragmas, migrateData, migrateSchema } from "../src/index.ts"
 import { loadRepo, parseDeferredAsync } from "../src/repo/loader.ts"
 import { getNodeDisplayName } from "@km/tree"
 
@@ -27,7 +27,11 @@ function runLoadRepo(...args: Parameters<typeof loadRepo>) {
   return result.value
 }
 
-/** Helper: create a .km directory with changes.jsonl from given events */
+/**
+ * Helper: create `.km/state.db` and seed the events table with the given
+ * events. Returns the open Database the test passes to loadRepo so disk-mode
+ * replay sees the seeded rows.
+ */
 function setupDiskMode(
   repoRoot: string,
   events: Array<{
@@ -38,11 +42,17 @@ function setupDiskMode(
     ts?: number
     data: Record<string, unknown>
   }>,
-): void {
+): Database {
   const kmDir = join(repoRoot, ".km")
   mkdirSync(kmDir, { recursive: true })
 
-  const lines = events.map((e) => {
+  const db = new Database(join(kmDir, "state.db"))
+  applyConnectionPragmas(db)
+  migrateSchema(db)
+  db.run(SCHEMA)
+  migrateData(db)
+
+  for (const e of events) {
     const event = {
       id: e.id ?? ulid(),
       type: e.type,
@@ -51,10 +61,12 @@ function setupDiskMode(
       ts: e.ts ?? Date.now(),
       data: e.data,
     }
-    return JSON.stringify(event)
-  })
-
-  writeFileSync(join(kmDir, "changes.jsonl"), lines.join("\n") + "\n")
+    db.run(
+      `INSERT INTO events (id, ts, type, actor, target, data) VALUES (?, ?, ?, ?, ?, ?)`,
+      [event.id, event.ts, event.type, event.actor, event.target ?? null, JSON.stringify(event)],
+    )
+  }
+  return db
 }
 
 describe("rebuild from WAL preserves H1 titles", () => {
@@ -79,7 +91,6 @@ describe("rebuild from WAL preserves H1 titles", () => {
 
     const db = new Database(":memory:")
     db.run(SCHEMA)
-
     const result = runLoadRepo(tmpDir, { db, mode: "memory" })
     expect(result.mode).toBe("memory")
 
@@ -145,7 +156,7 @@ describe("rebuild from WAL preserves H1 titles", () => {
     expect(parsedRow!.parsed).toBe(1)
   })
 
-  test("disk mode rebuild: stubs from changes.jsonl are re-queued for deferred parsing", async () => {
+  test("disk mode rebuild: stubs from the events table are re-queued for deferred parsing", async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "km-rebuild-title-"))
 
     // Create the file with an H1 heading different from filename
@@ -159,9 +170,9 @@ describe("rebuild from WAL preserves H1 titles", () => {
 `,
     )
 
-    // Simulate a prior discoverOnly session: changes.jsonl has a stub node
+    // Simulate a prior discoverOnly session: the events table holds a stub node
     const stubNodeId = ulid()
-    setupDiskMode(tmpDir, [
+    const db = setupDiskMode(tmpDir, [
       {
         type: "node_created",
         data: {
@@ -180,9 +191,6 @@ describe("rebuild from WAL preserves H1 titles", () => {
     ])
 
     // Rebuild: load in disk mode (simulating state.db deletion + rebuild)
-    const db = new Database(":memory:")
-    db.run(SCHEMA)
-
     const result = runLoadRepo(tmpDir, { db })
     expect(result.mode).toBe("disk")
 
@@ -231,9 +239,9 @@ describe("rebuild from WAL preserves H1 titles", () => {
 `,
     )
 
-    // Simulate stub in changes.jsonl
+    // Simulate stub in the events table
     const stubNodeId = ulid()
-    setupDiskMode(tmpDir, [
+    const db = setupDiskMode(tmpDir, [
       {
         type: "node_created",
         data: {
@@ -250,9 +258,6 @@ describe("rebuild from WAL preserves H1 titles", () => {
         },
       },
     ])
-
-    const db = new Database(":memory:")
-    db.run(SCHEMA)
 
     const result = runLoadRepo(tmpDir, { db })
 

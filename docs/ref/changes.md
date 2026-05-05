@@ -6,10 +6,10 @@ For storage's role, see [design/model/storage.md](../design/model/storage.md). F
 
 ## Overview
 
-The change log (`changes.jsonl`) is km's audit trail and replication feed. Every mutation to the data model produces exactly one Change record, which is:
+The change log lives in the `events` table inside `.km/state.db` and is km's audit trail and replication feed. Every mutation to the data model produces exactly one Change record, which is:
 
 1. Applied to the SQLite database (primary operation)
-2. Appended to `changes.jsonl` (journal for recovery and replication)
+2. Inserted into the `events` table inside the same SAVEPOINT (journal for recovery and replication; cannot drift from the snapshot)
 3. Broadcast via `ChangeHub` (real-time subscriptions, e.g., TUI, web clients)
 4. Projected to the filesystem (if `origin` is not "fs", to avoid echo loops)
 
@@ -265,17 +265,17 @@ The full `item` object is included to preserve list markers and other traits.
 ### Edge cases
 
 - **TODO**: `node_deleted` does not cascade to children. If a parent is deleted and later children are observed to exist, the relationship is lost. Consider whether deletes should be explicit per-node or bulk-delete subtree in a single record.
-- **TODO**: `node_updated` for large content changes (KB+ files) are written fully to `changes.jsonl`, creating bloat. Content-hashing or external storage (content-addressable blob store) could defer the full content.
+- **TODO**: `node_updated` for large content changes (KB+ files) are written fully into the events table, creating bloat. Content-hashing or external storage (content-addressable blob store) could defer the full content.
 - **TODO**: Concurrent `node_updated` records on the same node with overlapping fields have undefined merge semantics. Define a merge function (last-write-wins, field-wise merge, CRDTs?) and document it.
 
 ## Replaying changes
 
-Changes can be replayed from `changes.jsonl` by:
+Changes can be replayed from the events table by:
 
-1. Loading all changes sorted by ULID
-2. For each change, calling `emitter.apply()` with `origin: "replay"`
-3. Skipping FS projection (origin prevents it)
-4. Rebuilding the entire state deterministically
+1. `readEventsAfter(db, fromSeq)` — pulls every event row past the given high-water mark, in `seq` order
+2. For each change, calling `emitter.commit()` with `skipPersist: true` (the row already exists in the events table; re-inserting would duplicate)
+3. Skipping FS projection (commit() bypasses onApply, preventing the echo loop where replayed changes get re-projected to the filesystem)
+4. Stamping the new high-water mark via `writeLastEventSeq(db, maxSeq)` so the next startup skips the prefix it already saw
 
 This is how disaster recovery and CRDT sync work. The change log is the ground truth.
 

@@ -291,7 +291,7 @@ Changes flow through three stages:
 
 ### withDeferredFs<T>(fn: () => T) → T
 
-Run a function with FS sync paused. Mutations inside `fn` write to DB/changes.jsonl but skip FS regeneration. After `fn` completes, call `syncToFs(nodeId)` to regenerate affected files.
+Run a function with FS sync paused. Mutations inside `fn` write to the DB + events table but skip FS regeneration. After `fn` completes, call `syncToFs(nodeId)` to regenerate affected files.
 
 Use for bulk operations where per-mutation file sync would be expensive.
 

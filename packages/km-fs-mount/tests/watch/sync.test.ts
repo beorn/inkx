@@ -256,7 +256,7 @@ code
 
   describe("Event format validation", () => {
     test("events should have actor as string, not object", () =>
-      withTestEnv(async ({ repoDir, kmDir, db }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const testFile = join(repoDir, "event-test.md")
         writeFileSync(testFile, "# Test\n")
 
@@ -268,24 +268,17 @@ code
 
         await manager.syncFromFs()
 
-        const changesPath = join(kmDir, "changes.jsonl")
+        const rows = db.query("SELECT data FROM events ORDER BY seq").all() as { data: string }[]
+        for (const row of rows) {
+          const event = JSON.parse(row.data) as ParsedEvent
+          expect(typeof event.actor).toBe("string")
+          expect(typeof event.data).toBe("object")
 
-        if (existsSync(changesPath)) {
-          const content = readFileSync(changesPath, "utf-8")
-          const lines = content.trim().split("\n")
-
-          for (const line of lines) {
-            const event = JSON.parse(line) as ParsedEvent
-
-            expect(typeof event.actor).toBe("string")
-            expect(typeof event.data).toBe("object")
-
-            if (event.type === "node_created") {
-              expect(event.data.id).toBeDefined()
-              expect(typeof event.data.id).toBe("string")
-              expect(event.data.type).toBeDefined()
-              expect(typeof event.data.type).toBe("string")
-            }
+          if (event.type === "node_created") {
+            expect(event.data.id).toBeDefined()
+            expect(typeof event.data.id).toBe("string")
+            expect(event.data.type).toBeDefined()
+            expect(typeof event.data.type).toBe("string")
           }
         }
       }))

@@ -15,7 +15,7 @@
 
 import { createLogger } from "loggily"
 import { Database } from "bun:sqlite"
-import { existsSync, readFileSync, readdirSync, realpathSync, statSync, openSync, readSync, closeSync } from "fs"
+import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "fs"
 import { join, dirname, basename, isAbsolute } from "path"
 import {
   toRelativeFsPath,
@@ -115,8 +115,8 @@ export interface LoadOptions {
   db?: Database
   /**
    * Explicit mode override. When set, bypasses .km directory detection.
-   * - "memory": Scan filesystem, don't read changes.jsonl
-   * - "disk": Read from changes.jsonl
+   * - "memory": Scan filesystem; don't replay events from state.db
+   * - "disk": Replay pending events from state.db's events table
    */
   mode?: "memory" | "disk"
   /**
@@ -149,11 +149,11 @@ export interface LoadOptions {
    *
    * `commit()` (as opposed to `apply()`) structurally bypasses `onApply`
    * subscribers, preventing replay from writing back to the filesystem —
-   * the journal IS the source of truth during replay, so re-projecting
+   * the events table IS the source of truth during replay, so re-projecting
    * would create an echo loop.
    *
    * `skipPersist: true` avoids double-journaling: changes read from
-   * `changes.jsonl` must not be re-appended to the same file.
+   * the events table must not be re-inserted on replay.
    *
    * If omitted (e.g. tests, memory mode), `applyChanges` falls back to
    * direct SQL inserts — preserves the pre-op-surface behavior.
@@ -253,7 +253,7 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
   const source: ChangeSource =
     mode === "memory"
       ? yield* discoverMemoryMode(repoRoot, errors, db, discoverOnly, options?.preloadDepth, collapseMatcher)
-      : yield* discoverFromChanges(db, kmDir ?? "", options?.force ?? false, errors)
+      : yield* discoverFromEvents(db, options?.force ?? false, errors)
   _discoverSpan.end()
 
   // 4. Shared pipeline (normalizes parent_id: null → ".")
@@ -332,7 +332,7 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
     log.debug?.(`discover-only mode, ${returnDeferredFiles?.length ?? 0} files deferred`)
   } else {
     // Even in full mode, reconciliation may find new files that need parsing.
-    // Also detect unparsed stubs replayed from changes.jsonl — these occur when
+    // Also detect unparsed stubs replayed from the events table — these occur when
     // a prior discoverOnly session wrote stubs to the journal and state.db was
     // later deleted. The rebuild replays the stubs but doesn't re-parse them,
     // leaving nodes with title=filename_stem instead of the H1-merged title.
@@ -603,124 +603,20 @@ function writeCollapsedExtractions(db: Database, extractions: readonly Collapsed
 }
 
 // ============================================================================
-// CHANGE READING
+// EVENTS TABLE READING
 // ============================================================================
 
 /**
- * Parse changes.jsonl: dedup by id, warn on malformed lines, sort chronologically (ULID).
- * Returns empty array if file doesn't exist.
- */
-/**
- * Parse changes.jsonl: dedup by id, warn on malformed lines, sort chronologically (ULID).
- * When `fromByteOffset` is provided, only reads the tail of the file from that position,
- * dramatically speeding up startup when most changes are already applied.
- * Returns empty array if file doesn't exist.
- */
-function parseChangesFile(
-  kmDir: string,
-  caller: string,
-  fromByteOffset?: number,
-): { changes: Change[]; byteLength: number } {
-  const changesPath = join(kmDir, "changes.jsonl")
-
-  if (!existsSync(changesPath)) {
-    log.debug?.(`no changes file at ${changesPath}`)
-    return { changes: [], byteLength: 0 }
-  }
-
-  const fileSize = statSync(changesPath).size
-
-  // Fast path: if we have a byte offset and the file hasn't grown, no new changes
-  if (fromByteOffset !== undefined && fromByteOffset >= fileSize) {
-    log.debug?.(`${caller}: changes.jsonl unchanged (offset ${fromByteOffset} >= size ${fileSize})`)
-    return { changes: [], byteLength: fileSize }
-  }
-
-  let content: string
-  if (fromByteOffset !== undefined && fromByteOffset > 0) {
-    // Read only the tail of the file from the byte offset
-    const fd = openSync(changesPath, "r")
-    try {
-      const buf = Buffer.alloc(fileSize - fromByteOffset)
-      readSync(fd, buf, 0, buf.length, fromByteOffset)
-      content = buf.toString("utf-8")
-      // If the offset landed mid-line, discard the partial first line
-      const firstNewline = content.indexOf("\n")
-      if (firstNewline > 0 && fromByteOffset > 0) {
-        content = content.slice(firstNewline + 1)
-      }
-    } finally {
-      closeSync(fd)
-    }
-    log.debug?.(`${caller}: reading tail of changes.jsonl from offset ${fromByteOffset} (${content.length} bytes)`)
-  } else {
-    content = readFileSync(changesPath, "utf-8")
-  }
-
-  const lines = content.split("\n").filter((line) => line.trim())
-
-  log.debug?.(`reading ${lines.length} lines from changes.jsonl`)
-
-  const changes: Change[] = []
-  const seen = new Set<string>()
-  let skippedCount = 0
-
-  for (const line of lines) {
-    try {
-      const change = JSON.parse(line) as Change
-      if (!seen.has(change.id)) {
-        seen.add(change.id)
-        changes.push(change)
-      }
-    } catch {
-      skippedCount++
-    }
-  }
-
-  if (skippedCount > 0) {
-    log.warn?.(`${caller}: skipped ${skippedCount} malformed line(s) in changes.jsonl`)
-  }
-
-  // Sort by ULID (lexicographic = chronological)
-  changes.sort((a, b) => a.id.localeCompare(b.id))
-
-  log.debug?.(`read ${changes.length} changes`)
-  return { changes, byteLength: fileSize }
-}
-
-export function readChanges(kmDir: string, fromByteOffset?: number): Change[] {
-  return parseChangesFile(kmDir, "readChanges", fromByteOffset).changes
-}
-
-/**
- * Read the persisted byte-offset cursor for changes.jsonl. Callers that
- * apply pending events should pass it to {@link readChanges} so they
- * only read the tail of the file (a multi-GB changes.jsonl OOMs the
- * full-read path on Bun's `string.split("\n")`).
- *
- * Returns `undefined` when the cursor isn't set (fresh DB or pre-cursor
- * vault).
- */
-export function readLastEventOffset(db: Database): number | undefined {
-  const row = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event_offset") as
-    | { value: string }
-    | undefined
-  return row?.value !== undefined ? Number(row.value) : undefined
-}
-
-/**
- * Read events from the SCHEMA_VERSION 12 events table, ordered by `seq`.
+ * Read events from the events table, ordered by `seq`.
  * The cursor is `seq` (monotonically increasing AUTOINCREMENT) — pass the
  * highest seq the caller has already applied, get back everything past it.
  *
  * Returns events in seq order. Each row's `data` column is the original
  * Change object serialized as JSON; we parse it back so callers get the
- * full Change shape (matches `readChanges` from the legacy jsonl path).
+ * full Change shape.
  *
- * Replaces the jsonl tail-read (`readChanges(kmDir, byteOffset)`) — events
- * are now written atomically with state mutations inside state.db, so the
- * cursor + replay primitive lives in SQL instead of byte offsets in a
- * sidecar file.
+ * Events are written atomically with state mutations inside state.db, so
+ * the cursor + replay primitive lives in SQL.
  */
 export function readEventsAfter(db: Database, fromSeq: number | undefined, limit?: number): Change[] {
   const sql = limit
@@ -743,9 +639,7 @@ export function readEventsAfter(db: Database, fromSeq: number | undefined, limit
  * for fresh DBs (so the next read picks up everything).
  */
 export function readLastEventSeq(db: Database): number {
-  const row = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event_seq") as
-    | { value: string }
-    | undefined
+  const row = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event_seq") as { value: string } | undefined
   return row?.value !== undefined ? Number(row.value) : 0
 }
 
@@ -761,40 +655,27 @@ export function writeLastEventSeq(db: Database, seq: number): void {
 // DISK MODE DISCOVERY
 // ============================================================================
 
-function* discoverFromChanges(
+function* discoverFromEvents(
   db: Database,
-  kmDir: string,
   force: boolean,
   _errors: LoadError[],
 ): Generator<StepYield, ChangeSource, unknown> {
-  yield "Reading changes"
+  yield "Reading events"
 
-  // Read the byte offset cursor to skip already-applied changes
-  const lastApplied = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event") as
-    | { value: string }
-    | undefined
-  const lastOffset = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event_offset") as
-    | { value: string }
-    | undefined
-  const byteOffset = !force && lastApplied?.value && lastOffset?.value ? Number(lastOffset.value) : undefined
-
-  const { changes: allChanges, byteLength } = parseChangesFile(kmDir, "discoverFromChanges", byteOffset)
-
-  // Filter to only new changes (unless force rebuild)
-  let changes: Change[]
-  if (force) {
-    changes = allChanges
-  } else {
-    changes = lastApplied?.value ? allChanges.filter((e) => e.id > lastApplied.value) : allChanges
-  }
-
-  // Store the byte offset for next startup
-  if (byteLength > 0) {
-    db.run("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", ["last_event_offset", String(byteLength)])
-  }
+  // The events table is the canonical journal. Pull rows past the
+  // high-water-mark `meta.last_event_seq` (force=true ignores it and replays
+  // everything for full rebuilds). Stamp the new high-water-mark so the
+  // next startup skips this prefix; replay is idempotent if applyChanges
+  // is interrupted because INSERT OR IGNORE handles repeated node_created
+  // and applyChangeWithDb is no-op-on-conflict.
+  const lastSeq = force ? 0 : readLastEventSeq(db)
+  const changes = readEventsAfter(db, lastSeq)
+  const maxRow = db.prepare("SELECT MAX(seq) AS max FROM events").get() as { max: number | null }
+  const maxSeq = maxRow?.max ?? 0
+  if (maxSeq > lastSeq) writeLastEventSeq(db, maxSeq)
 
   yield { current: changes.length, total: changes.length }
-  log.debug?.(`discovered ${allChanges.length} changes (${changes.length} new)`)
+  log.debug?.(`discovered ${changes.length} new events past seq=${lastSeq}`)
 
   return { changes, pendingLinks: [] }
 }
@@ -804,7 +685,7 @@ function* discoverFromChanges(
 // ============================================================================
 
 /**
- * After disk mode applies changes from changes.jsonl, scan the filesystem
+ * After disk mode applies changes from the events table, scan the filesystem
  * to detect files present on disk but missing from the DB (externally added),
  * and files in the DB that no longer exist on disk (externally deleted).
  *
@@ -1232,7 +1113,7 @@ function* applyChanges(
             // replayed changes back to the filesystem — the journal IS the
             // source during replay, re-projecting would echo-loop).
             // skipPersist: true avoids double-journaling (the change was just
-            // read from changes.jsonl, re-appending would duplicate it).
+            // read from the events table, re-inserting would duplicate it).
             // source: "fs-import" is a defensive marker; commit() already
             // bypasses onApply but the tag aids observability.
             emitter.commit(
@@ -1247,7 +1128,7 @@ function* applyChanges(
             // Extract flat DB columns from nested item object (new format) or flat fields (legacy)
             const { listMarker, taskMarker, taskStatus } = decomposeChangeItem(data)
             // INSERT OR IGNORE: in disk mode, state.db may already have nodes
-            // from km sync that changes.jsonl also references (last_event cursor
+            // from km sync that the events table also references (last_event cursor
             // may not cover all changes). Matches applyChangeWithDb behavior.
             // Expected duplicates are silently ignored (no exception thrown).
             insertStmt.run(

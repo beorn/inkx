@@ -43,7 +43,7 @@ function openRepo(dir: string): Repo {
 
 /**
  * Simulate a CLI process restart:
- *   drop the SQLite page cache but keep `changes.jsonl` (the durable event
+ *   drop the SQLite page cache but keep the events table (the durable event
  *   journal). A new Repo instance rebuilds `state.db` from the journal,
  *   matching the real-world lifecycle of `km bd create ...; <exit>; km bd list`.
  */

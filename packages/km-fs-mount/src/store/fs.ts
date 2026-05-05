@@ -79,7 +79,7 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
     mkdirSync(repoPath, { recursive: true })
   }
 
-  // Ensure .km directory exists for emitter changes.jsonl
+  // Ensure .km directory exists for the emitter
   const kmDir = join(repoPath, ".km")
   if (!existsSync(kmDir)) {
     mkdirSync(kmDir, { recursive: true })

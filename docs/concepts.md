@@ -192,7 +192,7 @@ Both modes are **read-write**. The difference is where state lives:
 
 - **Memory**: SQLite rebuilt from `.md` files each run. Toggle tasks, browse structure. Changes write through to `.md` files but aren't tracked. Node IDs are ephemeral. Great for quick access or using km on any repo.
 
-- **Disk**: Run `km init` once. SQLite persists in `.km/state.db`. Every change logged to `changes.jsonl`. Stable node IDs, undo capability, sync support. Use for your own projects.
+- **Disk**: Run `km init` once. SQLite persists in `.km/state.db`. Every change is logged to the events table inside the same database, atomically with the state mutation. Stable node IDs, undo capability, sync support. Use for your own projects.
 
 ```bash
 km task               # Works anywhere (memory mode)
@@ -207,8 +207,7 @@ km init               # Enable tracking (creates .km/, disk mode)
 
 ```
 .km/
-├── changes.jsonl      # Append-only event log (git-tracked)
-└── state.db          # SQLite cache (gitignored, rebuildable)
+└── state.db          # SQLite — nodes, FTS5 index, and events table (gitignored, rebuildable)
 ```
 
 ---

@@ -491,7 +491,7 @@ export class ChangeHandlers {
             void this.fsTarget.renameFile(oldAbsPath, newAbsPath)
 
             // Route fs_path updates through emitter.commit so each UPDATE is
-            // paired with a changes.jsonl entry. commit() (not apply()) avoids
+            // paired with an events table row. commit() (not apply()) avoids
             // re-firing onApply subscribers — we're already inside one.
             const newRelPath = relative(this.repoPath, newAbsPath)
             const oldRelPath = node.fs_path
@@ -701,8 +701,8 @@ export class ChangeHandlers {
       this.recordTokensRecursive(newAbsPath)
     }
 
-    // Update DB paths through the emitter so each UPDATE is paired with a
-    // changes.jsonl entry (DB + journal atomic per row). commit() is used
+    // Update DB paths through the emitter so each UPDATE is paired with an
+    // events table row (DB + events table atomic per row). commit() is used
     // (not apply()) because this runs inside an onApply callback — apply()
     // would recursively fire projection and risk an echo loop.
     this.commitRename(node.id, { fs_path: newFsPath, name: newName, old_fs_path: oldFsPath })
@@ -770,7 +770,7 @@ export class ChangeHandlers {
     }
 
     // Update DB fs_path + name + title through the emitter so the UPDATE is
-    // paired with a changes.jsonl entry (DB + journal atomic per row).
+    // paired with an events table row (DB + events table atomic per row).
     // title is used by nodesToMarkdown for the H1 heading.
     const newName = newFileName.replace(/\.md$/i, "")
     this.commitRename(fileNode.id, { fs_path: newFsPath, name: newName, title: newTitle, old_fs_path: oldFsPath })
@@ -793,7 +793,7 @@ export class ChangeHandlers {
    * Commit a rename DB update paired with a journal entry.
    *
    * Routes through `emitter.commit()` — which applies to the DB via
-   * `applyChangeWithDb` and appends to `changes.jsonl` in one call — so the
+   * `applyChangeWithDb` and writes to the events table in one call — so the
    * two writes are paired per row (emitter contract). Uses `commit()` rather
    * than `apply()` because this runs inside an `onApply` callback; firing
    * more `onApply` subscribers from here risks an echo loop back to the FS.
