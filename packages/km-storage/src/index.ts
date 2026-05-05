@@ -350,6 +350,13 @@ export type { MoveSpec, MoveOptions, MoveResult, MoveProgress } from "./repo/mov
 // See repo/resolve-ref.ts for full semantics.
 export { resolveRef } from "./repo/resolve-ref.ts"
 
+// Short-id resolution with explicit ambiguity surface.
+// CLI surfaces use this when they need "did you mean X or Y?" instead of
+// the silent-null behaviour of resolveNode.
+export { resolveShortId, formatAmbiguityError } from "./repo/resolve-short-id.ts"
+
+export type { ShortIdResolution } from "./repo/resolve-short-id.ts"
+
 export type { UnexploredDir } from "./discovery.ts"
 
 // Testing utilities
