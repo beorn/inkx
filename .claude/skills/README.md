@@ -11,6 +11,7 @@ the user prompt and sub-agent context.
 
 | Skill | Description | Keywords |
 | --- | --- | --- |
+| `arch` | Architectural-decision protocol — doc-first discovery, arch-agent opinion on a curated bundle, mandatory retro, gating for /max. Use BEFORE proposing any change to identity, storage, persistence, the loader, public API surface, or core data model. Skill enforces, not advisory. | `arch`, `architecture`, `identity`, `storage`, `schema`, `persistence`, `data model`, `public API`, `loader`, `design decision` |
 | `ask` | Single-model quick questions to other LLMs — fast, cheap (~$0.02). Use for one-off second opinions and prior-art lookups. For multi-model judging use /pro. For web-search research use /deep. | `gpt`, `chatgpt`, `openai`, `gemini`, `grok`, `ask`, `second opinion`, `quick` |
 | `beads` | Beads — issue tracking with km bd. Canonical surface for the bead workflow: CLI, lifecycle, ids, claim/release, storage model. Load this for anything bead-related. /pm aliases here. | `bead`, `beads`, `km bd`, `issue`, `ticket`, `claim`, `close`, `ready`, `in_progress`, `P0`, `P1`, `P2`, `P3`, `P4`, `scope epic`, `sub-bead`, `parent`, `label` |
 | `big` | META-PROTOCOL for reframing the problem (10-20 hypotheses, 2 rounds, find the design where the bug can't happen). Calls /pro or /deep internally — not itself an LLM tool. Use when the fix feels like a patch or the same area keeps breaking. Subsumes /fresh. | `big`, `think big`, `reframe`, `hypotheses`, `architecture` |

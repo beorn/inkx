@@ -6,12 +6,6 @@
         "vendor/termless/packages/cli/src/cli.ts",
         "mcp"
       ]
-    },
-    "tribe": {
-      "command": "bun",
-      "args": [
-        "vendor/bearly/plugins/tribe/lore/server.ts"
-      ]
     }
   }
 }

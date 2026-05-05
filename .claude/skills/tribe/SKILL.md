@@ -107,7 +107,7 @@ bun tribe doctor           # Verify daemon + MCP + hooks + env
 
 ## Notes
 
-- If tribe tools are not available (MCP server not loaded), tell the user to run `claude-tribe` instead of `claude`
+- If tribe tools are not available (MCP server not loaded), check that the `tribe@bearly` plugin is enabled (`/plugin`) and that its MCP server has been approved for this project (`/mcp`). The plugin exposes tools under `mcp__plugin_tribe_tribe__*`.
 - The tribe DB is at `~/.local/share/tribe/tribe.db` (user-global default since 2026-04-18; legacy `.beads/tribe.db` is auto-migrated on first start)
 - `/tribe whoami` reads from the MCP server instructions (check if "chief" or "member" appears)
 - After updating tribe.ts, use `tribe.reload` to pick up changes without restarting the session

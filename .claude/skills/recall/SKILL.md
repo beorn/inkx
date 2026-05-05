@@ -27,10 +27,10 @@ daemon is unreachable.
 
 For a user query like `/recall X`, `recall X`, or "what did we do about Y":
 
-**Prefer the `tribe.*` MCP tools** when they're available (registered in
-`.mcp.json` under the `tribe` server) — they call the same library as
-`bun recall` but without the ~400ms subprocess-spawn cost. The CLI remains
-available for humans and scripts.
+**Prefer the `tribe.*` MCP tools** when they're available (provided by the
+`tribe@bearly` plugin) — they call the same library as `bun recall` but without
+the ~400ms subprocess-spawn cost. The CLI remains available for humans and
+scripts.
 
 **Simple queries with specific tokens** (file names, bead IDs, function names — 1–3 words):
 ```bash
@@ -138,9 +138,8 @@ index hasn't caught up to recent sessions.
 for inspection. `tribe.brief()` (MCP) returns the same data but via the
 warm daemon — faster when available, transparent fallback to the library when not.
 
-**Checking daemon state** (humans): `bun vendor/bearly/plugins/tribe/lore/cli.ts status` or
-`bun vendor/bearly/plugins/tribe/lore/cli.ts sessions`. The daemon auto-starts on first
-MCP call and idle-quits after 30 minutes.
+**Checking daemon state** (humans): `bun tribe status` or `bun tribe sessions`.
+The daemon auto-starts on first MCP call and idle-quits after 30 minutes.
 
 ## Search (default command)
 
