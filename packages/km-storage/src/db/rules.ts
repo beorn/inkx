@@ -19,7 +19,7 @@
 
 import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
-import { queryNodes } from "../query.ts"
+import { queryNodes, materializeEffectivePaths, dropEffectivePaths } from "../query.ts"
 import { rowToNode, getChildren, getNode, getEmbedPathsOnBoard } from "./queries/index.ts"
 import { createDbOps, buildEmbedChild } from "./ops.ts"
 import { parseQuery, KNode, type NodeRules } from "@km/core"
@@ -46,6 +46,22 @@ export interface RuleContext {
   pendingWriteBack: Set<string>
   /** Cache for nodes with add rules — avoids repeated json_extract queries */
   nodesWithAddRuleCache?: KNode[] | null
+  /**
+   * Per-batch memoization for `queryNodes` results. The user's vault has
+   * 1021 rule nodes but only ~19 distinct `add` query strings — same query
+   * runs ~50x. Each run was a 200-2000 ms full-table scan. Caching the
+   * result by query text drops the total queryNodes cost from minutes to
+   * seconds. Keyed by the literal query string; same query → identical
+   * matchSet. Cleared at end of `evaluateAllRules`.
+   */
+  queryResultCache?: Map<string, KNode[]>
+  /**
+   * Per-batch memoization for `getEmbedPathsOnBoard` results. Each rule
+   * runs a recursive descendant walk from the board root; multiple rule
+   * sections under the same board re-scan the same subtree. Keyed by
+   * boardRootId; cleared at end of `evaluateAllRules`.
+   */
+  embedPathsByBoardCache?: Map<string, { exactPaths: Set<string>; filePaths: Set<string> }>
 }
 
 /**
@@ -149,18 +165,31 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
   // "clear add-rule link rows" cleanup is a no-op: stale embed nodes are
   // removed below via the `sectionChildren` filter.
 
-  // Evaluate all queries and union results (deduplicate by node ID)
+  // Evaluate all queries and union results (deduplicate by node ID).
+  // Reuse `ctx.queryResultCache` when present — same query text → same
+  // matches across rules in this batch.
   const matchingMap = new Map<string, KNode>()
   for (const query of queries) {
-    for (const node of queryNodes(db, query)) {
+    let matches = ctx.queryResultCache?.get(query)
+    if (matches === undefined) {
+      matches = queryNodes(db, query)
+      ctx.queryResultCache?.set(query, matches)
+    }
+    for (const node of matches) {
       matchingMap.set(node.id, node)
     }
   }
   const matchingNodes = [...matchingMap.values()]
   log.debug?.(`evaluateAddRule: found ${matchingNodes.length} matches across ${queries.length} queries`)
 
-  // Pre-build file ancestor cache for all matching nodes to avoid O(matches * depth) tree walks
-  const matchFileAncestorCache = buildFileAncestorCacheForNodes(db, matchingNodes)
+  // Reuse ctx.fileAncestorCache when present (built once at the top of
+  // evaluateAllRules over the whole tree). Falling back to the per-rule
+  // builder is only correct under bulk mode (>=10 matches) — its
+  // legacy fast-path scans `SELECT id, parent_id, fs_path FROM nodes`
+  // (740k rows on the user's vault) for every rule that hit it,
+  // turning the rule-eval pass into N×N. With the global cache the
+  // same lookup is O(1) per match.
+  const matchFileAncestorCache = ctx.fileAncestorCache ?? buildFileAncestorCacheForNodes(db, matchingNodes)
 
   // Fetch section children once — used for stale embed removal and next parent_idx
   const sectionChildren = getChildren(db, sectionId)
@@ -187,11 +216,16 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
   // Embed paths: "filename" for file nodes, "filename#^name" for intra-file nodes
   // (post-v6, anchor literals live in `.name` — see storage-architecture §2.3)
   const boardRootId = section.parent_id
-  // Single SQL query replaces N+1 getChildren loop (was: 1 query per section on the board)
-  const { exactPaths: existingEmbedPathsOnBoard, filePaths: existingEmbedFilesOnBoard } = getEmbedPathsOnBoard(
-    db,
-    boardRootId,
-  )
+  // Memoize the embed-paths-on-board lookup. Multiple rule sections under
+  // the same board cause N rules × recursive-descendant CTE in the no-cache
+  // path; the result is the same shape per board, so cache by boardRootId.
+  const boardKey = boardRootId ?? "<no-board>"
+  let embedPathSets = ctx.embedPathsByBoardCache?.get(boardKey)
+  if (embedPathSets === undefined) {
+    embedPathSets = getEmbedPathsOnBoard(db, boardRootId)
+    ctx.embedPathsByBoardCache?.set(boardKey, embedPathSets)
+  }
+  const { exactPaths: existingEmbedPathsOnBoard, filePaths: existingEmbedFilesOnBoard } = embedPathSets
   log.debug?.(
     `evaluateAddRule: existing embed paths on board: ${existingEmbedPathsOnBoard.size} (${existingEmbedFilesOnBoard.size} files)`,
   )
@@ -528,6 +562,22 @@ export function* evaluateAllRules(db: Database, ctx: RuleContext): Generator<Rul
   // km-load-perf.3: Build file ancestor cache before evaluation
   ctx.fileAncestorCache = buildFileAncestorCache(db)
 
+  // Materialize the (node_id → effective_path) map ONCE so the per-rule
+  // queryNodes calls with `-path:archive/` etc. skip the recursive CTE.
+  // The CTE was 1.5 s on a 740k-node DB; with 1000+ rules in the user's
+  // vault that turned `km sync` Phase 3 into ~140s. Sharing the
+  // materialized table drops it dramatically.
+  const tMaterialize = Date.now()
+  materializeEffectivePaths(db)
+  log.debug?.(`evaluateAllRules: materialized effective_paths in ${Date.now() - tMaterialize}ms`)
+
+  // Per-batch query-result memoization — many rule nodes share the same
+  // `add` query string (the user's vault has 1021 rule nodes but only
+  // ~19 distinct query texts). Same query → identical match set in this
+  // pass; cache by literal query text.
+  ctx.queryResultCache = new Map<string, KNode[]>()
+  ctx.embedPathsByBoardCache = new Map()
+
   try {
     for (let i = 0; i < nodesWithRules.length; i++) {
       const node = nodesWithRules[i]
@@ -537,8 +587,11 @@ export function* evaluateAllRules(db: Database, ctx: RuleContext): Generator<Rul
       yield { current: i + 1, total: nodesWithRules.length }
     }
   } finally {
-    // Clear cache after evaluation completes
+    // Clear caches after evaluation completes
     ctx.fileAncestorCache = null
+    ctx.queryResultCache = undefined
+    ctx.embedPathsByBoardCache = undefined
+    dropEffectivePaths(db)
   }
 
   log.debug?.(`evaluateAllRules: completed in ${Date.now() - start}ms`)

@@ -61,7 +61,7 @@ export function executeQuery(db: Database, ast: QueryAST, baseType?: string, opt
   const needsCte = needsPathFilter && !typeHasFsPath
 
   // Build base SQL (with or without CTE for path ancestor lookup)
-  let sql = needsCte ? buildPathCteSelect() : "SELECT * FROM nodes WHERE 1=1"
+  let sql = needsCte ? buildPathCteSelect(db) : "SELECT * FROM nodes WHERE 1=1"
 
   // Apply type and task_status filters
   // Translate virtual types from old schema to new km-ast types
@@ -171,8 +171,23 @@ function translateTypeCondition(value: string, op: string, params: (string | num
 // and returns a SQL fragment string (e.g., " AND field = ?").
 // ---------------------------------------------------------------------------
 
-/** Build the recursive CTE SELECT for path ancestor lookup */
-function buildPathCteSelect(): string {
+/** Build the recursive CTE SELECT for path ancestor lookup.
+ *
+ * When a session-scoped temp table `_effective_paths(node_id, effective_path)`
+ * exists (populated once by `materializeEffectivePaths`), the query joins
+ * that table instead of running the recursive CTE inline. Per-query the CTE
+ * was 1.5 s on a 740 k-node DB; with 1000+ rules in `evaluateAllRules` that
+ * was the dominant cost of `km sync` Phase 3 (~140 s). Materializing once
+ * and reusing across the rule-eval batch drops it to ~2-3 s amortized.
+ */
+function buildPathCteSelect(db: Database): string {
+  if (hasEffectivePathsTable(db)) {
+    return `
+      SELECT n.*, COALESCE(n.fs_path, ep.effective_path) AS effective_path
+      FROM nodes n
+      LEFT JOIN _effective_paths ep ON n.id = ep.node_id
+      WHERE 1=1`
+  }
   return `
       WITH RECURSIVE node_ancestors AS (
         -- Base case: start with each node
@@ -208,6 +223,50 @@ function buildPathCteSelect(): string {
       FROM nodes n
       LEFT JOIN node_paths np ON n.id = np.node_id
       WHERE 1=1`
+}
+
+function hasEffectivePathsTable(db: Database): boolean {
+  const row = db
+    .query("SELECT name FROM sqlite_temp_master WHERE type='table' AND name='_effective_paths'")
+    .get() as { name: string } | null
+  return row != null
+}
+
+/**
+ * Materialize the (node_id → effective_path) mapping into a session-
+ * scoped temp table so subsequent `executeQuery` calls with `-path:`
+ * filters skip the recursive CTE. Idempotent — drops + recreates the
+ * temp table on each call.
+ *
+ * Call this once before a batch of rule evaluations (or any sequence of
+ * queries that share path filters); call `dropEffectivePaths(db)` to
+ * release it.
+ */
+export function materializeEffectivePaths(db: Database): void {
+  db.run(`DROP TABLE IF EXISTS temp._effective_paths`)
+  db.run(`
+    CREATE TEMP TABLE _effective_paths (
+      node_id TEXT PRIMARY KEY,
+      effective_path TEXT NOT NULL
+    )
+  `)
+  db.run(`
+    INSERT INTO _effective_paths(node_id, effective_path)
+    WITH RECURSIVE node_ancestors AS (
+      SELECT id AS node_id, id AS current_id, parent_id, fs_path, 0 AS depth FROM nodes
+      UNION ALL
+      SELECT na.node_id, n.id, n.parent_id, n.fs_path, na.depth + 1
+      FROM node_ancestors na JOIN nodes n ON n.id = na.parent_id
+      WHERE na.fs_path IS NULL
+    )
+    SELECT node_id, fs_path FROM node_ancestors WHERE fs_path IS NOT NULL GROUP BY node_id
+  `)
+  db.run(`CREATE INDEX IF NOT EXISTS temp.idx_eff_paths_path ON _effective_paths(effective_path)`)
+}
+
+/** Drop the session-scoped effective-paths temp table. Safe to call when absent. */
+export function dropEffectivePaths(db: Database): void {
+  db.run(`DROP TABLE IF EXISTS temp._effective_paths`)
 }
 
 /**

@@ -104,6 +104,8 @@ export {
   executeQuery,
   queryTasks,
   queryNodes,
+  materializeEffectivePaths,
+  dropEffectivePaths,
   // Link operations (canonical 3-column schema — see docs/design/model/klink.md)
   addLink,
   addLinks,
