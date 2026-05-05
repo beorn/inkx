@@ -9,23 +9,28 @@ import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 import { resolvePathArg } from "@km/fs-mount"
-import { getMarkerForStatus } from "@km/core"
-import type { TaskStatus } from "@km/core"
 import { getRootPath } from "../../program.ts"
 import { loadRepo } from "../../load-repo.ts"
+import { planSetFields } from "./set-clear-plan.ts"
+
+// Re-export so existing imports continue to work.
+export { planSetFields, type SetFieldPlan } from "./set-clear-plan.ts"
 
 /**
  * Create the set subcommand
  *
  * km task set <id> due:2025-01-20      # Set due date
- * km task set <id> priority:P1          # Set priority
+ * km task set <id> priority:P1         # Set priority
  * km task set <id> status:blocked      # Set blocked
+ * km task set <id> type:bug            # Set bead-style type tag
+ * km task set <id> parent:@km/scope    # Reparent under another node
+ * km task set <id> aliases:foo,bar     # Set frontmatter aliases
  */
 export function createSetCommand() {
   return new Command("set")
     .description("Set task field values")
     .argument("<id>", "Task ID or prefix")
-    .argument("<fields...>", "Field:value pairs (due:2025-01-20, priority:P1, status:todo)")
+    .argument("<fields...>", "Field:value pairs (due:2025-01-20, priority:P1, status:todo, type:bug, parent:<ref>, aliases:a,b)")
     .option("--json", "Output as JSON")
     .action(async (id, fields, options) => {
       const resolved = resolvePathArg(process.cwd(), getRootPath())
@@ -37,60 +42,46 @@ export function createSetCommand() {
         process.exit(1)
       }
 
-      const updates: Record<string, unknown> = {}
+      const plan = planSetFields(repo, task.id, fields)
 
-      for (const field of fields) {
-        const colonIndex = field.indexOf(":")
-        if (colonIndex === -1) {
-          console.error(term.red(`Invalid field format: ${field} (expected field:value)`))
-          process.exit(1)
+      for (const warning of plan.warnings) {
+        console.error(term.yellow(warning))
+      }
+      if (plan.errors.length > 0) {
+        for (const err of plan.errors) {
+          console.error(term.red(err))
         }
-
-        const key = field.slice(0, colonIndex).toLowerCase()
-        const value = field.slice(colonIndex + 1)
-
-        switch (key) {
-          case "due":
-          case "due_date":
-          case "due_at":
-            updates.due_at = value || null
-            break
-          case "start":
-          case "scheduled":
-          case "scheduled_date":
-          case "start_at":
-            updates.start_at = value || null
-            break
-          case "priority":
-            updates.priority = value || null
-            break
-          case "status":
-          case "task_status":
-            updates.item = { task: { status: value as TaskStatus, marker: getMarkerForStatus(value as TaskStatus) } }
-            break
-          case "assigned":
-          case "assigned_to":
-          case "owner":
-            updates.assigned_to = value || null
-            break
-          default:
-            console.error(term.yellow(`Unknown field: ${key}`))
-        }
+        process.exit(1)
       }
 
-      if (Object.keys(updates).length === 0) {
+      const hasUpdates = Object.keys(plan.updates).length > 0
+      if (!hasUpdates && plan.newParentId === undefined) {
         console.error(term.red("No valid field updates provided"))
         process.exit(1)
       }
 
-      repo.updateNode(task.id, updates)
+      if (hasUpdates) {
+        repo.updateNode(task.id, plan.updates)
+      }
+
+      if (plan.newParentId) {
+        const siblings = repo.getChildren(plan.newParentId)
+        repo.moveNode(task.id, plan.newParentId, siblings.length)
+      }
+
+      const updatedKeys = [
+        ...Object.keys(plan.updates),
+        ...(plan.newParentId ? ["parent"] : []),
+      ]
 
       if (options.json) {
-        console.log(JSON.stringify({ id: task.id, updates }))
+        const payload: Record<string, unknown> = { id: task.id, updates: plan.updates }
+        if (plan.newParentId) payload.parent = plan.newParentId
+        console.log(JSON.stringify(payload))
         return
       }
 
-      console.log(term.green("✓"), `Updated ${Object.keys(updates).join(", ")}:`, task.id.slice(-8))
+      console.log(term.green("✓"), `Updated ${updatedKeys.join(", ")}:`, task.id.slice(-8))
     })
 }
 
