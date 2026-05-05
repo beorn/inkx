@@ -229,7 +229,17 @@ export const Bead = {
   // Dependencies
   // ---------------------------------------------------------------------
 
-  /** Add a `blocked-by` dependency. */
+  /**
+   * Add a `blocked-by` dependency.
+   *
+   * Returns the props blob for the caller to merge with `mergeDepProps`
+   * + `repo.updateNode`. New code should prefer the `addGraphEdge` API
+   * from `@km/storage`, which encapsulates the merge + update in one
+   * call. Both paths produce identical on-disk state — see
+   * `apps/km-cli/tests/tasks-dep.test.ts` "nodeToBead compat" tests for
+   * the pin. This wrapper stays for back-compat with `bd dep` callsites
+   * until they migrate.
+   */
   addDependency(
     _repo: Repo,
     bead: Bead,
@@ -238,7 +248,11 @@ export const Bead = {
     return fnAddDependency(bead, dependsOn)
   },
 
-  /** Remove a `blocked-by` dependency. Returns null when no-op. */
+  /**
+   * Remove a `blocked-by` dependency. Returns null when no-op.
+   * See `addDependency` for the migration note — prefer
+   * `removeGraphEdge` from `@km/storage` for new callsites.
+   */
   removeDependency(
     _repo: Repo,
     bead: Bead,
