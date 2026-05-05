@@ -45,3 +45,18 @@ Tag rule-driven file write-backs so the parser / fs-watch path can skip emitting
 - After 50 syncs that touch rule-driven boards, changes.jsonl growth is bounded by user-authored events only (no embed_of churn).
 - Cold load from journal + replay + evaluateAllRules produces an identical state.db to before.
 - Synthetic test in big-repo-sync.bench.ts that runs 100 syncs and asserts journal growth ≤ 1 KB per sync (down from MB).
+
+## Implementation (2026-05-05)
+
+The leak path turned out to be subtler than the architecture sketch suggested. Tracing through:
+
+1. `evaluateAddRule` mutates the DB directly via `ops.addNode` — no journal entry. ✓
+2. The bulk-sync writeback path materializes the rule output back to disk via `WriteQueue` + `safeWriteFile`. The watcher's echo-guard suppresses the resulting fs event. ✓
+3. **But** `cfgWriteImpl` only refreshed `fs_content_hash` on the DB row after a successful write — leaving `fs_mtime`, `fs_size`, and `fs_ino` lagging the disk state. Next bulk-sync's reconcile saw `entry.mtime !== existingByPath.fs_mtime`, emitted an `update` op, re-parsed the file, and re-emitted node_created/updated/deleted events for every embed the rule had just written. **This** is the leak — bulk-sync re-parsing rule-modified files because the DB's stat tracking lagged.
+
+The fix is surgical, not structural: in `packages/km-fs-mount/src/watch/sync.ts`, the post-write CAS update now refreshes `fs_content_hash + fs_mtime + fs_size + fs_ino + fs_dev` atomically from the post-write `statSync()`. The next reconcile sees zero drift → no update op → no re-parse → no events.
+
+Benefits beyond rule writebacks: any internal writeback (heartbeat re-projection, `sync-to-fs`, in-app edits) gets the same correctness — the DB row is the canonical "what km saw last on disk" baseline, and that baseline now stays aligned through km's own writes.
+
+Tests:
+- `packages/km-fs-mount/tests/watch/withsync-writeback-stat-refresh.slow.test.ts` — asserts post-write stat fields match `statSync(file)` exactly, AND a follow-up `syncFromFs()` emits zero `fs-watch` events for the just-written file (the 50-syncs-zero-growth acceptance, distilled to one sync since the property is deterministic).

@@ -229,33 +229,51 @@ export function withSync(config?: Partial<SyncConfig>) {
       }
 
       // "wrote" or "noop" — disk is consistent with `content`. Refresh
-      // fs_content_hash so the next safe-write guard uses the post-write
-      // hash as its baseline (step 5 of §7.1's CAS contract). Without
-      // this, every legitimate sequential write would conflict because
-      // the DB's baseline would lag the actual disk bytes.
+      // the stat-tracking fields (fs_content_hash, fs_mtime, fs_size,
+      // fs_ino) so the next reconcile sees no drift. Without this, our
+      // own writeback drives mtime forward on disk while the DB's
+      // fs_mtime stays at the pre-write value — the next `km sync`
+      // sees `entry.mtime !== existingByPath.fs_mtime` → emits an
+      // update op → re-parses → re-emits node_created/updated/deleted
+      // events for every embed line the rule wrote. That's how
+      // rule-driven boards leak recomputable shape into changes.jsonl.
+      // Refreshing the four fields atomically here closes the leak
+      // (the @km/storage/dont-journal-rule-derived-events fix).
+      //
+      // The CAS guard above already validated the on-disk state matches
+      // `content`; reading the post-write stat one more time gives us
+      // the current mtime/size/ino without a second hash.
       const finalHash = result.newHash ?? result.actualHashBefore
-      if (finalHash) {
-        try {
-          db.run("UPDATE nodes SET fs_content_hash = ? WHERE fs_path = ?", [finalHash, relPath])
-        } catch (err) {
-          log.warn?.(
-            `failed to update fs_content_hash for ${relPath}: ${err instanceof Error ? err.message : String(err)}`,
+      let postStat: { mtimeMs: number; size: number; ino: number; dev: number } | undefined
+      try {
+        const stat = statSync(absPath)
+        postStat = { mtimeMs: stat.mtimeMs, size: stat.size, ino: stat.ino, dev: stat.dev }
+      } catch {
+        // stat-after-write failed: the file may have just been deleted
+        // by a racing handler. Skip the row update — the next reconcile
+        // will tombstone the node anyway.
+      }
+
+      try {
+        if (postStat) {
+          db.run(
+            "UPDATE nodes SET fs_content_hash = ?, fs_mtime = ?, fs_size = ?, fs_ino = ?, fs_dev = ? WHERE fs_path = ?",
+            [finalHash ?? null, postStat.mtimeMs, postStat.size, postStat.ino, postStat.dev, relPath],
           )
+        } else if (finalHash) {
+          db.run("UPDATE nodes SET fs_content_hash = ? WHERE fs_path = ?", [finalHash, relPath])
         }
+      } catch (err) {
+        log.warn?.(`failed to refresh fs_* fields for ${relPath}: ${err instanceof Error ? err.message : String(err)}`)
       }
 
       // Arm the echo-guard with the post-write stat + content-hash so the
       // watcher event caused by our own write gets classified as "echo"
       // and skipped. Fast-path uses (mtime, size); slow-path falls back
       // to hashing. The 5s TTL self-cleans expired expectations.
-      try {
-        const stat = statSync(absPath)
-        echoGuard.expect(absPath, stat.mtimeMs, stat.size, finalHash ?? content, finalHash != null)
-      } catch {
-        // If stat fails post-write something is odd, but we can still
-        // protect the echo window using the content hash alone. Record
-        // with (0, content.length) so the slow-path hash match still
-        // fires for the inbound event.
+      if (postStat) {
+        echoGuard.expect(absPath, postStat.mtimeMs, postStat.size, finalHash ?? content, finalHash != null)
+      } else {
         echoGuard.expect(absPath, 0, content.length, finalHash ?? content, finalHash != null)
       }
 
