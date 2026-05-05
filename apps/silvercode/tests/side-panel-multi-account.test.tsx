@@ -142,6 +142,48 @@ const CODEX_ACCOUNT: AccountSummary = {
   loading: false,
 }
 
+const XAI_ACCOUNT: AccountSummary = {
+  kind: "api-key",
+  name: "xai",
+  label: "xAI API",
+  provider: "xai",
+  email: null,
+  plan: null,
+  quotas: [
+    { name: "RPM", utilization: 0, remaining: 59, limit: 60 },
+    { name: "TPM", utilization: 4, remaining: 96000, limit: 100000 },
+  ],
+  error: null,
+  current: false,
+  isActive: false,
+  sourceEnvVar: "XAI_API_KEY",
+  credentialHint: "...xai",
+  available: true,
+  loading: false,
+}
+
+const GOOGLE_ACCOUNT_WITH_QUOTA: AccountSummary = {
+  kind: "api-key",
+  name: "google",
+  label: "Google API",
+  provider: "google",
+  email: null,
+  plan: null,
+  quotas: [{ name: "Daily", utilization: 25, remaining: 750, limit: 1000 }],
+  error: null,
+  current: false,
+  isActive: false,
+  sourceEnvVar: "GOOGLE_API_KEY",
+  credentialHint: "...gle",
+  available: true,
+  loading: false,
+}
+
+const CURSOR_ACCOUNT_WITH_QUOTA: AccountSummary = {
+  ...API_KEY_ACCOUNT,
+  quotas: [{ name: "Tasks", utilization: 40, remaining: 60, limit: 100 }],
+}
+
 const settle = (ms = 80) => new Promise<void>((r) => setTimeout(r, ms))
 
 function renderPanel(opts: { agent?: string } = {}) {
@@ -240,6 +282,28 @@ describe("SidePanel — multi-account view", () => {
       expect(app.text).toContain("TPM")
       expect(app.text).not.toContain("Claude Code Max 20")
       expect(app.text).not.toContain("personal@example.com")
+    } finally {
+      setAllAccountsFactoryOverride(null)
+    }
+  })
+
+  test("selected API-key agents show provider quota windows when available", () => {
+    const accounts = [THREE_ACCOUNTS[0]!, XAI_ACCOUNT, GOOGLE_ACCOUNT_WITH_QUOTA, CURSOR_ACCOUNT_WITH_QUOTA]
+    setAllAccountsFactoryOverride({
+      readCached: () => accounts,
+      probe: async () => accounts,
+    })
+    try {
+      expect(renderPanel({ agent: "xai" }).text).toContain("RPM")
+      expect(renderPanel({ agent: "xai" }).text).toContain("TPM")
+
+      const geminiText = renderPanel({ agent: "gemini" }).text
+      expect(geminiText).toContain("Google API")
+      expect(geminiText).toContain("Dail")
+
+      const cursorText = renderPanel({ agent: "cursor" }).text
+      expect(cursorText).toContain("Cursor API")
+      expect(cursorText).toContain("Task")
     } finally {
       setAllAccountsFactoryOverride(null)
     }
