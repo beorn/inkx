@@ -2,6 +2,9 @@
  * Task Status Subcommand
  *
  * View or set task status: km task status <id> [new-status]
+ *
+ * Logic lives in `./status-plan.ts` (pure); this file owns I/O —
+ * commander wiring, repo load, terminal coloring, and JSON emission.
  */
 
 import { Command } from "@silvery/commander"
@@ -10,9 +13,11 @@ import { createTerm } from "@silvery/ag-react"
 const term = createTerm(process)
 import { resolvePathArg } from "@km/fs-mount"
 import { loadRepo } from "../../load-repo.ts"
-import { getMarkerForStatus } from "@km/core"
-import type { TaskStatus } from "@km/core"
 import { getRootPath } from "../../program.ts"
+import { planStatus, VALID_STATUSES } from "./status-plan.ts"
+
+// Re-export the planner so existing imports keep working.
+export { planStatus, VALID_STATUSES, type StatusPlan } from "./status-plan.ts"
 
 /** Get styled status icon for terminal display */
 function getStatusIcon(status: string): string {
@@ -42,51 +47,47 @@ export function createStatusCommand() {
       using repo = await loadRepo(resolved.repoRoot)
       const task = repo.resolveNode(id, { taskOnly: true })
 
-      if (!task) {
-        console.error(term.red(`No task found with ID prefix: ${id}`))
+      const plan = planStatus(task, id, newStatus)
+
+      if (plan.kind === "not-found") {
+        console.error(term.red(`No task found with ID prefix: ${plan.id}`))
         process.exit(1)
       }
 
-      if (!newStatus) {
-        // View mode - just show current status
+      if (plan.kind === "invalid-status") {
+        console.error(term.red(`Invalid status: ${plan.given}`))
+        console.error(term.dim(`Valid statuses: ${plan.valid.join(", ")}`))
+        process.exit(1)
+      }
+
+      if (plan.kind === "view") {
         if (options.json) {
           console.log(
             JSON.stringify({
-              id: task.id,
-              status: task.item?.task?.status ?? "todo",
-              mark: task.item?.task?.marker ?? "[ ]",
-              content: task.content,
+              id: plan.id,
+              status: plan.status,
+              mark: plan.marker,
+              content: task!.content,
             }),
           )
           return
         }
-
-        const status = task.item?.task?.status ?? "todo"
-        console.log(`${getStatusIcon(status)} ${status}: ${task.content?.slice(0, 60) ?? "(no content)"}`)
+        console.log(`${getStatusIcon(plan.status)} ${plan.status}: ${plan.content.slice(0, 60)}`)
         return
       }
 
-      // Set mode - update the status
-      const validStatuses = ["todo", "wip", "blocked", "done", "dropped"]
-      if (!validStatuses.includes(newStatus)) {
-        console.error(term.red(`Invalid status: ${newStatus}`))
-        console.error(term.dim(`Valid statuses: ${validStatuses.join(", ")}`))
-        process.exit(1)
-      }
-
-      const newMarker = getMarkerForStatus(newStatus as TaskStatus)
-
-      repo.updateNode(task.id, {
-        item: { task: { status: newStatus as TaskStatus, marker: newMarker } },
+      // plan.kind === "set"
+      repo.updateNode(plan.id, {
+        item: { task: { status: plan.status, marker: plan.marker } },
       })
 
       if (options.json) {
-        console.log(JSON.stringify({ id: task.id, status: newStatus }))
+        console.log(JSON.stringify({ id: plan.id, status: plan.status }))
         return
       }
 
       console.log(
-        `${getStatusIcon(newStatus)} ${term.dim(task.id.slice(-8))} → ${newStatus}: ${task.content?.slice(0, 50) ?? "(no content)"}`,
+        `${getStatusIcon(plan.status)} ${term.dim(plan.id.slice(-8))} → ${plan.status}: ${plan.content.slice(0, 50)}`,
       )
     })
 }
