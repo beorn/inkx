@@ -1,7 +1,7 @@
 import React from "react"
 import { describe, expect, test } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, Screen } from "silvery"
+import { Box } from "silvery"
 import type { AgentEvent, SessionId, TurnId } from "@km/agent-harness"
 import { createSilvercodeController } from "../src/controller.ts"
 import { SessionCard } from "../src/components/SessionCard.tsx"
@@ -22,6 +22,8 @@ function sessionInit(): AgentEvent {
     slashCommands: [],
     skills: [],
     plugins: [],
+    claudeCodeVersion: "test-version",
+    apiKeySource: "test",
     ts: 1_000,
   }
 }
@@ -33,6 +35,7 @@ describe("ambient events around Welcome", () => {
       cwd: "/tmp/silvercode-ambient-artifact-test",
       model: "test-model",
       agent: "codex",
+      bare: true,
       initialSessions: 0,
       spawnFactory: () => fake,
       disableAmbientAdapters: true,
@@ -45,13 +48,13 @@ describe("ambient events around Welcome", () => {
       id: makeAmbientEventId("tribe"),
       source: "tribe",
       timestamp: 1_100,
-      content: '[broadcast tribe] Committed: 407b30668 feat(silvercode): checkpoint chat layout plateau work',
+      content: "[broadcast tribe] Committed: 407b30668 feat(silvercode): checkpoint chat layout plateau work",
       meta: { fromSessionId: "peer" },
     })
 
     const renderer = createRenderer({ cols: 132, rows: 32 })
     const tree = (
-      <Screen flexDirection="row">
+      <Box flexDirection="row" width={132} height={32}>
         <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
           <SessionCard
             handle={handle}
@@ -64,7 +67,7 @@ describe("ambient events around Welcome", () => {
             follow={false}
           />
         </Box>
-      </Screen>
+      </Box>
     )
 
     const app = renderer(tree)

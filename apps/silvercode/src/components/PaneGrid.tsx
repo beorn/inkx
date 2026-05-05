@@ -63,11 +63,13 @@ import { PaneHeader } from "./PaneHeader.tsx"
 import { SessionCard } from "./SessionCard.tsx"
 import { Content } from "./Content.tsx"
 import { formatLoadingSessionId, MeasuredBanner } from "./Welcome.tsx"
+import { Chat } from "./Chat.tsx"
 
 /** Mirrors `AGENT_LABELS` in `Welcome.tsx` — kept local to PaneGrid so the
  *  pre-spawn banner (rendered before any SessionHandle exists) can pick the
  *  right per-agent label. Same map; if either drifts, both should update. */
 const AGENT_LABELS_FOR_PRESPAWN: Readonly<Record<string, string>> = {
+  claude: "Claude Code",
   "claude-code": "Claude Code",
   "claude-code-spawn": "Claude Code",
   "claude-code-sdk": "Claude Code",
@@ -396,6 +398,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
       const isTargetLeaf = moveDrag?.targetId === handle.id
       const dropEdge = isTargetLeaf ? (moveDrag?.edge ?? null) : null
       const isMinimized = minimizedPaneIds?.has(handle.id) ?? false
+      const showPaneChrome = paneHeaders || sessions.length > 1
       return (
         <LeafContainer
           handle={handle}
@@ -408,6 +411,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
           onDeny={(rid) => props.onDenyPermission(handle.id, rid)}
           onGrabMouseDown={(x, y) => handleGrabMouseDown(handle.id, x, y)}
           showHeader={paneHeaders}
+          showPaneChrome={showPaneChrome}
           isMinimized={isMinimized}
           onSplitRight={onSplitRightPane ? () => onSplitRightPane(handle.id) : undefined}
           onClose={onClosePane ? () => onClosePane(handle.id) : undefined}
@@ -422,6 +426,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
     },
     [
       sessionMap,
+      sessions.length,
       focusedSessionId,
       onFocusSession,
       props,
@@ -462,24 +467,24 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
       .join(" · ")
     const isResumeLoading = Boolean(props.resume)
     return (
-      <Box flexDirection="column" flexGrow={1} alignItems="center" justifyContent="center" gap={1}>
-        <MeasuredBanner />
-        {agentModelDetails.length > 0 ? <Text color="$muted">{agentModelDetails}</Text> : null}
-        {isResumeLoading ? (
-          <>
-            <Text color="$muted">Loading session</Text>
-            {loadingSessionId.length > 0 ? <Text color="$muted">{loadingSessionId}</Text> : null}
-          </>
-        ) : composerSlot ? (
-          <Content.Row>
-            <Content.Body width="auto">
+      <Content.Layout>
+        <Box flexDirection="column" flexGrow={1} alignItems="center" justifyContent="center" gap={1}>
+          <MeasuredBanner />
+          {agentModelDetails.length > 0 ? <Text color="$muted">{agentModelDetails}</Text> : null}
+          {isResumeLoading ? (
+            <>
+              <Text color="$muted">Loading session</Text>
+              {loadingSessionId.length > 0 ? <Text color="$muted">{loadingSessionId}</Text> : null}
+            </>
+          ) : composerSlot ? (
+            <Chat.Composer>
               <Box alignSelf="center" width="70%" minWidth={0}>
                 {composerSlot}
               </Box>
-            </Content.Body>
-          </Content.Row>
-        ) : null}
-      </Box>
+            </Chat.Composer>
+          ) : null}
+        </Box>
+      </Content.Layout>
     )
   }
 
@@ -501,6 +506,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
               controller={controller}
               agent={agent}
               composerSlot={composerSlot}
+              showFocusBar
             />
           </Box>
         </Box>
@@ -553,6 +559,7 @@ function LeafContainer({
   onDeny,
   onGrabMouseDown,
   showHeader,
+  showPaneChrome,
   isMinimized,
   onSplitRight,
   onClose,
@@ -574,6 +581,7 @@ function LeafContainer({
   onGrabMouseDown: (x: number, y: number) => void
   /** Render PaneHeader strip above SessionCard (v2 opt-in). */
   showHeader: boolean
+  showPaneChrome: boolean
   /** When minimized + showHeader, hide the SessionCard so only the
    * header strip is visible. flexGrow stays at 1 so the surrounding
    * split layout still allocates space — the empty body just collapses
@@ -626,20 +634,22 @@ function LeafContainer({
           controller={controller}
           agent={agent}
           composerSlot={isFocused ? composerSlot : undefined}
-          showFocusBar
+          showFocusBar={showPaneChrome}
         />
       )}
-      <Box
-        position="absolute"
-        top={0}
-        left={0}
-        width={1}
-        height={1}
-        flexShrink={0}
-        onMouseDown={(e) => onGrabMouseDown(e.clientX, e.clientY)}
-      >
-        <Text color={isFocused ? "$accent" : "$muted"}>▤</Text>
-      </Box>
+      {showPaneChrome ? (
+        <Box
+          position="absolute"
+          top={0}
+          left={0}
+          width={1}
+          height={1}
+          flexShrink={0}
+          onMouseDown={(e) => onGrabMouseDown(e.clientX, e.clientY)}
+        >
+          <Text color={isFocused ? "$accent" : "$muted"}>▤</Text>
+        </Box>
+      ) : null}
       {/* Drop indicator overlay — colored 1-cell band on the relevant
           edge, or a 2-col center band for the swap zone. Rendered only
           when this leaf is the current drag target. */}

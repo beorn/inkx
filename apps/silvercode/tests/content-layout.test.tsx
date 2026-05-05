@@ -1,4 +1,4 @@
-import React from "react"
+import React, { act } from "react"
 import { beforeAll, describe, expect, test } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { isLayoutEngineInitialized, setLayoutEngine } from "@silvery/ag-react"
@@ -7,8 +7,10 @@ import { Box, Text } from "silvery"
 import type { MessageEntry, MessageOp } from "@km/agent-harness"
 import { MarkdownView } from "../src/components/MarkdownView.tsx"
 import { SessionUpdateList } from "../src/components/SessionUpdateList.tsx"
+import { SessionCard } from "../src/components/SessionCard.tsx"
 import type { AmbientStreamEntry } from "../src/components/AmbientEventRow.tsx"
 import { Content } from "../src/components/Content.tsx"
+import { createSessionStore } from "@km/agent-harness"
 
 beforeAll(() => {
   if (!isLayoutEngineInitialized()) setLayoutEngine(createFlexilyZeroEngine())
@@ -181,7 +183,11 @@ function backgroundRunWidth(app: ReturnType<typeof renderList>, row: number, col
   return right - left + 1
 }
 
-function backgroundRunBounds(app: ReturnType<typeof renderList>, row: number, col: number): { left: number; right: number } {
+function backgroundRunBounds(
+  app: ReturnType<typeof renderList>,
+  row: number,
+  col: number,
+): { left: number; right: number } {
   const bg = app.cell(col, row).bg
   expect(bg, "target cell should have a prompt bubble background").not.toBeNull()
 
@@ -192,6 +198,49 @@ function backgroundRunBounds(app: ReturnType<typeof renderList>, row: number, co
   while (right + 1 < app.width && sameRgb(app.cell(right + 1, row).bg, bg)) right++
 
   return { left, right }
+}
+
+const SCROLLBAR_THUMB_CHARS = new Set(["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"])
+const BOTTOM_OVERSCROLL_INDICATOR = "▄"
+
+function sessionHandleWithStore(store: ReturnType<typeof createSessionStore>) {
+  return {
+    id: "test-session",
+    name: "test-session",
+    store,
+    session: {},
+    unsubscribe: () => {},
+    log: { write: () => {}, sessionLogPath: "" },
+    account: undefined,
+    metadata: undefined,
+  } as never
+}
+
+function findScrollbarThumbAtRightEdge(app: ReturnType<typeof renderList>): { col: number; row: number } | null {
+  const col = app.width - 1
+  for (let row = 0; row < app.height; row++) {
+    if (SCROLLBAR_THUMB_CHARS.has(app.cell(col, row).char)) return { col, row }
+  }
+  return null
+}
+
+function hasScrollbarThumbAt(app: ReturnType<typeof renderList>, col: number, row: number): boolean {
+  return SCROLLBAR_THUMB_CHARS.has(app.cell(col, row).char)
+}
+
+function bottomOverscrollIndicatorWidth(app: ReturnType<typeof renderList>, row: number): number {
+  let count = 0
+  for (let col = 0; col < app.width; col++) {
+    if (app.cell(col, row).char === BOTTOM_OVERSCROLL_INDICATOR) count++
+  }
+  return count
+}
+
+function hasBottomOverscrollIndicator(app: ReturnType<typeof renderList>): boolean {
+  for (let row = 0; row < app.height; row++) {
+    if (bottomOverscrollIndicatorWidth(app, row) > 0) return true
+  }
+  return false
 }
 
 describe("content layout", () => {
@@ -220,6 +269,190 @@ describe("content layout", () => {
     expect(tableLine!.indexOf("SessionUpdateList.tsx")).toBeGreaterThan(2)
     expect(tableLine!.trimEnd().length).toBeGreaterThan(96)
     expect(tableLine!.trimEnd().length).toBeLessThanOrEqual(132)
+  })
+
+  test("session viewport and scrollbar extend to the pane right edge", async () => {
+    const cols = 80
+    const rows = 18
+    const store = createSessionStore()
+    const sessionId = "test-session" as never
+    for (let index = 0; index < 10; index++) {
+      store.apply({
+        kind: "assistant-message",
+        sessionId,
+        turnId: `a${index}` as never,
+        content: [{ type: "text", text: `assistant row ${index}` }],
+        ts: Date.UTC(2026, 3, 30, 17, index),
+      })
+    }
+    const renderer = createRenderer({ cols, rows })
+    const handle = sessionHandleWithStore(store)
+    const tree = (
+      <Box width={cols} height={rows} flexDirection="column" overflow="hidden">
+        <SessionCard handle={handle} isFocused onFocus={() => {}} onApprove={() => {}} onDeny={() => {}} />
+      </Box>
+    )
+    const app = renderer(tree)
+
+    await act(async () => {
+      for (let index = 10; index < 80; index++) {
+        store.apply({
+          kind: "assistant-message",
+          sessionId,
+          turnId: `a${index}` as never,
+          content: [{ type: "text", text: `assistant row ${index}` }],
+          ts: Date.UTC(2026, 3, 30, 17, index),
+        })
+      }
+    })
+    app.rerender(tree)
+
+    const thumb = findScrollbarThumbAtRightEdge(app)
+    expect(thumb, app.text).not.toBeNull()
+    expect(thumb!.col).toBe(cols - 1)
+  })
+
+  test("floating composer does not cover the scrollbar bottom row", async () => {
+    const cols = 80
+    const rows = 18
+    const store = createSessionStore()
+    const sessionId = "test-session" as never
+    for (let index = 0; index < 10; index++) {
+      store.apply({
+        kind: "assistant-message",
+        sessionId,
+        turnId: `a${index}` as never,
+        content: [{ type: "text", text: `assistant row ${index}` }],
+        ts: Date.UTC(2026, 3, 30, 17, index),
+      })
+    }
+    const renderer = createRenderer({ cols, rows })
+    const handle = sessionHandleWithStore(store)
+    const tree = (
+      <Box width={cols} height={rows} flexDirection="column" overflow="hidden">
+        <SessionCard
+          handle={handle}
+          isFocused
+          onFocus={() => {}}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          composerSlot={<Text>{"> ready"}</Text>}
+        />
+      </Box>
+    )
+    const app = renderer(tree)
+
+    await act(async () => {
+      for (let index = 10; index < 80; index++) {
+        store.apply({
+          kind: "assistant-message",
+          sessionId,
+          turnId: `a${index}` as never,
+          content: [{ type: "text", text: `assistant row ${index}` }],
+          ts: Date.UTC(2026, 3, 30, 17, index),
+        })
+      }
+    })
+    app.rerender(tree)
+
+    expect(hasScrollbarThumbAt(app, cols - 1, rows - 1), app.text).toBe(true)
+  })
+
+  test("floating composer does not cover the bottom overscroll indicator", async () => {
+    const cols = 80
+    const rows = 18
+    const store = createSessionStore()
+    const sessionId = "test-session" as never
+    for (let index = 0; index < 10; index++) {
+      store.apply({
+        kind: "assistant-message",
+        sessionId,
+        turnId: `a${index}` as never,
+        content: [{ type: "text", text: `assistant row ${index}` }],
+        ts: Date.UTC(2026, 3, 30, 17, index),
+      })
+    }
+    const renderer = createRenderer({ cols, rows })
+    const handle = sessionHandleWithStore(store)
+    const tree = (
+      <Box width={cols} height={rows} flexDirection="column" overflow="hidden">
+        <SessionCard
+          handle={handle}
+          isFocused
+          onFocus={() => {}}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          composerSlot={<Text>{"> ready"}</Text>}
+        />
+      </Box>
+    )
+    const app = renderer(tree)
+
+    await act(async () => {
+      for (let index = 10; index < 80; index++) {
+        store.apply({
+          kind: "assistant-message",
+          sessionId,
+          turnId: `a${index}` as never,
+          content: [{ type: "text", text: `assistant row ${index}` }],
+          ts: Date.UTC(2026, 3, 30, 17, index),
+        })
+      }
+    })
+    app.rerender(tree)
+
+    for (let i = 0; i < 8; i++) {
+      await app.wheel(Math.floor(cols / 2), Math.floor(rows / 2), 1)
+    }
+
+    expect(hasBottomOverscrollIndicator(app), app.text).toBe(true)
+  })
+
+  test("floating composer masks transcript content behind its right edge", async () => {
+    const cols = 120
+    const rows = 18
+    const store = createSessionStore()
+    const sessionId = "test-session" as never
+    for (let index = 0; index < 20; index++) {
+      store.apply({
+        kind: "assistant-message",
+        sessionId,
+        turnId: `a${index}` as never,
+        content: [{ type: "text", text: `assistant row ${index}` }],
+        ts: Date.UTC(2026, 3, 30, 17, index),
+      })
+    }
+    store.apply({
+      kind: "user-message",
+      sessionId,
+      turnId: "u1" as never,
+      text: "keep",
+      ts: Date.UTC(2026, 3, 30, 18, 0),
+    })
+    const renderer = createRenderer({ cols, rows })
+    const handle = sessionHandleWithStore(store)
+    const tree = (
+      <Box width={cols} height={rows} flexDirection="column" overflow="hidden">
+        <SessionCard
+          handle={handle}
+          isFocused
+          onFocus={() => {}}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          composerSlot={<Text>{"> ready"}</Text>}
+        />
+      </Box>
+    )
+    const app = renderer(tree)
+
+    for (let i = 0; i < 4; i++) {
+      await app.wheel(Math.floor(cols / 2), Math.floor(rows / 2), -1)
+    }
+
+    const composerRow = app.lines.findIndex((line) => line.includes("> ready"))
+    expect(composerRow, app.text).toBeGreaterThanOrEqual(0)
+    expect(app.lines[composerRow], app.text).not.toContain("keep")
+    expect(app.lines[composerRow - 1] ?? "", app.text).not.toContain("keep")
   })
 
   test("responsive markdown table expands rows into key-value cards when columns cannot fit", () => {
@@ -311,7 +544,9 @@ describe("content layout", () => {
     expect(assistantHoverLine, app.text).toContain("16:06")
     expect(assistantHoverLine!.indexOf("16:06")).toBeLessThan(assistantHoverLine!.indexOf("Here is the summary."))
     expect(assistantHoverLine!.indexOf("16:06")).toBeGreaterThan(0)
-    expect(assistantHoverLine!.indexOf("Here is the summary.")).toBe(assistantLineBeforeHover!.indexOf("Here is the summary."))
+    expect(assistantHoverLine!.indexOf("Here is the summary.")).toBe(
+      assistantLineBeforeHover!.indexOf("Here is the summary."),
+    )
   })
 
   test("user markdown list bubble shrinkwraps to balanced rendered list items", () => {
@@ -367,8 +602,7 @@ describe("content layout", () => {
           ops: [
             {
               kind: "text",
-              text:
-                "StatusGlyph.tsx; no remaining touched-file SidePanel.tsx error. This is a long final line before the prompt.",
+              text: "StatusGlyph.tsx; no remaining touched-file SidePanel.tsx error. This is a long final line before the prompt.",
             },
           ],
         }),
@@ -537,6 +771,53 @@ describe("content layout", () => {
     expect(thinkingRow, app.text).toBeGreaterThanOrEqual(0)
     expect(answerRow, app.text).toBeGreaterThanOrEqual(0)
     expect(app.lines[thinkingRow]!.indexOf("Checking")).toBe(app.lines[answerRow]!.indexOf("Here"))
+  })
+
+  test("live activity row aligns to the prose lane", () => {
+    const app = renderList(
+      [
+        makeEntry({
+          id: "a1",
+          role: "assistant",
+          ts: new Date(2026, 3, 30, 12, 7).getTime(),
+          ops: [{ kind: "text", text: "I am about to run the command." }],
+        }),
+      ],
+      132,
+      14,
+    )
+    app.rerender(
+      <Box width={132} height={14} flexDirection="column">
+        <Content.Layout>
+          <SessionUpdateList
+            messages={[
+              makeEntry({
+                id: "a1",
+                role: "assistant",
+                ts: new Date(2026, 3, 30, 12, 7).getTime(),
+                ops: [{ kind: "text", text: "I am about to run the command." }],
+              }),
+            ]}
+            status="tool-running"
+            turnStartedAt={Date.now() - 1_000}
+            inputTokens={4200}
+            outputTokens={980}
+            pendingPermissions={0}
+            inFlightTool="Bash"
+            sessionId="test-session"
+            onApprove={() => {}}
+            onDeny={() => {}}
+            follow={false}
+          />
+        </Content.Layout>
+      </Box>,
+    )
+
+    const proseRow = app.lines.findIndex((line) => line.includes("I am about to run"))
+    const activityRow = app.lines.findIndex((line) => line.includes("running Bash"))
+    expect(proseRow, app.text).toBeGreaterThanOrEqual(0)
+    expect(activityRow, app.text).toBeGreaterThanOrEqual(0)
+    expect(app.lines[activityRow]!.indexOf("◈")).toBe(app.lines[proseRow]!.indexOf("•"))
   })
 
   test("assistant markdown code blocks stay inside the prose lane and show language only on hover", async () => {
@@ -801,5 +1082,4 @@ describe("content layout", () => {
     expect(lastBullet, app.text).toBeGreaterThan(standalone)
     expect(app.lines[lastBullet + 1]?.trim() ?? "").toBe("")
   })
-
 })

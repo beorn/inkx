@@ -403,6 +403,13 @@ describe("feature 3 — right-aligned user prompt surface", () => {
 // ============================================================================
 
 describe("km-silvercode.welcome-bypassed-by-pane-grid-spawn — banner from frame 0", () => {
+  test("single-pane Welcome does not show pane move/focus chrome in the top-left corner", async () => {
+    const s = await renderScenario({ script: welcome, cols: 120, rows: 50, agent: "codex" })
+    expect(s.lines[0]?.slice(0, 3), s.text).not.toContain("▤")
+    expect(s.lines[1]?.slice(0, 3), s.text).not.toContain("▎")
+    s.dispose()
+  })
+
   test("Welcome banner paints once spawn resolves; '◈ Spawning session…' never appears", async () => {
     // renderScenario waits for the spawn microtask + first session-init
     // before returning, so by the time we sample text the banner must be

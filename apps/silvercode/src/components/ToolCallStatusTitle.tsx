@@ -13,6 +13,7 @@
 import React from "react"
 import { Box, Text } from "silvery"
 import type { ToolCallStatus, ToolKind } from "@km/agent-harness"
+import { LinkifiedText } from "./LinkifiedText.tsx"
 
 // =============================================================================
 // Component
@@ -34,6 +35,8 @@ export interface ToolCallStatusTitleProps {
   shell?: boolean
   /** Optional text color override, used to mute collapsed shell commands. */
   color?: string
+  /** Linkify file/image references inside non-shell titles. */
+  linkify?: boolean
 }
 
 export function ToolCallStatusTitle({
@@ -43,24 +46,27 @@ export function ToolCallStatusTitle({
   label,
   shell = false,
   color,
+  linkify = false,
 }: ToolCallStatusTitleProps): React.ReactElement {
   const text = label ?? title
 
   if (shell) {
     return (
       <Box flexShrink={1} minWidth={0}>
-        <Text color={color ?? "$muted"} wrap="truncate">
-          {text}
-        </Text>
+        <LinkifiedText text={text} color={color ?? "$muted"} wrap="truncate" />
       </Box>
     )
   }
 
   return (
     <Box flexShrink={1} minWidth={0}>
-      <Text color={color ?? "$muted"} wrap="truncate">
-        {text}
-      </Text>
+      {linkify ? (
+        <LinkifiedText text={text} color={color ?? "$muted"} wrap="truncate" />
+      ) : (
+        <Text color={color ?? "$muted"} wrap="truncate">
+          {text}
+        </Text>
+      )}
     </Box>
   )
 }

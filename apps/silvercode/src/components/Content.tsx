@@ -253,11 +253,19 @@ function Row({
   const sideWidth = leftWidth + leftGap + rightGap + rightWidth
   const middleAvailable = ctx.available > 0 ? Math.max(1, available - sideWidth) : laneWidth
   const width = ctx.available > 0 ? Math.min(laneWidth, middleAvailable) : laneWidth
+  const middleSelfAligns =
+    hasDirectProseLane ||
+    hasDirectWideLane ||
+    hasDirectFullLane ||
+    hasDirectProseBody ||
+    hasDirectWideBody ||
+    hasDirectFullBody
+  const middleWidth = middleSelfAligns ? middleAvailable : width
   const occupiedWidth = width + sideWidth
   const leftMargin = rowAlign === "center" ? Math.max(0, Math.floor((available - occupiedWidth) / 2)) : 0
   const rightMargin = rowAlign === "center" ? Math.max(0, available - occupiedWidth - leftMargin) : 0
-  const leftSpacer = rowAlign === "center" ? leftMargin : 0
-  const rightSpacer = rowAlign === "center" ? rightMargin : 0
+  const leftSpacer = rowAlign === "center" && !middleSelfAligns ? leftMargin : 0
+  const rightSpacer = rowAlign === "center" && !middleSelfAligns ? rightMargin : 0
   const leftAside =
     left.length > 0 ? (
       <Box position="absolute" top={0} left={0} width={leftMargin} flexDirection="row" justifyContent="flex-end">
@@ -271,8 +279,8 @@ function Row({
       </Box>
     ) : null
   const middleNode = (
-    <ContentRowContext.Provider value={{ available: width }}>
-      <Box flexDirection="row" width={width} maxWidth={width} flexShrink={1} minWidth={0}>
+    <ContentRowContext.Provider value={{ available: middleWidth }}>
+      <Box flexDirection="row" width={middleWidth} maxWidth={middleWidth} flexShrink={1} minWidth={0}>
         {middle}
       </Box>
     </ContentRowContext.Provider>
@@ -301,21 +309,26 @@ function ProseLane({ children }: { children: React.ReactNode }): React.ReactElem
   const row = useContext(ContentRowContext)
   const ctx = useContentLayout()
   const available = row?.available ?? ctx.available
-  const width = available > 0 ? Math.min(ctx.measure, available) : ctx.measure
+  const gutterMinWidth = available > 2 ? 1 : 0
+  const lane = (
+    <Box flexDirection="row" width="100%" minWidth={0}>
+      <Box flexGrow={1} flexBasis={0} flexShrink={1} minWidth={gutterMinWidth} />
+      <Box flexDirection="column" width={ctx.measure} maxWidth={ctx.measure} flexShrink={1} minWidth={0}>
+        {children}
+      </Box>
+      <Box flexGrow={1} flexBasis={0} flexShrink={1} minWidth={gutterMinWidth} />
+    </Box>
+  )
   if (row) {
     return (
       <Box flexDirection="row" width="100%" justifyContent={laneJustify(ctx.align)} minWidth={0}>
-        <Box flexDirection="column" width={width} maxWidth={width} flexShrink={1} minWidth={0}>
-          {children}
-        </Box>
+        {lane}
       </Box>
     )
   }
   return (
     <Box flexDirection="row" width="100%" justifyContent={laneJustify(ctx.align)} minWidth={0}>
-      <Box flexDirection="column" width={width} maxWidth={width} flexShrink={1} minWidth={0}>
-        {children}
-      </Box>
+      {lane}
     </Box>
   )
 }

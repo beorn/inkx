@@ -5,8 +5,8 @@ import { useAmbientStream } from "../hooks/use-ambient-stream.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 import { SessionUpdateList } from "./SessionUpdateList.tsx"
 import { Welcome } from "./Welcome.tsx"
-import { Content } from "./Content.tsx"
 import type { MessageEntry } from "@km/agent-harness"
+import { Chat } from "./Chat.tsx"
 
 /**
  * Per-agent display labels for the inline activity row's spawning state.
@@ -15,6 +15,7 @@ import type { MessageEntry } from "@km/agent-harness"
  * the welcome-side "<agent label>" muted line stay in sync. Bead: km-cr94.
  */
 const AGENT_LABELS_FOR_ACTIVITY: Readonly<Record<string, string>> = {
+  claude: "Claude Code",
   "claude-code": "Claude Code",
   "claude-code-spawn": "Claude Code",
   "claude-code-sdk": "Claude Code",
@@ -23,6 +24,9 @@ const AGENT_LABELS_FOR_ACTIVITY: Readonly<Record<string, string>> = {
   gemini: "Gemini",
   "github-copilot-cli": "GitHub Copilot",
 }
+
+const SCROLL_CHROME_WIDTH = 1
+const OVERSCROLL_INDICATOR_WIDTH = 10
 
 function agentLabelFor(agent?: string): string | null {
   if (!agent) return null
@@ -162,6 +166,7 @@ export function SessionCard({
     // neighboring cards or the side panel.
     <Box
       flexDirection="row"
+      width="100%"
       flexGrow={1}
       flexShrink={1}
       minWidth={0}
@@ -183,30 +188,17 @@ export function SessionCard({
       <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0}>
         <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0}>
           {!hasTranscriptContent ? (
-              <Welcome
-                handle={handle}
-                agent={agent}
-                model={state.model || handle.metadata?.model}
-                status={state.status}
-                composerSlot={composerSlot}
-              />
+            <Welcome
+              handle={handle}
+              agent={agent}
+              model={state.model || handle.metadata?.model}
+              status={state.status}
+              composerSlot={composerSlot}
+            />
           ) : (
-            <Box
-              flexGrow={1}
-              flexShrink={1}
-              minWidth={0}
-              minHeight={0}
-              paddingX={hasTranscriptContent ? 1 : 0}
-            >
-              <Content.Layout>
-                <Box
-                  flexDirection="column"
-                  flexGrow={1}
-                  flexShrink={1}
-                  minWidth={0}
-                  minHeight={0}
-                  position="relative"
-                >
+            <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0}>
+              <Chat.Transcript>
+                <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} position="relative">
                   <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} overflow="hidden">
                     <SessionUpdateList
                       ref={scrollListRefCb}
@@ -234,32 +226,34 @@ export function SessionCard({
                     <Box
                       position="absolute"
                       left={0}
+                      right={SCROLL_CHROME_WIDTH + OVERSCROLL_INDICATOR_WIDTH}
+                      bottom={0}
+                      height={composerOverlayHeight}
+                      backgroundColor="$bg-surface-default"
+                    />
+                  ) : null}
+                  {composerSlot ? (
+                    <Box
+                      position="absolute"
+                      left={0}
                       right={0}
                       bottom={0}
                       paddingY={1}
-                      backgroundColor="$bg-surface-default"
                       flexDirection="row"
                       onLayout={(rect) => {
                         const height = Math.max(0, Math.round(rect.height))
                         setComposerHeight((previous) => (previous === height ? previous : height))
                       }}
                     >
-                      <Content.Row>
-                        <Content.Body width="auto">
-                          <Box
-                            flexDirection="column"
-                            width="100%"
-                            minWidth={0}
-                            backgroundColor="$bg-surface-raised"
-                          >
-                            {composerSlot}
-                          </Box>
-                        </Content.Body>
-                      </Content.Row>
+                      <Chat.Composer>
+                        <Box flexDirection="column" width="100%" minWidth={0} backgroundColor="$bg-surface-raised">
+                          {composerSlot}
+                        </Box>
+                      </Chat.Composer>
                     </Box>
                   ) : null}
                 </Box>
-              </Content.Layout>
+              </Chat.Transcript>
             </Box>
           )}
         </Box>

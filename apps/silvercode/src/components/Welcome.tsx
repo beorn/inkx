@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { Box, Image, MeasuredBox, Muted, Small, Text, isKittyGraphicsSupported } from "silvery"
 import type { SessionHandle } from "../controller.ts"
 import { prefixSid } from "../sid-prefix.ts"
-import { Content } from "./Content.tsx"
+import { Chat } from "./Chat.tsx"
 
 /**
  * Per-agent display label. Mirrors the `AGENT_DISPLAY` map in `SidePanel.tsx`
@@ -12,6 +12,7 @@ import { Content } from "./Content.tsx"
  * agent id → bare "Silver Code". Bead: km-silvercode.welcome-claude-hardcoded.
  */
 const AGENT_LABELS: Readonly<Record<string, string>> = {
+  claude: "Claude Code",
   "claude-code": "Claude Code",
   "claude-code-spawn": "Claude Code",
   "claude-code-sdk": "Claude Code",
@@ -391,13 +392,7 @@ export function formatLoadingSessionId(id: string | undefined, agent: string | u
   return agent ? prefixSid(agent, id) : id
 }
 
-function formatAgentModelDetails({
-  agentLabel,
-  model,
-}: {
-  agentLabel?: string
-  model?: string
-}): string {
+function formatAgentModelDetails({ agentLabel, model }: { agentLabel?: string; model?: string }): string {
   return [agentLabel, model].filter((part): part is string => Boolean(part && part.length > 0)).join(" · ")
 }
 
@@ -475,13 +470,11 @@ export function Welcome(props: {
       ) : null}
 
       {props.composerSlot && !isLoading ? (
-        <Content.Row>
-          <Content.Body width="auto">
-            <Box alignSelf="center" width="70%" minWidth={0}>
-              {props.composerSlot}
-            </Box>
-          </Content.Body>
-        </Content.Row>
+        <Chat.Composer>
+          <Box alignSelf="center" width="70%" minWidth={0}>
+            {props.composerSlot}
+          </Box>
+        </Chat.Composer>
       ) : null}
     </Box>
   )

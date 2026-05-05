@@ -68,6 +68,10 @@ const MESSAGE_LIST_PAGE_STEP = 10
 
 // Side panel column count when rendered (inline or overlay).
 const SIDE_PANEL_WIDTH = 40
+// Below md there is not enough room for a 40-col overlay without making
+// the main chat unusably narrow. Manual /panel still works at md-lg as an
+// overlay, and lg+ opens inline by default.
+const SIDE_PANEL_OVERLAY_MIN_COLS = 90
 
 function hasConversationContent(messages: readonly MessageEntry[]): boolean {
   return messages.some((m) => {
@@ -357,10 +361,12 @@ export function App(props: AppProps): React.ReactElement {
   const panel = useResponsiveDisclosure({
     defaultOpen: (zone) => zone === "lg" || zone === "xl",
   })
-  const showSidePanel = panel.open
-  const togglePanel = panel.toggle
   // Inline when at-or-above the auto-open threshold; overlay below.
   const isInlinePanel = panel.zone === "lg" || panel.zone === "xl"
+  const viewportCols = useTerm((t) => t.size.cols())
+  const canRenderOverlayPanel = viewportCols === 0 || viewportCols >= SIDE_PANEL_OVERLAY_MIN_COLS
+  const showSidePanel = panel.open && (isInlinePanel || canRenderOverlayPanel)
+  const togglePanel = panel.toggle
 
   const [showHistory, setShowHistory] = useState(false)
   // `/raw` slash command toggles a debug view that inlines each user
@@ -1135,7 +1141,7 @@ export function App(props: AppProps): React.ReactElement {
         // to the correct backend without the user having to remember
         // `--agent` separately. See sid-prefix.ts for the round-trip
         // contract.
-        const agentForPrefix = props.agent ?? "claude-code"
+        const agentForPrefix = props.agent ?? "claude"
         const ids: string[] = sessionsRef.current
           .map((h) => h.session.sessionId)
           .filter((sid) => typeof sid === "string")

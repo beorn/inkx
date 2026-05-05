@@ -81,7 +81,11 @@ export function SyntaxHighlighter({
   const hover = useHover()
   const lines = useSyntaxTokens(code, lang, theme)
   const tokenSignature = lines
-    .map((line) => line.tokens.map((token) => `${token.text}:${token.color ?? ""}:${token.bold ? "b" : ""}:${token.italic ? "i" : ""}`).join("|"))
+    .map((line) =>
+      line.tokens
+        .map((token) => `${token.text}:${token.color ?? ""}:${token.bold ? "b" : ""}:${token.italic ? "i" : ""}`)
+        .join("|"),
+    )
     .join("\n")
 
   // Two render modes:
@@ -137,12 +141,12 @@ export function SyntaxHighlighter({
     >
       <Text> </Text>
       {hover.isHovered ? (
-        <Box position="absolute" top={1} right={0} flexDirection="row" backgroundColor="$bg-surface-subtle">
-          <Text backgroundColor="$bg-surface-subtle">  </Text>
-          <Text color="$fg-muted" dim backgroundColor="$bg-surface-subtle">
+        <Box position="absolute" top={1} right={1} flexDirection="row" backgroundColor="$bg-surface-subtle">
+          <Text backgroundColor="$bg-surface-subtle"> </Text>
+          <Text color="$fg-muted" backgroundColor="$bg-surface-subtle">
             {lang}
           </Text>
-          <Text backgroundColor="$bg-surface-subtle">  </Text>
+          <Text backgroundColor="$bg-surface-subtle"> </Text>
         </Box>
       ) : null}
       {body}

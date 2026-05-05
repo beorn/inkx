@@ -41,12 +41,13 @@ function ClaudeVersionSuffix({ override }: { override: string }): React.ReactEle
  * Per-agent display identity for the bottom-of-side-panel branding row.
  * `icon` is the leading glyph (✻ for Claude, etc.), `label` is the
  * vendor-name shown next to it. Versions are agent-specific:
- * - claude-code: probed via `claude --version` + session-init.
+ * - claude: probed via `claude --version` + session-init.
  * - everything else: not yet plumbed through ACP session-init events,
  *   so the row reads "<icon> <Label>" without a version suffix until
  *   ACP `_meta.agentVersion` adoption lands.
  */
 const AGENT_DISPLAY: Readonly<Record<string, { icon: string; label: string }>> = {
+  claude: { icon: "✻", label: "Claude Code" },
   "claude-code": { icon: "✻", label: "Claude Code" },
   "claude-code-spawn": { icon: "✻", label: "Claude Code" },
   "claude-code-sdk": { icon: "✻", label: "Claude Code" },
@@ -57,7 +58,7 @@ const AGENT_DISPLAY: Readonly<Record<string, { icon: string; label: string }>> =
 }
 
 function agentDisplayFor(agent: string | undefined): { icon: string; label: string } {
-  if (!agent) return AGENT_DISPLAY["claude-code"]!
+  if (!agent) return AGENT_DISPLAY["claude"]!
   const known = AGENT_DISPLAY[agent]
   if (known) return known
   // Custom / free-form agent id — show the bare id with a neutral glyph.
@@ -260,6 +261,10 @@ function isPrimaryQuotaWindow(name: string): boolean {
   )
 }
 
+function isRateLimitWindow(name: string): boolean {
+  return name === "RPM" || name === "TPM" || name === "Input TPM" || name === "Output TPM"
+}
+
 /**
  * Color for a quota row. Extra usage is special: any presence of Extra
  * usage is worth flagging since it means the user is spending beyond the
@@ -278,6 +283,7 @@ function quotaColor(w: QuotaWindow): string {
  * Decide which rows render inline in the side panel. Rules per user:
  * - 5-hour: always (primary gauge)
  * - 7-day variants: only when yellow (≥70%) or red
+ * - API rate limits: only when yellow (≥70%) or red
  * - Extra usage: only when the plan has an overage budget AND a primary
  *   window (5h / 7d) is already yellow (≥70%) — "soon to be used". If
  *   nothing's yellow yet, Xtra stays hidden.
@@ -296,6 +302,7 @@ function filterVisibleQuotas(all: QuotaWindow[]): QuotaWindow[] {
       const hasBudget = typeof w.limit === "number" && w.limit > 0
       return hasBudget && primaryYellow
     }
+    if (isRateLimitWindow(w.name)) return isWarningLevel(w.utilization)
     return true
   })
 }
@@ -387,7 +394,7 @@ function groupAccountsByPlan(accounts: AccountSummary[]): Array<{ label: string;
 
 function selectedAccountForAgent(accounts: AccountSummary[], agent: string | undefined): AccountSummary | null {
   if (accounts.length === 0) return null
-  const id = agent ?? "claude-code"
+  const id = agent ?? "claude"
   if (id === "codex" || id === "codex-spawn") {
     return accounts.find((a) => a.provider === "openai" || a.label === "Codex") ?? accounts.find((a) => a.current) ?? accounts[0]!
   }
@@ -649,7 +656,7 @@ const AMBIENT_SOURCES: ReadonlyArray<{ id: string; label: string }> = [
 
 /**
  * AmbientMuteRow — one toggle row for a single ambient source. Shows a
- * `☐` / `☑` checkbox glyph plus the source label. Hover arms a brighter
+ * `☐` / `☑︎` checkbox marker plus the source label. Hover arms a brighter
  * background and surfaces a help popover; click toggles the mute.
  */
 function AmbientMuteRow({
@@ -692,7 +699,7 @@ function AmbientMuteRow({
       }}
       backgroundColor={isHovered ? "$bg-surface-hover" : undefined}
     >
-      <Text color={isMuted ? "$muted" : "$fg"}>{isMuted ? "☐" : "☑"}</Text>
+      <Text color={isMuted ? "$muted" : "$fg"}>{isMuted ? "☐" : "☑︎"}</Text>
       <Text color={isMuted ? "$muted" : "$fg"}>{label}</Text>
       {/* Use the source key as a hidden accessibility hint via popover only;
           the visible label is the human-readable form. */}
@@ -1420,14 +1427,14 @@ function SidePanelChrome({
           </Box>
         </Box>
         {(() => {
-          const id = agent ?? "claude-code"
+          const id = agent ?? "claude"
           const { icon, label } = agentDisplayFor(id)
           // Version suffix is claude-code-only until other agents surface
           // their version via ACP session-init `_meta.agentVersion`. The
           // probe + session-init values are both Claude-CLI-shaped so
           // gating on the agent id keeps the row honest for codex /
           // gemini / copilot rather than showing a stale Claude version.
-          const isClaudeAgent = id === "claude-code" || id === "claude-code-spawn"
+          const isClaudeAgent = id === "claude" || id === "claude-code" || id === "claude-code-spawn"
           // Model + agent share one wrappable row: model stays inline if it
           // fits, wraps to next line aligned under the label otherwise. The
           // model name is one Text node so flex treats it as an indivisible

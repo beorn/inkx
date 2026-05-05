@@ -226,7 +226,7 @@ describe("SidePanel — multi-account view", () => {
     }
   })
 
-  test("Codex selects the Codex/OpenAI account instead of the active Claude profile", () => {
+  test("Codex selects the OpenAI account and shows Codex API rate limits inline", () => {
     const accounts = [...THREE_ACCOUNTS, API_KEY_ACCOUNT, CODEX_ACCOUNT]
     setAllAccountsFactoryOverride({
       readCached: () => accounts,
@@ -237,6 +237,7 @@ describe("SidePanel — multi-account view", () => {
       expect(app.text).toContain("Codex")
       expect(app.text).toContain("CODEX_API_KEY ...dex")
       expect(app.text).toContain("RPM")
+      expect(app.text).toContain("TPM")
       expect(app.text).not.toContain("Claude Code Max 20")
       expect(app.text).not.toContain("personal@example.com")
     } finally {
@@ -369,8 +370,7 @@ describe("SidePanel — multi-account view", () => {
         expect(text).toContain("< Back")
         expect(text).toContain("work@example.com")
         expect(text).toContain("Claude Team")
-        expect(text).toContain("RPM")
-        expect(text).toContain("TPM")
+        expect(text).toContain("CODEX_API_KEY")
       } finally {
         handle.unmount()
       }
