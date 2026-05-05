@@ -16,12 +16,7 @@ import { hashContent } from "../fs/cas.ts"
 import type { Database } from "bun:sqlite"
 import { toAbsoluteFsPath } from "../fs/path-utils.ts"
 import { scanDirectoryRecursiveGen, type ScanEntry } from "./watcher.ts"
-import {
-  reconcileDirectory,
-  applyReconcileOps,
-  createSharedReconcileState,
-  type ReconcileOp,
-} from "./reconcile.ts"
+import { reconcileDirectory, applyReconcileOps, createSharedReconcileState, type ReconcileOp } from "./reconcile.ts"
 import { createIgnoreMatcher } from "../fs/ignore.ts"
 import {
   type Emitter,
@@ -32,6 +27,8 @@ import {
   nodesToMarkdown,
   buildNodeLookup,
   evaluateAllRules,
+  evaluateAffectedRules,
+  extractChangedAttrs,
   createRuleContext,
   type StepYield,
 } from "@km/storage"
@@ -198,7 +195,9 @@ export const BulkSync = {
     for (const entries of dirToFiles.values()) {
       for (const entry of entries) {
         sharedState.presentInodes.add(`${entry.dev ?? ""}:${entry.ino}`)
-        sharedState.presentRelPaths.add(entry.path.startsWith(repoPath + "/") ? entry.path.slice(repoPath.length + 1) : entry.path)
+        sharedState.presentRelPaths.add(
+          entry.path.startsWith(repoPath + "/") ? entry.path.slice(repoPath.length + 1) : entry.path,
+        )
       }
     }
     sharedState.populated = true
@@ -240,6 +239,16 @@ export const BulkSync = {
     // Each created file is announced into the resolver via `addFile`
     // inside the create handler, so subsequent batches see prior files.
     const sharedResolver = createLinkResolver(db)
+
+    // Pre-state snapshot of changed-node attributes — captured BEFORE the
+    // apply transaction so we can detect lost tags / mentions on
+    // update/delete (the post-state has them removed). Unioned with
+    // post-state below to drive the incremental rule-eval triage.
+    const affectedNodeIds = new Set<string>()
+    for (const op of allOps) {
+      if (op.nodeId) affectedNodeIds.add(op.nodeId)
+    }
+    const preStateAttrs = affectedNodeIds.size > 0 ? extractChangedAttrs(db, affectedNodeIds) : null
 
     db.run("BEGIN IMMEDIATE")
     try {
@@ -312,7 +321,36 @@ export const BulkSync = {
 
     const ruleCtx = createRuleContext()
     if (!skipRules) {
-      for (const progress of evaluateAllRules(db, ruleCtx)) {
+      // Incremental rule eval: when this sync had a prior rules-eval cursor
+      // (we know the last clean state) AND ops are localized, derive the
+      // changed-attribute signature from `allOps` and re-eval only rules
+      // whose query domain intersects. Falls back to full eval when
+      // (a) we have no prior cursor (first run / forced rebuild) or
+      // (b) no nodes were touched.
+      //
+      // Correctness note: the signature unions pre-state + post-state
+      // attrs. Pre-state catches "tag removed" cases (the rule that
+      // watched the removed tag must re-eval to drop its embed); post-
+      // state catches the symmetric "tag added" case. Without that
+      // union, an `update` that strips a tag would silently leave
+      // stale embeds.
+      const haveCleanBaseline = lastRulesEval != null && lastRulesEval !== ""
+      const incrementalEligible = haveCleanBaseline && ranAnyOps
+      let changedAttrs = null
+      if (incrementalEligible && affectedNodeIds.size > 0) {
+        const postStateAttrs = extractChangedAttrs(db, affectedNodeIds)
+        // Union pre + post.
+        if (preStateAttrs) {
+          for (const t of preStateAttrs.tags) postStateAttrs.tags.add(t)
+          for (const m of preStateAttrs.mentions) postStateAttrs.mentions.add(m)
+          for (const p of preStateAttrs.projects) postStateAttrs.projects.add(p)
+          for (const fp of preStateAttrs.paths) postStateAttrs.paths.add(fp)
+        }
+        changedAttrs = postStateAttrs
+      }
+
+      const ruleGen = changedAttrs ? evaluateAffectedRules(db, ruleCtx, changedAttrs) : evaluateAllRules(db, ruleCtx)
+      for (const progress of ruleGen) {
         yield { current: progress.current, total: progress.total }
       }
       // Park the cursor at the head event we evaluated against. On a

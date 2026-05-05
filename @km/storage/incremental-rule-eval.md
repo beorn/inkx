@@ -41,3 +41,19 @@ Track per-rule input signatures. On sync:
 - Sync where one file in a single tag namespace changes runs only the rules that match that tag.
 - Synthetic bench: 5000 files, 100 rules, 1 file edit → rule phase under 100 ms.
 - Real-vault sync: rule phase falls below 1 s on a sync with <10 changes.
+
+## Implementation (2026-05-05)
+
+- **Per-rule signature** in `packages/km-storage/src/db/rules.ts`:
+  - `extractRuleSignature(queries)` parses the `add` query AST and captures positive `tags`, `mentions`, `projects`, `positivePaths`. Records `hasPositiveSelector` — pure-negation queries (`-path:archive/`) always re-eval to preserve correctness.
+- **Per-sync changed signature**:
+  - `extractChangedAttrs(db, changedNodeIds)` reads `content + title + fs_path` for each changed node and extracts `#tags / @mentions / +projects` via a single combined regex. Path comes straight from `fs_path`.
+  - bulk-sync now captures **pre-state** attrs BEFORE the apply transaction and **post-state** attrs after, then unions them — so a file that loses an `@inbox` mention still triggers re-eval of `@inbox`-watching rules.
+- **Triage**:
+  - `ruleIsAffected(sig, changed)` returns true when sig has positive intersection with changed, OR when sig is pure-negation (catch-all, must always run).
+  - `evaluateAffectedRules(db, ctx, changedAttrs)` filters the rule set, then runs the same per-rule eval logic with the same caches (`materializeEffectivePaths`, `queryResultCache`, `embedPathsByBoardCache`).
+- **Wiring** in `packages/km-fs-mount/src/watch/bulk-sync.ts`: when a clean `lastRulesEval` baseline exists AND ops landed, derive the changed signature and call `evaluateAffectedRules`. Otherwise (first run, forced rebuild) fall back to `evaluateAllRules`. The existing no-op short-circuit (`lastEvent === lastRulesEval`) still kicks in for zero-op syncs.
+
+Tests:
+- `packages/km-storage/tests/incremental-rule-eval.test.ts` — 16 unit tests covering signature extraction (positive/negative refs, paths, fields), changed-attr extraction, intersection logic, and end-to-end `evaluateAffectedRules` triage.
+- `benchmarks/incremental-rule-eval.slow.test.ts` — synthetic 2000-files / 100-rules acceptance: a one-file edit re-evaluates < 50% of rules and stays under 1 s. Configurable via `RULE_BENCH_FILES` / `RULE_BENCH_RULES`.

@@ -184,4 +184,39 @@ describe(`big-repo sync — ${BIG_FILES} files, ${BIG_RULES} rules`, () => {
     },
     { iterations: 3, warmupIterations: 0 },
   )
+
+  bench(
+    `incremental sync — single file edit (rule eval triage)`,
+    async () => {
+      const repoPath = freshTargetCopy()
+      try {
+        await syncOnce(repoPath) // seed DB
+
+        // Edit one file in @km/inbox/. The new content stays in the
+        // same tag namespace so only @inbox-watching rules need to
+        // re-evaluate. Rules watching @next or @agent get triaged out
+        // by `evaluateAffectedRules`.
+        const target = join(repoPath, "@km/inbox/note-0.md")
+        writeFileSync(
+          target,
+          [
+            `---`,
+            `aliases: [km-inbox.note-0]`,
+            `created_at: 2026-04-29T12:00:00Z`,
+            `---`,
+            ``,
+            `# Note 0 #P1 #urgent`,
+            ``,
+            `Updated body line.`,
+            ``,
+          ].join("\n"),
+        )
+
+        await syncOnce(repoPath) // measured: incremental rule eval
+      } finally {
+        rmSync(repoPath, { recursive: true, force: true })
+      }
+    },
+    { iterations: 3, warmupIterations: 0 },
+  )
 })

@@ -653,3 +653,248 @@ export function onNodeDeleted(db: Database, deletedNodeId: string): void {
   log.debug?.(`onNodeDeleted: ${deletedNodeId} (no-op under links v4 schema)`)
   void db
 }
+
+// =============================================================================
+// Incremental rule evaluation
+//
+// `evaluateAllRules` re-runs every rule on every sync. The user's vault has
+// 1021 rule nodes; even with the materialized-effective-paths cache + per-
+// query memoization, that's ~9 s of work for a sync that touched one file.
+//
+// The fix: skip rules whose query domain demonstrably can't be affected by
+// the changes that just landed. We compute:
+//
+//   - per-rule **signature** — what tags/mentions/projects + paths the
+//     query references. Cached on the RuleContext for the duration of one
+//     evaluateAllRules call.
+//   - per-sync **changed-attr signature** — derived from `allOps`, the
+//     reconcile output. Tracks which sigil-prefixed paths got touched and
+//     which tag/mention/project literals appear in changed nodes.
+//
+// A rule is "potentially affected" when its signature has any non-empty
+// intersection with the changed signature, OR when it has no positive
+// selectors (catch-all queries like `-path:archive/`) which match
+// everything-not-archived. Catch-alls always re-eval (correctness), but
+// the common case in big vaults — many rules with explicit ref filters
+// (`@inbox`, `#bug`, etc.) — gets the skip.
+//
+// See bead `@km/storage/incremental-rule-eval`.
+// =============================================================================
+
+/** Watch set for one rule node — what categories of change can affect it. */
+export interface RuleSignature {
+  /** Tag literals the query positively requires (`#bug`, `#urgent`). */
+  tags: Set<string>
+  /** Mention literals the query positively requires (`@inbox`, `@next`). */
+  mentions: Set<string>
+  /** Project literals the query positively requires (`+roadmap`). */
+  projects: Set<string>
+  /** Positive path filters (rare — `path:src/`). */
+  positivePaths: string[]
+  /** True when the query has at least one positive selector. False for
+   *  pure-negation queries (`-path:archive/`) which match everything not
+   *  excluded — correctness-required to always re-eval. */
+  hasPositiveSelector: boolean
+}
+
+/** Aggregate of attributes that changed in a sync — used to filter rules. */
+export interface ChangedAttrSet {
+  /** Tag literals that appeared in changed nodes' content. */
+  tags: Set<string>
+  /** Mention literals that appeared in changed nodes' content. */
+  mentions: Set<string>
+  /** Project literals that appeared in changed nodes' content. */
+  projects: Set<string>
+  /** File-system paths that changed (relative to repo root, sigil-prefixed). */
+  paths: Set<string>
+}
+
+/**
+ * Parse an `add` rule's query strings into a watch signature. The result
+ * captures the categories of attribute that, if changed in a sync, could
+ * cause the rule's match set to differ.
+ */
+export function extractRuleSignature(queries: string[]): RuleSignature {
+  const tags = new Set<string>()
+  const mentions = new Set<string>()
+  const projects = new Set<string>()
+  const positivePaths: string[] = []
+  let hasPositiveSelector = false
+
+  for (const query of queries) {
+    const ast = parseQuery(query)
+
+    for (const ref of ast.refs) {
+      if (ref.negated) continue
+      hasPositiveSelector = true
+      if (ref.type === "tag") tags.add(ref.value)
+      else if (ref.type === "person") mentions.add(ref.value)
+      else if (ref.type === "project") projects.add(ref.value)
+    }
+
+    for (const path of ast.paths) {
+      if (path.negated) continue
+      hasPositiveSelector = true
+      // The query parser stores the raw term — for `path:src/` that's
+      // literally `"path:src/"`. Strip the `path:` / `./` prefix so the
+      // intersection logic compares against an actual repo-relative
+      // path.
+      let pattern = path.pattern
+      if (pattern.startsWith("path:")) pattern = pattern.slice("path:".length)
+      else if (pattern.startsWith("./")) pattern = pattern.slice(2)
+      else if (pattern.startsWith("/")) pattern = pattern.slice(1)
+      positivePaths.push(pattern)
+    }
+
+    // Positive field conditions (status:open, type:bug, due:>2026-01-01,
+    // etc.) count as positive selectors — but the changed-attr set we
+    // derive in `extractChangedAttrs` doesn't yet track these per-field,
+    // so any rule with such a condition forces a re-eval.
+    for (const cond of ast.conditions) {
+      if (cond.negated) continue
+      hasPositiveSelector = true
+    }
+    for (const prop of ast.propConditions) {
+      if (prop.negated) continue
+      hasPositiveSelector = true
+    }
+    if (ast.text.length > 0 || ast.phrases.length > 0) {
+      hasPositiveSelector = true
+    }
+  }
+
+  return { tags, mentions, projects, positivePaths, hasPositiveSelector }
+}
+
+/**
+ * Compute the changed-attribute signature from an iterable of node IDs that
+ * changed in this sync. For each changed node we read its content/title,
+ * extract tag/mention/project literals, and union them. Path is
+ * pulled from `fs_path` directly.
+ */
+export function extractChangedAttrs(db: Database, changedNodeIds: Iterable<string>): ChangedAttrSet {
+  const result: ChangedAttrSet = {
+    tags: new Set(),
+    mentions: new Set(),
+    projects: new Set(),
+    paths: new Set(),
+  }
+
+  // Single regex pass mirrors `extractRefs` in km-markdown — cheaper than
+  // 3 separate matchAll calls. Captures: 1=tag, 2=mention, 3=project.
+  const refRegex = /#([a-zA-Z0-9_-]+)|@([a-zA-Z0-9_-]+)|\+([a-zA-Z0-9_-]+)/g
+
+  const idList = Array.from(changedNodeIds)
+  if (idList.length === 0) return result
+
+  // Fetch content + title + fs_path in one batch. Skip nodes that no
+  // longer exist (deletions) — their contributions can't be derived.
+  const placeholders = idList.map(() => "?").join(",")
+  const rows = db
+    .query(`SELECT id, content, title, fs_path FROM nodes WHERE id IN (${placeholders})`)
+    .all(...idList) as Array<{ id: string; content: string | null; title: string | null; fs_path: string | null }>
+
+  for (const row of rows) {
+    if (row.fs_path) result.paths.add(row.fs_path)
+    const text = `${row.title ?? ""}\n${row.content ?? ""}`
+    if (!text.trim()) continue
+    refRegex.lastIndex = 0
+    let m: RegExpExecArray | null
+    while ((m = refRegex.exec(text)) !== null) {
+      if (m[1]) result.tags.add(m[1])
+      else if (m[2]) result.mentions.add(m[2])
+      else if (m[3]) result.projects.add(m[3])
+    }
+  }
+
+  return result
+}
+
+/**
+ * True when a rule's signature could possibly intersect with the changed
+ * attribute set. Pure-negation rules (no positive selector) always return
+ * true to preserve correctness.
+ */
+export function ruleIsAffected(sig: RuleSignature, changed: ChangedAttrSet): boolean {
+  if (!sig.hasPositiveSelector) return true
+
+  for (const tag of sig.tags) {
+    if (changed.tags.has(tag)) return true
+  }
+  for (const mention of sig.mentions) {
+    if (changed.mentions.has(mention)) return true
+  }
+  for (const project of sig.projects) {
+    if (changed.projects.has(project)) return true
+  }
+  for (const pattern of sig.positivePaths) {
+    for (const path of changed.paths) {
+      if (path.startsWith(pattern)) return true
+    }
+  }
+  return false
+}
+
+/**
+ * Incremental variant of `evaluateAllRules`: re-evaluates only the rules
+ * whose query signature could be affected by `changedAttrs`. Falls back
+ * to full eval when `changedAttrs` is `null` (e.g., on first run when we
+ * can't derive a signature).
+ *
+ * Yields the same progress shape as `evaluateAllRules` so callers can
+ * substitute one for the other. The total reflects the *evaluated* count,
+ * not the all-rules count — a sync that touches one tag in a 1021-rule
+ * vault yields total=N(affected) instead of total=1021.
+ */
+export function* evaluateAffectedRules(
+  db: Database,
+  ctx: RuleContext,
+  changedAttrs: ChangedAttrSet | null,
+): Generator<RulesProgress, void, unknown> {
+  const start = Date.now()
+  const nodesWithRules = getNodesWithRules(db)
+
+  // No incremental info → fall back to the safe full path.
+  if (!changedAttrs) {
+    yield* evaluateAllRules(db, ctx)
+    return
+  }
+
+  // Filter nodes whose rule signature can possibly intersect the change set.
+  const affected: KNode[] = []
+  for (const node of nodesWithRules) {
+    const queries = node.rules?.add ? (Array.isArray(node.rules.add) ? node.rules.add : [node.rules.add]) : null
+    if (!queries) continue
+    const sig = extractRuleSignature(queries)
+    if (ruleIsAffected(sig, changedAttrs)) affected.push(node)
+  }
+
+  log.debug?.(
+    `evaluateAffectedRules: ${affected.length}/${nodesWithRules.length} rules potentially affected (${Date.now() - start}ms triage)`,
+  )
+
+  yield { current: 0, total: affected.length }
+  if (affected.length === 0) return
+
+  // Set up the same caches evaluateAllRules uses — these dramatically
+  // reduce per-rule cost when multiple rules survive triage.
+  ctx.fileAncestorCache = buildFileAncestorCache(db)
+  materializeEffectivePaths(db)
+  ctx.queryResultCache = new Map<string, KNode[]>()
+  ctx.embedPathsByBoardCache = new Map()
+
+  try {
+    for (let i = 0; i < affected.length; i++) {
+      const node = affected[i]
+      if (node) evaluateRulesForNode(db, node, ctx)
+      yield { current: i + 1, total: affected.length }
+    }
+  } finally {
+    ctx.fileAncestorCache = null
+    ctx.queryResultCache = undefined
+    ctx.embedPathsByBoardCache = undefined
+    dropEffectivePaths(db)
+  }
+
+  log.debug?.(`evaluateAffectedRules: completed in ${Date.now() - start}ms`)
+}
