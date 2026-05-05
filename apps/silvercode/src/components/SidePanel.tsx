@@ -377,7 +377,11 @@ function accountDetailLines(account: AccountSummary, exclude: ReadonlySet<string
   }
   add(account.email && account.email !== account.name ? account.email : undefined)
   add(account.plan ? `plan ${planLabel(account.plan)}` : undefined)
-  add(account.metadata?.planType && account.metadata.planType !== account.plan ? `tier ${planLabel(account.metadata.planType)}` : undefined)
+  add(
+    account.metadata?.planType && account.metadata.planType !== account.plan
+      ? `tier ${planLabel(account.metadata.planType)}`
+      : undefined,
+  )
   add(account.metadata?.accountId ? `account id ${middleTruncate(account.metadata.accountId, 24)}` : undefined)
   add(account.sourceEnvVar)
   add(account.credentialHint)
@@ -679,10 +683,7 @@ function AccountGroup({
       </Text>
       {accounts.map((account, i) => (
         <React.Fragment key={account.name}>
-          <AccountPanel
-            account={account}
-            onShowAllAccounts={onShowAllAccounts}
-          />
+          <AccountPanel account={account} onShowAllAccounts={onShowAllAccounts} />
           {i < accounts.length - 1 ? <Box flexShrink={0} height={1} /> : null}
         </React.Fragment>
       ))}
@@ -1471,10 +1472,7 @@ function SidePanelChrome({
             {accountGroups.map((group, i) => (
               <React.Fragment key={group.label}>
                 {i > 0 ? <Box flexShrink={0} height={1} /> : null}
-                <AccountGroup
-                  label={group.label}
-                  accounts={group.accounts}
-                />
+                <AccountGroup label={group.label} accounts={group.accounts} />
               </React.Fragment>
             ))}
             <Box flexShrink={0} height={1} />

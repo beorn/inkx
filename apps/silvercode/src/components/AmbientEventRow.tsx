@@ -171,9 +171,7 @@ function splitCpuProcessItems(raw: string): string[] {
 }
 
 function parseCpuWarning(raw: string): FormattedContent | null {
-  const m = raw
-    .trim()
-    .match(/^(CPU warning:\s+load\b.+?\bfor\s+\d+s)\.?\s*(.*)$/i)
+  const m = raw.trim().match(/^(CPU warning:\s+load\b.+?\bfor\s+\d+s)\.?\s*(.*)$/i)
   if (!m) return null
   const preview = m[1]?.trim() ?? ""
   const details = m[2]?.trim() ?? ""

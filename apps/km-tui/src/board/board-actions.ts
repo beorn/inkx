@@ -34,14 +34,7 @@ import { activeEditTargetRef, activeEditContextRef, createOsc52Backend } from "@
 import { dialogTargetRef } from "../dialog-target.ts"
 import { extractBody, detectPrefixConversion, degrade, KTree } from "@km/tree"
 import { boardSplit, boardMergeBackward, boardMergeForward } from "./board-tree-ops.ts"
-import {
-  KNode,
-  Position,
-  extractTitleTaskMarker,
-  getNodePriority,
-  setPriorityInContent,
-  type ItemData,
-} from "@km/core"
+import { KNode, Position, extractTitleTaskMarker, getNodePriority, setPriorityInContent, type ItemData } from "@km/core"
 import type { ID } from "@silvery/selection"
 import { saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { getRecentsStore } from "../state/recents-store.ts"

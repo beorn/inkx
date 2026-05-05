@@ -58,8 +58,9 @@ export function prefixSid(agentId: string, bareSid: string): string {
   const displayAgent = canonicalAgentPrefix(agentId)
   const wanted = `${displayAgent}${SEP}`
   if (bareSid.startsWith(wanted)) return bareSid
-  if ((displayAgent === "claude" || agentId === "claude-code") && bareSid.startsWith(`claude-code${SEP}`))
+  if ((displayAgent === "claude" || agentId === "claude-code") && bareSid.startsWith(`claude-code${SEP}`)) {
     return bareSid
+  }
   return `${displayAgent}${SEP}${bareSid}`
 }
 

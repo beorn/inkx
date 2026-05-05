@@ -26,7 +26,9 @@ function makeNode(overrides: Partial<KNode> & { priority?: string } = {}): KNode
   // priority via data.tags (column dropped at SCHEMA_VERSION=11)
   const { priority, data: dataOverride, ...rest } = overrides
   const baseData = (dataOverride ?? {}) as Record<string, unknown>
-  const data: Record<string, unknown> = priority ? { ...baseData, tags: [...((baseData.tags as string[]) ?? []), priority] } : baseData
+  const data: Record<string, unknown> = priority
+    ? { ...baseData, tags: [...((baseData.tags as string[]) ?? []), priority] }
+    : baseData
   return {
     id: "test-node-1",
     content: "Test Node",

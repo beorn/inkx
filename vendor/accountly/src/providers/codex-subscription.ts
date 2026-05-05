@@ -46,7 +46,8 @@ type CodexAuthAccount = {
 
 function parseCodexAuthAccount(raw: string): CodexAuthAccount {
   const parsed = JSON.parse(raw) as Record<string, unknown>
-  const tokens = typeof parsed.tokens === "object" && parsed.tokens !== null ? (parsed.tokens as Record<string, unknown>) : {}
+  const tokens =
+    typeof parsed.tokens === "object" && parsed.tokens !== null ? (parsed.tokens as Record<string, unknown>) : {}
   const idToken = typeof tokens.id_token === "string" ? tokens.id_token : ""
   const accountId = typeof tokens.account_id === "string" ? tokens.account_id : null
   const email = emailFromJwt(idToken) ?? raw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] ?? null

@@ -45,8 +45,7 @@ export async function createTask(
   // re-derive on parse from the H1 hashtag once the markdown is round-
   // tripped; for direct addNode (no markdown round-trip) we seed the tag
   // manually so getNodePriority() can read it.
-  const allTags =
-    metadata.priority && !tags.some((t) => /^P[0-4]$/i.test(t)) ? [...tags, metadata.priority] : tags
+  const allTags = metadata.priority && !tags.some((t) => /^P[0-4]$/i.test(t)) ? [...tags, metadata.priority] : tags
 
   const nodeId = repo.addNode(parentId, {
     type: "p",

@@ -28,7 +28,7 @@ import { createTestApp } from "./helpers/test-app.ts"
  * tests use data.tags so getNodePriority() resolves the value.
  */
 function priorityUpdate(priority: string, extra: Partial<KNode> = {}): Partial<KNode> {
-  return { ...extra, data: { ...(extra.data ?? {}), tags: [priority] } }
+  return { ...extra, data: { ...extra.data, tags: [priority] } }
 }
 
 // =============================================================================
@@ -296,10 +296,13 @@ describe("undo: delete node", () => {
     const { repo, handle } = setupBoard()
 
     // Set some properties on task-a (priority via data.tags now)
-    repo.updateNode("task-a", priorityUpdate("P2", {
-      due_at: "2026-03-15",
-      item: { task: { status: "wip", marker: "[/]" } },
-    }))
+    repo.updateNode(
+      "task-a",
+      priorityUpdate("P2", {
+        due_at: "2026-03-15",
+        item: { task: { status: "wip", marker: "[/]" } },
+      }),
+    )
 
     // Clear the undo stack (we don't want to undo the updateNode)
     handle.stack.clear()

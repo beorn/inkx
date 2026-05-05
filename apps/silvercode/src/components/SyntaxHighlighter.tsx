@@ -110,14 +110,14 @@ export function SyntaxHighlighter({
       </Text>
     ) : (
       <Box key={i} flexDirection="row" width="100%" minWidth={0} overflow="hidden">
-        <Text>  </Text>
+        <Text> </Text>
         {line.tokens.map((tok, j) => (
           <Text key={j} color={tok.color} bold={tok.bold} italic={tok.italic}>
             {tok.text}
           </Text>
         ))}
         <Box flexGrow={1} minWidth={0} />
-        <Text>  </Text>
+        <Text> </Text>
       </Box>
     ),
   )

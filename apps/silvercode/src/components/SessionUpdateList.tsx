@@ -411,9 +411,9 @@ function singleLineGenericToolContentTitle(
   title: string,
   content: ToolCallContent[] | undefined,
 ): string | null {
-  if (title !== toolName || !content || content.length !== 1) return null
+  if (title !== toolName || content?.length !== 1) return null
   const only = content[0]
-  if (!only || only.type !== "content" || only.content.type !== "text") return null
+  if (only?.type !== "content" || only.content.type !== "text") return null
   const text = only.content.text.trim()
   if (text.length === 0 || text.includes("\n")) return null
   return text
@@ -443,8 +443,9 @@ function stripShellRunnerMetadata(text: string): string {
 
 function opRendersDiff(op: MessageOp): boolean {
   if (op.kind !== "tool") return false
-  if (op.toolCall.name === "apply_patch")
+  if (op.toolCall.name === "apply_patch") {
     return typeof op.toolCall.input === "string" && op.toolCall.input.startsWith("*** Begin Patch")
+  }
   const input = op.toolCall.input
   return !!(
     input &&

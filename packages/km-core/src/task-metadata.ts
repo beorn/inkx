@@ -64,10 +64,7 @@ const STRIP_EMOJI_RECURRENCE = /\s*🔁\s*.+?(?=\s*[📅⏳]|$)/u
  * Callers that need cross-descendant priority resolution (file node with
  * priority on a child heading) should query the links table directly.
  */
-export function getNodePriority(node: {
-  content?: string
-  data?: Record<string, unknown>
-}): string | undefined {
+export function getNodePriority(node: { content?: string; data?: Record<string, unknown> }): string | undefined {
   if (node.content) {
     // Canonical: #P[0-4] hashtag (per docs/future/beads.md).
     const hashtag = node.content.match(/(?:^|\s|[([{.,;:!?])#P([0-4])\b/i)

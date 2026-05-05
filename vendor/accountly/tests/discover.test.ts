@@ -15,6 +15,9 @@ describe("discoverAccounts", () => {
     const openaiAccounts = discoverAccounts().filter((account) => account.config.provider === "openai")
 
     expect(openaiAccounts.map((account) => account.config.name)).toEqual(["codex", "openai"])
-    expect(openaiAccounts.map((account) => account.config.metadata?.envVar)).toEqual(["CODEX_API_KEY", "OPENAI_API_KEY"])
+    expect(openaiAccounts.map((account) => account.config.metadata?.envVar)).toEqual([
+      "CODEX_API_KEY",
+      "OPENAI_API_KEY",
+    ])
   })
 })
