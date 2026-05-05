@@ -11,7 +11,7 @@
  * Resolution order when `--agent` is omitted:
  *   1. SILVERCODE_AGENT or KM_AGENT env var (SILVERCODE_AGENT wins)
  *   2. ai.acp.default from config (resolved as a label)
- *   3. built-in fallback connection: `claude-code`
+ *   3. built-in fallback connection: `claude`
  *
  * The result is a flat object; the index.tsx adapter maps it onto the
  * existing `<App>` props (account / model / agent / bare) so the
@@ -23,7 +23,14 @@ import { homedir } from "node:os"
 import { join } from "node:path"
 import type { Config } from "@silvery/config"
 import { accountExists, accountsRoot, listAccounts } from "./accounts.ts"
-import { AcpEntryKind, BUILTIN_AGENTS, isBuiltinAgentId, type AcpEntry, type BuiltinAgent } from "./config-schema.ts"
+import {
+  AcpEntryKind,
+  BUILTIN_AGENTS,
+  canonicalAgentId,
+  isBuiltinAgentId,
+  type AcpEntry,
+  type BuiltinAgent,
+} from "./config-schema.ts"
 
 export type ResolvedConnection = {
   /** Connection entry — same shape as the `ai.acp.<name>` schema. */
@@ -51,7 +58,7 @@ const ACP_PREFIX = "ai.acp"
  * — multi-line, listing what was tried + what's available.
  */
 export function resolveConnection(input: string | undefined, config: Config): ResolvedConnection {
-  const base = resolveBase(input, config)
+  const base = canonicalizeResolved(resolveBase(input, config))
   // Auto-discover an account when the entry hasn't named one. Only fires for
   // built-in agents — custom (free-form) agent ids handle creds themselves.
   const withAccount = autoResolveAccount(base)
@@ -98,14 +105,15 @@ function resolveBase(input: string | undefined, config: Config): ResolvedConnect
     )
   }
 
-  // Built-in fallback — claude-code is the silvercode default.
+  // Built-in fallback — claude is the silvercode default.
   return {
-    entry: builtinEntry("claude-code"),
+    entry: builtinEntry("claude"),
     source: "default-builtin",
   }
 }
 
 function resolveExplicit(input: string, config: Config): ResolvedConnection {
+  const canonicalInput = canonicalAgentId(input)
   // Step 1 — registry label. Only consider it a label when the input has
   // no connection-string syntax; bare names like `claude-work` always
   // hit the registry first, even if they happen to coincide with a
@@ -128,7 +136,7 @@ function resolveExplicit(input: string, config: Config): ResolvedConnection {
 
   // Step 3 — built-in agent id.
   if (isBuiltinAgentId(input)) {
-    return { entry: builtinEntry(input), source: "builtin" }
+    return { entry: builtinEntry(canonicalInput), source: "builtin" }
   }
 
   // Step 4 — fail with a helpful message. List every avenue we tried.
@@ -140,14 +148,14 @@ function resolveExplicit(input: string, config: Config): ResolvedConnection {
       "Tried:",
       `  1. registry label  ai.acp.${input}            (not found)`,
       `  2. connection-string parse                    (no '?', '=', or '://')`,
-      `  3. built-in agent id                          (not in: ${Object.keys(BUILTIN_AGENTS).join(", ")})`,
+      `  3. built-in agent id                          (not in: ${Object.keys(BUILTIN_AGENTS).join(", ")}; alias: claude-code)`,
       "",
       labels.length > 0
         ? `Configured connections: ${labels.join(", ")}`
         : "No connections configured. Add one with: silvercode config acp add <name>=<connection-string>",
       "",
       "Examples:",
-      "  silvercode --agent claude-code",
+      "  silvercode --agent claude",
       "  silvercode --agent 'codex?model=gpt-5-mini'",
       "  silvercode --agent claude-work        # named preset",
     ].join("\n"),
@@ -165,7 +173,8 @@ function resolveExplicit(input: string, config: Config): ResolvedConnection {
  * silently returning a malformed entry.
  */
 function builtinEntry(id: string): AcpEntry {
-  const builtin = BUILTIN_AGENTS[id]
+  const canonicalId = canonicalAgentId(id)
+  const builtin = BUILTIN_AGENTS[canonicalId]
   if (!builtin) {
     throw new Error(`silvercode: no built-in agent for "${id}"`)
   }
@@ -175,6 +184,12 @@ function builtinEntry(id: string): AcpEntry {
   if (builtin.defaultModel) (entry as { model?: string }).model = builtin.defaultModel
   if (builtin.transport === "spawn") (entry as { transport?: string }).transport = "spawn"
   return entry
+}
+
+function canonicalizeResolved(resolved: ResolvedConnection): ResolvedConnection {
+  const agent = canonicalAgentId(resolved.entry.agent)
+  if (agent === resolved.entry.agent) return resolved
+  return { ...resolved, entry: { ...resolved.entry, agent } }
 }
 
 function looksLikeConnectionString(input: string): boolean {

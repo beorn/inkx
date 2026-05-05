@@ -2,7 +2,7 @@
  * Session-id prefix scheme — `<agentId>:<bareSid>`.
  *
  * Each agent backend mints session ids in its own private scheme:
- *   - claude-code  → UUID-shaped (`abc-123-...`)
+ *   - claude       → UUID-shaped (`abc-123-...`) via canonical claude-code backend
  *   - codex        → `codex-1714...`
  *   - gemini       → its own UUIDs
  *   - copilot      → opaque
@@ -42,6 +42,10 @@ const AGENT_PREFIX_RE = /^[a-z][a-z0-9-]*$/
 /** Single character separator. Picked colon for shell-friendliness. */
 const SEP = ":"
 
+function canonicalAgentPrefix(agent: string): string {
+  return agent === "claude-code" ? "claude" : agent
+}
+
 /**
  * Apply `<agentId>:<bareSid>` prefix to a session id.
  *
@@ -51,9 +55,11 @@ const SEP = ":"
  */
 export function prefixSid(agentId: string, bareSid: string): string {
   if (!bareSid) return ""
-  const wanted = `${agentId}${SEP}`
+  const displayAgent = canonicalAgentPrefix(agentId)
+  const wanted = `${displayAgent}${SEP}`
   if (bareSid.startsWith(wanted)) return bareSid
-  return `${agentId}${SEP}${bareSid}`
+  if ((displayAgent === "claude" || agentId === "claude-code") && bareSid.startsWith(`claude-code${SEP}`)) return bareSid
+  return `${displayAgent}${SEP}${bareSid}`
 }
 
 /**
@@ -67,7 +73,7 @@ export function parseSid(input: string): { agent: string | null; bareSid: string
   if (colon < 0) return { agent: null, bareSid: input }
   const candidate = input.slice(0, colon)
   if (!AGENT_PREFIX_RE.test(candidate)) return { agent: null, bareSid: input }
-  return { agent: candidate, bareSid: input.slice(colon + 1) }
+  return { agent: canonicalAgentPrefix(candidate), bareSid: input.slice(colon + 1) }
 }
 
 /**

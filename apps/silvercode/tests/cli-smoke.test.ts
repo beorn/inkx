@@ -84,7 +84,7 @@ describe("silvercode CLI smoke — pre-flight resume validation", () => {
   test("--agent + sid prefix conflict exits 2 with conflict text", () => {
     const r = silvercode(["--agent", "codex", "--resume", "claude-code:00000000-aaaa-bbbb-cccc-dddddddddddd"])
     expect(r.status).toBe(2)
-    expect(r.stderr).toContain("--agent codex conflicts with sid prefix claude-code")
+    expect(r.stderr).toContain("--agent codex conflicts with sid prefix claude")
     expect(r.stdout).not.toContain("\x1b[?1049h")
   })
 

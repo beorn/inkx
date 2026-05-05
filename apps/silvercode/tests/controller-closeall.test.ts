@@ -12,6 +12,7 @@ describe("controller.closeAll", () => {
     const spawned = [bad, good]
     const controller = createSilvercodeController({
       cwd: "/tmp/silvercode-closeall-test",
+      bare: true,
       initialSessions: 0,
       disableAmbientAdapters: true,
       disableLegacyTribeSource: true,

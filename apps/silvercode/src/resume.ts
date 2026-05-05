@@ -81,7 +81,11 @@ export function validateResumeId(opts: { agent: string | undefined; sessionId: s
   }
 
   const isClaudeAgent =
-    agent === undefined || agent === "claude-code" || agent === "claude-code-spawn" || agent === "claude-code-sdk"
+    agent === undefined ||
+    agent === "claude" ||
+    agent === "claude-code" ||
+    agent === "claude-code-spawn" ||
+    agent === "claude-code-sdk"
 
   if (isClaudeAgent) {
     const path = sessionJsonlPath(cwd, sessionId)

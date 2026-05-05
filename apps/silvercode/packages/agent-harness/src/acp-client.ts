@@ -199,6 +199,7 @@ export type AcpRegistryId =
   | "gemini" // Google Gemini CLI in ACP mode
   | "github-copilot-cli" // GitHub Copilot CLI (binary on PATH)
   | "pi-acp" // pi-acp ecosystem
+  | "claude" // silvercode-built subscription-compatible Claude wrapper
   | "claude-code" // silvercode-built subscription-compatible Claude wrapper
 
 // `bun x` (not `npx`) is used for npm-resolved agents because silvercode
@@ -238,7 +239,7 @@ const ACP_REGISTRY: Record<
     args: ["x", "pi-acp"],
     description: "pi-acp ecosystem agent.",
   },
-  "claude-code": {
+  claude: {
     command: "bun",
     // @km/claude-acp is private (workspace-only) — `bun x @km/claude-acp` 404s
     // on npm. Resolve the bin via this file's directory: acp-client.ts lives at
@@ -250,6 +251,12 @@ const ACP_REGISTRY: Record<
     args: [fileURLToPath(new URL("../../claude-acp/bin/silvercode-claude-acp.js", import.meta.url))],
     description:
       "Claude Code via silvercode's standalone ACP wrapper — subscription-compatible (Pro/Max OAuth + ANTHROPIC_API_KEY). The only maintained subscription path; @agentclientprotocol/claude-agent-acp blocks Pro/Max, and carlrannaberg/cc-acp is abandoned. Bin resolved via import.meta.url because the package is private (workspace-only).",
+  },
+  "claude-code": {
+    command: "bun",
+    args: [fileURLToPath(new URL("../../claude-acp/bin/silvercode-claude-acp.js", import.meta.url))],
+    description:
+      "Claude Code via silvercode's standalone ACP wrapper — subscription-compatible (legacy alias for claude).",
   },
 }
 

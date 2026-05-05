@@ -58,7 +58,7 @@ describe("resolveConnection — explicit input", () => {
     const resolved = resolveConnection("work", config)
     expect(resolved.source).toBe("registry-label")
     expect(resolved.label).toBe("work")
-    expect(resolved.entry.agent).toBe("claude-code")
+    expect(resolved.entry.agent).toBe("claude")
     expect(resolved.entry.model).toBe("opus-4.7")
     expect(resolved.entry.bare).toBe(true)
     config.unwatch()
@@ -125,16 +125,16 @@ describe("resolveConnection — fallbacks", () => {
     const resolved = resolveConnection(undefined, config)
     expect(resolved.source).toBe("registry-default")
     expect(resolved.label).toBe("claude-work")
-    expect(resolved.entry.agent).toBe("claude-code")
+    expect(resolved.entry.agent).toBe("claude")
     expect(resolved.entry.model).toBe("opus-4.7")
     config.unwatch()
   })
 
-  it("falls back to built-in claude-code when nothing is configured", async () => {
+  it("falls back to built-in claude when nothing is configured", async () => {
     const config = await configWith("ai:\n  acp: {}\n")
     const resolved = resolveConnection(undefined, config)
     expect(resolved.source).toBe("default-builtin")
-    expect(resolved.entry.agent).toBe("claude-code")
+    expect(resolved.entry.agent).toBe("claude")
     config.unwatch()
   })
 

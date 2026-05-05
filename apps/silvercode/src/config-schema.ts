@@ -7,7 +7,7 @@
  *   ai:
  *     acp:
  *       default: claude-work
- *       claude-work: "claude-code?account=bjorn@stabell.org&model=opus-4.7&bare"
+ *       claude-work: "claude?account=bjorn@stabell.org&model=opus-4.7&bare"
  *       codex: "codex?model=gpt-5-mini"
  *     mcp:
  *       km:
@@ -20,7 +20,7 @@
  *
  * `BUILTIN_AGENTS` provides connection defaults so silvercode can be
  * launched with zero config — `silvercode --agent codex` or just
- * `silvercode` (which falls back to `claude-code`) Just Works as long as
+ * `silvercode` (which falls back to `claude`) Just Works as long as
  * the credentials are reachable via env or the agent's documented config
  * dir.
  */
@@ -40,12 +40,12 @@ import {
 
 /**
  * One ACP connection entry. Matches the "object form" YAML shape; the
- * "string form" (e.g. `"claude-code?model=opus-4.7&bare"`) is parsed via
+ * "string form" (e.g. `"claude?model=opus-4.7&bare"`) is parsed via
  * the kind's connection-string grammar (see `@silvery/config`).
  *
  * Field semantics:
  * - `agent`     — required. The path-segment of the connection string;
- *                 either a built-in agent id (`claude-code`, `codex`,
+ *                 either a built-in agent id (`claude`, `codex`,
  *                 `gemini`, `copilot`) or a free-form id used by a
  *                 custom transport. Coerced via `pathField: "agent"`.
  * - `transport` — optional override. Most connections leave this unset
@@ -160,13 +160,13 @@ export type BuiltinAgent = {
 }
 
 export const BUILTIN_AGENTS: Readonly<Record<string, BuiltinAgent>> = {
-  "claude-code": {
-    id: "claude-code",
+  claude: {
+    id: "claude",
     transport: "acp",
     credEnv: ["ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"],
     credDir: "~/.claude",
     defaultModel: "claude-opus-4-7",
-    description: "Claude Code (ACP) — Pro/Max OAuth or ANTHROPIC_API_KEY",
+    description: "Claude (ACP) — Pro/Max OAuth or ANTHROPIC_API_KEY",
     capabilities: CLAUDE_CAPABILITIES,
   },
   "claude-code-spawn": {
@@ -216,6 +216,10 @@ export const BUILTIN_AGENTS: Readonly<Record<string, BuiltinAgent>> = {
   },
 }
 
+const AGENT_ALIASES: Readonly<Record<string, string>> = Object.freeze({
+  "claude-code": "claude",
+})
+
 // Validate every agent's capability arrays at module load. Catches typos
 // (duplicate ids, multiple defaults, malformed ids) at silvercode startup
 // rather than "first time the user clicks the menu."
@@ -231,5 +235,15 @@ assertCapabilities(BUILTIN_AGENTS)
  * input in error messages.
  */
 export function isBuiltinAgentId(id: string): boolean {
-  return Object.prototype.hasOwnProperty.call(BUILTIN_AGENTS, id)
+  return Object.prototype.hasOwnProperty.call(BUILTIN_AGENTS, canonicalAgentId(id))
+}
+
+/** Normalize user-facing aliases to the canonical backend id. */
+export function canonicalAgentId(id: string): string {
+  return AGENT_ALIASES[id] ?? id
+}
+
+/** Short prefix for outward-facing resume ids. */
+export function displayAgentId(id: string): string {
+  return canonicalAgentId(id)
 }

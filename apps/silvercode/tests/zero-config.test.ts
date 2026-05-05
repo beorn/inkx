@@ -71,7 +71,7 @@ describe("resolveConnection — zero-config preflight", () => {
     const config = await configWith("ai:\n  acp: {}\n")
     const resolved = resolveConnection(undefined, config)
     expect(resolved.source).toBe("default-builtin")
-    expect(resolved.entry.agent).toBe("claude-code")
+    expect(resolved.entry.agent).toBe("claude")
     // Auto-discovered single account flows into `entry.account`.
     expect(resolved.entry.account).toBe("default")
     expect(resolved.autoAccount).toBe("default")
@@ -82,7 +82,7 @@ describe("resolveConnection — zero-config preflight", () => {
     seedCredDir()
     const config = await configWith("ai:\n  acp: {}\n")
     const resolved = resolveConnection(undefined, config)
-    expect(resolved.entry.agent).toBe("claude-code")
+    expect(resolved.entry.agent).toBe("claude")
     // No account dir — entry.account stays undefined, runtime uses ~/.claude.
     expect(resolved.entry.account).toBeUndefined()
     expect(resolved.autoAccount).toBeUndefined()
@@ -93,7 +93,7 @@ describe("resolveConnection — zero-config preflight", () => {
     process.env["ANTHROPIC_API_KEY"] = "sk-test-fake-token"
     const config = await configWith("ai:\n  acp: {}\n")
     const resolved = resolveConnection(undefined, config)
-    expect(resolved.entry.agent).toBe("claude-code")
+    expect(resolved.entry.agent).toBe("claude")
     expect(resolved.entry.account).toBeUndefined()
     config.unwatch()
   })
@@ -109,7 +109,7 @@ describe("resolveConnection — zero-config preflight", () => {
 
   it("errors with an actionable message when no creds are reachable for a built-in", async () => {
     const config = await configWith("ai:\n  acp: {}\n")
-    expect(() => resolveConnection(undefined, config)).toThrowError(/no credentials reachable for agent=claude-code/)
+    expect(() => resolveConnection(undefined, config)).toThrowError(/no credentials reachable for agent=claude/)
     // The error must name at least one env var so the user knows what to set.
     expect(() => resolveConnection(undefined, config)).toThrowError(/ANTHROPIC_API_KEY/)
     // And mention the profile-dir copy hint.

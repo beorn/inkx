@@ -53,7 +53,7 @@ export function runConnectionsChecker(config: Config): DoctorSection {
       })
     }
   } else {
-    items.push({ severity: "ok", message: "ai.acp.default — unset (built-in fallback `claude-code` will be used)" })
+    items.push({ severity: "ok", message: "ai.acp.default — unset (built-in fallback `claude` will be used)" })
   }
 
   // Concerns 2–4 iterate the entries together so we only walk once.

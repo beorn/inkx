@@ -1232,6 +1232,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     // misleading "no transcript at ~/.claude/projects/..." error.
     const isClaudeAgent =
       opts.agent === undefined ||
+      opts.agent === "claude" ||
       opts.agent === "claude-code" ||
       opts.agent === "claude-code-spawn" ||
       opts.agent === "claude-code-sdk"

@@ -91,8 +91,14 @@ export function gracefulKillTree(pid: number, proc: ChildProcess, opts: { fallba
   }, opts.fallbackAfterMs) as unknown as NodeJS.Timeout
   sigkillTimer.unref?.()
 
-  // Cancel the SIGKILL timer if the child exits cleanly first.
-  proc.once("exit", () => clearTimeout(sigkillTimer))
+  // Cancel the SIGKILL timer if the child exits cleanly first. Production
+  // ChildProcess has `.once`; ACP test seams sometimes expose only `.on`.
+  const clearOnExit = () => clearTimeout(sigkillTimer)
+  if (typeof proc.once === "function") {
+    proc.once("exit", clearOnExit)
+  } else {
+    proc.on("exit", clearOnExit)
+  }
 }
 
 /** MCP server spec written into settings.json for spawned Claude sessions. */

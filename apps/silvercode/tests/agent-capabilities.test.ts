@@ -122,8 +122,8 @@ describe("CLAUDE_CAPABILITIES — Claude's reference descriptors", () => {
 })
 
 describe("BUILTIN_AGENTS — Claude variants share CLAUDE_CAPABILITIES", () => {
-  test("claude-code, claude-code-spawn, claude-code-sdk all reference the same capability arrays", () => {
-    const a = BUILTIN_AGENTS["claude-code"]
+  test("claude, claude-code-spawn, claude-code-sdk all reference the same capability arrays", () => {
+    const a = BUILTIN_AGENTS["claude"]
     const b = BUILTIN_AGENTS["claude-code-spawn"]
     const c = BUILTIN_AGENTS["claude-code-sdk"]
     expect(a?.capabilities).toBe(CLAUDE_CAPABILITIES)

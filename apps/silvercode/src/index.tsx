@@ -104,7 +104,7 @@ function describeDefault(config: Awaited<ReturnType<typeof loadConfig>>): {
       builtin: cfgDefault in BUILTIN_AGENTS ? cfgDefault : guessBuiltinFromEntry(config, cfgDefault),
     }
   }
-  return { label: "claude-code", source: "built-in fallback (no ai.acp.default set)", builtin: "claude-code" }
+  return { label: "claude", source: "built-in fallback (no ai.acp.default set)", builtin: "claude" }
 }
 
 /** If `label` is a registry entry whose `agent` is a built-in id, return it; else undefined. */

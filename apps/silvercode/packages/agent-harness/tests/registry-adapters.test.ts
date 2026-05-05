@@ -176,6 +176,7 @@ const EXPECTED: Record<AcpRegistryId, { command: string; args: string[]; env?: R
   // a private workspace package (npm 404). The exact resolved path depends on
   // where the test runs; assert structure (`bun <…/claude-acp/bin/silvercode-claude-acp.js>`)
   // rather than a brittle string match.
+  claude: { command: "bun", args: ["__claude-acp-bin__"] },
   "claude-code": { command: "bun", args: ["__claude-acp-bin__"] },
 }
 
@@ -305,6 +306,10 @@ const REACHABILITY: Record<AcpRegistryId, ReachabilityKind> = {
   // row that would have caught d17afaa82 — when the registry pointed at
   // `bun x @km/claude-acp`, switching this row's kind to `npm` would have
   // failed with 404.
+  claude: {
+    kind: "path",
+    absolutePath: fileURLToPath(new URL("../../claude-acp/bin/silvercode-claude-acp.js", import.meta.url)),
+  },
   "claude-code": {
     kind: "path",
     absolutePath: fileURLToPath(new URL("../../claude-acp/bin/silvercode-claude-acp.js", import.meta.url)),
