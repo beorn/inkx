@@ -17,10 +17,11 @@
  */
 
 import { describe, test, expect } from "vitest"
-import type { KNode } from "@km/core"
+import { type KNode, getNodePriority } from "@km/core"
 import { normalizePriority } from "@km/beads"
 
 function makeTask(id: string, priority?: string): KNode {
+  // priority via data.tags (column dropped at SCHEMA_VERSION=11)
   return {
     id,
     type: "p",
@@ -28,7 +29,7 @@ function makeTask(id: string, priority?: string): KNode {
     content: id,
     created_at: 0,
     updated_at: 0,
-    ...(priority !== undefined ? { priority } : {}),
+    ...(priority !== undefined ? { data: { tags: [priority] } } : {}),
   } as KNode
 }
 
@@ -84,7 +85,7 @@ function filterByPriority<T extends KNode>(tasks: T[], priority: string | undefi
   if (priority === undefined) return tasks
   const normalized = normalizePriority(priority)
   if (normalized === null) return []
-  return tasks.filter((t) => t.priority === normalized)
+  return tasks.filter((t) => getNodePriority(t) === normalized)
 }
 
 describe("filterByPriority (mirrors filterTasksByPriority in list.ts)", () => {

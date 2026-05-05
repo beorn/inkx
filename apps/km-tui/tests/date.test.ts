@@ -22,6 +22,20 @@ import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
 import { formatDateBadge } from "../src/views/tree-node-helpers.tsx"
 import type { KNode } from "@km/core"
+
+/**
+ * Set priority on a test KNode by mirroring it into data.tags.
+ * The legacy nodes.priority column was dropped at SCHEMA_VERSION=11 —
+ * the canonical authored form is `#P[0-4]` in the H1 hashtag, captured
+ * into data.tags by kmRefsTransform. getNodePriority() reads from there.
+ */
+function setNodePriority(node: KNode, priority: string): void {
+  const data = node.data ?? (node.data = {})
+  const tags = (data.tags as string[] | undefined) ?? []
+  data.tags = tags.some((t) => /^P[0-4]$/i.test(t))
+    ? tags.map((t) => (/^P[0-4]$/i.test(t) ? priority : t))
+    : [...tags, priority]
+}
 import { mkdirSync, writeFileSync, rmSync, existsSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"
@@ -35,7 +49,7 @@ import {
   createBareRepo,
 } from "@km/storage"
 import type { Database } from "bun:sqlite"
-import { formatDate } from "@km/core"
+import { formatDate, getNodePriority } from "@km/core"
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -276,7 +290,7 @@ describe("date badge display", () => {
     // Manually set due_at on the task node before creating repo
     const taskNode = nodes.find((n) => n.content === "Task with date")!
     taskNode.due_at = "2026-03-15"
-    taskNode.priority = "P1"
+    setNodePriority(taskNode, "P1")
 
     using app = createTestApp(nodes, { cols: 80, rows: 24 })
     // Check the date badge appears
@@ -293,10 +307,10 @@ describe("date badge display", () => {
     // Set due_at on Task A
     const taskA = nodes.find((n) => n.content === "Task A")!
     taskA.due_at = "2026-03-15"
-    taskA.priority = "P2"
+    setNodePriority(taskA, "P2")
     // Set priority on Task C
     const taskC = nodes.find((n) => n.content === "Task C")!
-    taskC.priority = "P3"
+    setNodePriority(taskC, "P3")
 
     using app = createTestApp(nodes, { cols: 80, rows: 24 })
     expect(app.text).toContain("Mar 15")
@@ -490,7 +504,7 @@ describe("date badge display", () => {
     const nodes = item("board", item("col1", item.task("Task with date")))
     const taskNode = nodes.find((n) => n.content === "Task with date")!
     taskNode.due_at = "2026-03-15"
-    taskNode.priority = "P2"
+    setNodePriority(taskNode, "P2")
 
     using app = createTestApp(nodes, { cols: 80, rows: 24, viewMode: "columns" })
     expect(app.text).toContain("Mar 15")
@@ -562,7 +576,8 @@ describe("date badge display", () => {
     const col = app.repo.getChildren("board")[0]!
     const taskA = app.repo.getChildren(col.id)[0]!
     act(() => {
-      app.repo.updateNode(taskA.id, { due_at: "2026-03-15", priority: "P1" })
+      // priority via data.tags (column dropped at SCHEMA_VERSION=11)
+      app.repo.updateNode(taskA.id, { due_at: "2026-03-15", data: { ...taskA.data, tags: ["P1"] } })
     })
     app.press("j") // flush
     expect(app.text).toContain("Mar 15")
@@ -582,7 +597,7 @@ describe("date badge display", () => {
   it("priority badge visible in cards view", () => {
     const nodes = item("board", item("col1", item.task("Priority task")))
     const taskNode = nodes.find((n) => n.content === "Priority task")!
-    taskNode.priority = "P2"
+    setNodePriority(taskNode, "P2")
 
     using app = createTestApp(nodes, { cols: 80, rows: 24 })
     expect(app.text).toContain("P2")
@@ -1258,7 +1273,7 @@ describe("Date Badge Display Journeys", () => {
     const nodes = item("board", item("col1", item.task("Urgent task"), item.task("Normal task")))
     const urgentNode = nodes.find((n) => n.content === "Urgent task")!
     urgentNode.due_at = daysFromNow(3)
-    urgentNode.priority = "P1"
+    setNodePriority(urgentNode, "P1")
 
     using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
@@ -1272,7 +1287,7 @@ describe("Date Badge Display Journeys", () => {
     expect(cursor.textContent()).toContain("Normal task")
     // Normal task should not have a priority set
     const normalNode = nodes.find((n) => n.content === "Normal task")!
-    expect(normalNode.priority).toBeUndefined()
+    expect(getNodePriority(normalNode)).toBeUndefined()
   })
 
   test("cancel date dialog with Escape, no date is set", async () => {

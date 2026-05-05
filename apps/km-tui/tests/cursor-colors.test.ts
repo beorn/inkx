@@ -18,6 +18,15 @@ import { formatDateBadge } from "../src/views/tree-node-helpers.tsx"
 
 import type { KNode } from "@km/core"
 
+/**
+ * Set priority via data.tags (column dropped at SCHEMA_VERSION=11).
+ */
+function setPriority(node: KNode, priority: string): void {
+  const data = node.data ?? (node.data = {})
+  const tags = (data.tags as string[] | undefined) ?? []
+  data.tags = [...tags.filter((t) => !/^P[0-4]$/i.test(t)), priority]
+}
+
 /** Helper to build a data-cursor locator for node IDs with spaces */
 function cursor(nodeId: string): string {
   return `[id="${nodeId}"][data-cursor]`
@@ -373,7 +382,7 @@ describe("km-tui.done-style: completed task date badge hidden, title dimmed", ()
   it("done task with priority hides date badge (including priority)", () => {
     const nodes = item("board", item("col1", item.task("firstTask"), item.task("donePrio")))
     const doneTask = nodes.find((n) => n.content === "donePrio")!
-    doneTask.priority = "P1"
+    setPriority(doneTask, "P1")
     doneTask.due_at = "2025-01-01"
     doneTask.item = { ...doneTask.item, task: { status: "done", marker: "[x]" } }
 
@@ -428,7 +437,7 @@ describe("km-tui.done-style: completed task date badge hidden, title dimmed", ()
     const nodes = item("board", item("col1", item.task("firstTask"), item.task("droppedTask")))
     const droppedTask = nodes.find((n) => n.content === "droppedTask")!
     droppedTask.due_at = "2025-01-01"
-    droppedTask.priority = "P2"
+    setPriority(droppedTask, "P2")
     droppedTask.item = { ...droppedTask.item, task: { status: "dropped", marker: "[-]" } }
 
     using app = createTestApp(nodes, { cols: 80, rows: 24 })

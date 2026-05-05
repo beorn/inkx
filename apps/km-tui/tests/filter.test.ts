@@ -283,13 +283,13 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
       updated_at: now,
       version: "v1",
     }
+    // priority via data.tags (column dropped at SCHEMA_VERSION=11)
     const src1: KNode = {
       id: "src1",
       type: "p",
       item: { list: "-", task: { status: "todo", marker: "[ ]" } },
-      priority: "P1",
       content: "Source task 1 (todo P1)",
-      data: {},
+      data: { tags: ["P1"] },
       parent_id: "src-parent",
       parent_idx: 0,
       embed_of: null,
@@ -301,9 +301,8 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
       id: "src2",
       type: "p",
       item: { list: "-", task: { status: "done", marker: "[x]" } },
-      priority: "P2",
       content: "Source task 2 (done P2)",
-      data: {},
+      data: { tags: ["P2"] },
       parent_id: "src-parent",
       parent_idx: 1,
       embed_of: null,

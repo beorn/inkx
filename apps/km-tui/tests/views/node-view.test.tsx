@@ -22,7 +22,11 @@ import { NodeLineView, NodeCardView, NodeColumnView, NodeTabView, NodeDetailView
 import type { KNode } from "@km/core"
 
 // Helper to create a minimal KNode for unit tests
-function makeNode(overrides: Partial<KNode> = {}): KNode {
+function makeNode(overrides: Partial<KNode> & { priority?: string } = {}): KNode {
+  // priority via data.tags (column dropped at SCHEMA_VERSION=11)
+  const { priority, data: dataOverride, ...rest } = overrides
+  const baseData = (dataOverride ?? {}) as Record<string, unknown>
+  const data: Record<string, unknown> = priority ? { ...baseData, tags: [...((baseData.tags as string[]) ?? []), priority] } : baseData
   return {
     id: "test-node-1",
     content: "Test Node",
@@ -33,8 +37,8 @@ function makeNode(overrides: Partial<KNode> = {}): KNode {
     created_at: Date.now(),
     updated_at: Date.now(),
     version: "v1",
-    data: {},
-    ...overrides,
+    data,
+    ...rest,
   } as KNode
 }
 

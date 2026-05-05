@@ -8,19 +8,33 @@
 import { describe, test, expect } from "vitest"
 
 import { getNode, getTasksByStatus, withTestEnv } from "@km/storage"
-import type { KNode, TaskStatus } from "@km/core"
+import { getNodePriority, type KNode, type TaskStatus } from "@km/core"
 import type { Database } from "bun:sqlite"
 
 /**
- * Helper to create a task directly in the database
+ * Helper to create a task directly in the database.
+ *
+ * Note: priority is no longer a column (dropped at SCHEMA_VERSION=11) —
+ * `priority` test option is mirrored into `data.tags` so getNodePriority()
+ * resolves it the same way the parser would for a real bead.
  */
-function createTask(db: Database, content: string, options: Partial<KNode> & { task_status?: TaskStatus } = {}): KNode {
+function createTask(
+  db: Database,
+  content: string,
+  options: Partial<KNode> & { task_status?: TaskStatus; priority?: string } = {},
+): KNode {
   const id = `task-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   const now = Date.now()
 
-  const { task_status, ...rest } = options
+  const { task_status, priority, data: optData, ...rest } = options
   const status = task_status ?? "todo"
   const marker = status === "done" ? "[x]" : status === "wip" ? "[/]" : status === "dropped" ? "[-]" : "[ ]"
+
+  // Mirror priority into data.tags so getNodePriority() can read it.
+  const baseData = (optData ?? {}) as Record<string, unknown>
+  const baseTags = (baseData.tags as string[] | undefined) ?? []
+  const tagsWithPriority = priority && !baseTags.some((t) => /^P[0-4]$/i.test(t)) ? [...baseTags, priority] : baseTags
+  const data = tagsWithPriority.length > 0 ? { ...baseData, tags: tagsWithPriority } : baseData
 
   const node: KNode = {
     id,
@@ -29,11 +43,12 @@ function createTask(db: Database, content: string, options: Partial<KNode> & { t
     content,
     created_at: now,
     updated_at: now,
+    data,
     ...rest,
   } as KNode
 
   db.prepare(
-    `INSERT INTO nodes (id, type, list_marker, task_marker, content, task_status, priority, due_at, assigned_to, created_at, updated_at)
+    `INSERT INTO nodes (id, type, list_marker, task_marker, content, task_status, due_at, assigned_to, data, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     node.id,
@@ -42,9 +57,9 @@ function createTask(db: Database, content: string, options: Partial<KNode> & { t
     (node as KNode).item?.task?.marker ?? "[ ]",
     node.content ?? null,
     node.item?.task?.status ?? "todo",
-    node.priority ?? null,
     node.due_at ?? null,
     node.assigned_to ?? null,
+    JSON.stringify(node.data ?? {}),
     node.created_at,
     node.updated_at,
   )
@@ -100,7 +115,7 @@ describe.sequential("Task Priority Sorting", () => {
       createTask(db, "Medium priority", { priority: "P3" })
 
       const tasks = getTasksByStatus(db, ["todo"])
-      tasks.sort((a, b) => (a.priority ?? "ZZ").localeCompare(b.priority ?? "ZZ"))
+      tasks.sort((a, b) => (getNodePriority(a) ?? "ZZ").localeCompare(getNodePriority(b) ?? "ZZ"))
 
       expect(tasks[0]!.content).toBe("High priority")
       expect(tasks[1]!.content).toBe("Medium priority")
@@ -114,7 +129,7 @@ describe.sequential("Task Priority Sorting", () => {
       createTask(db, "Has priority", { priority: "P2" })
 
       const tasks = getTasksByStatus(db, ["todo"])
-      tasks.sort((a, b) => (a.priority ?? "ZZ").localeCompare(b.priority ?? "ZZ"))
+      tasks.sort((a, b) => (getNodePriority(a) ?? "ZZ").localeCompare(getNodePriority(b) ?? "ZZ"))
 
       expect(tasks[0]!.content).toBe("Has priority")
       expect(tasks[1]!.content).toBe("No priority")
@@ -212,7 +227,7 @@ describe.sequential("Node ID Prefix Matching", () => {
       const found = getNode(db, task.id)
 
       expect(found?.content).toBe("Test task")
-      expect(found?.priority).toBe("P2")
+      expect(getNodePriority(found!)).toBe("P2")
       expect(found?.due_at).toBe("2026-01-15")
       expect(found?.assigned_to).toBe("alice")
     })

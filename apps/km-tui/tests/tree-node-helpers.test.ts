@@ -46,7 +46,8 @@ describe("getNodeStyle task detection", () => {
   })
 
   it("node with only priority is NOT a task (no icon)", () => {
-    const node = { priority: "P2" } as KNode
+    // priority via data.tags (column dropped at SCHEMA_VERSION=11)
+    const node = { data: { tags: ["P2"] } } as unknown as KNode
     const style = getNodeStyle(node, false, false, false, 0)
     expect(style.taskStatusIcon).toBeNull()
   })
@@ -171,7 +172,8 @@ describe("implicit task rendering", () => {
   it("node with priority shows priority badge", () => {
     const nodes = item("board", item("col", item("task1")))
     const taskNode = nodes.find((n) => n.id === "task1")!
-    taskNode.priority = "P2"
+    // priority via data.tags (column dropped at SCHEMA_VERSION=11)
+    taskNode.data = { ...taskNode.data, tags: ["P2"] }
     taskNode.item = { ...taskNode.item, task: undefined }
 
     using app = createTestApp(nodes)

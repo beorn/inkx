@@ -64,7 +64,7 @@ import { TreeNode } from "../src/views/TreeNode.tsx"
 import { BoardCore, type BoardCoreProps } from "../src/views/Board.tsx"
 import { CommandBox } from "../src/views/CommandBox.tsx"
 import { ToastStack } from "../src/views/ToastStack.tsx"
-import type { KNode, TaskStatus, TaskMarker } from "@km/core"
+import { type KNode, type TaskStatus, type TaskMarker, getNodePriority } from "@km/core"
 import type { ColumnSnapshot } from "../src/hooks/use-columns.ts"
 
 /** Local type for storybook mock board state (TUIBoardState was removed from types.ts) */
@@ -519,9 +519,9 @@ function DateBadgeDemo(): React.ReactElement {
     { label: "Due in 6 days", node: { due_at: d(6) } as KNode },
     { label: "Due in 10 days", node: { due_at: d(10) } as KNode },
 
-    // With priority
-    { label: "P1 overdue", node: { priority: "P1", due_at: d(-3) } as KNode },
-    { label: "P2 due today", node: { priority: "P2", due_at: d(0) } as KNode },
+    // With priority — via data.tags (column dropped at SCHEMA_VERSION=11)
+    { label: "P1 overdue", node: { data: { tags: ["P1"] }, due_at: d(-3) } as unknown as KNode },
+    { label: "P2 due today", node: { data: { tags: ["P2"] }, due_at: d(0) } as unknown as KNode },
 
     // With recurrence
     { label: "Due tomorrow ↻", node: { due_at: d(1), rrule: "weekly" } as KNode },
@@ -542,11 +542,11 @@ function DateBadgeDemo(): React.ReactElement {
     // Full combo
     {
       label: "P2 start → due ↻",
-      node: { priority: "P2", start_at: d(1), due_at: d(7), rrule: "monthly" } as KNode,
+      node: { data: { tags: ["P2"] }, start_at: d(1), due_at: d(7), rrule: "monthly" } as unknown as KNode,
     },
 
     // Edge cases
-    { label: "P4 only (dim)", node: { priority: "P4" } as KNode },
+    { label: "P4 only (dim)", node: { data: { tags: ["P4"] } } as unknown as KNode },
     { label: "No metadata", node: {} as KNode },
   ]
 
@@ -561,7 +561,9 @@ function DateBadgeDemo(): React.ReactElement {
         <Text key={i}>
           {" "}
           {label.padEnd(34)} <DateBadge node={node} />{" "}
-          {!node.due_at && !node.start_at && !node.priority && !node.rrule && <Text color="$fg-muted">(empty)</Text>}
+          {!node.due_at && !node.start_at && !getNodePriority(node) && !node.rrule && (
+            <Text color="$fg-muted">(empty)</Text>
+          )}
         </Text>
       ))}
     </>
@@ -811,9 +813,9 @@ function mockNode(
       : {}),
     due_at: options?.due_at,
     start_at: options?.start_at,
-    priority: options?.priority,
     rrule: options?.rrule,
-    data: {},
+    // priority via data.tags '#P[0-4]' (column dropped at SCHEMA_VERSION=11)
+    data: options?.priority ? { tags: [options.priority] } : {},
     created_at: Date.now(),
     updated_at: Date.now(),
     version: "1",

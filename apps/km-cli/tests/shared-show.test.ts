@@ -67,10 +67,10 @@ describe("printTaskDetails", () => {
       type: "p",
       item: { list: "-", task: { marker: "[ ]", status: "wip" } },
       content: "Wire up the share-print helper",
-      priority: "P1",
+      // priority via data.tags '#P[0-4]' (column dropped at SCHEMA_VERSION=11)
       data: {
         id: "beads/share-print-details",
-        tags: ["task"],
+        tags: ["task", "P1"],
         props: {
           "blocked-by": {
             type: "list",
@@ -101,10 +101,10 @@ describe("printTaskDetails", () => {
       type: "p",
       item: { list: "-", task: { marker: "[ ]", status: "wip" } },
       content: "task content here",
-      priority: "P1",
+      // priority via data.tags '#P[0-4]' (column dropped at SCHEMA_VERSION=11)
       assigned_to: "alice",
       due_at: "2026-05-01",
-      data: { id: "scope/slug", tags: ["task"] },
+      data: { id: "scope/slug", tags: ["task", "P1"] },
     })
 
     const node = repo.getNode(id)!

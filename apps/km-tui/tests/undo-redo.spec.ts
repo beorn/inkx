@@ -15,12 +15,21 @@
 
 import { describe, test, it, expect } from "vitest"
 import { createFakeRepo } from "@km/storage"
-import type { KNode } from "@km/core"
+import { type KNode, getNodePriority } from "@km/core"
 import { createUndoStack } from "../src/undo-stack.ts"
 import { createUndoableRepo } from "../src/undo/undoable-repo.ts"
 import { invertTreeOp } from "../src/undo/operations.ts"
 import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
+
+/**
+ * Set priority on a Partial<KNode> updates payload via data.tags.
+ * The legacy nodes.priority column was dropped at SCHEMA_VERSION=11 —
+ * tests use data.tags so getNodePriority() resolves the value.
+ */
+function priorityUpdate(priority: string, extra: Partial<KNode> = {}): Partial<KNode> {
+  return { ...extra, data: { ...(extra.data ?? {}), tags: [priority] } }
+}
 
 // =============================================================================
 // Helpers
@@ -212,16 +221,18 @@ describe("invertTreeOp", () => {
   })
 
   test("update_node inverts by swapping before/after", () => {
+    // priority dropped as column at SCHEMA_VERSION=11 — use assigned_to
+    // (still a column) to exercise update-inversion mechanics.
     const inv = invertTreeOp({
       type: "update_node",
       nodeId: "n1",
-      before: { priority: "P1" },
-      after: { priority: "P3" },
+      before: { assigned_to: "alice" },
+      after: { assigned_to: "bob" },
     })
     expect(inv.type).toBe("update_node")
     if (inv.type === "update_node") {
-      expect(inv.before).toEqual({ priority: "P3" })
-      expect(inv.after).toEqual({ priority: "P1" })
+      expect(inv.before).toEqual({ assigned_to: "bob" })
+      expect(inv.after).toEqual({ assigned_to: "alice" })
     }
   })
 })
@@ -284,12 +295,11 @@ describe("undo: delete node", () => {
   test("delete -> undo restores the node with all properties", () => {
     const { repo, handle } = setupBoard()
 
-    // Set some properties on task-a
-    repo.updateNode("task-a", {
-      priority: "P2",
+    // Set some properties on task-a (priority via data.tags now)
+    repo.updateNode("task-a", priorityUpdate("P2", {
       due_at: "2026-03-15",
       item: { task: { status: "wip", marker: "[/]" } },
-    })
+    }))
 
     // Clear the undo stack (we don't want to undo the updateNode)
     handle.stack.clear()
@@ -297,7 +307,7 @@ describe("undo: delete node", () => {
     // Snapshot the node before deletion
     const before = repo.getNode("task-a")
     expect(before).not.toBeNull()
-    expect(before!.priority).toBe("P2")
+    expect(getNodePriority(before!)).toBe("P2")
 
     // Delete it
     repo.deleteNode("task-a")
@@ -311,7 +321,7 @@ describe("undo: delete node", () => {
     // Node should be back with all properties
     const restored = repo.getNode("task-a")
     expect(restored).not.toBeNull()
-    expect(restored!.priority).toBe("P2")
+    expect(getNodePriority(restored!)).toBe("P2")
     expect(restored!.due_at).toBe("2026-03-15")
     expect(restored!.item?.task?.status).toBe("wip")
     expect(repo.getChildren("col1").length).toBe(3)
@@ -375,29 +385,29 @@ describe("undo: update node", () => {
   test("update -> undo restores old values", () => {
     const { repo, handle } = setupBoard()
 
-    // Original state
-    expect(repo.getNode("task-a")?.priority).toBeUndefined()
+    // Original state — priority via data.tags (column dropped at v11)
+    expect(getNodePriority(repo.getNode("task-a")!)).toBeUndefined()
 
     // Update
-    repo.updateNode("task-a", { priority: "P1", due_at: "2026-04-01" })
-    expect(repo.getNode("task-a")?.priority).toBe("P1")
+    repo.updateNode("task-a", priorityUpdate("P1", { due_at: "2026-04-01" }))
+    expect(getNodePriority(repo.getNode("task-a")!)).toBe("P1")
     expect(repo.getNode("task-a")?.due_at).toBe("2026-04-01")
 
     // Undo
     handle.undo()
-    expect(repo.getNode("task-a")?.priority).toBeUndefined()
+    expect(getNodePriority(repo.getNode("task-a")!)).toBeUndefined()
     expect(repo.getNode("task-a")?.due_at).toBeUndefined()
   })
 
   test("update -> undo -> redo re-applies the changes", () => {
     const { repo, handle } = setupBoard()
 
-    repo.updateNode("task-a", { priority: "P3" })
+    repo.updateNode("task-a", priorityUpdate("P3"))
     handle.undo()
-    expect(repo.getNode("task-a")?.priority).toBeUndefined()
+    expect(getNodePriority(repo.getNode("task-a")!)).toBeUndefined()
 
     handle.redo()
-    expect(repo.getNode("task-a")?.priority).toBe("P3")
+    expect(getNodePriority(repo.getNode("task-a")!)).toBe("P3")
   })
 })
 
@@ -411,9 +421,9 @@ describe("undo: batch operations", () => {
 
     handle.startBatch("test batch")
 
-    repo.updateNode("task-a", { priority: "P1" })
-    repo.updateNode("task-b", { priority: "P2" })
-    repo.updateNode("task-c", { priority: "P3" })
+    repo.updateNode("task-a", priorityUpdate("P1"))
+    repo.updateNode("task-b", priorityUpdate("P2"))
+    repo.updateNode("task-c", priorityUpdate("P3"))
 
     handle.endBatch()
 
@@ -421,30 +431,30 @@ describe("undo: batch operations", () => {
     expect(undoStack.size).toBe(1)
 
     // All three have priorities
-    expect(repo.getNode("task-a")?.priority).toBe("P1")
-    expect(repo.getNode("task-b")?.priority).toBe("P2")
-    expect(repo.getNode("task-c")?.priority).toBe("P3")
+    expect(getNodePriority(repo.getNode("task-a")!)).toBe("P1")
+    expect(getNodePriority(repo.getNode("task-b")!)).toBe("P2")
+    expect(getNodePriority(repo.getNode("task-c")!)).toBe("P3")
 
     // Single undo reverts all three
     handle.undo()
-    expect(repo.getNode("task-a")?.priority).toBeUndefined()
-    expect(repo.getNode("task-b")?.priority).toBeUndefined()
-    expect(repo.getNode("task-c")?.priority).toBeUndefined()
+    expect(getNodePriority(repo.getNode("task-a")!)).toBeUndefined()
+    expect(getNodePriority(repo.getNode("task-b")!)).toBeUndefined()
+    expect(getNodePriority(repo.getNode("task-c")!)).toBeUndefined()
   })
 
   test("batch redo restores all mutations", () => {
     const { repo, handle } = setupBoard()
 
     handle.startBatch("multi-update")
-    repo.updateNode("task-a", { priority: "P1" })
+    repo.updateNode("task-a", priorityUpdate("P1"))
     repo.moveNode("task-b", "col1", 99)
     handle.endBatch()
 
     handle.undo()
-    expect(repo.getNode("task-a")?.priority).toBeUndefined()
+    expect(getNodePriority(repo.getNode("task-a")!)).toBeUndefined()
 
     handle.redo()
-    expect(repo.getNode("task-a")?.priority).toBe("P1")
+    expect(getNodePriority(repo.getNode("task-a")!)).toBe("P1")
   })
 
   test("empty batch does not push to stack", () => {
@@ -466,8 +476,8 @@ describe("undo: stack behavior", () => {
     const { repo, handle, undoStack } = setupBoard()
 
     // Push two entries
-    repo.updateNode("task-a", { priority: "P1" })
-    repo.updateNode("task-b", { priority: "P2" })
+    repo.updateNode("task-a", priorityUpdate("P1"))
+    repo.updateNode("task-b", priorityUpdate("P2"))
     expect(undoStack.size).toBe(2)
 
     // Undo one
@@ -475,7 +485,7 @@ describe("undo: stack behavior", () => {
     expect(undoStack.canRedo()).toBe(true)
 
     // New edit should clear redo
-    repo.updateNode("task-c", { priority: "P3" })
+    repo.updateNode("task-c", priorityUpdate("P3"))
     expect(undoStack.canRedo()).toBe(false)
     expect(undoStack.size).toBe(2) // first entry + new entry (second was truncated)
   })
@@ -488,7 +498,7 @@ describe("undo: stack behavior", () => {
 
     // Push more entries than maxSize
     for (let i = 0; i < 10; i++) {
-      repo.updateNode("task", { priority: `P${(i % 4) + 1}` })
+      repo.updateNode("task", priorityUpdate(`P${(i % 4) + 1}`))
     }
 
     expect(stack.size).toBe(maxSize)
@@ -516,7 +526,7 @@ describe("undo: cursor restoration", () => {
     const { repo, handle, undoStack } = setupBoard()
 
     handle.setCursor("task-a")
-    repo.updateNode("task-b", { priority: "P2" })
+    repo.updateNode("task-b", priorityUpdate("P2"))
     handle.setCursorAfter("task-b")
 
     const result = handle.undo()
@@ -529,11 +539,11 @@ describe("undo: cursor restoration", () => {
 
     // First mutation with cursor
     handle.setCursor("task-a")
-    repo.updateNode("task-a", { priority: "P1" })
+    repo.updateNode("task-a", priorityUpdate("P1"))
 
     // Second mutation with different cursor
     handle.setCursor("task-b")
-    repo.updateNode("task-b", { priority: "P2" })
+    repo.updateNode("task-b", priorityUpdate("P2"))
 
     // Undo second
     const result2 = handle.undo()
