@@ -25,7 +25,7 @@ export interface StaleTasksOptions {
   days?: number
   detail?: boolean
   flat?: boolean
-  id?: boolean
+  showIds?: boolean
   json?: boolean
 }
 
@@ -93,7 +93,7 @@ export async function listStaleTasks(options: StaleTasksOptions): Promise<void> 
       const lines = formatTaskWithPath(repo, task, ancestors, {
         detail: options.detail,
         flat: true,
-        showId: options.id,
+        showId: options.showIds,
       })
       const staleness = term.dim(` (${formatStaleness(task.updated_at ?? 0, now)})`)
       const last = lines.pop()
@@ -102,7 +102,7 @@ export async function listStaleTasks(options: StaleTasksOptions): Promise<void> 
     }
   } else {
     for (const task of stale) {
-      const line = formatTaskLine(task, { detail: options.detail, showId: options.id })
+      const line = formatTaskLine(task, { detail: options.detail, showId: options.showIds })
       const staleness = term.dim(` (${formatStaleness(task.updated_at ?? 0, now)})`)
       console.log(line + staleness)
     }

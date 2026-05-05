@@ -7,7 +7,7 @@
  *
  *   1. the source of `index.ts` declares a `ready` subcommand,
  *   2. the action body forwards `status: "todo"` + `unblocked: true`, and
- *   3. the standard display flags (--detail, --flat, --id, --json, --limit)
+ *   3. the standard display flags (--detail, --flat, --show-ids, --json, --limit)
  *      are present on the subcommand.
  *
  * We use source-text matching (same pattern as `bd-create-arg-shapes.test.ts`)
@@ -52,7 +52,7 @@ describe("tasks ready — source-shape regression", () => {
     const options = readyBlock!.split(".action(")[0]!
     expect(options).toContain("--detail")
     expect(options).toContain("--flat")
-    expect(options).toContain("--id")
+    expect(options).toContain("--show-ids")
     expect(options).toContain("--limit")
     expect(options).toContain("--json")
   })

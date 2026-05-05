@@ -28,7 +28,7 @@ export interface ListTasksOptions {
   all?: boolean
   detail?: boolean
   flat?: boolean
-  id?: boolean
+  showIds?: boolean
   json?: boolean
   blocked?: boolean
   unblocked?: boolean
@@ -229,7 +229,7 @@ function renderFlat(repo: Repo, tasks: KNodeType[], options: ListTasksOptions): 
     const lines = formatTaskWithPath(repo, task, collapsedAncestors, {
       detail: options.detail,
       flat: true,
-      showId: options.id,
+      showId: options.showIds,
     })
     for (const line of lines) {
       console.log(line)
@@ -292,7 +292,7 @@ function renderTree(repo: Repo, tasks: KNodeType[], options: ListTasksOptions): 
     // Task indent: fsDepth + 3 spaces if under a section (to align with section content)
     const taskIndent = hasSection ? fsDepth + 3 : fsDepth
     const taskPrefix = " ".repeat(taskIndent)
-    console.log(taskPrefix + formatTaskLine(task, { detail: options.detail, showId: options.id }))
+    console.log(taskPrefix + formatTaskLine(task, { detail: options.detail, showId: options.showIds }))
 
     previousAncestorKeys = ancestorKeys
   }

@@ -27,12 +27,12 @@ export const taskCommand = new Command("tasks")
   .option("--assignee <name>", "Filter by assignee (use 'me' for current user)")
   .option("-V, --detail", "Show more details")
   .option("-f, --flat", "Show path on single line")
-  .option("-i, --id", "Show task IDs")
+  .option("-i, --show-ids", "Show task IDs")
   .option("-n, --limit <n>", "Limit number of results")
   .option("--json", "Output as JSON")
   .option("--new <content>", "Create a new task")
   .option("--type <type>", "Bead-style type tag for --new (bug, feature, epic, …; task is implicit)")
-  .option("--task-id <id>", "Explicit canonical id for --new (path-form @km/scope/foo or bare scope/foo)")
+  .option("--id <id>", "Explicit canonical id for --new (path-form @km/scope/foo or bare scope/foo)")
   .option("--aliases <list>", "Comma-separated alias list for --new (writes to data.aliases)")
   .option("--parent <ref>", "Explicit parent ref for --new (id, path, or filename)")
   .option("--owner <user>", "Initial assignee for --new (writes to node.assigned_to)")
@@ -111,7 +111,7 @@ taskCommand
   .option("-d, --days <n>", "Days threshold (default 14)", (v) => parseInt(v, 10), 14)
   .option("-V, --detail", "Show more details")
   .option("-f, --flat", "Show path on single line")
-  .option("-i, --id", "Show task IDs")
+  .option("-i, --show-ids", "Show task IDs")
   .option("--json", "Output as JSON")
   .action((_options, cmd) => {
     void listStaleTasks(cmd.optsWithGlobals())
@@ -120,15 +120,15 @@ taskCommand
 // Add ready subcommand — preset for `--status todo --unblocked`.
 // Mirrors the surface of `bd ready` so a contributor never has to remember
 // the long-form filter combo for "what's available to work on right now".
-// Display flags mirror the parent `tasks` command (--detail, --flat, --id,
-// --json, --limit) so output stays consistent across the suite.
+// Display flags mirror the parent `tasks` command (--detail, --flat,
+// --show-ids, --json, --limit) so output stays consistent across the suite.
 taskCommand
   .command("ready")
   .description("List ready tasks (todo + unblocked)")
   .argument("[query...]", "Optional query terms (forwarded to tasks list)")
   .option("-V, --detail", "Show more details")
   .option("-f, --flat", "Show path on single line")
-  .option("-i, --id", "Show task IDs")
+  .option("-i, --show-ids", "Show task IDs")
   .option("-n, --limit <n>", "Limit number of results")
   .option("-p, --priority <value>", "Filter by priority (e.g. P1, P2, or 0-4)")
   .option("--assignee <name>", "Filter by assignee (use 'me' for current user)")

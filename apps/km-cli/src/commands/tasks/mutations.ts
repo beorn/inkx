@@ -30,9 +30,10 @@ export interface CreateTaskOptions {
   type?: string
   /** Explicit canonical id (path-form or bare scope/slug). Stored at
    * `data.id` so `tasks <id>` resolves it. Skips the auto-id helper.
-   * Surfaced as `--task-id` because the bare `--id` slot is taken by
-   * the `--id` (boolean) display flag on the parent `tasks` command. */
-  taskId?: string
+   * The `-i, --id` boolean display flag on the parent `tasks` command
+   * was renamed to `--show-ids`, freeing the `--id <id>` slot for this
+   * create-time string flag. */
+  id?: string
   /** Comma-separated alias list, written to `data.aliases`. */
   aliases?: string
   /** Explicit parent ref (id, path, or filename). Resolved via
@@ -85,9 +86,10 @@ export async function createTask(
     process.exit(1)
   }
 
-  // Map `--task-id` (avoids conflicting with the `-i, --id` display flag
-   // on the parent `tasks` command) onto the planner's `id` slot.
-  const { node } = planNewTask(content, { ...options, id: options.taskId })
+  // `--id <id>` flows directly into the planner's `id` slot. The display
+  // flag that used to claim `-i, --id` is now `--show-ids`, so the create
+  // surface gets the natural `--id` name.
+  const { node } = planNewTask(content, options)
   const nodeId = repo.addNode(parentId, node)
 
   if (options.json) {
