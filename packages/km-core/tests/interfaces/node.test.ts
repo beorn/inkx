@@ -206,7 +206,10 @@ describe("KNode namespace", () => {
         assigned_to: "bob",
         due_at: "2026-03-31",
       } as any
-      const props = KNode.extractProps(node)
+      const props = KNode.extractProps(node) as Record<string, unknown>
+      // priority dropped from KNode at SCHEMA_VERSION=11 — it now exercises
+      // the "future custom field" path (extractProps preserves any non-
+      // system key, regardless of declared type).
       expect(props.priority).toBe("P2")
       expect(props.assigned_to).toBe("bob")
       expect(props.due_at).toBe("2026-03-31")

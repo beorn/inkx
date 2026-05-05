@@ -30,7 +30,7 @@ function makeTask(id: string, priority?: string): KNode {
     created_at: 0,
     updated_at: 0,
     ...(priority !== undefined ? { data: { tags: [priority] } } : {}),
-  } as KNode
+  } as unknown as KNode
 }
 
 describe("normalizePriority", () => {

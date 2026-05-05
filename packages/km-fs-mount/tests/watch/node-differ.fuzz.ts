@@ -23,6 +23,7 @@ const TASK_MARKERS = ["[ ]", "[x]", "[/]", "[!]", "[-]", undefined] as const
 let nodeIdCounter = 0
 
 function makeNode(overrides: Partial<KNode> & { id: string; type: string }): KNode {
+  // priority column dropped at SCHEMA_VERSION=11 — surfaced via data.tags
   return {
     parent_id: null,
     parent_idx: 0,
@@ -34,7 +35,6 @@ function makeNode(overrides: Partial<KNode> & { id: string; type: string }): KNo
     assigned_to: undefined,
     due_at: undefined,
     start_at: undefined,
-    priority: undefined,
     content: undefined,
     content_hash: undefined,
     data: {},
@@ -84,8 +84,12 @@ function randomChildNode(rng: SeededRandom, id: string, parentId: string, parent
     content: rng.bool(0.7) ? `Content ${rng.int(1, 1000)}` : undefined,
     title: type === "h" && rng.bool(0.5) ? `Section ${rng.int(1, 100)}` : undefined,
     md_pos: rng.bool(0.3) ? rng.int(0, 10000) : undefined,
-    priority: rng.bool(0.2) ? `P${rng.int(1, 5)}` : undefined,
-    data: rng.bool(0.3) ? { tags: [`tag-${rng.int(1, 10)}`] } : {},
+    // priority via data.tags '#P[0-4]' (column dropped at SCHEMA_VERSION=11)
+    data: rng.bool(0.3)
+      ? { tags: [`tag-${rng.int(1, 10)}`, ...(rng.bool(0.2) ? [`P${rng.int(1, 5)}`] : [])] }
+      : rng.bool(0.2)
+        ? { tags: [`P${rng.int(1, 5)}`] }
+        : {},
   })
 }
 

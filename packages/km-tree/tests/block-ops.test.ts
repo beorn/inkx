@@ -7,7 +7,7 @@
 
 import { describe, test, expect } from "vitest"
 import { createTestRepo } from "@km/storage"
-import { KNode } from "@km/core"
+import { KNode, getNodePriority } from "@km/core"
 import { split, mergeBackward, mergeForward, detectPrefixConversion, degrade } from "../src/ops/block-ops.ts"
 import { KTree } from "../src/walk.ts"
 
@@ -299,19 +299,20 @@ describe("split", () => {
   test("split node with priority/assigned_to inherits them", () => {
     const { repo, parentId } = setupTaskTree()
 
+    // priority via data.tags (column dropped at SCHEMA_VERSION=11)
     const nodeId = repo.addNode(parentId, {
       type: "p",
       item: { list: "-", task: { marker: "[ ]", status: "todo" } },
       content: "- [ ] Task with metadata",
-      priority: "P1",
       assigned_to: "alice",
       parent_idx: 4,
+      data: { tags: ["P1"] },
     })
 
     const result = split(repo, nodeId, 10)
 
     const after = repo.getNode(result.afterId)!
-    expect(after.priority).toBe("P1")
+    expect(getNodePriority(after)).toBe("P1")
     expect(after.assigned_to).toBe("alice")
   })
 

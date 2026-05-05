@@ -19,7 +19,7 @@ import {
   parseWikiLinks,
   slugify,
 } from "../src/parser.ts"
-import { parseHeadingRules } from "@km/core"
+import { parseHeadingRules, getNodePriority } from "@km/core"
 import { makeTestNode } from "./helpers/test-utils.ts"
 
 // -----------------------------------------------------------------------------
@@ -29,7 +29,11 @@ import { makeTestNode } from "./helpers/test-utils.ts"
 /** Create a paragraph node for serialization tests */
 const makeParagraph = (content: string) => makeTestNode({ type: "p", content })
 
-/** Create a task node for serialization tests */
+/** Create a task node for serialization tests.
+ *
+ * priority dissolved as a column at SCHEMA_VERSION=11 — populated via
+ * data.tags '#P[0-4]' (canonical authored form per docs/future/beads.md).
+ */
 const makeTask = (
   content: string,
   opts: {
@@ -44,7 +48,7 @@ const makeTask = (
     item: { list: "-", task: { status: opts.status ?? "todo", marker: opts.marker ?? "[ ]" } },
     content,
     due_at: opts.dueAt,
-    priority: opts.priority,
+    ...(opts.priority ? { data: { tags: [opts.priority] } } : {}),
   })
 
 /** Create a section node for serialization tests */
@@ -455,7 +459,7 @@ This is a paragraph.
 
       expect(task).toBeDefined()
       expect(task!.due_at).toBe("2025-03-15")
-      expect(task!.priority).toBe("P1")
+      expect(getNodePriority(task!)).toBe("P1")
     })
 
     test("should strip task metadata from content field", () => {
@@ -485,7 +489,7 @@ This is a paragraph.
       )
       expect(emojiTask!.content).toBe("Task A ⏫")
       expect(emojiTask!.due_at).toBe("2025-03-15")
-      expect(emojiTask!.priority).toBeUndefined()
+      expect(getNodePriority(emojiTask!)).toBeUndefined()
 
       // Legacy format: due: stripped, p:N stays as plain text
       const legacyTask = parseMarkdownToNodes(`- [ ] Task B due:2025-06-01 p:2`, "test.md").find(
@@ -493,7 +497,7 @@ This is a paragraph.
       )
       expect(legacyTask!.content).toBe("Task B p:2")
       expect(legacyTask!.due_at).toBe("2025-06-01")
-      expect(legacyTask!.priority).toBeUndefined()
+      expect(getNodePriority(legacyTask!)).toBeUndefined()
 
       // New key:: value format — priority:: is stripped and extracted
       const newTask = parseMarkdownToNodes(`- [ ] Task C due:: 2025-09-01 priority:: P3`, "test.md").find(
@@ -501,7 +505,7 @@ This is a paragraph.
       )
       expect(newTask!.content).toBe("Task C")
       expect(newTask!.due_at).toBe("2025-09-01")
-      expect(newTask!.priority).toBe("P3")
+      expect(getNodePriority(newTask!)).toBe("P3")
     })
 
     test("should not strip metadata from non-task list items", () => {

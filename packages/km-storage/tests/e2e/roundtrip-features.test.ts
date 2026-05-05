@@ -13,7 +13,7 @@ import { ulid } from "ulid"
 import { writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 import { getAllNodes, getSubtree, nodesToMarkdown, applyChangeWithDb, withTestEnv } from "@km/storage"
-import type { KNode } from "@km/core"
+import { type KNode, getNodePriority } from "@km/core"
 import { createTestSync } from "../../../km-fs-mount/tests/watch/sync-test-helpers.ts"
 
 /** Create sync with test defaults */
@@ -109,13 +109,13 @@ describe("E2E Round-Trip Features", () => {
 
         const tasks = nodes.filter((n) => n.item?.task?.status != null)
         const urgent = tasks.find((t) => t.content?.includes("Urgent"))
-        expect(urgent?.priority).toBe("P1")
+        expect(getNodePriority(urgent!)).toBe("P1")
 
         const high = tasks.find((t) => t.content?.includes("High"))
-        expect(high?.priority).toBe("P2")
+        expect(getNodePriority(high!)).toBe("P2")
 
         const low = tasks.find((t) => t.content?.includes("Low"))
-        expect(low?.priority).toBe("P3")
+        expect(getNodePriority(low!)).toBe("P3")
       }))
   })
 

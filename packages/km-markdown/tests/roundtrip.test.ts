@@ -9,7 +9,7 @@ import { describe, test, expect } from "vitest"
 import { readFileSync } from "fs"
 import { join, dirname } from "path"
 import { fileURLToPath } from "url"
-import type { KNode } from "@km/core"
+import { type KNode, getNodePriority } from "@km/core"
 
 import { parseMarkdownToNodes } from "../src/ast2nodes.ts"
 import { nodesToMarkdown } from "../src/nodes2md.ts"
@@ -520,12 +520,12 @@ describe("Round-trip: Content Preservation Verification", () => {
     expect(task).toBeDefined()
     expect(task!.due_at).toBe("2025-12-25")
     // Emoji priority (⏫) is no longer extracted
-    expect(task!.priority).toBeUndefined()
+    expect(getNodePriority(task!)).toBeUndefined()
 
     // After round-trip, due date preserved; emoji priority stripped but not re-emitted
     const task2 = parse(nodesToMarkdown(nodes)).find((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
     expect(task2!.due_at).toBe("2025-12-25")
-    expect(task2!.priority).toBeUndefined()
+    expect(getNodePriority(task2!)).toBeUndefined()
   })
 
   test("should preserve section depth via tree structure", () => {
@@ -855,7 +855,7 @@ describe("Round-trip: Task Metadata Formats", () => {
     expect(task!.due_at).toBe("2025-12-25")
     expect(task!.start_at).toBe("2025-12-20")
     // Emoji priority (⏫) is no longer extracted
-    expect(task!.priority).toBeUndefined()
+    expect(getNodePriority(task!)).toBeUndefined()
     // Content keeps ⏫ as plain text — only date emoji are stripped
     expect(task!.content).toBe("Task with all metadata ⏫")
 
@@ -886,7 +886,7 @@ describe("Round-trip: Task Metadata Formats", () => {
     // start:DATE is NO LONGER read — only start:: and ⏳ are supported
     expect(task!.start_at).toBeUndefined()
     // Legacy p:N format is no longer extracted for priority
-    expect(task!.priority).toBeUndefined()
+    expect(getNodePriority(task!)).toBeUndefined()
     // start:2025-11-10 and p:2 stay as plain text (not stripped, not extracted)
     expect(task!.content).toBe("Task with inline fields start:2025-11-10 p:2")
   })
@@ -898,9 +898,9 @@ describe("Round-trip: Task Metadata Formats", () => {
     const tasks = nodes.filter((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
 
     // Emoji priorities are not extracted
-    expect(tasks[0]?.priority).toBeUndefined()
-    expect(tasks[1]?.priority).toBeUndefined()
-    expect(tasks[2]?.priority).toBeUndefined()
+    expect(getNodePriority(tasks[0]!)).toBeUndefined()
+    expect(getNodePriority(tasks[1]!)).toBeUndefined()
+    expect(getNodePriority(tasks[2]!)).toBeUndefined()
 
     // Emoji priority symbols stay as plain text — no stripping, no priority:: emitted
     const output = nodesToMarkdown(nodes)
@@ -916,9 +916,9 @@ describe("Round-trip: Task Metadata Formats", () => {
 - [ ] Low priority priority:: P3`)
     const tasks = nodes.filter((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
 
-    expect(tasks[0]?.priority).toBe("P1")
-    expect(tasks[1]?.priority).toBe("P2")
-    expect(tasks[2]?.priority).toBe("P3")
+    expect(getNodePriority(tasks[0]!)).toBe("P1")
+    expect(getNodePriority(tasks[1]!)).toBe("P2")
+    expect(getNodePriority(tasks[2]!)).toBe("P3")
 
     const output = nodesToMarkdown(nodes)
     expect(output).toContain("priority:: P1")

@@ -11,6 +11,7 @@ import { mkdirSync, existsSync, writeFileSync, readFileSync, readdirSync } from 
 import { join, relative } from "path"
 
 import { getNodeByPath, getAllNodes, getAncestors } from "@km/storage"
+import { getNodePriority } from "@km/core"
 import type { ConflictInfo } from "../../src/index.ts"
 import { createSyncState } from "../../src/watch/sync-state.ts"
 
@@ -158,7 +159,7 @@ Some content here.
         const dueTask = tasks.find((t) => t.due_at === "2025-03-15")
         expect(dueTask).toBeDefined()
 
-        const highPriorityTask = tasks.find((t) => t.priority === "P1")
+        const highPriorityTask = tasks.find((t) => getNodePriority(t) === "P1")
         expect(highPriorityTask).toBeDefined()
 
         const scheduledTask = tasks.find((t) => t.start_at === "2025-03-10")

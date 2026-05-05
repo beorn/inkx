@@ -8,6 +8,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { Database } from "bun:sqlite"
 import { createMapDataStore, createMemDataStore, createDBDataStore, SCHEMA, type DataStore } from "../src/index.ts"
+import { getNodePriority } from "@km/core"
 
 // =============================================================================
 // Shared Test Suite (runs against all implementations)
@@ -146,16 +147,17 @@ function testDataStore(name: string, factory: () => DataStore) {
       })
 
       test("preserves unmodified properties", () => {
+        // priority via data.tags (column dropped at SCHEMA_VERSION=11)
         const id = store.addNode(null, {
           type: "p",
           item: {},
           content: "Test",
-          priority: "P1",
+          data: { tags: ["P1"] },
         })
         store.updateNode(id, { content: "Updated" })
 
         const node = store.getNode(id)
-        expect(node?.priority).toBe("P1")
+        expect(getNodePriority(node!)).toBe("P1")
       })
 
       test("updates updated_at timestamp", () => {

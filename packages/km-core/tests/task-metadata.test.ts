@@ -17,7 +17,16 @@ import { describe, test, expect } from "vitest"
 import { extractTaskMetadata, stringifyTaskMetadata, parseTaskMetadataFromText } from "../src/task-metadata.ts"
 import type { KNode } from "../src/types.ts"
 
-function makeNode(overrides: Partial<KNode> = {}): KNode {
+function makeNode(overrides: Partial<KNode> & { priority?: string } = {}): KNode {
+  // priority dissolved as a column at SCHEMA_VERSION=11 — mirror it into
+  // data.tags so getNodePriority() (used by stringifyTaskMetadata
+  // internally) resolves the value.
+  const { priority, data: dataOverride, ...rest } = overrides
+  const baseData = (dataOverride ?? {}) as Record<string, unknown>
+  const tags = (baseData.tags as string[] | undefined) ?? []
+  const data: Record<string, unknown> = priority
+    ? { ...baseData, tags: [...tags.filter((t) => !/^P[0-4]$/i.test(t)), priority] }
+    : baseData
   return {
     id: "test-node",
     type: "p",
@@ -26,7 +35,8 @@ function makeNode(overrides: Partial<KNode> = {}): KNode {
     content: "",
     parent_id: "parent",
     depth: 0,
-    ...overrides,
+    data,
+    ...rest,
   } as KNode
 }
 
