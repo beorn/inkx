@@ -25,7 +25,7 @@
  *     failure is recoverable by re-running with the same spec.
  */
 
-import { existsSync, renameSync } from "fs"
+import { existsSync, renameSync, unlinkSync } from "fs"
 import { basename, dirname, join } from "path"
 
 import type { Database } from "bun:sqlite"
@@ -785,6 +785,19 @@ export function moveNodeWithRefs(id: string, spec: MoveSpec, deps: MoveDeps, opt
     } else if (!existsSync(oldAbs) && existsSync(newAbs)) {
       // Already renamed — idempotent recovery path.
       fsRenamed = false
+    } else if (existsSync(oldAbs) && existsSync(newAbs)) {
+      // Both exist: an FS-writeback decorator (`withFsWriter` / `withSync`)
+      // materialised the moved node's content to its new fs_path during the
+      // data-layer mutations above, before this rename phase ran. The new
+      // file is the canonical content; the old file is stale and must be
+      // unlinked so the move is observable end-to-end (test contracts in
+      // bd-move-alias rely on this).
+      try {
+        unlinkSync(oldAbs)
+        fsRenamed = true
+      } catch (err) {
+        failedHosts.push({ id: "<fs-unlink-stale>", reason: err instanceof Error ? err.message : String(err) })
+      }
     }
   }
 

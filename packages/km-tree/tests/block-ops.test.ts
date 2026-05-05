@@ -296,23 +296,28 @@ describe("split", () => {
     expect(after.data).not.toEqual({ custom: "value", priority: "high" })
   })
 
-  test("split node with priority/assigned_to inherits them", () => {
+  test("split node with priority hashtag and assigned_to — assigned_to inherits, hashtag follows the text", () => {
     const { repo, parentId } = setupTaskTree()
 
-    // priority via data.tags (column dropped at SCHEMA_VERSION=11)
+    // Priority is now a `#P1` hashtag in content (universal data model — no
+    // priority column, no data.tags). It naturally rides with the half of
+    // the split that contains the hashtag text. `assigned_to` is a regular
+    // (non-system) field and inherits via extractProps.
     const nodeId = repo.addNode(parentId, {
       type: "p",
       item: { list: "-", task: { marker: "[ ]", status: "todo" } },
-      content: "- [ ] Task with metadata",
+      content: "- [ ] Task #P1 with metadata",
       assigned_to: "alice",
       parent_idx: 4,
-      data: { tags: ["P1"] },
     })
 
-    const result = split(repo, nodeId, 10)
+    // Split at offset 14 — the `#P1` token sits in the "before" half.
+    const result = split(repo, nodeId, 14)
 
+    const before = repo.getNode(result.beforeId)!
     const after = repo.getNode(result.afterId)!
-    expect(getNodePriority(after)).toBe("P1")
+    expect(getNodePriority(before)).toBe("P1")
+    expect(getNodePriority(after)).toBeUndefined()
     expect(after.assigned_to).toBe("alice")
   })
 

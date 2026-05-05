@@ -58,7 +58,6 @@ describe("km bd move", () => {
   test("aliases rename and preserves backlinks through the canonical rewrite path", async () => {
     const repo = freshRepo()
     const oldPath = join(repo, "@km", "scope", "old.md")
-    const childPath = join(repo, "@km", "scope", "child.md")
 
     const createOld = await km(repo, ["bd", "create", "Old issue", "--path", "@km/scope/old", "--type", "bug"])
     expect(createOld.exitCode, createOld.stderr || createOld.stdout).toBe(0)
@@ -74,6 +73,11 @@ describe("km bd move", () => {
       "See @km/scope/old and km-scope.old for context.",
     ])
     expect(createChild.exitCode, createChild.stderr || createChild.stdout).toBe(0)
+
+    // Child files nest under the parent's directory: `--parent @km/scope/old`
+    // + `--id child` lands at `@km/scope/old/child.md`. After the parent is
+    // renamed to `@km/scope/new`, the child's directory follows.
+    const childPath = join(repo, "@km", "scope", "new", "child.md")
 
     const result = await km(repo, ["bd", "move", "@km/scope/old", "@km/scope/new", "--include-prose"])
 
