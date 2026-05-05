@@ -16,6 +16,7 @@ import {
   indexFileName,
   getFolderIndexConfig,
   createLinkResolver,
+  type LinkResolver,
   type PoolParseResult as ParseResult,
   type ParseSource,
   parseFiles,
@@ -43,6 +44,15 @@ export interface ApplyOptions {
   repoRoot: string
   emitter: Emitter
   fs?: FileSystemOps
+  /**
+   * Pre-built link resolver to share across batches. When omitted,
+   * applyReconcileOps builds a fresh resolver per call — fine for
+   * one-shot reconciliation (a single file change), wasteful for
+   * bulk-sync (rebuilds the same N-file index for every 25-op
+   * batch). Bulk-sync passes one resolver and lets it accumulate
+   * `addFile` calls across batches.
+   */
+  resolver?: LinkResolver
 }
 
 /**
@@ -109,13 +119,18 @@ export function applyReconcileOps(
     }
   }
 
-  const { db, ops: reconcileOps, repoRoot: root, emitter: emit, fs: fileOps = realFs } = options
+  const { db, ops: reconcileOps, repoRoot: root, emitter: emit, fs: fileOps = realFs, resolver: sharedResolver } = options
 
   using span = log.span("apply-ops", { count: reconcileOps.length })
 
-  // Build lookup map once for efficient link resolution
-  let resolver: ReturnType<typeof createLinkResolver>
-  {
+  // Reuse a shared resolver when the caller (bulk-sync) provided one;
+  // otherwise build a fresh one per call. Building scans every node
+  // with a name so it's O(N); rebuilding once per 25-op batch over
+  // 5000 files turned reconciliation into N²/25.
+  let resolver: LinkResolver
+  if (sharedResolver) {
+    resolver = sharedResolver
+  } else {
     using resolverSpan = span.span("build-resolver")
     resolver = createLinkResolver(db)
     resolverSpan.spanData.files = resolver.size

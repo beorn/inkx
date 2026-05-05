@@ -19,6 +19,7 @@ import { createIgnoreMatcher } from "../fs/ignore.ts"
 import {
   type Emitter,
   type EmitOptions,
+  createLinkResolver,
   getAllNodes,
   getSubtree,
   nodesToMarkdown,
@@ -217,11 +218,24 @@ export const BulkSync = {
     let opsProcessed = 0
     const reconcileEmitter = wrapEmitterForReconcile(emitter)
 
+    // Build the link resolver once and share across batches. Without this,
+    // applyReconcileOps rebuilds it (O(N) name index scan) for every
+    // 25-op batch, turning a 5000-file sync into ~200 redundant scans.
+    // Each created file is announced into the resolver via `addFile`
+    // inside the create handler, so subsequent batches see prior files.
+    const sharedResolver = createLinkResolver(db)
+
     db.run("BEGIN IMMEDIATE")
     try {
       for (let i = 0; i < allOps.length; i += BATCH_SIZE) {
         const batch = allOps.slice(i, i + BATCH_SIZE)
-        applyReconcileOps(db, batch, repoPath, reconcileEmitter)
+        applyReconcileOps({
+          db,
+          ops: batch,
+          repoRoot: repoPath,
+          emitter: reconcileEmitter,
+          resolver: sharedResolver,
+        })
         opsProcessed += batch.length
         yield { current: opsProcessed, total: totalOps }
       }
