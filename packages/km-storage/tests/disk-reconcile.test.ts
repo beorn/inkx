@@ -365,4 +365,76 @@ describe("disk mode filesystem reconciliation", () => {
     const added = db.prepare("SELECT id FROM nodes WHERE fs_path = 'added.md'").get()
     expect(added).toBeDefined()
   })
+
+  test("post-migration self-heal: stamps cursor and skips replay when nodes already projected", () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "km-reconcile-selfheal-"))
+    writeFileSync(join(tmpDir, "existing.md"), "# Existing\n")
+
+    const db = setupDiskMode(tmpDir, [
+      {
+        type: "node_created",
+        data: {
+          id: "preprojected1",
+          type: "h",
+          item: {},
+          fstype: "mdfile",
+          parent_id: ".",
+          parent_idx: 0,
+          fs_path: "existing.md",
+          name: "existing",
+          title: "existing",
+        },
+      },
+    ])
+
+    // Simulate a migrated vault: events present, cursor unset, but the
+    // nodes projection is already populated by a prior emitter write.
+    db.run(
+      `INSERT INTO nodes (id, type, parent_id, parent_idx, fstype, fs_path, name, content, data, created_at, updated_at, version)
+       VALUES (?, 'h', '.', 0, 'mdfile', 'existing.md', 'existing', 'existing', '{}', ?, ?, '')`,
+      ["preprojected1", Date.now(), Date.now()],
+    )
+    expect(db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event_seq")).toBeNull()
+
+    runLoadRepo(tmpDir, { db })
+
+    // Self-heal stamps the cursor at the events-table high-water mark
+    // without replaying the prefix.
+    const cursor = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event_seq") as
+      | { value: string }
+      | undefined
+    expect(cursor).toBeDefined()
+    const maxSeq = (db.prepare("SELECT MAX(seq) AS m FROM events").get() as { m: number | null }).m
+    expect(Number(cursor!.value)).toBe(maxSeq)
+  })
+
+  test("does not self-heal when nodes is empty (replay is genuinely needed)", () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "km-reconcile-fresh-"))
+    writeFileSync(join(tmpDir, "fresh.md"), "# Fresh\n")
+
+    const db = setupDiskMode(tmpDir, [
+      {
+        type: "node_created",
+        data: {
+          id: "fresh1",
+          type: "h",
+          item: {},
+          fstype: "mdfile",
+          parent_id: ".",
+          parent_idx: 0,
+          fs_path: "fresh.md",
+          name: "fresh",
+          title: "fresh",
+        },
+      },
+    ])
+    // No nodes projected — fresh vault with bulk-imported events that have
+    // not yet been applied. Replay should run, projecting the events into
+    // the nodes table.
+
+    runLoadRepo(tmpDir, { db })
+
+    const projected = db.prepare("SELECT id FROM nodes WHERE id = ?").get("fresh1")
+    expect(projected).not.toBeNull()
+  })
 })

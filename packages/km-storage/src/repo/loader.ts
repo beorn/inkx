@@ -663,15 +663,38 @@ function* discoverFromEvents(
   yield "Reading events"
 
   // The events table is the canonical journal. Pull rows past the
-  // high-water-mark `meta.last_event_seq` (force=true ignores it and replays
-  // everything for full rebuilds). Stamp the new high-water-mark so the
-  // next startup skips this prefix; replay is idempotent if applyChanges
-  // is interrupted because INSERT OR IGNORE handles repeated node_created
-  // and applyChangeWithDb is no-op-on-conflict.
-  const lastSeq = force ? 0 : readLastEventSeq(db)
-  const changes = readEventsAfter(db, lastSeq)
+  // high-water-mark `meta.last_event_seq`. force=true ignores the cursor and
+  // replays everything for full rebuilds.
+  //
+  // Self-heal for post-migration vaults: if `meta.last_event_seq` is absent
+  // entirely (not just 0) AND the `nodes` projection is already populated,
+  // every event row was produced by a prior emitter write that ALREADY
+  // updated the nodes table — replaying them is millions of INSERT OR IGNORE
+  // no-ops (~10 min on the user's 6.88M-event vault). Stamp the cursor and
+  // skip replay. Subsequent runs proceed via the normal cursor path.
+  const cursorRow = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event_seq") as
+    | { value: string }
+    | undefined
+  const cursorSet = cursorRow?.value !== undefined
+  const lastSeq = force || !cursorSet ? 0 : Number(cursorRow!.value)
   const maxRow = db.prepare("SELECT MAX(seq) AS max FROM events").get() as { max: number | null }
   const maxSeq = maxRow?.max ?? 0
+
+  if (!force && !cursorSet && maxSeq > 0) {
+    const nodeCount = (db.prepare("SELECT COUNT(*) AS n FROM nodes").get() as { n: number }).n
+    if (nodeCount > 1) {
+      writeLastEventSeq(db, maxSeq)
+      yield { current: 0, total: 0 }
+      log.debug?.(`post-migration self-heal: stamped last_event_seq=${maxSeq}, skipped replay (${nodeCount} nodes already projected)`)
+      return { changes: [], pendingLinks: [] }
+    }
+  }
+
+  // Stamp the new high-water-mark so the next startup skips this prefix;
+  // replay is idempotent if applyChanges is interrupted because INSERT OR
+  // IGNORE handles repeated node_created and applyChangeWithDb is
+  // no-op-on-conflict.
+  const changes = readEventsAfter(db, lastSeq)
   if (maxSeq > lastSeq) writeLastEventSeq(db, maxSeq)
 
   yield { current: changes.length, total: changes.length }
