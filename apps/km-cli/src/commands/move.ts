@@ -17,7 +17,7 @@ import { resolvePathArg } from "@km/fs-mount"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 import { getNodeDisplayName } from "@km/tree"
-import type { KNode } from "@km/core"
+import type { KNode, KLink } from "@km/core"
 
 export const moveCommand = new Command("move")
   .description("Move a node to a different parent (rewrites incoming references by default)")
@@ -26,6 +26,7 @@ export const moveCommand = new Command("move")
   .option("-p, --project <name>", "Move to project by name")
   .option("--to-root", "Move to root level (no parent)")
   .option("--no-rewrite", "Skip rewriting incoming references")
+  .option("--dry-run", "Print the diff without writing anything")
   .option("--json", "Output as JSON")
   .action(async (nodeArg, parentArg, options) => {
     // Resolve the node argument - may detect repo root from path
@@ -99,6 +100,71 @@ export const moveCommand = new Command("move")
         return
       }
       console.log(term.yellow("Node is already at this location"))
+      return
+    }
+
+    // --dry-run: compute the rewrite preview without applying anything.
+    // Uses `getRenameImpact` (already on the public Repo surface) so the
+    // dry-run shares the exact same backlink walker the real move uses.
+    // CI-gateable invariant: dry-run NEVER calls a mutation method.
+    if (options.dryRun) {
+      const impact = repo.getRenameImpact(node.id)
+      const nodeName = getNodeDisplayName(node)
+      const targetName = targetParent ? getNodeDisplayName(targetParent) : "(root)"
+      if (options.json) {
+        console.log(
+          JSON.stringify({
+            dryRun: true,
+            id: node.id,
+            from: { name: nodeName, parent_id: node.parent_id, fs_path: node.fs_path },
+            to: { name: nodeName, parent_id: targetParentId },
+            impact: {
+              backlinks: impact.backlinks.length,
+              childCount: impact.childCount,
+              ruleRefs: impact.ruleRefs,
+              propRefs: impact.propRefs,
+              rewriteHosts: options.rewrite === false ? 0 : impact.backlinks.length,
+            },
+          }),
+        )
+        return
+      }
+      console.log(`Would move ${nodeName} → ${targetName}`)
+      const wouldRewrite = options.rewrite !== false
+      if (wouldRewrite && impact.backlinks.length > 0) {
+        console.log(
+          `Would rewrite references in ${impact.backlinks.length} link${impact.backlinks.length === 1 ? "" : "s"}:`,
+        )
+        for (const link of impact.backlinks.slice(0, 25)) {
+          // backlinksForNodeId enriches KLink with `host_id` — the
+          // upstream node that contains the reference. The KLink type
+          // doesn't pin this field at compile time, so we read it via
+          // a structural cast.
+          const hostId = (link as KLink & { host_id?: string }).host_id
+          const host = hostId ? repo.getNode(hostId) : null
+          const label = host?.fs_path ?? host?.name ?? hostId ?? "(unknown)"
+          console.log(`  ${label}`)
+        }
+        if (impact.backlinks.length > 25) {
+          console.log(`  … and ${impact.backlinks.length - 25} more`)
+        }
+      } else if (!wouldRewrite) {
+        console.log(
+          `(--no-rewrite: ${impact.backlinks.length} link${impact.backlinks.length === 1 ? "" : "s"} would be left dangling)`,
+        )
+      } else {
+        console.log("No incoming references to rewrite.")
+      }
+      if (impact.childCount > 0) {
+        console.log(`Would carry ${impact.childCount} child node${impact.childCount === 1 ? "" : "s"} along.`)
+      }
+      if (impact.ruleRefs > 0) {
+        console.log(`Would update ${impact.ruleRefs} rule reference${impact.ruleRefs === 1 ? "" : "s"}.`)
+      }
+      if (impact.propRefs > 0) {
+        console.log(`Would update ${impact.propRefs} property reference${impact.propRefs === 1 ? "" : "s"}.`)
+      }
+      console.log(term.dim("No changes written. Run without --dry-run to apply."))
       return
     }
 
