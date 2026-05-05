@@ -33,7 +33,11 @@ import { Bead } from "@km/beads"
 import { runGenerator } from "@km/core"
 import { createRepo, type Repo } from "@km/storage"
 
-const BD_TS = join(__dirname, "..", "src", "commands", "bd.ts")
+// Source-code regression tests target the file that owns the `bd create`
+// action handler. After the per-family split (Wave 6 of task-bd-collapse,
+// see `@km/cli/bd-split-per-command`), the action moved out of `bd.ts`
+// (now a thin command-registration shell) into `bd-create.ts`.
+const BD_TS = join(__dirname, "..", "src", "commands", "bd-create.ts")
 
 let scratch: string[] = []
 

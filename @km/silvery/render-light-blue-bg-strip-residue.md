@@ -107,3 +107,31 @@ This bead remains open as a **gate** on the flag-emoji fix landing. Plan:
 2. If gone → close this bead. The user-visible "cyan strip" was the wide-char displacement all along.
 3. If still present → reopen with a fresh screenshot at known terminal dims, capture `DEBUG=silvery:* DEBUG_LOG=/tmp/silvery.log` of the bad frame, and escalate. Possible alternate causes: ghostty-specific OSC artefacts (the vt100 STRICT backend doesn't catch these), a slow-cadence outline-snapshot leak that hasn't surfaced in 280 presses, or selection-cluster bg leak through view-mode transitions not yet covered by `outline-in-flex-row.test.tsx`.
 4. The architectural reframe `@km/silvery/render-stateless-pipeline-reframe` (P1 epic) eventually retires this entire bug class — once landed, this bead is moot.
+
+## Round 5 — narrowed to ANSI-emit / Ghostty layer (2026-05-05)
+
+Post-flag-emoji + post-residue-invariant. Three pieces of evidence converge:
+
+1. **`SILVERY_STRICT=residue` does NOT throw** on the user's real vault at cold-start — the sentinel-compare residue check passes, meaning no stale prev-cell carry-over and no pipeline-state contamination.
+2. **Headless buffer probe (vendor/silvery@2c5bb672 driving testBoard at 360×120)** found exactly ONE card with non-default bg at cold-start — the cursor card painted with `selectedBg` (cyan-tinted). Every other cell in the buffer matched canvas-bg or specific known tokens (title bar, status bar, accounted for).
+3. **User screenshot at cold-start with zero interaction** still shows the strips across many cards.
+
+**Conclusion: the strips exist in the rendered terminal but NOT in the silvery buffer.** They are introduced at the output-phase ANSI emit OR by Ghostty's interpretation of the emitted ANSI. The silvery render pipeline is correct; the ANSI delivery / terminal painting layer is where the strips appear.
+
+This is the same SHAPE as `@km/silvery/strict-output-flag-emoji-width-divergence` (vt100 rendering disagreed with the buffer model) but a different content.
+
+### Next concrete step
+
+Capture the actual ANSI output and replay through silvery's vt100 backend:
+
+```bash
+SILVERY_CAPTURE_OUTPUT=/tmp/km-ansi.bin SILVERY_STRICT=residue bun km view ~vault
+# render kanban, exit
+```
+
+Then replay `/tmp/km-ansi.bin` through xterm.js / vt100 / Ghostty WASM and compare the parsed terminal state against the silvery buffer model. Two outcomes:
+
+- **vt100 also paints the strips**: silvery emits wrong ANSI — likely a missed background-reset before transitioning between cells with different bg, or a partial line-clear that leaves stale bg. Fix in `packages/ag-term/src/pipeline/output-phase.ts`.
+- **vt100 doesn't paint strips, only Ghostty does**: Ghostty-specific terminal interpretation bug. File at the Ghostty boundary; `SILVERY_STRICT_TERMINAL=ghostty` would need to catch it.
+
+The architectural reframe (`@km/silvery/render-stateless-pipeline-reframe`) does NOT retire this class — that's a buffer-model concern, and this bug is downstream of the buffer.
