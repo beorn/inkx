@@ -56,6 +56,26 @@ export function addLink(db: Database, link: KLink): void {
 }
 
 /**
+ * Insert many link-occurrence rows using a single prepared statement.
+ *
+ * Use this from bulk-sync / reconcile paths that touch hundreds of links
+ * per batch. Re-using one statement avoids the repeated parse/plan cost
+ * `addLink` pays per row, which became visible after data.tags dissolved
+ * into the links table (every hashtag is now a row). The statement is
+ * finalized at the end of the call, so it doesn't outlive the call (and
+ * therefore can't block `db.close()`).
+ */
+export function addLinks(db: Database, links: readonly KLink[]): void {
+  if (links.length === 0) return
+  const stmt = db.prepare(`INSERT INTO links (host_id, href, rel) VALUES (?, ?, ?)`)
+  try {
+    for (const link of links) stmt.run(link.host_id, link.href, link.rel)
+  } finally {
+    stmt.finalize()
+  }
+}
+
+/**
  * Remove all links from a host node. Used during content updates — the
  * write protocol is delete-then-insert inside a transaction, never diff.
  */

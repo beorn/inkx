@@ -17,7 +17,7 @@ import {
   emitNodeCreated,
   type Emitter,
   getNodeByPath,
-  addLink,
+  addLinks,
   type LinkResolver,
   processMarkdownFile,
   toResolvedLinks,
@@ -245,8 +245,16 @@ function handleMarkdownCreate(
   }
   const resolvedLinks = toResolvedLinks(processed, ctx.resolver)
   const linkChanges = resolvedLinks.length > 0 ? ensureLinkChanges(ctx) : undefined
+  if (resolvedLinks.length > 0) {
+    // Batch the inserts via one prepared statement — bulk-sync calls this
+    // once per file, and post-data.tags-dissolution each file may emit
+    // many hashtag link rows; per-row `addLink` re-prepared on every call.
+    addLinks(
+      db,
+      resolvedLinks.map((link) => ({ host_id: link.host_id, href: link.href, rel: link.rel })),
+    )
+  }
   for (const link of resolvedLinks) {
-    addLink(db, { host_id: link.host_id, href: link.href, rel: link.rel })
     if (linkChanges) {
       linkChanges.hostIds.add(link.host_id)
       linkChanges.targetHrefs.add(link.href)

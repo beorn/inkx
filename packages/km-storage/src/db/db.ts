@@ -56,6 +56,7 @@ export type { QueryAST } from "../query.ts"
 // see docs/design/model/klink.md).
 export {
   addLink,
+  addLinks,
   removeLinksFromSource,
   getOutgoingLinks,
   getBacklinksByHref,
