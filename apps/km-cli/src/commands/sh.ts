@@ -40,7 +40,7 @@ import {
   type ShellCommand,
   type BoardState,
 } from "@km/repl"
-import { type KNode, getMarkerForStatus } from "@km/core"
+import { type KNode, getMarkerForStatus, getNodePriority } from "@km/core"
 
 // ============================================
 // Main Export - Shell Command
@@ -350,7 +350,7 @@ function kNodeToTNode(repo: Repo, node: KNode, depth: number): TNode {
     embed_of: node.embed_of,
     name: getNodeName(node),
     title: getNodeDisplayName(node),
-    priority: node.priority,
+    priority: getNodePriority(node),
     due_at: node.due_at,
     start_at: node.start_at,
     content: node.content,

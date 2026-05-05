@@ -427,7 +427,9 @@ function itemToNodes(
       : undefined,
     due_at: item.dueAt?.slice(0, 10),
     start_at: item.startAt?.slice(0, 10),
-    priority: item.priority,
+    // priority dissolved as a column at SCHEMA_VERSION=11 — `priority::`
+    // already lives in the task content (see buildTaskContent above) and
+    // kmRefsTransform will derive `data.tags` on parse.
     rrule: item.rrule,
     completed_at: item.completedAt ? new Date(item.completedAt).getTime() : undefined,
     created_at: itemCreatedAt,

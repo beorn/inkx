@@ -159,15 +159,15 @@ export function updateBeadFields(bead: Bead, changes: UpdateBeadChanges): Partia
     updates.item = { task: { status: changes.status, marker: getMarkerForStatus(changes.status) } }
   }
 
-  // Canonicalize priority on update the same way create does — without
-  // this, `bd update --priority P0` on a `priority="0"` bead leaves the
-  // `#0` tag in content and adds `P0` separately (yields ["0","P0"]).
-  // Falsy normalize result preserves caller's literal value (caller is
-  // free to set non-canonical priority strings if they really want).
-  const normalizedPriority =
-    changes.priority !== undefined ? (normalizePriority(changes.priority) ?? changes.priority) : undefined
-  if (normalizedPriority !== undefined) {
-    updates.priority = normalizedPriority
+  // TODO @km/all/path-name-id-redesign: priority is now read from the H1
+  // `#P[0-4]` hashtag (data.tags via kmRefsTransform). The legacy
+  // nodes.priority column was dropped at SCHEMA_VERSION=11. To honor a
+  // `bd update --priority P1` request, we must rewrite the bead's H1
+  // markdown content so the parser re-derives the tag. That rework is
+  // staged separately; for now this mutation is a no-op so the column
+  // write stays gone.
+  if (changes.priority !== undefined) {
+    void normalizePriority(changes.priority)
   }
 
   if (changes.title !== undefined) {

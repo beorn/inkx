@@ -23,10 +23,10 @@ export const INSERT_NODE_SQL = `
     id, type, fstype, parent_id, item, embed_of, parent_idx,
     fs_path, fs_dev, fs_ino, fs_mtime, fs_size, fs_content_hash,
     name, title, md_pos, md_line,
-    list_marker, task_marker, task_status, assigned_to, due_at, start_at, priority,
+    list_marker, task_marker, task_status, assigned_to, due_at, start_at,
     content, content_hash, data,
     created_at, updated_at, version
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 /**
@@ -60,7 +60,8 @@ export function insertNodeRow(stmt: ReturnType<Database["prepare"]>, node: KNode
     node.assigned_to ?? null,
     node.due_at ?? null,
     node.start_at ?? null,
-    node.priority ?? null,
+    // priority column dropped at SCHEMA_VERSION=11 — H1 #P[0-4] hashtag
+    // is canonical (read via @km/core/getNodePriority from data.tags).
     node.content ?? null,
     node.content_hash ?? null,
     JSON.stringify(data),
@@ -81,8 +82,8 @@ export const INSERT_NODE_PLAIN_SQL = `
     id, type, fstype, parent_id, item, embed_of, parent_idx,
     fs_path, fs_dev, fs_ino, fs_mtime, fs_size, fs_content_hash,
     name, title, md_pos, md_line,
-    list_marker, task_marker, task_status, assigned_to, due_at, start_at, priority,
+    list_marker, task_marker, task_status, assigned_to, due_at, start_at,
     content, content_hash, data,
     created_at, updated_at, version
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `

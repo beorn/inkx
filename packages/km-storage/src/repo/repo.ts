@@ -498,7 +498,8 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
         assigned_to: changes.assigned_to ?? source.assigned_to,
         due_at: changes.due_at ?? source.due_at,
         start_at: changes.start_at ?? source.start_at,
-        priority: changes.priority ?? source.priority,
+        // priority column dropped at SCHEMA_VERSION=11 — H1 #P[0-4] hashtag
+        // is canonical; tags carry through via the data spread below.
         data: {
           ...source.data,
           ...changes.data,
@@ -1436,7 +1437,7 @@ function expandUnexploredDirectory(
               (data.assigned_to as string) ?? null,
               (data.due_at as string) ?? null,
               (data.start_at as string) ?? null,
-              (data.priority as string) ?? null,
+              // priority column dropped at SCHEMA_VERSION=11
               (data.content as string) ?? null,
               (data.content_hash as string) ?? null,
               JSON.stringify(data.data ?? {}),

@@ -40,14 +40,21 @@ export async function createTask(
     parentId = parent.id
   }
 
+  // priority dissolved as a column at SCHEMA_VERSION=11 — surface it via
+  // data.tags '#P[0-4]' (canonical authored form). kmRefsTransform will
+  // re-derive on parse from the H1 hashtag once the markdown is round-
+  // tripped; for direct addNode (no markdown round-trip) we seed the tag
+  // manually so getNodePriority() can read it.
+  const allTags =
+    metadata.priority && !tags.some((t) => /^P[0-4]$/i.test(t)) ? [...tags, metadata.priority] : tags
+
   const nodeId = repo.addNode(parentId, {
     type: "p",
     item: { list: "-", task: { marker: "[ ]", status: "todo" } },
     content: content,
     due_at: metadata.dueAt,
     start_at: metadata.startAt,
-    priority: metadata.priority,
-    data: tags.length > 0 ? { tags } : {},
+    data: allTags.length > 0 ? { tags: allTags } : {},
   })
 
   if (options.json) {

@@ -382,7 +382,7 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
     assigned_to: node.assigned_to ?? null,
     due_at: node.due_at ?? null,
     start_at: node.start_at ?? null,
-    priority: node.priority ?? null,
+    // priority column dropped at SCHEMA_VERSION=11
     content: node.content ?? null,
     content_hash: node.content_hash ?? null,
     data: mergedData,
@@ -405,13 +405,13 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
         id, type, fstype, parent_id, parent_idx, item, embed_of,
         fs_path, fs_ino, name, title, md_pos, md_line,
         list_marker, task_marker,
-        task_status, assigned_to, due_at, start_at, priority,
+        task_status, assigned_to, due_at, start_at,
         content, content_hash, data, created_at, updated_at
       ) VALUES (
         ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?,
         ?, ?,
-        ?, ?, ?, ?, ?,
+        ?, ?, ?, ?,
         ?, ?, ?, ?, ?
       )`,
       [
@@ -434,7 +434,6 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
         nodeData.assigned_to,
         nodeData.due_at,
         nodeData.start_at,
-        nodeData.priority,
         nodeData.content,
         nodeData.content_hash,
         JSON.stringify(nodeData.data),

@@ -389,9 +389,9 @@ export class MemoryStore extends BaseStore {
         fs_path, fs_dev, fs_ino, fs_mtime, fs_size, fs_content_hash,
         md_pos, md_line, name,
         content, content_hash, title, list_marker, task_marker,
-        task_status, assigned_to, due_at, start_at, priority,
+        task_status, assigned_to, due_at, start_at,
         data, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         node.id ?? null,
         node.type ?? null,
@@ -418,7 +418,7 @@ export class MemoryStore extends BaseStore {
         node.assigned_to ?? null,
         node.due_at ?? null,
         node.start_at ?? null,
-        node.priority ?? null,
+        // priority column dropped at SCHEMA_VERSION=11
         JSON.stringify(mergedData),
         now,
         now,
@@ -563,7 +563,8 @@ export class MemoryStore extends BaseStore {
     const assigned_to = changes.assigned_to ?? source.assigned_to ?? null
     const due_at = changes.due_at ?? source.due_at ?? null
     const start_at = changes.start_at ?? source.start_at ?? null
-    const priority = changes.priority ?? source.priority ?? null
+    // priority column dropped at SCHEMA_VERSION=11; data spread below
+    // carries data.tags (canonical hashtag form) through to the new row.
     const content = changes.content ?? source.content ?? ""
     const data = JSON.stringify({
       ...source.data,
@@ -575,8 +576,8 @@ export class MemoryStore extends BaseStore {
     this.db.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx, item, list_marker,
         task_status, task_marker, assigned_to, due_at, start_at,
-        priority, content, data, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        content, data, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         type,
@@ -589,7 +590,6 @@ export class MemoryStore extends BaseStore {
         assigned_to,
         due_at,
         start_at,
-        priority,
         content,
         data,
         now,

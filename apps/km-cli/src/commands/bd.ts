@@ -690,6 +690,10 @@ const updateCmd = bdCommand
     if (opts.title) changes.title = opts.title
     if (opts.type) changes.type = opts.type
 
+    // TODO @km/all/path-name-id-redesign: --priority no longer writes a
+    // column; honoring it requires rewriting the H1 hashtag in markdown.
+    // Until that path lands, --priority is accepted but inert.
+
     const updates = Bead.update(repo, issue, changes)
     repo.updateNode(issue.id, updates)
 
@@ -729,7 +733,9 @@ const updateCmd = bdCommand
     if (newParentId) console.log(`  Moved under: ${opts.parent}`)
     if (opts.claim) console.log(`  Claimed by ${opts.assignee}`)
     if (updates.item?.task?.status && !opts.claim) console.log(`  Status: ${updates.item?.task?.status}`)
-    if (updates.priority !== undefined) console.log(`  Priority: ${updates.priority}`)
+    if (opts.priority !== undefined) {
+      console.log(`  Priority: ${opts.priority} (write-disabled — edit H1 #P[0-4] hashtag directly)`)
+    }
     if (updates.content) console.log(`  Title: ${updates.content}`)
     if (opts.description) console.log(`  Description updated`)
     if (opts.notes) console.log(`  Notes appended`)

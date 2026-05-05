@@ -9,7 +9,7 @@ import { createTerm } from "@silvery/ag-react"
 const term = createTerm(process)
 import { getNodeDisplayName as getNodeDisplayNameRaw, type CollapsedAncestor } from "@km/tree"
 import type { Repo } from "@km/storage"
-import { KNode, type KNode as KNodeType } from "@km/core"
+import { KNode, type KNode as KNodeType, getNodePriority } from "@km/core"
 
 /**
  * Get display name for a node (using repo for children lookup)
@@ -119,8 +119,9 @@ export function formatTaskLine(task: KNodeType, options: { detail?: boolean; sho
     if (task.due_at) {
       line += term.cyan(` 📅 ${task.due_at}`)
     }
-    if (task.priority) {
-      line += ` ${task.priority}`
+    const priority = getNodePriority(task)
+    if (priority) {
+      line += ` ${priority}`
     }
     if (task.assigned_to) {
       line += term.magenta(` @${task.assigned_to}`)

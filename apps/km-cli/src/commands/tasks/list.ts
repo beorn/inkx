@@ -11,7 +11,7 @@ import { Task, type Repo } from "@km/storage"
 import { resolvePathArg } from "@km/fs-mount"
 import { loadRepo } from "../../load-repo.ts"
 import { collapseAncestorsWithTypes } from "@km/tree"
-import { KNode, type KNode as KNodeType } from "@km/core"
+import { KNode, type KNode as KNodeType, getNodePriority } from "@km/core"
 import { Bead, normalizePriority } from "@km/beads"
 import { getRootPath } from "../../program.ts"
 import { resolveAssignee } from "../../utils/assignee.ts"
@@ -47,7 +47,7 @@ function filterTasksByPriority(tasks: KNodeType[], priority: string | undefined)
   if (priority === undefined) return tasks
   const normalized = normalizePriority(priority)
   if (normalized === null) return []
-  return tasks.filter((t) => t.priority === normalized)
+  return tasks.filter((t) => getNodePriority(t) === normalized)
 }
 
 /**
