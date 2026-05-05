@@ -29,7 +29,7 @@
  */
 import React, { useContext } from "react"
 import { Box, Link, Muted, Text, Small } from "@silvery/ag-react"
-import { KNode } from "@km/core"
+import { KNode, getNodePriority } from "@km/core"
 import {
   getColumnHeaderIcon,
   getNodeIcon,
@@ -364,7 +364,7 @@ export function NodeCardView({
   const subtaskBadge = formatSubtaskBadge(children)
 
   // Date badge — rendered as React component
-  const hasDateBadge = !isDoneOrDropped && !!(node.priority || node.due_at || node.start_at || node.rrule)
+  const hasDateBadge = !isDoneOrDropped && !!(getNodePriority(node) || node.due_at || node.start_at || node.rrule)
 
   // Show all children as subitems (both body and structural)
   const visibleChildren = children.slice(0, maxSubitems)
@@ -608,7 +608,8 @@ export function NodeDetailView({
   if (node.due_at) metadataRows.push({ label: "Due", value: node.due_at })
   if (node.start_at) metadataRows.push({ label: "Start", value: node.start_at })
   if (node.assigned_to) metadataRows.push({ label: "Assigned", value: node.assigned_to })
-  if (node.priority) metadataRows.push({ label: "Priority", value: `P${node.priority}` })
+  const nodePriority = getNodePriority(node)
+  if (nodePriority) metadataRows.push({ label: "Priority", value: nodePriority })
   if (node.rrule) metadataRows.push({ label: "Recurrence", value: node.rrule })
 
   return (

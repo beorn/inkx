@@ -580,7 +580,8 @@ export function handleTaskStatusCycle(ctx: OpCtx, explicitStatus?: TaskStatus): 
               due_at: nextDueAt,
               start_at: targetNode.start_at,
               rrule: targetNode.rrule,
-              priority: targetNode.priority,
+              // priority: dissolved column — H1 #P[0-4] hashtag in data.tags
+              // already copied via data spread below
               assigned_to: targetNode.assigned_to,
               recur_prev: targetId,
               parent_idx: (targetNode.parent_idx ?? 0) + 0.001,
@@ -623,7 +624,8 @@ export function handleClearTask(ctx: OpCtx): void {
         item: { ...targetNode?.item, task: undefined },
         due_at: undefined,
         start_at: undefined,
-        priority: undefined,
+        // priority: dissolved column — clearing must edit H1 hashtag
+        // (TODO: rework via markdown edit in @km/all/path-name-id-redesign)
         assigned_to: undefined,
         rrule: undefined,
         completed_at: undefined,

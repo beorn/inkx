@@ -42,7 +42,7 @@ import {
   createErrorWarningHandler,
   createSyncEventCollector,
 } from "./board-effects.ts"
-import { getStatusForMarker } from "@km/core"
+import { getStatusForMarker, getNodePriority } from "@km/core"
 import { findMatchingNodeIds } from "../board/board-actions-find.ts"
 import { searchReplaceMatchingNodeIds } from "../board/board-actions-search-replace.ts"
 import type { BoardViewProps, ColumnFilterState } from "./BoardView.tsx"
@@ -84,7 +84,7 @@ function matchesPropertyFilters(node: KNode, filters: FilterProperties): boolean
 
   // Priority filter
   if (filters.priority.size > 0) {
-    const priority = node.priority ? String(node.priority) : null
+    const priority = getNodePriority(node) ?? null
     if (!priority || !filters.priority.has(priority)) return false
   }
 

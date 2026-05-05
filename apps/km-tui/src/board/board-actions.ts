@@ -34,7 +34,7 @@ import { activeEditTargetRef, activeEditContextRef, createOsc52Backend } from "@
 import { dialogTargetRef } from "../dialog-target.ts"
 import { extractBody, detectPrefixConversion, degrade, KTree } from "@km/tree"
 import { boardSplit, boardMergeBackward, boardMergeForward } from "./board-tree-ops.ts"
-import { KNode, Position, extractTitleTaskMarker, type ItemData } from "@km/core"
+import { KNode, Position, extractTitleTaskMarker, getNodePriority, type ItemData } from "@km/core"
 import type { ID } from "@silvery/selection"
 import { saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { getRecentsStore } from "../state/recents-store.ts"
@@ -2815,22 +2815,21 @@ function handleSetPriority(ctx: OpCtx, value?: string): OpResult {
   } else {
     // Cycle through P0 → P1 → P2 → P3 → P4 → none
     const firstNode = ctx.repo.getNode(firstNodeId)
-    const current = firstNode?.priority
+    const current = firstNode ? getNodePriority(firstNode) : undefined
     const idx = current ? PRIORITY_CYCLE.indexOf(current as (typeof PRIORITY_CYCLE)[number]) : -1
     next =
       idx >= 0 && idx < PRIORITY_CYCLE.length - 1 ? PRIORITY_CYCLE[idx + 1] : idx === -1 ? PRIORITY_CYCLE[0] : undefined
   }
 
-  // Auto-recorded by undoable repo — batch multiple updates into one undo entry
-  ctx.undoHandle.setCursor(ctx.cursor)
-  if (nodeIds.length > 1) ctx.undoHandle.startBatch("Set priority")
-  for (const nodeId of nodeIds) {
-    runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId, updates: { priority: next } })
-  }
-  if (nodeIds.length > 1) ctx.undoHandle.endBatch()
-
+  // TODO @km/all/path-name-id-redesign: writing priority must edit the H1
+  // #P[0-4] hashtag in markdown content (data.tags is derived from the H1).
+  // The legacy nodes.priority column was dropped at SCHEMA_VERSION=11. For
+  // now, surface the intent via toast — the markdown-edit path is the
+  // canonical write surface and is being reworked separately.
+  void firstNodeId
+  void nodeIds
   const label = next ?? "None"
-  ctx.toastQueue.info(`Priority: ${label}`)
+  ctx.toastQueue.info(`Priority: ${label} (write disabled — edit H1 #P[0-4] hashtag directly)`)
   ctx.setSelection(nodeSelect(ctx.cursor as string))
   return ok()
 }

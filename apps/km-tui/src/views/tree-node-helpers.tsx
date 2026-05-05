@@ -6,7 +6,7 @@
 
 import React from "react"
 import { Small, Text } from "@silvery/ag-react"
-import { extractTitleTaskMarker, KNode, extractTaskDates } from "@km/core"
+import { extractTitleTaskMarker, KNode, extractTaskDates, getNodePriority } from "@km/core"
 import { getStatusIcon, type StatusIcon } from "../text/index.ts"
 import { formatBoardPills, getOwnColor, type BoardPill } from "../board/board-pills.ts"
 
@@ -291,10 +291,11 @@ export function formatDateBadge(node: KNode): string {
   const parts: string[] = []
 
   // Priority badge — display the string as-is, color known P-values
-  if (node.priority) {
-    const color = PRIORITY_COLOR_MAP[node.priority.toUpperCase()] ?? ""
+  const priority = getNodePriority(node)
+  if (priority) {
+    const color = PRIORITY_COLOR_MAP[priority.toUpperCase()] ?? ""
     const reset = color ? "\x1b[0m" : ""
-    parts.push(`${color}${node.priority}${reset}`)
+    parts.push(`${color}${priority}${reset}`)
   }
 
   const { due, start } = extractTaskDates(node)
@@ -453,16 +454,17 @@ export function DateBadge({ node, stripColor }: { node: KNode; stripColor?: bool
   const parts: React.ReactElement[] = []
 
   // Priority badge — display the string as-is, color known P-values
-  if (node.priority) {
-    const style = stripColor ? undefined : PRIORITY_TEXT_COLOR_MAP[node.priority.toUpperCase()]
+  const priority = getNodePriority(node)
+  if (priority) {
+    const style = stripColor ? undefined : PRIORITY_TEXT_COLOR_MAP[priority.toUpperCase()]
     parts.push(
       style?.dim ? (
         <Small key="p" color={style.color}>
-          {node.priority}
+          {priority}
         </Small>
       ) : (
         <Text key="p" color={style?.color}>
-          {node.priority}
+          {priority}
         </Text>
       ),
     )

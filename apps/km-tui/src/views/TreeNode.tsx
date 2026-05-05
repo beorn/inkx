@@ -12,7 +12,7 @@ import { useNodeStore, useTreeNode, type NodeEditState } from "../state/reactive
 import { useSignal, useNode } from "../hooks/use-signal.ts"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Link, Text, useScrollRect, useTheme, wrapText } from "@silvery/ag-react"
-import { KNode, getStatusForMarker } from "@km/core"
+import { KNode, getStatusForMarker, getNodePriority } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import {
   isNodeUntitled,
@@ -191,7 +191,7 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
     prev.node.item?.task?.status !== next.node.item?.task?.status ||
     prev.node.due_at !== next.node.due_at ||
     prev.node.start_at !== next.node.start_at ||
-    prev.node.priority !== next.node.priority ||
+    getNodePriority(prev.node) !== getNodePriority(next.node) ||
     prev.node.rrule !== next.node.rrule ||
     prev.node.assigned_to !== next.node.assigned_to ||
     prev.node.type !== next.node.type
@@ -373,7 +373,7 @@ function TreeNodeImpl({
     displayNode.id,
     displayNode.item?.task?.status,
     displayNode.due_at,
-    displayNode.priority,
+    getNodePriority(displayNode),
     displayNode.start_at,
     displayNode.assigned_to,
     displayNode.rrule,
@@ -634,7 +634,12 @@ function TreeNodeImpl({
   }, [depth, isOneliner, displayNode.id, displayNode.data])
 
   // Date badge check — rendered as React component below
-  const hasDateBadge = !!(displayNode.priority || displayNode.due_at || displayNode.start_at || displayNode.rrule)
+  const hasDateBadge = !!(
+    getNodePriority(displayNode) ||
+    displayNode.due_at ||
+    displayNode.start_at ||
+    displayNode.rrule
+  )
 
   // Parent context for symlinked tasks - use prop or default implementation.
   // Returns both the display text and the source node ID (for navigation links).

@@ -31,7 +31,7 @@ import {
   useScrollRect,
 } from "@silvery/ag-react"
 import { KNode, type KNode as KNodeType } from "@km/core"
-import { extractTaskDates } from "@km/core"
+import { extractTaskDates, getNodePriority } from "@km/core"
 import { getStatusIcon } from "../icons.ts"
 import { InlineText, InlineRenderProvider } from "../text/InlineComponents.tsx"
 import { useTreeInlineContext } from "./tree-node-shared.ts"
@@ -742,8 +742,8 @@ function getMetadataValue(key: string, node: KNode, repo: import("../repo-contex
       }
     }
     case "Priority": {
-      const p = node.priority
-      return { text: p ? `P${p}` : "none" }
+      const p = getNodePriority(node)
+      return { text: p ?? "none" }
     }
     case "Due": {
       const dueDate = extractTaskDates(node).due?.date
