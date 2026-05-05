@@ -14,7 +14,6 @@ import { Box, Text, lastModifierState, useHover, useModifierKeys, type SilveryMo
 import type { ContentBlock, ToolCall as ToolCallType, ToolKind } from "@km/agent-harness"
 import { ToolCall, ToolContentForceExpandedProvider, ToolMarkerBackgroundProvider } from "./ToolCall.tsx"
 import { Content, useContentLayout } from "./Content.tsx"
-import { SessionEntry } from "./SessionEntry.tsx"
 
 export type TurnActivitySummaryItem = {
   id: string

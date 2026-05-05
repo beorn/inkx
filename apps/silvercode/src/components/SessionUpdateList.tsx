@@ -721,7 +721,19 @@ type SessionMetadataRowData = {
 }
 
 function MutedDivider({ title }: { title: string }): React.ReactElement {
-  return <Divider title={title} color="$border-default" titleColor="$fg-muted" titleBold={false} />
+  return (
+    <Box flexDirection="row" width="100%" minWidth={0}>
+      <Box width={1} flexShrink={0}>
+        <Text> </Text>
+      </Box>
+      <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} overflow="hidden">
+        <Divider title={title} color="$border-default" titleColor="$fg-muted" titleBold={false} />
+      </Box>
+      <Box width={1} flexShrink={0}>
+        <Text> </Text>
+      </Box>
+    </Box>
+  )
 }
 
 function SessionMetadataRow({ data }: { data: SessionMetadataRowData }): React.ReactElement {
@@ -1285,7 +1297,7 @@ function ExchangeItem({
             />
           ) : run.kind === "tool" ? (
             <Chat.Turn.ToolGroup>
-              {run.ops.map(({ op, index }) => {
+              {run.ops.map(({ op }) => {
                 if (op.kind !== "tool") return null
                 const c = op.toolCall
                 const result = op.result
