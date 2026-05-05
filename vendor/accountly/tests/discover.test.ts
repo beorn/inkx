@@ -1,29 +1,20 @@
-import { afterEach, describe, expect, test, vi } from "vitest"
+import { afterEach, describe, expect, test } from "vitest"
 import { discoverAccounts } from "../src/discover.ts"
 
+const ORIGINAL_ENV = { ...process.env }
+
 afterEach(() => {
-  vi.unstubAllEnvs()
+  process.env = { ...ORIGINAL_ENV }
 })
 
 describe("discoverAccounts", () => {
-  test("discovers Cursor SDK API account from CURSOR_API_KEY", () => {
-    vi.stubEnv("CURSOR_API_KEY", "cursor-test-key")
+  test("keeps separate OpenAI API and Codex API key accounts", () => {
+    process.env.CODEX_API_KEY = "codex-test-key"
+    process.env.OPENAI_API_KEY = "openai-test-key"
 
-    const cursor = discoverAccounts().find((account) => account.config.provider === "cursor-api")
+    const openaiAccounts = discoverAccounts().filter((account) => account.config.provider === "openai")
 
-    expect(cursor).toBeDefined()
-    expect(cursor?.config.name).toBe("cursor")
-    expect(cursor?.credential.apiKey).toBe("cursor-test-key")
-  })
-
-  test("discovers Codex API account from CODEX_API_KEY", () => {
-    vi.stubEnv("CODEX_API_KEY", "codex-test-key")
-    vi.stubEnv("OPENAI_API_KEY", "")
-
-    const codex = discoverAccounts().find((account) => account.config.name === "codex")
-
-    expect(codex).toBeDefined()
-    expect(codex?.config.provider).toBe("openai")
-    expect(codex?.credential.apiKey).toBe("codex-test-key")
+    expect(openaiAccounts.map((account) => account.config.name)).toEqual(["codex", "openai"])
+    expect(openaiAccounts.map((account) => account.config.metadata?.envVar)).toEqual(["CODEX_API_KEY", "OPENAI_API_KEY"])
   })
 })

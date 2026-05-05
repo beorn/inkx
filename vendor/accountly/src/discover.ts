@@ -28,12 +28,13 @@ export interface DiscoveredAccount {
 /** Discover API-key-based providers from environment variables. */
 export function discoverAccounts(): DiscoveredAccount[] {
   const results: DiscoveredAccount[] = []
-  const seenProviders = new Set<string>()
+  const seenAccounts = new Set<string>()
   for (const { envVar, provider, name } of ENV_SOURCES) {
-    if (seenProviders.has(provider)) continue
+    const key = provider === "openai" ? `${provider}:${name}` : provider
+    if (seenAccounts.has(key)) continue
     const apiKey = process.env[envVar]
     if (!apiKey) continue
-    seenProviders.add(provider)
+    seenAccounts.add(key)
     results.push({
       config: { name, provider, metadata: { envVar } },
       credential: { apiKey },

@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync, statSync } from "node:fs"
 import { join } from "node:path"
-import { codexSessionsRoot, userHome } from "@km/config/paths"
+import type { AccountStatus } from "../account-status.ts"
+import type { QuotaWindow } from "../types.ts"
 
 export type CodexQuotaWindow = {
   usedPercent: number
@@ -18,36 +19,38 @@ export type CodexQuotaLimit = {
 
 export type CodexQuotaSnapshot = {
   accountLabel: string | null
+  accountId: string | null
   updatedAt: string | null
   sourcePath: string | null
   limits: CodexQuotaLimit[]
-}
-
-export interface CodexQuotaFactory {
-  readCached(): CodexQuotaSnapshot | null
-  probe(): Promise<CodexQuotaSnapshot | null>
-}
-
-let factoryOverride: CodexQuotaFactory | null = null
-
-export function setCodexQuotaFactoryOverride(factory: CodexQuotaFactory | null): void {
-  factoryOverride = factory
-}
-
-export function readCodexQuotaSync(): CodexQuotaSnapshot | null {
-  if (factoryOverride) return factoryOverride.readCached()
-  return readLatestCodexQuotaFromDisk()
-}
-
-export async function probeCodexQuota(): Promise<CodexQuotaSnapshot | null> {
-  if (factoryOverride) return factoryOverride.probe()
-  return readLatestCodexQuotaFromDisk()
 }
 
 type RawRateLimitWindow = {
   used_percent?: unknown
   window_minutes?: unknown
   resets_at?: unknown
+}
+
+function userHome(): string {
+  return process.env.HOME ?? process.env.USERPROFILE ?? ""
+}
+
+function codexSessionsRoot(): string {
+  return join(userHome(), ".codex", "sessions")
+}
+
+type CodexAuthAccount = {
+  label: string | null
+  accountId: string | null
+}
+
+function parseCodexAuthAccount(raw: string): CodexAuthAccount {
+  const parsed = JSON.parse(raw) as Record<string, unknown>
+  const tokens = typeof parsed.tokens === "object" && parsed.tokens !== null ? (parsed.tokens as Record<string, unknown>) : {}
+  const idToken = typeof tokens.id_token === "string" ? tokens.id_token : ""
+  const accountId = typeof tokens.account_id === "string" ? tokens.account_id : null
+  const email = emailFromJwt(idToken) ?? raw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] ?? null
+  return { label: email, accountId }
 }
 
 function parseWindow(raw: unknown): CodexQuotaWindow | null {
@@ -116,24 +119,11 @@ export function parseCodexQuotaJsonl(raw: string, sourcePath: string | null = nu
   const limits = Array.from(latestById.values())
   if (limits.length === 0) return null
   return {
-    accountLabel: readCodexAccountLabel(),
+    ...readCodexAuthAccount(),
     updatedAt,
     sourcePath,
     limits,
   }
-}
-
-function readLatestCodexQuotaFromDisk(): CodexQuotaSnapshot | null {
-  const files = latestRolloutFiles(codexSessionsRoot()).slice(0, 20)
-  for (const file of files) {
-    try {
-      const parsed = parseCodexQuotaJsonl(readFileSync(file, "utf8"), file)
-      if (parsed) return parsed
-    } catch {
-      continue
-    }
-  }
-  return null
 }
 
 function latestRolloutFiles(root: string): string[] {
@@ -161,13 +151,87 @@ function latestRolloutFiles(root: string): string[] {
   return files.sort((a, b) => b.mtimeMs - a.mtimeMs).map((f) => f.path)
 }
 
-function readCodexAccountLabel(): string | null {
+function readCodexAuthAccount(): CodexAuthAccount {
   const authPath = join(userHome(), ".codex", "auth.json")
   try {
-    const raw = readFileSync(authPath, "utf8")
-    const match = raw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)
-    return match?.[0] ?? null
+    return parseCodexAuthAccount(readFileSync(authPath, "utf8"))
+  } catch {
+    return { label: null, accountId: null }
+  }
+}
+
+function emailFromJwt(jwt: string): string | null {
+  const payload = jwt.split(".")[1]
+  if (!payload) return null
+  try {
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/")
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=")
+    const parsed = JSON.parse(Buffer.from(padded, "base64").toString("utf8")) as Record<string, unknown>
+    return typeof parsed.email === "string" ? parsed.email : null
   } catch {
     return null
   }
+}
+
+export function readLatestCodexQuotaFromDisk(): CodexQuotaSnapshot | null {
+  const files = latestRolloutFiles(codexSessionsRoot()).slice(0, 20)
+  for (const file of files) {
+    try {
+      const parsed = parseCodexQuotaJsonl(readFileSync(file, "utf8"), file)
+      if (parsed) return parsed
+    } catch {
+      continue
+    }
+  }
+  return null
+}
+
+function codexWindowName(minutes: number): string {
+  if (minutes === 300) return "5-hour"
+  if (minutes === 10080) return "7-day"
+  if (minutes % 60 === 0) return `${minutes / 60}-hour`
+  return `${minutes}-minute`
+}
+
+export function codexSubscriptionStatuses(snapshot = readLatestCodexQuotaFromDisk()): AccountStatus[] {
+  if (!snapshot) return []
+  return snapshot.limits.map((limit, index) => {
+    const quotas: QuotaWindow[] = [limit.primary, limit.secondary].flatMap((w) =>
+      w
+        ? [
+            {
+              name: codexWindowName(w.windowMinutes),
+              utilization: w.usedPercent,
+              resetsAt: w.resetsAt ?? undefined,
+            },
+          ]
+        : [],
+    )
+    return {
+      kind: "api-key",
+      name: limit.label === "Codex" ? (snapshot.accountLabel ?? "ChatGPT subscription") : limit.label,
+      label: "Codex",
+      provider: "openai",
+      email: limit.label === "Codex" ? (snapshot.accountLabel ?? undefined) : undefined,
+      plan: limit.planType ?? undefined,
+      current: index === 0,
+      default: false,
+      stock: false,
+      available: true,
+      quotas,
+      quota: {
+        accountName: snapshot.accountLabel ?? "codex",
+        provider: "openai",
+        available: true,
+        windows: quotas,
+        checkedAt: snapshot.updatedAt ? Date.parse(snapshot.updatedAt) : Date.now(),
+        metadata: {
+          ...(limit.planType ? { planType: limit.planType } : {}),
+          ...(snapshot.accountId ? { accountId: snapshot.accountId } : {}),
+          ...(snapshot.updatedAt ? { updatedAt: snapshot.updatedAt } : {}),
+          ...(snapshot.sourcePath ? { sourcePath: snapshot.sourcePath } : {}),
+        },
+      },
+    }
+  })
 }

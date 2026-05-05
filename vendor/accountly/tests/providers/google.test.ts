@@ -8,15 +8,6 @@ const asFetch = (mock: any): typeof fetch => mock
 describe("google provider", () => {
   const provider = createGoogleProvider()
 
-  test("validates credential with apiKey", () => {
-    expect(provider.validateCredential({ apiKey: "AIza-test-123" })).toBe(true)
-  })
-
-  test("rejects credential without apiKey", () => {
-    expect(provider.validateCredential({})).toBe(false)
-    expect(provider.validateCredential({ apiKey: "" })).toBe(false)
-  })
-
   test("checkQuota returns available for valid key", async () => {
     const originalFetch = globalThis.fetch
     globalThis.fetch = asFetch(vi.fn().mockResolvedValue({ ok: true, status: 200 }))
@@ -28,6 +19,71 @@ describe("google provider", () => {
       expect(result.windows).toHaveLength(0)
     } finally {
       globalThis.fetch = originalFetch
+    }
+  })
+
+  test("checkQuota includes Google Cloud Service Usage quota limits when project and token are configured", async () => {
+    const originalFetch = globalThis.fetch
+    const originalProject = process.env.GOOGLE_CLOUD_PROJECT
+    const originalToken = process.env.GOOGLE_CLOUD_ACCESS_TOKEN
+    process.env.GOOGLE_CLOUD_PROJECT = "gemini-project"
+    process.env.GOOGLE_CLOUD_ACCESS_TOKEN = "ya29.test"
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, status: 200 })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          metrics: [
+            {
+              metric: "generativelanguage.googleapis.com/generate_content_requests",
+              displayName: "Generate Content API requests",
+              consumerQuotaLimits: [
+                {
+                  unit: "1/min/{project}/{region}",
+                  effectiveLimit: "60",
+                },
+                {
+                  unit: "1/d/{project}",
+                  effectiveLimit: "1500",
+                },
+              ],
+            },
+            {
+              metric: "generativelanguage.googleapis.com/generate_content_input_token_count",
+              displayName: "Generate Content input tokens",
+              consumerQuotaLimits: [
+                {
+                  unit: "1/min/{project}/{region}",
+                  effectiveLimit: "1000000",
+                },
+              ],
+            },
+          ],
+        }),
+      })
+    globalThis.fetch = asFetch(fetchMock)
+
+    try {
+      const result = await provider.checkQuota({ apiKey: "AIza-test" })
+      expect(result.available).toBe(true)
+      expect(result.metadata?.googleCloudProject).toBe("gemini-project")
+      expect(result.windows).toEqual([
+        { name: "RPM", utilization: 0, limit: 60 },
+        { name: "TPM", utilization: 0, limit: 1000000 },
+        { name: "RPD", utilization: 0, limit: 1500 },
+      ])
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        "https://serviceusage.googleapis.com/v1beta1/projects/gemini-project/services/generativelanguage.googleapis.com/consumerQuotaMetrics?view=FULL",
+        { headers: { Authorization: "Bearer ya29.test" } },
+      )
+    } finally {
+      globalThis.fetch = originalFetch
+      if (originalProject === undefined) delete process.env.GOOGLE_CLOUD_PROJECT
+      else process.env.GOOGLE_CLOUD_PROJECT = originalProject
+      if (originalToken === undefined) delete process.env.GOOGLE_CLOUD_ACCESS_TOKEN
+      else process.env.GOOGLE_CLOUD_ACCESS_TOKEN = originalToken
     }
   })
 

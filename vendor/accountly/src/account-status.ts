@@ -1,4 +1,5 @@
 import { discoverAccounts } from "./discover.ts"
+import { codexSubscriptionStatuses } from "./providers/codex-subscription.ts"
 import {
   checkAllProfileQuotas,
   checkLegacyDefaultQuota,
@@ -110,7 +111,7 @@ async function profileStatuses(): Promise<AccountStatus[]> {
 
 async function apiKeyStatuses(): Promise<AccountStatus[]> {
   const accounts = discoverAccounts().filter((account) => account.config.provider !== "claude-oauth")
-  return Promise.all(
+  const statuses = await Promise.all(
     accounts.map(async (account): Promise<AccountStatus> => {
       const provider = getProvider(account.config.provider)
       const quota = await provider.checkQuota(account.credential)
@@ -133,6 +134,12 @@ async function apiKeyStatuses(): Promise<AccountStatus[]> {
       }
     }),
   )
+  const codexSubscriptions = codexSubscriptionStatuses()
+  if (codexSubscriptions.length === 0) return statuses
+  return [
+    ...statuses.filter((status) => !(status.name === "codex" && status.provider === "openai")),
+    ...codexSubscriptions,
+  ]
 }
 
 export async function getAccountStatuses(options: AccountStatusOptions = {}): Promise<AccountStatus[]> {

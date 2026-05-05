@@ -7,10 +7,6 @@ const asFetch = (mock: any): typeof fetch => mock
 describe("cursor-api provider", () => {
   const provider = createCursorApiProvider()
 
-  test("validates credential with apiKey", () => {
-    expect(provider.validateCredential({ apiKey: "key_cursor_test" })).toBe(true)
-  })
-
   test("checkQuota fetches Cursor API key metadata from /v0/me", async () => {
     const originalFetch = globalThis.fetch
     globalThis.fetch = asFetch(

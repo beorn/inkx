@@ -56,9 +56,9 @@ describe("boundary fakes — one contract per faked third-party API", () => {
       account: { plan: "claude_max_20x", quotas: warningQuotas() },
     })
     try {
-      // The compact inline row uses `5hr` and shows remaining headroom.
+      // The compact inline row uses `5hr` and shows quota utilization.
       expect(s.text).toContain("5hr")
-      expect(s.text).toContain("13% left")
+      expect(s.text).toContain("87% used")
     } finally {
       s.dispose()
     }

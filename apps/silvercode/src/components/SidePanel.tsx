@@ -17,10 +17,8 @@ import { useAmbientMuteState } from "../hooks/use-ambient-stream.ts"
 import { useAllAccounts } from "../hooks/use-all-accounts.ts"
 import { useBackgroundTasks } from "../hooks/use-background-tasks.ts"
 import { useClaudeAccount } from "../hooks/use-claude-account.ts"
-import { useCodexQuota } from "../hooks/use-codex-quota.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 import { isTransientAccountError, type AccountSummary } from "../account-status.ts"
-import type { CodexQuotaSnapshot } from "../codex-quota.ts"
 import { copySessionTranscriptToClipboard } from "../session-clipboard.ts"
 
 /**
@@ -298,14 +296,9 @@ function isCodexAgent(agent: string | undefined): boolean {
  *
  * The popover always renders ALL of them regardless.
  */
-function filterVisibleQuotas(
-  all: QuotaWindow[],
-  opts: { showRateLimits?: boolean; showAllQuotas?: boolean } = {},
-): QuotaWindow[] {
-  if (opts.showAllQuotas) return all
+function filterVisibleQuotas(all: QuotaWindow[]): QuotaWindow[] {
   const primaryYellow = all.some((q) => isPrimaryQuotaWindow(q.name) && isWarningLevel(q.utilization))
   return all.filter((w) => {
-    if (opts.showRateLimits && isRateLimitWindow(w.name)) return true
     if (w.name === "5-hour") return true
     if (isPrimaryQuotaWindow(w.name)) {
       return isWarningLevel(w.utilization)
@@ -328,7 +321,9 @@ function filterVisibleQuotas(
 function QuotaRow({ w, muted = false }: { w: QuotaWindow; muted?: boolean }): React.ReactElement {
   const isExtra = w.name === "Xtra"
   const color = muted ? "$muted" : quotaColor(w)
-  const left = Math.max(0, Math.min(100, Math.round(100 - w.utilization)))
+  const used = Math.max(0, Math.min(100, Math.round(w.utilization)))
+  const amount = quotaAmount(w)
+  const hasRemaining = typeof w.remaining === "number" || typeof w.limit !== "number"
   return (
     <Box flexDirection="row" gap={1}>
       <Box flexBasis={4} minWidth={4}>
@@ -338,8 +333,8 @@ function QuotaRow({ w, muted = false }: { w: QuotaWindow; muted?: boolean }): Re
           <Muted>{windowShortLabel(w.name)}</Muted>
         )}
       </Box>
-      <ProgressBar value={left / 100} width={12} color={color} showPercentage={false} />
-      <Muted>{left}% left</Muted>
+      <ProgressBar value={used / 100} width={12} color={color} showPercentage={false} />
+      <Muted>{hasRemaining ? `${used}% used` : (amount ?? `${used}% used`)}</Muted>
     </Box>
   )
 }
@@ -360,6 +355,17 @@ function resetLabel(raw: string | undefined): string | null {
   return date.toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })
 }
 
+function middleTruncate(s: string, max = 38): string {
+  if (s.length <= max) return s
+  const keep = Math.max(4, Math.floor((max - 1) / 2))
+  return `${s.slice(0, keep)}…${s.slice(s.length - (max - 1 - keep))}`
+}
+
+function sourcePathLabel(path: string): string {
+  const file = path.split("/").pop() ?? path
+  return middleTruncate(file)
+}
+
 function accountDisplayName(account: AccountSummary): string {
   return account.email ?? account.name
 }
@@ -370,9 +376,13 @@ function accountDetailLines(account: AccountSummary, exclude: ReadonlySet<string
     if (detail && !exclude.has(detail)) details.push(detail)
   }
   add(account.email && account.email !== account.name ? account.email : undefined)
+  add(account.plan ? `plan ${planLabel(account.plan)}` : undefined)
+  add(account.metadata?.planType && account.metadata.planType !== account.plan ? `tier ${planLabel(account.metadata.planType)}` : undefined)
+  add(account.metadata?.accountId ? `account id ${middleTruncate(account.metadata.accountId, 24)}` : undefined)
   add(account.sourceEnvVar)
   add(account.credentialHint)
   add(account.metadata?.apiKeyName ? `key ${account.metadata.apiKeyName}` : undefined)
+  add(account.metadata?.googleCloudProject ? `project ${account.metadata.googleCloudProject}` : undefined)
   add(account.metadata?.createdAt ? `created ${new Date(account.metadata.createdAt).toLocaleDateString()}` : undefined)
   add(
     account.metadata?.updatedAt
@@ -381,7 +391,7 @@ function accountDetailLines(account: AccountSummary, exclude: ReadonlySet<string
   )
   add(account.metadata?.sourcePath ? shortCwd(account.metadata.sourcePath) : undefined)
   add(account.dir)
-  add(account.current ? "current" : undefined)
+  add(account.current ? "CURRENT" : undefined)
   add(account.default ? "default" : undefined)
   add(account.stock ? "stock" : undefined)
   add(account.authenticated === false ? "missing login" : undefined)
@@ -401,10 +411,15 @@ function inlineAccountDetails(account: AccountSummary): ReadonlySet<string> {
   return inline
 }
 
+function accountGroupLabel(account: AccountSummary): string {
+  if (account.kind === "api-key" && account.provider === "openai") return "OpenAI / ChatGPT"
+  return account.kind === "api-key" ? account.label : planLabel(account.plan)
+}
+
 function groupAccountsByPlan(accounts: AccountSummary[]): Array<{ label: string; accounts: AccountSummary[] }> {
   const groups: Array<{ label: string; accounts: AccountSummary[] }> = []
   for (const account of accounts) {
-    const label = account.kind === "api-key" ? account.label : planLabel(account.plan)
+    const label = accountGroupLabel(account)
     const existing = groups.find((g) => g.label === label)
     if (existing) existing.accounts.push(account)
     else groups.push({ label, accounts: [account] })
@@ -493,66 +508,20 @@ function mergeActiveProbeIntoAccounts(allAccounts: AccountSummary[], active: Acc
   return sawCurrentClaude ? merged : [active, ...merged]
 }
 
-function codexWindowName(minutes: number): string {
-  if (minutes === 300) return "5-hour"
-  if (minutes === 10080) return "7-day"
-  if (minutes % 60 === 0) return `${minutes / 60}-hour`
-  return `${minutes}-minute`
-}
-
-function codexQuotaAccounts(snapshot: CodexQuotaSnapshot | null): AccountSummary[] {
-  if (!snapshot) return []
-  return snapshot.limits.map((limit, index) => {
-    const quotas: QuotaWindow[] = [limit.primary, limit.secondary].flatMap((w) =>
-      w
-        ? [
-            {
-              name: codexWindowName(w.windowMinutes),
-              utilization: w.usedPercent,
-              resetsAt: w.resetsAt ?? undefined,
-            },
-          ]
-        : [],
-    )
-    return {
-      kind: "api-key",
-      name: limit.label === "Codex" ? (snapshot.accountLabel ?? "ChatGPT subscription") : limit.label,
-      label: "Codex",
-      provider: "openai",
-      email: limit.label === "Codex" ? snapshot.accountLabel : null,
-      plan: limit.planType,
-      quotas,
-      error: null,
-      current: index === 0,
-      isActive: true,
-      available: true,
-      metadata: {
-        ...(snapshot.updatedAt ? { updatedAt: snapshot.updatedAt } : {}),
-        ...(snapshot.sourcePath ? { sourcePath: snapshot.sourcePath } : {}),
-      },
-      loading: false,
-    } satisfies AccountSummary
-  })
-}
-
 function AccountPanel({
   account,
   onShowAllAccounts,
-  showRateLimits = false,
-  showAllQuotas = false,
 }: {
   account: AccountSummary
   onShowAllAccounts?: () => void
-  showRateLimits?: boolean
-  showAllQuotas?: boolean
 }): React.ReactElement {
   const active = account.isActive
-  const visibleQuotas = filterVisibleQuotas(account.quotas, { showRateLimits, showAllQuotas })
+  const visibleQuotas = filterVisibleQuotas(account.quotas)
   const hasPopover = hasAccountPopoverDetails(account)
   const apiKeyLine = [account.sourceEnvVar, account.credentialHint].filter(Boolean).join(" ")
   const popover = usePopoverHandlers({
     body: <AccountPopover account={account} onShowAllAccounts={onShowAllAccounts} />,
-    maxWidth: 64,
+    maxWidth: 46,
   })
   return (
     <Box
@@ -621,6 +590,20 @@ function AccountDetailLines({
   )
 }
 
+function AccountMetaRow({ label, value }: { label: string; value: string | undefined }): React.ReactElement | null {
+  if (!value) return null
+  return (
+    <Box flexDirection="row" gap={1}>
+      <Box width={7} flexShrink={0}>
+        <Small>{label}</Small>
+      </Box>
+      <Box flexGrow={1} minWidth={0}>
+        <Small>{value}</Small>
+      </Box>
+    </Box>
+  )
+}
+
 function AccountPopover({
   account,
   onShowAllAccounts,
@@ -628,16 +611,44 @@ function AccountPopover({
   account: AccountSummary
   onShowAllAccounts?: () => void
 }): React.ReactElement {
+  const displayName = accountDisplayName(account)
+  const title = account.kind === "api-key" && account.label !== displayName ? account.label : displayName
+  const accountLine = title !== displayName ? displayName : undefined
+  const updated = account.metadata?.updatedAt
+    ? (resetLabel(account.metadata.updatedAt) ?? account.metadata.updatedAt)
+    : undefined
+  const source = account.metadata?.sourcePath ? sourcePathLabel(account.metadata.sourcePath) : undefined
+  const sourceDetail = account.metadata?.sourcePath ? shortCwd(account.metadata.sourcePath) : undefined
+  const details = accountDetailLines(
+    account,
+    new Set(
+      [...inlineAccountDetails(account), ...(updated ? [`updated ${updated}`] : []), sourceDetail].filter(
+        Boolean,
+      ) as string[],
+    ),
+  )
   return (
-    <Box flexDirection="column">
-      <Text bold>{accountDisplayName(account)}</Text>
-      <AccountDetailLines account={account} exclude={inlineAccountDetails(account)} />
+    <Box flexDirection="column" gap={1}>
+      <Box flexDirection="column">
+        <Text bold>{title}</Text>
+        <AccountMetaRow label="account" value={accountLine} />
+        <AccountMetaRow label="updated" value={updated} />
+        <AccountMetaRow label="source" value={source} />
+        {details.length > 0 ? (
+          <Box flexDirection="column">
+            {details.map((detail) => (
+              <Small key={detail}>{detail}</Small>
+            ))}
+          </Box>
+        ) : null}
+      </Box>
       {account.quotas.length > 0 ? (
         <Box flexDirection="column">
-          {account.quotas.map((w) => (
-            <Box key={w.name} flexDirection="column">
+          {account.quotas.map((w, i) => (
+            <React.Fragment key={w.name}>
+              {i > 0 ? <Box height={1} flexShrink={0} /> : null}
               <QuotaPopoverRow w={w} />
-            </Box>
+            </React.Fragment>
           ))}
         </Box>
       ) : account.loading || account.error ? (
@@ -645,9 +656,7 @@ function AccountPopover({
       ) : null}
       {onShowAllAccounts ? (
         <>
-          <Box flexShrink={0} height={1} />
           <AccountNavButton label="All Accounts" onClick={onShowAllAccounts} />
-          <Box flexShrink={0} height={1} />
         </>
       ) : null}
     </Box>
@@ -658,14 +667,10 @@ function AccountGroup({
   label,
   accounts,
   onShowAllAccounts,
-  showRateLimitsFor,
-  showAllQuotasFor,
 }: {
   label: string
   accounts: AccountSummary[]
   onShowAllAccounts?: () => void
-  showRateLimitsFor?: (account: AccountSummary) => boolean
-  showAllQuotasFor?: (account: AccountSummary) => boolean
 }): React.ReactElement {
   return (
     <Box flexDirection="column" flexShrink={0}>
@@ -677,8 +682,6 @@ function AccountGroup({
           <AccountPanel
             account={account}
             onShowAllAccounts={onShowAllAccounts}
-            showRateLimits={showRateLimitsFor?.(account) ?? false}
-            showAllQuotas={showAllQuotasFor?.(account) ?? false}
           />
           {i < accounts.length - 1 ? <Box flexShrink={0} height={1} /> : null}
         </React.Fragment>
@@ -698,18 +701,27 @@ function QuotaPopoverRow({ w }: { w: QuotaWindow }): React.ReactElement {
   const isExtra = w.name === "Xtra"
   const amount = quotaAmount(w)
   const reset = resetLabel(w.resetsAt)
-  const left = Math.max(0, Math.min(100, Math.round(100 - w.utilization)))
+  const used = Math.max(0, Math.min(100, Math.round(w.utilization)))
+  const hasRemaining = typeof w.remaining === "number" || typeof w.limit !== "number"
   return (
-    <Box flexDirection="row" gap={1}>
-      <Box width={4} flexShrink={0}>
-        {isExtra ? <Text color="$warning">{windowShortLabel(w.name)}</Text> : <Muted>{windowShortLabel(w.name)}</Muted>}
+    <Box flexDirection="column">
+      <Box flexDirection="row" gap={1}>
+        <Box width={4} flexShrink={0}>
+          {isExtra ? (
+            <Text color="$warning">{windowShortLabel(w.name)}</Text>
+          ) : (
+            <Muted>{windowShortLabel(w.name)}</Muted>
+          )}
+        </Box>
+        <ProgressBar value={used / 100} width={14} color={quotaColor(w)} showPercentage={false} />
+        <Small>{hasRemaining ? `${used}% used` : (amount ?? `${used}% used`)}</Small>
       </Box>
-      <ProgressBar value={left / 100} width={14} color={quotaColor(w)} showPercentage={false} />
-      <Box flexDirection="column" flexGrow={1} minWidth={0}>
-        <Small>{left}% left</Small>
-        {amount ? <Small>{amount}</Small> : null}
-        {reset ? <Small>resets {reset}</Small> : null}
-      </Box>
+      {(hasRemaining ? amount : null) || reset ? (
+        <Box flexDirection="column" marginLeft={5}>
+          {hasRemaining && amount ? <Small>{amount}</Small> : null}
+          {reset ? <Small>resets {reset}</Small> : null}
+        </Box>
+      ) : null}
     </Box>
   )
 }
@@ -803,7 +815,7 @@ function AmbientMuteSection({ controller }: { controller: Controller }): React.R
   const headingHover = usePopoverHandlers({
     body: (
       <Box flexDirection="column" gap={1}>
-        <Text bold>Ambient</Text>
+        <Text bold>Notifications</Text>
         <Muted>
           Ambient observations (tribe broadcasts, CI status, recall hits, sub-agent updates, file changes, telegram
           messages) flow into the agent's context automatically and render inline in the chat scrollback.
@@ -832,7 +844,7 @@ function AmbientMuteSection({ controller }: { controller: Controller }): React.R
         }}
         backgroundColor={isHovered ? "$bg-surface-hover" : undefined}
       >
-        <SectionHeading>Ambient</SectionHeading>
+        <SectionHeading>Notifications</SectionHeading>
       </Box>
       {AMBIENT_SOURCES.map((s) => (
         <AmbientMuteRow
@@ -873,7 +885,9 @@ function SessionRow({
       onMouseLeave={onMouseLeave}
       backgroundColor={isHovered ? "$bg-surface-hover" : undefined}
     >
-      <Text color={isFocused ? undefined : "$muted"}>{label}</Text>
+      <Text color={isFocused ? undefined : "$muted"} wrap="truncate">
+        {label}
+      </Text>
     </Box>
   )
 }
@@ -1044,16 +1058,13 @@ function SidePanelChrome({
   const claudeCodeVersion = state?.claudeCodeVersion ?? ""
   const todos = state?.todos ?? []
   const messages = state?.messages ?? []
-  const codexQuota = useCodexQuota(isCodexAgent(agent))
-
-  // Account + quota probe. Email resolves synchronously from CLAUDE_CONFIG_DIR;
-  // plan + per-window utilization arrive async from Anthropic's /api/usage
-  // via accountly. Refreshes every 2 min.
+  // Account + quota probe. Claude's active email resolves synchronously from
+  // CLAUDE_CONFIG_DIR; profile and API-provider quotas arrive through
+  // accountly's shared account status surface. Refreshes every 2 min.
   const account = useClaudeAccount()
   const allAccounts = useAllAccounts()
   const activeAccount = accountSummaryFromActiveProbe(account)
   const accounts: AccountSummary[] = mergeActiveProbeIntoAccounts(allAccounts, activeAccount)
-  const codexAccounts = codexQuotaAccounts(codexQuota)
   const hasAccount = accounts.length > 0
   const selectedAccount = selectedAccountForAgent(accounts, agent)
   const selectedAccountGroups = selectedAccount ? groupAccountsByPlan([selectedAccount]) : []
@@ -1325,48 +1336,58 @@ function SidePanelChrome({
           </Box>
           <Small color="$muted">ctrl-o</Small>
         </Box>
-        {sessions.map((s) => (
-          <SessionRow
-            key={s.id}
-            handle={s}
-            isFocused={s.id === focusedSessionId}
-            onClick={() => {
-              copySessionTranscriptToClipboard(s, stdout)
-              onFocusSession(s.id)
-            }}
-          />
-        ))}
+        {sessions.length > 1
+          ? sessions.map((s) => (
+              <SessionRow
+                key={s.id}
+                handle={s}
+                isFocused={s.id === focusedSessionId}
+                onClick={() => {
+                  copySessionTranscriptToClipboard(s, stdout)
+                  onFocusSession(s.id)
+                }}
+              />
+            ))
+          : null}
       </Box>
 
       {/* Todos */}
-      <Box flexShrink={0} height={1} />
-      <Box
-        flexDirection="row"
-        gap={1}
-        flexShrink={0}
-        onMouseEnter={todosHover.onMouseEnter}
-        onMouseLeave={todosHover.onMouseLeave}
-        backgroundColor={hoveredBg(todosHover.isHovered)}
-      >
-        <SectionHeading>Todos</SectionHeading>
-        <Text color="$muted">{todosCount}</Text>
-      </Box>
+      {todosCount > 0 ? (
+        <>
+          <Box flexShrink={0} height={1} />
+          <Box
+            flexDirection="row"
+            gap={1}
+            flexShrink={0}
+            onMouseEnter={todosHover.onMouseEnter}
+            onMouseLeave={todosHover.onMouseLeave}
+            backgroundColor={hoveredBg(todosHover.isHovered)}
+          >
+            <SectionHeading>Todos</SectionHeading>
+            <Text color="$muted">{todosCount}</Text>
+          </Box>
+        </>
+      ) : null}
 
       {/* Agents */}
-      <Box flexShrink={0} height={1} />
-      <Box
-        flexDirection="row"
-        gap={1}
-        flexShrink={0}
-        onMouseEnter={agentsHover.onMouseEnter}
-        onMouseLeave={agentsHover.onMouseLeave}
-        backgroundColor={hoveredBg(agentsHover.isHovered)}
-      >
-        <SectionHeading>Agents</SectionHeading>
-        <Text color="$muted">
-          {agentsRunning}/{agentsTotal}
-        </Text>
-      </Box>
+      {agentsTotal > 0 ? (
+        <>
+          <Box flexShrink={0} height={1} />
+          <Box
+            flexDirection="row"
+            gap={1}
+            flexShrink={0}
+            onMouseEnter={agentsHover.onMouseEnter}
+            onMouseLeave={agentsHover.onMouseLeave}
+            backgroundColor={hoveredBg(agentsHover.isHovered)}
+          >
+            <SectionHeading>Agents</SectionHeading>
+            <Text color="$muted">
+              {agentsRunning}/{agentsTotal}
+            </Text>
+          </Box>
+        </>
+      ) : null}
 
       {/* Shells — only show when there's at least one background shell
           in this session. Claude Code's own "N shells" indicator; tracks
@@ -1390,7 +1411,7 @@ function SidePanelChrome({
         </>
       )}
 
-      {/* Ambient — per-source mute toggles for the inline observation
+      {/* Notifications — per-source mute toggles for the inline observation
           rows in the chat scrollback. Mute hides matching rows from the
           inline view but does NOT prevent the agent from receiving the
           events. The agent still sees every ambient observation; this
@@ -1453,7 +1474,6 @@ function SidePanelChrome({
                 <AccountGroup
                   label={group.label}
                   accounts={group.accounts}
-                  showRateLimitsFor={(account) => account.isActive}
                 />
               </React.Fragment>
             ))}
@@ -1461,13 +1481,6 @@ function SidePanelChrome({
             <AccountNavButton label="< Back" onClick={() => setAccountView("selected")} />
             <Box flexShrink={0} height={1} />
           </>
-        ) : isCodexAgent(agent) && codexAccounts.length > 0 ? (
-          <AccountGroup
-            label="Codex"
-            accounts={codexAccounts}
-            onShowAllAccounts={accounts.length > 1 ? () => setAccountView("all") : undefined}
-            showAllQuotasFor={() => true}
-          />
         ) : hasAccount && selectedAccountGroups.length > 0 ? (
           selectedAccountGroups.map((group, i) => (
             <React.Fragment key={group.label}>
@@ -1476,7 +1489,6 @@ function SidePanelChrome({
                 label={group.label}
                 accounts={group.accounts}
                 onShowAllAccounts={accounts.length > 1 ? () => setAccountView("all") : undefined}
-                showRateLimitsFor={(account) => account.kind === "api-key"}
               />
             </React.Fragment>
           ))

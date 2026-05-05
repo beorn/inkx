@@ -19,7 +19,6 @@ import { createSessionStore, type SessionId, type TurnId } from "@km/agent-harne
 import { SidePanel } from "../src/components/SidePanel.tsx"
 import { setAllAccountsFactoryOverride, type AccountSummary } from "../src/account-status.ts"
 import { setAccountFactoryOverride } from "../src/claude-account.ts"
-import { setCodexQuotaFactoryOverride, type CodexQuotaSnapshot } from "../src/codex-quota.ts"
 import type { Controller, SessionHandle } from "../src/controller.ts"
 import { setSessionClipboardWriterOverride } from "../src/session-clipboard.ts"
 
@@ -166,6 +165,26 @@ const CODEX_ACCOUNT: AccountSummary = {
   loading: false,
 }
 
+const OPENAI_ACCOUNT: AccountSummary = {
+  kind: "api-key",
+  name: "openai",
+  label: "OpenAI API",
+  provider: "openai",
+  email: null,
+  plan: null,
+  quotas: [
+    { name: "RPM", utilization: 0, remaining: 499, limit: 500 },
+    { name: "TPM", utilization: 12, remaining: 176000, limit: 200000 },
+  ],
+  error: null,
+  current: false,
+  isActive: false,
+  sourceEnvVar: "OPENAI_API_KEY",
+  credentialHint: "...nai",
+  available: true,
+  loading: false,
+}
+
 const XAI_ACCOUNT: AccountSummary = {
   kind: "api-key",
   name: "xai",
@@ -203,24 +222,42 @@ const GOOGLE_ACCOUNT_WITH_QUOTA: AccountSummary = {
   loading: false,
 }
 
+const GOOGLE_ACCOUNT_WITH_LIMITS: AccountSummary = {
+  ...GOOGLE_ACCOUNT_WITH_QUOTA,
+  quotas: [
+    { name: "RPM", utilization: 0, limit: 60 },
+    { name: "TPM", utilization: 0, limit: 1_000_000 },
+  ],
+  metadata: { googleCloudProject: "gemini-project" },
+}
+
 const CURSOR_ACCOUNT_WITH_QUOTA: AccountSummary = {
   ...API_KEY_ACCOUNT,
   quotas: [{ name: "Tasks", utilization: 40, remaining: 60, limit: 100 }],
 }
 
-const CODEX_QUOTA: CodexQuotaSnapshot = {
-  accountLabel: "bjorn@example.com",
-  updatedAt: "2026-05-05T05:15:08.367Z",
-  sourcePath: "/tmp/rollout.jsonl",
-  limits: [
-    {
-      id: "codex",
-      label: "Codex",
-      planType: "pro",
-      primary: { usedPercent: 5, windowMinutes: 300, resetsAt: "2026-05-05T09:00:06.000Z" },
-      secondary: { usedPercent: 2, windowMinutes: 10080, resetsAt: "2026-05-11T22:35:28.000Z" },
-    },
+const CODEX_SUBSCRIPTION_ACCOUNT: AccountSummary = {
+  kind: "api-key",
+  name: "bjorn@example.com",
+  label: "Codex",
+  provider: "openai",
+  email: "bjorn@example.com",
+  plan: "pro",
+  quotas: [
+    { name: "5-hour", utilization: 5, resetsAt: "2026-05-05T09:00:06.000Z" },
+    { name: "7-day", utilization: 2, resetsAt: "2026-05-11T22:35:28.000Z" },
   ],
+  error: null,
+  current: true,
+  isActive: true,
+  available: true,
+  loading: false,
+  metadata: {
+    planType: "pro",
+    accountId: "27623961-1732-4500-9d5a-c884bd4b8150",
+    updatedAt: "2026-05-05T05:15:08.367Z",
+    sourcePath: "/tmp/rollout.jsonl",
+  },
 }
 
 const settle = (ms = 80) => new Promise<void>((r) => setTimeout(r, ms))
@@ -338,18 +375,14 @@ describe("SidePanel — multi-account view", () => {
   })
 
   test("Codex shows subscription quotas from Codex /status data instead of generic OpenAI API limits", () => {
-    const accounts = [...THREE_ACCOUNTS, API_KEY_ACCOUNT, CODEX_ACCOUNT]
+    const accounts = [...THREE_ACCOUNTS, API_KEY_ACCOUNT, CODEX_SUBSCRIPTION_ACCOUNT]
     withAccounts(accounts)
-    setCodexQuotaFactoryOverride({
-      readCached: () => CODEX_QUOTA,
-      probe: async () => CODEX_QUOTA,
-    })
     try {
       const app = renderPanel({ agent: "codex" })
-      expect(app.text).toContain("Codex")
+      expect(app.text).toContain("OpenAI / ChatGPT")
       expect(app.text).toContain("bjorn@example.com")
-      expect(app.text).toContain("95% left")
-      expect(app.text).toContain("98% left")
+      expect(app.text).toContain("5% used")
+      expect(app.text).not.toContain("2% used")
       expect(app.text).not.toContain("CODEX_API_KEY ...dex")
       expect(app.text).not.toContain("RPM")
       expect(app.text).not.toContain("TPM")
@@ -357,17 +390,12 @@ describe("SidePanel — multi-account view", () => {
       expect(app.text).not.toContain("personal@example.com")
     } finally {
       setAllAccountsFactoryOverride(null)
-      setCodexQuotaFactoryOverride(null)
     }
   })
 
   test("Codex quota rows use the shared account popover", async () => {
-    const accounts = [...THREE_ACCOUNTS, API_KEY_ACCOUNT, CODEX_ACCOUNT]
+    const accounts = [...THREE_ACCOUNTS, API_KEY_ACCOUNT, CODEX_SUBSCRIPTION_ACCOUNT]
     withAccounts(accounts)
-    setCodexQuotaFactoryOverride({
-      readCached: () => CODEX_QUOTA,
-      probe: async () => CODEX_QUOTA,
-    })
     try {
       const focused = makeStubSession()
       const { term, handle } = await renderInteractivePanel({ focused, sessions: [focused], agent: "codex" })
@@ -380,14 +408,31 @@ describe("SidePanel — multi-account view", () => {
         await term.mouse.move(accountCol + 1, accountRow)
         await settle(650)
         const text = term.screen.getText()
+        expect(text).toContain("Codex")
+        expect(text).toContain("account")
+        expect(text).toContain("bjorn@example.com")
+        expect(text).toContain("plan Pro")
+        expect(text).toContain("account id 27623961-17…c884bd4b8150")
         expect(text).toContain("resets")
-        expect(text).toContain("/tmp/rollout.jsonl")
+        expect(text).toContain("source")
+        expect(text).toContain("rollout.jsonl")
+        const lines = term.screen.getLines()
+        const fiveHourRow = lines.findIndex((line) => line.includes("5hr") && line.includes("5% used"))
+        const fiveHourResetRow = lines.findIndex((line) => line.includes("resets 5/5/26"))
+        expect(fiveHourRow).toBeGreaterThanOrEqual(0)
+        expect(fiveHourResetRow).toBe(fiveHourRow + 1)
+        expect(lines[fiveHourResetRow]).not.toContain("5% used")
+        const sevenDayRow = lines.findIndex((line) => line.includes("7d") && line.includes("2% used"))
+        const sevenDayResetRow = lines.findIndex((line) => line.includes("resets 5/11/26"))
+        expect(sevenDayRow).toBeGreaterThanOrEqual(0)
+        expect(sevenDayRow).toBeGreaterThan(fiveHourResetRow + 1)
+        expect(sevenDayResetRow).toBe(sevenDayRow + 1)
+        expect(lines[sevenDayResetRow]).not.toContain("2% used")
       } finally {
         handle.unmount()
       }
     } finally {
       setAllAccountsFactoryOverride(null)
-      setCodexQuotaFactoryOverride(null)
     }
   })
 
@@ -395,8 +440,9 @@ describe("SidePanel — multi-account view", () => {
     const accounts = [THREE_ACCOUNTS[0]!, XAI_ACCOUNT, GOOGLE_ACCOUNT_WITH_QUOTA, CURSOR_ACCOUNT_WITH_QUOTA]
     withAccounts(accounts)
     try {
-      expect(renderPanel({ agent: "xai" }).text).toContain("RPM")
-      expect(renderPanel({ agent: "xai" }).text).toContain("TPM")
+      expect(renderPanel({ agent: "xai" }).text).toContain("xAI API")
+      expect(renderPanel({ agent: "xai" }).text).not.toContain("RPM")
+      expect(renderPanel({ agent: "xai" }).text).not.toContain("TPM")
 
       const geminiText = renderPanel({ agent: "gemini" }).text
       expect(geminiText).toContain("Google API")
@@ -405,6 +451,19 @@ describe("SidePanel — multi-account view", () => {
       const cursorText = renderPanel({ agent: "cursor" }).text
       expect(cursorText).toContain("Cursor API")
       expect(cursorText).toContain("Task")
+    } finally {
+      setAllAccountsFactoryOverride(null)
+    }
+  })
+
+  test("Gemini limit-only quotas render as limits, not fake remaining quota", () => {
+    withAccounts([THREE_ACCOUNTS[0]!, GOOGLE_ACCOUNT_WITH_LIMITS])
+    try {
+      const text = renderPanel({ agent: "gemini" }).text
+      expect(text).toContain("Google API")
+      expect(text).not.toContain("RPM")
+      expect(text).not.toContain("60 limit")
+      expect(text).not.toContain("0% used")
     } finally {
       setAllAccountsFactoryOverride(null)
     }
@@ -434,6 +493,19 @@ describe("SidePanel — multi-account view", () => {
       const row = app.lines.findIndex((l) => l.includes("Claude Code Max 20"))
       expect(row).toBeGreaterThan(-1)
       expect(app.lines[row]!.indexOf("Claude Code Max 20")).toBe(2)
+    } finally {
+      setAllAccountsFactoryOverride(null)
+    }
+  })
+
+  test("single-session zero-state chrome stays compact", () => {
+    withAccounts(THREE_ACCOUNTS)
+    try {
+      const app = renderPanel()
+      expect(app.text).toContain("Sessions")
+      expect(app.text).not.toContain("fake")
+      expect(app.text).not.toContain("Todos 0")
+      expect(app.text).not.toContain("Agents 0/0")
     } finally {
       setAllAccountsFactoryOverride(null)
     }
@@ -507,6 +579,45 @@ describe("SidePanel — multi-account view", () => {
         expect(text).toContain("work@example.com")
         expect(text).toContain("Claude Team")
         expect(text).toContain("CODEX_API_KEY")
+      } finally {
+        handle.unmount()
+      }
+    } finally {
+      setAllAccountsFactoryOverride(null)
+    }
+  })
+
+  test("OpenAI API and ChatGPT Codex accounts share one account group", async () => {
+    const accounts = [THREE_ACCOUNTS[0]!, OPENAI_ACCOUNT, CODEX_SUBSCRIPTION_ACCOUNT, XAI_ACCOUNT]
+    withAccounts(accounts)
+    try {
+      const focused = makeStubSession()
+      const { term, handle } = await renderInteractivePanel({ focused, sessions: [focused], agent: "codex" })
+      try {
+        await settle()
+        const accountRow = term.screen.getLines().findIndex((line) => line.includes("bjorn@example.com"))
+        expect(accountRow).toBeGreaterThanOrEqual(0)
+        const accountCol = term.screen.getLines()[accountRow]!.indexOf("bjorn@example.com")
+        ;(term as unknown as { sendInput: (s: string) => void }).sendInput(SUPER_DOWN)
+        await term.mouse.move(accountCol + 1, accountRow)
+        await settle(650)
+        const linkRow = term.screen.getLines().findIndex((line) => line.includes("All Accounts"))
+        expect(linkRow).toBeGreaterThanOrEqual(0)
+        const linkCol = term.screen.getLines()[linkRow]!.indexOf("All Accounts")
+        await term.mouse.click(linkCol + 1, linkRow)
+        ;(term as unknown as { sendInput: (s: string) => void }).sendInput(SUPER_UP)
+        await term.mouse.move(0, 0)
+        await settle()
+
+        const lines = term.screen.getLines()
+        const openAiGroup = lines.findIndex((line) => line.includes("OpenAI / ChatGPT"))
+        const openAiApi = lines.findIndex((line) => line.includes("OPENAI_API_KEY"))
+        const codex = lines.findIndex((line) => line.includes("bjorn@example.com"))
+        const xai = lines.findIndex((line) => line.includes("xAI API"))
+        expect(openAiGroup).toBeGreaterThanOrEqual(0)
+        expect(openAiApi).toBeGreaterThan(openAiGroup)
+        expect(codex).toBeGreaterThan(openAiApi)
+        expect(xai).toBeGreaterThan(codex)
       } finally {
         handle.unmount()
       }

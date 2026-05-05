@@ -18,6 +18,13 @@ export {
   type AccountStatusOptions,
 } from "./account-status.ts"
 
+export {
+  parseCodexQuotaJsonl,
+  readLatestCodexQuotaFromDisk,
+  codexSubscriptionStatuses,
+  type CodexQuotaSnapshot,
+} from "./providers/codex-subscription.ts"
+
 // Profile-based multi-account management — the primary accountly API.
 // See src/profile.ts for the full architecture.
 export {

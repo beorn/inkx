@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest"
-import { parseCodexQuotaJsonl } from "../src/codex-quota.ts"
+import { parseCodexQuotaJsonl } from "../../src/providers/codex-subscription.ts"
 
-describe("codex quota parser", () => {
+describe("codex subscription quota provider", () => {
   test("reads /status rate limits from token_count rollout events", () => {
     const jsonl = [
       JSON.stringify({
@@ -9,17 +9,12 @@ describe("codex quota parser", () => {
         type: "event_msg",
         payload: {
           type: "token_count",
-          info: {
-            model_context_window: 258400,
-          },
           rate_limits: {
             limit_id: "codex",
             limit_name: null,
             primary: { used_percent: 5, window_minutes: 300, resets_at: 1777971606 },
             secondary: { used_percent: 2, window_minutes: 10080, resets_at: 1778538928 },
-            credits: null,
             plan_type: "pro",
-            rate_limit_reached_type: null,
           },
         },
       }),
