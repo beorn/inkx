@@ -68,6 +68,7 @@ export {
   stringifyTaskMetadata,
   parseTaskMetadataFromText,
   getNodePriority,
+  setPriorityInContent,
 } from "./task-metadata.ts"
 export type { ExtractedTaskMetadata } from "./task-metadata.ts"
 

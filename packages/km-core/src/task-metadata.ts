@@ -92,6 +92,27 @@ export function getNodePriority(node: {
   return undefined
 }
 
+/**
+ * Update the `#P[0-4]` priority hashtag in a node's content.
+ *
+ * Removes any existing `#P0`-`#P4` hashtag and `priority::` inline-prop, then
+ * appends `#P<level>` (when `next` is a "P0".."P4" string). Returns the new
+ * content. The serializer round-trips the content back to markdown, so the
+ * H1 reflects the change on the next read.
+ *
+ * `next === undefined` clears the priority entirely (cycle wrap).
+ */
+export function setPriorityInContent(content: string, next: string | undefined): string {
+  // Strip any existing `#P[0-4]` hashtag (with surrounding whitespace).
+  let stripped = content.replace(/(\s+)#P[0-4]\b/i, "")
+  stripped = stripped.replace(/^#P[0-4]\b\s*/i, "")
+  // Strip legacy `priority:: P[0-4]` inline-prop.
+  stripped = stripped.replace(/\s*\bpriority::\s*P?[0-4]\b/i, "")
+  stripped = stripped.replace(/\s+$/, "") // trailing whitespace
+  if (next === undefined) return stripped
+  return stripped.length > 0 ? `${stripped} #${next}` : `#${next}`
+}
+
 export interface ExtractedTaskMetadata {
   dueDate?: string
   dueTime?: string

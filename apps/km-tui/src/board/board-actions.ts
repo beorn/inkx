@@ -34,7 +34,14 @@ import { activeEditTargetRef, activeEditContextRef, createOsc52Backend } from "@
 import { dialogTargetRef } from "../dialog-target.ts"
 import { extractBody, detectPrefixConversion, degrade, KTree } from "@km/tree"
 import { boardSplit, boardMergeBackward, boardMergeForward } from "./board-tree-ops.ts"
-import { KNode, Position, extractTitleTaskMarker, getNodePriority, type ItemData } from "@km/core"
+import {
+  KNode,
+  Position,
+  extractTitleTaskMarker,
+  getNodePriority,
+  setPriorityInContent,
+  type ItemData,
+} from "@km/core"
 import type { ID } from "@silvery/selection"
 import { saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { getRecentsStore } from "../state/recents-store.ts"
@@ -2821,15 +2828,20 @@ function handleSetPriority(ctx: OpCtx, value?: string): OpResult {
       idx >= 0 && idx < PRIORITY_CYCLE.length - 1 ? PRIORITY_CYCLE[idx + 1] : idx === -1 ? PRIORITY_CYCLE[0] : undefined
   }
 
-  // TODO @km/all/path-name-id-redesign: writing priority must edit the H1
-  // #P[0-4] hashtag in markdown content (data.tags is derived from the H1).
-  // The legacy nodes.priority column was dropped at SCHEMA_VERSION=11. For
-  // now, surface the intent via toast — the markdown-edit path is the
-  // canonical write surface and is being reworked separately.
-  void firstNodeId
-  void nodeIds
+  // Write the new priority by rewriting the `#P[0-4]` hashtag in each
+  // selected node's content. Priority lives in the markdown text now —
+  // the dropped `nodes.priority` column was a derived view, the H1
+  // hashtag is the source of truth (per docs/future/beads.md).
+  for (const id of nodeIds) {
+    const node = ctx.repo.getNode(id)
+    if (!node) continue
+    const newContent = setPriorityInContent(node.content ?? "", next)
+    if (newContent !== node.content) {
+      ctx.repo.updateNode(id, { content: newContent, title: newContent })
+    }
+  }
   const label = next ?? "None"
-  ctx.toastQueue.info(`Priority: ${label} (write disabled — edit H1 #P[0-4] hashtag directly)`)
+  ctx.toastQueue.info(`Priority: ${label}`)
   ctx.setSelection(nodeSelect(ctx.cursor as string))
   return ok()
 }
