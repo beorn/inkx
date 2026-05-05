@@ -11,9 +11,9 @@ The change log lives in the `events` table inside `.km/state.db` and is km's aud
 1. Applied to the SQLite database (primary operation)
 2. Inserted into the `events` table inside the same SAVEPOINT (journal for recovery and replication; cannot drift from the snapshot)
 3. Broadcast via `ChangeHub` (real-time subscriptions, e.g., TUI, web clients)
-4. Projected to the filesystem (if `origin` is not "fs", to avoid echo loops)
+4. Projected to the filesystem (only when emitted via `emitter.apply()` — `emitter.commit()` skips this step to break echo loops)
 
-Changes are **immutable**, **globally sortable** (by ULID), and carry provenance information (`origin`, `actor`) for conflict resolution and replay.
+Changes are **immutable**, **globally sortable** (by ULID), and carry provenance information (`actor`, `source`) for conflict resolution and replay.
 
 ## Change type
 
@@ -47,9 +47,17 @@ export interface Change {
   target?: string                                   // What it affects (node ID, task ID, session ID, etc.)
   data: Record<string, unknown>                     // Type-specific payload
   ts: number                                        // Unix milliseconds
-  origin?: "tui" | "fs" | "replay" | "system"      // Source of the change
+  origin?: "tui" | "fs" | "replay" | "system"      // Legacy provenance hint, retained for replay of pre-v12 events; has no live consumers — routing is driven by `actor` + the `commit()` vs `apply()` split
 }
 ```
+
+> **Note on provenance routing.** Pre-v12 the `Change.origin` field controlled whether the FS-projection subscriber fired. That role has migrated to two cleaner mechanisms:
+>
+> - **`actor`** — denormalized into its own `events` column for indexed queries and conflict resolution.
+> - **`source`** (an `EmitOptions` field, denormalized to `events.source`) — defensive marker for FS-import replay (e.g., `"fs-import"`).
+> - **`commit()` vs `apply()`** — `commit()` structurally bypasses `onApply` callbacks (FS projection), so replayed FS-origin changes can never echo-loop back to disk. `apply()` fires the full pipeline.
+>
+> `origin` is preserved on the type so historical event payloads round-trip without information loss; new code should not read or write it.
 
 ### Node lifecycle changes
 
@@ -152,19 +160,23 @@ The new parent and sort order. `parent_id: null` means the node is now a root.
 
 See [types.ts:421–450](packages/km-core/src/types.ts) for precise shapes. These record the full lifecycle of an agent or interactive session.
 
-## The origin field
+## Provenance: actor, source, and the commit/apply split
 
-The `origin` field (optional, defaults to undefined) indicates where the change came from:
+Three signals carry "who/what produced this change" and how subscribers should react:
 
-| Origin | Meaning | Projection |
-|--------|---------|-----------|
-| `"tui"` | User action in the TUI (keyboard, menu, etc.). | Project to FS (write files). |
-| `"fs"` | Change detected by filesystem watcher. | Do NOT project to FS (would echo). Call `emitter.commit()` instead of `emitter.apply()`. |
-| `"replay"` | Change from replaying a recorded session or journal. | Do NOT project to FS (already happened). |
-| `"system"` | Internal system change (e.g., auto-cleanup, scheduled task). | Project to FS if it's a user-visible mutation; skip if internal-only. |
-| `undefined` | Origin unknown (legacy or external source). | Default behavior: project to FS. |
+- **`actor`** (required, on the `Change`): identity. `"user"`, `"fs-watch"`, `"system"`, an agent id, etc. Indexed on the events table for filtered audit queries.
+- **`source`** (optional, on `EmitOptions` and the `events.source` column): replay marker. Set to `"fs-import"` by the loader when replaying events whose effects are already on disk; subscribers can use it to skip work.
+- **`emitter.commit()` vs `emitter.apply()`**: structural routing. `commit()` writes to the DB + events row + broadcast but does NOT fire `onApply` subscribers (the fs-writer is registered via `onApply`). `apply()` fires everything. The fs-watch path uses `commit()` so a watcher-detected change cannot echo-loop back to disk.
 
-**Projection contract**: When a change has `origin: "fs"`, the system uses `emitter.commit()` to apply it without firing `onApply()` callbacks. This prevents filesystem loops where a file watcher change is written back to disk.
+| Scenario | actor | source | Method | Why |
+|---|---|---|---|---|
+| User edit in TUI | `"user"` | (none) | `apply()` | Full pipeline including FS projection |
+| File watcher detected change | `"fs-watch"` | (none) | `commit()` | Skip onApply — would re-write the file we just read |
+| Cold-load replay from events table | (preserved from event) | `"fs-import"` | `commit()` + `skipPersist: true` | Don't re-insert events row; don't re-project to FS |
+| Agent tool call | `"agent-<name>"` | (varies) | `apply()` | Agent edits should land in files |
+| System cleanup | `"system"` | (none) | `apply()` or `commit()` depending on whether it should propagate to FS |
+
+The legacy `Change.origin` field was retired in favor of this split. It still exists on the type for round-tripping pre-v12 payloads, but no live code reads or writes it.
 
 ## Emission patterns
 
@@ -173,13 +185,12 @@ The `origin` field (optional, defaults to undefined) indicates where the change 
 ```typescript
 // User indents a node via keyboard
 // board-actions.ts calls repo.moveNode(nodeId, newParentId, newSortOrder)
-// which emits:
+// which routes through emitter.apply():
 {
   type: "node_moved",
   actor: "user",              // username or "system"
   target: "abc123",           // the node ID
   data: { parent_id: "xyz", parent_idx: 3 },
-  origin: "tui"
 }
 ```
 
@@ -187,27 +198,25 @@ The `origin` field (optional, defaults to undefined) indicates where the change 
 
 ```typescript
 // Watcher detects .md file changed on disk
-// loader.ts parses file and emits:
+// change-handlers.ts calls emitter.commit() to skip the FS-projection
+// callback (which would re-write the file we just read):
 {
   type: "node_created",
   actor: "fs-watch",
   target: "abc123",
   data: NodeCreatedData,
-  origin: "fs"
 }
 ```
 
 ### From agent execution
 
 ```typescript
-// Agent tool call completes
-// agent framework emits:
+// Agent tool call completes; emitter.apply() so files are written
 {
   type: "session_tool_call",
   actor: "agent-name",
   target: "session-id",
   data: { session_id: "...", tool: "api_call", args: {...}, result: {...} },
-  origin: "system"
 }
 ```
 

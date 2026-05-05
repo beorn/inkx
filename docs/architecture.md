@@ -276,6 +276,39 @@ computed visibleLens rebuilds -> useSignal re-renders
   | cursor validation: if sel.node.cursor was deleted, fall back to parent/sibling
 ```
 
+## Storage: Events Table + Projection
+
+Disk-mode km stores everything inside one SQLite file (`.km/state.db`) using the **events-table-plus-projection** pattern (since SCHEMA_VERSION 12; see [@km/storage/events-table-replaces-jsonl](../@km/storage/events-table-replaces-jsonl.md)). Two related tables:
+
+- **`nodes`** — the projection. Current state. Drives every read.
+- **`events`** — the journal. Append-only `(seq, id, hlc, ts, type, actor, source, target, data)`.
+
+**Atomic write contract.** Every `emitter.commit()` wraps the `nodes` mutation and the `events` row in one `SAVEPOINT`:
+
+```
+emitter.commit(change)
+  SAVEPOINT __emit_change__
+    applyChangeWithDb(db, change)        -- nodes UPDATE/INSERT
+    INSERT INTO events (...) VALUES ...  -- journal row
+  RELEASE __emit_change__                -- both commit, or both roll back
+```
+
+Projection and journal cannot drift, by construction. This is the structural invariant the SCHEMA_VERSION 12 redesign was built around — pre-v12 a separate `changes.jsonl` file could fall out of sync with `state.db`, producing the bug class that motivated the move.
+
+**Cold-load replay.** `loadRepo` in disk mode reads pending events past `meta.last_event_seq`, applies them through `emitter.commit({skipPersist: true})` so the same DB write happens without re-inserting the events row, then advances the cursor. Replay is idempotent (`INSERT OR IGNORE` on conflict). For a freshly-migrated vault where `last_event_seq` is unset but `nodes` is populated, the loader self-heals — stamps the cursor at `MAX(seq)` and skips replay entirely. This is the "post-migration" branch in `discoverFromEvents`.
+
+**Tiered retention.** `km doctor gc` runs `retainEvents()`:
+
+- **0–30 days** (`fullRetentionDays`): keep every event verbatim — full recent audit + undo.
+- **30–90 days** (`byKeyRetentionDays`): keep only the latest `seq` per `(target, type)`. Collapses redundant `node_updated` rows down to one per node+kind. Audit retains "who/when last touched" but drops intermediate noise.
+- **90+ days**: drop everything except `node_created`, which is kept forever (cheap, ~1 MB on the user's vault, enables "when did I first write this note").
+
+After deletion, `PRAGMA incremental_vacuum` reclaims pages. Full defragmentation runs through `km doctor backup`, which uses `VACUUM INTO` — the only WAL-safe way to copy `state.db` while it's in use. Backups double as cold-load restore points.
+
+**CRDT-readiness.** The `hlc` (Hybrid Logical Clock) and `peer_id` columns are reserved for the multi-device CRDT path. They're nullable today and populated when sync arrives. Indexed via `idx_events_hlc_seq` for the wire-protocol query `SELECT * FROM events WHERE hlc > peer.last_seen`.
+
+For the full design rationale and /pro 4-leg consensus that drove it, see [docs/design/model/storage.md](design/model/storage.md) and [@km/storage/events-table-replaces-jsonl](../@km/storage/events-table-replaces-jsonl.md).
+
 ## Visual Roles
 
 A node's visual role is determined by its **depth from the zoom root** — not by its type:
@@ -333,6 +366,8 @@ Operations and effects are serializable data. The reducer is pure. Cross-cutting
 - [principles.md](principles.md) — Philosophy: composability, code for humans, governance
 - [packages.md](ref/packages.md) — Full package inventory (versions, npm scopes, CLI commands)
 - [design/model/knode.md](design/model/knode.md) — KNode tree, items vs blocks, board hierarchy
+- [design/model/storage.md](design/model/storage.md) — Storage modes, events table, retention, CRDT-readiness
+- [ref/changes.md](ref/changes.md) — Change types, actor routing, replay
 - [design/tea.md](design/tea.md) — TEA vision and phase plan
 - [Silvery architecture](../vendor/silvery/docs/architecture.md) — TUI framework internals
 - [The Silvery Way](../vendor/silvery/docs/guide/the-silvery-way.md) — Component principles

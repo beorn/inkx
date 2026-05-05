@@ -162,14 +162,14 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **effect** — A serializable data value returned alongside new state from `.apply()`. Effects are instructions for the runtime (e.g., `kill_ring_push`, `dispatch`, `persist`). The machine never executes effects itself — purity is preserved.
 
-**emitter** — The component that handles the commit/save lifecycle: apply to DB, persist to journal, broadcast, then FS sync. Three methods: `apply()` (commit + save), `commit()` (no FS), `save()` (FS only).
+**emitter** — The component that handles the commit lifecycle: apply to DB, write the events row, broadcast, then FS sync. Two methods: `apply()` (full pipeline including `onApply` callbacks like fs-projection) and `commit()` (DB + events row + broadcast, no `onApply` — used for FS-origin replay to prevent echo loops). The DB write and the events row land atomically inside one `SAVEPOINT`.
 
 **embed** — A KNode whose sole purpose is transclusion — empty content plus exactly one KLink with `rel: 'embed'`. The term is used everywhere: in markdown (`![[Note]]`), in storage (`rel='embed'`), in the AST, and in TUI user-facing strings. `KNode.embed_of` is runtime-materialized at load time from `SELECT host_id, href FROM links WHERE rel='embed'`, then resolved via the name index — the column still exists for hot-path access, but the `links` table is the source of truth. See [docs/design/model/klink.md](design/model/klink.md) for the full link model.
 
 **ESM** — ECMAScript Modules. km and all vendor packages use ESM exclusively — no CommonJS. Vendor packages publish raw TypeScript source.
 
 **event** — Two meanings:
-- *storage*: a canonical state mutation record persisted to the journal. Types: `node_created`, `node_updated`, `node_moved`, `node_deleted`, etc. Events carry an `origin` (`"tui"`, `"fs"`, `"replay"`, `"system"`). The final stage of the command path: command -> transform -> operation -> event.
+- *storage*: a canonical state mutation record stored as a row in the `events` table inside `state.db`. Types: `node_created`, `node_updated`, `node_moved`, `node_deleted`, etc. Each row carries an `actor` (e.g. `"user"`, `"fs-watch"`, `"system"`, agent id) and an optional `source` (e.g. `"fs-import"`) that determines how downstream subscribers route the change. The final stage of the command path: command -> transform -> operation -> event.
 - *input*: a DOM-style occurrence (key press, mouse click, resize) delivered by the terminal. These are raw signals, not to be confused with storage events.
 
 **event sourcing** — State changes stored as an append-only log rather than overwriting state. km uses event-sourcing-lite: events appended to the `events` table inside `.km/state.db` (atomic with the state mutation); the `nodes` projection is a rebuildable cache.
@@ -213,6 +213,8 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 ### H
 
 **heartbeat** — Periodic anti-entropy reconciliation in the sync system. Runs when idle, reconciles all directories to catch dropped watcher events, re-projects dirty paths.
+
+**HLC** — Hybrid Logical Clock. Timestamp scheme that combines wall-clock time with a logical counter so events from different machines order both by *when* they happened and by *causality*. Stored in `events.hlc TEXT` (nullable today, populated when CRDT sync arrives). Causally consistent (`A → B ⇒ HLC(A) < HLC(B)`), bounded by max clock drift, lex-sortable, ~16 bytes per timestamp. Reference: Kulkarni et al., "Logical Physical Clocks" (2014). See [design/model/storage.md](design/model/storage.md).
 
 **host_id** — In the `links` cache table, the node ID that hosts a link occurrence (the KNode whose content the link lives in). Named to read correctly for both `link` (host mentions target) and `embed` (host transcludes target) semantics. See [docs/design/model/klink.md](design/model/klink.md).
 

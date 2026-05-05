@@ -627,6 +627,26 @@ interface LoadOptions {
 | **resolve**     | Resolve wikilinks             | (skipped - resolved during apply) |
 | **materialize** | Evaluate km.add:: rules        | Evaluate km.add:: rules            |
 
+### Disk-mode replay cursor & self-heal
+
+Disk-mode discovery (`discoverFromEvents`) reads rows past `meta.last_event_seq`, applies them via `emitter.commit({skipPersist: true})` so the same DB write happens without re-inserting the events row, then advances the cursor. Replay is idempotent: `INSERT OR IGNORE` on `node_created` collisions, and `applyChangeWithDb` is no-op-on-conflict for updates.
+
+When `meta.last_event_seq` is **absent entirely** (not just zero) AND the `nodes` projection is already populated, the loader self-heals — stamps the cursor at `MAX(seq)` and skips replay. This handles the post-migration scenario: events bulk-imported by a one-shot migration script have already been reflected in `nodes` by prior emitter writes; replaying them is millions of `INSERT OR IGNORE` no-ops. Triggered automatically on first cold load after migration; subsequent runs proceed via the normal cursor path.
+
+### Tiered retention compaction
+
+`km doctor gc` runs `retainEvents()` with three tiers (defaults configurable via `--retention-days` and `--bykey-days`):
+
+| Window | Policy |
+|---|---|
+| 0 to `fullRetentionDays` (default 30 days) | Keep every event verbatim — full audit + undo |
+| `fullRetentionDays` to `byKeyRetentionDays` (default 90 days) | Keep only latest `seq` per `(target, type)` — by-key compaction |
+| `byKeyRetentionDays`+ | Drop everything except `node_created` (kept forever) |
+
+`node_created` retention is permanent because it's cheap (~5K nodes × ~200 B = ~1 MB on the user's vault) and enables the "when did I first write this note?" query that PKM users rely on.
+
+After deletion, `PRAGMA incremental_vacuum` reclaims free pages. For full defragmentation, `km doctor backup` writes a fresh standalone DB via `VACUUM INTO` — the only WAL-safe way to copy `state.db` while it's potentially being written to by another process. Backups also serve as cold-load restore points.
+
 ### Return Value
 
 ```typescript
