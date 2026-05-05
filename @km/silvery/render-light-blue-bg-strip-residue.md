@@ -1,0 +1,100 @@
+---
+aliases:
+  - km-silvery.render-light-blue-bg-strip-residue
+  - km-silvery-render-light-blue-bg-strip-residue
+created_at: 2026-05-05T20:48:14.796Z
+---
+
+# render: light-blue/cyan background strips appear in cards #bug #P1
+
+User reports random pale-cyan ~1-row-tall horizontal strips appearing inside cards across the kanban board in km view. Pipeline territory — strongly suspect outline incremental clear, postState carrier survives Ag recycle, or ExcessClearGate. Screenshot at ~/Desktop/Screenshot 2026-05-05 at 13.44.35.png. Repro: DEBUG=silvery:render DEBUG_LOG=/tmp/silvery-bug.log SILVERY_INSTRUMENT=1 SILVERY_STRICT=1 bun km view ~/Bear/Vault
+
+## Investigation 2026-05-05 (silvery agent)
+
+**Status: cannot reproduce. Kept P1.**
+
+### Likely color source
+
+`$border-focus = scheme.accentBg` in Sterling. In Nord (the user's likely theme) accent is teal/cyan. km-tui only paints `$border-focus` on the editing card's outline (`apps/km-tui/src/views/shared-components.tsx:104`). `$bg-cursor` and `$bg-selected` are also cyan-ish in Nord but only land on popover `NodeLine` (`shared-components.tsx:536`) and the cursor card head row.
+
+### Reproduction attempts (all failed to trip STRICT)
+
+1. Synthetic STRICT test: `vendor/silvery/tests/features/outline-in-flex-row.test.tsx` — 3 tests, kanban-shaped 30-card layout, cursor + edit-toggle + view-mode cycles, including adjacent-card outline-corner overlap. PASSES under `SILVERY_STRICT=1`.
+2. Real-vault test: `apps/km-tui/tests/render-light-blue-strip-residue.slow.spec.ts` — `testBoard(/Users/beorn/Bear/Vault)` + ~80 presses (cursor walk × 12, edit toggle × 5, fold/unfold, view-mode cycle, edit-after-view-change). PASSES under `SILVERY_STRICT=1`, `=2`, and `SILVERY_STRICT_TERMINAL=vt100`.
+3. Live binary: `SILVERY_STRICT=2 SILVERY_STRICT_TERMINAL=vt100 timeout 8 bun km view ~/Bear/Vault`. Empty STRICT log, exit 0, no divergence.
+4. Initial frame buffer dump (`DEBUG=silvery:render`) — only 4 distinct background RGB values, all dark blue-grey (`46,52,64`, `52,58,70`, `56,60,69`, `67,76,94`). NO cyan in the static first frame.
+
+### Suspect zones inspected (all clean against the symptom)
+
+- `3adc242b` postState carrier survives per-frame Ag recycle: tests cover parent-edge geometry, 20 toggle cycles, sibling outline migration. `clearPreviousOutlines` → content render → `renderDecorationPass` order is snapshot-then-overwrite.
+- `78c63075` outlineSnapshots hoisted off `TerminalBuffer` onto `RenderPostState`: plumbing refactor only.
+- `c7cf9390` `ExcessClearGate`: structural invariant — typed witness, miscalls unrepresentable.
+- `5c3a266c` `clearNodeRegion` / `clearExcessArea` decoupling: single-coordinator pattern in `executeRegionClearing`. Both gates fire independently.
+- `decoration-phase.ts` walk: scroll-container visibility filter excludes off-screen children, but kanban columns don't use `overflow=scroll` (they use `+N more` truncation), so this gate doesn't apply to the screenshot scenario.
+
+### Artefacts kept
+
+- `vendor/silvery/tests/features/outline-in-flex-row.test.tsx` — 3 STRICT regression tests for kanban-shape outline interactions (closes a coverage gap: existing outline tests use simple Box columns, not kanban-shape flex rows).
+- `apps/km-tui/tests/helpers/real-board.ts` — `testBoard` now wraps with `ServicesProvider` so interactive `press()`-based real-vault tests run (was crashing with "useServices: not inside ServicesProvider"; also unlocks the asana-vault tests beyond their `.skip`).
+- `apps/km-tui/tests/render-light-blue-strip-residue.slow.spec.ts` — long-action real-vault test (`skipIf` no `/Users/beorn/Bear/Vault`). Future regression net.
+
+No silvery-side code changes. Nothing was branched or pushed.
+
+### What's needed to make progress
+
+1. A fresh screenshot of the same bug, ideally captured during/after a specific action sequence the user can describe.
+2. Buffer dump of the bad frame: `DEBUG=silvery:* DEBUG_LOG=/tmp/silvery.log bun km view ~/Bear/Vault`, reproduce, then `tail /tmp/silvery.log`.
+3. If the strips are mouse-hover-related: wikilink hover paints `#404050` via `apps/km-tui/src/text/link-interaction.ts:127` — check whether the strips align with wikilink positions.
+4. Worth adding a `SILVERY_STRICT_TERMINAL=ghostty` profile to catch ghostty-specific OSC / wide-cell artefacts that the vt100 backend misses.
+
+## Investigation 2026-05-05 round 2 (silvery agent, after fresh 352×117 screenshot)
+
+**Status: still cannot reproduce. Test harness blocker discovered.**
+
+User confirmed bug reproduces at terminal size 352 × 117 (13 columns visible). Updated `render-light-blue-strip-residue.slow.spec.ts` to drive the real vault at exactly that geometry and added a per-frame strip detector that scans `app.cell(col, row).bg` for blue-grey runs (Nord `selectionBackground = #4C566A` ≈ rgb(76,86,106) and broader cyan envelope).
+
+**Test harness blocker.** While confirming the detector worked end-to-end, dumped the bg-color histogram of a fully-driven testBoard render:
+
+```
+Frame size: 352x117, total cells = 41184
+Cells with non-null bg: 352   ← all on row 0 (title bar only)
+Top bg colors: 197,203,215: 352
+fg histogram total: ~100 cells
+```
+
+The headless test renderer collapses the entire board to ~1 row of content. `vendor/silvery/CLAUDE.md` warns: "Pin root width/height when testing full-app layouts — `createRenderer({cols, rows})` does NOT set `root.style.width/height`." `apps/km-tui/tests/helpers/real-board.ts` renders `<Board />` directly without a `<Box width={cols} height={rows}>` wrapper. Production uses `<Screen>` which pins both.
+
+Consequence: the existing real-vault STRICT test passes because virtually nothing is being rendered. The pipeline cascade paths exercised in production at full size (13 columns × 117 rows of content with deep flex nesting) are never touched by the test. STRICT, the strip detector, and any other invariant — all green by default.
+
+**Tried at 352×117** with both WIP `layout-phase.ts` (Math.round on scrollOffset) applied AND `SILVERY_STRICT=2 SILVERY_STRICT_TERMINAL=vt100`: zero hits. Same reason — empty frame.
+
+### Next concrete step (P1 unblocker)
+
+Fix `apps/km-tui/tests/helpers/real-board.ts` so `testBoard()` actually renders full-app content. Tried wrapping `<Board />` in `<Box width={columns} height={rows} flexDirection="column">` — frame still degenerate (only the title bar paints). The fix is deeper than a width/height pin: probably need a real `<Screen>` (or equivalent term-aware wrapper) at the root, plus whatever signals/context Board reads to know its viewport. Until this is fixed, every `.slow.spec.ts` using `testBoard` is silently no-op'ing — STRICT, the strip detector, and any other invariant check are vacuous.
+
+This finding is independent of the cyan-strip bug. File a separate bead under `@km/all/test-system` for the harness defect.
+
+### Artefacts kept (round 2)
+
+- `apps/km-tui/tests/render-light-blue-strip-residue.slow.spec.ts` — updated to 352×117, added strip-bg detector via `app.cell()`. Passes today (false negative due to harness blocker above), but will catch the bug once the harness is fixed.
+
+## Investigation 2026-05-05 round 3 (silvery agent, after harness fix)
+
+**Status: cyan-strip residue not reproduced. Wide-char STRICT divergence found instead.**
+
+After fixing @km/all/test-system/test-board-empty-frame (testBoard now renders a real 352×117 frame), reran the strip detector. Findings:
+
+1. The strip detector has been refined to:
+   - Group strip-color runs into vertically-contiguous **rectangles** (not individual rows). The cursor card's full body is a tall (>= 3 rows) rectangle and gets filtered out as legitimate.
+   - Exempt rows that contain the current cursor (the cursor sub-item paints a 1-row-tall stripe of `$bg-selected`, also legitimate).
+   - Only flag short (1-2 row) bg-selected rectangles in non-cursor areas — the actual residue signature.
+
+2. With these refinements, **zero residue strips reproduce** through ~280 presses (cursor walks, edit toggles, fold/unfold, view-mode cycles, post-view-mode edit toggles, scrub passes). The cyan-strip the user saw in the screenshot may be a different visual artefact than what the detector targets, or the specific action sequence to reproduce remains elusive.
+
+3. **Wide-character STRICT regression discovered.** The new harness exposed a real STRICT_OUTPUT divergence: regional-indicator flag emoji (e.g. `🇺🇸`) replacing narrow text in the same row leaves stale chars at the continuation cell. silvery's render walk produces correct buffer state (wide=true at col N, cont=true at col N+1) but the vt100 emulator used by STRICT counts the emoji as 1 column, so the prior frame's narrow char survives at col N+1. Filed as @km/silvery/strict-output-flag-emoji-width-divergence (P2).
+
+   The user's screenshot may have actually been showing this wide-char displacement bug rather than a separate "cyan strip residue" — `🇺🇸bun` and `🇺🇸 US` overlapping with adjacent text could read visually as a horizontal stripe. Worth verifying with a fresh screenshot once the wide-char bug is fixed.
+
+### Next concrete step
+
+If the user reports the strip again: ask whether it correlates with rows containing flag emoji or other wide graphemes. If yes, the user-visible bug is the wide-char STRICT divergence (already filed). If no, we need a different reproduction.
