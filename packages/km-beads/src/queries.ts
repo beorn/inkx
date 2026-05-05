@@ -6,7 +6,7 @@
 
 import type { Repo } from "@km/storage"
 import { type KNode, fsPathOf, getNodePriority } from "@km/core"
-import type { Bead, BeadFilter } from "./types.ts"
+import { type Bead, type BeadFilter, type BeadTypeKeyword, BEAD_TYPE_KEYWORD_SET } from "./types.ts"
 import { resolveShortId } from "./short-ids.ts"
 
 /** Options for beads query functions */
@@ -228,6 +228,160 @@ export function formatBeadId(bead: Bead): string {
   return bead.shortId ?? bead.id
 }
 
+// =============================================================================
+// nodeToBead — pure resolvers, each independently testable
+// =============================================================================
+//
+// `nodeToBead` decomposes into five named resolvers (extracted at L4 — see
+// `@km/beads/queries-decompose-node-to-bead`). Each resolver is a pure
+// function from `KNode` (and optionally `Repo`) to a single field on the
+// resulting `Bead`. The orchestrating `nodeToBead` is then ~25 lines of
+// straight-line wiring.
+
+/**
+ * Shape of a `data.props` entry — the materialized form of an inline
+ * `key:: target` Logseq-style property. `kind: "link"` carries a single
+ * target; `kind: "list"` carries an ordered list of targets. Other shapes
+ * (text, number) carry `value`.
+ *
+ * Narrowly typed locally — the canonical schema lives in
+ * `@km/storage`'s data-blob types.
+ */
+interface PropEntry {
+  type: string
+  target?: string
+  value?: unknown
+  values?: Array<{ target: string }>
+}
+
+/** Read the typed `data.props` map off a node, or undefined when absent. */
+function readProps(node: KNode): Record<string, PropEntry> | undefined {
+  const data = node.data as Record<string, unknown> | undefined
+  return data?.props as Record<string, PropEntry> | undefined
+}
+
+/**
+ * `blocked-by` extraction — surfaces the inline `blocked-by:: [[id]]` /
+ * `blocked-by:: [[a]], [[b]]` props as a flat string[].
+ *
+ * Returns `undefined` (not `[]`) when no blockers are declared, so the
+ * field round-trips through JSON without a phantom empty array. The
+ * dependency count derives from this — a missing prop is "no blockers
+ * known", which is structurally different from "empty list of blockers".
+ */
+function resolveBlockedBy(node: KNode): string[] | undefined {
+  const props = readProps(node)
+  const entry = props?.["blocked-by"]
+  if (!entry) return undefined
+  if (entry.type === "link" && entry.target) {
+    return [entry.target]
+  }
+  if (entry.type === "list" && entry.values) {
+    return entry.values.map((v) => v.target)
+  }
+  return undefined
+}
+
+/**
+ * Status resolution — the on-disk `task.status` is authoritative; the
+ * `blocked-by` fallback only fires when the markdown checkbox is the
+ * default `[ ]` (status `"todo"` / unset). A user marking a task `wip`
+ * with open blockers stays `wip` — explicit user intent wins over
+ * derived state.
+ *
+ * Mirrors the bd CLI's status taxonomy: `todo | wip | blocked | done |
+ * dropped`. Anything else (incl. unset) defaults to `todo`, then the
+ * blocker fallback may override to `blocked`.
+ */
+function resolveStatus(node: KNode, blockedBy: string[] | undefined): Bead["status"] {
+  switch (node.item?.task?.status) {
+    case "done":
+      return "done"
+    case "wip":
+      return "wip"
+    case "blocked":
+      return "blocked"
+    case "dropped":
+      return "dropped"
+    default:
+      return blockedBy && blockedBy.length > 0 ? "blocked" : "todo"
+  }
+}
+
+/**
+ * Type-tag resolution — scans the node's hashtag link rows (parser emits
+ * H1 / list-item title hashtags into `links` as `km:%23<tag>` per
+ * `@km/all/dissolve-data-tags-to-links`) for the first canonical bead
+ * type keyword and returns it lowercased.
+ *
+ * The keyword whitelist is `BEAD_TYPE_KEYWORDS` (canonical list shared
+ * with `tasks set <id> type:<value>` — see `types.ts`). User labels
+ * (`#urgent`, `#frontend`, etc.) also land as link rows but are ignored
+ * here because they're not in the keyword set.
+ *
+ * Returns `undefined` when:
+ *   - no `repo` is supplied (no link rows to scan), OR
+ *   - the node has no recognized type tag.
+ *
+ * Order: first match wins. Tags after the first canonical keyword are
+ * ignored — beads carry exactly one type by convention.
+ */
+function resolveType(node: KNode, repo: Repo | undefined): BeadTypeKeyword | undefined {
+  if (!repo) return undefined
+  const tags = extractTagsFromLinks(node, repo)
+  for (const tag of tags) {
+    const lowered = tag.toLowerCase()
+    if (BEAD_TYPE_KEYWORD_SET.has(lowered)) {
+      return lowered as BeadTypeKeyword
+    }
+  }
+  return undefined
+}
+
+/**
+ * Short-id resolution — the canonical sigil-prefixed path-form id, or
+ * `undefined` when the node isn't a real bead.
+ *
+ * Resolution chain (priority order, first hit wins):
+ *
+ *   1. `data.id`       — legacy path-form fossil (rows pre
+ *                        `@km/beads/data-id-stop-writing`). Canonical
+ *                        sigil-prefixed form, e.g. `@km/scope/slug`.
+ *
+ *   2. `data.short_id` — legacy bd-form, e.g. `km-a1b2`. Maintained for
+ *                        round-trip compatibility with imported beads.
+ *
+ *   3. fs-path-derived — canonical post-`data-id-stop-writing` shape: the
+ *                        file's location IS the id. Gated on
+ *                        `fstype === "mdfile"` so only real markdown
+ *                        files qualify — paragraphs, sub-checkboxes, and
+ *                        folder nodes (which may carry synthetic `fs_path`
+ *                        in tests or as ancestor folders) keep
+ *                        `shortId === undefined`.
+ *
+ *   4. undefined       — not a real bead (paragraph / non-bead via bypass
+ *                        paths like `bd children`, `bd query`, paragraph-
+ *                        pointing `resolveTaskNode`, or `getDependencies`).
+ *
+ * Without #3, file-materialized beads (the new canonical shape) had no
+ * shortId and every subcommand using `resolveIssue` (close, update, drop,
+ * claim, comment, mention) failed with "Bead not found" —
+ * see `@km/beads/path-form-id-frontmatter-missing`.
+ *
+ * Pinned by `bead-invariants.property.test.ts` (invariant 2: query
+ * results never have ULID-fallback shortIds) and
+ * `nodeToBead.short-id.test.ts` (no ULID-tail synthesis).
+ */
+function resolveBeadShortId(node: KNode): string | undefined {
+  const data = node.data as Record<string, unknown> | undefined
+  const dataId = data?.id as string | undefined
+  if (dataId) return dataId
+  const dataShort = data?.short_id as string | undefined
+  if (dataShort) return dataShort
+  if (node.fstype === "mdfile") return fsPathOf(node) ?? undefined
+  return undefined
+}
+
 /**
  * Convert a KNode to a Bead (the legacy never-null shape).
  *
@@ -236,132 +390,46 @@ export function formatBeadId(bead: Bead): string {
  * never-null shape so it can render synthesized non-beads). External
  * callers use `Bead.from` — it returns `Bead | null`, filtering out
  * nodes that aren't real beads (no `data.id` AND no `data.short_id`).
+ *
+ * Body is pure orchestration over the named resolvers above —
+ * `resolveBlockedBy`, `resolveStatus`, `resolveType`, `resolveBeadShortId`,
+ * plus structural readers (`getNodePath`, `getParentContext`,
+ * `countDependents`) and the `getNodePriority` helper from `@km/core`.
+ *
+ * Each resolver is independently unit-tested in
+ * `nodeToBead.resolvers.test.ts`. Keep this orchestrator thin — when a
+ * branch grows, push it into a new resolver, not into the body.
  */
 export function nodeToBead(node: KNode, options?: BeadsQueryOptions): Bead {
   const repo = options?.repo
-  const data = node.data as Record<string, unknown> | undefined
-  const props = data?.props as
-    | Record<
-        string,
-        {
-          type: string
-          target?: string
-          value?: unknown
-          values?: Array<{ target: string }>
-        }
-      >
-    | undefined
-
-  // Extract blocked-by from props
-  let blockedBy: string[] | undefined
-  if (props?.["blocked-by"]) {
-    const blockedByProp = props["blocked-by"]
-    if (blockedByProp.type === "link" && blockedByProp.target) {
-      blockedBy = [blockedByProp.target]
-    } else if (blockedByProp.type === "list" && blockedByProp.values) {
-      blockedBy = blockedByProp.values.map((v) => v.target)
-    }
-  }
-
-  // Determine status from task_status
-  let status: Bead["status"] = "todo"
-  switch (node.item?.task?.status) {
-    case "done":
-      status = "done"
-      break
-    case "wip":
-      status = "wip"
-      break
-    case "blocked":
-      status = "blocked"
-      break
-    case "dropped":
-      status = "dropped"
-      break
-    default:
-      status = blockedBy && blockedBy.length > 0 ? "blocked" : "todo"
-  }
-
-  // Priority resolution: H1 `#P[0-4]` hashtag is the sole source.
-  // getNodePriority() returns canonical `P0`..`P4` from data.tags
-  // (populated by kmRefsTransform from the H1 line per
-  // docs/future/beads.md). The legacy nodes.priority column was dropped
-  // at SCHEMA_VERSION=11.
-  const priority = getNodePriority(node) ?? "P2" // Default to P2 (medium)
-
-  // Extract type from hashtag link rows (parser emits H1 / list-item title
-  // hashtags into the `links` table as `(host_id, href='km:%23<tag>', rel='link')`
-  // — see @km/all/dissolve-data-tags-to-links). Bead type is bd-conventional —
-  // one of the known keywords; user labels also land as link rows but are
-  // ignored for type detection.
-  let type: string | undefined
-  const typeKeywords = ["bug", "feature", "epic", "task", "docs", "question"]
-  const nodeTags = options?.repo ? extractTagsFromLinks(node, options.repo) : []
-  for (const tag of nodeTags) {
-    if (typeKeywords.includes(tag.toLowerCase())) {
-      type = tag.toLowerCase()
-      break
-    }
-  }
-
-  // Assignee is the structural `assigned_to` column on KNode — set by
-  // `bd update <id> --claim` and persisted as a first-class field. Don't
-  // derive from data.mentions: that conflates person references with
-  // board sigils like `@issue`.
-  const assignee = node.assigned_to
-
-  // Get path and context
-  const path = getNodePath(node, repo)
-  const parentContext = getParentContext(node, repo)
-
-  // Count dependencies
-  const dependencyCount = blockedBy?.length || 0
-
-  // Short id resolution (priority order):
-  //   1. `data.id`       — legacy path-form fossil (rows pre `@km/beads/data-id-stop-writing`).
-  //   2. `data.short_id` — legacy bd-form (`km-a1b2`).
-  //   3. fs-path-derived — canonical post-`data-id-stop-writing` shape: the
-  //                        file's location IS the id. Gated on `fstype === "mdfile"`
-  //                        so only real markdown files qualify — paragraphs,
-  //                        sub-checkboxes, and folder nodes (which may carry
-  //                        synthetic `fs_path` in tests or as ancestor folders)
-  //                        keep `shortId === undefined`. This preserves the
-  //                        invariant that `Bead.from(node)` returns null for
-  //                        non-beads (pinned by `bead-invariants.property.test.ts`).
-  //   4. undefined       — not a real bead (paragraph / non-bead via bypass paths
-  //                        like `bd children`, `bd query`, paragraph-pointing
-  //                        `resolveTaskNode`, or `getDependencies`).
-  //
-  // Without #3, file-materialized beads (the new canonical shape) had no
-  // shortId and every subcommand using `resolveIssue` (close, update, drop,
-  // claim, comment, mention) failed with "Bead not found" —
-  // see @km/beads/path-form-id-frontmatter-missing.
-  const shortId =
-    (data?.id as string | undefined) ??
-    (data?.short_id as string | undefined) ??
-    (node.fstype === "mdfile" ? (fsPathOf(node) ?? undefined) : undefined)
-
-  // Count dependents (issues that are blocked by this one).
-  // Prefer pre-built map for batch queries (avoids N+1 scan).
-  const dependentCount = countDependents(shortId, repo, options?.dependentCountMap)
-
+  const blockedBy = resolveBlockedBy(node)
+  const shortId = resolveBeadShortId(node)
   return {
     id: node.id,
     shortId,
     title: node.content || node.title || "",
     description: node.content || undefined,
-    status,
-    priority,
-    type,
-    assignee,
+    status: resolveStatus(node, blockedBy),
+    priority: getNodePriority(node) ?? "P2",
+    type: resolveType(node, repo),
+    assignee: node.assigned_to,
     blockedBy,
     createdAt: node.created_at,
     updatedAt: node.updated_at,
-    path,
-    parentContext,
-    dependencyCount,
-    dependentCount,
+    path: getNodePath(node, repo),
+    parentContext: getParentContext(node, repo),
+    dependencyCount: blockedBy?.length ?? 0,
+    dependentCount: countDependents(shortId, repo, options?.dependentCountMap),
   }
+}
+
+// Re-export resolvers for unit testing — keep them internal to the module
+// otherwise (callers should reach for `nodeToBead` / `Bead.from`).
+export const __resolvers = {
+  resolveBlockedBy,
+  resolveStatus,
+  resolveType,
+  resolveBeadShortId,
 }
 
 /**
