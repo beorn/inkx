@@ -14,6 +14,10 @@
     "dist",
     "**/dist",
     "archive",
+    // Vendor submodules are intentionally typechecked by the root km
+    // typecheck. Do not add a broad "vendor" exclusion here; only exclude
+    // known generated/vendor-internal artifacts when there is a specific
+    // reason.
     "vendor/silvery/tests/compat/ink/generated",
     "hub/silvery/prototype",
     "hub/silvery/examples-wip",
