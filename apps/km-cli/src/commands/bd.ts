@@ -21,6 +21,7 @@ import {
   type UpdateBeadChanges,
 } from "@km/beads"
 import type { Repo } from "@km/storage"
+import { setPriorityInContent } from "@km/core"
 import { resolvePathArg } from "@km/fs-mount"
 import { loadKmBdConfig } from "./bd-load-config.ts"
 import { loadRepo } from "../load-repo.ts"
@@ -690,11 +691,23 @@ const updateCmd = bdCommand
     if (opts.title) changes.title = opts.title
     if (opts.type) changes.type = opts.type
 
-    // TODO @km/all/path-name-id-redesign: --priority no longer writes a
-    // column; honoring it requires rewriting the H1 hashtag in markdown.
-    // Until that path lands, --priority is accepted but inert.
-
     const updates = Bead.update(repo, issue, changes)
+
+    // Honor --priority by rewriting the `#P[0-4]` hashtag in the bead's
+    // content (the H1 line, post-merge in file nodes). The legacy
+    // `nodes.priority` column was dropped at SCHEMA_VERSION=11; the H1
+    // hashtag is now the source of truth (per docs/future/beads.md).
+    if (opts.priority !== undefined) {
+      const node = repo.getNode(issue.id)
+      const currentContent = updates.content ?? node?.content ?? ""
+      const newPriority = opts.priority ? `P${opts.priority.replace(/^P/i, "")}` : undefined
+      const newContent = setPriorityInContent(currentContent, newPriority)
+      if (newContent !== currentContent) {
+        updates.content = newContent
+        updates.title = newContent
+      }
+    }
+
     repo.updateNode(issue.id, updates)
 
     // Handle --parent: move under the resolved new parent at end-of-list.

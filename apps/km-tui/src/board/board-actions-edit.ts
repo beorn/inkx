@@ -22,7 +22,14 @@
  * - Cards modified in place → keep selection (status toggle)
  */
 
-import { getMarkerForStatus, extractTaskDates, Position, type KNode, type TaskStatus } from "@km/core"
+import {
+  getMarkerForStatus,
+  extractTaskDates,
+  Position,
+  setPriorityInContent,
+  type KNode,
+  type TaskStatus,
+} from "@km/core"
 import type { ID } from "@silvery/selection"
 import { type OpResult, boundary, ok } from "@km/commands"
 import { getNextOccurrence } from "@km/storage"
@@ -617,19 +624,28 @@ export function handleClearTask(ctx: OpCtx): void {
   const count = forEachSelected(ctx, "Clear task", (c) => {
     const targetId = c.embed_of || c.id
     const targetNode = ctx.repo.getNode(targetId)
+    // Strip the `#P[0-4]` hashtag from the bead's content so "clear task"
+    // also clears priority. The legacy `nodes.priority` column was dropped
+    // at SCHEMA_VERSION=11 and the H1 hashtag is the canonical surface
+    // (per docs/future/beads.md).
+    const currentContent = targetNode?.content ?? ""
+    const newContent = setPriorityInContent(currentContent, undefined)
+    const updates: Partial<KNode> = {
+      item: { ...targetNode?.item, task: undefined },
+      due_at: undefined,
+      start_at: undefined,
+      assigned_to: undefined,
+      rrule: undefined,
+      completed_at: undefined,
+    }
+    if (newContent !== currentContent) {
+      updates.content = newContent
+      updates.title = newContent
+    }
     runRepoEffect(ctx, {
       type: "REPO_UPDATE_NODE",
       nodeId: targetId,
-      updates: {
-        item: { ...targetNode?.item, task: undefined },
-        due_at: undefined,
-        start_at: undefined,
-        // priority: dissolved column — clearing must edit H1 hashtag
-        // (TODO: rework via markdown edit in @km/all/path-name-id-redesign)
-        assigned_to: undefined,
-        rrule: undefined,
-        completed_at: undefined,
-      },
+      updates,
     })
   })
 

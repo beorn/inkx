@@ -1,15 +1,13 @@
 /**
- * Property-based fuzz test for the queryReady root-membership predicate.
+ * Property-based fuzz test for the queryReady bead-membership predicate.
  *
- * Predicate-A added the `boardRoots` filter to queryReady so that a vault
- * crawl returns only issues whose `fs_path` lives under one of the
- * configured beads roots (resolveBeadsRoots(config, cliOverride)).
- *
- * Hand-written tests cover specific shapes; this fuzz harness covers the
- * full predicate contract: for any random tree of mixed task / non-task
- * nodes scattered across multiple roots, queryReady's output is exactly
- * the set of `status:todo` task nodes whose `fs_path` is `root` or starts
- * with `root + "/"` for some configured root.
+ * `queryReady` filters by `isBead` (queries.ts), whose default arm
+ * requires a node to be a file at **depth 2** under a configured root —
+ * the canonical `<root>/<scope>/<slug>.md` shape. The fuzz harness
+ * asserts that for any random tree of mixed task / non-task nodes
+ * scattered across multiple roots, queryReady's output is exactly the
+ * set of `status:todo` task nodes whose `fs_path` is depth-2 under a
+ * configured root.
  *
  * Trailing-slash anchoring is the bug-prone bit — `beads-archive/` must
  * NOT match `beads`. The fuzzer plants both shapes deliberately.
@@ -20,9 +18,10 @@
  *   - Only nodes with `task.status === "todo"` and no `blocked-by` props
  *     should appear in queryReady output (matches predicate semantics
  *     beyond just root-membership).
+ *   - The `+`-sigil arm of `isBead` is not exercised here — fuzz fixtures
+ *     don't set `node.name`, so depth-2 is the only relevant branch.
  *   - We do NOT exercise the dependent-count map, scopePath, or
- *     boardTag — those are orthogonal to the root-membership predicate
- *     under test.
+ *     boardTag — those are orthogonal to the predicate under test.
  */
 
 import { test, describe, expect, gen, take, type SeededRandom } from "vimonkey"
@@ -159,22 +158,33 @@ function buildFixture(rng: SeededRandom, nodeCount: number): Fixture {
 // ---------------------------------------------------------------------------
 
 /**
- * Pure reference predicate: a path lives under one of the configured
- * roots iff it equals a root or starts with `root + "/"`.
+ * Pure reference predicate: a path qualifies as a bead iff it is a file
+ * at depth 2 under one of the configured roots — the canonical
+ * `<root>/<scope>/<slug>.md` shape.
  *
- * This mirrors queries.ts:
- *   boardRoots.some((root) => p === root || p.startsWith(`${root}/`))
+ * This mirrors `isBead`'s structural-default arm in queries.ts:
+ *   depthUnderRoots(node.fs_path, roots) === 2
+ *
+ * Fuzz fixtures don't set `node.name`, so the `+`-sigil escape arm is
+ * unreachable here — depth-2 is the sole branch.
  *
  * If this oracle ever drifts from the implementation, the fuzz test
  * fails — that's the point. Don't import the predicate from the source;
  * we want the oracle to be an independent specification.
  */
-function isUnderConfiguredRoot(path: string, roots: string[]): boolean {
+function isBeadPath(path: string, roots: string[]): boolean {
+  // Pick the longest matching root (matches depthUnderRoots' tiebreak,
+  // which disambiguates overlapping roots like `["beads", "beads/@km"]`).
+  let bestMatch: string | undefined
   for (const root of roots) {
-    if (path === root) return true
-    if (path.startsWith(`${root}/`)) return true
+    if (path === root || path.startsWith(`${root}/`)) {
+      if (bestMatch === undefined || root.length > bestMatch.length) bestMatch = root
+    }
   }
-  return false
+  if (bestMatch === undefined) return false
+  if (path === bestMatch) return false
+  const subpath = path.slice(bestMatch.length + 1)
+  return subpath.split("/").length === 2
 }
 
 // ---------------------------------------------------------------------------
@@ -191,7 +201,7 @@ describe("queryReady root-membership predicate fuzz", () => {
       const { repo, roots, planted } = fixture
 
       const expectedPaths = new Set(
-        planted.filter((n) => n.isReadyTask && isUnderConfiguredRoot(n.fs_path, roots)).map((n) => n.fs_path),
+        planted.filter((n) => n.isReadyTask && isBeadPath(n.fs_path, roots)).map((n) => n.fs_path),
       )
 
       const actual = queryReady(undefined, undefined, undefined, { repo, boardRoots: roots })
@@ -207,8 +217,8 @@ describe("queryReady root-membership predicate fuzz", () => {
         expect(issue.status, `issue ${issue.id} should be todo`).toBe("todo")
         expect(issue.path, `issue ${issue.id} should have a path`).toBeDefined()
         expect(
-          isUnderConfiguredRoot(issue.path!, roots),
-          `issue path ${issue.path} not under any of ${JSON.stringify(roots)}`,
+          isBeadPath(issue.path!, roots),
+          `issue path ${issue.path} is not depth-2 under any of ${JSON.stringify(roots)}`,
         ).toBe(true)
       }
 
@@ -246,22 +256,24 @@ describe("queryReady root-membership predicate fuzz", () => {
     // and verify they're excluded when only `beads` is configured.
     const fixtures = gen(({ random }) => {
       const repo = createTestRepo()
-      // Plant some todo tasks under beads-archive — these MUST be excluded
-      // when roots=['beads'].
+      // Plant some todo tasks under beads-archive at the canonical
+      // depth-2 bead shape — these MUST be excluded when roots=['beads']
+      // because the root prefix doesn't anchor at `beads-archive/`.
       const archiveCount = random.int(1, 5)
       for (let i = 0; i < archiveCount; i++) {
         repo.addNode(null, {
           type: "p",
           item: { list: "-", task: { marker: "[ ]", status: "todo" } },
           content: `Archive ${i}`,
-          fs_path: `beads-archive/${random.pick(SEGMENTS)}.md`,
+          fs_path: `beads-archive/${random.pick(SEGMENTS)}/${random.pick(SEGMENTS)}.md`,
         })
       }
-      // And some legitimate tasks under beads.
+      // And some legitimate tasks under beads at depth-2 — the canonical
+      // `<root>/<scope>/<slug>.md` shape that `isBead` admits.
       const validCount = random.int(1, 5)
       const validPaths: string[] = []
       for (let i = 0; i < validCount; i++) {
-        const fs_path = `beads/${random.pick(SEGMENTS)}.md`
+        const fs_path = `beads/${random.pick(SEGMENTS)}/${random.pick(SEGMENTS)}.md`
         validPaths.push(fs_path)
         repo.addNode(null, {
           type: "p",

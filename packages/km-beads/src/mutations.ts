@@ -163,13 +163,13 @@ export function updateBeadFields(bead: Bead, changes: UpdateBeadChanges): Partia
     updates.item = { task: { status: changes.status, marker: getMarkerForStatus(changes.status) } }
   }
 
-  // TODO @km/all/path-name-id-redesign: priority is now read from the H1
-  // `#P[0-4]` hashtag (data.tags via kmRefsTransform). The legacy
-  // nodes.priority column was dropped at SCHEMA_VERSION=11. To honor a
-  // `bd update --priority P1` request, we must rewrite the bead's H1
-  // markdown content so the parser re-derives the tag. That rework is
-  // staged separately; for now this mutation is a no-op so the column
-  // write stays gone.
+  // Priority is rewritten in the bead's content as a `#P[0-4]` hashtag
+  // by the caller (apps/km-cli/src/commands/bd.ts handles --priority via
+  // `setPriorityInContent`). This mutation no longer carries priority on
+  // the changes record — the `nodes.priority` column was dropped at
+  // SCHEMA_VERSION=11 and the H1 hashtag is the canonical surface (per
+  // docs/future/beads.md). Normalize-and-discard preserves the input
+  // contract for future telemetry / validation.
   if (changes.priority !== undefined) {
     void normalizePriority(changes.priority)
   }
