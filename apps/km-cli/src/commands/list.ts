@@ -45,8 +45,31 @@ export const listCommand = new Command("list")
   .option("-i, --id", "Show node IDs")
   .option("-f, --flat", "Flat output with path prefixes")
   .option("--json", "Output as JSON")
+  .option("--jq <expr>", "Filter JSON output through jq (implies --json; requires `jq` in PATH)")
+  .option("--raw <dsl>", "Run a raw query DSL expression (no default scoping; alias of `km query <dsl>`)")
   // oxlint-disable-next-line complexity/complexity -- CLI action dispatch: each flag (--broken, --json, --flat, --context, --id, filter combos) adds a conditional branch; refactoring into sub-commands would change public CLI surface
   .action(async (queryOrPath, options) => {
+    // --raw: bypass default scoping. Run repo.query() directly with the
+    // provided DSL — no implicit type filter, no "hide done", no
+    // ancestor display. Equivalent to `km query <dsl>`.
+    if (options.raw) {
+      const repoRoot = getRootPath() ?? process.cwd()
+      using repo = await loadRepo(repoRoot)
+      const nodes = repo.query(options.raw)
+      if (options.jq || options.json) {
+        await emitJson(nodes, options.jq)
+        return
+      }
+      for (const node of nodes) {
+        console.log(formatNode(repo, node, options.id ?? false))
+      }
+      console.log(term.dim(`\n${nodes.length} node(s)`))
+      return
+    }
+
+    // --jq alone implies --json
+    if (options.jq && !options.json) options.json = true
+
     // Check if argument looks like a path
     let repoRoot: string
     let query: string | undefined
@@ -121,7 +144,7 @@ export const listCommand = new Command("list")
       }
 
       if (options.json) {
-        console.log(JSON.stringify(scopedLinks, null, 2))
+        await emitJson(scopedLinks, options.jq)
         return
       }
 
@@ -141,7 +164,7 @@ export const listCommand = new Command("list")
     })
 
     if (options.json) {
-      console.log(JSON.stringify(nodes, null, 2))
+      await emitJson(nodes, options.jq)
       return
     }
 
@@ -343,5 +366,48 @@ function displaySimple(repo: Repo, nodes: KNodeType[], options: { showId: boolea
     const depth = (node as KNodeType & { _depth?: number })._depth ?? 0
     const indent = "  ".repeat(depth)
     console.log(indent + formatNode(repo, node, options.showId))
+  }
+}
+
+/**
+ * Emit `data` as JSON, optionally piped through `jq <expr>`.
+ *
+ * Wave 4 of `@km/cli/task-bd-collapse`: every list-shaped command in
+ * stock km gains `--json` + `--jq`. We shell out to `jq` (already a
+ * standard sysadmin tool, available on macOS / Linux / nix) rather
+ * than bundling `node-jq` — keeps the dep surface minimal and avoids
+ * the wasm-bridge startup cost. If `jq` isn't in PATH, we surface a
+ * clear error with install hints.
+ */
+async function emitJson(data: unknown, jqExpr?: string): Promise<void> {
+  const json = JSON.stringify(data, null, 2)
+  if (!jqExpr) {
+    console.log(json)
+    return
+  }
+
+  try {
+    const proc = Bun.spawn(["jq", jqExpr], {
+      stdin: "pipe",
+      stdout: "pipe",
+      stderr: "pipe",
+    })
+    proc.stdin.write(json)
+    await proc.stdin.end()
+    const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()])
+    const exitCode = await proc.exited
+    if (exitCode !== 0) {
+      console.error(term.red(`jq exited ${exitCode}: ${stderr.trim()}`))
+      process.exit(exitCode)
+    }
+    process.stdout.write(stdout)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    if (msg.includes("ENOENT") || msg.includes("not found")) {
+      console.error(term.red("--jq requires `jq` in PATH. Install with `brew install jq` or `nix-install nixpkgs#jq`."))
+    } else {
+      console.error(term.red(`jq invocation failed: ${msg}`))
+    }
+    process.exit(1)
   }
 }

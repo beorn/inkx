@@ -51,6 +51,8 @@ interface GlobalOptions extends OptionValues {
 import { addCommand } from "./commands/add.ts"
 import { agentCommand } from "./commands/agent.ts"
 import { bdCommand } from "./commands/bd.ts"
+import { childrenCommand } from "./commands/children.ts"
+import { clearCommand } from "./commands/clear.ts"
 import { daemonCommand } from "./commands/daemon.ts"
 import { doctorCommand } from "./commands/doctor.ts"
 import { importCommand } from "./commands/import.ts"
@@ -60,6 +62,10 @@ import { listCommand } from "./commands/list.ts"
 import { moveCommand } from "./commands/move.ts"
 import { newCommand } from "./commands/new.ts"
 import { perfCommand } from "./commands/perf.ts"
+import { queryCommand } from "./commands/query.ts"
+import { renameCommand } from "./commands/rename.ts"
+import { setCommand } from "./commands/set.ts"
+import { staleCommand } from "./commands/stale.ts"
 import { termtestCommand } from "./commands/termtest.ts"
 import { screenshotCommand } from "./commands/screenshot.ts"
 import { shCommand } from "./commands/sh.ts"
@@ -279,7 +285,13 @@ export function configureProgram(): Command {
   // Actions
   program.addCommand(newCommand) // km new - quick capture to inbox
   program.addCommand(statusCommand) // km status <id> [status] - view/set task status
-  program.addCommand(moveCommand) // km move <node> <parent> - re-parent a node
+  program.addCommand(moveCommand) // km move <node> <parent> - re-parent a node (canonical engine)
+  program.addCommand(renameCommand) // km rename <id> <target> - alias of `km move` (muscle memory)
+  program.addCommand(setCommand) // km set <id...> field:value... - generic field mutation
+  program.addCommand(clearCommand) // km clear <id...> field... - generic field clear
+  program.addCommand(staleCommand) // km stale [-d N] - any-node stale lister
+  program.addCommand(childrenCommand) // km children <id> - alias of `km show <id> -c`
+  program.addCommand(queryCommand) // km query <dsl> - alias of `km list --raw <dsl>`
   program.addCommand(addCommand) // km add <target> <source...> - add tasks to board/list
   program.addCommand(inboxCommand) // km inbox - GTD-style inbox processing
   program.addCommand(initCommand) // km init - create .km/ for disk mode
