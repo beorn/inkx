@@ -127,13 +127,20 @@ Recently completed.
 
 ### Issue Type Tags
 
-| Tag      | Meaning                |
-| -------- | ---------------------- |
-| #bug     | Bug report             |
-| #feature | Feature request        |
-| #epic    | Epic (parent issue)    |
-| #task    | General task (default) |
-| #docs    | Documentation          |
+| Tag       | Meaning                |
+| --------- | ---------------------- |
+| #bug      | Bug report             |
+| #feature  | Feature request        |
+| #epic     | Epic (parent issue)    |
+| #task     | General task (default) |
+| #docs     | Documentation          |
+| #chore    | Maintenance / cleanup  |
+| #question | Open question          |
+
+The canonical keyword list is `BEAD_TYPE_KEYWORDS` in `@km/beads/types.ts`.
+Both `nodeToBead` (which surfaces a bead's type from its tags) and
+`tasks set <id> type:<value>` (which writes the tag) consume it, so the
+two sides cannot drift.
 
 ### Priority Tags
 

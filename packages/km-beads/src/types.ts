@@ -6,6 +6,48 @@
  * been removed in the L4 cutover. New code uses `Bead`, `BeadFilter`,
  * `BeadCreateOptions`. See `./bead.ts` for the namespace.
  */
+
+/**
+ * Canonical bead type keywords — single source of truth for the type-tag
+ * keyword whitelist consumed by:
+ *
+ *   - `nodeToBead` (queries.ts) — scans `data.tags` / hashtag-link rows
+ *     for a known type keyword and surfaces the first match as `Bead.type`.
+ *   - `tasks set <id> type:<value>` (set-clear-plan.ts) — strips prior
+ *     type tags from `data.tags` before appending the new one.
+ *
+ * Keep this list aligned with `docs/future/beads.md` "Issue Type Tags".
+ *
+ * Order is the canonical declaration order — DO NOT mutate. The first 5
+ * (`bug` … `docs`) are in the canonical doc; `chore` and `question` are
+ * pragmatic extensions both lists previously declared independently and
+ * are accepted to avoid silent drift between the two consumers.
+ *
+ * Drift incident: prior to consolidation, `set-clear-plan.ts` accepted
+ * `chore` while `nodeToBead` accepted `question` — both were silently
+ * unrecognized in the other path. See bead `@km/beads/bead-type-keywords-
+ * shared-constant`.
+ */
+export const BEAD_TYPE_KEYWORDS = ["bug", "feature", "epic", "task", "docs", "chore", "question"] as const
+
+/**
+ * One of the canonical bead type keywords. Branded readonly union derived
+ * from `BEAD_TYPE_KEYWORDS` so type-checking and the runtime value list
+ * cannot drift.
+ */
+export type BeadTypeKeyword = (typeof BEAD_TYPE_KEYWORDS)[number]
+
+/** O(1) lookup set keyed by lowercased keyword. */
+export const BEAD_TYPE_KEYWORD_SET: ReadonlySet<string> = new Set<string>(BEAD_TYPE_KEYWORDS)
+
+/**
+ * Type guard — narrow an unknown string to `BeadTypeKeyword`.
+ * Compares lowercased input against the canonical set.
+ */
+export function isBeadTypeKeyword(s: string): s is BeadTypeKeyword {
+  return BEAD_TYPE_KEYWORD_SET.has(s.toLowerCase())
+}
+
 export interface Bead {
   id: string // Full node ID (ULID)
   /**
