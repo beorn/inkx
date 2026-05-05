@@ -64,8 +64,9 @@ export function planNewTask(content: string, options: PlanNewTaskOptions): Plann
   if (resolvedPriority && !allTags.some((t) => /^P[0-4]$/i.test(t))) {
     allTags.push(resolvedPriority)
   }
-  if (options.type && options.type.toLowerCase() !== "task") {
-    if (!allTags.some((t) => t.toLowerCase() === options.type!.toLowerCase())) {
+  if (options.type) {
+    const typeLower = options.type.toLowerCase()
+    if (typeLower !== "task" && !allTags.some((t) => t.toLowerCase() === typeLower)) {
       allTags.push(options.type)
     }
   }
