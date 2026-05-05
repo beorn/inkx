@@ -144,8 +144,16 @@ function countPaintedCells(app: App): number {
         continue
       }
       // Any non-trivial attr flag = painted.
-      const a = cell.attrs
-      if (a && (a.bold || a.dim || a.italic || a.underline || a.inverse || a.strikethrough || a.overline || a.blink)) {
+      if (
+        cell.bold ||
+        cell.dim ||
+        cell.italic ||
+        cell.underline ||
+        cell.inverse ||
+        cell.strikethrough ||
+        cell.overline ||
+        cell.blink
+      ) {
         painted++
       }
     }
