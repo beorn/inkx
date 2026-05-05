@@ -53,18 +53,14 @@ const STRIP_EMOJI_RECURRENCE = /\s*🔁\s*.+?(?=\s*[📅⏳]|$)/u
 /**
  * Get a node's priority. Returns `P0`-`P4` (canonical form) or `undefined`.
  *
- * Source-of-truth chain:
- *   1. `node.priority` column (legacy/transition — populated by the parser
- *      from explicit `priority::` or YAML `priority:`)
- *   2. `data.tags` `#P[0-4]` (canonical authored form per
- *      docs/future/beads.md — captured by kmRefsTransform from the H1)
- *   3. `data._allTags` aggregated from descendants (for file nodes whose
- *      H1 priority lives on a child heading row)
+ * Canonical source: `#P[0-4]` hashtag in the H1 / list-item title, captured
+ * into `data.tags` (per-node) and `data._allTags` (aggregated on file
+ * nodes) by kmRefsTransform. Per docs/future/beads.md "Priority Tags".
  *
- * The column is staged for removal — future schema bump dissolves it and
- * this helper falls back to data.tags / _allTags. All callers should use
- * this helper rather than `node.priority` directly so the migration is
- * a one-line change at this seam.
+ * Transitional: while the `nodes.priority` column is being dissolved, this
+ * helper also reads `node.priority` (legacy column write path) so callers
+ * that haven't migrated yet still see expected values. The column will be
+ * dropped in a follow-up; the helper internals collapse to data.tags only.
  */
 export function getNodePriority(node: {
   priority?: string
