@@ -266,7 +266,11 @@ function applyLivenessCheck(next: InternalSessionState, action: Extract<AgentEve
   }
 
   if (next.status === "awaiting-permission" && next.permissions.length === 0) {
-    reportLiveness(next, "silvercode:liveness invariant violated — status=awaiting-permission but no permissions pending", action.ts)
+    reportLiveness(
+      next,
+      "silvercode:liveness invariant violated — status=awaiting-permission but no permissions pending",
+      action.ts,
+    )
   }
   if (next.status === "tool-running" && next._liveness.tools.size === 0) {
     reportLiveness(next, "silvercode:liveness invariant violated — status=tool-running but no tools pending", action.ts)

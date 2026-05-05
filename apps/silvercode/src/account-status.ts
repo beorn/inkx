@@ -159,7 +159,7 @@ function mergeTransientFailuresWithCache(
   return accounts.map((account) => {
     if (!isTransientAccountFailure(account)) return account
     const cached = cachedByKey.get(accountCacheKey(account))
-    if (!cached || cached.error !== null || cached.quotas.length === 0) return account
+    if (cached?.error !== null || cached.quotas.length === 0) return account
     return {
       ...cached,
       current: account.current,
@@ -222,7 +222,7 @@ export async function probeAllAccounts(forceRefresh = false): Promise<AccountSum
     }
   }
 
-  let summaries = mergeTransientFailuresWithCache(
+  const summaries = mergeTransientFailuresWithCache(
     (await getAccountStatuses()).map(summaryFromStatus),
     cached?.accounts,
   )

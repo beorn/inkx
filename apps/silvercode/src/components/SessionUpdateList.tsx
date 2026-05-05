@@ -33,14 +33,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from "react"
-import type {
-  ContentBlock,
-  MessageEntry,
-  MessageOp,
-  ToolCallId,
-  ToolCallStatus,
-  ToolKind,
-} from "@km/agent-harness"
+import type { ContentBlock, MessageEntry, MessageOp, ToolCallId, ToolCallStatus, ToolKind } from "@km/agent-harness"
 import type { ToolCall as ToolCallType, ToolCallContent } from "@km/agent-harness"
 import {
   Box,
@@ -435,7 +428,8 @@ function stripShellRunnerMetadata(text: string): string {
 
 function opRendersDiff(op: MessageOp): boolean {
   if (op.kind !== "tool") return false
-  if (op.toolCall.name === "apply_patch") return typeof op.toolCall.input === "string" && op.toolCall.input.startsWith("*** Begin Patch")
+  if (op.toolCall.name === "apply_patch")
+    return typeof op.toolCall.input === "string" && op.toolCall.input.startsWith("*** Begin Patch")
   const input = op.toolCall.input
   return !!(
     input &&
@@ -1286,7 +1280,11 @@ function ExchangeItem({
                 const adaptedCall = adaptToolCall(c, result, running)
                 return (
                   <RawInspector key={c.id} payload={op}>
-                    <TimestampedRow timestamp={formatTime(m.ts)} side="left" width={opRendersDiff(op) ? "wide" : "prose"}>
+                    <TimestampedRow
+                      timestamp={formatTime(m.ts)}
+                      side="left"
+                      width={opRendersDiff(op) ? "wide" : "prose"}
+                    >
                       <ToolCall
                         toolCall={adaptedCall}
                         errorMessage={result?.is_error ? toolErrorMessage(result.output, adaptedCall.title) : undefined}
@@ -1406,19 +1404,22 @@ function splitAssistantToolActivity(item: Item): Item[] {
     isPadding(item) ||
     isAssistantActivitySlice(item) ||
     item.role !== "assistant"
-  )
+  ) {
     return [item]
-  return splitAssistantMessageForTranscript(item).map((slice): Item =>
-    slice.kind === "activity"
-      ? { __assistantActivity: true, id: slice.id, message: slice.message, ops: slice.ops }
-      : slice.message,
+  }
+  return splitAssistantMessageForTranscript(item).map(
+    (slice): Item =>
+      slice.kind === "activity"
+        ? { __assistantActivity: true, id: slice.id, message: slice.message, ops: slice.ops }
+        : slice.message,
   )
 }
 
 function isAssistantToolActivity(item: Item): boolean {
   if (isAssistantActivitySlice(item)) return true
-  if (isActivity(item) || isAmbient(item) || isSessionMetadata(item) || isPadding(item) || item.role !== "assistant")
+  if (isActivity(item) || isAmbient(item) || isSessionMetadata(item) || isPadding(item) || item.role !== "assistant") {
     return false
+  }
   let hasTool = false
   for (const op of item.ops) {
     if (op.kind === "tool") {

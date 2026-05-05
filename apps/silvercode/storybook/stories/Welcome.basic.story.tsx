@@ -34,14 +34,7 @@ export const welcomeBasic: Story = {
   variant: "basic",
   description: "First-launch welcome surface with immediate command input.",
   render() {
-    return (
-      <Welcome
-        handle={fakeSessionHandle()}
-        agent="codex"
-        model="gpt-5.4"
-        composerSlot={<WelcomeComposer />}
-      />
-    )
+    return <Welcome handle={fakeSessionHandle()} agent="codex" model="gpt-5.4" composerSlot={<WelcomeComposer />} />
   },
 }
 

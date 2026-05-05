@@ -721,7 +721,12 @@ describe("ToolCall path display friendliness", () => {
   test("image path in non-shell title is an OSC 8 file link", () => {
     const app = freshRender()(
       <ToolCall
-        toolCall={{ toolCallId: id("t-image"), kind: "execute", status: "completed", title: "View /tmp/screenshot.png" }}
+        toolCall={{
+          toolCallId: id("t-image"),
+          kind: "execute",
+          status: "completed",
+          title: "View /tmp/screenshot.png",
+        }}
       />,
     )
     expect(app.text).toContain("View /tmp/screenshot.png")

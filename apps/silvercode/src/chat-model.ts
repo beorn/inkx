@@ -296,8 +296,9 @@ export function splitAssistantMessageForTranscript(message: MessageEntry): ChatT
   const ops = normalizeCommandSessionOps(message.ops)
   const normalizedMessage = ops === message.ops ? message : sliceMessage(message, ops, "normalized")
   const totalToolCount = toolCount(ops)
-  if (totalToolCount === 0 || totalToolCount > 8)
+  if (totalToolCount === 0 || totalToolCount > 8) {
     return [{ kind: "message", id: String(normalizedMessage.id), message: normalizedMessage }]
+  }
   const out: ChatTranscriptSlice[] = []
   for (const slice of splitAssistantOpsIntoDisplaySlices(ops)) {
     if (slice.kind === "activity") {
@@ -305,7 +306,12 @@ export function splitAssistantMessageForTranscript(message: MessageEntry): ChatT
         const sliced = sliceMessage(normalizedMessage, slice.ops, slice.id)
         out.push({ kind: "message", id: String(sliced.id), message: sliced })
       } else {
-        out.push({ kind: "activity", id: `${normalizedMessage.id}:${slice.id}`, message: normalizedMessage, ops: slice.ops })
+        out.push({
+          kind: "activity",
+          id: `${normalizedMessage.id}:${slice.id}`,
+          message: normalizedMessage,
+          ops: slice.ops,
+        })
       }
     } else {
       const sliced = sliceMessage(normalizedMessage, slice.ops, slice.id)

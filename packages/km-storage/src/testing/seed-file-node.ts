@@ -78,7 +78,7 @@ export function seedFileNode(repo: Repo, path: string, options: SeedFileNodeOpti
     const segment = segments[i]!
     const fsPathSoFar = parentFsPath ? `${parentFsPath}/${segment}` : segment
     const existing = repo.resolveNode(fsPathSoFar)
-    if (existing && existing.fstype === "folder") {
+    if (existing?.fstype === "folder") {
       parentId = existing.id
       parentFsPath = fsPathSoFar
       continue

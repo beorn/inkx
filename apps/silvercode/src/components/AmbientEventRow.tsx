@@ -182,7 +182,9 @@ function dedupeSourcePrefix(label: string, source: string, preview: string): str
         const prefix = `${system} Builds:`
         const jobs = String(names)
           .split(",")
-          .map((part) => part.trim().replace(new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*`, "i"), ""))
+          .map((part) =>
+            part.trim().replace(new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*`, "i"), ""),
+          )
           .filter((part) => part.length > 0)
         return jobs.length > 0 ? `failed ${system} builds: ${jobs.join(", ")}` : value
       })
@@ -294,7 +296,9 @@ function groupAmbientEntries(entries: readonly AmbientStreamEntry[]): AmbientSta
     items.push(group)
   }
 
-  return items.map((item) => (item.kind === "group" && item.entries.length === 1 ? { kind: "single", entry: item.entries[0]! } : item))
+  return items.map((item) =>
+    item.kind === "group" && item.entries.length === 1 ? { kind: "single", entry: item.entries[0]! } : item,
+  )
 }
 
 export function AmbientNotificationStack({ entries }: { entries: readonly AmbientStreamEntry[] }): React.ReactElement {
@@ -312,29 +316,29 @@ export function AmbientNotificationStack({ entries }: { entries: readonly Ambien
 
   const stack = (
     <Box flexDirection="column" gap={0} width="100%" flexGrow={1} flexShrink={1} minWidth={0}>
-        {items.map((item) => {
-          if (item.kind === "single") {
-            return (
-              <AmbientEventRow
-                key={item.entry.id}
-                entry={item.entry}
-                expanded={expanded.has(item.entry.id)}
-                onToggleExpand={() => toggle(item.entry.id)}
-              />
-            )
-          }
-          const first = item.entries[0]!
+      {items.map((item) => {
+        if (item.kind === "single") {
           return (
             <AmbientEventRow
-              key={`group:${item.key}:${first.id}`}
-              entry={first}
-              previewOverride={item.preview}
-              bodyOverride={item.body}
-              expanded={expanded.has(item.key)}
-              onToggleExpand={() => toggle(item.key)}
+              key={item.entry.id}
+              entry={item.entry}
+              expanded={expanded.has(item.entry.id)}
+              onToggleExpand={() => toggle(item.entry.id)}
             />
           )
-        })}
+        }
+        const first = item.entries[0]!
+        return (
+          <AmbientEventRow
+            key={`group:${item.key}:${first.id}`}
+            entry={first}
+            previewOverride={item.preview}
+            bodyOverride={item.body}
+            expanded={expanded.has(item.key)}
+            onToggleExpand={() => toggle(item.key)}
+          />
+        )
+      })}
     </Box>
   )
 

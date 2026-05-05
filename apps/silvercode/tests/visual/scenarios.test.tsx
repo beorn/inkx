@@ -54,9 +54,10 @@ describe("visual scenarios — layout invariants hold", () => {
     expect(assistant!.firstLineText).toContain("Hi")
     expect(s.text, "chat-state composer should not use border glyphs").not.toMatch(/[┌┐└┘╭╮╰╯▀▄▌▐▔▁▏▕▘▝▖▗]/u)
     expect(p.inputBox.present, "floating composer prompt should parse as input chrome").toBe(true)
-    expect(p.cardStream.some((b) => b.row === p.inputBox.promptRow), "composer prompt must not parse as transcript").toBe(
-      false,
-    )
+    expect(
+      p.cardStream.some((b) => b.row === p.inputBox.promptRow),
+      "composer prompt must not parse as transcript",
+    ).toBe(false)
     expectLayoutInvariants(s)
   })
 

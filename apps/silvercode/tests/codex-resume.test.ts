@@ -204,7 +204,10 @@ describe("codex-resume: replayCodexSessionFromDisk", () => {
     const store = createSessionStore()
     replayCodexSessionFromDisk(store, SESSION_ID)
 
-    const userMessages = store.state.get().messages.filter((m) => m.role === "user").map((m) => m.text)
+    const userMessages = store.state
+      .get()
+      .messages.filter((m) => m.role === "user")
+      .map((m) => m.text)
     expect(userMessages).toEqual(["see screenshots from silvercode"])
   })
 
@@ -235,7 +238,10 @@ describe("codex-resume: replayCodexSessionFromDisk", () => {
     const store = createSessionStore()
     replayCodexSessionFromDisk(store, SESSION_ID)
 
-    const userMessages = store.state.get().messages.filter((m) => m.role === "user").map((m) => m.text)
+    const userMessages = store.state
+      .get()
+      .messages.filter((m) => m.role === "user")
+      .map((m) => m.text)
     expect(userMessages).toEqual(["fix the permission prompt"])
   })
 

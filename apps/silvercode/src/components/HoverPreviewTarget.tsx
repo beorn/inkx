@@ -9,16 +9,7 @@
  * the deepest hovered target owns the preview and armed state.
  */
 
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from "react"
+import React, { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState } from "react"
 import {
   HOVER_SHOW_DELAY_MS,
   lastModifierState,

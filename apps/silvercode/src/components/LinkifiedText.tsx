@@ -1,11 +1,5 @@
 import React from "react"
-import {
-  Box,
-  Image,
-  Muted,
-  Prose,
-  Text,
-} from "silvery"
+import { Box, Image, Muted, Prose, Text } from "silvery"
 import { detectReferences, type Detection } from "../detection.ts"
 import { useAutolinks } from "../AutolinksContext.tsx"
 import { useCwd } from "../CwdContext.tsx"
@@ -270,11 +264,7 @@ function PopoverTextLink({
   popoverBody: React.ReactNode
 }): React.ReactElement {
   return (
-    <LinkedTerm
-      color={color}
-      backgroundColor={backgroundColor}
-      popoverBody={popoverBody}
-    >
+    <LinkedTerm color={color} backgroundColor={backgroundColor} popoverBody={popoverBody}>
       {children}
     </LinkedTerm>
   )
@@ -294,12 +284,7 @@ function PopoverLink({
   popoverBody: React.ReactNode
 }): React.ReactElement {
   return (
-    <LinkedTerm
-      href={href}
-      color={color}
-      backgroundColor={backgroundColor}
-      popoverBody={popoverBody}
-    >
+    <LinkedTerm href={href} color={color} backgroundColor={backgroundColor} popoverBody={popoverBody}>
       {children}
     </LinkedTerm>
   )
@@ -531,12 +516,7 @@ export function LinkifiedText({
           )
         }
         return (
-          <Text
-            key={lineIdx}
-            color={role === "user" ? "$fg" : color}
-            backgroundColor={backgroundColor}
-            wrap={wrapMode}
-          >
+          <Text key={lineIdx} color={role === "user" ? "$fg" : color} backgroundColor={backgroundColor} wrap={wrapMode}>
             {pieces}
           </Text>
         )

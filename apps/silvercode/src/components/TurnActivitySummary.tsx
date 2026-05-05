@@ -235,13 +235,7 @@ export function TurnActivitySummary({
         <Box width={1} flexShrink={0} backgroundColor={headerBg}>
           <Text backgroundColor={headerBg}> </Text>
         </Box>
-        <Box
-          flexDirection="column"
-          flexGrow={1}
-          flexShrink={1}
-          minWidth={0}
-          backgroundColor={headerBg}
-        >
+        <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} backgroundColor={headerBg}>
           <SummaryText parts={parts.length > 0 ? parts : [text]} expanded={expanded} backgroundColor={headerBg} />
           <Box flexGrow={1} />
         </Box>

@@ -62,10 +62,7 @@ const STRIP_EMOJI_RECURRENCE = /\s*🔁\s*.+?(?=\s*[📅⏳]|$)/u
  * that haven't migrated yet still see expected values. The column will be
  * dropped in a follow-up; the helper internals collapse to data.tags only.
  */
-export function getNodePriority(node: {
-  priority?: string
-  data?: Record<string, unknown>
-}): string | undefined {
+export function getNodePriority(node: { priority?: string; data?: Record<string, unknown> }): string | undefined {
   if (node.priority) {
     const m = node.priority.match(/^P?([0-4])$/i)
     return m?.[1] ? `P${m[1]}` : node.priority

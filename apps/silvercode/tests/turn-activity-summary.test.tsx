@@ -343,8 +343,9 @@ describe("TurnActivitySummary", () => {
     const ops: MessageOp[] = [{ kind: "text", text: "I am checking several files." }]
     for (let i = 0; i < 4; i++) ops.push(tool(`cmd-a-${i}`, "exec_command", { cmd: `rg query-${i}` }, "ok"))
     ops.push({ kind: "text", text: "Now I am checking related tests." })
-    for (let i = 0; i < 5; i++)
+    for (let i = 0; i < 5; i++) {
       ops.push(tool(`cmd-b-${i}`, "exec_command", { cmd: `sed -n '${i},${i + 1}p' file.ts` }, "ok"))
+    }
     const entry = makeEntry({ ops })
 
     using term = createTermless({ cols: 120, rows: 24 })
@@ -738,7 +739,9 @@ describe("TurnActivitySummary", () => {
       "*** End Patch",
     ].join("\n")
     const entry = makeEntry({
-      ops: [tool("patch-1", "apply_patch", patch, "Success. Updated the following files:\nM apps/silvercode/src/foo.ts\n")],
+      ops: [
+        tool("patch-1", "apply_patch", patch, "Success. Updated the following files:\nM apps/silvercode/src/foo.ts\n"),
+      ],
     })
 
     using term = createTermless({ cols: 120, rows: 16 })
@@ -824,7 +827,9 @@ describe("TurnActivitySummary", () => {
       await term.mouse.click(term.screen.getLines()[summaryRow]!.indexOf("Edited 1 file"), summaryRow)
       await settle(80)
 
-      const commandRow = term.screen.getLines().findIndex((line) => line.includes("$ nl -ba src/components/SidePanel.tsx"))
+      const commandRow = term.screen
+        .getLines()
+        .findIndex((line) => line.includes("$ nl -ba src/components/SidePanel.tsx"))
       expect(commandRow, term.screen.getText()).toBeGreaterThanOrEqual(0)
       expect(term.screen.getLines()[commandRow]!.indexOf("$ nl -ba")).toBeGreaterThan(10)
     } finally {

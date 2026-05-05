@@ -17,8 +17,10 @@ import { useAmbientMuteState } from "../hooks/use-ambient-stream.ts"
 import { useAllAccounts } from "../hooks/use-all-accounts.ts"
 import { useBackgroundTasks } from "../hooks/use-background-tasks.ts"
 import { useClaudeAccount } from "../hooks/use-claude-account.ts"
+import { useCodexQuota } from "../hooks/use-codex-quota.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 import { isTransientAccountError, type AccountSummary } from "../account-status.ts"
+import type { CodexQuotaLimit, CodexQuotaSnapshot, CodexQuotaWindow } from "../codex-quota.ts"
 
 /**
  * Claude CLI version suffix — Suspense-aware. The async probe runs once
@@ -279,6 +281,10 @@ function quotaColor(w: QuotaWindow): string {
   return "$fg-muted"
 }
 
+function isCodexAgent(agent: string | undefined): boolean {
+  return agent === "codex" || agent === "codex-spawn"
+}
+
 /**
  * Decide which rows render inline in the side panel. Rules per user:
  * - 5-hour: always (primary gauge)
@@ -327,6 +333,59 @@ function QuotaRow({ w, muted = false }: { w: QuotaWindow; muted?: boolean }): Re
         )}
       </Box>
       <ProgressBar value={Math.max(0, Math.min(1, w.utilization / 100))} width={20} color={color} showPercentage />
+    </Box>
+  )
+}
+
+function codexWindowLabel(w: CodexQuotaWindow): string {
+  if (w.windowMinutes === 300) return "5h"
+  if (w.windowMinutes === 10080) return "7d"
+  if (w.windowMinutes % 60 === 0) return `${w.windowMinutes / 60}h`
+  return `${w.windowMinutes}m`
+}
+
+function codexQuotaColor(w: CodexQuotaWindow): string {
+  if (w.usedPercent >= 90) return "$error"
+  if (w.usedPercent >= 70) return "$warning"
+  return "$fg-muted"
+}
+
+function CodexQuotaRow({ w }: { w: CodexQuotaWindow }): React.ReactElement {
+  const left = Math.max(0, Math.min(100, Math.round(100 - w.usedPercent)))
+  return (
+    <Box flexDirection="row" gap={1}>
+      <Box flexBasis={4} minWidth={4}>
+        <Muted>{codexWindowLabel(w)}</Muted>
+      </Box>
+      <ProgressBar value={left / 100} width={12} color={codexQuotaColor(w)} />
+      <Muted>{left}% left</Muted>
+    </Box>
+  )
+}
+
+function CodexLimitBlock({ limit }: { limit: CodexQuotaLimit }): React.ReactElement {
+  return (
+    <Box flexDirection="column">
+      {limit.label !== "Codex" ? <Small>{limit.label}</Small> : null}
+      {limit.primary ? <CodexQuotaRow w={limit.primary} /> : null}
+      {limit.secondary ? <CodexQuotaRow w={limit.secondary} /> : null}
+    </Box>
+  )
+}
+
+function CodexQuotaPanel({ snapshot }: { snapshot: CodexQuotaSnapshot }): React.ReactElement {
+  return (
+    <Box flexDirection="column" flexShrink={0}>
+      <Text bold color="$fg">
+        Codex
+      </Text>
+      {snapshot.accountLabel ? <Muted>{snapshot.accountLabel}</Muted> : null}
+      {snapshot.limits.map((limit, i) => (
+        <React.Fragment key={limit.id}>
+          {i > 0 ? <Box flexShrink={0} height={1} /> : null}
+          <CodexLimitBlock limit={limit} />
+        </React.Fragment>
+      ))}
     </Box>
   )
 }
@@ -396,8 +455,13 @@ function groupAccountsByPlan(accounts: AccountSummary[]): Array<{ label: string;
 function selectedAccountForAgent(accounts: AccountSummary[], agent: string | undefined): AccountSummary | null {
   if (accounts.length === 0) return null
   const id = agent ?? "claude"
-  if (id === "codex" || id === "codex-spawn") {
-    return accounts.find((a) => a.provider === "openai" || a.label === "Codex") ?? accounts.find((a) => a.current) ?? accounts[0]!
+  if (isCodexAgent(id)) {
+    return (
+      accounts.find((a) => a.label === "Codex") ??
+      accounts.find((a) => a.provider === "openai") ??
+      accounts.find((a) => a.current) ??
+      accounts[0]!
+    )
   }
   if (id === "github-copilot-cli") {
     return accounts.find((a) => /copilot/i.test(a.label) || /copilot/i.test(String(a.provider))) ?? accounts[0]!
@@ -974,6 +1038,7 @@ function SidePanelChrome({
   const claudeCodeVersion = state?.claudeCodeVersion ?? ""
   const todos = state?.todos ?? []
   const messages = state?.messages ?? []
+  const codexQuota = useCodexQuota(isCodexAgent(agent))
 
   // Account + quota probe. Email resolves synchronously from CLAUDE_CONFIG_DIR;
   // plan + per-window utilization arrive async from Anthropic's /api/usage
@@ -1386,6 +1451,8 @@ function SidePanelChrome({
             <AccountNavButton label="< Back" onClick={() => setAccountView("selected")} />
             <Box flexShrink={0} height={1} />
           </>
+        ) : isCodexAgent(agent) && codexQuota ? (
+          <CodexQuotaPanel snapshot={codexQuota} />
         ) : hasAccount && selectedAccountGroups.length > 0 ? (
           selectedAccountGroups.map((group, i) => (
             <React.Fragment key={group.label}>

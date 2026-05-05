@@ -82,15 +82,7 @@ function Layout({
   gap?: number
 }): React.ReactElement {
   return (
-    <Box
-      flexDirection="column"
-      alignSelf="stretch"
-      width="100%"
-      minWidth={0}
-      flexGrow={1}
-      flexShrink={1}
-      minHeight={0}
-    >
+    <Box flexDirection="column" alignSelf="stretch" width="100%" minWidth={0} flexGrow={1} flexShrink={1} minHeight={0}>
       <MeasuredLayoutProbe measure={measure} wide={wide} align={align} gap={gap}>
         {children}
       </MeasuredLayoutProbe>
@@ -127,13 +119,7 @@ function MeasuredLayoutProbe({
     )
   }
   return (
-    <MeasuredLayout
-      available={available}
-      measure={measure}
-      wide={wide}
-      align={align}
-      gap={gap}
-    >
+    <MeasuredLayout available={available} measure={measure} wide={wide} align={align} gap={gap}>
       {children}
     </MeasuredLayout>
   )
@@ -180,10 +166,7 @@ function MeasuredLayout({
   )
 }
 
-function isElementOfType<P>(
-  child: React.ReactNode,
-  type: React.ComponentType<P>,
-): child is React.ReactElement<P> {
+function isElementOfType<P>(child: React.ReactNode, type: React.ComponentType<P>): child is React.ReactElement<P> {
   return React.isValidElement(child) && child.type === type
 }
 
@@ -236,15 +219,15 @@ function Row({
     ? ctx.full || ctx.available || ctx.wide
     : hasDirectFullBody
       ? ctx.full || ctx.available || ctx.wide
-    : hasDirectProseLane
-      ? ctx.measure
-      : hasDirectProseBody
+      : hasDirectProseLane
         ? ctx.measure
-      : hasDirectWideLane
-        ? ctx.wide
-        : hasDirectWideBody
-          ? ctx.wide
-          : ctx.wide
+        : hasDirectProseBody
+          ? ctx.measure
+          : hasDirectWideLane
+            ? ctx.wide
+            : hasDirectWideBody
+              ? ctx.wide
+              : ctx.wide
   const leftWidth = 0
   const rightWidth = 0
   const leftGap = 0
@@ -310,13 +293,14 @@ function ProseLane({ children }: { children: React.ReactNode }): React.ReactElem
   const ctx = useContentLayout()
   const available = row?.available ?? ctx.available
   const gutterMinWidth = available > 2 ? 1 : 0
+  const proseWidth = available > 0 ? Math.max(1, Math.min(ctx.measure, available - gutterMinWidth * 2)) : ctx.measure
   const lane = (
     <Box flexDirection="row" width="100%" minWidth={0}>
-      <Box flexGrow={1} flexBasis={0} flexShrink={1} minWidth={gutterMinWidth} />
-      <Box flexDirection="column" width={ctx.measure} maxWidth={ctx.measure} flexShrink={1} minWidth={0}>
+      <Box width={gutterMinWidth} flexGrow={1} flexBasis={gutterMinWidth} flexShrink={0} minWidth={gutterMinWidth} />
+      <Box flexDirection="column" width={proseWidth} maxWidth={proseWidth} flexShrink={1} minWidth={0}>
         {children}
       </Box>
-      <Box flexGrow={1} flexBasis={0} flexShrink={1} minWidth={gutterMinWidth} />
+      <Box width={gutterMinWidth} flexGrow={1} flexBasis={gutterMinWidth} flexShrink={0} minWidth={gutterMinWidth} />
     </Box>
   )
   if (row) {
@@ -355,12 +339,7 @@ function Full({ children }: { children: React.ReactNode }): React.ReactElement {
   )
 }
 
-function Body({
-  children,
-  width = "auto",
-  expanded = false,
-  backgroundColor,
-}: BodyProps): React.ReactElement {
+function Body({ children, width = "auto", expanded = false, backgroundColor }: BodyProps): React.ReactElement {
   const resolved = resolveBodyWidth(width, expanded)
   const body =
     backgroundColor === undefined ? (
@@ -459,11 +438,7 @@ type TableGridProps = TableProps & {
   separator?: string
 }
 
-function TableRoot({
-  headers,
-  rows,
-  alignments = [],
-}: TableProps): React.ReactElement {
+function TableRoot({ headers, rows, alignments = [] }: TableProps): React.ReactElement {
   const ctx = useContentLayout()
   const separator = " │ "
   const naturalWidths = tableNaturalWidths(headers, rows)

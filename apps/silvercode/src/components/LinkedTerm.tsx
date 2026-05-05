@@ -1,10 +1,5 @@
 import React from "react"
-import {
-  Link,
-  Text,
-  type PopoverContent,
-  type SilveryMouseEvent,
-} from "silvery"
+import { Link, Text, type PopoverContent, type SilveryMouseEvent } from "silvery"
 import { HoverPreviewTarget } from "./HoverPreviewTarget.tsx"
 
 export interface LinkedTermProps {

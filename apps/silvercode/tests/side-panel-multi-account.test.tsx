@@ -19,6 +19,7 @@ import { createSessionStore } from "@km/agent-harness"
 import { SidePanel } from "../src/components/SidePanel.tsx"
 import { setAllAccountsFactoryOverride, type AccountSummary } from "../src/account-status.ts"
 import { setAccountFactoryOverride } from "../src/claude-account.ts"
+import { setCodexQuotaFactoryOverride, type CodexQuotaSnapshot } from "../src/codex-quota.ts"
 import type { Controller, SessionHandle } from "../src/controller.ts"
 
 const TOTAL_COLS = 120
@@ -184,6 +185,21 @@ const CURSOR_ACCOUNT_WITH_QUOTA: AccountSummary = {
   quotas: [{ name: "Tasks", utilization: 40, remaining: 60, limit: 100 }],
 }
 
+const CODEX_QUOTA: CodexQuotaSnapshot = {
+  accountLabel: "bjorn@example.com",
+  updatedAt: "2026-05-05T05:15:08.367Z",
+  sourcePath: "/tmp/rollout.jsonl",
+  limits: [
+    {
+      id: "codex",
+      label: "Codex",
+      planType: "pro",
+      primary: { usedPercent: 5, windowMinutes: 300, resetsAt: "2026-05-05T09:00:06.000Z" },
+      secondary: { usedPercent: 2, windowMinutes: 10080, resetsAt: "2026-05-11T22:35:28.000Z" },
+    },
+  ],
+}
+
 const settle = (ms = 80) => new Promise<void>((r) => setTimeout(r, ms))
 
 function renderPanel(opts: { agent?: string } = {}) {
@@ -268,22 +284,30 @@ describe("SidePanel — multi-account view", () => {
     }
   })
 
-  test("Codex selects the OpenAI account and shows Codex API rate limits inline", () => {
+  test("Codex shows subscription quotas from Codex /status data instead of generic OpenAI API limits", () => {
     const accounts = [...THREE_ACCOUNTS, API_KEY_ACCOUNT, CODEX_ACCOUNT]
     setAllAccountsFactoryOverride({
       readCached: () => accounts,
       probe: async () => accounts,
     })
+    setCodexQuotaFactoryOverride({
+      readCached: () => CODEX_QUOTA,
+      probe: async () => CODEX_QUOTA,
+    })
     try {
       const app = renderPanel({ agent: "codex" })
       expect(app.text).toContain("Codex")
-      expect(app.text).toContain("CODEX_API_KEY ...dex")
-      expect(app.text).toContain("RPM")
-      expect(app.text).toContain("TPM")
+      expect(app.text).toContain("bjorn@example.com")
+      expect(app.text).toContain("95% left")
+      expect(app.text).toContain("98% left")
+      expect(app.text).not.toContain("CODEX_API_KEY ...dex")
+      expect(app.text).not.toContain("RPM")
+      expect(app.text).not.toContain("TPM")
       expect(app.text).not.toContain("Claude Code Max 20")
       expect(app.text).not.toContain("personal@example.com")
     } finally {
       setAllAccountsFactoryOverride(null)
+      setCodexQuotaFactoryOverride(null)
     }
   })
 

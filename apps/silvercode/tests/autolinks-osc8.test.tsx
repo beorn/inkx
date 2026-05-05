@@ -119,9 +119,7 @@ describe("LinkifiedText → OSC 8 hyperlinks", () => {
 
   test("muted in-app references are not visually special until armed", () => {
     const render = createRenderer({ cols: 120, rows: 5 })
-    const app = render(
-      <Harness cwd="/abs/cwd" text={`image data:image/png;base64,iVBORw0KGgo= and package.json`} />,
-    )
+    const app = render(<Harness cwd="/abs/cwd" text={`image data:image/png;base64,iVBORw0KGgo= and package.json`} />)
 
     const imageCol = app.lines[0]!.indexOf("[image data]")
     const fileCol = app.lines[0]!.indexOf("package.json")

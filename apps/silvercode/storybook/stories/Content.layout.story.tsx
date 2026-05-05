@@ -141,7 +141,9 @@ export const contentLayout: Story = {
               </Content.Wide>
               <Content.Full>
                 <Box borderStyle="single" borderColor="$border" paddingX={1}>
-                  <Text wrap="wrap">Full lane spans the pane for content that truly needs the whole available width.</Text>
+                  <Text wrap="wrap">
+                    Full lane spans the pane for content that truly needs the whole available width.
+                  </Text>
                 </Box>
               </Content.Full>
             </Section>

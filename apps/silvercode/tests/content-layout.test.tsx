@@ -706,6 +706,29 @@ describe("content layout", () => {
     expect(backgroundRunBounds(app, row, col).right).toBe(proseRightEdge)
   })
 
+  test("prose lane preserves a one-cell right gutter when side panel leaves less than measure", () => {
+    const cols = 84
+    const app = renderList(
+      [
+        makeEntry({
+          id: "u1",
+          role: "user",
+          ts: new Date(2026, 3, 30, 12, 6).getTime(),
+          ops: [{ kind: "text", text: "right gutter" }],
+        }),
+      ],
+      cols,
+      10,
+    )
+
+    const row = app.lines.findIndex((line) => line.includes("right gutter"))
+    expect(row, app.text).toBeGreaterThanOrEqual(0)
+    const col = app.lines[row]!.indexOf("right gutter")
+    const bounds = backgroundRunBounds(app, row, col)
+    expect(bounds.right).toBeLessThanOrEqual(cols - 2)
+    expect(app.cell(cols - 1, row).bg).toBeNull()
+  })
+
   test("session entries use a narrower left lane while user prompts float right", () => {
     const cols = 132
     const measure = 88

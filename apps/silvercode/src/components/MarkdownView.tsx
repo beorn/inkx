@@ -136,34 +136,37 @@ function renderBlock(
       // shape (`<Text>• </Text>` with the space INSIDE the text) had the
       // trailing space eaten on bullets 2+ when flex shrunk the glyph
       // cell to its 1-col min-content. Fixed: 2026-04-26.
-      return prose(inset(
-        <Box key={i} flexDirection="row" gap={1} paddingLeft={b.depth * 2} flexShrink={0}>
-          <Text color="$muted" backgroundColor={backgroundColor} flexShrink={0}>
-            {role === "user" ? "•" : "·"}
-          </Text>
-          <Prose flexGrow={1} flexShrink={1} minWidth={0}>
-            <InlineRun tokens={b.inlines} role={role} backgroundColor={backgroundColor} />
-          </Prose>
-        </Box>,
-      ))
+      return prose(
+        inset(
+          <Box key={i} flexDirection="row" gap={1} paddingLeft={b.depth * 2} flexShrink={0}>
+            <Text color="$muted" backgroundColor={backgroundColor} flexShrink={0}>
+              {role === "user" ? "•" : "·"}
+            </Text>
+            <Prose flexGrow={1} flexShrink={1} minWidth={0}>
+              <InlineRun tokens={b.inlines} role={role} backgroundColor={backgroundColor} />
+            </Prose>
+          </Box>,
+        ),
+      )
     case "ordered":
-      return prose(inset(
-        <Box key={i} flexDirection="row" gap={1} paddingLeft={b.depth * 2} flexShrink={0}>
-          <Text color="$muted" backgroundColor={backgroundColor} flexShrink={0}>
-            {b.number}.
-          </Text>
-          <Prose flexGrow={1} flexShrink={1} minWidth={0}>
-            <InlineRun tokens={b.inlines} role={role} backgroundColor={backgroundColor} />
-          </Prose>
-        </Box>,
-      ))
+      return prose(
+        inset(
+          <Box key={i} flexDirection="row" gap={1} paddingLeft={b.depth * 2} flexShrink={0}>
+            <Text color="$muted" backgroundColor={backgroundColor} flexShrink={0}>
+              {b.number}.
+            </Text>
+            <Prose flexGrow={1} flexShrink={1} minWidth={0}>
+              <InlineRun tokens={b.inlines} role={role} backgroundColor={backgroundColor} />
+            </Prose>
+          </Box>,
+        ),
+      )
     case "quote":
       return prose(inset(<Blockquote key={i}>{b.text}</Blockquote>))
-    case "code":
-      {
-        const language = b.language || "plain"
-        return prose(<SyntaxHighlighter key={i} language={language} code={b.code} />)
-      }
+    case "code": {
+      const language = b.language || "plain"
+      return prose(<SyntaxHighlighter key={i} language={language} code={b.code} />)
+    }
     case "rule":
       return <Divider key={i} />
     case "blank":

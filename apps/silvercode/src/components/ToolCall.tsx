@@ -29,15 +29,7 @@
  */
 
 import React from "react"
-import {
-  Box,
-  Diff as SilveryDiff,
-  Image,
-  type DiffHunk,
-  Muted,
-  Text,
-  type SilveryMouseEvent,
-} from "silvery"
+import { Box, Diff as SilveryDiff, Image, type DiffHunk, Muted, Text, type SilveryMouseEvent } from "silvery"
 import type { ToolCall as ToolCallType, ToolCallContent, ToolCallLocation, ContentBlock } from "@km/agent-harness"
 import { ToolCallStatusTitle } from "./ToolCallStatusTitle.tsx"
 import { BoundedScroll } from "./BoundedScroll.tsx"
@@ -506,10 +498,14 @@ export function ToolCall({
                   linkify={!shell}
                 />
                 {renderLocations(toolCall.locations)}
-                <Box flexGrow={1} height={1} onClick={(e: SilveryMouseEvent) => {
-                  e.stopPropagation()
-                  if (interactive && hasContent) toggleExpanded()
-                }}>
+                <Box
+                  flexGrow={1}
+                  height={1}
+                  onClick={(e: SilveryMouseEvent) => {
+                    e.stopPropagation()
+                    if (interactive && hasContent) toggleExpanded()
+                  }}
+                >
                   <Text> </Text>
                 </Box>
                 {status === "failed" && onRetry ? (
@@ -534,7 +530,9 @@ export function ToolCall({
                   <Text color="$error" wrap="wrap">
                     {errorSummary ?? errorMessage ?? "Tool call failed"}
                   </Text>
-                  {errorSummary && errorMessage && normalizeDisclosureText(errorMessage) !== normalizeDisclosureText(errorSummary) ? (
+                  {errorSummary &&
+                  errorMessage &&
+                  normalizeDisclosureText(errorMessage) !== normalizeDisclosureText(errorSummary) ? (
                     <Text color="$error" wrap="wrap">
                       {errorMessage}
                     </Text>

@@ -1339,28 +1339,29 @@ export function App(props: AppProps): React.ReactElement {
                     />
                   )}
 
-                {/* Bottom chrome (left column). flexShrink=0 prevents overflow. */}
-                <Box flexDirection="column" flexShrink={0}>
-                  <InlineAskUserQuestionPrompt
-                    focused={focused}
-                    sessions={sessions}
-                    onAnswer={(sid, toolUseId, answers) => controller.respondAskUserQuestion(sid, toolUseId, answers)}
-                    onCancel={(sid, toolUseId) => controller.cancelAskUserQuestion(sid, toolUseId)}
-                  />
-                  {showHistory && <SessionPromptHistory onClose={() => setShowHistory(false)} logDir={props.logDir} />}
-                  <Notifications sessions={sessions} />
-
-                  {paletteQuery !== null && (
-                    <AvailableCommandsPalette
-                      query={paletteQuery}
-                      remoteCommands={focused?.store.state.get().slashCommands}
-                      remoteSkills={focused?.store.state.get().skills}
-                      onSubmit={(cmd) => handleSubmit(cmd)}
-                      onClose={() => setInputValue("")}
+                  {/* Bottom chrome (left column). flexShrink=0 prevents overflow. */}
+                  <Box flexDirection="column" flexShrink={0}>
+                    <InlineAskUserQuestionPrompt
+                      focused={focused}
+                      sessions={sessions}
+                      onAnswer={(sid, toolUseId, answers) => controller.respondAskUserQuestion(sid, toolUseId, answers)}
+                      onCancel={(sid, toolUseId) => controller.cancelAskUserQuestion(sid, toolUseId)}
                     />
-                  )}
+                    {showHistory && (
+                      <SessionPromptHistory onClose={() => setShowHistory(false)} logDir={props.logDir} />
+                    )}
+                    <Notifications sessions={sessions} />
 
-                </Box>
+                    {paletteQuery !== null && (
+                      <AvailableCommandsPalette
+                        query={paletteQuery}
+                        remoteCommands={focused?.store.state.get().slashCommands}
+                        remoteSkills={focused?.store.state.get().skills}
+                        onSubmit={(cmd) => handleSubmit(cmd)}
+                        onClose={() => setInputValue("")}
+                      />
+                    )}
+                  </Box>
                 </Content.Layout>
               </Box>
             </AsideLayout>

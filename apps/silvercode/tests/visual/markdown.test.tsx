@@ -190,7 +190,10 @@ describe("markdown rendering at multiple widths", () => {
     expect(userRows.length, frame.text).toBeGreaterThan(0)
     for (const user of userRows) {
       expect(user.line, frame.text).not.toContain("final paragraph")
-      expect(finalRows.some((final) => final.row === user.row), frame.text).toBe(false)
+      expect(
+        finalRows.some((final) => final.row === user.row),
+        frame.text,
+      ).toBe(false)
     }
     const lastFinal = Math.max(...finalRows.map(({ row }) => row))
     const firstUser = Math.min(...userRows.map(({ row }) => row))

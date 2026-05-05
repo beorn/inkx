@@ -51,10 +51,7 @@ export function resolveRef(repo: Repo, ref: string): string | null {
   //    any node can carry them. The `node_aliases` table is kept in sync
   //    with `data.aliases` JSON via SQLite triggers; reads here go through
   //    `idx_node_aliases_alias` for O(log N) reverse lookup.
-  const byAlias = repo.rawQuery<{ node_id: string }>(
-    `SELECT node_id FROM node_aliases WHERE alias = ? LIMIT 1`,
-    [ref],
-  )
+  const byAlias = repo.rawQuery<{ node_id: string }>(`SELECT node_id FROM node_aliases WHERE alias = ? LIMIT 1`, [ref])
   if (byAlias[0]) return byAlias[0].node_id
 
   return null

@@ -101,7 +101,12 @@ describe("chat model", () => {
           { cmd: "npx tsc --noEmit" },
           "Process running with session ID 40173\nOutput:\nstart\n",
         ),
-        codexTool("stdin-1", "write_stdin", { session_id: 40173, chars: "" }, "Process exited with code 0\nOutput:\nPASS\n"),
+        codexTool(
+          "stdin-1",
+          "write_stdin",
+          { session_id: 40173, chars: "" },
+          "Process exited with code 0\nOutput:\nPASS\n",
+        ),
         { kind: "text", text: "Typecheck passed." },
       ]),
     ])
@@ -144,15 +149,11 @@ describe("chat model", () => {
   })
 
   test("transcript leaves dense assistant turns intact for turn-level rendering", () => {
-    const assistant = message(
-      "a1",
-      "assistant",
-      [
-        { kind: "text", text: "First narration." },
-        ...Array.from({ length: 9 }, (_, i) => tool(`t${i}`, `cmd ${i}`)),
-        { kind: "text", text: "Final narration." },
-      ],
-    )
+    const assistant = message("a1", "assistant", [
+      { kind: "text", text: "First narration." },
+      ...Array.from({ length: 9 }, (_, i) => tool(`t${i}`, `cmd ${i}`)),
+      { kind: "text", text: "Final narration." },
+    ])
 
     const slices = splitAssistantMessageForTranscript(assistant)
 

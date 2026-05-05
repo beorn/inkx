@@ -475,7 +475,9 @@ describe("ToolCall v2 — neutral marker glyph", () => {
   })
 
   test("running non-shell tool uses stable bullet and title without spinner", () => {
-    const app = freshRender()(<ToolCall toolCall={tc({ kind: "read", status: "in_progress", title: "Read src/foo.ts" })} />)
+    const app = freshRender()(
+      <ToolCall toolCall={tc({ kind: "read", status: "in_progress", title: "Read src/foo.ts" })} />,
+    )
 
     expect(app.text).toMatch(/•\s+Read src\/foo\.ts/)
     expect(app.text).not.toContain("⠋")
