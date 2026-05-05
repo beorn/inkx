@@ -116,3 +116,24 @@ taskCommand
   .action((_options, cmd) => {
     void listStaleTasks(cmd.optsWithGlobals())
   })
+
+// Add ready subcommand — preset for `--status todo --unblocked`.
+// Mirrors the surface of `bd ready` so a contributor never has to remember
+// the long-form filter combo for "what's available to work on right now".
+// Display flags mirror the parent `tasks` command (--detail, --flat, --id,
+// --json, --limit) so output stays consistent across the suite.
+taskCommand
+  .command("ready")
+  .description("List ready tasks (todo + unblocked)")
+  .argument("[query...]", "Optional query terms (forwarded to tasks list)")
+  .option("-V, --detail", "Show more details")
+  .option("-f, --flat", "Show path on single line")
+  .option("-i, --id", "Show task IDs")
+  .option("-n, --limit <n>", "Limit number of results")
+  .option("-p, --priority <value>", "Filter by priority (e.g. P1, P2, or 0-4)")
+  .option("--assignee <name>", "Filter by assignee (use 'me' for current user)")
+  .option("--json", "Output as JSON")
+  .action((queryArgs: string[], options) => {
+    const queryStr = queryArgs.length > 0 ? queryArgs.join(" ") : undefined
+    void listTasks(queryStr, { ...options, status: "todo", unblocked: true })
+  })
