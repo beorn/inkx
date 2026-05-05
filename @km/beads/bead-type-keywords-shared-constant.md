@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beads/bead-type-keywords-shared-constant"
 aliases:
   - km-beads.bead-type-keywords-shared-constant
@@ -9,9 +11,8 @@ type: bug
 priority: P2
 status: todo
 parent: km-beads
+_stub: true
 ---
-
-# [ ] Share BEAD_TYPE_KEYWORDS constant across set-clear-plan + queries (drift bug) @km/beads #bug #P2
 
 The list of valid bead type keywords is duplicated and has already drifted:
 
@@ -43,3 +44,4 @@ Currently the drift is silent — neither path errors when the set diverges. Sha
 ## Surfaced by
 
 Code-quality agent in session f9eb64dc.
+

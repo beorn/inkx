@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beads/queries-decompose-node-to-bead"
 aliases:
   - km-beads.queries-decompose-node-to-bead
@@ -9,9 +11,8 @@ type: task
 priority: P2
 status: todo
 parent: km-beads
+_stub: true
 ---
-
-# [ ] Decompose nodeToBead (140+ lines) into named pure resolvers @km/beads #task #P2
 
 `packages/km-beads/src/queries.ts` `nodeToBead` is 140+ lines mixing five concerns inline: priority resolution, status derivation, type extraction, blocker counting, shortId fallback. Each concern is its own algorithm and deserves a name.
 
@@ -67,3 +68,4 @@ export function nodeToBead(node: KNode, options?: BeadsQueryOptions): Bead {
 ## Surfaced by
 
 Code-quality agent in session f9eb64dc. P1 flagged due to complexity + tight coupling to property tests.
+
