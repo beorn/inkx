@@ -29,8 +29,10 @@ export interface CreateTaskOptions {
    * stays untagged. Mirrored into `data.tags` next to priority. */
   type?: string
   /** Explicit canonical id (path-form or bare scope/slug). Stored at
-   * `data.id` so `tasks <id>` resolves it. Skips the auto-id helper. */
-  id?: string
+   * `data.id` so `tasks <id>` resolves it. Skips the auto-id helper.
+   * Surfaced as `--task-id` because the bare `--id` slot is taken by
+   * the `--id` (boolean) display flag on the parent `tasks` command. */
+  taskId?: string
   /** Comma-separated alias list, written to `data.aliases`. */
   aliases?: string
   /** Explicit parent ref (id, path, or filename). Resolved via
@@ -83,7 +85,9 @@ export async function createTask(
     process.exit(1)
   }
 
-  const { node } = planNewTask(content, options)
+  // Map `--task-id` (avoids conflicting with the `-i, --id` display flag
+   // on the parent `tasks` command) onto the planner's `id` slot.
+  const { node } = planNewTask(content, { ...options, id: options.taskId })
   const nodeId = repo.addNode(parentId, node)
 
   if (options.json) {
