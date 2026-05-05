@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/typed-repo-surface-completeness-tests"
 aliases:
   - km-storage.typed-repo-surface-completeness-tests
@@ -9,9 +11,19 @@ type: task
 priority: P3
 status: todo
 parent: km-storage
+_stub: true
+closeReason: "Shipped at 32fb5b1dc. Added
+  packages/km-storage/tests/repo/typed-surface.test.ts with 11 compile-time pins
+  covering: Repo/SyncableRepo no-emitter, Repo required fields, SyncableRepo
+  minimal shape, getRepoEmitter/hasRepoEmitter exact signatures,
+  withSync(emitter, config?) arity (L4 plateau invariant — emitter is FIRST
+  positional), withFsWriter(repo, emitter) shape, and Repo.apply/commit
+  signatures. Pattern B (conditional-type Assert<>) matches the existing
+  repo-emitter-not-public.test.ts style. Also documented the surface-change
+  protocol in packages/km-storage/CLAUDE.md. Sanity-verified by temporarily
+  flipping getRepoEmitter to return Emitter | undefined → tsc errored as
+  expected; reverted. Tests: 18 pass (10 new + 8 from companion file)."
 ---
-
-# [ ] Add compile-time pinning tests for the typed Repo / SyncableRepo public surface @km/storage #task #P3
 
 The `df353f2c7` SyncConfig migration shipped `repo-emitter-not-public.test.ts` which pins one specific invariant: `"emitter" extends keyof Repo` is `false`. That works.
 
@@ -46,3 +58,4 @@ It's plumbing for the plumbing. Real correctness today (df353f2c7 shipped + repo
 ## Surfaced by
 
 The /complete pass after the L4 emitter migration. The `sync-legacy-cleanup` 2026-04-03 close was premature because the verification was a grep, not a typed invariant. This bead encodes the lesson.
+
