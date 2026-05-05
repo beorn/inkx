@@ -37,6 +37,7 @@ export type AmbientStreamEntry = {
   readonly source: string
   readonly timestamp: number
   readonly content: string
+  readonly meta?: Readonly<Record<string, unknown>>
   readonly actionable?: boolean
 }
 
@@ -87,6 +88,7 @@ function toEntry(event: ChannelEvent): AmbientStreamEntry {
     source: event.source,
     timestamp: event.timestamp,
     content: event.content,
+    meta: event.meta,
     actionable: event.actionable === true ? true : undefined,
   }
 }

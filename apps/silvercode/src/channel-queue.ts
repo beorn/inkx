@@ -49,6 +49,46 @@ export type ChannelEvent = {
   readonly actionable?: boolean
 }
 
+const LINK_META_KEYS = new Set(["href", "url", "link", "html_url", "htmlUrl", "details_url", "detailsUrl"])
+const DETAILS_META_KEYS = new Set(["details", "body", "description"])
+
+function stringMeta(meta: Readonly<Record<string, unknown>>, key: string): string | undefined {
+  const value = meta[key]
+  return typeof value === "string" && value.trim().length > 0 ? value : undefined
+}
+
+function firstStringMeta(meta: Readonly<Record<string, unknown>>, keys: readonly string[]): string | undefined {
+  for (const key of keys) {
+    const value = stringMeta(meta, key)
+    if (value) return value
+  }
+  return undefined
+}
+
+function isHttpUrl(value: string): boolean {
+  return /^https?:\/\//.test(value)
+}
+
+function normalizeEventMeta(meta: ChannelEvent["meta"]): ChannelEvent["meta"] {
+  if (!meta) return undefined
+  const href = firstStringMeta(meta, ["href", "html_url", "htmlUrl", "url", "link", "details_url", "detailsUrl"])
+  const details = firstStringMeta(meta, ["details", "body", "description"])
+  const out: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(meta)) {
+    if (LINK_META_KEYS.has(key) || DETAILS_META_KEYS.has(key)) continue
+    out[key] = value
+  }
+  if (href && isHttpUrl(href)) out["href"] = href
+  if (details) out["details"] = details
+  return Object.keys(out).length > 0 ? out : undefined
+}
+
+function normalizeEvent(event: ChannelEvent): ChannelEvent {
+  const meta = normalizeEventMeta(event.meta)
+  if (meta === event.meta) return event
+  return { ...event, meta }
+}
+
 /**
  * Read/write surface for the channel queue. Producers call `enqueue`;
  * consumers call `drain` (whole-queue), `peek` (non-destructive), or
@@ -112,11 +152,12 @@ export function createChannelQueue(scope: Scope): ChannelQueue {
   return {
     enqueue(event: ChannelEvent): void {
       if (disposed) return
-      events.push(event)
+      const normalized = normalizeEvent(event)
+      events.push(normalized)
       notifyCount()
       for (const fn of subs) {
         try {
-          fn(event)
+          fn(normalized)
         } catch {
           /* a misbehaving subscriber must not block the queue */
         }

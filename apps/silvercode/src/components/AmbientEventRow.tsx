@@ -8,7 +8,7 @@
  *
  *   • Tribe peer alice opened PR #42
  *
- * Layout: neutral bullet | source action | preview (flex 1, ellipsised).
+ * Layout: neutral bullet | source action | preview (flex 1, wrapped).
  * No source-specific color or fill; hover fill appears only for rows with
  * expandable content.
  *
@@ -33,6 +33,7 @@ import React from "react"
 import { Box, Muted, Small, Text, useHover, usePopoverHandlers } from "silvery"
 import { BoundedScroll } from "./BoundedScroll.tsx"
 import { Content, useHasContentLayout } from "./Content.tsx"
+import { LinkedTerm } from "./LinkedTerm.tsx"
 import { SessionEntry } from "./SessionEntry.tsx"
 
 /**
@@ -47,6 +48,7 @@ export type AmbientStreamEntry = {
   readonly source: string
   readonly timestamp: number
   readonly content: string
+  readonly meta?: Readonly<Record<string, unknown>>
   readonly actionable?: boolean
 }
 
@@ -156,9 +158,42 @@ function parseChannelTag(raw: string): FormattedContent | null {
   const from = attrs.match(/\bfrom="([^"]*)"/)?.[1] ?? "?"
   const type = attrs.match(/\btype="([^"]*)"/)?.[1] ?? "channel"
   const innerFlat = inner.replace(/\s+/g, " ").trim()
-  const preview = clip(innerFlat.length > 0 ? `${type} from ${from} — ${innerFlat}` : `${type} from ${from}`, 80)
+  const preview = innerFlat.length > 0 ? `${type} from ${from} — ${innerFlat}` : `${type} from ${from}`
   const body = innerFlat.length > 0 ? `${type} · from ${from}\n\n${inner}` : preview
   return { preview, body, disclosureBody: inner }
+}
+
+function splitCpuProcessItems(raw: string): string[] {
+  return raw
+    .split(/,\s+(?=\d+(?:\.\d+)?%)/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0)
+}
+
+function parseCpuWarning(raw: string): FormattedContent | null {
+  const m = raw
+    .trim()
+    .match(/^(CPU warning:\s+load\b.+?\bfor\s+\d+s)\.?\s*(.*)$/i)
+  if (!m) return null
+  const preview = m[1]?.trim() ?? ""
+  const details = m[2]?.trim() ?? ""
+  if (!preview || !details) return null
+  if (!/^[^:|]+:\s+\S/.test(details)) return null
+
+  const lines: string[] = [preview]
+  for (const section of details.split(/\s+\|\s+/)) {
+    const sectionMatch = section.match(/^([^:]+):\s*(.+)$/)
+    if (!sectionMatch) {
+      for (const item of splitCpuProcessItems(section)) lines.push(item)
+      continue
+    }
+    const label = sectionMatch[1]?.trim()
+    const body = sectionMatch[2]?.trim() ?? ""
+    if (label) lines.push(label)
+    for (const item of splitCpuProcessItems(body)) lines.push(`  ${item}`)
+  }
+
+  return { preview, body: lines.join("\n"), disclosureBody: lines.join("\n") }
 }
 
 function formatContent(raw: string): FormattedContent {
@@ -166,8 +201,10 @@ function formatContent(raw: string): FormattedContent {
   if (recall) return recall
   const channel = parseChannelTag(raw)
   if (channel) return channel
+  const cpu = parseCpuWarning(raw)
+  if (cpu) return cpu
   const flat = raw.replace(/\s+/g, " ").trim()
-  return { preview: clip(flat, 80), body: raw }
+  return { preview: flat, body: raw }
 }
 
 function dedupeSourcePrefix(label: string, source: string, preview: string): string {
@@ -242,6 +279,16 @@ function dedupeSourcePrefix(label: string, source: string, preview: string): str
 
 function normalizeDisclosureText(text: string): string {
   return text.replace(/\s+/g, " ").trim()
+}
+
+function ambientHref(entry: AmbientStreamEntry): string | undefined {
+  const href = entry.meta?.["href"]
+  return typeof href === "string" && /^https?:\/\//.test(href) ? href : undefined
+}
+
+function ambientDetails(entry: AmbientStreamEntry): string | undefined {
+  const details = entry.meta?.["details"]
+  return typeof details === "string" && details.trim().length > 0 ? details : undefined
 }
 
 export interface AmbientEventRowProps {
@@ -371,7 +418,9 @@ export function AmbientEventRow({
   const time = formatTime(entry.timestamp)
   const formatted = formatContent(entry.content)
   const preview = previewOverride ?? dedupeSourcePrefix(label, entry.source, formatted.preview)
-  const disclosureBody = bodyOverride ?? formatted.disclosureBody ?? formatted.body
+  const href = ambientHref(entry)
+  const metaDetails = ambientDetails(entry)
+  const disclosureBody = bodyOverride ?? metaDetails ?? formatted.disclosureBody ?? formatted.body
   const hasAdditionalContent =
     normalizeDisclosureText(disclosureBody).length > 0 &&
     normalizeDisclosureText(disclosureBody) !== normalizeDisclosureText(preview) &&
@@ -394,7 +443,7 @@ export function AmbientEventRow({
           <Box flexGrow={1} />
           <Small>{time}</Small>
         </Box>
-        <Text wrap="wrap">{bodyOverride ?? formatted.body}</Text>
+        <Text wrap="wrap">{bodyOverride ?? disclosureBody}</Text>
       </Box>
     ),
     maxWidth: 80,
@@ -430,13 +479,28 @@ export function AmbientEventRow({
           <Text bold color="$muted">
             {label}
           </Text>
-          {/* Preview — flex 1, single line. flexShrink + minWidth=0 so
-              long payloads truncate via the ellipsis above rather than
-              pushing siblings off-screen. */}
+          {/* Preview — flex 1, wrapping. flexShrink + minWidth=0 keeps long
+              payloads inside the content lane instead of pushing siblings
+              or the side panel off-screen. */}
           <Box flexGrow={1} flexShrink={1} minWidth={0}>
-            <Text color="$muted" wrap="truncate">
-              {preview}
-            </Text>
+            {href ? (
+              <LinkedTerm
+                href={href}
+                color="$muted"
+                popoverBody={
+                  <Box flexDirection="column">
+                    <Text bold>{preview}</Text>
+                    <Text wrap="wrap">{disclosureBody}</Text>
+                  </Box>
+                }
+              >
+                {preview}
+              </LinkedTerm>
+            ) : (
+              <Text color="$muted" wrap="wrap">
+                {preview}
+              </Text>
+            )}
           </Box>
         </Box>
       </SessionEntry>
@@ -449,7 +513,7 @@ export function AmbientEventRow({
         <Box flexDirection="column" paddingBottom={0}>
           <BoundedScroll>
             <Text wrap="wrap" color="$muted">
-              {bodyOverride ?? formatted.body}
+              {disclosureBody}
             </Text>
           </BoundedScroll>
         </Box>

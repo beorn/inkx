@@ -69,6 +69,13 @@ type CheckRun = {
   readonly name: string
   readonly status: CheckStatus
   readonly conclusion: CheckConclusion
+  readonly htmlUrl?: string
+  readonly detailsUrl?: string
+  readonly output?: {
+    readonly title?: string
+    readonly summary?: string
+    readonly text?: string
+  }
 }
 
 type CheckRunsResponse = {
@@ -144,9 +151,84 @@ export async function probeCiOnce(opts: {
       name: typeof r.name === "string" ? r.name : "",
       status: (typeof r.status === "string" ? r.status : "") as CheckStatus,
       conclusion: (typeof r.conclusion === "string" ? r.conclusion : "") as CheckConclusion,
+      htmlUrl:
+        typeof (r as { html_url?: unknown }).html_url === "string" ? (r as { html_url: string }).html_url : undefined,
+      detailsUrl:
+        typeof (r as { details_url?: unknown }).details_url === "string"
+          ? (r as { details_url: string }).details_url
+          : undefined,
+      output: parseCheckOutput((r as { output?: unknown }).output),
     })
   }
   return { branch, sha, runs }
+}
+
+function parseCheckOutput(value: unknown): CheckRun["output"] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined
+  const record = value as Record<string, unknown>
+  const output = {
+    title: typeof record["title"] === "string" ? record["title"] : undefined,
+    summary: typeof record["summary"] === "string" ? record["summary"] : undefined,
+    text: typeof record["text"] === "string" ? record["text"] : undefined,
+  }
+  return output.title || output.summary || output.text ? output : undefined
+}
+
+function aggregateCi(runs: readonly CheckRun[]): "failure" | "success" | "pending" {
+  let allCompleted = true
+  let anyFailure = false
+  for (const r of runs) {
+    if (r.status !== "completed") allCompleted = false
+    if (
+      r.conclusion === "failure" ||
+      r.conclusion === "cancelled" ||
+      r.conclusion === "timed_out" ||
+      r.conclusion === "action_required"
+    ) {
+      anyFailure = true
+    }
+  }
+  if (anyFailure) return "failure"
+  if (allCompleted) return "success"
+  return "pending"
+}
+
+function failedRuns(runs: readonly CheckRun[]): CheckRun[] {
+  return runs.filter(
+    (r) =>
+      r.conclusion === "failure" ||
+      r.conclusion === "cancelled" ||
+      r.conclusion === "timed_out" ||
+      r.conclusion === "action_required",
+  )
+}
+
+function firstRunHref(runs: readonly CheckRun[]): string | undefined {
+  for (const run of runs) {
+    if (run.htmlUrl) return run.htmlUrl
+    if (run.detailsUrl) return run.detailsUrl
+  }
+  return undefined
+}
+
+function formatRunDetails(run: CheckRun): string {
+  const lines = [`- ${run.name || "unnamed check"}: ${run.conclusion || run.status || "unknown"}`]
+  if (run.output?.title) lines.push(`  ${run.output.title}`)
+  if (run.output?.summary) lines.push(`  ${run.output.summary}`)
+  if (run.output?.text) lines.push(`  ${run.output.text}`)
+  if (run.htmlUrl) lines.push(`  ${run.htmlUrl}`)
+  if (run.detailsUrl && run.detailsUrl !== run.htmlUrl) lines.push(`  ${run.detailsUrl}`)
+  return lines.join("\n")
+}
+
+function ciDetails(runs: readonly CheckRun[]): string | undefined {
+  if (runs.length === 0) return undefined
+  return runs.map(formatRunDetails).join("\n")
+}
+
+export type CiDiffEvent = {
+  readonly content: string
+  readonly meta?: Readonly<Record<string, unknown>>
 }
 
 /**
@@ -157,32 +239,18 @@ export function diffCi(
   prev: { sha: string; runs: readonly CheckRun[] } | null,
   next: { sha: string; runs: readonly CheckRun[] },
 ): string | null {
+  return diffCiEvent(prev, next)?.content ?? null
+}
+
+export function diffCiEvent(
+  prev: { sha: string; runs: readonly CheckRun[] } | null,
+  next: { sha: string; runs: readonly CheckRun[] },
+): CiDiffEvent | null {
   if (next.runs.length === 0) return null
-  // Aggregate state: failure if any conclusion is failure/cancelled/timed_out;
-  // success if all completed and all conclusions are success;
-  // pending otherwise.
-  const aggregate = (runs: readonly CheckRun[]): "failure" | "success" | "pending" => {
-    let allCompleted = true
-    let anyFailure = false
-    for (const r of runs) {
-      if (r.status !== "completed") allCompleted = false
-      if (
-        r.conclusion === "failure" ||
-        r.conclusion === "cancelled" ||
-        r.conclusion === "timed_out" ||
-        r.conclusion === "action_required"
-      ) {
-        anyFailure = true
-      }
-    }
-    if (anyFailure) return "failure"
-    if (allCompleted) return "success"
-    return "pending"
-  }
-  const prevAgg = prev ? aggregate(prev.runs) : null
-  const nextAgg = aggregate(next.runs)
+  const prevAgg = prev ? aggregateCi(prev.runs) : null
+  const nextAgg = aggregateCi(next.runs)
   if (prev && prev.sha === next.sha && prevAgg === nextAgg) return null
-  const failed = next.runs.filter((r) => r.conclusion === "failure" || r.conclusion === "cancelled")
+  const failed = failedRuns(next.runs)
   const sha7 = next.sha.slice(0, 7)
   if (nextAgg === "failure") {
     const names = failed
@@ -190,10 +258,29 @@ export function diffCi(
       .filter(Boolean)
       .slice(0, 3)
       .join(", ")
-    return `[ci ${sha7}] failure${names ? `: ${names}` : ""}`
+    const href = firstRunHref(failed)
+    const details = ciDetails(failed)
+    return {
+      content: `[ci ${sha7}] failure${names ? `: ${names}` : ""}`,
+      meta: {
+        kind: "ci-state",
+        sha: next.sha,
+        href,
+        details,
+        failedChecks: failed.map((r) => r.name).filter(Boolean),
+      },
+    }
   }
-  if (nextAgg === "success") return `[ci ${sha7}] all checks passing`
-  return `[ci ${sha7}] checks pending (${next.runs.length})`
+  if (nextAgg === "success") {
+    return {
+      content: `[ci ${sha7}] all checks passing`,
+      meta: { kind: "ci-state", sha: next.sha, href: firstRunHref(next.runs), details: ciDetails(next.runs) },
+    }
+  }
+  return {
+    content: `[ci ${sha7}] checks pending (${next.runs.length})`,
+    meta: { kind: "ci-state", sha: next.sha, href: firstRunHref(next.runs), details: ciDetails(next.runs) },
+  }
 }
 
 /**
@@ -217,14 +304,14 @@ export function registerCiAmbientAdapter(opts: CiAdapterOptions): () => void {
       if (!next) {
         dCi("no head sha — skipping tick")
       } else {
-        const content = diffCi(prev, next)
-        if (content) {
+        const diff = diffCiEvent(prev, next)
+        if (diff) {
           emit({
             id: makeAmbientEventId(SOURCE),
             source: SOURCE,
             timestamp: Date.now(),
-            content,
-            meta: { kind: "ci-state", branch: next.branch, sha: next.sha },
+            content: diff.content,
+            meta: { ...diff.meta, kind: "ci-state", branch: next.branch, sha: next.sha },
           })
         }
         prev = { sha: next.sha, runs: next.runs }

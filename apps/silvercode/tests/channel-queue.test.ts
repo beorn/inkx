@@ -106,4 +106,25 @@ describe("channel-queue", () => {
     expect(seen).toEqual(["a", "b"])
     expect(q.pendingCount()).toBe(2)
   })
+
+  test("enqueue normalizes incoming notification metadata to href/details", () => {
+    const scope = createScope("test")
+    const q = createChannelQueue(scope)
+    q.enqueue(
+      ev("ci", "failure", {
+        meta: {
+          kind: "ci-state",
+          html_url: "https://github.com/acme/repo/actions/runs/123",
+          body: "failed test output",
+          link: "https://fallback.example.com/ignored",
+        },
+      }),
+    )
+
+    expect(q.peek()[0]?.meta).toEqual({
+      kind: "ci-state",
+      href: "https://github.com/acme/repo/actions/runs/123",
+      details: "failed test output",
+    })
+  })
 })

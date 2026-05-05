@@ -9,7 +9,7 @@
 import { describe, expect, test } from "vitest"
 import { createScope } from "@silvery/scope"
 import { createChannelQueue } from "../../src/channel-queue.ts"
-import { diffCi, probeCiOnce, registerCiAmbientAdapter } from "../../src/ambient-adapters/ci.ts"
+import { diffCi, diffCiEvent, probeCiOnce, registerCiAmbientAdapter } from "../../src/ambient-adapters/ci.ts"
 
 const SHA = "abcdef0123456789"
 const SHA7 = "abcdef0"
@@ -32,7 +32,13 @@ describe("ambient-adapter/ci", () => {
         cwd: "/tmp",
         gitState: fakeGitState(),
         runGh: fakeGh([
-          { name: "build", status: "completed", conclusion: "success" },
+          {
+            name: "build",
+            status: "completed",
+            conclusion: "success",
+            html_url: "https://github.com/acme/repo/runs/1",
+            output: { title: "ok", summary: "green" },
+          },
           { name: "test", status: "completed", conclusion: "success" },
         ]),
       })
@@ -40,6 +46,8 @@ describe("ambient-adapter/ci", () => {
       const runs = result?.runs ?? []
       expect(runs).toHaveLength(2)
       expect(runs[0]?.conclusion).toBe("success")
+      expect(runs[0]?.htmlUrl).toBe("https://github.com/acme/repo/runs/1")
+      expect(runs[0]?.output?.summary).toBe("green")
     })
 
     test("returns null when no head sha is available", async () => {
@@ -105,6 +113,33 @@ describe("ambient-adapter/ci", () => {
 
     test("returns null when the next snapshot has no runs", () => {
       expect(diffCi(null, { sha: SHA, runs: [] })).toBeNull()
+    })
+
+    test("returns a linkable event summary with failed check details", () => {
+      const msg = diffCiEvent(null, {
+        sha: SHA,
+        runs: [
+          {
+            name: "Workers Builds: km-website",
+            status: "completed",
+            conclusion: "failure",
+            htmlUrl: "https://github.com/acme/repo/actions/runs/123/job/456",
+            detailsUrl: "https://dash.cloudflare.com/builds/789",
+            output: {
+              title: "Deploy failed",
+              summary: "Pages deployment failed",
+              text: "Missing KV namespace binding",
+            },
+          },
+        ],
+      })
+
+      expect(msg?.content).toContain("failure")
+      expect(msg?.meta?.href).toBe("https://github.com/acme/repo/actions/runs/123/job/456")
+      expect(msg?.meta?.details).toContain("Workers Builds: km-website")
+      expect(msg?.meta?.details).toContain("Deploy failed")
+      expect(msg?.meta?.details).toContain("Missing KV namespace binding")
+      expect(msg?.meta?.details).toContain("https://dash.cloudflare.com/builds/789")
     })
   })
 
