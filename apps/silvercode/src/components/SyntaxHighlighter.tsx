@@ -136,6 +136,7 @@ export function SyntaxHighlighter({
       maxWidth="100%"
       minWidth={0}
       backgroundColor="$bg-surface-subtle"
+      paddingX={1}
       onMouseEnter={hover.onMouseEnter}
       onMouseLeave={hover.onMouseLeave}
     >

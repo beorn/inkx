@@ -19,6 +19,7 @@ import { renderScenario } from "../../src/test/render-harness.tsx"
 import { markdownRich } from "../../src/test/scripts/markdownRich.ts"
 import { parseFrame } from "../../src/test/parse-frame.ts"
 import { expectLayoutInvariants } from "./_invariants.ts"
+import { leftWidthFor } from "../../src/test/render-harness.tsx"
 
 describe("markdown rendering at multiple widths", () => {
   // Excludes 40 from invariants because at 40 cols, the side panel
@@ -31,8 +32,7 @@ describe("markdown rendering at multiple widths", () => {
   // hidden so the message area gets the full width. Tests at cols < 120
   // need to tell parseFrame that no panel is present (leftWidth = cols).
   const PANEL_AUTO_OPEN_COLS = 120
-  const SIDE_PANEL_W = 40
-  const expectedLeftWidth = (cols: number): number => (cols >= PANEL_AUTO_OPEN_COLS ? cols - SIDE_PANEL_W : cols)
+  const expectedLeftWidth = (cols: number): number => leftWidthFor(cols)
 
   for (const cols of widths) {
     test(`markdownRich at cols=${cols}: layout invariants hold`, async () => {

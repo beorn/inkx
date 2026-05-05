@@ -1,5 +1,5 @@
 import React, { useMemo } from "react"
-import { Box, Blockquote, Divider, H1, H2, H3, H4, Link, Prose, Text } from "silvery"
+import { Box, Divider, H1, H2, H3, H4, Link, Prose, Text } from "silvery"
 import { parseBlocks, type MdBlock, type MdInline } from "../markdown.ts"
 import { LinkifiedText } from "./LinkifiedText.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
@@ -162,7 +162,7 @@ function renderBlock(
         ),
       )
     case "quote":
-      return prose(inset(<Blockquote key={i}>{b.text}</Blockquote>))
+      return prose(inset(<QuoteBlock key={i} text={b.text} />))
     case "code": {
       const language = b.language || "plain"
       return prose(<SyntaxHighlighter key={i} language={language} code={b.code} />)
@@ -177,6 +177,32 @@ function renderBlock(
       }
       return <Content.Table key={i} headers={b.headers} rows={b.rows} alignments={b.alignments} />
   }
+}
+
+function QuoteBlock({ text }: { text: string }): React.ReactElement {
+  const lines = text.split("\n")
+  return (
+    <Box
+      flexDirection="column"
+      position="relative"
+      width="100%"
+      minWidth={0}
+      backgroundColor="$bg-surface-subtle"
+      paddingX={1}
+      paddingY={1}
+    >
+      <Box position="absolute" top={0} right={1} flexDirection="row" backgroundColor="$bg-surface-subtle">
+        <Text color="$fg-muted" backgroundColor="$bg-surface-subtle">
+          plain
+        </Text>
+      </Box>
+      {lines.map((line, index) => (
+        <Text key={index} color="$fg-muted" backgroundColor="$bg-surface-subtle" wrap="wrap">
+          {line}
+        </Text>
+      ))}
+    </Box>
+  )
 }
 
 function InlineTableCards({

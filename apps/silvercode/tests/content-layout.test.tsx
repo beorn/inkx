@@ -896,6 +896,25 @@ describe("content layout", () => {
     expect(app.cell(codeCol, codeRow).bg).not.toBeNull()
   })
 
+  test("assistant markdown blockquotes are borderless prose blocks with a top-right plain label", () => {
+    const cols = 96
+    const renderer = createRenderer({ cols, rows: 12 })
+    const app = renderer(
+      <Box width={cols} height={12} flexDirection="column">
+        <Content.Layout>
+          <MarkdownView source={"> quoted text stays in the prose lane"} />
+        </Content.Layout>
+      </Box>,
+    )
+
+    expect(app.text).not.toContain("│")
+    const labelRow = app.lines.findIndex((line) => line.includes("plain"))
+    const quoteRow = app.lines.findIndex((line) => line.includes("quoted text"))
+    expect(labelRow, app.text).toBeGreaterThanOrEqual(0)
+    expect(quoteRow, app.text).toBeGreaterThan(labelRow)
+    expect(app.lines[labelRow]!.indexOf("plain")).toBeGreaterThan(app.lines[quoteRow]!.indexOf("quoted text"))
+  })
+
   test("auto body width stays in the prose lane even when expanded", () => {
     const cols = 140
     const renderer = createRenderer({ cols, rows: 10 })

@@ -36,9 +36,14 @@ describe("renderResumedSession", () => {
       for (let i = 0; i < 100; i++) await session.app.wheel(100, 50, -1)
     })
 
-    const firstContentRow = stripAnsi(session.text)
-      .split("\n")
-      .findIndex((line) => line.trim().length > 0)
+    const textLines = stripAnsi(session.text).split("\n")
+    const firstContentRow = textLines.findIndex((line, row) => {
+      if (line.trim().length > 0) return true
+      for (let col = 0; col < session.cols; col++) {
+        if (session.app.cell(col, row).bg !== null) return true
+      }
+      return false
+    })
 
     expect(firstContentRow, session.text).toBeGreaterThanOrEqual(0)
     expect(firstContentRow, session.text).toBeLessThanOrEqual(1)
