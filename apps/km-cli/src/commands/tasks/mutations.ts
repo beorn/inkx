@@ -7,12 +7,64 @@
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
-import { parseTaskMetadata, extractTags, Task } from "@km/storage"
+import { Task, type Repo } from "@km/storage"
 import { resolvePathArg } from "@km/fs-mount"
 import { loadRepo } from "../../load-repo.ts"
 import { getRootPath } from "../../program.ts"
 import { Bead } from "@km/beads"
 import { resolveAssignee } from "../../utils/assignee.ts"
+import { planNewTask } from "./mutations-plan.ts"
+
+// Re-export the planner so existing imports keep working.
+export { planNewTask, type PlanNewTaskOptions, type PlannedTaskNode } from "./mutations-plan.ts"
+
+/**
+ * Options for `tasks --new`. Flags surface bead-frontmatter fields so a
+ * task can be created with the same shape `bd create` produces, without
+ * routing through bd. Pure extension — every flag is optional.
+ */
+export interface CreateTaskOptions {
+  json?: boolean
+  /** Bead-style type tag (bug, feature, epic, …). `task` is implicit and
+   * stays untagged. Mirrored into `data.tags` next to priority. */
+  type?: string
+  /** Explicit canonical id (path-form or bare scope/slug). Stored at
+   * `data.id` so `tasks <id>` resolves it. Skips the auto-id helper. */
+  id?: string
+  /** Comma-separated alias list, written to `data.aliases`. */
+  aliases?: string
+  /** Explicit parent ref (id, path, or filename). Resolved via
+   * `repo.resolveNode` + `repo.resolveByName`. Overrides the positional
+   * `pathOrId` argument when both are given. */
+  parent?: string
+  /** Priority hashtag value (P0..P4 / 0..4). Mirrored into `data.tags`. */
+  priority?: string
+  /** Initial assignee. Stored at `node.assigned_to`. */
+  owner?: string
+}
+
+/**
+ * Resolve the parent for `tasks --new`. `--parent` flag wins; the
+ * positional `pathOrId` is the bd-compat fallback. Returns null when no
+ * parent was specified, or when the user's input failed to resolve.
+ */
+function resolveCreateParent(
+  repo: Repo,
+  pathOrId: string | undefined,
+  options: Pick<CreateTaskOptions, "parent">,
+): { parentId: string | null; error?: string } {
+  const ref = options.parent ?? pathOrId
+  if (!ref) return { parentId: null }
+  const direct = Task.findByPathOrId(repo, ref, (r) => Bead.resolve(repo, r))
+  if (direct) return { parentId: direct.id }
+  // `--parent` allows arbitrary refs (path / name / id). Try the lower-
+  // level resolvers as a fallback so a path like `@km/scope` reparents.
+  if (options.parent) {
+    const fallback = repo.resolveNode(ref) ?? repo.resolveByName(ref)
+    if (fallback) return { parentId: fallback.id }
+  }
+  return { parentId: null, error: `Parent not found: ${ref}` }
+}
 
 /**
  * Create a task under a parent
@@ -20,41 +72,19 @@ import { resolveAssignee } from "../../utils/assignee.ts"
 export async function createTask(
   pathOrId: string | undefined,
   content: string,
-  options: { json?: boolean },
+  options: CreateTaskOptions,
 ): Promise<void> {
   const resolved = resolvePathArg(process.cwd(), getRootPath())
   using repo = await loadRepo(resolved.repoRoot)
 
-  // Parse metadata from content
-  const metadata = parseTaskMetadata(content)
-  const tags = extractTags(content)
-
-  // Resolve parent
-  let parentId: string | null = null
-  if (pathOrId) {
-    const parent = Task.findByPathOrId(repo, pathOrId, (r) => Bead.resolve(repo, r))
-    if (!parent) {
-      console.error(term.red(`Parent not found: ${pathOrId}`))
-      process.exit(1)
-    }
-    parentId = parent.id
+  const { parentId, error } = resolveCreateParent(repo, pathOrId, options)
+  if (error) {
+    console.error(term.red(error))
+    process.exit(1)
   }
 
-  // priority dissolved as a column at SCHEMA_VERSION=11 — surface it via
-  // data.tags '#P[0-4]' (canonical authored form). kmRefsTransform will
-  // re-derive on parse from the H1 hashtag once the markdown is round-
-  // tripped; for direct addNode (no markdown round-trip) we seed the tag
-  // manually so getNodePriority() can read it.
-  const allTags = metadata.priority && !tags.some((t) => /^P[0-4]$/i.test(t)) ? [...tags, metadata.priority] : tags
-
-  const nodeId = repo.addNode(parentId, {
-    type: "p",
-    item: { list: "-", task: { marker: "[ ]", status: "todo" } },
-    content: content,
-    due_at: metadata.dueAt,
-    start_at: metadata.startAt,
-    data: allTags.length > 0 ? { tags: allTags } : {},
-  })
+  const { node } = planNewTask(content, options)
+  const nodeId = repo.addNode(parentId, node)
 
   if (options.json) {
     console.log(JSON.stringify({ id: nodeId }))
