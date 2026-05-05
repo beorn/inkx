@@ -16,6 +16,7 @@ import {
   createBareRepo,
   createTestRepo,
   createMemDataStore,
+  getRepoEmitter,
   type Repo,
   type StepYield,
 } from "../src/index.ts"
@@ -565,7 +566,7 @@ describe("Repo mutations trigger FS projection", () => {
     mkdirSync(join(tempDir, ".km"), { recursive: true })
     const repo = runGenerator(createRepo(tempDir, { loadFiles: false }))
     // Subscribe to apply() to capture events flowing through the FS projection layer
-    repo.emitter.onApply((event, options) => {
+    getRepoEmitter(repo).onApply((event, options) => {
       if (options.source !== "fs-import") {
         events.push(event)
       }
@@ -686,7 +687,8 @@ describe("FS write-back decorator", () => {
     const repo = runGenerator(createRepo(tempDir, { loadFiles: false }))
 
     // Verify emitter.apply is wrapped (it's not the bare commit)
-    expect(repo.emitter.apply).not.toBe(repo.emitter.commit)
+    const emitter = getRepoEmitter(repo)
+    expect(emitter.apply).not.toBe(emitter.commit)
 
     repo.close()
   })

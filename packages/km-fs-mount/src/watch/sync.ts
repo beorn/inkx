@@ -119,11 +119,17 @@ export interface Sync {
 
 // ─── Minimal repo shape required by withSync ────────────────────────────────
 
-/** Minimal repo interface that withSync can decorate */
+/**
+ * Minimal repo interface that withSync can decorate.
+ *
+ * Note: the emitter is **not** part of SyncableRepo. It must be passed
+ * explicitly to `withSync(emitter, config?)` — this is a structural
+ * invariant that prevents `repo.emitter` drift on the public Repo surface.
+ * See bead `@km/storage/sync-emitter-migration`.
+ */
 export interface SyncableRepo {
   readonly database: Database
   readonly path: string
-  readonly emitter: Emitter
   apply(change: Omit<Change, "id" | "ts">, options?: EmitOptions): Change
   commit(change: Omit<Change, "id" | "ts">, options?: EmitOptions): Change
 }
@@ -133,20 +139,25 @@ export interface SyncableRepo {
 /**
  * Decorator that adds bidirectional filesystem sync to a repo.
  *
+ * The emitter is passed as the first argument — explicit injection,
+ * not pulled off the repo surface. This is the L4 plateau move that
+ * prevents `repo.emitter` drift: invalid state is impossible by
+ * construction, the emitter is wired at decoration-time and closed
+ * over privately.
+ *
  * @example
- * const syncedRepo = withSync({ debounceFs: 2000 })(repo)
+ * const syncedRepo = withSync(emitter, { debounceFs: 2000 })(repo)
  * syncedRepo.start()
  * syncedRepo.apply(change) // DB + journal + broadcast + save to FS
  * await syncedRepo.stop()
  */
-export function withSync(config?: Partial<SyncConfig>) {
+export function withSync(emitter: Emitter, config?: Partial<SyncConfig>) {
   // oxlint-disable-next-line complexity/complexity -- sync-decorator factory: composes OwnershipTracker, WriteQueue, EchoGuard, Watcher, Reconciler, heartbeat, emitter wiring, FS→DB handlers, DB→FS handlers — each a separate nested closure that must share `cfg`/`db`/`repo` context
   return <R extends SyncableRepo>(repo: R): R & Sync => {
     const cfg = { ...DEFAULT_CONFIG, ...config } as SyncConfig
     const callbacks = cfg.callbacks
     const db = repo.database
     const repoPath = repo.path
-    const emitter = repo.emitter
     // ── Core services ──────────────────────────────────────────────────────
 
     const tracker: OwnershipTracker = createOwnershipTracker(db)

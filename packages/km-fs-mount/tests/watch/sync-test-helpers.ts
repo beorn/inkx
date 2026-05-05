@@ -16,13 +16,16 @@ const TEST_DEFAULTS: Partial<SyncConfig> = {
   useWorker: false,
 }
 
-/** Build a minimal SyncableRepo from db + repoPath (for tests without a full Repo) */
-function buildSyncableRepo(db: Database, repoPath: string, existingEmitter?: Emitter): SyncableRepo {
+/** Build a minimal SyncableRepo from db + repoPath (for tests without a full Repo). Returns repo + emitter so callers can pass emitter explicitly to withSync(emitter, …). */
+function buildSyncableRepo(
+  db: Database,
+  repoPath: string,
+  existingEmitter?: Emitter,
+): { repo: SyncableRepo; emitter: Emitter } {
   const emitter = existingEmitter ?? createEmitter({ kmDir: join(repoPath, ".km"), db })
-  return {
+  const repo: SyncableRepo = {
     database: db,
     path: repoPath,
-    emitter,
     apply(event, options?) {
       return emitter.apply(event, options)
     },
@@ -30,6 +33,7 @@ function buildSyncableRepo(db: Database, repoPath: string, existingEmitter?: Emi
       return emitter.commit(event, options)
     },
   }
+  return { repo, emitter }
 }
 
 // Map from Sync instance to its "ready" promise. createTestSync captures the
@@ -43,8 +47,8 @@ export function createTestSync(
   repoPath: string,
   overrides?: Partial<SyncConfig> & { callbacks?: SyncCallbacks; emitter?: Emitter },
 ): Sync {
-  const { emitter, callbacks: userCallbacks, ...syncOverrides } = overrides ?? {}
-  const repo = buildSyncableRepo(db, repoPath, emitter)
+  const { emitter: providedEmitter, callbacks: userCallbacks, ...syncOverrides } = overrides ?? {}
+  const { repo, emitter } = buildSyncableRepo(db, repoPath, providedEmitter)
 
   // Wire onReady into a promise that waitForReady() can await. Chain the
   // user-provided onReady so the test can still observe it if needed.
@@ -60,7 +64,7 @@ export function createTestSync(
     },
   }
 
-  const decorated = withSync({ ...TEST_DEFAULTS, ...syncOverrides, callbacks })(repo)
+  const decorated = withSync(emitter, { ...TEST_DEFAULTS, ...syncOverrides, callbacks })(repo)
   readyPromises.set(decorated, readyPromise)
   return decorated
 }

@@ -87,13 +87,13 @@ export function createWatcher(repoPath: string, options: WatcherOptions): Watche
 
   const handlers = new Map<string, Set<AnyHandler>>()
 
-  // Build a minimal SyncableRepo for withSync
+  // Build a minimal SyncableRepo for withSync. Emitter is wired via the
+  // explicit `withSync(emitter, …)` argument below, not on the repo surface.
   const db = options.db
   const emitter = createEmitter({ kmDir: join(repoPath, ".km"), db })
   const miniRepo: SyncableRepo = {
     database: db,
     path: repoPath,
-    emitter,
     apply(change, opts?) {
       return emitter.apply(change, opts)
     },
@@ -126,7 +126,7 @@ export function createWatcher(repoPath: string, options: WatcherOptions): Watche
     },
   }
 
-  const sync = withSync(syncConfig)(miniRepo)
+  const sync = withSync(emitter, syncConfig)(miniRepo)
 
   const watcher: Watcher = {
     get status() {

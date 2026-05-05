@@ -22,6 +22,7 @@ import { steps } from "@silvery/ag-react/ui/progress"
 import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "fs"
 import { dirname, join, resolve } from "path"
 import { withSync, findKmRootFromPath } from "@km/fs-mount"
+import { getRepoEmitter } from "@km/storage"
 import { formatPath } from "../utils/format-path.ts"
 import { loadRepo } from "../load-repo.ts"
 
@@ -109,8 +110,9 @@ export const initCommand = new Command("init")
       // Initialize repo to set up database
       using repo = await loadRepo(targetDir)
 
-      // Create sync by decorating the repo
-      const manager = withSync({
+      // Create sync by decorating the repo. Emitter is passed explicitly —
+      // not pulled off `repo.emitter` — see `@km/storage/sync-emitter-migration`.
+      const manager = withSync(getRepoEmitter(repo), {
         debounceFs: 0,
         debounceApply: 0,
         conflictStrategy: "last_write_wins",

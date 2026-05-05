@@ -55,7 +55,7 @@ export interface TestEnvRepoResult {
   repo: Repo
   /** Database instance (same as repo.database) */
   db: Database
-  /** Emitter instance (same as repo.emitter) */
+  /** Emitter instance (same as `getRepoEmitter(repo)`) */
   emitter: Emitter
   /** DataStore instance (same as repo.data) */
   data: DataStore & HasDatabase

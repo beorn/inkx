@@ -58,12 +58,12 @@ describe.sequential("Worker Thread Integration", () => {
     repo = runGenerator(createRepo(REPO_DIR, { loadFiles: false }))
     const db = repo.database
 
-    // Build a minimal SyncableRepo for withSync
+    // Build a minimal SyncableRepo for withSync. Emitter is passed
+    // explicitly to withSync(emitter, …) — not on the repo surface.
     const emitter = createEmitter({ kmDir: join(REPO_DIR, ".km"), db })
     const miniRepo: SyncableRepo = {
       database: db,
       path: REPO_DIR,
-      emitter,
       apply(event, options?) {
         return emitter.apply(event, options)
       },
@@ -73,14 +73,14 @@ describe.sequential("Worker Thread Integration", () => {
     }
 
     // Create sync with the repo's database via callbacks
-    await using syncManager = withSync({
+    await using syncManager = withSync(emitter, {
       debounceFs: 100,
       debounceApply: 50,
       conflictStrategy: "last_write_wins",
       // useWorker defaults to true - uses real worker thread
       callbacks: {
         onReady: () => readyResolve(),
-        onStateChange: (state) => {
+        onStateChange: (state: string) => {
           if (state === "reconciling" && !sawReconciling) {
             sawReconciling = true
             reconcilingResolve()

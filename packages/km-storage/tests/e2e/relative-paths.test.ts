@@ -271,7 +271,8 @@ describe("km init: withSync creates nodes under root '.'", () => {
 
     // Sync from filesystem (this is what km init does)
     const { withSync } = await import("@km/fs-mount")
-    const manager = withSync({
+    const { getRepoEmitter } = await import("@km/storage")
+    const manager = withSync(getRepoEmitter(repo), {
       debounceFs: 0,
       debounceApply: 0,
       conflictStrategy: "last_write_wins",

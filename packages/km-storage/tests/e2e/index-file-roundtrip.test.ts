@@ -30,13 +30,15 @@ import { createTestSync } from "../../../km-fs-mount/tests/watch/sync-test-helpe
 
 /** Wire FsWriter decorator to an emitter for test FS write-back */
 function wireFsWriter(db: import("bun:sqlite").Database, repoDir: string, emitter: Emitter) {
-  withFsWriter({
-    database: db,
-    path: repoDir,
+  withFsWriter(
+    {
+      database: db,
+      path: repoDir,
+      apply: (e, o?) => emitter.apply(e, o),
+      commit: (e, o?) => emitter.commit(e, o),
+    },
     emitter,
-    apply: (e, o?) => emitter.apply(e, o),
-    commit: (e, o?) => emitter.commit(e, o),
-  })
+  )
 }
 
 function createTestSyncHelper(db: import("bun:sqlite").Database, repoDir: string) {

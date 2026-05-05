@@ -148,7 +148,6 @@ async function withConcurrentTestEnv(fn: (ctx: ConcurrentTestCtx) => Promise<voi
         const miniRepo: SyncableRepo = {
           database: data.database,
           path: repoDir,
-          emitter,
           apply(event, options?) {
             return emitter.apply(event, options)
           },
@@ -156,14 +155,14 @@ async function withConcurrentTestEnv(fn: (ctx: ConcurrentTestCtx) => Promise<voi
             return emitter.commit(event, options)
           },
         }
-        const syncManager = withSync({
+        const syncManager = withSync(emitter, {
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
           heartbeat: { enabled: false },
           watcher: testWatcher,
           callbacks: {
-            onStateChange: (state) => {
+            onStateChange: (state: string) => {
               for (const listener of stateChangeListeners) listener(state)
             },
           },

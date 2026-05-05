@@ -323,6 +323,11 @@ export type { Emitter, EmitterOptions, EmitOptions, ChangeHub } from "./emitter.
 // See: docs/00-principles.md
 export { createRepo, createBareRepo, createTestRepo, createTestEnvRepo, IncompleteDatabase } from "./repo/repo.ts"
 
+// Internal-protocol emitter accessor — `Repo.emitter` is intentionally
+// not on the public surface. Use this to wire sync (`withSync`/`withFsWriter`).
+// See repo/repo-emitters.ts for the full rationale.
+export { getRepoEmitter, hasRepoEmitter } from "./repo/repo-emitters.ts"
+
 export type {
   Repo,
   CreateRepoOptions,

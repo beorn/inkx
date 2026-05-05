@@ -26,6 +26,7 @@ import { tmpdir } from "os"
 import { runGenerator } from "@km/core"
 import type { Change } from "@km/core"
 import { createRepo } from "../../src/repo/repo.ts"
+import { getRepoEmitter } from "../../src/repo/repo-emitters.ts"
 
 /** Create a tmp vault with a nested directory deep enough to require expansion. */
 function createVault(): string {
@@ -45,7 +46,7 @@ describe("scanner emits node_created through the op surface", () => {
 
     // Subscribe BEFORE expanding so we observe the scanner's emissions.
     const emitted: Array<{ change: Change; source?: string }> = []
-    const unsub = repo.emitter.onApply((change, options) => {
+    const unsub = getRepoEmitter(repo).onApply((change, options) => {
       emitted.push({ change, source: options.source })
     })
 
@@ -81,7 +82,7 @@ describe("scanner emits node_created through the op surface", () => {
     // Register an onApply handler that mimics fs-writer's filter: it fires
     // only for non-fs-import events. Scanner emissions must NOT reach it.
     const fsProjectionCalls: string[] = []
-    const unsub = repo.emitter.onApply((change, options) => {
+    const unsub = getRepoEmitter(repo).onApply((change, options) => {
       if (options.source !== "fs-import") {
         fsProjectionCalls.push(change.type)
       }

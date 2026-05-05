@@ -17,7 +17,7 @@ import type { TuiOptions } from "./types.ts"
 import { RepoProvider } from "./repo-context.tsx"
 import { StoreProvider } from "./state/store-context.tsx"
 import { BoardApp } from "./views/index.ts"
-import { createStoreFromRepo, withReactive } from "@km/storage"
+import { createStoreFromRepo, withReactive, getRepoEmitter } from "@km/storage"
 import { withSync, type Sync } from "@km/fs-mount"
 import { createBoardApp } from "./board/board-app.ts"
 import { DeferredThemeProvider } from "./deferred-theme-provider.tsx"
@@ -170,8 +170,10 @@ export async function runBoard(
     setStartupPhase("sync-init")
     const useWorker = options?.watchWorker !== false
     log.debug?.(`Creating sync rootPath=${rootPath} watch=true worker=${useWorker}`)
-    // withSync decorates the repo, wrapping apply() to add FS sync
-    const syncedRepo = withSync({
+    // withSync decorates the repo, wrapping apply() to add FS sync.
+    // Emitter is passed explicitly (not pulled off `repo.emitter`) — see
+    // bead `@km/storage/sync-emitter-migration`.
+    const syncedRepo = withSync(getRepoEmitter(options.repo), {
       debounceFs: 2000, // Debounce external changes (2s)
       debounceApply: 100, // Small debounce for batching TUI changes
       conflictStrategy: "last_write_wins",

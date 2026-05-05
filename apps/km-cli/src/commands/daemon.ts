@@ -347,12 +347,11 @@ class KmDaemon extends EventEmitter {
     const miniRepo: SyncableRepo = {
       database: db,
       path: repoPath,
-      emitter: this.emitter,
       apply: (event, options?) => this.emitter.apply(event, options),
       commit: (event, options?) => this.emitter.commit(event, options),
     }
 
-    this.sync = withSync({
+    this.sync = withSync(this.emitter, {
       debounceFs: 5000,
       debounceApply: 3000,
       conflictStrategy: "last_write_wins",

@@ -51,6 +51,7 @@ import {
   getSubtreeShallow as dbGetSubtreeShallow,
 } from "../db/queries/tree-traversal.ts"
 import { createEmitter, type Emitter, type EmitOptions } from "../emitter.ts"
+import { registerRepoEmitter } from "./repo-emitters.ts"
 import {
   type FileTree,
   createDiskFileTree,
@@ -868,12 +869,14 @@ export interface Repo extends Disposable {
     duration: number
   }>
 
-  /** Change emitter for this repo (owns kmDir, changeHub, fsSync) */
-  readonly emitter: Emitter
-
   /**
    * Apply a change to the system (DB + journal + broadcast + FS sync).
    * Delegates to emitter.apply(). Prefer this over emitter.apply() directly.
+   *
+   * Note: the emitter itself is **not** part of the public Repo surface.
+   * If sync wiring needs it (e.g. `withSync(emitter, config)`), use
+   * `getRepoEmitter(repo)` — the typed escape hatch. See bead
+   * `@km/storage/sync-emitter-migration` for the rationale.
    */
   apply(change: Omit<Change, "id" | "ts">, options?: EmitOptions): Change
 
@@ -1927,13 +1930,15 @@ export function* createRepo(
   // Must happen before repo construction so syncToFs can reference applyChangeToFs.
   let fsApplyChangeToFs: ((change: Change) => void) | null = null
   if (mode === "disk") {
-    const result = withFsWriter({
-      database: db,
-      path: rootPath,
+    const result = withFsWriter(
+      {
+        database: db,
+        path: rootPath,
+        apply: (change, options?) => emitter.apply(change, options),
+        commit: (change, options?) => emitter.commit(change, options),
+      },
       emitter,
-      apply: (change, options?) => emitter.apply(change, options),
-      commit: (change, options?) => emitter.commit(change, options),
-    })
+    )
     fsApplyChangeToFs = result.applyChangeToFs
   }
 
@@ -2111,8 +2116,6 @@ export function* createRepo(
       return result
     },
 
-    emitter,
-
     // Change application (delegates to emitter)
     apply(change, options?) {
       return emitter.apply(change, options)
@@ -2233,6 +2236,7 @@ export function* createRepo(
     },
   }
 
+  registerRepoEmitter(repo, emitter)
   return repo
 }
 
@@ -2370,10 +2374,6 @@ export function createBareRepo(dataStore: DataStore & HasDatabase, options: Crea
       // Bare repos have no filesystem to reconcile against.
       return Promise.resolve({ changes: 0, deferredFiles: [], errors: [], duration: 0 })
     },
-    get emitter() {
-      ensureOpen()
-      return emitter
-    },
 
     // Change application (delegates to emitter)
     apply(change, options?) {
@@ -2443,6 +2443,7 @@ export function createBareRepo(dataStore: DataStore & HasDatabase, options: Crea
     },
   }
 
+  registerRepoEmitter(repo, emitter)
   return repo
 }
 

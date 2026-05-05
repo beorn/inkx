@@ -414,11 +414,12 @@ describe("filesystem sync: emitter.apply() writes to disk (km-tui.save-rerender)
       const testFile = join(repoDir, "tasks.md")
       writeFileSync(testFile, "# Tasks\n\n- [ ] Original title\n")
 
-      // Build a minimal SyncableRepo for withSync
+      // Build a minimal SyncableRepo for withSync. Emitter is passed
+      // explicitly to withSync(emitter, …) — not on the repo surface
+      // (see bead `@km/storage/sync-emitter-migration`).
       const miniRepo = {
         database: db,
         path: repoDir,
-        emitter,
         apply(event: Parameters<typeof emitter.apply>[0], options?: Parameters<typeof emitter.apply>[1]) {
           return emitter.apply(event, options)
         },
@@ -428,7 +429,7 @@ describe("filesystem sync: emitter.apply() writes to disk (km-tui.save-rerender)
       }
 
       // Create sync via withSync (wraps emitter.apply() with FS projection)
-      const syncManager = withSync({
+      const syncManager = withSync(emitter, {
         debounceFs: 100,
         debounceApply: 0,
         conflictStrategy: "last_write_wins",
@@ -477,11 +478,11 @@ describe("filesystem sync: emitter.apply() writes to disk (km-tui.save-rerender)
       // Before wiring, apply and commit are the same function
       const applyBefore = emitter.apply
 
-      // Build a minimal SyncableRepo and create sync via withSync
+      // Build a minimal SyncableRepo and create sync via withSync.
+      // Emitter is passed explicitly to withSync (not on the repo surface).
       const miniRepo = {
         database: db,
         path: repoDir,
-        emitter,
         apply(event: Parameters<typeof emitter.apply>[0], options?: Parameters<typeof emitter.apply>[1]) {
           return emitter.apply(event, options)
         },
@@ -490,7 +491,7 @@ describe("filesystem sync: emitter.apply() writes to disk (km-tui.save-rerender)
         },
       }
 
-      const syncManager = withSyncFn({
+      const syncManager = withSyncFn(emitter, {
         debounceFs: 100,
         debounceApply: 0,
         conflictStrategy: "last_write_wins",

@@ -111,15 +111,18 @@ function freshTargetCopy(): string {
   return copy
 }
 
-function buildSyncableRepo(db: Database, repoPath: string): SyncableRepo {
+function buildSyncableRepo(
+  db: Database,
+  repoPath: string,
+): { repo: SyncableRepo; emitter: ReturnType<typeof createEmitter> } {
   const emitter = createEmitter({ kmDir: join(repoPath, ".km"), db })
-  return {
+  const repo: SyncableRepo = {
     database: db,
     path: repoPath,
-    emitter,
     apply: (event, options) => emitter.apply(event, options),
     commit: (event, options) => emitter.commit(event, options),
   }
+  return { repo, emitter }
 }
 
 function openFreshDb(repoPath: string): Database {
@@ -133,9 +136,8 @@ function openFreshDb(repoPath: string): Database {
 
 async function syncOnce(repoPath: string): Promise<void> {
   const db = openFreshDb(repoPath)
-  const manager = withSync({ debounceFs: 0, debounceApply: 0, conflictStrategy: "last_write_wins" })(
-    buildSyncableRepo(db, repoPath),
-  )
+  const { repo, emitter } = buildSyncableRepo(db, repoPath)
+  const manager = withSync(emitter, { debounceFs: 0, debounceApply: 0, conflictStrategy: "last_write_wins" })(repo)
   await manager.syncFromFs()
   await manager.stop()
   db.close()

@@ -134,15 +134,18 @@ function updateFsContentHash(db: Database, repoPath: string, absPath: string, ha
  * Subscribes to emitter.onApply() to project changes to .md files after DB commit.
  * For CLI usage where mutations need immediate FS write-back.
  *
+ * The emitter is passed explicitly — not pulled off the repo surface.
+ * See bead `@km/storage/sync-emitter-migration` for rationale.
+ *
  * Returns the repo (unchanged) plus an `applyChangeToFs` function for
  * direct FS projection (used by repo.syncToFs after withDeferredFs).
  *
  * @example
- * const { applyChangeToFs } = withFsWriter(repo)
+ * const { applyChangeToFs } = withFsWriter(repo, emitter)
  * repo.apply(change) // DB + journal + broadcast + write to .md
  */
-export function withFsWriter<R extends SyncableRepo>(repo: R): FsWriterResult<R> {
-  const { database, path, emitter } = repo
+export function withFsWriter<R extends SyncableRepo>(repo: R, emitter: Emitter): FsWriterResult<R> {
+  const { database, path } = repo
   const syncFsTarget = createSyncFsTarget(database, path, emitter)
   const handlers = new ChangeHandlers(database, path, emitter, syncFsTarget)
 

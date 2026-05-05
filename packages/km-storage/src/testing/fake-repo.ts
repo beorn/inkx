@@ -14,6 +14,7 @@ import type { LoadError } from "../repo/loader.ts"
 import type { KLink } from "../db/db.ts"
 import type { StepYield } from "../repo/loader.ts"
 import type { Emitter, ChangeHub } from "../emitter.ts"
+import { registerRepoEmitter } from "../repo/repo-emitters.ts"
 import { ulid } from "ulid"
 
 /**
@@ -243,7 +244,6 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
     files: null,
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
     config: {} as any,
-    emitter: fakeEmitter,
 
     // Change application (delegates to fakeEmitter)
     apply(event, options?) {
@@ -701,6 +701,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
 
   // FakeRepo implements DataStore methods directly — self-reference for repo.data access
   Object.defineProperty(repo, "data", { get: () => repo, enumerable: true })
+  registerRepoEmitter(repo, fakeEmitter)
   return repo
 
   function reset() {

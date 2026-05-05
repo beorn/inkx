@@ -78,13 +78,20 @@ export const syncCommand = new Command("sync")
 // Helper Functions
 // ============================================
 
-/** Build a minimal SyncableRepo from db + repoPath (for CLI commands without a full Repo) */
-function buildSyncableRepo(db: Database, repoPath: string): SyncableRepo {
+/**
+ * Build a minimal `SyncableRepo` from db + repoPath, returning the
+ * matching emitter alongside it so callers can pass the emitter
+ * explicitly to `withSync(emitter, config)(repo)` — the emitter is
+ * not on the repo surface (see bead `@km/storage/sync-emitter-migration`).
+ */
+function buildSyncableRepo(
+  db: Database,
+  repoPath: string,
+): { repo: SyncableRepo; emitter: ReturnType<typeof createEmitter> } {
   const emitter = createEmitter({ kmDir: join(repoPath, ".km"), db })
-  return {
+  const repo: SyncableRepo = {
     database: db,
     path: repoPath,
-    emitter,
     apply(event, options?) {
       return emitter.apply(event, options)
     },
@@ -92,6 +99,7 @@ function buildSyncableRepo(db: Database, repoPath: string): SyncableRepo {
       return emitter.commit(event, options)
     },
   }
+  return { repo, emitter }
 }
 
 /**
@@ -103,8 +111,8 @@ function startWatch(repoPath: string, debounceMs: number, db: Database): void {
   console.log(term.dim(`Debounce: ${debounceMs}ms`))
   console.log(term.dim("Press Ctrl+C to stop\n"))
 
-  const repo = buildSyncableRepo(db, repoPath)
-  const manager = withSync({
+  const { repo, emitter } = buildSyncableRepo(db, repoPath)
+  const manager = withSync(emitter, {
     debounceFs: debounceMs,
     debounceApply: 3000,
     conflictStrategy: "last_write_wins",
@@ -180,8 +188,8 @@ async function runSync(
     // because the events table lives inside state.db and every commit
     // writes its row in the same transaction as the state mutation —
     // SQLite WAL serializes the read-side automatically.
-    const repo = buildSyncableRepo(db, repoPath)
-    const manager = withSync({
+    const { repo, emitter } = buildSyncableRepo(db, repoPath)
+    const manager = withSync(emitter, {
       debounceFs: 0,
       debounceApply: 0,
       conflictStrategy: "last_write_wins",

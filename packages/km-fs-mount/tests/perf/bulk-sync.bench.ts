@@ -32,10 +32,7 @@ const REPO = join(tmpdir(), `km-bench-sync-${process.pid}-${Date.now()}`)
 
 mkdirSync(join(REPO, ".km"), { recursive: true })
 mkdirSync(join(REPO, "@km/inbox"), { recursive: true })
-writeFileSync(
-  join(REPO, ".km/config.yaml"),
-  `beads:\n  prefix: km\n  roots: ["@km"]\n  default_scope: "inbox"\n`,
-)
+writeFileSync(join(REPO, ".km/config.yaml"), `beads:\n  prefix: km\n  roots: ["@km"]\n  default_scope: "inbox"\n`)
 
 const tagPool = ["#bug", "#feature", "#refactor", "#urgent", "#backlog", "#perf"]
 const t0 = performance.now()
@@ -73,12 +70,11 @@ const emitter = createEmitter({ kmDir, db })
 const buildSyncableRepo = (): SyncableRepo => ({
   database: db,
   path: REPO,
-  emitter,
   apply: (event, options) => emitter.apply(event, options),
   commit: (event, options) => emitter.commit(event, options),
 })
 
-const manager = withSync({
+const manager = withSync(emitter, {
   debounceFs: 0,
   debounceApply: 0,
   conflictStrategy: "last_write_wins",
@@ -90,7 +86,11 @@ let phase = "init"
 let phaseStart = performance.now()
 const tSync = performance.now()
 
-const gen = (manager as unknown as { syncFromFsWithProgress: () => AsyncGenerator<unknown, { processed: number; directories: number; duration: number }> }).syncFromFsWithProgress()
+const gen = (
+  manager as unknown as {
+    syncFromFsWithProgress: () => AsyncGenerator<unknown, { processed: number; directories: number; duration: number }>
+  }
+).syncFromFsWithProgress()
 let it = await gen.next()
 while (!it.done) {
   const v = it.value
@@ -115,9 +115,7 @@ db.close()
 
 rmSync(REPO, { recursive: true, force: true })
 
-const phaseSummary = [...phaseTimes.entries()]
-  .map(([k, v]) => `${k}=${Math.round(v)}`)
-  .join(" ")
+const phaseSummary = [...phaseTimes.entries()].map(([k, v]) => `${k}=${Math.round(v)}`).join(" ")
 
 console.log(
   `bench: files=${FILES} write_ms=${Math.round(tWritten)} sync_ms=${ms} processed=${result.processed} nodes=${nodes} links=${links} ms_per_file=${(ms / FILES).toFixed(2)}`,
