@@ -1,6 +1,8 @@
 import { ulid } from "ulid"
 import { resolveRef, type Repo } from "@km/storage"
 
+import { bdIdToPathForm } from "./migrate.ts"
+
 const SEPARATOR = "-"
 const AUTO_LENGTH = 4
 
@@ -129,6 +131,53 @@ export function resolveShortId(input: string, options: ShortIdOptions): string |
     [input, stripped, input],
   )
   if (byCanonical[0]) return byCanonical[0].id
+
+  // Step 5 — bd-form → path-form fallback for stub-state nodes.
+  //
+  // When a bd `.md` file exists on disk but its frontmatter hasn't been
+  // parsed yet, `data.aliases` is empty and the schema-v9 `node_aliases`
+  // trigger has no rows for this stub. `resolveRef`'s alias arm misses,
+  // and bd-form input (`km-beads.foo`) never reaches the path-shaped arm
+  // because it contains no `/`. Derive the canonical path-form via
+  // `bdIdToPathForm` and retry — the stub's `fs_path` index resolves it.
+  //
+  // Heuristic: only triggered when the input looks like bd-form
+  // (`<prefix>-<rest>` with hyphen, no slash, no leading sigil). Avoids
+  // accidentally matching arbitrary user input as a bd-form ref.
+  if (!input.includes("/") && !input.startsWith("@") && input.includes("-")) {
+    // Probe for a known prefix by stripping the part before the first hyphen.
+    const dashIdx = input.indexOf("-")
+    if (dashIdx > 0) {
+      const probedPrefix = input.slice(0, dashIdx)
+      // Try every plausible path-form interpretation of the bd-shaped input:
+      //   1. dot-form via `bdIdToPathForm` (handles `km-scope.leaf` → `@km/scope/leaf`)
+      //   2. dash-form full-mapping (handles `km-scope-leaf` → `@km/scope/leaf`)
+      //      where the migrator emitted the dash variant of `km-scope.leaf`).
+      //
+      // Both are needed because dash-form is the migrator's lossy variant of
+      // dot-form (`bdIdToAliases` writes both); the stub-state path-form
+      // index has no way to distinguish a "real" `km-scope-leaf` (single
+      // segment) from a dot-form translated to dash. Try both, take the
+      // first that resolves, fall through to null otherwise.
+      const candidates: string[] = []
+      const dotPath = bdIdToPathForm(input, probedPrefix)
+      if (dotPath) candidates.push(dotPath)
+      const stripped = input.startsWith(`${probedPrefix}-`) ? input.slice(probedPrefix.length + 1) : input
+      if (stripped && stripped.includes("-")) {
+        candidates.push(`@${probedPrefix}/${stripped.split("-").join("/")}`)
+      }
+      for (const pathForm of candidates) {
+        const node = repo.resolveNode(pathForm)
+        if (node) return node.id
+        // Some vaults store fs_path without the sigil — strip and retry.
+        const sansSigil = pathForm.replace(/^@[^/]+\//, "")
+        if (sansSigil !== pathForm) {
+          const node2 = repo.resolveNode(sansSigil)
+          if (node2) return node2.id
+        }
+      }
+    }
+  }
 
   return null
 }
