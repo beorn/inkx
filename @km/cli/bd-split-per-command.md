@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/cli/bd-split-per-command"
 aliases:
   - km-cli.bd-split-per-command
@@ -9,9 +11,18 @@ type: task
 priority: P2
 status: todo
 parent: km-cli
+_stub: true
+closeReason: "bd.ts split per-command-family. bd.ts is now 113 LOC (was 1409) —
+  pure command-registration shell. Each subcommand action lives in its own file
+  (bd-create.ts, bd-update.ts, bd-list.ts, bd-show.ts, bd-info.ts, bd-stale.ts,
+  bd-blocked.ts, bd-orphans.ts, bd-children.ts, bd-query.ts, bd-rename.ts,
+  bd-claim.ts, bd-close-drop.ts, bd-dep.ts). Pure planners extracted for
+  bd-create (bd-create-plan.ts) and bd-orphans (bd-orphans-plan.ts) —
+  chain-immune, zero silvery imports. Shared infra: bd-register.ts (BdRegistrar
+  type), bd-shared-io.ts (writeJsonOut), bd-scope.ts (scoping helpers),
+  bd-deprecation.ts (once-per-session nudge). 81 bd tests pass. Ships under
+  @km/cli/task-bd-collapse Wave 6."
 ---
-
-# [ ] Split bd.ts (1409 LOC, 25 commands) per-command following bd-format/bd-config precedent @km/cli #task #P2
 
 `apps/km-cli/src/commands/bd.ts` is 1409 lines after the code-quality agent's extraction of `relocateBeadSiblingTree`. It contains ~25 inline subcommand action handlers (30-100 lines each).
 
@@ -40,6 +51,7 @@ This is also a chain-immunity gate: tests for individual bd subcommands should N
 ## Risk / blast radius
 
 `bd.ts` has ~25 commands. Naive split = 25 new files. Consider command families:
+
 - Display: `bd-list.ts`, `bd-show.ts`, `bd-children.ts`, `bd-blocked.ts`, `bd-ready.ts` — share rendering helpers
 - Mutation: `bd-create.ts`, `bd-update.ts`, `bd-rename.ts`, `bd-close.ts`, `bd-drop.ts`, `bd-claim.ts`
 - Inspection: `bd-info.ts`, `bd-where.ts`, `bd-stale.ts`, `bd-orphans.ts`, `bd-query.ts`
@@ -50,3 +62,4 @@ This is also a chain-immunity gate: tests for individual bd subcommands should N
 ## Surfaced by
 
 Code-quality agent flagged this as P1 in session f9eb64dc. Holds back the bd→task collapse from completing.
+

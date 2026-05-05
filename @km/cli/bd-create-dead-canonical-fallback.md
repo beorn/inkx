@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/cli/bd-create-dead-canonical-fallback"
 aliases:
   - km-cli.bd-create-dead-canonical-fallback
@@ -9,9 +11,13 @@ type: task
 priority: P3
 status: todo
 parent: km-cli
+_stub: true
+closeReason: Dead fallback deleted in bd-split per-family refactor. Pure planner
+  (bd-create-plan.ts) now always returns string (non-null); inputs that
+  previously fell through to legacy inline-addNode (foo.bar / foo/bar without
+  --parent) now route to inbox with literal leaf preserved. L4 invariant test in
+  bd-create-plan.test.ts pins every-input-produces-id contract.
 ---
-
-# [ ] Verify and delete dead "legacy inline-addNode path" in bd create canonical-id resolver @km/cli #task #P3
 
 `apps/km-cli/src/commands/bd.ts` (~line 480-562 → 618) has a 6-step IIFE returning `string | null` for canonical-id resolution. The `null` case falls through to a "legacy inline-addNode path" that's documented as kept "to preserve edge cases nobody currently uses."
 
@@ -35,3 +41,4 @@ It's working code that nobody complains about. But "documented as nobody uses th
 ## Surfaced by
 
 Code-quality agent in session f9eb64dc.
+
