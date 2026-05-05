@@ -7,12 +7,30 @@
  * sort-by-path, segment-filter matching).
  */
 
+// NOTE: pure module — no I/O, no transitive program.ts/silvery imports.
+// Imports are restricted to @km/* + ./queries-internal helpers so plan
+// files can pull `taskPathMatches` / `looksLikeQuery` without booting the
+// terminal. Do NOT add a top-level import of `./formatters.ts` (it pulls
+// `@silvery/ag-react` via `createTerm`); use `@km/tree`'s
+// `getNodeDisplayName` directly when ancestor display names are needed.
+
 import { Task, type Repo } from "@km/storage"
-import { normalizeName } from "@km/core"
-import { collapseAncestorsWithTypes, type CollapsedAncestor } from "@km/tree"
-import type { KNode } from "@km/core"
-import { getNodeDisplayName as getNodeDisplayNameWithRepo } from "./formatters.ts"
+import { normalizeName, type KNode } from "@km/core"
+import {
+  collapseAncestorsWithTypes,
+  type CollapsedAncestor,
+  getNodeDisplayName as getNodeDisplayNameRaw,
+} from "@km/tree"
 import { Bead } from "@km/beads"
+
+/**
+ * Display name for a node (mirrors `formatters.getNodeDisplayName`, but
+ * imports the bare `@km/tree` helper directly so this module stays free
+ * of the formatters → silvery chain).
+ */
+function getNodeDisplayName(repo: Repo, node: KNode): string {
+  return getNodeDisplayNameRaw(node, (parentId) => repo.getChildren(parentId))
+}
 
 /**
  * Find a node by path or ID prefix/suffix.
@@ -47,7 +65,7 @@ export interface TaskWithAncestors {
  * Uses normalized name so similar names group together
  */
 function getAncestorKey(repo: Repo, ca: CollapsedAncestor): string {
-  return normalizeName(getNodeDisplayNameWithRepo(repo, ca.node))
+  return normalizeName(getNodeDisplayName(repo, ca.node))
 }
 
 /**

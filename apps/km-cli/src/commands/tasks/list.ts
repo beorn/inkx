@@ -2,6 +2,12 @@
  * Task List Command
  *
  * Lists tasks with optional filtering by path, status, or query.
+ *
+ * Filtering / resolution is delegated to the pure planner in
+ * `./list-plan.ts` (`planList`) so unit tests can exercise the filter
+ * matrix without booting the silvery import chain. This file owns the
+ * I/O: repo load, ancestor collapsing for path display, terminal
+ * formatting, and JSON output.
  */
 
 import { createTerm } from "@silvery/ag-react"
@@ -11,14 +17,26 @@ import { Task, type Repo } from "@km/storage"
 import { resolvePathArg } from "@km/fs-mount"
 import { loadRepo } from "../../load-repo.ts"
 import { collapseAncestorsWithTypes } from "@km/tree"
-import { KNode, type KNode as KNodeType, getNodePriority } from "@km/core"
-import { Bead, normalizePriority } from "@km/beads"
+import { KNode, type KNode as KNodeType } from "@km/core"
 import { getRootPath } from "../../program.ts"
 import { resolveAssignee } from "../../utils/assignee.ts"
 import { getNodeDisplayName, formatCollapsedAncestor, formatTaskWithPath, formatTaskLine } from "./formatters.ts"
 import { printTaskDetails } from "../shared-show.ts"
-import { buildTaskTree, sortByPath, taskPathMatches, looksLikeQuery } from "./queries.ts"
+import { buildTaskTree, sortByPath } from "./queries.ts"
 import { parseLimitFlag, applyLimit } from "../../utils/limit.ts"
+import { planList } from "./list-plan.ts"
+
+// Re-export pure helpers + planner so existing imports keep working
+// (tests still hit `filterTasksByAssignee`, `filterTasksByPriority`, etc.).
+export {
+  filterTasksByPriority,
+  filterTasksByBlocked,
+  filterTasksByAssignee,
+  filterTasksByStatus,
+  planList,
+  type PlanListInputs,
+  type ListPlan,
+} from "./list-plan.ts"
 
 export interface ListTasksOptions {
   status?: string
@@ -36,43 +54,6 @@ export interface ListTasksOptions {
 }
 
 /**
- * Filter tasks by priority (canonical `P0`..`P4` form on `node.priority`).
- *
- * Accepts the same input shapes as bd: "P0".."P4" / "p0".."p4" / "0".."4".
- * Returns the input list verbatim when `priority` is undefined. Invalid
- * inputs (anything not normalizable to `P0`..`P4`) match nothing —
- * surfacing a typo as "no results" rather than silently passing through.
- */
-function filterTasksByPriority(tasks: KNodeType[], priority: string | undefined): KNodeType[] {
-  if (priority === undefined) return tasks
-  const normalized = normalizePriority(priority)
-  if (normalized === null) return []
-  return tasks.filter((t) => getNodePriority(t) === normalized)
-}
-
-/**
- * Filter tasks by blocked / unblocked state.
- *
- * Mirrors `km bd list` semantics: `--blocked` keeps only tasks with at least one
- * `blocked-by` target; `--unblocked` keeps only tasks with none. Both flags set
- * is mutually exclusive — last-flag-wins isn't ergonomic, so we treat the
- * combination as "no filter" (commander allows both, the user typed both, and
- * intersecting blocked ∧ unblocked is empty by definition).
- */
-function filterTasksByBlocked(
-  tasks: KNodeType[],
-  options: Pick<ListTasksOptions, "blocked" | "unblocked">,
-): KNodeType[] {
-  if (options.blocked && !options.unblocked) {
-    return tasks.filter((t) => Task.isBlocked(t))
-  }
-  if (options.unblocked && !options.blocked) {
-    return tasks.filter((t) => !Task.isBlocked(t))
-  }
-  return tasks
-}
-
-/**
  * Resolve the --assignee value, expanding "me" to the current user's handle.
  * Exported so tests can pin the resolution behavior independently of process state.
  */
@@ -80,143 +61,6 @@ export function resolveAssigneeFilter(value: string | undefined): string | undef
   if (!value) return undefined
   if (value.toLowerCase() === "me") return resolveAssignee()
   return value
-}
-
-/**
- * Filter tasks by assignee (case-insensitive exact match against `task.assigned_to`).
- * Returns input unchanged when filter is undefined.
- */
-export function filterTasksByAssignee(tasks: KNodeType[], assignee: string | undefined): KNodeType[] {
-  if (!assignee) return tasks
-  const target = assignee.toLowerCase()
-  return tasks.filter((t) => (t.assigned_to ?? "").toLowerCase() === target)
-}
-
-/** Result of resolving input arguments into a filtered task list */
-interface ResolvedInput {
-  tasks: KNodeType[]
-  rootNode: KNodeType | null
-  pathFilter: string | null
-}
-
-/**
- * Filter tasks by status options (shared across multiple resolution paths).
- * Returns only tasks matching the requested status/all flags.
- *
- * @param defaultMode - "excludeDone" excludes only done tasks (global/path-filter default);
- *                      "active" keeps only todo/wip tasks (root-scoped default)
- */
-function filterTasksByStatus(
-  tasks: KNodeType[],
-  options: Pick<ListTasksOptions, "status" | "all">,
-  defaultMode: "excludeDone" | "active" = "excludeDone",
-): KNodeType[] {
-  if (options.status) {
-    return tasks.filter((t) => t.item?.task?.status === options.status)
-  }
-  if (!options.all) {
-    if (defaultMode === "active") {
-      return tasks.filter((t) => t.item?.task?.status === "todo" || t.item?.task?.status === "wip")
-    }
-    return tasks.filter((t) => t.item?.task?.status !== "done")
-  }
-  return tasks
-}
-
-/**
- * Resolve tasks from a query argument (--query flag or query-like positional).
- * Builds the query string with default status filters and runs it against the repo.
- */
-function resolveFromQuery(
-  repo: Repo,
-  queryArg: string,
-  options: Pick<ListTasksOptions, "status" | "all" | "priority" | "blocked" | "unblocked">,
-): KNodeType[] {
-  let queryStr = queryArg
-  if (!options.all && !queryStr.includes("status:")) {
-    queryStr = `-status:done ${queryStr}`
-  }
-  if (options.status) {
-    queryStr = `status:${options.status} ${queryStr}`
-  }
-  return filterTasksByBlocked(filterTasksByPriority(repo.query(queryStr), options.priority), options)
-}
-
-/**
- * Resolve tasks from a path-or-ID positional argument.
- * Returns null if the pathOrId points to a single task (caller should show details instead).
- */
-function resolveFromPathOrId(
-  repo: Repo,
-  pathOrId: string,
-  options: Pick<ListTasksOptions, "status" | "all" | "priority" | "blocked" | "unblocked">,
-): ResolvedInput | null {
-  // Try to find an exact node match first
-  const rootNode = Task.findByPathOrId(repo, pathOrId, (r) => Bead.resolve(repo, r))
-
-  if (rootNode) {
-    // If the root IS a task, signal the caller to show details
-    if (KNode.isListItem(rootNode) && rootNode.item?.task?.marker !== undefined) {
-      return null
-    }
-
-    // Get tasks under this root, then apply status + priority + blocked filters.
-    // Root-scoped listing defaults to active tasks only (todo + wip).
-    const subtasks = Task.under(repo, rootNode.id)
-    const tasks = filterTasksByBlocked(
-      filterTasksByPriority(filterTasksByStatus(subtasks, options, "active"), options.priority),
-      options,
-    )
-    return { tasks, rootNode, pathFilter: null }
-  }
-
-  // No exact match - treat as path filter (like `bun test <filter>`)
-  const allTasks = filterTasksByBlocked(
-    filterTasksByPriority(filterTasksByStatus(repo.getAllTasks(), options), options.priority),
-    options,
-  )
-  const tasks = allTasks.filter((t) => taskPathMatches(repo, t, pathOrId))
-  return { tasks, rootNode: null, pathFilter: pathOrId }
-}
-
-/**
- * Resolve input arguments into a filtered task list and context.
- * Returns null when the input points to a single task (details shown as side-effect).
- */
-function resolveInput(repo: Repo, pathOrId: string | undefined, options: ListTasksOptions): ResolvedInput | null {
-  // Handle query option first (takes precedence).
-  // Also treat positional arg as query if it looks like one.
-  const queryArg = options.query || (pathOrId && looksLikeQuery(pathOrId) ? pathOrId : null)
-  const assignee = resolveAssigneeFilter(options.assignee)
-
-  if (queryArg) {
-    return {
-      tasks: filterTasksByAssignee(resolveFromQuery(repo, queryArg, options), assignee),
-      rootNode: null,
-      pathFilter: null,
-    }
-  }
-
-  if (pathOrId) {
-    const result = resolveFromPathOrId(repo, pathOrId, options)
-    if (!result) {
-      // pathOrId resolved to a single task - show details as side-effect
-      const rootNode = Task.findByPathOrId(repo, pathOrId, (r) => Bead.resolve(repo, r))
-      if (rootNode) showTaskDetails(repo, rootNode, options)
-      return null
-    }
-    return { ...result, tasks: filterTasksByAssignee(result.tasks, assignee) }
-  }
-
-  // Global task list (no positional arg, no query)
-  const tasks = filterTasksByAssignee(
-    filterTasksByBlocked(
-      filterTasksByPriority(filterTasksByStatus(repo.getAllTasks(), options), options.priority),
-      options,
-    ),
-    assignee,
-  )
-  return { tasks, rootNode: null, pathFilter: null }
 }
 
 /**
@@ -301,7 +145,11 @@ function renderTree(repo: Repo, tasks: KNodeType[], options: ListTasksOptions): 
 /**
  * Render the resolved task list (handles JSON, flat, and tree modes).
  */
-function renderTaskList(repo: Repo, input: ResolvedInput, options: ListTasksOptions): void {
+function renderTaskList(
+  repo: Repo,
+  input: { tasks: KNodeType[]; rootNode: KNodeType | null; pathFilter: string | null },
+  options: ListTasksOptions,
+): void {
   const { rootNode, pathFilter } = input
 
   const limit = parseLimitFlag(options.limit)
@@ -343,10 +191,23 @@ export async function listTasks(pathOrId: string | undefined, options: ListTasks
   const resolved = resolvePathArg(undefined, getRootPath() || process.cwd())
   using repo = await loadRepo(resolved.repoRoot)
 
-  const input = resolveInput(repo, pathOrId, options)
-  if (!input) return // Single task details already shown
+  const plan = planList(repo, {
+    pathOrId,
+    query: options.query,
+    status: options.status,
+    priority: options.priority,
+    assignee: resolveAssigneeFilter(options.assignee),
+    all: options.all,
+    blocked: options.blocked,
+    unblocked: options.unblocked,
+  })
 
-  renderTaskList(repo, input, options)
+  if (plan.kind === "single-task") {
+    showTaskDetails(repo, plan.task, options)
+    return
+  }
+
+  renderTaskList(repo, { tasks: plan.tasks, rootNode: plan.rootNode, pathFilter: plan.pathFilter }, options)
 }
 
 /**
