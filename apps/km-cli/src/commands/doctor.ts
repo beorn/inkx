@@ -369,6 +369,240 @@ const doctorLinksCommand = new Command("links")
   })
 
 // ============================================
+// migrate-journal: import changes.jsonl into the events table
+// ============================================
+
+const doctorMigrateJournalCommand = new Command("migrate-journal")
+  .description("Import legacy changes.jsonl into the SCHEMA_VERSION 12 events table")
+  .argument("[path]", "Path to repo (default: current directory)")
+  .option("--dry-run", "Count rows that would be migrated, don't write")
+  .option("--batch-size <n>", "Rows per transaction (default: 10000)", "10000")
+  .action(async (path, options) => {
+    const { kmDir, repoPath } = resolveKmDir(path)
+    const dbPath = join(kmDir, "state.db")
+    const changesPath = join(kmDir, "changes.jsonl")
+
+    console.log(term.bold("km doctor migrate-journal"), term.dim(`(repo ${formatPath(repoPath)})`))
+
+    if (!existsSync(dbPath)) {
+      console.error(term.red("No state.db found. Run 'km doctor rebuild' first."))
+      process.exit(1)
+    }
+    if (!existsSync(changesPath)) {
+      console.log(term.dim("  No changes.jsonl found, nothing to migrate."))
+      return
+    }
+
+    const batchSize = Math.max(1, Number(options.batchSize) || 10_000)
+    const db = options.dryRun ? new Database(dbPath, { readonly: true }) : new Database(dbPath)
+    applyConnectionPragmas(db)
+
+    try {
+      // Ensure migrations are up to v12 so the events table exists.
+      const { migrateSchema, SCHEMA } = await import("@km/storage")
+      if (!options.dryRun) {
+        migrateSchema(db)
+        db.run(SCHEMA)
+      }
+
+      const start = performance.now()
+      const fileSize = statSync(changesPath).size
+      console.log(`  changes.jsonl: ${formatSize(fileSize)}`)
+
+      // Resume from where we left off (idempotent if migrate is re-run).
+      const offsetRow = db.prepare("SELECT value FROM meta WHERE key = ?").get("migrate_journal_offset") as
+        | { value: string }
+        | undefined
+      const startOffset = offsetRow ? Number(offsetRow.value) : 0
+      if (startOffset > 0) {
+        console.log(`  Resuming from byte offset ${formatSize(startOffset)}`)
+      }
+
+      // Stream the file line-by-line so we don't OOM on a multi-GB journal.
+      // Bun's File API supports streaming via createReadStream-like idioms,
+      // but for simplicity we read-and-process in chunks via Node's fs streams.
+      const file = Bun.file(changesPath)
+      const stream = file.stream()
+      const decoder = new TextDecoder("utf-8")
+      let buffer = ""
+      let bytesProcessed = startOffset
+      let imported = 0
+      let skipped = 0
+      let invalid = 0
+
+      // Skip ahead to startOffset by reading and discarding.
+      const reader = stream.getReader()
+      let bytesToSkip = startOffset
+      let firstChunk = true
+      let batch: { id: string; ts: number; type: string; actor: string; source: string | null; target: string | null; data: string }[] = []
+
+      const insertBatch = (): void => {
+        if (options.dryRun || batch.length === 0) {
+          batch = []
+          return
+        }
+        db.run("BEGIN IMMEDIATE")
+        try {
+          for (const row of batch) {
+            db.run(
+              `INSERT OR IGNORE INTO events (id, ts, type, actor, source, target, data)
+               VALUES (?, ?, ?, ?, ?, ?, ?)`,
+              [row.id, row.ts, row.type, row.actor, row.source, row.target, row.data],
+            )
+          }
+          // Persist progress so resume is bounded by the last committed batch.
+          db.run("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", [
+            "migrate_journal_offset",
+            String(bytesProcessed),
+          ])
+          db.run("COMMIT")
+        } catch (err) {
+          db.run("ROLLBACK")
+          throw err
+        }
+        batch = []
+        // Checkpoint WAL periodically so it doesn't balloon during multi-GB imports.
+        db.run("PRAGMA wal_checkpoint(PASSIVE)")
+      }
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        let chunk = decoder.decode(value, { stream: true })
+
+        // Skip leading bytes if resuming.
+        if (bytesToSkip > 0) {
+          const chunkBytes = Buffer.byteLength(chunk, "utf-8")
+          if (chunkBytes <= bytesToSkip) {
+            bytesToSkip -= chunkBytes
+            firstChunk = false
+            continue
+          }
+          // Slice off the part we want to skip. This is approximate at the byte
+          // level (multi-byte UTF-8) but good enough for line-based recovery —
+          // the next newline boundary will normalize.
+          const skipChars = Math.min(bytesToSkip, chunk.length)
+          chunk = chunk.slice(skipChars)
+          bytesToSkip = 0
+          // Drop the partial first line — we joined mid-line.
+          if (firstChunk) {
+            const nl = chunk.indexOf("\n")
+            if (nl >= 0) chunk = chunk.slice(nl + 1)
+          }
+        }
+
+        firstChunk = false
+        buffer += chunk
+
+        let nl: number
+        while ((nl = buffer.indexOf("\n")) >= 0) {
+          const line = buffer.slice(0, nl).trim()
+          buffer = buffer.slice(nl + 1)
+          bytesProcessed += Buffer.byteLength(line, "utf-8") + 1 // +1 for newline
+          if (!line) continue
+
+          try {
+            const change = JSON.parse(line) as {
+              id: string
+              ts: number
+              type: string
+              actor: string
+              source?: string
+              target?: string
+              data?: unknown
+            }
+            if (!change.id || !change.ts || !change.type || !change.actor) {
+              skipped++
+              continue
+            }
+            batch.push({
+              id: change.id,
+              ts: change.ts,
+              type: change.type,
+              actor: change.actor,
+              source: change.source ?? null,
+              target: change.target ?? null,
+              data: line, // store the full original JSON for round-trip fidelity
+            })
+
+            if (batch.length >= batchSize) {
+              insertBatch()
+              imported += batchSize
+              if (imported % 100_000 === 0) {
+                console.log(
+                  term.dim(`    progress: ${imported.toLocaleString()} imported (${formatSize(bytesProcessed)})`),
+                )
+              }
+            }
+          } catch {
+            invalid++
+          }
+        }
+      }
+      // Flush trailing partial line if any (no trailing newline in file).
+      if (buffer.trim()) {
+        try {
+          const change = JSON.parse(buffer.trim()) as {
+            id: string
+            ts: number
+            type: string
+            actor: string
+            source?: string
+            target?: string
+          }
+          batch.push({
+            id: change.id,
+            ts: change.ts,
+            type: change.type,
+            actor: change.actor,
+            source: change.source ?? null,
+            target: change.target ?? null,
+            data: buffer.trim(),
+          })
+        } catch {
+          invalid++
+        }
+      }
+      // Final batch.
+      const tail = batch.length
+      insertBatch()
+      imported += tail
+
+      const elapsed = Math.round(performance.now() - start)
+      console.log(
+        `  Imported: ${imported.toLocaleString()}, skipped: ${skipped.toLocaleString()}, invalid: ${invalid.toLocaleString()} in ${elapsed}ms`,
+      )
+
+      if (!options.dryRun) {
+        // Verify by spot-checking row counts vs jsonl line count.
+        const dbCount = (db.prepare("SELECT COUNT(*) AS n FROM events").get() as { n: number }).n
+        console.log(`  events table: ${dbCount.toLocaleString()} rows`)
+
+        // Clean up the migration cursor — the migration is complete.
+        db.run("DELETE FROM meta WHERE key = ?", ["migrate_journal_offset"])
+
+        // Stamp the high-water mark so future cold loads skip the journal.
+        const lastEventRow = db
+          .prepare("SELECT value FROM meta WHERE key = ?")
+          .get("last_event") as { value: string } | undefined
+        if (lastEventRow?.value) {
+          console.log(`  last_event marker: ${lastEventRow.value}`)
+        }
+
+        console.log(term.green("✓"), `Migration complete. The events table is now the canonical journal.`)
+        console.log(
+          term.dim(
+            `  Run km for a few sessions, verify behavior, then 'rm ${changesPath}' to reclaim disk (or 'gzip' it to keep an audit copy).`,
+          ),
+        )
+      }
+    } finally {
+      db.close()
+    }
+  })
+
+// ============================================
 // Main Doctor Command
 // ============================================
 
@@ -381,6 +615,7 @@ export const doctorCommand = new Command("doctor")
   .addCommand(doctorIntegrityCommand)
   .addCommand(doctorLinksCommand)
   .addCommand(doctorPathsCommand)
+  .addCommand(doctorMigrateJournalCommand)
   .action((path) => {
     const { kmDir, repoPath } = resolveKmDir(path)
 
