@@ -26,6 +26,7 @@ import {
   getStoreHealth,
   parseDeferredAsync,
   type Repo,
+  retainEvents,
   vacuumDb,
 } from "@km/storage"
 import { findKmRootFromPath } from "@km/fs-mount"
@@ -39,10 +40,12 @@ import { findPathDrift, countPathDriftCheckable } from "./doctor-paths-check.ts"
 // ============================================
 
 const doctorGcCommand = new Command("gc")
-  .description("Compact stale events and vacuum database")
+  .description("Compact events table + legacy stale events; vacuum database")
   .argument("[path]", "Path to repo (default: current directory)")
   .option("--dry-run", "Show what would be compacted without changing files")
-  .option("--truncate", "Drop the applied prefix of changes.jsonl (snapshot-based compaction)")
+  .option("--truncate", "Drop the applied prefix of changes.jsonl (legacy snapshot compaction)")
+  .option("--retention-days <n>", "Hot retention window in days (default: 30)", "30")
+  .option("--bykey-days <n>", "By-key retention window in days (default: 90)", "90")
   .action(async (path, options) => {
     const { kmDir, repoPath } = resolveKmDir(path)
     const dbPath = join(kmDir, "state.db")
@@ -58,7 +61,47 @@ const doctorGcCommand = new Command("gc")
     applyConnectionPragmas(db)
 
     try {
-      // Compact events
+      // Step 1: SCHEMA_VERSION 12 events table — apply tiered retention.
+      const eventsCount = (db.prepare("SELECT COUNT(*) AS n FROM events").get() as { n: number }).n
+      if (eventsCount > 0) {
+        if (options.dryRun) {
+          const fullDays = Number(options.retentionDays)
+          const byKeyDays = Number(options.bykeyDays)
+          const now = Date.now()
+          const fullCutoff = now - fullDays * 86_400_000
+          const byKeyCutoff = now - byKeyDays * 86_400_000
+          const wouldDrop = (
+            db
+              .prepare(`SELECT COUNT(*) AS n FROM events WHERE ts < ? AND type != 'node_created'`)
+              .get(byKeyCutoff) as { n: number }
+          ).n
+          const wouldByKey = (
+            db
+              .prepare(`SELECT COUNT(*) AS n FROM events WHERE ts < ? AND ts >= ? AND type != 'node_created'`)
+              .get(fullCutoff, byKeyCutoff) as { n: number }
+          ).n
+          console.log(
+            `  events table   ${eventsCount.toLocaleString()} rows ` +
+              term.dim(
+                `(would by-key compact ${wouldByKey.toLocaleString()} rows older than ${fullDays}d, drop ${wouldDrop.toLocaleString()} older than ${byKeyDays}d)`,
+              ),
+          )
+        } else {
+          const result = retainEvents(kmDir, db, {
+            fullRetentionDays: Number(options.retentionDays),
+            byKeyRetentionDays: Number(options.bykeyDays),
+          })
+          console.log(
+            `  events table   ${result.rowsBefore.toLocaleString()} → ${result.rowsAfter.toLocaleString()} rows ` +
+              term.dim(`(dropped ${result.rowsDropped.toLocaleString()})`),
+          )
+        }
+      } else {
+        console.log(`  events table   ${term.dim("empty")}`)
+      }
+
+      // Step 2: legacy changes.jsonl compaction (kept for vaults that
+      // haven't run `km doctor migrate-journal` yet).
       const changesPath = join(kmDir, "changes.jsonl")
       if (existsSync(changesPath)) {
         if (options.dryRun) {

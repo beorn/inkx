@@ -174,11 +174,18 @@ export {
   compactChanges,
   compactJournal,
   backupViaVacuumInto,
+  retainEvents,
   vacuumDb,
   getStoreHealth,
 } from "./change-compaction.ts"
 
-export type { CompactionResult, JournalCompactionResult, StoreHealth } from "./change-compaction.ts"
+export type {
+  CompactionResult,
+  JournalCompactionResult,
+  RetainEventsOptions,
+  RetainEventsResult,
+  StoreHealth,
+} from "./change-compaction.ts"
 
 // km-fast-md.6: Worker pool for parallel parsing
 // km-disposable.3: Service factory pattern
