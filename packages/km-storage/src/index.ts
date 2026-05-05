@@ -129,7 +129,14 @@ export { createSQLiteStore } from "./store/sqlite.ts"
 export type { NodeStore, Store, Observable, Replicated } from "./store/store.ts"
 
 // Unified repo loading
-export { readChanges, resolveLinksAsync, parseDeferredAsync, parseStubFile, ensureRepoRootNode } from "./repo/loader.ts"
+export {
+  readChanges,
+  readLastEventOffset,
+  resolveLinksAsync,
+  parseDeferredAsync,
+  parseStubFile,
+  ensureRepoRootNode,
+} from "./repo/loader.ts"
 
 export type { LoadResult, LoadOptions, PendingLink, DeferredFile, StepYield } from "./repo/loader.ts"
 export type { LoadError as RepoLoaderError } from "./repo/loader.ts"

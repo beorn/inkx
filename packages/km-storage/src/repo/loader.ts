@@ -688,8 +688,24 @@ function parseChangesFile(
   return { changes, byteLength: fileSize }
 }
 
-export function readChanges(kmDir: string): Change[] {
-  return parseChangesFile(kmDir, "readChanges").changes
+export function readChanges(kmDir: string, fromByteOffset?: number): Change[] {
+  return parseChangesFile(kmDir, "readChanges", fromByteOffset).changes
+}
+
+/**
+ * Read the persisted byte-offset cursor for changes.jsonl. Callers that
+ * apply pending events should pass it to {@link readChanges} so they
+ * only read the tail of the file (a multi-GB changes.jsonl OOMs the
+ * full-read path on Bun's `string.split("\n")`).
+ *
+ * Returns `undefined` when the cursor isn't set (fresh DB or pre-cursor
+ * vault).
+ */
+export function readLastEventOffset(db: Database): number | undefined {
+  const row = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event_offset") as
+    | { value: string }
+    | undefined
+  return row?.value !== undefined ? Number(row.value) : undefined
 }
 
 // ============================================================================

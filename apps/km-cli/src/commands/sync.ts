@@ -15,7 +15,15 @@ import { Database } from "bun:sqlite"
 import { dirname, resolve, join } from "path"
 
 const log = createLogger("km:cli:sync") as FullLogger
-import { createEmitter, readChanges, SCHEMA, ensureRepoRootNode, migrateSchema, migrateData } from "@km/storage"
+import {
+  createEmitter,
+  readChanges,
+  readLastEventOffset,
+  SCHEMA,
+  ensureRepoRootNode,
+  migrateSchema,
+  migrateData,
+} from "@km/storage"
 import { withSync, findKmRootFromPath, type SyncableRepo } from "@km/fs-mount"
 import { formatPath } from "../utils/format-path.ts"
 
@@ -168,8 +176,16 @@ async function runSync(
   }
 
   try {
-    // Step 1: Apply any pending events from changes.jsonl to state.db
-    const events = readChanges(kmRoot)
+    // Step 1: Apply any pending events from changes.jsonl to state.db.
+    //
+    // Read only the tail past the persisted byte-offset cursor — the
+    // full-read path tries to load the whole file into a single string
+    // (`readFileSync(... "utf-8")` + `.split("\n")`) which OOMs Bun
+    // (SIGTRAP exit 133) on the user's 2.3 GB changes.jsonl. The cursor
+    // is the same one `discoverFromChanges` writes, so on a healthy DB
+    // we read only what landed since the last sync.
+    const fromOffset = readLastEventOffset(db)
+    const events = readChanges(kmRoot, fromOffset)
     const lastApplied = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event") as
       | { value: string }
       | undefined
