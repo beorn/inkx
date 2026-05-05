@@ -169,9 +169,18 @@ export function createEmitter(options: EmitterOptions): Emitter {
       }
     }
 
-    // 2. Persist to changes.jsonl (unless skipPersist is set per-call or as default)
-    // Isolated: failure here must not prevent broadcast (step 3)
-    if (shouldPersist) {
+    // 2. (legacy) Persist to changes.jsonl. Pre-SCHEMA_VERSION-12 this was
+    //    the canonical journal. Post-v12 the events table inside state.db
+    //    is canonical and the jsonl is redundant. Skip the append by
+    //    default; opt-in via env var `KM_LEGACY_JSONL=1` for vaults that
+    //    haven't migrated yet (rare — `km doctor migrate-journal` is a
+    //    one-shot operation per machine).
+    //
+    //    Why default-off: appending to a 2.7 GB file on every event is the
+    //    bulk of emit latency on the user's vault. Atomic-with-state-db
+    //    persistence via the events table is both faster AND structurally
+    //    safer (no cross-file drift).
+    if (shouldPersist && process.env.KM_LEGACY_JSONL === "1") {
       try {
         ensureKmDir()
         appendFileSync(changesPath, JSON.stringify(change) + "\n")

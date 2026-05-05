@@ -169,7 +169,14 @@ export {
 export type { ReferencedAnchorRow } from "./db/referenced-anchors.ts"
 
 // Change compaction & store health diagnostics
-export { identifyStaleChanges, compactChanges, compactJournal, vacuumDb, getStoreHealth } from "./change-compaction.ts"
+export {
+  identifyStaleChanges,
+  compactChanges,
+  compactJournal,
+  backupViaVacuumInto,
+  vacuumDb,
+  getStoreHealth,
+} from "./change-compaction.ts"
 
 export type { CompactionResult, JournalCompactionResult, StoreHealth } from "./change-compaction.ts"
 

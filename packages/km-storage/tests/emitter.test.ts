@@ -121,12 +121,12 @@ describe("F1: Error isolation in apply()", () => {
 
     emitter.apply({ type: "node_created", actor: "test", data: { id: "n4", type: "h" } })
 
-    // Verify changes.jsonl was written (persist step)
-    const changesPath = join(kmDir, "changes.jsonl")
-    expect(existsSync(changesPath)).toBe(true)
-    const lines = readFileSync(changesPath, "utf-8").trim().split("\n")
-    expect(lines.length).toBe(1)
-    order.unshift("persist") // We know it ran because file exists
+    // Verify the events-table row landed (persist step). Post-SCHEMA_VERSION
+    // 12 the events table replaces changes.jsonl as the canonical journal;
+    // jsonl appends are gated behind KM_LEGACY_JSONL=1 for legacy vaults.
+    const eventCount = (db.query("SELECT COUNT(*) AS n FROM events").get() as { n: number }).n
+    expect(eventCount).toBe(1)
+    order.unshift("persist")
 
     // DB step ran (check meta table)
     const meta = db.query("SELECT value FROM meta WHERE key = 'last_event'").get() as { value: string }

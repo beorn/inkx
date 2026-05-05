@@ -430,13 +430,23 @@ describe("Repo.needsRebuild", () => {
 
 describe("Repo corrupt state.db recovery", () => {
   let tempDir: string
+  let prevLegacy: string | undefined
 
   beforeEach(() => {
     tempDir = createTempDir()
+    // Pin the legacy jsonl write path for THIS test: post-SCHEMA_VERSION 12
+    // the events table inside state.db replaces changes.jsonl, but if
+    // state.db corrupts we lose the events table too. The recovery contract
+    // we're verifying here is "the journal is safe even if state.db is
+    // gone" — that property only holds when the journal is its own file.
+    prevLegacy = process.env.KM_LEGACY_JSONL
+    process.env.KM_LEGACY_JSONL = "1"
   })
 
   afterEach(() => {
     cleanupTempDir(tempDir)
+    if (prevLegacy === undefined) delete process.env.KM_LEGACY_JSONL
+    else process.env.KM_LEGACY_JSONL = prevLegacy
   })
 
   test("rebuilds from changes.jsonl when state.db is corrupt", async () => {

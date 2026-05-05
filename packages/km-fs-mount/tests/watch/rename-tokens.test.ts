@@ -179,12 +179,9 @@ describe("rename journal entries", () => {
         data: { content: "Renamed Journal" },
       })
 
-      // Read the events journal
-      const changesPath = join(kmDir, "changes.jsonl")
-      expect(existsSync(changesPath)).toBe(true)
-
-      const lines = readFileSync(changesPath, "utf-8").trim().split("\n")
-      const events = lines.map((line) => JSON.parse(line) as Record<string, unknown>)
+      // Read the events journal from the SCHEMA_VERSION 12 events table.
+      const eventRows = db.query("SELECT data FROM events ORDER BY seq").all() as { data: string }[]
+      const events = eventRows.map((r) => JSON.parse(r.data) as Record<string, unknown>)
 
       // Find the rename journal entry (has old_fs_path indicating it's from journalRename)
       const renameEvent = events.find(
@@ -225,11 +222,9 @@ describe("rename journal entries", () => {
         data: { content: "renamed-journal-folder" },
       })
 
-      const changesPath = join(kmDir, "changes.jsonl")
-      expect(existsSync(changesPath)).toBe(true)
-
-      const lines = readFileSync(changesPath, "utf-8").trim().split("\n")
-      const events = lines.map((line) => JSON.parse(line) as Record<string, unknown>)
+      // Read the events journal from the SCHEMA_VERSION 12 events table.
+      const eventRows = db.query("SELECT data FROM events ORDER BY seq").all() as { data: string }[]
+      const events = eventRows.map((r) => JSON.parse(r.data) as Record<string, unknown>)
 
       const renameEvent = events.find(
         (e) =>

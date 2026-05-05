@@ -45,12 +45,14 @@ function createRealFsTarget(): FsWriteTarget {
   }
 }
 
-function readJournal(kmDir: string): Array<Record<string, unknown>> {
-  const changesPath = join(kmDir, "changes.jsonl")
-  if (!existsSync(changesPath)) return []
-  const raw = readFileSync(changesPath, "utf-8").trim()
-  if (!raw) return []
-  return raw.split("\n").map((line) => JSON.parse(line) as Record<string, unknown>)
+/**
+ * Read the journal from the SCHEMA_VERSION 12 events table inside state.db.
+ * Pre-v12 this read changes.jsonl from the filesystem; the events table
+ * supersedes the jsonl as the canonical journal.
+ */
+function readJournal(db: Database): Array<Record<string, unknown>> {
+  const rows = db.query("SELECT data FROM events ORDER BY seq").all() as { data: string }[]
+  return rows.map((r) => JSON.parse(r.data) as Record<string, unknown>)
 }
 
 /** Pull node_updated journal entries whose data contains any of the given keys. */
@@ -120,7 +122,7 @@ describe("update-handler — embed_of back-write (G4)", () => {
         ctx,
       })
 
-      const journal = readJournal(kmDir)
+      const journal = readJournal(db)
       // After parse, some descendant node (not host-id itself) carries the
       // embed reference. Confirm that SOMETHING in the journal has embed_of
       // pointing at target-id.
@@ -174,7 +176,7 @@ describe("create-handler — embed_of back-write (G4)", () => {
         ctx,
       })
 
-      const journal = readJournal(kmDir)
+      const journal = readJournal(db)
       const embedEmits = journal.filter((e) => {
         if (e.type !== "node_updated") return false
         const data = e.data as Record<string, unknown> | undefined
@@ -208,7 +210,7 @@ describe("change-handlers — anchor minting routes through emitter (G4/G7)", ()
 
       // Journal: one node_updated for blk1, data.name = "abc12345"
       // Post-v6 anchors are folded into `.name` (storage-architecture §2.3).
-      const journal = readJournal(kmDir)
+      const journal = readJournal(db)
       const anchorEntries = journalUpdatesWith(journal, "blk1", ["name"])
       expect(anchorEntries.length).toBe(1)
       const entry = anchorEntries[0]!
@@ -257,7 +259,7 @@ describe("change-handlers — baseline-hash realignment after mergeExternalDrift
         data: { title: "doc" }, // Triggers save(node) via handleNodeUpdated
       })
 
-      const journal = readJournal(kmDir)
+      const journal = readJournal(db)
 
       // Exactly one baseline-realignment emit (from mergeExternalDrift)
       // carries both content_hash and fs_content_hash, actor = fs-watch.

@@ -19,6 +19,7 @@ const log = createLogger("km:cli:doctor")
 import { Database } from "bun:sqlite"
 import {
   applyConnectionPragmas,
+  backupViaVacuumInto,
   compactChanges,
   compactJournal,
   createRepo,
@@ -603,6 +604,47 @@ const doctorMigrateJournalCommand = new Command("migrate-journal")
   })
 
 // ============================================
+// backup: VACUUM INTO a fresh standalone .db file
+// ============================================
+
+const doctorBackupCommand = new Command("backup")
+  .description("Atomic backup via SQLite VACUUM INTO (safe in WAL mode, unlike cp)")
+  .argument("[path]", "Path to repo (default: current directory)")
+  .option("-o, --output <path>", "Backup destination (default: .km/backups/state-<TIMESTAMP>.db)")
+  .action(async (path, options) => {
+    const { kmDir, repoPath } = resolveKmDir(path)
+
+    console.log(term.bold("km doctor backup"), term.dim(`(repo ${formatPath(repoPath)})`))
+
+    const dbPath = join(kmDir, "state.db")
+    if (!existsSync(dbPath)) {
+      console.error(term.red("No state.db found."))
+      process.exit(1)
+    }
+
+    let outPath: string = options.output
+    if (!outPath) {
+      const backupsDir = join(kmDir, "backups")
+      const fs = await import("fs")
+      if (!fs.existsSync(backupsDir)) fs.mkdirSync(backupsDir, { recursive: true })
+      const ts = new Date().toISOString().replace(/[:.]/g, "-")
+      outPath = join(backupsDir, `state-${ts}.db`)
+    }
+
+    const start = performance.now()
+    const size = backupViaVacuumInto(kmDir, outPath)
+    const elapsed = Math.round(performance.now() - start)
+
+    console.log(`  → ${formatPath(outPath)} (${formatSize(size)}) in ${elapsed}ms`)
+    console.log(term.green("✓"), `Backup written via VACUUM INTO.`)
+    console.log(
+      term.dim(
+        `  This is a consistent, standalone copy. WAL mode makes raw cp(1) unsafe; always use 'km doctor backup'.`,
+      ),
+    )
+  })
+
+// ============================================
 // Main Doctor Command
 // ============================================
 
@@ -616,6 +658,7 @@ export const doctorCommand = new Command("doctor")
   .addCommand(doctorLinksCommand)
   .addCommand(doctorPathsCommand)
   .addCommand(doctorMigrateJournalCommand)
+  .addCommand(doctorBackupCommand)
   .action((path) => {
     const { kmDir, repoPath } = resolveKmDir(path)
 

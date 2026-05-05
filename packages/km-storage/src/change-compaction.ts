@@ -205,6 +205,43 @@ export function compactJournal(kmDir: string, db: Database): JournalCompactionRe
 }
 
 /**
+ * Atomic backup via SQLite's `VACUUM INTO` — the only safe way to copy
+ * a WAL-mode database while it may be in use.
+ *
+ * Why not `cp state.db backup.db`: in WAL mode the on-disk state.db
+ * doesn't reflect committed transactions until a checkpoint runs;
+ * meanwhile state.db-wal can hold uncommitted pages. A raw file copy
+ * may capture a half-written page or miss recent commits.
+ *
+ * `VACUUM INTO` serializes through SQLite's transaction layer and
+ * produces a new, consistent, standalone database file at `backupPath`.
+ * Safe to run while the source is being written to. Returns the size
+ * of the resulting backup file in bytes.
+ *
+ * Recommended cadence: run nightly (or before `compactEvents` /
+ * retainEvents) and keep the last 3-7 backups. Snapshots double as
+ * cold-load restore points if state.db corrupts.
+ */
+export function backupViaVacuumInto(kmDir: string, backupPath: string): number {
+  const dbPath = join(kmDir, "state.db")
+  if (!existsSync(dbPath)) return 0
+
+  // VACUUM INTO requires the destination not to exist.
+  if (existsSync(backupPath)) {
+    throw new Error(`backup path already exists: ${backupPath} — refusing to clobber`)
+  }
+
+  const db = new Database(dbPath, { readonly: false })
+  try {
+    db.run("VACUUM INTO ?", [backupPath])
+  } finally {
+    db.close()
+  }
+
+  return statSync(backupPath).size
+}
+
+/**
  * Vacuum the SQLite database. Returns bytes saved.
  */
 export function vacuumDb(kmDir: string): number {

@@ -68,12 +68,14 @@ function insertDescendantFile(
   )
 }
 
-function readJournal(kmDir: string): Array<Record<string, unknown>> {
-  const changesPath = join(kmDir, "changes.jsonl")
-  if (!existsSync(changesPath)) return []
-  const raw = readFileSync(changesPath, "utf-8").trim()
-  if (!raw) return []
-  return raw.split("\n").map((line) => JSON.parse(line) as Record<string, unknown>)
+/**
+ * Read the journal from the SCHEMA_VERSION 12 events table inside state.db.
+ * Pre-v12 this read changes.jsonl from the filesystem; the events table
+ * supersedes the jsonl as the canonical journal.
+ */
+function readJournal(db: Database): Array<Record<string, unknown>> {
+  const rows = db.query("SELECT data FROM events ORDER BY seq").all() as { data: string }[]
+  return rows.map((r) => JSON.parse(r.data) as Record<string, unknown>)
 }
 
 describe("rename-atomicity — file rename", () => {
@@ -95,7 +97,7 @@ describe("rename-atomicity — file rename", () => {
       })
 
       // Journal: at least one node_updated with fs_path in data for this target
-      const journal = readJournal(kmDir)
+      const journal = readJournal(db)
       const renameRows = journal.filter((e) => {
         const data = e.data as Record<string, unknown> | undefined
         return e.type === "node_updated" && e.target === "file1" && data?.fs_path === "New Name.md"
@@ -152,7 +154,7 @@ describe("rename-atomicity — folder rename with descendants", () => {
         data: { content: "renamed" },
       })
 
-      const journal = readJournal(kmDir)
+      const journal = readJournal(db)
 
       // Parent rename op
       const parentRow = journal.find((e) => {
@@ -254,7 +256,7 @@ describe("rename-atomicity — mid-cascade crash simulation", () => {
       // Restore db.run before inspecting state.
       ;(db as unknown as { run: Database["run"] }).run = realRun
 
-      const journal = readJournal(kmDir)
+      const journal = readJournal(db)
 
       // Walk every node_updated in the journal; each target's DB fs_path must
       // match what the journal says. (Per-row atomicity: no row appears in
@@ -308,7 +310,7 @@ describe("rename-atomicity — echo-loop prevention", () => {
       expect(renameFanouts.length).toBe(0)
 
       // DB + journal still in sync for the rename.
-      const journal = readJournal(kmDir)
+      const journal = readJournal(db)
       const renameEntry = journal.find((e) => {
         const data = e.data as Record<string, unknown> | undefined
         return e.type === "node_updated" && e.target === "file1" && data?.fs_path === "NewName.md"

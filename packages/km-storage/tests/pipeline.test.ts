@@ -494,15 +494,12 @@ describe("applyLinks()", () => {
     expect(node.embed_of).toBe("tgt1")
     expect(node.name).toBe("My Alias")
 
-    // Journal: exactly one node_updated for src1 carrying embed_of + name.
-    const changesPath = join(tmpKm, "changes.jsonl")
-    expect(existsSync(changesPath)).toBe(true)
-    const entries = readFileSync(changesPath, "utf-8")
-      .trim()
-      .split("\n")
-      .map((line) => JSON.parse(line) as Record<string, unknown>)
-    const matching = entries.filter((e) => {
-      if (e.type !== "node_updated" || e.target !== "src1") return false
+    // Events table: exactly one node_updated for src1 carrying embed_of + name.
+    // Post-SCHEMA_VERSION 12 the events table is canonical.
+    const rows = db
+      .query("SELECT data FROM events WHERE type = 'node_updated' AND target = 'src1' ORDER BY seq")
+      .all() as { data: string }[]
+    const matching = rows.map((r) => JSON.parse(r.data) as Record<string, unknown>).filter((e) => {
       const data = e.data as Record<string, unknown>
       return data?.embed_of === "tgt1"
     })
