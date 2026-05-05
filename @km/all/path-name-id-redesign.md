@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/path-name-id-redesign"
 aliases:
   - km-all.path-name-id-redesign
@@ -8,9 +10,45 @@ created_at: 2026-04-30T10:50:41Z
 type: epic
 priority: P1
 parent: "@km/all"
+closeReason: >-
+  Epic complete — all 21 directly-tracked sub-beads closed:
+
+
+  Storage (5): aliases-first-class, deps-first-class, extract-resolveref,
+  parent-name-unique, parent-name-unique-partial, seed-file-node-helper
+
+  Beads (5): data-id-stop-writing, frontmatter-path-rename,
+  path-name-id-test-bolster, resolver-path-via-name-walk,
+  seed-bead-as-thin-wrapper
+
+  All-cuttings (8): architectural-decision-skill, drop-data-tags,
+  drop-shortid-concept, id-name-path-code-cleanup, path-derivation-helper,
+  path-name-orthogonal-vocabulary, props-not-frontmatter,
+  rename-content-cascade, storage-doc-three-concepts
+
+  Tree (1): ktree-path-method
+
+
+  Two beads remain open and intentionally so:
+
+  - @km/beads/directory-nesting-bd-create (P1) — proposes path-positional 'bd
+  create @km/beads/foo' surface. Significant CLI redesign with bd-compat
+  tradeoffs; tracked but not blocking the redesign's core architecture.
+
+  - @km/storage/drop-fs-path-derive-from-name (P3) — bead's own description says
+  'P3 because... not blocking any active work. File now so it's tracked.'
+  Future-watchpoint bead, kept open.
+
+
+  The three-concept canonical model (id / name / path) is live across the
+  codebase. resolveRef in @km/storage is the universal resolver; the resolver no
+  longer reads data.id; aliases are first-class in node_aliases (schema v9);
+  deps are first-class in deps table; KTree.path() provides cache-free
+  derivation; seedFileNode + seedBead helpers replace raw addNode-with-data.id
+  fixtures. The 2026-04-30 reframe is shipped.
 ---
 
-# Path / Name / ID — three-concept canonical model + implementation @km/all #epic #P1
+# [x] Path / Name / ID — three-concept canonical model + implementation @km/all #epic #P1
 
 Tracking epic for the 2026-04-30 architectural redesign of bead identity. Design verdict, child beads, and arch retros all live here.
 
@@ -18,11 +56,11 @@ Tracking epic for the 2026-04-30 architectural redesign of bead identity. Design
 
 Three concepts, distinct (per `docs/design/model/storage.md:761-787`):
 
-| Concept | What | Where stored |
-|---|---|---|
-| **id** | ULID, opaque, internal — never changes | `nodes.id` (pkey) |
-| **name** | path SEGMENT (one slug per node) | `nodes.name` (indexed via `idx_nodes_name`) |
-| **path** | composition of names by parent walk; user-facing | DERIVED — composed from `(parent walk + name)`, materialized in markdown for human readers |
+| Concept | What                                             | Where stored                                                                             |
+| ------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| id      | ULID, opaque, internal — never changes           | nodes.id (pkey)                                                                          |
+| name    | path SEGMENT (one slug per node)                 | nodes.name (indexed via idx_nodes_name)                                                  |
+| path    | composition of names by parent walk; user-facing | DERIVED — composed from (parent walk + name), materialized in markdown for human readers |
 
 **No equation between concepts.** Path is composed FROM names, but path ≠ name. id is internal, distinct from both.
 
@@ -33,6 +71,7 @@ Three concepts, distinct (per `docs/design/model/storage.md:761-787`):
 **CLI** → accepts either form; resolver translates path → id before query.
 
 **Resolution order** (in `resolveShortId`):
+
 1. id (direct ULID match)
 2. path (delegate to `repo.resolveNode`, indexed `fs_path` lookup)
 3. legacy bd-form aliases (json_each scan over `data.aliases`)
@@ -92,7 +131,7 @@ Three concepts, distinct (per `docs/design/model/storage.md:761-787`):
 
 - ✅ `@km/all/drop-data-tags` (P3) — Phase C only needed (commit `888813d4b`). The bead-side `data.tags` denormalization in `updateBeadFields` was removed; the parser-side `kmRefsTransform` already populates `node.data.tags` from inline `#tag` markers in the H1 line, so readers (queries.ts:271 priority fallback, show.ts:259 display) continue to see the same values.
 
-  **Phases A and B turned out unnecessary** (verified 2026-05-04): the bead's premise ("migrate readers to the `links` table") assumed filter queries like `bd list --priority P1` scanned `data.tags` JSON. They don't — `bd list` builds an FTS query string `#P1` and uses `repo.query()`, which goes through `nodes_fts` with `tokenchars '@#+~'`. The hashtag is already indexed at the FTS layer. The remaining `data.tags` consumers are per-row reads that don't benefit from indexing. No `[[#P1]]` wikilink emission, no parser changes needed. Bead is fully done.
+  Phases A and B turned out unnecessary (verified 2026-05-04): the bead's premise ("migrate readers to the links table") assumed filter queries like bd list --priority P1 scanned data.tags JSON. They don't — bd list builds an FTS query string #P1 and uses repo.query(), which goes through nodes_fts with tokenchars '@#+~'. The hashtag is already indexed at the FTS layer. The remaining data.tags consumers are per-row reads that don't benefit from indexing. No [[#P1]] wikilink emission, no parser changes needed. Bead is fully done.
 
 **Shipped 2026-05-04 (Phase F — synchronous rename-content-cascade):**
 
@@ -253,7 +292,6 @@ Per user direction at end of /pro session: **all further implementation work in 
 ## Memory + lessons
 
 - `feedback-arch-protocol-doesnt-substitute-for-thinking.md` — `/arch` gate criteria (5+ doc quotes, 3+ close-reasons, etc.) prevent under-investigated mistakes but DO NOT certify design correctness. The lead must engage with sync-invariant / duplication / cache-coherence implications. Treat user pushback on a /arch verdict as signal, not noise.
-
 - `/arch` Phase 1.0 orientation step (added in commit `56b93e61b`): before assembling the bundle, grep for existing infrastructure in the topic area and audit for sufficiency. Caught `resolveNode` + `idx_nodes_fs_path` (this session) and `packages/km-fs-mount/src/fs/path-utils.ts` (the /big session) — both pieces the lead would have proposed re-creating.
 
 ## Acceptance for closing this epic
@@ -271,3 +309,4 @@ Per user direction at end of /pro session: **all further implementation work in 
 - `.claude/skills/arch/SKILL.md` — the protocol that drove this redesign
 - `tools/check-arch-required.ts` — the drift-checker
 - `.claude/arch-decisions/` — retro archive directory
+

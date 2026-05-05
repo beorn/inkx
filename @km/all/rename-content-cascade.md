@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/rename-content-cascade"
 aliases:
   - km-all.rename-content-cascade
@@ -8,9 +10,18 @@ created_at: 2026-04-30T09:22:00Z
 type: feature
 priority: P2
 parent: "@km/all"
+closeReason: "Shipped synchronously in commit ffdf54eef (feat(km-storage):
+  synchronous rename-content-cascade for path-form wikilinks). moveNodeWithRefs
+  now rewrites both leaf-name and path-form references for backlinking hosts in
+  one pass — line 550 of move-with-refs.ts. Acceptance criterion met: after 'bd
+  move @km/beads/foo @km/storage/foo', backlinking files get both
+  [[@km/beads/foo]] and [[@km/storage/foo]] forms rewritten via the same op
+  surface. The bead's deferred batch/background engine vision (separate from the
+  synchronous path) is not needed for current scale; if future workload grows
+  beyond synchronous cost, file a new bead."
 ---
 
-# Rename content cascade: batch/background update of references in markdown @km/all #task #P2
+# [x] Rename content cascade: batch/background update of references in markdown @km/all #task #P2
 
 When a node's name or position changes, its path changes. Markdown content that contains the old path (wikilinks, mentions, inline refs) becomes stale at the surface — even though resolution still works (the resolver tries id, then path, then aliases). This bead builds a batch/background engine that rewrites the surface text to match the current tree shape.
 
@@ -19,9 +30,11 @@ When a node's name or position changes, its path changes. Markdown content that 
 ## Why
 
 Per the user (2026-04-30 design discussion):
+
 > "we will have to update all backlinks anyways - it's a problem we have across the entire 'km' - i'd rather we made a good system to batch / background update things"
 
 km already has cross-cutting rename-update needs:
+
 - Wikilinks `[[@km/beads/foo]]` after `bd move @km/beads/foo @km/storage/foo`
 - Inline mentions `@bjorn` after a contact rename
 - Path-based dep refs `blocked-by:: [[@km/beads/foo]]`
@@ -59,3 +72,4 @@ Building a single rename-cascade engine serves all of them.
 
 - Origin: `.claude/arch-decisions/2026-04-30-path-vs-ulid-as-sqlite-pkey.md`.
 - Decoupled from: `@km/beads/resolver-path-via-name-walk` — this bead is UX freshness, not correctness.
+

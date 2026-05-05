@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/path-derivation-helper"
 aliases:
   - km-all.path-derivation-helper
@@ -8,9 +10,13 @@ created_at: 2026-04-30T09:22:00Z
 type: feature
 priority: P2
 parent: "@km/all"
+closeReason: "Shipped: pathOf is in packages/km-core/src/path.ts (aliased to
+  fsPathOf — fs-cache-based). The cache-free parent-walk version is KTree.path()
+  in @km/tree/walk.ts:202. The 2×2 (tree/fs × segment/composed) makes both cells
+  explicit; both are first-class helpers."
 ---
 
-# Path-derivation helper: pathOf(repo, id) → string @km/all #task #P2
+# [x] Path-derivation helper: pathOf(repo, id) → string @km/all #task #P2
 
 Single source of truth for materializing a node's path from its id. Used by the markdown serializer (frontmatter), CLI display, wikilink emit, and anywhere else a node needs to be presented to humans.
 
@@ -26,6 +32,7 @@ export function pathOf(repo: Repo, id: string): string | null {
 ```
 
 Examples:
+
 - `pathOf(repo, <foo-ulid>)` → `"@km/beads/foo"`
 - `pathOf(repo, <repo-root-ulid>)` → `""` or `"@km"` (root convention TBD)
 - `pathOf(repo, <unanchored-paragraph-ulid>)` → null (paragraphs without stable names don't have a path)
@@ -33,12 +40,14 @@ Examples:
 ## Why
 
 Per `.claude/arch-decisions/2026-04-30-path-vs-ulid-as-sqlite-pkey.md`, path is composed from `(parent walk + name)`. Today this composition is scattered across:
+
 - The markdown serializer (writes frontmatter `id:`)
 - The CLI display path (prints bead refs)
 - Wikilink emitters
 - Migration code in `bdIdToPathForm`
 
 Centralizing into one helper:
+
 1. Eliminates drift between layers (everyone calls the same function).
 2. Single place to handle the "node has no stable path" case (return null; caller decides what to display).
 3. Single place to optimize (memoize, cache the parent walk, etc.).
@@ -68,3 +77,4 @@ Centralizing into one helper:
 
 - Origin: `.claude/arch-decisions/2026-04-30-path-vs-ulid-as-sqlite-pkey.md` ("Path is computed, not stored").
 - Pairs with: `@km/beads/data-id-stop-writing` (no longer storing the path; computing it is the only way).
+

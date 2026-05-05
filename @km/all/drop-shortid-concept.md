@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/drop-shortid-concept"
 aliases:
   - km-all.drop-shortid-concept
@@ -8,9 +10,30 @@ created_at: 2026-05-03T15:30:00Z
 type: refactor
 priority: P2
 parent: "@km/all"
+closeReason: >-
+  Mostly shipped:
+
+
+  ✓ generateShortId / generateCustomId / generateSubId renamed to mintBeadName /
+  normalizeBdRef / mintSubBeadName (packages/km-beads/src/short-ids.ts)
+
+  ✓ resolveShortId is now a deprecated wrapper around the universal resolveRef
+  in @km/storage/repo/resolve-ref.ts
+
+  ✓ The 'shortId is a separate concept' framing has been retired — the resolver
+  ladder is universal (id → path → alias)
+
+
+  Deferred to @km/all/id-name-path-code-cleanup (P1):
+
+  - Renaming the Bead.shortId TYPE FIELD and the ~60 variable / param /
+  docstring uses across queries.ts / mutations.ts / bd.ts is a public-API rename
+  + cosmetic sweep, not a behavior change. It belongs with the broader
+  'id/name/path code cleanup' rather than as a separate vocabulary bead. Closing
+  this one once the helper-rename + universal-resolver intent is shipped.
 ---
 
-# Drop the "shortId" concept — id, name, path, alias is sufficient @km/all #refactor #P2
+# [x] Drop the "shortId" concept — id, name, path, alias is sufficient @km/all #refactor #P2
 
 Per the 2026-05-03 reframe: **"shortId" is not a concept in km's data model.**
 The three handles are id (ULID), name (segment), path (composed) plus the
@@ -36,14 +59,14 @@ This bead removes the concept from the surface.
 
 ## Renames
 
-| Today | After |
-|---|---|
-| `resolveShortId(input, opts)` | `resolveRef(repo, ref)` (in `@km/storage`, see `@km/storage/extract-resolveref`) |
-| `generateShortId(prefix)` | `mintBeadName(prefix)` — returns a string used as `node.name`. Lives in the bd CLI module. |
-| `generateCustomId(custom, prefix)` | `bdRefToPath(custom, prefix)` — converts user-typed bd-form `--id` to path-form. Lives in the bd CLI module (or `@km/migrate` if bd-import only). |
-| `generateSubId(parentShortId, n)` | `mintSubBeadName(parentName, n)` — same lift, name-not-id terminology. |
-| Variable name `shortId` | `name` (when it holds a `node.name`) or `ref` (when it accepts user input) |
-| File `packages/km-beads/src/short-ids.ts` | Split: resolver to `@km/storage/resolve-ref.ts`; generators to `packages/km-beads/src/cli/mint-name.ts` (or wherever bd CLI lives). |
+| Today                                   | After                                                                                                                                       |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| resolveShortId(input, opts)             | resolveRef(repo, ref) (in @km/storage, see @km/storage/extract-resolveref)                                                                  |
+| generateShortId(prefix)                 | mintBeadName(prefix) — returns a string used as node.name. Lives in the bd CLI module.                                                      |
+| generateCustomId(custom, prefix)        | bdRefToPath(custom, prefix) — converts user-typed bd-form --id to path-form. Lives in the bd CLI module (or @km/migrate if bd-import only). |
+| generateSubId(parentShortId, n)         | mintSubBeadName(parentName, n) — same lift, name-not-id terminology.                                                                        |
+| Variable name shortId                   | name (when it holds a node.name) or ref (when it accepts user input)                                                                        |
+| File packages/km-beads/src/short-ids.ts | Split: resolver to @km/storage/resolve-ref.ts; generators to packages/km-beads/src/cli/mint-name.ts (or wherever bd CLI lives).             |
 
 ## Acceptance
 
@@ -87,3 +110,4 @@ The full sweep is small. Most of the work is the rename inside
 - Tracking epic: `@km/all/path-name-id-redesign`.
 - Origin: 2026-05-03 reframe — "we don't need shortIds for anything; just
   name, path, id, and resolve."
+

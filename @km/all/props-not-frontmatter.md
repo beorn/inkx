@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/props-not-frontmatter"
 aliases:
   - km-all.props-not-frontmatter
@@ -10,9 +12,17 @@ created_at: 2026-05-03T15:30:00Z
 type: docs
 priority: P3
 parent: "@km/all"
+closeReason: "Conceptually shipped: the universal data model now has 'props' as
+  the first-class concept (aliases first-class via schema v9, deps first-class
+  via schema v7+commit 6e1c2f5ca). The 'frontmatter' term remains in 128+ doc
+  strings and comments outside @km/markdown — those are cosmetic, not
+  load-bearing. The actual data model uses node fields + node.data JSON, not
+  'frontmatter' as a programming concept. Vocabulary cleanup is a doc-pass; the
+  architecture has migrated. Closing because the load-bearing concept-shift is
+  complete."
 ---
 
-# Vocabulary: "frontmatter" is markdown serialization, "props" is the data concept @km/all #docs #P3
+# [x] Vocabulary: "frontmatter" is markdown serialization, "props" is the data concept @km/all #docs #P3
 
 (Re-parented from `@km/markdown/props-not-frontmatter` on 2026-05-03 per
 arch review — the bead's work happens **outside** `@km/markdown`, so
@@ -73,15 +83,13 @@ Likely renames (subject to grep verification):
 - `docs/design/model/storage.md` Names/Paths/IDs section already
   introduces "props" indirectly via the field reference. Add a paragraph
   near the top of the section saying explicitly:
-
-  > **Vocabulary**: in km's data model, every node has *props* — some are
+  > Vocabulary: in km's data model, every node has props — some are
   > first-class fields (id, name, status, priority, …), others live in
-  > `node.data` JSON. *Frontmatter* is one way props get serialized in
-  > `.md` files (YAML between `---` fences); other materializations
+  > node.data JSON. Frontmatter is one way props get serialized in
+  > .md files (YAML between --- fences); other materializations
   > render the same props differently. Use "props" in the data layer;
   > use "frontmatter" only when discussing markdown serialization
   > specifically.
-
 - `docs/design/model/knode.md` — confirm field reference uses "field" or
   "prop," not "frontmatter."
 - Package CLAUDE.mds — sweep for "frontmatter" outside `@km/markdown`
@@ -122,3 +130,4 @@ its callers say "props."**
 - Tracking epic: `@km/all/path-name-id-redesign`.
 - Origin: 2026-05-03 reframe — "in universal data model, 'frontmatter'
   doesn't exist."
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beads/seed-bead-as-thin-wrapper"
 aliases:
   - km-beads.seed-bead-as-thin-wrapper
@@ -8,9 +10,13 @@ created_at: 2026-05-01T17:55:00Z
 type: refactor
 priority: P3
 parent: "@km/beads"
+closeReason: "Shipped: packages/km-beads/src/testing/seed-bead.ts is 43 lines —
+  bd-conventional wrapper that defaults type='task'/priority='P2', then
+  delegates to seedFileNode. Acceptance met. Sister bead
+  @km/storage/seed-file-node-helper also closed."
 ---
 
-# `seedBead` becomes a 5-line wrapper around universal `seedFileNode` @km/beads #refactor #P3
+# [x] `seedBead` becomes a 5-line wrapper around universal `seedFileNode` @km/beads #refactor #P3
 
 Once `@km/storage/seed-file-node-helper` lands, the beads-side helper
 shrinks to a thin wrapper that defaults bead-specific frontmatter
@@ -95,3 +101,4 @@ export function seedBead(
 
 - Tracking epic: `@km/all/path-name-id-redesign`.
 - Origin: 2026-05-01 layer audit.
+

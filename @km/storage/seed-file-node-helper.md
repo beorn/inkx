@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/seed-file-node-helper"
 aliases:
   - km-storage.seed-file-node-helper
@@ -8,9 +10,16 @@ created_at: 2026-05-01T17:55:00Z
 type: refactor
 priority: P2
 parent: "@km/storage"
+closeReason: "Shipped: packages/km-storage/src/testing/seed-file-node.ts exists
+  with seedFileNode(repo, path, options). Universal helper (handles
+  mdfile/folder/file fstypes, walks ancestors, frontmatter, aliases). seedBead
+  in @km/beads/src/testing/seed-bead.ts is the thin bd-conventional wrapper.
+  Test coverage: packages/km-storage/tests/seed-file-node.test.ts and
+  packages/km-beads/tests/seed-bead.test.ts. Used by 4 test files as
+  proof-of-shape. Acceptance met."
 ---
 
-# Universal `seedFileNode` test helper @km/storage #refactor #P2
+# [x] Universal `seedFileNode` test helper @km/storage #refactor #P2
 
 Generalize the in-flight `seedBead()` test helper (currently local in
 `packages/km-beads/tests/resolve-id.property.test.ts`) into a universal
@@ -97,3 +106,4 @@ export function seedFileNode(
 - Origin: 2026-05-01 layer audit; pending sub-task of
   `@km/beads/path-name-id-test-bolster`.
 - Tracking epic: `@km/all/path-name-id-redesign`.
+

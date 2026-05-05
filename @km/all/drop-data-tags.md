@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/drop-data-tags"
 aliases:
   - km-all.drop-data-tags
@@ -8,9 +10,15 @@ created_at: 2026-05-03T15:30:00Z
 type: refactor
 priority: P3
 parent: "@km/all"
+closeReason: "Shipped in commit 36752c4a6 (refactor(km-markdown,km-storage):
+  dissolve data.tags into the links table). Mutations no longer write data.tags.
+  Hashtag links land in the links table at parse time. The kmRefsTransform
+  comment in ast2nodes.ts:58 references the priority-elevation path (kept for
+  the legacy data.tags fallback in getNodePriority for test fixtures), not a new
+  data.tags write."
 ---
 
-# Drop `data.tags` denormalization — tags are wikilinks @km/all #refactor #P3
+# [x] Drop `data.tags` denormalization — tags are wikilinks @km/all #refactor #P3
 
 Today `mutations.ts:190` syncs `data.tags = ["P1", "task"]` from priority/type
 changes — a denormalization for fast filtering. Per the 2026-05-03 reframe:
@@ -80,9 +88,9 @@ named one:
    the parser-side at `km-refs.ts:25,36` is **out of scope** for this
    bead, see "Out of scope" below).
 5. Replace each beads-side reader with a `links` table query:
-   - "Is this bead tagged P1?" → `SELECT 1 FROM links WHERE host_id = ?
+  - "Is this bead tagged P1?" → `SELECT 1 FROM links WHERE host_id = ?
      AND href = '#P1'`
-   - "List all P1 beads" → `SELECT host_id FROM links WHERE href = '#P1'`
+  - "List all P1 beads" → `SELECT host_id FROM links WHERE href = '#P1'`
 6. Verify `bd list --priority P1` returns the same set as before.
 
 **Phase C — stop writing `data.tags` (beads-side only):**
@@ -123,3 +131,4 @@ named one:
 - Tracking epic: `@km/all/path-name-id-redesign`.
 - Origin: 2026-05-03 reframe — "tags don't exist as their own thing; they
   are wikilinks to sigil boards."
+

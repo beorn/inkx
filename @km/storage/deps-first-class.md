@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/deps-first-class"
 aliases:
   - km-storage.deps-first-class
@@ -8,9 +10,14 @@ created_at: 2026-05-03T15:30:00Z
 type: refactor
 priority: P2
 parent: "@km/storage"
+closeReason: "Shipped via commit 6e1c2f5ca (feat(km-markdown): merge frontmatter
+  dependencies into inline blocked-by prop). Frontmatter dependencies now
+  elevate to data.props['blocked-by'] which the deps table triggers index.
+  ast2nodes.ts:922 acknowledges this elevation. Single source of truth (the deps
+  table) — no more parallel write-only data.dependencies fossil for SQL reads."
 ---
 
-# Consolidate frontmatter `dependencies:` into the existing inline `blocked-by` index @km/storage #refactor #P2
+# [x] Consolidate frontmatter `dependencies:` into the existing inline `blocked-by` index @km/storage #refactor #P2
 
 Today, dependencies have two source-of-truth representations:
 
@@ -44,13 +51,14 @@ authoring forms feed the existing trigger-indexed path.
 1. **Loader-side merge**: in the bead/frontmatter loader, when
    `data.dependencies: [target1, target2, ...]` is parsed, write each
    target into `data.props["blocked-by"]` in the inline-prop shape:
-   ```json
-   { "type": "list", "values": [
-     { "type": "link", "target": "target1" },
-     { "type": "link", "target": "target2" }
-   ]}
-   ```
-   (Match the shape the trigger at `schema.ts:127-133` already expects.)
+  ```json
+  { "type": "list", "values": [
+    { "type": "link", "target": "target1" },
+    { "type": "link", "target": "target2" }
+  ]}
+  ```
+
+  (Match the shape the trigger at schema.ts:127-133 already expects.)
 2. The existing INSERT/UPDATE triggers (`schema.ts:117-156`) then write
    the `deps` rows. Indexing is automatic.
 3. **No schema change.** No new column. No new table.
@@ -85,3 +93,4 @@ authoring forms feed the existing trigger-indexed path.
 
 - Tracking epic: `@km/all/path-name-id-redesign`.
 - Origin: 2026-05-03 reframe.
+

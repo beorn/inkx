@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beads/data-id-stop-writing"
 aliases:
   - km-beads.data-id-stop-writing
@@ -8,9 +10,17 @@ created_at: 2026-04-30T09:22:00Z
 type: feature
 priority: P2
 parent: "@km/beads"
+closeReason: "Shipped: mutations.ts:buildIssue + renderInboxCapture +
+  renderBeadFile do NOT write data.id or frontmatter.id. mutations.ts:99 only
+  writes data.short_id (the bd-CLI legacy form). migrate.ts:174 explicitly
+  comments 'No id: field — the file's location IS the canonical id'. Resolver
+  doesn't read data.id (resolveRef is universal — ULID/path/alias). The compat
+  fallback in resolveShortId step-4 reads data.id only for tests using raw
+  addNode — those will be migrated separately. New beads' data JSON shape
+  verified: only short_id + mentions, no id key."
 ---
 
-# Stop writing data.id (path is derivable, not stored) @km/beads #task #P2
+# [x] Stop writing data.id (path is derivable, not stored) @km/beads #task #P2
 
 Mutations stop writing `data.id` on insert/update. The path is composed from `(parent walk + name)` on demand by the markdown serializer and CLI display. Existing rows' `data.id` becomes a fossil; the resolver no longer reads it (handled by `@km/beads/resolver-path-via-name-walk`).
 
@@ -56,3 +66,4 @@ This is the same decision as `@km/beads/frontmatter-path-rename` (P3): rename to
 ## Follow-up
 
 - `@km/beads/data-id-fossil-removal` (P3, future) — once we're confident, run a one-shot migration to strip `data.id` from every existing row's `data` JSON. Pure cleanup.
+

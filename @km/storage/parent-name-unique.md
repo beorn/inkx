@@ -28,9 +28,12 @@ close_reason: |
 type: feature
 priority: P1
 parent: "@km/storage"
+closeReason: Closed in frontmatter on 2026-04-30 (dropped — not needed). bd
+  state.db never synced. Aligning state.
 ---
 
-# UNIQUE (parent_id, name) — DROPPED
+# [x] UNIQUE (parent_id, name) — DROPPED
 
 See close_reason above. fs_path uniqueness is already enforced by the OS
 filesystem. The proposed DB-level UNIQUE constraint was redundant.
+

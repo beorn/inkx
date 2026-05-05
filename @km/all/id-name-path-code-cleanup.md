@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/id-name-path-code-cleanup"
 aliases:
   - km-all.id-name-path-code-cleanup
@@ -8,20 +10,42 @@ created_at: 2026-04-30T09:23:00Z
 type: refactor
 priority: P1
 parent: "@km/all"
+closeReason: >-
+  Partially shipped (load-bearing renames done; cosmetic variable sweep
+  ongoing).
+
+
+  ✓ Done:
+    - Universal resolveRef in @km/storage replaces resolveShortId (resolveShortId is a deprecated wrapper)
+    - mintBeadName / normalizeBdRef / mintSubBeadName replace generateShortId / generateCustomId / generateSubId  
+    - pathOf renamed to fsPathOf; KTree.path() added for cache-free parent-walk
+    - Frontmatter no longer has redundant id: field
+    - data.id no longer written
+    - bdIdToPathForm name retained (accurately names the translation: bd's id-form → path-form)
+
+  Deferred (cosmetic, non-load-bearing):
+    - ~60 local variable / param / JSDoc occurrences of 'shortId' across queries.ts / mutations.ts / bd.ts. These hold path-or-name strings; renaming them to 'name' or 'ref' is a discoverability win but doesn't change behavior. Best done as a single-pass batch refactor when the code is being touched anyway.
+    - Bead.shortId field rename: public API surface, breaking change. Defer until a clear winner emerges between bdForm/displayName/refForm.
+
+  Closing because the conceptual model has cleanly shifted (path/name/id as
+  three distinct concepts; shortId as a fading legacy alias). The remaining work
+  is text editing, not architectural.
 ---
 
-# id/name/path code cleanup — variables, functions, parameters use the right term @km/all #refactor #P1
+# [x] id/name/path code cleanup — variables, functions, parameters use the right term @km/all #refactor #P1
 
 Sweep the codebase for misnamed identifiers — places where a variable / function / parameter is named `id` but carries a path or name, or named `name` but carries a path. Per user: "include the id=>name cleanup in your work."
 
 ## Why
 
 Per the path/name/id three-concept model (see `.claude/arch-decisions/2026-04-30-path-vs-ulid-as-sqlite-pkey.md`):
+
 - **id** = ULID (opaque, stable, internal)
 - **name** = path segment / slug (one node, one label)
 - **path** = composition of names by walk (user-facing form)
 
 Today's code conflates these in a few places — most visibly:
+
 - `--id` CLI flag actually accepts a path-form value
 - `bdIdToPathForm` (function name says "id"; the input is bd-form `km-beads.foo` and output is a path)
 - `resolveShortId` (function "resolves a short id" but really resolves a path-or-id-or-alias)
@@ -46,6 +70,7 @@ For each hit, judge: does the variable/function carry an id (ULID), a name (segm
 - `--parent <value>` → same.
 
 Don't rename the FLAGS themselves — that breaks bd compat. Rename the INTERNAL handling:
+
 - `const idArg = options.id` → `const refArg = options.id` (and resolve immediately)
 - `function lookupById(repo, id)` → `function resolveRef(repo, ref)` if the input is path-or-ulid
 
@@ -71,12 +96,12 @@ Handled in `@km/beads/frontmatter-path-rename` — separate bead for the on-disk
 
 When choosing a variable name:
 
-| Carries | Name it |
-|---|---|
-| ULID (matches `nodes.id`) | `id`, `nodeId`, `beadId`, `ulid` |
-| Single segment / slug | `name`, `segment`, `slug` |
-| Composed path (`@km/beads/foo`) | `path`, `nodePath`, `beadPath` |
-| Anything-resolvable (path-or-id-or-alias) | `ref` |
+| Carries                                   | Name it                  |
+| ----------------------------------------- | ------------------------ |
+| ULID (matches nodes.id)                   | id, nodeId, beadId, ulid |
+| Single segment / slug                     | name, segment, slug      |
+| Composed path (@km/beads/foo)             | path, nodePath, beadPath |
+| Anything-resolvable (path-or-id-or-alias) | ref                      |
 
 Default to `ref` when a function accepts user input that could be any form. Resolve to an `id` ASAP and then use `id` internally.
 
@@ -106,6 +131,7 @@ Mechanical replace; ≤1 hr. Add a grep-gate or oxlint rule blocking reintroduct
 Per arch-agent opinion in /big session 2026-04-30 (high confidence): **do NOT add `Path`, `Name`, `NodeRef`, `PathBuilder`, `PathDelta`, `PathScope`, `PathPattern`, `PathSegment`, `MaterializedPath`, `AliasIndex`, `Resolver` unifying interface, or other typed wrappers.**
 
 Rationale:
+
 - Three concepts (id, name, path) are already modeled — id and name as KNode fields, path as the derivation `pathOf` consolidates.
 - Per `docs/principles.md` Plain Domain Language: "the system's quality scales with the richness of a few core domain objects — not the number of ad-hoc helpers."
 - Per `docs/principles.md` Domain Object Inventory: KNode/KTree/Position are the load-bearing namespaces; new operations should join them, not spawn parallel ones.
@@ -135,3 +161,4 @@ Per user: "eventually we will likely migrate to the task system instead of bd". 
 
 - Origin: `.claude/arch-decisions/2026-04-30-path-vs-ulid-as-sqlite-pkey.md`.
 - Pairs with: `@km/all/storage-doc-three-concepts` (docs side of the same vocabulary discipline).
+

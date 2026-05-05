@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/storage-doc-three-concepts"
 aliases:
   - km-all.storage-doc-three-concepts
@@ -8,9 +10,14 @@ created_at: 2026-04-30T09:22:00Z
 type: docs
 priority: P3
 parent: "@km/all"
+closeReason: "Shipped: docs/design/model/storage.md:768 establishes 'three
+  concepts. None of them are equal to each other' as the source-of-truth
+  section. Acceptance grep returns no real conflations — only intentional retro
+  entries and one CLAUDE.md line that describes alignment (not equation) between
+  path-form and frontmatter id. Vocabulary is consistent across docs/."
 ---
 
-# Storage docs: lock in the path/name/id three-concept vocabulary @km/all #docs #P3
+# [x] Storage docs: lock in the path/name/id three-concept vocabulary @km/all #docs #P3
 
 Update canonical docs to use path/name/id consistently — never conflate ("the path is the id", "id is the name", etc.). The three-concept distinction is already in `docs/design/model/storage.md:761-767`; downstream docs and code comments need to align.
 
@@ -42,6 +49,7 @@ The /arch agent and the lead conflated these multiple times during the design di
 - `node.id` mentioned where the doc actually means the path-form
 
 Acceptance grep:
+
 ```
 rg -n "(path.*is.*id|id.*is.*path|path-as-id|id-as-path)" docs/ packages/*/CLAUDE.md CLAUDE.md
 ```
@@ -145,3 +153,4 @@ filesystem confirms the move."
 - Origin: `.claude/arch-decisions/2026-04-30-path-vs-ulid-as-sqlite-pkey.md`.
 - Depends on: implementation beads (`@km/beads/resolver-path-via-name-walk`, `@km/beads/data-id-stop-writing`, `@km/all/path-derivation-helper`) so the docs describe shipped state.
 - Pairs with: `@km/storage/parent-name-unique-partial` (referenced in the additions above).
+

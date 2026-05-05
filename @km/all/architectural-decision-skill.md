@@ -8,17 +8,27 @@ closed_at: 2026-04-30T08:50:00.000Z
 status: closed
 type: feature
 priority: P1
-close_reason: |
-  Shipped /arch skill at .claude/skills/arch/SKILL.md (mirrored to .agents/skills/arch/SKILL.md),
-  drift-checker at tools/check-arch-required.ts, retro archive at .claude/arch-decisions/,
-  and /max Step 0 gate calling the drift-checker. All four bead acceptance criteria pass:
+close_reason: >
+  Shipped /arch skill at .claude/skills/arch/SKILL.md (mirrored to
+  .agents/skills/arch/SKILL.md),
 
-  1. .claude/skills/arch/SKILL.md exists with the 4-phase protocol — Discovery (canonical-only,
+  drift-checker at tools/check-arch-required.ts, retro archive at
+  .claude/arch-decisions/,
+
+  and /max Step 0 gate calling the drift-checker. All four bead acceptance
+  criteria pass:
+
+
+  1. .claude/skills/arch/SKILL.md exists with the 4-phase protocol — Discovery
+  (canonical-only,
      EXCLUDES hub/<project>/design/*), Arch agent invocation (5+ doc quotes / 3+ close-reason
      verbatim quotes required), Mandatory retro (line-numbered "actually read" + REVERSAL
      check), Gating. Mirrored to .agents/skills/arch/SKILL.md.
-  2. /arch <topic> invocable via the harness skill list — appears as a top-level skill.
-  3. tools/check-arch-required.ts blocks /max for identity / storage / persistence / loader /
+  2. /arch <topic> invocable via the harness skill list — appears as a top-level
+  skill.
+
+  3. tools/check-arch-required.ts blocks /max for identity / storage /
+  persistence / loader /
      public-API / rendering-pipeline path changes without a recent (<7 days) retro covering
      the topic. Verified: exit 0 on non-triggering paths, exit 1 on triggering paths without
      retros, exit 0 once a topic-matching retro exists in .claude/arch-decisions/. /max
@@ -27,9 +37,13 @@ close_reason: |
      YYYY-MM-DD-<topic-slug>.md format with topic / verdict frontmatter.
 
   Commit: e540ec95c.
+closeReason: Closed in frontmatter on 2026-04-30T08:50 — /arch skill at
+  .claude/skills/arch/SKILL.md shipped along with drift-checker, retro archive,
+  and /max Step 0 gate. All 4 acceptance criteria pass per the close_reason. bd
+  state.db sync alignment.
 ---
 
-# /arch skill: doc-first architectural-decision protocol with required retro
+# [x] /arch skill: doc-first architectural-decision protocol with required retro
 
 ## Goal
 
@@ -109,3 +123,4 @@ Skill design + drafting: 2-3 hours. Drift-checker: 1-2 hours. Total ~half day.
 - Memory: `feedback-verify-agent-investigation-scope.md`
 - Memory: `feedback-hub-docs-are-drafts-not-canonical.md`
 - Origin session: 2026-04-30 (during bead-domain-interface plateau push)
+

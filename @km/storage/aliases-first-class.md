@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/aliases-first-class"
 aliases:
   - km-storage.aliases-first-class
@@ -8,9 +10,17 @@ created_at: 2026-05-03T15:30:00Z
 type: refactor
 priority: P2
 parent: "@km/storage"
+closeReason: "Shipped via schema v9 (node_aliases first-class indexed table
+  populated by SQLite triggers from data.aliases JSON). Acceptance met:
+  nodes.aliases-equivalent exists (node_aliases TABLE + idx_node_aliases_alias
+  for reverse lookup), migration is automatic via trigger, resolveRef step 3 in
+  @km/storage/repo/resolve-ref.ts:54 hits the indexed table for O(log N) alias
+  resolution. data.aliases JSON writes are still the source-of-truth (per 'one
+  transitional release' note in the bead) — triggers keep node_aliases in sync.
+  Out-of-scope (drop JSON writes) deferred per bead."
 ---
 
-# Promote `data.aliases` to first-class `node.aliases` field @km/storage #refactor #P2
+# [x] Promote `data.aliases` to first-class `node.aliases` field @km/storage #refactor #P2
 
 Aliases are a **universal** node concept — any node may have alternate names
 that resolve to it (legacy ids from imports, cross-vault references, link
@@ -78,3 +88,4 @@ props to first-class node fields. Aliases are one such prop.
 - Tracking epic: `@km/all/path-name-id-redesign`.
 - Origin: 2026-05-03 reframe — "beads should not leak into the data model;
   aliases are a universal concept."
+

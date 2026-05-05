@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tree/ktree-path-method"
 aliases:
   - km-tree.ktree-path-method
@@ -8,9 +10,12 @@ created_at: 2026-04-30T10:13:00Z
 type: feature
 priority: P2
 parent: "@km/tree"
+closeReason: "Shipped: packages/km-tree/src/walk.ts:202 has KTree.path(tree,
+  nodeId) → string | null. Walks parent chain via name, no fs_path read. Used by
+  serialization paths and tests."
 ---
 
-# KTree.path(tree, id) — canonical path derivation in the KTree namespace @km/tree #task #P2
+# [x] KTree.path(tree, id) — canonical path derivation in the KTree namespace @km/tree #task #P2
 
 Add `KTree.path(tree: KTree, id: NodeId): string | null` next to `KTree.nodes()` and `KTree.ancestors()` in `packages/km-tree/src/`. Walks the parent chain from the node up to root, collects each ancestor's `name`, joins with `/`. Cache-free; no fs_path read.
 
@@ -18,7 +23,7 @@ Add `KTree.path(tree: KTree, id: NodeId): string | null` next to `KTree.nodes()`
 
 Per `docs/principles.md` Discoverability Test:
 
-> "If a developer types `X.` and doesn't see the operation they need, the namespace is incomplete."
+> "If a developer types X. and doesn't see the operation they need, the namespace is incomplete."
 
 `KTree.` should surface `.path()` alongside `.nodes()` / `.ancestors()`. Today the operation lives as `pathOf(node)` in `@km/core/src/path.ts` — but that's a derivation from the cached `fs_path` column, not a tree walk.
 
@@ -73,3 +78,4 @@ For now they coexist. After `@km/storage/drop-fs-path-derive-from-name`, `pathOf
 
 - /big session 2026-04-30 — arch agent's recommendation #2 (high confidence).
 - See `.claude/arch-decisions/2026-04-30-path-vs-ulid-as-sqlite-pkey.md` for the broader path/name/id discussion.
+

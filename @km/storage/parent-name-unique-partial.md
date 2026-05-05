@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/parent-name-unique-partial"
 aliases:
   - km-storage.parent-name-unique-partial
@@ -25,9 +27,14 @@ close_reason: |
 type: feature
 priority: P2
 parent: "@km/storage"
+closeReason: "Already shipped: schema v8 migration in
+  packages/km-storage/src/db/schema.ts with partial UNIQUE INDEX
+  idx_nodes_parent_name_fstype. Tests in parent-name-unique-schema-v8.test.ts
+  (11 cases) pass. Frontmatter status was set to 'closed' but bd state.db never
+  synced — closing now to align."
 ---
 
-# Partial UNIQUE (parent_id, name) WHERE fstype IS NOT NULL @km/storage #task #P2
+# [x] Partial UNIQUE (parent_id, name) WHERE fstype IS NOT NULL @km/storage #task #P2
 
 Re-files the dropped `@km/storage/parent-name-unique` bead, this time correctly
 scoped to filesystem-materialized nodes only. The original (flat) version was
@@ -99,3 +106,4 @@ uniqueness is already enforced by the OS filesystem:
   over-aggressive and recommended the partial-by-fstype variant.
 - Tracking epic: `@km/all/path-name-id-redesign`.
 - Replaces (under different scope): closed `@km/storage/parent-name-unique`.
+

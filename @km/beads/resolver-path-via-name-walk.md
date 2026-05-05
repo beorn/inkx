@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beads/resolver-path-via-name-walk"
 aliases:
   - km-beads.resolver-path-via-name-walk
@@ -8,9 +10,15 @@ created_at: 2026-04-30T09:22:00Z
 type: feature
 priority: P1
 parent: "@km/beads"
+closeReason: "Shipped: resolveShortId in @km/beads/src/short-ids.ts now
+  delegates to universal resolveRef in @km/storage (3-step ladder:
+  ULID/path/alias). Step 4 compat fallback reads data.id/data.short_id for
+  legacy fixtures only. resolveRef uses repo.resolveNode for path-form
+  (idx_nodes_fs_path) — no more redundant json_extract over data.id. See
+  @km/storage/extract-resolveref (also closed)."
 ---
 
-# Bead resolver delegates to repo.resolveNode for path-form input @km/beads #task #P1
+# [x] Bead resolver delegates to repo.resolveNode for path-form input @km/beads #task #P1
 
 Rewrite `resolveShortId` (in `packages/km-beads/src/short-ids.ts`) to delegate to the repo's existing `resolveNode` for path-form input, which already handles `fs_path`-based lookup with `idx_nodes_fs_path`. Keep the json_each scan over `data.aliases` as the legacy bd-form fallback.
 
@@ -50,3 +58,4 @@ Drop step 1 (`data.id` json_extract) and step 2 (`data.short_id` json_extract) o
 - Origin: `.claude/arch-decisions/2026-04-30-path-vs-ulid-as-sqlite-pkey.md`.
 - Closes a class of bugs: claim-loses-issue (d14054dd6), close-drop-data-wipe (3309b3512). Once `data.id` is no longer load-bearing for resolution, partial JSON updates can't break identity resolution.
 - Pairs with `@km/beads/data-id-stop-writing` — the next step that actually removes the `data.id` write.
+

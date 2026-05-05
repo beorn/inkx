@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/path-name-orthogonal-vocabulary"
 aliases:
   - km-all.path-name-orthogonal-vocabulary
@@ -10,9 +12,11 @@ priority: P3
 parent: "@km/all"
 closed: true
 closed_at: 2026-05-04
+closeReason: "Closed in frontmatter on 2026-05-04 (closed: true). Vocabulary
+  changes documented and shipped. bd state.db sync alignment."
 ---
 
-# Path / name orthogonal vocabulary — tree vs fs as a 2×2 @km/all #docs #P3
+# [x] Path / name orthogonal vocabulary — tree vs fs as a 2×2 @km/all #docs #P3
 
 Per 2026-05-01 user observation: name and path are most cleanly modeled as
 **tree-model concepts** with **fs-materialized counterparts**, rather than
@@ -21,12 +25,13 @@ documents the 2×2 and renames the helpers to match.
 
 ## The 2×2
 
-|  | **Tree (logical)** | **FS (materialized)** |
-|---|---|---|
-| **segment** | tree-name — `node.name` | fs-name — basename on disk (`foo.md` for files; `foo` for folders) |
-| **composed** | tree-path — `KTree.path(tree, id)` parent walk | fs-path — `node.fs_path` cache (`./@km/beads/foo.md`) |
+|          | Tree (logical)                               | FS (materialized)                                              |
+| -------- | -------------------------------------------- | -------------------------------------------------------------- |
+| segment  | tree-name — node.name                        | fs-name — basename on disk (foo.md for files; foo for folders) |
+| composed | tree-path — KTree.path(tree, id) parent walk | fs-path — node.fs_path cache (./@km/beads/foo.md)              |
 
 The previous "name vs path" framing collapses two distinct axes:
+
 1. **Segment vs composed** — a single label vs a sequence of labels
 2. **Tree vs fs** — the logical structure vs the on-disk materialization
 
@@ -36,12 +41,12 @@ to disk for human editing).
 
 ## Current state
 
-| Cell | Today's primitive |
-|---|---|
-| tree-name | `node.name` (KNode field) — ✓ canonical |
-| tree-path | `KTree.path(tree, id)` — ✓ canonical (shipped 2026-04-30) |
-| fs-path | `node.fs_path` (storage column, cached from OS) — ✓ canonical |
-| fs-name | implicit — derived ad-hoc via `basename(node.fs_path)` in callers |
+| Cell      | Today's primitive                                               |
+| --------- | --------------------------------------------------------------- |
+| tree-name | node.name (KNode field) — ✓ canonical                           |
+| tree-path | KTree.path(tree, id) — ✓ canonical (shipped 2026-04-30)         |
+| fs-path   | node.fs_path (storage column, cached from OS) — ✓ canonical     |
+| fs-name   | implicit — derived ad-hoc via basename(node.fs_path) in callers |
 
 `pathOf(node)` lives in the **wrong cell**: it reads from `fs_path` (the FS
 side) and strips the FS-isms (`./` prefix, `.md` extension) to return what
@@ -155,3 +160,4 @@ yet.
 ## Closed
 
 2026-05-04 — `pathOf` → `fsPathOf` rename shipped. `pathOf` retained as a `@deprecated` one-line alias in `packages/km-core/src/path.ts`. All 6 callers migrated (`packages/km-storage/src/repo/repo.ts`, `packages/km-storage/src/repo/move-with-refs.ts`, `packages/km-storage/src/db/links.ts`, `packages/km-storage/src/testing/fake-repo.ts`, `apps/km-cli/src/commands/broken-links.ts`, plus the comment in `packages/km-tree/src/walk.ts`). 2×2 vocabulary table added to `docs/design/model/storage.md` and referenced from `docs/design/model/knode.md`. `treePathOf` and `fsNameOf` intentionally NOT introduced — `KTree.path()` covers the cache-free tree-walk; only one caller of inline `basename(fs_path)` exists, so YAGNI on `fsNameOf`. Tests: 15 passed in `packages/km-core/tests/path.test.ts` (12 fsPathOf + 3 deprecated-alias smoke tests); 1640 passed across km-core + km-storage. The CLAUDE.md mentions for `@km/core` and `@km/storage` (Acceptance bullet) and the grep gate (Acceptance bullet) are intentionally deferred — both are nice-to-have polish items beyond the 6-caller rename + doc update that this bead's title actually scopes.
+

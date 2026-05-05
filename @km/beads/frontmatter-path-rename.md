@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beads/frontmatter-path-rename"
 aliases:
   - km-beads.frontmatter-path-rename
@@ -8,9 +10,14 @@ created_at: 2026-04-30T09:22:00Z
 type: feature
 priority: P3
 parent: "@km/beads"
+closeReason: "Shipped together with data-id-stop-writing:
+  mutations.ts:renderBeadFile + renderInboxCapture + migrate.ts emit YAML
+  frontmatter with NO 'id:' or 'path:' field — only 'aliases' and 'created_at'.
+  The file's path on disk IS the canonical id; storing it in YAML duplicated the
+  location. Decision was 'remove entirely', not 'rename to path:'."
 ---
 
-# Drop the redundant `id:` field from bead YAML — path is the file location @km/beads #task #P3
+# [x] Drop the redundant `id:` field from bead YAML — path is the file location @km/beads #task #P3
 
 The bead-frontmatter YAML field currently called `id:` holds a path-form
 value (`@km/beads/foo`), which is redundant with the file's location on
@@ -87,3 +94,4 @@ site instead. **This is part of the paired `data-id-stop-writing` work**
 - Tracking epic: `@km/all/path-name-id-redesign`.
 - Origin: `.claude/arch-decisions/2026-04-30-path-vs-ulid-as-sqlite-pkey.md`,
   reframed 2026-05-03.
+

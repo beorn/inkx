@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - km
 id: "@km/storage/extract-resolveref"
 aliases:
   - km-storage.extract-resolveref
@@ -8,9 +11,18 @@ created_at: 2026-05-01T17:55:00Z
 type: refactor
 priority: P1
 parent: "@km/storage"
+closeReason: "Shipped: packages/km-storage/src/repo/resolve-ref.ts exists,
+  exports resolveRef (3-step universal ladder: ULID → path-form via fs_path →
+  alias scan). Re-exported from @km/storage public index (line 325).
+  @km/beads/src/short-ids.ts:resolveShortId is now a deprecated wrapper that
+  delegates to resolveRef + adds a step-4 compat fallback for legacy
+  data.id/data.short_id fixtures. New test
+  packages/km-storage/tests/resolve-ref.test.ts covers ULID/path/alias/missing
+  cases. All resolve-id.property.test.ts tests still pass (17 cases). Acceptance
+  met."
 ---
 
-# Universal `resolveRef` in @km/storage — replaces `resolveShortId` @km/storage #refactor #P1
+# [x] Universal `resolveRef` in @km/storage — replaces `resolveShortId` @km/storage #refactor #P1
 
 The function currently called `resolveShortId` in `@km/beads/src/short-ids.ts`
 performs a 4-step ladder. Per the 2026-05-03 reframe (see
@@ -109,3 +121,4 @@ from `data.aliases` JSON) — same query shape, indexed seam.
   session. Earlier draft of this bead split the resolver into universal
   + beads-specific halves; the 2026-05-03 reframe collapsed that split
   because aliases are universal.
+
