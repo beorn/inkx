@@ -141,7 +141,7 @@ describe("E2E Round-Trip Features", () => {
   })
 
   describe("frontmatter", () => {
-    test("YAML frontmatter survives round-trip", () =>
+    test("YAML frontmatter survives round-trip (sans dissolved fields)", () =>
       withTestEnv(async ({ repoDir, data }) => {
         const { nodes, fileContent } = await roundTrip(
           data.database,
@@ -150,15 +150,19 @@ describe("E2E Round-Trip Features", () => {
           "---\ntags:\n  - project\n  - active\nauthor: test\n---\n# Doc\n\nContent here.\n",
         )
 
-        // File should still have frontmatter
+        // File should still have frontmatter for non-dissolved fields.
         expect(fileContent).toContain("---")
-        expect(fileContent).toContain("tags:")
+        expect(fileContent).toContain("author: test")
 
-        // File node should have frontmatter data
+        // `tags:` was dissolved into the `links` table
+        // (@km/all/dissolve-data-tags-to-links) — it doesn't round-trip.
+        expect(fileContent).not.toContain("tags:")
+
+        // File node should have non-dissolved frontmatter data.
         const fileNode = nodes.find(
           (n) => n.type === "h" && n.item != null && (n.fstype === "file" || n.fstype === "mdfile"),
         )
-        expect(fileNode?.data?.tags).toContain("project")
+        expect(fileNode?.data?.tags).toBeUndefined()
         expect(fileNode?.data?.author).toBe("test")
       }))
   })

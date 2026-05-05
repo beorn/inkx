@@ -32,6 +32,7 @@ import {
 } from "@silvery/ag-react"
 import { KNode, type KNode as KNodeType } from "@km/core"
 import { extractTaskDates, getNodePriority } from "@km/core"
+import { extractRefs } from "@km/text-render"
 import { getStatusIcon } from "../icons.ts"
 import { InlineText, InlineRenderProvider } from "../text/InlineComponents.tsx"
 import { useTreeInlineContext } from "./tree-node-shared.ts"
@@ -773,7 +774,11 @@ function getMetadataValue(key: string, node: KNode, repo: import("../repo-contex
       return { text: names.join(", ") || "none" }
     }
     case "Tags": {
-      const tags = (data as { tags?: string[] } | undefined)?.tags ?? []
+      // `data.tags` was dissolved into the `links` table
+      // (@km/all/dissolve-data-tags-to-links). Read tags live from
+      // `node.content` so the row reflects the authored hashtags without
+      // a Repo round-trip.
+      const tags = node.content ? extractRefs(node.content).tags : []
       return { text: tags.map((t) => `#${t}`).join(" ") || "none" }
     }
     case "Mentions": {

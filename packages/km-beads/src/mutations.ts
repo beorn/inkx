@@ -95,7 +95,10 @@ export function createBeadNode(
     // data.tags below, where getNodePriority() reads it.
     data: {
       short_id: shortId,
-      tags: [options.type, priority, ...(options.labels || [])].filter(Boolean),
+      // `data.tags` was dissolved into the `links` table; tags now live
+      // as `#<tag>` markers in the H1 content (assembled by
+      // `buildBeadHeading`) and the parser emits link rows for them.
+      // See @km/all/dissolve-data-tags-to-links.
       mentions: options.assignee ? [options.assignee] : [],
     },
     created_at: now,
@@ -188,25 +191,6 @@ export function updateBeadFields(bead: Bead, changes: UpdateBeadChanges): Partia
   // See @km/all/drop-data-tags.
 
   return updates
-}
-
-/**
- * Replace any existing P0–P4 (or bare 0–4) tag and/or the current type
- * tag with the new values. Preserves unrelated tags (e.g. `frontend`,
- * `urgent`) unchanged. Stripping bare-digit tags too prevents
- * accumulation: a bead with legacy `#0` getting --priority P1 should
- * end up with just `[P1]`, not `[0, P1]`.
- */
-function rewriteTypeAndPriorityTags(tags: string[], next: { priority?: string; type?: string }): string[] {
-  const typeKeywords = new Set(["bug", "feature", "epic", "task", "docs", "question"])
-  const filtered = tags.filter((t) => {
-    if (next.priority !== undefined && (/^P[0-4]$/i.test(t) || /^[0-4]$/.test(t))) return false
-    if (next.type !== undefined && typeKeywords.has(t.toLowerCase())) return false
-    return true
-  })
-  if (next.type !== undefined) filtered.push(next.type)
-  if (next.priority !== undefined) filtered.push(next.priority)
-  return filtered
 }
 
 /**

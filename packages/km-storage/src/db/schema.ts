@@ -124,8 +124,15 @@ export const SCHEMA_VERSION = 11
  *       embedded, relationship, created_at) rows are dropped by the
  *       SCHEMA_VERSION=4 migration; DATA_VERSION=2 triggers a full rebuild
  *       from .md files so `href` rows are re-derived from the content.
+ *   3 — data.tags dissolved into the `links` table
+ *       (@km/all/dissolve-data-tags-to-links). The parser stops writing
+ *       `node.data.tags` and `node.data._allTags`, and instead emits
+ *       `(host_id, href='km:%23<tag>', rel='link')` rows for every
+ *       hashtag in heading / list-item title content + YAML frontmatter
+ *       `tags:`. Rebuild populates the new link rows and drops the
+ *       legacy JSON fields from existing nodes.
  */
-export const DATA_VERSION = 2
+export const DATA_VERSION = 3
 
 /**
  * SQL for the `deps` table + indexes + triggers (v7).

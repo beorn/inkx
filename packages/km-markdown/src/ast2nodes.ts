@@ -185,6 +185,11 @@ export function parseMarkdownWithLinks(content: string, fsPath: string, fsIno?: 
 
   const allNodes = [fileNode, ...childNodes]
   const wikilinks = extractWikilinksFromNodes(allNodes)
+  // Emit hashtag link rows alongside wikilinks. The downstream loader
+  // inserts every entry into the `links` table — tag entries carry a
+  // pre-computed `href = km:%23<tag>` so the resolver passes them through
+  // unchanged. See @km/all/dissolve-data-tags-to-links.
+  collectHashtagLinks(fileNode, childNodes, wikilinks)
   aggregateRefs(fileNode, childNodes)
   const warnings = validateH1Count(childNodes, fsPath, hadH1, h1Ids)
 
@@ -391,7 +396,8 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>, body: strin
       // Same shape as list items (see convertListItem): heading-level tasks
       // need these too so structured queries (tag/assignee/priority) hit them.
       // See km-markdown.heading-task-refs.
-      const headingTags = (heading.data?.tags as string[] | undefined) ?? []
+      // Note: tags are no longer persisted on KNode.data — they land in the
+      // `links` table via collectHashtagLinks. See @km/all/dissolve-data-tags-to-links.
       const headingMentions = (heading.data?.mentions as string[] | undefined) ?? []
       const headingProjects = (heading.data?.projects as string[] | undefined) ?? []
       const headingProps = (heading.data?.props as Record<string, unknown> | undefined) ?? {}
@@ -434,7 +440,10 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>, body: strin
       // Attach refs & non-km props so heading-level tasks are structurally
       // queryable (same shape as list items). km.* keys stay in `rules`;
       // user-level keys (priority::, status::, etc.) go into propsRaw/props.
-      if (headingTags.length > 0) headingData.tags = headingTags
+      //
+      // `data.tags` is no longer persisted — hashtags land in the `links`
+      // table at parse time (host_id, href='km:%23<tag>', rel='link') via
+      // collectHashtagLinks. See @km/all/dissolve-data-tags-to-links.
       if (headingMentions.length > 0) headingData.mentions = headingMentions
       if (headingProjects.length > 0) headingData.projects = headingProjects
       const userPropsRaw: Record<string, string> = {}
@@ -565,8 +574,9 @@ function convertListItem(
 
   // Parse task metadata from text
   const metadata = isTask ? parseTaskMetadata(text) : {}
-  // Read refs and props from kmast data (set by kmRefsTransform and kmInlinePropTransform)
-  const tags = (item.data?.tags as string[] | undefined) ?? []
+  // Read refs and props from kmast data (set by kmRefsTransform and kmInlinePropTransform).
+  // Tags are no longer persisted on KNode.data — they land in the `links`
+  // table via collectHashtagLinks. See @km/all/dissolve-data-tags-to-links.
   const mentions = (item.data?.mentions as string[] | undefined) ?? []
   const projects = (item.data?.projects as string[] | undefined) ?? []
   const parsedProps = {
@@ -684,7 +694,8 @@ function convertListItem(
     // priority dropped at SCHEMA_VERSION=11; surfaced via data.tags below
     rrule: metadata.rrule,
     data: {
-      ...(priorityTags.length > 0 ? { tags: priorityTags } : {}),
+      // `data.tags` no longer persisted — hashtags land in the `links` table
+      // at parse time. See @km/all/dissolve-data-tags-to-links.
       ...(mentions.length > 0 ? { mentions } : {}),
       ...(projects.length > 0 ? { projects } : {}),
       ...(metadata.rrule ? { rrule: metadata.rrule } : {}),
@@ -1140,6 +1151,59 @@ function extractWikilinksFromNodes(allNodes: KNode[]): ExtractedLink[] {
 }
 
 /**
+ * Emit synthetic `wikilinks` entries for every `#tag` extracted from
+ * heading / list-item title text and YAML frontmatter `tags:` arrays.
+ *
+ * Each entry carries a pre-computed canonical href
+ * (`km:%23<tag>` via normalizeLinkHref("bare", "#tag")) so the
+ * downstream resolver does not attempt name-resolution and inserts the
+ * row verbatim with `rel='link'`.
+ *
+ * `link.target` is the authored hashtag (e.g. `#task`); `link.embedded`
+ * is `false`. Set the relationship to `"tag"` so future readers can
+ * distinguish hashtag link rows from wikilink rows if needed (today the
+ * loader ignores the field for non-prop links).
+ *
+ * See @km/all/dissolve-data-tags-to-links.
+ */
+function collectHashtagLinks(fileNode: KNode, childNodes: KNode[], wikilinks: ExtractedLink[]): void {
+  const seen = new Set<string>() // dedupe: same (nodeId, tag) pair
+
+  function emit(nodeId: string, tag: string): void {
+    const key = `${nodeId}|${tag}`
+    if (seen.has(key)) return
+    seen.add(key)
+    const label = `#${tag}`
+    const href = normalizeLinkHref("bare", label)
+    wikilinks.push({
+      nodeId,
+      link: { type: "wikiLink", target: label, embedded: false } as WikiLink,
+      relationship: "tag",
+      href,
+    })
+  }
+
+  // YAML frontmatter `tags:` (file node only). The values were parsed
+  // into `fileNode.data.tags` by parseFrontmatter; we strip them after
+  // extraction so the YAML field does not round-trip back on serialize.
+  const fileData = fileNode.data as Record<string, unknown>
+  const yamlTags = fileData.tags
+  if (Array.isArray(yamlTags)) {
+    for (const t of yamlTags) {
+      if (typeof t === "string" && t.length > 0) emit(fileNode.id, t)
+    }
+    delete fileData.tags
+  }
+
+  // Inline hashtags in node content (file H1, headings, list items, paragraphs).
+  for (const node of [fileNode, ...childNodes]) {
+    if (!node.content) continue
+    const refs = extractAllRefs(node.content)
+    for (const t of refs.tags) emit(node.id, t)
+  }
+}
+
+/**
  * Build the wiki-form label from a WikiLink and normalize to canonical href.
  * Re-assembles the authored text (`Note#Section`, `Note^abc`, `#Section`)
  * then runs normalizeLinkHref("wiki", label). See docs/design/model/klink.md.
@@ -1155,14 +1219,17 @@ function wikiLinkToHref(link: WikiLink): string {
 }
 
 /**
- * Aggregate mentions, tags, projects from all nodes to file node's data.
+ * Aggregate mentions and projects from all nodes to file node's data.
  * This enables queries like @issue to find files where any content has that mention.
- * Mutates fileNode.data to add _allMentions, _allTags, _allProjects.
+ * Mutates fileNode.data to add _allMentions, _allProjects.
+ *
+ * Tag aggregation (`_allTags`) is intentionally absent — hashtags now land
+ * directly in the `links` table at parse time, so the cache is unnecessary.
+ * See @km/all/dissolve-data-tags-to-links.
  */
 // oxlint-disable-next-line complexity/complexity -- Nested iteration over nodes/refs is inherent to aggregation
 function aggregateRefs(fileNode: KNode, childNodes: KNode[]): void {
   const aggregatedMentions = new Set<string>()
-  const aggregatedTags = new Set<string>()
   const aggregatedProjects = new Set<string>()
 
   // km-load-perf.1: Use single-pass extraction for all refs
@@ -1170,7 +1237,6 @@ function aggregateRefs(fileNode: KNode, childNodes: KNode[]): void {
   if (fileNode.content) {
     const refs = extractAllRefs(fileNode.content)
     for (const m of refs.mentions) aggregatedMentions.add(m)
-    for (const t of refs.tags) aggregatedTags.add(t)
     for (const p of refs.projects) aggregatedProjects.add(p)
   }
 
@@ -1179,7 +1245,6 @@ function aggregateRefs(fileNode: KNode, childNodes: KNode[]): void {
       // Single-pass extraction instead of 3 separate passes
       const refs = extractAllRefs(node.content)
       for (const m of refs.mentions) aggregatedMentions.add(m)
-      for (const t of refs.tags) aggregatedTags.add(t)
       for (const p of refs.projects) aggregatedProjects.add(p)
     }
     // Also include from node's own data (for list items that already extracted these)
@@ -1187,34 +1252,25 @@ function aggregateRefs(fileNode: KNode, childNodes: KNode[]): void {
     if (nodeData?.mentions) {
       for (const m of nodeData.mentions as string[]) aggregatedMentions.add(m)
     }
-    if (nodeData?.tags) {
-      for (const t of nodeData.tags as string[]) aggregatedTags.add(t)
-    }
     if (nodeData?.projects) {
       for (const p of nodeData.projects as string[]) aggregatedProjects.add(p)
     }
   }
 
   // Store aggregated refs in separate fields to preserve original frontmatter
-  // Original frontmatter values stay in data.tags/mentions/projects
-  // Aggregated values (content + frontmatter) go in data._allTags/_allMentions/_allProjects
+  // Original frontmatter values stay in data.mentions/projects
+  // Aggregated values (content + frontmatter) go in data._allMentions/_allProjects
   const fileData = fileNode.data as Record<string, unknown>
   const existingMentions = (fileData.mentions as string[] | undefined) || []
-  const existingTags = (fileData.tags as string[] | undefined) || []
   const existingProjects = (fileData.projects as string[] | undefined) || []
 
   // Add original frontmatter values to aggregation
   for (const m of existingMentions) aggregatedMentions.add(m)
-  for (const t of existingTags) aggregatedTags.add(t)
   for (const p of existingProjects) aggregatedProjects.add(p)
 
   // Store aggregated values in separate fields (for queries)
-  // Original frontmatter values (data.tags etc.) are preserved for serialization
   if (aggregatedMentions.size > 0) {
     fileData._allMentions = [...aggregatedMentions]
-  }
-  if (aggregatedTags.size > 0) {
-    fileData._allTags = [...aggregatedTags]
   }
   if (aggregatedProjects.size > 0) {
     fileData._allProjects = [...aggregatedProjects]

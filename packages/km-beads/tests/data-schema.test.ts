@@ -205,9 +205,12 @@ describe("beadDataSchema — passthrough behavior", () => {
     })
   })
 
-  test("preserves parser internals (_mdSource, _mdBullet, _allTags, _stub)", () => {
+  test("preserves parser internals (_mdSource, _mdBullet, _stub) via passthrough", () => {
     // km-markdown writes underscore-prefixed internals onto data; they
     // must survive an unrelated bead update or markdown can't reserialize.
+    // (`_allTags` was dissolved per @km/all/dissolve-data-tags-to-links;
+    // legacy DBs may still carry it as a passthrough field — keep that
+    // path covered.)
     const data = {
       _mdSource: "**bold** text",
       _mdSourceContent: "**bold** text",
@@ -246,13 +249,11 @@ describe("parseBeadData", () => {
     const result = parseBeadData({
       id: "@km/beads/foo",
       aliases: 42, // wrong shape
-      tags: ["P0"],
     })
     expect(result.warnings.length).toBeGreaterThan(0)
     expect(result.warnings.some((w) => w.path === "aliases")).toBe(true)
     // Original data is preserved.
     expect(result.data.id).toBe("@km/beads/foo")
-    expect(result.data.tags).toEqual(["P0"])
   })
 
   test("never throws on undefined input", () => {
@@ -347,17 +348,21 @@ describe("assertBeadDataPatch", () => {
   })
 
   test("error message lists offending paths", () => {
+    // `tags` was dropped from the schema (dissolved into the `links`
+    // table — @km/all/dissolve-data-tags-to-links); pick a different
+    // wrong-shape known key alongside `aliases` to exercise multi-error
+    // reporting.
     try {
       assertBeadDataPatch({
         aliases: 42,
-        tags: "wrong",
+        mentions: "wrong",
       })
       throw new Error("expected throw")
     } catch (e) {
       expect(e).toBeInstanceOf(BeadDataValidationError)
       const err = e as BeadDataValidationError
       expect(err.message).toContain("aliases")
-      expect(err.message).toContain("tags")
+      expect(err.message).toContain("mentions")
     }
   })
 })

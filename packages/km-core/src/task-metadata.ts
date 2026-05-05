@@ -53,28 +53,20 @@ const STRIP_EMOJI_RECURRENCE = /\s*🔁\s*.+?(?=\s*[📅⏳]|$)/u
 /**
  * Get a node's priority. Returns `P0`-`P4` (canonical form) or `undefined`.
  *
- * Canonical source: `#P[0-4]` hashtag in the H1 / list-item title, captured
- * into `data.tags` (per-node) and `data._allTags` (aggregated on file
- * nodes) by kmRefsTransform. Per docs/future/beads.md "Priority Tags".
+ * The `nodes.priority` column was dropped at SCHEMA_VERSION=11; `data.tags`
+ * was dissolved with the dissolve-data-tags-to-links work. Hashtags now
+ * live in the `links` table (read via `repo.getOutgoingLinks`). For
+ * callers without a `Repo` handle, we fall back to a regex scan of
+ * `node.content` — the H1 is merged into `content` for file nodes, so
+ * `#P0` on the H1 still resolves here. Per docs/future/beads.md
+ * "Priority Tags".
  *
- * Transitional: while the `nodes.priority` column is being dissolved, this
- * helper also reads `node.priority` (legacy column write path) so callers
- * that haven't migrated yet still see expected values. The column will be
- * dropped in a follow-up; the helper internals collapse to data.tags only.
+ * Callers that need cross-descendant priority resolution (file node with
+ * priority on a child heading) should query the links table directly.
  */
-export function getNodePriority(node: { priority?: string; data?: Record<string, unknown> }): string | undefined {
-  if (node.priority) {
-    const m = node.priority.match(/^P?([0-4])$/i)
-    return m?.[1] ? `P${m[1]}` : node.priority
-  }
-  const tags = (node.data?.tags as string[] | undefined) ?? []
-  for (const tag of tags) {
-    const m = tag.match(/^P([0-4])$/i)
-    if (m?.[1]) return `P${m[1]}`
-  }
-  const allTags = (node.data?._allTags as string[] | undefined) ?? []
-  for (const tag of allTags) {
-    const m = tag.match(/^P([0-4])$/i)
+export function getNodePriority(node: { content?: string }): string | undefined {
+  if (node.content) {
+    const m = node.content.match(/(?:^|\s|[([{.,;:!?])#P([0-4])\b/i)
     if (m?.[1]) return `P${m[1]}`
   }
   return undefined

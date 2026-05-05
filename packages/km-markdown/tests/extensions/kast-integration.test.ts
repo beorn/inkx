@@ -683,26 +683,35 @@ describe("kmast roundtrip", () => {
 // ===========================================================================
 
 describe("heading-task refs/props extraction (km-markdown.heading-task-refs)", () => {
-  const { parseMarkdownToNodes } = require("../../src/ast2nodes.ts") as typeof import("../../src/ast2nodes.ts")
+  const { parseMarkdownToNodes, parseMarkdownWithLinks } =
+    require("../../src/ast2nodes.ts") as typeof import("../../src/ast2nodes.ts")
 
-  test("list-item task extracts tags/mentions/props (baseline)", () => {
+  test("list-item task extracts tags via link rows + extracts mentions/props (baseline)", () => {
+    // `data.tags` was dissolved (@km/all/dissolve-data-tags-to-links) — hashtags
+    // now land in the parser's `wikilinks` output as synthetic tag entries.
     const md = "- [ ] title #tagA @person priority:: P1 status:: reported"
-    const nodes = parseMarkdownToNodes(md, "test.md")
-    const task = nodes.find((n: { item?: { task?: unknown } }) => n.item?.task !== undefined)
+    const result = parseMarkdownWithLinks(md, "test.md")
+    const task = result.nodes.find((n: { item?: { task?: unknown } }) => n.item?.task !== undefined)
     expect(task).toBeDefined()
-    expect(task!.data?.tags).toContain("tagA")
+    const taskTags = result.wikilinks
+      .filter((w: { nodeId: string; relationship?: string }) => w.nodeId === task!.id && w.relationship === "tag")
+      .map((w: { href: string }) => w.href)
+    expect(taskTags).toContain("km:%23tagA")
     expect(task!.data?.mentions).toContain("person")
     const propsRaw = (task!.data as { propsRaw?: Record<string, string> })?.propsRaw
     expect(propsRaw?.priority).toBe("P1")
     expect(propsRaw?.status).toBe("reported")
   })
 
-  test("heading-level task extracts tags/mentions/props (regression)", () => {
+  test("heading-level task extracts tags via link rows + extracts mentions/props (regression)", () => {
     const md = "#### [ ] title #tagA @person priority:: P1 status:: reported\n"
-    const nodes = parseMarkdownToNodes(md, "test.md")
-    const task = nodes.find((n: { item?: { task?: unknown } }) => n.item?.task !== undefined)
+    const result = parseMarkdownWithLinks(md, "test.md")
+    const task = result.nodes.find((n: { item?: { task?: unknown } }) => n.item?.task !== undefined)
     expect(task, "heading-task node should exist").toBeDefined()
-    expect(task!.data?.tags).toContain("tagA")
+    const taskTags = result.wikilinks
+      .filter((w: { nodeId: string; relationship?: string }) => w.nodeId === task!.id && w.relationship === "tag")
+      .map((w: { href: string }) => w.href)
+    expect(taskTags).toContain("km:%23tagA")
     expect(task!.data?.mentions).toContain("person")
     const propsRaw = (task!.data as { propsRaw?: Record<string, string> })?.propsRaw
     expect(propsRaw?.priority).toBe("P1")

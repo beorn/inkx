@@ -101,11 +101,13 @@ export const beadDataDependencySchema = z.object({
  *   Inline-bead properties (sub-checkboxes elevated via `+` sigil)
  *     props, propsRaw — Logseq-style `<key>:: <value>` blocks
  *
- *   Sigil-mirror tags (synced by mutations.ts on every update)
- *     short_id, tags, mentions
+ *   Sigil-mirror refs (synced by mutations.ts on every update)
+ *     short_id, mentions
+ *     — `tags` was dissolved into the `links` table, see
+ *     @km/all/dissolve-data-tags-to-links.
  *
  *   Parser internals (km-markdown, NOT bead-authored)
- *     _mdSource, _mdSourceContent, _mdBullet, _allTags,
+ *     _mdSource, _mdSourceContent, _mdBullet,
  *     _h1Title, _allMentions, _allProjects, _rawFrontmatter, _stub,
  *     list_start, lang, meta, rules
  *
@@ -142,8 +144,8 @@ export const beadDataSchema = z
     props: beadPropsSchema.optional(),
     propsRaw: beadPropsRawSchema.optional(),
 
-    // Sigil-mirror tags
-    tags: z.array(z.string()).optional(),
+    // Sigil-mirror refs (`tags` was dissolved into the `links` table —
+    // see @km/all/dissolve-data-tags-to-links).
     mentions: z.array(z.string()).optional(),
 
     // bd export metadata (preserved verbatim)

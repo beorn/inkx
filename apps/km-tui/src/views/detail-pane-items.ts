@@ -3,6 +3,7 @@
  */
 
 import { KNode, extractTaskDates, getNodePriority } from "@km/core"
+import { extractRefs } from "@km/text-render"
 import { capitalize } from "./detail-pane-helpers.ts"
 import { parseDepsRefs } from "./tree-node-helpers.tsx"
 
@@ -12,7 +13,10 @@ export const DETAIL_META_PREFIX = "__meta__"
 /** Data keys handled explicitly by MetadataTable or shown elsewhere (breadcrumb, footer). */
 export const KNOWN_DATA_KEYS = new Set([
   // Parser-generated
-  "tags",
+  // `tags` was dissolved into the `links` table
+  // (@km/all/dissolve-data-tags-to-links). The key is no longer written
+  // by the parser; left out of this set so any stray legacy value
+  // becomes visible in the "extra data" section instead of silently hidden.
   "mentions",
   "projects",
   "projectMemberships",
@@ -35,7 +39,6 @@ export const KNOWN_DATA_KEYS = new Set([
   // Internal aggregation (parser)
   "_h1Title",
   "_allMentions",
-  "_allTags",
   "_allProjects",
   // Import provenance (shown in footer instead)
   "imported_from",
@@ -99,9 +102,11 @@ export function computeMetadataKeys(node: KNode): string[] {
   const projectMemberships = data?.projectMemberships as Array<{ project: string }> | undefined
   if (projectMemberships && projectMemberships.length > 0) keys.push("Projects")
 
-  // Tags/Mentions from content refs or data
-  const dataRefs = data as { mentions?: string[]; tags?: string[] } | undefined
-  if (dataRefs?.tags && dataRefs.tags.length > 0) keys.push("Tags")
+  // Tags from inline `#hashtag` markers in content (data.tags was
+  // dissolved into the `links` table — @km/all/dissolve-data-tags-to-links).
+  // Mentions still come from the data cache.
+  const dataRefs = data as { mentions?: string[] } | undefined
+  if (node.content && extractRefs(node.content).tags.length > 0) keys.push("Tags")
   if (dataRefs?.mentions && dataRefs.mentions.length > 0) keys.push("Mentions")
 
   // Dependencies

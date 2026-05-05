@@ -187,26 +187,15 @@ More paragraph text.
   })
 
   describe("Frontmatter", () => {
-    test("simple frontmatter round-trips", () => {
-      const content = `---
-tags:
-  - test
----
-
-# Document
-
-- [ ] Task
-`
-      const result = verifyRoundtrip(content)
-      expect(result.passed).toBe(true)
-    })
-
-    test("complex frontmatter round-trips", () => {
+    // YAML `tags:` is no longer round-tripped verbatim — the dissolution
+    // (@km/all/dissolve-data-tags-to-links) emits hashtag link rows for
+    // each YAML tag and drops the field from `data`, on the principle
+    // that hashtags are the canonical authored form and the YAML field
+    // was a parking-spot fossil. First-pass authored YAML `tags:` users
+    // see the field disappear from disk on first save; we accept that.
+    test("frontmatter without tags round-trips", () => {
       const content = `---
 title: My Document
-tags:
-  - project
-  - work
 priority: high
 custom_field: value
 ---
@@ -217,6 +206,30 @@ custom_field: value
 `
       const result = verifyRoundtrip(content)
       expect(result.passed).toBe(true)
+    })
+
+    test("YAML `tags:` converts to body hashtags (not round-tripped)", () => {
+      // Authored YAML tags become hashtag link rows; the field disappears
+      // on serialize. Equivalent on-disk shape after one round-trip is
+      // the same content sans the YAML block (no body hashtags emitted —
+      // the dissolution intentionally chose the simpler "drop the YAML"
+      // path; a future enhancement could append the body hashtags).
+      const content = `---
+tags:
+  - test
+---
+
+# Document
+
+- [ ] Task
+`
+      const nodes = parseMarkdownToNodes(content, "/test.md")
+      const regenerated = nodesToMarkdown(nodes)
+      // The YAML `tags:` block disappears.
+      expect(regenerated).not.toContain("tags:")
+      // The body content is preserved.
+      expect(regenerated).toContain("# Document")
+      expect(regenerated).toContain("- [ ] Task")
     })
   })
 
@@ -350,11 +363,12 @@ function generateRandomSimpleFile(random: SeededRandom): string {
 function generateRandomComplexFile(random: SeededRandom): string {
   const lines: string[] = []
 
-  // Maybe frontmatter
+  // Maybe frontmatter (NOT `tags:` — those are dissolved into the
+  // links table per @km/all/dissolve-data-tags-to-links and don't
+  // round-trip; pick a different field to exercise frontmatter).
   if (random.bool(0.3)) {
     lines.push("---")
-    lines.push("tags:")
-    lines.push("  - generated")
+    lines.push("custom_field: generated")
     lines.push("---")
     lines.push("")
   }

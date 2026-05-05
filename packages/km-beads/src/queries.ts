@@ -170,6 +170,26 @@ function countDependents(shortId: string | undefined, repo?: Repo, dependentCoun
 }
 
 /**
+ * Read hashtag link rows for a node and return the authored tag list.
+ *
+ * Tag rows have hrefs of the form `km:%23<tag>` (per
+ * normalizeLinkHref("bare", "#tag")). Decode the percent-encoded `#`
+ * sentinel back to the plain tag. Order is not load-bearing.
+ *
+ * @km/all/dissolve-data-tags-to-links — replaces the legacy `data.tags`
+ * read path. Empty when the parser hasn't run / repo is unavailable.
+ */
+function extractTagsFromLinks(node: KNode, repo: Repo): string[] {
+  const links = repo.getOutgoingLinks(node.id)
+  const tags = new Set<string>()
+  for (const link of links) {
+    const m = link.href.match(/^km:%23(.+)$/)
+    if (m?.[1]) tags.add(decodeURIComponent(m[1]))
+  }
+  return [...tags]
+}
+
+/**
  * Get parent context for embedded nodes (section/file name)
  */
 function getParentContext(node: KNode, repo?: Repo): string | undefined {
@@ -269,19 +289,18 @@ export function nodeToBead(node: KNode, options?: BeadsQueryOptions): Bead {
   // at SCHEMA_VERSION=11.
   const priority = getNodePriority(node) ?? "P2" // Default to P2 (medium)
 
-  // Extract type from data.tags (the parser puts H1 / list-item title
-  // hashtags here via kmRefsTransform). Bead type is bd-conventional —
-  // one of the known keywords; user labels are also in data.tags but
+  // Extract type from hashtag link rows (parser emits H1 / list-item title
+  // hashtags into the `links` table as `(host_id, href='km:%23<tag>', rel='link')`
+  // — see @km/all/dissolve-data-tags-to-links). Bead type is bd-conventional —
+  // one of the known keywords; user labels also land as link rows but are
   // ignored for type detection.
   let type: string | undefined
   const typeKeywords = ["bug", "feature", "epic", "task", "docs", "question"]
-  const dataTags = data?.tags as string[] | undefined
-  if (dataTags) {
-    for (const tag of dataTags) {
-      if (typeKeywords.includes(tag.toLowerCase())) {
-        type = tag.toLowerCase()
-        break
-      }
+  const nodeTags = options?.repo ? extractTagsFromLinks(node, options.repo) : []
+  for (const tag of nodeTags) {
+    if (typeKeywords.includes(tag.toLowerCase())) {
+      type = tag.toLowerCase()
+      break
     }
   }
 

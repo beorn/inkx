@@ -3,7 +3,10 @@ import { parseMarkdownWithLinks } from "../src/ast2nodes.ts"
 
 function hrefsFor(md: string): string[] {
   const result = parseMarkdownWithLinks(md, "test.md")
-  return result.wikilinks.map((w) => w.href)
+  // Hashtag link rows (relationship === "tag") are emitted alongside
+  // wikilinks now — see @km/all/dissolve-data-tags-to-links. This test
+  // covers wiki/md link href shape, so filter the synthetic tag rows out.
+  return result.wikilinks.filter((w) => w.relationship !== "tag").map((w) => w.href)
 }
 
 describe("ExtractedLink.href — Phase 2 wiring", () => {

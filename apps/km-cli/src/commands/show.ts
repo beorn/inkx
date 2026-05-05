@@ -54,7 +54,7 @@ export const showCommand = new Command("show")
       return
     }
 
-    displayFields(node, resolved.repoRoot)
+    displayFields(node, resolved.repoRoot, repo)
     displayChildren(node, options, repo)
     displayLinks(node, options, repo)
   })
@@ -75,7 +75,7 @@ function outputJson(node: KNode, options: ShowOptions, repo: Repo): void {
 /**
  * Display node fields, refs, and other data
  */
-function displayFields(node: KNode, rootPath: string): void {
+function displayFields(node: KNode, rootPath: string, repo: Repo): void {
   for (const f of DISPLAY_FIELDS) {
     let val = f.get?.(node) ?? (node as unknown as Record<string, unknown>)[f.key]
     // Convert relative fs_path to absolute for display
@@ -87,12 +87,13 @@ function displayFields(node: KNode, rootPath: string): void {
     }
   }
 
-  displayRefs(node)
+  displayRefs(node, repo)
 
-  // Show other data if present (excluding already-displayed ref fields)
+  // Show other data if present (excluding already-displayed ref fields).
+  // `tags` was dissolved into the `links` table; it is no longer present
+  // on `node.data`. See @km/all/dissolve-data-tags-to-links.
   const otherData = { ...node.data }
   delete otherData.mentions
-  delete otherData.tags
   delete otherData.projects
   if (Object.keys(otherData).length > 0) {
     console.log(term.bold("Data:"), JSON.stringify(otherData, null, 2))
@@ -251,12 +252,17 @@ const DISPLAY_FIELDS: DisplayField[] = [
 ]
 
 /**
- * Display refs (mentions, tags, projects) from node data
+ * Display refs (mentions, tags, projects) from node data + the `links` table.
+ *
+ * Tags are stored as `(host_id, href='km:%23<tag>', rel='link')` rows in the
+ * links table — `data.tags` was dissolved
+ * (@km/all/dissolve-data-tags-to-links). Decode the href back to the
+ * authored hashtag for display.
  */
-function displayRefs(node: KNode): void {
+function displayRefs(node: KNode, repo: Repo): void {
   const { data } = node
   const mentions = Array.isArray(data.mentions) ? (data.mentions as string[]) : []
-  const tags = Array.isArray(data.tags) ? (data.tags as string[]) : []
+  const tags = readTagsFromLinks(node, repo)
   const projects = Array.isArray(data.projects) ? (data.projects as string[]) : []
   if (mentions.length > 0) {
     console.log(term.bold("Refs:"), mentions.map((m) => term.magenta(`@${m}`)).join(" "))
@@ -267,4 +273,22 @@ function displayRefs(node: KNode): void {
   if (projects.length > 0) {
     console.log(term.bold("Projects:"), projects.map((p) => term.yellow(`+${p}`)).join(" "))
   }
+}
+
+/**
+ * Read hashtag link rows for a node and decode them to authored tags.
+ *
+ * Tag link rows have hrefs of the form `km:%23<tag>` (per
+ * normalizeLinkHref("bare", "#tag")). Decode the percent-encoded `#`
+ * sentinel back to a plain tag string. Returns the deduped, sorted tag
+ * list — order is not load-bearing.
+ */
+function readTagsFromLinks(node: KNode, repo: Repo): string[] {
+  const links = repo.getOutgoingLinks(node.id)
+  const tags = new Set<string>()
+  for (const link of links) {
+    const m = link.href.match(/^km:%23(.+)$/)
+    if (m?.[1]) tags.add(decodeURIComponent(m[1]))
+  }
+  return [...tags].sort()
 }
