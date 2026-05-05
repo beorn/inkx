@@ -11,6 +11,7 @@
 import { getMarkerForStatus, type TaskStatus } from "@km/core"
 import { BEAD_TYPE_KEYWORD_SET } from "@km/beads"
 import type { Repo } from "@km/storage"
+import { parseDate } from "../../utils/parse-date.ts"
 
 /**
  * Plan the per-field side effects of `tasks set <id> field:value`.
@@ -119,6 +120,22 @@ export function planSetFields(repo: Repo, taskId: string, fields: readonly strin
 
     const scalarColumn = SCALAR_FIELD_COLUMNS[key]
     if (scalarColumn) {
+      // Date-shaped scalar columns get NL-parsed before write so users
+      // can type `due:tmrw` / `start:+2w` without thinking about ISO.
+      // Non-date scalars (priority / assigned_to) pass through verbatim.
+      if (scalarColumn === "due_at" || scalarColumn === "start_at") {
+        if (!value) {
+          updates[scalarColumn] = null
+          continue
+        }
+        const parsed = parseDate(value)
+        if ("error" in parsed) {
+          errors.push(`${key}: ${parsed.error}`)
+          continue
+        }
+        updates[scalarColumn] = parsed.iso
+        continue
+      }
       updates[scalarColumn] = value || null
       continue
     }

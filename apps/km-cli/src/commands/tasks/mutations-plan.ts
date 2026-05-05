@@ -9,6 +9,7 @@
 
 import { parseTaskMetadata, extractTags } from "@km/storage"
 import type { KNode } from "@km/core"
+import { parseDate } from "../../utils/parse-date.ts"
 
 /**
  * Options that flow into the `tasks --new` planner. Only the fields the
@@ -26,11 +27,19 @@ export interface PlanNewTaskOptions {
   priority?: string
   /** Initial assignee written to `node.assigned_to`. */
   owner?: string
+  /** Natural-language due date (`tmrw`, `friday`, `+2w`, ISO). Wins over
+   * any due date already in the content. Parsed via `parseDate`. */
+  due?: string
+  /** Natural-language start/scheduled date. Same parsing as `due`. */
+  start?: string
 }
 
 /** Result of planning. The action handler hands this straight to addNode. */
 export interface PlannedTaskNode {
   node: Partial<KNode>
+  /** Field-format errors (e.g. unparseable date). When non-empty, the
+   * caller should abort before mutating. Empty array on success. */
+  errors: string[]
 }
 
 /**
@@ -46,6 +55,23 @@ export interface PlannedTaskNode {
 export function planNewTask(content: string, options: PlanNewTaskOptions): PlannedTaskNode {
   const metadata = parseTaskMetadata(content)
   const tags = extractTags(content)
+  const errors: string[] = []
+
+  // Parse natural-language --due / --start. Flag wins over content
+  // metadata; unparseable input is a hard error (we don't silently fall
+  // back, that would mask typos like "tomorow").
+  let dueAt: string | undefined = metadata.dueAt
+  if (options.due) {
+    const parsed = parseDate(options.due)
+    if ("error" in parsed) errors.push(`--due: ${parsed.error}`)
+    else dueAt = parsed.iso
+  }
+  let startAt: string | undefined = metadata.startAt
+  if (options.start) {
+    const parsed = parseDate(options.start)
+    if ("error" in parsed) errors.push(`--start: ${parsed.error}`)
+    else startAt = parsed.iso
+  }
 
   // Priority: prefer explicit flag over the in-content tag, but seed the
   // tag list either way so getNodePriority() resolves before round-trip.
@@ -98,13 +124,13 @@ export function planNewTask(content: string, options: PlanNewTaskOptions): Plann
     type: "p",
     item: { list: "-", task: { marker: "[ ]", status: "todo" } },
     content: content,
-    due_at: metadata.dueAt,
-    start_at: metadata.startAt,
+    due_at: dueAt,
+    start_at: startAt,
     data: Object.keys(data).length > 0 ? data : {},
   }
   if (options.owner) {
     node.assigned_to = options.owner
   }
 
-  return { node }
+  return { node, errors }
 }
