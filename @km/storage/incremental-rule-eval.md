@@ -1,11 +1,13 @@
 ---
+id: "@km/storage/incremental-rule-eval"
 aliases:
   - km-storage.incremental-rule-eval
   - km-storage-incremental-rule-eval
 created_at: 2026-05-05T17:56:42.746Z
+closeReason: Implemented in 3b450324c — evaluateAffectedRules with signature triage
 ---
 
-# Incremental rule eval — recompute only rules whose dependencies changed #feature #P2
+# [x] Incremental rule eval — recompute only rules whose dependencies changed #feature #P2
 
 Today evaluateAllRules iterates all 1021 rule nodes on every sync. Only ~20 of them have add queries, but the loop visits every rule node. The bigger issue: even when reconcile produced 0 ops, all rules re-run.
 
@@ -14,6 +16,7 @@ Per user framing: rule-derived embeds are a CACHE. Cache invalidation should be 
 ## What
 
 Track per-rule input signatures. On sync:
+
 1. Compute the set of nodes that changed (from reconcile ops + journal events).
 2. For each rule, check if its query domain intersects the changed set.
 3. Re-run only the rules whose inputs actually changed.
@@ -55,5 +58,7 @@ Track per-rule input signatures. On sync:
 - **Wiring** in `packages/km-fs-mount/src/watch/bulk-sync.ts`: when a clean `lastRulesEval` baseline exists AND ops landed, derive the changed signature and call `evaluateAffectedRules`. Otherwise (first run, forced rebuild) fall back to `evaluateAllRules`. The existing no-op short-circuit (`lastEvent === lastRulesEval`) still kicks in for zero-op syncs.
 
 Tests:
+
 - `packages/km-storage/tests/incremental-rule-eval.test.ts` — 16 unit tests covering signature extraction (positive/negative refs, paths, fields), changed-attr extraction, intersection logic, and end-to-end `evaluateAffectedRules` triage.
 - `benchmarks/incremental-rule-eval.slow.test.ts` — synthetic 2000-files / 100-rules acceptance: a one-file edit re-evaluates < 50% of rules and stays under 1 s. Configurable via `RULE_BENCH_FILES` / `RULE_BENCH_RULES`.
+

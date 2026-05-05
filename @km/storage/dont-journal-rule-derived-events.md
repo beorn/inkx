@@ -1,11 +1,13 @@
 ---
+id: "@km/storage/dont-journal-rule-derived-events"
 aliases:
   - km-storage.dont-journal-rule-derived-events
   - km-storage-dont-journal-rule-derived-events
 created_at: 2026-05-05T17:56:21.566Z
+closeReason: Implemented in aa178280b — refresh fs_mtime/size/ino post-write
 ---
 
-# Don't journal rule-derived events — they're recomputable from rule + DB state #refactor #P2
+# [x] Don't journal rule-derived events — they're recomputable from rule + DB state #refactor #P2
 
 Per user 2026-05-05: 'rules changes shouldn't go into changes.jsonl — they're more derived stuff and could be re-derived'.
 
@@ -59,4 +61,6 @@ The fix is surgical, not structural: in `packages/km-fs-mount/src/watch/sync.ts`
 Benefits beyond rule writebacks: any internal writeback (heartbeat re-projection, `sync-to-fs`, in-app edits) gets the same correctness — the DB row is the canonical "what km saw last on disk" baseline, and that baseline now stays aligned through km's own writes.
 
 Tests:
+
 - `packages/km-fs-mount/tests/watch/withsync-writeback-stat-refresh.slow.test.ts` — asserts post-write stat fields match `statSync(file)` exactly, AND a follow-up `syncFromFs()` emits zero `fs-watch` events for the just-written file (the 50-syncs-zero-growth acceptance, distilled to one sync since the property is deterministic).
+
