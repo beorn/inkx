@@ -291,9 +291,10 @@ function quotaColor(w: QuotaWindow): string {
  *
  * The popover always renders ALL of them regardless.
  */
-function filterVisibleQuotas(all: QuotaWindow[]): QuotaWindow[] {
+function filterVisibleQuotas(all: QuotaWindow[], opts: { showRateLimits?: boolean } = {}): QuotaWindow[] {
   const primaryYellow = all.some((q) => isPrimaryQuotaWindow(q.name) && isWarningLevel(q.utilization))
   return all.filter((w) => {
+    if (opts.showRateLimits && isRateLimitWindow(w.name)) return true
     if (w.name === "5-hour") return true
     if (isPrimaryQuotaWindow(w.name)) {
       return isWarningLevel(w.utilization)
@@ -404,6 +405,12 @@ function selectedAccountForAgent(accounts: AccountSummary[], agent: string | und
   if (id === "gemini") {
     return accounts.find((a) => /gemini/i.test(a.label) || /google/i.test(String(a.provider))) ?? accounts[0]!
   }
+  if (id === "xai" || id === "grok") {
+    return accounts.find((a) => String(a.provider) === "xai" || /xai|grok/i.test(a.label)) ?? accounts[0]!
+  }
+  if (id === "cursor" || id === "cursor-api") {
+    return accounts.find((a) => String(a.provider) === "cursor-api" || /cursor/i.test(a.label)) ?? accounts[0]!
+  }
   return (
     accounts.find((a) => a.current && a.provider === "claude-oauth") ??
     accounts.find((a) => a.provider === "claude-oauth") ??
@@ -465,12 +472,14 @@ function mergeActiveProbeIntoAccounts(allAccounts: AccountSummary[], active: Acc
 function AccountPanel({
   account,
   onShowAllAccounts,
+  showRateLimits = false,
 }: {
   account: AccountSummary
   onShowAllAccounts?: () => void
+  showRateLimits?: boolean
 }): React.ReactElement {
   const active = account.isActive
-  const visibleQuotas = filterVisibleQuotas(account.quotas)
+  const visibleQuotas = filterVisibleQuotas(account.quotas, { showRateLimits })
   const hasPopover = hasAccountPopoverDetails(account)
   const popover = usePopoverHandlers({
     body: <AccountPopover account={account} onShowAllAccounts={onShowAllAccounts} />,
@@ -580,10 +589,12 @@ function AccountGroup({
   label,
   accounts,
   onShowAllAccounts,
+  showRateLimitsFor,
 }: {
   label: string
   accounts: AccountSummary[]
   onShowAllAccounts?: () => void
+  showRateLimitsFor?: (account: AccountSummary) => boolean
 }): React.ReactElement {
   return (
     <Box flexDirection="column" flexShrink={0}>
@@ -592,7 +603,11 @@ function AccountGroup({
       </Text>
       {accounts.map((account, i) => (
         <React.Fragment key={account.name}>
-          <AccountPanel account={account} onShowAllAccounts={onShowAllAccounts} />
+          <AccountPanel
+            account={account}
+            onShowAllAccounts={onShowAllAccounts}
+            showRateLimits={showRateLimitsFor?.(account) ?? false}
+          />
           {i < accounts.length - 1 ? <Box flexShrink={0} height={1} /> : null}
         </React.Fragment>
       ))}
@@ -1360,7 +1375,11 @@ function SidePanelChrome({
             {accountGroups.map((group, i) => (
               <React.Fragment key={group.label}>
                 {i > 0 ? <Box flexShrink={0} height={1} /> : null}
-                <AccountGroup label={group.label} accounts={group.accounts} />
+                <AccountGroup
+                  label={group.label}
+                  accounts={group.accounts}
+                  showRateLimitsFor={(account) => account.isActive}
+                />
               </React.Fragment>
             ))}
             <Box flexShrink={0} height={1} />
@@ -1375,6 +1394,7 @@ function SidePanelChrome({
                 label={group.label}
                 accounts={group.accounts}
                 onShowAllAccounts={accounts.length > 1 ? () => setAccountView("all") : undefined}
+                showRateLimitsFor={(account) => account.kind === "api-key"}
               />
             </React.Fragment>
           ))
