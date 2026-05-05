@@ -37,6 +37,8 @@ import type { ContentBlock, MessageEntry, MessageOp, ToolCallId, ToolCallStatus,
 import type { ToolCall as ToolCallType, ToolCallContent } from "@km/agent-harness"
 import {
   Box,
+  Fill,
+  lastModifierState,
   ListView,
   type ListViewHandle,
   Small,
@@ -88,7 +90,7 @@ function toolKindFromName(name: string, input?: unknown): ToolKind {
   if (lower === "edit" || lower === "write" || lower === "multiedit" || lower === "apply_patch") return "edit"
   if (lower === "read") return "read"
   if (lower === "glob" || lower === "grep" || lower === "search" || lower === "websearch") return "search"
-  if (lower === "todowrite") return "think"
+  if (lower === "todowrite" || lower === "update_plan") return "think"
   if (lower === "webfetch" || lower === "fetch") return "fetch"
   if (lower === "delete") return "delete"
   if (lower === "agent" || lower === "task") return "other"
@@ -404,6 +406,19 @@ function toolResultContent(output: unknown, _isError?: boolean, title?: string):
   ]
 }
 
+function singleLineGenericToolContentTitle(
+  toolName: string,
+  title: string,
+  content: ToolCallContent[] | undefined,
+): string | null {
+  if (title !== toolName || !content || content.length !== 1) return null
+  const only = content[0]
+  if (!only || only.type !== "content" || only.content.type !== "text") return null
+  const text = only.content.text.trim()
+  if (text.length === 0 || text.includes("\n")) return null
+  return text
+}
+
 function toolErrorMessage(output: unknown, title?: string): string {
   if (output && typeof output === "object") {
     const o = output as Record<string, unknown>
@@ -455,7 +470,7 @@ function adaptToolCall(
 ): ToolCallType {
   const kind = toolKindFromName(c.name, c.input)
   const status: ToolCallStatus = running ? "in_progress" : result?.is_error ? "failed" : "completed"
-  const title = toolTitle(c.name, c.input)
+  let title = toolTitle(c.name, c.input)
 
   // Build content: for Edit tools, show the diff. For everything else, show
   // the result text (if a result has arrived) or the raw input as JSON.
@@ -479,6 +494,11 @@ function adaptToolCall(
         },
       ]
     }
+  }
+  const inlineTitle = singleLineGenericToolContentTitle(c.name, title, content)
+  if (inlineTitle) {
+    title = inlineTitle
+    content = undefined
   }
 
   return {
@@ -699,17 +719,20 @@ type SessionMetadataRowData = {
   fields: Array<[string, string]>
 }
 
-function MutedDivider({ title, width }: { title: string; width: number }): React.ReactElement {
-  const total = Math.max(1, width)
-  const paddedTitle = ` ${title} `
-  const remaining = Math.max(0, total - paddedTitle.length)
-  const left = Math.floor(remaining / 2)
-  const right = remaining - left
+function MutedDivider({ title }: { title: string }): React.ReactElement {
   return (
-    <Box flexDirection="row" width={total} maxWidth={total} minWidth={0}>
-      <Text color="$border-default">{"─".repeat(left)}</Text>
-      <Text color="$fg-muted">{paddedTitle}</Text>
-      <Text color="$border-default">{"─".repeat(right)}</Text>
+    <Box flexDirection="row" width="100%" minWidth={0}>
+      <Box flexGrow={1} flexBasis={0} minWidth={0}>
+        <Fill>
+          <Text color="$border-default">─</Text>
+        </Fill>
+      </Box>
+      <Text color="$fg-muted"> {title} </Text>
+      <Box flexGrow={1} flexBasis={0} minWidth={0}>
+        <Fill>
+          <Text color="$border-default">─</Text>
+        </Fill>
+      </Box>
     </Box>
   )
 }
@@ -717,19 +740,20 @@ function MutedDivider({ title, width }: { title: string; width: number }): React
 function SessionMetadataRow({ data }: { data: SessionMetadataRowData }): React.ReactElement {
   const [expanded, setExpanded] = useState(false)
   const hover = useHover()
-  const { super: cmdHeld } = useModifierKeys({ enabled: hover.isHovered })
+  const modifierState = useModifierKeys({ enabled: hover.isHovered })
+  const cmdHeld = modifierState.super || lastModifierState.super
   const content = useContentLayout()
   const marker = expanded ? "▾" : hover.isHovered || data.kind === "loaded" ? "▸" : " "
   const bg = hover.isHovered ? "$bg-surface-hover" : undefined
   const isDivider = data.kind === "loaded"
-  const headerMaxWidth = Math.max(1, isDivider ? content.wide : content.measure)
+  const headerMaxWidth = Math.max(1, content.measure)
   const showTimestamp = hover.isHovered && cmdHeld
   const label = [data.title, ...data.parts].join(" · ")
   const dividerLabel = isDivider ? `${marker} ${label}` : label
   const titleWidth = data.title.length + data.parts.reduce((sum, part) => sum + part.length + 3, 0)
   const trailingFill = " ".repeat(Math.max(1, headerMaxWidth - 2 - titleWidth))
   const header = isDivider ? (
-    <MutedDivider title={dividerLabel} width={headerMaxWidth} />
+    <MutedDivider title={dividerLabel} />
   ) : (
     <Box flexDirection="row" width="100%" maxWidth={headerMaxWidth} minWidth={0} backgroundColor={bg}>
       <Box width={1} flexShrink={0} backgroundColor={bg}>
@@ -763,11 +787,11 @@ function SessionMetadataRow({ data }: { data: SessionMetadataRowData }): React.R
           <Content.Aside show={showTimestamp}>{data.timestamp}</Content.Aside>
         </Content.Left>
       ) : null}
-      <Content.Body width={isDivider ? "wide" : expanded ? "wide" : "prose"}>
+      <Content.Body width={isDivider ? "full" : expanded ? "wide" : "prose"}>
         <Box flexDirection="column" width="100%" minWidth={0}>
           <Box
-            width={isDivider ? headerMaxWidth : "100%"}
-            maxWidth={headerMaxWidth}
+            width="100%"
+            maxWidth={isDivider ? "100%" : headerMaxWidth}
             minWidth={0}
             backgroundColor={bg}
             onMouseEnter={hover.onMouseEnter}
@@ -895,7 +919,8 @@ function TimestampedRow({
 }): React.ReactElement {
   const hover = useHover()
   const content = useContentLayout()
-  const { super: cmdHeld } = useModifierKeys({ enabled: hover.isHovered })
+  const modifierState = useModifierKeys({ enabled: hover.isHovered })
+  const cmdHeld = modifierState.super || lastModifierState.super
   const laneWidth = width === "wide" ? content.wide : content.measure
   const sideGutter = Math.max(0, Math.floor(((content.available || laneWidth) - laneWidth) / 2))
   const showTimestamp = hover.isHovered && cmdHeld && sideGutter >= timestamp.length + 1

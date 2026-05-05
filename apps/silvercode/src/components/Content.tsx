@@ -334,11 +334,15 @@ function Wide({ children }: { children: React.ReactNode }): React.ReactElement {
 function Full({ children }: { children: React.ReactNode }): React.ReactElement {
   return (
     <Box flexDirection="row" width="100%" minWidth={0}>
-      <Box width={1} flexShrink={0} />
-      <Box flexDirection="column" flexGrow={1} flexBasis={0} flexShrink={1} minWidth={0}>
+      <Box width={1} flexShrink={0}>
+        <Text> </Text>
+      </Box>
+      <Box flexDirection="column" flexGrow={1} flexBasis={0} flexShrink={1} minWidth={0} overflow="hidden">
         {children}
       </Box>
-      <Box width={1} flexShrink={0} />
+      <Box width={1} flexShrink={0}>
+        <Text> </Text>
+      </Box>
     </Box>
   )
 }

@@ -10,7 +10,7 @@
  */
 
 import React, { useState } from "react"
-import { Box, Text, useHover, useModifierKeys, type SilveryMouseEvent } from "silvery"
+import { Box, Text, lastModifierState, useHover, useModifierKeys, type SilveryMouseEvent } from "silvery"
 import type { ContentBlock, ToolCall as ToolCallType, ToolKind } from "@km/agent-harness"
 import { ToolCall, ToolContentForceExpandedProvider, ToolMarkerBackgroundProvider } from "./ToolCall.tsx"
 import { Content, useContentLayout } from "./Content.tsx"
@@ -182,7 +182,8 @@ export function TurnActivitySummary({
   const [expanded, setExpanded] = useState(defaultExpanded)
   const [forceExpandDetails, setForceExpandDetails] = useState(false)
   const { isHovered, onMouseEnter, onMouseLeave } = useHover()
-  const { super: cmdHeld } = useModifierKeys({ enabled: isHovered })
+  const modifierState = useModifierKeys({ enabled: isHovered })
+  const cmdHeld = modifierState.super || lastModifierState.super
   const contentLayout = useContentLayout()
   const parts = summaryParts(items)
   const text = parts.length > 0 ? parts.join(", ") : `${items.length} tool ${items.length === 1 ? "call" : "calls"}`

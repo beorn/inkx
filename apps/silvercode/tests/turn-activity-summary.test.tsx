@@ -149,6 +149,66 @@ describe("TurnActivitySummary", () => {
     expect(app.text).not.toContain("Ran 1 command")
   })
 
+  test("renders a single-line generic tool result as one row", () => {
+    const entry = makeEntry({
+      ops: [tool("plan-1", "update_plan", { plan: [] }, "Plan updated")],
+    })
+
+    const app = renderList([entry])
+
+    expect(app.text).toContain("Plan updated")
+    expect(app.text).not.toContain("update_plan")
+    expect(app.text.match(/Plan updated/g)?.length ?? 0).toBe(1)
+  })
+
+  test("keeps multiline generic tool results disclosed under the tool row", async () => {
+    using term = createTermless({ cols: 110, rows: 12 })
+    const entry = makeEntry({
+      ops: [
+        tool(
+          "plan-1",
+          "update_plan",
+          { plan: [] },
+          "Plan updated\n- Inspect transcript rendering\n- Verify activity tests",
+        ),
+      ],
+    })
+    const handle = await run(
+      <Box width={110} height={18} flexDirection="column">
+        <SessionUpdateList
+          messages={[entry]}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          sessionId="turn-summary-update-plan-test"
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+          follow={false}
+        />
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle(80)
+      const row = term.screen.getLines().findIndex((line) => line.includes("update_plan"))
+      expect(row).toBeGreaterThanOrEqual(0)
+
+      const col = Math.max(0, term.screen.getLines()[row]!.indexOf("update_plan"))
+      await term.mouse.click(col, row)
+      await settle(80)
+
+      const text = term.screen.getText()
+      expect(text).toContain("- Inspect transcript rendering")
+      expect(text).toContain("- Verify activity tests")
+    } finally {
+      handle.unmount()
+    }
+  })
+
   test("renders one interleaved command inline between narration entries", async () => {
     const command = "bun run typecheck"
     const entry = makeEntry({
