@@ -40,7 +40,7 @@ function codexSessionsRoot(): string {
 }
 
 type CodexAuthAccount = {
-  label: string | null
+  accountLabel: string | null
   accountId: string | null
 }
 
@@ -51,7 +51,7 @@ function parseCodexAuthAccount(raw: string): CodexAuthAccount {
   const idToken = typeof tokens.id_token === "string" ? tokens.id_token : ""
   const accountId = typeof tokens.account_id === "string" ? tokens.account_id : null
   const email = emailFromJwt(idToken) ?? raw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] ?? null
-  return { label: email, accountId }
+  return { accountLabel: email, accountId }
 }
 
 function parseWindow(raw: unknown): CodexQuotaWindow | null {
@@ -157,7 +157,7 @@ function readCodexAuthAccount(): CodexAuthAccount {
   try {
     return parseCodexAuthAccount(readFileSync(authPath, "utf8"))
   } catch {
-    return { label: null, accountId: null }
+    return { accountLabel: null, accountId: null }
   }
 }
 
