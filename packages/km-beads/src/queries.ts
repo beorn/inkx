@@ -317,42 +317,25 @@ export function nodeToBead(node: KNode, options?: BeadsQueryOptions): Bead {
   // Count dependencies
   const dependencyCount = blockedBy?.length || 0
 
-  // Calculate the short ID for this issue (needed for dependent count lookup).
-  // Priority:
-  //   1. `data.id`       — legacy canonical path-form fossil (existing rows;
-  //                        new beads no longer write this — see
-  //                        @km/beads/data-id-stop-writing).
+  // Short id resolution (priority order):
+  //   1. `data.id`       — legacy path-form fossil (rows pre `@km/beads/data-id-stop-writing`).
   //   2. `data.short_id` — legacy bd-form (`km-a1b2`).
-  //   3. fs-path-derived — for file-materialized beads with no legacy data
-  //                        fields (the canonical post-`data-id-stop-writing`
-  //                        shape). The file's location IS the canonical id;
-  //                        `fsPathOf(node)` strips `.md` to yield the
-  //                        path-form (`@km/test/foo`).
-  //   4. undefined       — not a real bead (in-file paragraph / sub-checkbox /
-  //                        non-bead node passed via a bypass path).
+  //   3. fs-path-derived — canonical post-`data-id-stop-writing` shape: the
+  //                        file's location IS the id. Gated on `fstype === "mdfile"`
+  //                        so only real markdown files qualify — paragraphs,
+  //                        sub-checkboxes, and folder nodes (which may carry
+  //                        synthetic `fs_path` in tests or as ancestor folders)
+  //                        keep `shortId === undefined`. This preserves the
+  //                        invariant that `Bead.from(node)` returns null for
+  //                        non-beads (pinned by `bead-invariants.property.test.ts`).
+  //   4. undefined       — not a real bead (paragraph / non-bead via bypass paths
+  //                        like `bd children`, `bd query`, paragraph-pointing
+  //                        `resolveTaskNode`, or `getDependencies`).
   //
-  // The fs-path fallback closes the loop opened by `data-id-stop-writing`:
-  // new beads are file-materialized with `aliases:` only, no `id:` YAML
-  // field. Without this fallback, `Bead.from(node)` returned null for them
-  // and every subcommand using `resolveIssue` (close, update, drop, claim,
-  // comment, mention) failed with "Bead not found" — see
-  // @km/beads/path-form-id-frontmatter-missing.
-  //
-  // Bypass paths — `bd children` (in-file paragraphs), `bd query` (raw DSL),
-  // path-resolved nodes via `resolveTaskNode` that point at a paragraph, and
-  // `getDependencies` (parents of `blocks::` paragraphs) — pass nodes
-  // without `fs_path`, so the fallback returns null and `shortId` stays
-  // honestly `undefined`.
-  //
-  // Display sites use `Bead.displayId(bead)` (which falls back to `issue.id`)
-  // to render non-beads.
-  // The fs-path fallback is gated on `fstype === "mdfile"` so it fires
-  // ONLY for real markdown files on disk — the canonical post-
-  // `data-id-stop-writing` shape. Paragraphs, sub-checkboxes, and folder
-  // nodes that happen to carry `fs_path` (synthesised in tests, or
-  // ancestor folders) keep `shortId === undefined` and `Bead.from`
-  // continues to filter them out, preserving the namespace contract that
-  // `bead-invariants.property.test.ts` pins.
+  // Without #3, file-materialized beads (the new canonical shape) had no
+  // shortId and every subcommand using `resolveIssue` (close, update, drop,
+  // claim, comment, mention) failed with "Bead not found" —
+  // see @km/beads/path-form-id-frontmatter-missing.
   const shortId =
     (data?.id as string | undefined) ??
     (data?.short_id as string | undefined) ??

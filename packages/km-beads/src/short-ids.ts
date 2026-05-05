@@ -162,9 +162,9 @@ export function resolveShortId(input: string, options: ShortIdOptions): string |
       const candidates: string[] = []
       const dotPath = bdIdToPathForm(input, probedPrefix)
       if (dotPath) candidates.push(dotPath)
-      const stripped = input.startsWith(`${probedPrefix}-`) ? input.slice(probedPrefix.length + 1) : input
-      if (stripped && stripped.includes("-")) {
-        candidates.push(`@${probedPrefix}/${stripped.split("-").join("/")}`)
+      const sansPrefix = input.startsWith(`${probedPrefix}-`) ? input.slice(probedPrefix.length + 1) : input
+      if (sansPrefix && sansPrefix.includes("-")) {
+        candidates.push(`@${probedPrefix}/${sansPrefix.split("-").join("/")}`)
       }
       for (const pathForm of candidates) {
         const node = repo.resolveNode(pathForm)
