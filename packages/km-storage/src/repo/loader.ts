@@ -708,6 +708,55 @@ export function readLastEventOffset(db: Database): number | undefined {
   return row?.value !== undefined ? Number(row.value) : undefined
 }
 
+/**
+ * Read events from the SCHEMA_VERSION 12 events table, ordered by `seq`.
+ * The cursor is `seq` (monotonically increasing AUTOINCREMENT) — pass the
+ * highest seq the caller has already applied, get back everything past it.
+ *
+ * Returns events in seq order. Each row's `data` column is the original
+ * Change object serialized as JSON; we parse it back so callers get the
+ * full Change shape (matches `readChanges` from the legacy jsonl path).
+ *
+ * Replaces the jsonl tail-read (`readChanges(kmDir, byteOffset)`) — events
+ * are now written atomically with state mutations inside state.db, so the
+ * cursor + replay primitive lives in SQL instead of byte offsets in a
+ * sidecar file.
+ */
+export function readEventsAfter(db: Database, fromSeq: number | undefined, limit?: number): Change[] {
+  const sql = limit
+    ? `SELECT data FROM events WHERE seq > ? ORDER BY seq LIMIT ${Math.max(1, Math.floor(limit))}`
+    : `SELECT data FROM events WHERE seq > ? ORDER BY seq`
+  const rows = db.prepare(sql).all(fromSeq ?? 0) as { data: string }[]
+  const result: Change[] = []
+  for (const row of rows) {
+    try {
+      result.push(JSON.parse(row.data) as Change)
+    } catch (err) {
+      log.warn?.(`readEventsAfter: malformed event payload skipped — ${String(err).slice(0, 80)}`)
+    }
+  }
+  return result
+}
+
+/**
+ * Read the highest applied event seq from `meta.last_event_seq`. Returns 0
+ * for fresh DBs (so the next read picks up everything).
+ */
+export function readLastEventSeq(db: Database): number {
+  const row = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event_seq") as
+    | { value: string }
+    | undefined
+  return row?.value !== undefined ? Number(row.value) : 0
+}
+
+/**
+ * Persist the high-water mark `seq` so subsequent reads only see new rows.
+ * Called after a successful replay batch.
+ */
+export function writeLastEventSeq(db: Database, seq: number): void {
+  db.run("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", ["last_event_seq", String(seq)])
+}
+
 // ============================================================================
 // DISK MODE DISCOVERY
 // ============================================================================

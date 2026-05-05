@@ -134,6 +134,9 @@ export type { NodeStore, Store, Observable, Replicated } from "./store/store.ts"
 export {
   readChanges,
   readLastEventOffset,
+  readEventsAfter,
+  readLastEventSeq,
+  writeLastEventSeq,
   resolveLinksAsync,
   parseDeferredAsync,
   parseStubFile,

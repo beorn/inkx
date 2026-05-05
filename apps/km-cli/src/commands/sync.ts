@@ -179,47 +179,56 @@ async function runSync(
   }
 
   try {
-    // Step 1: Apply any pending events from changes.jsonl to state.db.
+    // Step 1: Pre-SCHEMA-VERSION-12, this step replayed pending events from
+    // changes.jsonl into state.db so this process saw events emitted by
+    // peer processes (km-tui, silvercode). Post-v12 the events table lives
+    // INSIDE state.db — every emitter.commit writes the event row inside
+    // the same transaction as the state mutation, so peer processes that
+    // share state.db (via SQLite WAL) already see each other's state.
+    // The replay step is a no-op in steady state.
     //
-    // Read only the tail past the persisted byte-offset cursor — the
-    // full-read path tries to load the whole file into a single string
-    // (`readFileSync(... "utf-8")` + `.split("\n")`) which OOMs Bun
-    // (SIGTRAP exit 133) on the user's 2.3 GB changes.jsonl. The cursor
-    // is the same one `discoverFromChanges` writes, so on a healthy DB
-    // we read only what landed since the last sync.
-    const fromOffset = readLastEventOffset(db)
+    // The legacy jsonl tail-read is preserved as a safety net for vaults
+    // that haven't yet run `km doctor migrate-journal`. If the events
+    // table is empty AND a non-empty changes.jsonl exists, fall back to
+    // the legacy path. Otherwise skip — events table is canonical.
+    const eventsTablePopulated = (db.prepare("SELECT COUNT(*) AS n FROM events").get() as { n: number }).n > 0
     const changesPath = join(kmRoot, "changes.jsonl")
-    const fileSizeBefore = existsSync(changesPath) ? statSync(changesPath).size : 0
-    const events = readChanges(kmRoot, fromOffset)
-    const lastApplied = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event") as
-      | { value: string }
-      | undefined
-    const newEvents = events.filter((e) => !lastApplied?.value || e.id > lastApplied.value)
+    const jsonlExists = existsSync(changesPath) && statSync(changesPath).size > 0
+    const useLegacyJsonlReplay = !eventsTablePopulated && jsonlExists
 
-    if (newEvents.length > 0) {
-      const { applyChangeWithDb } = await import("@km/storage")
-      db.run("BEGIN IMMEDIATE")
-      try {
-        for (const event of newEvents) {
-          applyChangeWithDb(db, event)
+    if (useLegacyJsonlReplay) {
+      const fromOffset = readLastEventOffset(db)
+      const fileSizeBefore = statSync(changesPath).size
+      const events = readChanges(kmRoot, fromOffset)
+      const lastApplied = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event") as
+        | { value: string }
+        | undefined
+      const newEvents = events.filter((e) => !lastApplied?.value || e.id > lastApplied.value)
+
+      if (newEvents.length > 0) {
+        const { applyChangeWithDb } = await import("@km/storage")
+        db.run("BEGIN IMMEDIATE")
+        try {
+          for (const event of newEvents) {
+            applyChangeWithDb(db, event)
+          }
+          db.run("COMMIT")
+        } catch (error) {
+          db.run("ROLLBACK")
+          throw error
         }
-        db.run("COMMIT")
-      } catch (error) {
-        db.run("ROLLBACK")
-        throw error
+        console.log(term.green("✓"), `Applied ${newEvents.length} event(s) from changes.jsonl (legacy path)`)
       }
-      console.log(term.green("✓"), `Applied ${newEvents.length} event(s) from changes.jsonl`)
-    }
 
-    // Advance the byte-offset cursor to the file size we just read.
-    // Without this every subsequent `km sync` re-reads the same multi-GB
-    // tail and re-parses millions of already-applied events — even when
-    // the filtered `newEvents` set is empty. The cursor is the
-    // tail-skip primitive; not updating it negates the entire SIGTRAP
-    // fix (d0b46c84d) and leaves no-op syncs at >40 s on the user's
-    // 2.7 GB journal.
-    if (fileSizeBefore > 0 && fileSizeBefore !== fromOffset) {
-      db.run("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", ["last_event_offset", String(fileSizeBefore)])
+      // Advance the cursor so the next sync's tail-read starts past EOF
+      // (single-line bug fix from c4cee6274 — without this every sync
+      // re-reads the entire 2.7 GB journal).
+      if (fileSizeBefore > 0 && fileSizeBefore !== fromOffset) {
+        db.run("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", [
+          "last_event_offset",
+          String(fileSizeBefore),
+        ])
+      }
     }
 
     // Step 2: Sync with filesystem
