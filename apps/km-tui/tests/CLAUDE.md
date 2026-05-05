@@ -465,6 +465,39 @@ test("zoom into column preserves layout", () => {
 
 **Trade-offs**: Snapshots are brittle if UI text or layout changes often — update them intentionally with `--update`. Best for stable layout structures, not dynamic content. Use alongside point assertions, not instead of them.
 
+## Golden vault snapshot — full-app cell-level regression
+
+`apps/km-tui/tests/golden-vault-frame.slow.spec.ts` is the **canonical "did anything user-visible change?" test**. It loads a checked-in vault (`tests/fixtures/golden-vault/`), mounts the full `BoardApp` through `testBoard` at 360 × 120 — the dense full-app geometry — and asserts byte-identical match against `tests/__snapshots__/golden-vault-frame.golden.txt`.
+
+**Why a separate test from the showcase snapshot.** The showcase snapshot (above) captures stripped text only; this one captures **every cell's `text + bg + fg + attrs`**. STRICT + canary + residue catch broad classes of pipeline bugs already; this is the brute-force complement that pins the actual painted cells. A theme-token RGB shift, a card title slipping one column left, a missing priority badge — anything visible to the user — fails the snapshot.
+
+**Where it runs.** The `slow` vitest project (`bun run test:slow` and `bun run test:ci`). Excluded from `bun run test:fast` so the dense fixture doesn't slow the inner loop. Runtime is ~300 ms; the bottleneck is import overhead, not the snapshot itself.
+
+**How to update.** When the change is intentional:
+
+```bash
+bun vitest run --update --project slow apps/km-tui/tests/golden-vault-frame.slow.spec.ts
+```
+
+Inspect the diff (the format is line-oriented and human-readable: text rows on top, per-row style runs underneath). Commit the updated golden file alongside the source change.
+
+**What's masked and why.** Nothing is dropped from the cell grid — all 360 × 120 cells contribute. The fixture is structured so non-deterministic data never reaches the painted surface:
+
+- **Node IDs** are ULIDs (re-generated on every parse). They live in the DB only — no rendered cell embeds them.
+- **Timestamps** (`created_at` / `updated_at`) similarly never paint; the title bar shows breadcrumb text, not metadata.
+- **State.db** is wiped in `beforeAll` so every run is a cold load from the markdown.
+- **Column order** is pinned via a programmatically-written `.km/sibling-order.json` (the `.km/` dir is gitignored repo-wide, so the source-of-truth lives in the test file's `COLUMN_ORDER` constant, not on disk).
+- **Trailing whitespace** is trimmed from text rows; style runs preserve column positions exactly so a one-column shift still surfaces.
+
+**When to extend.** If a regression slipped past this test, prefer adding a *new fixture row* (e.g., a card with the property the bug touched) over loosening the masking. The whole point is that everything visible is captured.
+
+**File pointers**:
+
+- Test: `apps/km-tui/tests/golden-vault-frame.slow.spec.ts`
+- Fixture vault: `apps/km-tui/tests/fixtures/golden-vault/` (5 markdown files, ~30 cards total)
+- Golden snapshot: `apps/km-tui/tests/__snapshots__/golden-vault-frame.golden.txt`
+- Helper hook: `tests/helpers/real-board.ts` `parseDeferred?: boolean` option — opt-in synchronous parse so the snapshot captures real card content instead of the loading-skeleton placeholders the production discoverOnly path renders before the background parse lands.
+
 ## Resize Testing
 
 Test at different terminal sizes to catch layout bugs. Column widths, overflow indicators, and scroll behavior can break at non-default dimensions.

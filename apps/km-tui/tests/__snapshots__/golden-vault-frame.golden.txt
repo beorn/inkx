@@ -1,0 +1,390 @@
+360x120
+--- text ---
+ 📁 golden-vault > Inbox > Review weekly priorities #task #P1                                                                                                                                                                                                                                                                                           CARDS VIEW CL:3
+
+   Inbox                                                                  Active                                                                 Blocked                                                                Review                                                                Done
+ ─────────────────────────────────────────────────────────────────────── ─────────────────────────────────────────────────────────────────────── ─────────────────────────────────────────────────────────────────────── ────────────────────────────────────────────────────────────────────── ──────────────────────────────────────────────────────────────────────
+
+ □ Review weekly priorities #task #P1                                 P1 □ Refactor BoardApp to thread dimensions explicitly #refactor #P2    P2 □ Decision on theme palette pending @design-team                        □ PR #482 storage event sourcing #review                               ✓ Ship testBoard helper at full app dimensions
+ □ Email client about Projects/Alpha timeline                            □ Land golden cell-snapshot CI step #test #P2                        P2 □ Awaiting upstream patch from vendor/foo #blocked                      □ Design doc for Areas/Identity rotation                               ✓ Add canary for degenerate frames #invariant
+ □ Read paper on transducers for the pipeline rewrite                    □ Migrate Markdown links to canonical URI form #migration               □ Need final approval on contract terms #legal                          □ Audit npm-packages.md registry drift                                 ✓ Document the residue check
+ □ Follow up with @sarah on design tokens                                □ Wire SILVERY_STRICT=residue in fast suite                             □ Capacity from devops to provision cluster                             □ Verify bun run test:slow runtime baseline                            ✓ File bead for golden snapshot test
+ □ Triage GitHub issues at github.com/example/repo                       □ Pair with @bob on undo stack edge cases                               □ Spec sign-off for Areas/Compliance                                    □ Code-review TEA undo refactor #P2                                 P2 ✓ Replace ad-hoc fixtures with realisticBoard()
+ □ Sketch outline for Q2 #planning                                       □ Fix scroll-tier flip on resize past 200 cols #bug #P1              P1 □ Vendor SLA review                                                     □ Check link-cache invariants                                          ✓ Move repo root pin into BoardApp
+ □ Reply to invoice from finance                                                                                                                                                                                         □ Cross-check release notes with CHANGELOG                             ✓ Land cyan-strip residue regression test
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                                                                                                                                                                                                  DISK ~/Code/pim/km/.claude/worktrees/wt6/apps/km-tui/tests/fixtures/golden-vault 📋 6
+--- styles ---
+R0  c0..c0 fg=46,52,64 bg=197,203,215 attr=-
+R0  c1..c3 fg=216,222,233 bg=197,203,215 attr=-
+R0  c4..c15 fg=46,52,64 bg=197,203,215 attr=B
+R0  c16..c60 fg=216,222,233 bg=197,203,215 attr=-
+R0  c61..c342 fg=- bg=197,203,215 attr=-
+R0  c343..c359 fg=216,222,233 bg=197,203,215 attr=-
+R1  c0..c359 fg=- bg=46,52,64 attr=-
+R2  c0..c1 fg=- bg=46,52,64 attr=-
+R2  c2..c2 fg=216,222,233 bg=46,52,64 attr=B
+R2  c3..c8 fg=129,161,193 bg=46,52,64 attr=B
+R2  c9..c73 fg=- bg=46,52,64 attr=-
+R2  c74..c81 fg=216,222,233 bg=46,52,64 attr=B
+R2  c82..c145 fg=- bg=46,52,64 attr=-
+R2  c146..c154 fg=216,222,233 bg=46,52,64 attr=B
+R2  c155..c217 fg=- bg=46,52,64 attr=-
+R2  c218..c225 fg=216,222,233 bg=46,52,64 attr=B
+R2  c226..c288 fg=- bg=46,52,64 attr=-
+R2  c289..c294 fg=216,222,233 bg=46,52,64 attr=B
+R2  c295..c359 fg=- bg=46,52,64 attr=-
+R3  c0..c0 fg=- bg=46,52,64 attr=-
+R3  c1..c71 fg=143,149,161 bg=46,52,64 attr=-
+R3  c72..c72 fg=- bg=46,52,64 attr=-
+R3  c73..c143 fg=143,149,161 bg=46,52,64 attr=-
+R3  c144..c144 fg=- bg=46,52,64 attr=-
+R3  c145..c215 fg=143,149,161 bg=46,52,64 attr=-
+R3  c216..c216 fg=- bg=46,52,64 attr=-
+R3  c217..c286 fg=143,149,161 bg=46,52,64 attr=-
+R3  c287..c287 fg=- bg=46,52,64 attr=-
+R3  c288..c357 fg=143,149,161 bg=46,52,64 attr=-
+R3  c358..c359 fg=- bg=46,52,64 attr=-
+R4  c0..c359 fg=- bg=46,52,64 attr=-
+R5  c0..c0 fg=- bg=46,52,64 attr=-
+R5  c1..c36 fg=216,222,233 bg=67,76,94 attr=-
+R5  c37..c68 fg=- bg=67,76,94 attr=-
+R5  c69..c71 fg=216,222,233 bg=67,76,94 attr=-
+R5  c72..c72 fg=- bg=46,52,64 attr=-
+R5  c73..c73 fg=216,222,233 bg=46,52,64 attr=-
+R5  c74..c137 fg=143,149,161 bg=46,52,64 attr=-
+R5  c138..c140 fg=- bg=46,52,64 attr=-
+R5  c141..c141 fg=216,222,233 bg=46,52,64 attr=-
+R5  c142..c143 fg=235,203,139 bg=46,52,64 attr=-
+R5  c144..c144 fg=- bg=46,52,64 attr=-
+R5  c145..c145 fg=216,222,233 bg=46,52,64 attr=-
+R5  c146..c192 fg=143,149,161 bg=46,52,64 attr=-
+R5  c193..c216 fg=- bg=46,52,64 attr=-
+R5  c217..c217 fg=216,222,233 bg=46,52,64 attr=-
+R5  c218..c256 fg=143,149,161 bg=46,52,64 attr=-
+R5  c257..c287 fg=- bg=46,52,64 attr=-
+R5  c288..c288 fg=216,222,233 bg=46,52,64 attr=-
+R5  c289..c333 fg=143,149,161 bg=46,52,64 attr=-
+R5  c334..c359 fg=- bg=46,52,64 attr=-
+R6  c0..c0 fg=- bg=46,52,64 attr=-
+R6  c1..c1 fg=216,222,233 bg=46,52,64 attr=-
+R6  c2..c8 fg=143,149,161 bg=46,52,64 attr=-
+R6  c9..c14 fg=143,149,161 bg=46,52,64 attr=B
+R6  c15..c21 fg=143,149,161 bg=46,52,64 attr=-
+R6  c22..c35 fg=143,149,161 bg=46,52,64 attr=u
+R6  c36..c44 fg=143,149,161 bg=46,52,64 attr=-
+R6  c45..c72 fg=- bg=46,52,64 attr=-
+R6  c73..c73 fg=216,222,233 bg=46,52,64 attr=-
+R6  c74..c117 fg=143,149,161 bg=46,52,64 attr=-
+R6  c118..c140 fg=- bg=46,52,64 attr=-
+R6  c141..c141 fg=216,222,233 bg=46,52,64 attr=-
+R6  c142..c143 fg=235,203,139 bg=46,52,64 attr=-
+R6  c144..c144 fg=- bg=46,52,64 attr=-
+R6  c145..c145 fg=216,222,233 bg=46,52,64 attr=-
+R6  c146..c194 fg=143,149,161 bg=46,52,64 attr=-
+R6  c195..c216 fg=- bg=46,52,64 attr=-
+R6  c217..c217 fg=216,222,233 bg=46,52,64 attr=-
+R6  c218..c233 fg=143,149,161 bg=46,52,64 attr=-
+R6  c234..c247 fg=143,149,161 bg=46,52,64 attr=u
+R6  c248..c256 fg=143,149,161 bg=46,52,64 attr=-
+R6  c257..c287 fg=- bg=46,52,64 attr=-
+R6  c288..c288 fg=216,222,233 bg=46,52,64 attr=-
+R6  c289..c332 fg=143,149,161 bg=46,52,64 attr=-
+R6  c333..c359 fg=- bg=46,52,64 attr=-
+R7  c0..c0 fg=- bg=46,52,64 attr=-
+R7  c1..c1 fg=216,222,233 bg=46,52,64 attr=-
+R7  c2..c52 fg=143,149,161 bg=46,52,64 attr=-
+R7  c53..c72 fg=- bg=46,52,64 attr=-
+R7  c73..c73 fg=216,222,233 bg=46,52,64 attr=-
+R7  c74..c129 fg=143,149,161 bg=46,52,64 attr=-
+R7  c130..c144 fg=- bg=46,52,64 attr=-
+R7  c145..c145 fg=216,222,233 bg=46,52,64 attr=-
+R7  c146..c190 fg=143,149,161 bg=46,52,64 attr=-
+R7  c191..c216 fg=- bg=46,52,64 attr=-
+R7  c217..c217 fg=216,222,233 bg=46,52,64 attr=-
+R7  c218..c254 fg=143,149,161 bg=46,52,64 attr=-
+R7  c255..c287 fg=- bg=46,52,64 attr=-
+R7  c288..c288 fg=216,222,233 bg=46,52,64 attr=-
+R7  c289..c315 fg=143,149,161 bg=46,52,64 attr=-
+R7  c316..c359 fg=- bg=46,52,64 attr=-
+R8  c0..c0 fg=- bg=46,52,64 attr=-
+R8  c1..c1 fg=216,222,233 bg=46,52,64 attr=-
+R8  c2..c40 fg=143,149,161 bg=46,52,64 attr=-
+R8  c41..c72 fg=- bg=46,52,64 attr=-
+R8  c73..c73 fg=216,222,233 bg=46,52,64 attr=-
+R8  c74..c115 fg=143,149,161 bg=46,52,64 attr=-
+R8  c116..c144 fg=- bg=46,52,64 attr=-
+R8  c145..c145 fg=216,222,233 bg=46,52,64 attr=-
+R8  c146..c187 fg=143,149,161 bg=46,52,64 attr=-
+R8  c188..c216 fg=- bg=46,52,64 attr=-
+R8  c217..c217 fg=216,222,233 bg=46,52,64 attr=-
+R8  c218..c259 fg=143,149,161 bg=46,52,64 attr=-
+R8  c260..c287 fg=- bg=46,52,64 attr=-
+R8  c288..c288 fg=216,222,233 bg=46,52,64 attr=-
+R8  c289..c323 fg=143,149,161 bg=46,52,64 attr=-
+R8  c324..c359 fg=- bg=46,52,64 attr=-
+R9  c0..c0 fg=- bg=46,52,64 attr=-
+R9  c1..c1 fg=216,222,233 bg=46,52,64 attr=-
+R9  c2..c49 fg=143,149,161 bg=46,52,64 attr=-
+R9  c50..c72 fg=- bg=46,52,64 attr=-
+R9  c73..c73 fg=216,222,233 bg=46,52,64 attr=-
+R9  c74..c113 fg=143,149,161 bg=46,52,64 attr=-
+R9  c114..c144 fg=- bg=46,52,64 attr=-
+R9  c145..c145 fg=216,222,233 bg=46,52,64 attr=-
+R9  c146..c164 fg=143,149,161 bg=46,52,64 attr=-
+R9  c165..c180 fg=143,149,161 bg=46,52,64 attr=u
+R9  c181..c216 fg=- bg=46,52,64 attr=-
+R9  c217..c217 fg=216,222,233 bg=46,52,64 attr=-
+R9  c218..c251 fg=143,149,161 bg=46,52,64 attr=-
+R9  c252..c283 fg=- bg=46,52,64 attr=-
+R9  c284..c284 fg=216,222,233 bg=46,52,64 attr=-
+R9  c285..c286 fg=235,203,139 bg=46,52,64 attr=-
+R9  c287..c287 fg=- bg=46,52,64 attr=-
+R9  c288..c288 fg=216,222,233 bg=46,52,64 attr=-
+R9  c289..c334 fg=143,149,161 bg=46,52,64 attr=-
+R9  c335..c359 fg=- bg=46,52,64 attr=-
+R10  c0..c0 fg=- bg=46,52,64 attr=-
+R10  c1..c1 fg=216,222,233 bg=46,52,64 attr=-
+R10  c2..c33 fg=143,149,161 bg=46,52,64 attr=-
+R10  c34..c72 fg=- bg=46,52,64 attr=-
+R10  c73..c73 fg=216,222,233 bg=46,52,64 attr=-
+R10  c74..c127 fg=143,149,161 bg=46,52,64 attr=-
+R10  c128..c140 fg=- bg=46,52,64 attr=-
+R10  c141..c141 fg=216,222,233 bg=46,52,64 attr=-
+R10  c142..c143 fg=225,127,135 bg=46,52,64 attr=-
+R10  c144..c144 fg=- bg=46,52,64 attr=-
+R10  c145..c145 fg=216,222,233 bg=46,52,64 attr=-
+R10  c146..c163 fg=143,149,161 bg=46,52,64 attr=-
+R10  c164..c216 fg=- bg=46,52,64 attr=-
+R10  c217..c217 fg=216,222,233 bg=46,52,64 attr=-
+R10  c218..c245 fg=143,149,161 bg=46,52,64 attr=-
+R10  c246..c287 fg=- bg=46,52,64 attr=-
+R10  c288..c288 fg=216,222,233 bg=46,52,64 attr=-
+R10  c289..c321 fg=143,149,161 bg=46,52,64 attr=-
+R10  c322..c359 fg=- bg=46,52,64 attr=-
+R11  c0..c0 fg=- bg=46,52,64 attr=-
+R11  c1..c1 fg=216,222,233 bg=46,52,64 attr=-
+R11  c2..c31 fg=143,149,161 bg=46,52,64 attr=-
+R11  c32..c216 fg=- bg=46,52,64 attr=-
+R11  c217..c217 fg=216,222,233 bg=46,52,64 attr=-
+R11  c218..c258 fg=143,149,161 bg=46,52,64 attr=-
+R11  c259..c287 fg=- bg=46,52,64 attr=-
+R11  c288..c288 fg=216,222,233 bg=46,52,64 attr=-
+R11  c289..c328 fg=143,149,161 bg=46,52,64 attr=-
+R11  c329..c359 fg=- bg=46,52,64 attr=-
+R12  c0..c359 fg=- bg=46,52,64 attr=-
+R13  c0..c359 fg=- bg=46,52,64 attr=-
+R14  c0..c359 fg=- bg=46,52,64 attr=-
+R15  c0..c359 fg=- bg=46,52,64 attr=-
+R16  c0..c359 fg=- bg=46,52,64 attr=-
+R17  c0..c359 fg=- bg=46,52,64 attr=-
+R18  c0..c359 fg=- bg=46,52,64 attr=-
+R19  c0..c359 fg=- bg=46,52,64 attr=-
+R20  c0..c359 fg=- bg=46,52,64 attr=-
+R21  c0..c359 fg=- bg=46,52,64 attr=-
+R22  c0..c359 fg=- bg=46,52,64 attr=-
+R23  c0..c359 fg=- bg=46,52,64 attr=-
+R24  c0..c359 fg=- bg=46,52,64 attr=-
+R25  c0..c359 fg=- bg=46,52,64 attr=-
+R26  c0..c359 fg=- bg=46,52,64 attr=-
+R27  c0..c359 fg=- bg=46,52,64 attr=-
+R28  c0..c359 fg=- bg=46,52,64 attr=-
+R29  c0..c359 fg=- bg=46,52,64 attr=-
+R30  c0..c359 fg=- bg=46,52,64 attr=-
+R31  c0..c359 fg=- bg=46,52,64 attr=-
+R32  c0..c359 fg=- bg=46,52,64 attr=-
+R33  c0..c359 fg=- bg=46,52,64 attr=-
+R34  c0..c359 fg=- bg=46,52,64 attr=-
+R35  c0..c359 fg=- bg=46,52,64 attr=-
+R36  c0..c359 fg=- bg=46,52,64 attr=-
+R37  c0..c359 fg=- bg=46,52,64 attr=-
+R38  c0..c359 fg=- bg=46,52,64 attr=-
+R39  c0..c359 fg=- bg=46,52,64 attr=-
+R40  c0..c359 fg=- bg=46,52,64 attr=-
+R41  c0..c359 fg=- bg=46,52,64 attr=-
+R42  c0..c359 fg=- bg=46,52,64 attr=-
+R43  c0..c359 fg=- bg=46,52,64 attr=-
+R44  c0..c359 fg=- bg=46,52,64 attr=-
+R45  c0..c359 fg=- bg=46,52,64 attr=-
+R46  c0..c359 fg=- bg=46,52,64 attr=-
+R47  c0..c359 fg=- bg=46,52,64 attr=-
+R48  c0..c359 fg=- bg=46,52,64 attr=-
+R49  c0..c359 fg=- bg=46,52,64 attr=-
+R50  c0..c359 fg=- bg=46,52,64 attr=-
+R51  c0..c359 fg=- bg=46,52,64 attr=-
+R52  c0..c359 fg=- bg=46,52,64 attr=-
+R53  c0..c359 fg=- bg=46,52,64 attr=-
+R54  c0..c359 fg=- bg=46,52,64 attr=-
+R55  c0..c359 fg=- bg=46,52,64 attr=-
+R56  c0..c359 fg=- bg=46,52,64 attr=-
+R57  c0..c359 fg=- bg=46,52,64 attr=-
+R58  c0..c359 fg=- bg=46,52,64 attr=-
+R59  c0..c359 fg=- bg=46,52,64 attr=-
+R60  c0..c359 fg=- bg=46,52,64 attr=-
+R61  c0..c359 fg=- bg=46,52,64 attr=-
+R62  c0..c359 fg=- bg=46,52,64 attr=-
+R63  c0..c359 fg=- bg=46,52,64 attr=-
+R64  c0..c359 fg=- bg=46,52,64 attr=-
+R65  c0..c359 fg=- bg=46,52,64 attr=-
+R66  c0..c359 fg=- bg=46,52,64 attr=-
+R67  c0..c359 fg=- bg=46,52,64 attr=-
+R68  c0..c359 fg=- bg=46,52,64 attr=-
+R69  c0..c359 fg=- bg=46,52,64 attr=-
+R70  c0..c359 fg=- bg=46,52,64 attr=-
+R71  c0..c359 fg=- bg=46,52,64 attr=-
+R72  c0..c359 fg=- bg=46,52,64 attr=-
+R73  c0..c359 fg=- bg=46,52,64 attr=-
+R74  c0..c359 fg=- bg=46,52,64 attr=-
+R75  c0..c359 fg=- bg=46,52,64 attr=-
+R76  c0..c359 fg=- bg=46,52,64 attr=-
+R77  c0..c359 fg=- bg=46,52,64 attr=-
+R78  c0..c359 fg=- bg=46,52,64 attr=-
+R79  c0..c359 fg=- bg=46,52,64 attr=-
+R80  c0..c359 fg=- bg=46,52,64 attr=-
+R81  c0..c359 fg=- bg=46,52,64 attr=-
+R82  c0..c359 fg=- bg=46,52,64 attr=-
+R83  c0..c359 fg=- bg=46,52,64 attr=-
+R84  c0..c359 fg=- bg=46,52,64 attr=-
+R85  c0..c359 fg=- bg=46,52,64 attr=-
+R86  c0..c359 fg=- bg=46,52,64 attr=-
+R87  c0..c359 fg=- bg=46,52,64 attr=-
+R88  c0..c359 fg=- bg=46,52,64 attr=-
+R89  c0..c359 fg=- bg=46,52,64 attr=-
+R90  c0..c359 fg=- bg=46,52,64 attr=-
+R91  c0..c359 fg=- bg=46,52,64 attr=-
+R92  c0..c359 fg=- bg=46,52,64 attr=-
+R93  c0..c359 fg=- bg=46,52,64 attr=-
+R94  c0..c359 fg=- bg=46,52,64 attr=-
+R95  c0..c359 fg=- bg=46,52,64 attr=-
+R96  c0..c359 fg=- bg=46,52,64 attr=-
+R97  c0..c359 fg=- bg=46,52,64 attr=-
+R98  c0..c359 fg=- bg=46,52,64 attr=-
+R99  c0..c359 fg=- bg=46,52,64 attr=-
+R100  c0..c359 fg=- bg=46,52,64 attr=-
+R101  c0..c359 fg=- bg=46,52,64 attr=-
+R102  c0..c359 fg=- bg=46,52,64 attr=-
+R103  c0..c359 fg=- bg=46,52,64 attr=-
+R104  c0..c359 fg=- bg=46,52,64 attr=-
+R105  c0..c359 fg=- bg=46,52,64 attr=-
+R106  c0..c359 fg=- bg=46,52,64 attr=-
+R107  c0..c359 fg=- bg=46,52,64 attr=-
+R108  c0..c359 fg=- bg=46,52,64 attr=-
+R109  c0..c359 fg=- bg=46,52,64 attr=-
+R110  c0..c359 fg=- bg=46,52,64 attr=-
+R111  c0..c359 fg=- bg=46,52,64 attr=-
+R112  c0..c359 fg=- bg=46,52,64 attr=-
+R113  c0..c359 fg=- bg=46,52,64 attr=-
+R114  c0..c359 fg=- bg=46,52,64 attr=-
+R115  c0..c359 fg=- bg=46,52,64 attr=-
+R116  c0..c359 fg=- bg=46,52,64 attr=-
+R117  c0..c359 fg=- bg=46,52,64 attr=-
+R118  c0..c359 fg=- bg=46,52,64 attr=-
+R119  c0..c273 fg=- bg=46,52,64 attr=-
+R119  c274..c358 fg=216,222,233 bg=46,52,64 attr=-
+R119  c359..c359 fg=- bg=46,52,64 attr=-

@@ -51,7 +51,7 @@ import { parseKey } from "@silvery/ag-term/runtime"
 import { createFocusManager, FocusManagerContext, ThemeProvider } from "@silvery/ag-react"
 import { installDialogGuard } from "../../src/dialog-guard.ts"
 import { expect } from "vitest"
-import { createRepo, createStoreFromRepo, withReactive, type Repo } from "@km/storage"
+import { createRepo, createStoreFromRepo, parseDeferredAsync, withReactive, type Repo } from "@km/storage"
 import { createBoardState } from "../../src/board/board-types.ts"
 import { runGenerator, createToastQueue } from "@km/core"
 
@@ -94,6 +94,16 @@ export interface TestBoardOptions {
    * silent harness regressions (e.g. missing root width/height pin).
    */
   skipFrameCanary?: boolean
+  /**
+   * Synchronously parse deferred (stub) markdown files before the board
+   * mounts. Off by default — production interactive paths use discoverOnly
+   * with a background parse, so testBoard mirrors that to keep helper
+   * defaults aligned with shipping behavior. Set to `true` for fixtures
+   * where the test cares about parsed card content (e.g. golden snapshots).
+   * Uses the in-process sequential parse path (no worker pool) for
+   * deterministic ordering.
+   */
+  parseDeferred?: boolean
 }
 
 export interface TestBoardResult {
@@ -188,6 +198,15 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
   const rootNode = rawRepo.getRepoRootNode()
   if (!rootNode) {
     throw new Error(`No board found in vault: ${vaultPath}`)
+  }
+
+  // Optional: synchronously parse stub files so the board mounts with full
+  // card content instead of the loading-skeleton placeholders. Used by golden
+  // snapshot fixtures; disabled by default to mirror production discoverOnly
+  // behaviour in interactive tests.
+  if (options?.parseDeferred && rawRepo.deferredFiles.length > 0) {
+    await parseDeferredAsync(rawRepo.database, rawRepo.deferredFiles, undefined, { useWorkerPool: false })
+    rawRepo.touch()
   }
 
   // Wrap repo with undo proxy so useRepo() observers see the same instance as
