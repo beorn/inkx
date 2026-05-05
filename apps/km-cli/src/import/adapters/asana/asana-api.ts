@@ -11,7 +11,13 @@ import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 
-import { ProgressBar } from "@silvery/ag-react/ui/cli"
+// Imported from `@silvery/ag-react/ui` (the parent barrel) instead of
+// `@silvery/ag-react/ui/cli` because vitest's resolver doesn't currently
+// honor the package.json glob export `"./ui/*": "./src/ui/*/index.ts"`
+// (May 2026 silvery refactor 42b4ef19 replaced explicit `./ui/cli`
+// with this glob). The parent re-exports `ProgressBar` from `./cli`,
+// so consumers get the same symbol via a path vitest can resolve.
+import { ProgressBar } from "@silvery/ag-react/ui"
 import { AsanaClient } from "./asana-client.ts"
 import { TASK_FIELDS } from "./asana-types.ts"
 import type { AsanaApiTask, FetchOptions, FetchResult } from "./asana-types.ts"
