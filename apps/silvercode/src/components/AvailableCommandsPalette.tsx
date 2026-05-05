@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react"
-import { Box, Muted, SelectList, Text } from "silvery"
+import { Box, ListView, Text } from "silvery"
 import { useInput } from "silvery/runtime"
-import { filterCommands, mergeRemoteCommands } from "../slash-commands.ts"
+import { filterCommands, mergeRemoteCommands, type SlashCommand } from "../slash-commands.ts"
+
+const MAX_VISIBLE_COMMANDS = 30
+const COMMAND_ROW_ESTIMATE = 3
 
 /**
  * Available-commands palette. Appears inline above the input whenever the
@@ -47,21 +50,57 @@ export function AvailableCommandsPalette({
     { isActive: filtered.length > 0 },
   )
   if (filtered.length === 0) return null
+  const visible = filtered.slice(0, MAX_VISIBLE_COMMANDS)
+  const commandWidth = Math.max(10, ...filtered.map((cmd) => cmd.name.length)) + 1
   return (
     <Box flexDirection="column" backgroundColor="$bg-surface-overlay">
-      <Box flexDirection="row" gap={1}>
-        <Text bold color="$accent">
-          Slash commands
-        </Text>
-        <Muted>Enter to run · Esc to close</Muted>
+      <Box height={1} flexShrink={0} backgroundColor="$bg-surface-overlay">
+        <Text backgroundColor="$bg-surface-overlay"> </Text>
       </Box>
-      <SelectList
-        items={filtered.map((c) => ({ label: `${c.name}  —  ${c.description}`, value: c.name }))}
-        highlightedIndex={cursor}
-        onHighlight={setCursor}
-        onSelect={(opt) => onSubmit(opt.value)}
-        maxVisible={5}
-        isActive
+      <ListView
+        items={visible}
+        height={visible.length * COMMAND_ROW_ESTIMATE}
+        estimateHeight={COMMAND_ROW_ESTIMATE}
+        nav
+        active
+        scrollbar={false}
+        cursorKey={cursor}
+        onCursor={setCursor}
+        onSelect={(index) => {
+          const cmd = filtered[index]
+          if (cmd) onSubmit(cmd.name)
+        }}
+        onItemHover={setCursor}
+        onItemClick={(index) => {
+          setCursor(index)
+          const cmd = filtered[index]
+          if (cmd) onSubmit(cmd.name)
+        }}
+        getKey={(cmd) => cmd.name}
+        renderItem={(cmd: SlashCommand, _index, meta) => (
+          <Box width="100%" backgroundColor={meta.isCursor ? "$bg-cursor" : undefined}>
+            <Box flexDirection="row" paddingLeft={3} width="100%" minWidth={0}>
+              <Box width={commandWidth} flexShrink={0}>
+                <Text
+                  bold={meta.isCursor}
+                  color={meta.isCursor ? "$fg-cursor" : "$fg"}
+                  backgroundColor={meta.isCursor ? "$bg-cursor" : undefined}
+                >
+                  {cmd.name.padEnd(commandWidth)}
+                </Text>
+              </Box>
+              <Box flexGrow={1} flexShrink={1} minWidth={0}>
+                <Text
+                  wrap="wrap"
+                  color={meta.isCursor ? "$fg-cursor" : "$fg-muted"}
+                  backgroundColor={meta.isCursor ? "$bg-cursor" : undefined}
+                >
+                  {cmd.description}
+                </Text>
+              </Box>
+            </Box>
+          </Box>
+        )}
       />
     </Box>
   )

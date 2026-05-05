@@ -1351,16 +1351,6 @@ export function App(props: AppProps): React.ReactElement {
                       <SessionPromptHistory onClose={() => setShowHistory(false)} logDir={props.logDir} />
                     )}
                     <Notifications sessions={sessions} />
-
-                    {paletteQuery !== null && (
-                      <AvailableCommandsPalette
-                        query={paletteQuery}
-                        remoteCommands={focused?.store.state.get().slashCommands}
-                        remoteSkills={focused?.store.state.get().skills}
-                        onSubmit={(cmd) => handleSubmit(cmd)}
-                        onClose={() => setInputValue("")}
-                      />
-                    )}
                   </Box>
                 </Content.Layout>
               </Box>
@@ -1375,6 +1365,16 @@ export function App(props: AppProps): React.ReactElement {
   // slot + bottom slot); only one mounts at a time. App-owned state means
   // the typed buffer persists across the welcome → chat slot transition.
   function renderComposer(): React.ReactElement | null {
+    const palette =
+      paletteQuery !== null ? (
+        <AvailableCommandsPalette
+          query={paletteQuery}
+          remoteCommands={focused?.store.state.get().slashCommands}
+          remoteSkills={focused?.store.state.get().skills}
+          onSubmit={(cmd) => handleSubmit(cmd)}
+          onClose={() => setInputValue("")}
+        />
+      ) : null
     if (!focused) {
       // Pre-spawn (sessions.length === 0): render a buffered composer that
       // routes submits through `handleSubmit` (which queues into a pending
@@ -1382,44 +1382,50 @@ export function App(props: AppProps): React.ReactElement {
       // immediately, but the command surface stays live and the first prompt
       // is replayed into the session as soon as the handle exists.
       return (
-        <SessionPromptComposer
-          queueText=""
-          onQueueChange={() => {}}
-          onQueueSubmit={() => {}}
-          focusedRegion="command"
-          onFocusRegion={() => {}}
-          inputValue={inputValue}
-          onInputChange={setInputValue}
-          inputDisabled={Boolean(props.resume)}
-          onSubmit={(text) => {
-            const trimmed = text.trim()
-            if (!trimmed || props.resume) return
-            pendingFirstPromptRef.current = trimmed
-            setInputValue("")
-          }}
-          onExit={requestExit}
-          promptColor={promptColor}
-        />
+        <Box flexDirection="column" width="100%" minWidth={0}>
+          {palette}
+          <SessionPromptComposer
+            queueText=""
+            onQueueChange={() => {}}
+            onQueueSubmit={() => {}}
+            focusedRegion="command"
+            onFocusRegion={() => {}}
+            inputValue={inputValue}
+            onInputChange={setInputValue}
+            inputDisabled={Boolean(props.resume)}
+            onSubmit={(text) => {
+              const trimmed = text.trim()
+              if (!trimmed || props.resume) return
+              pendingFirstPromptRef.current = trimmed
+              setInputValue("")
+            }}
+            onExit={requestExit}
+            promptColor={promptColor}
+          />
+        </Box>
       )
     }
     const f = focused
     return (
-      <SessionPromptComposer
-        queueText={queueText}
-        onQueueChange={(t) => controller.setQueuedText(f.id, t)}
-        onQueueSubmit={() => {
-          controller.flushQueue(f.id)
-          setFocusedRegion("command")
-        }}
-        focusedRegion={focusedRegion}
-        onFocusRegion={setFocusedRegion}
-        inputValue={inputValue}
-        onInputChange={setInputValue}
-        inputDisabled={pendingPermissions > 0 || pendingQuestions > 0}
-        onSubmit={handleSubmit}
-        onExit={requestExit}
-        promptColor={promptColor}
-      />
+      <Box flexDirection="column" width="100%" minWidth={0}>
+        {palette}
+        <SessionPromptComposer
+          queueText={queueText}
+          onQueueChange={(t) => controller.setQueuedText(f.id, t)}
+          onQueueSubmit={() => {
+            controller.flushQueue(f.id)
+            setFocusedRegion("command")
+          }}
+          focusedRegion={focusedRegion}
+          onFocusRegion={setFocusedRegion}
+          inputValue={inputValue}
+          onInputChange={setInputValue}
+          inputDisabled={pendingPermissions > 0 || pendingQuestions > 0}
+          onSubmit={handleSubmit}
+          onExit={requestExit}
+          promptColor={promptColor}
+        />
+      </Box>
     )
   }
 
