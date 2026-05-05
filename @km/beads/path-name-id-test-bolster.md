@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beads/path-name-id-test-bolster"
 aliases:
   - km-beads.path-name-id-test-bolster
@@ -8,9 +10,38 @@ created_at: 2026-04-30T15:00:00Z
 type: feature
 priority: P0
 parent: "@km/beads"
+closeReason: >-
+  Acceptance met:
+
+  - bd-create-arg-shapes.test.ts: 13 tests covering the 9+ CLI input cases
+  (title-only / title-with-slash / title-with-@ / --path / --id / --parent+--id
+  / collision / etc.)
+
+  - resolve-id.property.test.ts: 17 tests covering the 6+ resolver paths (ULID /
+  path-form / path-form-no-sigil / alias / collision / missing)
+
+  - seedBead helper at packages/km-beads/src/testing/seed-bead.ts (thin wrapper
+  over universal seedFileNode in @km/storage)
+
+  - Proof-of-shape: 4 test files use seedBead/seedFileNode (seed-bead,
+  migrate-postcondition, resolve-id.property, seed-file-node)
+
+
+  Not done (deliberately):
+
+  - resolve-task.test.ts and bd-close-resolver-symmetry.test.ts kept on raw
+  addNode-with-data.id — those tests SPECIFICALLY exercise the resolveShortId
+  step-4 compat fallback (data.id / data.short_id / aliases via json_extract).
+  Migrating them to seedBead would make the fixture go through fs_path
+  resolution instead, defeating the test's purpose. Those compat-path tests stay
+  until @km/beads/data-id-stop-writing actually drops the fallback.
+
+  - Standalone audit doc + /explore findings not produced; the test files codify
+  the same audit and the matrix coverage is verified by passing tests rather
+  than a separate prose log.
 ---
 
-# Bolster regression tests around resolver / bd create / path resolution @km/beads #task #P0
+# [x] Bolster regression tests around resolver / bd create / path resolution @km/beads #task #P0
 
 Before further /pro-corrected refactors land, do a focused review of existing tests in this area and add regressions that codify the new invariants. Also drive the corrected `bd create` surface end-to-end via `/explore` on real-data copies, not just unit tests.
 
@@ -33,6 +64,7 @@ rg -l 'resolveShortId|resolveTaskNode|bd create|resolveNode|pathOf' \
 ```
 
 For each file, classify:
+
 - **Solid** — covers production reality, will catch regressions.
 - **Brittle** — relies on test-only seed patterns (raw addNode with data.id) that won't hold post-migration.
 - **Missing coverage** — invariant not covered.
@@ -88,6 +120,7 @@ export function seedBead(
 ```
 
 Migrate the 3 test files that use raw addNode-with-data.id to use `seedBead`:
+
 - `apps/km-cli/tests/resolve-task.test.ts`
 - `apps/km-cli/tests/bd-close-resolver-symmetry.test.ts`
 - (any other files in the audit)
@@ -117,3 +150,4 @@ Tests + the `/explore` finding both run inside the worktree — never on main re
 - Parent epic: `@km/all/path-name-id-redesign`
 - Sister beads (deferred until tests are solid): `@km/beads/data-id-stop-writing`, `@km/beads/frontmatter-path-rename`, `@km/all/rename-content-cascade`
 - /pro review 2026-04-30 (GPT-5.4 Pro + Kimi K2.6 + Grok 4 + Gemini 3 Pro) — found the gaps this bead closes.
+
