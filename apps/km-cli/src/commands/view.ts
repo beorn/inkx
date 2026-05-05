@@ -159,8 +159,11 @@ export const viewCommand = new Command("view")
       const patchedConsole = interactive && process.stdin.isTTY ? createConsole() : null
       patchedConsole?.capture({ suppress: true })
 
-      // Load repo + build state with unified progress display
-      const { steps } = await import("@silvery/ag-react/ui")
+      // Load repo + build state with unified progress display.
+      // `steps` lives at `./ui/progress`, NOT the parent `./ui` barrel
+      // (which only re-exports `cli`/`wrappers`/`types`). Importing from
+      // the parent crashes at load.
+      const { steps } = await import("@silvery/ag-react/ui/progress")
       const { createRepo } = storageModule
 
       let createdRepo: import("@km/storage").Repo | undefined
