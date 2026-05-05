@@ -1,7 +1,4 @@
 ---
-tags:
-  - bug
-  - P0
 mentions:
   - km
 id: "@km/silvercode/runtime-error-tracking-plateau"
@@ -11,9 +8,16 @@ aliases:
 created_at: 2026-05-01T12:12:00.000Z
 type: bug
 priority: P0
+closeReason: "Completed: unknown Codex/session shapes, stale
+  permissions/tools/turns, process close escalation, closeAll error surfacing,
+  session-end error rows, resume blank-screen, and CLI smoke paths now have
+  focused coverage. Verification: agent-harness liveness/spawn/acp slice passed
+  4 files, 65 tests; Silvercode composition/runtime slice included
+  session-end-error-paths, controller-closeall, resume-blank-screen, cli-smoke
+  in the 12-file/187-test run."
 ---
 
-# [ ] [bug] Silvercode runtime error tracking plateau @km/silvercode #bug #P0
+# [x] [bug] Silvercode runtime error tracking plateau @km/silvercode #bug #P0
 
 Silvercode has repeatedly hidden or lost runtime failures: permission prompts that did not resume, turns that appeared stuck, commands ending in running state, unknown backend data shapes, hidden stderr, strict-layout failures, and orphaned backend processes. This bead tracks the error/liveness side of the quality plateau separately from the visual chat-layout bead.
 
@@ -44,3 +48,4 @@ Do not close this bead until runtime failures are visible, attributable, and cov
 - [[@km/silvercode/spawn-close-hardening]]
 - [[@km/silvercode/resume-blank-screen]]
 - [[@km/silvercode/spawn-error-blank-screen]]
+

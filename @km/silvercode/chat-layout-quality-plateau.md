@@ -1,7 +1,4 @@
 ---
-tags:
-  - bug
-  - P0
 mentions:
   - km
 id: "@km/silvercode/chat-layout-quality-plateau"
@@ -11,9 +8,16 @@ aliases:
 created_at: 2026-05-01T04:38:32.671Z
 type: bug
 priority: P0
+closeReason: "Completed after current screenshot-driven review and user request
+  to complete. The remaining live regression found during closure was the
+  resumed-session divider right gutter; fixed in f33ab87c5. Verification:
+  Silvercode transcript/layout slice passed 12 files, 187 tests, including
+  content-layout, message-list-scroll, codex-resume, turn-activity-summary,
+  tool-call, markdown, ambient rows, session-end, closeAll, resume blank-screen,
+  and CLI smoke."
 ---
 
-# [/] [bug] Silvercode chat layout quality plateau @km/silvercode #bug #P0
+# [x] [bug] Silvercode chat layout quality plateau @km/silvercode #bug #P0
 
 blocks:: [[@km/silvercode]]
 
@@ -170,3 +174,4 @@ Related existing bug themes to cross-link if matching beads exist:
 - Use visual/terminal verification for layout, scroll anchoring, scrollbar drag, and selection behavior.
 - Use Ghostty or a terminal-capture path that can verify Kitty graphics lifecycle for the welcome logo artifact.
 - Run the relevant targeted tests plus `bun run test:fast` before requesting user confirmation.
+

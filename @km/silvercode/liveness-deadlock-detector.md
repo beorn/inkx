@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/liveness-deadlock-detector"
 aliases:
   - km-silvercode.liveness-deadlock-detector
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-30T19:42:49.097Z
     created_by: codex
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.queue-stuck-thinking-l4
 ---
 
 # [x] Detect silvercode liveness deadlocks @km/silvercode #feature #P0
@@ -80,3 +86,4 @@ bun vitest run apps/silvercode/tests/side-panel-multi-account.test.tsx apps/silv
 ```
 
 Result: 10 files passed, 119 tests passed.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/images-render-artifacts"
 aliases:
   - km-silvery.images-render-artifacts
@@ -6,9 +8,21 @@ aliases:
 created_at: 2026-04-30T08:17:31.219Z
 type: task
 priority: P0
+closeReason: "Completed for the current Silvery image rendering model: Image
+  queues typed TerminalFrameArtifact writes through
+  StdoutContext.queueFrameArtifact, placement planning handles
+  clipping/lifecycle/no-retransmit, and kitty z-index layering is explicit in
+  the protocol helpers. The old term.images acceptance is superseded by typed
+  frame artifacts plus byte-level terminal assertions. Verification: bun vitest
+  run --project vendor
+  vendor/silvery/tests/ui/list-view-visible-content-anchoring.test.tsx
+  vendor/silvery/tests/features/image-placement-plan.test.ts
+  vendor/silvery/tests/features/image-stdout-routing.test.tsx
+  vendor/silvery/tests/features/image-no-retransmit-on-move.test.tsx passed: 4
+  files, 28 tests."
 ---
 
-# [ ] Make terminal images backend-owned render artifacts @km/silvery #task #P0
+# [x] Make terminal images backend-owned render artifacts @km/silvery #task #P0
 
 Move Kitty/Sixel images from effect-owned stdout writes toward typed renderer-owned artifacts.
 
@@ -38,3 +52,4 @@ Verification:
 
 - `bun vitest run --project vendor vendor/silvery/tests/features/image-placement-plan.test.ts vendor/silvery/tests/features/image-stdout-routing.test.tsx vendor/silvery/tests/features/image-no-retransmit-on-move.test.tsx`
 - `bun run typecheck` in `vendor/silvery`
+

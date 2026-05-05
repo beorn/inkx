@@ -8,9 +8,14 @@ type: task
 priority: P0
 status: wip
 assignee: codex
+closeReason: "Completed: recent transcript/layout plateau checks now pass with
+  current cmd-hover popover, timestamps, metadata rows, activity disclosure,
+  Codex resume, ambient row, markdown, and command/tool rendering coverage.
+  Verification: Silvercode transcript/layout slice passed 12 files, 187 tests;
+  latest closure fix f33ab87c5 preserves one-cell metadata divider gutters."
 ---
 
-# Quality plateau for recent Silvercode transcript and Silvery layout work
+# [x] Quality plateau for recent Silvercode transcript and Silvery layout work
 
 ## Scope
 
@@ -49,3 +54,4 @@ The loaded-session overlap is a Silvery incremental rendering bug: a layout-feed
 - `bun vitest run apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/message-list-scroll.test.tsx apps/silvercode/tests/codex-resume.test.ts apps/silvercode/tests/turn-activity-summary.test.tsx apps/silvercode/tests/tool-call-rendering-v2.test.tsx apps/silvercode/tests/visual/queue-ux.test.tsx` passed: 75 tests.
 - `bun vitest run apps/silvercode/tests/welcome-features.test.tsx apps/silvercode/tests/welcome-card-hidden.test.tsx apps/silvercode/tests/welcome-card-paints.test.tsx apps/silvercode/tests/keyboard-scroll.test.tsx apps/silvercode/tests/pane-chord.test.tsx` passed: 24 tests, 1 skipped. It still emits an existing `MaxListenersExceededWarning` from repeated `Screen` resize listeners in the test harness.
 - `npx tsc --noEmit --incremental false -p apps/silvercode/tsconfig.json` still fails on pre-existing unrelated surfaces: `agent-harness` `ReadableStream` casts, `StatusGlyph`/`TextShimmer` prop mismatch, vendor JSX intrinsic declarations, and missing vendor declaration files. No remaining errors were from the content layout or session rows after the local fixes.
+

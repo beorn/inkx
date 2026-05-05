@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/chat-component-hierarchy"
 aliases:
   - km-silvercode.chat-component-hierarchy
@@ -6,14 +8,26 @@ aliases:
 created_at: 2026-05-01T18:16:00.000Z
 type: feature
 priority: P0
-tags:
-  - P0
-  - refactor
-  - chat
-  - architecture
+closeReason: "Completed: Chat.tsx defines
+  Chat.Root/Transcript/Metadata/Notification/Composer/Body and
+  Chat.Turn.Root/Prompt/Segment/Narration/Activity/ToolGroup/Summary/Stats;
+  SessionUpdateList and pane/composer paths now render through those primitives.
+  Verification: bun vitest run apps/silvercode/tests/content-layout.test.tsx
+  apps/silvercode/tests/message-list-scroll.test.tsx
+  apps/silvercode/tests/codex-resume.test.ts
+  apps/silvercode/tests/turn-activity-summary.test.tsx
+  apps/silvercode/tests/tool-call-rendering-v2.test.tsx
+  apps/silvercode/tests/tool-call.test.tsx
+  apps/silvercode/tests/visual/markdown.test.tsx
+  apps/silvercode/tests/ambient-event-row.test.tsx
+  apps/silvercode/tests/session-end-error-paths.test.tsx
+  apps/silvercode/tests/controller-closeall.test.ts
+  apps/silvercode/tests/resume-blank-screen.test.ts
+  apps/silvercode/tests/cli-smoke.test.ts passed: 12 files, 187 tests. Latest
+  gutter polish in f33ab87c5."
 ---
 
-# [ ] Design `Chat.Turn.*` component hierarchy for turn envelopes @km/silvercode #feature #P0
+# [x] Design `Chat.Turn.*` component hierarchy for turn envelopes @km/silvercode #feature #P0
 
 ## Problem
 
@@ -165,11 +179,11 @@ Rules:
 1. Introduce `src/components/Chat.tsx` with the namespaced component family.
 2. Add Storybook coverage for `Chat.Root`, `Chat.Transcript`, `Chat.Turn.Root`, dense activity, sequential narration/activity, metadata, notifications, and composer placement.
 3. Extract model-building helpers from `SessionUpdateList`:
-   - current `splitAssistantToolActivity`
-   - activity summary item derivation
-   - prompt/assistant turn association
-   - conclusion detection
-   - stats extraction
+  - current `splitAssistantToolActivity`
+  - activity summary item derivation
+  - prompt/assistant turn association
+  - conclusion detection
+  - stats extraction
 4. Render existing transcript through `Chat.Turn.*` without changing behavior.
 5. Change dense-turn behavior so collapsed summary may aggregate, while expanded details preserve narration/activity order.
 6. Move user prompt bubble rendering into `Chat.Turn.Prompt`.
@@ -271,3 +285,4 @@ Final verification in this worktree:
 
 - [[@km/silvercode/chat-layout-quality-plateau]]
 - [[@km/silvercode/runtime-error-tracking-plateau]]
+

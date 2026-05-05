@@ -6,9 +6,15 @@ aliases:
 created_at: 2026-04-30T23:17:24.669Z
 type: bug
 priority: P0
+closeReason: "Completed: ListView visible-content anchoring and Silvercode
+  disclosure rows preserve clicked-row position during expansion; Content.Layout
+  no longer remounts by width-key, preserving disclosure state across resize.
+  Verification: vendor ListView anchoring/image slice passed 4 files, 28 tests;
+  Silvercode turn-activity-summary and content-layout were included in the
+  12-file/187-test run."
 ---
 
-# Disclosure expansion should preserve scroll anchor and expanded state across resize
+# [x] Disclosure expansion should preserve scroll anchor and expanded state across resize
 
 ## Problem
 
@@ -28,3 +34,4 @@ Expanded/collapsed state should be keyed by stable semantic ids outside layout-r
 - A regression test expands a row inside a scrolled `ListView` and verifies the clicked line remains at the same screen row after expansion.
 - A regression test expands a row, resizes the pane/terminal, and verifies it remains expanded.
 - Silvercode activity summaries and tool rows use the shared mechanism rather than local one-off scroll correction.
+

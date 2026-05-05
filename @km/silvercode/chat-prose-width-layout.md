@@ -6,9 +6,15 @@ aliases:
 created_at: 2026-04-30T20:02:39.035Z
 type: feature
 priority: P0
+closeReason: "Completed: transcript rows now express readable/prose/wide/full
+  intent through Content.* and Chat.* primitives; prose markdown, code blocks,
+  blockquotes, prompt bubbles, metadata dividers, and activity rows are covered
+  by the current layout tests. Verification: Silvercode transcript/layout slice
+  passed 12 files, 187 tests; f33ab87c5 fixes the final divider gutter case
+  discovered during closure."
 ---
 
-# Constrain prose width while preserving wide tool output
+# [x] Constrain prose width while preserving wide tool output
 
 ## Problem
 
@@ -282,3 +288,4 @@ Markdown rendering should eventually become block-aware so paragraphs use the pr
 - `rg "useResponsiveValue" vendor/silvery apps packages --glob '!node_modules' --glob '!dist'` returns 0 after the final batch refactor.
 - Callers that depend on app/terminal chrome width use `useResponsiveViewport`; callers inside content layout use `useResponsiveContent`.
 - Silvery docs include a dedicated content layout/responsive typography page covering the component family, hooks, examples, migration guidance, and anti-patterns.
+
