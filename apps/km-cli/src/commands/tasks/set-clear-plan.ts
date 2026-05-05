@@ -9,6 +9,7 @@
  */
 
 import { getMarkerForStatus, type TaskStatus } from "@km/core"
+import { BEAD_TYPE_KEYWORD_SET } from "@km/beads"
 import type { Repo } from "@km/storage"
 
 /**
@@ -36,7 +37,11 @@ export interface SetFieldPlan {
   errors: string[]
 }
 
-const KNOWN_TYPES = new Set(["bug", "feature", "epic", "task", "docs", "chore"])
+// Canonical bead type keywords are owned by `@km/beads`
+// (`BEAD_TYPE_KEYWORDS` / `BEAD_TYPE_KEYWORD_SET`). Importing the set
+// here keeps this filter aligned with `nodeToBead.resolveType` — drift
+// between "what the task accepts" and "what nodeToBead surfaces" was the
+// drift bug fixed in `@km/beads/bead-type-keywords-shared-constant`.
 
 /**
  * Field-key alias → KNode column for the simple scalar fields shared by
@@ -135,7 +140,7 @@ export function planSetFields(repo: Repo, taskId: string, fields: readonly strin
         const existingTags = readTags((node?.data ?? {}) as Record<string, unknown>)
         const filtered = existingTags.filter((t) => {
           const stripped = t.startsWith("#") ? t.slice(1) : t
-          return !KNOWN_TYPES.has(stripped.toLowerCase())
+          return !BEAD_TYPE_KEYWORD_SET.has(stripped.toLowerCase())
         })
         if (value && value.toLowerCase() !== "task") {
           filtered.push(value)
