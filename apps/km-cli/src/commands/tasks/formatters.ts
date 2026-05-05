@@ -2,6 +2,14 @@
  * Task Display Formatters
  *
  * Functions for formatting tasks and their paths for CLI output.
+ *
+ * NOTE: this module is the I/O / styling layer (uses `createTerm` for
+ * ANSI colors). It is NOT pure and MUST NOT be imported by any
+ * `*-plan.ts` file — doing so would re-introduce the silvery import
+ * chain into the planner and break the L4 chain-immune guarantee.
+ * If a plan file needs an ancestor-display name, it should import
+ * `getNodeDisplayName` from `@km/tree` directly (see queries.ts for
+ * the pattern).
  */
 
 import { createTerm } from "@silvery/ag-react"
