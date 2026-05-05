@@ -97,8 +97,16 @@ const log = createLogger("km:storage:schema")
  *       drops the v8 index (DROP INDEX IF EXISTS) and recreates with
  *       the corrected key set. Tracked by
  *       `@km/storage/parent-name-unique-folder-file-coexistence`.
+ *  11 — nodes: drop `priority` column. The H1 `#P[0-4]` hashtag is the
+ *       single source of truth for priority per docs/future/beads.md;
+ *       the column was a denormalization populated by the parser from
+ *       `priority::` / YAML `priority:`. After @km/core/getNodePriority()
+ *       was introduced as a reading seam (commit 11c38a2cb), all readers
+ *       resolve via `data.tags` — so the column is dead weight. Migration
+ *       drops the column via ALTER TABLE; idempotent via PRAGMA
+ *       table_info probe. Tracked by @km/all/path-name-id-redesign.
  */
-export const SCHEMA_VERSION = 10
+export const SCHEMA_VERSION = 11
 
 /**
  * Data version — bump when application-logic changes invalidate derived data
@@ -285,7 +293,8 @@ CREATE TABLE IF NOT EXISTS nodes (
   start_at TEXT,     -- ISO 8601: same format as due_at
   due_date TEXT,     -- UNUSED: kept for backward compat with existing DBs
   scheduled_date TEXT, -- UNUSED: kept for backward compat with existing DBs
-  priority TEXT,
+  -- priority dropped at SCHEMA_VERSION=11 (H1 #P[0-4] is canonical;
+  -- read via @km/core/getNodePriority resolving from data.tags)
 
   -- Content
   content TEXT,
@@ -784,8 +793,30 @@ function migrateVersioned(db: import("bun:sqlite").Database): MigrateResult {
     )
   }
 
+  // v10 → v11: drop `nodes.priority` column. The H1 `#P[0-4]` hashtag is
+  // the single source of truth for priority (per docs/future/beads.md);
+  // the former column was a denormalization. Idempotent via PRAGMA probe —
+  // fresh DBs created by SCHEMA above never had the column, so we no-op.
+  if (current < 11) {
+    dropPriorityColumn(db)
+  }
+
   writeSchemaVersion(db, SCHEMA_VERSION)
   return result
+}
+
+/**
+ * Drop the legacy `nodes.priority` column. Idempotent — probes
+ * `PRAGMA table_info(nodes)` and only runs ALTER TABLE if the column
+ * still exists. Test fixtures with stripped-down schemas (no `nodes`
+ * table at all) are also tolerated.
+ */
+function dropPriorityColumn(db: import("bun:sqlite").Database): void {
+  const cols = db.query("PRAGMA table_info(nodes)").all() as { name: string }[]
+  if (cols.length === 0) return // No nodes table — nothing to do
+  if (!cols.some((c) => c.name === "priority")) return // Already dropped
+  db.run("ALTER TABLE nodes DROP COLUMN priority")
+  log.info?.("schema migration v11: dropped nodes.priority column (H1 #P[0-4] hashtag is canonical).")
 }
 
 /**

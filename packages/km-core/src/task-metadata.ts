@@ -227,8 +227,8 @@ export function stringifyTaskMetadata(content: string, node: KNode, options?: { 
   if (startParts?.date) {
     entries.start = startParts.time ? `${startParts.date}T${startParts.time}` : startParts.date
   }
-  if (node.priority) {
-    entries.priority = node.priority
+  if (nodePriority) {
+    entries.priority = nodePriority
   }
   if (recurrence) {
     entries.recur = recurrence
