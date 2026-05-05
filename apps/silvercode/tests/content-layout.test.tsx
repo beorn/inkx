@@ -959,6 +959,15 @@ describe("content layout", () => {
     expect(resumed, app.text).toMatch(/─ ▸ Session resumed .* ─/)
   })
 
+  test("resumed session divider preserves the final right gutter", () => {
+    const app = renderListWithMetadata([], 132, 8, false)
+    const row = app.lines.find((line) => line.includes("Session resumed"))
+    expect(row, app.text).toBeDefined()
+    expect(row![0]).not.toBe("─")
+    expect(row![131]).not.toBe("─")
+    expect(row!.lastIndexOf("─")).toBeLessThan(131)
+  })
+
   test("loaded-session metadata does not overlay the final wrapped line at the viewport tail", () => {
     const app = renderListWithMetadata(
       [

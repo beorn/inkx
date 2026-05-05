@@ -15,12 +15,13 @@ import { describe, expect, test } from "vitest"
 import { createRenderer, createTermless } from "@silvery/test"
 import { run } from "silvery/runtime"
 import { PopoverProvider } from "silvery"
-import { createSessionStore } from "@km/agent-harness"
+import { createSessionStore, type SessionId, type TurnId } from "@km/agent-harness"
 import { SidePanel } from "../src/components/SidePanel.tsx"
 import { setAllAccountsFactoryOverride, type AccountSummary } from "../src/account-status.ts"
 import { setAccountFactoryOverride } from "../src/claude-account.ts"
 import { setCodexQuotaFactoryOverride, type CodexQuotaSnapshot } from "../src/codex-quota.ts"
 import type { Controller, SessionHandle } from "../src/controller.ts"
+import { setSessionClipboardWriterOverride } from "../src/session-clipboard.ts"
 
 const TOTAL_COLS = 120
 const SUPER_DOWN = "\x1b[57444;9:1u"
@@ -35,6 +36,28 @@ function makeStubSession(id = "fake"): SessionHandle {
     store,
     unsubscribe: () => {},
   } as unknown as SessionHandle
+}
+
+function makeTranscriptSession(id: string, text: string): SessionHandle {
+  const handle = makeStubSession(id)
+  const sessionId = id as SessionId
+  handle.store.apply({
+    kind: "session-init",
+    sessionId,
+    cwd: "/tmp/project",
+    model: "test-model",
+    mode: "auto",
+    tools: [],
+    mcp_servers: [],
+    slashCommands: [],
+    skills: [],
+    plugins: [],
+    claudeCodeVersion: "",
+    apiKeySource: "",
+    ts: 1000,
+  })
+  handle.store.apply({ kind: "user-message", sessionId, turnId: "u1" as TurnId, text, ts: 1010 })
+  return handle
 }
 
 function makeStubController(): Controller {
@@ -202,6 +225,42 @@ const CODEX_QUOTA: CodexQuotaSnapshot = {
 
 const settle = (ms = 80) => new Promise<void>((r) => setTimeout(r, ms))
 
+function withAccounts(accounts: AccountSummary[]): void {
+  setAllAccountsFactoryOverride({
+    readCached: () => accounts,
+    probe: async () => accounts,
+  })
+}
+
+async function renderInteractivePanel(opts: {
+  focused: SessionHandle
+  sessions: SessionHandle[]
+  controller?: Controller
+  onFocusSession?: (id: string) => void
+  agent?: string
+  rows?: number
+}) {
+  const term = createTermless({ cols: TOTAL_COLS, rows: opts.rows ?? 80 })
+  const handle = await run(
+    <PopoverProvider>
+      <SidePanel
+        focused={opts.focused}
+        sessions={opts.sessions}
+        focusedSessionId={opts.focused.id}
+        onFocusSession={opts.onFocusSession ?? (() => {})}
+        mode="auto"
+        onCycleMode={() => {}}
+        cwd="/Users/beorn/Code/pim/km"
+        controller={opts.controller ?? makeStubController()}
+        agent={opts.agent}
+      />
+    </PopoverProvider>,
+    term,
+    { kitty: true, mouse: true } as never,
+  )
+  return { term, handle }
+}
+
 function renderPanel(opts: { agent?: string } = {}) {
   const render = createRenderer({ cols: TOTAL_COLS, rows: 60 })
   const focused = makeStubSession()
@@ -223,10 +282,7 @@ function renderPanel(opts: { agent?: string } = {}) {
 
 describe("SidePanel — multi-account view", () => {
   test("renders only the selected Claude account by default", () => {
-    setAllAccountsFactoryOverride({
-      readCached: () => THREE_ACCOUNTS,
-      probe: async () => THREE_ACCOUNTS,
-    })
+    withAccounts(THREE_ACCOUNTS)
     try {
       const app = renderPanel()
       const text = app.text
@@ -251,10 +307,7 @@ describe("SidePanel — multi-account view", () => {
       },
       THREE_ACCOUNTS[1]!,
     ]
-    setAllAccountsFactoryOverride({
-      readCached: () => allAccounts,
-      probe: async () => allAccounts,
-    })
+    withAccounts(allAccounts)
     setAccountFactoryOverride({
       readCached: () => ({
         email: "personal@example.com",
@@ -286,10 +339,7 @@ describe("SidePanel — multi-account view", () => {
 
   test("Codex shows subscription quotas from Codex /status data instead of generic OpenAI API limits", () => {
     const accounts = [...THREE_ACCOUNTS, API_KEY_ACCOUNT, CODEX_ACCOUNT]
-    setAllAccountsFactoryOverride({
-      readCached: () => accounts,
-      probe: async () => accounts,
-    })
+    withAccounts(accounts)
     setCodexQuotaFactoryOverride({
       readCached: () => CODEX_QUOTA,
       probe: async () => CODEX_QUOTA,
@@ -311,12 +361,39 @@ describe("SidePanel — multi-account view", () => {
     }
   })
 
+  test("Codex quota rows use the shared account popover", async () => {
+    const accounts = [...THREE_ACCOUNTS, API_KEY_ACCOUNT, CODEX_ACCOUNT]
+    withAccounts(accounts)
+    setCodexQuotaFactoryOverride({
+      readCached: () => CODEX_QUOTA,
+      probe: async () => CODEX_QUOTA,
+    })
+    try {
+      const focused = makeStubSession()
+      const { term, handle } = await renderInteractivePanel({ focused, sessions: [focused], agent: "codex" })
+      try {
+        await settle()
+        const accountRow = term.screen.getLines().findIndex((line) => line.includes("bjorn@example.com"))
+        expect(accountRow).toBeGreaterThanOrEqual(0)
+        const accountCol = term.screen.getLines()[accountRow]!.indexOf("bjorn@example.com")
+        ;(term as unknown as { sendInput: (s: string) => void }).sendInput(SUPER_DOWN)
+        await term.mouse.move(accountCol + 1, accountRow)
+        await settle(650)
+        const text = term.screen.getText()
+        expect(text).toContain("resets")
+        expect(text).toContain("/tmp/rollout.jsonl")
+      } finally {
+        handle.unmount()
+      }
+    } finally {
+      setAllAccountsFactoryOverride(null)
+      setCodexQuotaFactoryOverride(null)
+    }
+  })
+
   test("selected API-key agents show provider quota windows when available", () => {
     const accounts = [THREE_ACCOUNTS[0]!, XAI_ACCOUNT, GOOGLE_ACCOUNT_WITH_QUOTA, CURSOR_ACCOUNT_WITH_QUOTA]
-    setAllAccountsFactoryOverride({
-      readCached: () => accounts,
-      probe: async () => accounts,
-    })
+    withAccounts(accounts)
     try {
       expect(renderPanel({ agent: "xai" }).text).toContain("RPM")
       expect(renderPanel({ agent: "xai" }).text).toContain("TPM")
@@ -334,10 +411,7 @@ describe("SidePanel — multi-account view", () => {
   })
 
   test("cwd row + Silver Code branding sit below the account panels", () => {
-    setAllAccountsFactoryOverride({
-      readCached: () => THREE_ACCOUNTS,
-      probe: async () => THREE_ACCOUNTS,
-    })
+    withAccounts(THREE_ACCOUNTS)
     try {
       const app = renderPanel()
       const lines = app.lines
@@ -354,10 +428,7 @@ describe("SidePanel — multi-account view", () => {
   })
 
   test("content starts after two cells of side-panel inner margin", () => {
-    setAllAccountsFactoryOverride({
-      readCached: () => THREE_ACCOUNTS,
-      probe: async () => THREE_ACCOUNTS,
-    })
+    withAccounts(THREE_ACCOUNTS)
     try {
       const app = renderPanel()
       const row = app.lines.findIndex((l) => l.includes("Claude Code Max 20"))
@@ -369,10 +440,7 @@ describe("SidePanel — multi-account view", () => {
   })
 
   test("bottom account block has one blank line before cwd", () => {
-    setAllAccountsFactoryOverride({
-      readCached: () => THREE_ACCOUNTS,
-      probe: async () => THREE_ACCOUNTS,
-    })
+    withAccounts(THREE_ACCOUNTS)
     try {
       const app = renderPanel()
       const lines = app.lines
@@ -411,30 +479,10 @@ describe("SidePanel — multi-account view", () => {
 
   test("All Accounts popover action switches the side panel to the full account list", async () => {
     const accounts = [...THREE_ACCOUNTS, API_KEY_ACCOUNT, CODEX_ACCOUNT]
-    setAllAccountsFactoryOverride({
-      readCached: () => accounts,
-      probe: async () => accounts,
-    })
+    withAccounts(accounts)
     try {
-      using term = createTermless({ cols: TOTAL_COLS, rows: 80 })
       const focused = makeStubSession()
-      const controller = makeStubController()
-      const handle = await run(
-        <PopoverProvider>
-          <SidePanel
-            focused={focused}
-            sessions={[focused]}
-            focusedSessionId={focused.id}
-            onFocusSession={() => {}}
-            mode="auto"
-            onCycleMode={() => {}}
-            cwd="/Users/beorn/Code/pim/km"
-            controller={controller}
-          />
-        </PopoverProvider>,
-        term,
-        { kitty: true, mouse: true } as never,
-      )
+      const { term, handle } = await renderInteractivePanel({ focused, sessions: [focused] })
       try {
         await settle()
         expect(term.screen.getText()).toContain("personal@example.com")
@@ -464,6 +512,36 @@ describe("SidePanel — multi-account view", () => {
       }
     } finally {
       setAllAccountsFactoryOverride(null)
+    }
+  })
+
+  test("clicking a session copies the full transcript, not the truncated row label", async () => {
+    const copied: string[] = []
+    const longText = "full transcript sentinel " + "0123456789".repeat(20)
+    const focused = makeTranscriptSession("focused-session", "focused text")
+    const target = makeTranscriptSession("target-session-with-a-very-long-visible-row-label", longText)
+    withAccounts(THREE_ACCOUNTS)
+    setSessionClipboardWriterOverride((_stdout, text) => {
+      copied.push(text)
+    })
+    try {
+      const { term, handle } = await renderInteractivePanel({ focused, sessions: [focused, target] })
+      try {
+        await settle()
+        const row = term.screen.getLines().findIndex((line) => line.includes("target-session"))
+        expect(row).toBeGreaterThanOrEqual(0)
+        const col = term.screen.getLines()[row]!.indexOf("target-session")
+        await term.mouse.click(col + 1, row)
+        await settle()
+        expect(copied).toHaveLength(1)
+        expect(copied[0]).toContain("Session target-session-with-a-very-long-visible-row-label")
+        expect(copied[0]).toContain(longText)
+      } finally {
+        handle.unmount()
+      }
+    } finally {
+      setAllAccountsFactoryOverride(null)
+      setSessionClipboardWriterOverride(null)
     }
   })
 })

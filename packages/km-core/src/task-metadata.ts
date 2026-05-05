@@ -64,9 +64,29 @@ const STRIP_EMOJI_RECURRENCE = /\s*🔁\s*.+?(?=\s*[📅⏳]|$)/u
  * Callers that need cross-descendant priority resolution (file node with
  * priority on a child heading) should query the links table directly.
  */
-export function getNodePriority(node: { content?: string }): string | undefined {
+export function getNodePriority(node: {
+  content?: string
+  data?: Record<string, unknown>
+}): string | undefined {
   if (node.content) {
-    const m = node.content.match(/(?:^|\s|[([{.,;:!?])#P([0-4])\b/i)
+    // Canonical: #P[0-4] hashtag (per docs/future/beads.md).
+    const hashtag = node.content.match(/(?:^|\s|[([{.,;:!?])#P([0-4])\b/i)
+    if (hashtag?.[1]) return `P${hashtag[1]}`
+    // Legacy: `priority:: P[0-4]` Logseq-style inline-prop. The parser
+    // strips this from displayContent for TASKS, but the raw form survives
+    // on non-task nodes and during transition. Read it for compat.
+    const inlineProp = node.content.match(/\bpriority::\s*P?([0-4])\b/i)
+    if (inlineProp?.[1]) return `P${inlineProp[1]}`
+  }
+  // Transitional: data.tags fallback for test fixtures that seed priority
+  // via `data: { tags: ["P1"] }` instead of putting `#P1` in content.
+  // The dissolution of data.tags persistence (@km/all/dissolve-data-tags-to-links)
+  // removed parser writes; this reader fallback keeps existing fixtures
+  // working until they're migrated to content-based seeding. Drop after
+  // fixture migration sweep.
+  const tags = (node.data?.tags as string[] | undefined) ?? []
+  for (const tag of tags) {
+    const m = tag.match(/^P([0-4])$/i)
     if (m?.[1]) return `P${m[1]}`
   }
   return undefined

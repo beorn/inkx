@@ -25,10 +25,10 @@ describe("createBeadNode", () => {
   test("creates issue with priority", () => {
     const { node } = createBeadNode("Critical fix", { prefix: "km", priority: "P0" })
 
+    // priority dropped as a column at SCHEMA_VERSION=11 + data.tags
+    // dissolved at @km/all/dissolve-data-tags-to-links — H1 `#P0` hashtag
+    // is the sole authored form. getNodePriority reads from node.content.
     expect(node.content).toContain("#P0")
-    // priority dropped as a column at SCHEMA_VERSION=11 — content is the
-    // canonical authored form, getNodePriority reads via data.tags.
-    expect(node.data?.tags).toContain("P0")
   })
 
   test("creates issue with assignee", () => {
@@ -64,7 +64,6 @@ describe("createBeadNode", () => {
     const { node } = createBeadNode("Normal task", { prefix: "km" })
 
     expect(node.content).toContain("#P2")
-    expect(node.data?.tags).toContain("P2")
   })
 
   test("honors a non-km prefix end-to-end (regression: hardcoded prefix bug)", () => {

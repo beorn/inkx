@@ -694,8 +694,14 @@ function convertListItem(
     // priority dropped at SCHEMA_VERSION=11; surfaced via data.tags below
     rrule: metadata.rrule,
     data: {
-      // `data.tags` no longer persisted — hashtags land in the `links` table
-      // at parse time. See @km/all/dissolve-data-tags-to-links.
+      // `data.tags` is no longer the persisted bead/file tag store — hashtags
+      // land in the `links` table at parse time
+      // (@km/all/dissolve-data-tags-to-links). EXCEPTION: priority elevated
+      // from `priority::` inline-prop or YAML `priority:` lands here so
+      // getNodePriority() can resolve it after the displayContent strip.
+      // The H1 `#P[0-4]` form already routes through links and content;
+      // this is the legacy-source-only persistence path.
+      ...(metadata.priority !== undefined && priorityTags.length > 0 ? { tags: priorityTags } : {}),
       ...(mentions.length > 0 ? { mentions } : {}),
       ...(projects.length > 0 ? { projects } : {}),
       ...(metadata.rrule ? { rrule: metadata.rrule } : {}),

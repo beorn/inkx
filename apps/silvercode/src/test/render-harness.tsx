@@ -126,8 +126,8 @@ export type RenderedScenarioWithDispose = RenderedScenario & {
   dispose(): void
 }
 
-/** Default side-panel width. Must match App.tsx's `flexBasis={40}`. */
-export const SIDE_PANEL_WIDTH = 40
+/** Default side-panel width. Must match App.tsx's `SIDE_PANEL_WIDTH`. */
+export const SIDE_PANEL_WIDTH = 32
 
 /** Compute the expected left-region width given cols and side-panel state. */
 export function leftWidthFor(cols: number, showSidePanel = true): number {

@@ -67,7 +67,7 @@ type Layout = "single" | "grid-2" | "grid-4"
 const MESSAGE_LIST_PAGE_STEP = 10
 
 // Side panel column count when rendered (inline or overlay).
-const SIDE_PANEL_WIDTH = 40
+const SIDE_PANEL_WIDTH = 32
 // Below md there is not enough room for a 40-col overlay without making
 // the main chat unusably narrow. Manual /panel still works at md-lg as an
 // overlay, and lg+ opens inline by default.

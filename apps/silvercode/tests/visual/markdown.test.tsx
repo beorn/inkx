@@ -22,7 +22,7 @@ import { expectLayoutInvariants } from "./_invariants.ts"
 
 describe("markdown rendering at multiple widths", () => {
   // Excludes 40 from invariants because at 40 cols, the side panel
-  // (flexBasis=40) consumes the full width — the left region has 0 cols.
+  // consumes most of the width and the left region is intentionally tiny.
   // parseFrame returns no card stream and side-panel markers overlap with
   // the empty left. We still verify content renders at 40 but skip invariants.
   const widths = [60, 80, 120] as const

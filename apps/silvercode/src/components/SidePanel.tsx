@@ -1,5 +1,5 @@
 import React, { Suspense, use, useMemo, useState } from "react"
-import { Box, Muted, ProgressBar, Small, Text, useHover, usePopover, usePopoverHandlers } from "silvery"
+import { Box, Muted, ProgressBar, Small, Text, useHover, usePopover, usePopoverHandlers, useStdout } from "silvery"
 import { BackgroundPane } from "./BackgroundPane.tsx"
 import type { Controller, SessionHandle } from "../controller.ts"
 import { planLabel, type QuotaWindow, windowShortLabel } from "../claude-account.ts"
@@ -20,7 +20,8 @@ import { useClaudeAccount } from "../hooks/use-claude-account.ts"
 import { useCodexQuota } from "../hooks/use-codex-quota.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 import { isTransientAccountError, type AccountSummary } from "../account-status.ts"
-import type { CodexQuotaLimit, CodexQuotaSnapshot, CodexQuotaWindow } from "../codex-quota.ts"
+import type { CodexQuotaSnapshot } from "../codex-quota.ts"
+import { copySessionTranscriptToClipboard } from "../session-clipboard.ts"
 
 /**
  * Claude CLI version suffix — Suspense-aware. The async probe runs once
@@ -297,7 +298,11 @@ function isCodexAgent(agent: string | undefined): boolean {
  *
  * The popover always renders ALL of them regardless.
  */
-function filterVisibleQuotas(all: QuotaWindow[], opts: { showRateLimits?: boolean } = {}): QuotaWindow[] {
+function filterVisibleQuotas(
+  all: QuotaWindow[],
+  opts: { showRateLimits?: boolean; showAllQuotas?: boolean } = {},
+): QuotaWindow[] {
+  if (opts.showAllQuotas) return all
   const primaryYellow = all.some((q) => isPrimaryQuotaWindow(q.name) && isWarningLevel(q.utilization))
   return all.filter((w) => {
     if (opts.showRateLimits && isRateLimitWindow(w.name)) return true
@@ -323,6 +328,7 @@ function filterVisibleQuotas(all: QuotaWindow[], opts: { showRateLimits?: boolea
 function QuotaRow({ w, muted = false }: { w: QuotaWindow; muted?: boolean }): React.ReactElement {
   const isExtra = w.name === "Xtra"
   const color = muted ? "$muted" : quotaColor(w)
+  const left = Math.max(0, Math.min(100, Math.round(100 - w.utilization)))
   return (
     <Box flexDirection="row" gap={1}>
       <Box flexBasis={4} minWidth={4}>
@@ -332,60 +338,8 @@ function QuotaRow({ w, muted = false }: { w: QuotaWindow; muted?: boolean }): Re
           <Muted>{windowShortLabel(w.name)}</Muted>
         )}
       </Box>
-      <ProgressBar value={Math.max(0, Math.min(1, w.utilization / 100))} width={20} color={color} showPercentage />
-    </Box>
-  )
-}
-
-function codexWindowLabel(w: CodexQuotaWindow): string {
-  if (w.windowMinutes === 300) return "5h"
-  if (w.windowMinutes === 10080) return "7d"
-  if (w.windowMinutes % 60 === 0) return `${w.windowMinutes / 60}h`
-  return `${w.windowMinutes}m`
-}
-
-function codexQuotaColor(w: CodexQuotaWindow): string {
-  if (w.usedPercent >= 90) return "$error"
-  if (w.usedPercent >= 70) return "$warning"
-  return "$fg-muted"
-}
-
-function CodexQuotaRow({ w }: { w: CodexQuotaWindow }): React.ReactElement {
-  const left = Math.max(0, Math.min(100, Math.round(100 - w.usedPercent)))
-  return (
-    <Box flexDirection="row" gap={1}>
-      <Box flexBasis={4} minWidth={4}>
-        <Muted>{codexWindowLabel(w)}</Muted>
-      </Box>
-      <ProgressBar value={left / 100} width={12} color={codexQuotaColor(w)} />
+      <ProgressBar value={left / 100} width={12} color={color} showPercentage={false} />
       <Muted>{left}% left</Muted>
-    </Box>
-  )
-}
-
-function CodexLimitBlock({ limit }: { limit: CodexQuotaLimit }): React.ReactElement {
-  return (
-    <Box flexDirection="column">
-      {limit.label !== "Codex" ? <Small>{limit.label}</Small> : null}
-      {limit.primary ? <CodexQuotaRow w={limit.primary} /> : null}
-      {limit.secondary ? <CodexQuotaRow w={limit.secondary} /> : null}
-    </Box>
-  )
-}
-
-function CodexQuotaPanel({ snapshot }: { snapshot: CodexQuotaSnapshot }): React.ReactElement {
-  return (
-    <Box flexDirection="column" flexShrink={0}>
-      <Text bold color="$fg">
-        Codex
-      </Text>
-      {snapshot.accountLabel ? <Muted>{snapshot.accountLabel}</Muted> : null}
-      {snapshot.limits.map((limit, i) => (
-        <React.Fragment key={limit.id}>
-          {i > 0 ? <Box flexShrink={0} height={1} /> : null}
-          <CodexLimitBlock limit={limit} />
-        </React.Fragment>
-      ))}
     </Box>
   )
 }
@@ -420,6 +374,12 @@ function accountDetailLines(account: AccountSummary, exclude: ReadonlySet<string
   add(account.credentialHint)
   add(account.metadata?.apiKeyName ? `key ${account.metadata.apiKeyName}` : undefined)
   add(account.metadata?.createdAt ? `created ${new Date(account.metadata.createdAt).toLocaleDateString()}` : undefined)
+  add(
+    account.metadata?.updatedAt
+      ? `updated ${resetLabel(account.metadata.updatedAt) ?? account.metadata.updatedAt}`
+      : undefined,
+  )
+  add(account.metadata?.sourcePath ? shortCwd(account.metadata.sourcePath) : undefined)
   add(account.dir)
   add(account.current ? "current" : undefined)
   add(account.default ? "default" : undefined)
@@ -533,18 +493,63 @@ function mergeActiveProbeIntoAccounts(allAccounts: AccountSummary[], active: Acc
   return sawCurrentClaude ? merged : [active, ...merged]
 }
 
+function codexWindowName(minutes: number): string {
+  if (minutes === 300) return "5-hour"
+  if (minutes === 10080) return "7-day"
+  if (minutes % 60 === 0) return `${minutes / 60}-hour`
+  return `${minutes}-minute`
+}
+
+function codexQuotaAccounts(snapshot: CodexQuotaSnapshot | null): AccountSummary[] {
+  if (!snapshot) return []
+  return snapshot.limits.map((limit, index) => {
+    const quotas: QuotaWindow[] = [limit.primary, limit.secondary].flatMap((w) =>
+      w
+        ? [
+            {
+              name: codexWindowName(w.windowMinutes),
+              utilization: w.usedPercent,
+              resetsAt: w.resetsAt ?? undefined,
+            },
+          ]
+        : [],
+    )
+    return {
+      kind: "api-key",
+      name: limit.label === "Codex" ? (snapshot.accountLabel ?? "ChatGPT subscription") : limit.label,
+      label: "Codex",
+      provider: "openai",
+      email: limit.label === "Codex" ? snapshot.accountLabel : null,
+      plan: limit.planType,
+      quotas,
+      error: null,
+      current: index === 0,
+      isActive: true,
+      available: true,
+      metadata: {
+        ...(snapshot.updatedAt ? { updatedAt: snapshot.updatedAt } : {}),
+        ...(snapshot.sourcePath ? { sourcePath: snapshot.sourcePath } : {}),
+      },
+      loading: false,
+    } satisfies AccountSummary
+  })
+}
+
 function AccountPanel({
   account,
   onShowAllAccounts,
   showRateLimits = false,
+  showAllQuotas = false,
 }: {
   account: AccountSummary
   onShowAllAccounts?: () => void
   showRateLimits?: boolean
+  showAllQuotas?: boolean
 }): React.ReactElement {
   const active = account.isActive
-  const visibleQuotas = filterVisibleQuotas(account.quotas, { showRateLimits })
+  const visibleQuotas = filterVisibleQuotas(account.quotas, { showRateLimits, showAllQuotas })
   const hasPopover = hasAccountPopoverDetails(account)
+  const apiKeyLine = [account.sourceEnvVar, account.credentialHint].filter(Boolean).join(" ")
   const popover = usePopoverHandlers({
     body: <AccountPopover account={account} onShowAllAccounts={onShowAllAccounts} />,
     maxWidth: 64,
@@ -564,8 +569,8 @@ function AccountPanel({
         <Muted>Loading quota...</Muted>
       ) : account.error ? (
         <Muted>{account.error}</Muted>
-      ) : account.kind === "api-key" ? (
-        <Muted>{[account.sourceEnvVar, account.credentialHint].filter(Boolean).join(" ")}</Muted>
+      ) : account.kind === "api-key" && apiKeyLine.length > 0 ? (
+        <Muted>{apiKeyLine}</Muted>
       ) : null}
       {visibleQuotas.length > 0 ? (
         <Box flexDirection="column">
@@ -654,11 +659,13 @@ function AccountGroup({
   accounts,
   onShowAllAccounts,
   showRateLimitsFor,
+  showAllQuotasFor,
 }: {
   label: string
   accounts: AccountSummary[]
   onShowAllAccounts?: () => void
   showRateLimitsFor?: (account: AccountSummary) => boolean
+  showAllQuotasFor?: (account: AccountSummary) => boolean
 }): React.ReactElement {
   return (
     <Box flexDirection="column" flexShrink={0}>
@@ -671,6 +678,7 @@ function AccountGroup({
             account={account}
             onShowAllAccounts={onShowAllAccounts}
             showRateLimits={showRateLimitsFor?.(account) ?? false}
+            showAllQuotas={showAllQuotasFor?.(account) ?? false}
           />
           {i < accounts.length - 1 ? <Box flexShrink={0} height={1} /> : null}
         </React.Fragment>
@@ -690,18 +698,15 @@ function QuotaPopoverRow({ w }: { w: QuotaWindow }): React.ReactElement {
   const isExtra = w.name === "Xtra"
   const amount = quotaAmount(w)
   const reset = resetLabel(w.resetsAt)
+  const left = Math.max(0, Math.min(100, Math.round(100 - w.utilization)))
   return (
     <Box flexDirection="row" gap={1}>
       <Box width={4} flexShrink={0}>
         {isExtra ? <Text color="$warning">{windowShortLabel(w.name)}</Text> : <Muted>{windowShortLabel(w.name)}</Muted>}
       </Box>
-      <ProgressBar
-        value={Math.max(0, Math.min(1, w.utilization / 100))}
-        width={14}
-        color={quotaColor(w)}
-        showPercentage
-      />
+      <ProgressBar value={left / 100} width={14} color={quotaColor(w)} showPercentage={false} />
       <Box flexDirection="column" flexGrow={1} minWidth={0}>
+        <Small>{left}% left</Small>
         {amount ? <Small>{amount}</Small> : null}
         {reset ? <Small>resets {reset}</Small> : null}
       </Box>
@@ -1022,6 +1027,7 @@ function SidePanelChrome({
   defaultModel,
 }: SidePanelChromeProps): React.ReactElement {
   const [accountView, setAccountView] = useState<"selected" | "all">("selected")
+  const { stdout } = useStdout()
   const modeColor = MODE_COLORS[mode] ?? "$muted"
   const modeIcon = MODE_ICONS[mode] ?? "?"
   const modeLabel = MODE_LABELS[mode] ?? mode
@@ -1047,6 +1053,7 @@ function SidePanelChrome({
   const allAccounts = useAllAccounts()
   const activeAccount = accountSummaryFromActiveProbe(account)
   const accounts: AccountSummary[] = mergeActiveProbeIntoAccounts(allAccounts, activeAccount)
+  const codexAccounts = codexQuotaAccounts(codexQuota)
   const hasAccount = accounts.length > 0
   const selectedAccount = selectedAccountForAgent(accounts, agent)
   const selectedAccountGroups = selectedAccount ? groupAccountsByPlan([selectedAccount]) : []
@@ -1323,7 +1330,10 @@ function SidePanelChrome({
             key={s.id}
             handle={s}
             isFocused={s.id === focusedSessionId}
-            onClick={() => onFocusSession(s.id)}
+            onClick={() => {
+              copySessionTranscriptToClipboard(s, stdout)
+              onFocusSession(s.id)
+            }}
           />
         ))}
       </Box>
@@ -1451,8 +1461,13 @@ function SidePanelChrome({
             <AccountNavButton label="< Back" onClick={() => setAccountView("selected")} />
             <Box flexShrink={0} height={1} />
           </>
-        ) : isCodexAgent(agent) && codexQuota ? (
-          <CodexQuotaPanel snapshot={codexQuota} />
+        ) : isCodexAgent(agent) && codexAccounts.length > 0 ? (
+          <AccountGroup
+            label="Codex"
+            accounts={codexAccounts}
+            onShowAllAccounts={accounts.length > 1 ? () => setAccountView("all") : undefined}
+            showAllQuotasFor={() => true}
+          />
         ) : hasAccount && selectedAccountGroups.length > 0 ? (
           selectedAccountGroups.map((group, i) => (
             <React.Fragment key={group.label}>
@@ -1529,6 +1544,9 @@ function SidePanelChrome({
           // Box puts the wrap point at column 2 — same column as the label,
           // so the wrapped model lines up with "Codex" rather than the icon.
           const displayModel = model || defaultModel || ""
+          const displayModelLabel = modelLabel(displayModel)
+          const showModel =
+            displayModel.length > 0 && !(isCodexAgent(id) && /^codex(?:\s|\(|$)/i.test(displayModelLabel))
           return (
             <Box flexDirection="row" gap={1}>
               <Text color="$fg">{icon}</Text>
@@ -1541,7 +1559,7 @@ function SidePanelChrome({
                     </Suspense>
                   ) : null}
                 </Text>
-                {displayModel ? <Text color="$fg">{modelLabel(displayModel)}</Text> : null}
+                {showModel ? <Text color="$fg">{displayModelLabel}</Text> : null}
               </Box>
             </Box>
           )

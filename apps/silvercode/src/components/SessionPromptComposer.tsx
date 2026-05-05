@@ -1,5 +1,5 @@
 import React, { useRef } from "react"
-import { Box, Text, TextArea, useBoxRect, useHover } from "silvery"
+import { Box, Fill, Text, TextArea, useHover } from "silvery"
 import type { TextAreaHandle } from "silvery"
 
 /**
@@ -254,26 +254,27 @@ export function SessionPromptComposer({
 
 /**
  * Divider with a colored inline title. Reimplements silvery's Divider
- * (which hard-codes the title color via `<Text bold>`) so we can render
- * "QUEUE HELD" in `$warning` when the queue region owns focus. Same
- * "──── title ────" shape as silvery's Divider.
+ * title color while letting flex layout own the rule width.
  */
 function QueueDivider({ focused }: { focused: boolean }): React.ReactElement {
-  const { width: contentWidth } = useBoxRect()
-  const total = contentWidth > 0 ? contentWidth : 40
   const title = focused ? "QUEUE HELD" : "QUEUE"
   const titleColor = focused ? "$warning" : "$fg-muted"
-  const pad = ` ${title} `
-  const remaining = Math.max(0, total - pad.length)
-  const left = Math.floor(remaining / 2)
-  const right = remaining - left
   return (
-    <Box flexDirection="row">
-      <Text color="$border-default">{"─".repeat(left)}</Text>
+    <Box flexDirection="row" width="100%" minWidth={0}>
+      <Box flexGrow={1} flexBasis={0} minWidth={0}>
+        <Fill>
+          <Text color="$border-default">─</Text>
+        </Fill>
+      </Box>
       <Text bold color={titleColor}>
-        {pad}
+        {" "}
+        {title}{" "}
       </Text>
-      <Text color="$border-default">{"─".repeat(right)}</Text>
+      <Box flexGrow={1} flexBasis={0} minWidth={0}>
+        <Fill>
+          <Text color="$border-default">─</Text>
+        </Fill>
+      </Box>
     </Box>
   )
 }

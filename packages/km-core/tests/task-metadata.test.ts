@@ -18,24 +18,24 @@ import { extractTaskMetadata, stringifyTaskMetadata, parseTaskMetadataFromText }
 import type { KNode } from "../src/types.ts"
 
 function makeNode(overrides: Partial<KNode> & { priority?: string } = {}): KNode {
-  // priority dissolved as a column at SCHEMA_VERSION=11 — mirror it into
-  // data.tags so getNodePriority() (used by stringifyTaskMetadata
-  // internally) resolves the value.
-  const { priority, data: dataOverride, ...rest } = overrides
-  const baseData = (dataOverride ?? {}) as Record<string, unknown>
-  const tags = (baseData.tags as string[] | undefined) ?? []
-  const data: Record<string, unknown> = priority
-    ? { ...baseData, tags: [...tags.filter((t) => !/^P[0-4]$/i.test(t)), priority] }
-    : baseData
+  // priority dissolved as a column at SCHEMA_VERSION=11 + data.tags
+  // dissolved at @km/all/dissolve-data-tags-to-links — getNodePriority()
+  // now scans node.content for `#P[0-4]` hashtag. Inject the hashtag
+  // into content so the helper resolves the value.
+  const { priority, content, ...rest } = overrides
+  let injectedContent = content ?? ""
+  if (priority && !/(?:^|\s|[([{.,;:!?])#P[0-4]\b/i.test(injectedContent)) {
+    injectedContent = injectedContent ? `${injectedContent} #${priority}` : `#${priority}`
+  }
   return {
     id: "test-node",
     type: "p",
     item: {},
     name: "",
-    content: "",
+    content: injectedContent,
     parent_id: "parent",
     depth: 0,
-    data,
+    data: {},
     ...rest,
   } as KNode
 }

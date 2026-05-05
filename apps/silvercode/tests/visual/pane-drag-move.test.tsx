@@ -101,7 +101,7 @@ describe("pane drag-move — grab handle + drop", () => {
       // Grab handle of left pane is at (0, 0). Right pane spans the
       // right half of the cards area; its right edge is near col=COLS-2.
       // Cards area is roughly the left side of the screen (the side
-      // panel takes 40 cols on the right when shown). With single
+      // panel takes 32 cols on the right when shown). With single
       // layout the cards area is COLS - 40 = 120 cols wide; the row
       // split makes left half ~60 cols, right half ~60 cols, so the
       // right edge of pane B is around col 118 (COLS-side panel-2).
@@ -112,7 +112,7 @@ describe("pane drag-move — grab handle + drop", () => {
       //
       // Termless's mouse.drag dispatches mousedown → moves → mouseup
       // with proper SGR (1006) sequences.
-      const sidePanelWidth = 40
+      const sidePanelWidth = 32
       const cardsRight = COLS - sidePanelWidth - 1 // last col of cards area
       const rightEdgeX = cardsRight - 2 // safely in pane B's right quarter
       const midRowY = Math.floor(ROWS / 2)

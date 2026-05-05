@@ -701,14 +701,14 @@ type SessionMetadataRowData = {
 
 function MutedDivider({ title, width }: { title: string; width: number }): React.ReactElement {
   const total = Math.max(1, width)
-  const padded = ` ${title} `
-  const remaining = Math.max(0, total - padded.length)
+  const paddedTitle = ` ${title} `
+  const remaining = Math.max(0, total - paddedTitle.length)
   const left = Math.floor(remaining / 2)
   const right = remaining - left
   return (
-    <Box flexDirection="row">
+    <Box flexDirection="row" width={total} maxWidth={total} minWidth={0}>
       <Text color="$border-default">{"─".repeat(left)}</Text>
-      <Text color="$fg-muted">{padded}</Text>
+      <Text color="$fg-muted">{paddedTitle}</Text>
       <Text color="$border-default">{"─".repeat(right)}</Text>
     </Box>
   )
@@ -763,10 +763,11 @@ function SessionMetadataRow({ data }: { data: SessionMetadataRowData }): React.R
           <Content.Aside show={showTimestamp}>{data.timestamp}</Content.Aside>
         </Content.Left>
       ) : null}
-      <Content.Body width={isDivider || expanded ? "wide" : "prose"}>
+      <Content.Body width={isDivider ? "wide" : expanded ? "wide" : "prose"}>
         <Box flexDirection="column" width="100%" minWidth={0}>
           <Box
-            width="100%"
+            width={isDivider ? headerMaxWidth : "100%"}
+            maxWidth={headerMaxWidth}
             minWidth={0}
             backgroundColor={bg}
             onMouseEnter={hover.onMouseEnter}

@@ -147,14 +147,14 @@ function testDataStore(name: string, factory: () => DataStore) {
       })
 
       test("preserves unmodified properties", () => {
-        // priority via data.tags (column dropped at SCHEMA_VERSION=11)
+        // priority via H1 hashtag (column dropped at SCHEMA_VERSION=11,
+        // data.tags dissolved at @km/all/dissolve-data-tags-to-links).
         const id = store.addNode(null, {
           type: "p",
           item: {},
-          content: "Test",
-          data: { tags: ["P1"] },
+          content: "Test #P1",
         })
-        store.updateNode(id, { content: "Updated" })
+        store.updateNode(id, { content: "Updated #P1" })
 
         const node = store.getNode(id)
         expect(getNodePriority(node!)).toBe("P1")

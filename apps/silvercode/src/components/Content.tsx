@@ -71,7 +71,7 @@ function laneJustify(align: ContentContextValue["align"]): "flex-start" | "cente
 function Layout({
   children,
   measure = 88,
-  wide = 132,
+  wide = 120,
   align = "center",
   gap = 1,
 }: {
@@ -333,8 +333,12 @@ function Wide({ children }: { children: React.ReactNode }): React.ReactElement {
 
 function Full({ children }: { children: React.ReactNode }): React.ReactElement {
   return (
-    <Box flexDirection="column" width="100%" minWidth={0}>
-      {children}
+    <Box flexDirection="row" width="100%" minWidth={0}>
+      <Box width={1} flexShrink={0} />
+      <Box flexDirection="column" flexGrow={1} flexBasis={0} flexShrink={1} minWidth={0}>
+        {children}
+      </Box>
+      <Box width={1} flexShrink={0} />
     </Box>
   )
 }
