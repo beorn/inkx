@@ -7,9 +7,18 @@ created_at: 2026-05-05T21:30:00Z
 type: bug
 priority: P2
 parent: "@km/beads"
+closeReason: >-
+  Fixed in commit 1cd5dc96c — `nodeToBead` derives `shortId` from
+  `fsPathOf(node)` when both `data.id` and `data.short_id` are absent
+  (gated on `fstype === "mdfile"`). Closes the loop opened by
+  `@km/beads/data-id-stop-writing`. 4-test regression suite at
+  `apps/km-cli/tests/bd-path-form-id-frontmatter-missing.test.ts`
+  covers the renderer contract, `Bead.from` filter, and end-to-end
+  create→close round-trip via `resolveIssue`. All 262 km-beads + new
+  CLI tests pass.
 ---
 
-# bd create --path writes frontmatter with only aliases — close/update can't resolve the bead @km/beads #bug #P2
+# [x] bd create --path writes frontmatter with only aliases — close/update can't resolve the bead @km/beads #bug #P2
 
 blocks:: [[@km/beads]]
 
