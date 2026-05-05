@@ -38,6 +38,63 @@ export interface SetFieldPlan {
 
 const KNOWN_TYPES = new Set(["bug", "feature", "epic", "task", "docs", "chore"])
 
+/**
+ * Field-key alias → KNode column for the simple scalar fields shared by
+ * `tasks set` (sets the column) and `tasks clear` (nulls the column).
+ *
+ * Single source of truth — drift between the two subcommands' aliases is
+ * impossible because both consume this mapping.
+ *
+ * Complex fields (`status`, `type`, `parent`, `aliases`) live outside this
+ * map: they need extra resolution / data-blob merging and are handled in
+ * the per-field switch arms below.
+ */
+const SCALAR_FIELD_COLUMNS: Record<string, "due_at" | "start_at" | "priority" | "assigned_to"> = {
+  due: "due_at",
+  due_date: "due_at",
+  due_at: "due_at",
+  start: "start_at",
+  scheduled: "start_at",
+  scheduled_date: "start_at",
+  start_at: "start_at",
+  p: "priority",
+  priority: "priority",
+  assigned: "assigned_to",
+  assigned_to: "assigned_to",
+  owner: "assigned_to",
+}
+
+/**
+ * Merge a single key into `updates.data`, preserving sibling keys.
+ *
+ * `updateNodeImpl` treats `data:` as a full replacement — a naive
+ * `updates.data = { tags: ... }` would wipe `aliases`/`id`/`mentions`/etc.
+ * We pre-merge here so the caller hands the storage layer a complete
+ * `data` blob. Mirrors `closeBeadFields` in @km/beads.
+ *
+ * Stacks correctly across multiple field updates: if a prior `type:`
+ * already populated `updates.data`, a subsequent `aliases:` reuses that
+ * partial blob instead of re-reading the node and discarding the prior
+ * key.
+ */
+function mergeIntoData(
+  updates: Record<string, unknown>,
+  node: { data?: unknown } | null | undefined,
+  key: string,
+  value: unknown,
+): void {
+  const existingData = (node?.data ?? {}) as Record<string, unknown>
+  const baseData =
+    updates.data && typeof updates.data === "object" ? (updates.data as Record<string, unknown>) : { ...existingData }
+  updates.data = { ...baseData, [key]: value }
+}
+
+function readTags(data: Record<string, unknown>): string[] {
+  const tags = data.tags
+  if (!Array.isArray(tags)) return []
+  return tags.filter((t): t is string => typeof t === "string")
+}
+
 // oxlint-disable-next-line complexity/complexity -- field-key switch with documented branches
 export function planSetFields(repo: Repo, taskId: string, fields: readonly string[]): SetFieldPlan {
   const updates: Record<string, unknown> = {}
@@ -55,29 +112,16 @@ export function planSetFields(repo: Repo, taskId: string, fields: readonly strin
     const key = field.slice(0, colonIndex).toLowerCase()
     const value = field.slice(colonIndex + 1)
 
+    const scalarColumn = SCALAR_FIELD_COLUMNS[key]
+    if (scalarColumn) {
+      updates[scalarColumn] = value || null
+      continue
+    }
+
     switch (key) {
-      case "due":
-      case "due_date":
-      case "due_at":
-        updates.due_at = value || null
-        break
-      case "start":
-      case "scheduled":
-      case "scheduled_date":
-      case "start_at":
-        updates.start_at = value || null
-        break
-      case "priority":
-        updates.priority = value || null
-        break
       case "status":
       case "task_status":
         updates.item = { task: { status: value as TaskStatus, marker: getMarkerForStatus(value as TaskStatus) } }
-        break
-      case "assigned":
-      case "assigned_to":
-      case "owner":
-        updates.assigned_to = value || null
         break
       case "type":
       case "task_type": {
@@ -88,10 +132,7 @@ export function planSetFields(repo: Repo, taskId: string, fields: readonly strin
         // time the parser sees the content. `task` is the implicit
         // default and stays untagged. Empty value strips type tags.
         const node = repo.getNode(taskId)
-        const existingData = (node?.data ?? {}) as Record<string, unknown>
-        const existingTags = Array.isArray(existingData.tags)
-          ? (existingData.tags as unknown[]).filter((t): t is string => typeof t === "string")
-          : []
+        const existingTags = readTags((node?.data ?? {}) as Record<string, unknown>)
         const filtered = existingTags.filter((t) => {
           const stripped = t.startsWith("#") ? t.slice(1) : t
           return !KNOWN_TYPES.has(stripped.toLowerCase())
@@ -99,14 +140,7 @@ export function planSetFields(repo: Repo, taskId: string, fields: readonly strin
         if (value && value.toLowerCase() !== "task") {
           filtered.push(value)
         }
-        // Merge with existing data + any earlier per-field data updates so
-        // sibling keys (id, aliases, mentions, props, …) survive the
-        // overwrite-style `data:` semantics in updateNodeImpl.
-        const baseData =
-          updates.data && typeof updates.data === "object"
-            ? (updates.data as Record<string, unknown>)
-            : { ...existingData }
-        updates.data = { ...baseData, tags: filtered }
+        mergeIntoData(updates, node, "tags", filtered)
         break
       }
       case "parent": {
@@ -128,15 +162,7 @@ export function planSetFields(repo: Repo, taskId: string, fields: readonly strin
           .split(",")
           .map((s) => s.trim())
           .filter((s) => s.length > 0)
-        // Merge with the node's existing data so we don't wipe sibling
-        // keys (data: replaces, doesn't patch — see updateNodeImpl).
-        const node = repo.getNode(taskId)
-        const existingData = (node?.data ?? {}) as Record<string, unknown>
-        const baseData =
-          updates.data && typeof updates.data === "object"
-            ? (updates.data as Record<string, unknown>)
-            : { ...existingData }
-        updates.data = { ...baseData, aliases: list }
+        mergeIntoData(updates, repo.getNode(taskId), "aliases", list)
         break
       }
       default:
@@ -145,4 +171,32 @@ export function planSetFields(repo: Repo, taskId: string, fields: readonly strin
   }
 
   return { updates, newParentId, warnings, errors }
+}
+
+/**
+ * Plan the per-field side effects of `tasks clear <id> field`.
+ *
+ * Mirrors `planSetFields` but only handles the scalar columns (the only
+ * fields where "clear" has well-defined semantics). Both commands share
+ * `SCALAR_FIELD_COLUMNS` so a new alias added there flows to both surfaces
+ * automatically.
+ */
+export interface ClearFieldPlan {
+  updates: Record<string, unknown>
+  warnings: string[]
+}
+
+export function planClearFields(fields: readonly string[]): ClearFieldPlan {
+  const updates: Record<string, unknown> = {}
+  const warnings: string[] = []
+  for (const field of fields) {
+    const key = field.toLowerCase()
+    const scalarColumn = SCALAR_FIELD_COLUMNS[key]
+    if (scalarColumn) {
+      updates[scalarColumn] = null
+      continue
+    }
+    warnings.push(`Unknown field: ${key}`)
+  }
+  return { updates, warnings }
 }

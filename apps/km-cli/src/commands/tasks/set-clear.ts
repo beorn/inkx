@@ -11,10 +11,10 @@ const term = createTerm(process)
 import { resolvePathArg } from "@km/fs-mount"
 import { getRootPath } from "../../program.ts"
 import { loadRepo } from "../../load-repo.ts"
-import { planSetFields } from "./set-clear-plan.ts"
+import { planSetFields, planClearFields } from "./set-clear-plan.ts"
 
 // Re-export so existing imports continue to work.
-export { planSetFields, type SetFieldPlan } from "./set-clear-plan.ts"
+export { planSetFields, planClearFields, type SetFieldPlan, type ClearFieldPlan } from "./set-clear-plan.ts"
 
 /**
  * Create the set subcommand
@@ -30,7 +30,10 @@ export function createSetCommand() {
   return new Command("set")
     .description("Set task field values")
     .argument("<id>", "Task ID or prefix")
-    .argument("<fields...>", "Field:value pairs (due:2025-01-20, priority:P1, status:todo, type:bug, parent:<ref>, aliases:a,b)")
+    .argument(
+      "<fields...>",
+      "Field:value pairs (due:2025-01-20, priority:P1, status:todo, type:bug, parent:<ref>, aliases:a,b)",
+    )
     .option("--json", "Output as JSON")
     .action(async (id, fields, options) => {
       const resolved = resolvePathArg(process.cwd(), getRootPath())
@@ -69,10 +72,7 @@ export function createSetCommand() {
         repo.moveNode(task.id, plan.newParentId, siblings.length)
       }
 
-      const updatedKeys = [
-        ...Object.keys(plan.updates),
-        ...(plan.newParentId ? ["parent"] : []),
-      ]
+      const updatedKeys = [...Object.keys(plan.updates), ...(plan.newParentId ? ["parent"] : [])]
 
       if (options.json) {
         const payload: Record<string, unknown> = { id: task.id, updates: plan.updates }
@@ -107,43 +107,17 @@ export function createClearCommand() {
         process.exit(1)
       }
 
-      const updates: Record<string, unknown> = {}
-
-      for (const field of fields) {
-        const key = field.toLowerCase()
-
-        switch (key) {
-          case "due":
-          case "due_date":
-          case "due_at":
-            updates.due_at = null
-            break
-          case "start":
-          case "scheduled":
-          case "scheduled_date":
-          case "start_at":
-            updates.start_at = null
-            break
-          case "p":
-          case "priority":
-            updates.priority = null
-            break
-          case "assigned":
-          case "assigned_to":
-          case "owner":
-            updates.assigned_to = null
-            break
-          default:
-            console.error(term.yellow(`Unknown field: ${key}`))
-        }
+      const plan = planClearFields(fields)
+      for (const warning of plan.warnings) {
+        console.error(term.yellow(warning))
       }
 
-      if (Object.keys(updates).length === 0) {
+      if (Object.keys(plan.updates).length === 0) {
         console.error(term.red("No valid fields to clear"))
         process.exit(1)
       }
 
-      repo.updateNode(task.id, updates)
+      repo.updateNode(task.id, plan.updates)
 
       if (options.json) {
         console.log(JSON.stringify({ id: task.id, cleared: fields }))
