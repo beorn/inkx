@@ -91,7 +91,8 @@ export function createBeadNode(
     parent_id: null, // Will be set based on path
     parent_idx: 0,
     content,
-    priority,
+    // priority dropped at SCHEMA_VERSION=11 — the value is preserved in
+    // data.tags below, where getNodePriority() reads it.
     data: {
       short_id: shortId,
       tags: [options.type, priority, ...(options.labels || [])].filter(Boolean),

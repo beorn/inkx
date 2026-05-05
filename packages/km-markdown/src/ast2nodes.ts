@@ -578,16 +578,21 @@ function convertListItem(
   // Priority resolution (single source of truth = hashtag in title):
   //   1. metadata.priority — from `priority::` inline-prop or YAML
   //      frontmatter `priority:` (legacy authoring forms; new beads stop
-  //      using these)
-  //   2. fall back to `#P[0-4]` hashtag captured into data.tags by
-  //      kmRefsTransform — the canonical authored form per
-  //      docs/future/beads.md
-  // Result is canonical `P0`..`P4` form. Both sources should agree;
-  // `metadata.priority` wins when both are set so explicit `priority::`
-  // can override (rare).
-  let priority: string | undefined = metadata.priority
-  if (priority === undefined) {
-    priority = priorityFromTags((item.data?.tags as string[] | undefined) ?? [])
+  //      using these); we mirror this into data.tags so getNodePriority()
+  //      can read it without a column.
+  //   2. `#P[0-4]` hashtag in data.tags is the canonical authored form
+  //      (kmRefsTransform populates it from the H1 line per
+  //      docs/future/beads.md).
+  // Both sources should agree; `metadata.priority` wins when both are
+  // set so explicit `priority::` can override (rare).
+  // The legacy nodes.priority column was dropped at SCHEMA_VERSION=11.
+  const itemTags = (item.data?.tags as string[] | undefined) ?? []
+  let priorityTags = itemTags
+  if (metadata.priority !== undefined) {
+    const canonical = metadata.priority
+    if (!itemTags.some((t) => /^P[0-4]$/i.test(t))) {
+      priorityTags = [...itemTags, canonical]
+    }
   }
 
   // Strip metadata from content for tasks only.
@@ -676,10 +681,10 @@ function convertListItem(
     content_hash: undefined,
     due_at: metadata.dueAt,
     start_at: metadata.startAt,
-    priority,
+    // priority dropped at SCHEMA_VERSION=11; surfaced via data.tags below
     rrule: metadata.rrule,
     data: {
-      ...(tags.length > 0 ? { tags } : {}),
+      ...(priorityTags.length > 0 ? { tags: priorityTags } : {}),
       ...(mentions.length > 0 ? { mentions } : {}),
       ...(projects.length > 0 ? { projects } : {}),
       ...(metadata.rrule ? { rrule: metadata.rrule } : {}),

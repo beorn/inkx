@@ -103,7 +103,8 @@ function getUneditedInlineSource(node: KNode): string | undefined {
   // must have been edited through another path — reconstruct instead.
   if (node.due_at !== undefined) return undefined
   if (node.start_at !== undefined) return undefined
-  if (node.priority !== undefined) return undefined
+  // priority column dropped at SCHEMA_VERSION=11 — priority lives in
+  // data.tags; the metadata stripping path below handles it via tags.
   if (node.rrule !== undefined) return undefined
   const propsRaw = node.data?.propsRaw as Record<string, string> | undefined
   if (propsRaw && Object.keys(propsRaw).length > 0) return undefined

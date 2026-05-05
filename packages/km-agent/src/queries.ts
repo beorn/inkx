@@ -4,7 +4,7 @@
  * Query functions for agents and their work queues.
  */
 
-import type { KNode } from "@km/core"
+import { type KNode, getNodePriority } from "@km/core"
 import type { Repo } from "@km/storage"
 import type { Agent, AgentFilter } from "./types.ts"
 
@@ -106,17 +106,12 @@ export function getAgentQueue(repo: Repo, agentId: string): AgentQueueItem[] {
       issueId: node.id,
       issueShortId: shortId,
       title: node.content || node.title || "",
-      // Priority comes from node.priority (column populated by the
-      // parser from H1 `#P[0-4]` hashtag). Default P2 when unset.
-      priority: node.priority ? normalizePriority(node.priority) : "P2",
+      // Priority resolves from data.tags '#P[0-4]' (canonical authored
+      // form per docs/future/beads.md). Default P2 when unset.
+      priority: getNodePriority(node) ?? "P2",
       assignedAt: node.updated_at, // Approximate - would need event tracking for exact time
     }
   })
-}
-
-function normalizePriority(p: string): string {
-  const m = p.match(/^P?([0-4])$/i)
-  return m?.[1] ? `P${m[1]}` : p
 }
 
 /**

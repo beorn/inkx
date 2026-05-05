@@ -5,7 +5,7 @@
  */
 
 import type { Repo } from "@km/storage"
-import type { KNode } from "@km/core"
+import { type KNode, getNodePriority } from "@km/core"
 import type { Bead, BeadFilter } from "./types.ts"
 import { resolveShortId } from "./short-ids.ts"
 
@@ -262,15 +262,12 @@ export function nodeToBead(node: KNode, options?: BeadsQueryOptions): Bead {
       status = blockedBy && blockedBy.length > 0 ? "blocked" : "todo"
   }
 
-  // Priority resolution: node.priority is the sole source. The parser
-  // elevates the H1 `#P[0-4]` hashtag to this column at parse time
-  // (ast2nodes.ts priorityFromTags). The column is always derived from
-  // the authored hashtag — no separate fallback path needed.
-  let priority = "P2" // Default to P2 (medium)
-  if (node.priority) {
-    const m = node.priority.match(/^P?([0-4])$/i)
-    priority = m?.[1] ? `P${m[1]}` : node.priority
-  }
+  // Priority resolution: H1 `#P[0-4]` hashtag is the sole source.
+  // getNodePriority() returns canonical `P0`..`P4` from data.tags
+  // (populated by kmRefsTransform from the H1 line per
+  // docs/future/beads.md). The legacy nodes.priority column was dropped
+  // at SCHEMA_VERSION=11.
+  const priority = getNodePriority(node) ?? "P2" // Default to P2 (medium)
 
   // Extract type from data.tags (the parser puts H1 / list-item title
   // hashtags here via kmRefsTransform). Bead type is bd-conventional —
