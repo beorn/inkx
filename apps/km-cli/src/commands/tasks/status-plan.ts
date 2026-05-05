@@ -9,7 +9,7 @@
  * Pure — no I/O, no commander, no createTerm.
  */
 
-import { getMarkerForStatus, type KNode, type TaskStatus } from "@km/core"
+import { getMarkerForStatus, type KNode, type TaskMarker, type TaskStatus } from "@km/core"
 
 /** Statuses accepted by `tasks status <id> <new>`. */
 export const VALID_STATUSES = ["todo", "wip", "blocked", "done", "dropped"] as const
@@ -25,9 +25,9 @@ export const VALID_STATUSES = ["todo", "wip", "blocked", "done", "dropped"] as c
  */
 export type StatusPlan =
   | { kind: "not-found"; id: string }
-  | { kind: "view"; status: TaskStatus; marker: string; content: string; id: string }
+  | { kind: "view"; status: TaskStatus; marker: TaskMarker | string; content: string; id: string }
   | { kind: "invalid-status"; given: string; valid: readonly string[] }
-  | { kind: "set"; status: TaskStatus; marker: string; id: string; content: string }
+  | { kind: "set"; status: TaskStatus; marker: TaskMarker; id: string; content: string }
 
 /**
  * Plan the status command from a resolved task + the optional new-status arg.
