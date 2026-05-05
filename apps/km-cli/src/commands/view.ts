@@ -97,7 +97,7 @@ export const viewCommand = new Command("view")
       })
 
       // Clear the "Loading..." line from bootstrap.ts
-      const { CURSOR_TO_START, CLEAR_LINE_END } = await import("@silvery/ag-react/ui/cli")
+      const { CURSOR_TO_START, CLEAR_LINE_END } = await import("@silvery/ag-react/ui")
       process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END)
 
       // Import modules
@@ -160,7 +160,7 @@ export const viewCommand = new Command("view")
       patchedConsole?.capture({ suppress: true })
 
       // Load repo + build state with unified progress display
-      const { steps } = await import("@silvery/ag-react/ui/progress")
+      const { steps } = await import("@silvery/ag-react/ui")
       const { createRepo } = storageModule
 
       let createdRepo: import("@km/storage").Repo | undefined

@@ -17,8 +17,7 @@ import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 
-import { steps, step } from "@silvery/ag-react/ui/progress"
-import { CURSOR_SHOW, write } from "@silvery/ag-react/ui/cli"
+import { steps, step, CURSOR_SHOW, write } from "@silvery/ag-react/ui"
 import type { ImportData, ImportProject } from "../import/types.ts"
 import type { AsanaWorkspace } from "../import/adapters/asana/asana-api.ts"
 import { convertBatch, slugify } from "../import/convert.ts"
