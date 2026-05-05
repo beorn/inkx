@@ -466,3 +466,53 @@ export const TURN_ACTIVITY_AMBIENT = [
     actionable: true,
   },
 ]
+
+const bigTurnOps: MessageOp[] = [
+  { kind: "text", text: "I’m going to inspect the layout primitives, then run focused regression tests." },
+]
+for (let i = 0; i < 4; i++) {
+  bigTurnOps.push({
+    kind: "tool",
+    toolCall: {
+      id: `tu_big_rg_${i}` as ToolUseId,
+      name: "exec_command",
+      input: { cmd: `rg "Content.${i}" apps/silvercode/src apps/silvercode/tests` },
+    },
+    result: { id: `tu_big_rg_${i}` as ToolUseId, output: `matched file ${i}\n`, is_error: false },
+  })
+}
+bigTurnOps.push({ kind: "text", text: "The search narrows this to transcript rows and the Silvery scroll chrome." })
+for (let i = 0; i < 5; i++) {
+  bigTurnOps.push({
+    kind: "tool",
+    toolCall: {
+      id: `tu_big_test_${i}` as ToolUseId,
+      name: "Bash",
+      input: { command: `bun vitest run apps/silvercode/tests/focused-${i}.test.tsx` },
+    },
+    result: {
+      id: `tu_big_test_${i}` as ToolUseId,
+      output: i === 4 ? "Test Files 1 passed\nTests 3 passed\n" : "PASS\n",
+      is_error: false,
+    },
+  })
+}
+bigTurnOps.push({
+  kind: "text",
+  text: "The collapsed row should stay scannable; expanding it restores this narration and every command.",
+})
+
+export const BIG_TOOL_TURN: MessageEntry[] = [
+  makeFixtureEntry({
+    id: tid(40),
+    role: "user",
+    ops: [{ kind: "text", text: "Show me how a very large tool-heavy turn behaves." }],
+    ts: NOW + 70_000,
+  }),
+  makeFixtureEntry({
+    id: tid(41),
+    role: "assistant",
+    ops: bigTurnOps,
+    ts: NOW + 71_000,
+  }),
+]

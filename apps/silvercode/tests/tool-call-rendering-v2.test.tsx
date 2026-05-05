@@ -408,6 +408,39 @@ describe("ToolCall v2 — failed shell status is visible", () => {
     expect(app.text).toContain("line-10")
     expect(app.text).not.toContain("more lines")
   })
+
+  test("expanded command collapses when clicking the row background after the title", async () => {
+    using term = createTermless({ cols: 100, rows: 10 })
+    const handle = await run(
+      <Box width={100} height={10} flexDirection="column">
+        <ToolCall
+          toolCall={tc({
+            kind: "execute",
+            status: "completed",
+            title: "printf lines",
+            content: [{ type: "content", content: { type: "text", text: "line-1\nline-2" } }],
+          })}
+        />
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle(80)
+      const row = term.screen.getLines().findIndex((line) => line.includes("printf lines"))
+      expect(row).toBeGreaterThanOrEqual(0)
+      const titleCol = term.screen.getLines()[row]!.indexOf("printf lines")
+      await term.mouse.click(titleCol, row)
+      await settle(80)
+      expect(term.screen.getText()).toContain("line-1")
+
+      await term.mouse.click(90, row)
+      await settle(80)
+      expect(term.screen.getText()).not.toContain("line-1")
+    } finally {
+      handle.unmount()
+    }
+  })
 })
 
 // =============================================================================

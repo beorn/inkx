@@ -23,6 +23,7 @@
 import React from "react"
 import { describe, expect, test } from "vitest"
 import { createRenderer } from "@silvery/test"
+import { Box, PopoverProvider } from "silvery"
 import type { ToolCall as ToolCallType, ToolCallId } from "@km/agent-harness"
 import { ToolCall } from "../src/components/ToolCall.tsx"
 import { ToolCallStatusTitle } from "../src/components/ToolCallStatusTitle.tsx"
@@ -31,6 +32,8 @@ import { ToolCallSummary } from "../src/components/ToolCallSummary.tsx"
 import { ApplyPatch, parseAiderPatch } from "../src/components/ApplyPatch.tsx"
 
 const id = (s: string) => s as ToolCallId
+const LEFT_SUPER_PRESS = "\x1b[57444;9:1u"
+const settle = (ms = 60) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 // Create a fresh renderer per test invocation. createRenderer keeps a
 // long-lived `Ag` instance + last-buffer state for incremental rendering;
@@ -278,6 +281,52 @@ describe("ToolCall", () => {
     const app = freshRender()(<ToolCall toolCall={tc({ kind: "execute", status: "in_progress", title: "bun fix" })} />)
     expect(app.text).toContain("bun fix")
     expect(app.text).not.toContain("Running")
+  })
+
+  test("image path in a view tool title opens an image preview popover on Cmd-hover", async () => {
+    const render = createRenderer({ cols: 120, rows: 20, kittyMode: true, autoRender: true })
+    const app = render(
+      <PopoverProvider>
+        <Box width={120} height={20} flexDirection="column">
+          <ToolCall toolCall={tc({ kind: "execute", status: "completed", title: "View /tmp/screenshot.png" })} />
+        </Box>
+      </PopoverProvider>,
+    )
+
+    const col = app.text.indexOf("/tmp/screenshot.png")
+    expect(col).toBeGreaterThanOrEqual(0)
+    app.stdin.write(LEFT_SUPER_PRESS)
+    await app.hover(col, 0)
+    await settle(650)
+
+    expect(app.text).toContain("[image preview]")
+  })
+
+  test("display-shortened image path in a view title resolves for preview", async () => {
+    const prevHome = process.env["HOME"]
+    process.env["HOME"] = "/Users/beorn"
+    try {
+      const render = createRenderer({ cols: 120, rows: 20, kittyMode: true, autoRender: true })
+      const app = render(
+        <PopoverProvider>
+          <Box width={120} height={20} flexDirection="column">
+            <ToolCall toolCall={tc({ kind: "execute", status: "completed", title: "View ~desk/Screenshot 1.png" })} />
+          </Box>
+        </PopoverProvider>,
+      )
+
+      const col = app.text.indexOf("~desk/Screenshot 1.png")
+      expect(col).toBeGreaterThanOrEqual(0)
+      app.stdin.write(LEFT_SUPER_PRESS)
+      await app.hover(col, 0)
+      await settle(650)
+
+      expect(app.text).toContain("~desk/Screenshot 1.png")
+      expect(app.text).toContain("[image preview]")
+    } finally {
+      if (prevHome !== undefined) process.env["HOME"] = prevHome
+      else delete process.env["HOME"]
+    }
   })
 
   test("kind=read failed renders neutral bullet + title + inline error message", () => {
@@ -667,6 +716,16 @@ describe("ToolCall path display friendliness", () => {
       <ToolCall toolCall={{ toolCallId: id("t8"), kind: "read", status: "pending", title: "/tmp/scratch.txt" }} />,
     )
     expect(app.text).toContain("/tmp/scratch.txt")
+  })
+
+  test("image path in non-shell title is an OSC 8 file link", () => {
+    const app = freshRender()(
+      <ToolCall
+        toolCall={{ toolCallId: id("t-image"), kind: "execute", status: "completed", title: "View /tmp/screenshot.png" }}
+      />,
+    )
+    expect(app.text).toContain("View /tmp/screenshot.png")
+    expect(app.ansi).toContain("file:///tmp/screenshot.png")
   })
 
   test("diff content path is shortened", () => {

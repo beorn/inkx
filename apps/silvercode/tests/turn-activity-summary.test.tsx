@@ -138,16 +138,118 @@ describe("TurnActivitySummary", () => {
     expect(app.text).not.toContain("Turn activity")
   })
 
-  test("collapses a single shell command behind an activity summary", () => {
+  test("renders a single shell command inline instead of hiding it behind an activity summary", () => {
     const entry = makeEntry({
       ops: [tool("cmd-1", "Bash", { command: "cd apps/silvercode" }, "")],
     })
 
     const app = renderList([entry])
 
-    expect(app.text).toContain("Ran 1 command")
-    expect(app.text).not.toContain("cd apps/silvercode")
-    expect(app.text).not.toContain("$ cd")
+    expect(app.text).toContain("$ cd apps/silvercode")
+    expect(app.text).not.toContain("Ran 1 command")
+  })
+
+  test("renders one interleaved command inline between narration entries", async () => {
+    const command = "bun run typecheck"
+    const entry = makeEntry({
+      ops: [
+        { kind: "text", text: "I will rerun the verification." },
+        tool("cmd-1", "exec_command", { cmd: command }, "blocked"),
+        { kind: "text", text: "Typecheck is blocked by existing repo-wide errors." },
+      ],
+    })
+
+    using term = createTermless({ cols: 120, rows: 30 })
+    const handle = await run(
+      <Box width={120} height={30} flexDirection="column">
+        <SessionUpdateList
+          messages={[entry]}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          sessionId="turn-summary-single-interleaved-command-test"
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+          follow={false}
+        />
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle(80)
+      const text = term.screen.getText()
+      expect(text).toContain("I will rerun the verification.")
+      expect(text).toContain(`$ ${command}`)
+      expect(text).toContain("Typecheck is blocked by existing repo-wide errors.")
+      expect(text).not.toContain("Ran 1 command")
+    } finally {
+      handle.unmount()
+    }
+  })
+
+  test("renders one exec_command with write_stdin polling inline after normalization", async () => {
+    const command = "npx tsc --noEmit"
+    const entry = makeEntry({
+      ops: [
+        { kind: "text", text: "I am rerunning typecheck." },
+        tool(
+          "cmd-1",
+          "exec_command",
+          { cmd: command },
+          "Chunk ID: 46ac3f\nWall time: 1.0021 seconds\nProcess running with session ID 40173\nOutput:\n",
+        ),
+        tool(
+          "stdin-1",
+          "write_stdin",
+          { session_id: 40173, chars: "", yield_time_ms: 1000 },
+          "Chunk ID: 69e229\nWall time: 5.0013 seconds\nProcess running with session ID 40173\nOutput:\n",
+        ),
+        tool(
+          "stdin-2",
+          "write_stdin",
+          { session_id: 40173, chars: "", yield_time_ms: 1000 },
+          "Chunk ID: 417bcc\nWall time: 1.8744 seconds\nProcess exited with code 2\nOutput:\nerror TS5033\n",
+          true,
+        ),
+        { kind: "text", text: "Typecheck is blocked by repo-wide errors." },
+      ],
+    })
+
+    using term = createTermless({ cols: 120, rows: 30 })
+    const handle = await run(
+      <Box width={120} height={30} flexDirection="column">
+        <SessionUpdateList
+          messages={[entry]}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          sessionId="turn-summary-single-normalized-command-test"
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+          follow={false}
+        />
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle(80)
+      const text = term.screen.getText()
+      expect(text).toContain("I am rerunning typecheck.")
+      expect(text).toContain(`$ ${command}`)
+      expect(text).toContain("Typecheck is blocked by repo-wide errors.")
+      expect(text).not.toContain("Ran 1 command")
+      expect(text).not.toContain("write_stdin")
+    } finally {
+      handle.unmount()
+    }
   })
 
   test("groups high-content tool work under one friendly turn row", () => {
@@ -237,21 +339,67 @@ describe("TurnActivitySummary", () => {
     expect(app.text).not.toContain("bd show @km/foo")
   })
 
-  test("high-volume Codex turns collapse tool activity across interleaved commentary", () => {
+  test("high-volume Codex turns collapse to one activity row and expand back to interleaved narration", async () => {
     const ops: MessageOp[] = [{ kind: "text", text: "I am checking several files." }]
     for (let i = 0; i < 4; i++) ops.push(tool(`cmd-a-${i}`, "exec_command", { cmd: `rg query-${i}` }, "ok"))
     ops.push({ kind: "text", text: "Now I am checking related tests." })
-    for (let i = 0; i < 5; i++) ops.push(tool(`cmd-b-${i}`, "exec_command", { cmd: `sed -n '${i},${i + 1}p' file.ts` }, "ok"))
+    for (let i = 0; i < 5; i++)
+      ops.push(tool(`cmd-b-${i}`, "exec_command", { cmd: `sed -n '${i},${i + 1}p' file.ts` }, "ok"))
     const entry = makeEntry({ ops })
 
-    const app = renderList([entry])
+    using term = createTermless({ cols: 120, rows: 24 })
+    const handle = await run(
+      <Box width={120} height={24} flexDirection="column">
+        <SessionUpdateList
+          messages={[entry]}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          sessionId="turn-summary-large-turn-test"
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+          follow={false}
+        />
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle(80)
+      const collapsed = term.screen.getText()
+      expect(collapsed).toContain("Ran 9 commands")
+      expect(collapsed).toContain("I am checking several files.")
+      expect(collapsed).toContain("Now I am checking related tests.")
+      expect(collapsed).not.toContain("rg query-0")
+      expect(collapsed).not.toContain("sed -n")
 
-    expect(app.text).toContain("I am checking several files.")
-    expect(app.text).toContain("Now I am checking related tests.")
-    expect(app.text).toContain("Ran 9 commands")
-    expect(app.text.match(/Ran 9 commands/g)?.length).toBe(1)
-    expect(app.text).not.toContain("rg query-0")
-    expect(app.text).not.toContain("sed -n")
+      const row = term.screen.getLines().findIndex((line) => line.includes("Ran 9 commands"))
+      expect(row).toBeGreaterThanOrEqual(0)
+      const collapsedLines = term.screen.getLines()
+      const firstNarrationRow = collapsedLines.findIndex((line) => line.includes("I am checking several files."))
+      expect(firstNarrationRow).toBeGreaterThan(row)
+      await term.mouse.click(term.screen.getLines()[row]!.indexOf("Ran 9 commands"), row)
+      await settle(80)
+
+      const expanded = term.screen.getText()
+      expect(expanded).toContain("I am checking several files.")
+      expect(expanded).toContain("Now I am checking related tests.")
+      expect(expanded).toContain("rg query-0")
+      expect(expanded).toContain("sed -n")
+      expect(expanded.match(/I am checking several files\./g)?.length).toBe(1)
+      expect(expanded.match(/Now I am checking related tests\./g)?.length).toBe(1)
+
+      const expandedLines = term.screen.getLines()
+      const narrationRow = expandedLines.findIndex((line) => line.includes("Now I am checking related tests."))
+      expect(narrationRow, expanded).toBeGreaterThan(0)
+      expect(expandedLines[narrationRow - 1]?.trim()).toBe("")
+      expect(expandedLines[narrationRow + 1]?.trim()).toBe("")
+    } finally {
+      handle.unmount()
+    }
   })
 
   test("collapses adjacent tool-bearing assistant messages even when they include thinking", async () => {
@@ -406,12 +554,12 @@ describe("TurnActivitySummary", () => {
 
       const pwdRow = term.screen.getLines().findIndex((line) => line.includes("$ pwd"))
       expect(pwdRow).toBeGreaterThanOrEqual(0)
-      await term.mouse.click(10, pwdRow)
+      await term.mouse.click(term.screen.getLines()[pwdRow]!.indexOf("$ pwd"), pwdRow)
       await settle(80)
 
       const lsRow = term.screen.getLines().findIndex((line) => line.includes("$ ls"))
       expect(lsRow).toBeGreaterThanOrEqual(0)
-      await term.mouse.click(10, lsRow)
+      await term.mouse.click(term.screen.getLines()[lsRow]!.indexOf("$ ls"), lsRow)
       await settle(80)
 
       const revealed = term.screen.getText()
@@ -457,21 +605,16 @@ describe("TurnActivitySummary", () => {
     )
     try {
       await settle(80)
-      const row = term.screen.getLines().findIndex((line) => line.includes("Ran 1 command"))
+      const row = term.screen.getLines().findIndex((line) => line.includes(command))
       expect(row).toBeGreaterThanOrEqual(0)
-      await term.mouse.click(term.screen.getLines()[row]!.indexOf("Ran 1 command"), row)
+      await term.mouse.click(term.screen.getLines()[row]!.indexOf(command), row)
       await settle(80)
 
       const expanded = term.screen.getLines()
       expect(expanded.filter((line) => line.includes(command)).length).toBe(1)
-      const commandRow = expanded.findIndex((line) => line.includes(command))
-      expect(commandRow).toBeGreaterThanOrEqual(0)
-      await term.mouse.click(10, commandRow)
-      await settle(80)
-
-      expect(term.screen.getLines().filter((line) => line.includes(command)).length).toBe(1)
       expect(term.screen.getText()).toContain("RUN  v4.1.4")
       expect(term.screen.getText()).toContain("PASS")
+      expect(term.screen.getText()).not.toContain("Ran 1 command")
     } finally {
       handle.unmount()
     }
@@ -512,15 +655,10 @@ describe("TurnActivitySummary", () => {
     )
     try {
       await settle(80)
-      const row = term.screen.getLines().findIndex((line) => line.includes("Ran 1 command"))
+      const row = term.screen.getLines().findIndex((line) => line.includes(command))
       expect(row).toBeGreaterThanOrEqual(0)
-      const col = term.screen.getLines()[row]!.indexOf("Ran 1 command")
+      const col = term.screen.getLines()[row]!.indexOf(command)
       await term.mouse.click(col, row)
-      await settle(80)
-
-      const commandRow = term.screen.getLines().findIndex((line) => line.includes(command))
-      expect(commandRow).toBeGreaterThanOrEqual(0)
-      await term.mouse.click(term.screen.getLines()[commandRow]!.indexOf(command), commandRow)
       await settle(80)
 
       expect(term.screen.getLines().filter((line) => line.includes(command)).length).toBe(1)
@@ -530,9 +668,23 @@ describe("TurnActivitySummary", () => {
     }
   })
 
-  test("Codex write_stdin renders as a useful capitalized command-session label", async () => {
+  test("Codex write_stdin polling is folded into the owning command session", async () => {
+    const command = "bun vitest run apps/silvercode/tests/slow.test.tsx"
     const entry = makeEntry({
-      ops: [tool("stdin-1", "write_stdin", { session_id: 76609, chars: "", yield_time_ms: 15000 }, "")],
+      ops: [
+        tool(
+          "cmd-1",
+          "exec_command",
+          { cmd: command },
+          "Chunk ID: 742bc3\nWall time: 1.0000 seconds\nProcess running with session ID 76609\nOutput:\nstarting\n",
+        ),
+        tool(
+          "stdin-1",
+          "write_stdin",
+          { session_id: 76609, chars: "", yield_time_ms: 15000 },
+          "Chunk ID: 742bc3\nWall time: 15.0024 seconds\nProcess exited with code 0\nOutput:\nPASS\n",
+        ),
+      ],
     })
     using term = createTermless({ cols: 110, rows: 14 })
     const handle = await run(
@@ -556,14 +708,163 @@ describe("TurnActivitySummary", () => {
     )
     try {
       await settle(80)
-      const row = term.screen.getLines().findIndex((line) => line.includes("Ran 1 command"))
+      const row = term.screen.getLines().findIndex((line) => line.includes(command))
       expect(row).toBeGreaterThanOrEqual(0)
-      const col = term.screen.getLines()[row]!.indexOf("Ran 1 command")
+      const col = term.screen.getLines()[row]!.indexOf(command)
       await term.mouse.click(col, row)
       await settle(80)
 
-      expect(term.screen.getText()).toContain("Waited for command output 76609")
+      const expanded = term.screen.getText()
+      expect(expanded).toContain(command)
+      expect(expanded).not.toContain("Waited for command output")
       expect(term.screen.getText()).not.toContain("write_stdin")
+      expect(term.screen.getText()).not.toContain("Ran 1 command")
+      expect(term.screen.getText()).not.toContain("Ran 2 commands")
+
+      expect(term.screen.getText()).toContain("starting")
+      expect(term.screen.getText()).toContain("PASS")
+    } finally {
+      handle.unmount()
+    }
+  })
+
+  test("Codex apply_patch renders as a structured diff instead of raw patch text", async () => {
+    const patch = [
+      "*** Begin Patch",
+      "*** Update File: apps/silvercode/src/foo.ts",
+      "@@",
+      "-const shade = 'old'",
+      "+const shade = 'new'",
+      "*** End Patch",
+    ].join("\n")
+    const entry = makeEntry({
+      ops: [tool("patch-1", "apply_patch", patch, "Success. Updated the following files:\nM apps/silvercode/src/foo.ts\n")],
+    })
+
+    using term = createTermless({ cols: 120, rows: 16 })
+    const handle = await run(
+      <Box width={120} height={16} flexDirection="column">
+        <SessionUpdateList
+          messages={[entry]}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          sessionId="turn-summary-apply-patch-diff-test"
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+          follow={false}
+        />
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle(80)
+      const row = term.screen.getLines().findIndex((line) => line.includes("Edited apps/silvercode/src/foo.ts"))
+      expect(row).toBeGreaterThanOrEqual(0)
+      await term.mouse.click(term.screen.getLines()[row]!.indexOf("Edited apps/silvercode/src/foo.ts"), row)
+      await settle(80)
+
+      const expandedTool = term.screen.getText()
+      expect(expandedTool).toContain("apps/silvercode/src/foo.ts")
+      expect(expandedTool).toContain("const shade = 'old'")
+      expect(expandedTool).toContain("const shade = 'new'")
+      expect(expandedTool).not.toContain("*** Begin Patch")
+      expect(expandedTool).not.toContain("*** End Patch")
+    } finally {
+      handle.unmount()
+    }
+  })
+
+  test("expanded short edit activity uses the prose lane before widening", async () => {
+    const entry = makeEntry({
+      ops: [
+        tool(
+          "edit-1",
+          "Edit",
+          {
+            file_path: "src/components/SidePanel.tsx",
+            old_string: "const oldValue = true",
+            new_string: "const newValue = true",
+          },
+          "Edited src/components/SidePanel.tsx (+1 -1)",
+        ),
+        tool("cmd-1", "exec_command", { cmd: "nl -ba src/components/SidePanel.tsx | sed -n '380,405p'" }, "ok"),
+        tool("cmd-2", "exec_command", { cmd: "npx tsc --noEmit --incremental false --pretty false" }, "ok"),
+      ],
+    })
+
+    using term = createTermless({ cols: 132, rows: 18 })
+    const handle = await run(
+      <Box width={132} height={18} flexDirection="column">
+        <SessionUpdateList
+          messages={[entry]}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          sessionId="turn-summary-short-edit-prose-lane-test"
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+          follow={false}
+        />
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle(80)
+      const summaryRow = term.screen.getLines().findIndex((line) => line.includes("Edited 1 file"))
+      expect(summaryRow).toBeGreaterThanOrEqual(0)
+      await term.mouse.click(term.screen.getLines()[summaryRow]!.indexOf("Edited 1 file"), summaryRow)
+      await settle(80)
+
+      const commandRow = term.screen.getLines().findIndex((line) => line.includes("$ nl -ba src/components/SidePanel.tsx"))
+      expect(commandRow, term.screen.getText()).toBeGreaterThanOrEqual(0)
+      expect(term.screen.getLines()[commandRow]!.indexOf("$ nl -ba")).toBeGreaterThan(10)
+    } finally {
+      handle.unmount()
+    }
+  })
+
+  test("view_image tool calls render as a compact image-view row", async () => {
+    const path = "/tmp/silvercode-shot.png"
+    const entry = makeEntry({
+      ops: [tool("image-1", "view_image", { path }, "")],
+    })
+
+    using term = createTermless({ cols: 100, rows: 12 })
+    const handle = await run(
+      <Box width={100} height={12} flexDirection="column">
+        <SessionUpdateList
+          messages={[entry]}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          sessionId="turn-summary-view-image-test"
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+          follow={false}
+        />
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle(80)
+      const rendered = term.screen.getText()
+      expect(rendered).toContain(`View ${path}`)
+      expect(rendered).not.toContain("Ran 1 command")
+      expect(rendered).not.toContain("view_image")
+      expect(rendered).not.toContain(JSON.stringify({ path }, null, 2))
     } finally {
       handle.unmount()
     }
@@ -645,7 +946,10 @@ describe("TurnActivitySummary", () => {
   test("summary marker is a hover-only folding triangle and stays visible when expanded", async () => {
     using term = createTermless({ cols: 110, rows: 16 })
     const entry = makeEntry({
-      ops: [tool("cmd-1", "Bash", { command: "printf summary" }, "RAW-COMMAND-OUTPUT")],
+      ops: [
+        tool("cmd-1", "Bash", { command: "printf summary" }, "RAW-COMMAND-OUTPUT"),
+        tool("cmd-2", "Bash", { command: "printf again" }, "RAW-COMMAND-OUTPUT"),
+      ],
     })
     const handle = await run(
       <Box width={110} height={16} flexDirection="column">
@@ -668,12 +972,12 @@ describe("TurnActivitySummary", () => {
     )
     try {
       await settle(80)
-      const row = term.screen.getLines().findIndex((line) => line.includes("Ran 1 command"))
+      const row = term.screen.getLines().findIndex((line) => line.includes("Ran 2 commands"))
       expect(row).toBeGreaterThanOrEqual(0)
       expect(term.screen.getText()).not.toContain("▸")
       expect(term.screen.getText()).not.toContain("▾")
 
-      const col = term.screen.getLines()[row]!.indexOf("Ran 1 command")
+      const col = term.screen.getLines()[row]!.indexOf("Ran 2 commands")
       await term.mouse.move(col, row)
       await settle(80)
       expect(term.screen.getLines()[row]).toContain("▸")
@@ -828,14 +1132,7 @@ describe("TurnActivitySummary", () => {
     const entry = makeEntry({
       id: "assistant-command-anchor",
       ts: 2000,
-      ops: [
-        tool(
-          "cmd-1",
-          "Bash",
-          { command },
-          Array.from({ length: 20 }, (_, i) => `output ${i}`).join("\n"),
-        ),
-      ],
+      ops: [tool("cmd-1", "Bash", { command }, Array.from({ length: 20 }, (_, i) => `output ${i}`).join("\n"))],
     })
     const handle = await run(
       <Box width={110} height={14} flexDirection="column">
@@ -857,12 +1154,6 @@ describe("TurnActivitySummary", () => {
     )
     try {
       await settle(80)
-      const summaryRow = term.screen.getLines().findIndex((line) => line.includes("Ran 1 command"))
-      expect(summaryRow).toBeGreaterThanOrEqual(0)
-      const summaryCol = term.screen.getLines()[summaryRow]!.indexOf("Ran 1 command")
-      await term.mouse.click(summaryCol, summaryRow)
-      await settle(80)
-
       const beforeLines = term.screen.getLines()
       const commandRow = beforeLines.findIndex((line) => line.includes(`$ ${command}`))
       expect(commandRow, beforeLines.join("\n")).toBeGreaterThanOrEqual(0)
@@ -874,6 +1165,7 @@ describe("TurnActivitySummary", () => {
       const afterRow = term.screen.getLines().findIndex((line) => line.includes(`$ ${command}`))
       expect(afterRow).toBe(commandRow)
       expect(term.screen.getText()).toContain("output 0")
+      expect(term.screen.getText()).not.toContain("Ran 1 command")
     } finally {
       handle.unmount()
     }

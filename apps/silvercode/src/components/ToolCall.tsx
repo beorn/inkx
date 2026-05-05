@@ -28,21 +28,23 @@
  * Bead: km-silvercode.tool-call-rendering-v2 (was: km-silvercode.acp-tool-call).
  */
 
-import React, { useState } from "react"
+import React from "react"
 import {
   Box,
   Diff as SilveryDiff,
+  Image,
   type DiffHunk,
   Muted,
   Text,
-  useHover,
-  usePopoverHandlers,
+  type SilveryMouseEvent,
 } from "silvery"
 import type { ToolCall as ToolCallType, ToolCallContent, ToolCallLocation, ContentBlock } from "@km/agent-harness"
 import { ToolCallStatusTitle } from "./ToolCallStatusTitle.tsx"
 import { BoundedScroll } from "./BoundedScroll.tsx"
-import { formatPathForDisplay } from "../utils/format-path.ts"
+import { formatPathForDisplay, resolveDisplayPath } from "../utils/format-path.ts"
 import { StatusGlyph } from "./StatusGlyph.tsx"
+import { detectReferences } from "../detection.ts"
+import { ChatEntryDisclosure } from "./ChatEntryDisclosure.tsx"
 
 const ToolMarkerBackgroundContext = React.createContext<string | undefined>(undefined)
 const ToolContentForceExpandedContext = React.createContext(false)
@@ -312,6 +314,15 @@ function shellExitCode(toolCall: ToolCallType): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null
 }
 
+function titleImagePath(title: string): string | null {
+  const viewMatch = title.match(/^View\s+(.+\.(?:png|jpe?g|gif|webp))$/i)
+  if (viewMatch?.[1]) return resolveDisplayPath(viewMatch[1])
+  const file = detectReferences(title).find(
+    (d) => d.kind === "file" && /\.(?:png|jpe?g|gif|webp)$/i.test(d.payload.path ?? ""),
+  )
+  return file?.kind === "file" ? resolveDisplayPath(file.payload.path ?? "") : null
+}
+
 function shellErrorSummary(toolCall: ToolCallType, exitCode: number | null): string | null {
   if (exitCode === null) return null
   const raw = typeof toolCall.title === "string" ? toolCall.title.trim() : ""
@@ -418,108 +429,122 @@ export function ToolCall({
   const kind = toolCall.kind ?? "other"
   const content = toolCall.content ?? []
   const hasContent = hasAdditionalContent(toolCall.title, content)
-  const shell = kind === "execute"
+  const shell = kind === "execute" && !/^View(?:\s|$)/.test(toolCall.title)
+  const imagePath = titleImagePath(toolCall.title)
   const exitCode = shell ? shellExitCode(toolCall) : null
   const errorSummary = shell && status === "failed" ? shellErrorSummary(toolCall, exitCode) : null
   const titleColor = status === "failed" ? "$error" : titleEmphasis === "normal" ? "$muted" : "$muted"
+  const titleImagePopoverBody = React.useMemo(
+    () =>
+      imagePath ? (
+        <Box flexDirection="column">
+          <Text bold wrap="truncate">
+            {imagePath}
+          </Text>
+          <Image src={imagePath} width={48} height={16} fallback="[image preview]" />
+        </Box>
+      ) : null,
+    [imagePath],
+  )
 
-  // Hover arms the row and, for real content, shows a popover preview.
-  // Inline expansion is click-only so transcript rows do not jump around
-  // while the pointer moves across them.
-  const { isHovered, onMouseEnter, onMouseLeave } = useHover()
-  const [expanded, setExpanded] = useState(defaultExpanded ?? false)
-  const popover = usePopoverHandlers({
-    body: (
-      <Box flexDirection="column">
-        {exitCode !== null ? <Muted>Exit code {exitCode}</Muted> : null}
-        <ToolCallContentBody content={content} bounded />
-      </Box>
-    ),
-    maxWidth: 100,
-  })
-
-  const onEnter = (e: Parameters<typeof onMouseEnter>[0]): void => {
-    onMouseEnter(e)
-    if (interactive && hasContent && !expanded) popover.onMouseEnter(e)
-  }
-  const onLeave = (e: Parameters<typeof onMouseLeave>[0]): void => {
-    onMouseLeave(e)
-    if (interactive && hasContent && !expanded) popover.onMouseLeave(e)
-  }
-  const effectiveExpanded = expanded || forceExpanded
-  const onToggle = interactive && hasContent ? () => setExpanded((v) => !v) : undefined
-  const armedBg =
-    interactive && hasContent && isHovered
-      ? "$bg-surface-hover"
-        : effectiveExpanded && hasContent
-        ? "$bg-surface-subtle"
-        : undefined
+  const previewPopover =
+    interactive && !forceExpanded && imagePath && titleImagePopoverBody
+      ? { body: titleImagePopoverBody, maxWidth: 56 }
+      : interactive && !forceExpanded && hasContent
+        ? {
+            body: (
+              <Box flexDirection="column">
+                {exitCode !== null ? <Muted>Exit code {exitCode}</Muted> : null}
+                <ToolCallContentBody content={content} bounded />
+              </Box>
+            ),
+            maxWidth: 100,
+          }
+        : null
 
   return (
-    <Box
-      flexDirection="row"
-      gap={1}
-      width="100%"
-      backgroundColor={armedBg}
-      onMouseEnter={onEnter}
-      onMouseLeave={onLeave}
-      onClick={(e) => {
-        e.stopPropagation()
-        onToggle?.()
-      }}
+    <ChatEntryDisclosure
+      popover={previewPopover}
+      defaultExpanded={defaultExpanded ?? false}
+      interactive={interactive}
+      canExpand={hasContent}
     >
-      <Box width={1} flexShrink={0} backgroundColor={markerBg}>
-        <StatusGlyph
-          glyph={shell ? "$" : "•"}
-          active={shell && status === "in_progress"}
-          color={status === "failed" ? "$error" : "$muted"}
-        />
-      </Box>
+      {({ surfaceProps, isHovered, expanded, toggleExpanded, collapse }) => {
+        const effectiveExpanded = expanded || forceExpanded
+        const onAttachedClick = (e: SilveryMouseEvent): void => {
+          e.stopPropagation()
+          if (interactive && hasContent) collapse()
+        }
+        const armedBg =
+          interactive && hasContent && isHovered
+            ? "$bg-surface-hover"
+            : effectiveExpanded && hasContent
+              ? "$bg-surface-subtle"
+              : undefined
 
-      <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0}>
-        {/* Always-visible row — single line, no border, no per-tool color.
-            The marker is a section marker; title and expanded output share
-            this content column's left edge. */}
-        <Box flexDirection="row" gap={1} width="100%">
-          <ToolCallStatusTitle
-            status={status}
-            kind={kind}
-            title={shortenTitlePath(toolCall.title)}
-            shell={shell}
-            color={titleColor}
-          />
-          {renderLocations(toolCall.locations)}
-          <Box flexGrow={1} />
-          {status === "failed" && onRetry ? (
-            <Box onClick={onRetry}>
-              <Muted>↻ retry</Muted>
+        return (
+          <Box flexDirection="row" gap={1} width="100%" backgroundColor={armedBg} {...surfaceProps}>
+            <Box width={1} flexShrink={0} backgroundColor={markerBg}>
+              <StatusGlyph
+                glyph={shell ? "$" : "•"}
+                active={shell && status === "in_progress"}
+                color={status === "failed" ? "$error" : "$muted"}
+              />
             </Box>
-          ) : null}
-        </Box>
 
-        {/* Body reveals only when clicked (or initially via defaultExpanded).
-            It is aligned with the command/title, not with the marker. */}
-        {effectiveExpanded && hasContent ? (
-          <Box flexDirection="column">
-            <ToolCallContentBody content={content} />
+            <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0}>
+              {/* Always-visible row — single line, no border, no per-tool color.
+                  The marker is a section marker; title and expanded output share
+                  this content column's left edge. */}
+              <Box flexDirection="row" gap={1} width="100%">
+                <ToolCallStatusTitle
+                  status={status}
+                  kind={kind}
+                  title={shortenTitlePath(toolCall.title)}
+                  shell={shell}
+                  color={titleColor}
+                  linkify={!shell}
+                />
+                {renderLocations(toolCall.locations)}
+                <Box flexGrow={1} height={1} onClick={(e: SilveryMouseEvent) => {
+                  e.stopPropagation()
+                  if (interactive && hasContent) toggleExpanded()
+                }}>
+                  <Text> </Text>
+                </Box>
+                {status === "failed" && onRetry ? (
+                  <Box onClick={onRetry}>
+                    <Muted>↻ retry</Muted>
+                  </Box>
+                ) : null}
+              </Box>
+
+              {/* Body reveals only when clicked (or initially via defaultExpanded).
+                  It is aligned with the command/title, not with the marker. */}
+              {effectiveExpanded && hasContent ? (
+                <Box flexDirection="column" onClick={onAttachedClick}>
+                  <ToolCallContentBody content={content} />
+                </Box>
+              ) : null}
+              {/* Failed calls inline the error message immediately under the row.
+                  No border, no bg, and no red tool color; shell failures read as
+                  command + inline stderr. */}
+              {status === "failed" ? (
+                <Box flexDirection="column">
+                  <Text color="$error" wrap="wrap">
+                    {errorSummary ?? errorMessage ?? "Tool call failed"}
+                  </Text>
+                  {errorSummary && errorMessage && normalizeDisclosureText(errorMessage) !== normalizeDisclosureText(errorSummary) ? (
+                    <Text color="$error" wrap="wrap">
+                      {errorMessage}
+                    </Text>
+                  ) : null}
+                </Box>
+              ) : null}
+            </Box>
           </Box>
-        ) : null}
-        {/* Failed calls inline the error message immediately under the row.
-            No border, no bg, and no red tool color; shell failures read as
-            command + inline stderr. */}
-        {status === "failed" ? (
-          <Box flexDirection="column">
-            <Text color="$error" wrap="wrap">
-              {errorSummary ?? errorMessage ?? "Tool call failed"}
-            </Text>
-            {errorSummary && errorMessage && normalizeDisclosureText(errorMessage) !== normalizeDisclosureText(errorSummary) ? (
-              <Text color="$error" wrap="wrap">
-                {errorMessage}
-              </Text>
-            ) : null}
-          </Box>
-        ) : null}
-      </Box>
-    </Box>
+        )
+      }}
+    </ChatEntryDisclosure>
   )
 }

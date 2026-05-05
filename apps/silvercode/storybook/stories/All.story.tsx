@@ -55,10 +55,18 @@ import { SidePanel } from "../../src/components/SidePanel.tsx"
 import { fakeSessionHandle } from "../support/fake-session-handle.ts"
 import { LONG_TOOL_SESSION, TURN_ACTIVITY_AMBIENT, TURN_ACTIVITY_RICH } from "../support/sample-messages.ts"
 import type { Story } from "../types.ts"
-import type { MessageEntry, MessageOp, PermissionOptionId, ToolCallEntry, ToolResultEntry, ToolUseId } from "@km/agent-harness"
+import type {
+  MessageEntry,
+  MessageOp,
+  PermissionOptionId,
+  ToolCallEntry,
+  ToolResultEntry,
+  ToolUseId,
+} from "@km/agent-harness"
 import type { Controller } from "../../src/controller.ts"
 import { Content } from "../../src/components/Content.tsx"
 import { SessionUpdateList } from "../../src/components/SessionUpdateList.tsx"
+import { Chat } from "../../src/components/Chat.tsx"
 
 const NOW = 1_700_000_000_000
 const at = (offsetSec: number): number => NOW + offsetSec * 1000
@@ -123,7 +131,7 @@ const MARKDOWN_AND_CODE: MessageEntry[] = [
           "> Metadata belongs near the line it describes, but it should not become the main reading column.\n\n" +
           "```tsx\n" +
           "<Content.Row>\n" +
-          "  <Content.Body width=\"prose\">\n" +
+          '  <Content.Body width="prose">\n' +
           "    <MarkdownView source={message} />\n" +
           "  </Content.Body>\n" +
           "</Content.Row>\n" +
@@ -211,7 +219,10 @@ const LARGE_TOOL_RESULT: MessageEntry[] = [
           is_error: true,
         },
       },
-      { kind: "text", text: "The first run passed. The second command is intentionally shown as a failed tool result." },
+      {
+        kind: "text",
+        text: "The first run passed. The second command is intentionally shown as a failed tool result.",
+      },
     ],
     ts: at(50),
   }),
@@ -405,7 +416,7 @@ function SidePanelStub(): React.ReactElement {
       </Text>
       {ambientSources.map((s) => (
         <Box key={s.id} flexDirection="row" gap={1}>
-          <Text color={s.muted ? "$muted" : "$fg"}>{s.muted ? "☐" : "☑"}</Text>
+          <Text color={s.muted ? "$muted" : "$fg"}>{s.muted ? "☐" : "☑︎"}</Text>
           <Text color={s.muted ? "$muted" : "$fg"}>{s.label}</Text>
         </Box>
       ))}
@@ -658,7 +669,7 @@ function AllStoryBody(): React.ReactElement {
       key: "normal-session",
       node: (
         <>
-          <SectionLabel>SessionUpdateList — resumed transcript, markdown, code, tables, tools</SectionLabel>
+          <SectionLabel>Chat — resumed transcript, markdown, code, tables, tools</SectionLabel>
           <Box flexDirection="column" minHeight={0}>
             <SessionUpdateList
               messages={ALL_TRANSCRIPT_MESSAGES}
@@ -696,7 +707,7 @@ function AllStoryBody(): React.ReactElement {
       key: "active-session",
       node: (
         <>
-          <SectionLabel>SessionUpdateList — active activity summary</SectionLabel>
+          <SectionLabel>Chat — active activity summary</SectionLabel>
           <Box flexDirection="column" minHeight={0}>
             <SessionUpdateList
               messages={TURN_ACTIVITY_RICH}
@@ -713,6 +724,35 @@ function AllStoryBody(): React.ReactElement {
               follow={false}
             />
           </Box>
+        </>
+      ),
+    },
+    {
+      key: "chat-components",
+      node: (
+        <>
+          <SectionLabel>Chat.Turn.* — direct component hierarchy</SectionLabel>
+          <Chat.Root>
+            <Chat.Transcript>
+              <Chat.Metadata>
+                <Chat.Body width="prose">
+                  <Text color="$muted">Session resumed 019ddfc8…389f</Text>
+                </Chat.Body>
+              </Chat.Metadata>
+              <Chat.Turn.Root>
+                <Chat.Turn.Prompt
+                  text={"Review the transcript system.\n\n- preserve prose lanes\n- keep activity grouped"}
+                />
+                <Chat.Turn.Segment>
+                  <Chat.Turn.Narration text="I will keep Content.* responsible for layout and move chat semantics into Chat.*." />
+                  <Chat.Turn.Activity items={[]} />
+                </Chat.Turn.Segment>
+                <Chat.Turn.Summary>
+                  <Chat.Turn.Stats>metadata · prompt · narration · activity · summary</Chat.Turn.Stats>
+                </Chat.Turn.Summary>
+              </Chat.Turn.Root>
+            </Chat.Transcript>
+          </Chat.Root>
         </>
       ),
     },

@@ -33,14 +33,19 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from "react"
-import type { ContentBlock, MessageEntry, MessageOp, ToolCallId, ToolCallStatus, ToolKind } from "@km/agent-harness"
+import type {
+  ContentBlock,
+  MessageEntry,
+  MessageOp,
+  ToolCallId,
+  ToolCallStatus,
+  ToolKind,
+} from "@km/agent-harness"
 import type { ToolCall as ToolCallType, ToolCallContent } from "@km/agent-harness"
-import { buildTextAnalysis, shrinkwrapWidth } from "@silvery/ag-term/pipeline/pretext"
 import {
   Box,
   ListView,
   type ListViewHandle,
-  Prose,
   Small,
   Text,
   type SilveryMouseEvent,
@@ -50,15 +55,16 @@ import {
 } from "silvery"
 import { ActivityIndicator, type ActivityStatus } from "./ActivityIndicator.tsx"
 import { AmbientNotificationStack, type AmbientStreamEntry } from "./AmbientEventRow.tsx"
-import { MarkdownView } from "./MarkdownView.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
 import { ToolCall } from "./ToolCall.tsx"
-import { TurnActivitySummary, type TurnActivitySummaryItem } from "./TurnActivitySummary.tsx"
+import type { TurnActivitySummaryItem } from "./TurnActivitySummary.tsx"
 import { BACKGROUND_MESSAGE_PREFIX } from "../controller.ts"
 import { Content, useContentLayout, useHasContentLayout } from "./Content.tsx"
-import { parseBlocks, type MdBlock } from "../markdown.ts"
+import { parseBlocks } from "../markdown.ts"
 import { SessionEntry } from "./SessionEntry.tsx"
 import type { SessionHistoryMetadata } from "../session-metadata.ts"
+import { Chat } from "./Chat.tsx"
+import { normalizeCommandSessionOps, splitAssistantMessageForTranscript } from "../chat-model.ts"
 
 // =============================================================================
 // Helpers — adapt legacy MessageEntry tool shapes to ACP ToolCall
@@ -78,6 +84,8 @@ function toolKindFromName(name: string, input?: unknown): ToolKind {
     lower === "execute" ||
     lower === "exec_command" ||
     lower === "write_stdin" ||
+    lower === "view_image" ||
+    lower === "view_image_tool_call" ||
     lower === "run_command" ||
     lower === "shell" ||
     lower === "computer"
@@ -212,6 +220,10 @@ function shellToolTitle(name: string, o: Record<string, unknown>): string | null
     const suffix = typeof sessionId === "number" || typeof sessionId === "string" ? ` ${sessionId}` : ""
     return chars && chars.length > 0 ? `Sent input to command${suffix}` : `Waited for command output${suffix}`
   }
+  if (name === "view_image" || name === "view_image_tool_call" || name === "ViewImage") {
+    const path = stringProp(o, "path") ?? stringProp(o, "local_path") ?? stringProp(o, "file_path")
+    return path ? `View ${path}` : "View image"
+  }
   return null
 }
 
@@ -288,12 +300,7 @@ function agentToolTitle(name: string, o: Record<string, unknown>): string | null
  */
 function editToolContent(input: unknown): ToolCallContent[] | undefined {
   if (typeof input === "string" && input.startsWith("*** Begin Patch")) {
-    return [
-      {
-        type: "content",
-        content: { type: "text", text: input },
-      },
-    ]
+    return applyPatchDiffContent(input)
   }
   if (!input || typeof input !== "object") return undefined
   const o = input as Record<string, unknown>
@@ -309,6 +316,58 @@ function editToolContent(input: unknown): ToolCallContent[] | undefined {
     ]
   }
   return undefined
+}
+
+function applyPatchDiffContent(patch: string): ToolCallContent[] {
+  const out: ToolCallContent[] = []
+  let path = ""
+  let oldLines: string[] = []
+  let newLines: string[] = []
+
+  function flush(): void {
+    if (!path || (oldLines.length === 0 && newLines.length === 0)) return
+    out.push({
+      type: "diff",
+      path,
+      oldText: oldLines.join("\n"),
+      newText: newLines.join("\n"),
+    })
+    oldLines = []
+    newLines = []
+  }
+
+  for (const line of patch.split("\n")) {
+    if (line.startsWith("*** Update File: ")) {
+      flush()
+      path = line.slice("*** Update File: ".length)
+      continue
+    }
+    if (line.startsWith("*** Add File: ")) {
+      flush()
+      path = line.slice("*** Add File: ".length)
+      continue
+    }
+    if (line.startsWith("*** Delete File: ")) {
+      flush()
+      path = line.slice("*** Delete File: ".length)
+      continue
+    }
+    if (!path || line.startsWith("***") || line.startsWith("@@")) continue
+    if (line.startsWith("+") && !line.startsWith("+++")) {
+      newLines.push(line.slice(1))
+    } else if (line.startsWith("-") && !line.startsWith("---")) {
+      oldLines.push(line.slice(1))
+    }
+  }
+  flush()
+  return out.length > 0
+    ? out
+    : [
+        {
+          type: "content",
+          content: { type: "text", text: patch },
+        },
+      ]
 }
 
 /**
@@ -374,6 +433,22 @@ function stripShellRunnerMetadata(text: string): string {
     .trim()
 }
 
+function opRendersDiff(op: MessageOp): boolean {
+  if (op.kind !== "tool") return false
+  if (op.toolCall.name === "apply_patch") return typeof op.toolCall.input === "string" && op.toolCall.input.startsWith("*** Begin Patch")
+  const input = op.toolCall.input
+  return !!(
+    input &&
+    typeof input === "object" &&
+    typeof (input as Record<string, unknown>).old_string === "string" &&
+    typeof (input as Record<string, unknown>).new_string === "string"
+  )
+}
+
+function opsRenderDiff(ops: readonly MessageOp[]): boolean {
+  return ops.some(opRendersDiff)
+}
+
 /**
  * Adapt a legacy `MessageEntry` tool-call entry to the ACP `ToolCall` shape
  * consumed by `<ToolCall>`. The tool result (if any) is folded into the
@@ -435,169 +510,8 @@ function adaptToolCall(
 function BackgroundSystemRow({ text }: { text: string }): React.ReactElement {
   return (
     <Box flexDirection="row" flexShrink={1} minWidth={0}>
-      <Text color="$info">
-        {text}
-      </Text>
+      <Text color="$info">{text}</Text>
     </Box>
-  )
-}
-
-const USER_BUBBLE_PADDING_X = 2
-const USER_BUBBLE_HORIZONTAL_CHROME = USER_BUBBLE_PADDING_X * 2
-const USER_PROMPT_BUBBLE_BG = "$bg-surface-raised"
-
-function shrinkTextMeasure(text: string, maxWidth: number): number {
-  const cap = Math.max(1, maxWidth)
-  if (text.length === 0) return 0
-  return Math.max(1, shrinkwrapWidth(buildTextAnalysis(text), cap))
-}
-
-function userBlockVisualWidth(block: MdBlock, maxInnerWidth: number): number {
-  switch (block.kind) {
-    case "heading":
-    case "paragraph":
-    case "quote":
-      return shrinkTextMeasure(block.text, maxInnerWidth)
-    case "bullet": {
-      const markerWidth = block.depth * 2 + 2
-      return markerWidth + shrinkTextMeasure(block.text, maxInnerWidth - markerWidth)
-    }
-    case "ordered": {
-      const markerWidth = block.depth * 2 + `${block.number}.`.length + 1
-      return markerWidth + shrinkTextMeasure(block.text, maxInnerWidth - markerWidth)
-    }
-    case "code":
-      return Math.min(maxInnerWidth, Math.max(block.language.length, ...block.code.split("\n").map((line) => line.length)))
-    case "table":
-      return maxInnerWidth
-    case "rule":
-    case "blank":
-      return 0
-  }
-}
-
-function userBubbleWidthForText(text: string, maxBubbleWidth: number): number {
-  const maxInnerWidth = Math.max(1, maxBubbleWidth - USER_BUBBLE_HORIZONTAL_CHROME)
-  const blocks = parseBlocks(text)
-  const visualWidth =
-    blocks.length > 0
-      ? Math.max(1, ...blocks.map((block) => userBlockVisualWidth(block, maxInnerWidth)))
-      : Math.max(1, ...text.split("\n").map((line) => line.length))
-  return Math.max(1, Math.min(maxBubbleWidth, visualWidth + USER_BUBBLE_HORIZONTAL_CHROME))
-}
-
-/**
- * User turn row — right-aligned bubble using the same quiet surface as the
- * command composer.
- *
- * Visual: submitted prompts stay visually related to the command box by using
- * `$bg-surface-raised` and no border. The bubble snaps to the right via
- * `justifyContent="flex-end"` and shrinks to fit its content with a max width
- * cap so long prompts wrap cleanly within the bubble instead of pushing the
- * chrome edge-to-edge.
- *
- * Wrapping: silvery's `<Prose>` wrap primitive (canonical typography wrapper)
- * + `<MarkdownView role="user">` handles markdown and word-boundary breaking. No mid-word breaks
- * unless a single token exceeds the bubble's interior width — same behavior
- * as the previous bg-tint UserRow, just chrome-only now.
- *
- * Selection: silvery's mouse-driven selection works at buffer level — the
- * cells inside the bubble carry plain styled text (no replacement glyphs or
- * non-text nodes), so drag-to-select inside the bubble continues to work.
- *
- * `additionalContext` carries hidden context (system-reminders, hook output)
- * exposed via the `/debug` toggle. The disclosure stays left-aligned and bg-
- * less BELOW the bubble — it's metadata about the bubble, not part of it.
- *
- * Bead: km-cr94.
- */
-function UserRow({
-  text,
-  additionalContext,
-  showDebug,
-}: {
-  text: string
-  additionalContext?: string
-  showDebug?: boolean
-}): React.ReactElement {
-  const hasContext = (additionalContext?.length ?? 0) > 0
-  const isMetaOnly = text.length === 0 && hasContext
-  const lineCount = additionalContext ? additionalContext.split("\n").length : 0
-  const content = useContentLayout()
-  const maxBubbleWidth = Math.max(1, Math.min(58, Math.floor(content.measure * 0.8)))
-  const bubbleWidth = userBubbleWidthForText(text, maxBubbleWidth)
-
-  return (
-    <Box
-      flexDirection="column"
-      alignSelf="stretch"
-      width="100%"
-      flexShrink={1}
-      minWidth={0}
-      paddingY={0}
-    >
-      {!isMetaOnly && (
-        <Box flexDirection="column" width="100%" flexShrink={1} minWidth={0}>
-          <Box
-            key={`${content.available}:${bubbleWidth}`}
-            flexDirection="row"
-            alignSelf="flex-end"
-            width={bubbleWidth}
-            maxWidth={maxBubbleWidth}
-            flexShrink={0}
-            minWidth={0}
-            backgroundColor={USER_PROMPT_BUBBLE_BG}
-            paddingX={USER_BUBBLE_PADDING_X}
-            paddingY={1}
-          >
-            <Prose width="100%" flexGrow={1} flexShrink={1} minWidth={0}>
-              <MarkdownView source={text} role="user" layout="inline" />
-            </Prose>
-          </Box>
-        </Box>
-      )}
-      {hasContext && (
-        <Box flexDirection="column" flexShrink={1} minWidth={0}>
-          <Text color="$muted">
-            {lineCount} line{lineCount === 1 ? "" : "s"} of hidden context (run `/debug` to toggle)
-          </Text>
-          {showDebug && (
-            <Box flexDirection="column" flexShrink={1} minWidth={0}>
-              <Text color="$muted" wrap="wrap">
-                {additionalContext}
-              </Text>
-            </Box>
-          )}
-        </Box>
-      )}
-    </Box>
-  )
-}
-
-/**
- * Assistant turn row. Leading `●` glyph uses regular foreground so role
- * identity stays visible without adding another accent color. Same structural notes as UserRow apply
- * (flexShrink + minWidth=0 chain so MarkdownView's wrap fires).
- */
-function AssistantRow({ text }: { text: string }): React.ReactElement {
-  const hasCode = hasCodeMarkdownBlock(text)
-  const hasTable = hasTableMarkdownBlock(text)
-  const layout = hasCode || hasTable ? "content" : "inline"
-  if (hasCode) {
-    return (
-      <Box flexDirection="column" position="relative" width="100%" maxWidth="100%" minWidth={0}>
-        <Prose flexGrow={1} minWidth={0}>
-          <MarkdownView source={text} layout="inline" />
-        </Prose>
-      </Box>
-    )
-  }
-  return (
-    <SessionEntry marker="•" markerColor="$fg" width={hasTable ? "100%" : "90%"}>
-      <Prose flexGrow={1} minWidth={0}>
-        <MarkdownView source={text} layout={layout} />
-      </Prose>
-    </SessionEntry>
   )
 }
 
@@ -618,10 +532,6 @@ function StandaloneProseFrame({
       {paddingAfter ? <Box height={1} flexShrink={0} /> : null}
     </Box>
   )
-}
-
-function hasCodeMarkdownBlock(text: string): boolean {
-  return parseBlocks(text).some((block) => block.kind === "code")
 }
 
 function hasTableMarkdownBlock(text: string): boolean {
@@ -645,18 +555,6 @@ function hasVisibleTurnOpAfter(ops: readonly MessageOp[], index: number): boolea
     if (isVisibleTurnOp(ops[i])) return true
   }
   return false
-}
-
-function ThinkingRow({ text }: { text: string }): React.ReactElement {
-  return (
-    <SessionEntry marker="•" markerColor="$muted">
-      <Prose flexGrow={1}>
-        <Text color="$muted" wrap="wrap">
-          {text}
-        </Text>
-      </Prose>
-    </SessionEntry>
-  )
 }
 
 function RawRow({ label }: { label: string }): React.ReactElement {
@@ -909,9 +807,11 @@ function SessionMetadataRow({ data }: { data: SessionMetadataRowData }): React.R
   return row
 }
 
-function sessionMetadataItems(
-  metadata: SessionHistoryMetadata | undefined,
-): { start?: SessionMetadataItem; loaded?: SessionMetadataItem; ended?: SessionMetadataItem } {
+function sessionMetadataItems(metadata: SessionHistoryMetadata | undefined): {
+  start?: SessionMetadataItem
+  loaded?: SessionMetadataItem
+  ended?: SessionMetadataItem
+} {
   if (!metadata) return {}
   const agent = metadata.agent ?? "agent"
   const model = metadata.model
@@ -947,9 +847,9 @@ function sessionMetadataItems(
             kind: "loaded" as const,
             title: `Session resumed ${displaySessionId(metadata.resumeId)}`,
             timestamp: formatTime(metadata.replayCompletedAt),
-            parts: [metadata.replayMessageCount !== undefined ? `${metadata.replayMessageCount} entries` : undefined].filter(
-              (p): p is string => !!p,
-            ),
+            parts: [
+              metadata.replayMessageCount !== undefined ? `${metadata.replayMessageCount} entries` : undefined,
+            ].filter((p): p is string => !!p),
             fields: metadataPairs({
               resumeId: metadata.resumeId,
               transcriptPath: metadata.transcriptPath,
@@ -1018,13 +918,21 @@ function TimestampedRow({
       <Content.Row>
         {side === "left" ? (
           <Content.Left>
-            <Content.Aside side="left" show={showTimestamp}>{timestamp}</Content.Aside>
+            <Content.Aside side="left" show={showTimestamp}>
+              {timestamp}
+            </Content.Aside>
           </Content.Left>
         ) : null}
-        {width === "wide" ? <Content.Body width="wide">{children}</Content.Body> : <Content.Prose>{children}</Content.Prose>}
+        {width === "wide" ? (
+          <Content.Body width="wide">{children}</Content.Body>
+        ) : (
+          <Content.Prose>{children}</Content.Prose>
+        )}
         {side === "right" ? (
           <Content.Right>
-            <Content.Aside side="right" show={showTimestamp} paddingTop={1}>{timestamp}</Content.Aside>
+            <Content.Aside side="right" show={showTimestamp} paddingTop={1}>
+              {timestamp}
+            </Content.Aside>
           </Content.Right>
         ) : null}
       </Content.Row>
@@ -1107,10 +1015,7 @@ function RawInspector({ payload, children }: { payload: unknown; children: React
 
 function isHighContentToolRun(run: Array<{ op: MessageOp; index: number }>): boolean {
   const toolOps = run.filter(({ op }) => op.kind === "tool")
-  if (toolOps.length === 1) {
-    const item = turnActivityItemForOp(toolOps[0]!.op)
-    return item?.toolCall.kind === "execute"
-  }
+  if (toolOps.length <= 1) return false
   const resultCount = toolOps.filter(({ op }) => op.kind === "tool" && op.result !== undefined).length
   if (resultCount >= 2) return true
   return toolOps.some(({ op }) => op.kind === "tool" && op.result?.is_error === true)
@@ -1134,7 +1039,12 @@ function ActivityDetails({ ops }: { ops: readonly MessageOp[] }): React.ReactEle
           if (op.text.length === 0) return null
           return (
             <RawInspector key={`thinking-${index}`} payload={op}>
-              <ThinkingRow text={op.text} />
+              <StandaloneProseFrame
+                paddingBefore={hasVisibleTurnOpBefore(ops, index)}
+                paddingAfter={hasVisibleTurnOpAfter(ops, index)}
+              >
+                <Chat.Turn.Narration text={op.text} muted />
+              </StandaloneProseFrame>
             </RawInspector>
           )
         }
@@ -1142,7 +1052,12 @@ function ActivityDetails({ ops }: { ops: readonly MessageOp[] }): React.ReactEle
           if (op.text.length === 0) return null
           return (
             <RawInspector key={`text-${index}`} payload={op}>
-              <AssistantRow text={op.text} />
+              <StandaloneProseFrame
+                paddingBefore={hasVisibleTurnOpBefore(ops, index)}
+                paddingAfter={hasVisibleTurnOpAfter(ops, index)}
+              >
+                <Chat.Turn.Narration text={op.text} />
+              </StandaloneProseFrame>
             </RawInspector>
           )
         }
@@ -1181,7 +1096,7 @@ function ActivityLivePreview({ ops }: { ops: readonly MessageOp[] }): React.Reac
       })}
       {thinking.map((op, index) => {
         if (op.kind !== "thinking") return null
-        return <ThinkingRow key={`thinking-${index}`} text={op.text} />
+        return <Chat.Turn.Narration key={`thinking-${index}`} text={op.text} muted />
       })}
     </Box>
   )
@@ -1191,19 +1106,24 @@ function ActivitySummaryForOps({
   ops,
   timestamp,
   onDisclosureToggle,
+  onExpandedChange,
 }: {
   ops: readonly MessageOp[]
   timestamp?: string
   onDisclosureToggle?: () => void
+  onExpandedChange?: (expanded: boolean) => void
 }): React.ReactElement {
-  const items = ops.flatMap((op) => turnActivityItemForOp(op) ?? [])
+  const displayOps = normalizeCommandSessionOps(ops)
+  const items = displayOps.flatMap((op) => turnActivityItemForOp(op) ?? [])
   return (
-    <TurnActivitySummary
+    <Chat.Turn.Activity
       items={items}
       timestamp={timestamp}
-      details={<ActivityDetails ops={ops} />}
-      livePreview={<ActivityLivePreview ops={ops} />}
+      details={<ActivityDetails ops={displayOps} />}
+      livePreview={<ActivityLivePreview ops={displayOps} />}
+      width={opsRenderDiff(displayOps) ? "auto" : "prose"}
       onDisclosureToggle={onDisclosureToggle}
+      onExpandedChange={onExpandedChange}
     />
   )
 }
@@ -1217,6 +1137,7 @@ function ExchangeItem({
   showDebug: boolean
   onDisclosureToggle?: () => void
 }): React.ReactElement {
+  const [highVolumeExpanded, setHighVolumeExpanded] = useState(false)
   // Background-task system messages: user-role entries with a "bg-" turnId
   // prefix AND the BACKGROUND_MESSAGE_PREFIX text prefix.
   if (isBackgroundSystemMessage(m)) {
@@ -1229,7 +1150,7 @@ function ExchangeItem({
   if (m.role === "user") {
     return (
       <TimestampedRow timestamp={formatTime(m.ts)} side="right">
-        <UserRow text={m.text} additionalContext={m.additionalContext} showDebug={showDebug} />
+        <Chat.Turn.Prompt text={m.text} additionalContext={m.additionalContext} showDebug={showDebug} />
       </TimestampedRow>
     )
   }
@@ -1269,9 +1190,10 @@ function ExchangeItem({
   // CSS §4.5 auto min-size with recursive intrinsic min-content). See
   // regression tests in apps/silvercode/tests/wrap-unbreakable-overflow.test.tsx
   // (bead: km-silvercode.wrap-unbreakable-audit, closed 2026-04-28).
+  const displayOps = normalizeCommandSessionOps(m.ops)
   type OpRun = { kind: MessageOp["kind"]; ops: Array<{ op: (typeof m.ops)[number]; index: number }> }
   const runs: OpRun[] = []
-  m.ops.forEach((op, i) => {
+  displayOps.forEach((op, i) => {
     const k = op.kind
     const tail = runs[runs.length - 1]
     if (tail && tail.kind === k) {
@@ -1280,20 +1202,100 @@ function ExchangeItem({
       runs.push({ kind: k, ops: [{ op, index: i }] })
     }
   })
+  const toolOpCount = displayOps.reduce((count, op) => count + (op.kind === "tool" ? 1 : 0), 0)
+  if (toolOpCount > 8) {
+    return (
+      <Chat.Turn.Root>
+        <Chat.Turn.Segment>
+          <ActivitySummaryForOps
+            ops={displayOps}
+            timestamp={formatTime(m.ts)}
+            onDisclosureToggle={onDisclosureToggle}
+            onExpandedChange={setHighVolumeExpanded}
+          />
+        </Chat.Turn.Segment>
+        {!highVolumeExpanded
+          ? displayOps.map((op, index) => {
+              if (op.kind === "tool") return null
+              if (op.kind === "text") {
+                if (op.text.length === 0) return null
+                return (
+                  <Chat.Turn.Segment key={`text-${index}`}>
+                    <RawInspector payload={op}>
+                      <TimestampedRow
+                        timestamp={formatTime(m.ts)}
+                        side="left"
+                        width={hasTableMarkdownBlock(op.text) ? "wide" : "prose"}
+                      >
+                        <Chat.Turn.Narration text={op.text} />
+                      </TimestampedRow>
+                    </RawInspector>
+                  </Chat.Turn.Segment>
+                )
+              }
+              if (op.kind === "thinking") {
+                if (op.text.length === 0) return null
+                return (
+                  <Chat.Turn.Segment key={`thinking-${index}`}>
+                    <RawInspector payload={op}>
+                      <TimestampedRow timestamp={formatTime(m.ts)} side="left">
+                        <Chat.Turn.Narration text={op.text} muted />
+                      </TimestampedRow>
+                    </RawInspector>
+                  </Chat.Turn.Segment>
+                )
+              }
+              if (op.kind === "raw") {
+                return (
+                  <Chat.Turn.Segment key={`raw-${index}`}>
+                    <RawInspector payload={op.raw}>
+                      <TimestampedRow timestamp={formatTime(m.ts)} side="left">
+                        <RawRow label={op.label} />
+                      </TimestampedRow>
+                    </RawInspector>
+                  </Chat.Turn.Segment>
+                )
+              }
+              return null
+            })
+          : null}
+      </Chat.Turn.Root>
+    )
+  }
 
   return (
-    <Box flexDirection="column" gap={1} flexShrink={0}>
+    <Chat.Turn.Root>
       {runs.map((run, runIdx) => (
         // gap=0 inside a run → consecutive tool calls (or coalesced text
         // ops) render contiguously. The outer `gap={1}` only applies
         // BETWEEN runs.
-        <Box key={runIdx} flexDirection="column" flexShrink={0}>
+        <Chat.Turn.Segment key={runIdx}>
           {run.kind === "tool" && isHighContentToolRun(run.ops) ? (
             <ActivitySummaryForOps
               ops={run.ops.map(({ op }) => op)}
               timestamp={formatTime(m.ts)}
               onDisclosureToggle={onDisclosureToggle}
             />
+          ) : run.kind === "tool" ? (
+            <Chat.Turn.ToolGroup>
+              {run.ops.map(({ op, index }) => {
+                if (op.kind !== "tool") return null
+                const c = op.toolCall
+                const result = op.result
+                const running = result === undefined
+                const adaptedCall = adaptToolCall(c, result, running)
+                return (
+                  <RawInspector key={c.id} payload={op}>
+                    <TimestampedRow timestamp={formatTime(m.ts)} side="left" width={opRendersDiff(op) ? "wide" : "prose"}>
+                      <ToolCall
+                        toolCall={adaptedCall}
+                        errorMessage={result?.is_error ? toolErrorMessage(result.output, adaptedCall.title) : undefined}
+                      />
+                    </TimestampedRow>
+                  </RawInspector>
+                )
+              })}
+            </Chat.Turn.ToolGroup>
           ) : (
             run.ops.map(({ op, index }) => {
               if (op.kind === "text") {
@@ -1302,11 +1304,15 @@ function ExchangeItem({
                 const row = (
                   <RawInspector key={`text-${index}`} payload={op}>
                     <StandaloneProseFrame
-                      paddingBefore={standalone && hasVisibleTurnOpBefore(m.ops, index)}
-                      paddingAfter={standalone && hasVisibleTurnOpAfter(m.ops, index)}
+                      paddingBefore={standalone && hasVisibleTurnOpBefore(displayOps, index)}
+                      paddingAfter={standalone && hasVisibleTurnOpAfter(displayOps, index)}
                     >
-                      <TimestampedRow timestamp={formatTime(m.ts)} side="left" width={hasTableMarkdownBlock(op.text) ? "wide" : "prose"}>
-                        <AssistantRow text={op.text} />
+                      <TimestampedRow
+                        timestamp={formatTime(m.ts)}
+                        side="left"
+                        width={hasTableMarkdownBlock(op.text) ? "wide" : "prose"}
+                      >
+                        <Chat.Turn.Narration text={op.text} />
                       </TimestampedRow>
                     </StandaloneProseFrame>
                   </RawInspector>
@@ -1318,7 +1324,7 @@ function ExchangeItem({
                 return (
                   <RawInspector key={`thinking-${index}`} payload={op}>
                     <TimestampedRow timestamp={formatTime(m.ts)} side="left">
-                      <ThinkingRow text={op.text} />
+                      <Chat.Turn.Narration text={op.text} muted />
                     </TimestampedRow>
                   </RawInspector>
                 )
@@ -1332,30 +1338,19 @@ function ExchangeItem({
                   </RawInspector>
                 )
               }
-              const c = op.toolCall
-              const result = op.result
-              const running = result === undefined
-              const adaptedCall = adaptToolCall(c, result, running)
-              return (
-                <RawInspector key={c.id} payload={op}>
-                  <TimestampedRow timestamp={formatTime(m.ts)} side="left">
-                    <ToolCall
-                      toolCall={adaptedCall}
-                      errorMessage={result?.is_error ? toolErrorMessage(result.output, adaptedCall.title) : undefined}
-                    />
-                  </TimestampedRow>
-                </RawInspector>
-              )
+              return null
             })
           )}
-        </Box>
+        </Chat.Turn.Segment>
       ))}
       {m.stopReason === "interrupted" ? (
-        <TimestampedRow timestamp={formatTime(m.ts)} side="left">
-          <InterruptedRow />
-        </TimestampedRow>
+        <Chat.Turn.Summary>
+          <TimestampedRow timestamp={formatTime(m.ts)} side="left">
+            <InterruptedRow />
+          </TimestampedRow>
+        </Chat.Turn.Summary>
       ) : null}
-    </Box>
+    </Chat.Turn.Root>
   )
 }
 
@@ -1394,37 +1389,13 @@ function isAssistantActivitySlice(item: Item): item is AssistantActivitySlice {
 }
 
 function isMessageEntry(item: Item): item is MessageEntry {
-  return !isActivity(item) && !isAmbient(item) && !isSessionMetadata(item) && !isPadding(item) && !isAssistantActivitySlice(item)
-}
-
-function sliceMessage(message: MessageEntry, ops: MessageOp[], suffix: string): MessageEntry {
-  const out = {
-    ...message,
-    id: `${message.id}:${suffix}` as MessageEntry["id"],
-    ops,
-  } as MessageEntry
-  Object.defineProperty(out, "text", {
-    get() {
-      return ops.flatMap((op) => (op.kind === "text" ? [op.text] : [])).join("")
-    },
-    enumerable: true,
-    configurable: true,
-  })
-  Object.defineProperty(out, "toolCalls", {
-    get() {
-      return ops.flatMap((op) => (op.kind === "tool" ? [op.toolCall] : []))
-    },
-    enumerable: true,
-    configurable: true,
-  })
-  Object.defineProperty(out, "toolResults", {
-    get() {
-      return ops.flatMap((op) => (op.kind === "tool" && op.result ? [op.result] : []))
-    },
-    enumerable: true,
-    configurable: true,
-  })
-  return out
+  return (
+    !isActivity(item) &&
+    !isAmbient(item) &&
+    !isSessionMetadata(item) &&
+    !isPadding(item) &&
+    !isAssistantActivitySlice(item)
+  )
 }
 
 function splitAssistantToolActivity(item: Item): Item[] {
@@ -1437,68 +1408,11 @@ function splitAssistantToolActivity(item: Item): Item[] {
     item.role !== "assistant"
   )
     return [item]
-  const toolCount = item.ops.filter((op) => op.kind === "tool").length
-  if (toolCount >= 8) {
-    const out: Item[] = []
-    const activityOps = item.ops.filter((op) => op.kind === "tool" || op.kind === "thinking")
-    let textOps: MessageOp[] = []
-    let insertedActivity = false
-    let seq = 0
-    const flushText = (): void => {
-      if (textOps.length === 0) return
-      out.push(sliceMessage(item, textOps, `text-${seq++}`))
-      textOps = []
-    }
-    for (const op of item.ops) {
-      if (op.kind === "tool" || op.kind === "thinking") {
-        if (!insertedActivity) {
-          flushText()
-          out.push({ __assistantActivity: true, id: `${item.id}:tools-all`, message: item, ops: activityOps })
-          insertedActivity = true
-        }
-      } else {
-        textOps.push(op)
-      }
-    }
-    flushText()
-    return out.length > 0 ? out : [item]
-  }
-  const out: Item[] = []
-  let nonToolOps: MessageOp[] = []
-  let toolOps: MessageOp[] = []
-  let pendingThinkingOps: MessageOp[] = []
-  let hasTool = false
-  let seq = 0
-  const flushNonTool = (): void => {
-    if (nonToolOps.length === 0) return
-    out.push(sliceMessage(item, nonToolOps, `text-${seq++}`))
-    nonToolOps = []
-  }
-  const flushTool = (): void => {
-    if (toolOps.length === 0) return
-    out.push({ __assistantActivity: true, id: `${item.id}:tools-${seq++}`, message: item, ops: toolOps })
-    toolOps = []
-  }
-  for (const op of item.ops) {
-    if (op.kind === "tool") {
-      hasTool = true
-      flushNonTool()
-      if (toolOps.length === 0 && pendingThinkingOps.length > 0) {
-        toolOps.push(...pendingThinkingOps)
-        pendingThinkingOps = []
-      }
-      toolOps.push(op)
-    } else if (op.kind === "thinking") {
-      if (toolOps.length > 0) toolOps.push(op)
-      else pendingThinkingOps.push(op)
-    } else {
-      flushTool()
-      nonToolOps.push(op)
-    }
-  }
-  flushTool()
-  flushNonTool()
-  return hasTool && out.length > 0 ? out : [item]
+  return splitAssistantMessageForTranscript(item).map((slice): Item =>
+    slice.kind === "activity"
+      ? { __assistantActivity: true, id: slice.id, message: slice.message, ops: slice.ops }
+      : slice.message,
+  )
 }
 
 function isAssistantToolActivity(item: Item): boolean {
@@ -1579,7 +1493,11 @@ function insertRenderGaps(items: RenderItem[]): RenderItem[] {
       !areDenseAdjacentItems(prev, item) &&
       !(ownsVerticalSpacing(prev) || ownsVerticalSpacing(item))
     ) {
-      out.push({ __padding: true, id: `gap:${renderItemKey(prev, out.length)}:${renderItemKey(item, out.length)}`, height: 1 })
+      out.push({
+        __padding: true,
+        id: `gap:${renderItemKey(prev, out.length)}:${renderItemKey(item, out.length)}`,
+        height: 1,
+      })
     }
     out.push(item)
   }
@@ -1830,20 +1748,26 @@ export const SessionUpdateList = React.forwardRef<
         ))}
       </Box>
     ) : isActivity(item) ? (
-      <ActivityIndicator
-        status={status}
-        pendingPermissions={pendingPermissions}
-        inFlightTool={inFlightTool}
-        turnStartedAt={turnStartedAt}
-        inputTokens={inputTokens}
-        outputTokens={outputTokens}
-        agentLabel={agentLabel}
-        agentVersion={agentVersion}
-      />
+      <Chat.Body width="prose">
+        <ActivityIndicator
+          status={status}
+          pendingPermissions={pendingPermissions}
+          inFlightTool={inFlightTool}
+          turnStartedAt={turnStartedAt}
+          inputTokens={inputTokens}
+          outputTokens={outputTokens}
+          agentLabel={agentLabel}
+          agentVersion={agentVersion}
+        />
+      </Chat.Body>
     ) : isAmbient(item) ? (
-      <AmbientNotificationStack entries={item.entries} />
+      <Chat.Notification>
+        <AmbientNotificationStack entries={item.entries} />
+      </Chat.Notification>
     ) : isSessionMetadata(item) ? (
-      <SessionMetadataRow data={item.data} />
+      <Chat.Metadata>
+        <SessionMetadataRow data={item.data} />
+      </Chat.Metadata>
     ) : isAssistantActivitySlice(item) ? (
       <ActivitySummaryForOps
         ops={item.ops}
@@ -1897,7 +1821,7 @@ export const SessionUpdateList = React.forwardRef<
         ))}
       </Box>
     )
-    return hasContentLayout ? body : <Content.Layout>{body}</Content.Layout>
+    return hasContentLayout ? body : <Chat.Transcript>{body}</Chat.Transcript>
   }
 
   const list = (
@@ -1913,11 +1837,5 @@ export const SessionUpdateList = React.forwardRef<
       renderItem={renderGroupedItem}
     />
   )
-  return hasContentLayout ? (
-    list
-  ) : (
-    <Content.Layout>
-      {list}
-    </Content.Layout>
-  )
+  return hasContentLayout ? list : <Chat.Transcript>{list}</Chat.Transcript>
 })

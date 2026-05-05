@@ -180,25 +180,92 @@ Rules:
 
 ## Acceptance Criteria
 
-- [ ] `Chat.*` component family exists and is used by Silvercode transcript rendering.
-- [ ] `Chat.Turn.*` owns prompt, segment, narration, activity, tool group, summary, and stats rendering.
-- [ ] Collapsed turn summary can aggregate dense tool work across the turn.
-- [ ] Expanded turn details preserve original stream order across narration/activity/narration/activity.
-- [ ] Activity segments remain individually collapsible inside expanded turns.
-- [ ] User prompt rendering is implemented by `Chat.Turn.Prompt`.
-- [ ] Active composer is represented by `Chat.Composer` and is not placed inside transcript scrollback.
-- [ ] Metadata and notifications are expressed as `Chat.Metadata` and `Chat.Notification`.
-- [ ] `Content.*` remains generic layout only; chat semantics do not leak into it.
-- [ ] Storybook includes examples for collapsed turn, expanded turn, dense activity, nested activity expansion, prompt-only, summary-only, metadata, notification, and composer.
-- [ ] Tests cover a turn with `narration + tools + narration + tools + summary`.
-- [ ] Tests cover `toolCount >= 8`: collapsed turn aggregates, expanded turn preserves sequence.
-- [ ] Tests cover activity-level expansion inside an expanded turn.
-- [ ] Existing hover timestamp/asides behavior is preserved.
-- [ ] Existing raw/debug inspector remains available per row/item.
+- [x] `Chat.*` component family exists and is used by Silvercode transcript rendering.
+- [x] `Chat.Turn.*` owns prompt, segment, narration, activity, tool group, summary, and stats rendering.
+- [x] Collapsed turn summary can aggregate dense tool work across the turn.
+- [x] Expanded turn details preserve original stream order across narration/activity/narration/activity.
+- [x] Activity segments remain individually collapsible inside expanded turns.
+- [x] User prompt rendering is implemented by `Chat.Turn.Prompt`.
+- [x] Active composer is represented by `Chat.Composer` and is not placed inside transcript scrollback.
+- [x] Metadata and notifications are expressed as `Chat.Metadata` and `Chat.Notification`.
+- [x] `Content.*` remains generic layout only; chat semantics do not leak into it.
+- [x] Storybook includes examples for collapsed turn, expanded turn, dense activity, nested activity expansion, prompt-only, summary-only, metadata, notification, and composer.
+- [x] Tests cover a turn with `narration + tools + narration + tools + summary`.
+- [x] Tests cover `toolCount >= 8`: collapsed turn aggregates, expanded turn preserves sequence.
+- [x] Tests cover activity-level expansion inside an expanded turn.
+- [x] Existing hover timestamp/asides behavior is preserved.
+- [x] Existing raw/debug inspector remains available per row/item.
 
 ## Notes
 
 This bead is intentionally architectural and P0 because it should stop the recurring layout/progressive-disclosure churn in `SessionUpdateList`. The expected end state is a thinner `SessionUpdateList` that builds a chat model and maps it to `Chat.*`, rather than hand-authoring transcript semantics inline.
+
+## Progress 2026-05-03
+
+- Added `apps/silvercode/src/components/Chat.tsx` with `Chat.Root`, `Chat.Transcript`, `Chat.Metadata`, `Chat.Notification`, `Chat.Composer`, `Chat.Body`, and `Chat.Turn.*`.
+- Added `apps/silvercode/src/chat-model.ts` with explicit `ChatTurn`, `ChatTurnSegment`, `ChatActivitySegment`, and assistant op segmentation.
+- Migrated user prompt, assistant narration, thinking text, activity summary, segment, summary, and stats rendering in `SessionUpdateList` onto `Chat.Turn.*` primitives.
+- Routed production session metadata, ambient notification rows, and active composer placement through `Chat.Metadata`, `Chat.Notification`, and `Chat.Composer`.
+- Changed dense interleaved assistant turns to preserve narration/activity/narration/activity order. The old `toolCount >= 8` path no longer flattens all tools into one activity row across intervening narration.
+- Added `Chat/*` storybook stories and updated `All/together` to expose the new component hierarchy while production transcript examples continue through the real `SessionUpdateList` path.
+- Added `apps/silvercode/tests/chat-model.test.ts` and updated turn-activity assertions for the new preserved-order contract.
+
+Verification in current working tree:
+
+- `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/turn-activity-summary.test.tsx apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/message-list-scroll.test.tsx` — 50 tests passed.
+- `bun vitest run apps/silvercode/storybook/tests/stories.test.tsx apps/silvercode/storybook/tests/registry.test.ts` — 40 tests passed.
+- `bun vitest run --dir vendor/silvery tests/features/listview-overscroll-bump.test.tsx tests/ui/list-view-visible-content-anchoring.test.tsx tests/features/height-model.test.ts` — 31 tests passed.
+
+Remaining before close:
+
+- `SessionUpdateList` is thinner but still owns item interleaving, metadata injection, grouping, and low-level render dispatch. A final cleanup pass should move more of that into the chat model/renderer boundary before this bead closes.
+- The command box is represented by `Chat.Composer`, but the app still threads the active composer as `composerSlot`; renaming/wrapping `SessionPromptComposer` itself can happen once the active input surface is ready for a public `Chat.Composer` API.
+- User confirmation from real `silvercode --resume ...` screenshots is still required for the broader layout plateau.
+
+## Progress 2026-05-04
+
+- Tightened the first-pass `Chat.*` migration with root fixes found by the full suite:
+  - `MarkdownView` now participates in shrink/wrap as a bounded flex child, so plain markdown wraps at the card boundary.
+  - `SyntaxHighlighter` now uses the agreed code-block inner margins: two columns left/right and hover language label inset from the right edge.
+  - `SessionCard` owns a full-width pane contract and the zoomed `PaneGrid` path preserves the focus marker.
+  - ACP process cleanup no longer assumes a `.once()` listener on test seams when `.on()` is the available child-process surface.
+  - Silvery `ListView` anchoring now yields to explicit declarative `scrollTo` targets, fixing the shared km-tui column overflow indicator regression without a km-tui workaround.
+
+Verification:
+
+- `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/turn-activity-summary.test.tsx apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/ambient-welcome-artifact.test.tsx apps/silvercode/tests/wrap-regression.test.tsx apps/silvercode/tests/visual/markdown.test.tsx apps/silvercode/tests/visual/pane-2d-layout.test.tsx apps/silvercode/packages/agent-harness/tests/registry-adapters.test.ts apps/silvercode/packages/agent-harness/tests/ambient-wire-bytes.test.ts` — 82 tests passed.
+- `bun vitest run apps/silvercode/storybook/tests/stories.test.tsx apps/silvercode/storybook/tests/registry.test.ts` — 40 tests passed.
+- `bun vitest run --dir vendor/silvery tests/features/listview-overscroll-bump.test.tsx tests/ui/list-view-visible-content-anchoring.test.tsx tests/features/height-model.test.ts` — 31 tests passed.
+- `bun vitest run apps/km-tui/tests/column-rendering.test.ts --testNamePattern "▲ shows"` — 1 test passed.
+- `bun run test:fast` — typecheck baseline passed and 9288/9289 tests passed; the only remaining failure is `apps/km-cli/tests/bd-move-alias.test.ts`, which reproduces independently and is outside the silvercode/chat/silvery layout surface.
+
+## Progress 2026-05-04 Late
+
+- Moved transcript assistant slicing into `apps/silvercode/src/chat-model.ts` so `SessionUpdateList` no longer owns the narration/activity splitting policy.
+- Changed transcript activity disclosure so a single tool/activity renders inline; activity summaries are reserved for cases where they reduce visible noise.
+- Kept high-content tool grouping disabled for one-tool runs, while preserving multi-tool/dense collapsed summaries and expanded sequential narration/activity behavior.
+- Updated transcript tests for inline single-command, inline `apply_patch` diff, inline `view_image`, and stable command-row expansion.
+
+Verification:
+
+- `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/turn-activity-summary.test.tsx` — 28 tests passed.
+- `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/turn-activity-summary.test.tsx apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/ambient-welcome-artifact.test.tsx apps/silvercode/tests/wrap-regression.test.tsx apps/silvercode/tests/visual/markdown.test.tsx apps/silvercode/tests/visual/pane-2d-layout.test.tsx apps/silvercode/packages/agent-harness/tests/registry-adapters.test.ts apps/silvercode/packages/agent-harness/tests/ambient-wire-bytes.test.ts` — 90 tests passed.
+- `bun vitest run apps/silvercode/storybook/tests/stories.test.tsx apps/silvercode/storybook/tests/registry.test.ts` — 41 tests passed.
+- `bun run typecheck` is not a useful clean signal in this sandbox/worktree: it cannot write `packages/km-infra/typescript/.tsbuildinfo` from the `apps/silvercode` writable root, and the repo-wide pass also reports pre-existing km-cli/vendor/silvery type errors. A narrower `apps/silvercode/tsconfig.json` pass avoids the write location with `/tmp/silvercode-tsconfig.tsbuildinfo`, but still fails in vendor `silvery`/`termless` type declarations outside this change.
+
+## Completed 2026-05-04
+
+- Moved command-session normalization (`exec_command` plus `write_stdin` polling) into `apps/silvercode/src/chat-model.ts`, and made both transcript slicing and turn stats use normalized ops before deciding whether an activity summary saves space.
+- Fixed the real `silvercode --resume codex:019ddfc8-0749-7da1-b892-b2e1c6bc389f` regression where one normalized command still displayed as `Ran 1 command`; the transcript now renders the command row inline.
+- Routed transcript layout through `Chat.Transcript` from production `SessionCard` and `SessionUpdateList` fallback paths, leaving `Content.Layout` as the generic substrate under `Chat.Transcript`.
+- Routed inline tool runs through `Chat.Turn.ToolGroup`; dense/high-content runs still use `Chat.Turn.Activity`.
+- Added regression coverage for one interleaved command, one normalized `exec_command`/`write_stdin` command, normalized turn stats, and the real resumed Codex transcript.
+
+Final verification in this worktree:
+
+- `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/turn-activity-summary.test.tsx apps/silvercode/tests/render-resumed-session-helper.test.tsx apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/ambient-welcome-artifact.test.tsx apps/silvercode/tests/wrap-regression.test.tsx apps/silvercode/tests/visual/markdown.test.tsx apps/silvercode/tests/visual/pane-2d-layout.test.tsx apps/silvercode/packages/agent-harness/tests/registry-adapters.test.ts apps/silvercode/packages/agent-harness/tests/ambient-wire-bytes.test.ts` — 95 tests passed.
+- `bun vitest run apps/silvercode/storybook/tests/stories.test.tsx apps/silvercode/storybook/tests/registry.test.ts` — 41 tests passed.
+- Typecheck caveat remains the same as above: repo-wide and narrow app typecheck are currently blocked by sandbox `.tsbuildinfo` write constraints and pre-existing vendor/repo type errors outside this component refactor.
 
 ## Related
 

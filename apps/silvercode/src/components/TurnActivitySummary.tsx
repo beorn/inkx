@@ -10,8 +10,8 @@
  */
 
 import React, { useState } from "react"
-import { Box, Text, useHover, useModifierKeys, usePopoverHandlers, type SilveryMouseEvent } from "silvery"
-import type { ToolCall as ToolCallType, ToolKind } from "@km/agent-harness"
+import { Box, Text, useHover, useModifierKeys, type SilveryMouseEvent } from "silvery"
+import type { ContentBlock, ToolCall as ToolCallType, ToolKind } from "@km/agent-harness"
 import { ToolCall, ToolContentForceExpandedProvider, ToolMarkerBackgroundProvider } from "./ToolCall.tsx"
 import { Content, useContentLayout } from "./Content.tsx"
 import { SessionEntry } from "./SessionEntry.tsx"
@@ -28,7 +28,10 @@ export interface TurnActivitySummaryProps {
   details?: React.ReactNode
   livePreview?: React.ReactNode
   timestamp?: string
+  width?: "prose" | "wide" | "auto"
+  naturalWidth?: number
   onDisclosureToggle?: () => void
+  onExpandedChange?: (expanded: boolean) => void
 }
 
 const WORDS: Record<ToolKind, { verb: string; activeVerb: string; noun: string }> = {
@@ -103,28 +106,6 @@ function summaryParts(items: readonly TurnActivitySummaryItem[]): string[] {
   })
 }
 
-function detailsPreview(items: readonly TurnActivitySummaryItem[], details?: React.ReactNode): React.ReactElement {
-  if (details)
-    return (
-      <Box flexDirection="column" gap={1}>
-        {details}
-      </Box>
-    )
-  return (
-    <Box flexDirection="column" gap={1}>
-      {items.map((item) => (
-        <ToolCall
-          key={item.id}
-          toolCall={item.toolCall}
-          errorMessage={item.errorMessage}
-          defaultExpanded
-          interactive={false}
-        />
-      ))}
-    </Box>
-  )
-}
-
 function SummaryText({
   parts,
   expanded,
@@ -150,19 +131,58 @@ function SummaryText({
   )
 }
 
+function textBlockNaturalWidth(block: ContentBlock): number {
+  switch (block.type) {
+    case "text":
+      return Math.max(0, ...block.text.split("\n").map((line) => line.length))
+    case "image":
+      return block.uri?.length ?? 0
+    case "resource_link":
+      return block.uri.length
+    case "audio":
+    case "resource":
+      return 0
+  }
+}
+
+function toolContentNaturalWidth(content: NonNullable<ToolCallType["content"]>[number]): number {
+  if (content.type === "diff") {
+    const oldWidth = Math.max(0, ...(content.oldText ?? "").split("\n").map((line) => line.length + 1))
+    const newWidth = Math.max(0, ...content.newText.split("\n").map((line) => line.length + 1))
+    return Math.max(content.path.length, oldWidth, newWidth)
+  }
+  if (content.type === "content") return textBlockNaturalWidth(content.content)
+  if (content.type === "terminal") return content.terminalId.length
+  return 0
+}
+
+function itemNaturalWidth(item: TurnActivitySummaryItem): number {
+  const titleWidth = item.toolCall.title.length
+  const contentWidth = Math.max(0, ...(item.toolCall.content ?? []).map(toolContentNaturalWidth))
+  const errorWidth = item.errorMessage ? Math.max(0, ...item.errorMessage.split("\n").map((line) => line.length)) : 0
+  // One marker cell plus one gap before the title/content column.
+  return 2 + Math.max(titleWidth, contentWidth, errorWidth)
+}
+
+function summaryNaturalWidth(items: readonly TurnActivitySummaryItem[], fallbackText: string): number {
+  return Math.max(fallbackText.length + 2, ...items.map(itemNaturalWidth))
+}
+
 export function TurnActivitySummary({
   items,
   defaultExpanded = false,
   details,
   livePreview,
   timestamp,
+  width = "prose",
+  naturalWidth,
   onDisclosureToggle,
+  onExpandedChange,
 }: TurnActivitySummaryProps): React.ReactElement {
   const [expanded, setExpanded] = useState(defaultExpanded)
   const [forceExpandDetails, setForceExpandDetails] = useState(false)
   const { isHovered, onMouseEnter, onMouseLeave } = useHover()
   const { super: cmdHeld } = useModifierKeys({ enabled: isHovered })
-  const popover = usePopoverHandlers({ body: detailsPreview(items, details), maxWidth: 100 })
   const contentLayout = useContentLayout()
   const parts = summaryParts(items)
   const text = parts.length > 0 ? parts.join(", ") : `${items.length} tool ${items.length === 1 ? "call" : "calls"}`
@@ -172,20 +192,22 @@ export function TurnActivitySummary({
   const marker = expanded ? "▾" : isHovered ? "▸" : " "
   const markerColor = marker === " " ? "$muted" : "$fg"
   const headerMaxWidth = Math.max(1, contentLayout.measure)
+  const expandedNaturalWidth = naturalWidth ?? summaryNaturalWidth(items, text)
   const showTimestamp = isHovered && cmdHeld
+  const separateExpandedBody = items.length > 8
 
   function onHeaderEnter(e: Parameters<typeof onMouseEnter>[0]): void {
     onMouseEnter(e)
-    if (!expanded) popover.onMouseEnter(e)
   }
 
   function onHeaderLeave(e: Parameters<typeof onMouseLeave>[0]): void {
     onMouseLeave(e)
-    if (!expanded) popover.onMouseLeave(e)
   }
 
   function onHeaderClick(): void {
     onDisclosureToggle?.()
+    const next = !expanded
+    onExpandedChange?.(next)
     setExpanded((v) => {
       if (v) setForceExpandDetails(false)
       return !v
@@ -245,19 +267,13 @@ export function TurnActivitySummary({
         onDisclosureToggle?.()
       }}
     >
-      <Box
-        position="absolute"
-        left={-8}
-        top={0}
-        width={8}
-        height={Math.max(1, items.length * 3)}
-        onClick={(e: SilveryMouseEvent) => {
-          e.stopPropagation()
-          setForceExpandDetails(true)
-        }}
-      />
       <ToolMarkerBackgroundProvider value={markerBg}>
         <ToolContentForceExpandedProvider value={forceExpandDetails}>
+          {separateExpandedBody ? (
+            <Box height={1}>
+              <Text> </Text>
+            </Box>
+          ) : null}
           {details ??
             items.map((item) => <ToolCall key={item.id} toolCall={item.toolCall} errorMessage={item.errorMessage} />)}
         </ToolContentForceExpandedProvider>
@@ -265,12 +281,16 @@ export function TurnActivitySummary({
     </Box>
   ) : null
 
-  const body = (
-    <Content.Body width="prose">
-      {collapsed}
-      {expandedBody}
-    </Content.Body>
-  )
+  const collapsedBody = <Content.Body width="prose">{collapsed}</Content.Body>
+  const expandedBodyRow = expandedBody ? (
+    <Content.Row>
+      {width === "auto" ? (
+        <Content.Auto naturalWidth={expandedNaturalWidth}>{expandedBody}</Content.Auto>
+      ) : (
+        <Content.Body width={width}>{expandedBody}</Content.Body>
+      )}
+    </Content.Row>
+  ) : null
 
   if (timestamp) {
     return (
@@ -279,15 +299,17 @@ export function TurnActivitySummary({
           <Content.Left>
             <Content.Aside show={showTimestamp}>{timestamp}</Content.Aside>
           </Content.Left>
-          {body}
+          {collapsedBody}
         </Content.Row>
+        {expandedBodyRow}
       </Box>
     )
   }
 
   return (
     <Box flexDirection="column" width="100%">
-      {body}
+      <Content.Row>{collapsedBody}</Content.Row>
+      {expandedBodyRow}
     </Box>
   )
 }

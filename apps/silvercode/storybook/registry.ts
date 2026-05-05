@@ -32,6 +32,7 @@ import {
 import { applyPatch, applyPatchMulti } from "./stories/ApplyPatch.story.tsx"
 import { sessionUpdateListEmpty } from "./stories/SessionUpdateList.empty.story.tsx"
 import { sessionUpdateListMultiTurn } from "./stories/SessionUpdateList.multi-turn.story.tsx"
+import { chatBigToolTurn, chatMultiTurn, chatTurnActivityRich, chatTurnComponents } from "./stories/Chat.story.tsx"
 import { welcomeBasic, welcomeFreshWithDraft, welcomeLoadingResume } from "./stories/Welcome.basic.story.tsx"
 // Wave B — ACP component family stories
 import { sessionPromptComposerEmpty } from "./stories/SessionPromptComposer.empty.story.tsx"
@@ -78,6 +79,10 @@ export const STORIES: readonly Story[] = [
   sessionUpdateListEmpty,
   sessionUpdateListMultiTurn,
   sessionUpdateListTurnActivityRich,
+  chatTurnComponents,
+  chatMultiTurn,
+  chatTurnActivityRich,
+  chatBigToolTurn,
   // Conversation structure
   sessionExchangeDividerBetweenExchanges,
   sessionRetryFailedExchange,
