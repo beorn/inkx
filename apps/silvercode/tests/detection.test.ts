@@ -203,6 +203,26 @@ describe("markdown tokenizer", () => {
     expect(bullets.length).toBeGreaterThanOrEqual(3)
   })
 
+  test("prose-like indented assistant continuation is not rendered as code", () => {
+    const md = [
+      "There are 10 P0 beads total. The only latest P0 still WIP is:",
+      "",
+      "    @km/silvercode/recent-transcript-layout-quality-plateau",
+      "    I'll treat these as visual/TUI regressions and use focused tests before changing code.",
+    ].join("\n")
+    const blocks = parseBlocks(md)
+    expect(blocks.some((b) => b.kind === "code")).toBe(false)
+    expect(blocks.filter((b) => b.kind === "paragraph").map((b) => (b.kind === "paragraph" ? b.text : ""))).toEqual([
+      "There are 10 P0 beads total. The only latest P0 still WIP is:",
+      "@km/silvercode/recent-transcript-layout-quality-plateau\nI'll treat these as visual/TUI regressions and use focused tests before changing code.",
+    ])
+  })
+
+  test("real indented code still renders as code", () => {
+    const blocks = parseBlocks(["Example:", "", "    const x = 1", "    return x"].join("\n"))
+    expect(blocks.some((b) => b.kind === "code")).toBe(true)
+  })
+
   test("table with inline code + bold inside cells", () => {
     const md = ["| name | value |", "|------|-------|", "| `a`  | **hi** |", "| b    | _em_   |"].join("\n")
     const blocks = parseBlocks(md)

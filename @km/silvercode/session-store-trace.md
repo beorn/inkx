@@ -45,3 +45,13 @@ Acceptance:
 - termless test: feeding a stray 'requesting' status event with no active turnId in dev mode throws; in prod returns silently with warn
 - bun fix clean, tsc not regressed
 
+## Implementation Notes
+
+2026-05-05:
+
+- Added centralized `setStatus()` in `apps/silvercode/packages/agent-harness/src/session-reducer.ts`; all reducer status mutations now route through it.
+- Added `silvercode:status` transition logging with `{ from, to, reason, eventKind, turnId }`.
+- Added dev-mode invariant: entering `thinking`, `tool-running`, or `awaiting-permission` without an owner id throws; production warns and applies the transition.
+- Added `statusTrace` 30-entry ring buffer on session state for forensics.
+- Added liveness obligations for turns, tools, and permission requests plus `liveness-check` diagnostics.
+- Verification: `apps/silvercode/packages/agent-harness/tests/status-trace.test.ts` passed in the targeted run; root `npx tsc --noEmit --pretty false` passed.

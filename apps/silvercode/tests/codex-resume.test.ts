@@ -594,6 +594,38 @@ describe("codex-resume: replayCodexSessionFromDisk", () => {
     if (tool?.kind === "tool") expect(tool.result?.output).toContain("interrupted")
   })
 
+  test("ignores Codex turn_aborted meta notes instead of rendering them as user prompts", () => {
+    const metaNote =
+      "<turn_aborted>\nThe user interrupted the previous turn on purpose.\nAny running unified exec processes may still be running in the background.\n</turn_aborted>"
+    const body = lines(
+      {
+        timestamp: "2026-04-30T05:18:17.609Z",
+        type: "session_meta",
+        payload: { id: SESSION_ID, cwd: "/tmp", cli_version: "0.124.0" },
+      },
+      {
+        timestamp: "2026-04-30T05:18:18.000Z",
+        type: "event_msg",
+        payload: { type: "user_message", message: "real prompt" },
+      },
+      {
+        timestamp: "2026-04-30T05:18:19.000Z",
+        type: "event_msg",
+        payload: { type: "user_message", message: metaNote },
+      },
+    )
+    writeFakeRollout(SESSION_ID, body)
+
+    const store = createSessionStore()
+    replayCodexSessionFromDisk(store, SESSION_ID)
+    const userMessages = store.state
+      .get()
+      .messages.filter((m) => m.role === "user")
+      .map((m) => m.text)
+
+    expect(userMessages).toEqual(["real prompt"])
+  })
+
   test("known Codex web-search transcript entries are ignored without failing resume", () => {
     const body = lines(
       {

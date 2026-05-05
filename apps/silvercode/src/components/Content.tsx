@@ -1,5 +1,6 @@
-import React, { createContext, useContext } from "react"
+import React, { createContext, useContext, useEffect, useRef } from "react"
 import { Box, Text, type Breakpoint, DEFAULT_BREAKPOINTS, useBoxRect } from "silvery"
+import { createLogger } from "loggily"
 
 type Responsive<T> = T | ({ default: T } & Partial<Record<Breakpoint, T>>)
 type WidthValue = number | `${number}%`
@@ -30,6 +31,7 @@ const DEFAULT_CONTEXT: ContentContextValue = {
   gap: 1,
 }
 
+const layoutLog = createLogger("silvercode:layout")
 const ContentContext = createContext<ContentContextValue | null>(null)
 const ContentRowContext = createContext<{ available: number } | null>(null)
 
@@ -104,20 +106,19 @@ function MeasuredLayoutProbe({
   gap: number
 }): React.ReactElement {
   const rect = useBoxRect()
-  const available = Math.max(0, Math.round(rect.width))
-  if (available <= 0) {
-    return (
-      <Box
-        flexDirection="column"
-        alignSelf="stretch"
-        width="100%"
-        minWidth={0}
-        flexGrow={1}
-        flexShrink={1}
-        minHeight={0}
-      />
-    )
-  }
+  const measured = Math.max(0, Math.round(rect.width))
+  const available = measured
+  const lastLogKey = useRef("")
+  useEffect(() => {
+    const key = `${measured}:${available}`
+    if (key === lastLogKey.current) return
+    lastLogKey.current = key
+    layoutLog.debug?.("content layout probe", {
+      measured,
+      available,
+      measuredReady: measured > 0,
+    })
+  }, [available, measured])
   return (
     <MeasuredLayout available={available} measure={measure} wide={wide} align={align} gap={gap}>
       {children}
@@ -149,6 +150,13 @@ function MeasuredLayout({
     align: resolvedAlign,
     gap,
   }
+  const lastLogKey = useRef("")
+  useEffect(() => {
+    const key = `${value.available}:${value.measure}:${value.wide}:${value.full}:${value.align}:${value.gap}`
+    if (key === lastLogKey.current) return
+    lastLogKey.current = key
+    layoutLog.debug?.("content layout resolved", value)
+  }, [value.available, value.measure, value.wide, value.full, value.align, value.gap])
   return (
     <ContentContext.Provider value={value}>
       <Box
@@ -249,14 +257,103 @@ function Row({
   const rightMargin = rowAlign === "center" ? Math.max(0, available - occupiedWidth - leftMargin) : 0
   const leftSpacer = rowAlign === "center" && !middleSelfAligns ? leftMargin : 0
   const rightSpacer = rowAlign === "center" && !middleSelfAligns ? rightMargin : 0
+  const usesMeasuredGeometry = ctx.available > 0
+  const lastLogKey = useRef("")
+  useEffect(() => {
+    const key = [
+      ctx.available,
+      ctx.measure,
+      ctx.wide,
+      rowAlign,
+      laneWidth,
+      middleAvailable,
+      width,
+      middleWidth,
+      leftMargin,
+      rightMargin,
+      left.length,
+      right.length,
+      middle.length,
+      hasDirectProseLane,
+      hasDirectWideLane,
+      hasDirectFullLane,
+      hasDirectProseBody,
+      hasDirectWideBody,
+      hasDirectFullBody,
+      usesMeasuredGeometry,
+    ].join(":")
+    if (key === lastLogKey.current) return
+    lastLogKey.current = key
+    layoutLog.debug?.("content row resolved", {
+      available,
+      rowAlign,
+      laneWidth,
+      middleAvailable,
+      width,
+      middleWidth,
+      occupiedWidth,
+      leftMargin,
+      rightMargin,
+      leftSpacer,
+      rightSpacer,
+      leftCount: left.length,
+      rightCount: right.length,
+      middleCount: middle.length,
+      middleSelfAligns,
+      hasDirectProseLane,
+      hasDirectWideLane,
+      hasDirectFullLane,
+      hasDirectProseBody,
+      hasDirectWideBody,
+      hasDirectFullBody,
+      usesMeasuredGeometry,
+    })
+  }, [
+    available,
+    ctx.available,
+    ctx.measure,
+    ctx.wide,
+    hasDirectFullBody,
+    hasDirectFullLane,
+    hasDirectProseBody,
+    hasDirectProseLane,
+    hasDirectWideBody,
+    hasDirectWideLane,
+    laneWidth,
+    left.length,
+    leftMargin,
+    leftSpacer,
+    middle.length,
+    middleAvailable,
+    middleSelfAligns,
+    middleWidth,
+    occupiedWidth,
+    right.length,
+    rightMargin,
+    rightSpacer,
+    rowAlign,
+    usesMeasuredGeometry,
+    width,
+  ])
+  if (!usesMeasuredGeometry) {
+    return (
+      <Box flexDirection="row" alignSelf="stretch" width="100%" minWidth={0} flexShrink={0} position="relative">
+        <ContentRowContext.Provider value={{ available: 0 }}>
+          <Box flexDirection="row" width="100%" minWidth={0} flexShrink={1}>
+            {middle}
+          </Box>
+        </ContentRowContext.Provider>
+      </Box>
+    )
+  }
   const leftAside =
-    left.length > 0 ? (
+    left.length > 0 && leftMargin > 0 ? (
       <Box position="absolute" top={0} left={0} width={leftMargin} flexDirection="row" justifyContent="flex-end">
         {left}
       </Box>
     ) : null
   const rightAside =
-    right.length > 0 ? (
+    right.length > 0 && rightMargin > 0 ? (
       <Box position="absolute" top={0} right={0} width={rightMargin} flexDirection="row" justifyContent="flex-start">
         {right}
       </Box>
@@ -321,6 +418,15 @@ function Wide({ children }: { children: React.ReactNode }): React.ReactElement {
   const row = useContext(ContentRowContext)
   const ctx = useContentLayout()
   const available = row?.available ?? ctx.available
+  if (available <= 0) {
+    return (
+      <Box flexDirection="row" width="100%" justifyContent={laneJustify(ctx.align)} minWidth={0}>
+        <Box flexDirection="column" width="100%" minWidth={0}>
+          {children}
+        </Box>
+      </Box>
+    )
+  }
   const width = available > 0 ? Math.min(ctx.wide, available) : ctx.wide
   return (
     <Box flexDirection="row" width="100%" justifyContent={laneJustify(ctx.align)} minWidth={0}>
@@ -332,17 +438,25 @@ function Wide({ children }: { children: React.ReactNode }): React.ReactElement {
 }
 
 function Full({ children }: { children: React.ReactNode }): React.ReactElement {
+  const row = useContext(ContentRowContext)
+  const ctx = useContentLayout()
+  const available = row?.available ?? ctx.available
+  const gutterWidth = available > 2 ? 1 : 0
   return (
     <Box flexDirection="row" width="100%" minWidth={0}>
-      <Box width={1} flexShrink={0}>
-        <Text> </Text>
-      </Box>
+      {gutterWidth > 0 ? (
+        <Box width={gutterWidth} flexShrink={0}>
+          <Text> </Text>
+        </Box>
+      ) : null}
       <Box flexDirection="column" flexGrow={1} flexBasis={0} flexShrink={1} minWidth={0} overflow="hidden">
         {children}
       </Box>
-      <Box width={1} flexShrink={0}>
-        <Text> </Text>
-      </Box>
+      {gutterWidth > 0 ? (
+        <Box width={gutterWidth} flexShrink={0}>
+          <Text> </Text>
+        </Box>
+      ) : null}
     </Box>
   )
 }
@@ -569,9 +683,10 @@ function Aside({
   show?: boolean
   paddingTop?: number
 }): React.ReactElement | null {
+  if (!show) return null
   const node = (
     <Text color="$fg-muted" flexShrink={0}>
-      {show ? children : null}
+      {children}
     </Text>
   )
   return (

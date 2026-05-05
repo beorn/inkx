@@ -78,7 +78,7 @@ The host curates a typed **`CrossAgentState`** signal:
 
 **Architectural rule:** agents never talk to each other. Mutating tools are gated through ACP `RequestPermission`; read-only tools auto-approve. Tribe broadcasts (cross-host) flow into a 50-event ring buffer and auto-deliver into the agent's next turn via the typed [AMBIENT — observation] pipeline above.
 
-The composer holds **two regions** — a Command line and a held Queue. Queue entries drain one-at-a-time as the current turn finishes, so chained "do X, then test, then commit" workflows run themselves.
+The composer holds **two regions** — a Command line and a held Queue. Queue entries drain one-at-a-time as the current chat turn goes idle, so chained "do X, then test, then commit" workflows run themselves. A silvercode chat turn is an idle-delimited burst of prompts, messages, and activity; it is not necessarily one prompt plus one response.
 
 Each pane carries its own SID-prefixed identifier (`codex:019dcd…`, `claude:73fb…`); `--resume <agent>:<sid>` reattaches to the right backend, and spawn errors surface to stderr instead of silently opening a fresh session.
 
@@ -150,7 +150,7 @@ Information is everywhere, but never in your face. **Click to act, hover to lear
 - **Markdown rendering** — agent responses render via `MarkdownView` with proper headings, lists, blockquotes, tables. `.md` content displays as docs, not prose-pasted-into-a-tool-call.
 - **Syntax highlighting** — tool-call args, code blocks, diff hunks, apply-patch previews — all lit up through Silvery's semantic theme tokens, so palettes adapt to your terminal theme automatically.
 - **Auto-linkified output** — file paths become OSC-8 hyperlinks (cwd-aware so relative paths resolve correctly), URLs and error frames are clickable.
-- **Activity indicator** — the agent's plan, current step, and current tool call render as a structured indicator, not a generic spinner. Extended thinking gets its own block, separate from streaming text.
+- **Plan drawer + activity indicator** — the active session plan renders above the composer as a collapsible drawer, while the current step and current tool call render as structured activity, not a generic spinner. Extended thinking gets its own block, separate from streaming text.
 - **Permission inbox** — unified view of every pending permission across every session. Approve once, approve for session, deny, or open the source file inline. `/inbox` opens it directly.
 - **Background tasks panel** — `Ctrl-B` pushes the current turn to background; it streams to completion, lands as a system message, and you can cancel or foreground from the panel.
 - **Cross-agent sidebar** — when more than one session is alive, peer activity at a glance: who's editing what, who's blocked on what, recent handoffs. Click a session name to route there.

@@ -412,9 +412,6 @@ export function Welcome(props: {
   handle: SessionHandle
   /** Canonical agent id — drives the `<agent label>` muted line below the banner. */
   agent?: string
-  /** Session status from the store. `spawning` is still a loading state:
-   *  the backend is not ready to accept input yet, so the composer stays hidden. */
-  status?: string
   /** Model label for the loading line. Falls back to handle metadata. */
   model?: string
   /**
@@ -436,7 +433,14 @@ export function Welcome(props: {
   const agentLabel = props.agent ? AGENT_LABELS[props.agent] : undefined
   const resumeId = formatLoadingSessionId(props.handle.resumeId, props.agent)
   const hasResumeId = typeof resumeId === "string" && resumeId.length > 0
-  const isLoading = hasResumeId || props.status === "spawning"
+  // Only suppress the composer during resume replay — the transcript is
+  // loading and the user can't send a new turn yet. Do NOT suppress during
+  // spawning: the session is initialising but the input is already live
+  // (buffered prompts are replayed into the handle once it is ready), and
+  // hiding then re-showing the composer causes a layout jump after 3-5s
+  // plus resets the cursor position. Matches the PaneGrid pre-spawn screen
+  // which shows the composer immediately without a spawning guard.
+  const isLoading = hasResumeId
   const loadingSessionId = hasResumeId
     ? resumeId
     : props.handle.metadata?.sessionId || props.handle.id || props.handle.name
@@ -445,31 +449,36 @@ export function Welcome(props: {
     model: props.model || props.handle.metadata?.model,
   })
   const centerVertically = props.centerVertically !== false
-
-  return (
-    // Center the brand mark on both axes. `flexGrow={1}` claims the full
-    // pane height; `justifyContent="center"` + `alignItems="center"` pin
-    // contents to the visual center. `gap={1}` sets breathing room
-    // between the banner and the composer / loading line.
-    <Box
-      flexDirection="column"
-      flexGrow={centerVertically ? 1 : 0}
-      alignItems="center"
-      justifyContent={centerVertically ? "center" : "flex-start"}
-      gap={1}
-    >
+  const showComposer = Boolean(props.composerSlot && !isLoading)
+  const bannerContent = (
+    <>
       {props.bitmapBanner === false ? <StaticTextBanner /> : <MeasuredBanner />}
-
       {agentModelDetails.length > 0 ? <Muted>{agentModelDetails}</Muted> : null}
-
       {isLoading ? (
         <Box flexDirection="column" alignItems="center">
           <Muted>Loading session</Muted>
           {loadingSessionId.length > 0 ? <Muted>{loadingSessionId}</Muted> : null}
         </Box>
       ) : null}
+    </>
+  )
 
-      {props.composerSlot && !isLoading ? (
+  return (
+    // Center the banner and composer together as a group so the input
+    // stays near the middle of the screen until a prompt is submitted.
+    // After the first message, SessionCard switches to the chat layout
+    // (absolute-positioned composer at the bottom) automatically.
+    <Box
+      flexDirection="column"
+      flexGrow={centerVertically ? 1 : 0}
+      alignItems="center"
+      justifyContent={centerVertically ? "center" : "flex-start"}
+      gap={1}
+      minHeight={0}
+      width="100%"
+    >
+      {bannerContent}
+      {showComposer ? (
         <Chat.Composer>
           <Box alignSelf="center" width="70%" minWidth={0}>
             {props.composerSlot}

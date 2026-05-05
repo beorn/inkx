@@ -32,7 +32,7 @@ import React from "react"
 import { Box, Diff as SilveryDiff, Image, type DiffHunk, Muted, Text, type SilveryMouseEvent } from "silvery"
 import type { ToolCall as ToolCallType, ToolCallContent, ToolCallLocation, ContentBlock } from "@km/agent-harness"
 import { ToolCallStatusTitle } from "./ToolCallStatusTitle.tsx"
-import { BoundedScroll } from "./BoundedScroll.tsx"
+import { BoundedScroll, DEFAULT_DISCLOSURE_MAX_ROWS } from "./BoundedScroll.tsx"
 import { formatPathForDisplay, resolveDisplayPath } from "../utils/format-path.ts"
 import { StatusGlyph } from "./StatusGlyph.tsx"
 import { detectReferences } from "../detection.ts"
@@ -286,15 +286,34 @@ function hasAdditionalContent(title: string, content: ToolCallContent[]): boolea
   })
 }
 
+function contentRowEstimate(content: ToolCallContent): number {
+  if (content.type === "content") {
+    const block = content.content
+    if (block.type === "text") return Math.max(1, block.text.split("\n").length)
+    if ("resource" in block && "text" in block.resource) return Math.max(1, block.resource.text.split("\n").length + 1)
+    return 1
+  }
+  if (content.type === "diff") {
+    return (
+      (content.path.trim().length > 0 ? 1 : 0) +
+      Math.max(1, (content.oldText ?? "").split("\n").length + content.newText.split("\n").length)
+    )
+  }
+  return 1
+}
+
 function ToolCallContentBody({
   content,
   bounded = false,
+  summarize = bounded,
 }: {
   content: ToolCallContent[]
   bounded?: boolean
+  summarize?: boolean
 }): React.ReactElement {
-  const body = <>{content.map((c, i) => renderContent(c, i, bounded))}</>
-  return bounded ? <BoundedScroll>{body}</BoundedScroll> : <Box flexDirection="column">{body}</Box>
+  const body = <>{content.map((c, i) => renderContent(c, i, summarize))}</>
+  const needsBound = bounded && content.reduce((sum, c) => sum + contentRowEstimate(c), 0) > DEFAULT_DISCLOSURE_MAX_ROWS
+  return needsBound ? <BoundedScroll>{body}</BoundedScroll> : <Box flexDirection="column">{body}</Box>
 }
 
 function shellExitCode(toolCall: ToolCallType): number | null {
@@ -377,6 +396,8 @@ export interface ToolCallProps {
    * this to seed a stream as fully-expanded for replay/debug views.
    */
   defaultExpanded?: boolean
+  /** Called when the disclosure body opens or closes. */
+  onExpandedChange?: (expanded: boolean) => void
   /**
    * When false, render the row as presentational content inside a larger
    * clickable surface. Used by grouped turn summaries so hover/click belongs
@@ -410,6 +431,7 @@ export function ToolCall({
   errorMessage,
   onRetry,
   defaultExpanded,
+  onExpandedChange,
   interactive = true,
   titleEmphasis = defaultExpanded ? "normal" : "muted",
   markerBackgroundColor,
@@ -425,7 +447,10 @@ export function ToolCall({
   const imagePath = titleImagePath(toolCall.title)
   const exitCode = shell ? shellExitCode(toolCall) : null
   const errorSummary = shell && status === "failed" ? shellErrorSummary(toolCall, exitCode) : null
-  const titleColor = status === "failed" ? "$error" : titleEmphasis === "normal" ? "$muted" : "$muted"
+  const active = status === "in_progress" || status === "pending"
+  const markerGlyph = shell ? "$" : active ? "●" : "•"
+  const markerColor = status === "failed" ? "$error" : active ? "$info" : "$muted"
+  const titleColor = status === "failed" ? "$error" : titleEmphasis === "normal" ? "$fg" : "$muted"
   const titleImagePopoverBody = React.useMemo(
     () =>
       imagePath ? (
@@ -458,6 +483,7 @@ export function ToolCall({
     <ChatEntryDisclosure
       popover={previewPopover}
       defaultExpanded={defaultExpanded ?? false}
+      onExpandedChange={onExpandedChange}
       interactive={interactive}
       canExpand={hasContent}
     >
@@ -477,11 +503,7 @@ export function ToolCall({
         return (
           <Box flexDirection="row" gap={1} width="100%" backgroundColor={armedBg} {...surfaceProps}>
             <Box width={1} flexShrink={0} backgroundColor={markerBg}>
-              <StatusGlyph
-                glyph={shell ? "$" : "•"}
-                active={shell && status === "in_progress"}
-                color={status === "failed" ? "$error" : "$muted"}
-              />
+              <StatusGlyph glyph={markerGlyph} active={active} color={markerColor} period={1800} />
             </Box>
 
             <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0}>
@@ -519,7 +541,7 @@ export function ToolCall({
                   It is aligned with the command/title, not with the marker. */}
               {effectiveExpanded && hasContent ? (
                 <Box flexDirection="column" onClick={onAttachedClick}>
-                  <ToolCallContentBody content={content} />
+                  <ToolCallContentBody content={content} bounded summarize={false} />
                 </Box>
               ) : null}
               {/* Failed calls inline the error message immediately under the row.

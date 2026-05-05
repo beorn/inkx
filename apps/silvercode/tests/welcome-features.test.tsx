@@ -157,11 +157,15 @@ describe("feature 1 — shaded banner (primary tier)", () => {
 // ============================================================================
 
 describe("feature 2 — Welcome screen (fresh vs loading)", () => {
-  test("fresh session, status=spawning: banner + Loading line", () => {
+  test("fresh session, status=spawning: banner only, composer shown immediately (no Loading line)", () => {
     const app = renderCard(makeHandle({ status: "spawning" }))
     // Banner renders (Big-tier signature).
     expect(app.text).toMatch(/[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/)
-    expect(app.text).toContain("Loading session")
+    // No "Loading session" — spawning is no longer treated as a loading
+    // state on the welcome screen. The composer mounts immediately so
+    // the layout is stable and cursor state is not lost when the session
+    // becomes ready.
+    expect(app.text).not.toContain("Loading session")
     // No help surface (retired in km-cr94).
     expect(app.text).not.toContain("COMMANDS")
     expect(app.text).not.toContain("KEYBINDINGS")
@@ -174,11 +178,12 @@ describe("feature 2 — Welcome screen (fresh vs loading)", () => {
     expect(app.text).not.toContain("COMMANDS")
   })
 
-  test("loading session (resumeId set), status=spawning: banner + centered Loading state", () => {
+  test("loading session (resumeId set): centered Loading state keeps banner art", () => {
     const resumeId = "019ddb63-6e8d-7141-a603-f7c86c135be6"
     const idText = `codex:${resumeId}`
-    const app = renderCard(makeHandle({ status: "spawning", resumeId }), 100, 50, "codex")
+    const app = renderCard(makeHandle({ status: "idle", resumeId }), 100, 50, "codex")
     expect(app.text).toMatch(/[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/)
+    expect(app.text).toContain("Codex")
     expect(app.text).toContain("Loading session")
     expect(app.text).toContain(idText)
 
@@ -460,6 +465,7 @@ describe("km-silvercode.welcome-bypassed-by-pane-grid-spawn — SessionPromptCom
       resume: "019ddb63-6e8d-7141-a603-f7c86c135be6",
     })
     expect(s.text).toContain("Loading session")
+    expect(s.text).toMatch(/[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/)
     const composerRow = s.lines.find((l) => /^\s*>\s/.test(l))
     expect(composerRow, "composer prompt should not render while resume replay is loading").toBeUndefined()
     s.dispose()

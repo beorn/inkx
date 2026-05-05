@@ -409,6 +409,26 @@ describe("ToolCall v2 — failed shell status is visible", () => {
     expect(app.text).not.toContain("more lines")
   })
 
+  test("expanded long output is bounded instead of taking over the transcript", () => {
+    const output = Array.from({ length: 80 }, (_, i) => `line-${String(i + 1).padStart(2, "0")}`).join("\n")
+    const app = createRenderer({ cols: 100, rows: 80 })(
+      <ToolCall
+        defaultExpanded
+        toolCall={tc({
+          kind: "execute",
+          status: "completed",
+          title: "printf many-lines",
+          content: [{ type: "content", content: { type: "text", text: output } }],
+        })}
+      />,
+    )
+
+    expect(app.text).toContain("line-01")
+    expect(app.text).toContain("line-29")
+    expect(app.text).not.toContain("line-60")
+    expect(app.text).not.toContain("more lines")
+  })
+
   test("expanded command collapses when clicking the row background after the title", async () => {
     using term = createTermless({ cols: 100, rows: 10 })
     const handle = await run(
@@ -449,7 +469,7 @@ describe("ToolCall v2 — failed shell status is visible", () => {
 
 describe("ToolCall v2 — neutral marker glyph", () => {
   test("Read renders with bullet prefix and muted non-bold title", () => {
-    const app = freshRender()(<ToolCall toolCall={tc({ kind: "read", status: "pending", title: "Read src/foo.ts" })} />)
+    const app = freshRender()(<ToolCall toolCall={tc({ kind: "read", status: "completed", title: "Read src/foo.ts" })} />)
     expect(app.text).toMatch(/•\s+Read src\/foo\.ts/)
     const row = app.lines.findIndex((l) => l.includes("Read src/foo.ts"))
     expect(row).toBeGreaterThanOrEqual(0)
@@ -474,12 +494,12 @@ describe("ToolCall v2 — neutral marker glyph", () => {
     expect(app.text).not.toContain("⠋")
   })
 
-  test("running non-shell tool uses stable bullet and title without spinner", () => {
+  test("running non-shell tool uses a pulsing disc and title without spinner", () => {
     const app = freshRender()(
       <ToolCall toolCall={tc({ kind: "read", status: "in_progress", title: "Read src/foo.ts" })} />,
     )
 
-    expect(app.text).toMatch(/•\s+Read src\/foo\.ts/)
+    expect(app.text).toMatch(/●\s+Read src\/foo\.ts/)
     expect(app.text).not.toContain("⠋")
     expect(app.text).not.toContain("$")
   })

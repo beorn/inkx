@@ -192,7 +192,6 @@ export function SessionCard({
               handle={handle}
               agent={agent}
               model={state.model || handle.metadata?.model}
-              status={state.status}
               composerSlot={composerSlot}
             />
           ) : (
@@ -246,8 +245,11 @@ export function SessionCard({
                       }}
                     >
                       <Chat.Composer>
-                        <Box flexDirection="column" width="100%" minWidth={0} backgroundColor="$bg-surface-raised">
-                          {composerSlot}
+                        <Box flexDirection="column" width="100%" minWidth={0} gap={1}>
+                          <Chat.PlanDrawer plan={state.plan} />
+                          <Box flexDirection="column" width="100%" minWidth={0} backgroundColor="$bg-surface-raised">
+                            {composerSlot}
+                          </Box>
                         </Box>
                       </Chat.Composer>
                     </Box>

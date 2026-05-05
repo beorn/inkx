@@ -96,6 +96,31 @@ describe("silvercode CLI smoke — pre-flight resume validation", () => {
     expect(r.stdout).toContain("--resume")
     expect(r.stdout).toContain("--agent")
   })
+
+  test("doctor checker subcommands honor --json before or after the checker", () => {
+    for (const args of [
+      ["doctor", "connections", "--json"],
+      ["doctor", "--json", "connections"],
+    ]) {
+      const r = silvercode(args)
+      expect(r.status).toBe(0)
+      expect(() => JSON.parse(r.stdout)).not.toThrow()
+      const parsed = JSON.parse(r.stdout) as { sections: unknown[] }
+      expect(parsed.sections).toHaveLength(1)
+      expect(r.stdout).toContain('"title": "ai.acp + ai.mcp"')
+      expect(r.stdout).not.toContain("silvercode doctor\n")
+    }
+  })
+
+  test("doctor inherits top-level --cwd unless the checker overrides it", () => {
+    const inherited = silvercode(["--cwd", "/tmp", "doctor", "--json"])
+    expect(inherited.status).toBe(0)
+    expect(JSON.parse(inherited.stdout)).toMatchObject({ cwd: "/tmp" })
+
+    const overridden = silvercode(["--cwd", "/tmp", "doctor", "connections", "--cwd", "/var", "--json"])
+    expect(overridden.status).toBe(0)
+    expect(JSON.parse(overridden.stdout)).toMatchObject({ cwd: "/var" })
+  })
 })
 
 describe("silvercode CLI smoke — SIGTERM mitigation", () => {

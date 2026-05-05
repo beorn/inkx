@@ -109,6 +109,28 @@ describe("MODE_LABELS / MODE_ICONS / MODE_COLORS", () => {
 })
 
 describe("SidePanel mode row in `ask` mode", () => {
+  test("renders the current session id even when there is only one session", () => {
+    const render = createRenderer({ cols: TOTAL_COLS, rows: 40 })
+    const focused = makeStubSession("codex:019ddfc8-0749-7da1-b892-b2e1c6bc389f")
+    const controller = makeStubController()
+    const app = render(
+      <SidePanel
+        focused={focused}
+        sessions={[focused]}
+        focusedSessionId={focused.id}
+        onFocusSession={() => {}}
+        mode="ask"
+        onCycleMode={() => {}}
+        cwd={REPO_ROOT}
+        controller={controller}
+        agent="codex"
+      />,
+    )
+
+    expect(app.text).toContain("Sessions")
+    expect(app.text).toContain("codex:019ddfc8-0749-7da1-b892-b2e1c6bc389f")
+  })
+
   test("renders `? always ask` for mode=ask", () => {
     const render = createRenderer({ cols: TOTAL_COLS, rows: 40 })
     const focused = makeStubSession()

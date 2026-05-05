@@ -6,7 +6,7 @@ aliases:
 created_at: 2026-05-05T20:12:19.442Z
 type: feature
 priority: P0
-status: todo
+status: in_progress
 ---
 
 # [ ] Canonical agent plan model and in-session plan drawer @km/silvercode #feature #P0
@@ -49,12 +49,25 @@ export type PlanEntryPriority = "high" | "medium" | "low"
 export type AgentPlan = {
   id: string
   sessionId: string
-  turnId?: string
+  scope: AgentPlanScope
   source: PlanSource
   version: number
   status: PlanStatus
   entries: AgentPlanEntry[]
   updatedAt: number
+}
+
+export type AgentPlanScope = {
+  sessionId: string
+  /**
+   * Best-effort UI/provenance anchor only. ACP and most provider event
+   * streams do not define canonical turns, and async prompts/background
+   * activity can overlap. Do not use this as ownership.
+   */
+  renderAnchorId?: string
+  messageId?: string
+  activityId?: string
+  toolCallId?: string
 }
 
 export type AgentPlanEntry = {
@@ -84,6 +97,23 @@ Field rules:
 - `version` increments for each provider snapshot or delta application.
 - `parentId` is optional in v1 but present so nested plans can land without redesigning the model.
 - `sourceRef` keeps raw transcript/tool traceability without making the transcript the source of truth.
+- `scope.renderAnchorId` is a presentation/provenance anchor only. The canonical plan belongs to the session, not to a protocol turn.
+
+## Turn / Session Boundary
+
+Conclusion from the chat refactor discussion: Silvercode can keep `Chat.Turn.*` as the UI vocabulary, but a Silvercode chat turn means an idle-delimited burst of session activity, not "one prompt plus its response" and not a provider-supplied turn id.
+
+ACP currently has session updates and messages, not a formal turn object. Codex rollout can provide optional `turn_id` on some task lifecycle events, but it is provider-specific and not guaranteed across all events. Claude mostly provides message / JSONL UUIDs that Silvercode has historically mapped into a legacy `turnId`. OpenCode/ACP should be treated as session/message/update streams unless the adapter proves a stronger id.
+
+A user prompt may be followed by interleaved assistant narration, tool activity, plan updates, ambient events, and additional user prompts. In a pure async bidirectional flow, we cannot prove that a specific assistant message/activity belongs to a specific prompt. We can only group ordered flurries of prompts and activity into turns punctuated by idleness on both sides.
+
+Rules:
+
+- Canonical `AgentPlan` state is session-scoped.
+- Transcript placement is a projection. Show plan updates in the current visible chat turn/segment by stream order when useful, but do not imply prompt ownership.
+- If a plan update cannot be attached cleanly, render it as session metadata/notification or only update the in-session plan drawer.
+- Do not make `turnId` required for plan storage, reducer logic, adapter mapping, or persistence.
+- Prefer names like `Chat.Turn`, `Chat.Segment`, `Chat.Entry`, and `turnKey` for UI projection work, while documenting that this is a Silvercode presentation turn rather than a protocol turn.
 
 ## Provider Mapping
 
@@ -157,7 +187,8 @@ Side panel:
 
 Transcript:
 
-- Render provider plan updates as `Chat.Turn.Plan` or equivalent first-class chat component, not as generic `TurnActivitySummary` / `ToolKind: "think"` rows.
+- Render provider plan updates as a first-class plan update component, not as generic `TurnActivitySummary` / `ToolKind: "think"` rows.
+- When provenance allows, the plan update may appear inside a visible chat envelope/segment as a presentation detail. The underlying canonical plan remains session-scoped.
 - Raw `TodoWrite`, `update_plan`, and ACP plan payloads remain available in raw/debug mode.
 
 ## Acceptance Criteria
@@ -166,6 +197,8 @@ Transcript:
 - [ ] Claude Code `TodoWrite` normalizes into `AgentPlan`, preserving `content`, `status`, `activeForm`, order, and tool-call traceability.
 - [ ] Codex `plan_update` / `plan_delta` and `update_plan` normalize into `AgentPlan`.
 - [ ] ACP/OpenCode `sessionUpdate: "plan"` normalizes into `AgentPlan`.
+- [ ] `AgentPlan` is session-scoped and does not require or imply a canonical provider turn.
+- [ ] Any render anchor stored on a plan is documented and tested as best-effort provenance only, not a provider turn id.
 - [ ] Existing `SessionState.todos` and ACP `Plan` duplication is removed or reduced to compatibility projections from the canonical model.
 - [ ] Plan rendering uses provider-neutral components and does not branch on Claude/Codex/OpenCode in UI code.
 - [ ] The active plan appears in a collapsible bottom-right in-session box above the command box.
@@ -173,8 +206,28 @@ Transcript:
 - [ ] Collapsed box shows active/current work plus pending/completed counts.
 - [ ] Expanded box groups active, pending, completed, and cancelled entries with stable glyphs and uses `activeForm ?? content` for the active row.
 - [ ] The side panel no longer shows the full todo/plan list as the primary surface.
-- [ ] Transcript plan updates render as first-class plan UI, not generic think/tool activity.
+- [ ] Transcript plan updates render as first-class plan UI, not generic think/tool activity, without forcing ambiguous updates into a fake turn.
 - [ ] Tests cover Claude `TodoWrite`, Codex plan events/tool updates, and ACP/OpenCode plan updates mapping into the same model.
 - [ ] Tests cover collapsed and expanded in-session plan box layout, including bottom-right placement above the command box and 60%-of-prose width.
 - [ ] Tests cover `activeForm` display for in-progress Claude todos.
 - [ ] Tests cover hiding the drawer when there are no plan entries.
+- [ ] Architecture docs are updated to describe canonical session-scoped plans and provider mapping boundaries.
+- [ ] Design docs are updated to describe the in-session plan drawer, collapsed/expanded behavior, and side-panel demotion.
+- [ ] Any docs that mention plan/todo ownership by turn are corrected to session-scoped plan state plus chat-turn projection placement.
+
+## Implementation Notes
+
+2026-05-05:
+
+- Added canonical `AgentPlan` / `AgentPlanEntry` model to the agent harness session model.
+- Normalized Claude `TodoWrite`, ACP `sessionUpdate: "plan"`, and generic Codex `plan_update` / `plan_delta` payloads into `state.plan`.
+- Kept `SessionState.todos` as a compatibility projection from `AgentPlan` for older UI surfaces.
+- Added an in-session `Chat.PlanDrawer` above the composer and demoted the side-panel todo surface to a small plan count.
+- Added Storybook states for collapsed, expanded, completed, and abandoned plans, plus the Chat state matrix plan-update example.
+
+2026-05-05 later:
+
+- Normalized `update_plan` tool-use payloads into the same canonical `AgentPlan` model with `source: "codex-plan"`.
+- Preserved `SessionState.todos` as a projection from the canonical plan for compatibility only.
+- Historical transcript replay now asserts canonical plan entries have renderable content and that compatibility todos mirror plan entry text.
+- Verification: `apps/silvercode/packages/agent-harness/tests/parse.test.ts` covers Claude `TodoWrite`, provider `plan-update`, and `update_plan` tool-use; focused plan run passed 5 tests.

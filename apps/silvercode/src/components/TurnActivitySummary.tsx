@@ -12,11 +12,15 @@
 import React, { useState } from "react"
 import { Box, Text, lastModifierState, useHover, useModifierKeys, type SilveryMouseEvent } from "silvery"
 import type { ContentBlock, ToolCall as ToolCallType, ToolKind } from "@km/agent-harness"
+import type { ChatActivitySpan } from "../chat-model.ts"
 import { ToolCall, ToolContentForceExpandedProvider, ToolMarkerBackgroundProvider } from "./ToolCall.tsx"
 import { Content, useContentLayout } from "./Content.tsx"
+import { StatusGlyph } from "./StatusGlyph.tsx"
+import { BoundedScroll } from "./BoundedScroll.tsx"
 
 export type TurnActivitySummaryItem = {
   id: string
+  span: ChatActivitySpan
   toolCall: ToolCallType
   errorMessage?: string
 }
@@ -77,7 +81,7 @@ function summaryParts(items: readonly TurnActivitySummaryItem[]): string[] {
     const kind = item.toolCall.kind ?? "other"
     const summary = counts.get(kind) ?? { count: 0, additions: 0, deletions: 0, active: false }
     summary.count++
-    if (item.toolCall.status === "in_progress" || item.toolCall.status === "pending") summary.active = true
+    if (item.span.status === "running") summary.active = true
     if (kind === "edit") {
       const delta = editDelta(item.toolCall.title)
       if (delta) {
@@ -188,9 +192,9 @@ export function TurnActivitySummary({
   const text = parts.length > 0 ? parts.join(", ") : `${items.length} tool ${items.length === 1 ? "call" : "calls"}`
   const headerBg = isHovered ? "$bg-surface-hover" : undefined
   const markerBg = expanded ? "$bg-surface-subtle" : isHovered ? "$bg-surface-hover" : undefined
-  const active = items.some((item) => item.toolCall.status === "in_progress" || item.toolCall.status === "pending")
-  const marker = expanded ? "▾" : isHovered ? "▸" : " "
-  const markerColor = marker === " " ? "$muted" : "$fg"
+  const active = items.some((item) => item.span.status === "running")
+  const marker = expanded ? "▾" : isHovered ? "▸" : active ? "●" : " "
+  const markerColor = active ? "$info" : marker === " " ? "$muted" : "$fg"
   const headerMaxWidth = Math.max(1, contentLayout.measure)
   const expandedNaturalWidth = naturalWidth ?? summaryNaturalWidth(items, text)
   const showTimestamp = isHovered && cmdHeld
@@ -228,9 +232,13 @@ export function TurnActivitySummary({
         onClick={onHeaderClick}
       >
         <Box width={1} flexShrink={0} backgroundColor={markerBg}>
-          <Text color={markerColor} backgroundColor={markerBg}>
-            {marker}
-          </Text>
+          <StatusGlyph
+            glyph={marker}
+            active={active && !expanded}
+            color={markerColor}
+            period={1800}
+            backgroundColor={markerBg}
+          />
         </Box>
         <Box width={1} flexShrink={0} backgroundColor={headerBg}>
           <Text backgroundColor={headerBg}> </Text>
@@ -268,8 +276,17 @@ export function TurnActivitySummary({
               <Text> </Text>
             </Box>
           ) : null}
-          {details ??
-            items.map((item) => <ToolCall key={item.id} toolCall={item.toolCall} errorMessage={item.errorMessage} />)}
+          {separateExpandedBody ? (
+            <BoundedScroll>
+              {details ??
+                items.map((item) => (
+                  <ToolCall key={item.id} toolCall={item.toolCall} errorMessage={item.errorMessage} />
+                ))}
+            </BoundedScroll>
+          ) : (
+            (details ??
+            items.map((item) => <ToolCall key={item.id} toolCall={item.toolCall} errorMessage={item.errorMessage} />))
+          )}
         </ToolContentForceExpandedProvider>
       </ToolMarkerBackgroundProvider>
     </Box>

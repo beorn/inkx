@@ -453,10 +453,9 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
   void dragVersion
 
   // Empty-sessions placeholder. The initial spawn is fire-and-forget; until
-  // the first SessionHandle lands the layout tree has no leaves. Use the
-  // static text banner here, matching SessionCard's loading/resume Welcome:
-  // Kitty bitmap placements emitted during this transient frame can remain
-  // visible or jump when the transcript appears and the user scrolls.
+  // the first SessionHandle lands the layout tree has no leaves. Fresh and
+  // resumed sessions both show the product banner immediately so startup does
+  // not look like an unbranded blank/loading shell.
   //
   // Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn.
   if (sessions.length === 0) {

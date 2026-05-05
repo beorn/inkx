@@ -30,10 +30,13 @@
  */
 
 import { createLogger } from "loggily"
-import type { AgentEvent, ContentBlock, ToolUseId, TurnId } from "./events.ts"
+import type { AgentEvent, ContentBlock, PlanUpdateEntry, ToolUseId, TurnId } from "./events.ts"
 import type {
   AskUserQuestionItem,
   AskUserQuestionOption,
+  AgentPlan,
+  AgentPlanEntry,
+  AgentPlanEntryStatus,
   ErrorEntry,
   MessageEntry,
   MessageOp,
@@ -232,6 +235,17 @@ function clearLiveness(next: InternalSessionState): void {
   next._liveness = { permissions: new Map(), tools: new Map(), turns: new Map(), reported: new Set() }
 }
 
+function closeToolLivenessForTurn(next: InternalSessionState, turnId: TurnId): void {
+  const tools = new Map(next._liveness.tools)
+  const reported = new Set(next._liveness.reported)
+  for (const [id, obligation] of tools) {
+    if (obligation.ownerTurnId !== turnId) continue
+    tools.delete(id)
+    reported.delete(livenessKey("tool", id))
+  }
+  next._liveness = { ...next._liveness, tools, reported }
+}
+
 function reportLiveness(next: InternalSessionState, message: string, ts: number): void {
   next.lastError = mergeError(next.lastError, message, ts)
   dStatus.debug?.("liveness", { message })
@@ -350,6 +364,24 @@ export function initialInternalState(): InternalSessionState {
 }
 
 /**
+ * Derive the public status from the reducer-owned lifecycle facts.
+ *
+ * `state.status` is retained inside `InternalSessionState` as a transition
+ * trace baseline while the L4 migration lands, but it is no longer the
+ * authority exposed to callers. The controller queue gate reads
+ * `store.state.get().status`, which flows through {@link publicView}; that
+ * public value comes from active turns, tools, permissions, and terminal
+ * session state instead of whichever reducer arm last wrote a string.
+ */
+export function deriveStatus(state: InternalSessionState): SessionStatus {
+  if (state.status === "ended") return "ended"
+  if (state.permissions.length > 0 || state._liveness.permissions.size > 0) return "awaiting-permission"
+  if (state._liveness.tools.size > 0) return "tool-running"
+  if (state._activeTurnId !== null || state._liveness.turns.size > 0) return "thinking"
+  return "idle"
+}
+
+/**
  * Project the public-facing slice of the internal state. The store's
  * `state.get()` and `subscribe()` notifications return this shape — the
  * `_strip` runtime is never observable to UI consumers.
@@ -364,7 +396,7 @@ export function publicView(state: InternalSessionState): SessionState {
   void _strip
   void _activeTurnId
   void _liveness
-  return rest as SessionState
+  return { ...rest, status: deriveStatus(state) } as SessionState
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -553,6 +585,212 @@ function extractTodos(input: unknown): Todo[] | undefined {
     .filter((t): t is Todo => t != null)
 }
 
+function planEntryStatusFromTodo(rawStatus: string): AgentPlanEntryStatus {
+  switch (rawStatus) {
+    case "in_progress":
+    case "completed":
+    case "cancelled":
+      return rawStatus
+    default:
+      return "pending"
+  }
+}
+
+function todoStatusFromPlan(status: AgentPlanEntryStatus): Todo["status"] {
+  switch (status) {
+    case "in_progress":
+    case "completed":
+      return status
+    case "pending":
+    case "cancelled":
+      return "pending"
+  }
+}
+
+function extractPlanFromTodoWrite(
+  input: unknown,
+  context: { sessionId: InternalSessionState["sessionId"]; messageId: string; toolCallId: string; updatedAt: number },
+  previous: AgentPlan | null,
+): AgentPlan | null {
+  if (!input || typeof input !== "object") return null
+  const maybe = (input as Record<string, unknown>).todos
+  if (!Array.isArray(maybe)) return null
+  const entries: AgentPlanEntry[] = []
+  maybe.forEach((t, order) => {
+    if (!t || typeof t !== "object") return
+    const o = t as Record<string, unknown>
+    const content = typeof o.content === "string" ? o.content : null
+    if (!content) return
+    const rawStatus = typeof o.status === "string" ? o.status : "pending"
+    entries.push({
+      id: typeof o.id === "string" ? o.id : `claude-todowrite:${order}:${content}`,
+      content,
+      status: planEntryStatusFromTodo(rawStatus),
+      activeForm: typeof o.activeForm === "string" ? o.activeForm : undefined,
+      order,
+      sourceRef: {
+        toolCallId: context.toolCallId,
+        messageId: context.messageId,
+        providerEntryId: typeof o.id === "string" ? o.id : undefined,
+      },
+    })
+  })
+  if (entries.length === 0) return null
+  return {
+    id: previous?.id ?? `${context.sessionId ?? "session"}:plan`,
+    sessionId: context.sessionId,
+    scope: {
+      sessionId: context.sessionId,
+      messageId: context.messageId,
+      toolCallId: context.toolCallId,
+    },
+    source: "claude-todowrite",
+    version: (previous?.version ?? 0) + 1,
+    status: entries.every((entry) => entry.status === "completed") ? "completed" : "active",
+    entries,
+    updatedAt: context.updatedAt,
+  }
+}
+
+function planEntryStatusFromProvider(rawStatus: unknown): AgentPlanEntryStatus {
+  switch (typeof rawStatus === "string" ? rawStatus.toLowerCase() : "") {
+    case "active":
+    case "started":
+    case "in_progress":
+      return "in_progress"
+    case "done":
+    case "completed":
+      return "completed"
+    case "cancelled":
+    case "canceled":
+    case "skipped":
+      return "cancelled"
+    default:
+      return "pending"
+  }
+}
+
+function extractPlanFromProviderTool(
+  input: unknown,
+  context: { sessionId: InternalSessionState["sessionId"]; messageId: string; toolCallId: string; updatedAt: number },
+  previous: AgentPlan | null,
+): AgentPlan | null {
+  if (!input || typeof input !== "object") return null
+  const root = input as Record<string, unknown>
+  const raw = Array.isArray(root.plan)
+    ? root.plan
+    : Array.isArray(root.steps)
+      ? root.steps
+      : Array.isArray(root.items)
+        ? root.items
+        : []
+  const entries: AgentPlanEntry[] = []
+  raw.forEach((item, order) => {
+    if (typeof item === "string") {
+      entries.push({
+        id: `codex-plan:${order}:${item}`,
+        content: item,
+        status: "pending",
+        order,
+        sourceRef: { toolCallId: context.toolCallId, messageId: context.messageId },
+      })
+      return
+    }
+    if (!item || typeof item !== "object") return
+    const o = item as Record<string, unknown>
+    const content =
+      typeof o.content === "string"
+        ? o.content
+        : typeof o.text === "string"
+          ? o.text
+          : typeof o.step === "string"
+            ? o.step
+            : null
+    if (!content) return
+    const providerEntryId = typeof o.id === "string" ? o.id : undefined
+    entries.push({
+      id: providerEntryId ?? `codex-plan:${order}:${content}`,
+      content,
+      status: planEntryStatusFromProvider(o.status ?? o.state),
+      activeForm: typeof o.activeForm === "string" ? o.activeForm : undefined,
+      priority: o.priority === "high" || o.priority === "medium" || o.priority === "low" ? o.priority : undefined,
+      parentId: typeof o.parentId === "string" ? o.parentId : undefined,
+      order,
+      sourceRef: { toolCallId: context.toolCallId, messageId: context.messageId, providerEntryId },
+    })
+  })
+  if (entries.length === 0) return null
+  return {
+    id: previous?.id ?? `${context.sessionId ?? "session"}:plan`,
+    sessionId: context.sessionId,
+    scope: {
+      sessionId: context.sessionId,
+      messageId: context.messageId,
+      toolCallId: context.toolCallId,
+    },
+    source: "codex-plan",
+    version: (previous?.version ?? 0) + 1,
+    status: entries.every((entry) => entry.status === "completed") ? "completed" : "active",
+    entries,
+    updatedAt: context.updatedAt,
+  }
+}
+
+function planFromUpdate(
+  action: Extract<AgentEvent, { kind: "plan-update" }>,
+  previous: AgentPlan | null,
+): AgentPlan | null {
+  const entries: AgentPlanEntry[] = action.entries
+    .filter((entry) => entry.content.trim().length > 0)
+    .map((entry: PlanUpdateEntry, order) => ({
+      id: entry.id ?? entry.providerEntryId ?? `${action.source}:${order}:${entry.content}`,
+      content: entry.content,
+      status: entry.status,
+      activeForm: entry.activeForm,
+      priority: entry.priority,
+      parentId: entry.parentId,
+      order,
+      sourceRef: {
+        toolCallId: action.toolCallId,
+        messageId: action.messageId,
+        providerEntryId: entry.providerEntryId,
+      },
+    }))
+  if (entries.length === 0) return null
+  return {
+    id: previous?.id ?? `${action.sessionId}:plan`,
+    sessionId: action.sessionId,
+    scope: {
+      sessionId: action.sessionId,
+      messageId: action.messageId,
+      activityId: action.activityId,
+      toolCallId: action.toolCallId,
+      providerEventId: action.providerEventId,
+      providerTurnId: action.providerTurnId,
+    },
+    source: action.source,
+    version: (previous?.version ?? 0) + 1,
+    status: entries.every((entry) => entry.status === "completed") ? "completed" : "active",
+    entries,
+    updatedAt: action.ts,
+  }
+}
+
+function todosFromPlan(plan: AgentPlan): Todo[] {
+  return plan.entries.map((entry) => ({
+    content: entry.content,
+    status: todoStatusFromPlan(entry.status),
+    activeForm: entry.activeForm,
+  }))
+}
+
+function applyPlanUpdate(next: InternalSessionState, action: Extract<AgentEvent, { kind: "plan-update" }>): void {
+  const plan = planFromUpdate(action, next.plan)
+  if (!plan) return
+  next.plan = plan
+  next.todos = todosFromPlan(plan)
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 // Per-case handlers — each is a pure function of (next, action) that
 // applies its mutations to `next` in place. Splitting the switch into
@@ -735,8 +973,39 @@ function applyToolUse(next: InternalSessionState, action: Extract<AgentEvent, { 
     return { ...m, ops }
   })
   if (action.name === "TodoWrite") {
-    const t = extractTodos(action.input)
-    if (t) next.todos = t
+    const plan = extractPlanFromTodoWrite(
+      action.input,
+      {
+        sessionId: next.sessionId,
+        messageId: String(action.turnId),
+        toolCallId: String(action.id),
+        updatedAt: action.ts,
+      },
+      next.plan,
+    )
+    if (plan) {
+      next.plan = plan
+      next.todos = todosFromPlan(plan)
+    } else {
+      const t = extractTodos(action.input)
+      if (t) next.todos = t
+    }
+  }
+  if (action.name.toLowerCase() === "update_plan") {
+    const plan = extractPlanFromProviderTool(
+      action.input,
+      {
+        sessionId: next.sessionId,
+        messageId: String(action.turnId),
+        toolCallId: String(action.id),
+        updatedAt: action.ts,
+      },
+      next.plan,
+    )
+    if (plan) {
+      next.plan = plan
+      next.todos = todosFromPlan(plan)
+    }
   }
   // AskUserQuestion — surface the question(s) on the public state so the
   // UI can render an interactive picker. Cleared by `applyToolResult` when
@@ -809,6 +1078,35 @@ function applyToolResult(next: InternalSessionState, action: Extract<AgentEvent,
   // km-silvercode.acp-status-as-derived tracks the architectural fix;
   // this guard is the symptomatic patch.
   if (next.status === "tool-running") setStatus(next, "thinking", "tool-result", "tool-result", next._activeTurnId)
+}
+
+function applyPermissionDecision(
+  next: InternalSessionState,
+  action: Extract<AgentEvent, { kind: "permission-decision" }>,
+): void {
+  next.permissions = next.permissions.filter((p) => p.requestId !== action.requestId)
+  closeLiveness(next, "permissions", "permission", action.requestId)
+  if (next.permissions.length > 0) {
+    setStatus(
+      next,
+      "awaiting-permission",
+      "permission-decision-pending",
+      "permission-decision",
+      action.requestId as unknown as TurnId,
+    )
+    return
+  }
+
+  const openToolTurnId = [...next._liveness.tools.values()].find((tool) => tool.ownerTurnId)?.ownerTurnId
+  if (openToolTurnId) {
+    setStatus(next, "tool-running", "permission-decision-resolved-tool", "permission-decision", openToolTurnId)
+    return
+  }
+  if (next._activeTurnId !== null) {
+    setStatus(next, "thinking", "permission-decision-resolved-turn", "permission-decision", next._activeTurnId)
+    return
+  }
+  setStatus(next, "idle", "permission-decision-resolved-idle", "permission-decision")
 }
 
 /**
@@ -920,6 +1218,7 @@ function applyTurnEnd(next: InternalSessionState, action: Extract<AgentEvent, { 
   }))
   setStatus(next, "idle", "turn-end", "turn-end", action.turnId)
   closeLiveness(next, "turns", "turn", action.turnId)
+  closeToolLivenessForTurn(next, action.turnId)
   if (next._activeTurnId === action.turnId) next._activeTurnId = null
   if (action.usage) {
     next.cost = {
@@ -1007,6 +1306,9 @@ export function reduce(state: InternalSessionState, action: AgentEvent): [Intern
     case "tool-result":
       applyToolResult(next, action)
       break
+    case "plan-update":
+      applyPlanUpdate(next, action)
+      break
     case "assistant-message":
       applyAssistantMessage(next, action)
       break
@@ -1039,19 +1341,7 @@ export function reduce(state: InternalSessionState, action: AgentEvent): [Intern
       )
       break
     case "permission-decision":
-      next.permissions = next.permissions.filter((p) => p.requestId !== action.requestId)
-      closeLiveness(next, "permissions", "permission", action.requestId)
-      if (next.permissions.length > 0) {
-        setStatus(
-          next,
-          "awaiting-permission",
-          "permission-decision-pending",
-          "permission-decision",
-          action.requestId as unknown as TurnId,
-        )
-      } else {
-        setStatus(next, "idle", "permission-decision-resolved", "permission-decision")
-      }
+      applyPermissionDecision(next, action)
       break
     case "liveness-check":
       applyLivenessCheck(next, action)

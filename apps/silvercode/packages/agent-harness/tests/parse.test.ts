@@ -776,7 +776,7 @@ describe("session-store — event folding", () => {
     expect(state.status).toBe("idle")
   })
 
-  test("TodoWrite tool-use updates todos", () => {
+  test("TodoWrite tool-use updates canonical session plan and compatibility todos", () => {
     const store = createSessionStore()
     const now = Date.now()
     store.apply({ kind: "turn-start", sessionId: "s" as never, turnId: "t1" as never, role: "assistant", ts: now })
@@ -790,8 +790,74 @@ describe("session-store — event folding", () => {
       ts: now,
     })
     const state = store.state.get()
+    expect(state.plan).toMatchObject({
+      source: "claude-todowrite",
+      entries: [{ content: "first", status: "in_progress", activeForm: "Doing first", order: 0 }],
+    })
     expect(state.todos).toEqual([{ content: "first", status: "in_progress", activeForm: "Doing first" }])
     expect(state.status).toBe("tool-running")
+  })
+
+  test("provider plan-update events update the same canonical session plan", () => {
+    const store = createSessionStore()
+    const now = Date.now()
+    store.apply({
+      kind: "plan-update",
+      sessionId: "s" as never,
+      source: "acp-plan",
+      entries: [
+        { content: "first", status: "completed", priority: "high" },
+        { content: "second", status: "pending", priority: "medium" },
+      ],
+      ts: now,
+    })
+
+    const state = store.state.get()
+    expect(state.plan).toMatchObject({
+      source: "acp-plan",
+      version: 1,
+      entries: [
+        { content: "first", status: "completed", priority: "high", order: 0 },
+        { content: "second", status: "pending", priority: "medium", order: 1 },
+      ],
+    })
+    expect(state.todos).toEqual([
+      { content: "first", status: "completed", activeForm: undefined },
+      { content: "second", status: "pending", activeForm: undefined },
+    ])
+  })
+
+  test("update_plan tool-use updates the same canonical session plan", () => {
+    const store = createSessionStore()
+    const now = Date.now()
+    store.apply({ kind: "turn-start", sessionId: "s" as never, turnId: "t1" as never, role: "assistant", ts: now })
+    store.apply({
+      kind: "tool-use",
+      sessionId: "s" as never,
+      turnId: "t1" as never,
+      id: "tool-1" as never,
+      name: "update_plan",
+      input: {
+        plan: [
+          { step: "inspect transcript state", status: "completed" },
+          { step: "normalize plan tool", status: "in_progress", priority: "high" },
+        ],
+      },
+      ts: now,
+    })
+
+    const state = store.state.get()
+    expect(state.plan).toMatchObject({
+      source: "codex-plan",
+      entries: [
+        { content: "inspect transcript state", status: "completed", order: 0 },
+        { content: "normalize plan tool", status: "in_progress", priority: "high", order: 1 },
+      ],
+    })
+    expect(state.todos).toEqual([
+      { content: "inspect transcript state", status: "completed", activeForm: undefined },
+      { content: "normalize plan tool", status: "in_progress", activeForm: undefined },
+    ])
   })
 
   test("tool-result attaches to the originating call", () => {

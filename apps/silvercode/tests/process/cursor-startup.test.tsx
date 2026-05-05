@@ -24,6 +24,8 @@ import { spawnSilvercode } from "../process-harness/index.ts"
 
 const COLS = 120
 const ROWS = 40
+const COMPACT_COLS = 80
+const COMPACT_ROWS = 24
 const STARTUP_TIMEOUT_MS = 15_000
 
 function isWelcomeReady(screen: string): boolean {
@@ -90,6 +92,30 @@ describe("silvercode startup cursor (process harness)", () => {
     expect(harness.screen).toContainText("Silver Code v")
     expect(logoSignature(harness.screen.getText())).toContain("█")
     expect(harness.alive).toBe(true)
+  }, 30_000)
+
+  test("stale Ghostty environment does not blank the welcome logo in the xterm harness", async () => {
+    await using harness = await spawnSilvercode({
+      cols: COLS,
+      rows: ROWS,
+      env: {
+        NODE_ENV: "",
+        VITEST: "",
+        TERM: "dumb",
+        TERM_PROGRAM: "Ghostty",
+        TERM_PROGRAM_VERSION: "1.3.0",
+      },
+    })
+    await harness.waitFor(isWelcomeReady, { timeoutMs: STARTUP_TIMEOUT_MS })
+    expect(logoSignature(harness.screen.getText())).toContain("█")
+  }, 30_000)
+
+  test("compact terminals still show the command prompt on the welcome screen", async () => {
+    await using harness = await spawnSilvercode({ cols: COMPACT_COLS, rows: COMPACT_ROWS })
+    await harness.waitFor((screen) => screen.includes("Claude Code") && screen.includes(">"), {
+      timeoutMs: STARTUP_TIMEOUT_MS,
+    })
+    expect(harness.screen.getText()).toContain(">")
   }, 30_000)
 
   test("hardware cursor lands at the command prompt, not the side panel", async () => {

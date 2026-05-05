@@ -38,3 +38,13 @@ Scope:
 Blocked-on: @km/shared/text-render-package (architectural — extract @km/tui/src/text/* into a shared package so MarkdownView in silvercode can reuse km's existing inline parser + components instead of reimplementing). See feedback in earlier session: "make sure that rendering of 'content' is shared with km not reimplemented in silvercode".
 
 Parked from /loop session 2026-04-28 evening at user direction.
+
+## Implementation Notes
+
+2026-05-05:
+
+- `apps/silvercode/src/markdown.ts` now uses the mdast/GFM markdown pipeline and projects table headers, rows, and separator alignment into `MdBlock.kind === "table"`.
+- `MarkdownView` delegates tables to `Content.Table` when inside `Content.Layout`.
+- `Content.Table` tries prose, then wide, then full-width grid rendering; if the table cannot fit, it expands each row into key/value cards.
+- `Content.Table.Grid` and `Content.Table.Cards` are available as explicit variants and are covered in the content layout story.
+- Verification: `apps/silvercode/tests/detection.test.ts`, `apps/silvercode/tests/content-layout.test.tsx`, `apps/silvercode/tests/visual/markdown.test.tsx`, and `apps/silvercode/tests/visual/markdown-bugs.test.tsx` passed, 63 tests total.

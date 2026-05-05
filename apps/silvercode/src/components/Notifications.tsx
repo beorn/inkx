@@ -23,6 +23,18 @@ type Toast = {
 
 let seq = 1
 
+function oneLine(text: string): string {
+  return text.replace(/\s+/g, " ").trim()
+}
+
+export function summarizeErrorMessage(message: string): string {
+  const applyPatch = message.match(
+    /^codex_core::tools::router:\s+error=apply_patch verification failed:\s+Failed to find expected lines in ([^:]+):/s,
+  )
+  if (applyPatch) return `apply_patch failed: expected lines not found in ${applyPatch[1]}`
+  return oneLine(message)
+}
+
 export function Notifications({ sessions }: { sessions: SessionHandle[] }): React.ReactElement {
   const [toasts, setToasts] = useState<Toast[]>([])
 
@@ -49,6 +61,7 @@ export function Notifications({ sessions }: { sessions: SessionHandle[] }): Reac
           scheduleDismiss(id, 4000)
         } else if (e.kind === "error") {
           const errorKey = `${s.name}::${e.message}`
+          const text = `${s.name}: ${summarizeErrorMessage(e.message)}`
           let dedupedId: number | null = null
           setToasts((t) => {
             // Walk from the most recent toast backwards. Only consecutive
@@ -69,7 +82,7 @@ export function Notifications({ sessions }: { sessions: SessionHandle[] }): Reac
             }
             const id = seq++
             dedupedId = id
-            return [...t, { id, text: `${s.name}: ${e.message}`, kind: "error", errorKey, count: 1 }]
+            return [...t, { id, text, kind: "error", errorKey, count: 1 }]
           })
           if (dedupedId !== null) scheduleDismiss(dedupedId, 5000)
         }

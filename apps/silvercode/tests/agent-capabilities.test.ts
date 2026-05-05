@@ -102,6 +102,11 @@ describe("CLAUDE_CAPABILITIES — Claude's reference descriptors", () => {
     expect(ids).toEqual(["normal", "think", "think_hard", "ultrathink"])
   })
 
+  test("thinking option display names use Claude Code's old thinking words", () => {
+    const names = (CLAUDE_CAPABILITIES.thinking ?? []).map((o) => o.name)
+    expect(names).toEqual(["normal", "think", "think hard", "ultrathink"])
+  })
+
   test("planning has 5 modes with exactly one default", () => {
     expect(CLAUDE_CAPABILITIES.planning).toBeDefined()
     const arr = CLAUDE_CAPABILITIES.planning!

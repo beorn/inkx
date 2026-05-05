@@ -59,7 +59,16 @@ import { parseBlocks } from "../markdown.ts"
 import { SessionEntry } from "./SessionEntry.tsx"
 import type { SessionHistoryMetadata } from "../session-metadata.ts"
 import { Chat } from "./Chat.tsx"
-import { normalizeCommandSessionOps, splitAssistantMessageForTranscript } from "../chat-model.ts"
+import { createLogger } from "loggily"
+import {
+  activitySpansFromOps,
+  latestRunningActivitySpan,
+  normalizeCommandSessionOps,
+  splitAssistantMessageForTranscript,
+  type ChatActivitySpan,
+} from "../chat-model.ts"
+
+const sessionListLog = createLogger("silvercode:session-list")
 
 // =============================================================================
 // Helpers — adapt legacy MessageEntry tool shapes to ACP ToolCall
@@ -1040,17 +1049,25 @@ function isHighContentToolRun(run: Array<{ op: MessageOp; index: number }>): boo
   return toolOps.some(({ op }) => op.kind === "tool" && op.result?.is_error === true)
 }
 
-function turnActivityItemForOp(op: MessageOp): TurnActivitySummaryItem | null {
-  if (op.kind !== "tool") return null
-  const adaptedCall = adaptToolCall(op.toolCall, op.result, op.result === undefined)
+function turnActivityItemForSpan(span: ChatActivitySpan): TurnActivitySummaryItem | null {
+  if (span.kind !== "tool" || span.op.kind !== "tool") return null
+  const op = span.op
+  const adaptedCall = adaptToolCall(op.toolCall, op.result, span.status === "running")
   return {
     id: op.toolCall.id,
+    span,
     toolCall: adaptedCall,
     errorMessage: op.result?.is_error ? toolErrorMessage(op.result.output, adaptedCall.title) : undefined,
   }
 }
 
-function ActivityDetails({ ops }: { ops: readonly MessageOp[] }): React.ReactElement {
+function ActivityDetails({
+  ops,
+  onDisclosureToggle,
+}: {
+  ops: readonly MessageOp[]
+  onDisclosureToggle?: () => void
+}): React.ReactElement {
   return (
     <Box flexDirection="column" gap={0}>
       {ops.map((op, index) => {
@@ -1093,6 +1110,7 @@ function ActivityDetails({ ops }: { ops: readonly MessageOp[] }): React.ReactEle
             <ToolCall
               toolCall={adaptedCall}
               errorMessage={op.result?.is_error ? toolErrorMessage(op.result.output, adaptedCall.title) : undefined}
+              onExpandedChange={() => onDisclosureToggle?.()}
             />
           </RawInspector>
         )
@@ -1101,21 +1119,23 @@ function ActivityDetails({ ops }: { ops: readonly MessageOp[] }): React.ReactEle
   )
 }
 
-function ActivityLivePreview({ ops }: { ops: readonly MessageOp[] }): React.ReactElement | null {
-  const runningTools = ops.filter((op) => op.kind === "tool" && op.result === undefined)
-  const thinking = ops.filter((op) => op.kind === "thinking" && op.text.trim().length > 0)
-  if (runningTools.length === 0 && thinking.length === 0) return null
+function ActivityLivePreview({ spans }: { spans: readonly ChatActivitySpan[] }): React.ReactElement | null {
+  const currentSpan = latestRunningActivitySpan(spans)
+  const currentTool = currentSpan?.kind === "tool" && currentSpan.op.kind === "tool" ? currentSpan.op : null
+  const thinking = spans.filter((span) => span.kind === "reasoning" && span.op.kind === "thinking")
+  if (!currentTool && thinking.length === 0) return null
   return (
     <Box flexDirection="column" gap={0}>
-      {runningTools.map((op) => {
-        if (op.kind !== "tool") return null
-        return (
-          <ToolCall key={op.toolCall.id} toolCall={adaptToolCall(op.toolCall, op.result, true)} interactive={false} />
-        )
-      })}
-      {thinking.map((op, index) => {
-        if (op.kind !== "thinking") return null
-        return <Chat.Turn.Narration key={`thinking-${index}`} text={op.text} muted />
+      {currentTool ? (
+        <ToolCall
+          key={currentTool.toolCall.id}
+          toolCall={adaptToolCall(currentTool.toolCall, currentTool.result, true)}
+          interactive={false}
+        />
+      ) : null}
+      {thinking.map((span) => {
+        if (span.op.kind !== "thinking") return null
+        return <Chat.Turn.Narration key={span.id} text={span.op.text} muted />
       })}
     </Box>
   )
@@ -1133,13 +1153,14 @@ function ActivitySummaryForOps({
   onExpandedChange?: (expanded: boolean) => void
 }): React.ReactElement {
   const displayOps = normalizeCommandSessionOps(ops)
-  const items = displayOps.flatMap((op) => turnActivityItemForOp(op) ?? [])
+  const spans = activitySpansFromOps(displayOps)
+  const items = spans.flatMap((span) => turnActivityItemForSpan(span) ?? [])
   return (
     <Chat.Turn.Activity
       items={items}
       timestamp={timestamp}
-      details={<ActivityDetails ops={displayOps} />}
-      livePreview={<ActivityLivePreview ops={displayOps} />}
+      details={<ActivityDetails ops={displayOps} onDisclosureToggle={onDisclosureToggle} />}
+      livePreview={<ActivityLivePreview spans={spans} />}
       width={opsRenderDiff(displayOps) ? "auto" : "prose"}
       onDisclosureToggle={onDisclosureToggle}
       onExpandedChange={onExpandedChange}
@@ -1313,6 +1334,7 @@ function ExchangeItem({
                       <ToolCall
                         toolCall={adaptedCall}
                         errorMessage={result?.is_error ? toolErrorMessage(result.output, adaptedCall.title) : undefined}
+                        onExpandedChange={() => onDisclosureToggle?.()}
                       />
                     </TimestampedRow>
                   </RawInspector>
@@ -1721,6 +1743,7 @@ export const SessionUpdateList = React.forwardRef<
 ): React.ReactElement {
   const [followPausedByDisclosure, setFollowPausedByDisclosure] = useState(false)
   const hasContentLayout = useHasContentLayout()
+  const contentLayout = useContentLayout()
   const pauseFollowForDisclosure = useCallback(() => {
     setFollowPausedByDisclosure(true)
   }, [])
@@ -1765,14 +1788,62 @@ export const SessionUpdateList = React.forwardRef<
         ]
       : contentItems
   const renderItems = insertRenderGaps(groupSimilarItems(items))
-  const listEpoch = sessionMetadata?.replayCompletedAt ? `replay:${sessionMetadata.replayCompletedAt}` : "live"
+  const baseListEpoch = sessionMetadata?.replayCompletedAt ? `replay:${sessionMetadata.replayCompletedAt}` : "live"
+  const listEpoch = baseListEpoch
+  useEffect(() => {
+    const kindOf = (item: RenderItem): string => {
+      if (isGrouped(item)) return `group:${item.kind}:${item.items.length}`
+      if (isPadding(item)) return `padding:${item.id}:${item.height}`
+      if (isActivity(item)) return "activity"
+      if (isAmbient(item)) return `ambient:${item.entries.length}`
+      if (isSessionMetadata(item)) return "session-metadata"
+      if (isAssistantActivitySlice(item)) return `assistant-activity:${item.ops.length}`
+      return `message:${item.role}:${item.ops.length}`
+    }
+    sessionListLog.debug?.("session list shape", {
+      visibleCount: visibleItems.length,
+      contentCount: contentItems.length,
+      itemCount: items.length,
+      renderCount: renderItems.length,
+      showActivity,
+      status,
+      follow,
+      followPausedByDisclosure,
+      listEpoch,
+      contentAvailable: contentLayout.available,
+      contentMeasure: contentLayout.measure,
+      contentWide: contentLayout.wide,
+      topPadding,
+      bottomPadding,
+      first: renderItems[0] ? kindOf(renderItems[0]) : null,
+      last: renderItems.at(-1) ? kindOf(renderItems.at(-1)!) : null,
+    })
+  }, [
+    bottomPadding,
+    contentItems.length,
+    contentLayout.available,
+    contentLayout.measure,
+    contentLayout.wide,
+    follow,
+    followPausedByDisclosure,
+    items.length,
+    listEpoch,
+    renderItems,
+    showActivity,
+    status,
+    topPadding,
+    visibleItems.length,
+  ])
+  const renderPadding = (height: number): React.ReactNode => (
+    <Box flexDirection="column" flexShrink={0}>
+      {Array.from({ length: height }, (_, i) => (
+        <Text key={i}> </Text>
+      ))}
+    </Box>
+  )
   const renderSessionItem = (item: Item, _i: number): React.ReactNode =>
     isPadding(item) ? (
-      <Box flexDirection="column" flexShrink={0}>
-        {Array.from({ length: item.height }, (_, i) => (
-          <Text key={i}> </Text>
-        ))}
-      </Box>
+      renderPadding(item.height)
     ) : isActivity(item) ? (
       <Chat.Body width="prose">
         <ActivityIndicator
@@ -1859,7 +1930,7 @@ export const SessionUpdateList = React.forwardRef<
       gap={0}
       maxRendered={200}
       nav={false}
-      follow={followPausedByDisclosure ? undefined : follow}
+      follow={followPausedByDisclosure ? "none" : follow}
       renderItem={renderGroupedItem}
     />
   )

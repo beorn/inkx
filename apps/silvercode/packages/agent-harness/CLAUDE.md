@@ -6,7 +6,7 @@ Typed harness for spawning agent CLIs (Claude Code, Codex, etc.) and exposing th
 
 This package has **two** typed event/message surfaces. They co-exist intentionally:
 
-1. **Legacy `AgentEvent`** — `src/events.ts`. The Claude-CLI-shaped, turn-oriented union (`session-init`, `turn-start`, `text-delta`, `tool-use`, etc.). Produced by `parse.ts` (stream-json normalizer) and consumed by `session-store.ts`. Most existing silvercode UI binds to this.
+1. **Legacy `AgentEvent`** — `src/events.ts`. The Claude-CLI-shaped event union (`session-init`, `turn-start`, `text-delta`, `tool-use`, `plan-update`, etc.). Produced by `parse.ts` (stream-json normalizer) and consumed by `session-store.ts`. Most existing silvercode UI binds to this. The historical `turnId` fields are adapter/message provenance; they are not a cross-provider canonical turn model.
 2. **Canonical ACP-shaped types** — `src/acp-types.ts`. Silvercode's owned `SessionUpdate` / `ToolCall` / `Plan` / `ContentBlock` / capabilities surface, structurally compatible with `@agentclientprotocol/sdk` v1. New work targets this surface; existing legacy paths migrate one feature at a time.
 
 The boundary between ACP and silvercode lives in **one** module: `src/acp-boundary.ts`. It is the only file allowed to import from `@agentclientprotocol/sdk`. Everywhere else in silvercode imports from `acp-types.ts`.
@@ -58,7 +58,7 @@ tests/               # vitest tests, including round-trip acp-boundary.test.ts
 
 Two reactive consumers of `AgentSession` co-exist:
 
-- **`createSessionStore(...)`** (legacy) — single mutable `SessionState` snapshot with a `subscribe(state => …)` API. Emits Claude-CLI-shaped state (todos, mcpServers, claudeCodeVersion, etc.). Most existing silvercode UI binds to this.
+- **`createSessionStore(...)`** (legacy) — single mutable `SessionState` snapshot with a `subscribe(state => …)` API. Emits Claude-CLI-shaped state (plan/todos, mcpServers, claudeCodeVersion, etc.). Most existing silvercode UI binds to this. `state.plan` is the canonical session-scoped plan; `state.todos` is a compatibility projection.
 - **`createAcpSession(scope, agentSession)`** (new, ACP-shaped) — bundle of `alien-signals` / `alien-projections` / `alien-trees` primitives over silvercode's canonical ACP types. Components subscribe to individual signals (`messages`, `toolCalls`, `plan`, `pendingPermissions`, `status`, `usage`, `mode`, `capabilities`).
 
 Both consume the same underlying `AgentSession` event stream — they can run in parallel against one session without conflict. Migration is per-component:
@@ -66,7 +66,13 @@ Both consume the same underlying `AgentSession` event stream — they can run in
 1. A component currently reads `state.messages` from `createSessionStore`. When migrating, swap to `acp.messages()` and switch `subscribe(...)` → `effect(() => acp.messages())` (or the silvery `useSignal(...)` hook). The shape changes from `MessageEntry[]` (Claude-flavored) to `Message[]` with ACP `ContentBlock[]` content.
 2. Tool-call panels migrate from `state.messages[i].toolCalls` to `acp.toolCalls()` (a projection, key-stable, incrementally maintained).
 3. Permission UI migrates from `state.permissions` to `acp.pendingPermissions()` and `acp.respondToPermission(id, decision)`.
-4. Plan UI migrates from `state.todos` (Claude TodoWrite-flavored) to `acp.plan()` / `acp.planTree` (ACP-shaped, future-nesting-ready).
+4. Plan UI migrates from `state.todos` (Claude TodoWrite-flavored compatibility projection) to `state.plan` / `acp.plan()` / `acp.planTree` (provider-neutral, future-nesting-ready).
+
+## Chat turn semantics
+
+Silvercode UI may call the visible group a "turn", but this is an idle-delimited presentation group, not necessarily one prompt and one response. ACP does not provide canonical turns, Claude primarily provides message/jsonl UUIDs, and Codex only sometimes provides provider-specific `turn_id`. New canonical model surfaces should use message/activity/tool/plan ids and provider provenance; use UI-only `turnKey` for derived chat projection identity.
+
+See `apps/silvercode/docs/chat-session-model.md`.
 5. Status line migrates from `state.status` to `acp.status()` (same five-state enum).
 6. Usage / cost migrates from `state.cost` to `acp.usage()` (ACP shape, `{ used, size, cost? }`).
 

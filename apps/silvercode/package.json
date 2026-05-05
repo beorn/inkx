@@ -12,7 +12,8 @@
     ".": "./src/index.tsx"
   },
   "scripts": {
-    "storybook": "bun storybook/runner.tsx"
+    "storybook": "bun storybook/runner.tsx",
+    "test:historical": "cd ../.. && bun run test:silvercode-historical"
   },
   "dependencies": {
     "@bearly/recall": "workspace:*",

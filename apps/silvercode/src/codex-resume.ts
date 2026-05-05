@@ -57,7 +57,7 @@
 
 import { existsSync, readFileSync, readdirSync } from "node:fs"
 import { join } from "node:path"
-import type { SessionId, SessionStore, ToolUseId, TurnId } from "@km/agent-harness"
+import type { PlanUpdateEntryStatus, SessionId, SessionStore, ToolUseId, TurnId } from "@km/agent-harness"
 import { codexSessionsRoot } from "@km/config/paths"
 import {
   commandText,
@@ -200,13 +200,24 @@ function isBootstrapUserContext(text: string): boolean {
   return text.includes("<INSTRUCTIONS>") || text.includes("<environment_context>")
 }
 
+function isCodexMetaUserMessage(text: string): boolean {
+  return text.trimStart().startsWith("<turn_aborted>")
+}
+
 function userMessageTs(rt: ReplayRuntime, ts: number): number {
   if (rt.currentTurnStartedAt === null) return ts
   return Math.min(ts, rt.currentTurnStartedAt - 1)
 }
 
 function applyUserMessage(rt: ReplayRuntime, text: string, ts: number): void {
-  if (text.length === 0 || isBootstrapUserContext(text) || rt.seenUserMessages.has(text)) return
+  if (
+    text.length === 0 ||
+    isBootstrapUserContext(text) ||
+    isCodexMetaUserMessage(text) ||
+    rt.seenUserMessages.has(text)
+  ) {
+    return
+  }
   rt.seenUserMessages.add(text)
   const adjustedTs = userMessageTs(rt, ts)
   const turnId = `u-${adjustedTs}` as TurnId
@@ -221,6 +232,71 @@ function ensureTurn(rt: ReplayRuntime, ts: number, role: "user" | "assistant" = 
   rt.currentTurnStartedAt = ts
   rt.blockIndex = 0
   return synth
+}
+
+function codexPlanStatus(value: unknown): PlanUpdateEntryStatus {
+  switch (typeof value === "string" ? value.toLowerCase() : "") {
+    case "active":
+    case "started":
+    case "in_progress":
+      return "in_progress"
+    case "done":
+    case "completed":
+      return "completed"
+    case "cancelled":
+    case "canceled":
+    case "skipped":
+      return "cancelled"
+    default:
+      return "pending"
+  }
+}
+
+function codexPlanEntries(payload: Record<string, unknown>): Array<{
+  id?: string
+  content: string
+  status: PlanUpdateEntryStatus
+  providerEntryId?: string
+}> {
+  type CodexPlanEntry = {
+    id?: string
+    content: string
+    status: PlanUpdateEntryStatus
+    providerEntryId?: string
+  }
+  const raw = Array.isArray(payload.plan)
+    ? payload.plan
+    : Array.isArray(payload.steps)
+      ? payload.steps
+      : Array.isArray(payload.items)
+        ? payload.items
+        : []
+  const entries: CodexPlanEntry[] = []
+  raw.forEach((item, index) => {
+    if (typeof item === "string") {
+      entries.push({ id: `codex-plan:${index}:${item}`, content: item, status: "pending" })
+      return
+    }
+    if (!item || typeof item !== "object") return
+    const o = item as Record<string, unknown>
+    const content =
+      typeof o.content === "string"
+        ? o.content
+        : typeof o.text === "string"
+          ? o.text
+          : typeof o.step === "string"
+            ? o.step
+            : null
+    if (!content) return
+    const providerEntryId = typeof o.id === "string" ? o.id : undefined
+    entries.push({
+      id: providerEntryId ?? `codex-plan:${index}:${content}`,
+      content,
+      status: codexPlanStatus(o.status ?? o.state),
+      providerEntryId,
+    })
+  })
+  return entries
 }
 
 function applySessionMeta(rt: ReplayRuntime, payload: Record<string, unknown>, ts: number): void {
@@ -250,6 +326,16 @@ function applyEventMsg(rt: ReplayRuntime, payload: CodexEventMsgPayload, ts: num
   switch (payload.type) {
     case "task_started": {
       const turnId = (typeof payload.turn_id === "string" ? payload.turn_id : `t-${ts}`) as TurnId
+      if (rt.currentTurnId !== null && rt.currentTurnId !== turnId) {
+        settleOpenTools(rt, ts, "Codex started another turn before this turn completed.", true)
+        rt.store.apply({
+          kind: "turn-end",
+          sessionId: rt.sessionId,
+          turnId: rt.currentTurnId,
+          stopReason: "end_turn",
+          ts,
+        })
+      }
       rt.store.apply({ kind: "turn-start", sessionId: rt.sessionId, turnId, role: "assistant", ts })
       rt.currentTurnId = turnId
       rt.currentTurnStartedAt = ts
@@ -332,7 +418,21 @@ function applyEventMsg(rt: ReplayRuntime, payload: CodexEventMsgPayload, ts: num
     case "patch_apply_begin":
     case "patch_apply_updated":
     case "plan_delta":
-    case "plan_update":
+    case "plan_update": {
+      const entries = codexPlanEntries(payload)
+      if (entries.length > 0) {
+        rt.store.apply({
+          kind: "plan-update",
+          sessionId: rt.sessionId,
+          source: "codex-plan",
+          entries,
+          providerEventId: typeof payload.id === "string" ? payload.id : undefined,
+          providerTurnId: typeof payload.turn_id === "string" ? payload.turn_id : undefined,
+          ts,
+        })
+      }
+      return
+    }
     case "raw_response_item":
     case "reasoning_content_delta":
     case "reasoning_raw_content_delta":
@@ -544,6 +644,10 @@ export function replayCodexSessionFromDisk(store: SessionStore, sessionId: strin
     })
     return
   }
+  replayCodexTranscriptFile(store, sessionId, path)
+}
+
+export function replayCodexTranscriptFile(store: SessionStore, sessionId: string, path: string): void {
   let raw: string
   try {
     raw = readFileSync(path, "utf8")

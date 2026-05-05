@@ -203,10 +203,53 @@ export function parseInline(text: string): MdInline[] {
 
 export function parseBlocks(source: string): MdBlock[] {
   if (source.length === 0) return []
-  const root = safeParse(source)
+  const root = safeParse(normalizeProseIndentedBlocks(source))
   const blocks: MdBlock[] = []
   projectContent(root.children, blocks, /* listDepth */ 0)
   return blocks
+}
+
+function normalizeProseIndentedBlocks(source: string): string {
+  const lines = source.split("\n")
+  const out: string[] = []
+  let inFence = false
+  for (let i = 0; i < lines.length; ) {
+    const line = lines[i] ?? ""
+    if (/^\s*```/.test(line) || /^\s*~~~/.test(line)) inFence = !inFence
+    if (inFence || !/^(?: {4,}|\t)\S/.test(line)) {
+      out.push(line)
+      i++
+      continue
+    }
+
+    const start = i
+    const run: string[] = []
+    while (i < lines.length && /^(?: {4,}|\t)\S/.test(lines[i] ?? "")) {
+      run.push(lines[i] ?? "")
+      i++
+    }
+
+    if (isProseIndentedRun(run)) {
+      const minIndent = Math.min(...run.map((part) => part.match(/^(?: {4,}|\t)/)?.[0]?.length ?? 0))
+      out.push(...run.map((part) => part.slice(minIndent)))
+    } else {
+      out.push(...lines.slice(start, i))
+    }
+  }
+  return out.join("\n")
+}
+
+function isProseIndentedRun(lines: readonly string[]): boolean {
+  const text = lines.map((line) => line.trim()).join("\n")
+  if (/^\s*(?:import|export|const|let|var|function|class|return|if|for|while|switch|type|interface)\b/m.test(text)) {
+    return false
+  }
+  if (/[{};]|<\/?[A-Za-z][^>]*>/.test(text)) return false
+  if (/^(?:[$>#]|\/\/|\/\*|\*\/)/m.test(text)) return false
+  return lines.some((line) => {
+    const trimmed = line.trim()
+    return /[.!?]$/.test(trimmed) || /\b(?:I|I'll|I'm|There|This|The|A|An|We|Let's)\b/.test(trimmed)
+  })
 }
 
 function safeParse(source: string): Root {

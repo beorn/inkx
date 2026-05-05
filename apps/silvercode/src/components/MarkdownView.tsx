@@ -36,7 +36,13 @@ function InlineRun({
   // children had each token as a separate flex item; flex line wrapping
   // dropped boundary whitespace and broke words across spans.
   return (
-    <Text color={role === "user" ? "$fg" : undefined} backgroundColor={backgroundColor} wrap={wrapMode}>
+    <Text
+      color={role === "user" ? "$fg" : undefined}
+      backgroundColor={backgroundColor}
+      wrap={wrapMode}
+      minWidth={0}
+      maxWidth="100%"
+    >
       {tokens.map((t, i) => {
         switch (t.kind) {
           case "bold":
@@ -273,7 +279,7 @@ function MarkdownViewBody({
 }): React.ReactElement {
   const blocks = useMemo(() => parseBlocks(source), [source])
   return (
-    <Prose flexShrink={1} minWidth={0}>
+    <Prose flexShrink={1} minWidth={0} maxWidth="100%">
       {blocks.map((b, i) => {
         const prev = i > 0 ? (blocks[i - 1] ?? null) : null
         const gap = needsGapBefore(prev, b)

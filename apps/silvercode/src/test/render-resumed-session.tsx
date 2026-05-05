@@ -1,5 +1,6 @@
 import React from "react"
-import { createRenderer, type App as RendererApp } from "@silvery/test"
+import { bufferToText, createRenderer, type App as RendererApp } from "@silvery/test"
+import type { TerminalBuffer } from "@silvery/ag-term/buffer"
 import { Box } from "silvery"
 import { createSessionStore, type MessageEntry, type SessionStore } from "@km/agent-harness"
 import { findCodexTranscript, replayCodexSessionFromDisk } from "../codex-resume.ts"
@@ -17,6 +18,8 @@ export type RenderResumedSessionOptions = {
   follow?: "end" | false
   singlePassLayout?: boolean
   incremental?: boolean
+  autoRender?: boolean
+  onFrame?: (text: string, buffer: TerminalBuffer) => void
   includeMetadata?: boolean
 }
 
@@ -29,6 +32,7 @@ export type RenderedResumedSession = {
   readonly store: SessionStore
   readonly messages: readonly MessageEntry[]
   readonly metadata: SessionHistoryMetadata
+  rerender(next?: { cols?: number; rows?: number }): void
   dispose(): void
 }
 
@@ -37,8 +41,8 @@ const DEFAULT_ROWS = 40
 const DEFAULT_CWD = "/Users/beorn/Code/pim/km"
 
 export function renderResumedSession(opts: RenderResumedSessionOptions): RenderedResumedSession {
-  const cols = opts.cols ?? DEFAULT_COLS
-  const rows = opts.rows ?? DEFAULT_ROWS
+  let cols = opts.cols ?? DEFAULT_COLS
+  let rows = opts.rows ?? DEFAULT_ROWS
   const cwd = opts.cwd ?? DEFAULT_CWD
   const parsed = parseResumeSpec(opts.resume, opts.agent)
   const store = createSessionStore()
@@ -49,8 +53,10 @@ export function renderResumedSession(opts: RenderResumedSessionOptions): Rendere
     rows,
     singlePassLayout: opts.singlePassLayout,
     incremental: opts.incremental ?? false,
+    autoRender: opts.autoRender,
+    onFrame: opts.onFrame ? (_frame, buffer) => opts.onFrame?.(bufferToText(buffer), buffer) : undefined,
   })
-  const app = renderer(
+  const element = () => (
     <Box width={cols} height={rows} flexDirection="column">
       <Content.Layout>
         <SessionUpdateList
@@ -70,8 +76,9 @@ export function renderResumedSession(opts: RenderResumedSessionOptions): Rendere
           agentVersion={state.claudeCodeVersion || null}
         />
       </Content.Layout>
-    </Box>,
+    </Box>
   )
+  const app = renderer(element())
   return {
     get text() {
       return app.text
@@ -79,14 +86,26 @@ export function renderResumedSession(opts: RenderResumedSessionOptions): Rendere
     get lines() {
       return app.lines
     },
-    cols,
-    rows,
+    get cols() {
+      return cols
+    },
+    get rows() {
+      return rows
+    },
     app,
     store,
     get messages() {
       return store.state.get().messages
     },
     metadata,
+    rerender(next) {
+      cols = next?.cols ?? cols
+      rows = next?.rows ?? rows
+      if (next?.cols !== undefined || next?.rows !== undefined) {
+        app.resize(cols, rows)
+      }
+      app.rerender(element())
+    },
     dispose() {
       app.unmount()
     },

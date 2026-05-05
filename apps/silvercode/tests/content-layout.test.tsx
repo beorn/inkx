@@ -936,6 +936,62 @@ describe("content layout", () => {
     expect(col).toBe(Math.floor((cols - 88) / 2))
   })
 
+  test("hidden row asides do not render into a zero-width margin lane", () => {
+    const cols = 88
+    const renderer = createRenderer({ cols, rows: 6 })
+    const app = renderer(
+      <Box width={cols} height={6} flexDirection="column">
+        <Content.Layout>
+          <Content.Row>
+            <Content.Left>
+              <Content.Aside show={false}>11:46</Content.Aside>
+            </Content.Left>
+            <Content.Body width="full">
+              <Text>Edited 6 files</Text>
+            </Content.Body>
+          </Content.Row>
+        </Content.Layout>
+      </Box>,
+    )
+
+    expect(app.text).toContain("Edited 6 files")
+  })
+
+  test("hidden asides do not reserve padding", () => {
+    const renderer = createRenderer({ cols: 12, rows: 2 })
+    const app = renderer(
+      <Box width={12} height={2} flexDirection="row">
+        <Content.Aside show={false}>11:46</Content.Aside>
+        <Text>Edited</Text>
+      </Box>,
+    )
+
+    expect(app.lines[0]!.indexOf("Edited")).toBe(0)
+  })
+
+  test("wide bodies do not overflow before the layout probe has measured", () => {
+    const cols = 111
+    const renderer = createRenderer({ cols, rows: 6 })
+    const app = renderer(
+      <Box width={cols} height={6} flexDirection="column">
+        <Content.Layout>
+          <Content.Row>
+            <Content.Left>
+              <Content.Aside show={false}>11:46</Content.Aside>
+            </Content.Left>
+            <Content.Body width="wide">
+              <Box width="100%" minWidth={0}>
+                <Text>Edited 3 files (+29 -1)</Text>
+              </Box>
+            </Content.Body>
+          </Content.Row>
+        </Content.Layout>
+      </Box>,
+    )
+
+    expect(app.text).toContain("Edited 3 files")
+  })
+
   test("loaded-session metadata is its own row and does not overwrite preceding prose", () => {
     const app = renderListWithMetadata(
       [

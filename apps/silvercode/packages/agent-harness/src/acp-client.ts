@@ -1102,6 +1102,20 @@ function mapSessionUpdateToLegacyEvents(
     }
 
     case "plan":
+      events.push({
+        kind: "plan-update",
+        sessionId,
+        source: "acp-plan",
+        entries: scUpdate.entries.map((entry, i) => ({
+          id: `acp-plan:${i}:${entry.content}`,
+          content: entry.content,
+          status: entry.status,
+          priority: entry.priority,
+        })),
+        ts,
+      })
+      return events
+
     case "current_mode_update":
     case "config_option_update":
     case "session_info_update":

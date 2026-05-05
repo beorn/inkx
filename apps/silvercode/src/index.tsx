@@ -285,49 +285,25 @@ async function buildProgram(): Promise<Command> {
   // `silvercode doctor [checker]` — config + integration health check.
   // Exits before any TUI mounts. CLI-only for v1; the in-TUI `/doctor`
   // slash command is deferred (tracked by bead km-silvercode.doctor).
-  const doctor = program
-    .command("doctor")
+  program
+    .command("doctor [checker]")
     .description("health-check config + integrations (autolinks, connections)")
-    .argument("[checker]", `restrict to one checker (${CHECKER_NAMES.join(", ")})`)
-    .option("--cwd <path>", "directory whose .km/config.yaml to inspect", process.cwd())
+    .option("--cwd <path>", "directory whose .km/config.yaml to inspect")
     .option("--json", "emit the structured DoctorReport as JSON instead of the ANSI report")
-    .action(async (arg: string | undefined, opts: Record<string, unknown>) => {
-      const cwd = expandHomePath(String(opts.cwd ?? process.cwd()))
-      const only = arg ? [arg] : undefined
+    .action(async (checker: string | undefined, opts: Record<string, unknown>, cmd) => {
+      const parentOpts = cmd.parent?.opts() ?? {}
+      const cwd = expandHomePath(String(opts.cwd ?? parentOpts.cwd ?? process.cwd()))
+      const only = checker ? [checker] : undefined
       if (only && !CHECKER_NAMES.includes(only[0]! as (typeof CHECKER_NAMES)[number])) {
         process.stderr.write(`silvercode doctor: unknown checker "${only[0]}". Known: ${CHECKER_NAMES.join(", ")}\n`)
         process.exitCode = 2
         return
       }
       const report = await runDoctor({ cwd, only })
-      if (opts["json"]) {
-        process.stdout.write(`${JSON.stringify(report, null, 2)}\n`)
-      } else {
-        process.stdout.write(renderReport(report))
-      }
+      if (opts["json"]) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`)
+      else process.stdout.write(renderReport(report))
       process.exitCode = severityToExitCode(report.severity)
     })
-  // Per-checker subcommand: `silvercode doctor autolinks`. Same outcome as
-  // passing `autolinks` as a positional, kept around because users typing
-  // `silvercode doctor autolinks` (the `gh extension doctor <name>` shape)
-  // should just work without re-reading help.
-  for (const name of CHECKER_NAMES) {
-    doctor
-      .command(name)
-      .description(`Health-check the ${name} subsystem`)
-      .option("--cwd <path>", "directory whose .km/config.yaml to inspect", process.cwd())
-      .option("--json", "emit the structured DoctorReport as JSON instead of the ANSI report")
-      .action(async (opts: Record<string, unknown>) => {
-        const cwd = expandHomePath(String(opts.cwd ?? process.cwd()))
-        const report = await runDoctor({ cwd, only: [name] })
-        if (opts["json"]) {
-          process.stdout.write(`${JSON.stringify(report, null, 2)}\n`)
-        } else {
-          process.stdout.write(renderReport(report))
-        }
-        process.exitCode = severityToExitCode(report.severity)
-      })
-  }
 
   return program
 }

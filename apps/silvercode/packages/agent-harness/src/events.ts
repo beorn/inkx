@@ -26,6 +26,19 @@ export type TokenCounts = {
   total_cost_usd?: number
 }
 
+export type PlanUpdateSource = "claude-todowrite" | "codex-plan" | "acp-plan" | "opencode-plan" | "manual"
+export type PlanUpdateEntryStatus = "pending" | "in_progress" | "completed" | "cancelled"
+export type PlanUpdateEntryPriority = "high" | "medium" | "low"
+export type PlanUpdateEntry = {
+  id?: string
+  content: string
+  status: PlanUpdateEntryStatus
+  activeForm?: string
+  priority?: PlanUpdateEntryPriority
+  parentId?: string
+  providerEntryId?: string
+}
+
 /** Content block inside an assistant message. */
 export type ContentBlock =
   | { type: "text"; text: string }
@@ -86,6 +99,18 @@ export type AgentEvent =
   | { kind: "user-message"; sessionId: SessionId; turnId: TurnId; text: string; additionalContext?: string; ts: number }
   | { kind: "raw-transcript"; sessionId: SessionId; turnId: TurnId; label: string; raw: unknown; ts: number }
   | { kind: "status"; sessionId: SessionId; status: string; ts: number }
+  | {
+      kind: "plan-update"
+      sessionId: SessionId
+      source: PlanUpdateSource
+      entries: PlanUpdateEntry[]
+      messageId?: string
+      activityId?: string
+      toolCallId?: string
+      providerEventId?: string
+      providerTurnId?: string
+      ts: number
+    }
   /**
    * Mid-session slash-command list update. Emitted whenever the agent
    * advertises a fresh list (replaces the previous snapshot). For the

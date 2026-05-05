@@ -56,3 +56,15 @@ Confirmed via /big reframing: the fix that makes this impossible is the L4 refra
 - [[@km/silvercode/session-store-trace]] — Phase A.
 - [[@km/silvercode/claude-acp-init-timeout-no-fallback]] — orthogonal: synthetic-id phantom session at boot. Worth fixing alongside since it produces wedged sessions outside the L4 path.
 - [[@km/tui/tea]] — same Turn-owner pattern target for the @km/tui state machines. Coordinate when Phase B ships so we extract a shared module rather than two parallel implementations.
+
+## Implementation Notes
+
+2026-05-05:
+
+- Phase A is implemented via `setStatus()`, `statusTrace`, owner invariants, and liveness obligations in the agent-harness reducer.
+- Added `deriveStatus()` and changed `publicView()` so callers observe status derived from lifecycle ownership: pending permissions, open tools, active turns, and terminal session state.
+- This makes the controller queue gate read a derived public status through `store.state.get().status`; stale internal cached status strings no longer make public state appear busy.
+- `turn-end` now closes tool liveness obligations owned by that turn, so late tool results cannot keep the public session stuck in `tool-running`.
+- Codex transcript replay now ends an open replay turn before starting another overlapping `task_started`, preventing historical resumed sessions from leaking active-turn liveness.
+- Dense activity summary expansion is bounded with existing `BoundedScroll`, preventing large expanded turn details from pushing the transcript out of the viewport.
+- Verification: queue/status targeted run passed 43 tests; broader targeted run passed 142 tests with 1 skipped; root `npx tsc --noEmit --pretty false` passed.

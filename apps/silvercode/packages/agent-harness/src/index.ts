@@ -35,6 +35,12 @@ export { createSessionStore } from "./session-store.ts"
 export type {
   SessionState,
   SessionStore,
+  AgentPlan,
+  AgentPlanEntry,
+  AgentPlanEntryPriority,
+  AgentPlanEntryStatus,
+  AgentPlanSource,
+  AgentPlanStatus,
   MessageEntry,
   MessageOp,
   ToolCallEntry,

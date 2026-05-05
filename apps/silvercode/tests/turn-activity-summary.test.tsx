@@ -548,6 +548,7 @@ describe("TurnActivitySummary", () => {
     const app = renderList([entry])
 
     expect(app.text).toContain("Running 2 commands")
+    expect(app.text).toContain("●")
     expect(app.text).not.toContain("Ran 2 commands")
     expect(app.text).not.toContain("bd list")
     expect(app.text).toContain("bd show @km/foo")
@@ -1278,6 +1279,62 @@ describe("TurnActivitySummary", () => {
       const afterRow = term.screen.getLines().findIndex((line) => line.includes("Ran 2 commands"))
       expect(afterRow).toBe(summaryRow)
       expect(term.screen.getLines()[afterRow]).toContain("▾")
+    } finally {
+      handle.unmount()
+    }
+  })
+
+  test("expanding a large edit activity summary keeps transcript content visible", async () => {
+    using term = createTermless({ cols: 150, rows: 44 })
+    const filler = Array.from({ length: 8 }, (_, i) => makeUserEntry(`u-large-${i}`, `filler prompt ${i}`, 1000 + i))
+    const ops: MessageOp[] = [
+      ...Array.from({ length: 6 }, (_, i) =>
+        tool(
+          `edit-${i}`,
+          "Edit",
+          {
+            file_path: `apps/silvercode/src/file-${i}.ts`,
+            old_string: "old",
+            new_string: "new",
+          },
+          "Patch applied",
+        ),
+      ),
+      ...Array.from({ length: 58 }, (_, i) => tool(`cmd-${i}`, "Bash", { command: `printf command-${i}` }, `output ${i}`)),
+    ]
+    const entry = makeEntry({ id: "assistant-large-summary", ts: 2000, ops })
+    const handle = await run(
+      <Box width={150} height={44} flexDirection="column">
+        <SessionUpdateList
+          messages={[...filler, entry]}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          sessionId="turn-summary-large-blank-test"
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+        />
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle(80)
+      const beforeLines = term.screen.getLines()
+      const summaryRow = beforeLines.findIndex((line) => line.includes("Edited 6 files"))
+      expect(summaryRow, beforeLines.join("\n")).toBeGreaterThanOrEqual(0)
+      const summaryCol = beforeLines[summaryRow]!.indexOf("Edited 6 files")
+
+      await term.mouse.click(summaryCol, summaryRow)
+      await settle(120)
+
+      const text = term.screen.getText()
+      expect(text).toContain("Edited 6 files")
+      expect(text).toContain("$ printf command-0")
+      expect(text.trim().length).toBeGreaterThan(200)
     } finally {
       handle.unmount()
     }

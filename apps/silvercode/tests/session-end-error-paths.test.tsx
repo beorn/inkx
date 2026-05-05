@@ -21,6 +21,7 @@ import { describe, expect, test } from "vitest"
 import { createSilvercodeController } from "../src/controller.ts"
 import { createFakeSession } from "../src/test/fake-session.ts"
 import { sessionEndError, sessionEndGraceful } from "../src/test/scripts/sessionEnd.ts"
+import { summarizeErrorMessage } from "../src/components/Notifications.tsx"
 
 const SESSION = "fake-end-session" as SessionId
 
@@ -38,6 +39,17 @@ function turnEnd(turnId: string, baseTs = 1020): AgentEvent {
 }
 
 describe("layer 3: session-end (graceful)", () => {
+  test("error toast summaries collapse apply_patch verification payloads", () => {
+    const message = [
+      "codex_core::tools::router: error=apply_patch verification failed: Failed to find expected lines in /tmp/App.tsx:",
+      "function Example() {",
+      "  return <Box />",
+      "}",
+    ].join("\n")
+
+    expect(summarizeErrorMessage(message)).toBe("apply_patch failed: expected lines not found in /tmp/App.tsx")
+  })
+
   test("sessionEndGraceful script drives status idle → idle and emits final session-end", async () => {
     const fake = createFakeSession({ sessionId: SESSION })
     const controller = createSilvercodeController({

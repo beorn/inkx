@@ -3,10 +3,10 @@
  *
  * Visual separator between exchanges in a `<SessionUpdateList>`.
  *
- * An "exchange" is a silvercode-local concept: one user prompt plus the
- * resulting agent response stream. ACP has no "turn" or "exchange" noun —
- * the protocol only speaks `SessionUpdate` variants. This component is the
- * visual boundary that groups those updates into readable human↔agent pairs.
+ * An "exchange" / chat turn is a silvercode-local presentation concept:
+ * an idle-delimited burst of prompts, messages, and activity. ACP has no
+ * canonical "turn" noun — the protocol only speaks `SessionUpdate`
+ * variants. This component is a visual boundary, not a protocol boundary.
  *
  * Bead: km-silvercode.acp-session-update-list.
  */

@@ -13,6 +13,7 @@ import { SessionUpdateList } from "../../src/components/SessionUpdateList.tsx"
 import { InlinePermissionPrompt } from "../../src/components/InlinePermissionPrompt.tsx"
 import { TurnActivitySummary, type TurnActivitySummaryItem } from "../../src/components/TurnActivitySummary.tsx"
 import { TURN_ACTIVITY_AMBIENT, TURN_ACTIVITY_RICH } from "../support/sample-messages.ts"
+import { withActivitySpan } from "../support/activity-summary.ts"
 import { fakeSessionHandle } from "../support/fake-session-handle.ts"
 import type { Story } from "../types.ts"
 
@@ -99,7 +100,7 @@ const directItems: TurnActivitySummaryItem[] = [
     }),
     errorMessage: "No test files found, exiting with code 1",
   },
-]
+].map(withActivitySpan)
 
 export const turnActivitySummaryRich: Story = {
   id: "TurnActivitySummary/rich",

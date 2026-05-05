@@ -67,7 +67,6 @@ export const welcomeLoadingResume: Story = {
         handle={fakeSessionHandle({ resumeId })}
         agent="codex"
         model="gpt-5.4"
-        status="spawning"
         composerSlot={<WelcomeComposer />}
       />
     )

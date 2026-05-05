@@ -2,46 +2,6 @@ import React from "react"
 import { Box, Text } from "silvery"
 import { SessionEntry } from "./SessionEntry.tsx"
 
-/**
- * Playful verb pool — metallurgy / blacksmithing / jewellery / high tea
- * themed to fit the "Silver Code" motif. Rotated every 3s so the indicator
- * feels alive during long thinks.
- */
-const VERB_POOL = [
-  // Metallurgy
-  "Smelting",
-  "Refining",
-  "Annealing",
-  "Tempering",
-  "Casting",
-  "Alloying",
-  "Quenching",
-  "Forging",
-  // Blacksmithing
-  "Hammering",
-  "Welding",
-  "Drawing",
-  "Upsetting",
-  "Swaging",
-  "Bellowing",
-  // Jewellery
-  "Filigreeing",
-  "Polishing",
-  "Setting",
-  "Engraving",
-  "Chasing",
-  "Soldering",
-  "Burnishing",
-  // High tea
-  "Steeping",
-  "Pouring",
-  "Infusing",
-  "Whisking",
-  "Stirring",
-  "Simmering",
-] as const
-
-const VERB_ROTATE_MS = 3000
 const ELAPSED_TICK_MS = 1000
 
 function formatElapsed(ms: number): string {
@@ -66,11 +26,8 @@ export type ActivityStatus = "spawning" | "idle" | "thinking" | "tool-running" |
  * last message, not as bottom-pinned chrome. Mirrors Claude Code's own
  * `<spinner> <verb>… (Xm Ys · ↑ in · ↓ out)` status line, giving the
  * user per-frame feedback that something IS happening even before any
- * text-delta arrives on the wire.
- *
- * The verb rotates through the silver-themed pool every 3s; elapsed ticks
- * every 1s. Both timers live locally so parent components don't re-render
- * on each tick.
+ * text-delta arrives on the wire. Elapsed ticks every 1s locally so parent
+ * components don't re-render on each tick.
  */
 export function ActivityIndicator({
   status,
@@ -105,20 +62,6 @@ export function ActivityIndicator({
   agentVersion?: string | null
 }): React.ReactElement | null {
   const isActive = status !== "idle" && status !== "ended"
-
-  // Local verb index — advance every 3s while active. Hooks must run
-  // unconditionally, so the early-return for inactive status happens AFTER
-  // the hooks below.
-  const [verbIdx, setVerbIdx] = React.useState(0)
-  React.useEffect(() => {
-    if (!isActive) return
-    const id = setInterval(() => {
-      setVerbIdx((i) => (i + 1) % VERB_POOL.length)
-    }, VERB_ROTATE_MS)
-    return () => {
-      clearInterval(id)
-    }
-  }, [isActive])
 
   // Local tick for elapsed-time re-render. We store `now` rather than the
   // elapsed value directly so the component stays correct if turnStartedAt
@@ -166,8 +109,7 @@ export function ActivityIndicator({
     label = `Spawning ${who}${versionSuffix}…`
     color = "$info"
   } else {
-    const verb = VERB_POOL[verbIdx % VERB_POOL.length]!
-    label = `${verb}…`
+    label = "thinking…"
     color = "$accent"
   }
 

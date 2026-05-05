@@ -47,7 +47,15 @@ export function BoundedScroll({
   // discover the bound on first wheel event.
   const { scrollOffset, onWheel } = useKineticScroll({})
   return (
-    <Box flexDirection="column" maxHeight={maxRows} overflow="scroll" scrollOffset={scrollOffset} onWheel={onWheel}>
+    <Box
+      flexDirection="column"
+      flexGrow={0}
+      flexShrink={1}
+      maxHeight={maxRows}
+      overflow="scroll"
+      scrollOffset={scrollOffset}
+      onWheel={onWheel}
+    >
       {children}
     </Box>
   )

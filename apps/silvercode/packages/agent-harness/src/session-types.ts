@@ -197,6 +197,51 @@ export type Todo = {
   activeForm?: string
 }
 
+export type AgentPlanSource = "claude-todowrite" | "codex-plan" | "acp-plan" | "opencode-plan" | "manual"
+
+export type AgentPlanStatus = "active" | "completed" | "abandoned"
+
+export type AgentPlanEntryStatus = "pending" | "in_progress" | "completed" | "cancelled"
+
+export type AgentPlanEntryPriority = "high" | "medium" | "low"
+
+export type AgentPlanScope = {
+  sessionId: SessionId | null
+  messageId?: string
+  activityId?: string
+  toolCallId?: string
+  providerEventId?: string
+  providerTurnId?: string
+}
+
+export type AgentPlanEntry = {
+  id: string
+  content: string
+  status: AgentPlanEntryStatus
+  activeForm?: string
+  priority?: AgentPlanEntryPriority
+  parentId?: string
+  order: number
+  startedAt?: number
+  completedAt?: number
+  sourceRef?: {
+    toolCallId?: string
+    messageId?: string
+    providerEntryId?: string
+  }
+}
+
+export type AgentPlan = {
+  id: string
+  sessionId: SessionId | null
+  scope: AgentPlanScope
+  source: AgentPlanSource
+  version: number
+  status: AgentPlanStatus
+  entries: AgentPlanEntry[]
+  updatedAt: number
+}
+
 export type SessionStatus = "spawning" | "idle" | "thinking" | "tool-running" | "awaiting-permission" | "ended"
 
 export type SessionState = {
@@ -227,7 +272,9 @@ export type SessionState = {
    * Bead: km-silvercode.askuserquestion-implement.
    */
   pendingQuestion: PendingQuestion | null
-  /** The most recent TodoWrite snapshot, regardless of which turn produced it. */
+  /** Current session-scoped provider-neutral plan, when one has been emitted. */
+  plan: AgentPlan | null
+  /** Compatibility projection of the latest plan's entries for older UI surfaces. */
   todos: Todo[]
   /** Running cost + tokens. */
   cost: { usd: number; inputTokens: number; outputTokens: number }
@@ -283,6 +330,7 @@ export function initialSessionState(): SessionState {
     messages: [],
     permissions: [],
     pendingQuestion: null,
+    plan: null,
     todos: [],
     cost: { usd: 0, inputTokens: 0, outputTokens: 0 },
     lastError: null,

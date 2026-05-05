@@ -1,9 +1,10 @@
 import React from "react"
 import { Box, Screen, Text } from "silvery"
-import type { ToolCall as ToolCallType, ToolCallId } from "@km/agent-harness"
+import type { AgentPlan, ToolCall as ToolCallType, ToolCallId } from "@km/agent-harness"
 import { Chat } from "../../src/components/Chat.tsx"
 import { SessionUpdateList } from "../../src/components/SessionUpdateList.tsx"
 import type { TurnActivitySummaryItem } from "../../src/components/TurnActivitySummary.tsx"
+import { withActivitySpan } from "../support/activity-summary.ts"
 import { BIG_TOOL_TURN, MULTI_TURN, TURN_ACTIVITY_AMBIENT, TURN_ACTIVITY_RICH } from "../support/sample-messages.ts"
 import type { Story } from "../types.ts"
 
@@ -33,7 +34,52 @@ const directActivityItems: TurnActivitySummaryItem[] = [
       content: [{ type: "content", content: { type: "text", text: "Tests 2 passed" } }],
     }),
   },
-]
+].map(withActivitySpan)
+
+const denseActivityItems: TurnActivitySummaryItem[] = Array.from({ length: 9 }, (_, i) =>
+  withActivitySpan(
+    {
+      id: `dense-${i}`,
+      toolCall: tc({
+        toolCallId: id(`chat-dense-${i}`),
+        title: `Read src/file-${i}.ts`,
+        kind: "read",
+        status: "completed",
+      }),
+    },
+    i,
+  ),
+)
+
+const activePlan: AgentPlan = {
+  id: "story-plan",
+  sessionId: "story-chat-plan" as AgentPlan["sessionId"],
+  scope: { sessionId: "story-chat-plan" as AgentPlan["sessionId"], toolCallId: "todo-1" },
+  source: "claude-todowrite",
+  version: 1,
+  status: "active",
+  updatedAt: Date.now(),
+  entries: [
+    { id: "plan-1", content: "Audit chat model", status: "completed", order: 0 },
+    {
+      id: "plan-2",
+      content: "Implement session-scoped plan drawer",
+      activeForm: "Implementing plan drawer",
+      status: "in_progress",
+      order: 1,
+    },
+    { id: "plan-3", content: "Update architecture docs", status: "pending", order: 2 },
+  ],
+}
+
+function StorySection({ label, children }: { label: string; children: React.ReactNode }): React.ReactElement {
+  return (
+    <Box flexDirection="column" gap={0}>
+      <Text color="$muted">{label}</Text>
+      {children}
+    </Box>
+  )
+}
 
 export const chatTurnComponents: Story = {
   id: "Chat/turn-components",
@@ -70,6 +116,97 @@ export const chatTurnComponents: Story = {
   },
 }
 
+export const chatStateVariants: Story = {
+  id: "Chat/state-variants",
+  component: "Chat",
+  variant: "state-variants",
+  description:
+    "Chat session states: prompt, narration, activity, dense activity, queued prompt, notification, plan, summary, and stats.",
+  render() {
+    return (
+      <Screen flexDirection="column">
+        <Chat.Root>
+          <Chat.Transcript>
+            <Chat.Turn.Root>
+              <StorySection label="prompt-only">
+                <Chat.Turn.Prompt text="Review the chat projection model." />
+              </StorySection>
+              <StorySection label="narration-only">
+                <Chat.Turn.Segment>
+                  <Chat.Turn.Narration text="I am tracing the session state before changing components." />
+                </Chat.Turn.Segment>
+              </StorySection>
+              <StorySection label="narration-activity-narration">
+                <Chat.Turn.Segment>
+                  <Chat.Turn.Narration text="First I inspect the model." />
+                  <Chat.Turn.Activity items={directActivityItems} />
+                  <Chat.Turn.Narration text="Then I update the projection." />
+                </Chat.Turn.Segment>
+              </StorySection>
+              <StorySection label="dense-activity">
+                <Chat.Turn.Activity items={denseActivityItems} />
+              </StorySection>
+              <StorySection label="queued-prompt">
+                <Chat.Turn.Prompt text="Also update Storybook with all variants." />
+              </StorySection>
+              <StorySection label="notification">
+                <Chat.Notification>
+                  <Chat.Body width="prose">
+                    <Text color="$muted">CI failed Workers builds: km-website</Text>
+                  </Chat.Body>
+                </Chat.Notification>
+              </StorySection>
+              <StorySection label="plan-update">
+                <Chat.Composer>
+                  <Chat.PlanDrawer plan={activePlan} defaultExpanded />
+                </Chat.Composer>
+              </StorySection>
+              <StorySection label="summary-stats">
+                <Chat.Turn.Summary>
+                  <Chat.Turn.Narration text="The projection now treats turns as idle-delimited UI groups." />
+                  <Chat.Turn.Stats>2 prompts · 11 tools · 4.2s · 3.1k tokens</Chat.Turn.Stats>
+                </Chat.Turn.Summary>
+              </StorySection>
+            </Chat.Turn.Root>
+          </Chat.Transcript>
+        </Chat.Root>
+      </Screen>
+    )
+  },
+}
+
+export const chatIdleDelimitedTurn: Story = {
+  id: "Chat/idle-delimited-turn",
+  component: "Chat",
+  variant: "idle-delimited-turn",
+  description: "A Silvercode turn as an idle-delimited burst with multiple prompts and activities.",
+  render() {
+    return (
+      <Screen flexDirection="column">
+        <Chat.Root>
+          <Chat.Transcript>
+            <Chat.Turn.Root>
+              <Chat.Turn.Prompt text="Start the refactor." />
+              <Chat.Turn.Segment>
+                <Chat.Turn.Narration text="I am updating the model first." />
+                <Chat.Turn.Activity items={directActivityItems.slice(0, 1)} />
+              </Chat.Turn.Segment>
+              <Chat.Turn.Prompt text="Also update the docs and Storybook." />
+              <Chat.Turn.Segment>
+                <Chat.Turn.Narration text="I will keep that prompt inside the same active turn until both sides go idle." />
+                <Chat.Turn.Activity items={directActivityItems.slice(1)} />
+              </Chat.Turn.Segment>
+              <Chat.Turn.Summary>
+                <Chat.Turn.Stats>2 prompts · 2 tools · one idle-delimited turn</Chat.Turn.Stats>
+              </Chat.Turn.Summary>
+            </Chat.Turn.Root>
+          </Chat.Transcript>
+        </Chat.Root>
+      </Screen>
+    )
+  },
+}
+
 export const chatMultiTurn: Story = {
   id: "Chat/multi-turn",
   component: "Chat",
@@ -93,6 +230,51 @@ export const chatMultiTurn: Story = {
             follow={false}
           />
         </Box>
+      </Screen>
+    )
+  },
+}
+
+export const chatPlanDrawer: Story = {
+  id: "Chat/plan-drawer",
+  component: "Chat",
+  variant: "plan-drawer",
+  description: "Session-scoped plan drawer states above the composer.",
+  render() {
+    const completedPlan: AgentPlan = {
+      ...activePlan,
+      id: "story-plan-completed",
+      status: "completed",
+      entries: activePlan.entries.map((entry) => ({ ...entry, status: "completed" })),
+    }
+    const cancelledPlan: AgentPlan = {
+      ...activePlan,
+      id: "story-plan-cancelled",
+      status: "abandoned",
+      entries: [
+        { id: "plan-cancel-1", content: "Cancelled migration", status: "cancelled", order: 0 },
+        { id: "plan-cancel-2", content: "Follow-up cleanup", status: "pending", order: 1 },
+      ],
+    }
+    return (
+      <Screen flexDirection="column">
+        <Chat.Root>
+          <Chat.Transcript>
+            <Box flexDirection="column" flexGrow={1} justifyContent="flex-end">
+              <Chat.Composer>
+                <Box flexDirection="column" gap={1} width="100%" minWidth={0}>
+                  <Chat.PlanDrawer plan={activePlan} />
+                  <Chat.PlanDrawer plan={activePlan} defaultExpanded />
+                  <Chat.PlanDrawer plan={completedPlan} />
+                  <Chat.PlanDrawer plan={cancelledPlan} defaultExpanded />
+                  <Box backgroundColor="$bg-surface-raised" paddingX={1}>
+                    <Text color="$muted">composer</Text>
+                  </Box>
+                </Box>
+              </Chat.Composer>
+            </Box>
+          </Chat.Transcript>
+        </Chat.Root>
       </Screen>
     )
   },

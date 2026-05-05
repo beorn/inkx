@@ -1155,20 +1155,8 @@ function SidePanelChrome({
   const todosHover = usePopoverHandlers({
     body: (
       <Box flexDirection="column">
-        <Text bold>Todos</Text>
-        <Muted>
-          Claude writes todos via the TodoWrite tool when planning multi-step work. They appear here as the plan is
-          executed.
-        </Muted>
-        {todos.length > 0 ? (
-          todos.map((t, i) => (
-            <Text key={i} color={t.status === "completed" ? "$success" : "$muted"}>
-              {t.status === "completed" ? "✓" : t.status === "in_progress" ? "▸" : "○"} {t.content}
-            </Text>
-          ))
-        ) : (
-          <Muted>No todos yet.</Muted>
-        )}
+        <Text bold>Plan</Text>
+        <Muted>The active plan is shown above the composer.</Muted>
       </Box>
     ),
     maxWidth: 52,
@@ -1337,22 +1325,20 @@ function SidePanelChrome({
           </Box>
           <Small color="$muted">ctrl-o</Small>
         </Box>
-        {sessions.length > 1
-          ? sessions.map((s) => (
-              <SessionRow
-                key={s.id}
-                handle={s}
-                isFocused={s.id === focusedSessionId}
-                onClick={() => {
-                  copySessionTranscriptToClipboard(s, stdout)
-                  onFocusSession(s.id)
-                }}
-              />
-            ))
-          : null}
+        {sessions.map((s) => (
+          <SessionRow
+            key={s.id}
+            handle={s}
+            isFocused={s.id === focusedSessionId}
+            onClick={() => {
+              copySessionTranscriptToClipboard(s, stdout)
+              onFocusSession(s.id)
+            }}
+          />
+        ))}
       </Box>
 
-      {/* Todos */}
+      {/* Plan count */}
       {todosCount > 0 ? (
         <>
           <Box flexShrink={0} height={1} />
@@ -1364,7 +1350,7 @@ function SidePanelChrome({
             onMouseLeave={todosHover.onMouseLeave}
             backgroundColor={hoveredBg(todosHover.isHovered)}
           >
-            <SectionHeading>Todos</SectionHeading>
+            <SectionHeading>Plan</SectionHeading>
             <Text color="$muted">{todosCount}</Text>
           </Box>
         </>

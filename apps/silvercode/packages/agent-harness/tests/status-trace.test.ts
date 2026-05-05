@@ -16,7 +16,7 @@
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import type { AgentEvent, SessionId, TurnId } from "../src/events.ts"
-import { initialInternalState, reduce } from "../src/session-reducer.ts"
+import { initialInternalState, publicView, reduce } from "../src/session-reducer.ts"
 import type { InternalSessionState } from "../src/session-reducer.ts"
 
 const sid = "s-test" as SessionId
@@ -120,9 +120,61 @@ describe("status-trace — ring buffer captures every transition", () => {
     })
   })
 
-  test("permission-decision (resolved) → idle, last → awaiting-permission", () => {
-    const state = apply([
+  test("permission-decision with an active turn returns to tool-running or thinking instead of idle", () => {
+    const toolState = apply([
       { kind: "turn-start", sessionId: sid, turnId: t1, role: "assistant", ts: 100 } as AgentEvent,
+      { kind: "tool-use", sessionId: sid, turnId: t1, id: "tool-1", name: "Bash", input: {}, ts: 150 } as AgentEvent,
+      {
+        kind: "permission-request",
+        sessionId: sid,
+        requestId: "p-tool",
+        tool: "Bash",
+        args: {},
+        ts: 200,
+      } as AgentEvent,
+      {
+        kind: "permission-decision",
+        sessionId: sid,
+        requestId: "p-tool",
+        approved: true,
+        ts: 300,
+      } as AgentEvent,
+    ])
+    expect(toolState.status).toBe("tool-running")
+    expect(toolState.statusTrace?.at(-1)).toMatchObject({
+      to: "tool-running",
+      reason: "permission-decision-resolved-tool",
+      turnId: t1,
+    })
+
+    const thinkingState = apply([
+      { kind: "turn-start", sessionId: sid, turnId: t1, role: "assistant", ts: 100 } as AgentEvent,
+      {
+        kind: "permission-request",
+        sessionId: sid,
+        requestId: "p-turn",
+        tool: "Bash",
+        args: {},
+        ts: 200,
+      } as AgentEvent,
+      {
+        kind: "permission-decision",
+        sessionId: sid,
+        requestId: "p-turn",
+        approved: true,
+        ts: 300,
+      } as AgentEvent,
+    ])
+    expect(thinkingState.status).toBe("thinking")
+    expect(thinkingState.statusTrace?.at(-1)).toMatchObject({
+      to: "thinking",
+      reason: "permission-decision-resolved-turn",
+      turnId: t1,
+    })
+  })
+
+  test("permission-decision without an active turn resolves idle, last pending stays awaiting-permission", () => {
+    const state = apply([
       {
         kind: "permission-request",
         sessionId: sid,
@@ -157,7 +209,7 @@ describe("status-trace — ring buffer captures every transition", () => {
     expect(state.status).toBe("idle")
     const reasons = (state.statusTrace ?? []).map((e) => e.reason)
     expect(reasons).toContain("permission-decision-pending")
-    expect(reasons).toContain("permission-decision-resolved")
+    expect(reasons).toContain("permission-decision-resolved-idle")
   })
 
   test("session-end → ended, lifecycle-ended → ended", () => {
@@ -359,6 +411,22 @@ describe("status-trace — dev-mode invariant", () => {
         { kind: "tool-use", sessionId: sid, turnId: t2, id: "tool-1", name: "Bash", input: {}, ts: 300 } as AgentEvent,
       ])
     }).not.toThrow()
+  })
+
+  test("public status is derived from lifecycle ownership, not the cached internal status string", () => {
+    const corrupt = initialInternalState()
+    corrupt.status = "thinking"
+    corrupt._activeTurnId = null
+    expect(publicView(corrupt).status).toBe("idle")
+
+    const [busy] = reduce(corrupt, {
+      kind: "turn-start",
+      sessionId: sid,
+      turnId: t1,
+      role: "assistant",
+      ts: 100,
+    } as AgentEvent)
+    expect(publicView(busy).status).toBe("thinking")
   })
 })
 

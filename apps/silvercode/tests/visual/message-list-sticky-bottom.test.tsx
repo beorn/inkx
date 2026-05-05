@@ -87,4 +87,14 @@ describe("SessionUpdateList follow-end auto-follow (km-silvercode)", () => {
       s.dispose()
     }
   })
+
+  test("when conversation overflows viewport, latest assistant message is visible", async () => {
+    const s = await renderScenario({ script: manyTurns, cols: 120, rows: 18 })
+    try {
+      expect(s.text, "FINAL pong must remain visible at the rendered tail").toContain("FINAL pong")
+      expect(s.text, "oldest turn should have scrolled out of the visible viewport").not.toContain("pong 1")
+    } finally {
+      s.dispose()
+    }
+  })
 })

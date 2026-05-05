@@ -592,6 +592,7 @@ describe("AmbientEventRow disclosure", () => {
             kind: "ambient",
             id: "tribe-clip",
             source: "tribe",
+            timestamp: 1_700_000_000_003,
             // Long enough to trigger clip() inside parseRecallMemory's
             // empty-snippets fallback. The path-shaped tail used to
             // render `/nix/sto…` — should now drop the path entirely.

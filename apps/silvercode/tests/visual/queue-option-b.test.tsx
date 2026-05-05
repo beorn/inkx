@@ -23,7 +23,7 @@
 
 import type { AgentEvent, SessionId, TurnId } from "@km/agent-harness"
 import { describe, expect, test } from "vitest"
-import { renderScenario } from "../../src/test/render-harness.tsx"
+import { leftWidthFor, renderScenario } from "../../src/test/render-harness.tsx"
 import { welcome } from "../../src/test/scripts/welcome.ts"
 
 const COLS = 120
@@ -104,6 +104,19 @@ describe("Option B queue — focus handoff and Enter semantics", () => {
       // Both queued lines render somewhere in the frame.
       expect(s.text).toContain("first")
       expect(s.text).toContain("second")
+    } finally {
+      s.dispose()
+    }
+  })
+
+  test("queue divider stays inside the command pane", async () => {
+    const s = await busySession({ initialQueue: "queued-entry" })
+    try {
+      const leftWidth = leftWidthFor(COLS)
+      const dividerLine = s.lines.find((line) => line.includes("QUEUE"))
+      expect(dividerLine, s.text).toBeDefined()
+      expect(dividerLine!.slice(leftWidth), s.text).not.toContain("─")
+      expect(dividerLine!.slice(leftWidth), s.text).not.toContain("QUEUE")
     } finally {
       s.dispose()
     }

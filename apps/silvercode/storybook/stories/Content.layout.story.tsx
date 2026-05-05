@@ -4,6 +4,7 @@ import type { ToolCall as ToolCallType, ToolCallId } from "@km/agent-harness"
 import { Content } from "../../src/components/Content.tsx"
 import { MarkdownView } from "../../src/components/MarkdownView.tsx"
 import { TurnActivitySummary, type TurnActivitySummaryItem } from "../../src/components/TurnActivitySummary.tsx"
+import { withActivitySpan } from "../support/activity-summary.ts"
 import type { Story } from "../types.ts"
 
 const id = (s: string) => s as ToolCallId
@@ -58,7 +59,7 @@ const activityItems: TurnActivitySummaryItem[] = [
       ],
     }),
   },
-]
+].map(withActivitySpan)
 
 const markdownTable =
   "| File | Status | Notes |\n" +

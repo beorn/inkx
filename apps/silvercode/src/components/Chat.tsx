@@ -1,5 +1,6 @@
 import React from "react"
-import { Box, Prose, Text } from "silvery"
+import { Box, Prose, Text, useHover } from "silvery"
+import type { AgentPlan, AgentPlanEntry } from "@km/agent-harness"
 import { buildTextAnalysis, shrinkwrapWidth } from "@silvery/ag-term/pipeline/pretext"
 import { Content, useContentLayout } from "./Content.tsx"
 import { MarkdownView } from "./MarkdownView.tsx"
@@ -34,6 +35,89 @@ function Composer({ children }: { children: React.ReactNode }): React.ReactEleme
     <Content.Row>
       <Content.Body width="auto">{children}</Content.Body>
     </Content.Row>
+  )
+}
+
+function planEntryLabel(entry: AgentPlanEntry): string {
+  return entry.status === "in_progress" ? (entry.activeForm ?? entry.content) : entry.content
+}
+
+function planCounts(plan: AgentPlan): { pending: number; completed: number; cancelled: number } {
+  let pending = 0
+  let completed = 0
+  let cancelled = 0
+  for (const entry of plan.entries) {
+    if (entry.status === "completed") completed++
+    else if (entry.status === "cancelled") cancelled++
+    else pending++
+  }
+  return { pending, completed, cancelled }
+}
+
+function PlanDrawer({
+  plan,
+  defaultExpanded = false,
+}: {
+  plan: AgentPlan | null | undefined
+  defaultExpanded?: boolean
+}): React.ReactElement | null {
+  const [expanded, setExpanded] = React.useState(defaultExpanded)
+  const hover = useHover()
+  if (!plan || plan.entries.length === 0) return null
+  const active = plan.entries.find((entry) => entry.status === "in_progress")
+  const next = active ?? plan.entries.find((entry) => entry.status === "pending") ?? plan.entries[0]!
+  const counts = planCounts(plan)
+  const countText = [
+    counts.pending > 0 ? `${counts.pending} pending` : null,
+    counts.completed > 0 ? `${counts.completed} completed` : null,
+    counts.cancelled > 0 ? `${counts.cancelled} cancelled` : null,
+  ]
+    .filter((part): part is string => part != null)
+    .join(" · ")
+
+  return (
+    <Box
+      alignSelf="flex-end"
+      width="60%"
+      minWidth={20}
+      maxWidth="100%"
+      flexDirection="column"
+      backgroundColor={hover.isHovered ? "$bg-surface-hover" : "$bg-surface-raised"}
+      paddingX={1}
+      paddingY={0}
+      onClick={() => setExpanded((value) => !value)}
+      onMouseEnter={hover.onMouseEnter}
+      onMouseLeave={hover.onMouseLeave}
+    >
+      <Box flexDirection="row" gap={1} minWidth={0}>
+        <Text color="$muted">{expanded ? "▾" : "▸"}</Text>
+        <Text wrap="truncate">{planEntryLabel(next)}</Text>
+        {countText.length > 0 ? <Text color="$muted">· {countText}</Text> : null}
+      </Box>
+      {expanded ? (
+        <Box flexDirection="column" paddingLeft={2} minWidth={0}>
+          {plan.entries.map((entry) => {
+            const marker =
+              entry.status === "completed"
+                ? "✓"
+                : entry.status === "cancelled"
+                  ? "×"
+                  : entry.status === "in_progress"
+                    ? "▸"
+                    : "□"
+            const color = entry.status === "completed" || entry.status === "cancelled" ? "$muted" : undefined
+            return (
+              <Box key={entry.id} flexDirection="row" gap={1} minWidth={0}>
+                <Text color={color}>{marker}</Text>
+                <Text color={color} wrap="truncate">
+                  {planEntryLabel(entry)}
+                </Text>
+              </Box>
+            )
+          })}
+        </Box>
+      ) : null}
+    </Box>
   )
 }
 
@@ -188,8 +272,8 @@ function Narration({
   if (muted) {
     return (
       <SessionEntry marker={marker} markerColor="$muted">
-        <Prose flexGrow={1}>
-          <Text color="$muted" wrap="wrap">
+        <Prose flexGrow={1} minWidth={0} maxWidth="100%">
+          <Text color="$muted" wrap="wrap" minWidth={0} maxWidth="100%">
             {text}
           </Text>
         </Prose>
@@ -275,6 +359,7 @@ export const Chat = {
   Metadata,
   Notification,
   Composer,
+  PlanDrawer,
   Body,
   Turn: {
     Root: TurnRoot,

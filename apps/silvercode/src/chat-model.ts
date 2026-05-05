@@ -17,7 +17,13 @@ export type ChatTurnSegment = {
 }
 
 export type ChatTurn = {
+  /** UI projection key for an idle-delimited Silvercode turn. Not a provider id. */
+  turnKey: string
+  /** Back-compat alias for call sites that still key by `id`. */
   id: string
+  /** Prompts submitted inside this idle-delimited turn, in stream order. */
+  prompts: MessageEntry[]
+  /** First prompt in the turn, retained for existing renderers. */
   prompt?: MessageEntry
   segments: ChatTurnSegment[]
   summary?: MessageOp[]
@@ -34,6 +40,18 @@ export type AssistantDisplaySlice =
 export type ChatTranscriptSlice =
   | { kind: "message"; id: string; message: MessageEntry }
   | { kind: "activity"; id: string; message: MessageEntry; ops: MessageOp[] }
+
+export type ChatActivityKind = "reasoning" | "tool"
+
+export type ChatActivityStatus = "running" | "completed" | "failed"
+
+export type ChatActivitySpan = {
+  id: string
+  kind: ChatActivityKind
+  status: ChatActivityStatus
+  op: MessageOp
+  index: number
+}
 
 function isActivityOp(op: MessageOp): boolean {
   return op.kind === "tool" || op.kind === "thinking"
@@ -203,13 +221,54 @@ export function splitAssistantOpsIntoDisplaySlices(ops: readonly MessageOp[]): A
   return out
 }
 
+function activityStatusForOp(op: MessageOp): ChatActivityStatus {
+  if (op.kind !== "tool") return "completed"
+  if (!op.result) return "running"
+  return op.result.is_error ? "failed" : "completed"
+}
+
+export function activitySpansFromOps(ops: readonly MessageOp[]): ChatActivitySpan[] {
+  const out: ChatActivitySpan[] = []
+  ops.forEach((op, index) => {
+    if (op.kind === "tool") {
+      out.push({
+        id: op.toolCall.id,
+        kind: "tool",
+        status: activityStatusForOp(op),
+        op,
+        index,
+      })
+      return
+    }
+    if (op.kind === "thinking" && op.text.trim().length > 0) {
+      out.push({
+        id: `reasoning-${index}`,
+        kind: "reasoning",
+        status: "completed",
+        op,
+        index,
+      })
+    }
+  })
+  return out
+}
+
+export function latestRunningActivitySpan(spans: readonly ChatActivitySpan[]): ChatActivitySpan | null {
+  for (let i = spans.length - 1; i >= 0; i--) {
+    const span = spans[i]
+    if (span?.status === "running") return span
+  }
+  return null
+}
+
 export function buildChatTurns(messages: readonly MessageEntry[]): ChatTurn[] {
   const turns: ChatTurn[] = []
   let current: ChatTurn | null = null
+  let currentHasOpenAssistant = false
 
   const ensureTurn = (id: string): ChatTurn => {
     if (!current) {
-      current = { id, segments: [], stats: { toolCount: 0, thinkingCount: 0 } }
+      current = { id, turnKey: id, prompts: [], segments: [], stats: { toolCount: 0, thinkingCount: 0 } }
       turns.push(current)
     }
     return current
@@ -221,17 +280,24 @@ export function buildChatTurns(messages: readonly MessageEntry[]): ChatTurn[] {
 
   for (const message of messages) {
     if (message.role === "user") {
-      current = {
-        id: turnIdFor(message),
-        prompt: message,
-        segments: [],
-        stats: { toolCount: 0, thinkingCount: 0 },
+      const messageKey = turnIdFor(message)
+      if (!current || !currentHasOpenAssistant) {
+        current = {
+          id: messageKey,
+          turnKey: messageKey,
+          prompts: [],
+          segments: [],
+          stats: { toolCount: 0, thinkingCount: 0 },
+        }
+        turns.push(current)
       }
-      turns.push(current)
+      current.prompts.push(message)
+      current.prompt ??= message
       continue
     }
     if (message.role !== "assistant") continue
     const turn = ensureTurn(turnIdFor(message))
+    currentHasOpenAssistant = message.stopReason == null
     const ops = normalizeCommandSessionOps(message.ops)
     const slices = splitAssistantOpsIntoDisplaySlices(ops)
     let pendingNarration: MessageOp[] = []
@@ -256,6 +322,7 @@ export function buildChatTurns(messages: readonly MessageEntry[]): ChatTurn[] {
       if (op.kind === "tool") turn.stats.toolCount++
       else if (op.kind === "thinking") turn.stats.thinkingCount++
     }
+    if (message.stopReason != null) currentHasOpenAssistant = false
   }
 
   return turns

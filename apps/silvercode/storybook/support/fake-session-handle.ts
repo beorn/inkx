@@ -41,6 +41,7 @@ function defaultState(): SessionState {
     messages: [],
     permissions: [],
     pendingQuestion: null,
+    plan: null,
     todos: [],
     cost: { usd: 0, inputTokens: 0, outputTokens: 0 },
     lastError: null,
