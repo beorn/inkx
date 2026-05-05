@@ -17,9 +17,17 @@ import { dirname, join, resolve } from "path"
 const log = createLogger("km:cli:doctor")
 
 import { Database } from "bun:sqlite"
-import { compactChanges, createRepo, getStoreHealth, parseDeferredAsync, type Repo, vacuumDb } from "@km/storage"
+import {
+  compactChanges,
+  compactJournal,
+  createRepo,
+  getStoreHealth,
+  parseDeferredAsync,
+  type Repo,
+  vacuumDb,
+} from "@km/storage"
 import { findKmRootFromPath } from "@km/fs-mount"
-import { existsSync, unlinkSync } from "fs"
+import { existsSync, statSync, unlinkSync } from "fs"
 import { formatPath } from "../utils/format-path.ts"
 import { getBrokenLinks, getBrokenLinkCount, printBrokenLinks } from "./broken-links.ts"
 import { findPathDrift, countPathDriftCheckable } from "./doctor-paths-check.ts"
@@ -32,6 +40,7 @@ const doctorGcCommand = new Command("gc")
   .description("Compact stale events and vacuum database")
   .argument("[path]", "Path to repo (default: current directory)")
   .option("--dry-run", "Show what would be compacted without changing files")
+  .option("--truncate", "Drop the applied prefix of changes.jsonl (snapshot-based compaction)")
   .action(async (path, options) => {
     const { kmDir, repoPath } = resolveKmDir(path)
     const dbPath = join(kmDir, "state.db")
@@ -61,19 +70,45 @@ const doctorGcCommand = new Command("gc")
           } else {
             console.log(`  changes.jsonl  ${result.totalChanges} events`, term.dim("(no stale events)"))
           }
+          if (options.truncate) {
+            const sizeBefore = statSync(changesPath).size
+            const offsetRow = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event_offset") as
+              | { value: string }
+              | undefined
+            const cursor = offsetRow ? Number(offsetRow.value) : 0
+            const tailBytes = Math.max(0, sizeBefore - cursor)
+            console.log(
+              term.dim(
+                `  --truncate    would drop applied prefix (${formatSize(cursor)}), keep tail (${formatSize(tailBytes)})`,
+              ),
+            )
+          }
           console.log(term.dim("  state.db      VACUUM (dry run, skipped)"))
           return
         }
 
         const start = performance.now()
-        const result = compactChanges(kmDir, db)
-        if (result.staleCount > 0) {
-          console.log(
-            `  changes.jsonl  ${result.totalChanges} → ${result.totalChanges - result.staleCount} events ` +
-              term.dim(`(removed ${result.staleCount} stale)`),
-          )
+
+        if (options.truncate) {
+          const before = compactJournal(kmDir, db)
+          if (before.truncated) {
+            console.log(
+              `  changes.jsonl  ${formatSize(before.bytesBefore)} → ${formatSize(before.bytesAfter)} ` +
+                term.dim(`(truncated applied prefix, reclaimed ${formatSize(before.bytesReclaimed)})`),
+            )
+          } else {
+            console.log(`  changes.jsonl  ${formatSize(before.bytesBefore)}`, term.dim("(nothing to truncate)"))
+          }
         } else {
-          console.log(`  changes.jsonl  ${result.totalChanges} events`, term.dim("(no stale events)"))
+          const result = compactChanges(kmDir, db)
+          if (result.staleCount > 0) {
+            console.log(
+              `  changes.jsonl  ${result.totalChanges} → ${result.totalChanges - result.staleCount} events ` +
+                term.dim(`(removed ${result.staleCount} stale)`),
+            )
+          } else {
+            console.log(`  changes.jsonl  ${result.totalChanges} events`, term.dim("(no stale events)"))
+          }
         }
 
         // Vacuum

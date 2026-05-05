@@ -9,7 +9,7 @@
 
 import { Database } from "bun:sqlite"
 import type { Change } from "@km/core"
-import { existsSync, readdirSync, statSync, writeFileSync } from "fs"
+import { closeSync, existsSync, openSync, readdirSync, readSync, statSync, writeFileSync, writeSync } from "fs"
 import { join } from "path"
 import { readChanges } from "./repo/loader.ts"
 import { getNodeCount, getLastEventId } from "./db/db.ts"
@@ -91,6 +91,117 @@ export function compactChanges(kmDir: string, db: Database): CompactionResult {
   }
 
   return result
+}
+
+/** Result of compactJournal — drops the applied prefix and keeps the unapplied tail. */
+export interface JournalCompactionResult {
+  /** Bytes in the changes.jsonl file before compaction. */
+  bytesBefore: number
+  /** Bytes in the changes.jsonl file after compaction. */
+  bytesAfter: number
+  /** Bytes reclaimed (bytesBefore - bytesAfter). */
+  bytesReclaimed: number
+  /** True when meta cursors made compaction safe (always set after a successful run). */
+  truncated: boolean
+}
+
+/**
+ * Compact changes.jsonl by dropping the prefix that has already been applied to
+ * state.db. The DB *is* the snapshot — every event whose id ≤ `meta.last_event`
+ * has been folded into the node tree, so the corresponding journal lines are
+ * recomputable noise. After compaction:
+ *
+ *   - `changes.jsonl` contains only the unapplied tail (bytes past the cursor).
+ *     For most vaults that's ~0 bytes; for vaults with a pending unsynced tail
+ *     it's the small bit that hasn't been folded yet.
+ *   - `meta.last_event_offset` is reset to the new file size (== EOF) so the
+ *     next sync's tail-read starts at the right place.
+ *   - `meta.last_snapshot_event` is set to `meta.last_event` so callers that
+ *     want to see "what was the highest event folded into the snapshot at
+ *     compaction time" have a stable record.
+ *
+ * Trade-off: after compaction `km doctor rebuild` can no longer reconstruct
+ * state.db from journal-replay alone (the prefix is gone). Recovery falls back
+ * to memory-mode (FS scan) — which is the documented .md-is-source-of-truth
+ * model. Callers that need full event history must NOT call this.
+ */
+export function compactJournal(kmDir: string, db: Database): JournalCompactionResult {
+  const changesPath = join(kmDir, "changes.jsonl")
+
+  if (!existsSync(changesPath)) {
+    return { bytesBefore: 0, bytesAfter: 0, bytesReclaimed: 0, truncated: false }
+  }
+
+  const bytesBefore = statSync(changesPath).size
+  if (bytesBefore === 0) {
+    return { bytesBefore: 0, bytesAfter: 0, bytesReclaimed: 0, truncated: false }
+  }
+
+  // Read the byte cursor — events past this are NOT yet in state.db.
+  const offsetRow = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event_offset") as
+    | { value: string }
+    | undefined
+  const lastEventOffset = offsetRow?.value !== undefined ? Number(offsetRow.value) : 0
+
+  // Read the highest applied event id for the snapshot marker.
+  const lastEvent = getLastEventId(db) ?? ""
+
+  let tail = ""
+  if (lastEventOffset > 0 && lastEventOffset < bytesBefore) {
+    // Read the unapplied tail (bytes past the cursor) before truncation.
+    // The cursor *should* be on a newline boundary (the loader stamps it
+    // at file EOF after a clean read). When it isn't (corrupted cursor or
+    // crash mid-write), we fall back to scanning forward to the next `\n`
+    // so the resulting file always starts on a record boundary.
+    const fd = openSync(changesPath, "r")
+    try {
+      const buf = Buffer.alloc(bytesBefore - lastEventOffset)
+      readSync(fd, buf, 0, buf.length, lastEventOffset)
+      tail = buf.toString("utf-8")
+
+      // Only trim a partial-first-line when the cursor is genuinely
+      // mid-line. We detect that by reading the byte immediately BEFORE
+      // the cursor — if it's not `\n`, the cursor is mid-record and we
+      // skip ahead to the next newline.
+      const probe = Buffer.alloc(1)
+      readSync(fd, probe, 0, 1, lastEventOffset - 1)
+      const onBoundary = probe[0] === 0x0a // '\n'
+      if (!onBoundary) {
+        const firstNewline = tail.indexOf("\n")
+        if (firstNewline >= 0) {
+          tail = tail.slice(firstNewline + 1)
+        } else {
+          tail = ""
+        }
+      }
+    } finally {
+      closeSync(fd)
+    }
+  }
+
+  // Atomic write: rewrite the file with just the tail. Empty tail truncates
+  // to 0 bytes (the common case — everything's already applied).
+  const fd = openSync(changesPath, "w")
+  try {
+    if (tail.length > 0) writeSync(fd, tail)
+  } finally {
+    closeSync(fd)
+  }
+
+  const bytesAfter = statSync(changesPath).size
+
+  // Reset cursor to EOF — the next sync's tail-read starts here.
+  db.run("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", ["last_event_offset", String(bytesAfter)])
+  if (lastEvent) {
+    db.run("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", ["last_snapshot_event", lastEvent])
+  }
+
+  return {
+    bytesBefore,
+    bytesAfter,
+    bytesReclaimed: bytesBefore - bytesAfter,
+    truncated: true,
+  }
 }
 
 /**

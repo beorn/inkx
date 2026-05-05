@@ -41,3 +41,12 @@ A periodic compaction step: replay changes.jsonl into state.db (already the sour
 - After compaction, changes.jsonl size < 100 MB on a vault with 1 M+ historical events.
 - Cold load from compacted state matches cold load from full journal (round-trip verified).
 - Synthetic test in benchmarks/big-repo-sync.bench.ts that simulates a 1 GB+ journal and times cold load before/after compaction.
+
+## Implementation (2026-05-05)
+
+- **`compactJournal(kmDir, db)`** in `packages/km-storage/src/change-compaction.ts` — drops the applied prefix `[0..meta.last_event_offset)`, keeps the unapplied tail, resets `meta.last_event_offset = 0`, stamps `meta.last_snapshot_event` with the highest applied event id. Tail-boundary detection probes the byte before the cursor (`\n` → on boundary, otherwise scans forward to next newline) so corrupt or mid-line cursors don't corrupt the rewritten file.
+- **CLI**: `km doctor gc --truncate` invokes `compactJournal` (vs the default stale-only `compactChanges`). `--dry-run --truncate` previews bytes-reclaimed without touching disk.
+- **Cold-load implication**: after `--truncate`, `km doctor rebuild` can no longer reconstruct state.db from journal-replay alone — recovery falls back to memory-mode (FS scan), which matches the documented .md-is-source-of-truth model.
+- **Tests**:
+  - `packages/km-storage/tests/journal-compact.test.ts` — 5 unit tests (no-op, full truncation, tail preservation, mid-line cursor recovery, idempotency).
+  - `benchmarks/journal-compaction-1gb.slow.test.ts` — synthetic 1 GB+ journal acceptance gated by `RUN_JOURNAL_GB_TEST=1` (kept off the default test path; multi-GB write is too heavy for CI).

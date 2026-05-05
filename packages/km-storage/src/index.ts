@@ -166,9 +166,9 @@ export {
 export type { ReferencedAnchorRow } from "./db/referenced-anchors.ts"
 
 // Change compaction & store health diagnostics
-export { identifyStaleChanges, compactChanges, vacuumDb, getStoreHealth } from "./change-compaction.ts"
+export { identifyStaleChanges, compactChanges, compactJournal, vacuumDb, getStoreHealth } from "./change-compaction.ts"
 
-export type { CompactionResult, StoreHealth } from "./change-compaction.ts"
+export type { CompactionResult, JournalCompactionResult, StoreHealth } from "./change-compaction.ts"
 
 // km-fast-md.6: Worker pool for parallel parsing
 // km-disposable.3: Service factory pattern
@@ -182,9 +182,19 @@ export { createWatcher } from "./watcher.ts"
 export type { Watcher, WatcherOptions } from "./watcher.ts"
 
 // Database rules (add= materialization)
-export { evaluateAllRules, evaluateNodeRules, onNodeChanged, onNodeDeleted, createRuleContext } from "./db/rules.ts"
+export {
+  evaluateAllRules,
+  evaluateNodeRules,
+  evaluateAffectedRules,
+  onNodeChanged,
+  onNodeDeleted,
+  createRuleContext,
+  extractRuleSignature,
+  extractChangedAttrs,
+  ruleIsAffected,
+} from "./db/rules.ts"
 
-export type { RulesProgress, RuleContext } from "./db/rules.ts"
+export type { RulesProgress, RuleContext, RuleSignature, ChangedAttrSet } from "./db/rules.ts"
 
 // Query language
 export { parseQuery, resolveDateQuery, QueryFieldError } from "./query.ts"
