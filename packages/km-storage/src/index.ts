@@ -47,6 +47,12 @@ export type {
 // Link resolver (for benchmarks and testing)
 export { createLinkResolver, type LinkResolver } from "./markdown/link-resolver.ts"
 
+// Typed graph-edge API (internal — used by `km task dep`, future `km link`).
+// See `src/links/edges.ts` for the dispatcher rationale (props-based today,
+// switches to typed-rel `links` table when @km/storage/link-rel-taxonomy lands).
+export { addLink as addGraphEdge, removeLink as removeGraphEdge, getLinks as getGraphEdges } from "./links/edges.ts"
+export type { LinkRel as GraphEdgeRel, GraphEdge, GetLinksOptions as GetGraphEdgesOptions } from "./links/edges.ts"
+
 // DataStore interface and factories (preferred API for tree operations)
 // See: docs/00-principles.md
 export { createMapDataStore, createMemDataStore, createDBDataStore } from "./data-store.ts"
