@@ -44,3 +44,18 @@ See the repo root [CLAUDE.md](../../CLAUDE.md) and [docs/architecture.md](../../
 **Resolution path (future bead, not this one):** extract the shared surface (Emitter, query helpers, small types that both sides need) into a new dep-free `@km/runtime` package that both `@km/storage` and `@km/fs-mount` can depend on. Once the cycle is broken, both packages can drop `"private": true` and ship to npm. Attempting to publish before that refactor will produce a broken install on end-user machines.
 
 **Do not "fix" this by deleting the imports.** The cycle is load-bearing until the runtime package is extracted — deleting imports will break the workspace build.
+
+## Public surface change protocol — Repo / SyncableRepo
+
+The public Repo / SyncableRepo / withSync / withFsWriter / getRepoEmitter / hasRepoEmitter surface is pinned at compile time by:
+
+- [`tests/repo/repo-emitter-not-public.test.ts`](tests/repo/repo-emitter-not-public.test.ts) — pins the single `"emitter" extends keyof Repo === false` invariant + runtime checks for the WeakMap escape hatch.
+- [`tests/repo/typed-surface.test.ts`](tests/repo/typed-surface.test.ts) — pins the rest: required Repo fields, the minimal SyncableRepo shape, `withSync(emitter, config?)` arity, `withFsWriter(repo, emitter)` arity, exact `getRepoEmitter`/`hasRepoEmitter` signatures, and the `apply`/`commit` mutation contract.
+
+**Before changing any of these:**
+
+1. Decide whether the change is *additive* (new field/method on Repo) or *breaking* (rename, remove, or shape change).
+2. Update `typed-surface.test.ts` first — extending `RequiredRepoKeys` for additions, or adjusting the matching `Equal<>` / `HasKey<>` assertion for shape changes. The compile error tells you exactly which pin needs touching.
+3. Then update the source. The test file is the contract; the source follows.
+
+**Why this matters:** before this protocol, the `df353f2c7` SyncConfig migration verified its emitter-not-on-Repo invariant via grep. The `sync-legacy-cleanup` 2026-04-03 close was premature for the same reason. Compile-time pins make drift impossible to merge silently — a future "let's add `repo.emitter` for convenience" PR fails `tsc`, not a code review. See bead `@km/storage/typed-repo-surface-completeness-tests`.
