@@ -4,9 +4,14 @@ aliases:
   - km-storage.events-table-replaces-jsonl
   - km-storage-events-table-replaces-jsonl
 created_at: 2026-05-05T19:13:05.650Z
+closeReason: "Implemented end-to-end in commits dc4d6439e..2b971fb12 — schema,
+  atomic emitter writes, migrate-journal, read-path switch, jsonl-write disable,
+  VACUUM INTO backup, tiered retention. Real vault: 6.88M events migrated; 1.2s
+  no-op syncs. Final cleanup tracked in
+  @km/storage/jsonl-plumbing-final-removal."
 ---
 
-# [ ] Move changes.jsonl into a state.db events table — eliminate dual-store drift #refactor #P2
+# [x] Move changes.jsonl into a state.db events table — eliminate dual-store drift #refactor #P2
 
 The recurring sync-perf bugs (SIGTRAP on 2.7 GB jsonl read, 52 s no-op syncs from cursor not advancing, mtime drift causing re-parse churn) all share a root cause: **state.db and changes.jsonl are two stores with no atomic-transaction story**. The byte-offset cursor that's supposed to keep them in sync drifts because two code paths (`loader.ts:discoverFromChanges` + `apps/km-cli/src/commands/sync.ts`) both read the journal but only one writes the cursor.
 
@@ -19,6 +24,7 @@ Move events into a SQLite table inside `state.db`. Eliminate `changes.jsonl` ent
 GPT-5.4 Pro, Kimi K2.6, Claude Opus 4.6, Gemini 3 Pro all converged: this is the right architecture for km. Strongest argument: in WAL mode SQLite **cannot** give atomic multi-file transactions. So as long as `changes.jsonl` and `state.db` are separate files, drift is structurally possible. One file = no drift = entire bug class deleted.
 
 Other wins:
+
 - Cold load: instant (open state.db) instead of replay 5.3M events.
 - Audit query: `SELECT * FROM events WHERE ts > ?` indexed SQL, sub-10 ms.
 - Backup: one file via `VACUUM INTO`.
@@ -71,6 +77,7 @@ CREATE INDEX events_cursor_idx ON events(hlc, seq);
 ## Retention policy default
 
 Tiered (consensus):
+
 - 0-30 days: keep all events.
 - 30-90 days: keep latest per `(target, type)` only (by-key compaction).
 - `node_created` events: forever (~5K total, ~1MB, enables "when did I first write this?").
@@ -118,3 +125,4 @@ When CRDT lands: evaluate `cr-sqlite` (vlcn.io) — SQLite extension that adds C
 ## /pro evidence
 
 Full transcript: `/var/folders/x6/0j792q0d0411wgsxyr1bqkp40000gn/T/llm-f9eb64dc-review-the-events-as-w50a.txt`. Cost: $2.01. Winner: GPT-5.4 Pro (19.7/20 from gpt-5-mini judge). All four legs converged.
+

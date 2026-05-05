@@ -1,10 +1,18 @@
 /**
  * Change Compaction & Store Health
  *
- * Provides diagnostic and repair functions for the three km data stores:
- * - Worktree (markdown files on disk)
- * - changes.jsonl (change log)
- * - state.db (materialized SQLite state)
+ * Post-SCHEMA_VERSION 12: events live in a SQLite table inside state.db.
+ * The legacy compactJournal / compactChanges / identifyStaleChanges
+ * functions operate on the now-deprecated changes.jsonl file. They are
+ * kept for vaults that haven't yet run `km doctor migrate-journal`. New
+ * code should use:
+ *
+ *   - retainEvents(kmDir, db, options) — tiered retention compaction
+ *   - backupViaVacuumInto(kmDir, path) — atomic backup
+ *   - vacuumDb(kmDir) — VACUUM (rare; INCREMENTAL is the steady-state path)
+ *
+ * The legacy functions are scheduled for removal once every vault has
+ * been migrated. See @km/storage/events-table-replaces-jsonl.
  */
 
 import { Database } from "bun:sqlite"
@@ -31,6 +39,9 @@ export interface StoreHealth {
 }
 
 /**
+ * @deprecated Operates on the legacy changes.jsonl file. Post-v12 use
+ *   retainEvents() against the events table inside state.db.
+ *
  * Identify stale changes in changes.jsonl by replaying them against the database.
  * Stale changes are those whose node_created changes would hit UNIQUE constraint
  * failures — they reference nodes that already exist from file parsing.
@@ -78,6 +89,9 @@ export function identifyStaleChanges(kmDir: string, db: Database): CompactionRes
 }
 
 /**
+ * @deprecated Operates on the legacy changes.jsonl file. Post-v12 use
+ *   retainEvents() against the events table inside state.db.
+ *
  * Compact changes.jsonl by removing stale changes and rewriting the file.
  * Returns the compaction result.
  */
@@ -106,6 +120,12 @@ export interface JournalCompactionResult {
 }
 
 /**
+ * @deprecated Operates on the legacy changes.jsonl file. Post-v12 use
+ *   retainEvents() against the events table inside state.db. The events
+ *   table doesn't accumulate an "applied prefix" — every event is applied
+ *   atomically with the state mutation that produced it, so the entire
+ *   notion of journal-truncation is obsolete.
+ *
  * Compact changes.jsonl by dropping the prefix that has already been applied to
  * state.db. The DB *is* the snapshot — every event whose id ≤ `meta.last_event`
  * has been folded into the node tree, so the corresponding journal lines are
