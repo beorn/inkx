@@ -37,7 +37,7 @@ import type { ContentBlock, MessageEntry, MessageOp, ToolCallId, ToolCallStatus,
 import type { ToolCall as ToolCallType, ToolCallContent } from "@km/agent-harness"
 import {
   Box,
-  Fill,
+  Divider,
   lastModifierState,
   ListView,
   type ListViewHandle,
@@ -721,21 +721,7 @@ type SessionMetadataRowData = {
 }
 
 function MutedDivider({ title }: { title: string }): React.ReactElement {
-  return (
-    <Box flexDirection="row" width="100%" minWidth={0}>
-      <Box flexGrow={1} flexBasis={0} minWidth={0}>
-        <Fill>
-          <Text color="$border-default">─</Text>
-        </Fill>
-      </Box>
-      <Text color="$fg-muted"> {title} </Text>
-      <Box flexGrow={1} flexBasis={0} minWidth={0}>
-        <Fill>
-          <Text color="$border-default">─</Text>
-        </Fill>
-      </Box>
-    </Box>
-  )
+  return <Divider title={title} color="$border-default" titleColor="$fg-muted" titleBold={false} />
 }
 
 function SessionMetadataRow({ data }: { data: SessionMetadataRowData }): React.ReactElement {
@@ -788,7 +774,7 @@ function SessionMetadataRow({ data }: { data: SessionMetadataRowData }): React.R
           <Content.Aside show={showTimestamp}>{data.timestamp}</Content.Aside>
         </Content.Left>
       ) : null}
-      <Content.Body width={isDivider ? "full" : expanded ? "wide" : "prose"}>
+      <Content.Body width={isDivider || expanded ? "wide" : "prose"}>
         <Box flexDirection="column" width="100%" minWidth={0}>
           <Box
             width="100%"
