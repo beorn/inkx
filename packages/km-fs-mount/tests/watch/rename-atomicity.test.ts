@@ -218,7 +218,12 @@ describe("rename-atomicity — mid-cascade crash simulation", () => {
       // consistent (neither DB nor journal get the failed row).
       const realRun = db.run.bind(db)
       let descendantUpdates = 0
-      ;(db as unknown as { run: Database["run"] }).run = ((sql: string, params?: unknown) => {
+      // Forward all variadic args: bun:sqlite distinguishes `run(sql)` (no
+      // params) from `run(sql, undefined)` (binds undefined). Arg-less SQL
+      // statements like `SAVEPOINT` / `RELEASE` go through here and would
+      // fail with "expected 0 values, received 1" if we passed `undefined`
+      // explicitly. Use `...rest` so we only forward the args we received.
+      ;(db as unknown as { run: Database["run"] }).run = ((sql: string, ...rest: unknown[]) => {
         if (
           typeof sql === "string" &&
           sql.startsWith("UPDATE nodes SET") &&
@@ -230,7 +235,7 @@ describe("rename-atomicity — mid-cascade crash simulation", () => {
             throw new Error("simulated mid-cascade crash")
           }
         }
-        return realRun(sql, params as never)
+        return realRun(sql, ...(rest as never[]))
       }) as Database["run"]
 
       const handlers = new ChangeHandlers(db, repoDir, emitter, createRealFsTarget())

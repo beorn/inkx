@@ -106,7 +106,7 @@ const log = createLogger("km:storage:schema")
  *       drops the column via ALTER TABLE; idempotent via PRAGMA
  *       table_info probe. Tracked by @km/all/path-name-id-redesign.
  */
-export const SCHEMA_VERSION = 11
+export const SCHEMA_VERSION = 12
 
 /**
  * Data version — bump when application-logic changes invalidate derived data
@@ -133,6 +133,35 @@ export const SCHEMA_VERSION = 11
  *       legacy JSON fields from existing nodes.
  */
 export const DATA_VERSION = 3
+
+/**
+ * Apply connection-level PRAGMAs that the runtime requires.
+ *
+ * Call once per Database instance, immediately after construction. Must be
+ * applied to EVERY connection — the pragmas are per-connection, not stored
+ * in the DB file. Safe to call multiple times (PRAGMA statements are
+ * idempotent at this granularity).
+ *
+ * Pragmas:
+ *   - busy_timeout=5000: SQLite WAL allows N readers + 1 writer; concurrent
+ *     writers from km-cli, km-tui, silvercode without this hit SQLITE_BUSY
+ *     immediately. 5s wait covers any reasonable transaction.
+ *   - foreign_keys=ON: foreign-key constraints are off by default in SQLite
+ *     (legacy compat); km's schema relies on triggers + cascades.
+ *   - synchronous=NORMAL: WAL-mode default; explicit so it's not
+ *     accidentally inherited as FULL on some bun versions.
+ *
+ * Does NOT set:
+ *   - journal_mode=WAL (set in WAL-mode DBs at create time)
+ *   - auto_vacuum (must be set on a FRESH DB before any tables exist;
+ *     opening an existing state.db can't enable it without one offline
+ *     VACUUM rewrite — handled at migration boundaries, not here)
+ */
+export function applyConnectionPragmas(db: import("bun:sqlite").Database): void {
+  db.run("PRAGMA busy_timeout = 5000")
+  db.run("PRAGMA foreign_keys = ON")
+  db.run("PRAGMA synchronous = NORMAL")
+}
 
 /**
  * SQL for the `deps` table + indexes + triggers (v7).
@@ -526,6 +555,73 @@ ${DEPS_DDL}
 -- discipline. The resolver's alias step uses idx_node_aliases_alias for
 -- O(log N) reverse lookup instead of a per-query json_each scan.
 ${ALIASES_DDL}
+
+-- Events table (v12) — replaces the legacy changes.jsonl WAL.
+--
+-- Background: pre-v12 km maintained a separate append-only changes.jsonl
+-- file alongside state.db, with a byte-offset cursor (meta.last_event_offset)
+-- in state.db naming the last applied position. Two files, two cursors;
+-- WAL mode disables atomic multi-file transactions, so the cursor drifted
+-- from the file (e.g. sync.ts read the cursor but never wrote it back,
+-- producing 52s no-op syncs on a 2.7GB journal). Moving events into a
+-- SQLite table lets WAL handle durability + atomicity for nodes + events
+-- in ONE transaction; drift is impossible by construction.
+--
+-- See @km/storage/events-table-replaces-jsonl for the full design (validated
+-- by /pro 4-leg dispatch, 2026-05-05).
+--
+-- Columns:
+--   seq    : monotonic cursor (cheap integer compare for replay)
+--   id     : ULID, globally unique. UNIQUE constraint catches duplicates.
+--   hlc    : Hybrid Logical Clock for CRDT future. NULL until adopted —
+--            preserves the schema for multi-device sync without forcing
+--            adoption today.
+--   ts     : ms since epoch. Drives retention policy + display ordering.
+--   v      : payload schema version (allows forward-compatible migrations
+--            of the data shape without bumping SCHEMA_VERSION).
+--   type   : node_created | node_updated | node_moved | node_deleted |
+--            task_claimed | task_released | task_completed | session_* |
+--            conflict_created (mirrors @km/core Change union).
+--   actor  : who/what made the change (user, fs-watch, system, ...).
+--   peer_id: originating peer when the event was synced from elsewhere.
+--            NULL for events created locally.
+--   source : commit-source provenance (fs-import, etc.) — used by replay
+--            to skip echoes (loader.ts).
+--   target : node_id the event affects. Nullable for events that don't
+--            target a single node (session_*, conflict_created, …).
+--   data   : JSON payload. TEXT (not BLOB) so json_extract() works in
+--            queries; CHECK(json_valid(data)) is a free corruption guard.
+--
+-- Retention: see retainEvents() in change-compaction.ts. Default policy:
+--   - 0..30d: keep all events
+--   - 30..90d: keep latest per (target, type) only (by-key compaction)
+--   - 90d+: drop, OR archive to state.snapshot.YYYY-MM.db via VACUUM INTO
+--   - node_created: kept forever (cheap, enables "first-touched" queries)
+--
+-- Backup: VACUUM INTO 'snapshot.db', NOT cp state.db (WAL mode makes
+-- raw file copies unsafe — they can split a half-written page).
+--
+-- The events table coexists with the legacy changes.jsonl path for the
+-- duration of the migration: emitter writes to BOTH stores until the
+-- v12 migration verifies parity, then the jsonl path is removed.
+CREATE TABLE IF NOT EXISTS events (
+  seq      INTEGER PRIMARY KEY AUTOINCREMENT,
+  id       TEXT NOT NULL UNIQUE,
+  hlc      TEXT,
+  ts       INTEGER NOT NULL,
+  v        INTEGER NOT NULL DEFAULT 1,
+  type     TEXT NOT NULL,
+  actor    TEXT NOT NULL,
+  peer_id  TEXT,
+  source   TEXT,
+  target   TEXT,
+  data     TEXT NOT NULL CHECK (json_valid(data))
+) STRICT;
+
+CREATE INDEX IF NOT EXISTS idx_events_ts        ON events(ts);
+CREATE INDEX IF NOT EXISTS idx_events_target    ON events(target, ts);
+CREATE INDEX IF NOT EXISTS idx_events_type      ON events(type, ts);
+CREATE INDEX IF NOT EXISTS idx_events_hlc_seq   ON events(hlc, seq);
 `
 
 /**
@@ -806,6 +902,35 @@ function migrateVersioned(db: import("bun:sqlite").Database): MigrateResult {
   // fresh DBs created by SCHEMA above never had the column, so we no-op.
   if (current < 11) {
     dropPriorityColumn(db)
+  }
+
+  // v11 → v12: add `events` table that replaces changes.jsonl as the
+  // canonical event log. The CREATE TABLE / CREATE INDEX statements live
+  // in SCHEMA above; running them here is idempotent (IF NOT EXISTS) and
+  // also handles DBs that ran migrateSchema before SCHEMA. The historical
+  // changes.jsonl is migrated separately via `km doctor migrate-journal`.
+  // This step just ensures the table exists; the migration command is
+  // user-invoked because it can take minutes on a multi-GB journal.
+  if (current < 12) {
+    db.run(`
+      CREATE TABLE IF NOT EXISTS events (
+        seq      INTEGER PRIMARY KEY AUTOINCREMENT,
+        id       TEXT NOT NULL UNIQUE,
+        hlc      TEXT,
+        ts       INTEGER NOT NULL,
+        v        INTEGER NOT NULL DEFAULT 1,
+        type     TEXT NOT NULL,
+        actor    TEXT NOT NULL,
+        peer_id  TEXT,
+        source   TEXT,
+        target   TEXT,
+        data     TEXT NOT NULL CHECK (json_valid(data))
+      ) STRICT
+    `)
+    db.run("CREATE INDEX IF NOT EXISTS idx_events_ts      ON events(ts)")
+    db.run("CREATE INDEX IF NOT EXISTS idx_events_target  ON events(target, ts)")
+    db.run("CREATE INDEX IF NOT EXISTS idx_events_type    ON events(type, ts)")
+    db.run("CREATE INDEX IF NOT EXISTS idx_events_hlc_seq ON events(hlc, seq)")
   }
 
   writeSchemaVersion(db, SCHEMA_VERSION)

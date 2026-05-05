@@ -18,6 +18,7 @@ const log = createLogger("km:cli:doctor")
 
 import { Database } from "bun:sqlite"
 import {
+  applyConnectionPragmas,
   compactChanges,
   compactJournal,
   createRepo,
@@ -53,6 +54,7 @@ const doctorGcCommand = new Command("gc")
     }
 
     const db = options.dryRun ? new Database(dbPath, { readonly: true }) : new Database(dbPath)
+    applyConnectionPragmas(db)
 
     try {
       // Compact events
@@ -239,6 +241,7 @@ const doctorIntegrityCommand = new Command("integrity")
     }
 
     const db = options.repair ? new Database(dbPath) : new Database(dbPath, { readonly: true })
+    applyConnectionPragmas(db)
     try {
       const rows = findFsParentMismatches(db)
       if (rows.length === 0) {
@@ -316,6 +319,7 @@ const doctorPathsCommand = new Command("paths")
     }
 
     const db = new Database(dbPath, { readonly: true })
+    applyConnectionPragmas(db)
     try {
       const checked = countPathDriftCheckable(db)
       const findings = findPathDrift(db, { includeFixtures: options.includeFixtures })
@@ -355,6 +359,7 @@ const doctorLinksCommand = new Command("links")
     }
 
     const db = new Database(dbPath, { readonly: true })
+    applyConnectionPragmas(db)
     try {
       const brokenLinks = getBrokenLinks(db)
       printBrokenLinks(brokenLinks, term)
@@ -384,6 +389,7 @@ export const doctorCommand = new Command("doctor")
 
     const dbPath = join(kmDir, "state.db")
     const db = existsSync(dbPath) ? new Database(dbPath, { readonly: true }) : null
+    if (db) applyConnectionPragmas(db)
 
     try {
       const health = getStoreHealth(repoPath, kmDir, db)

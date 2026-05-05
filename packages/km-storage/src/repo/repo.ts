@@ -1173,6 +1173,11 @@ function configurePragmas(db: Database): void {
   db.run("PRAGMA cache_size = -200000")
   db.run("PRAGMA mmap_size = 268435456")
   db.run("PRAGMA wal_autocheckpoint = 10000")
+  // SQLITE_BUSY guard for multi-process writers (km-cli, km-tui, silvercode).
+  // WAL allows N readers + 1 writer; without busy_timeout, concurrent writers
+  // immediately fail with "database is locked" instead of waiting.
+  db.run("PRAGMA busy_timeout = 5000")
+  db.run("PRAGMA foreign_keys = ON")
 }
 
 /**

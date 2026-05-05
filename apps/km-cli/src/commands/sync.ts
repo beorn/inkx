@@ -17,6 +17,7 @@ import { dirname, resolve, join } from "path"
 
 const log = createLogger("km:cli:sync") as FullLogger
 import {
+  applyConnectionPragmas,
   createEmitter,
   readChanges,
   readLastEventOffset,
@@ -61,6 +62,7 @@ export const syncCommand = new Command("sync")
     // later createRepo() calls don't misread missing meta as version=0 and
     // wipe the nodes we just synced).
     const db = new Database(join(kmRoot, "state.db"))
+    applyConnectionPragmas(db)
     migrateSchema(db)
     db.run(SCHEMA)
     migrateData(db)

@@ -134,15 +134,43 @@ export function createEmitter(options: EmitterOptions): Emitter {
       ...partialChange,
     }
 
-    // 1. Apply to database — primary operation, must succeed or throw
+    // 1. Apply to database — primary operation, must succeed or throw.
+    //    Also persist to the events table inside the same transaction so
+    //    nodes-row + events-row commit atomically. This is the SCHEMA_VERSION
+    //    12 model: the events table replaces changes.jsonl as the canonical
+    //    journal. The jsonl write below stays during migration so the legacy
+    //    read path keeps working — drop after `km doctor migrate-journal`
+    //    verifies parity. See @km/storage/events-table-replaces-jsonl.
+    //
+    //    Atomicity: SAVEPOINT works whether the caller is already in a
+    //    transaction (bulk-sync's BEGIN IMMEDIATE) or not (single-event
+    //    interactive emit). On error, ROLLBACK TO discards both writes.
     const db = commitOptions.db ?? defaultDb
+    const shouldPersist = !(commitOptions.skipPersist ?? defaultSkipPersist)
     if (db) {
-      applyChangeWithDb(db, change)
+      db.run("SAVEPOINT __emit_change__")
+      try {
+        applyChangeWithDb(db, change)
+        if (shouldPersist) {
+          insertEventRow(db, change, commitOptions.source)
+        }
+        db.run("RELEASE __emit_change__")
+      } catch (err) {
+        try {
+          db.run("ROLLBACK TO __emit_change__")
+          db.run("RELEASE __emit_change__")
+        } catch {
+          // RELEASE failure is fine — outer txn handles it.
+        }
+        // UNIQUE(id) collisions during replay are benign — INSERT OR IGNORE
+        // handles them inside insertEventRow, so we should not see one here.
+        // Anything reaching this catch is a real failure.
+        throw err
+      }
     }
 
     // 2. Persist to changes.jsonl (unless skipPersist is set per-call or as default)
     // Isolated: failure here must not prevent broadcast (step 3)
-    const shouldPersist = !(commitOptions.skipPersist ?? defaultSkipPersist)
     if (shouldPersist) {
       try {
         ensureKmDir()
@@ -211,6 +239,34 @@ export function createEmitter(options: EmitterOptions): Emitter {
       applyCallbacks.clear()
     },
   }
+}
+
+/**
+ * Insert one row into the `events` table. The events table is the
+ * SCHEMA_VERSION 12 replacement for changes.jsonl — see
+ * @km/storage/events-table-replaces-jsonl. We split actor/source/target out
+ * of the Change shape so the SQL columns can be indexed directly.
+ *
+ * `data` is the FULL Change object serialized as JSON, so a replay step can
+ * round-trip through `applyChangeWithDb` without information loss. The
+ * top-level columns (type, actor, ...) are denormalized projections that
+ * live in their own indexed columns for query speed.
+ *
+ * Failure is non-fatal for the caller — the legacy changes.jsonl write path
+ * still runs alongside (until migration verifies parity). UNIQUE(id)
+ * conflicts are expected during replay (same event id arrives twice) and
+ * are surfaced via SQLite's constraint-violation error; callers may
+ * choose to treat them as benign.
+ */
+function insertEventRow(db: import("bun:sqlite").Database, change: Change, source: string | undefined): void {
+  const target = (change as { target?: string | null }).target ?? null
+  const peerId = null // future: populated when events arrive via CRDT sync
+  const hlc = null // future: populated when CRDT adopted
+  db.run(
+    `INSERT OR IGNORE INTO events (id, hlc, ts, v, type, actor, peer_id, source, target, data)
+     VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, ?)`,
+    [change.id, hlc, change.ts, change.type, change.actor, peerId, source ?? null, target, JSON.stringify(change)],
+  )
 }
 
 // --- Helper Functions ---

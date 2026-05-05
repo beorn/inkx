@@ -3,7 +3,7 @@ export { Task } from "./task.ts"
 export type { TaskTreeEntry, ShortIdResolver } from "./task.ts"
 
 // Database schema (for testing with in-memory databases)
-export { SCHEMA, migrateSchema, migrateData, DATA_VERSION } from "./db/schema.ts"
+export { SCHEMA, migrateSchema, migrateData, applyConnectionPragmas, DATA_VERSION } from "./db/schema.ts"
 
 // Session state (~/.km/session.db) — user-local, cross-repo tier per
 // hub/km/storage-architecture.md §5.3. Undo, last cursor, recent, collapsed,
