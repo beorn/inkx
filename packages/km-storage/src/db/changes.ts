@@ -82,7 +82,7 @@ function applyNodeCreated(db: Database, change: Change): void {
       fs_path, fs_dev, fs_ino, fs_mtime, fs_size, fs_content_hash,
       name, title, md_pos, md_line,
       list_marker, task_marker,
-      task_status, assigned_to, due_at, start_at, priority,
+      task_status, assigned_to, due_at, start_at,
       content, content_hash, data,
       created_at, updated_at, version
     ) VALUES (
@@ -90,7 +90,7 @@ function applyNodeCreated(db: Database, change: Change): void {
       ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?,
       ?, ?,
-      ?, ?, ?, ?, ?,
+      ?, ?, ?, ?,
       ?, ?, ?,
       ?, ?, ?
     )
@@ -119,7 +119,6 @@ function applyNodeCreated(db: Database, change: Change): void {
       (data.assigned_to as string) ?? null,
       (data.due_at as string) ?? null,
       (data.start_at as string) ?? null,
-      (data.priority as string) ?? null,
       (data.content as string) ?? null,
       (data.content_hash as string) ?? null,
       JSON.stringify(data.data ?? {}),

@@ -184,6 +184,12 @@ export function stringifyTaskMetadata(content: string, node: KNode, options?: { 
   // Extract what's already in the content
   const existing = extractTaskMetadata(content)
 
+  // Resolve priority from data.tags (canonical authored form per
+  // docs/future/beads.md). Column-only readers still see node.priority,
+  // but the helper is the seam — once the column drops fully, this is
+  // the only path.
+  const nodePriority = getNodePriority(node)
+
   // Compare node fields to content — if they match, preserve original format
   const dueVal = dueParts?.date ? (dueParts.time ? `${dueParts.date}T${dueParts.time}` : dueParts.date) : undefined
   const existingDueVal = existing.dueDate
@@ -205,7 +211,7 @@ export function stringifyTaskMetadata(content: string, node: KNode, options?: { 
   const fieldsMatch =
     dueVal === existingDueVal &&
     startVal === existingStartVal &&
-    (node.priority ?? undefined) === existing.priority &&
+    (nodePriority ?? undefined) === existing.priority &&
     (recurrence ?? undefined) === existing.rrule
 
   if (fieldsMatch) {

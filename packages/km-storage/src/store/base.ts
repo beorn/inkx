@@ -93,7 +93,7 @@ export abstract class BaseStore implements NodeStore {
     const rows = this.db
       .query(
         `SELECT * FROM nodes WHERE task_status IS NOT NULL
-         ORDER BY task_status, priority ASC, due_at ASC, created_at ASC`,
+         ORDER BY task_status, due_at ASC, created_at ASC`,
       )
       .all() as Record<string, unknown>[]
     return rows.map(rowToNode)
@@ -105,7 +105,7 @@ export abstract class BaseStore implements NodeStore {
     const rows = this.db
       .query(
         `SELECT * FROM nodes WHERE task_status IS NOT NULL AND task_status IN (${placeholders})
-         ORDER BY priority ASC, due_at ASC, created_at ASC`,
+         ORDER BY due_at ASC, created_at ASC`,
       )
       .all(...statuses) as Record<string, unknown>[]
     return rows.map(rowToNode)
