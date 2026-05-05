@@ -112,7 +112,15 @@ type FormattedContent = { preview: string; body: string; disclosureBody?: string
 function clip(s: string, max: number): string {
   const flat = s.replace(/\s+/g, " ").trim()
   if (flat.length <= max) return flat
-  return flat.slice(0, max - 1) + "…"
+  // Break at a word boundary if one is reasonably close to `max` so we
+  // don't slice mid-token (e.g., `/nix/sto…`). Allow up to 12 chars of
+  // slack — keeps long single-token tails (Nix store hashes) from
+  // forcing a hard mid-character cut while still respecting the budget
+  // for prose-shaped content.
+  const sliced = flat.slice(0, max - 1)
+  const ws = sliced.lastIndexOf(" ")
+  if (ws > max - 12) return sliced.slice(0, ws) + "…"
+  return sliced + "…"
 }
 
 function escapeHtmlEntities(s: string): string {
@@ -126,25 +134,77 @@ function escapeHtmlEntities(s: string): string {
     .replace(/&quot;/g, '"')
 }
 
+function parseSnippetAttrs(attrs: string): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const m of attrs.matchAll(/\b([a-zA-Z_][\w-]*)="([^"]*)"/g)) {
+    out[m[1]!] = escapeHtmlEntities(m[2]!)
+  }
+  return out
+}
+
 function parseRecallMemory(raw: string): FormattedContent | null {
   if (!raw.includes("<recall-memory")) return null
-  const snippetRe = /<snippet[^>]*\bsession="([^"]*)"[^>]*\btitle="([^"]*)"[^>]*>/g
-  type Snip = { session: string; title: string }
+  // Match the full snippet element (open tag, body, close tag) so we can
+  // surface inner excerpts in the disclosure body. Attributes vary by
+  // snippet type — message snippets carry `source`/`title` (often the
+  // same hash), vault/bead snippets carry a real `title`. Match any
+  // attribute set and key off whatever we find.
+  type Snip = { type: string; source: string; title: string; session: string; body: string }
   const snippets: Snip[] = []
-  for (const m of raw.matchAll(snippetRe)) {
-    snippets.push({ session: m[1] ?? "", title: escapeHtmlEntities(m[2] ?? "") })
+  const re = /<snippet\s+([^>]*?)>([\s\S]*?)<\/snippet>/g
+  for (const m of raw.matchAll(re)) {
+    const attrs = parseSnippetAttrs(m[1] ?? "")
+    snippets.push({
+      type: attrs.type ?? "",
+      source: attrs.source ?? "",
+      title: attrs.title ?? "",
+      session: attrs.session ?? "",
+      body: (m[2] ?? "").trim(),
+    })
   }
-  if (snippets.length === 0) return null
-  const titles = snippets.map((s) => `"${s.title}"`)
+  if (snippets.length === 0) {
+    // Tag opened but no parseable snippets — surface a tidy summary
+    // anyway so the raw XML never leaks to the row. Drop the wrapper
+    // and show whatever text survives.
+    const inner = raw
+      .replace(/<recall-memory[^>]*>/g, "")
+      .replace(/<\/recall-memory>/g, "")
+      .replace(/<context-protocol>[\s\S]*?<\/context-protocol>/g, "")
+      .trim()
+    if (inner.length === 0) return { preview: "memory: (empty)", body: raw }
+    return { preview: clip(`memory: ${inner}`, 80), body: inner }
+  }
+  const labelFor = (s: Snip): string => {
+    // Prefer a real title; fall back to a typed locator. Message
+    // snippets often have title === source (both being a session id),
+    // so when title looks hash-shaped use `type session abc12345`
+    // instead — the user can't read a hash but they can see "1 message".
+    const title = s.title.trim()
+    const source = s.source.trim()
+    const isHashLike = /^[0-9a-f]{6,}$/i.test(title) || title === source
+    if (title.length > 0 && !isHashLike) return `"${title}"`
+    if (s.type) return s.type === "message" ? `1 message` : `${s.type}: ${source || s.session || "—"}`
+    return source || s.session || "snippet"
+  }
+  const labels = snippets.map(labelFor)
   const more = snippets.length > 2 ? ` (+${snippets.length - 2} more)` : ""
-  const previewTitles = titles.slice(0, 2).join(", ")
   const preview = clip(
-    `memory: ${snippets.length} snippet${snippets.length === 1 ? "" : "s"} — ${previewTitles}${more}`,
+    `memory: ${snippets.length} snippet${snippets.length === 1 ? "" : "s"} — ${labels.slice(0, 2).join(", ")}${more}`,
     80,
   )
   const bodyLines: string[] = [`memory: ${snippets.length} snippet${snippets.length === 1 ? "" : "s"}`]
   for (const s of snippets) {
-    bodyLines.push(`  • [${s.session}] ${s.title}`)
+    const head = labelFor(s)
+    const meta: string[] = []
+    if (s.type) meta.push(s.type)
+    if (s.session) meta.push(`session ${s.session.slice(0, 8)}`)
+    else if (s.source && s.source !== s.title) meta.push(s.source)
+    const headLine = meta.length > 0 ? `${head}  ·  ${meta.join(" · ")}` : head
+    bodyLines.push(`  • ${headLine}`)
+    if (s.body.length > 0) {
+      const flat = s.body.replace(/\s+/g, " ").trim()
+      if (flat.length > 0) bodyLines.push(`      ${clip(flat, 240)}`)
+    }
   }
   return { preview, body: bodyLines.join("\n") }
 }
@@ -313,6 +373,22 @@ function groupedPreview(source: string, formattedPreview: string, count: number)
   return `${formattedPreview} (${count}x)`
 }
 
+/**
+ * Build the dedup key for grouping. Identical-shape repeats (same kind,
+ * same sender, slightly different numbers) should collapse — e.g., four
+ * "Process count warning: 55 procs" / "54 procs" / "55 procs" rows
+ * become one `(×4)`. Replace numeric runs with `#` for the key only;
+ * the displayed preview keeps the original numbers.
+ */
+function groupKeyFor(source: string, preview: string): string {
+  if (isFilewatchSource(source)) return source
+  const canonical = preview
+    .replace(/\d+(?:\.\d+)?%?/g, "#")
+    .replace(/\s+/g, " ")
+    .trim()
+  return `${source}:${canonical}`
+}
+
 function groupAmbientEntries(entries: readonly AmbientStreamEntry[]): AmbientStackItem[] {
   const items: AmbientStackItem[] = []
   const byKey = new Map<string, Extract<AmbientStackItem, { kind: "group" }>>()
@@ -321,7 +397,7 @@ function groupAmbientEntries(entries: readonly AmbientStreamEntry[]): AmbientSta
     const label = sourceLabel(entry.source)
     const formatted = formatContent(entry.content)
     const preview = dedupeSourcePrefix(label, entry.source, formatted.preview)
-    const key = isFilewatchSource(entry.source) ? entry.source : `${entry.source}:${preview}`
+    const key = groupKeyFor(entry.source, preview)
     const existing = byKey.get(key)
     if (existing) {
       const nextEntries = [...existing.entries, entry]
