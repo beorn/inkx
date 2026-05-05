@@ -1,0 +1,118 @@
+/**
+ * `km clear` — Generic Field Clear
+ *
+ * Wave 4 of `@km/cli/task-bd-collapse`: counterpart to `km set`. Pass
+ * one or more node ids and one or more bare field names; nulls each
+ * scalar column on each id. Pure parsing lives in `clear-plan.ts`.
+ *
+ * Examples:
+ *   km clear abc123 due
+ *   km clear abc123 priority owner
+ *   km clear abc123 def456 due priority    # bulk
+ */
+
+import { Command } from "@silvery/commander"
+import { createTerm } from "@silvery/ag-react"
+
+const term = createTerm(process)
+import { resolvePathArg } from "@km/fs-mount"
+import { getRootPath } from "../program.ts"
+import { loadRepo } from "../load-repo.ts"
+import { planClear } from "./clear-plan.ts"
+
+interface ClearOptions {
+  json?: boolean
+  dryRun?: boolean
+}
+
+/**
+ * Split positional args into ids vs field names. Heuristic: anything
+ * that resolves as a node is an id; anything else is a field name.
+ * To keep parsing pure, we use a syntactic rule: known field names go
+ * to fields, the rest are ids. We accept the SCALAR set verbatim.
+ */
+const SCALAR_FIELD_NAMES = new Set([
+  "due",
+  "due_date",
+  "due_at",
+  "start",
+  "scheduled",
+  "scheduled_date",
+  "start_at",
+  "p",
+  "priority",
+  "assigned",
+  "assigned_to",
+  "owner",
+])
+
+function partitionArgs(args: readonly string[]): { ids: string[]; fields: string[] } {
+  const ids: string[] = []
+  const fields: string[] = []
+  for (const arg of args) {
+    if (SCALAR_FIELD_NAMES.has(arg.toLowerCase())) fields.push(arg)
+    else ids.push(arg)
+  }
+  return { ids, fields }
+}
+
+export const clearCommand = new Command("clear")
+  .description("Clear field values on one or more nodes (generic)")
+  .argument("<args...>", "<id...> <field...> — ids first, then fields (or intermixed)")
+  .option("--json", "Output as JSON")
+  .option("--dry-run", "Show planned changes without applying")
+  .action(async (args: string[], options: ClearOptions) => {
+    const { ids, fields } = partitionArgs(args)
+
+    if (ids.length === 0) {
+      console.error(term.red("No node ids provided"))
+      process.exit(1)
+    }
+    if (fields.length === 0) {
+      console.error(term.red("No fields provided (expected: due, priority, owner, start, ...)"))
+      process.exit(1)
+    }
+
+    const resolved = resolvePathArg(process.cwd(), getRootPath())
+    using repo = await loadRepo(resolved.repoRoot)
+
+    const results: Array<{ id: string; cleared: string[] }> = []
+    let hadError = false
+
+    for (const idArg of ids) {
+      const node = repo.resolveNode(idArg)
+      if (!node) {
+        console.error(term.red(`Node not found: ${idArg}`))
+        hadError = true
+        continue
+      }
+
+      const plan = planClear(fields)
+      for (const warning of plan.warnings) {
+        console.error(term.yellow(`${idArg}: ${warning}`))
+      }
+
+      if (Object.keys(plan.updates).length === 0) {
+        console.error(term.red(`${idArg}: No valid fields to clear`))
+        hadError = true
+        continue
+      }
+
+      if (!options.dryRun) {
+        repo.updateNode(node.id, plan.updates)
+      }
+
+      results.push({ id: node.id, cleared: fields })
+    }
+
+    if (options.json) {
+      console.log(JSON.stringify({ dryRun: options.dryRun ?? false, results }))
+    } else {
+      const verb = options.dryRun ? "Would clear" : "Cleared"
+      for (const r of results) {
+        console.log(term.dim("○"), `${verb} ${r.cleared.join(", ")}:`, r.id.slice(-8))
+      }
+    }
+
+    if (hadError) process.exit(1)
+  })
