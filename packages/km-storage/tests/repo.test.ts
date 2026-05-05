@@ -403,17 +403,14 @@ describe("Repo.needsRebuild", () => {
     // bumped events.seq past meta.last_event_seq).
     const { Database } = await import("bun:sqlite")
     const probe = new Database(join(kmDir, "state.db"))
-    probe.run(
-      `INSERT INTO events (id, ts, type, actor, target, data) VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        "zzzzzzzz-test-event-id",
-        Date.now(),
-        "node_updated",
-        "test",
-        "fake",
-        JSON.stringify({ type: "node_updated", actor: "test", target: "fake", data: {} }),
-      ],
-    )
+    probe.run(`INSERT INTO events (id, ts, type, actor, target, data) VALUES (?, ?, ?, ?, ?, ?)`, [
+      "zzzzzzzz-test-event-id",
+      Date.now(),
+      "node_updated",
+      "test",
+      "fake",
+      JSON.stringify({ type: "node_updated", actor: "test", target: "fake", data: {} }),
+    ])
     probe.close()
 
     // Reopen repo and check

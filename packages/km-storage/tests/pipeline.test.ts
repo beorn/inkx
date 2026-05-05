@@ -499,10 +499,12 @@ describe("applyLinks()", () => {
     const rows = db
       .query("SELECT data FROM events WHERE type = 'node_updated' AND target = 'src1' ORDER BY seq")
       .all() as { data: string }[]
-    const matching = rows.map((r) => JSON.parse(r.data) as Record<string, unknown>).filter((e) => {
-      const data = e.data as Record<string, unknown>
-      return data?.embed_of === "tgt1"
-    })
+    const matching = rows
+      .map((r) => JSON.parse(r.data) as Record<string, unknown>)
+      .filter((e) => {
+        const data = e.data as Record<string, unknown>
+        return data?.embed_of === "tgt1"
+      })
     expect(matching.length).toBe(1)
     const entry = matching[0]!
     expect(entry.actor).toBe("fs-watch")

@@ -61,10 +61,14 @@ function setupDiskMode(
       ts: e.ts ?? Date.now(),
       data: e.data,
     }
-    db.run(
-      `INSERT INTO events (id, ts, type, actor, target, data) VALUES (?, ?, ?, ?, ?, ?)`,
-      [event.id, event.ts, event.type, event.actor, event.target ?? null, JSON.stringify(event)],
-    )
+    db.run(`INSERT INTO events (id, ts, type, actor, target, data) VALUES (?, ?, ?, ?, ?, ?)`, [
+      event.id,
+      event.ts,
+      event.type,
+      event.actor,
+      event.target ?? null,
+      JSON.stringify(event),
+    ])
   }
   return db
 }

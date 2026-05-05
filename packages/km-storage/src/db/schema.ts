@@ -907,10 +907,9 @@ function migrateVersioned(db: import("bun:sqlite").Database): MigrateResult {
   // v11 → v12: add `events` table that replaces changes.jsonl as the
   // canonical event log. The CREATE TABLE / CREATE INDEX statements live
   // in SCHEMA above; running them here is idempotent (IF NOT EXISTS) and
-  // also handles DBs that ran migrateSchema before SCHEMA. The historical
-  // changes.jsonl is migrated separately via `km doctor migrate-journal`.
-  // This step just ensures the table exists; the migration command is
-  // user-invoked because it can take minutes on a multi-GB journal.
+  // also handles DBs that ran migrateSchema before SCHEMA. Historical
+  // changes.jsonl files were migrated as a one-shot job and removed
+  // (commit f257b4aae); fresh vaults have only the events table.
   if (current < 12) {
     db.run(`
       CREATE TABLE IF NOT EXISTS events (

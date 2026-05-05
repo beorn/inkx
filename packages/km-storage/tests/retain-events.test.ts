@@ -28,18 +28,14 @@ function freshKmDir(): string {
   return mkdtempSync(join(tmpdir(), "km-retain-test-"))
 }
 
-function insert(
-  db: Database,
-  id: string,
-  ts: number,
-  type: string,
-  target: string | null,
-  data: object = {},
-): void {
-  db.run(
-    `INSERT INTO events (id, ts, type, actor, target, data) VALUES (?, ?, ?, 'user', ?, ?)`,
-    [id, ts, type, target, JSON.stringify({ id, ts, type, actor: "user", target, data })],
-  )
+function insert(db: Database, id: string, ts: number, type: string, target: string | null, data: object = {}): void {
+  db.run(`INSERT INTO events (id, ts, type, actor, target, data) VALUES (?, ?, ?, 'user', ?, ?)`, [
+    id,
+    ts,
+    type,
+    target,
+    JSON.stringify({ id, ts, type, actor: "user", target, data }),
+  ])
 }
 
 const DAY = 86_400_000
