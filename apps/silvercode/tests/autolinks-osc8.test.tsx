@@ -53,6 +53,13 @@ describe("LinkifiedText → OSC 8 hyperlinks", () => {
     expect(hrefs).toEqual(["file:///abs/cwd/apps/silvercode/src/parse.ts"])
   })
 
+  test("bare filename is resolved against cwd", () => {
+    const render = createRenderer({ cols: 120, rows: 5 })
+    const app = render(<Harness cwd="/abs/cwd" text="open screenshot.png" />)
+    const hrefs = osc8Hrefs(app.ansi)
+    expect(hrefs).toEqual(["file:///abs/cwd/screenshot.png"])
+  })
+
   test("relative path with :line preserves the line target", () => {
     const render = createRenderer({ cols: 120, rows: 5 })
     const app = render(<Harness cwd="/abs/cwd" text="see apps/foo/bar.ts:42 for context" />)
@@ -100,5 +107,28 @@ describe("LinkifiedText → OSC 8 hyperlinks", () => {
     expect(hrefs).toEqual([])
     // The path text is still rendered — popover-only fallback path.
     expect(app.text).toContain("apps/foo/bar.ts")
+  })
+
+  test("base64 data image renders as a compact image token", () => {
+    const render = createRenderer({ cols: 120, rows: 5 })
+    const app = render(<Harness text={`image data:image/png;base64,iVBORw0KGgo= done`} />)
+    expect(app.text).toContain("[image data]")
+    expect(app.text).not.toContain("iVBORw0KGgo=")
+    expect(osc8Hrefs(app.ansi)).toEqual([])
+  })
+
+  test("muted in-app references are not visually special until armed", () => {
+    const render = createRenderer({ cols: 120, rows: 5 })
+    const app = render(
+      <Harness cwd="/abs/cwd" text={`image data:image/png;base64,iVBORw0KGgo= and package.json`} />,
+    )
+
+    const imageCol = app.lines[0]!.indexOf("[image data]")
+    const fileCol = app.lines[0]!.indexOf("package.json")
+    expect(imageCol).toBeGreaterThanOrEqual(0)
+    expect(fileCol).toBeGreaterThanOrEqual(0)
+
+    expect(app.cell(imageCol, 0).underline).toBe(false)
+    expect(app.cell(fileCol, 0).underline).toBe(false)
   })
 })

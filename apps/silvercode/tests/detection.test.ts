@@ -25,6 +25,17 @@ describe("detection", () => {
     expect(d).toHaveLength(0)
   })
 
+  test("base64 data images become one compact image detection", () => {
+    const data = "data:image/png;base64,iVBORw0KGgo="
+    const d = detectReferences(`preview ${data} done`)
+    expect(d).toHaveLength(1)
+    expect(d[0]).toMatchObject({
+      kind: "data-image",
+      match: data,
+      payload: { mimeType: "image/png", data: "iVBORw0KGgo=" },
+    })
+  })
+
   test("real file paths outside URLs still detect", () => {
     const text = "open /Users/me/foo.ts:5 not https://example.com/bar"
     const d = detectReferences(text)
@@ -73,13 +84,27 @@ describe("detection", () => {
     expect(files[0]!.payload.path).toBe("pkg/foo/bar.ts")
   })
 
-  test("prose tokens with dots but no /sep don't trigger file detection", () => {
-    // `package.json` mid-sentence and `3.14` literals stay safe — the new
-    // regex requires at least one `/` separator.
+  test("bare filenames with known extensions trigger file detection", () => {
+    const text = "open package.json and screenshot.png"
+    const d = detectReferences(text)
+    const files = d.filter((x) => x.kind === "file")
+    expect(files.map((f) => f.payload.path)).toEqual(["package.json", "screenshot.png"])
+  })
+
+  test("view image paths with spaces stay one file detection", () => {
+    const text = "View ~desk/Screenshot 1.png"
+    const d = detectReferences(text)
+    const files = d.filter((x) => x.kind === "file")
+    expect(files).toHaveLength(1)
+    expect(files[0]!.match).toBe("~desk/Screenshot 1.png")
+    expect(files[0]!.payload.path).toBe("~desk/Screenshot 1.png")
+  })
+
+  test("prose dotted tokens with unknown extensions don't trigger file detection", () => {
     const text = "version 3.14 in package.json works fine"
     const d = detectReferences(text)
     const files = d.filter((x) => x.kind === "file")
-    expect(files).toHaveLength(0)
+    expect(files.map((f) => f.payload.path)).toEqual(["package.json"])
   })
 
   test("absolute path at start-of-line still detects", () => {

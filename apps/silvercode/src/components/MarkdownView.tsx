@@ -244,7 +244,7 @@ function MarkdownViewBody({
 }): React.ReactElement {
   const blocks = useMemo(() => parseBlocks(source), [source])
   return (
-    <Prose flexShrink={0}>
+    <Prose flexShrink={1} minWidth={0}>
       {blocks.map((b, i) => {
         const prev = i > 0 ? (blocks[i - 1] ?? null) : null
         const gap = needsGapBefore(prev, b)

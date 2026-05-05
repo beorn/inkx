@@ -1,10 +1,19 @@
 import React from "react"
-import { Box, Link, Muted, Prose, Text, usePopover } from "silvery"
+import {
+  Box,
+  Image,
+  Muted,
+  Prose,
+  Text,
+} from "silvery"
 import { detectReferences, type Detection } from "../detection.ts"
 import { useAutolinks } from "../AutolinksContext.tsx"
 import { useCwd } from "../CwdContext.tsx"
 import { detectAutolinks, mergeDetections, resolvePreview, type AutolinkPreviewKind } from "@km/autolinks"
 import { MarkdownView } from "./MarkdownView.tsx"
+import { resolveDisplayPath } from "../utils/format-path.ts"
+import { LinkedTerm } from "./LinkedTerm.tsx"
+import { HoverPreviewTarget } from "./HoverPreviewTarget.tsx"
 
 /** Preview kinds whose body is markdown source — render via MarkdownView. */
 function isMarkdownKind(kind: AutolinkPreviewKind): boolean {
@@ -82,7 +91,33 @@ function renderAutolinkPopover(d: Detection): React.ReactNode {
   )
 }
 
-function renderPopoverContent(d: Detection): React.ReactNode {
+function isImagePath(path: string): boolean {
+  return /\.(?:png|jpe?g|gif|webp)$/i.test(path)
+}
+
+function imagePreview(src: Buffer | string, label: string): React.ReactNode {
+  return (
+    <Box flexDirection="column">
+      <Text bold wrap="truncate">
+        {label}
+      </Text>
+      <Image src={src} width={48} height={16} fallback="[image preview]" />
+    </Box>
+  )
+}
+
+function dataImageBuffer(d: Detection): Buffer | null {
+  if (d.kind !== "data-image") return null
+  const data = d.payload.data
+  if (typeof data !== "string" || data.length === 0) return null
+  try {
+    return Buffer.from(data, "base64")
+  } catch {
+    return null
+  }
+}
+
+function renderPopoverContent(d: Detection, cwd: string, home: string | undefined): React.ReactNode {
   switch (d.kind) {
     case "bead":
       return (
@@ -91,13 +126,16 @@ function renderPopoverContent(d: Detection): React.ReactNode {
           <Text>Bead details resolve via `bd show {d.payload.id}`.</Text>
         </Box>
       )
-    case "file":
+    case "file": {
+      const abs = resolveAbsolute(d.payload.path ?? "", cwd, home)
+      if (abs && isImagePath(abs)) return imagePreview(abs, d.payload.path ?? abs)
       return (
         <Box flexDirection="column">
           <Text bold>{d.payload.path}</Text>
           {d.payload.line && <Text>line {d.payload.line}</Text>}
         </Box>
       )
+    }
     case "km-node":
       return (
         <Box flexDirection="column">
@@ -113,6 +151,16 @@ function renderPopoverContent(d: Detection): React.ReactNode {
           </Text>
         </Box>
       )
+    case "data-image": {
+      const image = dataImageBuffer(d)
+      if (image) return imagePreview(image, String(d.payload.mimeType ?? "image"))
+      return (
+        <Box flexDirection="column">
+          <Text bold>image data</Text>
+          <Text color="$error">Could not decode base64 image data.</Text>
+        </Box>
+      )
+    }
     // Plain URLs land here as `kind: "autolink"` with `payload.virtual === "1"`
     // — the migration in `bd-km-silvercode.url-detection-via-handlers` removed
     // the dedicated `kind: "url"` branch in favor of the handler registry path.
@@ -136,10 +184,9 @@ function renderPopoverContent(d: Detection): React.ReactNode {
  */
 function resolveAbsolute(p: string, cwd: string, home: string | undefined): string | null {
   if (!p) return null
-  if (p === "~") return home ?? null
-  if (p.startsWith("~/")) return home ? `${home}/${p.slice(2)}` : null
-  if (p.startsWith("/")) return p
-  if (cwd.length > 0) return `${cwd.replace(/\/$/, "")}/${p.replace(/^\.\/+/, "")}`
+  const expanded = resolveDisplayPath(p, home ? { home } : undefined)
+  if (expanded.startsWith("/")) return expanded
+  if (cwd.length > 0) return `${cwd.replace(/\/$/, "")}/${expanded.replace(/^\.\/+/, "")}`
   return null
 }
 
@@ -177,6 +224,7 @@ function hrefFor(d: Detection, cwd: string, home: string | undefined): string | 
     }
     case "bead":
     case "km-node":
+    case "data-image":
       // In-app schemes; OSC 8 LaunchServices can't open them.
       return null
   }
@@ -197,31 +245,108 @@ function colorFor(d: Detection): string {
       // links read like links. Configured autolinks keep `$secondary` to
       // distinguish rule-driven matches from raw URLs.
       return d.payload.virtual === "1" ? "$info" : "$secondary"
+    case "data-image":
+      return "$info"
   }
 }
 
 function visibleLinkText(d: Detection): { linked: string; suffix: string } {
+  if (d.kind === "data-image") return { linked: "[image data]", suffix: "" }
   if (d.kind !== "file" && d.kind !== "code-ref") return { linked: d.match, suffix: "" }
   const path = d.payload.path ?? ""
   if (path.length === 0 || !d.match.startsWith(path)) return { linked: d.match, suffix: "" }
   return { linked: path, suffix: d.match.slice(path.length) }
 }
 
+function PopoverTextLink({
+  children,
+  color,
+  backgroundColor,
+  popoverBody,
+}: {
+  children: React.ReactNode
+  color: string
+  backgroundColor?: string
+  popoverBody: React.ReactNode
+}): React.ReactElement {
+  return (
+    <LinkedTerm
+      color={color}
+      backgroundColor={backgroundColor}
+      popoverBody={popoverBody}
+    >
+      {children}
+    </LinkedTerm>
+  )
+}
+
+function PopoverLink({
+  href,
+  children,
+  color,
+  backgroundColor,
+  popoverBody,
+}: {
+  href: string
+  children: React.ReactNode
+  color: string
+  backgroundColor?: string
+  popoverBody: React.ReactNode
+}): React.ReactElement {
+  return (
+    <LinkedTerm
+      href={href}
+      color={color}
+      backgroundColor={backgroundColor}
+      popoverBody={popoverBody}
+    >
+      {children}
+    </LinkedTerm>
+  )
+}
+
+function PopoverRow({
+  children,
+  popoverBody,
+}: {
+  children: React.ReactNode
+  popoverBody: React.ReactNode
+}): React.ReactElement {
+  return (
+    <HoverPreviewTarget popover={{ body: popoverBody }}>
+      {({ props }) => (
+        <Box
+          flexDirection="row"
+          flexShrink={1}
+          minWidth={0}
+          onMouseEnter={props.onMouseEnter}
+          onMouseLeave={props.onMouseLeave}
+        >
+          {children}
+        </Box>
+      )}
+    </HoverPreviewTarget>
+  )
+}
+
 export function LinkifiedText({
   text,
   role,
   backgroundColor,
+  color,
+  wrap,
 }: {
   text: string
   role?: "assistant" | "user"
   backgroundColor?: string
+  color?: string
+  wrap?: "wrap" | "truncate" | "even"
 }): React.ReactElement {
-  const popover = usePopover()
   const { rules } = useAutolinks()
   const cwd = useCwd()
   // `process.env.HOME` is read once at render — stable across the session.
   const home = process.env["HOME"]
-  const wrapMode = role === "user" ? "even" : "wrap"
+  const wrapMode = wrap ?? (role === "user" ? "even" : "wrap")
   const detections = React.useMemo(() => {
     const builtins = detectReferences(text)
     if (rules.length === 0) return builtins
@@ -255,9 +380,83 @@ export function LinkifiedText({
         offset = lineEnd + 1
         if (lineDetections.length === 0) {
           return (
-            <Text key={lineIdx} color={role === "user" ? "$fg" : undefined} backgroundColor={backgroundColor} wrap={wrapMode}>
+            <Text
+              key={lineIdx}
+              color={role === "user" ? "$fg" : color}
+              backgroundColor={backgroundColor}
+              wrap={wrapMode}
+            >
               {line}
             </Text>
+          )
+        }
+        if (wrapMode === "truncate") {
+          const rowPieces: React.ReactNode[] = []
+          let rowCursor = lineStart
+          for (const d of lineDetections) {
+            if (d.start > rowCursor) {
+              rowPieces.push(
+                <Text
+                  key={`t${rowCursor}`}
+                  color={role === "user" ? "$fg" : color}
+                  backgroundColor={backgroundColor}
+                  wrap="truncate"
+                >
+                  {line.slice(rowCursor - lineStart, d.start - lineStart)}
+                </Text>,
+              )
+            }
+            const href = hrefFor(d, cwd, home)
+            const popoverBody = renderPopoverContent(d, cwd, home)
+            const visible = visibleLinkText(d)
+            rowPieces.push(
+              href ? (
+                <PopoverLink
+                  key={`d${d.start}`}
+                  href={href}
+                  color={color ?? colorFor(d)}
+                  backgroundColor={backgroundColor}
+                  popoverBody={popoverBody}
+                >
+                  {visible.linked}
+                </PopoverLink>
+              ) : (
+                <PopoverTextLink
+                  key={`d${d.start}`}
+                  color={color ?? colorFor(d)}
+                  backgroundColor={backgroundColor}
+                  popoverBody={popoverBody}
+                >
+                  {visible.linked}
+                </PopoverTextLink>
+              ),
+            )
+            if (visible.suffix.length > 0) {
+              rowPieces.push(
+                <Text key={`d${d.start}-suffix`} backgroundColor={backgroundColor} wrap="truncate">
+                  {visible.suffix}
+                </Text>,
+              )
+            }
+            rowCursor = d.end
+          }
+          if (rowCursor < lineEnd) {
+            rowPieces.push(
+              <Text
+                key={`tail${rowCursor}`}
+                color={role === "user" ? "$fg" : color}
+                backgroundColor={backgroundColor}
+                wrap="truncate"
+              >
+                {line.slice(rowCursor - lineStart)}
+              </Text>,
+            )
+          }
+          const firstPopoverBody = renderPopoverContent(lineDetections[0]!, cwd, home)
+          return (
+            <PopoverRow key={lineIdx} popoverBody={firstPopoverBody}>
+              {rowPieces}
+            </PopoverRow>
           )
         }
         // Boundary whitespace preservation: gap text between detections is
@@ -291,29 +490,28 @@ export function LinkifiedText({
           //   - href == null  → in-app schemes (bd://, km://) where OSC 8
           //     can't help; keep the click-to-popover affordance.
           const href = hrefFor(d, cwd, home)
-          const showPopover = () => popover?.show({ body: renderPopoverContent(d) }, { x: 0, y: 0 })
+          const popoverBody = renderPopoverContent(d, cwd, home)
           const visible = visibleLinkText(d)
           pieces.push(
             href ? (
-              <Link
+              <PopoverLink
                 key={`d${d.start}`}
                 href={href}
-                color={colorFor(d)}
+                color={color ?? colorFor(d)}
                 backgroundColor={backgroundColor}
-                onClick={showPopover}
+                popoverBody={popoverBody}
               >
                 {visible.linked}
-              </Link>
+              </PopoverLink>
             ) : (
-              <Text
+              <PopoverTextLink
                 key={`d${d.start}`}
-                color={colorFor(d)}
+                color={color ?? colorFor(d)}
                 backgroundColor={backgroundColor}
-                underline
-                onClick={showPopover}
+                popoverBody={popoverBody}
               >
                 {visible.linked}
-              </Text>
+              </PopoverTextLink>
             ),
           )
           if (visible.suffix.length > 0) {
@@ -333,7 +531,12 @@ export function LinkifiedText({
           )
         }
         return (
-          <Text key={lineIdx} color={role === "user" ? "$fg" : undefined} backgroundColor={backgroundColor} wrap={wrapMode}>
+          <Text
+            key={lineIdx}
+            color={role === "user" ? "$fg" : color}
+            backgroundColor={backgroundColor}
+            wrap={wrapMode}
+          >
             {pieces}
           </Text>
         )

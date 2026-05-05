@@ -192,3 +192,27 @@ export function formatPathForDisplay(path: string, options?: FormatPathOptions):
   // /private/...").
   return path
 }
+
+/**
+ * Resolve a display-shortened path back to a filesystem path.
+ *
+ * This is the inverse of the `~<alias>/...` and `~/...` forms produced by
+ * {@link formatPathForDisplay}. It intentionally leaves relative paths and
+ * unknown `~name` aliases unchanged so callers can still apply cwd fallback
+ * or show a useful unresolved label.
+ */
+export function resolveDisplayPath(path: string, options?: FormatPathOptions): string {
+  if (!path) return path
+  const home = options?.home ?? process.env["HOME"] ?? homedir()
+  if (path === "~") return home
+  if (path.startsWith("~/")) return `${home}/${path.slice(2)}`
+
+  const aliases = options?.aliases ?? DEFAULT_ALIASES
+  for (const [name, raw] of Object.entries(aliases)) {
+    const prefix = `~${name}`
+    if (path === prefix) return expandHome(raw, home)
+    if (path.startsWith(`${prefix}/`)) return `${expandHome(raw, home)}/${path.slice(prefix.length + 1)}`
+  }
+
+  return path
+}

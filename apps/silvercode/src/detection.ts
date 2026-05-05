@@ -14,7 +14,7 @@
 
 import type { Detection as AutolinksDetection } from "@km/autolinks"
 
-export type DetectionKind = "bead" | "file" | "km-node" | "code-ref" | "autolink"
+export type DetectionKind = "bead" | "file" | "km-node" | "code-ref" | "autolink" | "data-image"
 
 /**
  * silvercode's narrower `Detection` shape — the same structural type as
@@ -70,6 +70,14 @@ const RELATIVE_PATH_RE =
   /(?<![A-Za-z0-9_/.])(?:\.{1,2}\/)?[A-Za-z0-9_-][\w./-]*\/[\w./-]+\.(?:tsx|jsx|mjs|cjs|mdx|json|toml|yaml|html|ts|js|py|rs|go|md|yml|sh|sql|txt|css)\b(?::(\d+)(?::(\d+))?)?/g
 
 /**
+ * Bare filenames (`package.json`, `screenshot.png`) in markdown/prose. This
+ * intentionally requires a known extension so ordinary dotted prose and
+ * decimal numbers do not turn into links.
+ */
+const BARE_FILE_RE =
+  /(?<![A-Za-z0-9_/.])[\w.-]+\.(?:tsx|jsx|mjs|cjs|mdx|json|toml|yaml|html|png|jpe?g|gif|webp|svg|log|ts|js|py|rs|go|md|yml|sh|sql|txt|css)\b(?::(\d+)(?::(\d+))?)?/g
+
+/**
  * Plain URL matcher. Used here only to *exclude* URL ranges from the file
  * detector — `/path/segment` inside `https://host/path/segment` would
  * otherwise trip FILE_RE. URL detections themselves are produced by
@@ -77,6 +85,8 @@ const RELATIVE_PATH_RE =
  * registry.
  */
 const URL_EXCLUDE_RE = /\bhttps?:\/\/[^\s)\]]+/g
+const DATA_IMAGE_RE = /\bdata:(image\/[A-Za-z0-9.+-]+);base64,([A-Za-z0-9+/=]+)/g
+const VIEW_IMAGE_PATH_RE = /\bView\s+((?:~[A-Za-z0-9_-]+|~\/|\/)[^\n]*?\.(?:png|jpe?g|gif|webp))\b/gi
 
 export function detectReferences(text: string): Detection[] {
   const out: Detection[] = []
@@ -95,6 +105,17 @@ export function detectReferences(text: string): Detection[] {
     return ranges
   })()
   const insideURL = (start: number, end: number): boolean => urlRanges.some(([s, e]) => start >= s && end <= e)
+
+  for (const m of text.matchAll(DATA_IMAGE_RE)) {
+    const idx = m.index ?? 0
+    out.push({
+      kind: "data-image",
+      match: m[0],
+      start: idx,
+      end: idx + m[0].length,
+      payload: { mimeType: m[1] ?? "image/png", data: m[2] ?? "" },
+    })
+  }
 
   for (const m of text.matchAll(BEAD_RE)) {
     const idx = m.index ?? 0
@@ -116,10 +137,24 @@ export function detectReferences(text: string): Detection[] {
       payload: { path: m[1] ?? "", line: m[2] ?? "", col: m[3] ?? "" },
     })
   }
+  for (const m of text.matchAll(VIEW_IMAGE_PATH_RE)) {
+    const fullIdx = m.index ?? 0
+    const path = m[1] ?? ""
+    const idx = fullIdx + m[0].indexOf(path)
+    if (insideURL(idx, idx + path.length)) continue
+    out.push({
+      kind: "file",
+      match: path,
+      start: idx,
+      end: idx + path.length,
+      payload: { path, line: "", col: "" },
+    })
+  }
   for (const m of text.matchAll(FILE_RE)) {
     const idx = m.index ?? 0
-    // Skip if this range is already covered by a code-ref, or sits inside
-    // a URL (so `/path` inside `https://host/path` doesn't become a file).
+    // Skip if this range is already covered by a code-ref / data image, or
+    // sits inside a URL (so `/path` inside `https://host/path` doesn't
+    // become a file).
     if (out.some((d) => d.start <= idx && d.end >= idx + m[0].length)) continue
     if (insideURL(idx, idx + m[0].length)) continue
     out.push({
@@ -144,6 +179,22 @@ export function detectReferences(text: string): Detection[] {
     // Strip the optional `:line[:col]` suffix from `match` so the visible
     // text on the page matches the raw token, while `payload.line/col`
     // captures the navigation target.
+    const line = m[1] ?? ""
+    const col = m[2] ?? ""
+    const lineSuffixLen = (line ? 1 + line.length : 0) + (col ? 1 + col.length : 0)
+    const pathOnly = m[0].slice(0, m[0].length - lineSuffixLen)
+    out.push({
+      kind: "file",
+      match: m[0],
+      start: idx,
+      end: idx + m[0].length,
+      payload: { path: pathOnly, line, col },
+    })
+  }
+  for (const m of text.matchAll(BARE_FILE_RE)) {
+    const idx = m.index ?? 0
+    if (out.some((d) => d.start <= idx && d.end >= idx + m[0].length)) continue
+    if (insideURL(idx, idx + m[0].length)) continue
     const line = m[1] ?? ""
     const col = m[2] ?? ""
     const lineSuffixLen = (line ? 1 + line.length : 0) + (col ? 1 + col.length : 0)
