@@ -50,8 +50,10 @@ export function createBeadNode(
   // Build content with metadata
   let content = title
 
-  // Add type tag
-  if (options.type) {
+  // Add type tag — skip the default (`task`). Every bead is implicitly a
+  // task unless tagged `#bug` / `#feature` / `#epic`, so emitting `#task`
+  // adds noise to every H1 without conveying information.
+  if (options.type && options.type !== "task") {
     content += ` #${options.type}`
   }
 
@@ -367,7 +369,10 @@ export function renderBeadFile(
  */
 function buildBeadHeading(title: string, opts: { type?: string; priority?: string }): string {
   const tags: string[] = []
-  if (opts.type) tags.push(`#${opts.type}`)
+  // Skip the default (`task`). Every bead is implicitly a task unless tagged
+  // `#bug` / `#feature` / `#epic`; emitting `#task` adds noise to every H1
+  // without conveying information.
+  if (opts.type && opts.type !== "task") tags.push(`#${opts.type}`)
   if (opts.priority) {
     // Normalize to `#P[0-4]` regardless of input shape (numeric, lowercase, etc).
     const normalized = opts.priority.match(/^P?([0-4])$/i)

@@ -212,7 +212,9 @@ export function issueToMarkdown(issue: BeadsIssue, sourcePrefix = "km", idMap?: 
   if (scope) {
     tags.push(`@${sourcePrefix}/${scope}`)
   }
-  if (issue.issue_type) {
+  // Skip the default (`task`) — every bead is implicitly a task unless
+  // tagged `#bug` / `#feature` / `#epic`. Mirror `mutations.buildBeadHeading`.
+  if (issue.issue_type && issue.issue_type !== "task") {
     tags.push(`#${issue.issue_type}`)
   }
   // bd v1.0 emits numeric priority (0-4); older exports emit "P0"-"P4".

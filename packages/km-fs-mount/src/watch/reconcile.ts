@@ -28,7 +28,13 @@ import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
 import { dirname, join } from "path"
 import type { KNode } from "@km/core"
-import { getNodesUnderPath, getNodeByPath, getNodeByInode, getNodeByContentHashUnderParent } from "@km/storage"
+import {
+  getNodesUnderPath,
+  getNodeByPath,
+  getNodeByInode,
+  getNodeByContentHashUnderParent,
+  rowToNode,
+} from "@km/storage"
 import { scanDirectory, scanDirectoryAsync } from "./watcher.ts"
 import type { PatternMatcher } from "../fs/ignore.ts"
 import { toRelativeFsPath } from "../fs/path-utils.ts"
@@ -88,10 +94,37 @@ interface ReconcileState {
   presentRelPaths: Set<string>
   /** Has the presentInodes / presentRelPaths sets been populated yet? */
   populated: boolean
+  /**
+   * Repo-wide DB node index by fs_path, populated once on the root call.
+   * Lets per-directory reconciles read from memory instead of issuing a
+   * `getNodesUnderPath` query each — the previous approach scanned every
+   * descendant for every directory, turning a no-op `km sync` over a
+   * 5000-file vault into 90 s.
+   */
+  allDbNodesByPath?: Map<string, KNode>
+  /** Repo-wide DB node index by `inodeKey(dev, ino)`. */
+  allDbNodesByIno?: Map<string, KNode>
 }
 
 function makeReconcileState(): ReconcileState {
   return { claimedNodeIds: new Set(), presentInodes: new Set(), presentRelPaths: new Set(), populated: false }
+}
+
+/**
+ * Build a `ReconcileState` pre-populated with the repo-wide DB node
+ * indexes (`allDbNodesByPath` + `allDbNodesByIno`). Bulk-sync calls
+ * this once and threads the result through every per-directory
+ * `reconcileDirectory` call so each one skips its `getNodesUnderPath`
+ * SQL scan and per-fs-entry `getNodeByInode` query.
+ *
+ * The caller is expected to fill in `presentInodes` / `presentRelPaths`
+ * from its own filesystem scan and then set `populated = true` —
+ * those fields can't be cheaply derived from the DB.
+ */
+export function createSharedReconcileState(db: Database): ReconcileState {
+  const state = makeReconcileState()
+  populateAllDbNodes(state, db)
+  return state
 }
 
 function inodeKey(dev: number | undefined, ino: number): string {
@@ -105,6 +138,42 @@ function inodeKey(dev: number | undefined, ino: number): string {
  * directory rename), and so the inode-reuse validator can check whether the
  * DB node's old path still physically exists on disk.
  */
+/**
+ * Pre-build the repo-wide DB node index: one (fs_path → node) map and one
+ * ((dev,ino) → node) map. Populated once at the recursive root so every
+ * per-directory reconcile reads from memory.
+ *
+ * Without this, each `reconcileFromEntries` call paid a `getNodesUnderPath`
+ * SQL scan and each on-disk entry paid a `getNodeByInode` query — on a
+ * 5000-file vault that was 1+ minute of pure DB ping for a no-op sync.
+ */
+function populateAllDbNodes(state: ReconcileState, db: Database): void {
+  if (state.allDbNodesByPath) return
+  const byPath = new Map<string, KNode>()
+  const byIno = new Map<string, KNode>()
+  // Mirror the SQL filter from `getNodesUnderPath` — only fs-materialized
+  // heading nodes (folders + files), skipping the repo root sentinel.
+  // Pulling every row via `SELECT * FROM nodes` would scan paragraphs,
+  // list items, etc. and stall on big state.dbs (1+GB). The targeted
+  // query stays bounded by file count regardless of node tree size.
+  const rows = db
+    .query(
+      `SELECT * FROM nodes
+       WHERE fs_path IS NOT NULL
+         AND id != '.'
+         AND type = 'h'
+         AND item = 1`,
+    )
+    .all() as Record<string, unknown>[]
+  for (const row of rows) {
+    const node = rowToNode(row)
+    if (node.fs_path) byPath.set(node.fs_path, node)
+    if (node.fs_ino != null) byIno.set(inodeKey(node.fs_dev, node.fs_ino), node)
+  }
+  state.allDbNodesByPath = byPath
+  state.allDbNodesByIno = byIno
+}
+
 function populatePresentInodes(
   state: ReconcileState,
   rootDir: string,
@@ -255,8 +324,31 @@ function reconcileFromEntries(
   // Convert dirPath to relative for DB queries (DB stores relative paths)
   const relDirPath = toRelativeFsPath(repoRoot, dirPath)
 
-  // Get database state for this directory (using km-storage abstraction)
-  const dbNodes = getNodesUnderPath(db, relDirPath)
+  // Slice db state for this directory. When the recursive entry point
+  // pre-populated the repo-wide index on `state`, slice it in memory —
+  // saves a getNodesUnderPath call per directory (each one was an
+  // O(N) scan on a flat vault, dominating no-op `km sync` runtime).
+  // When called as a one-shot (no shared state), fall back to the
+  // per-call query so single-directory callers (FsStore watch) keep
+  // working unchanged.
+  let dbNodes: KNode[]
+  if (state?.allDbNodesByPath) {
+    dbNodes = []
+    for (const node of state.allDbNodesByPath.values()) {
+      const path = node.fs_path
+      if (!path) continue
+      // Match the same prefix semantics as getNodesUnderPath:
+      // repo root → all fs-materialized nodes;
+      // subdir   → fs_path === dir OR fs_path startsWith dir + "/".
+      if (relDirPath === ".") {
+        dbNodes.push(node)
+      } else if (path === relDirPath || path.startsWith(`${relDirPath}/`)) {
+        dbNodes.push(node)
+      }
+    }
+  } else {
+    dbNodes = getNodesUnderPath(db, relDirPath)
+  }
 
   log.debug?.(`reconciling dirPath=${dirPath} fsEntries=${fsEntries.length} dbNodes=${dbNodes.length}`)
 
@@ -294,7 +386,15 @@ function reconcileFromEntries(
     // (same inode, different parent) is recognized by Step 1 and its ULID is
     // preserved. The previous per-directory lookup (dbByIno) missed cross-dir
     // moves entirely and emitted delete+create, losing identity.
-    const byInode = getNodeByInode(db, entry.dev, entry.ino)
+    //
+    // Read from the pre-built shared inode index when one is provided
+    // (recursive bulk-sync path) — otherwise the per-fs-entry DB query
+    // turns a no-op sync of N files into N indexed lookups, each
+    // re-prepared on every call. With a 5000-file vault this dominated
+    // wall-clock time over the rest of the reconcile combined.
+    const byInode = state?.allDbNodesByIno
+      ? (state.allDbNodesByIno.get(inodeKey(entry.dev, entry.ino)) ?? null)
+      : getNodeByInode(db, entry.dev, entry.ino)
     if (byInode) {
       // Compute hash only when needed — path match is cheapest, try it first.
       const hashForValidate =
@@ -556,15 +656,17 @@ export function reconcileDirectory(
   ignorePatterns?: string[] | PatternMatcher,
   scanner?: DirectoryScanner,
   readFile?: HashFileReader,
+  state?: ReconcileState,
 ): ReconcileOp[] {
   // Get filesystem state (pass ignore patterns to filter out ignored files)
   const fsEntries = scanner ? scanner(dirPath, ignorePatterns) : scanDirectory(dirPath, ignorePatterns)
 
-  // Single-directory entry point: no cross-directory state, so the cascade's
-  // cross-dir recovery (Step 1 spanning the repo) still works, but the
-  // presentInodes delete-suppression is not applied — callers that need it
-  // should go through reconcileDirectoryRecursive.
-  return reconcileFromEntries(db, dirPath, repoRoot, fsEntries, undefined, readFile)
+  // Single-directory entry point: no cross-directory state by default,
+  // so the cascade's cross-dir recovery (Step 1 spanning the repo)
+  // still works but the presentInodes delete-suppression is not
+  // applied unless the caller (bulk-sync) passes in a pre-populated
+  // shared state via `createSharedReconcileState`.
+  return reconcileFromEntries(db, dirPath, repoRoot, fsEntries, state, readFile)
 }
 
 /**
@@ -617,6 +719,10 @@ export function reconcileDirectoryRecursive(
   // top-level call. Subsequent recursive calls reuse it.
   if (isRoot) {
     populatePresentInodes(reconcileState, dirPath, repoRoot, ignorePatterns, scan)
+    // Pre-build the repo-wide DB node index so per-directory reconciles
+    // skip their own SELECT scans. One getAllNodes() pass beats N
+    // getNodesUnderPath() calls when the repo has hundreds of dirs.
+    populateAllDbNodes(reconcileState, db)
   }
 
   const ops: ReconcileOp[] = []

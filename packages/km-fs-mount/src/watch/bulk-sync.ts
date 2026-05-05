@@ -14,7 +14,12 @@ import { readFileSync } from "fs"
 import type { Database } from "bun:sqlite"
 import { toAbsoluteFsPath } from "../fs/path-utils.ts"
 import { scanDirectoryRecursiveGen, type ScanEntry } from "./watcher.ts"
-import { reconcileDirectory, applyReconcileOps, type ReconcileOp } from "./reconcile.ts"
+import {
+  reconcileDirectory,
+  applyReconcileOps,
+  createSharedReconcileState,
+  type ReconcileOp,
+} from "./reconcile.ts"
 import { createIgnoreMatcher } from "../fs/ignore.ts"
 import {
   type Emitter,
@@ -176,26 +181,34 @@ export const BulkSync = {
     // Phase 2: Reconciling
     yield "Reconciling"
 
+    // Build shared reconcile state once: pre-populate the repo-wide
+    // DB node index + present-inodes set so per-directory reconciles
+    // skip their O(N) SQL scans and per-fs-entry `getNodeByInode`
+    // queries. On a 5000-file vault those dominated `km sync` runtime
+    // (~90 s for a no-op sync on ~/Bear/Vault).
+    //
+    // Pre-populate `presentInodes` / `presentRelPaths` from the scan
+    // we already ran in Phase 1 — avoids the recursive walk
+    // `populatePresentInodes` would otherwise do (we already paid that
+    // cost via scanDirectoryRecursiveGen).
+    const sharedState = createSharedReconcileState(db)
+    for (const entries of dirToFiles.values()) {
+      for (const entry of entries) {
+        sharedState.presentInodes.add(`${entry.dev ?? ""}:${entry.ino}`)
+        sharedState.presentRelPaths.add(entry.path.startsWith(repoPath + "/") ? entry.path.slice(repoPath.length + 1) : entry.path)
+      }
+    }
+    sharedState.populated = true
+
     const allOps: ReconcileOp[] = []
     for (const dir of dirToFiles.keys()) {
-      const ops = reconcileDirectory(db, dir, repoPath, ignoreMatcher)
+      const ops = reconcileDirectory(db, dir, repoPath, ignoreMatcher, undefined, undefined, sharedState)
       allOps.push(...ops)
     }
 
-    // De-duplicate cross-directory rename + delete pairs.
-    //
-    // The per-directory reconcile loop above doesn't share state across
-    // directories, so a cross-dir rename detected via inode-primary in one
-    // dir's reconcile can collide with a stale "Remaining = deleted" op in
-    // the source dir's reconcile (the source dir sees the file is missing
-    // and emits delete; the destination dir sees the inode and emits rename).
-    // Both ops target the same DB nodeId — the rename should win, the
-    // delete must be dropped.
-    //
-    // reconcileDirectoryRecursive avoids this via shared ReconcileState
-    // (claimedNodeIds), but bulk-sync uses the flat per-dir loop because the
-    // scan was done up-front; threading state would require restructuring.
-    // De-duping post-hoc is the pragmatic fix.
+    // De-duplicate cross-directory rename + delete pairs (the post-hoc
+    // filter — needed because the per-directory reconcile loop doesn't
+    // share `claimedNodeIds` for the rename-vs-delete tiebreak).
     const renamedNodeIds = new Set<string>()
     for (const op of allOps) {
       if (op.type === "rename" && op.nodeId) renamedNodeIds.add(op.nodeId)
