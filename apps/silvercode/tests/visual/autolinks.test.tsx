@@ -66,10 +66,9 @@ describe("autolinks visual", () => {
   beforeEach(() => {
     cwd = mkdtempSync(join(tmpdir(), "silvercode-syntaxlinks-visual-"))
     mkdirSync(join(cwd, ".km"))
-    // Two syntax-linker: a literal "AGENTS.md" → first-paragraph; a regex
-    // matching "+\w+" → bd-active. Neither pattern is shadowed by the
-    // built-in URL/file/bead detectors, so both should land in the frame
-    // as autolink-styled tokens.
+    // Two syntax-linker rules: a literal "AGENTS.md" and a regex matching
+    // "+\w+". Built-in file detection may claim AGENTS.md first, while +km
+    // should retain the configured bd-active preview.
     writeFileSync(
       join(cwd, ".km", "config.yaml"),
       `

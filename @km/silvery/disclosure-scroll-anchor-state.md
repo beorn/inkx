@@ -35,3 +35,5 @@ Expanded/collapsed state should be keyed by stable semantic ids outside layout-r
 - A regression test expands a row, resizes the pane/terminal, and verifies it remains expanded.
 - Silvercode activity summaries and tool rows use the shared mechanism rather than local one-off scroll correction.
 
+Completeness audit added explicit Silvercode resize regression: apps/silvercode/tests/turn-activity-summary.test.tsx now expands an activity summary, resizes the terminal, and asserts the summary remains expanded with command rows visible. Verification: bun vitest run apps/silvercode/tests/turn-activity-summary.test.tsx passed 29 tests.
+

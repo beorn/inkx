@@ -818,8 +818,8 @@ function AmbientMuteSection({ controller }: { controller: Controller }): React.R
       <Box flexDirection="column" gap={1}>
         <Text bold>Notifications</Text>
         <Muted>
-          Ambient observations (tribe broadcasts, CI status, recall hits, sub-agent updates, file changes, telegram
-          messages) flow into the agent's context automatically and render inline in the chat scrollback.
+          Notifications (tribe broadcasts, CI status, recall hits, sub-agent updates, file changes, telegram messages)
+          flow into the agent's context automatically and render inline in the chat scrollback.
         </Muted>
         <Muted>
           Toggling a source mutes its inline rows for this view only. The agent still receives every event regardless of

@@ -24,7 +24,7 @@
  *     AvailableCommandsPalette
  *
  * Side panel shows every section that can appear:
- *   Sessions, Todos, Agents, Ambient, Background, Account quotas,
+ *   Sessions, Todos, Agents, Notifications, Background, Account quotas,
  *   Version block (Silver Code / Claude Code / Model / Thinking / Mode)
  *
  * Bead: km-silvercode.acp-storybook
@@ -410,9 +410,9 @@ function SidePanelStub(): React.ReactElement {
 
       <Box flexShrink={0} height={1} />
 
-      {/* Ambient */}
+      {/* Notifications */}
       <Text bold color="$primary">
-        Ambient
+        Notifications
       </Text>
       {ambientSources.map((s) => (
         <Box key={s.id} flexDirection="row" gap={1}>

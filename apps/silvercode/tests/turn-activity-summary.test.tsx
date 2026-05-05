@@ -1282,4 +1282,55 @@ describe("TurnActivitySummary", () => {
       handle.unmount()
     }
   })
+
+  test("expanded activity summary remains expanded across terminal resize", async () => {
+    using term = createTermless({ cols: 110, rows: 14 })
+    const entry = makeEntry({
+      id: "assistant-summary-resize",
+      ts: 2000,
+      ops: [
+        tool("cmd-1", "Bash", { command: "printf one" }, "one"),
+        tool("cmd-2", "Bash", { command: "printf two" }, "two"),
+      ],
+    })
+    const handle = await run(
+      <Box width="100%" height="100%" flexDirection="column">
+        <SessionUpdateList
+          messages={[entry]}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          sessionId="turn-summary-resize-test"
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+        />
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle(80)
+      const beforeLines = term.screen.getLines()
+      const summaryRow = beforeLines.findIndex((line) => line.includes("Ran 2 commands"))
+      expect(summaryRow, beforeLines.join("\n")).toBeGreaterThanOrEqual(0)
+      const summaryCol = beforeLines[summaryRow]!.indexOf("Ran 2 commands")
+
+      await term.mouse.click(summaryCol, summaryRow)
+      await settle(80)
+      expect(term.screen.getLines().find((line) => line.includes("Ran 2 commands"))).toContain("▾")
+      expect(term.screen.getText()).toContain("$ printf one")
+
+      term.resize!(92, 14)
+      await settle(100)
+
+      expect(term.screen.getLines().find((line) => line.includes("Ran 2 commands"))).toContain("▾")
+      expect(term.screen.getText()).toContain("$ printf one")
+      expect(term.screen.getText()).toContain("$ printf two")
+    } finally {
+      handle.unmount()
+    }
+  })
 })
