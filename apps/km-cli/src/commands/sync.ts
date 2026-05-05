@@ -12,6 +12,7 @@ import type { FullLogger } from "../logger-types.ts"
 const term = createTerm(process)
 import { steps } from "@silvery/ag-react/ui/progress"
 import { Database } from "bun:sqlite"
+import { existsSync, statSync } from "fs"
 import { dirname, resolve, join } from "path"
 
 const log = createLogger("km:cli:sync") as FullLogger
@@ -185,6 +186,8 @@ async function runSync(
     // is the same one `discoverFromChanges` writes, so on a healthy DB
     // we read only what landed since the last sync.
     const fromOffset = readLastEventOffset(db)
+    const changesPath = join(kmRoot, "changes.jsonl")
+    const fileSizeBefore = existsSync(changesPath) ? statSync(changesPath).size : 0
     const events = readChanges(kmRoot, fromOffset)
     const lastApplied = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event") as
       | { value: string }
@@ -204,6 +207,17 @@ async function runSync(
         throw error
       }
       console.log(term.green("✓"), `Applied ${newEvents.length} event(s) from changes.jsonl`)
+    }
+
+    // Advance the byte-offset cursor to the file size we just read.
+    // Without this every subsequent `km sync` re-reads the same multi-GB
+    // tail and re-parses millions of already-applied events — even when
+    // the filtered `newEvents` set is empty. The cursor is the
+    // tail-skip primitive; not updating it negates the entire SIGTRAP
+    // fix (d0b46c84d) and leaves no-op syncs at >40 s on the user's
+    // 2.7 GB journal.
+    if (fileSizeBefore > 0 && fileSizeBefore !== fromOffset) {
+      db.run("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", ["last_event_offset", String(fileSizeBefore)])
     }
 
     // Step 2: Sync with filesystem
