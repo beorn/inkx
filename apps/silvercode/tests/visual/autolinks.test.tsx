@@ -101,13 +101,14 @@ syntaxlinks:
     const builtins = detectReferences(ASSISTANT_TEXT)
     const auto = detectAutolinks(ASSISTANT_TEXT, rules)
     const merged = mergeDetections(builtins, auto)
+    const matches = merged.map((d) => d.match)
     const autolinkMatches = merged.filter((d) => d.kind === "autolink").map((d) => d.match)
-    expect(autolinkMatches).toContain("AGENTS.md")
+    expect(matches).toContain("AGENTS.md")
     expect(autolinkMatches).toContain("+km")
-    // Each carries the expected preview kind so LinkifiedText dispatches
-    // to the correct renderer.
+    // The configured +km rule carries its preview kind. AGENTS.md is now
+    // claimed by the built-in resolving file detector, which deliberately
+    // outranks overlapping configured autolinks.
     const previews = merged.filter((d) => d.kind === "autolink").map((d) => d.payload.preview)
-    expect(previews).toContain("first-paragraph")
     expect(previews).toContain("bd-active")
   })
 

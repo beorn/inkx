@@ -75,7 +75,8 @@ describe("visual scenarios — layout invariants hold", () => {
     const p = parseFrame(s)
     const activity = p.cardStream.find((b) => b.glyph === "•" && b.firstLineText.includes("Clean tree"))
     expect(activity, `expected assistant result in card stream.\n${s.text}`).toBeDefined()
-    expect(s.text).toContain("Ran 1 command")
+    expect(s.text).toContain("$ git status")
+    expect(s.text).not.toContain("Ran 1 command")
     expectLayoutInvariants(s)
   })
 
