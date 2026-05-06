@@ -22,6 +22,7 @@ import { createRenderer } from "@silvery/test"
 import { MODE_COLORS, MODE_ICONS, MODE_LABELS, SidePanel } from "../src/components/SidePanel.tsx"
 import type { Controller, SessionHandle } from "../src/controller.ts"
 import { createSessionStore } from "@km/agent-harness"
+import { renderScenario } from "../src/test/render-harness.tsx"
 
 const TOTAL_COLS = 120
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..")
@@ -200,5 +201,23 @@ describe("App default mode + cycleMode order", () => {
     const appSrc = readFileSync(join(REPO_ROOT, "src/App.tsx"), "utf8")
     // Find the MODE_COLOR declaration and check `ask` appears as a key.
     expect(appSrc).toMatch(/MODE_COLOR:\s*Record<string,\s*string>\s*=\s*\{[\s\S]*?ask:\s*"\$muted"/)
+  })
+
+  test("Option comma/period cycle Codex reasoning down/up in the real App", async () => {
+    const scenario = await renderScenario({ script: [], agent: "codex", cols: 140, rows: 30 })
+    try {
+      expect(scenario.text).toContain("reasoning medium")
+
+      await scenario.app.press("Alt+.")
+      expect(scenario.resample().text).toContain("reasoning high")
+
+      await scenario.app.press("Alt+.")
+      expect(scenario.resample().text).toContain("reasoning xhigh")
+
+      await scenario.app.press("Alt+,")
+      expect(scenario.resample().text).toContain("reasoning high")
+    } finally {
+      scenario.dispose()
+    }
   })
 })

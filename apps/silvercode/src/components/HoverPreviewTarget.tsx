@@ -170,7 +170,7 @@ export function HoverPreviewTarget({
   const onMouseEnter = useCallback(
     (e: SilveryMouseEvent) => {
       setHovered(true)
-      anchorRef.current = { x: e.clientX, y: e.clientY }
+      anchorRef.current = { x: e.x, y: e.y }
       setActive((prev) => (prev && prev.depth > depth ? prev : { id, depth }))
     },
     [depth, id, setActive],

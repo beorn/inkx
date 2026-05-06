@@ -49,6 +49,14 @@ Run `TEST_MODE=real bun run test:all` periodically to detect drift.
 
 ---
 
+## Silvercode Backend Fakes
+
+Silvercode agent backend fakes are planned as a Layer 2 fake family: a fake backend process/server that speaks ACP or the legacy stream protocol while the real Silvercode adapter code runs above it. This follows the same principle as `FakeFileSystem` and Cloudi's Gmail API mock: fake the external boundary, not the application state.
+
+See [silvercode-backend-fakes.md](silvercode-backend-fakes.md) for the full plan, backend profile split, and fake/live drift contract strategy.
+
+---
+
 ## Repo Fakes
 
 ### FakeRepo

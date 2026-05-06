@@ -178,17 +178,18 @@ describe("AmbientEventRow disclosure", () => {
     }
   })
 
-  test("long tribe notifications wrap instead of truncating", async () => {
+  test("long tribe notifications keep rows concise and reveal details on click", async () => {
     using term = createTermless({ cols: 72, rows: 12 })
     const handle = await run(
       <Box flexDirection="column">
-        <AmbientEventRow
+        <ExpandableAmbientRow
           entry={{
             kind: "ambient",
             id: "tribe-long",
             source: "tribe",
             timestamp: 1_700_000_000_000,
-            content: "CPU warning: load 17.04 exceeds 14.4 for 30s, unattended diagnostics should keep this visible",
+            content:
+              "[dm ci-fix] Process count warning: 53 bun/node processes (threshold: 50). ci-fix: 205.5% /nix/store/4ry96w6s7jql71336lf, 52.9% /nix/store/4ry96w6s7jql71336lf, 47.2% /nix/store/4ry96w6s7jql71336lf",
           }}
         />
         <Text>NEXT-ROW</Text>
@@ -200,13 +201,19 @@ describe("AmbientEventRow disclosure", () => {
     try {
       await settle(80)
       const lines = term.screen.getLines()
-      const firstRow = lines.findIndex((line) => line.includes("CPU warning"))
-      const wrappedRow = lines.findIndex((line) => line.includes("diagnostics should keep"))
+      const firstRow = lines.findIndex((line) => line.includes("Process count warning"))
       const nextRow = lines.findIndex((line) => line.includes("NEXT-ROW"))
       expect(firstRow).toBeGreaterThanOrEqual(0)
-      expect(wrappedRow).toBeGreaterThan(firstRow)
-      expect(nextRow).toBeGreaterThan(wrappedRow)
-      expect(term.screen.getText()).toContain("keep this visible")
+      expect(nextRow).toBe(firstRow + 1)
+      expect(lines[firstRow]).toContain("ci-fix: Process count warning: 53 bun/node processes")
+      expect(term.screen.getText()).not.toContain("205.5% /nix/store")
+
+      const col = lines[firstRow]!.indexOf("Process count warning")
+      await term.mouse.click(col + 1, firstRow)
+      await settle(80)
+
+      expect(term.screen.getText()).toContain("205.5% /nix/store/4ry96w6s7jql71336lf")
+      expect(term.screen.getText()).toContain("47.2% /nix/store/4ry96w6s7jql71336lf")
     } finally {
       handle.unmount()
     }

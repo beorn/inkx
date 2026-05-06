@@ -72,9 +72,7 @@ Both consume the same underlying `AgentSession` event stream — they can run in
 
 Silvercode UI may call the visible group a "turn", but this is an idle-delimited presentation group, not necessarily one prompt and one response. ACP does not provide canonical turns, Claude primarily provides message/jsonl UUIDs, and Codex only sometimes provides provider-specific `turn_id`. New canonical model surfaces should use message/activity/tool/plan ids and provider provenance; use UI-only `turnKey` for derived chat projection identity.
 
-See `apps/silvercode/docs/chat-session-model.md`.
-5. Status line migrates from `state.status` to `acp.status()` (same five-state enum).
-6. Usage / cost migrates from `state.cost` to `acp.usage()` (ACP shape, `{ used, size, cost? }`).
+See `apps/silvercode/docs/chat-session-model.md`. 5. Status line migrates from `state.status` to `acp.status()` (same five-state enum). 6. Usage / cost migrates from `state.cost` to `acp.usage()` (ACP shape, `{ used, size, cost? }`).
 
 Once all consumers migrate, retire `createSessionStore`. Until then, both paths are first-class — don't add deprecation warnings or cross-talk between them.
 

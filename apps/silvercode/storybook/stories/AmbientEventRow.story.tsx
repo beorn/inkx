@@ -80,6 +80,55 @@ const ALL_SOURCES_FIXTURES: AmbientStreamEntry[] = [
   },
 ]
 
+const TRIBE_CONCISE_FIXTURES: AmbientStreamEntry[] = [
+  {
+    kind: "ambient",
+    id: "tribe-commit",
+    source: "tribe",
+    timestamp: at(0),
+    content: "Committed: e9dc1650e chore(beads): close shipped/superseded storage cleanup beads",
+  },
+  {
+    kind: "ambient",
+    id: "tribe-process-count-1",
+    source: "tribe",
+    timestamp: at(5),
+    content:
+      "[dm ci-fix] Process count warning: 53 bun/node processes (threshold: 50). ci-fix: 205.5% /nix/store/4ry96w6s7jql71336lf, 52.9% /nix/store/4ry96w6s7jql71336lf, 47.2% /nix/store/4ry96w6s7jql71336lf, 37.1% /nix/store/4ry96w6s7jql71336lf",
+  },
+  {
+    kind: "ambient",
+    id: "tribe-process-count-2",
+    source: "tribe",
+    timestamp: at(6),
+    content:
+      "[dm ci-fix] Process count warning: 54 bun/node processes (threshold: 50). ci-fix: 59.9% /nix/store/4ry96w6s7jql71336lf, 57.2% /nix/store/4ry96w6s7jql71336lf, 56.9% /nix/store/4ry96w6s7jql71336lf",
+  },
+  {
+    kind: "ambient",
+    id: "tribe-process-count-3",
+    source: "tribe",
+    timestamp: at(7),
+    content:
+      "[dm ci-fix] Process count warning: 55 bun/node processes (threshold: 50). ci-fix: 56.3% (bun), 54.9% /nix/store/4ry96w6s7jql71336lf, 53.9% /nix/store/4ry96w6s7jql71336lf",
+  },
+  {
+    kind: "ambient",
+    id: "tribe-cpu-warning",
+    source: "tribe",
+    timestamp: at(10),
+    content:
+      "CPU warning: load 20.55 exceeds 14.4 (18 cores x 0.8) for 30s. beads: 56.7% /nix/store/4ry96w6s7jql71336lf, 56.3% (bun), 52.1% node /Users/beorn/Code/pim/km/ | unattributed: 49.3% bun /Users/beorn/Code/pim/km",
+  },
+  {
+    kind: "ambient",
+    id: "tribe-session-join",
+    source: "tribe",
+    timestamp: at(20),
+    content: "[session tribe] silvercode-2 joined (member) pid=27286 ~/Code/pim/km/apps/silvercode",
+  },
+]
+
 export const ambientEventRowAllSources: Story = {
   id: "AmbientEventRow/all-sources",
   component: "AmbientEventRow",
@@ -112,6 +161,44 @@ export const ambientEventRowAllSources: Story = {
           </Box>
         ) : (
           <AmbientNotificationStack entries={ALL_SOURCES_FIXTURES} />
+        )}
+      </Screen>
+    )
+  },
+}
+
+export const ambientEventRowTribeConcise: Story = {
+  id: "AmbientEventRow/tribe-concise",
+  component: "AmbientEventRow",
+  variant: "tribe-concise",
+  description: "Noisy Tribe payloads collapsed to concise rows, with full details available when expanded.",
+  knobs: [
+    {
+      kind: "toggle",
+      id: "expanded",
+      label: "Expanded",
+      default: false,
+    },
+  ],
+  render(knobs) {
+    const expanded = knobs.expanded === true
+    return (
+      <Screen flexDirection="column">
+        {expanded ? (
+          <Box flexDirection="column" gap={0}>
+            {TRIBE_CONCISE_FIXTURES.map((entry) => (
+              <AmbientEventRow
+                key={entry.id}
+                entry={entry}
+                expanded
+                onToggleExpand={() => {
+                  /* fixture story — no real toggle handler */
+                }}
+              />
+            ))}
+          </Box>
+        ) : (
+          <AmbientNotificationStack entries={TRIBE_CONCISE_FIXTURES} />
         )}
       </Screen>
     )

@@ -7,7 +7,7 @@
  *
  *   - claude-code:  think_hard / ultrathink slash commands; ask / plan /
  *                   accept-edits / auto / bypass permission modes.
- *   - codex:        reasoning_effort low/medium/high; sandbox levels.
+ *   - codex:        reasoning_effort low/medium/high/xhigh; sandbox levels.
  *   - gemini:       per-model intensity (Flash vs Pro); single permission mode.
  *   - copilot:      no exposed knobs (yet).
  *
@@ -74,7 +74,7 @@ export type AgentCapabilities = {
   /**
    * "Think harder" intensity tiers. Cycle button + popover in SidePanel.
    * Claude: think / think_hard / ultrathink.
-   * Codex: reasoning_effort low/medium/high.
+   * Codex: reasoning_effort low/medium/high/xhigh.
    */
   readonly thinking?: ReadonlyArray<CapabilityOption>
   /**
@@ -83,6 +83,43 @@ export type AgentCapabilities = {
    * Codex: sandbox levels (read-only / write / dangerous).
    */
   readonly planning?: ReadonlyArray<CapabilityOption>
+}
+
+export type CapabilityDirection = 1 | -1
+
+/** Find the descriptor whose `id` matches `selection`. Returns undefined if none. */
+export function findCapabilityOption(
+  options: ReadonlyArray<CapabilityOption>,
+  selection: string,
+): CapabilityOption | undefined {
+  return options.find((option) => option.id === selection)
+}
+
+/**
+ * The selected option when local state is empty or stale: prefer the
+ * explicit default, then the first descriptor.
+ */
+export function defaultCapabilityOption(options: ReadonlyArray<CapabilityOption>): CapabilityOption {
+  const flagged = options.find((option) => option.default === true)
+  const fallback = flagged ?? options[0]
+  if (!fallback) throw new Error("agent-capabilities: cannot choose an option from an empty capability array")
+  return fallback
+}
+
+/** Current descriptor for `selection`, falling back to the capability default. */
+export function currentCapabilityOption(options: ReadonlyArray<CapabilityOption>, selection: string): CapabilityOption {
+  return findCapabilityOption(options, selection) ?? defaultCapabilityOption(options)
+}
+
+/** Adjacent descriptor in capability order, wrapping at the ends. */
+export function adjacentCapabilityOption(
+  options: ReadonlyArray<CapabilityOption>,
+  selection: string,
+  direction: CapabilityDirection,
+): CapabilityOption {
+  const current = currentCapabilityOption(options, selection)
+  const index = options.findIndex((option) => option.id === current.id)
+  return options[(index + direction + options.length) % options.length]!
 }
 
 // ---------------------------------------------------------------------------
@@ -150,7 +187,7 @@ export function assertCapabilities(agents: Readonly<Record<string, { capabilitie
 const CLAUDE_THINKING: ReadonlyArray<CapabilityOption> = [
   {
     id: "normal",
-    name: "think normal",
+    name: "normal",
     icon: "○",
     color: "$muted",
     description: "Claude's baseline budget — no extended thinking.",
@@ -159,7 +196,7 @@ const CLAUDE_THINKING: ReadonlyArray<CapabilityOption> = [
   },
   {
     id: "think",
-    name: "think med",
+    name: "think",
     icon: "◔",
     color: "$muted",
     description: "≈ 4K extended-thinking tokens.",
@@ -181,7 +218,7 @@ const CLAUDE_THINKING: ReadonlyArray<CapabilityOption> = [
   },
   {
     id: "ultrathink",
-    name: "think ultra",
+    name: "ultrathink",
     icon: "●",
     color: "$muted",
     description: "≈ 32K extended-thinking tokens.",
@@ -278,25 +315,33 @@ const CODEX_THINKING: ReadonlyArray<CapabilityOption> = [
     name: "reasoning low",
     icon: "○",
     color: "$muted",
-    description: "Faster, cheaper. Fine for routine edits + simple searches.",
+    description: "Fast responses with lighter reasoning.",
     activate: ({ setThinking }) => setThinking("low"),
   },
   {
     id: "medium",
     name: "reasoning medium",
-    icon: "◐",
+    icon: "◔",
     color: "$muted",
-    description: "Balanced — codex's per-model default for most work.",
+    description: "Balances speed and reasoning depth for everyday tasks.",
     default: true,
     activate: ({ setThinking }) => setThinking("medium"),
   },
   {
     id: "high",
     name: "reasoning high",
+    icon: "◐",
+    color: "$muted",
+    description: "Greater reasoning depth for complex problems.",
+    activate: ({ setThinking }) => setThinking("high"),
+  },
+  {
+    id: "xhigh",
+    name: "reasoning xhigh",
     icon: "●",
     color: "$muted",
-    description: "Slower, more thorough. Use for design + architecture.",
-    activate: ({ setThinking }) => setThinking("high"),
+    description: "Extra high reasoning depth for complex problems.",
+    activate: ({ setThinking }) => setThinking("xhigh"),
   },
 ]
 

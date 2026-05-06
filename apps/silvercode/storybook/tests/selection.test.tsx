@@ -17,6 +17,9 @@ function mouseMove(term: Term, x: number, y: number) {
 function mouseUp(term: Term, x: number, y: number) {
   ;(term as unknown as { sendInput: (s: string) => void }).sendInput(`\x1b[<0;${x + 1};${y + 1}m`)
 }
+function mouseWheelDown(term: Term, x: number, y: number) {
+  ;(term as unknown as { sendInput: (s: string) => void }).sendInput(`\x1b[<65;${x + 1};${y + 1}M`)
+}
 
 function decodeLastOsc52(chunks: string[]): string | null {
   const osc = chunks.findLast((s) => s.includes("\x1b]52;c;"))
@@ -27,6 +30,29 @@ function decodeLastOsc52(chunks: string[]): string | null {
 }
 
 describe("storybook runner selection", () => {
+  test("wheel scrolling moves the preview pane content", async () => {
+    using term = createTermless({ cols: 100, rows: 18 })
+    const handle = await run(<StorybookApp initialStoryId="Content/layout" />, term, {
+      selection: false,
+      mouse: true,
+    } as never)
+    await settle()
+
+    expect(term.screen).toContainText("Prose row with timestamp slots")
+    expect(term.screen).not.toContainText("Activity summary")
+
+    for (let i = 0; i < 80; i++) {
+      mouseWheelDown(term, 70, 12)
+      await settle(10)
+    }
+    await settle()
+
+    expect(term.screen).not.toContainText("Prose row with timestamp slots")
+    expect(term.screen).toContainText("File: Content.tsx")
+
+    handle.unmount()
+  })
+
   test("drag from story list into preview selects only list-pane text", async () => {
     using term = createTermless({ cols: 100, rows: 30 })
     const chunks: string[] = []

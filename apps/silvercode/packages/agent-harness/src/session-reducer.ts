@@ -777,6 +777,7 @@ function planFromUpdate(
 }
 
 function todosFromPlan(plan: AgentPlan): Todo[] {
+  if (plan.entries.every((entry) => entry.status === "completed" || entry.status === "cancelled")) return []
   return plan.entries.map((entry) => ({
     content: entry.content,
     status: todoStatusFromPlan(entry.status),
@@ -905,7 +906,7 @@ function applyUserMessage(next: InternalSessionState, action: Extract<AgentEvent
     role: "user",
     // User messages have a single text op (whole prompt). Replace
     // any prior ops outright — this isn't a streaming surface.
-    ops: action.text.length > 0 ? [{ kind: "text", text: action.text }] : [],
+    ops: action.text.length > 0 ? [{ kind: "text", text: action.text, ts: action.ts }] : [],
     additionalContext: action.additionalContext ?? m.additionalContext,
     ts: action.ts,
   }))
@@ -919,16 +920,11 @@ function applyTextDelta(next: InternalSessionState, action: Extract<AgentEvent, 
   next._strip = strip2
   if (stripped.length === 0) return
   next.messages = upsertMessage(next.messages, action.turnId, (m) => {
-    // Coalesce into the trailing text op when the most recent op is text
-    // — this is how a multi-chunk assistant paragraph collapses into one
-    // `text` op, matching Claude's typical emission shape.
+    // Keep each text delta as a timestamped op. The renderer can merge
+    // adjacent text ops that have no ambient events between them, but it
+    // needs per-op timestamps to place notifications at their arrival point.
     const ops = [...m.ops]
-    const last = ops[ops.length - 1]
-    if (last?.kind === "text") {
-      ops[ops.length - 1] = { kind: "text", text: last.text + stripped }
-    } else {
-      ops.push({ kind: "text", text: stripped })
-    }
+    ops.push({ kind: "text", text: stripped, ts: action.ts })
     return { ...m, ops }
   })
 }
@@ -942,9 +938,9 @@ function applyThinkingDelta(next: InternalSessionState, action: Extract<AgentEve
     const ops = [...m.ops]
     const last = ops[ops.length - 1]
     if (last?.kind === "thinking") {
-      ops[ops.length - 1] = { kind: "thinking", text: last.text + action.text }
+      ops[ops.length - 1] = { kind: "thinking", text: last.text + action.text, ts: last.ts ?? action.ts }
     } else {
-      ops.push({ kind: "thinking", text: action.text })
+      ops.push({ kind: "thinking", text: action.text, ts: action.ts })
     }
     return { ...m, ops }
   })
@@ -966,9 +962,10 @@ function applyToolUse(next: InternalSessionState, action: Extract<AgentEvent, { 
         kind: "tool",
         toolCall: call,
         result: prev?.kind === "tool" ? prev.result : undefined,
+        ts: prev?.kind === "tool" ? prev.ts : action.ts,
       }
     } else {
-      ops.push({ kind: "tool", toolCall: call })
+      ops.push({ kind: "tool", toolCall: call, ts: action.ts })
     }
     return { ...m, ops }
   })
@@ -1044,7 +1041,7 @@ function applyToolResult(next: InternalSessionState, action: Extract<AgentEvent,
     if (msg) {
       const ops: MessageOp[] = msg.ops.map((op) => {
         if (op.kind === "tool" && op.toolCall.id === action.id) {
-          return { kind: "tool" as const, toolCall: op.toolCall, result }
+          return { kind: "tool" as const, toolCall: op.toolCall, result, ts: op.ts }
         }
         return op
       })
@@ -1122,6 +1119,7 @@ function deriveOpsFromBlocks(
   strip: StripRuntime,
   turnId: TurnId,
   content: ReadonlyArray<ContentBlock>,
+  ts: number,
 ): [MessageOp[], StripRuntime] {
   const ops: MessageOp[] = []
   let s = strip
@@ -1132,14 +1130,15 @@ function deriveOpsFromBlocks(
       if (stripped.length === 0) continue
       const last = ops[ops.length - 1]
       if (last?.kind === "text") {
-        ops[ops.length - 1] = { kind: "text", text: last.text + stripped }
+        ops[ops.length - 1] = { kind: "text", text: last.text + stripped, ts: last.ts ?? ts }
       } else {
-        ops.push({ kind: "text", text: stripped })
+        ops.push({ kind: "text", text: stripped, ts })
       }
     } else if (b.type === "tool_use") {
       ops.push({
         kind: "tool",
         toolCall: { id: b.id, name: b.name, input: b.input, mcp_server: b.mcp_server },
+        ts,
       })
     } else if (b.type === "tool_result") {
       const idx = ops.findIndex((op) => op.kind === "tool" && op.toolCall.id === b.tool_use_id)
@@ -1150,20 +1149,21 @@ function deriveOpsFromBlocks(
             kind: "tool",
             toolCall: op.toolCall,
             result: { id: b.tool_use_id, output: b.output, is_error: b.is_error },
+            ts: op.ts,
           }
         }
       } else {
-        ops.push({ kind: "raw", label: `Orphan tool result ${b.tool_use_id}`, raw: b })
+        ops.push({ kind: "raw", label: `Orphan tool result ${b.tool_use_id}`, raw: b, ts })
       }
     } else if (b.type === "thinking" && b.text.length > 0) {
       const last = ops[ops.length - 1]
       if (last?.kind === "thinking") {
-        ops[ops.length - 1] = { kind: "thinking", text: last.text + b.text }
+        ops[ops.length - 1] = { kind: "thinking", text: last.text + b.text, ts: last.ts ?? ts }
       } else {
-        ops.push({ kind: "thinking", text: b.text })
+        ops.push({ kind: "thinking", text: b.text, ts })
       }
     } else if (b.type === "raw") {
-      ops.push({ kind: "raw", label: b.label, raw: b.raw })
+      ops.push({ kind: "raw", label: b.label, raw: b.raw, ts })
     }
     // Image blocks are currently handled by backend-specific surfaces.
   }
@@ -1194,7 +1194,7 @@ function applyAssistantMessage(
   const existingCameFromAggregate = existing?.blocks !== undefined
   let derivedOps: MessageOp[] | null = null
   if (!existingHasOps || existingCameFromAggregate) {
-    const [ops, finalStrip] = deriveOpsFromBlocks(strip, action.turnId, action.content)
+    const [ops, finalStrip] = deriveOpsFromBlocks(strip, action.turnId, action.content, action.ts)
     strip = finalStrip
     derivedOps = ops
   }
@@ -1289,8 +1289,8 @@ export function reduce(state: InternalSessionState, action: AgentEvent): [Intern
       next.messages = upsertMessage(next.messages, action.turnId, () => ({
         id: action.turnId,
         role: "system",
-        ops: [{ kind: "text", text: action.label }],
-        additionalContext: JSON.stringify(action.raw, null, 2),
+        ops: [{ kind: "text", text: action.label, ts: action.ts }],
+        additionalContext: typeof action.raw === "string" ? action.raw : JSON.stringify(action.raw, null, 2),
         ts: action.ts,
       }))
       break

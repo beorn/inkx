@@ -2,10 +2,17 @@ import React from "react"
 import { Box, Screen, Text } from "silvery"
 import type { AgentPlan, ToolCall as ToolCallType, ToolCallId } from "@km/agent-harness"
 import { Chat } from "../../src/components/Chat.tsx"
+import type { SessionInfo } from "../../src/cross-agent-state.ts"
 import { SessionUpdateList } from "../../src/components/SessionUpdateList.tsx"
 import type { TurnActivitySummaryItem } from "../../src/components/TurnActivitySummary.tsx"
 import { withActivitySpan } from "../support/activity-summary.ts"
-import { BIG_TOOL_TURN, MULTI_TURN, TURN_ACTIVITY_AMBIENT, TURN_ACTIVITY_RICH } from "../support/sample-messages.ts"
+import {
+  BIG_TOOL_TURN,
+  METADATA_NOTIFICATIONS,
+  MULTI_TURN,
+  TURN_ACTIVITY_AMBIENT,
+  TURN_ACTIVITY_RICH,
+} from "../support/sample-messages.ts"
 import type { Story } from "../types.ts"
 
 const id = (s: string) => s as ToolCallId
@@ -71,6 +78,23 @@ const activePlan: AgentPlan = {
     { id: "plan-3", content: "Update architecture docs", status: "pending", order: 2 },
   ],
 }
+
+const activeAgents: SessionInfo[] = [
+  {
+    sessionId: "claude:f9eb64dc-d982-4a46-9a8e-da5fd882ac5f",
+    name: "Claude Code",
+    model: "claude-sonnet-4-6",
+    status: "thinking",
+    startedAt: Date.now() - 120_000,
+  },
+  {
+    sessionId: "codex:019ddfc8-0749-7da1-b892-b2e1c6bc389f",
+    name: "Codex",
+    model: "gpt-5.5",
+    status: "idle",
+    startedAt: Date.now() - 60_000,
+  },
+]
 
 function StorySection({ label, children }: { label: string; children: React.ReactNode }): React.ReactElement {
   return (
@@ -264,6 +288,12 @@ export const chatPlanDrawer: Story = {
               <Chat.Composer>
                 <Box flexDirection="column" gap={1} width="100%" minWidth={0}>
                   <Chat.PlanDrawer plan={activePlan} />
+                  <Chat.AgentsDrawer sessions={activeAgents} selfSessionId={activeAgents[0]!.sessionId} />
+                  <Chat.AgentsDrawer
+                    sessions={activeAgents}
+                    selfSessionId={activeAgents[0]!.sessionId}
+                    defaultExpanded
+                  />
                   <Chat.PlanDrawer plan={activePlan} defaultExpanded />
                   <Chat.PlanDrawer plan={completedPlan} />
                   <Chat.PlanDrawer plan={cancelledPlan} defaultExpanded />
@@ -275,6 +305,34 @@ export const chatPlanDrawer: Story = {
             </Box>
           </Chat.Transcript>
         </Chat.Root>
+      </Screen>
+    )
+  },
+}
+
+export const chatMetadataNotifications: Story = {
+  id: "Chat/metadata-notifications",
+  component: "Chat",
+  variant: "metadata-notifications",
+  description: "Claude transcript metadata rendered as concise inspectable notification rows.",
+  render() {
+    return (
+      <Screen flexDirection="column">
+        <Box flexDirection="column" flexGrow={1} minHeight={0}>
+          <SessionUpdateList
+            messages={METADATA_NOTIFICATIONS}
+            onApprove={() => {}}
+            onDeny={() => {}}
+            sessionId="story-chat-metadata-notifications"
+            status="idle"
+            turnStartedAt={null}
+            inputTokens={0}
+            outputTokens={0}
+            pendingPermissions={0}
+            inFlightTool={null}
+            follow={false}
+          />
+        </Box>
       </Screen>
     )
   },

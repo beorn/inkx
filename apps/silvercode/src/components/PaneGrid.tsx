@@ -177,9 +177,9 @@ type ResizeDragState = {
   readonly parentContentSize: number
   /** Weight of the split at drag start. */
   readonly startWeight: number
-  /** Pointer coordinate at drag start (clientX for row-split, clientY for column-split). */
+  /** Pointer coordinate at drag start (pointerX for row-split, pointerY for column-split). */
   readonly startCoord: number
-  /** Direction of the split being dragged — picks clientX vs clientY. */
+  /** Direction of the split being dragged — picks pointerX vs pointerY. */
   readonly direction: SplitDirection
 }
 
@@ -283,22 +283,22 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
   // Compute drop target (which leaf + which edge) from a pointer position.
   const computeDropTarget = useCallback(
     (
-      clientX: number,
-      clientY: number,
+      pointerX: number,
+      pointerY: number,
       sourceId: string,
     ): { targetId: string | null; edge: DropEdge | "center" | null } => {
       let hit: { id: string; rect: LeafRect } | null = null
       for (const [id, rect] of leafRectsRef.current) {
         if (id === sourceId) continue
-        if (clientX < rect.x || clientX >= rect.x + rect.w) continue
-        if (clientY < rect.y || clientY >= rect.y + rect.h) continue
+        if (pointerX < rect.x || pointerX >= rect.x + rect.w) continue
+        if (pointerY < rect.y || pointerY >= rect.y + rect.h) continue
         hit = { id, rect }
         break
       }
       if (!hit) return { targetId: null, edge: null }
       const { rect } = hit
-      const fx = (clientX - rect.x) / Math.max(1, rect.w)
-      const fy = (clientY - rect.y) / Math.max(1, rect.h)
+      const fx = (pointerX - rect.x) / Math.max(1, rect.w)
+      const fy = (pointerY - rect.y) / Math.max(1, rect.h)
       // Center zone — the inner half × half rectangle.
       const inCenterX = fx >= 0.5 - CENTER_ZONE_HALF && fx <= 0.5 + CENTER_ZONE_HALF
       const inCenterY = fy >= 0.5 - CENTER_ZONE_HALF && fy <= 0.5 + CENTER_ZONE_HALF
@@ -317,11 +317,11 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
   )
 
   const handleWrapperMouseMove = useCallback(
-    (clientX: number, clientY: number) => {
+    (pointerX: number, pointerY: number) => {
       const drag = dragRef.current
       if (!drag) return
       if (drag.mode === "resize") {
-        const coord = drag.direction === "row" ? clientX : clientY
+        const coord = drag.direction === "row" ? pointerX : pointerY
         const delta = coord - drag.startCoord
         const ratioDelta = delta / drag.parentContentSize
         const next = drag.startWeight + ratioDelta
@@ -329,9 +329,9 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
         return
       }
       // mode === "move"
-      const { targetId, edge } = computeDropTarget(clientX, clientY, drag.sourceId)
-      drag.pointerX = clientX
-      drag.pointerY = clientY
+      const { targetId, edge } = computeDropTarget(pointerX, pointerY, drag.sourceId)
+      drag.pointerX = pointerX
+      drag.pointerY = pointerY
       const changed = drag.targetId !== targetId || drag.edge !== edge
       drag.targetId = targetId
       drag.edge = edge
@@ -520,7 +520,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
       flexShrink={1}
       minHeight={0}
       minWidth={0}
-      onMouseMove={(e) => handleWrapperMouseMove(e.clientX, e.clientY)}
+      onMouseMove={(e) => handleWrapperMouseMove(e.x, e.y)}
       onMouseUp={handleWrapperMouseUp}
       onMouseLeave={handleWrapperMouseUp}
     >
@@ -644,7 +644,7 @@ function LeafContainer({
           width={1}
           height={1}
           flexShrink={0}
-          onMouseDown={(e) => onGrabMouseDown(e.clientX, e.clientY)}
+          onMouseDown={(e) => onGrabMouseDown(e.x, e.y)}
         >
           <Text color={isFocused ? "$accent" : "$muted"}>▤</Text>
         </Box>
@@ -857,7 +857,7 @@ function PaneDivider({
         flexDirection="column"
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
-        onMouseDown={(e) => onMouseDown(e.clientX)}
+        onMouseDown={(e) => onMouseDown(e.x)}
       >
         <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0}>
           <Text color={color} wrap="wrap" minWidth={0}>
@@ -877,7 +877,7 @@ function PaneDivider({
       flexDirection="row"
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      onMouseDown={(e) => onMouseDown(e.clientY)}
+      onMouseDown={(e) => onMouseDown(e.y)}
     >
       <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0}>
         <Text color={color} wrap="wrap" minHeight={0}>

@@ -46,7 +46,8 @@ export type AmbientStreamEntry = {
   readonly kind: "ambient"
   readonly id: string
   readonly source: string
-  readonly timestamp: number
+  readonly ts?: number
+  readonly timestamp?: number
   readonly content: string
   readonly meta?: Readonly<Record<string, unknown>>
   readonly actionable?: boolean
@@ -335,6 +336,29 @@ function dedupeSourcePrefix(label: string, source: string, preview: string): str
   return polishSourcePreview(stripSourceTags(out))
 }
 
+function compactTribePreview(preview: string): string {
+  let out = preview.replace(/\s+/g, " ").trim()
+  const legacy = out.match(/^\[(dm|broadcast|session)\s+([^\]]+)\]\s*(.+)$/i)
+  if (legacy) {
+    const sender = (legacy[2] ?? "").trim()
+    const body = (legacy[3] ?? "").trim()
+    out = sender.length > 0 ? `${sender}: ${body}` : body
+  }
+
+  const processCount = out.match(/^(.+?Process count warning:\s+\d+\s+bun\/node processes)\b/i)
+  if (processCount?.[1]) return processCount[1].trim()
+
+  const cpu = out.match(/^(.+?CPU warning:\s+load\b.+?\bfor\s+\d+s)\b/i)
+  if (cpu?.[1]) return cpu[1].trim()
+
+  return clip(out, 90)
+}
+
+function displayPreview(label: string, source: string, preview: string): string {
+  const deduped = dedupeSourcePrefix(label, source, preview)
+  return source === "tribe" ? compactTribePreview(deduped) : deduped
+}
+
 function normalizeDisclosureText(text: string): string {
   return text.replace(/\s+/g, " ").trim()
 }
@@ -396,7 +420,7 @@ function groupAmbientEntries(entries: readonly AmbientStreamEntry[]): AmbientSta
   for (const entry of entries) {
     const label = sourceLabel(entry.source)
     const formatted = formatContent(entry.content)
-    const preview = dedupeSourcePrefix(label, entry.source, formatted.preview)
+    const preview = displayPreview(label, entry.source, formatted.preview)
     const key = groupKeyFor(entry.source, preview)
     const existing = byKey.get(key)
     if (existing) {
@@ -489,16 +513,23 @@ export function AmbientEventRow({
 }: AmbientEventRowProps): React.ReactElement {
   const { isHovered, onMouseEnter, onMouseLeave } = useHover()
   const label = sourceLabel(entry.source)
-  const time = formatTime(entry.timestamp)
+  const time = formatTime(entry.ts ?? entry.timestamp ?? 0)
   const formatted = formatContent(entry.content)
-  const preview = previewOverride ?? dedupeSourcePrefix(label, entry.source, formatted.preview)
+  const standardPreview = dedupeSourcePrefix(label, entry.source, formatted.preview)
+  const compactPreview = entry.source === "tribe" ? compactTribePreview(standardPreview) : standardPreview
+  const preview = previewOverride ?? compactPreview
   const href = ambientHref(entry)
   const metaDetails = ambientDetails(entry)
   const disclosureBody = bodyOverride ?? metaDetails ?? formatted.disclosureBody ?? formatted.body
+  const previewWasCompacted = previewOverride === undefined && compactPreview !== standardPreview
   const hasAdditionalContent =
     normalizeDisclosureText(disclosureBody).length > 0 &&
     normalizeDisclosureText(disclosureBody) !== normalizeDisclosureText(preview) &&
-    normalizeDisclosureText(disclosureBody) !== normalizeDisclosureText(formatted.preview)
+    (previewWasCompacted ||
+      bodyOverride !== undefined ||
+      metaDetails !== undefined ||
+      formatted.disclosureBody !== undefined ||
+      normalizeDisclosureText(disclosureBody) !== normalizeDisclosureText(formatted.preview))
 
   // Hover popover: full body, plus the source anchor and a top-right
   // timestamp. Reuses the same popover mechanism the SidePanel hover rows

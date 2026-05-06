@@ -430,9 +430,11 @@ function Wide({ children }: { children: React.ReactNode }): React.ReactElement {
   const width = available > 0 ? Math.min(ctx.wide, available) : ctx.wide
   return (
     <Box flexDirection="row" width="100%" justifyContent={laneJustify(ctx.align)} minWidth={0}>
-      <Box flexDirection="column" width={width} maxWidth={width} minWidth={0}>
-        {children}
-      </Box>
+      <ContentRowContext.Provider value={{ available: width }}>
+        <Box flexDirection="column" width={width} maxWidth={width} minWidth={0}>
+          {children}
+        </Box>
+      </ContentRowContext.Provider>
     </Box>
   )
 }
@@ -562,13 +564,15 @@ type TableGridProps = TableProps & {
 
 function TableRoot({ headers, rows, alignments = [] }: TableProps): React.ReactElement {
   const ctx = useContentLayout()
+  const row = useContext(ContentRowContext)
   const separator = " │ "
   const naturalWidths = tableNaturalWidths(headers, rows)
-  const fullWidth = ctx.full || ctx.available || ctx.wide
+  const fullWidth = row?.available ?? ctx.full ?? ctx.available ?? ctx.wide
+  const fullLaneWidth = fullWidth > 2 ? fullWidth - 2 : fullWidth
   const lanes: Array<{ width: number; wrap: (children: React.ReactNode) => React.ReactElement }> = [
     { width: ctx.measure, wrap: (children) => <ProseLane>{children}</ProseLane> },
     { width: ctx.wide, wrap: (children) => <Wide>{children}</Wide> },
-    { width: fullWidth, wrap: (children) => <Full>{children}</Full> },
+    { width: fullLaneWidth, wrap: (children) => <Full>{children}</Full> },
   ]
 
   for (const lane of lanes) {
@@ -584,8 +588,8 @@ function TableRoot({ headers, rows, alignments = [] }: TableProps): React.ReactE
     )
   }
 
-  if (fullWidth >= 64) {
-    const widths = shrinkTableWidths(naturalWidths, fullWidth, separator.length)
+  if (fullLaneWidth >= 64) {
+    const widths = shrinkTableWidths(naturalWidths, fullLaneWidth, separator.length)
     if (widths) {
       return (
         <Full>
@@ -606,42 +610,47 @@ function TableGridRoot({
   separator = " │ ",
 }: TableGridProps): React.ReactElement {
   const gridWidths = widths ?? tableNaturalWidths(headers, rows)
-  const naturalWidth = tableFrameWidth(gridWidths, separator.length)
+  const frameWidth = tableFrameWidth(gridWidths, separator.length)
   const headerRule = gridWidths.map((width) => "─".repeat(width)).join("─┼─")
+  const topRule = gridWidths.map((width) => "─".repeat(width)).join("─┬─")
+  const bottomRule = gridWidths.map((width) => "─".repeat(width)).join("─┴─")
   const showRowDividers = rows.length > 0 && rows.length < 5
-  return (
-    <Box
-      flexDirection="column"
-      alignSelf="flex-start"
-      width={naturalWidth}
-      maxWidth={naturalWidth}
-      borderStyle="single"
-      borderColor="$border"
-    >
-      <Text>
-        {headers.map((header, col) => (
-          <React.Fragment key={col}>
-            {col > 0 && <Text color="$border">{separator}</Text>}
-            <Text bold color="$primary">
-              {padCell(header, gridWidths[col] ?? header.length, alignments[col])}
-            </Text>
-          </React.Fragment>
-        ))}
-      </Text>
-      <Text color="$border">{headerRule}</Text>
-      {rows.map((row, rowIdx) => (
-        <React.Fragment key={rowIdx}>
-          {showRowDividers && rowIdx > 0 && <Text color="$muted">{headerRule}</Text>}
-          <Text>
-            {headers.map((_, col) => (
-              <React.Fragment key={col}>
-                {col > 0 && <Text color="$border">{separator}</Text>}
-                {padCell(row[col] ?? "", gridWidths[col] ?? 0, alignments[col])}
-              </React.Fragment>
-            ))}
+  const renderCells = (cells: readonly string[], bold = false): React.ReactElement => (
+    <Text wrap={false}>
+      <Text color="$border">│</Text>
+      {headers.map((_, col) => (
+        <React.Fragment key={col}>
+          {col > 0 && <Text color="$border">{separator}</Text>}
+          <Text bold={bold} color={bold ? "$primary" : undefined}>
+            {padCell(cells[col] ?? "", gridWidths[col] ?? 0, alignments[col])}
           </Text>
         </React.Fragment>
       ))}
+      <Text color="$border">│</Text>
+    </Text>
+  )
+  return (
+    <Box flexDirection="column" alignSelf="flex-start" width={frameWidth} maxWidth={frameWidth}>
+      <Text color="$border" wrap={false}>
+        ┌{topRule}┐
+      </Text>
+      {renderCells(headers, true)}
+      <Text color="$border" wrap={false}>
+        ├{headerRule}┤
+      </Text>
+      {rows.map((row, rowIdx) => (
+        <React.Fragment key={rowIdx}>
+          {showRowDividers && rowIdx > 0 ? (
+            <Text color="$border" wrap={false}>
+              ├{headerRule}┤
+            </Text>
+          ) : null}
+          {renderCells(row)}
+        </React.Fragment>
+      ))}
+      <Text color="$border" wrap={false}>
+        └{bottomRule}┘
+      </Text>
     </Box>
   )
 }

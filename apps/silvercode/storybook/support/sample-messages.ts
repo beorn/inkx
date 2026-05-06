@@ -22,6 +22,7 @@ function makeFixtureEntry(init: {
   role: MessageEntry["role"]
   ops: MessageOp[]
   ts: number
+  additionalContext?: string
 }): MessageEntry {
   const out: Record<string, unknown> = { ...init }
   Object.defineProperty(out, "text", {
@@ -105,6 +106,44 @@ export const MULTI_TURN: MessageEntry[] = [
       },
     ],
     ts: NOW + 2_500,
+  }),
+]
+
+export const METADATA_NOTIFICATIONS: MessageEntry[] = [
+  makeFixtureEntry({
+    id: tid(30),
+    role: "system",
+    ops: [{ kind: "text", text: 'Task completed: Agent "Parser review" completed' }],
+    additionalContext: "[result]\nReviewed parser metadata mapping and found no blocking issues.",
+    ts: NOW + 30_000,
+  }),
+  makeFixtureEntry({
+    id: tid(31),
+    role: "system",
+    ops: [{ kind: "text", text: "Edited apps/silvercode/src/components/SessionUpdateList.tsx" }],
+    additionalContext: "1→ function BackgroundSystemRow({ text }: { text: string }): React.ReactElement {",
+    ts: NOW + 31_000,
+  }),
+  makeFixtureEntry({
+    id: tid(32),
+    role: "system",
+    ops: [{ kind: "text", text: "Hook context: UserPromptSubmit:add-context" }],
+    additionalContext: "extra prompt context from a Claude Code hook",
+    ts: NOW + 32_000,
+  }),
+  makeFixtureEntry({
+    id: tid(33),
+    role: "system",
+    ops: [{ kind: "text", text: "Queued prompt: <task-notification>" }],
+    additionalContext: "<task-notification>\n<status>completed</status>\n</task-notification>",
+    ts: NOW + 33_000,
+  }),
+  makeFixtureEntry({
+    id: tid(34),
+    role: "system",
+    ops: [{ kind: "text", text: "Tools available: 18 added" }],
+    additionalContext: "Task\nBash\nRead\nEdit",
+    ts: NOW + 34_000,
   }),
 ]
 

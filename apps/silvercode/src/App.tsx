@@ -34,6 +34,7 @@ import { useQueue } from "./hooks/use-queue.ts"
 import { SidePanel } from "./components/SidePanel.tsx"
 import { prefixSid } from "./sid-prefix.ts"
 import { BUILTIN_AGENTS } from "./config-schema.ts"
+import { adjacentCapabilityOption, type CapabilityDirection } from "./agent-capabilities.ts"
 import { AvailableCommandsPalette } from "./components/AvailableCommandsPalette.tsx"
 import { Content } from "./components/Content.tsx"
 import { createSilvercodeController, type Controller, type SessionHandle } from "./controller.ts"
@@ -127,6 +128,12 @@ function injectThinkingKeyword(text: string, thinking: string): string {
   // newlines keep the user's actual prompt visually separated in any
   // transcript / replay.
   return `${kw}\n\n${text}`
+}
+
+function isOptionModifier(key: { meta?: boolean; alt?: boolean }): boolean {
+  // In silvery's Key shape, `meta` is terminal Alt/Option. Some lower-level
+  // chain events still call it `alt`, so accept both names at the app edge.
+  return key.meta === true || key.alt === true
 }
 
 /**
@@ -921,6 +928,16 @@ export function App(props: AppProps): React.ReactElement {
         cycleMode()
         return
       }
+      // Codex parity: Option+. raises reasoning, Option+, lowers it.
+      // Descriptor-backed so Claude and future agents use their own order.
+      if (isOptionModifier(key) && input === ".") {
+        cycleThinking(1)
+        return
+      }
+      if (isOptionModifier(key) && input === ",") {
+        cycleThinking(-1)
+        return
+      }
       // Cursor-boundary handoff between command and queue is handled by
       // SessionPromptComposer's own `onEdge` callbacks on the silvery TextAreas —
       // no parent-side Up/Down intercept needed.
@@ -1220,17 +1237,34 @@ export function App(props: AppProps): React.ReactElement {
   // Thinking cycler: routes through capabilities.thinking when set,
   // falls back to Claude's hardcoded tier list. Also emits the matching
   // slash command to Claude so the budget actually applies on the next turn.
-  const cycleThinking = useCallback((): void => {
-    setThinking((t) => {
-      const tiers = ["normal", "think", "think_hard", "ultrathink"]
-      const current = t && tiers.includes(t) ? t : "normal"
-      const next = tiers[(tiers.indexOf(current) + 1) % tiers.length]!
-      if (focused && next !== "normal") {
-        controller.runSlashCommand(focused.id, `/${next}`)
+  const cycleThinking = useCallback(
+    (direction: CapabilityDirection = 1): void => {
+      const tiers = agentCapabilities?.thinking
+      if (tiers && tiers.length > 0) {
+        const next = adjacentCapabilityOption(tiers, thinking, direction)
+        void next.activate({
+          controller,
+          sessionId: focused?.id ?? "",
+          setThinking,
+          setMode,
+        })
+        return
       }
-      return next === "normal" ? "" : next
-    })
-  }, [controller, focused])
+
+      // Legacy fallback for tests/custom agents without descriptors.
+      // Claude descriptors cover normal production Claude paths.
+      setThinking((t) => {
+        const tiers = ["normal", "think", "think_hard", "ultrathink"]
+        const current = t && tiers.includes(t) ? t : "normal"
+        const next = tiers[(tiers.indexOf(current) + direction + tiers.length) % tiers.length]!
+        if (focused && next !== "normal") {
+          controller.runSlashCommand(focused.id, `/${next}`)
+        }
+        return next === "normal" ? "" : next
+      })
+    },
+    [agentCapabilities, controller, focused, thinking],
+  )
 
   return (
     <CwdProvider value={props.cwd}>

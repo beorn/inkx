@@ -223,45 +223,50 @@ describe("stream-json parser — M0 fixtures", () => {
     })
   })
 
-  test("known transcript bookkeeping records are hidden instead of rendered as raw", () => {
+  test("known Claude transcript metadata gets readable labels and inspectable details", () => {
     const events = collect([
       JSON.stringify({
-        type: "permission-mode",
-        permissionMode: "auto",
+        type: "agent-name",
+        agentName: "claude-f9eb64dc-d982-4a46-9a8e-da5fd882ac5f",
         sessionId: "sess-1",
       }),
       JSON.stringify({
-        type: "last-prompt",
-        lastPrompt: "already represented by the real user message",
-        leafUuid: "leaf-1",
+        type: "custom-title",
+        customTitle: "f9eb64dc-d982-4a46-9a8e-da5fd882ac5f",
+        sessionId: "sess-1",
+      }),
+      JSON.stringify({
+        type: "ai-title",
+        aiTitle: "Fix transcript metadata rendering",
         sessionId: "sess-1",
       }),
       JSON.stringify({
         type: "attachment",
-        uuid: "todo-1",
-        attachment: { type: "todo_reminder", content: [] },
-      }),
-      JSON.stringify({
-        type: "attachment",
-        uuid: "task-1",
-        attachment: { type: "task_reminder", content: [] },
-      }),
-      JSON.stringify({
-        type: "queue-operation",
-        operation: "enqueue",
-        content: "queued user prompt",
-      }),
-      JSON.stringify({
-        type: "attachment",
-        uuid: "session-start-1",
+        uuid: "edit-1",
         attachment: {
-          type: "hook_success",
-          hookEvent: "SessionStart",
-          hookName: "SessionStart:startup",
-          stderr: "[recall session-start] sentinel=ok\n",
-          stdout: "",
-          content: "",
-          exitCode: 0,
+          type: "edited_text_file",
+          filename: "/Users/beorn/Code/pim/km/apps/silvercode/src/App.tsx",
+          snippet: '1→ import React from "react"',
+        },
+      }),
+      JSON.stringify({
+        type: "attachment",
+        uuid: "hook-context-1",
+        attachment: {
+          type: "hook_additional_context",
+          hookEvent: "UserPromptSubmit",
+          hookName: "UserPromptSubmit:add-context",
+          content: ["extra context"],
+        },
+      }),
+      JSON.stringify({
+        type: "attachment",
+        uuid: "queued-1",
+        attachment: {
+          type: "queued_command",
+          commandMode: "prompt",
+          prompt: "<task-notification>\n<status>completed</status>",
+          origin: { type: "system" },
         },
       }),
       JSON.stringify({
@@ -277,16 +282,70 @@ describe("stream-json parser — M0 fixtures", () => {
       JSON.stringify({
         type: "attachment",
         uuid: "skills-1",
-        attachment: { type: "skill_listing", content: "- skill: docs" },
+        attachment: { type: "skill_listing", content: "- docs: write docs\n- tdd: reproduce first" },
       }),
       JSON.stringify({
         type: "attachment",
-        uuid: "auto-1",
-        attachment: { type: "auto_mode", reminderType: "full" },
+        uuid: "task-1",
+        attachment: { type: "task_reminder", itemCount: 2, content: ["A", "B"] },
       }),
     ])
 
-    expect(events).toEqual([])
+    expect(events.map((event) => (event.kind === "raw-transcript" ? event.label : event.kind))).toEqual([
+      "Agent: claude-f9eb64dc-d982-4a46-9a8e-da5fd882ac5f",
+      "Title: f9eb64dc-d982-4a46-9a8e-da5fd882ac5f",
+      "AI title: Fix transcript metadata rendering",
+      "Edited apps/silvercode/src/App.tsx",
+      "Hook context: UserPromptSubmit:add-context",
+      "Queued prompt: <task-notification>",
+      "Tools available: 1 added",
+      "MCP instructions: tribe",
+      "Skills listed: 2",
+      "Task reminder: 2 items",
+    ])
+    const edit = events.find(
+      (event): event is Extract<AgentEvent, { kind: "raw-transcript" }> =>
+        event.kind === "raw-transcript" && event.label.startsWith("Edited "),
+    )
+    expect(edit?.raw).toContain("import React")
+  })
+
+  test("empty startup hook successes stay out of the transcript, meaningful hooks remain inspectable", () => {
+    const events = collect([
+      JSON.stringify({
+        type: "attachment",
+        uuid: "session-start-1",
+        attachment: {
+          type: "hook_success",
+          hookEvent: "SessionStart",
+          hookName: "SessionStart:startup",
+          stderr: "[recall session-start] sentinel=ok\n",
+          stdout: "",
+          content: "",
+          exitCode: 0,
+        },
+      }),
+      JSON.stringify({
+        type: "attachment",
+        uuid: "prompt-hook-1",
+        attachment: {
+          type: "hook_success",
+          hookEvent: "UserPromptSubmit",
+          hookName: "UserPromptSubmit:add-context",
+          stdout: "injected context",
+          stderr: "",
+          content: "injected context",
+          exitCode: 0,
+        },
+      }),
+    ])
+
+    expect(events).toHaveLength(1)
+    expect(events[0]).toMatchObject({
+      kind: "raw-transcript",
+      turnId: "prompt-hook-1",
+      label: "UserPromptSubmit: UserPromptSubmit:add-context",
+    })
   })
 
   test("tool_result preserves split stdout/stderr and exit code when Claude records toolUseResult", () => {
@@ -525,6 +584,47 @@ describe("stream-json parser — M0 fixtures", () => {
     expect(userEvent!.additionalContext).toContain("[system-reminder]")
     expect(userEvent!.additionalContext).toContain("cwd: /work")
     expect(userEvent!.additionalContext).toContain("beads context here")
+  })
+
+  test("task-notification transcript rows are system activity, not user prompts", () => {
+    const events = collect([
+      JSON.stringify({
+        type: "user",
+        uuid: "task-row-1",
+        message: {
+          role: "user",
+          content:
+            "<task-notification>\n" +
+            "<task-id>abc123</task-id>\n" +
+            "<tool-use-id>toolu_123</tool-use-id>\n" +
+            "<output-file>/tmp/task.output</output-file>\n" +
+            "<status>completed</status>\n" +
+            '<summary>Agent "Refactor parser" completed</summary>\n' +
+            "<result>Long task result body</result>\n" +
+            "</task-notification>\n" +
+            "Full transcript available at: /tmp/task.output",
+        },
+        sessionId: "sess-1",
+      }),
+    ])
+
+    expect(events).toHaveLength(1)
+    expect(events[0]).toMatchObject({
+      kind: "raw-transcript",
+      turnId: "task-row-1",
+      label: 'Task completed: Agent "Refactor parser" completed',
+    })
+    expect(JSON.stringify(events[0])).not.toContain("<task-notification>")
+
+    const store = createSessionStore()
+    for (const event of events) store.apply(event)
+    const message = store.state.get().messages[0]
+    expect(message).toMatchObject({
+      role: "system",
+      text: 'Task completed: Agent "Refactor parser" completed',
+      additionalContext: expect.stringContaining("Long task result body"),
+    })
+    expect(message?.additionalContext).not.toContain("<task-notification>")
   })
 
   test("user-message with no wrapper tags has undefined additionalContext", () => {
@@ -825,6 +925,25 @@ describe("session-store — event folding", () => {
       { content: "first", status: "completed", activeForm: undefined },
       { content: "second", status: "pending", activeForm: undefined },
     ])
+  })
+
+  test("completed provider plans clear compatibility todos", () => {
+    const store = createSessionStore()
+    const now = Date.now()
+    store.apply({
+      kind: "plan-update",
+      sessionId: "s" as never,
+      source: "acp-plan",
+      entries: [
+        { content: "first", status: "completed" },
+        { content: "second", status: "completed" },
+      ],
+      ts: now,
+    })
+
+    const state = store.state.get()
+    expect(state.plan).toMatchObject({ status: "completed" })
+    expect(state.todos).toEqual([])
   })
 
   test("update_plan tool-use updates the same canonical session plan", () => {

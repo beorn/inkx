@@ -4,7 +4,12 @@ import { BackgroundPane } from "./BackgroundPane.tsx"
 import type { Controller, SessionHandle } from "../controller.ts"
 import { planLabel, type QuotaWindow, windowShortLabel } from "../claude-account.ts"
 import { getClaudeVersion } from "../claude-version.ts"
-import type { AgentCapabilities, CapabilityContext, CapabilityOption } from "../agent-capabilities.ts"
+import {
+  adjacentCapabilityOption,
+  currentCapabilityOption,
+  type AgentCapabilities,
+  type CapabilityContext,
+} from "../agent-capabilities.ts"
 import {
   contextUtilizationColor,
   contextUtilizationLevel,
@@ -154,10 +159,10 @@ export const THINKING_ICONS: Record<string, string> = {
   ultrathink: "●",
 }
 export const THINKING_LABELS: Record<string, string> = {
-  normal: "think normal",
-  think: "think med (4K)",
-  think_hard: "think hard (16K)",
-  ultrathink: "think ultra (32K)",
+  normal: "normal",
+  think: "think",
+  think_hard: "think hard",
+  ultrathink: "ultrathink",
 }
 
 const SILVERCODE_VERSION = "0.1.0" // bump when apps/silvercode/package.json changes
@@ -197,28 +202,6 @@ function PopoverOption({
       </Box>
     </Box>
   )
-}
-
-/** Find the descriptor whose `id` matches `selection`. Returns undefined if none. */
-function findOptionFor(arr: ReadonlyArray<CapabilityOption>, selection: string): CapabilityOption | undefined {
-  return arr.find((o) => o.id === selection)
-}
-
-/**
- * The "default" option per CapabilityOption convention — the one with
- * `default: true`, falling back to the first entry when no default is
- * marked. assertCapabilities() guarantees at most one default per array.
- */
-function defaultOption(arr: ReadonlyArray<CapabilityOption>): CapabilityOption {
-  const flagged = arr.find((o) => o.default === true)
-  return flagged ?? arr[0]!
-}
-
-/** Advance to the next option by id, wrapping at the end. */
-function nextOption(arr: ReadonlyArray<CapabilityOption>, currentId: string): CapabilityOption {
-  const i = arr.findIndex((o) => o.id === currentId)
-  if (i < 0) return arr[0]!
-  return arr[(i + 1) % arr.length]!
 }
 
 /** Build the CapabilityContext that's handed to `option.activate(ctx)`. */
@@ -1290,10 +1273,10 @@ function SidePanelChrome({
               <PopoverOption icon={THINKING_ICONS.think} name="think (4K)">
                 moderate reasoning budget
               </PopoverOption>
-              <PopoverOption icon={THINKING_ICONS.think_hard} name="hard (16K)">
+              <PopoverOption icon={THINKING_ICONS.think_hard} name="think hard (16K)">
                 deep reasoning
               </PopoverOption>
-              <PopoverOption icon={THINKING_ICONS.ultrathink} name="ultra (32K)">
+              <PopoverOption icon={THINKING_ICONS.ultrathink} name="ultrathink (32K)">
                 max budget
               </PopoverOption>
             </>
@@ -1567,9 +1550,9 @@ function SidePanelChrome({
         {(() => {
           const arr = capabilities?.thinking
           if (arr && arr.length > 0) {
-            const current = findOptionFor(arr, thinking ?? "") ?? defaultOption(arr)
+            const current = currentCapabilityOption(arr, thinking ?? "")
             const onClick = (): void => {
-              const next = nextOption(arr, current.id)
+              const next = adjacentCapabilityOption(arr, current.id, 1)
               const ctx = makeCtx(controller, focusedId, setThinking, setMode)
               void next.activate(ctx)
             }
@@ -1611,9 +1594,9 @@ function SidePanelChrome({
         {(() => {
           const arr = capabilities?.planning
           if (arr && arr.length > 0) {
-            const current = findOptionFor(arr, mode) ?? defaultOption(arr)
+            const current = currentCapabilityOption(arr, mode)
             const onClick = (): void => {
-              const next = nextOption(arr, current.id)
+              const next = adjacentCapabilityOption(arr, current.id, 1)
               const ctx = makeCtx(controller, focusedId, setThinking, setMode)
               void next.activate(ctx)
             }

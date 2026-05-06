@@ -469,7 +469,9 @@ describe("ToolCall v2 — failed shell status is visible", () => {
 
 describe("ToolCall v2 — neutral marker glyph", () => {
   test("Read renders with bullet prefix and muted non-bold title", () => {
-    const app = freshRender()(<ToolCall toolCall={tc({ kind: "read", status: "completed", title: "Read src/foo.ts" })} />)
+    const app = freshRender()(
+      <ToolCall toolCall={tc({ kind: "read", status: "completed", title: "Read src/foo.ts" })} />,
+    )
     expect(app.text).toMatch(/•\s+Read src\/foo\.ts/)
     const row = app.lines.findIndex((l) => l.includes("Read src/foo.ts"))
     expect(row).toBeGreaterThanOrEqual(0)

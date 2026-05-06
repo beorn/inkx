@@ -3,8 +3,11 @@ import {
   type AgentCapabilities,
   type CapabilityContext,
   type CapabilityOption,
+  adjacentCapabilityOption,
   assertCapabilities,
   CLAUDE_CAPABILITIES,
+  CODEX_CAPABILITIES,
+  currentCapabilityOption,
 } from "../src/agent-capabilities.ts"
 import { BUILTIN_AGENTS } from "../src/config-schema.ts"
 
@@ -150,10 +153,22 @@ describe("BUILTIN_AGENTS — Claude variants share CLAUDE_CAPABILITIES", () => {
 
   test("codex thinking + planning shapes match the design", () => {
     const codex = BUILTIN_AGENTS["codex"]?.capabilities
-    expect(codex?.thinking?.map((o) => o.id)).toEqual(["low", "medium", "high"])
+    expect(codex?.thinking?.map((o) => o.id)).toEqual(["low", "medium", "high", "xhigh"])
     expect(codex?.planning?.map((o) => o.id)).toEqual(["normal", "plan"])
     expect(codex?.thinking?.find((o) => o.default === true)?.id).toBe("medium")
     expect(codex?.planning?.find((o) => o.default === true)?.id).toBe("normal")
+  })
+
+  test("codex thinking cycles through Codex reasoning levels in both directions", () => {
+    const thinking = CODEX_CAPABILITIES.thinking!
+
+    expect(currentCapabilityOption(thinking, "").id).toBe("medium")
+    expect(adjacentCapabilityOption(thinking, "medium", 1).id).toBe("high")
+    expect(adjacentCapabilityOption(thinking, "high", 1).id).toBe("xhigh")
+    expect(adjacentCapabilityOption(thinking, "xhigh", 1).id).toBe("low")
+
+    expect(adjacentCapabilityOption(thinking, "medium", -1).id).toBe("low")
+    expect(adjacentCapabilityOption(thinking, "low", -1).id).toBe("xhigh")
   })
 
   test("module load already passed assertCapabilities (no throw at import time)", () => {

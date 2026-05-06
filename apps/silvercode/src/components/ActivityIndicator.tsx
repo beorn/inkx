@@ -3,6 +3,7 @@ import { Box, Text } from "silvery"
 import { SessionEntry } from "./SessionEntry.tsx"
 
 const ELAPSED_TICK_MS = 1000
+const THINKING_WORDS = ["Smelting", "Forging", "Tempering", "Polishing", "Etching", "Burnishing"] as const
 
 function formatElapsed(ms: number): string {
   const totalSec = Math.max(0, Math.floor(ms / 1000))
@@ -17,6 +18,10 @@ function formatTokens(n: number): string {
   // 1.2k style — one decimal for readability, strip trailing `.0`
   const k = n / 1000
   return k >= 100 ? `${Math.round(k)}k` : `${k.toFixed(1).replace(/\.0$/, "")}k`
+}
+
+function thinkingLabel(now: number): string {
+  return `${THINKING_WORDS[Math.floor(now / 3000) % THINKING_WORDS.length]}…`
 }
 
 export type ActivityStatus = "spawning" | "idle" | "thinking" | "tool-running" | "awaiting-permission" | "ended"
@@ -38,6 +43,7 @@ export function ActivityIndicator({
   outputTokens = 0,
   agentLabel = null,
   agentVersion = null,
+  startupVerb = "spawning",
 }: {
   status: ActivityStatus
   /** @default 0 */
@@ -60,6 +66,9 @@ export function ActivityIndicator({
    *  suffix — `Spawning Claude Code…` rather than a placeholder version.
    *  @default null */
   agentVersion?: string | null
+  /** Startup wording for status="spawning". Resume paths are connecting to
+   *  an existing session, so "resuming" is more accurate than "spawning". */
+  startupVerb?: "spawning" | "resuming"
 }): React.ReactElement | null {
   const isActive = status !== "idle" && status !== "ended"
 
@@ -106,10 +115,10 @@ export function ActivityIndicator({
     // when status !== "idle"). Bead: km-cr94.
     const who = agentLabel ?? "session"
     const versionSuffix = agentVersion ? ` v${agentVersion}` : ""
-    label = `Spawning ${who}${versionSuffix}…`
+    label = `${startupVerb === "resuming" ? "Resuming" : "Spawning"} ${who}${versionSuffix}…`
     color = "$info"
   } else {
-    label = "thinking…"
+    label = thinkingLabel(now)
     color = "$accent"
   }
 

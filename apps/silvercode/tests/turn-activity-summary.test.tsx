@@ -1300,7 +1300,9 @@ describe("TurnActivitySummary", () => {
           "Patch applied",
         ),
       ),
-      ...Array.from({ length: 58 }, (_, i) => tool(`cmd-${i}`, "Bash", { command: `printf command-${i}` }, `output ${i}`)),
+      ...Array.from({ length: 58 }, (_, i) =>
+        tool(`cmd-${i}`, "Bash", { command: `printf command-${i}` }, `output ${i}`),
+      ),
     ]
     const entry = makeEntry({ id: "assistant-large-summary", ts: 2000, ops })
     const handle = await run(
@@ -1338,6 +1340,21 @@ describe("TurnActivitySummary", () => {
     } finally {
       handle.unmount()
     }
+  })
+
+  test("high-volume tool summary coalesces word-sized assistant text deltas into one narration row", () => {
+    const text = "Using the `beads` skill because this is issue-tracking work."
+    const ops: MessageOp[] = [
+      ...text.split(/(\s+)/).map((part) => ({ kind: "text" as const, text: part })),
+      ...Array.from({ length: 10 }, (_, i) => tool(`cmd-${i}`, "Bash", { command: `printf ${i}` }, `output ${i}`)),
+    ]
+    const entry = makeEntry({ id: "assistant-high-volume-text-deltas", ts: 2000, ops })
+
+    const app = renderList([entry], 30, 120)
+
+    expect(app.text).toContain("Using the beads skill because this is issue-tracking work.")
+    expect(app.text).toContain("Ran 10 commands")
+    expect(app.text).not.toMatch(/•\s+Using\s*\n\s*•\s+the\s*\n\s*•\s+beads/)
   })
 
   test("expanded activity summary remains expanded across terminal resize", async () => {

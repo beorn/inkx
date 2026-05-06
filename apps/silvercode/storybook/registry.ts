@@ -17,7 +17,10 @@
 import type { Story } from "./types.ts"
 
 import { activityIndicatorThinking } from "./stories/ActivityIndicator.thinking.story.tsx"
-import { inlinePermissionPromptOnePending } from "./stories/InlinePermissionPrompt.one-pending.story.tsx"
+import {
+  inlinePermissionPromptCodexEscalatedCommand,
+  inlinePermissionPromptOnePending,
+} from "./stories/InlinePermissionPrompt.one-pending.story.tsx"
 import { availableCommandsPaletteOpen } from "./stories/AvailableCommandsPalette.open.story.tsx"
 import { toolCallRead } from "./stories/ToolCall.read.story.tsx"
 import { toolCallEdit } from "./stories/ToolCall.edit.story.tsx"
@@ -35,6 +38,7 @@ import { sessionUpdateListMultiTurn } from "./stories/SessionUpdateList.multi-tu
 import {
   chatBigToolTurn,
   chatIdleDelimitedTurn,
+  chatMetadataNotifications,
   chatMultiTurn,
   chatPlanDrawer,
   chatStateVariants,
@@ -51,7 +55,11 @@ import { usageMeterFull } from "./stories/UsageMeter.full.story.tsx"
 import { sessionExchangeDividerBetweenExchanges } from "./stories/SessionExchangeDivider.between-exchanges.story.tsx"
 import { sessionRetryFailedExchange } from "./stories/SessionRetry.failed-exchange.story.tsx"
 import { subAgentExchangeCollapsed } from "./stories/SubAgentExchange.collapsed.story.tsx"
-import { ambientEventRowAllSources, ambientEventRowInlineSequence } from "./stories/AmbientEventRow.story.tsx"
+import {
+  ambientEventRowAllSources,
+  ambientEventRowInlineSequence,
+  ambientEventRowTribeConcise,
+} from "./stories/AmbientEventRow.story.tsx"
 import { contentLayout } from "./stories/Content.layout.story.tsx"
 import { allTogether } from "./stories/All.story.tsx"
 
@@ -94,12 +102,14 @@ export const STORIES: readonly Story[] = [
   chatTurnActivityRich,
   chatBigToolTurn,
   chatPlanDrawer,
+  chatMetadataNotifications,
   // Conversation structure
   sessionExchangeDividerBetweenExchanges,
   sessionRetryFailedExchange,
   subAgentExchangeCollapsed,
   // Ambient observations (Phase 6.a — inline AmbientEventRow)
   ambientEventRowAllSources,
+  ambientEventRowTribeConcise,
   ambientEventRowInlineSequence,
   // Prompt composer (Wave B — acp-session-prompt)
   sessionPromptComposerEmpty,
@@ -111,6 +121,7 @@ export const STORIES: readonly Story[] = [
   // Dialogs
   availableCommandsPaletteOpen,
   inlinePermissionPromptOnePending,
+  inlinePermissionPromptCodexEscalatedCommand,
 ]
 
 /** Look up a story by id. Returns null if unknown. */

@@ -78,10 +78,10 @@ export type ToolResultEntry = { id: ToolUseId; output: unknown; is_error?: boole
  * Bead: km-silvercode.codex-bundling-order.
  */
 export type MessageOp =
-  | { kind: "text"; text: string }
-  | { kind: "thinking"; text: string }
-  | { kind: "raw"; label: string; raw: unknown }
-  | { kind: "tool"; toolCall: ToolCallEntry; result?: ToolResultEntry }
+  | { kind: "text"; text: string; ts?: number }
+  | { kind: "thinking"; text: string; ts?: number }
+  | { kind: "raw"; label: string; raw: unknown; ts?: number }
+  | { kind: "tool"; toolCall: ToolCallEntry; result?: ToolResultEntry; ts?: number }
 
 /**
  * Public surface — both the new ordered `ops` field AND the legacy

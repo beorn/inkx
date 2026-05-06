@@ -1,14 +1,16 @@
 import React, { act } from "react"
 import { beforeAll, describe, expect, test } from "vitest"
-import { createRenderer } from "@silvery/test"
+import { createRenderer, createTermless } from "@silvery/test"
+import { run } from "silvery/runtime"
 import { isLayoutEngineInitialized, setLayoutEngine } from "@silvery/ag-react"
 import { createFlexilyZeroEngine } from "@silvery/ag-term/adapters/flexily-zero-adapter"
 import { Box, Text } from "silvery"
-import type { MessageEntry, MessageOp } from "@km/agent-harness"
+import type { AgentPlan, MessageEntry, MessageOp } from "@km/agent-harness"
 import { MarkdownView } from "../src/components/MarkdownView.tsx"
 import { SessionUpdateList } from "../src/components/SessionUpdateList.tsx"
 import { SessionCard } from "../src/components/SessionCard.tsx"
 import type { AmbientStreamEntry } from "../src/components/AmbientEventRow.tsx"
+import { Chat } from "../src/components/Chat.tsx"
 import { Content } from "../src/components/Content.tsx"
 import { createSessionStore } from "@km/agent-harness"
 
@@ -271,6 +273,37 @@ describe("content layout", () => {
     expect(tableLine!.trimEnd().length).toBeLessThanOrEqual(132)
   })
 
+  test("table-heavy assistant narration keeps its transcript bullet and right border", () => {
+    const app = renderList([
+      makeEntry({
+        id: "a-table",
+        role: "assistant",
+        ts: Date.UTC(2026, 3, 30, 17, 43),
+        ops: [
+          {
+            kind: "text",
+            text:
+              "**All 6 wave agents complete. Session-final state:**\n\n" +
+              "| Agent | Status | Commits |\n" +
+              "| --- | --- | --- |\n" +
+              "| typed-surface | pushed | 32fb5b1dc, ba8168787 |\n",
+          },
+        ],
+      }),
+    ])
+
+    const summaryLine = app.lines.find((line) => line.includes("All 6 wave agents complete"))
+    expect(summaryLine, app.text).toBeDefined()
+    const bulletCol = summaryLine!.indexOf("•")
+    const summaryCol = summaryLine!.indexOf("All 6 wave agents complete")
+    expect(bulletCol, app.text).toBeGreaterThanOrEqual(0)
+    expect(summaryCol - bulletCol, app.text).toBeLessThanOrEqual(3)
+
+    const headerLine = app.lines.find((line) => line.includes("Agent") && line.includes("Status"))
+    expect(headerLine, app.text).toBeDefined()
+    expect(headerLine!.trimEnd().endsWith("│"), app.text).toBe(true)
+  })
+
   test("session viewport and scrollbar extend to the pane right edge", async () => {
     const cols = 80
     const rows = 18
@@ -358,6 +391,49 @@ describe("content layout", () => {
     expect(hasScrollbarThumbAt(app, cols - 1, rows - 1), app.text).toBe(true)
   })
 
+  test("hovering the scrollbar column beside the floating composer reveals the thumb", async () => {
+    const cols = 80
+    const rows = 18
+    const store = createSessionStore()
+    const sessionId = "test-session" as never
+    for (let index = 0; index < 80; index++) {
+      store.apply({
+        kind: "assistant-message",
+        sessionId,
+        turnId: `a${index}` as never,
+        content: [{ type: "text", text: `assistant row ${index}` }],
+        ts: Date.UTC(2026, 3, 30, 17, index),
+      })
+    }
+
+    using term = createTermless({ cols, rows })
+    const handle = await run(
+      <Box width={cols} height={rows} flexDirection="column" overflow="hidden">
+        <SessionCard
+          handle={sessionHandleWithStore(store)}
+          isFocused
+          onFocus={() => {}}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          composerSlot={<Text>{"> ready"}</Text>}
+        />
+      </Box>,
+      term,
+      { mouse: true, selection: false },
+    )
+    await new Promise((r) => setTimeout(r, 50))
+
+    await term.mouse.move(cols - 1, rows - 1)
+    await new Promise((r) => setTimeout(r, 50))
+
+    let found = false
+    for (let row = 0; row < rows; row++) {
+      if (SCROLLBAR_THUMB_CHARS.has(term.cell(row, cols - 1).char)) found = true
+    }
+    expect(found).toBe(true)
+    handle.unmount()
+  })
+
   test("floating composer does not cover the bottom overscroll indicator", async () => {
     const cols = 80
     const rows = 18
@@ -408,7 +484,7 @@ describe("content layout", () => {
     expect(hasBottomOverscrollIndicator(app), app.text).toBe(true)
   })
 
-  test("floating composer masks transcript content behind its right edge", async () => {
+  test("floating composer reserves viewport space instead of covering transcript content", async () => {
     const cols = 120
     const rows = 18
     const store = createSessionStore()
@@ -453,6 +529,62 @@ describe("content layout", () => {
     expect(composerRow, app.text).toBeGreaterThanOrEqual(0)
     expect(app.lines[composerRow], app.text).not.toContain("keep")
     expect(app.lines[composerRow - 1] ?? "", app.text).not.toContain("keep")
+  })
+
+  test("plan drawer has a blank line before the floating composer", async () => {
+    const cols = 120
+    const rows = 18
+    const store = createSessionStore()
+    const sessionId = "test-session" as never
+    for (let index = 0; index < 8; index++) {
+      store.apply({
+        kind: "assistant-message",
+        sessionId,
+        turnId: `a${index}` as never,
+        content: [{ type: "text", text: `assistant row ${index}` }],
+        ts: Date.UTC(2026, 3, 30, 17, index),
+      })
+    }
+    store.apply({
+      kind: "plan-update",
+      sessionId,
+      source: "codex-plan",
+      ts: Date.UTC(2026, 3, 30, 18, 0),
+      entries: [
+        { id: "done", content: "Inspect current worktree", status: "completed" },
+        {
+          id: "active",
+          content: "Confirm current worktree state",
+          activeForm: "Confirm current worktree state and identify partial edits",
+          status: "in_progress",
+        },
+      ],
+    })
+    const renderer = createRenderer({ cols, rows })
+    const handle = sessionHandleWithStore(store)
+    const tree = (
+      <Box width={cols} height={rows} flexDirection="column" overflow="hidden">
+        <SessionCard
+          handle={handle}
+          isFocused
+          onFocus={() => {}}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          composerSlot={<Text>{"> ready"}</Text>}
+        />
+      </Box>
+    )
+    const app = renderer(tree)
+
+    const composerRow = app.lines.findIndex((line) => line.includes("> ready"))
+    const planRow = app.lines.findIndex((line) => line.includes("Confirm current worktree state"))
+    const summaryRow = app.lines.findIndex((line) => line.includes("1 completed"))
+    expect(composerRow, app.text).toBeGreaterThanOrEqual(0)
+    expect(planRow, app.text).toBeGreaterThanOrEqual(0)
+    expect(summaryRow, app.text).toBeGreaterThan(planRow)
+    expect(app.lines[planRow], app.text).not.toContain("1 completed")
+    expect(app.lines[composerRow - 1]?.trim(), app.text).toBe("")
+    expect(summaryRow, app.text).toBeLessThan(composerRow - 1)
   })
 
   test("responsive markdown table expands rows into key-value cards when columns cannot fit", () => {
@@ -772,6 +904,53 @@ describe("content layout", () => {
     expect(assistantEnd).toBeLessThan(proseRightEdge)
   })
 
+  test("adjacent assistant text deltas render as one prose row", () => {
+    const app = renderList(
+      [
+        makeEntry({
+          id: "a1",
+          role: "assistant",
+          ts: new Date(2026, 3, 30, 12, 7).getTime(),
+          ops: [
+            { kind: "text", text: "I", ts: 1 },
+            { kind: "text", text: " am", ts: 2 },
+            { kind: "text", text: " still", ts: 3 },
+            { kind: "text", text: " checking", ts: 4 },
+            { kind: "text", text: " the result.", ts: 5 },
+          ],
+        }),
+      ],
+      132,
+      14,
+    )
+
+    expect(app.text).toContain("I am still checking the result.")
+    expect(app.lines.filter((line) => line.trim().startsWith("•")).length).toBe(1)
+  })
+
+  test("punctuation-only assistant text chunks do not render phantom rows", () => {
+    const app = renderList(
+      [
+        makeEntry({
+          id: "a1",
+          role: "assistant",
+          ts: new Date(2026, 3, 30, 12, 7).getTime(),
+          ops: [
+            { kind: "text", text: "Created and completed 4 todos" },
+            { kind: "text", text: "\n\n.\n\n" },
+            { kind: "text", text: "Current status:" },
+          ],
+        }),
+      ],
+      132,
+      14,
+    )
+
+    expect(app.text).toContain("Created and completed 4 todos")
+    expect(app.text).toContain("Current status:")
+    expect(app.lines.some((line) => line.trim() === "• .")).toBe(false)
+  })
+
   test("thinking rows align to the same prose lane as assistant prose", () => {
     const app = renderList(
       [
@@ -841,6 +1020,88 @@ describe("content layout", () => {
     expect(proseRow, app.text).toBeGreaterThanOrEqual(0)
     expect(activityRow, app.text).toBeGreaterThanOrEqual(0)
     expect(app.lines[activityRow]!.indexOf("◈")).toBe(app.lines[proseRow]!.indexOf("•"))
+  })
+
+  test("plan drawer fills the prose lane and marks the active entry", () => {
+    const cols = 132
+    const measure = 56
+    const proseLeft = Math.floor((cols - measure) / 2)
+    const plan: AgentPlan = {
+      id: "plan-test",
+      sessionId: "session" as AgentPlan["sessionId"],
+      scope: { sessionId: "session" as AgentPlan["sessionId"] },
+      source: "codex-plan",
+      version: 1,
+      status: "active",
+      updatedAt: 0,
+      entries: [
+        { id: "done-1", content: "Inspect", status: "completed", order: 0 },
+        { id: "done-2", content: "Reproduce", status: "completed", order: 1 },
+        { id: "done-3", content: "Patch", status: "completed", order: 2 },
+        { id: "done-4", content: "Smoke test", status: "completed", order: 3 },
+        {
+          id: "active",
+          content: "Implement plan lane",
+          activeForm: "Implementing plan lane",
+          status: "in_progress",
+          order: 4,
+        },
+        {
+          id: "next",
+          content: "Verify targeted tests and report remaining risks or broader test gaps with enough detail to wrap",
+          status: "pending",
+          order: 5,
+        },
+      ],
+    }
+    const renderer = createRenderer({ cols, rows: 12 })
+    const app = renderer(
+      <Box width={cols} height={12} flexDirection="column">
+        <Content.Layout measure={measure}>
+          <Chat.PlanDrawer plan={plan} defaultExpanded />
+        </Content.Layout>
+      </Box>,
+    )
+
+    const headerRow = app.lines.findIndex((line) => line.includes("▾ Plan"))
+    expect(headerRow, app.text).toBeGreaterThanOrEqual(0)
+    expect(app.lines[headerRow]!.search(/\S/)).toBe(proseLeft + 1)
+
+    const activeRow = app.lines.findIndex((line) => line.includes("● Implementing plan lane"))
+    expect(activeRow, app.text).toBeGreaterThan(headerRow)
+    const wrappedRow = app.lines.findIndex((line) => line.includes("enough detail to wrap"))
+    expect(wrappedRow, app.text).toBeGreaterThan(activeRow)
+    expect(app.lines[wrappedRow]!.search(/\S/)).toBeGreaterThan(proseLeft + 1)
+
+    const summaryRow = app.lines.findIndex((line) => line.includes("4 completed"))
+    expect(summaryRow, app.text).toBe(-1)
+  })
+
+  test("completed plans do not render in the bottom drawer", () => {
+    const plan: AgentPlan = {
+      id: "plan-complete",
+      sessionId: "session" as AgentPlan["sessionId"],
+      scope: { sessionId: "session" as AgentPlan["sessionId"] },
+      source: "codex-plan",
+      version: 1,
+      status: "completed",
+      updatedAt: 0,
+      entries: [
+        { id: "done-1", content: "Inspect", status: "completed", order: 0 },
+        { id: "done-2", content: "Verify", status: "completed", order: 1 },
+      ],
+    }
+    const renderer = createRenderer({ cols: 80, rows: 8 })
+    const app = renderer(
+      <Box width={80} height={8} flexDirection="column">
+        <Content.Layout>
+          <Chat.PlanDrawer plan={plan} defaultExpanded />
+        </Content.Layout>
+      </Box>,
+    )
+
+    expect(app.text).not.toContain("Inspect")
+    expect(app.text).not.toContain("2 completed")
   })
 
   test("assistant markdown code blocks stay inside the prose lane and show language only on hover", async () => {
@@ -1105,6 +1366,40 @@ describe("content layout", () => {
     expect(ambientLine, app.text).toBeDefined()
     expect(proseLine, app.text).toBeDefined()
     expect(ambientLine!.indexOf("Tribe")).toBe(proseLine!.indexOf("before ambient"))
+  })
+
+  test("ambient notifications interleave between timestamped assistant text ops", () => {
+    const app = renderListWithAmbient(
+      [
+        makeEntry({
+          id: "a1",
+          role: "assistant",
+          ts: 1_000,
+          ops: [
+            { kind: "text", text: "before ambient", ts: 1_000 },
+            { kind: "text", text: "after ambient", ts: 3_000 },
+          ],
+        }),
+      ],
+      [
+        {
+          kind: "ambient",
+          id: "tribe-between",
+          source: "tribe",
+          ts: 2_000,
+          content: '<channel source="plugin:tribe:tribe" from="daemon" type="health">ambient between</channel>',
+        },
+      ],
+      132,
+      16,
+    )
+
+    const beforeRow = app.lines.findIndex((line) => line.includes("before ambient"))
+    const ambientRow = app.lines.findIndex((line) => line.includes("ambient between"))
+    const afterRow = app.lines.findIndex((line) => line.includes("after ambient"))
+    expect(beforeRow, app.text).toBeGreaterThanOrEqual(0)
+    expect(ambientRow, app.text).toBeGreaterThan(beforeRow)
+    expect(afterRow, app.text).toBeGreaterThan(ambientRow)
   })
 
   test("resumed-session metadata anchors to the replay boundary message across ambient rows", () => {

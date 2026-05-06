@@ -1,10 +1,12 @@
 import React from "react"
 import { Box, Prose, Text, useHover } from "silvery"
 import type { AgentPlan, AgentPlanEntry } from "@km/agent-harness"
+import type { SessionInfo } from "../cross-agent-state.ts"
 import { buildTextAnalysis, shrinkwrapWidth } from "@silvery/ag-term/pipeline/pretext"
 import { Content, useContentLayout } from "./Content.tsx"
 import { MarkdownView } from "./MarkdownView.tsx"
 import { SessionEntry } from "./SessionEntry.tsx"
+import { StatusGlyph } from "./StatusGlyph.tsx"
 import { TurnActivitySummary, type TurnActivitySummaryItem } from "./TurnActivitySummary.tsx"
 import { parseBlocks, type MdBlock } from "../markdown.ts"
 
@@ -54,6 +56,17 @@ function planCounts(plan: AgentPlan): { pending: number; completed: number; canc
   return { pending, completed, cancelled }
 }
 
+function planEntryMarker(entry: AgentPlanEntry): { glyph: string; color?: string; active: boolean } {
+  if (entry.status === "completed") return { glyph: "✓", color: "$muted", active: false }
+  if (entry.status === "cancelled") return { glyph: "×", color: "$muted", active: false }
+  if (entry.status === "in_progress") return { glyph: "●", color: "$warning", active: true }
+  return { glyph: "□", color: undefined, active: false }
+}
+
+function planHasOpenEntries(plan: AgentPlan): boolean {
+  return plan.entries.some((entry) => entry.status === "in_progress" || entry.status === "pending")
+}
+
 function PlanDrawer({
   plan,
   defaultExpanded = false,
@@ -64,60 +77,171 @@ function PlanDrawer({
   const [expanded, setExpanded] = React.useState(defaultExpanded)
   const hover = useHover()
   if (!plan || plan.entries.length === 0) return null
+  if (!planHasOpenEntries(plan)) return null
   const active = plan.entries.find((entry) => entry.status === "in_progress")
   const next = active ?? plan.entries.find((entry) => entry.status === "pending") ?? plan.entries[0]!
   const counts = planCounts(plan)
-  const countText = [
-    counts.pending > 0 ? `${counts.pending} pending` : null,
+  const summaryText = [
     counts.completed > 0 ? `${counts.completed} completed` : null,
     counts.cancelled > 0 ? `${counts.cancelled} cancelled` : null,
   ]
     .filter((part): part is string => part != null)
     .join(" · ")
+  const nextMarker = planEntryMarker(next)
 
   return (
-    <Box
-      alignSelf="flex-end"
-      width="60%"
-      minWidth={20}
-      maxWidth="100%"
-      flexDirection="column"
-      backgroundColor={hover.isHovered ? "$bg-surface-hover" : "$bg-surface-raised"}
-      paddingX={1}
-      paddingY={0}
-      onClick={() => setExpanded((value) => !value)}
-      onMouseEnter={hover.onMouseEnter}
-      onMouseLeave={hover.onMouseLeave}
-    >
-      <Box flexDirection="row" gap={1} minWidth={0}>
-        <Text color="$muted">{expanded ? "▾" : "▸"}</Text>
-        <Text wrap="truncate">{planEntryLabel(next)}</Text>
-        {countText.length > 0 ? <Text color="$muted">· {countText}</Text> : null}
-      </Box>
-      {expanded ? (
-        <Box flexDirection="column" paddingLeft={2} minWidth={0}>
-          {plan.entries.map((entry) => {
-            const marker =
-              entry.status === "completed"
-                ? "✓"
-                : entry.status === "cancelled"
-                  ? "×"
-                  : entry.status === "in_progress"
-                    ? "▸"
-                    : "□"
-            const color = entry.status === "completed" || entry.status === "cancelled" ? "$muted" : undefined
-            return (
-              <Box key={entry.id} flexDirection="row" gap={1} minWidth={0}>
-                <Text color={color}>{marker}</Text>
-                <Text color={color} wrap="truncate">
-                  {planEntryLabel(entry)}
-                </Text>
-              </Box>
-            )
-          })}
+    <Content.Row>
+      <Content.Body width="prose">
+        <Box
+          width="100%"
+          minWidth={0}
+          flexDirection="column"
+          backgroundColor={hover.isHovered ? "$bg-surface-hover" : "$bg-surface-raised"}
+          paddingLeft={1}
+          paddingRight={2}
+          paddingY={1}
+          onClick={() => setExpanded((value) => !value)}
+          onMouseEnter={hover.onMouseEnter}
+          onMouseLeave={hover.onMouseLeave}
+        >
+          <Box flexDirection="row" gap={1} minWidth={0}>
+            <Text color="$muted">{expanded ? "▾" : "▸"}</Text>
+            {expanded ? (
+              <Text color="$muted">Plan</Text>
+            ) : (
+              <>
+                <StatusGlyph
+                  glyph={nextMarker.glyph}
+                  active={nextMarker.active}
+                  color={nextMarker.color}
+                  period={1800}
+                />
+                <Box flexGrow={1} flexShrink={1} minWidth={0}>
+                  <Text wrap="wrap">{planEntryLabel(next)}</Text>
+                </Box>
+              </>
+            )}
+          </Box>
+          {expanded || summaryText.length > 0 ? (
+            <Box flexDirection="column" paddingLeft={2} minWidth={0}>
+              {expanded
+                ? plan.entries.map((entry) => {
+                    const marker = planEntryMarker(entry)
+                    const color = entry.status === "completed" || entry.status === "cancelled" ? "$muted" : undefined
+                    return (
+                      <Box key={entry.id} flexDirection="row" gap={1} minWidth={0}>
+                        <StatusGlyph
+                          glyph={marker.glyph}
+                          active={marker.active}
+                          color={marker.color ?? color}
+                          period={1800}
+                        />
+                        <Box flexGrow={1} flexShrink={1} minWidth={0}>
+                          <Text color={color} wrap="wrap">
+                            {planEntryLabel(entry)}
+                          </Text>
+                        </Box>
+                      </Box>
+                    )
+                  })
+                : null}
+              {!expanded && summaryText.length > 0 ? (
+                <Box flexDirection="row" gap={1} minWidth={0}>
+                  <Text color="$muted"> </Text>
+                  <Box flexGrow={1} flexShrink={1} minWidth={0}>
+                    <Text color="$muted" wrap="wrap">
+                      {summaryText}
+                    </Text>
+                  </Box>
+                </Box>
+              ) : null}
+            </Box>
+          ) : null}
         </Box>
-      ) : null}
-    </Box>
+      </Content.Body>
+    </Content.Row>
+  )
+}
+
+function agentStatusColor(status: SessionInfo["status"]): string {
+  if (status === "thinking") return "$warning"
+  if (status === "waiting") return "$info"
+  if (status === "ended") return "$muted"
+  return "$success"
+}
+
+function agentStatusGlyph(status: SessionInfo["status"]): string {
+  if (status === "thinking") return "●"
+  if (status === "waiting") return "?"
+  if (status === "ended") return "×"
+  return "○"
+}
+
+function shortSessionId(sessionId: string): string {
+  return sessionId.length > 8 ? sessionId.slice(0, 8) : sessionId
+}
+
+function AgentsDrawer({
+  sessions,
+  selfSessionId,
+  defaultExpanded = false,
+}: {
+  sessions: readonly SessionInfo[] | null | undefined
+  selfSessionId?: string
+  defaultExpanded?: boolean
+}): React.ReactElement | null {
+  const activeSessions = (sessions ?? []).filter((session) => session.status !== "ended")
+  const [expanded, setExpanded] = React.useState(defaultExpanded)
+  const hover = useHover()
+  if (activeSessions.length === 0) return null
+  const running = activeSessions.filter(
+    (session) => session.status === "thinking" || session.status === "waiting",
+  ).length
+  const label = running > 0 ? `${running}/${activeSessions.length} active` : `${activeSessions.length} idle`
+
+  return (
+    <Content.Row>
+      <Content.Body width="prose">
+        <Box
+          width="100%"
+          minWidth={0}
+          flexDirection="column"
+          backgroundColor={hover.isHovered ? "$bg-surface-hover" : "$bg-surface-raised"}
+          paddingLeft={1}
+          paddingRight={2}
+          paddingY={1}
+          onClick={() => setExpanded((value) => !value)}
+          onMouseEnter={hover.onMouseEnter}
+          onMouseLeave={hover.onMouseLeave}
+        >
+          <Box flexDirection="row" gap={1} minWidth={0}>
+            <Text color="$muted">{expanded ? "▾" : "▸"}</Text>
+            <Text color="$muted">Agents</Text>
+            <Box flexGrow={1} />
+            <Text color="$muted">{label}</Text>
+          </Box>
+          {expanded ? (
+            <Box flexDirection="column" paddingLeft={2} minWidth={0}>
+              {activeSessions.map((session) => {
+                const self = session.sessionId === selfSessionId
+                const color = agentStatusColor(session.status)
+                return (
+                  <Box key={session.sessionId} flexDirection="row" gap={1} minWidth={0}>
+                    <Text color={color}>{agentStatusGlyph(session.status)}</Text>
+                    <Box flexGrow={1} flexShrink={1} minWidth={0}>
+                      <Text wrap="wrap">
+                        {session.name}
+                        {self ? " (this)" : ""} · {session.status} · {shortSessionId(session.sessionId)}
+                      </Text>
+                    </Box>
+                  </Box>
+                )
+              })}
+            </Box>
+          ) : null}
+        </Box>
+      </Content.Body>
+    </Content.Row>
   )
 }
 
@@ -248,6 +372,43 @@ function hasTableMarkdownBlock(text: string): boolean {
   return parseBlocks(text).some((block) => block.kind === "table")
 }
 
+type MarkdownPart = { kind: "text" | "table"; source: string }
+
+function splitMarkdownTables(source: string): MarkdownPart[] {
+  const lines = source.split("\n")
+  const parts: MarkdownPart[] = []
+  let textRun: string[] = []
+  const flushText = (): void => {
+    const source = textRun.join("\n").trim()
+    if (source.length > 0) parts.push({ kind: "text", source })
+    textRun = []
+  }
+  for (let i = 0; i < lines.length; ) {
+    const line = lines[i] ?? ""
+    const next = lines[i + 1] ?? ""
+    if (looksLikeTableHeader(line, next)) {
+      flushText()
+      const tableRun = [line, next]
+      i += 2
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i] ?? "")) {
+        tableRun.push(lines[i] ?? "")
+        i++
+      }
+      parts.push({ kind: "table", source: tableRun.join("\n") })
+      continue
+    }
+    textRun.push(line)
+    i++
+  }
+  flushText()
+  return parts
+}
+
+function looksLikeTableHeader(line: string, next: string): boolean {
+  if (!/^\s*\|.*\|\s*$/.test(line)) return false
+  return /^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(next)
+}
+
 function Narration({
   text,
   marker = "•",
@@ -280,8 +441,28 @@ function Narration({
       </SessionEntry>
     )
   }
+  if (hasTable) {
+    const parts = splitMarkdownTables(text)
+    return (
+      <Box flexDirection="column" width="100%" minWidth={0}>
+        {parts.map((part, index) =>
+          part.kind === "table" ? (
+            <MarkdownView key={index} source={part.source} layout={layout} />
+          ) : (
+            <Content.Prose key={index}>
+              <SessionEntry marker={index === 0 ? marker : " "} markerColor="$fg" width="100%">
+                <Prose flexGrow={1} minWidth={0}>
+                  <MarkdownView source={part.source} layout="content" inlineProse />
+                </Prose>
+              </SessionEntry>
+            </Content.Prose>
+          ),
+        )}
+      </Box>
+    )
+  }
   return (
-    <SessionEntry marker={marker} markerColor="$fg" width={hasTable ? "100%" : "90%"}>
+    <SessionEntry marker={marker} markerColor="$fg">
       <Prose flexGrow={1} minWidth={0}>
         <MarkdownView source={text} layout={layout} />
       </Prose>
@@ -360,6 +541,7 @@ export const Chat = {
   Notification,
   Composer,
   PlanDrawer,
+  AgentsDrawer,
   Body,
   Turn: {
     Root: TurnRoot,

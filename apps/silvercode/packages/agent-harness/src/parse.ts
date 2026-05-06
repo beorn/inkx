@@ -126,15 +126,147 @@ function hookIsVisible(attachment: Record<string, unknown>): boolean {
   return content.trim().length > 0 || stderr.trim().length > 0 || !isTrivialHookStdout(stdout)
 }
 
-function attachmentIsKnownBookkeeping(attachment: Record<string, unknown>): boolean {
+type TranscriptMetadata = {
+  label: string
+  raw: unknown
+}
+
+function shortPath(path: string): string {
+  const appsIndex = path.indexOf("/apps/")
+  if (appsIndex >= 0) return path.slice(appsIndex + 1)
+  const parts = path.split("/").filter((part) => part.length > 0)
+  if (parts.length <= 3) return path
+  return parts.slice(-3).join("/")
+}
+
+function stringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []
+}
+
+function jsonSummary(raw: unknown): string {
+  return JSON.stringify(raw, null, 2)
+}
+
+function compactFirstLine(value: unknown): string {
+  if (typeof value !== "string") return ""
   return (
-    attachment.type === "todo_reminder" ||
-    attachment.type === "task_reminder" ||
-    attachment.type === "deferred_tools_delta" ||
-    attachment.type === "mcp_instructions_delta" ||
-    attachment.type === "skill_listing" ||
-    attachment.type === "auto_mode"
+    value
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .find((line) => line.length > 0) ?? ""
   )
+}
+
+function countSkillListing(content: unknown): number {
+  if (typeof content !== "string") return 0
+  return content.split(/\r?\n/).filter((line) => /^\s*-\s+/.test(line)).length
+}
+
+function topLevelMetadata(obj: Record<string, unknown>): TranscriptMetadata | null {
+  const type = obj.type
+  if (type === "permission-mode") {
+    const mode =
+      typeof obj.permissionMode === "string" ? obj.permissionMode : typeof obj.mode === "string" ? obj.mode : ""
+    return { label: mode.length > 0 ? `Permission mode: ${mode}` : "Permission mode changed", raw: obj }
+  }
+  if (type === "last-prompt") return { label: "Last prompt snapshot", raw: obj }
+  if (type === "queue-operation") {
+    const operation = typeof obj.operation === "string" ? obj.operation : "operation"
+    return { label: `Queue ${operation}`, raw: obj }
+  }
+  if (type === "agent-name") {
+    const name = typeof obj.agentName === "string" ? obj.agentName : ""
+    return { label: name.length > 0 ? `Agent: ${shortPath(name)}` : "Agent name", raw: obj }
+  }
+  if (type === "custom-title") {
+    const title = typeof obj.customTitle === "string" ? obj.customTitle : ""
+    return { label: title.length > 0 ? `Title: ${shortPath(title)}` : "Custom title", raw: obj }
+  }
+  if (type === "ai-title") {
+    const title = typeof obj.aiTitle === "string" ? obj.aiTitle : ""
+    return { label: title.length > 0 ? `AI title: ${title}` : "AI title", raw: obj }
+  }
+  if (type === "file-history-snapshot") {
+    const backups = Array.isArray(obj.trackedFileBackups) ? obj.trackedFileBackups.length : 0
+    return { label: backups > 0 ? `File history snapshot: ${backups} files` : "File history snapshot", raw: obj }
+  }
+  return null
+}
+
+function attachmentMetadata(
+  attachment: Record<string, unknown>,
+  obj: Record<string, unknown>,
+): TranscriptMetadata | null {
+  const type = attachment.type
+  if (type === "hook_success") {
+    if (!hookIsVisible(attachment)) return null
+    return { label: hookLabel(attachment), raw: attachment }
+  }
+  if (type === "hook_additional_context") {
+    const hookName = typeof attachment.hookName === "string" ? attachment.hookName : ""
+    const hookEvent = typeof attachment.hookEvent === "string" ? attachment.hookEvent : ""
+    const content = stringList(attachment.content).join("\n\n")
+    const subject = hookName.length > 0 ? hookName : hookEvent.length > 0 ? hookEvent : "hook"
+    return { label: `Hook context: ${subject}`, raw: content.length > 0 ? content : attachment }
+  }
+  if (type === "edited_text_file") {
+    const filename = typeof attachment.filename === "string" ? attachment.filename : "file"
+    const snippet = typeof attachment.snippet === "string" ? attachment.snippet : jsonSummary(attachment)
+    return { label: `Edited ${shortPath(filename)}`, raw: snippet }
+  }
+  if (type === "file") {
+    const filename =
+      typeof attachment.filename === "string"
+        ? attachment.filename
+        : typeof attachment.filePath === "string"
+          ? attachment.filePath
+          : "file"
+    return { label: `Attached ${shortPath(filename)}`, raw: attachment }
+  }
+  if (type === "queued_command") {
+    const commandMode = typeof attachment.commandMode === "string" ? attachment.commandMode : "command"
+    const origin = attachment.origin && typeof attachment.origin === "object" ? attachment.origin : null
+    const originKind =
+      origin && typeof (origin as Record<string, unknown>).type === "string"
+        ? ` from ${(origin as Record<string, unknown>).type}`
+        : ""
+    const prompt = compactFirstLine(attachment.prompt)
+    return {
+      label: prompt.length > 0 ? `Queued ${commandMode}: ${prompt}` : `Queued ${commandMode}${originKind}`,
+      raw: attachment.prompt ?? attachment,
+    }
+  }
+  if (type === "task_reminder" || type === "todo_reminder") {
+    const count =
+      typeof attachment.itemCount === "number" ? attachment.itemCount : stringList(attachment.content).length
+    return { label: `Task reminder: ${count} item${count === 1 ? "" : "s"}`, raw: attachment }
+  }
+  if (type === "task_status") return { label: "Task status", raw: attachment }
+  if (type === "deferred_tools_delta") {
+    const added = stringList(attachment.addedNames)
+    return { label: added.length > 0 ? `Tools available: ${added.length} added` : "Tools available", raw: attachment }
+  }
+  if (type === "mcp_instructions_delta") {
+    const added = stringList(attachment.addedNames)
+    return {
+      label: added.length > 0 ? `MCP instructions: ${added.join(", ")}` : "MCP instructions",
+      raw: attachment,
+    }
+  }
+  if (type === "skill_listing") {
+    const count = countSkillListing(attachment.content)
+    return { label: count > 0 ? `Skills listed: ${count}` : "Skills listed", raw: attachment.content ?? attachment }
+  }
+  if (type === "auto_mode") {
+    const reminder = typeof attachment.reminderType === "string" ? `: ${attachment.reminderType}` : ""
+    return { label: `Auto mode${reminder}`, raw: attachment }
+  }
+  if (type === "command_permissions") return { label: "Command permissions", raw: attachment }
+  if (type === "compact_file_reference") return { label: "Compact file reference", raw: attachment }
+  if (type === "date_change") return { label: "Date changed", raw: attachment }
+  if (type === "invoked_skills") return { label: "Invoked skills", raw: attachment }
+  if (type === "nested_memory") return { label: "Nested memory", raw: attachment }
+  return { label: rawLabel(obj), raw: obj }
 }
 
 function structuredToolResultOutput(obj: Record<string, unknown>, item: Record<string, unknown>): unknown {
@@ -255,6 +387,35 @@ function extractAdditionalContext(raw: string): string {
       if (body.length > 0) parts.push(`[${tag}]\n${body}`)
     }
   }
+  return parts.join("\n\n")
+}
+
+function firstTagBody(raw: string, tag: string): string {
+  const match = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`).exec(raw)
+  return match?.[1]?.trim() ?? ""
+}
+
+function isTaskNotification(raw: string): boolean {
+  return /^\s*<task-notification>[\s\S]*<\/task-notification>/m.test(raw)
+}
+
+function taskNotificationLabel(raw: string): string {
+  const status = firstTagBody(raw, "status")
+  const summary = firstTagBody(raw, "summary")
+  const taskId = firstTagBody(raw, "task-id")
+  const statusPrefix = status.length > 0 ? `Task ${status}` : "Task notification"
+  const subject = summary.length > 0 ? summary : taskId.length > 0 ? taskId : "background task"
+  return `${statusPrefix}: ${subject}`
+}
+
+function taskNotificationContext(raw: string): string {
+  const result = firstTagBody(raw, "result")
+  const outputFile = firstTagBody(raw, "output-file")
+  const usage = firstTagBody(raw, "usage")
+  const parts: string[] = []
+  if (result.length > 0) parts.push(`[result]\n${result}`)
+  if (outputFile.length > 0) parts.push(`[output-file]\n${outputFile}`)
+  if (usage.length > 0) parts.push(`[usage]\n${usage}`)
   return parts.join("\n\n")
 }
 
@@ -620,6 +781,19 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
     let hasToolResult = false
     const content = msg.content
     if (typeof content === "string") {
+      if (isTaskNotification(content)) {
+        const uniq = (msg.id as string | undefined) ?? (obj.uuid as string | undefined) ?? `task-${nowMs()}`
+        const context = taskNotificationContext(content)
+        emit({
+          kind: "raw-transcript",
+          sessionId: sid,
+          turnId: toTurnId(uniq),
+          label: taskNotificationLabel(content),
+          raw: context.length > 0 ? context : taskNotificationLabel(content),
+          ts: nowMs(),
+        })
+        return
+      }
       text = normalizeUserText(content)
       additionalContext = extractAdditionalContext(content)
     } else if (Array.isArray(content)) {
@@ -693,6 +867,18 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
     })
   }
 
+  function emitRawMetadata(obj: Record<string, unknown>, metadata: TranscriptMetadata): void {
+    const sid = state.sessionId ?? toSessionId(obj.session_id ?? obj.sessionId)
+    emit({
+      kind: "raw-transcript",
+      sessionId: sid,
+      turnId: toTurnId((obj.uuid as string | undefined) ?? `raw-${nowMs()}`),
+      label: metadata.label,
+      raw: metadata.raw,
+      ts: nowMs(),
+    })
+  }
+
   return {
     push(line: string): void {
       const trimmed = line.trim()
@@ -718,32 +904,12 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
       else if (type === "user") handleUserEcho(obj)
       else if (type === "result") handleResult(obj)
       else if (type === "permission-request") handlePermission(obj)
-      else if (type === "permission-mode") return
-      else if (type === "last-prompt") return
-      else if (type === "queue-operation") return
       else if (type === "attachment" && obj.attachment && typeof obj.attachment === "object") {
         const attachment = obj.attachment as Record<string, unknown>
-        if (attachmentIsKnownBookkeeping(attachment)) return
-        if (attachment.type === "hook_success" && !hookIsVisible(attachment)) return
-        const sid = state.sessionId ?? toSessionId(obj.session_id ?? obj.sessionId)
-        emit({
-          kind: "raw-transcript",
-          sessionId: sid,
-          turnId: toTurnId((obj.uuid as string | undefined) ?? `raw-${nowMs()}`),
-          label: attachment.type === "hook_success" ? hookLabel(attachment) : rawLabel(obj),
-          raw: obj,
-          ts: nowMs(),
-        })
+        const metadata = attachmentMetadata(attachment, obj)
+        if (metadata) emitRawMetadata(obj, metadata)
       } else {
-        const sid = state.sessionId ?? toSessionId(obj.session_id ?? obj.sessionId)
-        emit({
-          kind: "raw-transcript",
-          sessionId: sid,
-          turnId: toTurnId((obj.uuid as string | undefined) ?? `raw-${nowMs()}`),
-          label: rawLabel(obj),
-          raw: obj,
-          ts: nowMs(),
-        })
+        emitRawMetadata(obj, topLevelMetadata(obj) ?? { label: rawLabel(obj), raw: obj })
       }
     },
     flush(): void {

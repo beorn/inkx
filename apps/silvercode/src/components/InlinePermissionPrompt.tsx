@@ -137,7 +137,7 @@ export function InlinePermissionPrompt({
 
   if (!current) return null
 
-  const argSummary = summarizeArgs(current.args)
+  const permission = describePermission(current.tool, current.args)
 
   return (
     <Box flexDirection="row" width="100%" alignSelf="stretch">
@@ -154,14 +154,23 @@ export function InlinePermissionPrompt({
         <Box flexDirection="row" gap={1}>
           <Text color="$warning">Allow</Text>
           <Text bold color="$warning">
-            {permissionAction(current.tool)}?
+            {permission.action}?
           </Text>
         </Box>
 
-        {argSummary.length > 0 && (
+        {permission.reason && (
           <Box flexDirection="row" gap={1}>
-            {current.tool === "Bash" ? <Text color="$muted">$</Text> : null}
-            <Text wrap="wrap">{argSummary}</Text>
+            <Text>Reason:</Text>
+            <Text italic wrap="wrap">
+              {permission.reason}
+            </Text>
+          </Box>
+        )}
+
+        {permission.detail.length > 0 && (
+          <Box flexDirection="row" gap={1}>
+            {permission.command ? <Text color="$muted">$</Text> : null}
+            <Text wrap="wrap">{permission.detail}</Text>
           </Box>
         )}
 
@@ -171,7 +180,7 @@ export function InlinePermissionPrompt({
               <ActionButton
                 key={opt.optionId}
                 active={i === optionCursor}
-                label={opt.name}
+                label={permissionOptionLabel(opt)}
                 tone={isApproveKind(opt.kind) ? "allow" : "deny"}
                 onClick={() => {
                   setOptionCursor(i)
@@ -221,8 +230,38 @@ type InlinePermissionPromptProps = {
   onSelectOption?: (sessionId: string, requestId: string, optionId: PermissionOptionId, approved: boolean) => void
 }
 
-function permissionAction(tool: string): string {
-  return tool === "Bash" ? "Run bash" : `Use ${tool}`
+function describePermission(
+  tool: string,
+  args: unknown,
+): { action: string; detail: string; reason?: string; command?: boolean } {
+  if (tool === "Bash") return { action: "Run bash", detail: summarizeArgs(args), command: true }
+  if (tool === "exec_command") return describeExecCommandPermission(args)
+  const editTarget = tool.match(/^(?:Use\s+)?Edit\s+(.+)$/i)?.[1]?.trim()
+  if (editTarget) return { action: "Edit file", detail: editTarget }
+  const writeTarget = tool.match(/^(?:Use\s+)?Write\s+(.+)$/i)?.[1]?.trim()
+  if (writeTarget) return { action: "Write file", detail: writeTarget }
+  const readTarget = tool.match(/^(?:Use\s+)?Read\s+(.+)$/i)?.[1]?.trim()
+  if (readTarget) return { action: "Read file", detail: readTarget }
+  return { action: `Use ${tool}`, detail: summarizeArgs(args) }
+}
+
+function describeExecCommandPermission(args: unknown): {
+  action: string
+  detail: string
+  reason?: string
+  command?: boolean
+} {
+  if (!args || typeof args !== "object") return { action: "Run command", detail: summarizeArgs(args), command: true }
+  const obj = args as Record<string, unknown>
+  const command =
+    typeof obj.cmd === "string" ? obj.cmd : typeof obj.command === "string" ? obj.command : summarizeArgs(args)
+  const reason = typeof obj.justification === "string" ? obj.justification : undefined
+  return { action: "Run command", detail: command, reason, command: true }
+}
+
+function permissionOptionLabel(option: PermissionOption): string {
+  if (!isApproveKind(option.kind) && /provide\s+feedback/i.test(option.name)) return "No"
+  return option.name
 }
 
 function ActionButton({

@@ -219,4 +219,98 @@ describe("InlinePermissionPrompt — ACP multi-option flow", () => {
       approved: false,
     })
   })
+
+  test("edit permissions show the file target and do not promise unsupported feedback capture", () => {
+    const optAllow = "opt-allow" as PermissionOptionId
+    const optReject = "opt-reject" as PermissionOptionId
+    const file = "/Users/beorn/Code/pim/km/vendor/silvery/packages/ag-react/src/ui/components/ListView.tsx"
+    const handle = fakeSessionHandle({
+      id: "s-edit",
+      name: "Edit Session",
+      state: {
+        status: "awaiting-permission",
+        permissions: [
+          {
+            requestId: REQUEST,
+            tool: `Edit ${file}`,
+            args: {
+              call_id: "call_QNsCUDDPf9fnVZuh62vD97HU",
+              turn_id: "019dfa10-8c4d-7702-a503-0303257b0193",
+            },
+            options: [
+              { optionId: optAllow, name: "Yes", kind: "allow_once" },
+              { optionId: optReject, name: "No, provide feedback", kind: "reject_once" },
+            ],
+          } as unknown as { requestId: string; tool: string; args: unknown },
+        ],
+      },
+    })
+
+    const renderer = createRenderer({ cols: 120, rows: 16 })
+    const app = renderer(
+      <InlinePermissionPrompt
+        focused={handle}
+        sessions={[handle]}
+        onApprove={() => {}}
+        onDeny={() => {}}
+        onSelectOption={() => {}}
+      />,
+    )
+
+    expect(app.text).toContain("Allow Edit file?")
+    expect(app.text).toContain(file)
+    expect(app.text).toContain(" Yes ")
+    expect(app.text).toContain(" No ")
+    expect(app.text).not.toContain("provide feedback")
+    expect(app.text).not.toContain("turn_id")
+    expect(app.text).not.toContain("call_id")
+  })
+
+  test("Codex escalated command permissions show reason, command, and supplied options", () => {
+    const optAllow = "opt-codex-allow" as PermissionOptionId
+    const optReject = "opt-codex-reject" as PermissionOptionId
+    const command =
+      'SILVERY_STRICT=1 bun vitest run --project vendor vendor/silvery/tests/runtime/size.test.ts --testNamePattern "zero"'
+    const handle = fakeSessionHandle({
+      id: "s-codex-command",
+      name: "Codex Command",
+      state: {
+        status: "awaiting-permission",
+        permissions: [
+          {
+            requestId: REQUEST,
+            tool: "exec_command",
+            args: {
+              cmd: command,
+              sandbox_permissions: "require_escalated",
+              justification:
+                "Run the Silvery regression test from the repo root; Vitest writes its temp config under root node_modules outside the current writable sandbox.",
+            },
+            options: [
+              { optionId: optAllow, name: "Yes, proceed (y)", kind: "allow_once" },
+              { optionId: optReject, name: "No, and tell Codex what to do differently (esc)", kind: "reject_once" },
+            ],
+          } as unknown as { requestId: string; tool: string; args: unknown },
+        ],
+      },
+    })
+
+    const renderer = createRenderer({ cols: 140, rows: 18 })
+    const app = renderer(
+      <InlinePermissionPrompt
+        focused={handle}
+        sessions={[handle]}
+        onApprove={() => {}}
+        onDeny={() => {}}
+        onSelectOption={() => {}}
+      />,
+    )
+
+    expect(app.text).toContain("Allow Run command?")
+    expect(app.text).toContain("Reason:")
+    expect(app.text).toContain("Run the Silvery regression test")
+    expect(app.text).toContain(command)
+    expect(app.text).toContain("Yes, proceed (y)")
+    expect(app.text).toContain("No, and tell Codex what to do differently (esc)")
+  })
 })

@@ -533,9 +533,11 @@ function adaptToolCall(
  */
 function BackgroundSystemRow({ text }: { text: string }): React.ReactElement {
   return (
-    <Box flexDirection="row" flexShrink={1} minWidth={0}>
-      <Text color="$info">{text}</Text>
-    </Box>
+    <SessionEntry marker="•" markerColor="$info">
+      <Text color="$info" wrap="wrap">
+        {text}
+      </Text>
+    </SessionEntry>
   )
 }
 
@@ -564,7 +566,7 @@ function hasTableMarkdownBlock(text: string): boolean {
 
 function isVisibleTurnOp(op: MessageOp | undefined): boolean {
   if (!op) return false
-  return op.kind !== "text" || op.text.length > 0
+  return op.kind !== "text" || isVisibleAssistantText(op.text)
 }
 
 function hasVisibleTurnOpBefore(ops: readonly MessageOp[], index: number): boolean {
@@ -1195,18 +1197,13 @@ function ExchangeItem({
     )
   }
   if (m.role === "system") {
-    if (m.additionalContext) {
-      return (
-        <RawInspector payload={{ text: m.text, raw: m.additionalContext }}>
-          <TimestampedRow timestamp={formatTime(m.ts)} side="left">
-            <RawRow label={m.text} />
-          </TimestampedRow>
-        </RawInspector>
-      )
-    }
     return (
       <RawInspector payload={m.additionalContext ? { text: m.text, raw: m.additionalContext } : m}>
-        <BackgroundSystemRow text={m.text} />
+        <TimestampedRow timestamp={formatTime(m.ts)} side="left">
+          <Chat.Notification>
+            <BackgroundSystemRow text={m.text} />
+          </Chat.Notification>
+        </TimestampedRow>
       </RawInspector>
     )
   }
@@ -1255,48 +1252,79 @@ function ExchangeItem({
           />
         </Chat.Turn.Segment>
         {!highVolumeExpanded
-          ? displayOps.map((op, index) => {
-              if (op.kind === "tool") return null
-              if (op.kind === "text") {
-                if (op.text.length === 0) return null
-                return (
-                  <Chat.Turn.Segment key={`text-${index}`}>
-                    <RawInspector payload={op}>
-                      <TimestampedRow
-                        timestamp={formatTime(m.ts)}
-                        side="left"
-                        width={hasTableMarkdownBlock(op.text) ? "wide" : "prose"}
-                      >
-                        <Chat.Turn.Narration text={op.text} />
-                      </TimestampedRow>
-                    </RawInspector>
-                  </Chat.Turn.Segment>
-                )
+          ? runs.map((run, runIdx) => {
+              if (run.kind === "tool") return null
+              if (run.kind === "text") {
+                const chunks: Array<{ text: string; firstIndex: number; ops: MessageOp[] }> = []
+                let current: { text: string; firstIndex: number; ops: MessageOp[] } | null = null
+                const flush = (): void => {
+                  if (current && isVisibleAssistantText(current.text)) chunks.push(current)
+                  current = null
+                }
+                for (const { op, index } of run.ops) {
+                  if (op.kind !== "text") continue
+                  if (textNeedsStandaloneSpacing(op.text)) {
+                    flush()
+                    if (isVisibleAssistantText(op.text)) chunks.push({ text: op.text, firstIndex: index, ops: [op] })
+                    continue
+                  }
+                  if (!current) current = { text: op.text, firstIndex: index, ops: [op] }
+                  else {
+                    current.text += op.text
+                    current.ops.push(op)
+                  }
+                }
+                flush()
+                return chunks.map((chunk) => {
+                  const standalone = textNeedsStandaloneSpacing(chunk.text)
+                  return (
+                    <Chat.Turn.Segment key={`text-${chunk.firstIndex}`}>
+                      <RawInspector payload={chunk.ops}>
+                        <StandaloneProseFrame
+                          paddingBefore={standalone && hasVisibleTurnOpBefore(displayOps, chunk.firstIndex)}
+                          paddingAfter={standalone && hasVisibleTurnOpAfter(displayOps, chunk.firstIndex)}
+                        >
+                          <TimestampedRow
+                            timestamp={formatTime(m.ts)}
+                            side="left"
+                            width={hasTableMarkdownBlock(chunk.text) ? "wide" : "prose"}
+                          >
+                            <Chat.Turn.Narration text={chunk.text} />
+                          </TimestampedRow>
+                        </StandaloneProseFrame>
+                      </RawInspector>
+                    </Chat.Turn.Segment>
+                  )
+                })
               }
-              if (op.kind === "thinking") {
-                if (op.text.length === 0) return null
+              if (run.kind === "thinking") {
+                const text = run.ops.flatMap(({ op }) => (op.kind === "thinking" ? [op.text] : [])).join("")
+                if (text.length === 0) return null
+                const firstIndex = run.ops[0]?.index ?? runIdx
                 return (
-                  <Chat.Turn.Segment key={`thinking-${index}`}>
-                    <RawInspector payload={op}>
+                  <Chat.Turn.Segment key={`thinking-${firstIndex}`}>
+                    <RawInspector payload={run.ops.map(({ op }) => op)}>
                       <TimestampedRow timestamp={formatTime(m.ts)} side="left">
-                        <Chat.Turn.Narration text={op.text} muted />
+                        <Chat.Turn.Narration text={text} muted />
                       </TimestampedRow>
                     </RawInspector>
                   </Chat.Turn.Segment>
                 )
               }
-              if (op.kind === "raw") {
-                return (
-                  <Chat.Turn.Segment key={`raw-${index}`}>
-                    <RawInspector payload={op.raw}>
-                      <TimestampedRow timestamp={formatTime(m.ts)} side="left">
-                        <RawRow label={op.label} />
-                      </TimestampedRow>
-                    </RawInspector>
-                  </Chat.Turn.Segment>
-                )
-              }
-              return null
+              return run.ops.map(({ op, index }) => {
+                if (op.kind === "raw") {
+                  return (
+                    <Chat.Turn.Segment key={`raw-${index}`}>
+                      <RawInspector payload={op.raw}>
+                        <TimestampedRow timestamp={formatTime(m.ts)} side="left">
+                          <RawRow label={op.label} />
+                        </TimestampedRow>
+                      </RawInspector>
+                    </Chat.Turn.Segment>
+                  )
+                }
+                return null
+              })
             })
           : null}
       </Chat.Turn.Root>
@@ -1341,39 +1369,63 @@ function ExchangeItem({
                 )
               })}
             </Chat.Turn.ToolGroup>
-          ) : (
-            run.ops.map(({ op, index }) => {
-              if (op.kind === "text") {
-                if (op.text.length === 0) return null
-                const standalone = textNeedsStandaloneSpacing(op.text)
-                const row = (
-                  <RawInspector key={`text-${index}`} payload={op}>
+          ) : run.kind === "text" ? (
+            (() => {
+              const chunks: Array<{ text: string; firstIndex: number; ops: MessageOp[] }> = []
+              let current: { text: string; firstIndex: number; ops: MessageOp[] } | null = null
+              const flush = (): void => {
+                if (current && current.text.length > 0) chunks.push(current)
+                current = null
+              }
+              for (const { op, index } of run.ops) {
+                if (op.kind !== "text" || !isVisibleAssistantText(op.text)) continue
+                if (textNeedsStandaloneSpacing(op.text)) {
+                  flush()
+                  chunks.push({ text: op.text, firstIndex: index, ops: [op] })
+                  continue
+                }
+                if (!current) current = { text: op.text, firstIndex: index, ops: [op] }
+                else {
+                  current.text += op.text
+                  current.ops.push(op)
+                }
+              }
+              flush()
+              return chunks.map((chunk) => {
+                const standalone = textNeedsStandaloneSpacing(chunk.text)
+                return (
+                  <RawInspector key={`text-${chunk.firstIndex}`} payload={chunk.ops}>
                     <StandaloneProseFrame
-                      paddingBefore={standalone && hasVisibleTurnOpBefore(displayOps, index)}
-                      paddingAfter={standalone && hasVisibleTurnOpAfter(displayOps, index)}
+                      paddingBefore={standalone && hasVisibleTurnOpBefore(displayOps, chunk.firstIndex)}
+                      paddingAfter={standalone && hasVisibleTurnOpAfter(displayOps, chunk.firstIndex)}
                     >
                       <TimestampedRow
                         timestamp={formatTime(m.ts)}
                         side="left"
-                        width={hasTableMarkdownBlock(op.text) ? "wide" : "prose"}
+                        width={hasTableMarkdownBlock(chunk.text) ? "wide" : "prose"}
                       >
-                        <Chat.Turn.Narration text={op.text} />
+                        <Chat.Turn.Narration text={chunk.text} />
                       </TimestampedRow>
                     </StandaloneProseFrame>
                   </RawInspector>
                 )
-                return row
-              }
-              if (op.kind === "thinking") {
-                if (op.text.length === 0) return null
-                return (
-                  <RawInspector key={`thinking-${index}`} payload={op}>
-                    <TimestampedRow timestamp={formatTime(m.ts)} side="left">
-                      <Chat.Turn.Narration text={op.text} muted />
-                    </TimestampedRow>
-                  </RawInspector>
-                )
-              }
+              })
+            })()
+          ) : run.kind === "thinking" ? (
+            (() => {
+              const text = run.ops.flatMap(({ op }) => (op.kind === "thinking" ? [op.text] : [])).join("")
+              if (text.length === 0) return null
+              const firstIndex = run.ops[0]?.index ?? 0
+              return (
+                <RawInspector key={`thinking-${firstIndex}`} payload={run.ops.map(({ op }) => op)}>
+                  <TimestampedRow timestamp={formatTime(m.ts)} side="left">
+                    <Chat.Turn.Narration text={text} muted />
+                  </TimestampedRow>
+                </RawInspector>
+              )
+            })()
+          ) : (
+            run.ops.map(({ op, index }) => {
               if (op.kind === "raw") {
                 return (
                   <RawInspector key={`raw-${index}`} payload={op.raw}>
@@ -1593,6 +1645,12 @@ function itemTimestamp(item: Item): number | null {
   return item.ts
 }
 
+function sourceMessageId(item: Item): string | null {
+  if (!isMessageEntry(item) && !isAssistantActivitySlice(item)) return null
+  const message = isAssistantActivitySlice(item) ? item.message : item
+  return ((message as unknown as { __sourceMessageId?: string }).__sourceMessageId ?? String(message.id)) as string
+}
+
 function itemBlockText(item: Item): string {
   if (isActivity(item) || isAmbient(item) || isSessionMetadata(item) || isPadding(item)) return ""
   const ops = isAssistantActivitySlice(item) ? item.ops : item.ops
@@ -1612,6 +1670,12 @@ function textNeedsStandaloneSpacing(text: string): boolean {
   return /\n[ \t]*\n/.test(text)
 }
 
+function isVisibleAssistantText(text: string): boolean {
+  const trimmed = text.trim()
+  if (trimmed.length === 0) return false
+  return !/^[.。]+$/.test(trimmed)
+}
+
 /**
  * Anchor a `MessageEntry` to its scrollback timestamp. Mirrors how
  * `ts: number` is assigned in `session-store.ts` — a millisecond epoch
@@ -1620,6 +1684,52 @@ function textNeedsStandaloneSpacing(text: string): boolean {
  */
 function messageTimestamp(m: MessageEntry): number {
   return m.ts
+}
+
+function opTimestamp(op: MessageOp, fallback: number): number {
+  return op.ts ?? fallback
+}
+
+function ambientTimestamp(entry: AmbientStreamEntry): number {
+  return entry.ts ?? entry.timestamp ?? 0
+}
+
+function cloneMessageForTimeline(message: MessageEntry, ops: MessageOp[], suffix: string): MessageEntry {
+  const sourceId = sourceMessageId(message) ?? String(message.id)
+  const ts = ops.reduce((min, op) => Math.min(min, opTimestamp(op, message.ts)), Number.POSITIVE_INFINITY)
+  const out = {
+    ...message,
+    id: `${sourceId}:${suffix}` as MessageEntry["id"],
+    ops,
+    ts: Number.isFinite(ts) ? ts : message.ts,
+  } as MessageEntry
+  Object.defineProperty(out, "__sourceMessageId", {
+    value: sourceId,
+    enumerable: false,
+    configurable: true,
+  })
+  Object.defineProperty(out, "text", {
+    get() {
+      return ops.flatMap((op) => (op.kind === "text" ? [op.text] : [])).join("")
+    },
+    enumerable: true,
+    configurable: true,
+  })
+  Object.defineProperty(out, "toolCalls", {
+    get() {
+      return ops.flatMap((op) => (op.kind === "tool" ? [op.toolCall] : []))
+    },
+    enumerable: true,
+    configurable: true,
+  })
+  Object.defineProperty(out, "toolResults", {
+    get() {
+      return ops.flatMap((op) => (op.kind === "tool" && op.result ? [op.result] : []))
+    },
+    enumerable: true,
+    configurable: true,
+  })
+  return out
 }
 
 /**
@@ -1646,30 +1756,60 @@ function interleave(messages: MessageEntry[], ambient: readonly AmbientStreamEnt
     }
     out.push({ __ambient: true, entries: [entry] })
   }
-  const out: Item[] = []
-  let i = 0
-  let j = 0
-  while (i < messages.length && j < ambient.length) {
-    const message = messages[i]
-    const ambientEntry = ambient[j]
-    if (!message || !ambientEntry) break
-    const mts = messageTimestamp(message)
-    const ats = ambientEntry.timestamp
-    if (mts <= ats) {
-      out.push(message)
-      i++
-    } else {
-      pushAmbient(out, ambientEntry)
-      j++
-    }
+  function flushAssistantOps(out: Item[], message: MessageEntry, ops: MessageOp[], index: number): void {
+    if (ops.length === 0) return
+    const part = cloneMessageForTimeline(message, ops, `ambient-${index}`)
+    out.push(...splitAssistantToolActivity(part))
   }
-  while (i < messages.length) {
-    const message = messages[i++]
-    if (message) out.push(message)
+  const out: Item[] = []
+  let j = 0
+  for (const message of messages) {
+    if (message.role === "assistant" && message.ops.length > 0) {
+      const ops = normalizeCommandSessionOps(message.ops)
+      let buffer: MessageOp[] = []
+      let segment = 0
+      for (const op of ops) {
+        const ots = opTimestamp(op, message.ts)
+        while (j < ambient.length) {
+          const entry = ambient[j]
+          if (!entry || ambientTimestamp(entry) >= ots) break
+          flushAssistantOps(out, message, buffer, segment++)
+          buffer = []
+          pushAmbient(out, entry)
+          j++
+        }
+        buffer.push(op)
+      }
+      flushAssistantOps(out, message, buffer, segment)
+      continue
+    }
+    const mts = messageTimestamp(message)
+    while (j < ambient.length) {
+      const entry = ambient[j]
+      if (!entry || ambientTimestamp(entry) < mts) {
+        if (entry) pushAmbient(out, entry)
+        j++
+        continue
+      }
+      break
+    }
+    out.push(message)
   }
   while (j < ambient.length) {
     const ambientEntry = ambient[j++]
     if (ambientEntry) pushAmbient(out, ambientEntry)
+  }
+  return out
+}
+
+function messageItems(messages: MessageEntry[]): Item[] {
+  const out: Item[] = []
+  for (const message of messages) {
+    if (message.role === "assistant") {
+      out.push(...splitAssistantToolActivity(message))
+    } else {
+      out.push(message)
+    }
   }
   return out
 }
@@ -1717,8 +1857,10 @@ export const SessionUpdateList = React.forwardRef<
     paddingY?: number
     /** Overrides paddingY for the top edge when the viewport has asymmetric chrome. */
     paddingTop?: number
-    /** Overrides paddingY for the bottom edge when floating chrome overlays the list. */
+    /** Overrides paddingY for the bottom edge inside scroll content. */
     paddingBottom?: number
+    /** Rows reserved below the list viewport for bottom chrome such as the composer. */
+    viewportBottomInset?: number
   }
 >(function SessionUpdateList(
   {
@@ -1738,6 +1880,7 @@ export const SessionUpdateList = React.forwardRef<
     paddingY = 0,
     paddingTop,
     paddingBottom,
+    viewportBottomInset,
   },
   ref,
 ): React.ReactElement {
@@ -1752,20 +1895,26 @@ export const SessionUpdateList = React.forwardRef<
   }, [messages.length, status])
 
   const showActivity = status !== "idle" && status !== "ended"
-  const merged = ambientEntries && ambientEntries.length > 0 ? interleave(messages, ambientEntries) : [...messages]
+  const merged =
+    ambientEntries && ambientEntries.length > 0 ? interleave(messages, ambientEntries) : messageItems(messages)
   const metadata = sessionMetadataItems(sessionMetadata)
   const replayMessageCount = Math.max(0, sessionMetadata?.replayMessageCount ?? 0)
   const replayBoundaryMessageId = sessionMetadata?.replayBoundaryMessageId
   const visibleItems: Item[] = []
   if (metadata.start) visibleItems.push(metadata.start)
   let seenReplayMessages = 0
+  const seenReplayMessageIds = new Set<string>()
   let insertedLoadedMetadata = false
   for (const item of merged) {
-    visibleItems.push(...splitAssistantToolActivity(item))
-    if (isMessageEntry(item)) seenReplayMessages++
+    visibleItems.push(item)
+    const sourceId = sourceMessageId(item)
+    if (sourceId && !seenReplayMessageIds.has(sourceId)) {
+      seenReplayMessageIds.add(sourceId)
+      seenReplayMessages++
+    }
     const isReplayBoundary =
       replayBoundaryMessageId !== undefined
-        ? isMessageEntry(item) && item.id === replayBoundaryMessageId
+        ? sourceId === replayBoundaryMessageId
         : replayMessageCount > 0 && seenReplayMessages === replayMessageCount
     if (metadata.loaded && !insertedLoadedMetadata && isReplayBoundary) {
       visibleItems.push(metadata.loaded)
@@ -1855,6 +2004,7 @@ export const SessionUpdateList = React.forwardRef<
           outputTokens={outputTokens}
           agentLabel={agentLabel}
           agentVersion={agentVersion}
+          startupVerb={sessionMetadata?.resumeId ? "resuming" : "spawning"}
         />
       </Chat.Body>
     ) : isAmbient(item) ? (
@@ -1931,6 +2081,7 @@ export const SessionUpdateList = React.forwardRef<
       maxRendered={200}
       nav={false}
       follow={followPausedByDisclosure ? "none" : follow}
+      viewportBottomInset={viewportBottomInset}
       renderItem={renderGroupedItem}
     />
   )

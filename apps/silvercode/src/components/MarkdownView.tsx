@@ -3,7 +3,7 @@ import { Box, Divider, H1, H2, H3, H4, Link, Prose, Text } from "silvery"
 import { parseBlocks, type MdBlock, type MdInline } from "../markdown.ts"
 import { LinkifiedText } from "./LinkifiedText.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
-import { Content, useHasContentLayout } from "./Content.tsx"
+import { Content, useContentLayout, useHasContentLayout } from "./Content.tsx"
 
 function InlineRun({
   tokens,
@@ -105,6 +105,7 @@ function renderBlock(
   hasContentLayout = false,
   backgroundColor?: string,
   textIndent = 0,
+  inlineProse = false,
 ): React.ReactElement | null {
   const inset = (child: React.ReactElement) =>
     textIndent > 0 ? (
@@ -118,7 +119,13 @@ function renderBlock(
       child
     )
   const prose = (child: React.ReactElement) =>
-    role === "user" || !hasContentLayout ? child : <Content.Prose key={i}>{child}</Content.Prose>
+    role === "user" || !hasContentLayout ? (
+      child
+    ) : inlineProse ? (
+      <LocalProse key={i}>{child}</LocalProse>
+    ) : (
+      <Content.Prose key={i}>{child}</Content.Prose>
+    )
   switch (b.kind) {
     case "heading": {
       const Heading = b.level === 1 ? H1 : b.level === 2 ? H2 : b.level === 3 ? H3 : H4
@@ -185,6 +192,15 @@ function renderBlock(
   }
 }
 
+function LocalProse({ children }: { children: React.ReactNode }): React.ReactElement {
+  const ctx = useContentLayout()
+  return (
+    <Box flexDirection="column" width={ctx.measure} maxWidth="100%" flexShrink={1} minWidth={0}>
+      {children}
+    </Box>
+  )
+}
+
 function QuoteBlock({ text }: { text: string }): React.ReactElement {
   const lines = text.split("\n")
   return (
@@ -242,12 +258,14 @@ export function MarkdownView({
   backgroundColor,
   layout = "content",
   textIndent = 0,
+  inlineProse = false,
 }: {
   source: string
   role?: "assistant" | "user"
   backgroundColor?: string
   layout?: "content" | "inline"
   textIndent?: number
+  inlineProse?: boolean
 }): React.ReactElement {
   const hasContentLayout = useHasContentLayout()
   return (
@@ -258,6 +276,7 @@ export function MarkdownView({
       hasContentLayout={hasContentLayout}
       layout={layout}
       textIndent={textIndent}
+      inlineProse={inlineProse}
     />
   )
 }
@@ -269,6 +288,7 @@ function MarkdownViewBody({
   hasContentLayout,
   layout,
   textIndent,
+  inlineProse,
 }: {
   source: string
   role?: "assistant" | "user"
@@ -276,6 +296,7 @@ function MarkdownViewBody({
   hasContentLayout: boolean
   layout: "content" | "inline"
   textIndent: number
+  inlineProse: boolean
 }): React.ReactElement {
   const blocks = useMemo(() => parseBlocks(source), [source])
   return (
@@ -283,7 +304,15 @@ function MarkdownViewBody({
       {blocks.map((b, i) => {
         const prev = i > 0 ? (blocks[i - 1] ?? null) : null
         const gap = needsGapBefore(prev, b)
-        const rendered = renderBlock(b, i, role, layout === "content" && hasContentLayout, backgroundColor, textIndent)
+        const rendered = renderBlock(
+          b,
+          i,
+          role,
+          layout === "content" && hasContentLayout,
+          backgroundColor,
+          textIndent,
+          inlineProse,
+        )
         if (!rendered) return null
         if (gap) {
           return (

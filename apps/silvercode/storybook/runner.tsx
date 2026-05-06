@@ -19,14 +19,12 @@ import {
   Divider,
   Muted,
   Screen,
-  Scrollbar,
+  ScrollArea,
   SelectList,
   Strong,
   Text,
   useApp,
-  useBoxRect,
   useInput,
-  useKineticScroll,
   type Key,
 } from "silvery"
 // `Divider` here renders the horizontal rule under the story header. The
@@ -157,6 +155,7 @@ export function StorybookApp({ initialStoryId }: AppProps): React.ReactElement {
 
 function StoryFrame({ story }: { story: Story }): React.ReactElement {
   const knobs = useMemo(() => resolveKnobs(story), [story])
+  const renderedStory = renderStoryInPreview(story.render(knobs))
   return (
     <Box flexDirection="column" flexGrow={1} minHeight={0}>
       <Box flexDirection="row" gap={1}>
@@ -176,117 +175,22 @@ function StoryFrame({ story }: { story: Story }): React.ReactElement {
       <Divider />
       {story.ownsScroll ? (
         <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0}>
-          {story.render(knobs)}
+          {renderedStory}
         </Box>
       ) : (
-        // Story render area — `overflow="scroll"` enables wheel scroll;
-        // `<Scrollbar>` gives the pane a draggable scrollbar with click-
-        // to-position + drag-while-held UX. `userSelect="contain"`
-        // (already set on the surrounding pane) scopes selection drags
-        // to this pane so a drag here can't extend into the list pane.
-        <ScrollableStoryArea>{story.render(knobs)}</ScrollableStoryArea>
+        <ScrollArea userSelect="contain">{renderedStory}</ScrollArea>
       )}
     </Box>
   )
 }
 
-/**
- * Story render container with wheel scroll + draggable scrollbar.
- *
- * Owns its own scroll state via `useKineticScroll` so different stories
- * each get a fresh viewport position on switch. Content height is
- * inferred from the inner Box's `boxRect.height` (the scrollable
- * extent — what the layout engine measured for the children).
- */
-function ScrollableStoryArea({ children }: { children: React.ReactNode }): React.ReactElement {
-  const [contentHeight, setContentHeight] = useState(0)
-  const { scrollOffset, onWheel, setScrollOffset } = useKineticScroll({})
-  return (
-    <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} position="relative">
-      <Box
-        flexDirection="column"
-        flexGrow={1}
-        flexShrink={1}
-        minWidth={0}
-        minHeight={0}
-        overflow="scroll"
-        scrollOffset={scrollOffset}
-        onWheel={onWheel}
-      >
-        <ContentSizer onMeasure={setContentHeight}>{children}</ContentSizer>
-      </Box>
-      <ScrollbarWithMeasure
-        scrollOffset={scrollOffset}
-        setScrollOffset={setScrollOffset}
-        contentHeight={contentHeight}
-      />
-    </Box>
-  )
-}
-
-/**
- * Wrap the scrollable content in a measured Box. The wrapper sizes
- * to fit children (default flex column, no min/max height), so its
- * `boxRect.height` reflects the full content extent — exactly what
- * the scrollbar needs to compute proportional thumb size and the
- * scroll cap.
- */
-function ContentSizer({
-  children,
-  onMeasure,
-}: {
-  children: React.ReactNode
-  onMeasure: (height: number) => void
-}): React.ReactElement {
-  return (
-    <Box flexDirection="column" flexShrink={0}>
-      <ContentMeasureProbe onMeasure={onMeasure} />
-      {children}
-    </Box>
-  )
-}
-
-/**
- * Sibling probe that reads the surrounding Box's measured rect via
- * NodeContext (`useBoxRect`) and reports it upward. Empty render so
- * it adds no visible chrome — pure measurement glue.
- */
-function ContentMeasureProbe({ onMeasure }: { onMeasure: (height: number) => void }): null {
-  const rect = useBoxRect()
-  React.useEffect(() => {
-    onMeasure(rect.height)
-  }, [rect.height, onMeasure])
-  return null
-}
-
-/**
- * Scrollbar overlay measured against the parent viewport rect. Reads
- * the layout-derived height of its parent Box (`useBoxRect`) so the
- * track always matches the current viewport size; `contentHeight`
- * comes from `ContentSizer` so the thumb size + scroll cap reflect
- * the actual overflow rather than a conservative half-thumb estimate.
- */
-function ScrollbarWithMeasure({
-  scrollOffset,
-  setScrollOffset,
-  contentHeight,
-}: {
-  scrollOffset: number
-  setScrollOffset: (offset: number) => void
-  contentHeight: number
-}): React.ReactElement | null {
-  const rect = useBoxRect()
-  const trackHeight = rect.height
-  if (trackHeight <= 0) return null
-  const scrollableRows = Math.max(0, contentHeight - trackHeight)
-  return (
-    <Scrollbar
-      trackHeight={trackHeight}
-      scrollableRows={scrollableRows}
-      scrollOffset={scrollOffset}
-      onScrollOffsetChange={setScrollOffset}
-    />
-  )
+function renderStoryInPreview(node: React.ReactNode): React.ReactNode {
+  if (!React.isValidElement(node) || node.type !== Screen) return node
+  const props = node.props as {
+    children?: React.ReactNode
+    flexDirection?: "row" | "column" | "row-reverse" | "column-reverse"
+  }
+  return <Box flexDirection={props.flexDirection ?? "column"}>{props.children}</Box>
 }
 
 /**

@@ -1,5 +1,6 @@
 import React from "react"
 import { Box, Text, type ListViewHandle } from "silvery"
+import { useSignal } from "@silvery/ag-react"
 import type { Controller, SessionHandle } from "../controller.ts"
 import { useAmbientStream } from "../hooks/use-ambient-stream.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
@@ -24,9 +25,6 @@ const AGENT_LABELS_FOR_ACTIVITY: Readonly<Record<string, string>> = {
   gemini: "Gemini",
   "github-copilot-cli": "GitHub Copilot",
 }
-
-const SCROLL_CHROME_WIDTH = 1
-const OVERSCROLL_INDICATOR_WIDTH = 10
 
 function agentLabelFor(agent?: string): string | null {
   if (!agent) return null
@@ -121,6 +119,7 @@ export function SessionCard({
   showFocusBar?: boolean
 }): React.ReactElement {
   const state = useStoreSignal(handle.store)
+  const activeAgents = useSignal(controller?.crossAgentState.activeSessions ?? null) ?? []
   // Ambient stream — pre-filtered through the mute set so muted source
   // rows never reach `SessionUpdateList`. The hook handles a null
   // controller internally (returns []), keeping rules-of-hooks intact.
@@ -158,7 +157,7 @@ export function SessionCard({
   const hasTranscriptContent = hasVisibleTranscriptContent(state.messages)
   const [composerHeight, setComposerHeight] = React.useState(0)
   const composerOverlayHeight = composerSlot ? Math.max(3, composerHeight) : 0
-  const transcriptBottomPadding = composerSlot ? composerOverlayHeight + 1 : hasTranscriptContent ? 1 : 0
+  const transcriptBottomPadding = hasTranscriptContent ? 1 : 0
 
   return (
     // `userSelect="contain"` is a hard CSS-style selection boundary here:
@@ -219,37 +218,28 @@ export function SessionCard({
                       follow={follow}
                       paddingTop={hasTranscriptContent ? 1 : 0}
                       paddingBottom={transcriptBottomPadding}
+                      viewportBottomInset={composerOverlayHeight}
                     />
                   </Box>
                   {composerSlot ? (
                     <Box
                       position="absolute"
                       left={0}
-                      right={SCROLL_CHROME_WIDTH + OVERSCROLL_INDICATOR_WIDTH}
-                      bottom={0}
-                      height={composerOverlayHeight}
-                      backgroundColor="$bg-surface-default"
-                    />
-                  ) : null}
-                  {composerSlot ? (
-                    <Box
-                      position="absolute"
-                      left={0}
-                      right={0}
+                      right={1}
                       bottom={0}
                       paddingY={1}
-                      flexDirection="row"
+                      flexDirection="column"
+                      gap={1}
                       onLayout={(rect) => {
                         const height = Math.max(0, Math.round(rect.height))
                         setComposerHeight((previous) => (previous === height ? previous : height))
                       }}
                     >
+                      <Chat.AgentsDrawer sessions={activeAgents} selfSessionId={handle.id} />
+                      <Chat.PlanDrawer plan={state.plan} />
                       <Chat.Composer>
-                        <Box flexDirection="column" width="100%" minWidth={0} gap={1}>
-                          <Chat.PlanDrawer plan={state.plan} />
-                          <Box flexDirection="column" width="100%" minWidth={0} backgroundColor="$bg-surface-raised">
-                            {composerSlot}
-                          </Box>
+                        <Box flexDirection="column" width="100%" minWidth={0} backgroundColor="$bg-surface-raised">
+                          {composerSlot}
                         </Box>
                       </Chat.Composer>
                     </Box>
