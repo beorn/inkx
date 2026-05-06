@@ -97,6 +97,7 @@ Your data stays in plain markdown. km adds queryability and navigation without l
 | [dev/testing.md](dev/testing.md)                                             | Test strategy, tiers, patterns       |
 | [dev/test-system.md](dev/test-system.md)                                     | Vitest + Bun runner architecture     |
 | [dev/test-fakes.md](dev/test-fakes.md)                                       | Fake factories reference             |
+| [dev/silvercode-backend-fakes.md](dev/silvercode-backend-fakes.md)           | Silvercode fake backend plan         |
 | [dev/chaos-testing.md](dev/chaos-testing.md)                                 | Fuzz + chaos strategy                |
 | [dev/terminal-integration-testing.md](dev/terminal-integration-testing.md)   | Headless terminal integration tests  |
 | [dev/vitest-ci.md](dev/vitest-ci.md)                                         | Vitest CI integration details        |

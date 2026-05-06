@@ -44,6 +44,16 @@ const testFast: SopTask = {
   deps: ["lint"],
 }
 
+const silvercodeHistorical: SopTask = {
+  id: "silvercode-historical",
+  label: "silvercode local historical transcript replay",
+  command: "bun run test:silvercode-historical 2>&1",
+  // Local/private transcript stores change outside git. Weekly cadence is
+  // enough to catch provider transcript drift without making per-session
+  // SOP runs depend on a 60s machine-local sweep.
+  cache: 7 * 24 * 60 * 60,
+}
+
 const complexity: SopTask = {
   id: "complexity",
   label: "complexity",
@@ -330,6 +340,8 @@ export const TASKS: SopTask[] = [
   // Phase 1: code-dependent (cache: "git", deps: ["lint"])
   tsc, testFast, complexity, knip, depcruise, typeCoverage,
   auditPackages, secretScan,
+  // Phase 1: machine-local historical compatibility checks (TTL cache)
+  silvercodeHistorical,
   // Phase 1: code-dependent (cache: "git", no lint dep)
   releaseStatus, sherif, lockfile, docLinks, docFreshness,
   bundleSizes, zeroDep, cjsEsm, hookIntegrity, licenseFiles,
@@ -345,7 +357,7 @@ export const TASK_MAP = new Map(TASKS.map((t) => [t.id, t]))
 
 /** Which tools each domain needs. One tool can serve multiple domains. */
 export const DOMAIN_TOOLS: Record<string, string[]> = {
-  code: ["tsc", "lint", "test-fast", "complexity", "knip", "depcruise", "type-coverage"],
+  code: ["tsc", "lint", "test-fast", "silvercode-historical", "complexity", "knip", "depcruise", "type-coverage"],
   packages: ["npm-registry", "release-status", "audit-packages", "knip", "sherif"],
   inbound: ["gh-issues", "bun-audit"],
   backlog: ["bd-stale", "bd-orphans", "bd-priority"],
