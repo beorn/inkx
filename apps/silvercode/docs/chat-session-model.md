@@ -1,6 +1,14 @@
 # Silvercode Chat Session Model
 
-Silvercode separates provider facts from presentation grouping.
+Silvercode separates adapter/runtime facts from canonical chat events and transcript-tree projection.
+
+This document describes the current session-state model. New transcript presentation work should use the `@km/silvercode/claude-code-transcript-parity` bead as the target model:
+
+```text
+AgentEvent -> ChatEvent -> apply(ChatEvent) -> ChatState -> projectChatTranscript(...) -> ChatSession.tree
+```
+
+Per the refactor workflow, migrate legacy vocabulary before implementing new presentation behavior. Rename docs, tests, stories, fixtures, and touched source first; then add `apps/silvercode/src/chat/types.ts`, ChatEvent normalization, ChatTree projection, channels, and ChatLeaf renderers.
 
 ## Canonical Session State
 
@@ -11,15 +19,17 @@ The canonical state is an ordered session stream:
 - `AgentPlan` for the current session-scoped plan.
 - Permission, usage, lifecycle, ambient, and error updates as session-level records.
 
-Provider ids stay provider-specific. Claude message/jsonl UUIDs are message provenance. Codex `turn_id`, when present, is provider provenance. ACP does not define a canonical turn id. New canonical model fields should not use `turnId`.
+Source ids stay source-specific. Claude message/jsonl UUIDs are message provenance. Codex `turn_id`, when present, is provider provenance. ACP does not define a canonical turn id. New canonical model fields should not use `turnId`.
+
+`MessageEntry` and `MessageOp` are current implementation names, not the target vocabulary for new transcript presentation. New work should migrate toward `ChatMessage`, `ChatMessagePart`, `ChatEvent`, `ChatNode`, `ChatElement`, `ChatLeaf`, and `ChatTree` in a dedicated rename phase before changing renderer behavior.
 
 ## Silvercode Chat Turns
 
 `Chat.Turn.*` is UI vocabulary. A Silvercode chat turn is an idle-delimited presentation group, not one prompt plus one response.
 
-A turn can contain multiple prompts, assistant messages, tool/activity spans, plan updates, permission requests, notifications, and summary/stat rows. Entries inside a turn are peers ordered by stream time; the UI may place nearby activity after narration for readability, but that does not imply prompt ownership.
+A turn can contain multiple prompts, assistant messages, tool/activity spans, plan updates, permission requests, notifications, and summary/stat blocks. Blocks inside a turn are peers ordered by stream time; the UI may place nearby activity after narration for readability, but that does not imply prompt ownership.
 
-Use `turnKey` only as a UI projection key. It is derived from canonical entry ids and can change if projection rules change.
+Use `turnKey` only as a UI projection key. It is derived from canonical session-event ids and can change if projection rules change.
 
 ## Plans
 
@@ -27,8 +37,8 @@ Use `turnKey` only as a UI projection key. It is derived from canonical entry id
 
 - Claude `TodoWrite` snapshots normalize to `source: "claude-todowrite"`.
 - ACP `sessionUpdate: "plan"` normalizes to `source: "acp-plan"`.
-- Codex `plan_update` / `plan_delta` normalizes to `source: "codex-plan"` when entries are present.
+- Codex `plan_update` / `plan_delta` normalizes to `source: "codex-plan"` when plan tasks are present.
 
-The old `state.todos` surface is a compatibility projection from `state.plan.entries`. New UI should read `state.plan`.
+The old `state.todos` surface is a legacy projection from `state.plan.entries`. New UI should read `state.plan`.
 
 The active plan renders above the composer as an in-session drawer. The side panel may show a count, but it is not the primary plan surface.
