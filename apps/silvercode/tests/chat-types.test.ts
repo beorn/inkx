@@ -123,6 +123,50 @@ describe("chat transcript tree types", () => {
   })
 
   test("channels are filter metadata, not tree node types", () => {
-    expect(CHAT_CHANNELS).toEqual(["transcript", "activity", "debug", "permission", "plan", "queue", "status", "error"])
+    expect(CHAT_CHANNELS).toEqual([
+      "transcript",
+      "activity",
+      "notification",
+      "debug",
+      "permission",
+      "plan",
+      "queue",
+      "status",
+      "error",
+    ])
+  })
+
+  test("notifications are first-class leaves on the notification channel", () => {
+    const sessionId = id<ChatSessionId>("session-1")
+    const eventId = id<ChatEventId>("event-notification-1")
+    const leafId = id<ChatNodeId>("leaf-notification-1")
+
+    const event = {
+      id: eventId,
+      type: "notification.received",
+      ts: 2,
+      sessionId,
+      payload: { source: "filewatch", title: "Changed files", body: "2 files changed" },
+      rawRefs: [{ id: "raw-notification-1", source: "local" }],
+    } satisfies ChatEvent<"notification.received">
+
+    const leaf = {
+      id: leafId,
+      type: "notification",
+      channel: "notification",
+      eventIds: [eventId],
+      width: "prose",
+      defaultDisclosure: "collapsed",
+      detailAccess: ["expand", "cmd-hover"],
+      rawRefs: event.rawRefs,
+      props: event.payload,
+    } satisfies ChatNode
+
+    expect(isChatLeaf(leaf)).toBe(true)
+    expect(leaf).toMatchObject({
+      type: "notification",
+      channel: "notification",
+      props: { source: "filewatch", title: "Changed files", body: "2 files changed" },
+    })
   })
 })

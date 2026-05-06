@@ -14,6 +14,7 @@ export type ChatPermissionId = Brand<string, "ChatPermissionId">
 export const CHAT_CHANNELS = [
   "transcript",
   "activity",
+  "notification",
   "debug",
   "permission",
   "plan",
@@ -48,6 +49,7 @@ export type ChatEventType =
   | "permission.resolved"
   | "plan.updated"
   | "queue.updated"
+  | "notification.received"
   | "session.updated"
   | "status.updated"
   | "error.raised"
@@ -59,11 +61,21 @@ export type ChatEventPayloads = {
   "message.completed": { messageId: ChatMessageId }
   "tool.started": { toolId: ChatToolId; name: string; input?: unknown }
   "tool.updated": { toolId: ChatToolId; status?: ChatStatus; outputDelta?: unknown }
-  "tool.completed": { toolId: ChatToolId; status: Extract<ChatStatus, "done" | "failed" | "cancelled">; output?: unknown }
-  "permission.requested": { permissionId: ChatPermissionId; toolId?: ChatToolId; prompt: string; options: readonly string[] }
+  "tool.completed": {
+    toolId: ChatToolId
+    status: Extract<ChatStatus, "done" | "failed" | "cancelled">
+    output?: unknown
+  }
+  "permission.requested": {
+    permissionId: ChatPermissionId
+    toolId?: ChatToolId
+    prompt: string
+    options: readonly string[]
+  }
   "permission.resolved": { permissionId: ChatPermissionId; decision: "approved" | "rejected" | "cancelled" }
   "plan.updated": { plan: ChatPlan }
   "queue.updated": { queue: ChatQueue }
+  "notification.received": ChatNotificationLeafProps
   "session.updated": { title?: string; model?: string; mode?: string; cwd?: string }
   "status.updated": { status: string; severity?: ChatSeverity }
   "error.raised": { message: string; severity?: ChatSeverity; raw?: unknown }
@@ -165,6 +177,7 @@ export type ChatLeafType =
   | "permission"
   | "plan-update"
   | "queue"
+  | "notification"
   | "session-status"
   | "file-snapshot"
   | "hook"
@@ -222,6 +235,7 @@ export type ChatLeaf =
   | ChatLeafBase<"permission", ChatPermissionLeafProps>
   | ChatLeafBase<"plan-update", ChatPlanUpdateLeafProps>
   | ChatLeafBase<"queue", ChatQueueLeafProps>
+  | ChatLeafBase<"notification", ChatNotificationLeafProps>
   | ChatLeafBase<"session-status", ChatStatusLeafProps>
   | ChatLeafBase<"file-snapshot", ChatFileSnapshotLeafProps>
   | ChatLeafBase<"hook", ChatDebugLeafProps>
@@ -241,6 +255,7 @@ export type ChatLeafProps =
   | ChatPermissionLeafProps
   | ChatPlanUpdateLeafProps
   | ChatQueueLeafProps
+  | ChatNotificationLeafProps
   | ChatStatusLeafProps
   | ChatFileSnapshotLeafProps
   | ChatUsageLeafProps
@@ -251,7 +266,12 @@ export type ChatTextLeafProps = { text: string }
 export type ChatAttachmentLeafProps = { attachment: ChatAttachment }
 export type ChatPathLeafProps = { path: string; preview?: string }
 export type ChatSearchLeafProps = { query: string; matches?: number; path?: string }
-export type ChatPatchLeafProps = { path: string; operation: "create" | "update" | "delete"; added?: number; removed?: number }
+export type ChatPatchLeafProps = {
+  path: string
+  operation: "create" | "update" | "delete"
+  added?: number
+  removed?: number
+}
 export type ChatCommandLeafProps = {
   command: string
   cwd?: string
@@ -263,7 +283,16 @@ export type ChatCommandLeafProps = {
 export type ChatToolLeafProps = { name: string; input?: unknown; output?: unknown }
 export type ChatPermissionLeafProps = { prompt: string; decision?: "approved" | "rejected" | "cancelled" }
 export type ChatPlanUpdateLeafProps = { taskCount: number; changedTaskIds?: readonly ChatPlanTaskId[] }
-export type ChatQueueLeafProps = { itemId?: ChatQueueItemId; action: "queued" | "started" | "finished" | "cancelled" | "updated" }
+export type ChatQueueLeafProps = {
+  itemId?: ChatQueueItemId
+  action: "queued" | "started" | "finished" | "cancelled" | "updated"
+}
+export type ChatNotificationLeafProps = {
+  source: string
+  title?: string
+  body: string
+  actionable?: boolean
+}
 export type ChatStatusLeafProps = { label: string; value?: string }
 export type ChatFileSnapshotLeafProps = { files: readonly string[] }
 export type ChatUsageLeafProps = { inputTokens?: number; outputTokens?: number; costUsd?: number }

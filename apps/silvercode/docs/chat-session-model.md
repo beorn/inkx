@@ -23,6 +23,12 @@ Source ids stay source-specific. Claude message/jsonl UUIDs are message provenan
 
 `MessageEntry` and `MessageOp` are current implementation names, not the target vocabulary for new transcript presentation. New work should migrate toward `ChatMessage`, `ChatMessagePart`, `ChatEvent`, `ChatNode`, `ChatElement`, `ChatLeaf`, and `ChatTree` in a dedicated rename phase before changing renderer behavior.
 
+## Blocks and Channels
+
+`ChatPane` is the session pane. `ChatBlock` is UI vocabulary for a rendered transcript block; it is not the canonical data model. In data, use `ChatNode`; nodes with children are `ChatElement`s, and renderable leaves are `ChatLeaf`s.
+
+Channels are filters and routing metadata on leaves, not grouping nodes in the tree. Notifications use the `notification` channel and `notification` leaf type. Debug records use the `debug` channel. Older background-context wording should be treated as notification-channel work unless a doc is describing old provider bytes verbatim.
+
 ## Silvercode Chat Turns
 
 `Chat.Turn.*` is UI vocabulary. A Silvercode chat turn is an idle-delimited presentation group, not one prompt plus one response.
@@ -42,4 +48,3 @@ Use `turnKey` only as a UI projection key. It is derived from canonical session-
 The old `state.todos` surface is a legacy projection from `state.plan.entries`. New UI should read `state.plan`.
 
 The active plan renders above the composer as an in-session drawer. The side panel may show a count, but it is not the primary plan surface.
-
