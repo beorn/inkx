@@ -2,17 +2,6 @@
 mentions:
   - km
   - Bjørn
-id: "@km/storage/tree/editor-model"
-aliases:
-  - @km/storage/tree.editor-model
-  - @km/storage/tree-editor-model
-created_by: Bjørn Stabell
-created_at: 2026-04-03T03:31:55Z
-closed_at: 2026-04-03T03:54:12Z
-close_reason: "Shipped in a08e115e. board-tree-ops.ts: boardSplit,
-  boardMergeBackward, boardMergeForward. Atomic cursor in all callers."
-owner: bjorn@stabell.org
-assignee: Bjørn Stabell
 ---
 
 # [x] Editor model (SlateJS-aligned) — tree ops carry cursor intent atomically @km/storage/tree #task #P2 @Bjørn Stabell

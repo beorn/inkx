@@ -26,14 +26,14 @@ props:
     type: list
     values:
       - type: link
-        target: km-shared.text-render-package
+        target: "@km/silvercode/text-render-package"
       - type: link
         target: km-silvercode
 ---
 
 # [ ] Markdown table rendering with column alignment @km/silvercode #feature #P0
 
-blocks:: [[@km/shared/text-render-package]], [[@km/silvercode]]
+blocks:: [[@km/silvercode/text-render-package]], [[@km/silvercode]]
 
 Render markdown tables in silvercode's MarkdownView with column alignment from header separators (:--- / :---: / ---:).
 

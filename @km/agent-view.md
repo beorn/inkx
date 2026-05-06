@@ -8,10 +8,9 @@ aliases:
 created_by: claude:c6244087
 created_at: 2026-04-23T06:13:02Z
 closed_at: 2026-05-06T20:28:00Z
-close_reason: >-
-  Subsumed by @km/silvercode (the agent workspace app). Earlier name for the
-  same project; mvp-design.md child already closed. Dropped (won't-do) per
-  scope-consolidation; apps/km-agent-view/ being absorbed into silvercode.
+close_reason: Subsumed by @km/silvercode (the agent workspace app). Earlier name
+  for the same project; mvp-design.md child already closed. Dropped (won't-do)
+  per scope-consolidation; apps/km-agent-view/ being absorbed into silvercode.
 owner: bjorn@stabell.org
 ---
 

@@ -2,12 +2,6 @@
 mentions:
   - beorn
   - km
-id: "@km/infra/vitestx/core"
-aliases:
-  - @km/infra/vitestx.core
-  - @km/infra/vitestx-core
-created_at: 2026-02-04T11:27:27Z
-closed_at: 2026-02-04T13:02:34Z
 ---
 
 # [x] Extract @beorn/test - unified test framework with fuzz and AI modes @km/infra/vitestx #epic #P2

@@ -1,15 +1,6 @@
 ---
 mentions:
   - km
-id: "@km/storage/tree/selection-model"
-aliases:
-  - @km/storage/tree.selection-model
-  - @km/storage/tree-selection-model
-created_by: Bjørn Stabell
-created_at: 2026-04-03T03:56:06Z
-closed_at: 2026-04-03T04:23:10Z
-close_reason: Shipped 70005f95. Point/Range + transformPoint/Range/Selection.
-owner: bjorn@stabell.org
 ---
 
 # [x] Phase 5: Selection model — Point/Range types with auto-adjustment @km/storage/tree #task #P3

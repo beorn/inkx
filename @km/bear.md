@@ -8,11 +8,10 @@ aliases:
 created_by: Bjørn Stabell
 created_at: 2026-04-17T06:03:43Z
 closed_at: 2026-05-06T20:28:00Z
-close_reason: >-
-  Workspace-daemon plan shipped. All 7 phase children closed (test-infra,
-  mcp-wrapper, daemon, focus, summarizer, dedup-inject, unified-daemon).
-  Future bear-style work tracked under @km/tribe per scope-consolidation.
-  See hub/km/scope-consolidation-target.md.
+close_reason: Workspace-daemon plan shipped. All 7 phase children closed
+  (test-infra, mcp-wrapper, daemon, focus, summarizer, dedup-inject,
+  unified-daemon). Future bear-style work tracked under @km/tribe per
+  scope-consolidation. See hub/km/scope-consolidation-target.md.
 owner: bjorn@stabell.org
 ---
 

@@ -2,8 +2,9 @@
 mentions:
   - km
   - claude
-id: "@km/shared/text-render-package"
+id: "@km/silvercode/text-render-package"
 aliases:
+  - "@km/shared/text-render-package"
   - km-shared.text-render-package
   - km-shared-text-render-package
 created_by: claude:2405c72e

@@ -1,18 +1,6 @@
 ---
 mentions:
   - km
-id: "@km/storage/tree/ktree-path-method"
-aliases:
-  - @km/storage/tree.ktree-path-method
-  - @km/storage/tree-ktree-path-method
-created_by: claude:bjorns-2026-04-30
-created_at: 2026-04-30T10:13:00Z
-type: feature
-priority: P2
-parent: "@km/storage/tree"
-closeReason: "Shipped: packages/@km/storage/tree/src/walk.ts:202 has KTree.path(tree,
-  nodeId) → string | null. Walks parent chain via name, no fs_path read. Used by
-  serialization paths and tests."
 ---
 
 # [x] KTree.path(tree, id) — canonical path derivation in the KTree namespace @km/storage/tree #task #P2

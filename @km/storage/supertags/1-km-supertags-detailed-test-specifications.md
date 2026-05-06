@@ -1,13 +1,6 @@
 ---
 mentions:
   - km
-id: "@km/storage/supertags/1-km-supertags-detailed-test-specifications"
-aliases:
-  - @km/storage/supertags.1
-  - @km/storage/supertags-1
-  - "@km/storage/supertags/1"
-created_at: 2026-01-21T10:32:00Z
-closed_at: 2026-02-14T21:08:00Z
 ---
 
 # [x] km-supertags: Detailed Test Specifications @km/storage/supertags #task #P4

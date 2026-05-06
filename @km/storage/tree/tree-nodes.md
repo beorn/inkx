@@ -2,18 +2,6 @@
 mentions:
   - km
   - Bjørn
-id: "@km/storage/tree/tree-nodes"
-aliases:
-  - @km/storage/tree.tree-nodes
-  - @km/storage/tree-tree-nodes
-created_by: Bjørn Stabell
-created_at: 2026-04-02T20:12:21Z
-closed_at: 2026-04-02T20:35:00Z
-close_reason: "Shipped by km-work: TreeWalk.nodes() with match+into+reverse, 30
-  tests, object match shorthand, type-narrowing predicates. Commits 66566b68,
-  580ebd74, 6456dbea."
-owner: bjorn@stabell.org
-assignee: Bjørn Stabell
 ---
 
 # [x] Tree.nodes(): SlateJS-style pluggable tree traversal @km/storage/tree #task #P2 @Bjørn Stabell

@@ -1,17 +1,6 @@
 ---
 mentions:
   - km
-id: "@km/storage/tree/schema-fixes"
-aliases:
-  - @km/storage/tree.schema-fixes
-  - @km/storage/tree-schema-fixes
-created_by: Bjørn Stabell
-created_at: 2026-04-01T19:59:28Z
-closed_at: 2026-04-01T20:23:32Z
-close_reason: "Commit 6c251625: schema layer
-  (canHaveChildren/canParent/canBecomeBlock), joinBackward child guard,
-  body-prefix validation, getEditableText/setEditableText. 407 tests pass."
-owner: bjorn@stabell.org
 ---
 
 # [x] Fix 6 schema/spec contradictions before Phase 1 (from pro review) @km/storage/tree #task #P1

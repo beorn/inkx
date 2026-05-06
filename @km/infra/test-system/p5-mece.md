@@ -1,24 +1,6 @@
 ---
 mentions:
   - km
-id: "@km/infra/test-system/p5-mece"
-aliases:
-  - @km/infra/test-system.p5-mece
-  - @km/infra/test-system-p5-mece
-created_by: Bjørn Stabell
-created_at: 2026-04-18T07:44:53Z
-owner: bjorn@stabell.org
-dependencies:
-  - issue_id: @km/infra/test-system.p5-mece
-    depends_on_id: @km/infra/test-system
-    type: parent-child
-    created_at: 2026-04-18T00:46:11Z
-    created_by: Bjørn Stabell
-    metadata: "{}"
-props:
-  blocked-by:
-    type: link
-    target: "@km/infra/test-system"
 ---
 
 # [ ] Phase 5: MECE reorg — consolidate tests from ~130 to ~55-60 files @km/all #task #P2

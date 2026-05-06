@@ -38,131 +38,285 @@ The target is not pixel cloning. It is same-or-better task reconstruction: a rev
 | Tables/prose              | Markdown/table rendering can be visually heavier than Claude Code and must never truncate important cell content.                                  | Neutral tables, wrapping cells, consistent linkification, and no clipped content in normal transcript width.                                                                                                                                      |
 | Raw details               | Raw inspectors are valuable but can occlude the wrong material or fail to show enough.                                                             | Every nontrivial block is expandable or supports cmd-hover raw detail. Inspectors are contextual, complete, and avoid covering the content being inspected when possible.                                                                         |
 
-## ChatBlock Taxonomy And Feature Name
+## Target Model
 
-The feature is **Chat Blocks**.
+The feature is **Chat Transcript Tree**.
 
-Raw source events should flow through:
+Canonical flow:
 
-`SourceEvent -> SessionEvent -> ChatBlock`
+```text
+AgentEvent -> normalizeAgentEvent(...) -> ChatEvent -> apply(ChatEvent) -> ChatState
+                                                               |
+                                                               v
+                                                  projectChatTranscript(...)
+                                                               |
+                                                               v
+                                                       ChatSession.tree
+```
+
+`AgentEvent` is the adapter/runtime boundary. `apply(...)` should see canonical `ChatEvent`s, not provider-native records or app queue internals.
 
 Use these terms consistently:
 
-- `SourceEvent`: raw input from any source, such as a Claude JSONL row, Codex rollout event, ACP session update, OpenAI response item, Silvercode queue event, local hook event, or restored transcript record.
-- `SessionEvent`: normalized chronological fact in a Silvercode session. Some SessionEvents are message events; others are tool, permission, plan, queue, session, lifecycle, or debug events.
-- `ChatMessage`: accumulated role-bearing user/assistant/system message state. Messages are narrower than blocks.
-- `ChatBlock`: the UI-ready transcript block and rendered visual unit. A ChatBlock owns its kind, content, status, summary, disclosure policy, raw refs, and rendering behavior.
-- `ChatBlockPresentationPolicy`: the centralized policy matrix that decides whether a SessionEvent creates a block, joins a grouped block, updates state only, stays Debug-only, or is hidden.
+- `AgentEvent`: adapter/runtime event from Claude, Codex, ACP, local hooks, queue machinery, replay, or restore. This is outside the core reducer.
+- `ChatEvent`: normalized chronological fact in a Silvercode chat session. This is what `apply(...)` accepts.
+- `ChatState`: accumulated canonical state after applying ChatEvents.
+- `ChatSession`: projected chat session view, including the transcript tree, channels, and UI state.
+- `ChatNode`: any node in the projected transcript tree.
+- `ChatElement`: ChatNode with `children`; examples: root, turn, message, work, subtask.
+- `ChatLeaf`: ChatNode without `children`; a renderable transcript leaf.
+- `ChatChannel`: filter/routing metadata on leaves, not tree structure.
+- `ChatMessage`: role-bearing user/assistant/system content.
+- `ChatMessagePart`: typed content inside a ChatMessage.
+- `ChatNodeState`: UI state keyed by node id, such as disclosure, selection, hover/raw detail.
+- `projectChatTranscript(...)`: the central projection/transformation. Do not introduce a separate policy abstraction.
 
-The living design doc is `apps/silvercode/docs/chat-block-taxonomy.md`. Future changes to transcript grouping, summarization, default expansion, or Debug visibility should update that doc and the policy tests in the same patch.
+`ChatBlock` may remain a React component family name for rendering a ChatLeaf. It is not the data model.
 
 ## Vocabulary Migration
 
-Migrate Silvercode transcript work to one vocabulary:
-
-- `SourceEvent`: raw source-native input.
-- `SessionEvent`: normalized chronological session fact.
-- `ChatMessage`: accumulated user/assistant/system message state.
-- `MessagePart`: typed content inside a ChatMessage.
-- `ChatBlock`: UI-ready transcript block and rendered visual unit.
-- `ChatBlockPresentationPolicy`: the central rules matrix for creation, grouping, summaries, disclosure, width, and raw/debug access.
-- `StateSurface`: stateful destination such as header, side panel, plan drawer, queue indicator, permission inbox, usage/status surface.
+Migrate Silvercode transcript work to the target vocabulary above before implementing new renderer behavior.
 
 Known vocabulary issues:
 
-- `AgentEvent` is current legacy code vocabulary in `packages/agent-harness/src/events.ts`. Treat it as an implementation surface to rename or isolate behind a tracked source boundary, not the target concept.
-- ACP `SessionUpdate` is a source/update surface. Do not conflate it with Silvercode `SessionEvent`.
-- `MessageEntry` and `MessageOp` are current implementation names; new transcript presentation should migrate toward `ChatMessage`, `MessagePart`, and `ChatBlock`.
-- `Chat.Turn.*` is UI grouping vocabulary only. New canonical model fields should not depend on provider `turnId`.
-- Historical `entry`, `row`, `item`, and `card` language remains in components/tests/beads. Migrate docs, tests, stories, fixtures, and touched source before implementing new ChatBlock behavior.
+- The current `AgentEvent` type in `packages/agent-harness/src/events.ts` is a legacy adapter boundary. The core chat reducer should receive `ChatEvent`.
+- ACP `SessionUpdate` is an adapter input shape. Do not let ACP naming leak into ChatState or ChatSession tree types.
+- Current `MessageEntry`, `MessageOp`, activity segment, and transcript-slice types predate the ChatNode model. Rename or isolate them during the vocabulary phase.
+- `Chat.Turn.*` is UI component vocabulary only. New canonical model fields should not depend on provider `turnId`.
+- Historical `entry`, `row`, `item`, `card`, and data-model `block` language remains in components/tests/beads. Migrate docs, tests, stories, fixtures, and touched source before implementing the new transcript tree.
 
 Refactoring rules for this epic:
 
-- Vocabulary migration is Phase 1, not a cleanup task. New renderers and presentation policy work should not start until the vocabulary gate passes.
+- Vocabulary migration is Phase 1, not a cleanup task. New renderers and projection behavior should not start until the vocabulary gate passes.
 - Keep mechanical rename work separate from behavior changes.
 - Sweep the seven rename layers from the refactor workflow: data/fixtures, types, functions, files, comments, docs, and tests.
 - Do not leave soft-migration aliases or old-name wrappers as the long-term path. If a legacy boundary must remain for a phase, list it explicitly and create the cleanup bead before closing that phase.
 - `/complete` criteria must include exact grep commands and actual counts, not only passing tests.
 
-## ChatBlock Taxonomy
+## Target `types.ts`
 
-Message blocks:
+Phase 1 should add a type-only substrate at `apps/silvercode/src/chat/types.ts`. The first implementation should be close to this shape:
 
-- `UserTextBlock`: actual user-authored text and explicit attachments only. Never mix queue records, prompt snapshots, reminders, or metadata into this visual primitive.
-- `AssistantTextBlock`: assistant prose. This is the primary readable transcript surface and should stand out more than debug/internal machinery.
-- `ReasoningBlock`: thinking/reasoning deltas. Render muted or collapsed unless currently active or explicitly expanded.
-- `RecapBlock`: `away_summary`, compact summaries, Codex compaction/context summaries, response `summary` items. Render as `RECAP &middot; summary text`, with full recap/raw on expand or cmd-hover.
+```ts
+export type Brand<T, Name extends string> = T & { readonly __brand: Name }
 
-Work blocks needing specialized renderers:
+export type AgentEventId = Brand<string, "AgentEventId">
+export type ChatEventId = Brand<string, "ChatEventId">
+export type ChatSessionId = Brand<string, "ChatSessionId">
+export type ChatNodeId = Brand<string, "ChatNodeId">
+export type ChatMessageId = Brand<string, "ChatMessageId">
+export type ChatMessagePartId = Brand<string, "ChatMessagePartId">
+export type ChatToolId = Brand<string, "ChatToolId">
+export type ChatChannelId = Brand<string, "ChatChannelId">
 
-- `PatchBlock`: `Edit`, `MultiEdit`, `Write`, `apply_patch`, `patch_apply_*`, `turn_diff`, `edited_text_file`, ghost snapshots/commits. Needs path, operation, added/removed counts, real line numbers, syntax-highlighted diff, and no repeated path boilerplate.
-- `CommandBlock`: `Bash`, `exec_command_*`, `execution`, terminal interaction, ACP execute tools. Needs command, cwd, exit status, duration, stdout, stderr, and raw payload.
-- `ReadSearchFetchBlock`: `Read`, `Grep`, `Glob`, `LS`, web fetch/search, `tool_search_output`. Needs compact activity summaries plus detail blocks.
-- `ToolBlock`: tools without a richer mapping. Needs a generic block that still preserves input/output/raw detail.
-- `MediaBlock`: image generation, image viewing, and media/resource outputs. Needs artifact metadata and preview when available.
-- `SubAgentBlock`: Claude `Task`, Codex collaboration/task events, background agent work. Needs status, child stream, result, and raw detail.
-- `CommitLifecycleBlock`: git commit/push outcomes. Needs compact muted lifecycle/status blocks with hash/remote data when available.
+export type ChatRole = "user" | "assistant" | "system"
+export type ChatSeverity = "info" | "warning" | "error"
+export type ChatStatus = "pending" | "running" | "done" | "failed" | "cancelled"
+export type ChatDisclosure = "expanded" | "collapsed" | "adaptive"
+export type ChatWidth = "prose" | "wide" | "full"
 
-State/control blocks:
+export type ChatEvent = {
+  id: ChatEventId
+  type: ChatEventType
+  ts: number
+  sessionId: ChatSessionId
+  agentEventId?: AgentEventId
+  payload: ChatEventPayload
+  rawRefs: readonly ChatRawRef[]
+}
 
-- `SessionIdentityBlock`: session init/meta, `agent-name`, `custom-title`, `ai-title`, thread-name/session-info updates. Update header/sidebar state; prefer `custom-title` over agent name; show secondary metadata on expansion/debug.
-- `ModeConfigBlock`: permission mode, auto mode, config/mode/model updates. Update status/header/sidebar; do not show as normal transcript.
-- `UsageCostBlock`: token/cost/context updates. Update side panel/status detail; Debug raw available.
-- `QueueBlock`: `queue-operation`, `queued_command`, `last-prompt`, `turn_context`, and Silvercode queue state. Update queue UI/debug lifecycle; never render as a user prompt.
-- `PermissionBlock`: permission requests/decisions, exec/apply-patch approval, elicitation, command permissions. Render actionable permission UI while pending; collapse resolved detail.
-- `PlanTodoBlock`: plan updates, TodoWrite snapshots, task status/reminders, request-user-input. Update plan/task UI first; hide transcript blocks when the visual state already reflects the change.
+export type ChatEventType =
+  | "message.started"
+  | "message.part.added"
+  | "message.completed"
+  | "tool.started"
+  | "tool.updated"
+  | "tool.completed"
+  | "permission.requested"
+  | "permission.resolved"
+  | "plan.updated"
+  | "queue.updated"
+  | "session.updated"
+  | "status.updated"
+  | "error.raised"
+  | "debug.recorded"
 
-Debug/diagnostic blocks:
+export type ChatEventPayload = Record<string, unknown>
 
-- `HookDebugBlock`: hook started/completed/success/context. Debug notification group; visible errors only.
-- `McpSkillDebugBlock`: MCP startup/tools, skill listings, invoked skills, deferred tools, MCP instruction deltas. Debug notification group.
-- `FileSnapshotDebugBlock`: file history snapshots and compact file references. Debug notification group with file count/list.
-- `ModelGuardDebugBlock`: model verification/reroute, guardian assessment, deprecation notices. Debug by default; warnings/errors visible.
-- `UnknownDebugBlock`: unclassified provider payloads. Debug-only raw block, never user/assistant prose.
+export type ChatRawRef = {
+  id: string
+  source: "agent" | "adapter" | "local" | "replay" | "restore"
+  label?: string
+}
 
-Lifecycle blocks:
+export type ChatMessage = {
+  id: ChatMessageId
+  role: ChatRole
+  partIds: readonly ChatMessagePartId[]
+  eventIds: readonly ChatEventId[]
+}
 
-- `TurnLifecycleBlock`: turn start/end/abort and stream chunk boundaries. Mostly hidden grouping metadata; aborts visible.
-- `SessionLifecycleBlock`: session end, shutdown, undo, rollback, review-mode transitions. Muted lifecycle/status blocks only when user-relevant.
-- `LivenessBlock`: liveness checks, generic status, background events. State/status surface first; Debug detail.
-- `ErrorWarningBlock`: errors, warnings, stream errors, parse/tool failures. Visible error/warning block with raw detail.
+export type ChatMessagePart =
+  | { id: ChatMessagePartId; type: "text"; text: string; eventIds: readonly ChatEventId[] }
+  | { id: ChatMessagePartId; type: "reasoning"; text: string; eventIds: readonly ChatEventId[] }
+  | { id: ChatMessagePartId; type: "attachment"; attachment: ChatAttachment; eventIds: readonly ChatEventId[] }
+  | { id: ChatMessagePartId; type: "tool-ref"; toolId: ChatToolId; eventIds: readonly ChatEventId[] }
 
-## Centralized Summarization And Disclosure Policy
+export type ChatAttachment = {
+  kind: "file" | "image" | "url" | "resource"
+  label: string
+  uri?: string
+  mimeType?: string
+}
 
-The scattered logic for labels, activity counts, body truncation, prose/wide width, raw inspectors, and default expansion should converge into `ChatBlockPresentationPolicy`. Every policy entry should define:
+export type ChatElementType = "root" | "turn" | "message" | "work" | "subtask"
 
-- event source or `SessionEvent` kind
-- block kind, grouped block target, `state-only`, `debug-only`, or `hidden`
-- summary text: e.g. `Read 4 files`, `Edited 2 files +10 -3`, `Ran 3 commands`
-- grouping key and grouping boundaries
-- default disclosure: `expanded`, `collapsed`, `adaptive`, or `state-only`
-- detail access: click expansion, cmd-hover raw inspector, side-panel detail, or all of these
-- width policy: prose for summary blocks; wide/auto only for expanded bodies that need it
-- debug/raw fields to preserve
+export type ChatLeafType =
+  | "user-text"
+  | "assistant-text"
+  | "reasoning"
+  | "attachment"
+  | "recap"
+  | "read"
+  | "search"
+  | "patch"
+  | "command"
+  | "tool"
+  | "permission"
+  | "plan-update"
+  | "queue"
+  | "session-status"
+  | "file-snapshot"
+  | "hook"
+  | "mcp"
+  | "usage"
+  | "error"
+  | "unknown"
+
+export type ChatNode = ChatElement | ChatLeaf
+
+export type ChatElement = {
+  id: ChatNodeId
+  type: ChatElementType
+  children: readonly ChatNodeId[]
+  eventIds: readonly ChatEventId[]
+  summary?: string
+}
+
+export type ChatLeaf = {
+  id: ChatNodeId
+  type: ChatLeafType
+  channel: ChatChannelId
+  eventIds: readonly ChatEventId[]
+  messageIds?: readonly ChatMessageId[]
+  partIds?: readonly ChatMessagePartId[]
+  toolIds?: readonly ChatToolId[]
+  summary?: string
+  status?: ChatStatus
+  severity?: ChatSeverity
+  width: ChatWidth
+  defaultDisclosure: ChatDisclosure
+  detailAccess: readonly ChatDetailAccess[]
+  rawRefs: readonly ChatRawRef[]
+  props: ChatLeafProps
+}
+
+export type ChatDetailAccess = "expand" | "cmd-hover" | "side-panel"
+export type ChatLeafProps = Record<string, unknown>
+
+export type ChatChannelState = {
+  id: ChatChannelId
+  label: string
+  visible: boolean
+  muted: boolean
+}
+
+export type ChatTranscriptTree = {
+  rootId: ChatNodeId
+  nodesById: Readonly<Record<ChatNodeId, ChatNode>>
+}
+
+export type ChatNodeState = {
+  disclosureByNodeId: Readonly<Record<ChatNodeId, ChatDisclosure>>
+  selectedNodeId?: ChatNodeId
+  rawInspector?: { nodeId: ChatNodeId; rawRefId: string }
+}
+
+export type ChatSession = {
+  id: ChatSessionId
+  events: readonly ChatEvent[]
+  messagesById: Readonly<Record<ChatMessageId, ChatMessage>>
+  messagePartsById: Readonly<Record<ChatMessagePartId, ChatMessagePart>>
+  tree: ChatTranscriptTree
+  channels: Readonly<Record<ChatChannelId, ChatChannelState>>
+  nodeState: ChatNodeState
+}
+```
+
+Design notes:
+
+- `type` is the discriminator for both elements and leaves. The structural difference is whether `children` exists.
+- Channels are filters and routing metadata. They do not shape the tree.
+- Debug records are not grouped by default. They are chronological ChatLeaf nodes with `channel = debug`.
+- Work grouping is represented by `ChatElement` nodes only when grouping improves the primary transcript, such as compact read/edit/run summaries.
+- `alien-projections` can help maintain flat keyed views such as visible leaves, pending permissions, running tools, or channel-filtered lists.
+- `alien-trees` is appropriate if the ChatSession tree needs stable per-node subscriptions or descendant aggregates. The domain owner is still `projectChatTranscript(...)`, not the alien primitive.
+
+Example tree:
+
+```text
+root
+  turn:t1
+    message:m1
+      user-text:u1          channel=transcript
+      attachment:att1       channel=transcript
+    message:m2
+      assistant-text:a1     channel=transcript
+    work:w1                 summary="Read 4 files"
+      read:r1               channel=activity
+      search:s1             channel=activity
+    file-snapshot:f1        channel=debug
+    work:w2                 summary="Edited 2 files"
+      patch:p1              channel=activity
+      patch:p2              channel=activity
+    error:e1                channel=error
+```
+
+## Projection Rules
+
+`projectChatTranscript(...)` is the central transformation. It owns:
+
+- event classification into ChatNode types
+- turn/message/work tree grouping
+- channel assignment
+- summary text such as `Read 4 files`, `Edited 2 files`, `Ran 3 commands`
+- default disclosure and width
+- raw/detail access
+- chronological placement
 
 Default rules:
 
-- User prompts and assistant narration are expanded prose by default.
+- User prompts and assistant narration are expanded prose leaves by default.
 - Recaps are visible as `RECAP &middot; ...`; long recaps collapse with full detail available.
-- Patch/edit details are preferred expanded in detail view when small, but bounded/collapsed when huge. Activity summaries can still say `Edited N files`.
+- Patch/edit leaves are expanded in detail when small, but bounded/collapsed when huge.
 - Shell command output is collapsed by default. Failures show concise inline error text while preserving full stdout/stderr on expand.
-- Read/search/fetch results are summarized by count and collapsed by default.
+- Read/search/fetch work can be grouped under a `work` element with a compact summary.
 - Permission requests are expanded while actionable and collapsed after resolution.
-- Plan/todo, title, mode, usage, and queue updates are state-first; transcript blocks are hidden when the state surface already reflects them.
-- Hook/MCP/skill/file-snapshot diagnostics are grouped as Debug blocks and hidden unless Debug is enabled, except warnings/errors.
-- Unknown events are Debug-only with complete raw payload. They should create pressure to classify them, but they must not masquerade as prompt/prose.
-- Grouping must not cross user prompts. Expanded detail must restore original chronology.
-- Every nontrivial block must be expandable or cmd-hover inspectable, even if hidden behind Debug by default.
+- Plan, title, mode, usage, and queue updates update their UI state first; transcript leaves are created only when user-relevant, failed, or Debug-visible.
+- Debug records are hidden or muted by channel state, but remain chronological leaves when Debug is visible.
+- Unknown records become Debug leaves with complete raw payload. They must not masquerade as prompt/prose.
+- Grouping must not cross user prompts unless the tree explicitly represents the interleaving.
+- Every nontrivial leaf must be expandable or cmd-hover inspectable, even if hidden behind Debug by default.
 
 ## Implementation Plan
 
-1. **Vocabulary migration.** Rebase related beads/docs, audit current naming across the seven rename layers, migrate docs/stories/fixtures/tests/touched source to `SourceEvent`, `SessionEvent`, `ChatMessage`, `MessagePart`, `ChatBlock`, `ChatBlockPresentationPolicy`, and `StateSurface`, and add grep checks for rejected design terms.
+1. **Vocabulary and types cutover.** Rebase related beads/docs, audit current naming across the seven rename layers, add `apps/silvercode/src/chat/types.ts`, migrate docs/stories/fixtures/tests/touched source to the ChatEvent/ChatNode/ChatElement/ChatLeaf vocabulary, and add grep checks for rejected design terms.
 2. **Fixture and inventory.** Build a replay fixture from the May 6 parity sessions and screenshots, covering user/assistant text, recaps, patch/edit output, shell output, read/search activity, queue events, title/config updates, task reminders, file snapshots, hooks, MCP/skill diagnostics, and unknown raw events.
-3. **SessionEvent and ChatBlock substrate.** Add target type surfaces and projection inputs after the vocabulary gate. Any retained legacy boundary such as `AgentEvent` or ACP `SessionUpdate` must be listed explicitly with an open cleanup bead before this phase closes.
-4. **Policy scaffold.** Add `ChatBlockPresentationPolicy` with snapshot tests. All visibility, summary, grouping, width, and disclosure decisions should live in one matrix.
-5. **State-first routing.** Route session identity, mode/config, usage/cost, queue, plan/todo, and liveness updates to their state surfaces first. Only create transcript blocks for user-relevant, actionable, failed, or Debug-enabled cases.
-6. **Core block renderers.** Implement `PatchBlock`, `CommandBlock`, `ReadSearchFetchBlock`, `RecapBlock`, `DebugBlock`, and `ErrorWarningBlock` before polishing rarer block types. These cover the screenshots' highest-noise/highest-value gaps.
-7. **Raw detail contract.** Ensure every nontrivial block has click expansion or cmd-hover raw detail, with complete raw refs and contextual placement that does not hide the inspected block.
+3. **ChatEvent normalization substrate.** Add adapter-owned normalization from AgentEvent/ACP/Codex records into ChatEvents. `apply(...)` sees only ChatEvents.
+4. **Transcript projection.** Implement `projectChatTranscript(...)` and the ChatSession tree projection with snapshot tests. Avoid a separate policy abstraction.
+5. **State-first routing and channels.** Route title/mode/usage/queue/plan/liveness to UI state first, assign leaf channels, and make channel visibility/muting drive filtering.
+6. **Core leaf renderers.** Implement renderers for user/assistant text, recap, patch, command, read/search, permission, plan-update, debug leaves, and errors before polishing rarer leaf types.
+7. **Raw detail contract.** Ensure every nontrivial leaf has click expansion or cmd-hover raw detail, with complete raw refs and contextual placement that does not hide the inspected leaf.
 8. **Visual parity review.** Run replay/termless snapshots and screenshot comparison against Claude Code for scanability, chronology, density, detail availability, and debug noise. Silvercode should be same-or-better, not a pixel clone.
 
 ## Refactor Phase Plan
@@ -386,4 +540,3 @@ Likely new/extracted components:
 - Implement `RecapBlock` and session-title/header treatment.
 - Harden raw-detail expansion/cmd-hover for every nontrivial block.
 - Run same-or-better visual parity review against Claude Code.
-

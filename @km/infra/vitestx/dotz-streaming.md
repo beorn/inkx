@@ -1,12 +1,6 @@
 ---
 mentions:
   - km
-id: "@km/infra/vitestx/dotz-streaming"
-aliases:
-  - @km/infra/vitestx.dotz-streaming
-  - @km/infra/vitestx-dotz-streaming
-created_at: 2026-02-04T11:27:39Z
-closed_at: 2026-02-04T11:50:48Z
 ---
 
 # [x] Move vitest-dotz to vitestx package and fix streaming mode @km/infra/vitestx #task #P2

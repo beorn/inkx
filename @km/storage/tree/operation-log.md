@@ -1,15 +1,6 @@
 ---
 mentions:
   - km
-id: "@km/storage/tree/operation-log"
-aliases:
-  - @km/storage/tree.operation-log
-  - @km/storage/tree-operation-log
-created_by: Bjørn Stabell
-created_at: 2026-04-03T03:56:08Z
-closed_at: 2026-04-03T04:23:11Z
-close_reason: Shipped c514eb48. OperationLog + replay + wired into withHistory.
-owner: bjorn@stabell.org
 ---
 
 # [x] Phase 7: Operation log — record ops for undo/collaboration/replay @km/storage/tree #task #P3

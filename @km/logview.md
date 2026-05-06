@@ -8,10 +8,10 @@ aliases:
 created_by: claude:c6244087
 created_at: 2026-04-23T05:56:47Z
 closed_at: 2026-05-06T20:28:00Z
-close_reason: >-
-  All 4 children closed (scaffold-v0, hover-expanded-dark, logrow-complexity,
-  search-flow-broken). Future logview work tracked under @km/silvery as a
-  showcase if it resumes. See hub/km/scope-consolidation-target.md.
+close_reason: All 4 children closed (scaffold-v0, hover-expanded-dark,
+  logrow-complexity, search-flow-broken). Future logview work tracked under
+  @km/silvery as a showcase if it resumes. See
+  hub/km/scope-consolidation-target.md.
 owner: bjorn@stabell.org
 ---
 

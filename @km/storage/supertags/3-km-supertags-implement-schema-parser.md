@@ -1,13 +1,6 @@
 ---
 mentions:
   - km
-id: "@km/storage/supertags/3-km-supertags-implement-schema-parser"
-aliases:
-  - @km/storage/supertags.3
-  - @km/storage/supertags-3
-  - "@km/storage/supertags/3"
-created_at: 2026-01-21T10:48:28Z
-closed_at: 2026-02-14T21:08:00Z
 ---
 
 # [x] km-supertags: Implement schema parser @km/storage/supertags #task #P4

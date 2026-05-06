@@ -1,24 +1,6 @@
 ---
 mentions:
   - km
-id: "@km/infra/test-system/p4-invariants"
-aliases:
-  - @km/infra/test-system.p4-invariants
-  - @km/infra/test-system-p4-invariants
-created_by: Bjørn Stabell
-created_at: 2026-04-18T07:45:54Z
-owner: bjorn@stabell.org
-dependencies:
-  - issue_id: @km/infra/test-system.p4-invariants
-    depends_on_id: @km/infra/test-system
-    type: parent-child
-    created_at: 2026-04-18T00:46:09Z
-    created_by: Bjørn Stabell
-    metadata: "{}"
-props:
-  blocked-by:
-    type: link
-    target: "@km/infra/test-system"
 ---
 
 # [ ] Phase 4 continued: Content stability invariant + property-based tier @km/all #task #P2
