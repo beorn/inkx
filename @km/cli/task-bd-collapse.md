@@ -339,8 +339,28 @@ Full /pro output: `/var/folders/x6/0j792q0d0411wgsxyr1bqkp40000gn/T/llm-f9eb64dc
 
 ## References
 
-- Current `tasks` surface: `apps/km-cli/src/commands/tasks/index.ts`
-- Current `bd` surface: `apps/km-cli/src/commands/bd.ts`
+- Current `task` surface: `apps/km-cli/src/commands/tasks/index.ts` (Command name `task`, alias `tasks`)
+- Current `bd` surface: `apps/km-cli/src/commands/bd.ts` + thin alias-shim siblings
 - bd-fixer recent fix (path-form id resolution): `1cd5dc96c fix(km-beads): derive bead shortId from fs_path when data.id absent`
 - Related in-flight: `@km/storage/move-with-rewrite-refs` (delivers ref-rewrite for rename/move)
 - Related closed: `@km/beads/data-id-stop-writing` (no more `data.id` in frontmatter — file path is canonical)
+
+## Wave status (2026-05-05)
+
+| Wave | Status | Key commits |
+|---|---|---|
+| 1 — additive to existing tasks | ✅ shipped | (earlier sessions) |
+| 1.5 — emitter off public Repo surface | ✅ shipped | (earlier sessions) |
+| 2 — pure-planner extraction propagation | ✅ shipped | (earlier sessions; verified by Wave 3 agent — `*-plan.ts` import-chain immune) |
+| 3 — flag rename + lifecycle hardening | ✅ shipped | `8f32a6ecb` (Bead.reopen + closed_at) + `3dfc5991f` (lifecycle subcommands) + `e05f63a72` (rename + flag drops) + `6a8c726b4` (L5 property tests + apps/km-cli/CLAUDE.md) |
+| 4 — generic km verbs (km set, km move, km stale, km children, km query, --json/--jq) | ⏳ NOT DONE | Blocks Wave 6 from completing fully (see Wave 6 partial-completion notes below) |
+| 5 — graph + bulk (task dep, km link infra) | ✅ shipped | `a22ac7cda` + `41ab329d1` + `9a8ef9d95` (cherry-picked from `feat/wave5-task-dep-links`); 47 new tests |
+| 6 — bd → task/km alias layer | ✅ shipped (partial — Wave 4 gaps documented) | `4e5795817` (alias layer) + `e0eacd33d` (L5 property test). Cleanly delegating: close/drop/claim/list/show/stale/blocked/query/ready. Kept legacy until Wave 4 lands: create/update/rename/children/dep/orphans/info/where/migrate. Total `bd*.ts` LOC: 3773 → 3562 (Wave 6 delegated paths shrank from ~700 to 331 LOC). |
+| 7 — delight | ⏳ partial | Shipped: chrono natural-language dates (`ec8249bb1`), `--dry-run` on bd rename + bd dep + km move (`22d04115f`), `--due`/`--start` flags (`998db0879`), humanized date display (`7e424b585`). Not shipped: short-id resolution, shell completion, status-bar header, working-dir scoping, editor integration, bulk-by-multiple-ids, smart hints. |
+
+### Outstanding for full L4/L5 closure
+
+1. **Wave 4** — generic km verbs (`km set`, `km move` polymorphic, `km stale`, `km children`, `km query`, `--json`/`--jq` on every list-shaped command). This is the biggest remaining wave; once it lands, the legacy-kept bd paths in Wave 6 can collapse to argv-translation thin-shims (alias map already in `bd.ts`).
+2. **Wave 6 completion** — after Wave 4: convert `bd-create.ts` (258 LOC), `bd-update.ts` (235 LOC), `bd-rename.ts` (148 LOC), `bd-children.ts` (63 LOC), `bd-dep.ts` (150 LOC), `bd-orphans.ts` (100 LOC + plan 72 LOC), `bd-info.ts` (164 LOC) from legacy implementations to thin alias-shims. Drop `info`/`where`/`migrate` once `km doctor`/`km config bd.*`/`km import bd` exist.
+3. **Wave 7 finishers** — short-id resolution is the single biggest ergonomic win (taskwarrior-style typing economy). Worth filing as its own P2 bead.
+4. **Wave 1.5/2 verification audits** — claimed-done in earlier memory; the Wave 3 agent's pure-planner check confirms Wave 2 holds for tasks/*-plan.ts. A property-test pass for the public Repo surface invariant (no `repo.emitter` reads in src/) would close Wave 1.5 to L5.
