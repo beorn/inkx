@@ -759,7 +759,11 @@ export function App(props: AppProps): React.ReactElement {
             // exactly what the model received during a resumed session.
             // Hidden from the empty-query palette by default — see
             // slash-commands.ts. Bead: km-silvercode.resume-show-everything-collapsed.
-            return setShowDebug((v) => !v)
+            return setShowDebug((v) => {
+              const next = !v
+              controller.notificationMuteState.set("debug", !next)
+              return next
+            })
           case "/mode": {
             const modes = ["ask", "plan", "accept-edits", "auto", "bypass"]
             const target = modes.includes(arg) ? arg : modes[(modes.indexOf(mode) + 1) % modes.length]!
@@ -1311,6 +1315,11 @@ export function App(props: AppProps): React.ReactElement {
                   setThinking={setThinking}
                   setMode={setMode}
                   defaultModel={props.agent ? BUILTIN_AGENTS[props.agent]?.defaultModel : undefined}
+                  debugChannelVisible={showDebug}
+                  onDebugChannelVisibleChange={(visible) => {
+                    controller.notificationMuteState.set("debug", !visible)
+                    setShowDebug(visible)
+                  }}
                 />
               }
             >

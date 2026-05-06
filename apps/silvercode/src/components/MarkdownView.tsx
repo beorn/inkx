@@ -91,6 +91,7 @@ function InlineRun({
 function needsGapBefore(prev: MdBlock | null, curr: MdBlock): boolean {
   if (!prev) return false
   if (curr.kind === "blank" || prev.kind === "blank") return false
+  if (curr.kind === "table" || prev.kind === "table") return false
   const prevIsList = prev.kind === "bullet" || prev.kind === "ordered"
   const currIsList = curr.kind === "bullet" || curr.kind === "ordered"
   // Consecutive list items of same kind → tight, no gap.
@@ -240,10 +241,7 @@ function InlineTableBlocks({
         <Box key={rowIdx} flexDirection="column" minWidth={0}>
           {headers.map((header, col) => (
             <Text key={col} wrap="wrap">
-              <Text bold color="$primary">
-                {header}:
-              </Text>{" "}
-              {row[col] ?? ""}
+              <Text bold>{header}:</Text> {row[col] ?? ""}
             </Text>
           ))}
         </Box>
@@ -314,6 +312,15 @@ function MarkdownViewBody({
           inlineProse,
         )
         if (!rendered) return null
+        if (b.kind === "table") {
+          return (
+            <React.Fragment key={i}>
+              <Box height={1} flexShrink={0} />
+              {rendered}
+              <Box height={1} flexShrink={0} />
+            </React.Fragment>
+          )
+        }
         if (gap) {
           return (
             <React.Fragment key={i}>

@@ -5,6 +5,7 @@ import type {
   ChatChannelId,
   ChatEvent,
   ChatEventId,
+  ChatEventType,
   ChatMessage,
   ChatMessageId,
   ChatMessagePart,
@@ -168,5 +169,43 @@ describe("chat transcript tree types", () => {
       channel: "notification",
       props: { source: "filewatch", title: "Changed files", body: "2 files changed" },
     })
+  })
+
+  test("every ChatEventType declares its projection outcome", () => {
+    const outcomes = {
+      "message.started": "state",
+      "message.part.added": "leaf",
+      "message.completed": "state",
+      "tool.started": "leaf-or-debug",
+      "tool.updated": "state-or-detail",
+      "tool.completed": "leaf",
+      "permission.requested": "leaf",
+      "permission.resolved": "state",
+      "plan.updated": "state-or-leaf",
+      "queue.updated": "state-or-leaf",
+      "notification.received": "leaf",
+      "session.updated": "state-or-debug",
+      "status.updated": "state-or-leaf",
+      "error.raised": "leaf",
+      "debug.recorded": "debug",
+    } satisfies Record<ChatEventType, string>
+
+    expect(Object.keys(outcomes)).toEqual([
+      "message.started",
+      "message.part.added",
+      "message.completed",
+      "tool.started",
+      "tool.updated",
+      "tool.completed",
+      "permission.requested",
+      "permission.resolved",
+      "plan.updated",
+      "queue.updated",
+      "notification.received",
+      "session.updated",
+      "status.updated",
+      "error.raised",
+      "debug.recorded",
+    ])
   })
 })

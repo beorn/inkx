@@ -840,14 +840,14 @@ type SessionMetadataRowData = {
   fields: Array<[string, string]>
 }
 
-function MutedDivider({ title }: { title: string }): React.ReactElement {
+function MutedDivider({ title, width }: { title: string; width: number }): React.ReactElement {
   return (
     <Box flexDirection="row" width="100%" minWidth={0}>
       <Box width={1} flexShrink={0}>
         <Text> </Text>
       </Box>
       <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} overflow="hidden">
-        <Divider title={title} color="$border-default" titleColor="$fg-muted" titleBold={false} />
+        <Divider title={title} width={width} color="$border-default" titleColor="$fg-muted" titleBold={false} />
       </Box>
       <Box width={1} flexShrink={0}>
         <Text> </Text>
@@ -865,13 +865,14 @@ function SessionMetadataRow({ data }: { data: SessionMetadataRowData }): React.R
   const bg = hover.isHovered ? "$bg-surface-hover" : undefined
   const isDivider = data.kind === "loaded"
   const headerMaxWidth = Math.max(1, content.measure)
+  const dividerWidth = Math.max(1, content.wide - 2)
   const showTimestamp = hover.isHovered && cmdHeld
   const label = [data.title, ...data.parts].join(" · ")
   const dividerLabel = isDivider ? `${marker} ${label}` : label
   const titleWidth = data.title.length + data.parts.reduce((sum, part) => sum + part.length + 3, 0)
   const trailingFill = " ".repeat(Math.max(1, headerMaxWidth - 2 - titleWidth))
   const header = isDivider ? (
-    <MutedDivider title={dividerLabel} />
+    <MutedDivider title={dividerLabel} width={dividerWidth} />
   ) : (
     <Box flexDirection="row" width="100%" maxWidth={headerMaxWidth} minWidth={0} backgroundColor={bg}>
       <Box width={1} flexShrink={0} backgroundColor={bg}>

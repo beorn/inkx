@@ -60,6 +60,7 @@ function makeTranscriptSession(id: string, text: string): SessionHandle {
 }
 
 function makeStubController(): Controller {
+  const muted = new Set<string>(["filewatch", "debug"])
   return {
     snapshot: () => [],
     subscribe: () => () => {},
@@ -84,10 +85,16 @@ function makeStubController(): Controller {
     backgroundTasks: () => [],
     onBackgroundTasksChange: () => () => {},
     notificationMuteState: {
-      isMuted: () => false,
-      muted: () => new Set<string>(),
-      toggle: () => {},
-      set: () => {},
+      isMuted: (key: string) => muted.has(key),
+      muted: () => new Set<string>(muted),
+      toggle: (key: string) => {
+        if (muted.has(key)) muted.delete(key)
+        else muted.add(key)
+      },
+      set: (key: string, value: boolean) => {
+        if (value) muted.add(key)
+        else muted.delete(key)
+      },
       subscribe: () => () => {},
       version: Object.assign(() => 0, { _signal: true }),
     },
@@ -298,7 +305,7 @@ async function renderInteractivePanel(opts: {
   return { term, handle }
 }
 
-function renderPanel(opts: { agent?: string } = {}) {
+function renderPanel(opts: { agent?: string; debugChannelVisible?: boolean } = {}) {
   const render = createRenderer({ cols: TOTAL_COLS, rows: 60 })
   const focused = makeStubSession()
   const controller = makeStubController()
@@ -313,6 +320,8 @@ function renderPanel(opts: { agent?: string } = {}) {
       cwd="/Users/beorn/Code/pim/km"
       controller={controller}
       agent={opts.agent}
+      debugChannelVisible={opts.debugChannelVisible}
+      onDebugChannelVisibleChange={() => {}}
     />,
   )
 }
@@ -505,6 +514,18 @@ describe("SidePanel — multi-account view", () => {
       expect(app.text).toContain("Sessions")
       expect(app.text).not.toContain("Todos 0")
       expect(app.text).not.toContain("Agents 0/0")
+
+      const notificationsRow = app.lines.findIndex((l) => l.includes("Notifications"))
+      const debugRow = app.lines.findIndex((l, row) => row > notificationsRow && l.includes("Debug"))
+      const tribeRow = app.lines.findIndex((l, row) => row > notificationsRow && l.includes("tribe"))
+      expect(notificationsRow).toBeGreaterThan(-1)
+      expect(debugRow, app.text).toBeGreaterThan(notificationsRow)
+      expect(debugRow, app.text).toBeLessThan(tribeRow)
+      expect(app.lines[debugRow], app.text).toContain("[ ]")
+
+      const debugOn = renderPanel({ debugChannelVisible: true })
+      const debugOnRow = debugOn.lines.findIndex((l) => l.includes("Debug"))
+      expect(debugOn.lines[debugOnRow], debugOn.text).toContain("[x]")
     } finally {
       setAllAccountsFactoryOverride(null)
     }

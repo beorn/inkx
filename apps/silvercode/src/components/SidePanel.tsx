@@ -1,5 +1,16 @@
 import React, { Suspense, use, useMemo, useState } from "react"
-import { Box, Muted, ProgressBar, Small, Text, useHover, usePopover, usePopoverHandlers, useStdout } from "silvery"
+import {
+  Box,
+  Muted,
+  ProgressBar,
+  Small,
+  Switch,
+  Text,
+  useHover,
+  usePopover,
+  usePopoverHandlers,
+  useStdout,
+} from "silvery"
 import { BackgroundPane } from "./BackgroundPane.tsx"
 import type { Controller, SessionHandle } from "../controller.ts"
 import { planLabel, type QuotaWindow, windowShortLabel } from "../claude-account.ts"
@@ -25,6 +36,7 @@ import { useClaudeAccount } from "../hooks/use-claude-account.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 import { isTransientAccountError, type AccountSummary } from "../account-status.ts"
 import { copySessionTranscriptToClipboard } from "../session-clipboard.ts"
+import type { ChatChannelId } from "../chat/types.ts"
 
 /**
  * Claude CLI version suffix — Suspense-aware. The async probe runs once
@@ -719,45 +731,50 @@ function SectionHeading({ children }: { children: React.ReactNode }): React.Reac
 }
 
 /**
- * Known notification sources surfaced in the side panel. Mirrors the design
- * doc's source taxonomy. Sources beyond this list still get muted via
+ * Known notification channels/sources surfaced in the side panel. Mirrors the design
+ * doc's taxonomy. Sources beyond this list still get muted via
  * `controller.notificationMuteState.toggle(...)` if a future bead surfaces
  * them programmatically; this constant just controls what the side
  * panel offers as toggle rows.
  */
-const NOTIFICATION_SOURCES: ReadonlyArray<{ id: string; label: string }> = [
-  { id: "tribe", label: "tribe" },
-  { id: "ci", label: "CI" },
-  { id: "recall", label: "recall" },
-  { id: "sub-agent", label: "sub-agent" },
-  { id: "filewatch", label: "file-watch" },
-  { id: "telegram", label: "telegram" },
+type NotificationToggleSpec =
+  | { id: ChatChannelId; label: string; kind: "channel" }
+  | { id: string; label: string; kind: "source" }
+
+const NOTIFICATION_TOGGLES: readonly NotificationToggleSpec[] = [
+  { id: "debug", label: "Debug", kind: "channel" },
+  { id: "tribe", label: "tribe", kind: "source" },
+  { id: "ci", label: "CI", kind: "source" },
+  { id: "recall", label: "recall", kind: "source" },
+  { id: "sub-agent", label: "sub-agent", kind: "source" },
+  { id: "filewatch", label: "file-watch", kind: "source" },
+  { id: "telegram", label: "telegram", kind: "source" },
 ]
 
 /**
- * NotificationMuteRow — one toggle row for a single notification source. Shows a
- * `☐` / `☑︎` checkbox marker plus the source label. Hover arms a brighter
- * background and surfaces a help popover; click toggles the mute.
+ * NotificationToggleRow — one toggle row for a notification channel/source.
+ * Hover arms a brighter background and surfaces a help popover; click toggles
+ * whether the rows render in this chat view.
  */
-function NotificationMuteRow({
-  source,
-  label,
+function NotificationToggleRow({
+  spec,
   isMuted,
-  onToggle,
+  onChange,
 }: {
-  source: string
-  label: string
+  spec: NotificationToggleSpec
   isMuted: boolean
-  onToggle: () => void
+  onChange: (isMuted: boolean) => void
 }): React.ReactElement {
   const { isHovered, onMouseEnter, onMouseLeave } = useHover()
+  const visible = !isMuted
+  const subject = spec.kind === "channel" ? "channel" : "source"
   const popover = usePopoverHandlers({
     body: (
       <Box flexDirection="column" gap={1}>
-        <Text bold>Mute {label}</Text>
+        <Text bold>{spec.label}</Text>
         <Muted>
-          Hides {label} notification rows from this chat scrollback. The agent still receives the events — this is a visual
-          filter only.
+          {visible ? "Shows" : "Hides"} this notification {subject} in the chat scrollback. The agent still receives the
+          events — this is a visual filter only.
         </Muted>
       </Box>
     ),
@@ -768,7 +785,7 @@ function NotificationMuteRow({
       flexDirection="row"
       gap={1}
       flexShrink={0}
-      onClick={onToggle}
+      onClick={() => onChange(!isMuted)}
       onMouseEnter={(e) => {
         onMouseEnter(e)
         popover.onMouseEnter(e)
@@ -779,33 +796,42 @@ function NotificationMuteRow({
       }}
       backgroundColor={isHovered ? "$bg-surface-hover" : undefined}
     >
-      <Text color={isMuted ? "$muted" : "$fg"}>{isMuted ? "☐" : "☑︎"}</Text>
-      <Text color={isMuted ? "$muted" : "$fg"}>{label}</Text>
-      {/* Use the source key as a hidden accessibility hint via popover only;
+      <Switch value={visible} onChange={(nextVisible) => onChange(!nextVisible)} />
+      <Text color={isMuted ? "$muted" : "$fg"}>{spec.label}</Text>
+      {spec.kind === "channel" ? <Small color="$muted">channel</Small> : null}
+      {/* Use the source/channel key as a hidden accessibility hint via popover only;
           the visible label is the human-readable form. */}
       <Box flexBasis={0} minWidth={0}>
-        <Small>{source === label ? "" : ""}</Small>
+        <Small>{spec.id === spec.label ? "" : ""}</Small>
       </Box>
     </Box>
   )
 }
 
 /**
- * NotificationMuteSection — heading + per-source mute rows. Heading hover
+ * NotificationMuteSection — heading + channel/source mute rows. Heading hover
  * popover spells out the structural guarantee that mute is UI-only.
  */
-function NotificationMuteSection({ controller }: { controller: Controller }): React.ReactElement {
+function NotificationMuteSection({
+  controller,
+  debugChannelVisible,
+  onDebugChannelVisibleChange,
+}: {
+  controller: Controller
+  debugChannelVisible?: boolean
+  onDebugChannelVisibleChange?: (visible: boolean) => void
+}): React.ReactElement {
   const muted = useNotificationMuteState(controller)
   const headingHover = usePopoverHandlers({
     body: (
       <Box flexDirection="column" gap={1}>
         <Text bold>Notifications</Text>
         <Muted>
-          Notifications (tribe broadcasts, CI status, recall hits, sub-agent updates, file changes, telegram messages)
-          flow into the agent's context automatically and render inline in the chat scrollback.
+          Notifications include channel views such as Debug and sources such as tribe broadcasts, CI status, recall
+          hits, sub-agent updates, file changes, and telegram messages.
         </Muted>
         <Muted>
-          Toggling a source mutes its inline rows for this view only. The agent still receives every event regardless of
+          Toggling a row mutes its inline rows for this view only. The agent still receives every event regardless of
           mute state.
         </Muted>
       </Box>
@@ -830,15 +856,21 @@ function NotificationMuteSection({ controller }: { controller: Controller }): Re
       >
         <SectionHeading>Notifications</SectionHeading>
       </Box>
-      {NOTIFICATION_SOURCES.map((s) => (
-        <NotificationMuteRow
-          key={s.id}
-          source={s.id}
-          label={s.label}
-          isMuted={muted.has(s.id)}
-          onToggle={() => controller.notificationMuteState.toggle(s.id)}
-        />
-      ))}
+      {NOTIFICATION_TOGGLES.map((s) => {
+        const isControlledDebug = s.kind === "channel" && s.id === "debug" && debugChannelVisible !== undefined
+        const isMuted = isControlledDebug ? !debugChannelVisible : muted.has(s.id)
+        return (
+          <NotificationToggleRow
+            key={s.id}
+            spec={s}
+            isMuted={isMuted}
+            onChange={(nextMuted) => {
+              controller.notificationMuteState.set(s.id, nextMuted)
+              if (s.kind === "channel" && s.id === "debug") onDebugChannelVisibleChange?.(!nextMuted)
+            }}
+          />
+        )
+      })}
     </Box>
   )
 }
@@ -937,6 +969,10 @@ type SidePanelProps = {
    * agents whose ACP session-init lifecycle doesn't carry a model field.
    */
   defaultModel?: string
+  /** Current Debug channel visibility. Mirrors App's `/debug` state. */
+  debugChannelVisible?: boolean
+  /** Toggle Debug channel visibility from the side-panel switch. */
+  onDebugChannelVisibleChange?: (visible: boolean) => void
 }
 
 /**
@@ -960,6 +996,8 @@ function EmptySidePanel({
   setThinking,
   setMode,
   defaultModel,
+  debugChannelVisible,
+  onDebugChannelVisibleChange,
 }: SidePanelProps): React.ReactElement {
   return (
     <SidePanelChrome
@@ -979,6 +1017,8 @@ function EmptySidePanel({
       setThinking={setThinking}
       setMode={setMode}
       defaultModel={defaultModel}
+      debugChannelVisible={debugChannelVisible}
+      onDebugChannelVisibleChange={onDebugChannelVisibleChange}
       backgroundTasks={EMPTY_BACKGROUND_TASKS}
     />
   )
@@ -1023,6 +1063,8 @@ function SidePanelChrome({
   setThinking,
   setMode,
   defaultModel,
+  debugChannelVisible,
+  onDebugChannelVisibleChange,
 }: SidePanelChromeProps): React.ReactElement {
   const [accountView, setAccountView] = useState<"selected" | "all">("selected")
   const { stdout } = useStdout()
@@ -1388,7 +1430,11 @@ function SidePanelChrome({
           is a visual filter only. See
           apps/silvercode/docs/channels.md. */}
       <Box flexShrink={0} height={1} />
-      <NotificationMuteSection controller={controller} />
+      <NotificationMuteSection
+        controller={controller}
+        debugChannelVisible={debugChannelVisible}
+        onDebugChannelVisibleChange={onDebugChannelVisibleChange}
+      />
 
       {/* Background tasks — Ctrl-B during a running turn pushes the in-flight
           turn into the background so the user can keep typing. The row only

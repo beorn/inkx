@@ -38,8 +38,8 @@ P1 @km/silvercode/fork-branch-ux         Fork / branch ergonomics
 
 P2 @km/silvercode/file-watch             File-watch + diagnostic surfacing
   chokidar wrapper (debounced, gitignore-respecting) + LSP-aware re-diagnose on change.
-  Per-pane diagnostic badge; 'files changed' chip + popover; agent tools (workspace_recent_changes, workspace_diagnostics, workspace_diagnostics_summary, workspace_diff_since); apply-patch preview shows projected diagnostic delta; auto-surface via [AMBIENT] gated by @km/silvercode/ambient-context-excellence; doctor checker.
-  Sister-coupling: lsp + ambient-context-excellence. Ship as a unit.
+  Per-pane diagnostic badge; 'files changed' chip + popover; agent tools (workspace_recent_changes, workspace_diagnostics, workspace_diagnostics_summary, workspace_diff_since); apply-patch preview shows projected diagnostic delta; auto-surface via the notification channel gated by @km/silvercode/notification-context-excellence; doctor checker.
+  Sister-coupling: lsp + notification-context-excellence. Ship as a unit.
 
 P3 @km/silvercode/single-binary          Single-binary distribution
   bun build --compile of silvercode + agent-harness + claude-acp + @km/_orphan/mcp-server + tribe-mcp.
@@ -52,6 +52,5 @@ EPIC ACCEPTANCE — close when:
 3. silvercode doctor lsp + silvercode doctor file-watch both ship.
 
 Reference (2026-04-27 honest comparison, no public artifact):
-  silvercode advantages: parallel multi-agent, ACP-native, typed [AMBIENT] pipeline, Silvery TUI, subscription-compatible Claude in-tree, descriptor-driven UI, cross-host tribe-mcp, in-tree storybook, doctor.
+  silvercode advantages: parallel multi-agent, ACP-native, typed notification pipeline, Silvery TUI, subscription-compatible Claude in-tree, descriptor-driven UI, cross-host tribe-mcp, in-tree storybook, doctor.
   opencode advantages (this epic): LSP, fork/branch UX, file-watch, single-binary.
-

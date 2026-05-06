@@ -1,7 +1,7 @@
 /**
  * Mute state — visual filter for the inline notification scrollback.
  *
- * Tracks which notification sources the user has muted in the side panel. Mute
+ * Tracks which notification channels/sources the user has muted in the side panel. Mute
  * is UI-only: it hides matching rows from the chat scrollback but does NOT
  * stop notification events from reaching the agent. Mute is enforced
  * structurally — nothing in `prompt-assembly.ts`, `channel-queue.ts`, or
@@ -19,8 +19,8 @@ import { signal } from "alien-signals"
 import type { Scope } from "@silvery/scope"
 
 /**
- * Visual mute filter for notification sources. Read with `isMuted(source)`;
- * toggle with `toggle(source)`. Components subscribe to `version` (or
+ * Visual mute filter for notification channels/sources. Read with `isMuted(key)`;
+ * toggle with `toggle(key)`. Components subscribe to `version` (or
  * `useSignal(state.version)`) for live updates.
  */
 export type MuteState = {
@@ -44,7 +44,7 @@ export type MuteState = {
 }
 
 export function createMuteState(scope: Scope): MuteState {
-  const muted = new Set<string>(["filewatch"])
+  const muted = new Set<string>(["filewatch", "debug"])
   const subs = new Set<(muted: ReadonlySet<string>) => void>()
   const version = signal(0)
   let disposed = false

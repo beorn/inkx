@@ -655,7 +655,6 @@ function TableGridRoot({
   const headerRule = gridWidths.map((width) => "─".repeat(width)).join("─┼─")
   const topRule = gridWidths.map((width) => "─".repeat(width)).join("─┬─")
   const bottomRule = gridWidths.map((width) => "─".repeat(width)).join("─┴─")
-  const showRowDividers = rows.length > 0 && rows.length < 5
   const renderCells = (cells: readonly string[], bold = false): React.ReactElement[] => {
     const wrapped = headers.map((_, col) => wrapCell(cells[col] ?? "", gridWidths[col] ?? 0))
     const height = Math.max(1, ...wrapped.map((lines) => lines.length))
@@ -665,7 +664,7 @@ function TableGridRoot({
         {headers.map((_, col) => (
           <React.Fragment key={col}>
             {col > 0 && <Text color="$border">{separator}</Text>}
-            <Text bold={bold} color={bold ? "$primary" : undefined}>
+            <Text bold={bold}>
               {padCellLine(wrapped[col]?.[lineIndex] ?? "", gridWidths[col] ?? 0, alignments[col])}
             </Text>
           </React.Fragment>
@@ -685,7 +684,7 @@ function TableGridRoot({
       </Text>
       {rows.map((row, rowIdx) => (
         <React.Fragment key={rowIdx}>
-          {showRowDividers && rowIdx > 0 ? (
+          {rowIdx > 0 ? (
             <Text color="$border" wrap={false}>
               ├{headerRule}┤
             </Text>
@@ -708,10 +707,7 @@ function TableBlocksRoot({ headers, rows }: TableProps): React.ReactElement {
           <Box key={rowIdx} flexDirection="column">
             {headers.map((header, col) => (
               <Text key={col} wrap="wrap">
-                <Text bold color="$primary">
-                  {header}:
-                </Text>{" "}
-                {row[col] ?? ""}
+                <Text bold>{header}:</Text> {row[col] ?? ""}
               </Text>
             ))}
           </Box>

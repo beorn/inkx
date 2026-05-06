@@ -6,9 +6,9 @@
  *
  * Visual:
  *
- *   • Tribe peer alice opened PR #42
+ *   • Tribe - peer alice opened PR #42
  *
- * Layout: neutral bullet | source action | preview (flex 1, wrapped).
+ * Layout: neutral bullet | source lead-in + preview, wrapped as one text run.
  * No source-specific color or fill; hover fill appears only for rows with
  * expandable content.
  *
@@ -573,44 +573,42 @@ export function NotificationEventRow({
     <Box flexDirection="column" backgroundColor={rowBg}>
       <SessionEntry marker="•" markerColor="$muted">
         <Box
-          flexDirection="row"
-          gap={1}
           width="100%"
           paddingY={0}
           onMouseEnter={onEnter}
           onMouseLeave={onLeave}
           onClick={clickable ? onToggleExpand : undefined}
         >
-          <Text bold color="$muted">
-            {label}
-          </Text>
-          {/* Preview — flex 1, wrapping. flexShrink + minWidth=0 keeps long
-              payloads inside the content lane instead of pushing siblings
-              or the side panel off-screen. */}
+          {/* Keep the source as a lead-in, not a separate layout column, so
+              wrapped continuations return to the row text start. */}
           <Box flexGrow={1} flexShrink={1} minWidth={0}>
-            {href ? (
-              <LinkedTerm
-                href={href}
-                color="$muted"
-                popoverBody={
-                  <Box flexDirection="column">
-                    <Text bold>{preview}</Text>
-                    <Text wrap="wrap">{disclosureBody}</Text>
-                  </Box>
-                }
-              >
-                {preview}
-              </LinkedTerm>
-            ) : (
-              <Text color="$muted" wrap="wrap">
-                {preview}
+            <Text color="$muted" wrap="wrap">
+              <Text bold color="$muted">
+                {label}
               </Text>
-            )}
+              {" - "}
+              {href ? (
+                <LinkedTerm
+                  href={href}
+                  color="$muted"
+                  popoverBody={
+                    <Box flexDirection="column">
+                      <Text bold>{preview}</Text>
+                      <Text wrap="wrap">{disclosureBody}</Text>
+                    </Box>
+                  }
+                >
+                  {preview}
+                </LinkedTerm>
+              ) : (
+                preview
+              )}
+            </Text>
           </Box>
         </Box>
       </SessionEntry>
-      {/* Expanded body — full payload, indented to align under the
-          preview column. Same surface bg so it reads as a continuation
+      {/* Expanded body — full payload, indented to align under the row text.
+          Same surface bg so it reads as a continuation
           of the row, not a separate block. Bounded to 30 visible rows
           with kinetic-scroll past that bound — a chatty filewatch burst
           shouldn't push 200 lines of "X changed" into the chat. */}

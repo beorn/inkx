@@ -342,7 +342,12 @@ describe("content layout", () => {
               "**All 6 wave agents complete. Session-final state:**\n\n" +
               "| Agent | Status | Commits |\n" +
               "| --- | --- | --- |\n" +
-              "| typed-surface | pushed | 32fb5b1dc, ba8168787 |\n",
+              "| typed-surface | pushed | 32fb5b1dc, ba8168787 |\n" +
+              "| tests | pushed | c10297abc |\n" +
+              "| docs | pushed | 982cd41ef |\n" +
+              "| runner | pushed | e4db7751a |\n" +
+              "| cleanup | pushed | 676dd0cfd |\n" +
+              "Done",
           },
         ],
       }),
@@ -358,6 +363,26 @@ describe("content layout", () => {
     const headerLine = app.lines.find((line) => line.includes("Agent") && line.includes("Status"))
     expect(headerLine, app.text).toBeDefined()
     expect(headerLine!.trimEnd().endsWith("│"), app.text).toBe(true)
+
+    const tableTopRow = app.lines.findIndex((line) => line.includes("┌") && line.includes("┬"))
+    const headerRow = app.lines.findIndex((line) => line.includes("Agent") && line.includes("Status"))
+    const tableBottomRow = app.lines.findIndex((line) => line.includes("└") && line.includes("┴"))
+    const doneRow = app.lines.findIndex((line) => line.includes("Done"))
+    expect(tableTopRow, app.text).toBeGreaterThanOrEqual(0)
+    expect(headerRow, app.text).toBeGreaterThan(tableTopRow)
+    expect(tableBottomRow, app.text).toBeGreaterThan(headerRow)
+    expect(doneRow, app.text).toBeGreaterThan(tableBottomRow)
+    expect(app.lines[tableTopRow - 1]?.trim(), app.text).toBe("")
+    expect(app.lines[tableBottomRow + 1]?.trim(), app.text).toBe("")
+
+    const internalRuleCount = app.lines.filter(
+      (line, row) => row > headerRow && row < tableBottomRow && line.includes("├") && line.includes("┤"),
+    ).length
+    expect(internalRuleCount, app.text).toBeGreaterThanOrEqual(5)
+
+    const agentCol = app.lines[headerRow]!.indexOf("Agent")
+    expect(app.cell(agentCol, headerRow).fg).toBeNull()
+    expect(app.cell(agentCol, headerRow).bold).toBe(true)
   })
 
   test("session viewport and scrollbar extend to the pane right edge", async () => {
@@ -659,6 +684,11 @@ describe("content layout", () => {
     expect(app.text).toContain("Status: complete")
     expect(app.text).toContain("Long Notes:")
     expect(app.text).not.toContain("File │ Status │ Long Notes")
+
+    const fileRow = app.lines.findIndex((line) => line.includes("File: SessionUpdateList.tsx"))
+    const fileCol = app.lines[fileRow]!.indexOf("File")
+    expect(app.cell(fileCol, fileRow).fg).toBeNull()
+    expect(app.cell(fileCol, fileRow).bold).toBe(true)
   })
 
   test("cmd-hovering turns shows timestamps in the nearest gutter without moving content", async () => {
@@ -1672,7 +1702,7 @@ describe("content layout", () => {
     expect(app.lines[loadedRow + 1]?.trim() ?? "").toBe("")
   })
 
-  test("started session metadata is compact and resumed session metadata renders as a faint wide divider", () => {
+  test("session metadata keeps started compact and resumed divider guttered", () => {
     const app = renderListWithMetadata([], 132, 8, false)
 
     const started = app.lines.find((line) => line.includes("Session started"))
@@ -1681,18 +1711,12 @@ describe("content layout", () => {
     expect(resumed, app.text).toBeDefined()
     expect(started, app.text).not.toContain("─")
     expect(resumed, app.text).toMatch(/─ ▸ Session resumed .* ─/)
-  })
-
-  test("resumed session divider preserves one-cell left and right gutters", () => {
-    const app = renderListWithMetadata([], 132, 8, false)
-    const row = app.lines.find((line) => line.includes("Session resumed"))
-    expect(row, app.text).toBeDefined()
-    const firstRule = row!.indexOf("─")
-    const lastRule = row!.lastIndexOf("─")
+    const firstRule = resumed!.indexOf("─")
+    const lastRule = resumed!.lastIndexOf("─")
     expect(firstRule, app.text).toBeGreaterThanOrEqual(1)
     expect(lastRule, app.text).toBeLessThan(app.width - 1)
-    expect(row![firstRule - 1]).not.toBe("─")
-    expect(row![lastRule + 1]).not.toBe("─")
+    expect(resumed![firstRule - 1]).not.toBe("─")
+    expect(resumed![lastRule + 1]).not.toBe("─")
   })
 
   test("loaded-session metadata does not overlay the final wrapped line at the viewport tail", () => {
