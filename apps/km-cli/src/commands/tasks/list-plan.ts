@@ -46,6 +46,15 @@ export interface PlanListInputs {
   blocked?: boolean
   /** --unblocked flag (keep only tasks with zero blocked-by). */
   unblocked?: boolean
+  /**
+   * Force the positional to be treated as a path-or-id, bypassing
+   * `looksLikeQuery`. Set by `task .` (cwd-scope) — the resolved
+   * relative path may start with `@` (which `looksLikeQuery` treats as
+   * a query sigil). Without this flag, `cd @km/storage && task .`
+   * would route the path through query parsing and never resolve the
+   * subtree.
+   */
+  forcePath?: boolean
 }
 
 /** Plan kinds. */
@@ -211,8 +220,12 @@ function resolveFromPathOrId(repo: Repo, pathOrId: string, options: PlanListInpu
  */
 export function planList(repo: Repo, inputs: PlanListInputs): ListPlan {
   // Handle query option first (takes precedence).
-  // Also treat positional arg as query if it looks like one.
-  const queryArg = inputs.query || (inputs.pathOrId && looksLikeQuery(inputs.pathOrId) ? inputs.pathOrId : null)
+  // Also treat positional arg as query if it looks like one — but
+  // `forcePath` overrides that heuristic. Cwd-scope (`task .`) sets
+  // forcePath because the resolved relative path may legitimately start
+  // with `@` (a query sigil for mention filters) yet still be a path.
+  const treatAsQuery = inputs.pathOrId && !inputs.forcePath && looksLikeQuery(inputs.pathOrId)
+  const queryArg = inputs.query || (treatAsQuery ? inputs.pathOrId : null)
 
   if (queryArg) {
     return {

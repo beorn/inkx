@@ -36,6 +36,7 @@
  */
 
 import { Command } from "@silvery/commander"
+import { createTerm } from "@silvery/ag-react"
 import { listTasks } from "./list.ts"
 import { createTask } from "./mutations.ts"
 import { createStatusCommand } from "./status.ts"
@@ -50,6 +51,52 @@ import {
   releaseTaskLifecycle,
   reopenTaskLifecycle,
 } from "./lifecycle.ts"
+import { resolveCwdScope } from "../../utils/cwd-scope.ts"
+
+const term = createTerm(process)
+
+/**
+ * Pre-process the bare-task positional args. Returns the `pathOrId` to
+ * pass to `listTasks` plus a `forcePath` flag.
+ *
+ * Special syntax: a leading `.` argument scopes the listing to the
+ * cwd-relative subtree of the current vault. Walks up from cwd to find
+ * `.km/` and computes the relative path. Edge case: cwd not under any
+ * vault → exits with a clear error.
+ *
+ * Other positional args pass through unchanged (joined into a query
+ * string downstream — the existing behavior).
+ *
+ * `forcePath` is set on cwd-scope paths because the resolved relative
+ * path may start with `@` (e.g. `@km/storage`) — a sigil that
+ * `looksLikeQuery` would otherwise treat as a mention filter. We know
+ * it's a path because the user typed `.`, so we tell the planner to
+ * skip the heuristic.
+ */
+function preprocessTaskPositional(args: string[]): { pathOrId?: string; forcePath: boolean } {
+  if (args.length === 0) return { forcePath: false }
+  if (args[0] === ".") {
+    const scope = resolveCwdScope()
+    if (scope.kind === "no-vault") {
+      console.error(term.red("Not inside a km vault — `.` is only valid under a vault root"))
+      process.exit(1)
+    }
+    // Vault-root cwd: no subtree filter, list everything (treat as if
+    // user typed nothing). Subdir: pass relative path as the positional
+    // so `planList` uses it as a subtree-or-filter scope.
+    if (scope.relativePath === "" || scope.relativePath === ".") {
+      // Only the `.` was passed → list everything. Anything trailing
+      // (`.` plus query terms) joins back as a query string after the
+      // dot is consumed.
+      const rest = args.slice(1)
+      return { pathOrId: rest.length > 0 ? rest.join(" ") : undefined, forcePath: false }
+    }
+    const rest = args.slice(1)
+    const pathOrId = rest.length > 0 ? `${scope.relativePath} ${rest.join(" ")}` : scope.relativePath
+    return { pathOrId, forcePath: true }
+  }
+  return { pathOrId: args.join(" "), forcePath: false }
+}
 
 /**
  * Task command — `km task` (singular). `tasks` aliased for muscle memory.
@@ -76,8 +123,11 @@ export const taskCommand = new Command("task")
     // explicit subcommands — top-level mutation flags were removed in
     // Wave 3 (see header). Anything that isn't a known subcommand is
     // treated as a query string for the list view.
-    const queryStr = queryArgs.length > 0 ? queryArgs.join(" ") : undefined
-    void listTasks(queryStr, options)
+    //
+    // Special case: a leading `.` scopes to the cwd-relative subtree
+    // of the current vault (see preprocessTaskPositional).
+    const { pathOrId, forcePath } = preprocessTaskPositional(queryArgs)
+    void listTasks(pathOrId, { ...options, forcePath })
   })
 
 // Subcommands — generic mutation / query

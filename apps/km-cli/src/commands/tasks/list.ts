@@ -54,6 +54,16 @@ export interface ListTasksOptions {
   blocked?: boolean
   unblocked?: boolean
   limit?: string | number
+  /**
+   * Force the positional to be treated as a path-or-id even when its
+   * shape would ordinarily trigger query semantics (`looksLikeQuery`
+   * returns true for `@`/`#`/`+`/`-` prefixes, since those are normal
+   * query filter sigils). Set by `task .` cwd-scope preprocessing,
+   * where the user typed `.` and we resolved it to a path like
+   * `@km/storage` — that's a path, not a query, regardless of how it
+   * looks.
+   */
+  forcePath?: boolean
 }
 
 /**
@@ -230,6 +240,7 @@ export async function listTasks(pathOrId: string | undefined, options: ListTasks
     all: options.all,
     blocked: options.blocked,
     unblocked: options.unblocked,
+    forcePath: options.forcePath,
   })
 
   if (plan.kind === "single-task") {
