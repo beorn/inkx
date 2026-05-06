@@ -85,22 +85,39 @@ Two compounding issues:
 
 ## Fix landed (this bead)
 
-### Phase 3 fix — AsideLayout: stable React tree across modes
+### Phase 3 fix — Content.Row: stable React tree + Content.Layout context memoization
 
-`apps/silvercode/src/components/AsideLayout.tsx` rewritten to render the
-aside subtree ALWAYS, varying only its layout props (`display`,
-`position`, `width`, `flexBasis`) by mode:
+After live-log verification of the first attempt (AsideLayout always-mount
+fix — landed in `5974b4c89`, then verified to make things worse: 150 → 545
+overflows in `/tmp/silvercode-strict3.log`), the actual feedback-loop
+source was traced to `Content.tsx` `Row` component:
 
-- `hidden` → `display="none"` (zero-size in flexily, removed from layout
-  but React identity preserved).
-- `inline` → `flexShrink=0`, `flexBasis=asideWidth`.
-- `overlay` → `position="absolute"`, `top/right/bottom/width` set.
+**Content.Row had a structural branch on `usesMeasuredGeometry` (= `ctx.available > 0`)**:
+- When `ctx.available === 0` (initial mount, pre-measurement): one tree
+  shape (no layout-dependent margins, simple wrapper).
+- When `ctx.available > 0` (after measurement): different tree shape
+  (with absolute-positioned asides, optional spacers, measured-width
+  middleNode).
 
-Single React tree. SidePanel never unmounts during a SIGWINCH. Breaks the
-unmount-remeasure-flip-remount feedback loop.
+Every `available=0 → available>0` transition (e.g. during a workspace-switch
+SIGWINCH cascade where measurements flip between 0 and the real width)
+caused Row to tear down and rebuild its subtree. The remount fed fresh
+useBoxRect measurements into descendants → ContentContext consumers got
+new `available` → re-rendered → loop. The 88↔120 oscillation visible in
+the live log was a *secondary* symptom; the *primary* loop was the 0↔N
+transition through the structural branch.
 
-The wrapper is always `position="relative"` — a no-op for inline/hidden,
-correct anchor for overlay.
+**Fix**:
+1. `Content.Row` rewritten to render a SINGLE React tree across all
+   measurement states. Width-derived ternaries inside that single tree
+   produce the right widths in both pre-measurement (=0 → falls back to
+   `width="100%"`) and measured (>0 → uses `middleWidth`) states.
+2. `Content.MeasuredLayout` context value now wrapped in `useMemo` so
+   downstream consumers don't re-render on identity-only changes.
+
+The AsideLayout always-mount change from the first attempt was reverted
+— it didn't break the feedback loop and added churn (display:none in
+flexily wasn't fully zero-cost for the sidebar's contribution).
 
 ### Phase 1+2 fix — stability invariant test suite
 

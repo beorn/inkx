@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef } from "react"
+import React, { createContext, useContext, useEffect, useMemo, useRef } from "react"
 import { Box, Text, type Breakpoint, DEFAULT_BREAKPOINTS, useBoxRect } from "silvery"
 import { createLogger } from "loggily"
 
@@ -141,15 +141,24 @@ function MeasuredLayout({
   align: Responsive<"start" | "center" | "stretch">
   gap: number
 }): React.ReactElement {
-  const resolvedAlign = resolveResponsive(align, available)
-  const value: ContentContextValue = {
-    available,
-    measure: resolveWidth(resolveResponsive(measure, available), available),
-    wide: resolveWidth(resolveResponsive(wide, available), available),
-    full: available,
-    align: resolvedAlign,
-    gap,
-  }
+  // Memoize the context value so its identity is stable when none of its
+  // inputs change. Without memoization, every parent re-render produces a
+  // new object identity and every consumer of `useContentLayout()` re-renders
+  // even when the resolved widths haven't changed — which compounds the
+  // post-resize feedback loop documented in
+  // `@km/silvercode/post-resize-ui-stability`. Memo deps cover every input
+  // that participates in the value's derivation.
+  const value: ContentContextValue = useMemo(
+    () => ({
+      available,
+      measure: resolveWidth(resolveResponsive(measure, available), available),
+      wide: resolveWidth(resolveResponsive(wide, available), available),
+      full: available,
+      align: resolveResponsive(align, available),
+      gap,
+    }),
+    [available, measure, wide, align, gap],
+  )
   const lastLogKey = useRef("")
   useEffect(() => {
     const key = `${value.available}:${value.measure}:${value.wide}:${value.full}:${value.align}:${value.gap}`
@@ -335,52 +344,54 @@ function Row({
     usesMeasuredGeometry,
     width,
   ])
-  if (!usesMeasuredGeometry) {
-    return (
-      <Box flexDirection="row" alignSelf="stretch" width="100%" minWidth={0} flexShrink={0} position="relative">
-        <ContentRowContext.Provider value={{ available: 0 }}>
-          <Box flexDirection="row" width="100%" minWidth={0} flexShrink={1}>
-            {middle}
-          </Box>
-        </ContentRowContext.Provider>
-      </Box>
-    )
-  }
+  // Stable React tree across all measurement states. The previous code
+  // had a structural branch on `usesMeasuredGeometry` (= `ctx.available > 0`)
+  // — when `available` flipped between 0 and a measured value during the
+  // post-resize cascade, this Row torn down its subtree and rebuilt it,
+  // which reset every descendant useBoxRect measurement and cascaded
+  // through ContentContext consumers. Bead:
+  // `@km/silvercode/post-resize-ui-stability`.
+  //
+  // Same tree always. Width-derived ternaries above (`available`,
+  // `middleAvailable`, `width`) feed in the resolved values so the layout
+  // is correct in both pre-measurement (=0 → laneWidth fallback) and
+  // measured (>0 → real available) states. ContentRowContext value of 0
+  // when not measured is provided as before for downstream lanes that
+  // care.
   const leftAside =
-    left.length > 0 && leftMargin > 0 ? (
+    usesMeasuredGeometry && left.length > 0 && leftMargin > 0 ? (
       <Box position="absolute" top={0} left={0} width={leftMargin} flexDirection="row" justifyContent="flex-end">
         {left}
       </Box>
     ) : null
   const rightAside =
-    right.length > 0 && rightMargin > 0 ? (
+    usesMeasuredGeometry && right.length > 0 && rightMargin > 0 ? (
       <Box position="absolute" top={0} right={0} width={rightMargin} flexDirection="row" justifyContent="flex-start">
         {right}
       </Box>
     ) : null
+  const middleAvailableForRow = usesMeasuredGeometry ? middleWidth : 0
   const middleNode = (
-    <ContentRowContext.Provider value={{ available: middleWidth }}>
-      <Box flexDirection="row" width={middleWidth} maxWidth={middleWidth} flexShrink={1} minWidth={0}>
+    <ContentRowContext.Provider value={{ available: middleAvailableForRow }}>
+      <Box
+        flexDirection="row"
+        width={usesMeasuredGeometry ? middleWidth : "100%"}
+        maxWidth={usesMeasuredGeometry ? middleWidth : "100%"}
+        flexShrink={1}
+        minWidth={0}
+      >
         {middle}
       </Box>
     </ContentRowContext.Provider>
   )
-  if (rowAlign === "center") {
-    return (
-      <Box flexDirection="row" alignSelf="stretch" width="100%" minWidth={0} flexShrink={0} position="relative">
-        {leftAside}
-        {rightAside}
-        {leftSpacer > 0 ? <Box width={leftSpacer} flexShrink={1} minWidth={0} /> : null}
-        {middleNode}
-        {rightSpacer > 0 ? <Box width={rightSpacer} flexShrink={1} minWidth={0} /> : null}
-      </Box>
-    )
-  }
+  const showSpacers = usesMeasuredGeometry && rowAlign === "center"
   return (
     <Box flexDirection="row" alignSelf="stretch" width="100%" minWidth={0} flexShrink={0} position="relative">
       {leftAside}
       {rightAside}
+      {showSpacers && leftSpacer > 0 ? <Box width={leftSpacer} flexShrink={1} minWidth={0} /> : null}
       {middleNode}
+      {showSpacers && rightSpacer > 0 ? <Box width={rightSpacer} flexShrink={1} minWidth={0} /> : null}
     </Box>
   )
 }
@@ -534,14 +545,35 @@ function shrinkTableWidths(widths: readonly number[], targetWidth: number, separ
   return out
 }
 
-function truncateCell(text: string, width: number): string {
-  if (text.length <= width) return text
-  if (width <= 1) return text.slice(0, width)
-  return `${text.slice(0, width - 1)}…`
+function wrapCell(text: string, width: number): string[] {
+  if (width <= 0) return [""]
+  const out: string[] = []
+  for (const rawLine of text.split(/\r?\n/)) {
+    const words = rawLine.trim().length > 0 ? rawLine.trim().split(/\s+/) : [""]
+    let line = ""
+    for (const originalWord of words) {
+      let word = originalWord
+      if (line.length > 0 && line.length + 1 + word.length <= width) {
+        line += ` ${word}`
+        continue
+      }
+      if (line.length > 0) {
+        out.push(line)
+        line = ""
+      }
+      while (word.length > width) {
+        out.push(word.slice(0, width))
+        word = word.slice(width)
+      }
+      line = word
+    }
+    out.push(line)
+  }
+  return out.length > 0 ? out : [""]
 }
 
-function padCell(text: string, width: number, align: TableAlignment | undefined): string {
-  const clipped = truncateCell(text, width)
+function padCellLine(text: string, width: number, align: TableAlignment | undefined): string {
+  const clipped = text.length > width ? text.slice(0, width) : text
   if (align === "right") return clipped.padStart(width)
   if (align === "center") {
     const extra = width - clipped.length
@@ -615,20 +647,24 @@ function TableGridRoot({
   const topRule = gridWidths.map((width) => "─".repeat(width)).join("─┬─")
   const bottomRule = gridWidths.map((width) => "─".repeat(width)).join("─┴─")
   const showRowDividers = rows.length > 0 && rows.length < 5
-  const renderCells = (cells: readonly string[], bold = false): React.ReactElement => (
-    <Text wrap={false}>
-      <Text color="$border">│</Text>
-      {headers.map((_, col) => (
-        <React.Fragment key={col}>
-          {col > 0 && <Text color="$border">{separator}</Text>}
-          <Text bold={bold} color={bold ? "$primary" : undefined}>
-            {padCell(cells[col] ?? "", gridWidths[col] ?? 0, alignments[col])}
-          </Text>
-        </React.Fragment>
-      ))}
-      <Text color="$border">│</Text>
-    </Text>
-  )
+  const renderCells = (cells: readonly string[], bold = false): React.ReactElement[] => {
+    const wrapped = headers.map((_, col) => wrapCell(cells[col] ?? "", gridWidths[col] ?? 0))
+    const height = Math.max(1, ...wrapped.map((lines) => lines.length))
+    return Array.from({ length: height }, (_, lineIndex) => (
+      <Text key={lineIndex} wrap={false}>
+        <Text color="$border">│</Text>
+        {headers.map((_, col) => (
+          <React.Fragment key={col}>
+            {col > 0 && <Text color="$border">{separator}</Text>}
+            <Text bold={bold} color={bold ? "$primary" : undefined}>
+              {padCellLine(wrapped[col]?.[lineIndex] ?? "", gridWidths[col] ?? 0, alignments[col])}
+            </Text>
+          </React.Fragment>
+        ))}
+        <Text color="$border">│</Text>
+      </Text>
+    ))
+  }
   return (
     <Box flexDirection="column" alignSelf="flex-start" width={frameWidth} maxWidth={frameWidth}>
       <Text color="$border" wrap={false}>

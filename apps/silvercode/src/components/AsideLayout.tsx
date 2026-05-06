@@ -50,38 +50,40 @@ export function AsideLayout({
   children,
   asideBackgroundColor,
 }: AsideLayoutProps): React.ReactElement {
-  // Stable React tree across modes — the aside subtree is ALWAYS mounted,
-  // we only vary its layout props. This eliminates the
-  // unmount-remeasure-flip-remount feedback loop documented in
-  // `@km/silvercode/post-resize-ui-stability` (150 STRICT layout-overflow
-  // violations during a single cmux workspace-switch repro). With a
-  // conditional render, every SIGWINCH that flipped the
-  // `inline`/`overlay`/`hidden` decision tore down the SidePanel subtree
-  // and rebuilt it, which re-fed dimensions into the breakpoint logic
-  // that drove the next mode flip — repeat ad infinitum.
-  //
-  // The wrapper is always `position="relative"` so the absolute-positioned
-  // overlay branch anchors correctly when in overlay mode; relative is a
-  // no-op for the inline/hidden modes.
-  const isOverlay = mode === "overlay"
-  const isHidden = mode === "hidden"
+  // The caller's `children` is the main region — it owns its own flexGrow / overflow / etc.
+  // AsideLayout only handles the row container + the aside placement.
+  if (mode === "hidden") {
+    return (
+      <Box flexDirection="row" flexGrow={1} minHeight={0}>
+        {children}
+      </Box>
+    )
+  }
+
+  if (mode === "overlay") {
+    return (
+      <Box flexDirection="row" flexGrow={1} minHeight={0} position="relative">
+        {children}
+        <Box
+          position="absolute"
+          top={0}
+          bottom={0}
+          right={0}
+          width={asideWidth}
+          flexDirection="column"
+          backgroundColor={asideBackgroundColor}
+        >
+          {aside}
+        </Box>
+      </Box>
+    )
+  }
+
+  // inline
   return (
-    <Box flexDirection="row" flexGrow={1} minHeight={0} position="relative">
+    <Box flexDirection="row" flexGrow={1} minHeight={0}>
       {children}
-      <Box
-        // Stable identity — same Box element across modes. Layout props
-        // below switch the placement strategy without remounting.
-        flexDirection="column"
-        backgroundColor={isHidden ? undefined : asideBackgroundColor}
-        display={isHidden ? "none" : "flex"}
-        position={isOverlay ? "absolute" : undefined}
-        top={isOverlay ? 0 : undefined}
-        right={isOverlay ? 0 : undefined}
-        bottom={isOverlay ? 0 : undefined}
-        width={isOverlay ? asideWidth : undefined}
-        flexShrink={isOverlay ? undefined : 0}
-        flexBasis={isOverlay ? undefined : asideWidth}
-      >
+      <Box flexShrink={0} flexBasis={asideWidth} flexDirection="column" backgroundColor={asideBackgroundColor}>
         {aside}
       </Box>
     </Box>

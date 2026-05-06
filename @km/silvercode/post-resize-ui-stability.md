@@ -98,7 +98,23 @@ chat session    │ resumed session │ session updates / │ sidebar toggle doe
 
 **Phase 2 — Chat cells** ✓ landed at `chat-stability.test.tsx` using the existing `markdownRich` script. 3 cells (post-arrival paint, resize, side-panel-toggle), all green.
 
-**Phase 3 — Fix landed** ✓ (despite no failing cell — root cause confirmed via live STRICT log instead).
+**Phase 3 — Fix iterations** (root cause traced via live STRICT log, no in-test reproduction available).
+
+### Attempt 1 (commit `5974b4c89`) — AsideLayout always-mount: REVERTED
+
+Hypothesis: subtree remounts during mode flips drive the feedback loop. Rewrote `AsideLayout` to render the aside subtree always, varying only layout props.
+
+**Verdict**: made things worse. User re-ran live repro (`/tmp/silvercode-strict3.log`); STRICT overflow count went from **150 → 545**. The 88↔120 oscillation pattern was unchanged. AsideLayout reverted to original.
+
+### Attempt 2 — Content.Row structural fix + Content.Layout memoization
+
+Traced the actual feedback loop to `Content.Row`'s structural branch on `usesMeasuredGeometry` (= `ctx.available > 0`). Every `available=0 → available>0` transition rebuilt the Row subtree, which fed fresh useBoxRect measurements into descendants → ContentContext consumers re-rendered with new `available` → loop. The 88↔120 oscillation was a *secondary* symptom; the *primary* loop was the 0↔N transition through the structural branch.
+
+**Fixes applied**:
+1. `Content.Row` rewritten to render a SINGLE React tree across all measurement states (no `if (!usesMeasuredGeometry)` early return).
+2. `Content.MeasuredLayout` context value wrapped in `useMemo` so consumers don't re-render on identity-only changes.
+
+**In-test status**: 19 stability cells + 43 existing content-layout cells all green. No regressions.
 
 After the user ran the live repro and shared `/tmp/silvercode-strict2.log` (3.9 MB / 27955 lines):
 
