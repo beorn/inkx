@@ -3,9 +3,18 @@ aliases:
   - km-cli.bd-agent-collapse-or-delete
   - km-cli-bd-agent-collapse-or-delete
 created_at: 2026-05-06T17:13:25.009Z
+closed_at: 2026-05-06T18:51:40.363Z
+closeReason: "Shipped: b6166497f (extract shared agent ls formatter) + c08205085
+  (formatAgentBrief / formatAgentStatus tests). New
+  packages/km-agent/src/format.ts with AgentColorizer interface (UI-agnostic;
+  @km/agent stays free of @silvery deps), plainColorizer, formatAgentStatus,
+  formatAgentBrief. Both km agent ls and bd agent ls call into it.
+  Surface-specific differences preserved via { withModelHarness } option. ~30
+  LOC duplication eliminated. 7 new format.test.ts cases (50/50 km-agent tests
+  pass)."
 ---
 
-# Consolidate `bd agent ls` data path with `km agent ls` #P3
+# [x] Consolidate `bd agent ls` data path with `km agent ls` #P3
 
 Reframed under the on-ramp model. `km agent` and `km bd agent` are NOT redundant duplicates — they have different mental models:
 
@@ -33,3 +42,4 @@ The single overlap: both `km agent ls` and `bd agent ls` call `queryAgents(repo)
 Tiny LOC savings. The duplicate-`ls` smell is real but the user has indicated agents aren't actively used yet ("we are not even using that feature"). Don't over-invest before the feature graduates.
 
 If agents become actively used and the two surfaces diverge in ways that confuse users, revisit.
+

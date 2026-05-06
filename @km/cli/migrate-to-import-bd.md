@@ -3,9 +3,16 @@ aliases:
   - km-cli.migrate-to-import-bd
   - km-cli-migrate-to-import-bd
 created_at: 2026-05-06T17:12:16.989Z
+closed_at: 2026-05-06T18:51:31.091Z
+closeReason: "Shipped: 19aab221c (km import bd canonical) + 58c80f2c4 (delete
+  bd-migrate.ts). New apps/km-cli/src/commands/import-bd.ts (519 LOC) registered
+  as subcommand of km import alongside km import asana/csv. km bd migrate / km
+  bd export deleted; bd --help has new Import section pointing at km import bd.
+  bd-migrate.ts deleted. Self-contained move; engine functions unchanged in
+  @km/beads. 859/859 km-cli tests pass."
 ---
 
-# Add `km import bd` (canonical) and delete `km bd migrate` #P3
+# [x] Add `km import bd` (canonical) and delete `km bd migrate` #P3
 
 Per user direction (2026-05-06): the canonical-and-only path is `km import bd`. `km bd migrate` is **deleted**, not kept as an on-ramp alias. `km bd --help` mentions `km import bd` in its examples/help text so bd users discover the new path.
 
@@ -35,3 +42,4 @@ The `bd-migrate.ts` implementation is self-contained — imports from `@km/beads
 ## Why P3
 
 Critical for adoption (bd users can't migrate without it), but the existing `bd migrate` works fine — this is a discoverability + canonical-surface fix. `km import bd` belongs alongside `km import asana` so a fresh km user finds it via `km import --help`. Removing `bd migrate` enforces the "import once, then use bd or km" mental model.
+
