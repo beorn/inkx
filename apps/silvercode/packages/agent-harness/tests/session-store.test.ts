@@ -98,9 +98,9 @@ describe("session-store — ops-order preservation (codex bundling fix)", () => 
 
     const msg = store.state.get().messages[0]!
     expect(msg.ops).toHaveLength(4)
-    expect(msg.ops[0]).toEqual({ kind: "text", text: "Reading config…" })
+    expect(msg.ops[0]).toMatchObject({ kind: "text", text: "Reading config…" })
     expect(msg.ops[1]).toMatchObject({ kind: "tool", toolCall: { id: tu(1), name: "Read" } })
-    expect(msg.ops[2]).toEqual({ kind: "text", text: "Now searching…" })
+    expect(msg.ops[2]).toMatchObject({ kind: "text", text: "Now searching…" })
     expect(msg.ops[3]).toMatchObject({ kind: "tool", toolCall: { id: tu(2), name: "Grep" } })
 
     // Backward-compat projections still expose the legacy shape — text is
@@ -109,10 +109,10 @@ describe("session-store — ops-order preservation (codex bundling fix)", () => 
     expect(msg.toolCalls.map((c) => c.name)).toEqual(["Read", "Grep"])
   })
 
-  test("claude-shape coalesce: text×3 + tool×2 → 1 text op + 2 tool ops", () => {
+  test("claude-shape preserves timestamped text chunks before tool ops", () => {
     // Multi-chunk streaming text from Claude — typical "model emits one
-    // paragraph then both tool calls at once." Three text deltas should
-    // coalesce into one `text` op since no tool-use intervenes.
+    // paragraph then both tool calls at once." Text deltas stay separate
+    // so the renderer can interleave ambient events by per-op timestamp.
     const store = createSessionStore()
     const t = tid(1)
     for (const e of turn(t, [
@@ -126,13 +126,13 @@ describe("session-store — ops-order preservation (codex bundling fix)", () => 
     }
 
     const msg = store.state.get().messages[0]!
-    expect(msg.ops).toHaveLength(3)
-    expect(msg.ops[0]).toEqual({
-      kind: "text",
-      text: "I'll read the file and grep for TODOs.",
-    })
-    expect(msg.ops[1]).toMatchObject({ kind: "tool", toolCall: { id: tu(1), name: "Read" } })
-    expect(msg.ops[2]).toMatchObject({ kind: "tool", toolCall: { id: tu(2), name: "Grep" } })
+    expect(msg.ops).toHaveLength(5)
+    expect(msg.ops[0]).toMatchObject({ kind: "text", text: "I'll " })
+    expect(msg.ops[1]).toMatchObject({ kind: "text", text: "read the file " })
+    expect(msg.ops[2]).toMatchObject({ kind: "text", text: "and grep for TODOs." })
+    expect(msg.ops[3]).toMatchObject({ kind: "tool", toolCall: { id: tu(1), name: "Read" } })
+    expect(msg.ops[4]).toMatchObject({ kind: "tool", toolCall: { id: tu(2), name: "Grep" } })
+    expect(msg.text).toBe("I'll read the file and grep for TODOs.")
   })
 
   test("tool-result on a later turn attaches to its originating tool op", () => {
@@ -239,9 +239,9 @@ describe("session-store — ops-order preservation (codex bundling fix)", () => 
 
     const msg = store.state.get().messages[0]!
     expect(msg.ops).toHaveLength(4)
-    expect(msg.ops[0]).toEqual({ kind: "text", text: "First, reading…" })
+    expect(msg.ops[0]).toMatchObject({ kind: "text", text: "First, reading…" })
     expect(msg.ops[1]).toMatchObject({ kind: "tool", toolCall: { id: tu(1), name: "Read" } })
-    expect(msg.ops[2]).toEqual({ kind: "text", text: "Then grep:" })
+    expect(msg.ops[2]).toMatchObject({ kind: "text", text: "Then grep:" })
     expect(msg.ops[3]).toMatchObject({ kind: "tool", toolCall: { id: tu(2), name: "Grep" } })
   })
 

@@ -419,6 +419,16 @@ function taskNotificationContext(raw: string): string {
   return parts.join("\n\n")
 }
 
+function userTextContent(content: unknown): string {
+  if (typeof content === "string") return content
+  if (!Array.isArray(content)) return ""
+  let text = ""
+  for (const item of content as Array<Record<string, unknown>>) {
+    if (item.type === "text" && typeof item.text === "string") text += item.text
+  }
+  return text
+}
+
 function pickUsage(u: unknown): TokenCounts | undefined {
   if (!u || typeof u !== "object") return undefined
   const o = u as Record<string, unknown>
@@ -742,6 +752,24 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
     if (!msg) return
     const sid = state.sessionId ?? toSessionId(obj.session_id)
     state.sessionId = sid
+    // Claude stores post-/compact summaries as `type:"user"` because they
+    // are replayed into the next model invocation, but visually and
+    // semantically they are generated transcript narration. Rendering them
+    // as user prompts makes several pages of assistant-written summary look
+    // like something the user typed.
+    if (obj.isCompactSummary === true) {
+      const compactText = userTextContent(msg.content).trim()
+      if (compactText.length === 0) return
+      const uniq = (msg.id as string | undefined) ?? (obj.uuid as string | undefined) ?? `compact-${nowMs()}`
+      emit({
+        kind: "assistant-message",
+        sessionId: sid,
+        turnId: toTurnId(uniq),
+        content: [{ type: "text", text: quarantineLeadingRolePrefix(compactText) }],
+        ts: nowMs(),
+      })
+      return
+    }
     // On-disk JSONL marks internal Claude Code metadata entries with
     // `isMeta: true` at the top level (e.g. the post-/compact "Caveat"
     // banner, the "Continue from where you left off." auto-resume
@@ -752,15 +780,7 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
     // stream-json never sets isMeta, so this branch only matters for
     // replay.
     if (obj.isMeta === true) {
-      let metaText = ""
-      const c = msg.content
-      if (typeof c === "string") metaText = c.trim()
-      else if (Array.isArray(c)) {
-        for (const item of c as Array<Record<string, unknown>>) {
-          if (item.type === "text" && typeof item.text === "string") metaText += item.text
-        }
-        metaText = metaText.trim()
-      }
+      const metaText = userTextContent(msg.content).trim()
       if (metaText.length === 0) return
       const uniq = (msg.id as string | undefined) ?? (obj.uuid as string | undefined) ?? `meta-${nowMs()}`
       const turnId = toTurnId(uniq)

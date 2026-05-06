@@ -510,6 +510,32 @@ describe("stream-json parser — M0 fixtures", () => {
     expect(userEvent!.additionalContext).toContain("Continue from where you left off.")
   })
 
+  test("compact summary user records replay as assistant narration, not user prompts", () => {
+    const compactText =
+      "This session is being continued from a previous conversation that ran out of context.\n\nSummary:\n1. The assistant had been reviewing code."
+    const events = collect([
+      JSON.stringify({
+        type: "user",
+        isCompactSummary: true,
+        isVisibleInTranscriptOnly: true,
+        uuid: "compact-1",
+        message: {
+          role: "user",
+          content: compactText,
+        },
+        sessionId: "sess-1",
+      }),
+    ])
+
+    expect(events.some((event) => event.kind === "user-message")).toBe(false)
+    const assistantEvent = events.find((e) => e.kind === "assistant-message") as
+      | Extract<AgentEvent, { kind: "assistant-message" }>
+      | undefined
+    expect(assistantEvent).toBeDefined()
+    expect(assistantEvent!.turnId).toBe("compact-1")
+    expect(assistantEvent!.content).toEqual([{ type: "text", text: compactText }])
+  })
+
   test("user-message strips <local-command-stdout> wrapper tags too", () => {
     const events = collect([
       JSON.stringify({
