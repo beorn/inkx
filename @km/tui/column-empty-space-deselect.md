@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/column-empty-space-deselect"
 aliases:
   - km-tui.column-empty-space-deselect
@@ -36,3 +39,4 @@ assignee: Bjørn Stabell
 ---
 
 # [x] Clicking column empty space below last card should deselect, not select column @km/tui #bug #P2 @Bjørn Stabell
+

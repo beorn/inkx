@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/card-body-italics"
 aliases:
   - km-tui.card-body-italics
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Card body shows li items as italics (* interpreted as markdown formatting) @km/tui #bug #P2
 
 Card body text that contains li children (starting with '* blablabla') renders the * as markdown italic formatting instead of as list items. Example node: 01KHTADSK15SB17B8Q9EMQG4Q6. The body snippet in cards should render KNode children as structured content (bullet + text), not re-interpret the raw markdown. We should render the parsed KNodes, not the raw markdown source.
+

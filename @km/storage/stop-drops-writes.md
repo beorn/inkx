@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/stop-drops-writes"
 aliases:
   - km-storage.stop-drops-writes
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] P0: SyncManager.stop() drops pending WriteQueue writes @km/storage #bug #P0
 
 SyncManager.stop() calls writeQueue.clear() without flushing first. Pending writes from user edits (already persisted to events.jsonl/DB) are silently discarded. Fix: call writeQueue.forceFlush() before clear() in stop().
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/stray-debug"
 aliases:
   - km-tui.stray-debug
@@ -12,8 +14,10 @@ owner: bjorn@stabell.org
 # [x] Delete 3 stray debug test files @km/tui #task #P3
 
 Three debug/analysis test files cluttering the test directory:
+
 - ansi-diff-analysis.test.ts (585 lines) — ANSI diff analysis, review for value
 - breadcrumb-update-debug.test.ts — debug repro
 - fold-border-debug.test.ts — debug repro
 
 Triage each: keep valuable ones as proper regression tests, delete the rest.
+

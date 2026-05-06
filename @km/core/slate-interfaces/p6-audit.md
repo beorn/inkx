@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/core/slate-interfaces/p6-audit"
 aliases:
   - km-core.slate-interfaces.p6-audit
@@ -15,15 +17,19 @@ owner: bjorn@stabell.org
 # [x] Phase 6: Codebase-wide DRY audit — migrate all code to use new interfaces @km/core #task #P3
 
 ## Goal
+
 Systematic review of EVERY file in apps/ and packages/ to find code that should use the new domain interfaces. Migrate manual patterns to interface calls. Fix or bead any other issues found along the way.
 
 ## Scope
+
 Review every .ts/.tsx file in:
+
 - apps/@km/tui/src/ (~150 files)
 - apps/@km/_orphan/cli/src/ (~30 files)
 - packages/km-*/src/ (~60 files)
 
 ## What to look for
+
 1. **Manual parent lookups** → NodeQuery.parent(tree, id)
 2. **Manual getChildren + index math** → Position helpers or TreeOps
 3. **Manual sibling iteration** → NodeQuery.siblings(tree, id) or TreeOps.shiftUp/Down
@@ -33,7 +39,9 @@ Review every .ts/.tsx file in:
 7. **Any other code smells** discovered during review → fix inline or create beads
 
 ## Process
+
 Use /max with parallel agents — one per directory. Each agent:
+
 1. Reads every file in its directory
 2. Identifies patterns that should use interfaces
 3. Migrates simple cases inline
@@ -41,8 +49,10 @@ Use /max with parallel agents — one per directory. Each agent:
 5. Reports findings
 
 ## /complete
+
 - Every file in apps/@km/tui/src/ reviewed
-- Every file in packages/km-*/src/ reviewed  
+- Every file in packages/km-*/src/ reviewed
 - Manual patterns migrated where straightforward
 - Beads created for complex cases
 - All tests pass
+

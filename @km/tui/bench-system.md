@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/bench-system"
 aliases:
   - km-tui.bench-system
@@ -24,6 +27,7 @@ assignee: Bjørn Stabell
 ## Why
 
 User reported `km view` cursor sluggishness on 2026-04-07. We had benchmarks (`apps/km-tui/tests/cursor-perf.bench.ts`, `cursor-real-vault.bench.ts`) but:
+
 - No saved baseline → bench:compare had nothing to compare against
 - No CI gate (rejected as too noisy / unreliable timing)
 - No portable real-board fixture (cursor-real-vault.bench.ts depends on /tmp/vt)
@@ -34,6 +38,7 @@ The current bench is also useless for spotting regressions because it just produ
 ## Goal
 
 Manual + tribe-coordinated bench ritual that produces:
+
 1. Apples-to-apples comparisons (system load checked + paused via tribe)
 2. Per-phase timing breakdown (react reconcile / flexily layout / silvery output / silvery diff / content cells / other)
 3. Per-commit history file we can git-diff or git-blame
@@ -44,6 +49,7 @@ Manual + tribe-coordinated bench ritual that produces:
 ### 1. `scripts/bench-now.sh` — manual bench ritual
 
 Steps:
+
 - Run `/cpu` (or `cpu_hunter` script if `/cpu` is a slash command) to identify load. If load > 0.5 × cores, abort with a warning.
 - Broadcast via tribe: `tribe_send to=* "BENCH STARTING — please pause CPU-heavy work for 60s"`
 - Wait ~5s for any objections (no ACK protocol — assume silence = consent)
@@ -67,6 +73,7 @@ Steps:
 The current cursor-perf.bench.ts just measures the entire `board.command("cursor_down")` round-trip. We need a profile-style breakdown.
 
 Add `performance.mark()` + `performance.measure()` markers in the silvery render loop and in @km/tui board rendering for these phases:
+
 - `react-reconcile` — React reconciliation pass (start at top of render, end after children mounted)
 - `flexily-layout` — Flexily layout pass (silvery already exposes this)
 - `silvery-output` — silvery's output phase (ANSI generation)
@@ -90,6 +97,7 @@ If silvery already has a `_perfLog` flag (it does — set via env var, writes to
 ### 4. Portable realistic-board fixture
 
 Replace `/tmp/vt` dependency with a checked-in JSON fixture:
+
 - `apps/km-tui/tests/fixtures/realistic-board.json` — synthesized board: 10 columns × 50 cards × 3-5 sub-items each, mixed inline content (broken wikilinks, tags, projects, mentions, code spans, bare URLs, markdown links)
 - Helper `loadRealisticBoardFixture()` in tests/helpers/ that creates a fake repo from the JSON
 - Update `cursor-real-vault.bench.ts` to use the fixture if /tmp/vt is missing (or rename to `cursor-realistic-board.bench.ts`)
@@ -99,6 +107,7 @@ The fixture should be deterministic and reproduce on any machine. Aim for ~750 n
 ### 5. Documentation
 
 `benchmarks/README.md`:
+
 - How to run a bench (`scripts/bench-now.sh`)
 - How to compare against history (`scripts/bench-compare.sh <ref>`)
 - The phase breakdown — what each phase covers and what would cause regressions in it
@@ -125,3 +134,4 @@ The fixture should be deterministic and reproduce on any machine. Aim for ~750 n
 
 - @km/tui/cursor-perf-2026-04-07 (P1) — the regression that motivated this
 - @km/tui/hierarchical-node-state (will be filed) — depends on having before/after bench numbers
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/node-model-v2/quick-wins"
 aliases:
   - km-all.node-model-v2.quick-wins
@@ -18,3 +20,4 @@ Quick wins that can be done now without the full model v2 migration.
 3. Verify TUI renders the converted data correctly
 
 These changes make Asana tasks proper outline items (cards/columns) instead of checklist items, which fixes the flat-list body problem and improves navigation.
+

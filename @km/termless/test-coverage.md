@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/test-coverage"
 aliases:
   - km-termless.test-coverage
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Complete test coverage for all termless features @km/termless #task #P2
 
 ~15 features are untested or under-tested: PTY, viewport, range, scrollback with data, wide chars in SVG, terminal snapshot matcher, CLI/MCP, extensions. Add tests for all gaps identified in the plan audit.
+

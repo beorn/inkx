@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/acp-resume-blank-screen"
 aliases:
   - km-silvercode.acp-resume-blank-screen
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-27T17:50:55Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] --resume blank screen: synthetic session id never matches on-disk JSONL @km/silvercode #bug #P1
@@ -28,6 +34,7 @@ User report 2026-04-27 (`silvercode --account d@delei.org --resume claude-code:c
 Root cause: `@km/claude-acp` server's `newSession()` synthesized `claude-acp-${Date.now()}-N` as the ACP sessionId. The resume hint emits this synthetic id; the next `--resume <syntheticId>` then fails because Claude stores JSONL transcripts at `~/.claude/projects/<cwd>/<UUID>.jsonl` (real UUID, not synthetic). The `session not found` error went to stderr, hidden behind the alt screen — user sees a blank UI.
 
 Fix landed in commit 849b4358d:
+
 - newSession subscribes BEFORE returning
 - buffers events until `session-init` arrives
 - uses the real sessionId from session-init as the ACP sessionId
@@ -36,3 +43,4 @@ Fix landed in commit 849b4358d:
 - wire exposes `replayEvent()` for the buffer-flush
 
 Tests: server.test.ts updated for real-id contract; fakeSpawn now gates response on stdin (more realistic of real claude --bare -p).
+

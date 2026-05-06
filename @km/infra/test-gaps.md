@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/test-gaps"
 aliases:
   - km-infra.test-gaps
@@ -34,3 +37,4 @@ SILVERY_STRICT catches rendering regressions but blanket-suppresses all errors. 
 - Black space at left edge of breadcrumb bar after zoom_outwards
 - Blue selection background bleed onto non-selected items after zoom
 - Both caught manually by user, not by any automated test
+

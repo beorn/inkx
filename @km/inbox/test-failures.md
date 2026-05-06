@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/test-failures"
 aliases:
   - km-test-failures
@@ -16,7 +18,9 @@ After fixing singleton removal regressions (@km/_orphan/remove-singleton-wrapper
 These are NOT related to the singleton removal - they're separate issues:
 
 ### 1. Boundary/Edge Case Tests (~40 failures)
+
 Tests that expect no visual effect but don't use `{ allowNoEffect: true }`:
+
 - Empty states (empty board, empty column, single card)
 - Boundary navigation (k at top, j at bottom, h at left, l at right)
 - g/G at first/last card (already at boundary)
@@ -26,13 +30,16 @@ Tests that expect no visual effect but don't use `{ allowNoEffect: true }`:
 **Fix**: Add `{ allowNoEffect: true }` option to press() calls in boundary tests.
 
 ### 2. Empty Board Message Not Rendering (~2 failures)
+
 Tests expect "Empty board" message but it's not displayed:
+
 - "empty board shows helpful message" test fails
 - Board shows just the header instead of helpful message
 
 **Fix**: Investigate BoardCore empty state rendering logic.
 
 ### 3. Complex Interactions (~20 failures)
+
 - Zooming (nested zoom, Escape after zoom, cursor position)
 - History navigation ([ and ] keys, cursor restoration)
 - Folding (z key toggle, fold count indicators)
@@ -41,6 +48,7 @@ Tests expect "Empty board" message but it's not displayed:
 **Fix**: Requires investigation per feature.
 
 ### 4. Positioning Assertions (~10 failures)
+
 - curswantX/curswantY (horizontal/vertical position memory)
 - boundingBox assertions off by 1-2 pixels
 
@@ -60,3 +68,4 @@ The 49 passing tests prove the command system IS working - the failures are impl
 2. Fix boundary tests first (add allowNoEffect flags) - quick wins
 3. Fix empty board rendering
 4. Tackle complex interactions one at a time
+

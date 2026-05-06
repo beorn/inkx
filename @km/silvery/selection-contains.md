@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/selection-contains"
 aliases:
   - km-silvery.selection-contains
@@ -92,19 +95,24 @@ dependencies:
     created_at: 2026-04-15T09:54:09Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] SelectionApp.tree.contains(id) — O(1) validity check to retire walkOrder cache + startup warmup @km/silvery #feature #P2 @Bjørn Stabell
 
 blocks:: [[@km/silvery]]
 
-# /big reframe: the one primitive that closes the selection quality plateau
+## /big reframe: the one primitive that closes the selection quality plateau
 
 ## Why
 
 `@silvery/selection`'s `store.select(ids)` validates incoming IDs by filtering them against `tree.walkOrder(root)` — an O(visible) walk of the current tree. For @km/tui vaults with 500k+ nodes and `rootId = "."` (repo root), that's 3 seconds of main-thread JavaScript **per keystroke**.
 
 Current band-aids (all shipped this session):
+
 - `apps/km-tui/src/state/selection-adapter.ts` — walkOrder cache keyed by `(lens identity, root)` so subsequent selects short-circuit after the first walk.
 - `apps/km-tui/src/tui.tsx` — 50ms setTimeout startup warmup that eagerly runs `visibleLens().walkOrder` so the 3s block happens while the user is reading, not after a keypress.
 - Both added in `5484d34c5 (km-tui.startup-input-freeze)`.
@@ -156,3 +164,4 @@ P2 — the plateau blocker. Everything else on the quality-plateau list either h
 - @km/tui/startup-input-freeze (closed, band-aid)
 - @km/silvery/selection-focus-plateau (parent epic)
 - @km/review/silvery-gap-analysis (broader sweep)
+

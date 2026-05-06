@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/backdrop-hardening/color-compat-hide"
 aliases:
   - km-silvery.backdrop-hardening.color-compat-hide
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-20T14:01:25Z
     created_by: claude:88c0e764
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.backdrop-hardening
 ---
 
 # [x] Harden or hide color-compat.ts — publish-cycle shim shouldn't be long-term @km/silvery #task #P0 @claude:a1a0e667
@@ -42,6 +49,7 @@ Blocker condition: @silvery/color 0.19.0 publishes mixSrgb + deemphasizeOklch + 
 (@km/_orphan/sterling-2e is driving 0.19.0 — ref km-2 tribe hint 2026-04-20: "@silvery/ansi@0.19.0 tarball wants @silvery/color@0.19.0, only 0.18.2 on npm — tag v0.19.0 + push")
 
 Once 0.19.0 ships:
+
 1. Add parity tests: sampled (color × amount) corpus, tolerance 1e-6, vs upstream exports
 2. Confirm upstream-fallback shim no longer needs fallback at runtime
 3. Delete color-compat.ts entirely — OR — rename to color-shim.ts if a rump persists, make private (not in barrel)
@@ -65,3 +73,4 @@ If 0.19.0 blocked on other work: add parity tests + privatize from barrel NOW (s
 ## Parent
 
 @km/silvery/backdrop-hardening
+

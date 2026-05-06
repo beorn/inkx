@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/domain-objects/3-implement-createwatcher-factory"
 aliases:
   - km-domain-objects.3
@@ -17,3 +19,4 @@ Extract Watcher from SyncManager as domain object.
 - Event emitter pattern for changes
 
 See plan for full interface.
+

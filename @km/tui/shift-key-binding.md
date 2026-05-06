@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/shift-key-binding"
 aliases:
   - km-tui.shift-key-binding
@@ -21,3 +24,4 @@ Fix: parseKey now returns base key for input (for keybinding resolution) and shi
 Also fixed matchHotkey to check key.text for character hotkeys like '!' that need to match against the actual typed character.
 
 Tests added: 42 new shifted-punct tests in silvery, integration tests for both text insertion and keybinding resolution paths in @km/_orphan/commands.
+

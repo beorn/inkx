@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/stability-tests"
 aliases:
   - km-silvery.stability-tests
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Long-running stability tests: 60s sustained rendering, resize handling @km/silvery #task #P3
 
 Verify silvery apps run for 60+ seconds without crash or degradation. Test terminal resize handling under sustained load.
+

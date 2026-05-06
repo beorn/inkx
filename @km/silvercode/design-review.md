@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/design-review"
 aliases:
   - km-silvercode.design-review
@@ -36,6 +39,10 @@ dependencies:
     created_at: 2026-04-27T16:59:41Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Design review pass — tweak every silvercode component via All/together storybook @km/silvercode #task #P1 @claude:2405c72e
@@ -46,8 +53,10 @@ Sit down with the All/together storybook and tweak every silvercode component's 
 
 ## Run
 
-    bun storybook                      # interactive runner
-    bun storybook All/together         # jump straight to the All story
+```
+bun storybook                      # interactive runner
+bun storybook All/together         # jump straight to the All story
+```
 
 Mouse-wheel to scroll. AmbientEventRow rows are click-to-expand.
 
@@ -95,3 +104,4 @@ Mouse-wheel to scroll. AmbientEventRow rows are click-to-expand.
 - Close this bead with a one-paragraph retrospective: what reads right, what doesn't, where the next iteration goes
 
 Bead is intentionally not auto-implementable — the work is design judgment, not code generation.
+

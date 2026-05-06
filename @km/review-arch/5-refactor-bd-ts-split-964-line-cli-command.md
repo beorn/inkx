@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/review-arch/5-refactor-bd-ts-split-964-line-cli-command"
 aliases:
   - km-review-arch.5
@@ -15,6 +17,7 @@ closed_at: 2026-01-23T09:31:52Z
 **Scope:** Split 964 lines into 5 files
 
 ### New Structure
+
 ```
 apps/km-cli/src/commands/
 ├── bd.ts              # Main commands (400 lines)
@@ -25,6 +28,7 @@ apps/km-cli/src/commands/
 ```
 
 ### Pure Functions to Extract (bd-format.ts)
+
 - `bdStatus(status)` → string mapping
 - `formatDate(ts)` → date formatting
 - `issueToBdJson(issue)` → JSON conversion
@@ -32,8 +36,10 @@ apps/km-cli/src/commands/
 - `formatIssueDetails(issue)` → detail output
 
 ### Migration Steps
+
 1. Extract bd-format.ts (pure functions)
 2. Extract bd-query-helpers.ts
 3. Extract bd-config.ts (config subcommand)
 4. Extract bd-migrate.ts (migrate/export)
 5. Update bd.ts imports
+

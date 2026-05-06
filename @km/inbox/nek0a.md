@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/nek0a"
 aliases:
   - km-nek0a
@@ -15,3 +18,4 @@ assignee: claude:b92140a2
 # [x] P1: Parent-folder index refresh inconsistent across lifecycle events @km/_orphan #bug #P1 @claude:b92140a2
 
 Child create doesn't refresh parent's materialized index. Move only refreshes destination parent, not source. Delete only refreshes when deleted child was the index file itself. Stale index files until unrelated folder update. Fix: centralize affected-folder calculation, refresh all affected parents for create/delete/move.
+

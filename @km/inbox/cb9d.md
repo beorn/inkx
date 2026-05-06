@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/cb9d"
 aliases:
   - km-cb9d
@@ -8,3 +10,4 @@ closed_at: 2026-01-21T12:52:03Z
 ---
 
 # [x] CardsView: Card text should use hanging indent (bullet left, text aligned) @km/_orphan #bug #P2
+

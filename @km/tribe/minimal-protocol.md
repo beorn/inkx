@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/minimal-protocol"
 aliases:
   - km-tribe.minimal-protocol
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-19T11:02:21Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] Reframe: tribe as journal + fanout, everything else derived @km/tribe #task #P3
@@ -28,6 +34,7 @@ The real problem: tribe daemon is simultaneously five things (bus, registry, plu
 Reframe: shrink the daemon to journal + fanout. Every participant (Claude session, git observer, beads observer, lore) uses the same wire. Journal is the ONLY source of truth. Sessions/chief/retro/memory all become derivations or peer participants.
 
 DISSOLVES most open pro-review beads:
+
 - @km/tribe/stable-identity — stable sessionId is just the hello token; name is metadata
 - @km/tribe/daemon-authority — no dual paths: all writes go via 'post' message; daemon rejects others
 - @km/tribe/scope-model — journal is per-scope-file; daemon is stateless multiplexer
@@ -36,9 +43,11 @@ DISSOLVES most open pro-review beads:
 - @km/tribe/polish-v2 — mostly dissolves
 
 SURVIVES the reframe:
+
 - @km/tribe/delivery-correctness — still real bugs (cursor advance, replay truncation); fix FIRST
 - @km/tribe/testing — simulated multi-session env still needed
 
 Effort: 3-5 days in a worktree. Touches every file in vendor/bearly/tools/lib/tribe/. Accept criteria = existing self-heal + durability + identity + role + plugin-boundary suites keep passing.
 
 First step: write docs/design/tribe-minimal.md — hello shape, message kinds, journal semantics, how each current feature maps to the minimal protocol. /pro-review the spec BEFORE touching code.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/quality-sprint"
 aliases:
   - km-storage.quality-sprint
@@ -18,6 +20,10 @@ dependencies:
     created_at: 2026-04-15T18:27:35Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage
 ---
 
 # [x] Storage data-model quality sprint — normalizeRefHref + column-persist + rebuild-titles @km/storage #task #P2
@@ -25,3 +31,4 @@ dependencies:
 blocks:: [[@km/storage]]
 
 Tracking bead for three parallel tasks launched 2026-04-15. (1) normalizeRefHref() + tests — first coding step of link-model-canonical, also fixes link-resolution-ambiguity by normalizing both write paths. (2) column-order-persist — persist column reorder across state.db rebuild. (3) rebuild-different-titles — fix divergent title derivation between runtime and WAL rebuild.
+

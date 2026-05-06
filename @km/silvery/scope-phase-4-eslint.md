@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/scope-phase-4-eslint"
 aliases:
   - km-silvery.scope-phase-4-eslint
@@ -18,6 +20,10 @@ dependencies:
     created_at: 2026-04-24T13:40:42Z
     created_by: claude:2aefb4b6
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.scope-phase-4
 ---
 
 # [x] Phase 4.A: ESLint no-raw-lifecycle rule + CI gate @km/silvery #task #P1
@@ -25,3 +31,4 @@ dependencies:
 blocks:: [[@km/silvery/scope-phase-4]]
 
 Add ESLint rule banning raw setTimeout, setInterval, new AbortController, child_process.spawn/fork/exec, fs.watch, fs.createReadStream/WriteStream, net.createServer, http.createServer, naked EventEmitter.on in apps/* + packages/*. Exempt @silvery/* + vendor/*. Wire into CI (bun run lint fails on violation). Exit: bun run lint clean.
+

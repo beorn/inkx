@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/comp-gauge"
 aliases:
   - km-silvery.comp-gauge
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T16:18:42Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.opentui-parity
 ---
 
 # [ ] Component: Gauge / meter (horizontal + radial) @km/silvery #feature #P3
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/silvery/opentui-parity]]
 
 Canonical Gauge for dashboards. Horizontal bar variant + radial arc/donut variant (using box-drawing or Kitty image). Complements ProgressBar for non-progress metrics.
+

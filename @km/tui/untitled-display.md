@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/untitled-display"
 aliases:
   - km-tui.untitled-display
@@ -11,3 +14,4 @@ assignee: claude:e7ea0892
 ---
 
 # [x] Untitled nodes show short ID instead of dimmed (id) indicator @km/tui #bug #P2 @claude:e7ea0892
+

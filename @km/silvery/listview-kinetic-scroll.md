@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/listview-kinetic-scroll"
 aliases:
   - km-silvery.listview-kinetic-scroll
@@ -14,6 +17,10 @@ dependencies:
     created_at: 2026-04-23T09:52:47Z
     created_by: claude:c56dc5d6
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [/] ListView: default kinetic viewport scroll (iOS-style) @km/silvery #feature #P2 @claude:c56dc5d6
@@ -32,3 +39,4 @@ Acceptance:
   tests/wheel-kinetic-continues passes (timer advance after last wheel event continues scrolling)
   bun run typecheck exit 0
   bun vitest run --project vendor vendor/silvery/tests/ui/list-view.test.tsx vendor/silvery/tests/features/listview-*.test.tsx all pass
+

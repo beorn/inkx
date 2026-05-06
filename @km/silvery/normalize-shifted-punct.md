@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/normalize-shifted-punct"
 aliases:
   - km-silvery.normalize-shifted-punct
@@ -81,6 +84,7 @@ The entire function + SHIFTED_PUNCT_MAP + integration in processKey()/wouldHandl
 ### 3. Keybinding comments become unnecessary
 
 Current bindings have comments explaining the mapping:
+
 ```typescript
 { key: 'shift-/', commandId: 'show_help' },      // ?
 { key: 'shift-;', commandId: 'command_palette' }, // :
@@ -99,3 +103,4 @@ These are still useful documentation but the `// ?` comment is now just a mnemon
 - `bun vitest run packages/@km/_orphan/commands/tests/` — keybinding resolution still works
 - `shift-/` (`?`) dispatches `show_help` on both Ghostty (Kitty) and Terminal.app (legacy)
 - `shift-;` (`:`) dispatches `command_palette` on both
+

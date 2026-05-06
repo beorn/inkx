@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/view-modes/1-add-tabs-view-support-to-testenv"
 aliases:
   - km-view-modes.1
@@ -10,3 +13,4 @@ assignee: beorn
 ---
 
 # [x] Add Tabs view support to testEnv @km/view-modes #task #P1 @beorn
+

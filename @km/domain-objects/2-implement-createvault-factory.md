@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/domain-objects/2-implement-createvault-factory"
 aliases:
   - km-domain-objects.2
@@ -18,3 +20,4 @@ Create Vault domain object with factory function.
 - DI support for testing
 
 See plan for full interface.
+

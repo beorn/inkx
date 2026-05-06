@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/colhead-align"
 aliases:
   - km-tui.colhead-align
@@ -13,3 +16,4 @@ assignee: claude:d697f216
 # [x] Column head: selected bg and underline should align with card border width @km/tui #bug #P2 @claude:d697f216
 
 Column head selected background highlight and underline should be the same width as the border/outline of cards below it. Everything should align into one visual column.
+

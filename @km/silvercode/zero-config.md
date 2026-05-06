@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/zero-config"
 aliases:
   - km-silvercode.zero-config
@@ -31,6 +34,14 @@ dependencies:
     created_at: 2026-04-26T14:02:35Z
     created_by: claude:4de4a3ab
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode
+      - type: link
+        target: km-silvercode.connection-system
 ---
 
 # [x] silvercode: zero-config first-run via BUILTIN_AGENTS + env-var fallback @km/silvercode #feature #P2 @claude:4de4a3ab
@@ -52,10 +63,11 @@ Each declares: transport, command, args, default_model, cred_env list, cred_dir,
   { agent: "claude-code", account: <auto>, model: <agent default> }
 
 **account: <auto> resolution** per agent:
-  1. If user named an account (--account or via connection): ~/.km/accounts/<name>/
-  2. Else cred_dir if populated (~/.claude/)
-  3. Else first matching cred_env env var that's set
-  4. Else error: "No credentials for <agent>. Set <ENV_VAR> or run `silvercode auth login`."
+
+1. If user named an account (--account or via connection): ~/.km/accounts/<name>/
+2. Else cred_dir if populated (~/.claude/)
+3. Else first matching cred_env env var that's set
+4. Else error: "No credentials for <agent>. Set <ENV_VAR> or run `silvercode auth login`."
 
 **ai.custom_agents:** escape hatch for power users (rare):
   custom_agents:
@@ -64,9 +76,11 @@ Each declares: transport, command, args, default_model, cred_env list, cred_dir,
       command: ~/Code/claude-fork/cli
 
 **Tests**:
+
 - ANTHROPIC_API_KEY set, no config → connects to Claude
 - ~/.claude populated, no env, no config → connects to Claude
 - OPENAI_API_KEY set, --agent codex → connects via env
 - No creds anywhere → actionable error message
 
 **Depends on**: @km/silvercode/connection-system
+

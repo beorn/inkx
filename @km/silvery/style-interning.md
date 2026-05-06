@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/style-interning"
 aliases:
   - km-silvery.style-interning
@@ -9,3 +11,4 @@ owner: bjorn@stabell.org
 ---
 
 # [ ] Style interning — styleIds through pipeline instead of merged objects @km/silvery #task #P3
+

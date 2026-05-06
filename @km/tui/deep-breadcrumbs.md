@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/deep-breadcrumbs"
 aliases:
   - km-tui.deep-breadcrumbs
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Show breadcrumb path when zoomed deep from search @km/tui #feature #P3
 
 O3 recommendation: After a deep search jump, show breadcrumbs like 'Project > Category > Immigration push' at the top of the board so users aren't disoriented. Different from @km/tui/breadcrumb-ghost (rendering bug) — this is about adding informational breadcrumbs after deep navigation jumps.
+

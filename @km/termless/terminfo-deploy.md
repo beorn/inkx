@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/terminfo-deploy"
 aliases:
   - km-termless.terminfo-deploy
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] terminfo.dev: Cloudflare Pages deployment @km/termless #task #P2
 
 Connect GitHub repo to Cloudflare Pages. Build: cd sites/terminfo.dev && bun install && bun run build. Custom domain: terminfo.dev. Auto-deploy on push.
+

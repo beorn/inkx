@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/all/reactive-tree-strategy-api"
 aliases:
   - km-all.reactive-tree-strategy-api
@@ -80,6 +83,10 @@ dependencies:
     created_at: 2026-04-18T21:35:17Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all
 ---
 
 # [x] reactive-tree: strategy as first-class function/API (composable, not string) @km/all #feature #P1 @Bjørn Stabell
@@ -91,6 +98,7 @@ Phases 2-3 of @km/all/reactive-tree-library. Replace internal if-else on desc.ty
 ## /complete criteria
 
 ### Phase 2a — Internal refactor (no user-visible change)
+
 - packages/reactive-tree/src/strategy.ts with Strategy<T> interface + StrategyContext
 - packages/reactive-tree/src/strategies/ with sparse, walk, walkUp, singleton
 - reactive-tree/src/index.ts dispatches via strategy.read() instead of if-else on desc.type
@@ -99,9 +107,12 @@ Phases 2-3 of @km/all/reactive-tree-library. Replace internal if-else on desc.ty
 - grep 'desc\.type === ' packages/reactive-tree/src/index.ts → 0
 
 ### Phase 2b — Expose in DSL
+
 - DirectionBuilder.some/count/reduce accept optional Strategy parameter
 - New tests: explicit sparse, explicit walk, override default (3 new)
 - Docs updated
 
 ### Phase 3 (deferred — follow-up if needed)
+
 - tree.on('nodeAdded' | 'nodeRemoved' | 'nodeMoved') — first-class topology events
+

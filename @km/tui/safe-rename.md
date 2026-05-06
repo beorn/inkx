@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/safe-rename"
 aliases:
   - km-tui.safe-rename
@@ -11,3 +14,4 @@ assignee: claude:703e68be
 ---
 
 # [x] Jobs system + rename with referential integrity @km/tui #feature #P2 @claude:703e68be
+

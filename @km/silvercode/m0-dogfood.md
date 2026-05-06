@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/m0-dogfood"
 aliases:
   - km-silvercode.m0-dogfood
@@ -18,6 +20,10 @@ dependencies:
     created_at: 2026-04-24T02:09:32Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] M0: end-to-end dogfood verification @km/silvercode #task #P1
@@ -25,3 +31,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 Run silvercode on a real km task. Observe user message, Claude response, tool calls scrolling. Screenshot as evidence.
+

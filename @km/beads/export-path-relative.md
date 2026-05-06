@@ -1,7 +1,4 @@
 ---
-tags:
-  - bug
-  - P2
 mentions:
   - km
   - claude
@@ -94,6 +91,10 @@ dependencies:
     created_at: 2026-04-27T22:06:48Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-beads.cutover
 ---
 
 # [x] bd export hook writes issues.jsonl to worktree root instead of .beads/ — three agents hit it concurrently @km/beads #bug #P2 @claude:cc081a9a

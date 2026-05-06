@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/term-2/6-define-and-expose-inkx-chalkx-apis-needed-by-dotzr"
 aliases:
   - km-term-2.6
@@ -16,23 +19,29 @@ assignee: claude:df8d3459
 All APIs needed by DotzReporter are already available in @beorn/tui:
 
 ### Layout Engine
+
 - `createFlexxEngine()`, `setLayoutEngine()`, `isLayoutEngineInitialized()`
 
-### Render Functions  
+### Render Functions
+
 - `render()`, `renderSync()`, `renderString()`
 
 ### React Components
+
 - `Box`, `Text`, `Spacer`, `Newline`, `Static`, `Console`
 
 ### React Hooks
+
 - `useApp()`, `useInput()`, `useTerm()`, `useConsole()`, `useContentRect()`
 
 ### Utilities
+
 - `stripAnsi()`, `displayLength()`, `curlyUnderline()`, `hyperlink()`
 
 ## Problem
 
 The module resolution bug (@km/_orphan/infra-tui-inkx-module) causes @beorn/tui's re-exports from inkx to create separate module instances. This breaks:
+
 - Layout engine state sharing
 - React component identity
 - Context propagation
@@ -46,3 +55,4 @@ Once @km/term-2/5-remove-cross-dependencies-tui-term-must-not-depend removes cro
 - [ ] DotzReporter imports all APIs from @beorn/tui only
 - [ ] No module identity issues (single inkx instance)
 - [ ] renderString() works with useTerm() in components
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/scrollbar-flex-mode"
 aliases:
   - km-silvery.scrollbar-flex-mode
@@ -45,6 +47,10 @@ dependencies:
     created_at: 2026-04-25T22:12:41Z
     created_by: claude:230fa25d
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] ListView scrollbar disabled in height-independent (flex) mode @km/silvery #bug #P2
@@ -53,20 +59,23 @@ blocks:: [[@km/silvery]]
 
 When ListView is used without a height prop (flex-grown viewport), showScrollbar is gated off entirely:
 
-  const showScrollbar = !isHeightIndependent && isScrolling && thumbHeight > 0 && thumbHeight < trackHeight
+const showScrollbar = !isHeightIndependent && isScrolling && thumbHeight > 0 && thumbHeight < trackHeight
 
 Comment at vendor/silvery/packages/ag-react/src/ui/components/ListView.tsx:1914 says 'a future iteration could subscribe to layout-signals for a flex-aware scrollbar'. This bead is that iteration.
 
 User-visible impact: silvercode's MessageList passes no height prop (flex propagation from parent), so the scrollbar never appears for any session — even when content overflows. Same for any silvery app using ListView in flex mode.
 
 Approach:
+
 1. In height-independent mode, read the inner Box's measured rect via useBoxRect(boxHandleRef) to get the live viewport height.
 2. Use that measured height in place of the height prop when computing trackHeight, thumbHeight, thumbPos.
 3. Remove the !isHeightIndependent gate from showScrollbar.
 4. Test with a flex-mode ListView fixture (createRenderer pinning root width/height; ListView inside flexGrow=1 column).
 
 Done when:
+
 - Wheel scroll in flex-mode ListView renders the scrollbar at the right edge during activity, fades after SCROLLBAR_FADE_AFTER_MS.
 - Thumb is sized proportionally to (viewport / total) and positioned correctly.
 - Existing pinned-height tests still pass.
 - New regression test in tests/features/ exercises flex-mode scrollbar.
+

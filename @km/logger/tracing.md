@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/logger/tracing"
 aliases:
   - km-logger.tracing
@@ -13,6 +16,7 @@ assignee: claude:fbad9cb1
 # [x] Phase 2: Distributed tracing — W3C traceparent, OTel-compatible export @km/logger #feature #P3 @claude:fbad9cb1
 
 Add distributed tracing capabilities:
+
 - Configurable ID generator (default simple, opt-in W3C 128-bit hex)
 - traceparent() utility for HTTP header propagation
 - AsyncLocalStorage context propagation (Node only, opt-in)
@@ -20,3 +24,4 @@ Add distributed tracing capabilities:
 - Sampling support (head-based, configurable rate)
 - Auto-tag logs with current trace/span ID
 This is Phase 2 — depends on universal runtime (Phase 1) being complete.
+

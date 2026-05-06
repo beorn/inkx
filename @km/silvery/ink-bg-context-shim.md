@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ink-bg-context-shim"
 aliases:
   - km-silvery.ink-bg-context-shim
@@ -24,3 +26,4 @@ Closes 27 of 60 Ink 7.0 compat failures — brings compat to ~95%.
 ## Parent
 
 @km/silvery/positioning
+

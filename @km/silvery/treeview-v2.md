@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/treeview-v2"
 aliases:
   - km-silvery.treeview-v2
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] TreeView as ListView composition @km/silvery #task #P2
 
 Rewrite TreeView as ListView + flatten tree + indent + expand/collapse nav. Gets cache/search for free.
+

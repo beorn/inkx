@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/rev-docs-0126/1-fix-createboard-references-in-architecture-docs"
 aliases:
   - km-rev-docs-0126.1
@@ -10,3 +13,4 @@ assignee: beorn
 ---
 
 # [x] Fix createBoard() references in architecture docs @km/rev-docs-0126 #bug #P1 @beorn
+

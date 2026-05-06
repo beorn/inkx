@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/mouse-right-click"
 aliases:
   - km-silvery.mouse-right-click
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T16:18:18Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.opentui-parity
 ---
 
 # [ ] Mouse: right-click context menu + onContextMenu @km/silvery #feature #P2
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/silvery/opentui-parity]]
 
 Canonical ContextMenu component + onContextMenu handler on Box. Keyboard-navigable, theme-aware, focus-trapping.
+

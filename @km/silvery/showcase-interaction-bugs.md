@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/showcase-interaction-bugs"
 aliases:
   - km-silvery.showcase-interaction-bugs
@@ -20,3 +22,4 @@ Issues found in silvery.dev live demos (showcase.html via xterm.js):
 6. **Scrolling doesn't work** — wheel events not reaching terminal in iframe. FIXED: replaced private `_core._onData` API with public `term.input()` (xterm.js v6 API). [DONE]
 
 Root cause for 1-3: xterm FitAddon leaves pixel remainders, demo heights are hardcoded per demo in ShowcaseGallery.vue.
+

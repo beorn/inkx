@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/consolidate-dfs"
 aliases:
   - km-tui.consolidate-dfs
@@ -13,3 +16,4 @@ assignee: Bjørn Stabell
 # [x] Consolidate getVisibleColumnBlocks + getVisibleCardDescendants into getVisibleDescendants @km/tui #task #P2 @Bjørn Stabell
 
 Same DFS walk algorithm with different root node. Extract shared getVisibleDescendants(rootId, viewIndex). ~30 min.
+

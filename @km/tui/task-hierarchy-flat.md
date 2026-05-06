@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/task-hierarchy-flat"
 aliases:
   - km-tui.task-hierarchy-flat
@@ -23,6 +25,10 @@ dependencies:
     created_at: 2026-04-14T10:37:20Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Nested task list items render flat (lose parent/child hierarchy) @km/tui #bug #P2
@@ -32,6 +38,7 @@ blocks:: [[@km/tui]]
 Markdown task lists with nested children render as sibling rows instead of a tree.
 
 Repro:
+
 ```markdown
 - [ ] +taxes: close out 2026-04-15 prepayment
   - [ ] **Set up Mobilbank with Norwegian passport** — unblocks ...
@@ -44,12 +51,15 @@ Actual: 3 sibling tasks, no hierarchy.
 User screenshot 2026-04-14 at 10.23.01: inside the "+taxes — this morning" card, all tasks appear as flat siblings. The parent "+taxes: close out 2026-04-15 prepayment" has a P0 label but its child tasks (Mobilbank, Delei checklist) sit alongside it at the same level instead of beneath it.
 
 Likely causes:
+
 1. @km/markdown ast2nodes flattens nested list items (parent_id not set to the enclosing LI)
 2. @km/_orphan/board view-lens computeCardOrSubitemChildren returns them all at depth 0 regardless of repo structure
 3. @km/tui TreeNode renders a flat depth for body nodes regardless of actual depth
 
 Related recent fixes:
+
 - efb1db1ff fix(tui): preserve inline formatting + bullets in body blocks
 - 27db42fcf fix(board): zoom stack overflow + folder-note column expansion
 
 Investigation should start by inspecting `repo.getChildren(parentTaskId)` for a nested repro — if the DB has the hierarchy but the view flattens it, the bug is in view-lens or TreeNode. If the DB is already flat, the bug is in the markdown parser.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/board-5"
 aliases:
   - km-board-5
@@ -12,6 +14,7 @@ closed_at: 2026-02-04T11:27:24Z
 ## Phase 5: Double-Click Drill-In (~1-2 hours)
 
 Add timing state to mouse handler:
+
 ```typescript
 let lastClickTime = 0;
 let lastClickTarget: HitTarget | null = null;
@@ -29,11 +32,15 @@ function handleMouseDown(event) {
 ```
 
 ## Files
+
 - `Board.tsx` or `mouse-handler.ts` - add timing state
 
 ## Verification
+
 - Double-click on item drills into it
 - Single click still just selects
 
 ## Depends on
+
 - @km/_orphan/mouse-2 (click-to-select)
+

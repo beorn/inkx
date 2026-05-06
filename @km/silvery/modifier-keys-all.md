@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/modifier-keys-all"
 aliases:
   - km-silvery.modifier-keys-all
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Report all modifier keys to enable app-level Cmd/Super shortcuts @km/silvery #feature #P2
 
 With REPORT_ALL_KEYS, apps can now bind Cmd+key shortcuts directly (not just Ctrl+key). Kitty protocol reports Super modifier on key events. This allows macOS-native keybindings like Cmd+S (save), Cmd+Z (undo), Cmd+F (find) instead of Ctrl variants.
+

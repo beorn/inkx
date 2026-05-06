@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/ff-detect"
 aliases:
   - km-storage.ff-detect
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Index file detection utility (km-tree) @km/storage #task #P2
 
 Pure functions: findIndexFile, isIndexFile, getChildSlotTarget in packages/@km/tree/src/index-file.ts. Reusable by view and storage layers.
+

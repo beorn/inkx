@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tribe/filter-collapse"
 aliases:
   - km-tribe.filter-collapse
@@ -20,13 +23,17 @@ dependencies:
     created_at: 2026-04-27T10:42:36Z
     created_by: claude:87d20187
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] Collapse tribe.mode + tribe.snooze + tribe.dismiss → single tribe.filter; drop responseExpected @km/tribe #task #P2 @claude:87d20187
 
 blocks:: [[@km/tribe]]
 
-# Why
+## Why
 
 Three tools where one suffices. Documented as 'simplest design probably looks like' in the post-shipping /big retrospective on @km/tribe/event-classification.
 
@@ -38,7 +45,7 @@ mode + snooze are the same primitive at different timescales — a filter with o
 
 responseExpected: yes|optional|no is a third over-spec. It's derivable from kind + sender at delivery time (DM = yes, broadcast = optional, ambient = no). Three states encoded in the envelope when three states could be computed.
 
-# What
+## What
 
 ## Tools
 
@@ -65,7 +72,7 @@ responseExpected: yes|optional|no is a third over-spec. It's derivable from kind
 - Update tribe SKILL.md
 - Update bead-classification-matrix doc
 
-# Acceptance
+## Acceptance
 
 - grep -rn 'tribe.mode\|tribe.snooze\|tribe.dismiss' vendor/bearly/ apps/ packages/ → 0 hits in production source
 - grep -rn 'responseExpected' vendor/bearly/tools/lib/tribe/ → 0 hits
@@ -74,12 +81,13 @@ responseExpected: yes|optional|no is a third over-spec. It's derivable from kind
 - bun vitest run --project vendor vendor/bearly/ → all pass
 - @bearly/tribe minor bump 0.12.x → 0.13.0
 
-# Out of scope
+## Out of scope
 
 - Replacing dismissals' classifier-training signal with a derived report (file as follow-on if anyone needs the report)
 - Multi-room scoping of the filter (@km/tribe/matrix-shape tracks that)
 
-# Reference
+## Reference
 
 - Original event-classification design: closed bead @km/tribe/event-classification
 - /big retrospective conversation 2026-04-27 (this session)
+

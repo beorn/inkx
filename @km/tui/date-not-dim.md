@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/date-not-dim"
 aliases:
   - km-tui.date-not-dim
@@ -15,3 +17,4 @@ Date badges on nodes (due_date, etc.) are currently rendered with dimColor. They
 
 **Expected:** Date text rendered without dim attribute.
 **Current:** Date text is dimmed, making it hard to read.
+

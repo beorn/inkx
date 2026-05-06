@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/textarea-autosize-migrate"
 aliases:
   - km-silvercode.textarea-autosize-migrate
@@ -25,6 +28,14 @@ dependencies:
     created_at: 2026-04-25T23:33:26Z
     created_by: claude:611e701e
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode
+      - type: link
+        target: km-silvery.textarea-autosize
 ---
 
 # [x] silvercode: migrate CommandBox to silvery TextArea fieldSizing='content' @km/silvercode #task #P2 @claude:2405c72e
@@ -32,3 +43,4 @@ dependencies:
 blocks:: [[@km/silvercode]], [[@km/silvery/textarea-autosize]]
 
 Once @km/silvery/textarea-autosize ships, replace the consumer-side wrap-aware wrapper at `apps/silvercode/src/components/CommandBox.tsx` (`CommandTextArea` ~50 LOC) with `<TextArea fieldSizing='content' maxRows={8} />`. Delete the `countVisualLines` import and `useBoxRect` plumbing — silvery now owns this. Verify all silvercode visual tests still pass.
+

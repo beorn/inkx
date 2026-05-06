@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/nocolor-dry"
 aliases:
   - km-tui.nocolor-dry
@@ -32,8 +34,10 @@ Better: Components ALWAYS set their natural color (`color="\$link"`, `color="\$c
 ```
 
 Implementation options:
+
 1. **React context**: StripColor sets a context flag, useTheme/resolveThemeColor returns undefined for all tokens when flag is set
 2. **inkx Box prop**: `stripColor` on Box tells the renderer to ignore descendant color props
 3. **Transform**: A Transform-like component that strips ANSI color codes from rendered output
 
 Option 1 is simplest — just a context provider that short-circuits theme color resolution.
+

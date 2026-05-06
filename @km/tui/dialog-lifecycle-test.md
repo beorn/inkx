@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/dialog-lifecycle-test"
 aliases:
   - km-tui.dialog-lifecycle-test
@@ -19,3 +22,4 @@ Create a test that exercises the full createApp lifecycle for dialog confirm/can
 This closes the test env vs production env gap that let @km/_orphan/qaco9 survive 4 fix attempts.
 
 Root cause analysis: /pm 5-whys on @km/_orphan/qaco9
+

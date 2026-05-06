@@ -1,4 +1,8 @@
 ---
+mentions:
+  - bjorn-stabell
+  - BS
+  - km
 id: "@km/tui/short-name-rule"
 aliases:
   - km-tui.short-name-rule
@@ -12,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Card shows full @bjorn-stabell instead of short @BS @km/tui #bug #P2
 
 Card shows @bjorn-stabell on the card line. Should show the short form @BS per the short-names feature (@km/tui/short-names). Need to clarify the rule: when the assignee is the current user, should it be hidden entirely? Or always show short form? Currently full name wastes card space.
+

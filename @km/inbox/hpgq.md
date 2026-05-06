@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/hpgq"
 aliases:
   - km-hpgq
@@ -10,14 +12,17 @@ closed_at: 2026-01-21T11:49:33Z
 # [x] Archive legacy Ink engine and views-ink components @km/_orphan #task #P0
 
 ## Background
+
 The TUI was migrated from stock `ink` to `inkx`. We are now fully committed to inkx and no longer need the legacy Ink components.
 
 ## Current State
+
 - All TUI components use inkx
 - Legacy Ink components exist in views-ink/ but are no longer maintained
 - Engine abstraction layer exists but is unused
 
 ## Action Required
+
 Archive/remove the legacy Ink code.
 
 ## Acceptance Criteria (ALL must pass)
@@ -35,10 +40,12 @@ Archive/remove the legacy Ink code.
 ## Files to Archive/Remove
 
 **Directories:**
+
 - `apps/km-tui/packages/km-ink/src/views-ink/`
 - `apps/km-tui/packages/km-ink/src/engines/ink/`
 
 **Files:**
+
 - `apps/km-tui/packages/km-ink/src/layout/ink.ts`
 
 ## Files to Modify
@@ -46,3 +53,4 @@ Archive/remove the legacy Ink code.
 - `apps/km-tui/packages/km-ink/src/tui.ts` - remove engine selection
 - `apps/km-tui/packages/km-ink/src/views/index.ts` - verify no views-ink imports
 - CLI argument handling (if --tui flag exists)
+

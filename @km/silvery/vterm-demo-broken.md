@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/vterm-demo-broken"
 aliases:
   - km-silvery.vterm-demo-broken
@@ -16,9 +18,11 @@ owner: bjorn@stabell.org
 # [x] [bug] Demo apps (vterm-demo, aichat): fullscreen mode shows only one rotating line @km/silvery #bug #P3
 
 Both demo apps show only one line at the top that rotates between entries:
+
 - bun examples/apps/vterm-demo/index.tsx
 - bun examples/apps/aichat/index.tsx
 
 Both default to fullscreen mode. The fullscreen rendering works fine for km's board view, so the issue is specific to these demos — likely related to how they set up the runtime or how ListView interacts with fullscreen.
 
 Reproduce: cd vendor/silvery && bun examples/apps/aichat/index.tsx
+

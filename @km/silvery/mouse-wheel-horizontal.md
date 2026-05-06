@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - wheel
 id: "@km/silvery/mouse-wheel-horizontal"
 aliases:
   - km-silvery.mouse-wheel-horizontal
@@ -13,6 +17,10 @@ dependencies:
     created_at: 2026-04-15T16:18:19Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.opentui-parity
 ---
 
 # [ ] Mouse: shift+wheel → horizontal scroll @km/silvery #feature #P3
@@ -20,3 +28,4 @@ dependencies:
 blocks:: [[@km/silvery/opentui-parity]]
 
 Shift+wheel is standard horizontal-scroll convention for wide views (tables, code, timelines). Needs ScrollView/VirtualList integration.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/namespaces"
 aliases:
   - km-infra.namespaces
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-20T10:31:01Z
     created_by: claude:18c72b43
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] Namespaces: short-ID minting via per-node namespace facet @km/infra #task #P3
@@ -86,3 +92,4 @@ Plus legacy: `km-[a-z0-9]+` for existing random-suffix ids.
 ## Deferrable
 
 Design captured; revisit when short-id-prominence work is actively needed (likely during @km/tui/backlog-view or first Matrix-room implementation with item references).
+

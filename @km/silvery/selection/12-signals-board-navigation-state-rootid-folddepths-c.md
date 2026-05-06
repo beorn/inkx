@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/selection/12-signals-board-navigation-state-rootid-folddepths-c"
 aliases:
   - km-silvery.selection.12
@@ -21,3 +23,4 @@ Target: each is a signal on the pane. Views read via useSignal. Mutations write 
 Files: Board.tsx (rootId, foldDepths, collapsedNodes), board-app-store.ts (state shape), board-reducer-new.ts (TOGGLE_FOLD, TOGGLE_COLLAPSE, ZOOM_IN, SET_ROOT cases)
 
 This subsumes the remaining board-reducer into signals — the reducer becomes thin (just curswant + moveState).
+

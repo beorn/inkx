@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/ff-roundtrip"
 aliases:
   - km-storage.ff-roundtrip
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] E2E roundtrip tests (DB→file→DB) @km/storage #task #P2
 
 Phase 3c: End-to-end roundtrip tests for bidirectional sync between folder nodes and index files.
+

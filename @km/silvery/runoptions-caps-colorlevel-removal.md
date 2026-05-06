@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/runoptions-caps-colorlevel-removal"
 aliases:
   - km-silvery.runoptions-caps-colorlevel-removal
@@ -18,6 +21,10 @@ dependencies:
     created_at: 2026-04-23T03:24:04Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Delete RunOptions.caps + RunOptions.colorLevel pre-1.0 — profile-only @km/silvery #task #P1 @claude:c6244087
@@ -25,3 +32,4 @@ dependencies:
 blocks:: [[@km/silvery]]
 
 Per /pro review. Both GPT + Kimi insist the 'profile wins silently over caps/colorLevel' docstring IS the bug class the plateau was supposed to kill. Kimi recommends immediate deletion (pre-1.0 excuse); GPT recommends type-level XOR + short removal schedule. Migration: run({ profile: createTerminalProfile({ caps, colorLevel }) }).
+

@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - N
 id: "@km/tui/edit-nav-column-jump"
 aliases:
   - km-tui.edit-nav-column-jump
@@ -13,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] [bug] Ctrl+N from last card in column jumps to next column header @km/tui #bug #P1
 
 findAdjacentEditNode in board-actions.ts recurses up when no sibling exists. When on the last card in a column, it returns the next column node (header). The 'down' direction enters edit on the column header directly. The 'up' direction correctly drills into children via findDeepestLastDescendant. Fix: mirror the up behavior for down — when adjacent node has children, navigate to its first child.
+

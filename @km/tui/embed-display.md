@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/embed-display"
 aliases:
   - km-tui.embed-display
@@ -13,3 +16,4 @@ assignee: claude:a5c7f7de
 # [x] Embedded links from km add show as \!link, ctrl-enter fails @km/tui #bug #P1 @claude:a5c7f7de
 
 After km add creates embed links, TUI shows raw \![[target]] syntax instead of resolved content. Ctrl-enter says 'not an embed'. Root cause: km add creates node with type:li+link_to, serializes as \![[target]], but file watcher re-parse creates type:link node with link_to:null. Link resolution may not re-run.
+

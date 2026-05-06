@@ -16,7 +16,7 @@ props:
     target: km-silvercode.backend-fakes
 ---
 
-# [/] Shared fake ACP backend and contract runner #task #P1
+# [/] Shared fake ACP backend and spec runner #task #P1
 
 blocks:: [[@km/silvercode/backend-fakes]]
 
@@ -35,13 +35,13 @@ Create the shared fake backend core that speaks ACP over stdio and can be config
   - delayed responses
   - rejected config values
   - backend exit mid-turn
-- Add a contract runner that can execute each scenario against either fake or live backends.
+- Add a spec runner that can execute each scenario against either fake or live backends.
 
 ## Acceptance
 
 - `connectAcpRegistry` can connect to the fake through the same process/stdio path as a real ACP backend.
 - The fake backend drives the real `acp-client.ts` adapter, not a mocked `AgentSession`.
-- Contract runner has fake mode as default and live mode behind an explicit env flag.
+- Spec runner has fake mode as default and live mode behind an explicit env flag.
 - At least one config-option scenario proves fake and live runners use the same assertions.
 
 ## Implementation Progress
@@ -55,13 +55,13 @@ Create the shared fake backend core that speaks ACP over stdio and can be config
 
 Verification: `fake-acp-server.test.ts` + `acp-client.test.ts` 31/31 pass; `npx tsc --noEmit` passes; targeted `oxlint`/`oxfmt` pass; `git diff --check` passes.
 
-2026-05-06 contract-runner slice:
+2026-05-06 spec-runner slice:
 
-- Added `@km/agent-harness/testing/backend-contract-runner`.
+- Added `@km/agent-harness/testing/backend-spec-runner`.
 - Added `apps/silvercode/tests/backend-contracts/config-options.contract.test.ts`.
 - Fake targets run by default; `SILVERCODE_BACKEND_CONTRACT=live` appends the live Codex target and reuses the same assertion.
 
-Verification: `backend-contract-runner.test.ts` + `config-options.contract.test.ts` 3/3 pass.
+Verification: `backend-spec-runner.test.ts` + `config-options.contract.test.ts` pass.
 
 2026-05-06 ACP registry profile slice:
 
@@ -76,3 +76,12 @@ Verification: `fake-acp-server.test.ts` covers all six registered ACP ids.
 - Covered real ACP `requestPermission`, `readTextFile`, and `writeTextFile` callbacks through `connectAcp`.
 
 Verification: `fake-acp-server.test.ts` includes permission and filesystem callback scenarios.
+
+2026-05-06 provider/spec slice:
+
+- Replaced the old runner with provider-injected `AgentBackends`, `withChat({ backends })`, and `withAgentBackends({ backends })`.
+- Added fake backend providers for every ACP registry id and spec-level prompt/config/comprehensive-session-update tests.
+- Added docs in `docs/dev/silvercode-backend-fakes.md` and `docs/dev/test-fakes.md`.
+
+Verification: `apps/silvercode/packages/agent-harness/tests/`, `apps/silvercode/tests/backend-contracts`, and `apps/silvercode/tests/turn-activity-summary.test.tsx` pass.
+

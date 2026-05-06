@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/theme-invariants"
 aliases:
   - km-silvery.theme-invariants
@@ -18,6 +21,10 @@ dependencies:
     created_at: 2026-04-18T00:01:46Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.design-system
 ---
 
 # [x] Theme invariants — AA contrast + gamut mapping enforced at theme load @km/silvery #feature #P3 @Bjørn Stabell
@@ -62,3 +69,4 @@ const theme = loadTheme(raw, { mode: 'strict' | 'lenient' })
 Parent: @km/silvery/design-system
 Reference: hub/silvery/design/v10-terminal/terminal-color-strategy.md
 Source: /pro review 2026-04-17
+

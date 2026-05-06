@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/ve6iy"
 aliases:
   - km-ve6iy
@@ -12,3 +14,4 @@ closed_at: 2026-01-28T13:45:41Z
 Port the visual feature catalog from chalkx to @beorn/term.
 
 Part of: @km/_orphan/lp0hu (term/tui consolidation)
+

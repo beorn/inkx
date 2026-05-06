@@ -31,3 +31,4 @@ state to scrollbars and content, or make drag/follow/kinetic causes explicit.
       while dragging.
 
 Implemented first primitive: ScrollArea + useScrollController own contentHeight, viewportHeight, maxScroll, scrollOffset, wheel handler, and scrollbar wiring for plain scroll panes. Remaining before close: formal cause metadata, richer controller API, and ListView adapter/unification.
+

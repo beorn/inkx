@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/mqmjp"
 aliases:
   - km-mqmjp
@@ -11,3 +14,4 @@ assignee: claude:717696c0
 ---
 
 # [x] TUI: Child count dimColor inconsistent — dimmed when children visible, bold when hidden @km/_orphan #bug #P2 @claude:717696c0
+

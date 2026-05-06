@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/watchdog-framework"
 aliases:
   - km-bearly.watchdog-framework
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T11:33:21Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-bearly
 ---
 
 # [ ] Watchdog framework — defineWatchdog() + migrate qmd + add bd-dolt-server @km/bearly #task #P1
@@ -28,7 +34,9 @@ We already have `vendor/bearly/tools/qmd-watchdog.ts` (~266 LOC) doing this patt
 ## Scope (one PR, three phases)
 
 ### Phase 1: Framework
+
 Create `vendor/bearly/tools/lib/watchdog/` with:
+
 - `defineWatchdog(config)` factory — returns a `run()` handle
 - Probe scheduler (interval + jitter, pause on process suspend)
 - Exponential backoff with `max` cap + incident cap per window (e.g. max 5 restarts/hour → bail + loud log)
@@ -38,6 +46,7 @@ Create `vendor/bearly/tools/lib/watchdog/` with:
 - Unit tests: fake clock, probe returns fail → recover called → backoff applied → incident logged
 
 Declaration shape:
+
 ```ts
 defineWatchdog({
   name: "bd-dolt",
@@ -52,6 +61,7 @@ defineWatchdog({
 ```
 
 ### Phase 2: Migrate qmd-watchdog
+
 - Port `vendor/bearly/tools/qmd-watchdog.ts` to use `defineWatchdog()`
 - Keep behavior: no-progress timer, RSS ceiling, wall-clock cap → these become `probe` predicates combined via `anyOf(...)`
 - Cut from ~266 LOC to a declaration + small qmd-specific helpers
@@ -59,6 +69,7 @@ defineWatchdog({
 - Regression test: kill stuck qmd child → verify restart + incident entry
 
 ### Phase 3: Add bd-dolt-server watchdog
+
 - New file `vendor/bearly/tools/bd-dolt-watchdog.ts` using `defineWatchdog()`
 - Runs via launchd user agent OR as a tribe-daemon plugin (decide during implementation — plugin is cheaper, launchd survives tribe-daemon crashes)
 - Failure modes to cover:
@@ -73,6 +84,7 @@ defineWatchdog({
 bd sql-server mode provides 5.6× per-call speedup (730ms → 130ms) but introduces a long-running process dependency. Vault beads has been running server mode 3d+ without issue, so failure rate is low — this is a "known unknown" risk buffer, not an active fire. Upstream bd ships `bd dolt killall` + `bd dolt start` + `bd dolt test` specifically because orphan/stale-server situations happen — we should assume we'll hit them.
 
 ## Candidates for future adoption
+
 - silvery dev-server (if it becomes long-running)
 - tribe-daemon itself (meta-watchdog — launchd-level)
 - @km/_orphan/cli sync daemon (if it ever splits out)
@@ -80,9 +92,11 @@ bd sql-server mode provides 5.6× per-call speedup (730ms → 130ms) but introdu
 Each of these should become a 5-LOC `defineWatchdog()` declaration, not a new 250-LOC script.
 
 ## Acceptance
+
 - [ ] `vendor/bearly/tools/lib/watchdog/index.ts` exports `defineWatchdog`
 - [ ] Unit tests cover: fake-clock scheduling, backoff, incident cap, SIGTERM flush
 - [ ] `qmd-watchdog.ts` rewritten via `defineWatchdog`; old behavior preserved
 - [ ] `bd-dolt-watchdog.ts` new, runs via chosen mechanism (launchd/plugin)
 - [ ] Tribe health-monitor shows `watchdog.bd-dolt.up` + `watchdog.qmd.up` metrics
 - [ ] Both watchdogs survive a forced kill of their target and recover within one interval
+

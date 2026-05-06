@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/sync-pane"
 aliases:
   - km-tui.sync-pane
@@ -13,3 +16,4 @@ assignee: claude:5f0aee02
 # [x] Sync activity pane: toggleable panel showing per-file sync operations @km/tui #feature #P3 @claude:5f0aee02
 
 Persistent, minimizable pane showing individual file sync events (synced, renamed, errors). Like Dropbox/OneDrive sync activity view. Requires: (1) per-file events from sync worker → TUI, (2) new SyncPane component, (3) keyboard toggle. Current infra only exposes aggregate WatcherStatus (state + counts) — no per-file data reaches the TUI yet.
+

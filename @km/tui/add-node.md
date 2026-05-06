@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/add-node"
 aliases:
   - km-tui.add-node
@@ -13,3 +16,4 @@ assignee: claude:703e68be
 # [x] Add node function via Enter/Return (decker-style) @km/tui #feature #P2 @claude:703e68be
 
 Enter/Return should add a new sibling node below the current one. Behavior should be similar to decker's enter behavior (which handles indentation, splitting, etc). Esc should just exit to node mode without undoing the change.
+

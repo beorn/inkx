@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tree/operation-log"
 aliases:
   - km-tree.operation-log
@@ -17,6 +19,7 @@ withHistory uses this for undo/redo.
 
 Add: operation log that records every Operation (from Phase 4).
 Uses:
+
 - Undo/redo (withHistory plugin replays inverse ops)
 - Real-time collaboration (forward ops to peers)
 - Event replay (rebuild state from op log)
@@ -27,3 +30,4 @@ Operations are finer-grained than events — events are domain-level (node_creat
 operations are edit-level (insert_text at offset 5).
 
 The two coexist: operations for undo/collab, events for sync/audit.
+

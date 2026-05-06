@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/selectlist-double-onselect"
 aliases:
   - km-silvery.selectlist-double-onselect
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-23T00:58:51Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] SelectList fires onSelect twice on click: ListView wrapper Box onClick duplicates SelectList's own onClick @km/silvery #bug #P2
@@ -30,3 +36,4 @@ Discovered while fixing @km/silvery/mouse-drag-vs-click (see agent report for ta
 Failing test: `vendor/silvery/packages/ag-react/tests/select-list-default-ux.test.tsx:107`.
 
 Fix shape: either (a) SelectList owns click (don't add default onClick in ListView), (b) ListView adds the onClick only when parent didn't, or (c) onClick routes through a single handler shared between them.
+

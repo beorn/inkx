@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/blink-hidden-style"
 aliases:
   - km-silvery.blink-hidden-style
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Bug: styleToAnsi() omits blink and hidden while styleTransition() handles them @km/silvery #bug #P3
 
 In output-phase.ts, styleTransition() handles blink and hidden attrs but styleToAnsi() does not emit them on full generation/reset baseline. Inconsistent.
+

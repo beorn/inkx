@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/evaluate-probe-autoprobing"
 aliases:
   - km-tui.evaluate-probe-autoprobing
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-22T13:09:00Z
     created_by: claude:019d032d
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Evaluate dropping stdin auto-probing in km — uses synchronous caps instead, save the latency @km/tui #task #P0 @claude:019d032d
@@ -35,9 +42,11 @@ km already has detectTerminalCaps() — the synchronous $TERM/program heuristic 
 - probeColors: 18 OSC palette queries. Used to populate the exact terminal palette. Could fall back to a curated palette per terminal program (we know it's Ghostty/Kitty/etc. from caps) without measurable user impact.
 
 Action items:
+
 1. Audit each probe call site: who calls it, what's the consequence of skipping it, what's the time cost.
 2. Decide for each: skip if caps known | run async after first frame | always skip | always run.
 3. Update @km/tui's deferred-theme-provider to skip probeColors when a cached theme exists for the (program, polarity) pair. Currently it loads cache then ALSO probes — wasted work.
 4. Consider exposing a 'no-probe' option in @silvery/ag-term/runtime that disables all stdin probing entirely.
 
 Why P0: probes contributed to the input-not-consumed bug fixed in silvery 2d9ab59f (probeColors race-condition resetting raw mode mid-flight). Even with the race fix, probes add latency and complexity. Eliminating where unnecessary improves both startup time AND robustness.
+

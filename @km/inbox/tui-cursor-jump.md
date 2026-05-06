@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/tui-cursor-jump"
 aliases:
   - km-tui-cursor-jump
@@ -11,3 +14,4 @@ assignee: claude:1588825b
 # [x] Cursor jumps to top of board when moving down from certain items @km/_orphan #bug #P1 @claude:1588825b
 
 When cursoring down from 'Kinship', cursor jumps to top of board instead of moving to next item. Likely navigation boundary handling bug.
+

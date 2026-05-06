@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/task-status-empty-string"
 aliases:
   - km-storage.task-status-empty-string
@@ -19,4 +21,6 @@ Spun out from @km/storage/content-issues (vault session, 2026-04-24).
 Bullets in calendar files (date-only headings, prose calendar lines that *look* like tasks) get parsed as nodes with task_status = '' (empty string, not NULL). /due filters these out explicitly.
 
 ## Design question
+
 Should the parser apply stricter 'is this really a task' detection, or is the empty-status escape hatch the right model and consumers should always filter?
+

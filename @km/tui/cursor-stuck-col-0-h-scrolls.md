@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/cursor-stuck-col-0-h-scrolls"
 aliases:
   - km-tui.cursor-stuck-col-0-h-scrolls
@@ -27,13 +30,16 @@ Observed: cursor never leaves column 0; instead, the board itself scrolls horizo
 Suspect: recent silvery virtualizer refactor (380e9644 height-aware bootstrap walk delete, b9e9a67a useVirtualizer reactive useScrollState, etc.) may have broken HorizontalVirtualList's cursor-vs-scroll separation.
 
 Repro plan:
+
 1. Create vault with 5+ columns wider than terminal
 2. bun km view <vault>
 3. Press l (or Right) repeatedly
 4. Observe: cursor should move to column 1, 2, 3 ... before board scrolls
 
 Files likely involved:
+
 - vendor/silvery/packages/ag-react/src/ui/HorizontalVirtualList.tsx (or similar)
 - apps/@km/tui/src/views/board-layout.ts (uses calcColumnWidth, maxExpandedCols)
 - apps/@km/tui/src/board/handle-key.ts → handleHorizontalNav → vnNavigateHorizontal
 - apps/@km/tui/src/state/grid-navigator.ts
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/absolute-mouse-events"
 aliases:
   - km-silvery.absolute-mouse-events
@@ -60,3 +62,4 @@ silvery's mouse event dispatch doesn't reliably fire mouseEnter/mouseLeave on ab
 Workaround: km uses popoverHovered flag + 300ms timer with re-check at fire time. Cards check bounding box geometry in handleMouseLeave. Works but fragile.
 
 Fix: silvery's hit-test dispatch should include absolute positioned nodes in the hover-target resolution, regardless of tree order.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-storybook"
 aliases:
   - km-silvery.theme-storybook
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-17T22:37:43Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.design-system
 ---
 
 # [x] Theme storybook — interactive showcase at all 4 capability tiers @km/silvery #feature #P3
@@ -51,3 +57,4 @@ Interactive visual showcase of the design system. Browse schemes + components; t
 Full context: hub/silvery/design/v10-terminal/terminal-color-strategy.md
 Parent: @km/silvery/design-system
 Depends on: @km/silvery/theme-auto-detect (tier override)
+

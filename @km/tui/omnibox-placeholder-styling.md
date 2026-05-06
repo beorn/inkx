@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/omnibox-placeholder-styling"
 aliases:
   - km-tui.omnibox-placeholder-styling
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-14T23:07:38Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Omnibox placeholder: 'ghosted' text too white + not left-aligned (extra leading space) @km/tui #bug #P3
@@ -31,9 +37,7 @@ User feedback: 'the ghosted text looks too white and isn't left-aligned (seems t
 ## Root cause candidates
 
 1. The InputBox's placeholder rendering (apps/@km/tui/src/views/shared-components.tsx) currently renders: [cursor-block] [Muted placeholder]. The inverse-space cursor block might be read as an extra leading space visually.
-
 2. <Muted> may not be dim enough under the user's current theme. Some themes render Muted as a slightly-lighter-than-primary text which reads as 'too white'.
-
 3. The prompt (e.g. 'omnibox ' or '> ') already includes a trailing space, and the cursor block adds another inverse-space character — so the layout is effectively: prompt + ␣ + ␣ + placeholder, producing visible leading whitespace.
 
 ## Fix
@@ -45,3 +49,4 @@ User feedback: 'the ghosted text looks too white and isn't left-aligned (seems t
 Fix site: apps/@km/tui/src/views/shared-components.tsx InputBox component.
 
 Related: @km/tui/omnibox-quality-plateau, @km/silvery/popover (if ghost styling lands a shared Ghost component)
+

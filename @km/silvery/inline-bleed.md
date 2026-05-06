@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/inline-bleed"
 aliases:
   - km-silvery.inline-bleed
@@ -40,6 +43,7 @@ Or programmatically via testEnv:
 ## What happens
 
 After 3 Enter presses:
+
 - Active content renders correctly (exchanges, prompt, status bar)
 - Below the status bar, STALE lines appear from earlier renders:
   ```
@@ -70,9 +74,11 @@ The fix is likely in `packages/term/src/pipeline/output-phase.ts` — after writ
 ## Test approach
 
 Use `@silvery/test` virtual renderer in inline mode:
+
 1. Render a ScrollbackList with 3+ items, each tall enough to exceed terminal height when combined
 2. Freeze the first item (triggers scrollback emission)
 3. Capture the buffer BELOW the active content area
 4. Assert those lines are empty/cleared
 
 Alternatively, capture raw ANSI output and verify erase-to-end sequences are emitted after the content.
+

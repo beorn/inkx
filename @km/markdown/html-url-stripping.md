@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/markdown/html-url-stripping"
 aliases:
   - km-markdown.html-url-stripping
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] [bug] Markdown parser drops <corge> and https:// scheme — data loss in display @km/markdown #bug #P2
 
 Source: '<corge>' renders as ''. Source: 'https://example.com' renders as 'example.com'. Round-trip lossy in display. Fix in ast2nodes.ts.
+

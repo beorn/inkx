@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/flexx-dirty-flag"
 aliases:
   - km-flexx-dirty-flag
@@ -10,7 +13,7 @@ assignee: claude:b8b4780b
 
 # [x] Implement dirty-flag incremental layout @km/_orphan #task #P2 @claude:b8b4780b
 
-# Dirty-flag Incremental Layout
+## Dirty-flag Incremental Layout
 
 **Goal:** Skip unchanged subtrees during layout recalculation.
 
@@ -48,3 +51,4 @@ Medium effort, very high impact for TUI use case (frequent small updates).
 
 - src/node.ts / node-zero.ts
 - src/layout.ts / layout-zero.ts
+

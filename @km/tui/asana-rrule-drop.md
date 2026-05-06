@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/asana-rrule-drop"
 aliases:
   - km-tui.asana-rrule-drop
@@ -11,3 +14,4 @@ assignee: claude:d697f216
 ---
 
 # [x] Asana import: rrule field completely dropped — never written to KNode in convert.ts @km/tui #bug #P1 @claude:d697f216
+

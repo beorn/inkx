@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/prop-value-color"
 aliases:
   - km-tui.prop-value-color
@@ -28,3 +31,4 @@ Always: grey key label, colored/white value. Every prop value should be visually
 ## Where to look
 
 Detail pane rendering in apps/@km/tui/src/views/ — likely the metadata table rendering path. Check if some values get dimmed based on done/completed status (the grey:grey screenshot is a completed task with status=done).
+

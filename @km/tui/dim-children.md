@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/dim-children"
 aliases:
   - km-tui.dim-children
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] TUI: non-selected card children incorrectly dimmed @km/tui #bug #P2
+

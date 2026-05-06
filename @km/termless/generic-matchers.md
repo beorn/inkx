@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/generic-matchers"
 aliases:
   - km-termless.generic-matchers
@@ -13,3 +16,4 @@ assignee: claude:8fc35754
 # [x] Generic test runner matcher support @km/termless #feature #P3 @claude:8fc35754
 
 viterm is currently vitest-only. Add a termless/matchers export that works with any expect() (Jest, Bun test, etc.) to widen adoption. The core matchers are pure functions — just need adapter wrappers for different test runners.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/role-register-cleanup"
 aliases:
   - km-tribe.role-register-cleanup
@@ -16,6 +18,10 @@ dependencies:
     created_at: 2026-04-19T10:55:26Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] tribe: split overloaded role; unify register and tribe.join @km/tribe #feature #P3
@@ -31,3 +37,4 @@ Pro review 2026-04-19 grouped three related cleanups:
 Design: introduce ParticipantKind enum (daemon|member|watch), keep connection state in the clients Map (connected or not), derive chief via deriveChiefId. TribeContext becomes the participant record; one factory function.
 
 Effort: ~1 day. Blast radius is bounded (6-8 files).
+

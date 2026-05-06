@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/pattern-registry"
 aliases:
   - km-market.pattern-registry
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] Shadcn-style TUI pattern registry — copy-paste terminal UI patterns @km/market #feature #P2
 
 Not just components — patterns: chat layout, split panes, command palette, table explorer, agent task runner. Copy-pasteable with Flexily layouts. Turns Silvery from a framework into the fastest way to build a polished TUI.
+

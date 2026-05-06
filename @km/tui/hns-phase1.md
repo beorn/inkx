@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/hns-phase1"
 aliases:
   - km-tui.hns-phase1
@@ -36,7 +39,7 @@ class ReactiveNodeStore {
   batch(tree: TreeAccess, fn: () => void): void { ... }
   node(id: string): NodeSignals { ... }
 
-  // LEGACY — private, renamed, shadow-only. Removed in km-tui.hns-phase3.
+// LEGACY — private, renamed, shadow-only. Removed in km-tui.hns-phase3.
   /** @deprecated REMOVING in km-tui.hns-phase3 — do NOT add callers */
   private _legacySyncCursor(...) { ... }
   private _legacySyncSelected(...) { ... }
@@ -56,25 +59,34 @@ assertParity(newSignals, oldSignals)  // dev-mode only
 Shadow window is minimal — exists only to verify parity before Phase 2 flips reads. Target: shadow lives for one test suite run, not days.
 
 ## Delete
+
 Nothing yet — old sync stays as private shadow, new is public active.
 
 ## New tests
+
 - tests/reduced-signals.test.ts — engine unit tests (descriptors, batch, counts, reparent, cleanup)
 - tests/shadow-parity.test.ts — differential: old sync vs new reduced signals on same operations
 
 ## /complete
+
 \`\`\`bash
 bun vitest run apps/km-tui/tests/reduced-signals.test.ts  # must pass
 bun vitest run apps/km-tui/tests/shadow-parity.test.ts  # must pass
 bun vitest run apps/km-tui/tests/tree-concerns.test.ts  # prototype tests still pass
 bun run test:fast  # all pass with shadow enabled
-# Bench: wall time ≤ 110% of Phase 0 baseline
 
-# Legacy isolation verified:
+## Bench: wall time ≤ 110% of Phase 0 baseline
+
+## Legacy isolation verified:
+
 rg 'syncCursor\b' --glob '!.beads' --glob '!vendor' -t ts -c 2>/dev/null | wc -l  # → 0 (renamed to _legacySyncCursor)
 rg 'syncSelected\b' --glob '!.beads' --glob '!vendor' -t ts -c 2>/dev/null | wc -l  # → 0 (renamed to _legacySyncSelected)
-# NOTE: _legacySyncCursor/_legacySyncSelected WILL exist (private, shadow-only) — that's expected.
-# They are removed in Phase 3. The grep above verifies no PUBLIC syncCursor/syncSelected calls remain.
+
+## NOTE: _legacySyncCursor/_legacySyncSelected WILL exist (private, shadow-only) — that's expected.
+
+## They are removed in Phase 3. The grep above verifies no PUBLIC syncCursor/syncSelected calls remain.
+
 rg '_legacySyncCursor' --glob '!.beads' --glob '!vendor' -t ts -c 2>/dev/null  # expected: 2-3 hits (definition + shadow caller in Board.tsx)
 rg '_legacySyncSelected' --glob '!.beads' --glob '!vendor' -t ts -c 2>/dev/null  # expected: 2-3 hits (same)
 \`\`\`
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/doc-drift"
 aliases:
   - km-silvery.doc-drift
@@ -24,6 +27,7 @@ assignee: Bjørn Stabell
 # [x] Architecture doc has 6 contradictions vs code (Pro review finding) @km/silvery #bug #P0 @Bjørn Stabell
 
 GPT 5.4 Pro found 6 specific doc/code contradictions:
+
 1. 'All events follow same 5 stages' but resize/focus/mouse don't
 2. Stage 4 onKeyUp claim but release filtered before focus dispatch
 3. React DOM comparison incorrect (React has Capture variants)
@@ -32,3 +36,4 @@ GPT 5.4 Pro found 6 specific doc/code contradictions:
 6. FocusCallback defined in runtime-subscribers but SubscriberList only has input + paste
 
 /complete: all 6 contradictions resolved, doc and code agree
+

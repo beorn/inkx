@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/kitty-query-parse"
 aliases:
   - km-inkx.kitty-query-parse
@@ -13,3 +16,4 @@ assignee: claude:d3a7049b
 # [x] Parse Kitty protocol query response @km/inkx #task #P2 @claude:d3a7049b
 
 queryKittyKeyboard() sends CSI ? u but we don't parse the terminal's response (CSI ? flags u). Need a parser that reads the response from stdin and returns which flags the terminal supports. This is needed by @km/silvery-legacy/kitty-auto for detection.
+

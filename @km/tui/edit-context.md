@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/edit-context"
 aliases:
   - km-tui.edit-context
@@ -47,3 +50,4 @@ All in vendor/beorn-inkx/ (alongside text-cursor.ts). Extract to beorn-editx lat
 - W3C EditContext API
 - Current: apps/@km/tui/src/block-edit-target.ts (BlockEditTarget interface)
 - Current: vendor/beorn-inkx/src/text-cursor.ts (Layer 0, stays)
+

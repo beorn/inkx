@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/ctrl-b-background"
 aliases:
   - km-silvercode.ctrl-b-background
@@ -21,6 +24,10 @@ dependencies:
     created_at: 2026-04-24T22:30:06Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Ctrl-B to background long-running commands @km/silvercode #feature #P2 @claude:2405c72e
@@ -58,3 +65,4 @@ silvercode currently lacks this. Long shell/agent turns block the UI flow — yo
 - SidePanel shows accurate background count
 - Backgrounded result surfaces in conversation when complete
 - Cancel works (no zombie turns)
+

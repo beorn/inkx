@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/examples-import"
 aliases:
   - km-silvery.examples-import
@@ -16,6 +18,10 @@ dependencies:
     created_at: 2026-04-11T15:51:32Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Examples: switch from spawn to dynamic import @km/silvery #task #P0
@@ -29,6 +35,7 @@ Currently 37 example files use `import.meta.main` guard — the CLI spawns a chi
 Better: export a `main()` function from each example, CLI does `await import(file)` then calls `main()`. Runs in-process, no spawn, no flags, works with any runtime.
 
 ## Tasks
+
 - [ ] Add `export async function main()` to all 37 example files
 - [ ] Move the `run()` + `waitUntilExit()` call into `main()`
 - [ ] Keep `import.meta.main` guard calling `main()` for direct execution
@@ -36,3 +43,4 @@ Better: export a `main()` function from each example, CLI does `await import(fil
 - [ ] Remove spawn logic entirely
 - [ ] Test: bunx @silvery/examples counter
 - [ ] Test: npx @silvery/examples counter
+

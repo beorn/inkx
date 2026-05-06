@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/storage/sync-ownership"
 aliases:
   - km-storage.sync-ownership
@@ -18,3 +21,4 @@ assignee: Bjørn Stabell
 # [x] Sync ownership model: DB-authoritative for user edits, file-authoritative for external changes @km/storage #task #P1 @Bjørn Stabell
 
 Current sync has no clear ownership — reconciliation runs during user writes, causing data loss. Design: user events = DB authority (generate file, suppress watcher), watcher events = file authority (parse file, update DB). No reconcile-before-write during user edits. Current 5-layer defensive patches (recentWrites, node-differ guards) are duct tape — this bead replaces them with a clean architecture.
+

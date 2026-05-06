@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/prose-primitive"
 aliases:
   - km-silvercode.prose-primitive
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-24T14:51:12Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.wrap-ergonomic
 ---
 
 # [x] <Prose>/<MessageBody> component: drop-in text-wrapping primitive that encapsulates flex/shrink/minWidth/overflow @km/silvercode #feature #P2 @claude:2405c72e
@@ -48,6 +55,7 @@ import { Prose } from "silvery"
 ```
 
 Internally `<Prose>` is a Box with the known-good flex config for text wrapping:
+
 - flexDirection="column"
 - flexShrink={1}
 - minWidth={0}
@@ -66,3 +74,4 @@ And it tells flexily "my children wrap" so measurement takes the right path.
 - Silvercode's AssistantBlock + UserMessageBlock + MarkdownView use it instead of hand-rolling the flex chain
 - Visual regression test in silvery's `tests/features/` showing a 1500-char paragraph wraps at container boundary
 - Zero consumer-level flex-shrink/min-width props needed
+

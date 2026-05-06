@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/title-as-card"
 aliases:
   - km-tui.title-as-card
@@ -18,6 +21,7 @@ assignee: Bjørn Stabell
 Column titles and board titles should behave like cards for the container they represent.
 
 Interactions (matching card behavior):
+
 - Click → select the column/board (partially works)
 - Cmd+hover → show outline, clickable to goto/zoom (not implemented)
 - Double-click → enter text edit mode (not implemented)
@@ -26,3 +30,4 @@ Interactions (matching card behavior):
 - Drag → reorder columns (future)
 
 Concept: every level has a title that IS the card for that level. Board title = card for the board. Column title = card for the column. They share the same interaction model.
+

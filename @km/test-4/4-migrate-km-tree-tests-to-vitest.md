@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+  - km
+  - claude
 id: "@km/test-4/4-migrate-km-tree-tests-to-vitest"
 aliases:
   - km-test-4.4
@@ -12,3 +16,4 @@ assignee: claude:bb984f7c
 # [x] Migrate @km/tree tests to Vitest @km/test-4 #task #P2 @claude:bb984f7c
 
 Change imports from bun:test to vitest in @km/tree package. Medium complexity tests.
+

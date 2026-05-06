@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/h08ah"
 aliases:
   - km-h08ah
@@ -18,3 +20,4 @@ owner: bjorn@stabell.org
 # [x] collectTextContent: characterization tests + shared traversal @km/_orphan #task #P3
 
 Write characterization tests for all 6 collectTextContent implementations. Extract shared tree traversal primitive with named policy wrappers (collectTextForMeasure, collectTextForRender, collectPlainText, collectRawTextForContent). Target 6→3 consolidation if characterization tests prove semantics align.
+

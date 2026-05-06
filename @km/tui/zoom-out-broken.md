@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/zoom-out-broken"
 aliases:
   - km-tui.zoom-out-broken
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] 'u' zoom out still broken — check /recall for exact specs @km/tui #bug #P2
 
 'u' key should zoom out to parent view (navigate to parent and set as root). Currently acts like 'k' (cursor up) instead. Check recall for original specs: bun recall 'u zoom out spec'
+

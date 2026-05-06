@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/era2-composition"
 aliases:
   - km-silvery.era2-composition
@@ -48,3 +51,4 @@ Design the era2 composition system. How plugins, providers, renderers, and effec
 3. Decide namespace (app.providers vs app.ai)
 4. Update era2 docs (04-app.md, 00-architecture.md)
 5. Update prototype to final design
+

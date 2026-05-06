@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/curl-probe"
 aliases:
   - km-terminfo.curl-probe
@@ -16,3 +19,4 @@ assignee: claude:4929065a
 # [x] curl-based terminal probe — curl terminfo.dev/probe | sh @km/terminfo #feature #P3 @claude:4929065a
 
 A pure shell script that probes terminal features without requiring Node.js. Downloads from terminfo.dev/probe, runs escape sequence probes via bash/zsh, outputs JSON, and optionally submits via GitHub API. Cross-platform (macOS, Linux, WSL). The npx version is the full experience; curl is the zero-dependency alternative.
+

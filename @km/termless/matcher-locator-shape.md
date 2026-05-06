@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/matcher-locator-shape"
 aliases:
   - km-termless.matcher-locator-shape
@@ -79,6 +82,10 @@ dependencies:
     created_at: 2026-04-26T16:22:36Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.fix-sweep-vendor-fuzz
 ---
 
 # [x] [bug] vendor/termless matchers — 5 failures: toHaveText expects AutoLocator @km/termless #bug #P2 @claude:cc081a9a
@@ -86,3 +93,4 @@ dependencies:
 blocks:: [[@km/all/fix-sweep-vendor-fuzz]]
 
 matchers.test.ts (4) + integration.test.ts (1). All fail with: 'toHaveText expects an AutoLocator, got object' from apps/@km/tui/tests/helpers/matchers.ts:44 assertAutoLocator. Either matchers helper hardened too aggressively, or termless tests need updating to use new shape. /complete: bun vitest run --project vendor vendor/termless/packages/viterm/tests/matchers.test.ts vendor/termless/tests/integration.test.ts → 0 failures.
+

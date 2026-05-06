@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/rev-arch-0130"
 aliases:
   - km-rev-arch-0130
@@ -9,7 +11,7 @@ closed_at: 2026-02-04T11:57:38Z
 
 # [x] Code review: Architecture and quality (Jan 2026) @km/rev-arch-0130 #epic #P2
 
-# Code Review: Architecture and Quality
+## Code Review: Architecture and Quality
 
 **Date**: 2026-01-30
 **Focus**: Full codebase review (layers, tests, org, specs, beads)
@@ -66,3 +68,4 @@ closed_at: 2026-02-04T11:57:38Z
 2. Fix @km/beads layer violation (sync.ts, migrate.ts) 2 files
 3. Convert DAV clients to factories ~200 lines
 4. Unify term initialization pattern (5 TUI files)
+

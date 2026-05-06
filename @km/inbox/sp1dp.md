@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/sp1dp"
 aliases:
   - km-sp1dp
@@ -11,3 +14,4 @@ assignee: claude:3c00d7cc
 # [x] inkx: stale pixels when children conditionally removed @km/_orphan #bug #P2 @claude:3c00d7cc
 
 content-phase.ts line 118 clear condition only checks contentDirty/paintDirty/layoutChanged but not subtreeDirty. When React removes children conditionally, parent only has subtreeDirty set, so region is not cleared. Stale pixels from removed children persist in cloned buffer. Fix: add node.subtreeDirty to the clear condition.
+

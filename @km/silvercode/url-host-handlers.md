@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/url-host-handlers"
 aliases:
   - km-silvercode.url-host-handlers
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-25T18:45:57Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.autolinks-config
 ---
 
 # [x] Per-host autolinks handlers — pattern-only (no HTTP fetching) @km/silvercode #feature #P3 @claude:2405c72e
@@ -88,3 +95,4 @@ Once HTTP fetching lands (separate bead), each host's pattern parser can call th
 - URL migration: 33ae7d53c
 - Generic https handler: `apps/silvercode/src/autolinks/handlers/https.ts`
 - Pattern reference: VS Code "GitHub Pull Requests" extension is the de-facto reference for URL parsing logic
+

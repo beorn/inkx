@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/uuyi"
 aliases:
   - km-uuyi
@@ -8,3 +10,4 @@ closed_at: 2026-01-20T14:33:24Z
 ---
 
 # [x] Parent task shows above card instead of on the left (< parent) dimmed @km/_orphan #bug #P2
+

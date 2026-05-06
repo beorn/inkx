@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/scrollback-v2"
 aliases:
   - km-silvery.scrollback-v2
@@ -28,6 +30,7 @@ Screen/live        ← mounted React components
 ```
 
 Three item lifecycle states: Live → Virtualized → Static
+
 - **Live**: Mounted in React tree, normal rendering
 - **Virtualized (Dynamic Scrollback)**: Rendered to string, data retained, can re-render on resize
 - **Static**: Data dropped, terminal owns the scrollback
@@ -50,3 +53,4 @@ Simpler model: live or frozen. Frozen = permanent stdout write. No dynamic zone.
 
 Original doc: git show fff9add -- docs/design/viewport-architecture.md (302 lines)
 See vendor/silvery/docs/design/dynamic-scrollback.md for the new design doc.
+

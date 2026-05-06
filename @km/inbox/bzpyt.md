@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/bzpyt"
 aliases:
   - km-bzpyt
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Bug: Rendering artifacts after detail pane open/close cycle @km/_orphan #bug #P2
+

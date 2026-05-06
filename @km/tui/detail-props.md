@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/detail-props"
 aliases:
   - km-tui.detail-props
@@ -13,3 +16,4 @@ assignee: claude:36393b5d
 # [x] Detail pane: clean up metadata display @km/tui #feature #P2 @claude:36393b5d
 
 Detail pane metadata changes: (1) Hide Depth - not useful to users. (2) Hide Type & ID - already shown in bottom bar. (3) Location: show right-aligned on title line, or as breadcrumb above title if it can't fit. See screenshots from 2026-02-19.
+

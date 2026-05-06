@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/driver-docs"
 aliases:
   - km-inkx.driver-docs
@@ -13,7 +16,9 @@ assignee: claude:10db6ea8
 Review and restructure inkx docs for logical flow after spike proves the pattern.
 
 ## Tasks
+
 1. Review vendor/beorn-inkx/CLAUDE.md for logical flow
 2. Add section on plugin composition pattern
 3. Document withCommands and withKeybindings usage
 4. Add examples for testing and AI integration
+

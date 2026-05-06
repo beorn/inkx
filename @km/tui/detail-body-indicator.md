@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/detail-body-indicator"
 aliases:
   - km-tui.detail-body-indicator
@@ -13,3 +16,4 @@ assignee: claude:8f007ba9
 # [x] Show body content indicator for column/board nodes in card view @km/tui #feature #P3 @claude:8f007ba9
 
 Columns and boards with body content should indicate this (e.g., dimmed body preview or ··· indicator). Currently no body content is visible until you open the detail pane.
+

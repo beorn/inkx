@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/osc66-probe"
 aliases:
   - km-silvery.osc66-probe
@@ -14,3 +17,4 @@ assignee: claude:c9beade3
 # [x] Wire detectTextSizingSupport() — progressive enhancement for OSC 66 @km/silvery #task #P1 @claude:c9beade3
 
 Default osc66=false. Async probe at startup. Enable + full redraw on success. Cache by terminal fingerprint. Allow user override (always/auto/never). Never put visible content inside a private control sequence unless support is proven. See docs/lessons/testing-escape-hatches.md.
+

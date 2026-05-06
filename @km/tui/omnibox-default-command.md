@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/omnibox-default-command"
 aliases:
   - km-tui.omnibox-default-command
@@ -31,6 +33,14 @@ dependencies:
     created_at: 2026-04-14T18:17:13Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-tui.omnibox-command-projection
+      - type: link
+        target: km-tui.omnibox-unified
 ---
 
 # [x] The 'default' command — universal type-dispatch fallback @km/tui #task #P1
@@ -45,6 +55,7 @@ Register a new command 'default' in @km/commands that serves as the universal fa
 This is the pivot of the whole omnibox design. defaultCommand = 'default' for cmd-k, cmd-f, and all generic chord opens. Verb-locking chords (m +, c @, /, etc.) override with their specific verb. The 'default' command is what makes Enter work regardless of context — even when the user hasn't explicitly picked a verb.
 
 Implementation:
+
 - Add apps/@km/tui/src/commands/... or packages/@km/_orphan/commands/src/commands/meta.ts with 'default' as a CommandDef
 - Wire EXECUTE_COMMAND op handler in board-actions.ts (may not exist yet)
 - Integration test: default against a KNode type='command' → runs that command
@@ -58,3 +69,4 @@ Acceptance:
 (c) Enter on a command node in the omnibox (via :cr → pick → Enter) runs the command
 (d) Enter on a content node (via cmd-f → @del → pick → Enter) goto's the node
 (e) Unit tests cover both branches + null/undefined node
+

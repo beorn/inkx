@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/example-mouse"
 aliases:
   - km-silvery.example-mouse
@@ -19,3 +22,4 @@ assignee: claude:55df8ef1
 # [x] Wire mouse events to silvery.dev web examples @km/silvery #task #P2 @claude:55df8ef1
 
 Add mouse click support to silvery.dev web examples. CLI wizard (click to select options), Kanban (click to select cards), Scroll list (click to select items), Focus panels (click to focus), Text input (click to focus). The xterm.js terminal already reports mouse events -- showcase components just need useMouseClick handlers. Related: @km/silvery/example-improvements (parent tracking bead).
+

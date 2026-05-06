@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-auto-detect"
 aliases:
   - km-silvery.theme-auto-detect
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-17T21:47:47Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.design-system
 ---
 
 # [x] Theme auto-detect — probe + fingerprint + derive, with confidence metadata @km/silvery #feature #P3
@@ -52,3 +58,4 @@ Full context: hub/silvery/design/v10-terminal/terminal-color-strategy.md
 Code: vendor/silvery/packages/ansi/src/theme/detect.ts
 Parent: @km/silvery/design-system
 Merged: capability-detection, tier-override, theme-detect-gaps
+

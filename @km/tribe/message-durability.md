@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tribe/message-durability"
 aliases:
   - km-tribe.message-durability
@@ -31,6 +34,10 @@ dependencies:
     created_at: 2026-04-18T21:29:01Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] tribe: message durability across daemon restart @km/tribe #feature #P3 @Bjørn Stabell
@@ -38,3 +45,4 @@ dependencies:
 blocks:: [[@km/tribe]]
 
 When the daemon crashes mid-conversation, messages not yet written to SQLite are lost, and messages written but not yet pushed to a disconnected client are also lost (the push cursor is per-connection in-memory, not persisted). Design: push cursor persisted per session, ack required from client for delivery, WAL for in-flight queue. SQLite WAL mode already gives us crash-safe writes; remaining gap is the push path. Scope: ~50 LOC in messaging.ts + daemon push loop. Depends on: integration test first (to assert the behavior).
+

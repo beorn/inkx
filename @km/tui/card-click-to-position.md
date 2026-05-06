@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/card-click-to-position"
 aliases:
   - km-tui.card-click-to-position
@@ -26,3 +29,4 @@ When a card is in edit mode, clicking anywhere in the card should position the c
 **Challenge**: A card contains a tree of nodes (title, body lines, child nodes). Each may have its own TextInput/TextArea. The click needs to: (1) identify which text region was clicked, (2) position the cursor within that region, (3) if clicked between regions (e.g., on indent/bullet), snap to the nearest text boundary.
 
 **Depends on**: @km/silvery/click-to-position (basic TextInput/TextArea click-to-position must work first).
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/permission-inline-prompt"
 aliases:
   - km-silvercode.permission-inline-prompt
@@ -29,6 +32,10 @@ dependencies:
     created_at: 2026-04-28T12:26:17Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Replace permission inbox modal with inline prompt — interactive, not queued @km/silvercode #feature #P1 @claude:2405c72e
@@ -40,6 +47,7 @@ Remove the RequestPermissionInbox modal + auto-surface + /inbox slash command + 
 Why: permissions should be asked interactively at the point of approval, not aggregated in a separate modal that obscures which tool is being approved.
 
 Acceptance:
+
 - Inline prompt renders when state.permissions.length > 0 for focused session
 - Single permission: tool + args summary + y/n
 - Multi-option ACP: SelectList of options
@@ -50,3 +58,4 @@ Acceptance:
 - RequestPermissionInbox.tsx deleted
 - Termless test: legacy y/n flow + ACP multi-option flow
 - bun fix clean, tsc not regressed, silvercode tests pass
+

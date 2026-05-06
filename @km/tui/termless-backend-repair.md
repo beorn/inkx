@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/termless-backend-repair"
 aliases:
   - km-tui.termless-backend-repair
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-18T21:10:42Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Termless backend fails to run omnibox tests — 'Terminal is closed' after first test @km/tui #bug #P3
@@ -28,3 +34,4 @@ blocks:: [[@km/tui]]
 Earlier TEST_BACKEND=termless run hit 'Terminal is closed' uncaught exception across all 27 tests. Suggests cross-test termless handle teardown issue or createApp → createTermless lifecycle gap. Headless backend works; termless doesn't. Need both for ANSI-gen bug parity.
 
 Investigate: does createTestApp's termless branch clean up handles between using-disposes? Is there a shared-state issue?
+

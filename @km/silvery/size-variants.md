@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/size-variants"
 aliases:
   - km-silvery.size-variants
@@ -16,3 +18,4 @@ Sizes: compact | default | spacious
 Affects: padding, border spacing, font weight, line height (where applicable in TUI)
 
 Lower priority than core features (focus ring, validation, label) — tracked separately per user request.
+

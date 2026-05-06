@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/min-max-precedence"
 aliases:
   - km-flexily.min-max-precedence
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Bug: applyMinMax() makes max win over min when min > max — CSS says min dominates @km/flexily #bug #P1
+

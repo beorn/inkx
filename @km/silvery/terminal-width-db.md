@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/terminal-width-db"
 aliases:
   - km-silvery.terminal-width-db
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] Terminal character width database: empirical measurements across backends @km/silvery #task #P2
 
 Run wide char matrix across all termless backends, record empirical widths into a database fixture. Powers workaround decisions, upstream bug evidence, and caniuse-style reference. See vendor/silvery/docs/design/terminal-support-strategy.md Phase 1.
+

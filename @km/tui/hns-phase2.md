@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/hns-phase2"
 aliases:
   - km-tui.hns-phase2
@@ -28,24 +31,35 @@ Switch components from old sync to reduced signals. Old sync becomes shadow orac
 After this phase, Board.tsx calls batch() as the primary path. _legacySyncCursor/_legacySyncSelected still exist but only for the Phase 3 deletion — they no longer drive any UI.
 
 ## Delete
+
 Nothing deleted yet — _legacy methods still exist for Phase 3 cleanup.
 
 ## /complete
+
 \`\`\`bash
-# Golden tests pass with NEW implementation driving UI
+
+## Golden tests pass with NEW implementation driving UI
+
 bun vitest run apps/km-tui/tests/cursor-colors.test.ts  # must pass
 bun vitest run apps/km-tui/tests/board-selection.slow.spec.ts  # must pass
 bun vitest run apps/km-tui/tests/column-rendering.test.ts  # must pass
 bun run test:fast  # all pass
 
-# Components no longer read old signals directly:
-rg 'useSignal.*cursorInDescendant' --glob '!.beads' --glob '!vendor' -t ts -c 2>/dev/null | wc -l  # → 0 (replaced by cursorDescendant)
-# NOTE: cursorInDescendant signal DEFINITION still exists in reactive.ts (removed in Phase 3)
-# NOTE: _legacySyncCursor/_legacySyncSelected still exist as private shadow (removed in Phase 3)
-# These are EXPECTED exceptions — Phase 3 deletes them.
+## Components no longer read old signals directly:
 
-# No component imports syncCursor/syncSelected (already renamed in Phase 1):
+rg 'useSignal.*cursorInDescendant' --glob '!.beads' --glob '!vendor' -t ts -c 2>/dev/null | wc -l  # → 0 (replaced by cursorDescendant)
+
+## NOTE: cursorInDescendant signal DEFINITION still exists in reactive.ts (removed in Phase 3)
+
+## NOTE: _legacySyncCursor/_legacySyncSelected still exist as private shadow (removed in Phase 3)
+
+## These are EXPECTED exceptions — Phase 3 deletes them.
+
+## No component imports syncCursor/syncSelected (already renamed in Phase 1):
+
 rg 'syncCursor\b' --glob '!.beads' --glob '!vendor' -t ts -c 2>/dev/null | wc -l  # → 0
 
-# Bench: content render ≤ Phase 0 baseline
+## Bench: content render ≤ Phase 0 baseline
+
 \`\`\`
+

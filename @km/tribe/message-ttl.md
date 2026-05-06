@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/message-ttl"
 aliases:
   - km-tribe.message-ttl
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Message TTL — auto-delete messages older than 7 days @km/tribe #task #P4
 
 DB accumulates messages for dead sessions forever. Add TTL cleanup in cleanupOldData().
+

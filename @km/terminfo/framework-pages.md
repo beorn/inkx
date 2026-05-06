@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/framework-pages"
 aliases:
   - km-terminfo.framework-pages
@@ -16,3 +19,4 @@ assignee: claude:f8196c1c
 # [x] Framework pages: /framework/{silvery,ink,textual,bubbletea} with baseline requirements @km/terminfo #feature #P3 @claude:f8196c1c
 
 Add content/frameworks.json and /framework/{name} pages showing each TUI framework's required baseline, which terminals can run it, and links to the framework.
+

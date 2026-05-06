@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/bearly/injection-gate-pretooluse"
 aliases:
   - km-bearly.injection-gate-pretooluse
@@ -28,13 +31,21 @@ dependencies:
     created_at: 2026-04-21T12:42:43Z
     created_by: claude:7e9436e8
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-bearly
+      - type: link
+        target: km-bearly.injection-envelope-lib
 ---
 
 # [x] PreToolUse authority gate — block mutating tools driven by injected content @km/bearly #feature #P0 @claude:7e9436e8
 
 blocks:: [[@km/bearly]], [[@km/bearly/injection-envelope-lib]]
 
-# Phase 1 of @km/_orphan/ambot fix — THE STRUCTURAL BACKSTOP
+## Phase 1 of @km/_orphan/ambot fix — THE STRUCTURAL BACKSTOP
 
 Per Pro/Kimi review: this is the only capability barrier. Even if prompt-confusion survives (and it will), disk writes get blocked when proposed content is traceable to injected recall rather than user-typed text.
 
@@ -80,3 +91,4 @@ Block message tells user: "I was about to write content referencing {entities} t
 
 - **After**: @km/bearly/injection-envelope-lib (library provides manifest schema + provenance spans)
 - **Parallel**: @km/bearly/injection-evals (evals validate the gate)
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/board-split"
 aliases:
   - km-tui.board-split
@@ -21,6 +23,7 @@ Final gap to reactive tree quality plateau. Bead @km/tui/tree/v4/detail-unify hi
 ## Goal
 
 Split apps/@km/tui/src/views/Board.tsx (1336 LOC) into:
+
 1. **BoardView.tsx** (~400-600 LOC) — pure render, JSX only, takes props
 2. **useBoardController.ts** (~600-900 LOC) — all useEffects, signal subscriptions, derived state
 3. **Board.tsx** (~50-200 LOC) — thin connector
@@ -52,3 +55,4 @@ bun run test:fast  # pass
 3. Extract all JSX to BoardView.tsx
 4. Board.tsx becomes \`function Board(props) { const c = useBoardController(props); return <BoardView {...c} /> }\`
 5. Use a worktree (foundational change to a high-traffic file)
+

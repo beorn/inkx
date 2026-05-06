@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui1/17-refactor-board-column-to-use-scrollablelist"
 aliases:
   - km-tui1.17
@@ -74,3 +76,4 @@ const hasBottomOverflow = scrollOffset + maxCards < column.cards.length;
 ## References
 
 - [@km/tui-eval/1-analysis/md](.beads/@km/tui-eval/1-analysis/md) - Pain Point 4
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/expandable"
 aliases:
   - km-silvery.expandable
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] Click-to-expand/collapse component for tool output, long content @km/silvery #feature #P2
 
 Claude Code NO_FLICKER lets you click collapsed tool results to expand. A generic Expandable/Collapsible component would serve AI agent UIs, log viewers, test output. Needs: collapsed/expanded state, click handler, smooth transition, accessibility.
+

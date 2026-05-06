@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/anchor-focus-selection"
 aliases:
   - km-tui.anchor-focus-selection
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T12:19:02Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [ ] Selection as anchor/focus Paths (design doc vision) @km/tui #feature #P4
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/tui]]
 
 Replace positional multi-selection (multiSelected Set + colIndex/cardIndex/nodeIndex) with the anchor/focus Path model from docs/design/visual-navigation.md. Single cursor: anchor === focus. Range select: anchor stays, focus moves. Path.compare gives ordering. This eliminates SelectionCtx's dependency on view-level columns/indices — selection becomes pure tree arithmetic.
+

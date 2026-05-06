@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/abs-pos-repaint"
 aliases:
   - km-inkx.abs-pos-repaint
@@ -19,3 +22,4 @@ Root cause: renderer.ts incremental rendering doesn't propagate dirty flags to a
 Workaround: testEnv now uses incremental: false. Production still has this bug (visible when typing in search dialog — title flickers).
 
 Blocker for enabling INKX_STRICT=1 globally in tests.
+

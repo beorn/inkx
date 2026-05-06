@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tree/walk"
 aliases:
   - km-tree.walk
@@ -20,9 +23,11 @@ Needed by: J/K spatial nav (visible blocks), validation (dirty subtrees), render
 
 API:
 function* walkTree(tree, rootId, opts?) yields { node, depth, parentId }
-  - filter: (node) => boolean — skip node + subtree
-  - visible: (nodeId) => boolean — skip hidden (fold/collapse state)
-  - maxDepth: number — depth limit
-  - order: 'dfs' | 'bfs' — traversal order (default dfs)
+
+- filter: (node) => boolean — skip node + subtree
+- visible: (nodeId) => boolean — skip hidden (fold/collapse state)
+- maxDepth: number — depth limit
+- order: 'dfs' | 'bfs' — traversal order (default dfs)
 
 Currently getVisibleColumnBlocks() in board-actions-nav.ts is an ad-hoc version. Promote to shared infra.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/all/kb-rebind"
 aliases:
   - km-all.kb-rebind
@@ -15,6 +18,7 @@ assignee: claude:d3a7049b
 Reassign ~20 keys that are bound to different actions than the v2 spec requires. This is the foundation — everything else depends on correct key assignments.
 
 Key reassignments needed:
+
 - i → edit title (currently zoom_inwards; move zoom to z)
 - o/O → new below/above (currently insert is n/p)
 - d → cut forward (currently duplicate_node; move duplicate to Cmd+d)
@@ -36,3 +40,4 @@ Key reassignments needed:
 - : → omnibox stub (currently unbound)
 
 Spec: docs/keybindings-v2.md
+

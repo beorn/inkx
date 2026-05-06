@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/flexgrow-border-clip"
 aliases:
   - km-silvery.flexgrow-border-clip
@@ -17,3 +19,4 @@ owner: bjorn@stabell.org
 # [x] flexGrow child right border clipped at terminal edge @km/silvery #bug #P3
 
 When two flexGrow siblings both have borderStyle='single', the right border of the rightmost child is clipped (not visible) because flexGrow fills to the terminal edge without leaving room for the border character. Repro: tribe-watch.tsx sessions+detail panes side-by-side with flexGrow={3} and flexGrow={2}.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/market/docs-review"
 aliases:
   - km-market.docs-review
@@ -21,26 +24,33 @@ assignee: claude:4929065a
 Comprehensive review of silvery.dev docs from user feedback. Multiple issues:
 
 ## Design Docs (spec → reference)
+
 All design docs read like future-facing specs with open questions. Must become reference docs:
+
 - design/dynamic-scrollback — reads like spec, has "Proposed API", diagram lines misaligned
 - design/terminal-support-strategy — has "Implementation Roadmap" (move to bead P0), broken table after "What it catches that STRICT can't:", review if doc matches reality
 - design/plugin-architecture — says "Status: Implemented" but still reads like a spec
 - design/app-composition — reads like design spec, should be reference guide
 
 ## Glossary Expansion (50-100 terms)
+
 Current: 53 silvery terms, 47 termless terms. Need:
+
 - Terminal sequences: ED2, ED3, scrollback, inline mode, etc.
 - Share terminfo.dev glossary terms with silvery.dev and termless.dev
 - Each term should link to terminfo.dev where applicable
 - Target: 50-100 terms per site
 
 ## Comparison Articles Fixes
+
 - silvery-vs-bubbletea: "External project claims last verified: 2026-03" → use "Information as of March 2026" or similar. Link to each project. Check if useTea() is current. Lead with layout (biggest difference). Show more impressive termless example (scrollback checking).
 - Similar review needed for vs-textual and vs-blessed
 
 ## Cross-Cutting
+
 - No "beads" mentions anywhere on public sites (grep and remove)
 - Prev/Next links need review across all pages
 - Design/deep-dive docs should be linked FROM component pages (e.g., ScrollbackList → design/dynamic-scrollback)
 - Scan for chalk/ink references that should be updated
 - Should have a list of focusable elements somewhere
+

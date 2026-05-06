@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/inbox/test-legacy"
 aliases:
   - km-test-legacy
@@ -9,7 +12,6 @@ assignee: beorn
 ---
 
 # [x] Remove legacy handleKey() from tests @km/_orphan #task #P1 @beorn
-
 
 ## Problem
 
@@ -22,7 +24,7 @@ Tests use legacy `handleKey()` function (state.ts:632) which bypasses the real c
 ## Solution
 
 1. Update all board tests to use Board component with real command system
-2. Remove `handleKey()` function from state.ts  
+2. Remove `handleKey()` function from state.ts
 3. Update test helper to use stdin.write() for all keyboard tests
 4. Verify all tests still pass
 
@@ -30,3 +32,4 @@ Tests use legacy `handleKey()` function (state.ts:632) which bypasses the real c
 
 - apps/@km/tui/src/state.ts (remove handleKey)
 - apps/@km/tui/tests/helpers/board-test.ts (ensure uses Board not legacy path)
+

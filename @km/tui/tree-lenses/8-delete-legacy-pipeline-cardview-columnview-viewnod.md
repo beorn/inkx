@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/tree-lenses/8-delete-legacy-pipeline-cardview-columnview-viewnod"
 aliases:
   - km-tui.tree-lenses.8
@@ -22,6 +24,7 @@ owner: bjorn@stabell.org
 Quality plateau: delete the entire old rendering pipeline. Each component receives an ID and self-resolves via useNode.
 
 ## What to delete
+
 1. CardView interface + isCardView guard (types.ts)
 2. toCardViews function (use-columns.ts)
 3. viewNodeToColumnViews (@km/_orphan/board/view-tree.ts)
@@ -32,6 +35,7 @@ Quality plateau: delete the entire old rendering pipeline. Each component receiv
 8. use-columns.ts (or reduce to just buildNodeIndexFromTree + deriveCursorIndices)
 
 ## What replaces them
+
 - Board derives columnIds from tree.children(rootId)
 - Column derives cardIds from useNode(colId).childIds
 - Card/TreeNode derives all data from useNode(cardId)
@@ -40,15 +44,19 @@ Quality plateau: delete the entire old rendering pipeline. Each component receiv
 - Detail pane column derivation rewired to use ViewTree
 
 ## Detail pane
+
 deriveDetailColumns in use-columns.ts creates ColumnView[] for the detail pane. Needs rewiring to use ViewTree or a simplified column structure.
 
 ## Blockers
+
 - view-navigation.ts must be migrated first (agent running)
 - Board text/property filters need ID-based filtering (or stay as post-filter)
 
 ## Acceptance
+
 - grep 'ColumnView' in apps/@km/tui/src/ = 0 (excluding comments)
 - grep 'CardView' in apps/@km/tui/src/ = 0 (excluding comments)
 - grep 'viewNodeToColumnViews' = 0
 - grep 'buildViewTree' in apps/@km/tui/src/ = 0
 - grep 'ViewSnapshot' in apps/@km/tui/src/ = 0
+

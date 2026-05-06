@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/sxxk"
 aliases:
   - km-sxxk
@@ -12,6 +14,7 @@ closed_at: 2026-01-20T16:54:43Z
 When a file's mtime is older than the node's updated_at timestamp in the database, the sync doesn't detect the file as modified.
 
 **Repro:**
+
 1. Have a file that's been synced
 2. Modify the file externally (e.g., editor doesn't update mtime properly, or timestamp weirdness)
 3. Run `km sync`
@@ -26,6 +29,8 @@ This fails when the file was modified but its mtime is somehow older than the DB
 Delete .km folder and re-sync from scratch
 
 **Potential fixes:**
+
 1. Also check content hash to detect changes
 2. Compare mtime against a stored file_mtime column (not the node's updated_at)
 3. Always re-parse if content hash doesn't match
+

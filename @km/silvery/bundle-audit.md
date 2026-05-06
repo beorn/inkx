@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/bundle-audit"
 aliases:
   - km-silvery.bundle-audit
@@ -16,3 +19,4 @@ assignee: claude:474834b0
 # [x] Bundle size measurement + comparison with Ink @km/silvery #task #P3 @claude:474834b0
 
 Measure silvery bundle size per entry point. Compare against Ink to validate the 'smaller/faster' claim.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/market/site-enrichment"
 aliases:
   - km-market.site-enrichment
@@ -20,3 +23,4 @@ assignee: claude:4929065a
 # [x] Glossary, SEO auto-linking, and content enrichment for silvery.dev + termless.dev — modular system @km/market #feature #P2 @claude:4929065a
 
 Glossary, SEO auto-linking, and content enrichment - modular system. Implemented @bearly/vitepress-enrich shared package. Integration: silvery.dev (72 pages, 28 terms), termless.dev (15 pages, 28 terms), terminfo.dev refactored (232 pages). SEO: TechArticle + BreadcrumbList JSON-LD, canonical URLs, lastUpdated. TODO: publish to npm, add more glossary terms, FAQ schema, related pages sections.
+

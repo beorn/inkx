@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - tag
 id: "@km/tui/project-display"
 aliases:
   - km-tui.project-display
@@ -12,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Detail pane shows raw +tag for projects instead of clean names @km/tui #bug #P2
 
 Detail pane Projects row shows raw +tag format (#fam-estate) instead of clean project names like Asana does ('FAMILY SPRINT (Waiting)', '[Fam] Estate (Finance & Taxes)'). Should resolve project IDs/tags to their display names.
+

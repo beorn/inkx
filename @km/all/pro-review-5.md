@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/all/pro-review-5"
 aliases:
   - km-all.pro-review-5
@@ -15,3 +18,4 @@ assignee: claude:db326126
 ---
 
 # [x] Pro Review Round 5: 2026-03-30 — popover, interaction, commands, detail view @km/all #epic #P2 @claude:db326126
+

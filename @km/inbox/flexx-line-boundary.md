@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/flexx-line-boundary"
 aliases:
   - km-flexx-line-boundary
@@ -10,7 +13,7 @@ assignee: claude:b8b4780b
 
 # [x] Implement line boundary indices @km/_orphan #task #P2 @claude:b8b4780b
 
-# Line Boundary Indices
+## Line Boundary Indices
 
 **Goal:** Eliminate O(N×L) child scanning during flex distribution.
 
@@ -43,3 +46,4 @@ Low effort, high impact. Affects both classic and zero-alloc algorithms.
 
 - src/layout.ts (classic)
 - src/layout-zero.ts (zero-alloc)
+

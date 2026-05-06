@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/welcome-claude-hardcoded"
 aliases:
   - km-silvercode.welcome-claude-hardcoded
@@ -21,8 +23,13 @@ dependencies:
     created_at: 2026-04-27T20:20:45Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] [bug] Welcome heading hardcodes 'Silver Code for Claude Code' regardless of active agent @km/silvercode #bug #P3
 
 blocks:: [[@km/silvercode]]
+

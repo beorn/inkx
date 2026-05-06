@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/npm-hightea"
 aliases:
   - km-infra.npm-hightea
@@ -35,6 +37,7 @@ silvery          — All-in-one bundle (re-exports react + term + theme + ansi)
 ```
 
 ### User journey
+
 - Level 1 (ink+chalk replacement): `import { Box, Text, render, createTerm } from 'silvery'`
 - Level 2 (add theming): already included via bundle, or `@silvery/theme` + `withTheme(tokens)`
 - Level 3 (component library): `@silvery/ui`
@@ -46,16 +49,18 @@ silvery          — All-in-one bundle (re-exports react + term + theme + ansi)
 decant is too far removed from logging/observability. Need a new standalone name.
 
 ### Shortlist
-| Name | Pkg | @org | Notes |
-|------|-----|------|-------|
-| 3log | avail | avail | "3 things: logging, debug, spans" |
-| oklog | avail | avail | Simple, approachable |
-| clarilog | avail | avail | Clarity + log |
-| omlog | avail | avail | om prefix |
-| loggily | avail | avail | Playful |
+
+| Name     | Pkg   | @org  | Notes                             |
+| -------- | ----- | ----- | --------------------------------- |
+| 3log     | avail | avail | "3 things: logging, debug, spans" |
+| oklog    | avail | avail | Simple, approachable              |
+| clarilog | avail | avail | Clarity + log                     |
+| omlog    | avail | avail | om prefix                         |
+| loggily  | avail | avail | Playful                           |
 
 (loggish pkg taken, @org avail)
 
 ## 3. Misc Utilities Scope — @bearly
 
 For non-framework packages (tools, utilities, etc.) that don't belong under @silvery.
+

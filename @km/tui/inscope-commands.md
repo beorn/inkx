@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/inscope-commands"
 aliases:
   - km-tui.inscope-commands
@@ -23,6 +26,7 @@ Replace `when: inDialogSearch`, `when: inDialogConfirm`, etc. with `when: inScop
 ## Why
 
 The plumbing is 100% done:
+
 - `activeScopes` populated from FocusManager.scopeStack (command-bridge.ts:111)
 - `inScope(scopeId)` predicate defined (when.ts:126)
 - Zero commands use it — all dialogs still use manual `inDialog*` boolean guards
@@ -41,3 +45,4 @@ This is the keystone that unlocks ModeStack elimination. Focus scope IS the comm
 - [ ] `grep inDialogFilter packages/km-commands/src/commands/ → 0`
 - [ ] All tests pass
 - [ ] Help overlay still shows correct when-clause labels
+

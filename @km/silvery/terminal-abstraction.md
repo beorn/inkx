@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/terminal-abstraction"
 aliases:
   - km-silvery.terminal-abstraction
@@ -54,20 +56,25 @@ await createApp(<App />, { providers: { term, sync, db } })
 ## Design
 
 ### Extend Term (don't replace)
+
 `Term` already IS the terminal abstraction — it has I/O, dims, caps, styling. Just add Provider interface (`getState`, `subscribe`, `events`) and `writable`.
 
 ### Composed layering
+
 Raw I/O `{readable, writable}` → Provider parses raw input into typed events (key, mouse, resize) → Term adds styling on top.
 
 ### Factory overloads
+
 - `createTerm()` — Node.js stdin/stdout (default-on: mouse, kitty, bracketed paste)
 - `createTerm(xterm)` — xterm.js instance
 - `createTerm({ cols, rows })` — headless for testing
 
 ### run() unification
+
 `run()` becomes thin ~100-line wrapper: `createApp(<App />, { providers: { term } })`. Eliminates ~600 lines of duplication.
 
 ## Implementation plan
+
 1. Extend `Term` type with Provider interface + writable
 2. Extend `createTerm()` factory with Provider implementation (wraps existing `createTermProvider()` logic)
 3. Add xterm.js and headless overloads
@@ -76,6 +83,7 @@ Raw I/O `{readable, writable}` → Provider parses raw input into typed events (
 6. Update all examples and docs
 
 ## Acceptance criteria
+
 - [ ] `createTerm()` returns a full Provider with events/state/writable
 - [ ] `createTerm(xterm)` works for xterm.js
 - [ ] `run(<App />, term)` works with both
@@ -84,3 +92,4 @@ Raw I/O `{readable, writable}` → Provider parses raw input into typed events (
 - [ ] `renderToXterm()` deprecated
 - [ ] All examples work unchanged
 - [ ] Docs updated
+

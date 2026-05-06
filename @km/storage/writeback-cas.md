@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/writeback-cas"
 aliases:
   - km-storage.writeback-cas
@@ -34,6 +37,16 @@ dependencies:
     created_at: 2026-04-21T23:05:22Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-storage
+      - type: link
+        target: km-storage.fs-mount
+      - type: link
+        target: km-storage.markdown-fidelity-corpus
 ---
 
 # [x] Safe markdown writeback — content-as-CAS + minimal-patch + echo suppression + multi-file journal @km/storage #feature #P1 @claude:8b5b9e1c
@@ -45,6 +58,7 @@ The #1 unspoken risk flagged by the 2026-04-21 dual-pro review: km must never si
 ## Content-as-CAS
 
 Every in-memory file state carries \`expectedContentHash\`. On write:
+
 1. Read current file on disk
 2. Compute \`actualContentHash = sha256(file)\`
 3. If actual !== expected: reparse disk, replay change; if conflict → surface, never silent overwrite
@@ -54,6 +68,7 @@ Every in-memory file state carries \`expectedContentHash\`. On write:
 ## Minimal patching
 
 Serializer preserves what it doesn't touch:
+
 - whitespace (trailing, indentation, blank lines)
 - frontmatter key order
 - list marker choice
@@ -65,6 +80,7 @@ Rewrites only the exact byte ranges that changed. Noisy git diffs = user-trust e
 ## Watcher echo suppression
 
 FsMount writes produce events the watcher sees. Options:
+
 - origin cookie on writes
 - short-term path+digest cache
 - hash-compare on watch event → skip if match
@@ -72,6 +88,7 @@ FsMount writes produce events the watcher sees. Options:
 ## Multi-file journal
 
 For operations spanning files (rename + backlink update cascade):
+
 - Writes stored in \`.km/journal/pending/\`
 - Applied best-effort + resumable-on-crash
 - \`bun km doctor\` surfaces unresolved items
@@ -90,3 +107,4 @@ For operations spanning files (rename + backlink update cascade):
 - @km/storage/markdown-fidelity-corpus (gates minimal-patch regression)
 
 See hub/km/storage-architecture.md §7.
+

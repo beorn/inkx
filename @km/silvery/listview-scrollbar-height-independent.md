@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/listview-scrollbar-height-independent"
 aliases:
   - km-silvery.listview-scrollbar-height-independent
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-25T23:12:03Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.architectural-plateau
 ---
 
 # [x] Scrollbar invisible in height-independent ListView mode @km/silvery #bug #P2 @claude:2405c72e
@@ -27,3 +34,4 @@ dependencies:
 blocks:: [[@km/silvery/architectural-plateau]]
 
 silvercode MessageList uses ListView without a height prop (height-independent mode) — scrollbar never renders. The scrollbarFrac/isScrolling logic at vendor/silvery/packages/ag-react/src/ui/components/ListView.tsx:579+ may only fire in pixel-mode (explicit height). User reports: scrolling shows the bottom overscroll indicator but no side scrollbar. Investigate: does the scrollbar render path require height? If so, add support for height-independent mode (use measured viewport from useBoxRect or onLayout). Or: document that height is required for scrollbar.
+

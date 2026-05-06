@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn-49853
 id: "@km/defensive-chain/8-phase-3-cross-layer-event-system"
 aliases:
   - km-defensive-chain.8
@@ -16,11 +19,14 @@ Implement event emitter for cross-layer communication (parse errors, sync warnin
 See plan Phase 3: .claude/plans/swirling-launching-chipmunk.md
 
 Research:
+
 - Evaluate nanoevents vs mitt vs emittery
 - Plan BroadcastChannel integration for workers
 
 Implementation:
+
 - Add event system to @km/core
 - Define UserEvent, DebugEvent, MetricEvent types
 - Wire up storage layer events
 - Display events in UI
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/layout-churn-leaks-pixels"
 aliases:
   - km-silvery.layout-churn-leaks-pixels
@@ -22,6 +25,7 @@ assignee: claude:2405c72e
 Reproduced by km agent during /explore session 2026-04-22. Trigger vault has BOTH file-boards (@next.md, @someday.md) AND folder-boards (done/, inbox/) with content. File-boards parse first (~T=500ms): columns render as @next | @someday | archive. Folder-boards hydrate later (~T=1500ms): columns reflow to archive | done | inbox. Silvery's incremental renderer leaks pixels from old layout into new — column separator dashes appear mid-card, old card chrome shows through, top borders go missing on cards 2+.
 
 This is the SAME root cause behind:
+
 - @km/cli/init-prompt-corrupts-tui (misdiagnosed — not a CLI bug)
 - @km/tui/single-col-missing-top-borders (cards 2+ in single-column vault — same incremental-render leak class)
 
@@ -39,3 +43,4 @@ KM_EAGER_LOAD=1 bun km view --no-watch /tmp/v   # CLEAN
 Suspected location: vendor/silvery/packages/ag-term/src/pipeline/render-phase.ts — the incremental render path that produces the pixel-level diff between frames. Likely needs to invalidate prevBuffer on column-count change OR detect cross-column content shifts.
 
 Approach: silvery agent must walk silvery-resolver, write a STRICT test reproducing the pixel leak (SILVERY_STRICT=2), then fix. Per km CLAUDE.md, never edit pipeline files without spawning the silvery agent.
+

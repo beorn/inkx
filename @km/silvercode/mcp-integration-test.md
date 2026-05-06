@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/mcp-integration-test"
 aliases:
   - km-silvercode.mcp-integration-test
@@ -18,6 +21,10 @@ dependencies:
     created_at: 2026-04-24T08:33:39Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] MCP end-to-end integration test: spawn claude, call km_search, verify data path @km/silvercode #task #P3 @claude:0940ca20
@@ -25,3 +32,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 Spawn claude via spawnClaude with mcpServers, send a user prompt that forces a km_search call, verify the tool_result event reaches the session store. Guards against future regressions where the --mcp-config path gets broken or --strict-mcp-config is dropped. Skips on CI (needs real claude binary); runs on developer machines with 'TEST_LIVE=1'.
+

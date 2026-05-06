@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tree/schema-fixes"
 aliases:
   - km-tree.schema-fixes
@@ -23,3 +25,4 @@ GPT 5.4 Pro identified 6 contradictions + user wants item-as-object in this phas
 5. Split inheritance: extractProps doesn't reset task_status. Fix: enforce in splitBlock.
 6. Body-prefix rule not formalized. Fix: add schema rule.
 7. item-as-object migration: item: true → item: { list?, task? }. Simplifies schema checks.
+

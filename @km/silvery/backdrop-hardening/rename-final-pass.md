@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/backdrop-hardening/rename-final-pass"
 aliases:
   - km-silvery.backdrop-hardening.rename-final-pass
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-20T14:01:25Z
     created_by: claude:88c0e764
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.backdrop-hardening
 ---
 
 # [x] Final rename pass: hasBackdropMarkers, forEachFadeRegionCell, naming policy @km/silvery #task #P0 @claude:a1a0e667
@@ -47,3 +54,4 @@ Pro review P2.5 + P3.1 + P3.3 + P3.4 + P3.5 + P3.7. One more tightening pass to 
 ## Parent
 
 @km/silvery/backdrop-hardening
+

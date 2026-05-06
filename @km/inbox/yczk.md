@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/yczk"
 aliases:
   - km-yczk
@@ -8,3 +10,4 @@ closed_at: 2026-01-20T13:56:26Z
 ---
 
 # [x] Bottom bar should not manually calculate string lengths @km/_orphan #bug #P2
+

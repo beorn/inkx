@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/fuzz-nav-invariants"
 aliases:
   - km-infra.fuzz-nav-invariants
@@ -13,3 +16,4 @@ assignee: claude:e8fd4b92
 ---
 
 # [x] Expand navigation fuzz invariants: checkIncremental, cursor-in-tree, selection, fold state @km/infra #task #P2 @claude:e8fd4b92
+

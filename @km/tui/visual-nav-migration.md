@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/visual-nav-migration"
 aliases:
   - km-tui.visual-nav-migration
@@ -12,12 +15,14 @@ assignee: claude:8f007ba9
 
 # [x] Visual navigation migration: eliminate colIndex/cardIndex, simplify store @km/tui #task #P2 @claude:8f007ba9
 
-# Visual Navigation Migration: Eliminate ColumnState/CardState/ColumnsLayout
+## Visual Navigation Migration: Eliminate ColumnState/CardState/ColumnsLayout
 
 ## Goal
+
 Delete ALL view-model wrapper types. Components work with KNode directly. No backwards compat, no bridge functions.
 
 ## Types to DELETE
+
 - ColumnState (types.ts) → replaced by ColumnView { node, cardNodes, virtualCardIds, wipLimit?, rules?, isVirtual? }
 - CardState (types.ts) → replaced by plain KNode, children via repo.getChildren()
 - ColumnsLayout (types.ts) → flat fields on ActionCtx
@@ -28,6 +33,7 @@ Delete ALL view-model wrapper types. Components work with KNode directly. No bac
 - usePositionHints → not needed
 
 ## Phases (DO NOT SKIP OR REORDER)
+
 1. Create ColumnView type, update deriveColumnsFromRepo to return it, move deriveCursorPosition into use-columns.ts, DELETE use-cursor-position.ts
 2. Flatten ActionCtx (layout → flat fields), DELETE ColumnsLayout, fix ALL ctx.layout.X → ctx.X across all action files
 3. Update React components: Board, CardColumn, ColumnsView, ListView, TabsView, shared-components, TreeNode — cards are KNode not CardState
@@ -36,6 +42,7 @@ Delete ALL view-model wrapper types. Components work with KNode directly. No bac
 6. Update test fixtures and test files
 
 ## Anti-Deviation Rules
+
 1. NO bridge/adapter functions — delete old type, fix ALL breaks
 2. NO gradual/partial migration — each phase completes fully
 3. NO "phase N deferred" — finish everything
@@ -43,6 +50,7 @@ Delete ALL view-model wrapper types. Components work with KNode directly. No bac
 5. Use tsc errors as guide after each deletion
 
 ## Mechanical Patterns
+
 - card.node.X → card.X (one indirection removed)
 - card.children → repo.getChildren(card.id)
 - card.childCount → repo.getChildren(card.id).length
@@ -53,4 +61,6 @@ Delete ALL view-model wrapper types. Components work with KNode directly. No bac
 - CardState → KNode
 
 ## Scope
+
 ~23 source files, ~7 test files, ~200 reference sites. Most changes are mechanical substitutions.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/k5k3/5-rename-rootid-to-boardrootid"
 aliases:
   - km-k5k3.5
@@ -9,3 +11,4 @@ closed_at: 2026-01-21T15:43:57Z
 ---
 
 # [x] Rename rootId to boardRootId @km/k5k3 #task #P2
+

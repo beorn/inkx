@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/error-dedup"
 aliases:
   - km-silvercode.error-dedup
@@ -21,6 +24,10 @@ dependencies:
     created_at: 2026-04-28T14:20:03Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Repeated error toast — Request failed with status code 402 @km/silvercode #bug #P0 @claude:2405c72e
@@ -36,3 +43,4 @@ Possible approach: keep a small ring buffer of recent error messages with timest
 Acceptance: the same Anthropic API 402 error fired 3 times in 1s renders as one entry showing 'Request failed with status code 402 (×3)' in the SessionUpdateList, not three separate rows.
 
 Parked from /loop session 2026-04-28 evening at user direction.
+

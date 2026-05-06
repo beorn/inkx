@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/63abx"
 aliases:
   - km-63abx
@@ -13,3 +16,4 @@ assignee: claude:e039a9ca
 # [x] Website: system dashboard doesn't clean up when switching examples @km/_orphan #bug #P2 @claude:e039a9ca
 
 On beorn.github.io/inkx, the system dashboard example's timers/intervals keep running when navigating to other examples. Likely VitePress SPA navigation doesn't properly destroy the iframe or the React app inside it. LiveDemo.vue at docs/site/.vitepress/components/LiveDemo.vue.
+

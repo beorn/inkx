@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/omnibox-recents"
 aliases:
   - km-tui.omnibox-recents
@@ -25,6 +27,14 @@ dependencies:
     created_at: 2026-04-14T16:37:23Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-tui.omnibox-ranker
+      - type: link
+        target: km-tui.omnibox-unified
 ---
 
 # [x] Recents/MRU plumbing — recency bonus + cursor pre-select source @km/tui #feature #P1
@@ -40,3 +50,4 @@ Acceptance:
 (b) empty cmd-f shows (no sigil) recent nodes with sticky cursor pre-selected
 (c) recents filter by prefix (typing narrows the same list)
 (d) test fixture table exercises (empty, partial, full match) crossed with (with-cursor, without-cursor)
+

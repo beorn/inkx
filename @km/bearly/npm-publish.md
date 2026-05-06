@@ -1,4 +1,8 @@
 ---
+mentions:
+  - bearly
+  - km
+  - claude
 id: "@km/bearly/npm-publish"
 aliases:
   - km-bearly.npm-publish
@@ -13,3 +17,4 @@ assignee: claude:19080504
 ---
 
 # [x] Publish @bearly/* packages to npm @km/bearly #task #P3 @claude:19080504
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/lifecycle-leak-detection"
 aliases:
   - km-silvery.lifecycle-leak-detection
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-26T23:18:24Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.structural-hardening
 ---
 
 # [x] Replace Bun.gc workarounds with Scope-based handle accounting @km/silvery #feature #P1
@@ -30,17 +36,20 @@ Memory tests stack 3 workarounds: Bun.gc(true) (because globalThis.gc is undefin
 Approach: leverage existing Scope (AsyncDisposableStack + AbortSignal cascade) to count outstanding handles at scope close. Test asserts handle count returns to baseline, not memory bytes.
 
 Files in scope:
+
 - vendor/silvery/tests/memory/memory.test.tsx
 - vendor/silvery/tests/perf/termless-memleak-harness.test.tsx
 - hub/silvery/design/lifecycle-scope.md (extend with handle-counting protocol)
 
 /complete:
+
 - grep 'Bun.gc' vendor/silvery/tests/ → 0 hits
 - grep 'globalThis.gc' vendor/silvery/tests/ → 0 hits
 - threshold/iter constants removed in favor of strict equality on handle count
 - SILVERY_SCOPE_TRACE diagnostic prints handle delta at scope close
 
-
 ## Quality rubric (hub/quality-rubric.md)
+
 Current level: L0 — three stacked workarounds (Bun.gc(true), warmup iterations, 600 KB/iter threshold) muting symptoms.
 Target level: L3 — handle-accounting via Scope makes leak detection reliable without GC dependency. Per failure-taxonomy (G1), lifecycle ownership is not a dominant production-code seam (0/14), so L3 (API structure) is right-sized; pushing to L4 would be over-engineering for a class of bug not surfacing in failures.
+

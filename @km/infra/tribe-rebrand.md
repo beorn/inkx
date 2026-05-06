@@ -1,4 +1,9 @@
 ---
+mentions:
+  - bearly
+  - bearly
+  - km
+  - Bjørn
 id: "@km/infra/tribe-rebrand"
 aliases:
   - km-infra.tribe-rebrand
@@ -35,10 +40,12 @@ The 'bear' name no longer fits what the memory daemon has become (shared memory 
 ## Phased plan
 
 ### Phase A — Reserve scope + names on npm (do first)
+
 - Publish 0.0.1 placeholders for @tribe/wire and @tribe/lore
 - (If @tribe scope not owned) pnpm adduser + claim scope
 
 ### Phase B — @tribe/lore (current @bearly/bear)
+
 1. Rename dirs: vendor/bearly/plugins/bear/ → vendor/bearly/plugins/lore/, vendor/bearly/tools/lib/bear/ → vendor/bearly/tools/lib/lore/, vendor/bearly/tests/bear/ → vendor/bearly/tests/lore/
 2. Rename binaries: tools/bear-daemon.ts → tools/lore-daemon.ts, tools/bear.ts → tools/lore.ts
 3. Update imports in all referenced files (16 sites)
@@ -51,12 +58,15 @@ The 'bear' name no longer fits what the memory daemon has become (shared memory 
 10. Update @km/bear beads descriptions to point at new names (historical beads unchanged; open beads retitled)
 
 ### Phase C — @tribe/wire (current @bearly/tribe)
+
 Same pattern as Phase B for the coordination daemon.
 
 ### Phase D — Scope move (optional, deferred)
+
 Move other tools to @tribe/*: refactor → @tribe/forge (or stay @tribe/refactor), llm → @tribe/council, tty → @tribe/stage (or stay @tribe/tty), worktree → @tribe/camp (or stay @tribe/worktree). Functional vs poetic choice per tool.
 
 ### Phase E — Unification (subsumes Phase 7 of @km/bear)
+
 Merge wire-daemon + lore-daemon into one tribe-daemon with preserved tool namespaces (wire.*, lore.*). Shared socket (tribe.sock), shared event bus, shared SQLite.
 
 ## Acceptance criteria
@@ -69,3 +79,4 @@ Merge wire-daemon + lore-daemon into one tribe-daemon with preserved tool namesp
 ## Dependencies
 
 Depends on @km/bear (Phases 1-5 already shipped; Phase 6 watch-TUI should use new names if done after this rebrand).
+

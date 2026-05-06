@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/undo-cursor-restore"
 aliases:
   - km-tui.undo-cursor-restore
@@ -13,3 +16,4 @@ assignee: claude:a5c7f7de
 # [x] Undo after duplicate moves cursor to root instead of preserving position @km/tui #bug #P2 @claude:a5c7f7de
 
 After duplicating a card and then pressing undo, the cursor jumps to the root node instead of staying at the original position. Should check how SlateJS handles cursor restoration in undo — the cursor position before the operation should be restored.
+

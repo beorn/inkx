@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/wrap-measurement"
 aliases:
   - km-silvery.wrap-measurement
@@ -42,6 +45,10 @@ dependencies:
     created_at: 2026-04-24T14:51:07Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.wrap-ergonomic
 ---
 
 # [x] flexily: nested flexGrow columns break <Text wrap=wrap> measurement (grandchild gets outer max-content instead of inner available) @km/silvery #bug #P1 @claude:53042a7f
@@ -69,11 +76,13 @@ Remove `flexGrow={1}` from the inner Box; rely on cross-axis stretch (default) i
 ## Why this is wrong (contradicts CSS)
 
 In CSS flexbox:
+
 - `min-width: auto` defaults to `min-content` (size of longest unbreakable token) — this is the gotcha
 - Canonical fix: set `min-width: 0` on the inner item → enables shrinking below intrinsic content width → grandchild text wraps
 - Nested flex-grow is fine; users hit this once, learn min-width:0, move on
 
 In silvery/flexily:
+
 - We set `flexShrink={1} minWidth={0}` on every intermediate Box
 - It still doesn't wrap — CSS's escape hatch doesn't work here
 - Only removing the inner flex-grow works, which is negative knowledge ("don't stack flexGrow") that CSS devs wouldn't expect
@@ -81,12 +90,14 @@ In silvery/flexily:
 ## Investigation direction
 
 Why does the grandchild Text measure against outer max-content? Candidates:
+
 1. flexily's measurement function for text walks to the nearest flex-grow ancestor instead of direct parent
 2. Text's intrinsic-size report during measurement phase ignores the inner Box's `minWidth={0}` constraint
 3. Yoga-compat default `flexShrink: 0` propagates differently than explicit `flexShrink={1}` in the measurement pass
 4. Some interaction with `overflow="hidden"` shrinkability (CSS spec §4.5) not bubbling down past the first flex-grow level
 
 Starting points:
+
 - `vendor/silvery/packages/ag-react/src/reconciler/nodes.ts:358` (flexShrink wiring — confirmed to call setFlexShrink(1) explicitly)
 - `vendor/flexily/src/layout-zero.ts:576` (overflow-container shrinkability per CSS §4.5)
 - Text measurement in flexily's measure callback
@@ -101,3 +112,4 @@ Starting points:
 ## Context
 
 This bug has surfaced at least 3 times in km (2026-02-11, 2026-04-18, 2026-04-24). Each time it's fixed with a different workaround. Fixing the root makes all future uses of flex+text wrap just work by CSS semantics.
+

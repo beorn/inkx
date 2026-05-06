@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/probe-accuracy"
 aliases:
   - km-terminfo.probe-accuracy
@@ -17,3 +20,4 @@ assignee: claude:4929065a
 # [x] Fix remaining vacuous termless probes + update probe metadata @km/terminfo #task #P2 @claude:4929065a
 
 14 termless probes still return { pass: true } without verification (modes.mouse-sgr, modes.mouse-all, modes.alt-screen.exit, erase.selective, erase.ed-scroll-region, cursor.*, scrollback.*, text.*, reset.method). Fix each to verify actual terminal state. Update probe metadata in features.json for all changed probes. Re-run all probes, update result files, rebuild site.
+

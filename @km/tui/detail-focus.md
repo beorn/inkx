@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/detail-focus"
 aliases:
   - km-tui.detail-focus
@@ -23,6 +26,7 @@ The detail pane should render **like a board column** — with the same focus/se
 ### 1. Top Bar = Column Header
 
 The top bar (currently via PaneBar) should behave like a column header:
+
 - **When detail pane is focused**: top bar background = `$selected` (gold), text = `$selectedfg` (black) — just like a selected column header
 - **When detail pane is NOT focused**: top bar uses current unfocused style (`$muted` bg, dimmed text)
 - The "selected item" in the detail pane is the item itself by default (the top bar)
@@ -30,6 +34,7 @@ The top bar (currently via PaneBar) should behave like a column header:
 ### 2. j/k Navigation Through Sections
 
 When the detail pane is focused, j/k should move a cursor through focusable sections:
+
 - **Top bar** (the item itself) — default selection
 - **Each metadata property** (status, priority, due date, assigned, projects, tags, etc.)
 - **Body content** (as a single block or per-block)
@@ -41,6 +46,7 @@ This is the existing `detailCursorNodeId` system but extended to cover ALL secti
 ### 3. Focusable Properties
 
 Metadata properties should be individually selectable. When cursored:
+
 - Highlighted with `$selected`/`$selectedfg` (same as a selected card)
 - Enter could open an edit dialog for that property
 - This enables keyboard-driven metadata editing
@@ -48,6 +54,7 @@ Metadata properties should be individually selectable. When cursored:
 ### 4. Dimming the Unfocused Pane
 
 Whichever pane is NOT focused should dim its `$selected`/`$selectedbg`:
+
 - **Board unfocused**: Already partially implemented — `borderDimColor={!boardFocused}` on cards
 - **Detail pane unfocused**: Selection highlight should dim (use `dimColor` on the top bar and any cursored items)
 - The key visual: you always know which pane is active by which one has bright gold vs dim gold
@@ -67,3 +74,4 @@ Whichever pane is NOT focused should dim its `$selected`/`$selectedbg`:
 3. **Metadata rows**: Each row gets a focusable identity, cursor highlights with `$selected`
 4. **Dim unfocused**: Both panes apply `dimColor` to their selection indicators when not focused
 5. **Navigation commands**: Register j/k handlers for detail pane context (when detail focused)
+

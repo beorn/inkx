@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/inkx-batch"
 aliases:
   - km-inkx-batch
@@ -17,3 +20,4 @@ For rapid updates (typing, scrolling), this could cause performance issues.
 Add batching similar to RenderScheduler.scheduleRender() which coalesces multiple calls within the same synchronous execution.
 
 Parent: @km/_orphan/silvery-legacy-loop
+

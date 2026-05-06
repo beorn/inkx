@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/phase-d-console-perf"
 aliases:
   - km-silvery.phase-d-console-perf
@@ -27,6 +29,14 @@ dependencies:
     created_at: 2026-04-22T17:44:25Z
     created_by: claude:019d032d
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.phase-c-console-router
+      - type: link
+        target: km-silvery.pro-review-p1
 ---
 
 # [x] Phase D: Console perf — count signal + entriesSnapshot(); drop entries signal @km/silvery #task #P2
@@ -34,6 +44,7 @@ dependencies:
 blocks:: [[@km/silvery/phase-c-console-router]], [[@km/silvery/pro-review-p1]]
 
 ## What changes
+
 - \`packages/ag-term/src/runtime/devices/console.ts\` — replace \`readonly entries: ReadSignal<readonly ConsoleEntry[]>\` with:
   - \`readonly count: ReadSignal<number>\` — increments per captured entry; cheap notification.
   - \`entriesSnapshot(): readonly ConsoleEntry[]\` — explicit method that returns a frozen slice of the current buffer.
@@ -44,10 +55,12 @@ blocks:: [[@km/silvery/phase-c-console-router]], [[@km/silvery/pro-review-p1]]
 - Docs: \`docs/api/term-console.md\` updated to describe the new shape.
 
 ## Delete
+
 - \`Console.entries: ReadSignal<readonly ConsoleEntry[]>\` public property.
 - \`Object.freeze(buffer.slice())\` copy-on-every-log inside \`install()\`.
 
 ## /complete grep criteria
+
 - \`grep -rn "\.entries()\|\.entries\b" apps packages vendor/silvery --include='*.ts' --include='*.tsx' | grep -i console | grep -v '/dist/\|node_modules\|\.test\.\|/tests/\|Array'\` returns 0 hits (all consumers migrated to \`entriesSnapshot()\` / \`count()\`)
 - \`grep -n "readonly entries:" vendor/silvery/packages/ag-term/src/runtime/devices/console.ts\` returns 0 (removed from interface)
 - \`bun vitest run vendor/silvery/tests/features/console.test.ts\` passes
@@ -55,4 +68,6 @@ blocks:: [[@km/silvery/phase-c-console-router]], [[@km/silvery/pro-review-p1]]
 - Benchmark (optional): N=10000 log entries should not show O(n²) time
 
 ## Mandatory
+
 Read docs/lessons/refactoring.md IN FULL before writing any code.
+

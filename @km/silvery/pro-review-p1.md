@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/pro-review-p1"
 aliases:
   - km-silvery.pro-review-p1
@@ -21,6 +23,10 @@ dependencies:
     created_at: 2026-04-22T17:26:34Z
     created_by: claude:019d032d
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.term-sub-owners
 ---
 
 # [x] Pro-review P1 hygiene: hide streams, freeze snapshots, perf-decouple console, createBackendTerm signals @km/silvery #task #P2
@@ -36,6 +42,7 @@ Removed from the public `Term` interface but still present on the underlying `te
 ### 2. Console perf — decouple notification from snapshot copy (P1-9)
 
 Current createConsole publishes `Object.freeze(buffer.slice())` on every log → O(n²) over the session for heavy-logging apps. Expose `entries: ReadSignal<readonly ConsoleEntry[]>` only when a consumer explicitly subscribes (expensive copy on demand) OR split into:
+
 - `count: ReadSignal<number>` (cheap, notification-only)
 - `entriesSnapshot(): readonly ConsoleEntry[]` (explicit method that slices)
 
@@ -50,7 +57,9 @@ Node term has `signals`, headless term has `signals`, `createBackendTerm()` does
 `ordered()` keys the topological graph by `name` but doesn't reject duplicate registrations. Two handlers with the same name cause undefined before/after ordering. Enforce uniqueness in `on()` or document a deterministic tiebreaker.
 
 ## Acceptance
+
 - [ ] stdin/stdout hidden under symbol; getInternalStreams still works
 - [ ] Console exposes both `count` (or similar) signal and `entries()` snapshot method; heavy-logging benchmark shows linear (not O(n²)) behavior
 - [ ] createBackendTerm has `signals` wired and its test covers it
 - [ ] term.signals.on() rejects duplicate names (or docs clarify handler-name semantics)
+

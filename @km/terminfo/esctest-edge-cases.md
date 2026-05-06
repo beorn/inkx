@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/terminfo/esctest-edge-cases"
 aliases:
   - km-terminfo.esctest-edge-cases
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Deep VT edge-case probes — cursor boundaries, erase with attrs, scroll regions (from esctest2) @km/terminfo #task #P2
+

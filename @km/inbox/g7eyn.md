@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/g7eyn"
 aliases:
   - km-g7eyn
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Markdown roundtrip testing: comprehensive md ↔ node ↔ md verification @km/_orphan #task #P2
 
 Need comprehensive roundtrip tests that verify: (1) md → nodes produces correct node structure, (2) nodes → md produces identical markdown. Current roundtrip.test.ts exists but doesn't catch heading depth >6, heading embed syntax, or empty-title headings with task markers.
+

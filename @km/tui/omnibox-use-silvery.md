@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/omnibox-use-silvery"
 aliases:
   - km-tui.omnibox-use-silvery
@@ -118,26 +120,30 @@ dependencies:
     created_at: 2026-04-15T08:25:29Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-session.0415a
 ---
 
 # [x] Replace UnifiedOmnibox internals with silvery PickerDialog + TextInput @km/tui #task #P2
 
 blocks:: [[@km/session/0415a]]
 
-# /big reframe: we're reimplementing basic components
+## /big reframe: we're reimplementing basic components
 
 ## Observation
 
 UnifiedOmnibox currently duplicates primitives that silvery already ships in `vendor/silvery/packages/ag-react/src/ui/components/`:
 
-| @km/tui custom | silvery equivalent |
-|---|---|
-| UnifiedOmnibox.tsx (dialog shell) | PickerDialog<T> (ModalDialog + input + scrolling list + keyboard routing) |
-| InputBox + ghostHint workaround | TextInput (native placeholder, readline, border, focus, prompt) |
-| useDialogInput | useReadline (kill ring, word movement, transpose) |
-| UnifiedOmniboxConnector selection/scroll/keyboard | PickerDialog owns all of this |
-| Manual scroll-offset math | PickerList -> ListView (virtualized) |
-| Legacy Omnibox.tsx (486 LOC) | CommandPalette + PickerDialog |
+| @km/tui custom                                    | silvery equivalent                                                        |
+| ------------------------------------------------- | ------------------------------------------------------------------------- |
+| UnifiedOmnibox.tsx (dialog shell)                 | PickerDialog<T> (ModalDialog + input + scrolling list + keyboard routing) |
+| InputBox + ghostHint workaround                   | TextInput (native placeholder, readline, border, focus, prompt)           |
+| useDialogInput                                    | useReadline (kill ring, word movement, transpose)                         |
+| UnifiedOmniboxConnector selection/scroll/keyboard | PickerDialog owns all of this                                             |
+| Manual scroll-offset math                         | PickerList -> ListView (virtualized)                                      |
+| Legacy Omnibox.tsx (486 LOC)                      | CommandPalette + PickerDialog                                             |
 
 ~500-700 LOC deletable.
 
@@ -185,3 +191,4 @@ TextInput gets its native placeholder behaviour back (hides on non-empty input) 
 ## Effort
 
 Medium. ~500-700 LOC deletable, wiring changes in WorkspaceChrome + UnifiedOmnibox. Break into 3 phases: (1) swap in PickerDialog shell, (2) retire InputBox/useDialogInput in omnibox path, (3) delete legacy Omnibox.tsx + unused primitives.
+

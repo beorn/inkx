@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/acp-adapter-pi"
 aliases:
   - km-silvercode.acp-adapter-pi
@@ -30,6 +33,14 @@ dependencies:
     created_at: 2026-04-26T01:11:38Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode.acp
+      - type: link
+        target: km-silvercode.acp-adapter-claude
 ---
 
 # [x] ACP adapter — pi (badlogic) via pi-acp bridge or pi --mode rpc @km/silvercode #feature #P3 @claude:cd034ca4
@@ -37,6 +48,8 @@ dependencies:
 blocks:: [[@km/silvercode/acp]], [[@km/silvercode/acp-adapter-claude]]
 
 Two paths:
+
 1. Consume community pi-acp adapter (npm: pi-acp by svkozak — spawns pi --mode rpc and bridges to ACP). Lowest-effort path; matches badlogic's explicit recommendation that ACP support be 'built externally on top of pi's rpc mode' (PR #836 close comment).
 2. Alternative: consume @victor-software-house/pi-acp which embeds pi via SDK (in-process, richer feature mapping including agent_thought_chunk, structured diffs, multi-session, configOptions for model/thinking-level).
 Note: pi-mono itself has no in-tree ACP support and badlogic explicitly declined to add it ('Zed don't support their own protocol in full months after release'). Auth: pi handles its own provider/API-key configuration.
+

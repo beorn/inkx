@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-v3-r2-agnode-cascade"
 aliases:
   - km-silvery.theme-v3-r2-agnode-cascade
@@ -21,6 +23,10 @@ dependencies:
     created_at: 2026-04-18T21:09:18Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.theme-v3-plumbing
 ---
 
 # [x] R2: Pipeline reads theme via AgNode cascade, not getActiveTheme() global @km/silvery #task #P3
@@ -28,3 +34,4 @@ dependencies:
 blocks:: [[@km/silvery/theme-v3-plumbing]]
 
 Kill setActiveTheme/getActiveTheme global. Pipeline reads Theme via the AgNode tree it's already rendering (same mechanism as color='inherit'). Enables SSR, multi-theme-in-one-tree. Surgery in render-helpers.ts, adapters/terminal-adapter.ts, ag-react/ui/canvas/index.ts. ~7 callsites + state.ts removal.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/cli/comment-parse"
 aliases:
   - km-cli.comment-parse
@@ -21,6 +24,7 @@ Multiple issues with Asana comment import:
 5. **Comments should be KMAST items**: Each comment should be parsed into a proper KMAST node (li) so the TUI can render them correctly with folding, navigation, etc.
 
 Example output (current):
+
 ```
 - 2018-05-29 @bjørn-stabell: ­
 Bjorn Stabell on Friday Mar 03, 2017 06:37 AM:
@@ -34,6 +38,7 @@ They should call us soon
 ```
 
 Expected:
+
 ```
 - 2017-03-03 @bjørn-stabell: Checked:
   - living ok
@@ -43,3 +48,4 @@ Expected:
 ```
 
 Files: apps/@km/_orphan/cli/src/import/adapters/asana/comment-filter.ts, apps/@km/_orphan/cli/src/import/convert.ts
+

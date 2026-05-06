@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/wikilink-brackets"
 aliases:
   - km-tui.wikilink-brackets
@@ -19,6 +21,7 @@ owner: bjorn@stabell.org
 **Confirmed**: InlineText IS called, parser IS correct, InlineWikiLink renders WITHOUT brackets. But the terminal text buffer shows brackets.
 
 **Evidence**:
+
 - `parseInlineText("2021-01-01 [[Morning Pages]]")` → `[{type:"plain","text":"2021-01-01 "},{type:"wikilink","target":"Morning Pages"}]` — no brackets
 - Unit test with testEnv: `board.screenshot()` shows NO brackets
 - TTY mcp__tty__text output: `▶️ 2021-01-01 [[Morning Pages]]` — HAS brackets
@@ -30,6 +33,8 @@ This is an **incremental rendering bug** in silvery's output phase — the diff 
 **Verify**: Run with `SILVERY_STRICT=1` — should catch the mismatch between incremental and fresh render.
 
 ## Repro
+
 1. `bun km view ~/Bear/Vault`
 2. Look at journals column → cards like `2021-01-01 [[Morning Pages]]`
 3. The `[[` and `]]` should not be visible
+

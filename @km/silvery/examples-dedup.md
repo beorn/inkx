@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/examples-dedup"
 aliases:
   - km-silvery.examples-dedup
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Deduplicate examples — single location in packages/examples/examples/ @km/silvery #task #P3
 
 Make examples/ the @silvery/examples package directly. Move package.json + bin/cli.ts from packages/examples/ into examples/. Delete packages/examples/. Result: bun examples/layout/text-layout.tsx works AND bunx @silvery/examples works. Zero duplication, shortest paths.
+

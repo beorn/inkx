@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/markdown"
 aliases:
   - km-markdown
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Markdown parser/serializer @km/markdown #epic #P3
+

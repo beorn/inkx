@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/storage/frontmatter-wipe"
 aliases:
   - km-storage.frontmatter-wipe
@@ -47,3 +50,4 @@ assignee: Bjørn Stabell
 Repro: Add frontmatter (collapsed: true) to a markdown file externally, then toggle a task in km. Frontmatter gets stripped on the next km write.
 
 nodesToMarkdown serialization not preserving frontmatter when writing changes. Silent data loss for vaults with Obsidian/Bear-style frontmatter.
+

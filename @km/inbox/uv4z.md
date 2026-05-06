@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - km
 id: "@km/inbox/uv4z"
 aliases:
   - km-uv4z
@@ -15,6 +18,7 @@ Current: TUI has its own BoardState with (colIndex, cardIndex) that's separate f
 Target: TUI uses @km/board's BoardState with cursor: TPath, derives columns at render time.
 
 Benefits:
+
 - Single source of truth for navigation
 - Remove command-bridge.ts state conversion
 - boardReducer handles all navigation logic
@@ -24,3 +28,4 @@ Architecture:
 @km/board BoardState → derive ColumnsLayout → render
 
 Parent epic for migration tasks.
+

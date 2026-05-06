@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/publishconfig-exports-fix"
 aliases:
   - km-silvery.publishconfig-exports-fix
@@ -21,6 +24,10 @@ dependencies:
     created_at: 2026-04-20T14:08:04Z
     created_by: claude:4274df30
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.theme-v4
 ---
 
 # [x] Sterling 0.19.1: republish with pnpm to fix broken exports @km/silvery #bug #P0 @claude:a1a0e667
@@ -30,6 +37,7 @@ blocks:: [[@km/silvery/theme-v4]]
 REGRESSION discovered after 0.19.0 ships. release.yml workflow uses 'npm publish' which does NOT apply publishConfig.exports.
 
 3 of 5 published 0.19.0 packages are BROKEN for standalone install:
+
 - @silvery/ansi@0.19.0  → exports: { '.': './src/index.ts' } (wrong)
 - @silvery/color@0.19.0 → exports: { '.': './src/index.ts' } (wrong)
 - @silvery/commander@0.19.0 → exports: { '.': './src/index.ts' } (wrong)
@@ -37,6 +45,7 @@ REGRESSION discovered after 0.19.0 ships. release.yml workflow uses 'npm publish
 - silvery@0.19.0 → bundled barrel, masks the issue
 
 Repro:
+
 ```
 mkdir /tmp/repro && cd /tmp/repro && npm init -y
 npm install @silvery/ansi
@@ -49,6 +58,7 @@ node -e "import('@silvery/ansi').catch(e => console.error(e.message))"
 vendor/CLAUDE.md explicitly documents this: 'pnpm publish, not npm publish — npm doesn't support publishConfig.exports'.
 
 FIX (one PR):
+
 1. Patch vendor/silvery/.github/workflows/release.yml: replace 'npm publish --access public' with 'pnpm publish --no-git-checks --access public' in the publish() function
 2. Bump silvery monorepo to 0.19.1 (cross-package dep refs too)
 3. CHANGELOG entry: '## 0.19.1 — Republish with correct exports' (mention the broken 0.19.0 install)
@@ -57,6 +67,8 @@ FIX (one PR):
 6. Smoke test: install standalone @silvery/ansi in temp dir + import
 
 Acceptance:
+
 - npm view @silvery/{ansi,color,commander,theme-detect}@0.19.1 exports → all dist/* paths
 - Standalone install + import works for each
 - Verify Publishable CI passes
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/softwrap-selection-fragments"
 aliases:
   - km-silvery.softwrap-selection-fragments
@@ -22,6 +25,10 @@ dependencies:
     created_at: 2026-04-25T14:23:55Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.overlay-anchor-system
 ---
 
 # [x] Soft-wrap aware selectionFragments — Option B wrap measurer registration @km/silvery #task #P2 @claude:2405c72e
@@ -59,3 +66,4 @@ Register a wrap measurer with @silvery/ag at runtime:
 - Parent bead: @km/silvery/overlay-anchor-system
 - Rationale: layout-signals.ts:486 docstring (wrap-spanning gap)
 - Wrap source: vendor/silvery/packages/ag-term/src/unicode.ts:761 wrapText
+

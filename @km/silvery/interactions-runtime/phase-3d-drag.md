@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/interactions-runtime/phase-3d-drag"
 aliases:
   - km-silvery.interactions-runtime.phase-3d-drag
@@ -18,6 +20,7 @@ Extend withDomEvents with drag-and-drop. Uses input-router for mouse priority (d
 ## Scope
 
 Extend withDomEvents() with drag handling:
+
 1. On mousedown, if target is draggable=true, route via input-router to drag path instead of selection
 2. Drive pointer machine from @silvery/headless for drag gestures
 3. Track drag state, drop target via findDropTarget (existing helper in drag-events.ts)
@@ -28,19 +31,21 @@ Extend withDomEvents() with drag handling:
 ## Files
 
 CREATE:
+
 - vendor/silvery/packages/ag-term/src/features/drag.ts — DragFeature service
 - vendor/silvery/tests/features/drag.integration.test.ts — basic drag + drop
 - vendor/silvery/tests/features/drag-vs-selection.integration.test.ts — draggable beats userSelect
 - vendor/silvery/tests/features/drag-cancel.integration.test.ts — Escape cancels
 
 UPDATE:
+
 - vendor/silvery/packages/create/src/with-dom-events.ts (+~60 lines)
 - vendor/silvery/packages/ag-term/src/features/index.ts — add drag export
 - vendor/silvery/packages/ag-term/src/drag-events.ts — imports use './features/drag' or are internal helpers only
 
 ## Services
 
-  interface DragFeature {
+interface DragFeature {
     state: Observable<DragState | null>
     cancel(): void
   }
@@ -66,3 +71,4 @@ Nothing.
 ## MANDATORY
 
 Read docs/lessons/refactoring.md IN FULL before starting.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/tea-mouse"
 aliases:
   - km-inkx.tea-mouse
@@ -11,3 +14,4 @@ assignee: claude:d3a7049b
 ---
 
 # [x] Integrate focusManager into mouse-events.ts for click-to-focus @km/inkx #task #P2 @claude:d3a7049b
+

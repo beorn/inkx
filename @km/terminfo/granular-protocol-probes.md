@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/granular-protocol-probes"
 aliases:
   - km-terminfo.granular-protocol-probes
@@ -20,6 +23,7 @@ assignee: claude:27beac99
 Break down monolithic protocol probes into per-flag/sub-feature granularity.
 
 Kitty Keyboard (5 flags — CSI > flags u):
+
 - extensions.kitty-keyboard.disambiguate (flag 1)
 - extensions.kitty-keyboard.report-events (flag 2)
 - extensions.kitty-keyboard.report-alternate (flag 4)
@@ -27,16 +31,20 @@ Kitty Keyboard (5 flags — CSI > flags u):
 - extensions.kitty-keyboard.report-text (flag 16)
 
 Kitty Graphics (sub-capabilities from APC query):
+
 - extensions.kitty-graphics.transmit (a=t)
 - extensions.kitty-graphics.display (a=p)
 - extensions.kitty-graphics.animation (a=f)
 - extensions.kitty-graphics.unicode-placeholders (U=1)
 
 Mouse Protocols (already partially covered, ensure granular):
+
 - Verify existing mouse mode probes cover SGR, urxvt, X10, button-event, all-motion, pixel
 
 OSC Clipboard:
+
 - extensions.osc52-read (query back)
 - extensions.osc52-write (set only)
 
 Each probe: term implementation sends CSI > flags u with specific flag, verifies terminal responds correctly for that flag level. Headless uses capability flags where available.
+

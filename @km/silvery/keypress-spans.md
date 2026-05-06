@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/keypress-spans"
 aliases:
   - km-silvery.keypress-spans
@@ -46,3 +48,4 @@ silvery:event span wraps each keypress. silvery:render sub-spans for phases. log
 - SILVERY_PERF=0 to disable (default: on)
 - SILVERY_PERF=verbose for full histogram per event
 - TRACE=silvery:render for loggily span output (existing)
+

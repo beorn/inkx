@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/markdown/ff-syntax"
 aliases:
   - km-markdown.ff-syntax
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Parser: ![[./child]] relative embed syntax @km/markdown #task #P2
 
 Extend micromark wikilink extension to recognize ./ prefix on embeds. Extract relative: true flag on parsed link. Serializer writes ![[./name]] for structural child references.
+

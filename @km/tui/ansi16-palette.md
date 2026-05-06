@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/ansi16-palette"
 aliases:
   - km-tui.ansi16-palette
@@ -15,11 +18,13 @@ assignee: claude:d697f216
 All UI elements (selection highlights, borders, outlines, pane bars, dim text, active/inactive states) must use only ANSI 16 colors + dim/bold modifiers. No hex colors (#rrggbb) in UI chrome.
 
 Extended colors (256 or RGB) are allowed for:
+
 - Tag colors (user-assigned)
 - User content styling (syntax highlighting, etc.)
 - Board/project colors (user-configurable)
 
 ANSI 16 UI palette:
+
 - Selection focused: yellow bg + black text (bold)
 - Selection unfocused: dim yellow text (no bg) or dim + inverse
 - Muted text: white + dim, or gray
@@ -29,7 +34,9 @@ ANSI 16 UI palette:
 - Errors: red; warnings: yellow; success: green
 
 Sweep needed — agents just introduced hex colors that need replacing:
+
 - #888 → gray or white+dim (whichkey hints)
 - #333333 → dim (unfocused pane bar bg, detail cursor)
 - #555500 → yellow+dim (unfocused selection)
 - #5599dd → blue (active command box outline)
+

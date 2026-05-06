@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/rn57m"
 aliases:
   - km-rn57m
@@ -19,6 +21,7 @@ owner: bjorn@stabell.org
 Reproduced 544ms-1577ms block on warm-cache run; user reports 16s on cold-cache.
 
 INSTRUMENTATION DONE
+
 - Real TTY repro via mcp__tty__start with /Users/beorn/Bear/Vault (552352 nodes).
 - Heartbeat fires consistently at 'startup:react-mount':
   - Run 1 (DEBUG=km:tui:render): event loop blocked for 1577ms — render: layout=97ms (total=97ms) — (2 renders)
@@ -27,6 +30,7 @@ INSTRUMENTATION DONE
 - profile-startup.ts (which doesn't exercise the full Provider stack or workspace restore) finishes React mount in 84ms — confirming the bottleneck is in the production-only path.
 
 STRONGEST HYPOTHESIS — setSelection descendant expansion
+
 - apps/@km/tui/src/state/board-app-store.ts:1658 — alien-signals effect()
   * fires synchronously on registration (during react-mount, when nodeStore is registered to pane)
   * calls nodeStore.setSelection(selectedSet, repo)
@@ -35,22 +39,27 @@ STRONGEST HYPOTHESIS — setSelection descendant expansion
 - If the restored workspace selection includes a high-level node, this recurses through tens of thousands of descendants.
 
 OTHER CANDIDATES (less likely, not yet ruled in/out)
+
 - ag-term/runtime/create-app.tsx:656 await ensureLayoutEngine() — flexily WASM load (not synchronous JS, but could block on cold start)
 - ag-term/runtime/create-app.tsx:1542 detectKittyFromStdio — ANSI roundtrip after first render; would block but only if probe slow
 - syncManager.start() runs in WORKER thread but cross-thread message flood (worker: ignoredFn called for 18213 files visible in log) could saturate main-thread message queue
 - React mount of full BoardApp tree with all providers (ThemeProvider, RepoProvider, StoreProvider, InputLayerProvider, ServicesProvider) — many useMemo/useEffect bodies in useBoardController, but most work O(visible_columns) not O(repo_nodes)
 
 NEXT STEPS
+
 1. Add console.time/console.timeEnd around the alien-signals effect at board-app-store.ts:1658 — log the size of selectedSet AND the time the setSelection call takes
 2. Add a depth/cap guard to expandSelectionWithDescendants — if selectedSet.size > ~100, log a warning and abort walk OR cache by node version
 3. If hypothesis confirmed: short-circuit setSelection when selectedSet is empty or only the cursor (which is the common case at startup)
 4. Verify fix: re-run TTY startup, expect WARN to disappear or shrink to <50ms
 
 CONSTRAINTS
+
 - Pipeline files (vendor/silvery/packages/ag-term/src/pipeline/*.ts) are off-limits without silvery agent
 - backdrop agent has WIP in vendor/silvery/packages/ag-term/src/pipeline/backdrop/index.ts (do not touch)
 - migration agent is renaming tokens in vendor/silvery/packages/ag-react — confine edits to apps/@km/tui/
 
 PRIOR ART (recall)
+
 - 'Performance Optimization Lessons' (docs/lessons/performance.md) — the same pattern (death by descendant walk) was the root cause of the 60s→<1s name-index fix and the 10s→0 countDescendantsAtDepth early-exit
 - Prior session 2 days ago landed phase-aware heartbeat (which is why phase=react-mount is now visible)
+

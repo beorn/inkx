@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/inkx-loop-7"
 aliases:
   - km-inkx-loop-7
@@ -19,3 +22,4 @@ Parent: @km/_orphan/silvery-legacy-loop
 - useApp selector hook
 - Event handlers (app-level and component-level)
 - Document precedence rules
+

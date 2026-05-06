@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/input-structured-events"
 aliases:
   - km-silvery.input-structured-events
@@ -27,6 +30,10 @@ dependencies:
     created_at: 2026-04-22T18:26:31Z
     created_by: claude:019d032d
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.term-sub-owners
 ---
 
 # [x] Migrate ANSI event parsing into term.input; retire term.events() / TermState / term.subscribe @km/silvery #task #P1 @claude:019d032d
@@ -42,6 +49,7 @@ After the Phase A–D plateau push, the sub-owner surface is coherent but most c
 ### Move the parser into Input
 
 Relocate / expose from `term.input`:
+
 - `term.input.onKey(handler: (key: Key) => void): () => void`
 - `term.input.onMouse(handler: (event: ParsedMouse) => void): () => void`
 - `term.input.onPaste(handler: (event: { text: string }) => void): () => void`
@@ -52,6 +60,7 @@ Internally: a single `stdin.on("data", onChunk)` that runs the same parser curre
 ### Retire the legacy surface
 
 Delete from the public `Term` interface:
+
 - `events(): AsyncIterable<ProviderEvent<TermEvents>>`
 - `getState(): TermState`
 - `subscribe(listener: (state: TermState) => void): () => void`
@@ -82,3 +91,4 @@ Read docs/lessons/refactoring.md IN FULL before writing any code. Delete old sur
 ## Parent
 
 @km/silvery/term-sub-owners (even though that epic is closed, this is the logical follow-up; feel free to re-open it or leave this standalone).
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/toast-overlap"
 aliases:
   - km-tui.toast-overlap
@@ -15,3 +18,4 @@ When a toast appears (e.g., 'N log messages — press ` to see'), it overlaps th
 Screenshot: ~/Desktop/Screenshot 2026-02-05 at 16.56.31.png
 
 The toast stack uses position=absolute with marginTop/marginLeft calculated from termHeight, but the estimatedHeight calculation may be off, or the bottomBarHeight=1 isn't sufficient to keep toasts above the bar.
+

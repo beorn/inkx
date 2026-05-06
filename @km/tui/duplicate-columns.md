@@ -1,4 +1,9 @@
 ---
+mentions:
+  - next
+  - someday
+  - km
+  - claude
 id: "@km/tui/duplicate-columns"
 aliases:
   - km-tui.duplicate-columns
@@ -11,3 +16,4 @@ assignee: claude:8f007ba9
 ---
 
 # [x] Duplicate @next and @someday columns appear on board @km/tui #bug #P1 @claude:8f007ba9
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - silvery
+  - km
 id: "@km/silvercode/connection-system"
 aliases:
   - km-silvercode.connection-system
@@ -28,6 +31,14 @@ dependencies:
     created_at: 2026-04-26T14:02:11Z
     created_by: claude:4de4a3ab
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode
+      - type: link
+        target: km-silvery.config-package
 ---
 
 # [x] silvercode: adopt @silvery/config — ai.acp + ai.mcp registries @km/silvercode #feature #P2
@@ -37,33 +48,39 @@ blocks:: [[@km/silvercode]], [[@km/silvery/config-package]]
 Replace silvercode's flag-soup CLI with @silvery/config-backed registries.
 
 **Schema** (~/.km/config.yaml):
+
 - ai.acp.<name> — connection entries (string or object form). Reserved key: "default".
 - ai.acp.default — name of the active connection (mutated by config command).
 - ai.mcp.<name> — MCP server definitions.
 
 **Connection entries** support string and object forms:
-  - String: "claude-code?account=bjorn@stabell.org&model=opus-4.7&bare"
-  - Object: { base: "claude-code?...", label, color, mcp_servers, permissions }
+
+- String: "claude-code?account=bjorn@stabell.org&model=opus-4.7&bare"
+- Object: { base: "claude-code?...", label, color, mcp_servers, permissions }
 
 **Connection string grammar**: schemeless by default; <agent>[?<key>=<value>&...]; query params over userinfo (handles emails); type coercion (boolean/number/array/nested); explicit scheme override only for non-default transport (rare: spawn://, acp+http://).
 
 **CLI changes**:
+
 - DROP from top-level: --track, --layout, --pane-headers, --bare, --account
 - KEEP: --cwd, --resume, --log-dir, --model (transient override)
 - GENERALIZE --agent: accepts registry-label, connection-string, or built-in agent id
 - ADD subcommands: config (git-style), acp list|show|add|rm, mcp list|show|add|rm, doctor
 
 **Resolution order** when --agent X given:
-  1. registry connection label (ai.acp.<X>)
-  2. connection-string (X contains ? or =)
-  3. built-in agent id (BUILTIN_AGENTS map)
-  4. error with actionable message
+
+1. registry connection label (ai.acp.<X>)
+2. connection-string (X contains ? or =)
+3. built-in agent id (BUILTIN_AGENTS map)
+4. error with actionable message
 
 **Resolution order** when --agent omitted:
-  1. SILVERCODE_CONNECTION env
-  2. ai.acp.default
-  3. built-in fallback (claude-code with cred env-var auto-discovery)
+
+1. SILVERCODE_CONNECTION env
+2. ai.acp.default
+3. built-in fallback (claude-code with cred env-var auto-discovery)
 
 **Layout/pane-headers** move into TUI (separate bead, not blocking).
 
 **Depends on**: @km/silvery/config-package
+

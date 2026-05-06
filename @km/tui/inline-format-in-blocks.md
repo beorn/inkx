@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/inline-format-in-blocks"
 aliases:
   - km-tui.inline-format-in-blocks
@@ -21,8 +23,13 @@ dependencies:
     created_at: 2026-04-14T10:31:51Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Bullets and bold render as plain p-blocks in body content @km/tui #bug #P2
 
 blocks:: [[@km/tui]]
+

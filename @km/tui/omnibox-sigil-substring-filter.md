@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - t
 id: "@km/tui/omnibox-sigil-substring-filter"
 aliases:
   - km-tui.omnibox-sigil-substring-filter
@@ -21,6 +25,10 @@ dependencies:
     created_at: 2026-04-18T12:17:34Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] +t shows no items but + shows projects — sigil mode substring filter broken @km/tui #bug #P2
@@ -28,3 +36,4 @@ dependencies:
 blocks:: [[@km/tui]]
 
 Screenshots 11.30.43 + 11.30.48: pressing '+' (Project mode) shows a long list of projects including '+Account Data Pipeline', 'Floating Shelves for 670 Hamilton Ave', 'App Annie / data.ai → SensorTower Sale @office' — all with 't' in the title. Pressing '+t' returns 'No items' even though many items match substring 't'. Expected: substring filter works after the sigil. Likely bug in omnibox-projection.ts or omnibox-ranker.ts filter logic for sigil modes.
+

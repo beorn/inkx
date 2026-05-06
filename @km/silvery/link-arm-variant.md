@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/link-arm-variant"
 aliases:
   - km-silvery.link-arm-variant
@@ -20,9 +23,9 @@ assignee: claude:c0da815b
 Two silvery Link improvements needed for km popover:
 
 1. **Link variant=arm-on-hover**: Arms on hover without Cmd. Currently Link requires Cmd+hover to arm (show underline + pointer cursor). Popovers need links that arm on plain hover. Add a variant prop: 'arm-on-cmd-hover' (default) | 'arm-on-hover'.
-
 2. **Fix OSC 8 wrapping**: When Link text wraps (wrap='wrap'), OSC 8 escape sequences leak as visible text (']8;;\'). The content phase doesn't handle OSC 8 sequences during text wrapping — they get split across lines. Fix: treat OSC 8 open/close as zero-width in width measurement, and re-emit on each wrapped line (like ANSI color state tracking).
 
 TDD approach — write failing tests first for both issues.
 
 Temporary workaround in km: PopoverLink uses Text + hover state + onClick (no OSC 8). Replace with <Link variant='arm-on-hover'> once this is done.
+

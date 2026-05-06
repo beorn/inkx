@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/fold-count-color"
 aliases:
   - km-tui.fold-count-color
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Folding depth change: child count color inconsistent (sometimes dimmed, sometimes white) @km/tui #bug #P3
+

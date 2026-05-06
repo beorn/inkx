@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/hierarchical-node-state"
 aliases:
   - km-tui.hierarchical-node-state
@@ -27,6 +30,7 @@ Replace ad-hoc per-node state propagation (syncCursor, syncSelected, syncEdit, h
 ## Blast radius (from grep audit)
 
 ~375 references across ~50 source files + docs. Heaviest:
+
 - cursorCardNodeId: 54 refs / 15 files
 - cursorColumnNodeId: 40 refs / 15 files
 - isNodeSelected: 40+ refs / 7 files
@@ -35,6 +39,7 @@ Replace ad-hoc per-node state propagation (syncCursor, syncSelected, syncEdit, h
 - cursorDepth: 20+ refs / 10 files
 
 Critical files (most changes):
+
 1. reactive.ts — core refactor (remove sync methods, add reduced signals)
 2. Board.tsx — remove syncCursor/syncSelected/syncEdit calls
 3. CardColumn.tsx — adapt cursorInDescendant, expandedEditCardId, isColumnSelected, cardBg
@@ -66,6 +71,7 @@ tree.down(nodeId)  // DFS iterator
 ## Phases
 
 ### Phase 0: Characterize (BEFORE refactor)
+
 - Run golden baseline tests: cursor-colors.test.ts, board-selection.slow.spec.ts, column-rendering.test.ts
 - Add 5 missing golden tests (cursor-in-descendant all levels, edit expansion, sigil filtering, batch atomicity, signal sync)
 - Rewrite board-test.ts helper (~400 LOC) for batch() semantics
@@ -73,18 +79,23 @@ tree.down(nodeId)  // DFS iterator
 - Fix pre-existing test failures (4 in windowing-wire + symlink from focus session)
 
 ### Phase 1: Core engine
+
 Build reduced signal engine: tree.ancestors/descendants descriptors, store.batch(), TreeAccess. Reuse tree-concerns.ts internals but NOT prototype API.
 
 ### Phase 2: Shadow — cursor + selection
+
 Shadow implementation alongside old sync. One facade, one active path. Compare semantically.
 
 ### Phase 3: Cutover — switch reads
+
 Components read from reduced signals. Old sync becomes shadow oracle. Bench: content render ≤ baseline.
 
 ### Phase 4: Purge + Remove
+
 Delete old sync. Bounded deadline. Bench: wall time ≤ baseline.
 
 ### Phase 5: Editing + sigils
+
 Add editingDescendant and excludedSigils. Delete syncEdit + hydrate sigil walk.
 
 ## Acceptance criteria (grep-verifiable)
@@ -92,7 +103,9 @@ Add editingDescendant and excludedSigils. Delete syncEdit + hydrate sigil walk.
 ### Phase 4 gates (sync methods + store-level signals → 0)
 
 \`\`\`bash
-# All must return 0 (excluding .beads/, vendor/, docs/)
+
+## All must return 0 (excluding .beads/, vendor/, docs/)
+
 rg syncCursor --glob '!.beads' --glob '!vendor' --glob '!docs' -t ts -t tsx -c
 rg syncSelected --glob '!.beads' --glob '!vendor' --glob '!docs' -t ts -t tsx -c
 rg prevDescendantCardId --glob '!.beads' --glob '!vendor' -t ts -t tsx -c
@@ -120,7 +133,9 @@ rg cursorInDescendant --glob '!.beads' --glob '!vendor' --glob '!docs' -t ts -t 
 ### Docs gates (sweep after Phase 5)
 
 \`\`\`bash
-# Docs must also be updated — not just code
+
+## Docs must also be updated — not just code
+
 rg syncCursor docs/ -c   # update references
 rg cursorInDescendant docs/ -c   # update references
 rg expandedEditCardId docs/ -c   # update references
@@ -128,13 +143,13 @@ rg expandedEditCardId docs/ -c   # update references
 
 ## Test impact
 
-| Category | Files | Action |
-|----------|-------|--------|
-| REWRITE | board-test.ts, storybook.tsx | Core helpers → batch() |
-| GOLDEN | cursor-colors, board-selection, column-rendering | Run before, verify after |
-| KEEP | 20+ slow.spec.ts, cursor-signals, tree-concerns | Must still pass |
-| ADAPT | inline-edit, board-edit, detail-pane, edit-save-repro | May reference expandedEditCardId |
-| ADD | 5 new golden tests | cursor-descendant all levels, edit expand, sigils, batch, sync |
+| Category | Files                                                 | Action                                                         |
+| -------- | ----------------------------------------------------- | -------------------------------------------------------------- |
+| REWRITE  | board-test.ts, storybook.tsx                          | Core helpers → batch()                                         |
+| GOLDEN   | cursor-colors, board-selection, column-rendering      | Run before, verify after                                       |
+| KEEP     | 20+ slow.spec.ts, cursor-signals, tree-concerns       | Must still pass                                                |
+| ADAPT    | inline-edit, board-edit, detail-pane, edit-save-repro | May reference expandedEditCardId                               |
+| ADD      | 5 new golden tests                                    | cursor-descendant all levels, edit expand, sigils, batch, sync |
 
 ## What stays vs what goes
 
@@ -143,3 +158,4 @@ rg expandedEditCardId docs/ -c   # update references
 **REMOVE**: syncCursor, syncSelected, syncEdit, expandWithDescendants, hydrateDescendantSelection, prevDescendantCardId
 **REPLACE**: cursorInDescendant → cursorDescendant, expandedEditCardId → editingDescendant, NodeReactiveState interface
 **ADAPT**: isColumnSelected, isBoardSelected, isCursorOnCard, shouldStripColor, boardBg/columnBg/cardBg (derive from new signals)
+

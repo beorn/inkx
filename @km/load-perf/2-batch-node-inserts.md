@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/load-perf/2-batch-node-inserts"
 aliases:
   - km-load-perf.2
@@ -17,3 +19,4 @@ File: packages/@km/storage/src/db-events.ts
 Lines: 76-120 (applyNodeCreated)
 
 Expected impact: 5-10x faster apply phase
+

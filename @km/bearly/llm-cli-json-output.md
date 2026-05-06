@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/bearly/llm-cli-json-output"
 aliases:
   - km-bearly.llm-cli-json-output
@@ -23,6 +26,10 @@ dependencies:
     created_at: 2026-04-26T23:58:44Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-bearly
 ---
 
 # [x] Add --json flag to llm CLI for skill consumption @km/bearly #feature #P2 @claude:2405c72e
@@ -38,6 +45,7 @@ Discovered via /pro review of the llm tool (Kimi K2.6, 2026-04-26): finding 3.4.
 ## Goal
 
 Add a `--json` flag to every command that produces output. When set:
+
 - All human-readable progress output goes to stderr (or is suppressed)
 - A single JSON line is written to stdout containing structured metadata
 
@@ -76,3 +84,4 @@ Schema:
 ## Reference
 
 Review at /tmp/llm-2405c72e-adversarial-review-of-the-292y.txt
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/scroll-bottom"
 aliases:
   - km-tui.scroll-bottom
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] [bug] Column scroll doesn't reach bottom — items hidden below fold @km/tui #bug #P2
 
 User reports: scrolling in columns doesn't let them scroll all the way down. Screenshot shows a 'completed' section at the bottom of a column that's partially visible with items beneath it. Likely the virtual list's scroll range calculation is off — either maxScrollOffset doesn't account for all content height, or the last items' heights are miscalculated.
+

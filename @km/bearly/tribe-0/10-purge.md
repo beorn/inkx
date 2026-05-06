@@ -1,4 +1,8 @@
 ---
+mentions:
+  - bearly
+  - km
+  - Bjørn
 id: "@km/bearly/tribe-0/10-purge"
 aliases:
   - km-bearly.tribe-0.10-purge
@@ -16,6 +20,10 @@ dependencies:
     created_at: 2026-04-17T20:43:47Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-bearly
 ---
 
 # [x] @bearly/tribe 0.10.0 — purge all 0.9.0 compat aliases @km/bearly #task #P2 @Bjørn Stabell
@@ -23,3 +31,4 @@ dependencies:
 blocks:: [[@km/bearly]]
 
 Breaking release. Deletes every lore.*/tribe_*/LORE_* alias introduced during the 0.9.0 unification. See @km/bearly/system-unification for context.
+

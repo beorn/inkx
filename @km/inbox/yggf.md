@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/yggf"
 aliases:
   - km-yggf
@@ -13,13 +15,13 @@ Architectural improvements inspired by Decker webapp patterns. See docs/vs-decke
 
 ## Status Summary
 
-| Opportunity | Status | Verdict |
-|-------------|--------|---------|
-| O1: Command Context | ✅ Done | Good adoption |
-| O2: ID Lookup Map | ✅ Done | Good adoption, needs optimization |
-| O3: Visual Navigation | ❌ Closed | Never - fights terminal paradigm |
-| O4: Plugin Composition | ❌ Closed | Never - premature abstraction |
-| O5: Node/Text Mode | 🔒 Blocked | Wait for inline editing feature |
+| Opportunity            | Status     | Verdict                           |
+| ---------------------- | ---------- | --------------------------------- |
+| O1: Command Context    | ✅ Done     | Good adoption                     |
+| O2: ID Lookup Map      | ✅ Done     | Good adoption, needs optimization |
+| O3: Visual Navigation  | ❌ Closed   | Never - fights terminal paradigm  |
+| O4: Plugin Composition | ❌ Closed   | Never - premature abstraction     |
+| O5: Node/Text Mode     | 🔒 Blocked | Wait for inline editing feature   |
 
 ## Strategic Conclusion
 
@@ -30,6 +32,8 @@ KM's architecture is already better for its domain. The five-layer architecture 
 ## Follow-up Work
 
 See child issues for:
+
 - @km/_orphan/aojy: Fix nodeMap O(n) per-keypress rebuild
 - @km/_orphan/amzv: Eliminate dual-state technical debt
 - @km/_orphan/rk5q: Invest in TUI testing DX (real opportunity)
+

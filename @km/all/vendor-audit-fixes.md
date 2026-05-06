@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/vendor-audit-fixes"
 aliases:
   - km-all.vendor-audit-fixes
@@ -21,3 +23,4 @@ owner: bjorn@stabell.org
 # [x] Fix vendor audit findings (2026-04-19) @km/all #task #P2
 
 LICENSE files, sherif workspace consistency, npm-packages.md drift, dead links, publishConfig.bin
+

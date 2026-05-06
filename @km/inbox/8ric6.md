@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/8ric6"
 aliases:
   - km-8ric6
@@ -17,3 +20,4 @@ assignee: claude:ceb7c9cb
 # [x] fix: card borders broken on initial app render @km/_orphan #bug #P2 @claude:ceb7c9cb
 
 Sometimes when starting km view, card borders render incorrectly — missing or garbled round border characters on first draw. Visible in screenshot 2026-03-24 at 11.56.38. May be a silvery incremental rendering issue where the first render doesn't correctly output border characters.
+

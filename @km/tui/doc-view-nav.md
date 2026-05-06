@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/doc-view-nav"
 aliases:
   - km-tui.doc-view-nav
@@ -14,10 +16,12 @@ owner: bjorn@stabell.org
 # [x] Doc view: j/k cursor navigation through nested content @km/tui #feature #P2
 
 ## Problem
+
 In detail/doc view, j/k only navigates top-level children (Card-based cursor). 
 Nested content (sub-headings, body items, tasks under sections) is visible but not navigable.
 
 ## Approach
+
 Flatten the doc tree into a navigable node list. The cursor should walk through 
 every visible item node in document order (headings, list items, tasks — skip body 
 paragraphs which aren't independently selectable).
@@ -26,6 +30,8 @@ The detail pane cursor system (cursorNodeId in BoardPaneState) already works —
 just needs the node index to include nested children, not just top-level.
 
 ## Connection to existing code
+
 - view-navigation.ts handles cursor movement for the detail pane
 - The detail pane uses a flat list of children for cursor indexing
 - Need to recursively flatten item children into the cursor index
+

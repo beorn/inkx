@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - km
+  - km
+  - km
 id: "@km/inbox/9urr"
 aliases:
   - km-9urr
@@ -46,49 +51,56 @@ apps/km-cli       - CLI entry point (run-do-exit commands)
 
 ## Package Mapping
 
-| Old | New | Notes |
-|-----|-----|-------|
-| @km/core/node | @km/tree | Rename + promote to package |
-| @km/core/board | @km/board | Rename + promote to package |
-| @km/tui-core | DELETE | Merge shell into @km/_orphan/cli, delete duplication |
-| @km/tui-opentui | @km/tui | Rename |
-| @km/core | Assess | May still need for shared types (TaskStatus, etc.) |
+| Old             | New       | Notes                                                |
+| --------------- | --------- | ---------------------------------------------------- |
+| @km/core/node   | @km/tree  | Rename + promote to package                          |
+| @km/core/board  | @km/board | Rename + promote to package                          |
+| @km/tui-core    | DELETE    | Merge shell into @km/_orphan/cli, delete duplication |
+| @km/tui-opentui | @km/tui   | Rename                                               |
+| @km/core        | Assess    | May still need for shared types (TaskStatus, etc.)   |
 
 ## Detailed Changes
 
 ### 1. Create @km/tree (from @km/core/node)
+
 - Move packages/@km/_orphan/core/src/node/* to packages/@km/tree/src/
 - Rename NodeState → TreeNode or keep as NodeState
 - Ensure NO visual state (cursor, selection, etc.)
 
 ### 2. Create @km/board (from @km/core/board)
+
 - Move packages/@km/_orphan/core/src/board/* to packages/@km/_orphan/board/src/
 - Add spatialNav.ts for CURSOR_* algorithms
 - Import @km/tree for node queries
 - Ensure NO modal/UI state
 
 ### 3. Refactor @km/tui (from @km/tui-opentui)
+
 - Rename packages/@km/_orphan/tui-opentui to packages/@km/tui
 - Remove treeReducer duplication - use @km/board/boardReducer
 - Extract AppState for modal/view config (separate from BoardState)
 - Keep React components
 
 ### 4. Clean up apps/@km/_orphan/cli
+
 - Keep CLI commands (sync, tasks, etc.)
 - Import @km/tui for view command
 - Shell (km sh) can stay here or move to @km/sh
 
 ### 5. Delete @km/tui-core
+
 - Move commandParser, shellExecutor to apps/@km/_orphan/cli (or @km/sh)
 - Delete duplicated types.ts, treeReducer.ts
 
 ### 6. Update docs
+
 - specs/@km/tui-state/md - Update package references
 - specs/@km/board-navigation/md - Update architecture section
 - specs/README.md - Update package list
 - CLAUDE.md - Update if needed
 
 ## Acceptance Criteria
+
 - [ ] @km/tree exists with node types and queries only
 - [ ] @km/board exists with board state and navigation only
 - [ ] @km/tui exists with React app and modal state only
@@ -100,14 +112,18 @@ apps/km-cli       - CLI entry point (run-do-exit commands)
 - [ ] Docs updated
 
 ## Dependencies
+
 This blocks all other navigation work:
+
 - @km/_orphan/t2q4 (CURSOR_* actions)
 - @km/_orphan/js8s (extend-select)
 - @km/_orphan/uwdy (shifting)
 
 ## Migration Strategy
+
 1. Create new packages with correct structure
 2. Update imports in consuming code
 3. Delete old duplicated code
 4. Update docs
 5. Run all tests
+

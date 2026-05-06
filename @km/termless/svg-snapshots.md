@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/svg-snapshots"
 aliases:
   - km-termless.svg-snapshots
@@ -13,3 +16,4 @@ assignee: claude:8fc35754
 # [x] SVG snapshot testing workflow @km/termless #feature #P2 @claude:8fc35754
 
 viterm has a serializer but there's no snapshot workflow documented or tested end-to-end. Implement golden-file SVG snapshots for visual regression testing — a killer feature Playwright doesn't have for terminals. Should integrate with vitest's snapshot mechanism.
+

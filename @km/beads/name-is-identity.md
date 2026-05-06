@@ -14,7 +14,7 @@ priority: P2
 
 A second arch review (`/arch`-protocol style: read all canonical docs + close-reasons of cited beads BEFORE opining) found that this bead's original framing was largely wrong. Quoting the arch report:
 
-> The closed beads do **not** establish "filename IS the identity, drop frontmatter `id:`". They establish a path-form-canonical-id model where path-form `id:` is in frontmatter, with bd-form aliases for resolution. The bead body's claim that `inboxCapture` is the canonical shape (no `id:`) over `renderBeadFile` (with `id:`) inverts the actual recipe.
+> The closed beads do not establish "filename IS the identity, drop frontmatter id:". They establish a path-form-canonical-id model where path-form id: is in frontmatter, with bd-form aliases for resolution. The bead body's claim that inboxCapture is the canonical shape (no id:) over renderBeadFile (with id:) inverts the actual recipe.
 
 Canonical sources (read directly, not via grep snapshot):
 
@@ -30,24 +30,25 @@ Canonical sources (read directly, not via grep snapshot):
 
 ## What was wrong in the original bead
 
-| Claim | Verdict |
-|---|---|
-| "No frontmatter `id:` field" | **Wrong** — `id:` is the canonical path-form mirror per `path-ids` close-reason. Removing it would break alias resolver. |
-| "tribe-matrix.md defines new identity model" | **Wrong on two counts**: (1) I overread it — 8 words about identity in a Matrix-rooms doc. (2) The user has flagged `hub/km/design/tribe-matrix.md` specifically as not-yet-vetted. (`hub/` is mixed — some design docs are authoritative, some are brainstorming; per-doc judgment required.) Even if tribe-matrix.md were vetted, the 8-word identity mention couldn't carry a refactor of this scope. |
-| "Rename `Bead.displayId` → `Bead.displayName`" | Already shipped at `46bf3552e` (today's L4). |
-| "Stop writing `data.short_id`" | Trivial 30-min cleanup, not bead-scoped. File a tiny child bead and ship. |
-| "5 phases / 4-5 hours" | 1 item / 1-2 hours. |
+| Claim                                        | Verdict                                                                                                                                                                                                                                                                                                                                                                                          |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| "No frontmatter id: field"                   | Wrong — id: is the canonical path-form mirror per path-ids close-reason. Removing it would break alias resolver.                                                                                                                                                                                                                                                                                 |
+| "tribe-matrix.md defines new identity model" | Wrong on two counts: (1) I overread it — 8 words about identity in a Matrix-rooms doc. (2) The user has flagged hub/km/design/tribe-matrix.md specifically as not-yet-vetted. (hub/ is mixed — some design docs are authoritative, some are brainstorming; per-doc judgment required.) Even if tribe-matrix.md were vetted, the 8-word identity mention couldn't carry a refactor of this scope. |
+| "Rename Bead.displayId → Bead.displayName"   | Already shipped at 46bf3552e (today's L4).                                                                                                                                                                                                                                                                                                                                                       |
+| "Stop writing data.short_id"                 | Trivial 30-min cleanup, not bead-scoped. File a tiny child bead and ship.                                                                                                                                                                                                                                                                                                                        |
+| "5 phases / 4-5 hours"                       | 1 item / 1-2 hours.                                                                                                                                                                                                                                                                                                                                                                              |
 
 ## Target reference model (per user, 2026-04-30)
 
 Two handles per node, each with a clear role:
 
-| Handle | Where stored | Stability | Use when |
-|---|---|---|---|
-| **Path** (`@km/beads/foo`) | filesystem (`fs_path`) | mutable on move/rename | human refs, wikilinks, navigation, display |
-| **ULID** (`KNode.id`) | SQLite (per knode.md:13) | stable across moves | system refs, persistent cross-refs, programmatic lookup |
+| Handle               | Where stored             | Stability              | Use when                                                |
+| -------------------- | ------------------------ | ---------------------- | ------------------------------------------------------- |
+| Path (@km/beads/foo) | filesystem (fs_path)     | mutable on move/rename | human refs, wikilinks, navigation, display              |
+| ULID (KNode.id)      | SQLite (per knode.md:13) | stable across moves    | system refs, persistent cross-refs, programmatic lookup |
 
 Notes:
+
 - Path is **sigil-rooted** (e.g. `@km/beads/asdjfkl`), relative to a sigil board root. Already established by the `@`-prefix convention.
 - Frontmatter `id:` field **should not exist** — it duplicates the path. Path is on disk; ULID is in SQLite. No third name needed.
 - Frontmatter `aliases:` stays for legacy bd-form resolution (`km-beads.foo`, `km-beads-foo`).
@@ -58,6 +59,7 @@ Notes:
 Today's reality (per `repo.ts:1419` + `path-ids` bead body): for bead files with frontmatter `id:`, the SQLite primary key is the **path-form**, not the ULID. This contradicts knode.md:13 which mandates ULID. The `path-ids` bead introduced this divergence on 2026-04-28.
 
 Decision needed:
+
 - (A) Restore knode.md model: SQLite primary key always ULID, no frontmatter `id:`. Path is canonical handle, derived from `fs_path`. Migration: drop `id:` from 4752 files, change loader to assign ULID to those rows.
 - (B) Accept the path-ids divergence as the new model and update knode.md to match (i.e., for nodes-with-stable-handle-needs, primary key is the path-form).
 - (C) Some hybrid not yet articulated.
@@ -133,6 +135,7 @@ km bd create @km/tui/normal-mode-nav --title "Normal mode nav" --type task
 ## Process retrospective
 
 Saved memories captured the failure mode:
+
 - `feedback-architectural-decisions-need-big-before-max.md` — `/max` is for parallel execution, not design.
 - `feedback-verify-agent-investigation-scope.md` — agent grep snapshots ≠ architectural intent.
 - `feedback-hub-docs-are-drafts-not-canonical.md` — `hub/<project>/design/*` is draft territory; never cite as authority.
@@ -140,3 +143,4 @@ Saved memories captured the failure mode:
 The user's pull-backs ("isn't this how it always was", "review the architecture", "tribe-matrix isn't fully vetted", "we do not want to change architecture without solid understanding") were the necessary corrections that exposed the failure mode.
 
 Tracking bead for the protocol fix: **`@km/all/architectural-decision-skill`** (P1) — design and ship `/arch` as a skill that enforces doc-first reading + required retro for any identity/storage/persistence/loader/data-model change.
+

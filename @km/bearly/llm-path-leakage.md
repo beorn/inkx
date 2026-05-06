@@ -1,4 +1,8 @@
 ---
+mentions:
+  - bearly
+  - km
+  - claude
 id: "@km/bearly/llm-path-leakage"
 aliases:
   - km-bearly.llm-path-leakage
@@ -72,8 +76,13 @@ dependencies:
     created_at: 2026-04-27T22:07:11Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-bearly
 ---
 
 # [x] @bearly/llm: relativize file: path field in JSON envelope (path leakage R3) @km/bearly #bug #P3 @claude:cc081a9a
 
 blocks:: [[@km/bearly]]
+

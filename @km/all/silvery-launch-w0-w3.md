@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/silvery-launch-w0-w3"
 aliases:
   - km-all.silvery-launch-w0-w3
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-28T09:52:20Z
     created_by: claude:618d206c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all
 ---
 
 # [ ] Silvery launch — Week 0-3 execution epic @km/all #feature #P1
@@ -25,3 +31,4 @@ Recovered from /pro v3 critique (4-leg, GPT-5.4 Pro 20/20, 2026-04-28 16:00) whi
 
 Strategy doc canonical reference: hub/km/design/licensing-strategy.md
 /pro v3 result: /tmp/strategy-pro-v3-final-2026-04-28.md
+

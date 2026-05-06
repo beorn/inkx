@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/column-move"
 aliases:
   - km-tui.column-move
@@ -15,3 +18,4 @@ assignee: Bjørn Stabell
 ---
 
 # [x] Column move: jumps around + position not persisted across restart @km/tui #bug #P2 @Bjørn Stabell
+

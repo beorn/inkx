@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/test-corpus"
 aliases:
   - km-silvery.test-corpus
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Testing gap: real-app render tree corpus replay @km/silvery #task #P3
 
 Synthetic fixtures are good but regressions shipped because real vaults were more complex. Create anonymized serialized render tree corpus from real vaults, replay in CI with random/recorded actions. Like browser engine layout test corpora. Found by GPT 5.4 pro.
+

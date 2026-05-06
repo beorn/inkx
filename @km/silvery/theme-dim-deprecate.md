@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-dim-deprecate"
 aliases:
   - km-silvery.theme-dim-deprecate
@@ -23,6 +25,10 @@ dependencies:
     created_at: 2026-04-17T23:08:02Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.design-system
 ---
 
 # [x] Deprecate dimColor prop on Text/Box — route everything through $faint / $muted / $disabledfg tokens @km/silvery #task #P3
@@ -59,3 +65,4 @@ Truecolor never emits SGR 2. Tokens resolve to pre-dimmed hex values at derivati
 
 Full context: hub/silvery/design/v10-terminal/terminal-color-strategy.md
 Parent: @km/silvery/design-system
+

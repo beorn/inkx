@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/b4vs3"
 aliases:
   - km-b4vs3
@@ -15,3 +18,4 @@ assignee: claude:b92140a2
 # [x] Change default materialization from none to metadata @km/_orphan #task #P2 @claude:b92140a2
 
 User wants index files auto-created when folder gets a title/body, but NOT for ordering changes. Default materialization should be 'metadata' (title + body only), not 'none'. Requires updating ~10 E2E tests that assume none as default.
+

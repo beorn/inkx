@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/markdown/list-table-fidelity"
 aliases:
   - km-markdown.list-table-fidelity
@@ -17,3 +20,4 @@ assignee: claude:c9beade3
 # [x] Ordered list numbering, bullet styles, and table alignment not preserved @km/markdown #bug #P1 @claude:c9beade3
 
 Three P1 fidelity issues: (1) Only ordered:boolean kept, discarding start number and marker style. (2) Table alignment info (mdast align) ignored, always emits plain ---. (3) Pipe chars in cells not escaped, can split columns on reparse.
+

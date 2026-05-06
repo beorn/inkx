@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/perf-asana"
 aliases:
   - km-tui.perf-asana
@@ -11,3 +14,4 @@ assignee: claude:23485adf
 ---
 
 # [x] Board open still 60s+ for large Asana vault — folded children overcapped + no progress steps @km/tui #bug #P1 @claude:23485adf
+

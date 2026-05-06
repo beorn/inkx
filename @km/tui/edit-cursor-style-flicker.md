@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/edit-cursor-style-flicker"
 aliases:
   - km-tui.edit-cursor-style-flicker
@@ -14,6 +16,7 @@ owner: bjorn@stabell.org
 When cursoring through items in edit mode (Ctrl+N), sibling items change their visual rendering:
 
 Repro: ~vault @next card 'Next' — items: Statin, Test task3, And another task, Subtask
+
 1. Edit 'Test task3' (Enter) — Subtask shows with □ checkbox, white, indented
 2. Ctrl+N to 'And another task' — Subtask loses checkbox, becomes dimmed, different indent
 3. Ctrl+N to 'Subtask' — Subtask shows white text but still no checkbox
@@ -22,3 +25,4 @@ Expected: Subtask should always show the same (with checkbox, same indent, same 
 The cursor position shouldn't change how NON-CURSOR siblings render.
 
 Root cause: likely shouldExpand or cursorInDescendant logic changing the body/structural classification or fold state of siblings when the cursor parent changes.
+

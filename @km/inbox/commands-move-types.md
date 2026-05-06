@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - unimac
 id: "@km/inbox/commands-move-types"
 aliases:
   - km-commands-move-types
@@ -19,12 +22,15 @@ The TUI augments these actions with context before dispatching to the board redu
 **Current workaround**: edit.ts uses `: CommandDef` annotation instead of `satisfies` to allow this mismatch.
 
 **Proper fix**:
+
 1. Create separate CommandAction types for move mode (without nodeIds/cursorNodeId)
 2. Have TUI handler explicitly convert CommandAction → BoardAction with context
 3. Update type unions to reflect this two-stage dispatch pattern
 
 **Files affected**:
+
 - packages/@km/_orphan/commands/src/commands/edit.ts
 - packages/@km/_orphan/commands/src/types.ts
 - packages/@km/_orphan/board/src/board-types.ts
 - apps/@km/tui/src/board-actions.ts
+

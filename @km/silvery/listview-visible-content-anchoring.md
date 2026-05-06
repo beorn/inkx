@@ -1,7 +1,4 @@
 ---
-tags:
-  - feature
-  - P0
 mentions:
   - km
 id: "@km/silvery/listview-visible-content-anchoring"
@@ -13,7 +10,10 @@ type: feature
 priority: P0
 status: done
 closed_at: 2026-05-04T00:00:00.000Z
-close_reason: "Shipped in silvery 79f7359f. ListView has default-on maintainVisibleContentPosition backed by useScrollAnchoring and HeightModel row/index APIs. Tests: vendor/silvery focused strict ListView/HeightModel suite, 10 files / 61 tests; vendor/silvery typecheck passed."
+close_reason: "Shipped in silvery 79f7359f. ListView has default-on
+  maintainVisibleContentPosition backed by useScrollAnchoring and HeightModel
+  row/index APIs. Tests: vendor/silvery focused strict ListView/HeightModel
+  suite, 10 files / 61 tests; vendor/silvery typecheck passed."
 ---
 
 # [x] [feature] ListView visible-content scroll anchoring @km/silvery #feature #P0
@@ -65,3 +65,4 @@ Precedence:
 
 - `SILVERY_STRICT=1 bun vitest run --dir vendor/silvery tests/features/height-model.test.ts tests/ui/list-view-visible-content-anchoring.test.tsx tests/ui/list-view-imperative-scroll.test.tsx tests/features/listview-follow-end.test.tsx tests/features/listview-sticky-bottom.test.tsx tests/features/listview-height-independent-scrollbar.test.tsx tests/features/listview-scroll-overshoot.test.tsx tests/features/listview-scrollcap-tall-items.test.tsx tests/features/listview-flex-scrollbar.test.tsx tests/features/box-scroll-stable-on-growth.test.tsx` — 10 files, 61 tests passed.
 - `cd vendor/silvery && bun run typecheck` — passed.
+

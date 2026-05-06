@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/git-lock-protocol"
 aliases:
   - km-infra.git-lock-protocol
@@ -14,9 +16,11 @@ owner: bjorn@stabell.org
 Git index.lock conflicts are a recurring issue with concurrent agents on the same worktree.
 
 ## Problem
+
 Agents hit index.lock, retry blindly or fail. No communication about who holds the lock or why. Health monitor detects locks but doesn't mediate.
 
 ## Proposed protocol
+
 1. Health monitor detects lock via lsof, identifies owning PID/session
 2. Broadcasts: "git lock held by <session> (PID <pid>) for <duration>"
 3. Conflicting session gets a DM: "git lock held by <owner> — wait or ask them"
@@ -24,7 +28,9 @@ Agents hit index.lock, retry blindly or fail. No communication about who holds t
 5. Long-held locks (>30s) get escalated as warnings
 
 ## Implementation
+
 - Extend health-monitor-plugin.ts git lock detection (already exists)
 - Add lsof-based owner attribution
 - Add tribe messaging on conflict detection
 - Optional: agents announce "starting git operation" before long git commands
+

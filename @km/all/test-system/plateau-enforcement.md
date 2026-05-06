@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/test-system/plateau-enforcement"
 aliases:
   - km-all.test-system.plateau-enforcement
@@ -40,6 +42,10 @@ dependencies:
     created_at: 2026-04-18T10:30:59Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.test-system
 ---
 
 # [x] Test system plateau enforcement — delete old APIs, force canonical @km/all #task #P1
@@ -51,6 +57,7 @@ blocks:: [[@km/all/test-system]]
 Infrastructure: ~90% plateau (createTestApp unified, matchers shipped, locator strictness, semantic snapshots, fast-check installed, check-test-patterns wired).
 
 Adoption: ~20% plateau. Measured drift:
+
 - File suffixes: 5 variants in active use (.test.ts=64, .spec.ts=14, .test.tsx=9, .slow.test.ts=14, .slow.spec.ts=7, .slow.test.tsx=1)
 - withStore reason-tag adoption: 3 of 23 using files (13%)
 - Custom matcher adoption: 6 of 20 assertion files (30%)
@@ -66,30 +73,37 @@ The principle from docs/principles.md: 'only ONE way to do things'. Infrastructu
 ## Actions (ordered by ratio of plateau-shift to effort)
 
 ### P1 (high impact, low effort)
+
 1. **Rename all .spec.ts → .test.ts** (and .slow.spec.ts → .slow.test.ts). ~1h via batch-refactor. Removes 2 of 5 file-naming variants. 22 file renames.
 2. **Move .bench.ts files out of tests/** to apps/@km/tui/bench/. ~30min. Separates benchmark concern from test concern. 7 files.
 3. **Delete withStore(fn) single-arg overload**. Forces reason-tag at TS level. ~2h (200 callsites via batch-refactor). Biggest adoption jump.
 
 ### P2 (medium impact, medium effort)
+
 4. **Deprecate/delete app.expectScreen in favor of matchers** — migrate 20 files to expect(app).toHaveText() or similar. ~3h.
 5. **Migrate existing tests to use test.extend fixture** — start with simple tests. ~4h. Currently 1 file adopts it.
 6. **Add oxlint rules enforcing canonical patterns** — ban .spec.ts filenames for new files, ban raw .driver access, ban withStore(fn). ~2h.
 
 ### P3 (architectural, multi-session)
+
 7. **Invariants-first reframe** — for domains with cheap invariants (cursor-content stability, border integrity, selection validity), delete 50%+ of example tests. Requires more invariants first. Multi-session.
 8. **Expand property tier from 1 to 10-20 properties** — cursor stability, fold idempotence, navigation round-trip, selection preservation under zoom, etc.
 
 ## /complete criteria
 
 For P1 (after 1-3):
+
 - ls apps/@km/tui/tests/ | grep -c '\.spec\.' → 0
 - grep -c 'withStore((' apps/@km/tui/tests/*.ts → 0
 - ls apps/@km/tui/tests/ | grep -c '\.bench\.' → 0 (moved to bench/)
 
 For P2 (after 4-6):
+
 - grep -c 'app\.expectScreen' apps/@km/tui/tests/ → <5 (legacy only)
 - oxlint catches at least 3 canonical-pattern violations
 
 For plateau:
+
 - New test written by an LLM from random file read → uses same style 10/10 times
 - docs/principles.md test patterns section describes exactly ONE way per concern
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/acp-channels"
 aliases:
   - km-silvercode.acp-channels
@@ -39,6 +42,14 @@ dependencies:
     created_at: 2026-04-26T01:32:05Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode.acp
+      - type: link
+        target: km-silvercode.acp-session
 ---
 
 # [x] Channel pipeline — replace Claude Code's <channel> injection with typed ACP-shaped delivery @km/silvercode #feature #P2 @claude:cd034ca4
@@ -48,24 +59,30 @@ blocks:: [[@km/silvercode/acp]], [[@km/silvercode/acp-session]]
 Replace Claude Code's bespoke <channel source=...> tag injection with silvercode-owned, typed prompt assembly. Key insight: pull-style (MCP) for memory beats push-style (auto-injection) because tool results are structurally distinct from user input — solves the 'memories look like commands' role-confusion problem.
 
 ## Architecture
+
 silvercode owns prompt assembly; channels do not auto-inject as user-role text.
 
 ### For memory (lore, recall, gbrain) — PULL via MCP
+
 - Pass lore-mcp / recall-mcp / gbrain-mcp in session/new mcpServers
 - Agent calls lore_brief / recall / etc. when contextually relevant
 - Result arrives as tool result (structurally not user input — agents handle correctly)
 - Compaction-friendly (not pre-committed to history)
 
 ### For events (tribe, telegram, CI, sub-agent updates) — silvercode-owned pipeline
+
 Three options, default to Option 1:
+
 1. UI-first user-mediated: notification badge in UI; user invokes /inject-tribe slash command to prepend queued events as EmbeddedResource on next prompt. Human-in-the-loop for relevance — eliminates accidental command-following.
 2. Auto-inject on next prompt with strong framing: EmbeddedResource with _meta.ambient=true, content prefixed [AMBIENT — informational, do not act]. Use only for sources proven not to confuse the model.
 3. Two-stage filter: small fast model (Haiku/Flash) classifies actionable | ambient | ignorable before deciding.
 
 ### For Claude Code wrapping
+
 SUPPRESS Claude Code's native <channel> tag injection when wrapping; replace with silvercode's typed pipeline. Otherwise both layers inject and confusion gets worse.
 
 ## Acceptance
+
 - channelQueue with subscribe(source) — tribe via UDS, telegram via plugin, CI via webhook, lore deltas via subscription
 - assemblePrompt(userText) prepends queued events as typed ContentBlocks
 - /inject-<source> slash commands surface queued events on demand
@@ -74,5 +91,7 @@ SUPPRESS Claude Code's native <channel> tag injection when wrapping; replace wit
 - Type tests verifying _meta.ambient flag, URI scheme parses
 
 ## Reference
+
 - hub/silvery/future/ai-terminal/10-agent-router-landscape.md § ACP for km integration — channels, memory, selection, custom tools
 - The role-confusion problem: memories arriving as user-role text → Claude treats as instructions
+

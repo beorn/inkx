@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui2/20-implement-due-date-urgency-colors"
 aliases:
   - km-tui2.20
@@ -15,3 +17,4 @@ Due soon (3 days): underlined
 Future: normal
 
 **Reference**: apps/@km/tui/packages/@km/_orphan/ink/src/text/
+

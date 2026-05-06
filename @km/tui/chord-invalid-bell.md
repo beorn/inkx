@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/chord-invalid-bell"
 aliases:
   - km-tui.chord-invalid-bell
@@ -18,3 +21,4 @@ assignee: Bjørn Stabell
 # [x] Invalid chord sequence should bell, not execute partial match @km/tui #bug #P3 @Bjørn Stabell
 
 When pressing a chord like 'g +' where the second key has no binding, it ignores the second key and executes the first key's default ('g' = move to). Should ring the bell instead to indicate invalid chord.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/spatial-focus-demo"
 aliases:
   - km-silvery.spatial-focus-demo
@@ -13,3 +16,4 @@ assignee: Bjørn Stabell
 ---
 
 # [x] Demo: spatial focus navigation — prove focusDirection with interactive example @km/silvery #task #P2 @Bjørn Stabell
+

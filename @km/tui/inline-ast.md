@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/inline-ast"
 aliases:
   - km-tui.inline-ast
@@ -17,6 +20,7 @@ Replace regex text pipeline with inline AST → JSX rendering.
 ## Status: Ready to implement
 
 All infrastructure is BUILT (zero consumers):
+
 - `inline-parser.ts` — mdast-based parser (`parseInlineText()`), 30+ tests passing
 - `InlineComponents.tsx` — 13 JSX components + `InlineText` drop-in + `InlineRenderContext`
 - `inline-ast-types.ts` — 13 InlineNode types
@@ -31,8 +35,10 @@ All infrastructure is BUILT (zero consumers):
 6. **Cleanup** — Remove processText, dead regex, update exports
 
 ## Key Decisions
+
 - Use mdast ecosystem (fromMarkdown + GFM), no custom parsers
 - `@km/markdown` has canonical extractors (extractTags/Mentions/Projects) — reuse
 - render.ts stays string-based (ColumnsView virtual list, non-React)
 - constrainText replaced by `<Box height={2} overflow="hidden">`
 - stripFgColor replaced by inkx color inheritance + parent `<Text color=...>`
+

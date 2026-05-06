@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ansi-passthrough"
 aliases:
   - km-silvery.ansi-passthrough
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Preserve pre-styled ANSI text (chalk colors, OSC hyperlinks) through renderer @km/silvery #feature #P2
+

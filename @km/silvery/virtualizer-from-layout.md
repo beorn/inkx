@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/virtualizer-from-layout"
 aliases:
   - km-silvery.virtualizer-from-layout
@@ -98,6 +101,10 @@ dependencies:
     created_at: 2026-04-20T15:10:10Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Virtualizer reads visible range from layout-phase via alien-signals (single source of truth) @km/silvery #feature #P2 @claude:8b5b9e1c
@@ -106,9 +113,10 @@ blocks:: [[@km/silvery]]
 
 ARCHITECTURAL REFRAME for the column-top-disappears bug class.
 
-# Problem
+## Problem
 
 Today, two systems independently compute 'what's visible' in a scroll container:
+
 - React: useVirtualizer (packages/ag-react/src/hooks/useVirtualizer.ts) computes start/end indices from estimatedVisibleCount + scrollOffset + measuredHeights. Uses count-based + pixel-based math mixed.
 - ag-term: layout-phase scroll container (packages/ag-term/src/pipeline/layout-phase.ts:561 calculateScrollState) computes firstVisibleChild/lastVisibleChild from actual measured pixel positions after Yoga layout.
 
@@ -116,7 +124,7 @@ When their answers diverge — common with variable-height items (vault @next co
 
 Each 'fix' makes the two systems agree under one more condition. The next variant always exists because they're computing the same thing twice.
 
-# Reframe
+## Reframe
 
 Make scroll-phase the single source of truth. Virtualizer subscribes to its output via alien-signals (the primitive silvery already uses for useBoxRect / useScreenRect).
 
@@ -126,13 +134,13 @@ Make scroll-phase the single source of truth. Virtualizer subscribes to its outp
 2. Add ScrollStateSignals to layout-signals.ts (peer of RectSignals): per-node signals for firstVisibleChild, lastVisibleChild, scrollOffset, hidden counts. Sync via syncRectSignals after each layout pass.
 3. New hook useScrollState(node?: AgNode) → returns reactive { startIdx, endIdx, scrollOffset, hiddenAbove, hiddenBelow }. Re-renders only when those values change.
 4. useVirtualizer becomes a thin consumer:
-   - Bootstrap (no measurements yet): use estimateHeight to pick a small initial window
-   - Steady state: read useScrollState, render items [firstVisibleChild - overscan, lastVisibleChild + overscan]
-   - leadingHeight / trailingHeight derived from sumHeights using scroll-phase's index boundaries — guaranteed to match scrollOffset by construction (since scroll-phase computed them from the same heights)
+  - Bootstrap (no measurements yet): use estimateHeight to pick a small initial window
+  - Steady state: read useScrollState, render items [firstVisibleChild - overscan, lastVisibleChild + overscan]
+  - leadingHeight / trailingHeight derived from sumHeights using scroll-phase's index boundaries — guaranteed to match scrollOffset by construction (since scroll-phase computed them from the same heights)
 
 This eliminates divergence by topology: there's only one place that decides visibility (scroll-phase). Virtualizer is a one-frame-lagging consumer, like CSS contain:strict on the web.
 
-# What this fixes beyond column-top-disappears
+## What this fixes beyond column-top-disappears
 
 - All future virtualizer/scroll-phase divergence bugs
 - Indicator counts become trivially correct (visible == rendered count)
@@ -140,32 +148,34 @@ This eliminates divergence by topology: there's only one place that decides visi
 - Tests can assert 'every card is mounted' — much easier than 'the right window is mounted'
 - Removes the count-vs-pixel confusion in useVirtualizer entirely
 
-# What this does NOT fix
+## What this does NOT fix
 
 - First-render bootstrap still uses estimates (unavoidable — no measurements yet)
 - Layout still has to compute scrollState every frame (unchanged cost)
 - Doesn't reduce React tree size — virtualizer still mounts/unmounts items
 
-# Why NOT alien-projections / alien-trees
+## Why NOT alien-projections / alien-trees
 
 - alien-projections solves 'list of N items → derived per-item value with stable cache.' Wrong shape — we need a range query, not per-item memoization.
 - alien-trees solves 'tree aggregates (any-descendant-has-X, inherit-from-ancestor in O(1)).' Wrong shape — items are flat.
 - The right primitive is plain alien-signals, which silvery already uses.
 
-# Effort
+## Effort
 
 Medium. Estimated 2-3 days:
+
 - 1 day: add ScrollStateSignals + syncScrollStateSignals in layout-signals.ts
 - 1 day: rewrite useVirtualizer to consume useScrollState
 - 0.5 day: migration — verify all existing virtualizer callers still work
 - 0.5 day: STRICT tests + real-vault verification
 
-# Sequence
+## Sequence
 
 1. SHORT-TERM (this session): height-aware backward walk fix landing now (Fix 2 in flight) + auto-disable virtualization for lists < 200 items + runtime invariant in scroll-phase. These ship first; bug stops affecting users.
 2. MEDIUM-TERM (this bead): the architectural reframe. Lets virtualization be re-enabled safely for large lists.
 
-# Related
+## Related
 
 - @km/silvery/implicit-invariants-audit — same root cause class (no SoT for cross-layer state). The runtime invariants from that audit will live on the same scrollState signals this bead introduces.
 - @km/tui/column-top-disappears — the bug that surfaced this.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/pane-state"
 aliases:
   - km-tui.pane-state
@@ -19,18 +22,23 @@ Each pane is a self-contained view into the repo. The workspace manages N panes,
 ## Completed
 
 ### Phase 1: Detail pane root into PaneState ✅
+
 ### Phase 2: Per-pane UIState fields into BoardPaneState ✅ (21 fields moved)
+
 ### Phase 3: Eliminate flat board fields from BoardAppState ✅ (13 fields)
 
 ## Remaining
 
 ### Phase 4: Lift Workspace Chrome
+
 Move command box, find bar, status bar, dialogs, toasts from Board to Workspace level. These are board-owned but should be workspace-owned so they persist across pane switches.
 
 ### Phase 5: Shared PaneBar
+
 Single PaneBar component for all pane types (board, detail, future panes). Currently each pane type has its own header logic.
 
 ### Phase 6: Discriminated union pane types
+
 PaneState = BoardPaneState | DetailPaneState | ... on viewType. Future: console, sync, search results.
 
 ## Design (unchanged)
@@ -38,3 +46,4 @@ PaneState = BoardPaneState | DetailPaneState | ... on viewType. Future: console,
 workspace: { panes: Map<string, PaneState>, focusedPaneId, layout }
 AppState: { workspace, ui (global only), repo, repoPath }
 Actions read/write through panes.get(focusedPaneId). Detail pane slavedTo board pane.
+

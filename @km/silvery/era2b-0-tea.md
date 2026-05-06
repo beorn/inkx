@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - claude
 id: "@km/silvery/era2b-0-tea"
 aliases:
   - km-silvery.era2b-0-tea
@@ -26,3 +30,4 @@ Note: Command and Binding types belong in @km/silvery/tea-2-commands, not here.
 
 **Delete**: DELETE @silvery/tea package. Remove from package.json, tsconfig references, barrel exports. Fix all imports.
 **/complete**: grep for @silvery/tea → 0 hits (except CHANGELOG/git history). packages/tea/ directory deleted. No re-exports or deprecation markers anywhere.
+

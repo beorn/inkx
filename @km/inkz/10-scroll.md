@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkz/10-scroll"
 aliases:
   - km-inkz.10-scroll
@@ -23,6 +25,7 @@ Enable scrollable containers in InkZ with zero configuration - developers just r
 ```
 
 Props:
+
 - `overflow="scroll"` - enables scroll behavior with overflow indicators
 - `overflow="hidden"` - clips without indicators
 - `scrollTo={number}` - child index to keep visible (centered)
@@ -30,6 +33,7 @@ Props:
 ## How It Works
 
 InkZ uses **measure-then-render**:
+
 1. React creates all child elements
 2. Yoga measures all children (fast - ~1ms for 500 nodes)
 3. Calculate scroll position from `scrollTo` prop
@@ -45,3 +49,4 @@ InkZ uses **measure-then-render**:
 - [ ] Works with variable-height children (Yoga measures)
 - [ ] Performance: 500 items renders in <5ms total
 - [ ] Works with keyboard navigation
+

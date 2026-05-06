@@ -1,4 +1,8 @@
 ---
+mentions:
+  - lio
+  - km
+  - claude
 id: "@km/tui/vd-filter"
 aliases:
   - km-tui.vd-filter
@@ -13,3 +17,4 @@ assignee: claude:d697f216
 # [x] vd doesn't hide tasks in @lio and #us (contexts/tags view) @km/tui #bug #P1 @claude:d697f216
 
 In the tags view, 'vd' (view down/toggle visibility) doesn't seem to filter/hide tasks that are in @lio and #us contexts/tags. Expected: vd should toggle visibility of these tasks.
+

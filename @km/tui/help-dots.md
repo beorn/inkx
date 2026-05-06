@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/help-dots"
 aliases:
   - km-tui.help-dots
@@ -16,3 +19,4 @@ assignee: claude:3c24fe4a
 # [x] Help dialog: dot leaders missing in multi-column sections @km/tui #bug #P1 @claude:3c24fe4a
 
 EntryLine dot leaders (Fill component) work in full-width sections (SYSTEM) but not in the 2-column layout (NAVIGATION, EDITING, etc.). The Fill box gets 0 width inside fixed-width column containers, so keys and descriptions run together without alignment.
+

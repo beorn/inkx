@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - claude
 id: "@km/silvery/split"
 aliases:
   - km-silvery.split
@@ -40,3 +44,4 @@ Replaces @km/_orphan/w297c (the original package split bead — now tracked here
 ## Depends on
 
 - @km/silvery/monorepo (need repo structure first)
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/terminfo/compare"
 aliases:
   - km-terminfo.compare
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Compare pages: /compare/ghostty-vs-kitty + guide pages @km/terminfo #feature #P3
+

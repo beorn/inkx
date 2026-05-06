@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/profile-source-refactor"
 aliases:
   - km-silvery.profile-source-refactor
@@ -18,6 +21,10 @@ dependencies:
     created_at: 2026-04-23T03:24:13Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Refactor TerminalProfile source field — scope to color-only provenance @km/silvery #task #P1 @claude:c6244087
@@ -25,3 +32,4 @@ dependencies:
 blocks:: [[@km/silvery]]
 
 Per /pro review 2026-04-23. source field currently claims to describe the whole TerminalProfile but only describes color tier. Also source='caller-caps' conflates 'pre-detected real caps' with 'synthetically forced caps'. GPT-5.4: color.{tier,forced,source} sub-object. Kimi: flat forced:boolean + provenance:string. Either kills the 'source === env || override' idiom.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/vitestx/dotz-streaming"
 aliases:
   - km-vitestx.dotz-streaming
@@ -16,7 +18,9 @@ The inkx TUI reporter startStreaming() path needs debugging — dots should appe
 as tests complete, not just in the final static summary.
 
 Steps:
+
 1. Move infra/vitest-dotz/ → vendor/beorn-vitestx/src/dotz/
 2. Fix streaming mode so dots render incrementally
 3. Export from @beorn/vitestx package
 4. Update package.json test:fast2 to use the new path
+

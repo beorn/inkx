@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/folddepth-semantics"
 aliases:
   - km-tui.folddepth-semantics
@@ -13,3 +16,4 @@ assignee: Bjørn Stabell
 # [x] Document foldDepth vs isCollapsedChild — two visibility systems that don't agree @km/tui #task #P2 @Bjørn Stabell
 
 ViewTree uses isCollapsedChild() for structural exclusion at construction. Navigation uses foldDepths Map for depth-limited walks. ViewTree accepts foldDepths but never uses it. Need design doc clarifying when each applies. foldDepth is visual-only (rendering), isCollapsedChild is structural (tree pruning).
+

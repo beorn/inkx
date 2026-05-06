@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/mchcv"
 aliases:
   - km-mchcv
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] TUI: Terminal resizing messes up display @km/_orphan #bug #P3
 
 Terminal resizing messes up the display. We just fixed resize to go through the store (22a9d209) but there may be additional issues with the actual visual update after resize.
+

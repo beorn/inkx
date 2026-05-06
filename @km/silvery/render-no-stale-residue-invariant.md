@@ -32,6 +32,7 @@ Knob: `SILVERY_STRICT=residue` (slug; tier 2 by default). Default `SILVERY_STRIC
 Cost: O(width × height) clone + one extra render-phase pass per frame. Tier 2 (paranoid) — runs under `bun run test:strictest`.
 
 Tests in `vendor/silvery/tests/strict-residue.test.tsx` (17 tests):
+
 - sentinel value verification (theme-safe RGB, char, `poisonBufferWithSentinel` helper)
 - strict-gate semantics (default-off at tier 1; on at tier 2; explicit slug; `!residue` opt-out)
 - comparison primitive: clean buffers don't throw; legitimate cascade-skip (prev correct) doesn't throw; deliberate cyan-strip shape DOES throw with `SENTINEL LEAK` diagnostic; pipeline-state contamination throws with the contamination diagnostic
@@ -44,9 +45,11 @@ Proposal: add a third STRICT invariant. For every cell whose content differs bet
 Implementation: instrument the cell-write path in the buffer / output phase to record (col, row) → opId. Compare prev/curr buffers; assert every diff has a recorded op. Cost: O(width × height) extra map per frame in STRICT mode, off by default.
 
 Acceptance:
+
 - new env var SILVERY_STRICT_RESIDUE=1 enables the invariant
 - catches synthetic 'paint a cyan cell in frame 1, paint adjacent cells but not over the cyan in frame 2 → cyan stale' fixture
 - runs alongside existing STRICT modes
 - existing tests still pass
 
 Why P1: would have caught both today's silent harness failure AND the cyan-strip bug it hid.
+

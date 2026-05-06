@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/backlog-view"
 aliases:
   - km-tui.backlog-view
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-20T10:33:15Z
     created_by: claude:18c72b43
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [ ] km-tui backlog view: ordered tree render with prominent short IDs @km/tui #feature #P3
@@ -56,3 +62,4 @@ Current backlog.md is a meta-backlog (curated pull from area backlogs via workst
 ## Deferrable
 
 Low priority; current ordered list in markdown is already readable. Ship when user-facing short IDs (@km/infra/namespaces) land AND the first area backlog is created OR a tribe-matrix room view demands it.
+

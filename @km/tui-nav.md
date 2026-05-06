@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui-nav"
 aliases:
   - km-tui-nav
@@ -14,15 +16,18 @@ Finish migrating TUI keyboard input from legacy NAV_TO_PATH/CURSOR_MOVE/REFRESH 
 Current issue: board-actions.ts still dispatches legacy actions that will crash the simplified boardReducer.
 
 Remaining work from hazy-forging-crayon.md plan:
+
 - Update keyboard input to use navigation handlers
 - Delete board-actions.ts legacy code
 - Remove TransitionalBoardAction
 - Clean up BoardStateLegacy, BoardActionLegacy type definitions
 
 Files to modify:
+
 - apps/@km/tui/src/board-actions.ts (remove legacy dispatches)
 - apps/@km/tui/src/keyboard-helpers.ts (remove REFRESH)
 - apps/@km/tui/src/views/board-input.ts (already uses handlers - verify)
 - packages/@km/_orphan/board/src/board-types.ts (clean up legacy types)
 
 Tests must pass: 2594 baseline
+

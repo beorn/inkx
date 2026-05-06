@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/perf-regr2"
 aliases:
   - km-tui.perf-regr2
@@ -30,11 +32,13 @@ useEffect(() => {
 ```
 
 Compare with zustand's `useStore`:
+
 ```tsx
 // zustand checks: if (Object.is(currentSlice, nextSlice)) return;
 ```
 
 Board.tsx now has 7 separate useAppStore() calls (lines 521-537):
+
 - s.ui, s.boardState, s.toastQueue, s.layoutRegistry, s.setUI, s.dispatchBoard, s.updateLayout
 
 Every store mutation fires ALL 7 subscriptions, each calling setState unconditionally.
@@ -46,6 +50,7 @@ Now, every store change = 7 setState calls = 7 potential re-renders of Board.
 ### P0 — updateLayout() write-back creates render loop
 
 Board.tsx:631-644:
+
 ```tsx
 useEffect(() => {
   updateLayout(columnsLayout, selectedNode, derivedSelectionLevel, tuiBoardState)
@@ -73,6 +78,7 @@ This cascades through the entire component tree.
 ### P1 — N×useAppStore subscriptions in TreeNode
 
 TreeNode.tsx:170-172: Every TreeNode instance subscribes to the store:
+
 ```tsx
 const isFolded = useAppStore<BoardAppStore, boolean>(s => s.foldedNodes.has(node.id))
 ```
@@ -105,22 +111,18 @@ While cheap, it means shallow comparison always fails for this field.
 ## Fix Plan (priority order)
 
 1. **Fix useApp() equality check** — Add Object.is comparison in the subscriber:
-   ```tsx
-   store.subscribe((newState) => {
-     const next = selectorRef.current(newState)
-     setState(prev => Object.is(prev, next) ? prev : next)
-   })
-   ```
-
+  ```tsx
+  store.subscribe((newState) => {
+    const next = selectorRef.current(newState)
+    setState(prev => Object.is(prev, next) ? prev : next)
+  })
+  ```
 2. **Stabilize boardState ref** — Only create new boardState when flat fields actually change.
    Compare before/after in withBoardState.
-
 3. **Remove or debounce updateLayout write-back** — Use a ref instead of store for layout,
    or gate the write with shallow equality check.
-
 4. **Memoize useBoardDialogs return** — Wrap in useMemo.
-
 5. **Add React.memo to NodeLine** — Trivial win for list rendering.
-
 6. **Consider single useAppStore call** — Read all needed values in one selector to reduce
    subscription count from 7 to 1.
+

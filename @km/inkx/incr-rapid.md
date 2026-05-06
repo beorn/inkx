@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/incr-rapid"
 aliases:
   - km-inkx.incr-rapid
@@ -15,3 +17,4 @@ production-entry.spec.ts fails at lines 742 and 782:
 INKX_CHECK_INCREMENTAL (createApp): MISMATCH at (79, 20) on render #7 and #9.
 
 Occurs during rapid keypress tests (10x j, 50 moves). The incremental renderer produces different output than a full re-render at position (79, 20). This is a rendering correctness bug in the inkx incremental pipeline.
+

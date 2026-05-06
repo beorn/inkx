@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sterling-cursor-adaptive"
 aliases:
   - km-silvery.sterling-cursor-adaptive
@@ -25,6 +28,14 @@ dependencies:
     created_at: 2026-04-24T16:16:08Z
     created_by: claude:5e447b66
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-all.sterling
+      - type: link
+        target: km-silvery.sterling-2e-interior-migration
 ---
 
 # [x] Sterling: cursor derivation needs repairCursorBg pass @km/silvery #bug #P2 @claude:22c2717d
@@ -50,3 +61,4 @@ In packages/theme/src/sterling/derive.ts, port the repairCursorBg logic. Apply e
 - Cursor visibility maintained across all schemes (sanity-check render)
 
 Parent: @km/silvery/theme-v4
+

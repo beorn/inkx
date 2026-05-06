@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/vte"
 aliases:
   - km-termless.vte
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] VTE (GNOME) backend via libvte @km/termless #task #P4
 
 Add GNOME VTE as a termless backend via libvte C library. Supports: full VT, basic features. Limitations: GTK dependency, heavy.
+

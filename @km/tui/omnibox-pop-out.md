@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/omnibox-pop-out"
 aliases:
   - km-tui.omnibox-pop-out
@@ -19,6 +21,14 @@ dependencies:
     created_at: 2026-04-14T16:26:07Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-tui.omnibox-interactions
+      - type: link
+        target: km-tui.omnibox-unified
 ---
 
 # [ ] omnibox.pop_out — dialog → pane transition (Phase 11, post-v1) @km/tui #feature #P1
@@ -39,3 +49,4 @@ Acceptance:
 (c) the new pane renders the same component with layout='dock'
 (d) OMNIBOX_CONFIRM clears buffer but keeps pane open
 (e) standard pane ops (split, resize, focus) work on the omnibox pane
+

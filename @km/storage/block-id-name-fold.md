@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/block-id-name-fold"
 aliases:
   - km-storage.block-id-name-fold
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-22T08:33:03Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage
 ---
 
 # [x] Fold block_id → .name (finish identity-schema) @km/storage #task #P1 @claude:8b5b9e1c
@@ -33,22 +40,22 @@ Without the fold, km keeps TWO identity columns (block_id + name). Per docs/less
 ## Scope
 
 1. Data migration (schema v6 DATA_VERSION bump):
-   - UPDATE nodes SET name = block_id WHERE block_id IS NOT NULL AND (name IS NULL OR /* anchor-wins rule */ /* per §2.3 */)
-   - Idempotency: migration-gated by DATA_VERSION
+  - UPDATE nodes SET name = block_id WHERE block_id IS NOT NULL AND (name IS NULL OR /* anchor-wins rule */ /* per §2.3 */)
+  - Idempotency: migration-gated by DATA_VERSION
 2. Drop block_id READS throughout @km/storage:
-   - packages/@km/_orphan/fs-mount/src/watch/handlers/node-differ.ts phase-1 'block_id match' → use name
-   - packages/@km/storage/src/store/memory.ts:315 wikilink resolver
-   - packages/@km/storage/src/db/queries/smart-resolver.ts:368-379
-   - packages/@km/storage/src/markdown/link-resolver.ts:92-93 block_id stmt
-   - packages/@km/_orphan/fs-mount/src/testing/fake-repo.ts:431-435
+  - packages/@km/_orphan/fs-mount/src/watch/handlers/node-differ.ts phase-1 'block_id match' → use name
+  - packages/@km/storage/src/store/memory.ts:315 wikilink resolver
+  - packages/@km/storage/src/db/queries/smart-resolver.ts:368-379
+  - packages/@km/storage/src/markdown/link-resolver.ts:92-93 block_id stmt
+  - packages/@km/_orphan/fs-mount/src/testing/fake-repo.ts:431-435
 3. Drop block_id WRITES:
-   - packages/@km/_orphan/fs-mount/src/watch/change-handlers.ts:152 (now emits node_updated block_id — retarget to name)
-   - packages/@km/storage/src/markdown/pipeline.ts (batch back-write)
-   - packages/@km/_orphan/fs-mount/src/watch/handlers/create-handler.ts:137-139
+  - packages/@km/_orphan/fs-mount/src/watch/change-handlers.ts:152 (now emits node_updated block_id — retarget to name)
+  - packages/@km/storage/src/markdown/pipeline.ts (batch back-write)
+  - packages/@km/_orphan/fs-mount/src/watch/handlers/create-handler.ts:137-139
 4. Drop block_id column:
-   - ALTER TABLE drop idx_nodes_block_id, drop block_id column
-   - Update NODE_COLUMNS, INSERT statements, rowToNode
-   - Bump SCHEMA_VERSION to 6
+  - ALTER TABLE drop idx_nodes_block_id, drop block_id column
+  - Update NODE_COLUMNS, INSERT statements, rowToNode
+  - Bump SCHEMA_VERSION to 6
 5. Tests + fidelity corpus green.
 
 ## /complete criteria
@@ -61,3 +68,4 @@ Without the fold, km keeps TWO identity columns (block_id + name). Per docs/less
 ## Why this is a real bead, not cosmetic
 
 See Case Study 1: the Domain Objects Migration failed for exactly this reason — backward-compat wrappers meant old patterns persisted. Shipping the fold forces all identity resolution through one column and closes the §2.3 contract.
+

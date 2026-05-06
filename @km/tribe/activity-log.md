@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tribe/activity-log"
 aliases:
   - km-tribe.activity-log
@@ -14,13 +17,17 @@ dependencies:
     created_at: 2026-04-21T14:09:51Z
     created_by: claude:b6ff8550
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [/] Unified tribe session-activity log — tail -f across DMs + recall injections + gate decisions @km/tribe #feature #P1 @claude:b6ff8550
 
 blocks:: [[@km/tribe]]
 
-# Unified tribe session-activity log
+## Unified tribe session-activity log
 
 Single append-only JSONL log capturing every cross-session signal — tribe messages, recall hook injections, PreToolUse gate decisions. Designed for `tail -f`. Catches today's phantom-chief class of incident in real time.
 
@@ -72,3 +79,4 @@ tail -f ~/.local/share/tribe/activity.jsonl | jq .
 ## Priority
 
 P1. Today's incident was only caught because Bjorn happened to glance at vault-2's transcript. Without the log, the next phantom-offer chain during user absence runs to completion invisibly.
+

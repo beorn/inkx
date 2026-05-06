@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ex-runnable"
 aliases:
   - km-silvery.ex-runnable
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Phase 1: Create missing runnable .tsx examples @km/silvery #task #P2
 
 Create cli-wizard.tsx, dev-tools.tsx, data-explorer.tsx in examples/interactive/ based on doc page code
+

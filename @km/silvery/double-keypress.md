@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/double-keypress"
 aliases:
   - km-silvery.double-keypress
@@ -17,3 +20,4 @@ assignee: Bjørn Stabell
 ---
 
 # [x] Double keypress in examples — j moves 2 spaces instead of 1 @km/silvery #bug #P1 @Bjørn Stabell
+

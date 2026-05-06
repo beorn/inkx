@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/otgyy"
 aliases:
   - km-otgyy
@@ -11,3 +14,4 @@ assignee: claude:9b6678d0
 ---
 
 # [x] TUI: o key crashes on repo.data null in resolveNodeFsPath @km/_orphan #bug #P3 @claude:9b6678d0
+

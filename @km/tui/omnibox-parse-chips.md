@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/omnibox-parse-chips"
 aliases:
   - km-tui.omnibox-parse-chips
@@ -27,6 +30,14 @@ dependencies:
     created_at: 2026-04-14T17:09:32Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-tui.omnibox-query-syntax
+      - type: link
+        target: km-tui.omnibox-unified
 ---
 
 # [x] Live parse chips — visible query tokens above input @km/tui #feature #P1 @claude:2405c72e
@@ -49,3 +60,4 @@ Acceptance:
 (e) esthetic parity tested in the mockup app first
 (f) docs show a chip legend
 (g) accessible to keyboard-only users (chip list is readable but not interactive — tokens are still edited via the buffer)
+

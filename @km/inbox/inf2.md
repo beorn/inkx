@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/inf2"
 aliases:
   - km-inf2
@@ -29,3 +31,4 @@ The wrapper `@km/tui-app` does nothing but `export * from "@km/ink"`. The CLI im
 
 - `apps/km-tui/` → `@km/tui` (clean, flat)
 - Consistent with `apps/km-cli/` → `@km/cli`
+

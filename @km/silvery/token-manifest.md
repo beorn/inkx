@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/token-manifest"
 aliases:
   - km-silvery.token-manifest
@@ -17,6 +20,10 @@ dependencies:
     created_at: 2026-04-25T09:41:04Z
     created_by: claude:22c2717d
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.sterling
 ---
 
 # [x] Sterling tokenManifest.ts — single source of truth + doc generation @km/silvery #task #P2 @claude:22c2717d
@@ -45,3 +52,4 @@ Tier 1 + consolidate-design-demos shipped without blocking on this. The
 manifest is foundation for sterling-storybook polish (@km/silvery/sterling-
 storybook epic) and silvery.dev docs but not load-bearing for the
 storybook itself today.
+

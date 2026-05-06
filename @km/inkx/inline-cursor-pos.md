@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/inline-cursor-pos"
 aliases:
   - km-inkx.inline-cursor-pos
@@ -11,3 +14,4 @@ assignee: claude:891e3ce1
 ---
 
 # [x] Inline incremental render: typed text appears at row 0 instead of input row @km/inkx #bug #P2 @claude:891e3ce1
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/askuserquestion-implement"
 aliases:
   - km-silvercode.askuserquestion-implement
@@ -31,6 +34,10 @@ dependencies:
     created_at: 2026-04-28T12:35:20Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Implement AskUserQuestion tool properly — currently fails, agent falls back to inline prose @km/silvercode #feature #P0 @claude:2405c72e
@@ -40,11 +47,13 @@ blocks:: [[@km/silvercode]]
 Screenshot evidence: 'AskUserQuestion tool isn't responding, asking directly' followed by inline options that the user can't actually interact with. The tool call fails silently and the agent improvises.
 
 Investigation needed:
+
 - Where is AskUserQuestion handled in the agent-harness / claude-acp wire?
 - Does the legacy stream-json adapter dispatch it? Does the ACP path?
 - Compare against Claude Code's native AskUserQuestion behavior (interactive option list with arrow-key + Enter).
 
 Implementation:
+
 - Surface AskUserQuestion as a SelectList overlay (similar shape to InlinePermissionPrompt, sits above composer).
 - options[] from the tool input → SelectList items.
 - Enter on focused option → respondToolCall with {answer: option.label} (or however Claude Code expects it; check the tool schema).
@@ -52,6 +61,8 @@ Implementation:
 - Composer disabled while AskUserQuestion is active.
 
 Acceptance:
+
 - AskUserQuestion tool call no longer auto-cancels / falls through to prose
 - Inline UI lets the user pick an option; the agent receives the selected answer
 - termless test: agent invokes AskUserQuestion, UI renders option list, user presses Down + Enter, tool result contains the chosen answer
+

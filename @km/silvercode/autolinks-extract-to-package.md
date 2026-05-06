@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/autolinks-extract-to-package"
 aliases:
   - km-silvercode.autolinks-extract-to-package
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-25T21:55:08Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Extract apps/silvercode/src/autolinks → packages/km-autolinks @km/silvercode #task #P2 @claude:2405c72e
@@ -26,3 +33,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 Move silvercode's autolinks code to a shared package so @km/tui (and future website term-linker) can consume it. Rename internal types Autolink*→Syntaxlink* per autolinks=umbrella, syntaxlinks=silvercode subtype. Path: packages/@km/_orphan/autolinks/src/. Tests: packages/@km/_orphan/autolinks/tests/. silvercode imports become @km/autolinks. Parent: @km/all/autolinks-extraction or @km/silvercode.
+

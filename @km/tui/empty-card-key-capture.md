@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/empty-card-key-capture"
 aliases:
   - km-tui.empty-card-key-capture
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] [bug] Empty card heading captures nav keys as text input — data corruption @km/tui #bug #P1
 
 Pressing k/j/etc on a card with no children (like an empty section heading) enters edit mode and types the key into the heading text. Expected: navigate. Actual: data corruption.
+

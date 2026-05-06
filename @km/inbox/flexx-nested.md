@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/flexx-nested"
 aliases:
   - km-flexx-nested
@@ -11,3 +14,4 @@ assignee: claude:b8b4780b
 # [x] Optimize flexx nested layout performance @km/_orphan #task #P2 @claude:b8b4780b
 
 Yoga is 1.32x faster on deep nesting (10 levels). Investigate recursion overhead in layoutNode. Consider: iterative approach, better caching for nested containers, or reducing layoutNode call count per node.
+

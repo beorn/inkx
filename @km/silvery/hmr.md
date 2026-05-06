@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/hmr"
 aliases:
   - km-silvery.hmr
@@ -13,9 +15,11 @@ owner: bjorn@stabell.org
 HMR for terminal apps — the 'Vite moment' for TUI development. No competitor has this.
 
 Approaches to explore:
+
 - State snapshotting + process restart on file change (simplest)
 - Dynamic import swapping for view components (medium)
 - Full HMR preserving React state tree (hardest, most valuable)
 
 Even basic state-preserving restart would be a breakthrough. Textual has CSS hot-reload but no code HMR.
 This addresses everyday developer pain — the #1 DX improvement possible.
+

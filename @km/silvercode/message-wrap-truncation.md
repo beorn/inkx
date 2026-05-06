@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/message-wrap-truncation"
 aliases:
   - km-silvercode.message-wrap-truncation
@@ -30,6 +33,14 @@ dependencies:
     created_at: 2026-04-25T00:14:25Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode.wrap-ergonomic
+      - type: link
+        target: km-silvery.view-as-layout-output
 ---
 
 # [x] [bug] Assistant message paragraphs truncate at 1 line in ListView (wrap broken in production) @km/silvercode #bug #P1 @claude:2405c72e
@@ -50,13 +61,14 @@ A workspace for agentic knowledge workers: unified notes, tasks, and calendar in
 
 Failing regression test at \`apps/silvercode/tests/visual/repro-wrap.test.tsx\` isolates the bug:
 
-| Test case | Result |
-|---|---|
-| AssistantBlock alone (no ListView) | ✅ wraps to 3 lines |
-| Outer Box + flexShrink={0} wrapper (mimics ListView shape) | ✅ wraps to 3 lines |
-| Real ListView via MessageList | ❌ 1 line, truncated |
+| Test case                                                  | Result              |
+| ---------------------------------------------------------- | ------------------- |
+| AssistantBlock alone (no ListView)                         | ✅ wraps to 3 lines  |
+| Outer Box + flexShrink={0} wrapper (mimics ListView shape) | ✅ wraps to 3 lines  |
+| Real ListView via MessageList                              | ❌ 1 line, truncated |
 
 So the bug is in **ListView's actual virtualization machinery**, NOT in:
+
 - The flex chain (Prose / minWidth / flexShrink)
 - AssistantBlock's structure
 - DetectionText's <Prose><Text wrap=wrap></Prose>
@@ -87,3 +99,4 @@ OR a tactical fix in ListView: don't use estimateHeight to constrain the item re
 - Depends on \`km-silvery.view-as-layout-output\` (architectural fix)
 - Same root cause class as \`km-silvercode.cursor-startup-position\` (which is also blocked on view-as-layout-output)
 - Filed under @km/silvercode/wrap-ergonomic epic alongside Prose primitive (which addresses the flex chain side; this addresses the layout-signal timing side)
+

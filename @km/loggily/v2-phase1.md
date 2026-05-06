@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/loggily/v2-phase1"
 aliases:
   - km-loggily.v2-phase1
@@ -17,6 +20,10 @@ dependencies:
     created_at: 2026-04-11T23:58:48Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-loggily.api-v2
 ---
 
 # [x] Phase 1: core pipeline + createLogger polymorphic @km/loggily #task #P1 @Bjørn Stabell
@@ -24,3 +31,4 @@ dependencies:
 blocks:: [[@km/loggily/api-v2]]
 
 Implement the core v2 architecture: array-based config, object/value discrimination, Stage type (event => event|null), LogEvent/SpanEvent types, fromConfig compiler, pipe() internal, createLogger(name, array?). No breaking changes yet — add new API alongside v1 globals.
+

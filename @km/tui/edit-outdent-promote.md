@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - Tab
 id: "@km/tui/edit-outdent-promote"
 aliases:
   - km-tui.edit-outdent-promote
@@ -11,3 +15,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] [bug] Shift+Tab outdent in edit mode promotes subitems to column level @km/tui #bug #P3
+

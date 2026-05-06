@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/empty-board-edit"
 aliases:
   - km-tui.empty-board-edit
@@ -19,6 +21,7 @@ The cursor has nothing to land on, so o/O/Enter don't work.
 ## Expected Behavior
 
 Enter should work progressively:
+
 1. On the root node title → edit the title
 2. Enter again → create first column (heading) below
 3. Enter on a column → create first card under it
@@ -33,6 +36,7 @@ action that works without a cursor position.
 ## Design
 
 When the board is empty (0 columns, 0 cards):
+
 - Cursor should be on the root node (shown as board title)
 - Enter → inline edit the title
 - o → create first child (becomes a column/heading)
@@ -40,3 +44,4 @@ When the board is empty (0 columns, 0 cards):
 
 This matches Workflowy/Notion behavior where you can always type at the cursor,
 even in an empty document.
+

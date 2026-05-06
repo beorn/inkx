@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/vault/drive-sync"
 aliases:
   - km-vault.drive-sync
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Drive → Vault sync pipeline @km/vault #epic #P2
 
 Set up rclone-based sync between Google Drive folders and ~vault local copies. Each folder gets a pull/push script with dry-run safety. Git tracks local changes for undo. km browses local copies safely.
+

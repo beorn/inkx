@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/strict-rendercount"
 aliases:
   - km-inkx.strict-rendercount
@@ -13,3 +16,4 @@ assignee: claude:23485adf
 # [x] INKX_STRICT verification gap: navigation renders never verified in createApp @km/inkx #bug #P1 @claude:23485adf
 
 processEventBatch() resets _renderCount=0, doRender increments to 1, check requires >1. Single-doRender navigation events are NEVER verified by INKX_CHECK_INCREMENTAL. Fix: replace _renderCount>1 with wasIncremental flag based on _prevTermBuffer presence. Fixed in this session.
+

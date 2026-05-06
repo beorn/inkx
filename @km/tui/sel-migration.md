@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/sel-migration"
 aliases:
   - km-tui.sel-migration
@@ -22,13 +25,17 @@ dependencies:
     created_at: 2026-04-15T12:19:01Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.selection-focus-plateau
 ---
 
 # [x] Migrate 208 imperative sel.text/sel.node calls to unified selection dispatch @km/tui #task #P1 @Bjørn Stabell
 
 blocks:: [[@km/silvery/selection-focus-plateau]]
 
-# Refactor Plan: @km/tui/sel-migration
+## Refactor Plan: @km/tui/sel-migration
 
 ## Pre-flight Blocker
 
@@ -45,11 +52,13 @@ Recommend: block sel-migration behind a scoping `/discuss` on `km-all.unified-se
 ## Corrected Scope (counts verified via grep)
 
 Bead description says "208 calls / 20 files". Actual:
+
 - **Writes in scope**: 177 in src + 69 in tests ≈ **246 total**
 - **Files touched**: 25 src + 15 tests = **40 files**
 - Bead's list omits: `state/board-app-store.ts` (12), `views/tree-node-edit.tsx` (11), and tests entirely.
 
 Complexity buckets:
+
 - **Pure mechanical (~80%, ~200 sites)**: single-line swaps, safe for codemod
 - **Paired coordination (~30 sites)**: `select+text.edit` or `deselect+select` pairs — these are the whole point of the refactor and MUST collapse to one `setSelection` call. Manual editing only.
 - **Deselect-then-reselect (~10 sites)**: merge to single call
@@ -57,34 +66,38 @@ Complexity buckets:
 
 ## Canonical Rewrites (the whole migration in 6 rules)
 
-| OldWay | NewWay |
-|---|---|
-| `ctx.sel.node.select([id])` | `ctx.setSelection({type:'node', ids:[id]})` |
-| `ctx.sel.node.select(ids)` multi | `ctx.setSelection({type:'node', ids})` |
-| `ctx.sel.node.remove(id)` | `ctx.setSelection({type:'node', ids: current.filter(...)})` |
-| `ctx.sel.text.edit(id, offset)` | `ctx.setSelection({type:'text', nodeId:id, offset})` |
-| `ctx.sel.text.deselect()` | `ctx.setSelection({type:'none'})` |
-| `sel.node.select([id]); sel.text.edit(id, 0)` | `setSelection({type:'text', nodeId:id, offset:0})` (one call) |
+| OldWay                                      | NewWay                                                      |
+| ------------------------------------------- | ----------------------------------------------------------- |
+| ctx.sel.node.select([id])                   | ctx.setSelection({type:'node', ids:[id]})                   |
+| ctx.sel.node.select(ids) multi              | ctx.setSelection({type:'node', ids})                        |
+| ctx.sel.node.remove(id)                     | ctx.setSelection({type:'node', ids: current.filter(...)})   |
+| ctx.sel.text.edit(id, offset)               | ctx.setSelection({type:'text', nodeId:id, offset})          |
+| ctx.sel.text.deselect()                     | ctx.setSelection({type:'none'})                             |
+| sel.node.select([id]); sel.text.edit(id, 0) | setSelection({type:'text', nodeId:id, offset:0}) (one call) |
 
 ## Phases (4, strictly sequential, ship in one push)
 
 ### Phase 0: Install the new road (not in this bead)
+
 Landed by `km-all.unified-selection`. Adds `setSelection` method + `Selection` union without deleting old writers. One module imports the type to prove compile.
 **/complete**: `rg 'setSelection' apps/km-tui/src/state/board-app-store.ts` ≥1 hit. Old writers still compile.
 
 ### Phase 1: Mechanical — leaf files (codemod)
+
 **Scope**: 13 files × ≤6 writes each, no paired patterns (keyboard-card-ops, tui-context, tui.tsx, ui-context, invariants, use-card-interaction, useBoardController, CheckboxIcon, CardColumn, Board.tsx, command-bridge, board-selection-helpers, board-effect-runner).
 **Tooling**: `bun vendor/bearly/tools/refactor.ts` with 6 canonical rewrite rules.
 **Delete**: nothing yet (writers stay until Phase 4).
 **/complete**: `rg -n 'sel\.(node|text|gap)\.(select|edit|deselect|remove|clear|toggle)'` on all 13 files → 0 hits.
 
 ### Phase 2: Paired coordination — action files (manual, load-bearing)
+
 **Scope**: board-actions.ts (53), board-actions-edit.ts (13), board-actions-zoom.ts (11), board-actions-nav.ts (8), board-actions-selection.ts (5), board-actions-search-replace.ts (6), board-actions-find.ts (5), board-tree-ops.ts (6). **Total 107 writes.**
 **Tooling**: **manual only**. Collapse paired `select+text.edit` patterns by hand first, then codemod leftovers. Process: read whole file → grep paired patterns with -B2 -A2 → collapse → tsc → test:fast → commit.
 **Delete**: nothing yet.
 **/complete**: 0 hits in all 8 files. Spot-check collapsed pairs: `rg -nU 'setSelection\(\{\s*type:\s*[\x27"]text[\x27"]' apps/km-tui/src/board/ | wc -l` ≥10.
 
 ### Phase 3: Pane store + dialogs (multi-pane audit)
+
 **Scope**: state/board-app-store.ts (12 multi-pane), board/board-app.ts (13), views/use-board-dialogs.ts (8), views/tree-node-edit.tsx (11). **44 writes, highest risk.**
 **Process**: type-system audit — every pane type (detailPane, boardPane, parentPane) must have `setSelection` on its interface. Then migrate.
 **Add new invariant**: `apps/km-tui/src/invariants.ts` — "selection is never text-edit without matching node cursor." This is the bug class the refactor kills.
@@ -92,8 +105,10 @@ Landed by `km-all.unified-selection`. Adds `setSelection` method + `Selection` u
 **/complete**: 0 hits in all 4 files; src-wide 0 hits: `rg -n 'sel\.(node|text|gap)\.(select|edit|deselect|remove|clear|toggle)' apps/km-tui/src`.
 
 ### Phase 4: Tests + delete old writers
+
 **Scope**: 15 test files × 69 writes (codemod-safe — tests don't have paired patterns). **Then delete the writer methods from `@silvery/selection`.**
 **Delete**:
+
 1. `select/edit/deselect/remove/clear/toggle` methods from `@silvery/selection`'s text/node/gap sub-stores (keep readers)
 2. `sel.text`/`sel.node` writer surface from BoardPane interface
 3. Run `tsc` — any consumer outside apps/@km/tui errors out → fix in same commit
@@ -119,3 +134,4 @@ Landed by `km-all.unified-selection`. Adds `setSelection` method + `Selection` u
 - Phase 2: manual (load-bearing, paired patterns)
 - Phase 3: manual + type audit + new invariant + new test file
 - Phase 4: codemod for tests, TypeScript-error-driven deletion for writers
+

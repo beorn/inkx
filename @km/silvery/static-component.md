@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/static-component"
 aliases:
   - km-silvery.static-component
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Static component write-once semantics (output above, never re-rendered) @km/silvery #feature #P2
+

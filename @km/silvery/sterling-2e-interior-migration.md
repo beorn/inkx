@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sterling-2e-interior-migration"
 aliases:
   - km-silvery.sterling-2e-interior-migration
@@ -30,6 +33,14 @@ dependencies:
     created_at: 2026-04-19T21:08:11Z
     created_by: claude:4274df30
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-all.sterling
+      - type: link
+        target: km-silvery.sterling-2d-release
 ---
 
 # [x] Sterling 2e: Migrate silvery interior + ship 0.19.0 breaking release @km/silvery #task #P1 @claude:4274df30
@@ -43,6 +54,7 @@ Captures the deferred work from 2d's audit 2026-04-19. The 2d cleanup (0.18.x pa
 Migrate 81 live accesses to single-hex role fields (theme.primary/fg/bg/muted/etc.) across 20 interior silvery + km files to Sterling Theme shape:
 
 ### Silvery runtime (breaks type-level consumers if naively deleted)
+
 1. vendor/silvery/packages/ansi/src/theme/invariants.ts — CONTRAST_PAIRS table (29 pairs) use concat-kebab field names; rewrite to Sterling flat keys
 2. vendor/silvery/tests/theme-contrast.test.ts — entire suite tests legacy Theme field access; rewrite to Sterling
 3. vendor/silvery/packages/ansi/src/theme/derive.ts — truecolor + ansi16 paths set primaryfg/accentfg/errorfg/etc.; emit Sterling structured roles instead
@@ -55,20 +67,24 @@ Migrate 81 live accesses to single-hex role fields (theme.primary/fg/bg/muted/et
 10. vendor/silvery/packages/ag-term/src/pipeline/cascade-predicates.ts
 
 ### Theme tooling
+
 11. vendor/silvery/packages/theme/src/css.ts — CSS variable exporter
 12. vendor/silvery/packages/theme/src/cli.ts — 13 accesses (theme CLI output)
 13. vendor/silvery/docs/.vitepress/components/ThemeExplorer.vue — 8 uses
 
 ### @km/tui consumer (the other half)
+
 14. apps/@km/tui/src/theme.ts — 16 accesses (primary, fg, link, muted, selection, inverse, error, warning, success, border, bg) — the ones 2c couldn't migrate because Sterling didn't ship equivalents yet
 
 ### Final shape
+
 15. Redefine Theme type: remove legacy Theme interface from vendor/silvery/packages/ansi/src/theme/types.ts; Theme = Sterling's Theme (intersection FlatTokens & Roles)
 16. Delete any remaining compat shims
 
 ## Approach
 
 /refactor plan — phased, one file-family per session:
+
 - Phase A: invariants + theme-contrast tests (tight + self-contained)
 - Phase B: ag-react interior (Text, host-config)
 - Phase C: ag-term pipeline (backdrop/decoration/render-box/cascade-predicates)
@@ -88,3 +104,4 @@ Migrate 81 live accesses to single-hex role fields (theme.primary/fg/bg/muted/et
 
 - BLOCKED on: sterling-2d-release (the 0.18.x cleanup must land first — simplifies the surface before migrating the interior)
 - BLOCKS: design-package-rename (once Theme type is Sterling-only, the @silvery/theme → @silvery/design rename is mostly a renaming job)
+

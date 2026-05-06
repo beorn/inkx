@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/launch-blog"
 aliases:
   - km-silvery.launch-blog
@@ -52,3 +54,4 @@ React/web developers who have either (a) hit walls with Ink, or (b) are curious 
 - vendor/internal/silvery/launch/chasm-positioning.md (positioning sheet)
 - vendor/silvery/docs/guide/silvery-vs-ink.md (comparison)
 - vendor/silvery/docs/guide/the-silvery-way.md (principles)
+

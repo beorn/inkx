@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/grid-layout"
 aliases:
   - km-silvery.grid-layout
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] flexily: Grid layout @km/silvery #feature #P4
 
 2D grid layout in addition to current flexbox 1D. Massive scope — park until concrete use case.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/align-self-auto"
 aliases:
   - km-silvery.align-self-auto
@@ -16,3 +19,4 @@ assignee: claude:65d845d9
 # [x] Bug: alignSelf=auto explicit prop doesn't reset in applyBoxProps() @km/silvery #bug #P1 @claude:65d845d9
 
 In reconciler/nodes.ts applyBoxProps(), the alignSelf block checks props.alignSelf \!== 'auto' before setting. If new prop is explicitly 'auto' (not removed), it doesn't trigger the wasRemoved branch either. Leaves stale non-auto align-self.
+

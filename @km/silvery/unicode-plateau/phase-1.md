@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/unicode-plateau/phase-1"
 aliases:
   - km-silvery.unicode-plateau.phase-1
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-23T08:46:38Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.unicode-plateau
 ---
 
 # [x] Unicode plateau Phase 1: canonicalize unicode + underline detection in profile @km/silvery #task #P1 @claude:c6244087
@@ -54,3 +61,4 @@ Delete (in this phase, not deferred):
   rg -n 'unicode: true,' vendor/silvery/packages/ansi/src/profile.ts → 0 hits (hardcoded bug gone)
   bun run lint + bun vitest run vendor/silvery/tests/ pass
   Contract test for caps.unicode env-sensitivity exists
+

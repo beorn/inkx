@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/virtual-cursor"
 aliases:
   - km-tui.virtual-cursor
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Virtual cards should be skipped for cursor navigation @km/tui #bug #P3
 
 Virtual cards show no selection styling and shouldn't be cursor targets - cursor should skip over them
+

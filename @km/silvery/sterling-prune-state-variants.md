@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sterling-prune-state-variants"
 aliases:
   - km-silvery.sterling-prune-state-variants
@@ -29,6 +32,14 @@ dependencies:
     created_at: 2026-04-19T20:18:04Z
     created_by: claude:4274df30
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.sterling-2d-release
+      - type: link
+        target: km-silvery.theme-v4
 ---
 
 # [x] Sterling: prune meaningless fg.hover / fg.active variants (design-system grammar) @km/silvery #feature #P2 @claude:4274df30
@@ -40,6 +51,7 @@ Sterling's derivation generates all 24 state-variants per role algorithmically. 
 ## Current (over-generated)
 
 Per role (error, warning, success, info, accent):
+
 - fg, bg, fgOn
 - hover.fg, hover.bg
 - active.fg, active.bg
@@ -89,3 +101,4 @@ Token count drops from ~40 state variants to ~16.
 - **Blocks**: nothing critical; quality-of-life improvement
 
 Parent: @km/silvery/theme-v4
+

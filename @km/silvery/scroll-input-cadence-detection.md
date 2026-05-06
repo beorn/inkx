@@ -19,6 +19,7 @@ Trackpad scroll delivers a continuous stream of small wheel events (events arriv
 In browser DOM, libraries (Lenis, Chromium) use event.deltaMode (DOM_DELTA_LINE for mouse vs DOM_DELTA_PIXEL for trackpad). Terminal mouse SGR doesn't expose this — we have to detect via cadence + magnitude.
 
 API: add enableInputCadenceDetection?: boolean (default false). When enabled:
+
 - Track inter-event timing (wheelBuffer already has timestamps)
 - If recent inter-event interval > 50ms AND deltaY=±1 (typical mouse wheel): treat as 'mouse-wheel mode' — apply larger step (e.g. wheelMultiplier * 3) and skip the windowed-velocity decay (just discrete jumps)
 - If recent intervals < 30ms or deltaY > 1: treat as 'trackpad mode' — current physics
@@ -26,8 +27,10 @@ API: add enableInputCadenceDetection?: boolean (default false). When enabled:
 Marked P3 — 'if it's easy' qualifier from user. Easy-ish (~30 LOC of cadence-tracking + branching), but real value depends on actual mouse-wheel hardware testing and may need tuning.
 
 Acceptance:
+
 - enableInputCadenceDetection option exposed
 - discrete-cadence input (50ms+ gaps, deltaY=±1) jumps in larger steps with no decay
 - continuous-cadence input keeps current smooth physics
 - default off — no behavior change for existing consumers
 - test: simulate slow-cadence vs fast-cadence event stream
+

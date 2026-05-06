@@ -1,4 +1,10 @@
 ---
+mentions:
+  - next
+  - inbox
+  - km
+projects:
+  - project
 id: "@km/review-arch/1-implement-board-shortcuts-km-next-km-inbox-km-proj"
 aliases:
   - km-review-arch.1
@@ -17,12 +23,11 @@ closed_at: 2026-01-23T09:20:14Z
 ### Changes
 
 1. **apps/@km/_orphan/cli/src/index.ts** - Add sigil detection
-   - Add `isBoardShortcut(arg)` function
-   - Add command* event handler to transform `km @next` → `km view @next`
-
+  - Add `isBoardShortcut(arg)` function
+  - Add command* event handler to transform `km @next` → `km view @next`
 2. **packages/@km/storage/src/db-queries.ts** - Add sigil resolution
-   - In `resolveNode()`, add step 0: sigil detection
-   - Match `@name` → `@name.md` filename
+  - In `resolveNode()`, add step 0: sigil detection
+  - Match `@name` → `@name.md` filename
 
 ### Implementation
 
@@ -39,8 +44,10 @@ if (args.length === 1 && isBoardShortcut(args[0])) {
 ```
 
 ### Test
+
 ```bash
 km @next     # Opens @next board
 km @inbox    # Opens @inbox board
 km +project  # Opens +project board
 ```
+

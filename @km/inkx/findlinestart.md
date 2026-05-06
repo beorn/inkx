@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/findlinestart"
 aliases:
   - km-inkx.findlinestart
@@ -11,3 +14,4 @@ assignee: claude:b53ef7e4
 # [x] fix(inkx): findLineStart mismaps bg segment offsets on wrapped lines @km/inkx #bug #P3 @claude:b53ef7e4
 
 findLineStart fallback (ch === plainLine[0]) too greedy - can map to wrong offset on continuation lines with repeated content.
+

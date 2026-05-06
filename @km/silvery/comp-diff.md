@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/comp-diff"
 aliases:
   - km-silvery.comp-diff
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T16:18:43Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.opentui-parity
 ---
 
 # [ ] Component: Diff view (side-by-side + unified) @km/silvery #feature #P3
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/silvery/opentui-parity]]
 
 Canonical Diff component. Unified + side-by-side modes, syntax highlighting via Code component, theme tokens for +/-/context. OpenTUI ships Diff renderable.
+

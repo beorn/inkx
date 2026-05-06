@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/paneui-namespace"
 aliases:
   - km-tui.paneui-namespace
@@ -13,3 +16,4 @@ assignee: Bjørn Stabell
 # [x] Extract PaneUI namespace — editMode, isInDialog, isBusy, isTextInputFocused @km/tui #task #P2 @Bjørn Stabell
 
 Bare functions getEditMode(), isDialogInput checks duplicated in command-bridge.ts and board-app.ts. Extract PaneUI namespace with discoverable methods. ~30 min.
+

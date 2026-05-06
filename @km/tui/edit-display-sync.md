@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/edit-display-sync"
 aliases:
   - km-tui.edit-display-sync
@@ -16,3 +18,4 @@ When navigating between nodes with ctrl-n/p during edit, the non-editing display
 Likely cause: reactive node store edit.value is cleared (syncEdit line 308-310) but the non-editing renderer reads from a cached snapshot that doesn't include the repo mutation from save(). The requestRenderFlush added in d068dc6c may help but needs real-app verification.
 
 Two representations: repo.getNode(id).content (truth) vs reactive nodeStore display (cached). After save+navigate, the display path may read the old cached value before the repo mutation propagates.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/vt-snapshot"
 aliases:
   - km-silvery.vt-snapshot
@@ -37,6 +39,7 @@ Implement the snapshot capture mechanism for caching items from the React tree.
 ## Resize handling
 
 When terminal width changes:
+
 - VirtualCache: mark all cached items as stale (width != current width)
 - On scroll-into-view of stale item: re-mount in React, capture at new width, re-cache
 - If over capacity: evict stale items first (oldest)
@@ -54,3 +57,4 @@ When terminal width changes:
 - Needs layout rect tracking per ListView item (already exists via MeasuredItem)
 - Needs buffer read access in output phase (expose via runtime API)
 - Needs cellsToAnsi for the rect region (already exists, may need rect-clipping variant)
+

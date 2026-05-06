@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/dry-cli-callers"
 aliases:
   - km-storage.dry-cli-callers
@@ -13,3 +16,4 @@ assignee: claude:9b6678d0
 # [x] Migrate CLI commands to use Repo mutation methods @km/storage #task #P2 @claude:9b6678d0
 
 Replace emitNodeCreatedWithEmitter/emitNodeUpdatedWithEmitter calls with repo.addNode()/repo.updateNode() in: add.ts, tasks/mutations.ts, tasks/set-clear.ts. Fixes @km/storage/add-no-writeback bug.
+

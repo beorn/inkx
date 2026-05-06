@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/rev-arch-0130/11-clean-up-knip-unused-files-24-files"
 aliases:
   - km-rev-arch-0130.11
@@ -12,3 +15,4 @@ assignee: claude:da8e4a66
 # [x] Clean up knip unused files (24 files) @km/rev-arch-0130 #task #P2 @claude:da8e4a66
 
 Medium: knip reports 24 unused files. 14 in km packages/apps, 10 in vendor/. Review and delete truly unused files.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/sv85g"
 aliases:
   - km-sv85g
@@ -13,3 +16,4 @@ assignee: claude:e7c823b8
 # [x] Tags show empty names after Asana import @km/_orphan #bug #P2 @claude:e7c823b8
 
 Tag reference nodes use content: '\![[^sourceId]]' which stripForDisplay() strips to empty string, showing '§ #' with no tag name
+

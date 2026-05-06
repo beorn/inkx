@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/user-turn-bg-only"
 aliases:
   - km-silvercode.user-turn-bg-only
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-28T12:35:19Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [ ] User turns get bg color; agent turns plain; hover-bg only on clickable ops @km/silvercode #feature #P2
@@ -26,7 +32,9 @@ Reference: opencode does exactly this — see ~/Desktop/screenshots/Screenshot 2
 Files: apps/silvercode/src/components/ExchangeItem.tsx, SessionUpdateList.tsx, ToolCall.tsx (hover-bg).
 
 Acceptance:
+
 - User-message rendered inside a Box with bg='$mutedbg' (or similar subtle), padding=1
 - Assistant message rendered plain (no Box bg)
 - ToolCall rows: hover-bg only when isHovered, otherwise plain
 - termless test: user turn cell colors at the body match user-bg; assistant turn cell colors match plain bg
+

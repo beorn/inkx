@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/hook-router"
 aliases:
   - km-infra.hook-router
@@ -85,6 +88,10 @@ dependencies:
     created_at: 2026-04-22T18:20:31Z
     created_by: claude:fa4168d9
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] Unified hook dispatch (kanban-style) for km integrations @km/infra #feature #P3 @claude:fa4168d9
@@ -142,3 +149,4 @@ Original Phase 1 landed as `packages/km-hooks/` in km commit `10c95617d` (2026-0
 - Listener docs + templates.
 
 This bead tracks the router-reshape scope only (completed). Migration work is additive and opt-in, tracked separately.
+

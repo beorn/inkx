@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/vs-opentui-bench"
 aliases:
   - km-market.vs-opentui-bench
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T16:22:36Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-market
 ---
 
 # [ ] Benchmark suite: silvery vs OpenTUI (harness + scenarios) @km/market #task #P2
@@ -22,12 +28,14 @@ blocks:: [[@km/market]]
 Fair perf benchmark harness comparing silvery vs OpenTUI. Back the vs-opentui comparison doc (@km/market/vs-opentui) with real numbers.
 
 **Harness**:
+
 - Monorepo vendor/internal/silvery/bench/silvery-vs-opentui/
 - Two apps rendering same scene: React + @silvery/ag-react and React + @opentui/react
 - Headless terminal backend (termless / vterm.js) for determinism
 - Scripted driver injects synthetic keys/resize events at known timestamps
 
 **Metrics per run**:
+
 - Time-to-first-frame (cold start)
 - Mount time for N items
 - Per-frame render time (p50, p95, p99)
@@ -36,6 +44,7 @@ Fair perf benchmark harness comparing silvery vs OpenTUI. Back the vs-opentui co
 - RSS delta (process.memoryUsage().rss)
 
 **Scenarios**:
+
 1. cold-start-1k — mount 1,000-item list, measure first-frame time
 2. type-latency — 500 keystrokes into text input, per-keystroke render time
 3. scroll-10k — 10k-item VirtualList, top-to-bottom scroll
@@ -50,8 +59,10 @@ Scenarios 2/6/7 favor silvery (incremental + memo). Scenarios 3/5/8 favor OpenTU
 **Bench both OpenTUI+React and OpenTUI+Solid** to separate reconciler cost from core cost.
 
 **Honest caveats to publish**:
+
 - Same React version, same grid size
 - Headless backend — real TTY adds latency floor
 - Incremental-efficiency metric is a proxy, not latency
 
 Effort: ~2-3 days harness + 1 day tuning + 1 day run/writeup. Steal shape from existing silvery-benchmark Ink comparison infra.
+

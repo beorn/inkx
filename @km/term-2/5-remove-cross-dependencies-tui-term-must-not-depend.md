@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/term-2/5-remove-cross-dependencies-tui-term-must-not-depend"
 aliases:
   - km-term-2.5
@@ -15,6 +18,8 @@ assignee: claude:df8d3459
 @beorn/term and @beorn/tui should be completely standalone packages with no dependencies on inkx or chalkx.
 
 Current problematic dependencies:
+
 - vendor/beorn-tui/package.json: "inkx": "file:../beorn-inkx"
 
 Fix: tui should have its own render implementation, not wrap inkx.
+

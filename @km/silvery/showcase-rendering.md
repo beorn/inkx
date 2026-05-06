@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/showcase-rendering"
 aliases:
   - km-silvery.showcase-rendering
@@ -24,6 +27,8 @@ The Coding Agent showcase on silvery.dev shows rendering corruption:
 Screenshot: ~/Desktop/Screenshot 2026-03-10 at 00.46.11.png
 
 Likely causes:
+
 1. Wide character or word-wrap overflow in the content-phase
 2. Clipping bounds not applied to the showcase container
 3. The web renderer (renderToXterm) might handle overflow differently than terminal
+

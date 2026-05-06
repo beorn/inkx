@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/embed-render-types"
 aliases:
   - km-tui.embed-render-types
@@ -12,7 +14,9 @@ owner: bjorn@stabell.org
 # [x] Embedded nodes: distinguish outline items vs body blocks for rendering @km/tui #task #P2
 
 Current embed rendering treats all embedded nodes the same way. But we need to distinguish between:
+
 - Outline items (oi/li) — should render as cards/nodes (task items, sections)
 - Body blocks (p, h, code, quote, etc.) — should render as inline content blocks
 Example: embedded blocks in @next#inbox should render as blocks, not as outline items.
 This is a design decision — needs discussion about the rendering model for different node types when embedded.
+

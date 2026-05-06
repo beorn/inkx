@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/windowing-store"
 aliases:
   - km-tui.windowing-store
@@ -13,3 +16,4 @@ assignee: claude:d3a7049b
 # [x] Windowing: refactor store to workspace/panes/global structure @km/tui #task #P2 @claude:d3a7049b
 
 Phase 1: Refactor Zustand store from flat board state to { workspace: { panes, layout, focusedId }, global }. Single-pane still — no visual change. Extract PaneState type from current BoardAppStore.
+

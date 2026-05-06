@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/perf-reconciler-index"
 aliases:
   - km-silvery.perf-reconciler-index
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Perf: Reconciler O(n) child index computations via filter/slice @km/silvery #task #P3
 
 host-config.ts uses .filter().length and .slice().filter().length for layout index on every insert/reorder. Replace with for-loops or maintain layoutChildCount. Found by GPT 5.4 pro.
+

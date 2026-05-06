@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/phase-a3-streams-symbol"
 aliases:
   - km-silvery.phase-a3-streams-symbol
@@ -23,6 +25,14 @@ dependencies:
     created_at: 2026-04-22T17:44:24Z
     created_by: claude:019d032d
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.phase-a2-backend-term-signals
+      - type: link
+        target: km-silvery.pro-review-p1
 ---
 
 # [x] Phase A3: stdin/stdout hidden under Symbol at runtime @km/silvery #task #P2
@@ -30,17 +40,22 @@ dependencies:
 blocks:: [[@km/silvery/phase-a2-backend-term-signals]], [[@km/silvery/pro-review-p1]]
 
 ## What changes
+
 - `packages/ag-term/src/runtime/term-internal.ts` — defines a private Symbol and exports \`getInternalStreams(term)\` that reads them via the symbol.
 - `packages/ag-term/src/ansi/term.ts` — every Term factory (createNodeTerm, createHeadlessTerm, createBackendTerm) stores \`stdin\`/\`stdout\` under the Symbol key, NOT as plain \`stdin\`/\`stdout\` enumerable properties.
 - Tests: \`(term as any).stdin === undefined && (term as any).stdout === undefined\` — a cast cannot reach the streams any more.
 
 ## Delete
+
 - The plain-property version of \`stdin\`/\`stdout\` on termBase.
 
 ## /complete grep criteria
+
 - `grep -n "stdin:\|stdout:" vendor/silvery/packages/ag-term/src/ansi/term.ts` shows no plain enumerable \`stdin:\`/\`stdout:\` properties on termBase literals
 - `getInternalStreams(term)` continues to return both streams (test)
 - `(term as any).stdin` is undefined for all three factories (test)
 
 ## Mandatory
+
 Read docs/lessons/refactoring.md IN FULL before writing any code.
+

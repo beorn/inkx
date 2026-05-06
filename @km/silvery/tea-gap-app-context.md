@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/tea-gap-app-context"
 aliases:
   - km-silvery.tea-gap-app-context
@@ -21,6 +24,10 @@ dependencies:
     created_at: 2026-04-18T12:01:38Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.tea
 ---
 
 # [x] TEA gap: createAppContext<T>() helper for domain-plugin React bridge @km/silvery #task #P3 @Bjørn Stabell
@@ -34,7 +41,7 @@ Discovered while executing the aichat-v2 spike (@km/silvery/tea-aichat).
 Every domain plugin that needs React read access to its model has to
 hand-roll a context pattern:
 
-  const ChatContext = createContext<ChatModel | null>(null)
+const ChatContext = createContext<ChatModel | null>(null)
   function useChat<U>(selector: (m: ChatModel) => U): U {
     const chat = useContext(ChatContext)
     if (!chat) throw new Error("useChat outside <ChatProvider>")
@@ -50,7 +57,7 @@ strictness drifts.
 
 A helper in @silvery/create that wraps the pattern:
 
-  const chatCtx = createAppContext<ChatModel>("chat")
+const chatCtx = createAppContext<ChatModel>("chat")
   // → { Provider, use, useSelector }
   <chatCtx.Provider value={chat}>
     <View />
@@ -74,3 +81,4 @@ hub/silvery/prototype/aichat-v2/app.tsx — manually-rolled ChatContext.
 ## Effort
 
 Small (~30 lines) if built on top of `useModel()`.
+

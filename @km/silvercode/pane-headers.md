@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/pane-headers"
 aliases:
   - km-silvercode.pane-headers
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-25T00:45:11Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Per-pane header strip with add/close/minimize buttons @km/silvercode #feature #P3 @claude:2405c72e
@@ -27,3 +34,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 Add a 1-2 row header strip per pane with: title (session id), `+` (spawn split right), `×` (close), `_` (minimize / collapse to single-row strip, Zellij-style), `⇄` (move/drag-move). Deferred from @km/silvercode/pane-management v1 per the chrome constraint — the user explicitly opted out of header chrome for v1. v2 adds it as opt-in via a config flag or always-on once the header design is polished.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkz/16-layout-engine"
 aliases:
   - km-inkz.16-layout-engine
@@ -42,3 +44,4 @@ interface LayoutEngine {
 ## Priority
 
 P4 (backlog) - Yoga is sufficient for MVP.
+

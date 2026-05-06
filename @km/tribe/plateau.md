@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tribe/plateau"
 aliases:
   - km-tribe.plateau
@@ -22,6 +25,10 @@ dependencies:
     created_at: 2026-04-18T11:20:42Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] Tribe quality plateau — delete the redundant state machines @km/tribe #task #P2 @Bjørn Stabell
@@ -34,15 +41,15 @@ Tribe maintains five+ independent state machines for state derivable from socket
 
 ## Redundant state → primary signal
 
-| Redundant machine                                     | Primary signal                          | Est. net LOC |
-| ----------------------------------------------------- | --------------------------------------- | ------------ |
-| leadership table + lease + expiry + auto-promotion    | connection order (first = chief)        | -300 (lease.ts + chief-promotion.ts + tests + alert) |
-| heartbeat + 30s threshold + pruning                   | socket connectivity (clients Map)       | -80          |
-| pidfile + readDaemonPid kill(pid, 0)                  | socket file existence                   | -30          |
-| 30s idle auto-quit                                    | keep daemon resident (~5MB)             | -20 (KEEP -- already at 30 min, not 30 sec) |
-| aliases table                                         | messages use sender by id               | -30          |
-| events table                                          | messages WHERE type LIKE 'event.%'      | -30          |
-| dual daemon (lore + tribe)                            | one bear daemon                         | tracked in @km/bear |
+| Redundant machine                                  | Primary signal                     | Est. net LOC                                         |
+| -------------------------------------------------- | ---------------------------------- | ---------------------------------------------------- |
+| leadership table + lease + expiry + auto-promotion | connection order (first = chief)   | -300 (lease.ts + chief-promotion.ts + tests + alert) |
+| heartbeat + 30s threshold + pruning                | socket connectivity (clients Map)  | -80                                                  |
+| pidfile + readDaemonPid kill(pid, 0)               | socket file existence              | -30                                                  |
+| 30s idle auto-quit                                 | keep daemon resident (~5MB)        | -20 (KEEP -- already at 30 min, not 30 sec)          |
+| aliases table                                      | messages use sender by id          | -30                                                  |
+| events table                                       | messages WHERE type LIKE 'event.%' | -30                                                  |
+| dual daemon (lore + tribe)                         | one bear daemon                    | tracked in @km/bear                                  |
 
 ## Bugs this session that disappear
 
@@ -54,26 +61,31 @@ Tribe maintains five+ independent state machines for state derivable from socket
 ## Revised phased plan (each phase independently shippable)
 
 ### Phase 1 -- derive chief + claim override (~300 LOC net deletion)
+
 Add `deriveChiefFrom(clients)` -- earliest registeredAt, excluding watch-* / pending-* / daemon. Add `tribe.claim-chief` / `tribe.release-chief` tools that set/clear an explicit `chiefClaim` map field; resolution: claim > derived. Delete `lease.ts`, `chief-promotion.ts`, `chief-promotion.test.ts`, leadership table, auto-promotion intervals + boot one-shot, chief-expired health alert. Pass `getChiefId()` through handler opts so `assign`/`verdict` permission and dead-letter routing both use derived chief.
 
 /complete: `rg -l "leadership|getLeaseInfo|acquireLease|isLeaseHolder|tryAutoPromote|pickPromotionCandidate|chief-promotion|LEASE_DURATION"` (vendor/bearly only) -> 0.
 
 ### Phase 3 -- delete pidfile (~30 LOC deletion, keep idle quit)
+
 Remove `tribe.pid` write/read; `tribe doctor` uses socket connectability. Keep idle-quit (already 30 min) -- daemon is resident but can release if truly idle.
 
 /complete: `rg "readDaemonPid|tribe\.pid|writePidfile"` (vendor/bearly) -> 0.
 
 ### Phase 4 -- delete aliases + collapse events into messages (~60 LOC deletion)
+
 Rename uses session_id internally; old-name lookup is a thin convenience query, not a table. Delete `events` table; `retro` and downstream readers go through `messages WHERE type LIKE 'event.%' OR type LIKE 'message.%'`. Migrate existing event rows to messages on db open if any survive.
 
 /complete: `rg "aliases|insertEvent|FROM events|events\."` (vendor/bearly tribe code) -> 0.
 
 ### Phase 2 -- delete heartbeat (~80 LOC deletion, keep minimal sessions table)
+
 Sessions table SURVIVES because cursor recovery on reconnect needs `claude_session_id`/`pid` lookup; deleting it means message-stream replay every reconnect. Delete `sendHeartbeat`, heartbeat interval, `pruned_at`, `cleanupOldPrunedSessions`, 30s "live vs all" filter. `clients: Map` is the truth for who-is-online; sessions table is just persistent identity.
 
 /complete: `rg "sendHeartbeat|pruned_at|cleanupOldPrunedSessions|heartbeat\b"` (vendor/bearly tribe) -> 0.
 
 ### Out of this bead's scope
+
 - Phase 1.5 stable session identity across reconnects (separate bead)
 - Phase 1.6 message durability across restart (separate bead)
 - Phase 1.7 proxy reconnect-on-disconnect (separate bead)
@@ -89,3 +101,4 @@ Sessions table SURVIVES because cursor recovery on reconnect needs `claude_sessi
 ## Source of analysis
 
 `/big` reframing 2026-04-18, revised after systematic plan review same day. Five REFRAME hypotheses converged on "delete the redundant state machines."
+

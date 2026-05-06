@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/rev-arch-0130/4-convert-caldavclient-carddavclient-to-factory-func"
 aliases:
   - km-rev-arch-0130.4
@@ -12,3 +15,4 @@ assignee: claude:da8e4a66
 # [x] Convert CalDAVClient/CardDAVClient to factory functions @km/rev-arch-0130 #task #P2 @claude:da8e4a66
 
 High: packages/@km/_orphan/connector-caldav/src/caldav-client.ts:23 and carddav-client.ts:15 use classes. Should be createCalDAVClient() and createCardDAVClient() factories per code style.
+

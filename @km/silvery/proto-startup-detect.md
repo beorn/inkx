@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/proto-startup-detect"
 aliases:
   - km-silvery.proto-startup-detect
@@ -18,11 +20,14 @@ owner: bjorn@stabell.org
 Wire protocol detection into withTerminal startup. Query Mode 2031 (color scheme) and DEC 1020-1023 (width modes) during terminal init. Results populate term.caps. Features degrade gracefully when terminal doesn't respond.
 
 ## Why
+
 Foundation for all protocol integrations. Without this, each consumer must independently query and timeout. With this, term.caps has the answers and features just read them.
 
 ## Scope
+
 - withTerminal creates ColorSchemeDetector, starts it
 - withTerminal runs WidthDetector.detect(), applies to measurer
 - term.caps gets colorScheme + widthConfig fields
 - Timeout: 200ms total (parallel queries)
 - Existing dark/light detection becomes fallback
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/memory-store"
 aliases:
   - km-storage.memory-store
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Phase 2: createMemoryStore — Store + Reactive @km/storage #task #P3
 
 In-memory implementation with entity signals. Map<id, Signal<ResourceState<KNode>>>. First concrete store.
+

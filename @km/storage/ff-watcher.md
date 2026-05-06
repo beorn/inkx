@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/ff-watcher"
 aliases:
   - km-storage.ff-watcher
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Index file → folder sync in update handler @km/storage #task #P2
 
 Phase 3a: Post-processing in update handler to sync external index file edits back to folder node (title, child ordering).
+

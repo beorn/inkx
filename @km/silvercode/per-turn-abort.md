@@ -1,6 +1,9 @@
 ---
-id: "@km/agent-harness/per-turn-abort"
+mentions:
+  - km
+id: "@km/silvercode/per-turn-abort"
 aliases:
+  - "@km/agent-harness/per-turn-abort"
   - km-agent-harness.per-turn-abort
   - km-agent-harness-per-turn-abort
 created_by: claude:2405c72e
@@ -25,3 +28,4 @@ Silvercode (apps/silvercode/src/controller.ts: `cancelBackgroundTask`) currently
 ## Tracking
 
 Surfaced by @km/silvercode/ctrl-b-background.
+

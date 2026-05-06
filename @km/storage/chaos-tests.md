@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/chaos-tests"
 aliases:
   - km-storage.chaos-tests
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] Comprehensive WriteQueue + chaos test suite @km/storage #task #P3
 
 WriteQueue has no unit tests for error handling, conflict detection, or retry logic. ChaosWatcher exists but is underutilized. Need: (1) WriteQueue unit tests for all error classes, retry strategies, conflict scenarios. (2) Chaos monkey tests using ChaosWatcher for transient failures, clock skew, partial failures. (3) Property-based tests for node-differ.
+

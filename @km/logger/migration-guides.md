@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/logger/migration-guides"
 aliases:
   - km-logger.migration-guides
@@ -13,7 +16,9 @@ assignee: claude:fbad9cb1
 # [x] Phase 1: Migration guides — from debug, pino, winston @km/logger #task #P3 @claude:fbad9cb1
 
 Write migration guides showing side-by-side before/after:
+
 - From debug: namespace pattern, env var control, formatting
 - From pino: structured logging, child loggers, transports
 - From winston: levels, transports, formatting
 Each guide: 1-page showing the exact API mapping and any behavior differences.
+

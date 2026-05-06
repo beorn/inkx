@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/test-startup"
 aliases:
   - km-silvery.test-startup
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Testing gap: startup/first-N-frames differential testing @km/silvery #task #P2
 
 Many shipped bugs live in first render, first resize, first focus. Need dedicated startup scenarios: cold start empty terminal, cold start with scrollback, startup + immediate resize, startup + suspense fallback. Compare buffer AND terminal emulator state. Found by GPT 5.4 pro.
+

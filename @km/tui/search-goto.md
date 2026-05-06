@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/search-goto"
 aliases:
   - km-tui.search-goto
@@ -13,9 +16,11 @@ assignee: claude:44a381e0
 When selecting a search result that's not a file (section, paragraph, bullet, etc.) and pressing Enter, the dialog closes but nothing happens - the item is not shown/highlighted.
 
 Repro:
+
 1. Open search with /
 2. Search for content that's inside a file (a section or paragraph)
 3. Press Enter on the result
 4. Dialog closes but the item is not visible
 
 Expected: Should zoom to show the item and highlight/select it.
+

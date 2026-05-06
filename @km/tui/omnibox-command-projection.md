@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/omnibox-command-projection"
 aliases:
   - km-tui.omnibox-command-projection
@@ -56,6 +58,10 @@ dependencies:
     created_at: 2026-04-15T11:31:10Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.selection-focus-plateau
 ---
 
 # [x] Command-tree projection (TEA shim, Phase 3) @km/tui #task #P1
@@ -89,3 +95,4 @@ Exactly ONE module owns the projection. The row renderer (OmniboxRow), the ranke
 (e) Availability gate (Phase 4 when-predicate) composes through isCommandAvailable — both def.modes (coarse) and def.when (precise) filtered in filterAvailableCommands before projection.
 
 The docstring in omnibox-projection.ts documents the single-owner principle and explains why OmniboxRowData (not KNode) is the correct unified shape.
+

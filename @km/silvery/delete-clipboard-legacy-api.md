@@ -1,4 +1,11 @@
 ---
+propsRaw:
+  ts: "copyToClipboard + requestClipboard — replaced by createOsc52Backend
+    @km/silvery #task #P3"
+props:
+  blocked-by:
+    type: link
+    target: km-all.plateau
 id: "@km/silvery/delete-clipboard-legacy-api"
 aliases:
   - km-silvery.delete-clipboard-legacy-api
@@ -13,6 +20,7 @@ dependencies:
     metadata: "{}"
 ---
 
-# [ ] Delete silvery clipboard.ts::copyToClipboard + requestClipboard — replaced by createOsc52Backend @km/silvery #task #P3
+# [ ] Delete silvery clipboard. ^delete-clipboard-legacy-api
 
 blocks:: [[@km/all/plateau]]
+

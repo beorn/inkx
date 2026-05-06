@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/vendor-rename-impl"
 aliases:
   - km-infra.vendor-rename-impl
@@ -15,6 +17,7 @@ owner: bjorn@stabell.org
 Execute the vendor rename across the monorepo.
 
 ## Completed
+
 - [x] inkx → @hightea/term (package name + 308 consumer imports)
 - [x] chalkx → @hightea/chalk (package name + 23 consumer imports)
 - [x] @beorn/flexx → flexture (package name + 8 consumer imports)
@@ -27,9 +30,11 @@ Execute the vendor rename across the monorepo.
 - [x] All 4215 tests pass (164 files), 7321 vendor tests pass (305 files)
 
 ## Remaining
+
 - [ ] npm org create hightea
 - [ ] Set up publishConfig for all packages
 - [ ] Publish to npm
 - [ ] Rename GitHub repos
 - [ ] Update CLAUDE.md files and docs
 - [ ] Clean up internal inkx string references (logger namespaces, error messages)
+

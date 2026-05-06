@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/bg-segment-offsets"
 aliases:
   - km-silvery.bg-segment-offsets
@@ -16,3 +19,4 @@ assignee: claude:65d845d9
 # [x] Text bg segment offsets mix UTF-16 length, display width, and grapheme count @km/silvery #bug #P2 @claude:65d845d9
 
 BgSegment start/end uses display-width-ish offsets via getTextWidth, but mapLinesToCharOffsets uses string.length (UTF-16), and applyBgSegmentsToLine increments by grapheme count. Three coordinate systems mixed. Wide CJK, emoji, ZWJ sequences can mis-apply nested Text backgrounds after wrap/truncate. Most likely remaining text-layer bug. Found by GPT pipeline review.
+

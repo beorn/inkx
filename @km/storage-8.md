@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage-8"
 aliases:
   - km-storage-8
@@ -17,13 +19,17 @@ Inspired by Tana's supertag system but adapted for km's markdown-native approach
 ## Concept
 
 ### Current State
+
 Sigil links are simple forward references:
+
 - `@alice` → links to alice node
 - `#urgent` → tag
 - `+work` → area/project
 
 ### With Supertags
+
 Sigil links can define schemas:
+
 - `@issue` → node gains issue-related properties (priority, type, blocks, etc.)
 - `@person` → node gains person properties (email, role, team)
 - `@book` → node gains book properties (author, rating, genre)
@@ -76,6 +82,7 @@ property:: type [constraints] [(required)]
 ```
 
 Types:
+
 - `text` - free text
 - `number` - numeric
 - `date` - YYYY-MM-DD
@@ -87,6 +94,7 @@ Types:
 ## Inheritance (extends)
 
 Schemas can extend others:
+
 ```markdown
 # @bug.md
 ---
@@ -112,6 +120,7 @@ A node with `@bug` has all `@issue` properties plus bug-specific ones.
 ### Property Suggestions
 
 In TUI/editor, when editing a node with `@issue`:
+
 - Show available properties in autocomplete
 - Highlight required but missing properties
 - Validate property values against schema
@@ -127,6 +136,7 @@ In TUI/editor, when editing a node with `@issue`:
 ### Validation
 
 Optional validation mode:
+
 - Warn on unknown properties for typed nodes
 - Warn on missing required properties
 - Warn on type mismatches
@@ -201,17 +211,21 @@ km schema create @book      # Create new schema interactively
 ## Documentation
 
 ### docs/future/supertags.md (new)
+
 Full specification of supertag system.
 
 ### docs/01-concepts.md
+
 Update sigil links section to mention schemas.
 
 ### docs/04-markdown.md
+
 Document schema file format.
 
 ## Tests
 
 ### packages/@km/_orphan/schema/tests/parser.test.ts
+
 ```typescript
 describe('schema parser', () => {
   test('parses basic schema', () => {
@@ -242,25 +256,30 @@ type: schema
 ## Phases
 
 ### Phase 1: Schema Types & Parser (P3)
+
 - [ ] Define schema types
 - [ ] Parse schema markdown files
 - [ ] Unit tests
 
 ### Phase 2: Registry & Inheritance (P3)
+
 - [ ] Schema registry
 - [ ] Inheritance resolution
 - [ ] Integration tests
 
 ### Phase 3: Validation (P4)
+
 - [ ] Property validation
 - [ ] Missing required property warnings
 - [ ] CLI validate command
 
 ### Phase 4: TUI Integration (P4)
+
 - [ ] Property autocomplete
 - [ ] Validation display
 
 ### Phase 5: Docs (P4)
+
 - [ ] docs/future/supertags.md
 - [ ] Update existing docs
 
@@ -275,3 +294,4 @@ type: schema
 - [ ] `km schema list` shows registered schemas
 - [ ] Optional validation warns on issues
 - [ ] Docs complete
+

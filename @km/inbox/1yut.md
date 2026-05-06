@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/1yut"
 aliases:
   - km-1yut
@@ -12,6 +14,7 @@ closed_at: 2026-01-16T22:22:57Z
 ## Background
 
 TNode (tree layer) currently contains storage-level properties:
+
 - `fsPath?: string` - filesystem path
 - `mdLine?: number` - line number in markdown file
 
@@ -24,14 +27,14 @@ Both usages in @km/_orphan/opentui/App.tsx already have fallback logic that quer
 ## Implementation
 
 1. Remove from TNode type (packages/@km/tree/src/types.ts):
-   - Delete `fsPath?: string`
-   - Delete `mdLine?: number`
-
+  - Delete `fsPath?: string`
+  - Delete `mdLine?: number`
 2. Update nodeToTNode() in apps to stop copying these properties
-
 3. Simplify @km/_orphan/opentui/App.tsx to always use storage query path
 
 ## Files
+
 - packages/@km/tree/src/types.ts
 - apps/@km/_orphan/cli/src/tui2/tui2.tsx
 - apps/@km/tui/packages/@km/_orphan/opentui/src/App.tsx
+

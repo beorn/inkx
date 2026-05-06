@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/mcp-plugin-bun-keepalive"
 aliases:
   - km-bearly.mcp-plugin-bun-keepalive
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-26T22:46:45Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.upstream-waiting
 ---
 
 # [x] Remove URL.toString() / lease-tracking workaround when Bun #7716 lands @km/bearly #bug #P3
@@ -33,13 +39,16 @@ Status: open as of 2026-04-27
 Last checked: 2026-04-27
 
 Files affected by the workaround:
+
 - vendor/bearly/plugins/mcp/mcp-plugin.ts
   - URL.toString() in: 'return new Request(url.toString(), { method, headers, body, ... })'
   - lease-tracking refactor in connection lifecycle
 
 Unwind when upstream lands:
+
 1. Replace 'new Request(url.toString(), ...)' with 'new Request(url, ...)' once URL works as Request input on the patched Bun version
 2. Verify the lease-tracking workaround is no longer needed (close event fires) — likely keep some accounting but remove the workaround scaffolding
 3. Bump Bun minimum version in package.json to the patched release
 4. Run vendor/bearly tests; verify mcp-plugin tests pass without the workaround
 5. Close this bead with the Bun release version that fixed it
+

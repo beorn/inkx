@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui2"
 aliases:
   - km-tui2
@@ -16,6 +18,7 @@ TUI2 migration to OpenTUI - DEFERRED per @km/tui-eval decision.
 ## Status: Deferred
 
 **Reason**: OpenTUI has blocking bugs that prevent production use:
+
 - **002**: Text color ignored when backgroundColor set
 - **003**: Bracket/space rendering drops characters
 
@@ -24,6 +27,7 @@ See [ADR 001: TUI Architecture](docs/adr/001-tui-architecture.md) for full ratio
 ## Re-evaluation Criteria
 
 Consider resuming when:
+
 1. OpenTUI fixes color rendering bug (#002)
 2. OpenTUI fixes bracket/space bug (#003)
 3. OpenTUI has stable release (>= 1.0)
@@ -37,3 +41,4 @@ Consider resuming when:
 ## Original Scope
 
 Migration to OpenTUI for better layout control. 16 sub-tasks were identified for feature parity with TUI1.
+

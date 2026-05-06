@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/whichkey"
 aliases:
   - km-tui.whichkey
@@ -13,3 +16,4 @@ assignee: claude:d3a7049b
 # [x] Which-key: transient chord menus after g/m/a/t prefix @km/tui #feature #P3 @claude:d3a7049b
 
 After pressing a chord prefix (g/m/a/t), show a transient popup listing available suffixes after ~300ms. Auto-dismiss on next key. See docs/keybindings-v2.md §Transient Menus.
+

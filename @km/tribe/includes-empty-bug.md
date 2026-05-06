@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/includes-empty-bug"
 aliases:
   - km-tribe.includes-empty-bug
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Beads plugin: includes("") always true when claudeSessionId is null @km/tribe #bug #P1
 
 ctx.claudeSessionId ?? "" makes includes("") always true. Any session without CLAUDE_SESSION_ID thinks every claimed bead is its own. Fix: check truthiness before includes.
+

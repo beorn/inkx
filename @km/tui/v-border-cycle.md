@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - border
 id: "@km/tui/v-border-cycle"
 aliases:
   - km-tui.v-border-cycle
@@ -13,8 +18,10 @@ assignee: claude:5f0aee02
 # [x] V cycles through 2x3 icon+border styles (border color black) @km/tui #feature #P3 @claude:5f0aee02
 
 V should cycle through visual styles. Includes:
+
 - 2 border colors (normal, black)
 - 3 icon modes (from /recall past specs)
 - Padding colors (background color of card/node padding areas)
 
 Use /recall to find the original V-cycle spec for the full list of states.
+

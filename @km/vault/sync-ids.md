@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/vault/sync-ids"
 aliases:
   - km-vault.sync-ids
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Sync ~fam/Ids & Certs → ~vault/drive/ids @km/vault #task #P3
 
 Passports, degrees, certificates. ~196 files.
+

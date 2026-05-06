@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/all/test-sync"
 aliases:
   - km-all.test-sync
@@ -46,7 +49,6 @@ test("foo", () => {
 1. **Headless**: `createBoardDriver.press()` is async because silvery's `App.press()`
    returns `Promise<App>`. But the actual work (handleKey + React act + render) is
    synchronous inside act(). The async is a formality.
-
 2. **Termless**: `handle.press()` is genuinely async because it needs to flush through
    the xterm.js emulator and wait for rendering to propagate.
 
@@ -62,6 +64,7 @@ test("foo", () => {
 ## Impact
 
 If solved, this eliminates:
+
 - `async () => {}` on every test
 - `await` before every press/command/type
 - The entire TestAppChain thenable machinery
@@ -71,6 +74,8 @@ If solved, this eliminates:
 Tests become as ergonomic as testEnv (sync) while supporting both backends.
 
 ## /complete criteria
+
 - Decision documented: sync possible or not, with evidence
 - If possible: createTestApp and all methods are sync
 - If not: document WHY async is necessary with specific code paths
+

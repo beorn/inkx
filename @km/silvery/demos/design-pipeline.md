@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/demos/design-pipeline"
 aliases:
   - km-silvery.demos.design-pipeline
@@ -16,9 +19,11 @@ assignee: claude:db326126
 Prototype the ANSI mockup pipeline with non-OpenAI models.
 
 ## Problem
+
 Claude cannot iterate on live app visuals. The proven workflow: design LLM creates ANSI mockup, user approves, Claude implements mechanically, TTY diff verifies.
 
 ## Approach
+
 1. Test Claude Sonnet 4.6 and Grok 4 as ANSI mockup generators
 2. Use dashboard as test case (approved mockup exists for comparison)
 3. Run full loop: generate, user reviews, implement, TTY diff
@@ -26,11 +31,14 @@ Claude cannot iterate on live app visuals. The proven workflow: design LLM creat
 5. Prove process works before scaling to all demos
 
 ## Existing assets
+
 - Workflow doc: .claude/skills/design-review/workflows/create.md
 - Component catalog and anti-patterns documented there
 - 3 existing mockups: dashboard (approved), components-v2 (needs review), chat (exists)
 
 ## Acceptance criteria
+
 - One demo fully implemented from mockup with non-OpenAI model
 - create.md updated with non-OpenAI model recommendations
 - User confirms the process is smooth and repeatable
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/docs-overhaul"
 aliases:
   - km-inkx.docs-overhaul
@@ -15,6 +18,7 @@ assignee: claude:ee8efc0f
 Comprehensive docs overhaul to make inkx an excellent FOSS project. Based on full audit of all 25+ docs.
 
 ## What is Excellent (Keep)
+
 - README.md: problem-driven, clear value prop, quick start
 - design.md: five-phase pipeline exhaustively documented
 - architecture.md: multi-target RenderAdapter vision
@@ -56,3 +60,4 @@ Comprehensive docs overhaul to make inkx an excellent FOSS project. Based on ful
 ## Deep research report
 
 See docs/ref/inkx-vs-ink-deep-research-2026-02.md for external validation.
+

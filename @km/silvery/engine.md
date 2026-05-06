@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/engine"
 aliases:
   - km-silvery.engine
@@ -15,6 +17,7 @@ owner: bjorn@stabell.org
 Silvery helps teams build keyboard-first, data-dense apps that work in terminal and browser from one React-oriented stack, with owned layout/text and interaction primitives where browser defaults break down.
 
 Architecture and vision documented in vendor/silvery-internal/design/:
+
 - silvery-roadmap.md — positioning, phasing, prior art
 - silvery-packages.md — complete package inventory
 - silvery-architecture.md — full engine stack, three projections
@@ -22,6 +25,7 @@ Architecture and vision documented in vendor/silvery-internal/design/:
 
 Phasing (dogfood is parallel with phase 1, not phase 7):
 0. Dogfood app + contracts (parallel with everything)
+
 1. Text subsystem (TextLayoutService, measurers, conformance)
 2. Browser input bridge spike (hidden textarea, focus, keyboard routing)
 3. Display list (save/restore, metadata, canvas-first)
@@ -37,3 +41,4 @@ Mid-term: display list abstraction, ag-layout package, browser input spike.
 Long-term: interaction index, multi-framework bindings, docily/textily editing.
 
 Reviewed by GPT 5.4 Pro ($6.57 + $4.62 + $1.76). Architecture is sound. Biggest risk: editable text + accessibility. Best wedge: keyboard-first, data-dense tools that work in browser and over SSH.
+

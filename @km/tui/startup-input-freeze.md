@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/startup-input-freeze"
 aliases:
   - km-tui.startup-input-freeze
@@ -31,13 +33,17 @@ dependencies:
     created_at: 2026-04-15T08:25:28Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-session.0415a
 ---
 
 # [x] 2-5s input freeze after app open — arrow keys blocked @km/tui #bug #P1
 
 blocks:: [[@km/session/0415a]]
 
-# Regression — app startup freeze
+## Regression — app startup freeze
 
 ## Symptom (user dogfood)
 
@@ -69,3 +75,4 @@ The app window renders but arrow key navigation is blocked for 2-5 seconds. Afte
 ## Acceptance
 
 Arrow keys respond within 100ms of the app window appearing.
+

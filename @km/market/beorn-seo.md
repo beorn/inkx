@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/market/beorn-seo"
 aliases:
   - km-market.beorn-seo
@@ -16,3 +19,4 @@ assignee: Bjørn Stabell
 # [x] beorn.codes SEO audit and optimization @km/market #task #P2 @Bjørn Stabell
 
 Full SEO audit of beorn.codes portfolio — covers /flexily, /loggily, /mdspec subpaths. Part of @km/market/seo.
+

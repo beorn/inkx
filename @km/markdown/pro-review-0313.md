@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/markdown/pro-review-0313"
 aliases:
   - km-markdown.pro-review-0313
@@ -14,3 +17,4 @@ assignee: claude:c9beade3
 # [x] km-markdown GPT 5.4 Pro code review — parser, serializer, round-trip fidelity @km/markdown #epic #P1 @claude:c9beade3
 
 GPT 5.4 Pro code review ($7.24): 6 P0, 8 P1, 7 P2, 3 P3. Main concern: package is not a lossless round-tripper. P0s are all silent data loss (embeds, H1 metadata, list items, code fences, footnotes, frontmatter). P1s are fidelity issues (formatting, numbers, alignment, Unicode). Created child beads for actionable clusters. Full output: /tmp/llm-c9beade3-1773381717655-4wqr.txt
+

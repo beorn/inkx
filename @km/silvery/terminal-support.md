@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/terminal-support"
 aliases:
   - km-silvery.terminal-support
@@ -16,6 +18,7 @@ owner: bjorn@stabell.org
 Layered terminal support strategy (docs/design/terminal-support-strategy.md).
 
 Key deliverables:
+
 1. Shared Cell type in @termless/core — one type for termless + silvery (eliminate 3 redundant types)
 2. getCell(row, col) convention everywhere (currently reversed between projects)
 3. Flatten silvery CellAttrs into Cell (cell.bold not cell.attrs.bold)
@@ -26,3 +29,4 @@ Key deliverables:
 8. Strategy doc background section (why cross-terminal is hard)
 
 Children: @km/silvery/strict-terminal, @km/silvery/terminal-width-db
+

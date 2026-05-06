@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/root-board-regr"
 aliases:
   - km-tui.root-board-regr
@@ -13,3 +16,4 @@ assignee: claude:36393b5d
 # [x] Root board regressions: no borders, full yellow bg, missing overflow count @km/tui #bug #P1 @claude:36393b5d
 
 On root board (folder contents, km view --repo imports/asana): 1) No card borders at all 2) Selected cards fully yellow bg (should be title-only yellow) 3) Card overflow count on bottom border is gone. May be using different view component than zoomed boards.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/sel-demo"
 aliases:
   - km-silvery.sel-demo
@@ -13,3 +16,4 @@ assignee: Bjørn Stabell
 # [x] Selection demo app — evolving showcase + integration test @km/silvery #task #P2 @Bjørn Stabell
 
 Selection demo app (examples/apps/selection.tsx). Already exists as a prototype. Update to use createSelection(app) API after Phase 2.
+

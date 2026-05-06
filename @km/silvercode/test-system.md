@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/test-system"
 aliases:
   - km-silvercode.test-system
@@ -27,6 +30,7 @@ Current state: 6 test files / 33 tests. Mostly unit-level. No end-to-end, no fak
 ### Layer 1 — Pure unit (ms)
 
 Target: individual functions. Already has some coverage.
+
 - `markdown.ts` parsers
 - `context-windows.ts` modelLabel / contextWindowFor
 - `claude-account.ts` planLabel / windowShortLabel / filters
@@ -36,6 +40,7 @@ Target: individual functions. Already has some coverage.
 ### Layer 2 — Component unit (5-50ms)
 
 Target: React components with fake stores. Use `@silvery/test` createRenderer.
+
 - SidePanel rendering for various state snapshots (idle / thinking / awaiting-permission / overage quota / multi-session)
 - UserMessageBlock / AssistantBlock / ToolCallBlock / ToolResultBlock / DiffRenderer
 - QueueEditor focus / blur / release behavior
@@ -46,11 +51,13 @@ Target: React components with fake stores. Use `@silvery/test` createRenderer.
 Target: controller.ts + agent-harness with a fake `AgentSession` that simulates Anthropic's stream-json protocol.
 
 Build an `ScriptedFakeSession` helper:
+
 - `session.script(events: AgentEvent[])` — the harness emits these events on subscribe, simulating real Claude behavior (session-init, turn-start, text-delta, tool-use, tool-result, result).
 - `session.send(text)` — record the input; consumer can assert what was sent.
 - `session.injectError(msg)` / `session.injectSessionEnd()` — simulate failure paths.
 
 Test coverage targets:
+
 - Queue batching — sending N messages while status is thinking, then turning idle, should call session.send once with "msg1\n\nmsg2\n\nmsg3".
 - HoldQueue gating — while holdQueue(true), no flush even on idle; holdQueue(false) triggers flush.
 - Clear queue — clearQueue drops buffered text without sending.
@@ -60,6 +67,7 @@ Test coverage targets:
 ### Layer 4 — End-to-end ANSI snapshot (1-5s)
 
 Target: the running silvercode app with fake LLM, asserting real ANSI output via termless.
+
 - Fresh session shows Welcome card + side panel with identity + ctx=0% bar + version lines.
 - User types "hello", Enter — user-message card appears, activity indicator shows, fake LLM streams "Hi!" — assistant block renders.
 - Long tool-result (1KB no-whitespace blob) keeps side panel visible (the overflow bug we keep fighting — see bead `km-silvercode.overflow-at-root`).
@@ -119,6 +127,7 @@ Wire via `Controller.opts.spawnFactory` which already exists for this purpose.
 ### Session scripts
 
 Location: `apps/silvercode/src/test/scripts/` — prebuilt event sequences for common scenarios:
+
 - `helloWorld.ts` — init → user "hi" → turn-start → text-delta "Hi!" → result
 - `bashTool.ts` — init → user → tool_use(Bash, git status) → tool_result(output) → assistant text → result
 - `longToolResult.ts` — 1KB unwrappable blob for overflow testing
@@ -129,6 +138,7 @@ Location: `apps/silvercode/src/test/scripts/` — prebuilt event sequences for c
 ### OpenAI / Codex fakes
 
 Agent-harness has `spawnCodex` + `spawnSdk` wrappers. Add parallel fakes:
+
 - `apps/silvercode/src/test/fake-codex-session.ts`
 - `apps/silvercode/src/test/fake-sdk-session.ts`
 
@@ -159,3 +169,4 @@ Use termless tape executor. Store expected snapshots in `apps/silvercode/tests/s
 - Use `termless` for Layer 4.
 - Controller already has `spawnFactory` hook — reuse.
 - Agent harness tests at `apps/silvercode/packages/agent-harness/tests/` — good reference for fake patterns.
+

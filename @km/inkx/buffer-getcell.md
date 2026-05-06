@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/buffer-getcell"
 aliases:
   - km-inkx.buffer-getcell
@@ -11,3 +14,4 @@ assignee: claude:a3625ec3
 # [x] perf(inkx): Reduce getCell allocations on hot render paths @km/inkx #task #P2 @claude:a3625ec3
 
 getCell allocates fresh Cell+attrs per call. ~20K objects/frame. Options: getCellInto, setBg, direct packed data.
+

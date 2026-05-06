@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/repl"
 aliases:
   - km-repl
@@ -12,6 +14,7 @@ closed_at: 2026-01-16T09:35:26Z
 REPL mode for `km sh` that adds interactive features and filesystem-like navigation.
 
 ## Usage
+
 ```bash
 # REPL mode (auto-detected when stdin is TTY)
 km sh ~/vault
@@ -21,38 +24,45 @@ km sh --repl ~/vault
 ```
 
 ## Mode Detection
+
 - **Script mode** (@km/_orphan/sh): stdin is pipe/file → read commands, execute, exit
 - **REPL mode** (this): stdin is TTY → interactive prompt with completion
 
 ## Shell Commands
 
 ### Navigation (filesystem semantics)
+
 - `pwd` - show current path (slugs, not titles)
 - `ls [path]` - list children of current/specified node
 - `cd <path>` - change to node (supports .., /, relative paths)
 - `tree [path] [depth]` - hierarchical listing with box-drawing
 
 ### Content
+
 - `cat <node>` - show node content/details
 - `view` - render current view as TUI2 would (ASCII board)
 
 ### Manipulation
+
 - `rm <node>` - remove node
 - `mv <src> <dest>` - move node
 - `edit <node>` - open in \$EDITOR or inline edit
 - `touch <name>` - create new node
 
 ### TUI Actions (from script mode)
+
 - All board actions: `move_down`, `move_up`, etc.
 - `key <keystroke>` - raw key input
 
 ### Meta
+
 - `help [command]` - show help
 - `history` - show command history
 - `state` - dump current BoardState as JSON
 - `exit` / `quit` / Ctrl-D - exit REPL
 
 ## Example Session
+
 ```
 vault> tree projects 2
 projects/
@@ -78,18 +88,22 @@ vault/projects>
 ```
 
 ## Prompt
+
 Slug-based path:
+
 ```
 vault/projects/km> 
 ```
 
 ## Interactive Features
+
 - Tab completion for paths and commands
 - Readline history (persisted to ~/.km_history)
 - Help on `?` or `help`
 - Colored output
 
 ## Architecture
+
 - Builds on @km/_orphan/sh (script mode)
 - Adds REPL loop with readline
 - Path resolution layer (slug-based navigation)
@@ -98,4 +112,6 @@ vault/projects/km>
   - Board actions → script mode dispatcher
 
 ## Dependencies
+
 - @km/_orphan/sh (script mode - core)
+

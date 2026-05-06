@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/transform-concat"
 aliases:
   - km-silvery.transform-concat
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Transform receives truncated text instead of full concatenated children @km/silvery #bug #P2
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/test-whitebox-api"
 aliases:
   - km-all.test-whitebox-api
@@ -27,35 +29,38 @@ Add stable, typed getters to TestApp in apps/@km/tui/tests/helpers/test-app.ts. 
 
 Initial API:
 
-  interface TestApp {
+interface TestApp {
     readonly cursorNodeId: string | null
     readonly cursorDepth: "card" | "column" | "board" | null
     selectionIds(): string[]
     isMultiSelection(): boolean
 
-    readonly undoDepth: number
-    readonly redoDepth: number
+```
+readonly undoDepth: number
+readonly redoDepth: number
 
-    readonly viewMode: "cards" | "columns" | "tabs" | "detail"
-    readonly activePaneId: string | null
-    paneCount(): number
+readonly viewMode: "cards" | "columns" | "tabs" | "detail"
+readonly activePaneId: string | null
+paneCount(): number
 
-    readonly overlayDepth: number
-    topOverlay(): string | null
+readonly overlayDepth: number
+topOverlay(): string | null
 
-    clipboardItemCount(): number
-    clipboardNodeIds(): string[]
+clipboardItemCount(): number
+clipboardNodeIds(): string[]
 
-    readonly bellCount: number
-    readonly filterActive: boolean
-    readonly filterCount: number
-  }
+readonly bellCount: number
+readonly filterActive: boolean
+readonly filterCount: number
+```
+
+}
 
 Each getter maps to a single store path internally. When the store path changes, update the getter — not the 42 call sites.
 
 ## Escape hatch
 
-  createTestApp(item(...), { exposeStore: true })
+createTestApp(item(...), { exposeStore: true })
 
 Opt-in flag exposes app.store for tests that genuinely need full inspection. Makes white-box tests greppable and auditable.
 
@@ -63,38 +68,43 @@ Opt-in flag exposes app.store for tests that genuinely need full inspection. Mak
 
 Tests that need cell-level style checks should switch to termless backend, not testEnv:
 
-  app.cell(col, row): FrameCell
+app.cell(col, row): FrameCell
   app.expectNodeBorder(nodeId, color): void
   app.expectNodeColor(nodeId, color): void
 
 ## Mouse events via termless
 
-  app.click(nodeId): void
+app.click(nodeId): void
   app.clickAt(col, row): void
   app.hover(nodeId): void
 
 ## Phases
 
 ### Phase 1 — Add getters
+
 - Add typed getter API to TestApp
 - Document observability contract in apps/@km/tui/tests/CLAUDE.md
 - /complete: all getters return correct values
 
 ### Phase 2 — Escape hatch
+
 - Add { exposeStore: true } option
 - /complete: documented, works
 
 ### Phase 3 — Termless cell + mouse APIs
+
 - Wire FrameCell through TestApp
 - Wire mouse via termless
 - /complete: 5 reference tests migrated
 
 ### Phase 4 — Migrate FREEZE bucket
+
 - Audit ~25 FREEZE tests
 - Migrate or reclassify each
 - /complete: 0 files use testEnv
 
 ### Phase 5 — Remove testEnv
+
 - Delete testEnv from helpers
 - Update CLAUDE.md
 - /complete: grep -r testEnv apps/@km/tui/tests/ returns 0 hits
@@ -104,3 +114,4 @@ Tests that need cell-level style checks should switch to termless backend, not t
 Every test refactor breaks testEnv tests again. The 157-failure CI mess isn't a one-time event — it recurs on every big refactor. Closing the gap permanently eliminates the failure mode.
 
 Related: @km/all/test-migrate (bulk migration of 75 files, also P0, reopened).
+

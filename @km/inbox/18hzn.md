@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/18hzn"
 aliases:
   - km-18hzn
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] MAX_SINGLE_PASS_ITERATIONS=3 not proven sufficient @km/_orphan #bug #P2
 
 Increase to 5 (matching classic path) and add diagnostics when cap is hit in strict/dev mode.
+

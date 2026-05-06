@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/cmd-palette-trunc"
 aliases:
   - km-tui.cmd-palette-trunc
@@ -13,3 +16,4 @@ assignee: claude:97b8de73
 # [x] Command palette: results truncated and layout issues @km/tui #bug #P2 @claude:97b8de73
 
 Command palette (: key) has issues: 1) Search results overly truncated — 'in famil' missing 'y'. 2) Layout dense and unappealing. Reproduced: km view --repo imports/asana stabell, press : then search 'family sprint'. Screenshots: 13.10.44.png, 13.10.54.png
+

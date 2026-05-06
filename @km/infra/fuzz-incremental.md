@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/fuzz-incremental"
 aliases:
   - km-infra.fuzz-incremental
@@ -13,3 +16,4 @@ assignee: claude:e8fd4b92
 ---
 
 # [x] Fuzz: silvery incremental rendering with random component trees @km/infra #task #P2 @claude:e8fd4b92
+

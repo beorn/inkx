@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/targets"
 aliases:
   - km-silvery.targets
@@ -20,30 +22,31 @@ Create npm stub packages and monorepo directories for future render targets and 
 
 Each target implements the RenderAdapter interface from @silvery/react, converting the virtual node tree to a specific output.
 
-| Package | What | Status |
-|---------|------|--------|
-| @silvery/term | Terminal (ANSI) | Phase 1 — split from hightea |
-| @silvery/dom | Browser DOM | Future — adapter exists in hightea (adapters/dom-adapter.ts) |
-| @silvery/canvas | HTML5 Canvas | Future — adapter exists in hightea (adapters/canvas-adapter.ts) |
-| @silvery/native | React Native | Future — new adapter |
-| @silvery/pdf | PDF output (static render) | Future — new adapter |
-| @silvery/img | Image output (PNG/SVG, static) | Future — screenshot infra exists |
+| Package         | What                           | Status                                                          |
+| --------------- | ------------------------------ | --------------------------------------------------------------- |
+| @silvery/term   | Terminal (ANSI)                | Phase 1 — split from hightea                                    |
+| @silvery/dom    | Browser DOM                    | Future — adapter exists in hightea (adapters/dom-adapter.ts)    |
+| @silvery/canvas | HTML5 Canvas                   | Future — adapter exists in hightea (adapters/canvas-adapter.ts) |
+| @silvery/native | React Native                   | Future — new adapter                                            |
+| @silvery/pdf    | PDF output (static render)     | Future — new adapter                                            |
+| @silvery/img    | Image output (PNG/SVG, static) | Future — screenshot infra exists                                |
 
 ## Framework Engines
 
 @silvery/react is the primary engine. Future engines would provide the same component model for other frameworks.
 
-| Package | What | Status |
-|---------|------|--------|
-| @silvery/react | React reconciler (primary) | Phase 1 — split from hightea |
-| @silvery/svelte | Svelte integration | Future — new engine |
-| @silvery/vue | Vue integration | Future — new engine |
-| @silvery/solid | SolidJS integration | Future — new engine |
-| @silvery/preact | Preact integration | Future — new engine (may share react reconciler) |
+| Package         | What                       | Status                                           |
+| --------------- | -------------------------- | ------------------------------------------------ |
+| @silvery/react  | React reconciler (primary) | Phase 1 — split from hightea                     |
+| @silvery/svelte | Svelte integration         | Future — new engine                              |
+| @silvery/vue    | Vue integration            | Future — new engine                              |
+| @silvery/solid  | SolidJS integration        | Future — new engine                              |
+| @silvery/preact | Preact integration         | Future — new engine (may share react reconciler) |
 
 ## Monorepo stubs
 
 Each stub gets a minimal `packages/<name>/` directory with:
+
 - `package.json` (name, version 0.0.0, private: true, placeholder description)
 - `README.md` (placeholder noting "coming soon")
 - `src/index.ts` (empty export or TODO marker)
@@ -53,6 +56,7 @@ Stubs establish the namespace and structure. They're private (not published) unt
 ## npm stubs
 
 Reserve package names on npm with placeholder 0.0.1 publishes:
+
 - @silvery/dom
 - @silvery/canvas
 - @silvery/native
@@ -66,3 +70,4 @@ Reserve package names on npm with placeholder 0.0.1 publishes:
 ## Dependency on package split
 
 This depends on @km/_orphan/w297c (the monolith split) being done first, since the monorepo structure needs to exist.
+

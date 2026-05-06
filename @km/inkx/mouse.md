@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/mouse"
 aliases:
   - km-inkx.mouse
@@ -17,16 +19,17 @@ Comprehensive mouse support for the TUI.
 
 ## Sub-tasks
 
-| ID | Title | Depends on |
-|----|-------|------------|
-| @km/_orphan/mouse-1 | Infrastructure: hit registry + scroll wheel | - |
-| @km/_orphan/mouse-2 | Click-to-select + fold toggle | @km/_orphan/mouse-1 |
-| @km/_orphan/mouse-3 | Double-click drill-in | @km/_orphan/mouse-2 |
-| @km/_orphan/mouse-4 | Drag area select (rectangle) | @km/_orphan/mouse-2 |
-| @km/_orphan/mouse-5 | Drag & drop (move cards/nodes) | @km/_orphan/mouse-2, @km/_orphan/mouse-4 |
-| @km/_orphan/mouse-6 | Click to follow links | @km/_orphan/mouse-2 |
+| ID                  | Title                                       | Depends on                               |
+| ------------------- | ------------------------------------------- | ---------------------------------------- |
+| @km/_orphan/mouse-1 | Infrastructure: hit registry + scroll wheel | -                                        |
+| @km/_orphan/mouse-2 | Click-to-select + fold toggle               | @km/_orphan/mouse-1                      |
+| @km/_orphan/mouse-3 | Double-click drill-in                       | @km/_orphan/mouse-2                      |
+| @km/_orphan/mouse-4 | Drag area select (rectangle)                | @km/_orphan/mouse-2                      |
+| @km/_orphan/mouse-5 | Drag & drop (move cards/nodes)              | @km/_orphan/mouse-2, @km/_orphan/mouse-4 |
+| @km/_orphan/mouse-6 | Click to follow links                       | @km/_orphan/mouse-2                      |
 
 ## Features
+
 - Scroll wheel navigation
 - Click-to-select
 - Click to fold/unfold tree nodes
@@ -36,6 +39,7 @@ Comprehensive mouse support for the TUI.
 - Drag & drop (move cards, nodes, columns, multi-selections)
 
 ## Incremental PRs
+
 1. PR 1: @km/_orphan/mouse-1 (infrastructure + scroll)
 2. PR 2: @km/_orphan/mouse-2 (click-to-select + fold)
 3. PR 3: @km/_orphan/mouse-3 (double-click)
@@ -44,9 +48,11 @@ Comprehensive mouse support for the TUI.
 6. PR 6: @km/_orphan/mouse-6 (click links)
 
 ## Risks & Mitigations
+
 - Link click complexity → Start with whole-node links
 - Scroll offset edge cases → Test with scrolled content
 - Z-index conflicts → Explicit values (dialogs=10, cards=1)
 - Terminal compat → Feature-detect, keyboard fallback
 - Drag ghost rendering → Use cursor indicator instead
 - Drop zone accuracy → Forgiving hit areas
+

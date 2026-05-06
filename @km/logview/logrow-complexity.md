@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/logview/logrow-complexity"
 aliases:
   - km-logview.logrow-complexity
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-23T14:05:38Z
     created_by: claude:c56dc5d6
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-logview
 ---
 
 # [x] Refactor LogRowView + deriveRows to meet complexity limits @km/logview #task #P3
@@ -28,6 +34,8 @@ Current state: LogRowView (cyclomatic 51/max 50, cognitive 78/max 50) and derive
 Approach: decompose LogRowView into focused sub-components (HeaderRow, BodyInline, BodyCollapsed, BodyExpanded, BodyFlat) and extract deriveRows helpers (pure functions per body shape). Keep the public renderItem contract unchanged.
 
 Acceptance:
+
 - bun fix passes with 0 complexity errors on apps/@km/logview/src/row/
 - no behavior change (tests pass)
 - LogRowView.tsx file stays readable with inverted-pyramid structure
+

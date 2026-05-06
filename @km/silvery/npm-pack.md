@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/npm-pack"
 aliases:
   - km-silvery.npm-pack
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] npm pack --dry-run: clean tarball verification @km/silvery #task #P3
 
 Verify npm pack produces a clean tarball with no extraneous files, correct entry points, and correct package.json.
+

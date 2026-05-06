@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/link-perf/0-batch-link-inserts-in-transaction"
 aliases:
   - km-link-perf.0
@@ -14,3 +16,4 @@ Currently each addLink() is a separate INSERT.
 Batch all links and insert in a single transaction for ~50% speedup.
 
 File: packages/@km/storage/src/vault-loader.ts resolveLinks()
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/kitty-proto"
 aliases:
   - km-infra.kitty-proto
@@ -19,3 +22,4 @@ Supported terminals: Ghostty, Kitty, WezTerm, foot. Not supported: Terminal.app,
 Implementation: inkx sends CSI > 1 u at startup to opt in, parses enhanced key reports. Graceful fallback for terminals that don't support it.
 
 Context: Design discussion about keybindings for cursor-enter-card, detail pane toggle, zoom. Cmd+key would provide clean, unambiguous bindings without Alt/Esc timeout issues.
+

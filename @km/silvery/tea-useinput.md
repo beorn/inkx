@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/tea-useinput"
 aliases:
   - km-silvery.tea-useinput
@@ -26,6 +29,10 @@ dependencies:
     created_at: 2026-04-15T11:31:03Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.selection-focus-plateau
 ---
 
 # [x] TEA Phase 2: Fix useInput precedence inside createApp @km/silvery #task #P1 @Bjørn Stabell
@@ -40,6 +47,7 @@ Target design: vendor/internal/silvery/design/v10-terminal/app-composition.md
 Prototype: vendor/internal/silvery/design/v15-tea/plugin-system-v1r.ts
 
 Changes (all internal to createApp — no consumer API changes):
+
 1. Replace runtimeInputListeners/runtimePasteListeners Sets with apply chain
 2. Focus dispatch returns explicit handled signal (false | Effect[])
 3. useInput hooks register into the chain, not raw RuntimeContext.on()
@@ -48,3 +56,4 @@ Changes (all internal to createApp — no consumer API changes):
 
 Consumer API stable: run(), createApp(), useInput, useApp — all unchanged.
 TEA black box: only processEventBatch internals change.
+

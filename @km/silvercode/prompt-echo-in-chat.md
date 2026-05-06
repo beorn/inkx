@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/prompt-echo-in-chat"
 aliases:
   - km-silvercode.prompt-echo-in-chat
@@ -25,6 +28,10 @@ dependencies:
     created_at: 2026-04-28T14:20:15Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Slash commands echo into chat as user message + duplicate prompt @km/silvercode #bug #P0 @claude:2405c72e
@@ -38,9 +45,11 @@ Expected: slash commands should NOT echo into the chat history. The TextInput sh
 Likely site: apps/silvercode/src/controller.ts runSlashCommand() — currently passes the slash command verbatim through to Claude Code. Claude Code interprets /compact, /clear, etc. correctly, but the silvercode-side message append is happening before that decision is made.
 
 Investigation:
+
 - Compare runSlashCommand vs send() — are both routes appending an optimistic user message to messages[]?
 - runSlashCommand uses a 'silvercode-specific commands intercepted by listeners' path per controller.ts line 1463 — that interception may not be suppressing the optimistic echo
 
 Acceptance: typing '/file' in the composer fires the file-picker behaviour (or whatever the slash command does) with NO user-message entry appearing in the chat list. Existing slash commands that DO want to render (e.g., /handoff confirmation) opt in explicitly.
 
 Parked from /loop session 2026-04-28 evening at user direction.
+

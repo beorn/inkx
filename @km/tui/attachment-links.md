@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/attachment-links"
 aliases:
   - km-tui.attachment-links
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Detail pane: show attachments as clickable hyperlinks @km/tui #bug #P2
 
 Attachments in the detail pane should render as clickable hyperlinks (OSC 8) instead of plain text. Use the existing pretty-URL infrastructure (prettifyUrl + OSC 8 hyperlink support in inkx) to render attachment links as underlined, clickable file: or https: links.
+

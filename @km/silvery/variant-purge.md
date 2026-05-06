@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/variant-purge"
 aliases:
   - km-silvery.variant-purge
@@ -17,6 +20,10 @@ dependencies:
     created_at: 2026-04-25T09:44:09Z
     created_by: claude:22c2717d
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.sterling
 ---
 
 # [x] Purge tone aliases — variant everywhere @km/silvery #task #P2 @claude:22c2717d
@@ -40,3 +47,4 @@ After this lands, all of these greps return 0 hits:
 
 - apps/silvercode/src/components/DetectionText.tsx — has its own `tone` prop unrelated to Sterling
 - /termless ghostty-src .github file — vendored-vendored, not silvery's concern
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/silvery-cli-v2"
 aliases:
   - km-termless.silvery-cli-v2
@@ -15,3 +18,4 @@ assignee: claude:4929065a
 # [x] Use silvery renderString for CLI output — backends, install, update, doctor @km/termless #task #P2 @claude:4929065a
 
 Use silvery's renderString() + Table + Badge + Box for all CLI output instead of console.log. Makes output prettier with semantic colors, proper layout, and consistent styling. Depends on @km/silvery/dist-lightweight being viable long-term, but can start now since silvery is a sister vendor package.
+

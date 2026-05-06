@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/tui-3"
 aliases:
   - km-tui-3
@@ -12,3 +14,4 @@ closed_at: 2026-02-04T11:27:22Z
 The km TUI currently uses alternate screen mode, clearing the terminal and displaying in a separate screen buffer. User prefers inline display where TUI output stays in the same terminal screen, preserving command history and previous output.
 
 This is likely controlled by Ink's terminal mode settings.
+

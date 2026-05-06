@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/claude-history"
 aliases:
   - km-claude-history
@@ -17,11 +19,13 @@ Cross-session history search and activity tracking for Claude Code. Key capabili
 4. **Agent coordination** - fast view of all active agents to avoid stepping on each other's work
 
 **Context:**
+
 - Should complement (not replace) the new Claude Code swarms feature (TeammateTool, inter-agent messaging)
 - Related to @km/_orphan/multi-llm bead for multi-LLM research consolidation
 - Swarms handles real-time coordination; this handles persistent memory/history
 
 **Implementation considerations:**
+
 - SQLite with FTS5 for full-text search
 - Parse ~/.claude/projects/ session files (JSONL format)
 - Index: prompts, responses, tool calls, timestamps, file paths touched
@@ -29,7 +33,9 @@ Cross-session history search and activity tracking for Claude Code. Key capabili
 - CLI commands for quick queries
 
 **Use cases:**
+
 - 'What did we work on the last hour?'
 - 'Have we researched X before?'
 - 'What are all active agents doing right now?'
 - 'Show me decisions about architecture Y'
+

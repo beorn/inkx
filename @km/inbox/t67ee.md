@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/t67ee"
 aliases:
   - km-t67ee
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Create alien-projections package in vendor/bearlymade @km/_orphan #task #P2
 
 Create alien-projections: incremental reactive collection transforms for alien-signals. createProjection(source, { key, map, filter?, sort? }) → derived signal that only re-maps changed entries. ~150 lines. Publish to npm (already reserved at 0.0.0).
+

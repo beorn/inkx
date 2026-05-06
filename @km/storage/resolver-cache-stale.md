@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/resolver-cache-stale"
 aliases:
   - km-storage.resolver-cache-stale
@@ -17,3 +20,4 @@ assignee: claude:c9beade3
 # [x] Resolver caches never invalidated on normal mutations @km/storage #bug #P0 @claude:c9beade3
 
 clearNameIndex()/clearResolveCache() only called in expandDirectory(), not after updateNode/moveNode/deleteNode/addNode. resolveByName()/resolveNode() can return deleted nodes, old names, or miss new nodes until manual cache clear.
+

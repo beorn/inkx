@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/rename-refs"
 aliases:
   - km-storage.rename-refs
@@ -36,6 +39,7 @@ It should also find and update (or offer to update):
 ## Implementation
 
 Extend renameNode (or a new layer on top) to:
+
 1. Scan rules fields (add, sync) in all section nodes for path patterns containing the old name
 2. Scan blocked-by property targets
 3. Optionally scan content for sigil/text matches
@@ -43,3 +47,4 @@ Extend renameNode (or a new layer on top) to:
 5. Execute all updates in a single withDeferredFs batch
 
 The TUI already shows "N backlinks will be updated" — extend this to show rule/property counts too.
+

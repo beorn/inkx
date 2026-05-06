@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/rev-arch-0130/3-fix-missing-repo-di-in-bd-ts-query-calls"
 aliases:
   - km-rev-arch-0130.3
@@ -12,3 +15,4 @@ assignee: claude:da8e4a66
 # [x] Fix missing Repo DI in bd.ts query calls @km/rev-arch-0130 #bug #P2 @claude:da8e4a66
 
 Critical: bd.ts:94 calls queryReady() without passing { repo } parameter. All @km/beads query functions need explicit Repo injection.
+

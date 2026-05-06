@@ -1,4 +1,7 @@
 ---
+mentions:
+  - silvery
+  - km
 id: "@km/silvery/commander-style-hooks"
 aliases:
   - km-silvery.commander-style-hooks
@@ -14,3 +17,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] @silvery/commander colorizeHelp style hooks may require Commander 13+ @km/silvery #bug #P3
+

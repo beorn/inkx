@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/enter-jumps-board"
 aliases:
   - km-tui.enter-jumps-board
@@ -15,6 +18,7 @@ assignee: Bjørn Stabell
 Enter after edit jumps to board level instead of creating sibling.
 
 ## Investigation
+
 - Traced the Enter keybinding chain during inline edit
 - The keybinding predicates (editLevel, cursorAtEnd, hasVisibleChildren) control which behavior fires:
   - text.linebreak_after: creates sibling (when editLevel=card, cursorAtEnd, no visible children)
@@ -25,12 +29,16 @@ Enter after edit jumps to board level instead of creating sibling.
 - This would cause Enter to dispatch wrong command, potentially exiting edit mode
 
 ## Root Cause Hypothesis
+
 After creating a new node (via Enter in edit), the render flush should update columns. If the flush fails or the node's type prevents it from appearing as a card (e.g., missing item:true), editLevel would return the wrong value on the next Enter press. The existing tests pass for standard scenarios, suggesting this may be a specific node configuration or timing issue.
 
 ## Fix
+
 Added invariant checks that detect:
+
 - cursor-in-columns: cursor exists in repo but not in any column (the exact symptom)
 - edit-node-in-columns: edit target not resolvable in columns
 These will crash in KM_STRICT=1 mode, making the issue immediately visible.
 
 Tests added to board-edit.slow.spec.ts for Enter-after-edit scenarios.
+

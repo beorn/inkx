@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - claude
 id: "@km/silvery/config-package"
 aliases:
   - km-silvery.config-package
@@ -24,6 +28,10 @@ dependencies:
     created_at: 2026-04-26T14:01:47Z
     created_by: claude:4de4a3ab
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Build @silvery/config — generic config + named-registry primitives @km/silvery #feature #P2 @claude:4de4a3ab
@@ -35,6 +43,7 @@ Generic config-tree + named-registry primitives. Two layers:
 **Layer 1 — Config**: deep-key get/set/unset/list/save on a YAML file (git-config analog). Atomic write. No cosmiconfig dep (per prior design signal).
 
 **Layer 2 — Registry<Kind>**: typed view over a sub-tree with:
+
 - string-projection (qs-style parse/format with type coercion: boolean/number/array/nested)
 - string-or-object schema (oneOf via Zod)
 - reserved-key validation (e.g. "default")
@@ -42,6 +51,7 @@ Generic config-tree + named-registry primitives. Two layers:
 - resolve() accepting registry-label OR connection-string OR built-in shortcut
 
 **Commander helpers**:
+
 - mountConfigCommand(program, config) → wires `app config <key>[=<val>]` (get/set/unset/list/edit/get-regexp)
 - mountRegistryCommand(program, name, registry) → wires `app <name> list|show|add|rm`
 
@@ -52,3 +62,4 @@ Generic config-tree + named-registry primitives. Two layers:
 **Deps**: zod (schema), js-yaml (parse/serialize). Peer-dep @silvery/commander.
 
 **No**: cosmiconfig (dependency hygiene), no plugins, no events, no introspection beyond list/format/resolve. YAGNI.
+

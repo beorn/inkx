@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/inline-refs"
 aliases:
   - km-tui.inline-refs
@@ -13,3 +16,4 @@ assignee: claude:fcaad2fa
 # [x] Inline ^caret references show raw Asana GIDs in body text @km/tui #bug #P2 @claude:fcaad2fa
 
 Body text contains inline caret references like 'See previous ^1202466275397380' and 'talk to Fidelity^1212075048027297'. These should either be resolved to the target node title (as a clickable/readable reference) or stripped for display. stripForDisplay() only strips ^id at END of text, not inline ones. Separate from link_to node resolution (@km/tui/link-title).
+

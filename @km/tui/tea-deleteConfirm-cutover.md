@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/tea-deleteConfirm-cutover"
 aliases:
   - km-tui.tea-deleteConfirm-cutover
@@ -52,8 +54,13 @@ dependencies:
     created_at: 2026-04-21T02:17:51Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui.tea-withDialogs
 ---
 
 # [x] TEA cutover — DeleteConfirm (withDialogs Phase 1, easy win) @km/tui #feature #P2
 
 blocks:: [[@km/tui/tea-withDialogs]]
+

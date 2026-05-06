@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/regression"
 aliases:
   - km-infra.regression
@@ -11,3 +14,4 @@ assignee: claude:9e69175d
 # [x] Milestone 5: Regression Suite @km/infra #epic #P3 @claude:9e69175d
 
 Named test cases for each bug found. CI integration (nightly fuzzing). Coverage tracking for tested scenarios.
+

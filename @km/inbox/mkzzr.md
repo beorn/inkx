@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/mkzzr"
 aliases:
   - km-mkzzr
@@ -14,3 +17,4 @@ assignee: claude:b92140a2
 # [x] P1: In-app folder rename doesn't refresh index file content @km/_orphan #bug #P1 @claude:b92140a2
 
 handleFolderRename renames the directory and same-name index file, but doesn't regenerate index content. Title in index file stays as old name. Fix: call handleFolderIndexUpdate after successful folder rename.
+

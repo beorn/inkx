@@ -29,3 +29,4 @@ rather than one smoke test per component prop.
 - [ ] Run with `SILVERY_STRICT=1`; no incremental/fresh mismatches.
 
 Added regressions in existing scrollbar/ListView/Storybook suites: outside-terminal hover cleanup, active drag max grow/shrink, stale thumb clearing, ScrollArea measured wheel scrolling, Storybook preview wheel scrolling, ListView thumb-to-bottom.
+

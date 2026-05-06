@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ai-terminal/dogfood"
 aliases:
   - km-silvery.ai-terminal.dogfood
@@ -13,13 +15,17 @@ dependencies:
     created_at: 2026-04-24T00:20:07Z
     created_by: claude:c56dc5d6
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.ai-terminal
 ---
 
 # [ ] Dogfood vehicle — silvery eats its own building blocks (interactive terminal + ai-repl) @km/silvery #feature #P2
 
 blocks:: [[@km/silvery/ai-terminal]]
 
-# Dogfood vehicle: silvery eats its own building blocks
+## Dogfood vehicle: silvery eats its own building blocks
 
 **Parent**: @km/silvery/ai-terminal
 **Priority**: P2 — the part of the ai-terminal thesis that's actually actionable near-term. Dogfooding finds framework bugs before users do.
@@ -65,3 +71,4 @@ Dogfooding is a framework-quality lever, not a product bet. Even if we never shi
 - Public product launch — that's deferred to `km-silvery.ai-terminal` epic un-parking.
 - CAP protocol, commander, capability manifests — those belong to later phases of the ai-terminal thesis. Dogfood doesn't need any of it.
 - Multi-pane multiplex, session persistence, collaboration — @km/silvery/ai-terminal/collaboration owns those.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/embed-roundtrip-test"
 aliases:
   - km-storage.embed-roundtrip-test
@@ -11,3 +14,4 @@ assignee: claude:9b6678d0
 ---
 
 # [x] E2E test: link_to survives write → re-parse round-trip @km/storage #task #P0 @claude:9b6678d0
+

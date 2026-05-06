@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/cursor-init-collapsed"
 aliases:
   - km-tui.cursor-init-collapsed
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Cursor placed on invisible card when first column is collapsed at init @km/tui #bug #P2
 
 testEnv/testEnvWithRepo always place cursor on first column's first card, even when that column is collapsed. Fixed with computeInitialCursor() helper that skips collapsed columns.
+

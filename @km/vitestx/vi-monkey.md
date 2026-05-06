@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/vitestx/vi-monkey"
 aliases:
   - km-vitestx.vi-monkey
@@ -14,3 +17,4 @@ assignee: claude:55df8ef1
 ---
 
 # [x] Rename vitestx → vi-monkey, extract dotz to bearlymade @km/vitestx #task #P2 @claude:55df8ef1
+

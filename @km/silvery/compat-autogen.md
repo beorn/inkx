@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/compat-autogen"
 aliases:
   - km-silvery.compat-autogen
@@ -18,6 +21,7 @@ assignee: claude:73d7a332
 Auto-generate all ink compat vitest tests from upstream ink repo via codemod transforms. No hand-ported tests checked in — generate on-the-fly and run.
 
 ## Approach
+
 1. Add a codegen step to compat-check.ts that transforms ink's ava tests to vitest
 2. Codemod rewrites: ava→vitest imports, t.is→expect().toBe, t.true→expect().toBe(true), etc.
 3. Replace ink imports with silvery compat imports
@@ -26,4 +30,6 @@ Auto-generate all ink compat vitest tests from upstream ink repo via codemod tra
 6. Delete existing hand-ported tests — the generated ones replace them
 
 ## PTY tests (118 pending)
+
 The PTY tests use node-pty to spawn fixture processes. We translate them to use silvery's createTermless() + run() which provides the same capabilities without process spawning.
+

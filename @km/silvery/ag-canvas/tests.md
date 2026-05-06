@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ag-canvas/tests"
 aliases:
   - km-silvery.ag-canvas.tests
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Canvas rendering test suite @km/silvery #task #P2
 
 Zero tests exist for canvas rendering. Add coverage: renderCanvasOnce produces correct dimensions, text measurement (proportional vs monospace), text wrapping at constrained widths, Box padding/border content area, HiDPI scaling (2x DPR → 2x pixel buffer), clearRect on re-render, useInput key delivery, resize preserving React state.
+

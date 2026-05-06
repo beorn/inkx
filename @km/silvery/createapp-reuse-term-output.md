@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/createapp-reuse-term-output"
 aliases:
   - km-silvery.createapp-reuse-term-output
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-22T18:26:31Z
     created_by: claude:019d032d
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.term-sub-owners
 ---
 
 # [x] createApp uses injectedTerm.output when present (eliminate latent dual-Output) @km/silvery #task #P2 @claude:019d032d
@@ -30,10 +37,12 @@ blocks:: [[@km/silvery/term-sub-owners]]
 
 `packages/ag-term/src/runtime/create-app.tsx` at line ~1663 does:
 
-    if (shouldGuardOutput) {
-      output = createOutput()
-      output.activate()
-    }
+```
+if (shouldGuardOutput) {
+  output = createOutput()
+  output.activate()
+}
+```
 
 It constructs a fresh Output even when `injectedTerm?.output` exists. Both instances monkey-patch the same `process.stdout.write`, so whichever activates last wins — a latent doubled-patcher bug in the same class as the Console/Output ordering hazard Pro reviewed.
 
@@ -43,10 +52,12 @@ Today the bug isn't firing because `injectedTerm.output` is lazy and nobody touc
 
 Prefer `injectedTerm.output` when available:
 
-    if (shouldGuardOutput) {
-      output = injectedTerm?.output ?? createOutput()
-      output.activate()
-    }
+```
+if (shouldGuardOutput) {
+  output = injectedTerm?.output ?? createOutput()
+  output.activate()
+}
+```
 
 Then audit dispose: only dispose the Output if we constructed it (ownership tracking).
 
@@ -65,3 +76,4 @@ Then audit dispose: only dispose the Output if we constructed it (ownership trac
 ## Mandatory
 
 Read docs/lessons/refactoring.md IN FULL before writing any code.
+

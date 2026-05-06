@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/modifier-parser"
 aliases:
   - km-silvery.modifier-parser
@@ -19,3 +22,4 @@ GPT 5.4 Pro finding: isModifierOnlyEvent() re-derives modifier-only from empty i
 Fix: parseKey() should set key.isModifierOnly = true when it detects a modifier-only sequence from Kitty protocol. Then isModifierOnlyEvent() just checks the flag.
 
 /complete: parseKey sets key.isModifierOnly; isModifierOnlyEvent checks flag not heuristic
+

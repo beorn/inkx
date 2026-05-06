@@ -1,4 +1,8 @@
 ---
+mentions:
+  - beorn
+  - km
+  - claude
 id: "@km/logger/vision"
 aliases:
   - km-logger.vision
@@ -17,18 +21,22 @@ Evaluate the opportunity for @beorn/logger to replace the entire JS/TS logging e
 ## Status: Phase 1 Complete
 
 ### Phase 1: Universal Runtime + DX (DONE)
+
 - Universal runtime guards (getEnv, writeStderr, core/file-writer split) — @km/logger/universal
-- Published benchmarks vs pino/winston/debug — @km/logger/benchmarks  
+- Published benchmarks vs pino/winston/debug — @km/logger/benchmarks
 - Migration guides from debug, pino, winston — @km/logger/migration-guides
 - Browser conditional export in package.json
 
 ### Phase 2: Distributed Tracing (PLANNED)
+
 - W3C traceparent, OTel-compatible export — @km/logger/tracing (P3)
 
 ### Phase 3: Metrics (PLANNED)
+
 - Counter/gauge/histogram via ?. pattern — @km/logger/metrics (P4)
 
 ## Key Questions (Answered)
+
 1. Unifying thesis: zero-overhead via ?., logger=span unification, ~3KB
 2. Browser gaps: 4 Node-specific patterns → FIXED with inline guards
 3. Distributed tracing gaps: W3C IDs, traceparent, AsyncLocalStorage, OTel exporters
@@ -36,4 +44,6 @@ Evaluate the opportunity for @beorn/logger to replace the entire JS/TS logging e
 5. Roadmap: Phase 1 done, Phase 2-3 future
 
 ## Research
+
 Deep research report: /tmp/llm-e719173f-1772658155947-c59f.txt
+

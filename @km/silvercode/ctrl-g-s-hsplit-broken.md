@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - G
 id: "@km/silvercode/ctrl-g-s-hsplit-broken"
 aliases:
   - km-silvercode.ctrl-g-s-hsplit-broken
@@ -13,6 +17,10 @@ dependencies:
     created_at: 2026-04-28T09:10:45Z
     created_by: claude:87d20187
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [ ] Ctrl+G s (hsplit chord) doesn't produce horizontal divider in visual tests @km/silvercode #bug #P2
@@ -30,15 +38,19 @@ Symptom: after Ctrl+G s, the rendered screen has no '─' character. Test debug 
 Ctrl+G v (vsplit, produces '│') works correctly. Ctrl+G s (hsplit, expected to produce '─') fails. Same chord prefix, identical handler structure in App.tsx (lines 874-885), but only one fires.
 
 Hypothesis avenues:
+
 - Check if Ctrl+G chord state is set before 's' arrives (the timing comment on chordRef warns about React batching)
 - Check if 's' has another useInput handler that consumes it before the chord branch
 - Check if splitFocusedPane('column') actually mutates the tree (vs splitFocusedPane('row') which works)
 - Check if PaneGrid's column-split rendering path is broken even when the tree is correct
 
 Last-touched commits:
+
 - Test added: 250eb5fd9 feat(silvercode): 2D pane layout (binary-split tree, horizontal splits)
 - Last modified: 73bd49d68 refactor(silvercode): drop track= (1-line removal of track='claude' prop)
 
 Acceptance:
+
 - bun vitest run apps/silvercode/tests/visual/pane-2d-layout.test.tsx → 3/3 pass
 - 'Ctrl+G s' from a single-pane state produces visible '─' on screen
+

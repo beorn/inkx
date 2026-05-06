@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/feedback-trace-loggily"
 aliases:
   - km-silvery.feedback-trace-loggily
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-27T00:05:35Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.structural-hardening
 ---
 
 # [x] Migrate pass-cause instrumentation to loggily @km/silvery #task #P2
@@ -46,6 +52,7 @@ The instrumentation works and the histogram baseline is real (191 897 records, 7
 6. Update hub/silvery/design/pass-cause-histogram.md with the new reproducer commands.
 
 ## /complete
+
 - grep \"SILVERY_INSTRUMENT\" vendor/silvery → only env-var-mapping mention(s); no parallel logging logic
 - grep \"recordPassCause\" → 0 hits (replaced by log.span)
 - vendor/silvery/packages/ag-term/src/runtime/pass-cause.ts: < 100 LOC (down from 280) — only PassCause type + namespace mapping + the createLogger factory
@@ -60,3 +67,4 @@ Source branch: feat/feedback-trace (where C3a's commits live). Migration commits
 Should run BEFORE C3b (bounded-convergence) so C3b consumes the loggily-based histogram, not the custom one. C3b is otherwise unblocked by C3a data.
 
 Origin: @km/all/plateau-90 follow-on (created 2026-04-27).
+

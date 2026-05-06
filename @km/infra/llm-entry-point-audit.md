@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/llm-entry-point-audit"
 aliases:
   - km-infra.llm-entry-point-audit
@@ -21,6 +24,10 @@ dependencies:
     created_at: 2026-04-20T16:31:52Z
     created_by: claude:0590a583
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] Audit bearly CLI entry wrappers for double-fire pattern @km/infra #task #P2 @claude:0590a583
@@ -30,15 +37,19 @@ blocks:: [[@km/infra]]
 Root cause: commit bearly@943c8154 (2026-04-17) left module-level main() in plugins/llm/src/cli.ts AND added await main() in tools/llm.ts shim. Every bun llm invocation fired twice concurrently for 3 days (Apr 17 - Apr 20), double-billing ~$10-30 on Pro calls. Fixed in bearly@285fc04 with import.meta.main guard.
 
 Audit scope:
+
 1. Every tools/*.ts in vendor/bearly — check for the pattern: wrapper imports main() from plugins/*/src/cli.ts AND plugin's cli.ts has unguarded module-level main() invocation.
 2. Every plugins/*/src/cli.ts — ensure import.meta.main guard on any top-level async invocation.
 3. Other bun-run CLIs in tools/: refactor.ts, recall.ts, tribe-cli.ts, tty.ts, worktree.ts, playwright-tty-mcp.ts, qmd-watchdog.ts.
 
 For each entry point:
+
 - Grep for module-level main()/run() calls + paired await in a wrapper.
 - Run a single smoke invocation, count side-effectful outputs (network calls, file writes, stderr lines).
 - Fix with import.meta.main guard where unprotected.
 
 Process layer (already agreed, tripwire NOT needed):
+
 - feedback-cost-inducing-cli-changes.md is now canonical for CLI-wrapper cost discipline.
 - Before committing any llm/cli entry wrapper change, run one cheap smoke call and confirm single-fire.
+

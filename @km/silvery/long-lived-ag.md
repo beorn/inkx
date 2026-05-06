@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/long-lived-ag"
 aliases:
   - km-silvery.long-lived-ag
@@ -14,3 +17,4 @@ assignee: Bjørn Stabell
 # [x] Long-lived Ag instance — cache pipeline state across frames @km/silvery #feature #P2 @Bjørn Stabell
 
 Phase 0b of signals engine. Cache Ag instance on renderer across frames. Dirty set lives on the Ag. Avoids per-frame pipeline state allocation. ~1-2 days. Prerequisite for Phase 2. See design/v20-canvas/signals-engine-architecture.md.
+

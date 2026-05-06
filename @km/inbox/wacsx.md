@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - Y
 id: "@km/inbox/wacsx"
 aliases:
   - km-wacsx
@@ -11,3 +16,4 @@ assignee: claude:124bfbe5
 ---
 
 # [x] TUI: Redo (Ctrl+Y) does not restore duplicated node after undo @km/_orphan #bug #P2 @claude:124bfbe5
+

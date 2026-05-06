@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/osc-title"
 aliases:
   - km-inkx.osc-title
@@ -13,3 +16,4 @@ assignee: claude:d697f216
 # [x] OSC 0/2: set window/icon title @km/inkx #feature #P2 @claude:d697f216
 
 Add setWindowTitle(title) and setIconTitle(title) using OSC 0 (both) / OSC 2 (window only). Useful for showing current view name, file path, or status in the terminal tab/title bar. Most terminals support this.
+

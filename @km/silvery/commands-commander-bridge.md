@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - silvery
+  - km
 id: "@km/silvery/commands-commander-bridge"
 aliases:
   - km-silvery.commands-commander-bridge
@@ -15,10 +19,12 @@ Explore whether @silvery/commands (runtime command registry with keybindings, co
 ## Why
 
 Right now they're two independent packages:
+
 - **@silvery/commander** parses CLI flags/args at startup and renders beautiful help text through Silvery itself (dog-fooding the framework → "beautiful CLIs for free").
 - **@silvery/commands** runs inside the TUI: a registry of named commands with keybindings, predicates, and invocation from keypresses or command palette.
 
 But conceptually they're the same thing: a **command** that can be invoked from a CLI flag, a key binding, a menu item, or a command palette. A unified model would mean:
+
 - Define commands once, invoke from anywhere (CLI entrypoint → interactive TUI → command palette)
 - CLI --help and TUI command palette list the same commands with the same descriptions
 - Standard Schema validation works for keybound args as well as CLI flags
@@ -41,3 +47,4 @@ But conceptually they're the same thing: a **command** that can be invoked from 
 - Design sketch in vendor/internal/silvery/design/commands-commander-bridge.md
 - Decision: yes (ship), prototype only (defer), or no (keep separate)
 - If yes: follow-up bead with the implementation plan
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/asana-v2"
 aliases:
   - km-storage.asana-v2
@@ -15,6 +18,7 @@ assignee: claude:4c413aae
 Second round of Asana import quality issues from user review.
 
 ## Completed
+
 - ✅ #1 Tag/user files: embed-only (no baked-in titles)
 - ✅ #2 List bullet style: `-` instead of `*`
 - ✅ #3 Remove wiki link aliases
@@ -25,11 +29,13 @@ Second round of Asana import quality issues from user review.
 ## Remaining (from comparison analysis, 71 files)
 
 ### Critical
+
 - **#9 Project/view URLs (~940)**: `ASANA_URL_PATTERNS` only matches task URLs. Project URLs like `/0/projectGid/list` left as dead Asana links. Need to convert to project wiki links or strip.
 - **#10 Asset proxy URLs (~10)**: `get_asset?asset_id=` URLs in comments are dead outside Asana.
 - **#11 Raw checkboxes in comments (~20+)**: `[x]`/`[ ]` in comment text may confuse km parser.
 
 ### Important (Turndown legacy in cached JSON)
+
 - **#12 Escaped dashes `\-` (~8,182)**: buildBodyContent doesn't unescape `\-`
 - **#13 Escaped brackets `\[` `\]` (~1,987)**: Turndown escaping in body text
 - **#14 Escaped underscores (~30+)**: `pg\_dump` etc. in body text (not URLs)
@@ -39,8 +45,11 @@ Second round of Asana import quality issues from user review.
 - **#18 `\*)` patterns (6)**
 
 ### Minor
+
 - Empty task titles (~30), H7+ headings (22), bare URLs (~452), 4-space list indent (~17k)
 
 ### Tracked separately
+
 - #6 Live Asana comparison (done via agent)
 - #7 Attachment dedup (future)
+

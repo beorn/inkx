@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/pipeline-review"
 aliases:
   - km-silvery.pipeline-review
@@ -16,3 +19,4 @@ assignee: claude:c9beade3
 # [x] Pipeline review: algorithm clarity, test coverage, docs, env vars @km/silvery #epic #P2 @claude:c9beade3
 
 Comprehensive review of silvery rendering pipeline from 4 perspectives (3 Claude + GPT 5.4 Pro). 15 findings across P1-P3. See @km/_orphan/snkzg for the review process.
+

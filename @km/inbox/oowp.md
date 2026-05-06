@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/oowp"
 aliases:
   - km-oowp
@@ -12,6 +14,7 @@ closed_at: 2026-01-26T12:43:19Z
 Create unified plugins/batch/ with backend abstraction for multi-language support.
 
 Structure:
+
 - tools/lib/core/ - language-agnostic (types, editset, apply)
 - tools/lib/backend.ts - backend interface
 - tools/lib/backends/ts-morph/ - TypeScript/JS
@@ -19,3 +22,4 @@ Structure:
 
 Depends on: bug fixes and test fixtures.
 See vendor/beorn-claude-tools/plugins/PLAN.md for full structure.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/loggily/v2-phase3"
 aliases:
   - km-loggily.v2-phase3
@@ -23,6 +26,14 @@ dependencies:
     created_at: 2026-04-11T23:59:03Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-loggily.api-v2
+      - type: link
+        target: km-loggily.v2-phase2
 ---
 
 # [x] Phase 3: deprecate v1 globals + migrate km @km/loggily #task #P2 @Bjørn Stabell
@@ -30,3 +41,4 @@ dependencies:
 blocks:: [[@km/loggily/api-v2]], [[@km/loggily/v2-phase2]]
 
 Deprecate setLogLevel, setDebugFilter, enableSpans, addWriter, etc. Migrate ~10 km files that use globals to v2 config. Update @km/_orphan/core re-exports. Write migration guide. Keep v1 API working with deprecation warnings for one minor version.
+

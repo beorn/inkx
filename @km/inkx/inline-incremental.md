@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/inline-incremental"
 aliases:
   - km-inkx.inline-incremental
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Incremental rendering for inline mode @km/inkx #feature #P2
 
 Inline mode currently re-renders entire buffer every frame (~5848 bytes at 50 items). Add incremental path using diffBuffers() + relative cursor positioning when safe (scrollbackOffset=0, dimensions unchanged). Falls back to full render for complex cases.
+

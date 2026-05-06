@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/qnjt"
 aliases:
   - km-qnjt
@@ -12,12 +14,14 @@ closed_at: 2026-01-24T19:51:43Z
 ## Fixed in @km/_orphan/qnjt-fix (commit 0cc43d1)
 
 Changed fallback behavior when target column has no registered positions:
+
 - OLD: Use same card index (e.g., card 3 → card 3), which could be 75% down a shorter column
 - NEW: Use proportional index (e.g., 50% → 50%), maintaining visual position
 
 ## Remaining potential improvements
 
 The proportional fallback is approximate. For perfect visual navigation:
+
 1. Pre-render all columns to get positions (expensive)
 2. Or calculate positions from card content heights (requires content measurement)
 
@@ -26,3 +30,4 @@ The proportional approach is a reasonable compromise that works well for typical
 ## Root cause confirmed
 
 When columns scroll out of view, their Card components unmount and positions are never re-registered. Only visible columns have positions registered.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/add-no-writeback"
 aliases:
   - km-storage.add-no-writeback
@@ -40,3 +42,4 @@ Option 2 is cleanest. The Repo should expose a `createNode()` or `addChild()` me
 - packages/@km/storage/src/emitter.ts (pipeline)
 - packages/@km/storage/src/repo.ts:879 (emitter creation without db)
 - packages/@km/storage/src/watch/fs-writer.ts (FsWriter that needs db-applied node)
+

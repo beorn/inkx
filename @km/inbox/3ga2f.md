@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/3ga2f"
 aliases:
   - km-3ga2f
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Keybinding design guide implementation @km/_orphan #feature #P2
 
 Implement 6-step keybinding redesign: audit, modifier rename (super→cmd, meta→option), hasKitty predicate, binding alignment, help dialog rendering, docs
+

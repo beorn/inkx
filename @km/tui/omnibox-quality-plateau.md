@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - Bjørn
+projects:
+  - K
 id: "@km/tui/omnibox-quality-plateau"
 aliases:
   - km-tui.omnibox-quality-plateau
@@ -22,6 +27,10 @@ dependencies:
     created_at: 2026-04-15T11:31:08Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.selection-focus-plateau
 ---
 
 # [x] Omnibox quality plateau — delete legacy Omnibox.tsx and reroute : / Cmd+K @km/tui #task #P1 @Bjørn Stabell
@@ -111,3 +120,4 @@ key bindings). Dogfood cycle required.
 The existing omnibox-migration-cleanup bead tracks Phase 12 broadly.
 This one is the concrete shippable unit with the gating checks and
 step list. Close omnibox-migration-cleanup when this is done.
+

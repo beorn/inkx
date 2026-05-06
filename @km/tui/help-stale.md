@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/help-stale"
 aliases:
   - km-tui.help-stale
@@ -13,3 +16,4 @@ assignee: claude:d3a7049b
 # [x] Help pane not updated with new keybindings @km/tui #bug #P2 @claude:d3a7049b
 
 The help pane (? key) shows outdated keybindings. After the keybindings-v2 rebind, many keys changed but the help pane content was not updated to reflect the new bindings.
+

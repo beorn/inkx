@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/autolinks-cascade"
 aliases:
   - km-silvercode.autolinks-cascade
@@ -22,6 +25,10 @@ dependencies:
     created_at: 2026-04-25T03:10:56Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.autolinks-config
 ---
 
 # [x] Configurable autolinks: workspace-level + per-vault cascade @km/silvercode #task #P3 @claude:2405c72e
@@ -31,3 +38,4 @@ blocks:: [[@km/silvercode/autolinks-config]]
 Cascade workspace-level (`~/.silvercode/links.toml`) and per-vault (`<cwd>/.silvercode/links.toml`) autolinks. Vault rules win on duplicate patterns. v1 ships per-vault only; this bead adds the workspace layer.
 
 Parent: @km/silvercode/autolinks-config
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/fill-bg"
 aliases:
   - km-tui.fill-bg
@@ -13,3 +16,4 @@ assignee: claude:d697f216
 # [x] Fill bg with default bg color for CommandBox, dialogs, and other overlay areas @km/tui #feature #P2 @claude:d697f216
 
 User asks: can we fill the bg with the default bg color? If so, use it for Command Feedback area and dialog boxes where we need to fill/cover content behind.
+

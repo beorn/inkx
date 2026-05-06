@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkz"
 aliases:
   - km-inkz
@@ -26,18 +28,20 @@ InkZ calculates layout first, then renders. Components can query their size via 
 
 ## Status
 
-| Phase | Status |
-|-------|--------|
-| Design & Architecture | Complete |
-| Implementation | In Progress |
+| Phase                 | Status      |
+| --------------------- | ----------- |
+| Design & Architecture | Complete    |
+| Implementation        | In Progress |
 
 ## Child Beads
 
 ### Implementation (P1)
+
 - **@km/inkz/8-reconciler**: Complete reconciler and scheduler implementation
 - **@km/inkz/9-examples**: Fix example apps (blocked by reconciler)
 
 ### Features (P2)
+
 - **@km/inkz/10-scroll**: Implement overflow="scroll" with virtualization
 - **@km/inkz/11-km-migration**: Migrate @km/_orphan/ink to InkZ (blocked by scroll)
 - **@km/inkz/12-docs**: Complete documentation site (VitePress + llms.txt)
@@ -45,9 +49,11 @@ InkZ calculates layout first, then renders. Components can query their size via 
 - **@km/inkz/14-readme**: Review and update README accuracy
 
 ### Validation (P3)
+
 - **@km/inkz/15-compat**: Verify drop-in compatibility against real Ink projects
 
 ### Backlog (P4)
+
 - **@km/inkz/16-layout-engine**: Pluggable layout engine (Yoga/Taffy)
 
 ## Documentation
@@ -69,3 +75,4 @@ All docs in `vendor/beorn-inkz/docs/`:
 - **@km/inkz/5-review**: Review iterations
 - **@km/inkz/6-migration**: Migration guide
 - **@km/inkz/7-internals**: Implementation internals
+

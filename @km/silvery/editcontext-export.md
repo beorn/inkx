@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - claude
 id: "@km/silvery/editcontext-export"
 aliases:
   - km-silvery.editcontext-export
@@ -44,6 +48,10 @@ dependencies:
     created_at: 2026-04-26T16:22:34Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.fix-sweep-vendor-fuzz
 ---
 
 # [x] [bug] @silvery/ag-react/ui/components/EditContextDisplay missing export — 4 test failures @km/silvery #bug #P2 @claude:cc081a9a
@@ -51,3 +59,4 @@ dependencies:
 blocks:: [[@km/all/fix-sweep-vendor-fuzz]]
 
 click-to-position.test.tsx + use-ag-node.test.tsx (3) fail with: Cannot find package '@silvery/ag-react/ui/components/EditContextDisplay'. Likely export-map issue in vendor/silvery/packages/ag-react/package.json or removed/renamed component. /complete: bun vitest run --project vendor vendor/silvery/tests/features/click-to-position.test.tsx vendor/silvery/tests/features/use-ag-node.test.tsx → 0 failures.
+

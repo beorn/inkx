@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/detail-subitem-style"
 aliases:
   - km-tui.detail-subitem-style
@@ -11,3 +14,4 @@ assignee: claude:36393b5d
 ---
 
 # [x] Detail pane: restyle subitems — separator, bold titles, hanging checkmark, outline tree @km/tui #task #P2 @claude:36393b5d
+

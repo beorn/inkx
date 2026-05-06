@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/mdspec-vitest-config"
 aliases:
   - km-all.mdspec-vitest-config
@@ -23,7 +25,7 @@ Reproducer:
 Expected: test runs (passes or fails on its own merits).
 Actual: vitest fails to load tests at all with:
 
-  Error: Cannot find module '/Users/beorn/Code/pim/km/vendor/mdspec/packages/@km/infra/vitest/setup.ts'
+Error: Cannot find module '/Users/beorn/Code/pim/km/vendor/mdspec/packages/@km/infra/vitest/setup.ts'
 
 Root cause:
 mdspec has no vitest.config.ts of its own. Vitest walks up to find a
@@ -34,6 +36,7 @@ to mdspec's dir, producing the bogus
 vendor/mdspec/packages/@km/infra/vitest/setup.ts path.
 
 Symptoms hidden by:
+
 - bun run ci in mdspec exits with this as a generic "1 fail" — easy to
   miss the real cause
 - Pre-commit hook in mdspec blocks commits when this is the only
@@ -42,6 +45,7 @@ Symptoms hidden by:
   cannot run vitest at all
 
 Fix options:
+
 1. Add vendor/mdspec/vitest.config.ts that does NOT reference @km/infra
    setup files — keeps standalone usage clean.
 2. Make km root vitest config use absolute paths so re-anchoring
@@ -55,3 +59,4 @@ standalone-ready checklist. mdspec violates this today.
 
 Discovered during /sop all on 2026-04-16 while trying to commit a
 formatting tweak in vendor/mdspec/src/plugins/tape.ts.
+

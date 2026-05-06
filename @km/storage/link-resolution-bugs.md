@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/link-resolution-bugs"
 aliases:
   - km-storage.link-resolution-bugs
@@ -17,3 +20,4 @@ assignee: claude:c9beade3
 # [x] Wikilink resolution: name collisions, over-broad section updates, rename corruption @km/storage #bug #P0 @claude:c9beade3
 
 Three P0 link resolution bugs: (1) createLinkResolver Map silently overwrites on duplicate names, findFileByName LIMIT 1 with no ambiguity. (2) resolveLinks WHERE clause too broad — [[doc#A]] and [[doc#B]] can both resolve to same target. (3) renameNode updates ALL links matching old name, not just those with target_id of renamed node.
+

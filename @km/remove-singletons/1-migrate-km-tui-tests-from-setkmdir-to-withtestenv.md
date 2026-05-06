@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/remove-singletons/1-migrate-km-tui-tests-from-setkmdir-to-withtestenv"
 aliases:
   - km-remove-singletons.1
@@ -12,3 +14,4 @@ closed_at: 2026-01-23T21:10:59Z
 
 Files: board.slow.test.ts, detail-pane.test.ts, board-move-elaborate.test.ts
 Pattern: Use withTestEnv helper instead of manual setKmDir
+

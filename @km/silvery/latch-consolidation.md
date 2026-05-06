@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/latch-consolidation"
 aliases:
   - km-silvery.latch-consolidation
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-23T10:12:11Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Consolidate module-level warn-once latches into a single warnOnce helper @km/silvery #task #P2 @claude:c6244087
@@ -27,3 +34,4 @@ dependencies:
 blocks:: [[@km/silvery]]
 
 Per /big audit. 3 different module-local hasWarned* latches exist with slightly different reset patterns (test/src/index.tsx:155 hasWarnedAboutTermlessLeak; ag/src/keys.ts:495 _shiftWarningEmitted; ag-react/src/reconciler/host-config.ts:128 hasWarnedBoxInsideText). Consolidate into a small warnOnce(id, msg) helper + resetWarnings() for tests.
+

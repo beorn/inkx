@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/sqlite-store"
 aliases:
   - km-storage.sqlite-store
@@ -19,11 +21,14 @@ Current: SQLite is already the persistence layer (via bun:sqlite + Emitter).
 Target: createSQLiteStore(db) that directly implements Store & Observable & Persistent.
 
 ### Key changes
+
 - SQLite store reads directly from DB (not through Repo abstraction)
 - Memory store becomes a reactive cache (withReactive wraps SQLite store)
 - On startup: hydrate from SQLite, emit loading → loaded transitions
 - All mutations go through SQLite first, then propagate to cache
 
 ### Blocked on
+
 - Step 4 (store-sync) — need commit subscriber pattern first
 - Decision: whether to keep Repo as compatibility layer or migrate callers
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/08qxc"
 aliases:
   - km-08qxc
@@ -16,3 +19,4 @@ assignee: claude:656602a3
 # [x] Wire clickToCursorOffset into handleMouse @km/_orphan #task #P2 @claude:656602a3
 
 clickToCursorOffset utility exists (board/click-to-cursor.ts) with unit tests (click-to-position.spec.ts). Needs wiring into handleMouse for: (1) same-node click during edit → setCursorOffset, (2) different-node-in-card click → initialCursorPos, (3) double-click entering edit → initialCursorPos. Previous attempt caused cursor positioning on every click — needs investigation with real Ghostty terminal (not reproducible in headless xterm.js). Requires EnterInlineEditAction.initialCursorPos addition.
+

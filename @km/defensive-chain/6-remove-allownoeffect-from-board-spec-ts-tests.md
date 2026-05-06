@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/defensive-chain/6-remove-allownoeffect-from-board-spec-ts-tests"
 aliases:
   - km-defensive-chain.6
@@ -12,3 +15,4 @@ assignee: claude
 # [x] Remove allowNoEffect from board.spec.ts tests @km/defensive-chain #task #P1 @claude
 
 Update all tests that use allowNoEffect to instead check for bell element.
+

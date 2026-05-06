@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/measure-conformance"
 aliases:
   - km-flexily.measure-conformance
@@ -15,3 +17,4 @@ Add MeasureFunc-based layout tests to yoga-comparison.test.ts. The chat bubble l
 Also: add DOM conformance test (Playwright) that builds equivalent CSS flexbox, compares layout rects. This validates the full stack (flexily + text measurement) against browser truth.
 
 Context: discovered during ag-canvas proportional text work — canvas text positioning drifts ~10px over 7 messages vs DOM. Text baseline drawing is now correct (alphabetic + fontBoundingBox). Remaining drift is layout-level.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/arch/editorial-split"
 aliases:
   - km-arch.editorial-split
@@ -39,13 +42,17 @@ dependencies:
     created_at: 2026-04-27T10:42:37Z
     created_by: claude:87d20187
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all
 ---
 
 # [x] Editorial split — current-state vs futures in hub/ docs; bead template addendum @km/arch #task #P3 @claude:87d20187
 
 blocks:: [[@km/all]]
 
-# Why
+## Why
 
 The 2026-04-27 plateau retrospective surfaced a systemic doc-led drift pattern: hub/architecture.md and hub/composition.md mixed current state with aspirational design (e.g., `withMCPServer()` was described as part of the canonical pipe before tribe-daemon.ts had it). Readers couldn't distinguish committed from speculative; new work treated both as obligations.
 
@@ -57,7 +64,7 @@ Three concrete drift incidents:
 
 The mechanism: prose obligations grew while no consumer required the mechanism.
 
-# What
+## What
 
 ## Doc split
 
@@ -77,19 +84,20 @@ In .claude/skills/pm/, the bead-create template gets an 'Acceptance' rule:
 
 This catches responseExpected-style fields and dismissals-style tables at spec time.
 
-# Acceptance
+## Acceptance
 
 - hub/architecture.md scrubbed: no '(pending)' annotations, every withX/table/tool described references actual source
 - hub/futures.md created: parked designs (TEA effect-emission shape, Matrix federation, ACP boundary adapter retirement, etc.)
 - .claude/skills/pm/ bead template updated with the consumer-required rule
 - One memory entry added: 'doc-led drift: split current vs futures'
 
-# Out of scope
+## Out of scope
 
 - Refactoring all existing beads to honor the new acceptance rule (only applies to new beads going forward)
 - Auditing all existing hub/*.md docs for drift (sweep can be a follow-on)
 
-# Reference
+## Reference
 
 - /big retrospective 2026-04-27 (this conversation)
 - The 'editorial drift explanation' section of that retrospective
+

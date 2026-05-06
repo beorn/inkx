@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/bunx-examples"
 aliases:
   - km-silvery.bunx-examples
@@ -15,6 +17,7 @@ Add a 'silvery example <name>' subcommand (via bunx/npx) that runs showcase exam
 Each example on silvery.dev gets a one-liner underneath: `bunx silvery example todo`, `bunx silvery example counter`, etc.
 
 Implementation:
+
 - Add bin entry to silvery package.json (or separate `create-silvery` package)
 - Examples bundled or fetched from registry
 - `silvery example --list` shows available examples
@@ -22,3 +25,4 @@ Implementation:
 - Examples double as integration tests
 
 This is a discovery/adoption accelerant — lets devs try before installing.
+

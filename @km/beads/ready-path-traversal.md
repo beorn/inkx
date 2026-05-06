@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beads/ready-path-traversal"
 aliases:
   - km-beads.ready-path-traversal
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-27T18:34:41Z
     created_by: claude:da9990c5
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-beads
 ---
 
 # [x] bd ready: traverse path-form hierarchy and recognize file-level task_status @km/beads #bug #P2
@@ -27,3 +33,4 @@ dependencies:
 blocks:: [[@km/beads]]
 
 Today bd ready filters via the @issue board tag query (queryReady in queries.ts). With the path-form design where issues are file-level h-nodes (fstype:mdfile, parent_id pointing to a folder), the open epic at silvercode/acp.md doesn't show up — it has task_status=todo on the file node but the @issue sigil resolution treats it differently. Acceptance: bd ready returns all unblocked todo issues regardless of whether they live as inline tasks or file-level h-nodes; query understands path-prefix scoping (bd ready silvercode/ shows only silvercode descendants); help text mentions both forms work.
+

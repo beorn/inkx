@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/termless-gaps"
 aliases:
   - km-inkx.termless-gaps
@@ -11,3 +14,4 @@ assignee: claude:8fc35754
 ---
 
 # [x] Add high-value termless tests: wide-char, border/style, incremental diff @km/inkx #task #P2 @claude:8fc35754
+

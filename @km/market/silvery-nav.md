@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/market/silvery-nav"
 aliases:
   - km-market.silvery-nav
@@ -14,3 +17,4 @@ assignee: claude:4929065a
 ---
 
 # [x] silvery.dev sidebar: add 47 component pages, hidden guides, text-sizing @km/market #task #P2 @claude:4929065a
+

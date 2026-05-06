@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless"
 aliases:
   - km-termless
@@ -16,3 +19,4 @@ assignee: claude:8fc35754
 A terminal testing library following the Playwright model: **pluggable backends behind a unified interface**, integrated into Vitest. Write tests once, run against Ghostty, xterm.js, and eventually kitty, wezterm, etc.
 
 **Packages**: termless (core interface + types + PTY), termless-ghostty (N-API/Zig), termless-xtermjs (@xterm/headless), viterm (Vitest integration). See Design section for complete architecture, interface, phases, and rationale.
+

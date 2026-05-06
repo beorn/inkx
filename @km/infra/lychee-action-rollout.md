@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/lychee-action-rollout"
 aliases:
   - km-infra.lychee-action-rollout
@@ -14,10 +16,10 @@ owner: bjorn@stabell.org
 
 Per-PR link checking is the cheapest fast-feedback layer. Complements the cross-site /marketing link-check (which catches bit-rot but only on monthly cadence). The two layers are complementary:
 
-| Layer | Catches | Misses |
-|---|---|---|
-| lychee-action (per-repo, per-PR) | New broken links from PRs; weekly cron catches link rot in repo content | Cross-site links that break when site B deletes a page |
-| /marketing link-check (monthly) | Cross-site rot, 3rd-party rot, bit-rot, sites without CI | Brand-new breaks (no PR triggers detection until next monthly run) |
+| Layer                            | Catches                                                                 | Misses                                                             |
+| -------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| lychee-action (per-repo, per-PR) | New broken links from PRs; weekly cron catches link rot in repo content | Cross-site links that break when site B deletes a page             |
+| /marketing link-check (monthly)  | Cross-site rot, 3rd-party rot, bit-rot, sites without CI                | Brand-new breaks (no PR triggers detection until next monthly run) |
 
 ## Scope
 
@@ -71,3 +73,4 @@ Keep accept/exclude patterns aligned so per-PR and monthly runs agree on what's 
 ## Parent
 
 @km/infra/audit-all
+

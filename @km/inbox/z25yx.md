@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/inbox/z25yx"
 aliases:
   - km-z25yx
@@ -12,3 +15,4 @@ assignee: Bjørn Stabell
 ---
 
 # [x] Session checkpoint: terminfo.dev taxonomy + OSC completeness @km/_orphan #task #P3 @Bjørn Stabell
+

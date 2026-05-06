@@ -1,7 +1,4 @@
 ---
-tags:
-  - bug
-  - P1
 mentions:
   - km
 id: "@km/beads/split-backend"
@@ -21,6 +18,10 @@ dependencies:
     created_at: 2026-04-28T01:25:03Z
     created_by: claude:da9990c5
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-beads
 ---
 
 # [x] km bd and Go bd use separate storage backends — beads created in one are invisible to the other @km/beads #bug #P1

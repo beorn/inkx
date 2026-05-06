@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/hidden-dirty-flags"
 aliases:
   - km-silvery.hidden-dirty-flags
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Hidden/display:none nodes leak stale dirty flags — blocks future propagation @km/silvery #bug #P1
 
 Early returns in renderNodeToBuffer() for node.hidden and display='none' don't clear dirty flags. Stale subtreeDirty blocks future markSubtreeDirty() propagation — same class as the virtual text bug already fixed. Fix: clearDirtyFlags(node) before return on hidden/display-none paths. Found by GPT pipeline review (3/3 reviewers flagged as high severity).
+

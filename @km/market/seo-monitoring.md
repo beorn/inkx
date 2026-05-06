@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/seo-monitoring"
 aliases:
   - km-market.seo-monitoring
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] Set up scheduled SEO health check (every 3 weeks) @km/market #task #P2
 
 Create a /schedule cron trigger that runs lightweight SEO spot-checks across all 4 sites every 3 weeks. Check meta descriptions, OG tags, schema on 5 pages/site, report regressions, update /marketing tracker.
+

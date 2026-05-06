@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/acp-controller-wire"
 aliases:
   - km-silvercode.acp-controller-wire
@@ -67,6 +70,16 @@ dependencies:
     created_at: 2026-04-26T09:01:51Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode.acp
+      - type: link
+        target: km-silvercode.acp-probe-runner
+      - type: link
+        target: km-silvercode.acp-session-load
 ---
 
 # [x] silvercode controller — route via connectAcpRegistry, add --agent CLI flag @km/silvercode #feature #P2 @claude:cd034ca4
@@ -76,21 +89,27 @@ blocks:: [[@km/silvercode/acp]], [[@km/silvercode/acp-probe-runner]], [[@km/silv
 Replace the hardcoded `spawnClaude` in silvercode controller with registry-driven dispatch, exposing `--agent <id>` on the bin so users can switch backends.
 
 ## Today
+
 `apps/silvercode/src/controller.ts` calls `spawnClaude({...})` directly (legacy stream-json adapter). The new ACP path (connectAcpRegistry → AcpAgentSession) is shipped + tested but not wired.
 
 ## Target
+
 - `bun silvercode --agent claude-code` (default) → connectAcpRegistry('claude-code') (or keeps stream-json path for now, configurable)
 - `bun silvercode --agent gemini` → connectAcpRegistry('gemini')
 - `bun silvercode --agent codex` etc.
 
 ## Blockers
+
 - AcpAgentSession needs to surface SessionUpdate events compatible with current SessionStore.apply() consumer. createAcpSession() bridges this — check it covers all the events the UI consumes.
 - Permissions, fs handlers, terminal handlers must be wired (silvercode's existing implementations).
 
 ## Acceptance
+
 - `bun silvercode --agent gemini` runs end-to-end against Gemini if Google auth is configured
 - Same UI renders SessionUpdate, ToolCall, RequestPermission identically to current Claude path
 - spawnClaude legacy path stays available behind a flag (e.g. `--legacy-stream-json`) for one release before removal
 
 ## Deps
+
 - @km/silvercode/acp-probe-runner (smoke-test the agents work before wiring UI)
+

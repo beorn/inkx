@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/sigil-embed-duplicates"
 aliases:
   - km-storage.sigil-embed-duplicates
@@ -19,4 +21,6 @@ Spun out from @km/storage/content-issues (vault session, 2026-04-24).
 Tasks under km.add:: headings appear as **embedded copies** alongside the canonical task. Same task surfaces 2-3× in raw queries. /due works around this by GROUP BY (content, date).
 
 ## Design question
+
 Should the schema flag embedded copies (is_embed: true, or a distinct node kind) so consumers can opt in/out of dedupe explicitly?
+

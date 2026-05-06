@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/shared-components"
 aliases:
   - km-terminfo.shared-components
@@ -26,6 +29,7 @@ Currently each page template (index.md, terminal/[id].md, baseline/[id].md, comp
 - Category/standard pages: have tooltips on results
 
 Need: shared Vue components or at least shared patterns that ensure every table has:
+
 1. Terminal name tooltips (description, version, type)
 2. Feature name tooltips (tags, spec URL)
 3. Result cell tooltips (notes, annotations)
@@ -34,6 +38,8 @@ Need: shared Vue components or at least shared patterns that ensure every table 
 6. Consistent hover-link styling
 
 VitePress doesn't support Vue SFC components in markdown easily, but we can:
+
 - Use shared CSS (already have tooltip.css, result-cells.css, analysis.css)
 - Use shared JS helper functions (tooltip generators)
 - Document the canonical pattern for each element type
+

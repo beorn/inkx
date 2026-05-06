@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/scope-tree"
 aliases:
   - km-silvery.scope-tree
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-22T14:53:43Z
     created_by: claude:c1c8afe1
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [ ] Scope tree: generalize DisposableStack to structured concurrency primitive @km/silvery #feature #P4
@@ -30,7 +36,9 @@ Currently minimal.ts uses DisposableStack for cleanup only via app.defer(fn). A 
 Not a priority now — current design only needs DisposableStack for cleanup. Revisit when cancellation/concurrency/observability become concrete requirements.
 
 References:
+
 - hub/silvery/design/v15-tea/DESIGN.md (D1, D30 — current scope surface)
 - hub/silvery/design/v15-tea/prototypes/minimal.ts (current app.defer pattern)
 - Prior art: session fed8de9e (~29d ago) discussed the scope.defer() naming decision
 - Related: legion integration for distributed scope trees
+

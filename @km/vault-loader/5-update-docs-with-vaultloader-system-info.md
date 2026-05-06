@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/vault-loader/5-update-docs-with-vaultloader-system-info"
 aliases:
   - km-vault-loader.5
@@ -16,3 +18,4 @@ Add documentation for the unified loading system:
 - Phases: discover → parse → apply → resolve → materialize
 - Memory vs disk mode differences
 - Progress reporting integration
+

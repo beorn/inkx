@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/all/fix-sweep-tsc-logview"
 aliases:
   - km-all.fix-sweep-tsc-logview
@@ -17,6 +20,10 @@ dependencies:
     created_at: 2026-04-26T12:59:13Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.fix-sweep-0426
 ---
 
 # [x] Fix km-logview test typecheck errors (79 errors) @km/all #task #P2 @claude:cc081a9a
@@ -26,6 +33,7 @@ blocks:: [[@km/all/fix-sweep-0426]]
 79 TS18048/TS2722/TS2339 errors in apps/@km/logview/tests/* — term.screen and term.cell are now optional on Term interface. Tests need non-null assertions or type narrowing.
 
 ## Files affected (15 test files)
+
 - ansi-colors.test.tsx
 - body-hover-color.test.tsx
 - body-multiline-muted.test.tsx
@@ -41,5 +49,7 @@ blocks:: [[@km/all/fix-sweep-0426]]
 - smoke.test.tsx
 
 ## Acceptance
+
 - bun run --silent tsc --noEmit 2>&1 | grep -c 'apps/@km/logview/' returns 0
 - bun vitest run apps/@km/logview/tests/ passes (or fails for unrelated reasons)
+

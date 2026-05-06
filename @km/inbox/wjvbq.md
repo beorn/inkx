@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/wjvbq"
 aliases:
   - km-wjvbq
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] diffBuffers: extract, edge-case + property tests @km/_orphan #task #P3
 
 Extract diffBuffers into diff-buffers.ts. Write edge-case tests (truecolor, wide/narrow transitions, resize, dirty row bounding, row pre-check) and property tests (soundness: applying diff to prev reconstructs next).
+

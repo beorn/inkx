@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/jm2r"
 aliases:
   - km-jm2r
@@ -11,13 +13,14 @@ closed_at: 2026-01-22T13:19:05Z
 
 Implement sticky cursor coordinates for **visual node navigation** (moving between cards/columns in the board) using **curswantX** and **curswantY**, matching how Vim preserves cursor position during navigation.
 
-> **Scope:** This bead covers the **node cursor** (which card/column is selected). A future bead will cover the **text cursor** (character position within text editing), which will use the same curswant pattern.
+> Scope: This bead covers the node cursor (which card/column is selected). A future bead will cover the text cursor (character position within text editing), which will use the same curswant pattern.
 
 ## Background: Vim's curswant
 
 Vim uses `curswant` ("cursor wanted column") to remember the desired x-coordinate during vertical navigation. When moving through lines of varying length, the cursor temporarily adjusts to shorter lines but snaps back to `curswant` on longer lines.
 
 We apply this concept to **both axes** for node cursor navigation:
+
 - **curswantY**: sticky y-coordinate for h/l (cross-column) navigation
 - **curswantX**: sticky column index for j/k (board↔column) navigation
 
@@ -37,23 +40,29 @@ interface BoardState {
 ## curswantX: Board ↔ Column Navigation
 
 ### Problem
+
 When pressing k at column level to exit to board level, then j to re-enter:
+
 - Current: always enters column 0
 - Desired: remember which column you came from
 
 ### Behavior
 
 **Setting curswantX:**
+
 - k at column level → board level: set `curswantX` to current column index
 
 **Using curswantX:**
+
 - j at board level → column level: go to `curswantX` column (or first column if null)
 
 **Resetting curswantX:**
+
 - h/l at board level clears curswantX (explicit horizontal navigation)
 - Any non-j/k action at board level clears curswantX
 
 ### Example
+
 ```
 State          Action   Result              curswantX
 ─────          ──────   ──────              ─────────
@@ -71,6 +80,7 @@ cursor=[]      j        cursor=[0]          null (goes to first column)
 ## curswantY: Cross-Column Navigation
 
 ### Problem
+
 Current cross-column navigation uses simple row index clamping:
 
 ```
@@ -86,18 +96,22 @@ Pressing `l` from A2 goes to B1 (clamped from index 2). This ignores visual posi
 ### Behavior
 
 **Setting curswantY:**
+
 - First h/l press after any other action → set `curswantY` from current card's title y-coordinate
 - `curswantY` = top of card title relative to column content area
 
 **Using curswantY:**
+
 - On h/l: find target card whose title y is closest to `curswantY`
 - If target column is shorter, land on closest card (bottom)
 - If target column is taller, restore to original visual level
 
 **Resetting curswantY:**
+
 - Any non-h/l action clears `curswantY`: j/k, Enter, Escape, mouse click, etc.
 
 ### Example
+
 ```
 Col A    Col B    Col C        curswantY
 ──────   ──────   ──────       ─────────
@@ -181,6 +195,7 @@ function handleCrossColumn(state: BoardState, dir: 'left' | 'right'): BoardState
 ## Implementation Plan
 
 ### 1. Add curswant fields to BoardState
+
 - `packages/km-board/src/board-types.ts`:
   ```typescript
   curswantX: number | null;  // column index for board↔column
@@ -189,22 +204,26 @@ function handleCrossColumn(state: BoardState, dir: 'left' | 'right'): BoardState
 - Initialize both as `null` in `createBoardState()`
 
 ### 2. Implement curswantX for board↔column navigation
+
 - `packages/km-board/src/board-reducer-cursor.ts`:
   - k at column→board: set curswantX
   - j at board→column: use curswantX
   - Clear curswantX on other actions
 
 ### 3. Implement curswantY for cross-column navigation
+
 - `packages/km-board/src/board-reducer.ts`:
   - Accept cardYPositions from UI layer
   - Set curswantY on first h/l
   - Find closest card by y-coordinate
 
 ### 4. Track card y-positions in render
+
 - `apps/km-tui/packages/km-ink/src/views/Board.tsx` - collect y-positions
 - `apps/km-tui/packages/km-ink/src/ui-context.tsx` - expose to reducer
 
 ### 5. Update documentation
+
 - `docs/06-ui.md` - Add curswant section under "Visual Block Model"
   - Explain curswantX and curswantY for node cursor
   - Note future text cursor curswant
@@ -212,6 +231,7 @@ function handleCrossColumn(state: BoardState, dir: 'left' | 'right'): BoardState
   - Document reset conditions
 
 ### 6. Add tests
+
 - `packages/km-board/tests/curswant.test.ts`:
   - **curswantX tests:**
     - k at column sets curswantX
@@ -230,6 +250,7 @@ function handleCrossColumn(state: BoardState, dir: 'left' | 'right'): BoardState
 ## Future: Text Cursor curswant (Separate Bead)
 
 When we implement text editing, we'll have a **separate** text cursor with its own curswant:
+
 - j/k moving through lines of varying length within a text field
 - Preserve x-coordinate (character column) across short lines
 - This is the original Vim `curswant` use case
@@ -249,12 +270,14 @@ The node cursor curswant (this bead) and text cursor curswant (future bead) are 
 ## Acceptance Criteria
 
 ### curswantX (board ↔ column)
+
 - [ ] k at column level sets curswantX to current column index
 - [ ] j at board level uses curswantX (or defaults to 0)
 - [ ] h/l at board level clears curswantX
 - [ ] Entering a card (j from column) clears curswantX
 
 ### curswantY (cross-column)
+
 - [ ] First h/l sets curswantY from current card
 - [ ] Consecutive h/l preserves curswantY
 - [ ] Moving to shorter column lands on closest card
@@ -264,5 +287,7 @@ The node cursor curswant (this bead) and text cursor curswant (future bead) are 
 - [ ] Empty column fallback to column header
 
 ### Documentation & Tests
+
 - [ ] docs/06-ui.md updated with curswant section (node cursor)
 - [ ] packages/@km/_orphan/board/tests/curswant.test.ts exists with full coverage
+

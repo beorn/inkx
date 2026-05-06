@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/zoom-cursor-fallback"
 aliases:
   - km-tui.zoom-cursor-fallback
@@ -13,3 +16,4 @@ assignee: claude:a5c7f7de
 # [x] u (zoom out) at repo root: move cursor up toward root instead of no-op @km/tui #bug #P2 @claude:a5c7f7de
 
 When pressing 'u' to zoom out and the board is already at the repo root (can't go up further), the cursor should move up toward the repo root node instead of doing nothing.
+

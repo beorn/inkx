@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/startup-progress"
 aliases:
   - km-tui.startup-progress
@@ -18,3 +21,4 @@ Startup progress lines (○ Load repo, ○ Apply rules, etc.) should be fully vi
 Currently only '○ Load repo' shows — the rest are lost. The CLI spinner/progress output gets partially overwritten or cleared before the alt screen takes over.
 
 Root cause: The CLI progress display likely overwrites previous lines (spinner behavior), so by the time alt screen activates, only the last line survives in scrollback.
+

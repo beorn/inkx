@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/identity-recovery-cascade"
 aliases:
   - km-storage.identity-recovery-cascade
@@ -21,6 +24,10 @@ dependencies:
     created_at: 2026-04-21T13:25:50Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage.fs-mount
 ---
 
 # [x] Identity recovery — paths-of-.name (primary) + content-hash/inode/structural heuristics (secondary) @km/storage #feature #P1 @claude:8b5b9e1c
@@ -32,6 +39,7 @@ Reconciliation of FS → DB NodeIds for files, headings, blocks, and tags. No ma
 ## Primary signal
 
 **Path-of-.name** uniquely identifies a node externally:
+
 - File: [repo, "notes/foo"]
 - Heading: [repo, "notes/foo", "my-heading"] (slug, or anchor literal if present)
 - Block: [repo, "notes/foo", "rec"] (anchor literal)
@@ -73,3 +81,4 @@ Heuristics only fire when .name changed. Mistakes are cosmetic for unreferenced 
 - Design: hub/km/storage-architecture.md §3 + §2 (.name model)
 - Research: hub/km/research/kimmi-crdt-sync-id-deep-dive.md, cloudi-architecture-deep-dive.md
 - Parent: @km/storage/adapter-architecture
+

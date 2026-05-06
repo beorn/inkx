@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/missing-api-methods"
 aliases:
   - km-flexily.missing-api-methods
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Bug: Documented API methods missing — freeRecursive, computed getters @km/flexily #bug #P1
+

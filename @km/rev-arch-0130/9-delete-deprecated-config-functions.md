@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/rev-arch-0130/9-delete-deprecated-config-functions"
 aliases:
   - km-rev-arch-0130.9
@@ -29,8 +31,10 @@ bunx tsc --noEmit 2>&1 | head -50
 ```
 
 ## Definition of Done
+
 - [ ] All 4 deprecated functions deleted
 - [ ] No backwards compat shims
 - [ ] All callers migrated to loadConfigObject()
 - [ ] `tsc` passes
 - [ ] `grep -r "getOriginalBeadsConfigPath\|getConfigPath\|getBeadsConfig\|getTuiConfig" packages/` finds nothing
+

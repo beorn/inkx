@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/buffer-perf"
 aliases:
   - km-inkx.buffer-perf
@@ -11,3 +14,4 @@ assignee: claude:a3625ec3
 # [x] perf(inkx): batch buffer.fill + pre-allocate diffBuffers @km/inkx #task #P2 @claude:a3625ec3
 
 Code review P1+P3: fill() calls setCell() per cell, diffBuffers allocates CellChange per cell. Batch fill, pre-allocated pool.
+

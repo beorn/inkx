@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx-cmds/state"
 aliases:
   - km-inkx-cmds.state
@@ -11,9 +14,11 @@ assignee: claude:10db6ea8
 # [x] Rich state capture for TUI debugging @km/inkx-cmds #feature #P2 @claude:10db6ea8
 
 ## Goal
+
 Migrate Board to createApp() pattern. State lives in Zustand store, driver reads it directly.
 
 ## Target Architecture
+
 ```typescript
 const boardApp = createApp(
   ({ term }) => (set, get) => ({
@@ -33,10 +38,13 @@ const state = app.store.getState()
 ```
 
 ## Files to Modify
+
 1. `apps/km-tui/src/board-app.ts` (new) - createApp() definition
 2. `apps/km-tui/src/views/Board.tsx` - use useApp(selector), remove useReducer
 3. `apps/km-tui/src/driver.ts` - use app.store.getState() directly
 
 ## Delete from driver.ts
+
 - TUIDriverState, CursorPosition, DialogState, SelectedNodeInfo
 - All extract*() functions
+

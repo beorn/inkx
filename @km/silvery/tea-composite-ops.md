@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/tea-composite-ops"
 aliases:
   - km-silvery.tea-composite-ops
@@ -19,6 +21,14 @@ dependencies:
     created_at: 2026-04-21T15:27:11Z
     created_by: claude:c1c8afe1
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.tea
+      - type: link
+        target: km-silvery.tea-state-delta-convention
 ---
 
 # [ ] Composite op primitive for atomic multi-domain transactions @km/silvery #feature #P1
@@ -26,3 +36,4 @@ dependencies:
 blocks:: [[@km/silvery/tea]], [[@km/silvery/tea-state-delta-convention]]
 
 Pro review 2026-04-21: middleware chain can't cleanly handle multi-domain atomic updates (delete node while editing text touches tree + selection + editor + undo + storage). Add { type: 'composite', ops: Op[] } as first-class primitive. One plugin (withAtomicOps or outermost-inner, usually withUndo) unpacks + dispatches sub-ops transactionally. Sub-ops produce effects only, never further dispatch. Blocker for withUndo (Phase 6). Context: hub/silvery/tea-review-responses.md §2.
+

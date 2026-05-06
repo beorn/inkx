@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sterling-tests-typecheck-cleanup"
 aliases:
   - km-silvery.sterling-tests-typecheck-cleanup
@@ -24,6 +27,10 @@ dependencies:
     created_at: 2026-04-25T00:09:47Z
     created_by: claude:22c2717d
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.sterling
 ---
 
 # [x] Migrate vendor/silvery/tests/{theme-change,theme-contrast} to Sterling Theme shape @km/silvery #task #P3 @claude:22c2717d
@@ -40,6 +47,7 @@ Tests PASS at runtime (legacy emit still populates these fields), but TypeScript
 ## Root cause
 
 Phase F (sterling-package-tests-sweep) explicitly punted on these:
+
 > Other legacy refs (primary/accent/muted/cursor) intentionally retained — still emitted by deriveTheme. Recommend a follow-up bead if 0.22.0 plans to drop those roots.
 
 Phase F's scope was just selection/inverse/link migration. The full primary/accent/muted purge needs its own session.
@@ -47,6 +55,7 @@ Phase F's scope was just selection/inverse/link migration. The full primary/acce
 ## Fix
 
 Migrate the two test files to read Sterling tokens via bracket access:
+
 - \`theme.primary\` → \`theme["fg-accent"]\` or \`theme["bg-accent"]\` (per-site)
 - \`theme.primaryfg\` → \`theme["fg-on-accent"]\`
 - \`theme.muted\` (string) → \`theme.muted.fg\` or \`theme["fg-muted"]\`
@@ -62,3 +71,4 @@ Migrate the two test files to read Sterling tokens via bracket access:
 ## Out of scope
 
 The bigger \"purge primary/accent/muted/cursor legacy emit at runtime\" — that's a 0.22.0 concern with ~100+ JSX consumer migrations.
+

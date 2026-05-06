@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/flexily/auto-cross-nan"
 aliases:
   - km-flexily.auto-cross-nan
@@ -14,3 +17,4 @@ assignee: claude:c9beade3
 # [x] Cross-axis alignment in auto-sized containers produces NaN offsets @km/flexily #bug #P1 @claude:c9beade3
 
 GPT 5.4 Pro re-review P1. When parent cross size is NaN (auto), availableCrossSpace becomes NaN, so ALIGN_CENTER, ALIGN_FLEX_END, and cross-axis auto margins compute NaN offsets. Phase 9b only revisits ALIGN_STRETCH, not center/flex-end. Repro: row container with height:auto and alignItems:center.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/vlist-keys"
 aliases:
   - km-inkx.vlist-keys
@@ -13,3 +16,4 @@ assignee: claude:28b14b32
 # [x] VirtualList: default keybindings & mouse scroll @km/inkx #feature #P2 @claude:28b14b32
 
 VirtualList should ship with optional default keybindings for scrolling (j/k, arrows, PgUp/PgDn, Home/End, gg/G) and mouse wheel events should work automatically. Currently all keyboard nav is delegated to the consumer. TextArea already has built-in keys — VirtualList should too.
+

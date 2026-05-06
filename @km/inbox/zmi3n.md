@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/zmi3n"
 aliases:
   - km-zmi3n
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Unified RuntimeContext: collapse input contexts + bidirectional event bus @km/_orphan #feature #P2
 
 Implemented all 3 phases of the RuntimeContext plan: Phase 1 (RuntimeContext + useRuntime + strict useInput), Phase 2 (remove EventsContext, InputContext, StdinContext, AppContext, useStdin), Phase 3 (typed bidirectional on/emit bus with BaseRuntimeEvents). TEA foundation complete.
+

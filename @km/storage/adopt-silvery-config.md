@@ -1,4 +1,9 @@
 ---
+mentions:
+  - silvery
+  - km
+  - km
+  - claude
 id: "@km/storage/adopt-silvery-config"
 aliases:
   - km-storage.adopt-silvery-config
@@ -31,6 +36,14 @@ dependencies:
     created_at: 2026-04-26T16:05:08Z
     created_by: claude:4de4a3ab
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.config-package
+      - type: link
+        target: km-storage
 ---
 
 # [x] km/km-cli adopt @silvery/config — replace @km/storage's loadConfigObject + cosmiconfig wrapper @km/storage #task #P3 @claude:4de4a3ab
@@ -40,12 +53,14 @@ blocks:: [[@km/silvery/config-package]], [[@km/storage]]
 silvercode adopted `@silvery/config` (bead `km-silvercode.connection-system`); km still uses its own loader at `packages/km-storage/src/config.ts` (cosmiconfig wrapper exposing `loadConfigObject`). Two parallel implementations of the same concept — they read the same `.km/config.yaml`, but with different APIs and different feature sets (km's is sync, no signals, no scoped writes, no watch).
 
 **Scope**:
+
 - Replace `loadConfigObject(repoRoot)` calls in `apps/km-cli/src/commands/{bd,view,import,…}.ts` with `loadConfig({ appName: "km", cwd: repoRoot })` from @silvery/config
 - Migrate `.beads/config.yaml` reads (separate from main config) — decide if it stays standalone or becomes a sub-section
 - Mount `km config` subcommand via `mountConfigCommand` for symmetry with `silvercode config`
 - Drop `packages/km-storage/src/config.ts`'s cosmiconfig wrapper; the new package handles it
 
 **Acceptance**:
+
 - `rg "loadConfigObject" apps packages` → 0 hits (or ≤ thin compat layer)
 - `rg "from \"@km/storage\"" | rg "loadConfig"` → 0 hits
 - `km config ai.acp.foo=bar` works (after merge with silvercode's schema)
@@ -54,3 +69,4 @@ silvercode adopted `@silvery/config` (bead `km-silvercode.connection-system`); k
 **Why P3**: not regression — km has worked this way all along. Just architectural cleanup. Block other bead deferred.
 
 Depends on: @km/silvery/config-package (shipped); @km/silvercode/connection-system (in flight)
+

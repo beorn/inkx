@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/acp-session-load"
 aliases:
   - km-silvercode.acp-session-load
@@ -61,6 +64,14 @@ dependencies:
     created_at: 2026-04-26T09:01:52Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode.acp
+      - type: link
+        target: km-silvercode.acp-probe-runner
 ---
 
 # [x] silvercode acp session/load — resume support across all ACP agents @km/silvercode #feature #P2 @claude:cd034ca4
@@ -70,27 +81,33 @@ blocks:: [[@km/silvercode/acp]], [[@km/silvercode/acp-probe-runner]]
 Wire ACP `session/load` so silvercode's --resume flag works against any registered ACP agent that advertises `loadSession` capability.
 
 ## Today
+
 - AgentCapabilities.loadSession is defined in our boundary types and translated bidirectionally
 - connectAcp() always calls agent.newSession() — never loadSession
 - skipNewSession escape hatch exists but no ergonomic resume API
 - @km/claude-acp does NOT advertise loadSession (legacy spawnClaude handles --resume via stream-json replay)
 
 ## Target
+
 1. Extend AcpConnectOpts with `resume?: { sessionId, cwd?, mcpServers? }`. When present, call agent.loadSession() and capability-check first; throw typed AcpResumeUnsupported error if loadSession === false.
 2. Add `acpAgentSession.loadSession(sessionId)` convenience method for resuming within an open connection.
 3. Update @km/claude-acp to advertise loadSession: true. Implement load by reading session JSONL from ~/.claude/projects/<projDir>/<sessionId>.jsonl and replaying each entry as the corresponding SessionUpdate notification (mirrors what claude binary does today).
 4. silvercode bootstrap --resume <id> threads through controller → connectAcpRegistry with resume opt set.
 
 ## Acceptance
+
 - `bun silvercode --agent codex --resume <id>` resumes a codex session if codex-acp supports it
 - `bun silvercode --agent claude-code --resume <id>` resumes via @km/claude-acp's JSONL replay
 - Agents that don't advertise loadSession produce a clear error message naming the missing capability
 - Tests cover: capability gate, resume opt translation, JSONL replay correctness in @km/claude-acp
 
 ## ACP names per acp-naming.md
+
 - LoadSessionRequest, LoadSessionResponse (boundary types)
 - AcpResumeUnsupported (silvercode error class)
 - SessionUpdate replay (no new wire types)
 
 ## Deps
+
 - @km/silvercode/acp-probe-runner (smoke-test resume per agent before wiring controller)
+

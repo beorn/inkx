@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/tree/p3-props"
 aliases:
   - km-tui.tree.p3-props
@@ -36,3 +38,4 @@ rg 'ancestorDone' --glob '!.beads' --glob '!docs' -t ts -c | wc -l  # 0
 rg 'shouldStripColor.*4 different\|computed 4' --glob '!.beads' -t ts  # 0 (stale comment gone)
 bun run test:fast  # all pass
 \`\`\`
+

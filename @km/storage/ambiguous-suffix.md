@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/ambiguous-suffix"
 aliases:
   - km-storage.ambiguous-suffix
@@ -13,3 +16,4 @@ assignee: claude:a5c7f7de
 # [x] Ambiguous resolution for short ID suffixes (e.g. 'SSA' matches 2 nodes) @km/storage #bug #P3 @claude:a5c7f7de
 
 When resolving node references by ID suffix (e.g. 'SSA'), the storage layer finds multiple matches and logs a warning. Need a disambiguation strategy — e.g. prefer most recently updated, or use longer suffixes.
+

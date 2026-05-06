@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/xtermjs"
 aliases:
   - km-termless.xtermjs
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] xtermjs backend for termless @km/termless #task #P2
+

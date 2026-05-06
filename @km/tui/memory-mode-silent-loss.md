@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/memory-mode-silent-loss"
 aliases:
   - km-tui.memory-mode-silent-loss
@@ -76,3 +78,4 @@ Repro: bun km view /path/without/.km/, edit task, exit. Edits appear saved (visu
 Tiny 'MEM' indicator is not prominent. User assumes changes saved.
 
 Recommendation: prompt on startup when opening non-init'd vault, or persist via direct write-through, or make MEM indicator very prominent.
+

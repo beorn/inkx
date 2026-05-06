@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/delete-execute-render"
 aliases:
   - km-silvery.delete-execute-render
@@ -22,6 +24,14 @@ dependencies:
     created_at: 2026-04-12T00:46:37Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.layout-quality-plateau
+      - type: link
+        target: km-silvery.test-runtime-parity
 ---
 
 # [x] Delete executeRender — legacy shim wrapping createAg @km/silvery #task #P1
@@ -31,6 +41,7 @@ blocks:: [[@km/silvery/layout-quality-plateau]], [[@km/silvery/test-runtime-pari
 executeRender() in pipeline/index.ts is a legacy wrapper that creates a createAg instance, calls ag.layout() + ag.render(), and adds buffer management. Having both executeRender and createAg as public APIs creates confusion — no clear guidance on when to use which, and divergent code paths that hide bugs (the fit-content dirty-flag bug survived testing because createAg and executeRender had different pipeline behavior before unification).
 
 Callers to migrate:
+
 1. renderer.ts (3 call sites) — legacy render() API used by Ink compat layer and 1 test
 2. scheduler.ts (4 call sites) — old RenderScheduler, used by ag-react render.tsx (legacy React render mode)
 
@@ -39,3 +50,4 @@ Both should migrate to createAg directly. After migration, delete executeRender 
 Justification: "having multiple ways to do things with no clear reasoning for when to use what is just asking for problems" — user feedback from the fit-content session.
 
 Depends on: nothing. Blocked by: nothing. Nice companion to @km/silvery/test-runtime-parity (delete layoutDirty).
+

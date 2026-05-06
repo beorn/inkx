@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/ambient-inline-display"
 aliases:
   - km-silvercode.ambient-inline-display
@@ -34,6 +37,10 @@ dependencies:
     created_at: 2026-04-27T13:23:26Z
     created_by: claude:4de4a3ab
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.ambient-context-excellence
 ---
 
 # [x] Phase 6.a: inline AmbientEventRow in chat scrollback @km/silvercode #feature #P1 @claude:4de4a3ab
@@ -41,3 +48,4 @@ dependencies:
 blocks:: [[@km/silvercode/ambient-context-excellence]]
 
 See hub/silvercode/design/ambient-context-safety.md (auto-deliver posture) + hub/silvercode/design/ambient-inline-display.md (this design)
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/dry-mutations"
 aliases:
   - km-storage.dry-mutations
@@ -13,3 +16,4 @@ assignee: claude:9b6678d0
 # [x] DRY mutation pipeline: single consistent path for all callers @km/storage #task #P2 @claude:9b6678d0
 
 Two mutation paths exist: (1) Repo methods → DataStore → DbOps → emitter.emit({db}) → full pipeline (correct), (2) Direct emitter helpers (emitNodeCreatedWithEmitter) → emitter.emit() without {db} → broken (no DB write, no FS writeback). Route all CLI commands through Repo methods, fix double-FS-write, add batch mode for bulk ops.
+

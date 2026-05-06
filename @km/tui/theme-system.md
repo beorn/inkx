@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - truecolor
 id: "@km/tui/theme-system"
 aliases:
   - km-tui.theme-system
@@ -22,9 +27,11 @@ All original extraction work is complete (Phases 1-6). The package works,
 inkx imports migrated, 45 palettes, 166 tests, docs live.
 
 Active redesign tracked under @km/swatch/token-redesign:
+
 - ThemePalette (14) → ColorPalette (22 terminal standard)
 - Theme (19 tokens) → DesignTokens (32 tokens, shadcn-style $name/$name-fg pairs)
 - from*() palette generators
 - Dual derivation: ANSI 16 (aliases) vs truecolor (rich blends)
 
 See @km/_orphan/swatch epic for current state.
+

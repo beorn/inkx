@@ -67,3 +67,4 @@ Move scroll interaction to L4/L5:
 - [ ] L5 tests cover current regressions and geometry-changing drag cases.
 
 tracks:: [[@km/silvery/scroll-interaction-l4-l5/pointer-capture-model]] [[@km/silvery/scroll-interaction-l4-l5/scroll-controller-scrollarea]] [[@km/silvery/scroll-interaction-l4-l5/scrollbar-controlled-view]] [[@km/silvery/scroll-interaction-l4-l5/storybook-previewhost-scrollarea]] [[@km/silvery/scroll-interaction-l4-l5/scroll-interaction-l5-tests]]
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/cli/km-doctor"
 aliases:
   - km-cli.km-doctor
@@ -16,3 +19,4 @@ assignee: claude:55df8ef1
 # [x] km doctor: detect and report broken wikilinks @km/cli #feature #P2 @claude:55df8ef1
 
 Add a 'km doctor' command that detects and reports broken wikilinks at load/sync time. Currently broken links (e.g., wikilinks to nodes that don't exist) are only discovered during rendering, causing expensive SQL queries for nothing. The doctor command should: 1) Scan all nodes for wikilinks. 2) Resolve each against the name index. 3) Report unresolvable links with source node, line, and target. 4) Optionally fix common issues (e.g., stale renames).
+

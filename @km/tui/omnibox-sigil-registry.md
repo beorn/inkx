@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/omnibox-sigil-registry"
 aliases:
   - km-tui.omnibox-sigil-registry
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-18T21:10:20Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Omnibox SigilSpec registry — unify sigil dispatch across parser/projection/ranker @km/tui #feature #P3
@@ -30,7 +36,9 @@ Today's +t bug was the 4th omnibox regression in a session. Root cause: sigil di
 REFRAME: define one SigilSpec registry per sigil with {tokenchar, fts-predicate, post-filter, display-chrome, default-command}. Parser, projection, ranker all derive from the registry. Adding a sigil = adding a row.
 
 Acceptance:
+
 - SigilSpec type defined in apps/@km/tui/src/state/omnibox-sigil-spec.ts
 - Registry covers all 5 sigils (@, #, +, [, ~) + universal fallback
 - omnibox-projection.ts reads sigil rules from registry (no more literal 'parsed.sigil === "["' branches)
 - All existing omnibox tests pass; 1+ new test adding a mock sigil to prove the pattern works
+

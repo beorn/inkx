@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - F
 id: "@km/silvery/interactions-runtime/phase-3b-find"
 aliases:
   - km-silvery.interactions-runtime.phase-3b-find
@@ -18,6 +22,7 @@ Now that Phase 3 validated the architecture (input-router + features/ subfolder 
 ## Scope
 
 Extend withFocus() to:
+
 1. Create FindFeature via createFindFeature() (new: features/find.ts)
 2. Register Ctrl+F key handler with input-router at priority 200
 3. Register find bar overlay with router at z-order priority 50 (below selection)
@@ -26,19 +31,21 @@ Extend withFocus() to:
 ## Files
 
 CREATE:
+
 - vendor/silvery/packages/ag-term/src/features/find.ts — FindFeature service
 - vendor/silvery/tests/features/find.integration.test.ts — basic find + navigation
 - vendor/silvery/tests/features/find-selection-sync.integration.test.ts — Enter syncs to selection when present
 - vendor/silvery/tests/features/find-no-selection.integration.test.ts — graceful when selection missing
 
 UPDATE:
+
 - vendor/silvery/packages/create/src/with-focus.ts (+~80 lines)
 - vendor/silvery/packages/ag-term/src/features/index.ts — add find export
 - vendor/silvery/packages/ag-term/src/pipeline/output-phase.ts — register find overlay via router
 
 ## Services
 
-  interface FindFeature {
+interface FindFeature {
     state: Observable<FindState>
     search(query: string): void
     next(): void
@@ -69,3 +76,4 @@ Nothing.
 ## MANDATORY
 
 Read docs/lessons/refactoring.md IN FULL before starting.
+

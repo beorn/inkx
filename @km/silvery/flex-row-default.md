@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/flex-row-default"
 aliases:
   - km-silvery.flex-row-default
@@ -14,3 +17,4 @@ assignee: claude:474834b0
 ---
 
 # [x] Change flexDirection default from column to row (W3C alignment) @km/silvery #task #P2 @claude:474834b0
+

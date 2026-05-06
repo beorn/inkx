@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/audit-all"
 aliases:
   - km-infra.audit-all
@@ -74,3 +76,4 @@ interface Finding {
 - [ ] Freshness tracked centrally (lastRun.json)
 - [ ] /marketing audit becomes a wrapper that calls `bun audit all`
 - [ ] /release pre-flight calls `bun audit all --strict` as a soft warning
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/era2a-docs-launch"
 aliases:
   - km-silvery.era2a-docs-launch
@@ -21,6 +24,7 @@ assignee: claude:fed8de9e
 Before era2a launch, ensure silvery.dev AND package exports tell a pure renderer story.
 
 **Public docs (silvery.dev)**:
+
 - Remove or gate era2b content (commands, signals, createApp, TEA)
 - Getting-started, components, hooks, testing guides: pure era2a
 - Examples: render() + useState only
@@ -28,8 +32,10 @@ Before era2a launch, ensure silvery.dev AND package exports tell a pure renderer
 - Migration guide (from Ink): era2a-only
 
 **Package exports (silvery barrel)**:
+
 - Do NOT barrel-export era2b APIs (createApp, signal, commands, etc.) until silvertea ships
 - Autocomplete/API docs must not leak future APIs
 - Consider secondary entrypoint for era2b if needed
 
 See 00-overview.md §Public Docs & Launch Strategy.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/nested-underline-style"
 aliases:
   - km-silvery.nested-underline-style
@@ -19,3 +21,4 @@ underlineStyle='dotted' (and likely dashed/curly/double) doesn't render when the
 Repro: <Text wrap='truncate'>Normal <Text underlineStyle='dotted'>Dotted</Text></Text>
 Expected: dotted underline on 'Dotted'
 Actual: no underline
+

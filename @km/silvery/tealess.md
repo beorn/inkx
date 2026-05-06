@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/tealess"
 aliases:
   - km-silvery.tealess
@@ -17,6 +20,7 @@ assignee: claude:fed8de9e
 ## Problem
 
 silvery renderer (@silvery/term) has 50+ imports from @silvery/tea. This means:
+
 - Cannot install silvery without TEA, zustand, and entire state management layer
 - 22/24 examples used createApp+store (TEA-first)
 - The Silvery Way had TEA as principle #9
@@ -26,6 +30,7 @@ silvery renderer (@silvery/term) has 50+ imports from @silvery/tea. This means:
 ## Root Cause
 
 @silvery/tea is a kitchen-sink package containing:
+
 - Core types (TeaNode, BoxProps, TextProps, Rect) — NOT TEA
 - Key parsing (parseKey, keyToAnsi) — NOT TEA
 - Focus system (FocusManager, focus events) — NOT TEA
@@ -41,6 +46,7 @@ npm install silvery gives just the renderer. TEA is optional.
 ## What is DONE (4/19 beads closed)
 
 ### README rewrite (@km/_orphan/1jgbg, CLOSED)
+
 - Tagline: "Polished Terminal UIs in React"
 - Subtitle: "Ink-compatible... Plus everything you wish Ink had"
 - Structure: Familiar (Ink compat, React 18+19, Flexbox) then Better (12 bullets)
@@ -52,11 +58,13 @@ npm install silvery gives just the renderer. TEA is optional.
 - @silvery/ink naming (was @silvery/compat)
 
 ### Silvery Way (@km/_orphan/4gzec, CLOSED)
+
 - Principle #9 changed from "Adopt TEA Gradually" to "Start Simple, Scale Architecture"
 - Hooks-first escalation: useState -> useReducer -> external store -> @silvery/tea
 - Summary line at bottom of doc updated
 
 ### Docs site rebase (@km/_orphan/uf4yd, CLOSED)
+
 - Landing page: TEA feature card replaced with Terminal Protocol Support
 - Landing page: 5 internal packages replaced with 4 public packages
 - Landing page: Coming section added (renderers, frameworks, tea)
@@ -69,6 +77,7 @@ npm install silvery gives just the renderer. TEA is optional.
 - Duplicate getting-started.md redirects to quick-start
 
 ### Website positioning (@km/_orphan/pkvfz, CLOSED)
+
 - Familiar/Better framing throughout
 - Ink comparison is respectful
 - Coming section shows multi-renderer, multi-framework vision
@@ -78,42 +87,37 @@ npm install silvery gives just the renderer. TEA is optional.
 ### Critical path (blocks release)
 
 1. **@km/_orphan/kk0x1 (P0)** — Move core types/keys/focus/streams from tea to term
-   - THE blocker. 50+ imports in @silvery/term from @silvery/tea
-   - Move: types (TeaNode->AgNode, BoxProps, TextProps, Rect), keys (parseKey, keyToAnsi, splitRawInput), focus system (FocusManager, focus-events, focus-queries), streams (merge, filter, takeUntil), tree-utils (getAncestorPath, pointInRect)
-   - Keep in tea: store (createStore, silveryUpdate, dispatch), core (batch, none, effects), plugins, tea(), collect()
-   - Migration: copy files, update imports, re-export from tea for backwards compat
-   - Blocks: @km/_orphan/m8v1r, @km/_orphan/4ag6l, @km/_orphan/cy82q
-
+  - THE blocker. 50+ imports in @silvery/term from @silvery/tea
+  - Move: types (TeaNode->AgNode, BoxProps, TextProps, Rect), keys (parseKey, keyToAnsi, splitRawInput), focus system (FocusManager, focus-events, focus-queries), streams (merge, filter, takeUntil), tree-utils (getAncestorPath, pointInRect)
+  - Keep in tea: store (createStore, silveryUpdate, dispatch), core (batch, none, effects), plugins, tea(), collect()
+  - Migration: copy files, update imports, re-export from tea for backwards compat
+  - Blocks: @km/_orphan/m8v1r, @km/_orphan/4ag6l, @km/_orphan/cy82q
 2. **@km/_orphan/m8v1r (P1)** — Rename TeaNode to AgNode
-   - Ag = silver, consistent with @silvery/ag-* naming from era2
-   - Do AFTER @km/_orphan/kk0x1 (types already moving)
-
+  - Ag = silver, consistent with @silvery/ag-* naming from era2
+  - Do AFTER @km/_orphan/kk0x1 (types already moving)
 3. **@km/_orphan/4ag6l (P1)** — Move createApp from term to tea
-   - createApp creates stores and embodies TEA conventions
-   - term should only expose run() and render()
-   - Do AFTER @km/_orphan/kk0x1
-
+  - createApp creates stores and embodies TEA conventions
+  - term should only expose run() and render()
+  - Do AFTER @km/_orphan/kk0x1
 4. **@km/_orphan/cy82q (P1)** — Collapse public packages
-   - Public: silvery, @silvery/test, @silvery/ink, @silvery/tea
-   - Internal: @silvery/core, @silvery/term, @silvery/react, @silvery/ui, @silvery/theme
-   - Do AFTER @km/_orphan/kk0x1
-
+  - Public: silvery, @silvery/test, @silvery/ink, @silvery/tea
+  - Internal: @silvery/core, @silvery/term, @silvery/react, @silvery/ui, @silvery/theme
+  - Do AFTER @km/_orphan/kk0x1
 5. **@km/_orphan/wze2d (P1)** — Bundle into pre-built JS (like Ink 5)
-   - Ink bundles 24 deps into build/ (696KB tarball, but 16MB in node_modules)
-   - silvery currently ships TypeScript source (~2.1MB)
-   - esbuild + tree-shaking + minify would give ~177KB gzipped
-   - Do AFTER @km/_orphan/cy82q
+  - Ink bundles 24 deps into build/ (696KB tarball, but 16MB in node_modules)
+  - silvery currently ships TypeScript source (~2.1MB)
+  - esbuild + tree-shaking + minify would give ~177KB gzipped
+  - Do AFTER @km/_orphan/cy82q
 
 ### Parallel work (no code blockers)
 
 6. **@km/_orphan/2g3tx (P1)** — Add render() beginner API
-   - render() already accepts optional term! Just needs export cleanup and docs
-   - The README example already uses render(<Counter />).run()
-
+  - render() already accepts optional term! Just needs export cleanup and docs
+  - The README example already uses render(<Counter />).run()
 7. **@km/_orphan/79ubt (P1)** — Split examples into component-tier vs app-tier
-   - 22/24 examples use createApp+store
-   - Create component-tier: run()+useState for each @silvery/ui component
-   - Move current to app-tier section
+  - 22/24 examples use createApp+store
+  - Create component-tier: run()+useState for each @silvery/ui component
+  - Move current to app-tier section
 
 ### Post-release (P2-P3)
 
@@ -139,3 +143,4 @@ npm install silvery gives just the renderer. TEA is optional.
 
 Full review at /tmp/llm-f8196c1c-review-this-plan-for-bwdy.txt (may be expired).
 Key recommendation: DX/docs BEFORE code split. Add render() beginner API. 3 public packages. Internal @silvery/core. Own the AI terminal app niche.
+

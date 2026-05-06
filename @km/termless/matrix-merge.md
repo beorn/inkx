@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/matrix-merge"
 aliases:
   - km-termless.matrix-merge
@@ -11,3 +14,4 @@ assignee: claude:8fc35754
 ---
 
 # [x] Merge conformance matrix into cross-backend vitest tests @km/termless #task #P2 @claude:8fc35754
+

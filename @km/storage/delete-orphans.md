@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/delete-orphans"
 aliases:
   - km-storage.delete-orphans
@@ -17,3 +20,4 @@ assignee: claude:c9beade3
 # [x] Non-recursive deletes leave orphaned subtrees and stale links @km/storage #bug #P0 @claude:c9beade3
 
 deleteNodeImpl does DELETE FROM nodes WHERE id = ? only. No recursive delete, no ON DELETE CASCADE, no link cleanup. Delete events emit data:{}, so FS sync can't propagate deletion either (node already gone from DB). Two related P0s: orphaned subtrees + delete events can't reach filesystem.
+

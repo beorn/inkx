@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/esi2"
 aliases:
   - km-esi2
@@ -14,3 +16,4 @@ docs/03-storage.md event types table (lines 446-458) doesn't include task_releas
 The event exists in code and is used when a task is released from WIP status.
 
 Add to the event types documentation table.
+

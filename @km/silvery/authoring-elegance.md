@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/authoring-elegance"
 aliases:
   - km-silvery.authoring-elegance
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-21T00:43:38Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.plateau
 ---
 
 # [ ] Authoring elegance — framework-adoption bar for silvery plugin API @km/silvery #feature #P0
@@ -30,7 +36,7 @@ For silvery to succeed as a framework for developers OTHER than km, the plugin a
 
 ## Target API sketch (from 2026-04-21 session):
 
-  const helpOverlay = definePlugin({
+const helpOverlay = definePlugin({
     name: 'helpOverlay',
     role: 'global',              // enforces pipe ordering at type level
     state: { visible: false, scrollOffset: 0 },
@@ -57,3 +63,4 @@ Compare to current HelpOverlay implementation — same semantics, 1/6th the code
 
 - Type-routing composite ops, state_delta, role lanes — those are Phase 6 prep, not authoring elegance
 - Runtime optimizations — this is about API shape, not performance
+

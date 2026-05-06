@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/terminfo-completeness/xtwinops"
 aliases:
   - km-market.terminfo-completeness.xtwinops
@@ -15,6 +17,7 @@ owner: bjorn@stabell.org
 Add xterm window manipulation probes. ~7-24 sub-operations under CSI t.
 
 Query subset (safe, high-value):
+
 - CSI 14 t — report window size in pixels
 - CSI 16 t — report cell size in pixels
 - CSI 18 t — report text area size in chars
@@ -24,6 +27,7 @@ Query subset (safe, high-value):
 - CSI 23;0 t — pop title/icon from stack
 
 Action subset (dangerous, lower priority):
+
 - CSI 11 t — report window state
 - CSI 13 t — report window position
 - CSI 3/4/8 t — move/resize
@@ -31,3 +35,4 @@ Action subset (dangerous, lower priority):
 
 Termless could implement title stack + query responses.
 Real terminal probes verify actual behavior.
+

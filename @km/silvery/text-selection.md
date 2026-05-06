@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/text-selection"
 aliases:
   - km-silvery.text-selection
@@ -41,3 +44,4 @@ Mouse coordinates hit-test against silvery's render tree (which has layout posit
 ## Why not screen-row selection (tmux-style)?
 
 Screen rows give you raw characters: padding spaces, border chars, broken words at wraps, ANSI in the buffer. DOM-based selection gives you the same experience as copying from a web page — clean semantic text. Since silvery owns the render tree and layout, we have everything needed to do this properly.
+

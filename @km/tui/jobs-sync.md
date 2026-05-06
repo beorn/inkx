@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/jobs-sync"
 aliases:
   - km-tui.jobs-sync
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Retrofit filesystem sync as a Job @km/tui #task #P4
+

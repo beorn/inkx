@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/chord-residue"
 aliases:
   - km-tui.chord-residue
@@ -9,3 +11,4 @@ owner: bjorn@stabell.org
 ---
 
 # [ ] Bug: Chord palette residue character persists in card content @km/tui #bug #P3
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/license-audit"
 aliases:
   - km-infra.license-audit
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Fix missing licenses: terminfo.dev (CC BY 4.0), ansi (MIT), vitepress-enrich (MIT LICENSE file) @km/infra #task #P2
 
 License audit: 2 issues found. vitepress-enrich fixed (added MIT LICENSE file). terminfo.dev remains — needs CC BY 4.0, blocked on public/private decision (@km/terminfo/cc-by-4). All other 11 repos + 30 sub-packages have MIT properly.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/ui-polish-0226"
 aliases:
   - km-tui.ui-polish-0226
@@ -26,3 +29,4 @@ Batch of UI polish items from 2026-02-26 session:
 10. [DONE] Rendering ##### [x] — already fixed (heading depth cap, 7822c8c3)
 11. [DONE] Truncation padding — already fixed (c4cfdf8b)
 12. Run bun fix + bun run test:fast, commit, push
+

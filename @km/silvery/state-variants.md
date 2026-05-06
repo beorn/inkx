@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/state-variants"
 aliases:
   - km-silvery.state-variants
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-18T10:45:13Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.theme-system-v2
 ---
 
 # [x] $primary-hover/-active + family — state variants as tokens @km/silvery #task #P3 @Bjørn Stabell
@@ -26,3 +33,4 @@ dependencies:
 blocks:: [[@km/silvery/theme-system-v2]]
 
 Ship state-variant tokens as standard, derived from their base at ±0.04L (hover) and ±0.08L (active) in OKLCH.\n\nCoverage:\n- $primary-hover, $primary-active\n- $accent-hover, $accent-active\n- $brand-hover, $brand-active (covered by brand-tokens-standard)\n- $fg-hover (rare, mostly for links)\n- $bg-selected-hover, $bg-surface-hover (for interactive surfaces)\n\nSilvery's Kitty mouse + useModifierKeys already tracks hover state. This bead just adds the token names + derivation.\n\nDepends on: token-rename-primer (needs final names)\nSpec: hub/silvery/design/v10-terminal/theme-system-v2-plan.md#p7
+

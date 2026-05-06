@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/undo-collapse-state"
 aliases:
   - km-tui.undo-collapse-state
@@ -18,6 +21,7 @@ assignee: Bjørn Stabell
 After editing a card and then undoing the edit, the card's expand/collapse state changes.
 
 Repro:
+
 1. Navigate to a card with visible children (e.g. Horizon 4 showing 3 child items + '+5' hidden)
 2. Enter edit mode (Enter)
 3. Make an edit (e.g. End + Enter to create a new item)
@@ -28,3 +32,4 @@ Expected: Card returns to its previous state with 3 visible children + '+5' hidd
 Actual: Card collapses to just the title with '+5' (all children hidden)
 
 This is a minor UX issue compared to the Tab corruption bug but affects the editing workflow.
+

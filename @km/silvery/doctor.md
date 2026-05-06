@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/doctor"
 aliases:
   - km-silvery.doctor
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] silvery doctor — terminal capability diagnostics @km/silvery #feature #P3
 
 CLI command or hook: silvery doctor / useTerminalCapabilities(). Reports: TTY or not, color support, Unicode width, Kitty support, mouse support, bracketed paste, OS/shell/terminal info. Gold for debugging and support.
+

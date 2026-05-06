@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/flexily/broken-benchmarks"
 aliases:
   - km-flexily.broken-benchmarks
@@ -16,3 +19,4 @@ assignee: claude:65d845d9
 ---
 
 # [x] Bug: Benchmark scripts import same engine twice — classic-vs-zero comparison broken @km/flexily #bug #P1 @claude:65d845d9
+

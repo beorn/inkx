@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/m5u1r"
 aliases:
   - km-m5u1r
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] HR rendering uses content-based detection instead of type field @km/_orphan #bug #P2
 
 CardColumn.tsx checks content matches HR pattern (---/***/___ etc) instead of relying on node.type which is set at parse time and never updated during editing.
+

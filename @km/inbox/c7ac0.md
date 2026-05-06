@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/c7ac0"
 aliases:
   - km-c7ac0
@@ -15,3 +18,4 @@ assignee: claude:b92140a2
 # [x] P1: Folder index config values not validated at boundary @km/_orphan #bug #P1 @claude:b92140a2
 
 Raw cosmiconfig YAML values are cast to KmConfig types without validation. Invalid runtime values (typo in naming/materialization) can reach indexFileName() and crash. Fix: validate config on load with schema/manual guard, fail loudly with path context.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/qoplm"
 aliases:
   - km-qoplm
@@ -13,3 +16,4 @@ assignee: claude:586bad48
 # [x] Keyboard shortcuts help dialog is out-of-date @km/_orphan #bug #P3 @claude:586bad48
 
 The ? help dialog doesn't reflect current keybindings. Add a note near keybinding definitions to keep help in sync.
+

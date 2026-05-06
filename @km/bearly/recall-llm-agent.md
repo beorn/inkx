@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/bearly/recall-llm-agent"
 aliases:
   - km-bearly.recall-llm-agent
@@ -23,6 +26,10 @@ dependencies:
     created_at: 2026-04-16T15:50:32Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-bearly
 ---
 
 # [x] Recall: LLM-driven multi-query search agent @km/bearly #feature #P2 @Bjørn Stabell
@@ -41,8 +48,10 @@ Current `bun recall` does one FTS5/BM25 query and optionally synthesizes results
 Goal: turn recall from a grep into a research agent. Should handle vague/fuzzy queries ("that time we fixed the column thing") that the current single-query FTS misses.
 
 Design questions:
+
 - Which fast model? (Haiku 4.5 via API, local qwen3-coder-next via lmstudio, or pluggable?)
 - Token budget per session (stop when confident vs. always N rounds)
 - Cache query plans per corpus snapshot
 - Expose as `bun recall --agent` flag first, promote to default if good
 - Fallback to current single-query path when offline
+

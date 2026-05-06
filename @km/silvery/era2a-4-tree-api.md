@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/era2a-4-tree-api"
 aliases:
   - km-silvery.era2a-4-tree-api
@@ -31,3 +34,4 @@ Note: @silvery/ag already has node types (types.ts), focus system (focus-manager
 
 Depends on Phase 3 (pipeline decomposition).
 Design: era2a/rendering.md §Framework Adapters
+

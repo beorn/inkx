@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sgr-compat"
 aliases:
   - km-silvery.sgr-compat
@@ -20,7 +23,6 @@ assignee: claude:474834b0
 Change silvery's output phase to emit chalk-compatible ANSI by default:
 
 1. **Per-attribute SGR resets** instead of full `\x1b[0m` reset-and-reapply. When moving between cells, emit only the delta (set new attributes, unset old ones with their specific reset codes).
-
 2. **Multi-color-mode output**: Use 16-color SGR codes (`\x1b[32m`) for basic colors 0-7, 256-color (`38;5;N`) for extended palette, truecolor (`38;2;R;G;B`) for RGB. Currently silvery always uses 256-color even for basic colors.
 
 ## Why
@@ -43,3 +45,4 @@ Change silvery's output phase to emit chalk-compatible ANSI by default:
 - [ ] `toChalkCompat` removed from compat layer
 - [ ] All existing tests pass (output format changes are transparent)
 - [ ] Compat tests that were checking chalk output pass without conversion
+

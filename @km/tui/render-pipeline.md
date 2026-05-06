@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/render-pipeline"
 aliases:
   - km-tui.render-pipeline
@@ -15,28 +18,33 @@ assignee: claude:8f007ba9
 Unified NodeView component replacing 4+ separate rendering paths.
 
 ## API
+
 ```tsx
 NodeView({ node, style, isSelected, width, height })
 ```
 
 ### Styles (detail levels)
-| Style | Where | Content |
-|---|---|---|
-| board | Column header | title + child count |
-| column | Section header (§) | section name + count |
-| tab | Tab bar | title pill |
-| line | Subitem in card/detail | icon + title (1 line, truncated) |
-| card | Board column | icon + title + badges + N subitems (as lines) + overflow |
-| detail | Side pane | metadata table + body + children (as cards) + backlinks |
+
+| Style  | Where                  | Content                                                  |
+| ------ | ---------------------- | -------------------------------------------------------- |
+| board  | Column header          | title + child count                                      |
+| column | Section header (§)     | section name + count                                     |
+| tab    | Tab bar                | title pill                                               |
+| line   | Subitem in card/detail | icon + title (1 line, truncated)                         |
+| card   | Board column           | icon + title + badges + N subitems (as lines) + overflow |
+| detail | Side pane              | metadata table + body + children (as cards) + backlinks  |
 
 ### Cross-cutting props
+
 - `isSelected` — cursor highlight (inverse/bold/border)
 - Status-based styling — isDone/isDropped dims entire subtree; isWip/isBlocked get accent colors
 
 ### Key principle
+
 Children recurse one level down: detail→card→line. Same rich text pipeline, same icon/color logic, same badge formatting at every level.
 
 ### Current duplication to eliminate
+
 - TreeNode.tsx (card rendering)
 - TaskDetailPane (detail rendering)
 - FolderDetailPane (folder detail)
@@ -46,7 +54,9 @@ Children recurse one level down: detail→card→line. Same rich text pipeline, 
 - shared-components.tsx (card wrapper)
 
 ### Benefits
+
 - 1 component, 1 code path for all node display
 - Detail pane automatically gets bullet formatting, status icons
 - Cards and detail pane always visually consistent
 - Easier to add new styles (e.g., timeline, calendar cell)
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/verb-grid-cmds"
 aliases:
   - km-tui.verb-grid-cmds
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] Implement verb grid stub commands (goto/move for tags, projects, assignees, backlinks) @km/tui #task #P3
 
 Implement the NOOP stub commands added to the verb grid: goto_tag (g#), goto_assignee (g@), goto_project (g+), goto_backlink (g[), move_to_project (m+). Currently they return { type: 'NOOP' } and need real implementations — filter dialogs, board navigation, move operations.
+

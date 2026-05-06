@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/absolute-alignment-axis"
 aliases:
   - km-flexily.absolute-alignment-axis
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Bug: Absolute children use wrong fallback alignment axis in row containers @km/flexily #bug #P0
+

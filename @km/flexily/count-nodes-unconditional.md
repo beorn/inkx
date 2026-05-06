@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/count-nodes-unconditional"
 aliases:
   - km-flexily.count-nodes-unconditional
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Perf: countNodes() runs unconditionally on every layout — O(n) debug tax @km/flexily #bug #P1
+

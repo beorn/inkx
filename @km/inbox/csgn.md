@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/csgn"
 aliases:
   - km-csgn
@@ -12,11 +14,13 @@ closed_at: 2026-01-16T22:03:31Z
 ## Background
 
 Currently we have THREE node types:
+
 - `DBNode` (@km/core) - flat storage record
-- `TNode` (@km/tree) - recursive tree for navigation  
+- `TNode` (@km/tree) - recursive tree for navigation
 - `NodeViewModel` (@km/board) - rendering view model
 
 This creates:
+
 - Property duplication (same props copied between types)
 - Naming inconsistencies (parentId vs parent_id)
 - Conversion overhead (nodeToTNode, toNodeViewModel)
@@ -56,6 +60,7 @@ interface BoardNode extends TreeNode {
 ```
 
 ## Benefits
+
 - One base type with all data properties
 - Extension adds structure (children[]) not copies
 - No property renaming between layers
@@ -63,6 +68,8 @@ interface BoardNode extends TreeNode {
 - Simpler mental model
 
 ## Analysis
+
 See ~/.claude/plans/vivid-swimming-floyd.md for full property comparison and code analysis.
 
 Key insight: Current `node.children` is used 80+ times for tree traversal/rendering. `getChildren(id)` is used 30+ times for storage queries. Both patterns are needed - the unified approach supports both.
+

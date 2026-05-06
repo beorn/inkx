@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/recall-thought"
 aliases:
   - km-tribe.recall-thought
@@ -19,13 +21,21 @@ dependencies:
     created_at: 2026-04-27T23:35:21Z
     created_by: claude:4de4a3ab
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-tribe.recall
+      - type: link
+        target: km-tribe.recall-eval-corpus
 ---
 
 # [ ] Mem thought (Tier 3): private context sub-agent — LSP + memory + delta injection + visibility UI @km/tribe #feature #P2
 
 blocks:: [[@km/tribe/recall]], [[@km/tribe/recall-eval-corpus]]
 
-# Tier 3 — mem thought (recall-thought)
+## Tier 3 — mem thought (recall-thought)
 
 Long-running in-session sub-agent that maintains compiled-knowledge state and emits incremental deltas as new events arrive.
 
@@ -40,12 +50,14 @@ mem-thought is a **persistent sub-agent** with its own LLM context (claude-haiku
 - CI events
 
 On each event:
+
 1. LLM reviews what it means for current work
 2. Decides which searches to run (recall, qmd)
 3. Updates internal compiled-knowledge document
 4. Emits delta to foreground agent ONLY if useful + non-stale + not already surfaced
 
 Foreground agent receives:
+
 - **Delta mode**: 1-3 line ambient events as new findings emerge
 - **Full mode**: whole compiled-knowledge snapshot on session-start / /clear / user request
 
@@ -62,6 +74,7 @@ Foreground agent receives:
 ~300 LOC at apps/silvercode/src/ambient-adapters/memory-agent.ts
 
 Anthropic SDK conversation loop with tool-use + prompt caching. Tools:
+
 - recall_search(query) — FTS5 session history
 - qmd_query(query) — hybrid markdown vault search (v2)
 - read_chunk(id) — full chunk fetch
@@ -90,3 +103,4 @@ v4 — read_chunk for deeper investigation
 ## Parent
 
 @km/tribe/recall (four-tier umbrella)
+

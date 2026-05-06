@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/delete"
 aliases:
   - km-tui.delete
@@ -13,3 +16,4 @@ assignee: claude:703e68be
 # [x] Delete node with confirmation dialog for non-empty nodes @km/tui #feature #P2 @claude:703e68be
 
 Backspace/Delete should trigger node deletion. If the node has children or backlinks, show a confirmation dialog listing what will be deleted/broken before proceeding.
+

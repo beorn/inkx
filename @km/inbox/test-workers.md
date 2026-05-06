@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/test-workers"
 aliases:
   - km-test-workers
@@ -9,3 +12,4 @@ assignee: claude:4c2dee87
 ---
 
 # [x] Running tests with --maxWorkers=100 causes some tests to fail @km/_orphan #bug #P2 @claude:4c2dee87
+

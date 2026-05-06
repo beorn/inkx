@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/suspense-embed"
 aliases:
   - km-inkx.suspense-embed
@@ -13,3 +16,4 @@ assignee: claude:2f3fc9d8
 # [x] Suspense staggered loading corrupts incremental renderer when embedded @km/inkx #bug #P3 @claude:2f3fc9d8
 
 When a component with multiple Suspense boundaries (staggered async loading) is rendered inside another app, the incremental renderer gets corrupted: sidebar disappears, frames bleed through, borders overlap. The staggered resolution of Suspense promises causes multiple partial re-renders that conflict with the parent's render cycle. Repro: render AsyncDataApp inside the viewer's Preview component.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/pane-dimensions"
 aliases:
   - km-tui.pane-dimensions
@@ -21,3 +24,4 @@ Fix: Board should derive its available width from the pane container (e.g. useCo
 Tests pass because the test renderer uses small fixed dimensions where 50% still fits.
 
 Verified via TTY: omnibox > Split Vertical creates the split layout (pane [1] label appears, border visible) but pane 2 is invisible. Raw text confirms pane 1 occupies all 120 cols x 40 rows.
+

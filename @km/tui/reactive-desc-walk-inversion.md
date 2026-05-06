@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/reactive-desc-walk-inversion"
 aliases:
   - km-tui.reactive-desc-walk-inversion
@@ -23,6 +26,10 @@ dependencies:
     created_at: 2026-04-18T11:47:07Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Invert descendants(some/count) walk — O(500K) per cursor move → O(depth) @km/tui #bug #P0 @Bjørn Stabell
@@ -90,3 +97,4 @@ For dir='up' (walkUp for excludedSigils) — already cheap, leave as-is.
 - Instrumentation: c818dd71b (landed on main)
 - Related beads: @km/tui/board-mount-n-traversal (supersedes — fold that one's findings into this P0)
 - Unrelated: @km/tui/initial-column-height (closed), @km/storage/vault-node-explosion (strategy, pending user decision)
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/all/test-system/p2-migrate"
 aliases:
   - km-all.test-system.p2-migrate
@@ -21,5 +24,7 @@ For truly internal state that has no public equivalent: add a thin accessor on T
 
 Delete: testEnv calls from every migrated file
 /complete:
+
 - grep -rn 'testEnv\b' apps/@km/tui/tests/ --include='*.ts' | grep -v helpers/ | wc -l → 0
 - grep -rn 'testEnvWithRepo' apps/@km/tui/tests/ --include='*.ts' | grep -v helpers/ | wc -l → 0
+

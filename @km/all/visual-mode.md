@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/all/visual-mode"
 aliases:
   - km-all.visual-mode
@@ -13,3 +16,4 @@ assignee: claude:d3a7049b
 # [x] Visual mode (v) for range selection with hjkl @km/all #feature #P4 @claude:d3a7049b
 
 Vim-style visual mode: press v to enter, then hjkl extends selection. Escape exits. Lower priority since Shift+arrows covers the basic case.
+

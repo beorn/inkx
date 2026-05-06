@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/rest-pattern"
 aliases:
   - km-silvery.rest-pattern
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Apply ...rest prop forwarding pattern across silvery components @km/silvery #task #P2
 
 Components like Link manually list props instead of extending their underlying component's props and forwarding ...rest. Pattern: `interface FooProps extends Omit<TextProps, 'children'> { ... }` + `function Foo({ specific, ...rest }: FooProps)` → `<Text {...rest}>`. Link is being updated as part of the hover effects plan. Audit remaining components (Button, Badge, etc.) and apply the same pattern where applicable.
+

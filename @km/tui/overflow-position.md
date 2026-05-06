@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - "11"
 id: "@km/tui/overflow-position"
 aliases:
   - km-tui.overflow-position
@@ -13,3 +18,4 @@ assignee: claude:ee8efc0f
 # [x] Overflow indicator (+11) should show after last card, not at screen bottom @km/tui #bug #P2 @claude:ee8efc0f
 
 The overflow count (+11, +54, etc.) for hidden cards in a column shows at the bottom of the screen instead of directly after the last visible card in the column. Should be positioned right below the last card to indicate there are more items below.
+

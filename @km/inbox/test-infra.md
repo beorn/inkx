@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/inbox/test-infra"
 aliases:
   - km-test-infra
@@ -9,3 +12,4 @@ assignee: beorn
 ---
 
 # [x] Unified test reporter for multiple test runners @km/_orphan #task #P2 @beorn
+

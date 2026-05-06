@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/pro-review-content"
 aliases:
   - km-terminfo.pro-review-content
@@ -19,6 +22,7 @@ assignee: claude:f8196c1c
 GPT 5.4 Pro reviewed /features, /standards, /glossary, /about pages ($7.20).
 
 P0 — Factual:
+
 - 'Every feature is an escape sequence' — false (wrapping, width are behaviors)
 - 'Every escape sequence starts with ESC' — false (8-bit C1 forms)
 - 'VT510 is DEC's final terminal' — wrong (VT520/VT525 followed)
@@ -26,6 +30,7 @@ P0 — Factual:
 - Over-crediting xterm/Kitty for inventions
 
 P1 — Missing:
+
 - 'Why not terminfo?' section on /about
 - Formal vs de facto spec note on /standards
 - Graphics category prose on /features
@@ -33,9 +38,11 @@ P1 — Missing:
 - Missing glossary terms (terminfo, termcap, ncurses, wcwidth, ZWJ, VS16, modifyOtherKeys, CSI u)
 
 P2 — Tone:
+
 - 'Any failure here is a bug' — too combative
 - 'One person maintains the stack' — too sweeping
 - 'Before Kitty, no terminal could...' — too absolute
 - 'tested on every major terminal' — oversold
 
 Full review: /tmp/llm-f8196c1c-review-these-terminfodev-pages-86x2.txt
+

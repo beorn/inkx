@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/help-missing"
 aliases:
   - km-tui.help-missing
@@ -11,3 +14,4 @@ assignee: claude:a5c7f7de
 ---
 
 # [x] Help overlay missing 8+ keyboard shortcuts (V, \, P, sr, sl, sa, etc.) @km/tui #bug #P2 @claude:a5c7f7de
+

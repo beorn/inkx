@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/pro-review-0313"
 aliases:
   - km-storage.pro-review-0313
@@ -14,3 +17,4 @@ assignee: claude:c9beade3
 # [x] km-storage GPT 5.4 Pro code review — SQLite, FTS5, WAL, bidirectional sync @km/storage #epic #P1 @claude:c9beade3
 
 GPT 5.4 Pro code review ($9.22): 9 P0, 8 P1, 5 P2, 1 P3. Main concern: correctness holes in delete semantics, link resolution, query execution, cache invalidation, and event compaction. Deletes don't cascade and can't propagate to filesystem. Wikilinks resolve nondeterministically on name collision. Queries silently ignore quoted phrases. Resolver caches never cleared on mutations. Created child beads for actionable clusters. Full output: /tmp/llm-c9beade3-1773381719131-1d21.txt
+

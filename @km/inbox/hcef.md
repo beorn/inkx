@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/hcef"
 aliases:
   - km-hcef
@@ -18,6 +20,7 @@ Rename `inkz` to `inkx` and make the layout engine pluggable so `flexx` (pure JS
 ### 1. Rename inkz → inkx
 
 **Code changes:**
+
 - [ ] Rename `vendor/beorn-inkz/` → `vendor/beorn-inkx/`
 - [ ] Update package.json: `@beorn/inkz` → `@beorn/inkx`
 - [ ] Update all internal imports and references
@@ -25,14 +28,17 @@ Rename `inkz` to `inkx` and make the layout engine pluggable so `flexx` (pure JS
 - [ ] Update tsconfig paths if any
 
 **Documentation:**
+
 - [ ] Update all docs/ references to inkz
 - [ ] Update CLAUDE.md references
 - [ ] Update any README files
 
 **Beads:**
+
 - [ ] Update any beads referencing inkz
 
 **External:**
+
 - [ ] Create GitHub repo `beorn/inkx` (or update existing `beorn/inkz`)
 - [ ] Update npm package name (if published)
 - [ ] Redirect/deprecate old names if needed
@@ -40,12 +46,14 @@ Rename `inkz` to `inkx` and make the layout engine pluggable so `flexx` (pure JS
 ### 2. Make layout engine pluggable
 
 **Architecture:**
+
 - [ ] Define `LayoutEngine` interface in inkx that abstracts Yoga API
 - [ ] Keep Yoga WASM as the default (production) backend
 - [ ] Allow flexx as an alternative backend for non-WASM environments
 - [ ] `setLayoutEngine(engine)` or similar API to switch backends
 
 **Interface (minimal):**
+
 ```typescript
 interface LayoutEngine {
   Node: {
@@ -80,3 +88,4 @@ The flexx layout engine is tracked in flexx-base.
 3. All documentation updated consistently
 4. GitHub repos created/renamed
 5. Zero breaking changes to @km/tui consumers
+

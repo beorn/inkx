@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/trudr"
 aliases:
   - km-trudr
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Vendor package deep dive recommendations @km/_orphan #task #P4
 
 Comprehensive vendor package improvements. Decisions made: Drop B,C,D,F,H (chalkx gradient, inkx streaming text, inkx accessibility, inkx SSR, themex animated transitions). Keep and implement: 18 clear items + inkx-ui shadcn components (@km/_orphan/iilbk) + themex auto-generate themes + termless timing/recording. Parked: @km/silvery/nested-scroll (nested scroll), @km/silvery/grid-layout (grid layout), @km/_orphan/tskgp (absolute positioning).
+

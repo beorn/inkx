@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/resize"
 aliases:
   - km-tui.resize
@@ -11,3 +14,4 @@ assignee: claude:124bfbe5
 ---
 
 # [x] km view doesn't react to terminal resize @km/tui #bug #P3 @claude:124bfbe5
+

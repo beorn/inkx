@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/delete-initial-board-data"
 aliases:
   - km-tui.delete-initial-board-data
@@ -22,6 +25,7 @@ runBoard takes (repo, rootId?, options?) directly. The store creates
 PaneSignals → lens → tree. Everything is derived.
 
 ## What to delete
+
 - InitialBoardData type (types.ts)
 - buildBoardState, buildBoardStateGenerator (state.ts)
 - initBoardState, initBoardStateGenerator (state.ts)
@@ -30,6 +34,7 @@ PaneSignals → lens → tree. Everything is derived.
 - ColumnView import chain in state.ts
 
 ## What to change
+
 - runBoard(state, options) → runBoard(repo, rootId, options)
 - Store init derives collapsedNodeIds from lens (rules.collapse + data.collapsed)
 - Initial cursor from lens: tree.children(rootId)[0] → tree.children(colId)[0]
@@ -39,7 +44,9 @@ PaneSignals → lens → tree. Everything is derived.
 - testing.ts: adapt to new initialization
 
 ## Acceptance
+
 - grep InitialBoardData apps/@km/tui/src/ = 0
 - grep buildBoardState apps/@km/tui/src/ = 0 (excluding tests)
 - grep ColumnView apps/@km/tui/src/state.ts = 0
 - grep ColumnView apps/@km/tui/src/types.ts = 0
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/flexx/test-infra"
 aliases:
   - km-flexx.test-infra
@@ -20,3 +23,4 @@ Build permanent testing infrastructure for detecting and diagnosing incremental 
 4. Extended fuzz seeds (10K for CI nightly)
 
 Based on deep research findings (Chrome LayoutNG chain-of-10-bugs precedent, property-based testing patterns). See session for full analysis.
+

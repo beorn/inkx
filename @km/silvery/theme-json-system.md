@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-json-system"
 aliases:
   - km-silvery.theme-json-system
@@ -21,6 +23,10 @@ dependencies:
     created_at: 2026-04-26T08:37:51Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] silvery theme JSON Schema + 5-10 starter themes @km/silvery #feature #P1
@@ -32,3 +38,4 @@ Published theme JSON Schema + loader, extends existing <ThemeProvider>. Starter 
 Estimated ~200-400 LOC + theme files. Independent — runs parallel with diff-code-accordion.
 
 Source plan: hub/silvery/future/ai-terminal/component-parity-plan.md § Tier 0 bead 2.
+

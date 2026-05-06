@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/flexx-recursion"
 aliases:
   - km-flexx-recursion
@@ -11,3 +14,4 @@ assignee: claude:b8b4780b
 # [x] Replace recursive tree traversals with iterative to avoid stack overflow @km/_orphan #task #P2 @claude:b8b4780b
 
 resetLayoutCache() and propagatePositionDelta() use recursion which can overflow the call stack on deep TUI trees. Replace with iterative traversal using a reusable module-level stack array.
+

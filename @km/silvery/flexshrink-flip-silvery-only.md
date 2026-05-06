@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/flexshrink-flip-silvery-only"
 aliases:
   - km-silvery.flexshrink-flip-silvery-only
@@ -38,6 +40,16 @@ dependencies:
     created_at: 2026-04-24T23:52:57Z
     created_by: claude:53042a7f
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-flexily.auto-min-size-flex-items
+      - type: link
+        target: km-silvery
+      - type: link
+        target: km-silvery.flexshrink-audit-silvery
 ---
 
 # [x] Flip silvery to CSS preset via createFlexilyZeroEngine({defaults:'css'}) (no global flexily flip) @km/silvery #feature #P2
@@ -64,3 +76,4 @@ Cleaner architectural path than flipping flexily DEFAULT_PRESET globally: silver
 ## Blocked by
 
 - @km/silvery/flexshrink-audit-silvery (component audit)
+

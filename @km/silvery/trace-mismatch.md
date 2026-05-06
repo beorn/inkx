@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/trace-mismatch"
 aliases:
   - km-silvery.trace-mismatch
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Trace diagnostics compute childAncestorCleared differently than runtime @km/silvery #bug #P3
 
 Instrumentation trace uses parentRegionCleared || ancestorCleared but runtime uses parentRegionCleared || (ancestorCleared && \!props.backgroundColor). Misleading debug output for bg-bearing boxes. Found by GPT pipeline review.
+

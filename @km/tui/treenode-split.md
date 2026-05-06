@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/treenode-split"
 aliases:
   - km-tui.treenode-split
@@ -13,3 +16,4 @@ assignee: claude:f47d1ff0
 # [x] Phase 7: split TreeNode into Display + Edit components @km/tui #task #P3 @claude:f47d1ff0
 
 TreeNodeImpl has 30 hooks, 8 editing-only. Split into DisplayTreeNode (22 hooks) + EditableTreeNode (+8 hooks), mounted only for the ONE node being edited. Reduces per-node overhead for non-editing nodes.
+

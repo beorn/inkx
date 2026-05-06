@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/o8qqo"
 aliases:
   - km-o8qqo
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] SQLite disk I/O error after prolonged use @km/_orphan #bug #P2
 
 After running km view for a while, SQLite throws 'disk I/O error'. Likely related to WAL mode + mmap configuration (mmap_size=256MB). Investigate: reduce mmap_size, add error recovery, ensure proper DB close on exit.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/body-vs-subitem-emphasis"
 aliases:
   - km-tui.body-vs-subitem-emphasis
@@ -16,3 +19,4 @@ assignee: Bjørn Stabell
 ---
 
 # [x] Body content visually heavier than structural subitems in cards @km/tui #bug #P3 @Bjørn Stabell
+

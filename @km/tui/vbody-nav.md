@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/vbody-nav"
 aliases:
   - km-tui.vbody-nav
@@ -13,3 +16,4 @@ assignee: claude:36393b5d
 # [x] Left navigation into virtual body column jumps to wrong card @km/tui #bug #P2 @claude:36393b5d
 
 In [Fam Travel] board, cursor on a card in 'Travel system' column. Moving right works. Moving left into '(no section)' (virtual body) column jumps to a card much further down — not the visually adjacent card. curswantY or virtual body column card indexing is off.
+

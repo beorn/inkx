@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/storybook-styling-coverage"
 aliases:
   - km-tui.storybook-styling-coverage
@@ -63,3 +65,4 @@ When updating storybook, also update the fixture (or vice versa) so they stay in
 - @km/silvery/examples-components (P1) — silvery's own component showcase, separate
 - @km/silvery/variant-style-system (P2) — when it lands, every storybook example will exercise the variant resolver, and the storybook becomes the canonical visual regression target
 - @km/infra/style-precedence-lint (P3) — would prevent regressions in styling code; storybook catches them visually
+

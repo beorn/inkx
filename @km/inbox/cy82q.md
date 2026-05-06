@@ -1,4 +1,9 @@
 ---
+mentions:
+  - silvery
+  - silvery
+  - km
+  - claude
 id: "@km/inbox/cy82q"
 aliases:
   - km-cy82q
@@ -16,3 +21,4 @@ assignee: claude:fed8de9e
 # [x] Collapse public packages: silvery + @silvery/tea + @silvery/test @km/_orphan #task #P1 @claude:fed8de9e
 
 Users shouldn't learn the package graph to build a counter. Public surface: silvery (components, hooks, render), @silvery/tea (optional app architecture), @silvery/test (optional testing). Internal: @silvery/core, @silvery/term, @silvery/react, @silvery/theme, @silvery/ui.
+

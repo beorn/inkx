@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/state-report"
 aliases:
   - km-market.state-report
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] State of Terminal Compatibility 2026 — annual data report from terminfo.dev @km/market #task #P2
 
 Polished data-heavy report: feature support by terminal, surprising mismatches, charts by version/platform, downloadable raw data. Gets cited in docs/issues/blogs.
+

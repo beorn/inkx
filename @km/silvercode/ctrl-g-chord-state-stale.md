@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - G
 id: "@km/silvercode/ctrl-g-chord-state-stale"
 aliases:
   - km-silvercode.ctrl-g-chord-state-stale
@@ -13,3 +17,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Ctrl+G chord state-stale: chord set but follow-up key inserts as text @km/silvercode #bug #P1
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/all/lint-env-worktree-scan"
 aliases:
   - km-all.lint-env-worktree-scan
@@ -67,6 +70,10 @@ dependencies:
     created_at: 2026-04-28T13:42:55Z
     created_by: claude:da9990c5
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all
 ---
 
 # [x] lint-env-reads scans .claude/worktrees/ and trips on sibling agents' isolated copies @km/all #bug #P0 @claude:da9990c5
@@ -91,7 +98,7 @@ Causes false-positive failures in CI / preflight runs whenever a parallel agent 
 
 ## Reproduction
 
-  cd /Users/beorn/Code/pim/km
+cd /Users/beorn/Code/pim/km
   bun vitest run vendor/silvery/tests/lint-env-reads.test.ts
 
 Fails when any active .claude/worktrees/agent-* directory exists with env-reads in its WIP code.
@@ -108,3 +115,4 @@ Fails when any active .claude/worktrees/agent-* directory exists with env-reads 
 - [ ] vendor/silvery/tests/lint-env-reads.test.ts passes when .claude/worktrees/ contains agent worktrees
 - [ ] Pattern applied to any other lint-* tests with the same scan-the-tree shape
 - [ ] grep confirms .claude/worktrees/ is in the linter's excluded paths
+

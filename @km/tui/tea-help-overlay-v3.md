@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/tea-help-overlay-v3"
 aliases:
   - km-tui.tea-help-overlay-v3
@@ -47,6 +50,10 @@ dependencies:
     created_at: 2026-04-21T12:06:40Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.authoring-elegance
 ---
 
 # [x] HelpOverlay v3 — migrate to withHelpOverlay(app) AppPlugin shape @km/tui #feature #P1 @claude:2405c72e
@@ -64,6 +71,7 @@ Slice owns state (from createSlice); key bindings contributed via existing with-
 ## Prior art
 
 Spike at /Users/beorn/Code/pim/km/hub/silvery/help-overlay.v3.ts (85 LOC / 56 code LOC). Verify by running the existing v1+v2 parity test bank against v3:
+
 - apps/@km/tui/tests/plugins/with-help-overlay.test.ts
 - apps/@km/tui/tests/plugins/help-mini-cutover.spec.ts
 - apps/@km/tui/tests/plugins/help-termless.test.ts
@@ -72,6 +80,7 @@ Spike at /Users/beorn/Code/pim/km/hub/silvery/help-overlay.v3.ts (85 LOC / 56 co
 ## Feature flag
 
 KM_TEA_HELP_V3=1 enables v3. Default off until parity proven. Once v3 is stable:
+
 - Delete v2 (help-overlay.v2.ts)
 - Delete v1 (with-help-overlay.ts)
 - Delete definePlugin + useStore in silvery create package
@@ -84,3 +93,4 @@ See hub/silvery/pipe-with-composition-prototype.md. Pro review + aichat prototyp
 ## Blocks
 
 If v3 succeeds, withDialogs() Phase 1 (@km/tui/tea-withDialogs) adopts the same shape. Estimated ~500 LOC reduction across 5 dialogs (Help, Search, DeleteConfirm, DatePrompt, FilterDialog).
+

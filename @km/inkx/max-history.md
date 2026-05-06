@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/max-history"
 aliases:
   - km-inkx.max-history
@@ -14,3 +17,4 @@ assignee: claude:fa5431cd
 # [x] ScrollbackView maxHistory: frozen→static promotion with visual separator @km/inkx #feature #P2 @claude:fa5431cd
 
 Implement the maxHistory lifecycle in ScrollbackView. When cumulative frozen lines exceed maxHistory, oldest frozen items are promoted to 'static' (data dropped, terminal owns them, not re-renderable on resize). Add a visual separator line at the boundary between static and dynamic scrollback. Update the demo to showcase this with a low maxHistory threshold.
+

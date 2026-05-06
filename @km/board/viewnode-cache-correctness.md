@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/board/viewnode-cache-correctness"
 aliases:
   - km-board.viewnode-cache-correctness
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T12:19:02Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [ ] ViewNodeColumnCache: fix correctness vs explore faster derivation @km/board #task #P2
@@ -34,22 +40,26 @@ This is a class of bugs, not a one-off: any edit to a node deeper than column's 
 ## Options to Explore
 
 ### Option A: Make cache correctly invalidate on content changes
+
 - Add a content hash or version per column subtree
 - Bust when any descendant version changes
 - Pro: keeps the cache, correct invalidation
 - Con: computing subtree hash may cost as much as rebuilding
 
 ### Option B: Delete the cache entirely
+
 - Column derivation may already be fast enough
 - Pro: eliminates the bug class, simplest code
 - Con: potential perf regression on large boards (1000+ cards)
 
 ### Option C: Make ViewNode derivation faster so cache is unnecessary
+
 - Incremental/structural sharing (persistent data structures)
 - Pro: fast AND correct by construction
 - Con: highest implementation effort
 
 ### Option D: Finer-grained cache (per-card instead of per-column)
+
 - Cache at card level with per-card version stamps from repo
 - Pro: invalidates correctly at the right granularity
 - Con: more cache entries, more bookkeeping
@@ -65,6 +75,8 @@ Before deciding, measure actual derivation cost:
 5. Compare: if full rebuild is <2ms on large boards, Option B wins; if >5ms, Option A or D needed
 
 ## Related
+
 - @km/all/simplification, @km/tui/viewnode-cache (architecture review)
 - @km/tui/tree-edit-nav (edit navigation uses tree traversal)
 - Workaround: grandparent cache bust in repo.ts (0039dcfc)
+

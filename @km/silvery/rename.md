@@ -1,4 +1,7 @@
 ---
+mentions:
+  - silvery
+  - km
 id: "@km/silvery/rename"
 aliases:
   - km-silvery.rename
@@ -18,32 +21,37 @@ After the monolith split (@km/silvery/split), do a comprehensive rename pass acr
 
 ## Renames
 
-| Old | New |
-|-----|-----|
-| @hightea/term | @silvery/react + @silvery/term (split) |
-| @hightea/ansi | @silvery/ansi |
-| hightea (all references) | silvery |
-| hightea.dev | silvery.dev |
-| decant | loggily |
-| swatch | @silvery/theme |
+| Old                      | New                                    |
+| ------------------------ | -------------------------------------- |
+| @hightea/term            | @silvery/react + @silvery/term (split) |
+| @hightea/ansi            | @silvery/ansi                          |
+| hightea (all references) | silvery                                |
+| hightea.dev              | silvery.dev                            |
+| decant                   | loggily                                |
+| swatch                   | @silvery/theme                         |
 
 ## Scope
 
 ### Code
+
 - All import paths (`from "@hightea/term"` → `from "@silvery/react"` etc.)
 - package.json names, dependencies, peerDependencies
 - tsconfig paths, module resolution aliases
 - Workspace references
 
 ### Documentation
+
 - All .md files in docs/, vendor/, .claude/skills/
 - CLAUDE.md at every level (root, ~/Code, ~/Code/pim/km)
 - README files
 
 ### GitHub
+
 - Rename beorn/hightea → beorn/silvery (or create new + archive old)
 - Rename beorn/decant → beorn/loggily (or create new + archive old)
 - Update all cross-references
 
 ### npm
+
 - Deprecate old packages with message pointing to new names
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Claude
 id: "@km/inbox/sh-db-bug"
 aliases:
   - km-sh-db-bug
@@ -20,3 +23,4 @@ Both are likely due to missing db parameter passing after vault creation.
 Blocking: mdtest-plugins.1 (cmd-mode.test.md requires km sh to work)
 
 Fix: Similar to @km/_orphan/init-db-bug fix - pass getDb() to functions that need it after vault creation.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - 15d108d7
 id: "@km/inbox/tui-singleton-removal"
 aliases:
   - km-tui-singleton-removal
@@ -30,6 +33,7 @@ The following files need refactoring to accept vault as a parameter instead of u
 ## Pattern
 
 Change functions like:
+
 ```typescript
 function getInheritedColor(node: KNode): string | undefined {
   const ancestors = getAncestors(node.id);  // singleton
@@ -38,6 +42,7 @@ function getInheritedColor(node: KNode): string | undefined {
 ```
 
 To:
+
 ```typescript
 function getInheritedColor(vault: Vault, node: KNode): string | undefined {
   const ancestors = vault.getAncestors(node.id);  // DI
@@ -48,3 +53,4 @@ function getInheritedColor(vault: Vault, node: KNode): string | undefined {
 ## Testing
 
 Update board-test.ts to pass vault through all render paths.
+

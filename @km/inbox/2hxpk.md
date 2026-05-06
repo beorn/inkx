@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/2hxpk"
 aliases:
   - km-2hxpk
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Folded embeds show raw \![[ @km/_orphan #bug #P1
 
 FoldedChildRow passes null for resolvedNode, so getDisplayContent can't resolve embed targets. Shows raw \![[^id]] instead of resolved title.
+

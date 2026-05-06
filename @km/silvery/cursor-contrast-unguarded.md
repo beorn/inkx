@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/cursor-contrast-unguarded"
 aliases:
   - km-silvery.cursor-contrast-unguarded
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-24T01:32:28Z
     created_by: claude:950534f3
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Sterling cursor.fg/bg pass-through has no contrast guard — Espresso ships 1.96:1 @km/silvery #bug #P2
@@ -26,6 +32,7 @@ blocks:: [[@km/silvery]]
 Sterling's cursor.fg / cursor.bg derivation in vendor/silvery/packages/ansi/src/sterling/derive.ts:500 passes through scheme.cursorText and scheme.cursorColor verbatim with NO contrast guard. Terminal cursor colors are configured for a blinky 1-cell indicator, not a large selected-row surface — they often fail WCAG AA for text.
 
 ## Evidence (Espresso theme, Ghostty)
+
 - fg=#ffffff bg=#323232
 - cursor.fg = #999999 (pass-through of scheme.cursorText)
 - cursor.bg = #d6d6d6 (pass-through of scheme.cursorColor)
@@ -34,11 +41,15 @@ Sterling's cursor.fg / cursor.bg derivation in vendor/silvery/packages/ansi/src/
 - Sterling reports violations: count=0
 
 ## Repro
+
 Construct a ColorScheme with Espresso values, call deriveRoles, inspect result.roles.cursor. All 84 catalog themes should be checked — any with low cursor.fg/bg contrast is a shipped rendering bug.
 
 ## Proposed fix
+
 Apply the existing guardTarget auto-lift pattern to cursor.fg/cursor.bg. The "against" argument should enforce cursor.fg ↔ cursor.bg at AA_RATIO. If auto-lift can't hit AA, record a violation so consumers can opt into strict.
 
 ## Related
+
 - @km/silvery/invariant-matrix-gaps — the invariant matrix doesn't check cursor.fg/cursor.bg either
 - Observed as user-visible bug in @km/logview: expanded+cursor ASSIST row rendered dark-on-dark
+

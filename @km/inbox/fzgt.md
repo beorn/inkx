@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - km
 id: "@km/inbox/fzgt"
 aliases:
   - km-fzgt
@@ -10,25 +13,30 @@ closed_at: 2026-01-17T23:18:30Z
 # [x] Migrate edit commands (move, indent, delete) to @km/commands @km/_orphan #task #P2
 
 ## Goal
+
 Move all edit/mutation commands from Board.tsx to the unified command registry.
 
 ## Commands to Migrate
 
 ### Card Movement (within view)
+
 - `move_card_up` / `move_card_down` - reorder within column
 - `move_card_left` / `move_card_right` - move between columns
 - `move_card_to_column` - move to specific column (1-9)
 
 ### Structural Operations
+
 - `indent_node` - make node child of sibling above (Tab)
 - `outdent_node` - make node sibling of parent (Shift-Tab)
 
 ### CRUD
+
 - `delete_node` - delete current node
 - `create_node_sibling` - create sibling (future)
 - `create_node_child` - create child (future)
 
 ## Source Files
+
 - `apps/km-tui/packages/km-ink/src/views/Board.tsx`:
   - `moveCardInColumn()` - lines ~1980-2100
   - `moveCardToColumn()` - lines ~2104-2186
@@ -39,12 +47,14 @@ Move all edit/mutation commands from Board.tsx to the unified command registry.
 ## Key Challenge
 
 These functions currently:
+
 1. Compute new position using fractional indexing
 2. Call storage layer (`moveNode`, `updateNode`)
 3. Rebuild board state with `buildBoardState()`
 4. Update React state with `setState()`
 
 Commands should NOT do all this. Instead:
+
 1. Command computes the mutation action
 2. Returns `TAction` (storage action)
 3. Effect layer handles storage + refresh
@@ -78,8 +88,10 @@ export const moveCardUp: CommandDef = {
 ```
 
 ## Acceptance Criteria
+
 - [ ] All edit commands registered in @km/commands
 - [ ] Commands return TAction (storage actions)
 - [ ] Fractional indexing logic extracted to shared utility
 - [ ] Unit tests for each command with mock context
 - [ ] Commands work independently of React component
+

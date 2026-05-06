@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/scroll-columns"
 aliases:
   - km-tui.scroll-columns
@@ -11,3 +14,4 @@ assignee: claude:d3a7049b
 ---
 
 # [x] Scroll wheel scrolls columns instead of moving cursor @km/tui #feature #P2 @claude:d3a7049b
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/8mji"
 aliases:
   - km-8mji
@@ -8,3 +10,4 @@ closed_at: 2026-01-20T15:01:06Z
 ---
 
 # [x] CardsView: Should be multi-line (regression) @km/_orphan #bug #P2
+

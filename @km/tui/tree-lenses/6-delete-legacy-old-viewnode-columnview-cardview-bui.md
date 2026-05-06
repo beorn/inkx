@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/tree-lenses/6-delete-legacy-old-viewnode-columnview-cardview-bui"
 aliases:
   - km-tui.tree-lenses.6
@@ -14,6 +16,7 @@ owner: bjorn@stabell.org
 # [x] Delete legacy: old ViewNode, ColumnView, CardView, buildViewTree, ViewSnapshot @km/tui #task #P2
 
 Final cleanup after all consumers migrated:
+
 - Delete old ViewNode interface from view-tree.ts
 - Delete ColumnView/CardView from types.ts
 - Delete buildViewTree, buildViewIndex, viewNodeToColumnViews
@@ -24,8 +27,10 @@ Final cleanup after all consumers migrated:
 - Remove old exports from @km/_orphan/board barrel
 
 Acceptance:
+
 - grep 'buildViewTree' in src/ = 0 (except view-lens.ts internal)
 - grep 'ColumnView' in src/ = 0
 - grep 'CardView' in src/ = 0
 - grep 'ViewSnapshot' in src/ = 0
 - All tests pass
+

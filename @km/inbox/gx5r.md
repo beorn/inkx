@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/gx5r"
 aliases:
   - km-gx5r
@@ -20,3 +22,4 @@ After fixing individual TUI2 bugs, implement a systematic methodology to achieve
 This addresses why TUI2 progress has been slow: no spec, architectural mismatch (Ink ANSI vs OpenTUI JSX), and ad-hoc fixing without systematic coverage.
 
 See plan file: inherited-humming-panda.md section 'BEAD: Systematic TUI2 Parity Methodology'
+

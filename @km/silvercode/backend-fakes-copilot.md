@@ -30,6 +30,7 @@ Add a GitHub Copilot ACP profile for the shared fake backend.
 
 ## Acceptance
 
-- Fake Copilot profile supports the same contract runner as other ACP backends.
+- Fake Copilot profile supports the same spec runner as other ACP backends.
 - Live-mode contract can run when `copilot` is installed and credentials are available.
 - Silvercode does not show stale Claude/Codex controls for Copilot when the fake reports no such config.
+

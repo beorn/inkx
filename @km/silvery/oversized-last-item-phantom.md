@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/oversized-last-item-phantom"
 aliases:
   - km-silvery.oversized-last-item-phantom
@@ -67,6 +70,7 @@ below-viewport item, or count the trailing placeholder.
 ## Scope
 
 Layout-phase only, does NOT affect @km/tui. Fix requires:
+
 1. Distinguishing "placeholder representing zero real items" from "real item
    partially below viewport" in the hiddenBelow counter.
 2. Possibly excluding the scrollTo target itself from hiddenBelow when it's
@@ -76,3 +80,4 @@ Layout-phase only, does NOT affect @km/tui. Fix requires:
 ## Out of scope for this session
 
 Surface by INV-5 promotion (commit 71625fdc). Fix deferred to a future session.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/perf-regression-tests-lax"
 aliases:
   - km-flexily.perf-regression-tests-lax
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Testing: Performance regression test thresholds too lax to catch meaningful regressions @km/flexily #task #P1
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/aojy"
 aliases:
   - km-aojy
@@ -20,3 +22,4 @@ const nodeMap = useMemo(() => createNodeMap(boardState.nodes), [boardState.nodes
 Then pass nodeMap into buildTUIContext() instead of building it there.
 
 **Impact:** Reduces per-keypress work from O(n) to O(1) for typical navigation.
+

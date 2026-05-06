@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/t3a7l"
 aliases:
   - km-t3a7l
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 WorkspaceView's outer Box used flexGrow={1} without overflow='hidden', so Board's explicit height={termHeight} (full terminal height on first render) propagated as min-content-size through intermediate flex containers, preventing the flex container from shrinking WorkspaceView below Board's requested height. The bottom bar (height=1, flexShrink=0) got pushed off screen.
 
 Fix: Add overflow='hidden' to WorkspaceView's outer Box so its min-main-size becomes 0, allowing flex shrinking.
+

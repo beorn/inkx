@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/api-audit"
 aliases:
   - km-silvery.api-audit
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] API surface audit: remove accidental public exports @km/silvery #task #P2
 
 Audit all silvery entry points and remove any accidentally exported internals. Ensure only intended public API is reachable.
+

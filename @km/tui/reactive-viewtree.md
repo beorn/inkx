@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - foldDepths
 id: "@km/tui/reactive-viewtree"
 aliases:
   - km-tui.reactive-viewtree
@@ -17,6 +21,7 @@ ViewTree is currently built imperatively via deriveColumns() etc. and stored in 
 ## Scope (selection.8-10)
 
 This is the "Reactive ViewTree" seam from the quality plateau roadmap:
+
 - selection.8: ViewTree as computed signal — eliminates refreshSelTree, stale walk order
 - selection.9: Eliminate Zustand bridge — useSignal for React components
 - selection.10: Per-node view state as reactive overlays on repo tree — eliminates ViewTree as parallel structure
@@ -24,6 +29,7 @@ This is the "Reactive ViewTree" seam from the quality plateau roadmap:
 ## Why
 
 Currently:
+
 - ViewTree is a parallel structure mirroring repo
 - Updates are imperative — deriveColumns() runs on various triggers
 - Stale views cause invariant #12 (ViewTree root matches rootId) to fire
@@ -32,7 +38,7 @@ Currently:
 ## Why Deferred
 
 - Biggest structural change (3-5 sessions)
-- Requires rebind invalidation fix (@km/tui/rebind-invalidate) as prerequisite  
+- Requires rebind invalidation fix (@km/tui/rebind-invalidate) as prerequisite
 - Touches selection adapter + store construction
 - High risk of subtle bugs
 
@@ -48,3 +54,4 @@ Currently:
 - [ ] Per-node view state is reactive overlay on repo tree
 - [ ] Invariant #12 never fires
 - [ ] All tests pass
+

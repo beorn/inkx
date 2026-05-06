@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/daemon-idle-rules"
 aliases:
   - km-bearly.daemon-idle-rules
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-26T14:09:57Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.process-mgmt
 ---
 
 # [x] Daemon idle-rule API: composable predicates over IdleCtx (no tagged union) @km/bearly #feature #P2
@@ -118,3 +124,4 @@ When a rule votes quit, the daemon stops accepting new connections, drains in-fl
 
 - /tmp/llm-2405c72e-review-this-entire-process-management-k1md.txt
 - VS Code 'when' clause pattern (similar predicate-over-context shape)
+

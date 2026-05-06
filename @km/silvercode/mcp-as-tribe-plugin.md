@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/mcp-as-tribe-plugin"
 aliases:
   - km-silvercode.mcp-as-tribe-plugin
@@ -60,6 +63,10 @@ dependencies:
     created_at: 2026-04-26T14:09:30Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.process-mgmt
 ---
 
 # [x] createMcpPlugin — MCP as a tribe plugin (idle + max-lifetime as two timers) @km/silvercode #feature #P2 @claude:cc081a9a
@@ -139,3 +146,4 @@ Move (or absorb) @km/_orphan/mcp-server / tribe-mcp tools into this plugin's han
 - principles.md sections cited: Defaults Over Configuration, Build for one consumer, No Parallel Derivation, MECE
 - Predecessor (closed): @km/bearly/daemon-idle-rules — rule DSL rejected in favor of two factory args
 - Predecessor: @km/silvercode/mcp-daemon — standalone-binary direction superseded by plugin-on-tribe
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/sterling"
 aliases:
   - km-all.sterling
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-24T16:12:19Z
     created_by: claude:5e447b66
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all
 ---
 
 # [ ] Sterling design system — tracking epic @km/all #task #P1
@@ -28,6 +34,7 @@ Sterling work has accumulated in 13+ beads under `km-silvery.theme-v4` (epic) pl
 ## Current state (2026-04-24)
 
 **Closed**:
+
 - sterling-2a-data-layer (Theme type + derivation + guardrails)
 - sterling-2b-ui-components (@silvery/ui consumes new tokens)
 - sterling-2c-@km/_orphan/migration (@km/tui ~145 call sites migrated)
@@ -43,11 +50,13 @@ Sterling work has accumulated in 13+ beads under `km-silvery.theme-v4` (epic) pl
 - theme-v4-backdrop-standalone (Phase 6)
 
 **In progress**:
+
 - sterling-2d-release (0.18.x cleanup patch)
 - sterling-2e-interior-migration (silvery interior + 0.19.0 breaking release)
 - sterling-public-docs (silvery.dev for 0.19.0)
 
 **Open**:
+
 - sterling-storybook (interactive system explorer epic)
 - theme-v4 (sub-epic — parent of most of above)
 - design-package-rename (Phase 3b: @silvery/theme → @silvery/design)
@@ -63,3 +72,4 @@ Sterling work has accumulated in 13+ beads under `km-silvery.theme-v4` (epic) pl
 - (NEW) sterling-selection-tokens (proposed — add `bg-selected` / `fg-on-selected` / `bg-inverse` / `bg-link` / `fg-on-link` to Sterling so the legacy `selectionbg`/`selection`/`inverse`/`link` tokens can finally be retired)
 
 Reference: apps/@km/tui/src/views/selection-style.ts:8-14 documents that selection / inverse / link have no Sterling equivalent in 0.19 and remain on legacy theme via deriveTheme().
+

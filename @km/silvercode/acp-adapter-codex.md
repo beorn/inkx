@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/acp-adapter-codex"
 aliases:
   - km-silvercode.acp-adapter-codex
@@ -32,6 +35,14 @@ dependencies:
     created_at: 2026-04-26T01:11:36Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode.acp
+      - type: link
+        target: km-silvercode.acp-adapter-claude
 ---
 
 # [x] ACP adapter — OpenAI Codex CLI stream-json → SessionUpdate @km/silvercode #feature #P4 @claude:cd034ca4
@@ -39,3 +50,4 @@ dependencies:
 blocks:: [[@km/silvercode/acp]], [[@km/silvercode/acp-adapter-claude]]
 
 Stateless mapper for codex-cli's JSONL output → ACP SessionUpdate. Codex schema variant differs from Claude's; refer to vibe-kanban's codex.rs and OpenClaw's extensions/openai/cli-backend.ts for the field mapping. Subscription-plan auth: rides ChatGPT Plus/Pro account login. Alternative path: consume @zed-industries/codex-acp (already-published ACP server) directly — adapter becomes pass-through. Decide which path is shorter once acp-adapter-claude lands.
+

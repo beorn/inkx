@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/markdown/inline-format-loss"
 aliases:
   - km-markdown.inline-format-loss
@@ -18,6 +21,7 @@ assignee: Bjørn Stabell
 # [x] [bug] P0: Edit silently strips ALL inline formatting (bold/italic/code/links/strike) from entire file @km/markdown #bug #P0 @Bjørn Stabell
 
 EVERY edit causes the whole file to be rewritten without inline markup:
+
 - **bold** → bold
 - *italic* → italic
 - `inline code` → inline code
@@ -32,3 +36,4 @@ Root cause: nodeToText() in @km/markdown/src/parser.ts:455 recurses children con
 Documented in tests as known: roundtrip.test.ts:36-39, 950-956.
 
 Fix: store the full mdast (or a lossless AST) in node.body, not just plain text. Serialize from AST.
+

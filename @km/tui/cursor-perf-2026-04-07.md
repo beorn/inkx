@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/cursor-perf-2026-04-07"
 aliases:
   - km-tui.cursor-perf-2026-04-07
@@ -50,6 +52,7 @@ Latency barely scales with column size (104→111ms across 36× more cards). The
 ## Deferred: comparison against post-plateau baseline
 
 Wanted to compare against 2910f2dd8 (post-quality-plateau, ~10 days ago, what user remembers as "fast"), but:
+
 - Spinning up a worktree at that commit needs full submodule init + bun install
 - System was at 86% memory with multiple bun processes from the parallel /max session
 - Bench at HEAD took 5+ minutes and 9.9GB RAM before completing
@@ -70,3 +73,4 @@ Comparison TODO: when system is less loaded, run the same bench at 2910f2dd8 and
 
 - Per-press latency at 200x60, 1000 cards: < 50ms (4× improvement over current ~105ms)
 - Stretch goal: < 16ms (feels instant)
+

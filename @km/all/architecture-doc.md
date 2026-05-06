@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/all/architecture-doc"
 aliases:
   - km-all.architecture-doc
@@ -17,10 +20,12 @@ assignee: Bjørn Stabell
 Create one concise (~250 line) architecture doc that synthesizes km's full structure and flows.
 
 DELIVERABLES COMPLETE:
+
 1. docs/architecture-v2.md (271 lines) — building blocks (KNode, Position, Repo, BoardState, ViewNode), 5-layer stack, 4 data flows, composition model with SlateJS alignment table, package map
 2. vendor/silvery/docs/architecture.md (113 lines) — silvery framework internals
 
 UPDATES IN THIS PASS:
+
 - Added ViewNode to Building Blocks (lines 101-117) with role types, buildViewTree, buildViewIndex, deriveCursorPath
 - Marked ColumnView/CardView as 'Legacy View Models' (line 92)
 - Updated Navigate flow to show dual-path (legacy + ViewNode with equivalence check)
@@ -29,3 +34,4 @@ UPDATES IN THIS PASS:
 - Verified all file references exist
 
 REMAINING: Close after view-tree migration Phase 3 — then remove 'Legacy' labels and 'migration in progress' notes
+

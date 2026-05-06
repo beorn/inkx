@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/asana-section-to-oi"
 aliases:
   - km-tui.asana-section-to-oi
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Convert Asana section headings to oi nodes during import @km/tui #feature #P3
 
 O3 recommendation: For imported Asana data with flat li lists, provide tooling to convert section headings (like 'Tasks', 'Next', 'Done') into oi nodes. This creates multi-column board layouts naturally, reducing the frequency of flat single-column boards that cause navigation issues. Currently Asana sections import as body content (p/h nodes), not as structural outline items.
+

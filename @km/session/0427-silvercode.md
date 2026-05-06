@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/session/0427-silvercode"
 aliases:
   - km-session.0427-silvercode
@@ -22,3 +24,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Session: silvercode exploratory testing — find + fix bugs @km/session #task #P2
+

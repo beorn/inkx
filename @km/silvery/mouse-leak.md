@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/mouse-leak"
 aliases:
   - km-silvery.mouse-leak
@@ -21,3 +24,4 @@ On app exit, raw mode is disabled (provider cleanup at L884) BEFORE mouse tracki
 Fix: use writeSync for mouse/kitty/focus disable sequences, and do it BEFORE provider cleanup (which disables raw mode). The restoreTerminalState() in terminal-lifecycle.ts already has the correct order — the create-app.tsx cleanup should use it or replicate the order.
 
 Screenshot: ~/Desktop/Screenshot 2026-03-18 at 12.00.40.png
+

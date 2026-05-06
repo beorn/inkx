@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/process-mgmt"
 aliases:
   - km-silvercode.process-mgmt
@@ -48,6 +50,10 @@ dependencies:
     created_at: 2026-04-27T01:25:55Z
     created_by: claude:87d20187
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] [epic] Process management — daemon strategy, close hardening, MCP-as-tribe-plugin @km/silvercode #epic #P1
@@ -94,3 +100,4 @@ createMcpPlugin({idleTimeoutMs?, maxLifetimeMs?}). Two numbers, two event-driven
 - hub/silvery/design/lifecycle-scope.md (Scope discipline; god-object anti-pattern)
 - docs/principles.md (the rules round 2 measured against)
 - apps/silvercode/packages/agent-harness/src/spawn.ts (current close() implementation)
+

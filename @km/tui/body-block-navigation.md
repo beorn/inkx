@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/body-block-navigation"
 aliases:
   - km-tui.body-block-navigation
@@ -19,3 +22,4 @@ Root cause: navigation model assumes inlineEditBlock.nodeId is always either a c
 Fix: in handleEditBlockNavigate, if the edit node is a body block (not outline), resolve it to its parent outline item first, then navigate from there. Or: in findAdjacentEditNode, when node is not found in items, check if it is a body block and navigate from parent instead.
 
 Discovered via /why analysis in @km/_orphan/work session. testEnv passes because test fixtures always create outline items, not body blocks at the click target level.
+

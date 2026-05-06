@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/plugin-root"
 aliases:
   - km-silvery.plugin-root
@@ -16,3 +19,4 @@ assignee: claude:474834b0
 # [x] Replace wrapRoot with .Root component pattern for plugin composition @km/silvery #task #P2 @claude:474834b0
 
 Replace the wrapRoot function pattern with a .Root component on the app object. More React-idiomatic, one less abstraction (we need a root component anyway), more SlateJS/plugin-like. Plugins compose by wrapping the previous Root. withInk() sets app.Root to include Ink providers. Renderer wraps element with <app.Root>{element}</app.Root>.
+

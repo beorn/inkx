@@ -1,7 +1,4 @@
 ---
-tags:
-  - task
-  - P2
 mentions:
   - km
   - Bjørn
@@ -23,6 +20,10 @@ dependencies:
 closeReason: "Grooming 2026-04-30: WIP 17d. /sop framework shipped — referenced
   in CLAUDE.md as canonical scan→propose→execute orchestrator across 11 domains.
   Code lives in .claude/skills/sop/. Close."
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] SOP: unified scan→propose→execute framework for all project maintenance @km/infra #task #P2 @Bjørn Stabell

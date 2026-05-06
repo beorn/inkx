@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/alloc-hotpath"
 aliases:
   - km-inkx.alloc-hotpath
@@ -11,3 +14,4 @@ assignee: claude:b53ef7e4
 # [x] perf(inkx): Quick allocation fixes (getBorderChars, bgConflictMode, styleToAnsi) @km/inkx #task #P3 @claude:b53ef7e4
 
 P6: Hoist getBorderChars to module scope. P9: Cache getBgConflictMode. M5: Use parseColor directly in styleToAnsi.
+

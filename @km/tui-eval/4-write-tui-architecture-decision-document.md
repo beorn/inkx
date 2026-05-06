@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui-eval/4-write-tui-architecture-decision-document"
 aliases:
   - km-tui-eval.4
@@ -19,8 +21,8 @@ Document the final recommendation on TUI1 vs TUI2 with rationale.
 1. **Executive Summary** - Which TUI and why (1 paragraph)
 2. **Context** - Why we explored alternatives
 3. **Options Evaluated**
-   - TUI1 (Ink) - pros, cons, required improvements
-   - TUI2 (OpenTUI) - pros, cons, blocking issues
+  - TUI1 (Ink) - pros, cons, required improvements
+  - TUI2 (OpenTUI) - pros, cons, blocking issues
 4. **Decision** - Which to proceed with
 5. **Consequences** - What this means for @km/tui2 work
 6. **Action Items** - Next steps
@@ -34,3 +36,4 @@ Document the final recommendation on TUI1 vs TUI2 with rationale.
 ## Output
 
 - docs/adr/NNN-tui-architecture.md (Architecture Decision Record)
+

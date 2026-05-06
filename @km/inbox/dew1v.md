@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/dew1v"
 aliases:
   - km-dew1v
@@ -11,3 +14,4 @@ assignee: claude:16781aa5
 # [x] Test suite audit and consolidation @km/_orphan #task #P2 @claude:16781aa5
 
 Full audit of ~97 test files to identify overlap and develop strategy for maximum coverage with minimum fast tests. Goal: testing trophy structure with one source of truth per behavior.
+

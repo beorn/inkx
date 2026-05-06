@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tools/session-exit-perf"
 aliases:
   - km-tools.session-exit-perf
@@ -11,3 +14,4 @@ assignee: claude:3e210840
 # [x] Session summarize hook should fork background task so Claude exits immediately @km/tools #task #P2 @claude:3e210840
 
 The session-end summarize hook runs synchronously, blocking Claude Code from exiting until summarization completes. It should fork the summarization as a background process (e.g. detached child process) so Claude can quit immediately while the summary writes in the background.
+

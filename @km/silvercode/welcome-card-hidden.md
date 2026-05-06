@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/welcome-card-hidden"
 aliases:
   - km-silvercode.welcome-card-hidden
@@ -76,3 +79,4 @@ assignee: claude:2405c72e
 ---
 
 # [x] silvercode: Welcome card hidden — focus bar 200-char wrap text inflates pane width @km/silvercode #bug #P1 @claude:2405c72e
+

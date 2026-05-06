@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/split-sync-manager"
 aliases:
   - km-storage.split-sync-manager
@@ -17,8 +19,10 @@ owner: bjorn@stabell.org
 SyncManager is a god object with 9+ responsibilities: watcher lifecycle, reconciliation, heartbeat, write tokens, event projection, parse pool, block ID assignment, state machine, in-flight tracking.
 
 DESIGN: Split into:
+
 1. WatcherManager — watcher lifecycle, batching, in-flight deduplication
 2. ReconciliationEngine — FS→DB diff+apply, pure, no write-back logic
 3. ProjectionManager — DB→FS via EventHandlers, WriteQueue, conflict resolution
 
 Each component has clear inputs/outputs and can be tested independently.
+

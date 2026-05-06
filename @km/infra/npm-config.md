@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/npm-config"
 aliases:
   - km-infra.npm-config
@@ -17,3 +20,4 @@ assignee: claude:55df8ef1
 Configure package.json for npm publishing across all vendor/* packages with @beorn/ scope. Includes: exports, types, files, publishConfig, repository fields. Do NOT actually publish — just set up the configuration.
 
 Packages: decant, hightea (hightea + ansi), flexture, termless (in progress via @km/termless/npm-publish), vitestx, mdtest, tools.
+

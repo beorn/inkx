@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/tea-phase2"
 aliases:
   - km-inkx.tea-phase2
@@ -11,3 +14,4 @@ assignee: claude:d3a7049b
 ---
 
 # [x] TEA runtime core + package split (inkx/core, inkx/store, inkx/react) @km/inkx #feature #P2 @claude:d3a7049b
+

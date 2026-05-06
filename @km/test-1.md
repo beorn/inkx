@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/test-1"
 aliases:
   - km-test-1
@@ -10,3 +12,4 @@ closed_at: 2026-02-04T11:27:31Z
 # [x] Milestone 5: Regression Suite @km/test-1 #epic #P3
 
 Named test cases for each bug found. CI integration (nightly fuzzing). Coverage tracking for tested scenarios.
+

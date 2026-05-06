@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/quality-plateau/test-gaps"
 aliases:
   - km-tui.quality-plateau.test-gaps
@@ -15,6 +17,7 @@ owner: bjorn@stabell.org
 # [x] Test coverage for untested critical modules (hidden, invariants, undo) @km/tui #task #P2
 
 5 modules with no test coverage:
+
 - hidden.ts (226 LOC) — hidden node computation, used in board rendering
 - invariants.ts (347 LOC) — validation assertions, critical for correctness
 - undo-stack.ts (152 LOC) — undo/redo logic
@@ -22,3 +25,4 @@ owner: bjorn@stabell.org
 - dialog-guard.ts (53 LOC) — dialog mode guard
 
 Overall file coverage: ~48% (67 test files / 140 source files)
+

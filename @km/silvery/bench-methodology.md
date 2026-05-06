@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/bench-methodology"
 aliases:
   - km-silvery.bench-methodology
@@ -13,3 +16,4 @@ assignee: Bjørn Stabell
 ---
 
 # [x] Fix benchmark methodology — Pro review findings @km/silvery #task #P1 @Bjørn Stabell
+

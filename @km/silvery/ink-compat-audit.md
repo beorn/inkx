@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/ink-compat-audit"
 aliases:
   - km-silvery.ink-compat-audit
@@ -16,3 +19,4 @@ assignee: claude:474834b0
 # [x] Ink compatibility audit: clone test suite, measure gaps, fix failures @km/silvery #task #P1 @claude:474834b0
 
 Ink compatibility audit: clone test suite, measure gaps, fix failures. Status: 162/162 tests passing (100%). All gaps closed via @km/silvery/ink-compat-minimize.
+

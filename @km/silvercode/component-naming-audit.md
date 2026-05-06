@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/component-naming-audit"
 aliases:
   - km-silvercode.component-naming-audit
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-25T21:55:08Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] silvercode component naming + ergonomics audit @km/silvercode #task #P3 @claude:2405c72e
@@ -27,3 +34,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 Rename DetectionText→LinkifiedText, HistoryView→HistoryDialog. Optional sub-dir grouping: blocks/, dialogs/, panes/, text/. Sed-rename + import sweep + 1-page architecture doc. Parent: @km/silvercode.
+

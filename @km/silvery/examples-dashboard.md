@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/examples-dashboard"
 aliases:
   - km-silvery.examples-dashboard
@@ -16,6 +19,7 @@ assignee: claude:db326126
 ✓ COMPLETE — Dashboard example implements approved design
 
 ## What It Demonstrates
+
 - Complex multi-pane layout with flexbox (60% CPU | 40% Memory/Network stacked | full-width processes)
 - Live-updating metrics with sparklines and progress bars
 - Responsive layout (2-column on wide, tabbed on narrow)
@@ -25,7 +29,9 @@ assignee: claude:db326126
 - Top 16 processes table sorted by CPU
 
 ## Implementation
+
 File: vendor/silvery/examples/layout/dashboard.tsx (1001 lines)
+
 - Renders at 137×43 (standard showcase dimension)
 - WideLayout: 3-col flexbox (CPU 60%, Memory/Network 40% stacked)
 - NarrowLayout: Tabs for narrow terminals (<100 cols)
@@ -33,5 +39,7 @@ File: vendor/silvery/examples/layout/dashboard.tsx (1001 lines)
 - Exit with 'q' or Esc
 
 ## Design Workflow
+
 Approved ANSI mockup: vendor/silvery-internal/design/mockups/dashboard-mockup.ansi
 (Moved from public/screenshots to silvery-internal per user directive)
+

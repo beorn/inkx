@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/column-resolve-pipeline"
 aliases:
   - km-tui.column-resolve-pipeline
@@ -16,6 +19,7 @@ assignee: claude:f8196c1c
 # [x] Resolve embeds + body/structural at column construction, not render time @km/tui #task #P1 @claude:f8196c1c
 
 Currently scattered across render-time code:
+
 - extractBody called 88x across 10 files (re-derived per TreeNode)
 - resolveEmbed called per TreeNode (N+1 lookups)
 - virtualCardIds computed at 4 different sites in use-columns.ts
@@ -25,9 +29,11 @@ Currently scattered across render-time code:
 Fix: useColumns builds column data with embeds resolved, body/structural split done, each card marked with { isBody, isEmbed, resolvedContent }. TreeNode just renders what it's given.
 
 Subtasks:
+
 1. Batch-resolve embed_source in useColumns (one query, not N+1)
 2. Move extractBody to column construction
 3. Apply maxContentLines AFTER body/structural split (body doesn't compete)
 4. Remove isBody prop drilling — card already knows
 5. Remove resolveEmbed from TreeNode
 6. Consolidate virtualCardIds logic to one site
+

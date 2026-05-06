@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/infra/activation-rules-audit"
 aliases:
   - km-infra.activation-rules-audit
@@ -27,13 +30,17 @@ dependencies:
     created_at: 2026-04-15T08:25:29Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-session.0415a
 ---
 
 # [x] Audit activation rules: CLAUDE.md pre-flight checks for every package @km/infra #task #P2 @Bjørn Stabell
 
 blocks:: [[@km/session/0415a]]
 
-# Audit CLAUDE.md activation rules
+## Audit CLAUDE.md activation rules
 
 ## Why
 
@@ -46,23 +53,20 @@ This session burned ~700 LOC reimplementing silvery primitives because there was
 A simple, uniform set of activation rules in each package's CLAUDE.md that say "before doing work in this area, read X first". Specifically:
 
 1. **@km/tui work** — must read:
-   - vendor/silvery/CLAUDE.md (components, hooks, The Silvery Way)
-   - .claude/skills/tui/silvery-components.md (the audit gate lookup doc, landing in @km/tui/omnibox-use-silvery companion work)
-   - The Silvery Way: vendor/silvery/docs/guide/the-silvery-way.md
-   - Styling: vendor/silvery/docs/guide/styling.md
-
+  - vendor/silvery/CLAUDE.md (components, hooks, The Silvery Way)
+  - .claude/skills/tui/silvery-components.md (the audit gate lookup doc, landing in @km/tui/omnibox-use-silvery companion work)
+  - The Silvery Way: vendor/silvery/docs/guide/the-silvery-way.md
+  - Styling: vendor/silvery/docs/guide/styling.md
 2. **Storage work (@km/storage)** — must read:
-   - Storage CLAUDE.md (if exists)
-   - packages/@km/storage/CLAUDE.md invariants
-
+  - Storage CLAUDE.md (if exists)
+  - packages/@km/storage/CLAUDE.md invariants
 3. **Markdown work (@km/markdown)** — must read:
-   - packages/@km/markdown/CLAUDE.md
-   - mdast / micromark external refs
-
+  - packages/@km/markdown/CLAUDE.md
+  - mdast / micromark external refs
 4. **Board/commands work** — must read:
-   - packages/@km/_orphan/board/CLAUDE.md (if exists)
-   - docs/design/data-model.md
-   - docs/design/selection-model.md
+  - packages/@km/_orphan/board/CLAUDE.md (if exists)
+  - docs/design/data-model.md
+  - docs/design/selection-model.md
 
 ## Shape of the rule
 
@@ -88,3 +92,4 @@ Then km/CLAUDE.md references each package's CLAUDE.md from the Boundaries sectio
 ## Related
 
 - @km/review/silvery-gap-analysis (complementary — surfaces the duplicates this rule prevents)
+

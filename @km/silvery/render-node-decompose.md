@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/render-node-decompose"
 aliases:
   - km-silvery.render-node-decompose
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Decompose renderNodeToBuffer into plan/execute @km/silvery #task #P3
 
 renderNodeToBuffer is still monolithic (~500 lines). Split into: collectNodeRenderInputs → computeCascade (done) → executeNodeRender. The cascade routing and scroll planner extraction are done — this is the final structural cleanup.
+

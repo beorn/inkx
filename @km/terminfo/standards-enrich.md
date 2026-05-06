@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/standards-enrich"
 aliases:
   - km-terminfo.standards-enrich
@@ -17,7 +20,9 @@ assignee: claude:f8196c1c
 # [x] Enrich /standards page: inline examples, character set history, powerline/prompt art @km/terminfo #task #P3 @claude:f8196c1c
 
 Add to /standards:
+
 1. Inline escape sequence examples in VT100/VT220/DEC sections (like the example table at top)
 2. Unicode section: discuss character sets before Unicode (ASCII, ISO-8859-1/Latin-1, GB2312, Shift-JIS, EUC-KR)
 3. Unicode section: discuss Powerline fonts and prompt art (Nerd Fonts, custom glyphs, the artform of shell prompt customization)
 4. Show examples throughout sections where they make the content tangible
+

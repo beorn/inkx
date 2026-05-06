@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/trace-dead-events"
 aliases:
   - km-flexily.trace-dead-events
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Bug: Trace facility promises cache/measure events it never emits @km/flexily #bug #P1
+

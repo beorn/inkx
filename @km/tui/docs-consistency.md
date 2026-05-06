@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/docs-consistency"
 aliases:
   - km-tui.docs-consistency
@@ -13,6 +15,7 @@ owner: bjorn@stabell.org
 After the plugin architecture settles, do a thorough pass:
 
 DOCS:
+
 - docs/design/data-model.md — does it reflect the final plugin composition?
 - docs/design/outliner-spec.md — aligned with withOutliner's actual shape?
 - docs/architecture.md — does the 5-layer diagram match the new plugin stack?
@@ -22,12 +25,15 @@ DOCS:
 - All docs/design/*.md — cross-references correct?
 
 BEADS:
+
 - All children of @km/tui/plugin-architecture — descriptions match current design?
 - Any beads referencing old patterns (cursorCardNodeId, inlineEditBlock.nodeId) — update
 - Closed beads from this session — do their notes capture the right context for future sessions?
 
 TESTS:
+
 - Do test layers (test-layers.md, test-first-protocol.md) align with the plugin stack?
 - Should tests be organized by plugin layer? (tree tests, outliner tests, board tests, cursor tests)
 - Are termless tests in the right place for the new architecture?
 - Does the domain→file mapping in test-first-protocol.md need updating?
+

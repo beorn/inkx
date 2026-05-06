@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/all/unified-selection"
 aliases:
   - km-all.unified-selection
@@ -17,6 +20,10 @@ dependencies:
     created_at: 2026-04-15T08:36:40Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.selection-focus-plateau
 ---
 
 # [x] Unified Selection type: TextSelection | NodeSelection | GapSelection on BoardState @km/all #feature #P0 @Bjørn Stabell
@@ -28,9 +35,11 @@ Replace the three independent selection channels (sel.text, sel.node, implicit m
 Current: 208 call sites across 20 files manually coordinate sel.text.edit(), sel.node.select(), sel.text.deselect(). Every structural operation during editing must remember to re-enter edit mode — 7 instances forgot in the 0410 session alone.
 
 Target:
+
 - Selection = TextSelection | NodeSelection | GapSelection (defined in docs/design/tea-state-machines.md)
 - Lives on BoardState as a reactive projection over @silvery/selection
 - One dispatch point: setSelection(sel) — no three-way coordination
 - Mode (node vs text) is derived from selection type, not implicit
 
 Dependencies: none (this is the foundation)
+

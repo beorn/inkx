@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/terminal-lies"
 aliases:
   - km-market.terminal-lies
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] Interactive article: Your Terminal Lies To You @km/market #task #P2
 
 Interactive web page showing: same escape sequence different results, emoji width chaos, hyperlink inconsistencies, tmux pass-through weirdness. Visual and surprising. HN/Lobsters viral material.
+

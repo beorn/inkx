@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/crdt-trigger"
 aliases:
   - km-storage.crdt-trigger
@@ -20,8 +22,17 @@ dependencies:
     created_at: 2026-04-21T22:10:15Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-storage
+      - type: link
+        target: km-storage.pathway-db-crdt
 ---
 
 # [x] CRDT reopen trigger — when to revisit CRDT vs event-sourcing-lite @km/storage #feature #P3
 
 blocks:: [[@km/storage]], [[@km/storage/pathway-db-crdt]]
+

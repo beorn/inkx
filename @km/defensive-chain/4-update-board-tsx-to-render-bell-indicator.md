@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/defensive-chain/4-update-board-tsx-to-render-bell-indicator"
 aliases:
   - km-defensive-chain.4
@@ -12,3 +15,4 @@ assignee: claude
 # [x] Update Board.tsx to render bell indicator @km/defensive-chain #task #P1 @claude
 
 Render bell element with data-bell attribute when bell state is set. Bell clears on next keypress.
+

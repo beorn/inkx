@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/interactions-runtime/phase-0"
 aliases:
   - km-silvery.interactions-runtime.phase-0
@@ -24,10 +26,12 @@ Target: ~4-8 hours of doc work, not a multi-day documentation project. Do only w
 ## Files to create/update
 
 NEW (thin but accurate):
+
 - vendor/silvery/docs/guide/providers.md — 'Providers and Plugins' guide: pipe() composition, existing with-* providers, how to write a custom provider. Include naming convention.
 - vendor/silvery/docs/guide/headless-machines.md — '@silvery/headless' guide: purpose, existing machines (readline, select-list + soon-to-be selection, pointer, find, copy-mode), naming convention (flat, no suffix), how a machine is consumed by a provider.
 
 UPDATE:
+
 - vendor/silvery/docs/guide/runtime-layers.md — add short 'Composition: pipe() and Providers' section, mention the features/ subfolder convention (will exist after Phase 3)
 - vendor/silvery/packages/create/README.md — add pipe() overview with-* naming rationale
 - vendor/silvery/packages/headless/README.md — naming convention + 'how to write a machine' recipe
@@ -35,6 +39,7 @@ UPDATE:
 - vendor/silvery/docs/.vitepress/config.ts — add new pages to sidebar
 
 DEFER (per Pro review 2):
+
 - Full rewrite of vendor/internal/silvery/design/v10-terminal/text-selection-and-clipboard.md — design is still shifting. Instead add a short SUPERSEDED notice at the top pointing to @km/silvery/interactions-runtime epic. Full rewrite in Phase 6 once architecture is proven.
 
 ## Naming conventions to document
@@ -89,3 +94,4 @@ The /big round 2 exploration took several tool calls to discover pipe, AppPlugin
 ## MANDATORY
 
 Read docs/lessons/refactoring.md IN FULL before starting.
+

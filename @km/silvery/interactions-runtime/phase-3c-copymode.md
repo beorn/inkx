@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - v
 id: "@km/silvery/interactions-runtime/phase-3c-copymode"
 aliases:
   - km-silvery.interactions-runtime.phase-3c-copymode
@@ -19,6 +23,7 @@ Extend withFocus with vim-style keyboard copy-mode. Uses SelectionFeature from P
 ## Scope
 
 Extend withFocus() to:
+
 1. Create CopyModeFeature via createCopyModeFeature() (new: features/copy-mode.ts)
 2. Intercept Esc+v via input-router at priority 200
 3. h/j/k/l/v/V/y keybindings when active
@@ -28,18 +33,20 @@ Extend withFocus() to:
 ## Files
 
 CREATE:
+
 - vendor/silvery/packages/ag-term/src/features/copy-mode.ts — CopyModeFeature
 - vendor/silvery/tests/features/copy-mode.integration.test.ts — enter/exit + motions
 - vendor/silvery/tests/features/copy-mode-selection-sync.integration.test.ts — yank syncs to selection
 - vendor/silvery/tests/features/copy-mode-no-selection.integration.test.ts — loud failure when missing
 
 UPDATE:
+
 - vendor/silvery/packages/create/src/with-focus.ts (+~60 lines)
 - vendor/silvery/packages/ag-term/src/features/index.ts — add copy-mode export
 
 ## Services
 
-  interface CopyModeFeature {
+interface CopyModeFeature {
     state: Observable<CopyModeState>
     enter(): void
     exit(): void
@@ -64,3 +71,4 @@ Nothing.
 ## MANDATORY
 
 Read docs/lessons/refactoring.md IN FULL before starting.
+

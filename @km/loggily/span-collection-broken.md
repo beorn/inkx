@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/loggily/span-collection-broken"
 aliases:
   - km-loggily.span-collection-broken
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] loggily: span collection API never collects spans @km/loggily #bug #P1
 
 startCollecting()/stopCollecting()/getCollectedSpans() expose a span collection API, but the span disposal path never checks collectSpans and never pushes anything into collectedSpans. Collection always returns empty array. Fix: in span dispose/end path, append immutable snapshot to collectedSpans when collectSpans is enabled. core.ts:659-678, 713-735. Found by GPT 5.4 Pro review.
+

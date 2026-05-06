@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/xgp3o"
 aliases:
   - km-xgp3o
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] TUI: yellow bg strips underlines and other styling — should only strip fg color @km/_orphan #bug #P2
+

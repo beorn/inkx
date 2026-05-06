@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/link-phase-3"
 aliases:
   - km-storage.link-phase-3
@@ -23,6 +25,10 @@ dependencies:
     created_at: 2026-04-16T21:08:24Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage.link-model-canonical
 ---
 
 # [x] Phase 3: storage schema flip — 3-col links table, KLink type, drop dead code @km/storage #task #P2
@@ -30,3 +36,4 @@ dependencies:
 blocks:: [[@km/storage/link-model-canonical]]
 
 Phase 3 of @km/storage/link-model-canonical. Foundational agent work: flip links table to (host_id, href, rel), rename Link→KLink, rewrite addLink, drop resolveLinks/resolveLinksBatch/updateTargetName, update all writers + consumers, bump DATA_VERSION+SCHEMA_VERSION. Gate: bun fix + bun run test:fast green.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/badge-float-layout"
 aliases:
   - km-tui.badge-float-layout
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-14T11:59:53Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [ ] Render priority/date badges as floating elements, not a reserved column @km/tui #feature #P3
@@ -27,48 +33,49 @@ Reported via /pm with screenshot (Today — 2026-04-14/15 card).
 
 **Screenshot 2026-04-14 11.47.31**:
 
-    ┌────────────────────────────────────────────────────────┐
-    │ Pay CA FTB $2,500 via ftb.ca.gov/pay/ → Web   P0 Tomorrow│
-    │ Pay → Extension Payment Form 3519 → tax                │  ← wasted right space
-    │ year 2025. IRS = $0 (federal refund).                  │  ← wasted right space
-    └────────────────────────────────────────────────────────┘
+```
+┌────────────────────────────────────────────────────────┐
+│ Pay CA FTB $2,500 via ftb.ca.gov/pay/ → Web   P0 Tomorrow│
+│ Pay → Extension Payment Form 3519 → tax                │  ← wasted right space
+│ year 2025. IRS = $0 (federal refund).                  │  ← wasted right space
+└────────────────────────────────────────────────────────┘
 
-    vs desired:
+vs desired:
 
-    ┌────────────────────────────────────────────────────────┐
-    │ Pay CA FTB $2,500 via ftb.ca.gov/pay/ → Web   P0 Tomorrow│
-    │ Pay → Extension Payment Form 3519 → tax year 2025. IRS │  ← full width
-    │ = $0 (federal refund).                                  │
-    └────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│ Pay CA FTB $2,500 via ftb.ca.gov/pay/ → Web   P0 Tomorrow│
+│ Pay → Extension Payment Form 3519 → tax year 2025. IRS │  ← full width
+│ = $0 (federal refund).                                  │
+└────────────────────────────────────────────────────────┘
+```
 
 **Implementation options**:
 
 1. **position: absolute + manual text pre-wrap** (medium complexity)
-   - Badge: `position='absolute' top=0 right=0`
-   - Content: wrap text manually so line 1 is max (width - badgeWidth), lines 2+ max width
-   - Custom wrap calculator using measureText helpers
-   - Most faithful to CSS float, no new silvery primitive
-
+  - Badge: `position='absolute' top=0 right=0`
+  - Content: wrap text manually so line 1 is max (width - badgeWidth), lines 2+ max width
+  - Custom wrap calculator using measureText helpers
+  - Most faithful to CSS float, no new silvery primitive
 2. **New silvery primitive: `float='right'` on Box** (hard, biggest payoff)
-   - Extends flexily layout to handle floats
-   - Universal: any component with floating children gets this behavior for free
-   - Requires deep flexily changes (CSS float is non-trivial — intrusions into adjacent flex items)
-
+  - Extends flexily layout to handle floats
+  - Universal: any component with floating children gets this behavior for free
+  - Requires deep flexily changes (CSS float is non-trivial — intrusions into adjacent flex items)
 3. **Pre-compute line 1 vs line N widths in TreeNode** (low complexity, @km/tui only)
-   - TreeNode measures badge width at render, splits title into two Texts:
-     - First text: sliced at line-1-max-chars, wraps within (width - badgeWidth)
-     - Second text: remainder, wraps within full width
-   - No silvery changes. But fragile — edge cases with inline formatting spans crossing the split point
-   - Doesn't reuse for other badge-like cases
-
+  - TreeNode measures badge width at render, splits title into two Texts:
+    - First text: sliced at line-1-max-chars, wraps within (width - badgeWidth)
+    - Second text: remainder, wraps within full width
+  - No silvery changes. But fragile — edge cases with inline formatting spans crossing the split point
+  - Doesn't reuse for other badge-like cases
 4. **Accept current behavior** (do nothing)
-   - Narrow content on multi-line tasks is consistent but wastes horizontal space
-   - Users with 80-col terminals would notice more; wide-terminal users less
+  - Narrow content on multi-line tasks is consistent but wastes horizontal space
+  - Users with 80-col terminals would notice more; wide-terminal users less
 
 **Recommendation**: Start with option 3 as a @km/_orphan/tui-local fix. If it works well, consider promoting to option 2 as a silvery primitive. Option 1 is similar to option 3 but wraps the code differently.
 
 **Files to touch for option 3**:
+
 - apps/@km/tui/src/views/TreeNode.tsx (HeadRow layout, around line 820-848)
 - Maybe a new helper in apps/@km/tui/src/text/ for line-width splitting
 
 **Tests**: snapshot test with a long task title + P0 Tomorrow, verify line 2+ extends beyond the badge-reserved column.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/selection/5-selection-cleanup-phase-2-eliminate-dispatchboard-"
 aliases:
   - km-silvery.selection.5
@@ -22,18 +24,19 @@ keyboard/mouse → sel.node.select() directly
 
 ### Specific remnants
 
-| Pattern | Count | Fix |
-|---|---|---|
-| cursorNodeId | 299 refs | Replace writes with sel.node.select(), reads with sel.node.cursor() |
-| dispatchBoard("SELECT") | 87 refs | Replace with sel.node.select([id]) |
-| editLevel / selectionLevel | 13 refs | Replace with sel.kind or SelectionLevel helper from sel |
-| SelectionLevel types | 12 refs | Derive from sel store, not separate helper |
-| useSyncExternalStore | 11 refs | Replace with signal-store useSignalStore hook |
-| Zustand imports | 8 refs | Replace with signal-store imports |
-| syncCursor / ReactiveNodeStore bridge | 5 refs | Remove bridge — sel signals are the source |
-| board-reducer SELECT action | 2 refs | Delete from reducer — sel handles it |
+| Pattern                               | Count    | Fix                                                                 |
+| ------------------------------------- | -------- | ------------------------------------------------------------------- |
+| cursorNodeId                          | 299 refs | Replace writes with sel.node.select(), reads with sel.node.cursor() |
+| dispatchBoard("SELECT")               | 87 refs  | Replace with sel.node.select([id])                                  |
+| editLevel / selectionLevel            | 13 refs  | Replace with sel.kind or SelectionLevel helper from sel             |
+| SelectionLevel types                  | 12 refs  | Derive from sel store, not separate helper                          |
+| useSyncExternalStore                  | 11 refs  | Replace with signal-store useSignalStore hook                       |
+| Zustand imports                       | 8 refs   | Replace with signal-store imports                                   |
+| syncCursor / ReactiveNodeStore bridge | 5 refs   | Remove bridge — sel signals are the source                          |
+| board-reducer SELECT action           | 2 refs   | Delete from reducer — sel handles it                                |
 
 ### Method
+
 /refactor migrate — batch-refactor for mechanical patterns, then manual edge cases.
 
 1. Delete SELECT from board-reducer (break intentionally)
@@ -46,6 +49,7 @@ keyboard/mouse → sel.node.select() directly
 8. Remove any remaining zustand imports
 
 ### Acceptance
+
 ```
 grep -r "cursorNodeId" apps/km-tui/src/ --include="*.ts" → 0 hits
 grep -r "dispatchBoard.*SELECT" apps/km-tui/src/ → 0 hits
@@ -55,3 +59,4 @@ grep -r "from.*zustand" apps/km-tui/src/ vendor/silvery/packages/ → 0 hits
 grep -r "syncCursor" apps/km-tui/src/ → 0 hits
 bun run test:fast → all pass (minus pre-existing silvery failures)
 ```
+

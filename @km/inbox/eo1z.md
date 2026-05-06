@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/eo1z"
 aliases:
   - km-eo1z
@@ -16,11 +18,14 @@ This is caused by a known Bun v1.3.5 bug (oven-sh/bun#25666) affecting JavaScrip
 The crash happens after user code completes, during Bun's internal cleanup of Worker threads.
 
 Issues:
+
 1. SIGTRAP crash on exit
 2. Terminal left in broken state (raw mode, no cursor, etc.)
 
 Workarounds to investigate:
+
 1. Shell wrapper script that saves/restores terminal state
 2. Try installing handler for SIGTRAP to restore terminal
 3. Downgrade Bun to pre-1.3.5 version
 4. Document as known issue until Bun fixes it
+

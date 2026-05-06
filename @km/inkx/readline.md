@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/readline"
 aliases:
   - km-inkx.readline
@@ -13,6 +16,7 @@ assignee: claude:44a381e0
 Create a full readline implementation in inkx with components to make text editing easy.
 
 Features needed:
+
 - Kill ring (yank/paste history)
 - Word movement (alt-f, alt-b)
 - Character transpose (ctrl-t)
@@ -23,8 +27,10 @@ Features needed:
 - Undo/redo (optional)
 
 Include easy-to-use components:
+
 - <TextInput /> - basic single-line input
 - <ReadlineInput /> - full readline with kill ring
 - useReadline() hook for custom implementations
 
 See @km/tui's useLineEdit hook as starting point (partial implementation).
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - bearly
+  - km
 id: "@km/infra/lore-merge-recall"
 aliases:
   - km-infra.lore-merge-recall
@@ -18,6 +21,10 @@ dependencies:
     created_at: 2026-04-17T12:37:35Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra.tribe-rebrand
 ---
 
 # [x] Extract @bearly/recall + fold lore internals into plugins/lore/ @km/infra #task #P2
@@ -29,6 +36,7 @@ The @bearly/lore package (renamed from @bearly/bear) currently imports from ../.
 ## Scope
 
 Move into plugins/lore/src/:
+
 - vendor/bearly/tools/recall/ → plugins/lore/src/recall/
 - vendor/bearly/tools/lib/history/ → plugins/lore/src/history/
 - vendor/bearly/tools/lib/lore/ → plugins/lore/src/daemon/ (or keep as lib/)
@@ -54,3 +62,4 @@ Move into plugins/lore/src/:
 - bun vitest run vendor/bearly/plugins/lore/tests/ passes (all 30 current tests)
 - bun recall 'query' still works via alias
 - .mcp.json + hooks still work
+

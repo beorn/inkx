@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/tree-lenses/4-migrate-board-tsx-column-views-to-usenode-viewtree"
 aliases:
   - km-tui.tree-lenses.4
@@ -17,6 +20,7 @@ assignee: Bjørn Stabell
 # [x] Migrate Board.tsx + column views to useNode/ViewTree @km/tui #task #P2 @Bjørn Stabell
 
 Migrate Board.tsx:
+
 - Column list from visibleLens.children(rootId) → view.children(rootId)
 - Column rendering: useNode(colId) instead of ColumnView
 - Card rendering: useNode(cardId) instead of CardView
@@ -25,6 +29,8 @@ Migrate Board.tsx:
 Migrate CardColumn.tsx, ColumnsView.tsx, ListView.tsx, TabsView.tsx.
 
 Acceptance:
+
 - grep 'ColumnView' in views/ = 0
 - grep 'CardView' in views/ = 0
 - All @km/tui tests pass
+

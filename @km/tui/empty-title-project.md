@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/empty-title-project"
 aliases:
   - km-tui.empty-title-project
@@ -13,3 +16,4 @@ assignee: claude:8f007ba9
 # [x] Import: empty project title renders as '# -' @km/tui #bug #P3 @claude:8f007ba9
 
 File 1201794885471491-.md has title '# -' — an Asana project with no name (team: Early Orbit). Renders as a dash in the TUI. Should either use the Asana project ID as fallback title or be flagged during import.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/test-theme-change"
 aliases:
   - km-silvery.test-theme-change
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] Testing: Theme change regression tests needed @km/silvery #task #P2
 
 commitUpdate marks bgDirty on theme change — need dedicated tests for: theme token changes, subtree token inheritance, theme changes with skipped parents.
+

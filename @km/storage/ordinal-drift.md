@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/storage/ordinal-drift"
 aliases:
   - km-storage.ordinal-drift
@@ -23,3 +26,4 @@ Classification: P1
 Structural matching by (parent_id, ordinal, type) causes identity drift on insertions/reorders. Inserting a paragraph at the top shifts every later sibling's ordinal, making each look like an update of the previous node. This can move metadata anchored to IDs (block_id, task state, backlinks, embeds) to wrong logical nodes.
 
 Suggested fix: Match by stronger anchors first: block_id, explicit parser/source IDs, mdast source span, stable content hash, or LCS-style sibling matching. Use ordinal fallback only when no stronger identity exists.
+

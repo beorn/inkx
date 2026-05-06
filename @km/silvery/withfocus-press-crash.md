@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/withfocus-press-crash"
 aliases:
   - km-silvery.withfocus-press-crash
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] withFocus crashes in pipe() — app.press accessed at composition time @km/silvery #bug #P1
 
 withFocus() accesses app.press during pipe() composition, but press() only exists on the handle after run(). Crashes when withFocus is in the pipe chain. Introduced by Phase 3c (copy-mode key handling). Fix: defer press wrapping to run() time. Reported by @km/_orphan/2-oqv.
+

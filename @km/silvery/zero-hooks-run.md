@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/zero-hooks-run"
 aliases:
   - km-silvery.zero-hooks-run
@@ -35,22 +38,27 @@ assignee: Bjørn Stabell
 Zero hook implementations in run.tsx — all hooks live in ag-react, run.tsx re-exports.
 
 ## Problem
+
 run.tsx was a self-contained entry point predating ag-react's hook system. When ag-react's hooks matured, run.tsx's copies weren't migrated — they became legacy duplicates that silently fell behind (caused @km/silvery/double-keypress).
 
 ## Status
+
 - [x] useInput — unified (re-export from ag-react, return 'exit' support added)
 - [ ] usePaste — ag-term version redundant with useInput's onPaste option. Delete it.
 - [ ] useExit — move to ag-react, re-export from ag-term
 
 ## Remaining duplicates
-| Hook | ag-react | ag-term | Action |
-|------|----------|---------|--------|
+
+| Hook     | ag-react                              | ag-term                               | Action                                           |
+| -------- | ------------------------------------- | ------------------------------------- | ------------------------------------------------ |
 | usePaste | Context getter (PasteHandler \| null) | Event subscription (handler callback) | Delete ag-term version — use useInput({onPaste}) |
-| useExit | Does not exist | Returns rt.exit() | Move to ag-react, re-export |
+| useExit  | Does not exist                        | Returns rt.exit()                     | Move to ag-react, re-export                      |
 
 ## Design rule
+
 run.tsx defines: run(), RunOptions, RunHandle
 run.tsx re-exports: useInput, useExit, type Key, type InputHandler, type UseInputOptions
 run.tsx implements: NOTHING — zero hooks
 
 /complete: run.tsx has zero hook function bodies
+

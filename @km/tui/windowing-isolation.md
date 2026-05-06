@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/windowing-isolation"
 aliases:
   - km-tui.windowing-isolation
@@ -13,3 +16,4 @@ assignee: claude:28b14b32
 # [x] Windowing: per-pane state isolation (cursor, folds, nav) @km/tui #task #P2 @claude:28b14b32
 
 Each pane needs its own cursor, fold state, nav history, and view mode. Currently flat store fields are shared. Migrate consumers to read from workspace.panes.get(focusedPaneId) instead of flat state.
+

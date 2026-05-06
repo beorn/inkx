@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/treenode-max-rows"
 aliases:
   - km-silvery.treenode-max-rows
@@ -75,6 +78,10 @@ dependencies:
     created_at: 2026-04-20T15:27:56Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] TreeNode maxRows + overflowIndicator props — cross-target presentation primitive @km/silvery #feature #P2 @claude:8b5b9e1c
@@ -82,3 +89,4 @@ dependencies:
 blocks:: [[@km/silvery]]
 
 Unify structural+body card truncation via TreeNode maxRows + overflowIndicator props. Cross-target: terminal renders rows; future DOM renders line-clamp. Replace duplicated CardColumn structural+body branches.
+

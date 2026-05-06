@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sterling-surface-adaptive"
 aliases:
   - km-silvery.sterling-surface-adaptive
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-24T16:12:59Z
     created_by: claude:5e447b66
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.sterling
 ---
 
 # [x] Sterling: bg-surface-overlay near-misses AA on light schemes @km/silvery #bug #P4 @claude:22c2717d
@@ -42,3 +49,4 @@ Run ensureContrast on bg-surface-overlay against fg-default. Same approach as th
 - Test threshold tightened back from 0.25 loosening to strict
 
 Parent: @km/silvery/theme-v4
+

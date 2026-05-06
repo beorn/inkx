@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/mr1km"
 aliases:
   - km-mr1km
@@ -11,3 +14,4 @@ assignee: claude:227cdc41
 # [x] TUI: slow cursor navigation in list/columns views @km/_orphan #bug #P1 @claude:227cdc41
 
 Cursoring around is reported as slow in most views, especially list view. Testing with ~150 items showed acceptable performance (13-35ms per keystroke). May only manifest with very large vaults (~29k nodes in /tmp/tstN). Needs profiling with real large vault.
+

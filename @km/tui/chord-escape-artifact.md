@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - Escape
 id: "@km/tui/chord-escape-artifact"
 aliases:
   - km-tui.chord-escape-artifact
@@ -16,3 +21,4 @@ After pressing 'g' (chord prefix) then Escape to cancel, there are visual artifa
 
 Repro: press g, then Escape. Look at top bar area.
 Screenshot: ~/Desktop/Screenshot 2026-02-21 at 17.09.49.png
+

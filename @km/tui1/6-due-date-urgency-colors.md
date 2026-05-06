@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui1/6-due-date-urgency-colors"
 aliases:
   - km-tui1.6
@@ -14,11 +16,11 @@ Implement due date urgency styling to visually distinguish overdue and upcoming 
 
 ## Specification
 
-| Condition | Styling |
-|-----------|---------|
-| Overdue | Red text |
+| Condition         | Styling    |
+| ----------------- | ---------- |
+| Overdue           | Red text   |
 | Due within 3 days | Underlined |
-| Future | Normal |
+| Future            | Normal     |
 
 ## Implementation
 
@@ -32,3 +34,4 @@ Use the existing date parsing and add conditional styling in the render pipeline
 ## Note
 
 This is shared with @km/tui2/20-implement-due-date-urgency-colors for TUI2.
+

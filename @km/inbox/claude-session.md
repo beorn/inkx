@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/claude-session"
 aliases:
   - km-claude-session
@@ -16,3 +18,4 @@ The Claude Code session skill sometimes tries to read entire tool-results files 
 3. Consider RAG indexing for better search of session artifacts
 
 This causes context overflow and wastes tokens on irrelevant content.
+

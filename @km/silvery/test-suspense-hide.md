@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/test-suspense-hide"
 aliases:
   - km-silvery.test-suspense-hide
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] Testing: hideInstance/unhideInstance render path untested @km/silvery #task #P2
 
 host-config supports hideInstance/unhideInstance/hideTextInstance/unhideTextInstance but no serious render-path tests for hidden subtree cleanup/restore. Likely source of stale pixels.
+

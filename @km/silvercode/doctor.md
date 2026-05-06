@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/doctor"
 aliases:
   - km-silvercode.doctor
@@ -26,6 +29,10 @@ dependencies:
     created_at: 2026-04-25T09:16:32Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] silvercode doctor: introspect autolinks config, environment, integrations @km/silvercode #feature #P3 @claude:2405c72e
@@ -43,6 +50,7 @@ A doctor command surfaces these in one place.
 ## Initial scope: autolinks-focused
 
 ### Config issues
+
 - Malformed YAML in `.km/config.yaml` (with line + reason)
 - Missing fields per rule
 - Invalid regex
@@ -50,36 +58,44 @@ A doctor command surfaces these in one place.
 - Dropped rules with reasons
 
 ### Path issues
+
 - `resolves_to` path doesn't exist (for file-backed previews)
 - Git submodule not checked out
 - Dead symlinks
 
 ### Cascade introspection
+
 - Which workspace rules got overridden by which vault rules (printed as a tree)
 - Which vault rules append (no workspace shadow)
 - Tip: run `silvercode doctor cascade --explain <pattern>` to trace one rule
 
 ### Shell rules
+
 - Warn on `command` strings that look risky (multi-statement, redirects, network ops)
 - Lint suggested by argv form (post `km-silvercode.shell-preview-argv-security`)
 
 ### Watcher health
+
 - Count of active fs.watch handles
 - Recent eviction count (latent leak detector)
 - Realpath dedup status (post-watcher-dedup landing)
 
 ### MCP rules
+
 - List `mcp` rules currently stubbed-but-not-implemented (until resolver lands)
 
 ### Coverage (opt-in)
+
 - Scan recent message history for matched-but-failed previews (resolved_to unreadable, command timed out, etc.)
 
 ### Unused rules (opt-in)
+
 - Rules that haven't matched in the current session — stale config detector
 
 ## Future scope (cross-cutting checkers)
 
 Beyond autolinks, doctor is the natural home for:
+
 - claude CLI version + auth state (per account)
 - agent-harness MCP server probes
 - accountly auth state
@@ -91,11 +107,13 @@ Beyond autolinks, doctor is the natural home for:
 ## Output format
 
 Sectioned ANSI-colored report (match `bd doctor`):
+
 - ✓ green for healthy
 - ⚠ yellow for warnings (config issues, dead paths)
 - ✗ red for errors (malformed config, missing dependencies)
 
 Exit code reflects severity:
+
 - 0 — all healthy
 - 1 — warnings present
 - 2 — errors present
@@ -126,3 +144,4 @@ Exit code reflects severity:
 - Parent: `km-silvercode.autolinks-config` (initial scope)
 - Discussed in session 2026-04-25 alongside autolinks v2 work
 - Related: `km-silvercode.autolinks-uri-pivot` (handler registry will be a future doctor checker)
+

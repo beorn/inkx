@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/perf-cursor"
 aliases:
   - km-tui.perf-cursor
@@ -13,3 +16,4 @@ assignee: claude:586bad48
 # [x] Optimize cursor navigation for large sibling lists (O(N) findIndex → O(1)) @km/tui #task #P2 @claude:586bad48
 
 view-navigation.ts getSibling() calls findIndex() on full children array — O(N) per j/k keypress. With /tmp/vt vault directories (3700 siblings), this is ~3700 comparisons per cursor move. Fix: add getChildIndex() to ChildrenCache with O(1) reverse lookup Map.
+

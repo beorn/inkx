@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/app-search-selection"
 aliases:
   - km-silvery.app-search-selection
@@ -15,3 +18,4 @@ assignee: claude:def7f8a1
 # [x] App-global search + selection providers @km/silvery #task #P1 @claude:def7f8a1
 
 Phase 4: Move search/selection out of create-app.tsx into app-level providers. SearchProvider + SelectionProvider + SurfaceRegistry + SearchBar. Adapt selection.ts and search-overlay.ts to work on TextSurface. Delete ~300 lines from create-app.tsx.
+

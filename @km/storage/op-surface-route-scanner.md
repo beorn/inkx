@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/op-surface-route-scanner"
 aliases:
   - km-storage.op-surface-route-scanner
@@ -24,6 +27,10 @@ dependencies:
     created_at: 2026-04-21T23:45:12Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage
 ---
 
 # [x] Route scanner/lazy-expand bulk inserts through emitter.apply @km/storage #task #P1 @claude:8b5b9e1c
@@ -31,3 +38,4 @@ dependencies:
 blocks:: [[@km/storage]]
 
 Audit finding G1: packages/@km/storage/src/repo/repo.ts:1359 and loader.ts:1107 bulk-insert nodes directly during cold-start without emitting node_created through emitter.apply. Blocks Phase B. Options: (a) emit node_created per row with skipPersist for loader (which IS the replay), (b) tag both paths as replay/bootstrap and emit a single bootstrap_complete marker. Effort ~1 day per path.
+

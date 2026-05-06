@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/omnibox-placeholder-muted"
 aliases:
   - km-tui.omnibox-placeholder-muted
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-18T12:18:07Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Omnibox placeholder text 'Type a command or search…' doesn't look muted @km/tui #bug #P2
@@ -31,3 +37,4 @@ User says the placeholder doesn't look muted. The placeholder is set via chrome.
 Check what TextInput uses for placeholder color. If it defaults to $muted but the terminal is rendering it bright, dig into the theme token resolution. Compare against other muted text in the same dialog (e.g. 'esc' in titleRight already looks right).
 
 Read vendor/silvery/docs/guide/styling.md for the canonical token before 'fixing' — use the design-system-approved muted token.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/overlay-anchor-impl-v1"
 aliases:
   - km-silvery.overlay-anchor-impl-v1
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-25T14:23:36Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.overlay-anchor-system
 ---
 
 # [x] Implement overlay/anchor system v1 — anchorRef + decorations + OverlayLayer @km/silvery #task #P2 @claude:2405c72e
@@ -64,3 +71,4 @@ See § 10 of hub/silvery/design/overlay-anchor-system.md. Key points:
 - Design doc: hub/silvery/design/overlay-anchor-system.md
 - Parent bead: @km/silvery/overlay-anchor-system
 - /pro reviews: /tmp/llm-2405c72e-...-5zsn.txt § 6 + ...-yvaz.txt § A
+

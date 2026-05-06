@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/mono-tier-wiring"
 aliases:
   - km-silvery.mono-tier-wiring
@@ -21,6 +24,10 @@ dependencies:
     created_at: 2026-04-18T10:45:12Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.theme-system-v2
 ---
 
 # [x] Output phase emits per-token SGR attrs at mono tier @km/silvery #task #P3 @Bjørn Stabell
@@ -28,3 +35,4 @@ dependencies:
 blocks:: [[@km/silvery/theme-system-v2]]
 
 Wire deriveMonochromeTheme / monoAttrsFor into the output phase. When colorLevel === 'none', emit SGR attrs (bold, dim, italic, underline, inverse, strikethrough) per-cell based on the token that was painting it.\n\nImplementation:\n- Render phase tracks source token per cell (or per styled region)\n- Output phase dispatches on tier: truecolor → hex, 256 → cube index, ansi16 → named slot, mono → lookup attrs via monoAttrsFor\n- Backdrop-fade already handles tier-dispatch correctly; extend the pattern\n\nResult: SILVERY_COLOR=mono apps preserve hierarchy via attrs even with zero color output.\n\nDepends on: nothing (standalone in pipeline)\nSpec: hub/silvery/design/v10-terminal/theme-system-v2-plan.md#p4
+

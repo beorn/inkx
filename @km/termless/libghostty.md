@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/libghostty"
 aliases:
   - km-termless.libghostty
@@ -15,3 +18,4 @@ assignee: claude:4929065a
 # [x] Backend: libghostty — native Zig-based terminal emulator @km/termless #feature #P2 @claude:4929065a
 
 Add libghostty as a native backend. libghostty is ghostty's core library, now being used by multiple projects (cmux terminal, etc.). Should be straightforward since we already have the ghostty WASM backend — libghostty would be the native equivalent with better performance. Type: native (Zig → napi-rs or C ABI).
+

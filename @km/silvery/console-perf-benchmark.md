@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/console-perf-benchmark"
 aliases:
   - km-silvery.console-perf-benchmark
@@ -46,6 +48,10 @@ dependencies:
     created_at: 2026-04-22T18:26:32Z
     created_by: claude:019d032d
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.term-sub-owners
 ---
 
 # [x] Verify Console.count/entriesSnapshot refactor is O(n) amortized (Pro P1-9 claim) @km/silvery #task #P3
@@ -74,3 +80,4 @@ Add `vendor/silvery/tests/performance/console-perf.bench.ts` (or similar):
 ## Mandatory
 
 Read docs/lessons/refactoring.md IN FULL before writing any code.
+

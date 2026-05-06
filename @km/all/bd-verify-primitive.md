@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/bd-verify-primitive"
 aliases:
   - km-all.bd-verify-primitive
@@ -25,6 +27,10 @@ dependencies:
     created_at: 2026-04-27T12:14:10Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all
 ---
 
 # [x] bd verify <id> — executable acceptance criteria @km/all #feature #P3
@@ -32,3 +38,4 @@ dependencies:
 blocks:: [[@km/all]]
 
 Plateau-90 session ended with beads marked closed but acceptance criteria still unmet at origin/main (e.g. @km/silvery/feedback-trace-loggily had grep recordPassCause = 0 but origin had multiple hits). Root cause via /why: acceptance criteria are prose, not executable. Proposed: bd verify subcommand parses acceptance section as cmd/expected pairs, replays each, fails if any do not match. Bonus: bd close runs bd verify first; refuses to close if verification fails. Multi-session, may need upstream PR or fork. Acceptance: bd verify exists; bd close blocks on verify failure; bd lint flags prose-only acceptance.
+

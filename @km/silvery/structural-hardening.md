@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/structural-hardening"
 aliases:
   - km-silvery.structural-hardening
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-27T11:00:53Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.plateau-90
 ---
 
 # [ ] [epic] Silvery structural hardening — invariants over guards @km/silvery #feature #P1
@@ -26,3 +32,4 @@ Scope: lifecycle/resource ownership (Scope tokens, opaque branded handles, owner
 Origin: @km/all/plateau-90 R1 split (2026-04-27). Source review pro/Kimi at /tmp/llm-cc081a9a-review-this-plan-critically-q8wi.txt — both models converged on "invariants over guards" as the architectural seam. Children recast per C1/C2/C3 in plateau-90 description: scope-resource-ownership, render-plan-commit, renderer-feedback-trace, bounded-convergence.
 
 Acceptance: each child reaches L3+ on the plateau-90 quality rubric (API/lifecycle structure makes invalid state hard) or L4 (impossible by construction) with old workaround code deleted.
+

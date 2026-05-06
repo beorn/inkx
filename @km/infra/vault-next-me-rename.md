@@ -1,4 +1,9 @@
 ---
+mentions:
+  - next
+  - me
+  - agent
+  - km
 id: "@km/infra/vault-next-me-rename"
 aliases:
   - km-infra.vault-next-me-rename
@@ -13,6 +18,7 @@ owner: bjorn@stabell.org
 Discussion bead — do not patch yet, design first.
 
 Background: ~/Bear/Vault uses an @-sigil convention for GTD context files at vault root:
+
 - @next.md — user's GTD next-actions board (the human's queue)
 - @agent.md — agent's task board (created 2026-04-07)
 - @someday.md — someday/maybe parking lot
@@ -20,18 +26,21 @@ Background: ~/Bear/Vault uses an @-sigil convention for GTD context files at vau
 Question: should @next.md be renamed to @me.md?
 
 Arguments for @me:
+
 - Symmetry with @agent — both files name an audience (me vs agent)
 - Removes implicit ownership assumption in 'next' (whose next?)
 - Reads more naturally now that @agent exists
 - Reflects the dual-board model (me/agent) more cleanly
 
 Arguments for keeping @next:
+
 - @next is classic GTD vocabulary (next actions context)
 - Adopted before @agent existed; fits the @-sigil = 'context' rule
 - The 'next actions' concept is preserved in section names (## Next)
   inside whichever file we use, so the GTD semantics aren't lost
 
 If we rename, scope of changes:
+
 1. git mv @next.md @me.md
 2. Sweep ~30-50 references in CLAUDE.md, RUNBOOK.md, AGENTS.md,
    .claude/commands/bl.md, .claude/commands/do.md, +ObsidianPKM,
@@ -43,3 +52,4 @@ If we rename, scope of changes:
 If we don't rename, document why and stop revisiting.
 
 Need to discuss before any work happens.
+

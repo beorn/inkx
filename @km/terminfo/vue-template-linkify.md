@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/terminfo/vue-template-linkify"
 aliases:
   - km-terminfo.vue-template-linkify
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] Linkify entity names in Vue template table content (SGR in tables, etc.) @km/terminfo #task #P3
 
 Category labels and metadata in Vue v-for loops on static pages bypass both the markdown-it plugin and linkify-content.ts. Need to linkify at the Vue layer.
+

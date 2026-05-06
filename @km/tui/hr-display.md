@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/hr-display"
 aliases:
   - km-tui.hr-display
@@ -15,6 +18,7 @@ assignee: claude:a5c7f7de
 HR nodes (---) should render as visual horizontal lines.
 
 **Design (refined):**
+
 - In normal/node mode: show as a single horizontal line WITHOUT any border — like the underline under column titles. Just a bare line of ─ characters.
   - Dimmed when not selected
   - Yellow when cursor is on it
@@ -23,3 +27,4 @@ HR nodes (---) should render as visual horizontal lines.
 - If edited to no longer be a valid HR, it reverts to normal node rendering
 
 **Current state:** hr-display-fixer implemented basic version with ─ chars. Need to verify it renders without a border (no card border around it).
+

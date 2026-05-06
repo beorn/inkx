@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/memo-pipeline-regression"
 aliases:
   - km-silvery.memo-pipeline-regression
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] P0 BUG: memo'd trees 24-32x slower than Ink — pipeline walks entire tree @km/silvery #bug #P0
 
 React.memo + dirty tracking expected to be silvery best case. Instead: Ink 24-32x faster. Memo'd kanban 92ms vs non-memo 1.03ms (90x slower WITH memo). Pipeline walks entire tree even when React skips memo'd components. commitUpdate/markDirty too aggressive + pipeline phases don't short-circuit clean subtrees. Bench: vendor/internal/silvery/benchmarks/silvery-vs-ink.bench.ts useState section.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sterling-purge-legacy-tokens"
 aliases:
   - km-silvery.sterling-purge-legacy-tokens
@@ -47,6 +50,20 @@ dependencies:
     created_at: 2026-04-24T16:24:06Z
     created_by: claude:5e447b66
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-all.sterling
+      - type: link
+        target: km-silvery.selection-theme-tokens
+      - type: link
+        target: km-silvery.sterling-2e-interior-migration
+      - type: link
+        target: km-silvery.sterling-km-tui-selection-migration
+      - type: link
+        target: km-silvery.sterling-selection-tokens
 ---
 
 # [x] Phase D: Purge legacy selection/inverse/link tokens from Sterling theme schema (0.20.0 breaking) @km/silvery #task #P1 @claude:22c2717d
@@ -66,6 +83,7 @@ vendor/silvery/packages/ansi/src/sterling/inline.ts:66-67 — legacy → flat ma
 vendor/silvery/packages/ansi/src/theme/invariants.ts:236 — fallback chain themeAny['bg-selected'] ?? themeAny['selectionbg'] (REPLACE with direct bg-selected read)
 
 ## Acceptance (literal /complete criteria)
+
 - `grep -rn '"selectionbg"|"selection"|"inversebg"|"inverse"|"link"' vendor/silvery/packages/theme vendor/silvery/packages/ansi --include='*.ts' | grep -v test | grep -v dist | wc -l` returns 0
 - `grep -n 'themeAny\\["bg-selected"\\] ?? themeAny\\["selectionbg"\\]' vendor/silvery/packages/ansi/src/theme/invariants.ts | wc -l` returns 0
 - selectionBackground/selectionForeground fields removed from ansi/theme/types.ts
@@ -73,13 +91,16 @@ vendor/silvery/packages/ansi/src/theme/invariants.ts:236 — fallback chain them
 - 0.20.0 ship
 
 ## Order
+
 - Update beads, examples, README, docs FIRST (per refactoring lessons)
 - Delete legacy registrations
 - Tsc errors guide all consumer cleanups
 - DO NOT add @deprecated annotations — delete entirely
 
 ## Depends on
+
 - sterling-selection-tokens (Phase A) — new tokens must exist
 - selection-theme-tokens (Phase B) — paintFrame must read flat token, not legacy
 - sterling-@km/_orphan/tui-selection-migration (Phase C) — @km/tui consumers must be migrated
 - sterling-2e-interior-migration — 0.19.0 ships first (this is 0.20.0 breaking)
+

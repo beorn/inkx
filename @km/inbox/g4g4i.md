@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/g4g4i"
 aliases:
   - km-g4g4i
@@ -13,3 +16,4 @@ assignee: claude:fd695049
 # [x] Status bar shows what was undone on undo action @km/_orphan #feature #P2 @claude:fd695049
 
 When undoing any action, the status bar should show what was undone (e.g., 'Undo: moved card to Done', 'Undo: renamed task').
+

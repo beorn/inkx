@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/viewnode-cache"
 aliases:
   - km-tui.viewnode-cache
@@ -20,8 +22,10 @@ use-columns.ts has per-column memoization (kNodeToColumnViewCached) that avoids 
 If ViewNode replaces use-columns.ts (@km/tui/unify-columns), it needs equivalent caching or the board will re-derive all columns on every cursor move.
 
 OPTIONS:
+
 - Structural sharing: rebuild only subtrees whose repo data changed
 - Memoized toColumnViews(): cache CompatColumnView[] per ViewNode, invalidate on subtree change
 - Fingerprinting: compare ViewNode tree shape to skip re-render
 
 MUST BE DONE BEFORE @km/tui/unify-columns to avoid perf regression.
+

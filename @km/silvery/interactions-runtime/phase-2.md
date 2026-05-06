@@ -1,4 +1,7 @@
 ---
+mentions:
+  - silvery
+  - km
 id: "@km/silvery/interactions-runtime/phase-2"
 aliases:
   - km-silvery.interactions-runtime.phase-2
@@ -19,6 +22,7 @@ Move the 4 pure state machines from @silvery/ag-term to @silvery/headless where 
 ## Scope
 
 Move FROM vendor/silvery/packages/ag-term/src/ TO vendor/silvery/packages/headless/src/:
+
 - selection.ts (unchanged name)
 - pointer-state.ts → pointer.ts (RENAMED — 'state' suffix is redundant, all machines carry state)
 - find.ts (unchanged name)
@@ -31,12 +35,14 @@ Their shared primitive types (Position, SelectionRange, SelectionScope, Selectio
 ## Files
 
 MOVE (delete old location, create in new):
+
 - selection.ts → headless/src/selection.ts
 - pointer-state.ts → headless/src/pointer.ts (RENAMED)
 - find.ts → headless/src/find.ts
 - copy-mode.ts → headless/src/copy-mode.ts
 
 UPDATE (imports — remember pointer rename):
+
 - vendor/silvery/packages/headless/src/index.ts — export new machines
 - vendor/silvery/packages/ag-term/src/index.ts — re-export from @silvery/headless (convenience re-export, not a shim)
 - vendor/silvery/packages/ag-term/src/selection-renderer.ts — import from @silvery/headless
@@ -56,6 +62,7 @@ UPDATE (imports — remember pointer rename):
 - vendor/silvery/tests/copy-mode-advanced.test.ts — update imports
 
 DELETE (in same commits as moves):
+
 - vendor/silvery/packages/ag-term/src/selection.ts (old location)
 - vendor/silvery/packages/ag-term/src/pointer-state.ts
 - vendor/silvery/packages/ag-term/src/find.ts
@@ -82,6 +89,7 @@ None new. Existing tests update imports and pointer-state.test.ts → pointer.te
 ## /complete criteria
 
 Run literally:
+
 - test ! -e vendor/silvery/packages/ag-term/src/selection.ts
 - test ! -e vendor/silvery/packages/ag-term/src/pointer-state.ts
 - test ! -e vendor/silvery/packages/ag-term/src/find.ts
@@ -104,3 +112,4 @@ Headless convention: flat, no suffix (readline.ts, select-list.ts). Don't add no
 ## MANDATORY
 
 Read docs/lessons/refactoring.md IN FULL before starting.
+

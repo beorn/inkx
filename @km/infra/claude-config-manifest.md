@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/infra/claude-config-manifest"
 aliases:
   - km-infra.claude-config-manifest
@@ -68,29 +71,35 @@ dependencies:
     created_at: 2026-04-18T22:11:04Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] MECE Claude config manifest + drift-checker + activation skill @km/infra #task #P2 @Bjørn Stabell
 
 blocks:: [[@km/infra]]
 
-# Problem
+## Problem
 
 Today's cross-session chaos root-caused to 'hook file exists but nobody knew it wasn't registered'. The WorktreeCreate hook was dead code for weeks — every agent worktree got half-populated vendor/ trees because nobody knew the hook existed.
 
 Same risk exists for:
+
 - Skills in .claude/skills/ (orphan skill directories, never keyword-matched)
 - Agents in .claude/agents/ (orphan definitions)
 - MCP servers in .mcp.json (servers configured but not running)
 - Hooks in .claude/hooks/ (scripts without registration)
 
-# Fix
+## Fix
 
 ## 1. Self-describing manifests per category (auto-generated)
 
 Files: `.claude/hooks/README.md`, `.claude/skills/README.md`, `.claude/agents/README.md`, `.mcp.json → .mcp-manifest.md`
 
 Each enumerates every file/entry in its directory with:
+
 - name
 - description (from docstring or first-line comment)
 - activation trigger (event name / keywords / tool match)
@@ -99,6 +108,7 @@ Each enumerates every file/entry in its directory with:
 ## 2. Drift-checker lint
 
 `bun tools/lint-claude-config.ts` runs in test:ci. Rules:
+
 - Every script in .claude/hooks/ must have a registration in settings.json
 - Every registration in settings.json must point to an existing script
 - Every skill in .claude/skills/ must have a SKILL.md with keywords
@@ -113,7 +123,7 @@ Failures list the drift (X file exists but unregistered, Y registration broken).
 
 Content: inline MECE manifest + how to register a new hook/skill/agent/MCP properly. When an LLM touches any Claude Code config concern, skill loads, LLM sees full state.
 
-# /complete
+## /complete
 
 - [ ] `bun tools/lint-claude-config.ts` script exists, runs, exits 0 when clean
 - [ ] Drift-checker catches orphan hook script (test: create dummy hook without registering, lint fails)
@@ -122,14 +132,15 @@ Content: inline MECE manifest + how to register a new hook/skill/agent/MCP prope
 - [ ] lint-claude-config.ts wired into bun run test:ci
 - [ ] Documented in CLAUDE.md skills table
 
-# Why now
+## Why now
 
 Real bug cost: the worktree-create.sh dead code caused the TEA Phase 2 agent (a07b0f69) to write a diagnostic handoff instead of doing work, wasted a full parallel agent slot.
 
-# Parent
+## Parent
 
 @km/infra
 
-# Source
+## Source
 
 /why + MECE docs design discussion 2026-04-18
+

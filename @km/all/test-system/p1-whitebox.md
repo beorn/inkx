@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/test-system/p1-whitebox"
 aliases:
   - km-all.test-system.p1-whitebox
@@ -14,6 +16,7 @@ owner: bjorn@stabell.org
 # [x] Phase 1: White-box APIs on TestApp (click, expectNodeBorder/Color, expectNoGhostChars) @km/all #task #P0
 
 Add missing APIs that the FREEZE bucket needs:
+
 - click(x, y): mouse events (4 files blocked)
 - expectNodeBorder(nodeId, style): border style assertion (8 files blocked)
 - expectNodeColor(nodeId, color): text color assertion (8 files blocked)
@@ -23,3 +26,4 @@ Add missing APIs that the FREEZE bucket needs:
 Delete: nothing (additive phase)
 New tests: matchers.test.ts updated with new API tests
 /complete: all 5 APIs exist on TestApp interface and work on headless backend
+

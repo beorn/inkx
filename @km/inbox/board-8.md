@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/board-8"
 aliases:
   - km-board-8
@@ -16,15 +18,14 @@ The most valuable thing from Decker isn't any specific pattern—it's the rapid 
 ## Specific improvements worth considering:
 
 1. **Better snapshot testing** - Extend ink-testing-library with visual diff testing using ANSI-aware comparison
-
 2. **Interactive storybook** - Make tests/storybook.tsx interactive with keyboard nav and state inspection
-
 3. **State inspector** - Debug mode showing current BoardState, UIState, nodeMap in a side panel (dev only)
-
 4. **Soft reload** - Rerun with saved state for faster iteration
 
 ## What won't help:
+
 - Web-based preview (loses terminal-specific behavior)
 - React DevTools (Ink doesn't use React DOM)
 
 This would provide more value than adopting Decker's patterns.
+

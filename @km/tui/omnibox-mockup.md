@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/omnibox-mockup"
 aliases:
   - km-tui.omnibox-mockup
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-14T16:23:31Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui.omnibox-unified
 ---
 
 # [ ] Omnibox static mockup app — 6+ scenes showing dialog forms, operators, filters @km/tui #task #P1
@@ -22,6 +28,7 @@ blocks:: [[@km/tui/omnibox-unified]]
 Static Silvery app rendering the omnibox in each design state. Real components, real theme tokens, non-functional (stepped via n/p). Located at apps/@km/tui/src/views/omnibox/mockup.tsx; run via 'bun apps/@km/tui/src/views/omnibox/mockup.tsx'. Output termless snapshots to docs/design/mockups/ as canonical reference.
 
 Scenes (6+ matching the design doc mockups):
+
 1. cmd-k — command-first, sticky cursor pre-selected. buffer=':'. Command list filtered by when(cursor).
 2. cmd-f — object-first, same sticky cursor. buffer=''. Argument search over all.
 3. cmd-f then typed '@del' — context search with match highlighting. Shows @delei ranked top, deep subpath last.
@@ -39,3 +46,4 @@ Acceptance:
 (c) n/p keys step through scenes
 (d) Termless snapshots committed to docs/design/mockups/
 (e) Linked from omnibox.md
+

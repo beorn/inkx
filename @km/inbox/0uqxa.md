@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/0uqxa"
 aliases:
   - km-0uqxa
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] ctrl-w q quits app instead of closing pane @km/_orphan #bug #P1
 
 Pressing ctrl-w q quits the entire application instead of closing the current pane. Should only close the pane.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/lazy-views"
 aliases:
   - km-termless.lazy-views
@@ -15,3 +18,4 @@ assignee: claude:4929065a
 # [x] termless lazy views + auto-retry matchers @km/termless #feature #P3 @claude:4929065a
 
 Done: lazy views (screen/scrollback/viewport/range recompute offsets on every access), timeout option on all auto-retry matchers, DRY createLazyRegionView helper, deprecate waitFor. TODO: waitFor* cleanup across codebase, docs about lazy locator pattern.
+

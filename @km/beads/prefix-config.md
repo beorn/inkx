@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beads/prefix-config"
 aliases:
   - km-beads.prefix-config
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Fix hardcoded PREFIX in short-ids.ts — read from .km/config.yaml @km/beads #task #P1
 
 Replace const PREFIX = 'km' in packages/@km/beads/src/short-ids.ts:4 with config-driven prefix from .km/config.yaml. Acceptance: short-ids.ts reads prefix via @km/storage config; tests cover km/cloudi/custom prefixes; km bd info still shows current prefix (already does). Help text mentions prefix is per-repo.
+

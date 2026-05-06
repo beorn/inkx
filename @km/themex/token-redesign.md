@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/themex/token-redesign"
 aliases:
   - km-themex.token-redesign
@@ -24,10 +27,12 @@ assignee: claude:66437c43
 ### Code changes
 
 **ColorPalette (replaces ThemePalette)**
+
 - 14 named colors → 22 terminal colors (16 ANSI + fg + bg + cursor_color + cursor_text + selection_bg + selection_fg)
 - The 22 is the canonical pivot — every input produces it, every output consumes it
 
 **DesignTokens (replaces Theme)**
+
 - 19 inconsistent tokens → 32 shadcn-style tokens
 - 14 pairs: $bg/$fg, $surface/$surface-fg, $popover/$popover-fg, $muted/$muted-fg,
   $primary/$primary-fg, $secondary/$secondary-fg, $accent/$accent-fg,
@@ -58,14 +63,17 @@ is fundamentally different. Pages to rewrite from scratch:
 - README.md — update quick start
 
 ### Not yet decided
+
 - Text hierarchy: 1 muted level (shadcn) vs 3+ (Apple HIG)?
 - Shade generation: primaryLighten1-3 via OKLCH?
 - Terminal config exporters (Ghostty/Kitty themes from ColorPalette)
 - Embeddable ThemePicker/ThemePreview components
 
 ### Inspired by
+
 - shadcn/ui: consistent pairing, $border/$input/$ring standalone
 - M3: on-* concept, color roles
 - Apple HIG: ONE accent, text opacity cascade
 - Textual: minimal authoring, shade generation
 - Terminal standard: the 22-color de facto format
+

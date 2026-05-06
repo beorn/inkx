@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/link-styling-v2"
 aliases:
   - km-tui.link-styling-v2
@@ -12,3 +15,4 @@ assignee: claude:km-work2
 ---
 
 # [x] Wikilink styling v2: dotted underline default, blue on hover @km/tui #task #P1 @claude:km-work2
+

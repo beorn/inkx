@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/review-arch/0-refactor-board-tsx-split-1210-line-monolithic-comp"
 aliases:
   - km-review-arch.0
@@ -15,6 +17,7 @@ closed_at: 2026-01-23T09:31:52Z
 **Scope:** Split 1210 lines into 6 files (62% reduction in main file)
 
 ### New Structure
+
 ```
 apps/km-tui/packages/km-ink/src/views/
 ├── Board.tsx          # Main orchestrator (450 lines)
@@ -26,6 +29,7 @@ apps/km-tui/packages/km-ink/src/views/
 ```
 
 ### Key Extractions
+
 1. **board-input.ts** - useBoardKeyboardInput, useDetailPaneKeyboardInput
 2. **board-effects.ts** - useSyncTerminalDimensions, useFileDropHandler, useMouseHandler, useRefreshHandler, useWatcherStatusHandler
 3. **board-layout.ts** - computeBoardLayout, calcEdgeBasedColumnScrollOffset
@@ -33,6 +37,8 @@ apps/km-tui/packages/km-ink/src/views/
 5. **board-bottom-bar.ts** - BottomBar component
 
 ### Critical Dependencies to Preserve
+
 - UI + Board state reducers stay in Board.tsx
 - layoutRegistry ref must stay stable
 - TUIContext built in Board.tsx after state computed
+

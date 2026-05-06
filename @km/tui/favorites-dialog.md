@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/favorites-dialog"
 aliases:
   - km-tui.favorites-dialog
@@ -20,3 +23,4 @@ Redesign FavoritesDialog list view to show ALL locations organized by type:
 **Custom favorites** (any other assigned keys)
 
 Currently only shows assigned favorites. Should show all locations in a columnar layout organized by type, making the full vocabulary visible at a glance. Digit slots 0-9 should always appear even when empty.
+

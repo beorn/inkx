@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/detail-kv"
 aliases:
   - km-tui.detail-kv
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Detail pane: show unknown node.data fields as key:value @km/tui #task #P2
 
 The TUI detail pane currently only renders known fields (status, priority, due, assigned, tags, subtasks, backlinks). Any node.data field that doesn't match a known field should be rendered as a generic key:value line. This ensures bd-style metadata (close_reason, blocked_by, design, notes, etc.) and any future extensions are visible without needing explicit UI code for each field.
+

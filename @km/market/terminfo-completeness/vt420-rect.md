@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/market/terminfo-completeness/vt420-rect"
 aliases:
   - km-market.terminfo-completeness.vt420-rect
@@ -28,3 +31,4 @@ DEC VT420 rectangular area operations. ~8 features. Historical but xterm/mintty 
 
 Support: definitely xterm, mintty; some VT-rich emulators partial.
 Low priority (historical) but a complete blind spot.
+

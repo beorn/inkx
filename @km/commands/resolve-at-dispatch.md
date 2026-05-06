@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/commands/resolve-at-dispatch"
 aliases:
   - km-commands.resolve-at-dispatch
@@ -19,12 +22,14 @@ assignee: claude:ceb7c9cb
 Move locationKey → Position resolution OUT of the 4 verb handlers and INTO the dispatch site. Handlers receive a resolved Position, not a string. This eliminates the repeated string-parsing boilerplate in handleCursorTo/handleReparentTo/handleLinkTo/handleCreateAt.
 
 ## Current Flow (7 layers)
+
 ```
 user presses m j → chord → keybinding → execute() → VerbAction { locationKey: '@journal' }
 → handleReparentTo branches on string → resolves to board → reparentToNode → repo.moveNode
 ```
 
 ## Target Flow (5 layers)
+
 ```
 user presses m j → chord → keybinding → execute() → VerbAction { locationKey: '@journal' }
 → resolveVerbAction → ResolvedVerb { type: REPARENT_TO, to: Position { parentId, childIdx } }
@@ -42,8 +47,10 @@ user presses m j → chord → keybinding → execute() → VerbAction { locatio
 7. **'parent' stays special-cased**: CURSOR_TO parent → handleZoomOutwards, REPARENT_TO parent → outdentNode. These are fundamentally different operations that share a chord suffix.
 
 ## /complete
+
 - grep 'locationKey.*startsWith\|locationKey.*===.*fav\|locationKey.*===.*first\|locationKey.*===.*last' board-actions.ts → 0 (only in 'parent' special case)
 - grep reparentToNode board-actions.ts → 0
 - handleCursorTo signature takes Position, not string
 - handleReparentTo signature takes Position, not string
 - All tests pass
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/empty-link"
 aliases:
   - km-tui.empty-link
@@ -13,3 +16,4 @@ assignee: claude:d697f216
 # [x] Tasks show 'See <>' with missing link text in Asana import @km/tui #bug #P2 @claude:d697f216
 
 Some imported Asana tasks display 'See <>' where a link should be. The link text/URL is missing. Check imports/asana/stabell/ source data and the inline component rendering pipeline. Likely a parser issue where the link node has no URL or text.
+

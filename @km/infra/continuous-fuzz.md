@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/continuous-fuzz"
 aliases:
   - km-infra.continuous-fuzz
@@ -28,6 +31,10 @@ dependencies:
     created_at: 2026-04-26T23:34:15Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra.guardrails
 ---
 
 # [x] Continuous fuzz CI — nightly + persistent corpus @km/infra #feature #P1 @claude:cc081a9a
@@ -39,6 +46,7 @@ Wire fuzz harness (existing *.fuzz.ts files via vitest 'fuzz' project) into CI o
 Origin: @km/all/plateau-90 N1. Pro/Kimi review: 5 fuzz failures in this sweep — fuzz is what's working. Stop fuzzing → regress.
 
 Deliverables:
+
 - .github/workflows/fuzz.yml — schedule + workflow_dispatch, persistent corpus cache, on-failure bead creation script invocation
 - packages/@km/infra/scripts/fuzz-crash-to-bead.ts — Bun TS script: parse vitest output, extract seed + test file, generate bead ID, call bd create with seed+repro+workflow URL
 - corpus = vimonkey __fuzz_cases__/ directories alongside each fuzz test file (cached across runs)
@@ -46,8 +54,10 @@ Deliverables:
 Target level: L0 → L3 (CI workflow + script + persistent corpus + auto bead creation = api/lifecycle structure).
 
 Acceptance:
+
 - workflow file exists + valid YAML
 - gh workflow view fuzz.yml confirms parse
 - corpus caching configured (actions/cache@v4)
 - bead-creation script exists and is invoked on failure
 - bead notes updated with workflow path, schedule, how to test (workflow_dispatch)
+

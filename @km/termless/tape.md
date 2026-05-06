@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/tape"
 aliases:
   - km-termless.tape
@@ -36,6 +39,7 @@ termless tape play demo.tape --backend all --compare diff -o diff-report.png
 ## .tape DSL
 
 Support all VHS commands:
+
 - Type, Enter, Backspace, Ctrl+X, Alt+X, Tab, Escape, Space
 - Sleep <duration>
 - Screenshot (produces image via screenshotSvg/screenshotPng)
@@ -64,3 +68,4 @@ Support all VHS commands:
 ## Unique value
 
 VHS requires ttyd + headless Chrome + ffmpeg. Termless is pure JS/TS, runs in CI without a display server, and can compare across 11 terminal backends — something no other tool can do.
+

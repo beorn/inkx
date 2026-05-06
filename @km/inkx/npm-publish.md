@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/npm-publish"
 aliases:
   - km-inkx.npm-publish
@@ -15,6 +17,7 @@ owner: bjorn@stabell.org
 Publish hightea to npm as a public package.
 
 ## Checklist
+
 - [ ] Decide package name: @hightea/term vs hightea (check availability)
 - [ ] Verify package.json: name, version, description, keywords, repository, homepage, bugs, license, author
 - [ ] Set up .npmignore or "files" field (exclude tests, examples, docs/site from published package)
@@ -26,4 +29,6 @@ Publish hightea to npm as a public package.
 - [ ] Add npm badge to README
 
 ## Current state
+
 - package.json has name "@hightea/term", version "0.1.0"
+

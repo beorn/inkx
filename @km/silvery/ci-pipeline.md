@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ci-pipeline"
 aliases:
   - km-silvery.ci-pipeline
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] GitHub Actions CI: unit, compat, visual, perf, cross-platform @km/silvery #task #P3
 
 Set up CI pipeline for silvery repo: unit tests, ink/chalk compat, visual regression (termless), perf benchmarks, cross-platform matrix (ubuntu/macos/windows × node 18/20/22).
+

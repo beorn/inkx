@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/silvery/reactive-pipeline"
 aliases:
   - km-silvery.reactive-pipeline
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-12T00:49:05Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.layout-quality-plateau
 ---
 
 # [x] Reactive pipeline — signals for dirty tracking, layout gating, incremental rendering @km/silvery #epic #P0 @beorn
@@ -73,3 +80,4 @@ Phase 5: Flexily native fit-content/snug-content (+99 Flexily lines)
 
 - Perf: noop-frame-skip (P2), pipeline-counters (P2), COW rows (P3), style-interning (P3)
 - G6 buffer effects: DEFERRED (research complete, decision documented in design field)
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/vt-blog"
 aliases:
   - km-silvery.vt-blog
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Update blog post for unified ListView cache story @km/silvery #task #P2
 
 Update vendor/internal/silvery/launch/blog-launch.md — already done 2026-04-02. Tracks the blog post showing ListView as universal container with cache/nav/search props. Update again when all beads are closed to ensure accuracy.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/storage/fts-sigil-tokenchars"
 aliases:
   - km-storage.fts-sigil-tokenchars
@@ -25,6 +28,10 @@ dependencies:
     created_at: 2026-04-14T21:33:37Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage
 ---
 
 # [x] FTS5 schema: sigil tokenchars + name/title columns @km/storage #task #P2 @Bjørn Stabell
@@ -32,3 +39,4 @@ dependencies:
 blocks:: [[@km/storage]]
 
 FTS5 default unicode61 tokenizer strips @#+[ from tokens and nodes_fts doesn't index name/title. Files named @next.md or titled #urgent are unfindable via sigil queries. Fix: add name+title columns to nodes_fts, configure tokenchars '@#+[', update escapeFts5Token to preserve those chars. Migrate existing DBs via schema_version in meta table.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/perf-review"
 aliases:
   - km-tui.perf-review
@@ -13,3 +16,4 @@ assignee: claude:23485adf
 # [x] Performance review: board open and zoom-in latency @km/tui #task #P1 @claude:23485adf
 
 Profile and fix board opening and zoom-in latency. Prior analysis showed ~1.9s React reconciliation + 292ms inkx pipeline on initial mount. User reports it's still not fast enough.
+

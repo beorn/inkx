@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tools/worktree-submodule-check"
 aliases:
   - km-tools.worktree-submodule-check
@@ -21,3 +23,4 @@ Fix: call checkUnpushedSubmodules() in mergeWorktree() after merge succeeds, bef
 Also: warn during worktree creation that submodule commits need explicit push with refspec from detached HEAD.
 
 See 5-why retrospective in session history.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/pane-2d-horizontal-divider"
 aliases:
   - km-silvercode.pane-2d-horizontal-divider
@@ -22,6 +24,10 @@ dependencies:
     created_at: 2026-04-28T08:07:37Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Visual regression: horizontal pane dividers render as vertical (─ → │) after paint-clear merges @km/silvercode #bug #P1
@@ -29,3 +35,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 Visual test apps/silvercode/tests/visual/pane-2d-layout.test.tsx fails on 3 tests after merging feat/paint-clear-invariant + feat/paint-clear-l5-step5-outline-snapshots. Output contains only │ chars, no ─. Likely caused by silvery paint-clear gate or RenderPostState changes. Repro: bun vitest run apps/silvercode/tests/visual/pane-2d-layout.test.tsx. Failing tests: 'Ctrl+G s — horizontal split', 'Ctrl+G v then Ctrl+G s — mixed', 'Ctrl+G z — zoom hides dividers'.
+

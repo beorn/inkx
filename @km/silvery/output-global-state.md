@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/output-global-state"
 aliases:
   - km-silvery.output-global-state
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Output phase diff pool/scratch state is module-global, not instance-safe @km/silvery #bug #P3
 
 diffPool, diffResult, reusableCellStyle, wideCharLookupCell are module-level mutable state. If multiple output phases run interleaved (tests, strict verification, nested renderers), results can corrupt. Reentrancy concern. Found by GPT pipeline review.
+

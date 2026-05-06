@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/fold-all"
 aliases:
   - km-tui.fold-all
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] < and > should fold/unfold entire board (H/L is item level) @km/tui #feature #P2
 
 < should fold all cards on the entire board. > should unfold all. H/L already handles item-level fold/unfold. This gives the user a quick way to collapse/expand the entire board.
+

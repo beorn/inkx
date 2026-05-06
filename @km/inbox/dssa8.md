@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/dssa8"
 aliases:
   - km-dssa8
@@ -17,3 +20,4 @@ assignee: claude:ceb7c9cb
 # [x] task: review test fixture ergonomics and shared abstractions @km/_orphan #task #P3 @claude:ceb7c9cb
 
 Review how @km/tui tests build fixtures (item(), testEnv, board.app DSL). Consider: shared fixture builders for common structures (kanban, nested, sections), playwright-style page objects for navigation patterns, combining related tests to reduce setup overhead. Check CLAUDE.md instructions on test consolidation. Audit existing patterns across the ~112 test files.
+

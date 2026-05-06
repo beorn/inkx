@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - km
 id: "@km/silvercode/m2-km-mcp-server"
 aliases:
   - km-silvercode.m2-km-mcp-server
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-24T02:09:48Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] M2: @km/mcp-server v1 (read-only) @km/silvercode #task #P2
@@ -26,3 +33,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 See hub/silvery/future/ai-terminal/00-agent-workspace.md Phased delivery section for M2- scope.
+

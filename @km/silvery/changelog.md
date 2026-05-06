@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/changelog"
 aliases:
   - km-silvery.changelog
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] CHANGELOG.md for silvery 1.0 @km/silvery #task #P3
 
 Write a CHANGELOG.md covering the full history from hightea through the silvery 1.0 release.
+

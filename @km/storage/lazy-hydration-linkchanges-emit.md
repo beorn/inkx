@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/lazy-hydration-linkchanges-emit"
 aliases:
   - km-storage.lazy-hydration-linkchanges-emit
@@ -22,6 +25,10 @@ dependencies:
     created_at: 2026-04-22T08:35:53Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage
 ---
 
 # [x] Wire linkChanges delta emission from FS reconcile path @km/storage #task #P1 @claude:8b5b9e1c
@@ -39,5 +46,7 @@ The agent's own scope note flagged this: 'Did not plumb linkChanges emission thr
 - Commit delta consumers (withReactive) already route these through backlinksState
 
 ## /complete
+
 - External edit to file containing [[Target]] → backlinks view for Target updates without manual refresh
 - Test: packages/@km/storage/tests/store/backlinks-fs-reconcile.test.ts asserts end-to-end
+

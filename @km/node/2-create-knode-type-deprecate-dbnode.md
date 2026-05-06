@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/node/2-create-knode-type-deprecate-dbnode"
 aliases:
   - km-node.2
@@ -53,15 +55,19 @@ type KNode =
 ```
 
 ### Changes
+
 1. Add `Source` type definition
-2. Add `CommonProps` interface  
+2. Add `CommonProps` interface
 3. Add `KNodeBase` interface
 4. Add all 16 node type interfaces
 5. Add `KNode` discriminated union
 6. Add deprecation alias: `export type DBNode = KNode;`
 
 ### Files
+
 - packages/@km/_orphan/core/src/types.ts
 
 ### Verification
+
 - `bun run typecheck` passes
+

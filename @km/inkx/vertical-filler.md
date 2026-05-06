@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/vertical-filler"
 aliases:
   - km-inkx.vertical-filler
@@ -18,6 +20,7 @@ A component (or output-phase feature) that fills remaining rows between content 
 Replaces the need for height={termRows} on the root Box in inline mode. Content auto-sizes naturally, status bar sits right below content, and VerticalFiller pads the rest.
 
 Usage:
+
 ```tsx
 <Box flexDirection="column">
   <Header />
@@ -30,3 +33,4 @@ Usage:
 Alternative: implement as an output-phase option (e.g. mode: 'inline-pinned') that auto-pads after rendering.
 
 Depends on: @km/silvery-legacy/cursor-query (to know initial cursor position for first render)
+

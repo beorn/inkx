@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/unicode-tests"
 aliases:
   - km-silvery.unicode-tests
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Unicode test suite: CJK, emoji, combining chars, RTL @km/silvery #task #P3
 
 Test CJK wide chars (2-cell), emoji (skin tone, ZWJ, flags), combining marks, and RTL text. Verify correct cell width calculation and truncation.
+

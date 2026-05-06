@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/real-terminal-testing"
 aliases:
   - km-termless.real-terminal-testing
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Census: test real terminals, not just headless libraries @km/termless #feature #P1
 
 Community CLI (terminfo.dev@1.1.0) published to npm. Commander app with probe/submit subcommands. 45 probes. Submit creates GitHub issue. Next: more probes, silvery rendering, CI integration.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/rev-arch-0130/6-delete-deprecated-functions-in-db-instance-ts"
 aliases:
   - km-rev-arch-0130.6
@@ -13,6 +15,7 @@ closed_at: 2026-02-03T21:34:09Z
 Delete 6 deprecated functions in db-instance.ts: getDb, setDb, runWithDbContext, getContextDb, etc.
 
 ## Prerequisites
+
 - @km/rev-arch-0130/0-remove-db-instance-ts-singleton-breaks-test-isolat (singleton removal) must be done first
 
 ## Execution
@@ -32,8 +35,10 @@ bunx tsc --noEmit 2>&1 | head -50
 ```
 
 ## Definition of Done
+
 - [ ] All deprecated functions deleted (not commented, not @deprecated — deleted)
 - [ ] No backwards compat shims or re-exports
 - [ ] All callers migrated to createVault() factory
 - [ ] `tsc` passes
 - [ ] `grep -r "getDb\|setDb\|runWithDbContext\|getContextDb" packages/` finds nothing (except createVault internals)
+

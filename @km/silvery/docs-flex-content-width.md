@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/docs-flex-content-width"
 aliases:
   - km-silvery.docs-flex-content-width
@@ -18,6 +20,10 @@ dependencies:
     created_at: 2026-04-23T01:00:05Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Docs: content-width flex items with maxWidth cap need alignItems not flexShrink @km/silvery #task #P3
@@ -29,3 +35,4 @@ Discovered in @km/agent-view v0 scaffold (task #14):
 Setting `flexShrink={1}` on a bubble column doesn't make it shrink-to-content inside a justified-end row. Solved with `alignItems={isUser ? 'flex-end' : 'flex-start'}` on the bubble column (so inner Text rows right-align within the capped column).
 
 This is non-obvious and worth documenting in silvery styling/layout guide as a 'content-width flex items with maxWidth cap' recipe.
+

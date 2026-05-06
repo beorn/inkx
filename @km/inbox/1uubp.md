@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/1uubp"
 aliases:
   - km-1uubp
@@ -21,3 +24,4 @@ Classification: P1
 encodeKeyToAnsi() not behaviorally aligned with keyToAnsi(). Shift+Tab becomes plain tab instead of reverse-tab (CSI Z). Ctrl+Enter, super/meta, other cases also diverge. press() always prefers the incomplete encoder.
 
 Suggested fix: Make one encoder the single source of truth. Reuse from both press() and backend wrappers. Add exhaustive tests for Playwright-style key names/modifiers.
+

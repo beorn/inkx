@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - D
 id: "@km/silvery/ai-chat-bugs"
 aliases:
   - km-silvery.ai-chat-bugs
@@ -21,20 +26,27 @@ assignee: claude:73d7a332
 Terminal AI chat showcase (static-scrollback.tsx / ai-chat.tsx) has multiple issues:
 
 ## Bugs
+
 1. **Garbled output after hitting Enter a few times** — rendering breaks after advancing the demo
 2. **Ctrl+D twice doesn't exit** — double Ctrl+D within 500ms should exit but doesn't work
 
 ## Ctrl+D Analysis
+
 Both useReadline (inside TextInput) and the parent useInput handler subscribe to the same "input" event. All handlers fire (no stop-propagation). useReadline catches Ctrl+D first:
+
 - Empty input: calls `onEOF?.()` (undefined in this case — no-op), returns
 - Non-empty input: falls through to readline-ops (probably delete-forward)
 
 The parent handler records timestamp on first Ctrl+D, exits on second within 500ms. Both should fire, but need to verify order and whether readline's handling interferes.
 
 ## Garbled Output
+
 May be a rendering/layout issue in inline mode with ScrollbackList. Need to reproduce and diagnose.
 
 ## Reproduce
+
 `bun run examples/interactive/ai-chat.tsx` or `bun run examples/interactive/static-scrollback.tsx`
+
 - Hit Enter several times to advance the demo
 - Hit Ctrl+D twice quickly to try to exit
+

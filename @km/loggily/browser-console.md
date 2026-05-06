@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/loggily/browser-console"
 aliases:
   - km-loggily.browser-console
@@ -21,6 +23,10 @@ dependencies:
     created_at: 2026-04-12T18:06:10Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-loggily
 ---
 
 # [x] Browser console: %c CSS colors + multi-arg + arrow functions @km/loggily #bug #P0
@@ -30,11 +36,13 @@ blocks:: [[@km/loggily]]
 Current loggily pre-formats to a single ANSI string and passes it to console.info(text). This breaks in browsers (ANSI garbage) and loses DevTools features (expandable objects, source locations, CSS colors).
 
 Adopt the pattern from the old @beorn/logger (kimmi archive):
+
 - Browser: %c CSS format specifiers for colors, multi-arg spread
-- Terminal: ANSI via ansi-styles, multi-arg spread  
+- Terminal: ANSI via ansi-styles, multi-arg spread
 - Both: arrow functions (not bind) for source location preservation + console mockability
 - Both: pass user args separately so objects stay expandable in DevTools
 
 Reference: https://github.com/beorn/kimmi/blob/c17bfa25/packages/archive/beorn-logger/src/loggerBrowser.ts
 
 Impact: console sink needs to receive structured data (level, namespace, user args) instead of pre-formatted text. Pipeline change.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/ansi-helpers"
 aliases:
   - km-inkx.ansi-helpers
@@ -15,6 +18,7 @@ assignee: claude:fbad9cb1
 chalkx should export string-returning ANSI protocol helpers for all terminal control sequences. inkx currently has these scattered in output.ts with inconsistent APIs (some return strings, some write to stdout). Move to chalkx as the canonical source.
 
 Helpers needed (all return string):
+
 - enterAltScreen() / leaveAltScreen()
 - cursorTo(row, col) / cursorHome()
 - cursorHide() / cursorShow()
@@ -29,3 +33,4 @@ Helpers needed (all return string):
 - scrollUp(n) / scrollDown(n)
 
 Then update inkx output.ts to import from chalkx instead of defining inline. This gives termless tests and any other consumer access to the same helpers.
+

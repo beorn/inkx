@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-generator-consolidation"
 aliases:
   - km-silvery.theme-generator-consolidation
@@ -15,6 +17,10 @@ dependencies:
     created_at: 2026-04-18T11:44:09Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Consolidate 4 theme generators into 1 @km/silvery #task #P3
@@ -22,3 +28,4 @@ dependencies:
 blocks:: [[@km/silvery]]
 
 Currently theme generation logic lives in 4 places: deriveTheme (ansi/derive.ts), generateTheme (theme/generate.ts), default-schemes ANSI16, schemes/index.ts. They duplicate brand+ring+aliases mapping. Consolidate to a single generator with strategy: 'ansi16' | 'truecolor'. Acceptance: 1 generator function; deriveAnsi16Theme calls it with 'ansi16'; deriveTheme calls it with 'truecolor'; tests still pass.
+

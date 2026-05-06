@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/rgkch"
 aliases:
   - km-rgkch
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] Debug doc consolidation: canonical debugging.md @km/_orphan #task #P3
 
 Create docs/guide/debugging.md as canonical debugging reference. Consolidate env var hierarchy, symptom→check cross-reference, and diagnostic workflow. Existing docs link to it instead of duplicating.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/rev-docs-0126/3-fix-claude-md-timing-contradiction-24s-vs-5s"
 aliases:
   - km-rev-docs-0126.3
@@ -10,3 +13,4 @@ assignee: beorn
 ---
 
 # [x] Fix CLAUDE.md timing contradiction (24s vs <5s) @km/rev-docs-0126 #bug #P1 @beorn
+

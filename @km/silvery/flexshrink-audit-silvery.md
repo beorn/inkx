@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/flexshrink-audit-silvery"
 aliases:
   - km-silvery.flexshrink-audit-silvery
@@ -21,6 +23,10 @@ dependencies:
     created_at: 2026-04-24T23:52:56Z
     created_by: claude:53042a7f
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Audit silvery components for explicit flexShrink={0} on rigid widgets @km/silvery #task #P3
@@ -42,3 +48,4 @@ Run silvery tests with createFlexilyZeroEngine({defaults:'css'}) and identify re
 ## Blocks
 
 - @km/silvery/flexshrink-flip-silvery-only
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/silvery-adapter-docs-stale"
 aliases:
   - km-flexily.silvery-adapter-docs-stale
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Docs: Silvery integration docs reference wrong function name createFlexxEngine @km/flexily #task #P3
+

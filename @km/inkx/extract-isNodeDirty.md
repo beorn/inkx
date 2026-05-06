@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/extract-isNodeDirty"
 aliases:
   - km-inkx.extract-isNodeDirty
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] content-phase: Extract isNodeDirty/shouldSkipRendering helper @km/inkx #task #P1
 
 Fast-path decision in renderNodeToBuffer checks multiple flags + child position shift. Encapsulate in a well-named function like shouldSkipRendering(node) to make the main flow more readable. Deep research recommendation #6.
+

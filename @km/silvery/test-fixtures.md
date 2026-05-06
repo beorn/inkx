@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/test-fixtures"
 aliases:
   - km-silvery.test-fixtures
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Shared test fixtures: simple/complex layouts, interactive forms, large lists @km/silvery #task #P3
 
 Create reusable test fixtures for compat, visual, and perf tests: SimpleBox, ComplexLayout, NestedFlex, InteractiveForm, LargeList (1000+ items), UnicodeContent, ChalkStyledContent.
+

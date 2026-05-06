@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/wide-char-truncate"
 aliases:
   - km-inkx.wide-char-truncate
@@ -30,10 +33,13 @@ await renderStatic(<Text>📁 Task 1</Text>)  // 📁 Task 1
 ```
 
 ## Analysis
+
 - ⚠ (U+26A0) and ☑ (U+2611) have displayLength=2 per tui-measure
 - Text after the first space gets truncated
 - Other wide chars like 📁 work fine, so not all displayLength=2 chars affected
 - May be related to specific Unicode ranges or East Asian width calculations
 
 ## Workaround
+
 Use status icons with displayLength=1 (☐, ☒) instead of ⚠ (no-status icon)
+

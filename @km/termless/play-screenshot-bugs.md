@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/play-screenshot-bugs"
 aliases:
   - km-termless.play-screenshot-bugs
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] play screenshots broken: vterm crashes, xterm captures empty frames @km/termless #bug #P1
 
 Two bugs in tape playback screenshot capture: (1) vterm.js crashes with cell.char=ch on undefined cell when cursor goes out of bounds during Type commands; (2) xterm.js captures empty/black frames because headless terminal screenshots before PTY output arrives.
+

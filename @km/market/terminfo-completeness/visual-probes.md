@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/terminfo-completeness/visual-probes"
 aliases:
   - km-market.terminfo-completeness.visual-probes
@@ -16,6 +18,7 @@ Termless already supports SVG/PNG screenshots via term.screenshotSvg().
 Use this to add visual verification for features currently marked "partial".
 
 Candidates:
+
 - SGR attribute rendering (bold, italic, underline variants rendered correctly)
 - Color accuracy (OSC 4 sets color → screenshot verifies cell color matches)
 - Cursor shape (DECSCUSR → screenshot verifies shape in SVG)
@@ -28,7 +31,9 @@ Strategy: compare SVG output against expected pattern, or snapshot-diff against 
 Promotes features from "partial" to "automated".
 
 Still unprobeable even with screenshots:
+
 - Font ligatures (per-cell SVG, no shape engine)
 - GPU acceleration
 - Transparency/blur
 - Font fallback
+

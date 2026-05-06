@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/trilemma-tape"
 aliases:
   - km-silvery.trilemma-tape
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] Create VHS .tape recording of the trilemma demo @km/silvery #task #P2
 
 VHS tape file that records the trilemma example showing: 1) inline mode with streaming + graduation + scroll back + Cmd+F, 2) mode switch to fullscreen, 3) same app in fullscreen mode. Output as GIF for the blog post.
+

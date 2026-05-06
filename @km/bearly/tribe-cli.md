@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/bearly/tribe-cli"
 aliases:
   - km-bearly.tribe-cli
@@ -15,3 +18,4 @@ assignee: claude:19080504
 # [x] Phase 3: tribe CLI subcommand @km/bearly #feature #P3 @claude:19080504
 
 Add tribe subcommand to bd or standalone: tribe status (show active sessions), tribe send <to> <message>, tribe log (recent messages), tribe health (diagnostics). Enables user to inspect and interact with tribe from terminal without Claude Code.
+

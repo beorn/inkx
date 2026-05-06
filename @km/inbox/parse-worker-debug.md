@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/parse-worker-debug"
 aliases:
   - km-parse-worker-debug
@@ -24,12 +26,14 @@ Suppress debug output in worker threads by clearing `process.env.DEBUG` before i
 ## Future: Reusable Worker Debug Pattern
 
 The watch worker (`worker-thread.ts`) has a working pattern:
+
 1. Custom `debug()` wrapper sends `{ type: "debug", message }` to main thread
 2. Main thread's `worker-bridge.ts` handles messages and forwards to a debug instance
 
 ### Proposed Reusable API for @beorn/logger
 
 **Worker side:**
+
 ```typescript
 import { createWorkerDebug } from "@beorn/logger/worker";
 
@@ -39,6 +43,7 @@ debug("parsing %s", filename);
 ```
 
 **Main thread side:**
+
 ```typescript
 import { createWorkerDebugHandler } from "@beorn/logger/worker";
 
@@ -49,6 +54,7 @@ worker.onmessage = (e) => {
 ```
 
 ### Benefits
+
 - Single implementation in @beorn/logger
 - Consistent pattern across all workers
 - Proper DEBUG_LOG integration
@@ -63,3 +69,4 @@ worker.onmessage = (e) => {
 - [ ] Extract reusable pattern to @beorn/logger
 - [ ] Update watch worker to use shared implementation
 - [ ] Consider if parse worker needs debug or if suppression is fine
+

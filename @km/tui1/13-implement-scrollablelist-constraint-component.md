@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui1/13-implement-scrollablelist-constraint-component"
 aliases:
   - km-tui1.13
@@ -23,6 +25,7 @@ See [inkx-legacy.3-design.md](.beads/inkx-legacy.3-design.md) for full specifica
 **Location**: `apps/km-tui/packages/km-ink/src/constraints/ScrollableList.tsx`
 
 **Props**:
+
 ```typescript
 interface ScrollableListProps<T> {
   items: T[];
@@ -35,6 +38,7 @@ interface ScrollableListProps<T> {
 ```
 
 **Usage**:
+
 ```typescript
 <ScrollableList
   items={cards}
@@ -57,6 +61,7 @@ interface ScrollableListProps<T> {
 4. Render visible items + overflow indicators
 
 Existing pattern in Board.tsx (lines 310-319):
+
 ```typescript
 const maxCardsNoOverflow = Math.max(1, Math.floor(height / itemHeight));
 const needsScroll = items.length > maxCardsNoOverflow;
@@ -82,3 +87,4 @@ const scrollOffset = needsScroll
 ## Blocked By
 
 - inkx-legacy.1 (constraint system design approval)
+

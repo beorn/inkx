@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/market/content-strategy"
 aliases:
   - km-market.content-strategy
@@ -18,3 +21,4 @@ assignee: claude:f8196c1c
 # [x] Content marketing strategy & 200 article plans for silvery.dev, termless.dev, terminfo.dev, flexily.dev @km/market #task #P3 @claude:f8196c1c
 
 Map out best practices for AI-generated blogging/content marketing across all four dev tool websites. Includes SEO strategy, 50 article ideas per site (200 total), technical platform, distribution, and schedule.
+

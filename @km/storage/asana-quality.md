@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/asana-quality"
 aliases:
   - km-storage.asana-quality
@@ -14,6 +16,7 @@ owner: bjorn@stabell.org
 Systematic comparison of 60,137 imported Asana nodes. All actionable items resolved.
 
 ## DONE
+
 - ~~**Escaped underscores in URLs** (1,460→0 in URLs, 243 legitimate prose escapes)~~
 - ~~**HTML entities** (2→0): &amp;, &gt; decoded at fetch+convert stages~~
 - ~~**HTML tags in body** (14→0): remnant <br>, <em> stripped, autolinks preserved~~
@@ -25,14 +28,17 @@ Systematic comparison of 60,137 imported Asana nodes. All actionable items resol
 - ~~**Comment URL conversion** (538): Asana URLs in comments now converted to [[^GID]]~~
 
 ## REMAINING (not actionable in converter)
+
 - **Asana asset URLs** (16): genuine Asana-hosted files needing auth to download
 - **Orphan block refs** (~5K): mostly from comment URL conversion — referenced tasks not in import data (other workspaces, deleted, or non-imported projects)
 - **Bare GIDs in body** (173): ALL false positives (phone numbers, tracking numbers, IDs)
 - **Filenames with GIDs** (3): disambiguation needed — two "fam-estate" projects + one untitled
 
 ## NOT BUGS (data characteristics)
+
 - Long lines (1,352): mostly URLs
 - Duplicate sibling titles (4,236): normal Asana recurring tasks
 - Body is just a URL (147): user-authored content
 - Files with only completed tasks (8): valid data
 - Empty sections (4): valid data
+

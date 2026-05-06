@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/infra/gbrain-ideas"
 aliases:
   - km-infra.gbrain-ideas
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-12T13:13:00Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra.org-redesign
 ---
 
 # [x] Phase B: Integrate gbrain/gstack ideas into /sop and km @km/infra #task #P2 @Bjørn Stabell
@@ -27,3 +34,4 @@ dependencies:
 blocks:: [[@km/infra/org-redesign]]
 
 RESOLVER.md, compiled-truth/timeline, behavioral triggers, benefits-from frontmatter, auto-inject recall.
+

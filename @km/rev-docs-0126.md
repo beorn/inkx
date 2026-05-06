@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/rev-docs-0126"
 aliases:
   - km-rev-docs-0126
@@ -9,7 +11,7 @@ closed_at: 2026-01-26T16:50:04Z
 
 # [x] Code review: docs @km/rev-docs-0126 #epic #P2
 
-# Documentation Review - 2026-01-26
+## Documentation Review - 2026-01-26
 
 ## Summary
 
@@ -54,3 +56,4 @@ closed_at: 2026-01-26T16:50:04Z
 1. ADR-002 rewrite - update file paths and implementation status
 2. Command system documentation - document actual types or remove aspirational examples
 3. Bead housekeeping - update/close stale beads, consolidate research files
+

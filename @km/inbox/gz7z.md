@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/gz7z"
 aliases:
   - km-gz7z
@@ -18,9 +20,11 @@ Per code style guidelines in CLAUDE.md section 5, long arrow functions in the ma
 Refactor all TUI code in `apps/km-tui/packages/km-ink/src/`:
 
 ### Board.tsx (primary file)
+
 Long arrow functions to refactor:
+
 - pushNavHistoryEntry
-- getMaxSubIndex  
+- getMaxSubIndex
 - updateSelectionRange
 - clearSelection
 - getSelectedCardIndices
@@ -38,6 +42,7 @@ Long arrow functions to refactor:
 - getTopBarBg
 
 ### Other files to check
+
 - DetailPane.tsx
 - ProjectPicker.tsx
 - HelpOverlay.tsx
@@ -49,6 +54,7 @@ Long arrow functions to refactor:
 ## Pattern
 
 Convert from:
+
 ```tsx
 const handleFoo = () => {
   // 10+ lines of logic
@@ -56,6 +62,7 @@ const handleFoo = () => {
 ```
 
 To:
+
 ```tsx
 // At top of component - just the call
 const result = handleFoo();
@@ -67,4 +74,6 @@ function handleFoo() {
 ```
 
 ## Exception
+
 Very short lambdas (1-3 lines) can remain inline.
+

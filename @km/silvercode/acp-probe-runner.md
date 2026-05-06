@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/acp-probe-runner"
 aliases:
   - km-silvercode.acp-probe-runner
@@ -44,6 +47,10 @@ dependencies:
     created_at: 2026-04-26T09:00:03Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.acp
 ---
 
 # [x] silvercode probe-acp — smoke test runner for connectAcpRegistry across all 5 agents @km/silvercode #feature #P2 @claude:cd034ca4
@@ -53,6 +60,7 @@ blocks:: [[@km/silvercode/acp]]
 Standalone probe script that exercises any registered ACP agent end-to-end without the full silvercode UI. Lets us smoke-test Claude/Codex/Gemini/Copilot/Pi connectivity individually before wiring the controller.
 
 ## Usage
+
 ```
 bun apps/silvercode/tests/probe-acp.ts <registryId> [prompt]
 # Examples:
@@ -61,12 +69,14 @@ bun apps/silvercode/tests/probe-acp.ts gemini 'hello'
 ```
 
 ## What it prints
+
 - Capabilities + authMethods + protocolVersion from initialize
 - SessionUpdate stream summary (kind counts) as it arrives
 - Final stopReason
 - ToolCall summary if any tools were used
 
 ## Auth notes per agent
+
 - claude-code: requires CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY in env
 - codex: requires ChatGPT subscription auth (codex-acp handles OAuth)
 - gemini: requires Google sign-in (gemini-cli handles OAuth)
@@ -74,6 +84,8 @@ bun apps/silvercode/tests/probe-acp.ts gemini 'hello'
 - pi-acp: requires pi config
 
 ## Acceptance
+
 - bun apps/silvercode/tests/probe-acp.ts claude-code 'hi' → completes with stop_reason
 - Probe handles missing-binary errors gracefully (prints install hint, exits non-zero)
 - ACP names everywhere (uses ContentBlock, ToolCall, SessionUpdate, RequestPermission per acp-naming.md)
+

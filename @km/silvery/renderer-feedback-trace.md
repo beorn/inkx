@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/renderer-feedback-trace"
 aliases:
   - km-silvery.renderer-feedback-trace
@@ -16,6 +19,10 @@ dependencies:
     created_at: 2026-04-26T23:33:24Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.structural-hardening
 ---
 
 # [x] renderer-feedback-trace — pass-cause instrumentation @km/silvery #feature #P1 @claude:cc081a9a
@@ -31,3 +38,4 @@ SILVERY_INSTRUMENT=1 env var prints a per-test-run histogram of pass causes; agg
 Outcome (from this work): histogram captured to hub/silvery/design/pass-cause-histogram.md; dominant pass-cause categories identified for C3b's attributed-feedback-edge bounds.
 
 Source: @km/all/plateau-90 R1 split (2026-04-27). Sibling of paint-clear-invariant (C2) and scope-resource-ownership (C1).
+

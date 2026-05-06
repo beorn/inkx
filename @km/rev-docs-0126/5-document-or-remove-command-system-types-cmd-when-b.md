@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/rev-docs-0126/5-document-or-remove-command-system-types-cmd-when-b"
 aliases:
   - km-rev-docs-0126.5
@@ -10,3 +13,4 @@ assignee: beorn
 ---
 
 # [x] Document or remove command system types (Cmd/When/Binding) @km/rev-docs-0126 #task #P2 @beorn
+

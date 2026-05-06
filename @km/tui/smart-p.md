@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/smart-p"
 aliases:
   - km-tui.smart-p
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Smart-P toggle: closed→open, unfocused→focus, focused→close @km/tui #feature #P2
 
 P = smart detail pane toggle: if closed → open+focus, if open+unfocused → focus, if focused → close. Replaces current toggleDetailPane. See docs/keybindings-v2.md §Smart-P.
+

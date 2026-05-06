@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/docs-overstate-compat"
 aliases:
   - km-flexily.docs-overstate-compat
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Docs: Claims of '100% Yoga API compatibility' and 'full CSS flexbox' are too strong @km/flexily #task #P2
+

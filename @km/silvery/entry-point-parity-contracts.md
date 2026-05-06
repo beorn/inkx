@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/entry-point-parity-contracts"
 aliases:
   - km-silvery.entry-point-parity-contracts
@@ -18,6 +21,10 @@ dependencies:
     created_at: 2026-04-23T03:24:06Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Extend defaults-contract convention — omit profile, assert defaults across run/createApp.run/render @km/silvery #task #P2 @claude:c6244087
@@ -25,3 +32,4 @@ dependencies:
 blocks:: [[@km/silvery]]
 
 Per /pro review. Phase 1 defaults-contract tests pin individual behaviors; extend to cross-entry-point parity — every entry point (run, createApp().run, render, createTermless, createTerm) must produce the same observable behavior when given identical options (including omitted profile). Catches drift between entry points.
+

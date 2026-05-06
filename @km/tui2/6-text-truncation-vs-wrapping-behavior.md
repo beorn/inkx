@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui2/6-text-truncation-vs-wrapping-behavior"
 aliases:
   - km-tui2.6
@@ -16,3 +18,4 @@ TUI2 truncates with '...' instead.
 Need to determine desired behavior and implement consistently.
 
 **Files**: apps/@km/tui/packages/@km/_orphan/opentui/src/components/TreeNode.tsx
+

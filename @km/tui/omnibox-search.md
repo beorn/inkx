@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/omnibox-search"
 aliases:
   - km-tui.omnibox-search
@@ -13,3 +16,4 @@ assignee: claude:28b14b32
 # [x] Omnibox: add vault-wide content search mode @km/tui #feature #P2 @claude:28b14b32
 
 Merge the standalone 'search' dialog into the omnibox. The omnibox already does fuzzy matching over commands and goto locations — add vault-wide node title/content search as an additional mode. This eliminates a separate dialog and gives one 'go to anything' entry point. Remove the standalone search command after migration. The omnibox becomes: commands + goto locations + content search.
+

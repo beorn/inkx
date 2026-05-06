@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - D
 id: "@km/silvercode/ctrl-d-quit"
 aliases:
   - km-silvercode.ctrl-d-quit
@@ -18,6 +23,10 @@ dependencies:
     created_at: 2026-04-25T23:06:01Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Ctrl+D twice quits the app @km/silvercode #feature #P2 @claude:2405c72e
@@ -25,3 +34,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 Help text says 'ctrl-d ctrl-d' exits silvercode, but the actual implementation in CommandBox.tsx fires on EMPTY ENTER twice within 1500ms (armedAt ref). Wire actual Ctrl+D detection: track ctrlD-armed-at; second Ctrl+D within 1500ms → onExit(). Files: apps/silvercode/src/components/CommandBox.tsx (TextArea handler — needs explicit Ctrl+D capture; silvery TextArea may already pass it through) OR apps/silvercode/src/App.tsx (useInput for ctrl+d at app level). Probably easier at App.tsx since TextArea may consume Ctrl+D internally as 'delete forward'. Test: press Ctrl+D once, no exit; press again within 1500ms, exit fires.
+

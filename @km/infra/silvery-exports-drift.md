@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/infra/silvery-exports-drift"
 aliases:
   - km-infra.silvery-exports-drift
@@ -25,6 +28,10 @@ dependencies:
     created_at: 2026-04-11T21:29:20Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] v0.17.3 silvery packages narrowed exports to only . — broke vendor test imports @km/infra #bug #P2 @Bjørn Stabell
@@ -40,3 +47,4 @@ Partial fix also applied: added explicit/wildcard exports entries to 10 silvery 
 Proper fix: restore full exports maps across all 10 packages OR change internal source to use only barrel imports from the package root (@silvery/ag-term, not @silvery/ag-term/pipeline/pretext). The second is cleaner and matches the "internal" package design intent.
 
 Blocks clean vendor test runs outside of the workaround alias. Ok as an infra regression bead, not urgent since the alias unblocks work.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/tree/v4/p7-char-tests"
 aliases:
   - km-tui.tree.v4.p7-char-tests
@@ -37,5 +39,8 @@ Before Phase 9 (Board.tsx rewrite), lock down current behavior with characteriza
 
 \`\`\`bash
 bun vitest run apps/km-tui/tests/ --reporter=verbose 2>&1 | grep -c "✓"  # ≥5800 (from current 5757)
-# At least 10 new characterization tests covering the 6 areas above
+
+## At least 10 new characterization tests covering the 6 areas above
+
 \`\`\`
+

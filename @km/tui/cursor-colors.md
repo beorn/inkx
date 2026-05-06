@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/cursor-colors"
 aliases:
   - km-tui.cursor-colors
@@ -16,3 +19,4 @@ When a node/card has the cursor (yellow background), all text within should rend
 
 **Expected:** Selected items strip all foreground colors and render uniformly as black text on yellow background.
 **Current:** Various foreground colors clash with yellow background — some are invisible.
+

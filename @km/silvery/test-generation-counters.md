@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/test-generation-counters"
 aliases:
   - km-silvery.test-generation-counters
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] Structural: Replace recursive dirty-flag clearing with generation counters @km/silvery #task #P2
 
 Current model: boolean dirty flags cleared recursively after processing/skipping. Problems: expensive subtree clears, easy to miss propagation, easy to consume flag too early, bugs around multi-pass/skipped nodes. Better: monotonic generations (mutationGen, layoutGen, contentGen, paintGen, renderedGen). Node dirty if paintGen > lastRenderedPaintGen. No recursive clearing, no stale booleans, easier multi-pass reasoning. Highest-leverage structural improvement. Found by GPT 5.4 pro.
+

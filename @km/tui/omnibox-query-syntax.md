@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/omnibox-query-syntax"
 aliases:
   - km-tui.omnibox-query-syntax
@@ -22,6 +25,10 @@ dependencies:
     created_at: 2026-04-14T16:23:57Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui.omnibox-unified
 ---
 
 # [x] Query syntax parser: Google + fzf operators, prop filters, bracket family @km/tui #feature #P1 @Bjørn Stabell
@@ -33,6 +40,7 @@ Parse omnibox query strings into a ParsedQuery value consumed by the ranker and 
 Output shape: ParsedQuery { terms: QueryTerm[], scope?: SourceScope, filters: { taskStatus?, due?, priority?, assignee?, ... } }. QueryTerm { kind: 'smart'|'phrase'|'exact'|'prefix'|'suffix', value: string, negated: boolean }.
 
 Text operators (Google + fzf, compatible):
+
 - foo (bare) → smart match
 - "foo bar" (Google) → exact phrase
 - 'foo (fzf) → exact substring
@@ -48,3 +56,4 @@ Property filters (new, matching km markdown): due::today, due::>2024-01-01, prio
 The parser is a pure function of (searchString, invocationContext, storeState) → ParsedQuery. invocationContext carries the opening chord's defaults; storeState provides the cursor and selection context. View config is derivable from the same ParsedQuery.
 
 Acceptance: (a) parseQuery test fixture covers each operator family + combinations; (b) the ranker consumes ParsedQuery directly (no reparsing); (c) the highlighter consumes ParsedQuery directly; (d) v1 can ship with a minimal parser (smart, phrase, exclude, sigils, brackets) — exact/prefix/suffix and prop filters can be a v1.1 follow-up if time-constrained; (e) document the 'minimal v1' subset explicitly so a narrower cut is possible.
+

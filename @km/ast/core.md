@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/ast/core"
 aliases:
   - km-ast.core
@@ -15,6 +18,7 @@ assignee: claude:124bfbe5
 Replace 14-type NodeType with 11-type @km/ast model in packages/@km/_orphan/core/src/types.ts.
 
 Changes:
+
 - NodeType: folder/file/section → oi, paragraph → p, ul/ol/task → li, embed → link, add h/math, remove agent/board
 - Add FsType: repo | folder | file | mdfile | mdsection
 - KNode: add fstype, list_marker, task_marker (full bracket string). Remove task_mark (single char)
@@ -23,3 +27,4 @@ Changes:
 - Export everything for consumers
 
 Files: packages/@km/_orphan/core/src/types.ts, packages/@km/_orphan/core/src/index.ts
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/bj5g"
 aliases:
   - km-bj5g
@@ -14,14 +16,18 @@ When running with DEBUG_LOG=/tmp/debug.log, the worker thread's debug output (km
 Root cause: The worker thread runs in a separate process and has its own debug instance. Even though we forward debug messages to the main thread via postMessage, the worker's localDebug() call still writes directly to stderr.
 
 Current behavior:
+
 - Worker calls localDebug() which goes to stderr (CLI)
 - Worker also sends debug message to main thread
 - Main thread logs via workerDebug() which respects DEBUG_LOG
 
 Proposed fix:
+
 - In watcher-worker.ts, only call localDebug when DEBUG_LOG is not set
 - Or: Remove localDebug entirely and only use postMessage forwarding
 
 Files involved:
+
 - packages/@km/storage/src/watch/watcher-worker.ts (debug function)
 - packages/@km/storage/src/watch/worker-watcher.ts (handleWorkerMessage)
+

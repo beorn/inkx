@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/core/slate-interfaces/p4-remaining"
 aliases:
   - km-core.slate-interfaces.p4-remaining
@@ -25,5 +28,7 @@ The P4 agent created Selection.nodes, .nodeIds, .cardIndices, .isEmpty, .contain
 These are convenience methods that would DRY up patterns in handleReparentTo and board-actions-edit.ts where the same undo batch + iterate + move pattern repeats.
 
 ### /complete
+
 - `grep "moveTo\|forEach" apps/km-tui/src/selection.ts` → >0
 - Tests for both methods in selection.test.ts
+

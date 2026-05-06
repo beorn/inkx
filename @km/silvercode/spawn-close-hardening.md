@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/spawn-close-hardening"
 aliases:
   - km-silvercode.spawn-close-hardening
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-26T14:08:34Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.process-mgmt
 ---
 
 # [x] spawn factories return native AsyncDisposable; gracefulKillTree() helper @km/silvercode #bug #P1 @claude:2405c72e
@@ -101,3 +108,4 @@ close() now returns Promise<void>. Callers in apps/silvercode/src/controller.ts 
 - /tmp/llm-2405c72e-elegance-review-of-the-wrw1.txt (Pro+Kimi elegance review, 2026-04-26)
 - principles.md sections cited: Quarantine and Delete, Fail Loud Fail Now, No Parallel Derivation, Inverted Pyramid
 - Predecessor (closed): @km/silvery/async-disposable — wrapper helper rejected in favor of factory-native dispose
+

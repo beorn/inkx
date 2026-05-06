@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/recall-dream"
 aliases:
   - km-tribe.recall-dream
@@ -13,13 +15,17 @@ dependencies:
     created_at: 2026-04-27T16:10:45Z
     created_by: claude:4de4a3ab
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe.recall
 ---
 
 # [ ] Mem dream: offline corpus consolidation (atomic facts, dedup, conflict resolution, generalization) @km/tribe #feature #P3
 
 blocks:: [[@km/tribe/recall]]
 
-# Tier 4 — mem dream
+## Tier 4 — mem dream
 
 Offline batch consolidation. Runs while the agent isn't (nightly cron, on-demand CLI, or post-session). Reorganizes the corpus so Tiers 1–3 query against a cleaner store.
 
@@ -49,3 +55,4 @@ See hub/silvercode/design/recall-trigger-design.md "Tier 4 — mem dream" sectio
 ## Defer reasoning
 
 Mem-dream is a maintenance pipeline, not a trigger. Different shape, different infra, different stakes. Land mem-thought (Tier 3) first; let it run for weeks; then design mem-dream based on what the corpus actually looks like.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/content-issues"
 aliases:
   - km-storage.content-issues
@@ -10,7 +12,7 @@ owner: bjorn@stabell.org
 
 # [ ] Content / data-model issues discovered during vault use — running list @km/storage #chore #P2 #content-model #km-storage #vault-feedback
 
-# @km/storage: Content / data-model observations from vault use
+## @km/storage: Content / data-model observations from vault use
 
 A running list of edge cases, parser behaviors, schema asymmetries, and model
 tensions noticed while operating the vault (`/due`, `@next` aggregation, sigil
@@ -33,18 +35,21 @@ no recommended fix.
 ## Observations seeded 2026-04-24
 
 ### fs-path on tasks
+
 Task nodes carry `fs_path = NULL`; only file/heading nodes have it. Filtering
 tasks by source path requires a recursive `parent_id` walk. Tension: the
 asymmetry isn't visible from the schema alone — every consumer either
 reimplements the walk or gets wrong answers silently.
 
 ### Embedded sigil-aggregation copies
+
 Tasks under `km.add::` headings appear alongside the canonical task as
 embedded copies. The same task surfaces 2-3× in raw queries. Tension: the
 copy is structurally identical to the original, so consumers can't tell from
 the row whether they're looking at canonical state or a render artifact.
 
 ### Inline-prop parser greedy on EOL
+
 `@sigil` placed *after* inline props gets absorbed as text into the previous
 prop's value. `priority:: P1 @heisann` produces `priority: "P1 @heisann"`
 and no `@heisann` mention. Tension: prop-value parsing has no notion of
@@ -52,6 +57,7 @@ sigil boundaries inside its scan, even though sigils are first-class
 elsewhere in the model.
 
 ### Empty task_status on calendar-style bullets
+
 Bullets in calendar files (date-only headings, prose calendar lines that
 *look* like tasks) parse as nodes with `task_status = ''` (empty string,
 not NULL). Tension: an empty-status node is shaped like a task but isn't
@@ -59,6 +65,7 @@ actionable; the data model uses two different "absence" sentinels (NULL vs
 empty string) without a documented distinction.
 
 ### Block-id collisions across files
+
 Block IDs are global. `^apr15-ca-ftb` was defined in both
 `ref/Tech/km-user-guide.md` (doc example) and
 `projects/+taxes/workstreams.md` (real task). `km show '^id'` resolution
@@ -67,6 +74,7 @@ one global ID namespace, which means doc/example content collides with
 real content unless authors coordinate.
 
 ### Config-surface migration with no compat shim
+
 Bead @km/_orphan/q5hji renamed `collapseParse.patterns` → `inactive` (flat array).
 Test `packages/km-storage/tests/config.test.ts:314` deliberately asserts the
 legacy key is silently ignored — no compat shim, no warning. The vault's
@@ -75,6 +83,7 @@ config loading has no way to surface "you wrote a key I don't recognize" to
 the user, so typos and stale schemas degrade silently.
 
 ### Incremental sync doesn't re-evaluate inactive globs
+
 Adding new globs to `inactive:` doesn't retroactively remove already-ingested
 nodes from state.db. Only re-parses files whose mtime changed. Tension:
 config changes that affect node visibility don't propagate through
@@ -82,6 +91,7 @@ incremental sync — there's an implicit "rebuild required" the user has to
 know about.
 
 ### Path-driven semantic role isn't first-class
+
 `archive/Asana/` (27K Asana export tasks from 2013–2024) and `raw/chats/`
 (Claude session transcripts that echo workstream content) are
 *semantically different* from active vault content — they're reference, not
@@ -91,6 +101,7 @@ information that the schema doesn't capture, so every consumer has to reason
 about path patterns themselves.
 
 ### Parser permissive on degenerate task content
+
 A literal placeholder `- [ ] content due:: 2026-04-15 ^jecb` in
 `ref/Tech/km-user-guide.md` parsed as a real task with title `"content"`
 and surfaced as an overdue P0 in `/due`. Tension: there's no minimum bar
@@ -98,6 +109,7 @@ for what constitutes meaningful task content — single-token bodies pass
 through unchallenged.
 
 ### Mirror staleness between canonical and embedded views
+
 `@agent.md:234-235` showed two Jose-email tasks as `[ ]` while canonical
 state in `workstreams.md:231-232` was `[x]`. Tension: the embed-copy has
 its own `[ ]/[x]` state on disk, separate from the canonical line, and
@@ -105,6 +117,7 @@ they can drift. The model treats sigil-aggregated views as separate writable
 surfaces rather than read-through projections.
 
 ### Doctor-rebuild + sync produce empty DB on schema 3→6
+
 Attempted the actual fix path tonight (rename .km/config.yaml from
 `collapseParse.patterns` → `inactive:`, then `km doctor rebuild`).
 `km doctor rebuild` ran <2s, output only the header line, exited 0.
@@ -143,3 +156,4 @@ Spin-out attempted 2026-04-24 (9 design beads briefly created, then
 reverted). Bjørn's intent is consolidated running-list, not an epic of
 children. Future appenders: add notes here, don't promote without explicit
 user sign-off.
+

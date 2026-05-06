@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/tea-custom-events"
 aliases:
   - km-silvery.tea-custom-events
@@ -24,6 +26,10 @@ dependencies:
     created_at: 2026-04-18T11:44:16Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.tea
 ---
 
 # [x] Custom event bus — migrate km-tui link:open off RuntimeContextValue @km/silvery #task #P2
@@ -31,3 +37,4 @@ dependencies:
 blocks:: [[@km/silvery/tea]]
 
 RuntimeContextValue + runtimeEventListeners Map kept as façade after TEA Phase 2 (@km/silvery/tea-useinput). Only remaining consumer: @km/tui's `link:open` event flow via useLinkOpen hook. Migrate to either: (a) a chain plugin (withCustomEvents) that exposes a typed bus, or (b) zustand/alien-signals store pattern. Then delete runtimeEventListeners Map and trim RuntimeContextValue to `{exit()}` only. /complete: `grep runtimeEventListeners vendor/silvery/packages/ag-term/src/` → 0, `grep RuntimeContextValue vendor/silvery/packages/ag-react/src/` → ≤5.
+

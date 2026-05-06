@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui2/9-verify-header-component-styling-matches-tui1"
 aliases:
   - km-tui2.9
@@ -13,3 +15,4 @@ closed_at: 2026-01-17T00:07:26Z
 Verify Header shows: file path (gray) + board boundary (#, blue) + item path (>)
 
 **Files**: apps/@km/tui/packages/@km/_orphan/opentui/src/components/Header.tsx
+

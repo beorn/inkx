@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/dim-card-borders"
 aliases:
   - km-tui.dim-card-borders
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Darker borders for dimmed cards (completed tasks) @km/tui #task #P3
 
 Make card borders even darker for dimmed/completed task cards. Currently dimmed cards use blackBright borders which may be too visible. Use a darker color (or dimColor) for completed/dropped task card borders.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/mdspec/tape"
 aliases:
   - km-mdspec.tape
@@ -18,7 +21,7 @@ mdspec plugin that executes tape code blocks via termless and verifies screensho
 
 ## What it looks like
 
-````markdown
+~~~~markdown
 ```tape
 Type "bun km view ~/vault"
 Enter
@@ -28,16 +31,16 @@ Sleep 300ms
 Screenshot
 ```
 ![Terminal output](screenshots/demo-01.png)
-````
+~~~~
 
-````markdown
+~~~~markdown
 ```tape {backends="vterm,ghostty,xtermjs" compare="side-by-side"}
 Type "echo hello"
 Enter
 Screenshot
 ```
 ![Cross-terminal comparison](screenshots/hello-comparison.png)
-````
+~~~~
 
 ## Behavior
 
@@ -52,6 +55,7 @@ Screenshot
 ## Fence options
 
 ```tape {backend="ghostty" cols=120 rows=30 theme="dracula"}
+
 ```
 
 - backend: which termless backend (default: vterm)
@@ -69,6 +73,7 @@ Screenshot
 ## Plugin interface
 
 Implements mdspec Plugin interface:
+
 - block() handles type="tape", returns executor
 - Executor parses tape DSL, drives termless, writes screenshots
 - Returns stdout as text description of what happened (for mdspec output matching)
@@ -84,3 +89,4 @@ Implements mdspec Plugin interface:
 - Should this be @termless/mdspec or @mdspec/tape?
 - Threshold for visual diff (exact match vs % tolerance)?
 - Should Screenshot auto-name images or require explicit names?
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/modestack-eliminate"
 aliases:
   - km-tui.modestack-eliminate
@@ -40,3 +42,4 @@ Delete apps/@km/tui/src/input-mode.ts and have dialog-guard.ts use FocusManager.
 - [ ] All tests pass
 - [ ] grep ModeStack → 0 hits (except maybe one import removal)
 - [ ] grep bindFocusManager → 0 hits
+

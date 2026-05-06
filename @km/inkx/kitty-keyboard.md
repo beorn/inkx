@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/kitty-keyboard"
 aliases:
   - km-inkx.kitty-keyboard
@@ -11,3 +14,4 @@ assignee: claude:a3625ec3
 # [x] Kitty keyboard protocol support @km/inkx #feature #P3 @claude:a3625ec3
 
 Add Kitty keyboard protocol support with runtime detection and graceful fallback. Enables: shift+enter vs enter, ctrl+i vs tab, and other modifier combinations. Ink PR #852 is exploring this. See docs/ink-comparison.md.
+

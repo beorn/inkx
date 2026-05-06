@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/llm-robustness"
 aliases:
   - km-bearly.llm-robustness
@@ -13,6 +15,7 @@ owner: bjorn@stabell.org
 Make the LLM tool bulletproof against silent failures.
 
 ## Immediate fixes (done in this session)
+
 - finishResponse() exits 1 on empty content instead of silently returning
 - finalizeOutput() awaits Bun.write() and exits 1 on write failure
 - Deep research error path exits 1 when no content recovered
@@ -37,17 +40,17 @@ The fake provider is a local model adapter (like ollama) that returns predictabl
 
 ## Test matrix
 
-| Failure mode | Expected behavior | Test |
-|---|---|---|
-| Empty response from API | stderr error, exit 1 | fake --fail=empty-response |
-| Stream interrupts mid-response | Partial content saved, stderr warning, exit 1 | fake --fail=stream-interrupt |
-| API returns error | stderr error, exit 1 | fake --fail=api-error |
-| Disk full (can't write output) | stderr error, exit 1 | mock Bun.write |
-| Network timeout | stderr timeout message, exit 1 | fake --fail=timeout |
-| Context file missing | stderr error, exit 1 | --context-file /nonexistent |
-| Context file empty | stderr warning (not error) | --context-file /dev/null |
-| Deep research incomplete | stderr warning + partial or exit 1 | fake --fail=incomplete-research |
-| Response too large for /tmp | stderr error, exit 1 | mock disk space |
+| Failure mode                   | Expected behavior                             | Test                            |
+| ------------------------------ | --------------------------------------------- | ------------------------------- |
+| Empty response from API        | stderr error, exit 1                          | fake --fail=empty-response      |
+| Stream interrupts mid-response | Partial content saved, stderr warning, exit 1 | fake --fail=stream-interrupt    |
+| API returns error              | stderr error, exit 1                          | fake --fail=api-error           |
+| Disk full (can't write output) | stderr error, exit 1                          | mock Bun.write                  |
+| Network timeout                | stderr timeout message, exit 1                | fake --fail=timeout             |
+| Context file missing           | stderr error, exit 1                          | --context-file /nonexistent     |
+| Context file empty             | stderr warning (not error)                    | --context-file /dev/null        |
+| Deep research incomplete       | stderr warning + partial or exit 1            | fake --fail=incomplete-research |
+| Response too large for /tmp    | stderr error, exit 1                          | mock disk space                 |
 
 ## Other robustness ideas
 
@@ -67,3 +70,4 @@ The fake provider is a local model adapter (like ollama) that returns predictabl
 4. Add output verification (stat after write)
 5. Add --health command
 6. Add retry with backoff for transient errors
+

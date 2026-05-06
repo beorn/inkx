@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ex-template"
 aliases:
   - km-silvery.ex-template
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Phase 6: Doc page template consistency @km/silvery #task #P3
 
 Ensure every example page follows the standard template: live demo, source code, key patterns, features used, exercises
+

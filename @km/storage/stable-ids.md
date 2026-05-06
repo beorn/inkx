@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/stable-ids"
 aliases:
   - km-storage.stable-ids
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-21T12:03:48Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage
 ---
 
 # [x] Stable identity primitives — DocId / BlockId / RepoId branded types @km/storage #feature #P1
@@ -52,3 +58,4 @@ Kimmi already does this (UUIDs + URI-scheme ref); cloudi has ID-instability flag
 - Grep shows zero 'path: string' in state types where identity is meant
 - Wiki-link resolution by DocId works; path fallback for external Obsidian refs
 - Existing beads that store paths (@km/tui/omnibox, undo) migrated to DocId
+

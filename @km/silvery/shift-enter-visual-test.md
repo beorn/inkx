@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - Enter
 id: "@km/silvery/shift-enter-visual-test"
 aliases:
   - km-silvery.shift-enter-visual-test
@@ -20,6 +25,10 @@ dependencies:
     created_at: 2026-04-25T23:47:52Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.architectural-plateau
 ---
 
 # [x] Add visual newline-rendering assertion to Shift+Enter test @km/silvery #task #P3 @claude:2405c72e
@@ -27,3 +36,4 @@ dependencies:
 blocks:: [[@km/silvery/architectural-plateau]]
 
 Existing tests/features/textarea-shift-enter.test.tsx asserts both halves are present in app.text but doesn't verify visual placement. Add a test asserting app.lines[0] contains 'hi', app.lines[1] contains 'yo', no overlap. After Stream L lands, port the /tmp test draft.
+

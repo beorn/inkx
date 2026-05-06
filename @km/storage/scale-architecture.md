@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/scale-architecture"
 aliases:
   - km-storage.scale-architecture
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-21T01:25:27Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.plateau
 ---
 
 # [x] Scale architecture — forced decision under benchmarked workloads (not survey) @km/storage #epic #P1
@@ -31,6 +37,7 @@ Decision epic for km's path to 10-100x vault scale. Rewritten 2026-04-21 after d
 ## Kill-switch (auto-close condition)
 
 This epic auto-closes as **WONTFIX on 2026-06-01** unless:
+
 1. A synthetic 2x vault (~130K nodes) demonstrates a reproducible cold-start >1s OR frame drop >16ms on M5 Max 128GB after lazy-hydration lands, AND
 2. The bottleneck is profiled to be in the storage/indexing/query layer — NOT in bun boot, signal graph, rendering, or something else.
 
@@ -39,6 +46,7 @@ If neither condition fires, the stack is sufficient and the epic closes unimplem
 ## Primary question
 
 **What is authoritative?** Everything downstream depends on this.
+
 - (A) Markdown files authoritative → DB + indexes are derived, rebuildable
 - (B) Markdown authoritative + append-only op log → log is derived audit trail
 - (C) Log-first canonical state → markdown is a projection (weakens plain-text portability)
@@ -113,3 +121,4 @@ Only evaluate tools WITHIN the chosen family. E.g., if Family A wins, compare FT
 - Cold-start phase optimization — @km/tui/cold-startup-block, separate bead
 - Lazy hydration implementation — @km/storage/lazy-hydration P0, separate bead
 - TUI / reactive graph scaling — @km/silvery/signal-graph-scale-limits, separate bead
+

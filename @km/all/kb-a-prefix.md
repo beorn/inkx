@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/kb-a-prefix"
 aliases:
   - km-all.kb-a-prefix
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Keybinding v2: a-prefix add chords (a#, a@, a+, a[, etc.) @km/all #task #P2
 
 Implement a-prefix add chords: a# (add tag), a@ (add assignee), a+ (add dep), a[ (add label), ai (add child), aj (add sibling), ah (add at parent level). All work on multi-selection. See docs/keybindings-v2.md §Verb×Location.
+

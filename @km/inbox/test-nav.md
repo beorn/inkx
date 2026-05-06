@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/inbox/test-nav"
 aliases:
   - km-test-nav
@@ -17,13 +20,14 @@ board.spec.ts has 82 todo tests and 4 failing tests. These are acceptance tests 
 ## Failing Tests
 
 1. Cursor navigation from cards to column headers (k key from first card)
-2. Horizontal navigation at header level  
+2. Horizontal navigation at header level
 3. curswantY tests for vertical position memory
 
 ## Root Cause
 
 Tests expect:
-- Pressing 'k' from first card moves cursor to column header  
+
+- Pressing 'k' from first card moves cursor to column header
 - Column headers use data-cursor attribute (currently use data-selected)
 - Full navigation hierarchy: board title → column headers → cards
 
@@ -40,3 +44,4 @@ Tests expect:
 - apps/@km/tui/src/ui-reducer.ts (navigation logic)
 - apps/@km/tui/src/views/CardColumn.tsx (column data-cursor)
 - packages/@km/_orphan/commands/src/commands/navigation.ts (command defs)
+

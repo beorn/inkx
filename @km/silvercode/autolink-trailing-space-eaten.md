@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/autolink-trailing-space-eaten"
 aliases:
   - km-silvercode.autolink-trailing-space-eaten
@@ -19,6 +22,7 @@ assignee: claude:2405c72e
 Symptom: When a file path autolink (e.g. /main.ts) is followed by a space + word in the user-message echo line, the visual rendering shows the underlined link directly adjacent to the next word with no visible space.
 
 Repro:
+
 1. Type: `echo paths: vendor/silvery and /main.ts and https://example.com`
 2. Press Enter
 3. Look at the user echo line in the message stream
@@ -35,3 +39,4 @@ Screenshot: /tmp/explore-3-autolinks.png
 Visible only in PNG render, suggests an underline-style/space-style rendering interaction in silvery text run.
 
 Discovered in autonomous explore session 2026-04-26.
+

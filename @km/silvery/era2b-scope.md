@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - claude
 id: "@km/silvery/era2b-scope"
 aliases:
   - km-silvery.era2b-scope
@@ -24,3 +28,4 @@ Extract @silvery/scope from ag-term as standalone package.
 
 Zero deps. Used by era2a withTerm (optional: term.events(app.scope?.signal)) and era2b withApp.
 Design: era2b/app.md §Scopes
+

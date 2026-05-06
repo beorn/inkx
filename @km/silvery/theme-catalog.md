@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-catalog"
 aliases:
   - km-silvery.theme-catalog
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-17T20:56:49Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.design-system
 ---
 
 # [x] Theme catalog — 30+ bundled themes (Silvery + Dracula / Tokyo Night / Solarized / Gruvbox / Nord / Catppuccin / ...) @km/silvery #feature #P3
@@ -47,3 +53,4 @@ Ship a catalog of ~35 bundled 22-slot color schemes for direct selection AND for
 
 Full context: hub/silvery/design/v10-terminal/terminal-color-strategy.md
 Parent: @km/silvery/design-system
+

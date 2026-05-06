@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/prompt-concat-into-reply"
 aliases:
   - km-silvercode.prompt-concat-into-reply
@@ -22,6 +25,10 @@ dependencies:
     created_at: 2026-04-28T10:58:06Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] [bug] [P1] User prompt concatenated into start of assistant reply with no separator @km/silvercode #bug #P1 @claude:2405c72e
@@ -29,3 +36,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 Screenshot 2026-04-28 at 10.16.32 shows the assistant row rendering as '● what repo is this?km — Knowledge Machine ...' — the user prompt is glued to the start of the model's reply with no separator (no space, newline, or styling break). The prompt is also already shown on its own row above ('> what repo is this?'), so this is duplication on top of being a concatenation bug. Adjacent to closed @km/silvercode/duplicate-prompt (optimistic apply + agent echo on separate rows); this surface is concatenation into the reply row instead. Reproduce: send any prompt to silvercode, observe the assistant row starts with the prompt text instead of the model's first token.
+

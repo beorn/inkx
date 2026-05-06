@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/contour"
 aliases:
   - km-termless.contour
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] Contour backend via C++ terminal core @km/termless #task #P4
 
 NOT feasible currently — C++ code not packaged as library. Emerging project. Keep at P4 as future possibility.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/log-routing"
 aliases:
   - km-infra.log-routing
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Centralize logging routing: single config for debug/logger/console output destinations @km/infra #task #P3
 
 Currently logging routing is split across: (1) debug-log.ts patches debug npm package, (2) @beorn/logger writeLog() always calls console.*, (3) patchConsole (chalkx) intercepts console.* in TUI mode. Three separate systems with no unified config. Best practice (Pino/Winston/Bunyan): separate transport from formatting, centralize the routing decision. One config point should control 'when TUI is active, where does output go?' — file, console (Console component), both, or suppressed. This would replace the current ad-hoc enableConsoleDebug()/consoleEnabled/stream checks scattered across files.
+

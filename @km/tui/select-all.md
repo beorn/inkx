@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - A
 id: "@km/tui/select-all"
 aliases:
   - km-tui.select-all
@@ -10,3 +14,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Select-all: progressive parent selection (Cmd+A) @km/tui #feature #P3
+

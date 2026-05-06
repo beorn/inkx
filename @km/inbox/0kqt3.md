@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/inbox/0kqt3"
 aliases:
   - km-0kqt3
@@ -24,3 +27,4 @@ reconcileIfChanged() was removed from handleNodeUpdated() to fix the reconcile-c
 This likely explains the remaining delete-noop failures.
 
 Suggested fix: Remove reconcileIfChanged() from ALL DB-origin handlers. Move conflict detection to a dedicated sync-state layer.
+

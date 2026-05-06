@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/auto-min-size-flex-basis-zero"
 aliases:
   - km-flexily.auto-min-size-flex-basis-zero
@@ -22,6 +24,10 @@ dependencies:
     created_at: 2026-04-25T09:03:08Z
     created_by: claude:53042a7f
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-flexily
 ---
 
 # [x] Auto min-size: handle flex-basis:0 / flex:1 (use min-content separately from baseSize) @km/flexily #feature #P3
@@ -41,3 +47,4 @@ vendor/flexily/tests/auto-min-size.test.ts has a 'flex-basis:0 collapses' test t
 ## Test fix
 
 Test 'flex: 1 1 0 row with text content keeps content as auto-min' that verifies the new behavior.
+

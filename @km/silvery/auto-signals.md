@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/auto-signals"
 aliases:
   - km-silvery.auto-signals
@@ -18,13 +21,16 @@ assignee: claude:e4e70c9a
 Explore whether `state: { count: 0 }` should auto-wrap values in signals (Valtio-style proxy), removing the need for explicit `signal()` calls in createModel.
 
 Pros:
+
 - Reduces boilerplate — `state: { count: 0 }` vs `state: () => ({ count: signal(0) })`
 - More intuitive for newcomers (plain JS objects)
 - Vue 3's reactive() does this successfully
 
 Cons:
+
 - Less transparent — magic proxy behavior
 - Potential surprising behavior with nested objects
 - Debugging proxy state is harder
 
 Decision needed before API ships. Open question #6 in design doc.
+

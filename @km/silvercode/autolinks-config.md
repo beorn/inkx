@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - km
 id: "@km/silvercode/autolinks-config"
 aliases:
   - km-silvercode.autolinks-config
@@ -26,6 +31,10 @@ dependencies:
     created_at: 2026-04-25T00:24:20Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Configurable autolinks: resolve + popover preview for ~repo, +km, AGENTS.md, ref/ etc. @km/silvercode #feature #P2 @claude:2405c72e
@@ -49,7 +58,9 @@ User text contains lots of inline references to "things they care about": projec
 A configurable autolinks system would let the user (or a per-project config) declare:
 
 \`\`\`toml
-# silvercode.config.toml or .silvercode/links.toml
+
+## silvercode.config.toml or .silvercode/links.toml
+
 [[autolinks]]
 pattern = "~repo"
 resolves_to = "github.com/beorn/km"
@@ -99,3 +110,4 @@ Detection runs the user's patterns alongside the built-ins. Popovers render base
 - [ ] Built-in detections still work alongside user patterns
 - [ ] Visual regression test driving a paste with autolinks config
 - [ ] Doc at \`apps/silvercode/docs/autolinks.md\` covering config schema + examples
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/recents-persist"
 aliases:
   - km-tui.recents-persist
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-17T08:59:39Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [ ] Persist omnibox recents across sessions @km/tui #task #P3
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/tui]]
 
 v1 is in-memory (apps/@km/tui/src/state/recents-store.ts). Move to SQLite: (id, timestamp, kind in 'node'|'command'), keep top N=100 per kind, rehydrate on startup.
+

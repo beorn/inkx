@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/tea-gap-view-factory"
 aliases:
   - km-silvery.tea-gap-view-factory
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-18T12:01:16Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.tea
 ---
 
 # [x] TEA gap: withReact view should accept factory (app) => ReactElement @km/silvery #task #P2 @Bjørn Stabell
@@ -35,7 +42,7 @@ time. But in realistic app composition, the view often needs to reference
 app state that's installed by earlier plugins (e.g. `app.chat` from
 `withChat`). Today this forces an awkward up-front declaration:
 
-  const chat = createChatModel({ ..., onExit: () => quit() })
+const chat = createChatModel({ ..., onExit: () => quit() })
   let quit = () => {}   // late-bound because app.quit doesn't exist yet
   using app = pipe(
     create(), withScope, withCommands, withChat({ chat }),
@@ -47,7 +54,7 @@ app state that's installed by earlier plugins (e.g. `app.chat` from
 
 Allow `view` to be either a `ReactElement` (current) or a lazy factory:
 
-  withReact({ view: (app) => <ChatProvider chat={app.chat}><ChatView /></ChatProvider> })
+withReact({ view: (app) => <ChatProvider chat={app.chat}><ChatView /></ChatProvider> })
 
 The factory runs after all plugins have installed, so `app.chat` /
 `app.quit()` are live. This removes the late-bound quit hack and keeps the
@@ -65,3 +72,4 @@ hub/silvery/prototype/aichat-v2/app.tsx main() function
 ## Effort
 
 Small (~20 lines in with-react.ts): detect function type, call with `app`.
+

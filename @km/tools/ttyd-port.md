@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tools/ttyd-port"
 aliases:
   - km-tools.ttyd-port
@@ -9,3 +12,4 @@ assignee: claude:d7c965c2
 ---
 
 # [x] fix(tools): ttyd EADDRINUSE crash on orphaned process @km/tools #bug #P2 @claude:d7c965c2
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/channel-scrub-haiku"
 aliases:
   - km-tribe.channel-scrub-haiku
@@ -20,13 +22,17 @@ dependencies:
     created_at: 2026-04-22T18:13:49Z
     created_by: claude:e8967322
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] Tribe channel scrub + haiku paraphrase to suppress transcript-shape triggers in broadcast content @km/tribe #task #P2
 
 blocks:: [[@km/tribe]]
 
-# Context
+## Context
 
 2026-04-22 session traced a phantom-"Human:"-in-TUI bug across two Claude Code
 sessions (e8967322-... and bd478df6-...). The Human: bubbles were not user
@@ -36,6 +42,7 @@ context was saturated with system-reminder / channel wrapped user-role turns
 containing no real user text.
 
 Confirmed a known class of Claude Code bug:
+
 - anthropics/claude-code#10628 — "Claude hallucinated fake user input
   mid-response, then compounded error by treating hallucination as real"
   (closed as "not planned" / labeled model+autoclose; our session produced
@@ -49,7 +56,7 @@ of assistant output beginning with role markers). From the vendor-submodule
 side, we CAN reduce the trigger density that causes the drift by cleaning
 inbound channel content before it reaches any session's context.
 
-# What shipped
+## What shipped
 
 vendor/bearly@8fd431f: `feat(tribe-daemon): inject scrub + haiku rewrite for broadcast content`
 km@1e3a2768c: `chore(bearly): bump — tribe-daemon inject scrub + haiku rewrite`
@@ -57,30 +64,29 @@ km@1e3a2768c: `chore(bearly): bump — tribe-daemon inject scrub + haiku rewrite
 Two-layer defense in `broadcastToConnected`:
 
 1. **Regex scrub** (always on, opt-out `TRIBE_SCRUB=0`, ~0 ms)
-   - Strips leading role markers (Human:/Assistant:/User: ± ### prefix)
-   - Strips angle-bracket tags (<system-reminder>, <channel>, <recall-memory>,
+  - Strips leading role markers (Human:/Assistant:/User: ± ### prefix)
+  - Strips angle-bracket tags (<system-reminder>, <channel>, <recall-memory>,
      <snippet>, <context-protocol>, <user_prompt>) — inner content preserved
-   - Strips "UserPromptSubmit hook success/error/additional context" phrases
-
+  - Strips "UserPromptSubmit hook success/error/additional context" phrases
 2. **Haiku paraphrase** (default on, opt-out `TRIBE_REWRITE=off`, ~200-500 ms)
-   - Triggered only when content matches a trigger pattern OR the regex scrub
+  - Triggered only when content matches a trigger pattern OR the regex scrub
      changed it — trigger-free content like "compose left" or
      "Committed: <hash> <subject>" passes through verbatim
-   - Strong system prompt with 10 examples covering tribe broadcast shapes
+  - Strong system prompt with 10 examples covering tribe broadcast shapes
      (Committed:, [push], [workflow], session events, done:/starting:,
      CPU/git-lock warnings, adversarial inputs)
-   - Explicit "keep verbatim" list: commit hashes, version numbers, file
+  - Explicit "keep verbatim" list: commit hashes, version numbers, file
      paths, package/session names, quoted strings, URLs, numbers, structural
      prefixes
-   - Length discipline: under-100-char inputs within 20% expansion; short
+  - Length discipline: under-100-char inputs within 20% expansion; short
      status lines output verbatim
-   - Silent fallback to regex-only on LLM timeout (2000ms) or unavailability
-   - Regex scrub runs again on Haiku output as safety net
+  - Silent fallback to regex-only on LLM timeout (2000ms) or unavailability
+  - Regex scrub runs again on Haiku output as safety net
 
 Verified end-to-end with natural traffic: daemon journal (raw) vs delivered
 content shows paraphrase only when needed, verbatim pass-through otherwise.
 
-# Follow-up (not in this bead)
+## Follow-up (not in this bead)
 
 The recall plugin's UserPromptSubmit hook injects <recall-memory> snippets
 from prior session transcripts as additionalContext. These snippets can
@@ -92,7 +98,7 @@ would close the same trigger class for recall-injected content. Logical
 place: `vendor/bearly/plugins/recall/src/lib/inject-core.ts` at the
 additionalContext emission site.
 
-# Related
+## Related
 
 - Upstream issue to file: reproducible receipts of self-injection from two
   sessions; proposed one-line harness filter for assistant output starting
@@ -100,3 +106,4 @@ additionalContext emission site.
   best drafted from a fresh session.
 - Memory entry added: `feedback-never-emit-role-prefixes.md` (soft defense,
   not reliable under trigger saturation)
+

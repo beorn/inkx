@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/jatd"
 aliases:
   - km-jatd
@@ -12,6 +14,7 @@ closed_at: 2026-01-20T10:54:45Z
 Ink issue #584 reports text with ANSI codes breaking layout when truncated.
 
 Test scenarios:
+
 1. Truncate text with Chalk styles mid-sequence
 2. Preserve ANSI reset codes at truncation point
 3. Nested Chalk styles that get cut off
@@ -19,3 +22,4 @@ Test scenarios:
 5. Verify no broken escape sequences in output
 
 Reference: https://github.com/vadimdemedes/ink/issues/584
+

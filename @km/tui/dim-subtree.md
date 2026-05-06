@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/dim-subtree"
 aliases:
   - km-tui.dim-subtree
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Dim body and subitems of completed/dropped tasks @km/tui #feature #P3
 
 When a task has done/dropped status, only its title line is dimmed. Body content (blockquotes under the task) and subitems (child tasks) should also be dimmed to visually indicate the entire subtree is completed. This is different from the old dim-children bug (which dimmed ALL children of non-selected cards). Here we want to dim children only when the PARENT task is done/dropped — a semantic dim, not a selection-based dim.
+

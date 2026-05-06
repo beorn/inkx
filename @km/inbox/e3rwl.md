@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/e3rwl"
 aliases:
   - km-e3rwl
@@ -11,3 +14,4 @@ assignee: claude:9b6678d0
 ---
 
 # [x] TUI: breadcrumb stale after h/l navigation in incremental render @km/_orphan #bug #P3 @claude:9b6678d0
+

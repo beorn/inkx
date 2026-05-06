@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/bench-fair-methodology"
 aliases:
   - km-silvery.bench-fair-methodology
@@ -20,3 +23,4 @@ assignee: Bjørn Stabell
 # [x] Fair benchmark methodology + fix loggily span overhead + re-validate claims @km/silvery #task #P1 @Bjørn Stabell
 
 Pipeline profiling: 63% of Silvery per-frame time is loggily span overhead (0.7ms/frame). debug:false bench was invalid (Ink drops frames). Revert to debug:true, fix span overhead (zero-cost when disabled), reuse createAg, re-run, update docs, Pro review.
+

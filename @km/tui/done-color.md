@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/done-color"
 aliases:
   - km-tui.done-color
@@ -13,3 +16,4 @@ assignee: claude:5f0aee02
 # [x] Completed task metadata should not show colored due/start dates @km/tui #bug #P2 @claude:5f0aee02
 
 When a task is marked done, metadata like due dates and start dates still render with their color coding (red for overdue, green for future). This doesn't make sense — completed tasks should show these as dim/gray since the dates are no longer relevant.
+

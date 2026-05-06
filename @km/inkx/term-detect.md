@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/term-detect"
 aliases:
   - km-inkx.term-detect
@@ -13,3 +16,4 @@ assignee: claude:ee8efc0f
 # [x] Terminal capability detection @km/inkx #feature #P2 @claude:ee8efc0f
 
 Auto-detect terminal features at startup by inspecting TERM, TERM_PROGRAM, COLORTERM env vars and querying terminfo. Store capability flags like supportsTrueColor, supportsKittyGraphics, supportsSixel, supportsOSC52 (clipboard), etc. Enables graceful degradation — apps can check capabilities and fall back to simpler rendering on limited terminals.
+

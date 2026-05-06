@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/all/1-replace-defineop-references-with-op-proxy-pattern-"
 aliases:
   - km-all.1
@@ -18,12 +21,15 @@ The architecture docs (glossary.md, concepts.md, tea-state-machines.md) referenc
 defineOp was never implemented in code. op() proxy IS the implementation path.
 
 ## Files to update
+
 - docs/glossary.md — defineOp definition, op handler references
 - docs/concepts.md — op handler references
 - docs/design/tea-state-machines.md — defineOp section
 
 ## Changes
+
 - Replace defineOp() references with op() proxy pattern
 - Keep the concept of "op handler" (pure function implementing one op type)
 - Add op() proxy as the ergonomic way to create ops (method call = op)
 - Note: createSlice (vendor/silvery/packages/create/src/core/slice.ts) already exists and defines op handlers + apply — op() proxy wraps this for ergonomics
+

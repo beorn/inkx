@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/vite-plus"
 aliases:
   - km-infra.vite-plus
@@ -15,6 +17,7 @@ Evaluate VoidZero's Vite Plus (Vite 7 + Rolldown) as the build/bundle toolchain 
 ## Context
 
 GPT research (2026-03-25) found:
+
 - **Vite Plus** = VoidZero's (Evan You) packaging of Vite + Rolldown (Rust bundler)
 - Not a separate product — Vite DX layer + Rolldown engine under the hood
 - Repo: https://github.com/voidzero-dev/vite-plus (PR #1005 worth reading)
@@ -38,34 +41,38 @@ Current publish flow (silvery): publish.ts temporarily edits package.json (works
 ## Recommended Approach
 
 Per GPT research, for pure TS libraries the simplest state-of-the-art is:
+
 - **tsc** for compilation (preserves modules, best tree-shaking)
 - **tsup** if you need bundling + dual ESM/CJS
 - **Vite library mode** only if you have CSS/assets
 - **Rolldown** for performance at scale
 
 Silvery is pure TS → **tsc is likely sufficient**. Vite Plus may be overkill for library builds but valuable for:
+
 - silvery.dev docs site (already uses VitePress)
 - Web examples/playground
 - Future browser targets
 
 ## Decision Matrix
 
-| Need | tsc | tsup | Vite Plus |
-|------|-----|------|-----------|
-| Pure TS library build | Best | Good | Overkill |
-| Multi-entry packages | Manual | Auto | Auto |
-| Browser targets | No | Basic | Full |
-| Dev server | No | No | Yes |
-| Docs site | No | No | VitePress |
-| Monorepo | Manual | Plugin | Built-in |
-| Rust performance | No | Via esbuild | Via Rolldown |
+| Need                  | tsc    | tsup        | Vite Plus    |
+| --------------------- | ------ | ----------- | ------------ |
+| Pure TS library build | Best   | Good        | Overkill     |
+| Multi-entry packages  | Manual | Auto        | Auto         |
+| Browser targets       | No     | Basic       | Full         |
+| Dev server            | No     | No          | Yes          |
+| Docs site             | No     | No          | VitePress    |
+| Monorepo              | Manual | Plugin      | Built-in     |
+| Rust performance      | No     | Via esbuild | Via Rolldown |
 
 ## Immediate Action (no Vite Plus needed)
 
 Add tsc build step to silvery publish.ts:
+
 1. Run `tsc --outDir dist` for each package before publish
 2. Swap exports from `./src/index.ts` → `./dist/index.js` in package.json
 3. Publish compiled JS + .d.ts
 4. Restore src/ exports after publish
 
 This is ~20 lines of code in publish.ts and doesn't require any new tooling.
+

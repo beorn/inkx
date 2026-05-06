@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/vault/integrate-tasknotes"
 aliases:
   - km-vault.integrate-tasknotes
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Remove/integrate TaskNotes/ into vault structure @km/vault #task #P2
 
 ~vault/TaskNotes/ has tasks (T002-T006) from an older task management system. Merge active tasks into km's task system, archive completed ones, remove the TaskNotes/ folder and Viewsk/ (likely a typo duplicate of Views/).
+

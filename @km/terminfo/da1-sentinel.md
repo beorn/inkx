@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/da1-sentinel"
 aliases:
   - km-terminfo.da1-sentinel
@@ -13,3 +16,4 @@ assignee: claude:4929065a
 ---
 
 # [x] DA1 sentinel pattern for faster probe responses (from terminal-colorsaurus) @km/terminfo #task #P1 @claude:4929065a
+

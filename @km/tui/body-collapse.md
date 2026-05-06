@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/body-collapse"
 aliases:
   - km-tui.body-collapse
@@ -11,3 +14,4 @@ assignee: claude:a5c7f7de
 ---
 
 # [x] TUI: collapse on body column triggers __body__ repo lookup error @km/tui #bug #P2 @claude:a5c7f7de
+

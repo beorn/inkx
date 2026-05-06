@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/lens-filters"
 aliases:
   - km-tui.lens-filters
@@ -17,13 +19,16 @@ owner: bjorn@stabell.org
 Board.tsx currently applies card-level filters (taskStatusFilter, text search, property filters) AFTER column derivation. This means ColumnView.cardNodes can't be replaced by ViewTree childIds — the ViewTree shows unfiltered cards.
 
 Move these filters into createVisibleLens so that the ViewTree's childIds are already filtered. This:
+
 1. Eliminates the Board.tsx card filtering layer
 2. Enables Column to derive cards from ViewTree.childIds directly
 3. Unblocks full ColumnView elimination (@km/tui/tree-lenses/4-migrate-board-tsx-column-views-to-usenode-viewtree)
 4. Makes filtered state available to action handlers via ctx.tree
 
 Filters to move:
+
 - taskStatusFilter (hide done/dropped)
 - filterText (text search)
 - property filters (label, assignee, priority)
 - hiddenNodeIds (vx hide item)
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/census-annotations"
 aliases:
   - km-termless.census-annotations
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Census annotations: per-backend notes + upstream issue URLs on failures @km/termless #feature #P2
 
 Attach notes and upstream issue URLs to backend+feature pairs. Renders as clickable links on Terminfo.dev.
+

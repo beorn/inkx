@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/dry-flag-clear"
 aliases:
   - km-silvery.dry-flag-clear
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] DRY: Extract shared dirty flag clearing helper @km/silvery #task #P2
 
 Dirty flag clearing logic (contentDirty, paintDirty, bgDirty, subtreeDirty, childrenDirty, layoutChangedThisFrame) duplicated in 3 places: renderNodeToBuffer tail, clearDirtyFlags(), clearVirtualTextFlags(). Extract clearNodeFlags() helper. Found by GPT pipeline review.
+

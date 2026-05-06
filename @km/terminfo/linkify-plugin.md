@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/linkify-plugin"
 aliases:
   - km-terminfo.linkify-plugin
@@ -32,3 +35,4 @@ Replaces: vitepress-plugin-glossary + our custom GlossaryTooltip.vue component
 Keeps: linkify-content.ts for v-html params (Vue template content that markdown-it can't reach)
 
 Implementation: markdown-it plugin at docs/.vitepress/plugins/glossary-links.ts
+

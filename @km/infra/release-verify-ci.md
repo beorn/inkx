@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/infra/release-verify-ci"
 aliases:
   - km-infra.release-verify-ci
@@ -27,6 +30,14 @@ dependencies:
     created_at: 2026-04-11T22:11:12Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-infra
+      - type: link
+        target: km-infra.release-execute-full
 ---
 
 # [x] Run bun release verify in CI on every commit @km/infra #task #P3 @Bjørn Stabell
@@ -38,9 +49,11 @@ Add a CI job that runs `bun release verify` against every package with unrelease
 **Why**: The workspace resolver masks publish-time bugs locally. Four broken publishes in a row happened because npm publish behaves differently from workspace resolution. Verify in CI means we catch these at PR time, not after users hit them.
 
 **Scope**:
+
 - GitHub Actions workflow that runs on push to main + PRs
 - For changed packages only (detect via `git diff --name-only`)
 - Upload verify output as artifact for debugging
 - Fail the build if any package fails verify
 
 **Prerequisite**: @km/infra/release-execute-full (so verify is reliable enough to gate CI on).
+

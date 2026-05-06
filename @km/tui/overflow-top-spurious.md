@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/overflow-top-spurious"
 aliases:
   - km-tui.overflow-top-spurious
@@ -13,3 +16,4 @@ assignee: claude:124bfbe5
 # [x] Vertical overflow shows ▲1 when nothing is above @km/tui #bug #P2 @claude:124bfbe5
 
 On CLAUDE.md board, vertical overflow shows ▲1 at top even when there are no items above. See /tmp/vt
+

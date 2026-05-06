@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/1jgbg"
 aliases:
   - km-1jgbg
@@ -16,3 +19,4 @@ assignee: claude:f8196c1c
 # [x] Fix onboarding: hooks-first README and Getting Started @km/_orphan #task #P0 @claude:f8196c1c
 
 README and Getting Started currently teach createApp+store (TEA-first). Rewrite to show render() + useState + useInput. No store, no dispatch, no TEA concepts. Counter example should be 10 lines.
+

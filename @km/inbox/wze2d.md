@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/wze2d"
 aliases:
   - km-wze2d
@@ -15,3 +18,4 @@ assignee: claude:fed8de9e
 # [x] Bundle silvery packages into pre-built JS (like Ink 5) @km/_orphan #task #P1 @claude:fed8de9e
 
 Ink 5 bundles all 24 deps into build/ — 696KB total, zero hoisted packages. silvery ships TypeScript source (~2.1MB). Bundle with esbuild into pre-built JS to match or beat Ink's install footprint. This also means faster startup (no TS compilation) and better compatibility (works with plain Node.js, not just Bun/tsx).
+

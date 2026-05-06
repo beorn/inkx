@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/bearly/llm-quota-tracking"
 aliases:
   - km-bearly.llm-quota-tracking
@@ -23,6 +26,10 @@ dependencies:
     created_at: 2026-04-27T07:44:48Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-bearly
 ---
 
 # [x] Quota + balance tracking — surface remaining credit/rate-limit per provider after each call @km/bearly #feature #P1 @claude:2405c72e
@@ -43,9 +50,9 @@ Two layers, both opt-in by default (don't fire extra HTTP per call):
 
 Hits each provider's quota/balance endpoint and prints a unified table:
 
-\`\`\`
+## \`\`\`
 Provider         Balance / Used     Rate Limit         Last Used
----------------------------------------------------------------
+
 OpenAI           \$300 / \$700/mo    50K TPM, 500 RPM   2026-04-27 07:43
 OpenRouter       \$48 credit         100 RPM            2026-04-27 06:12
 Anthropic        (header-only)      100K TPM           2026-04-27 02:30
@@ -76,15 +83,15 @@ Always emit when the response carries \`x-ratelimit-*\` headers; gate on a confi
 
 ## Provider mapping
 
-| Provider | Balance/spend | Rate-limit headers | Notes |
-|---|---|---|---|
-| OpenAI | \`GET /v1/organization/usage/completions\` (Admin key) or \`GET /dashboard/billing/usage\` (legacy) | \`x-ratelimit-{requests,tokens}-{remaining,limit,reset}\` | Highest-leverage — implement first |
-| OpenRouter | \`GET /api/v1/auth/key\` returns \`{ data: { limit_remaining, ... } }\` | \`x-ratelimit-*\` | Has credits balance |
-| Anthropic | No quota endpoint | \`anthropic-ratelimit-{requests,tokens}-{remaining,limit,reset}\` | Headers only |
-| Google Gemini | No public quota API | None standardized | Skip or query Google Cloud quotas (out of scope) |
-| xAI | No public quota API | TBD — investigate | |
-| Perplexity | TBD | TBD | |
-| Ollama | Local | None | Skip — infinite |
+| Provider      | Balance/spend                                                                                   | Rate-limit headers                                              | Notes                                            |
+| ------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------ |
+| OpenAI        | `GET /v1/organization/usage/completions` (Admin key) or `GET /dashboard/billing/usage` (legacy) | `x-ratelimit-{requests,tokens}-{remaining,limit,reset}`         | Highest-leverage — implement first               |
+| OpenRouter    | `GET /api/v1/auth/key` returns `{ data: { limit_remaining, ... } }`                             | `x-ratelimit-*`                                                 | Has credits balance                              |
+| Anthropic     | No quota endpoint                                                                               | `anthropic-ratelimit-{requests,tokens}-{remaining,limit,reset}` | Headers only                                     |
+| Google Gemini | No public quota API                                                                             | None standardized                                               | Skip or query Google Cloud quotas (out of scope) |
+| xAI           | No public quota API                                                                             | TBD — investigate                                               |                                                  |
+| Perplexity    | TBD                                                                                             | TBD                                                             |                                                  |
+| Ollama        | Local                                                                                           | None                                                            | Skip — infinite                                  |
 
 ## Implementation hints
 
@@ -110,3 +117,4 @@ User's \$700/month spend without visibility = trust risk. This is the smallest m
 
 - @km/bearly/llm-registry-split — capabilities flag could include \`hasQuotaApi\` (later)
 - @km/bearly/llm-dispatch-shatter — ProviderStrategy interface lands cleanly with \`getQuota()\` method
+

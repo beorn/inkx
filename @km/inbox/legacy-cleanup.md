@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/legacy-cleanup"
 aliases:
   - km-legacy-cleanup
@@ -19,3 +21,4 @@ Clean up remaining legacy code after board architecture refactor:
 6. Consider phasing out board-adapter.ts entirely
 
 Goal: Zero legacy/compat/fallback code. Everything should be production-quality.
+

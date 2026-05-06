@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/queue-stuck-thinking-l4"
 aliases:
   - km-silvercode.queue-stuck-thinking-l4
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-28T14:19:44Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [ ] L4 architectural reframe — Turn owner module + derived status getter @km/silvercode #task #P0
@@ -26,9 +32,7 @@ The L1 fix gates the case "status" reducer arm to only honour "requesting" when 
 The L4 redesign (per opencode-validated pattern in /Users/beorn/Code/opencode/packages/opencode/src/session/{status,run-state}.ts):
 
 1. Compress 6 states (spawning|idle|thinking|tool-running|awaiting-permission|ended) → 4 (spawning|idle|busy|ended). Move thinking/tool-running/awaiting-permission into a Busy payload: { kind: "thinking" | "tool" | "permission"; turnId; since }.
-
 2. Introduce a Turn owner module (mirrors opencode's Runner). All status mutations route through it. case "status" reducer arm can only annotate the active turn — no active turn → log + drop.
-
 3. status becomes a derived getter on the public projection, not a stored field. publicView(internal) returns { ...internal, status: deriveStatus(internal) }. Eliminates the entire class of "two writers disagree about status."
 
 This is the L1 → L4 jump per hub/quality-rubric.md: runtime guard → architecturally impossible.
@@ -68,3 +72,4 @@ Confirmed via /big reframing: the fix that makes this impossible is the L4 refra
 - Codex transcript replay now ends an open replay turn before starting another overlapping `task_started`, preventing historical resumed sessions from leaking active-turn liveness.
 - Dense activity summary expansion is bounded with existing `BoundedScroll`, preventing large expanded turn details from pushing the transcript out of the viewport.
 - Verification: queue/status targeted run passed 43 tests; broader targeted run passed 142 tests with 1 skipped; root `npx tsc --noEmit --pretty false` passed.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/scope-phase-4-comments"
 aliases:
   - km-silvery.scope-phase-4-comments
@@ -28,6 +30,14 @@ dependencies:
     created_at: 2026-04-24T13:40:49Z
     created_by: claude:2aefb4b6
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.scope-phase-4
+      - type: link
+        target: km-silvery.scope-phase-4-eslint
 ---
 
 # [x] Phase 4.G: Inline comments + test fixtures @km/silvery #task #P2
@@ -35,3 +45,4 @@ dependencies:
 blocks:: [[@km/silvery/scope-phase-4]], [[@km/silvery/scope-phase-4-eslint]]
 
 Grep useDispose|term.signals.on|useExit in app-layer inline comments; update or delete obsolete comments explaining the old pattern. Sweep apps/@km/tui/tests/** + vendor/silvery/tests/** for test-level resource setup showing old idiom. Exit: grep clean in non-vendor inline comments + tests use the new pattern.
+

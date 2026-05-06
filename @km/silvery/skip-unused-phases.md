@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/skip-unused-phases"
 aliases:
   - km-silvery.skip-unused-phases
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Skip unused pipeline phases — detect feature usage, bypass idle phases @km/silvery #task #P2
+

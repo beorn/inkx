@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/singleton-removal"
 aliases:
   - km-singleton-removal
@@ -30,6 +32,7 @@ vault.close();
 ### Why Not ALS?
 
 ALS is a stopgap for backwards compatibility, not the goal:
+
 - **Hidden dependencies** - Global function calls magically use different state based on context
 - **Easy to forget** - Code that forgets to run in context silently uses wrong state
 - **Hard to debug** - Tracing which context a function is using requires understanding the call stack
@@ -45,17 +48,15 @@ ALS is a stopgap for backwards compatibility, not the goal:
 ### Remaining Work
 
 1. **Add `needsRebuild()` to Vault interface**
-   - File: `packages/km-storage/src/vault.ts`
-   - Memory mode returns false (never needs rebuild)
-   - Disk mode checks events.jsonl vs last_event in meta table
-
+  - File: `packages/km-storage/src/vault.ts`
+  - Memory mode returns false (never needs rebuild)
+  - Disk mode checks events.jsonl vs last_event in meta table
 2. **Update rebuild.test.ts**
-   - Use `vault.needsRebuild()` instead of standalone function
-   - Convert the todo test to use domain object pattern
-
+  - Use `vault.needsRebuild()` instead of standalone function
+  - Convert the todo test to use domain object pattern
 3. **Deprecate standalone `needsRebuild()`**
-   - File: `packages/km-storage/src/rebuild.ts`
-   - Add @deprecated JSDoc, keep for backwards compat
+  - File: `packages/km-storage/src/rebuild.ts`
+  - Add @deprecated JSDoc, keep for backwards compat
 
 ### Files to Modify
 
@@ -68,3 +69,4 @@ ALS is a stopgap for backwards compatibility, not the goal:
 ```bash
 bun run test:fast   # All tests pass
 ```
+

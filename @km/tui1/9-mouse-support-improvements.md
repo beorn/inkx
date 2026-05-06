@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui1/9-mouse-support-improvements"
 aliases:
   - km-tui1.9
@@ -15,6 +17,7 @@ Improve mouse support in TUI1.
 ## Current State
 
 TUI1 has a mouse handler at apps/@km/tui/packages/@km/_orphan/ink/src/mouse-handler.ts that supports:
+
 - Click to select
 - Basic mouse tracking
 - Drag-select with SelectionManager
@@ -41,3 +44,4 @@ TUI1 has a mouse handler at apps/@km/tui/packages/@km/_orphan/ink/src/mouse-hand
 
 - apps/@km/tui/packages/@km/_orphan/ink/src/mouse-handler.ts
 - apps/@km/tui/packages/@km/_orphan/ink/src/views/Board.tsx (mouse integration)
+

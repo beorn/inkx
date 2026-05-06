@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/cardbg-cascade-broken"
 aliases:
   - km-tui.cardbg-cascade-broken
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-26T01:11:09Z
     created_by: claude:53042a7f
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] card-bg cascade: sub-items don't inherit cursor-card's $bg-selected @km/tui #bug #P3
@@ -32,10 +38,12 @@ Currently fails: sub-item-1 (under Section1, under card-title) renders with them
 ## Failing test
 
 apps/@km/tui/tests/card-bg-inheritance.test.ts:248
+
 > "card bg matches expected selectedBg tint (not multiSelectedBg)"
 
 Error:
-> Sub-item bg (76,86,106) does not match \$bg-selected=#383C45 (56,60,69), diff=37.
+
+> Sub-item bg (76,86,106) does not match $bg-selected=#383C45 (56,60,69), diff=37.
 
 ## Why this is unrelated to text-intrinsic-vs-render
 
@@ -55,3 +63,4 @@ Some descendant Box (likely Section or sub-item rendering in TreeNode) sets an e
 
 - card-bg-inheritance test passes (sub-item bg within tolerance of expected $bg-selected)
 - No new failures elsewhere
+

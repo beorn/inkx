@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/all/docs-grooming-p1"
 aliases:
   - km-all.docs-grooming-p1
@@ -18,6 +21,10 @@ dependencies:
     created_at: 2026-04-16T23:15:00Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.docs-grooming
 ---
 
 # [x] P1: retirements — archive stale/superseded docs @km/all #task #P2 @Bjørn Stabell
@@ -25,3 +32,4 @@ dependencies:
 blocks:: [[@km/all/docs-grooming]]
 
 Phase of @km/all/docs-grooming. See docs/backlog.md W2 follow-ups + plan file for scope.
+

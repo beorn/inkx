@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/storage-3"
 aliases:
   - km-storage-3
@@ -11,3 +14,4 @@ assignee: claude:124bfbe5
 # [x] Split db-queries.ts into focused modules @km/_orphan #task #P3 @claude:124bfbe5
 
 packages/@km/storage/src/db-queries.ts is 800 lines with 27+ functions mixing node queries, task queries, search, and converters. Split into db-queries.ts, db-search.ts, db-tasks.ts.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/sgr-combined"
 aliases:
   - km-silvery.sgr-combined
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] FIX: emit combined SGR sequences (fewer bytes, spec-compliant) @km/silvery #bug #P1
+

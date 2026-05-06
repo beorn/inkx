@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/wrap-hypothetical-size"
 aliases:
   - km-flexily.wrap-hypothetical-size
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Bug: Flex-wrap line breaking uses baseSize not hypothetical main size @km/flexily #bug #P0
+

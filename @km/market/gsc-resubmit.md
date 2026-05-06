@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/gsc-resubmit"
 aliases:
   - km-market.gsc-resubmit
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Resubmit updated sitemaps to Google Search Console @km/market #task #P0
 
 After SEO fixes (unique descriptions, schema improvements, new pages), resubmit all 4 sitemaps to GSC to accelerate re-crawling: terminfo.dev, silvery.dev, termless.dev, beorn.codes.
+

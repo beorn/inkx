@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ex-cli"
 aliases:
   - km-silvery.ex-cli
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Phase 5: CLI demo runner (bunx silvery demo) @km/silvery #task #P3
 
 Add bin entry to package.json and create CLI that lists/runs demos via auto-discovery
+

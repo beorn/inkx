@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/canvas-native-borders"
 aliases:
   - km-silvery.canvas-native-borders
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Canvas-native border rendering (rounded corners, no box-drawing chars) @km/silvery #task #P2
+

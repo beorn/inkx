@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/flexily/auto-min-size-flex-items"
 aliases:
   - km-flexily.auto-min-size-flex-items
@@ -23,6 +26,10 @@ dependencies:
     created_at: 2026-04-25T00:27:55Z
     created_by: claude:53042a7f
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Implement CSS auto min-size for flex items (the missing CSS §4.5 item-side rule) @km/flexily #feature #P3 @claude:53042a7f
@@ -90,3 +97,4 @@ Gating: CSS preset only. Yoga preset stays at min=0 to preserve drop-in Yoga com
 ## Blocks
 
 @km/silvery/flexshrink-flip-silvery-only — once this lands, the silvery flip is mechanical (8 call sites + a few test snapshot updates).
+

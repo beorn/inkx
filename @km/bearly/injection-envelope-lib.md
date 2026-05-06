@@ -1,4 +1,8 @@
 ---
+mentions:
+  - bearly
+  - km
+  - claude
 id: "@km/bearly/injection-envelope-lib"
 aliases:
   - km-bearly.injection-envelope-lib
@@ -20,13 +24,17 @@ dependencies:
     created_at: 2026-04-21T12:41:25Z
     created_by: claude:7e9436e8
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-bearly
 ---
 
 # [x] Extract shared @bearly/injection-envelope library @km/bearly #task #P0 @claude:7e9436e8
 
 blocks:: [[@km/bearly]]
 
-# Phase 2 of @km/_orphan/ambot fix
+## Phase 2 of @km/_orphan/ambot fix
 
 Extract the injection-framing primitives (CONTEXT_PROTOCOL_FOOTER, IMPERATIVE_VERBS, rewriteImperativeAsReported, hardened wrapper builder, sanitizer) into a shared package.
 
@@ -53,3 +61,4 @@ Extract the injection-framing primitives (CONTEXT_PROTOCOL_FOOTER, IMPERATIVE_VE
 - [ ] CI lint catches raw additionalContext attempts in test fixture
 - [ ] Existing functional tests still pass for both paths
 - [ ] No duplicate imperative verb lists
+

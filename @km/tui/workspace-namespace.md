@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/workspace-namespace"
 aliases:
   - km-tui.workspace-namespace
@@ -15,3 +18,4 @@ assignee: Bjørn Stabell
 # [x] Extract Workspace namespace — getActiveBoardPane, getFocusedPane helpers @km/tui #task #P2 @Bjørn Stabell
 
 getActiveBoardPane(), getParentBoardPane() are bare functions. 20+ sites access state.workspace.panes directly. Extract Workspace namespace. ~1 hour.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/recall-step4-prior-art-2025-26"
 aliases:
   - km-tribe.recall-step4-prior-art-2025-26
@@ -13,13 +15,17 @@ dependencies:
     created_at: 2026-04-27T18:52:23Z
     created_by: claude:4de4a3ab
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe.recall
 ---
 
 # [ ] Step 4 (Day 4): Real Deep Research API web sweep for 2025-2026 prior art @km/tribe #task #P2
 
 blocks:: [[@km/tribe/recall]]
 
-# Step 4 — 2025-2026 prior-art web sweep
+## Step 4 — 2025-2026 prior-art web sweep
 
 Earlier /deep audit ran on GPT-5.4 with Oct 2024 knowledge cutoff. Already missed Hermes Agent (Feb 2026). Other 2025-2026 systems may have shipped relevant work.
 
@@ -43,3 +49,4 @@ Run actual OpenAI Deep Research API (~$5, 15 min, fire-and-forget) with 2025-202
 ## Parent
 
 @km/tribe/recall (four-tier memory architecture)
+

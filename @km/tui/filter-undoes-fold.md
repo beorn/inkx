@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/filter-undoes-fold"
 aliases:
   - km-tui.filter-undoes-fold
@@ -24,3 +27,4 @@ assignee: Bjørn Stabell
 # [x] [bug] Filter toggle silently undoes fold state @km/tui #bug #P2 @Bjørn Stabell
 
 Repro: Fold a card with H → open filter (V) → toggle done. The fold is silently undone. Root cause: view lens recomputation calls computeDefaultFoldDepths() which resets manual fold state.
+

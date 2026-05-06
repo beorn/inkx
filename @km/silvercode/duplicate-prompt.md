@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/duplicate-prompt"
 aliases:
   - km-silvercode.duplicate-prompt
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-27T17:14:59Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Duplicate user prompt: optimistic apply + agent echo render twice @km/silvercode #bug #P1
@@ -28,5 +34,7 @@ Reproduced 2026-04-27 from desktop screenshot — user's prompt appearing twice 
 Fix landed in apps/silvercode/packages/agent-harness/src/session-store.ts: 'user-message' reducer dedups optimistic + echo within a 5s window when text matches and the existing id starts with 'u-'. Re-keys the optimistic entry to the canonical (uuid) turnId so subsequent tool-result lookups, turn-end attaches, and scroll anchors all resolve correctly.
 
 Tests:
+
 - session-store.test.ts 'optimistic + echo dedup' — 3 cases (collapse, distinct prompts across windows, meta-only)
 - All 190 agent-harness tests pass
+

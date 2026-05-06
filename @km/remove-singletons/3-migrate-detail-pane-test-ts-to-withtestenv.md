@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/remove-singletons/3-migrate-detail-pane-test-ts-to-withtestenv"
 aliases:
   - km-remove-singletons.3
@@ -9,3 +11,4 @@ closed_at: 2026-01-23T23:06:12Z
 ---
 
 # [x] Migrate detail-pane.test.ts to withTestEnv() @km/remove-singletons #task #P1
+

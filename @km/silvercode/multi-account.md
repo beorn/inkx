@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/multi-account"
 aliases:
   - km-silvercode.multi-account
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-24T08:33:39Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] v1.1: multi-account spawning via per-session CLAUDE_CONFIG_DIR @km/silvercode #feature #P2 @claude:0940ca20
@@ -26,3 +33,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 v1.1 differentiator. Each session card declares an account; spawn sets CLAUDE_CONFIG_DIR=<per-account-config> before launching claude. Account roster UI, add-account OAuth flow, quota display, switcher on each card. Stretch: auto-routing heuristics, exhaustion failover, shared-pool view. See hub/silvery/future/ai-terminal/00-agent-workspace.md § Multi-account.
+

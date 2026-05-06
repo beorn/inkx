@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/flush-mutex"
 aliases:
   - km-storage.flush-mutex
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] [bug] WriteQueue flush mutex incomplete — race between flush() and queue() @km/storage #bug #P2
 
 Found by /big review. writequeue.ts:313+: flushPromise prevents concurrent flushes but doesn't prevent new queue() calls during flush. If flush clears pending, new queue() adds write, completed flush misses it. Also flushGeneration Map grows unbounded (never cleaned).
+

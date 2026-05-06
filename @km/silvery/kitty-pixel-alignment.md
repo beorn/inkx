@@ -1,7 +1,4 @@
 ---
-tags:
-  - feature
-  - P3
 mentions:
   - km
 id: "@km/silvery/kitty-pixel-alignment"

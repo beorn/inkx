@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/suspense-invalidation"
 aliases:
   - km-silvery.suspense-invalidation
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Suspense hide/unhide insufficient layout/paint invalidation @km/silvery #bug #P0
 
 hideInstance/unhideInstance in host-config.ts only set contentDirty, missing paintDirty, layoutDirty, and markLayoutAncestorDirty. Combined with collectNodeTextContent not skipping hidden children (already fixed), Suspense transitions can leave stale measurement. GPT 5.4 review finding.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/t8pw"
 aliases:
   - km-t8pw
@@ -20,9 +22,11 @@ cursor: [0,1]
 ```
 
 Implementation:
+
 1. Add --prompt flag to km sh (outputs prompt when ready for input)
 2. Add cmd= and prompt= parsing to mdtest fence info
 3. Create CmdSession class in mdtest for persistent subprocess management
 4. Integrate CmdSession into mdtest execution flow
 
 See plan: ~/.claude/plans/robust-hopping-moler.md
+

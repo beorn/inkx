@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/design-system-brand"
 aliases:
   - km-silvery.design-system-brand
@@ -16,6 +18,10 @@ dependencies:
     created_at: 2026-04-17T22:37:44Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.design-system
 ---
 
 # [x] Brand colors — conventions for app-specific identity tokens that resist scheme flex @km/silvery #feature #P3
@@ -25,6 +31,7 @@ blocks:: [[@km/silvery/design-system]]
 ## Why
 
 Apps need identity colors that MUST NOT change when the user switches terminal schemes:
+
 - Corporate brand hex values (km's own color identity)
 - Product-specific accents (a partner-branded white-label)
 - External design-guide compliance
@@ -34,21 +41,25 @@ The fixed-rgb custom-token mechanism (@km/silvery/theme-custom) provides the tec
 ## Conventions
 
 ### When to use brand tokens
+
 - Logo glyphs and marks
 - App chrome with identity meaning (top bar logo strip)
 - Signature accent (km's primary brand hue in @km/_orphan/specific UI)
 - External-facing elements where users expect the brand color regardless of their theme
 
 ### When NOT to use brand tokens (prefer derived)
+
 - Semantic state (error/warning/success) — always derive, never brand
 - Body text, backgrounds — derive
 - Selection, cursor, borders — derive
 - Anything that should match the user's terminal aesthetic
 
 ### Naming convention
+
 `$<app>-<role>` — e.g., `$km-brand`, `$km-shine`, `$notion-primary`. The app prefix prevents collision with silvery built-ins and signals 'this is app-identity, not derived'.
 
 ### Fallback guidance
+
 Every brand token MUST specify ansi16 fallback:
 
 ```ts
@@ -78,3 +89,4 @@ Choose ansi16 slot to match brand's hue family. At ANSI 16 tier the user's theme
 - Parent: @km/silvery/design-system
 - Companion: @km/silvery/theme-custom (provides the mechanism)
 - Reference: hub/silvery/design/v10-terminal/terminal-color-strategy.md
+

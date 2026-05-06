@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/terminology-audit"
 aliases:
   - km-tui.terminology-audit
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Rename column/card/board terminology to node/item where generic @km/tui #task #P3
 
 Audit and rename column/card/board terminology in types, variables, functions, files, comments, and docs that should use node/item/block. Keep view-specific names (CardColumn renders cards in columns). Rename mixed cases (works with nodes but named as card/column). Research agent acfaadb running.
+

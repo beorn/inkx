@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/flexx-colrev"
 aliases:
   - km-flexx-colrev
@@ -24,3 +27,4 @@ Reproduction:
   <Text>A</Text>
   <Text>B</Text>
 </Box>
+

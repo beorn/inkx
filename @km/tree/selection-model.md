@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tree/selection-model"
 aliases:
   - km-tree.selection-model
@@ -16,6 +18,7 @@ SlateJS: editor.selection = Range { anchor: Point, focus: Point }
 km: cursorNodeId: string (in board store, separate from tree)
 
 Add:
+
 - Point type: { nodeId: string, offset: number } (ID-based, not path-based)
 - Range type: { anchor: Point, focus: Point }
 - Selection lives on the editor/board state (not on Repo)
@@ -25,3 +28,4 @@ This is what the atomic cursor (Phase 2) points toward. Phase 2 wrapped ops
 to dispatch cursor. Phase 5 makes selection PART of the state that ops transform.
 
 Multi-node selection enables: select-all, shift+click range, copy/paste blocks.
+

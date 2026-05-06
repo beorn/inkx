@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/osc66-emoji"
 aliases:
   - km-silvery.osc66-emoji
@@ -15,3 +18,4 @@ assignee: claude:55df8ef1
 # [x] Extend OSC 66 text sizing to cover emoji width discrepancies @km/silvery #task #P2 @claude:55df8ef1
 
 OSC 66 currently only handles PUA characters (nerdfont icons). Standard emoji (📖, ✏️, ⚡) can have ambiguous width between string-width and terminal renderers (especially xterm.js). displayWidth() should be the single source of truth, and OSC 66 should enforce width for ANY character where the terminal might disagree — not just PUA. This eliminates the need for ASCII workarounds in web showcases.
+

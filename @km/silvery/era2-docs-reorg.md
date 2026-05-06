@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/era2-docs-reorg"
 aliases:
   - km-silvery.era2-docs-reorg
@@ -30,3 +33,4 @@ Delete: old file locations (after move). No dangling cross-references.
 /complete: grep for old file paths in all .md files → 0 hits. All links resolve. No docs reference archived files without 'archive/' prefix.
 
 See 00-overview.md §File Map for exact mapping.
+

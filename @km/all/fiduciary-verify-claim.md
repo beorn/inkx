@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/fiduciary-verify-claim"
 aliases:
   - km-all.fiduciary-verify-claim
@@ -13,13 +15,17 @@ dependencies:
     created_at: 2026-04-21T13:36:02Z
     created_by: claude:7e9436e8
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all
 ---
 
 # [ ] Fiduciary mode — re-verify numbers/dates against primary source before asserting @km/all #feature #P2
 
 blocks:: [[@km/all]]
 
-# The pattern
+## The pattern
 
 vault-2 flagged a pattern of material factual errors during a real ~$200k investment-decision analysis (Anthropic SPV via Protos III, 2026-04-21):
 
@@ -47,7 +53,7 @@ Cost: one extra tool call per numeric assertion. Cheap. Friction low if well-tar
 For numbers/dates/key terms from a just-read PDF/image, emit the exact source line verbatim before paraphrasing. E.g.:
 
 > Source (card line 3): '2% / 5yr mgmt + 20% carry, 4mo post-lockup distribution'
->
+> 
 > Translating: management fee is 2% annually for 5 years; carried interest 20%; distribution 4 months after lockup expires.
 
 Makes drift visible in the response itself — user sees the source quote, can catch misreads immediately.
@@ -57,6 +63,7 @@ Makes drift visible in the response itself — user sees the source quote, can c
 Context-aware flag (financial / legal / medical / etc.) that forces re-read of source before any number is emitted. Triggered by directory (vault/projects/+investments/, vault/projects/+legal/) or by frontmatter tag (`high-stakes: true`).
 
 Mode changes behavior:
+
 - No numbers without source re-read in the same turn
 - Explicit 'computed from X' attribution on every derived figure
 - Math double-check step: show the arithmetic, not just the result
@@ -74,3 +81,4 @@ Mode changes behavior:
 - Not a km code change — lives in Claude Code config / skills / CLAUDE.md. Belongs in vault's or user-global `~/.claude/` layer, not km repo.
 - Complements @km/_orphan/ambot structural gates (injection defense); does not replace them. Different trigger, same family of 'assistant state drifting from ground truth'.
 - Low-priority (P2): vault-2 flagged as 'not urgent but worth a bead'. Real-world impact limited while user actively reviews output. Would become urgent if vault moves toward agentic autonomy on financial/legal documents.
+

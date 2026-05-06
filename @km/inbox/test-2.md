@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/test-2"
 aliases:
   - km-test-2
@@ -16,6 +18,7 @@ Test quality review found query.test.ts is very large (1635 lines, 106 tests).
 ## Problem
 
 Large test files are harder to:
+
 - Navigate and understand
 - Review in PRs
 - Maintain over time
@@ -23,6 +26,7 @@ Large test files are harder to:
 ## Proposal
 
 Investigate splitting into logical modules:
+
 1. query-filters.test.ts - Filter parsing and execution
 2. query-execution.test.ts - Query execution engine
 3. query-syntax.test.ts - Query syntax parsing
@@ -37,3 +41,4 @@ Investigate splitting into logical modules:
 ## Reference
 
 See docs/dev/test-quality-report.md for full review findings.
+

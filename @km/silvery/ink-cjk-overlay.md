@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ink-cjk-overlay"
 aliases:
   - km-silvery.ink-cjk-overlay
@@ -24,3 +26,4 @@ Closes 2 Ink 7.0 compat failures.
 ## Parent
 
 @km/silvery/positioning
+

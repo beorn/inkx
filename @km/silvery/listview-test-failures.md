@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/listview-test-failures"
 aliases:
   - km-silvery.listview-test-failures
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-26T16:22:35Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.fix-sweep-vendor-fuzz
 ---
 
 # [x] [bug] vendor/silvery listview test cluster — 5 failures (2 files) @km/silvery #bug #P2 @claude:cc081a9a
@@ -26,3 +33,4 @@ dependencies:
 blocks:: [[@km/all/fix-sweep-vendor-fuzz]]
 
 listview-scroll-overshoot.test.tsx (2) + listview-scrollcap-tall-items.test.tsx (3). /complete: bun vitest run --project vendor vendor/silvery/tests/features/listview-scroll-overshoot.test.tsx vendor/silvery/tests/features/listview-scrollcap-tall-items.test.tsx → 0 failures.
+

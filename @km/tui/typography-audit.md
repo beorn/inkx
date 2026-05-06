@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/typography-audit"
 aliases:
   - km-tui.typography-audit
@@ -18,3 +21,4 @@ assignee: claude:3c24fe4a
 # [x] Audit all views for semantic typography tokens @km/tui #task #P1 @claude:3c24fe4a
 
 Review every view/dialog component in @km/tui for hardcoded colors, raw <Text bold/color> usage that should be semantic typography components (H1/H2/H3/P/Muted/Small/Strong/Kbd/etc). Ensure consistent token usage across all dialogs and views.
+

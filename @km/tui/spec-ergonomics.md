@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/spec-ergonomics"
 aliases:
   - km-tui.spec-ergonomics
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-18T11:34:14Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Make .spec.ts files even more ergonomic @km/tui #task #P2 @Bjørn Stabell
@@ -27,3 +34,4 @@ dependencies:
 blocks:: [[@km/tui]]
 
 Flagship .spec.ts files were curated in @km/all/test-system/plateau-enforcement but each test still carries 70 chars of 'using app = createTestApp(item(...))' ceremony, 4 imports, and mixes 3 assertion styles. The fixture (test.extend) was built but never adopted by any spec. This bead closes the readability gap: one import, one fixture line, one blessed assertion form per question.
+

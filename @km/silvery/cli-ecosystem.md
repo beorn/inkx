@@ -1,4 +1,9 @@
 ---
+mentions:
+  - silvery
+  - commander-js
+  - km
+  - claude
 id: "@km/silvery/cli-ecosystem"
 aliases:
   - km-silvery.cli-ecosystem
@@ -21,19 +26,23 @@ assignee: claude:f8196c1c
 @silvery/commander — typed CLI wrapper + colorized help for Commander.js.
 
 ## Shipped (v0.1.0)
+
 - colorizeHelp() via Commander's native style hooks (13 tests)
 - createCLI() with typed opts via const generics (9 tests)
 - Commander class re-exports (drop-in for extra-typings)
 - Deployed to 8 CLIs, replaced @commander-js/extra-typings across 33 files
 
 ## In Progress
+
 - Type-level tests using vitest expectTypeOf
 - README with credits (Commander.js, extra-typings)
 - Prettify<T> for clean hover types
 - --no-X negated flag support
 
 ## Planned
+
 - Custom parser type inference: .option('-p, --port <n>', 'Port', parseInt) -> number
 - Typed action handler signatures (infer from args + opts)
 - .choices() narrowing to union types
 - .env() fallback support
+

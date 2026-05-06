@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/rev-arch-0130/10-delete-deprecated-testing-aliases"
 aliases:
   - km-rev-arch-0130.10
@@ -32,7 +34,9 @@ bunx tsc --noEmit 2>&1 | head -50
 ```
 
 ## Definition of Done
+
 - [ ] Aliases deleted from testing/index.ts
 - [ ] All callers use createFakeWatcher/FakeWatcher
 - [ ] `tsc` passes
 - [ ] `grep -r "createMockWatcher\|MockWatcher" packages/` finds nothing
+

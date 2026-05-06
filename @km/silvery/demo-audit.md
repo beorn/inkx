@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/demo-audit"
 aliases:
   - km-silvery.demo-audit
@@ -16,3 +19,4 @@ assignee: claude:fed8de9e
 # [x] Audit all silvery.dev inlined demos — verify they work @km/silvery #task #P1 @claude:fed8de9e
 
 Systematically open every inlined demo on silvery.dev in headless Chrome. Verify each works and demonstrates what it claims. Fix or disable broken ones.
+

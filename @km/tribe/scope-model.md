@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/scope-model"
 aliases:
   - km-tribe.scope-model
@@ -16,6 +18,10 @@ dependencies:
     created_at: 2026-04-19T10:55:26Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] tribe: decide per-project vs global-user daemon and make the code reflect it @km/tribe #feature #P2
@@ -36,3 +42,4 @@ Decision needed:
 Today it's 'global daemon with project_id as a hint, no enforcement'. That's the worst spot — looks like (A) but isn't actually sharded, looks like (B) in docs but isn't isolated.
 
 Effort: 2-3 days once decided. Affects schema, socket resolution, autostart, every query that sees messages or sessions from 'another project'.
+

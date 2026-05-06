@@ -36,3 +36,4 @@ Add a Codex profile for the shared fake backend and use it to test Codex-specifi
 - `Option+.` and `Option+,` tests run against the Codex fake and assert `session/set_config_option` is called.
 - Contract test verifies Codex reasoning values match fake profile and live backend when live mode is enabled.
 - Rejected reasoning value returns a protocol error that Silvercode surfaces cleanly.
+

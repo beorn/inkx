@@ -1,7 +1,4 @@
 ---
-tags:
-  - task
-  - P2
 mentions:
   - km
   - Bjørn
@@ -22,6 +19,10 @@ dependencies:
     metadata: "{}"
 closeReason: "Grooming 2026-04-30: WIP 18d. km bd is shipped and dogfooded daily
   — 'bd' compat is the only implementation now, Go binary retired. Close."
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] km bd: bd-compatible CLI backed by km's markdown/SQLite store @km/infra #task #P2 @Bjørn Stabell

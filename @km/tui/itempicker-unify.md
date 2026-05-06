@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/itempicker-unify"
 aliases:
   - km-tui.itempicker-unify
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-17T12:04:25Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui.omnibox-dialog
 ---
 
 # [x] Unify ItemPicker into omnibox — migrate SET_LABEL/SET_ASSIGNEE/PANE_SPLIT_AND_PICK @km/tui #feature #P2
@@ -31,8 +37,8 @@ Phase 5 acceptance (e) partial completion. After the W3 omnibox v1 ship:
 - FavoritesDialog: deleted ✅
 - ItemPicker: KEPT because 3 live flows still need it:
   1. SET_LABEL (tag picker) — sets a tag on the cursor node
-  2. SET_ASSIGNEE (assignee picker) — sets an assignee
-  3. PANE_SPLIT_AND_PICK (project picker in split pane) — opens node in split
+  1. SET_ASSIGNEE (assignee picker) — sets an assignee
+  1. PANE_SPLIT_AND_PICK (project picker in split pane) — opens node in split
 
 These dispatch via ui.activePicker: { type: "tag" | "assignee" | "project" }
 and are consumed by ItemPicker in WorkspaceChrome.tsx (lines 580-615).
@@ -73,4 +79,6 @@ Each command needs its own acceptance test + journey test.
   apps/@km/tui/tests/omnibox-chord-routing.test.ts
 
 ## Parent
+
 @km/tui/omnibox-dialog (Phase 5 v1 ship)
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/llm-1"
 aliases:
   - km-llm-1
@@ -13,6 +16,7 @@ assignee: claude:2b15b408
 Deep research calls (~$2-5) are lost if interrupted mid-stream.
 
 **Current behavior:**
+
 - Tokens stream to stdout but aren't persisted
 - If process is killed, partial response is lost
 - Money wasted, no recovery option
@@ -26,12 +30,14 @@ Deep research calls (~$2-5) are lost if interrupted mid-stream.
 ## Implementation Plan
 
 ### Tier 1: Local persistence (safety net)
+
 - Append tokens to temp file during streaming
 - Store response ID + metadata in temp file header
 - On completion: delete temp file (or move to history)
 - On interruption: temp file remains for recovery
 
 ### Tier 2: API-based recovery
+
 - Use `background: true` for deep research calls
 - Add `llm recover` command to:
   - List partial/incomplete responses
@@ -39,10 +45,12 @@ Deep research calls (~$2-5) are lost if interrupted mid-stream.
   - Resume streaming via sequence_number
 
 ### Files to modify
+
 - `vendor/beorn-claude-tools/tools/lib/llm/openai-deep.ts` - add background mode + persistence
 - `vendor/beorn-claude-tools/tools/llm.ts` - add `recover` command
 
 ### Temp file format
+
 ```
 ~/.cache/beorn-claude-tools/llm-partial-<timestamp>.md
 ---
@@ -54,3 +62,4 @@ last_sequence: <number>
 ---
 <streamed content>
 ```
+

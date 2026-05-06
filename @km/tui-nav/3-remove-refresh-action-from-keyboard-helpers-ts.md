@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui-nav/3-remove-refresh-action-from-keyboard-helpers-ts"
 aliases:
   - km-tui-nav.3
@@ -15,3 +17,4 @@ The REFRESH action is legacy - board state is now derived from vault on every re
 Delete or update the refresh handler to not dispatch REFRESH.
 
 Verify: No REFRESH dispatches remain
+

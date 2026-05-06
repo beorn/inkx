@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/update-cmd"
 aliases:
   - km-termless.update-cmd
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] CLI: termless update — check upstream versions + update backends @km/termless #feature #P2
 
 bunx termless update: queries npm/crates.io for latest upstream versions, updates backends.json, reinstalls changed backends. --check flag for dry run. Does NOT run census — that's separate. Replaces current 'upgrade' command.
+

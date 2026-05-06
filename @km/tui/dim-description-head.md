@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/dim-description-head"
 aliases:
   - km-tui.dim-description-head
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Dim the Description virtual column header @km/tui #feature #P3
 
 Virtual body columns (Description) should have dimmed header text to visually distinguish them from regular structural columns. The isVirtual flag is already tracked in ColumnState.
+

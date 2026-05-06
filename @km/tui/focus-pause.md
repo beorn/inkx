@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/focus-pause"
 aliases:
   - km-tui.focus-pause
@@ -18,3 +21,4 @@ Enable focus reporting (CSI ?1004h). Pause heartbeat interval (200ms), board bar
 
 Files: @km/tui tui.tsx, board-bottom-bar, CommandBox. New: use-interval-manager hook.
 Depends on: @km/silvery-legacy/focus-report
+

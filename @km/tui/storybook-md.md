@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/storybook-md"
 aliases:
   - km-tui.storybook-md
@@ -13,3 +16,4 @@ assignee: claude:a5c7f7de
 # [x] Expand storybook to show rendering of all markdown content types @km/tui #task #P2 @claude:a5c7f7de
 
 Expand the TUI storybook to show rendering of all kinds of markdown content — paragraphs, code blocks, tables, blockquotes, lists (ordered, unordered, task), headings, horizontal rules, links/embeds — in both column card view and detail view. This serves as a visual regression reference.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/trailing-hash"
 aliases:
   - km-tui.trailing-hash
@@ -13,3 +16,4 @@ assignee: claude:8f007ba9
 # [x] Trailing # in task titles from unresolved tags @km/tui #bug #P2 @claude:8f007ba9
 
 Many task titles end with bare # or '# #' (e.g. 'Thermostat schedule #', 'JCK/Beowa BVI admin # #'). Card view shows '#@w #' but detail shows '# #' — inconsistent tag rendering. Screenshots: /tmp/explore-screenshots/06-home-column.png, 07-detail-pane-1.png, 20-completed-task-detail.png
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/fundamentals"
 aliases:
   - km-terminfo.fundamentals
@@ -18,6 +21,7 @@ assignee: claude:f8196c1c
 Educational reference pages covering terminal fundamentals that aren't escape sequences:
 
 Pages:
+
 - /fundamentals — index page: 'How Terminals Work'
 - /fundamentals/control-characters — C0 controls (NUL, BEL, BS, TAB, LF, CR, ESC, DEL), ASCII table, what each does in a terminal
 - /fundamentals/tty-architecture — PTY, kernel TTY discipline, shell, terminal emulator relationship diagram
@@ -29,3 +33,4 @@ Content type: educational/reference (not feature matrix). Rich prose with diagra
 SEO value: 'ASCII control characters', 'what is raw mode', 'how does a PTY work', 'stty settings', 'TERM variable'.
 
 Reinforces terminfo.dev as THE terminal reference site beyond just the compatibility matrix.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/perf-measure-cache"
 aliases:
   - km-silvery.perf-measure-cache
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Perf: Text measure cache uses string key allocation on every call @km/silvery #task #P3
 
 reconciler/nodes.ts text measure function builds cache key via template string (width|widthMode|height|heightMode) — allocates every call. Flexily already uses numeric cache slots (_m0.._m3). Switch to same approach. Found by GPT 5.4 pro.
+

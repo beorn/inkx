@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/normalize-plugins"
 aliases:
   - km-tui.normalize-plugins
@@ -22,10 +25,11 @@ DESIGN: withTitle plugin overrides apply() — when any REPO_UPDATE_NODE effect 
 
 Plugin shape:
   type NormalizePlugin = (apply: Apply) => Apply
-  
-  withTitle: intercepts REPO_UPDATE_NODE effects, sets title = content
+
+withTitle: intercepts REPO_UPDATE_NODE effects, sets title = content
   withName: intercepts REPO_UPDATE_NODE effects, sets name = content.replace(taskMarkerRe, '') for outline nodes
 
 Depends on: Board.apply effect runner (commit 6a4c2837, board-effect-runner.ts)
 
 After this ships, revert the manual title: newContent additions from dff82084 — they become redundant.
+

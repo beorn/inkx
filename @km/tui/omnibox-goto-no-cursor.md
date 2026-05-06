@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/omnibox-goto-no-cursor"
 aliases:
   - km-tui.omnibox-goto-no-cursor
@@ -16,7 +18,7 @@ owner: bjorn@stabell.org
 
 # [x] Omnibox goto lands without cursor — zoom out fails @km/tui #bug #P1
 
-# Bug — goto leaves cursor invalid
+## Bug — goto leaves cursor invalid
 
 ## Symptom (user dogfood)
 
@@ -47,3 +49,4 @@ Earlier this session (commit b99a81fa9) we fixed 4 dialog goto paths to pair ZOO
 ## Acceptance
 
 After `:@delei<Enter>` or clicking @delei in the omnibox: cursor is on the @delei root, Z zooms out to its parent, navigation works normally. Regression test covers the unified goto path.
+

@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - bulk
 id: "@km/storage/sync-refactor"
 aliases:
   - km-storage.sync-refactor
@@ -23,11 +27,13 @@ withSync — decorator. Wraps apply() at creation time to add FS save.
 No event bus, no subscription API. Function composition at creation.
 
 ## Domain Vocabulary
+
 - apply(event) — make event take effect (DB + journal + broadcast + save)
 - save(node) — serialize node's file to disk
 - reconcile(dir) — diff FS vs DB → events
 
 ## Completed
+
 - Phase 1: dedup createBlockIdAssigner (36e775f1)
 - Phase 2: extract heartbeat to createHeartbeat() factory (460bae4d)
 - Phase 3: extract bulk sync to BulkSync namespace (287efe40)
@@ -35,12 +41,15 @@ No event bus, no subscription API. Function composition at creation.
 - Emitter.emit→apply + project→save rename (5faa26e0)
 
 ## In Progress
+
 - Phase 4a: SyncManager class → createSync() factory (agent running)
 - Phase 4b: Merge Emitter into Repo — repo.apply(event)
 - Phase 4c: Convert createSync → withSync decorator
 
 ## Future
+
 - Update Domain Object Inventory in docs/principles.md
 - Remove Infrastructure Class Exception for SyncManager
 - Update watch/README.md vocabulary
 - Era2: run(view, { sync: withSync(...) }) provider model
+

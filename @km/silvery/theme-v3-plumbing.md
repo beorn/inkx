@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-v3-plumbing"
 aliases:
   - km-silvery.theme-v3-plumbing
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-18T21:06:02Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Theme v3: Finish the plumbing (drop legacy provider, kill global, collapse token names) @km/silvery #task #P3
@@ -35,7 +41,9 @@ R2 — Pipeline reads theme via AgNode cascade, not getActiveTheme() global: ren
 R3 — One name per token: collapse PRIMER_ALIASES (40+ entries mapping kebab → camelCase) by making Theme a Record<kebab-string, string>. Every new token currently requires editing 3 places (union, alias, interface). Touches ~145 theme.X field accesses site-wide.
 
 Related NARROW follow-ups (can be separate sub-beads):
+
 - Delete 4 compat shim files in @silvery/theme (derive.ts, resolve.ts, color.ts, contrast.ts — 8 lines each)
 - Delete deprecated brandRed/brandOrange/etc. aliases
 - Merge two detectTheme functions (ansi lightweight + theme with Nord/Catppuccin fallback)
 - 15-line @silvery/theme/types.ts stub — redundant with @silvery/ansi/theme/types.ts
+

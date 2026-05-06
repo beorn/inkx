@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/m4ca"
 aliases:
   - km-m4ca
@@ -12,6 +14,8 @@ closed_at: 2026-01-16T12:24:19Z
 The @km/tui package (packages/@km/tui) has no tests. TUI components should have snapshot tests and behavior tests.
 
 Needed:
+
 - Component snapshot tests
 - Keyboard navigation tests
 - State management tests
+

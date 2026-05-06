@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/chief-auto-election"
 aliases:
   - km-tribe.chief-auto-election
@@ -34,6 +36,10 @@ dependencies:
     created_at: 2026-04-18T11:00:13Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] Chief auto-election: promote longest-running member when lease expires @km/tribe #task #P2
@@ -49,3 +55,4 @@ Layer 2 (daemon auto-promotion, ~80 LOC + test): in vendor/bearly/tools/tribe-da
 Layer 3 (dead-letter broadcast, small): wrap ctx.sendMessage so messages addressed to 'chief' fall through to '*' when no chief holds the lease. Drains the dead-letter queue (found 23 unread messages to 'chief' this session). See health-monitor-plugin.ts:1076-1081 for the current 'sendMessage(chief, ...)' call sites.
 
 Parent: @km/tribe/reliability-sweep-0415. Non-blocking — the tracking bead can close without this.
+

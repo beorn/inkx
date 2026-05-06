@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/logger/docs"
 aliases:
   - km-logger.docs
@@ -13,8 +16,10 @@ assignee: claude:76fda6b0
 Add comprehensive documentation to @beorn/logger for FLOSS publication.
 
 ## Deliverables
+
 - README.md with full API reference
 - Examples for common patterns
 - Performance benchmarks (`?.` short-circuit)
 - CHANGELOG.md
 - Contributing guide
+

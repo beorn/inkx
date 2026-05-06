@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/tree-lenses/12-delete-ctx-columns-column-card-convenience-fields-"
 aliases:
   - km-tui.tree-lenses.12
@@ -20,6 +23,7 @@ assignee: Bjørn Stabell
 After .11 eliminates ColumnView from view components, the OpCtx still has ctx.columns (ColumnView[]), ctx.column (ColumnView | undefined), and ctx.card (KNode | undefined) as convenience fields. These duplicate what ctx.tree can compute on demand.
 
 Migrate call sites:
+
 - ctx.column.node → ctx.tree.node(currentColumnId)
 - ctx.column.cardNodes → ctx.tree.children(currentColumnId).map(id => ctx.tree.node(id))
 - ctx.card → ctx.tree.node(ctx.cursor) or walk ancestors
@@ -28,3 +32,4 @@ Migrate call sites:
 After this, buildOpCtx's column derivation step disappears entirely. deriveColumnsFromLens may still be needed for detail pane (which has different column model via deriveDetailColumns).
 
 Depends on .11.
+

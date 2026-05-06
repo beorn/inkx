@@ -33,3 +33,4 @@ Add a Gemini ACP profile for the shared fake backend.
 
 - Fake Gemini profile catches stdout pollution before JSON without using the real Gemini CLI.
 - Live-mode contract can compare the fake profile against an installed Gemini CLI in ACP mode.
+

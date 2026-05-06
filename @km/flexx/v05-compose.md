@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/flexx/v05-compose"
 aliases:
   - km-flexx.v05-compose
@@ -16,6 +19,7 @@ assignee: claude:9abd72d2
 # [x] v0.5: Composable layout engine @km/flexx #feature #P1 @claude:9abd72d2
 
 Implemented composable layout engine for Flexily:
+
 - createFlexily() batteries-included factory (monospace text measurement)
 - createBareFlexily() minimal engine + pipe() for plugin composition
 - TextLayoutService interface with pluggable backends
@@ -25,3 +29,4 @@ Implemented composable layout engine for Flexily:
 - FlexilyNode = Node + text mixin (no wrapper overhead)
 - 31 tests covering all APIs
 - Flat file structure in src/ (no compose/ subdirectory)
+

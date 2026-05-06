@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/wrap-even-noop"
 aliases:
   - km-silvery.wrap-even-noop
@@ -49,6 +52,10 @@ dependencies:
     created_at: 2026-04-11T21:29:17Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] wrap="even" renders identically to wrap="wrap" — Knuth-Plass not wired through @km/silvery #bug #P2 @Bjørn Stabell
@@ -64,3 +71,4 @@ Expected (Knuth-Plass): ["aaa bbb     ", "ccc ddd eee "]  (or similar with lower
 Actual (both modes):    ["aaa bbb ccc ", "ddd eee     "]  (greedy)
 
 Fix location: find the text wrapping call site in render-text.ts / prepared-text.ts / unicode.ts — currently wrap="even" appears to fall through to wrapText() (greedy) instead of calling optimalWrap() from pipeline/pretext.ts.
+

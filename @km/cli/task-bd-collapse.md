@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/cli/task-bd-collapse"
 aliases:
   - km-cli.task-bd-collapse
@@ -68,6 +70,7 @@ km query <dsl>                         # alias of `km list --raw <dsl>`
 ```
 
 `km move <a> <b>` resolves `<b>` polymorphically:
+
 - If `<b>` is an existing node id → reparent
 - If `<b>` is a new path-form id (no node exists) → rename + ref-rewrite
 - If `<b>` is `--root` → move to root
@@ -114,39 +117,39 @@ Three exceptions are aliased for daily-driver ergonomics: `task show` → `km sh
 
 ## Tension resolutions (from /pro consensus)
 
-| # | Tension | Decision | Rationale |
-|---|---------|----------|-----------|
-| 1 | Singular vs plural | **Singular `task`** (alias `tasks` for muscle memory, undocumented) | Resource-type names are singular across modern CLIs (gh, docker, kubectl, cargo, git). `km task claim 42` reads as "task: claim 42"; `km tasks claim 42` reads as imperative-to-collection. |
-| 2 | Bare verb behavior | **List (board view)** | The most common operation is "what should I work on?" — make it zero-friction. Subcommand set is closed; anything else is a query. |
-| 3 | Show location | **Both — `km task show <id>` AND `km show <id>`, one renderer** | `km show` for power users; `km task show` for discoverability via `task --help`. Alias not maintenance burden. |
-| 4 | Mutation syntax | **field:value primary, flags accepted; same parser** | field:value is compact and multi-value-friendly (taskwarrior). Flags are discoverable via `--help` and shell-completion-friendly (gh). Derive flags from field schema; one source of truth. |
-| 5 | Lifecycle shortcuts | **Keep — they're workflow transitions, not sugar** | `close` validates preconditions, sets `closedAt`, records reason, may trigger hooks/cascade. `set status:done` is a raw field write. Different operations. Document this distinction explicitly. |
-| 6 | Default scope | **Board view (hide done/dropped, sort by priority)** with `--all` escape, `query` for raw | "What's on my plate?" is the question 95% of invocations are asking. |
-| 7 | Preset views | **Subcommands (ready/blocked/stale/orphans)** — small, named, evolvable | Memorable, completable, can grow flags (`stale -d 14`). Better than arbitrary preset config for a personal tool. |
-| 8 | Dep surface | **`task dep` user-facing; `km link` infra underneath, exposed later** | Users think "blockers" not "graph edges". Build the generic system; expose the domain verb. Exposing `km link` waits for a second consumer. |
-| 9 | ID vs query parsing | **No auto-detect. Bare positional = query filter. Explicit verb (`show`) = id.** | Auto-detect breaks. Subcommand set is closed; everything else is a query string. If list result is exactly one item, append a "Tip: use `km task show <id>` for full detail" hint that suppresses after a few uses. |
-| 10 | Generic vs task-domain split | **Thin `task` (workflow only); fat `km` (generic node verbs)**. Re-alias `show`/`set`/`new` for daily ergonomics; everything else is `km <verb>` only. | "Tasks are nodes" mental model. Aliasing every generic verb under `task` doubles help-screen surface with no ergonomic win. |
-| 11 | Rename vs move | **`move` is canonical**. `rename` is an alias. `km move <node> <target>` polymorphically dispatches: existing node → reparent; new id → rename + ref-rewrite. | One ref-rewrite engine (`@km/storage/move-with-rewrite-refs`), one verb. Avoids two near-identical mutation paths. Rename keeps muscle memory. |
+| #   | Tension                      | Decision                                                                                                                                            | Rationale                                                                                                                                                                                                         |
+| --- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Singular vs plural           | Singular task (alias tasks for muscle memory, undocumented)                                                                                         | Resource-type names are singular across modern CLIs (gh, docker, kubectl, cargo, git). km task claim 42 reads as "task: claim 42"; km tasks claim 42 reads as imperative-to-collection.                           |
+| 2   | Bare verb behavior           | List (board view)                                                                                                                                   | The most common operation is "what should I work on?" — make it zero-friction. Subcommand set is closed; anything else is a query.                                                                                |
+| 3   | Show location                | Both — km task show <id> AND km show <id>, one renderer                                                                                             | km show for power users; km task show for discoverability via task --help. Alias not maintenance burden.                                                                                                          |
+| 4   | Mutation syntax              | field:value primary, flags accepted; same parser                                                                                                    | field:value is compact and multi-value-friendly (taskwarrior). Flags are discoverable via --help and shell-completion-friendly (gh). Derive flags from field schema; one source of truth.                         |
+| 5   | Lifecycle shortcuts          | Keep — they're workflow transitions, not sugar                                                                                                      | close validates preconditions, sets closedAt, records reason, may trigger hooks/cascade. set status:done is a raw field write. Different operations. Document this distinction explicitly.                        |
+| 6   | Default scope                | Board view (hide done/dropped, sort by priority) with --all escape, query for raw                                                                   | "What's on my plate?" is the question 95% of invocations are asking.                                                                                                                                              |
+| 7   | Preset views                 | Subcommands (ready/blocked/stale/orphans) — small, named, evolvable                                                                                 | Memorable, completable, can grow flags (stale -d 14). Better than arbitrary preset config for a personal tool.                                                                                                    |
+| 8   | Dep surface                  | task dep user-facing; km link infra underneath, exposed later                                                                                       | Users think "blockers" not "graph edges". Build the generic system; expose the domain verb. Exposing km link waits for a second consumer.                                                                         |
+| 9   | ID vs query parsing          | No auto-detect. Bare positional = query filter. Explicit verb (show) = id.                                                                          | Auto-detect breaks. Subcommand set is closed; everything else is a query string. If list result is exactly one item, append a "Tip: use km task show <id> for full detail" hint that suppresses after a few uses. |
+| 10  | Generic vs task-domain split | Thin task (workflow only); fat km (generic node verbs). Re-alias show/set/new for daily ergonomics; everything else is km <verb> only.              | "Tasks are nodes" mental model. Aliasing every generic verb under task doubles help-screen surface with no ergonomic win.                                                                                         |
+| 11  | Rename vs move               | move is canonical. rename is an alias. km move <node> <target> polymorphically dispatches: existing node → reparent; new id → rename + ref-rewrite. | One ref-rewrite engine (@km/storage/move-with-rewrite-refs), one verb. Avoids two near-identical mutation paths. Rename keeps muscle memory.                                                                      |
 
 ## What gets cut from the current `tasks` surface
 
-| Cut | Why |
-|-----|-----|
-| `km tasks --new`, `--done`, `--claim`, `--release`, `--assign` (top-level flag forms) | Top-level flags that behave like subcommands violate POSIX conventions and create parser nightmares. Use subcommands only. |
-| `km tasks status <id> [new]` as primary mutation | Redundant. `set <id> status:X` covers raw field write; lifecycle verbs cover workflow transitions. Keep as a thin alias for back-compat, but document the two primary paths. |
-| `km tasks list` as explicit subcommand | Bare `km task` is the list. (Like `git branch` not `git branch list`.) |
+| Cut                                                                         | Why                                                                                                                                                                        |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| km tasks --new, --done, --claim, --release, --assign (top-level flag forms) | Top-level flags that behave like subcommands violate POSIX conventions and create parser nightmares. Use subcommands only.                                                 |
+| km tasks status <id> [new] as primary mutation                              | Redundant. set <id> status:X covers raw field write; lifecycle verbs cover workflow transitions. Keep as a thin alias for back-compat, but document the two primary paths. |
+| km tasks list as explicit subcommand                                        | Bare km task is the list. (Like git branch not git branch list.)                                                                                                           |
 
 ## What gets added
 
-| Added | Why |
-|-------|-----|
-| `task reopen <id>` | Real workflow gap: going from done/dropped back to todo. Without it, users reach for `set status:todo` and skip validation. |
-| `--json` + `--jq` on every list command | Scripting, piping, TUI feeding, dashboards. Non-negotiable for a tool in a unix ecosystem. |
-| `field:value` syntax on `new` (parser shared with `set`) | `km task new "Fix auth" priority:P0 due:friday` is faster than five flags. |
-| `task dep add/rm/ls` | Closes the real gap — neither `tasks` nor stock km has dependency mutation today. |
-| Bulk by multiple ids OR `--where "<query>"` | Real-world muscle: "close all P3s in the foo subtree", "claim all blocked tasks". |
-| `task edit <id>` | Open in editor with prefilled frontmatter. |
-| Working-directory scoping | If cwd is under `vault/@km/storage/`, default scope is `@km/storage/*`. `--global` overrides. (git-style cwd detection.) |
+| Added                                              | Why                                                                                                                       |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| task reopen <id>                                   | Real workflow gap: going from done/dropped back to todo. Without it, users reach for set status:todo and skip validation. |
+| --json + --jq on every list command                | Scripting, piping, TUI feeding, dashboards. Non-negotiable for a tool in a unix ecosystem.                                |
+| field:value syntax on new (parser shared with set) | km task new "Fix auth" priority:P0 due:friday is faster than five flags.                                                  |
+| task dep add/rm/ls                                 | Closes the real gap — neither tasks nor stock km has dependency mutation today.                                           |
+| Bulk by multiple ids OR --where "<query>"          | Real-world muscle: "close all P3s in the foo subtree", "claim all blocked tasks".                                         |
+| task edit <id>                                     | Open in editor with prefilled frontmatter.                                                                                |
+| Working-directory scoping                          | If cwd is under vault/@km/storage/, default scope is @km/storage/*. --global overrides. (git-style cwd detection.)        |
 
 ## `km bd` alias mapping
 
@@ -347,16 +350,16 @@ Full /pro output: `/var/folders/x6/0j792q0d0411wgsxyr1bqkp40000gn/T/llm-f9eb64dc
 
 ## Wave status (2026-05-05)
 
-| Wave | Status | Key commits |
-|---|---|---|
-| 1 — additive to existing tasks | ✅ shipped | (earlier sessions) |
-| 1.5 — emitter off public Repo surface | ✅ shipped | (earlier sessions) |
-| 2 — pure-planner extraction propagation | ✅ shipped | (earlier sessions; verified by Wave 3 agent — `*-plan.ts` import-chain immune) |
-| 3 — flag rename + lifecycle hardening | ✅ shipped | `8f32a6ecb` (Bead.reopen + closed_at) + `3dfc5991f` (lifecycle subcommands) + `e05f63a72` (rename + flag drops) + `6a8c726b4` (L5 property tests + apps/km-cli/CLAUDE.md) |
-| 4 — generic km verbs (km set, km move, km stale, km children, km query, --json/--jq) | ⏳ NOT DONE | Blocks Wave 6 from completing fully (see Wave 6 partial-completion notes below) |
-| 5 — graph + bulk (task dep, km link infra) | ✅ shipped | `a22ac7cda` + `41ab329d1` + `9a8ef9d95` (cherry-picked from `feat/wave5-task-dep-links`); 47 new tests |
-| 6 — bd → task/km alias layer | ✅ shipped (partial — Wave 4 gaps documented) | `4e5795817` (alias layer) + `e0eacd33d` (L5 property test). Cleanly delegating: close/drop/claim/list/show/stale/blocked/query/ready. Kept legacy until Wave 4 lands: create/update/rename/children/dep/orphans/info/where/migrate. Total `bd*.ts` LOC: 3773 → 3562 (Wave 6 delegated paths shrank from ~700 to 331 LOC). |
-| 7 — delight | ⏳ partial | Shipped: chrono natural-language dates (`ec8249bb1`), `--dry-run` on bd rename + bd dep + km move (`22d04115f`), `--due`/`--start` flags (`998db0879`), humanized date display (`7e424b585`). Not shipped: short-id resolution, shell completion, status-bar header, working-dir scoping, editor integration, bulk-by-multiple-ids, smart hints. |
+| Wave                                                                                 | Status                                       | Key commits                                                                                                                                                                                                                                                                                                                        |
+| ------------------------------------------------------------------------------------ | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 — additive to existing tasks                                                       | ✅ shipped                                    | (earlier sessions)                                                                                                                                                                                                                                                                                                                 |
+| 1.5 — emitter off public Repo surface                                                | ✅ shipped                                    | (earlier sessions)                                                                                                                                                                                                                                                                                                                 |
+| 2 — pure-planner extraction propagation                                              | ✅ shipped                                    | (earlier sessions; verified by Wave 3 agent — *-plan.ts import-chain immune)                                                                                                                                                                                                                                                       |
+| 3 — flag rename + lifecycle hardening                                                | ✅ shipped                                    | 8f32a6ecb (Bead.reopen + closed_at) + 3dfc5991f (lifecycle subcommands) + e05f63a72 (rename + flag drops) + 6a8c726b4 (L5 property tests + apps/km-cli/CLAUDE.md)                                                                                                                                                                  |
+| 4 — generic km verbs (km set, km move, km stale, km children, km query, --json/--jq) | ⏳ NOT DONE                                   | Blocks Wave 6 from completing fully (see Wave 6 partial-completion notes below)                                                                                                                                                                                                                                                    |
+| 5 — graph + bulk (task dep, km link infra)                                           | ✅ shipped                                    | a22ac7cda + 41ab329d1 + 9a8ef9d95 (cherry-picked from feat/wave5-task-dep-links); 47 new tests                                                                                                                                                                                                                                     |
+| 6 — bd → task/km alias layer                                                         | ✅ shipped (partial — Wave 4 gaps documented) | 4e5795817 (alias layer) + e0eacd33d (L5 property test). Cleanly delegating: close/drop/claim/list/show/stale/blocked/query/ready. Kept legacy until Wave 4 lands: create/update/rename/children/dep/orphans/info/where/migrate. Total bd*.ts LOC: 3773 → 3562 (Wave 6 delegated paths shrank from ~700 to 331 LOC).                |
+| 7 — delight                                                                          | ⏳ partial                                    | Shipped: chrono natural-language dates (ec8249bb1), --dry-run on bd rename + bd dep + km move (22d04115f), --due/--start flags (998db0879), humanized date display (7e424b585). Not shipped: short-id resolution, shell completion, status-bar header, working-dir scoping, editor integration, bulk-by-multiple-ids, smart hints. |
 
 ### Outstanding for full L4/L5 closure
 
@@ -364,3 +367,4 @@ Full /pro output: `/var/folders/x6/0j792q0d0411wgsxyr1bqkp40000gn/T/llm-f9eb64dc
 2. **Wave 6 completion** — after Wave 4: convert `bd-create.ts` (258 LOC), `bd-update.ts` (235 LOC), `bd-rename.ts` (148 LOC), `bd-children.ts` (63 LOC), `bd-dep.ts` (150 LOC), `bd-orphans.ts` (100 LOC + plan 72 LOC), `bd-info.ts` (164 LOC) from legacy implementations to thin alias-shims. Drop `info`/`where`/`migrate` once `km doctor`/`km config bd.*`/`km import bd` exist.
 3. **Wave 7 finishers** — short-id resolution is the single biggest ergonomic win (taskwarrior-style typing economy). Worth filing as its own P2 bead.
 4. **Wave 1.5/2 verification audits** — claimed-done in earlier memory; the Wave 3 agent's pure-planner check confirms Wave 2 holds for tasks/*-plan.ts. A property-test pass for the public Repo surface invariant (no `repo.emitter` reads in src/) would close Wave 1.5 to L5.
+

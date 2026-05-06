@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/domain-objects"
 aliases:
   - km-domain-objects
@@ -9,11 +11,12 @@ closed_at: 2026-01-23T11:49:07Z
 
 # [x] Refactor to domain objects with factory functions @km/domain-objects #epic #P2
 
-# Domain Object Architecture
+## Domain Object Architecture
 
 Refactor the km codebase from scattered functions + singletons + classes to **domain objects created by factory functions**.
 
 ## Principles
+
 - Factory functions (not classes)
 - Plain objects with methods (not class instances)
 - No singletons (all state owned by domain objects)
@@ -21,12 +24,14 @@ Refactor the km codebase from scattered functions + singletons + classes to **do
 - Dependency injection for testability
 
 ## Domain Objects
+
 - `Vault` - storage, queries, mutations (Disposable)
 - `Board` - navigation state (Disposable)
 - `Watcher` - file sync (Service, AsyncDisposable)
 - `Config` - vault configuration
 
 ## Service Interface
+
 ```typescript
 interface Service extends AsyncDisposable {
   readonly status: "stopped" | "starting" | "running" | "stopping";
@@ -36,3 +41,4 @@ interface Service extends AsyncDisposable {
 ```
 
 See plan: .claude/plans/stateful-splashing-parrot.md
+

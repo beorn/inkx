@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui2/5-add-strikethrough-and-dim-for-done-dropped-tasks"
 aliases:
   - km-tui2.5
@@ -13,3 +15,4 @@ closed_at: 2026-01-16T22:33:32Z
 Done and dropped tasks should have strikethrough + dim styling on the text content.
 
 **Files**: apps/@km/tui/packages/@km/_orphan/opentui/src/components/TreeNode.tsx
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tree/outliner-reshape"
 aliases:
   - km-tree.outliner-reshape
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-21T23:05:00Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tree
 ---
 
 # [ ] Reshape withOutliner: method bag → (state, op) → [state, effects] @km/tree #task #P3
@@ -27,3 +33,4 @@ TEA shape: withOutliner wraps Tree.apply:
 The guard logic and spec alignment stay. Only the interface changes.
 
 Depends on: Tree.apply existing (Phase 4 of TEA, or can be approximated with current TreeMutator)
+

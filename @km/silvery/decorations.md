@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/decorations"
 aliases:
   - km-silvery.decorations
@@ -30,3 +32,4 @@ SlateJS uses a `decorate([node, path]) → Range[]` callback at render time. Eac
 // Option A: prop on Text
 <Text decorations={[{ start: 5, end: 10, backgroundColor: 'white', color: 'black' }]}>
 ```
+

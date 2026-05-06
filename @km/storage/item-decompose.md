@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/item-decompose"
 aliases:
   - km-storage.item-decompose
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Extract decomposeItem/composeItem helpers — 7 duplicate sites @km/storage #task #P2
+

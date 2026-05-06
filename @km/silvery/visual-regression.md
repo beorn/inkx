@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/visual-regression"
 aliases:
   - km-silvery.visual-regression
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] Visual regression testing via termless @km/silvery #task #P3
 
 Use @termless/test for snapshot-based visual regression: feed silvery ANSI output through real terminal backends, assert colors/cursor/modes. Depends on termless being ready.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui1/10-performance-optimization-for-large-trees"
 aliases:
   - km-tui1.10
@@ -15,6 +17,7 @@ Optimize TUI1 performance for large node trees.
 ## Problem
 
 When viewing boards with many items (100+), the TUI may become sluggish due to:
+
 - Rendering all nodes even when not visible
 - Recalculating layout on every keystroke
 - No virtualization of lists
@@ -29,6 +32,7 @@ When viewing boards with many items (100+), the TUI may become sluggish due to:
 ## Measurement
 
 Before optimizing, establish baseline:
+
 - Time to render 100 items
 - Time to render 500 items
 - Memory usage patterns
@@ -39,3 +43,4 @@ Before optimizing, establish baseline:
 - apps/@km/tui/packages/@km/_orphan/ink/src/views/ListView.tsx
 - apps/@km/tui/packages/@km/_orphan/ink/src/views/TreeNode.tsx
 - apps/@km/tui/packages/@km/_orphan/ink/src/state.ts
+

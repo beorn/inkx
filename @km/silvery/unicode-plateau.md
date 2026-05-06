@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/unicode-plateau"
 aliases:
   - km-silvery.unicode-plateau
@@ -24,6 +27,10 @@ dependencies:
     created_at: 2026-04-23T03:24:07Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Unicode/text-sizing plateau — same shape as color-tier plateau @km/silvery #task #P1 @claude:c6244087
@@ -35,9 +42,10 @@ Per /pro review 2026-04-23. Mirrors the color-tier plateau just shipped (detectC
 Target: same plateau shape — createTerminalProfile is the sole env reader, every other consumer takes TerminalCaps/TerminalProfile.
 
 Phases:
-  1. @km/silvery/unicode-plateau/phase-1 — Canonicalize unicode + extended-underline detection inside createTerminalProfile; delete detectUnicode + detectExtendedUnderline; consumers take caps.
-  2. @km/silvery/unicode-plateau/phase-2 — text-sizing.ts becomes caps-only (no env fallback); isTextSizingLikelySupported(caps) required; fingerprint caps-derived.
-  3. @km/silvery/unicode-plateau/phase-3 — Extend lint-env-reads.ts allowlist shrinks (detection.ts + text-sizing.ts removed); sync docs (ansi.md, README, terminal-matrix.md, text-sizing.md).
+
+1. @km/silvery/unicode-plateau/phase-1 — Canonicalize unicode + extended-underline detection inside createTerminalProfile; delete detectUnicode + detectExtendedUnderline; consumers take caps.
+2. @km/silvery/unicode-plateau/phase-2 — text-sizing.ts becomes caps-only (no env fallback); isTextSizingLikelySupported(caps) required; fingerprint caps-derived.
+3. @km/silvery/unicode-plateau/phase-3 — Extend lint-env-reads.ts allowlist shrinks (detection.ts + text-sizing.ts removed); sync docs (ansi.md, README, terminal-matrix.md, text-sizing.md).
 
 Design doc: inline in this bead + phase beads. No separate design doc — mechanical plateau refactor, same pattern as 2026-04-23 color plateau.
 
@@ -53,3 +61,4 @@ Target after 3 phases:
   profile.ts ~605 LOC (+28 absorbed logic) 
   text-sizing.ts ~170 LOC (-45, removes env fallback + version parse)
   Net LOC: -97, 4 fewer public abstractions, 0 duplicated logic sites, 0 ambient env reads outside profile.ts.
+

@@ -34,3 +34,4 @@ thumb. The viewport is correct, but the visual affordance lies.
       visual semantics.
 
 Implemented current-scroll-geometry thumb rendering and active-drag grab-fraction preservation. Evidence: SILVERY_STRICT=1 bun vitest run --project vendor vendor/silvery/tests/features/scrollbar-component.test.tsx (14 passed); focused Storybook/ListView scroll suites passed; vendor/silvery typecheck passed.
+

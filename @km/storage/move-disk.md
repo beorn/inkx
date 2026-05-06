@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/storage/move-disk"
 aliases:
   - km-storage.move-disk
@@ -24,3 +27,4 @@ Classification: P1
 handleNodeMoved() only regenerates source/destination markdown files. If the moved node itself is a file or folder item, no filesystem move occurs and fs_path is not recalculated/cascaded. DB parentage and disk layout diverge.
 
 Suggested fix: Special-case item moves (node.item === true with file/folder fstype). Compute new path from destination folder, perform rename/mkdir, update/cascade fs_path, dirty affected index files.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/inbox/listener-leak"
 aliases:
   - km-listener-leak
@@ -9,3 +12,4 @@ assignee: beorn
 ---
 
 # [x] Fix event listener cleanup in board-effects.ts @km/_orphan #bug #P1 @beorn
+

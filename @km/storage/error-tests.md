@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/error-tests"
 aliases:
   - km-storage.error-tests
@@ -18,3 +21,4 @@ Error handling functions are untested:
 Affects retry behavior on transient filesystem errors (EACCES, ENOENT, etc).
 
 See docs/archive/sync-test-coverage.md for full analysis.
+

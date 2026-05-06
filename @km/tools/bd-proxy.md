@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tools/bd-proxy"
 aliases:
   - km-tools.bd-proxy
@@ -11,3 +14,4 @@ assignee: claude:1d8b0fc3
 ---
 
 # [x] Implement bd CLI proxy (replace native Commander.js impl) @km/tools #feature #P2 @claude:1d8b0fc3
+

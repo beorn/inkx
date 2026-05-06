@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/screen-rect-sticky"
 aliases:
   - km-silvery.screen-rect-sticky
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] screenRect doesn't account for sticky render offsets — need renderRect @km/silvery #task #P2
 
 screenRectPhase() only subtracts ancestor scroll offsets, not sticky renderOffset. For sticky children, screenRect is natural position not actual rendered position. Either document this or add renderRect/paintRect.
+

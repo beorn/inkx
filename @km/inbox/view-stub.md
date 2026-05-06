@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/view-stub"
 aliases:
   - km-view-stub
@@ -21,3 +24,4 @@ When running 'km view docs/principles.md' or any specific file path, the board i
 The background parsing eventually parses all files, but the board renders before parsing completes.
 
 Fix: When targeting a specific file that is a stub, parse that file eagerly before rendering the board.
+

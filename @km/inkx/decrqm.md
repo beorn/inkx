@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/decrqm"
 aliases:
   - km-inkx.decrqm
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] DECRQM — query terminal mode states @km/inkx #feature #P3
 
 Implement DEC Request Mode (DECRQM, CSI ? n $ p) to query current state of terminal modes: alt screen, cursor visibility, mouse tracking, sync output, bracketed paste, etc. Response: CSI ? n ; Ps $ y where Ps=1 (set), 2 (reset), 0 (unknown).
+

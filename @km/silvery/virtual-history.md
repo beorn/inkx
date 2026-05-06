@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/virtual-history"
 aliases:
   - km-silvery.virtual-history
@@ -15,3 +18,4 @@ assignee: claude:def7f8a1
 # [x] Virtual history + viewport composition @km/silvery #task #P1 @claude:def7f8a1
 
 Phase 3: Wire freeze pipeline through history strategy + viewport compositor. history={{ mode: virtual }} sends frozen items to HistoryBuffer. composeViewport() merges frozen + live rows. Scroll anchor preservation, resize reflow. Remove pushToScrollback frame-snapshot path from create-app.tsx.
+

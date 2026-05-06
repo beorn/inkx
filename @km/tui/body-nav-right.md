@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/body-nav-right"
 aliases:
   - km-tui.body-nav-right
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] l from body column goes to board title instead of next column @km/tui #bug #P2
 
 When pressing l from the virtual body/Description column of a .md file, cursor goes to board title first, then to the first structural column. Expected: l should go directly to the next column. Headless tests with item.paragraph() pass — may be specific to real file body content layout or ViewNavigation ordering.
+

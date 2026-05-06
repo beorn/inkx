@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/foot"
 aliases:
   - km-termless.foot
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] foot backend via C library @km/termless #task #P4
 
 Add foot as a termless backend via C FFI. Supports: full VT, Kitty KB, Sixel. Limitations: Linux-only (Wayland), C FFI.
+

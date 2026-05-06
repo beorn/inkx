@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/terminfo/svg-badges"
 aliases:
   - km-terminfo.svg-badges
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] SVG compatibility badges for terminal READMEs @km/terminfo #task #P3
+

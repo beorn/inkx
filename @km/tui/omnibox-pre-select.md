@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/omnibox-pre-select"
 aliases:
   - km-tui.omnibox-pre-select
@@ -19,6 +21,14 @@ dependencies:
     created_at: 2026-04-14T16:26:04Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-tui.omnibox-interactions
+      - type: link
+        target: km-tui.omnibox-unified
 ---
 
 # [ ] Cursor pre-select — propagate focused pane's cursor into new dialog (Phase 8) @km/tui #task #P1
@@ -35,3 +45,4 @@ Acceptance:
 (c) cmd-k → Enter becomes a no-op re-focus (the default command on the current cursor is goto → same cursor)
 (d) cmd-f → Shift+Enter runs create_at against the current cursor
 (e) feature flag (config option) disables pre-select for users who find it confusing
+

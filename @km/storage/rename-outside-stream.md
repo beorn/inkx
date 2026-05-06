@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/storage/rename-outside-stream"
 aliases:
   - km-storage.rename-outside-stream
@@ -24,3 +27,4 @@ Classification: P1
 handleFolderRename() and handleFileRename() perform db.run() side effects for fs_path, name, and title that are not emitted/journaled/broadcast. Breaks event-sourcing assumptions and can leave rebuild/subscriber behavior inconsistent.
 
 Suggested fix: Represent path changes as first-class committed state transitions: either explicit events (node_path_updated) or part of the mutation transaction. Let the file projector perform the actual FS rename.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/error-boundary"
 aliases:
   - km-silvery.error-boundary
@@ -16,3 +19,4 @@ assignee: claude:474834b0
 # [x] Built-in ErrorBoundary as default Root component @km/silvery #task #P2 @claude:474834b0
 
 Move ErrorBoundary out of Ink compat into silvery's default Root. Every silvery app gets error boundaries automatically — catches render errors, displays error + message + file location. Not Ink-specific.
+

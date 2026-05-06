@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/writequeue-simplify"
 aliases:
   - km-storage.writequeue-simplify
@@ -18,3 +20,4 @@ Change: direct writeFileSync(path, content). No atomic option. VS Code does this
 
 Remove: temp files, fsync, atomic rename, error classification complexity.
 Keep: debouncing, coalescing.
+

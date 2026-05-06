@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+  - km
+  - Bjørn
 id: "@km/all/reactive-tree-extract"
 aliases:
   - km-all.reactive-tree-extract
@@ -18,6 +22,10 @@ dependencies:
     created_at: 2026-04-18T21:05:16Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.reactive-tree-library
 ---
 
 # [x] Extract reactive-graph.ts to @km/reactive-tree workspace package @km/all #task #P2 @Bjørn Stabell
@@ -31,6 +39,7 @@ Extract apps/@km/tui/src/state/reactive-graph.ts to packages/reactive-tree/ as a
 Defer vendor/ submodule promotion until a second consumer exists — workspace package is reversible and avoids premature github-repo/npm-scope commitment. Same in-tree move as the silvery-internal → hub/silvery/ pattern applied in reverse.
 
 Scope:
+
 - Create packages/reactive-tree/ (package.json, tsconfig.json, CLAUDE.md, README.md)
 - Move reactive-graph.ts → packages/reactive-tree/src/index.ts (rename export surface)
 - Move tests (reactive-graph.test.ts) → packages/reactive-tree/tests/
@@ -40,6 +49,8 @@ Scope:
 - bun fix + bun run test:fast green
 
 Out of scope (future beads):
+
 - Phase 3: first-class topology events
 - Phase 4: strategy adapters
 - Promotion to vendor/ submodule + npm publish
+

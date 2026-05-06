@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/measure-clears-dirty"
 aliases:
   - km-silvery.measure-clears-dirty
@@ -17,3 +19,4 @@ owner: bjorn@stabell.org
 # [x] Measure phase clears contentDirty — biggest boundary violation @km/silvery #bug #P2
 
 In reconciler/nodes.ts, the text measure function sets node.contentDirty = false. This is the biggest phase boundary violation in the system. Measurement should not mutate render dirtiness. Forces content phase to carry compensating logic (paintDirty, textPaintDirty). GPT 5.4 pro calls this 'the sort of coupling that creates bugs forever.' Fix: use textContentVersion/measureVersion, leave render dirty semantics alone.
+

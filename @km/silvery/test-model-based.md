@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/test-model-based"
 aliases:
   - km-silvery.test-model-based
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Testing gap: model-based long-session state-machine fuzzing @km/silvery #task #P2
 
 Current tests are mostly render→action→compare. Missing: hundreds/thousands of mixed actions (keypress + resize + stdout write + suspend/unhide + theme swap + viewport change + cursor show/hide) in one session with incremental and ANSI verification. Found by GPT 5.4 pro.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/plugin-system-stores"
 aliases:
   - km-silvery.plugin-system-stores
@@ -34,3 +37,4 @@ Design specs:
   plugin-system-v1r.ts — V1 refined (apply returns false | Effect[])
   plugin-system-v2.ts — V2 exploration (kept as reference)
   prototype/aichat-v2/ — signals/models/commands validation
+

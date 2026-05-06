@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/bde2"
 aliases:
   - km-bde2
@@ -10,3 +12,4 @@ closed_at: 2026-01-21T12:14:56Z
 # [x] Update navigation (hjkl) to work with selectedNodeId @km/_orphan #task #P1
 
 Phase 5: Navigation keys should change selectedNodeId by finding adjacent nodes in the tree, not by manipulating cursor path indices. CURSOR_MOVE should resolve to node IDs.
+

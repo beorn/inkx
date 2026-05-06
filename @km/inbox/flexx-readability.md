@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/flexx-readability"
 aliases:
   - km-flexx-readability
@@ -9,3 +12,4 @@ assignee: claude:b8b4780b
 ---
 
 # [x] Refactor flexx layout-zero.ts into clear phases @km/_orphan #task #P1 @claude:b8b4780b
+

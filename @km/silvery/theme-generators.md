@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-generators"
 aliases:
   - km-silvery.theme-generators
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-17T22:37:43Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.design-system
 ---
 
 # [x] Theme generators — synthesize themes from partial input (fg/bg, brand color, accents) @km/silvery #feature #P3
@@ -50,3 +56,4 @@ generateScheme({ baseHue, isDark })                     // AI-friendly
 
 Full context: hub/silvery/design/v10-terminal/terminal-color-strategy.md
 Parent: @km/silvery/design-system
+

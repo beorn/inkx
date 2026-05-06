@@ -1,4 +1,9 @@
 ---
+mentions:
+  - silvery
+  - silvery
+  - km
+  - claude
 id: "@km/silvery/compat-refactor"
 aliases:
   - km-silvery.compat-refactor
@@ -16,8 +21,10 @@ assignee: claude:474834b0
 # [x] Move ink/chalk compat from @silvery/react to @silvery/compat @km/silvery #task #P2 @claude:474834b0
 
 Move all ink/chalk compatibility code out of @silvery/react into @silvery/compat:
+
 - useFocus, useFocusManager (ink-compat hooks)
 - measureElement/MeasureElementOutput (ink measurement API)
 - Flatten @silvery/react exports (remove /components, /hooks subpaths)
 - @silvery/react should contain only silvery's native API
 - @silvery/compat should contain everything for Ink/Chalk migration
+

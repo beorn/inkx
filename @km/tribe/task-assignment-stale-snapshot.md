@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tribe/task-assignment-stale-snapshot"
 aliases:
   - km-tribe.task-assignment-stale-snapshot
@@ -96,8 +99,13 @@ dependencies:
     created_at: 2026-04-27T22:09:42Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] Tribe task_assignment auto-regenerates stale bead snapshots, ignoring agent evidence + bead NOTES re-verification @km/tribe #bug #P2 @claude:cc081a9a
 
 blocks:: [[@km/tribe]]
+

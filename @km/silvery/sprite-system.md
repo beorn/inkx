@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/sprite-system"
 aliases:
   - km-silvery.sprite-system
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T16:19:22Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.opentui-parity
 ---
 
 # [ ] Renderable: Sprite/texture system (v3.0 graphics horizon) @km/silvery #feature #P4
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/silvery/opentui-parity]]
 
 Sprite batching + texture atlases for game-adjacent TUIs. Defers to v3.0 graphics horizon. OpenTUI ships this today as part of their terminal-game-engine scope.
+

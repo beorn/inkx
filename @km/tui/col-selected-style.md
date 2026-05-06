@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/col-selected-style"
 aliases:
   - km-tui.col-selected-style
@@ -13,3 +16,4 @@ assignee: claude:5770ce77
 # [x] Columns should have selected style (yellow bg?) when cursor is at column level @km/tui #bug #P3 @claude:5770ce77
 
 When cursor is at column level (header), the column should have a visible selected style. Currently it doesn't stand out visually. Consider yellow background or border treatment consistent with body block selection.
+

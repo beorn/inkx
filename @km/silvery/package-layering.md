@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - Bjørn
 id: "@km/silvery/package-layering"
 aliases:
   - km-silvery.package-layering
@@ -28,3 +32,4 @@ Stays in create: pipe, signal-store, tea, createSlice, streams, effects, text-cu
 Consumer impact: @km/tui imports from @silvery/create/plugins and @silvery/create/create-app — update ~10 files.
 
 After: create has ZERO imports from react, ag-react, or ag-term.
+

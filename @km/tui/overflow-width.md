@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/overflow-width"
 aliases:
   - km-tui.overflow-width
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Overflow indicator bar width should match selected card inverse bg width @km/tui #feature #P3
 
 All bar-like elements (overflow indicators, selection highlights) should be horizontally aligned within a column
+

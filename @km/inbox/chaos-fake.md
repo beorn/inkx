@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/chaos-fake"
 aliases:
   - km-chaos-fake
@@ -12,11 +14,14 @@ closed_at: 2026-01-23T11:37:10Z
 Extend FakeVault with chaos-specific capabilities.
 
 ## Methods to add
+
 - setNode/injectOrphan/injectDuplicate for state manipulation
 - getTransactionLog/getOrphanedNodes/getDuplicates for inspection
 - simulatePartialWrite/simulateCorruption for scenario triggers
 
 ## Benefit
+
 Test reconciliation/dedup logic without full vault init.
 
 Depends on: @km/_orphan/vault-fake
+

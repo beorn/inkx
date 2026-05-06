@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/ag-canvas/ux-polish"
 aliases:
   - km-silvery.ag-canvas.ux-polish
@@ -12,3 +15,4 @@ assignee: Bjørn Stabell
 ---
 
 # [x] Canvas UX polish: help dialog, search, hover tooltip, full keybindings @km/silvery #task #P2 @Bjørn Stabell
+

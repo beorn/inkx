@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/cmd/6-create-keybinding-resolution-layer"
 aliases:
   - km-cmd.6
@@ -11,6 +13,7 @@ closed_at: 2026-01-19T11:33:18Z
 # [x] Create keybinding resolution layer @km/cmd #task #P2
 
 ## Goal
+
 Map keyboard input to command IDs, separate from command execution.
 
 ## Design
@@ -28,6 +31,7 @@ function resolveKeybinding(key, modifiers, ctx): string | null
 ```
 
 ## Default Keybindings
+
 - Navigation: j/k/h/l, arrows, g/G, H/L, [/], Enter/Backspace
 - Edit: Alt+arrows, Tab/Shift-Tab, d
 - Selection: v/V, Ctrl+A, Esc, Shift+arrows
@@ -35,8 +39,10 @@ function resolveKeybinding(key, modifiers, ctx): string | null
 - View: </>, +/-, z/Z
 
 ## Acceptance Criteria
+
 - [ ] Mode-aware resolution
 - [ ] Modifier key handling
 - [ ] Conditional bindings with `when`
 - [ ] Default keybindings registered
 - [ ] Unit tests
+

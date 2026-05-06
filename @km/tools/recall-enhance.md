@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tools/recall-enhance"
 aliases:
   - km-tools.recall-enhance
@@ -15,6 +17,7 @@ Implement Cloudi's ADR01 memory system as a core km package. Cloudi integrates i
 ## Vision
 
 km is the externalized brain for both humans and AI agents. The SPO triple store provides:
+
 - **Agent memory**: recall/remember/retract across sessions
 - **Entity modeling**: Contacts, Events, Tasks as schema'd entities
 - **External sync**: CardDAV, CalDAV, Google via entity shaping
@@ -44,6 +47,7 @@ km is the externalized brain for both humans and AI agents. The SPO triple store
 ## Why Full SPO (Not Just Tagged Text)
 
 Tagged text entries with cognitive types would suffice for agent memory alone. But km needs SPO because:
+
 - **Entity sync** requires decomposing contacts/events into fields (CardDAV, CalDAV)
 - **Entity shaping** projects statements into typed objects (Contact, Event, Task)
 - **Relationship queries** enable "who attended meeting X?" or "what does Alice work on?"
@@ -53,6 +57,7 @@ Tagged text entries with cognitive types would suffice for agent memory alone. B
 ## Cloudi ADR01 Spec (Foundation)
 
 11 spec documents covering:
+
 - Statement schema (SPO triples with ENGRAM cognitive types)
 - Transcript vs Operation source types
 - Schema-guided LLM extraction pipeline
@@ -76,13 +81,13 @@ Location: ~/Code/pim/cloudi/specs/active/ADR01/
 
 ## Entity Schemas
 
-| Entity | Source | Sync Target |
-|--------|--------|-------------|
+| Entity  | Source                                          | Sync Target              |
+| ------- | ----------------------------------------------- | ------------------------ |
 | Contact | markdown nodes, Cloudi channels, CardDAV import | CardDAV, Google Contacts |
-| Event | markdown nodes, Cloudi channels, CalDAV import | CalDAV, Google Calendar |
-| Task | km task nodes, Cloudi channels | (internal) |
-| Project | km project nodes | (internal) |
-| Code | session extraction, git logs | (internal) |
+| Event   | markdown nodes, Cloudi channels, CalDAV import  | CalDAV, Google Calendar  |
+| Task    | km task nodes, Cloudi channels                  | (internal)               |
+| Project | km project nodes                                | (internal)               |
+| Code    | session extraction, git logs                    | (internal)               |
 
 ## Failure Modes to Plan For (from deep research)
 
@@ -108,6 +113,7 @@ Plus km integration:
 ## Package Location
 
 New shared package: `packages/km-memory/` (or `packages/memory/`)
+
 - Core: SPO schema, stores, retrieval, tools (shared with Cloudi)
 - km adapter: SQLite backend, node integration, markdown sync
 - Cloudi adapter: channel integration, external sync
@@ -121,3 +127,4 @@ New shared package: `packages/km-memory/` (or `packages/memory/`)
 - Deep research (O3, 2026-02-15): failure modes, hybrid ingestion, production system comparison
 - plain-brain.md: brain/body architecture
 - memory-systems-analysis.md: ENGRAM/AutoMem/Hindsight comparison
+

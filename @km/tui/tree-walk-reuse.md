@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/tree-walk-reuse"
 aliases:
   - km-tui.tree-walk-reuse
@@ -20,25 +22,22 @@ Survey completed. Tree-walking primitives and reduced signals have broad reuse p
 ### REFRAME opportunities (changes how we think)
 
 1. **ProjectedReducer** — fuse ProjectedMap + tree reduction into one pipeline. All per-node state computed via unified tree reduction, not scattered signal bags. Merges view-tree-projection + reactive.ts + tree-concerns.ts.
-
 2. **Concern-driven visibility** — collapse/card-filter/task-filter should be orthogonal "concerns" with direction semantics, not independent filters merged in visible-lens.
-
 3. **Monadic tree reductions** — tree.descendants(set) and tree.ancestors(set) as two primitives replacing expandWithDescendants(), manual ancestor walks in 3+ files, and TreeConcernEngine's walkDown/walkUp.
-
 4. **Clean data/signal boundary** — TreeLens = data, ViewTree = signals. Currently ViewTree is both.
 
 ### Concrete reuse sites (9 manual walks found)
 
-| File | Walk type | Replacement |
-|------|-----------|-------------|
-| navigate-to-node.ts:126 | ancestor chain | tree.up(nodeId) |
-| board-selection-helpers.ts:33 | parent walk + early exit | tree.up(nodeId).find() |
-| ui-context.tsx:120 findBoardRootId | ancestor walk for fs_path | tree.up(nodeId).find(n => n.fs_path) |
-| reactive.ts syncCursor | 4 derived signals from cursor | tree.ancestors(cursor) derivation |
-| reactive.ts expandWithDescendants | recursive DFS | tree.descendants(set) |
-| visible-lens.ts:180 walkOrder | iterative DFS with stack | [...tree.down(rootId)] |
-| view-lens.ts computeColumnChildren | manual children + cache | reduced signal |
-| flexily layout-traversal.ts | dirty flag + position delta DFS | tree.down(node) |
+| File                               | Walk type                       | Replacement                          |
+| ---------------------------------- | ------------------------------- | ------------------------------------ |
+| navigate-to-node.ts:126            | ancestor chain                  | tree.up(nodeId)                      |
+| board-selection-helpers.ts:33      | parent walk + early exit        | tree.up(nodeId).find()               |
+| ui-context.tsx:120 findBoardRootId | ancestor walk for fs_path       | tree.up(nodeId).find(n => n.fs_path) |
+| reactive.ts syncCursor             | 4 derived signals from cursor   | tree.ancestors(cursor) derivation    |
+| reactive.ts expandWithDescendants  | recursive DFS                   | tree.descendants(set)                |
+| visible-lens.ts:180 walkOrder      | iterative DFS with stack        | [...tree.down(rootId)]               |
+| view-lens.ts computeColumnChildren | manual children + cache         | reduced signal                       |
+| flexily layout-traversal.ts        | dirty flag + position delta DFS | tree.down(node)                      |
 
 ### Cross-package opportunities
 
@@ -54,3 +53,4 @@ Survey completed. Tree-walking primitives and reduced signals have broad reuse p
 ## Relationship to hierarchical-node-state
 
 Phase 1 of hierarchical-node-state builds the core engine. These reuse opportunities become available AFTER Phase 1 lands. Not blockers — follow-up work.
+

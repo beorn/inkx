@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/typed-tokens-matchers"
 aliases:
   - km-silvery.typed-tokens-matchers
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-18T10:45:13Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.theme-system-v2
 ---
 
 # [x] TypeScript-enforced ThemeToken union + test matchers @km/silvery #task #P3
@@ -27,3 +33,4 @@ dependencies:
 blocks:: [[@km/silvery/theme-system-v2]]
 
 Type-safe token strings + test assertions.\n\nTypes:\n  type ThemeToken = union of all known tokens + brand hues + variants\n  type TextColor = ThemeToken | 'inherit' | 'currentColor' | (string & {})\n\n(string & {}) keeps string-assignable while preserving autocomplete.\n\nTest matchers:\n  expect(cell).toHaveToken('$bg-cursor')\n  expect(cell).toResolveToken('$primary', '#BD93F9')\n  expect(app.card('x')).toUseToken('fg', '$fg')\n\nDepends on: token-rename-primer (needs final names)\nSpec: hub/silvery/design/v10-terminal/theme-system-v2-plan.md#p8
+

@@ -1,7 +1,4 @@
 ---
-tags:
-  - task
-  - P0
 mentions:
   - km
 id: "@km/silvery/custom-protocol-implementation-review"
@@ -23,3 +20,4 @@ Acceptance:
 - [ ] Add focused conformance tests for parser edge cases, serialization escaping, cursor preservation, scroll/clipping behavior, and unsupported-feature behavior.
 - [ ] Document known gaps with follow-up beads.
 - [ ] Fail loudly on unrecognized protocol variants instead of silently dropping them.
+

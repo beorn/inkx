@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/pane-management"
 aliases:
   - km-silvercode.pane-management
@@ -27,6 +30,10 @@ dependencies:
     created_at: 2026-04-25T00:27:44Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Better pane management: borders, drag-resize, split keybindings, focused-pane indicator @km/silvercode #feature #P2 @claude:2405c72e
@@ -51,6 +58,7 @@ Each pane gets a border (single-line by default). Active pane's border is highli
 ### 3. Header buttons
 
 Each pane has a small header strip (1-2 rows) with:
+
 - **Title** — session ID (now that the SidePanel shows ids only)
 - **Add** — \`+\` icon → spawn new session in adjacent split
 - **Move** — \`⇄\` icon → enter move mode (or drag title)
@@ -60,6 +68,7 @@ Each pane has a small header strip (1-2 rows) with:
 ### 4. Keybindings to split
 
 Mirror tmux/Zellij conventions:
+
 - \`Ctrl+B v\` (or \`Cmd+D\`) — vertical split (right)
 - \`Ctrl+B s\` (or \`Cmd+Shift+D\`) — horizontal split (below)
 - \`Ctrl+B x\` — close current pane
@@ -110,3 +119,4 @@ silvercode uses silvery's grid layout (probably \`<Box flexDirection="row">\` wi
 
 - \`km-silvercode.ctrl-b-background\` (P2, in-progress) — Ctrl+B chord conflict to resolve
 - \`km-silvercode.multi-account\` (closed P2) — multi-account spawning is the source of "many panes" in the first place
+

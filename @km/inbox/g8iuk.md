@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/g8iuk"
 aliases:
   - km-g8iuk
@@ -14,3 +17,4 @@ assignee: claude:b92140a2
 # [x] P0: Index file body content silently discarded on rewrite @km/_orphan #bug #P0 @claude:b92140a2
 
 handleFolderIndexUpdate() always passes empty string for body: generateIndexFileContent(title, '', ...). Any user-authored prose in the index file is erased by folder updates, child moves, or deletions. Fix: read existing index subtree, preserve non-slot body, patch only title+slots.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tribe/recall-quality-gate"
 aliases:
   - km-tribe.recall-quality-gate
@@ -24,13 +27,17 @@ dependencies:
     created_at: 2026-04-21T14:01:50Z
     created_by: claude:7e9436e8
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] Recall quality gate — reject corrupted/decayed/stuck-loop sessions at index + query time @km/tribe #bug #P1 @claude:87d20187
 
 blocks:: [[@km/tribe]]
 
-# The bug
+## The bug
 
 vault-2 reported UserPromptSubmit additionalContext contained three distinct corruption classes simultaneously:
 
@@ -65,3 +72,4 @@ Files to touch:
 ## Relation to @km/_orphan/ambot
 
 Same 'bad data reaching the model' family, different cause. @km/_orphan/ambot was about non-user content conflated with user intent. This is about corrupted content getting treated as real content. The envelope library + authority gate do not handle this — they defend against malicious-but-coherent injection, not decayed-or-broken content. Fix lives upstream at the indexer.
+

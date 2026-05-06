@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/commands/position-type"
 aliases:
   - km-commands.position-type
@@ -40,20 +42,21 @@ interface Position { parentId: string; childIdx: number }  // -1 = last, 0 = fir
 
 `resolveLocationKey(key, cursor, repo) → Position | { pick }`
 
-| Key | to | Notes |
-|-----|-----|-------|
-| h | { parentId: @nextId, childIdx: -1 } | resolve('@next') |
-| i | { parentId: @inboxId, childIdx: -1 } | resolve('@inbox') |
-| g | { parentId: cursor.parentId, childIdx: 0 } | first sibling |
-| G | { parentId: cursor.parentId, childIdx: -1 } | last sibling |
-| p | { parentId: grandparentId, childIdx: parentIdx } | parent's slot — works for both goto and move |
-| 1-9 | { parentId: favId, childIdx: -1 } | getFavorite(key) |
-| # | { pick: '#' } | sigil filter |
-| @ | { pick: '@' } | sigil filter |
-| + | { pick: '+' } | sigil filter |
-| [ | { pick: '' } | no filter (any node) |
+| Key | to                                               | Notes                                        |
+| --- | ------------------------------------------------ | -------------------------------------------- |
+| h   | { parentId: @nextId, childIdx: -1 }              | resolve('@next')                             |
+| i   | { parentId: @inboxId, childIdx: -1 }             | resolve('@inbox')                            |
+| g   | { parentId: cursor.parentId, childIdx: 0 }       | first sibling                                |
+| G   | { parentId: cursor.parentId, childIdx: -1 }      | last sibling                                 |
+| p   | { parentId: grandparentId, childIdx: parentIdx } | parent's slot — works for both goto and move |
+| 1-9 | { parentId: favId, childIdx: -1 }                | getFavorite(key)                             |
+| #   | { pick: '#' }                                    | sigil filter                                 |
+| @   | { pick: '@' }                                    | sigil filter                                 |
+| +   | { pick: '+' }                                    | sigil filter                                 |
+| [   | { pick: '' }                                     | no filter (any node)                         |
 
 ## Plan File
+
 /Users/beorn/.claude/plans/fluttering-honking-snowflake.md
 
 ## Phases
@@ -63,4 +66,6 @@ interface Position { parentId: string; childIdx: number }  // -1 = last, 0 = fir
 3. **Extract + test** — kill TargetResolver, extract position-resolver.ts, comprehensive verb×location matrix tests.
 
 ## Status
+
 Planning complete. Design v7 finalized. Ready for Phase 1.
+

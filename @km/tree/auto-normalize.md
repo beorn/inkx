@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tree/auto-normalize"
 aliases:
   - km-tree.auto-normalize
@@ -17,6 +19,7 @@ SlateJS runs normalizeNode() after every operation. km has schema.ts (canHaveChi
 Add: normalize(tree) pass that runs after every TreeMutator operation.
 Extensible: plugins can add custom normalizers (like SlateJS withNormalization).
 Default normalizers:
+
 - Items can only be type "h" (outline)
 - Blocks cannot have children
 - Tasks require item
@@ -26,3 +29,4 @@ Pattern: editor.normalizeNode = (entry, next) => { /* check */ next(entry) }
 
 Related: SlateJS enforces these constraints automatically, preventing illegal states.
 km currently allows them and relies on code discipline.
+

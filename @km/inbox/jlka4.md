@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/jlka4"
 aliases:
   - km-jlka4
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Pipeline takes Term: caps flow from terminal @km/_orphan #feature #P1
 
 Move TerminalCaps to chalkx, add createWidthMeasurer/createOutputPhase factories, withRender plugin, remove globals
+

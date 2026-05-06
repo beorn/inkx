@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/detail-border-black"
 aliases:
   - km-tui.detail-border-black
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Detail pane: right border segments render black instead of border color @km/tui #bug #P2
+

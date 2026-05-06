@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/bearly/system-unification"
 aliases:
   - km-bearly.system-unification
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-17T15:31:25Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-bearly
 ---
 
 # [x] Tribe system unification — fold lore into tribe, unify CLI/MCP/env @km/bearly #task #P2 @Bjørn Stabell
@@ -34,21 +41,26 @@ Major restructure from /big audit. Three packages remain:
 ## Phases
 
 Phase 0 — Fold @bearly/lore into @bearly/tribe
-  - plugins/lore/src/* → plugins/tribe/src/lore/* (or flat under plugins/tribe/src/)
-  - Remove @bearly/lore package.json; remove from npm-packages.md
-  - Update all imports (recall hooks, km .mcp.json, km CLAUDE.md references)
+
+- plugins/lore/src/* → plugins/tribe/src/lore/* (or flat under plugins/tribe/src/)
+- Remove @bearly/lore package.json; remove from npm-packages.md
+- Update all imports (recall hooks, km .mcp.json, km CLAUDE.md references)
 
 Phase 1 — tribe install + hook rename
-  - Add 'tribe hook <event>' subcommands (session-start, prompt, session-end, pre-compact)
-  - Add 'tribe install' / 'tribe uninstall' / 'tribe doctor' — one-shot setup
-  - Deprecate 'bun recall session-start' etc. (keep as shims)
+
+- Add 'tribe hook <event>' subcommands (session-start, prompt, session-end, pre-compact)
+- Add 'tribe install' / 'tribe uninstall' / 'tribe doctor' — one-shot setup
+- Deprecate 'bun recall session-start' etc. (keep as shims)
 
 Phase 2 — MCP namespace unification under tribe.*
-  - lore.ask → tribe.ask, lore.current_brief → tribe.brief, etc.
-  - tribe_send → tribe.send, etc. (dot convention)
-  - Deprecation window: both names work with old names logged as deprecated
+
+- lore.ask → tribe.ask, lore.current_brief → tribe.brief, etc.
+- tribe_send → tribe.send, etc. (dot convention)
+- Deprecation window: both names work with old names logged as deprecated
 
 Phase 3 — Env prefix TRIBE_*
-  - LORE_* + RECALL_* → TRIBE_* with compat aliases (one warning per daemon startup)
+
+- LORE_* + RECALL_* → TRIBE_* with compat aliases (one warning per daemon startup)
 
 Out of scope: @bearly/llm and @bearly/recall stay separate. @bearly/refactor, tty, worktree unchanged.
+

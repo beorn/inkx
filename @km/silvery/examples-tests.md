@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/examples-tests"
 aliases:
   - km-silvery.examples-tests
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-26T16:22:36Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.fix-sweep-vendor-fuzz
 ---
 
 # [x] [bug] vendor/silvery examples — 3 failures (2 files) @km/silvery #bug #P2 @claude:cc081a9a
@@ -27,3 +34,4 @@ dependencies:
 blocks:: [[@km/all/fix-sweep-vendor-fuzz]]
 
 ai-chat.test.tsx (2: lines 110, 153), aichat-inline-bugs.test.tsx (1: line 328). /complete: bun vitest run --project vendor vendor/silvery/tests/examples/ai-chat.test.tsx vendor/silvery/tests/examples/aichat-inline-bugs.test.tsx → 0 failures.
+

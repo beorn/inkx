@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/loggily/collectspans-testing"
 aliases:
   - km-loggily.collectspans-testing
@@ -16,6 +18,10 @@ dependencies:
     created_at: 2026-04-11T16:37:21Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-loggily
 ---
 
 # [x] Porcelain API: collectSpans() — testing helper for span assertions @km/loggily #feature #P2
@@ -23,3 +29,4 @@ dependencies:
 blocks:: [[@km/loggily]]
 
 Enable/disable span collection for testing; collectSpans().spans() returns array of emitted spans. Eliminates need to patch the writer or inspect internals.
+

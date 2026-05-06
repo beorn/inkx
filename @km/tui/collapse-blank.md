@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/collapse-blank"
 aliases:
   - km-tui.collapse-blank
@@ -13,3 +16,4 @@ assignee: claude:124bfbe5
 # [x] Board blank after ignore/collapse @km/tui #bug #P2 @claude:124bfbe5
 
 After ignoring or collapsing a column, the board doesn't redraw and appears blank
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/edit-focus-ring"
 aliases:
   - km-tui.edit-focus-ring
@@ -23,3 +26,4 @@ Cyan border = 'you are typing here.' Reserved exclusively for active text input 
 **Dialog input fields**: Search, NewItem, DatePrompt, ProjectPicker — input field area inside dialog gets cyan border. Dialog OUTER border must NOT be cyan — use neutral color (white/gray).
 
 **Cyan exclusivity**: No non-editable UI element uses cyan border. Change ModalDialog default from cyan to neutral. Change HelpOverlay, DetailPane cyan borders to neutral.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/fit-content-clamp"
 aliases:
   - km-silvery.fit-content-clamp
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-11T21:29:16Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] fit-content ignores parent available width — children overflow narrow containers @km/silvery #bug #P1 @Bjørn Stabell
@@ -36,3 +43,4 @@ Regression tests (all test.fails): vendor/silvery/tests/features/pretext-layout.
 - "two flexGrow=1 columns stay within the terminal width"
 
 Fix location: vendor/silvery/packages/ag-term/src/pipeline/measure-phase.ts — measurePhase() calls node.layoutNode.setWidth(intrinsicSize.width) without reading parent available width. Should use a Yoga measure function so Yoga calls with available width during layout, OR compute min(max-content, available-width) post-layout.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/item-as-object"
 aliases:
   - km-all.item-as-object
@@ -18,3 +20,4 @@ Currently item-specific properties (list_marker, task_marker, task_status, embed
 Benefits: cleaner data boundary, single type check for item vs block, no scattered fields.
 Risk: large migration — touches every consumer of task_marker/list_marker/embed_source.
 Prerequisite: CursorContext (@km/tui/cursor-context) — do that first.
+

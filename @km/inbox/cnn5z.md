@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/cnn5z"
 aliases:
   - km-cnn5z
@@ -11,3 +14,4 @@ assignee: claude:124bfbe5
 ---
 
 # [x] TUI: Shift-J single press selects only 1 item, batch ops skip anchor node @km/_orphan #bug #P2 @claude:124bfbe5
+

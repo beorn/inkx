@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/flexx-diag-passes"
 aliases:
   - km-flexx-diag-passes
@@ -11,3 +14,4 @@ assignee: claude:b8b4780b
 # [x] Deep nesting diagnosis: add pass counters @km/_orphan #task #P0 @claude:b8b4780b
 
 Add pass counters to layout-zero.ts to diagnose deep nesting O(n²) issue. CRITICAL: 450x slower than Yoga is unacceptable for drop-in Yoga goal. Must diagnose and fix before FOSS release.
+

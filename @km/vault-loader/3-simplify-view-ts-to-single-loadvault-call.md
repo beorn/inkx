@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/vault-loader/3-simplify-view-ts-to-single-loadvault-call"
 aliases:
   - km-vault-loader.3
@@ -14,3 +16,4 @@ Replace mode branching with unified call:
 
 Before: 40+ lines of if/else for memory vs disk mode
 After: yield* storageModule.loadVault(vaultRoot)
+

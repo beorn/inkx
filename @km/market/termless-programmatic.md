@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/market/termless-programmatic"
 aliases:
   - km-market.termless-programmatic
@@ -15,3 +18,4 @@ assignee: claude:4929065a
 ---
 
 # [x] termless.dev programmatic pages: per-matcher, per-backend generated docs @km/market #feature #P3 @claude:4929065a
+

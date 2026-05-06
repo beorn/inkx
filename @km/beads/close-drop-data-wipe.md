@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beads/close-drop-data-wipe"
 aliases:
   - km-beads.close-drop-data-wipe
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-27T18:54:57Z
     created_by: claude:da9990c5
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-beads
 ---
 
 # [x] bd close / bd drop wipe data.id, aliases via partial updates.data write @km/beads #bug #P2
@@ -31,3 +37,4 @@ closeIssueFields and dropIssueFields in mutations.ts have the same structural fl
 Fix: accept currentData in closeIssueOptions / dropIssueOptions, merge into the partial. Symmetric to the fix in commit d14054dd6.
 
 Repro: cd /tmp/@km/_orphan/bd-sample-11544; bun km bd close <id> --reason='done'; check json_extract(data, '$.id') in state.db.
+

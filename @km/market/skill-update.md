@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/skill-update"
 aliases:
   - km-market.skill-update
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Update /marketing skill — add /marketing seo, check, status commands @km/market #task #P1
 
 Add /marketing seo <site> (full audit via agents), /marketing check (quick spot-check), improve /marketing status with live SEO scores. Fix stale execution tracker entries. Connect SEO agent types to marketing workflow.
+

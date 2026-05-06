@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/bearly/llm-dual-pro-shadow-test"
 aliases:
   - km-bearly.llm-dual-pro-shadow-test
@@ -28,6 +31,14 @@ dependencies:
     created_at: 2026-04-27T00:05:11Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-bearly
+      - type: link
+        target: km-bearly.llm-registry-split
 ---
 
 # [x] Dual-pro with shadow challenger + judge scoring + human-gated promotion @km/bearly #feature #P2 @claude:2405c72e
@@ -94,6 +105,7 @@ Env overrides: `LLM_CHALLENGER_POOL`, `LLM_DUAL_PRO_B` (existing), `LLM_JUDGE_MO
 ### Promotion conversation
 
 `bun llm pro --promote-review`:
+
 - Shows leaderboard table
 - Shows 3 sample queries where models diverged
 - Asks: promote / keep watching / promote-and-demote / cancel
@@ -136,3 +148,4 @@ Sequence: registry-split FIRST (P1), then this feature on top of the cleaner reg
 - /tmp/llm-2405c72e-adversarial-review-of-the-292y.txt — the review that surfaced this
 - Existing A/B log: ~/.claude/projects/<proj>/memory/ab-pro.jsonl (already wired in dispatch.ts:runProDual)
 - Existing dual-pro: vendor/bearly/plugins/llm/src/lib/dispatch.ts:runProDual + appendAbProLog
+

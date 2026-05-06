@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - F
 id: "@km/silvery/virtual-inline"
 aliases:
   - km-silvery.virtual-inline
@@ -21,10 +26,10 @@ assignee: claude:def7f8a1
 Terminal TUI apps face a fundamental trade-off between rendering quality and native terminal UX:
 
 - **Normal scrollback mode** (what Claude Code / silvery inline mode uses): The app redraws the viewport dozens of times per second. When content exceeds viewport height, rows push into scrollback. Rendering offscreen or resizing requires clearing scrollback → causes flickering. Claude Code rewrote their renderer to diff cells and emit minimal escape sequences, reducing flicker ~85%, but it's still imperfect.
-
 - **Alternate screen mode** (what vim/emacs use): The terminal switches to a separate buffer where the app has full control over scrolling, rendering, and cursor. Eliminates flickering entirely. But you lose native terminal features: **Cmd+F search**, **text selection**, **copy/paste**, and **scrollback history**.
 
 Boris Cherny (Claude Code creator) on this trade-off ([Threads, 2026-03](https://www.threads.com/@boris_cherny/post/DSZbe5nCLkg/)):
+
 > "However, you no longer get native terminal experiences for things like Cmd+F search, text selection, and copy/paste. We value this native experience a lot. We may explore alternate screen mode in the future, but our bar is quite high."
 
 ## Proposal
@@ -55,3 +60,4 @@ This is a general-purpose TUI framework feature. Any silvery app (not just km) w
 - Can OSC 52 clipboard reliably replace native Cmd+C across terminals? (Works in Ghostty, iTerm2, WezTerm, Kitty; broken in Apple Terminal, some SSH)
 - Should this be opt-in (`alternateScreen + virtualInline`) or the new default for fullscreen apps?
 - How to handle terminal emulators that don't support required protocols (graceful degradation to current inline mode?)
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/storage/last-write-wins-no-mtime"
 aliases:
   - km-storage.last-write-wins-no-mtime
@@ -21,3 +24,4 @@ Repro: open km on a vault, enter edit mode, externally edit the file (echo >> fi
 @km/storage/src/watch/sync.ts conflictStrategy='last_write_wins' is really 'km_always_wins'. Never checks mtime/hash before write.
 
 Fix: detect mtime/hash mismatch before write. On conflict: prompt resolution OR write .conflict backup OR refuse to write.
+

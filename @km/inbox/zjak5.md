@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/zjak5"
 aliases:
   - km-zjak5
@@ -14,3 +17,4 @@ assignee: claude:73d7a332
 ---
 
 # [x] useStderr: move from compat to silvery core @km/_orphan #task #P2 @claude:73d7a332
+

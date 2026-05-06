@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/text-flatten-dry"
 aliases:
   - km-silvery.text-flatten-dry
@@ -17,3 +19,4 @@ owner: bjorn@stabell.org
 # [x] DRY: Text flattening logic duplicated 5x and drifting @km/silvery #task #P2
 
 collectTextContent/collectNodeTextContent duplicated in reconciler/nodes.ts, measure-phase.ts, render-text.ts (2x), content-phase-adapter.ts. Already drifting: reconciler handles internal_transform, measure doesn't. Need one shared module with modes.
+

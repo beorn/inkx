@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/hagm6"
 aliases:
   - km-hagm6
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] ink.ts: extract stack parsing utils to shared module @km/_orphan #task #P4
+

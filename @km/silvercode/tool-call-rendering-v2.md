@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/tool-call-rendering-v2"
 aliases:
   - km-silvercode.tool-call-rendering-v2
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-28T12:35:20Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [ ] Tool-call rendering — opencode-style: blend in, leading →, no bg, no heavy yellow, type differentiation, collapse repeats @km/silvercode #feature #P1
@@ -24,6 +30,7 @@ Redesign the tool-call surface in the chat to match opencode's calm density.
 Reference screenshots: ~/Desktop/screenshots/Screenshot 2026-04-25 at 23.19.01.png + 23.41.18 + 00.02.09. Source repo: ~/Code/opencode.
 
 What changes:
+
 - Drop bg color and heavy yellow border on tool-call rows. Tool calls should BLEND IN with prose, not pop.
 - Leading glyph = '→' (single arrow) followed by the verb + path. NO emojis. e.g. '→ Read README.md', '→ Glob "src/**/*.ts"', '→ Bash ls -la …'.
 - Differentiate tool TYPE via the verb token + subtle color (still semantic): Read/Glob/Grep get a calm cyan, Write/Edit get a calm green, Bash gets a neutral fg, errors red.
@@ -35,6 +42,7 @@ What changes:
 Files: apps/silvercode/src/components/ToolCall.tsx, ToolCallSummary.tsx, ToolCallStatusTitle.tsx, possibly SessionUpdateList.tsx (gap rules).
 
 Acceptance:
+
 - No 'borderColor=$warning' on idle/successful tool calls
 - No bg color on tool-call container
 - Leading '→ <verb> <args>' format, single line for collapsed
@@ -44,3 +52,4 @@ Acceptance:
 - termless test: 5 successive Read calls render as 5 contiguous rows with no blank row between
 - termless test: hover on a row reveals the body; cursor away hides it
 - termless test: failed call renders red verb token, body still indented + no border
+

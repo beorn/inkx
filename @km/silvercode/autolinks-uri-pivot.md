@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/autolinks-uri-pivot"
 aliases:
   - km-silvercode.autolinks-uri-pivot
@@ -23,6 +26,10 @@ dependencies:
     created_at: 2026-04-25T08:38:11Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.autolinks-config
 ---
 
 # [x] Autolinks: URI-scheme pivot — pattern→URI linkifier + URI→preview handler dispatch @km/silvercode #feature #P3 @claude:2405c72e
@@ -84,14 +91,11 @@ handlers:
 ## Plan (incremental, no breaking change)
 
 1. **Internal factor (no schema change):**
-   - Each rule's `resolves_to` parsed as URI. Infer scheme from value shape (path → `file:`, bead-id → `bd:`, URL → as-is) when not explicit.
-   - Handler registry keyed by scheme. `resolvePreview(rule, match)` becomes `resolveURI(rule.toURI(match))`. Dispatch by scheme.
-   - Hardcode v2 handlers: file, bd, https, shell, mcp. No `[[handlers]]` config block yet.
-
+  - Each rule's `resolves_to` parsed as URI. Infer scheme from value shape (path → `file:`, bead-id → `bd:`, URL → as-is) when not explicit.
+  - Handler registry keyed by scheme. `resolvePreview(rule, match)` becomes `resolveURI(rule.toURI(match))`. Dispatch by scheme.
+  - Hardcode v2 handlers: file, bd, https, shell, mcp. No `[[handlers]]` config block yet.
 2. **Win immediately:** plain URLs in messages get linkified through the same pipeline (`https://github.com/foo/bar/pull/123` → webcard preview without any rule).
-
 3. **Defer schema change:** `[[handlers]]` block stays unimplemented until first user wants to override defaults. Additive on top of the registry when added.
-
 4. **doctor checker:** list registered handlers, scheme coverage of all rules, fallback-to-text URIs, dead handlers (registered but no rules use them).
 
 ## Supersession
@@ -117,3 +121,4 @@ Per user pref: schema in YAML (`.silvercode/links.yaml` once we migrate from TOM
 - VS Code DocumentLinkProvider + UriHandler API
 - Obsidian's wiki-link + URL handling
 - macOS NSDataDetector for the rich-card UX bar
+

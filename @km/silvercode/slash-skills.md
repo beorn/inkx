@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/slash-skills"
 aliases:
   - km-silvercode.slash-skills
@@ -13,3 +16,4 @@ assignee: claude:acc2e8e3
 # [/] Slash palette: merge skills array alongside slash_commands @km/silvercode #feature #P2 @claude:acc2e8e3
 
 The session-init event already exposes a skills[] array (sdk-adapter.ts:112, session-store.ts:52). Currently SlashCommandPalette only merges slashCommands[]. Skills are invocable via /<skill-name> in Claude Code — palette should surface them too.
+

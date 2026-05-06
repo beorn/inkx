@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/silent-failures"
 aliases:
   - km-storage.silent-failures
@@ -34,3 +37,4 @@ F9. pipeline.ts:116 — Parse errors yield permanent stubs (silently)
 F10. deferred-parsing.ts:314 — Per-file parse errors at DEBUG only
 
 Fix agent running on F1-F5. Principle: programming errors throw, filesystem errors log+continue.
+

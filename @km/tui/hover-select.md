@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/hover-select"
 aliases:
   - km-tui.hover-select
@@ -19,12 +22,15 @@ assignee: claude:c0da815b
 Two hover interaction modes for interactive UI elements:
 
 **hover-over** = show entire element as selectable (very faint highlight effect)
+
 - click = selects/unselects the element
 
 **cmd-hover-over** = show entire element as clickable (click navigates/opens)
+
 - click = zoom into / open the element
 
 **Applies to:**
+
 - Breadcrumb segments
 - Item titles (acts as handle for the item)
 - Cards (entire card shows hover effect)
@@ -32,3 +38,4 @@ Two hover interaction modes for interactive UI elements:
 **Depends on:** @km/silvery/link-arm-variant (for the arm-on-hover Link variant and OSC 8 fix)
 
 **TBD:** exact visual treatment for faint hover highlight, interaction details.
+

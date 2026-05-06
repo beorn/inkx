@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/termless-keybinding-tests"
 aliases:
   - km-infra.termless-keybinding-tests
@@ -29,14 +32,16 @@ Test: press key → verify the expected command ID appears in status/diagnostics
 ```
 
 **Architecture**:
+
 1. Extract all keybindings from `defaultKeybindingLayers()`
 2. For each backend × keybinding:
-   - Spawn km via PTY (or use Term.sendInput for in-process)
-   - Send the key sequence via the backend's input encoding
-   - Verify the app received and resolved the expected command
+  - Spawn km via PTY (or use Term.sendInput for in-process)
+  - Send the key sequence via the backend's input encoding
+  - Verify the app received and resolved the expected command
 3. Flag keybindings that fail on specific backends (e.g., Cmd+Arrow on Ghostty)
 
 **Deliverables**:
+
 - `vendor/silvery/tests/keybinding-matrix.slow.test.ts` — cross-backend key delivery tests
 - Report: which modifier+key combos work on which terminals
 - Update keybindings.ts with `// Note: not delivered by [backend]` comments
@@ -44,3 +49,4 @@ Test: press key → verify the expected command ID appears in status/diagnostics
 **Depends on**: Term.sendInput() for in-process testing, or PTY spawning for full integration.
 
 See also: docs/design/terminal-integration-testing.md
+

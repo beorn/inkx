@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tools/deep-agent"
 aliases:
   - km-tools.deep-agent
@@ -13,6 +16,7 @@ assignee: claude:a3625ec3
 ## Bug
 
 When /deep is invoked via a Task subagent, the subagent doesn't have the skill context and uses wrong patterns:
+
 1. Tries stdin pipe (wrong — llm reads from args)
 2. Uses --output - (wrong — streams to background task stdout, unretrievable)
 3. Sleep-polls instead of using TaskOutput(block=true)
@@ -29,3 +33,4 @@ The SKILL.md docs have the correct pattern but it's in a "Background Execution" 
 1. Make the SKILL.md more prominent about the correct foreground pattern for subagents
 2. Add an anti-pattern warning about --output -
 3. Recommend foreground execution with long timeout (simplest pattern)
+

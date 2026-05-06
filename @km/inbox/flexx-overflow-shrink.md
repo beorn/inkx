@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/flexx-overflow-shrink"
 aliases:
   - km-flexx-overflow-shrink
@@ -9,7 +11,7 @@ closed_at: 2026-01-31T13:41:18Z
 
 # [x] Fix overflow-no-shrink edge case @km/_orphan #task #P3
 
-# Fix overflow-no-shrink Edge Case
+## Fix overflow-no-shrink Edge Case
 
 **Goal:** Handle overflow edge case correctly.
 
@@ -21,3 +23,4 @@ yoga-comparison.test.ts: overflow-no-shrink test case
 
 - src/layout.ts (classic)
 - src/layout-zero.ts (zero-alloc)
+

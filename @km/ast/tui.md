@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/ast/tui"
 aliases:
   - km-ast.tui
@@ -14,6 +16,7 @@ owner: bjorn@stabell.org
 Update apps/@km/tui/ and packages/@km/_orphan/commands/ for @km/ast types.
 
 TUI changes:
+
 - use-columns.ts: NON_COLUMN_TYPES → isOutline predicate
 - state.ts: update type checks for body content, embed detection
 - CardColumn.tsx: update rendering for oi/li/p/h types
@@ -22,8 +25,10 @@ TUI changes:
 - keyboard-*.ts: update type checks
 
 Commands:
+
 - Update all type checks in command handlers
 - Update task creation to use li + task_marker
 - Update query building
 
 ~28 files total
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/block-edit-target"
 aliases:
   - km-tui.block-edit-target
@@ -11,3 +14,4 @@ assignee: claude:21d4f294
 # [x] BlockEditTarget interface (Slate-ready) @km/tui #task #P2 @claude:21d4f294
 
 Rename TextEditTarget to BlockEditTarget, add save(), getCursorOffset(), getContent(). Slate-ready abstraction boundary. ROADMAP Horizon 5.
+

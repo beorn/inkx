@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/single-pass-cap"
 aliases:
   - km-silvery.single-pass-cap
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] MAX_SINGLE_PASS_ITERATIONS=5, add cap diagnostics to classic path @km/silvery #bug #P3
 
 Works for the known resize case but feedback chains with useContentRect subscribers could need >3 passes. A component chain producing stale→update→subscriber→sibling reflow→sticky stabilize needs 4-5 passes. At minimum add cap-exhaustion logging in dev/strict mode, consider raising to 5. Found by GPT pipeline review (3/3 flagged).
+

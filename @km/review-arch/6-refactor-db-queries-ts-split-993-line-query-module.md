@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/review-arch/6-refactor-db-queries-ts-split-993-line-query-module"
 aliases:
   - km-review-arch.6
@@ -15,6 +17,7 @@ closed_at: 2026-01-23T09:31:52Z
 **Scope:** Split 993 lines into 7 modules (each <170 lines)
 
 ### New Structure
+
 ```
 packages/km-storage/src/db-queries/
 ├── index.ts           # Re-exports all
@@ -28,6 +31,7 @@ packages/km-storage/src/db-queries/
 ```
 
 ### Migration Steps
+
 1. Create db-queries/ directory
 2. Extract utils.ts (no dependencies)
 3. Extract core-lookup.ts (imports utils)
@@ -37,4 +41,6 @@ packages/km-storage/src/db-queries/
 7. Delete old db-queries.ts
 
 ### Backward Compatibility
+
 All existing imports work via re-exports in index.ts
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/backdrop-fade-toward-bg"
 aliases:
   - km-silvery.backdrop-fade-toward-bg
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-19T00:06:40Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Backdrop-fade: mix both fg AND bg toward theme $bg (stronger spotlight) @km/silvery #feature #P2
@@ -30,6 +36,7 @@ Current backdrop-phase blends only cell.fg toward cell.bg. Text dims but colored
 Proposed: also blend cell.bg toward the theme's root $bg. Both fg and bg converge toward the terminal's darkest/lightest neutral (dark scheme → $bg which is near-black; light scheme → $bg which is near-white). Classic 'modal spotlight' effect: the modal is the only full-fidelity region; everything else recedes as a single dimmed surface.
 
 Implementation:
+
 1. backdrop-phase.ts: extend the fade passes so FADE_EXCLUDE_ATTR (outside-modal fade) also transforms cell.bg via blend(cell.bg, rootBg, fadeAmount).
 2. Need to know rootBg. Two options: (a) pass the active Theme into applyBackdropFade via options; (b) extract from the tree root's effective bg. Option (a) is simpler.
 3. Preserve existing behavior at ansi16 tier (stamps dim) and mono tier (no-op).
@@ -37,3 +44,4 @@ Implementation:
 5. FADE_ATTR (inside-fade) mode can either get the same treatment or stay fg-only — user preference. Default: both-channel fade for consistency.
 
 Acceptance: visual regression OK; backdrop feels visibly stronger than pure fg-fade; existing 5 tests stay green; new 2 tests pass.
+

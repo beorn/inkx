@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/body-spacing"
 aliases:
   - km-tui.body-spacing
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Detail pane body: too much vertical space between consecutive list items @km/tui #bug #P2
 
 Consecutive <li> items in detail pane body have vertical space between them. Need compact rendering: no space between consecutive same-type items, space before lists and between paragraphs.
+

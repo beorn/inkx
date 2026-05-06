@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/table-concat"
 aliases:
   - km-tui.table-concat
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Markdown table rendered as concatenated text without delimiters @km/tui #bug #P3
 
 In CLAUDE.md, the 'Owner: Bjorn Stabell' card renders table data with cells concatenated: 'Key InfoValueLocation670 Hamilton Ave...' instead of proper table formatting with delimiters.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/ryk2"
 aliases:
   - km-ryk2
@@ -16,7 +18,9 @@ Root cause: The wrapAnsi library preserves trailing newlines when wrapping text.
 Fix: Modified wrapText() in vendor/beorn-tui-measure/src/text.ts to strip trailing empty lines from the result array. Empty lines in the MIDDLE of content (intentional paragraph breaks like 'para1\n\npara2') are preserved.
 
 Added comprehensive tests in vendor/beorn-tui-measure/src/text.test.ts covering:
+
 - Trailing newline handling
 - Multiple trailing newlines
 - Preserved middle blank lines (paragraph breaks)
 - constrainText behavior with trailing newlines
+

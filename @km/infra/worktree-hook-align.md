@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/worktree-hook-align"
 aliases:
   - km-infra.worktree-hook-align
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-28T15:19:43Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [ ] Align worktree-create hook + isolate.sh with eventual-consistency convention @km/infra #task #P3
@@ -36,3 +42,4 @@ The `/sop infra wip-triage` tool (@km/infra/orphan-branch-audit) is what walks t
 ## Reference
 
 Memory: feedback-agent-isolation-eventual-consistency.md.
+

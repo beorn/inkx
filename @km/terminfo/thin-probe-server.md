@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/thin-probe-server"
 aliases:
   - km-terminfo.thin-probe-server
@@ -15,7 +18,7 @@ assignee: claude:4929065a
 
 # [x] Thin probe server — auto-updates when probes change, no re-launch needed @km/terminfo #feature #P2 @claude:4929065a
 
-Currently probe server embeds all probe logic at startup. When probes are added/changed, the server must be restarted in each terminal. 
+Currently probe server embeds all probe logic at startup. When probes are added/changed, the server must be restarted in each terminal.
 
 Design: Make the probe server a thin TTY client that receives probe sequences from the orchestrator at probe time, rather than bundling probe definitions:
 
@@ -25,9 +28,11 @@ Design: Make the probe server a thin TTY client that receives probe sequences fr
 4. Probe logic lives entirely in the orchestrator — server never needs updating
 
 This means:
+
 - Adding new probes = just change the orchestrator, probe all servers immediately
 - Server is ~50 lines: listen on port, receive {write, expect}, do TTY I/O, return result
 - No probe version skew between terminals
 - User starts server once, it stays running indefinitely
 
 Alternative: file-watch the probe definitions and hot-reload on change (simpler but still bundles logic).
+

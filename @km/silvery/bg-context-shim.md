@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/bg-context-shim"
 aliases:
   - km-silvery.bg-context-shim
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] SHIM: map Ink BackgroundContext to silvery findInheritedBg @km/silvery #task #P2
+

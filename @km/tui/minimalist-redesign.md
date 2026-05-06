@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/minimalist-redesign"
 aliases:
   - km-tui.minimalist-redesign
@@ -19,6 +21,14 @@ dependencies:
     created_at: 2026-04-16T12:47:23Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.design-review
+      - type: link
+        target: km-tui
 ---
 
 # [ ] km: try a minimalist opencode-inspired design variant @km/tui #feature #P3
@@ -91,11 +101,13 @@ Ideally scheduled **after** `km-silvery.design-review` Phase 3 (new components) 
 ## Scope boundaries
 
 **In scope**
+
 - @km/tui views (Board, CardColumn, Dialogs, Omnibox, DetailView, HelpOverlay, Toast, PaneBar)
 - The state×role matrix for cards/columns in minimalist mode
 - Modal/overlay chrome across the app
 
 **Out of scope**
+
 - Changes to silvery primitives (those land in @km/silvery/design-review)
 - Changes to markdown rendering / inline styles (styling-showcase fixtures)
 - Replacing the current km design wholesale (this is a variant, not a migration)
@@ -108,3 +120,4 @@ Ideally scheduled **after** `km-silvery.design-review` Phase 3 (new components) 
 - Selection style rules: `apps/km-tui/src/views/selection-style.ts`
 - Current storybook: `apps/km-tui/tests/storybook.tsx`
 - Competitive reference: opencode (screenshots in notes; command palette, message blocks, dialogs, status bar, prompt modes all studied)
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/fix-alacritty-census"
 aliases:
   - km-termless.fix-alacritty-census
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Fix alacritty .node import path for census probes @km/termless #bug #P1
 
 The require path is ../native/ but the .node file is at the package root. Quick fix.
+

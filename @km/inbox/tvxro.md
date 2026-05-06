@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/tvxro"
 aliases:
   - km-tvxro
@@ -19,3 +21,4 @@ GitHub API rate limited during v0.9.0 release. Remaining tasks:
 3. Verify npm installs work: npx silvery examples
 4. Create GitHub releases for commander-v0.8.1 and ansi-v0.3.1 tags (optional, sub-packages)
 5. Rename this bead from random ID to @km/silvery/v090-release
+

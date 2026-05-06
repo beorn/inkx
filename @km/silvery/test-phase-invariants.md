@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/test-phase-invariants"
 aliases:
   - km-silvery.test-phase-invariants
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] Testing gap: runtime phase invariant assertions in strict mode @km/silvery #task #P2
 
 Current diagnostics are mostly post-hoc differential checks. Add runtime assertions inside phases: if layoutChangedThisFrame then prevLayout != contentRect; if skipFastPath then no own dirty flags; if parentRegionCleared && has backgroundColor then illegal; scroll Tier 1 must have no sticky children. Catch bugs closer to source. Found by GPT 5.4 pro.
+

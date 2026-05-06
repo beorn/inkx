@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - c9572d71
 id: "@km/inbox/d3eb"
 aliases:
   - km-d3eb
@@ -27,6 +30,7 @@ debug("resolved", resolved);
 ```
 
 Files to check:
+
 - apps/@km/_orphan/cli/src/commands/*.ts
 - packages/*/src/**/*.ts
 - apps/@km/tui/packages/@km/_orphan/ink/src/**/*.ts
@@ -34,3 +38,4 @@ Files to check:
 Pattern to grep: `debug(` followed by multi-line content
 
 See CLAUDE.md section 12 for the new debug logging style guide.
+

@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - claude
 id: "@km/silvery/era2b-4-ui"
 aliases:
   - km-silvery.era2b-4-ui
@@ -18,3 +22,4 @@ assignee: claude:fed8de9e
 # [x] Era2b Phase 4: @silvery/ag-react/ui — component refactor @km/silvery #task #P2 @claude:fed8de9e
 
 Move rendered components from @silvery/ui to @silvery/ag-react/ui subpath. Components depend on headless + commands + theme (not signals, not model).
+

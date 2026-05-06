@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/all/runtime-portability"
 aliases:
   - km-all.runtime-portability
@@ -15,8 +18,10 @@ assignee: claude:65d845d9
 Make all vendor packages work on Node.js (not just Bun). Inline spawn abstractions per-package (no cross-deps). Replace Bun.spawn/Bun.sleep with runtime-detecting helpers. Update docs/engines/READMEs to clarify supported runtimes.
 
 Packages:
+
 - loggily: already portable, docs only
-- flexily: already portable, docs only  
+- flexily: already portable, docs only
 - silvery: core already portable, docs only
 - mdspec: replace Bun.spawn in CmdSession/PtySession/bash-plugin, replace Bun.sleep
 - termless: replace Bun.spawn in pty.ts, update peekaboo
+

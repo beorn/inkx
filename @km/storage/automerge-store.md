@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/automerge-store"
 aliases:
   - km-storage.automerge-store
@@ -17,3 +19,4 @@ owner: bjorn@stabell.org
 # [x] Phase 6: createAutomergeStore — Store + Syncable (CRDT collab) @km/storage #task #P4
 
 Automerge-backed store for multi-device sync. DocHandle per node (kimmi pattern). CRDT patches → RepoDelta. Depends on Phase 4 sync.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/rev-0203/1-clean-up-unused-exports-from-knip-117-exports-132-"
 aliases:
   - km-rev-0203.1
@@ -20,3 +23,4 @@ Approach: Use /code clean or manual cleanup. Remove unused exports,
 update index.ts re-exports. Run bun run test:fast after each batch.
 
 See /tmp/knip-output.txt from review session for full list.
+

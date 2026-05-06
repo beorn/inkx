@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/gbrain-install"
 aliases:
   - km-infra.gbrain-install
@@ -16,6 +18,10 @@ dependencies:
     created_at: 2026-04-12T13:12:59Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra.org-redesign
 ---
 
 # [x] Phase A: Install gbrain in ~vault @km/infra #task #P2
@@ -23,3 +29,4 @@ dependencies:
 blocks:: [[@km/infra/org-redesign]]
 
 Install gbrain pointing at Obsidian vault. Add as MCP server. 2-week trial.
+

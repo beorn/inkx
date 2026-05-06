@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkz/8-reconciler"
 aliases:
   - km-inkz.8-reconciler
@@ -16,6 +18,7 @@ The InkZ reconciler and scheduler need to be fully functional for examples to wo
 ## Current Status
 
 The render pipeline has these components:
+
 - `render.tsx` - Entry point, initializes Yoga, creates container
 - `reconciler.ts` - React reconciler that builds InkZ node tree
 - `scheduler.ts` - Batches renders and outputs to terminal
@@ -30,17 +33,18 @@ The render pipeline has these components:
 Visual inspection shows boxes render with borders but text content is empty.
 
 **Root cause analysis:**
+
 - When `<Text>Hello</Text>` is rendered:
   1. `createInstance('inkz-text', props)` is called for the Text element
-  2. `createTextInstance("Hello")` is called for the raw text child
-  3. The raw text node gets `textContent = "Hello"`
-  4. But the **parent inkz-text node** has no textContent
-
+  1. `createTextInstance("Hello")` is called for the raw text child
+  1. The raw text node gets `textContent = "Hello"`
+  1. But the **parent inkz-text node** has no textContent
 - In `pipeline.ts` `renderText()` (line 291-311):
   - Uses `node.textContent` which is empty on inkz-text nodes
   - The actual text is in a child node
 
 **Fix needed:**
+
 - Option A: In pipeline, traverse text node children and concatenate textContent
 - Option B: In reconciler, when inkz-text has text children, set textContent on parent
 
@@ -66,3 +70,4 @@ The useInput hook (line 330) calls setRawMode unconditionally, crashing without 
 - [ ] useInput works with TTY, degrades gracefully without
 - [ ] Dashboard doesn't hang
 - [ ] Examples display correctly
+

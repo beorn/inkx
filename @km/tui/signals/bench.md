@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/signals/bench"
 aliases:
   - km-tui.signals.bench
@@ -37,3 +40,4 @@ Realistic benchmark using real vault (Asana export or similar large board). Meas
 Synthetic baseline (2026-04-05): 500 nodes: buildViewTree 2.9ms, full layout 5.8ms, 3x worst-case 8.6ms
 
 Use board-app.ts testEnv with real vault OR large synthetic fixture (50 cols x 20 cards x 5 subs = 5500 nodes).
+

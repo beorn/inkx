@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/inline-transform-selection"
 aliases:
   - km-tui.inline-transform-selection
@@ -44,3 +47,4 @@ Currently selection reconciliation fires as a reactive effect AFTER tree mutatio
 - [ ] Invariant #11 (sel.root desync) never fires in test suite
 - [ ] All tests pass
 - [ ] Fuzz tests pass with FUZZ=1
+

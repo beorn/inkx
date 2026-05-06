@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/output-phase-perf"
 aliases:
   - km-silvery.output-phase-perf
@@ -43,17 +45,19 @@ Fix: cache inheritedBg on AgNode, invalidate when ancestor's backgroundColor/the
 
 ## Other silvery tree-walk patterns contributing to output cost
 
-| Pattern | File | Impact |
-|---------|------|--------|
-| findInheritedBg/Fg | render-phase.ts:1559 | **Critical** — runs per text node per frame |
-| notifyLayoutSubscribers | layout-phase.ts:167 | Full DFS every frame — pre-filter by dirty flag |
-| hasDescendantOverflowChanged | render-phase.ts:1458 | Recursive DFS on subtreeDirty nodes |
-| markSubtreeLayoutSeen | layout-phase.ts (flexily) | Post-layout cleanup DFS |
+| Pattern                      | File                      | Impact                                          |
+| ---------------------------- | ------------------------- | ----------------------------------------------- |
+| findInheritedBg/Fg           | render-phase.ts:1559      | Critical — runs per text node per frame         |
+| notifyLayoutSubscribers      | layout-phase.ts:167       | Full DFS every frame — pre-filter by dirty flag |
+| hasDescendantOverflowChanged | render-phase.ts:1458      | Recursive DFS on subtreeDirty nodes             |
+| markSubtreeLayoutSeen        | layout-phase.ts (flexily) | Post-layout cleanup DFS                         |
 
 ## Investigation plan (incorporating Pro review)
 
 ### A. Phase timers
+
 Measure separately inside the output phase:
+
 - Buffer diff time
 - SGR escape sequence generation
 - Cursor positioning
@@ -63,24 +67,31 @@ Measure separately inside the output phase:
 Count per frame: visible rows, total bytes written, changed rows, styled spans.
 
 ### B. Benchmark controls
+
 Two baselines needed:
+
 1. **Null sink** — all render/diff work, no terminal write (isolates CPU cost)
 2. **Full redraw, no diff** — brute-force whole frame (if it wins, replace diff strategy)
 
 ### C. Benchmark matrix
+
 Synthetic fixtures at multiple sizes:
+
 - 100 / 1k / 5k visible rows
 - Single-line change vs full redraw
 - Selection move by one row
 - Collapse/expand subtree
 
 ### D. Complexity sweeps
+
 - Hold delta constant, increase N — plot for O(N²)
 - Hold N constant, vary delta
 - If doubling N quadruples time on small edits → quadratic diff path
 
 ### E. Flamegraphs
+
 Use bun --cpu-prof or 0x. Look for hotspots in:
+
 - LCS/Myers diff
 - ANSI tokenization
 - String concatenation / repeated joins
@@ -88,6 +99,7 @@ Use bun --cpu-prof or 0x. Look for hotspots in:
 - findInheritedBg parent walks
 
 ### F. Common pathologies to check
+
 - Diffing raw ANSI strings instead of logical cells
 - Per-line diff nested inside whole-frame diff
 - Repeated ANSI strip/re-tokenize on every compare
@@ -97,6 +109,7 @@ Use bun --cpu-prof or 0x. Look for hotspots in:
 ## Sequencing with P1
 
 P0 investigation should start first (it's P0). But do final tuning AFTER @km/tui/hierarchical-node-state lands, since P1 may change:
+
 - Number of rerenders (fewer, more targeted)
 - Changed region size (smaller, more localized)
 - Row identity stability (less churn)
@@ -108,3 +121,4 @@ P0 investigation should start first (it's P0). But do final tuning AFTER @km/tui
 - [ ] Stretch: < 16ms (feels instant)
 - [ ] findInheritedBg cached (O(1) per node, not O(depth))
 - [ ] No O(N²) in diff path (verified by complexity sweep)
+

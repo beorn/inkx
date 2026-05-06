@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/storage-9"
 aliases:
   - km-storage-9
@@ -14,16 +16,19 @@ Rename 'mock' test doubles to 'fake' for consistency with industry standards (Ma
 ## Background
 
 Per [Mocks Aren't Stubs](https://martinfowler.com/articles/mocksArentStubs.html):
+
 - **Fake**: Working implementation, simplified (e.g., in-memory DB) - state verification
 - **Mock**: Verifies expected interactions - behavior verification
 
 ## Current State (post domain-refactor)
 
 ✅ Correct:
+
 - `createFakeRepo()` - in-memory Repo with fixture data
 - `createChaosFakeRepo()` - fake repo with chaos injection
 
 ⚠️ Misnamed (should be "fake"):
+
 - `createMockWatcher()` → `createFakeWatcher()`
 - `MockFileSystem` → `FakeFileSystem`
 - `mock-fs.ts` → `fake-fs.ts`
@@ -42,3 +47,4 @@ Per [Mocks Aren't Stubs](https://martinfowler.com/articles/mocksArentStubs.html)
 - Rename exports (createMockWatcher → createFakeWatcher, etc.)
 - Update all import sites
 - Update documentation referencing test doubles
+

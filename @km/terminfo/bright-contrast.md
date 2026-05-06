@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/terminfo/bright-contrast"
 aliases:
   - km-terminfo.bright-contrast
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-17T16:35:58Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-terminfo
 ---
 
 # [ ] Capture per-terminal contrast between standard and bright colors @km/terminfo #feature #P3
@@ -34,7 +40,7 @@ A new feature (or probe extension) that captures actual rendered RGB for
 each of the 16 standard/bright color pairs, plus the ΔE (or simpler
 luminance-delta) between them:
 
-  sgr.fg.bright-contrast.<color>:
+sgr.fg.bright-contrast.<color>:
     standard: [R, G, B]       # SGR 30-37
     bright: [R, G, B]          # SGR 90-97
     deltaE: <number>           # perceptual distance
@@ -65,3 +71,4 @@ pair or by "default palette" probes.
 (b) Results surfaced in content/probes-apps/*.json alongside existing booleans.
 (c) UI (terminfo.dev site) shows a contrast badge per terminal.
 (d) Existing probe result files regenerate without breakage.
+

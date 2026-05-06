@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/perf-plan"
 aliases:
   - km-perf-plan
@@ -8,3 +10,4 @@ closed_at: 2026-02-01T20:09:37Z
 ---
 
 # [x] inkx performance review and observability @km/_orphan #epic #P1
+

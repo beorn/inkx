@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/rect-signals"
 aliases:
   - km-silvery.rect-signals
@@ -24,6 +26,14 @@ dependencies:
     created_at: 2026-04-12T00:52:45Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.reactive-pipeline
+      - type: link
+        target: km-silvery.test-runtime-parity
 ---
 
 # [x] boxRect/screenRect as signal sources for useBoxRect/useScrollRect hooks @km/silvery #feature #P2
@@ -37,6 +47,7 @@ Currently: layoutPhase computes rects → fires layoutSubscribers callbacks → 
 After: layoutPhase writes to rect signals → hooks read signals → React re-renders only when the signal value changes. Pull-based, automatic dependency tracking, no manual subscribe/unsubscribe.
 
 This completes the reactive pipeline for layout OUTPUT:
+
 - Layout gate: Flexily isDirty() (plain boolean, engine-internal)
 - Layout output: boxRect/screenRect (alien-signals) ← THIS BEAD
 - Render cascade: dirty flags → skip decisions (already signals in reactive-node.ts)
@@ -44,8 +55,10 @@ This completes the reactive pipeline for layout OUTPUT:
 Architecture boundary: signals are for silvery-side state (rects, dirty flags, render decisions). Flexily owns its own internal state — no signals inside Flexily.
 
 Files:
+
 - vendor/silvery/packages/ag-term/src/pipeline/layout-phase.ts (write to signals after propagateLayout)
 - vendor/silvery/packages/ag-react/src/hooks/useLayout.ts (read from signals instead of subscribers)
 - vendor/silvery/packages/ag/src/types.ts (add signal fields to AgNode)
 
 Depends on: @km/silvery/test-runtime-parity (clean layout gate first)
+

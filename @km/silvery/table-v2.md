@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/table-v2"
 aliases:
   - km-silvery.table-v2
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Table as ListView composition @km/silvery #task #P2
 
 Rewrite Table as ListView + column headers + cell renderItem. Gets cache/nav/search for free. Column sorting via nav.
+

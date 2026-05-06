@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/storage-6"
 aliases:
   - km-storage-6
@@ -11,3 +14,4 @@ assignee: claude:124bfbe5
 # [x] Split store.ts into focused modules @km/_orphan #task #P3 @claude:124bfbe5
 
 packages/@km/storage/src/store.ts is 864 lines combining NodeStore interface, DiskStore and MemoryStore implementations. Split into store.ts (interface), disk-store.ts, memory-store.ts.
+

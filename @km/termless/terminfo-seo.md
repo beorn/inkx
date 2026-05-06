@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/terminfo-seo"
 aliases:
   - km-termless.terminfo-seo
@@ -18,21 +21,18 @@ assignee: claude:4929065a
 Generate individual pages for maximum SEO value:
 
 1. Per-feature pages: /feature/sgr-bold, /feature/kitty-graphics, etc.
-   - What the feature is, spec reference link
-   - Which terminals support it (matrix row as a standalone page)
-   - SEO slug derived from feature ID
-
+  - What the feature is, spec reference link
+  - Which terminals support it (matrix row as a standalone page)
+  - SEO slug derived from feature ID
 2. Per-backend pages: /backend/ghostty, /backend/xterm-js, etc.
-   - Backend description, upstream link, version
-   - All features with support status
-   - Score/percentage
-
+  - Backend description, upstream link, version
+  - All features with support status
+  - Score/percentage
 3. Per-category pages: /category/sgr, /category/cursor, etc.
-   - All features in the category with full matrix
-   - Category description
-
+  - All features in the category with full matrix
+  - Category description
 4. Sitemap.xml for search engines
-
 5. Home page feature list links to per-feature pages
 
 Data: features.json (names, URLs), backends.json (metadata), census results (support data)
+

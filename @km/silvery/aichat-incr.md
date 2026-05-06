@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/aichat-incr"
 aliases:
   - km-silvery.aichat-incr
@@ -23,3 +26,4 @@ assignee: claude:73d7a332
 # [x] IncrementalRenderMismatchError in ai-chat-bugs.test.tsx status bar @km/silvery #bug #P2 @claude:73d7a332
 
 SILVERY_STRICT mismatch at (77,85) on render #14 in 'bug 5: status bar with frozen items at narrow width' test (cols:80, rows:25). Incremental render has stale char='e' dim=true, fresh render has char=' '. WRITE TRAP: NO WRITES to (77,85) — nothing wrote to that cell during incremental pass. Content phase stats: only 16 nodes visited/9 rendered vs 277/147 in fresh. The cascade shows silvery-box@7[L:1ch] silvery-text@8[PChL:3ch]. Likely cause: status bar text changes length (cost/context percentage) but the old trailing characters aren't cleared because region clearing is skipped when only text content changed within a fixed-size container.
+

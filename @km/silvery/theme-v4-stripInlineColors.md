@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-v4-stripInlineColors"
 aliases:
   - km-silvery.theme-v4-stripInlineColors
@@ -24,6 +26,10 @@ dependencies:
     created_at: 2026-04-24T16:14:48Z
     created_by: claude:5e447b66
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.sterling
 ---
 
 # [x] Phase 4: km-tui stripInlineColors prop tidy-up @km/silvery #task #P4
@@ -31,3 +37,4 @@ dependencies:
 blocks:: [[@km/all/sterling]]
 
 Evaluate whether stripInlineColors can be derived from context instead of explicit prop threading. Small. Might land as 'kept as-is, documented'.
+

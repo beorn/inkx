@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/ba3x"
 aliases:
   - km-ba3x
@@ -10,9 +12,11 @@ closed_at: 2026-01-20T10:55:53Z
 # [x] InkX: Split pipeline.ts into phase modules @km/_orphan #task #P2
 
 ## Problem
+
 `vendor/beorn-inkx/src/pipeline.ts` is 1512 lines handling measure, layout, scroll, content, and output phases in one file.
 
 ## Current structure
+
 - Measurement phase: lines 50-122
 - Layout phase: lines 128-237
 - Scroll phase: lines 249-401
@@ -20,6 +24,7 @@ closed_at: 2026-01-20T10:55:53Z
 - Output phase: lines 1024-1142
 
 ## Proposed structure
+
 ```
 src/phases/
 ├── measure.ts    # measurePhase()
@@ -31,6 +36,8 @@ src/pipeline.ts   # executeRender() orchestrator only
 ```
 
 ## Files affected
+
 - pipeline.ts → split into 6 files
 - pipeline.test.ts → update imports
 - Any other files importing phase functions
+

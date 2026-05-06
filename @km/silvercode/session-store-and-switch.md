@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/session-store-and-switch"
 aliases:
   - km-silvercode.session-store-and-switch
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-28T12:07:43Z
     created_by: claude:87d20187
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [ ] ACP session store + mid-conversation agent switch with context carry-over @km/silvercode #feature #P2
@@ -104,3 +110,4 @@ OpenACP's `src/core/agent-switch-handler.ts` (263 LOC, MIT) is the concrete refe
 - Multi-tenant session ownership (venture #11)
 - Federated/Matrix session bridge (venture #11/#12)
 - JSONL session persistence as KNode files (@km/silvercode.<TBD>-session-jsonl — venture #12)
+

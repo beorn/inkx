@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/uncollapse-header"
 aliases:
   - km-tui.uncollapse-header
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] After uncollapsing, column header doesn't show (takes up space, uses card view) @km/tui #bug #P2
 
 After uncollapsing a column, its column header doesn't render visually but still takes up vertical space. It seems to be rendering the card view instead of the column header.
+

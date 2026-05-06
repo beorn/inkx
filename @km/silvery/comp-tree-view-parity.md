@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/comp-tree-view-parity"
 aliases:
   - km-silvery.comp-tree-view-parity
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T16:18:46Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.opentui-parity
 ---
 
 # [ ] Component: TreeView parity audit vs OpenTUI/Textual @km/silvery #task #P3
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/silvery/opentui-parity]]
 
 Audit TreeView against OpenTUI/Textual: async lazy-loading, multi-root, drag-reorder, inline rename, node icons, node badges, virtualized scrolling for deep trees.
+

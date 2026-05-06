@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/og-images"
 aliases:
   - km-market.og-images
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Generate OG image PNGs for all 4 sites @km/market #task #P3
 
 Meta tags are set pointing to /og-image.png on each site but the actual PNG files don't exist yet. Need to generate branded OG images for terminfo.dev, silvery.dev, termless.dev, flexily.dev.
+

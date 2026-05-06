@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/interaction-test-project"
 aliases:
   - km-all.interaction-test-project
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-28T12:42:49Z
     created_by: claude:da9990c5
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all
 ---
 
 # [ ] Add 'interaction' vitest project for feature⊕feature property tests @km/all #task #P2
@@ -29,3 +35,4 @@ Add a 4th vitest project beyond fast/slow/vendor: 'interaction/'. Each test in t
 - For any rendering action, dirty-flag invariants hold (silvery STRICT — already exists, lift into the interaction tier)
 
 Run on every PR. Cadence reminder if stale. Hours of work, not days. Massive ongoing leverage.
+

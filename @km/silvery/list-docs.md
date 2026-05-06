@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/list-docs"
 aliases:
   - km-silvery.list-docs
@@ -23,3 +26,4 @@ The scrolling guide only covers Box overflow='scroll'. It should mention special
 - **ScrollbackList** — Inline mode (freeze completed items into terminal history)
 
 Add a 'Specialized List Components' section to the scrolling guide with a comparison table and links. Also cross-link from the components guide.
+

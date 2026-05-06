@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/disposable/3-wrap-parsepool-with-service-factory-pattern"
 aliases:
   - km-disposable.3
@@ -11,3 +13,4 @@ closed_at: 2026-01-23T20:07:16Z
 # [x] Wrap ParsePool with Service factory pattern @km/disposable #task #P3
 
 Create createParsePool() factory returning ParsePoolService (AsyncDisposable). Matches Watcher pattern. Convert class to internal implementation detail.
+

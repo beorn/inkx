@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sterling-2d-release"
 aliases:
   - km-silvery.sterling-2d-release
@@ -25,6 +28,14 @@ dependencies:
     created_at: 2026-04-19T14:43:02Z
     created_by: claude:4274df30
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-all.sterling
+      - type: link
+        target: km-silvery.sterling-2c-km-migration
 ---
 
 # [x] Sterling 2d: internal cleanup (0.18.x patch — not breaking) @km/silvery #task #P1 @claude:4274df30
@@ -53,6 +64,7 @@ This is ~300 LOC delete, no external-consumer break. Semver 0.18.next patch.
 ## New bead @km/silvery/sterling-2e-interior-migration — the REAL breaking release
 
 Captures the deferred work:
+
 - Migrate 81 single-hex role-field accesses across 20 interior files to Sterling Theme shape
 - Rewrite invariants.ts CONTRAST_PAIRS + theme-contrast.test.ts to Sterling flat keys
 - Migrate ag-react Text color resolver + host-config
@@ -77,3 +89,4 @@ Captures the deferred work:
 - CHANGELOG notes 'internal cleanup, non-breaking'
 
 Executed-By: claude:2505996f reviewed 2d prep agent's audit + accepted path 2
+

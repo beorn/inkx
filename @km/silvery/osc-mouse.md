@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/osc-mouse"
 aliases:
   - km-silvery.osc-mouse
@@ -15,14 +17,17 @@ owner: bjorn@stabell.org
 # [x] OSC 22 mouse cursor: text cursor in textarea, pointer on clickable, default elsewhere @km/silvery #feature #P2
 
 Implement OSC 22 mouse cursor shape changing for km TUI:
+
 - Text insertion cursor (I-beam): hovering over textarea with focus outline
 - Click/select cursor (pointer): hovering over clickable items (links, buttons, cards)
 - Default cursor: everywhere else
 
 Questions:
+
 - Performance: does changing cursor on every mouse move cause flickering/lag?
 - Terminal support: iTerm2, Kitty, WezTerm likely yes
 - May need debouncing
 - Must include hightea tests and docs
 
 Note: @km/silvery-legacy/osc-mouse is the existing bead for the hightea layer. This bead tracks the km TUI integration.
+

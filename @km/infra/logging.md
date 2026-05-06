@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/logging"
 aliases:
   - km-infra.logging
@@ -11,9 +14,11 @@ assignee: claude:90e14a90
 # [x] Verbosity/log-level integration with zero-overhead pattern @km/infra #chore #P2 @claude:90e14a90
 
 Enhance logging integration:
+
 1. Rename createConditionalLogger → createLogger in @beorn/logger (make zero-overhead pattern the default)
 2. Add -q (quiet) flag to CLI
 3. Update all imports across codebase (~74 files)
 4. Update documentation (logger docs, skills docs, code review checklist)
 
 See plan: ~/.claude/plans/linear-knitting-island.md
+

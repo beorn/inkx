@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/inbox/test-output"
 aliases:
   - km-test-output
@@ -9,3 +12,4 @@ assignee: beorn
 ---
 
 # [x] Strict test output enforcement - fail tests that produce any stdout/stderr @km/_orphan #task #P2 @beorn
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/subtree-bg-fill"
 aliases:
   - km-inkx.subtree-bg-fill
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] inkx: bg-bearing boxes skip background fill when only subtreeDirty @km/inkx #bug #P2
+

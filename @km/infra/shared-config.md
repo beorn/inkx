@@ -1,4 +1,7 @@
 ---
+mentions:
+  - beorn
+  - km
 id: "@km/infra/shared-config"
 aliases:
   - km-infra.shared-config
@@ -12,15 +15,19 @@ closed_at: 2026-02-11T16:45:41Z
 Create a shared monorepo configuration package that standardizes tooling across all @beorn/* packages.
 
 ## Motivation
+
 Currently each vendor package (inkx, chalkx, flexx, etc.) has its own formatting/linting config, leading to inconsistent code style. inkx uses Biome with semicolons/tabs, while km uses Prettier without semicolons/spaces.
 
 ## Scope
+
 - Shared Prettier or Biome config
 - Shared ESLint config (or Biome linter rules)
 - Shared TypeScript base config
 - Possibly shared Vitest config
 
 ## Considerations
+
 - Should this be a new repo or part of km?
 - Biome vs Prettier decision (Biome is faster, combines lint+format)
 - How to handle packages that are also standalone repos (submodules)
+

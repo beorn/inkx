@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/release-workflow"
 aliases:
   - km-infra.release-workflow
@@ -16,6 +18,7 @@ owner: bjorn@stabell.org
 # [x] Redesign /release as complete multi-package release workflow @km/infra #task #P2
 
 ## Goal
+
 Make /release a unified workflow that handles the complete release process for all vendor packages:
 
 1. Pre-flight audit (bun infra/audit-packages.ts)
@@ -30,6 +33,7 @@ Make /release a unified workflow that handles the complete release process for a
 10. GitHub releases
 
 Sub-workflows:
+
 - /release --status: show all packages with unpublished changes
 - /release --audit: run publishing readiness audit
 - /release silvery: release silvery monorepo (all packages)
@@ -38,3 +42,4 @@ Sub-workflows:
 
 Should call upon: /repo-health, /tests, audit-packages.ts, tsdown, pnpm publish.
 Consider Changesets integration for version management.
+

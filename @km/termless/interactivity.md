@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/interactivity"
 aliases:
   - km-termless.interactivity
@@ -18,3 +20,4 @@ owner: bjorn@stabell.org
 # [x] termless interactivity: click, dblclick, Playwright-style ergonomics @km/termless #feature #P3
 
 Track click() and dblclick() additions to termless Terminal. Done: click() with modifier support, dblclick() with configurable delay, timeout option on auto-retry matchers, deprecate waitFor. TODO: check Playwright feature parity (drag, hover, right-click, scroll wheel), update docs/reference.
+

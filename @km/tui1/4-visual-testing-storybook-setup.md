@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui1/4-visual-testing-storybook-setup"
 aliases:
   - km-tui1.4
@@ -19,6 +21,7 @@ TUI2 has a storybook at apps/@km/tui/packages/@km/_orphan/opentui/src/storybook.
 ## Current State
 
 TUI1 has tests at:
+
 - apps/@km/tui/packages/@km/_orphan/ink/tests/storybook.tsx
 
 ## Tasks
@@ -33,3 +36,4 @@ TUI1 has tests at:
 - [ ] Storybook renders all 4 view modes
 - [ ] Edge cases documented and testable
 - [ ] Can capture screenshots headlessly
+

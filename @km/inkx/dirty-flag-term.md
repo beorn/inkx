@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/dirty-flag-term"
 aliases:
   - km-inkx.dirty-flag-term
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Standardize dirty flag/bit/tracking terminology in docs @km/inkx #task #P2
+

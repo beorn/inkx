@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/mouse-triple-click"
 aliases:
   - km-silvery.mouse-triple-click
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T16:18:16Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.opentui-parity
 ---
 
 # [ ] Mouse: triple-click line/paragraph selection @km/silvery #feature #P2
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/silvery/opentui-parity]]
 
 3rd click extends selection to full visible line / paragraph. Standard editor behavior paired with double-click word select.
+

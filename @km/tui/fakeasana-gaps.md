@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/fakeasana-gaps"
 aliases:
   - km-tui.fakeasana-gaps
@@ -11,3 +14,4 @@ assignee: claude:36393b5d
 ---
 
 # [x] FakeAsana: add missing data patterns from review @km/tui #task #P3 @claude:36393b5d
+

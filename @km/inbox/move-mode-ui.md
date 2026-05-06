@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/inbox/move-mode-ui"
 aliases:
   - km-move-mode-ui
@@ -11,3 +14,4 @@ assignee: beorn
 # [x] Add visual feedback for move mode @km/_orphan #feature #P1 @beorn
 
 Show status message, highlight selected cards, visual destination preview
+

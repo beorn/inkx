@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage"
 aliases:
   - km-storage
@@ -15,6 +17,7 @@ created_at: 2026-02-04T11:50:23Z
 `hub/km/storage-architecture.md` is the v3 doc (2026-04-22). It covers truth model, identity, reconciliation, safe markdown writeback, federation, and the Phase A→E pathway (FS-truth → op log → DB-truth → CRDT → sync platform).
 
 External reviews archived in `hub/km/research/`:
+
 - storage-arch-pro-review-round-2-2026-04-22.md (Kimi K2.6)
 - storage-arch-pro-review-round-3-2026-04-22.md (GPT-5.4 Pro + Kimi K2.6)
 
@@ -43,3 +46,4 @@ Critical path: P0 (identity schema) → P1 (lazy hydration) → P2 (FsMount + re
 - @km/storage/multi-file-atomicity-decision (decided 2026-04-22: no journal in Phase A; Phase B op log handles atomicity)
 - @km/storage/adapter-architecture (superseded by v3 doc — 'adapter' framing dropped in favor of concrete FsMount)
 - (many earlier, see bd show children)
+

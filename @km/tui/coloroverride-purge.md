@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/coloroverride-purge"
 aliases:
   - km-tui.coloroverride-purge
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-18T11:44:00Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Migrate all colorOverride → color='inherit' @km/tui #task #P2
@@ -26,3 +32,4 @@ dependencies:
 blocks:: [[@km/tui]]
 
 Silvery shipped color='inherit' in v0.18.0. @km/tui still has 36 colorOverride sites across 8 files. Migrate all to use color='inherit' and remove the colorOverride context entirely. Files: NodeView.tsx, selection-style.ts, OmniboxRow.tsx, TreeNode.tsx, shared-components.tsx, DetailView.tsx, InlineComponents.tsx, link-interaction.ts. Acceptance: rg colorOverride apps/@km/tui returns 0; bun fix && bun vitest run apps/@km/tui/tests passes.
+

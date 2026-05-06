@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/mdtest/hooks-per-step"
 aliases:
   - km-mdtest.hooks-per-step
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] mdtest: Bun/Vitest integrations run hooks per command step, not per block @km/mdtest #bug #P1
 
 registerNestedTests() explodes each block into one test per parsed step, while beforeEach/afterEach are attached to the runner. Changes semantics from CLI — hooks run between commands in multi-command blocks. beforeAll can run mid-block. Affects both Bun and Vitest integrations. Fix: one test per markdown block. integrations/bun.ts, integrations/vitest.ts. Found by GPT 5.4 Pro review.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/53uqt"
 aliases:
   - km-53uqt
@@ -11,3 +14,4 @@ assignee: claude:9b6678d0
 ---
 
 # [x] TUI: card index out of bounds on h after mixed ops (stale cardIndex) @km/_orphan #bug #P2 @claude:9b6678d0
+

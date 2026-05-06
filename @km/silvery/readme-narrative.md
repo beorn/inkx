@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/readme-narrative"
 aliases:
   - km-silvery.readme-narrative
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] README narrative — competitive analysis and rewrite @km/silvery #task #P2
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/drop-fs-path-derive-from-name"
 aliases:
   - km-storage.drop-fs-path-derive-from-name
@@ -25,6 +27,7 @@ Per the 2026-04-30 path/name/id design discussion, the canonical model is:
 - **path** = composition of names by walking parent_id chain to root
 
 `fs_path` denormalizes the path materialization onto every fs-typed row. Concrete example: a bead at `<vault>/@km/beads/foo.md` has:
+
 - `name = "foo"` ← the segment
 - `fs_path = "@km/beads/foo.md"` ← the materialized path
 - `parent_id = <id of @km/beads folder>`
@@ -37,12 +40,12 @@ The full path is computable from the parent walk + name + ".md" extension for fi
 
 ## Trade-off
 
-| Today (cache fs_path) | Proposed (derive from name + walk) |
-|---|---|
-| `idx_nodes_fs_path` → O(log N) lookup | Recursive CTE → O(depth × log N), depth typically 3-5 |
-| Folder rename cascades through all descendants | Folder rename = `UPDATE name` on one row |
-| `node.fs_path` is the authoritative materialized path | `pathOf(node)` is a derive-helper; nothing stored |
-| Doc says "Absolute path" but it's relative | Path is unambiguously derived from parent walk + name |
+| Today (cache fs_path)                               | Proposed (derive from name + walk)                    |
+| --------------------------------------------------- | ----------------------------------------------------- |
+| idx_nodes_fs_path → O(log N) lookup                 | Recursive CTE → O(depth × log N), depth typically 3-5 |
+| Folder rename cascades through all descendants      | Folder rename = UPDATE name on one row                |
+| node.fs_path is the authoritative materialized path | pathOf(node) is a derive-helper; nothing stored       |
+| Doc says "Absolute path" but it's relative          | Path is unambiguously derived from parent walk + name |
 
 The perf hit on resolve is small (depth 3-5). The rename win is structurally clean.
 
@@ -57,6 +60,7 @@ The perf hit on resolve is small (depth 3-5). The rename win is structurally cle
 ## Migration path
 
 Multi-phase:
+
 - **Phase 1**: Add `pathOf` helper. Make all reads go through it (with a default that falls back to the cached column for compat).
 - **Phase 2**: Remove the column reads. Helper computes from walk only. `fs_path` becomes write-only (still updated for compat but never read).
 - **Phase 3**: Drop the column. Bump SCHEMA_VERSION.
@@ -82,3 +86,4 @@ Each phase ships independently. Phase 1 is safe (additive). Phases 2-3 require a
 - Origin: `.claude/arch-decisions/2026-04-30-path-vs-ulid-as-sqlite-pkey.md` (FINAL VERDICT block — id/name/path three-concept model).
 - Pairs with: `@km/all/path-derivation-helper` (the helper that makes this possible) and `@km/beads/data-id-stop-writing` (same theme — don't store derivable values).
 - Lower-priority sibling of the same architectural thread: derive paths, don't denormalize them.
+

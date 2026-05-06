@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn-claude-78480
 id: "@km/inbox/nuzu"
 aliases:
   - km-nuzu
@@ -13,6 +16,7 @@ assignee: beorn-claude-78480
 When running `km view /path/to/vault`, the board shows but the first keypress is eaten/ignored. Subsequent keypresses work normally.
 
 ## Reproduction
+
 ```bash
 km view /tmp/tst-vault3
 # Press 'j' - nothing happens
@@ -20,12 +24,16 @@ km view /tmp/tst-vault3
 ```
 
 ## Expected
+
 All keypresses should be processed from the moment the board appears.
 
 ## Investigation
+
 Possible causes:
+
 - Input focus timing issue
 - Component initialization race
 - Event handler registration timing
 
 Check if we have test coverage for this behavior.
+

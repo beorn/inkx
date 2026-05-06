@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/terminfo/features-160"
 aliases:
   - km-terminfo.features-160
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] TPT: expand from 110 to ~160 features (input, graphics, Unicode, edge cases) @km/terminfo #task #P2
+

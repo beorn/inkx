@@ -45,8 +45,10 @@ Proposal: a slow CI step that runs km-tui against a checked-in test-vault (or a 
 Reuse existing snapshot infrastructure (vitest snapshots) but at cell granularity, not text. For dependent fields (timestamps, transient UI state) use placeholder masking.
 
 Acceptance:
+
 - new test apps/km-tui/tests/golden-vault-frame.slow.spec.ts (or similar)
 - runs in test:slow project (excluded from test:fast for speed)
 - captures full 360x120 cell grid post-render
 - diff output shows changed cells with neighboring context for human review
 - documented in km CLAUDE.md as the canonical 'visible regression' check
+

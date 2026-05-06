@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/terminfo/broken-pages"
 aliases:
   - km-terminfo.broken-pages
@@ -21,3 +23,4 @@ Found by /test-site deep scan (2026-03-25). 184 pages tested, 3 return 404:
 3. /sgr/sgr-23-reset-italic — page doesn't exist, likely not generated
 
 These are linked from somewhere on the site (navigation or feature matrix) but the target pages don't exist.
+

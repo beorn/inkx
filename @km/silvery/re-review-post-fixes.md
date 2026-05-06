@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/re-review-post-fixes"
 aliases:
   - km-silvery.re-review-post-fixes
@@ -17,3 +20,4 @@ assignee: claude:c9beade3
 # [x] Silvery re-review after P0/P1 fixes — verify fixes, find remaining issues @km/silvery #task #P2 @claude:c9beade3
 
 Re-run GPT 5.4 Pro review of reconciler/render-text after fixing P0/P1 bugs from pipeline-review-0312. Blocked until fixes are done.
+

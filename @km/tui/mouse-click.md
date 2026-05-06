@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/mouse-click"
 aliases:
   - km-tui.mouse-click
@@ -11,3 +14,4 @@ assignee: claude:d3a7049b
 ---
 
 # [x] Click-to-select and double-click-to-edit @km/tui #feature #P2 @claude:d3a7049b
+

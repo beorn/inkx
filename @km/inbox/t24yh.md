@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/t24yh"
 aliases:
   - km-t24yh
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] 10s+ startup freeze: preloadSubtree called twice, no progress @km/_orphan #bug #P1
 
 computeDefaultFolds() and useColumns() both call preloadSubtree() with recursive CTE that returns 100k+ rows on 333k-node tree. Two massive SQL queries before first render. No progress indicator shown during this phase.
+

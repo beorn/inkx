@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/surface-freeze"
 aliases:
   - km-all.surface-freeze
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-16T15:55:21Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all
 ---
 
 # [ ] Surface freeze: no new view modes / node types until W3 omnibox + W7 selection close @km/all #task #P2
@@ -43,3 +49,4 @@ When both are true, this bead closes and surface-widening beads can be re-priori
 ## Backlog
 
 Ordering in docs/backlog.md is authoritative. This bead is the policy tracker, not the roadmap.
+

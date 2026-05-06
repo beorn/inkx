@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - claude
 id: "@km/silvery/theme"
 aliases:
   - km-silvery.theme
@@ -16,3 +20,4 @@ assignee: claude:474834b0
 # [x] @silvery/theme web app for silvery docs @km/silvery #feature #P2 @claude:474834b0
 
 Build an interactive web app hosted in the swatch VitePress docs site that lets users browse/create/customize/preview/export color themes. Uses swatch API directly (autoGenerateTheme, presetTheme, themeToCSSVars). Inspiration: shadcn/ui theme editor, Catppuccin previewer, Coolors.co
+

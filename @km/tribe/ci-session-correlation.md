@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tribe/ci-session-correlation"
 aliases:
   - km-tribe.ci-session-correlation
@@ -15,9 +18,11 @@ assignee: claude:19080504
 # [x] CI: correlate failures to tribe sessions via commit/push timestamps @km/tribe #feature #P3 @claude:19080504
 
 When CI fails, identify which tribe session pushed the breaking commit by correlating:
+
 1. GitHub push event actor + timestamp
 2. git plugin commit reports (session broadcasts 'Committed: hash')
 3. Session registry (which session name maps to which project)
 
 Then send a targeted DM to that session: 'Your push to repo broke CI — hash message'
 Instead of broadcasting to all.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/scrollback-mode"
 aliases:
   - km-inkx.scrollback-mode
@@ -10,13 +13,14 @@ assignee: claude:a3625ec3
 
 # [x] feat(inkx): Scrollback mode for ergonomic CLI output @km/inkx #feature #P4 @claude:a3625ec3
 
-# Scrollback Mode for inkx
+## Scrollback Mode for inkx
 
 Ergonomic pi-tui-like experience where historical output accumulates in terminal scrollback while active UI updates in place.
 
 ## Problem Statement
 
 Current inkx modes:
+
 - **Fullscreen**: Alternate screen buffer, NO scrollback
 - **Inline**: Normal screen buffer, scrollback EXISTS but unused
 
@@ -25,6 +29,7 @@ Neither provides the pi-tui pattern where users can scroll up to review history 
 ## Key Insight: No New Mode Needed
 
 Terminal buffer model:
+
 - **Normal screen** (inline mode) → HAS scrollback
 - **Alternate screen** (fullscreen mode) → NO scrollback
 
@@ -32,12 +37,12 @@ Apps in inline mode can ALREADY leverage scrollback. We just need a **Freeze API
 
 ## Research Summary
 
-| Framework | Approach | Scrollback |
-|-----------|----------|------------|
-| pi-tui | Retained-mode, line-by-line | Native terminal (gold standard) |
-| Textual | Inline mode | Above viewport |
-| Rich | Live + console separation | Via live.console |
-| Ink/inkx | Alternate screen | None |
+| Framework | Approach                    | Scrollback                      |
+| --------- | --------------------------- | ------------------------------- |
+| pi-tui    | Retained-mode, line-by-line | Native terminal (gold standard) |
+| Textual   | Inline mode                 | Above viewport                  |
+| Rich      | Live + console separation   | Via live.console                |
+| Ink/inkx  | Alternate screen            | None                            |
 
 ### Technical Findings
 
@@ -68,6 +73,7 @@ Cons: Another component to learn, diverges from VirtualList
 ### Option 2: VirtualList with `freeze` prop (PREFERRED)
 
 Key insight: Both VirtualList and freeze handle items that don't fit on screen:
+
 - VirtualList: overflow **downward** → virtualize with placeholders
 - Freeze: overflow **upward** → push to terminal scrollback
 
@@ -89,12 +95,12 @@ Key insight: Both VirtualList and freeze handle items that don't fit on screen:
 />
 ```
 
-| Aspect | `overflow="scroll"` | `overflow="freeze"` |
-|--------|---------------------|---------------------|
-| Items above viewport | Placeholder box | In terminal scrollback |
-| Items below viewport | Placeholder box | In React tree (pending) |
-| Memory | Only visible items | Only unfrozen items |
-| User scroll | Via `scrollTo` prop | Native terminal scroll |
+| Aspect               | overflow="scroll"  | overflow="freeze"       |
+| -------------------- | ------------------ | ----------------------- |
+| Items above viewport | Placeholder box    | In terminal scrollback  |
+| Items below viewport | Placeholder box    | In React tree (pending) |
+| Memory               | Only visible items | Only unfrozen items     |
+| User scroll          | Via scrollTo prop  | Native terminal scroll  |
 
 ### Option 3: useFreeze() Hook (Imperative)
 
@@ -131,12 +137,14 @@ For freeze mode, "height" means "active region size":
 ## Pushing Items
 
 Declarative (same as VirtualList):
+
 ```tsx
 const [results, setResults] = useState([])
 setResults(prev => [...prev, newResult])  // Component handles freezing
 ```
 
 Imperative (for streaming):
+
 ```tsx
 const { freeze } = useFreeze()
 freeze(<Text>{line}</Text>)
@@ -195,3 +203,4 @@ await render(<TestReporter />, term, { mode: "inline" })
 - pi-tui: https://mariozechner.at/posts/2025-11-30-pi-coding-agent/
 - Textual inline: https://textual.textualize.io/blog/2024/04/20/behind-the-curtain-of-inline-terminal-applications/
 - Rich Live: https://rich.readthedocs.io/en/stable/live.html
+

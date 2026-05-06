@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/clear-region-clip"
 aliases:
   - km-silvery.clear-region-clip
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] clearNodeRegion clips to parent full rect, not parent content area @km/silvery #bug #P2
 
 Vertical clipping uses parentRect.y + parentRect.height but doesn't inset for parent border/padding. Can write into parent bottom border/padding rows during child shrink. Already fixed in clearExcessArea but not clearNodeRegion. Found by GPT pipeline review.
+

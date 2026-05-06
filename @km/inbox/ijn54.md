@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - claude
 id: "@km/inbox/ijn54"
 aliases:
   - km-ijn54
@@ -16,3 +20,4 @@ assignee: claude:73d7a332
 ---
 
 # [x] ink.ts: consolidate kitty protocol with @silvery/term @km/_orphan #task #P3 @claude:73d7a332
+

@@ -1,4 +1,8 @@
 ---
+mentions:
+  - bearly
+  - km
+  - Bjørn
 id: "@km/bearly/tribe-autostart"
 aliases:
   - km-bearly.tribe-autostart
@@ -17,3 +21,4 @@ assignee: Bjørn Stabell
 ---
 
 # [x] @bearly/tribe 0.11 — autostart config + auto-spawn daemon @km/bearly #feature #P2 @Bjørn Stabell
+

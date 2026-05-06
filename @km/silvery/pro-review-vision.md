@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/pro-review-vision"
 aliases:
   - km-silvery.pro-review-vision
@@ -15,3 +18,4 @@ assignee: claude:fed8de9e
 # [x] Pro Review: silvery vision & architecture design docs @km/silvery #task #P2 @claude:fed8de9e
 
 GPT 5.4 Pro deep research review of silvery-internal design docs: roadmap, pretext integration, rendering targets, plus vision/prototype beads. Focus: architecture, gaps, naming, sequencing, positioning.
+

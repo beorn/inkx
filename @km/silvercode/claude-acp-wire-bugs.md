@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/claude-acp-wire-bugs"
 aliases:
   - km-silvercode.claude-acp-wire-bugs
@@ -24,6 +27,10 @@ dependencies:
     created_at: 2026-04-27T15:37:21Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] claude-acp session: stuck status + ambient batching + duplicate errors @km/silvercode #bug #P1 @claude:cc081a9a
@@ -40,16 +47,14 @@ Three symptoms observed when running silvercode against claude via the
    at once when the user sends the next prompt. The screenshot showed
    ~10 ambient rows stamped 15:27-15:31 appearing simultaneously after
    the user typed.
-
 2. **Tool error rendered twice as distinct boxes.** Bash run of
    `tribe status` (daemon down) shows up as both:
-   - a "Run failed" ToolCall box with the stderr inside
-   - a separate "Error" row right below with the same stderr text
+  - a "Run failed" ToolCall box with the stderr inside
+  - a separate "Error" row right below with the same stderr text
    Suspected source: stderr listener in `acp-client.ts:497-502` emits
    `kind: "error"` for any non-empty child stderr. Claude's hook scripts
    fire on tool-call lifecycle and may write to stderr, which becomes a
    second visible error event on top of the legitimate tool-result.
-
 3. **Session stuck in "doing" status.** SidePanel/composer shows
    "Refining… (3s)" indefinitely after the assistant has clearly
    finished the response. Suggests the turn-end legacy event isn't
@@ -98,3 +103,4 @@ new prompt.
   per failed tool call, not two.
 - `bun vitest run apps/silvercode/packages/agent-harness/tests/` passes
   with new tests covering the turn-end synthesis on prompt resolve.
+

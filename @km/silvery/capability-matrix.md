@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/capability-matrix"
 aliases:
   - km-silvery.capability-matrix
@@ -14,3 +17,4 @@ assignee: claude:c9beade3
 # [x] Add capability matrix tests — OSC 66 supported/unsupported/partial profiles @km/silvery #task #P2 @claude:c9beade3
 
 Test with capability profiles: osc66 supported, osc66 unsupported, osc66 parse-but-swallow. Verify that unsupported profiles preserve visible content. The existing wide-char matrix is character-centric; this adds a capability dimension. See docs/lessons/testing-escape-hatches.md.
+

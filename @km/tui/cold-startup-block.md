@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/cold-startup-block"
 aliases:
   - km-tui.cold-startup-block
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-18T10:47:01Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Cold-start 17s event-loop block — (startup) with no phase attribution @km/tui #bug #P3 @Bjørn Stabell
@@ -29,3 +36,4 @@ blocks:: [[@km/tui]]
 On first launch after a while (cold OS page cache), the event-loop heartbeat reports 'event loop blocked for 16908ms — (startup) — render: layout=16ms (total=16ms) — (2 renders)'. Rendering is ~16ms, so the block is elsewhere: post-step work in view.ts, syncManager.start, detectTheme, workspace restore, React mount, sync reconcile, or background parse. Current diagnostic only says '(startup)' — no phase attribution.
 
 Phase 1: add phase markers so heartbeat reports '(startup:<phase>)' — no perf work, just diagnostics. Phase 2 once reproduced: fix the offending phase.
+

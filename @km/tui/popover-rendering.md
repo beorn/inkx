@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - hover
 id: "@km/tui/popover-rendering"
 aliases:
   - km-tui.popover-rendering
@@ -16,6 +20,7 @@ owner: bjorn@stabell.org
 # [x] [bug] Popover: raw wikilinks, text overflow, scroll broken, Cmd+hover unreliable @km/tui #bug #P1
 
 Session fixes applied:
+
 1. Raw wikilinks — FIXED (commit 2869a27b: InlineText context merge)
 2. Text overflow — FIXED (commit 9bed1e0: scroll containers use OVERFLOW_HIDDEN for layout)
 3. Scroll — REVERTED to overflow=hidden (raw scrollOffset was broken, needs scrollTo approach)
@@ -24,3 +29,4 @@ Session fixes applied:
 6. Click passthrough — FIXED (commit 3a70a829: stopPropagation on popover)
 
 Remaining: popover scroll (needs ListView/scrollTo integration)
+

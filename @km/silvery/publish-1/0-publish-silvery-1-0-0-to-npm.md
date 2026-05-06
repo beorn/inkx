@@ -1,4 +1,7 @@
 ---
+mentions:
+  - "1"
+  - km
 id: "@km/silvery/publish-1/0-publish-silvery-1-0-0-to-npm"
 aliases:
   - km-silvery.publish-1.0
@@ -12,3 +15,4 @@ owner: bjorn@stabell.org
 # [ ] Publish silvery@1.0.0 to npm @km/silvery #task #P4
 
 Tag and publish silvery 1.0.0. Prerequisite: all other 1.0 release tasks complete. Includes flexily 1.0 as a dependency.
+

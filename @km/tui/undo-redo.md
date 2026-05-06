@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/undo-redo"
 aliases:
   - km-tui.undo-redo
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Undo/redo/history with Cmd-Z/Ctrl-Z @km/tui #feature #P2
 
 Implement undo/redo for node operations (create, delete, move, rename, edit). Cmd-Z or Ctrl-Z to undo, Cmd-Shift-Z or Ctrl-Shift-Z to redo. Needs an operation history stack.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/wsc4n"
 aliases:
   - km-wsc4n
@@ -21,3 +24,4 @@ Classification: P1
 xterm reports cursorVisible: true and cursor style 'block' unconditionally; WezTerm hardcodes visibility; Ghostty always returns 'block' and never updates title. Makes assertions silently wrong.
 
 Suggested fix: Return null or 'unknown' for unsupported values, or gate behind capabilities so matchers can fail fast or skip.
+

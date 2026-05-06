@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/acp-comp-settings-panels"
 aliases:
   - km-silvercode.acp-comp-settings-panels
@@ -19,6 +21,14 @@ dependencies:
     created_at: 2026-04-26T08:37:57Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode.ide-shell
+      - type: link
+        target: km-silvery.overlay-vocabulary
 ---
 
 # [ ] silvercode settings — SettingsList, General, Keybinds, Models, Providers, Keybind chip @km/silvercode #feature #P4
@@ -26,6 +36,7 @@ dependencies:
 blocks:: [[@km/silvercode/ide-shell]], [[@km/silvery/overlay-vocabulary]]
 
 Settings shell + per-section panels:
+
 - <SettingsList> (left-rail nav + right pane)
 - <SettingsGeneral>, <SettingsKeybinds>, <SettingsModels>, <SettingsProviders>
 - <Keybind> chip primitive
@@ -33,3 +44,4 @@ Settings shell + per-section panels:
 Estimated ~900-1,300 LOC. Depends on: @km/silvery/overlay-vocabulary (<RadioGroup>, <Switch>).
 
 Source plan: hub/silvery/future/ai-terminal/component-parity-plan.md § Tier 3 bead 10.
+

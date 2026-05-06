@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/detail-unify-real"
 aliases:
   - km-tui.detail-unify-real
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-16T15:55:44Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.surface-freeze
 ---
 
 # [!] Unify detail view as board viewMode — same lens, same tree, same signals @km/tui #task #P0
@@ -31,12 +37,14 @@ Detail view (DetailView.tsx) is a parallel rendering path with its own component
 ## Goal
 
 Detail view should be just-another-viewMode like cards/columns/tabs. Same:
+
 - visibleLens for column derivation
 - TreeNode component tree
 - NodeStore signals
 - Navigation (next/prev/parent/children on the tree)
 
 The differences are LAYOUT only:
+
 - Full-width single column instead of horizontal kanban
 - Metadata rows shown above content
 - Body block expanded by default
@@ -71,3 +79,4 @@ rg "viewMode === ..detail.." apps/km-tui/src/views/Board.tsx | wc -l            
 rg "viewMode === ..detail.." apps/km-tui/src/views/BoardView.tsx | wc -l                  # 0
 bun run test:fast  # pass
 ```
+

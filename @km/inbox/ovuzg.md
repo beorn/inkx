@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/ovuzg"
 aliases:
   - km-ovuzg
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] L (unfold) on card skips levels — should unfold one level at a time @km/_orphan #bug #P2
 
 When pressing L (unfold_node) on a card in the board, it skips levels instead of unfolding one level at a time. User reports seeing level jumps. Needs investigation of fold/unfold state management and how it interacts with column view rendering.
+

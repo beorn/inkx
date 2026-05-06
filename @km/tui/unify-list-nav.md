@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/unify-list-nav"
 aliases:
   - km-tui.unify-list-nav
@@ -13,3 +16,4 @@ assignee: Bjørn Stabell
 # [x] Unify applyBlockNav/applyOutlineNav/applyPageJump into applyListNav @km/tui #task #P2 @Bjørn Stabell
 
 Three nearly-identical index-based reducer functions. Merge into applyListNav(state, dir, items, currentIndex). Eliminates ~80 lines of duplicate code. ~1 hour.
+

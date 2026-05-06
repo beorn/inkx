@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/auto-theme"
 aliases:
   - km-tui.auto-theme
@@ -15,3 +17,4 @@ Query terminal bg color on startup via queryBackgroundColor() + detectColorSchem
 
 Files: @km/tui theme.ts, tui.tsx, inkx terminal-caps.ts
 Depends on: @km/silvery-legacy/osc-fg-bg
+

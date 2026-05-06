@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/breadcrumb-multiline-content"
 aliases:
   - km-tui.breadcrumb-multiline-content
@@ -23,6 +26,10 @@ dependencies:
     created_at: 2026-04-20T16:34:11Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] [bug] Breadcrumb shows full body content — should clamp to first line @km/tui #bug #P2 @claude:8b5b9e1c
@@ -30,3 +37,4 @@ dependencies:
 blocks:: [[@km/tui]]
 
 TopBarBreadcrumb in apps/@km/tui/src/views/BoardView.tsx renders segment names that can include multiline content (body cards). Clamp to first line with ellipsis.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/breadcrumbs"
 aliases:
   - km-tui.breadcrumbs
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Breadcrumb path display when zoomed deep into hierarchy @km/tui #feature #P3
 
 O3 recommendation: Show a path like 'Project > Category > Immigration push' when zoomed deep, so users aren't disoriented after a search jump or deep navigation. Currently users can get lost after zoom — no visual indication of where they are in the tree hierarchy beyond the column headers.
+

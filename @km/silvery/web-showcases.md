@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/web-showcases"
 aliases:
   - km-silvery.web-showcases
@@ -18,6 +21,7 @@ assignee: claude:fed8de9e
 The silvery.dev showcases are in bad shape after era2 renames. Many don't work, are duplicated, or have rendering issues.
 
 ## Broken (disable for now)
+
 - AI Coding Agent — rendering issues, listed twice
 - Gallery — blank
 - Explorer — doesn't look good
@@ -29,6 +33,7 @@ The silvery.dev showcases are in bad shape after era2 renames. Many don't work, 
 - Transform — rendering issues, broken borders
 
 ## Fix now
+
 - Many showcases listed 2-3 times (duplicate registry entries)
 - No showcases show SOURCE code in right tab
 - Components — scrolling doesn't work on web, @silvery/ag-react should be silvery
@@ -36,5 +41,7 @@ The silvery.dev showcases are in bad shape after era2 renames. Many don't work, 
 - CLI Wizard — has comma-separated commands (,cd ,bun) — might be fixable
 
 ## Improvements needed
+
 - Examples requiring full terminal should show bunx command to run locally
 - Overall: strip down to what works, disable the rest, make remaining showcases excellent
+

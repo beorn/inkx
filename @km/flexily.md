@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily"
 aliases:
   - km-flexily
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] Flexily layout engine (v0.5) @km/flexily #epic #P2
 
 Scope epic for Flexily layout engine (vendor/flexily) — bugs, tests, performance, docs.
+

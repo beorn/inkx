@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/pro-review-0313"
 aliases:
   - km-termless.pro-review-0313
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Pro Review: termless (2026-03-13) @km/termless #task #P2
 
 GPT 5.4 Pro code review of termless (7,377 LOC). 13 findings: 5 P0, 6 P1, 2 P2. Cost: $3.38.
+

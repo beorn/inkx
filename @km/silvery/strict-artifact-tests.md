@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/strict-artifact-tests"
 aliases:
   - km-silvery.strict-artifact-tests
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] captureStrictFailureArtifacts: add unit tests @km/silvery #task #P3
 
 captureStrictFailureArtifacts has 0 unit tests. Add tests verifying artifacts are captured on STRICT failure (prev/next buffer snapshots, ANSI sequences, backend screenshots, terminal size, test name/fuzz seed).
+

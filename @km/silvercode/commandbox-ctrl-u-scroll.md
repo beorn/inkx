@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/commandbox-ctrl-u-scroll"
 aliases:
   - km-silvercode.commandbox-ctrl-u-scroll
@@ -47,6 +50,10 @@ dependencies:
     created_at: 2026-04-25T22:12:19Z
     created_by: claude:230fa25d
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Ctrl-U in CommandBox scrolls MessageList viewport to top @km/silvercode #bug #P2 @claude:230fa25d
@@ -60,3 +67,4 @@ Suspected cause: MessageList uses cursorKey={cursor} with initial state -1 and n
 Files: apps/silvercode/src/components/MessageList.tsx (cursor state), apps/silvercode/src/components/CommandBox.tsx (Ctrl-U via TextArea readline).
 
 Done when: a failing test reproduces ctrl-u during streaming or with messages off-screen, fix lands, viewport stays at the latest line.
+

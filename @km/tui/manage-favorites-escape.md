@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/manage-favorites-escape"
 aliases:
   - km-tui.manage-favorites-escape
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-14T18:30:35Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Escape does not close Manage Favorites dialog @km/tui #bug #P2
@@ -26,3 +32,4 @@ dependencies:
 blocks:: [[@km/tui]]
 
 Pressing Shift+M opens the Manage Favorites dialog; pressing Escape should close it (via dialog.cancel command) but does nothing. Possibilities: wildcard binding favorites.select_key (line 578 keybindings.ts) resolving before the Escape binding (line 577); inScope('dialog:favorites') returning false because the focus scope is not actually pushed; DIALOG_CANCEL handler's showFavoritesDialog check reading stale state. Need a unit test that calls resolveKeybinding('Escape', {}, ctx) with activeScopes=['dialog:favorites'] and favoritesKeySelected=false, expecting dialog.cancel. Not blocking — the user can still close the dialog another way.
+

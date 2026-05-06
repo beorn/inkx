@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/review"
 aliases:
   - km-review
@@ -15,8 +17,10 @@ See `/pm` skill and `bd list --parent km-review` for current children.
 Tracks code review findings across the monorepo. Each review session creates sub-beads for actionable findings.
 
 ## Closed
+
 - @km/review/arch-0130: Code review: Architecture and quality (Jan 2026) — all findings resolved
 - @km/review/feb-0203: Code review findings: Feb 2026 — all findings resolved
 - @km/review/complexity: Cognitive complexity — down from 132 to 6, all remaining are exempt (React/switches)
 
 No open children. Next review session should create a new `km-review.<date>` sub-bead.
+

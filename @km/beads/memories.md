@@ -1,4 +1,7 @@
 ---
+mentions:
+  - mem
+  - km
 id: "@km/beads/memories"
 aliases:
   - km-beads.memories
@@ -15,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] @mem root + km bd remember/memories/prime @km/beads #task #P1
 
 memories live as ## sections in mem/ tagged @memory; km bd remember --key foo upserts by heading slug; km bd memories lists/searches; km bd prime emits sections for hook injection. Acceptance: 3 current bd memories migrate cleanly; remember + read round-trip works; help text covers all three commands.
+

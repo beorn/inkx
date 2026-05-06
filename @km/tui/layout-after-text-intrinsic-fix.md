@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/layout-after-text-intrinsic-fix"
 aliases:
   - km-tui.layout-after-text-intrinsic-fix
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-26T00:55:18Z
     created_by: claude:53042a7f
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] km-tui tests fail after text-intrinsic-vs-render fix — codified old conflation behavior @km/tui #bug #P2 @claude:53042a7f
@@ -55,3 +62,4 @@ Most likely a mix: tests need updating; some components may need explicit minWid
 - All 7 failing tests pass
 - No new test failures
 - Document the migration pattern in apps/@km/tui/tests/CLAUDE.md if multiple tests share the same fix shape
+

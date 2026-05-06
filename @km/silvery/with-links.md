@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/with-links"
 aliases:
   - km-silvery.with-links
@@ -27,6 +30,7 @@ const app = withLinks(run(<Board />), {
 ```
 
 The plugin would:
+
 - Subscribe to 'link:open' events from Link components
 - Route external URLs (http/https) to onOpen handler
 - Route internal URLs (km://, app://) to onNavigate handler
@@ -38,3 +42,4 @@ Current approach: useLinkOpen hook in BoardApp + Bun.spawn. This works but coupl
 TEA vision: Link clicks produce effects, not side effects. The withLinks plugin converts 'link:open' events into dispatched actions that flow through the TEA update loop. See docs/design/tea-state-machines.md.
 
 Key insight: mouse events + modifier state + link activation = three systems that need to compose. The withLinks plugin is the composition point.
+

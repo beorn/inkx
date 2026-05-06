@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/listview-scroll-overshoot"
 aliases:
   - km-silvery.listview-scroll-overshoot
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-26T00:43:28Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] ListView scroll cap overshoots actual content end (user scrolls into empty viewport) @km/silvery #bug #P1 @claude:2405c72e
@@ -27,3 +34,4 @@ dependencies:
 blocks:: [[@km/silvery]]
 
 Stream M fix (commit 8c63cfb9) changed scroll cap from totalRowsMeasured to max(totalRowsStable, totalRowsMeasured) - trackHeight. When unmeasured items get a high avgMeasured fallback (driven by an atypically tall first item like a long system prompt), the cap overshoots actual content end. User scrolling down ends up with viewport rendering items 200+ when only 50 exist → empty viewport. Repro: silvercode --resume <id> with a session that has a long system prompt, scroll down. Fix: cap should use totalRowsMeasured ONLY (not max with stable). The visibility-gate's max() is correct for that purpose; the scroll cap is different — it must not exceed actual content bound.
+

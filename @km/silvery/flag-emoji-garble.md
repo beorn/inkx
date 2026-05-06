@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/flag-emoji-garble"
 aliases:
   - km-silvery.flag-emoji-garble
@@ -22,5 +25,7 @@ Bug: After j+l at 200+ cols with flag emoji in title, first column shows duplica
 Root cause: xterm.js and some terminals treat flag emoji (regional indicator sequences like 🇨🇦) as two width-1 chars instead of one width-2 char. bufferToAnsi had no cursor re-sync after wide chars, so the initial full render created terminal state shifted by 1 column per flag emoji. Subsequent changesToAnsi incremental renders used CUP positioning, so changed cells were correct but unchanged cells retained the shifted positions from the initial render — creating visible garble.
 
 Fix: Two complementary fixes in output-phase.ts:
+
 1. Added flag emoji detection (isFlagSequence) to wrapTextSizing — wraps flag emoji in OSC 66 to force width 2 on terminals supporting text sizing protocol.
 2. Added cursor re-sync to bufferToAnsi after every wide char — emits explicit CUP to correct cursor position, matching the existing re-sync in changesToAnsi. This is the primary fix for terminals without OSC 66.
+

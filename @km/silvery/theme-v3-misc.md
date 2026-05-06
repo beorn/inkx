@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-v3-misc"
 aliases:
   - km-silvery.theme-v3-misc
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-18T21:09:21Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.theme-v3-plumbing
 ---
 
 # [x] Typed variants runtime + single generator + theme inspect CLI @km/silvery #task #P3
@@ -26,3 +32,4 @@ dependencies:
 blocks:: [[@km/silvery/theme-v3-plumbing]]
 
 N5: variants is Record<string, Variant> — add runtime validation that unknown variants warn. B3: deriveFields has ansi16 and truecolor paths 70% duplicated — collapse to one function with tier selector. N6: silvery theme inspect command that prints 'your $primary resolved to X via fingerprint Y confidence Z'.
+

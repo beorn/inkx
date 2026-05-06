@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/scrollback-promotion-fix"
 aliases:
   - km-silvery.scrollback-promotion-fix
@@ -15,8 +17,10 @@ owner: bjorn@stabell.org
 # [x] 4 scrollback promotion tests failing — border preservation + blank screen @km/silvery #bug #P2
 
 Pre-existing failures in scrollback-promotion.test.tsx:
+
 - fully promoted boxes lose border characters
 - promoted boxes lose bottom border before entering scrollback
 - screen goes blank after Enter presses (small + very small terminals)
 
 These are inline rendering bugs, not caused by the emulator path changes.
+

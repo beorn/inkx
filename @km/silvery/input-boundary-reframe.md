@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/input-boundary-reframe"
 aliases:
   - km-silvery.input-boundary-reframe
@@ -13,13 +15,17 @@ dependencies:
     created_at: 2026-04-24T00:09:52Z
     created_by: claude:c56dc5d6
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.tea
 ---
 
 # [ ] Input boundary reframe — kill the 'two views of one event' smell @km/silvery #epic #P1
 
 blocks:: [[@km/silvery/tea]]
 
-# Input-boundary reframe: kill the "two views of one event" smell
+## Input-boundary reframe: kill the "two views of one event" smell
 
 ## Problem class
 
@@ -41,11 +47,11 @@ The input pipeline has a recurring bug shape — one event is exposed as TWO con
 
 ### The input boundary has THREE distinct concerns, each deserving its own primitive
 
-| Concern                                        | What it's for                                | Today                                    | Proposed                                 |
-| ---------------------------------------------- | -------------------------------------------- | ---------------------------------------- | ---------------------------------------- |
-| **Named keys / chords**                        | Keybindings: "ctrl+k", "shift+;", arrows     | `useInput` w/ `input`+`key.*`            | `useHotkey(binding, handler)` — declarative only |
-| **Text input**                                 | Typed graphemes going into a text field      | `useInput` w/ `key.text ?? input` + filtering | `useTextInput({ onChar })` — grapheme-cluster per call |
-| **Raw event stream**                           | Framework internals (input-routing, tests)   | `runtimeInputListeners`                  | Stays private; never the default import  |
+| Concern             | What it's for                              | Today                                     | Proposed                                             |
+| ------------------- | ------------------------------------------ | ----------------------------------------- | ---------------------------------------------------- |
+| Named keys / chords | Keybindings: "ctrl+k", "shift+;", arrows   | useInput w/ input+key.*                   | useHotkey(binding, handler) — declarative only       |
+| Text input          | Typed graphemes going into a text field    | useInput w/ key.text ?? input + filtering | useTextInput({ onChar }) — grapheme-cluster per call |
+| Raw event stream    | Framework internals (input-routing, tests) | runtimeInputListeners                     | Stays private; never the default import              |
 
 ### Core invariants this enforces
 
@@ -57,30 +63,36 @@ The input pipeline has a recurring bug shape — one event is exposed as TWO con
 ## Scope / phases
 
 ### Phase 1 — audit and boundary definition
+
 - Grep all `useInput` call sites across silvery + km (examples, apps, tests).
 - Classify each: chord, text, release-aware, event-stream.
 - Document patterns in `hub/silvery/design/input-boundary.md`.
 - Decide the terminal API for `useHotkey` + `useTextInput`. /pro or /csw the shape.
 
 ### Phase 2 — ship the three primitives
+
 - `useHotkey(binding, handler, opts?)` — single-binding. `useHotkeyMap({ "ctrl+k": …, "esc": … })` for aggregates.
 - `useTextInput({ onChar, onPaste? })` — grapheme-cluster stream. Paste folds into onChar unless a paste-specific path is requested.
 - `useRawKeyEvent(handler)` — escape hatch, documented as framework-internal.
 - New public entry points. Old `useInput` stays EXPORTED during migration but marked for deletion.
 
 ### Phase 3 — migrate every consumer
+
 - ag-react UI components (TextInput, TextArea, SelectList, CommandPalette, SearchProvider, etc.).
 - km apps (@km/tui views, @km/logview App, @km/_orphan/cli prompts).
 - Examples (silvery examples/**/*).
 - Tests — update to new primitives, add grapheme-cluster regression tests.
 
 ### Phase 4 — delete `useInput`
+
 - Zero consumers remaining → delete the hook + its filtering logic.
 - Update docs: `the-silvery-way.md`, `input-architecture.md`, `styling.md`, every `api/*` reference.
 - `SILVERY_STRICT=2` invariant: no `ctx.input(input)` pattern anywhere in source.
 
 ### Phase 5 — neighbors
+
 Same "two views of one concept" smell may exist in:
+
 - Mouse coord dual view (cell vs client coords) — audit all mouse handlers.
 - ListView `scrollOffset` (item-index) vs `scrollRow` (row-index) — the bug fixed 2026-04-23 was exactly this.
 - Size reporting (`term.size` cells vs pixels on supporting terms).
@@ -105,3 +117,4 @@ File each as a sibling bead IF the audit finds active bug shapes. Don't preempti
 ## Why now
 
 Framework has no users. Every API break costs the same (refactor examples + km, update docs). Later breaks cost users. This is the cheapest moment to reframe, and the bug rate in this boundary is high enough to keep paying for a fix.
+

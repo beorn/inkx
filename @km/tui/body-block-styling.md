@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/body-block-styling"
 aliases:
   - km-tui.body-block-styling
@@ -22,6 +24,14 @@ dependencies:
     created_at: 2026-04-13T16:07:12Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.outline-outside
+      - type: link
+        target: km-tui
 ---
 
 # [x] Body blocks: borderless rendering with outside outline on cursor @km/tui #feature #P1
@@ -29,3 +39,4 @@ dependencies:
 blocks:: [[@km/silvery/outline-outside]], [[@km/tui]]
 
 Body blocks should render as flat text (no border) with text aligned to card content. On cursor/hover: outside outline appears in gap space (no layout shift). On edit: outline shows edit bounds. Depends on @km/silvery/outline-outside. Also needs: yieldTop/isPrevBodyBlock/isLastBodyBlock cleanup (old padding dance).
+

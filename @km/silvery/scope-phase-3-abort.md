@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/scope-phase-3-abort"
 aliases:
   - km-silvery.scope-phase-3-abort
@@ -24,6 +26,14 @@ dependencies:
     created_at: 2026-04-24T13:39:52Z
     created_by: claude:2aefb4b6
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.lifecycle-scope
+      - type: link
+        target: km-silvery.scope-phase-2
 ---
 
 # [x] Phase 3.3: Raw new AbortController migration @km/silvery #task #P2
@@ -31,3 +41,4 @@ dependencies:
 blocks:: [[@km/silvery/lifecycle-scope]], [[@km/silvery/scope-phase-2]]
 
 Replace raw new AbortController() with useScopeEffect + scope.signal. Example: useScopeEffect(scope => { void fetch(url, { signal: scope.signal }) }, [url]). Exit: grep shows zero new AbortController() outside @silvery/* + vendor/*.
+

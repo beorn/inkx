@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/pro-review-4"
 aliases:
   - km-flexily.pro-review-4
@@ -13,6 +15,7 @@ owner: bjorn@stabell.org
 GPT 5.4 Pro docs & positioning review for flexily. Key findings:
 
 CRITICAL:
+
 1. Package/install naming ambiguity — docs show 'flexily' but actual npm uses '@beorn/flexily'. Classic adoption killer.
 
 IMPORTANT:
@@ -27,3 +30,4 @@ NICE-TO-HAVE:
 OVERALL SCORE: 9/10 clarity, 8/10 trust — best focused positioning of the three. Most credible.
 
 Output: /tmp/llm-65d845d9-gpt-54-pro-docs-m3ys.txt
+

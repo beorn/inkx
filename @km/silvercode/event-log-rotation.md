@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/event-log-rotation"
 aliases:
   - km-silvercode.event-log-rotation
@@ -18,6 +21,10 @@ dependencies:
     created_at: 2026-04-24T08:39:59Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] event-log: rotate + cap per-session JSONL size @km/silvercode #task #P3 @claude:0940ca20
@@ -25,3 +32,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 Currently event-log.ts appends unboundedly to <logDir>/<sessionId>.jsonl. Long sessions accumulate MBs of JSONL. Add rotation: cap each file at 10MB, rotate to .jsonl.1 / .jsonl.2 keeping last 3 generations. Or simpler: truncate on append when size > cap, preserving tail. Also add a size field to EventLog for observability. Apps/silvercode/packages/agent-harness/src/event-log.ts.
+

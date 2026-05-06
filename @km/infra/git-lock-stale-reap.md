@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/git-lock-stale-reap"
 aliases:
   - km-infra.git-lock-stale-reap
@@ -22,6 +25,10 @@ dependencies:
     created_at: 2026-04-28T15:40:26Z
     created_by: claude:51f52497
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] Auto-reap stale .git/index.lock — silent, no warnings @km/infra #task #P2 @claude:51f52497
@@ -79,3 +86,4 @@ Key change vs current behavior: no-holder case is silent reap, regardless of fil
 - Daemon source: search for "git-lock" or "index.lock" in `vendor/bearly/tools/tribe-daemon.ts` (or current location)
 - Existing detection logic: keep `lsof` invocation; use exit code 1 = no holder
 - Poll interval is fine — the 1s age guard handles per-poll race; tighter polling not required
+

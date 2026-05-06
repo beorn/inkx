@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/body"
 aliases:
   - km-body
@@ -12,8 +14,9 @@ closed_at: 2026-01-23T15:53:39Z
 Group leading non-section content (paragraphs, code, quotes) into virtual 'body' nodes.
 
 Display as:
+
 - Board body → virtual first column
-- Column body → virtual first card  
+- Column body → virtual first card
 - Card body → virtual first child
 - Recursive at all depths
 
@@ -21,3 +24,4 @@ Design: Computed/virtual at display time (not physical storage).
 Navigation: Read-only, cursor skips body elements.
 
 See plan: ~/.claude/plans/snoopy-imagining-candy.md
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/body-edit-structure"
 aliases:
   - km-tui.body-edit-structure
@@ -27,3 +30,4 @@ Root cause: BodyBlockEditor renders body children as flat Text/InlineText blocks
 Fix approach: BodyBlockEditor should render non-active body blocks using TreeNode (display mode) instead of raw Text. Only the ACTIVE block being edited should use BodyEditField. This preserves bullets, nesting, and width constraints for all non-active body content.
 
 Seen on: Marketing card in ~/Bear/Vault/TODO.md — list items with sub-items lose structure in edit mode.
+

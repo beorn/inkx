@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/use-ag-node-signals"
 aliases:
   - km-silvery.use-ag-node-signals
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-26T17:09:58Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.fix-sweep-vendor-fuzz
 ---
 
 # [x] [bug] vendor/silvery use-ag-node — 3 unrelated layout/signal bugs (lines 16, 69, 171) @km/silvery #bug #P2 @claude:cc081a9a
@@ -35,3 +42,4 @@ Discovered during @km/silvery/editcontext-export work. The 3 failing use-ag-node
 Distinct from the export fix in silvery dfa27c08 (click-to-position now 26/26). useAgNode hook in vendor/silvery/packages/ag-react/src/hooks/.
 
 /complete: bun vitest run --project vendor vendor/silvery/tests/features/use-ag-node.test.tsx → 0 failures.
+

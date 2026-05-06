@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/loggily/v2-phase2"
 aliases:
   - km-loggily.v2-phase2
@@ -23,6 +26,14 @@ dependencies:
     created_at: 2026-04-11T23:59:02Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-loggily.api-v2
+      - type: link
+        target: km-loggily.v2-phase1
 ---
 
 # [x] Phase 2: logger decomposition + compose() @km/loggily #task #P2 @Bjørn Stabell
@@ -30,3 +41,4 @@ dependencies:
 blocks:: [[@km/loggily/api-v2]], [[@km/loggily/v2-phase1]]
 
 Split Logger into baseLogger + plugins (withSpans, withContext, withMetrics). Implement compose(). Default createLogger is pre-composed. Each plugin extends config schema + Logger methods. Tree-shakeable builds.
+

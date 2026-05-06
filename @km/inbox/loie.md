@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/loie"
 aliases:
   - km-loie
@@ -16,3 +18,4 @@ Root cause: When computing baseSize for flex children, the code only handled lea
 Solution: Added computeIntrinsicMainSize() helper that recursively computes intrinsic main-axis size for containers by summing children's sizes + gaps + padding + border.
 
 This is fundamental to proper flex layout - containers must size-to-content when no explicit size is given.
+

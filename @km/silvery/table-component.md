@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/table-component"
 aliases:
   - km-silvery.table-component
@@ -19,6 +21,7 @@ Silvery needs a Table or Grid component for tabular data display.
 Motivation: tribe-watch had to build a custom auto-width table with computeColWidths + Cell + SessionRow + TableHeader. This pattern should be a reusable silvery component.
 
 API sketch:
+
 ```tsx
 <Table
   data={sessions}
@@ -34,9 +37,11 @@ API sketch:
 ```
 
 Features:
+
 - Auto-width: columns sized to max(header, ...values) + padding
 - Last column or grow:true column gets flexGrow={1}
 - Header row with bold + $primary color
 - Render functions for computed values
 - Optional: sortable, selectable rows
 - Uses Box flexbox layout (no padEnd strings)
+

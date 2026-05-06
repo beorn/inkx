@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/nested-scroll"
 aliases:
   - km-silvery.nested-scroll
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] Nested scroll containers @km/silvery #feature #P4
 
 Support nested scroll contexts (scrollable list inside scrollable panel). Currently the scroll system assumes single context. Park until real use case.
+

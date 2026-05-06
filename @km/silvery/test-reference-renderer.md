@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/test-reference-renderer"
 aliases:
   - km-silvery.test-reference-renderer
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Testing gap: independent simple reference renderer as second oracle @km/silvery #task #P3
 
 Current oracle is fresh render using same renderer without skipping. If both share a bug, STRICT passes. Build deliberately simple reference renderer: no skipping, no buffer clone reuse, no excess-clearing optimizations, minimal shared helpers. Compare final buffers in fuzz/CI. Found by GPT 5.4 pro.
+

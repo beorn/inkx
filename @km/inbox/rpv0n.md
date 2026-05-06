@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/rpv0n"
 aliases:
   - km-rpv0n
@@ -15,3 +18,4 @@ assignee: claude:d29abbfa
 # [x] Scroll offset change not dirtying content phase @km/_orphan #bug #P0 @claude:d29abbfa
 
 P0: When scrollTo prop changes on a scroll container but layout rect stays the same, all dirty flags remain false and canSkipEntireSubtree skips re-rendering. Borders overwrite content. Triggered by theme explorer smoke test. Fix: check scroll offset in fast-path skip logic in content-phase.ts.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/recall-memory-framing"
 aliases:
   - km-bearly.recall-memory-framing
@@ -13,13 +15,17 @@ dependencies:
     created_at: 2026-04-20T13:54:39Z
     created_by: claude:632692f2
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-bearly
 ---
 
 # [ ] Recall memory injection: XML framing + Haiku rewrite so memory doesn't look like user turns @km/bearly #task #P2
 
 blocks:: [[@km/bearly]]
 
-# Problem
+## Problem
 
 `UserPromptSubmit` hook injects a `## Session Memory` block of `[message] <id>: <snippet>` entries retrieved from the FTS-indexed session history (via `tribe.inject_delta` / `hookRecall`). Because the snippets are raw prompt-like text, Claude Code's transcript renderer makes them look like fresh `Human:` turns. Users report the confusion ("i did not write the User/Human stuff here"), and the LLM's turn-taking reflex sometimes treats recalled memory as if it were a new user message.
 
@@ -80,3 +86,4 @@ Form B is additive — ship Form A first, measure whether B is worth it by user 
 - Transcript renderer changes (Claude Code owns that; we only control emit format)
 - Tribe channel framing (separate — covered by `km-tribe.event-classification`)
 - Changing the TTL / dedup / snippet selection logic (separate concern)
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/all/session-learnings-0406"
 aliases:
   - km-all.session-learnings-0406
@@ -21,6 +24,7 @@ assignee: Bjørn Stabell
 Today's exploration session surfaced 15 reusable learnings:
 
 CODE PATTERNS (codify in docs/principles.md or /code skill):
+
 1. Cursor must update atomically with tree-changing operations
 2. Use != null for absence checks, not truthiness (empty string, 0, false)
 3. Style modifiers as colors not booleans (cascade via inheritance)
@@ -40,3 +44,4 @@ PROCESS PATTERNS (codify in explore workflow):
 15. Renames need a checklist (data, types, functions, files, comments, docs, tests)
 
 Each of these should become either: (a) an entry in docs/principles.md, (b) a memory file, or (c) a skill update.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/actiontype-namespace"
 aliases:
   - km-tui.actiontype-namespace
@@ -13,3 +16,4 @@ assignee: Bjørn Stabell
 # [x] Extract ActionType namespace — unify 7 type guard sets into ActionType.is() @km/tui #task #P2 @Bjørn Stabell
 
 7 bare ReadonlySet type guards (isVerbOp, isNavOp, etc.) not discoverable. Extract ActionType.is('verb', action). ~30 min.
+

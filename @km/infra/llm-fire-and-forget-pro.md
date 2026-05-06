@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/llm-fire-and-forget-pro"
 aliases:
   - km-infra.llm-fire-and-forget-pro
@@ -66,6 +69,10 @@ dependencies:
     created_at: 2026-04-20T22:35:15Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] Standard pro calls should be fire-and-forget + recoverable like --deep @km/infra #feature #P2 @claude:8b5b9e1c
@@ -77,12 +84,15 @@ Today --deep uses OpenAI's responses API → fire-and-forget + \`bun llm recover
 Fix: route standard pro through the same responses API as --deep so every pro call persists a responseId and can be recovered. No user-visible behavior change in the happy path; massive UX improvement on failure.
 
 Context:
+
 - Filed 2026-04-21 after removing the dual-pro wall-clock timeout (which was killing legitimate long-context queries). Removal is safe because user can SIGINT + providers have their own timeouts — but that means 30+ min pro calls lose work on any interruption.
 - Today's responses API path lives in vendor/bearly/plugins/llm/src/lib/openai-deep.ts and research.ts (deep branch).
 - Blast radius: dispatch.ts dual-pro path, ask() with "standard" level, queryModel in research.ts.
 
 Acceptance criteria:
+
 1. \`bun llm pro "..."\` returns a responseId and writes /tmp/llm-*.txt with "in_progress" immediately, OR returns the answer if it completes fast
 2. \`bun llm recover <id>\` works for pro-mode call IDs
 3. Dual-pro still races both legs and returns combined report
 4. Existing tests still green
+

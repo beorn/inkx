@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/board-spec-tests"
 aliases:
   - km-tui.board-spec-tests
@@ -15,6 +18,7 @@ assignee: claude:97b8de73
 Exploration found significant test gaps in board-level keypress tests. Need board-spec tests (using testEnv/board.press) for:
 
 **Untested features (zero tests):**
+
 - J/K block navigation (block_nav_down/up)
 - Visual mode (v enter, j/k extend, d cut, y copy, Esc cancel)
 - Filter dialog (j/k nav, h/l filter nav, Enter toggle, X clear, Esc cancel)
@@ -22,6 +26,7 @@ Exploration found significant test gaps in board-level keypress tests. Need boar
 - Focus system integration (board-area focusable, detail-pane focus)
 
 **Partially tested:**
+
 - Inline edit lifecycle (i enter, type, Esc cancel, Enter confirm)
 - x done toggle
 - u undo / Ctrl+r redo
@@ -33,3 +38,4 @@ Exploration found significant test gaps in board-level keypress tests. Need boar
 - Chord sequences (t+d date, g+p project picker, etc.)
 
 Goal: comprehensive acceptance tests operating at keypress level that verify all advertised keybindings work end-to-end.
+

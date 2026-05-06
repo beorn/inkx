@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/detail-pane-lag"
 aliases:
   - km-tui.detail-pane-lag
@@ -19,3 +22,4 @@ When cursor changes on main board, the detail pane title updates immediately but
 **Current**: Title changes instantly, stale content from previous node remains visible for 2-3s, then new content appears. This creates a confusing mismatch where the title says one thing and the content shows another.
 
 **Likely cause**: Detail pane title reads from cursor state directly (synchronous), but content reads from a derived/async source (repo query, markdown parse, or debounced update). The fix should either make content synchronous or add a loading state when title !== content's source node.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/unskip-omnibox-integration"
 aliases:
   - km-tui.unskip-omnibox-integration
@@ -21,6 +24,10 @@ dependencies:
     created_at: 2026-04-18T12:15:18Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Unskip 3 omnibox-integration tests blocked on sigil double-echo @km/tui #task #P2 @Bjørn Stabell
@@ -30,7 +37,7 @@ blocks:: [[@km/tui]]
 Three integration tests were skipped in 014bb88b4 + 61c5907c0 waiting for @km/tui/omnibox-quality-plateau (now closed) to address the :-key double-echo:
 
 - typing ':go' in command-palette mode filters command results
-- slippery sigil rule fires: ':cr' + '@' → '@cr'  
+- slippery sigil rule fires: ':cr' + '@' → '@cr'
 - dialog width is stable across frames as results stream in
 
 Root cause was in the test driver, not production: driver.ts called handleKey synchronously in an act() block BEFORE calling silvery's originalPress(). This committed the omnibox mount BEFORE the input emitter fired, so the freshly-mounted TextInput echoed the sigil keystroke into its buffer.
@@ -38,3 +45,4 @@ Root cause was in the test driver, not production: driver.ts called handleKey sy
 Fix: in driver.ts driverPress(), detect when handleKey opened a singleton overlay during the current press. If so, skip originalPress — the keystroke was consumed by the command system, and replaying it into the now-mounted TextInput would produce a double-echo.
 
 Also: 'cmd:' namespace prefix check in the :go test was stale (rows now use kind discriminator, not prefixed ids), and double-border scan in the width test was stale (omnibox is borderless by design).
+

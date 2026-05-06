@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/parse-idempotent"
 aliases:
   - km-storage.parse-idempotent
@@ -39,3 +42,4 @@ The storage layer has 3 parse entry points (parseStubFile, parseOneFile, insertF
 
 - Skip re-parsing files that already have children (6c40d950)
 - Asana vault acceptance tests (asana-vault.slow.spec.ts)
+

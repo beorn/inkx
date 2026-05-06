@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/consolidate-scripts"
 aliases:
   - km-infra.consolidate-scripts
@@ -18,3 +20,4 @@ owner: bjorn@stabell.org
 # [x] Consolidate infra/ scripts into packages/km-infra/ @km/infra #task #P3
 
 Two infra locations exist: top-level infra/ (scripts: audit, test runners, typecheck, lint) and packages/@km/infra/ (configs: vitest, oxlint, oxfmt, knip, typescript, tool deps). Merge infra/ into packages/@km/infra/scripts/ and update all package.json script references. Low urgency — functional as-is, just messy.
+

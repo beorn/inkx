@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/compat-dry"
 aliases:
   - km-silvery.compat-dry
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] DRY the compat layer: dead code, consolidation, test infra @km/silvery #task #P2
+

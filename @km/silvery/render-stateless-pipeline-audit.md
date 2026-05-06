@@ -19,15 +19,15 @@ This is a no-code-change audit. Output: a table in this bead, plus a 1-page arch
 
 Start here, in priority order (most-to-least likely to be the cyan-strip class root cause):
 
-| Location                                                            | Hypothesis              |
-| ------------------------------------------------------------------- | ----------------------- |
-| `packages/ag-term/src/ag.ts` — `RenderPostState` carrier            | Explicit cross-frame state container; every field is a candidate |
-| `packages/ag-term/src/pipeline/decoration-phase.ts` — `outlineSnapshots` (hoisted onto `RenderPostState` in `78c63075`) | Outline rectangles painted last frame, used to clear stale outlines this frame |
-| `packages/ag-term/src/pipeline/render-phase.ts` — `ExcessClearGate` accumulators (`c7cf9390`) | Structural invariant for excess-area clears |
-| `packages/ag-term/src/pipeline/clear-region.ts` — `clearNodeRegion` / `clearExcessArea` (`5c3a266c`) | Region-clear coordinator state |
-| `packages/ag-term/src/buffer.ts` — `TerminalBuffer` mutation methods | Incremental `setCell`/`fill`/`scrollRegion` mutate prev-frame buffer in place |
-| `packages/ag-term/src/renderer.ts` — `instance.prevBuffer`, `instance.prevPostState` | The actual cross-frame surface in `render()` |
-| Any pipeline-phase module's top-level `let` / `useRef` / closure-captured mutable | Hidden state that bypasses React's per-render scope |
+| Location                                                                                                        | Hypothesis                                                                     |
+| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| packages/ag-term/src/ag.ts — RenderPostState carrier                                                            | Explicit cross-frame state container; every field is a candidate               |
+| packages/ag-term/src/pipeline/decoration-phase.ts — outlineSnapshots (hoisted onto RenderPostState in 78c63075) | Outline rectangles painted last frame, used to clear stale outlines this frame |
+| packages/ag-term/src/pipeline/render-phase.ts — ExcessClearGate accumulators (c7cf9390)                         | Structural invariant for excess-area clears                                    |
+| packages/ag-term/src/pipeline/clear-region.ts — clearNodeRegion / clearExcessArea (5c3a266c)                    | Region-clear coordinator state                                                 |
+| packages/ag-term/src/buffer.ts — TerminalBuffer mutation methods                                                | Incremental setCell/fill/scrollRegion mutate prev-frame buffer in place        |
+| packages/ag-term/src/renderer.ts — instance.prevBuffer, instance.prevPostState                                  | The actual cross-frame surface in render()                                     |
+| Any pipeline-phase module's top-level let / useRef / closure-captured mutable                                   | Hidden state that bypasses React's per-render scope                            |
 
 ## Output table format
 
@@ -49,6 +49,7 @@ Start here, in priority order (most-to-least likely to be the cyan-strip class r
 ## Method
 
 Read-only investigation. Use Read + grep, no code changes. Outputs:
+
 - `vendor/silvery/hub/silvery/audits/state-survives-frame-2026-05-05.md` (or similar location in hub) — full audit doc
 - This bead's resolution section — table + summary + recommendation
 
@@ -64,3 +65,4 @@ The reframe (`@km/silvery/render-stateless-pipeline-reframe`) is 2-4 weeks of fo
 2. Gives us a per-cache phase plan instead of "just rewrite it"
 3. Lets us measure progress (N caches migrated of M total)
 4. Documents the rationale for each migration in case we need to roll back individual phases
+

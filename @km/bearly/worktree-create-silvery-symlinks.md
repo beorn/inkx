@@ -1,4 +1,7 @@
 ---
+mentions:
+  - silvery
+  - km
 id: "@km/bearly/worktree-create-silvery-symlinks"
 aliases:
   - km-bearly.worktree-create-silvery-symlinks
@@ -14,6 +17,10 @@ dependencies:
     created_at: 2026-04-27T00:05:36Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-bearly
 ---
 
 # [x] bun worktree create: symlink @silvery/* sub-packages @km/bearly #bug #P3
@@ -45,3 +52,4 @@ bun install in a worktree may not resolve workspace links for unbuilt packages, 
 Workaround is straightforward (manual symlinking) and agents have demonstrated they can recover from it. Fixing it removes friction but doesn't unblock anything new.
 
 Origin: feedback-trace + paint-clear + scope-ownership trio reports during @km/all/plateau-90 sweep.
+

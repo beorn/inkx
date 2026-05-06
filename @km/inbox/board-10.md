@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/board-10"
 aliases:
   - km-board-10
@@ -13,9 +16,11 @@ assignee: claude:193f30b3
 When using 'k' to cursor up in the TUI, cursor stops at column title and cannot reach the board title.
 
 Steps to reproduce:
+
 1. Run: km view /tmp/tst-vault1
 2. Press 'k' repeatedly to move cursor up
 3. Observe: Cursor stops at column title
 
 Expected: Cursor should be able to move into the board title
 Actual: Cursor stops at column title level
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/hub"
 aliases:
   - km-tribe.hub
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-18T11:00:14Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [ ] Phase 4: Hub integration — bridge tribe with km agent system @km/tribe #feature #P4
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/tribe]]
 
 Bridge tribe with km agent system: km agents register as tribe members, Hub TUI shows tribe sessions alongside km agents, unified work queue view.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/ff-writer"
 aliases:
   - km-storage.ff-writer
@@ -16,3 +19,4 @@ assignee: claude:b92140a2
 # [x] Index file content generation + FsWriter/SyncManager auto-create @km/storage #task #P2 @claude:b92140a2
 
 Phase 2b-d: Pure functions for generating index file content, plus hooks in FsWriter and SyncManager to create/update index files when folder nodes change.
+

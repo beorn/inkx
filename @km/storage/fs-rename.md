@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/fs-rename"
 aliases:
   - km-storage.fs-rename
@@ -18,3 +21,4 @@ When a user edits a node title in the TUI:
 Current behavior: handleNodeUpdated in SyncManager silently skips folders (findFileNode returns null). File edits regenerate content but don't rename.
 
 Fix: Add folder/file rename handling in SyncManager.handleNodeUpdated. Use WriteQueue rename operation (already supports it). Update fs_path in DB for affected nodes.
+

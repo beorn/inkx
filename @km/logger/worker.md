@@ -1,4 +1,8 @@
 ---
+mentions:
+  - beorn
+  - km
+  - claude
 id: "@km/logger/worker"
 aliases:
   - km-logger.worker
@@ -17,17 +21,20 @@ Add reusable worker thread console/debug forwarding to @beorn/logger.
 ## Motivation
 
 Workers have separate stdout/stderr, so ALL output bypasses main thread's DEBUG_LOG and log file redirection. This affects:
+
 - `debug()` calls
 - `console.log/warn/error` calls
 - Any library that writes to stdout/stderr
 
 Currently @km/storage has inconsistent patterns:
+
 1. Watch worker - custom debug wrapper forwarding via postMessage
 2. Parse worker - suppresses DEBUG entirely (quick fix)
 
 ## Proposed API
 
 **Worker side:**
+
 ```typescript
 import { forwardConsole } from "@beorn/logger/worker";
 
@@ -41,6 +48,7 @@ debug("internal state");
 ```
 
 **Main thread side:**
+
 ```typescript
 import { createWorkerConsoleHandler } from "@beorn/logger/worker";
 
@@ -71,7 +79,9 @@ interface WorkerConsoleMessage {
 - Consider using `structuredClone` for deep copying
 
 ## Benefits
+
 - Single implementation in @beorn/logger
 - ALL worker output captured (not just debug)
 - Proper DEBUG_LOG and log file integration
 - Works with any library that uses console.*
+

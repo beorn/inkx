@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - claude
 id: "@km/silvery/ui-alert-primitives"
 aliases:
   - km-silvery.ui-alert-primitives
@@ -26,6 +30,14 @@ dependencies:
     created_at: 2026-04-19T20:58:03Z
     created_by: claude:4274df30
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery
+      - type: link
+        target: km-silvery.ui-button-tone
 ---
 
 # [x] @silvery/ui: Alert / Banner / InlineAlert primitives with tone + urgency semantics @km/silvery #feature #P3 @claude:4274df30
@@ -65,3 +77,4 @@ Storybook UrgencyDemo currently draws all three locally to demonstrate the patte
 - @km/silvery/ui-button-tone (shared tone prop contract)
 
 Parent: @km/silvery
+

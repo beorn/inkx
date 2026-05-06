@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/command-feedback"
 aliases:
   - km-tui.command-feedback
@@ -15,6 +17,7 @@ owner: bjorn@stabell.org
 
 All commands that significantly affect the content or view should show 
 brief status feedback. Currently:
+
 - Content lines change: shows feedback ✓
 - Fold level changes: no feedback ✗
 - Collapse toggle: no feedback ✗
@@ -24,3 +27,4 @@ brief status feedback. Currently:
 
 Pattern: brief toast or status bar flash showing the action + current state.
 E.g., "Fold depth: 2", "Column collapsed", "Filter: done hidden", "Zoom: /path".
+

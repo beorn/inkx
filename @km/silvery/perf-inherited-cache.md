@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/perf-inherited-cache"
 aliases:
   - km-silvery.perf-inherited-cache
@@ -17,3 +19,4 @@ owner: bjorn@stabell.org
 # [x] Perf: Cache findInheritedBg/Fg during traversal instead of repeated ancestor walks @km/silvery #task #P2
 
 findInheritedBg()/findInheritedFg() called per rendered node, often multiple times (clearNodeRegion, renderText, renderBox, scroll clear, overflow clear). O(depth) each call. Thread inherited bg/fg/colored-ancestor-rect through NodeRenderState or traversal context. Would also reduce correctness risk. Found by GPT pipeline review.
+

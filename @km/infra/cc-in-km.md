@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/cc-in-km"
 aliases:
   - km-infra.cc-in-km
@@ -11,6 +13,7 @@ created_at: 2026-02-09T10:44:50Z
 ## Vision: km as PKM + AI Agent Workbench (2026-02-09)
 
 ### The three pieces
+
 - **km** = your data + your eyes (PKM, TUI, bidirectional sync, board view)
 - **pam** = the safety layer + orchestration (split-brain, CRDT branches, policy engine, approval)
 - **Claude Code** = the brain (reasoning, tool use, code generation, streaming NDJSON)
@@ -26,6 +29,7 @@ Reframe: km view becomes the workbench UI for pam-orchestrated agents that happe
 **Agent memory IS your PKM**: Instead of separate memory systems (ENGRAM, conversation logs), agent memory stored as km notes. Agent learning persists as markdown. You browse/edit/curate what agents know. Cross-agent knowledge sharing = km search. Collapses cloudi's ENGRAM into km storage.
 
 **Each pam executor IS a Claude Code instance**:
+
 - Triage agent = Claude Code with zero MCP tools (split-brain enforced by no tool access)
 - Policy engine = deterministic TypeScript code (not an LLM), exactly as pam designs it
 - Executor agent = Claude Code with scoped MCP tools, running on a CRDT branch
@@ -56,6 +60,7 @@ Full Claude Code reasoning + tool use, wrapped in pam's security model, visible 
 **Zero impedance — terminal-native composition**: Most AI-in-editor integrations put a chat panel in a web UI that wraps terminal operations. km view IS the terminal. Claude Code IS the terminal. NDJSON streams directly into hightea rendering. Key events go directly to the agent's stdin. DEC 2026 sync update keeps rendering tear-free. No Electron, no web sockets, no HTTP — just Unix pipes and PTYs.
 
 **The trust ladder**: Progressive autonomy maps to concrete pam policies:
+
 - Observer: Read tree, suggest. No write tools. Chat panel, read-only.
 - Proposer: Create CRDT branch. Write to branch only. "Pending" column appears.
 - Worker: Edit on approval. Approve-per-change. Approval bar in board.
@@ -65,6 +70,7 @@ Promote agents by changing harness constraints. Board visually reflects trust le
 ### The novel synthesis
 
 What makes this different from every other "AI in an editor" vision:
+
 1. **Structured knowledge graph as shared memory** — not flat chat history, not vector DB, but a tree with links, tags, hierarchy, and bidirectional markdown sync
 2. **Event-sourced agent sessions** — replayable, forkable, searchable events, not opaque logs
 3. **Spatial orchestration** — the kanban board IS the agent coordination UI
@@ -74,6 +80,7 @@ What makes this different from every other "AI in an editor" vision:
 The key insight: km already has all the primitives (tree, events, board, commands, bidirectional sync). Adding agents isn't bolting on a new system — it's treating AI workers as another kind of node in the same tree.
 
 ### Clean architecture
+
 ```
 km view (TUI)
   ├── Board columns (notes, tasks, calendar)
@@ -93,6 +100,7 @@ km storage (SQLite + markdown sync)
 ```
 
 ### Suggested phasing
+
 1. Agent SDK NDJSON panel in km view (Option B spike — read-only rendering)
 2. km storage as MCP server (agents can read notes/tasks via MCP tools)
 3. pam policy layer wrapping Claude Code subprocess (security boundary)
@@ -100,3 +108,4 @@ km storage (SQLite + markdown sync)
 5. Multiple agents as board cards (orchestration)
 
 Steps 1-2 are independently useful. Step 3 is where pam enters. Steps 4-5 are the full vision.
+

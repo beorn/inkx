@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/terminal-chrome"
 aliases:
   - km-silvery.terminal-chrome
@@ -35,13 +37,13 @@ A framework-agnostic styled terminal container — window bar (traffic light dot
 
 ## Vue (VitePress docs)
 
-```vue
+~~~~vue
 <TerminalChrome theme="dracula" windowBar="colorful">
 
 ```bash
 $ npm install silvery
 added 3 packages in 0.4s
-```
+~~~~
 
 </TerminalChrome>
 ```
@@ -55,6 +57,7 @@ Same as Vue but for React-based doc frameworks.
 ## Design
 
 TerminalChrome knows nothing about terminals — it's a styled container:
+
 - Props: theme, windowBar, padding, borderRadius, margin, marginFill, title
 - Renders: outer frame (margin/fill), window bar (dots + optional title), padded content area
 - Compose with TapePlayer, TerminalView, or static Text content
@@ -67,3 +70,4 @@ TerminalView is separate — renders live terminal cell grid.
 Phase 1: React component in silvery (renders to terminal via silvery pipeline)
 Phase 2: VitePress plugin for silvery.dev + termless.dev (CSS-based)
 Phase 3: Export as @silvery/terminal-chrome for standalone use
+

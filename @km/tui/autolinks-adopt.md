@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+  - km
+  - claude
 id: "@km/tui/autolinks-adopt"
 aliases:
   - km-tui.autolinks-adopt
@@ -25,6 +29,14 @@ dependencies:
     created_at: 2026-04-25T21:55:08Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode.autolinks-extract-to-package
+      - type: link
+        target: km-tui
 ---
 
 # [x] km-tui adopts @km/autolinks for inline text @km/tui #feature #P2 @claude:2405c72e
@@ -32,3 +44,4 @@ dependencies:
 blocks:: [[@km/silvercode/autolinks-extract-to-package]], [[@km/tui]]
 
 After packages/@km/_orphan/autolinks lands. Wire autolinks pattern detection into @km/tui's text rendering (likely DetailView text render path). Per-vault config cascade. Depends on @km/silvercode/autolinks-extract-to-package. Parent: @km/tui.
+

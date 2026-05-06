@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/autolinks-preview-extensions"
 aliases:
   - km-silvercode.autolinks-preview-extensions
@@ -27,6 +30,10 @@ dependencies:
     created_at: 2026-04-25T03:11:16Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.autolinks-config
 ---
 
 # [x] Autolinks preview kinds: shell + mcp @km/silvercode #task #P3 @claude:2405c72e
@@ -41,3 +48,4 @@ Add two preview kinds beyond v1's three (`readme`, `first-paragraph`, `bd-active
 Plus: render `readme` previews via a shrunken MarkdownView component instead of plain text fallback (today's v1 implementation).
 
 Parent: @km/silvercode/autolinks-config
+

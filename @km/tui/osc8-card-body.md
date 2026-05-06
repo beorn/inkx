@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/osc8-card-body"
 aliases:
   - km-tui.osc8-card-body
@@ -13,3 +16,4 @@ assignee: claude:36393b5d
 # [x] Cards: OSC 8 escape garbage in body content from links @km/tui #bug #P2 @claude:36393b5d
 
 Card body content shows raw OSC 8 escape sequences from hyperlinks instead of clean text. The pretty-URL feature adds OSC 8 hyperlinks but card body truncation/display doesn't handle them properly.
+

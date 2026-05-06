@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/5zkz"
 aliases:
   - km-5zkz
@@ -16,16 +18,14 @@ Evaluate whether OpenTUI bugs are fixable and what the timeline might be.
 ## Known OpenTUI Issues
 
 1. **002 - Color rendering bug** (BLOCKING)
-   - Text color prop ignored when backgroundColor is set
-   - Selection text shows wrong color
-
-2. **003 - Bracket/space rendering** (BLOCKING)  
-   - `[P1] ` renders as `[P1` - missing `]` and space
-   - JSX whitespace handling issue
-
+  - Text color prop ignored when backgroundColor is set
+  - Selection text shows wrong color
+2. **003 - Bracket/space rendering** (BLOCKING)
+  - `[P1] ` renders as `[P1` - missing `]` and space
+  - JSX whitespace handling issue
 3. **001 - borderStyle segfault** (worked around)
-   - borderStyle="round" causes crash
-   - Using borderStyle="single" as workaround
+  - borderStyle="round" causes crash
+  - Using borderStyle="single" as workaround
 
 ## Investigation Tasks
 
@@ -38,6 +38,8 @@ Evaluate whether OpenTUI bugs are fixable and what the timeline might be.
 ## Output
 
 Assessment with:
+
 1. Root cause analysis for each bug
 2. Upstream status (reported? acknowledged? timeline?)
 3. Self-fix feasibility and effort estimate
+

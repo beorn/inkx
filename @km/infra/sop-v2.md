@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/infra/sop-v2"
 aliases:
   - km-infra.sop-v2
@@ -22,6 +25,10 @@ dependencies:
     created_at: 2026-04-13T00:25:50Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra.sop
 ---
 
 # [x] SOP v2: domain-per-file + shared tool cache @km/infra #task #P0 @Bjørn Stabell
@@ -38,6 +45,7 @@ Three sources of truth for "what checks does a domain run": tools/sop.ts (code),
 
 **Layer 1 — Tool Runner** (tools/sop-runner.ts, ~100 LoC)
 Cached DAG executor using Bun builtins. No library deps.
+
 - Tasks declare: command, input globs, output file, dependencies
 - Runner: toposort DAG → hash inputs (Bun.hash + Bun.file) → skip if cached → Bun.spawn parallel → store outputs to .sop-cache/
 - Cache key = content hash of input files. Cache TTL configurable per task.
@@ -45,11 +53,13 @@ Cached DAG executor using Bun builtins. No library deps.
 
 **Layer 2 — LLM Domain Analysis**
 The LLM IS the domain layer. No TypeScript parsers needed.
+
 - /sop reads cached tool outputs + SKILL.md domain definitions
 - Classifies findings per domain, proposes actions
 - Handles format variations and judgment (CVE severity, false positives) that parsers can't
 
 **Tool → Domain mapping** (one tool, multiple lenses):
+
 - knip → code (unused exports/types/files) + packages (unused/unlisted deps)
 - bun audit → security (CVEs) + packages (dep health)
 - tsc → code (type errors) + code (type coverage)
@@ -70,3 +80,4 @@ tsc, knip, depcruise, sherif, bun-audit, lint (oxlint+oxfmt), test-fast, complex
 ## Research Summary
 
 Evaluated: Turborepo (package-centric, wrong abstraction), Nx (coupled to workspace model), Nix derivations (sandbox blocks live-repo access), Dagger (container overhead), Taskfile (best CLI option but new binary dep), p-graph (good but unnecessary). Bun builtins (spawn, hash, file, glob) cover everything with zero deps.
+

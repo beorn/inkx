@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/invariant-matrix-gaps"
 aliases:
   - km-silvery.invariant-matrix-gaps
@@ -19,6 +21,14 @@ dependencies:
     created_at: 2026-04-24T01:32:37Z
     created_by: claude:950534f3
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery
+      - type: link
+        target: km-silvery.cursor-contrast-unguarded
 ---
 
 # [ ] Invariant matrix missing fg-muted/fg-cursor × many bg-* pairings @km/silvery #task #P2
@@ -38,12 +48,16 @@ fg-muted × bg, bg-surface-subtle, bg-surface-overlay, bg-surface-raised, bg-sur
 fg-cursor × bg-cursor — untested; Espresso fails at 1.96:1
 
 ## Why this matters
+
 Sterling auto-lifts tokens individually. If an invariant isn't declared, no auto-lift enforcement runs for that pair. Consumers (like @km/logview) cross-compose fg-cursor onto bg-surface-subtle; that pair is never contrast-checked at derivation or CI time.
 
 ## Fix
+
 1. Expand the invariants array to cover the full fg × bg matrix at AA_RATIO.
 2. Relax fg-muted/bg-muted from LARGE_RATIO to AA_RATIO (body text, not ornamentation).
 3. Add a CI gate that runs deriveRoles against every catalog theme and asserts 0 violations.
 
 ## Blocked by
+
 @km/silvery/cursor-contrast-unguarded (fix the cursor pair first; then adding its invariant becomes non-breaking).
+

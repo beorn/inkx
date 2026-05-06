@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/review-fixes"
 aliases:
   - km-termless.review-fixes
@@ -13,3 +16,4 @@ assignee: claude:8fc35754
 # [x] Fix all code review findings from deep audit @km/termless #task #P1 @claude:8fc35754
 
 Fix CRITICAL/HIGH/MEDIUM findings from deep code review of 4 new backends + test coverage. Covers: vt100 parser bugs, key encoding dedup, test quality, CONTRIBUTING docs, peekaboo shell safety, wezterm TS fixes.
+

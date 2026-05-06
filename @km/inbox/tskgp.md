@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/tskgp"
 aliases:
   - km-tskgp
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] flexx: Absolute positioning @km/_orphan #feature #P3
 
 position: absolute within Box for overlay UIs. Needs design for interaction with content-phase dirty tracking.
+

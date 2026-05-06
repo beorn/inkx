@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - 3f5ed42b
 id: "@km/inbox/init-db-bug"
 aliases:
   - km-init-db-bug
@@ -45,3 +48,4 @@ Likely related to domain object refactoring - db parameter not being passed corr
 2. Check recent commits for db parameter changes
 3. Fix parameter passing in reconcileDirectory
 4. Add test to prevent regression
+

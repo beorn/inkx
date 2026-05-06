@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/dup-layout-propagation"
 aliases:
   - km-silvery.dup-layout-propagation
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Duplicate layout propagation in reconciler/nodes.ts — dead/dangerous code @km/silvery #bug #P3
 
 packages/react/src/reconciler/nodes.ts contains its own calculateLayout/propagateLayout/notifyLayoutSubscribers that duplicate pipeline/layout-phase.ts. These don't set layoutChangedThisFrame. If used anywhere, docs are wrong. If unused, they're dangerous dead code that will confuse contributors. Delete or unify. Found by GPT 5.4 pro.
+

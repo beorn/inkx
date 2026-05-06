@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/tab-switch-layout-shift"
 aliases:
   - km-tui.tab-switch-layout-shift
@@ -91,6 +94,10 @@ dependencies:
     created_at: 2026-04-14T21:20:58Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Layout shifts 2-3 times after switching back to km view tab @km/tui #bug #P2 @claude:8b5b9e1c
@@ -98,3 +105,4 @@ dependencies:
 blocks:: [[@km/tui]]
 
 When switching to a cmux tab running `km view` from another tab, the layout visibly shifts 2-3 times before settling — initially too narrow, then widening. Happens every tab switch. Not visible on initial render, only on tab switch-back. Likely cause: terminal focus regain triggers a sequence of re-layouts with stale/intermediate dimensions before the true cols/rows arrive. Suspects: (1) term:focus handler in apps/@km/tui/src/board/board-app.ts:64 sets terminalFocused UI flag — touching state triggers re-render; (2) silvery ag-term runtime may re-query caps/dims on focus; (3) Ghostty/cmux may emit a FocusIn event followed shortly by a SIGWINCH/resize with slightly different dims, causing two+ resize events; (4) Flexily layout cache may invalidate and recompute twice. Investigation: instrument term:resize handler to log (width, height, source, timestamp) across a tab-switch cycle — expect to see 2-3 events. Also check if the first layout after focus regain uses a cached stale dimension. Repro: `bun km view <vault>`, switch to another cmux tab, switch back; observe 2-3 visible layout flashes. Happens every time.
+

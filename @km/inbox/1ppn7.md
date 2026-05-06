@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/1ppn7"
 aliases:
   - km-1ppn7
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Implement all missing keybindings from help dialog @km/_orphan #task #P1
 
 Compare help-data.ts spec against keybindings.ts and implement all missing bindings including task dialog (t t), all chord variants. Also fix ctrl-w q to close pane not quit.
+

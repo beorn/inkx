@@ -1,4 +1,8 @@
 ---
+mentions:
+  - next
+  - km
+  - claude
 id: "@km/tui/zoom-exit-j"
 aliases:
   - km-tui.zoom-exit-j
@@ -13,3 +17,4 @@ assignee: claude:a5c7f7de
 # [x] TUI: 'j' on Inbox header inside zoomed @next exits zoom entirely @km/tui #bug #P2 @claude:a5c7f7de
 
 After zooming into @next, navigating right to Inbox column header, pressing 'j' exits the zoom entirely and returns to root vault level. Expected: cursor moves to first Inbox item. 100% reproducible. Screenshots at /tmp/explore-screenshots/13,14.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/test-process-harness"
 aliases:
   - km-silvercode.test-process-harness
@@ -33,8 +35,13 @@ dependencies:
     created_at: 2026-04-24T14:49:51Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.test-system
 ---
 
 # [x] Silvercode test system v2 — process harness for alt-screen / stderr @km/silvercode #feature #P2
 
 blocks:: [[@km/silvercode/test-system]]
+

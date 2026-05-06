@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/no-section-label"
 aliases:
   - km-tui.no-section-label
@@ -13,3 +16,4 @@ assignee: claude:8f007ba9
 # [x] Import: '(no section)' header renders as visible section @km/tui #bug #P3 @claude:8f007ba9
 
 30 files have ## (no section) headers for tasks that weren't in any Asana section. This shows as a visible section header in km TUI. Should be renamed to 'Inbox', omitted, or handled differently.
+

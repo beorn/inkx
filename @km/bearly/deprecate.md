@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/deprecate"
 aliases:
   - km-bearly.deprecate
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Deprecate tribe-wire, archive old repos @km/bearly #task #P3
+

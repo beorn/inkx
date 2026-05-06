@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/m12-codex-backend"
 aliases:
   - km-silvercode.m12-codex-backend
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-24T02:09:54Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] M12: Codex Track 1 + Track 2 @km/silvercode #task #P2
@@ -26,3 +32,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 See hub/silvery/future/ai-terminal/00-agent-workspace.md Phased delivery section for M12 scope.
+

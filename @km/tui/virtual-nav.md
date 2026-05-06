@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/virtual-nav"
 aliases:
   - km-tui.virtual-nav
@@ -11,3 +14,4 @@ assignee: claude:a5c7f7de
 ---
 
 # [x] Virtual body cards not navigable — cursor jumps to board title @km/tui #bug #P1 @claude:a5c7f7de
+

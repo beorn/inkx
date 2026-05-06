@@ -62,6 +62,7 @@ Then `ExcessClearGate` and `clearNodeRegion` caches. Each migrated independently
 ### Phase 2 — Rebuild Buffer from scratch each frame
 
 The big change. Each `render()` call:
+
 1. Allocates a fresh `Buffer` (or reuses a pre-allocated one, zeroed out).
 2. Renders into it from layout + model. No reads from `prevBuffer`.
 3. The output stage diffs the new buffer against the last-flushed buffer (kept by the Term, not by the pipeline) and emits the minimal ANSI delta.
@@ -71,6 +72,7 @@ The big change. Each `render()` call:
 ### Phase 3 — Retire downstream invariants
 
 Once Phases 1+2 land:
+
 - `SILVERY_STRICT=incremental` (the "incremental ≡ fresh" check) becomes trivial — they ARE the same render. Remove it from the suite once it's been a no-op for one release cycle.
 - `SILVERY_STRICT=residue` (sentinel-compare) becomes structurally impossible to fail — every cell is painted from a clean slate every frame. Mark as deprecated, remove after one release cycle.
 - The degenerate-frame canary (`SILVERY_STRICT=canary`) remains useful — it catches harness misconfigs orthogonal to pipeline state.
@@ -95,3 +97,4 @@ Captured in `feedback-silent-fail-canaries.md`. Principle: when "did the work" �
 - `@km/all/test-system/test-board-empty-frame` — the harness defect (closed)
 - `@km/all/test-system/full-app-default-dimensions` — defaults at 360×120 (closed)
 - `@km/all/test-system/real-vault-golden-snapshot` — golden cell snapshot (open, P2)
+

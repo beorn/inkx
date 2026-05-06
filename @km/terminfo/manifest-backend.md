@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/terminfo/manifest-backend"
 aliases:
   - km-terminfo.manifest-backend
@@ -19,3 +22,4 @@ assignee: Bjørn Stabell
 # [x] Unprobed terminals with manifestBackend should inherit probe results (cmux shows no stats) @km/terminfo #bug #P1 @Bjørn Stabell
 
 cmux has manifestBackend: ghostty in terminals.json but the page at /terminals/cmux shows no feature stats. The page generator creates empty pages for unprobed terminals but doesn't check manifestBackend to inherit results from the linked backend. Fix: in [id].paths.ts, when generating a page for a terminal without its own probes, check manifestBackend and use that backend's results.
+

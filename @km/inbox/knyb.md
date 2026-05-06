@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/knyb"
 aliases:
   - km-knyb
@@ -8,3 +10,4 @@ closed_at: 2026-01-20T13:56:26Z
 ---
 
 # [x] Cursor still shows after inkx render @km/_orphan #bug #P1
+

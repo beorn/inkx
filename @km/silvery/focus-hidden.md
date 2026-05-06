@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/focus-hidden"
 aliases:
   - km-silvery.focus-hidden
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Hidden nodes remain focusable — isFocusable ignores node.hidden @km/silvery #bug #P1
 
 isFocusable only checks props.focusable and display \!== 'none', ignoring node.hidden (Suspense). Hidden nodes appear in getTabOrder, spatial navigation, and focus restoration. GPT 5.4 review finding.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/nehtg"
 aliases:
   - km-nehtg
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Non-scroll sticky pre-clear ignores clip bounds and scroll offset @km/_orphan #bug #P2
 
 renderNormalChildren sticky force-refresh uses layout.y without scroll offset, no clipBounds intersection. Can wipe content outside visible region.
+

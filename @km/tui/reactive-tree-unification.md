@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/reactive-tree-unification"
 aliases:
   - km-tui.reactive-tree-unification
@@ -21,10 +23,10 @@ Both are reactive tree transformations maintaining Map<nodeId, derivedState> wit
 
 ## Current State (two separate systems)
 
-| System | Location | What |
-|--------|----------|------|
+| System             | Location                      | What                                     |
+| ------------------ | ----------------------------- | ---------------------------------------- |
 | ViewTreeProjection | pane-signals.ts, tree-lens.ts | Filter: visible nodes, roles, walk order |
-| ReactiveTreeStore | reduced-signals.ts | Aggregate: ancestor/descendant counts |
+| ReactiveTreeStore  | reduced-signals.ts            | Aggregate: ancestor/descendant counts    |
 
 ## Unified Vision
 
@@ -46,6 +48,7 @@ const tree = createReactiveTree({
 ```
 
 Both filters and aggregates would share:
+
 - Map<nodeId, signals> storage
 - Incremental update on input change
 - Tree topology tracking
@@ -54,6 +57,7 @@ Both filters and aggregates would share:
 ## Composability
 
 Aggregates over filtered trees: "count visible descendants with errors"
+
 ```ts
 visibleErrorCount: tree.descendants(s => s.visible && s.hasError).count()
 ```
@@ -64,3 +68,4 @@ visibleErrorCount: tree.descendants(s => s.visible && s.hasError).count()
 2. Can reduced signal counts work with the filtered (visible) tree or only the structural tree?
 3. What's the performance tradeoff of unifying vs keeping separate?
 4. Should this live in @km/tui or be extracted to silvery (general-purpose)?
+

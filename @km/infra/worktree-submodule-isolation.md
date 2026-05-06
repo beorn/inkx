@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/worktree-submodule-isolation"
 aliases:
   - km-infra.worktree-submodule-isolation
@@ -81,6 +83,10 @@ dependencies:
     created_at: 2026-04-18T21:28:38Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] Per-worktree submodule isolation — bun worktree --recurse-submodules @km/infra #task #P1
@@ -99,6 +105,7 @@ Git worktrees share submodule working trees by default. Each km worktree has iso
 - Local commits in one session's submodule checkout invisible to others until pushed
 
 Today's specific instances:
+
 1. TEA Phase 2 wiring commits (c1367932..f8a490bd) stranded in feat/selection-plateau's silvery for days, invisible to a fresh-worktree silvery agent
 2. km session's `bun fix`/oxfmt orphan drift (493 files) blocked my merge
 3. theme-v3's deriveFields refactor broke bundle on silvery main, contaminating all sessions' silvery checkouts
@@ -111,21 +118,18 @@ Use git 2.25+'s `--recurse-submodules` flag + per-worktree submodule modules so 
 ### Changes to `vendor/bearly/tools/worktree.ts`
 
 1. `worktree add <name>`:
-   - Replace `git worktree add <path> <branch>` with `git worktree add --recurse-submodules <path> <branch>`
-   - Verify `.git/worktrees/<name>/modules/<submodule>/` exists per submodule
-   - Do NOT `git submodule update --init` in superproject's parent — each worktree owns its own
-
+  - Replace `git worktree add <path> <branch>` with `git worktree add --recurse-submodules <path> <branch>`
+  - Verify `.git/worktrees/<name>/modules/<submodule>/` exists per submodule
+  - Do NOT `git submodule update --init` in superproject's parent — each worktree owns its own
 2. `worktree rm <name>`:
-   - Clean up `.git/worktrees/<name>/modules/*` before removing the worktree (git leaves orphans)
-   - Fail gracefully if per-worktree submodule modules have uncommitted/unpushed work
-
+  - Clean up `.git/worktrees/<name>/modules/*` before removing the worktree (git leaves orphans)
+  - Fail gracefully if per-worktree submodule modules have uncommitted/unpushed work
 3. `worktree list`:
-   - Show per-worktree submodule HEAD SHAs (so sessions can see divergence)
-
+  - Show per-worktree submodule HEAD SHAs (so sessions can see divergence)
 4. Migration:
-   - Existing worktrees use the shared checkout — don't auto-migrate (destructive)
-   - Add `worktree migrate <name>` to opt-in convert a worktree to per-submodule isolation
-   - Document: new worktrees after this lands get isolation; old ones stay shared until migrated
+  - Existing worktrees use the shared checkout — don't auto-migrate (destructive)
+  - Add `worktree migrate <name>` to opt-in convert a worktree to per-submodule isolation
+  - Document: new worktrees after this lands get isolation; old ones stay shared until migrated
 
 ## Gotchas
 
@@ -148,3 +152,4 @@ Use git 2.25+'s `--recurse-submodules` flag + per-worktree submodule modules so 
 ## Source
 
 /why analysis 2026-04-18 — 4 distinct cross-session failures in one session, all tracing to shared vendor/\* working trees.
+

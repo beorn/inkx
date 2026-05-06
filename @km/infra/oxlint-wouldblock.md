@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/oxlint-wouldblock"
 aliases:
   - km-infra.oxlint-wouldblock
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] Remove oxlint WouldBlock workaround after upstream fix released @km/infra #task #P3
 
 Upstream fix merged: oxc-project/oxc#20295 (commit 1c07b3bc). Adds ErrorKind::WouldBlock handling to oxlint/oxfmt/oxc_diagnostics. Once released, remove infra/lint.sh wrapper and simplify package.json lint scripts back to direct oxlint calls.
+

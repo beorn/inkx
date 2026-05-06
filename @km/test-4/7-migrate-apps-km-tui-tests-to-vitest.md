@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/test-4/7-migrate-apps-km-tui-tests-to-vitest"
 aliases:
   - km-test-4.7
@@ -12,3 +15,4 @@ assignee: claude:bb984f7c
 # [x] Migrate apps/km-tui tests to Vitest @km/test-4 #task #P2 @claude:bb984f7c
 
 Change imports from bun:test to vitest in @km/tui app. Verify Playwright tests still work with Vitest.
+

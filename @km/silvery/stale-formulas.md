@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/stale-formulas"
 aliases:
   - km-silvery.stale-formulas
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] 3 of 5 critical formulas in pipeline/CLAUDE.md are stale @km/silvery #bug #P2
 
 GPT 5.4 pro found that formulas 2 (contentAreaAffected), 4 (skipBgFill), and 5 (parentRegionChanged) in pipeline/CLAUDE.md don't match content-phase.ts. Missing: textPaintDirty in formula 2, subtreeDirtyWithBg in formulas 4 and 5. Since these are labeled 'critical formulas', they must be exact.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/signal-graph-scale-limits"
 aliases:
   - km-silvery.signal-graph-scale-limits
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-21T01:37:21Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.plateau
 ---
 
 # [ ] Signal graph scale ceiling — alien-signals + React reconciliation at 100K+ nodes @km/silvery #task #P1
@@ -46,3 +52,4 @@ If signal graph is the ceiling at ~100K nodes (not SQLite), the scale-architectu
 ## Prerequisite
 
 None hard. Benefits from but doesn't require lazy-hydration implementation. Can run against HEAD today with synthetic fixtures.
+

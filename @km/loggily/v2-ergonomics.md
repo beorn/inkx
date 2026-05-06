@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/loggily/v2-ergonomics"
 aliases:
   - km-loggily.v2-ergonomics
@@ -35,6 +38,10 @@ dependencies:
     created_at: 2026-04-12T00:58:12Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-loggily.api-v2
 ---
 
 # [x] v2 API ergonomics issues (7 items) @km/loggily #bug #P0 @Bjørn Stabell
@@ -50,3 +57,4 @@ Ergonomics issues identified during v2 implementation that need design decisions
 5. Props moved to .child() — createLogger("x", { ver: "1.0" }) no longer works
 6. No runtime config for default pipeline — worked around with dynamic env var re-reading
 7. DRY: defaultPipeline duplicates buildPipeline logic — should use buildPipeline([console]) internally
+

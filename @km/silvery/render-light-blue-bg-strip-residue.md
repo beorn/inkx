@@ -85,15 +85,13 @@ This finding is independent of the cyan-strip bug. File a separate bead under `@
 After fixing @km/all/test-system/test-board-empty-frame (testBoard now renders a real 352×117 frame), reran the strip detector. Findings:
 
 1. The strip detector has been refined to:
-   - Group strip-color runs into vertically-contiguous **rectangles** (not individual rows). The cursor card's full body is a tall (>= 3 rows) rectangle and gets filtered out as legitimate.
-   - Exempt rows that contain the current cursor (the cursor sub-item paints a 1-row-tall stripe of `$bg-selected`, also legitimate).
-   - Only flag short (1-2 row) bg-selected rectangles in non-cursor areas — the actual residue signature.
-
+  - Group strip-color runs into vertically-contiguous **rectangles** (not individual rows). The cursor card's full body is a tall (>= 3 rows) rectangle and gets filtered out as legitimate.
+  - Exempt rows that contain the current cursor (the cursor sub-item paints a 1-row-tall stripe of `$bg-selected`, also legitimate).
+  - Only flag short (1-2 row) bg-selected rectangles in non-cursor areas — the actual residue signature.
 2. With these refinements, **zero residue strips reproduce** through ~280 presses (cursor walks, edit toggles, fold/unfold, view-mode cycles, post-view-mode edit toggles, scrub passes). The cyan-strip the user saw in the screenshot may be a different visual artefact than what the detector targets, or the specific action sequence to reproduce remains elusive.
-
 3. **Wide-character STRICT regression discovered.** The new harness exposed a real STRICT_OUTPUT divergence: regional-indicator flag emoji (e.g. `🇺🇸`) replacing narrow text in the same row leaves stale chars at the continuation cell. silvery's render walk produces correct buffer state (wide=true at col N, cont=true at col N+1) but the vt100 emulator used by STRICT counts the emoji as 1 column, so the prior frame's narrow char survives at col N+1. Filed as @km/silvery/strict-output-flag-emoji-width-divergence (P2).
 
-   The user's screenshot may have actually been showing this wide-char displacement bug rather than a separate "cyan strip residue" — `🇺🇸bun` and `🇺🇸 US` overlapping with adjacent text could read visually as a horizontal stripe. Worth verifying with a fresh screenshot once the wide-char bug is fixed.
+  The user's screenshot may have actually been showing this wide-char displacement bug rather than a separate "cyan strip residue" — 🇺🇸bun and 🇺🇸 US overlapping with adjacent text could read visually as a horizontal stripe. Worth verifying with a fresh screenshot once the wide-char bug is fixed.
 
 ### Next concrete step
 
@@ -205,6 +203,7 @@ Full grep of `$bg-surface-overlay` consumers in km-tui:
 - `ToastStack.tsx:75` — auto-dismissing toasts (variable timing fits 1-2s lag)
 
 **Intersection of `position="absolute"` + `$bg-surface-overlay`** (strongest residue candidates):
+
 - `Popover.tsx` (line 317 absolute, line 325 bg)
 - `ToastStack.tsx` (line 110 absolute, line 75 bg) — auto-dismiss matches the 1-2s timing variability
 
@@ -258,6 +257,7 @@ This eliminates ALL hypotheses involving popover, hover, mouse, dwell timing, Ch
 ### Captured evidence (`/tmp/km-strip.bin`, 33 frames)
 
 bg-color SGR frequency across all frames:
+
 - 123× `[48;2;46;52;64m]` = `$bg-surface-default` (rgb 46,52,64) — Nord canvas
 - 15× `[48;2;56;60;69m]` = `selectedBg(theme) = blend(canvas, accent, 0.06)` — cursorInDescendant tint
 - **3× `[48;2;52;58;70m]` = THE STRIP color** (rgb 52,58,70)
@@ -267,6 +267,7 @@ bg-color SGR frequency across all frames:
 ### Color identification — NOT $bg-surface-overlay
 
 Math for Nord (bg=rgb 46,52,64; fg=rgb 216,222,233):
+
 - `$bg-surface-overlay = blend(bg, fg, 0.12)` ≈ rgb(66,72,84) ✗
 - `$bg-surface-subtle = blend(bg, fg, 0.03)` ≈ rgb(51,57,69) ≈ rgb(52,58,70) ✓
 
@@ -279,21 +280,27 @@ Math for Nord (bg=rgb 46,52,64; fg=rgb 216,222,233):
 Found 3 strip-color SGRs in Frame 1, with surrounding bytes:
 
 **Occurrence 1** (inline content — bold + bg-tint):
+
 ```
 …[1mUse [48;2;52;58;70m/inbox[22;48;2;46;52;64m to pull fresh captur…
 ```
+
 `/inbox` (6 chars) painted with bg=strip-color, inside bold context. Markdown `**…\`/inbox\`…**` rendering. Inline code chip inside bold? Or a sigil/path resolver?
 
 **Occurrence 2** (inline content — bg-tint sandwiched in selectedBg row):
+
 ```
 …[1mTaxes[22m ([48;2;52;58;70m]Finance/Taxes/[48;2;56;60;69m]):…
 ```
+
 `Finance/Taxes/` painted with bg=strip-color, surrounded by `selectedBg(theme)` cells. Inline code/path inside a card with `cursorInDescendant=true`.
 
 **Occurrence 3** (trailing-space STRIP — no characters):
+
 ```
 …thing[22;39m  [38;2;46;52;64m│[39m [48;2;46;52;64m                 [48;2;52;58;70m              [48;2;46;52;64m  [38;2;157;163;175m …
 ```
+
 ~14 cells of bg=strip-color in trailing whitespace, between bg=default regions. **No characters.** This is the visible cyan strip.
 
 ### Cell-debug confirmed only one node covers (68,17)
@@ -324,13 +331,14 @@ The bug is in silvery's pipeline at the boundary between an inline bg-painting e
 
 Decoded `/tmp/km-strip.bin` Frame 1 through `@silvery/test` createTermless (xterm-headless). Three regions with bg=rgb(52,58,70):
 
-| termless row | cols | content | source |
-|---|---|---|---|
-| 15 | 51-56 | `/inbox` | inline code in @inbox card content |
-| 37 | 14-27 | `Finance/Taxes/` | inline code in resolver § 2.2 |
-| 71 | 66-79 | (14 empty spaces) | **THE STRIP** |
+| termless row | cols  | content           | source                             |
+| ------------ | ----- | ----------------- | ---------------------------------- |
+| 15           | 51-56 | /inbox            | inline code in @inbox card content |
+| 37           | 14-27 | Finance/Taxes/    | inline code in resolver § 2.2      |
+| 71           | 66-79 | (14 empty spaces) | THE STRIP                          |
 
 **Token = `$mutedbg`** (legacy theme, blend(bg, fg, 0.04) = rgb(52,58,70) for Nord). Confirmed via `vendor/silvery/packages/ansi/src/theme/derive.ts:183` + `derived.ts:35`:
+
 ```ts
 code: { backgroundColor: "$mutedbg" }
 ```
@@ -340,6 +348,7 @@ Sterling's `bg-muted` uses 0.08 blend = rgb(60,66,78). The user's theme is using
 ### Strip persists across all captured frames
 
 Tracked strip status across all 33 frames in `/tmp/km-strip.bin`:
+
 - F1 (cold-start full paint, 19262 bytes): 14/14 strip cells at row 71 cols 66-79
 - F2, F3 (`ESC[?25l` only, cursor hide): 14/14 strip cells (unchanged)
 - F4 (status-bar update at row 75): cells STILL there but content scrolled up by 1, strip moves to row 70
@@ -354,6 +363,7 @@ Tracked strip status across all 33 frames in `/tmp/km-strip.bin`:
 ```
 
 Row layout decomposed:
+
 - col 1: bg-default space
 - col 2: left card border `│` (with selectedBg tint — cursorInDescendant)
 - cols 3-38: "· If you walk the tree and **nothing**" (left card content, wrap=truncate)
@@ -374,11 +384,13 @@ Row layout decomposed:
 ### Strongest remaining hypothesis: an off-screen card or wrapped content emits inline-code bg at this position
 
 The strip cols 65-78 width 14 matches `~vault/@inbox/` (14 chars) — an inline-code element in `RESOLVER.md` line:
-> If you walk the tree and **nothing matches**, the item stays in `~vault/@inbox/` (for markdown)…
+
+> If you walk the tree and nothing matches, the item stays in ~vault/@inbox/ (for markdown)…
 
 Hypothesis: the resolver card's content extends beyond the visible portion. The wrap-truncate cuts at "nothing" (col 38). But silvery's incremental render OR layout cascade emits bg-paint for the inline-code segment at the position it WOULD have rendered if the card were wider — projecting into the right-column area at cols 65-78.
 
 This isn't reproducible synthetically (the simple wrap-truncate test passes). It requires real km card layout + real markdown content + real layout-feedback measure cycle. The bug is somewhere between:
+
 1. `apps/km-tui/src/views/TreeNode.tsx` line 869 (card-child Text wrap=truncate)
 2. silvery's text wrapper measuring inline `<Text variant="code">` segments
 3. silvery's render-phase cell-paint for clipped/truncated inline segments
@@ -386,7 +398,8 @@ This isn't reproducible synthetically (the simple wrap-truncate test passes). It
 ### Concrete next step
 
 Spawn the silvery agent on the localized site:
-- Set up `bun km view ~/Bear/Vault` at 82×75 with `SILVERY_INSTRUMENT=1 SILVERY_DEV=1 SILVERY_DEV_LOG=/tmp/dev.log SILVERY_CELL_DEBUG=72,71` 
+
+- Set up `bun km view ~/Bear/Vault` at 82×75 with `SILVERY_INSTRUMENT=1 SILVERY_DEV=1 SILVERY_DEV_LOG=/tmp/dev.log SILVERY_CELL_DEBUG=72,71`
 - Trace what AgNode is responsible for the cell paints at (72, 71) cols 65-78 (1-indexed col 66+)
 - Once the AgNode is named, look at its render-phase emit path for trailing-whitespace bg
 - Or write a test that loads `RESOLVER.md`'s exact line in a 38-wide truncated card with `~vault/@inbox/` inline code, asserts no bg paints outside the card's right border
@@ -398,6 +411,7 @@ Spawn the silvery agent on the localized site:
 **Fix**: Added `maxCol` and `minCol` parameters to `applyBgSegmentsToLine`. Skip cells outside `[leftClip, rightClip)`. Same clip semantics for chars and bg paint is now the invariant. Call site passes the existing `maxCol`/`minCol` already computed for `renderTextLineReturn`.
 
 **Verification**:
+
 - `vendor/silvery/tests/regressions/applybg-clip-to-visible-region.test.tsx` — synthetic regression (2 tests). Catches bug on baseline (4 leak cells), passes with fix.
 - `apps/km-tui/tests/render-cyan-strip-cold-start-82.slow.spec.ts` — real-vault regression. Loads `~/Bear/Vault` at 82×75 with Nord theme via `testBoard({ theme: nordTheme, parseDeferred: true })`. Catches the bug on baseline (14 leak cells at row 71 cols 65-78), passes with fix.
 - Silvery features (2139 tests) + regressions (12 tests) — green.
@@ -406,8 +420,10 @@ Spawn the silvery agent on the localized site:
 **Why testBoard didn't reproduce earlier**: defaults to `ansi16DarkTheme` (`mutedbg = #2e3440 = canvas bg, indistinguishable`); user's sessions use Nord (`mutedbg = #343a46, distinct`). Added `theme?: Theme` option to testBoard. When synthetic + testBoard probes both miss a user-visible bug, **first check theme-path parity**.
 
 **Files**:
+
 - `vendor/silvery/packages/ag-term/src/pipeline/render-text.ts` — fix
 - `vendor/silvery/tests/regressions/applybg-clip-to-visible-region.test.tsx` — synthetic test
 - `apps/km-tui/tests/render-cyan-strip-cold-start-82.slow.spec.ts` — real-vault test
 - `apps/km-tui/tests/helpers/real-board.ts` — `theme?: Theme` option added
 - `.claude/agents/expert/silvery-knowledge.md` — Round 12 lesson
+

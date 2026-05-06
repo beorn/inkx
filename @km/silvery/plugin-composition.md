@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/plugin-composition"
 aliases:
   - km-silvery.plugin-composition
@@ -18,14 +21,16 @@ assignee: claude:474834b0
 Implement the aspirational plugin composition system documented in guides/terminal-apps.md, reference/plugins.md, and guide/event-handling.md. These APIs are described as if they exist but are NOT implemented.
 
 ## What exists today
+
 - **withCommands()** — real, in packages/tea/src/with-commands.ts
-- **withKeybindings()** — real, in packages/tea/src/with-keybindings.ts  
+- **withKeybindings()** — real, in packages/tea/src/with-keybindings.ts
 - **withDiagnostics()** — real, in packages/tea/src/with-diagnostics.ts
 - **MouseEventProps** — on BoxProps/TextProps (onClick, onMouseDown, etc.) but no plugin wiring
 - **run()** — real, in packages/term/src/runtime/run.tsx
 - **createApp()** — real, in packages/term/src/runtime/create-app.tsx
 
 ## What needs to be implemented
+
 1. **pipe()** — compose plugins: `pipe(createApp(store), withReact(<App />), withTerminal(process), withFocus(), withDomEvents())`. Currently only `compose()` exists for TEA slices.
 2. **withReact(element)** — plugin that mounts React reconciler + virtual buffer
 3. **withTerminal(process, opts?)** — plugin that wraps ALL terminal I/O: stdin→events, stdout→output, resize, lifecycle, protocols (mouse, kitty, paste)
@@ -34,12 +39,14 @@ Implement the aspirational plugin composition system documented in guides/termin
 6. **createCommandRegistry()** — silvery's own (km has its own in @km/commands, but silvery should provide one)
 
 ## Design references
+
 - **Old bead**: @km/inkx/tea-events (closed — only withCommands/withKeybindings/withDiagnostics were built)
 - **Session c7385e91**: Full design discussion with plugin anatomy, slice+plugin separation, typed EventMap
 - **Session fbad9cb1**: Design doc produced for 3 inkx feature beads including this system
 - **Docs already written**: reference/plugins.md, guide/event-handling.md, guides/terminal-apps.md all describe the target API
 
 ## Architecture (from prior design sessions)
+
 - SlateJS-style `(app) => app` — plugins override methods, capture originals via closure
 - State in model (not closures) — enables snapshot/replay/time-travel
 - Slices for state transitions, plugins for event wiring and I/O
@@ -48,4 +55,6 @@ Implement the aspirational plugin composition system documented in guides/termin
 - Three source mechanisms: static plugins, React components (reactive), effects (one-shot)
 
 ## Key: infrastructure partially exists
+
 MouseEventProps is already on BoxProps. The event dispatch code exists in packages/term/src/mouse-events.ts. withCommands proves the plugin pattern works. This is about composing what exists into the documented API surface.
+

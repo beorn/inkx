@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/edit-cursor-collapse"
 aliases:
   - km-silvery.edit-cursor-collapse
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] moveCursor arrow with selection doesn't collapse correctly @km/silvery #bug #P1
 
 Arrow left/right with active selection should collapse to start/end edge respectively. Currently always decrements/increments selectionStart, ignoring selectionEnd. GPT 5.4 review finding.
+

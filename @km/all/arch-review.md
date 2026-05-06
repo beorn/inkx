@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/all/arch-review"
 aliases:
   - km-all.arch-review
@@ -19,3 +22,4 @@ assignee: Bjørn Stabell
 # [x] Architecture review fixes — layer violations, stale docs, undeclared deps @km/all #epic #P0 @Bjørn Stabell
 
 From full arch review: fix layer violations (@km/board→@km/markdown SectionRules, @km/board→@silvery/ag-react GridNavigator), declare missing deps in package.json, unify 3 inconsistent architecture docs into one canonical doc, fix stale Zustand refs, remove globalThis globals, rename symlink_to→embed_of.
+

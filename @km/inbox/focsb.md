@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/focsb"
 aliases:
   - km-focsb
@@ -18,9 +20,11 @@ Current: import creates one `quote` node with a big content string (body + comme
 Desired: parse body content into child KNodes — paragraphs (p), lists (li/oi), headings (h), code blocks (code), etc. The markdown parser already handles this for regular .md files. The import pipeline should use the same parsing to structure the body.
 
 Approach:
+
 1. In convert.ts, instead of creating a single quote node with buildBlockquoteContent(), parse the body markdown into KNodes using the markdown parser
 2. Attach these as children of the task node (or a body container)
 3. Comments could be separate child nodes too (each comment = a quote with children)
 4. This makes TUI rendering work automatically — each node type already has its renderer
 
 This is the correct architectural fix — not a TUI rendering workaround.
+

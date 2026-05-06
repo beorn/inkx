@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/00jkc"
 aliases:
   - km-00jkc
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Diagnostic trace childAncestorCleared formula mismatch @km/_orphan #bug #P3
 
 Trace computes parentRegionCleared || ancestorCleared but runtime uses parentRegionCleared || (ancestorCleared && !props.backgroundColor). Misleads debugging.
+

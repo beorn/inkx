@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/tea"
 aliases:
   - km-silvery.tea
@@ -19,13 +21,21 @@ dependencies:
     created_at: 2026-04-15T08:36:42Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.architectural-plateau
+      - type: link
+        target: km-silvery.selection-focus-plateau
 ---
 
 # [ ] Silvery tea (v1.5): app architecture — signals, commands, scopes @km/silvery #epic #P0
 
 blocks:: [[@km/silvery/architectural-plateau]], [[@km/silvery/selection-focus-plateau]]
 
-# Refactor Plan: @km/silvery/tea — Phases 2, 3, 4
+## Refactor Plan: @km/silvery/tea — Phases 2, 3, 4
 
 ## Verified current state
 
@@ -49,6 +59,7 @@ blocks:: [[@km/silvery/architectural-plateau]], [[@km/silvery/selection-focus-pl
 **Scope**: Lock current `processEventBatch` semantics in tests BEFORE Phase 2 rewrites it. Tests: `usePaste` (simple + rich modes), `useExit`, `useInputLayer` (layered bubbling), Stage-3 pipeline (modifier/release events reach modifier store but NOT useInput; focused > useInput; "flush" render barrier).
 
 **New files**:
+
 - `vendor/silvery/tests/runtime/pipeline-stage3.test.tsx`
 - `vendor/silvery/tests/runtime/use-paste.test.tsx`
 - `vendor/silvery/tests/runtime/use-exit.test.tsx`
@@ -68,6 +79,7 @@ blocks:: [[@km/silvery/architectural-plateau]], [[@km/silvery/selection-focus-pl
 **Target contract**: `createApp` calls `pipe(create(), withTerm, withInput, withPaste, withFocus, withTracing?)`. `apply()` returns `ApplyResult = false | Effect[]`. Focus dispatch via `withFocus`; "consumed" = `[]`, "not consumed" = `false`. Hooks register into plugin stores, not `RuntimeContext.on`. Ctrl+C/Ctrl+Z become lifecycle effects. Render barrier = `Effect {type:"render-barrier"}`. Modifier tracking = observer lane in `withTerm`.
 
 **Files — code moves OUT of ag-term/create-app.tsx**:
+
 - `processEventBatch` event loop → `vendor/silvery/packages/create/src/runtime/event-loop.ts` (NEW)
 - Focus precedence → `vendor/silvery/packages/create/src/with-focus.ts` (rewrite 5-line stub)
 - Paste routing → `vendor/silvery/packages/create/src/with-paste.ts` (NEW)
@@ -77,10 +89,12 @@ blocks:: [[@km/silvery/architectural-plateau]], [[@km/silvery/selection-focus-pl
 - `ApplyResult`/`Effect`/`Op` types → `vendor/silvery/packages/create/src/types.ts` (extend)
 
 **Files rewritten in place**:
+
 - `vendor/silvery/packages/ag-term/src/runtime/create-app.tsx` — shrink 2,978 → ≤1,200 lines
 - `vendor/silvery/packages/ag-react/src/hooks/{useInput,usePaste,usePasteCallback,usePasteEvents,useInputLayer,useExit,useModifierKeys}.ts` — re-point from `RuntimeContext.on` to plugin stores
 
 **Docs rewritten**:
+
 - `vendor/silvery/docs/design/app-composition.md`
 - `vendor/silvery/docs/guide/input-architecture.md`
 - `vendor/silvery/packages/ag-term/src/pipeline/CLAUDE.md`
@@ -88,6 +102,7 @@ blocks:: [[@km/silvery/architectural-plateau]], [[@km/silvery/selection-focus-pl
 - Move `v15-tea/plugin-system-v1r.ts` → `v15-tea/archive/` (it's now shipped code)
 
 **Deletions** (not deprecation):
+
 - `runtimeInputListeners` / `runtimePasteListeners` / `runtimeFocusListeners` arrays in `create-app.tsx`
 - `runtimeEventListeners` Map + `RuntimeContextValue.on`/`.emit` event bus
 - `handleFocusNavigation` as top-level function
@@ -96,11 +111,13 @@ blocks:: [[@km/silvery/architectural-plateau]], [[@km/silvery/selection-focus-pl
 - **No shims, no @deprecated, no dual path**
 
 **New tests** (era2 rule — same commit):
+
 - `vendor/silvery/packages/create/tests/with-{focus,input,paste,terminal}.test.ts`
 - `vendor/silvery/packages/create/tests/event-loop.test.ts` (Ctrl+C/Z effects, render barrier, effect draining, reentry guard)
 - Phase 2a tests must pass unchanged (behavioral equivalence proof)
 
 **/complete grep**:
+
 - `rg 'runtimeInputListeners|runtimePasteListeners|runtimeFocusListeners' vendor/silvery/packages/` → 0
 - `rg 'RuntimeContext(Value)?' vendor/silvery/packages/` → 0 in source
 - `rg 'runtime\.on\(["\x27]input' vendor/silvery/packages/ag-react/` → 0
@@ -121,6 +138,7 @@ blocks:: [[@km/silvery/architectural-plateau]], [[@km/silvery/selection-focus-pl
 **Scope**: Run aichat-v2 against REAL `@silvery/create` + `@silvery/ag-react` from Phase 2, delete shims, document API gaps. Prove `withCommands`, `withScope`, `withKeymap`, `when()`, `signal/computed/useModel`, effects-as-data all work end-to-end in a non-trivial app with real stdin/focus/lifecycle. Fix divergences (app.providers, inline model, module-level `_chat`, no op() proxy).
 
 **New framework source** (driven by gaps the spike surfaces — ceiling not floor):
+
 - `vendor/silvery/packages/create/src/with-scope.ts` (withScope plugin)
 - `vendor/silvery/packages/commands/src/with-commands.ts` (rewrite stub to match spike contract)
 - `vendor/silvery/packages/commands/src/when.ts` (conditional keybinding combinator)
@@ -129,20 +147,24 @@ blocks:: [[@km/silvery/architectural-plateau]], [[@km/silvery/selection-focus-pl
 - `vendor/silvery/packages/commands/src/op-proxy.ts` (decide: add op() serializable dispatch or remove from designs)
 
 **Spike rewritten**:
+
 - `vendor/internal/silvery/prototype/aichat-v2/app.tsx` — delete `./shims/*` imports, use real packages
 - `vendor/internal/silvery/prototype/aichat-v2/app.test.ts` — run under `@silvery/test` real runtime
 
 **Docs**:
+
 - `vendor/internal/silvery/design/v15-tea/{commands,signals,headless}.md` — mark shipped or defer explicitly
 - `vendor/silvery/docs/guide/providers.md` — add withCommands/withScope/when() sections
 
 **Deletions**:
+
 - Entire `vendor/internal/silvery/prototype/aichat-v2/shims/` directory (~684 lines: app.ts 235, clock.ts, commands.ts, scope.ts, signals.ts, terminal.ts)
 - Any spike API the framework can't support → delete from spike, NOT add a shim
 
 **New tests**: spike test against real runtime; every new framework API ships with test + barrel export + docs section (era2 rule).
 
 **/complete grep**:
+
 - `ls vendor/internal/silvery/prototype/aichat-v2/shims` → does not exist
 - `rg 'from ["\x27]\./shims' vendor/internal/silvery/prototype/aichat-v2/` → 0
 - `rg 'TODO|FIXME|XXX' vendor/internal/silvery/prototype/aichat-v2/` → 0
@@ -162,18 +184,21 @@ blocks:: [[@km/silvery/architectural-plateau]], [[@km/silvery/selection-focus-pl
 **Scope**: @km/tui adopts `@silvery/commands`, `@silvery/signals`, `@silvery/headless`, `@silvery/create` (plugin form). This is the substrate that unblocks `km-tui.tea`'s domain plugins (withBoard/withSelection/withTree/withEditor). @km/_orphan/side only; no silvery change.
 
 **Sub-ordering**:
+
 - **4a. Commands** — replace manual key handlers in `packages/km-tui/src/input/*` with `@silvery/commands` registry. Delete manual keymap tables in same commit.
 - **4b. Signals** — migrate @km/tui reactive state (board signals, cursor, view mode) onto `@silvery/signals` wrappers. Delete ad-hoc signal helpers.
 - **4c. Headless machines** — replace bespoke SelectList/Readline code in @km/tui with `@silvery/headless`. Delete local copies.
 - **4d. App composition** — rewrite `packages/km-tui/src/app.tsx` from `createApp({...})` object style to `pipe(create(), withTerm, withReact, withDomEvents, withFocus, withCommands, ...)`. Delete legacy call shape.
 
 **Files** (km side):
+
 - `packages/km-tui/src/input/*.ts` (delete manual handlers)
 - `packages/km-tui/src/board/board-app-store.ts` (re-point to @silvery/signals)
 - `packages/km-tui/src/board/board-actions.ts` (migrate to command invocation)
 - `packages/km-tui/src/app.tsx` / top-level (rewrite to pipe())
 
 **Deletions**:
+
 - Manual keymap tables (hardcoded `{"j": moveDown}` objects)
 - `silvery/runtime` `useInput` calls that are actually global commands (keep only truly component-local useInput)
 - Local `createSlice` / signal helpers once @silvery/signals covers them
@@ -181,6 +206,7 @@ blocks:: [[@km/silvery/architectural-plateau]], [[@km/silvery/selection-focus-pl
 - @km/_orphan/side re-exports of silvery internals
 
 **/complete grep**:
+
 - `rg 'createApp\s*\(\s*\{' packages/km-tui/ packages/km/` → 0
 - `rg 'from ["\x27]silvery/runtime["\x27]' packages/km-tui/src/input/` → 0
 - `rg '@silvery/commands' packages/km-tui/src/ | wc -l` → ≥1
@@ -221,3 +247,4 @@ Phase 4:  tea.migration         → km adopts          (km-side only)
 4. **Renamed not deleted** — Phase 2 checks both that new plugin files have bodies AND old Map/array names are gone
 5. **Wrapped not eliminated** — Phase 2 has LOC target on create-app.tsx (≤1,200 from 2,978) — must measure before closing
 6. **Speculative completeness** — Phase 3 refuses to add APIs the spike doesn't exercise; anything aspirational goes to aichat-polish or new bead, not framework stub
+

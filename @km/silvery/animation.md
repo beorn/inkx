@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/animation"
 aliases:
   - km-silvery.animation
@@ -18,6 +21,7 @@ Ink 7.0 has useAnimation. Silvery doesn't have built-in animation primitives. Re
 ## Investigation
 
 ### Read Ink's implementation
+
 - node_modules/ink/build/hooks/use-animation.d.ts
 - node_modules/ink/build/hooks/use-animation.js
 - What primitives? Keyframes? Springs? Timing?
@@ -26,13 +30,16 @@ Ink 7.0 has useAnimation. Silvery doesn't have built-in animation primitives. Re
 - Cancellation? Pause/resume?
 
 ### Map to silvery's architecture
+
 Silvery has:
+
 - Dirty tracking (incremental render)
 - Layout engine (Flexily)
 - Output phase with cell-level diffing
 - Pipeline phases that can be re-run
 
 Animation needs:
+
 - A way to trigger re-renders on a timer
 - Interpolated values (number, color, position)
 - Smart invalidation (only re-render what changed)
@@ -80,7 +87,9 @@ useEffect(() => {
 5. Can we piggyback on existing scheduler / raf batching?
 
 ## Output
+
 - Analysis doc: vendor/internal/silvery/design/v-undecided/animation.md
 - Prototype in vendor/internal/silvery/prototype/animation/
 - API design with examples
 - Benchmark: silvery animation vs Ink useAnimation
+

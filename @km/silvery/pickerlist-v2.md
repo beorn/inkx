@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/pickerlist-v2"
 aliases:
   - km-silvery.pickerlist-v2
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] PickerList as ListView composition @km/silvery #task #P2
 
 Rewrite PickerList as ListView + fuzzy filter + onSelect. CommandPalette builds on this.
+

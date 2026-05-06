@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/test-fuzz-properties"
 aliases:
   - km-silvery.test-fuzz-properties
@@ -18,3 +20,4 @@ owner: bjorn@stabell.org
 # [x] Testing: Add metamorphic fuzz properties — 7 invariants @km/silvery #task #P2
 
 Add property-based fuzz tests: (1) resize involution A→B→A, (2) scroll inverse down n→up n, (3) theme involution A→B→A, (4) mount permutation invariance, (5) cursor-only mutation no-cell-change, (6) capability downgrade determinism, (7) replay chunking invariance.
+

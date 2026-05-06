@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/core/slate-interfaces"
 aliases:
   - km-core.slate-interfaces
@@ -34,25 +37,26 @@ export const Point = {
 
 ## Mapping: SlateJS → km
 
-| SlateJS | km Equivalent | Status | Notes |
-|---------|--------------|--------|-------|
-| **Node** (Editor\|Element\|Text) | **KNode** | EXISTS (@km/_orphan/core) | Flat rows, not nested objects |
-| **Element** (has children) | KNode with `item=true` | EXISTS (trait) | isItem(), isOutline(), isListItem() |
-| **Text** (leaf) | KNode with `item=false` | EXISTS (trait) | isBlock() |
-| **Path** (number[]) | n/a (we use parent_id) | NOT NEEDED | SlateJS paths are positional indices; km uses stable IDs |
-| **Point** ({path, offset}) | n/a | NOT NEEDED | km doesn't do rich text cursor tracking (yet — see textily) |
-| **Range** ({anchor, focus}) | n/a | NOT NEEDED | Same — future textily concern |
-| **Selection** (Range\|null) | selectedNodes: Set\<string\> | EXISTS (BoardState) | Multi-select, not range-based |
-| **Location** (Path\|Point\|Range) | **Position** ({parentId, childIdx}) | PARTIAL (@km/tui) | Needs to move to @km/_orphan/core |
-| **Operation** (9 variants) | **TAction** (4 variants) | EXISTS (@km/tree) | ADD_NODE, MOVE_NODE, DELETE_NODE, UPDATE_NODE |
-| **Transforms** (node/text/selection) | Scattered across 5 files | MISSING | No unified mutation API |
-| **Editor** (root + methods) | **Repo** | EXISTS (@km/storage) | 50+ methods, no static helper pattern |
-| **NodeEntry** ([Node, Path]) | n/a | NOT NEEDED | We use IDs, not path-indexed entries |
-| **Ref** (PathRef, PointRef, RangeRef) | n/a | NOT NEEDED | No collaborative OT yet |
+| SlateJS                           | km Equivalent                   | Status                    | Notes                                                       |
+| --------------------------------- | ------------------------------- | ------------------------- | ----------------------------------------------------------- |
+| Node (Editor\|Element\|Text)      | KNode                           | EXISTS (@km/_orphan/core) | Flat rows, not nested objects                               |
+| Element (has children)            | KNode with item=true            | EXISTS (trait)            | isItem(), isOutline(), isListItem()                         |
+| Text (leaf)                       | KNode with item=false           | EXISTS (trait)            | isBlock()                                                   |
+| Path (number[])                   | n/a (we use parent_id)          | NOT NEEDED                | SlateJS paths are positional indices; km uses stable IDs    |
+| Point ({path, offset})            | n/a                             | NOT NEEDED                | km doesn't do rich text cursor tracking (yet — see textily) |
+| Range ({anchor, focus})           | n/a                             | NOT NEEDED                | Same — future textily concern                               |
+| Selection (Range\|null)           | selectedNodes: Set<string>      | EXISTS (BoardState)       | Multi-select, not range-based                               |
+| Location (Path\|Point\|Range)     | Position ({parentId, childIdx}) | PARTIAL (@km/tui)         | Needs to move to @km/_orphan/core                           |
+| Operation (9 variants)            | TAction (4 variants)            | EXISTS (@km/tree)         | ADD_NODE, MOVE_NODE, DELETE_NODE, UPDATE_NODE               |
+| Transforms (node/text/selection)  | Scattered across 5 files        | MISSING                   | No unified mutation API                                     |
+| Editor (root + methods)           | Repo                            | EXISTS (@km/storage)      | 50+ methods, no static helper pattern                       |
+| NodeEntry ([Node, Path])          | n/a                             | NOT NEEDED                | We use IDs, not path-indexed entries                        |
+| Ref (PathRef, PointRef, RangeRef) | n/a                             | NOT NEEDED                | No collaborative OT yet                                     |
 
 ## What We Need (6 interfaces)
 
 ### 1. KNode — EXISTS, needs helpers
+
 The data model is solid. What's missing: static helpers like SlateJS's `Node.parent`, `Node.children`, `Node.ancestors`, `Node.matches`.
 
 ```typescript
@@ -81,6 +85,7 @@ export const KNode = {
 ```
 
 ### 2. Position — PARTIAL, needs promotion + helpers
+
 Currently in @km/tui/position-resolver.ts. Should live in @km/_orphan/core.
 
 ```typescript
@@ -107,6 +112,7 @@ export const Position = {
 ```
 
 ### 3. TreeOps — MISSING, needs creation
+
 SlateJS's `Transforms` equivalent. Unified mutation API.
 
 ```typescript
@@ -132,6 +138,7 @@ export const TreeOps = {
 ```
 
 ### 4. Selection — MISSING as typed object
+
 Currently just `Set<string>` + ad-hoc `getSelectedCards(ctx)`.
 
 ```typescript
@@ -147,9 +154,11 @@ export const Selection = {
 ```
 
 ### 5. Operation — EXISTS as TAction, needs inverse()
+
 @km/tree already has ADD_NODE, MOVE_NODE, DELETE_NODE, UPDATE_NODE. Missing: `inverse()` for undo (currently handled by undoable-repo recording).
 
 ### 6. PickTarget — EXISTS, keep separate
+
 `{ pick: string }` is a UI concept (deferred resolution). Not a SlateJS equivalent — it's @km/_orphan/specific for chord-based picker dialogs.
 
 ## Phases
@@ -162,25 +171,28 @@ export const Selection = {
 
 ## Where Things Live
 
-| Interface | Package | Why |
-|-----------|---------|-----|
-| KNode (data) | @km/_orphan/core/src/types.ts | Already there |
-| KNode (helpers without repo) | @km/_orphan/core/src/node.ts | Type guards, matches, comparisons |
-| KNode (helpers with repo) | @km/tree/src/queries.ts | parent, children, ancestors (need repo) |
-| Position (data) | @km/_orphan/core/src/position.ts | Pure data type, no deps |
-| Position (repo helpers) | @km/tui/src/board/position-resolver.ts | resolve, nodeAt, moveTo need repo |
-| TreeOps | @km/tree/src/tree-ops.ts | Consolidates block-ops + card-ops |
-| Selection | @km/tui/src/selection.ts | Needs ActionCtx |
-| Operation/TAction | @km/tree/src/actions.ts | Already there |
-| PickTarget | @km/_orphan/commands/src/types.ts or @km/tui | UI concept |
+| Interface                    | Package                                      | Why                                     |
+| ---------------------------- | -------------------------------------------- | --------------------------------------- |
+| KNode (data)                 | @km/_orphan/core/src/types.ts                | Already there                           |
+| KNode (helpers without repo) | @km/_orphan/core/src/node.ts                 | Type guards, matches, comparisons       |
+| KNode (helpers with repo)    | @km/tree/src/queries.ts                      | parent, children, ancestors (need repo) |
+| Position (data)              | @km/_orphan/core/src/position.ts             | Pure data type, no deps                 |
+| Position (repo helpers)      | @km/tui/src/board/position-resolver.ts       | resolve, nodeAt, moveTo need repo       |
+| TreeOps                      | @km/tree/src/tree-ops.ts                     | Consolidates block-ops + card-ops       |
+| Selection                    | @km/tui/src/selection.ts                     | Needs ActionCtx                         |
+| Operation/TAction            | @km/tree/src/actions.ts                      | Already there                           |
+| PickTarget                   | @km/_orphan/commands/src/types.ts or @km/tui | UI concept                              |
 
 ## Connection to TEA
 
 These interfaces become the vocabulary for TEA state machines:
+
 - TreeOps.moveTo emits a MOVE_NODE Operation through apply()
 - Operations are serializable → replay, undo, sync, AI automation
 - Selection.moveTo batches Operations
 - Position is the shared addressing scheme between commands and operations
 
 ## /complete
+
 Per phase — each phase has its own criteria.
+

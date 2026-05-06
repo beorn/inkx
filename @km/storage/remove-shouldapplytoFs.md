@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/remove-shouldapplytoFs"
 aliases:
   - km-storage.remove-shouldapplytoFs
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 From /big quality review: shouldApplyToFs(actor) checks actor === 'fs-watch' to prevent echo loops. But commit/project split already prevents this structurally — FS-origin events use commit() which never calls project(). shouldApplyToFs is now defense-in-depth that obscures the real mechanism.
 
 FIX: Remove shouldApplyToFs. The commit/project split IS the loop prevention. If an event somehow reaches project() with actor='fs-watch', that's a bug to be caught, not silently suppressed.
+

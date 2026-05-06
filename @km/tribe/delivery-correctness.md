@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tribe/delivery-correctness"
 aliases:
   - km-tribe.delivery-correctness
@@ -21,6 +24,10 @@ dependencies:
     created_at: 2026-04-19T10:54:51Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] tribe: fix message-loss + cursor-advance bugs in replay/disconnect paths @km/tribe #bug #P0 @Bjørn Stabell
@@ -38,3 +45,4 @@ Pro review 2026-04-19 uncovered 5 delivery defects — at least two are real mes
 Design: no cursor advancement without client ack. Use continuation token for paged replay. Never delete undelivered journal rows on disconnect. Delete the cursors + reads tables + pollMessages.
 
 Effort: 1 day. MUST have regression tests (kill-and-recover + queue-builds-during-down-time).
+

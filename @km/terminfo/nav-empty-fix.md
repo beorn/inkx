@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/nav-empty-fix"
 aliases:
   - km-terminfo.nav-empty-fix
@@ -15,3 +18,4 @@ assignee: claude:f8196c1c
 # [x] Fix empty Terminals nav dropdown on terminfo.dev @km/terminfo #bug #P2 @claude:f8196c1c
 
 All headless backends were subsumed by app terminals in terminals.json, leaving the nav and sidebar Terminals/Backends sections empty. Fixed by building allTerminals list from terminals.json directly.
+

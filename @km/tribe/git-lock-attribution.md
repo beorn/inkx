@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/git-lock-attribution"
 aliases:
   - km-tribe.git-lock-attribution
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-18T11:01:34Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] Git lock warnings should attribute to tribe member, not just PID @km/tribe #feature #P3
@@ -47,3 +53,4 @@ The tribe daemon already tracks session PIDs (via tribe_sessions output). When d
 - [ ] Lock warnings include tribe member name when PID matches a registered session
 - [ ] Falls back to "PID N" format when no match
 - [ ] Same enhancement for git-lock:warning AND git-lock:error event types
+

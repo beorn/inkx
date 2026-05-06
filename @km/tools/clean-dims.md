@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tools/clean-dims"
 aliases:
   - km-tools.clean-dims
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Add dimension anti-patterns to /code clean skill @km/tools #task #P3
 
 Incorporate the manual dimension anti-patterns from @km/tui/manual-dims into .claude/skills/code/clean.md. Add a new 'Layout Anti-Patterns' section covering: manual innerWidth/height calc, .slice() for truncation, .repeat() for borders, Math.max guards, width={N} on flex children, manual centering with padding.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/indent-edit-mode"
 aliases:
   - km-tui.indent-edit-mode
@@ -16,3 +19,4 @@ assignee: Bjørn Stabell
 # [x] Cannot indent/outdent while in text edit mode @km/tui #bug #P2 @Bjørn Stabell
 
 Tab/Shift+Tab for indent/outdent don't work when the cursor is in inline text edit mode. Expected: indent/outdent the node while editing. Actual: nothing happens (or Tab inserts a tab character).
+

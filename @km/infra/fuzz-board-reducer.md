@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/fuzz-board-reducer"
 aliases:
   - km-infra.fuzz-board-reducer
@@ -13,3 +16,4 @@ assignee: claude:e8fd4b92
 ---
 
 # [x] Fuzz: board reducer action sequences at pure reducer level @km/infra #task #P2 @claude:e8fd4b92
+

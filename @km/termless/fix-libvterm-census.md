@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/fix-libvterm-census"
 aliases:
   - km-termless.fix-libvterm-census
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Fix libvterm WASM loading in vitest for census probes @km/termless #bug #P2
 
 libvterm WASM init fails in vitest VM context. Need to investigate workaround — possibly run in a subprocess or use a different vitest pool.
+

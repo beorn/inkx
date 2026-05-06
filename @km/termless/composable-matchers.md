@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/composable-matchers"
 aliases:
   - km-termless.composable-matchers
@@ -15,3 +18,4 @@ assignee: claude:4929065a
 ---
 
 # [x] Composable matcher API: toHaveAttrs/toHaveCursor/toBeInMode replace 23 individual matchers @km/termless #feature #P3 @claude:4929065a
+

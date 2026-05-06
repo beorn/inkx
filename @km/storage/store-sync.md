@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/store-sync"
 aliases:
   - km-storage.store-sync
@@ -19,13 +21,16 @@ Current: withSync wraps emitter.apply() to intercept events and project to FS.
 Target: withSync subscribes to store.onCommit() and uses CommitMeta.source to decide what to project.
 
 ### Why this matters
+
 - Commit subscribers see ALL mutations (not just wrapped apply calls)
 - Source metadata eliminates skipFsSync flags
 - FS watcher imports use store.commit(events, { source: "fs-import" })
 - withSync skips projection for source === "fs-import" (no echo loops)
 
 ### Migration
+
 1. Move all callers from emitter.apply → store.commit
 2. Convert withSync from apply-wrapper to onCommit subscriber
 3. Remove skipFsSync from EmitOptions
 4. FS watcher reconciliation uses store.commit with source metadata
+

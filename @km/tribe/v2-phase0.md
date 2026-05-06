@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/v2-phase0"
 aliases:
   - km-tribe.v2-phase0
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Phase 0: project_id, protocol version, coordination state table @km/tribe #task #P2
 
 Add canonical project_id (hash of realpath), protocol_version to handshake, coordination state table to daemon DB. Foundation for all subsequent phases.
+

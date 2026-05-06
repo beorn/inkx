@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/flexily-breadcrumbs"
 aliases:
   - km-market.flexily-breadcrumbs
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Add JSON-LD breadcrumb schema to flexily.dev @km/market #task #P3
 
 silvery.dev, termless.dev, terminfo.dev all have BreadcrumbList schema. flexily.dev is the only one missing it.
+

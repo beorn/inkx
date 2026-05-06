@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/sessions"
 aliases:
   - km-silvery.sessions
@@ -30,6 +32,16 @@ dependencies:
     created_at: 2026-04-23T22:47:42Z
     created_by: claude:6443387f
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery
+      - type: link
+        target: km-silvery.commander-protocol
+      - type: link
+        target: km-silvery.multiplex
 ---
 
 # [x] Session job control: typed multi-agent orchestration across humans/sessions/sub-agents @km/silvery #feature #P4
@@ -41,6 +53,7 @@ Generalize Unix job control two axes at once: from processes to sessions, from s
 ## Verbs (classic + extended)
 
 Classic job control, generalized:
+
 - `&` — spawn a detached session
 - `fg` — attach (focus pane, pop to front)
 - `bg` — detach; session keeps running
@@ -49,6 +62,7 @@ Classic job control, generalized:
 - `kill` — send typed control (cancel, pause, respond-to-prompt)
 
 Extended for the session era:
+
 - `tee A B` — mirror A's block stream into B
 - `link A B` — typed pipe: A's output blocks → B's input
 - `subscribe S event` — handler fires on typed event
@@ -81,6 +95,7 @@ Extended for the session era:
 ## Distinctly silvery's to do
 
 Prerequisites coexist only in our stack:
+
 - Typed blocks (CAP) — cross-session pipes carry structure, not bytes
 - Structured bus (tribe) — extend from session-coord inward
 - Replayable sessions (.tape)
@@ -88,6 +103,7 @@ Prerequisites coexist only in our stack:
 - CAP-as-MCP — session.spawn is an agent-callable typed tool
 
 Alternatives miss something each:
+
 - Claude Code Agent tool: opaque sub-agents, no bus, no inspection
 - tmux + shell: byte streams, no typed events, no agent-native spawn
 - Autogen/CrewAI/LangGraph: multi-agent but not shell-composable, not inspectable, humans can't join as peers
@@ -103,6 +119,7 @@ Alternatives miss something each:
 ## Reframing implication
 
 Once session job control is first-class:
+
 - agent-harness = curated jobs UI for agent sessions
 - multiplex = substrate where sessions live
 - commander = UI for job-control verbs
@@ -111,3 +128,4 @@ Once session job control is first-class:
 ## Origin
 
 2026-04-23 — user's "humans/agents can spin up sessions and sessions can be hooked together or communicate on a bus/tribe" framing. Generalizes Unix job control to the agent era; bearly/tribe extended inward.
+

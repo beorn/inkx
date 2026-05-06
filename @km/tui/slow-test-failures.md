@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/slow-test-failures"
 aliases:
   - km-tui.slow-test-failures
@@ -23,37 +26,33 @@ assignee: claude:ceb7c9cb
 ## Categories
 
 1. **Dialog/command dispatch (omnibox, help, search, filter, date, favorites)** — ~60 failures
-   - `board.command("command_palette")` executes but dialog doesn't appear
-   - Screen shows "Unmapped key: :" instead of command palette
-   - `pressKey(":")` in test framework may not resolve to `shift-;` → `command_palette`
-   - Files: omnibox.slow, board-spec.slow, escape-layering.slow, date.slow, production-entry.slow
-
+  - `board.command("command_palette")` executes but dialog doesn't appear
+  - Screen shows "Unmapped key: :" instead of command palette
+  - `pressKey(":")` in test framework may not resolve to `shift-;` → `command_palette`
+  - Files: omnibox.slow, board-spec.slow, escape-layering.slow, date.slow, production-entry.slow
 2. **ANSI replay mismatches** — ~3 failures
-   - breadcrumb.slow: ANSI replay doesn't match buffer after h/l navigation
-   - File: breadcrumb.slow.test.ts
-
+  - breadcrumb.slow: ANSI replay doesn't match buffer after h/l navigation
+  - File: breadcrumb.slow.test.ts
 3. **Zoom cursor preservation** — ~5 failures
-   - board-zoom.slow: cursor not preserved after zoom in/out
-   - File: board-zoom.slow.spec.ts
-
+  - board-zoom.slow: cursor not preserved after zoom in/out
+  - File: board-zoom.slow.spec.ts
 4. **Keybinding matrix (vendor)** — ~26 failures
-   - Shift key mismatch in legacy ANSI roundtrip
-   - File: vendor/silvery/tests/keybinding-matrix.slow.test.ts
-
+  - Shift key mismatch in legacy ANSI roundtrip
+  - File: vendor/silvery/tests/keybinding-matrix.slow.test.ts
 5. **Ghost chars / incremental rendering** — ~5 failures
-   - STRICT_OUTPUT mismatches (known silvery rendering bugs)
-   - Files: diag-ghost-chars.slow, fold.slow, curswanty-combinatorial.slow
-
+  - STRICT_OUTPUT mismatches (known silvery rendering bugs)
+  - Files: diag-ghost-chars.slow, fold.slow, curswanty-combinatorial.slow
 6. **mdtest-e2e (vendor)** — 1 failure
-   - Internal mdtest error, not our code
-
+  - Internal mdtest error, not our code
 7. **CLI spec tests** — ~3 failures
-   - km --help, km agent --help output mismatch
-   - Files: km.slow.spec.md, agent.slow.spec.md
+  - km --help, km agent --help output mismatch
+  - Files: km.slow.spec.md, agent.slow.spec.md
 
 ## Root Cause Hypothesis
 
 Category 1 (biggest): The test framework's `pressKey(":")` may not correctly synthesize Shift+semicolon, or the keybinding resolver's `shift-;` mapping isn't reached in the test TermProvider. This broke at some point before the slate-interfaces work.
 
 ## /complete
+
 - `bun vitest run --project slow 2>&1 | grep "FAIL" | wc -l` → 0
+

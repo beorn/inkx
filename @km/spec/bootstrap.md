@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+  - km
+  - claude
 id: "@km/spec/bootstrap"
 aliases:
   - km-spec.bootstrap
@@ -50,6 +54,10 @@ dependencies:
     created_at: 2026-04-28T12:48:40Z
     created_by: claude:da9990c5
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.km-spec-typed-primitives
 ---
 
 # [x] Bootstrap @km/spec package with NodePath, BdId, SigilChar types + namespaced functions + tests @km/spec #task #P2 @claude:da9990c5
@@ -57,3 +65,4 @@ dependencies:
 blocks:: [[@km/all/km-spec-typed-primitives]]
 
 Bootstrap @km/spec package with NodePath, BdId, SigilChar types + nodePath/bdId namespaces of pure functions + test suite. Do NOT migrate existing callers in this iteration — that is separate sub-beads. This bead lands the foundation only.
+

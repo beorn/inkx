@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/chaos-hooks"
 aliases:
   - km-chaos-hooks
@@ -12,12 +14,15 @@ closed_at: 2026-01-23T12:50:11Z
 Use @km/_orphan/vault-plugins hooks for application-level chaos injection.
 
 ## Goal
+
 Enable failure injection at the Vault layer, not just filesystem:
+
 - Event drops/corruption during apply
 - Stale/empty query results
 - Partial writes to database
 
 ## Example
+
 ```typescript
 using vault = runGenerator(createVault(path, {
   hooks: {
@@ -34,9 +39,11 @@ using vault = runGenerator(createVault(path, {
 ```
 
 ## Scenarios enabled
+
 - Database corruption during event replay
 - Partial transaction failures
 - Query result inconsistency
 - These can't be tested via ChaosWatcher (FS-only)
 
 Depends on: @km/_orphan/vault-plugins
+

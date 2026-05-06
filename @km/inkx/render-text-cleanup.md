@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/render-text-cleanup"
 aliases:
   - km-inkx.render-text-cleanup
@@ -11,3 +14,4 @@ assignee: claude:b53ef7e4
 # [x] refactor(inkx): deduplicate grapheme rendering + remove unused inWord @km/inkx #task #P3 @claude:b53ef7e4
 
 Code review P2+M5: renderTextLine and renderAnsiTextLine have identical grapheme loops. Extract shared function. Remove unused inWord in wrapText.
+

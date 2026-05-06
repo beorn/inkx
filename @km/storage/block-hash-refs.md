@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/block-hash-refs"
 aliases:
   - km-storage.block-hash-refs
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-21T13:26:24Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage.fs-mount
 ---
 
 # [x] Block hash refs — hashBlockId(ulid), default 3 chars, per-ref auto-extend @km/storage #feature #P1
@@ -74,3 +80,4 @@ For typical files with < 20 referenced blocks: collision probability at 3 chars 
 ## RFC reference
 
 `hub/km/source-of-truth-rfc-v2-addendum-identity.md` §3.2
+

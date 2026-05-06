@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/absolute-child-scan"
 aliases:
   - km-silvery.absolute-child-scan
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] absoluteChildMutated only scans direct absolute children, misses nested @km/silvery #bug #P3
 
 Stale overlay cleanup relies on scanning direct children for position=absolute. If absolute overlay is wrapped in a normal-flow wrapper, stale overlay pixels can survive. Either recursively detect or document the limitation. Found by GPT pipeline review.
+

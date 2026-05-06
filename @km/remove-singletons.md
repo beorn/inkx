@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - 73ce0af2
 id: "@km/remove-singletons"
 aliases:
   - km-remove-singletons
@@ -13,8 +16,10 @@ assignee: 73ce0af2
 Migrate all code from deprecated singleton APIs (setKmDir, getKmDir, getDb, setDb, etc.) to domain object pattern (createVault, runWithDb, runWithKmDir).
 
 Target files:
+
 - @km/_orphan/cli commands (sync.ts, daemon.ts, rebuild.ts, bd.ts)
 - @km/tui tests (board.slow.test.ts, detail-pane.test.ts, board-move-elaborate.test.ts)
 - @km/_orphan/cli tests (cli-unit.test.ts)
 
 End state: All @deprecated functions can be removed from public exports.
+

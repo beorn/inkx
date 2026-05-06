@@ -1,4 +1,8 @@
 ---
+mentions:
+  - bearly
+  - km
+  - claude
 id: "@km/infra/llm-robustness-polish"
 aliases:
   - km-infra.llm-robustness-polish
@@ -27,6 +31,10 @@ dependencies:
     created_at: 2026-04-20T18:19:12Z
     created_by: claude:0590a583
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] @bearly/llm robustness, DRY, and elegance polish @km/infra #task #P1 @claude:0590a583
@@ -85,3 +93,4 @@ These came up in the review but don't have a forcing function today. Revisit whe
 ## Scope boundary
 
 One session. If the tests start sprawling, trim — focus on the regressions we've actually seen, not speculative coverage. The review-deferred 'taste' items (above) stay deferred.
+

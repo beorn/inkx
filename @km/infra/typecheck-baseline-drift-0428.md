@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/typecheck-baseline-drift-0428"
 aliases:
   - km-infra.typecheck-baseline-drift-0428
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-28T15:44:31Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] Typecheck baseline drift: 21 new errors after Wave 2 integration (silvery-side) @km/infra #bug #P1 @claude:2405c72e
@@ -36,6 +43,7 @@ After integrating Wave 2 wip branches on 2026-04-28 evening, typecheck baseline 
 Root cause: silvery commit 3fa23479 (the scope fiber-disposal fix) introduced typecheck issues that the agent's per-package vitest run did NOT catch (they pass at runtime under SILVERY_STRICT=2 but fail tsc). The agent's report said tests pass; tsc was not part of the agent's verification on the silvery side.
 
 Fix: investigate each error, decide per case:
+
 - True type bugs → fix
 - Test fixture using non-public types → fix the test
 - Genuinely intentional → bun run typecheck:update (last resort, per CLAUDE.md never-update-baseline rule)
@@ -43,3 +51,4 @@ Fix: investigate each error, decide per case:
 Lesson for next /max with vendor/silvery work: agent prompt MUST require silvery-side tsc verification, not just vitest. Update @km/silvery agent prompt template.
 
 Reference: /loop session 2026-04-28 evening (@km/session/0425-evening). Triggering integration was commit 502149fb6 (Merge wip/@km/silvery/scope-phase-1).
+

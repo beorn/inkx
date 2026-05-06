@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/cursor-query"
 aliases:
   - km-inkx.cursor-query
@@ -19,3 +21,4 @@ API: queryCursorPosition(write, read, timeout?) → { row: number, col: number }
 Convenience: queryCursorFromStdio(stdout, stdin, timeout?) → { row: number, col: number }
 
 Motivation: inline mode apps need to know cursor-to-bottom distance at startup to size their dynamic area correctly (e.g. useScrollback pattern without forcing height=termRows).
+

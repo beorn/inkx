@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/vitest-zombies"
 aliases:
   - km-infra.vitest-zombies
@@ -51,3 +54,4 @@ Claude Code agent (Task tool)
 pkill -9 -f 'vitest.*forks.js'
 pkill -9 -f 'vitest run'
 ```
+

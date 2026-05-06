@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/selection-abstraction"
 aliases:
   - km-tui.selection-abstraction
@@ -15,11 +18,13 @@ assignee: claude:5f0aee02
 Unify selection into a SlateJS-inspired anchor/focus model:
 
 ## Current State
+
 - `selectionAnchor: { nodeId, sub }` + `multiSelected: Set<SelectionKey>` — redundant
 - `multiSelected` is derived from anchor + cursor position in `updateSelectionRange`
 - Text editing (inline edit) is separate from structural selection
 
 ## Target Model
+
 ```typescript
 type Point = { nodeId: string; offset?: number }
 type Selection = { anchor: Point; focus: Point } | null
@@ -31,6 +36,7 @@ type Selection = { anchor: Point; focus: Point } | null
 - **offset**: optional, for text editing within a node (inline edit mode)
 
 ## Key Insights
+
 - Like text editors: selection = range between two points, derived by walking the structure
 - Like SlateJS: `Selection = { anchor: Point, focus: Point }`, operations (transforms) are separate
 - Shift-j/k: focus moves vertically, selection = cards between anchor and focus
@@ -39,5 +45,7 @@ type Selection = { anchor: Point; focus: Point } | null
 - Inline edit: same Point type with offset for character position
 
 ## References
+
 - SlateJS Selection model: https://docs.slatejs.org/concepts/03-locations
 - Decker removeNesting(): ensures flat selection at each tree depth level
+

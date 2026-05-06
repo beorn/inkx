@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/terminfo/feature-reporting"
 aliases:
   - km-terminfo.feature-reporting
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] iTerm2 Feature Reporting probes — TERM_FEATURES + OSC 1337 Capabilities @km/terminfo #task #P2
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/vprefix-panes"
 aliases:
   - km-tui.vprefix-panes
@@ -14,6 +16,7 @@ owner: bjorn@stabell.org
 Reorganize keybindings: merge pane operations into v-prefix chords, remove Ctrl+W chord prefix (becomes text delete-word), add V=view settings bare key.
 
 Changes:
+
 - V (bare) = view settings (filter/group/view-mode/icon-mode)
 - Ctrl+v = alternative v chord prefix
 - v , = view settings
@@ -23,6 +26,7 @@ Changes:
 - v c/C/d = collapse/ignored/done [keep]
 
 PANES (under v prefix):
+
 - v h/l = focus pane left/right
 - v H/L = swap pane left/right
 - v </>/= = grow/shrink/equalize pane
@@ -33,3 +37,4 @@ PANES (under v prefix):
 Ctrl+W: delete word backward in text mode, noop in normal mode
 
 Conflicts to resolve: v h was ignore_node (needs new binding)
+

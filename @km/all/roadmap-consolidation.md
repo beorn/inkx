@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/all/roadmap-consolidation"
 aliases:
   - km-all.roadmap-consolidation
@@ -18,6 +21,10 @@ dependencies:
     created_at: 2026-04-20T12:04:38Z
     created_by: claude:18c72b43
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all
 ---
 
 # [x] Consolidate roadmap + horizons + backlog into hub/ @km/all #task #P2 @claude:18c72b43
@@ -25,3 +32,4 @@ dependencies:
 blocks:: [[@km/all]]
 
 Merge docs/roadmap.md + hub/silvery/horizons.md into hub/roadmap.md. Move docs/backlog.md to hub/backlog.md. Update inbound refs.
+

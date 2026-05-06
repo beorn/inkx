@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/comp-date-picker"
 aliases:
   - km-silvery.comp-date-picker
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T16:18:45Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.opentui-parity
 ---
 
 # [ ] Component: DatePicker + TimePicker + DateTimePicker @km/silvery #feature #P3
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/silvery/opentui-parity]]
 
 Canonical date/time picker with vim+arrow keyboard nav, locale-aware formatting, range-select mode, month/year grid.
+

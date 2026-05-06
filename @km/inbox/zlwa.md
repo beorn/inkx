@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/zlwa"
 aliases:
   - km-zlwa
@@ -15,12 +17,15 @@ Expected: j/k should move cursor down/up between cards
 Actual: No visible response to j/k keypresses
 
 To reproduce:
+
 1. km view /tmp/tst-vault3
 2. Press j or k
 3. Nothing happens
 
 Need to investigate:
+
 - Are keybindings registered?
 - Is handler being called?
 - Is state updating but not re-rendering?
 - Are there cards to navigate between?
+

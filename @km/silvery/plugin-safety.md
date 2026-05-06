@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/plugin-safety"
 aliases:
   - km-silvery.plugin-safety
@@ -23,3 +26,4 @@ As the plugin ecosystem grows, plugins may collide (same command name, both wrap
 4. **Debugging**: Dev mode to inspect the composed app object (what each plugin contributed)
 
 Validated by deep research comparing Express middleware, Zustand middleware, ECS patterns.
+

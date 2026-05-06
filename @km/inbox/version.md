@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/version"
 aliases:
   - km-version
@@ -20,12 +22,14 @@ Update docs so new code follows the pattern:
 ### CLAUDE.md
 
 Add to §12 (Debug Logging) or new section:
+
 - VERSION comes from `@km/core`, never hardcode
 - Use `BUILD_INFO` for git commit/branch in diagnostics
 
 ### docs/dev/versioning.md (new)
 
 Document the version system:
+
 - Single source of truth: package.json
 - Build-time generation via `bun run build:info`
 - How to bump version (update package.json, run build:info)
@@ -36,11 +40,13 @@ Document the version system:
 
 **scripts/generate-build-info.ts**
 Copy and adapt from cloudi (`../cloudi/scripts/generate-build-info.ts`):
+
 - Read version from `package.json`
 - Get git commit (7 chars), branch, dirty state
 - Output to `packages/km-core/src/build-info.gen.ts`
 
 **packages/@km/_orphan/core/src/build-info.gen.ts** (generated)
+
 ```typescript
 export const VERSION = "0.1.0"
 export const GIT_COMMIT = "5197ef0"
@@ -53,11 +59,13 @@ export const BUILD_INFO: BuildInfo = { ... }
 ### Files to Modify
 
 **packages/@km/_orphan/core/src/index.ts** — Add export:
+
 ```typescript
 export { VERSION, BUILD_INFO, type BuildInfo } from "./build-info.gen.ts"
 ```
 
 **apps/@km/_orphan/cli/src/index.ts** (line 66) — Change hardcoded version:
+
 ```typescript
 import { VERSION } from "@km/core"
 // ...
@@ -65,12 +73,14 @@ import { VERSION } from "@km/core"
 ```
 
 **package.json** — Add scripts:
+
 ```json
 "build:info": "bun scripts/generate-build-info.ts",
 "prebuild": "bun run build:info"
 ```
 
 **.gitignore** — Add:
+
 ```
 *.gen.ts
 ```
@@ -85,9 +95,11 @@ bun km --version                              # Same
 ```
 
 ## Acceptance Criteria
+
 - [ ] CLAUDE.md updated with version pattern
 - [ ] docs/dev/versioning.md created
 - [ ] `bun km -V` prints version
 - [ ] Version comes from package.json (not hardcoded)
 - [ ] BUILD_INFO available for diagnostics
 - [ ] build-info.gen.ts is gitignored
+

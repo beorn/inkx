@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/interactions-runtime/phase-5"
 aliases:
   - km-silvery.interactions-runtime.phase-5
@@ -22,6 +24,7 @@ Delete the old hook/provider API for selection, find, copy-mode, drag. Rename (n
 ### Deletions (8 files)
 
 From vendor/silvery/packages/ag-react/src/hooks/:
+
 - useTerminalSelection.tsx → replaced by useSelection (Phase 3.1)
 - usePointerState.tsx → replaced by useDragState (Phase 4)
 - useCopyMode.tsx (old handler-returning version) → replaced by useCopyModeState (Phase 4)
@@ -30,11 +33,13 @@ From vendor/silvery/packages/ag-react/src/hooks/:
 - useFind.tsx (old version) → replaced by useFindState (Phase 4)
 
 Components removed from exports:
+
 - TerminalSelectionProvider
 - CopyProvider
 - FindProviderComponent
 
 Types removed:
+
 - UseTerminalSelectionResult
 - UseFindResult
 - UseCopyModeResult
@@ -46,10 +51,12 @@ vendor/silvery/packages/ag-term/src/semantic-copy.ts → vendor/silvery/packages
 Per Pro review 2 item 7, keep the pure extraction/transformation logic that turns a selection range + rendered content into copied text/payload. Delete only the SemanticCopyProvider wrapper abstraction.
 
 After rename, the file should contain ONLY:
+
 - Pure extraction functions (turn range + buffer → text, handling wide chars, wrapped lines, etc.)
 - Maybe onCopy prop interface for apps that want to enrich plain text into markdown/html
 
 Consumers of copy-extraction:
+
 - SelectionFeature (Phase 3) — mouseup copy path
 - onCopy Box prop path — nearest-ancestor lookup
 - Future: copy-mode yank path (Phase 3c)
@@ -71,6 +78,7 @@ Create follow-up bead before closing: @km/silvery/clipboard-paste-cleanup
 Per refactoring lessons Case Study 1: delete OldWay, let tsc errors guide fixes, no @deprecated, no shims, no fallbacks.
 
 Order:
+
 1. useTerminalSelection.tsx
 2. usePointerState.tsx
 3. useCopyMode.tsx
@@ -110,6 +118,7 @@ None new. Regression gate is that existing + Phase 3-4 tests still pass.
 ## /complete criteria (run literally, ALL must pass)
 
 Source code:
+
 - grep -rn 'useTerminalSelection' vendor/silvery --include='*.ts' --include='*.tsx' → 0 hits
 - grep -rn 'usePointerState' vendor/silvery --include='*.ts' --include='*.tsx' → 0 hits
 - grep -rn 'useCopyProvider' vendor/silvery --include='*.ts' --include='*.tsx' → 0 hits
@@ -119,24 +128,30 @@ Source code:
 - grep -rn 'SemanticCopyProvider' vendor/silvery --include='*.ts' --include='*.tsx' → 0 hits
 
 Renamed file:
+
 - test -f vendor/silvery/packages/ag-term/src/copy-extraction.ts
 - test ! -e vendor/silvery/packages/ag-term/src/semantic-copy.ts
 
 Paste code untouched:
+
 - grep -q 'usePaste' vendor/silvery/packages/ag-react/src/hooks/usePaste.tsx → SHOULD exist (intentionally kept)
 - test -f vendor/silvery/packages/ag-term/src/bracketed-paste.ts
 
 Exports cleanup:
+
 - grep 'useTerminalSelection\|usePointerState\|useCopyProvider\|useFindProvider\|TerminalSelectionProvider\|CopyProvider\|FindProviderComponent\|SemanticCopyProvider' vendor/silvery/packages/ag-react/src/exports.ts → 0 hits
 - grep 'useTerminalSelection\|usePointerState\|useCopyProvider' vendor/silvery/packages/ag-react/src/hooks/index.ts → 0 hits
 
 Follow-up bead:
+
 - bd list | grep 'clipboard-paste-cleanup' → found
 
 Tests:
+
 - bun vitest run vendor/silvery → all pass
 - cd vendor/silvery && npx tsc --noEmit → 0 new errors
 
 ## MANDATORY
 
 Read docs/lessons/refactoring.md IN FULL before starting.
+

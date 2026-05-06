@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/tdwc4"
 aliases:
   - km-tdwc4
@@ -13,3 +16,4 @@ assignee: claude:73d7a332
 ---
 
 # [x] ink.ts: remove dead code (convertColor, toChalkCompat, ansi256ToRgb) @km/_orphan #task #P3 @claude:73d7a332
+

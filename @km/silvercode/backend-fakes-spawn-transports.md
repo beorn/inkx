@@ -34,3 +34,4 @@ Add complete fake process streams for non-ACP legacy transports so Silvercode ca
 - Controller tests can select each legacy backend through the normal spawn path and receive fake process output.
 - Existing Layer 1 `AgentSession` fakes remain available for narrow reducer/UI tests, but integration tests use these lower-boundary transport fakes.
 - Contract docs explain which backends are ACP-profile fakes and which remain legacy spawn fakes.
+

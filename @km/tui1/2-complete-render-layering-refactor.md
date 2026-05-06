@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui1/2-complete-render-layering-refactor"
 aliases:
   - km-tui1.2
@@ -17,6 +19,7 @@ Complete the render layering refactor started in @km/_orphan/96la.
 ## Remaining Tasks from @km/_orphan/96la
 
 From the @km/_orphan/96la description, remaining work:
+
 - [ ] Update render.ts (static chalk rendering) to use renderRich
 - [ ] Add tests for ANSI-aware wrapping
 - [ ] Document architecture in render-text.ts header
@@ -37,3 +40,4 @@ From the @km/_orphan/96la description, remaining work:
 
 - apps/@km/tui/packages/@km/_orphan/ink/src/text/rich.ts
 - apps/@km/tui/packages/@km/_orphan/ink/src/render.ts
+

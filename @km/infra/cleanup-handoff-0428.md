@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/cleanup-handoff-0428"
 aliases:
   - km-infra.cleanup-handoff-0428
@@ -177,6 +180,10 @@ dependencies:
     created_at: 2026-04-28T15:01:12Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] Hand off: triage all retained worktrees + branches per the new wip-triage discipline @km/infra #task #P0 @claude:da9990c5
@@ -189,11 +196,11 @@ Take over from the /loop session at @km/session/0425-evening. The cleanup agent 
 
 ### Wave 1 silvercode branches — all closed, ready to integrate
 
-| Branch | SHA on origin | Bead | State |
-|---|---|---|---|
-| bug/@km/silvercode/prompt-echo | a8116b85 | @km/silvercode/prompt-echo-in-chat | closed |
-| bug/@km/silvercode/error-dedup | d2a2cc2c | @km/silvercode/error-dedup | closed |
-| feat/@km/silvercode/askuserquestion-implement | d10f4d7a | @km/silvercode/askuserquestion-implement | closed |
+| Branch                                        | SHA on origin | Bead                                     | State  |
+| --------------------------------------------- | ------------- | ---------------------------------------- | ------ |
+| bug/@km/silvercode/prompt-echo                | a8116b85      | @km/silvercode/prompt-echo-in-chat       | closed |
+| bug/@km/silvercode/error-dedup                | d2a2cc2c      | @km/silvercode/error-dedup               | closed |
+| feat/@km/silvercode/askuserquestion-implement | d10f4d7a      | @km/silvercode/askuserquestion-implement | closed |
 
 Action: integrate (cherry-pick or merge to main), then delete branch local + remote, prune worktrees.
 
@@ -221,12 +228,14 @@ The other cleanup pass already pruned 14 remote branches; 12 remain (incl. main)
 
 Action: mechanical commit-presence check first, NOT sub-agent investigation:
 
-    git fetch origin --prune
-    for br in <names>; do
-      n=$(git log origin/$br --not origin/main --oneline | wc -l)
-      echo "=== $br ($n unique commits) ==="
-      git log origin/$br --not origin/main --oneline | head -5
-    done
+```
+git fetch origin --prune
+for br in <names>; do
+  n=$(git log origin/$br --not origin/main --oneline | wc -l)
+  echo "=== $br ($n unique commits) ==="
+  git log origin/$br --not origin/main --oneline | head -5
+done
+```
 
 0 unique → fossil, batch-delete via single `git push origin --delete <names...>`. Non-zero → 1-line per branch decision (integrate, leave, or close).
 
@@ -257,3 +266,4 @@ This is the L4 wip-triage primitive being run manually. The discipline (per the 
 - /big analysis 2026-04-28 evening (@km/session/0425-evening): integration vs recovery split, no-reliable-end-of-session, triage-is-the-primitive
 - Memory rule: feedback-agent-isolation-eventual-consistency.md (drop push-to-origin contract, branches are triage queue)
 - L4 design bead: @km/infra/orphan-branch-audit (this bead is the manual instance of that automated tool)
+

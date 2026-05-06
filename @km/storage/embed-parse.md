@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/embed-parse"
 aliases:
   - km-storage.embed-parse
@@ -11,3 +14,4 @@ assignee: claude:9b6678d0
 ---
 
 # [x] Parser: resolve ![[...]] → link_to (Phase 2 embedding detection) @km/storage #task #P1 @claude:9b6678d0
+

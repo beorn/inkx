@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/release"
 aliases:
   - km-release
@@ -46,3 +48,4 @@ bun release --dry-run    # Preview
 - package.json (added devDeps + release script)
 - docs/dev/releasing.md (created)
 - CLAUDE.md §17 (added)
+

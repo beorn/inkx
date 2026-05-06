@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/contributing"
 aliases:
   - km-termless.contributing
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Add 'Adding a New Backend' workflow to CONTRIBUTING.md @km/termless #task #P2
 
 Document the comprehensive checklist for adding new backends based on the ghostty implementation pattern. Covers package files, registration files, documentation, TerminalBackend interface methods, and key patterns.
+

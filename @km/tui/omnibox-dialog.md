@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/omnibox-dialog"
 aliases:
   - km-tui.omnibox-dialog
@@ -63,6 +65,24 @@ dependencies:
     created_at: 2026-04-14T16:24:58Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-tui.omnibox-command-projection
+      - type: link
+        target: km-tui.omnibox-default-command
+      - type: link
+        target: km-tui.omnibox-query-syntax
+      - type: link
+        target: km-tui.omnibox-ranker
+      - type: link
+        target: km-tui.omnibox-recents
+      - type: link
+        target: km-tui.omnibox-row
+      - type: link
+        target: km-tui.omnibox-unified
 ---
 
 # [x] Unified omnibox dialog component (Phase 5 — v1 ship) @km/tui #feature #P1
@@ -74,6 +94,7 @@ V1 ship: unified Omnibox as a singleton overlay pane. State lives in workspace.o
 ## Component architecture
 
 Three top-level components:
+
 - DialogOmnibox (center overlay, ephemeral) — default
 - FindOmnibox (bottom-left inline bar, ephemeral) — rendered as a delegate from DialogOmnibox when buffer.startsWith('/')
 - PaneOmnibox (docked, persistent) — post-v1 (@km/tui/omnibox-pop-out)
@@ -108,6 +129,7 @@ Phase 6 wires cursor unification via currentCursor(). Phase 7 (@km/tui/omnibox-i
 ## Rerouting existing commands
 
 Route the 5 legacy dialog-opener commands through openOmnibox(...):
+
 - command_palette → openOmnibox({ initialBuffer: ':', initialDefaultCommand: 'default', candidates: allNodes })
 - item_picker → openOmnibox({ initialBuffer: '', initialDefaultCommand: 'default', candidates: allNodes })
 - manage_favorites → openOmnibox({ initialBuffer: '', initialDefaultCommand: 'manage_favorites', candidates: favoritedNodes })
@@ -132,3 +154,4 @@ V1 DEFERRALS: search_replace and filter stay on their current dialogs. Both need
 (j) Pane navigation primitives (arrow, Ctrl+N/P, click-select) work via SelectList onHighlight
 (k) shift commands are hidden in the omnibox via when: (ctx) => ctx.activePaneType !== 'omnibox'
 (l) multi-select is globally disabled in v1 (single-select only via SelectList)
+

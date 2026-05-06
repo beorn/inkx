@@ -1,4 +1,7 @@
 ---
+mentions:
+  - silvery
+  - km
 id: "@km/silvercode/m4-tribe-mcp"
 aliases:
   - km-silvercode.m4-tribe-mcp
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-24T02:09:49Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] M4: @silvery/tribe-mcp + channel event injection @km/silvercode #task #P2
@@ -26,3 +33,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 See hub/silvery/future/ai-terminal/00-agent-workspace.md Phased delivery section for M4- scope.
+

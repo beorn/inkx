@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/d1i7b"
 aliases:
   - km-d1i7b
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] H/L should navigate columns/board, currently bound to fold @km/_orphan #bug #P2
 
 H/L (Shift+H/L) are bound to fold_node/unfold_node. User expects them to navigate at column/board level. Need context-aware bindings.
+

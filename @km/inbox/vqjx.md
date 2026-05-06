@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/vqjx"
 aliases:
   - km-vqjx
@@ -9,7 +11,7 @@ closed_at: 2026-01-22T00:34:46Z
 
 # [x] Evaluate SlateJS data model adoption for tree/board layers @km/_orphan #task #P4
 
-# Evaluation: Adopting SlateJS Data Model for km
+## Evaluation: Adopting SlateJS Data Model for km
 
 ## Executive Summary
 
@@ -23,28 +25,29 @@ This analysis compares km's current architecture with SlateJS's data model and o
 
 ### Data Model Comparison
 
-| Aspect | km Current | SlateJS |
-|--------|------------|---------|
-| **Root container** | `BoardState.nodes: TNode[]` | `Editor.children: Node[]` |
-| **Middle nodes** | `TNode` (recursive) | `Element` (recursive) |
-| **Leaf nodes** | `TNode` (no separate type) | `Text` (explicit leaf type) |
-| **Path representation** | `TPath = number[]` | `Path = number[]` (identical!) |
-| **Node identity** | `nodeId: string` (stable UUID) | No built-in identity (path-based) |
-| **Node metadata** | Rich properties (taskStatus, priority, dueDate, etc.) | Custom properties (type, url, etc.) |
+| Aspect              | km Current                                            | SlateJS                             |
+| ------------------- | ----------------------------------------------------- | ----------------------------------- |
+| Root container      | BoardState.nodes: TNode[]                             | Editor.children: Node[]             |
+| Middle nodes        | TNode (recursive)                                     | Element (recursive)                 |
+| Leaf nodes          | TNode (no separate type)                              | Text (explicit leaf type)           |
+| Path representation | TPath = number[]                                      | Path = number[] (identical!)        |
+| Node identity       | nodeId: string (stable UUID)                          | No built-in identity (path-based)   |
+| Node metadata       | Rich properties (taskStatus, priority, dueDate, etc.) | Custom properties (type, url, etc.) |
 
 ### Operation/Action Comparison
 
-| Aspect | km Current | SlateJS |
-|--------|------------|---------|
-| **Operations** | 4 TActions: `ADD_NODE`, `MOVE_NODE`, `DELETE_NODE`, `UPDATE_NODE` | 9 Operations: `insert_node`, `remove_node`, `set_node`, `merge_node`, `split_node`, `move_node`, `insert_text`, `remove_text`, `set_selection` |
-| **Granularity** | Node-level only | Character-level text + node-level |
-| **Immutability** | Rebuild from storage | In-memory immutable transforms |
-| **Normalization** | Ad-hoc validation | Systematic multi-pass normalization |
-| **Undo/Redo** | State snapshots in stacks | Operation batches in stacks |
+| Aspect        | km Current                                                | SlateJS                                                                                                                      |
+| ------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Operations    | 4 TActions: ADD_NODE, MOVE_NODE, DELETE_NODE, UPDATE_NODE | 9 Operations: insert_node, remove_node, set_node, merge_node, split_node, move_node, insert_text, remove_text, set_selection |
+| Granularity   | Node-level only                                           | Character-level text + node-level                                                                                            |
+| Immutability  | Rebuild from storage                                      | In-memory immutable transforms                                                                                               |
+| Normalization | Ad-hoc validation                                         | Systematic multi-pass normalization                                                                                          |
+| Undo/Redo     | State snapshots in stacks                                 | Operation batches in stacks                                                                                                  |
 
 ### Architecture Flow Comparison
 
 **km Current:**
+
 ```
 Command → Action → Reducer (pass-through for TAction) → Effect Layer → Storage → File
                                                                      ↑
@@ -52,6 +55,7 @@ Command → Action → Reducer (pass-through for TAction) → Effect Layer → S
 ```
 
 **SlateJS:**
+
 ```
 Command → Transform → Operations → apply() → Normalize → onChange()
                          ↓
@@ -63,6 +67,7 @@ Command → Transform → Operations → apply() → Normalize → onChange()
 ## What Would Change: Tree Layer
 
 ### Current `@km/tree`
+
 - `TNode` type with recursive `children[]`
 - `TPath` for path-based positioning (already Slate-compatible!)
 - 4 `TAction` types for mutations
@@ -73,6 +78,7 @@ Command → Transform → Operations → apply() → Normalize → onChange()
 **1. Expand Operation Types**
 
 Current TActions map cleanly to Slate operations:
+
 ```typescript
 // Current                          // Slate equivalent
 ADD_NODE                         → insert_node
@@ -82,6 +88,7 @@ MOVE_NODE                        → move_node (Slate doesn't have this built-in
 ```
 
 Would add:
+
 - `merge_node` - combine sibling nodes
 - `split_node` - split node at point (useful for editing)
 - No need for `insert_text`/`remove_text` (km doesn't do character-level editing)
@@ -89,6 +96,7 @@ Would add:
 **2. Add `apply()` Function**
 
 Create a pure function that applies operations to the tree:
+
 ```typescript
 function apply(nodes: TNode[], operation: TOperation): TNode[] {
   switch (operation.type) {
@@ -106,6 +114,7 @@ function apply(nodes: TNode[], operation: TOperation): TNode[] {
 **3. Add Normalization**
 
 Define constraints and auto-fix logic:
+
 ```typescript
 function normalizeNode(nodes: TNode[], path: TPath): TNode[] {
   const node = getNodeAtPath(nodes, path);
@@ -123,6 +132,7 @@ function normalizeNode(nodes: TNode[], path: TPath): TNode[] {
 ```
 
 **Impact Assessment:**
+
 - **Files affected:** `packages/km-tree/src/` - add `operations.ts`, `apply.ts`, `normalize.ts`
 - **Breaking changes:** Moderate - TAction would be replaced/renamed to TOperation
 - **Effort:** Medium - core tree operations already exist, need wrapping
@@ -132,6 +142,7 @@ function normalizeNode(nodes: TNode[], path: TPath): TNode[] {
 ## What Would Change: Board Layer
 
 ### Current `@km/board`
+
 - `BoardState` with cursor, selection, folds, zoom, history
 - `BoardAction` for navigation (40+ action types)
 - `boardReducer` for state transitions
@@ -142,6 +153,7 @@ function normalizeNode(nodes: TNode[], path: TPath): TNode[] {
 **1. Unified Selection Model**
 
 Slate's selection is part of the editor state:
+
 ```typescript
 interface Editor {
   children: Node[];
@@ -150,6 +162,7 @@ interface Editor {
 ```
 
 km could unify cursor and selection:
+
 ```typescript
 interface BoardState {
   nodes: TNode[];
@@ -163,6 +176,7 @@ interface BoardState {
 **2. Selection as Operations**
 
 Navigation would become operations:
+
 ```typescript
 // Current
 { type: 'CURSOR_MOVE', dir: 'down' }
@@ -185,6 +199,7 @@ interface History {
 Undo = apply inverse operations in reverse order.
 
 **Impact Assessment:**
+
 - **Files affected:** `packages/km-board/src/boardReducer.ts`, `boardTypes.ts`
 - **Breaking changes:** Significant - selection model and undo/redo would change
 - **Effort:** High - navigation logic is complex, would need careful migration
@@ -196,6 +211,7 @@ Undo = apply inverse operations in reverse order.
 ### The Challenge
 
 km's storage layer has unique requirements Slate doesn't address:
+
 1. **Bidirectional file sync** - changes must propagate to/from markdown files
 2. **SQLite as cache** - DBNode is a denormalized view of filesystem
 3. **Multi-representation** - same data exists as TNode, DBNode, and file content
@@ -203,22 +219,27 @@ km's storage layer has unique requirements Slate doesn't address:
 ### Options
 
 **Option A: Slate at Tree Level Only**
+
 - Storage layer unchanged
 - Tree operations translate to storage CRUD calls
 - Effect layer bridges the gap:
+
 ```
 TOperation → apply() → new TNode[] → diff with old → storage.updateNode()
 ```
 
 **Option B: Event Sourcing at Storage Level**
+
 - Operations become the source of truth
 - Storage replays operations to build state
 - File sync becomes operation serialization
+
 ```
 TOperation → events.jsonl → SQLite projection → file sync
 ```
 
 **Impact Assessment:**
+
 - **Option A:** Low impact, pragmatic adapter approach
 - **Option B:** High impact, architectural rewrite, but enables CRDT/collaboration
 
@@ -227,6 +248,7 @@ TOperation → events.jsonl → SQLite projection → file sync
 ## What Would Change: App Layer
 
 ### Current
+
 - `useAppState` hook with reducer chain
 - Effect layer intercepts TActions for storage calls
 - Manual `refreshTree()` after mutations
@@ -234,6 +256,7 @@ TOperation → events.jsonl → SQLite projection → file sync
 ### With Slate-style Operations
 
 **1. Single `apply()` Entry Point**
+
 ```typescript
 function dispatch(operation: TOperation) {
   // 1. Apply to tree (immutable)
@@ -258,6 +281,7 @@ function dispatch(operation: TOperation) {
 **2. Remove Manual Refresh**
 
 Since `apply()` returns the new state directly, no need for:
+
 ```typescript
 // Current pattern (would be removed)
 await storage.updateNode(id, changes);
@@ -265,6 +289,7 @@ await refreshTree();  // Rebuild from storage
 ```
 
 **Impact Assessment:**
+
 - **Files affected:** `apps/km-tui/packages/km-opentui/src/hooks/useAppState.ts`
 - **Breaking changes:** Moderate - dispatch pattern changes
 - **Effort:** Medium - mostly wiring changes
@@ -291,17 +316,20 @@ await refreshTree();  // Rebuild from storage
 ## Recommended Approach
 
 ### Phase 1: Tree Layer Operations (Low Risk)
+
 1. Add `TOperation` type alongside `TAction`
 2. Implement `apply()` function for tree mutations
 3. Add basic normalization
 4. Keep storage layer unchanged (translate operations → storage calls)
 
 ### Phase 2: Board Selection Unification (Medium Risk)
+
 1. Unify cursor and selection into Slate-style model
 2. Make navigation operations undoable
 3. Migrate to operation-based history
 
 ### Phase 3: Storage Event Sourcing (High Risk, Optional)
+
 1. Store operations as events
 2. Build state by replaying operations
 3. Enable collaborative features
@@ -310,13 +338,13 @@ await refreshTree();  // Rebuild from storage
 
 ## Files to Modify (Phase 1)
 
-| Package | File | Changes |
-|---------|------|---------|
-| @km/tree | `src/operations.ts` | New - define TOperation types |
-| @km/tree | `src/apply.ts` | New - pure apply function |
-| @km/tree | `src/normalize.ts` | New - constraint enforcement |
-| @km/tree | `src/index.ts` | Export new modules |
-| apps/@km/tui | `hooks/useAppState.ts` | Integrate apply() into dispatch |
+| Package      | File                 | Changes                         |
+| ------------ | -------------------- | ------------------------------- |
+| @km/tree     | src/operations.ts    | New - define TOperation types   |
+| @km/tree     | src/apply.ts         | New - pure apply function       |
+| @km/tree     | src/normalize.ts     | New - constraint enforcement    |
+| @km/tree     | src/index.ts         | Export new modules              |
+| apps/@km/tui | hooks/useAppState.ts | Integrate apply() into dispatch |
 
 ---
 
@@ -325,3 +353,4 @@ await refreshTree();  // Rebuild from storage
 1. Should navigation (cursor movement) be operation-based and undoable?
 2. How should operations map to file changes in bidirectional sync?
 3. Is event sourcing at storage level a future goal?
+

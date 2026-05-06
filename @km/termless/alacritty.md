@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/alacritty"
 aliases:
   - km-termless.alacritty
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Alacritty backend via alacritty_terminal Rust crate @km/termless #task #P3
 
 Feasible via alacritty_terminal crate (on crates.io) + napi-rs. Simpler than wezterm (no kitty KB, no graphics) but popular terminal. Implement TerminalBackend wrapping the Rust crate via napi-rs native binding.
+

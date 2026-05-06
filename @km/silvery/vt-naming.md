@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/vt-naming"
 aliases:
   - km-silvery.vt-naming
@@ -31,6 +34,7 @@ Apply unified naming glossary across all virtual terminal APIs. Phase 0 — do B
 ## Phase 0a: Rename props + delete thin wrappers (DONE)
 
 ### Renames
+
 - history prop → cache (ListView)
 - keyExtractor → getKey (VirtualList, HVList, ListView)
 - isFrozen/freezeWhen/frozen → isCacheable
@@ -48,6 +52,7 @@ Apply unified naming glossary across all virtual terminal APIs. Phase 0 — do B
 - onSelect stays (no rename)
 
 ### Deletions (components too thin / replaced)
+
 - ScrollbackList (was literally return <ScrollbackView />)
 - VirtualView (thin deprecated wrapper)
 - ScrollbackView (replaced by ListView + TerminalCache)
@@ -56,6 +61,7 @@ Apply unified naming glossary across all virtual terminal APIs. Phase 0 — do B
 - SurfaceRegistry (absorbed into SearchProvider → future search-machine)
 
 ### Glossary
+
 - Live = items in React tree
 - Cached = items in ListCache (ANSI snapshots)
 - History = stored cached content
@@ -67,26 +73,30 @@ Apply unified naming glossary across all virtual terminal APIs. Phase 0 — do B
 @km/tui currently uses VirtualList (deprecated wrapper). Migrate all usages to ListView directly:
 
 ### Files to migrate
+
 - apps/@km/tui/src/views/CardColumn.tsx — VirtualList → ListView
-- apps/@km/tui/src/views/ColumnsView.tsx — VirtualList → ListView  
+- apps/@km/tui/src/views/ColumnsView.tsx — VirtualList → ListView
 - apps/@km/tui/src/views/ListView.tsx — VirtualList → ListView
 - apps/@km/tui/src/views/TabsView.tsx — VirtualList → ListView
 - apps/@km/tui/src/views/ScrollTracker.tsx — wraps VirtualList → wraps ListView
 - apps/@km/tui/src/views/Board.tsx — HVList (keep, just uses getKey now)
 
 ### Key differences VirtualList → ListView
+
 - itemHeight → estimateHeight (number or function signature changes)
 - ItemMeta.isSelected → ListItemMeta.isCursor
 - renderItem 3rd arg is optional in VL, required in LV
 - VirtualList's interactive/selectedIndex/onSelectionChange already renamed to nav/cursorKey/onCursor
 
 ### Verify
+
 - bunx tsc --noEmit | grep @km/tui → 0 errors
 - bun vitest run apps/@km/tui/tests/ → all pass
 
 ## Phase 0c: Migrate silvery examples + delete VirtualList
 
 ### Migrate examples from ScrollbackList/VirtualList → ListView
+
 - examples/apps/aichat/index.tsx — ScrollbackList → ListView + cache
 - examples/scrollback-perf.tsx — ScrollbackList → ListView + cache
 - examples/inline/scrollback.tsx — useScrollback → ListView + cache
@@ -95,19 +105,23 @@ Apply unified naming glossary across all virtual terminal APIs. Phase 0 — do B
 - examples/apps/panes/index.tsx — already migrated (Phase 0a)
 
 ### Delete VirtualList
+
 After all consumers migrated to ListView, delete VirtualList.tsx. Only keeps its name if it has marketing value (it doesn't — ListView is the better name).
 
 ### Delete remaining old exports
+
 - Remove VirtualList, VirtualListProps, VirtualListHandle, ItemMeta from exports.ts and components.ts
 - Remove from silvery/ui barrel
 
 ### Update docs
+
 - vendor/silvery/CLAUDE.md — update component references
 - vendor/silvery/docs/ — update any guides referencing deleted components
 - examples/CLAUDE.md — update example descriptions
 - examples/index.md — update example registry
 
 ### Verify (complete)
+
 grep for ALL old names → 0 hits:
   ScrollbackList, ScrollbackView, VirtualView, VirtualList (as component),
   useScrollback, useScrollbackItem, SurfaceRegistryProvider,
@@ -117,8 +131,10 @@ grep for ALL old names → 0 hits:
   onSelectionChange (as prop on list), isSelected (as ItemMeta field)
 
 ### Not deleted (has value)
+
 - HorizontalVirtualList — no ListView equivalent yet, stays
 - SearchBar — external component, stays
 - SearchProvider — stays (future: absorbed by search-machine)
 
 Estimate: ~2 days total across 0a/0b/0c. ~1,500 lines removed, ~100 lines added, ~60 files touched.
+

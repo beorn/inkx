@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/dates/tui"
 aliases:
   - km-tui.dates.tui
@@ -13,3 +16,4 @@ assignee: claude:fb2a14c0
 # [x] TUI: commands, UI state, handlers, dialog, display, help @km/tui #task #P2 @claude:fb2a14c0
 
 Steps 7-17: Wire property commands, add datePrompt UI state, handle actions, create DatePromptDialog, mount dialog, enhance card display with priority/dates/recurrence, update help overlay
+

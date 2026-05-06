@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/fswriter-delete-broken"
 aliases:
   - km-storage.fswriter-delete-broken
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] P1: FsWriter delete handling broken — node already gone from DB @km/storage #bug #P1
 
 In emitter order, DB apply happens before fsSync. FsWriter.handleNodeDeleted() calls getNode(db, event.target) but the node is already deleted. Fix: use pre-delete snapshot from event.data (fs_path, type, parent_id, item) instead of DB lookup.
+

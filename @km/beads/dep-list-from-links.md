@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beads/dep-list-from-links"
 aliases:
   - km-beads.dep-list-from-links
@@ -22,6 +24,10 @@ dependencies:
     created_at: 2026-04-27T18:34:42Z
     created_by: claude:da9990c5
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-beads
 ---
 
 # [x] bd dep list reads from the links table, not data.blocked_by array @km/beads #bug #P2
@@ -29,3 +35,4 @@ dependencies:
 blocks:: [[@km/beads]]
 
 Today bd dep list and isBlocked check data.blocked_by (legacy bd-form). Multi-blocker via inline-property wikilinks (blocks:: [[a]], [[b]]) are correctly indexed in the links table but invisible to bd dep. Acceptance: bd dep list <id> queries links table for outgoing blocks/blocked-by/related/supersedes edges; isBlocked checks current status of each link target through the resolver; help text mentions inline-property wikilinks as the canonical way to declare deps.
+

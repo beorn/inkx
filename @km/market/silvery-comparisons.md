@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/market/silvery-comparisons"
 aliases:
   - km-market.silvery-comparisons
@@ -14,3 +17,4 @@ assignee: claude:4929065a
 ---
 
 # [x] silvery.dev comparison pages (vs BubbleTea, Textual, Blessed) @km/market #feature #P3 @claude:4929065a
+

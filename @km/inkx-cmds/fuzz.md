@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx-cmds/fuzz"
 aliases:
   - km-inkx-cmds.fuzz
@@ -13,6 +16,7 @@ assignee: claude:10db6ea8
 Infrastructure for AI-driven fuzz testing of TUI.
 
 ## Concept
+
 ```typescript
 test.fuzz('AI explores board', async () => {
   const app = await createBoardDriver(testRepo)
@@ -30,11 +34,14 @@ test.fuzz('AI explores board', async () => {
 ```
 
 ## Components
+
 1. aiExplorer generator - AI picks commands based on state
 2. Invariant library - common checks (no errors, valid state)
 3. Scenario recording - capture repro steps on failure
 4. vitestx integration - test.fuzz() helper
 
 ## Depends On
+
 - @km/silvery-legacy-cmds/ai-spike (driver wiring)
 - @km/silvery-legacy-cmds/state (rich state for AI decisions)
+

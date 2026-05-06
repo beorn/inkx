@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui2/1-fix-selection-text-color-black-on-cyan"
 aliases:
   - km-tui2.1
@@ -21,3 +23,4 @@ Selected items show red/magenta text on cyan background. Should be black text on
 **Files**: apps/@km/tui/packages/@km/_orphan/opentui/src/components/TreeNode.tsx
 
 See: vendor/opentui/issues/002-color-rendering.md
+

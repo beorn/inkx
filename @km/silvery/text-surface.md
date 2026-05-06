@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/text-surface"
 aliases:
   - km-silvery.text-surface
@@ -16,3 +19,4 @@ assignee: claude:def7f8a1
 # [x] ListDocument + TextSurface: semantic document model @km/silvery #task #P1 @claude:def7f8a1
 
 Phase 2: Semantic document model spanning frozen + live content. ListDocument (canonical row model), TextSurface (search/getText/hitTest/reveal), HistoryBuffer (ring buffer replacing virtual-scrollback.ts with per-item ANSI snapshots, reflowable on width change).
+

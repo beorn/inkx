@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/loggily/otel"
 aliases:
   - km-loggily.otel
@@ -24,6 +26,14 @@ dependencies:
     created_at: 2026-04-11T23:59:05Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-loggily
+      - type: link
+        target: km-loggily.v2-phase3
 ---
 
 # [x] OTEL bridge — OpenTelemetry integration @km/loggily #feature #P3
@@ -31,3 +41,4 @@ dependencies:
 blocks:: [[@km/loggily]], [[@km/loggily/v2-phase3]]
 
 { otel: { endpoint } } config + loggily/otel subpath module. Exports logs as OTLP log signals, spans as OTLP trace signals. Peer dep @opentelemetry/api. Already planned in why.md ('otel() planned'). Deferred from v1.0 — ship after core pipeline semantics settle.
+

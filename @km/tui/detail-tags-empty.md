@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/detail-tags-empty"
 aliases:
   - km-tui.detail-tags-empty
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Detail pane: tag children show as empty # without names @km/tui #bug #P1
 
 In tags view, the folder detail pane shows child items under each tag as just '#' without the tag name. Likely: child content starts with #tagname, InlineText parser recognizes it as a tag sigil, but the sigil rendering strips the name in context.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/polish-sweep"
 aliases:
   - km-tribe.polish-sweep
@@ -21,6 +23,10 @@ dependencies:
     created_at: 2026-04-18T22:51:48Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] tribe: polish sweep — 8 narrow cleanups post-plateau @km/tribe #task #P4
@@ -40,3 +46,4 @@ Batch of small polish items from /big 2026-04-18 (Round 2). All 10-40 LOC each, 
 9. Merge event_log table with messages WHERE kind="event" — two activity logs, should be one.
 
 Each item independently testable. No dependencies beyond @km/bear/unified-daemon (Phase 5) landing first — items 4/6/7 are safe even during Phase 5. Effort: 4-6 hours batched.
+

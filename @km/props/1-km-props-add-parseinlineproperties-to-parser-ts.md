@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/props/1-km-props-add-parseinlineproperties-to-parser-ts"
 aliases:
   - km-props.1
@@ -13,6 +15,7 @@ closed_at: 2026-01-21T12:12:14Z
 Add parseInlineProperties() function to packages/@km/markdown/src/parser.ts
 
 Function signature:
+
 ```typescript
 export function parseInlineProperties(text: string): ParsedProperties {
   props: Record<string, PropertyValue>;    // Parsed values
@@ -24,6 +27,7 @@ export function parseInlineProperties(text: string): ParsedProperties {
 Pattern: `/([a-z][a-z0-9_-]*)::[ ]*(.+?)(?=\s+[a-z][a-z0-9_-]*::|$)/gi`
 
 Property types:
+
 - Link: [[target]] or [[target|alias]]
 - Number: 42, 3.14
 - Date: YYYY-MM-DD
@@ -31,3 +35,4 @@ Property types:
 - List: multiple links separated by commas
 
 STATUS: Implementation started - function added to parser.ts
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - km
 id: "@km/inbox/bgd3"
 aliases:
   - km-bgd3
@@ -10,11 +13,13 @@ closed_at: 2026-01-17T23:22:46Z
 # [x] [km-cmd.8] Integrate @km/commands with km-sh @km/_orphan #task #P3
 
 ## Goal
+
 Update @km/_orphan/sh to use the unified command registry instead of maintaining a separate command system.
 
 ## Current State
 
 @km/_orphan/repl has its own command infrastructure:
+
 - `commands.ts` - CommandDef array with ~30 commands
 - `commandParser.ts` - parseCommand() with SIMPLE_ACTIONS map
 - `shellExecutor.ts` - executeCommand() routing
@@ -22,6 +27,7 @@ Update @km/_orphan/sh to use the unified command registry instead of maintaining
 ## Target State
 
 @km/_orphan/sh becomes a thin shell around @km/commands:
+
 - Parses text input to command ID + args
 - Looks up command in unified registry
 - Builds context and executes
@@ -30,7 +36,9 @@ Update @km/_orphan/sh to use the unified command registry instead of maintaining
 ## Migration
 
 ### Shell-Specific Commands
+
 These stay in @km/_orphan/sh as they are REPL-specific:
+
 - `state` - dump JSON state
 - `view` - render ASCII
 - `help` - show help
@@ -38,7 +46,9 @@ These stay in @km/_orphan/sh as they are REPL-specific:
 - `pwd`, `ls`, `cd`, `tree`, `cat` - filesystem-like
 
 ### Board Commands
+
 These move to @km/commands:
+
 - All `cursor_*` commands
 - All `nav_*` commands
 - All `select_*` commands
@@ -85,8 +95,10 @@ export function executeCommand(line: string, shellCtx: ShellContext) {
 ```
 
 ## Acceptance Criteria
+
 - [ ] @km/_orphan/sh uses @km/commands registry for board commands
 - [ ] All mdtest files still pass
 - [ ] Shell-specific commands (state, view, etc.) still work
 - [ ] help command shows commands from unified registry
 - [ ] Minimal duplication between @km/_orphan/sh and @km/commands
+

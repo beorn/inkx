@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/text-box-attr-props"
 aliases:
   - km-silvery.text-box-attr-props
@@ -119,6 +122,7 @@ Inheritance: attrs cascade like color does — \`<Box underline><Text>x</Text></
 ### Capability gating
 
 TerminalProfile.caps.underlineStyles: Set<UnderlineStyle>
+
 - Modern terminals (Ghostty, Kitty, WezTerm, iTerm2 recent): all 5
 - Legacy / limited: \"single\" only
 
@@ -135,6 +139,7 @@ The enum keeps the vocabulary platform-neutral — silvery's multi-target ambiti
 ## Tests (per silvery CLAUDE.md — new props require tests)
 
 SILVERY_STRICT=2 tests for every new prop:
+
 - Text: each underline style renders correct SGR
 - Box: underline-only Box overlays without touching glyphs
 - Box+Text nesting: attrs cascade through children via merge
@@ -158,3 +163,4 @@ SILVERY_STRICT=2 tests for every new prop:
 - [ ] Output-phase downgrade when unsupported
 - [ ] Tests in tests/contracts/ + tests/features/ per silvery convention
 - [ ] @km/logview overscroll indicator migrated off bg-tint to \`<Box underline />\`
+

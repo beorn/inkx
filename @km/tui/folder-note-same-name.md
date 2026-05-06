@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/folder-note-same-name"
 aliases:
   - km-tui.folder-note-same-name
@@ -16,6 +18,10 @@ dependencies:
     created_at: 2026-04-14T10:37:31Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] <folder>.md folder-note renders empty in column view @km/tui #bug #P2
@@ -23,3 +29,4 @@ dependencies:
 blocks:: [[@km/tui]]
 
 Already fixed in 27db42fcf. Creating bead retroactively for history. Folder containing same-name.md (folder-note convention) rendered as (empty) column because computeColumnChildren filtered the index file without hoisting its sections. Fix: unified with expandIndexFile by splicing index file's children into the column's cards.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/github-resource"
 aliases:
   - km-tribe.github-resource
@@ -20,6 +22,7 @@ Currently: each Claude session spawns its own github-channel.ts process via .mcp
 Proposed: one proxy provides GitHub as a resource. Other proxies discover and connect directly (v2 Phase 3 pattern).
 
 Requirements:
+
 - GitHub plugin detects .git/ + gh auth status
 - Provides: notifications, PR status, CI checks, issue updates
 - Broadcast capability: push GitHub events to all sessions in the project (not just on request)
@@ -28,7 +31,9 @@ Requirements:
 - Watch TUI: show which session provides github resource
 
 Implementation:
+
 - New plugin in lib/tribe/plugins/ or lib/tribe/resources/
 - ResourcePlugin interface with broadcast support (onChange → daemon broadcast or direct push to peers)
 - Remove github from .mcp.json once resource plugin works
 - daemon broadcast supports scoped delivery: all, project, or named session
+

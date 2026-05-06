@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/explore-automation"
 aliases:
   - km-tui.explore-automation
@@ -15,6 +18,7 @@ assignee: Bjørn Stabell
 Vision: make explorative testing find bugs automatically instead of relying on visual inspection.
 
 Key improvements:
+
 1. Invariant-driven: connect TTY exploration with the invariant library (cursor valid, no IDs visible, no content corruption from nav keys, incremental=fresh)
 2. Screenshot diffing: programmatic before/after comparison, flag unexpected changes
 3. Mutation testing: verify filesystem not corrupted after every nav action (catches data corruption bugs like empty-card-key-capture instantly)
@@ -22,3 +26,4 @@ Key improvements:
 5. Continuous background fuzzing: run fuzz suite while user works, report via tribe
 
 Current gap: TTY exploration is manual prompts + visual inspection. Fuzz tests run headless without TTY. These two should merge — TTY exploration with automated invariant checking.
+

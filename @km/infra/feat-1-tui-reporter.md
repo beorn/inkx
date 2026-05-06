@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/feat-1-tui-reporter"
 aliases:
   - km-infra.feat-1-tui-reporter
@@ -13,6 +16,7 @@ assignee: claude:18380d7e
 ## Delivered (inline mode with keyboard controls)
 
 ### Features
+
 - ✅ Live streaming dots as tests complete
 - ✅ TestStore with subscription API (infra/vitest-dotz/store.ts)
 - ✅ Summary with pass/fail/skip counts and timing
@@ -25,16 +29,20 @@ assignee: claude:18380d7e
 - ✅ Package/file headers before grouped dots
 
 ### Keyboard Controls
+
 - `a` = auto grouping (shows package headers, default)
 - `p` = packages mode (same as auto)
 - `f` = files mode (package + file headers)
 - `q` or Ctrl+C = quit
 
 ### Files
+
 - infra/vitest-dotz/index.tsx - main reporter
 - infra/vitest-dotz/store.ts - external state store
 
 ### Usage
+
 ```
 bun run test:fast2  # uses DotzReporter
 ```
+

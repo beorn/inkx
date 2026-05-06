@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/create-themed-app"
 aliases:
   - km-silvery.create-themed-app
@@ -18,6 +20,10 @@ dependencies:
     created_at: 2026-04-18T10:45:14Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.theme-system-v2
 ---
 
 # [x] createThemedApp({ catalog }, <App />) one-line boot @km/silvery #task #P3
@@ -25,3 +31,4 @@ dependencies:
 blocks:: [[@km/silvery/theme-system-v2]]
 
 Single-call wrapper that composes the standard stack: detectScheme → ThemeProvider → terminal → react → focus → dom-events.\n\nAPI:\n  await createThemedApp({ catalog: allSchemes }, <App />).run()\n\nApps needing custom composition keep using createApp + pipe. This is the 'I just want to render a React TUI with a detected theme' shortcut.\n\nDepends on: tokens-prop-provider\nSpec: hub/silvery/design/v10-terminal/theme-system-v2-plan.md#p9
+

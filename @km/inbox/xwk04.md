@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/xwk04"
 aliases:
   - km-xwk04
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Create alien-resources package in vendor/bearlymade @km/_orphan #task #P2
 
 Create alien-resources: async signal bridge for alien-signals. createResource(fetcher) → signal with .loading(), .error(), AbortController cancellation. ~100 lines. Publish to npm (already reserved at 0.0.0).
+

@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - W
 id: "@km/tui/pane-wrong-keybinding"
 aliases:
   - km-tui.pane-wrong-keybinding
@@ -11,3 +15,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] [bug] Empty pane shows Ctrl+W as close binding but it's unmapped @km/tui #bug #P3
+

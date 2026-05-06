@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/test-output-2"
 aliases:
   - km-test-output-2
@@ -13,3 +16,4 @@ assignee: claude:8f1636c1
 Fixed by adding NO_COLOR=1 to test scripts. The 'blank lines' were actually empty ANSI color code sequences (yellow-reset) between dots in vitest's dot reporter. With NO_COLOR=1, these disappear.
 
 There are 4 structural blank lines from vitest's reporter (around header/summary) which is standard formatting.
+

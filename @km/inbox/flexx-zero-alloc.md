@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/flexx-zero-alloc"
 aliases:
   - km-flexx-zero-alloc
@@ -13,6 +16,7 @@ assignee: claude:227cdc41
 ## Summary
 
 **Problem:** High-frequency TUI rendering (60+ fps) creates GC pressure from temporary objects allocated during each layout pass. The classic flexbox algorithm allocates:
+
 - `ChildLayout` objects for each child during flex distribution
 - `FlexLine[]` arrays for flex-wrap support
 - Temporary arrays during filtered iteration (absolute vs relative children)
@@ -37,6 +41,7 @@ The zero-allocation layout engine is now a separate export, allowing users to ch
 ```
 
 **Files created:**
+
 - `src/layout-zero.ts` - Zero-alloc layout algorithm
 - `src/node-zero.ts` - Node with FlexInfo struct
 - `src/index-zero.ts` - Entry point for `/zero` subpath
@@ -52,6 +57,7 @@ INKX_ENGINE=yoga        // Yoga WASM
 ```
 
 **Files created:**
+
 - `src/adapters/flexx-zero-adapter.ts`
 - Updated `src/layout-engine.ts` with `LayoutEngineType = 'flexx' | 'flexx-zero' | 'yoga'`
 
@@ -60,6 +66,7 @@ INKX_ENGINE=yoga        // Yoga WASM
 ### 1. FlexInfo on Nodes (instead of ChildLayout objects)
 
 **Before (classic):** Each layout pass creates temporary objects:
+
 ```typescript
 const childLayouts: ChildLayout[] = children.map(child => ({
   node: child,
@@ -71,6 +78,7 @@ const childLayouts: ChildLayout[] = children.map(child => ({
 ```
 
 **After (zero-alloc):** Mutate persistent struct on each node:
+
 ```typescript
 // Node has: _flex: FlexInfo (created once, reused every pass)
 child.flex.mainSize = 0;
@@ -81,12 +89,14 @@ child.flex.flexGrow = child.style.flexGrow;
 ### 2. Pre-allocated Line Arrays (instead of FlexLine[])
 
 **Before (classic):**
+
 ```typescript
 const lines: FlexLine[] = [];
 lines.push({ children: [...], crossSize: 0 });
 ```
 
 **After (zero-alloc):**
+
 ```typescript
 // Module-level typed arrays (allocated once at load)
 let _lineCrossSizes = new Float64Array(32);
@@ -100,11 +110,13 @@ child.flex.lineIndex = currentLineIdx;
 ### 3. Filtered Iteration (instead of filter())
 
 **Before (classic):**
+
 ```typescript
 const relativeChildren = children.filter(c => !isAbsolute(c) && !isHidden(c));
 ```
 
 **After (zero-alloc):**
+
 ```typescript
 // relativeIndex set during initial scan: -1 = skip, 0+ = include
 for (const child of children) {
@@ -115,11 +127,11 @@ for (const child of children) {
 
 ## Benchmark Results
 
-| Scenario | Flexx Classic | Flexx Zero | Yoga WASM |
-|----------|--------------|------------|-----------|
-| **Flat 500 nodes** | 1x | **1.75-2x faster** | ~0.9x |
-| **Deep 50 levels** | 1x | 0.7x (slower) | **29-45x faster** |
-| **Kanban TUI** | 1x | ~1.1x faster | ~1.7x faster |
+| Scenario       | Flexx Classic | Flexx Zero     | Yoga WASM     |
+| -------------- | ------------- | -------------- | ------------- |
+| Flat 500 nodes | 1x            | 1.75-2x faster | ~0.9x         |
+| Deep 50 levels | 1x            | 0.7x (slower)  | 29-45x faster |
+| Kanban TUI     | 1x            | ~1.1x faster   | ~1.7x faster  |
 
 **Key insight:** Zero-alloc excels at flat, wide layouts but struggles with deep hierarchies. The slowness is NOT from allocation - it's from algorithmic inefficiencies identified below.
 
@@ -135,6 +147,7 @@ Why deep hierarchies are slow:
 ## Improvement Roadmap
 
 ### P0: Line Boundary Indices (Low effort, High impact)
+
 Store line start/end indices during `breakIntoLines()` to eliminate O(N×L) scanning.
 
 ```typescript
@@ -150,15 +163,19 @@ for (let i = start; i < end; i++) { ... }
 ```
 
 ### P1: Dirty-flag Incremental Layout (Medium effort, Very High impact)
+
 Mark nodes dirty on style/content change, propagate up, skip clean subtrees.
 
 ### P2: Measure Result Caching (Low effort, Medium impact)
+
 Cache `(availW, availH) → (computedW, computedH)` per node.
 
 ### P3: Special-case Single-child (Low effort, Medium impact)
+
 Skip flex distribution for containers with one child.
 
 ### P4: Iterative Traversal (High effort, Medium impact)
+
 Replace recursion with explicit stack for better JIT optimization.
 
 ## Design Details
@@ -211,3 +228,4 @@ let _lineChildren: Node[][] = [...];          // 32 empty arrays
 1. **P0 fix** would close most of the gap with Yoga on deep hierarchies
 2. **P1 incremental layout** would make flexx competitive across all scenarios
 3. Consider making `flexx-zero` the default once P0/P1 are implemented
+

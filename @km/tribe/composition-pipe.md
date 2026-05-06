@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tribe/composition-pipe"
 aliases:
   - km-tribe.composition-pipe
@@ -24,6 +27,10 @@ dependencies:
     created_at: 2026-04-27T00:17:29Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe.refactor
 ---
 
 # [x] Migrate tribe-daemon to pipe + with* composition @km/tribe #feature #P2 @claude:87d20187
@@ -100,3 +107,4 @@ Entry point is `tribe.run()`, not `tribe.start()` — aligns with silvery's `run
 - `hub/composition.md` — strategy doc
 - `hub/architecture.md` — runtime topology this factory produces; vocabulary; component reference
 - `hub/silvery/design/lifecycle-scope.md` — the Scope primitive
+

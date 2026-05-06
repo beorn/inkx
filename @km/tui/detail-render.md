@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/detail-render"
 aliases:
   - km-tui.detail-render
@@ -23,3 +26,4 @@ Multiple rendering issues in detail pane and board view after Asana import:
 Root cause: text-pipeline.ts uses raw ANSI strings which break when truncated. Should use inkx `<Text>` components for all styling.
 
 Screenshots: 2026-02-20 16:51:49, 16:51:08
+

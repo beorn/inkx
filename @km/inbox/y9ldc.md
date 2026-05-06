@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/y9ldc"
 aliases:
   - km-y9ldc
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Add process.exit(0) to all inkx examples @km/_orphan #task #P2
 
 Task 5: Add process.exit(0) after waitUntilExit() in 13 example files to prevent terminal hanging in raw mode
+

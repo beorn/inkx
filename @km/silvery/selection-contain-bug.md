@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/selection-contain-bug"
 aliases:
   - km-silvery.selection-contain-bug
@@ -17,3 +20,4 @@ assignee: Bjørn Stabell
 # [x] Selection ignores contain boundary — highlight spills outside container @km/silvery #bug #P1 @Bjørn Stabell
 
 When selecting text inside a userSelect=contain box, the selection highlight extends beyond the container's borders. The contain scope should clamp the selection range to the container's bounding rect. Visible in text-selection-demo: drag inside 'Contained Selection' panel and the highlight bleeds into 'Selection State' panel. Screenshot: ~/Desktop/Screenshot 2026-04-06 at 02.40.42.png
+

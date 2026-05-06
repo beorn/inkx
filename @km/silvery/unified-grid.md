@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/unified-grid"
 aliases:
   - km-silvery.unified-grid
@@ -23,6 +26,7 @@ assignee: claude:fed8de9e
 Decompose silvery's fragmented rendering API into clean primitives. No TEA, no commands, no signals — just the core.
 
 ### Problems solved
+
 - 6+ types for 'styled text rectangle' → one TextFrame type everywhere
 - 3 confusing return types (App, RunHandle, AppHandle) → one app from render()
 - Testing API inconsistency (createRenderer vs createTermless vs run) → render(element, term)
@@ -31,15 +35,20 @@ Decompose silvery's fragmented rendering API into clean primitives. No TEA, no c
 - No shared silvery ↔ termless type → both produce TextFrame
 
 ### Core objects
+
 - **ag** = createAg({ engine? }) — tree + layout engine + ag.layout(dims) + ag.render() → TextFrame
 - **term** = createTerm(process | TermDef) — dims + optional paint/events/caps/cursor/screen
 - **TextFrame** = immutable cell grid output — .text, .lines, .cell(), .containsText()
 
 ### Plugin composition
+
 create() → withAg() → withTerm(term) → withReact({ view })
 
 ### Design doc
+
 vendor/silvery/docs/design/app-composition.md
 
 ### Deferred to era2b
+
 Commands, keymaps, signals, withScope, withApp, domain plugins
+

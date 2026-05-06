@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/all/pro-review-7"
 aliases:
   - km-all.pro-review-7
@@ -15,3 +18,4 @@ assignee: claude:def7f8a1
 # [x] Pro Review: ListView + app-global search/selection architecture @km/all #task #P2 @claude:def7f8a1
 
 Architectural review of Phases 1-5: ListView, HistoryBuffer, TextSurface, SearchProvider, SurfaceRegistry, viewport compositor, panes demo. Focus on API design, abstractions, layout issues, Phase 3 merge conflict.
+

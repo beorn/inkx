@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/4ag6l"
 aliases:
   - km-4ag6l
@@ -15,3 +18,4 @@ assignee: claude:fed8de9e
 # [x] Move createApp from term to tea @km/_orphan #task #P1 @claude:fed8de9e
 
 createApp() creates stores and embodies TEA conventions. It belongs in @silvery/tea, not @silvery/term. term should only expose run() and render(). createApp naming also makes it feel like the default path, pulling beginners toward TEA.
+

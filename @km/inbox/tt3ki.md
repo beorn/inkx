@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/tt3ki"
 aliases:
   - km-tt3ki
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Cascade formulas: truth table + exhaustive tests @km/_orphan #task #P3
 
 Extract the 5 critical cascade predicates from renderNodeToBuffer (content-phase.ts) into testable form. Add truth table as comment block. Write exhaustive table-driven tests over all boolean inputs.
+

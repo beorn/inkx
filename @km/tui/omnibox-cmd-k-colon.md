@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/omnibox-cmd-k-colon"
 aliases:
   - km-tui.omnibox-cmd-k-colon
@@ -22,6 +24,10 @@ dependencies:
     created_at: 2026-04-14T23:07:23Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Omnibox: Cmd-K should open with ':' prefix already inserted + show all commands for empty query @km/tui #bug #P1
@@ -62,3 +68,4 @@ Recommend (a) as the immediate fix + (b) as the follow-through. (a) is a minimal
 (d) Existing omnibox tests still pass
 
 Related: @km/tui/omnibox-quality-plateau
+

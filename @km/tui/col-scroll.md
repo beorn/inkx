@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/col-scroll"
 aliases:
   - km-tui.col-scroll
@@ -13,3 +16,4 @@ assignee: claude:124bfbe5
 # [x] Vertical scroll indicator not showing in COLUMNS view @km/tui #bug #P3 @claude:124bfbe5
 
 VerticalScrollIndicator (the left/right chevron indicators showing more columns exist offscreen) does not appear in COLUMNS view when there are more columns than fit on screen. Works correctly in CARDS view. The calcColumnWidths utility sets hasLeftIndicator/hasRightIndicator, and ColumnsView renders them, but they may not be triggering or visible.
+

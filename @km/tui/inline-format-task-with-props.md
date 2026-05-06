@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/inline-format-task-with-props"
 aliases:
   - km-tui.inline-format-task-with-props
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-14T11:38:16Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Tasks with inline props lose bold/links/code in rendered content @km/tui #bug #P2 @Bjørn Stabell
@@ -32,3 +39,4 @@ Screenshot 2026-04-14 shows tasks like `- [ ] Pay **CA FTB $2,500** via https://
 **Fix**: always capture the raw source slice AND strip only the inline props from it (not the bold/links). The serializer already safely detects propsRaw presence via getUneditedInlineSource and falls back to reconstruction, so no double-emit risk.
 
 Reported in /pm command with real repro from ~vault/@next.md +taxes — this week card.
+

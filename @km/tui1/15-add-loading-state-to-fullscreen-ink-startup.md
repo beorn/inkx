@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui1/15-add-loading-state-to-fullscreen-ink-startup"
 aliases:
   - km-tui1.15
@@ -60,3 +62,4 @@ User sees: "Loading..." centered on screen
 
 - [@km/tui-eval/1-analysis/md](.beads/@km/tui-eval/1-analysis/md) - Pain Point 5
 - Current workaround: Board.tsx lines 531-584
+

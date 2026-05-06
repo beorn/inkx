@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/search-board"
 aliases:
   - km-tui.search-board
@@ -13,3 +16,4 @@ assignee: claude:36393b5d
 # [x] Search nav: lands on single-column board instead of grandparent @km/tui #bug #P2 @claude:36393b5d
 
 After searching and navigating to a node, shows single-column board instead of grandparent board. Cursor also broken after landing.
+

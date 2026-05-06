@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/zz3j7"
 aliases:
   - km-zz3j7
@@ -9,3 +12,4 @@ assignee: claude:374dab1f
 ---
 
 # [x] dotz reporter significantly slower than vitest default dots reporter @km/_orphan #bug #P2 @claude:374dab1f
+

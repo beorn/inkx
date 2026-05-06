@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/g5d0g"
 aliases:
   - km-g5d0g
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Streamline Text Input — inkx + km Unified @km/_orphan #feature #P0
 
 Merge TextInput/ReadlineInput, extract readline-ops, add CursorLine/ModalDialog/PickerDialog/Toggle/Button to inkx, formalize Tab behavior via inputType, integrate into @km/tui. 5-part plan.
+

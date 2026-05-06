@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/owned-divergence"
 aliases:
   - km-all.owned-divergence
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-26T23:21:55Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all
 ---
 
 # [ ] [epic] Owned divergence — workarounds we maintain forever @km/all #feature #P3
@@ -62,8 +68,10 @@ Review questions (each /sop infra cycle):
 **Cadence**: reviewed monthly via /sop infra alongside upstream-waiting. Most cycles will be no-op "still relevant" check-ins; occasional cycles will graduate items back upstream (rare — usually upstream catches up to us) or retire items entirely (the divergence is no longer needed).
 
 **Cross-refs**:
+
 - Sibling registry: @km/all/upstream-waiting (workarounds that should be unwound when upstream lands)
 - Workflow skill: .claude/skills/pm/workflows/upstream.md §8
 - Lint script: packages/@km/infra/scripts/check-upstream-markers.sh
 
 /complete: never (perpetual registry).
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/feat-2-dotz-inkx-inline"
 aliases:
   - km-infra.feat-2-dotz-inkx-inline
@@ -19,9 +22,12 @@ assignee: claude:18380d7e
 5. No direct stdout writes
 
 ## Current Issue
+
 Inline mode cursor positioning conflicts with vitest output, causing garbled display.
 
 ## Needs Investigation
+
 - How inkx inline mode handles updates
 - Why cursor positioning interferes with vitest
 - Whether inkx needs fixes for this use case
+

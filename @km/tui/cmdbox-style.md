@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/cmdbox-style"
 aliases:
   - km-tui.cmdbox-style
@@ -13,6 +16,7 @@ assignee: claude:d697f216
 # [x] Command box: hide in normal mode, show with outline when active @km/tui #feature #P2 @claude:d697f216
 
 Command box styling rework:
+
 - Hide command box entirely in NORMAL mode (common case shows nothing)
 - Show with outline/border when active (search, command input, non-NORMAL mode)
 - Command feedback box flush above the command box when visible
@@ -20,3 +24,4 @@ Command box styling rework:
 
 Current: CommandBox always visible at bottom-left
 Target: Only visible when focused/active, with outline chrome
+

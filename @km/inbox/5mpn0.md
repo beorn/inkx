@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/5mpn0"
 aliases:
   - km-5mpn0
@@ -15,3 +18,4 @@ assignee: claude:b92140a2
 # [x] P0: Folder rename breaks same-name index files @km/_orphan #bug #P0 @claude:b92140a2
 
 Renaming project/ to newname/ updates descendant fs_paths but does NOT rename project/project.md to newname/newname.md. The old file stops matching findIndexFile() and a new one may be created, causing duplicates. Fix: detect same-name index child during folder rename, rename it atomically.
+

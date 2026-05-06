@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/session/0420-tribe-matrix"
 aliases:
   - km-session.0420-tribe-matrix
@@ -16,6 +19,10 @@ dependencies:
     created_at: 2026-04-20T11:48:20Z
     created_by: claude:18c72b43
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all
 ---
 
 # [x] Session 2026-04-20: tribe design simplified to matrix-connector + km primitives @km/session #task #P2 @claude:18c72b43
@@ -31,6 +38,7 @@ This session iteratively simplified the tribe design across ~12 hours. The final
 **Final design**: hub/km/design/tribe-matrix.md (~450 lines, just rewritten)
 
 Core model (Twitter-shaped):
+
 - Every author (user, agent) has a daily log: users/@bjorn/<date>/, agents/@silvery-refactor/<date>/
 - Entries are KNodes with plain markdown content + ts frontmatter
 - Sigils in content (#channel, @user) route via save-time transclusion
@@ -91,6 +99,7 @@ Core model (Twitter-shaped):
 ## Commits this session
 
 Pushed main branch commits (chronological):
+
 - a12dc91 (bearly): fix(tribe) P0 message loss + poll-era cleanup
 - afb35e7 (bearly): chore(tribe) poll-era cleanup migration
 - eb2814608 (km): chore(bearly) bump
@@ -120,3 +129,4 @@ Pushed main branch commits (chronological):
 - /tmp/tribe-prior-art-*.txt — multi-agent coordination prior art surveys
 - /tmp/xmpp-research-*.txt — XMPP vs Matrix deep research
 - /tmp/pro/tribe-full-plan-review.md — final pro review context + response
+

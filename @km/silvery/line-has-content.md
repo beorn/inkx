@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/line-has-content"
 aliases:
   - km-silvery.line-has-content
@@ -15,3 +18,4 @@ assignee: claude:65d845d9
 # [x] lineHasContent/findLastContentLine ignore styled blank lines @km/silvery #bug #P2 @claude:65d845d9
 
 Only checks char \!== ' ', ignoring lines visually meaningful due to background/inverse/underline. Can truncate background-only footer/header rows in inline mode and cause incorrect orphan-line clearing. Found by GPT pipeline review.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/inbox/sync-3"
 aliases:
   - km-sync-3
@@ -9,3 +12,4 @@ assignee: beorn
 ---
 
 # [x] Sync perf: eliminate per-link DB queries with lookup map @km/_orphan #task #P1 @beorn
+

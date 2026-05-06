@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/markdown-fidelity-corpus"
 aliases:
   - km-storage.markdown-fidelity-corpus
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-21T15:30:21Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage.fs-mount
 ---
 
 # [x] Markdown fidelity test corpus — import/export round-trip regression bank @km/storage #task #P1 @claude:8b5b9e1c
@@ -58,3 +65,4 @@ Fixtures organized by failure mode:
 - Real vault samples anonymized and added to corpus
 - CI fails on regressions
 - Used as gate in @km/storage/scale-architecture C-flip decision
+

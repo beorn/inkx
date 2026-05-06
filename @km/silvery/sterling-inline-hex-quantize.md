@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sterling-inline-hex-quantize"
 aliases:
   - km-silvery.sterling-inline-hex-quantize
@@ -15,6 +18,10 @@ dependencies:
     created_at: 2026-04-24T16:13:00Z
     created_by: claude:5e447b66
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.sterling
 ---
 
 # [ ] Sterling: quantize inline hex values per caps.colorLevel @km/silvery #feature #P4 @claude:22c2717d
@@ -54,3 +61,4 @@ Sterling 0.19.0 plateau is critical path (2c → 2d → ...). Theme tokens work 
 
 - Parent: @km/silvery/theme-v4 (implicitly — edge case of colorLevel behavior)
 - Enabled by: sterling-tier-override (closed, shipped fc758f89)
+

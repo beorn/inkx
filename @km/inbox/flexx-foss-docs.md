@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/flexx-foss-docs"
 aliases:
   - km-flexx-foss-docs
@@ -11,3 +14,4 @@ assignee: claude:b8b4780b
 # [x] FOSS publication: transparent perf docs @km/_orphan #task #P0 @claude:b8b4780b
 
 Update README with benchmark table, document deep-nesting limitation honestly. Attracts right users, builds trust.
+

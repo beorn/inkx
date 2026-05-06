@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/screen-reader"
 aliases:
   - km-silvery.screen-reader
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Screen reader mode: ARIA-based text rendering for accessibility @km/silvery #feature #P2
+

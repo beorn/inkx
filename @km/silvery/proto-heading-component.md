@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/proto-heading-component"
 aliases:
   - km-silvery.proto-heading-component
@@ -16,7 +18,10 @@ owner: bjorn@stabell.org
 Silvery Heading component that emits OSC 66 for visual hierarchy. <Heading level={1}> renders at 2x, level={2} at 1.5x, etc. Degrades to bold/color on terminals without OSC 66.
 
 ## Why
+
 Any silvery app gets real typographic hierarchy. km headings, help dialog sections, board titles could all use larger text.
 
 ## Depends on
+
 OSC 66 text-sizing API (already implemented)
+

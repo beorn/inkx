@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/no-reentrancy-guard"
 aliases:
   - km-flexily.no-reentrancy-guard
@@ -17,3 +19,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Bug: No reentrancy guard despite shared module-level mutable state @km/flexily #bug #P1
+

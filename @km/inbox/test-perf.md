@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/test-perf"
 aliases:
   - km-test-perf
@@ -13,3 +15,4 @@ Custom vitest reporter that tracks test timing, detects slow tests, and exports 
 
 See infra/vitest-reporter.ts for implementation.
 See docs/future/monorepo-infra.md for design.
+

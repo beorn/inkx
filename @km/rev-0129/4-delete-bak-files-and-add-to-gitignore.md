@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/rev-0129/4-delete-bak-files-and-add-to-gitignore"
 aliases:
   - km-rev-0129.4
@@ -12,6 +15,7 @@ assignee: claude:298008b9
 # [x] Delete .bak files and add to .gitignore @km/rev-0129 #task #P3 @claude:298008b9
 
 8 backup files in source tree:
+
 - apps/@km/tui/src/board-actions-nav.ts.bak
 - apps/@km/tui/src/board-actions-zoom.ts.bak
 - apps/@km/tui/src/views/board-bottom-bar.tsx.bak
@@ -20,3 +24,4 @@ assignee: claude:298008b9
 - apps/@km/_orphan/cli/src/commands/tasks/queries.ts.bak
 
 Delete all and add *.bak to .gitignore
+

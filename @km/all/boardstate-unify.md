@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/all/boardstate-unify"
 aliases:
   - km-all.boardstate-unify
@@ -18,6 +21,7 @@ assignee: Bjørn Stabell
 # [x] Consolidate 3 drifted BoardState definitions into one @km/all #task #P2 @Bjørn Stabell
 
 Three separate BoardState interfaces have drifted:
+
 1. packages/@km/_orphan/board/src/board-types.ts — canonical, used by board-reducer-new
 2. apps/@km/tui/src/board-types.ts — TUI copy, added SET_COLLAPSED_NODES, removed selectedNodes/maxContentLines
 3. apps/@km/_orphan/repl/src/board-types.ts — REPL copy, fundamentally different (tree-in-state: nodes: TNode[], cursor: TPath)
@@ -25,3 +29,4 @@ Three separate BoardState interfaces have drifted:
 The @km/_orphan/board and @km/tui copies should be unified. The @km/_orphan/repl copy is a separate concern (it may need its own type).
 
 IMPACT: Eliminates silent drift bugs where one definition adds a field and the other doesn't.
+

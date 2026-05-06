@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/recall-eval-gbrain-dream"
 aliases:
   - km-tribe.recall-eval-gbrain-dream
@@ -13,13 +15,17 @@ dependencies:
     created_at: 2026-04-27T18:38:01Z
     created_by: claude:4de4a3ab
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe.recall-dream
 ---
 
 # [ ] Evaluate gbrain 'dream cycle' patterns for mem-dream Tier 4 design @km/tribe #task #P2
 
 blocks:: [[@km/tribe/recall-dream]]
 
-# Evaluate gbrain dream-cycle patterns
+## Evaluate gbrain dream-cycle patterns
 
 gbrain (https://github.com/garrytan/gbrain) ships an explicit nightly **dream cycle** as part of their cron schedule. Per their docs, the dream cycle does:
 
@@ -64,3 +70,4 @@ Read gbrain docs and decide what to adopt for **our** Tier 4 (mem-dream over Cla
 ## Parent
 
 @km/tribe/recall-dream (Tier 4 mem-dream — offline corpus consolidation)
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/ff-tests"
 aliases:
   - km-tui.ff-tests
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] Unit + slow + fuzz tests for index file columns @km/tui #task #P2
 
 Tests for index file detection, column promotion, embed slot resolution, and rendering.
+

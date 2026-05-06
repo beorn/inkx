@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/quality-plateau/type-safety"
 aliases:
   - km-tui.quality-plateau.type-safety
@@ -14,8 +16,10 @@ owner: bjorn@stabell.org
 # [x] Fix 'as any' casts — logger types + repo type coercion @km/tui #task #P2
 
 17 instances of 'as any' across @km/tui:
+
 - tui.tsx: 6 casts (createLogger, globalThis diagnostics)
 - hooks/use-columns.ts: 2 casts (createLogger)
 - board/board-actions.ts: 1 cast (createLogger)
 - pane-signals.ts:126 + board-app-store.ts:972: repo coerced to any for computeHiddenNodeIds — fix ViewLensRepo interface mismatch
 - Various @ts-expect-error in views (React internal flags)
+

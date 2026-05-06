@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/picker-rank-subpath"
 aliases:
   - km-tui.picker-rank-subpath
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-14T13:30:09Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Picker fuzzy ranking: subpath matches rank above exact root matches @km/tui #bug #P2
@@ -30,6 +36,7 @@ Screenshot 2026-04-14 13.08.46: search 'Delei' in the Go to context picker puts 
 Root cause hypothesis: fuzzyScore() in apps/@km/tui/src/views/search-utils.ts counts match density but doesn't penalize match offset or reward shorter result paths. A deep subpath match can out-score a shallow exact prefix match.
 
 Desired ranking:
+
 1. Exact sigil body match (@delei)
 2. Sigil-prefix match (@delei.co, @delei.org)
 3. Substring match at start of each path segment
@@ -38,3 +45,4 @@ Desired ranking:
 Ties broken by shorter-is-better (path length / total character count).
 
 Fix site: apps/@km/tui/src/views/ItemPicker.tsx filterOptions() + apps/@km/tui/src/views/search-utils.ts fuzzyScore scoring formula.
+

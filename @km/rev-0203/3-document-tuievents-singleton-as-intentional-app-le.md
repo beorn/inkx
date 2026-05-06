@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/rev-0203/3-document-tuievents-singleton-as-intentional-app-le"
 aliases:
   - km-rev-0203.3
@@ -19,3 +22,4 @@ Document it as an "App-level event bus exception" in docs/principles.md,
 similar to the existing "Infrastructure Class Exception".
 
 Alternatively, consider refactoring to pass via React context if feasible.
+

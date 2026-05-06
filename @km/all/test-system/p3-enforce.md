@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/all/test-system/p3-enforce"
 aliases:
   - km-all.test-system.p3-enforce
@@ -23,5 +26,7 @@ Wire check-test-patterns.sh into test:ci.
 
 Delete: testEnv, testEnvWithRepo functions
 /complete:
+
 - grep -n 'export.*function testEnv' apps/@km/tui/tests/helpers/board-test.ts | wc -l → 0
 - grep -n 'driver.*BoardDriver' apps/@km/tui/tests/helpers/test-app.ts | wc -l → 0 (type-level lock)
+

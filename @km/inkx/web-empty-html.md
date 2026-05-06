@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/web-empty-html"
 aliases:
   - km-inkx.web-empty-html
@@ -13,8 +16,10 @@ assignee: claude:27f1a547
 The canvas-adapter and dom-adapter examples in vendor/beorn-inkx/examples/web/ generate HTML files but the rendered content appears empty.
 
 Investigate:
+
 1. What the examples are supposed to output (canvas-app.tsx, dom-app.tsx)
 2. Whether the adapters are rendering content correctly
 3. Why the output HTML files don't contain visible content
 
 This may be related to the recent merge that integrated canvas/dom adapters into the inkx-loop branch.
+

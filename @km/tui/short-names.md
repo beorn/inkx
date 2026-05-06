@@ -1,4 +1,9 @@
 ---
+mentions:
+  - bjrn-stabell
+  - BS
+  - km
+  - claude
 id: "@km/tui/short-names"
 aliases:
   - km-tui.short-names
@@ -13,3 +18,4 @@ assignee: claude:8f007ba9
 # [x] Short-name codes for nodes (@bjrn-stabell → @BS) @km/tui #feature #P2 @claude:8f007ba9
 
 Implement short-name/alias codes for nodes so that long names can display as short codes. Example: @bjrn-stabell should be able to display as @BS. Need to design: where aliases are defined, how they're resolved, how they render in the TUI.
+

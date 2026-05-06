@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/s9kq"
 aliases:
   - km-s9kq
@@ -8,3 +10,4 @@ closed_at: 2026-01-21T09:36:13Z
 ---
 
 # [x] Columns in cards view don't have vertical separator (only at top) @km/_orphan #bug #P2
+

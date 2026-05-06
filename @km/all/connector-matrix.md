@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - km
 id: "@km/all/connector-matrix"
 aliases:
   - km-all.connector-matrix
@@ -13,6 +16,10 @@ dependencies:
     created_at: 2026-04-20T11:47:14Z
     created_by: claude:18c72b43
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all
 ---
 
 # [ ] @km/connector-matrix — Matrix homeserver sync @km/all #feature #P3
@@ -76,3 +83,4 @@ See hub/km/design/tribe-matrix.md (the DR). Under the simplified model:
 ## Budget
 
 ~3 weeks total end-to-end for Phases 0-2. ~1000-1500 LOC in @km/connector-matrix plus minor @km/tui rendering work.
+

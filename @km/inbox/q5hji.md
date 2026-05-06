@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/q5hji"
 aliases:
   - km-q5hji
@@ -18,7 +21,7 @@ assignee: claude:c56dc5d6
 
 # [x] [bug] consolidate .km/config → yaml, rename collapseParse→inactive, wire into task-indexer @km/_orphan #bug #P0 #data-integrity #task-indexer #vault-hygiene @claude:c56dc5d6
 
-# Problem
+## Problem
 
 km's task indexer parses every markdown file under the vault, including chat
 transcripts at `raw/chats/**` and doc-example code in `ref/Tech/km-user-guide.md`.
@@ -30,11 +33,11 @@ aggregation, sigil boards, etc).
 
 22 'overdue' tasks surfaced; ~12 were stale duplicates:
 
-| File | Stale items |
-|---|---|
-| raw/chats/2026-04-12T2009-…md | 5 tax-payment task lines echoed from workstreams |
-| raw/chats/2026-04-14T0134-…md | 5 tax-payment task lines echoed from workstreams |
-| ref/Tech/@km/user-guide/md | CA FTB task appears 3× as documentation examples (lines 102, 154, 188). Line 154 block-id `^apr15-ca-ftb` collides with the real task block id in `projects/+taxes/workstreams.md:228` |
+| File                          | Stale items                                                                                                                                                                        |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| raw/chats/2026-04-12T2009-…md | 5 tax-payment task lines echoed from workstreams                                                                                                                                   |
+| raw/chats/2026-04-14T0134-…md | 5 tax-payment task lines echoed from workstreams                                                                                                                                   |
+| ref/Tech/@km/user-guide/md    | CA FTB task appears 3× as documentation examples (lines 102, 154, 188). Line 154 block-id ^apr15-ca-ftb collides with the real task block id in projects/+taxes/workstreams.md:228 |
 
 Real state: every one of those payments was completed on time. At best noise; at worst a missed-deadline false-negative buried in dupes.
 
@@ -122,3 +125,4 @@ Resolution: frontmatter > path glob > default active.
 - `scripts/verify-collapse-parse.ts` — demonstrates the canonical pattern set
 - `~/Bear/Vault/ref/Tech/km-user-guide.md:102,154,188` — current offending doc examples
 - commit 80f000896 — introduced .km/config.toml as a separate file (this bead reverses that split)
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/cursor-path"
 aliases:
   - km-tui.cursor-path
@@ -15,3 +18,4 @@ assignee: Bjørn Stabell
 # [x] design: cursor path — visual hierarchy for selection and embeds @km/tui #feature #P2 @Bjørn Stabell
 
 Replace cursorNodeId/cursorCardNodeId/cursorColumnNodeId with a single cursorPath: string[] that represents the visual hierarchy from root to cursor. Each component checks path membership for styling. Eliminates all parent_id walks for cursor context — fixes embed bugs permanently and simplifies hierarchical selection styling (yellow title, yellow border, inverse leaf).
+

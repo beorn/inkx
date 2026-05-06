@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/stale-cursor"
 aliases:
   - km-tui.stale-cursor
@@ -19,3 +22,4 @@ Repro: km view -v /tmp/vt → navigate to @next column → shift left repeatedly
 Symptom: Error: [nav] cursor node not in repo: <ULID>. Previously this threw and killed the event loop (app freeze). Now navigation falls back to root gracefully (see fix in view-navigation.ts).
 
 Root cause investigation needed: why does the file watcher echo detection fail during rapid column shifts?
+

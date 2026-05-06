@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/osc-palette"
 aliases:
   - km-inkx.osc-palette
@@ -13,3 +16,4 @@ assignee: claude:d697f216
 # [x] OSC 4: query/set terminal color palette entries @km/inkx #feature #P2 @claude:d697f216
 
 Add queryPaletteColor(index) to query the terminal's 256-color palette entries. Useful for detecting the actual colors used by the terminal theme (especially ANSI 16 colors 0-15). Could be used to detect color scheme or build adaptive themes.
+

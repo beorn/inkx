@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/tool-call-spacing"
 aliases:
   - km-silvercode.tool-call-spacing
@@ -47,6 +50,10 @@ dependencies:
     created_at: 2026-04-25T22:17:27Z
     created_by: claude:230fa25d
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Inconsistent blank line + icon spacing before tool calls in assistant messages @km/silvercode #bug #P3 @claude:230fa25d
@@ -56,9 +63,9 @@ blocks:: [[@km/silvercode]]
 Two related visual inconsistencies in the assistant message stream:
 
 1. Sometimes there's a blank line before the first tool call after assistant text, sometimes there isn't. Should always have one for visual breathing room.
-
 2. Sometimes there's a space between the tool icon and the tool name, sometimes not. Should always have a space.
 
 Files: apps/silvercode/src/components/MessageList.tsx (MessageItem layout), apps/silvercode/src/components/ToolCallBlock.tsx (icon + name composition).
 
 Done when: every assistant→toolCall transition has a leading blank line and every tool icon has a trailing space before the name.
+

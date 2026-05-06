@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/announce"
 aliases:
   - km-all.announce
@@ -13,6 +15,7 @@ owner: bjorn@stabell.org
 Set up public GitHub presence and community infrastructure for flexture and hightea.
 
 ## Tasks
+
 - [ ] Create public GitHub repos (or make existing repos public)
 - [ ] Set up GitHub topics/tags for discoverability
 - [ ] Add issue templates (bug report, feature request)
@@ -23,6 +26,7 @@ Set up public GitHub presence and community infrastructure for flexture and high
 - [ ] Consider: example projects / starter templates
 
 ## Competitive context
+
 - ink: 35K stars, very active community
 - Bubble Tea: 39.8K stars
 - Textual: 34.4K stars
@@ -31,6 +35,8 @@ Set up public GitHub presence and community infrastructure for flexture and high
 Stars/community won't come without visibility. The packages need to exist publicly before people can evaluate them.
 
 ## Depends on
+
 - @km/flexture/npm-publish (package should be installable before announcement)
 - @km/silvery-legacy/npm-publish (same)
 - @km/all/v1-roadmap (know what version to announce)
+

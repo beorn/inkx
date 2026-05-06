@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/dolt-migrate"
 aliases:
   - km-infra.dolt-migrate
@@ -20,3 +22,4 @@ Check if a newer bd version fixes this, or file upstream.
 
 Benefits of Dolt: bd diff, bd branch, bd history (git-like versioning at SQL level).
 Current SQLite works fine — this is nice-to-have.
+

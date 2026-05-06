@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/perf-child-pos"
 aliases:
   - km-silvery.perf-child-pos
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] Perf: Precompute childPositionChanged bit in layout phase @km/silvery #task #P3
 
 hasChildPositionChanged(node) is O(children) and called repeatedly (node fast-path, absoluteChildMutated). Have layout phase set childPositionChangedThisFrame on parent when any child x/y changes. Found by GPT pipeline review.
+

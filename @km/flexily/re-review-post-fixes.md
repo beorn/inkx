@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/flexily/re-review-post-fixes"
 aliases:
   - km-flexily.re-review-post-fixes
@@ -16,3 +19,4 @@ assignee: claude:c9beade3
 # [x] Flexily re-review after P0/P1 fixes — verify fixes, find remaining issues @km/flexily #task #P2 @claude:c9beade3
 
 Re-run GPT 5.4 Pro review after fixing P0/P1 bugs from pipeline-review-0312. Blocked until fixes are done.
+

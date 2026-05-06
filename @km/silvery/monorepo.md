@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/monorepo"
 aliases:
   - km-silvery.monorepo
@@ -55,3 +58,4 @@ silvery/
 
 - GitHub Actions: test, lint, publish (on tag/release)
 - `bun changeset version` → `bun changeset publish`
+

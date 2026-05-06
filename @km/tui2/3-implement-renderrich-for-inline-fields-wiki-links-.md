@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui2/3-implement-renderrich-for-inline-fields-wiki-links-"
 aliases:
   - km-tui2.3
@@ -18,3 +20,4 @@ TUI1 has rich text rendering that TUI2 is missing:
 
 **Reference**: apps/@km/tui/packages/@km/_orphan/ink/src/text/
 **Target**: apps/@km/tui/packages/@km/_orphan/opentui/src/text/ (new)
+

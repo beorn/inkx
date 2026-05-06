@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/ink-debug-cursor-shim"
 aliases:
   - km-silvery.ink-debug-cursor-shim
@@ -47,3 +50,4 @@ Closes 3 Ink 7.0 compat failures.
 ## Parent
 
 @km/silvery/positioning
+

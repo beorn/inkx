@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/ag-test-coverage"
 aliases:
   - km-silvery.ag-test-coverage
@@ -16,9 +19,11 @@ assignee: Bjørn Stabell
 # [x] Pipeline test coverage — usePaste, useExit, useInputLayer, stage behavior @km/silvery #task #P0 @Bjørn Stabell
 
 Add test coverage for:
+
 1. usePaste hook (simple callback + rich PasteEvent modes)
 2. useExit hook
 3. useInputLayer hook (layered input with bubbling)
 4. Pipeline stage behavior — verify Stage 3 bridges ALL events before filtering, hooks filter correctly, etc.
 
 Goal: test suite proves the documented 5-stage pipeline behavior to any reader.
+

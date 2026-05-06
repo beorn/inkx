@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/test-theme"
 aliases:
   - km-tui.test-theme
@@ -31,3 +33,4 @@ expect(cell.bg).toBe(TC['\$selected'])
 ```
 
 One table to update when theme changes, instead of hundreds of scattered magic numbers. Optionally also set a hardcoded frozen test theme so tests don't depend on the default theme at all.
+

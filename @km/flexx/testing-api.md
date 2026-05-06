@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/flexx/testing-api"
 aliases:
   - km-flexx.testing-api
@@ -11,3 +14,4 @@ assignee: claude:b509d761
 ---
 
 # [x] Export flexx testing utilities as public API @km/flexx #task #P2 @claude:b509d761
+

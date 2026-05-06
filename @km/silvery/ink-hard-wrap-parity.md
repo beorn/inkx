@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ink-hard-wrap-parity"
 aliases:
   - km-silvery.ink-hard-wrap-parity
@@ -20,3 +22,4 @@ Closes 1 Ink 7.0 compat failure.
 ## Parent
 
 @km/silvery/positioning
+

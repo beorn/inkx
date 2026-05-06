@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/horiz-overflow"
 aliases:
   - km-tui.horiz-overflow
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Horizontal overflow indicator not showing @km/tui #bug #P2
 
 User reports horizontal scroll overflow indicator not visible when columns exceed viewport width
+

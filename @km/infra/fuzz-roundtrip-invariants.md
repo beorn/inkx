@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/fuzz-roundtrip-invariants"
 aliases:
   - km-infra.fuzz-roundtrip-invariants
@@ -13,3 +16,4 @@ assignee: claude:e8fd4b92
 ---
 
 # [x] Expand roundtrip fuzz: frontmatter, embeds, tags generators @km/infra #task #P2 @claude:e8fd4b92
+

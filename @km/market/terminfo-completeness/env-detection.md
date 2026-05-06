@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/market/terminfo-completeness/env-detection"
 aliases:
   - km-market.terminfo-completeness.env-detection
@@ -18,6 +21,7 @@ assignee: Bjørn Stabell
 Environmental variables set by terminals are a major missing category.
 
 Per-terminal tracking:
+
 - TERM actual values (xterm-kitty, wezterm, foot, ghostty, alacritty, vscode, etc)
 - COLORTERM (truecolor, 24bit)
 - TERM_PROGRAM, TERM_PROGRAM_VERSION
@@ -30,9 +34,11 @@ Per-terminal tracking:
 - XTERM_VERSION
 
 Terminfo advertisement vs reality:
+
 - Does TERM's terminfo entry advertise capabilities that actually work?
 - Does it miss capabilities that do work?
 - Big missed opportunity for terminfo.dev: capability-vs-advertisement mismatch data.
 
 Probe strategy: new probe type that reads env vars + queries terminfo database.
 New category in features.json: "environment".
+

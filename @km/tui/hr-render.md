@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/hr-render"
 aliases:
   - km-tui.hr-render
@@ -13,3 +16,4 @@ assignee: claude:a5c7f7de
 # [x] HR node rendering: show as borderless horizontal line aligned with card borders @km/tui #bug #P2 @claude:a5c7f7de
 
 HR nodes should render as a simple horizontal line (aligned with and as long as card borders) when not being edited. Currently they render with a border/card frame like other nodes. When editing, HR should convert to an editable '---' text.
+

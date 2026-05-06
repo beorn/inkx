@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tools/bd-verify-nhits-exit-code"
 aliases:
   - km-tools.bd-verify-nhits-exit-code
@@ -25,6 +28,10 @@ dependencies:
     created_at: 2026-04-27T13:23:41Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.bd-verify-primitive
 ---
 
 # [x] bd-verify: nHits pass condition must AND with exitCode === 0 @km/tools #task #P3 @claude:cc081a9a
@@ -32,3 +39,4 @@ dependencies:
 blocks:: [[@km/all/bd-verify-primitive]]
 
 From dual-pro review (Gemini 3 Pro insight, 2026-04-27): nHits comparison only checks the count, not whether the command succeeded. A failing grep (exit 1 = no match) returns 0 hits, which can spuriously satisfy 'expect 0 hits' even when the command itself errored (e.g. invalid regex). Fix: pass condition must be (count === expected && exitCode === 0). Reference: /tmp/llm-cc081a9a-review-three-pieces-of-mjjw.txt lines 335-345.
+

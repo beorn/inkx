@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/terminal-apis-docs"
 aliases:
   - km-inkx.terminal-apis-docs
@@ -13,6 +15,7 @@ owner: bjorn@stabell.org
 # [x] Update docs and examples for new terminal query APIs @km/inkx #task #P2
 
 After terminal query APIs ship (cursor, colors, DA, focus, DECRQM, pixel-size):
+
 1. Update docs/reference/terminal-capabilities.md with new API reference
 2. Update docs/README.md table of contents
 3. Add examples/ for each API (interactive demos)
@@ -20,3 +23,4 @@ After terminal query APIs ship (cursor, colors, DA, focus, DECRQM, pixel-size):
 5. Update docs/reference/hooks.md if any new hooks are added
 
 Depends on all 7 terminal API beads being complete.
+

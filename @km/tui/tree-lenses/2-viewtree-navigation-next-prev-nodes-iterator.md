@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/tree-lenses/2-viewtree-navigation-next-prev-nodes-iterator"
 aliases:
   - km-tui.tree-lenses.2
@@ -15,6 +17,7 @@ owner: bjorn@stabell.org
 # [x] ViewTree navigation: next/prev/nodes() iterator @km/tui #task #P2
 
 Add tree-wide navigation to ViewTree:
+
 - view.next(id) → string | null (DFS next in visible tree)
 - view.prev(id) → string | null (DFS prev)
 - view.nodes() → Iterator<string> (all visible, forward from root)
@@ -24,6 +27,8 @@ Add tree-wide navigation to ViewTree:
 Wire sel adapter to use view.nodes() for walkOrder.
 
 Acceptance:
+
 - view.next/prev match existing nextInWalk/prevInWalk behavior
 - nodes() iterator produces same order as walkOrder array
 - sel adapter reads walkOrder from ViewTree
+

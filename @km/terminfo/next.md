@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/next"
 aliases:
   - km-terminfo.next
@@ -17,3 +20,4 @@ assignee: claude:4929065a
 # [x] terminfo.dev Next: TPT + TCD + baselines + content @km/terminfo #epic #P1 @claude:4929065a
 
 Terminal Platform Tests (TPT) + Terminal Compat Data (TCD) + baselines + compare pages. Inspired by web standards: WPT, MDN BCD, Can I Use. GPT 5.4 Pro review recommended these as highest-impact improvements.
+

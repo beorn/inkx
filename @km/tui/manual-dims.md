@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/manual-dims"
 aliases:
   - km-tui.manual-dims
@@ -13,11 +16,13 @@ assignee: claude:fcaad2fa
 # [x] Remove manual dimension calculations — use inkx/flexx layout @km/tui #task #P2 @claude:fcaad2fa
 
 ## Goal
+
 Remove manual dimension calculations across @km/tui in favor of automatic inkx/flexx layout. When inkx/flexx lacks needed features, fix them directly.
 
 ## Anti-Patterns to Eliminate
 
 ### A: Manual inner width/height calculation
+
 ```tsx
 // BAD: manually subtracting border/padding
 const innerWidth = Math.max(10, width - 6)
@@ -28,6 +33,7 @@ const innerWidth = Math.max(10, width - 6)
 ```
 
 ### B: Manual text truncation
+
 ```tsx
 // BAD: .slice() for truncation
 const text = content.slice(0, width - 3)
@@ -37,6 +43,7 @@ const text = content.slice(0, width - 3)
 ```
 
 ### C: Manual centering with padding
+
 ```tsx
 // BAD: compute padding to center text
 const leftPad = Math.floor((width - text.length) / 2)
@@ -47,6 +54,7 @@ const leftPad = Math.floor((width - text.length) / 2)
 ```
 
 ### D: Manual separator/border drawing
+
 ```tsx
 // BAD: repeat chars for HR
 {'─'.repeat(innerWidth - 2)}
@@ -56,6 +64,7 @@ const leftPad = Math.floor((width - text.length) / 2)
 ```
 
 ### E: Manual Math.max guards
+
 ```tsx
 // BAD: defensive guard against negative
 Math.max(0, width - 2)
@@ -66,6 +75,7 @@ Math.max(10, width - 6)
 ```
 
 ### F: width={N} on children inside flex parents
+
 ```tsx
 // BAD: explicit width on flex children
 <Box width={width}><Box width={innerWidth}>...</Box></Box>
@@ -75,6 +85,7 @@ Math.max(10, width - 6)
 ```
 
 ### G: Manual height reserves for fixed elements
+
 ```tsx
 // BAD: subtract header/footer heights
 height={height - 3}
@@ -88,6 +99,7 @@ height={height - 3}
 ```
 
 ### H: Manual column count calculation
+
 ```tsx
 // MAY BE LEGITIMATE if inkx lacks auto-grid
 Math.floor((width - 1) / (colWidth + 1))
@@ -95,6 +107,7 @@ Math.floor((width - 1) / (colWidth + 1))
 ```
 
 ## Search Keywords
+
 ```
 width - [0-9]   height - [0-9]   innerWidth   innerHeight
 Math.max(       Math.min(        Math.floor(  Math.ceil(
@@ -103,4 +116,6 @@ width={         height={         width=\`
 ```
 
 ## Files with Manual Calcs
+
 DetailPane.tsx, CardColumn.tsx, Board.tsx, ColumnsView.tsx, ListView.tsx, TabsView.tsx, HelpOverlay.tsx, FilterDialog.tsx, ConsoleModal.tsx, OverflowIndicator.tsx, render.ts, layout/path.ts
+

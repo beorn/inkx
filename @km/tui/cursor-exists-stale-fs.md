@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/cursor-exists-stale-fs"
 aliases:
   - km-tui.cursor-exists-stale-fs
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-14T12:05:59Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Invariant violation [cursor-exists] after fs file replacement @km/tui #bug #P2
@@ -29,16 +35,20 @@ blocks:: [[@km/tui]]
 When a file is replaced in the filesystem (e.g., synced/rewritten with new node IDs), the board view still shows the old node cards. Moving the cursor up to one of those stale-displayed nodes triggers the cursor-exists invariant.
 
 Repro from user:
+
 1. km view a vault
 2. Replace a file in the fs (or have it replaced) so its node IDs change
 3. Cursor up to a node that visually appears in the board but whose ID no longer exists in repo
 4. CRASH: Invariant violation [cursor-exists]: Cursor points to non-existent node {"cursor":"01KP6GZVAZD524MT1Y42PG7V8A"}
 
 Stack:
+
 - apps/@km/tui/src/invariants.ts:327 checkInvariants
 - board-app.ts:653 routeThroughCommandSystem
 - board-app.ts:385 handleKey
 
 Two bugs:
+
 1. The board view-lens is showing nodes from a stale snapshot — it should be reactively reflecting the repo state
 2. Even if a transient gap exists, cursor navigation should clamp/repair to a live node rather than landing on a tombstone (and the invariant should ideally not fire for this — or there should be a fallback that picks the nearest live node)
+

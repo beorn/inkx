@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/flexshrink-default"
 aliases:
   - km-silvery.flexshrink-default
@@ -25,6 +28,10 @@ dependencies:
     created_at: 2026-04-24T15:12:11Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.wrap-ergonomic
 ---
 
 # [x] Evaluate flipping flexily flexShrink default from 0 → 1 (CSS parity) @km/silvery #task #P2 @claude:53042a7f
@@ -40,6 +47,7 @@ Re-evaluated 2026-04-24 after multi-target reframe + Yoga-compat-as-config insig
 Per `docs/silvery-positioning-brief.md`: pick the cross-platform / Polaris-aligned answer over the TUI-idiom one. silvery is a multi-target design system — terminal today, canvas + DOM as explicit future targets. Yoga's `flexShrink: 0` is a React-Native-ism that doesn't travel.
 
 User reframe (2026-04-24): "the common case is to have deeply nested rich text that you want to wrap sensibly." That inverts the migration math:
+
 - Cases where rigidity is correct: a finite, bounded set of framework primitives — virtual list rows, scroll indicators, fixed-height bars, focus rings, frame chrome. ~30-50 sites in silvery, ~30-50 in km. All can be made explicit in one audit pass.
 - Cases where shrink-and-wrap is correct: unbounded — every consumer component that could ever contain text. The current default makes those wrong-by-default; the flip makes them right-by-default.
 
@@ -66,11 +74,13 @@ createFlexily({ defaults: "yoga" })
 ```
 
 The `yoga` preset reverts the documented divergences in one place:
+
 - `flexDirection: column` (Yoga default; CSS is row)
 - `flexShrink: 0` (Yoga default; CSS is 1)
 - `overflow:hidden/scroll` no auto min-size override (Yoga's literal Section 4.5 ignore)
 
 This dissolves the trade-off entirely:
+
 - ✅ silvery and other multi-target consumers get CSS-correct defaults out of the box.
 - ✅ Yoga-compat consumers (existing or future) opt in once, no per-Node migration.
 - ✅ flexily's "Yoga-API-compatible" pitch holds — you can still drop it in for Yoga workflows by passing `{ defaults: "yoga" }`.
@@ -115,6 +125,7 @@ Best balance: both. Module-level via `createFlexily`; per-Node override for test
 ## Why the earlier "defer" recommendation was wrong
 
 I framed silvery as a TUI library (rigid widgets are common) and concluded the migration cost wasn't worth it. The reframe corrected two things:
+
 1. silvery is a multi-target design system, not a TUI library. CSS default is the multi-target-correct answer.
 2. The common case is rich text that wants to wrap, not rigid widgets. The current default makes the common case wrong-by-default.
 3. Yoga compat as an options object eliminates the "we'd lose Yoga-API parity" trade-off entirely — Yoga consumers opt in once, no per-Node migration.
@@ -124,3 +135,4 @@ The cost amortizes; the benefit compounds; the divergence has an escape hatch.
 ## Parent
 
 @km/silvercode/wrap-ergonomic (P1 epic) — Phase 1 (wrap-measurement) closed, Phase 2 (Prose) shipped. This Phase 3 closes the wrap-ergonomic story by demoting Prose from required wrapper → optional sugar.
+

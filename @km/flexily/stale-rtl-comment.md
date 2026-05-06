@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/stale-rtl-comment"
 aliases:
   - km-flexily.stale-rtl-comment
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Docs: constants.ts says 'we only support LTR' but RTL is supported @km/flexily #task #P3
+

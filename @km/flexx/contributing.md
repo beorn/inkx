@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/flexx/contributing"
 aliases:
   - km-flexx.contributing
@@ -15,6 +18,7 @@ assignee: claude:ee8efc0f
 Add contributor-facing docs and package.json polish for flexx.
 
 ## Tasks
+
 - [ ] Create CONTRIBUTING.md: dev setup, test commands, benchmark protocol, PR guidelines
 - [ ] Add engines field to package.json (minimum Node/Bun version)
 - [ ] Add keywords to package.json for npm discoverability
@@ -22,4 +26,6 @@ Add contributor-facing docs and package.json polish for flexx.
 - [ ] Add TypeScript strict mode verification to CI (if not already)
 
 ## Why
+
 Professional OSS packages need contributor docs. Engines field prevents confusing install failures on old runtimes. Keywords improve npm search ranking.
+

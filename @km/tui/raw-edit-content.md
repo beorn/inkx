@@ -1,4 +1,8 @@
 ---
+mentions:
+  - tags
+  - km
+  - claude
 id: "@km/tui/raw-edit-content"
 aliases:
   - km-tui.raw-edit-content
@@ -13,3 +17,4 @@ assignee: claude:5770ce77
 # [x] Show full raw markdown (metadata, @tags, color=) when editing @km/tui #feature #P2 @claude:5770ce77
 
 When entering edit mode, compose the edit text with all metadata from node fields (due dates, priority, @tags, color=, recurrence, scheduled). Currently editContent uses raw node.content which may not include metadata set via UI. Use logic similar to appendTaskMetadata() from the serializer.
+

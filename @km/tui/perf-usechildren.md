@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/perf-usechildren"
 aliases:
   - km-tui.perf-usechildren
@@ -9,3 +12,4 @@ assignee: claude:a3625ec3
 ---
 
 # [x] Generic useChildren hook replacing useColumns @km/tui #task #P1 @claude:a3625ec3
+

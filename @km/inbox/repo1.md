@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude-opus-4-5
 id: "@km/inbox/repo1"
 aliases:
   - km-repo1
@@ -13,21 +16,26 @@ assignee: claude-opus-4-5
 ## Completed
 
 **Migration done:**
+
 - 1100 edits across 68 files using automated refactor tool
 - Case-preserving: vaultDir→repoDir, VaultStats→RepoStats, VAULT_DIR→REPO_DIR
 - Fixed migration-related type errors
 
 **Intentionally kept (deprecated backward-compat exports):**
+
 - vaultPath, createVault, vault, Vault, VaultProvider, createTestVault, VaultStats, vaultRef
 
 **Out of scope:**
+
 - Vendor submodules (beorn-watcher-chaos, beorn-claude-tools) are separate projects
   - Their APIs use 'vault' terminology for generic concepts
   - Renaming would be breaking changes in those libraries
 
 **Remaining 'vault' mentions:**
+
 - Comments documenting the migration/deprecated APIs
 - The deprecated export files (vault.ts, vault-context.tsx)
 - check-migration.ts script itself
 
 **Commit:** 62a9db4
+

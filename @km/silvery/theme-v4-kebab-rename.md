@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-v4-kebab-rename"
 aliases:
   - km-silvery.theme-v4-kebab-rename
@@ -24,6 +26,14 @@ dependencies:
     created_at: 2026-04-19T10:59:03Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.theme-v4
+      - type: link
+        target: km-silvery.theme-v4-ansi16-hex
 ---
 
 # [x] Phase 2: Structured tokens + Material vocabulary migration @km/silvery #task #P2
@@ -37,6 +47,7 @@ Canonical doc: hub/silvery/design/v10-terminal/design-system.md
 ## Target vocabulary (Material-aligned)
 
 Roles:
+
 - accent (interactive/brand emphasis)
 - info (informational status — default-aliased to accent, semantically distinct)
 - success
@@ -46,6 +57,7 @@ Roles:
 - default
 
 Intent (component layer, not base roles):
+
 - destructive → aliases error by default
 - priority/importance (TBD) → orthogonal axis for escalation
 
@@ -106,3 +118,4 @@ Public API break. Ship as silvery v0.19.0.
 - Derivation contrast-validates against WCAG AA
 - 84 schemes still pass catalog test (may need per-role overrides for yellows)
 - @km/tui visual tests pass
+

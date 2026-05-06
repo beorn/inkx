@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/shift-col-hang"
 aliases:
   - km-tui.shift-col-hang
@@ -13,3 +16,4 @@ assignee: claude:8f007ba9
 # [x] App hangs when shifting column left/right @km/tui #bug #P1 @claude:8f007ba9
 
 User tried to shift the [Biz] NewCo > OB > MFP column to the left (likely via Shift+H or similar keybinding), and the app hung completely. This is a P1 blocking bug. Needs investigation: what does the shift-column command do, is there an infinite loop or deadlock?
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/search-misses-cards"
 aliases:
   - km-tui.search-misses-cards
@@ -25,3 +28,4 @@ Repro: bun km view <vault>, press /, type 'Review'. Result: 'No matches' even th
 Root cause: findMatchingNodeIds in apps/@km/tui/src/board/board-actions-find.ts:17-33 only walks 2 levels (rootId children = columns, colId children = cards). Visible cards are at a different projection depth.
 
 Fix: walk ALL visible nodes via tree.walkOrder or recursive walk.
+

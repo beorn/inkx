@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/inline-cursor"
 aliases:
   - km-inkx.inline-cursor
@@ -11,3 +14,4 @@ assignee: claude:d1f60fb4
 ---
 
 # [x] Position real terminal cursor in inline mode (useCursor support) @km/inkx #feature #P2 @claude:d1f60fb4
+

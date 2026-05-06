@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sterling-storybook-mvp"
 aliases:
   - km-silvery.sterling-storybook-mvp
@@ -26,6 +29,14 @@ dependencies:
     created_at: 2026-04-19T14:43:32Z
     created_by: claude:4274df30
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.sterling-2a-data-layer
+      - type: link
+        target: km-silvery.sterling-storybook
 ---
 
 # [x] Sterling Storybook MVP — 3-pane layout @km/silvery #task #P2 @claude:4274df30
@@ -35,6 +46,7 @@ blocks:: [[@km/silvery/sterling-2a-data-layer]], [[@km/silvery/sterling-storyboo
 First landing of the Sterling storybook at vendor/silvery/examples/apps/storybook.tsx (replaces existing 567-line storybook).
 
 ## MVP scope (~600 LOC)
+
 - Three-pane layout: SchemeList + ComponentPreview + TokenTree
 - Scheme swap cycles 84-scheme catalog, all re-themes live
 - Token click → shows derivation rule + highlights components using it
@@ -45,3 +57,4 @@ Full design: hub/silvery/design/v10-terminal/storybook-design.md
 DEPENDS: sterling-2a-data-layer
 BLOCKS: sterling-storybook-full
 Parent: @km/silvery/sterling-storybook
+

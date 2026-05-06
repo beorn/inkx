@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/stdout-dims-snapshot-race"
 aliases:
   - km-silvery.stdout-dims-snapshot-race
@@ -19,6 +21,14 @@ dependencies:
     created_at: 2026-04-22T13:47:53Z
     created_by: claude:019d032d
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery
+      - type: link
+        target: km-silvery.term-sub-owners
 ---
 
 # [ ] stdout.columns/rows read races during SIGWINCH (44 readers take stale snapshots) @km/silvery #task #P2
@@ -32,3 +42,4 @@ Same META-pattern: shared global mutable state (terminal dims) read by uncoordin
 Solution: dims should be read from a single source of truth (term provider's getDims()) that snapshots per-frame. Direct reads of process.stdout.columns/.rows banned outside the owner — same lint pattern as check-stdin-ownership.sh.
 
 Audit report: /tmp/shared-global-audit.md (Suspect #1).
+

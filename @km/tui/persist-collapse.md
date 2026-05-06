@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/persist-collapse"
 aliases:
   - km-tui.persist-collapse
@@ -11,3 +14,4 @@ assignee: claude:5f0aee02
 ---
 
 # [x] Persist collapse/hide state in DB and ignore file @km/tui #feature #P3 @claude:5f0aee02
+

@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - Z
 id: "@km/tui/edit-undo-crash"
 aliases:
   - km-tui.edit-undo-crash
@@ -11,3 +15,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] [bug] Ctrl+Z in edit mode crashes/restarts TUI @km/tui #bug #P2
+

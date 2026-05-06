@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/edit-display"
 aliases:
   - km-tui.edit-display
@@ -16,9 +18,11 @@ User reports: when editing a body block, typing shows nothing on screen. But pre
 Reproduced in TTY emulator: entered edit mode on body block, typed "x" and "y" — neither appeared. Pressed Escape — text showed "vault.fffxy" confirming characters were captured by Slate but never displayed.
 
 Root cause investigation (incomplete):
+
 - Production render uses ConcurrentRoot + runWithDiscreteEvent + flushSyncWork + async queueMicrotask scheduler
 - Test render uses act() + synchronous doRender() — this is why tests pass
 - insertChar() calls Editor.insertText then forceRender() (setVersion(v+1))
 - The state update should be flushed by reconciler.flushSyncWork() after handleChunk
 - Either flushSyncWork fails to process the update, or the scheduler/incremental diff misses the change
 - Debug logging was being added to trace the exact failure point when investigation was paused
+

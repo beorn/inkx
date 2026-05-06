@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/remove-emit-fallback"
 aliases:
   - km-remove-emit-fallback
@@ -28,12 +30,15 @@ if (contextDb) {
 // No fallback - require context db
 
 This means:
+
 1. All production code must use runWithDb() to set context
 2. All tests already use withTestEnv() which sets context
 3. No more global db variable needed
 
 Also remove:
+
 - Global db variable and setter (setDatabase)
 - Any other global singleton state
 
 Depends on: @km/_orphan/cli-tasks-vault, @km/_orphan/cli-main-vault (production code must use runWithDb)
+

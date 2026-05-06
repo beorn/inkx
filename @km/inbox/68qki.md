@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - tailwind
 id: "@km/inbox/68qki"
 aliases:
   - km-68qki
@@ -12,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] shadcn+tailwind alignment for inkx/chalkx/themex design system @km/_orphan #feature #P2
 
 Align inkx/chalkx/themex token naming and architecture with shadcn/ui + Tailwind CSS to enable easy adoption and shared ecosystem. Key areas: token rename (-fg → -foreground), CSS variable export, shadcn theme import, component parity documentation.
+

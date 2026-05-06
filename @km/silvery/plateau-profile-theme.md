@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/plateau-profile-theme"
 aliases:
   - km-silvery.plateau-profile-theme
@@ -24,6 +27,10 @@ dependencies:
     created_at: 2026-04-23T02:49:46Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Fold detectTheme into TerminalProfile — async profile with probeTheme @km/silvery #task #P3 @claude:c6244087
@@ -48,14 +55,18 @@ const profile = await createTerminalProfile({
 ```
 
 ## Files
+
 - vendor/silvery/packages/ansi/src/profile.ts — factory becomes async, accepts stdin/stdout, owns InputOwner + detectTheme
 - vendor/silvery/packages/ag-term/src/runtime/run.tsx — collapse the two branches' detectTheme blocks
 - vendor/silvery/packages/ag-term/src/runtime/create-app.tsx — profileOption.theme short-circuits duplicate detection
 
 ## Risk
+
 The profile factory becoming async is observable — every synchronous caller must switch. BUT most already-await-the-outer entry point. Contract tests pin the sync vs async variants.
 
 ## Estimated effort
+
 ~50 LOC in profile.ts + 30 LOC simplification in run.tsx + async propagation.
 
 Spawned from @km/silvery/terminal-profile-plateau follow-up review.
+

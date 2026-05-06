@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/message-stream-right-margin"
 aliases:
   - km-silvercode.message-stream-right-margin
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-25T22:54:58Z
     created_by: claude:bc3eb794
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Message stream lacks right margin/gutter against side panel @km/silvercode #bug #P3 @claude:bc3eb794
@@ -27,3 +34,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 In silvercode TUI, message stream content (especially wrapped tool-command blocks like 'Bash bd create ...') extends all the way to the side panel edge with no visual gutter. Should have a 2-space margin between message stream's right edge and the Sessions/Todos/Agents side panel for readability. Affects all message types but most visible on long wrapped tool commands. Screenshot: ~/Desktop/Screenshot 2026-04-25 at 22.53.48.png
+

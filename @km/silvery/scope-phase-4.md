@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/scope-phase-4"
 aliases:
   - km-silvery.scope-phase-4
@@ -63,6 +65,26 @@ dependencies:
     created_at: 2026-04-24T13:40:41Z
     created_by: claude:2aefb4b6
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.lifecycle-scope
+      - type: link
+        target: km-silvery.scope-phase-3-abort
+      - type: link
+        target: km-silvery.scope-phase-3-node-io
+      - type: link
+        target: km-silvery.scope-phase-3-signals
+      - type: link
+        target: km-silvery.scope-phase-3-stores
+      - type: link
+        target: km-silvery.scope-phase-3-subroots
+      - type: link
+        target: km-silvery.scope-phase-3-timers
+      - type: link
+        target: km-silvery.scope-phase-3-useexit
 ---
 
 # [x] Phase 4: Enforcement + systematic doc/example audit @km/silvery #task #P2
@@ -70,3 +92,4 @@ dependencies:
 blocks:: [[@km/silvery/lifecycle-scope]], [[@km/silvery/scope-phase-3-abort]], [[@km/silvery/scope-phase-3-node-io]], [[@km/silvery/scope-phase-3-signals]], [[@km/silvery/scope-phase-3-stores]], [[@km/silvery/scope-phase-3-subroots]], [[@km/silvery/scope-phase-3-timers]], [[@km/silvery/scope-phase-3-useexit]]
 
 Lock the pattern with one ESLint gate + one doc sweep. See hub/silvery/design/lifecycle-scope.md § Phase 4. Sub-beads run in parallel after the ESLint rule lands.
+

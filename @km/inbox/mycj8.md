@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/mycj8"
 aliases:
   - km-mycj8
@@ -8,3 +10,4 @@ closed_at: 2026-01-29T18:43:38Z
 ---
 
 # [x] beorn-inkx-widechar @km/_orphan #bug #P1
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/title-edit-no-undo"
 aliases:
   - km-tui.title-edit-no-undo
@@ -44,3 +46,4 @@ owner: bjorn@stabell.org
 # [x] [bug] Undo stack doesn't cover title edits — 'Nothing to undo' after typo @km/tui #bug #P2
 
 Edit a card title, save with Escape, press u → 'Nothing to undo'. Edit committed to disk but not in undo stack. Users can't recover from typos within session.
+

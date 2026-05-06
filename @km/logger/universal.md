@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/logger/universal"
 aliases:
   - km-logger.universal
@@ -13,6 +16,7 @@ assignee: claude:fbad9cb1
 # [x] Phase 1: Universal runtime — guard Node-specific patterns for browser/Deno/edge @km/logger #task #P2 @claude:fbad9cb1
 
 Guard all Node-specific code in src/index.ts for cross-runtime compatibility:
+
 - Guard process.env.* reads (LOG_LEVEL, TRACE, DEBUG, LOG_FORMAT, NODE_ENV) — ~5 sites
 - Replace process.stderr.write() with console.error() fallback — 2 sites
 - Gate createFileWriter() — throw in browser or tree-shake — 1 function
@@ -21,3 +25,4 @@ Guard all Node-specific code in src/index.ts for cross-runtime compatibility:
 - Verify ESM works in browser, Deno, Bun, Cloudflare Workers
 
 Design: Use inline typeof guards (not a platform adapter layer — keep it simple). The core is already ~800 lines; a full adapter would over-engineer this.
+

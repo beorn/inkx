@@ -1,4 +1,7 @@
 ---
+mentions:
+  - next
+  - km
 id: "@km/tui/inbox-cursor-jump"
 aliases:
   - km-tui.inbox-cursor-jump
@@ -12,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] TUI: 'j' from Kaiser Health in @next.md#inbox jumps cursor to board title @km/tui #bug #P2
 
 Navigating down ('j') in @next.md#inbox from the 'Kaiser Health' card causes the cursor to jump to the board title instead of the next card. Possible regression from @km/tui/virtual-nav fix (40f8a894) or uncovered variant of @km/_orphan/tui-cursor-jump.
+

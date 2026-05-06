@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/sticky-fold"
 aliases:
   - km-tui.sticky-fold
@@ -24,11 +27,13 @@ Generalize 'collapse' into 'sticky fold' — a fold (or unfold) state that persi
 
 ## Concept
 
-Today: 
+Today:
+
 - Regular fold (H/L) — transient, affected by fold-all/unfold-all
 - Collapse (vc) — only on columns, distinct visual
 
 Proposed:
+
 - Regular fold (H/L) — unchanged, transient
 - Sticky fold (vs) — persists per-node, immune to fold-all/unfold-all
 - Sticky unfold — same mechanism, opposite state
@@ -77,3 +82,4 @@ Researched: only Emacs org-mode has true sticky folding (VISIBILITY property per
 6. Add vs keybinding (toggle sticky)
 7. Apply to columns (replace 'collapse' mechanism)
 8. Migration: existing collapsed columns become sticky-folded
+

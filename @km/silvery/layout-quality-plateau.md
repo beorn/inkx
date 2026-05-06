@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/layout-quality-plateau"
 aliases:
   - km-silvery.layout-quality-plateau
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-12T00:49:04Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.reactive-pipeline
 ---
 
 # [x] Layout quality plateau — 4 phases to clean pipeline @km/silvery #epic #P1
@@ -52,3 +58,4 @@ Phase 4 (P2): Flexily native fit-content
 Relationship to reactive-pipeline epic: Phase 1 completes the layout portion of the signals migration by making Flexily the single dirty source. Phases 2-4 simplify the pipeline surface that the full reactive graph will eventually replace.
 
 /complete: grep fitContentCorrectionPass → 0 hits, grep trackLayoutDirty → 0 hits, grep executeRender → 0 hits (except docs). SILVERY_STRICT=1 test:fast passes.
+

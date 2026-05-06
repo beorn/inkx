@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sterling-preflight"
 aliases:
   - km-silvery.sterling-preflight
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-19T14:42:36Z
     created_by: claude:4274df30
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.theme-v4
 ---
 
 # [x] Sterling: lock decisions D1-D6 (pre-flight) @km/silvery #task #P1 @claude:4274df30
@@ -41,3 +48,4 @@ Output: committed sterling-preflight.md + updated design-system.md removing thes
 BLOCKS: sterling-2a-data-layer
 
 Parent: @km/silvery/theme-v4
+

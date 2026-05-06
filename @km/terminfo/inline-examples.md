@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/inline-examples"
 aliases:
   - km-terminfo.inline-examples
@@ -18,6 +21,7 @@ assignee: claude:f8196c1c
 Add a few inline examples showing escape sequences and their rendered effect on both index pages. Not comprehensive — just enough to make the pages tangible.
 
 Examples like:
+
 - SGR: ESC[1m → Bold, ESC[38;2;255;0;0m → Red text
 - Cursor: ESC[5;10H → Move to row 5, col 10
 - Modes: ESC[?1049h → Alternate screen
@@ -25,3 +29,4 @@ Examples like:
 - Kitty: ESC[>1u → Enable Kitty keyboard
 
 Format: small styled table or code block with annotation. Scattered through the relevant sections, not grouped into one big table.
+

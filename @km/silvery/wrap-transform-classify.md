@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/wrap-transform-classify"
 aliases:
   - km-silvery.wrap-transform-classify
@@ -16,3 +19,4 @@ assignee: claude:65d845d9
 # [x] Bug: wrap and internal_transform misclassified as style-only in contentPropsChanged() @km/silvery #bug #P0 @claude:65d845d9
 
 contentPropsChanged() in reconciler/helpers.ts classifies wrap and internal_transform as style changes, so commitUpdate sets paintDirty but NOT contentDirty/layoutDirty. Both affect measurement/layout: wrap changes line breaking and height, internal_transform changes text content width/height. This causes stale measure cache and stale layout on incremental renders.
+

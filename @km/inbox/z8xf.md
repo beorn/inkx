@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/z8xf"
 aliases:
   - km-z8xf
@@ -10,7 +12,9 @@ closed_at: 2026-01-17T23:23:17Z
 # [x] Refactor Board actions into command system @km/_orphan #epic #P2
 
 ## Goal
+
 Remove direct DB dependencies from TreeNode and other view components to enable:
+
 - Storybook rendering without database setup
 - Easier unit testing
 - Pure component rendering
@@ -18,6 +22,7 @@ Remove direct DB dependencies from TreeNode and other view components to enable:
 ## Design: Props-based data flow with lazy fetch callback
 
 ### TreeNode Interface
+
 ```typescript
 interface TreeNodeProps {
   node: KNode;
@@ -30,6 +35,7 @@ interface TreeNodeProps {
 ```
 
 ### Data Flow
+
 1. **Initial render**: Parent passes `children` from CardState (already fetched)
 2. **On unfold**: If deeper children needed, call `getChildren(id)`
 3. **Parent context**: Passed as prop or computed via callback for nested cases
@@ -37,6 +43,7 @@ interface TreeNodeProps {
 ### Usage
 
 **Production (Board.tsx)**:
+
 ```typescript
 <TreeNode 
   node={card.node}
@@ -47,6 +54,7 @@ interface TreeNodeProps {
 ```
 
 **Storybook (no DB)**:
+
 ```typescript
 const mockStore = new Map<string, KNode[]>();
 // ... populate with test data
@@ -60,13 +68,16 @@ const mockStore = new Map<string, KNode[]>();
 ```
 
 ### Changes Required
+
 1. **TreeNode.tsx**: Accept optional `children`, `parentContext`, `getChildren` props
 2. **types.ts**: Add `parentContext?: string` to CardState
 3. **Board.tsx / ColumnsView.tsx**: Pass props instead of relying on internal fetch
 4. **storybook.tsx**: Remove DB setup, use pure mock data
 
 ### Benefits
+
 - TreeNode becomes a pure rendering component
 - Storybook works without SQLite
 - Unit tests can pass mock data directly
 - Lazy loading preserved via callback
+

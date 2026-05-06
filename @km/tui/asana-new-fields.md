@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/asana-new-fields"
 aliases:
   - km-tui.asana-new-fields
@@ -11,3 +14,4 @@ assignee: claude:d697f216
 ---
 
 # [x] Asana import: fetch completed_by, actual_time_minutes, approval_status, start_at @km/tui #task #P3 @claude:d697f216
+

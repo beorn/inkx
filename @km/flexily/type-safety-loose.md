@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/type-safety-loose"
 aliases:
   - km-flexily.type-safety-loose
@@ -22,3 +24,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Quality: Value.unit is plain number — should use literal unions or branded types @km/flexily #task #P2
+

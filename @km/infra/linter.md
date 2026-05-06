@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - Prettier
 id: "@km/infra/linter"
 aliases:
   - km-infra.linter
@@ -13,19 +18,24 @@ assignee: claude:9e69175d
 Currently the monorepo uses two different linting setups:
 
 **Main km project**: ESLint + Prettier
+
 - Type-aware linting with typescript-eslint
 - Promise plugin for async rules
 
 **vendor/beorn-inkx**: Biome
+
 - Faster, single-tool setup
 - Different style (tabs vs spaces, etc.)
 
 **Decision needed:**
+
 1. Standardize on ESLint+Prettier everywhere (better type-aware rules)
 2. Standardize on Biome everywhere (faster, simpler)
 3. Keep split (main = ESLint, vendors = Biome)
 
 **Considerations:**
+
 - Type-aware rules like no-floating-promises are valuable
 - Biome may add type-aware support in future
 - Vendor packages may have their own preferences
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/perf-path"
 aliases:
   - km-tui.perf-path
@@ -9,3 +12,4 @@ assignee: claude:a3625ec3
 ---
 
 # [x] NodePath module - SlateJS-aligned Path type @km/tui #task #P1 @claude:a3625ec3
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/search-scope"
 aliases:
   - km-tui.search-scope
@@ -12,7 +14,9 @@ owner: bjorn@stabell.org
 # [x] Search: option to search entire repo or selected nodes & descendants @km/tui #feature #P3
 
 In the search menu (/), add an option to select the search scope:
+
 - Entire repo (current default)
 - Currently selected nodes & descendants only
 
 This enables focused searching within a specific subtree, useful when zoomed into a section or when multi-selecting columns.
+

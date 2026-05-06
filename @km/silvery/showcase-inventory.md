@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/showcase-inventory"
 aliases:
   - km-silvery.showcase-inventory
@@ -18,23 +21,27 @@ assignee: claude:19080504
 ## Inventory
 
 ### Showcase apps (5 built, rendered via xterm.js in showcase-app.tsx)
-| ID | App | Source | Used on pages |
-|---|---|---|---|
-| dashboard | CPU/Memory/Network monitor | layout/dashboard.tsx | homepage viewer, /getting-started/quick-start, /examples/tables, /examples/scrollback, /examples/components (WRONG), /examples/layout, /examples/live-demo |
-| kanban | Kanban board | apps/kanban.tsx | /examples/ gallery, /guide/scrolling |
-| components | Component gallery | apps/components.tsx | /examples/ gallery, /guides/components, /examples/forms |
-| dev-tools | Log viewer | apps/dev-tools.tsx | /examples/ gallery |
-| textarea | Note editor | apps/textarea.tsx | /examples/ gallery |
+
+| ID         | App                        | Source               | Used on pages                                                                                                                                              |
+| ---------- | -------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| dashboard  | CPU/Memory/Network monitor | layout/dashboard.tsx | homepage viewer, /getting-started/quick-start, /examples/tables, /examples/scrollback, /examples/components (WRONG), /examples/layout, /examples/live-demo |
+| kanban     | Kanban board               | apps/kanban.tsx      | /examples/ gallery, /guide/scrolling                                                                                                                       |
+| components | Component gallery          | apps/components.tsx  | /examples/ gallery, /guides/components, /examples/forms                                                                                                    |
+| dev-tools  | Log viewer                 | apps/dev-tools.tsx   | /examples/ gallery                                                                                                                                         |
+| textarea   | Note editor                | apps/textarea.tsx    | /examples/ gallery                                                                                                                                         |
 
 ### Embed types
+
 - **ShowcaseGallery.vue** — tabbed gallery on /examples/ (interactive, xterm.js iframe)
 - **LiveDemo.vue** — single demo on guide/example pages (xterm.js iframe)
 - **Homepage iframe** — viewer.html with full example browser
 
 ### Example apps NOT in showcase (could be added)
+
 aichat, cli-wizard, data-explorer, task-list, scroll, search-filter, gallery, theme, explorer, terminal
 
 ### Issues per demo
+
 **dashboard**: Progress bars look rough (dotted fill), content cropped at bottom, uneven padding
 **kanban**: Looks OK but columns could be wider
 **components**: Typography tab content is cramped, tabs navigation broken in web
@@ -42,13 +49,16 @@ aichat, cli-wizard, data-explorer, task-list, scroll, search-filter, gallery, th
 **textarea**: Untested quality
 
 ### Wrong demo assignments
+
 - /examples/components shows dashboard (should show components)
 - /examples/tables shows dashboard (should show data-explorer or similar)
 - /examples/scrollback shows dashboard (should show scroll)
 - /examples/layout shows dashboard (should show dashboard — correct but boring)
 
 ### Global issues
+
 - xterm.js iframe: uneven padding, broken input, rendering corruption on resize
 - Many example pages use dashboard as placeholder instead of relevant demo
 - Canvas renderer has no input support (can't replace xterm for interactive)
 - No pre-recorded screenshots for static embeds
+

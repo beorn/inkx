@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/detail-field-order"
 aliases:
   - km-tui.detail-field-order
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Detail pane: group date fields together after Status @km/tui #feature #P2
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/embed-content-lines"
 aliases:
   - km-tui.embed-content-lines
@@ -20,9 +23,11 @@ Paragraph children of tasks (type=p, item=false) render with bullet markers like
 Root cause: TreeNode renders ALL children through the same path — computeBulletIcon + buildPrefix. Paragraph nodes get fold markers (· or ●) even though they're body text, not items.
 
 Fix: In TreeNode, detect paragraph children (type=p, item=false, no task_status) and render them differently:
+
 - No bullet prefix (or just indentation)
 - Dimmed text color
 - wrap instead of truncate
 - Not counted toward maxContentLines (they're body content, not sub-items)
 
 Affects all cards, not just embeds. Most visible on @next board where transcluded tasks have body paragraphs.
+

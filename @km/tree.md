@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tree"
 aliases:
   - km-tree
@@ -15,7 +17,9 @@ owner: bjorn@stabell.org
 `@km/tree` owns the KNode tree data model and operations (insert/move/delete), independent of storage. Peer of `@km/storage` — both depend on `@km/core`, neither on each other.
 
 Current open work:
+
 - @km/tree/outliner-reshape (P3) — reshape withOutliner to (state, op) → [state, effects]
 - @km/tree/refs (P4) — auto-updating position handles (NodeRef, PointRef, RangeRef)
 
 Tree-specific design docs live in docs/design/model/.
+

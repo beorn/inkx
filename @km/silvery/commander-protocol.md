@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/commander-protocol"
 aliases:
   - km-silvery.commander-protocol
@@ -18,6 +20,10 @@ dependencies:
     created_at: 2026-04-23T22:32:02Z
     created_by: claude:6443387f
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] CAP: Commander App Protocol — AI-native CLI integration standard @km/silvery #feature #P4
@@ -33,6 +39,7 @@ Current shell integration (OSC 133, OSC 7, OSC 9) is stream-level and text-nativ
 ## What CAP carries
 
 ### 1. Manifest (JSON, on $PREFIX/share/cap/<app>.json or `<app> --cap-manifest`)
+
 - Subcommands, flags, arg types (JSON Schema)
 - Input/output types
 - Exit codes + meanings
@@ -41,20 +48,24 @@ Current shell integration (OSC 133, OSC 7, OSC 9) is stream-level and text-nativ
 - Intent description for AI ranking
 
 ### 2. Typed streams (alongside classic stdout/stderr)
+
 - **Blocks**: typed output units — table, log, diff, progress, prompt, image, tree
 - **Events**: semantic — started, step(name), asks-user, wants-permission, finished
 
 ### 3. Bidirectional control
+
 - Typed input to answer asks-user events
 - Live-state queries (progress, current file, cancel cost)
 - Structured cancellation
 - Resume/suspend
 
 ### 4. Typed completion
+
 - `<app> --cap-complete <partial>` returns typed entries (branch, file, PR, subcommand)
 - Commander picks per-type picker UI
 
 ### 5. App-as-MCP-server
+
 - Manifest doubles as MCP tool schema
 - Agents call operations via typed tool calls, not text commands
 - Human front-end: commander UI; agent front-end: MCP tools
@@ -99,3 +110,4 @@ Current shell integration (OSC 133, OSC 7, OSC 9) is stream-level and text-nativ
 ## Origin
 
 2026-04-23 discussion — user's "millions of apps" framing + AutoCompletor/ff as existing silvery-native tools. The leverage realization: commander is only "better Warp" without a protocol; with CAP, it's a platform.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/sigil-strict-namespaces"
 aliases:
   - km-storage.sigil-strict-namespaces
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-15T12:25:37Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage.sigils
 ---
 
 # [x] Sigils form strict namespaces (no cross-sigil unification) @km/storage #feature #P1 #link-graph #parser #resolver #sigils #strict-namespaces
@@ -27,3 +33,4 @@ dependencies:
 blocks:: [[@km/storage/sigils]]
 
 Ensure km's parser, link resolver, and link graph treat each sigil as its own namespace. +km, @km, #km, [[km]], and ~km must resolve to FIVE DISTINCT targets, not one unified target. Departure from current ~km/docs/design/links.md model. See ~vault/projects/+km/design/repo-model-and-sigils.md for the full strict-namespace spec.
+

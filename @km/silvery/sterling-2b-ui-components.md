@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - claude
 id: "@km/silvery/sterling-2b-ui-components"
 aliases:
   - km-silvery.sterling-2b-ui-components
@@ -29,6 +33,14 @@ dependencies:
     created_at: 2026-04-19T14:43:00Z
     created_by: claude:4274df30
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.sterling-2a-data-layer
+      - type: link
+        target: km-silvery.theme-v4
 ---
 
 # [x] Sterling Phase 2b: @silvery/ui components consume new tokens @km/silvery #task #P2 @claude:4274df30
@@ -38,6 +50,7 @@ blocks:: [[@km/silvery/sterling-2a-data-layer]], [[@km/silvery/theme-v4]]
 Update SelectList, TextInput, ModalDialog, Tabs, Alert, Toast, etc. in @silvery/ag-react/ui/ to read from new Theme shape.
 
 ## Acceptance
+
 - @silvery/ui components reference $fg-accent / theme['fg-accent'] form, not theme.primaryfg
 - Components handle 'info' tone (new role) and 'destructive' tone (new synonym for error)
 - Component snapshot tests green
@@ -46,3 +59,4 @@ Update SelectList, TextInput, ModalDialog, Tabs, Alert, Toast, etc. in @silvery/
 DEPENDS: sterling-2a-data-layer
 BLOCKS: sterling-2c-@km/_orphan/migration
 Parent: @km/silvery/theme-v4
+

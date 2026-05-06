@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/c1-fossil-sweep-broader"
 aliases:
   - km-silvery.c1-fossil-sweep-broader
@@ -18,6 +20,10 @@ dependencies:
     created_at: 2026-04-27T11:00:54Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.plateau-90
 ---
 
 # [x] C1 fossil sweep: extend Bun.gc deletion to heap-snapshot.slow.test.tsx + production-paths.test.tsx @km/silvery #task #P2
@@ -38,6 +44,7 @@ This is the canonical /complete catch the substrate-phasing-convention bead (@km
 ## Approach
 
 Same pattern as C1 agent:
+
 1. Read both files; understand what each test actually verifies
 2. Replace GC observation (Bun.gc, globalThis.gc, warmup, getHeapUsedMB) with getActiveHandleCount-based assertions
 3. Some tests may verify React-mount/unmount paths or production scenarios — these need careful refactoring, not just deletion. Determine if the test is doing something legitimate (e.g., measuring real heap behavior across fixture cycles) or just a fossilized GC ritual
@@ -57,3 +64,4 @@ Same pattern as C1 agent:
 ## Effort
 
 ~1-2 hours. Smaller than initial C1 because pattern is established (handle counter + fuzz harness exist; just apply same approach to 2 more files).
+

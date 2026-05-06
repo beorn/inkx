@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/ai-analysis"
 aliases:
   - km-terminfo.ai-analysis
@@ -32,6 +35,7 @@ Static content (description) + AI analysis (commentary with real numbers + chang
 ## Analysis Generator (scripts/generate-analysis.ts)
 
 Strict — throws on any inconsistency:
+
 - Throws if a terminal in results has no entry in terminals.json
 - Throws if feature IDs in results don't match features.json
 - Throws if result values aren't yes/no/partial
@@ -47,3 +51,4 @@ Render analysis inline (not a separate box). Styled as dated commentary below th
 ## /marketing workflow
 
 enrich.md updated to include analysis generation. Detects stale analysis (probeHash mismatch) and regenerates.
+

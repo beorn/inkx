@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/test-4/10-ci-integration-and-html-reports"
 aliases:
   - km-test-4.10
@@ -12,3 +15,4 @@ assignee: claude:bb984f7c
 # [x] CI integration and HTML reports @km/test-4 #task #P2 @claude:bb984f7c
 
 Update GitHub Actions to use Vitest. Verify parallel execution works. Add HTML reporter for CI artifacts.
+

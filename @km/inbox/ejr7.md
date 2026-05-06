@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/ejr7"
 aliases:
   - km-ejr7
@@ -8,3 +10,4 @@ closed_at: 2026-01-20T15:41:11Z
 ---
 
 # [x] TreeNode: extra space between bullet and text @km/_orphan #bug #P2
+

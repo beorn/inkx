@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/hxc7"
 aliases:
   - km-hxc7
@@ -8,3 +10,4 @@ closed_at: 2026-01-20T16:00:39Z
 ---
 
 # [x] All views: Parent context line should be dimmed @km/_orphan #bug #P2
+

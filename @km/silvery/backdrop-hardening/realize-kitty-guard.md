@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/backdrop-hardening/realize-kitty-guard"
 aliases:
   - km-silvery.backdrop-hardening.realize-kitty-guard
@@ -18,6 +21,10 @@ dependencies:
     created_at: 2026-04-20T14:00:07Z
     created_by: claude:88c0e764
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.backdrop-hardening
 ---
 
 # [x] realizeToKitty doesn't honor plan.kittyEnabled — public API contract @km/silvery #bug #P0 @claude:a1a0e667
@@ -46,3 +53,4 @@ if (!plan.active || !plan.kittyEnabled || plan.amount <= 0 || plan.scrim === nul
 ## Parent
 
 @km/silvery/backdrop-hardening
+

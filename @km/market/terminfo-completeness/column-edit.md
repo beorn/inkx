@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/terminfo-completeness/column-edit"
 aliases:
   - km-market.terminfo-completeness.column-edit
@@ -22,3 +24,4 @@ Column-level editing operations. ~4 features.
 Support: xterm, mintty; partial in modern VT-rich emulators.
 
 Termless would need to implement these in the buffer model (currently row-oriented).
+

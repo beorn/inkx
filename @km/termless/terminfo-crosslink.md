@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/terminfo-crosslink"
 aliases:
   - km-termless.terminfo-crosslink
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Cross-link termless.dev and terminfo.dev @km/termless #task #P3
 
 termless.dev nav/footer links to terminfo.dev. terminfo.dev links back. Census CLI mentions terminfo.dev in output.
+

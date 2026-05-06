@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/sticky-type"
 aliases:
   - km-tui.sticky-type
@@ -17,3 +20,4 @@ assignee: Bjørn Stabell
 # [x] Sticky type: new nodes inherit characteristics from source node @km/tui #feature #P2 @Bjørn Stabell
 
 When creating a new item/block/node via Enter (linebreak_after, linebreak_child, linebreak_split), the new node should inherit characteristics from the source node (cursor node or prev sibling): task marker (- [ ] vs -), list type (ol/ul), node type (p/li/h). This matches how every text editor works — pressing Enter in a task list creates another task, pressing Enter in a numbered list creates the next number.
+

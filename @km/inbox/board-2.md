@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/board-2"
 aliases:
   - km-board-2
@@ -16,6 +18,7 @@ The storybook (`apps/km-tui/packages/km-ink/tests/storybook.tsx`) defeats its pu
 ## Progress Update (2026-01-18)
 
 ### Completed ✓
+
 - [x] TopBar component extracted and used in storybook
 - [x] getStatusIcon() used for task status rendering
 - [x] renderRich() used for rich text demos
@@ -26,11 +29,13 @@ The storybook (`apps/km-tui/packages/km-ink/tests/storybook.tsx`) defeats its pu
 - [x] In-memory stores for storybook isolation (nodeStore, childrenStore)
 
 ### Remaining
+
 - [ ] CardsView/CardColumn reusability for storybook - currently uses custom CardsViewDemo
 - [ ] Strikethrough for done/dropped tasks (currently disabled by design decision)
 - [ ] Some sections still use raw `<Text color=...>` instead of production styling functions
 
 ## Files Modified
+
 - `tests/storybook.tsx` - Now uses production components with DI
 - `src/views/TopBar.tsx` - Extracted, reusable component
 - `src/views/TreeNode.tsx` - Added DI props (children, getChildren, getParentContext, getBoardPills)
@@ -43,3 +48,4 @@ The storybook (`apps/km-tui/packages/km-ink/tests/storybook.tsx`) defeats its pu
 - [x] TreeNode demos use production component ✓
 - [ ] Done/dropped tasks show strikethrough (disabled by design)
 - [~] Storybook output matches actual app (mostly - some demos still simplified)
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/2g3tx"
 aliases:
   - km-2g3tx
@@ -14,3 +17,4 @@ assignee: claude:fed8de9e
 # [x] Add render() beginner API — zero-ceremony entry point @km/_orphan #feature #P1 @claude:fed8de9e
 
 Add render(<App />) that handles term creation internally. run() stays for advanced use. This is the #1 DX improvement — reduces Hello World from 4 lines to 1.
+

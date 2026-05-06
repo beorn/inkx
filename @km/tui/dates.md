@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/dates"
 aliases:
   - km-tui.dates
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Date, Priority & Recurrence Feature Set @km/tui #feature #P2
+

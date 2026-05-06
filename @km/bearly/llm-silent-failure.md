@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/llm-silent-failure"
 aliases:
   - km-bearly.llm-silent-failure
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] LLM tool exits 0 but produces no output file — silent failure @km/bearly #bug #P2
 
 bun llm.ts --deep --model gpt-5.4-pro launched with --context-file, exited 0, but no /tmp/llm-*.txt output was written. The task completed successfully from Claude Code's perspective but the review was lost. Need: (1) check if the API call actually returned data, (2) always write output even if empty (with error message), (3) exit non-zero on empty response.
+

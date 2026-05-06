@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/record"
 aliases:
   - km-termless.record
@@ -13,3 +16,4 @@ assignee: claude:8fc35754
 # [x] termless record CLI command @km/termless #feature #P3 @claude:8fc35754
 
 Add a `termless record` CLI command that records a terminal session as a sequence of SVG frames or an animated SVG. Great for docs, bug reports, and demos. Could also output to GIF via SVG-to-GIF conversion.
+

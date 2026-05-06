@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/emulator-warnings"
 aliases:
   - km-silvery.emulator-warnings
@@ -14,3 +17,4 @@ assignee: claude:c9beade3
 # [x] Route emulator warnings to test failures — unsupported OSC should fail @km/silvery #task #P2 @claude:c9beade3
 
 Ghostty WASM logged 'unsupported OSC: 66' but it was suppressed by vitest. Capture diagnostics structurally (warning.code, warning.sequence, warning.backend). In tests: unexpected warnings fail, expected warnings require explicit allowlist. See docs/lessons/testing-escape-hatches.md.
+

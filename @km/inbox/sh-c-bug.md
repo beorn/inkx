@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/inbox/sh-c-bug"
 aliases:
   - km-sh-c-bug
@@ -17,6 +20,7 @@ Bug discovered while fixing test expectations in @km/_orphan/fix-sh-tests.
 `km sh board.md -c 'command1; command2'` doesn't preserve state between commands.
 
 Example:
+
 ```bash
 km sh board.md -c 'j; state'
 # Expected: cursor moves from [0] to [0,1]
@@ -30,6 +34,7 @@ The -c mode parses semicolon-separated commands correctly but doesn't persist st
 ## Working Workaround
 
 REPL mode DOES work correctly:
+
 ```markdown
 \`\`\`console cmd="km sh board.md"
 $ j
@@ -41,14 +46,16 @@ $ state
 ## Code Location
 
 apps/@km/_orphan/cli/src/commands/sh.ts:
+
 - parseCommandString() splits on semicolons correctly
 - runShell() executes all commands but state doesn't persist
 
 ## Impact
 
 10 test files currently disabled because they use -c mode:
+
 - cursor-navigation.test.md-disabled
-- history.test.md-disabled  
+- history.test.md-disabled
 - json-mode.test.md-disabled
 - key-sequences.test.md-disabled
 - keys.test.md-disabled
@@ -61,3 +68,4 @@ apps/@km/_orphan/cli/src/commands/sh.ts:
 ## Fix Approach
 
 Investigate runShell() in @km/repl to ensure state is threaded through all command executions.
+

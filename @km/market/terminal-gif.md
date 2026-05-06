@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/terminal-gif"
 aliases:
   - km-market.terminal-gif
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] Record terminal GIF/asciinema for silvery.dev homepage @km/market #task #P2
 
 Record a 30-second terminal GIF showing silvery in action: interactive list navigation, theme switching, responsive resize. Embed on homepage. Much less effort than a full YouTube video, still visually compelling. Use asciinema or ttyrec.
+

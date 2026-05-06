@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/kitty-protocol"
 aliases:
   - km-silvery.kitty-protocol
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Kitty keyboard protocol detection and negotiation @km/silvery #feature #P2
+

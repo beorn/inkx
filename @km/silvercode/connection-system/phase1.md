@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/connection-system/phase1"
 aliases:
   - km-silvercode.connection-system.phase1
@@ -28,6 +30,14 @@ dependencies:
     created_at: 2026-04-26T15:13:27Z
     created_by: claude:4de4a3ab
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode.connection-system
+      - type: link
+        target: km-silvery.config-package
 ---
 
 # [x] Phase 1: CLI integration — drop legacy flags, wire resolveConnection, mount config command @km/silvercode #task #P1
@@ -39,6 +49,7 @@ Phase 1 of `km-silvercode.connection-system`. Plan at `hub/silvery/design/bead2-
 **Scope** (single agent in worktree per refactor lessons):
 
 In `apps/silvercode/src/index.tsx`:
+
 - DROP `.option("--track <kind>", ...)` declaration
 - DROP `.option("--layout <mode>", ...)` declaration
 - DROP `.option("--bare", ...)` declaration
@@ -50,9 +61,11 @@ In `apps/silvercode/src/index.tsx`:
 - DELETE inline account-existence check (the long error block) — `resolveConnection` + doctor handle it.
 
 Add `apps/silvercode/tests/cli-resolve.test.ts`:
+
 - ≥6 tests covering: registry label resolution, connection-string resolution, built-in id resolution, env var fallback, default fallback, missing entry error.
 
 **/complete grep criteria**:
+
 ```bash
 rg '\.option\("--track' apps/silvercode/src/index.tsx              # → 0
 rg '\.option\("--layout' apps/silvercode/src/index.tsx             # → 0
@@ -69,8 +82,10 @@ bun run typecheck 2>&1 | grep "apps/silvercode/src/index"           # 0 errors
 ```
 
 **Constraints**:
+
 - No backwards-compat shims, no `@deprecated`, no fallbacks
 - App.tsx contract stays as-is; index.tsx resolves CLI → App props internally
 - Use a worktree (parallel agents on foundational code MUST use worktrees per project memory)
 
 **Depends on**: @km/silvery/config-package (shipped), draft files in apps/silvercode/src/{config-schema,resolve-connection}.ts (shipped).
+

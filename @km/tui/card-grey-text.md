@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/card-grey-text"
 aliases:
   - km-tui.card-grey-text
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Card shows greyed-out text for non-done tasks @km/tui #bug #P2
 
 Cards in the board view show dimmed/grey text even when the task is not done. Only done/dropped tasks should have dim text. Seen on 'Fix rap sheet' card — task is todo but text appears grey.
+

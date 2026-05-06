@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/colhead-white"
 aliases:
   - km-tui.colhead-white
@@ -13,3 +16,4 @@ assignee: claude:d697f216
 # [x] Column headers: should be white/bright like cards @km/tui #bug #P1 @claude:d697f216
 
 Column headers text should be white/bright to match card text brightness. Currently may be dimmer than cards.
+

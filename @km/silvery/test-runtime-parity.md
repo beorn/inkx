@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/test-runtime-parity"
 aliases:
   - km-silvery.test-runtime-parity
@@ -17,6 +20,10 @@ dependencies:
     created_at: 2026-04-12T00:46:40Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.layout-quality-plateau
 ---
 
 # [x] Delete silvery layoutDirty — use Flexily root.isDirty() as sole gate @km/silvery #task #P0 @Bjørn Stabell
@@ -30,6 +37,7 @@ Flexily's dirty propagation is reliable: markDirty() walks up to root, calculate
 Concrete bug this fixes: any code that sets a Flexily layout property via the adapter (setMaxWidth, setWidth, etc.) automatically makes the root dirty via Flexily's markDirty(). No need to separately set silvery's layoutDirty. The fitContentCorrectionPass bug (setting Flexily dirty but not silvery dirty) becomes impossible.
 
 Changes:
+
 1. layoutPhase: replace hasLayoutDirty() with root.layoutNode.isDirty() (keep hasScrollDirty separate — scroll doesn't affect Flexily)
 2. ag.ts: same replacement
 3. Delete trackLayoutDirty, hasLayoutDirty, clearLayoutDirtyTracking from dirty-tracking.ts
@@ -37,3 +45,4 @@ Changes:
 5. Remove trackLayoutDirty() calls from host-config.ts and fitContentCorrectionPass
 
 ~-50 lines net deletion. Simplification, not addition.
+

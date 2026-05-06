@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/fuzz-expansion"
 aliases:
   - km-infra.fuzz-expansion
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Fuzz/chaos test expansion: new tests + expanded invariants @km/infra #epic #P2
 
 Add fuzz tests to untested areas and expand invariants on existing fuzz tests. See analysis in session.
+

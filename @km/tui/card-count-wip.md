@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/card-count-wip"
 aliases:
   - km-tui.card-count-wip
@@ -13,3 +16,4 @@ assignee: claude:36393b5d
 # [x] Cards: only show count when WIP limit set @km/tui #feature #P3 @claude:36393b5d
 
 Card titles show COUNT (e.g. '4') after title. Remove this since we now have +N overflow indicator. Only show count/wip when column has a WIP limit configured.
+

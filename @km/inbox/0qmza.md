@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/0qmza"
 aliases:
   - km-0qmza
@@ -30,3 +32,4 @@ Documentation task tracking inkx architecture and roadmap documents.
 ## Scope
 
 Documentation only - no code changes.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/hooks-memory-perf"
 aliases:
   - km-silvery.hooks-memory-perf
@@ -28,6 +31,10 @@ dependencies:
     created_at: 2026-04-26T16:22:35Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.fix-sweep-vendor-fuzz
 ---
 
 # [x] [bug] vendor/silvery hooks/memory/perf — 6 failures (3 files) @km/silvery #bug #P2 @claude:cc081a9a
@@ -35,3 +42,4 @@ dependencies:
 blocks:: [[@km/all/fix-sweep-vendor-fuzz]]
 
 hooks/useBoxMetrics.test.tsx (4 tests), memory/memory.test.tsx (1), perf/termless-memleak-harness.test.tsx (1). /complete: bun vitest run --project vendor vendor/silvery/tests/hooks/useBoxMetrics.test.tsx vendor/silvery/tests/memory/memory.test.tsx vendor/silvery/tests/perf/termless-memleak-harness.test.tsx → 0 failures.
+

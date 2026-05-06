@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/chaos-reports"
 aliases:
   - km-chaos-reports
@@ -12,6 +14,7 @@ closed_at: 2026-01-23T13:14:27Z
 Generate structured chaos reports for failed tests.
 
 ## Report structure
+
 ```typescript
 interface ChaosReport {
   scenario: ChaosScenario;
@@ -31,7 +34,9 @@ interface ChaosReport {
 ```
 
 ## Benefits
+
 - Automated bug report generation
 - Transaction log shows exact failure sequence
 - Easy correlation with beads system
 - Reproducible via seed
+

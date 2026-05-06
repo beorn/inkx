@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/markdown/heading-task-refs"
 aliases:
   - km-markdown.heading-task-refs
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-14T11:29:08Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-markdown
 ---
 
 # [x] Heading-level tasks skip refs/props/tags extraction @km/markdown #bug #P2 @Bjørn Stabell
@@ -37,3 +44,4 @@ Impact: `km tasks -q '#km-bug'` can find heading-tasks by content match (slow pa
 Workaround: use list-item tasks for anything needing structured querying.
 
 Investigation path: check kmHeadingTaskMarkTransform — does it set a flag or consume the text that later transforms need? Check ast2nodes heading handling vs list-item handling — does convertHeading read data.tags/mentions/props/propsRaw the same way convertListItem does?
+

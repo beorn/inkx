@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/vault-loader"
 aliases:
   - km-vault-loader
@@ -14,3 +16,4 @@ Unify memory mode and disk mode loading through a shared event-based pipeline.
 Phases: discover → parse → apply → resolve → materialize
 
 See plan: ~/.claude/plans/stateful-splashing-parrot.md
+

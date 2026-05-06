@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/core/slate-interfaces/p3-dialog-split"
 aliases:
   - km-core.slate-interfaces.p3-dialog-split
@@ -19,11 +22,15 @@ assignee: claude:ceb7c9cb
 handleDialogAction has 54 cases — more than double the 25-case limit from the bead. BoardOp has 28 (slightly over).
 
 ### Suggested split
+
 DialogOp (54) could split into:
+
 - **PickerOp** — item picker, project picker, tag picker, assignee picker
 - **SearchOp** — search dialog, filter, search-replace
 - **PromptOp** — date prompt, favorites, confirmations, help
 - **PropertyOp** — node properties, task status, labels
 
 ### /complete
+
 - No handler has >25 cases in board-actions.ts
+

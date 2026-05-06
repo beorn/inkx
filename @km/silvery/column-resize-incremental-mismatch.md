@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/column-resize-incremental-mismatch"
 aliases:
   - km-silvery.column-resize-incremental-mismatch
@@ -19,6 +21,14 @@ dependencies:
     created_at: 2026-04-28T12:01:08Z
     created_by: claude:da9990c5
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery
+      - type: link
+        target: km-tui.focused-card-overflow
 ---
 
 # [ ] Strict-mode incremental-vs-fresh mismatch on column-height resize after card-overflow fix @km/silvery #bug #P2
@@ -33,3 +43,4 @@ Pipeline-level fix required (silvery agent only — never edit pipeline files di
 
 Reproduce:
   SILVERY_STRICT=1 bun vitest run --project slow apps/@km/tui/tests/resize-garble.slow.test.ts -t 'zoom in then zoom out'
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/dorender-overhead"
 aliases:
   - km-silvery.dorender-overhead
@@ -16,13 +19,16 @@ assignee: Bjørn Stabell
 Straight win. doRender has ~10 feature-detection branches that run every frame even when env vars are unset.
 
 ## Impact
+
 - Removes per-frame overhead that affects ALL scenarios (not just benches)
 - Benefits production performance, not just synthetic numbers
 
 ## Root cause
+
 vendor/silvery/packages/create/src/create-app.tsx:1304 doRender function has:
+
 - _ansiTrace branch (process.env?.SILVERY_TRACE === "1")
-- _noIncremental branch  
+- _noIncremental branch
 - __silvery_content_all reset
 - _cellDebugVal check
 - rootHasDirty probe
@@ -35,6 +41,7 @@ vendor/silvery/packages/create/src/create-app.tsx:1304 doRender function has:
 All these run even when all env vars are unset — they evaluate to false but the branch check still happens.
 
 ## Fix
+
 Hoist all bench/STRICT/instrumentation flags into a single module-level const at load time:
 
 ```typescript
@@ -48,10 +55,13 @@ const _INSTRUMENTATION_ENABLED =
 Then guard all the overhead behind `if (_INSTRUMENTATION_ENABLED)` — the JS engine will constant-fold this when the flag is false.
 
 ## Effort
+
 ~2-4 hours. Read the doRender function, identify all the conditional branches, hoist into a single flag.
 
 ## Verification
+
 - Bench with current code: baseline numbers
 - Apply fix
 - Bench again: all scenarios should be slightly faster
 - Expected: 5-10% improvement across the board (small but free)
+

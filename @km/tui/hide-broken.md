@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/hide-broken"
 aliases:
   - km-tui.hide-broken
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Hide command doesn't work — column not hidden, selects all cards in previous column @km/tui #bug #P2
+

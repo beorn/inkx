@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tree/tree-nodes"
 aliases:
   - km-tree.tree-nodes
@@ -20,6 +23,7 @@ Replace walkTree standalone function with Tree.nodes() method -- SlateJS-inspire
 ## Design (from SlateJS)
 
 Tree.nodes(rootId, opts?) yields nodes in DFS order with pluggable behavior:
+
 - match?: (node) => boolean -- which nodes to yield (always walk children regardless)
 - reverse?: boolean -- bottom-up traversal (for ctrl-p)
 - mode?: "all" | "highest" | "lowest" -- match mode
@@ -44,12 +48,15 @@ Current nav code (findAdjacentEditNode, findDeepestLast, isAncestorOf) each reim
 - Truncation (maxContentLines) is render context, not tree context -- handled separately
 
 ## Key files
+
 - packages/@km/tree/src/walk.ts -- rewrite as Tree.nodes()
 - apps/@km/tui/src/board/board-actions.ts -- replace findAdjacentEditNode/findDeepestLast
 - apps/@km/tui/src/views/TreeNode.tsx -- replace isAncestorOf
 - apps/@km/tui/src/views/Board.tsx -- replace walk-up loop
 
 ## Related
+
 - @km/tui/plugin-architecture (TEA state machines vision)
 - @km/all/simplification (architecture review)
 - SlateJS Editor.nodes() reference
+

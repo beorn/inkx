@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/backspace-delete-cursor"
 aliases:
   - km-tui.backspace-delete-cursor
@@ -20,3 +23,4 @@ Expected: cursor moves to previous sibling or stays on next sibling.
 
 Error in log: InvariantViolationError cursor-exists — cursor points to deleted node ID.
 The delete action removes the node but doesn't update cursor to adjacent node first.
+

@@ -1,4 +1,8 @@
 ---
+mentions:
+  - next
+  - km
+  - claude
 id: "@km/tui/due-date-next"
 aliases:
   - km-tui.due-date-next
@@ -13,3 +17,4 @@ assignee: claude:a5c7f7de
 # [x] Nodes with due_date don't automatically appear on @next (missing rule?) @km/tui #bug #P2 @claude:a5c7f7de
 
 Solved via template change: Inbox column on @next now has add= rules for due:past, due:today, due:week, and start:past queries, pulling in dated tasks automatically. No storage-layer changes needed — the existing query system already supports date filtering.
+

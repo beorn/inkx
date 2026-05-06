@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/col-no-blank-lines"
 aliases:
   - km-tui.col-no-blank-lines
@@ -13,3 +16,4 @@ assignee: claude:5770ce77
 # [x] Columns view: remove blank lines between blocks/items @km/tui #bug #P2 @claude:5770ce77
 
 In columns view, there are blank lines between blocks/items. Should match tabs/lists view spacing (no blank lines). Consider sharing the rendering code between views.
+

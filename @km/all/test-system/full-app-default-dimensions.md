@@ -20,13 +20,16 @@ createRenderer / createTermless / testBoard default to 80x24. Real user environm
 Today's incident: cyan strip residue in 13-column kanban only surfaced at 352x117. Default 80x24 fixtures hid it.
 
 Proposal: split test-helper defaults into two tiers.
+
 - Narrow components (TextInput, Spinner, Code, single-column lists): keep 80x24
 - Full-app helpers (testBoard, run-defaults contract tests, end-to-end app fixtures): default to 360x120
 
 Document the rule in vendor/silvery/CLAUDE.md (Testing section) and in km-tui's test docs. The recently-saved memory feedback-km-view-test-dimensions.md captures the principle.
 
 Acceptance:
+
 - testBoard signature: testBoard(vaultPath, { cols=360, rows=120 }={})
 - Full-app fixtures in tests/contracts/ use 360x120 unless asserting narrow-terminal behavior
 - silvery CLAUDE.md Testing section calls out the two-tier default
 - existing tests adjusted to either pass new dims or stay at 80x24 if intentional
+

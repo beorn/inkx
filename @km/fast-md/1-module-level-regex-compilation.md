@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/fast-md/1-module-level-regex-compilation"
 aliases:
   - km-fast-md.1
@@ -11,3 +13,4 @@ closed_at: 2026-01-23T15:43:48Z
 # [x] Module-level regex compilation @km/fast-md #task #P2
 
 Compile regexes once at module level instead of per-call. Affects parseWikiLinks, parseTaskMetadata, parseHeadingRules, parseInlineProperties.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/otrwl"
 aliases:
   - km-otrwl
@@ -21,3 +24,4 @@ Classification: P1
 Backend can consume terminal output (feed) and encode keys, but no channel for emulator-generated replies (cursor position reports, device attributes, kitty keyboard negotiation, focus/mouse replies) to be written back to PTY. Some terminal apps will hang.
 
 Suggested fix: Add backend→PTY response path: feed() returns bytes to write back, or backend exposes onResponse callback.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/cxe3g"
 aliases:
   - km-cxe3g
@@ -13,3 +16,4 @@ assignee: claude:ee8efc0f
 # [x] Enable examples to render directly on the web page @km/_orphan #feature #P2 @claude:ee8efc0f
 
 inkx examples should be renderable directly on the VitePress docs site, showing three render targets side by side: Canvas 2D, DOM, and terminal (via xterm.js). This demonstrates inkx's pluggable RenderAdapter architecture — the same React components render to any target. Each example page should show a live interactive demo with tabs for Canvas, DOM, and Terminal views.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/proto-rich-clipboard"
 aliases:
   - km-silvery.proto-rich-clipboard
@@ -17,7 +19,10 @@ owner: bjorn@stabell.org
 When user copies text from km via selection, provide both text/plain and text/html (markdown rendered) via OSC 5522. Paste in Notion/Slack/docs gets formatted text. Falls back to plain OSC 52.
 
 ## Why
+
 km stores markdown. When you select and copy board content, the clipboard should contain both plain text and HTML. This makes km a first-class citizen in copy/paste workflows.
 
 ## Depends on
+
 @km/silvery/interactions-runtime (selection), @km/silvery/clipboard-paste-cleanup
+

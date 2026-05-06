@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-detect-standalone"
 aliases:
   - km-silvery.theme-detect-standalone
@@ -21,6 +23,10 @@ dependencies:
     created_at: 2026-04-18T00:08:18Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.design-system
 ---
 
 # [x] Theme detection as standalone library — useful beyond silvery @km/silvery #feature #P3
@@ -92,3 +98,4 @@ DetectionResult       // confidence + provenance per slot
 - Depends on: @km/silvery/color-oklch (OKLCH math)
 
 Per /pro review 2026-04-18: 'extract at the ColorScheme boundary, not Theme boundary' is the right call for cross-framework reusability.
+

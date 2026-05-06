@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/scope-phase-4-docs-km"
 aliases:
   - km-silvery.scope-phase-4-docs-km
@@ -31,6 +34,14 @@ dependencies:
     created_at: 2026-04-24T13:40:46Z
     created_by: claude:2aefb4b6
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.scope-phase-4
+      - type: link
+        target: km-silvery.scope-phase-4-eslint
 ---
 
 # [x] Phase 4.D: Audit root + km CLAUDE.md + .claude/skills/* @km/silvery #task #P2 @claude:2aefb4b6
@@ -38,3 +49,4 @@ dependencies:
 blocks:: [[@km/silvery/scope-phase-4]], [[@km/silvery/scope-phase-4-eslint]]
 
 Sweep /Users/beorn/CLAUDE.md, /Users/beorn/Code/CLAUDE.md, /Users/beorn/Code/pim/km/CLAUDE.md for gotchas/skill references mentioning useDispose/term.signals.on/useExit. Update .claude/skills/tui/*, .claude/skills/silvery/*, .claude/skills/logging/* as needed. Exit: grep clean across @km/_orphan/level CLAUDE.md + skills.
+

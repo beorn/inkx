@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/era2a-3-pipeline"
 aliases:
   - km-silvery.era2a-3-pipeline
@@ -34,3 +37,4 @@ Decompose opaque runPipeline() into two independent phases. Introduce minimal cr
 
 Depends on Phase 2 (term.paint).
 Design: era2a/rendering.md §Rendering Pipeline
+

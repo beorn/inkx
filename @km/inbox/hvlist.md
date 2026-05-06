@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/hvlist"
 aliases:
   - km-hvlist
@@ -13,6 +16,7 @@ assignee: claude:227cdc41
 Create a HorizontalVirtualList component in inkx that mirrors VirtualList but for horizontal scrolling. This will replace manual column slicing in Board.tsx with a consistent, reusable API.
 
 Key features:
+
 - Similar API to VirtualList (items, width, itemWidth, scrollTo, renderItem)
 - Edge-based scrolling for keyboard navigation
 - Support for fixed or variable item widths
@@ -20,3 +24,4 @@ Key features:
 - gap prop for item spacing
 
 Design doc: docs/design/horizontal-virtualization.md
+

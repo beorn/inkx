@@ -72,3 +72,4 @@ Those are useful, but not complete enough for config options or wire-level bugs.
 - Fake/live drift is visible as contract failures with the backend id and scenario name.
 - Config-option tests use fake backends at the protocol boundary, not mocked UI/session state.
 - Documentation explains the fake layering and when to use Layer 1 session scripts vs full backend fakes.
+

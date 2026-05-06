@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/cmd"
 aliases:
   - km-cmd
@@ -12,6 +14,7 @@ closed_at: 2026-01-19T11:33:28Z
 ## Unified Command System Epic
 
 A unified command system that works across:
+
 - **TUI** (keyboard/mouse actions in Board.tsx)
 - **@km/_orphan/repl/sh** (scripted commands)
 - **Future**: command palette, CLI
@@ -102,3 +105,4 @@ A unified command system that works across:
 - **Discoverable** - command palette, help overlay
 - **Extensible** - plugins can add commands
 - **Type-safe** - full TypeScript coverage
+

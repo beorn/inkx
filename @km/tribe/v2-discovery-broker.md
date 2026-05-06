@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tribe/v2-discovery-broker"
 aliases:
   - km-tribe.v2-discovery-broker
@@ -19,6 +22,7 @@ Implement the tribe v2 architecture per docs/design/tribe-decoupling.md.
 Phase 1 (DONE): Decouple daemon from beads — daemon takes resolved paths, plugins self-discover.
 
 Remaining phases:
+
 - Phase 0: Contracts — canonical project_id (hash of realpath), peer handshake protocol, message class definitions, resource ownership model
 - Phase 2: Direct peer connections — proxies expose peer sockets, direct messaging, coordination state in daemon
 - Phase 3: Resource sockets — socket bind = ownership lock, resource directory, cross-project access
@@ -26,8 +30,10 @@ Remaining phases:
 - Phase 5: Remove legacy routing — only after stability confirmed
 
 Key design decisions (from 2 rounds of GPT 5.4 Pro review):
+
 - One proxy socket, multiplexed resources (not per-plugin sockets)
 - Socket bind() as atomic ownership lock (daemon, resources)
 - Daemon is discovery broker only (~200 lines), no message routing
 - Three message classes: ephemeral (direct), coordination state (daemon), durable (beads)
 - Leadership with epoch/fencing per project
+

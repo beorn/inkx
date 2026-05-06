@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/line-wrap"
 aliases:
   - km-tui.line-wrap
@@ -11,3 +14,4 @@ assignee: claude:8f007ba9
 ---
 
 # [x] Detail pane line wrapping not great — words split mid-word @km/tui #bug #P3 @claude:8f007ba9
+

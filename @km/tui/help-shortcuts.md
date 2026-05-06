@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/help-shortcuts"
 aliases:
   - km-tui.help-shortcuts
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Help dialog: rename CHORDS to SHORTCUTS, add favorites and create columns @km/tui #task #P3
 
 Rename CHORDS section to SHORTCUTS in help dialog. Add favorites row (0-9): g 0, bare 0, m 0, a 0. Add a column for create (capture) chords.
+

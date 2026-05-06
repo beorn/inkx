@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/dil2"
 aliases:
   - km-dil2
@@ -12,3 +14,4 @@ closed_at: 2026-01-23T11:26:45Z
 Progress in TUI status bar during loading.
 
 Related to @km/vault-loader - will be addressed as part of unified VaultLoader work which standardizes progress reporting across all loading phases.
+

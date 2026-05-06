@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/npm-releases"
 aliases:
   - km-infra.npm-releases
@@ -15,11 +18,13 @@ assignee: claude:55df8ef1
 # [x] Set up npm release workflows for all vendor packages @km/infra #task #P2 @claude:55df8ef1
 
 ## What
+
 Add GitHub Actions release/publish workflows to all vendor packages. Create initial releases.
 
 ## Packages
+
 - flexily (0.2.0)
-- loggily (0.3.0)  
+- loggily (0.3.0)
 - @beorn/mdtest (0.2.0)
 - silvery (0.0.1) — has changesets already
 - @termless/monorepo (0.2.0)
@@ -28,6 +33,8 @@ Add GitHub Actions release/publish workflows to all vendor packages. Create init
 - @beorn/accountly, @beorn/tap, @beorn/watcher-chaos, @beorn/tools (TBD)
 
 ## Approach
+
 1. Create standard release workflow template (tag-triggered npm publish)
 2. Apply to each package
 3. Create GitHub releases with tags
+

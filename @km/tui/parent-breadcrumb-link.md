@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/parent-breadcrumb-link"
 aliases:
   - km-tui.parent-breadcrumb-link
@@ -20,6 +22,7 @@ owner: bjorn@stabell.org
 # [x] Make all embedded node references navigable Links (parent breadcrumb, block refs, wiki links) @km/tui #feature #P2
 
 All references to other nodes in card content should be <Link href='km://node/nodeId'>:
+
 - Parent breadcrumb above embedded nodes → navigate to parent
 - Block references → navigate to referenced block
 - Wiki links → navigate to linked node
@@ -28,3 +31,4 @@ All references to other nodes in card content should be <Link href='km://node/no
 On Cmd+hover: underline + pointer cursor. On Cmd+click: navigate to that node (zoom/select).
 
 Uses existing Link infrastructure (inline rects, modifier tracking, link:open event). The useLinkOpen hook handles km:// URLs by dispatching navigation actions.
+

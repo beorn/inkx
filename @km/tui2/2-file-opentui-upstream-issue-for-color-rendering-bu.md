@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui2/2-file-opentui-upstream-issue-for-color-rendering-bu"
 aliases:
   - km-tui2.2
@@ -15,6 +17,7 @@ closed_at: 2026-01-17T00:07:25Z
 OpenTUI has a bug where text `color` prop is ignored when `backgroundColor` is set. All text renders as white.
 
 **Reproduction**:
+
 ```tsx
 <text backgroundColor="cyan" color="black">Should be black</text>
 // Expected: black text on cyan background
@@ -26,3 +29,4 @@ OpenTUI has a bug where text `color` prop is ignored when `backgroundColor` is s
 **Action**: File issue on anomalyco/opentui GitHub repo
 
 **Details**: vendor/opentui/issues/002-color-rendering.md
+

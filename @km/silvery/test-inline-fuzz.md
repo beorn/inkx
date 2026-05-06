@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/test-inline-fuzz"
 aliases:
   - km-silvery.test-inline-fuzz
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] Testing: Inline mode needs its own fuzz suite @km/silvery #task #P2
 
 Missing property tests: resize-resize back-same state, external writes between frames, cursor-only changes, content shrink with styled blank lines, scrollback promotion + resize.
+

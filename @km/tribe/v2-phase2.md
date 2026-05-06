@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/v2-phase2"
 aliases:
   - km-tribe.v2-phase2
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Phase 2: peer sockets + direct messaging @km/tribe #task #P2
 
 Proxies expose peer sockets. Session-to-session messages go direct via discover + connect. Daemon keeps legacy routing as fallback.
+

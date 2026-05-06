@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/iviwx"
 aliases:
   - km-iviwx
@@ -16,14 +18,16 @@ owner: bjorn@stabell.org
 Fix factual inconsistencies across docs.
 
 ## 1. Canvas/DOM render targets
-- README line 117: "Canvas 2D and DOM available now" 
+
+- README line 117: "Canvas 2D and DOM available now"
 - Homepage line 39: "Canvas and DOM tomorrow"
 - Roadmap: "experimental, not yet published on npm"
 - FIX: Align all to "Canvas 2D and DOM adapters are implemented (experimental). Terminal is the primary, production-ready target."
 - Files: README.md, docs/index.md, docs/guide/silvery-vs-ink.md, docs/guide/comparison.md
 
 ## 2. First-render zeros
-- README/homepage: imply "no width:0 on first render" 
+
+- README/homepage: imply "no width:0 on first render"
 - Migration guide: lists "First Render Shows Zeros" as a known difference
 - FIX: Be precise everywhere. useContentRect() returns 0 on the very first render pass, then actual dimensions on the second (both happen before first paint). This is different from Ink's useBoxMetrics which requires a useEffect cycle. Clarify in:
   - README: "Components know their dimensions during render (after the initial layout pass)"
@@ -31,10 +35,13 @@ Fix factual inconsistencies across docs.
   - why-silvery.md: don't claim "no zeros", say "synchronous dimensions during render"
 
 ## 3. Text wrapping claim
+
 - Migration guide says Ink overflows by default, Silvery wraps
 - Verify against current Ink behavior (Ink v5+ may wrap by default now)
 - FIX: If Ink now wraps, update migration guide and silvery-vs-ink.md. If Ink still overflows, keep claim but add version note.
 
 ## 4. Component count
+
 - All docs say "30+" — verify actual count is ≥30
 - If it's 23+ (as the earlier homepage said), update all to match
+

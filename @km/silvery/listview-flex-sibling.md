@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/listview-flex-sibling"
 aliases:
   - km-silvery.listview-flex-sibling
@@ -24,6 +27,10 @@ dependencies:
     created_at: 2026-04-23T01:00:04Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] ListView height={N} doesn't behave as rigid row-budget in a flex column; absorbs all rows below siblings @km/silvery #bug #P2 @claude:c6244087
@@ -39,3 +46,4 @@ Observed: Composer never renders regardless of whether outer height is set or om
 Workaround: render Composer as `listFooter` (matches `hub/silvery/prototype/aichat-v2/app.tsx` InputFooter pattern). Downside: composer scrolls with the stream instead of pinning bottom.
 
 Fix shape: verify ListView respects its own `height` prop when siblings have `flexShrink:0`. Likely the internal Box needs `flexShrink:0` too, or ListView should honor its height as a hard bound not a minimum.
+

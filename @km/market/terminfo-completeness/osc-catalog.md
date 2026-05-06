@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/market/terminfo-completeness/osc-catalog"
 aliases:
   - km-market.terminfo-completeness.osc-catalog
@@ -22,3 +25,4 @@ Current: 21 OSC features tracked. ~90+ exist across all terminals.
 Major gaps: OSC 1 (icon), 4 (palette), 12 (cursor color), 104/110-119 (resets), 17/19 (highlight), 22 (pointer), 50 (font), 99 (kitty notifs), plus niche ones.
 
 Sources being mapped: xterm ctlseqs, iTerm2, Kitty, ConEmu, FinalTerm, VS Code, rxvt-unicode, mintty, foot, VTE/GNOME, Konsole.
+

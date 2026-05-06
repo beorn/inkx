@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - claude
 id: "@km/inbox/4inrl"
 aliases:
   - km-4inrl
@@ -14,3 +18,4 @@ assignee: claude:73d7a332
 ---
 
 # [x] ink.ts: move colon-format SGR parsing to @silvery/term @km/_orphan #task #P3 @claude:73d7a332
+

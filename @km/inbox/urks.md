@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - km
 id: "@km/inbox/urks"
 aliases:
   - km-urks
@@ -10,15 +13,18 @@ closed_at: 2026-01-17T23:18:30Z
 # [x] Migrate task/status commands to @km/commands @km/_orphan #task #P2
 
 ## Goal
+
 Move all task status commands to the unified command registry.
 
 ## Commands to Migrate
 
 ### Status Toggle
+
 - `cycle_task_status` - cycle through statuses (Space)
 - `toggle_task_done` - toggle between done/todo (x)
 
 ### Direct Status Set
+
 - `set_status_todo`
 - `set_status_wip`
 - `set_status_blocked`
@@ -26,6 +32,7 @@ Move all task status commands to the unified command registry.
 - `set_status_dropped`
 
 ## Source Files
+
 - `apps/km-tui/packages/km-ink/src/views/Board.tsx` - Space key handler
 - `apps/km-repl/src/commandParser.ts` - SET_STATUS shell command
 - `archive/km-opentui/src/commands.ts` - proven pattern
@@ -81,8 +88,10 @@ export const setStatusDone: CommandDef = {
 ```
 
 ## Acceptance Criteria
+
 - [ ] All task commands registered in @km/commands
 - [ ] Commands return TAction (UPDATE_NODE)
 - [ ] Status cycle logic is reusable utility
 - [ ] Unit tests for each command
 - [ ] Works for both single and multi-selected nodes
+

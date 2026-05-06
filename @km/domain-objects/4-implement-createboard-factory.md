@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/domain-objects/4-implement-createboard-factory"
 aliases:
   - km-domain-objects.4
@@ -17,3 +19,4 @@ Create Board domain object wrapping BoardState + reducer.
 - Wraps boardReducer with methods
 
 See plan for full interface.
+

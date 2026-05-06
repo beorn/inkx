@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/sl3a"
 aliases:
   - km-sl3a
@@ -10,9 +12,11 @@ closed_at: 2026-01-22T00:19:30Z
 # [x] No tests for km-agent query functions @km/_orphan #task #P2
 
 packages/@km/_orphan/agent/src/queries.ts and sessions.ts export public API with no tests:
+
 - queryAgents()
 - getAgent()
 - querySessions()
 - getSession()
 
 These are user-facing query functions that should have test coverage.
+

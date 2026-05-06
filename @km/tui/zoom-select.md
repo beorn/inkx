@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/zoom-select"
 aliases:
   - km-tui.zoom-select
@@ -13,3 +16,4 @@ assignee: claude:5f0aee02
 # [x] Zoom out (u) moves selection to parent instead of keeping current node selected @km/tui #bug #P2 @claude:5f0aee02
 
 When zooming out with 'u', the selected node should remain selected. Currently it moves selection to the parent node. The selection should only move to parent if the current card wouldn't be visible in the new view — and even then, we could unfold its parents to keep it visible.
+

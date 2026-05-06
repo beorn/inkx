@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/perf-viewnav"
 aliases:
   - km-tui.perf-viewnav
@@ -9,3 +12,4 @@ assignee: claude:a3625ec3
 ---
 
 # [x] ViewNavigation - view-owned navigation policy @km/tui #task #P1 @claude:a3625ec3
+

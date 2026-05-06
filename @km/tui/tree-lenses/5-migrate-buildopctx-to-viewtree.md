@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/tree-lenses/5-migrate-buildopctx-to-viewtree"
 aliases:
   - km-tui.tree-lenses.5
@@ -17,8 +19,9 @@ owner: bjorn@stabell.org
 
 buildOpCtx currently reads ViewSnapshot for viewTree/viewIndex/columns.
 Migrate to read from pane.signals.tree (ViewTree):
+
 - viewTree → view (the ViewTree itself)
-- viewIndex → view.node(id) 
+- viewIndex → view.node(id)
 - columns → view.children(rootId)
 - nodeIndex → derived from view.children
 
@@ -26,6 +29,8 @@ Slim OpCtx: remove viewTree, viewIndex, columns fields.
 Replace with a single tree: ViewTree reference.
 
 Acceptance:
+
 - OpCtx.viewTree/viewIndex/columns removed
 - OpCtx has tree: ViewTree
 - All action handler tests pass
+

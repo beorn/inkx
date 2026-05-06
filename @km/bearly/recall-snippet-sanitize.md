@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/recall-snippet-sanitize"
 aliases:
   - km-bearly.recall-snippet-sanitize
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-28T16:04:01Z
     created_by: claude:4de4a3ab
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-bearly
 ---
 
 # [ ] LLM-rewrite snippets to neutralize role-prefix and transcript-shape triggers before emit + indexer-side regex strip on assistant text @km/bearly #bug #P1
@@ -28,9 +34,7 @@ Recall emits and corpus suffer from autocatalytic role-prefix contamination. Ses
 Trigger-gated, two-layer defense at the recall pipeline:
 
 1. **Indexer-side regex strip (free, on ingest)** — `vendor/bearly/plugins/recall/src/history/indexer.ts` `extractTextContent`: when processing assistant text-content blocks, strip leading `Human:` / `Assistant:` / `H:` / `A:` line-starts and known XML markup tags (`<channel`, `<system-reminder`, `<command-message`, `<session-end`) before FTS insert. Cuts the corpus-contamination loop.
-
 2. **Emit-side LLM rewrite (Haiku, only on trigger)** — new `vendor/bearly/plugins/recall/src/lib/sanitize-snippet.ts`: detect role-prefix or transcript-shape in candidate snippet; if matched, route through Haiku via `queryModel` with a strict preserve-verbatim system prompt (kebab-IDs, paths, scoped pkgs, hashes, numbers, error names, quoted strings stay literal); regex post-scrub on LLM output as safety net. Wire into `inject-core.ts` `runInjectDelta` snippet-build loop after `cleanSnippet` + `containsRejectedSignal`.
-
 3. **Backfill** — recommend `bun recall index --rebuild` after deploy to scrub historical contamination.
 
 ## Acceptance
@@ -56,3 +60,4 @@ Trigger-gated, two-layer defense at the recall pipeline:
 
 - /Users/beorn/.claude/projects/-Users-beorn-Code-pim-km/2405c72e-8617-4bdb-b092-6c118b8fb935.jsonl lines 60, 412, 415, 554, 595, 2496, 9938, 9996, 10087 (9 occurrences)
 - Current session 4de4a3ab — recall additionalContext emit at ~22:43 echoed reconstructed-transcript H: shape
+

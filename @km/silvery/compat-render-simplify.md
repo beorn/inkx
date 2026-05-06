@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/compat-render-simplify"
 aliases:
   - km-silvery.compat-render-simplify
@@ -18,3 +21,4 @@ assignee: claude:474834b0
 ---
 
 # [x] Simplify compat render() to delegate to silvery render directly @km/silvery #task #P2 @claude:474834b0
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/sterling-storybook"
 aliases:
   - km-silvery.sterling-storybook
@@ -18,6 +20,10 @@ dependencies:
     created_at: 2026-04-24T16:12:57Z
     created_by: claude:5e447b66
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.sterling
 ---
 
 # [x] Sterling Storybook — interactive system explorer @km/silvery #epic #P2
@@ -48,3 +54,4 @@ MVP depends on Sterling Phase 2a (data layer with derivationTrace hooks). Build 
 ## Parent
 
 @km/silvery/theme-v4
+

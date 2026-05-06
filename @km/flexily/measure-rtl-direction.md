@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/measure-rtl-direction"
 aliases:
   - km-flexily.measure-rtl-direction
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Bug: measureNode() called without direction in RTL-sensitive paths @km/flexily #bug #P0
+

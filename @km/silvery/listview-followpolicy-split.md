@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/listview-followpolicy-split"
 aliases:
   - km-silvery.listview-followpolicy-split
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-26T00:48:08Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.architectural-plateau
 ---
 
 # [x] ListView: split chat-follow policy from cursor (drop cursorKey={last} for stickyBottom-only) @km/silvery #feature #P2 @claude:2405c72e
@@ -27,3 +34,4 @@ dependencies:
 blocks:: [[@km/silvery/architectural-plateau]]
 
 Per /pro review 2026-04-26. Currently silvercode MessageList sets BOTH cursorKey={lastKey} AND stickyBottom={true}. Two scroll authorities (cursor ensure-visible + stickyBottom on grow) compete. atBottom logic uses item-based comparison (cursor === lastIdx) which is wrong — at-bottom should mean last visual ROW visible. Fix: introduce follow="none"|"end" prop; cursor stays selection-only (not scroll authority). silvercode adopts follow="end" and drops cursorKey pin. Depends on @km/silvery/listview-heightmodel-unify for accurate at-bottom detection.
+

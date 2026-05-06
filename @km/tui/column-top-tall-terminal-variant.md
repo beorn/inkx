@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/column-top-tall-terminal-variant"
 aliases:
   - km-tui.column-top-tall-terminal-variant
@@ -22,6 +25,10 @@ dependencies:
     created_at: 2026-04-20T17:33:19Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui.column-top-disappears
 ---
 
 # [x] [bug] Column-top-disappears variant: body block missing from adjacent column top at tall terminal (>100 rows) @km/tui #bug #P1 @claude:8b5b9e1c
@@ -29,3 +36,4 @@ dependencies:
 blocks:: [[@km/tui/column-top-disappears]]
 
 NEW VARIANT observed after Fix 1 (forward-walk height-aware) + gap-accounting parity + body-card clamp. User screen height 117 rows: top body block in the adjacent column renders blank. Screenshot in ~/Desktop/Screenshot 2026-04-20 at 17.21.37.png shows 5 @next columns with a blank region at top of adjacent column. Dependent on terminal height — specifically manifests at tall terminals (>100 rows). Parent: @km/tui/column-top-disappears.
+

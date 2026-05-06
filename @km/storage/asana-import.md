@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/asana-import"
 aliases:
   - km-storage.asana-import
@@ -15,6 +18,7 @@ assignee: claude:4c413aae
 ## Asana Import: Full Pipeline Quality
 
 ### Completed
+
 - mdast refactor: rehype→hast→mdast pipeline replaces Turndown (html-to-md.ts)
 - htmlBody preservation: task-transform.ts saves raw html_notes, convert.ts prefers it
 - splitBodyAtHeadings: body headings rebased to proper depth under parent task
@@ -25,6 +29,7 @@ assignee: claude:4c413aae
 - Cross-project dedup, user task lists, attachment relocation
 
 ### In Progress
+
 - **Refetch needed**: cached JSON has flat Turndown markdown without htmlBody. Claude Code SIGTERM kills long processes. Run manually in terminal:
   bun km import asana --workspace Stabell --fetch --fetch-restart
   bun km import asana --workspace Stabell --import --force
@@ -32,5 +37,7 @@ assignee: claude:4c413aae
 - **Inline AST**: Replace regex text pipeline with AST→JSX rendering (@km/tui/inline-ast)
 
 ### Related
+
 - @km/session/0220b: session tracking
 - @km/tui/inline-ast: inline AST rendering pipeline
+

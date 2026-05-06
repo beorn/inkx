@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/bearly/llm-registry-auto-update"
 aliases:
   - km-bearly.llm-registry-auto-update
@@ -32,6 +35,7 @@ Two-stage pipeline:
 ### Stage 1: Auto-discovery (already exists, broaden)
 
 \`bun llm update-pricing\` already scrapes provider docs for pricing updates. Extend to also produce a \`new-models.json\` artifact listing newly-detected SKUs not in the registry, with:
+
 - Provider
 - ID (the API alias the provider uses)
 - Pricing (input/output per M tokens)
@@ -41,9 +45,10 @@ Two-stage pipeline:
 ### Stage 2: LLM-gated promotion
 
 \`bun llm pro --discover-models [--apply]\`:
+
 - Reads new-models.json
-- For each candidate, fires a cheap (\`gpt-5-nano\`) classifier prompt: 
-  > "Should this model be added to the @bearly/llm registry? Provider: X. Pricing: \$Y/\$Z per M. Doc snippet: ... Decide: yes / no / needs-review. Reason briefly."
+- For each candidate, fires a cheap (\`gpt-5-nano\`) classifier prompt:
+  > "Should this model be added to the @bearly/llm registry? Provider: X. Pricing: $Y/$Z per M. Doc snippet: ... Decide: yes / no / needs-review. Reason briefly."
 - Outputs a markdown table for human review
 - \`--apply\` writes a draft commit adding the approved entries to types.ts
 - \`--apply\` does NOT auto-merge — produces a draft PR-shaped diff for the user to review
@@ -72,3 +77,4 @@ Run weekly via cron / SOP / sop infra.
 - \`--apply\` writes a unified diff to stdout (or to \`/tmp/llm-new-models.patch\`)
 - Tests cover: classifier prompt building, parsing classifier output, diff generation
 - Documented in README and a \`/sop infra\` task
+

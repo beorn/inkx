@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/era2a-1-textframe"
 aliases:
   - km-silvery.era2a-1-textframe
@@ -19,25 +22,31 @@ assignee: claude:fed8de9e
 Extract immutable TextFrame type + converge cell types + wire App.
 
 ## Core: TextFrame snapshot factory (DONE)
+
 - ag/src/text-frame.ts — TextFrame + FrameCell types (existed, updated FrameCell for convergence)
 - ag-term/src/buffer.ts — createTextFrame(buffer): immutable snapshot via clone + lazy text/ansi
 - FrameCell: added underlineColor, normalized underline to UnderlineStyle (matches termless Cell)
 
 ## Consumer wiring
+
 - App implements TextFrame structurally (text, ansi, lines, width, height, cell, containsText)
 - Export createTextFrame from ag-term barrel
 - BoundTerm.cell() stays as Cell (semi-internal; FrameCell via App.cell())
 
 ## What deferred to Phase 2
+
 - TermScreen → TextFrame: depends on term.paint() storing TextFrame as term.screen
 - term.screen type change: requires termless adapter or convergence
 - toAnsi(frame) standalone function: Phase 2 when paint uses it
 
 ## Delete
+
 - Remove lastFrame/lastBuffer/lastFrameText from App public interface (internal only)
 
 ## /complete
+
 - createTextFrame() exists and is exported
 - App structurally matches TextFrame (text, ansi, lines, width, height, cell, containsText)
 - FrameCell has underlineColor + UnderlineStyle (matches termless Cell)
 - Docs/examples updated. CLAUDE.md updated if needed.
+

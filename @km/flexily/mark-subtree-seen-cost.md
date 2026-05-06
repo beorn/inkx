@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/mark-subtree-seen-cost"
 aliases:
   - km-flexily.mark-subtree-seen-cost
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Perf: markSubtreeLayoutSeen() adds another full-tree walk after every layout @km/flexily #task #P2
+

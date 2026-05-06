@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/modal-dismiss-ghost"
 aliases:
   - km-silvercode.modal-dismiss-ghost
@@ -11,3 +14,4 @@ assignee: claude:2405c72e
 ---
 
 # [/] Modal dialog dismiss leaves duplicated SidePanel row + bottom border ghost @km/silvercode #bug #P2 @claude:2405c72e
+

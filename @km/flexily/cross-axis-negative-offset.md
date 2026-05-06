@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/cross-axis-negative-offset"
 aliases:
   - km-flexily.cross-axis-negative-offset
@@ -17,3 +19,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Bug: Cross-axis alignment drops negative offsets — oversized children misplaced @km/flexily #bug #P0
+

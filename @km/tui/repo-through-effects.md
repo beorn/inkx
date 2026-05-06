@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/repo-through-effects"
 aliases:
   - km-tui.repo-through-effects
@@ -40,3 +43,4 @@ Phase C is mechanical cleanup.
 
 RELATED: @km/tui/board-apply (closed prematurely), @km/tui/normalize-plugins (shipped),
 @km/tui/plugin-architecture (parent epic)
+

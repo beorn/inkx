@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/unified-navigate"
 aliases:
   - km-tui.unified-navigate
@@ -13,3 +16,4 @@ assignee: Bjørn Stabell
 # [x] Unified navigate(ctx) entry point replacing handleCursorMove switch @km/tui #task #P3 @Bjørn Stabell
 
 Future: single navigate(direction, state, viewTree) function that routes to the right algorithm based on cursor classification. Eliminates the direction-switch in handleCursorMove. ~1 day. Depends on Phase 1+2.
+

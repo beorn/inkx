@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/dt7z5"
 aliases:
   - km-dt7z5
@@ -23,3 +26,4 @@ Classification: P0
 toHaveScrollbackLines(n) compares against totalLines which includes visible screen rows. The matcher is off by screenLines.
 
 Suggested fix: Compare Math.max(0, totalLines - screenLines) instead, or rename if total buffer lines is the intent.
+

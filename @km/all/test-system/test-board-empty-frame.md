@@ -26,7 +26,9 @@ Consequence: every existing .slow.spec.ts using testBoard silently passes — ST
 Discovered while investigating @km/silvery/render-light-blue-bg-strip-residue — round-1 and round-2 'cannot reproduce' results were both false negatives from this harness floor. The bg-strip bug is real and visible in the user's actual terminal at 352×117, but no headless test path can see it.
 
 Acceptance:
+
 - helpers/real-board.ts wraps render with <Screen> or equivalent term-context pin
 - a guard assertion (likely in the helper itself or a contract test) fails if the rendered frame has < N% of cells painted (catches future degenerate-frame regressions)
 - existing .slow.spec.ts files re-run and ACTUALLY catch known visual bugs
 - @km/silvery/render-light-blue-bg-strip-residue can be reproduced once this is fixed
+

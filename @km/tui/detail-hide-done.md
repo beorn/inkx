@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/detail-hide-done"
 aliases:
   - km-tui.detail-hide-done
@@ -13,3 +16,4 @@ assignee: claude:f47d1ff0
 # [x] Detail pane shows done items when 'v d' (hide done) is active @km/tui #bug #P1 @claude:f47d1ff0
 
 Board columns correctly hide done items with 'v d' toggle, but the detail pane on the right still shows done/completed sub-items. They should be filtered consistently.
+

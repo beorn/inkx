@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/silvery-cli"
 aliases:
   - km-termless.silvery-cli
@@ -13,3 +16,4 @@ assignee: claude:4929065a
 ---
 
 # [x] Use silvery for CLI output with flexbox layout @km/termless #task #P2 @claude:4929065a
+

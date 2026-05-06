@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/tree/v4/p6-ergonomics"
 aliases:
   - km-tui.tree.v4.p6-ergonomics
@@ -39,3 +41,4 @@ rg 'ReactiveNodeStoreContext|ReactiveNodeStoreProvider' --glob '!.beads' --glob 
 rg 'reduced\.get' apps/km-tui/src/views/ apps/km-tui/src/hooks/ --glob '!*.test.*' -t ts -c | wc -l  # 0
 bun tsc --noEmit  # 0 new errors
 \`\`\`
+

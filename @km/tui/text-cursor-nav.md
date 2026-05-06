@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/text-cursor-nav"
 aliases:
   - km-tui.text-cursor-nav
@@ -13,3 +16,4 @@ assignee: claude:97217d5d
 # [x] Text edit mode: arrow keys move text cursor within/across blocks, preserve stickyX @km/tui #feature #P2 @claude:97217d5d
 
 In text edit mode, cursor movement keys (arrows, hjkl) should move the text cursor within the current block and across blocks rather than exiting text mode. Implement stickyX (like other text editors' column memory) based on visual X position (accounting for line wraps). Navigate up/down across blocks and into other items as needed while staying in text edit mode.
+

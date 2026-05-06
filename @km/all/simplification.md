@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/simplification"
 aliases:
   - km-all.simplification
@@ -17,6 +19,7 @@ Tracking epic for architectural simplification opportunities identified in the t
 ViewNode migration (@km/tui/view-tree) addresses: body detection, column-level collapse, embed visual resolution, cursor classification, navigation. This epic tracks what remains.
 
 TOP 5 OPPORTUNITIES (by lines removed x bug risk):
+
 1. Unify column derivation — use-columns.ts becomes thin wrapper over ViewNode (~400 lines)
 2. Unify cursor classification — deriveCursorAncestors replaced by deriveCursorPath (~180 lines)
 3. Simplify navigation — delete legacy repo-walking navigation (~500 lines)
@@ -31,3 +34,4 @@ ADDITIONAL:
 DEPENDS ON: @km/tui/view-tree (Phases 3-5)
 INFORMED BY: @km/all/architecture-review (findings doc)
 ALIGNS WITH: @km/tui/plugin-architecture, @km/all/plugin-composability
+

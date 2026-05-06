@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/0jw8d"
 aliases:
   - km-0jw8d
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Index-file-aware chaos/fuzz tests @km/_orphan #task #P4
 
 The sync chaos suite (chaos-fuzz, lifecycle-fuzz, content-roundtrip) operates on flat file structures and never exercises index file scenarios. Gap: no chaos coverage for folder+index file creation, ![[./child]] content generation, handleFolderIndexUpdate under concurrent conditions, index file priority cascade with dropped/reordered events, or heartbeat/reconciliation with missing index file watcher events. Requires: new event picker for folder structures, folderIndex config enabled, transformers for index file write failures, verifier checks for index file consistency.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/comp-slider"
 aliases:
   - km-silvery.comp-slider
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T16:18:41Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.opentui-parity
 ---
 
 # [ ] Component: Slider (horizontal/vertical, keyboard + mouse drag) @km/silvery #feature #P3
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/silvery/opentui-parity]]
 
 Canonical Slider with arrow-key nav, mouse drag, labels, tick marks, range variant. OpenTUI ships Slider; Ink does not.
+

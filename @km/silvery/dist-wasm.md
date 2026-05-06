@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/dist-wasm"
 aliases:
   - km-silvery.dist-wasm
@@ -18,3 +20,4 @@ Package Silvery apps to run in browsers via WebAssembly or existing multi-target
 - Potential for Deno/WASM plugin distribution
 
 Multi-target rendering (terminal, Canvas 2D, DOM) already exists in Silvery. This bead is about packaging and distribution — making it easy to deploy a Silvery app as a web experience.
+

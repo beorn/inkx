@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/parsecolor-alloc"
 aliases:
   - km-inkx.parsecolor-alloc
@@ -11,3 +14,4 @@ assignee: claude:b53ef7e4
 # [x] perf(inkx): hoist namedColors out of parseColor() @km/inkx #task #P3 @claude:b53ef7e4
 
 Code review I6: parseColor() allocates namedColors Record on every call. Move to module scope.
+

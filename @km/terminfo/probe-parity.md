@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/probe-parity"
 aliases:
   - km-terminfo.probe-parity
@@ -15,3 +18,4 @@ assignee: claude:4929065a
 ---
 
 # [x] Close probe gap between termless and CLI — 52 missing CLI probes, 5 missing termless probes @km/terminfo #task #P2 @claude:4929065a
+

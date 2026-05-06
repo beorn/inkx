@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/tea-aichat"
 aliases:
   - km-silvery.tea-aichat
@@ -111,6 +113,10 @@ dependencies:
     created_at: 2026-04-18T12:05:44Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.tea
 ---
 
 # [x] TEA Phase 3: Validate TEA design via aichat-v2 spike @km/silvery #task #P2
@@ -125,9 +131,11 @@ Prototype: vendor/internal/silvery/prototype/aichat-v2/
 Target design: vendor/internal/silvery/design/v10-terminal/app-composition.md
 
 Work:
+
 1. Fix remaining divergences from target design (app.providers, inline model, module-level _chat, no op() proxy)
 2. Validate full apply chain with effects as data (building on phase 2 work)
 3. Test with real TTY (keystrokes, focus, lifecycle)
 4. Confirm the design works before rolling out to createApp internals
 
 Depends on: @km/silvery/tea-useinput (phase 2 — basic apply chain)
+

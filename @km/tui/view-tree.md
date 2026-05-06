@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/view-tree"
 aliases:
   - km-tui.view-tree
@@ -28,6 +31,7 @@ cursorPath: string[] — visual hierarchy from root to leaf.
 Classification = viewNode.role (O(1), never derivation).
 
 WHAT IT ELIMINATES:
+
 - 3 independent cursor classification systems → viewNode.role
 - 56 extractBody/isBodyContent occurrences → role:"body-column" at construction
 - cursorCardNodeId hint system for embeds → visual parent always correct
@@ -37,6 +41,7 @@ WHAT IT ELIMINATES:
 - buildActionCtx 80-line re-derivation → viewTree.lookup(cursorId)
 
 5-PHASE MIGRATION:
+
 1. Build buildViewTree() alongside existing code, assert equivalence
 2. Migrate navigation to ViewNode tree
 3. Migrate React components (ViewNode replaces ColumnView/CardView)
@@ -47,3 +52,4 @@ SUBSUMES: @km/tui/cursor-path, @km/tui/cursor-context
 ALIGNS WITH: @km/tui/board-apply (Board.apply operates on ViewNode tree)
 
 External review (Gemini 2.5 Pro) confirmed: body problem and embed problem are the same problem — data tree and visual tree have different shapes. ViewNode makes the visual tree explicit.
+

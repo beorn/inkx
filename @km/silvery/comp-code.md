@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/comp-code"
 aliases:
   - km-silvery.comp-code
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T16:18:44Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.opentui-parity
 ---
 
 # [ ] Component: Code block with tree-sitter syntax highlighting @km/silvery #feature #P3
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/silvery/opentui-parity]]
 
 Canonical Code component: tree-sitter parser per language, theme-token color mapping, line numbers, highlights, folding. OpenTUI bundles tree-sitter for this.
+

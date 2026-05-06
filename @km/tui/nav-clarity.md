@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/nav-clarity"
 aliases:
   - km-tui.nav-clarity
@@ -13,3 +16,4 @@ assignee: Bjørn Stabell
 # [x] Navigation clarity: unify reducers, consolidate DFS, migrate edit nav to ViewTree @km/tui #epic #P2 @Bjørn Stabell
 
 Three-phase cleanup of navigation architecture to reach quality plateau. Phase 1: unify 3 reducers into applyListNav, consolidate 2 DFS walks into getVisibleDescendants, write navigation-architecture.md. Phase 2: move edit nav (findAdjacentEditNode) to ViewTree. Phase 3: unified navigate() entry point, honor foldDepths in buildViewTree.
+

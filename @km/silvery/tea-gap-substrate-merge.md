@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/tea-gap-substrate-merge"
 aliases:
   - km-silvery.tea-gap-substrate-merge
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-18T12:02:05Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.tea
 ---
 
 # [ ] TEA gap: substrate stuck on feat/tea-apply-chain-types branch — merge to main @km/silvery #task #P1
@@ -31,7 +37,7 @@ been merged to silvery's main branch.
 
 Commits that need to land on main (or a PR merged):
 
-  cb42b3ed types(create): add Op/Effect/ApplyResult apply-chain types
+cb42b3ed types(create): add Op/Effect/ApplyResult apply-chain types
   f0bca9ad feat(create): BaseApp apply-chain substrate + 13 contract tests
   65cc8f2d feat(create): four apply-chain plugins + 40 tests
   3e141371 feat(create): event-loop + lifecycle-effects + 37 tests
@@ -70,3 +76,4 @@ conflicts with the ag-react hook migrations, and merge.
 
 Unknown — depends on how far the parallel tea-useinput work has
 diverged from the feat/tea-apply-chain-types branch.
+

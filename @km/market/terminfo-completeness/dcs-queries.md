@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/terminfo-completeness/dcs-queries"
 aliases:
   - km-market.terminfo-completeness.dcs-queries
@@ -15,6 +17,7 @@ owner: bjorn@stabell.org
 Current DCS coverage is too coarse — "supports DECRQSS" is meaningless.
 
 DECRQSS — split by target string:
+
 - DECRQSS-SGR (DCS $ q m ST) — query current SGR
 - DECRQSS-cursor-style (DECSCUSR target)
 - DECRQSS-scroll-region (DECSTBM target)
@@ -22,6 +25,7 @@ DECRQSS — split by target string:
 - DECRQSS-protected-area
 
 XTGETTCAP — split by capability name:
+
 - XTGETTCAP-RGB (truecolor)
 - XTGETTCAP-Tc
 - XTGETTCAP-Ms (OSC 52)
@@ -35,3 +39,4 @@ XTGETTCAP — split by capability name:
 
 Rationale: many terminals implement DECRQSS/XTGETTCAP for some targets but not others.
 Gives us a "terminfo advertisement vs reality" dataset.
+

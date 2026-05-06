@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/detail-fallback"
 aliases:
   - km-tui.detail-fallback
@@ -13,3 +16,4 @@ assignee: claude:8f007ba9
 # [x] Open detail panel instead of zooming when target yields flat list @km/tui #feature #P3 @claude:8f007ba9
 
 O3 recommendation: If the optimal zoom still yields a single-column board with no meaningful structure, consider opening a detail panel for the target card instead of zooming to a flat list. Mirrors how Trello handles search (opens card modal rather than navigating board hierarchy). Hybrid approach: navigateToNode() returns action=DETAIL_VIEW when no multi-column ancestor exists.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/focusscope-inputlayer"
 aliases:
   - km-tui.focusscope-inputlayer
@@ -73,3 +76,4 @@ This matches VS Code: commands are centralized, when clauses determine availabil
 // RIGHT — centralized, TEA dispatches
 registerCommand({ id: 'dialog.close', key: 'Escape', when: inDialogScope, execute: closeDialog })
 ```
+

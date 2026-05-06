@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/render-mouse-support"
 aliases:
   - km-silvery.render-mouse-support
@@ -47,3 +50,4 @@ Add mouse support to \`render()\`:
 
 - Fixed on the consumer side by switching storybook to \`run()\` (commit in vendor/silvery — "chore(silvery): bump — storybook example finishing touch").
 - Related: @km/silvery/consolidate-design-demos (the demo consolidation this issue surfaced during).
+

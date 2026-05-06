@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/key-release"
 aliases:
   - km-silvery.key-release
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Key release events: hold-to-reveal, key-up handlers, modifier-gated UI @km/silvery #feature #P2
 
 With REPORT_EVENTS, silvery now receives key release events. useInput filters them (backward compat), but useModifierKeys sees them. This enables: hold-to-reveal panels (hold ? to show shortcuts overlay, release to dismiss), key-up handlers for games/animations, modifier-gated UI (Cmd+hover underline on links — already implemented). **How to apply:** Add useInputRaw() or onRelease option to useInput for components that want release events.
+

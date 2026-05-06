@@ -30,3 +30,4 @@ story surfaces, not a bespoke scroll implementation.
 - [ ] Storybook tests cover preview wheel scrolling and scrollbar dragging.
 
 Implemented first phase: silvercode Storybook now consumes Silvery ScrollArea instead of local useKineticScroll/content measurement/Scrollbar glue. Top-level Screen stories are still normalized in runner. Evidence: bun vitest run apps/silvercode/storybook/tests/selection.test.tsx (2 passed).
+

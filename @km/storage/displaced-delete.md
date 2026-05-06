@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/displaced-delete"
 aliases:
   - km-storage.displaced-delete
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] [bug] reconcile displaced-node detection can delete user content on concurrent renames @km/storage #bug #P1
 
 Found by /big review. reconcile.ts:82-104: If two renames target same path, displaced node detection deletes the existing node at that path. But if user manually created a folder with same name before rename completed, this deletes their content. Fix: verify not concurrent rename before deletion, or emit event instead of delete op.
+

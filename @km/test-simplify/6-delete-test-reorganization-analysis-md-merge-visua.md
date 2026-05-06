@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - a7aae0ea
 id: "@km/test-simplify/6-delete-test-reorganization-analysis-md-merge-visua"
 aliases:
   - km-test-simplify.6
@@ -10,3 +13,4 @@ assignee: a7aae0ea
 ---
 
 # [x] Delete test-reorganization-analysis.md, merge visual-testing.md @km/test-simplify #task #P3 @a7aae0ea
+

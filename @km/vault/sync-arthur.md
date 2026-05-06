@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/vault/sync-arthur"
 aliases:
   - km-vault.sync-arthur
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Sync ~fam/Arthur → ~vault/drive/arthur @km/vault #task #P3
 
 School, photos, baby docs. ~216 files.
+

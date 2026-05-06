@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/body-block-leading-gap"
 aliases:
   - km-tui.body-block-leading-gap
@@ -137,3 +140,4 @@ Evidence: ~/Desktop/Screenshot 2026-04-20 at 18.33.01.png
 Hypothesis: column item-gap logic treats bordered cards and unframed body blocks differently, OR body blocks carry phantom padding (e.g., reserved border space with borderStyle=none). Investigate CardColumn body-branch render vs structural-branch render — may relate to the maxRows refactor just landed (237607540) or pre-existing.
 
 Separate from @km/tui/column-top-tall-terminal-variant (that one is architectural virtualizer divergence, blank body bleeding; this one is leading whitespace on rendered body blocks).
+

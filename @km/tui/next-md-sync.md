@@ -1,4 +1,7 @@
 ---
+mentions:
+  - next
+  - km
 id: "@km/tui/next-md-sync"
 aliases:
   - km-tui.next-md-sync
@@ -17,15 +20,18 @@ owner: bjorn@stabell.org
 When editing @next.md externally and adding a task under ## Next, the change doesn't appear in km view.
 
 Investigation findings:
+
 - Watcher has 5s debounce (debounceFs: 5000 in sync.ts:86)
 - update-handler.ts:108-112 skips if content hash unchanged
 - handleUpdate properly re-parses, diffs, and emits changes for .md files
 - diffNodes should handle new children under existing sections
 
 Likely causes (ordered):
+
 1. User didn't wait 5s for debounce to fire
 2. diffNodes doesn't correctly match new task items under existing mdsection
 3. In-flight tracking may suppress the watcher event if km recently wrote to the same file
 4. The node_created event for new tasks may not trigger a UI re-render
 
 Next steps: reproduce with DEBUG=km:storage:* DEBUG_LOG=/tmp/sync.log, edit externally, wait 10s, check log.
+

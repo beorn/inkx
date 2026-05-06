@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/backdrop-scrim-redesign"
 aliases:
   - km-silvery.backdrop-scrim-redesign
@@ -30,6 +33,10 @@ dependencies:
     created_at: 2026-04-19T15:31:11Z
     created_by: claude:88c0e764
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Backdrop fade: industry-standard source-over sRGB alpha compositing @km/silvery #task #P2 @claude:88c0e764
@@ -39,12 +46,15 @@ blocks:: [[@km/silvery]]
 Replace 3D OKLab blend with source-over alpha compositing in sRGB. Deep research confirmed industry practice (CSS filter brightness, Apple modal dimming, Material 3 scrim, Flutter modal barrier, Figma/Sketch/Adobe, Quartz/Cairo/Skia) is all source-over alpha — not OKLCH L-shift. Even Ottosson (OKLab author) recommends linear-sRGB for compositing.
 
 ## Why
+
 Current impl does OKLab blend toward a compromise target (desaturated gray at rootBg.L-0.15). This:
+
 - Violates OKLCH's perceptual contract (drags C and H, not just L) — user-observed regression
 - Uses OKLab for transparency (Ottosson explicitly recommends against)
 - Has had 6+ consecutive fix commits tuning the target
 
 ## What
+
 1. Add `mixSrgb(a, b, t)` to @silvery/color — simple sRGB linear mix
 2. Rewrite backdrop-phase.ts fadeCell: `cell.fg = mixSrgb(fg, scrimColor, amount)`, same for bg (null bg resolved to rootBg first)
 3. Remove deriveBlendTarget + DARK_NEUTRAL_L_OFFSET machinery
@@ -52,6 +62,7 @@ Current impl does OKLab blend toward a compromise target (desaturated gray at ro
 5. Update backdrop-fade.test.tsx — assertions will change (different hex values)
 
 ## Acceptance
+
 - Source-over alpha model: `out = cell * (1 - α) + scrim * α`
 - Scrim color: pure black for dark themes, pure white for light (or a configurable token later)
 - Uniform fg/bg amounts (already true)
@@ -62,5 +73,7 @@ Current impl does OKLab blend toward a compromise target (desaturated gray at ro
 - `bun fix` passes
 
 ## Context
+
 - Deep research file: /Users/beorn/.config/claude-profiles/d@delei.org/projects/-Users-beorn-Code-pim-km/88c0e764-e13d-4e0e-9286-0aebe78453f6/tool-results/bks6yrnm6.txt
 - Prior bead: @km/silvery/backdrop-fade (closed, shipped v0.18.0)
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/omnibox-unified"
 aliases:
   - km-tui.omnibox-unified
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-14T13:30:10Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [ ] Unified omnibox: command palette + all pickers as one component @km/tui #feature #P1
@@ -26,3 +32,4 @@ Design doc: docs/design/omnibox.md
 v1 scope: dialog form replacing Omnibox/ItemPicker/FavoritesDialog with one sigil-dispatched single-buffer component. Sigil-routed modes (`:` commands, `@` contexts, `#` tags, `+` projects, `[` nodes, `/` local-find), sticky defaultCommand + selectedArgument memory, cursor unification via focus, bracket task filters (`[x]` / `[ ]`), prop::value syntax, Google + fzf query operators.
 
 Post-v1: omnibox.pop_out pane form (@km/tui/omnibox-pop-out).
+

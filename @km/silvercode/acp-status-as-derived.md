@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/acp-status-as-derived"
 aliases:
   - km-silvercode.acp-status-as-derived
@@ -15,6 +18,10 @@ dependencies:
     created_at: 2026-04-27T15:47:07Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [/] Reframe: silvercode status as derived signal (L3→L4) @km/silvercode #feature #P2 @claude:cc081a9a
@@ -28,6 +35,7 @@ blocks:: [[@km/silvercode]]
 silvercode's `session-store` stores `status: "spawning" | "idle" | "thinking" | "tool-running" | "awaiting-permission" | "ended"` as an FSM driven by explicit lifecycle AgentEvents (`turn-start`, `turn-end`, `permission-request`, `tool-use`, `tool-result`, etc.). The ACP wire model is implicit — `agent.prompt(...)` returns a promise; its settlement IS the turn boundary. Every translation point in `acp-client.ts:mapSessionUpdateToLegacyEvents` and the call-site lifecycle bookkeeping is a place to forget, mistime, or misroute an event.
 
 Three bugs shipped in 2 days:
+
 - 2026-04-25: `send()` discarded PromptResponse → no turn-end → 98% CPU loop (@km/silvercode/thinking-loop-after-bash)
 - 2026-04-27 morning: `prompt()` had the same bug → "Refining…" stuck indefinitely (`26ae480fc`)
 - 2026-04-27 afternoon: `prompt()` rejection branch ALSO had the same bug → today's user-reported recurrence (`2d5fbc555`)
@@ -93,3 +101,4 @@ Add `derivedStatus` signal in `acp-session.ts` (the new ACP-shaped store) withou
 - Parent: @km/silvercode/claude-acp-wire-bugs (immediate-fix bead, this reframe is the long-term cure)
 - Related: @km/silvercode/thinking-loop-after-bash (closed; first occurrence of the class)
 - Related: hub/silvery/design/lifecycle-scope.md (Scope = AsyncDisposableStack pattern; turn-as-scope composes here)
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/attachment-timestamps"
 aliases:
   - km-tui.attachment-timestamps
@@ -13,3 +16,4 @@ assignee: claude:36393b5d
 # [x] Set created/modified time on downloaded attachments from Asana timestamps @km/tui #feature #P2 @claude:36393b5d
 
 When downloading Asana attachments and files during import, set the file's created_at and modified_at timestamps to match the Asana metadata (created_at from the attachment API response). Currently downloaded files get the current timestamp, losing the original date information. Use utimes() or similar to set file timestamps after download.
+

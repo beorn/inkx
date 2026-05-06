@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/max-skill-update-eventual-consistency"
 aliases:
   - km-infra.max-skill-update-eventual-consistency
@@ -18,6 +20,10 @@ dependencies:
     created_at: 2026-04-28T15:19:43Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] Drop push-to-origin contract from /max + /refactor skill docs (eventual-consistency model) @km/infra #task #P2
@@ -31,11 +37,13 @@ Update `.claude/skills/max/SKILL.md` and `.claude/skills/refactor/` to align wit
 In the worktree-isolation prompt block currently mandated by /max:
 
 CURRENT (the 'CRITICAL commit-AND-push' block):
+
 - Mandates `git push origin <branch>`.
 - Mandates `git ls-remote origin <branch>` SHA verification as proof of completion.
 - Frames remote SHA as the deliverable.
 
 NEW:
+
 - Branch named `wip/<bead-id>` (consistent across all spawn sources).
 - Commit incrementally to local branch only.
 - **Do NOT push to origin.** Local branch is the deliverable.
@@ -62,3 +70,4 @@ The convention can ship without the audit tool. The audit tool depends on the co
 
 Parent bead (the audit tool that consumes this convention): @km/infra/orphan-branch-audit.
 Memory: feedback-agent-isolation-eventual-consistency.md.
+

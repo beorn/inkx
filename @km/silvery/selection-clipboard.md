@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/selection-clipboard"
 aliases:
   - km-silvery.selection-clipboard
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Wire selection state machine to OSC 52 clipboard — auto-copy on mouse release @km/silvery #task #P1
 
 Selection SM emits {type:'copy', text} effect. OSC 52 clipboard.copy() exists. Wire them together: on SelectionEffect.copy, call clipboard.copy(text). Add tmux paste buffer detection. This completes the copy-on-select flow.
+

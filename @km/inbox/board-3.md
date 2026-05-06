@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/board-3"
 aliases:
   - km-board-3
@@ -14,3 +16,4 @@ Save cursor, zoom, folds per repo.
 Enables resuming where you left off when reopening a repo.
 
 Depends on: Board domain object (completed via @km/domain refactor)
+

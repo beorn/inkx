@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - km
 id: "@km/domain/0-phase-0-steering-docs-claude-md-refactor-skill"
 aliases:
   - km-domain.0
@@ -10,3 +13,4 @@ assignee: km
 ---
 
 # [x] Phase 0: Steering docs (CLAUDE.md, /refactor skill) @km/domain #task #P1 @km
+

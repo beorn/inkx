@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/view-mode-feature-parity"
 aliases:
   - km-tui.view-mode-feature-parity
@@ -17,7 +20,7 @@ assignee: Bjørn Stabell
 
 # [x] View mode feature parity: fold/filter/max-lines/etc only work in 'cards' mode @km/tui #bug #P1 @Bjørn Stabell
 
-# View mode feature parity: fold/filter/max-lines/etc only work in 'cards' mode
+## View mode feature parity: fold/filter/max-lines/etc only work in 'cards' mode
 
 ## Reported
 
@@ -33,6 +36,7 @@ The alternate views (`ColumnsView`, `ListView`, `TabsView`) consume the **TreeLe
 `ViewTree` is the React-side projection of `TreeLens` — it adds per-node signal bags via `ProjectedMap` and a `nodes()` iterator. The cards view fully adopted ViewTree; the alternate views were never migrated and still use the lens directly.
 
 This means:
+
 - The alternate views are **structurally flat** — `lens.children(colId)` is one level deep, so they show one row per top-level card and never recurse into card children
 - They have no per-card incremental rendering (no `useNode(id)` subscriptions)
 - Per-card fold state lives in `ReactiveNodeStore` and is read inside `TreeNode` only — alternate views can't see it
@@ -64,10 +68,10 @@ Graduate the alternate views to consume `ViewTree`, the same way cards view does
 
 Today the iteration primitives are split asymmetrically:
 
-| Layer | Iteration API |
-|---|---|
-| `TreeLens` | `walkOrder: readonly string[]` (eager array) |
-| `ViewTree` | `nodes(opts?: { from?, reverse? }): IterableIterator<string>` (lazy iterator) |
+| Layer    | Iteration API                                                               |
+| -------- | --------------------------------------------------------------------------- |
+| TreeLens | walkOrder: readonly string[] (eager array)                                  |
+| ViewTree | nodes(opts?: { from?, reverse? }): IterableIterator<string> (lazy iterator) |
 
 `ViewTree.nodes()` already delegates to `lens.nextInWalk()` / `prevInWalk()` internally — it just lives at the wrong layer. Lift it onto `TreeLens` itself (~5 LOC + 1 test) so both layers expose the same iteration shape. `walkOrder` stays for callers that want the eager array; `nodes(opts)` becomes the canonical iterator.
 
@@ -90,6 +94,7 @@ In `Board.tsx`, the per-mode dispatch currently only passes `columnFilters` to `
 ### Step 4: Tests
 
 Minimum 9 behavioral tests (3 ops × 3 alternate views):
+
 - Fold a card in `columns` view → children hidden in column tree
 - Fold a card in `list` view → children hidden in flat list
 - Fold a card in `tabs` view → children hidden in active tab
@@ -113,6 +118,7 @@ Plus `H` (fold-all) and `L` (unfold-all) regression in cards view to make sure t
 ### Effort
 
 ~half a day to a day:
+
 - Lift `nodes()` to `TreeLens`: 5 LOC + 1 test
 - Migrate 3 view files to `viewTree.nodes()` + `useNode()`: ~50 LOC each (~150 total)
 - Thread `columnFilters` through 3 view dispatches in `Board.tsx`: ~15 LOC
@@ -128,7 +134,6 @@ Medium-low. Each view's migration is independent — they can land in separate c
 Two tempting shortcuts that don't actually work:
 
 1. **"Just push fold into the lens."** Tempting but bad: filter text changes on every keystroke, and if filters live in the lens, every keystroke rebuilds `walkOrder`, the children cache, and the visible-lens cache. That kills the per-node incremental rendering optimization that makes cards view fast. The current architecture (lens = structure, ViewTree + ReactiveNodeStore = React-layer reactivity) is intentional. The fix is to put alternate views on the same React-layer footing as cards view, not to invert the architecture.
-
 2. **"Just swap MemoizedTreeCard for TreeNode in alternate views."** Closer, but it doesn't solve the iteration problem. The alternate views need a way to walk the visible subtree (the recursive equivalent of what `TreeNode` does internally for cards view). `viewTree.nodes({ from: colId })` is exactly that primitive — it already exists, it just needs to be the basis of the alternate-view iteration.
 
 ## Why we waited (the perf concern)
@@ -136,6 +141,7 @@ Two tempting shortcuts that don't actually work:
 User's note: "i'd like to finish the perf work first as this may impact perf too". This is correct — switching the alternate views to ViewTree means each card row gets a per-node subscription. For boards with hundreds of visible items in flat-list view, that's hundreds of new subscribers. The current `km-silvery.output-phase-perf` and `km-tui.cursor-perf-2026-04-07` work is finding hot paths in the cards-view rendering pipeline; we should land those optimizations first so the alternate-view migration inherits them, instead of potentially regressing the perf baseline.
 
 **Order of operations**:
+
 1. Land `km-silvery.output-phase-perf` (P0) — silvery output phase optimization
 2. Land `km-tui.cursor-perf-2026-04-07` (P1) — cursor j-press latency
 3. Re-baseline cursor benchmarks
@@ -170,3 +176,4 @@ User's note: "i'd like to finish the perf work first as this may impact perf too
 - `ColumnsView.tsx:79,81` — `lens.children(colId)` one-level deep, then `.map(repo.getNode)` per ID
 - `ListView.tsx:84,183` — `lens.children(colId)` one-level deep; `children={EMPTY_CHILDREN}` literally hardcoded so `MemoizedTreeCard` never recurses
 - `TabsView.tsx:67-70` — same pattern as ColumnsView
+

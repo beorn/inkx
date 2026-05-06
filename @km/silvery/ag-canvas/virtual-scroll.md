@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ag-canvas/virtual-scroll"
 aliases:
   - km-silvery.ag-canvas.virtual-scroll
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Canvas virtual scrolling @km/silvery #feature #P3
 
 Implement virtual scrolling in the canvas renderer so only visible content is rendered. Currently the full canvas is rendered at full height and CSS overflow:scroll handles viewport clipping. True virtual scrolling would render only visible rows based on scroll offset, enabling much larger boards without performance degradation. Requires scroll offset support in the silvery render pipeline (ag-term canvas adapter).
+

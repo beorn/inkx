@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/osc-fg-bg"
 aliases:
   - km-inkx.osc-fg-bg
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] OSC 10/11 — query terminal foreground/background colors @km/inkx #feature #P2
 
 Query the terminal's actual fg/bg colors via OSC 10 (fg) and OSC 11 (bg). Same query/parse pattern as OSC 4 palette colors. Enables theme detection (light vs dark terminal).
+

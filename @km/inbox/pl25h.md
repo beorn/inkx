@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/pl25h"
 aliases:
   - km-pl25h
@@ -14,3 +17,4 @@ assignee: claude:b92140a2
 # [x] P1: Renamed mdfiles not added to modifiedIndexFiles @km/_orphan #bug #P1 @claude:b92140a2
 
 handleRename doesn't add renamed markdown files to ctx.modifiedIndexFiles. A rename like notes.md→index.md won't trigger syncIndexFileToFolder before folder refresh, causing stale overwrites. Fix: add all renamed mdfiles to modifiedIndexFiles.
+

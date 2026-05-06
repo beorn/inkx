@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/frontmatter-id-migration"
 aliases:
   - km-storage.frontmatter-id-migration
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-21T13:26:49Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage.fs-mount
 ---
 
 # [x] Frontmatter id: backfill — one-shot migration for existing vaults @km/storage #task #P1
@@ -66,3 +72,4 @@ Rank-1 recovery (identity from embedded id in frontmatter) requires files to HAV
 ## RFC reference
 
 \`hub/km/source-of-truth-rfc-v2-addendum-identity.md\` §5.1
+

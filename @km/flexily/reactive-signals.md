@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/reactive-signals"
 aliases:
   - km-flexily.reactive-signals
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-12T09:50:53Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-flexily
 ---
 
 # [ ] withSignals() plugin — optional reactive layout outputs @km/flexily #feature #P4
@@ -41,6 +47,7 @@ node.computedWidth()  // Signal<number>
 ## Impact on silvery
 
 Once shipped:
+
 - @silvery/ag/rect-signals.ts becomes unnecessary (Flexily provides signals directly)
 - syncRectSignals() bridge eliminated
 - useBoxRect/useSignal read from Flexily signals via the adapter
@@ -52,3 +59,4 @@ Once shipped:
 - Per-property signals vs bundled Rect signal: provide both (computedRect as computed from L/T/W/H)
 - Recursive option: withSignals(root, { recursive: true }) applies to all descendants
 - isDirty stays imperative boolean — signals are for outputs only, not the layout gate
+

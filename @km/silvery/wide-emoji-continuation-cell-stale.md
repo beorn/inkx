@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/wide-emoji-continuation-cell-stale"
 aliases:
   - km-silvery.wide-emoji-continuation-cell-stale
@@ -21,3 +23,4 @@ Workaround (applied in @km/tui, not silvery): add explicit space between emoji a
 Root cause (needs silvery investigation): likely in vendor/silvery/packages/ag-term/src/pipeline/render-text.ts or output-phase.ts — when a Text shifts position AND shrinks at the right edge, the continuation cell of a leading wide emoji gets skipped in the change pool even though its position differs from the clone buffer. SILVERY_STRICT=1 does NOT catch this (fresh and incremental both produce the same bug), so fresh-render ALSO fails to clear the cell — may be a shared bug in how render-text writes continuation cells after layout shift.
 
 Related: @km/tui/status-bar-stray-chars (blocked-on workaround).
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/pro-review-docs"
 aliases:
   - km-silvery.pro-review-docs
@@ -15,3 +18,4 @@ assignee: claude:fed8de9e
 # [x] Pro Review: silvery design docs (roadmap, pretext, rendering-targets) @km/silvery #task #P3 @claude:fed8de9e
 
 GPT 5.4 Pro review of all three silvery-internal design docs after major updates: three projections, package map, prior art, terminology, API improvements.
+

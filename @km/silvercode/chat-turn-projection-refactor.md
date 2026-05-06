@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/chat-turn-projection-refactor"
 aliases:
   - km-silvercode.chat-turn-projection-refactor
@@ -130,3 +132,4 @@ Naming is flexible, but the invariant is not: `ChatTurn` is derived from canonic
 - Exported `replayCodexTranscriptFile()` so tests can replay local Codex rollout files directly without copying transcripts into the repo.
 - Verified local historical Claude/Codex stores replay into `buildChatTurns()` without parser errors or rendered Codex control prompts.
 - Verification: `bun run test:silvercode-historical` passed locally, 1 historical sweep test, 10 skipped normal chat-model tests.
+

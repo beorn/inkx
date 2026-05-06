@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/backspace-edit"
 aliases:
   - km-tui.backspace-edit
@@ -21,6 +23,8 @@ Likely cause: Ghostty with Kitty keyboard protocol sends Backspace differently t
 The unguarded Backspace→delete_node binding (now fixed with when:not(textInputFocused)) was masking this — before the fix, Backspace was deleting the NODE instead of text. After the fix, Backspace does nothing because the text binding also doesn't match.
 
 Debug steps:
+
 1. Add DEBUG logging to key-adapter.ts to trace what keyToString returns for Backspace in Ghostty
 2. Check silvery's Kitty protocol input parser for Backspace handling
 3. May need to handle Kitty-encoded backspace (CSI 127 u) alongside legacy \x7f
+

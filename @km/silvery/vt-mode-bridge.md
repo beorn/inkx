@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/vt-mode-bridge"
 aliases:
   - km-silvery.vt-mode-bridge
@@ -17,22 +19,26 @@ Wire createApp({ mode }) to automatically select the correct ListCache backend f
 ## Architecture (layered building blocks)
 
 Layer 0: ListCache interface — storage backend
-  - TerminalCache: writes frozen items to stdout (native terminal scrollback)
-  - VirtualCache: in-memory ANSI ring buffer (pane-safe, searchable)
-  - ReactCache: unmounts far items, re-mounts on scroll (simplest, no ANSI capture)
+
+- TerminalCache: writes frozen items to stdout (native terminal scrollback)
+- VirtualCache: in-memory ANSI ring buffer (pane-safe, searchable)
+- ReactCache: unmounts far items, re-mounts on scroll (simplest, no ANSI capture)
 
 Layer 1: ListDocument — unified row model
-  - Addresses rows across cache + live items
-  - Search spans both seamlessly
-  - Source tracking (which item produced this row?)
+
+- Addresses rows across cache + live items
+- Search spans both seamlessly
+- Source tracking (which item produced this row?)
 
 Layer 2: TextSurface — search/hit-test/reveal facade
-  - Coordinate transforms (viewport → document)
-  - Surface registry for multi-pane layouts
+
+- Coordinate transforms (viewport → document)
+- Surface registry for multi-pane layouts
 
 Layer 3: ListView — React component
-  - Consumes layers 0-2 via cache/navigator/search props
-  - App code identical across modes
+
+- Consumes layers 0-2 via cache/navigator/search props
+- App code identical across modes
 
 ## Mode → Backend mapping
 
@@ -52,3 +58,4 @@ createApp() provides cache backend via React context. ListView reads context whe
 - ListView: full component using all layers
 
 No layer depends on React except Layer 3.
+

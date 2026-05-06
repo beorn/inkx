@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beads/directory-nesting-bd-create"
 aliases:
   - km-beads.directory-nesting-bd-create
@@ -37,6 +39,7 @@ bd ready                                                # no path needed
 > "we should just use the path"
 
 So:
+
 - `--id` and `--parent` flags continue to work; they accept any resolvable form (path, ulid, legacy bd-form).
 - km's own docs, examples, snippets, scripts, and changelog text use path-positional only.
 - The flags are kept for users transitioning from upstream `bd` and for any external scripts that already use them.
@@ -77,3 +80,4 @@ So:
 
 - Origin: agenda item #4 from the suggested next-session list (2026-04-30 morning), unblocked by `.claude/arch-decisions/2026-04-30-path-vs-ulid-as-sqlite-pkey.md`.
 - Prior commit: `e102fd751 docs(pm,beads): canonicalize path-positional bead-command idiom` already documented the direction; this bead is the implementation.
+

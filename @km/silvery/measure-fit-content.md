@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/measure-fit-content"
 aliases:
   - km-silvery.measure-fit-content
@@ -14,3 +17,4 @@ assignee: claude:c9beade3
 ---
 
 # [x] measureIntrinsicSize() ignores gap, internal_transform, and doesn't wrap for fixed-width height @km/silvery #bug #P0 @claude:c9beade3
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/content-search"
 aliases:
   - km-silvery.content-search
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] In-app content search (/ with n/N navigation) @km/silvery #feature #P2
 
 Claude Code has less-style search in transcript mode: / to open search, n/N for next/prev match, highlight matches. Useful for alternate-screen apps and as an enhancement for inline apps. Could be a SearchBar component or a search provider.
+

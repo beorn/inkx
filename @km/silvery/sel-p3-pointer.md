@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/sel-p3-pointer"
 aliases:
   - km-silvery.sel-p3-pointer
@@ -14,19 +16,23 @@ owner: bjorn@stabell.org
 Mouse-driven selecting kinds: area select, text drag, drop, gesture morphing, lasso overlay.
 
 ## What changes
+
 - `packages/silvery-selection/src/pointer-gestures.ts` — NEW: selectingKind derivation, gesture morphing
 - `packages/silvery-selection/src/lasso.ts` — NEW: ANSI inverse-video lasso overlay during drag
 - `packages/silvery-selection/src/provider.tsx` — wire pointer events → gesture signals
 
 ## Delete
+
 Nothing — still additive.
 
 ## New tests
+
 - `packages/silvery-selection/tests/pointer-gestures.test.ts` — all 9 selecting kinds, morphing, drop
 - `packages/silvery-selection/tests/lasso.test.ts` — lasso overlay rendering
 - `packages/silvery-selection/tests/area-select-filter.test.ts` — filter parameter for cards-vs-blocks
 
 ## Definition of Done
+
 - [ ] All mouse selecting kinds from design doc work
 - [ ] Gesture morphing (text-drag ↔ node-area) works
 - [ ] Lasso visual overlay renders during drag
@@ -34,4 +40,6 @@ Nothing — still additive.
 - [ ] Tests pass
 
 ## /complete
+
 - `bun vitest run packages/silvery-selection/tests/pointer` → all pass
+

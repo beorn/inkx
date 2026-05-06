@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/mouse-double-click"
 aliases:
   - km-silvery.mouse-double-click
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T16:18:16Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.opentui-parity
 ---
 
 # [ ] Mouse: double-click word selection @km/silvery #feature #P2
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/silvery/opentui-parity]]
 
 On 2nd click within double-click threshold, auto-extend selection to word boundary. Standard text editor behavior; missing from silvery's selection system.
+

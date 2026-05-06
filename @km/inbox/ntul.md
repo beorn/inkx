@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/ntul"
 aliases:
   - km-ntul
@@ -8,3 +10,4 @@ closed_at: 2026-01-20T22:22:17Z
 ---
 
 # [x] TreeNode: indentation of folding icons not working correctly @km/_orphan #bug #P2
+

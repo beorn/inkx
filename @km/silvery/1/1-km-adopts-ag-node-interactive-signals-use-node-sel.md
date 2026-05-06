@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/1/1-km-adopts-ag-node-interactive-signals-use-node-sel"
 aliases:
   - km-silvery.1.1
@@ -27,6 +29,7 @@ Replace all global selection/hover/focus checks in @km/tui with per-node signal 
 ## Selection store integration
 
 sel.node.select([id]) internally:
+
 1. Diff old selection vs new
 2. Write node.selected = false on removed nodes (typically 1)
 3. Write node.selected = true on added nodes (typically 1)
@@ -43,7 +46,9 @@ sel.node.select([id]) internally:
 ## After km proves it
 
 Extract the pattern into silvery core:
+
 - ag node gets interactive signal slots
 - Selection/pointer/focus systems write to them
 - Default theme reads them for base interactive styling
 - Apps override by reading signals + applying custom styles
+

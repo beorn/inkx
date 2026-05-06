@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui-nav/0-audit-board-actions-ts-identify-all-legacy-action-"
 aliases:
   - km-tui-nav.0
@@ -15,3 +17,4 @@ Find all NAV_TO_PATH, CURSOR_MOVE, REFRESH dispatches in board-actions.ts and ke
 Create a list of what needs to be replaced with navigation handler calls.
 
 Output: Comment in bead with list of all legacy dispatches and their locations.
+

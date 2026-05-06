@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tools/bd-verify-allowlist-skip"
 aliases:
   - km-tools.bd-verify-allowlist-skip
@@ -24,6 +27,10 @@ dependencies:
     created_at: 2026-04-27T13:23:40Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.bd-verify-primitive
 ---
 
 # [x] bd-verify: cmd-head allowlist silently skips legitimate commands @km/tools #task #P3 @claude:cc081a9a
@@ -31,3 +38,4 @@ dependencies:
 blocks:: [[@km/all/bd-verify-primitive]]
 
 From dual-pro review (Kimi K2.6 winner, 2026-04-27): Current allowlist (grep/rg/git-grep) silently skips any acceptance criterion using a different tool (e.g. find, ls, jq, npm test). This makes Phase 2 (bd close integration) unsafe — closures could pass without their criteria actually running. Action: emit a 'skipped: <reason>' status distinct from 'pass'/'fail', and require Phase 2's bd-close gate to fail-closed on skipped criteria. Reference: /tmp/llm-cc081a9a-review-three-pieces-of-mjjw.txt lines 274-285.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/ambient-recall-real"
 aliases:
   - km-silvercode.ambient-recall-real
@@ -17,8 +20,13 @@ dependencies:
     created_at: 2026-04-27T14:52:49Z
     created_by: claude:4de4a3ab
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.ambient-context-excellence
 ---
 
 # [x] Recall ambient adapter — real query path + controller hook @km/silvercode #feature #P2 @claude:4de4a3ab
 
 blocks:: [[@km/silvercode/ambient-context-excellence]]
+

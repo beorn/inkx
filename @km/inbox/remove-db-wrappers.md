@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/remove-db-wrappers"
 aliases:
   - km-remove-db-wrappers
@@ -12,6 +14,7 @@ closed_at: 2026-01-25T10:07:25Z
 Remove all ~40 singleton wrapper functions from packages/@km/storage/src/db.ts.
 
 Functions to REMOVE:
+
 - getNode, getNodeByIdPrefix, getTaskByIdPrefix
 - getNodeByPath, getNodesUnderPath, getFileWithChildren
 - getNodeContentHash, findFileByName, findChildByContent
@@ -31,7 +34,9 @@ Functions to REMOVE:
 These are all marked @deprecated and call getDb() internally.
 
 After removal, db.ts should only contain:
+
 1. Database instance management (getDb, setDb, closeDb, etc.)
 2. Import/re-export of db-accepting functions for internal use
 
 Depends on: @km/_orphan/cli-tasks-vault, @km/_orphan/cli-main-vault, @km/_orphan/agent-vault (must convert callers first)
+

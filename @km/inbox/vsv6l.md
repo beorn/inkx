@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/vsv6l"
 aliases:
   - km-vsv6l
@@ -10,11 +13,12 @@ assignee: claude:b8b4780b
 
 # [x] Port RTL support to Zero-alloc @km/_orphan #task #P2 @claude:b8b4780b
 
-# Port RTL Support to Zero-alloc
+## Port RTL Support to Zero-alloc
 
 Port right-to-left (RTL) layout support from Classic to Zero-alloc algorithm.
 
 ## Scope
+
 - ~69 direction references in Classic algorithm
 - DIRECTION_RTL enum already exists
 - Need to handle:
@@ -23,8 +27,11 @@ Port right-to-left (RTL) layout support from Classic to Zero-alloc algorithm.
   - Start/End logical edges
 
 ## Files
+
 - src/layout-zero.ts - Add RTL handling
 - Tests should pass with DIRECTION_RTL
 
 ## Reference
+
 - src/layout.ts - Classic implementation has full RTL
+

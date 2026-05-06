@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/auto-derive-selected"
 aliases:
   - km-tui.auto-derive-selected
@@ -38,3 +41,4 @@ Currently NodeStore signals and @silvery/selection store are two sources of trut
 - [ ] setSelection() deleted or reduced to no-op
 - [ ] expandSelectionWithDescendants logic preserved (descendants still visually selected)
 - [ ] All tests pass
+

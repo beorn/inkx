@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/test-unified"
 aliases:
   - km-silvery.test-unified
@@ -25,3 +28,4 @@ Steps: (1) run.tsx: expose root on RunHandle, (2) @silvery/test: createTestHandl
 /complete: handle.root exists on RunHandle
 /complete: locators work on termless backend
 /complete: all 21 exploration tests pass with unified backend
+

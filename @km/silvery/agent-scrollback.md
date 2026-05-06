@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/agent-scrollback"
 aliases:
   - km-silvery.agent-scrollback
@@ -17,3 +20,4 @@ assignee: claude:55df8ef1
 # [x] Fix coding agent web showcase: eliminate jumping + add vertical whitespace @km/silvery #bug #P2 @claude:55df8ef1
 
 The coding agent web showcase uses a sliding window (exchanges.slice(-maxVisible)) that causes 'jumping up' when exchanges are added/removed. The CLI version (static-scrollback.tsx) uses ScrollbackList with isFrozen for smooth append-only flow. Fix: replace sliding window with justifyContent='flex-end' anchoring so content grows upward naturally, and add vertical whitespace between exchange sections to match the CLI version.
+

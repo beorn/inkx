@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/nav-garble-wide"
 aliases:
   - km-tui.nav-garble-wide
@@ -28,6 +30,10 @@ dependencies:
     created_at: 2026-04-20T22:46:30Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Navigation garble at wide terminals (160/200 cols) with flag-emoji titles @km/tui #bug #P2
@@ -42,7 +48,9 @@ Size-dependent nature suggests: (a) flexily wide-char measurement of regional-in
 
 ## Repro
 
-    bun vitest run apps/@km/tui/tests/nav-garble-wide.test.ts
+```
+bun vitest run apps/@km/tui/tests/nav-garble-wide.test.ts
+```
 
 ## Acceptance
 
@@ -51,4 +59,6 @@ Size-dependent nature suggests: (a) flexily wide-char measurement of regional-in
 3. Investigation documents whether root is output-phase ANSI (cursor drift), layout-phase measurement (flexily wide-char), or board-level navigation (view.tsx)
 
 ## Context
+
 Pre-existing bug not caused by 2026-04-21 session. Discovered during /complete audit while finishing the memory-mode + title-undo P2 sweep.
+

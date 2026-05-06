@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui1/5-improve-scroll-indicator-visibility"
 aliases:
   - km-tui1.5
@@ -26,3 +28,4 @@ TUI1 shows '--' at bottom-right of columns when more content exists below.
 
 - apps/@km/tui/packages/@km/_orphan/ink/src/views/ListView.tsx
 - apps/@km/tui/packages/@km/_orphan/ink/src/views/ColumnsView.tsx
+

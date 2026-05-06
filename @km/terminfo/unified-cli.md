@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/unified-cli"
 aliases:
   - km-terminfo.unified-cli
@@ -29,3 +32,4 @@ terminfo detect
 Pattern: bare = list, --all = run all, name = run specific.
 
 Current state: two CLIs with different invocation (bun census:* vs npx terminfo.dev), confusing names, duplicated probe logic.
+

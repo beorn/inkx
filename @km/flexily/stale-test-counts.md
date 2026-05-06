@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/stale-test-counts"
 aliases:
   - km-flexily.stale-test-counts
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Docs: Inconsistent test counts across README, CONTRIBUTING, CLAUDE.md, testing.md @km/flexily #task #P3
+

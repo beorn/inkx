@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/scroll-mouse-col"
 aliases:
   - km-tui.scroll-mouse-col
@@ -11,3 +14,4 @@ assignee: claude:d3a7049b
 ---
 
 # [x] Scroll wheel targets column under mouse pointer @km/tui #feature #P2 @claude:d3a7049b
+

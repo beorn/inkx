@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/cross-ecosystem-popovers"
 aliases:
   - km-bearly.cross-ecosystem-popovers
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Cross-ecosystem link popovers across all sites @km/bearly #task #P1
 
 Add popover descriptions to all cross-ecosystem links (silvery.dev, termless.dev, terminfo.dev, flexily, loggily). Use @bearly/vitepress-enrich glossary plugin — add ecosystem entities with descriptions. Should work on all VitePress sites that use the enrich plugin.
+

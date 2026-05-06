@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beads/children-path-prefix"
 aliases:
   - km-beads.children-path-prefix
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-27T18:34:41Z
     created_by: claude:da9990c5
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-beads
 ---
 
 # [x] bd children traverses path-prefix sibling files instead of parent_id @km/beads #bug #P2
@@ -26,3 +32,4 @@ dependencies:
 blocks:: [[@km/beads]]
 
 The path-form design has the epic at silvercode/acp.md and its children at silvercode/acp/*.md (sibling folder, not children of the .md file). bd children currently queries by KNode.parent_id, which makes the file's parent the silvercode/ folder, not the epic. Acceptance: bd children silvercode/acp returns the 4 files in silvercode/acp/; works whether passed the canonical path, the @-form, or a legacy alias; help text + example output updated to show the new layout.
+

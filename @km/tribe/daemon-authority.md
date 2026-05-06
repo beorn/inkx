@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/daemon-authority"
 aliases:
   - km-tribe.daemon-authority
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-19T10:54:50Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] tribe: delete P2P direct-send; gate pre-register connections @km/tribe #feature #P1
@@ -32,3 +38,4 @@ Pro review 2026-04-19: three defects where connections bypass daemon guarantees.
 Design: delete the P2P direct-send path. All messages go through daemon → journal → fanout. Add a pre-register auth state where only 'register' is accepted. Give tribe.reload to the daemon core with an explicit restart-plugins-only flag.
 
 Effort: ~1 day (mostly deletions).
+

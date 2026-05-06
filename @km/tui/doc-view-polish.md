@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/doc-view-polish"
 aliases:
   - km-tui.doc-view-polish
@@ -20,12 +22,14 @@ owner: bjorn@stabell.org
 ## Pipeline Analysis (2026-03-28)
 
 All core content paths use InlineText with resolveWikiLink:
+
 - Card title (TreeNode:618) ✅
 - Card body (FoldedChildRow:942) ✅
 - Detail/doc view (DocNode) ✅
 - Search results (NodeLine) ✅
 
 Paths that DON'T use InlineText:
+
 - **Popover preview** ❌ — renders raw child.content. BUG.
 - Breadcrumb — parseToPlainText(). Intentional.
 - Column header — displayName. Intentional.
@@ -39,7 +43,9 @@ Hypothesis: silvery incremental rendering mismatch — stale content from a prio
 Test with SILVERY_STRICT=1 to confirm.
 
 ## Remaining fixes
+
 1. Popover: use DocContent renderer (2 levels) instead of PopoverLine text
 2. Unfocused cursor: blue bg + blue link = invisible
 3. Breadcrumb: skip last segment in detail view mode
 4. Investigate brackets — likely incremental render bug
+

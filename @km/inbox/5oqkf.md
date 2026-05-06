@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/5oqkf"
 aliases:
   - km-5oqkf
@@ -15,11 +18,14 @@ When km init or sync is interrupted, .km/state.db may contain only the root node
 Root cause: Initialization creates .km/ and root node, but sync can be interrupted before populating the database. The watcher then emits events for non-existent nodes.
 
 Evidence from tst-vault9:
+
 - state.db had 1 node (root only)
 - events.jsonl had node_updated/node_deleted events from fs-watch
 - These events referenced nodes that didn't exist
 
 Fix needed:
+
 1. Detect incomplete initialization on startup
 2. Make sync more atomic (don't leave partial state)
 3. Add health check: warn if .km exists but node count < expected
+

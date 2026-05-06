@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/rev-docs-0126/6-fix-cardcolumn-tsx-reference-in-react-optimization"
 aliases:
   - km-rev-docs-0126.6
@@ -10,3 +13,4 @@ assignee: beorn
 ---
 
 # [x] Fix CardColumn.tsx reference in react-optimization.md @km/rev-docs-0126 #bug #P2 @beorn
+

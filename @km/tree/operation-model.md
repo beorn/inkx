@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tree/operation-model"
 aliases:
   - km-tree.operation-model
@@ -25,3 +27,4 @@ Operations are the internal representation — callers never see them.
 
 Key difference from SlateJS: km uses ID-based addressing, not path-based.
 Operations reference node IDs, not array indices. More stable under concurrency.
+

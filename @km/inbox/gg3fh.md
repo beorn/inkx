@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/gg3fh"
 aliases:
   - km-gg3fh
@@ -21,3 +24,4 @@ Classification: P0
 views.ts assumes getLine/getCell/getTextRange take absolute buffer rows. xterm mostly behaves that way; Ghostty/VT100 wrappers do not. viewportOffset means different things across backends. Result: screen, viewport, row, cell, and scrollback assertions are backend-dependent and wrong after scrolling.
 
 Suggested fix: Define protocol: (1) getLine/getCell/getTextRange use absolute buffer rows, (2) pick viewportTopRow or scrollbackOffsetFromBottom consistently, (3) add shared tests for screen/viewport/scrollback semantics on every backend.
+

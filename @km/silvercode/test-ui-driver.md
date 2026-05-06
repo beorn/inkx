@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/test-ui-driver"
 aliases:
   - km-silvercode.test-ui-driver
@@ -13,8 +15,13 @@ dependencies:
     created_at: 2026-04-24T14:49:51Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.test-system
 ---
 
 # [ ] Silvercode test system v2 — UI driver (keystrokes + fake clock + scroll) @km/silvercode #feature #P2
 
 blocks:: [[@km/silvercode/test-system]]
+

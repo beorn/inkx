@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/yg2ng"
 aliases:
   - km-yg2ng
@@ -22,3 +24,4 @@ Classification: P0
 Core expects Cell with char, dim, underline: false|..., underlineColor, blink, hidden, continuation, hyperlink. Several backends return text, faint, underline: 'none', and omit other fields. Breaks views, matchers, serializers, diffing, and SVG rendering for non-xterm backends. 'none' treated as 'underlined' because core tests cell.underline \!== false.
 
 Suggested fix: Define one canonical Cell shape and normalize every backend to it. Add makeCell()/normalizeCell() helper. Add backend conformance test suite.
+

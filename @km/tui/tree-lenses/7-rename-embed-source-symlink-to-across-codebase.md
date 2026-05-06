@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/tree-lenses/7-rename-embed-source-symlink-to-across-codebase"
 aliases:
   - km-tui.tree-lenses.7
@@ -21,11 +23,14 @@ content and children. We don't have a separate non-embed link system;
 [[wikilinks]] in content are just inline links.
 
 Naming:
+
 - symlink_to: structural embed (node-level, displays target content + children)
 - [[wikilink]]: inline link (content-level, navigates on click)
 
 This is a /refactor migrate — mechanical find-replace + tsc-guided fixes.
 
 Acceptance:
+
 - grep 'embed_source' in src/ = 0 (all packages)
 - All tests pass
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/llm-review"
 aliases:
   - km-silvery.llm-review
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Silvery rendering engine: LLM review findings @km/silvery #epic #P2
 
 Bugs found by GPT-5.4 and Gemini reviewing the full rendering pipeline. Prioritized by severity.
+

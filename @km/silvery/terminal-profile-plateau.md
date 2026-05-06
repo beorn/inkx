@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/terminal-profile-plateau"
 aliases:
   - km-silvery.terminal-profile-plateau
@@ -89,6 +92,10 @@ dependencies:
     created_at: 2026-04-22T23:53:39Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Terminal setup/detection is fragmented — off the quality plateau @km/silvery #feature #P1 @claude:c6244087
@@ -98,14 +105,13 @@ blocks:: [[@km/silvery]]
 Silvery terminal detection violates 'one way to do things' on every axis. Surfaced when @km/logview hit FORCE_COLOR not propagating, Term.caps being undefined in emulator/alt constructors, and tests (hardcoded truecolor) passing while production (dynamic detection) rendered blank.
 
 ## Three smells
+
 1. **Three enum spellings of the same 4-state color level:**
-   - `@silvery/ansi` `ColorLevel` = `null | 'basic' | '256' | 'truecolor'`
-   - `TerminalCaps.colorLevel` = `'none' | 'basic' | '256' | 'truecolor'`
-   - `ag-term/runtime/run.tsx` `ColorTier` = `'mono' | 'ansi16' | '256' | 'truecolor'`
+  - `@silvery/ansi` `ColorLevel` = `null | 'basic' | '256' | 'truecolor'`
+  - `TerminalCaps.colorLevel` = `'none' | 'basic' | '256' | 'truecolor'`
+  - `ag-term/runtime/run.tsx` `ColorTier` = `'mono' | 'ansi16' | '256' | 'truecolor'`
    Every edge is a coercion site.
-
 2. **Two redundant detection functions.** `detectColor()` (ansi/detection.ts) honors FORCE_COLOR + TERM_PROGRAM=Ghostty/iTerm/WezTerm. `detectTerminalCaps()` didn't. Both are callable; different paths call different ones. Recent fix (commit 48143ef0) had `detectTerminalCaps` delegate to `detectColor` — a patch, not a design.
-
 3. **`Term.caps` optional, populated in 1 of 3 constructors.** `term.ts:655` (main) populates; `term.ts:855` (alt) and `:935` (emulator) set `caps: undefined`. Callers read `term.caps ?? detectTerminalCaps()` — an invariant enforced by convention. `createTermless()` hardcodes `colorLevel: 'truecolor'` + `caps: undefined`. Real path detects. Tests pass while production breaks.
 
 ## Reframe: TerminalProfile as the single source of truth
@@ -113,23 +119,29 @@ Silvery terminal detection violates 'one way to do things' on every axis. Surfac
 One `TerminalProfile { caps, theme, colorTier }`, built by one function, required on every Term.
 
 ### Phases
+
 1. **ColorTier canonicalization** — rename/remove duplicates so there's ONE enum. Mechanical, low-risk. ~2h.
 2. **`Term.caps` required** — populate in all three constructors. Typed invariant.
 3. **Collapse detection** — `createTerminalProfile(env, stdout)` replaces `detectColor` + `detectTerminalCaps` + `resolveColorTier`. Net LOC deletion.
 4. **Unify entry points** — `run()` / `createApp().run()` / `render()` all go through the profile.
 
 ### What this fixes beyond the immediate bug
+
 - Silent mono fallback when FORCE_COLOR is needed
 - Test/prod divergence (root cause of @km/logview blank screen)
 - `detectColor` vs `detectTerminalCaps` duplication
 - The convention-only 'is caps populated here?' rule
 
 ### First step
+
 Phase 1 (ColorTier canonicalization) — independent, mechanical, sets up the larger refactor.
 
 ### Reference
+
 Source files to touch:
+
 - `vendor/silvery/packages/ansi/src/detection.ts` (detectColor, detectTerminalCaps, TerminalCaps, ColorLevel)
 - `vendor/silvery/packages/ansi/src/color-maps.ts` (ColorTier)
 - `vendor/silvery/packages/ag-term/src/runtime/run.tsx` (resolveColorTier, tierToCapsLevel, capsLevelToTier)
 - `vendor/silvery/packages/ag-term/src/ansi/term.ts` (three constructors, caps population)
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui2/7-implement-displaylength-for-styled-text-width"
 aliases:
   - km-tui2.7
@@ -13,3 +15,4 @@ closed_at: 2026-01-17T00:07:26Z
 ANSI escape codes don't count toward display width. Need displayLength() utility.
 
 **Reference**: apps/@km/tui/packages/@km/_orphan/ink/src/layout/
+

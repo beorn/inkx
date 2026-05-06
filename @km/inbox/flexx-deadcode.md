@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/flexx-deadcode"
 aliases:
   - km-flexx-deadcode
@@ -11,3 +14,4 @@ assignee: claude:b8b4780b
 # [x] Remove unused distributeFlexSpace() function @km/_orphan #task #P3 @claude:b8b4780b
 
 distributeFlexSpace() at layout-zero.ts:349-476 appears unused (dead code). The per-line variant distributeFlexSpaceForLine() is used instead. Remove or add comment explaining why it's kept.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/block-split"
 aliases:
   - km-tui.block-split
@@ -11,3 +14,4 @@ assignee: claude:9b6678d0
 # [x] Block split/merge as KNode tree ops @km/tui #feature #P3 @claude:9b6678d0
 
 Enter in middle of block splits at cursor. Backspace at start merges. Pure functions on KNode tree. ROADMAP Horizon 5.
+

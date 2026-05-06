@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/examples-canonical"
 aliases:
   - km-silvery.examples-canonical
@@ -19,6 +22,7 @@ assignee: claude:55df8ef1
 After plugin composition APIs are implemented (@km/silvery/plugin-composition), review all silvery examples (interactive/, web/showcases/, runtime/) and determine which should use the new APIs.
 
 ## Questions to answer
+
 - Which examples should use pipe() composition instead of run()?
 - Which should demonstrate withDomEvents() for mouse interaction?
 - Which should use withFocus() for keyboard navigation?
@@ -26,7 +30,9 @@ After plugin composition APIs are implemented (@km/silvery/plugin-composition), 
 - Are there new examples needed to showcase the plugin system?
 
 ## Scope
+
 - examples/interactive/*.tsx (19 files)
-- examples/runtime/*.tsx (4 files)  
+- examples/runtime/*.tsx (4 files)
 - examples/web/showcases/*.tsx (13 files)
 - Doc example pages (8 pages under docs/examples/)
+

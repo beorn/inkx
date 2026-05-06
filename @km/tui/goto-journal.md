@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/goto-journal"
 aliases:
   - km-tui.goto-journal
@@ -17,3 +20,4 @@ assignee: Bjørn Stabell
 # [x] g j (goto journal) doesn't work — file not created, no navigation @km/tui #task #P1 @Bjørn Stabell
 
 g j should: (1) expand journals/{YYYY}/{YYYY-MM-DD}.md template, (2) create the file+dirs if missing, (3) add to DB, (4) navigate to it — all in one press. Currently nothing happens. User reports pressing multiple times with no effect.
+

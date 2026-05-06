@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/signals/5-per-node-interactive-signals-selected-hovered-arme"
 aliases:
   - km-tui.signals.5
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Per-node interactive signals (selected, hovered, armed, focused) @km/tui #task #P4
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - km
 id: "@km/domain/3-phase-3-filetree-interface-factories"
 aliases:
   - km-domain.3
@@ -12,6 +15,8 @@ assignee: km
 # [x] Phase 3: FileTree interface + factories @km/domain #task #P2 @km
 
 Create FileTree interface for simple file I/O:
+
 - FileTree interface with read, write, watch methods (NOT DataStore methods)
 - Factories: createDiskFileTree (real node:fs), createMemFileTree (in-memory memfs)
 - Update sync layer to use FileTree instead of direct fs calls
+

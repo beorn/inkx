@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/dry-content-box"
 aliases:
   - km-silvery.dry-content-box
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] DRY: Extract getContentBox/getBoxInsets geometry helpers @km/silvery #task #P2
 
 Border/padding/contentX/contentY/contentWidth/contentHeight recomputed in 6+ places: renderScrollContainerChildren, renderNormalChildren, renderText, clearNodeRegion, clearExcessArea, renderScrollIndicators. Extract getContentBox(layout, props, scrollOffset?) to reduce subtle geometry drift. Found by GPT pipeline review.
+

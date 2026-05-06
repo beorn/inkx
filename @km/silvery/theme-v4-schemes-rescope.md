@@ -1,4 +1,9 @@
 ---
+mentions:
+  - silvery
+  - silvery
+  - km
+  - Bjørn
 id: "@km/silvery/theme-v4-schemes-rescope"
 aliases:
   - km-silvery.theme-v4-schemes-rescope
@@ -21,6 +26,10 @@ dependencies:
     created_at: 2026-04-19T10:59:04Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.theme-v4
 ---
 
 # [x] Phase 3: Rescope @silvery/theme to scheme catalog (+ rename to @silvery/schemes) @km/silvery #task #P3 @Bjørn Stabell
@@ -28,3 +37,4 @@ dependencies:
 blocks:: [[@km/silvery/theme-v4]]
 
 @silvery/theme is mostly a re-export shim today. Real content: builtinPalettes + CLI. Move: react integration → @silvery/ag-react; builder/generators → @silvery/ansi. Keep compat façade 1 release, then delete. Independent of Phase 1/2.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/storage/private-emitter"
 aliases:
   - km-storage.private-emitter
@@ -24,3 +27,4 @@ Classification: P1
 SyncManager creates its own Emitter with createEmitter(). Reconcile-generated fs-watch events go through this.emitter, which has no eventHub and no shared repo notification path. FS-origin DB changes can bypass normal UI broadcast/version-update path.
 
 Suggested fix: Inject the repo's shared Emitter into SyncManager instead of constructing a second one. One emitter per repo.
+

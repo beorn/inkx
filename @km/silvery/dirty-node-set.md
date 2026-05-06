@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/dirty-node-set"
 aliases:
   - km-silvery.dirty-node-set
@@ -15,3 +18,4 @@ assignee: Bjørn Stabell
 # [x] Dirty node SET — pipeline phases iterate dirty nodes, not tree @km/silvery #feature #P2 @Bjørn Stabell
 
 Phase 0a of signals engine. Add _dirtyNodes: Set<AgNode> to pipeline. Phases iterate dirty nodes, not whole tree. For 500-node kanban with 2 dirty nodes: content phase visits 2 not 500. No API change. ~2 days. Prerequisite for Phase 2 (style signals). See design/v20-canvas/signals-engine-architecture.md.
+

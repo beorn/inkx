@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/hv4n"
 aliases:
   - km-hv4n
@@ -19,18 +21,22 @@ Storage Layer (@km/storage)     → Persistence, file sync (exists)
 ```
 
 **@km/core internal structure:**
+
 - node/ - NodeState, queries, nodeReducer (structural)
 - board/ - BoardState, boardReducer, spatialNav (visual navigation)
 
 **Three reducers:**
+
 - appReducer (@km/tui) - modal state, view config
 - boardReducer (@km/core) - cursor, selection, navigation
 - nodeReducer (@km/core) - node mutations
 
 **Benefits:**
+
 - Reusable model logic across different UIs (TUI, web, etc.)
 - Testable navigation without rendering
 - Clean separation between rendering and state
 - Clear node (structural) vs board (visual) separation
 
 See specs/@km/tui-state/md for full architecture documentation.
+

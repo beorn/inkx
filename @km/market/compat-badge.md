@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/compat-badge"
 aliases:
   - km-market.compat-badge
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] terminfo.dev README compatibility badge generator @km/market #feature #P2
 
 npx terminfo badge --features truecolor,osc8,mouse,unicode → outputs badge (Works in 8/11 terminals) + tiny support table + link to terminfo.dev. Every repo that adds the badge = backlink + distribution.
+

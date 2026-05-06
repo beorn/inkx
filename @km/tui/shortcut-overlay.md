@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/shortcut-overlay"
 aliases:
   - km-tui.shortcut-overlay
@@ -18,3 +20,4 @@ owner: bjorn@stabell.org
 # [x] Hold-? shortcut overlay (uses key release events) @km/tui #feature #P2
 
 Hold '?' to show a contextual keyboard shortcuts overlay. Release to dismiss. Requires key release detection (@km/silvery/key-release). Like VS Code's keybinding overlay but triggered by holding a key.
+

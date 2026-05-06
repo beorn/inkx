@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/remove-singletons/0-migrate-km-cli-commands-from-setkmdir-getkmdir"
 aliases:
   - km-remove-singletons.0
@@ -12,3 +14,4 @@ closed_at: 2026-01-23T22:59:44Z
 
 Files: sync.ts, daemon.ts, rebuild.ts, bd.ts
 Pattern: Replace setKmDir(x) with passing kmDir through context or using vault.path
+

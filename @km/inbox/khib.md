@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/khib"
 aliases:
   - km-khib
@@ -10,3 +12,4 @@ closed_at: 2026-01-20T14:36:55Z
 # [x] inkx/chalkx: Naming inconsistency displayWidth vs displayLength @km/_orphan #task #P2
 
 Medium: inkx uses displayWidth()/displayWidthAnsi() while chalkx uses displayLength(). API confusion for users who may pick wrong function. Consider standardizing naming across packages.
+

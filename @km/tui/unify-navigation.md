@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/unify-navigation"
 aliases:
   - km-tui.unify-navigation
@@ -16,6 +18,7 @@ owner: bjorn@stabell.org
 # [x] Delete legacy navigation — ViewNode-only cursor movement @km/tui #task #P2
 
 view-navigation.ts (1292 lines) has two parallel navigation implementations:
+
 - Legacy (lines 78-730): repo.getNode(), repo.getChildren(), splitBodyAndColumns(), findAncestorAtDepth()
 - ViewNode (lines 732-1180): vnNavigateVertical, vnNavigateHorizontal — clean tree traversal
 
@@ -23,3 +26,4 @@ TARGET: Delete legacy navigation functions (~500 lines). ViewNode versions are c
 
 IMPACT: ~500 lines removed, view-navigation.ts 1292 -> ~700 lines. Eliminates navigation-landing-on-wrong-card bugs from body/embed misclassification.
 DEPENDS ON: @km/tui/view-tree equivalence validation, @km/tui/unify-columns.
+

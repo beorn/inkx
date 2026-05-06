@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/lu0b"
 aliases:
   - km-lu0b
@@ -8,3 +10,4 @@ closed_at: 2026-01-21T12:42:34Z
 ---
 
 # [x] ColumnsView: Bottom bar shows 'COLUMNS V' - should say 'COLUMNS VIEW' @km/_orphan #bug #P3
+

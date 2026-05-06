@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/view-ghost-chars"
 aliases:
   - km-tui.view-ghost-chars
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Ghost characters persist after view mode switching (CARDS/TABS/COLUMN) @km/tui #bug #P2
 
 After switching between CARDS/COLUMNVIEW/TABVIEW, stray characters from the previous view remain in blank screen areas. Characters visible: 'e', 't', '...', 'C', '@' (teal). These persist across subsequent view changes and are only cleared by restarting TUI. Likely cause: view transitions don't fully clear the terminal buffer.
+

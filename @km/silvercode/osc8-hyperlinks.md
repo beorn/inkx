@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - click
 id: "@km/silvercode/osc8-hyperlinks"
 aliases:
   - km-silvercode.osc8-hyperlinks
@@ -13,6 +17,10 @@ dependencies:
     created_at: 2026-04-28T12:35:59Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [ ] OSC 8 hyperlinks for file paths in chat — Cmd+click opens in editor @km/silvercode #feature #P2
@@ -20,6 +28,7 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 WHAT'S ALREADY THERE (audit before coding):
+
 - silvery exports <Link href onClick> at vendor/silvery/packages/ag-react/src/components/Link.tsx — emits OSC 8 + handles click/hover/modifier-key armed states
 - silvercode's MarkdownView wraps markdown links via <Link> (apps/silvercode/src/components/MarkdownView.tsx:57)
 - silvercode's LinkifiedText auto-detects URLs/paths in prose and wraps them via <Link> (apps/silvercode/src/components/LinkifiedText.tsx:277)
@@ -36,8 +45,10 @@ DO NOT build a new osc8 emitter, a new Link component, a new url-detector, or a 
 Files: apps/silvercode/src/components/ToolCall.tsx (only).
 
 Acceptance:
+
 - ToolCall renderLocations wraps each path in <Link href={'file://' + loc.path}>
 - shortenTitlePath substitution wraps the matched path span in <Link>
 - LinkifiedText untouched (already correct)
 - termless test: cell at path span has hyperlink URL set (frame.cell.hyperlink === 'file:///Users/...')
 - bun fix clean, tsc not regressed
+

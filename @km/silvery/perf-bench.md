@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/perf-bench"
 aliases:
   - km-silvery.perf-bench
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Performance benchmark suite with Ink comparison @km/silvery #task #P3
 
 Benchmark render, layout, diff, and memory. Compare against Ink baselines. Include regression detection threshold (20%).
+

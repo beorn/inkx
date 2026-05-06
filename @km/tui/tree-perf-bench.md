@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/tree-perf-bench"
 aliases:
   - km-tui.tree-perf-bench
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Perf benchmarks: before/after reduced signals + findInheritedBg @km/tui #task #P1
+

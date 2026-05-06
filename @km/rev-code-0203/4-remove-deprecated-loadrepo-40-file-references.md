@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/rev-code-0203/4-remove-deprecated-loadrepo-40-file-references"
 aliases:
   - km-rev-code-0203.4
@@ -14,6 +17,7 @@ assignee: claude:b3478afd
 ## Status: Scope reduced
 
 The deprecated `loadRepo()` from repo-loader.ts is only directly used in:
+
 1. `repo.ts` line 738 - `createRepo` internally delegates to `loadRepo` (the core loading pipeline)
 2. `tests/migration.test.ts` - tests migration behavior
 3. `tests/discover-only.test.ts` - tests discoverOnly mode
@@ -21,6 +25,8 @@ The deprecated `loadRepo()` from repo-loader.ts is only directly used in:
 The ~40 file references originally counted were actually to the **CLI wrapper** `apps/km-cli/src/load-repo.ts` which shares the name `loadRepo` but already uses `createRepo()` internally.
 
 ## Remaining work
+
 The deprecated `loadRepo()` function in repo-loader.ts is the actual loading pipeline that `createRepo` wraps. Removing it means inlining its logic into `createRepo` or refactoring the loading pipeline — a significant internal refactor with no external API change.
 
 **Priority reduced to P4** — no external consumers use the deprecated API.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/mdtest/bash-plugin-bun-only"
 aliases:
   - km-mdtest.bash-plugin-bun-only
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] mdtest: bash plugin hard-wired to Bun, breaks Vitest @km/mdtest #bug #P1
 
 Built-in bash plugin imports and calls bunShell() which depends on Bun.spawn. Vitest integration runs under Node where Bun is not available. vitestShell() exists but is never injected into the plugin path. Fix: make shell execution an injected dependency via ShellAdapter. plugins/bash.ts:8,68-71,114-118. Found by GPT 5.4 Pro review.
+

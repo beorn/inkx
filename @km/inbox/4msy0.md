@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/4msy0"
 aliases:
   - km-4msy0
@@ -21,3 +24,4 @@ Classification: P1
 command: string[] is joined with spaces and run as bash -c. Structured argv from CLI/MCP is reinterpreted by the shell — spaces, quotes, globbing, $(), and ; change meaning.
 
 Suggested fix: Spawn program directly as [program, ...args]. Add explicit shellCommand: string path if shell mode is needed.
+

@@ -1,4 +1,8 @@
 ---
+mentions:
+  - bearly
+  - km
+  - Bjørn
 id: "@km/bear/mcp-wrapper"
 aliases:
   - km-bear.mcp-wrapper
@@ -33,6 +37,14 @@ dependencies:
     created_at: 2026-04-16T23:28:53Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-bear
+      - type: link
+        target: km-bear.test-infra
 ---
 
 # [x] Phase 1: @bearly/bear MCP server wrapping existing recall library @km/bear #task #P2 @Bjørn Stabell
@@ -46,7 +58,7 @@ Validates MCP wrapping pattern with minimum risk. Follows tribe-proxy.ts house s
 - `vendor/bearly/plugins/bear/` (NEW package) — package.json, server.ts, README.md, CHANGELOG.md
 - `plugins/bear/server.ts` — stdio MCP server exposing 3 tools:
   - `bear.ask({ query, options })` → calls `recallAgent()` from recall library
-  - `bear.current_brief({ sessionId? })` → calls `getCurrentSessionContext()`  
+  - `bear.current_brief({ sessionId? })` → calls `getCurrentSessionContext()`
   - `bear.plan_only({ query })` → calls `planQuery()` for round 1 only; returns variants + plan without fanout (fast exploration)
 - `plugins/bear/package.json` — publishable as `@bearly/bear`, private initially
 - `plugins/bear/tests/server.test.ts` — 1 test per tool minimum (era2 Lesson 4)
@@ -92,3 +104,4 @@ bun vitest run vendor/bearly/plugins/bear/tests/ 2>&1 | tail -3  # → 0 failed
 ## MANDATORY first step
 
 Read docs/lessons/refactoring.md IN FULL before writing any code.
+

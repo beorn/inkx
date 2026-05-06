@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/sync-refactor/phase4-factory"
 aliases:
   - km-storage.sync-refactor.phase4-factory
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Phase 4: SyncManager class to createSyncManager() factory @km/storage #task #P2
 
 Convert remaining SyncManager class to factory function. Drop extends EventEmitter, use typed callbacks. Update 4 production consumers + test helper. Depends on phases 1-3.
+

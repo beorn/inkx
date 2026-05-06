@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/windowing-wire"
 aliases:
   - km-tui.windowing-wire
@@ -13,3 +16,4 @@ assignee: claude:28b14b32
 # [x] Windowing: wire multi-pane rendering + pane commands in view layer @km/tui #task #P2 @claude:28b14b32
 
 Wire the existing store actions (split, close, focus, resize, zoom, swap) to actual multi-pane rendering in Board.tsx. Currently the store supports workspaces but the view layer only renders a single pane. This task connects the two layers.
+

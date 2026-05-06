@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/event-sourcing"
 aliases:
   - km-storage.event-sourcing
@@ -20,6 +22,7 @@ Decouple emitter into commit + projection (event-sourcing-lite).
 
 PRO RECOMMENDATION:
 Split emitter into two stages:
+
 1. COMMIT: DB apply + durable event log + broadcast
 2. PROJECT: async FS projector (subscribes to events, writes files)
 
@@ -30,11 +33,13 @@ EXTERNAL EDITOR PATH:
   watcher → observation (path, hash) → if hash == baseline: drop → else parse → commit with origin='fs' → update baseline_hash → DO NOT re-project to FS
 
 WHY THIS BREAKS ECHO LOOPS:
+
 - Watcher never directly causes filesystem writes
 - Emitter never mixes commit + projection for all origins
 - Projections are idempotent, safe to replay
 
 REDUCES 5 SUPPRESSION LAYERS TO 2 PRIMITIVES:
+
 1. Single per-path sync actor/queue
 2. Persisted baseline hash/revision
 
@@ -43,3 +48,4 @@ PRO WARNING: 'Biggest hidden risk is emitter unification — if FS-originated re
 ALSO ADD: origin: 'tui' | 'fs' | 'replay' on all events for typed loop prevention.
 
 NOTE: events.jsonl should be best-effort debug/export. SQLite is the authority. Don't pretend events.jsonl is transactionally tied to DB.
+

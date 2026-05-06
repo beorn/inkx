@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/terminfo/xtgettcap"
 aliases:
   - km-terminfo.xtgettcap
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] XTGETTCAP probe — query terminfo via DCS (from notcurses) @km/terminfo #task #P2
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/mouse-shift-click"
 aliases:
   - km-silvery.mouse-shift-click
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T16:18:17Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.opentui-parity
 ---
 
 # [ ] Mouse: shift-click range extend @km/silvery #feature #P2
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/silvery/opentui-parity]]
 
 Clicking with shift held extends existing selection to click point, for both text and node/card selection. Standard everywhere.
+

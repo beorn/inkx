@@ -1,4 +1,7 @@
 ---
+mentions:
+  - bearly
+  - km
 id: "@km/bearly/daemon-spine-phase1"
 aliases:
   - km-bearly.daemon-spine-phase1
@@ -14,6 +17,10 @@ dependencies:
     created_at: 2026-04-26T15:14:15Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-bearly.daemon-spine
 ---
 
 # [/] Phase 1: extract @bearly/daemon-spine package, rewrite lore/socket.ts as adapter (~250 LOC delete) @km/bearly #task #P2
@@ -23,6 +30,7 @@ blocks:: [[@km/bearly/daemon-spine]]
 Extract @bearly/daemon-spine package at vendor/bearly/packages/daemon-spine/ with src/{rpc,parser,client,paths,util}.ts. Rewrite plugins/tribe/lore/lib/socket.ts as a thin adapter (~100 LOC from 364).
 
 Surface:
+
 - JSON-RPC types + makers (makeRequest/makeResponse/makeError/makeNotification)
 - createLineParser
 - DaemonClient interface + connectToDaemon, connectOrStart, createReconnectingClient
@@ -32,3 +40,4 @@ Surface:
 Phases 1+2 may ship together since Phase 2 is just an import swap. Bead-d may close both.
 
 Design doc: hub/bearly/design/daemon-spine-consolidation.md
+

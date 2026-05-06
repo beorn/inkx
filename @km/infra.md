@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra"
 aliases:
   - km-infra
@@ -16,8 +18,10 @@ Tracks monorepo infrastructure: CI, benchmarks, packaging, linting.
 ## Open children (5: all P4)
 
 ### P4 (dont do automatically)
+
 - **@km/infra/bench-queries** [feature] — Database query benchmarks
 - **@km/infra/bench-sync** [feature] — Sync algorithm benchmarks
 - **@km/infra/ci-fuzz** [task] — CI integration for nightly chaos fuzzing
 - **@km/infra/vendor-rename** [task] — Rename vendor packages
 - **@km/infra/shared-config** [feature] — Shared monorepo config package
+

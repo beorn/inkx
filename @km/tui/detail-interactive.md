@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/detail-interactive"
 aliases:
   - km-tui.detail-interactive
@@ -13,3 +16,4 @@ assignee: claude:97b8de73
 # [x] Detail pane interactivity: selection, all ops, prop editing @km/tui #feature #P2 @claude:97b8de73
 
 Detail pane is a full column: up/down navigation, Space to select, all verb prefixes work (g/m/a). Prop editing TBD. See docs/keybindings-v2.md §Detail Pane.
+

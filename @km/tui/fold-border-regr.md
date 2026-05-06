@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/fold-border-regr"
 aliases:
   - km-tui.fold-border-regr
@@ -13,3 +16,4 @@ assignee: claude:124bfbe5
 # [x] Fold (<) bottom border disappears — regression @km/tui #bug #P4 @claude:124bfbe5
 
 When pressing < to fold a few times in /tmp/vt, card bottom borders disappear. This was previously fixed in @km/tui/fold-border-blank (content-phase inset clipRectBottom) but appears to have regressed.
+

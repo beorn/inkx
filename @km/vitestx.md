@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/vitestx"
 aliases:
   - km-vitestx
@@ -16,5 +18,7 @@ Tracks all vitestx (unified test framework) issues — the `@beorn/vitestx` pack
 ## Open children (2: all P4)
 
 ### P4 (dont do automatically)
+
 - **@km/vitestx/ai** [feature] — AI mode LLM integration
 - **@km/vitestx/mdtest** [task] — mdtest integration as vitest plugin
+

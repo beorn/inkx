@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/omnibox-fixed-width"
 aliases:
   - km-tui.omnibox-fixed-width
@@ -27,6 +30,10 @@ dependencies:
     created_at: 2026-04-14T23:07:16Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Omnibox: search box should be fixed width @km/tui #task #P1 @Bjørn Stabell
@@ -40,3 +47,4 @@ Reproduction: open via : or Cmd-K, type progressively — the outer Box / ModalD
 Fix site: apps/@km/tui/src/views/WorkspaceChrome.tsx around the CenterDialog mount points (both UnifiedOmniboxConnector and the legacy Omnibox mount). Both should pin a stable width so layout never jitters.
 
 Related: @km/tui/omnibox-quality-plateau
+

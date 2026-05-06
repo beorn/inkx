@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/plugin-arch"
 aliases:
   - km-silvery.plugin-arch
@@ -34,3 +37,4 @@ TEA-level `with*()` plugins (App wrapping, process lifecycle) vs React-level `wr
 - Builds on wrapRoot (added in @km/silvery/ink-compat-minimize)
 - Related to @km/silvery/terminal-abstraction (unified Terminal factory)
 - Enables further compat surface reduction
+

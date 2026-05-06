@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/silvery-legacy"
 aliases:
   - km-silvery-legacy
@@ -14,11 +16,13 @@ close_reason: "Grooming: 96% complete, remaining children moved to km-silvery.
 hightea — React-based terminal UI framework with two-phase layout, synchronous layout feedback, and progressive terminal enhancement.
 
 ## Open Work
+
 - **@km/hightea/live-docs** (P3) — Web-based docs site with xterm.js + canvas example viewer
 
 ## Implemented Features (103 beads closed)
 
 ### Rendering Pipeline
+
 - Two-phase rendering with synchronous layout feedback
 - Style transition cache (minimal SGR diff between style pairs)
 - Incremental contentPhase rendering with dirty flags
@@ -29,6 +33,7 @@ hightea — React-based terminal UI framework with two-phase layout, synchronous
 - Diff micro-optimizations: bounding box, relative cursor, row slice compare
 
 ### Terminal Protocols
+
 - Kitty keyboard protocol (full: disambiguate, events, alternate keys, text codepoints, lock modifiers)
 - SGR mouse events (click, drag, scroll, DOM-style bubbling, click-to-focus)
 - Bracketed paste mode (ESC[?2004h, usePaste hook, onPaste in useInput)
@@ -37,6 +42,7 @@ hightea — React-based terminal UI framework with two-phase layout, synchronous
 - Synchronized Update Mode (DEC)
 
 ### Components & Hooks
+
 - Box, Text, VirtualList, Static, Console, TextInput, ReadlineInput, TextArea, Link
 - Transform component (Ink-compatible, per-line string transform)
 - Image component (Kitty graphics + Sixel protocol, auto-detection, text fallback)
@@ -49,6 +55,7 @@ hightea — React-based terminal UI framework with two-phase layout, synchronous
 - VirtualColumns (horizontal + vertical virtualization)
 
 ### Architecture
+
 - Plugin composition: withCommands, withKeybindings, withDiagnostics
 - Driver pattern for testing/AI automation
 - CC (Claude Code) compatibility: Transform + useFocus shim
@@ -57,7 +64,9 @@ hightea — React-based terminal UI framework with two-phase layout, synchronous
 - Multiple layout engines (Flexture default, Yoga optional)
 
 ### Documentation & Tooling
+
 - FOSS-ready docs overhaul (plugins.md, troubleshooting.md, CONTRIBUTING.md)
 - Ink comparison document with head-to-head benchmarks
 - Examples: clipboard, paste, outline, transform, image, kitty, mouse
 - Migration guides (Ink→hightea, legacy hightea→hightea/runtime)
+

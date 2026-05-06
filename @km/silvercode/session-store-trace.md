@@ -1,7 +1,4 @@
 ---
-tags:
-  - task
-  - P0
 mentions:
   - km
 id: "@km/silvercode/session-store-trace"
@@ -18,6 +15,10 @@ dependencies:
     created_at: 2026-04-28T12:50:10Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [ ] Status transition trace — silvercode:status logger + dev-mode invariant check @km/silvercode #task #P0 ^session-store-trace
@@ -55,3 +56,4 @@ Acceptance:
 - Added `statusTrace` 30-entry ring buffer on session state for forensics.
 - Added liveness obligations for turns, tools, and permission requests plus `liveness-check` diagnostics.
 - Verification: `apps/silvercode/packages/agent-harness/tests/status-trace.test.ts` passed in the targeted run; root `npx tsc --noEmit --pretty false` passed.
+

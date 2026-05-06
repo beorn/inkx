@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/aoogi"
 aliases:
   - km-aoogi
@@ -11,3 +14,4 @@ assignee: claude:124bfbe5
 ---
 
 # [x] TUI: undo does not revert duplicate_node @km/_orphan #bug #P3 @claude:124bfbe5
+

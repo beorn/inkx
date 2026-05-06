@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/tup3z"
 aliases:
   - km-tup3z
@@ -11,3 +14,4 @@ assignee: claude:5f0aee02
 ---
 
 # [x] TUI: Done task checkmark renders green instead of dimmed @km/_orphan #bug #P2 @claude:5f0aee02
+

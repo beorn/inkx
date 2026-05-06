@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/tea-hostconfig"
 aliases:
   - km-inkx.tea-hostconfig
@@ -11,3 +14,4 @@ assignee: claude:d3a7049b
 ---
 
 # [x] Wire focusable/focusScope props through reconciler host-config @km/inkx #task #P2 @claude:d3a7049b
+

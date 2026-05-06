@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/z1yx"
 aliases:
   - km-z1yx
@@ -12,6 +14,7 @@ closed_at: 2026-01-16T12:03:49Z
 **Duplicate code**: Board reducer exists in two packages with different implementations.
 
 Files:
+
 - packages/@km/_orphan/core/src/board/boardReducer.ts (350 lines) - Legacy
 - packages/@km/_orphan/board/src/boardReducer.ts (537 lines) - Enhanced
 
@@ -19,3 +22,4 @@ Files:
 @km/_orphan/board version adds CURSOR_*/EXTEND_SELECT_*/SHIFT_* actions.
 
 Fix: Migrate @km/_orphan/core/board users to @km/_orphan/board, deprecate @km/_orphan/core/board.
+

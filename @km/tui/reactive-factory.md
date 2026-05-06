@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/reactive-factory"
 aliases:
   - km-tui.reactive-factory
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Convert ReactiveNodeStore class to factory function (principles.md) @km/tui #task #P2
+

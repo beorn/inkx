@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/scrollback-wrapper"
 aliases:
   - km-silvery.scrollback-wrapper
@@ -17,3 +20,4 @@ assignee: claude:def7f8a1
 # [x] ScrollbackView wrapper + showcase demo @km/silvery #task #P2 @claude:def7f8a1
 
 Phase 5: tmux-style pane demo showcasing ListView + SearchProvider + SplitView. Two AI chat panes with virtual history, tab-to-switch focus, Ctrl+F searches focused pane. Reuses aichat script data and ExchangeItem components. ScrollbackView as thin wrapper over ListView.
+

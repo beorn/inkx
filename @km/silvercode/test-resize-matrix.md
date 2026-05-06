@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/test-resize-matrix"
 aliases:
   - km-silvercode.test-resize-matrix
@@ -13,8 +15,13 @@ dependencies:
     created_at: 2026-04-24T14:49:52Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.test-system
 ---
 
 # [ ] Silvercode test system v2 — width-matrix scenarios @km/silvercode #feature #P3
 
 blocks:: [[@km/silvercode/test-system]]
+

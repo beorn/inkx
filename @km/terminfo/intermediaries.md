@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/intermediaries"
 aliases:
   - km-terminfo.intermediaries
@@ -14,3 +17,4 @@ assignee: claude:27beac99
 ---
 
 # [x] Intermediary testing: tmux/screen/ConPTY pass-through probes @km/terminfo #task #P3 @claude:27beac99
+

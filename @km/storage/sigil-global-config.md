@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/sigil-global-config"
 aliases:
   - km-storage.sigil-global-config
@@ -26,6 +28,14 @@ dependencies:
     created_at: 2026-04-15T12:25:37Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-storage.sigil-strict-namespaces
+      - type: link
+        target: km-storage.sigils
 ---
 
 # [x] Global km config (~/.config/km/config.yml) + ~ sigil resolver @km/storage #feature #P1 #config #sigils #user-global #vault-integration
@@ -33,3 +43,4 @@ dependencies:
 blocks:: [[@km/storage/sigil-strict-namespaces]], [[@km/storage/sigils]]
 
 Add a user-global config file at ~/.config/km/config.yml that km reads on startup. Defines: identity, default vaults, repo path mappings (for ~name sigil), external shortlinks (for ~name → URL), sigil customization, defaults, and area definitions. Also adds ~ as a recognized sigil alongside +, @, # — resolves to local repo paths or URLs. See ~/Bear/Vault/projects/+km/ref/ or the draft config already at ~/.config/km/config.yml for the full proposed shape.
+

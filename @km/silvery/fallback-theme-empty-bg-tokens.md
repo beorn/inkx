@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/fallback-theme-empty-bg-tokens"
 aliases:
   - km-silvery.fallback-theme-empty-bg-tokens
@@ -42,6 +44,10 @@ dependencies:
     created_at: 2026-04-23T23:12:38Z
     created_by: claude:c56dc5d6
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] fallback default-dark theme leaves 31/32 bg tokens as empty strings @km/silvery #bug #P2
@@ -58,8 +64,10 @@ Empty-string bg resolves to transparent → no cell paint → user sees no bg ch
 Root cause: Sterling's inlineSterlingTokens uses `setIfAbsent` which checks `typeof out[key] !== 'string'`. In the fallback LegacyTheme, token values are stored as objects `{ value: '', monoAttrs: [] }` — not strings — so setIfAbsent overwrites. But the OVERWRITE doesn't happen because some upstream path leaves the value as an empty string.
 
 Fix directions:
+
 1. In default-dark fallback LegacyTheme, ensure all bg-* tokens have non-empty hex defaults derived from the nord/default scheme.
 2. Or: have setIfAbsent also overwrite empty strings (not just non-strings).
 3. Or: when source=fallback, use the fully-derived default theme instead of a stripped-down one.
 
 Acceptance: after fix, `bun vendor/silvery/packages/theme/src/cli.ts inspect --format json` shows populated values for ALL bg-* tokens when detection fails.
+

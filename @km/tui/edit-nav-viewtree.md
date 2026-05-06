@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/edit-nav-viewtree"
 aliases:
   - km-tui.edit-nav-viewtree
@@ -16,3 +19,4 @@ assignee: Bjørn Stabell
 # [x] Move edit navigation (findAdjacentEditNode) to ViewTree @km/tui #task #P2 @Bjørn Stabell
 
 findAdjacentEditNode walks repo with extractBody().items, ignoring visibility model. Should use ViewTree adjacency like all other nav. Also removes findDeepestLast (use TreeWalk.nodes reverse). ~2 hours.
+

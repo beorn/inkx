@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - link
 id: "@km/tools/import-embeds"
 aliases:
   - km-tools.import-embeds
@@ -12,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Use embeds (\![[^id]]) instead of title+link for cross-project task refs @km/tools #feature #P3
 
 In convert.ts, cross-project task references currently render as 'Title (Status) → [[^sourceId]]'. This duplicates the title and shows a raw reference. Instead, use '\![[^sourceId]]' (embed/transclusion) which would render the actual node content inline. The parser and storage already support embeds via link_to reconciliation. Change: convert.ts:427 content from '${item.title} → [[\^id]]' to '\![[\^id]]'.
+

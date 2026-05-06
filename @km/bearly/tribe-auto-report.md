@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/bearly/tribe-auto-report"
 aliases:
   - km-bearly.tribe-auto-report
@@ -15,3 +18,4 @@ assignee: claude:19080504
 # [x] Auto-reporting: plugin detects commits + bead changes @km/bearly #feature #P2 @claude:19080504
 
 Plugin auto-sends status messages when it detects: git commits in worktree, bead claims/closes (via .beads/ file watch or polling), session joins/leaves. Reduces reliance on Claude remembering to report.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/v3-reactive-tree"
 aliases:
   - km-tui.v3-reactive-tree
@@ -42,10 +45,12 @@ Benchmarks show alien-signals computed() is 5-38x faster than our count-based en
 
 Build reactive-graph.ts (~80 LOC) implementing the same DSL with computed():
 
-    const store = reactiveGraph((tree) => ({
-      cursor:           signal(false),
-      cursorDescendant: tree.descendants(s => s.cursor).some(),
-    }), { parent, children })
+```
+const store = reactiveGraph((tree) => ({
+  cursor:           signal(false),
+  cursorDescendant: tree.descendants(s => s.cursor).some(),
+}), { parent, children })
+```
 
 graph.descendants(s => s.cursor).some() compiles to:
     computed(() => { for (id of walkDown(nodeId)) if (get(id).cursor()) return true; return false })
@@ -53,6 +58,7 @@ graph.descendants(s => s.cursor).some() compiles to:
 Graph bound at creation. No batch() needed -- alien-signals handles it.
 
 Files:
+
 - reactive-graph.ts -- NEW (~80 LOC)
 - reactive-graph.test.ts -- NEW (port all 28 tests)
 
@@ -67,6 +73,7 @@ ReactiveNodeStore.reduced switches from createReactiveTree to reactiveGraph.
 Verify all 216 test files still pass.
 
 Files:
+
 - reactive.ts -- switch this.reduced to reactiveGraph
 - Board.tsx -- pass visibleLens to reactiveGraph at creation
 
@@ -83,6 +90,7 @@ Move all per-node state (foldOverride, edit, hovered, sticky) into the graph sch
 Convert ReactiveNodeStore class to createNodeStore() factory. Delete NodeReactiveState interface.
 
 Files:
+
 - reactive.ts -- rewrite as factory wrapping reactiveGraph
 - Board.tsx, CardColumn.tsx, TreeNode.tsx -- use store.get(id).field() directly
 
@@ -99,6 +107,7 @@ Board.tsx writes signals directly. No more syncCursor/syncSelected/syncEdit.
 Delete expandWithDescendants, expandedEditCardId, excludedSigils bridge.
 
 Files:
+
 - reactive.ts -- delete sync methods (~85 LOC)
 - Board.tsx -- inline signal writes
 
@@ -113,3 +122,4 @@ Delete: syncCursor, syncSelected, syncEdit, expandWithDescendants, collectDescen
 Before: 532 + 475 = 1007 LOC (engine + wrapper)
 After: ~80 + ~100 = ~180 LOC (computed engine + factory)
 Net: ~-800 LOC deleted
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/pipeline-counters"
 aliases:
   - km-silvery.pipeline-counters
@@ -9,3 +11,4 @@ owner: bjorn@stabell.org
 ---
 
 # [ ] Pipeline built-vs-read counters via loggily metrics — find next lazy target @km/silvery #task #P2
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/plugin-namespace-lint"
 aliases:
   - km-silvery.plugin-namespace-lint
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-21T02:06:43Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.authoring-elegance
 ---
 
 # [ ] Lint rule: ban hand-typed '${name}.${op}' literals outside definePlugin @km/silvery #feature #P3
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/silvery/authoring-elegance]]
 
 Enforce single source of namespace truth. Today 'help.show', 'search.show', etc. are typed manually in op unions AND in bridge dispatch sites; a typo in one place is a silent miss. Once @km/silvery.definePlugin ships, the ns lives in name: 'help' only. Low-effort, high-signal lint. Filed from 2026-04-21 elegance review (cycle 1).
+

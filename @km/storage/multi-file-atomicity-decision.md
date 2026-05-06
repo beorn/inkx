@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/multi-file-atomicity-decision"
 aliases:
   - km-storage.multi-file-atomicity-decision
@@ -21,6 +23,10 @@ dependencies:
     created_at: 2026-04-21T21:50:02Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage.writeback-cas
 ---
 
 # [x] Open decision: ship v1 without multi-file journal? @km/storage #task #P1
@@ -28,3 +34,4 @@ dependencies:
 blocks:: [[@km/storage/writeback-cas]]
 
 Round-2 review recommends dropping the resumable-on-crash multi-file journal (§7.3) for v1 — solo-dev tar pit, user-visible data-loss-on-crash risk. Alternative: allow non-atomic cascades + km doctor rebuild-backlinks for recovery. Needs user decision before P3 writeback lands. See hub/km/storage-architecture.md §8.P3 open question + §7.3. Recommendation from assistant: ship without journal; re-add if real incidents appear.
+

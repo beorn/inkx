@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-v3-r3-kebab-collapse"
 aliases:
   - km-silvery.theme-v3-r3-kebab-collapse
@@ -22,6 +24,10 @@ dependencies:
     created_at: 2026-04-18T21:09:19Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.theme-v3-plumbing
 ---
 
 # [x] R3: Collapse token names — Theme keys are kebab-strings, not camelCase @km/silvery #task #P3
@@ -29,3 +35,4 @@ dependencies:
 blocks:: [[@km/silvery/theme-v3-plumbing]]
 
 Eliminate PRIMER_ALIASES (40+ rows) by making Theme a Record<kebab-string, string>. 'primaryHover' Theme field becomes 'primary-hover' key. Also nests state variants: theme['primary'].base/hover/active instead of flat. ~145 theme.X accesses migrate to theme['x'] or nested. B1 (nest state variants) is part of this bead.
+

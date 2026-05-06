@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/terminfo/baselines"
 aliases:
   - km-terminfo.baselines
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Terminal Baseline 2026: core/modern/rich/unicode baseline definitions @km/terminfo #feature #P2
+

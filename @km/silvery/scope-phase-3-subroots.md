@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/scope-phase-3-subroots"
 aliases:
   - km-silvery.scope-phase-3-subroots
@@ -19,6 +21,14 @@ dependencies:
     created_at: 2026-04-24T13:39:50Z
     created_by: claude:2aefb4b6
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.lifecycle-scope
+      - type: link
+        target: km-silvery.scope-phase-2
 ---
 
 # [ ] Phase 3.1: Sub-reconciler roots migration @km/silvery #task #P2
@@ -26,3 +36,4 @@ dependencies:
 blocks:: [[@km/silvery/lifecycle-scope]], [[@km/silvery/scope-phase-2]]
 
 Migrate silvercode panels from mountSubroot(...).unmount() to useScopeEffect(scope => scope.use(mountSubroot(<PanelUI/>, term))). mountSubroot returns Disposable after Phase 2. Exit: grep shows zero root.unmount() calls in app code; test suite green.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/markdown-render-bugs"
 aliases:
   - km-silvercode.markdown-render-bugs
@@ -23,6 +26,10 @@ dependencies:
     created_at: 2026-04-24T23:39:25Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Markdown rendering bugs: inconsistent bullet spacing, stray colon, no bold/italic @km/silvercode #bug #P2 @claude:2405c72e
@@ -80,3 +87,4 @@ Send a long assistant message containing a bulleted list with mixed multi-line/s
 
 - \`km-silvercode.prose-primitive\` (closed) — Prose covers the wrap path, but markdown internals under Prose are still broken
 - \`km-silvercode.markdown-real\` (closed, m7) — assumed @km/markdown is live; verify whether the parsing or the rendering layer owns these bugs
+

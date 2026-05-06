@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/emitter-to-repo"
 aliases:
   - km-storage.emitter-to-repo
@@ -20,3 +22,4 @@ Target: repo.apply(event) + repo.getNode/getChildren (one object)
 
 Also: collapse commit/save into apply with origin-based loop prevention.
 event.origin === "fs" → skip save. Eliminates wrapEmitterForReconcile.
+

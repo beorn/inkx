@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/overflow-clip-edges"
 aliases:
   - km-flexily.overflow-clip-edges
@@ -24,3 +26,4 @@ Closes 3 Ink 7.0 compat failures.
 ## Parent
 
 @km/silvery/positioning
+

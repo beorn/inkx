@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/ast/tree"
 aliases:
   - km-ast.tree
@@ -14,9 +16,11 @@ owner: bjorn@stabell.org
 Replace STRUCTURAL_TYPES/extractBody heuristic with @km/ast isOutline predicate.
 
 Changes:
+
 - body.ts: STRUCTURAL_TYPES → isOutline(type) i.e. type === 'oi'
 - extractBody: items = children.filter(c => c.type === 'oi'), body = rest
 - hasBody/isStructuralType/isBodyType: update or remove
 - index.ts: update re-exports if needed
 
 Files: packages/@km/tree/src/body.ts, packages/@km/tree/src/index.ts, packages/@km/tree/tests/body.test.ts
+

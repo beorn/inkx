@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/viewport-fill"
 aliases:
   - km-silvery.viewport-fill
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] ScrollbackView `fill` prop — viewport-filling inline mode with bottom-anchored footer @km/silvery #feature #P4
 
 ScrollbackView fill prop — viewport-filling inline mode with bottom-anchored footer. Also covers VerticalFiller concept (padding cursor to terminal bottom for inline scrollback).
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - beorn
+  - km
 id: "@km/inbox/t0yt"
 aliases:
   - km-t0yt
@@ -9,7 +12,7 @@ closed_at: 2026-01-19T14:41:22Z
 
 # [x] Create @beorn/flexx - Pure JS flexbox layout engine @km/_orphan #feature #P2
 
-# @beorn/flexx - Pure JavaScript Flexbox Layout Engine
+## @beorn/flexx - Pure JavaScript Flexbox Layout Engine
 
 ## Motivation
 
@@ -24,16 +27,17 @@ Inkz currently depends on `yoga-wasm-web` (~200KB) for flexbox layout. This crea
 
 ### Existing Pure-JS Implementations
 
-| Library | Status | LOC | Features | Limitations |
-|---------|--------|-----|----------|-------------|
-| [flexbox.js](https://github.com/Planning-nl/flexbox.js) | Abandoned (2020) | ~1500 | Core flexbox | No wrap-reverse, order, flex-basis, baseline |
-| [typeflex](https://github.com/dead/typeflex) | Maintained | ~8000 | Full Yoga port | Large, matches Yoga's complexity |
-| [css-layout](https://www.npmjs.com/package/css-layout) | Deprecated | ~2000 | Subset of flexbox | Facebook deprecated in favor of Yoga |
-| Custom (tchayen) | Tutorial | <600 | Core subset | No wrap, grow/shrink |
+| Library          | Status           | LOC   | Features          | Limitations                                  |
+| ---------------- | ---------------- | ----- | ----------------- | -------------------------------------------- |
+| flexbox.js       | Abandoned (2020) | ~1500 | Core flexbox      | No wrap-reverse, order, flex-basis, baseline |
+| typeflex         | Maintained       | ~8000 | Full Yoga port    | Large, matches Yoga's complexity             |
+| css-layout       | Deprecated       | ~2000 | Subset of flexbox | Facebook deprecated in favor of Yoga         |
+| Custom (tchayen) | Tutorial         | <600  | Core subset       | No wrap, grow/shrink                         |
 
 ### Key Insight from Prior Art
 
 The tchayen tutorial demonstrates that **<600 LOC** can implement core flexbox for practical use. The complexity explosion comes from:
+
 - `flexWrap` (especially wrap-reverse)
 - `baseline` alignment
 - RTL/writing modes
@@ -44,14 +48,16 @@ The tchayen tutorial demonstrates that **<600 LOC** can implement core flexbox f
 Actual flexbox features used in @km/tui (from codebase analysis):
 
 ### MUST HAVE (used extensively)
+
 - `flexDirection`: row, column (65+ usages)
-- `width`, `height`: explicit sizing (60+ usages)  
+- `width`, `height`: explicit sizing (60+ usages)
 - `flexGrow`: 1 (5 usages)
 - `flexShrink`: 0 (5 usages)
 - `padding`, `paddingX`, `paddingY` (25+ usages)
 - `margin`, `marginLeft`, `marginTop`, `marginRight` (15+ usages)
 
 ### SHOULD HAVE (used moderately)
+
 - `justifyContent`: flex-start, flex-end, center, space-between (3 usages)
 - `alignItems`: center, flex-start (3 usages)
 - `position`: absolute (3 usages - modals only)
@@ -59,6 +65,7 @@ Actual flexbox features used in @km/tui (from codebase analysis):
 - `minHeight` (1 usage)
 
 ### NOT USED in @km/tui
+
 - `flexBasis`
 - `flexWrap` (no wrapping layouts)
 - `row-reverse`, `column-reverse`
@@ -72,6 +79,7 @@ Actual flexbox features used in @km/tui (from codebase analysis):
 This is the EXACT API that flexx must implement for drop-in compatibility:
 
 ### Node Lifecycle
+
 \`\`\`typescript
 // Factory
 Node.create(): LayoutNode
@@ -92,6 +100,7 @@ type MeasureFunc = (
 \`\`\`
 
 ### Layout Calculation
+
 \`\`\`typescript
 node.calculateLayout(width: number, height: number, direction: Direction): void
 
@@ -103,6 +112,7 @@ node.getComputedHeight(): number
 \`\`\`
 
 ### Size Setters
+
 \`\`\`typescript
 // Width
 node.setWidth(value: number): void
@@ -126,6 +136,7 @@ node.setMaxHeightPercent(value: number): void
 \`\`\`
 
 ### Flex Setters
+
 \`\`\`typescript
 node.setFlexGrow(value: number): void
 node.setFlexShrink(value: number): void
@@ -137,6 +148,7 @@ node.setFlexWrap(wrap: Wrap): void
 \`\`\`
 
 ### Alignment Setters
+
 \`\`\`typescript
 node.setAlignItems(align: Align): void
 node.setAlignSelf(align: Align): void
@@ -145,6 +157,7 @@ node.setJustifyContent(justify: Justify): void
 \`\`\`
 
 ### Spacing Setters
+
 \`\`\`typescript
 node.setPadding(edge: Edge, value: number): void
 node.setMargin(edge: Edge, value: number): void
@@ -153,6 +166,7 @@ node.setBorder(edge: Edge, value: number): void  // For border width
 \`\`\`
 
 ### Other Setters
+
 \`\`\`typescript
 node.setDisplay(display: Display): void
 node.setPositionType(position: PositionType): void
@@ -160,6 +174,7 @@ node.setOverflow(overflow: Overflow): void
 \`\`\`
 
 ### Required Constants
+
 \`\`\`typescript
 // Flex Direction
 FLEX_DIRECTION_ROW, FLEX_DIRECTION_COLUMN,
@@ -201,6 +216,7 @@ MEASURE_MODE_UNDEFINED, MEASURE_MODE_EXACTLY, MEASURE_MODE_AT_MOST
 \`\`\`
 
 ### Yoga Default Values (MUST MATCH)
+
 \`\`\`typescript
 flexGrow: 0
 flexShrink: 1
@@ -221,6 +237,7 @@ overflow: visible
 ### Tier 1: MVP for @km/tui (~800-1000 LOC)
 
 **Node API:**
+
 - `Node.create()`, `free()`
 - `insertChild()`, `removeChild()`
 - `calculateLayout(width, height, DIRECTION_LTR)`
@@ -228,30 +245,36 @@ overflow: visible
 - `setMeasureFunc()` - CRITICAL for text nodes
 
 **Sizing:**
+
 - `setWidth()`, `setHeight()` (numbers)
 - `setWidthPercent()`, `setHeightPercent()` - Inkx uses these
 - `setWidthAuto()`, `setHeightAuto()`
 - `setMinHeight()` (only min used in @km/tui)
 
 **Flex:**
+
 - `setFlexGrow()`, `setFlexShrink()`
 - `setFlexDirection()` - row, column only
 
 **Spacing:**
+
 - `setPadding(edge, value)` with all EDGE_* constants
 - `setMargin(edge, value)` with all EDGE_* constants
 - `setGap(GUTTER_ALL, value)`
 - `setBorder(edge, value)`
 
 **Alignment:**
+
 - `setAlignItems()` - flex-start, flex-end, center, stretch
 - `setJustifyContent()` - flex-start, flex-end, center, space-between
 
 **Other:**
+
 - `setPositionType()` - relative, absolute
 - `setOverflow()` - visible, hidden (pass-through, doesn't affect layout)
 
 **Constants (Tier 1):**
+
 - `FLEX_DIRECTION_ROW`, `FLEX_DIRECTION_COLUMN`
 - `ALIGN_FLEX_START`, `ALIGN_FLEX_END`, `ALIGN_CENTER`, `ALIGN_STRETCH`
 - `JUSTIFY_FLEX_START`, `JUSTIFY_FLEX_END`, `JUSTIFY_CENTER`, `JUSTIFY_SPACE_BETWEEN`
@@ -262,6 +285,7 @@ overflow: visible
 - `MEASURE_MODE_*` (all)
 
 **Tier 1 Done When:**
+
 1. @km/tui Board view renders identically to Yoga
 2. @km/tui ColumnsView renders identically to Yoga
 3. @km/tui ListView renders identically to Yoga
@@ -269,6 +293,7 @@ overflow: visible
 5. Performance: <1ms for 100-node tree
 
 ### Tier 2: Extended (~1200-1600 LOC)
+
 - `setMinWidth()`, `setMaxWidth()`, `setMaxHeight()` with percent variants
 - `setFlexBasis()`, `setFlexBasisPercent()`, `setFlexBasisAuto()`
 - `setAlignSelf()`
@@ -278,12 +303,14 @@ overflow: visible
 - `row-reverse`, `column-reverse`
 
 ### Tier 3: Full Compatibility (~2000+ LOC)
+
 - `setFlexWrap()` (no wrap-reverse)
 - `setAlignContent()`
 - `space-around`, `space-evenly`
 - `WRAP_NO_WRAP`, `WRAP_WRAP`
 
 ### Tier 4: Yoga Parity (Not Recommended)
+
 - `baseline` alignment
 - `wrap-reverse`
 - RTL support (`DIRECTION_RTL`)
@@ -294,10 +321,11 @@ overflow: visible
 Three-pass layout:
 
 1. **Measure Pass** (bottom-up): Call measureFunc for nodes that need intrinsic sizing
-2. **Layout Pass** (top-down): Distribute available space using flex algorithm  
+2. **Layout Pass** (top-down): Distribute available space using flex algorithm
 3. **Position Pass** (top-down): Calculate absolute x,y positions
 
 Core flexbox algorithm for main axis:
+
 1. Sum fixed sizes + measured sizes, subtract from available space
 2. Distribute remaining space proportionally by `flexGrow`
 3. If overflow, shrink proportionally by `flexShrink`
@@ -319,6 +347,7 @@ interface LayoutNode {
 These concrete examples should produce IDENTICAL output to Yoga:
 
 ### Example 1: Simple Column
+
 \`\`\`typescript
 const root = Node.create();
 root.setWidth(80);
@@ -346,6 +375,7 @@ root.calculateLayout(80, 24, DIRECTION_LTR);
 \`\`\`
 
 ### Example 2: Row with Gap
+
 \`\`\`typescript
 const root = Node.create();
 root.setWidth(80);
@@ -373,6 +403,7 @@ root.calculateLayout(80, 24, DIRECTION_LTR);
 \`\`\`
 
 ### Example 3: Absolute Positioning (Modal)
+
 \`\`\`typescript
 const root = Node.create();
 root.setWidth(80);
@@ -394,13 +425,13 @@ root.calculateLayout(80, 24, DIRECTION_LTR);
 
 ## Risks & Mitigations
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Edge cases differ from Yoga | High | Extensive Yoga comparison tests |
-| Performance slower than WASM | Medium | Benchmark early, optimize hot paths |
-| Floating-point rounding differs | High | Use integer math like km's FlexRow |
-| measureFunc complexity | Medium | Copy Yoga's measure mode semantics exactly |
-| Scope creep to Tier 2+ | Medium | Hard gate: Tier 1 must pass @km/tui before Tier 2 |
+| Risk                            | Impact | Mitigation                                        |
+| ------------------------------- | ------ | ------------------------------------------------- |
+| Edge cases differ from Yoga     | High   | Extensive Yoga comparison tests                   |
+| Performance slower than WASM    | Medium | Benchmark early, optimize hot paths               |
+| Floating-point rounding differs | High   | Use integer math like km's FlexRow                |
+| measureFunc complexity          | Medium | Copy Yoga's measure mode semantics exactly        |
+| Scope creep to Tier 2+          | Medium | Hard gate: Tier 1 must pass @km/tui before Tier 2 |
 
 ## Inkx Integration
 
@@ -412,8 +443,9 @@ import type { Yoga } from 'yoga-wasm-web';
 import * as flexx from './index.js';
 
 /**
- * Create a Yoga-compatible interface using flexx.
- * Drop-in replacement for yoga-wasm-web.
+
+* Create a Yoga-compatible interface using flexx.
+* Drop-in replacement for yoga-wasm-web.
  */
 export function createFlexxYoga(): Yoga {
   return {
@@ -477,16 +509,16 @@ vendor/beorn-flexx/
 
 ## Design Decisions
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| API style | Yoga-compatible | Zero Inkx changes needed |
-| Constant names | Match Yoga exactly | Drop-in compatibility |
-| Default flexDirection | column (Yoga default) | Match Yoga, not CSS |
-| Percentages | Tier 1 | Inkx already uses them |
-| Negative margins | Tier 2 | @km/tui doesn't use them |
-| RTL support | Never | Terminal TUIs are LTR |
-| Memory management | Manual free() | Match Yoga behavior |
-| Integer vs float | Integer math | Avoid rounding issues in terminal |
+| Decision              | Choice                | Rationale                         |
+| --------------------- | --------------------- | --------------------------------- |
+| API style             | Yoga-compatible       | Zero Inkx changes needed          |
+| Constant names        | Match Yoga exactly    | Drop-in compatibility             |
+| Default flexDirection | column (Yoga default) | Match Yoga, not CSS               |
+| Percentages           | Tier 1                | Inkx already uses them            |
+| Negative margins      | Tier 2                | @km/tui doesn't use them          |
+| RTL support           | Never                 | Terminal TUIs are LTR             |
+| Memory management     | Manual free()         | Match Yoga behavior               |
+| Integer vs float      | Integer math          | Avoid rounding issues in terminal |
 
 ## Dependencies
 
@@ -509,3 +541,4 @@ vendor/beorn-flexx/
 - [Yoga documentation](https://www.yogalayout.dev/) - Reference implementation
 - [CSS Flexbox Spec](https://www.w3.org/TR/css-flexbox-1/) - Authoritative spec
 - [Inkx reconciler.ts](vendor/beorn-inkx/src/reconciler.ts) - Exact Yoga API usage
+

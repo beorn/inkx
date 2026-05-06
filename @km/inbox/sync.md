@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/sync"
 aliases:
   - km-sync
@@ -12,6 +14,7 @@ closed_at: 2026-01-19T21:01:12Z
 ## Goal
 
 Ensure km view has full bidirectional sync:
+
 - TUI edit → Model → File (already works)
 - File edit → Model → TUI re-render (needs verification/implementation)
 
@@ -28,3 +31,4 @@ Ensure km view has full bidirectional sync:
 - [ ] e2e test: Edit in TUI, verify file changes on disk
 - [ ] e2e test: Rapid external edits don't cause race conditions
 - [ ] Document sync behavior in docs/
+

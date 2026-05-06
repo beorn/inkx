@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/no-cycle-guard"
 aliases:
   - km-flexily.no-cycle-guard
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Bug: No cycle guard in insertChild() — self-insertion causes infinite loops @km/flexily #bug #P1
+

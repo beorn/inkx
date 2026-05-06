@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/interactions-runtime/phase-4"
 aliases:
   - km-silvery.interactions-runtime.phase-4
@@ -25,6 +27,7 @@ Create 3 read-only hooks (useSelection already exists from Phase 3.1).
 ## Files
 
 CREATE:
+
 - vendor/silvery/packages/ag-react/src/hooks/useFindState.ts (~30 lines)
 - vendor/silvery/packages/ag-react/src/hooks/useCopyModeState.ts (~30 lines)
 - vendor/silvery/packages/ag-react/src/hooks/useDragState.ts (~30 lines)
@@ -33,12 +36,13 @@ CREATE:
 - vendor/silvery/tests/hooks/useDragState.test.tsx
 
 UPDATE:
+
 - vendor/silvery/packages/ag-react/src/hooks/index.ts — export the 3 new hooks
 - vendor/silvery/packages/ag-react/src/exports.ts — export the 3 new hooks
 
 ## API
 
-  function useFindState(): FindState | undefined
+function useFindState(): FindState | undefined
   function useCopyModeState(): CopyModeState | undefined
   function useDragState(): DragState | undefined
 
@@ -53,6 +57,7 @@ Nothing.
 ## New tests
 
 3 integration tests, same pattern as Phase 3.1's useSelection test:
+
 - Returns undefined when feature missing
 - Returns state when feature installed, idle
 - Returns state when feature active
@@ -78,3 +83,4 @@ Nothing.
 ## MANDATORY
 
 Read docs/lessons/refactoring.md IN FULL before starting.
+

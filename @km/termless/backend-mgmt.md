@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/backend-mgmt"
 aliases:
   - km-termless.backend-mgmt
@@ -17,3 +20,4 @@ assignee: claude:4929065a
 # [x] Backend version management system (Playwright-grade) @km/termless #feature #P1 @claude:4929065a
 
 Comprehensive backend management for termless — manifest, registry, CLI commands (install/upgrade/backends/doctor). Inspired by Playwright's browser management: one version number controls everything, easy discovery, one-command install/upgrade.
+

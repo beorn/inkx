@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/5akw"
 aliases:
   - km-5akw
@@ -12,11 +14,13 @@ closed_at: 2026-01-19T15:19:02Z
 Build TUIContext once per input event, pass to all handlers.
 
 Current state:
+
 - keyboard-handler.ts builds KeyboardContext
-- command-bridge.ts builds CommandContext  
+- command-bridge.ts builds CommandContext
 - Both reconstruct similar data redundantly
 
 Proposed:
+
 ```typescript
 interface TUIContext {
   boardState: TreeBoardState;
@@ -29,3 +33,4 @@ interface TUIContext {
 ```
 
 Build once in Board.tsx, pass to all handlers.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/kitty-complete"
 aliases:
   - km-inkx.kitty-complete
@@ -19,3 +22,4 @@ Remaining gaps for full Kitty protocol support:
 3. **Protocol detection**: Query terminal with CSI ? u, parse response to detect support level.
 4. **Test driver kitty mode**: app.press() should use keyToKittyAnsi() when kitty mode is active, so super modifier works in tests.
 5. **Hyper modifier**: Parse bit 16 (hyper) in addition to existing shift/alt/ctrl/super.
+

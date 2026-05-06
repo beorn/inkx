@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/tree/v4/p9-declarative"
 aliases:
   - km-tui.tree.v4.p9-declarative
@@ -28,6 +31,7 @@ Board.tsx declarative rewrite. Two sub-phases per Pro review:
 ### Phase 9a: Centralized store write API
 
 Add transactional store methods to NodeStore:
+
 - setCursor(nodeId) — sets cursor signal + per-node cursor boolean
 - setSelection(ids, anchor?) — normalize + apply with descendant expansion
 - beginEdit(nodeId, blockIndex) — sets edit + editing signals
@@ -59,12 +63,16 @@ Target: ~10-12 useEffects (lifecycle/handler only), Board.tsx ≤1000 LOC.
 ## /complete
 
 \`\`\`bash
-# Phase 9a
+
+## Phase 9a
+
 rg 'setCursor|setSelection|beginEdit|endEdit|replaceFoldOverrides|replaceStickyFolds' apps/km-tui/src/state/reactive.ts | wc -l  # ≥6
 
-# Phase 9b
+## Phase 9b
+
 rg 'prevMultiSelectedRef|prevInlineEditRef' apps/km-tui/src/views/Board.tsx -c | wc -l  # 0
 rg 'useEffect' apps/km-tui/src/views/Board.tsx | wc -l  # ≤12
 wc -l apps/km-tui/src/views/Board.tsx  # ≤1000
 bun run test:fast  # pass
 \`\`\`
+

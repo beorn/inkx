@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/detail-body"
 aliases:
   - km-tui.detail-body
@@ -13,3 +16,4 @@ assignee: claude:36393b5d
 # [x] Detail pane: body as virtual card, subitems as outline tree @km/tui #feature #P1 @claude:36393b5d
 
 Detail pane redesign: (1) Body content shown as a virtual card with all content expanded (not truncated). (2) Subitems rendered as an outline tree. (3) Reuse card/tree components where possible. See Asana screenshots for reference layout.
+

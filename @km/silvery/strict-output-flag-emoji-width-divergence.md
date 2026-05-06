@@ -49,3 +49,4 @@ This bug is NOT what the user reported as the cyan-strip residue (the user-repor
 
 - `apps/km-tui/tests/render-light-blue-strip-residue.slow.spec.ts` passes under `SILVERY_STRICT=1` (currently fails on the wide-char divergence after the harness fix exposed it).
 - A focused silvery test that does narrow→wide flag-emoji transitions in incremental render passes STRICT_OUTPUT against vt100.
+

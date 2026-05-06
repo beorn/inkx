@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/fuzz-narrow-distribution"
 aliases:
   - km-flexily.fuzz-narrow-distribution
@@ -18,3 +20,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Testing: Fuzz suite much narrower than docs imply — missing wrap, RTL, absolute, etc. @km/flexily #task #P1
+

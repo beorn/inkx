@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/cli/attachment-links"
 aliases:
   - km-cli.attachment-links
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Import: attachments should render as links, not plain text @km/cli #bug #P2
 
 Attachments in imported Asana tasks (e.g., IMG_1704.jpg) show as plain text list items under a '### Attachments' section. They should render as links or file references instead.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui-eval/3-prototype-tui1-layout-abstraction-layer"
 aliases:
   - km-tui-eval.3
@@ -17,7 +19,7 @@ If TUI1 layout pain points are addressable, prototype a thin abstraction layer t
 ## Goals
 
 1. Reduce manual width tracking boilerplate
-2. Centralize display length calculations  
+2. Centralize display length calculations
 3. Simplify text truncation patterns
 4. Make component code more declarative
 
@@ -38,3 +40,4 @@ If TUI1 layout pain points are addressable, prototype a thin abstraction layer t
 ## Depends On
 
 - @km/tui-eval/1-analyze-tui1-layout-pain-points (TUI1 analysis) - need to understand pain points first
+

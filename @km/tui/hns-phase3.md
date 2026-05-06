@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/hns-phase3"
 aliases:
   - km-tui.hns-phase3
@@ -29,6 +32,7 @@ Delete old sync methods and all ad-hoc state. Break intentionally, fix via tsc.
 9. Sweep docs/ for stale references
 
 ## Delete
+
 - _legacySyncCursor, _legacySyncSelected (private shadow methods from Phase 1)
 - prevDescendantCardId, expandWithDescendants, hydrateDescendantSelection (internals)
 - cursorInDescendant (per-node signal)
@@ -37,8 +41,11 @@ Delete old sync methods and all ad-hoc state. Break intentionally, fix via tsc.
 - @deprecated annotations added in Phase 1
 
 ## /complete
+
 \`\`\`bash
-# ALL must return 0 — no legacy, no shadow, no ad-hoc
+
+## ALL must return 0 — no legacy, no shadow, no ad-hoc
+
 rg syncCursor --glob '!.beads' --glob '!vendor' -t ts -c 2>/dev/null | wc -l  # → 0
 rg _legacySyncCursor --glob '!.beads' --glob '!vendor' -t ts -c 2>/dev/null | wc -l  # → 0 (shadow deleted)
 rg syncSelected --glob '!.beads' --glob '!vendor' -t ts -c 2>/dev/null | wc -l  # → 0
@@ -49,10 +56,16 @@ rg hydrateDescendantSelection --glob '!.beads' --glob '!vendor' -t ts -c 2>/dev/
 rg 'cursorInDescendant.*Signal' --glob '!.beads' --glob '!vendor' -t ts -c 2>/dev/null | wc -l  # → 0
 rg assertParity --glob '!.beads' --glob '!vendor' -t ts -c 2>/dev/null | wc -l  # → 0 (shadow deleted)
 rg '@deprecated.*hns-phase3' --glob '!.beads' --glob '!vendor' -t ts -c 2>/dev/null | wc -l  # → 0 (annotations deleted)
-# Golden tests still pass
+
+## Golden tests still pass
+
 bun run test:fast  # all pass
-# Bench: wall time ≤ Phase 0 baseline
-# Docs swept
+
+## Bench: wall time ≤ Phase 0 baseline
+
+## Docs swept
+
 rg syncCursor docs/ -c 2>/dev/null | wc -l  # → 0
 rg cursorInDescendant docs/ -c 2>/dev/null | wc -l  # → 0
 \`\`\`
+

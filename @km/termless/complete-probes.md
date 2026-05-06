@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/complete-probes"
 aliases:
   - km-termless.complete-probes
@@ -21,3 +24,4 @@ Phase 2: Add features to features.json with slugs, spec URLs, tags
 Phase 3: Implement probes in terminfo.dev/probes/
 Phase 4: Run census, annotate failures
 Phase 5: Ensure all pages have canonical spec links
+

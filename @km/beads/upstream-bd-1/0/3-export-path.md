@@ -1,7 +1,4 @@
 ---
-tags:
-  - bug
-  - P3
 mentions:
   - km
 id: "@km/beads/upstream-bd-1/0/3-export-path"
@@ -22,6 +19,10 @@ dependencies:
     created_at: 2026-04-28T08:04:34Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.upstream-waiting
 ---
 
 # [x] Remove check-no-stray-issues-jsonl gate when bd >=1.0.3 is universal @km/beads #bug #P3

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/fstarget-cleanup"
 aliases:
   - km-storage.fstarget-cleanup
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 From /big quality review: FsWriteTarget has 4 required + 6 optional methods (markInFlight, clearInFlight, recordWriteToken, renamePending, dropPending, renamePendingSubtree). The optionals couple EventHandlers to watcher/queue internals.
 
 FIX: Group optional methods into a separate SyncCapabilities interface. EventHandlers takes FsWriteTarget (required methods only). SyncManager passes SyncCapabilities separately or as a wrapper.
+

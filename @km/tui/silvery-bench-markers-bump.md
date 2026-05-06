@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/silvery-bench-markers-bump"
 aliases:
   - km-tui.silvery-bench-markers-bump
@@ -30,6 +33,7 @@ The @km/tui/bench-system agent committed silvery phase markers at vendor/silvery
 ## Action
 
 When the other session commits its work in vendor/silvery:
+
 1. Fetch e3c806e from the agent's worktree: `cd vendor/silvery && git fetch /Users/beorn/Code/pim/km/.claude/worktrees/agent-a2c3b3a0/vendor/silvery e3c806e`
 2. Cherry-pick or rebase the bench markers commit
 3. Bump the submodule pointer in km root: `cd /Users/beorn/Code/pim/km && git add vendor/silvery && git commit -m "chore: bump vendor/silvery — bench phase markers"`
@@ -52,3 +56,4 @@ If the other session is unreachable for >24h, manually merge: take their changes
 ## Parent
 
 @km/tui/bench-system (closed)
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - unimac
 id: "@km/inbox/satisfies-commands"
 aliases:
   - km-satisfies-commands
@@ -11,15 +14,18 @@ assignee: unimac
 # [x] Convert CommandDef exports to use satisfies pattern @km/_orphan #chore #P4 @unimac
 
 50+ command definitions use explicit type annotation:
+
 ```typescript
 export const cursorPrev: CommandDef = { ... }
 ```
 
 Better pattern using satisfies:
-```typescript  
+
+```typescript
 export const cursorPrev = { ... } satisfies CommandDef
 ```
 
 **Benefits**: Better inference of literal types, type validation without narrowing.
 
 **Files**: packages/@km/_orphan/commands/src/commands/*.ts (navigation.ts, task.ts, edit.ts, view.ts, selection.ts, history.ts)
+

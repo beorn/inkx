@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/pcgs3"
 aliases:
   - km-pcgs3
@@ -13,3 +16,4 @@ assignee: claude:66437c43
 # [x] Detail pane as board pane with 'detail' view mode @km/_orphan #feature #P0 @claude:66437c43
 
 Unify detail pane into BoardPaneState with viewMode: 'detail' and parentPaneId. Removes separate DetailPaneState type, gives detail pane standard board navigation for free (block nav, first/last, etc).
+

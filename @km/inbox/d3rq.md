@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - km
 id: "@km/inbox/d3rq"
 aliases:
   - km-d3rq
@@ -17,7 +20,9 @@ The command system migration is in a hybrid state:
 4. Duplicate implementations exist in both systems
 
 Work needed:
+
 - Move implementations from keyboard-handler.ts into Board.tsx action handlers
 - Remove delegation patterns that call handleKeyboardWrapper
 - Remove the fallback to legacy keyboard handler
 - Keep only TUI-specific handlers in keyboard-handler.ts (dialogs, quit, favorites)
+

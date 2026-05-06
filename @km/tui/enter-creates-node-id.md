@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/enter-creates-node-id"
 aliases:
   - km-tui.enter-creates-node-id
@@ -26,3 +28,4 @@ Actual: New items contain raw node IDs in parentheses instead of the expected co
 Repro: km view -> navigate to any heading card -> Enter (edit mode) -> End (go to end of title) -> Enter
 
 Screenshots: /tmp/@km/edit-explore-05-typed-test123/png through /tmp/@km/edit-explore-08-double-enter/png
+

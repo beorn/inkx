@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/scope-phase-4-docs-design"
 aliases:
   - km-silvery.scope-phase-4-docs-design
@@ -31,6 +34,14 @@ dependencies:
     created_at: 2026-04-24T13:40:43Z
     created_by: claude:2aefb4b6
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.scope-phase-4
+      - type: link
+        target: km-silvery.scope-phase-4-eslint
 ---
 
 # [x] Phase 4.B: Audit hub/silvery/design/* @km/silvery #task #P2 @claude:2aefb4b6
@@ -38,3 +49,4 @@ dependencies:
 blocks:: [[@km/silvery/scope-phase-4]], [[@km/silvery/scope-phase-4-eslint]]
 
 Sweep hub/silvery/design/*.md for cleanup examples showing old patterns; replace with scope-based examples. Keep lifecycle-scope.md as canonical reference. Exit: grep for useDispose|term.signals.on|useExit|new AbortController|fs.watch|setTimeout in hub/silvery/design/ returns zero.
+

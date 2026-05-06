@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/console-v2"
 aliases:
   - km-silvery.console-v2
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Console as ListView composition @km/silvery #task #P2
 
 Rewrite Console as ListView + cache:true + followOutput. Auto-caches completed entries. Gets search for free.
+

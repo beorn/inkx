@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/shared-substrate-review"
 aliases:
   - km-all.shared-substrate-review
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-21T12:32:07Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all
 ---
 
 # [ ] Shared substrate across km + kimmi + cloudi — review the extraction opportunity @km/all #task #P0
@@ -24,6 +30,7 @@ blocks:: [[@km/all]]
 ## Why this bead exists
 
 Three independent deep-dives landed 2026-04-21:
+
 - `hub/km/kimmi-crdt-sync-id-deep-dive.md` (kimmi CRDT/sync/ID analysis)
 - `hub/km/cloudi-architecture-deep-dive.md` (Gmail-as-truth + composition)
 - `hub/km/source-of-truth-rfc-v2.md` (km storage decision)
@@ -38,12 +45,12 @@ Pre-RFC reasoning before a full shared-substrate RFC lands.
 
 **1. `@beorn/identity` (NEW)** — Branded-string identity primitives + URI refs + content-hash fingerprints.
 
-| Project | Current approach |
-|---|---|
-| km (today) | `string` paths; `string` refs in wiki-links; `NodeId` is path-derived |
-| km (target) | `DocId` + `BlockId` + `RepoId` branded types (`km-storage.stable-ids`) |
-| kimmi | UUID item IDs + URI scheme (`item:`, `automerge:`, `file:sha256:`) per ADR-001 |
-| cloudi | Gmail messageId (🔴 Critical — mutates); uses `email addresses` / `subject strings` as workarounds per ADR-05 |
+| Project     | Current approach                                                                                          |
+| ----------- | --------------------------------------------------------------------------------------------------------- |
+| km (today)  | string paths; string refs in wiki-links; NodeId is path-derived                                           |
+| km (target) | DocId + BlockId + RepoId branded types (km-storage.stable-ids)                                            |
+| kimmi       | UUID item IDs + URI scheme (item:, automerge:, file:sha256:) per ADR-001                                  |
+| cloudi      | Gmail messageId (🔴 Critical — mutates); uses email addresses / subject strings as workarounds per ADR-05 |
 
 All three need the same primitives. Km's work on `stable-ids` should be extracted from day one instead of baked into @km/storage. Potential API:
 
@@ -70,11 +77,11 @@ Integration sequence: @km/storage/stable-ids builds the branded types + minting 
 
 **2. `@beorn/context` (NEW)** — AsyncLocalStorage-based typed context providers.
 
-| Project | Current approach |
-|---|---|
-| km | silvery's `RuntimeContext` (React context for apps) |
-| kimmi | AsyncLocalStorage context hierarchy per `docs/research/asynclocalstorage-context-hierarchy.md` + ADR-009 |
-| cloudi | `AppContext` via AsyncLocalStorage (implicit coupling flagged — `JobSystemLike` forward-ref hack) |
+| Project | Current approach                                                                                       |
+| ------- | ------------------------------------------------------------------------------------------------------ |
+| km      | silvery's RuntimeContext (React context for apps)                                                      |
+| kimmi   | AsyncLocalStorage context hierarchy per docs/research/asynclocalstorage-context-hierarchy.md + ADR-009 |
+| cloudi  | AppContext via AsyncLocalStorage (implicit coupling flagged — JobSystemLike forward-ref hack)          |
 
 All three converge on AsyncLocalStorage as the provider primitive. Kimmi has the most rigorous design (full hierarchy with ADR). Extracting standardizes the pattern + provides typed provider registration + forbids the forward-ref hack.
 
@@ -95,11 +102,11 @@ function createContext<T>(name: string): ProviderContext<T>
 
 **3. `@beorn/zod-commander` (NEW)** — One Zod schema → CLI options + MCP tool schema + agent-addressable.
 
-| Project | Current approach |
-|---|---|
-| km | Commander.js with hand-rolled flags (see apps/@km/_orphan/cli) |
-| kimmi | Commander.js + Speckit slash commands (parallel definitions) |
-| cloudi | **Killer pattern** — `generateMCPTools(program)` ~200 LOC makes whole app agent-addressable |
+| Project | Current approach                                                                      |
+| ------- | ------------------------------------------------------------------------------------- |
+| km      | Commander.js with hand-rolled flags (see apps/@km/_orphan/cli)                        |
+| kimmi   | Commander.js + Speckit slash commands (parallel definitions)                          |
+| cloudi  | Killer pattern — generateMCPTools(program) ~200 LOC makes whole app agent-addressable |
 
 Cloudi's `generateMCPTools` is the cleanest extraction candidate in the whole stack. Integration sequence: extract cloudi's reference implementation → rename imports → km + kimmi opt in → each gets automatic MCP tool exposure for free.
 
@@ -145,6 +152,7 @@ Layer 1 (primitives):      @beorn/identity                    [tier 1, PROPOSE]
 ### Phase 0 — decide which tier-1 candidate to pilot first
 
 Pick ONE. Recommendation: `@beorn/identity` because it's:
+
 - On the critical path for km (`km-storage.stable-ids` is P1)
 - Lowest LOC + risk
 - All three projects need it today
@@ -162,6 +170,7 @@ Pick ONE. Recommendation: `@beorn/identity` because it's:
 ### Phase 2 — measure adoption pain
 
 Before extracting anything else, run km + kimmi + cloudi for 2 weeks with just `@beorn/identity`. Watch for:
+
 - Versioning friction (does `@beorn/identity@0.2` break anyone?)
 - API churn (did we get the primitives right?)
 - Actual vs promised leverage (did bugs reduce?)
@@ -184,12 +193,14 @@ Only proceed if phase 2's metrics show the pattern pays off. Otherwise the share
 ## Decision criteria for commit-or-reject (2026-05-05)
 
 Extract `@beorn/identity` if:
+
 - [ ] All three projects have the DocId-shaped need (confirmed — see analysis above)
 - [ ] API surface fits in ≤300 LOC (estimate: ~200)
 - [ ] One-week extraction + two-project migration is feasible
 - [ ] No project has to compromise semantics (only extraction, no re-design)
 
 Reject if any ✗:
+
 - Projects disagree on ID format (UUID vs short string vs content-hash)
 - API would force either project into a worse shape
 - Extraction would delay km's `km-storage.stable-ids` P1 > 2 weeks
@@ -203,6 +214,7 @@ By 2026-05-05, produce `hub/km/shared-substrate-rfc.md` that either:
 ## Reading prerequisites
 
 Reviewer must have read:
+
 - `hub/km/source-of-truth-rfc-v2.md` (km's storage decision)
 - `hub/km/kimmi-crdt-sync-id-deep-dive.md`
 - `hub/km/cloudi-architecture-deep-dive.md`
@@ -223,3 +235,4 @@ Reviewer must have read:
 - [ ] Clear verdict: extract `@beorn/identity` Phase 1 OR reject with reasoning
 - [ ] If extract: Phase-1 work bead filed (`km-bearly.identity-extraction`) with acceptance criteria
 - [ ] If reject: memory entry captures the reasoning so the temptation doesn't resurface every 6 months
+

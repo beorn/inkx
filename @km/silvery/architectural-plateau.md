@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/architectural-plateau"
 aliases:
   - km-silvery.architectural-plateau
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-24T23:16:16Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [ ] [meta-epic] Silvery architectural plateau — view-as-layout-output, TEA, signals, focus/selection unification @km/silvery #epic #P0
@@ -94,3 +100,4 @@ This bead is "complete" when:
 - `vendor/silvery/CLAUDE.md` — current architecture
 - `docs/silvery-positioning-brief.md` — positioning (silvery is multi-target, not TUI-only)
 - `hub/silvery/design/lifecycle-scope.md` — canonical Scope primitive design (pre-TEA, shipped)
+

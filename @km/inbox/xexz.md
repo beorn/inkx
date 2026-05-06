@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/xexz"
 aliases:
   - km-xexz
@@ -18,17 +20,20 @@ Wiki link embeddings (`![[...]]`) transclude content from the target. The embedd
 ### ✅ COMPLETE
 
 **Phase 1: Parser**
+
 - Parser detects `![[...]]` vs `[[...]]` ✅
 - `embedded: boolean` in WikiLink interface ✅
 - Tests for embedding detection ✅
 
 **Phase 2: Target Resolution** (completed in vault-loader.ts)
+
 - Embeddings resolved during vault loading ✅
 - `link_to` set to target node ID ✅
 - `link_alias` extracted and stored ✅
 - Optimized with file index for O(1) lookup ✅
 
 **Phase 4: Serialization** (completed in nodes2md.ts)
+
 - Reconstructs `![[path|alias]]` from `link_to` + `link_alias` ✅
 - Fallback to content if target not found ✅
 - Tests for resolved embedding serialization ✅
@@ -36,6 +41,7 @@ Wiki link embeddings (`![[...]]`) transclude content from the target. The embedd
 ### ⏳ PARTIAL - Display
 
 **TUI Display** (TreeNode.tsx)
+
 - Resolves target node for display properties ✅
 - Shows target's content, task_status, metadata ✅
 - Parent context shows original location ✅
@@ -43,10 +49,12 @@ Wiki link embeddings (`![[...]]`) transclude content from the target. The embedd
 ### ❓ OPEN QUESTION - Phase 3: Tree Transclusion
 
 The bead originally specified "Pull children from target into link node" but current behavior is:
+
 - Embedding shows TARGET's metadata
 - But children come from EMBEDDING node (which is empty for paragraphs)
 
 For visual transclusion:
+
 - Should `getChildren(embeddingNode.id)` return target's children?
 - Or only transclude when "zoomed into" the embedding?
 
@@ -66,3 +74,4 @@ interface KNode {
 ### Visual Indicator
 
 The parent node showing IS the visual indicator. When zoomed into an embedding, you see transcluded content. No special TUI styling needed.
+

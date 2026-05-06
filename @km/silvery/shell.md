@@ -1,4 +1,7 @@
 ---
+mentions:
+  - silvery
+  - km
 id: "@km/silvery/shell"
 aliases:
   - km-silvery.shell
@@ -23,6 +26,14 @@ dependencies:
     created_at: 2026-04-23T22:32:02Z
     created_by: claude:6443387f
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery
+      - type: link
+        target: km-silvery.commander-protocol
 ---
 
 # [x] @silvery/commander: silvery-app for command execution (shell input is one component) @km/silvery #feature #P4
@@ -46,14 +57,14 @@ Warp/Fig sit on top of bash/zsh via line-editor interception. nushell is general
 
 ## Scope — minimal useful, ~6 weeks
 
-| Component | Time |
-|---|---|
+| Component                                                                                      | Time |
+| ---------------------------------------------------------------------------------------------- | ---- |
 | REPL skeleton (line editor via silvery TextInput, history, parser, spawn/wait, basic builtins) | 1 wk |
-| Pipelines + redirects | 1 wk |
-| Job control (&, SIGTSTP, jobs/fg/bg) | 1 wk |
-| Completion + syntax highlighting | 1 wk |
-| Config + startup (~/.silveryshrc, aliases, env) | 1 wk |
-| Structured blocks emission (OSC 133 + metadata streaming to daemon) | 1 wk |
+| Pipelines + redirects                                                                          | 1 wk |
+| Job control (&, SIGTSTP, jobs/fg/bg)                                                           | 1 wk |
+| Completion + syntax highlighting                                                               | 1 wk |
+| Config + startup (~/.silveryshrc, aliases, env)                                                | 1 wk |
+| Structured blocks emission (OSC 133 + metadata streaming to daemon)                            | 1 wk |
 
 Not POSIX-compatible. Existing #!/bin/bash scripts fall back to bash via shebang detection. Daily-driver-with-zsh-plugin-compat is a separate 6-month effort we do NOT commit to.
 
@@ -91,3 +102,4 @@ Preserves "primitive not solution" — silvery-shell is separately useful, not a
 ## Origin
 
 2026-04-23 discussion — libghostty ruled out as dependency; own-shell analysis showed ~6 weeks for minimal useful, big benefits for agent-first positioning.
+

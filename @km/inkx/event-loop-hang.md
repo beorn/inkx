@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/event-loop-hang"
 aliases:
   - km-inkx.event-loop-hang
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] render() unmount doesn't release all event loop references @km/inkx #bug #P2
 
 After calling unmount() and resolving the exit promise, the process event loop stays alive. Requires explicit process.exit(0) after waitUntilExit(). stdin.unref() after destroy() doesn't help — something else (reconciler? scheduler internal?) is keeping the loop alive.
+

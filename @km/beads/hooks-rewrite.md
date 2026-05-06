@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beads/hooks-rewrite"
 aliases:
   - km-beads.hooks-rewrite
@@ -24,6 +26,10 @@ dependencies:
     created_at: 2026-04-27T23:12:42Z
     created_by: claude:da9990c5
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-beads.cutover
 ---
 
 # [x] Update Claude Code hooks to use km bd instead of bd binary @km/beads #task #P2
@@ -33,11 +39,14 @@ blocks:: [[@km/beads/cutover]]
 Hooks under .claude/hooks/ (SessionStart, PreToolUse, etc.) call 'bd prime', 'bd ready', 'bd export', etc. They should call km bd so the hook contract works without the Go binary.
 
 ## Scope
+
 - Audit .claude/hooks/*.sh for bd invocations
 - Replace with 'bun km bd ...' (or a guarded fallback that prefers km bd)
 - Validate the SessionStart context-injection (bd prime equivalent) still emits the priming context
 - Validate the export hook now reflects the path-relative bug fix from @km/beads/export-path-relative
 
 ## Acceptance
+
 - New session opens with priming context emitted by km bd prime
 - Hooks function on a vault where bd binary is uninstalled
+

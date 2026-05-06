@@ -1,7 +1,4 @@
 ---
-tags:
-  - task
-  - P0
 mentions:
   - km
 id: "@km/silvery/kitty-images-quality-plateau"
@@ -49,3 +46,4 @@ Verification:
 - `bun run typecheck` in `vendor/silvery`
 
 Implemented by silvery commit `76859222` and parent repo commit `dfe3e15a8`.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkz/11-km-migration"
 aliases:
   - km-inkz.11-km-migration
@@ -30,13 +32,13 @@ Build InkZ versions alongside Ink versions, validate they're identical, then swa
 
 ## Key Files to Migrate
 
-| Ink Component | InkZ Variant | Key Changes |
-|---------------|--------------|-------------|
-| ColumnsView.tsx | ColumnsView.inkz.tsx | Remove manual width calc, use flexGrow |
-| ListView.tsx | ListView.inkz.tsx | Replace ScrollableList with overflow=scroll |
-| TreeNode.tsx | TreeNode.inkz.tsx | Remove width prop, use useLayout() |
-| DetailPane.tsx | DetailPane.inkz.tsx | Remove height arithmetic |
-| HelpOverlay.tsx | HelpOverlay.inkz.tsx | Use useLayout() for centering |
+| Ink Component   | InkZ Variant         | Key Changes                                 |
+| --------------- | -------------------- | ------------------------------------------- |
+| ColumnsView.tsx | ColumnsView.inkz.tsx | Remove manual width calc, use flexGrow      |
+| ListView.tsx    | ListView.inkz.tsx    | Replace ScrollableList with overflow=scroll |
+| TreeNode.tsx    | TreeNode.inkz.tsx    | Remove width prop, use useLayout()          |
+| DetailPane.tsx  | DetailPane.inkz.tsx  | Remove height arithmetic                    |
+| HelpOverlay.tsx | HelpOverlay.inkz.tsx | Use useLayout() for centering               |
 
 ## Files to Delete After Migration
 
@@ -52,3 +54,4 @@ Build InkZ versions alongside Ink versions, validate they're identical, then swa
 - [ ] No performance regression
 - [ ] User has manually approved all views
 - [ ] No Ink code remains in codebase
+

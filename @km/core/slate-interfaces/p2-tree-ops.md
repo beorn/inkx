@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/core/slate-interfaces/p2-tree-ops"
 aliases:
   - km-core.slate-interfaces.p2-tree-ops
@@ -16,9 +19,11 @@ assignee: claude:ceb7c9cb
 # [x] Phase 2: TreeOps — consolidate scattered mutations @km/core #task #P2 @claude:ceb7c9cb
 
 ## Goal
+
 Consolidate scattered tree mutations into one TreeOps namespace in @km/tree using the existing TreeMutator interface.
 
 ## BREAK FIRST, FIX SECOND
+
 Move functions to TreeOps. DELETE originals. No re-exports. No transition. Fix all callers.
 
 > "BAD: Re-export for backwards compat." — Lesson 4
@@ -27,6 +32,7 @@ Move functions to TreeOps. DELETE originals. No re-exports. No transition. Fix a
 ## Changes
 
 ### @km/tree/src/tree-ops.ts (NEW)
+
 ```typescript
 export const TreeOps = {
   moveTo(tree: TreeMutator, nodeId: string, pos: Position): boolean,
@@ -42,6 +48,7 @@ export const TreeOps = {
 ```
 
 ### @km/tree/src/node-queries.ts (NEW)
+
 ```typescript
 export const NodeQuery = {
   parent(tree: TreeMutator, nodeId: string): KNode | null,
@@ -52,12 +59,15 @@ export const NodeQuery = {
 ```
 
 ### Deletions (SAME COMMIT)
+
 - DELETE indentNode/outdentNode from keyboard-card-ops.ts (NOT re-export)
 - DELETE handleShiftCard internals that duplicate TreeOps logic from board-actions-edit.ts
 - DELETE moveTo/toSortOrder/isAtPosition from position-resolver.ts (moved to TreeOps)
 
 ### Position.after / Position.before (NEW)
+
 Add to @km/_orphan/core Position namespace (pure, no repo):
+
 ```typescript
 // These need a siblings list, so they take TreeMutator
 export const PositionOps = {
@@ -67,17 +77,21 @@ export const PositionOps = {
   toSortOrder(tree: TreeMutator, pos: Position): number,
 }
 ```
+
 Note: repo-dependent resolution (resolveLocationKey) stays in @km/tui.
 
 ### New tests (SAME COMMIT)
+
 - @km/tree/tests/tree-ops.test.ts — every TreeOps method
 - @km/tree/tests/node-queries.test.ts — every NodeQuery method
 
 ### Fix callers
+
 - @km/tui handlers → TreeOps.moveTo, TreeOps.indent, etc.
 - handleReparentTo body shrinks to <10 lines
 
 ## Definition of Done
+
 - [ ] Source uses TreeOps (no manual sibling arithmetic)
 - [ ] Tests use TreeOps
 - [ ] Old functions deleted (not re-exported)
@@ -85,6 +99,7 @@ Note: repo-dependent resolution (resolveLocationKey) stays in @km/tui.
 - [ ] grep finds no manual patterns TreeOps replaces
 
 ## /complete (exact greps)
+
 - `grep -rn "export function indentNode\|export function outdentNode" apps/km-tui/src/keyboard/keyboard-card-ops.ts` → 0 (deleted)
 - `grep -rn "export function moveTo\|export function toSortOrder\|export function isAtPosition" apps/km-tui/src/board/position-resolver.ts` → 0 (moved)
 - `grep -rn "TreeOps\." km-tree/src/tree-ops.ts` → >0
@@ -92,3 +107,4 @@ Note: repo-dependent resolution (resolveLocationKey) stays in @km/tui.
 - `ls km-tree/tests/tree-ops.test.ts` → exists
 - `ls km-tree/tests/node-queries.test.ts` → exists
 - All tests pass
+

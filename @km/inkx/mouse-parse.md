@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/mouse-parse"
 aliases:
   - km-inkx.mouse-parse
@@ -13,3 +16,4 @@ assignee: claude:d3a7049b
 # [x] Parse SGR mouse sequences from stdin @km/inkx #task #P3 @claude:d3a7049b
 
 No parser for SGR mouse sequences (CSI < button;x;y M/m). Need parseMouse() that extracts button, position, action (down/up/move/wheel), and delta from SGR 1006 format. Should integrate with splitRawInput() to handle mixed key+mouse input.
+

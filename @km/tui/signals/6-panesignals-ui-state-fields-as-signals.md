@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/signals/6-panesignals-ui-state-fields-as-signals"
 aliases:
   - km-tui.signals.6
@@ -19,3 +21,4 @@ Migrate per-pane UI fields (viewMode, filterProperties, maxContentLines, columnS
 Depends on signals.4 (PaneSignals type exists). ~10 useAppStore calls eliminated.
 
 Acceptance: grep useAppShallow.*PaneUI in views/ = 0 hits
+

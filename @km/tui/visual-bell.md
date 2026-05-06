@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/visual-bell"
 aliases:
   - km-tui.visual-bell
@@ -8,3 +10,4 @@ closed_at: 2026-02-06T22:07:03Z
 ---
 
 # [x] Visual bell: screen flash + unhandled key feedback @km/tui #feature #P2
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/1sxlz"
 aliases:
   - km-1sxlz
@@ -18,3 +20,4 @@ owner: bjorn@stabell.org
 # [x] run() should auto-enable terminal features by default @km/_orphan #feature #P2
 
 run() currently defaults kitty/mouse/focusReporting/textSizing to false, forcing every app to duplicate the same caps-wiring boilerplate. The Silvery Way: framework does the right thing by default. Auto-detect and enable features in run(), let apps opt out. Also update docs to mention defaults and that mouse:false restores native copy/paste.
+

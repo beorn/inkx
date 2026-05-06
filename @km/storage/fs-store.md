@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/fs-store"
 aliases:
   - km-storage.fs-store
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] Phase 5: createFsStore — FS as sync peer @km/storage #task #P3
 
 FS materialization as a store. Chokidar watcher for change detection. Markdown serialization/parsing. Replaces current SyncManager/reconciliation-engine.
+

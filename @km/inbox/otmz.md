@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/otmz"
 aliases:
   - km-otmz
@@ -110,21 +112,25 @@ interface Node {
 ## Part 2: Display Options
 
 ### Option A: Info Panel (non-column)
+
 - Show as a panel/header above the columns
 - Read-only, always visible
 - Like a "board description"
 
 ### Option B: Special First Column
+
 - Show as leftmost column with different styling
 - Could be collapsible
 - Treated like a column but read-only
 
 ### Option C: Expandable Header
+
 - Collapsed by default, click to expand
 - Shows in the board header area
 - Minimal visual footprint
 
 ### Option D: Detail Pane Content
+
 - Show body when board itself is "selected" (cursor at board level)
 - Integrates with existing detail pane
 - No extra UI chrome
@@ -160,3 +166,4 @@ Where does "All issues tracked..." belong in the model?
 
 - @km/_orphan/1tho: Fixed bug where paragraphs appeared as columns
 - Current fix: filters them out (loses information)
+

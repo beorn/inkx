@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/node"
 aliases:
   - km-node
@@ -9,7 +11,7 @@ closed_at: 2026-01-17T00:28:25Z
 
 # [x] Unify Node Types: Migrate DBNode/TNode/NodeViewModel to single Node type @km/node #epic #P1
 
-# Epic: Unified Node Model Migration
+## Epic: Unified Node Model Migration
 
 Migrate from 3 separate node types to a single extensible `KNode` type.
 
@@ -26,6 +28,7 @@ NodeViewModel (13 fields)       (removed - use TreeNode + Sets)
 ```
 
 **Key changes:**
+
 - Single `KNode` type with all properties
 - `TreeNode extends KNode` adds only `children[]` and `depth`
 - Remove `NodeViewModel` - use `TreeNode` + `foldedNodes`/`selectedNodes` Sets
@@ -149,26 +152,26 @@ interface BoardState {
 
 `Status` is the domain model; `TaskMark` is markdown serialization:
 
-| Status | Mark | Markdown |
-|--------|------|----------|
-| `todo` | ` ` | `- [ ]` |
-| `wip` | `/` | `- [/]` |
-| `blocked` | `!` | `- [!]` |
-| `done` | `x` | `- [x]` |
-| `dropped` | `-` | `- [-]` |
+| Status  | Mark | Markdown |
+| ------- | ---- | -------- |
+| todo    |      | - [ ]    |
+| wip     | /    | - [/]    |
+| blocked | !    | - [!]    |
+| done    | x    | - [x]    |
+| dropped | -    | - [-]    |
 
 `TaskMark` is NOT stored - derived from `status` during serialization.
 
 ## Removed/Computed Fields
 
-| Old Field | New Approach |
-|-----------|--------------|
-| `isTask` | `node.status !== undefined` |
-| `taskMark` | Derived from `status` |
-| `fsPath` | Derive via `getPath(node)` from tree structure |
-| `mdLine` | `node.source.line` (for `md` source) |
-| `icon`, `color` | Compute if needed |
-| `childCount` | `node.children.length` |
+| Old Field   | New Approach                                 |
+| ----------- | -------------------------------------------- |
+| isTask      | node.status !== undefined                    |
+| taskMark    | Derived from status                          |
+| fsPath      | Derive via getPath(node) from tree structure |
+| mdLine      | node.source.line (for md source)             |
+| icon, color | Compute if needed                            |
+| childCount  | node.children.length                         |
 
 ## SQLite Schema
 
@@ -212,12 +215,15 @@ CREATE INDEX idx_status ON nodes(json_extract(props, '$.status'))
 ## Testing
 
 **After each phase:**
+
 - `bun run typecheck`
 - `bun run test:fast`
 
 **Manual verification:**
+
 - TUI loads and renders
 - Navigation works (j/k/h/l)
 - Task status toggle (x key)
 - Open in editor (e key)
 - Create new task (a key)
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/dry-sticky-logic"
 aliases:
   - km-silvery.dry-sticky-logic
@@ -17,3 +19,4 @@ owner: bjorn@stabell.org
 # [x] DRY: Deduplicate sticky rendering logic between scroll and normal containers @km/silvery #task #P2
 
 Sticky force-refresh, second-pass render with hasPrevBuffer=false, and pre-clear logic nearly identical in renderScrollContainerChildren and renderNormalChildren. Extract shared helpers: renderStickyChildrenPass(), computeStickyForceRefresh(). Duplication makes correctness fixes likely to miss one path. Found by GPT pipeline review.
+

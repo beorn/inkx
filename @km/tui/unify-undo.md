@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/unify-undo"
 aliases:
   - km-tui.unify-undo
@@ -17,6 +20,7 @@ assignee: Bjørn Stabell
 # [x] Consolidate undo — merge UndoStack + history-plugin into single mechanism @km/tui #task #P2 @Bjørn Stabell
 
 Two competing undo mechanisms:
+
 - Imperative: undo-stack.ts (117 lines) + undo/ dir (3 files, ~250 lines) + manual entries in board-actions.ts (~50 lines)
 - TEA-style: board/history-plugin.ts (~250 lines) with time-based grouping
 
@@ -26,3 +30,4 @@ TARGET: Single unified undo system. Auto-record repo mutations (already done by 
 
 IMPACT: ~200 lines removed, 6+ files simplified. Eliminates bugs from stale fold state in undo entries, missing cursor restore, inconsistent batch boundaries.
 ORTHOGONAL to ViewNode — can be done independently.
+

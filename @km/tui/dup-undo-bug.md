@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/dup-undo-bug"
 aliases:
   - km-tui.dup-undo-bug
@@ -15,3 +17,4 @@ explore-duplicate-undo-focus.test.ts:11 fails:
 BUG: Duplicate undo didn't work. Children after undo: ["A","A","B"]. Expected 2 children, got 3.
 
 Duplicate creates an undo entry but undoing doesn't remove the duplicated node.
+

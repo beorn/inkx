@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/all/node-model-v2/data-model"
 aliases:
   - km-all.node-model-v2.data-model
@@ -15,6 +18,7 @@ assignee: claude:8f007ba9
 Flat children model. No body container node. li ~ oi unified.
 
 ## Final Design (confirmed by O3 deep research)
+
 - Items have .children (ordered, mixed types)
 - .content = title for items
 - No h child node for oi title (heading level from tree depth)
@@ -24,6 +28,7 @@ Flat children model. No body container node. li ~ oi unified.
 - li allows interleaving blocks and sub-li in any order
 
 ## Work
+
 - Update docs/design/@km/ast/model.md with v2 model
 - Parser: stop creating h child for oi, use .content for title
 - Remove .blocks/.subitems split (or make view-only helpers)
@@ -32,3 +37,4 @@ Flat children model. No body container node. li ~ oi unified.
 - Migration for existing databases
 - Update board view split logic
 - Remove __body__ virtual node
+

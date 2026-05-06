@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/skip-bgdirty"
 aliases:
   - km-silvery.skip-bgdirty
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] Fast-path skip condition doesn't include bgDirty @km/silvery #bug #P2
 
 If reconciler ever sets bgDirty without paintDirty, fast-path skip becomes unsafe. Should either add \!node.bgDirty to skip condition or assert invariant bgDirty => paintDirty. Found by GPT pipeline review.
+

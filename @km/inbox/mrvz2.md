@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/mrvz2"
 aliases:
   - km-mrvz2
@@ -38,3 +41,4 @@ assignee: claude:4de4a3ab
 ---
 
 # [x] Ambient Phase 6.b — wire real source adapters (tribe, recall, subagent, ci, filewatch) @km/_orphan #task #P1 @claude:4de4a3ab
+

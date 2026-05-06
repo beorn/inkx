@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/flexily/silvercode-gutter"
 aliases:
   - km-flexily.silvercode-gutter
@@ -22,6 +25,10 @@ dependencies:
     created_at: 2026-04-26T16:22:36Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.fix-sweep-vendor-fuzz
 ---
 
 # [x] [bug] vendor/flexily silvercode-gutter-bug — 2 failures (NARROW + WIDE) @km/flexily #bug #P2 @claude:cc081a9a
@@ -29,3 +36,4 @@ dependencies:
 blocks:: [[@km/all/fix-sweep-vendor-fuzz]]
 
 silvercode-gutter-bug.test.ts:116 (NARROW) + :174 (WIDE). gutter.minContentRow=200 in logs. /complete: bun vitest run --project vendor vendor/flexily/tests/silvercode-gutter-bug.test.ts → 0 failures.
+

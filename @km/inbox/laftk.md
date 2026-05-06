@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/laftk"
 aliases:
   - km-laftk
@@ -14,3 +17,4 @@ assignee: claude:b92140a2
 # [x] P1: Re-materialization bypasses injected FS abstraction @km/_orphan #bug #P1 @claude:b92140a2
 
 finalizeBatchLinks() uses realFs.writeFileSync() directly instead of the injected fs parameter. Breaks test isolation and skips reconciliation — new index file exists on disk but DB doesn't know about it until next scan. Fix: thread fs through finalizeBatchLinks(), emit create op for new file.
+

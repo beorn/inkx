@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/leader-lease"
 aliases:
   - km-tribe.leader-lease
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Leader lease table for chief election @km/tribe #feature #P2
 
 Multiple chiefs can coexist. Add leadership table with lease_until, holder_session_id, term. Only lease holder can emit assign/verdict. Prevents split-brain.
+

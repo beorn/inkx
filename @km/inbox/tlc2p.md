@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/tlc2p"
 aliases:
   - km-tlc2p
@@ -11,3 +14,4 @@ assignee: claude:124bfbe5
 ---
 
 # [x] TUI: h navigation hangs after mixed operations that change column sizes @km/_orphan #bug #P2 @claude:124bfbe5
+

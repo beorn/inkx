@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/md-shortcuts"
 aliases:
   - km-tui.md-shortcuts
@@ -16,3 +19,4 @@ assignee: Bjørn Stabell
 # [x] Markdown shortcuts: []<space> etc. should work with existing content @km/tui #feature #P2 @Bjørn Stabell
 
 Markdown shortcuts like []<space> at the beginning of a line should convert to task checkbox even when there is existing content after the cursor. Currently may only work on empty lines. Same principle applies to all smart shortcuts (-, 1., #, etc.).
+

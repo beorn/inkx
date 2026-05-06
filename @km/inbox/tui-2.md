@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/tui-2"
 aliases:
   - km-tui-2
@@ -13,3 +16,4 @@ assignee: claude:8f1636c1
 Open multiple repos simultaneously in TUI.
 
 Depends on: Repo domain object (completed via @km/domain refactor)
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/flexily/measure-flex-grow"
 aliases:
   - km-flexily.measure-flex-grow
@@ -14,3 +17,4 @@ assignee: claude:c9beade3
 # [x] Measure-function flex items with flexGrow>0 use base size 0 instead of content size @km/flexily #bug #P1 @claude:c9beade3
 
 GPT 5.4 Pro re-review P1. Intrinsic measurement skipped when flexGrow>0, so base size falls to padding+border (often 0). CSS spec says flex base size should be content-based regardless of flexGrow. Repro: two text nodes widths 10/20, both flexGrow:1, container 60 — should get 25/35, gets 30/30.
+

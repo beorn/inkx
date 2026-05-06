@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/sterling-tests-legacy-sweep"
 aliases:
   - km-silvery.sterling-tests-legacy-sweep
@@ -65,24 +67,31 @@ dependencies:
     created_at: 2026-04-20T14:46:21Z
     created_by: claude:a1a0e667
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.theme-v4
 ---
 
 # [x] Sweep legacy theme tokens in silvery/tests/ (~140 uses) — gated on 0.20.0 runtime-shim drop @km/silvery #task #P3
 
 blocks:: [[@km/silvery/theme-v4]]
 
-Out-of-scope follow-up from @km/silvery/sterling-consumer-migration (closed 2026-04-20). 
+Out-of-scope follow-up from @km/silvery/sterling-consumer-migration (closed 2026-04-20).
 
 migration agent's final regex confirmed 1486→70 in apps/@km/tui/src + vendor/silvery/packages/ag-react/src. Remaining 70 are documented exceptions (selection/link/inverse — Sterling has no equivalent role yet).
 
 vendor/silvery/tests/ has ~140 legacy-token uses still in place. These test the legacy-aliasing layer (inlineSterlingTokens runtime double-population) which Sterling 0.19.0 keeps. The sweep makes sense ONLY when 0.20.0 drops inlineSterlingTokens and the tests need to be ported to the new shape.
 
 ## Acceptance
+
 - After 0.20.0 ships dropping inlineSterlingTokens runtime shim
-- vendor/silvery/tests/ legacy-token uses → 0 hits (or only documented exceptions)  
+- vendor/silvery/tests/ legacy-token uses → 0 hits (or only documented exceptions)
 - Test outputs match Sterling-resolved hex values
 
 ## Blocked by
+
 - (Implicitly) Sterling 0.20.0 release with inlineSterlingTokens drop
 
 ## Not blocked by anything in current state — purely a future-work tracker.
+

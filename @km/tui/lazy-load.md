@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/lazy-load"
 aliases:
   - km-tui.lazy-load
@@ -22,10 +25,12 @@ Point km view at any drive without choking. Faster startup for large directories
 ## Design: preloadDepth + Background Indexing
 
 **preloadDepth** (default: Infinity — current behavior, zero breaking changes):
+
 - Walk to preloadDepth eagerly at startup. Discover files, parse markdown, resolve links.
 - This is what renders immediately.
 
 **Background phase** (when preloadDepth < Infinity):
+
 - After initial render, continue loading remaining directories in background during idle time.
 - Links resolve progressively — unresolved refs "light up" as their targets load.
 - Search works on loaded content, gets progressively more complete.
@@ -34,14 +39,13 @@ Point km view at any drive without choking. Faster startup for large directories
 ## Architecture Changes
 
 1. **Storage (discovery.ts)**: Add preloadDepth to DiscoveryOptions. scanDirectory() tracks current depth. Beyond preloadDepth, directories are marked "unexplored" with a shallow readdir count (no stat). New expandDirectory(path, db) function discovers a single directory subtree incrementally.
-
 2. **Storage (repo.ts)**: Add preloadDepth to CreateRepoOptions. Repo exposes expandDirectory() for on-demand expansion + getUnexploredDirs() for background loader. Repo exposes backgroundLoadRemaining() that progressively expands all unexplored dirs.
-
 3. **TUI**: Unexplored directories show dimmed "~N items" indicator. Expanding triggers expandDirectory() + re-render. Background loader calls backgroundLoadRemaining() after first render.
-
 4. **Search**: Searches whatever is in the db. Partial during background loading, complete after. No special handling needed — SQLite FTS just works on available data.
 
 ## Key: No Breaking Changes
+
 - preloadDepth defaults to Infinity = current behavior
 - All existing code paths unchanged
 - Feature is opt-in via config or CLI flag
+

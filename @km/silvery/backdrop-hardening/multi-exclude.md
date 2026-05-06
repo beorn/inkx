@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/backdrop-hardening/multi-exclude"
 aliases:
   - km-silvery.backdrop-hardening.multi-exclude
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-20T14:00:07Z
     created_by: claude:88c0e764
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.backdrop-hardening
 ---
 
 # [x] region.ts: multiple exclude rects visits hole interiors (correctness bug) @km/silvery #bug #P0 @claude:a1a0e667
@@ -61,3 +68,4 @@ for (let y = 0; y < h; y++) {
 ## Parent
 
 @km/silvery/backdrop-hardening
+

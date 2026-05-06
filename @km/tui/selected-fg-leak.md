@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/selected-fg-leak"
 aliases:
   - km-tui.selected-fg-leak
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Selected card: date/fold-count colors leak through instead of black-on-yellow @km/tui #bug #P3
+

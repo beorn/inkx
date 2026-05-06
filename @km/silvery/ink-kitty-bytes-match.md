@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ink-kitty-bytes-match"
 aliases:
   - km-silvery.ink-kitty-bytes-match
@@ -24,3 +26,4 @@ Closes 3 Ink 7.0 compat failures.
 ## Parent
 
 @km/silvery/positioning
+

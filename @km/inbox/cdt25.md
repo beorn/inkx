@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/cdt25"
 aliases:
   - km-cdt25
@@ -13,3 +16,4 @@ assignee: claude:8f007ba9
 # [x] Show subtask/comment counts on cards @km/_orphan #feature #P3 @claude:8f007ba9
 
 Asana cards show numeric subtask indicators (3/7 done) and comment bubble with count. km shows fold markers (filled/empty dots) but no count, and has no card-level comment indicator. Data already exists — childCount is derived at render time, comments are child nodes under detailOnly parent.
+

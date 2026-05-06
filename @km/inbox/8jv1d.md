@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/8jv1d"
 aliases:
   - km-8jv1d
@@ -13,3 +16,4 @@ assignee: claude:e039a9ca
 # [x] Website: AI assistants example doesn't accept input @km/_orphan #bug #P2 @claude:e039a9ca
 
 On beorn.github.io/inkx/use-cases/ai-assistants.html, the demo doesn't respond to keyboard input. The showcase uses a custom useInput event bus (emitInput in showcases.tsx) — the AI assistants demo may not be wired up to it, or the input parsing doesn't handle the keys it needs.
+

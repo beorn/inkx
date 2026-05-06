@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/pane-close-crash"
 aliases:
   - km-tui.pane-close-crash
@@ -18,3 +20,4 @@ Repro: vs → s (vsplit) → vw (close pane). Crash: usePaneSignals throws becau
 Stack: usePaneSignals → Board.tsx:601 → React mountState → useApp.
 
 Root cause: When pane is closed, workspace.panes is updated but Board component still renders and calls usePaneSignals() which throws because there are no board panes with signals left.
+

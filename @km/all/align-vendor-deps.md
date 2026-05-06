@@ -1,4 +1,7 @@
 ---
+mentions:
+  - types
+  - km
 id: "@km/all/align-vendor-deps"
 aliases:
   - km-all.align-vendor-deps
@@ -13,7 +16,7 @@ owner: bjorn@stabell.org
 SOP sherif scan reports 5 deps with version splits across the workspace
 (km root vs vendor packages):
 
-  vitest          ^4.1.4   (root)  vs  ^3.0.0   (mdspec)
+vitest          ^4.1.4   (root)  vs  ^3.0.0   (mdspec)
   @types/bun      ^1.3.12  (root)  vs  ^1.3.11  (bearly)
   @types/node     ^25.6.0  (root)  vs  ^22.0.0  (mdspec)
   playwright      ^1.59.1  (root)  vs  ^1.58.2  (bearly)
@@ -36,3 +39,4 @@ After alignment, sherif goes back to passing in /sop scans.
 
 Discovered during /sop all on 2026-04-16. Initially mis-filed as
 "sherif-vendor-exclude" — corrected after user clarified vendor scope.
+

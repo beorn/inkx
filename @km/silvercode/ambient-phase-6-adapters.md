@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/ambient-phase-6-adapters"
 aliases:
   - km-silvercode.ambient-phase-6-adapters
@@ -13,3 +16,4 @@ assignee: claude:4de4a3ab
 ---
 
 # [x] Ambient Phase 6.b — wire real source adapters (tribe, recall, subagent, ci, filewatch) @km/silvercode #task #P1 @claude:4de4a3ab
+

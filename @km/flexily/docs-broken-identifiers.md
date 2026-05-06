@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/docs-broken-identifiers"
 aliases:
   - km-flexily.docs-broken-identifiers
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Docs: Examples use wrong identifiers — GAP_COLUMN vs GUTTER_COLUMN, missing freeRecursive @km/flexily #bug #P2
+

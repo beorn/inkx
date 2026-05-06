@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/signals/3-cursor-selection-reads-via-usesignal"
 aliases:
   - km-tui.signals.3
@@ -17,13 +20,16 @@ assignee: Bjørn Stabell
 
 ## Cursor + selection reads via useSignal
 
-### Problem  
+### Problem
+
 ~15 useAppStore selectors in view files read sel.node.cursor(), sel.node.ids(), sel.text() through the Zustand store bridge. Each goes through: alien-signals → _selVersion bump → store notification → useAppStore re-evaluates selector. Extra indirection + timing issues.
 
 ### Solution
+
 Replace useAppStore selectors that read sel state with useSignal(sel.node.cursor) etc. Direct subscription to the alien-signals computed — no bridge.
 
 ### Files (from grep)
+
 - Board.tsx: cursor, selIds, textEditState, sel, hasDetailPane (~8 selectors)
 - TreeNode.tsx: editNodeId (~1)
 - CardColumn.tsx: isInlineEditing, isDirectlyEditing (~3)
@@ -32,10 +38,13 @@ Replace useAppStore selectors that read sel state with useSignal(sel.node.cursor
 - TabsView.tsx: editingNodeId (~1)
 
 ### Depends on
+
 - signals.2 (useSignal hook must exist first)
 
 ### Acceptance
+
 ```
 grep 'useAppStore.*sel\.' apps/km-tui/src/views/ -r → 0 hits
 grep 'useAppStore.*cursor' apps/km-tui/src/views/ -r → 0 hits
 ```
+

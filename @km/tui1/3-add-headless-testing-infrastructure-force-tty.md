@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui1/3-add-headless-testing-infrastructure-force-tty"
 aliases:
   - km-tui1.3
@@ -43,3 +45,4 @@ HEADLESS=true bun x playwright screenshot http://localhost:7681 /tmp/tui1.png
 - [ ] FORCE_TTY=1 bypasses TTY requirement
 - [ ] ttyd + Playwright workflow works for TUI1
 - [ ] No regression in normal TTY operation
+

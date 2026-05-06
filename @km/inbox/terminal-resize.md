@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/terminal-resize"
 aliases:
   - km-terminal-resize
@@ -9,3 +12,4 @@ assignee: claude:5f8fa618
 ---
 
 # [x] Preserve cursor position during terminal resize @km/_orphan #task #P2 @claude:5f8fa618
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/source-of-truth-contract"
 aliases:
   - km-storage.source-of-truth-contract
@@ -24,6 +27,10 @@ dependencies:
     created_at: 2026-04-21T01:37:22Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.plateau
 ---
 
 # [x] Source-of-truth contract — markdown vs log vs DB @km/storage #feature #P1 @claude:8b5b9e1c
@@ -37,6 +44,7 @@ Primary question identified by dual-pro review 2026-04-21 as the REAL first-deci
 For any piece of content in km, which store is authoritative?
 
 Candidates:
+
 - (A) Markdown files authoritative. DB + indexes are derived, fully rebuildable from .md. External edits are truth.
 - (B) Markdown authoritative for text, append-only op log as audit/replay. DB = log projection.
 - (C) Log-first canonical state. Markdown is an export projection. Loses plain-text portability as a hard guarantee.
@@ -48,6 +56,7 @@ km operates as (A) with caveats: .md files are authoritative; SQLite caches + in
 ## Decision criteria
 
 Answering this question bounds:
+
 - Event-sourcing viability (only valid under B or C)
 - CRDT direction (which layer carries the CRDT — log, markdown, or DB?)
 - External-edit reconciliation semantics
@@ -64,3 +73,4 @@ Answering this question bounds:
 ## Prerequisite
 
 None. Can and should be answered BEFORE scale-architecture commits to a family.
+

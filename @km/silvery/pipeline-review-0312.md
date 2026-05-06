@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/pipeline-review-0312"
 aliases:
   - km-silvery.pipeline-review-0312
@@ -17,3 +20,4 @@ assignee: claude:65d845d9
 # [x] Pipeline review: GPT findings (2026-03-12) @km/silvery #epic #P2 @claude:65d845d9
 
 External LLM review of silvery+flexily rendering pipeline by GPT 5.4 pro and O3 Deep Research. 19K lines of source + docs reviewed. Key categories: correctness bugs (14), DRY improvements (4), performance (3), doc accuracy (4), architecture (3), testing gaps (8). Full responses at /tmp/llm-c9beade3-1773375701993-l697.txt (GPT 5.4 pro, 1167 lines) and /tmp/llm-c9beade3-1773375692021-h5cb.txt (O3 Deep Research, 14KB).
+

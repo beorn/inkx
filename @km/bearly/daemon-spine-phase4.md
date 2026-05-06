@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/daemon-spine-phase4"
 aliases:
   - km-bearly.daemon-spine-phase4
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-26T15:14:45Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-bearly.daemon-spine
 ---
 
 # [ ] Phase 4: consolidate idle-quit timer + socket cleanup patterns (~60 LOC delete) @km/bearly #task #P3
@@ -24,3 +30,4 @@ Tribe daemon's idle-quit timer (QUIT_TIMEOUT logic) and socket cleanup patterns 
 Pairs with Phase 3 — may ship together if hot-reload extraction lands the same package.
 
 Design doc: hub/bearly/design/daemon-spine-consolidation.md
+

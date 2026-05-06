@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/llm-loggily-migration"
 aliases:
   - km-bearly.llm-loggily-migration
@@ -72,13 +74,17 @@ dependencies:
     created_at: 2026-04-27T11:59:03Z
     created_by: claude:87d20187
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-bearly
 ---
 
 # [x] Migrate dual-pro/dispatch/silvery/km-cli to loggily @km/bearly #task #P3
 
 blocks:: [[@km/bearly]]
 
-# Why
+## Why
 
 The @km/bearly/unified-observability lint locks bg-recall + injection-envelope at L4 (no parallel observability paths). When that bead landed, the lint baseline of 2 missed four pre-existing call sites:
 
@@ -89,7 +95,7 @@ The @km/bearly/unified-observability lint locks bg-recall + injection-envelope a
 
 Lint baseline was bumped from 2 → 6 to honestly reflect main; this bead migrates those 6 sources to loggily so the baseline can return to 0.
 
-# What
+## What
 
 For each call site, replace direct \`appendFileSync\` with the loggily pattern:
 
@@ -103,11 +109,12 @@ addWriter(createFileWriter(process.env.LOGGILY_FILE).write)
 \`\`\`
 
 Per-file:
+
 - @km/_orphan/cli daemon log: \`createLogger("km-cli:daemon")\` + \`addWriter\` keyed on \`KM_DAEMON_LOG\` env (or unified \`LOGGILY_FILE\`)
 - dual-pro: \`createLogger("bearly:llm:dual-pro:backtest|promote|ab")\` — three namespaces for the three JSONL files
 - silvery debug trace: \`createLogger("silvery:trace")\` + \`addWriter\` keyed on \`SILVERY_TRACE\` env
 
-# Acceptance
+## Acceptance
 
 - bash packages/@km/infra/scripts/check-no-raw-logging.sh → BASELINE_APPEND_LOG_FILE bumped DOWN to 0
 - bash packages/@km/infra/scripts/check-no-raw-logging.sh → OK: no-raw-logging clean
@@ -115,12 +122,13 @@ Per-file:
 - Migration recipe documented in CHANGELOG of each package
 - npx tsc --noEmit | grep "error TS" → no new errors
 
-# Out of scope
+## Out of scope
 
 - The 2 INJECTION_DEBUG_LOG references in plugins/injection-envelope/src/debug.ts (back-compat shim — drops in next minor)
 
-# Reference
+## Reference
 
 - @km/bearly/unified-observability (closed) — established the lint + baseline policy
 - packages/@km/infra/scripts/check-no-raw-logging.sh — the baseline lock
 - .claude/skills/logging/SKILL.md — canonical pattern
+

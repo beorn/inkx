@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/wezterm"
 aliases:
   - km-termless.wezterm
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] WezTerm backend via wezterm-term Rust crate @km/termless #task #P3
 
 Feasible via shadow-terminal (tattoy-org) or wezterm-term crate + napi-rs. shadow-terminal already wraps wezterm-term as headless terminal with JSON cell output — closest to ready. Implement TerminalBackend wrapping the Rust crate via napi-rs native binding.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/omnibox-ranker"
 aliases:
   - km-tui.omnibox-ranker
@@ -26,6 +29,10 @@ dependencies:
     created_at: 2026-04-14T16:24:15Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui.omnibox-unified
 ---
 
 # [x] Shared ranker + test fixture (Phase 2, fixes km-tui.picker-rank-subpath) @km/tui #task #P1 @Bjørn Stabell
@@ -41,3 +48,4 @@ Ranking rules (7 per-match + 5 type weights) as specified in the design doc. Rec
 Migrate ItemPicker.filterOptions and Omnibox's scorer to use rankResults. Closes @km/tui/picker-rank-subpath.
 
 Acceptance: (a) apps/@km/tui/tests/omnibox-ranking.test.ts — canonical fixture table with at minimum the @delei vs @office/.../Delei case; (b) every entry in the table has a hand-written expected order; (c) highlightMatches returns typed spans (not HTML, not ANSI); (d) the old picker and palette scorers are deleted, not adapted; (e) @km/tui/picker-rank-subpath closed with its repro test passing.
+

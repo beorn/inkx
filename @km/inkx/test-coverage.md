@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/test-coverage"
 aliases:
   - km-inkx.test-coverage
@@ -11,3 +14,4 @@ assignee: claude:ee8efc0f
 ---
 
 # [x] Add tests for 6 untested critical modules (renderer, scheduler, app, auto-locator, with-commands, layout-engine) @km/inkx #task #P2 @claude:ee8efc0f
+

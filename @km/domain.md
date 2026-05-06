@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - km
 id: "@km/domain"
 aliases:
   - km-domain
@@ -11,3 +14,4 @@ assignee: km
 # [x] ADR-002 Domain Objects Refactor @km/domain #epic #P1 @km
 
 Execute domain objects refactor per ADR-002. Phases: steering docs → remove singletons → DataStore → FileTree → Repo → audit → terminology.
+

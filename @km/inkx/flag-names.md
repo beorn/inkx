@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/flag-names"
 aliases:
   - km-inkx.flag-names
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] content-phase: Rename flags for clarity @km/inkx #task #P1
 
 parentRegionCleared → parentClearedBg, parentRegionChanged → parentRepainted, childAncestorCleared → ancestorRegionWasCleared. Consider subtreeDirty → descendantDirty. Deep research recommendation #3.
+

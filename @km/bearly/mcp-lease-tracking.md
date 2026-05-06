@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/mcp-lease-tracking"
 aliases:
   - km-bearly.mcp-lease-tracking
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-26T23:20:10Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-bearly
 ---
 
 # [ ] Evaluate request-as-lease model — keep as permanent design or fold into url-shim @km/bearly #feature #P4
@@ -32,12 +38,14 @@ The Bun bug forced the choice, but the resulting model is semantically correct o
 ## What is purely the Bun workaround vs what is permanent design
 
 Permanent design (keep regardless of Bun fix):
+
 - `activeResponses: Set<ServerResponse>` accounting at request level
 - `res.on("close", drop)` lease-drop signal (works on both runtimes)
 - `trackResponse(req, res)` model — `dispatch()` calls it once per request
 - Idle-quit timer arming when `activeResponses.size === 0`
 
 Pure Bun workaround (delete when Bun #7716 lands):
+
 - `req.once("close", drop)` belt-and-suspenders second listener (vendor/bearly/plugins/mcp/mcp-plugin.ts:557) — only needed because Bun skips `res.on("close")` for streaming responses
 - The note in `trackResponse` docstring (lines 540-556) explaining why both listeners exist
 
@@ -50,6 +58,7 @@ If reviewer disagrees and considers request-level tracking only acceptable under
 ## Action
 
 Either:
+
 1. Close as "request-as-lease confirmed permanent — no further work" once a maintainer signs off, OR
 2. Convert into a small documentation task: add a paragraph to plugins/mcp/README.md explaining that request-as-lease is intentional and permanent, distinct from the Bun bug
 
@@ -59,3 +68,4 @@ Either:
 - Source split: @km/all/plateau-90 R3
 - Original bead (closed): @km/bearly/mcp-plugin-bun-keepalive
 - Source commit: 634b2af "fix(bearly/mcp): track lease at request level, not socket level"
+

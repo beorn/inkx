@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/config-warn-unknown-keys"
 aliases:
   - km-storage.config-warn-unknown-keys
@@ -19,4 +21,6 @@ Spun out from @km/storage/content-issues (vault session, 2026-04-24).
 Bead @km/_orphan/q5hji renamed collapseParse.patterns → inactive (flat array). Test packages/@km/storage/tests/config.test.ts:314 asserts the legacy key is silently ignored — deliberately no compat shim. Result: this vault's .km/config.yaml (still using the old name) became a silent no-op without warning.
 
 ## Design question
+
 Should yaml config loading **warn loudly** on unrecognized top-level keys (typo protection + migration safety net)?
+

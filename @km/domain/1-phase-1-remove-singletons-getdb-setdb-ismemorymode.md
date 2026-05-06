@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - km
 id: "@km/domain/1-phase-1-remove-singletons-getdb-setdb-ismemorymode"
 aliases:
   - km-domain.1
@@ -10,3 +13,4 @@ assignee: km
 ---
 
 # [x] Phase 1: Remove singletons (getDb, setDb, isMemoryMode) @km/domain #task #P1 @km
+

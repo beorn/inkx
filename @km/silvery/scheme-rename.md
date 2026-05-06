@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/scheme-rename"
 aliases:
   - km-silvery.scheme-rename
@@ -17,6 +20,10 @@ dependencies:
     created_at: 2026-04-17T22:18:41Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.design-system
 ---
 
 # [x] Scheme rename refactor — ColorPalette → ColorScheme across silvery @km/silvery #task #P3 @Bjørn Stabell
@@ -52,3 +59,4 @@ Batch-refactor (bun vendor/bearly/tools/refactor.ts). Verify: bun typecheck + vi
 
 Full context: hub/silvery/design/v10-terminal/terminal-color-strategy.md
 Parent: @km/silvery/design-system
+

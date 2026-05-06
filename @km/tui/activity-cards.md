@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/activity-cards"
 aliases:
   - km-tui.activity-cards
@@ -13,3 +16,4 @@ assignee: claude:97b8de73
 # [x] Activity/Comments sections still show as cards on the board @km/tui #bug #P2 @claude:97b8de73
 
 The 'Activity' and 'Comments' sections from Asana imports still appear as cards on the board. These should be collapsed/hidden - they add visual clutter. The isCollapsedChild filter in use-columns.ts should catch these but apparently doesn't.
+

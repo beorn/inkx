@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/flash-on-update"
 aliases:
   - km-tui.flash-on-update
@@ -15,3 +18,4 @@ When bottom bar indicators update (console stats change, watcher status change, 
 Same pattern should apply to all updating bottom bar info — not just console stats. Reusable animation primitive needed.
 
 Design from user: 'ideally show the text and the numbers in bright white for a few seconds before going back to grey (we should do this for all info that updates to draw attention to it - like toasts)'
+

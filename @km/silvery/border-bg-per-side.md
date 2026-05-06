@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/border-bg-per-side"
 aliases:
   - km-silvery.border-bg-per-side
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] ADOPT: borderBackgroundColor per-side props from Ink 7.0 @km/silvery #feature #P1
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/analytics"
 aliases:
   - km-terminfo.analytics
@@ -18,8 +21,10 @@ assignee: claude:f8196c1c
 Enable Cloudflare Web Analytics on terminfo.dev, termless.dev, silvery.dev. Free, no cookies, GDPR-safe.
 
 ## Steps
+
 - [ ] Update CF API token to include Web Analytics: Edit permission
 - [ ] Enable Web Analytics via API for all 3 sites
 - [ ] Add beacon script tags to each site's VitePress config
 - [ ] Verify analytics working in CF dashboard
 - [ ] Update /marketing skill with analytics info
+

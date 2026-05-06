@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/wrap-ergonomic"
 aliases:
   - km-silvercode.wrap-ergonomic
@@ -19,6 +22,7 @@ Silvercode renders markdown, user messages, and assistant responses without any 
 ## Problem history
 
 This bug has surfaced at least 3 times in km across 2 months:
+
 - 2026-02-11 — @km/tui wrap issue
 - 2026-04-18 — silvercode first encounter
 - 2026-04-24 — silvercode paragraph clipping into side panel (this session)
@@ -56,3 +60,4 @@ Silvery is a multi-target UI framework with web ambitions — NOT "Ink but bette
 
 - Flipping silvery's `flexShrink` default from 0 to 1 (prior silvery-expert audit flagged as high-risk — ListView + others depend on 0).
 - Generalized `<Card>` / `<Stack>` / `<Section>` design primitives (future silvery work; separate initiative).
+

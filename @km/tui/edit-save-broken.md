@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/edit-save-broken"
 aliases:
   - km-tui.edit-save-broken
@@ -14,3 +17,4 @@ assignee: Bjørn Stabell
 ---
 
 # [x] Enter during inline edit doesn't save text — nodes show (untitled section) @km/tui #bug #P0 @Bjørn Stabell
+

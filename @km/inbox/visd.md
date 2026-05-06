@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - km
 id: "@km/inbox/visd"
 aliases:
   - km-visd
@@ -12,8 +15,10 @@ closed_at: 2026-01-15T23:10:52Z
 Rename the @km/_orphan/store package to @km/storage as part of the four-layer architecture refactoring.
 
 The package owns:
+
 - Persistence (SQLite operations)
 - File sync (markdown ↔ DB sync)
 - Database models
 
 This rename clarifies the package's role as the storage layer in the four-layer architecture.
+

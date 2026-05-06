@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/sbxr"
 aliases:
   - km-sbxr
@@ -8,3 +10,4 @@ closed_at: 2026-01-22T07:40:04Z
 ---
 
 # [x] Storybook: view 1 spacing and borders are all off @km/_orphan #bug #P2
+

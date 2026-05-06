@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/adapter-architecture"
 aliases:
   - km-storage.adapter-architecture
@@ -18,6 +20,10 @@ dependencies:
     created_at: 2026-04-21T13:24:47Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.plateau
 ---
 
 # [x] Adapter architecture — core km unaware of FS/sync/connector specifics @km/storage #epic #P1
@@ -49,13 +55,13 @@ interface Adapter {
 
 ## Adapter catalog
 
-| Adapter | Kind | Mediates | Status |
-|---|---|---|---|
-| FsAdapter | fs | Filesystem ↔ core | P1 — sub-bead `km-storage.fs-mount` |
-| SyncAdapter | sync | Peer-to-peer ↔ core | Future |
-| CardDavAdapter | connector | CardDAV server ↔ core | Future |
-| CalDavAdapter | connector | CalDAV server ↔ core | Future |
-| NotionImportAdapter | import | Notion export → core | Future |
+| Adapter             | Kind      | Mediates              | Status                            |
+| ------------------- | --------- | --------------------- | --------------------------------- |
+| FsAdapter           | fs        | Filesystem ↔ core     | P1 — sub-bead km-storage.fs-mount |
+| SyncAdapter         | sync      | Peer-to-peer ↔ core   | Future                            |
+| CardDavAdapter      | connector | CardDAV server ↔ core | Future                            |
+| CalDavAdapter       | connector | CalDAV server ↔ core  | Future                            |
+| NotionImportAdapter | import    | Notion export → core  | Future                            |
 
 ## Package layering
 
@@ -99,3 +105,4 @@ See `hub/km/source-of-truth-rfc-v2-addendum-identity.md` §7 for full architectu
 - `km-storage.lazy-hydration` — needs Adapter contract so RepoStore lives in @km/storage, not adapter
 - `km-storage.federation` — redefined as AdapterRegistry mounting
 - `km-storage.scale-architecture` — scale work targets adapter-specific tuning
+

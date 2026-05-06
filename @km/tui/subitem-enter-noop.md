@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/subitem-enter-noop"
 aliases:
   - km-tui.subitem-enter-noop
@@ -17,3 +19,4 @@ User reports: hit Enter on card => inserts subitem, type text title for subitem,
 
 Expected: Enter should commit the subitem title (exit inline edit) or create another subitem below.
 Actual: Enter key is consumed with no visible effect.
+

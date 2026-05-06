@@ -1,4 +1,8 @@
 ---
+mentions:
+  - beorn
+  - km
+  - claude
 id: "@km/test-4/3-add-vitest-producer-to-beorn-tap"
 aliases:
   - km-test-4.3
@@ -12,3 +16,4 @@ assignee: claude:bb984f7c
 # [x] Add Vitest producer to @beorn/tap @km/test-4 #task #P2 @claude:bb984f7c
 
 Create vendor/beorn-tap/src/producers/vitest.ts to run Vitest tests via orchestrator. Verify streaming TAP output works (key benefit!). Compare timing vs Bun.
+

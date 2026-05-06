@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/layer-violations"
 aliases:
   - km-all.layer-violations
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Fix km package layer violations @km/all #bug #P2
 
 Layer violations found in km packages audit (2026-03-29). The only structural violation is @km/storage importing from @km/tree (Infrastructure importing from Operations layer). This dependency is also undeclared in @km/storage's package.json. Suggested fix: move index-file utility functions down to @km/core or create a shared @km/core/index-file module.
+

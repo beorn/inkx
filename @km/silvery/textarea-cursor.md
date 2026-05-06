@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/textarea-cursor"
 aliases:
   - km-silvery.textarea-cursor
@@ -14,9 +16,10 @@ owner: bjorn@stabell.org
 
 # [x] TextArea: cursor renders on last character instead of after it @km/silvery #bug #P2
 
-TextArea cursor renders ON the last typed character instead of AFTER it. 
+TextArea cursor renders ON the last typed character instead of AFTER it.
 
 Root cause investigation:
+
 - useCursor sets col: ta.cursorCol, which should be correct (1 after typing 'X')
 - useScreenRectCallback adds rect.x offset (border+padding)
 - SVG inspection shows cursor rect at same x position as the character, not after it
@@ -26,3 +29,4 @@ Root cause investigation:
 The TextArea is wrapped in <Box paddingX={1}> inside <Box borderStyle='single'>. The cursor positioning through useScreenRectCallback may not correctly resolve through nested padding/border layers.
 
 Needs: unit test for cursor position with border+padding wrapper, then fix.
+

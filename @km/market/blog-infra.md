@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/blog-infra"
 aliases:
   - km-market.blog-infra
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Set up blog infrastructure on silvery.dev @km/market #task #P0
 
 VitePress blog setup for fresh content signals. Release announcements, technical deep dives, performance posts. Needed for Phase 2 editorial wave in /marketing strategy.
+

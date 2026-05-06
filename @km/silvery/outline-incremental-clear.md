@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/outline-incremental-clear"
 aliases:
   - km-silvery.outline-incremental-clear
@@ -83,6 +86,10 @@ dependencies:
     created_at: 2026-04-28T13:42:55Z
     created_by: claude:da9990c5
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Incremental fast-path doesn't clear outline pixels outside parent rect when only child dirty signal is set @km/silvery #bug #P0 @claude:da9990c5
@@ -112,7 +119,7 @@ This is the SECOND class of incremental-vs-fresh STRICT mismatch surfaced this w
 
 ## Reproduction
 
-  cd /Users/beorn/Code/pim/km
+cd /Users/beorn/Code/pim/km
   bun vitest run vendor/silvery/tests/features/outline-incremental.test.tsx
   bun vitest run vendor/silvery/tests/features/outline-postate-cleanup.test.tsx
 
@@ -130,3 +137,4 @@ Both fail with STRICT mismatch diagnostics naming the orphaned pixels.
 - [ ] Regression test pins the specific shape (parent renders outline, child mutates, parent's outline cells outside child rect remain correct)
 - [ ] No new STRICT mismatches in @km/tui suite (2534 baseline)
 - [ ] Document the incremental-cascade rule for outline rendering in vendor/silvery/packages/ag-term/src/pipeline/CLAUDE.md
+

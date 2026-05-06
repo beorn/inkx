@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/selection-theme-tokens"
 aliases:
   - km-silvery.selection-theme-tokens
@@ -27,6 +30,14 @@ dependencies:
     created_at: 2026-04-24T16:14:49Z
     created_by: claude:5e447b66
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-all.sterling
+      - type: link
+        target: km-silvery.sterling-selection-tokens
 ---
 
 # [x] Plumb $selectionbg / $selectionfg theme tokens through paintFrame's applySelectionToPaintBuffer call @km/silvery #task #P3 @claude:22c2717d
@@ -56,9 +67,9 @@ The slot accepts SelectionTheme = { selectionFg?: Color; selectionBg?: Color }.
 3. Defaults: pick neutral selection colors that work across all 84 themes
    (similar to how $inversebg works)
 4. Termless test asserting:
-   - With custom theme tokens → cells get those colors
-   - Without override → fallback fg/bg swap unchanged
-   - Default-fg/bg cells (where compose currently uses inverseAttr SGR 7
+  - With custom theme tokens → cells get those colors
+  - Without override → fallback fg/bg swap unchanged
+  - Default-fg/bg cells (where compose currently uses inverseAttr SGR 7
      fallback) get the theme color, not the SGR 7 toggle
 
 ## Acceptance
@@ -68,3 +79,4 @@ The slot accepts SelectionTheme = { selectionFg?: Color; selectionBg?: Color }.
 - Termless contract test in tests/contracts/ confirming default + override paths
 - SILVERY_STRICT=1 selection suite passes
 - @km/tui sees consistent selection color across all themes
+

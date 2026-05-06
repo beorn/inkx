@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/term-factory-dedup"
 aliases:
   - km-silvery.term-factory-dedup
@@ -17,3 +19,4 @@ owner: bjorn@stabell.org
 createTerm, createHeadlessTerm, createBackendTerm share ~60 lines of identical boilerplate: disposed flag, AbortController, _frame, stripAnsi, events() generator, paint(), Symbol.dispose, createMixedStyle wrap, Object.defineProperty for frame.
 
 Composable approach: one base builder with behavior injected via options (stdout strategy, paint strategy, input strategy). Would reduce ~250 lines to ~100.
+

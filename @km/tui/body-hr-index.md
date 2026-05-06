@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/body-hr-index"
 aliases:
   - km-tui.body-hr-index
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Body navigation: HR nodes cause index mismatch between view and nav layers @km/tui #bug #P4
+

@@ -30,7 +30,7 @@ export function nodeToBead(node: KNode, options?: BeadsQueryOptions): Bead {
 }
 ```
 
-## Target shape
+### Target shape
 
 Co-located pure resolvers, each independently testable:
 
@@ -53,7 +53,7 @@ export function nodeToBead(node: KNode, options?: BeadsQueryOptions): Bead {
 }
 ```
 
-## Acceptance
+### Acceptance
 
 - [ ] Each resolver is a pure function (no I/O, no closures over module state)
 - [ ] Each resolver has at least 3 unit tests covering its decision branches
@@ -61,11 +61,11 @@ export function nodeToBead(node: KNode, options?: BeadsQueryOptions): Bead {
 - [ ] `bead-invariants.property.test.ts` continues to pass with no changes
 - [ ] No new `any` types introduced
 
-## Pairs with
+### Pairs with
 
 - `@km/beads/bead-type-keywords-shared-constant` — extracting `resolveType` is the natural place to consume the shared `BEAD_TYPE_KEYWORDS` constant once that lands.
 
-## Surfaced by
+### Surfaced by
 
 Code-quality agent in session f9eb64dc. P1 flagged due to complexity + tight coupling to property tests.
 

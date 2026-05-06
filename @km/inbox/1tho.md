@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/1tho"
 aliases:
   - km-1tho
@@ -17,6 +19,8 @@ Actual: Text appears as a column
 Location: buildBoardState in state.ts filters nonColumnTypes but text still shows.
 
 Investigation needed:
+
 - What type does the parser assign to this text?
 - Is the filter working correctly?
 - Does this only happen after sync?
+

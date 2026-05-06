@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/listview-heightmodel-unify"
 aliases:
   - km-silvery.listview-heightmodel-unify
@@ -23,6 +26,10 @@ dependencies:
     created_at: 2026-04-26T00:48:08Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.architectural-plateau
 ---
 
 # [x] ListView: unify height truths into single prefix-summed HeightModel @km/silvery #epic #P2 @claude:2405c72e
@@ -30,3 +37,4 @@ dependencies:
 blocks:: [[@km/silvery/architectural-plateau]]
 
 Per /pro review 2026-04-26 (hub/silvery/reviews/2026-04-26-listview-height-independent-pro-review.md). Currently 3+ height representations: totalRowsStable, totalRowsMeasured, rowsAboveViewport, ad-hoc sumHeights() calls. Each fix in this class (J/H/M/O) patches one site. Architectural fix: introduce HeightModel — predictedHeight[i] = measured(i, width) ?? estimate(i), backed by prefix-sum tree (Fenwick/segment) for O(log n) updates and O(1) totals. ALL row-space consumers (scroll cap, at-bottom, scrollbar visibility, thumb position, anchor preservation) derive from one source. Closes the bug class. Companion bead @km/silvery/listview-followpolicy-split for the cursor-vs-stickyBottom split.
+

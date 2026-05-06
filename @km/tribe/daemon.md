@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/daemon"
 aliases:
   - km-tribe.daemon
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-18T11:01:33Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] Tribe daemon: single process per machine, sessions connect via IPC @km/tribe #feature #P1
@@ -28,6 +34,7 @@ blocks:: [[@km/tribe]]
 Full replacement: single daemon process per machine, MCP proxies connect via IPC.
 
 Phase 1: Create tribe-daemon.ts
+
 - Unix socket server ($XDG_RUNTIME_DIR/tribe.sock or /tmp/tribe-$UID.sock)
 - Owns: SQLite DB, git poller, beads watcher, message routing, session registry
 - Hot-reload: SIGHUP → re-exec with socket fd transfer (like nginx)
@@ -35,18 +42,22 @@ Phase 1: Create tribe-daemon.ts
 - Protocol: JSON-RPC over unix socket (same tool names as MCP)
 
 Phase 2: Convert tribe.ts to thin proxy
+
 - On startup: connect to daemon socket (start daemon if not running)
 - Proxy MCP tool calls → daemon JSON-RPC, forward notifications ← daemon
 - No direct DB access, no polling, no plugins
 - ~100 lines total
 
 Phase 3: Delete embedded mode (break intentionally)
+
 - Remove all direct DB code from proxy
 - Remove plugins, dedup, cursor, lease from proxy
 - Let tsc guide cleanup
 - /complete: grep for Database import in tribe.ts → 0 hits
 
 Phase 4: Hot-reload mechanism
+
 - tribe_reload tool → sends SIGHUP to daemon PID
 - Auto-reload: daemon watches its own source files (fs.watch)
 - Source hash check on SIGHUP: skip reload if unchanged
+

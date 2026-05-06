@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/tree/p4-factory"
 aliases:
   - km-tui.tree.p4-factory
@@ -36,3 +38,4 @@ rg 'class ReactiveNodeStore' --glob '!.beads' --glob '!docs' -t ts -c | wc -l  #
 rg 'new ReactiveNodeStore' --glob '!.beads' --glob '!docs' -t ts -c | wc -l  # 0
 bun run test:fast  # all pass
 \`\`\`
+

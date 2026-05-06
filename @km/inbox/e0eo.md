@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/e0eo"
 aliases:
   - km-e0eo
@@ -12,6 +14,7 @@ closed_at: 2026-01-16T09:29:00Z
 Add a command palette to TUI2 that allows executing commands from within the TUI.
 
 ## Activation
+
 - `:` or `Ctrl+P` opens the palette
 - Fuzzy search through available commands
 - Execute selected command
@@ -19,6 +22,7 @@ Add a command palette to TUI2 that allows executing commands from within the TUI
 ## Architecture
 
 The command palette uses the same `BoardAction` vocabulary as:
+
 - Keyboard shortcuts (App.tsx)
 - @km/_orphan/sh scripting interface
 - Future: external integrations
@@ -44,6 +48,7 @@ The command palette uses the same `BoardAction` vocabulary as:
 ## Command Registry
 
 Create a command registry that maps:
+
 - Command name (human-readable): "Move Down"
 - Action type: { type: 'MOVE_DOWN' }
 - Keyboard shortcut: 'j' or '↓'
@@ -87,6 +92,7 @@ const commands: CommandDef[] = [
 ```
 
 ## Features
+
 - Fuzzy search by command name
 - Show keyboard shortcut hints
 - Group by category
@@ -96,6 +102,7 @@ const commands: CommandDef[] = [
 ## Connection to @km/_orphan/2sh7 (@ # + prefixes)
 
 The palette should support prefix filtering:
+
 - `:` → all commands
 - `:@` → filter to people/contacts nodes
 - `:#` → filter to tags
@@ -104,12 +111,15 @@ The palette should support prefix filtering:
 This reuses the same fuzzy finder UI, just with different content sources.
 
 ## Files to Modify
+
 1. **NEW: packages/@km/_orphan/tui-core/src/commands.ts** - Command registry
 2. **NEW: packages/@km/_orphan/tui-opentui/src/components/CommandPalette.tsx** - UI
 3. **packages/@km/_orphan/tui-opentui/src/App.tsx** - Wire `:` key
 4. **packages/@km/_orphan/tui-core/src/types.ts** - Add palette-related actions
 
 ## Related Beads
+
 - @km/_orphan/sh - Uses same command vocabulary
-- @km/_orphan/2sh7 - Prefix filtering (@ # +) 
+- @km/_orphan/2sh7 - Prefix filtering (@ # +)
 - @km/_orphan/s15z - Project Picker (p) - similar fuzzy finder UI
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/review/silvery-gap-analysis"
 aliases:
   - km-review.silvery-gap-analysis
@@ -25,13 +27,23 @@ dependencies:
     created_at: 2026-04-15T11:31:32Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.selection-focus-plateau
+      - type: link
+        target: km-silvery.tea.migration
+      - type: link
+        target: km-tui.tea
 ---
 
 # [ ] Gap analysis: km vs silvery — what it takes for km to truly leverage silvery @km/review #task #P2
 
 blocks:: [[@km/silvery/selection-focus-plateau]], [[@km/silvery/tea/migration]], [[@km/tui/tea]]
 
-# km ↔ silvery gap analysis
+## km ↔ silvery gap analysis
 
 ## Why
 
@@ -52,6 +64,7 @@ Audit the following directories against vendor/silvery/packages/ag-react/src/:
 5. apps/@km/tui/src/state/* — state helpers (exclude domain-specific)
 
 For each file, produce one of these verdicts:
+
 - **PURE DOMAIN** — can't come from silvery (board reducer, node tree logic, etc.)
 - **COMPOSED** — already uses silvery primitives correctly, no change
 - **DUPLICATE (migrate)** — silvery has this, should migrate
@@ -61,14 +74,13 @@ For each file, produce one of these verdicts:
 ## Deliverables
 
 1. A gap analysis doc at docs/review/silvery-gap-analysis.md with:
-   - Table of every @km/tui file + verdict
-   - Migration order (by effort and impact)
-   - Estimated total LOC deletable
-   - List of new silvery primitives km needs (to file as @km/silvery.* feature beads)
-
+  - Table of every @km/tui file + verdict
+  - Migration order (by effort and impact)
+  - Estimated total LOC deletable
+  - List of new silvery primitives km needs (to file as @km/silvery.* feature beads)
 2. Concrete follow-up beads:
-   - One bead per DUPLICATE verdict with migration plan
-   - One @km/silvery.* bead per SILVERY GAP verdict
+  - One bead per DUPLICATE verdict with migration plan
+  - One @km/silvery.* bead per SILVERY GAP verdict
 
 ## How to run
 
@@ -86,3 +98,4 @@ For each file, produce one of these verdicts:
 ## Related
 
 - The /big analysis that spawned this bead is documented in @km/tui/omnibox-use-silvery description
+

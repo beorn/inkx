@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/checkbox-hover"
 aliases:
   - km-silvery.checkbox-hover
@@ -43,6 +46,8 @@ Follows the same pattern as Link's arm-on-hover variant — hover gives visual f
 - Bulk selection checkboxes
 
 ## Done when
+
 - Hovering any checkbox shows armed state (cursor + visual)
 - Clicking toggles the checkbox
 - Works in all contexts where checkboxes appear
+

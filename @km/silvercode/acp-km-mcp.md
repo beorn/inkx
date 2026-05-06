@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/acp-km-mcp"
 aliases:
   - km-silvercode.acp-km-mcp
@@ -33,6 +36,14 @@ dependencies:
     created_at: 2026-04-26T01:32:06Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode.acp
+      - type: link
+        target: km-silvercode.acp-session
 ---
 
 # [x] km-mcp server — expose km board/tree/selection as MCP tools and virtual filesystem @km/silvercode #feature #P2 @claude:cd034ca4
@@ -44,7 +55,9 @@ Expose km's board, tree, and selection as an MCP server (pull-style capabilities
 ## Two integration paths (use both)
 
 ### MCP server (@km/_orphan/mcp) — for agent-initiated capabilities
+
 Tools:
+
 - km_query — search nodes by content/tag/type
 - km_select — change current selection
 - km_zoom — change board view
@@ -53,7 +66,9 @@ Tools:
 Pass via session/new mcpServers.
 
 ### Virtual filesystem — for context attachment
+
 silvercode's WorkspaceProvider (fs/read_text_file handler) routes:
+
 - km://card/<id> → live serialized card
 - km://selection → current selection state
 - km://column/<id> → column with cards
@@ -61,9 +76,11 @@ silvercode's WorkspaceProvider (fs/read_text_file handler) routes:
 Falls through to real disk for ordinary paths.
 
 ## Auto-attach selection on prompts
+
 buildPrompt() prepends ResourceLink { uri: 'km://selection', name: 'Selection: N cards' } when selection is non-empty. Agent fetches lazily via fs/read_text_file. Edit review flow for free when agent writes to km://card/<id>.
 
 ## Why this matters
+
 - Solves 'sharing board selection with prompt' cleanly — typed via ResourceLink, not free-text
 - Sandbox by construction — agent only sees what silvercode resolves
 - Live signals — every read returns current state via km's signal-backed board
@@ -71,5 +88,7 @@ buildPrompt() prepends ResourceLink { uri: 'km://selection', name: 'Selection: N
 - Solves the role-confusion problem for selection-as-context: structurally not an instruction
 
 ## Reference
+
 - hub/silvery/future/ai-terminal/10-agent-router-landscape.md § Board selection — client-mediated FS is the perfect fit
 - ACP fs/read_text_file: agent never reads disk directly; client mediates
+

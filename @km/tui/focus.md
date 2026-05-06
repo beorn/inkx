@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/focus"
 aliases:
   - km-tui.focus
@@ -26,18 +28,24 @@ Phase B (v3 reactive tree) — DONE. Computed-based engine, -830 LOC.
 ## Remaining children
 
 ### @km/tui/focus-cardlike (P2) — NEAR COMPLETE
+
 Reduced signals (editingDescendant, cursorDescendant) are live in CardColumn.tsx.
 Remaining: purge legacy expandedEditCardId (5 refs in 2 files) and cursorInDescendant (6 refs in 2 files), replace with editingDescendant/cursorDescendant signals.
 
 ### @km/tui/detail-spatial-nav (P0) — STILL NEEDED
+
 Virtual __meta__ nodes + deriveDetailColumns still actively used.
 focusDirection not implemented yet. This is about replacing virtual nodes with real React components.
 
 ### @km/silvery/selection-consolidation (P2) — STILL NEEDED
+
 SelectionFeature + InputRouter in silvery still exist alongside km board-level selection.
 
 ### @km/tui/focusscope-inputlayer (P3) — DEFERRED (design phase)
+
 InputLayerProvider still in use. Architecture documented in bead notes.
 
 ### @km/tui/anchor-focus-selection (P4) — LONG-TERM
+
 Positional indices (colIndex, cardIndex) still primary selection representation.
+

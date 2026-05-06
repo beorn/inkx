@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/rebuild-different-titles"
 aliases:
   - km-storage.rebuild-different-titles
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] [bug] Rebuilding state.db from WAL produces different column titles than runtime @km/storage #bug #P2
 
 After deleting state.db and rebuilding from changes.jsonl + filesystem, columns are renamed (e.g., 'Project TODOs' h1 → 'TODO' filename stem). Rebuild path uses different title-derivation than runtime.
+

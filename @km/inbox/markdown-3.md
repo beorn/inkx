@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/markdown-3"
 aliases:
   - km-markdown-3
@@ -20,6 +22,7 @@ Very large test files are harder to navigate, review, and maintain.
 ## Proposal
 
 Investigate splitting by markdown feature:
+
 1. roundtrip-links.test.ts - Link parsing and serialization
 2. roundtrip-lists.test.ts - List items (tasks, bullets)
 3. roundtrip-blocks.test.ts - Code blocks, quotes, etc.
@@ -35,3 +38,4 @@ Investigate splitting by markdown feature:
 ## Reference
 
 See docs/dev/test-quality-report.md for full review findings.
+

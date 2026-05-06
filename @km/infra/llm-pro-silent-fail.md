@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/llm-pro-silent-fail"
 aliases:
   - km-infra.llm-pro-silent-fail
@@ -18,3 +20,4 @@ owner: bjorn@stabell.org
 # [x] LLM Pro silent failure — empty response exits without visible error @km/infra #bug #P2
 
 GPT 5.4 Pro occasionally returns empty content. format.ts catches it and exits(1) with an error to stderr, but when run via background command the stderr is swallowed. Multiple Pro calls have failed silently this session. Fix: write error to a file, or retry once, or surface the error more visibly.
+

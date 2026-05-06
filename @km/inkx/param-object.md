@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/param-object"
 aliases:
   - km-inkx.param-object
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] content-phase: Introduce Parameter Object for boolean params @km/inkx #task #P1
 
 renderNormalChildren (10 params) and renderScrollContainerChildren (8 params) pass many booleans positionally. Replace with a RenderFlags interface: { hasPrevBuffer, parentRegionCleared, parentRegionChanged, ancestorCleared, childPositionChanged }. Eliminates Boolean Blindness at call sites. Deep research recommendation #1.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-multi-target"
 aliases:
   - km-silvery.theme-multi-target
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-18T00:01:47Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.design-system
 ---
 
 # [ ] Theme multi-target — canvas + web renderers consume the same 20 tokens @km/silvery #feature #P4
@@ -24,6 +30,7 @@ The 20-token semantic system must hold up for silvery's v2.0 (canvas) and v3.0 (
 ## Rendering per target
 
 ### Terminal (v1.0, current)
+
 - truecolor: emit SGR 38;2;R;G;B from token.toHex()
 - 256: quantize OKLCH → cube/ramp/ANSI16 deterministically
 - ANSI16: nearest-hue slot from probed or default scheme
@@ -31,11 +38,13 @@ The 20-token semantic system must hold up for silvery's v2.0 (canvas) and v3.0 (
 - NO_COLOR: plain
 
 ### Canvas (v2.0)
+
 - ctx.fillStyle = token.toHex() — always truecolor-equivalent
 - ctx.font from typography preset (H1 = 'bold 16px ui-monospace', etc.)
 - No capability tiers — canvas is always full-color
 
 ### Web (v3.0)
+
 - CSS :root { --fg-default: oklch(0.90 0.01 230); ... }
 - Browser renders natively via CSS Color 4 oklch() support (~95% modern browsers)
 - Fallback: @supports-less-than → toHex()
@@ -70,3 +79,4 @@ The 20-token semantic system must hold up for silvery's v2.0 (canvas) and v3.0 (
 - Parent: @km/silvery/design-system
 - Depends on: @km/silvery/color-oklch (OKLCH throughout)
 - Reference: hub/silvery/design/v10-terminal/terminal-color-strategy.md
+

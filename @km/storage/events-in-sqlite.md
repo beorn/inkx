@@ -17,3 +17,4 @@ closeReason: Superseded by @km/storage/events-table-replaces-jsonl which shipped
 From Pro review: DB apply + events.jsonl append are not atomic. If JSONL append fails after DB success, event journal is incomplete. SQLite is the authority but events.jsonl pretends to be.
 
 FIX: Store events in a SQLite table (transactional with node mutations). Export to JSONL for debugging/export only. Eliminates partial-failure semantics between steps 1 and 2 of emit().
+

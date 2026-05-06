@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tools/bd-cli-sync"
 aliases:
   - km-tools.bd-cli-sync
@@ -19,3 +21,4 @@ Close: --suggest-next
 Dependencies: dep cycles, dep tree, relate/unrelate
 
 Prerequisite: @km/tools/bd-cli-fields (P2) covers the daily-use gaps first.
+

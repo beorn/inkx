@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/body-block-spacing"
 aliases:
   - km-tui.body-block-spacing
@@ -27,3 +30,4 @@ Body blocks render borderless by default, bordered only when selected or editing
 **Cards view compactContent**: Inside a card, body blocks collapse blank lines (keep current behavior).
 
 **Column header**: Virtual body column header: not bold, dimmed when cursor not on header (keep current behavior).
+

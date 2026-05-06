@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/native-fit-content"
 aliases:
   - km-flexily.native-fit-content
@@ -24,6 +26,14 @@ dependencies:
     created_at: 2026-04-12T00:46:39Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.layout-quality-plateau
+      - type: link
+        target: km-silvery.strict-layout-overflow
 ---
 
 # [x] Flexily native fit-content width mode — eliminate measure/correction passes @km/flexily #feature #P2
@@ -33,6 +43,7 @@ blocks:: [[@km/silvery/layout-quality-plateau]], [[@km/silvery/strict-layout-ove
 Move fit-content/snug-content into Flexily as native width modes. This is the quality plateau — eliminates the entire measure-phase polyfill (measureIntrinsicSize, computeSnugContentWidth, fitContentCorrectionPass, findAncestorDefiniteWidth), the correction pass, and the dirty-flag sync issue that caused this session's main bug.
 
 When Flexily handles fit-content natively:
+
 - min(max-content, available) computed during flex pass with real parent width
 - No pre-layout measurement needed
 - No post-layout correction pass
@@ -45,3 +56,4 @@ When Flexily handles fit-content natively:
 Real consumers: Toast, ModalDialog, Tooltip (silvery components), text-layout demo.
 
 Prior art: CSS fit-content = min(max-content, max(min-content, stretch-fit-size)). Chromium LayoutNG computes intrinsic sizes lazily during layout traversal.
+

@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - claude
 id: "@km/silvery/ansi-extract"
 aliases:
   - km-silvery.ansi-extract
@@ -19,6 +23,7 @@ assignee: claude:f8196c1c
 ANSI utilities (detection, SGR codes, constants) are trapped inside @silvery/ag-term which depends on React/flexily/etc. Extract to standalone @silvery/ansi package.
 
 Files to move from packages/ag-term/src/ansi/:
+
 - constants.ts (ANSI code constants)
 - detection.ts (NO_COLOR, FORCE_COLOR, isTTY, color level, terminal caps)
 - sgr-codes.ts (fg/bg color code generation)
@@ -27,6 +32,8 @@ Files to move from packages/ag-term/src/ansi/:
 These have zero actual deps on ag/ag-react/React/flexily — purely string functions + process.env checks.
 
 After extraction:
+
 - ag-term imports from @silvery/ansi instead of ./ansi/
 - @silvery/commander uses @silvery/ansi as optional dep for theme-aware, NO_COLOR-respecting colorization
 - Any future CLI tool can use @silvery/ansi without pulling in React
+

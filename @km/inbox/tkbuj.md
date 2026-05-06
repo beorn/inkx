@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - claude
 id: "@km/inbox/tkbuj"
 aliases:
   - km-tkbuj
@@ -15,3 +19,4 @@ assignee: claude:491faf6c
 # [x] Era2b design: @silvery/headless API spec + prototypes @km/_orphan #task #P1 @claude:491faf6c
 
 Design and prototype the era2b (silvertea) packages. Priority: @silvery/headless state machine API design (biggest gap), @silvery/commands package spec, integration prototype. The existing design docs (signals, commands, app) are thorough but headless needs concrete API spec.
+

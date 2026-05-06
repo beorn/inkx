@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/ii6qw"
 aliases:
   - km-ii6qw
@@ -20,10 +23,9 @@ assignee: claude:d29abbfa
 Three issues in detail pane after remainingDepth=0 change:
 
 1. **No fold indicators**: In nerdfont mode, computeBulletIcon gives type-specific bullets (§, □, ✓) priority over fold markers. getFoldMarker is never called because getTypeBullet returns first. Users can't see which items have hidden children.
-
 2. **Can't unfold**: Shift+L (unfold_node) doesn't work in the detail pane. Pressing Shift+L either does nothing or moves the board cursor instead. The UNFOLD_NODE action may not be reaching the handler, or the key is being intercepted.
-
 3. **Duplicate items**: Each child appears twice in the detail view (two INBOXes, two PROJECTS & PHASES, two Phase 2s, etc.). Likely a rendering bug in DetailView.tsx or deriveDetailColumns.
 
 Screenshot: ~/Desktop/Screenshot 2026-03-17 at 15.44.36.png
 Repro: km view --repo imports/asana, navigate to early-orbit card, Shift+D to open detail, n to focus detail pane.
+

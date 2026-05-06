@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/virtual-inline-fix"
 aliases:
   - km-silvery.virtual-inline-fix
@@ -30,23 +33,24 @@ The primary motivation isn't zero flicker — it's **scroll stability and histor
 These are **inherent to inline mode** because the terminal owns the viewport. The app can't say "keep the user's scroll position stable while I append at the bottom."
 
 **Altscreen solves all three** because the app controls the viewport:
+
 - Scrolled up? Stay there. New content goes to virtual buffer but viewport doesn't move.
 - No compaction — circular buffer with configurable capacity.
 - Read while streaming — scroll position is app-controlled, independent of output.
 
 ### What altscreen breaks (complete list)
 
-| Feature | Status in silvery |
-|---------|------------------|
-| Text selection (mouse drag) | **Done** — selection.ts, mode-independent |
-| Copy to clipboard | **Done** — OSC 52, mode-independent |
-| Scrollback history | **Broken** — virtual-scrollback stores frame snapshots, not semantic content |
-| Search (Cmd+F equivalent) | **Partially done** — search-overlay.ts exists but searches frame snapshots |
-| Scroll up through history | **Broken** — wheel/keyboard scroll shows frame snapshots |
-| URL/hyperlink clicking | Not implemented |
-| Screen reader accessibility | Not addressed |
-| Multiplexer clipboard conflicts | Not addressed (terminal-level issue) |
-| Bracketed paste cleanup on crash | Not addressed |
+| Feature                          | Status in silvery                                                        |
+| -------------------------------- | ------------------------------------------------------------------------ |
+| Text selection (mouse drag)      | Done — selection.ts, mode-independent                                    |
+| Copy to clipboard                | Done — OSC 52, mode-independent                                          |
+| Scrollback history               | Broken — virtual-scrollback stores frame snapshots, not semantic content |
+| Search (Cmd+F equivalent)        | Partially done — search-overlay.ts exists but searches frame snapshots   |
+| Scroll up through history        | Broken — wheel/keyboard scroll shows frame snapshots                     |
+| URL/hyperlink clicking           | Not implemented                                                          |
+| Screen reader accessibility      | Not addressed                                                            |
+| Multiplexer clipboard conflicts  | Not addressed (terminal-level issue)                                     |
+| Bracketed paste cleanup on crash | Not addressed                                                            |
 
 ### What's wrong with current implementation
 
@@ -59,13 +63,13 @@ These are **inherent to inline mode** because the terminal owns the viewport. Th
 
 Three axes: Storage × Content Model × Screen Mode
 
-| Component | Storage | Content | Screen Mode | Exists? |
-|-----------|---------|---------|-------------|---------|
-| ScrollbackList | Terminal scrollback | List | Inline | **Yes** |
-| ScrollbackView | Terminal scrollback | Viewport | Inline | **Yes** |
-| VirtualList | React tree | List | Either | **Yes** |
-| VirtualScrollbackList | Virtual buffer | List | Altscreen | **No — needed** |
-| VirtualScrollbackView | Virtual buffer | Viewport | Altscreen | **No — needed** |
+| Component             | Storage             | Content  | Screen Mode | Exists?     |
+| --------------------- | ------------------- | -------- | ----------- | ----------- |
+| ScrollbackList        | Terminal scrollback | List     | Inline      | Yes         |
+| ScrollbackView        | Terminal scrollback | Viewport | Inline      | Yes         |
+| VirtualList           | React tree          | List     | Either      | Yes         |
+| VirtualScrollbackList | Virtual buffer      | List     | Altscreen   | No — needed |
+| VirtualScrollbackView | Virtual buffer      | Viewport | Altscreen   | No — needed |
 
 VirtualScrollbackList/View = altscreen equivalents of ScrollbackList/View. Same API, same freeze semantics, but frozen content goes to an in-app virtual buffer instead of terminal scrollback.
 
@@ -80,6 +84,7 @@ VirtualScrollbackList/View = altscreen equivalents of ScrollbackList/View. Same 
 ## Why Gemini CLI Failed (lessons learned)
 
 Gemini CLI tried altscreen, reverted to inline by default (v0.17.1). Root causes:
+
 1. **Copy required Ctrl+S modal** — users expected native drag-to-select
 2. **Scroll wheel sluggish** — some terminals report fewer scroll events
 3. **No terminal detection** — activated on incompatible terminals
@@ -94,3 +99,4 @@ What silvery already does better: Buffer-level selection (no Ctrl+S mode), OSC 5
 - aichat demo should be the showcase (add `--virtual` flag)
 - Scrollback code is fragile — extend via StdoutContext, don't modify internals
 - Get /pro-review feedback on design before implementing
+

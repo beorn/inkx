@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/acp-tribe-mcp"
 aliases:
   - km-silvercode.acp-tribe-mcp
@@ -37,6 +40,14 @@ dependencies:
     created_at: 2026-04-26T01:42:23Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode.acp
+      - type: link
+        target: km-silvercode.acp-multi-agent
 ---
 
 # [x] tribe-mcp — wrap tribe's UDS bus as an MCP server for agent-callable cross-session sync @km/silvercode #feature #P2 @claude:cd034ca4
@@ -46,11 +57,13 @@ blocks:: [[@km/silvercode/acp]], [[@km/silvercode/acp-multi-agent]]
 Wrap tribe's UDS API as an MCP server (tribe-mcp) and pass it in every silvercode session/new. Agents get tribe access as typed MCP tools — same pattern OpenClaw uses with sessions_send / sessions_list / sessions_history.
 
 ## Why
+
 km already uses tribe broadcasts heavily for synchronization (chief election, CI alerts, claim coordination, sub-agent updates). The architecture is in place; what's missing is the agent-facing MCP wrapper so agents themselves participate, not only silvercode-the-orchestrator.
 
 OpenClaw demonstrates this works at production scale.
 
 ## Tools to expose
+
 - tribe_send(target, message) — direct message
 - tribe_broadcast(message) — to all tribe members
 - tribe_members() — discover peers
@@ -59,18 +72,23 @@ OpenClaw demonstrates this works at production scale.
 - tribe_join(name) — joining the bus
 
 ## Permission strategy
+
 - Mutating tools (send, broadcast, claim_chief): trigger ACP RequestPermission
 - Read-only tools (members, history): auto-approve
 - Per-MCP-server scope policy (tree | self | agent | all) modeled on OpenClaw's pattern
 
 ## Integration with channel pipeline (@km/silvercode/acp-channels)
+
 Tribe broadcasts arrive at silvercode (subscribed directly to the UDS bus, not via MCP) and:
+
 1. Populate crossAgentState$ store
 2. Surface as notification badges in silvercode UI
 3. User-invokable inject via /inject-tribe slash command
 The tribe-mcp tools give the AGENT the ability to query/send actively. silvercode's direct subscription is for receiving broadcasts.
 
 ## Reference
+
 - hub/silvery/future/ai-terminal/10-agent-router-landscape.md § How OpenClaw does it
 - Existing tribe MCP (mcp__plugin_tribe_tribe__*) is the reference for tool shape
 - OpenClaw equivalent: sessions_send/list/history in src/agents/
+

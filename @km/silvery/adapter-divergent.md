@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/adapter-divergent"
 aliases:
   - km-silvery.adapter-divergent
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] content-phase-adapter.ts is a divergent second renderer — document or unify @km/silvery #task #P3
 
 content-phase-adapter.ts is essentially a separate renderer with simplified semantics (no incremental, different clipping/text/border logic). Bugs fixed in terminal renderer can be missed in adapter. Either embrace as experimental and document, or refactor to share target-agnostic paint core. Found by GPT 5.4 pro.
+

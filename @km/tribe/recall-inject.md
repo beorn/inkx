@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/recall-inject"
 aliases:
   - km-tribe.recall-inject
@@ -17,13 +19,17 @@ dependencies:
     created_at: 2026-04-27T16:11:05Z
     created_by: claude:4de4a3ab
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe.recall
 ---
 
 # [x] Mem inject (Tier 2): rebuild UserPromptSubmit recall hook with dedupe + skip-on-no-salience + outcome-aware ranking @km/tribe #feature #P3
 
 blocks:: [[@km/tribe/recall]]
 
-# Tier 2 — mem inject (rebuild)
+## Tier 2 — mem inject (rebuild)
 
 The current UserPromptSubmit hook fires hookRecall on every non-trivial prompt and injects a synthesized <recall-memory> blob. Documented problems:
 
@@ -42,3 +48,4 @@ The current UserPromptSubmit hook fires hookRecall on every non-trivial prompt a
 ## Defer reasoning
 
 Bigger surface than other tiers — touches hook framework, dedupe state, cache mechanics. Land after Tier 3 (recall-thought) is dogfooded; we'll know what mem-inject should add on top of mem-thought.
+

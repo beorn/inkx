@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beads/2-km-beads-detailed-test-specifications"
 aliases:
   - km-beads.2
@@ -10,7 +12,6 @@ closed_at: 2026-01-21T12:39:47Z
 
 # [x] km-beads: Detailed Test Specifications @km/beads #task #P2
 
-
 ---
 
 ## Tests (Detailed)
@@ -20,6 +21,7 @@ closed_at: 2026-01-21T12:39:47Z
 **Location:** `apps/km-cli/tests/bd/`
 
 #### ready.test.ts
+
 ```typescript
 describe('km bd ready', () => {
   beforeEach(async () => {
@@ -67,6 +69,7 @@ describe('km bd ready', () => {
 ```
 
 #### create.test.ts
+
 ```typescript
 describe('km bd create', () => {
   test('creates issue with default values', async () => {
@@ -120,6 +123,7 @@ describe('km bd create', () => {
 ```
 
 #### update.test.ts
+
 ```typescript
 describe('km bd update', () => {
   let issueId: string;
@@ -167,6 +171,7 @@ describe('km bd update', () => {
 ```
 
 #### close.test.ts
+
 ```typescript
 describe('km bd close', () => {
   test('closes issue with done status', async () => {
@@ -190,6 +195,7 @@ describe('km bd close', () => {
 ```
 
 #### dep.test.ts (requires @km/props)
+
 ```typescript
 describe('km bd dep', () => {
   test('adds dependency with blocks:: property', async () => {
@@ -226,6 +232,7 @@ describe('km bd dep', () => {
 ```
 
 #### migrate.test.ts
+
 ```typescript
 describe('km bd migrate', () => {
   beforeEach(async () => {
@@ -357,6 +364,7 @@ describe('Short ID utilities', () => {
 ## Acceptance Criteria (Updated)
 
 ### Core CLI
+
 - [ ] `bd ready` shows unblocked todos sorted by priority
 - [ ] `bd create` generates short IDs and creates issues
 - [ ] `bd show` displays issue details
@@ -365,23 +373,28 @@ describe('Short ID utilities', () => {
 - [ ] `bd list` filters and lists issues
 
 ### Short IDs
+
 - [ ] Auto-generated 4-char suffix works
 - [ ] Custom `--id` flag works
 - [ ] Sub-IDs under parent (`--parent`) work
 - [ ] ID resolution handles all formats
 
 ### Dependencies (requires @km/props)
+
 - [ ] `bd dep add/remove` manages blocked-by::
 - [ ] `bd blocked` shows blocked issues
 - [ ] `bd ready` excludes blocked issues
 
 ### Migration
+
 - [ ] Converts .beads/ issues to km format
 - [ ] Preserves IDs, status, priority, type
 - [ ] Backs up original .beads/
 - [ ] --dry-run shows plan
 
 ### Quality
+
 - [ ] `bun run test:fast` passes
 - [ ] `bun run test:all` passes
 - [ ] All commands have --json output option
+

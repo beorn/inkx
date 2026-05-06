@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/dry-virtualizer"
 aliases:
   - km-inkx.dry-virtualizer
@@ -13,3 +16,4 @@ assignee: claude:d1f60fb4
 # [x] DRY: consolidate useVirtualization into useVirtualizer @km/inkx #task #P2 @claude:d1f60fb4
 
 useVirtualization (items-based API) and useVirtualizer (count-based API) have duplicated core logic — edge-based scrolling, window calculation, synchronous scroll offset, freeze behavior. Refactor useVirtualization to be a thin adapter over useVirtualizer. Consumers: VirtualList, HorizontalVirtualList use useVirtualization; VirtualScrollView, ScrollView use useVirtualizer.
+

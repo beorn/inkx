@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/bearly/gpt-5-5"
 aliases:
   - km-bearly.gpt-5-5
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-23T11:48:59Z
     created_by: claude:a7145ca5
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-bearly
 ---
 
 # [x] Add GPT-5.5 model + update llm skills @km/bearly #task #P2 @claude:a7145ca5
@@ -27,3 +34,4 @@ dependencies:
 blocks:: [[@km/bearly]]
 
 GPT-5.5 'Spud' announced 2026-04-23. Add gpt-5.5 ($5/$30) and gpt-5.5-pro ($30/$180) to bearly model registry. Update .claude/skills/ docs (pro, ask, deep, fresh). Keep runtime defaults on 5.4 until API is live.
+

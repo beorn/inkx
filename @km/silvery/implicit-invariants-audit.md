@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/implicit-invariants-audit"
 aliases:
   - km-silvery.implicit-invariants-audit
@@ -27,6 +30,14 @@ dependencies:
     created_at: 2026-04-20T15:10:10Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery
+      - type: link
+        target: km-silvery.virtualizer-from-layout
 ---
 
 # [x] Audit silvery for implicit contracts → convert to STRICT-mode invariants @km/silvery #task #P2 @claude:8b5b9e1c
@@ -38,6 +49,7 @@ Multiple variants of column-top-disappears (4 sessions, 5+ commits) all stemmed 
 Audit silvery's coordination points for similar implicit contracts and convert them to runtime invariants gated under SILVERY_STRICT (or a new SILVERY_INVARIANTS=1 env). Failure should throw with diagnostic context, not log silently.
 
 Candidate areas to audit:
+
 - scroll-phase: leadingHeight + sum(visible) >= scrollOffset + viewportHeight; firstVisibleChild/lastVisibleChild consistent with hiddenAbove/hiddenBelow counts
 - clip bounds: childClipBounds always within viewportClipBounds; clip bottom never < clip top
 - sticky positions: renderOffset within viewport when isSticking; never overlaps non-sticky pixels
@@ -48,3 +60,4 @@ Candidate areas to audit:
 Pattern: use util like 'silveryAssert(cond, msgFn)' that's no-op in production, throws in tests/STRICT. Inspired by db CHECK constraints — make hidden contracts visible by failing loudly.
 
 Why this exists: column-top-disappears reopened 3x this session because each fix exposed the next variant of the same divergence. STRICT=2 didn't catch it because it asserts incremental==fresh; both can be wrong identically. The right defense is per-coordination-point invariants.
+

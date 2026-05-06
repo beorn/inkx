@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/dup-keys"
 aliases:
   - km-tui.dup-keys
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Duplicate React key warnings: children with same key in TUI @km/tui #bug #P2
+

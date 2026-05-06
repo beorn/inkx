@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/listview-resize-scroll-target"
 aliases:
   - km-silvery.listview-resize-scroll-target
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-26T21:26:51Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.fix-sweep-vendor-fuzz
 ---
 
 # [x] [bug] ai-chat.test.tsx:153 — scrollTo target index does not intersect viewport after resize @km/silvery #bug #P2 @claude:cc081a9a
@@ -32,12 +39,15 @@ Root cause: during multi-pass layout convergence (resize → contentHeight grows
 Fix: added "same intent" recovery branch — re-fires ensure-visible when the cached offset has the target COMPLETELY off-screen (zero intersection with raw viewport). Conservative; partial visibility still leaves the offset pinned (preserves click-to-expand semantics).
 
 Verification:
+
 - vendor/silvery/tests/examples/ai-chat.test.tsx:153 "resize to 80x24" passes under SILVERY_STRICT=2 (this was the bead's reproducer).
 - vendor/silvery/tests/features/listview-scroll-properties.fuzz.tsx (3 tests, 200 random runs each) passes.
 - New regression test in vendor/silvery/tests/features/box-scroll-stable-on-growth.test.tsx — "same-intent recovery: target completely off-screen re-fires ensure-visible". Verified failing without the recovery branch; passing with it.
 
 Commits:
+
 - silvery a99728e8 — regression test (branch fix/listview-resize-scrolltarget-regression-test)
 - km 804319f76 — vendor bump
 
 The fix landed before this bead was investigated; the regression test closes the open task by encoding the bead's failure mode into the silvery test suite directly (no longer dependent on the ai-chat example continuing to exercise the same multi-pass layout path).
+

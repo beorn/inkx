@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/7b9un"
 aliases:
   - km-7b9un
@@ -16,3 +19,4 @@ assignee: claude:73d7a332
 ---
 
 # [x] Static: investigate alignment with scrollback promotion @km/_orphan #task #P3 @claude:73d7a332
+

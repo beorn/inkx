@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/hightea/doc-throughline"
 aliases:
   - km-hightea.doc-throughline
@@ -14,6 +16,7 @@ owner: bjorn@stabell.org
 Restructure hightea's 4 guide docs around the throughline: 'every level turns something invisible into data' with gradualness as the primary benefit (adopt incrementally, never rewrite).
 
 Key changes:
+
 1. Surface throughline via level subtitles + framing intros + transition callouts
 2. Emphasize gradualness: you only pay for what you need, each level builds on the last
 3. One evolving app across both guides (event-handling picks up todo from state-management)
@@ -26,3 +29,4 @@ Key changes:
 10. 'Hightea' capitalization in prose, lowercase in code
 
 Based on deep research output. See plan file for implementation phases.
+

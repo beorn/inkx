@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/site"
 aliases:
   - km-silvery.site
@@ -21,11 +23,13 @@ Restructure silvery.dev for the new positioning.
 ## Messaging (updated)
 
 **Tagline**: Something playing on 'silvery' — the shiny new renderer. Ideas:
+
 - "The silver lining for your terminal UI"
 - "A shinier way to render"
 - "Your UI, polished"
 
 **Positioning hierarchy**:
+
 1. **Lead**: Better ink/chalk — drop-in replacement that's faster, cleaner, more capable
 2. **Secondary**: Cross-platform rendering (terminal now, browser/canvas/native later)
 3. **Tertiary**: TEA state management as a nice gradual migration path (optional, not core)
@@ -62,3 +66,4 @@ silvery.dev/
 │   └── Ink/Chalk Compatibility   ← API mapping tables
 └── Blog                          ← Launch post
 ```
+

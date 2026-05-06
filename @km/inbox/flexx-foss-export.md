@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/flexx-foss-export"
 aliases:
   - km-flexx-foss-export
@@ -11,3 +14,4 @@ assignee: claude:b8b4780b
 # [x] FOSS publication: export only zero-alloc @km/_orphan #task #P0 @claude:b8b4780b
 
 Hide classic from public API, only export zero-alloc algorithm. Keep classic as flexx/classic backdoor for debugging.
+

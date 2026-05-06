@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/delete-legacy-column-code"
 aliases:
   - km-tui.delete-legacy-column-code
@@ -22,6 +25,7 @@ assignee: Bjørn Stabell
 Continue cleanup from the tree-lenses quality plateau session.
 
 ## What to delete
+
 1. buildBoardState, initBoardState, buildBoardStateGenerator, createEmptyState from state.ts (~250 lines)
 2. Dead fixture functions in board-fixtures.ts (createBoardState, createSimpleTestBoard, createStatusTestBoard — 0 importers)
 3. deriveColumnsFromRepo + deriveColumnsFromLens from use-columns.ts (only used by dead test fixtures + profile-startup)
@@ -29,13 +33,16 @@ Continue cleanup from the tree-lenses quality plateau session.
 5. BoardStateResult type from state.ts (after buildBoardState gone)
 
 ## What to keep
+
 - deriveDetailColumns (used by Board.tsx + board-app.ts for detail mode — deferred to @km/tui/detail-spatial-nav)
 - buildNodeIndexFromTree, deriveCursorIndices (live code)
 - createColumnView, createCardNode in board-fixtures.ts (used by board-test.ts renderBoard/board DSL)
 - profile-startup.ts buildBoardState call (benchmarking — can keep or replace)
 
 ## Acceptance
+
 - grep buildBoardState apps/@km/tui/src/ = 0
-- grep initBoardState apps/@km/tui/src/ = 0  
+- grep initBoardState apps/@km/tui/src/ = 0
 - grep ColumnView apps/@km/tui/src/ → only use-columns.ts (deriveDetailColumns) + board-app.ts (detail mode)
 - All tests pass
+

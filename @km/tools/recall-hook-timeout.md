@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tools/recall-hook-timeout"
 aliases:
   - km-tools.recall-hook-timeout
@@ -16,3 +18,4 @@ The UserPromptSubmit hook runs recall.ts hook which does FTS5 search (~200ms) th
 Quick fix: bumped timeout to 8000ms in .claude/settings.json.
 
 Better fix: make the hook faster — either skip LLM synthesis in the hook (return raw snippets), use a faster model, or reduce synthesis context. The 5s latency on every user prompt is still not great UX even if it doesn't timeout.
+

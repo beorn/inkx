@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/block-edit"
 aliases:
   - km-tui.block-edit
@@ -11,3 +14,4 @@ assignee: claude:21d4f294
 # [x] Block editing: per-paragraph body navigation @km/tui #feature #P2 @claude:21d4f294
 
 Roam-like in-place editing where each node's title and body paragraphs are individually editable blocks. Navigate between blocks with Up/Down/Enter, auto-save on navigate, Escape cancels. Aligns with ROADMAP Horizon 1 and 5.
+

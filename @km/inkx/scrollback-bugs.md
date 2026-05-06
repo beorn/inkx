@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/scrollback-bugs"
 aliases:
   - km-inkx.scrollback-bugs
@@ -15,5 +18,5 @@ assignee: claude:fa5431cd
 Two bugs in the static-scrollback demo:
 
 1. **Infinite compaction loop**: computeCumulativeTokens counted ALL exchanges including frozen ones. After auto-compact at 95%, every new exchange immediately re-triggered compaction because frozen tokens still counted toward the total. Users couldn't type.
-
 2. **Resize corruption**: mockStdout in run() had no-op on()/write() — resize events never reached ScrollbackView, and useScrollback's direct writes went nowhere. Frozen content stayed at old width on the visible screen after resize.
+

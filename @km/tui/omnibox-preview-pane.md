@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/omnibox-preview-pane"
 aliases:
   - km-tui.omnibox-preview-pane
@@ -23,6 +26,10 @@ dependencies:
     created_at: 2026-04-14T17:08:01Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui.omnibox-unified
 ---
 
 # [x] Preview-as-selection — live preview pane for current result @km/tui #feature #P1 @claude:2405c72e
@@ -36,3 +43,4 @@ Layout: preview is an OmniboxProps flag ('preview: boolean'), default off for bo
 Scope: Phase 5+ enhancement. Not ship-blocking for v1 but strongly recommended by /big research (GPT-5.4) as the #2 non-obvious improvement. Implementation is incremental over the base dialog component.
 
 Acceptance: (a) preview pane renders for node results (content + breadcrumbs + metadata); (b) preview pane renders for command results (description + keybinding + when-eval); (c) toggle via keybinding + default-off flag; (d) doesn't interfere with bottom-left layout; (e) journey tests for each result type preview.
+

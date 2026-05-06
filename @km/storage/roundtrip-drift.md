@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/roundtrip-drift"
 aliases:
   - km-storage.roundtrip-drift
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 From Pro review: Even if semantic diffs are correct, parse/serialize may not round-trip exact bytes. If external edit changes formatting only, we should: (1) detect no semantic DB change, (2) update baseline hash to external bytes, (3) NOT rewrite back to disk.
 
 Currently: formatting-only edits may trigger unnecessary DB updates and file rewrites.
+

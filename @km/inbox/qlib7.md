@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/qlib7"
 aliases:
   - km-qlib7
@@ -11,3 +14,4 @@ assignee: claude:717696c0
 ---
 
 # [x] TUI: Asymmetric horizontal scroll — viewport doesn't scroll back when navigating left @km/_orphan #bug #P2 @claude:717696c0
+

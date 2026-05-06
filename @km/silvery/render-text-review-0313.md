@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/render-text-review-0313"
 aliases:
   - km-silvery.render-text-review-0313
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Silvery render-text GPT 5.4 Pro code review — text rendering, bg segments, wide chars @km/silvery #epic #P1
 
 Dedicated Pro review of text rendering pipeline. Focus: bg-segment offset units, wide char/emoji/CJK handling, transform interaction, ANSI generation correctness.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/mutation-test-gaps"
 aliases:
   - km-flexily.mutation-test-gaps
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Testing: Mutation testing misses real fault classes — only covers caching @km/flexily #task #P1
+

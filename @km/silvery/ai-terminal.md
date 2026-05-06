@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ai-terminal"
 aliases:
   - km-silvery.ai-terminal
@@ -13,13 +15,17 @@ dependencies:
     created_at: 2026-04-24T00:18:21Z
     created_by: claude:c56dc5d6
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [ ] AI-era terminal — thesis parked until silvery is mature + wedge validated @km/silvery #epic #P3
 
 blocks:: [[@km/silvery]]
 
-# AI-era terminal — the thesis parked until silvery is mature
+## AI-era terminal — the thesis parked until silvery is mature
 
 **Status**: PARKED. Not a product plan. Not a validated hypothesis. Not scheduled.
 
@@ -65,7 +71,9 @@ Collapse to one product, not six. Pro's explicit recommendation: minimum proof =
 ## Acceptance for un-parking
 
 Before moving any sub-bead from P3/P4 to P0/P1:
+
 - [ ] `km-all.plateau` + framework-platform epics substantially complete (no acute silvery architectural bugs)
 - [ ] Validated wedge: a user segment with a pain we can measurably reduce
 - [ ] Daily-driver dogfood: we use the ai-terminal ourselves for weeks before pitching it to anyone
 - [ ] Pricing/distribution story, even rough
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/xtermjs-6/1-kitty-keyboard"
 aliases:
   - km-terminfo.xtermjs-6.1-kitty-keyboard
@@ -20,9 +23,11 @@ assignee: claude:27beac99
 xterm.js 6.1.0 (Jan 2026) added kitty keyboard protocol support. This is huge — xterm.js powers VS Code, Cursor, and most web terminals.
 
 Actions:
+
 1. Add 6.1.0 to versions.json xterm.js versions
 2. Update @xterm/headless dependency
 3. Re-run headless probes — extensions.kitty-keyboard should now pass
 4. Re-probe VS Code and Cursor when they ship with xterm.js 6.1+
 
 Source: https://github.com/xtermjs/xterm.js/pull/5600
+

@@ -1,4 +1,11 @@
 ---
+propsRaw:
+  ts: "replayAnsiWithStyles export — internal vt100 backend (keep function,
+    unexport) @km/silvery #task #P3"
+props:
+  blocked-by:
+    type: link
+    target: km-all.plateau
 id: "@km/silvery/unexport-replay-ansi-with-styles"
 aliases:
   - km-silvery.unexport-replay-ansi-with-styles
@@ -13,6 +20,7 @@ dependencies:
     metadata: "{}"
 ---
 
-# [ ] Delete silvery output-verify.ts::replayAnsiWithStyles export — internal vt100 backend (keep function, unexport) @km/silvery #task #P3
+# [ ] Delete silvery output-verify. ^unexport-replay-ansi-with-styles
 
 blocks:: [[@km/all/plateau]]
+

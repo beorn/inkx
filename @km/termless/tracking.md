@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/tracking"
 aliases:
   - km-termless.tracking
@@ -16,6 +18,7 @@ owner: bjorn@stabell.org
 Tracking epic for termless development. 9 backends, census probe system, Playwright-grade CLI.
 
 ## What's done
+
 - Backend management: backends.json manifest, BackendType system (js/wasm/native/os), backend() one function
 - 9 backends: xtermjs, ghostty, vt100, vt100-rust (built), libvterm (WASM built), alacritty, wezterm, kitty (GPL scaffold), peekaboo
 - Census: 61 probes across 8 categories, check() assertions, vitest JSON → report.ts pipeline, VitePress page
@@ -27,6 +30,7 @@ Tracking epic for termless development. 9 backends, census probe system, Playwri
 - src/backends.ts redesign: BackendType polymorphism, isReady() checks build artifacts
 
 ## What's open
+
 1. Census _backends.ts uses manual imports — should use registry (blocked: import.meta.resolve broken in vitest VM)
 2. Ghostty WASM doesn't load in vitest census context (loads fine outside vitest)
 3. termless update command — check npm/crates.io for newer upstream versions (bead: @km/termless/update-cmd)
@@ -37,6 +41,7 @@ Tracking epic for termless development. 9 backends, census probe system, Playwri
 8. Remove deprecated compat shims once CLI is migrated
 
 ## Key files
+
 - src/backends.ts — core: backend(), isReady(), BackendType, manifest
 - src/backends-advanced.ts — subpath export for advanced APIs
 - packages/census/probes/_backends.ts — census infrastructure (check(), census() wrapper)
@@ -49,7 +54,10 @@ Tracking epic for termless development. 9 backends, census probe system, Playwri
 - vendor/CLAUDE.md — vendor boundary rules
 
 ## Architecture
+
 Three inputs → everything derived:
+
 - backends.json + BackendType → resolution, installation, CLI
 - probes/*.probe.ts → census results → web page
 - nix flake → versioned builds → version-pinned census
+

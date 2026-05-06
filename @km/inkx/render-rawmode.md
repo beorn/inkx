@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/render-rawmode"
 aliases:
   - km-inkx.render-rawmode
@@ -11,3 +14,4 @@ assignee: claude:891e3ce1
 ---
 
 # [x] render() API never enables raw mode — all interactive examples exit immediately @km/inkx #bug #P1 @claude:891e3ce1
+

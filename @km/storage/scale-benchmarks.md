@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/scale-benchmarks"
 aliases:
   - km-storage.scale-benchmarks
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-21T01:37:20Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.plateau
 ---
 
 # [x] Scale benchmark harness — synthetic 2x/5x/10x corpus + workload runners @km/storage #feature #P1
@@ -32,13 +38,13 @@ Prerequisite for @km/storage/scale-architecture acceptance. Without measured fai
 1. Synthetic vault generator — knobs for: file count, nodes per file, link density, block-ref ratio, heading depth. Produces deterministic 1x (~130K-node vault), 2x (~260K), 5x (~650K), 10x (~1.3M), 100x (~13M).
 2. Real-vault trace replay — captures user session events (navigate, search, edit, open) from real ~/Bear/Vault, replays against synthetic corpora.
 3. Workload runners:
-   - Cold-start to first interactive frame
-   - Navigation (open file, jump via link)
-   - Search (narrow/broad FTS5 query)
-   - Backlink query (popular target, rare target)
-   - Edit burst (keystroke flood, persistence)
-   - Rename/move (link update cascade)
-   - External edit detection (file changed outside km)
+  - Cold-start to first interactive frame
+  - Navigation (open file, jump via link)
+  - Search (narrow/broad FTS5 query)
+  - Backlink query (popular target, rare target)
+  - Edit burst (keystroke flood, persistence)
+  - Rename/move (link update cascade)
+  - External edit detection (file changed outside km)
 4. Latency + memory metrics recording: p50/p95/p99 per workload, heap at intervals, GC pause distribution.
 
 ## Acceptance
@@ -53,3 +59,4 @@ Prerequisite for @km/storage/scale-architecture acceptance. Without measured fai
 
 - Running the benchmarks at 100x (100x is an ops concern, not CI concern)
 - Designing the fixes for any failures found (that's scale-architecture's job)
+

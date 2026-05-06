@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/header-align"
 aliases:
   - km-tui.header-align
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Column header too wide — icons/inverse bar don't align with card borders @km/tui #bug #P2
+

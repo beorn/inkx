@@ -1,4 +1,7 @@
 ---
+mentions:
+  - beorn
+  - km
 id: "@km/term-2/4-migrate-km-tui-app-to-beorn-tui-imports"
 aliases:
   - km-term-2.4
@@ -13,3 +16,4 @@ closed_at: 2026-01-28T13:50:06Z
 CANCELLED: No longer migrating to @beorn/tui since tui won't absorb inkx.
 
 @km/tui app will continue using inkx directly.
+

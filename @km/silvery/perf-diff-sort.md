@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/perf-diff-sort"
 aliases:
   - km-silvery.perf-diff-sort
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Perf: Use hybrid sort in sortPoolByPosition for large diffs @km/silvery #task #P3
 
 Insertion sort in changesToAnsi is good for small/nearly-sorted counts but bad for large resize/full-redraw. Use insertion sort below threshold (~64-128), native sort above. Found by GPT pipeline review.
+

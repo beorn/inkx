@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/backdrop-hardening/slim-barrel"
 aliases:
   - km-silvery.backdrop-hardening.slim-barrel
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-20T14:01:25Z
     created_by: claude:88c0e764
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.backdrop-hardening
 ---
 
 # [x] Slim public barrel — stop re-exporting internals @km/silvery #task #P0 @claude:a1a0e667
@@ -49,3 +56,4 @@ Module is either (A) public low-level toolkit (harden everything) or (B) interna
 ## Parent
 
 @km/silvery/backdrop-hardening
+

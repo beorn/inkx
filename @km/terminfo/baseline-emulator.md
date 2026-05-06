@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/terminfo/baseline-emulator"
 aliases:
   - km-terminfo.baseline-emulator
@@ -23,12 +25,12 @@ vt100.js, vt220.js = pre-configured profiles, published as bare npm packages.
 
 ## Package Structure
 
-| Package | npm name | What |
-|---------|----------|------|
-| @vterm/core | @vterm/core | Shared engine: parser, state machine, profiles |
-| @vterm/modern | vterm.js | Full modern emulator (default profile) |
-| @vterm/vt100 | vt100.js | VT100 profile preset |
-| @vterm/vt220 | vt220.js (new) | VT220 profile preset |
+| Package       | npm name       | What                                           |
+| ------------- | -------------- | ---------------------------------------------- |
+| @vterm/core   | @vterm/core    | Shared engine: parser, state machine, profiles |
+| @vterm/modern | vterm.js       | Full modern emulator (default profile)         |
+| @vterm/vt100  | vt100.js       | VT100 profile preset                           |
+| @vterm/vt220  | vt220.js (new) | VT220 profile preset                           |
 
 Bare packages (vterm.js, vt100.js, vt220.js) are thin re-exports of @vterm/* scoped packages.
 Additional profiles can live in @vterm/ scope without bare package equivalents.
@@ -44,6 +46,8 @@ Profiles are feature flag presets. Users can override individual features:
 createVterm({ profile: 'vt220', trueColor: true })  // vt220 + truecolor
 
 ## Key Design Questions
+
 1. Parser-level vs behavior-level config: some features change CSI parsing (Kitty KB protocol). Need configurable parser or feature-gated parse paths.
 2. Feature flag granularity: per-escape-sequence or per-capability-group?
 3. terminfo.dev integration: profiles map to terminfo capability sets for conformance testing.
+

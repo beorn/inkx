@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/strict-layout-overflow"
 aliases:
   - km-silvery.strict-layout-overflow
@@ -26,6 +28,14 @@ dependencies:
     created_at: 2026-04-12T00:46:38Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.layout-quality-plateau
+      - type: link
+        target: km-silvery.test-runtime-parity
 ---
 
 # [x] SILVERY_STRICT layout overflow invariant — no child wider than parent @km/silvery #feature #P1
@@ -41,3 +51,4 @@ Analogous to the existing STRICT buffer-level verification (incremental vs fresh
 ~50 lines. File: vendor/silvery/packages/ag-term/src/pipeline/layout-phase.ts or a new layout-invariants.ts.
 
 Prior art: the 7 regressions in 14 days from rendering-diagnostics-review.md were all caught by STRICT buffer verification. This extends the same approach to layout.
+

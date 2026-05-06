@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/linechildren-memory-leak"
 aliases:
   - km-flexily.linechildren-memory-leak
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Module-level _lineChildren arrays retain Node references after layout @km/flexily #bug #P3
 
 The pre-allocated _lineChildren arrays (layout-flex-lines.ts) hold references to Node objects after computeLayout() completes. These references persist in the module-level arrays, preventing GC of nodes even if the tree is freed/discarded. Fix: clear _lineChildren references at the end of computeLayout() (zero the arrays or set lengths to 0). This matters for applications that build, layout, and discard trees (e.g., benchmarks, tests, or dynamic UIs that rebuild subtrees). For km/silvery, the tree is long-lived so this is low impact. [pro]
+

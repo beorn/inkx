@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/ai-chat-incremental-mismatch"
 aliases:
   - km-silvery.ai-chat-incremental-mismatch
@@ -21,6 +24,10 @@ dependencies:
     created_at: 2026-04-26T21:26:51Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.fix-sweep-vendor-fuzz
 ---
 
 # [x] [bug] ai-chat.test.tsx:110 — IncrementalRenderMismatchError on render #20 (bg null vs object) @km/silvery #bug #P2 @claude:cc081a9a
@@ -28,3 +35,4 @@ dependencies:
 blocks:: [[@km/all/fix-sweep-vendor-fuzz]]
 
 Real pipeline bug. ai-chat.test.tsx:110 ('Enter 1') trips SILVERY_STRICT (createApp): MISMATCH at (118, 36) on render #20. Both incremental and fresh produce char=' ' but bg differs (null vs [object Object]). Looks like a stale-pixel bug in the cloned buffer at the right edge of a row that lost its scrollbar █ between frames as content grew. Dump: /var/folders/x6/0j792q0d0411wgsxyr1bqkp40000gn/T/silvery-strict-failure-1777260617031.txt. Split out from @km/silvery/examples-tests by silvery-examples-5 agent (2026-04-26). /complete: bun vitest run --project vendor vendor/silvery/tests/examples/ai-chat.test.tsx → all pass.
+

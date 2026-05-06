@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/tckfg"
 aliases:
   - km-tckfg
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Fix remaining keybinding mismatches: n/N find, t -, c c, remove A @km/_orphan #task #P2
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/dashboard-snapshot-test"
 aliases:
   - km-silvery.dashboard-snapshot-test
@@ -13,6 +15,7 @@ owner: bjorn@stabell.org
 # [x] Dashboard snapshot test: termless render vs approved mockup @km/silvery #task #P2
 
 Add a termless snapshot test for the dashboard example that:
+
 1. Renders Dashboard at 137x43 in termless (no real terminal)
 2. Captures the initial frame (before useInterval fires)
 3. Compares structural elements against the approved mockup
@@ -23,3 +26,4 @@ Motivation: After refactoring dashboard.tsx (LV helper extraction, -89 lines), t
 The test should compare STRUCTURE (borders, panel titles, labels, layout geometry) not values (CPU percentages jitter via useInterval).
 
 Approved mockup reference: vendor/silvery-internal/design/mockups/dashboard-mockup.ansi
+

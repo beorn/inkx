@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/terminfo-search"
 aliases:
   - km-market.terminfo-search
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Add local search to terminfo.dev @km/market #task #P0
 
 terminfo.dev is the only ecosystem site without search. silvery.dev and termless.dev both have VitePress local search. Agent is implementing now.
+

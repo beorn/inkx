@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/kb-escape"
 aliases:
   - km-all.kb-escape
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Keybinding v2: escape layering (text→node→unfocus→close→clear→noop) @km/all #task #P2
 
 Rework escape to pop a focus stack: text edit → node mode → unfocus pane (stays open) → close dialog(s) → clear selection → no-op. Currently escape closes the pane instead of unfocusing. See docs/keybindings-v2.md §Escape Layering.
+

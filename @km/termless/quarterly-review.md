@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/quarterly-review"
 aliases:
   - km-termless.quarterly-review
@@ -17,3 +20,4 @@ assignee: claude:27beac99
 # [x] Quarterly terminal standards review — update database, changelog, and publish @km/termless #task #P2 @claude:27beac99
 
 Every quarter: 1) Review terminal standards for new features/changes (ECMA-48, xterm ctlseqs, Kitty extensions, new terminals). 2) Update features.json with new probes. 3) Check upstream issues linked in annotations — close resolved ones, add new. 4) Re-run census against latest backend versions. 5) Publish changelog of updates to terminfo.dev website. 6) Update backend versions in backends.json.
+

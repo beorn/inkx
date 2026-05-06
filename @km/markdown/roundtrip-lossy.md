@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/markdown/roundtrip-lossy"
 aliases:
   - km-markdown.roundtrip-lossy
@@ -17,3 +20,4 @@ assignee: claude:c9beade3
 # [x] Round-trip fidelity: 6 P0 silent data loss bugs found by GPT 5.4 Pro @km/markdown #epic #P1 @claude:c9beade3
 
 GPT 5.4 Pro review ($7.24) found 6 P0 data loss paths: duplicate embeds dropped in serialization, root H1 metadata (task_marker, rules, block_id) not round-tripped, multi-paragraph list items flattened, code fences break on embedded backticks, GFM footnotes enabled but silently dropped, malformed YAML frontmatter discarded without preservation. Full output: /tmp/llm-c9beade3-1773381717655-4wqr.txt
+

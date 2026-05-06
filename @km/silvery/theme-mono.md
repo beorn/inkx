@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-mono"
 aliases:
   - km-silvery.theme-mono
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-17T21:02:08Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.design-system
 ---
 
 # [x] Theme monochrome — per-token attrs theme for NO_COLOR / dumb terminals (accessibility feature) @km/silvery #feature #P3
@@ -31,24 +37,24 @@ Every token has a mapped attrs set at the monochrome tier. Preserves state disti
 
 ## Attrs table (Polaris-aligned token names)
 
-| Token | attrs |
-|---|---|
-| text-default, bg-*, border-default, cursor-* | [] |
-| text-secondary, text-subdued, text-disabled | ["dim"] |
-| text-brand | ["bold"] |
-| text-link | ["underline"] |
-| text-critical | ["bold", "inverse"] |
-| text-caution | ["bold"] |
-| text-success | ["bold"] |
-| text-info | ["italic"] |
-| text-on-bg-fill | [] (bg-fill-X handles its own emphasis) |
-| text-inverse | ["inverse"] |
-| border-focus | ["bold"] |
-| border-critical | ["bold"] |
-| bg-selected | ["inverse"] |
-| bg-fill-critical | ["inverse"] |
-| bg-fill-caution | ["bold"] |
-| bg-fill-success, bg-fill-info | ["bold"] |
+| Token                                       | attrs                                   |
+| ------------------------------------------- | --------------------------------------- |
+| text-default, bg-, border-default, cursor-  | []                                      |
+| text-secondary, text-subdued, text-disabled | ["dim"]                                 |
+| text-brand                                  | ["bold"]                                |
+| text-link                                   | ["underline"]                           |
+| text-critical                               | ["bold", "inverse"]                     |
+| text-caution                                | ["bold"]                                |
+| text-success                                | ["bold"]                                |
+| text-info                                   | ["italic"]                              |
+| text-on-bg-fill                             | [] (bg-fill-X handles its own emphasis) |
+| text-inverse                                | ["inverse"]                             |
+| border-focus                                | ["bold"]                                |
+| border-critical                             | ["bold"]                                |
+| bg-selected                                 | ["inverse"]                             |
+| bg-fill-critical                            | ["inverse"]                             |
+| bg-fill-caution                             | ["bold"]                                |
+| bg-fill-success, bg-fill-info               | ["bold"]                                |
 
 Universally-supported SGR subset: bold, dim, italic, underline, inverse, strikethrough.
 
@@ -66,3 +72,4 @@ Over simple 'strip color + preserve preset attrs' (Option A). B gives state-colo
 
 Full context: hub/silvery/design/v10-terminal/terminal-color-strategy.md
 Parent: @km/silvery/design-system
+

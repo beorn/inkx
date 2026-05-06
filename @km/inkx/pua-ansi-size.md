@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/pua-ansi-size"
 aliases:
   - km-inkx.pua-ansi-size
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] Find way to not triple ANSI size with PUA - enable for entire buffer? @km/inkx #task #P1
 
 PUA characters wrapped in OSC 66 escape sequences triple the ANSI output size. This is a massive overhead — need to find a way to batch or buffer-wide enable PUA sizing instead of per-character wrapping. Approaches to explore: (1) enable text sizing for entire buffer region rather than per-char, (2) cache known PUA widths and skip re-measurement, (3) only measure on first encounter then use cached width for subsequent frames.
+

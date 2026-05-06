@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/untitled-col"
 aliases:
   - km-tui.untitled-col
@@ -13,3 +16,4 @@ assignee: claude:97b8de73
 # [x] Column shows raw ID instead of title (01KJ4BKG) @km/tui #bug #P2 @claude:97b8de73
 
 A column in FAMILY SPRINT board shows '(01KJ4BKG) # #' — raw Asana ID with no readable title. Could be import issue (section has no name) or display issue (title not resolved). Reproduced: km view --repo imports/asana stabell → FAMILY SPRINT. Screenshots: 13.08.07.png, 13.08.42.png
+

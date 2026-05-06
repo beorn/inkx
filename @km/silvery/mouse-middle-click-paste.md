@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/mouse-middle-click-paste"
 aliases:
   - km-silvery.mouse-middle-click-paste
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T16:18:18Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.opentui-parity
 ---
 
 # [ ] Mouse: middle-click paste (X11 primary selection) @km/silvery #feature #P3
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/silvery/opentui-parity]]
 
 On Linux/tmux, middle-click pastes primary selection buffer. Optional, platform-conditional.
+

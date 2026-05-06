@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/tribe-claude-rename-sync"
 aliases:
   - km-bearly.tribe-claude-rename-sync
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-21T13:38:18Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-bearly
 ---
 
 # [x] Tribe: auto-sync tribe name when Claude /rename fires @km/bearly #feature #P2
@@ -86,3 +92,4 @@ Investigate Option B first — check if Claude Code has a SessionRename hook eve
 ## Related
 
 - @km/bearly/tribe-session-resume (session resume across Claude invocations)
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/block-id-collisions"
 aliases:
   - km-storage.block-id-collisions
@@ -19,8 +21,11 @@ Spun out from @km/storage/content-issues (vault session, 2026-04-24).
 Block ID ^apr15-ca-ftb was defined in both ref/Tech/@km/user-guide/md (doc example) and projects/+taxes/workstreams.md (real task). Corrupts `km show '^id'` resolution.
 
 ## Mitigation
+
 Bead @km/_orphan/q5hji partly mitigates by making inactive files lose their block IDs (active-wins).
 
 ## Open questions
+
 - Should km warn at parse time on collision between **active** files?
 - Should block IDs be file-scoped by default, with global IDs opt-in?
+

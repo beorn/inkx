@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/tree/v4/p8-type-safety"
 aliases:
   - km-tui.tree.v4.p8-type-safety
@@ -17,6 +19,7 @@ owner: bjorn@stabell.org
 ## What
 
 Fix 17 \`as any\` casts in @km/tui/src/. Two categories:
+
 1. Logger types: \`createLogger(...) as any\` (4 instances) — fix loggily return type
 2. Repo coercion: \`repo as any\` in computeHiddenNodeIds (2 instances) — fix ViewLensRepo interface
 3. GlobalThis diagnostics: \`(globalThis as any).__km_*\` (6 instances) — typed module or declare global
@@ -27,3 +30,4 @@ Fix 17 \`as any\` casts in @km/tui/src/. Two categories:
 rg 'as any' apps/km-tui/src/ --glob '!*.test.*' --glob '!*.spec.*' -t ts -c | wc -l  # 0
 bun tsc --noEmit  # 0 new errors
 \`\`\`
+

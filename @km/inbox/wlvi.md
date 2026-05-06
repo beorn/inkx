@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/wlvi"
 aliases:
   - km-wlvi
@@ -8,3 +10,4 @@ closed_at: 2026-01-21T12:44:31Z
 ---
 
 # [x] Cards view column separator should leave space at top (below top bar) and extend to bottom @km/_orphan #bug #P2
+

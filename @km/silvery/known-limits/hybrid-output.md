@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/known-limits/hybrid-output"
 aliases:
   - km-silvery.known-limits.hybrid-output
@@ -24,6 +27,10 @@ dependencies:
     created_at: 2026-04-26T15:47:00Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.known-limits
 ---
 
 # [x] Output hybrid pipeline phase 2 — design doc recovery + implementation @km/silvery #task #P2 @claude:cc081a9a
@@ -35,6 +42,7 @@ Multiple TODO(hybrid-output phase 2) markers in vendor/silvery/packages/ag-term/
 The design doc is referenced as 'https://github.com/beorn/silvery-internal/blob/main/design/v05-layout/hybrid-output.md' but silvery-internal was absorbed into hub/silvery on 2026-04-17 and only pretext-integration.md migrated. The hybrid-output design doc was lost.
 
 ## Stub functions (5 throws, all 'not implemented')
+
 - analyzeRowDensity (output-density.ts:89) — analyzes per-row dirty cells, runs, summaries
 - pickEmissionMode (output-density.ts:122) — picks scatter / run-length / whole-row mode based on cost estimator
 - emitScatter (output-modes.ts:76) — emits scatter mode (individual cells)
@@ -44,19 +52,24 @@ The design doc is referenced as 'https://github.com/beorn/silvery-internal/blob/
 The Phase 1 implementation calls these from output-phase.ts. Currently it must use a fallback path since these throw — verify which.
 
 ## Approach
+
 Phase A — design recovery (1-2h):
+
 - Read all 5 stubs in full context (their JSDoc comments are quite detailed already!)
 - Read the call site that uses them
 - Read benchmarks/silvery-vs-ink.bench.ts (referenced by JSDoc)
 - Reconstruct hub/silvery/design/v05-layout/hybrid-output.md from code intent
 
 Phase B — implementation (1-3h):
+
 - Implement analyzeRowDensity (pure function over CellChange[])
 - Implement pickEmissionMode (cost estimator)
 - Implement the 3 emit modes
 - Wire benchmark to verify cost estimator is calibrated
 
 Acceptance:
+
 - All 5 stubs no longer throw
 - Bench scenarios (Dense row, Contiguous run, Scatter) — silvery within 10% of best mode
 - All vendor/silvery tests pass under SILVERY_STRICT
+

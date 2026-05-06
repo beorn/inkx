@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/fcpt0"
 aliases:
   - km-fcpt0
@@ -13,7 +16,9 @@ assignee: claude:a5c7f7de
 # [x] TUI: Overflow indicators centered, inverse bar style @km/_orphan #feature #P3 @claude:a5c7f7de
 
 Column overflow indicators should:
+
 - Be centered horizontally
 - Use inverse bar style (inverse colors)
 - Both top/bottom and left/right overflow indicators should look the same
 Currently the overflow indicator is just a plain text ▼N at the bottom-right corner.
+

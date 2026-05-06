@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/startup-react-mount-block"
 aliases:
   - km-tui.startup-react-mount-block
@@ -18,3 +21,4 @@ assignee: claude:8b5b9e1c
 # [x] TUI blocks event loop ~1s during startup:react-mount @km/tui #bug #P2 @claude:8b5b9e1c
 
 After 'km view <vault>' completes load + board init, the TUI is unresponsive for ~1s with 'event loop blocked for 1059ms — (startup:react-mount) — render: layout=41ms (total=41ms) — (2 renders)'. Layout and render are fast (41ms); the block is in React mount or sync I/O between renders.
+

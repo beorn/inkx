@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/cmdfeedback-above"
 aliases:
   - km-tui.cmdfeedback-above
@@ -13,3 +16,4 @@ assignee: claude:d697f216
 # [x] Command feedback should be in a box above the command input, not inside it @km/tui #bug #P1 @claude:d697f216
 
 Command feedback (flash messages, chord hints) should display in a separate box ABOVE the command input area — not inside the command box itself. This was the previous behavior and should be restored.
+

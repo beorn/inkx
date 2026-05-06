@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/all/pro-review-storage"
 aliases:
   - km-all.pro-review-storage
@@ -21,6 +24,7 @@ Full output: /tmp/llm-manual-gpt-54-pro-code-8tbv.txt
 ## Dashboard: 21 findings
 
 ### P0 — Data loss / corruption (5 findings, 5 beads created)
+
 1. @km/storage/db-events-direct-write — direct FS writes bypass sync pipeline
 2. @km/storage/stop-drops-writes — SyncManager.stop() drops pending writes
 3. @km/storage/cross-file-move — cross-file move only rewrites destination
@@ -28,6 +32,7 @@ Full output: /tmp/llm-manual-gpt-54-pro-code-8tbv.txt
 5. @km/storage/replay-continues-after-failure — event replay continues after failure
 
 ### P1 — Silent wrong behavior (7 findings, 4 beads created)
+
 6. @km/storage/fswriter-delete-broken — FsWriter delete broken (node already gone from DB)
 7. @km/storage/rename-db-before-fs — DB path updated before queued rename succeeds
 8. @km/storage/task-events-no-fs-writeback — task_claimed/released/completed never reach FS
@@ -37,6 +42,7 @@ Full output: /tmp/llm-manual-gpt-54-pro-code-8tbv.txt
 12. syncToFs()/forceFlush() can succeed even when writes failed
 
 ### P2 — Degraded reliability (7 findings, no beads)
+
 13. Same-content saves leave stale mtime/inode tracking
 14. ensureFolderHierarchy() swallows all statSync errors
 15. emit() classifies fsSync errors using only .code (brittle)
@@ -46,9 +52,11 @@ Full output: /tmp/llm-manual-gpt-54-pro-code-8tbv.txt
 19. last_event cursor not updated for replayed node_created
 
 ### P3 — Code quality (1 finding)
+
 20. Legacy class-based sync pieces violate factory convention
 
 ## Suggested Fix Order (Perspective A: minimal hotfixes)
+
 1. Delete direct FS write-through from db-events.ts
 2. Flush WriteQueue on stop
 3. Fix cross-file move to rewrite both files
@@ -57,4 +65,6 @@ Full output: /tmp/llm-manual-gpt-54-pro-code-8tbv.txt
 6. Fix directory delete handling
 
 ## Test Coverage Gaps Identified
+
 12 categories of missing tests identified including: stop-before-flush, cross-file move, folder delete, FsWriter delete, concurrent external edits, direct write + SyncManager interaction, date write-back, replay failure ordering, same-content atomic save, malformed event validation, ensureFolderHierarchy errors, concurrent handleFsSync.
+

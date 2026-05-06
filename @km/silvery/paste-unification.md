@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/paste-unification"
 aliases:
   - km-silvery.paste-unification
@@ -13,9 +15,10 @@ owner: bjorn@stabell.org
 
 # [x] Paste unification — one hook, two modes (simple + rich) @km/silvery #task #P0
 
-Merge usePaste context getter (currently a hook that returns PasteHandler interface) with usePasteCallback event subscription into a single usePaste hook. 
+Merge usePaste context getter (currently a hook that returns PasteHandler interface) with usePasteCallback event subscription into a single usePaste hook.
 
 Target: one hook with two modes
+
 - Simple: usePaste((text) => insertText(text)) — callback gets plain string
 - Rich: usePaste((event) => handlePasteEvent(event)) — callback gets PasteEvent with source + clipboard data
 
@@ -23,3 +26,4 @@ Delete: PasteProvider, usePasteEvents, old usePasteCallback hook, PasteHandler i
 Keep: useInput({onPaste}) for Ink compat (simple text callback)
 
 Design validated by comparing React DOM, React Native, Ink paste APIs.
+

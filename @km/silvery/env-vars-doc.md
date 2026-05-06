@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/env-vars-doc"
 aliases:
   - km-silvery.env-vars-doc
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] SILVERY_ env vars reference page + glossary terms @km/silvery #task #P3
 
 Need single reference page at docs/reference/environment-variables.md listing all SILVERY_ env vars. Each var should also be a glossary term (auto from section name). Other docs pages link to this as canonical. Link from README and debugging guide.
+

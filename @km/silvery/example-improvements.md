@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/example-improvements"
 aliases:
   - km-silvery.example-improvements
@@ -44,9 +47,12 @@ Improve the interactive showcases on silvery.dev to be more polished and functio
 10. **Theme explorer**: Add a theme explorer example (link to full theme playground)
 
 ## Context
+
 These are the xterm.js-rendered showcases in `examples/web/showcases.tsx` embedded on silvery.dev via iframes. They use `renderToXterm()` and the `emitInput()` event bus for keyboard input.
 
 Key files:
+
 - `vendor/silvery/examples/web/showcases.tsx` — all showcase components
 - `vendor/silvery/examples/web/showcase-app.tsx` — xterm.js mounting
 - `vendor/silvery/examples/web/viewer-app.tsx` — unified viewer chrome
+

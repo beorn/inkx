@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/hr-edit"
 aliases:
   - km-tui.hr-edit
@@ -27,3 +30,4 @@ HR nodes: editable, preserve raw content, display centered, type conversion on s
 **Type conversion (→ p)**: On save, if content no longer matches HR pattern and node type is hr, convert type to p.
 
 **Valid HR patterns**: At minimum: ---, ***, ___ (3+ of same char). Shared regex.
+

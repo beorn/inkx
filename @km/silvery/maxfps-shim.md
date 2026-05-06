@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/maxfps-shim"
 aliases:
   - km-silvery.maxfps-shim
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] SHIM: wire Ink maxFps render option to silvery throttling @km/silvery #task #P2
+

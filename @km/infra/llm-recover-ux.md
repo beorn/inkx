@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/llm-recover-ux"
 aliases:
   - km-infra.llm-recover-ux
@@ -23,6 +26,10 @@ dependencies:
     created_at: 2026-04-20T14:01:25Z
     created_by: claude:88c0e764
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] /pro /llm recover: poll timeout too short, no write-to-file, stdout spam @km/infra #task #P0 @claude:a1a0e667
@@ -39,16 +46,20 @@ From /why on 2026-04-20 pro review experience. Recovery of GPT 5.4 Pro deep resp
 ## Fixes
 
 ### PATCH (tonight)
+
 1. Bump recover maxAttempts 180 → 600 (50 min window) in vendor/bearly/tools/llm.ts
 2. On successful recover, write output to /tmp/llm-<session>-<topic>-<hash>.txt same format as launch
 
 ### GUARD (next session)
+
 3. Quiet progress format: single overwriting line (\\r), not append. Prevents claude-code auto-background.
 
 ### REDESIGN (if multiple sessions hit)
+
 4. `bun llm await <id>` — blocks silently, prints only the final result, writes /tmp/llm-*.txt. Recover stays for probing partial responses.
 
 ### SPEC (future)
+
 5. /pro skill: add --fast mode that drops --deep for self-sufficient context reviews (would have been ~10min instead of ~40min today)
 
 ## /complete criteria
@@ -62,3 +73,4 @@ From /why on 2026-04-20 pro review experience. Recovery of GPT 5.4 Pro deep resp
 ## Parent
 
 @km/infra (or appropriate infra scope)
+

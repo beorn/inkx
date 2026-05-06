@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui-nav/5-delete-boardstatelegacy-and-boardactionlegacy-type"
 aliases:
   - km-tui-nav.5
@@ -18,3 +20,4 @@ Clean up deprecated types from board-types.ts.
 4. Run tests to verify nothing breaks
 
 Verify: grep shows no references to these types except in @km/_orphan/repl (which has its own local copy)
+

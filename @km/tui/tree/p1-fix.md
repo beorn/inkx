@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/tree/p1-fix"
 aliases:
   - km-tui.tree.p1-fix
@@ -41,3 +44,4 @@ bun tsc --noEmit  # 0 errors
 bun run test:fast  # all pass
 rg 'reduced-signals' apps/km-tui/tests/ -c  # 0 hits
 ```
+

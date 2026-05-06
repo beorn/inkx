@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui2/10-verify-statusbar-component-matches-tui1"
 aliases:
   - km-tui2.10
@@ -13,3 +15,4 @@ closed_at: 2026-01-17T00:07:26Z
 Verify: mode indicator, keyboard hints, search query display
 
 **Files**: apps/@km/tui/packages/@km/_orphan/opentui/src/components/StatusBar.tsx
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/qa-done"
 aliases:
   - km-infra.qa-done
@@ -16,6 +19,7 @@ assignee: claude:a5c7f7de
 
 Bugs are being closed as "fixed" but visual inspection reveals they're not actually fixed.
 Over the last 72h: 57 bugs created, ~45 closed. Several were reopened after user found them still broken:
+
 - @km/tui/collapse-blank: closed then re-observed by visual inspector
 - @km/_orphan/axswu: breadcrumb corruption "fixed" 3 times (@km/_orphan/e3rwl closed, @km/_orphan/axswu still open)
 - TextArea bugs: closed twice, user says "all problems are still there"
@@ -32,28 +36,26 @@ Over the last 72h: 57 bugs created, ~45 closed. Several were reopened after user
 
 ### Repeat bug clusters (last 72h)
 
-| Category | Reports | Still Open | Pattern |
-|---|---|---|---|
-| Incremental rendering (stale pixels, ghost chars, breadcrumb) | 4 | 2 | inkx doesn't fully repaint on DOM change |
-| Cursor state after operations | 5 | 1 | Cursor becomes stale/invalid after tree mutations |
-| Collapse feature cascade | 5 | 1 | New feature = burst of interaction bugs |
-| Undo/redo gaps | 3 | 0 | Structural ops not fully undoable |
+| Category                                                      | Reports | Still Open | Pattern                                           |
+| ------------------------------------------------------------- | ------- | ---------- | ------------------------------------------------- |
+| Incremental rendering (stale pixels, ghost chars, breadcrumb) | 4       | 2          | inkx doesn't fully repaint on DOM change          |
+| Cursor state after operations                                 | 5       | 1          | Cursor becomes stale/invalid after tree mutations |
+| Collapse feature cascade                                      | 5       | 1          | New feature = burst of interaction bugs           |
+| Undo/redo gaps                                                | 3       | 0          | Structural ops not fully undoable                 |
 
 ## Proposed Changes
 
 ### P0: Must-have for "definition of done"
 
 1. **Mandatory visual TTY verification for ALL TUI bugs/features** — launch interactive TTY, execute repro steps, take screenshot, compare before/after. Close reason must include "Visual: ✓"
-
 2. **Mandatory test:all before close** — not test:fast. If test:all has pre-existing failures, document them. New failures = revert fix.
-
 3. **Mandatory root cause in close reason** — structured format:
-   ```
-   Fixed: [what changed]
-   Root cause: [why it happened]
-   Detection gap: [why tests missed it]
-   Prevention: [bead ID or n/a]
-   ```
+  ```
+  Fixed: [what changed]
+  Root cause: [why it happened]
+  Detection gap: [why tests missed it]
+  Prevention: [bead ID or n/a]
+  ```
 
 ### P1: High-value improvements
 
@@ -67,3 +69,4 @@ Over the last 72h: 57 bugs created, ~45 closed. Several were reopened after user
 8. **Close reason template enforcement** — bd hook that validates close reason format
 9. **Post-merge re-verification for P0/P1** — re-run tests after push to catch concurrent conflicts
 10. **Detection gap tracking** — aggregate gap categories to identify systemic weaknesses
+

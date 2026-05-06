@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/misc-1"
 aliases:
   - km-misc-1
@@ -11,3 +14,4 @@ assignee: claude:279f285c
 # [x] Add WIP limit display and warnings @km/_orphan #feature #P2 @claude:279f285c
 
 Show WIP limits on columns, warn when exceeded. Blocked by: item() helper needs WIP limit support
+

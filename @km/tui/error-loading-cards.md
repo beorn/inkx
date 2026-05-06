@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/error-loading-cards"
 aliases:
   - km-tui.error-loading-cards
@@ -13,3 +16,4 @@ assignee: claude:36393b5d
 # [x] Error loading cards view after search navigation + detail pane close @km/tui #bug #P2 @claude:36393b5d
 
 After search navigating to a card, opening detail pane, closing it, and navigating, the board shows 'Error loading cards view' with a blank screen. Seen in TTY with asana vault. May be related to zoom/navigation state getting corrupted.
+

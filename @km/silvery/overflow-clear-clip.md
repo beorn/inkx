@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/overflow-clear-clip"
 aliases:
   - km-silvery.overflow-clear-clip
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] clearDescendantOverflowRegions uses ancestor full rect, not content area @km/silvery #bug #P2
 
 Overflow clearing beyond ancestor rect doesn't account for border/padding semantics. Can over-clear into border areas or fail to clear correctly when clip bounds and border/padding interact. Especially suspicious with grandchild overflow + bordered ancestor + clipping. Found by GPT pipeline review.
+

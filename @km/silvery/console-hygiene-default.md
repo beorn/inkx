@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/console-hygiene-default"
 aliases:
   - km-silvery.console-hygiene-default
@@ -15,6 +17,10 @@ dependencies:
     created_at: 2026-04-25T21:54:05Z
     created_by: claude:22c2717d
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all
 ---
 
 # [x] Silvery: foolproof console/debug suppression by default in alt-screen @km/silvery #feature #P1
@@ -81,3 +87,4 @@ For long-lived processes / observability, users can still set `DEBUG_LOG=path` t
 ## Why P1
 
 Every new silvery TUI app re-discovers this. The friction is high enough that storybook (built post-Sterling) shipped with the bug. Buffer-and-replay default eliminates the entire class with the LEAST intrusive mechanism that already exists in silvery.
+

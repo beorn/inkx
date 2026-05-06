@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/yvx2"
 aliases:
   - km-yvx2
@@ -10,3 +12,4 @@ closed_at: 2026-01-26T22:40:23Z
 # [x] Remove ALS wrappers entirely @km/_orphan #task #P1
 
 Phase 3: Delete runWithDb(), runWithKmDir(), db-instance.ts
+

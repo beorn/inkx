@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/aichat-input"
 aliases:
   - km-inkx.aichat-input
@@ -13,3 +16,4 @@ assignee: claude:2f3fc9d8
 # [x] AI Chat example: can't type anything (input broken) @km/inkx #bug #P2 @claude:2f3fc9d8
 
 AI Chat example (interactive/ai-chat.tsx) doesn't accept keyboard input at all. Can't type messages. Likely related to ReadlineInput or input layer issues in the example.
+

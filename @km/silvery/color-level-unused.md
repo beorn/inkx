@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/color-level-unused"
 aliases:
   - km-silvery.color-level-unused
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Bug: colorLevel capability declared but never used — color downgrading broken @km/silvery #bug #P3
 
 OutputCaps includes colorLevel but it's never checked in fgColorCode, bgColorCode, styleToAnsi, or styleTransition. Docs/caps imply color downgrading support that doesn't exist.
+

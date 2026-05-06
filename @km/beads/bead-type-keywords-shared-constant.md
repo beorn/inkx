@@ -29,7 +29,7 @@ Difference: `chore` vs `question`. Whichever set is "correct" is a product decis
 4. Both `set-clear-plan.ts` and `queries.ts` consume the same constant.
 5. Add a test that pins the union (so the next drift becomes a TS-failure or test-failure, not a silent inconsistency).
 
-## Acceptance
+### Acceptance
 
 - [ ] Single source of truth for bead type keywords lives in `@km/beads`
 - [ ] `tasks set <id> type:question` and `tasks set <id> type:chore` BOTH succeed (or both fail consistently per the product decision)
@@ -37,11 +37,11 @@ Difference: `chore` vs `question`. Whichever set is "correct" is a product decis
 - [ ] Regression test: importing from `@km/beads`, the keyword union is exhaustive
 - [ ] `docs/future/beads.md` "Issue Type Tags" matches the constant
 
-## Why this is L4
+### Why this is L4
 
 Currently the drift is silent — neither path errors when the set diverges. Sharing the constant + a TS test makes the drift impossible by construction.
 
-## Surfaced by
+### Surfaced by
 
 Code-quality agent in session f9eb64dc.
 

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/cursor-compat"
 aliases:
   - km-silvery.cursor-compat
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Compat useCursor is no-op stub instead of delegating to silvery useCursor @km/silvery #bug #P2
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/tree-shaking"
 aliases:
   - km-silvery.tree-shaking
@@ -16,3 +19,4 @@ assignee: claude:474834b0
 # [x] Tree-shaking verification for layered entry points @km/silvery #task #P3 @claude:474834b0
 
 Verify that silvery's 17 layered entry points tree-shake correctly. Importing silvery/runtime should not pull in React, etc.
+

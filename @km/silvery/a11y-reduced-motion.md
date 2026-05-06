@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/a11y-reduced-motion"
 aliases:
   - km-silvery.a11y-reduced-motion
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T16:19:35Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.opentui-parity
 ---
 
 # [ ] A11y: reduced-motion detection + useReducedMotion() hook @km/silvery #feature #P3
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/silvery/opentui-parity]]
 
 Detect reduced-motion preference (env var, OS setting via ANSI query) and expose useReducedMotion() for components to disable/simplify animations.
+

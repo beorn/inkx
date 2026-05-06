@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/props"
 aliases:
   - km-props
@@ -16,6 +18,7 @@ Implement a property system using `property:: value` syntax, compatible with Log
 ## Syntax
 
 ### Basic Properties
+
 ```markdown
 - [ ] Deploy to production @issue blocks:: [[km-auth]]
 - [ ] Fix auth bug @issue blocked-by:: [[km-a1b2]], [[km-c3d4]]
@@ -24,15 +27,16 @@ Implement a property system using `property:: value` syntax, compatible with Log
 
 ### Property Types
 
-| Type | Example | Storage |
-|------|---------|--------|
-| Link | `blocks:: [[km-a1b2]]` | `data.props.blocks = ["km-a1b2"]` |
-| Text | `reason:: Fixed in PR #123` | `data.props.reason = "Fixed in PR #123"` |
-| Number | `rating:: 5` | `data.props.rating = 5` |
-| Date | `reviewed:: 2026-01-21` | `data.props.reviewed = "2026-01-21"` |
-| List | `tags:: #urgent, #backend` | `data.props.tags = ["urgent", "backend"]` |
+| Type   | Example                   | Storage                                 |
+| ------ | ------------------------- | --------------------------------------- |
+| Link   | blocks:: [[km-a1b2]]      | data.props.blocks = ["km-a1b2"]         |
+| Text   | reason:: Fixed in PR #123 | data.props.reason = "Fixed in PR #123"  |
+| Number | rating:: 5                | data.props.rating = 5                   |
+| Date   | reviewed:: 2026-01-21     | data.props.reviewed = "2026-01-21"      |
+| List   | tags:: #urgent, #backend  | data.props.tags = ["urgent", "backend"] |
 
 ### Relation Properties (Links with Semantics)
+
 ```markdown
 blocks:: [[target]]      # This issue blocks target
 blocked-by:: [[target]]  # This issue is blocked by target
@@ -47,6 +51,7 @@ author:: [[person]]      # Authored by person
 ### @km/markdown/src/parser.ts
 
 1. Add `parseInlineProperties()` function:
+
 ```typescript
 interface InlineProperty {
   name: string;
@@ -62,9 +67,7 @@ function parseInlineProperties(text: string): {
 ```
 
 2. Regex pattern: `/([a-z][a-z0-9-]*)::[ ]*([^,\n]+(?:,[ ]*[^,\n]+)*)/gi`
-
 3. Handle wiki-link values: `[[target]]` → extract ID
-
 4. Handle comma-separated lists: `a, b, c` → array
 
 ### @km/markdown/src/nodes2md.ts
@@ -76,6 +79,7 @@ function parseInlineProperties(text: string): {
 ### @km/_orphan/core/src/types.ts
 
 Extend KNode.data:
+
 ```typescript
 interface NodeData {
   props?: Record<string, unknown>;  // Inline properties
@@ -86,6 +90,7 @@ interface NodeData {
 ## Storage
 
 Properties stored in `data.props` JSON field:
+
 ```json
 {
   "props": {
@@ -102,6 +107,7 @@ Properties stored in `data.props` JSON field:
 ### @km/storage/src/query.ts
 
 Add property queries:
+
 ```
 blocks::*           # Has any blocks property
 blocks::km-a1b2     # Blocks specific issue
@@ -118,18 +124,22 @@ rating:>3           # Rating greater than 3
 ## Backlink Integration
 
 Properties that reference other nodes create backlinks:
+
 - `blocks:: [[km-a1b2]]` on node X → X appears in @km/_orphan/a1b2's backlinks
 - Backlink shows the relationship type: "blocked by X"
 
 ## Documentation
 
 ### docs/04-markdown.md
+
 Add section on inline properties syntax and parsing.
 
-### docs/05-query.md  
+### docs/05-query.md
+
 Add property query syntax and examples.
 
 ### docs/01-concepts.md
+
 Update Links section to include property-based relations.
 
 ---
@@ -475,25 +485,30 @@ describe('Property Query Execution', () => {
 ## Implementation Phases
 
 ### Phase 1: Parser (P1)
+
 - [ ] Add parseInlineProperties() to parser.ts
 - [ ] Integrate into task/content parsing
 - [ ] Store in data.props
 - [ ] Unit tests (properties.test.ts)
 
 ### Phase 2: Serialization (P1)
+
 - [ ] Add property serialization to nodes2md.ts
 - [ ] Round-trip tests (properties-roundtrip.test.ts) - CRITICAL
 
 ### Phase 3: Queries (P2)
+
 - [ ] Add property query syntax to parseQuery()
 - [ ] Implement blocked:true/false
 - [ ] Query tests (query-properties.test.ts)
 
 ### Phase 4: Backlinks (P2)
+
 - [ ] Property links create backlinks
 - [ ] Show relationship type in backlink display
 
 ### Phase 5: Docs (P2)
+
 - [ ] Update docs/04-markdown.md
 - [ ] Update docs/05-query.md
 - [ ] Update docs/01-concepts.md
@@ -509,25 +524,30 @@ describe('Property Query Execution', () => {
 ## Acceptance Criteria
 
 ### Parser
+
 - [ ] `property:: value` syntax parsed correctly
 - [ ] `property:: [[link]]` extracts link target
 - [ ] Multiple values via comma separation work
 - [ ] Properties stored in `data.props`
 
 ### Round-trip (CRITICAL)
+
 - [ ] Single property survives parse → serialize
-- [ ] Multiple properties survive parse → serialize  
+- [ ] Multiple properties survive parse → serialize
 - [ ] Property order preserved
 - [ ] Stable after double round-trip (parse → serialize → parse → serialize)
 - [ ] Mixed content with properties preserved
 
 ### Queries
+
 - [ ] `prop::*` matches existence
 - [ ] `prop::value` matches specific value
 - [ ] `blocked:true` finds nodes with unresolved blockers
 - [ ] `blocked:false` excludes blocked nodes
 
 ### Integration
+
 - [ ] `bun run test:fast` passes
 - [ ] `bun run test:all` passes
 - [ ] Docs updated
+

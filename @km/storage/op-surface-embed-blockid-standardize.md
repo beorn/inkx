@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/op-surface-embed-blockid-standardize"
 aliases:
   - km-storage.op-surface-embed-blockid-standardize
@@ -22,6 +25,10 @@ dependencies:
     created_at: 2026-04-21T23:45:14Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage
 ---
 
 # [x] Standardize emitter.apply for embed_of / block_id / content_hash back-writes @km/storage #task #P2 @claude:8b5b9e1c
@@ -29,3 +36,4 @@ dependencies:
 blocks:: [[@km/storage]]
 
 Audit findings G4/G7/G9: update-handler.ts:197, create-handler.ts:223, change-handlers.ts:144,266, pipeline.ts:322 — two of these already emit node_updated; remaining writes just need to follow the same pattern. Effort: ~0.5-1 day. Blocks Phase B op-surface closure.
+

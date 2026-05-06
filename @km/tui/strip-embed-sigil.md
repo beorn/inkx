@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/strip-embed-sigil"
 aliases:
   - km-tui.strip-embed-sigil
@@ -13,3 +16,4 @@ assignee: claude:124bfbe5
 # [x] Strip parent sigil from embedded node titles @km/tui #feature #P3 @claude:124bfbe5
 
 Embedded nodes should not show the sigil for the node they're embedded into. E.g., @next tasks on the @next board shouldn't display @next.
+

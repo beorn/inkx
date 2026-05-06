@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/vault/sync-health"
 aliases:
   - km-vault.sync-health
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Sync ~fam/Health Records → ~vault/drive/health @km/vault #task #P3
 
 Medical records, insurance, IVF, expenses by year. ~765 files.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/user-message-wrap"
 aliases:
   - km-silvercode.user-message-wrap
@@ -47,6 +50,10 @@ dependencies:
     created_at: 2026-04-25T22:17:24Z
     created_by: claude:230fa25d
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] User messages overflow horizontally instead of soft-wrapping @km/silvercode #bug #P2 @claude:230fa25d
@@ -58,3 +65,4 @@ Repro: paste or type a long single-line message in CommandBox, submit. The user-
 Files: apps/silvercode/src/components/UserMessageBlock.tsx (the row container), apps/silvercode/src/components/DetectionText.tsx (the text renderer with wrap=wrap).
 
 Hypothesis: the outer Box flexDirection=row + Prose flexGrow=1 chain isn't propagating an upper width bound to DetectionText's wrap=wrap Text nodes. May need flexShrink/minWidth=0 on the row, or the parent (MessageItem in MessageList) isn't constraining width. CommandBox's queue TextArea has the same overflow issue — also worth checking.
+

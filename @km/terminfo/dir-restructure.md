@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/terminfo/dir-restructure"
 aliases:
   - km-terminfo.dir-restructure
@@ -33,3 +35,4 @@ Target:
   src/api/        ← API/badge generation
 
 Refs: content/ already extracted in this session. This bead covers the remaining moves.
+

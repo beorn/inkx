@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/storage/persist-before-apply"
 aliases:
   - km-storage.persist-before-apply
@@ -16,3 +19,4 @@ assignee: Bjørn Stabell
 # [x] [bug] Event persisted to events.jsonl before DB apply — crash leaves ghost events @km/storage #bug #P2 @Bjørn Stabell
 
 The emitter persists to events.jsonl BEFORE applying to DB. A crash between persist and apply leaves an event recorded but never applied. On next startup, the event may replay against stale state. Fix: apply to DB first, persist to events.jsonl second. Or: use a WAL-style two-phase commit.
+

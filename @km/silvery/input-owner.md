@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/input-owner"
 aliases:
   - km-silvery.input-owner
@@ -19,6 +21,14 @@ dependencies:
     created_at: 2026-04-22T13:47:53Z
     created_by: claude:019d032d
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery
+      - type: link
+        target: km-silvery.term-sub-owners
 ---
 
 # [ ] Centralize stdin ownership (InputOwner) — eliminate the wasRaw race class @km/silvery #task #P1
@@ -32,6 +42,7 @@ Today's session shipped four race-safety patches (silvery 2d9ab59f + cea0460b) a
 Reframe: extend the OutputGuard pattern to stdin.
 
 DESIGN
+
 - InputOwner.ts (mirrors output-guard.ts): single owner of process.stdin for the silvery session lifetime.
 - Owns: raw mode (set once at start, restored once at end), stdin.on('data', …) (one listener, fans out), bracketed paste enable/disable, kitty keyboard enable/disable, focus reporting.
 - Public API: probe(query: string, parse: (chunk: string) => T | null, timeoutMs: number): Promise<T | null>. Sends query to stdout (via OutputGuard), accumulates incoming bytes, calls parse on each chunk, resolves on first non-null parse or timeout.
@@ -39,11 +50,14 @@ DESIGN
 - Term-provider becomes the InputOwner — its existing role (own stdin, route key events) absorbs probe routing too.
 
 ROLLOUT
+
 - Phase 1: ship InputOwner alongside existing probes. probeColors migrates to it as the canonical example. Verify zero behaviour change.
 - Phase 2: migrate the 4 other probes. Each loses ~10 LOC.
 - Phase 3: lint rule banning process.stdin.setRawMode and process.stdin.on('data', …) outside vendor/silvery/packages/ag-term/src/runtime/.
 - Phase 4: same treatment for OSC color response leak on TUI exit (InputOwner.dispose drains).
 
 RELATED
+
 - Same META-pattern as forwardConsole (workers don't write stdout, post to owner) and OutputGuard (one writer for stdout, suppress others). All three are 'single owner of shared global I/O'. Filing this bead documents that pattern as silvery's standard.
 - Closes the race class. Doesn't help the layout-churn bug (@km/silvery/layout-churn-leaks-pixels) — that's a different mechanism (incremental render pixel leak on layout reflow, not async I/O race).
+

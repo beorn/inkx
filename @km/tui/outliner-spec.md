@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/outliner-spec"
 aliases:
   - km-tui.outliner-spec
@@ -20,3 +22,4 @@ Operations: Enter (4 rules), Tab (indent), Shift+Tab (outdent), Delete, Backspac
 Contexts: first child, last child, only child, has children, empty node, root level, edit mode, normal mode.
 
 Each cell = expected behavior or no-op+bell.
+

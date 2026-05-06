@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/checkbox-spacing"
 aliases:
   - km-tui.checkbox-spacing
@@ -17,3 +19,4 @@ owner: bjorn@stabell.org
 # [x] No space between checkbox icon and text @km/tui #bug #P2
 
 The checkbox done icon (✓ U+2713) renders with no space before the title text. E.g., '✓Build' instead of '✓ Build'. The prefix box is 2 cells (marker + space) but the space appears to be missing. Likely a character width calculation issue — ✓ may be counted as wide (2 cells) in some code path, filling the entire prefix box.
+

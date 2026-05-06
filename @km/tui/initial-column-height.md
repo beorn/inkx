@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/initial-column-height"
 aliases:
   - km-tui.initial-column-height
@@ -24,6 +27,10 @@ dependencies:
     created_at: 2026-04-18T11:12:19Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Board first-render uses wrong column height — fixes on resize @km/tui #bug #P1 @Bjørn Stabell
@@ -31,3 +38,4 @@ dependencies:
 blocks:: [[@km/tui]]
 
 Column rendered at ~half the real terminal height on first paint, with items disappearing when cursoring down. Fixes itself when the terminal is resized (SIGWINCH re-measures). Likely initial-measure race: React mounts before silvery resolves the real terminal size. See screenshot ~/Desktop/Screenshot 2026-04-18 at 11.09.20.png.
+

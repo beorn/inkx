@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/node-model-v2/rendering"
 aliases:
   - km-all.node-model-v2.rendering
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 Context-dependent rendering (embedded nodes take host style). Fix card rendering issues.
 
 Subsumes: @km/tui/card-grey-text, @km/tui/short-name-rule, @km/tui/detail-dup-due, @km/tui/detail-mentions-assignee, @km/tui/dup-keys, @km/tui/bare-block-ids, @km/tui/date-render, @km/tui/card-border-bleed
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/q-quits-no-confirm"
 aliases:
   - km-tui.q-quits-no-confirm
@@ -18,3 +21,4 @@ assignee: Bjørn Stabell
 # [x] [bug] Bare q key quits without confirmation @km/tui #bug #P1 @Bjørn Stabell
 
 Single keystroke destroys the session. Especially bad when pressing q after incomplete chord. Fix: add confirmation prompt or require :q via omnibox.
+

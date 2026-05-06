@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/broadcast-loopback"
 aliases:
   - km-tribe.broadcast-loopback
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-18T11:01:34Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] Tribe broadcast echoes back to sender — should be filtered @km/tribe #bug #P2
@@ -31,6 +37,7 @@ blocks:: [[@km/tribe]]
 When a session calls tribe_broadcast(message), the daemon delivers the message to ALL members including the sender. The sender then receives a notification of their own message as a tribe channel event, with from=<self>.
 
 This causes:
+
 1. Confusion in agents — they have to recognize "this is from myself" and ignore
 2. Wasted context tokens — every broadcast adds N+1 messages to N receivers' contexts
 3. Double-handling: an agent that sends a status message gets a notification back as if from another session
@@ -62,3 +69,4 @@ Same fix needed wherever else fan-out happens (e.g., session-leave notifications
 - [ ] tribe_send to=* (wildcard) does not deliver to sender
 - [ ] Test: A broadcasts, A's incoming queue is empty (no self-echo)
 - [ ] No regression: B receives A's broadcast normally
+

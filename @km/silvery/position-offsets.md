@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/position-offsets"
 aliases:
   - km-silvery.position-offsets
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Expose position offsets (top/left/bottom/right) on Box @km/silvery #feature #P2
+

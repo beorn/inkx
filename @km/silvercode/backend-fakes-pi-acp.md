@@ -31,3 +31,4 @@ Add a pi-acp profile for the shared fake backend so the registry entry remains c
 
 - Fake pi-acp profile can run the shared backend contract suite.
 - Live-mode contract is skipped unless pi-acp is installed, but uses the same assertions when enabled.
+

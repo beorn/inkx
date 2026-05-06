@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/coverage"
 aliases:
   - km-storage.coverage
@@ -11,3 +14,4 @@ assignee: claude:9e69175d
 # [x] Coverage tracking for sync test scenarios @km/storage #task #P3 @claude:9e69175d
 
 Track which sync scenarios are covered by tests. Identify gaps in coverage.
+

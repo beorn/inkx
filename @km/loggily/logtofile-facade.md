@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/loggily/logtofile-facade"
 aliases:
   - km-loggily.logtofile-facade
@@ -16,6 +18,10 @@ dependencies:
     created_at: 2026-04-11T16:37:19Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-loggily
 ---
 
 # [x] Porcelain API: logToFile() — one-liner file logging @km/loggily #feature #P2
@@ -23,3 +29,4 @@ dependencies:
 blocks:: [[@km/loggily]]
 
 Single convenience function combining createFileWriter() + addWriter() with sensible defaults (path, buffer size, rotation). Today developers call createFileWriter() manually; logToFile() should make it one line with zero config.
+

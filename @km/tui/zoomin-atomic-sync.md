@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - sel
 id: "@km/tui/zoomin-atomic-sync"
 aliases:
   - km-tui.zoomin-atomic-sync
@@ -63,6 +68,10 @@ dependencies:
     created_at: 2026-04-15T11:31:14Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.selection-focus-plateau
 ---
 
 # [x] Verify ZOOM_IN+sel.root.set pairing is actually needed — delete pair sites if not @km/tui #task #P3 @claude:8b5b9e1c
@@ -70,3 +79,4 @@ dependencies:
 blocks:: [[@km/silvery/selection-focus-plateau]]
 
 Every dialog goto path pairs dispatchBoard({type: 'ZOOM_IN'}) with sel.root.set(nodeId) manually (see f84e1375a, b99a81fa9, use-board-dialogs.ts). But syncPaneSignals in board-app-store.ts already calls pane.sel.root.set(pane.rootId) after every dispatchBoard. Investigation needed: either (a) the pair sites are redundant copy-paste and can be deleted, OR (b) syncPaneSignals skips some paths and the pair is load-bearing. If (a), delete 6+ call sites. If (b), make it unconditional so callers can't forget.
+

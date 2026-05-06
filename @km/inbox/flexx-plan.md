@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/flexx-plan"
 aliases:
   - km-flexx-plan
@@ -9,7 +11,7 @@ closed_at: 2026-01-31T17:34:52Z
 
 # [x] Flexx Strategy & Roadmap @km/_orphan #epic #P0
 
-# Flexx Strategy & Roadmap
+## Flexx Strategy & Roadmap
 
 **Goal: Drop-in Yoga replacement** ✅ ACHIEVED
 
@@ -24,26 +26,31 @@ closed_at: 2026-01-31T17:34:52Z
 ## Completed Work
 
 ### FOSS Publication
+
 - ✅ Zero-alloc as default export
-- ✅ Classic at /classic for debugging  
+- ✅ Classic at /classic for debugging
 - ✅ GitHub Actions CI (Bun matrix)
 - ✅ README with transparent perf docs
 
 ### Feature Parity
+
 - ✅ RTL support with EDGE_START/END
 - ✅ baselineFunc API
 - ✅ overflow-no-shrink auto-height
 - ✅ All edge cases fixed
 
 ### Testing
+
 - ✅ 66 layout tests
 - ✅ 41 yoga comparison tests
 - ✅ 15 cache stress tests
 - ✅ 401 differential fuzz tests
 
 ## Key Files
+
 - src/index.ts - Default export (zero-alloc)
 - src/index-classic.ts - Classic export
 - src/layout-zero.ts - Zero-alloc algorithm (with RTL)
 - src/node-zero.ts - Zero-alloc node
 - .github/workflows/ci.yml - CI configuration
+

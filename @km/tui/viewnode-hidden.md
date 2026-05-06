@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/viewnode-hidden"
 aliases:
   - km-tui.viewnode-hidden
@@ -21,3 +24,4 @@ TARGET: buildViewTree() accepts hiddenPaths and excludes hidden nodes during tre
 
 IMPACT: ~50 lines of filtering removed from view-navigation.ts, 5+ files simplified. Eliminates 'navigation landed on hidden node' bug class.
 DEPENDS ON: @km/tui/view-tree Phase 3.
+

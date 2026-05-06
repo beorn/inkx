@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - silvercode
 id: "@km/tribe/matrix-shape"
 aliases:
   - km-tribe.matrix-shape
@@ -20,13 +25,17 @@ dependencies:
     created_at: 2026-04-27T10:42:36Z
     created_by: claude:87d20187
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] Matrix portability — design epic for km+silvercode multi-actor convergence @km/tribe #feature #P3 @claude:87d20187
 
 blocks:: [[@km/tribe]]
 
-# Why
+## Why
 
 The empty `rooms` + `room_members` tables added in schema migration v10 (@km/tribe/event-classification) are scaffolding for an unscheduled future. Today every session joins the synthetic per-project default room; the tables exist but are unqueried and unused.
 
@@ -37,7 +46,7 @@ Two options for handling this honestly:
 
 This bead picks option (2 + actively-tracked design) instead of deletion.
 
-# What this epic tracks
+## What this epic tracks
 
 The shape of km + silvercode when multi-actor scenarios materialize:
 
@@ -57,14 +66,15 @@ The shape of km + silvercode when multi-actor scenarios materialize:
 - Federated direction: a "team" tribe that bridges per-machine instances. Matrix-shape becomes load-bearing here.
 - Out of scope until convergence pulls multi-user scenarios into scope.
 
-# Acceptance (for the near-term step)
+## Acceptance (for the near-term step)
 
 - tribe.members query exercises room_members; integration test verifies
 - Startup invariant added; failing-invariant test
 - README or runbook entry explains 'rooms is real, currently single-default-room'
 
-# Reference
+## Reference
 
 - Schema v10 migration in vendor/bearly/tools/lib/tribe/database.ts
 - hub/architecture.md convergence section
 - /big retrospective conversation 2026-04-27 (rooms tables: keep + use rather than delete)
+

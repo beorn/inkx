@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/vault-loader/4-update-other-commands-to-use-loadvault"
 aliases:
   - km-vault-loader.4
@@ -15,3 +17,4 @@ Update all CLI commands to use loadVault():
 - km sh, km show, km add, km move, km new: run(loadVault(root))
 - km rebuild: withProgress(loadVault(root, { force }))
 - km sync: withProgress(loadVault(root))
+

@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+projects:
+  - key
+  - "3"
 id: "@km/tui/shift-chars"
 aliases:
   - km-tui.shift-chars
@@ -27,3 +32,4 @@ Affected: key-adapter.ts:162 — char should be the raw terminal input, not the 
 Also: line 153 (!key.meta) blocks opt+key composed characters.
 
 Files: packages/@km/_orphan/commands/src/key-adapter.ts, vendor/silvery/packages/ag/src/keys.ts
+

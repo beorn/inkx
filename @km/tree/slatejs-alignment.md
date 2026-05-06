@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tree/slatejs-alignment"
 aliases:
   - km-tree.slatejs-alignment
@@ -19,12 +21,15 @@ km keeps: ID-based addressing, KNode traits, flat parent_id, effects model, mark
 km adopts: SlateJS vocabulary, atomic cursor, normalization, operation model, plugin composition.
 
 ## Completed
+
 - Phase 1: SlateJS vocabulary (split, mergeBackward, KNode.string, KTree.previous/next, degrade)
 - Phase 2: Atomic cursor (board-tree-ops.ts wraps tree ops + cursor atomically)
 
 ## Remaining
+
 - Phase 3: Auto-normalization — schema enforcement after every operation
 - Phase 4: Operation model — low-level ops with inversion for op-based undo
 - Phase 5: Selection model — Point/Range types, auto-adjustment after ops
 - Phase 6: Plugin composition — withHistory, withNormalization, withVim as formal decorators
 - Phase 7: Operation log — record ops for undo/collaboration/replay
+

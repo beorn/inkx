@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui1/7-keyboard-bindings-documentation"
 aliases:
   - km-tui1.7
@@ -15,6 +17,7 @@ Document all keyboard bindings for TUI1 in a consistent format.
 ## Current State
 
 Keyboard bindings are documented in various places:
+
 - docs/06-ui.md (partial)
 - HelpOverlay.tsx component (runtime help)
 - Inline in Board.tsx
@@ -28,6 +31,7 @@ Keyboard bindings are documented in various places:
 ## Categories
 
 ### Navigation
+
 - j/k: Down/Up
 - h/l: Left/Right (columns)
 - gg/G: Top/Bottom
@@ -35,6 +39,7 @@ Keyboard bindings are documented in various places:
 - Enter: Drill into item
 
 ### Actions
+
 - x: Toggle task status
 - d: Delete item
 - a/A: Add item
@@ -44,6 +49,7 @@ Keyboard bindings are documented in various places:
 - ?: Help overlay
 
 ### Panels
+
 - i: Toggle detail pane
 - p: Project picker
 - Esc: Close overlay
@@ -52,3 +58,4 @@ Keyboard bindings are documented in various places:
 
 - docs/06-ui.md
 - apps/@km/tui/packages/@km/_orphan/ink/src/views/HelpOverlay.tsx
+

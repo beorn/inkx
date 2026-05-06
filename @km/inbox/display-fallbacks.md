@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/display-fallbacks"
 aliases:
   - km-display-fallbacks
@@ -23,6 +25,7 @@ closed_at: 2026-01-23T10:08:19Z
 ## Analysis Needed
 
 Per CLAUDE.md §14, determine for each node type:
+
 - **folder**: Must have `fs_path`. Missing = bug
 - **file**: Must have `fs_path`. Missing = bug
 - **section**: Must have `title` or `content`. Missing = bug
@@ -50,3 +53,4 @@ function getNodeDisplayName(node: Node): string {
 ```
 
 Keep legitimate fallbacks (frontmatter name > H1 > filename) but throw if the required field is missing entirely.
+

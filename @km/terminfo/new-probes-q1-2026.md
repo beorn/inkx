@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/new-probes-q1-2026"
 aliases:
   - km-terminfo.new-probes-q1-2026
@@ -28,3 +31,4 @@ Q1 2026 quarterly review identified 5 high-priority new probes to add:
 Each needs: features.json metadata + probe-defs termless/term implementations + annotations + re-probe all terminals.
 
 Sources: xterm changelog (patches 397-407), kitty changelog (0.43-0.46), Ghostty 1.2-1.3 release notes, iTerm2 3.6.6-3.6.9.
+

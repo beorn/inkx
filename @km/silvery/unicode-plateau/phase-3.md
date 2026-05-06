@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/unicode-plateau/phase-3"
 aliases:
   - km-silvery.unicode-plateau.phase-3
@@ -26,6 +29,14 @@ dependencies:
     created_at: 2026-04-23T08:46:40Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.unicode-plateau
+      - type: link
+        target: km-silvery.unicode-plateau.phase-2
 ---
 
 # [x] Unicode plateau Phase 3: lint rule + docs sync @km/silvery #task #P1 @claude:c6244087
@@ -48,3 +59,4 @@ Changes:
   bun scripts/lint-env-reads.ts → 0 violations
   rg -n 'detectUnicode|detectExtendedUnderline' vendor/silvery/docs/ vendor/silvery/packages/*/README.md → 0 hits (in prose — historical mentions in internal comments OK if scoped)
   bun run lint passes
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/dns"
 aliases:
   - km-flexily.dns
@@ -18,3 +20,4 @@ flexily.dev A records point to AWS EC2 IPs (44.227.65.245, 44.227.76.166) instea
 The site works at beorn.codes/flexily (GitHub Pages). Fix: update flexily.dev DNS A records to GitHub Pages IPs, or set up a CNAME to beorn.github.io.
 
 Found by /test-site deep scan 2026-03-25.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/all/unify-p2-action-to-op"
 aliases:
   - km-all.unify-p2-action-to-op
@@ -15,6 +18,7 @@ assignee: Bjørn Stabell
 Rename all *Action types to *Op across the codebase.
 
 ## Renames
+
 - `CommandAction` → `KmOp` (root machine op union)
 - `BoardAction` → `BoardOp`
 - `TextEditAction` → `TextOp`
@@ -24,14 +28,17 @@ Rename all *Action types to *Op across the codebase.
 - `Operation` → `TreeOp` (the @km/tree atomic op type)
 
 ## Method
+
 - batch-refactor for mechanical renames
 - tsc errors guide remaining manual fixes
 - No re-exports, no compat aliases
 
 ## Delete
+
 All old type names. No `type CommandAction = KmOp` compat.
 
 ## Definition of Done
+
 - [ ] grep "CommandAction" in packages/ apps/ → 0 hits
 - [ ] grep "BoardAction" in packages/ apps/ → 0 hits
 - [ ] grep "type Operation " in packages/@km/tree → 0 hits (renamed to TreeOp)
@@ -39,3 +46,4 @@ All old type names. No `type CommandAction = KmOp` compat.
 - [ ] bun run test:fast passes
 - [ ] docs/architecture.md updated
 - [ ] CLAUDE.md updated
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/roadmap-integrate"
 aliases:
   - km-all.roadmap-integrate
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-17T00:18:28Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all
 ---
 
 # [ ] Integrate docs/roadmap.md into docs/backlog.md (or retire) @km/all #task #P3
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/all]]
 
 docs/roadmap.md (moved from repo root 2026-04-17) has a horizon-narrative structure (H1-H4) that predates the current backlog.md ordered-queue model. Decide: merge horizon framing into backlog.md 'Later' section, or keep roadmap.md as vision-level doc and cross-link both ways. Currently both exist and may drift.
+

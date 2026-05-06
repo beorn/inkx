@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/vxo17"
 aliases:
   - km-vxo17
@@ -21,6 +24,7 @@ The fix is conceptually simple: commit completed content to Ink's `<Static>` com
 ## Why this matters for inkx
 
 inkx is our custom Ink fork. If we can demonstrate this pattern working reliably, it:
+
 1. Validates our rendering architecture handles the Static/dynamic boundary correctly
 2. Gives us a reusable pattern for any tall-content TUI (km included)
 3. Could be contributed upstream or documented as a known solution
@@ -28,6 +32,7 @@ inkx is our custom Ink fork. If we can demonstrate this pattern working reliably
 ## Experiment
 
 Build a small inkx demo that:
+
 1. Renders a growing list of messages (simulating a chat conversation)
 2. Once a message is 'complete', moves it to `<Static>` (committed to scrollback)
 3. Keeps only the current/active message in the dynamic render area
@@ -36,7 +41,9 @@ Build a small inkx demo that:
 6. Test a 'compaction' scenario: replace dynamic content while Static scrollback remains untouched
 
 ## Key questions to answer
+
 - Does inkx's Static implementation handle this correctly?
 - What happens when you mix Static scrollback with in-app scrolling?
 - Are there edge cases with terminal resize, Unicode, or wrapped lines?
 - Performance: does committing hundreds of Static items degrade anything?
+

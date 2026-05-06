@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/5plh"
 aliases:
   - km-5plh
@@ -15,8 +17,10 @@ Current: Navigation is purely structural (prev/next sibling, parent/child)
 Decker: Uses getBoundingClientRect() to find nearest item in visual direction
 
 For TUI, could:
+
 1. Track row positions of rendered items
 2. On up/down in outline mode, find item at nearest row
 3. Especially useful when items span multiple lines
 
 Lower priority - current structural nav works, this is enhancement.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/resume-verify"
 aliases:
   - km-inkx.resume-verify
@@ -15,3 +17,4 @@ After resumeTerminalState(), query DECRQM to verify alt screen (1049), cursor vi
 
 Files: inkx runtime term-provider.ts
 Depends on: @km/silvery-legacy/decrqm
+

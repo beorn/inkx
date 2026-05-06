@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/bp1x"
 aliases:
   - km-bp1x
@@ -16,7 +18,7 @@ If TUI1 layout pain points are addressable, prototype a thin abstraction layer t
 ## Goals
 
 1. Reduce manual width tracking boilerplate
-2. Centralize display length calculations  
+2. Centralize display length calculations
 3. Simplify text truncation patterns
 4. Make component code more declarative
 
@@ -37,3 +39,4 @@ If TUI1 layout pain points are addressable, prototype a thin abstraction layer t
 ## Depends On
 
 - @km/_orphan/zrbr (TUI1 analysis) - need to understand pain points first
+

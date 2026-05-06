@@ -19,8 +19,10 @@ Currently scrollTo (number prop on ListView, setScrollOffset method on useKineti
 API: add scrollBehavior?: 'instant' | 'smooth' prop to ListView (default 'instant' for backward compat). Internally, useKineticScroll exposes animateToFloat(target, durationMs?) that runs an interval-driven animation using cubic ease-out. User wheel input cancels the animation (via existing stopKinetic).
 
 Acceptance:
+
 - new prop scrollBehavior on ListView (default 'instant')
 - new method on useKineticScroll: animateToFloat
 - changing scrollTo with scrollBehavior='smooth' animates over ~250ms cubic ease-out
 - user wheel input during animation cancels and resumes manual control
 - test: animation reaches target within duration, can be cancelled mid-flight
+

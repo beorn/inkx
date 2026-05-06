@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/doctor-handlers-section"
 aliases:
   - km-silvercode.doctor-handlers-section
@@ -24,6 +27,10 @@ dependencies:
     created_at: 2026-04-25T19:17:30Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.doctor
 ---
 
 # [x] doctor: introspect autolinks handler registry (schemes + URL hosts) @km/silvercode #feature #P3 @claude:2405c72e
@@ -31,3 +38,4 @@ dependencies:
 blocks:: [[@km/silvercode/doctor]]
 
 Follow-up to autolinks-uri-pivot (d30140205) + per-host URL handlers (a38aae82d). The doctor command's autolinks section currently introspects rules + cascade + paths but doesn't show what handlers are REGISTERED. After URI pivot + per-host handlers, the registry has 5 scheme handlers (file, bd, https, shell, mcp) and 4 host parsers under https (github.com, gist.github.com, linear.app, JIRA-pattern hosts). Add a 'handlers' section to silvercode doctor autolinks: list registered schemes + their purpose, enumerate the host parsers under https, and add per-rule scheme coverage that maps each loaded rule's resolves_to URI to its matching handler (or flags unmatched as error). Acceptance: silvercode doctor autolinks includes handlers subsection; lists 5 schemes; enumerates host parsers; per-rule coverage maps to matching handler; tests for handlers-list, rule-coverage-match, rule-coverage-unmatched; existing tests still pass. Not in scope: HTTP fetching to validate, new top-level subcommand. Refs: URI pivot d30140205, per-host a38aae82d, doctor framework apps/silvercode/src/doctor/
+

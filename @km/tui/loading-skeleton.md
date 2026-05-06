@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/loading-skeleton"
 aliases:
   - km-tui.loading-skeleton
@@ -11,3 +14,4 @@ assignee: claude:a7826e85
 # [x] Show loading skeleton/spinner for lazy-loaded content @km/tui #feature #P2 @claude:a7826e85
 
 When navigating around, cards suddenly appear as lazy loading completes. Instead of appearing abruptly, show a ghosted/skeleton item placeholder that gets replaced with actual content. The skeleton should be styled like a faded version of the item at that position.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/persist-view-settings"
 aliases:
   - km-tui.persist-view-settings
@@ -20,3 +22,4 @@ View settings like 'hide done' are currently ephemeral — they reset when the a
 Settings to persist: hide done toggle, any other view filters/sort modes.
 
 Options: persist per-vault in SQLite (alongside node data), or in a config file, or in the vault's .km/ directory.
+

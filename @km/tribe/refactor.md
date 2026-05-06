@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tribe/refactor"
 aliases:
   - km-tribe.refactor
@@ -112,6 +115,10 @@ dependencies:
     created_at: 2026-04-27T00:17:29Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] Tribe daemon refactor — pipe-composition + unified daemon + observable lifecycle @km/tribe #epic #P2 @claude:87d20187
@@ -147,3 +154,4 @@ Refactor the tribe daemon to:
 - Tribe daemon source uses the pipe + with* pattern end-to-end
 - hub/composition.md and hub/architecture.md describe live code, not aspirational
 - A new plugin can be added with one entry; no edits to core daemon dispatch
+

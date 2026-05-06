@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/jtze2"
 aliases:
   - km-jtze2
@@ -24,3 +27,4 @@ Currently km.collapse is column-only (section rule). Unifying it means Comments/
 Search should still index collapsed nodes — collapse is a display preference, not a relevance filter.
 
 Ref: docs/principles.md § Structural, Not Physical
+

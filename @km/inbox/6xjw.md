@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/6xjw"
 aliases:
   - km-6xjw
@@ -9,3 +12,4 @@ assignee: claude:5f8fa618
 ---
 
 # [x] test-output-enforcement @km/_orphan #task #P2 @claude:5f8fa618
+

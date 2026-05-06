@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - Bjørn
 id: "@km/silvery/interactions-runtime"
 aliases:
   - km-silvery.interactions-runtime
@@ -19,7 +23,10 @@ assignee: Bjørn Stabell
 All silvery interaction systems: selection, mouse/pointer, hover, drag, focus, clipboard, copy-mode. Includes runtime architecture (headless machines, providers) and feature implementation.
 
 ## Completed (Phase 0-6)
+
 Machines moved to @silvery/headless, InputRouter, CapabilityRegistry, SelectionFeature, withDomEvents (find, copy-mode, drag), observer hooks, purge old hooks, fix demo/km/docs.
 
 ## Remaining
+
 Selection quality + consolidation, mouse dispatch on absolute elements, contain boundary, pointer interaction model, hover visuals, userSelect, word/line select, copy-on-select, clipboard architecture.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - silvery
+  - km
 id: "@km/silvery/sterling-design-material"
 aliases:
   - km-silvery.sterling-design-material
@@ -19,6 +22,14 @@ dependencies:
     created_at: 2026-04-19T14:43:31Z
     created_by: claude:4274df30
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-all.sterling
+      - type: link
+        target: km-silvery.design-package-rename
 ---
 
 # [ ] Sterling Phase 5: @silvery/design-material reference impl @km/silvery #task #P4
@@ -32,9 +43,11 @@ Validates the 'swap the import' claim with a second real consumer.
 Post-plateau — not required for Sterling ship.
 
 ## Acceptance
+
 - @silvery/design-material package published to npm
 - Exports material: DesignSystem with deriveFromColor + deriveFromScheme
 - silvery.dev storybook can load material and switch modes live
 
 DEPENDS: design-package-rename
 Parent: @km/silvery/theme-v4
+

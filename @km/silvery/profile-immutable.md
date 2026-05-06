@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/profile-immutable"
 aliases:
   - km-silvery.profile-immutable
@@ -18,6 +21,10 @@ dependencies:
     created_at: 2026-04-23T03:24:05Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Readonly<TerminalProfile> + dev-freeze + invariant test @km/silvery #task #P2 @claude:c6244087
@@ -25,3 +32,4 @@ dependencies:
 blocks:: [[@km/silvery]]
 
 Per /pro review. Make TerminalProfile Readonly. Freeze in dev builds. Invariant test: profile.colorTier === profile.caps.colorLevel. Prevents silent mutation of the single source of truth.
+

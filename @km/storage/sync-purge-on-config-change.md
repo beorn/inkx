@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/sync-purge-on-config-change"
 aliases:
   - km-storage.sync-purge-on-config-change
@@ -19,7 +21,10 @@ Spun out from @km/storage/content-issues (vault session, 2026-04-24).
 Adding new globs to inactive: doesn't retroactively remove already-ingested nodes from state.db — only re-parses changed files. Requires `km doctor rebuild` (10–20 min on this vault).
 
 ## Design question
+
 Should config-surface changes that affect node visibility (inactive list, includeRoots, etc.) trigger an automatic re-evaluation pass? Or at least a 'your config changed; X nodes may now be stale; run rebuild' prompt at sync time?
 
 ## Related
+
 Blocked behind @km/storage/doctor-rebuild-empties-db — rebuild itself is currently broken.
+

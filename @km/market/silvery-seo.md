@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/market/silvery-seo"
 aliases:
   - km-market.silvery-seo
@@ -17,3 +20,4 @@ assignee: Bjørn Stabell
 # [x] silvery.dev SEO audit and optimization @km/market #task #P2 @Bjørn Stabell
 
 SEO audit and optimization for silvery.dev. Audit complete (score 69/100). Reports: FULL-AUDIT-REPORT.md, ACTION-PLAN.md. Agent findings: seo-schema-findings.md, seo-sitemap-findings.md, seo-geo-findings.md. Key issues: duplicate meta descriptions (143/145 pages), guide/guides URL collision, missing OG tags, thin about/why pages, component count inconsistency.
+

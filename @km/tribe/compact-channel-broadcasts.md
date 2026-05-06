@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tribe/compact-channel-broadcasts"
 aliases:
   - km-tribe.compact-channel-broadcasts
@@ -24,6 +27,10 @@ dependencies:
     created_at: 2026-04-23T14:09:51Z
     created_by: claude:da4429de
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] Compact tribe channel broadcasts into per-turn summary @km/tribe #task #P2 @claude:da4429de
@@ -31,3 +38,4 @@ dependencies:
 blocks:: [[@km/infra]]
 
 Tribe currently pipes every channel event as a raw <channel source=plugin:tribe:tribe>…</channel> tag onto the next user turn. Under heavy activity the transcript becomes a wall of tags and the model pattern-matches to 'transcript continuation', amplifying any malformed hook stdout into role-prefix hallucination cascades. Coalesce multiple events into one compact <tribe-delta> summary tag per turn. Attacks the autocatalytic environment, also cuts tribe token cost ~20× and reduces attention dilution across all sessions.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/ocwrx"
 aliases:
   - km-ocwrx
@@ -13,17 +16,21 @@ assignee: claude:1588825b
 Extract shared virtualization logic to eliminate 100+ lines of duplication.
 
 ## Current State
+
 - VirtualList.tsx: 277 lines
 - HorizontalVirtualList.tsx: 322 lines
 - ~95% duplicate logic with only directional differences
 
 ## API Inconsistencies to Fix
+
 - HorizontalVirtualList supports variable item sizes (function), VirtualList doesn't
 - HorizontalVirtualList has gap/separator features VirtualList lacks
 - Different default values (OVERSCAN=5 vs 1, MAX_RENDERED=100 vs 20)
 
 ## Proposed Solution
+
 Extract useVirtualization hook:
+
 ```typescript
 interface VirtualizationConfig<T> {
   axis: 'vertical' | 'horizontal';
@@ -38,6 +45,8 @@ interface VirtualizationConfig<T> {
 ```
 
 ## Files
+
 - vendor/beorn-inkx/src/components/VirtualList.tsx
 - vendor/beorn-inkx/src/components/HorizontalVirtualList.tsx
 - vendor/beorn-inkx/src/hooks/useVirtualization.ts (NEW)
+

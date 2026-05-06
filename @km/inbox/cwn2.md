@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn-claude-78480
 id: "@km/inbox/cwn2"
 aliases:
   - km-cwn2
@@ -13,6 +16,7 @@ assignee: beorn-claude-78480
 When cursoring all the way to the right and the viewport should start scrolling, the app crashes instead.
 
 ## Reproduction
+
 ```bash
 km view /tmp/tst-vault3
 # Use 'l' repeatedly to move cursor to rightmost column
@@ -21,13 +25,17 @@ km view /tmp/tst-vault3
 ```
 
 ## Expected
+
 - At edge: cursor should stay on rightmost column (no crash)
 - OR if horizontal scrolling is implemented: viewport should scroll to reveal more columns
 
 ## Investigation
+
 Likely causes:
+
 - Array bounds error in column navigation
 - Missing bounds check in h/l navigation handler
 - Virtual column handling at boundaries
 
 Priority P0 because it's a crash (data loss risk).
+

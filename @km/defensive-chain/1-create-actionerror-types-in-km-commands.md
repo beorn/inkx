@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+  - km
+  - claude
 id: "@km/defensive-chain/1-create-actionerror-types-in-km-commands"
 aliases:
   - km-defensive-chain.1
@@ -12,3 +16,4 @@ assignee: claude
 # [x] Create ActionError types in @km/commands @km/defensive-chain #task #P1 @claude
 
 Add ActionError union type (boundary, precondition, unimplemented) with ergonomic constructors.
+

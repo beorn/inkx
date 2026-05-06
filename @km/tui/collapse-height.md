@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/collapse-height"
 aliases:
   - km-tui.collapse-height
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Column stays too tall after uncollapsing @km/tui #bug #P2
 
 After uncollapsing a column, it stays at full height instead of resizing to match content. The VirtualList doesn't properly recalculate when transitioning from collapsed (no VirtualList) to expanded (with VirtualList). May need key-based remounting or explicit dimension tracking.
+

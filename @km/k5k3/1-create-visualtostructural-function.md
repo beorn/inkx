@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/k5k3/1-create-visualtostructural-function"
 aliases:
   - km-k5k3.1
@@ -9,3 +11,4 @@ closed_at: 2026-01-21T10:46:48Z
 ---
 
 # [x] Create visualToStructural function @km/k5k3 #task #P1
+

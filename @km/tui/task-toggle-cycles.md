@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/task-toggle-cycles"
 aliases:
   - km-tui.task-toggle-cycles
@@ -20,3 +23,4 @@ Repro: press x on a todo task. Expected: toggle to done. Actual: cycles through 
 Root cause: handleTaskStatusCycle in board-actions-edit.ts:486-502 always cycles via hardcoded statusCycle array, ignoring the status field on the op. Both toggle_task_done and cycle_task_status produce TASK_SET_STATUS ops, so they behave identically. set_status_todo/wip/blocked/done/dropped also broken via this dispatch path.
 
 Mouse click works (CheckboxIcon.tsx calls repo.updateNode directly), keyboard shortcuts go through the broken dispatch.
+

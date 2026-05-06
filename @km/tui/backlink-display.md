@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/backlink-display"
 aliases:
   - km-tui.backlink-display
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Detail pane backlinks: show breadcrumb + title instead of raw block IDs @km/tui #bug #P2
 
 Backlinks in the detail pane currently show raw block IDs. Should display as breadcrumb path + bolded title, e.g.: asana / family / **Task Title**. Uses getProjectPath() for the breadcrumb and getNodeDisplayName() for the title.
+

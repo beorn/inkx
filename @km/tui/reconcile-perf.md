@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/reconcile-perf"
 aliases:
   - km-tui.reconcile-perf
@@ -26,7 +29,7 @@ User reports km sync feels slower at reconciling. Hypothesis: some code path cha
 The slate-interfaces refactor (@km/core/slate-interfaces) changed ONLY import names in @km/storage — no logic changes. But other recent commits may have introduced slower patterns:
 
 - `e0edcff3` fix(storage): resolve ambiguous links to first match instead of null
-- `8c7dae28` fix(storage): buildEmbedChild should not copy source content  
+- `8c7dae28` fix(storage): buildEmbedChild should not copy source content
 - `b4cfb23e` refactor(storage): unify embed child creation with buildEmbedChild()
 - `dd2f8761` refactor!: remove type:"embed" from BlockType
 
@@ -44,5 +47,7 @@ The slate-interfaces refactor (@km/core/slate-interfaces) changed ONLY import na
 - db-rules embed resolution doing extra SQL per node
 
 ## /complete
+
 - Profile identifies the slow path
 - Fix brings reconciliation back to expected speed
+

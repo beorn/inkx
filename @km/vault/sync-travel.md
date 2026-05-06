@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/vault/sync-travel"
 aliases:
   - km-vault.sync-travel
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Sync ~fam/Travel & Trips → ~vault/drive/travel @km/vault #task #P4
 
 Trip docs, Orlando, China, camping. ~87 files.
+

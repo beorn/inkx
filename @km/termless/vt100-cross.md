@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/vt100-cross"
 aliases:
   - km-termless.vt100-cross
@@ -15,3 +18,4 @@ assignee: claude:4929065a
 # [x] Cross-compare vt100-ts vs vt100-rust conformance @km/termless #task #P2 @claude:4929065a
 
 Add cross-comparison tests between our TypeScript vt100 backend and the Rust vt100 crate. Find disagreements — each one is a bug in one or the other. Extend cross-backend.test.ts to include both vt100 variants.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/market/termless-content"
 aliases:
   - km-market.termless-content
@@ -14,3 +17,4 @@ assignee: claude:4929065a
 ---
 
 # [x] termless.dev content: recipes, FAQ, comparison (vs pexpect/expect) @km/market #feature #P3 @claude:4929065a
+

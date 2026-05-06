@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/unify-h-nav"
 aliases:
   - km-tui.unify-h-nav
@@ -13,3 +16,4 @@ assignee: Bjørn Stabell
 # [x] Consolidate vnNavigateToStructuralCol + vnNavigateToBody into single helper @km/tui #task #P3 @Bjørn Stabell
 
 Two horizontal navigation helpers with overlapping position tracking and stickyY logic. Merge into vnNavigateToColumn(). ~1.5 hours.
+

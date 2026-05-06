@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/tool-block-collapsed-truncation"
 aliases:
   - km-silvercode.tool-block-collapsed-truncation
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-25T22:53:59Z
     created_by: claude:bc3eb794
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Tool block collapsed truncation: first-line wrap or configurable preview length instead of ellipsis @km/silvercode #feature #P3 @claude:bc3eb794
@@ -27,3 +34,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 When tool blocks are collapsed, current behavior truncates with ellipsis. Should instead show first-line wrap or configurable preview length so user can see meaningful content at a glance. Polish bead from session.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/dry-clip-rect"
 aliases:
   - km-silvery.dry-clip-rect
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] DRY: Extract intersectRects/clipRectToBounds rectangle utilities @km/silvery #task #P3
 
 Clip-and-fill rectangle logic duplicated across renderBox, clearNodeRegion, clippedFill, _clearDescendantOverflow with slight semantic differences. Introduce intersectRects(), clipRectToBounds(), fillClippedRect(). Found by GPT pipeline review.
+

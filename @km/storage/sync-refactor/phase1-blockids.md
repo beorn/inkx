@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/sync-refactor/phase1-blockids"
 aliases:
   - km-storage.sync-refactor.phase1-blockids
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Phase 1: Deduplicate createBlockIdAssigner @km/storage #task #P2
 
 Extract createBlockIdAssigner from SyncManager and EventHandlers into shared code. Delete duplicate in SyncManager. EventHandlers already has db/repoPath context.
+

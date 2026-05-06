@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+  - km
+  - claude
 id: "@km/silvercode/markdown-real"
 aliases:
   - km-silvercode.markdown-real
@@ -19,6 +23,10 @@ dependencies:
     created_at: 2026-04-24T09:36:43Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Replace naive md tokenizer with @km/markdown (real mdast) @km/silvercode #task #P2 @claude:0940ca20
@@ -26,3 +34,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 Current apps/silvercode/src/markdown.ts is a hand-rolled regex tokenizer. @km/markdown already uses mdast-util-from-markdown and handles edge cases (nested emphasis, code fences in lists, tables with inline markup, etc.). Refactor MarkdownView.tsx to call @km/markdown's parseMarkdown → mdast Root, then render via a node-type switch. Keep the InlineRun/MarkdownTable render primitives; just swap the parser+types underneath. Tests in apps/silvercode/tests/markdown.test.ts should continue to pass (they test block/inline detection; upgrade them to assert new edge cases while at it).
+

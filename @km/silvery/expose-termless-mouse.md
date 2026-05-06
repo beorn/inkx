@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/expose-termless-mouse"
 aliases:
   - km-silvery.expose-termless-mouse
@@ -18,6 +20,10 @@ dependencies:
     created_at: 2026-04-23T00:39:31Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Expose termless mouse + clipboard API through silvery's createTermless @km/silvery #feature #P2
@@ -27,7 +33,9 @@ blocks:: [[@km/silvery]]
 Termless has mouseDown/Up/Move/wheel + OSC 52 clipboardWrites already (vendor/termless/src/terminal.ts:226-260, :75-100). Silvery's createTermless() returns a Term that hides them, so every test rolls its own SGR-1006 byte injector via (term as any).sendInput. Six hand-rolled helpers in selection-e2e.test.tsx alone.
 
 ## Fix
+
 Expose termless's existing methods on the Term returned by createTermless():
+
 - `term.mouse.down(x, y, options?)`
 - `term.mouse.up(x, y, options?)`
 - `term.mouse.move(x, y, options?)`
@@ -37,16 +45,20 @@ Expose termless's existing methods on the Term returned by createTermless():
 Delegate straight to termless's Terminal. No new termless features, no encoding changes.
 
 ## Why
+
 - Enables the mouse state-machine contract tests planned by @km/silvery/defaults-contract-tests
 - Eliminates `as any` casts + byte-formatting drift in tests
 - Makes `createTermless` surface match its purpose (simulate terminal events for tests)
 - Matches the pattern the Chrome plugin uses: `page.mouse.down()`, familiar DX
 
 ## Scope
+
 - vendor/silvery/packages/test/src/index.tsx — add the passthrough methods to the Term returned by createTermless
 - Optionally: add a mouse-helper utility on createTermless ONLY (not the real createTerm, since real terminals don't inject synthetic events)
 
 ## Acceptance
+
 - selection-e2e.test.tsx can replace its 6 hand-rolled helpers with direct `term.mouse.down()` calls
 - Zero `as any` casts on term in silvery's test suite
 - All existing selection + mouse tests still pass
+

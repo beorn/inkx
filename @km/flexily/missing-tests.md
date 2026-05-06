@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/missing-tests"
 aliases:
   - km-flexily.missing-tests
@@ -17,3 +19,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Testing: 10 concrete missing test cases — logical edges, static, absolute alignment, etc. @km/flexily #task #P1
+

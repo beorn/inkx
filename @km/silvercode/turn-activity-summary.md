@@ -1,7 +1,4 @@
 ---
-tags:
-  - feature
-  - P0
 mentions:
   - km
 id: "@km/silvercode/turn-activity-summary"
@@ -30,3 +27,4 @@ Acceptance:
 - [x] No raw backend-specific labels leak into primary display.
 - [x] Raw details remain recoverable.
 - [x] Storybook includes rich examples: active turn with reads/writes/commands, long bash output, failed command, file edits with diff summary, todo changes, permission prompt adjacency, ambient notifications, and collapsed vs expanded/popover states using real silvercode components.
+

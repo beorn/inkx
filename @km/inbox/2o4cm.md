@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/2o4cm"
 aliases:
   - km-2o4cm
@@ -16,3 +19,4 @@ assignee: claude:f53c94c1
 ---
 
 # [x] Session: asana-import + vault setup @km/_orphan #task #P3 @claude:f53c94c1
+

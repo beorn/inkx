@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/storage/tui-reactivity-wiring"
 aliases:
   - km-storage.tui-reactivity-wiring
@@ -21,6 +24,8 @@ Currently @km/tui uses useSyncExternalStore(repo.subscribe, getSnapshot) for bro
 - Benefits: Only affected nodes re-render (1 card vs entire 2000-node board on keystroke)
 
 Scope:
+
 1. Modify app startup (createApp/repo.ts) to create store + wrap with withReactive
 2. Update all component hooks to use useNodeSignal instead of repo.subscribe
 3. Run tests to verify no behavioral changes (just performance improvement)
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/rev-arch-0130/8-delete-deprecated-modules-rebuild-ts-loadrepo"
 aliases:
   - km-rev-arch-0130.8
@@ -28,8 +30,10 @@ bunx tsc --noEmit 2>&1 | head -50
 ```
 
 ## Definition of Done
+
 - [ ] rebuild.ts deleted entirely
 - [ ] loadRepo() deleted from repo-loader.ts
 - [ ] All callers migrated to createRepo()
 - [ ] `tsc` passes
 - [ ] `grep -r "loadRepo\b" packages/` finds nothing (except createRepo internals)
+

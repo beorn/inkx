@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - pop
 id: "@km/silvery/theme-v3-test-migration-cleanup"
 aliases:
   - km-silvery.theme-v3-test-migration-cleanup
@@ -18,6 +22,10 @@ dependencies:
     created_at: 2026-04-18T22:41:36Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Migrate mono-tier-attrs.test.tsx to pushContextTheme+pop helper @km/silvery #task #P4
@@ -25,3 +33,4 @@ dependencies:
 blocks:: [[@km/silvery]]
 
 mono-tier-attrs.test.tsx uses setActiveTheme(theme) which is now a no-op (after R2 AgNode cascade). Tests currently pass by luck — ansi16DarkTheme is the default theme, so the no-op doesn't matter. Migrate to a withTheme(theme, fn) test helper that properly push/pops the context stack. Low priority: current tests aren't broken, just vestigial.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/pro-review-strategy"
 aliases:
   - km-silvery.pro-review-strategy
@@ -15,3 +18,4 @@ assignee: claude:fed8de9e
 # [x] Pro Review: silvery strategy, framing, sequencing @km/silvery #task #P3 @claude:fed8de9e
 
 GPT 5.4 Pro review of all silvery design docs + beads after major updates: three projections, multiple gateways, interaction ownership, ag-dom-positioned. Focus: strategic coherence, sequencing, product viability.
+

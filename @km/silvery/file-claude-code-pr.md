@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/file-claude-code-pr"
 aliases:
   - km-silvery.file-claude-code-pr
@@ -16,6 +18,7 @@ Sub-bead of @km/silvery/positioning. File a technical comment (not a PR) on the 
 ## DO NOT FILE WITHOUT EXPLICIT USER APPROVAL
 
 Gated on user review. Requirements:
+
 1. User reviews full draft word-by-word
 2. User approves tone (technical, collegial, no sales)
 3. User confirms NO source code links
@@ -25,12 +28,14 @@ Gated on user review. Requirements:
 ## Link policy
 
 **ALLOWED**:
+
 - silvery.dev (marketing site, once)
 - github.com/beorn/silvery (repo root, once, for attribution)
 - A silvery demo or example page showing inline incremental updates in action (if one exists)
 - chrislloyd's HN comment (as respectful reference to what we're responding to)
 
 **FORBIDDEN**:
+
 - Direct links to packages/ag-term/src/pipeline/output-phase.ts
 - Direct links to tests/inline-mode.test.ts or tests/inline-output.bench.ts
 - Any source code file paths
@@ -92,3 +97,4 @@ Not trying to pitch migration — just noting the sub-problem you described as u
 ## Parent
 
 @km/silvery/positioning
+

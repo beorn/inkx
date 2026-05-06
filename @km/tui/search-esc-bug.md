@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/search-esc-bug"
 aliases:
   - km-tui.search-esc-bug
@@ -15,3 +17,4 @@ explore-search-fts.test.ts:36 fails:
 BUG: Escape did not close the search dialog. The dialog is still visible after pressing Escape.
 
 This may be a keybinding issue where Escape isn't reaching the search dialog, or the dialog's close handler isn't working.
+

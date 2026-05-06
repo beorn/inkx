@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/text-shrink-ghost"
 aliases:
   - km-inkx.text-shrink-ghost
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] inkx: shorter text leaves ghost characters from previous longer content @km/inkx #bug #P2
+

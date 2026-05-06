@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/hffm4"
 aliases:
   - km-hffm4
@@ -12,6 +14,7 @@ closed_at: 2026-02-02T10:38:33Z
 This bead is BLOCKED by inkx-mig.
 
 Once inkx-mig removes createTestRenderer entirely, this bead becomes:
+
 - Migrate km tests from createTestRenderer to render()
 - Migrate stdin.write() to app.press()
 
@@ -20,3 +23,4 @@ DO NOT START until inkx-mig is complete - otherwise you'll be migrating to an AP
 Depends: inkx-mig
 
 Labels: [chore inkx]
+

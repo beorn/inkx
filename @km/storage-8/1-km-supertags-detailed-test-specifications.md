@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage-8/1-km-supertags-detailed-test-specifications"
 aliases:
   - km-storage-8.1
@@ -375,6 +377,7 @@ type: schema
 ## Acceptance Criteria (Detailed)
 
 ### Parser
+
 - [ ] Parses schema files from markdown
 - [ ] Extracts property definitions
 - [ ] Handles all property types (text, number, date, boolean, enum, link)
@@ -383,6 +386,7 @@ type: schema
 - [ ] Parses extends clause
 
 ### Registry
+
 - [ ] Registers and retrieves schemas
 - [ ] Resolves inheritance chain
 - [ ] Handles multi-level inheritance
@@ -390,6 +394,7 @@ type: schema
 - [ ] Detects circular inheritance
 
 ### Validator
+
 - [ ] Validates correct properties pass
 - [ ] Warns on missing required property
 - [ ] Warns on invalid enum value
@@ -398,5 +403,7 @@ type: schema
 - [ ] Skips nodes without schema tags
 
 ### Quality
+
 - [ ] `bun run test:fast` passes
 - [ ] `bun run test:all` passes
+

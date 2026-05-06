@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/popover-nodestore"
 aliases:
   - km-tui.popover-nodestore
@@ -22,8 +25,13 @@ dependencies:
     created_at: 2026-04-13T23:30:15Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Popover render missing NodeStoreProvider → useNodeStore throws @km/tui #bug #P2 @Bjørn Stabell
 
 blocks:: [[@km/tui]]
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/felf"
 aliases:
   - km-felf
@@ -8,3 +10,4 @@ closed_at: 2026-01-21T09:05:27Z
 ---
 
 # [x] Add npm debug package systematically across entire codebase @km/_orphan #task #P4
+

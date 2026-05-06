@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/typed-event-categories"
 aliases:
   - km-storage.typed-event-categories
@@ -18,8 +20,10 @@ owner: bjorn@stabell.org
 From /big quality review: All events are treated uniformly in a flat switch. Task events only update metadata, session events are read-only, but the code path is the same.
 
 FIX: Discriminated union categories:
+
 - StructuralEvent = node_created | node_deleted | node_moved
 - UpdateEvent = node_updated | task_claimed | task_completed
 - ReadOnlyEvent = session_* | message | conflict_created
 
 Handlers dispatch by category, not individual type. Eliminates switch duplication in db-events.ts + event-handlers.ts.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/inline-edit-cursor"
 aliases:
   - km-tui.inline-edit-cursor
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Pressing 'i' resets cursor position instead of keeping it on current node @km/tui #bug #P2
 
 When pressing 'i' to enter inline edit mode, the cursor jumps to a different node instead of staying on the currently selected node. Expected: cursor remains on the same node, inline edit activates for that node. Actual: cursor position resets to some other location.
+

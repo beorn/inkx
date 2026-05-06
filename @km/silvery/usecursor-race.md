@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/usecursor-race"
 aliases:
   - km-silvery.usecursor-race
@@ -25,6 +27,7 @@ Mount three `<TextInput>` components in a column with `isActive={i === 0}` on on
 ## Canonical fix direction
 
 useCursor should use a shared registry (not per-instance state) — each active instance registers, the last active one wins. Inactive instances shouldn't clear the registry. Alternatives:
+
 - Effect dependency on `visible` — only fire on visible=true; leave cleanup to unmount
 - Shared cursor-owner signal — all instances subscribe; writes go to a per-frame reducer that picks the unique active instance
 
@@ -37,3 +40,4 @@ useCursor should use a shared registry (not per-instance state) — each active 
 ## Parent
 
 Standalone silvery bug (no epic). Relates to `km-silvercode.wrap-ergonomic` only tangentially (both are silvery ergonomics).
+

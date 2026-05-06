@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/7cw2f"
 aliases:
   - km-7cw2f
@@ -13,3 +16,4 @@ assignee: claude:e039a9ca
 # [x] ScrollbackView item memoization @km/_orphan #feature #P2 @claude:e039a9ca
 
 Freeze cache per key, useMemo on context value, MemoItem wrapper, renderItem prop. Example needs lift-state-down pattern for Footer/TextInput.
+

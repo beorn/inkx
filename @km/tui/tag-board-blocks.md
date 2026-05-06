@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/tag-board-blocks"
 aliases:
   - km-tui.tag-board-blocks
@@ -13,3 +16,4 @@ assignee: claude:36393b5d
 # [x] Tag board columns: body includes bare embed blocks instead of resolved subitems @km/tui #bug #P2 @claude:36393b5d
 
 Tag board columns (e.g., #@-norway) show body indicator (···) but the body contains bare ![[^id]] embed blocks. These should either resolve to actual content or be treated as subitems, not body blocks.
+

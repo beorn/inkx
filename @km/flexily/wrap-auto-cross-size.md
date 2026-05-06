@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/wrap-auto-cross-size"
 aliases:
   - km-flexily.wrap-auto-cross-size
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Bug: Wrapped auto-sized child containers get line cross-size 0 @km/flexily #bug #P0
+

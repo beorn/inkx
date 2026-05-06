@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/default-style-comments"
 aliases:
   - km-flexily.default-style-comments
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Docs: createDefaultStyle() comments inaccurate — don't distinguish CSS vs Yoga defaults @km/flexily #task #P2
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/popover"
 aliases:
   - km-silvery.popover
@@ -48,13 +50,16 @@ These should just work without any extra props:
 - Replace current inline Tooltip with floating Popover (backwards compat: Tooltip becomes alias)
 
 ## Existing infrastructure
+
 - Link component: hover detection, onMouseEnter/Leave, useMouseCursor
 - useModifierKeys: tracks Cmd/Ctrl/Alt/Shift
 - Tooltip: basic inline version (to be replaced)
 - Absolute positioning: already supported in Flexily
 
 ## Done when
+
 - Popover renders floating near target with viewport awareness
 - Link shows URL on hover by default (no opt-in)
 - Truncated text shows full text on hover by default
 - Focused elements show keybinding hint by default
+

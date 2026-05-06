@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/help-dialog-colors"
 aliases:
   - km-tui.help-dialog-colors
@@ -13,7 +16,9 @@ assignee: claude:3c1481f8
 # [x] Help dialog: multiple colors - bright white title, section headings, yellow keys @km/tui #feature #P2 @claude:3c1481f8
 
 User wants richer help dialog colors:
+
 - Pane title: bright white
 - Section headings (NAVIGATION etc): different color
 - Keys: yellow (consider yellow as accent color)
 - Question: should yellow be the accent color? Currently accent=magenta in theme.
+

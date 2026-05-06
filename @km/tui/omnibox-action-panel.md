@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/omnibox-action-panel"
 aliases:
   - km-tui.omnibox-action-panel
@@ -35,6 +37,16 @@ dependencies:
     created_at: 2026-04-14T17:09:34Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-tui.omnibox-dialog
+      - type: link
+        target: km-tui.omnibox-unified
+      - type: link
+        target: km-tui.omnibox-when
 ---
 
 # [x] Action panel on selected candidate (Embark/Raycast pattern) @km/tui #feature #P2
@@ -46,8 +58,10 @@ Explicit 'actions for this object' affordance. After the user selects an argumen
 This is an ergonomic polish over the existing Tab-to-command-field flow — same mechanism, more discoverable presentation. /big research (GPT-5.4 + GPT-5.4 Pro, both independently) converged on this as the #1 addition for v1. It addresses the 'premature verb commitment' risk in the current design.
 
 Concretely:
+
 - Tab from argument → general command override (existing)
 - Cmd+K from argument → action panel (new): command-field focused, header shows 'Actions for <object>', results filtered to when-valid commands for the cursor type
 - The filter uses the same when-clause evaluation Phase 4 adds
 
 Acceptance: (a) Cmd+K on a selected argument opens the command field with a visible 'Actions for <name>' header; (b) command results are pre-filtered by when(ctx) against the current cursor's node type; (c) Tab-to-command-field (general) and Cmd+K (candidate-filtered) coexist — user picks which flow suits their need; (d) journey test covers both paths landing on the same command dispatch.
+

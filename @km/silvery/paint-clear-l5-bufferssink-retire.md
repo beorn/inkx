@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/paint-clear-l5-bufferssink-retire"
 aliases:
   - km-silvery.paint-clear-l5-bufferssink-retire
@@ -15,6 +18,10 @@ dependencies:
     created_at: 2026-04-27T22:06:21Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.structural-hardening
 ---
 
 # [/] L5: retire BufferSink as authoritative; eliminate intra-frame buffer reads; delete clearExcessArea + drop hasPrevBuffer arg @km/silvery #task #P2 @claude:cc081a9a
@@ -41,50 +48,55 @@ The L5 win requires three sequential pieces of work, all flagged in the parent
 bead's existing notes as multi-session:
 
 STEP 5 — outline snapshots off the buffer
-  - Sink does not yet have setOutlineSnapshots; outline cleanup currently
+
+- Sink does not yet have setOutlineSnapshots; outline cleanup currently
     relies on per-cell snapshots stored on the buffer.
-  - Move outlineSnapshots to RenderPostState (or off the buffer entirely) so
+- Move outlineSnapshots to RenderPostState (or off the buffer entirely) so
     the decoration phase can run against the PlanSink-committed buffer.
 
 STEP 6 — eliminate intra-frame buffer reads (the real Phase 2 blocker)
-  - Audit every read of buffer state during the render walk:
-    - getCellBg fallback in render-text.ts:589,593 — applyBgSegmentsToLine
+
+- Audit every read of buffer state during the render walk:
+  - getCellBg fallback in render-text.ts:589,593 — applyBgSegmentsToLine
       readCellInto for nested <Text bg> reading sibling-painted chars (Step 1d
       from earlier notes; requires BackedPlanSink with internal buffer or a
       fully-propagated inheritedBg path through bg-segment tracking)
-    - dirty-row inspection in output-phase.ts
-    - any other getCellBg / getCell reads
-  - PlanSink has no backing buffer; renderers must derive these from node state.
-  - Reference: render-plan.ts line 6 ("fresh prevBuffer clone. Phase 1 is
+  - dirty-row inspection in output-phase.ts
+  - any other getCellBg / getCell reads
+- PlanSink has no backing buffer; renderers must derive these from node state.
+- Reference: render-plan.ts line 6 ("fresh prevBuffer clone. Phase 1 is
     opt-in via SILVERY_RENDER_PLAN…") and render-sink.ts:23 onward.
 
 STEP 7 — wire SILVERY_RENDER_PLAN as production source-of-truth
-  - Currently at vendor/silvery/packages/ag-term/src/ag.ts:447, the line
+
+- Currently at vendor/silvery/packages/ag-term/src/ag.ts:447, the line
     `buffer = captured.result` keeps BufferSink's output as authoritative.
     `replay = prevBuffer.clone(); commitSectionedPlan(replay, captured.plan)`
     runs but is parity-only (`void replay`).
-  - After Step 6 lands, switch authoritative output to `replay` (or merge
+- After Step 6 lands, switch authoritative output to `replay` (or merge
     BufferSink into PlanSink and emit a single buffer).
-  - Delete the legacy BufferSink code path.
+- Delete the legacy BufferSink code path.
 
 PHASE 3 — final cleanup (after Steps 5/6/7)
-  - Delete `clearExcessArea` entirely; cleanupOps section of the
+
+- Delete `clearExcessArea` entirely; cleanupOps section of the
     SectionedRenderPlan absorbs the clearRect emissions.
-  - Delete the `hasPrevBuffer` argument from `requireExcessClearGate` (the
+- Delete the `hasPrevBuffer` argument from `requireExcessClearGate` (the
     second-pass case is now structurally impossible because there is no
     walk-order stomp — `commitSectionedPlan` applies cleanup → paint, so
     paints always win).
-  - Remove `SILVERY_RENDER_PLAN` env var.
-  - Add per-frame fuzz property test verifying paint-clear ordering on
+- Remove `SILVERY_RENDER_PLAN` env var.
+- Add per-frame fuzz property test verifying paint-clear ordering on
     real-world tree shapes (current fuzz only tests synthetic op streams).
 
 PROTOTYPE / EXPLORATION
 
 silvery branch `feat/paint-clear-l5-final` (commits b994e077, e8c7a2db) shows
 prior exploration:
-  - Step 1a: selectableMode threaded via NodeRenderState (decouples sink from
+
+- Step 1a: selectableMode threaded via NodeRenderState (decouples sink from
     intra-frame state).
-  - Step 1b: eliminated getCellBg fallback in render-text.ts at three sites
+- Step 1b: eliminated getCellBg fallback in render-text.ts at three sites
     (renderGraphemes:1002,1046; renderAnsiTextLineReturn:1116). The remaining
     sites at render-text.ts:589,593 (applyBgSegmentsToLine) need the harder
     BackedPlanSink-with-internal-buffer treatment per the L4 session notes.
@@ -110,3 +122,4 @@ TRACKING
 
 Parent: @km/silvery/structural-hardening
 Predecessor: @km/silvery/paint-clear-invariant (L4, closed)
+

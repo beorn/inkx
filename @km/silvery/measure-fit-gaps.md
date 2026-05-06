@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/measure-fit-gaps"
 aliases:
   - km-silvery.measure-fit-gaps
@@ -15,3 +18,4 @@ assignee: claude:65d845d9
 # [x] Bug: measureIntrinsicSize() ignores gap, internal_transform, flex-wrap @km/silvery #bug #P1 @claude:65d845d9
 
 In measure-phase.ts, fit-content measurement doesn't account for gap property, internal_transform effects, or width-constrained height wrapping. Current implementation is a simplified intrinsic-size guess.
+

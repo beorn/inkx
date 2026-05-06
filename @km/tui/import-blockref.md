@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/import-blockref"
 aliases:
   - km-tui.import-blockref
@@ -11,3 +14,4 @@ assignee: claude:36393b5d
 ---
 
 # [x] Import: bare ^numericId refs should become link_to nodes @km/tui #bug #P2 @claude:36393b5d
+

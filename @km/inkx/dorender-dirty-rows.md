@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/dorender-dirty-rows"
 aliases:
   - km-inkx.dorender-dirty-rows
@@ -19,3 +21,4 @@ Fix: Early return in doRender() — after React reconciliation, if root has no d
 
 File: vendor/beorn-inkx/src/runtime/create-app.tsx (lines 764-777)
 Verified: TTY testing confirms j/k/l navigation with detail pane updates correctly.
+

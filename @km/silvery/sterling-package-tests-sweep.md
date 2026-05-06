@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sterling-package-tests-sweep"
 aliases:
   - km-silvery.sterling-package-tests-sweep
@@ -26,6 +29,14 @@ dependencies:
     created_at: 2026-04-24T16:14:50Z
     created_by: claude:5e447b66
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-all.sterling
+      - type: link
+        target: km-silvery.sterling-2e-interior-migration
 ---
 
 # [x] Sweep legacy theme tokens in vendor/silvery/packages/*/tests/ (~137 uses) — rewrite test expectations alongside 0.20.0 inlineSterlingTokens drop @km/silvery #task #P3 @claude:22c2717d
@@ -37,15 +48,19 @@ Created from @km/silvery/sterling-tests-legacy-sweep DONE evidence (closed by te
 The 137 hits in per-package tests are NOT a simple rename — they test the resolver path, legacy aliases, deprecation surface, and the Sterling double-population shim (inlineSterlingTokens). Renaming them today would silently delete coverage of the layer 0.20.0 is going to REMOVE.
 
 ## Scope
+
 - vendor/silvery/packages/*/tests/ — 137 legacy-token uses
 - Materially different from tests/ sweep: rewriting test expectations + assertions, not mechanical renames
 - Must happen ALONGSIDE the inlineSterlingTokens drop, not before
 
 ## Blocks
+
 - 0.20.0 release (inlineSterlingTokens removal — Phase F-final per @km/silvery/sterling-2e-interior-migration notes)
 
 ## Acceptance
+
 - After inlineSterlingTokens runtime shim removed
 - vendor/silvery/packages/*/tests/ legacy-token uses → 0 hits (or only documented exceptions)
 - All package test suites pass with the new shape
 - Coverage of the resolver/deprecation/aliasing layer either ported or intentionally retired
+

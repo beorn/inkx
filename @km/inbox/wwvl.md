@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/wwvl"
 aliases:
   - km-wwvl
@@ -16,6 +18,7 @@ Evaluate whether to continue with TUI1 (Ink) or TUI2 (OpenTUI) for the productio
 ## Context
 
 TUI2 exploration discovered blocking OpenTUI bugs:
+
 - **002**: Text color ignored when backgroundColor set (blocking)
 - **003**: Bracket/space rendering drops characters (blocking)
 
@@ -30,3 +33,4 @@ Meanwhile, TUI1 has known layout pain points that motivated the exploration.
 ## Outcome
 
 Clear recommendation with rationale for which TUI to invest in.
+

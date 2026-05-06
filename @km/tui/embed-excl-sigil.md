@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/embed-excl-sigil"
 aliases:
   - km-tui.embed-excl-sigil
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Embedded nodes still render with \! prefix after 'km add' @km/tui #bug #P2
 
 After using 'km add' to create embedded links, the nodes still render with the \! prefix (from \![[target]] syntax) in the TUI. See /tmp/vt/@next.
+

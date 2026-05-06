@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/garbled-render"
 aliases:
   - km-tui.garbled-render
@@ -11,3 +14,4 @@ assignee: claude:23485adf
 ---
 
 # [x] Screen garbles on cursor movement with large Asana vault (256k nodes) @km/tui #bug #P1 @claude:23485adf
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/inkx-loop-9"
 aliases:
   - km-inkx-loop-9
@@ -20,3 +23,4 @@ Parent: @km/_orphan/silvery-legacy-loop
 - Effect lifecycle docs
 - Getting started guide (done)
 - Example programs (done)
+

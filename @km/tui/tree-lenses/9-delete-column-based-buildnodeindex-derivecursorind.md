@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/tree-lenses/9-delete-column-based-buildnodeindex-derivecursorind"
 aliases:
   - km-tui.tree-lenses.9
@@ -17,3 +19,4 @@ owner: bjorn@stabell.org
 # [x] Delete column-based buildNodeIndex + deriveCursorIndices — use tree versions only @km/tui #task #P2
 
 Board.tsx and buildOpCtx both have buildNodeIndexFromTree available. Delete buildNodeIndex (column version) entirely and switch both to the tree version. Same for deriveCursorIndices.
+

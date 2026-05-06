@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/asana-deps"
 aliases:
   - km-tui.asana-deps
@@ -11,3 +14,4 @@ assignee: claude:d697f216
 ---
 
 # [x] Asana import: map dependencies/dependents to inline references @km/tui #task #P3 @claude:d697f216
+

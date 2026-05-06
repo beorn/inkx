@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/user-select"
 aliases:
   - km-silvery.user-select
@@ -50,3 +52,4 @@ DESIGN DOC: vendor/internal/silvery/design/v10-terminal/text-selection-and-clipb
 - Phase 2: word/line selection, find, copy-mode
 - Phase 3: semantic providers, clipboard backends, paste
 - Phase 5: demos, km integration, silvery.dev docs
+

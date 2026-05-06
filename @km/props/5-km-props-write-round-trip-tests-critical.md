@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/props/5-km-props-write-round-trip-tests-critical"
 aliases:
   - km-props.5
@@ -11,6 +13,7 @@ closed_at: 2026-01-21T12:13:28Z
 # [x] km-props: Write round-trip tests (CRITICAL) @km/props #task #P1
 
 Create packages/@km/markdown/tests/properties-roundtrip.test.ts with tests for:
+
 - Single property round-trip (parse → serialize)
 - Multiple properties round-trip
 - Property order preservation
@@ -20,3 +23,4 @@ Create packages/@km/markdown/tests/properties-roundtrip.test.ts with tests for:
 - Properties survive storage round-trip (JSON serialize/deserialize)
 
 This is CRITICAL for ensuring properties don't get lost or corrupted during sync.
+

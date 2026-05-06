@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/defensive-chain/2-update-board-actions-ts-to-return-actionresult"
 aliases:
   - km-defensive-chain.2
@@ -12,3 +15,4 @@ assignee: claude
 # [x] Update board-actions.ts to return ActionResult @km/defensive-chain #task #P1 @claude
 
 Modify handlers to return ActionResult instead of void. Return boundary() for navigation limits.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/bench"
 aliases:
   - km-all.bench
@@ -35,3 +37,4 @@ Production per-press: ~6.6ms (well under 16ms budget). Startup: 1-2ms full, 9-11
 ## Children
 
 - @km/silvery/keypress-spans: DONE — spans in run(), budget alerts, exit summary
+

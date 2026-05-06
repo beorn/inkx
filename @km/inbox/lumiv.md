@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/lumiv"
 aliases:
   - km-lumiv
@@ -16,3 +19,4 @@ assignee: claude:ceb7c9cb
 # [x] feat: centralized hoveredNodeId with debounce @km/_orphan #feature #P2 @claude:ceb7c9cb
 
 Replace per-card useState hover with a single store-level hoveredNodeId reactive signal. Debounced (~50-100ms) so rapid mouse movement doesn't trigger render cascades. All hover effects (card border, link underline, Cmd+hover armed state) subscribe to this one signal. Only 2 cards re-render per hover change (old card clears, new card highlights).
+

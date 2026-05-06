@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - km
+  - km
+  - claude
 id: "@km/storage/fs-mount-delete-compat-reexports"
 aliases:
   - km-storage.fs-mount-delete-compat-reexports
@@ -22,6 +27,10 @@ dependencies:
     created_at: 2026-04-22T08:33:09Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage
 ---
 
 # [x] Delete @km/storage → @km/fs-mount re-exports (finish fs-mount) @km/storage #task #P2 @claude:8b5b9e1c
@@ -34,7 +43,7 @@ The fs-mount bead (closed 2026-04-22, commit 16ca94b0c) extracted fs/ + watch/ +
 
 Today, consumers can write:
 
-  import { createEchoGuard } from '@km/storage'   // via re-export
+import { createEchoGuard } from '@km/storage'   // via re-export
   import { createEchoGuard } from '@km/fs-mount'  // direct
 
 Both work. Result: no pressure to migrate, @km/storage import surface stays bloated forever, and the 'web/canvas-ready @km/storage' promise remains theoretical (the re-exports keep the coupling alive even if the source files moved).
@@ -43,9 +52,9 @@ Both work. Result: no pressure to migrate, @km/storage import surface stays bloa
 
 1. Identify every re-export from @km/storage/src/index.ts that forwards a symbol from @km/fs-mount. Grep: grep -n 'from "@km/fs-mount"' packages/@km/storage/src/index.ts.
 2. Migrate every consumer to import from @km/fs-mount directly:
-   - apps/@km/tui, apps/@km/_orphan/cli, apps/@km/_orphan/repl, apps/@km/_orphan/web
-   - packages/@km/_orphan/board, packages/@km/_orphan/commands, packages/@km/_orphan/agent, packages/@km/beads, packages/@km/tree
-   - Any test helpers.
+  - apps/@km/tui, apps/@km/_orphan/cli, apps/@km/_orphan/repl, apps/@km/_orphan/web
+  - packages/@km/_orphan/board, packages/@km/_orphan/commands, packages/@km/_orphan/agent, packages/@km/beads, packages/@km/tree
+  - Any test helpers.
 3. Delete the re-exports from @km/storage/src/index.ts.
 4. Each consumer package.json gets an explicit @km/fs-mount workspace dep if it didn't have one.
 5. (Optional, stretch goal) Add an oxlint rule or tsconfig pathBanning that @km/core + @km/storage cannot import 'fs' — per the fs-mount bead's original intent. Currently 17 @km/storage files still import 'fs' (DO-NOT-MOVE list); this would require either moving those or documenting the exception. Out of scope unless part of the deletion passes cleanly.
@@ -60,3 +69,4 @@ Both work. Result: no pressure to migrate, @km/storage import surface stays bloa
 ## Why this is required
 
 Without this bead, fs-mount is cosmetic — the module boundary exists structurally but has no enforcement. The package extraction's stated goal ('web/canvas-ready @km/storage') is blocked by the re-exports keeping the coupling.
+

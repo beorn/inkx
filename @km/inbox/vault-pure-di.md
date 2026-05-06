@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - 4f15ead4-7d35-4730-bfaa-6e6c222d57fa
 id: "@km/inbox/vault-pure-di"
 aliases:
   - km-vault-pure-di
@@ -13,6 +16,7 @@ assignee: 4f15ead4-7d35-4730-bfaa-6e6c222d57fa
 Thread db parameter through 5 internal functions in vault-loader.ts so createVault() uses pure DI instead of global singleton.
 
 Functions to update:
+
 - resolveLinks(db, ...)
 - resolveLinksAsync(db, ...)
 - buildFileIndex(db)
@@ -20,6 +24,8 @@ Functions to update:
 - parseDeferredSequential(db, ...)
 
 Also update:
+
 - vault.ts to use result.database
 - watcher.ts to accept db via options
 - rebuild.ts to accept db as parameter
+

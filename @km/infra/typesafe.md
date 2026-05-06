@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/typesafe"
 aliases:
   - km-infra.typesafe
@@ -13,3 +16,4 @@ assignee: claude:8f007ba9
 # [x] Codebase-wide type safety pass @km/infra #task #P3 @claude:8f007ba9
 
 Systematic pass over the entire codebase to improve type safety: remove 'any' types, add missing type annotations, use stricter TypeScript config options, fix unsafe member access patterns, eliminate type assertions where possible.
+

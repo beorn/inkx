@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-fake-cursor"
 aliases:
   - km-silvery.theme-fake-cursor
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-17T22:07:26Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.design-system
 ---
 
 # [x] Theme fake cursors — wire SelectList / Picker / TextInput / Board to cursorColor/cursorText @km/silvery #feature #P3
@@ -49,3 +55,4 @@ Real cursor handles shell interaction; rendered UI blocks still use fake cursors
 Full context: hub/silvery/design/v10-terminal/terminal-color-strategy.md
 Parent: @km/silvery/design-system
 Depends on: @km/silvery/theme-auto-detect (ensures cursorColor populated)
+

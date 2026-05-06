@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/inbox/chore-1"
 aliases:
   - km-chore-1
@@ -9,3 +12,4 @@ assignee: beorn
 ---
 
 # [x] Fix all lint warnings and errors in project @km/_orphan #chore #P1 @beorn
+

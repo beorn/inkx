@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/inbox/9mle8"
 aliases:
   - km-9mle8
@@ -19,3 +22,4 @@ assignee: Bjørn Stabell
 # [x] km sync crashes on vault after Asana integration @km/_orphan #task #P2 @Bjørn Stabell
 
 km sync crashes during parseMarkdownWithLinks (@km/markdown/src/ast2nodes.ts:149). Triggered after adding blockquote breadcrumbs to 6 Asana archive files and creating new files with @ids sigil mentions + start::/end:: inline props. Stack: applyReconcileOps → handleUpdate → processMarkdownFile → parseMarkdownWithLinks. Files modified: archive/Asana/stabell/family/*.md (breadcrumbs), areas/@office/Immigration/index.md, areas/@office/Insurance/index.md, @ids.md. Likely a markdown edge case in the blockquote parsing or inline props.
+

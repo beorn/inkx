@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/retention"
 aliases:
   - km-tribe.retention
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] TTL-based retention for messages, events, reads tables @km/tribe #feature #P2
 
 Tables grow unbounded. Add retention: delete reads older than 7d, compact messages older than 30d, archive events. Keep cursor semantics robust with seq-based approach.
+

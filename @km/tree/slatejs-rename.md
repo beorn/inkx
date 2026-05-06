@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tree/slatejs-rename"
 aliases:
   - km-tree.slatejs-rename
@@ -31,3 +34,4 @@ RENAME:
   backspaceDegradation → degrade
 
 Use /refactor migrate for the mechanical rename.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/detail-pane-polish"
 aliases:
   - km-tui.detail-pane-polish
@@ -24,6 +27,10 @@ dependencies:
     created_at: 2026-04-22T20:57:55Z
     created_by: claude:019d032d
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] DetailView: fix white-on-white cursor + paragraph spacing + align with selection model @km/tui #bug #P2 @claude:019d032d
@@ -31,3 +38,4 @@ dependencies:
 blocks:: [[@km/tui]]
 
 DetailView currently uses $bg-cursor/$fg-cursor (terminal cursor colors) for the cursor highlight — resolves to white-on-white in many themes, producing an unreadable block at the top of the pane. It also lacks paragraph spacing, right-edge padding, and H2 leading air. Fix by adopting the canonical @km/tui selection convention ($selectionbg/$selection + stripInlineColors) already used everywhere else (TreeNode, NodeView, CardColumn, Board). Same change applies to every DocNode branch so the detail pane and the link-hover popover (which reuses DocContent) both benefit. Also: paragraph marginBottom, paddingX on DocContent, height=2 above H2, skip leading gap on first child, switch InlineCode to variant='code' for a subtle tint.
+

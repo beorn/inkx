@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/detail-pane-polish-2"
 aliases:
   - km-tui.detail-pane-polish-2
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-22T21:26:25Z
     created_by: claude:019d032d
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] DetailView: indent heading children, HR width, done-item readability, nav diagnosis for Done section @km/tui #bug #P2 @claude:019d032d
@@ -26,3 +33,4 @@ dependencies:
 blocks:: [[@km/tui]]
 
 Follow-up to @km/tui/detail-pane-polish. Screenshot shows: (1) HR extends to line 200 truncated with ellipsis instead of pane width, (2) Done-section tasks render with compounded strikethrough+muted+dim making them nearly invisible, (3) heading children render at same left margin as heading — no visual nesting, (4) user reports 'can't cursor down in Done blocks'. Nav instrumentation added to createDetailViewNavigation so user can DEBUG=km:nav to capture. Visual polish shipped; nav diagnosis pending user repro data.
+

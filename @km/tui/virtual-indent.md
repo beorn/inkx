@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/virtual-indent"
 aliases:
   - km-tui.virtual-indent
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Virtual cards content indented too much @km/tui #bug #P4
+

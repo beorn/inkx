@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sterling-2c-km-migration"
 aliases:
   - km-silvery.sterling-2c-km-migration
@@ -63,6 +66,14 @@ dependencies:
     created_at: 2026-04-19T14:43:01Z
     created_by: claude:4274df30
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.sterling-2b-ui-components
+      - type: link
+        target: km-silvery.theme-v4
 ---
 
 # [x] Sterling Phase 2c: Batch-refactor km-tui ~145 call sites @km/silvery #task #P2 @claude:4274df30
@@ -72,9 +83,11 @@ blocks:: [[@km/silvery/sterling-2b-ui-components]], [[@km/silvery/theme-v4]]
 Mechanical migration of @km/tui from camelCase Theme fields to flat Sterling tokens.
 
 ## Approach
+
 /refactor migrate (bun tools/refactor.ts). Regex replacements: theme.primaryfg → theme['fg-on-accent'], theme.mutedbg → theme['bg-surface-subtle'], etc. Full migration map lives in design-system.md Appendix C.
 
 ## Acceptance
+
 - rg 'theme\.(primaryfg|mutedbg|selectionbg|inputborder|focusborder|cursorbg|popoverbg|surfacebg|inversebg|disabledfg)\b' apps/ → 0 hits
 - @km/tui visual tests still pass (no behavioral change)
 - tsc clean
@@ -82,3 +95,4 @@ Mechanical migration of @km/tui from camelCase Theme fields to flat Sterling tok
 DEPENDS: sterling-2b-ui-components
 BLOCKS: sterling-2d-release
 Parent: @km/silvery/theme-v4
+

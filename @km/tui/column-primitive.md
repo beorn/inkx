@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/column-primitive"
 aliases:
   - km-tui.column-primitive
@@ -114,6 +117,10 @@ dependencies:
     created_at: 2026-04-20T20:59:20Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Unify CardColumn structural + body render branches into Column primitive @km/tui #feature #P3 @claude:8b5b9e1c
@@ -121,3 +128,4 @@ dependencies:
 blocks:: [[@km/tui]]
 
 CardColumn has two parallel render branches: structural cards (bordered, overflow count in border) vs body blocks (unframed, maxRows + indicator). Body-block-leading-gap was fixed by 1-line paddingTop guard — dual-branch had different spacing contracts. Real plateau: unify behind single Column primitive with frame?: 'bordered' | 'naked' + uniform gap. Requires visual parity tests before+after.
+

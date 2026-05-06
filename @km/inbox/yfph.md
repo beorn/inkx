@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/yfph"
 aliases:
   - km-yfph
@@ -12,8 +14,10 @@ closed_at: 2026-01-17T00:08:46Z
 apps/@km/_orphan/cli/src/tui/views/Board.tsx has grown to 2804 lines, making it difficult to maintain and understand.
 
 Suggested decomposition:
+
 - Extract column rendering logic
-- Extract card rendering logic  
+- Extract card rendering logic
 - Extract keyboard handlers
 - Extract drag-and-drop logic
 - Extract selection logic
+

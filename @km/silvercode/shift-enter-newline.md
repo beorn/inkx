@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - Enter
 id: "@km/silvercode/shift-enter-newline"
 aliases:
   - km-silvercode.shift-enter-newline
@@ -47,6 +52,10 @@ dependencies:
     created_at: 2026-04-25T22:17:31Z
     created_by: claude:230fa25d
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Shift+Enter inserts newline in command input (multi-line commands) @km/silvercode #feature #P2 @claude:230fa25d
@@ -60,3 +69,4 @@ Mechanism: silvery's TextArea + Kitty keyboard protocol distinguishes shift+ente
 If TextArea doesn't expose a 'submit predicate' API, we may need to grow one in silvery (vendor/silvery/packages/ag-react/src/ui/components/TextArea.tsx) — submitKey already supports 'enter' and 'ctrl+enter'; consider adding the inverse 'shift-enter-is-newline' option, or accept submitKey as a function.
 
 Reference: queue-region TextArea uses submitKey='ctrl+enter' so plain Enter inserts newline (the inverse of what command region needs).
+

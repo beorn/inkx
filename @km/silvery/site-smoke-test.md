@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/site-smoke-test"
 aliases:
   - km-silvery.site-smoke-test
@@ -17,12 +20,14 @@ assignee: claude:19080504
 # [x] Automated smoke test for silvery.dev — verify all live demos and embedded apps @km/silvery #task #P2 @claude:19080504
 
 Create a Playwright-based smoke test (or AI skill) that:
+
 1. Navigates to every page on silvery.dev that has embedded live apps
 2. For each app: verifies the terminal renders (not blank/error), checks all tabs/views
 3. Takes screenshots for visual comparison
 4. Reports broken demos, console errors, missing content
 
 Locations to test:
+
 - /examples/ — ShowcaseGallery with 5 demos (dashboard, kanban, components, dev-tools, textarea)
 - / (homepage) — viewer iframe
 - /examples/ai-chat — individual example page
@@ -30,3 +35,4 @@ Locations to test:
 - Any other pages with embedded viewers
 
 Should run as a CI check or on-demand skill.
+

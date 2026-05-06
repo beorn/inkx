@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/hns-phase4"
 aliases:
   - km-tui.hns-phase4
@@ -28,21 +31,28 @@ Add editingDescendant and excludedSigils as reduced signals. Delete syncEdit and
 7. Final bench comparison
 
 ## Delete
+
 - syncEdit (method)
 - expandedEditCardId (store-level signal)
 - Sigil walk in hydrate()
 
 ## /complete
+
 \`\`\`bash
 rg syncEdit --glob '!.beads' --glob '!vendor' --glob '!docs' -t ts -c 2>/dev/null | wc -l  # → 0
 rg expandedEditCardId --glob '!.beads' --glob '!vendor' --glob '!docs' -t ts -c 2>/dev/null | wc -l  # → 0
 rg 'useSignal.*expandedEditCardId' --glob '!.beads' --glob '!vendor' -t ts -c 2>/dev/null | wc -l  # → 0
-# Sigil hydration removed:
+
+## Sigil hydration removed:
+
 rg 'hydrateDescendant\|deriveExcludedSigils\|deriveColumnExcludedSigils' --glob '!.beads' --glob '!vendor' -t ts -c 2>/dev/null | wc -l  # → 0 (or only definition if utility is kept)
 
 bun run test:fast  # all pass
-# Bench: content render ≤ 8% of wall time (same or better than Phase 0 baseline)
 
-# Full sweep — nothing left from the old system:
+## Bench: content render ≤ 8% of wall time (same or better than Phase 0 baseline)
+
+## Full sweep — nothing left from the old system:
+
 rg 'syncCursor\|syncSelected\|syncEdit\|_legacySync\|prevDescendantCardId\|expandWithDescendants\|hydrateDescendantSelection\|assertParity' --glob '!.beads' --glob '!vendor' --glob '!docs' -t ts -c 2>/dev/null | wc -l  # → 0
 \`\`\`
+

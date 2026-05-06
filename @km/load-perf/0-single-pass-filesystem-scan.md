@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/load-perf/0-single-pass-filesystem-scan"
 aliases:
   - km-load-perf.0
@@ -17,3 +19,4 @@ File: packages/@km/storage/src/vault-loader.ts
 Lines: 216 (countMarkdownFiles), 226 (scanDirectory)
 
 Expected impact: 2x faster discovery phase
+

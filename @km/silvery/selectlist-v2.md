@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/selectlist-v2"
 aliases:
   - km-silvery.selectlist-v2
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] SelectList as ListView composition @km/silvery #task #P2
 
 Rewrite SelectList as thin wrapper over ListView with nav + onChange shorthand. Gets cache/search for free.
+

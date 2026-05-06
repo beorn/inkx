@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/omnibox-interactions"
 aliases:
   - km-tui.omnibox-interactions
@@ -29,6 +32,14 @@ dependencies:
     created_at: 2026-04-14T16:25:25Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-tui.omnibox-cursor
+      - type: link
+        target: km-tui.omnibox-unified
 ---
 
 # [x] Interaction polish — sigil auto-replace, sticky memory, ghost accept, modifier chords (Phase 7) @km/tui #feature #P1 @claude:2405c72e
@@ -86,3 +97,4 @@ Covers four orthogonal behaviors — each row in the test matrix below is a jour
 Wire capture_inbox to read the current buffer as the new node's title when invoked from the omnibox without a selected argument.
 
 Acceptance: each numbered section above is a test file with at least one journey test per row. The edge cases (section 5) specifically require reducer-level tests to avoid requiring full UI setup.
+

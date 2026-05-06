@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/overline-attr"
 aliases:
   - km-silvery.overline-attr
@@ -21,6 +23,10 @@ dependencies:
     created_at: 2026-04-23T14:05:38Z
     created_by: claude:c56dc5d6
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Add overline attr prop (SGR 53/55) to Box/Text @km/silvery #feature #P2
@@ -30,6 +36,7 @@ blocks:: [[@km/silvery]]
 Add overline support parallel to the underline attr-props work. Top overscroll indicator in ListView currently uses underline on the top row which renders visually wrong (line appears inside the content). overline (SGR 53) is the correct primitive for a line drawn ABOVE the character cell.
 
 Scope:
+
 - packages/ag/src/types.ts: add overline?: boolean to BoxAttrProps/TextAttrProps
 - packages/ag-term/src/buffer.ts: ATTR_OVERLINE bit (bit 23, currently spare); pack/unpack; add to VISIBLE_SPACE_ATTR_MASK
 - packages/ag-term/src/pipeline/output-phase.ts: SGR 53 set, SGR 55 reset; caps detection
@@ -38,7 +45,9 @@ Scope:
 - apps: ListView.tsx uses overline=single for top indicator instead of underline
 
 Acceptance:
+
 - grep "overline" vendor/silvery/packages/ → non-zero hits in types.ts + buffer.ts + output-phase.ts + tests
 - top overscroll in cmux.app renders as line ABOVE text, not underline
 - bun vitest run vendor/silvery/tests/ passes
 - SILVERY_STRICT=2 on ListView overscroll test passes
+

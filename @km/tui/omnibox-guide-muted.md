@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/omnibox-guide-muted"
 aliases:
   - km-tui.omnibox-guide-muted
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-18T12:17:55Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Omnibox prefix guide: everything except keybindings should be muted @km/tui #feature #P2
@@ -29,3 +35,4 @@ blocks:: [[@km/tui]]
 The PREFIXES / TASKS guide rendered in UnifiedOmnibox.tsx PrefixGuide() on empty universal buffer. Currently labels + sigils are at default brightness. The user wants all non-keybinding text at muted. Only keybindings/hotkeys (if shown) keep normal contrast. Actually the guide has no keybinding shortcuts — it's just sigil→label pairs. The whole guide should be dim so it reads as affordance, not content.
 
 Check UnifiedOmnibox.tsx GuideRow / GuideHeading / PREFIX_GUIDE definitions.
+

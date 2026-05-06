@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/test-simplify/3-delete-km-tui-visual-navigation-duplicate"
 aliases:
   - km-test-simplify.3
@@ -9,3 +11,4 @@ closed_at: 2026-01-23T23:30:59Z
 ---
 
 # [x] Delete km-tui visual-navigation duplicate @km/test-simplify #task #P3
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/rendertoxterm"
 aliases:
   - km-silvery.rendertoxterm
@@ -34,3 +37,4 @@ assignee: claude:55df8ef1
 # [x] Unify render API: xterm.js is just another terminal adapter, not a special render function @km/silvery #task #P2 @claude:55df8ef1
 
 renderToXterm() shouldn't exist as a separate function. run() takes {stdin, stdout} (process-compatible streams). xterm.js has term.write() and term.onData(). Need a TerminalIO abstraction that works for both: { write, cols, rows, onInput, onResize }. run() defaults to process.stdin/stdout, but accepts TerminalIO for xterm.js or any other terminal. Intermediate step done: renderToXterm now auto-wires input/mouse/focus via callbacks.
+

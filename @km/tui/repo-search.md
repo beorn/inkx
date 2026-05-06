@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/repo-search"
 aliases:
   - km-tui.repo-search
@@ -16,11 +18,13 @@ owner: bjorn@stabell.org
 Repo-wide search plugin using createSearchMachine<NodeMatch>.
 
 ## Match Type
+
 ```typescript
 interface NodeMatch { nodeId: string; title: string; snippet: string; parentContext: string | null; tags: string[] }
 ```
 
 ## Behavior
+
 - / opens repo search dialog
 - Searches across all nodes via repo.search() (SQLite FTS5)
 - Results shown in modal dialog with title + context + tags
@@ -29,23 +33,28 @@ interface NodeMatch { nodeId: string; title: string; snippet: string; parentCont
 - Escape closes
 
 ## Integration
+
 - Board/App registers repo.search as Searchable<NodeMatch>
 - Uses same createSearchMachine<M> building block as local-find
 - Both can be active simultaneously (Ctrl+F highlighting persists while / dialog is open)
 
 ## UI
+
 - SearchDialog: modal with InputBox + results list (existing km SearchDialog pattern)
 - Scope switching: All vs Selected (existing Tab behavior)
 - Match highlighting in results via computeSearchDecorationsFromSource
 
 ## Commands (era2)
+
 - search.open, search.close, search.next, search.prev
 - Keybindings: / (open), Escape (close), Enter (select), j/k or arrows (navigate results)
 
 ## Replaces
+
 - Current apps/@km/tui/src/views/SearchDialog.tsx (rewrite on top of search machine)
 
 ## Headless test
+
 ```typescript
 const app = pipe(create(), withApp(), withRepoSearch(mockRepo))
 await app.command(app.commands.search.open)
@@ -53,3 +62,4 @@ await app.command(app.commands.search.input, { char: "t" })
 await app.command(app.commands.search.input, { char: "o" })
 expect(app.models.search.state().matches).toHaveLength(5)
 ```
+

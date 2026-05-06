@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/vault-loader/1-update-rebuild-ts-to-use-loadvault"
 aliases:
   - km-vault-loader.1
@@ -16,3 +18,4 @@ Make existing functions thin wrappers around loadVault():
 - rebuildState() → yield* loadVault(root, { force: true })
 - syncState() → yield* loadVault(root)
 - Keep readEvents(), needsRebuild() as internal helpers
+

@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - data
 id: "@km/inbox/ou68u"
 aliases:
   - km-ou68u
@@ -21,3 +26,4 @@ Classification: P0
 launchTerminalApp() starts one terminal app; spawnPty() starts a second process feeding xterm. Screenshot and asserted terminal state can diverge immediately. Input/resizing only affects PTY side.
 
 Suggested fix: Use single shared PTY/session, or scope Peekaboo as 'best-effort visual companion' rather than same-session verification.
+

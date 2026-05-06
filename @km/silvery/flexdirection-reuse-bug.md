@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/flexdirection-reuse-bug"
 aliases:
   - km-silvery.flexdirection-reuse-bug
@@ -39,6 +41,10 @@ dependencies:
     created_at: 2026-04-28T10:28:43Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] flexDirection prop change on reused Box doesn't update layout direction @km/silvery #bug #P1
@@ -62,6 +68,8 @@ Discovered while fixing @km/silvercode/split-direction-race. The App-side race f
 Repro environment: termless test harness in apps/silvercode/tests/visual/pane-2d-layout.test.tsx.
 
 Likely areas to investigate:
+
 - vendor/silvery/packages/ag-react/src/reconciler/ — commitUpdate for flex layout props
 - vendor/silvery/packages/ag-term/src/pipeline/layout-phase.ts — how flexDirection is communicated to flexily
 - vendor/silvery/packages/ag-react/src/hooks/useLayout.ts — does layout invalidate on flexDirection change?
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all"
 aliases:
   - km-all
@@ -9,3 +11,4 @@ owner: bjorn@stabell.org
 ---
 
 # [ ] Cross-cutting: keybindings, code quality, multi-package @km/all #epic #P3
+

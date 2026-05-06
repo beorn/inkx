@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - hint
 id: "@km/silvery/comp-command-bar"
 aliases:
   - km-silvery.comp-command-bar
@@ -13,6 +17,10 @@ dependencies:
     created_at: 2026-04-15T16:18:47Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.opentui-parity
 ---
 
 # [ ] Component: CommandBar (bottom-anchored status+hint line) @km/silvery #feature #P3
@@ -20,3 +28,4 @@ dependencies:
 blocks:: [[@km/silvery/opentui-parity]]
 
 Canonical CommandBar component — bottom-of-screen hint/status/action line, used by lazygit, helix, k9s, etc. Dynamic per-mode hints.
+

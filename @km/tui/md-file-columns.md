@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/md-file-columns"
 aliases:
   - km-tui.md-file-columns
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-21T02:05:23Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [ ] Zooming into md file shows single column instead of horizontal columns @km/tui #bug #P2
@@ -26,6 +32,7 @@ When zooming into an .md file (H1 parent with H2 section children), all sections
 Termless test `apps/km-tui/tests/column-rendering.test.ts:1092` — 'zooming into md file shows H2 sections as horizontal columns'.
 
 Vault:
+
 - project.md: # Project / ## Todo / ## Done
 - notes.md: # Notes / ## Ideas
 
@@ -51,3 +58,4 @@ P2 — visible bug in md-file-as-board workflow, but has workaround (use .md-fil
 2. Log navigation cursor position pre-z and post-z
 3. Compare board state pre-z and post-z
 4. Fix whichever stage doesn't behave
+

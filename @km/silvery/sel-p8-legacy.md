@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/sel-p8-legacy"
 aliases:
   - km-silvery.sel-p8-legacy
@@ -13,3 +16,4 @@ assignee: Bjørn Stabell
 # [x] Selection Phase 8: Migrate silvery legacy SelectionProvider @km/silvery #task #P2 @Bjørn Stabell
 
 Rename silvery existing SelectionProvider (buffer-level text copy/paste) to TerminalSelectionProvider. Avoids naming collision with the new @silvery/selection package. Low priority — do when selection package ships.
+

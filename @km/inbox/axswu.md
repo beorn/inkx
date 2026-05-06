@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/axswu"
 aliases:
   - km-axswu
@@ -13,3 +16,4 @@ assignee: claude:124bfbe5
 # [x] TUI: breadcrumb text corruption on h/l column navigation @km/_orphan #bug #P2 @claude:124bfbe5
 
 Breadcrumb bar doesn't fully clear previous text when navigating h/l between columns. Characters from old breadcrumb leak through: Processing→Waiting shows PWaiting, col-deep→col-one shows col-done. Worse at narrow terminals (80x24: bcal- eep). 100% repro rate.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/session/0425-evening"
 aliases:
   - km-session.0425-evening
@@ -99,6 +102,10 @@ dependencies:
     created_at: 2026-04-25T21:37:52Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Session plan: queue UX fixes + autolinks extraction + km-tui smartlinks adoption + overlay-anchor impl @km/session #epic #P1 @claude:2405c72e
@@ -114,6 +121,7 @@ After /compact, this bead is the resume point. Read this start-to-end and pick u
 ### Stream A — Immediate queue UX bugs (screenshot ~/Desktop/Screenshot 2026-04-25 at 21.33.40.png)
 
 **A1. Two cursors in queue editor mode**
+
 - Symptom: when focus is in the queue TextArea (editing a queued command), a SECOND hardware cursor appears in the upper-left corner (likely SidePanel area).
 - Phase 2 cursor-as-layout-output should ensure exactly one active cursor (focused-editable wins). Two cursors means either: a non-cursorOffset cursor source exists somewhere in silvercode, or findActiveCursorRect is not propagating correctly.
 - Investigation: grep silvercode for TextInput/TextArea/cursorOffset/cursorStore; check SidePanel + Welcome + Notifications for any always-active widget holding a cursor.
@@ -121,6 +129,7 @@ After /compact, this bead is the resume point. Read this start-to-end and pick u
 - File a separate bead @km/silvercode/queue-two-cursors (P1) when the root cause is pinned.
 
 **A2. Queue display formatting**
+
 - Symptom: queue shows ONE `>` prefix on first item, blank lines between items, no `>` on subsequent items. User wants:
   ```
   > cmd1
@@ -130,7 +139,7 @@ After /compact, this bead is the resume point. Read this start-to-end and pick u
   > active command
   ```
 - Root cause: `apps/silvercode/src/components/CommandBox.tsx` renders a single TextArea for queueText (joined by \n\n in the wire format). Single `>` prefix is rendered next to the TextArea, not per line.
-- Fix: 
+- Fix:
   - Convert wire format ↔ display format (\n\n ↔ \n) in a CommandBox wrapper around TextArea
   - Render per-line `>` prefix via a parallel flex column aligned with TextArea rows
   - Single newline between items in display; controller still stores \n\n for Claude's input
@@ -139,6 +148,7 @@ After /compact, this bead is the resume point. Read this start-to-end and pick u
 ### Stream B — Architectural extraction + overlay-anchor implementation (parallel, then converging)
 
 **B1. Autolinks extraction to shared package** (closes part of @km/all/autolinks-extraction)
+
 - Today: `apps/silvercode/src/autolinks/` houses everything (config, match, previews, handlers, uri parsing, host parsers).
 - Target: `packages/km-smartlinks/` consumed by silvercode + @km/tui (and eventually website term-linker).
 - Sub-tasks:
@@ -152,6 +162,7 @@ After /compact, this bead is the resume point. Read this start-to-end and pick u
 - Bead: @km/silvercode/autolinks-extract-to-package (P2). Parent: @km/all/autolinks-extraction.
 
 **B2. Overlay-anchor-impl-v1** (closes @km/silvery/overlay-anchor-impl-v1's defer-until criterion)
+
 - Implement the substrate from `hub/silvery/design/overlay-anchor-system.md`:
   - `BoxProps.anchorRef: string` (semantic input — names this Box as an anchor)
   - `BoxProps.decorations: readonly Decoration[]` (semantic input — overlays attached to this Box)
@@ -166,12 +177,14 @@ After /compact, this bead is the resume point. Read this start-to-end and pick u
 ### Stream C — @km/tui smartlinks-with-popover adoption (depends on B1 + B2)
 
 **C1. @km/tui consumes @km/smartlinks**
+
 - Wire `@km/smartlinks` into @km/tui's knode body / Detail view rendering path.
 - Pattern matching: same regex/literal rules from `.km/config.yaml` (per-vault), with the cascade.
 - Detection plumbing: where does @km/tui currently render text? Find the equivalent of silvercode's DetectionText.tsx in @km/tui (likely in views/DetailView.tsx or a TextRenderer component) and route through the smartlinks pipeline.
 - Bead: @km/tui/smartlinks-adopt (P2). Depends on B1.
 
 **C2. Hover-popover positioning via overlay-anchor**
+
 - When mouse hovers over a smart-link match in @km/tui, render a popover anchored to the matched text span (not to the cursor — to the actual rendered span).
 - Uses `anchorRef` on the Text wrapping the match + `decorations` to declare the popover overlay.
 - placeFloating decides positioning (default 'bottom-start', falls back to 'top-start' if not enough vertical space — auto-flip can be v2 deferred or simple v1).
@@ -180,11 +193,13 @@ After /compact, this bead is the resume point. Read this start-to-end and pick u
 ## Sequencing
 
 Phase 1 (parallel, agents):
+
 - Stream A — fix queue UX bugs (single agent, in shared workspace)
 - Stream B1 — autolinks extraction (single agent, big mechanical move)
 - Stream B2 — overlay-anchor-impl-v1 (single silvery agent)
 
 Phase 2 (sequential, after Phase 1 lands):
+
 - Stream C1 — @km/tui adopts @km/smartlinks
 - Stream C2 — @km/tui hover-popover via overlay-anchor
 
@@ -206,3 +221,4 @@ When all four sub-beads close (queue-display-polish, queue-two-cursors, autolink
 - Design doc: hub/silvery/design/overlay-anchor-system.md
 - Today's commits trail: `git log --oneline origin/main` from 8e92ba275 forward (35+ commits this session, autolinks v3 substrate complete)
 - Parent epics: @km/silvercode (P1 epic), @km/all/autolinks-extraction (P3 epic), @km/silvery/overlay-anchor-system (P2 umbrella)
+

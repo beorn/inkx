@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tree/refs"
 aliases:
   - km-tree.refs
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-21T23:05:00Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tree
 ---
 
 # [ ] Phase 5a: Refs — auto-updating position handles (NodeRef, PointRef, RangeRef) @km/tree #task #P4
@@ -28,3 +34,4 @@ Maybe: just auto-adjust selection offset after text operations. No generic Ref s
 Or: PointRef only (nodeId + offset), no NodeRef/RangeRef.
 
 TBD — depends on Phase 4 (operation model) and real use cases. Don't over-design.
+

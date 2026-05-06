@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/absolute-percent-box"
 aliases:
   - km-flexily.absolute-percent-box
@@ -17,3 +19,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Bug: Absolute percent offsets resolve against border box, not padding box @km/flexily #bug #P0
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/enhanced-caps"
 aliases:
   - km-inkx.enhanced-caps
@@ -15,3 +17,4 @@ Augment env-based detectTerminalCaps() with runtime DA1/XTVERSION queries when e
 
 Files: inkx terminal-caps.ts
 Depends on: @km/silvery-legacy/device-attrs
+

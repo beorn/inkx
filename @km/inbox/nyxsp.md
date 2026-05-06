@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/nyxsp"
 aliases:
   - km-nyxsp
@@ -22,3 +25,4 @@ Key sequence: item('board', item('root', item.paragraph('body'), item('sub1', it
 Without zoom (baseline): l from body column header works correctly.
 
 Confirmed across variants: single paragraph, multiple paragraphs, code blocks, mixed body content.
+

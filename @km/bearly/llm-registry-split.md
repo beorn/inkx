@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/bearly/llm-registry-split"
 aliases:
   - km-bearly.llm-registry-split
@@ -70,6 +73,10 @@ dependencies:
     created_at: 2026-04-26T23:58:21Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-bearly
 ---
 
 # [x] Split llm Model registry: SKUs + ProviderEndpoints + capabilities @km/bearly #feature #P1 @claude:2405c72e
@@ -157,3 +164,4 @@ runtime, or require `--force` flag. Don't silently mint untyped entries.
 ## Reference
 
 Review at /tmp/llm-2405c72e-adversarial-review-of-the-292y.txt
+

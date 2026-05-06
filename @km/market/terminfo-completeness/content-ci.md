@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/terminfo-completeness/content-ci"
 aliases:
   - km-market.terminfo-completeness.content-ci
@@ -19,3 +21,4 @@ Layer 3 — Executor: scripts + LLMs for automated probing, content generation, 
 Phases: manifest.ts (1-2h) → GitHub Action (30min) → LLM enrichment (2-3h) → upstream watchers (1-2h) → generalize (defer).
 
 Related: @km/market/terminfo-completeness/osc-catalog (OSC completeness), @km/market/terminfo-completeness/runbook (runbook), /big analysis 2026-04-05.
+

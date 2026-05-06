@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/logger-top-level-await"
 aliases:
   - km-flexily.logger-top-level-await
@@ -20,3 +22,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Quality: logger.ts top-level await complicates sync initialization story @km/flexily #task #P2
+

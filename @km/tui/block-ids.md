@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/block-ids"
 aliases:
   - km-tui.block-ids
@@ -17,3 +20,4 @@ Block IDs (Asana GIDs like ^1201434868258365) show as visible text in detail pan
 Root cause: resolveNode smart resolver didn't search by block_id field. Fixed by adding block_id lookup step to smart resolver.
 
 Also related to @km/tui/inline-ast — the inline AST refactoring will replace regex wiki link handling with proper AST resolution, making this class of bug impossible.
+

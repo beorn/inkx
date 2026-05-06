@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - Tab
 id: "@km/inbox/vq91v"
 aliases:
   - km-vq91v
@@ -11,3 +16,4 @@ assignee: claude:124bfbe5
 ---
 
 # [x] TUI: Shift+Tab outdent moves column-level card to board level @km/_orphan #bug #P3 @claude:124bfbe5
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/89pey"
 aliases:
   - km-89pey
@@ -17,6 +20,7 @@ Standalone Zustand middleware that brings Elm Architecture (TEA) effects-as-data
 ## What it is
 
 A ~30-line Zustand middleware (tea()) that extends reducers to optionally return effects as data:
+
 - Level 3 (Actions): reducer returns state → dispatch pattern (replaces zustand/middleware/redux)
 - Level 4 (Pure): reducer returns [state, effects] → effects-as-data, testable, replayable, serializable
 
@@ -105,6 +109,7 @@ zustand-tea is framework-agnostic but inkx provides the terminal integration:
 4. **Noun-singletons** — domain .apply() functions return the same [state, effects] tuple shape
 
 Architecture:
+
 - zustand-tea: middleware pattern (pure, generic, any Zustand app)
 - inkx: terminal integration + terminal effect runners + createApp wiring
 - km: domain reducers + domain effect runners + command system
@@ -154,3 +159,4 @@ function reducer(state, action) {
 - Mixed function/data effects — gradual migration like TypeScript's any
 - Plain objects as effects — sweet spot for JS/TS (algebraic effects need language support)
 - Array.isArray detection — safe because Zustand state is always an object
+

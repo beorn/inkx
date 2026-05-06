@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sterling-consumer-migration"
 aliases:
   - km-silvery.sterling-consumer-migration
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-20T13:40:00Z
     created_by: claude:4274df30
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.theme-v4
 ---
 
 # [x] Sterling consumer migration: rename $primary/$muted/etc. to Sterling flat tokens across km-tui + ag-react @km/silvery #task #P0 @claude:a1a0e667
@@ -33,3 +40,4 @@ Scope: ~100+ $primary / $muted / $accent / $link / $error / $brand / $secondary 
 Approach: bun vendor/bearly/tools/refactor.ts batch-renames ($primary -> $fg-accent, $muted -> $fg-muted, etc.) — mostly mechanical with judgment for the handful that should map differently.
 
 Acceptance: rg '\$(primary|secondary|accent|muted|link|error|warning|success|info|brand|inverse|surface|popover|selection|focusborder|cursor|border)\\b' apps/@km/tui/src vendor/silvery/packages/ag-react/src — 0 hits (or only documented exceptions). Then a follow-up silvery release can delete inlineSterlingTokens.
+

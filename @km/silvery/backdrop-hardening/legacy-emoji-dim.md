@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/backdrop-hardening/legacy-emoji-dim"
 aliases:
   - km-silvery.backdrop-hardening.legacy-emoji-dim
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-20T14:01:07Z
     created_by: claude:88c0e764
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.backdrop-hardening
 ---
 
 # [x] Legacy no-scrim path doesn't fade emoji when Kitty unavailable @km/silvery #bug #P0 @claude:a1a0e667
@@ -30,6 +37,7 @@ Pro review P1.4. In realize-buffer.ts scrim === null branch, emoji cells with re
 ## Fix
 
 In legacy branch when isEmojiGlyph:
+
 - Stamp attrs.dim on lead cell
 - Propagate dim to continuation cell(s)
 
@@ -42,3 +50,4 @@ In legacy branch when isEmojiGlyph:
 ## Parent
 
 @km/silvery/backdrop-hardening
+

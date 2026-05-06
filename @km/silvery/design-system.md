@@ -1,4 +1,7 @@
 ---
+mentions:
+  - silvery
+  - km
 id: "@km/silvery/design-system"
 aliases:
   - km-silvery.design-system
@@ -13,6 +16,10 @@ dependencies:
     created_at: 2026-04-17T14:04:38Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [ ] @silvery/design — standard-aligned design system (Polaris-structured, W3C Tokens Format, multi-target bindings) @km/silvery #feature #P2
@@ -45,6 +52,7 @@ Not @silvery/tokens — the package covers tokens AND component specs AND founda
 ```
 
 Consumer API:
+
 ```ts
 import { tokens, components, foundations } from "@silvery/design"
 import { terminalTheme } from "@silvery/design/bindings/term"
@@ -54,6 +62,7 @@ import { webTheme } from "@silvery/design/bindings/web"
 ## Taxonomy — Polaris-structured, W3C-compliant
 
 ### Tokens layer
+
 - **color**: brand.primary, brand.accent, neutral.fg, neutral.bg, neutral.muted, surface.default, surface.inverse, semantic.success/warning/error/info
 - **typography**: display.hero-lg, display.hero-text, display.tagline, heading.h1-h4, body.default, body.meta, code.inline, code.block, code.mono
 - **space**: scale (compact/default/loose), gap, pad
@@ -65,15 +74,18 @@ import { webTheme } from "@silvery/design/bindings/web"
 - **z-index**: web-only; terminal maps to layer presets
 
 ### Components layer
+
 Aligned with standard design-system inventories: Button, Badge, Card, Callout, Form controls, Nav, Modal/Dialog, Tabs, Toast, Spinner, ProgressBar, Table, VirtualList, SelectList, TextInput, CommandPalette, Tree, Hero (landing).
 
 Each component declares:
+
 - Which tokens it consumes
 - Its anatomy (sub-parts and their token bindings)
 - States it supports (rest, hover, focus, disabled, loading)
 - Terminal-specific behaviors (keyboard shortcuts, focus ring mapping to inverse)
 
 ### Foundations layer
+
 - **Accessibility**: focus management rules, contrast requirements, keyboard patterns, screen reader announcements
 - **Content**: voice/tone (iA-quiet, confident, developer-respecting), word choice, grammar
 - **Patterns**: empty states, loading states, error states, command palette conventions, shiny/tarnished editorial callouts
@@ -112,6 +124,7 @@ Tokens ship as: raw TypeScript objects (for type-safe consumption), W3C JSON (fo
 Web tokens with no terminal equivalent (shadow, z-index, motion) become **feature flags** in the terminal binding. E.g., `elevation.emphasis` maps to double-line border in terminal vs. box-shadow in web. `motion.duration-fast` maps to "instant" on terminals without animation; actual timing on Kitty/Ghostty with sixel.
 
 Terminal-specific additions NOT in web:
+
 - **box-drawing weight tokens**: light (─), heavy (━), double (═), dashed (┄)
 - **ANSI style flags**: bold, dim, italic, underline, inverse, blink, strikethrough
 - **OSC protocol flags**: OSC 66 text sizing where available (graceful fallback)
@@ -126,3 +139,4 @@ Whatever Claude Design generates for silvery.dev = @silvery/design/bindings/web.
 
 - Supersedes parts of `km-silvery.design-review` (which focused on Stage 1→Stage 2 color derivation). That bead remains valid for the color subsystem; this bead adds the full taxonomy on top.
 - Pairs with Claude Design generation currently underway — when silvery.dev lands, extract it into @silvery/design/bindings/web.
+

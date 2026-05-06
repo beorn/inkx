@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/tribe-channel-noise-hook"
 aliases:
   - km-infra.tribe-channel-noise-hook
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-20T16:13:08Z
     created_by: claude:a1a0e667
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] Tribe channel messages create empty H: turns even when assistant emits nothing — suppress at hook/daemon level @km/infra #bug #P3
@@ -28,6 +34,7 @@ blocks:: [[@km/infra]]
 ## Symptom
 
 When a tribe channel message arrives (e.g., `<channel source="plugin:tribe:tribe" from="daemon" type="github:push">`), the harness:
+
 1. Wraps it as a user-turn input
 2. Fires UserPromptSubmit hook (logs 'UserPromptSubmit hook success: OK')
 3. Triggers a model call
@@ -45,19 +52,25 @@ User has flagged this 2x as ambient noise that pollutes the session view. The be
 ## Three fix paths (ordered by feasibility)
 
 ### A. Tribe plugin: side-channel injection (PREFERRED)
+
 Modify the tribe daemon to inject channel messages into the session's CONTEXT stream rather than as a fresh user-turn prompt. The model sees them as ambient awareness on the next real turn instead of triggering a turn-per-message.
+
 - File: `vendor/bearly/plugins/tribe/server.mjs` + daemon delivery code
 - Effect: tribe messages no longer fire UserPromptSubmit; appear inline on next real prompt as `<recent-tribe>...</recent-tribe>` block
 - Trade-off: messages don't surface immediately; pile up between real turns
 
 ### B. Hook-side suppress (INVESTIGATE)
+
 If Claude Code supports `hookSpecificOutput.suppressPrompt: true` (or similar) — detect tribe-only prompts in the hook, suppress the model call entirely. Need to check Claude Code hook docs / source.
+
 - File: `.claude/hooks/user-prompt-submit.sh`
 - Effect: tribe-only prompts don't trigger the model; H: turn may still log but assistant doesn't even spin up
 - Risk: assistant misses awareness if user later asks 'what happened?'
 
 ### C. UI-only filter (DEFER)
+
 Filter empty-response turns out of the session viewer. Doesn't fix the wasted model call but cleans the user's view.
+
 - Out of scope — requires Claude Code harness changes
 
 ## Acceptance
@@ -77,3 +90,4 @@ Filter empty-response turns out of the session viewer. Doesn't fix the wasted mo
 - Path A: ~3-4h (daemon protocol change, test against multi-session scenarios)
 - Path B: ~1-2h investigation + ~1h implementation if Claude Code supports it
 - Path C: not feasible without harness changes
+

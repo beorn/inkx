@@ -19,3 +19,4 @@ closeReason: "Already shipped: skipFsSync was removed in commit 8cf4760d7
 From Pro review + /big: skipFsSync was added before commit/project split existed. Now that reconciliation uses commit() directly (no project()), skipFsSync is never needed. wrapEmitterForReconcile already calls commit() not emit().
 
 FIX: Remove skipFsSync from EmitOptions. Remove the guard in emit(). Clean up wrapEmitterForReconcile to be a simple commit-only wrapper.
+

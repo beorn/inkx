@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/search-truncate"
 aliases:
   - km-tui.search-truncate
@@ -15,6 +18,8 @@ Search results in the search dialog are truncated even with available space.
 Example: 'China domicile < [[2022-07-25]] #PwC/China Call w Steven, Diana, El'
 
 The parent context and tags consume space before the title can fully display. Consider:
+
 - Prioritizing title display
 - Truncating parent context instead of title
 - Multi-line format for results
+

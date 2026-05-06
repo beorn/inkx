@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/with-keys-convention"
 aliases:
   - km-silvery.with-keys-convention
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-21T02:18:07Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.authoring-elegance
 ---
 
 # [ ] withKeys() — honour definePlugin 'keys:' shorthand at runtime @km/silvery #feature #P2
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/silvery/authoring-elegance]]
 
 definePlugin({ keys: { '?': 'toggle' } }) records the shorthand on the plugin handle, but no runtime honours it yet. Build a withKeys(plugin) convention plugin (or ag-react hook) that registers the keybindings with whichever key-routing plugin sits upstream in the pipe. Gate: a second dialog cutover (SearchDialog v2) uses keys: and the keybindings work end-to-end without manual wiring.
+

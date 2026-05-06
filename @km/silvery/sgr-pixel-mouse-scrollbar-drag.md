@@ -1,7 +1,4 @@
 ---
-tags:
-  - feature
-  - P1
 mentions:
   - km
 id: "@km/silvery/sgr-pixel-mouse-scrollbar-drag"
@@ -152,3 +149,4 @@ at minimum.
     -> 7 files, 53 tests passed.
   - `npx tsc --noEmit` from `apps/silvercode` passed.
   - `bun x oxfmt --check ...` for touched Silvery source/test files passed.
+

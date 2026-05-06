@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/mto9"
 aliases:
   - km-mto9
@@ -8,3 +10,4 @@ closed_at: 2026-01-20T16:00:39Z
 ---
 
 # [x] Columns view should have equal width columns with vertical separator like cards view @km/_orphan #bug #P2
+

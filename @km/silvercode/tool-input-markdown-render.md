@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/tool-input-markdown-render"
 aliases:
   - km-silvercode.tool-input-markdown-render
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-25T22:54:00Z
     created_by: claude:bc3eb794
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Tool input markdown render: optional markdown rendering inside expanded tool-call input args @km/silvercode #feature #P4 @claude:bc3eb794
@@ -27,3 +34,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 When tool-call inputs are expanded, args are rendered as plain text. Add optional markdown rendering for input args so prompts/descriptions display with formatting (bold, code, lists). Polish bead from session.
+

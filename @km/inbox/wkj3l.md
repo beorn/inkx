@@ -1,4 +1,7 @@
 ---
+mentions:
+  - beorn
+  - km
 id: "@km/inbox/wkj3l"
 aliases:
   - km-wkj3l
@@ -14,3 +17,4 @@ Update apps/@km/tui to import from @beorn/tui instead of inkx and @beorn/chalkx.
 Depends on: inkx→tui absorption
 
 Part of: @km/_orphan/lp0hu (term/tui consolidation)
+

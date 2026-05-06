@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/search-repaint"
 aliases:
   - km-tui.search-repaint
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Search dialog: black area when results shrink @km/tui #bug #P2
 
 Search dialog changes size dynamically based on results. When it shrinks, the revealed area isn't repainted — remains black.
+

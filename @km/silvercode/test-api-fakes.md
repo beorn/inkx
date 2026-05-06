@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/test-api-fakes"
 aliases:
   - km-silvercode.test-api-fakes
@@ -28,6 +31,10 @@ dependencies:
     created_at: 2026-04-24T14:55:56Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.test-system
 ---
 
 # [x] Visual tests: fake accountly / git / version probe / fs reads @km/silvercode #feature #P2 @claude:0940ca20
@@ -69,3 +76,4 @@ All factories default to real implementations in production. Test harness inject
 ## Relationship to parent
 
 Child of `km-silvercode.test-system` epic. Required before `km-silvercode.test-live-mode` (contract-test toggle) makes sense — fakes must be complete before 'real vs fake' contract tests become meaningful.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/unicode-plateau/phase-4"
 aliases:
   - km-silvery.unicode-plateau.phase-4
@@ -25,6 +28,14 @@ dependencies:
     created_at: 2026-04-23T09:44:37Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.unicode-plateau
+      - type: link
+        target: km-silvery.unicode-plateau.phase-3
 ---
 
 # [x] Unicode plateau Phase 4: caps.input symmetry (absorb detectInput) @km/silvery #task #P1 @claude:c6244087
@@ -32,3 +43,4 @@ dependencies:
 blocks:: [[@km/silvery/unicode-plateau]], [[@km/silvery/unicode-plateau/phase-3]]
 
 Per /big plateau check. Adds caps.input for symmetry with caps.cursor; deletes detectInput. Profile factory gains optional stdin argument. Small scope: ~15 LOC across detection.ts, profile.ts, term.ts, re-exports. Follow-up to the main 3-phase plateau. Criteria: rg detectInput vendor/silvery/packages → 0 runtime hits; caps.input contract test; lint passes.
+

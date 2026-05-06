@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/plateau-90"
 aliases:
   - km-all.plateau-90
@@ -17,6 +19,7 @@ Source review: /tmp/llm-cc081a9a-review-this-plan-critically-q8wi.txt — GPT-5.
 ## GATE WORK (must complete before restructure)
 
 ### G1. Failure taxonomy of fix-sweep-vendor-fuzz
+
 - Classify the 49 vendor failures + 5 fuzz failures by root cause
 - Categories: lifecycle/ownership, render-phase ordering, layout convergence, test infrastructure, upstream-bug, other
 - Output: counts per category in hub/silvery/design/failure-taxonomy.md + bd notes on this bead
@@ -24,6 +27,7 @@ Source review: /tmp/llm-cc081a9a-review-this-plan-critically-q8wi.txt — GPT-5.
 - Acceptance: every closed sub-bead under @km/all/fix-sweep-vendor-fuzz mapped to exactly one category; counts published.
 
 ### G2. Replace "plateau distance %" with 5-level rubric
+
 - Replace 60-65% / 90% pseudo-percentages with a verifiable per-bead rubric:
   - L0: workaround / threshold / env tweak
   - L1: runtime guard catches it
@@ -39,11 +43,13 @@ Source review: /tmp/llm-cc081a9a-review-this-plan-critically-q8wi.txt — GPT-5.
 ## RESTRUCTURE WORK
 
 ### R1. Split this epic into three proper epics
+
 Pro/Kimi: this epic mixes architectural hardening + cleanup + infra guardrails + test ergonomics. Easy wins close while hard work stalls.
 
 Refile current children to:
 
 **@km/silvery/structural-hardening (NEW epic)**:
+
 - @km/silvery/scope-resource-ownership (recast of @km/silvery/lifecycle-leak-detection — see C1)
 - @km/silvery/render-plan-commit (recast of @km/silvery/paint-clear-invariant — see C2; promoted to P1)
 - @km/silvery/renderer-feedback-trace (NEW, P1 — see C3a)
@@ -51,18 +57,22 @@ Refile current children to:
 - (@km/silvery/scrollto-single-pass folds into bounded-convergence — same feedback-edge class)
 
 **@km/all/codepath-collapse (NEW epic)**:
+
 - @km/silvery/hybrid-output-default
 
 **@km/infra/guardrails (NEW epic)**:
+
 - @km/infra/submodule-integrity-check (extend: CI AND pre-commit, not pre-commit alone)
 - @km/silvery/test-handletabcycling-default
 
 Acceptance: this epic has zero direct children after refile; the three new epics carry their populations; bd dep edges record lineage.
 
 ### R2. Tighten upstream-waiting registry (@km/all/upstream-waiting)
+
 Pro/Kimi: registries die when not tied to code; "merged" ≠ "released" ≠ "adopted"; without escalation, "waiting" silently becomes "we gave up but won't admit it".
 
 Update .claude/skills/pm/workflows/upstream.md §8 + @km/all/upstream-waiting epic description with:
+
 - Per-bead `bd defer --until="<date>"` requirement (parent for grouping, defer for active reminding)
 - Required field "Escalate by: <YYYY-MM-DD>" (default 6mo from creation)
 - Required escalation path: "vendorize | fork | accept owned divergence | continue waiting"
@@ -77,13 +87,16 @@ Update .claude/skills/pm/workflows/upstream.md §8 + @km/all/upstream-waiting ep
 Acceptance: all updates landed in upstream.md §8 + epic description; lint script runs in CI; existing children of @km/all/upstream-waiting refiled to new template.
 
 ### R3. Split @km/bearly/mcp-plugin-bun-keepalive
+
 Pro: the bead bundles two unrelated changes:
+
 - URL.toString() in Request constructor — pure upstream-waiting shim
 - lease-tracking refactor in connection lifecycle — likely permanent local hygiene improvement
 
 Bundling means agent reverts good local design when upstream lands.
 
 Split into:
+
 - @km/bearly/bun-keepalive-url-shim (P3, child of @km/all/upstream-waiting) — unwind = revert URL.toString
 - @km/bearly/mcp-lease-tracking (P4, child of @km/bearly scope) — evaluate keep/revert independent of Bun fix
 
@@ -92,9 +105,11 @@ Acceptance: original bead split + closed; both children created with correct par
 ## RECAST WORK (replaces existing children of this epic)
 
 ### C1. @km/silvery/lifecycle-leak-detection → @km/silvery/scope-resource-ownership (P1)
+
 Original: handle count returns to baseline at scope close. Pro/Kimi: that's tighter detection, not Summit-tier prevention.
 
 Real Summit:
+
 - Every silvery resource factory takes a scope token; cannot be called without one
 - Handle types are opaque branded outside the scope module — cannot be constructed except via factory
 - Scope close asserts owner registry empty for resources owned BY THIS scope (not global handle count — ambient handles cause flakes)
@@ -104,9 +119,11 @@ Real Summit:
 Acceptance: grep 'Bun.gc' vendor/silvery/tests/ → 0; opaque branded Handle types unable to be constructed outside scope module (verified via test that imports the type and tries to forge one — must be tsc error); leak diagnostic prints resource class + allocation site; one slow memory canary remains.
 
 ### C2. @km/silvery/paint-clear-invariant → @km/silvery/render-plan-commit (P1, promoted from P2)
+
 Original: phase-typed Buffer<Painting>/Buffer<Cleared>. Pro/Kimi: phantom types don't constrain shared mutation; ceremonial safety. Real fix is architectural.
 
 Pick ONE during /big sprint:
+
 - **Render plan + commit**: render produces immutable scene diff / op list; commit applies it in one deterministic order. clearExcessArea is either derived from the final plan or disappears.
 - **Double-buffer swap**: paint into back buffer; swap; old front buffer implicitly retired. No "clear excess area" because entire buffer is retired.
 - **Damage-list composition**: render produces damage rects; application is one atomic frame-end pass.
@@ -114,9 +131,11 @@ Pick ONE during /big sprint:
 Acceptance: clearExcessArea hasPrevBuffer guard at silvery 168b4989 is removed (because the wrong-order call site can't exist); SILVERY_STRICT still passes; the previously-flagged violation can no longer be expressed.
 
 ### C3. @km/silvery/renderer-convergence-by-design → split into TWO beads
+
 Original: "eliminate MAX_SINGLE_PASS_ITERATIONS, single-pass by design". Pro/Kimi (emphatic — Kimi: "catastrophically under-scoped"): single-pass is wrong target. Text layout with wrapping/intrinsic sizing is inherently iterative. CSS layout is iterative. Knuth-Plass line breaking is iterative.
 
 **C3a. @km/silvery/renderer-feedback-trace (P1, do FIRST)**
+
 - Every render/layout pass beyond pass 1 emits a reason category
 - Reasons attributable to nodes/edges (which node invalidated layout? which edge fed back?)
 - Pass causes counted from test runs / fuzz runs
@@ -124,6 +143,7 @@ Original: "eliminate MAX_SINGLE_PASS_ITERATIONS, single-pass by design". Pro/Kim
 - Acceptance: instrumentation shipped; SILVERY_INSTRUMENT=1 prints pass-cause histogram; fix-sweep tests show distribution of feedback reasons.
 
 **C3b. @km/silvery/bounded-convergence (P2, after C3a delivers data)**
+
 - Replace MAX_SINGLE_PASS_ITERATIONS=15 with explicit feedback-edge model
 - For each edge class (text-measurement, viewport-dependent constraints, scrollTo settling): documented bound + proof or assertion
 - Final state: either CONVERGENCE_THEOREM_QED N=2 (or whatever data supports), OR honest documentation that N>2 is fundamental and the constant is replaced by attributed bounds
@@ -133,6 +153,7 @@ Original: "eliminate MAX_SINGLE_PASS_ITERATIONS, single-pass by design". Pro/Kim
 ## NET-NEW WORK
 
 ### N1. @km/infra/continuous-fuzz (P1, child of @km/infra/guardrails)
+
 Pro/Kimi: 5 fuzz failures were found in this sweep — fuzz is what's working. Stop fuzzing → regress. Plateau program without continuous fuzz is whack-a-mole.
 
 - Wire fuzz harness into CI on a periodic schedule (nightly or per-PR depending on cost)
@@ -142,6 +163,7 @@ Pro/Kimi: 5 fuzz failures were found in this sweep — fuzz is what's working. S
 Acceptance: GH Actions workflow runs fuzz on schedule; crashes file beads automatically; corpus persists.
 
 ### N2. @km/all/owned-divergence (P3, perpetual registry — inverse of upstream-waiting)
+
 See R2: registry for workarounds where upstream is dead/declined and we own the divergence permanently. Reviewed in /sop infra alongside upstream-waiting. Created as part of R2 deliverable.
 
 ## EXECUTION ORDER
@@ -164,8 +186,10 @@ See R2: registry for workarounds where upstream is dead/declined and we own the 
 - Retrospective in this bead's notes documents which pro/Kimi hypotheses held (e.g. "taxonomy showed 30/49 lifecycle, ownership was indeed the seam") and which didn't
 
 ## Cross-refs
+
 - Source review: /tmp/llm-cc081a9a-review-this-plan-critically-q8wi.txt
 - Upstream registry: @km/all/upstream-waiting (modified by R2)
 - Workflow skill: .claude/skills/pm/workflows/upstream.md (modified by R2)
 - /big skill: .claude/skills/big/SKILL.md (modified by G2)
 - SOP infra: .claude/skills/sop/SKILL.md (upstream-waiting check already wired, R2 extends it)
+

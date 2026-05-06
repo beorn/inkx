@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/all/test-helper-cleanup"
 aliases:
   - km-all.test-helper-cleanup
@@ -22,3 +25,4 @@ Comprehensive test helper cleanup from test audit findings:
 6. Consolidate embed display describes (merge 3 overlapping blocks)
 7. Split board-test.ts into fixtures.ts + test-env.ts + assertions/* modules
 8. Namespace assertion methods for better discoverability
+

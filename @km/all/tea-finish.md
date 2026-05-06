@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/all/tea-finish"
 aliases:
   - km-all.tea-finish
@@ -13,3 +16,4 @@ assignee: claude:f47d1ff0
 # [x] TEA machines: finish all remaining children @km/all #task #P1 @claude:f47d1ff0
 
 Sequential implementation of all 5 remaining TEA machine children in worktree. Chain A: test-commands → kb-string-syntax. Chain B: 676c3 → jotai-cursor → treenode-split. Tracking bead for the full session.
+

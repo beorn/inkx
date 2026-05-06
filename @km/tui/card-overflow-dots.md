@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/card-overflow-dots"
 aliases:
   - km-tui.card-overflow-dots
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Card overflow: single ... indicator at end of card @km/tui #feature #P3
 
 Card overflow indicators (... at bottom of truncated cards) should: 1) Use ... (or center dots ···) instead of current indicator, 2) If multiple heading levels each produce ..., collapse into a single ... at the end of the card. Current behavior may show multiple ... lines when multiple headings overflow.
+

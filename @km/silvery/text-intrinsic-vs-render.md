@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/text-intrinsic-vs-render"
 aliases:
   - km-silvery.text-intrinsic-vs-render
@@ -16,6 +19,10 @@ dependencies:
     created_at: 2026-04-25T22:24:43Z
     created_by: claude:53042a7f
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Separate intrinsic measurement from render-time clipping in silvery Text + flexily min-content @km/silvery #feature #P2 @claude:53042a7f
@@ -29,23 +36,20 @@ The flexily auto-min-size approximation (max-content vs spec-correct min-content
 ## Architectural fix (Phase 1)
 
 1. **silvery Text**: separate intrinsic measurement from render-time clipping
-   - measureFunc for wrap=truncate/clip/false should return naturalWidth for both min-content and max-content (these are equivalent for non-wrappable text per CSS)
-   - Truncation is a paint-phase concern; render reads layout.width and clips text to that
-   - Add intrinsic size API: minContentWidth() + maxContentWidth() separate from measure(constraints)
-
+  - measureFunc for wrap=truncate/clip/false should return naturalWidth for both min-content and max-content (these are equivalent for non-wrappable text per CSS)
+  - Truncation is a paint-phase concern; render reads layout.width and clips text to that
+  - Add intrinsic size API: minContentWidth() + maxContentWidth() separate from measure(constraints)
 2. **flexily**: switch auto-min-size to spec-correct min-content (revert max-content approximation in layout-zero.ts)
-   - Currently uses baseSize as content-min proxy
-   - With Text fix above, min-content == max-content for non-wrappable text → dashboards keep working
-   - For wrappable text, items shrink to longest-unbreakable-word (CSS-correct)
-
+  - Currently uses baseSize as content-min proxy
+  - With Text fix above, min-content == max-content for non-wrappable text → dashboards keep working
+  - For wrappable text, items shrink to longest-unbreakable-word (CSS-correct)
 3. **silvery TextProps**: extend FlexboxProps so Text accepts flexShrink/flexGrow/flexBasis/minWidth
-   - Escape hatch + canonical CSS pattern for sizing leaf items
-   - Currently the API hole that forced Box wrapper in dashboard fix attempt
-
+  - Escape hatch + canonical CSS pattern for sizing leaf items
+  - Currently the API hole that forced Box wrapper in dashboard fix attempt
 4. **silvery whiteSpace / textWrap inheritance**: one prop at row level instead of per-child
-   - whiteSpace='pre' for preformatted padded columns
-   - whiteSpace='normal' for prose
-   - Inherited through component tree
+  - whiteSpace='pre' for preformatted padded columns
+  - whiteSpace='normal' for prose
+  - Inherited through component tree
 
 ## Tests that need updating
 
@@ -78,3 +82,4 @@ DOM target requires CSS-correct min-content for flex auto-min-size. Without this
 ## Status
 
 OPEN — architectural refactor estimated at multi-session, requires pro sign-off on specific API shapes (pro offered to sketch them)
+

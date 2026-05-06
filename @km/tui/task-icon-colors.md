@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/task-icon-colors"
 aliases:
   - km-tui.task-icon-colors
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] [bug] WIP and Blocked status icons lose semantic colors @km/tui #bug #P2
 
 wip and blocked icons render as plain default fg instead of orange and red. Outer Text wrapping in TreeNode.tsx:636 overrides the inner color from CheckboxIcon.tsx:132.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui1/18-archive-tui2-opentui-source-code"
 aliases:
   - km-tui1.18
@@ -40,11 +42,13 @@ apps/km-tui/packages/km-opentui/
 ## Proposed Archive Location
 
 Option A: Move to archive folder
+
 ```
 archive/km-opentui/  (at repo root)
 ```
 
 Option B: Move to vendor folder
+
 ```
 vendor/opentui/km-opentui/  (alongside issue docs)
 ```
@@ -69,3 +73,4 @@ vendor/opentui/km-opentui/  (alongside issue docs)
 
 - [ADR 001: TUI Architecture](docs/adr/001-tui-architecture.md)
 - @km/tui-eval decision
+

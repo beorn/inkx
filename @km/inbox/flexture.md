@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/flexture"
 aliases:
   - km-flexture
@@ -17,4 +19,6 @@ Tracks flexx layout engine issues.
 ## Open children (1: 1×P2)
 
 ### P2
+
 - **@km/flexx/edge-border-rtl** [bug] — setEdgeBorder hardcodes START=LEFT regardless of direction
+

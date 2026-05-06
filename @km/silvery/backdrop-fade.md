@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/backdrop-fade"
 aliases:
   - km-silvery.backdrop-fade
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-17T23:09:47Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.design-system
 ---
 
 # [x] Backdrop fade effect — render-time cell blend for modal backgrounds and drag overlays @km/silvery #feature #P3
@@ -40,6 +46,7 @@ Backdrop fade is a **render-time effect**, not a component concern. Analogous to
 ## Modal default: fade ON
 
 Every silvery modal component has backdrop fade ON BY DEFAULT:
+
 - ModalDialog (and everything built on it): CommandPalette, Toast dialogs, confirm prompts
 - PickerDialog
 - Popover (when it dims the page behind a floating picker)
@@ -109,3 +116,4 @@ Render-time transform is the equivalent of opacity in CSS: pure presentation, fu
 Parent: @km/silvery/design-system
 Related: @km/silvery/theme-dim-deprecate (this provides the answer to 'how do you dim' once dimColor is removed)
 Reference: hub/silvery/design/v10-terminal/terminal-color-strategy.md
+

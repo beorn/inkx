@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+  - km
+  - claude
 id: "@km/beads/scope-as-board"
 aliases:
   - km-beads.scope-as-board
@@ -25,6 +29,10 @@ dependencies:
     created_at: 2026-04-27T23:29:38Z
     created_by: claude:da9990c5
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-beads
 ---
 
 # [x] Drop beads.board/beads.parent — id scope IS the board (km-beads.X → beads/X.md, @km/beads/X) @km/beads #feature #P2 @claude:da9990c5
@@ -34,11 +42,13 @@ blocks:: [[@km/beads]]
 ## Current state
 
 bd id structure: km-<scope>.<slug>. The vault config has three knobs that overlap:
+
 - beads.prefix: 'km'    (vault sigil for cross-vault refs)
 - beads.board: 'issue'  (heading tag emitted as @issue)
 - beads.parent: 'issue/' (filesystem directory all issues go under)
 
 Result for @km/beads/cutover:
+
 - file: <vault>/issue/beads/cutover.md  ← extra 'issue/' prefix
 - heading: '# [x] Title @issue #task #P2'
 - cross-ref: '@km/beads/cutover'
@@ -48,6 +58,7 @@ Result for @km/beads/cutover:
 bd id alone defines the location and board. No board/parent config knob.
 
 Result for @km/beads/cutover:
+
 - file: <vault>/beads/cutover.md
 - heading: '# [x] Title @beads #task #P2'  (scope-derived tag)
 - cross-ref: '@km/beads/cutover' (unchanged)
@@ -77,3 +88,4 @@ Honor beads.board/beads.parent when explicitly set in .km/config.yaml (legacy ov
 - Migrate 4675 issues from .beads/issues.jsonl → vault has no top-level 'issue/' dir; instead 80+ scope dirs (beads/, silvery/, tui/, all/, …) at vault root
 - bd list / bd ready / bd show / bd children continue to work
 - Cross-refs in prose (@km/beads/cutover) still resolve
+

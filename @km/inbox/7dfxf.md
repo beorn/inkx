@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/7dfxf"
 aliases:
   - km-7dfxf
@@ -21,3 +24,4 @@ When ScrollbackList promotes frozen content to terminal scrollback in inline mod
 Reproduction: run ai-chat example with --fast, advance 4 times via Enter, check term.scrollback.getText() — has ╭ but not ╰.
 
 Likely in output-phase.ts handleScrollbackPromotion() or the scrollback content generation in useScrollback. The frozen content string may be truncated at terminal height before the bottom border line is included.
+

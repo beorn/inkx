@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/use-content-rect-nested"
 aliases:
   - km-silvery.use-content-rect-nested
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] useContentRect returns wrong width in nested flex layouts @km/silvery #bug #P2
 
 useContentRect() returns the terminal width (or outer container width) instead of the inner content width when called inside a component nested in a bordered+padded flex pane. This causes ProgressBar and any width-dependent rendering to overflow pane boundaries. Reproduced in the dashboard example's wide 4-pane layout at 130 cols — bars render wider than their containing pane because useContentRect reports ~130 instead of ~59.
+

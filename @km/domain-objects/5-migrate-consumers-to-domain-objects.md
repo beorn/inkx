@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/domain-objects/5-migrate-consumers-to-domain-objects"
 aliases:
   - km-domain-objects.5
@@ -15,3 +17,4 @@ Update all CLI commands and TUI to use new domain objects.
 - Replace loadVault() + getNode() with createVault()
 - Replace initStore() with createVault()
 - Use disposable patterns throughout
+

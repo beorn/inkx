@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/backdrop-hardening"
 aliases:
   - km-silvery.backdrop-hardening
@@ -18,6 +21,10 @@ dependencies:
     created_at: 2026-04-20T13:59:18Z
     created_by: claude:88c0e764
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Backdrop module hardening — Pro review b335f1f6 followups @km/silvery #epic #P0 @claude:a1a0e667
@@ -51,3 +58,4 @@ See /tmp/pro-backdrop-review-result.txt (session 88c0e764, 2026-04-20 13:23-14:0
 - All 4 P1 criteria beads closed with new tests
 - P2 beads have /complete criteria written
 - Pro follow-up review (or Claude-side verification) confirms invariants hold
+

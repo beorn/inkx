@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sterling-storybook-full"
 aliases:
   - km-silvery.sterling-storybook-full
@@ -25,6 +28,14 @@ dependencies:
     created_at: 2026-04-19T14:43:33Z
     created_by: claude:4274df30
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.sterling-storybook
+      - type: link
+        target: km-silvery.sterling-storybook-mvp
 ---
 
 # [x] Sterling Storybook Full — derivation viz + contrast audit + demos @km/silvery #task #P3 @claude:4274df30
@@ -37,3 +48,4 @@ Full design: hub/silvery/design/v10-terminal/storybook-design.md
 
 DEPENDS: sterling-storybook-mvp
 Parent: @km/silvery/sterling-storybook
+

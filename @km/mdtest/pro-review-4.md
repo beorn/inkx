@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/mdtest/pro-review-4"
 aliases:
   - km-mdtest.pro-review-4
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Pro Review 4: mdtest docs & positioning @km/mdtest #task #P2
 
 GPT 5.4 Pro docs review findings. See /tmp/llm-65d845d9-gpt-54-pro-documentation-rq4y.txt for full report.
+

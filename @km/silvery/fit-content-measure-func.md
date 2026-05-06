@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/fit-content-measure-func"
 aliases:
   - km-silvery.fit-content-measure-func
@@ -23,6 +26,14 @@ dependencies:
     created_at: 2026-04-11T22:48:24Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery
+      - type: link
+        target: km-silvery.fit-content-clamp
 ---
 
 # [x] fit-content/snug-content should use Yoga measure function for proper parent-aware sizing @km/silvery #feature #P2 @Bjørn Stabell
@@ -38,6 +49,7 @@ Proper fix: register a Yoga measure function via layoutNode.setMeasureFunc((widt
 Reference implementation: vendor/silvery/packages/ag-react/src/reconciler/nodes.ts line 81 — the reconciler already uses setMeasureFunc for text nodes with a cache keyed on (text, width, widthMode). The fit-content path should use the same pattern.
 
 Depends on @km/silvery/fit-content-clamp (which filed the baseline regression tests and the maxWidth partial fix). Closes this bug when the regression tests in vendor/silvery/tests/features/pretext-layout.test.tsx flip from test.fails to passing — especially:
+
 - "fit-content child does not overflow a fixed-width parent" (measured 163 cols in 20-col parent)
 - "two flexGrow=1 columns stay within the terminal width"
 - "plain Box child (no fit-content) is clamped by fixed-width parent"
@@ -45,3 +57,4 @@ Depends on @km/silvery/fit-content-clamp (which filed the baseline regression te
 Note: the last regression test documents that plain Box ALSO overflows parent width. That might be a separate Flexily cross-axis default bug rather than a measure-phase issue. Investigate whether setMeasureFunc on fit-content nodes also fixes plain Box case, or if there is a second deeper bug in Flexily default alignItems.
 
 Observed symptom: Screenshot 2026-04-11 at 22.41.26.png — bubbles collide and text clips at narrow terminal width.
+

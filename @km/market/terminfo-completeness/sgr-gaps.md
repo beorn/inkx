@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/terminfo-completeness/sgr-gaps"
 aliases:
   - km-market.terminfo-completeness.sgr-gaps
@@ -21,7 +23,9 @@ HIGH PRIORITY: underline color is the single most valuable missing SGR feature.
 Widely supported: Kitty, WezTerm, foot, Ghostty, VTE, mintty, Alacritty (recent), iTerm2.
 
 Also check:
+
 - SGR 38:2::R:G:B (ITU T.416 subparameterized color) — different from SGR 38;2;R;G;B
 - SGR 58:2::R:G:B same sub-param syntax
 
 Termless already has styled underline attribute support. Should extend to track underline color per cell.
+

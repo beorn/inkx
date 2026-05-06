@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/plugin-ink-compat"
 aliases:
   - km-silvery.plugin-ink-compat
@@ -27,6 +29,7 @@ const app = pipe(
 \`\`\`
 
 ## What withInk() should provide
+
 - Wraps root with InkErrorBoundary + InkFocusProvider + InkCursorStoreCtx + CursorProvider
 - useInput() with Ink's callback shape (input, key) instead of silvery's
 - Box prop name aliases (Ink's API surface)
@@ -34,11 +37,14 @@ const app = pipe(
 - Any remaining Ink API shims from packages/compat/
 
 ## Prior work
+
 - **@km/silvery/plugin-arch** (closed): Design doc at docs/design/plugin-architecture.md. Defined composable Plugin = (el) => el pattern, wrapRoot mechanism.
 - **@km/silvery/ink-compat-minimize** (closed): 162/162 ink compat tests passing. SGR native chalk compat, wrapRoot/stdin renderer options implemented.
 - **wrapRoot** already exists on the renderer — this bead formalizes it as a named plugin.
 
 ## Benefit
+
 - Ink→Silvery migration becomes: add withInk() to pipe(), then remove it piece by piece
 - Clean separation of what's "Ink compat" vs "native silvery"
 - The compat layer (~80 lines render path) collapses into a single plugin function
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - silvery
+  - km
 id: "@km/silvery/commander-examples"
 aliases:
   - km-silvery.commander-examples
@@ -28,8 +31,10 @@ Renders as colorized Examples section with command names in yellow, --flags in c
 Implementation: override addHelpText to post-process example lines with the same style hooks used for Commands/Options sections.
 
 Apply to:
+
 - packages/terminfo.dev CLI (npx terminfo.dev)
 - packages/admin CLI (bun admin)
 - Any other @silvery/commander users in the ecosystem
 
 Update /silverize skill to check for addExamples() usage.
+

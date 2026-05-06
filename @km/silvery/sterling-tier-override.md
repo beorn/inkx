@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sterling-tier-override"
 aliases:
   - km-silvery.sterling-tier-override
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-19T16:24:28Z
     created_by: claude:4274df30
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Sterling: programmatic colorLevel override on run() @km/silvery #feature #P3 @claude:4274df30
@@ -39,6 +46,7 @@ await run(<App />, { colorLevel: '256' })        // force — test 256-cube
 ```
 
 Internally:
+
 - Sets caps.colorLevel (overrides auto-detection) — affects pipeline behavior end-to-end (inline hex quantization, mono attribute fallback, SGR encoding choices, backdrop blend targets)
 - Pre-quantizes the Theme via pickColorLevel() so token hex values match the pipeline's level
 
@@ -66,6 +74,7 @@ Exported from @silvery/design or @silvery/ansi (tbd). Walks Theme's hex leaves, 
 ## Why both are needed
 
 Theme-transform alone doesn't cover:
+
 - Inline hex values in props (<Text color='#ff0000'>) — not in Theme
 - Mono-tier attribute fallback (emit bold/dim/reverse instead of colors)
 - SGR encoding choices (\x1b[1;31m vs \x1b[91m)
@@ -90,3 +99,4 @@ Pipeline-override alone doesn't give apps a way to pre-cache quantized themes or
 - Per-subtree override (<ThemeProvider colorLevel='ansi16'> inside a truecolor app) — possible future enhancement but requires pipeline state management
 
 Orthogonal to Sterling phases; ~50 LOC + tests + doc updates.
+

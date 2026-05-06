@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/showcase-canvas"
 aliases:
   - km-silvery.showcase-canvas
@@ -15,18 +18,22 @@ assignee: claude:fed8de9e
 # [x] Switch showcase demos from xterm.js iframe to canvas renderer @km/silvery #task #P1 @claude:fed8de9e
 
 ## Problem
+
 xterm.js in an iframe is fundamentally wrong for docs showcases. Every bug (uneven padding, cropping, broken input, rendering corruption, scrolling) stems from the terminal emulator fighting the browser's layout/event system.
 
 ## Solution
+
 Switch to silvery's canvas renderer (already built: canvas-app.js exists in dist/).
 
 Canvas advantages:
+
 - Pixel-perfect — no character grid alignment issues
 - No iframe — native browser events, scrolling, focus
 - No xterm.js dependency — smaller, simpler
 - Already works — canvas-app.tsx and canvas.html exist
 
 ## Implementation
+
 1. Create showcase-canvas-app.tsx (like showcase-app.tsx but uses renderToCanvas instead of renderToXterm)
 2. Create showcase-canvas.html (like showcase.html but with canvas element)
 3. Update ShowcaseGallery.vue to use the canvas version
@@ -36,4 +43,6 @@ Canvas advantages:
 7. If canvas works well, delete the xterm showcase path
 
 ## Alternative: Pre-recorded SVGs
+
 For non-interactive demos (homepage hero), use termless screenshot() to generate SVG recordings. Zero runtime, zero bugs.
+

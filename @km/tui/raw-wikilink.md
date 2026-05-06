@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/raw-wikilink"
 aliases:
   - km-tui.raw-wikilink
@@ -13,3 +16,4 @@ assignee: claude:28b14b32
 # [x] Card body shows raw \![[  wikilink embed syntax instead of rendering it @km/tui #bug #P2 @claude:28b14b32
 
 Card body lines display raw `\![[` at the end of truncated lines instead of rendering the wikilink embed as its display name or stripping it. Visible in Asana vault cards like 'Groom/archive QB Remodel \![['.
+

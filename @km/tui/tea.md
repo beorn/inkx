@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/tea"
 aliases:
   - km-tui.tea
@@ -25,13 +27,23 @@ dependencies:
     created_at: 2026-04-15T08:36:39Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.tea
+      - type: link
+        target: km-silvery.tea-useinput
+      - type: link
+        target: km-tui.atomic-tree-ops
 ---
 
 # [ ] TEA state machines for km-tui: unified selection + atomic operations @km/tui #feature #P0
 
 blocks:: [[@km/silvery/tea]], [[@km/silvery/tea-useinput]], [[@km/tui/atomic-tree-ops]]
 
-# Refactor Plan: @km/tui/tea — Domain Plugin Migration
+## Refactor Plan: @km/tui/tea — Domain Plugin Migration
 
 ## Status (updated 2026-04-21): substrate shipped, production cutover pending
 
@@ -46,21 +58,23 @@ blocks:: [[@km/silvery/tea]], [[@km/silvery/tea-useinput]], [[@km/tui/atomic-tre
 
 ## Pre-flight gates (must all land before Phase 1)
 
-| Gate | Status | Blocker bead |
-|---|---|---|
-| **G1a** — substrate library | ✓ shipped | `@silvery/create` v0.18.x + `@silvery/create/runtime/` substrate (90 contract tests) |
-| **G1b** — production cutover | pending | `km-silvery.tea-useinput` — `create-app.tsx` → `runEventBatch` on piped chain |
-| **G2** — unified selection | ✓ closed | `km-all.unified-selection` — `Selection = TextSelection \| NodeSelection \| GapSelection` on SelectionStore |
-| **G3** — atomic tree ops | ✓ closed | `km-tui.atomic-tree-ops` — atomic tree+selection op contract at the repo layer |
+| Gate                     | Status    | Blocker bead                                                                                            |
+| ------------------------ | --------- | ------------------------------------------------------------------------------------------------------- |
+| G1a — substrate library  | ✓ shipped | @silvery/create v0.18.x + @silvery/create/runtime/ substrate (90 contract tests)                        |
+| G1b — production cutover | pending   | km-silvery.tea-useinput — create-app.tsx → runEventBatch on piped chain                                 |
+| G2 — unified selection   | ✓ closed  | km-all.unified-selection — Selection = TextSelection \| NodeSelection \| GapSelection on SelectionStore |
+| G3 — atomic tree ops     | ✓ closed  | km-tui.atomic-tree-ops — atomic tree+selection op contract at the repo layer                            |
 
 All gates live under `km-silvery.selection-focus-plateau` Phases 1–3. Only G1b remains open.
 
 ## Current state (blast radius verified)
 
 **Centers of gravity** (LOC):
+
 - board-actions.ts 2934 | state/board-app-store.ts 1814 | board-app.ts 1279 | board-reducer.ts 890 | board-actions-edit.ts 778 | use-board-dialogs.ts 480 | ui-reducer.ts 459 | board-actions-zoom.ts 450 | board-actions-nav.ts 478 | undo/undoable-repo.ts 367
 
 **Where state lives**:
+
 - Board/workspace: `BoardAppState.workspace.panes[]` each with `BoardPaneState` (cursor, foldDepths, rootId, zoomStack, navHistory)
 - UI: `ui: UIState`, mutated via `setUI()`
 - Selection: `sel: SelectionStore` from `@silvery/selection` — dual `sel.text.*`/`sel.node.*` channels, 226 call sites × 20 files
@@ -104,6 +118,7 @@ Ordering rationale: start with shallowest wrap (dialogs), end with deepest. Undo
 **Delete**: `views/use-board-dialogs.ts` (480), `dialog-guard.ts` (116), `dialog-target.ts`, all `dialogTargetRef`/`pushDialogMode`/`popDialogMode`/`resetDialogGuard` call sites, `ui.activeDialog`/`ui.dialogStack` fields on `UIState`.
 
 **/complete**:
+
 - `rg 'dialog-guard|dialogTargetRef|useBoardDialogs|pushDialogMode|popDialogMode' apps/km-tui/src` → 0
 - `rg 'activeDialog' apps/km-tui/src/state` → 0
 - `bun run test:fast apps/km-tui` green
@@ -119,6 +134,7 @@ Ordering rationale: start with shallowest wrap (dialogs), end with deepest. Undo
 **Delete**: `board-reducer.ts` (890), `board-effect-runner.ts` (129), `board-actions-nav.ts` (478), `board-actions-zoom.ts` (450). Nav/zoom/viewMode branches gutted from board-actions.ts. `BoardState.*` nav fields off board-app-store.ts.
 
 **/complete**:
+
 - 4 deleted files gone
 - `rg 'handleKmOp.*cursor_|handleKmOp.*zoom_' apps/km-tui/src` → 0
 - `rg 'app\.cmd\.(cursor_|zoom_|fold|unfold|cycle_view_mode|nav_|page_jump)' apps/km-tui/src` → >20 sites (board commands now dispatched through silvery's `app.cmd.*` proxy — earlier text said `app\.commands\.board\.`, same concept)
@@ -137,6 +153,7 @@ Ordering rationale: start with shallowest wrap (dialogs), end with deepest. Undo
 **Delete**: `board-actions-edit.ts` (778), `activeEditTargetRef`/`activeEditContextRef`/`textEditTarget`/`textEditHints` on BoardAppStore, `needsRenderFlush` flag. `InlineEditField.tsx`/`BodyEditField.tsx`/`tree-node-edit.tsx` rewritten to read `app.models.editor` + dispatch `app.cmd.<editor-verb>()` (earlier text: `app.commands.editor.*` — same concept).
 
 **/complete**:
+
 - `ls board-actions-edit.ts` → NOT EXISTS
 - `rg 'activeEditTargetRef|activeEditContextRef|needsRenderFlush' apps/km-tui/src` → 0
 
@@ -155,6 +172,7 @@ Ordering rationale: start with shallowest wrap (dialogs), end with deepest. Undo
 **Delete**: `board-selection-helpers.ts` (191), `selection-adapter.ts` (124), `board-actions-selection.ts` (171). All 226 `sel.text.*`/`sel.node.*` sites migrated. `sel: SelectionStore` raw field off BoardAppStore. `textEditHints` folded into TextSelection.
 
 **/complete**:
+
 - `rg 'sel\.text\.|sel\.node\.' apps/km-tui/src` → 0
 - 3 helper files gone
 - `rg 'app\.cmd\.(select_|extend|clear|toggle)' apps/km-tui/src` → >30 sites (earlier text: `app\.commands\.selection\.`, same concept)
@@ -170,6 +188,7 @@ Ordering rationale: start with shallowest wrap (dialogs), end with deepest. Undo
 **Delete**: `board-tree-ops.ts` (77), all remaining tree-mutation branches in board-actions.ts, imperative `repo.indentNode()`/`repo.moveNode()` outside plugin.
 
 **/complete**:
+
 - `ls board-tree-ops.ts` → NOT EXISTS
 - `rg 'repo\.(indent|outdent|moveNode|deleteNode)' apps/km-tui/src --glob '!**/plugins/**'` → 0
 - `wc -l board-actions.ts` < 500 (was 2934) — file may even be deleted entirely
@@ -187,6 +206,7 @@ Ordering rationale: start with shallowest wrap (dialogs), end with deepest. Undo
 **Delete**: `undoable-repo.ts` (367), `undo/operations.ts`, `undo/index.ts`, `undo-stack.ts`, imperative `startBatch`/`endBatch`/`setCursor`/`setCursorAfter` calls, `UNDO_*` effect types.
 
 **/complete**:
+
 - `undo/` directory + `undo-stack.ts` gone
 - `rg 'UndoableRepo|undoStack|startBatch|endBatch' apps/km-tui/src` → 0
 
@@ -201,6 +221,7 @@ Ordering rationale: start with shallowest wrap (dialogs), end with deepest. Undo
 **Delete**: `normalize-plugins.ts` (absorbed), imperative `repo.save()` calls, residual `workspace-persist` callers. `config-persist.ts`/`workspace-persist.ts` kept as pure serializers fired through plugin effects only. `board-app-store.ts` shrinks to ≤200 LOC (or deleted entirely if all state lives on plugins).
 
 **/complete**:
+
 - `rg 'repo\.save\(' apps/km-tui/src --glob '!**/plugins/with-storage.ts'` → 0
 - `wc -l board-app-store.ts` < 300 (was 1814)
 
@@ -208,15 +229,15 @@ Ordering rationale: start with shallowest wrap (dialogs), end with deepest. Undo
 
 ## Phase type classification
 
-| Phase | Type | Flags |
-|---|---|---|
-| 1 Dialogs | Architectural (first plugin) | /discuss |
-| 2 Board | Surgical | — |
-| 3 Editor | Architectural (PlainText boundary) | /discuss + /pro-review; blocks on silvery headless |
-| 4 Selection | Architectural + Mechanical (226 sites) | /pro-review — HIGHEST RISK |
-| 5 Tree | Surgical (contract from G3) | — |
-| 6 Undo | Architectural (middleware) | /pro-review |
-| 7 Storage | Surgical | — |
+| Phase       | Type                                   | Flags                                              |
+| ----------- | -------------------------------------- | -------------------------------------------------- |
+| 1 Dialogs   | Architectural (first plugin)           | /discuss                                           |
+| 2 Board     | Surgical                               | —                                                  |
+| 3 Editor    | Architectural (PlainText boundary)     | /discuss + /pro-review; blocks on silvery headless |
+| 4 Selection | Architectural + Mechanical (226 sites) | /pro-review — HIGHEST RISK                         |
+| 5 Tree      | Surgical (contract from G3)            | —                                                  |
+| 6 Undo      | Architectural (middleware)             | /pro-review                                        |
+| 7 Storage   | Surgical                               | —                                                  |
 
 ## Dependencies
 
@@ -237,3 +258,4 @@ G3 (atomic-ops)   ──┘
 **(a) Should withSelection() absorb @km/tui/sel-migration?** **YES, absorb.** Separate beads produce the dual-path trap. `km-all.unified-selection` stays as Gate G2 (type only), Phase 4 absorbs the mechanical pass, lands atomically. If tracking reasons require separate beads, they must land in the same epic session with "no commit leaves both patterns working" rule.
 
 **(b) Is silvery's TEA framework ready?** **Substrate library: YES ✓; production cutover: not yet.** Phase 1 blocks specifically on `km-silvery.tea-useinput` closing (migrating `create-app.tsx` from legacy `processEventBatch + runtimeInputListeners + handleFocusNavigation` to `runEventBatch` on a piped chain). It does **not** block on the substrate library, which is shipped and tested. See the "Status" section at the top of this bead for the split gate (G1a / G1b). Earlier versions of this bead said a blanket "NO" — that was a simplification of the actual two-part status and contradicted `km-all.tea-discuss` §8.
+

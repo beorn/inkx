@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/inbox/nco09"
 aliases:
   - km-nco09
@@ -21,3 +24,4 @@ Classification: P0
 If flush A is delayed by retries/slow I/O, new writes can queue and flush B can run first. Flush B writes newer bytes, then flush A resumes and overwrites them with older bytes. The pending-map only coalesces before a batch is copied out; it does not protect across overlapping flushes.
 
 Suggested fix: Add a flush mutex / single in-flight flush promise. Drain pending operations in a loop until empty. Also stamp ops with a per-path generation and drop stale generations before execution.
+

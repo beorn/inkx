@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/6bsxz"
 aliases:
   - km-6bsxz
@@ -21,3 +24,4 @@ Fix: catch fatal errors at the top level, switch to normal screen (exit alternat
 
 Affected: apps/@km/_orphan/cli/src/commands/view.ts — needs try/catch around the main action with alt screen cleanup.
 Related: silvery app cleanup, process.on('uncaughtException').
+

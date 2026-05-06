@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/terminal-protocol-owner"
 aliases:
   - km-silvery.terminal-protocol-owner
@@ -19,6 +21,14 @@ dependencies:
     created_at: 2026-04-22T13:47:53Z
     created_by: claude:019d032d
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery
+      - type: link
+        target: km-silvery.term-sub-owners
 ---
 
 # [ ] Single owner for terminal protocols (bracketed paste, mouse, focus reporting) @km/silvery #task #P2
@@ -32,3 +42,4 @@ Same fix shape as InputOwner: a TerminalProtocolOwner sets each protocol exactly
 Filed alongside @km/silvery/input-owner — same root cause class, same structural fix pattern, can share infrastructure (the InputOwner could be extended into a TerminalSession owner that holds InputOwner + OutputGuard + protocol state).
 
 Audit report: /tmp/shared-global-audit.md (Suspect #3).
+

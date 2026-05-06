@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/loggily"
 aliases:
   - km-loggily
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] loggily @km/loggily #epic #P3
 
 Scope epic for loggily — structured logging with debug namespaces, spans, and optional chaining.
+

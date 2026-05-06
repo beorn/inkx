@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/css-select"
 aliases:
   - km-silvery.css-select
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] AutoLocator: adopt css-select for full CSS selector spec compliance @km/silvery #feature #P2
 
 Replace hand-rolled CSS selector parser in AutoLocator (auto-locator.ts) with css-what (parser) + css-select (matcher engine). These packages work on any tree structure via a custom adapter — we'd write a thin AgNode adapter. Benefits: full CSS3 selector spec (combinators, pseudo-classes, pseudo-elements), battle-tested edge cases, no more hand-rolling each combinator. Current AutoLocator has multi-level chains, >, +, ~, :first-child/:last-child/:nth-child — but many selectors are missing and child/sibling combinators don't work well because the AgNode tree has React wrapper nodes between data-model nodes.
+

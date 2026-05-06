@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/commander-action-native"
 aliases:
   - km-silvery.commander-action-native
@@ -29,15 +31,18 @@ Affected: km doctor links, km doctor (base), and any other CLI subcommand that r
 Fixed for these two by changing `(path)` -> `(path, _options)` to bump fn.length above the threshold. See commit on doctor.ts.
 
 Why dangerous:
+
 1. Silent miscompile: the lambda type-checks fine, runs, and crashes deep inside resolveKmDir with a confusing error pointing at path resolution rather than the action wiring.
 2. Behavior depends on a count of formal parameters — easy to break by 'simplifying' a handler that doesn't use opts.
 3. Underscore-prefix unused params (_options) are exactly the kind of thing linters/refactorers strip.
 4. The two forms aren't visually distinguishable at the call site — only the function's arity decides which one fires.
 
 Discussion needed:
+
 - Should silvery require an explicit opt-in for merged form (e.g. .action({ merged: true }, fn))?
 - Should it warn at registration time when fn.length <= 1 + typed args are present?
 - Should handlers always receive a third `command` arg to make fn.length naturally >=2?
 - Or remove the magic entirely and have two distinct methods (.action() vs .actionMerged())?
 
 Source: /Users/beorn/Code/pim/km/vendor/silvery/packages/commander/src/command.ts lines 476-505
+

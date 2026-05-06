@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/loggily/otel-compat"
 aliases:
   - km-loggily.otel-compat
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-11T15:58:29Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-loggily
 ---
 
 # [ ] OpenTelemetry compatibility layer @km/loggily #feature #P4
@@ -102,3 +108,4 @@ withTraceparent(req.headers.traceparent, async () => {
 - Auto-instrumentation of HTTP/DB/etc (use OTel instrumentation packages for that)
 - OTel metrics (loggily is logging + spans)
 - Replacing OTel SDK for complex distributed tracing setups
+

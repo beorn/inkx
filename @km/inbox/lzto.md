@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/lzto"
 aliases:
   - km-lzto
@@ -12,6 +14,7 @@ closed_at: 2026-01-20T10:54:45Z
 Ensure emoji with Zero Width Joiner sequences render correctly.
 
 Test cases:
+
 - Simple emoji (😀, ❤️)
 - Skin tone modifiers (👋🏽)
 - ZWJ family sequences (👨‍👩‍👧‍👦)
@@ -20,3 +23,4 @@ Test cases:
 - Emoji width calculation
 
 These are known edge cases in terminal rendering.
+

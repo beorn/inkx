@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/prevlayout-overload"
 aliases:
   - km-silvery.prevlayout-overload
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] prevLayout field overloaded — change detection + content-phase bookkeeping @km/silvery #bug #P3
 
 prevLayout is used for both layout change detection (notifications via notifyLayoutSubscribers) and content-phase incremental bookkeeping (syncPrevLayout). This dual role creates fragile phase interactions and potential subscriber notification drift. Recommend splitting into prevLayoutForNotification and prevLayoutForContent. Found by GPT pipeline review (3/3 flagged).
+

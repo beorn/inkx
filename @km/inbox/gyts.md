@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/gyts"
 aliases:
   - km-gyts
@@ -12,8 +14,10 @@ closed_at: 2026-01-20T11:52:12Z
 Ink issue #840 reports borderDimColor incorrectly dims child Text components at the left edge of Box components.
 
 Test scenario:
+
 - Box with borderDimColor and nested Text children
 - Verify Text at left edge is not incorrectly dimmed
 - Test various border styles with dimColor
 
 Reference: https://github.com/vadimdemedes/ink/issues/840
+

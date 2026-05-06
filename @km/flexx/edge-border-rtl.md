@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/flexx/edge-border-rtl"
 aliases:
   - km-flexx.edge-border-rtl
@@ -11,3 +14,4 @@ assignee: claude:a3625ec3
 # [x] fix(flexx): setEdgeBorder hardcodes START=LEFT regardless of direction @km/flexx #bug #P2 @claude:a3625ec3
 
 setEdgeBorder resolves START to LEFT unconditionally. Low impact (LTR only) but API correctness issue.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/poll-mutex"
 aliases:
   - km-tribe.poll-mutex
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Poll loop can overlap — add async mutex @km/tribe #bug #P1
 
 pollMessages() is async but setInterval has no in-flight guard. If delivery >1s, overlapping polls cause duplicate delivery. Fix: add polling=false mutex.
+

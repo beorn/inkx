@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sterling-selection-tokens"
 aliases:
   - km-silvery.sterling-selection-tokens
@@ -23,6 +26,10 @@ dependencies:
     created_at: 2026-04-24T16:13:02Z
     created_by: claude:5e447b66
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.sterling
 ---
 
 # [x] Add Sterling tokens for selection / inverse / link (`bg-selected`, `fg-on-selected`, `bg-inverse`, `bg-link`, `fg-on-link`) @km/silvery #task #P2 @claude:22c2717d
@@ -62,3 +69,4 @@ vendor/silvery/packages/ansi/src/theme/invariants.ts:236 — replace `themeAny['
 ## Unblocks
 
 - @km/silvery/selection-theme-tokens — once `bg-selected` exists, paintFrame can resolve it instead of the hardcoded DEFAULT_SELECTION_THEME stopgap
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/osc66-demo"
 aliases:
   - km-silvery.osc66-demo
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] OSC 66 text sizing demo — variable text sizes in terminal @km/silvery #task #P3
 
 Demo OSC 66 (kitty text sizing protocol) in silvery. Novel rendering capability: variable text sizes in terminal cells — enables real headings, small print, annotations. From @km/silvery/terminal-protocols. Requires kitty terminal for testing.
+

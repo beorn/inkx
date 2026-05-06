@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/space-toggle-detail"
 aliases:
   - km-tui.space-toggle-detail
@@ -11,3 +14,4 @@ assignee: claude:a5c7f7de
 ---
 
 # [x] Space key: make it only toggle detail pane (remove select_toggle, remove zoom-in) @km/tui #bug #P2 @claude:a5c7f7de
+

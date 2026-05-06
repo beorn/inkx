@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui2/17-verify-tabsview-parity-with-tui1"
 aliases:
   - km-tui2.17
@@ -13,3 +15,4 @@ closed_at: 2026-01-17T00:07:26Z
 Verify: tab selection styling, content area, overflow handling
 
 **Files**: apps/@km/tui/packages/@km/_orphan/opentui/src/views/TabsView.tsx
+

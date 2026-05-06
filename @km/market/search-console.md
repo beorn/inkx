@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/market/search-console"
 aliases:
   - km-market.search-console
@@ -17,3 +20,4 @@ assignee: claude:4929065a
 # [x] Submit all 4 sites to Google Search Console @km/market #task #P3 @claude:4929065a
 
 Submit sitemaps for terminfo.dev, silvery.dev, termless.dev, flexily.dev to Google Search Console. Verify ownership via DNS or HTML file.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/rename-tests"
 aliases:
   - km-storage.rename-tests
@@ -13,9 +16,11 @@ assignee: claude:9e69175d
 File/folder renames have minimal explicit tests in sync test suite.
 
 Should test:
+
 - Rename preserves node IDs
-- Updates fs_path correctly  
+- Updates fs_path correctly
 - Handles cross-directory moves
 - Rename of folder updates all children's fs_path
 
 See docs/archive/sync-test-coverage.md for full analysis.
+

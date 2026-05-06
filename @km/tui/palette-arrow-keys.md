@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/palette-arrow-keys"
 aliases:
   - km-tui.palette-arrow-keys
@@ -20,3 +23,4 @@ assignee: Bjørn Stabell
 # [x] Arrow keys move board when command palette is open @km/tui #bug #P2 @Bjørn Stabell
 
 When command palette (omnibox) is open, arrow keys still move the board cursor instead of navigating the search results. Likely the inDialog predicate or dialog mode push has a gap.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/inbox/2fw4r"
 aliases:
   - km-2fw4r
@@ -9,3 +12,4 @@ assignee: beorn
 ---
 
 # [x] Fix all failing tests @km/_orphan #bug #P1 @beorn
+

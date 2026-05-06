@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/7garp"
 aliases:
   - km-7garp
@@ -17,3 +20,4 @@ assignee: claude:474834b0
 # [x] Craft compelling silvery README narrative @km/_orphan #task #P3 @claude:474834b0
 
 Create a compelling README.md for silvery that sells the project. Research competitor READMEs (Ink, BubbleTea, Textual) for inspiration. Focus on the hook: layout feedback + incremental rendering + full terminal protocol support. Include quick start, feature highlights, benchmark callouts, and comparison section.
+

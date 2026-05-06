@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/all/fix-sweep-detail-pane-empty"
 aliases:
   - km-all.fix-sweep-detail-pane-empty
@@ -21,6 +24,10 @@ dependencies:
     created_at: 2026-04-26T14:46:46Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.fix-sweep-remaining-slow
 ---
 
 # [x] Detail pane empty state fallback missing DETAIL VIEW header @km/all #bug #P2 @claude:cc081a9a
@@ -33,11 +40,14 @@ Expected: screenshot contains 'DETAIL VIEW' label.
 Actual: screenshot shows the help/keybindings dialog instead — DetailPane fallback is routing to the wrong content.
 
 Likely bug:
+
 - DetailPane fallback render path is broken — shows help dialog when no node selected
 - OR: fallback rendering doesn't include the 'DETAIL VIEW' header bar at all (regression)
 
 Investigate:
+
 - apps/@km/tui/src/views/DetailPane*.tsx — fallback / empty state rendering
 - Recent git history for fallback rendering changes
 
 Fix at the lowest correct layer. Add regression coverage.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/db-events-direct-write"
 aliases:
   - km-storage.db-events-direct-write
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] P0: db-events.ts direct FS writes bypass sync pipeline @km/storage #bug #P0
 
 db-events.ts writeTaskStatusToFile() and writeDateToFile() write directly to filesystem, bypassing SyncManager/WriteQueue. This causes: (1) two uncoordinated writers for the same event, (2) watcher seeing direct writes as external changes, (3) lost updates from race conditions. Fix: remove direct FS writes from db-events.ts, route all DB->FS propagation through FsSync.
+

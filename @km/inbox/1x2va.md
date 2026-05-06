@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/1x2va"
 aliases:
   - km-1x2va
@@ -9,3 +11,4 @@ owner: bjorn@stabell.org
 ---
 
 # [ ] Recall ambient adapter — real query path + controller hook @km/_orphan #feature #P2
+

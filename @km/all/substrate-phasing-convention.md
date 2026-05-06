@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/substrate-phasing-convention"
 aliases:
   - km-all.substrate-phasing-convention
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-27T11:00:55Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.plateau-90
 ---
 
 # [x] Substrate-phasing convention: file L5 cleanup bead at the same time as L4 substrate @km/all #task #P2
@@ -26,3 +32,4 @@ dependencies:
 blocks:: [[@km/all/plateau-90]]
 
 Plateau-90 epic phased C1, C2, C3a as 'Phase 1 substrate, Phase 2/3 in notes'. Result: each substrate bead closed at L4 with workaround fossils still in code as planned residue. The cleanup beads (@km/silvery/lifecycle-leak-detection-fossil, @km/silvery/paint-clear-l5-final) were filed AFTER the substrate shipped, when residue was rediscovered during /complete. Convention to encode in /refactor and /pm skills: when planning a substrate-then-cleanup migration, file BOTH beads at planning time. Substrate bead /complete criterion includes: 'L5 cleanup bead exists in open state, blocked by this'. This makes L4-but-not-L5 fossils tracked from day 0 instead of surface-of-discovery. Touches: /refactor SKILL.md, /pm SKILL.md, .claude/skills/refactor/migrate.md. Acceptance: skills updated; convention applied retroactively to plateau-90 follow-on beads (already done — feedback-trace-v31-integration, lifecycle-leak-detection-fossil, paint-clear-l5-final exist).
+

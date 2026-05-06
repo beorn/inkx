@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/scope-test-failures"
 aliases:
   - km-silvery.scope-test-failures
@@ -18,6 +21,10 @@ dependencies:
     created_at: 2026-04-26T16:22:29Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.fix-sweep-vendor-fuzz
 ---
 
 # [x] [bug] vendor/silvery scope.test.ts — 15 failures (likely shared root cause) @km/silvery #bug #P2 @claude:cc081a9a
@@ -25,3 +32,4 @@ dependencies:
 blocks:: [[@km/all/fix-sweep-vendor-fuzz]]
 
 All 15 tests in vendor/silvery/tests/features/scope.test.ts fail. /complete: bun vitest run --project vendor vendor/silvery/tests/features/scope.test.ts → 0 failures.
+

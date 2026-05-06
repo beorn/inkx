@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/market/terminfo-refresh-april"
 aliases:
   - km-market.terminfo-refresh-april
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-17T22:35:58Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-market.terminfo-completeness
 ---
 
 # [x] Full terminfo.dev refresh — all probes, analysis, build @km/market #task #P2 @Bjørn Stabell
@@ -26,3 +33,4 @@ dependencies:
 blocks:: [[@km/market/terminfo-completeness]]
 
 Re-probe all backends (termless, app, server, mux), regenerate analysis commentary, rebuild site, verify 404s. Triggered after vterm feature-gap-implementation landed 100% coverage.
+

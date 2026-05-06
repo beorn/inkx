@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/test-4/9-optimize-orchestrator-for-unified-vitest"
 aliases:
   - km-test-4.9
@@ -12,3 +15,4 @@ assignee: claude:bb984f7c
 # [x] Optimize orchestrator for unified Vitest @km/test-4 #task #P2 @claude:bb984f7c
 
 Simplify orchestrator now that all tests use Vitest. Remove JUnit conversion complexity. Pure TAP streaming throughout.
+

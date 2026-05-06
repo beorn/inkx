@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/filter-embedded-source"
 aliases:
   - km-tui.filter-embedded-source
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Deep filter: check source nodes for props on embedded tasks @km/tui #bug #P2
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/tea-useinput-cannot-dispatch"
 aliases:
   - km-silvery.tea-useinput-cannot-dispatch
@@ -23,6 +25,10 @@ dependencies:
     created_at: 2026-04-20T23:21:27Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.tea
 ---
 
 # [x] useInput handlers cannot emit effects or dispatch — must use keybinding plugin pattern @km/silvery #task #P1
@@ -30,3 +36,4 @@ dependencies:
 blocks:: [[@km/silvery/tea]]
 
 Discovered by the 2026-04-21 TEA board-nav spike. The shipped with-input-chain.ts has handler signature (input, key) => void | 'exit'. Calling app.dispatch(...) inside a handler throws 'Reentrant dispatch'. Idiomatic pattern is a keybinding plugin that returns [{ type: 'dispatch', op }] and lets the drain queue handle re-entry.\n\nHard constraint for km migration: every direct dispatch() from a useInput handler must migrate to a keybinding plugin OR to effects. Audit @km/tui for such sites before Phase 1.\n\nContext: hub/silvery/experiments/tea-nav-spike/README.md + hub/silvery/tea-review-responses.md
+

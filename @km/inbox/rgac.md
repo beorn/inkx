@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/rgac"
 aliases:
   - km-rgac
@@ -8,3 +10,4 @@ closed_at: 2026-01-20T15:15:25Z
 ---
 
 # [x] All views: View indicator shows '[39' instead of view name when column/board selected @km/_orphan #bug #P1
+

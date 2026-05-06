@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/jbxp"
 aliases:
   - km-jbxp
@@ -30,3 +32,4 @@ This replaces buildBoardState() which currently queries storage.
 Instead, derive layout from the already-loaded TNode tree.
 
 Key insight: columns = nodes at depth 0, cards = nodes at depth 1
+

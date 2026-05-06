@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/8clz9"
 aliases:
   - km-8clz9
@@ -11,3 +14,4 @@ assignee: claude:b509d761
 ---
 
 # [x] inkx layout snapshot tests (rendered output regression) @km/_orphan #task #P2 @claude:b509d761
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/reconcile-before-write-gaps"
 aliases:
   - km-storage.reconcile-before-write-gaps
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] P0: create/delete paths skip reconcile-before-write @km/storage #bug #P0
 
 handleNodeCreated and handleNodeDeleted in SyncManager regenerate parent files without calling reconcileIfChanged first. External edits to those files can be silently overwritten. Fix: use reconcileFirst=true consistently for all file rewrite paths.
+

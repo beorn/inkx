@@ -1,4 +1,11 @@
 ---
+propsRaw:
+  ts: "useFocus — migrate any remaining Ink apps to @silvery/ag-react useFocus
+    @km/silvery #task #P3"
+props:
+  blocked-by:
+    type: link
+    target: km-all.plateau
 id: "@km/silvery/delete-ink-use-focus"
 aliases:
   - km-silvery.delete-ink-use-focus
@@ -13,6 +20,7 @@ dependencies:
     metadata: "{}"
 ---
 
-# [ ] Delete silvery ink/ink-hooks.ts::useFocus — migrate any remaining Ink apps to @silvery/ag-react useFocus @km/silvery #task #P3
+# [ ] Delete silvery ink/ink-hooks. ^delete-ink-use-focus
 
 blocks:: [[@km/all/plateau]]
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/ajp4"
 aliases:
   - km-ajp4
@@ -12,6 +14,7 @@ closed_at: 2026-01-16T07:40:27Z
 Update the boardReducer to receive tree nodes as a third argument.
 
 **Signature:**
+
 ```typescript
 function boardReducer(
   state: BoardState,
@@ -21,11 +24,14 @@ function boardReducer(
 ```
 
 The board reducer needs access to nodes to:
+
 1. Validate paths exist before navigation
 2. Count siblings for boundary checks
 3. Get children for NAV_CHILD
 4. Calculate cross-column paths
 
 This keeps node data as read-only input, maintaining clean separation between:
+
 - nodeReducer: structural mutations
 - boardReducer: visual navigation (reads nodes)
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/tea-searchdialog-cutover"
 aliases:
   - km-tui.tea-searchdialog-cutover
@@ -78,6 +81,10 @@ dependencies:
     created_at: 2026-04-21T00:43:38Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui.tea
 ---
 
 # [x] TEA cutover — SearchDialog (the real Phase 1 validator) @km/tui #feature #P1 @claude:8b5b9e1c
@@ -101,9 +108,9 @@ Per dual-pro review 3 (2026-04-21): HelpOverlay mini-cutover validated the reduc
 1. Read HelpOverlay cutover (hub/km/tea-mini-cutover-help-overlay.md) as baseline pattern
 2. Find SearchDialog source (grep apps/@km/tui/src/views/SearchDialog*)
 3. Design withSearchDialog() plugin mirroring HelpOverlay's shape BUT extending for:
-   - Text input state (query, caret)
-   - Async search result lifecycle
-   - Focus scope participation
+  - Text input state (query, caret)
+  - Async search result lifecycle
+  - Focus scope participation
 4. Port incrementally, behind KM_TEA_SEARCH=1 feature flag
 5. Parity tests: every old behavior passes against both paths
 6. Termless real-TTY verification
@@ -129,3 +136,4 @@ SearchDialog lands with a SIMPLER pattern than HelpOverlay (fewer files, cleaner
 - DO NOT skip TTY verification — unit tests won't surface focus/ink integration bugs.
 - DO NOT delete old SearchDialog during port; feature-flag the new.
 - Time-box: 2 days. If stuck after 1 day, document blocker and tap out.
+

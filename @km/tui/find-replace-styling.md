@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/find-replace-styling"
 aliases:
   - km-tui.find-replace-styling
@@ -13,7 +16,9 @@ assignee: claude:d697f216
 # [x] Find & Replace dialog: focus outline, spacing, regexp checkbox @km/tui #bug #P2 @claude:d697f216
 
 Issues with SearchReplaceDialog:
+
 - Blank lines needed above/below Find & Repl labels
 - Focused field should show blue focus outline (outlineStyle)
 - Regexp toggle should be a checkmark instead of [x]/ [ ]
 - Also audit other dialogs for similar styling issues
+

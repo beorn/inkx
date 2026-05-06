@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/selection/13-signals-ui-state-filterproperties-viewmode-clipboa"
 aliases:
   - km-silvery.selection.13
@@ -19,3 +21,4 @@ Currently: PaneUI fields (filterProperties, viewMode, maxContentLines, columnScr
 Target: each PaneUI field is a signal. Components read directly. setUI writes signals.
 
 Lower priority — these are less performance-sensitive than cursor/nav state.
+

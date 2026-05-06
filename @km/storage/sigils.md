@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/sigils"
 aliases:
   - km-storage.sigils
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-15T12:25:37Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage
 ---
 
 # [x] [epic] km sigils — ~, +, @, #, [[]] — strict namespaces + global config @km/storage #epic #P1
@@ -24,6 +30,7 @@ dependencies:
 blocks:: [[@km/storage]]
 
 Sigils are km's typed link syntax. Five sigils, five distinct namespaces:
+
 - `+project` → project node
 - `@context` → context node
 - `#tag` → tag node
@@ -51,3 +58,4 @@ Rationale: unambiguous-per-notation. One literal → one target. Cross-namespace
 - Existing vault content (audit for cross-sigil assumptions)
 
 Design source: ~vault/projects/+km/design/repo-model-and-sigils.md
+

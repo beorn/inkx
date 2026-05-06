@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/three-seam-boundary"
 aliases:
   - km-storage.three-seam-boundary
@@ -25,6 +27,14 @@ dependencies:
     created_at: 2026-04-21T12:04:07Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-storage
+      - type: link
+        target: km-storage.stable-ids
 ---
 
 # [x] Three-seam storage boundary — RepoStore + MarkdownAdapter + WorkspaceFederation @km/storage #feature #P1
@@ -65,3 +75,4 @@ Under Family A: RepoStore is thin SQLite-backed transactional mirror hydrated on
 - @km/storage/federation (depends on RepoStore-per-repo shape)
 
 See hub/km/source-of-truth-rfc-v2.md §2.2
+

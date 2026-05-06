@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/scyp"
 aliases:
   - km-scyp
@@ -16,6 +18,7 @@ Refactor Board.tsx and all views (ColumnsView, ListView, TabsView) to use the ex
 ## Current State
 
 The constraint system exists in `src/constraints/`:
+
 - `ConstraintRoot` - Provides terminal dimensions via context
 - `useComputedSize()` - Hook to access computed dimensions
 - `FlexRow` - Distributes width between columns
@@ -23,6 +26,7 @@ The constraint system exists in `src/constraints/`:
 - `TruncatedText` - Auto-truncating text
 
 But it's NOT being used! Views still do manual calculations:
+
 ```typescript
 const termWidth = ui.dimensions.columns;
 const termHeight = ui.dimensions.rows;
@@ -33,20 +37,24 @@ const maxCols = Math.min(state.columns.length, Math.max(2, Math.floor(termWidth 
 ## Plan
 
 ### Phase 1: Board.tsx wrapper
+
 1. Wrap the Board render in `ConstraintRoot`
 2. Use `useComputedSize()` for terminal dimensions
 3. Remove manual `termWidth/termHeight` calculations
 
 ### Phase 2: ColumnsView refactor
+
 1. Use `FlexRow` for column layout
 2. Use `ScrollableList` for cards within columns
 3. Remove manual width distribution math
 
 ### Phase 3: ListView refactor
+
 1. Use `ScrollableList` for the item list
 2. Use `TruncatedText` for content
 
 ### Phase 4: TabsView refactor
+
 1. Use `FlexRow` for tab headers
 2. Use `ScrollableList` for tab content
 
@@ -60,7 +68,7 @@ const maxCols = Math.min(state.columns.length, Math.max(2, Math.floor(termWidth 
 ## Files to Modify
 
 - `src/views/Board.tsx` - Wrap in ConstraintRoot
-- `src/views/ColumnsView.tsx` - Use FlexRow + ScrollableList  
+- `src/views/ColumnsView.tsx` - Use FlexRow + ScrollableList
 - `src/views/ListView.tsx` - Use ScrollableList
 - `src/views/TabsView.tsx` - Use FlexRow
 - `src/views/CardColumn.tsx` - Use ScrollableList (cards view)
@@ -70,3 +78,4 @@ const maxCols = Math.min(state.columns.length, Math.max(2, Math.floor(termWidth 
 - @km/_orphan/m9bx - Manual size calculations issue
 - @km/inkz - Next-gen renderer (long-term solution)
 - docs/dev/ink-patterns.md - Documented patterns
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/session-state-split"
 aliases:
   - km-storage.session-state-split
@@ -26,6 +29,14 @@ dependencies:
     created_at: 2026-04-21T12:05:03Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-storage
+      - type: link
+        target: km-storage.stable-ids
 ---
 
 # [x] Split session state from content state — three durability tiers @km/storage #task #P2 @claude:8b5b9e1c
@@ -40,11 +51,11 @@ Pro review + cloudi deep-dive both flagged that session state is currently treat
 
 ## Three tiers
 
-| Tier | Example | Store |
-|---|---|---|
-| Content (per repo) | Nodes, bodies, links | RepoStore + MarkdownAdapter |
-| Session (per workspace) | Workspace layout, undo history, recently-opened | ~/.km/session.db |
-| Ephemeral (memory) | Cursor position, hover, transient focus | In-memory only |
+| Tier                    | Example                                         | Store                       |
+| ----------------------- | ----------------------------------------------- | --------------------------- |
+| Content (per repo)      | Nodes, bodies, links                            | RepoStore + MarkdownAdapter |
+| Session (per workspace) | Workspace layout, undo history, recently-opened | ~/.km/session.db            |
+| Ephemeral (memory)      | Cursor position, hover, transient focus         | In-memory only              |
 
 ## Benefits
 
@@ -59,3 +70,4 @@ Pro review + cloudi deep-dive both flagged that session state is currently treat
 - @km/storage/stable-ids (session state refs documents by DocId, not path)
 
 See hub/km/source-of-truth-rfc-v2.md §2.3 + §4.4
+

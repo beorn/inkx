@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/tint-inverse"
 aliases:
   - km-silvery.tint-inverse
@@ -10,7 +12,7 @@ owner: bjorn@stabell.org
 
 # [ ] Color blending ('/ amount') + inverse prop — unified visual modifiers @km/silvery #feature #P2
 
-# Color Expressions + Inverse
+## Color Expressions + Inverse
 
 Extend silvery's color string props with blending, opacity, and color space selection. Add inverse as a style-context transform.
 
@@ -39,7 +41,9 @@ backgroundColor="$primary / opacity 50%"     // opacity (backend-dependent)
 ## Semantics
 
 ### Blend Basis
+
 Each prop blends against its own inherited computed value:
+
 - `color` blends against inherited computed foreground
 - `backgroundColor` blends against inherited computed background
 - `borderColor` blends against inherited computed border color
@@ -47,6 +51,7 @@ Each prop blends against its own inherited computed value:
 Root fallback: theme fg/bg. Blending requires both colors resolvable to concrete RGB.
 
 ### Order of Operations
+
 1. Parse color expression
 2. Resolve $tokens against current theme
 3. Compute node's explicit fg/bg/border from inherited context
@@ -56,16 +61,19 @@ Root fallback: theme fg/bg. Blending requires both colors resolvable to concrete
 7. Lower to backend
 
 ### Inverse
+
 Swaps fg/bg in the style context, not just SGR 7 emission. This ensures children doing blending use the correct (post-swap) inherited colors. Backend may use SGR 7 as an optimization where safe.
 
 Inverse affects fg/bg only, not border/outline.
 
 ### Color Space
+
 Default: oklch (perceptually uniform, better dark-theme blends).
 Override: `in srgb` suffix for legacy matching.
 Implementation: cache RGB-to-OKLCH conversions. Define interpolation method and gamut mapping strategy.
 
 ### Opacity
+
 Parsed by shared code. Backend-dependent — validated via renderer capability matrix:
   ag-term: throws (terminals have no compositing)
   ag-canvas: alpha channel (native)
@@ -87,6 +95,7 @@ type ParsedColorExpr =
 ## Renderer Capability Validation
 
 Shared validation step (not ad-hoc per backend):
+
 ```ts
 { blend: true, blendSpaces: ['srgb', 'oklch'], opacity: false }  // ag-term
 { blend: true, blendSpaces: ['srgb', 'oklch'], opacity: true }   // ag-canvas, ag-dom
@@ -100,6 +109,7 @@ Technically this is color mixing (CSS color-mix). Documented: tint means blend/m
 ## Composition
 
 Multiple blends: nest Boxes. Tree structure = composition order.
+
 ```tsx
 <Box backgroundColor="$primary / 6%">
   <Box backgroundColor="$accent / 5%">
@@ -112,11 +122,13 @@ Selection tinting, hover states, drag-over feedback, error/warning containers, u
 ## Implementation Phases
 
 ### Phase 1: @silvery/color
+
 - RGB to OKLCH conversion (rgbToOklch, oklchToRgb)
 - oklchBlend() with defined interpolation + gamut mapping
 - Mixing tests (sRGB vs oklch comparison)
 
 ### Phase 2: Core Style System
+
 - Color expression parser (grammar above)
 - Discriminated union AST
 - Renderer capability validation
@@ -124,6 +136,7 @@ Selection tinting, hover states, drag-over feedback, error/warning containers, u
 - ag-term blending in render phase
 
 ### Phase 3: Migration + Docs
+
 - km: delete selectedBg(), editingBg(), blend import from theme.ts
 - km: replace 5 backgroundColor={computed} sites with string expressions
 - km: replace computeNodeStyle inverse with <Box inverse>
@@ -143,3 +156,4 @@ Selection tinting, hover states, drag-over feedback, error/warning containers, u
 
 - GPT 5.4 Pro review #1: approved string syntax, flagged parser robustness, inverse style-context requirement, blend basis definition
 - GPT 5.4 Pro review #2: approved overall design, added capability validation model, discriminated union, OKLCH spec requirements, DOM opacity correction
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/search-highlight"
 aliases:
   - km-tui.search-highlight
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Local find: highlight all matches, current match distinct @km/tui #feature #P2
 
 When using / local find, all matching nodes should be highlighted (e.g. dim yellow background). The current match (navigated to with n/N) should have a brighter/distinct highlight. Matches vim hlsearch behavior.
+

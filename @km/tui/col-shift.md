@@ -1,4 +1,10 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - h
+  - left
 id: "@km/tui/col-shift"
 aliases:
   - km-tui.col-shift
@@ -24,3 +30,4 @@ Column shift (Meta+h/Meta+l) has two bugs:
 
 **Files to fix**: apps/@km/tui/src/board/board-actions-edit.ts (moveColumn + normalizeColumnSortOrders)
 **Failing tests**: apps/@km/tui/tests/col-shift-body.test.ts (1/8), .explore-tests/colshift-cursor-tracking.test.ts (4/24)
+

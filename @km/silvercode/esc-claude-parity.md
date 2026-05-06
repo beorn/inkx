@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/esc-claude-parity"
 aliases:
   - km-silvercode.esc-claude-parity
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-25T22:55:42Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Esc behavior mirroring Claude Code: interrupt + restore queue + double-esc history @km/silvercode #feature #P2 @claude:2405c72e
@@ -27,3 +34,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 Today silvercode's Esc clears the queue when command input is empty (apps/silvercode/src/App.tsx:371). Claude Code instead: (1) interrupts the in-flight turn, (2) restores queued message to input box (not discarded), (3) double-Esc opens edit/rewind history. Implement parity. Phase 1 here: Esc with queue → restore (newest entry) to input box; Esc with in-flight turn → cancel via existing controller path or SIGINT; double-Esc → open HistoryDialog. Phase 2 (deferred): per-turn abort once @km/agent-harness/per-turn-abort lands. Files: apps/silvercode/src/App.tsx (useInput Esc branch), controller.ts (interruptActiveTurn helper if not present).
+

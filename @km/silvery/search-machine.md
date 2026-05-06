@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/search-machine"
 aliases:
   - km-silvery.search-machine
@@ -60,6 +62,7 @@ function createSearchMachine<M>(): SearchMachine<M>
 ## Era2 Integration
 
 As a domain plugin:
+
 ```typescript
 function withSearch<M>(config?: { commands?: string }) {
   return (app) => {
@@ -80,3 +83,4 @@ function withSearch<M>(config?: { commands?: string }) {
 ## Already exists (partial)
 
 `@silvery/ag-term/search-overlay` has `searchUpdate()` — already a pure state machine. This bead extracts it into a proper generic building block with signal-based state and era2 command integration.
+

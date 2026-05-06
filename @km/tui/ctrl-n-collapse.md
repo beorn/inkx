@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/ctrl-n-collapse"
 aliases:
   - km-tui.ctrl-n-collapse
@@ -11,3 +14,4 @@ assignee: claude:4929065a
 ---
 
 # [x] ctrl-n during sub-section edit collapses card instead of staying open @km/tui #bug #P2 @claude:4929065a
+

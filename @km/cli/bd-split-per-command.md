@@ -34,7 +34,7 @@ One file per subcommand (or per command-family). Acceptance handlers become `bd-
 
 `bd.ts` itself becomes a thin command-registration shell (~200 LOC).
 
-## Acceptance
+### Acceptance
 
 - [ ] `bd.ts` ≤ 300 LOC, mostly `.command(...).action(...)` registrations
 - [ ] Each `bd-*` action file is testable in isolation (pure planner pattern from `tasks/*-plan.ts` extends here)
@@ -42,13 +42,13 @@ One file per subcommand (or per command-family). Acceptance handlers become `bd-
 - [ ] Existing tests still pass (bd-create, bd-move-alias, bd-path-form-id, etc.)
 - [ ] New unit tests for the extracted planners — minimum one per command
 
-## Why this matters (L4 angle)
+### Why this matters (L4 angle)
 
 This is part of `@km/cli/task-bd-collapse` Wave 6 — the bd→task alias layer. Before bd can become a thin argv-translator that delegates to `km task`/`km`, the action logic in bd.ts has to be extractable. Without this split, the alias layer would have to keep calling into the monolithic `bd.ts`.
 
 This is also a chain-immunity gate: tests for individual bd subcommands should NOT have to load `bd.ts` (which transitively pulls every km-cli command). Testing `bd-create` in isolation must be possible.
 
-## Risk / blast radius
+### Risk / blast radius
 
 `bd.ts` has ~25 commands. Naive split = 25 new files. Consider command families:
 
@@ -59,7 +59,7 @@ This is also a chain-immunity gate: tests for individual bd subcommands should N
 
 12-15 files is more reasonable than 25.
 
-## Surfaced by
+### Surfaced by
 
 Code-quality agent flagged this as P1 in session f9eb64dc. Holds back the bd→task collapse from completing.
 

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/hide-column-broken"
 aliases:
   - km-tui.hide-column-broken
@@ -19,3 +22,4 @@ assignee: Bjørn Stabell
 ---
 
 # [x] [bug] vX (hide column) doesn't actually hide the column @km/tui #bug #P2 @Bjørn Stabell
+

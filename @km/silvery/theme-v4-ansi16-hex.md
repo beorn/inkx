@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/theme-v4-ansi16-hex"
 aliases:
   - km-silvery.theme-v4-ansi16-hex
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-19T10:59:02Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.theme-v4
 ---
 
 # [x] Phase 1: deriveAnsi16Theme returns hex, not ANSI slot names @km/silvery #task #P2 @Bjørn Stabell
@@ -27,3 +34,4 @@ dependencies:
 blocks:: [[@km/silvery/theme-v4]]
 
 Theme objects must be pure hex across all tiers. Today deriveAnsi16Theme returns strings like {primary:'yellow',accent:'blueBright'} — breaks web/canvas consumers and prevents Theme-as-inspiration-library. Move ANSI-slot quantization entirely into the output phase (already handles 256 tier; extend to ansi16). Acceptance: rg slot-name-assertions in vendor/silvery → 0; existing tests still pass.
+

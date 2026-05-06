@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beads/board-sigil-distinction"
 aliases:
   - km-beads.board-sigil-distinction
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-27T18:34:40Z
     created_by: claude:da9990c5
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-beads
 ---
 
 # [x] Parser: distinguish board sigil from person mention @km/beads #bug #P2
@@ -26,3 +32,4 @@ dependencies:
 blocks:: [[@km/beads]]
 
 km currently treats every @<word> in content as a 'mention' of an entity (data.mentions). Board sigils like @issue, @memory, @<board> are intended as kind tags, not assignee references. nodeToIssue picks mentions[0] as assignee, so every issue displays @issue as the assignee.
+

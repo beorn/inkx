@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/dissolve-data-tags-to-links"
 aliases:
   - km-all.dissolve-data-tags-to-links
@@ -36,11 +38,9 @@ All three concerns are real:
    `(host_id, href='#foo', rel='link')` rows — same shape as inline
    `[[wikilink]]` rows. The "round-trip preservation" objection was
    leftover frontmatter-thinking.
-
 2. **`_allTags` aggregation is dead code** — verified at
    `apps/km-tui/src/views/detail-pane-items.ts`: the field is in a
    list of fields to *hide*, not to display. No real consumer.
-
 3. **Display in `bd show` and km-tui search** — derive at render time
    from a `links` table query (`WHERE host_id = ? AND href LIKE '#%'`).
    Cheap (indexed), single-source-of-truth, no cache to maintain.
@@ -128,3 +128,4 @@ All three concerns are real:
   follow-on epic (data-model dissolution arc) covering: drop
   `nodes.priority` hard cut (in progress wt2), drop `nodes.task_status`?
   drop `nodes.assigned_to`?
+

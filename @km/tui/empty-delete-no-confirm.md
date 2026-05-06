@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/empty-delete-no-confirm"
 aliases:
   - km-tui.empty-delete-no-confirm
@@ -13,3 +16,4 @@ assignee: claude:5770ce77
 # [x] Skip delete confirmation for completely empty nodes @km/tui #feature #P3 @claude:5770ce77
 
 When deleting a node (column or board) that is completely empty (no content, no children), skip the confirmation dialog. Empty nodes have no content worth protecting, so the confirmation is just friction.
+

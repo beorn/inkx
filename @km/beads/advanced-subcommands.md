@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beads/advanced-subcommands"
 aliases:
   - km-beads.advanced-subcommands
@@ -23,6 +25,10 @@ dependencies:
     created_at: 2026-04-28T01:15:37Z
     created_by: claude:da9990c5
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-beads
 ---
 
 # [x] Port advanced bd subcommands to km bd (defer/undefer/count/epic/lint/search bundle) @km/beads #task #P2
@@ -51,3 +57,4 @@ Blocks @km/beads/dolt-archive. After pm-skill-rewrite + hooks-rewrite landed in 
 - delete (vs close --reason) — close+drop covers it
 - backend / dolt — dolt-archive removes them
 - find-duplicates / graph / label — niche, defer
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/mdtest/pro-review-3"
 aliases:
   - km-mdtest.pro-review-3
@@ -15,6 +17,7 @@ owner: bjorn@stabell.org
 GPT 5.4 Pro code review of mdtest (2026-03-13). Cost: $6.74. 13 findings total.
 
 ## P0 (correctness)
+
 1. Built-in bash plugin hard-wired to Bun, breaks Vitest integration (plugins/bash.ts)
 2. Internal blank lines in stdout/stderr silently removed (plugin-executor.ts:96-106)
 3. Command extraction no longer follows Cram syntax, strips indentation (plugin-executor.ts:168-194)
@@ -25,12 +28,15 @@ GPT 5.4 Pro code review of mdtest (2026-03-13). Cost: $6.74. 13 findings total.
 8. Custom session mode reports exitCode=0 without OSC 133 markers (cmdSession.ts, ptySession.ts)
 
 ## P1 (safety/quality)
+
 9. beforeAll only works when defined in first executed block (index.ts:318-323)
 10. CLI hook cleanup not protected by finally (index.ts:287-427)
 11. Temporary state directory is leaked (plugins/bash.ts)
 
 ## P2 (medium)
+
 12. env= parsing truncates values containing = (core.ts:49-57)
 13. parseFrontmatter() only handles tiny regex subset, silently misreads YAML (options.ts:8-42)
 
 Full review: /tmp/llm-65d845d9-1773446149407-ob2w.txt
+

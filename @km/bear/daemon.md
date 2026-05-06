@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/bear/daemon"
 aliases:
   - km-bear.daemon
@@ -25,6 +28,14 @@ dependencies:
     created_at: 2026-04-17T08:13:04Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-bear
+      - type: link
+        target: km-bear.mcp-wrapper
 ---
 
 # [x] Phase 2: bear-daemon + workspace-state.db @km/bear #task #P2 @Bjørn Stabell
@@ -36,15 +47,10 @@ Phase 2 of the bear plan (epic: @km/bear). Replace Phase 1's direct library call
 ## Scope
 
 1. **`tools/bear-daemon.ts`** — long-lived process. Unix socket at `\$XDG_RUNTIME_DIR/bear.sock` (fallback `~/.local/share/bear/bear.sock`). SQLite WAL at `~/.local/share/bear/bear.db`. SIGHUP hot-reload. 30min idle quit. JSON-RPC 2.0 newline-delimited (matches tribe wire protocol).
-
 2. **`tools/lib/bear/socket.ts`** — socket path resolution + `connectOrStart` + `createReconnectingClient` adapted from `tribe-daemon/socket.ts` with bear-specific paths.
-
 3. **`tools/lib/bear/database.ts`** — schema + repository for bear DB: `sessions` (claude_pid, session_id, transcript_path, cwd, started_at, last_seen, status), `events` (ts, session_id, type, meta), future tables for focus/summaries (Phase 3–4) as empty migrations.
-
 4. **`tools/lib/bear/rpc.ts`** — canonical RPC surface. Methods: `bear.ask`, `bear.current_brief`, `bear.plan_only`, `bear.session_register`, `bear.session_heartbeat`. Shared param/result types used by both daemon handlers and proxy client.
-
 5. **`plugins/bear/server.ts`** — refactor to reconnecting-client. Each MCP tool handler becomes one RPC call. Falls back to in-process recall library if daemon unreachable (non-breaking).
-
 6. **`tools/recall/hooks.ts` `cmdSessionStart`** — routes to daemon via RPC. Keeps sentinel-file write as fallback only (pid-*.json still written if daemon unreachable).
 
 ## /complete criteria
@@ -74,3 +80,4 @@ Phase 2 of the bear plan (epic: @km/bear). Replace Phase 1's direct library call
 - Background summarizer (Phase 4)
 - Dedup/inject_delta (Phase 5)
 - bear watch TUI (Phase 6)
+

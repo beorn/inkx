@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/static-position-type"
 aliases:
   - km-flexily.static-position-type
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Bug: POSITION_TYPE_STATIC applies offsets like relative — should ignore insets @km/flexily #bug #P0
+

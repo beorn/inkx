@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexx/npm-publish"
 aliases:
   - km-flexx.npm-publish
@@ -15,6 +17,7 @@ owner: bjorn@stabell.org
 Publish flexture to npm as a public package.
 
 ## Checklist
+
 - [ ] Verify package.json: name, version, description, keywords, repository, homepage, bugs, license, author
 - [ ] Set up npm account / org scope (@beorn)
 - [ ] Add .npmignore or package.json "files" field (exclude tests, bench, docs from published package)
@@ -25,5 +28,7 @@ Publish flexture to npm as a public package.
 - [ ] Add npm badge to README
 
 ## Current state
+
 - package.json has name "flexture", version "0.1.0"
 - MIT license, 1 runtime dep (debug), 3 dev deps
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/storage/diff-empty-guard"
 aliases:
   - km-storage.diff-empty-guard
@@ -24,3 +27,4 @@ Classification: P1
 diffNodeFields() refuses to overwrite non-empty name/content with empty values. This prevents legitimate external edits that intentionally clear content/title/name. It also doesn't solve stale-vs-current non-empty overwrites.
 
 Suggested fix: Remove this heuristic once explicit self-write detection exists. If a guard is needed, tie it to confirmed self-write echo (generation/hash match), not to empty vs non-empty.
+

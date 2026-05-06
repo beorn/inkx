@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - "1"
 id: "@km/silvery/boundary-height-tests"
 aliases:
   - km-silvery.boundary-height-tests
@@ -14,3 +19,4 @@ assignee: claude:c9beade3
 # [x] Add boundary tests for viewport height — rows-1, rows, rows+1, 2*rows @km/silvery #task #P2 @claude:c9beade3
 
 Test height-sensitive rendering at boundary conditions. Include zoom/resize transitions with large vaults that exceed terminal height. The zoom garble bug was never caught because all fixtures used small node trees that fit in test terminals. See docs/lessons/testing-escape-hatches.md.
+

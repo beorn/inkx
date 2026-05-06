@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/rebind-invalidate"
 aliases:
   - km-tui.rebind-invalidate
@@ -25,11 +27,8 @@ Discovered in @km/tui/auto-derive-selected session: moving selection writes out 
 ## Fix Options
 
 1. **Version signal**: rebind() bumps a shared "tree version" signal; all computeds depend on it. Cleanest but adds a dependency to every computed.
-
 2. **Explicit invalidation**: rebind() walks all cached nodes and calls an internal invalidate() on each computed. Requires reactive-graph to expose invalidation hooks on computeds (alien-signals may not support this).
-
 3. **Re-create nodes on rebind**: Clear the nodes map and force recreation. PROBLEM: breaks React subscriptions (existing comment in rebind warns against this).
-
 4. **Document the workaround**: Require callers to write to a sentinel signal after rebind. Works but leaks implementation detail.
 
 Recommended: Option 1 (version signal).
@@ -40,3 +39,4 @@ Recommended: Option 1 (version signal).
 - [ ] hydrate() no longer needs to re-call setSelection() after rebind
 - [ ] Tests pass without the workaround
 - [ ] Document the new guarantee in reactive-graph.ts comment
+

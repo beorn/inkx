@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sterling-render-strategy"
 aliases:
   - km-silvery.sterling-render-strategy
@@ -15,6 +18,10 @@ dependencies:
     created_at: 2026-04-24T16:12:59Z
     created_by: claude:5e447b66
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.sterling
 ---
 
 # [ ] Sterling: pluggable RenderStrategy (output-side composability) @km/silvery #feature #P3 @claude:22c2717d
@@ -64,6 +71,7 @@ This aligns with D6 (clean breaks, no compat shims) and Sterling's philosophy th
 ## Scope
 
 3-4 sessions (down from 3-5):
+
 1. Interface + default strategies in new @silvery/render subpath of @silvery/ansi
 2. Output-phase refactor to consume strategy (touches pipeline — silvery agent)
 3. run({ render }) option + default wiring
@@ -81,3 +89,4 @@ This aligns with D6 (clean breaks, no compat shims) and Sterling's philosophy th
 - Changing the default behavior (preservative stays default, same math as today)
 - Breaking the current output-phase API consumers
 - Shipping this before Sterling 0.19.0 plateau
+

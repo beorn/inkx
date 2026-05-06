@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/expand-on-subedit"
 aliases:
   - km-tui.expand-on-subedit
@@ -15,3 +18,4 @@ assignee: Bjørn Stabell
 # [x] Editing a sub-item should expand the full card, not just the sub-item @km/tui #bug #P2 @Bjørn Stabell
 
 When editing a card title, the entire card expands to show all content. But when editing a section/sub-item within a card, only that sub-item is shown — the rest of the card stays collapsed. Expected: entering edit mode on any node within a card should expand and show the full card.
+

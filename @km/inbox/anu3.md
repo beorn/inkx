@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/anu3"
 aliases:
   - km-anu3
@@ -16,6 +18,7 @@ Verify and fix any code that deviates from the unified node architecture (KNode/
 ## Background
 
 The node architecture was unified in @km/node epic:
+
 - **KNode** - Flat SQLite record with `parent_id`, `link_to`
 - **TNode** - KNode extended with `children[]`, `depth`, `childCount`, `isTask`
 
@@ -38,6 +41,7 @@ The core architecture is correct. Main findings:
 ### 📋 Minor Issues
 
 **Multiple tree builders:**
+
 - `apps/km-cli/src/commands/sh.ts` → `kNodeToTNode()`
 - `apps/km-tui/packages/km-ink/src/state.ts` → uses KNode + getChildren
 
@@ -50,3 +54,4 @@ Consider consolidating tree building to @km/tree package.
 ## Recommendation
 
 **Close this bead** - Architecture is sound. Rename work tracked in @km/_orphan/xexz.
+

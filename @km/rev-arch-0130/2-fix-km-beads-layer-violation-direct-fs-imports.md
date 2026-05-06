@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/rev-arch-0130/2-fix-km-beads-layer-violation-direct-fs-imports"
 aliases:
   - km-rev-arch-0130.2
@@ -12,3 +15,4 @@ assignee: claude:da8e4a66
 # [x] Fix km-beads layer violation (direct fs imports) @km/rev-arch-0130 #bug #P2 @claude:da8e4a66
 
 Critical: @km/beads/src/sync.ts and migrate.ts directly import node:fs (existsSync, writeFileSync, mkdirSync). App layer should not touch Filesystem directly - should go through Storage layer or defer to CLI.
+

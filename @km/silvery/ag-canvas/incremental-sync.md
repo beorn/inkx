@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ag-canvas/incremental-sync"
 aliases:
   - km-silvery.ag-canvas.incremental-sync
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Incremental WebSocket sync (delta updates) @km/silvery #feature #P3
 
 Replace full snapshot re-send on every mutation with delta updates. Currently serveRepo() re-collects all nodes via BFS and sends the entire tree on every repo.subscribe() callback. For large vaults (10k+ nodes) this is O(n) per mutation. Implement incremental protocol: server tracks which nodes changed, sends only deltas. Client applies patches to NodeCache instead of full re-hydrate.
+

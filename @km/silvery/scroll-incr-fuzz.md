@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/scroll-incr-fuzz"
 aliases:
   - km-silvery.scroll-incr-fuzz
@@ -19,17 +22,22 @@ assignee: claude:c9beade3
 render-fuzz.fuzz.ts finds incremental rendering mismatches consistently in the scrolling fixture (80x16 terminal, 12+10+8 items across 3 columns). ALL seeds fail for all view modes (cards, columns, list).
 
 ## Repro
+
 ```bash
 FUZZ=1 bun vitest run apps/km-tui/tests/render-fuzz.fuzz.ts
 # All "scrolling / *" tests fail
 ```
 
 ## Root Cause (hypothesis)
+
 Scroll container incremental rendering path — when columns have more items than fit in 16 rows, the scroll/overflow handling interacts with the incremental rendering cascade formulas incorrectly. The fresh render produces correct output but the incremental render diverges.
 
 ## Also Found
+
 - Sporadic failures in large fixtures (100 items, 120x30) at certain seeds — likely same root cause
 - Mutation keys (Enter/Escape for edit mode) trigger mismatches across all fixtures — may be a separate issue related to mode-change rendering
 
 ## Context
+
 Found during @km/silvery/diagnostics-v2 implementation. These are pre-existing bugs, not regressions from the diagnostics work.
+

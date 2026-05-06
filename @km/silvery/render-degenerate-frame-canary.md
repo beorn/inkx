@@ -51,3 +51,4 @@ User direction 2026-05-05: "I prefer not to put this in the lint rule — anywhe
 ## Bead context
 
 Filed after the @km/silvery/render-light-blue-bg-strip-residue + @km/all/test-system/test-board-empty-frame incident chain — would have prevented the entire silent-fail cascade. Consolidated under the `SILVERY_STRICT` umbrella per user direction "no more env vars - at MOST we can have SILVERY_STRICT perhaps take a slug as well as 1/2/3 to run only one particular test" (2026-05-05).
+

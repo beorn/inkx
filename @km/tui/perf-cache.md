@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/perf-cache"
 aliases:
   - km-tui.perf-cache
@@ -9,3 +12,4 @@ assignee: claude:a3625ec3
 ---
 
 # [x] Per-node children cache in repo @km/tui #task #P1 @claude:a3625ec3
+

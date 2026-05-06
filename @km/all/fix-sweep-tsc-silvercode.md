@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/all/fix-sweep-tsc-silvercode"
 aliases:
   - km-all.fix-sweep-tsc-silvercode
@@ -17,6 +20,10 @@ dependencies:
     created_at: 2026-04-26T12:59:13Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.fix-sweep-0426
 ---
 
 # [x] Fix silvercode + km-agent-view typecheck errors (~37 errors) @km/all #task #P2 @claude:cc081a9a
@@ -24,6 +31,7 @@ dependencies:
 blocks:: [[@km/all/fix-sweep-0426]]
 
 Errors split across:
+
 - apps/@km/agent-view/tests/* (4 errors, term.screen optional)
 - apps/silvercode/packages/agent-harness/tests/ (18 errors)
 - apps/silvercode/packages/agent-harness/src/ (1 error)
@@ -32,5 +40,7 @@ Errors split across:
 - apps/silvercode/src/ (2)
 
 ## Acceptance
+
 - bun run --silent tsc --noEmit 2>&1 | grep -E 'apps/(silvercode|@km/agent-view)' | wc -l returns 0
 - Underlying tests still pass
+

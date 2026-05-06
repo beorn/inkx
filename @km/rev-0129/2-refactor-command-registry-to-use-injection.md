@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/rev-0129/2-refactor-command-registry-to-use-injection"
 aliases:
   - km-rev-0129.2
@@ -15,3 +18,4 @@ packages/@km/_orphan/commands/src/registry.ts:3 uses module-level Map:
 const commands = new Map<string, CommandDef>()
 
 This breaks test isolation. Convert to factory pattern with explicit injection. Make code more composable.
+

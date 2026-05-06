@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/d1xdr"
 aliases:
   - km-d1xdr
@@ -13,3 +16,4 @@ assignee: claude:36393b5d
 # [x] Detail pane: keep open during navigation, require Space to close @km/_orphan #feature #P2 @claude:36393b5d
 
 Current: pressing h/left closes the detail pane. Desired: detail pane stays open while navigating the board (j/k/h/l). Must press Space to explicitly toggle it closed. This makes the detail pane a persistent inspection mode rather than a transient popup.
+

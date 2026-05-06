@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/board-6"
 aliases:
   - km-board-6
@@ -32,13 +34,17 @@ dispatch(actions.setMultiSelected(new Set(selectionKeys)));
 ```
 
 ## Files
+
 - `Board.tsx` - wire SelectionManager to hit registry
 - May need overlay component for visual rectangle
 
 ## Verification
+
 - Click-drag creates visible selection rectangle
 - Items within rectangle are highlighted
 - Release selects all items in range
 
 ## Depends on
+
 - @km/_orphan/mouse-2 (hit registry wired to components)
+

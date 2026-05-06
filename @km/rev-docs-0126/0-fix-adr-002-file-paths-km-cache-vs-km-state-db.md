@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/rev-docs-0126/0-fix-adr-002-file-paths-km-cache-vs-km-state-db"
 aliases:
   - km-rev-docs-0126.0
@@ -10,3 +13,4 @@ assignee: beorn
 ---
 
 # [x] Fix ADR-002 file paths (.km/cache/ vs .km/state.db) @km/rev-docs-0126 #bug #P1 @beorn
+

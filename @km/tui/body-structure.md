@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/body-structure"
 aliases:
   - km-tui.body-structure
@@ -14,6 +16,7 @@ owner: bjorn@stabell.org
 Design the @km/ast domain model: a clean, type-based node hierarchy replacing the current 14-type flat enum with extractBody heuristic.
 
 Core changes:
+
 - Two node kinds: Item (oi, li) and Block (p, h, code, quote, table, hr, html, embed)
 - OutlineItem (oi) + fstype replaces folder/file/section
 - ListItem (li) replaces ul/ol/task — marker field preserves style
@@ -26,6 +29,8 @@ Core changes:
 - Eliminates extractBody and 12+ duplicate call sites
 
 Deliverables:
+
 1. Finalized type definitions (@km/ast)
 2. Test fixtures: markdown → AST transformation examples
 3. Migration plan from current types
+

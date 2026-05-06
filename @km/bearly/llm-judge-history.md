@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/llm-judge-history"
 aliases:
   - km-bearly.llm-judge-history
@@ -26,7 +28,8 @@ User's 239 historical ab-pro.jsonl entries have NO judge scores (judge was added
 
 ## What's possible
 
-ab-pro.jsonl persists \`outputFile\` (path to /tmp/llm-*.txt with combined response). 
+ab-pro.jsonl persists \`outputFile\` (path to /tmp/llm-*.txt with combined response).
+
 - Recent entries (~last 7 days): content file still exists on disk → can retroactively judge
 - Older entries: content file auto-cleaned → cannot retroactively judge without re-firing
 
@@ -39,7 +42,7 @@ Empirical check: 23/50 of the most recent entries have files alive (~46%).
 1. Read ab-pro.jsonl
 2. Filter entries where \`!entry.judge\` AND \`fs.existsSync(entry.outputFile)\` AND entries have at least 2 legs with content
 3. Read outputFile, parse per-leg sections (markdown headers like \`## GPT-5.4 Pro\` / \`## Kimi K2.6\`)
-4. Build judge prompt via existing \`buildJudgePrompt(...)\` 
+4. Build judge prompt via existing \`buildJudgePrompt(...)\`
 5. Fire judge in parallel batches (5 concurrent, gpt-5-nano if --quick else gpt-5-mini)
 6. Append augmented entry to ab-pro.jsonl with \`schema: "ab-pro/v2-judge-augment"\` and \`derivedFrom: <queryHash>\` linking to the original
 7. Update buildLeaderboard to merge augment entries with their originals (lookup by queryHash)
@@ -62,3 +65,4 @@ Empirical check: 23/50 of the most recent entries have files alive (~46%).
 ## Long-term: prevent this from happening again
 
 Add to backlog: store response content INLINE in ab-pro.jsonl (compressed) rather than relying on /tmp file persistence. ~3KB per response × 1000 entries = 3MB ab-pro.jsonl. Acceptable. Eliminates the 7-day decay problem.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/border-box"
 aliases:
   - km-inkx.border-box
@@ -16,3 +18,4 @@ inkx uses content-box model for bordered boxes — text is rendered as if the fu
 The fix: inkx should implement border-box sizing where the usable content width automatically excludes border characters. A Box with width=40 and borderStyle='single' should have 38 chars of content width, not 40.
 
 Related: @km/tui/card-border-bleed (closed with workaround, real fix deferred to inkx). Currently worked around with paddingRight={1} in CardColumn.tsx — should be removed once this is fixed.
+

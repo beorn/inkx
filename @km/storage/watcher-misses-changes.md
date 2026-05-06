@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/storage/watcher-misses-changes"
 aliases:
   - km-storage.watcher-misses-changes
@@ -81,3 +84,4 @@ assignee: Bjørn Stabell
 External edits don't show up in km until restart. Watcher debounce is 2000ms but waited 10+s and changes never appeared. Restart picks them up via startup reconciliation.
 
 Likely: worker-bridge issue or macOS file-watcher edge case for shell-append writes.
+

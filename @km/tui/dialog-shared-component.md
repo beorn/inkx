@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/dialog-shared-component"
 aliases:
   - km-tui.dialog-shared-component
@@ -13,6 +16,7 @@ assignee: claude:d697f216
 # [x] Shared dialog component: title, help key, blank line, content, footer @km/tui #feature #P2 @claude:d697f216
 
 All dialogs should use a shared styling/component:
+
 - Title: top left
 - Help key [F], [?], etc: top right
 - Blank line separator
@@ -20,3 +24,4 @@ All dialogs should use a shared styling/component:
 - Footer: help text - centered
 
 Audit all existing dialogs (Omnibox, SearchDialog, FilterDialog, SearchReplaceDialog, DatePromptDialog, NewItemDialog, HelpOverlay, ProjectPicker, ConfirmDialog) for consistency.
+

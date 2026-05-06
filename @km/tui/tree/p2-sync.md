@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/tree/p2-sync"
 aliases:
   - km-tui.tree.p2-sync
@@ -39,3 +41,4 @@ rg 'expandWithDescendants' --glob '!.beads' --glob '!docs' -t ts -c | wc -l  # 0
 rg 'expandedEditCardId' --glob '!.beads' --glob '!docs' -t ts -c | wc -l  # 0
 bun run test:fast  # all pass
 \`\`\`
+

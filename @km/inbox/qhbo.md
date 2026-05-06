@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/qhbo"
 aliases:
   - km-qhbo
@@ -17,6 +19,8 @@ Issues with card rendering in board view:
 4. Tags/sigils should be treated as links and rendered consistently - filter out/remove the sigil link that goes to the board you're looking at (e.g., @issue on the @issue board)
 
 Goal: Any nodes at any level (board, column, card, list item) should render all of this the same way - consistent formatting for:
+
 - Task status markers
 - Tags/mentions/projects (as clickable links)
 - Clean titles without redundant checkboxes
+

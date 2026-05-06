@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/kanban-runtime"
 aliases:
   - km-bearly.kanban-runtime
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-22T19:38:36Z
     created_by: claude:fa4168d9
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] Kanban-bridge listener — forward events to Cline Kanban @km/bearly #feature #P3
@@ -42,3 +48,4 @@ Implement a listener at \`vendor/bearly/tools/lib/hooks/listeners/kanban-bridge.
 - [ ] Smoke test: \`tribe hook ingest --event session_start --source km\` triggers kanban notify (when kanban server is running)
 - [ ] Listener gracefully skips when \`kanban\` binary not installed
 - [ ] Docs: how to enable the listener (drop file in \`~/.claude/hooks.d/\` OR ship as built-in)
+

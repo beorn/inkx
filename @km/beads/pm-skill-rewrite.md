@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/beads/pm-skill-rewrite"
 aliases:
   - km-beads.pm-skill-rewrite
@@ -26,6 +29,10 @@ dependencies:
     created_at: 2026-04-27T23:12:42Z
     created_by: claude:da9990c5
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-beads.cutover
 ---
 
 # [x] Rewrite /pm skill to use km bd commands instead of bd binary @km/beads #task #P2 @claude:da9990c5
@@ -35,12 +42,15 @@ blocks:: [[@km/beads/cutover]]
 The /pm skill at .claude/skills/pm/ currently shells out to the Go bd binary (bd ready, bd show, bd update --claim, bd close, etc.). With km bd shipped as a drop-in CLI, the skill should call km bd instead so it works in environments without the Go binary installed.
 
 ## Scope
+
 - Audit .claude/skills/pm/SKILL.md, .claude/skills/pm/workflows/*.md
 - Replace 'bd <subcommand>' with 'bun km bd <subcommand>' (or alias 'kmbd')
 - Verify the bug-fix workflow (auto-/tdd trigger) still threads through
 - Update example outputs in docs to match km bd's formatting
 
 ## Acceptance
+
 - /pm bug X works end-to-end without bd binary in PATH
 - All workflow docs reference km bd
 - Smoke: claim → close cycle on a fresh bead exits clean
+

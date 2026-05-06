@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/infra-1"
 aliases:
   - km-infra-1
@@ -12,3 +14,4 @@ closed_at: 2026-01-28T10:42:19Z
 Centralize tool configuration into @km/infra package.
 
 See docs/future/monorepo-infra.md for design and research.
+

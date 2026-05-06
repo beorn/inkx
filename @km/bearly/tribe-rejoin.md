@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/bearly/tribe-rejoin"
 aliases:
   - km-bearly.tribe-rejoin
@@ -15,3 +18,4 @@ assignee: claude:19080504
 # [x] tribe_join tool: self-registration after compaction/pruning @km/bearly #feature #P3 @claude:19080504
 
 After compaction, a session's MCP process is still running but the session loses its identity context. Add a tribe_join tool that lets a session re-announce its name, role, and domains without chief intervention. Currently sessions can only recover by sending messages (which keeps heartbeat alive) but can't update their registration metadata.
+

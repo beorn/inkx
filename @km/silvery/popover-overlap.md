@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/popover-overlap"
 aliases:
   - km-silvery.popover-overlap
@@ -41,6 +44,8 @@ A card shows: truncated title, maybe a status icon. The popover shows: full titl
 - Configurable via Popover props (default: overlap, option: adjacent)
 
 ## Done when
+
 - Popover overlaps target by default using corner cascade
 - All four fallback positions work correctly
 - Viewport edge detection prevents off-screen rendering
+

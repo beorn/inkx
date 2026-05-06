@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/recall-eval-gbrain-compiled-truth"
 aliases:
   - km-tribe.recall-eval-gbrain-compiled-truth
@@ -13,13 +15,17 @@ dependencies:
     created_at: 2026-04-27T18:38:00Z
     created_by: claude:4de4a3ab
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe.recall-thought
 ---
 
 # [ ] Evaluate gbrain 'compiled truth + timeline' format for mem-thought compiled-knowledge state @km/tribe #task #P2
 
 blocks:: [[@km/tribe/recall-thought]]
 
-# Evaluate gbrain compiled-truth-timeline format
+## Evaluate gbrain compiled-truth-timeline format
 
 gbrain (https://github.com/garrytan/gbrain) ships a battle-tested page convention:
 
@@ -62,3 +68,4 @@ Read gbrain docs and decide:
 ## Parent
 
 @km/tribe/recall (four-tier memory architecture)
+

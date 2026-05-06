@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/bracketed-paste-multiline"
 aliases:
   - km-silvery.bracketed-paste-multiline
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T16:19:37Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.opentui-parity
 ---
 
 # [ ] Paste: bracketed-paste multiline + large-paste handling @km/silvery #feature #P3
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/silvery/opentui-parity]]
 
 Audit bracketed-paste handling for very large pastes and multiline with embedded CR/LF — ensure no truncation, no line-ending corruption, correct TextArea insertion.
+

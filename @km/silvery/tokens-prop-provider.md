@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/tokens-prop-provider"
 aliases:
   - km-silvery.tokens-prop-provider
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-18T10:45:11Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.theme-system-v2
 ---
 
 # [x] <ThemeProvider tokens={{…}}> — unified sparse/full token bag @km/silvery #task #P3
@@ -26,3 +32,4 @@ dependencies:
 blocks:: [[@km/silvery/theme-system-v2]]
 
 New ThemeProvider API. Replace theme + customTokens with a single tokens prop that accepts partial or full Theme + custom token extras, merged over the detected defaults.\n\nAPI:\n  <ThemeProvider tokens={{ primary: '#FF0', 'priority-p0': { derive: s => s.brightRed } }}>\n\nResolution: tokens prop → scheme-derived defaults → hardcoded fallback.\n\nBackwards-compat: theme= and customTokens= keep working for one release, emit deprecation warning in dev.\n\nDepends on: nothing (standalone)\nSpec: hub/silvery/design/v10-terminal/theme-system-v2-plan.md#p2
+

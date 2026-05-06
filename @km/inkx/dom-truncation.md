@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/dom-truncation"
 aliases:
   - km-inkx.dom-truncation
@@ -19,3 +22,4 @@ The fix: truncate text content at the DOM node level before ANSI serialization. 
 Keep constrainText/sliceAnsi as general-purpose ANSI utility functions (useful for non-DOM contexts), but the renderer shouldn't rely on them for layout truncation.
 
 This subsumes @km/tui/osc8-card-body — once truncation is DOM-level, OSC 8 sequences are never generated for truncated content.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/themex/deep-review"
 aliases:
   - km-themex.deep-review
@@ -14,6 +16,7 @@ owner: bjorn@stabell.org
 Deep research review of themex after token redesign lands.
 
 Review scope:
+
 - Architecture: ColorPalette (22) pivot, from*() generators, DesignTokens (32)
 - API: from*() pattern, shadcn-style token pairing ($name/$name-fg)
 - Dual derivation: ANSI 16 aliases vs truecolor blends
@@ -21,3 +24,4 @@ Review scope:
 - Competitive landscape validation
 
 Blocked on @km/swatch/token-redesign — review after the redesign ships.
+

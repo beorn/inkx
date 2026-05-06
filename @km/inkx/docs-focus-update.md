@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/docs-focus-update"
 aliases:
   - km-inkx.docs-focus-update
@@ -11,3 +14,4 @@ assignee: claude:d3a7049b
 ---
 
 # [x] Update remaining docs from useFocus to useFocusable @km/inkx #task #P2 @claude:d3a7049b
+

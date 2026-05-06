@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/agent-harness"
 aliases:
   - km-silvery.agent-harness
@@ -29,6 +31,16 @@ dependencies:
     created_at: 2026-04-23T22:47:42Z
     created_by: claude:6443387f
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery
+      - type: link
+        target: km-silvery.multiplex
+      - type: link
+        target: km-silvery.sessions
 ---
 
 # [x] Agent harness: wrap and drive TUI coding agents (Claude Code, Codex, opencode) @km/silvery #feature #P4
@@ -65,6 +77,7 @@ No one else has this stack. tmux/Zellij have the multiplexer; no introspection, 
 ## The gap
 
 Must build:
+
 - `@silvery/pty` — pty wrapper (single missing primitive, ~200 LOC + bindings; node-pty via Bun FFI, or `script(1)` fallback v0)
 - PTY ↔ vterm glue (feed pty stdout into vterm.parse, render grid, encode key events back) — ~300 LOC
 - Capability-response layer (intercept DA queries, respond as configured; can proxy from host terminal) — ~200 LOC
@@ -72,12 +85,14 @@ Must build:
 - `<AgentPane>` component (PTY + vterm + silvery render) — product atom
 
 Should build (harness layer):
+
 - Session manager (spawn/attach/detach/list, persistent scrollback)
 - Tile/split layout (flexily already)
 - Prefix-key routing
 - Cross-pane scrollback search (recall-shaped)
 
 Pays off later:
+
 - Agent-specific adapters — Claude Code first (parse status line, tool-call boxes, permission prompts into structured events → "auto-approve Read calls", native tool-call UI). Codex, opencode when warranted
 - Meta-agent (NL across panes, cross-agent beads, chief election via tribe)
 - .tape recording of live agent sessions → replay into tests, demos, "redo with edits"
@@ -96,3 +111,4 @@ If private: daily driver for running N Claude Code / Codex sessions with shared 
 ## Origin
 
 2026-04-23 discussion starting from "how does Cline do it?" — Cline doesn't; it piggybacks on VSCode's terminal (createTerminal + shellIntegration.executeCommand + OSC 633 markers). Standalone fallback is child_process.spawn with stdin=ignore. Neither is a terminal emulator — command runners with output capture. This bead is the silvery-native answer: a real emulator-based host for other TUI agents, which we can ship materially faster than anyone else because we already own the stack.
+

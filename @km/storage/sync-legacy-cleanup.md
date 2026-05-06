@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/storage/sync-legacy-cleanup"
 aliases:
   - km-storage.sync-legacy-cleanup
@@ -17,6 +20,7 @@ assignee: Bjørn Stabell
 Eliminate ALL legacy/dual paths from sync refactor. Zero backwards compat.
 
 Delete:
+
 - createSync() legacy wrapper
 - LegacySyncConfig type
 - setupSync() helper (setFsSync wiring)
@@ -26,6 +30,7 @@ Delete:
 - All ~22 "SyncManager" comment references
 
 Target state:
+
 - withSync(config)(repo) is the ONLY way to add sync
 - repo.apply(event) is the ONLY way to apply events
 - No setFsSync, no FsSync, no createSync, no SyncManager references
@@ -40,3 +45,4 @@ The 2026-04-03 close was premature on one criterion: "repo.emitter public access
 The actual L4 fix (compile-time invariant: `"emitter" extends keyof Repo` is `false`) shipped 2026-05-05 in commit `df353f2c7` — `refactor(km-storage,km-fs-mount): drop repo.emitter from public surface; pass via decorator (L4 plateau)`. New regression test `repo-emitter-not-public.test.ts` pins the invariant going forward. Consumers that legitimately need the emitter use the typed `getRepoEmitter(repo)` accessor (WeakMap-backed, registered at factory construction).
 
 This bead stays closed (the original work shipped most of what was scoped), but future "is the legacy gone?" verification should grep for the COMPILE-TIME invariant, not just string matches in source. Lesson: closing on grep counts is L1; closing on a TS compilation invariant + pinning test is L4.
+

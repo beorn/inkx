@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/resume-blank-screen"
 aliases:
   - km-silvercode.resume-blank-screen
@@ -25,6 +28,10 @@ dependencies:
     created_at: 2026-04-27T18:52:18Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] [bug] --resume <bogus-id> blank screen — pre-flight validate before alt-screen @km/silvercode #bug #P1 @claude:cc081a9a
@@ -38,6 +45,7 @@ silvercode --account d@delei.org --resume claude-code:claude-acp-1777334914180-1
 => alt-screen mode, blank UI, stderr empty, hangs indefinitely
 
 ROOT CAUSE:
+
 1. silvercode enters fullscreen/alt-screen mode BEFORE validating --resume
 2. claude subprocess writes "session not found" to stderr → spawn.ts captures
    it as a `kind: "error"` event (line 264-274 in spawn.ts), does NOT pass
@@ -52,6 +60,7 @@ silvercode versions (pre-849b4358d) reference no real Claude session and
 will NEVER resolve, but we still let users try.
 
 ACCEPTANCE:
+
 - Pre-flight check BEFORE entering alt-screen for `--resume <id>`:
   - For Claude Code agents: stat `~/.claude/projects/<encodedCwd>/<sid>.jsonl`,
     fail fast with clear message if missing
@@ -60,6 +69,8 @@ ACCEPTANCE:
 - Test asserting pre-flight rejects bogus id, real id passes
 
 OUT OF SCOPE (separate beads):
+
 - In-UI error rendering when post-alt-screen errors fire (resume succeeds in
   pre-flight, fails at spawn time)
 - Codex pre-flight (different path, harder to check)
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/body-nav-still"
 aliases:
   - km-tui.body-nav-still
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Body nav still broken: right from body goes to top of next column, not visual navigation @km/tui #bug #P2
 
 Navigating right (l) from a body content card in a column goes to the top of the next column instead of maintaining visual position (stickyY). Repro: open /tmp/vt/CLAUDE.md, navigate to body content like 'Current projects:...', press l — cursor jumps to first card of next column instead of staying at same vertical position. This is a regression from the body content merge work.
+

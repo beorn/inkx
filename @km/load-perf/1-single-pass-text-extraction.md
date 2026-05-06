@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/load-perf/1-single-pass-text-extraction"
 aliases:
   - km-load-perf.1
@@ -17,3 +19,4 @@ File: packages/@km/markdown/src/ast2nodes.ts
 Lines: 198 (wikilinks), 241-243 (mentions/tags/projects)
 
 Expected impact: 20-30% faster parsing
+

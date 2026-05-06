@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/gtd-templates"
 aliases:
   - km-tui.gtd-templates
@@ -13,3 +16,4 @@ assignee: claude:a5c7f7de
 # [x] Update GTD templates (remove Overdue etc) @km/tui #task #P3 @claude:a5c7f7de
 
 Updated @next template: consolidated to 5 columns (Inbox, Next, Waiting, Done, Removed). Inbox column has add= rules for inbox path and due-date queries.
+

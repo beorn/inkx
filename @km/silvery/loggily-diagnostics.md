@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/loggily-diagnostics"
 aliases:
   - km-silvery.loggily-diagnostics
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Migrate pipeline diagnostics to loggily @km/silvery #task #P3
 
 Replace globalThis.__silvery_* globals and SILVERY_INSTRUMENT with loggily structured logging. Use namespaced spans (silvery:pipeline, silvery:content:node, silvery:content:scroll, silvery:output). Keep STRICT verification env vars as behavior flags — loggily only handles diagnostic transport.
+

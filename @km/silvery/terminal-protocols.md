@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/terminal-protocols"
 aliases:
   - km-silvery.terminal-protocols
@@ -13,6 +15,7 @@ owner: bjorn@stabell.org
 Terminal protocols from terminfo.dev radar — review what's NEW vs what silvery already has.
 
 ALREADY FULLY IMPLEMENTED in silvery:
+
 1. Synchronized output (mode 2026) — ag-term/src/output.ts, used in every render
 2. SGR mouse tracking (mode 1006) — ag-term/src/mouse.ts, full parser
 3. Bracketed paste (mode 2004) — ag-term/src/bracketed-paste.ts
@@ -26,13 +29,16 @@ ALREADY FULLY IMPLEMENTED in silvery:
 11. Dark/light mode detection — ansi/src/detection.ts (macOS AppleInterfaceStyle)
 
 GENUINELY NEW (not yet in silvery):
+
 1. Mode 2031 color scheme reporting — cross-platform dark/light detection via terminal query (currently macOS-only). Would work on Linux, Windows Terminal, SSH sessions.
 2. DEC modes 1020-1023 (xterm patch #407) — terminal self-reports UTF-8/CJK-width/emoji-width/private-width settings. Silvery currently guesses these.
 3. OSC 66 (kitty text sizing) — variable text sizes in terminal cells. Novel rendering capability.
 4. OSC 5522 (kitty advanced clipboard) — richer clipboard protocol extending OSC 52 with MIME types, large payloads, paste events.
 
 IMPLICATIONS for silvery:
+
 - Mode 2031 would improve theme auto-detection for non-macOS users (low effort, high value)
 - DEC modes 1020-1023 would let silvery query wcwidth/emoji behavior instead of guessing (medium effort, solves hard unicode width bugs)
 - OSC 66 text sizing could enable heading/small-print in TUI apps (high effort, novel feature)
 - OSC 5522 would enable rich clipboard (structured paste, images) (medium effort)
+

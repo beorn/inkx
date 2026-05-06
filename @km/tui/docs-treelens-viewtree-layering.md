@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/docs-treelens-viewtree-layering"
 aliases:
   - km-tui.docs-treelens-viewtree-layering
@@ -19,7 +22,7 @@ assignee: Bjørn Stabell
 
 # [x] Document TreeLens vs ViewTree layering; rewrite stale visibility-model.md @km/tui #task #P3 @Bjørn Stabell
 
-# Document TreeLens vs ViewTree layering; rewrite stale visibility-model.md
+## Document TreeLens vs ViewTree layering; rewrite stale visibility-model.md
 
 ## Why this exists
 
@@ -48,6 +51,7 @@ Rule of thumb:
 ```
 
 Both were created on the same day in April 2026:
+
 - `fabf49e8c feat(board): createViewLens — TreeLens-based view over repo` (11:56)
 - `ce58aca85 feat(board): createViewTree — per-node projected ViewTree with navigation` (16:36)
 
@@ -58,6 +62,7 @@ The old `view-tree.ts` / `buildViewTree()` architecture was deleted in `2910f2dd
 ### docs/design/visibility-model.md — fully stale (highest priority)
 
 Every reference is to the OLD architecture:
+
 - Line 11: `view-tree.ts — isCollapsedChild(), isDetailOnly()` — file deleted
 - Lines 13, 20, 22, 26, 38: `buildViewTree()` — function deleted
 - Line 24: `BoardState.foldDepths consumed by buildViewTree()` — wrong now
@@ -75,6 +80,7 @@ Extensively references `buildViewTree` (lines 147, 188, 217, 232, 237, 246, 312,
 ### docs/architecture.md — mixed state
 
 Two competing descriptions in the same file:
+
 - Lines 122-147: "ColumnView / CardView — Derived View Models (legacy, being replaced)" + ViewNode block + `buildViewTree(repo, rootId, foldDepths, ...)` signature. Old world with "Migration in progress" banner.
 - Lines 168, 194, 219, 265, 267-269: TreeLens pipeline + ViewTreeProjection — correct.
 
@@ -83,11 +89,13 @@ Two competing descriptions in the same file:
 ### docs/glossary.md — missing TreeLens entries
 
 Has good entries for:
+
 - `ViewTree` (line 474) — describes the projection, useNode(id), navigation API
 - `ViewNode` (line 470) — projected per-node state
 - `visibility model` (lines 476-480)
 
 But missing entries for:
+
 - `TreeLens`
 - `ViewLens` / `createViewLens`
 - `VisibleLens` / `createVisibleLens`
@@ -161,6 +169,7 @@ export function createViewLens(...) { ... }
 ## Optional: barrel split (defer)
 
 Stronger signal would be to split the `@km/board` barrel into two sub-barrels:
+
 - `@km/board` — top-level public exports (ViewTree-friendly stuff)
 - `@km/board/lens` — TreeLens, createViewLens, createVisibleLens, lens helpers
 
@@ -189,3 +198,4 @@ React code imports from `@km/board`, gets ViewTree. Non-React code imports from 
 - `km-silvery.output-phase-perf` (P0) — perf work that should land before view-mode-feature-parity
 - Old commit `2910f2dd8` — deleted view-tree.ts (the source of the stale doc references)
 - Glossary entries to mirror: `ViewTree` (glossary.md:474), `ViewNode` (glossary.md:470)
+

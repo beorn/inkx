@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/terminal-caps-degrade"
 aliases:
   - km-inkx.terminal-caps-degrade
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Detect terminal capabilities and gracefully degrade rendering @km/inkx #feature #P2
 
 inkx should detect terminal capabilities (true color, DEC 2026 sync, kitty keyboard, etc.) and gracefully degrade. Currently INKX_SYNC_UPDATE=0 is the only workaround for Ghostty garbled rendering. Need: (1) auto-detect terminal (Ghostty, Kitty, iTerm2, Terminal.app) (2) disable features known to be buggy per-terminal (3) provide env var overrides. Triggered by: Ghostty shows garbled output with DEC 2026 sync + incremental updates, works fine with sync disabled.
+

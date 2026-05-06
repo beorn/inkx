@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/era2a-6-unification"
 aliases:
   - km-silvery.era2a-6-unification
@@ -34,3 +37,4 @@ NOTE: AppHandle deletion moves to era2b-app (it depends on withApp which is era2
 
 Depends on Phase 5 (plugin composition).
 Design: era2a/rendering.md §Entry Points and Testing
+

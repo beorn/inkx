@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/blog-diagrams"
 aliases:
   - km-silvery.blog-diagrams
@@ -9,3 +11,4 @@ owner: bjorn@stabell.org
 ---
 
 # [ ] Blog article: CC rendering diagrams + diagram-design skill @km/silvery #task #P2
+

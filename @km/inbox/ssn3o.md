@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/ssn3o"
 aliases:
   - km-ssn3o
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] ctrl-c/ctrl-z don't work during loading or in board @km/_orphan #bug #P2
 
 ctrl-c doesn't work during initial loading (before board opens) or while in the board. Same with ctrl-z and other common stty bindings. These should work as expected: ctrl-c to quit/interrupt, ctrl-z to suspend.
+

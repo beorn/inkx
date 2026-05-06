@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/known-limits/verify-inline"
 aliases:
   - km-silvery.known-limits.verify-inline
@@ -17,8 +20,13 @@ dependencies:
     created_at: 2026-04-26T15:19:25Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.known-limits
 ---
 
 # [x] verifyTerminalEquivalence inline-mode coverage @km/silvery #task #P3 @claude:cc081a9a
 
 blocks:: [[@km/silvery/known-limits]]
+

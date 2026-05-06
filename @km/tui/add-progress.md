@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/add-progress"
 aliases:
   - km-tui.add-progress
@@ -21,10 +24,11 @@ Currently km add shows progress only for Load repo (via loadRepo spinner). The a
 
 With 122 tasks, steps 2 and 4 could take noticeable time. Should show progress like:
 
-  ✔ Load repo 304ms
+✔ Load repo 304ms
   ✔ Resolving target 2ms
   ✔ Querying tasks (122 found) 45ms
   ✔ Creating links (122/122) 80ms
   ✓ Linked 122 task(s) to Next Actions
 
 File: apps/@km/_orphan/cli/src/commands/add.ts
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/bun-keepalive-url-shim"
 aliases:
   - km-bearly.bun-keepalive-url-shim
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-28T08:04:37Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.upstream-waiting
 ---
 
 # [ ] Unwind URL.toString() Request shim when Bun #7716 lands @km/bearly #bug #P3
@@ -49,3 +55,4 @@ This bead is ONLY the URL shim. The lease-tracking refactor in mcp-plugin (which
 - Sibling (split from same source bead): @km/bearly/mcp-lease-tracking
 - Source split: @km/all/plateau-90 R3 (pro/Kimi review noted that bundling URL shim with lease-tracking refactor created wrong unwind logic)
 - Original bead (closed): @km/bearly/mcp-plugin-bun-keepalive
+

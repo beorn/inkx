@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/zoom-nav"
 aliases:
   - km-tui.zoom-nav
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Zoom into file: can't cursor up/down, must cursor right first @km/tui #bug #P3
+

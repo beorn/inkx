@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/bear/test-infra"
 aliases:
   - km-bear.test-infra
@@ -23,6 +26,10 @@ dependencies:
     created_at: 2026-04-16T23:28:52Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-bear
 ---
 
 # [x] Phase 0: Test infra for agent-mode (LLM mocking harness) @km/bear #task #P1 @Bjørn Stabell
@@ -73,3 +80,4 @@ bun vitest run vendor/bearly/tests/history/ 2>&1 | tail -5  # → Test Files N p
 ## MANDATORY first step
 
 Read docs/lessons/refactoring.md IN FULL before writing any code.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/tree-lenses/3-migrate-treenode-tsx-to-usenode-id"
 aliases:
   - km-tui.tree-lenses.3
@@ -18,11 +21,13 @@ assignee: Bjørn Stabell
 # [x] Migrate TreeNode.tsx to useNode(id) @km/tui #task #P2 @Bjørn Stabell
 
 The biggest consumer. TreeNode currently reads:
+
 - node/role/isBody/resolvedEmbed from ViewNode (old type)
 - children from props or repo
 - selected/hovered/edit from ReactiveNodeStore
 
 Migrate to:
+
 - useNode(id) for viewType/childIds/parentId/display/isBody/rules
 - Keep ReactiveNodeStore for selected/hovered/edit (interactive state)
 
@@ -30,5 +35,7 @@ Migrate to:
 All become node.isBody, node.display, node.viewType.
 
 Acceptance:
+
 - grep 'ViewNode' in TreeNode.tsx = 0 (only ViewNode from new type)
 - All @km/tui tests pass
+

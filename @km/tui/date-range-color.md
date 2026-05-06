@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/date-range-color"
 aliases:
   - km-tui.date-range-color
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Date range display uses white instead of agreed-upon colors when not selected @km/tui #bug #P3
+

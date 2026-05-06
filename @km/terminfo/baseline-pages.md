@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/baseline-pages"
 aliases:
   - km-terminfo.baseline-pages
@@ -16,3 +19,4 @@ assignee: claude:f8196c1c
 # [x] Baseline detail pages + baseline filter + clickable baseline boxes @km/terminfo #feature #P2 @claude:f8196c1c
 
 Add /baseline/{core,modern,rich,unicode} pages with per-terminal compliance tables, make home page baseline boxes clickable, add baseline filter dropdown to the feature matrix. Content source: content/baselines.json. Agent already implementing.
+

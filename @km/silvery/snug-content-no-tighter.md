@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/snug-content-no-tighter"
 aliases:
   - km-silvery.snug-content-no-tighter
@@ -23,6 +25,14 @@ dependencies:
     created_at: 2026-04-11T21:29:16Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery
+      - type: link
+        target: km-silvery.fit-content-clamp
 ---
 
 # [x] snug-content integration produces same width as fit-content at render time @km/silvery #bug #P2
@@ -34,7 +44,9 @@ The snug-content binary search (shrinkwrapWidth() in pretext.ts) has passing uni
 Probably downstream of @km/silvery/fit-content-clamp — if the upper-bound fit-content width is wrong (unclamped to parent), the binary search operates in the wrong range. May resolve automatically when fit-content clamp is fixed.
 
 Regression tests (test.fails): vendor/silvery/tests/features/pretext-layout.test.tsx
+
 - "identical text renders narrower under snug+even than fit+greedy"
 - "snug-content alone is no wider than fit-content for the same text"
 
 Block on: @km/silvery/fit-content-clamp (test again after that fix).
+

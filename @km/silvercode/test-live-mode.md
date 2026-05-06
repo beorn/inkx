@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/test-live-mode"
 aliases:
   - km-silvercode.test-live-mode
@@ -33,6 +36,14 @@ dependencies:
     created_at: 2026-04-24T14:55:57Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode.test-api-fakes
+      - type: link
+        target: km-silvercode.test-system
 ---
 
 # [x] Visual tests: opt-out real-mode flag (SILVERCODE_REAL=1) for contract tests @km/silvercode #feature #P2 @claude:0940ca20
@@ -42,6 +53,7 @@ blocks:: [[@km/silvercode/test-api-fakes]], [[@km/silvercode/test-system]]
 ## Goal
 
 Every visual scenario runs in TWO modes:
+
 1. **Fake** (default) — ScriptedFakeSession + faked accountly/git/version/fs. Fast, deterministic, runs every `bun vitest`.
 2. **Real** (opt-in via `SILVERCODE_REAL=1` env var or separate vitest project) — actual Claude CLI subprocess + real accountly + real git. Slow, flaky-tolerant, catches drift between fake and real.
 
@@ -65,3 +77,4 @@ This is the standard 'contract tests' pattern — same scenarios, two boundary i
 ## Dependency
 
 Requires `km-silvercode.test-api-fakes` to land first — without the fakes being complete, 'fake vs real' is just 'partial-fake vs real' which isn't a meaningful contract.
+

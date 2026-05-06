@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/scrollback-exit"
 aliases:
   - km-inkx.scrollback-exit
@@ -11,3 +14,4 @@ assignee: claude:d1f60fb4
 ---
 
 # [x] Scrollback demo exit broken — q shows blank screen, doesn't exit @km/inkx #bug #P1 @claude:d1f60fb4
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/vendor-pre-existing-fails"
 aliases:
   - km-silvery.vendor-pre-existing-fails
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-23T02:08:47Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [ ] Triage 27 pre-existing vendor test failures — focus×3, useBoxMetrics×4, use-ag-node×3, others @km/silvery #task #P2
@@ -35,3 +41,4 @@ Surfaced during Plateau Phase 2 (commit af7d8b28). None are caps-related (grep-c
 - termless-memleak harness
 
 Many look like real regressions worth fixing, not just flaky or known-broken. Need to triage which are flaky vs real. focus×3 and useBoxMetrics×4 flagged by agent as 'look like real regressions'.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/consistency-heartbeat"
 aliases:
   - km-storage.consistency-heartbeat
@@ -17,9 +19,11 @@ owner: bjorn@stabell.org
 If WriteQueue fails permanently (ENOSPC, EACCES), DB has the change but file doesn't. No recovery mechanism exists.
 
 DESIGN: Enhanced heartbeat that:
+
 1. Compares DB state with FS for each file (not just mtime check)
 2. Re-projects any mismatches (idempotent — safe to replay)
 3. Stores write intent in events.jsonl so failed writes are retried
 4. Runs every 60s regardless of idle state (current heartbeat only runs when idle 30s+)
 
 BENEFIT: Automatic recovery from lost writes, disk-full, permission errors.
+

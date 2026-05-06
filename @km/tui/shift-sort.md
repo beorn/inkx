@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/shift-sort"
 aliases:
   - km-tui.shift-sort
@@ -15,3 +18,4 @@ assignee: claude:bca35d62
 When siblings have duplicate parent_idx values (e.g., all default to 0), the calculateSortOrder function computed fractional values between virtual sequential indices, but the actual DB sorts by real parent_idx. This caused the moved card to end up at the bottom of the column instead of the adjacent position.
 
 Fix: Added normalizeSortOrders() that assigns sequential parent_idx [0,1,2,...] to column cards when duplicates are detected, called before any shift calculation in moveCardInColumn.
+

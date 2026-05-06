@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/mcp-server"
 aliases:
   - km-market.mcp-server
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] MCP server for terminfo.dev — lookup_capability, compare_terminals, explain_escape_sequence @km/market #feature #P2
 
 Expose terminfo.dev data as MCP tools. AI agents can query terminal compatibility while generating code. Publish to MCP directories. Greg Isenberg Strategy 1.
+

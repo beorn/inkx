@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/mkql"
 aliases:
   - km-mkql
@@ -9,11 +11,12 @@ closed_at: 2026-01-16T22:22:57Z
 
 # [x] Analyze: Unify node types (DBNode/TNode/NodeViewModel) into single extensible model @km/_orphan #task #P4
 
-# Unified Node Model Analysis
+## Unified Node Model Analysis
 
 ## Executive Summary
 
 After deep analysis, I recommend a **single Node type** with:
+
 1. Standardized camelCase naming
 2. `children[]` populated lazily when needed for tree display
 3. UI state (folded/selected) kept in separate structures, not on nodes
@@ -23,13 +26,14 @@ After deep analysis, I recommend a **single Node type** with:
 
 ## Current State: 3 Node Types
 
-| Type | Package | Fields | Purpose |
-|------|---------|--------|---------|
-| DBNode | @km/core | 27 fields | SQLite storage |
-| TNode | @km/tree | 19 fields | Tree navigation |
-| NodeViewModel | @km/board | 13 fields | Rendering |
+| Type          | Package   | Fields    | Purpose         |
+| ------------- | --------- | --------- | --------------- |
+| DBNode        | @km/core  | 27 fields | SQLite storage  |
+| TNode         | @km/tree  | 19 fields | Tree navigation |
+| NodeViewModel | @km/board | 13 fields | Rendering       |
 
 **Problem:** Each transition copies/renames properties:
+
 - `id` → `nodeId` → `id` (back again\!)
 - `parent_id` → `parentId` → (removed)
 - `task_status` → `taskStatus` → `taskStatus`
@@ -41,61 +45,61 @@ After deep analysis, I recommend a **single Node type** with:
 
 ### ESSENTIAL (keep on Node)
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `id` | string | ULID primary key |
-| `type` | NodeType | Essential for behavior |
-| `parentId` | string\|null | Tree structure |
-| `parentIdx` | number | Ordering |
-| `name` | string? | Stable identifier (slug) |
-| `title` | string? | Display text |
-| `content` | string? | Body text |
-| `taskStatus` | TaskStatus? | Workflow state |
-| `priority` | number? | Display + query |
-| `dueDate` | string? | Display + query |
-| `scheduledDate` | string? | Display + query |
-| `createdAt` | number | Sorting |
-| `updatedAt` | number | Sync |
+| Field         | Type         | Notes                    |
+| ------------- | ------------ | ------------------------ |
+| id            | string       | ULID primary key         |
+| type          | NodeType     | Essential for behavior   |
+| parentId      | string\|null | Tree structure           |
+| parentIdx     | number       | Ordering                 |
+| name          | string?      | Stable identifier (slug) |
+| title         | string?      | Display text             |
+| content       | string?      | Body text                |
+| taskStatus    | TaskStatus?  | Workflow state           |
+| priority      | number?      | Display + query          |
+| dueDate       | string?      | Display + query          |
+| scheduledDate | string?      | Display + query          |
+| createdAt     | number       | Sorting                  |
+| updatedAt     | number       | Sync                     |
 
 ### SPARSE (only some node types - keep but optional)
 
-| Field | When Used | Notes |
-|-------|-----------|-------|
-| `fsPath` | folder/file | Filesystem location |
-| `mdLine` | sections/blocks | Editor integration |
+| Field  | When Used       | Notes               |
+| ------ | --------------- | ------------------- |
+| fsPath | folder/file     | Filesystem location |
+| mdLine | sections/blocks | Editor integration  |
 
 ### COMPUTED (remove from type, compute on demand)
 
-| Field | Computation | Notes |
-|-------|-------------|-------|
-| `isTask` | `taskStatus \!== undefined` | 1 line |
-| `childCount` | `getChildren(id).length` | Or track in storage |
-| `color` | `rules?.color` | Derived from rules |
-| `icon` | Currently always undefined\! | Remove |
-| `hasBacklinks` | `getBacklinks(id).length > 0` | Query |
-| `refsCount` | `getOutgoingLinks(id).length` | Query |
+| Field        | Computation                 | Notes               |
+| ------------ | --------------------------- | ------------------- |
+| isTask       | taskStatus \!== undefined   | 1 line              |
+| childCount   | getChildren(id).length      | Or track in storage |
+| color        | rules?.color                | Derived from rules  |
+| icon         | Currently always undefined! | Remove              |
+| hasBacklinks | getBacklinks(id).length > 0 | Query               |
+| refsCount    | getOutgoingLinks(id).length | Query               |
 
 ### MOVE TO `data` BUCKET
 
-| Field | Reason |
-|-------|--------|
-| `symlinkTo` | Rare, special feature |
-| `taskMark` | Only for serialization |
-| `assignedTo` | Rarely used |
-| `recurrence` | Rare |
-| `recurPrev` | Rare |
-| `sourceEmbedding` | Rare, transclusion only |
-| `rules` | Already parsed, could lazy-parse |
+| Field           | Reason                           |
+| --------------- | -------------------------------- |
+| symlinkTo       | Rare, special feature            |
+| taskMark        | Only for serialization           |
+| assignedTo      | Rarely used                      |
+| recurrence      | Rare                             |
+| recurPrev       | Rare                             |
+| sourceEmbedding | Rare, transclusion only          |
+| rules           | Already parsed, could lazy-parse |
 
 ### INTERNAL (storage only, not on Node interface)
 
-| Field | Reason |
-|-------|--------|
-| `fsIno` | Only for rename detection |
-| `mdPos` | Only for file sync |
-| `mdSlug` | DEPRECATED |
-| `contentHash` | Only for large content CAS |
-| `version` | Only for sync |
+| Field       | Reason                     |
+| ----------- | -------------------------- |
+| fsIno       | Only for rename detection  |
+| mdPos       | Only for file sync         |
+| mdSlug      | DEPRECATED                 |
+| contentHash | Only for large content CAS |
+| version     | Only for sync              |
 
 ---
 
@@ -175,18 +179,21 @@ const isFolded = boardState.foldedNodes.has(node.id);
 ## Migration Path
 
 ### Phase 1: Naming Standardization
+
 1. Change DBNode to use camelCase in TypeScript interface
 2. Keep snake_case in SQLite (map during read/write)
 3. Remove TNode and NodeViewModel types
 4. Use single `Node` type everywhere
 
 ### Phase 2: Remove Computed Fields
+
 1. Remove `isTask` - use `node.taskStatus \!== undefined`
 2. Remove `icon` - always undefined
 3. Remove `color` - use `node.data.rules?.color`
 4. Remove `childCount` - query when needed
 
 ### Phase 3: Consolidate Sparse Fields
+
 1. Move rare fields to `data` bucket
 2. Add typed accessors: `getRecurrence(node)`, etc.
 
@@ -230,3 +237,4 @@ A: For children, probably not (too slow). Keep the tree-building step. For metad
 2. Create new bead for naming standardization (camelCase)
 3. Create new bead to remove computed fields
 4. Create new bead to unify types (the big one)
+

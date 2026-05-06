@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/listview-refinements"
 aliases:
   - km-silvery.listview-refinements
@@ -25,6 +28,10 @@ dependencies:
     created_at: 2026-04-25T09:14:28Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.view-as-layout-output
 ---
 
 # [x] ListView height-independence: row-budget, width-keyed cache, scroll spacers, escape hatch @km/silvery #feature #P1 @claude:2405c72e
@@ -36,21 +43,27 @@ Phase 3 of `km-silvery.view-as-layout-output` shipped (vendor/silvery 72b8fa52 +
 ## Issues
 
 ### 1. Cursor-windowing != viewport-windowing
+
 The current window is `cursor ± overscan`, but users can scroll independently of cursor. Symptom: scroll past the cursor's position → rendered slice is wrong. Fix: window must be **viewport-anchored**, with cursor as a secondary constraint.
 
 ### 2. Lost scroll extent on resize / prepend
+
 Without top/bottom spacers (measured or estimated), scroll position drifts on resize and content prepend. Especially bad for chat logs where new messages appear at the bottom.
 
 ### 3. Width-dependent item heights — no width-keyed measurement cache
+
 If item wrapping depends on available width, the per-item measurement cache MUST be keyed by (id, width). Otherwise pane resize causes correctness bugs (cached heights are wrong for the new width).
 
 ### 4. Cap by cost, not item count
+
 50 items is cheap for 1-line rows, expensive for tall markdown blocks. Add row-budget: `maxEstimatedRows` alongside `maxItems`. Window expands until either limit is hit.
 
 ### 5. Escape hatch
+
 Add `virtualization="none" | "index" | "measured"` prop. "none" renders all items (right default for small lists). "index" is current behavior. "measured" is the future (real pixel-aware virtualizer with anchor preservation).
 
 ### 6. Disable below threshold
+
 Default to `virtualization="none"` for lists under N items / M estimated rows. Most real lists never need virtualization.
 
 ## Required invariants
@@ -86,3 +99,4 @@ Default to `virtualization="none"` for lists under N items / M estimated rows. M
 - [ ] `virtualization` prop: none / index / measured
 - [ ] Default = none below threshold
 - [ ] Tests cover variable-height items + scroll-independent-of-cursor + resize
+

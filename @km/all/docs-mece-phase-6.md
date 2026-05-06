@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/docs-mece-phase-6"
 aliases:
   - km-all.docs-mece-phase-6
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-16T21:08:25Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage.link-model-canonical
 ---
 
 # [x] Phase 6 of W1: mini-MECE sweep on link/sigil docs @km/all #task #P2
@@ -26,3 +32,4 @@ dependencies:
 blocks:: [[@km/storage/link-model-canonical]]
 
 Update 8 canonical link/sigil docs to match docs/design/links.md: glossary, storage.md, data-model.md, @km/ast/model.md, kmast.md, concepts.md, architecture.md. Remove legacy Ref/refs terminology from active docs (archive ok). Gate: grep 'Ref\|normalizeRefHref' docs/ = 0 in active docs; all linked from docs/design/links.md are current.
+

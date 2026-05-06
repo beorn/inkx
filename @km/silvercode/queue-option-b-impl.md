@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/queue-option-b-impl"
 aliases:
   - km-silvercode.queue-option-b-impl
@@ -41,6 +44,14 @@ dependencies:
     created_at: 2026-04-24T16:21:18Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode.queue-option-b
+      - type: link
+        target: km-silvery.textarea-edge-callback
 ---
 
 # [x] Implement Option B — two TextAreas with cursor-boundary focus handoff (silvercode side) @km/silvercode #task #P1 @claude:0940ca20
@@ -56,31 +67,29 @@ Blocked-by: `km-silvery.textarea-edge-callback` (silvery TextArea needs `onEdge`
 ## Work
 
 1. Rewrite `apps/silvercode/src/components/CommandBox.tsx`:
-   - Replace the per-entry TextInput `QueueEditor` with a single silvery `<TextArea>` for the queue
-   - Add a separate silvery `<TextArea>` for the command input (currently a TextInput)
-   - Wire both with `onEdge` callbacks for cursor-boundary focus handoff
-   - Keep the `<Divider title={focusedRegion === 'queue' ? 'QUEUE HELD' : 'QUEUE'} />` between regions (user preference: retain current visual style)
-   - Per-region coloring: `isActive` drives `color={focusedRegion === 'queue' ? '$fg' : '$fg-muted'}` on the queue, inverse on command
-
+  - Replace the per-entry TextInput `QueueEditor` with a single silvery `<TextArea>` for the queue
+  - Add a separate silvery `<TextArea>` for the command input (currently a TextInput)
+  - Wire both with `onEdge` callbacks for cursor-boundary focus handoff
+  - Keep the `<Divider title={focusedRegion === 'queue' ? 'QUEUE HELD' : 'QUEUE'} />` between regions (user preference: retain current visual style)
+  - Per-region coloring: `isActive` drives `color={focusedRegion === 'queue' ? '$fg' : '$fg-muted'}` on the queue, inverse on command
 2. Simplify `apps/silvercode/src/App.tsx`:
-   - Replace `queueFocused` state with `focusedRegion: 'queue' | 'command'`
-   - Delete the entry/release keybindings (up-arrow-into-queue, Esc-release, Ctrl+Enter-release) — boundary handoff replaces them
-   - Delete the `controller.holdQueue` effect — no hold concept
-   - Keep the `/think` / `/think_hard` / `/ultrathink` magic-keyword injection
-   - Keep the `controller.flushQueue()` call on Enter-in-queue
-
+  - Replace `queueFocused` state with `focusedRegion: 'queue' | 'command'`
+  - Delete the entry/release keybindings (up-arrow-into-queue, Esc-release, Ctrl+Enter-release) — boundary handoff replaces them
+  - Delete the `controller.holdQueue` effect — no hold concept
+  - Keep the `/think` / `/think_hard` / `/ultrathink` magic-keyword injection
+  - Keep the `controller.flushQueue()` call on Enter-in-queue
 3. Clean up `apps/silvercode/src/controller.ts`:
-   - Delete `holdQueue(id, hold)`, the `isHeld` state map, and related wiring
-   - Keep `flushQueue(id)` (forced flush, called by Enter-in-queue)
-   - Keep turn-end auto-flush in the subscribe handler
-
+  - Delete `holdQueue(id, hold)`, the `isHeld` state map, and related wiring
+  - Keep `flushQueue(id)` (forced flush, called by Enter-in-queue)
+  - Keep turn-end auto-flush in the subscribe handler
 4. Update / add tests:
-   - Delete or rewrite queue-batching tests that referenced `holdQueue`
-   - Add visual regression scenarios: focus swap up/down, Enter-in-queue flush, Enter-in-command send, empty-queue Up-arrow no-op, per-region coloring
+  - Delete or rewrite queue-batching tests that referenced `holdQueue`
+  - Add visual regression scenarios: focus swap up/down, Enter-in-queue flush, Enter-in-command send, empty-queue Up-arrow no-op, per-region coloring
 
 ## Acceptance
 
 Per design doc 'Acceptance' section. In short:
+
 - Two always-live TextAreas, no `queueFocused`/`holdQueue` state
 - Up/Ctrl+P at top of command → queue (cursor at end of last line)
 - Down/Ctrl+N at bottom of queue → command (cursor at start)
@@ -92,3 +101,4 @@ Per design doc 'Acceptance' section. In short:
 ## Supersedes
 
 Piecemeal queue fixes from session 2026-04-24 (4b38bd604, b5289d672, 2e37edfe5, 923f2a4c8, 640022ad1, 49d4274aa, eb0e6a4d3). Their architectural duct tape becomes irrelevant after this lands.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/terminfo/content-enrichment"
 aliases:
   - km-terminfo.content-enrichment
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] Enrich standards/category pages — UTF-8 prominence, better descriptions @km/terminfo #task #P3
 
 The Unicode page buries UTF-8 in a historical anecdote. Standards pages need better structure: lead with what terminals actually implement, then standards context, then history.
+

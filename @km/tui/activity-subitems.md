@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/activity-subitems"
 aliases:
   - km-tui.activity-subitems
@@ -13,3 +16,4 @@ assignee: claude:97b8de73
 # [x] Activity/Comments still show as card sub-items (§ Activity) @km/tui #bug #P2 @claude:97b8de73
 
 Every card shows '§ Activity' as a visible sub-item line. These should be hidden at card level (only shown in detail pane). The closed bead @km/tui/activity-cards added isCollapsedChild filter to column-level filtering but it doesn't filter sub-items WITHIN cards rendered by TreeNode. The collapse rule needs to apply inside Card rendering too. Screenshots: 13.08.07.png, 13.08.42.png
+

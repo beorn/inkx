@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/store-interface"
 aliases:
   - km-storage.store-interface
@@ -17,14 +19,16 @@ owner: bjorn@stabell.org
 Phase 1 expanded: define commit taxonomy + trait interfaces.
 
 Step 0: Operation vs Event vs ChangeEnvelope distinction
+
 - Operation: user intent (editor.apply receives these)
-- Event: canonical state mutation (store.commit produces these)  
+- Event: canonical state mutation (store.commit produces these)
 - ChangeEnvelope: replicated committed change with metadata
 
 Commit metadata: { commitId, source, actorId, basis }
 CommitSource: "local" | "undo" | "redo" | "fs-import" | "remote"
 
 Then define trait interfaces:
+
 - Store (peekNode, peekChildIds, commit → CommitResult)
 - Observable (onCommit)
 - Reactive extends Observable (nodeState, childIdsState)
@@ -33,3 +37,4 @@ Then define trait interfaces:
 - Replicated (getChanges, applyChanges)
 - ResourceState<T>
 - RepoDelta
+

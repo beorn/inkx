@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/col-indent"
 aliases:
   - km-tui.col-indent
@@ -13,3 +16,4 @@ assignee: claude:949598cc
 # [x] Allow indenting columns into cards (reverse of outdent-to-column) @km/tui #feature #P3 @claude:949598cc
 
 Columns can currently be outdented to become board-level columns. The reverse should also work: indenting a column should make it a card under the previous column. Research how Decker handles this.
+

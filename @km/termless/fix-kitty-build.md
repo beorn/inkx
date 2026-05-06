@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/fix-kitty-build"
 aliases:
   - km-termless.fix-kitty-build
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Implement kitty backend C parser extraction @km/termless #task #P3
 
 kitty build.sh is a TODO stub. Need to extract the VT parser from kitty source (parser.c, screen.c, data-types.h) and compile via napi-rs or C FFI.
+

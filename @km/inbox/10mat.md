@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/10mat"
 aliases:
   - km-10mat
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Card border overflow after cursor-right between columns @km/_orphan #bug #P1
+

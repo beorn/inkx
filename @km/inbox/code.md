@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/code"
 aliases:
   - km-code
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] Code: agent workspace on silvery @km/_orphan #epic #P2
 
 Silvercode and related agent workspace infrastructure
+

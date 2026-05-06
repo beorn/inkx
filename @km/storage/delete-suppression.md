@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/delete-suppression"
 aliases:
   - km-storage.delete-suppression
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 From Pro review: WriteToken ownership covers writes and renames but NOT deletes/unlinks. When km deletes a file, the watcher sees the unlink and may try to reconcile it.
 
 FIX: Add delete tracking to sync_state (tombstone entries). When km deletes a file, record in sync_state. Watcher checks before processing unlink events.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ag-canvas/shared-components"
 aliases:
   - km-silvery.ag-canvas.shared-components
@@ -9,3 +11,4 @@ owner: bjorn@stabell.org
 ---
 
 # [ ] Canvas: share TUI components instead of reimplementing @km/silvery #task #P2
+

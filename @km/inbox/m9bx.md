@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/m9bx"
 aliases:
   - km-m9bx
@@ -12,6 +14,7 @@ closed_at: 2026-01-20T00:58:25Z
 ## Problem
 
 Board.tsx and view components have extensive manual size calculations:
+
 - Column widths: `Math.floor(availWidthForCols / effectiveMaxCols)`
 - Height calculations: `termHeight - 2`, `cardsHeight = height - 2`
 - Separator accounting: `availableWidth - separatorCount`
@@ -41,3 +44,4 @@ Ink/Yoga doesn't provide computed dimensions to components. See @km/inkz for the
 - @km/inkz - Next-gen renderer that would solve this properly
 - @km/_orphan/vzeg - DI approach for component testability
 - docs/dev/ink-patterns.md - Documented patterns
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/migrate-to-listener"
 aliases:
   - km-bearly.migrate-to-listener
@@ -23,6 +25,10 @@ dependencies:
     created_at: 2026-04-22T19:38:38Z
     created_by: claude:fa4168d9
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] Migrate tribe entries in settings.json to pluggable ingest/notify @km/bearly #task #P3
@@ -52,3 +58,4 @@ Currently tribe has named subcommands that dispatch directly to recall handlers.
 ## Risk
 
 Modifies user's live \`~/.claude/settings.json\` — must be reversible and opt-in.
+

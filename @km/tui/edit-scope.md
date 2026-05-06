@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/edit-scope"
 aliases:
   - km-tui.edit-scope
@@ -17,3 +19,4 @@ Current: each operation individually checks edit boundaries (or doesn't). New op
 Design: Edit mode should be a bounded context that intercepts ALL operations and constrains them to the card. Invalid actions are rejected at the scope boundary. This is the TEA state machine vision: editMachine(action) -> [state, effects] where the machine only accepts valid actions.
 
 Would prevent: all 4 bugs above, plus any future edit-mode boundary violations.
+

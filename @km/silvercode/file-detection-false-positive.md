@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/file-detection-false-positive"
 aliases:
   - km-silvercode.file-detection-false-positive
@@ -18,6 +21,10 @@ dependencies:
     created_at: 2026-04-25T23:06:01Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] File detection FILE_RE matches /word inside vendor/silvery (false positive) @km/silvercode #bug #P2 @claude:2405c72e
@@ -25,3 +32,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 apps/silvercode/src/detection.ts FILE_RE = /(~[A-Za-z0-9/_.-]+|\/[A-Za-z0-9/_.-]+)(?::(\d+)(?::(\d+))?)?/g matches '/silvery' inside the substring 'vendor/silvery' because the leading / has no path-boundary check. Result: words after / inside compound paths render as yellow+underlined file detections (screenshot 23.00.38.png). Fix: add negative lookbehind so leading / must NOT be preceded by a word char. Pattern: (?<![A-Za-z0-9_])\/[A-Za-z0-9/_.-]+ — matches 'cd /Users/foo' (space-before-/) but not 'vendor/silvery'.
+

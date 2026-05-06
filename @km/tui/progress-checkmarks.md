@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/progress-checkmarks"
 aliases:
   - km-tui.progress-checkmarks
@@ -21,7 +24,9 @@ With clear: false in load-repo, the progress output is now visible and shows:
 ```
 
 Two issues:
+
 1. 'Evaluating rules' (final sub-step) stays ○ — never gets checked off
 2. Parent 'Load repo' shows as ○ on the first line (the ✔ on line 2 is likely a re-render artifact)
 
 The steps runner likely calls stop() before marking the final step complete. The fix is in the inkx-ui progress/steps code — ensure the last step gets its ✔ before stop() runs.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/multiplex"
 aliases:
   - km-silvery.multiplex
@@ -18,6 +20,10 @@ dependencies:
     created_at: 2026-04-23T19:38:47Z
     created_by: claude:6443387f
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Silvery multiplex: tmux-shape primitives as components, not an app @km/silvery #feature #P4
@@ -36,11 +42,13 @@ Ship tmux-equivalent capabilities as silvery components + a daemon, rather than 
 ## Component surface
 
 Primitives:
+
 - `@silvery/pty` — PTY wrapper (shared with @km/silvery/agent-harness)
 - `@silvery/emulator` — vterm wrapper; grid model + ANSI parsing
 - `@silvery/multiplex` — daemon, client/server protocol, session persistence across detach
 
 Components:
+
 - `<SessionProvider daemon="…">` — attach/detach root
 - `<PtyPane command cwd onExit onOutput>` — one pty + emulator + key routing
 - `<SplitLayout direction ratios>` — splits (flexily already)
@@ -50,6 +58,7 @@ Components:
 - `<CommandPalette>` — the ":" prompt, as a silvery `/` picker
 
 Hooks:
+
 - `useMultiplex()`, `usePane()`, `useScrollback(paneId)`
 - `usePrefixKey(prefix, bindings)`, `useCopyMode(paneId)`
 
@@ -92,3 +101,4 @@ Wire protocol overlaps heavily with MCP (JSON-RPC over UDS / WebSocket). If the 
 ## Origin
 
 2026-04-23 discussion extending @km/silvery/agent-harness. The harness was heading toward "tmux-for-agents" in its Phase 2 anyway; filing as sibling makes the dependency explicit and lets the primitive be general-purpose instead of agent-specific.
+

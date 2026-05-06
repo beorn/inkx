@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/hidden-count"
 aliases:
   - km-tui.hidden-count
@@ -15,6 +18,7 @@ assignee: claude:d3a7049b
 When items are hidden by filters (e.g., 'tc' toggle_hide_done), show a minimalist indicator at the bottom of each column/list showing how many items are hidden and why.
 
 Design ideas:
+
 - Line at the end of the card list, below the last visible card
 - Minimalist format, e.g.: '˄3 done' or '↕ 3 done' or '+3 ✓' or '3 hidden (done)'
 - Should be dim/subtle — not visually competing with actual cards
@@ -23,6 +27,8 @@ Design ideas:
 - Clicking/selecting the indicator could toggle the filter (future)
 
 Implementation notes:
+
 - CardColumn.tsx already knows which nodes are filtered out (via filterFn)
 - Count the filtered items per-column, group by filter reason
 - Render a small Text element at the bottom of the column when count > 0
+

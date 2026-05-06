@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/pkvfz"
 aliases:
   - km-pkvfz
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] Website positioning: React for terminals, AI-native niche @km/_orphan #task #P2
 
 silvery.dev headline: React for terminals. Three pillars: (1) Start as simply as Ink, (2) Scale into real terminal apps, (3) Works where CLIs actually live. Own the AI terminal app niche: streaming, panes, search, long sessions. 5 hero capabilities not 30 component count.
+

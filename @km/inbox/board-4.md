@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/board-4"
 aliases:
   - km-board-4
@@ -20,12 +22,16 @@ closed_at: 2026-02-04T11:27:24Z
 - On click: dispatch `toggleFold(nodeId)`
 
 ## Files
+
 - `TreeNode.tsx` - add useHitRegion calls
 - `Board.tsx` - wire mouse click to registry lookup
 
 ## Verification
+
 - Click on item selects it (cursor moves)
 - Click on fold icon toggles fold state
 
 ## Depends on
+
 - @km/_orphan/mouse-1 (hit registry infrastructure)
+

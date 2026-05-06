@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/vitest-pty"
 aliases:
   - km-termless.vitest-pty
@@ -16,3 +19,4 @@ assignee: claude:21c57d63
 # [x] vitest worker threads break Bun PTY input @km/termless #bug #P2 @claude:21c57d63
 
 vitest setup sets process.stdout/stderr.isTTY=false and intercepts process.stdout.write, which prevents Bun.spawn PTY from delivering input to the child process. Works in standalone bun run scripts. Mouse tests in mouse.slow.spec.ts are skipped pending this fix. Potential fixes: (1) fix in termless spawnPty to restore isTTY, (2) fix vitest setup to not break PTY, (3) run PTY tests in a separate vitest project without the setup.
+

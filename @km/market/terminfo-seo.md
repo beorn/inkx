@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/market/terminfo-seo"
 aliases:
   - km-market.terminfo-seo
@@ -15,3 +18,4 @@ assignee: Bjørn Stabell
 # [x] terminfo.dev SEO audit and optimization @km/market #task #P2 @Bjørn Stabell
 
 Full SEO audit of terminfo.dev — terminal capability database. Part of @km/market/seo.
+

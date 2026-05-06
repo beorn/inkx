@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/smj9"
 aliases:
   - km-smj9
@@ -68,3 +70,4 @@ useInput((input, key) => {
 ## Related
 
 Parent issue: @km/tui1/1-decompose-board-tsx-2804-lines (Decompose Board.tsx)
+

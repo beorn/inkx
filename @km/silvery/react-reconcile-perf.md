@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/react-reconcile-perf"
 aliases:
   - km-silvery.react-reconcile-perf
@@ -19,8 +21,10 @@ NOT React reconciliation — buffer operations scale with terminal area (80K cel
 Key finding: no-change rerender costs same as cursor move (3.3ms vs 3.5ms at 80x24, 13.3ms vs 13.0ms at 400x200). React is not the bottleneck.
 
 Bottlenecks:
+
 1. createTextFrame: clones buffer + creates 80K Cell objects every frame (biggest cost)
 2. prevBuffer.clone: 320KB typed array copy
 3. syncPrevLayout: O(N) tree walk
 
 Fix: lazy TextFrame — defer Cell object creation to on-demand cell() access. Skip createTextFrame entirely when frame isnt consumed. Could drop 400x200 from 13ms to 3-4ms.
+

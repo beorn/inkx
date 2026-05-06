@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/tag-block-ids"
 aliases:
   - km-tui.tag-block-ids
@@ -20,13 +23,16 @@ In the detail pane / board view, tag files (#home, #w, #norway, etc.) show bare 
 **What should show**: Task titles (e.g., "Clean-up after trip", "Fix EPD", etc.)
 
 **Root cause**: Tag file items are embed references `![[^GID]]` in heading lines. The markdown looks correct:
+
 ```
 ## [x] Clean-up after trip ![[^1138180707609595]]
 ```
 
 But the TUI is rendering only the numeric GID, not the full title. Either:
+
 1. The parser creates separate embed/link nodes that only carry the GID as content
 2. The inline text pipeline doesn't hide block refs in this context
 3. The smart resolver isn't being called for these references
 
 Related: @km/tui/detail-render (P1, in_progress) — other detail pane rendering issues
+

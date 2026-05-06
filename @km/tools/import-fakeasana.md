@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tools/import-fakeasana"
 aliases:
   - km-tools.import-fakeasana
@@ -13,3 +16,4 @@ assignee: claude:5f0aee02
 # [x] Update tests & FakeAsana to be representative of Asana export behavior @km/tools #task #P2 @claude:5f0aee02
 
 Make FakeAsana and import tests representative of how Asana actually exports work, including: @user task lists with sections derived from memberships, tag task lists, multi-project memberships, system comment filtering, milestone tasks, rich HTML notes, attachments, and other edge cases.
+

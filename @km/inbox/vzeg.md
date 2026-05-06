@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/vzeg"
 aliases:
   - km-vzeg
@@ -16,6 +18,7 @@ Current DI approach via props (getChildren, getParentContext, getBoardPills) is 
 ## Current State
 
 TreeNode now has these DI props that need to be threaded through:
+
 - `children?: KNode[]`
 - `parentContext?: string | null`
 - `getChildren?: (id: string) => KNode[]`
@@ -25,31 +28,29 @@ TreeNode now has these DI props that need to be threaded through:
 ## Alternative Approaches to Consider
 
 1. **Context-based store** - Put a node store in React context
-   ```tsx
-   const { getNode, getChildren, getLinks } = useNodeStore();
-   ```
-
+  ```tsx
+  const { getNode, getChildren, getLinks } = useNodeStore();
+  ```
 2. **Hook-based access** - Components call hooks directly
-   ```tsx
-   const node = useNode(id);
-   const children = useChildren(id);
-   const pills = useBoardPills(node);
-   ```
-
+  ```tsx
+  const node = useNode(id);
+  const children = useChildren(id);
+  const pills = useBoardPills(node);
+  ```
 3. **Single store context** - One context provides all data access
-   ```tsx
-   <StoreProvider store={memoryStore}>
-     <TreeNode nodeId={id} />
-   </StoreProvider>
-   ```
+  ```tsx
+  <StoreProvider store={memoryStore}>
+    <TreeNode nodeId={id} />
+  </StoreProvider>
+  ```
 
 ## Trade-offs
 
-| Approach | Props drilling | Testability | Flexibility |
-|----------|---------------|-------------|-------------|
-| Props DI (current) | High | Good | High |
-| Context store | None | Needs provider | Medium |
-| Hooks | None | Needs mock provider | Medium |
+| Approach           | Props drilling | Testability         | Flexibility |
+| ------------------ | -------------- | ------------------- | ----------- |
+| Props DI (current) | High           | Good                | High        |
+| Context store      | None           | Needs provider      | Medium      |
+| Hooks              | None           | Needs mock provider | Medium      |
 
 ## Questions
 
@@ -62,3 +63,4 @@ TreeNode now has these DI props that need to be threaded through:
 - TreeNode.tsx - current DI implementation
 - storybook.tsx - main consumer of DI props
 - ui-context.tsx - existing context pattern we could extend
+

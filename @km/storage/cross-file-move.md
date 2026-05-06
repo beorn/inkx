@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/cross-file-move"
 aliases:
   - km-storage.cross-file-move
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] P0: cross-file node_moved only rewrites destination file @km/storage #bug #P0
 
 When a node is moved between files, handleNodeMoved() only regenerates the destination file. The source file retains the old content, creating duplicates on disk. Fix: capture old_parent_id/old_file_id before the move, regenerate both source and destination files.
+

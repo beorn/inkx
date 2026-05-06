@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market"
 aliases:
   - km-market
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] Marketing & positioning — public docs, comparisons, benchmarks, blog posts @km/market #epic #P2
 
 Cross-cutting marketing & positioning scope. Houses public-facing work across the entire ecosystem: silvery.dev, termless.dev, terminfo.dev, flexily.dev, beorn.codes. Includes comparison pages (silvery-vs-*), migration guides, benchmark pages, blog posts, SEO, launch materials, newsletters, social proof, growth plans, and content marketing. Distinct from @km/silvery (implementation) and @km/review (code quality). Permanent backlog — never closes, like @km/infra / @km/review.
+

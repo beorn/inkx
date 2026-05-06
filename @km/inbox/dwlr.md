@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - km
 id: "@km/inbox/dwlr"
 aliases:
   - km-dwlr
@@ -10,11 +13,13 @@ closed_at: 2026-01-17T23:18:31Z
 # [x] Integrate @km/commands with Board.tsx @km/_orphan #task #P2
 
 ## Goal
+
 Replace the monolithic `handleKeyboardInput` in Board.tsx with the unified command system.
 
 ## Current State
 
 Board.tsx has ~800 lines of keyboard handling:
+
 ```typescript
 function handleKeyboardInput(input: string, key: KeyObject) {
   // 800+ lines of if/else chains
@@ -55,16 +60,19 @@ function handleKeyboardInput(input: string, key: KeyObject) {
 ## Migration Strategy
 
 ### Phase 1: Parallel Implementation
+
 - Keep existing handlers as fallback
 - New system handles commands that are migrated
 - Feature flag to switch between systems
 
 ### Phase 2: Progressive Migration
+
 - Move handlers to commands one category at a time
 - Navigation → Selection → Edit → Task → View
 - Delete old handler code as commands are verified
 
 ### Phase 3: Cleanup
+
 - Remove feature flag
 - Delete legacy handler code
 - Board.tsx keyboard section reduced to ~50 lines
@@ -72,6 +80,7 @@ function handleKeyboardInput(input: string, key: KeyObject) {
 ## Action Dispatcher
 
 Need a unified dispatcher that routes actions appropriately:
+
 ```typescript
 function dispatchAction(action: AnyAction) {
   if (isBoardAction(action)) {
@@ -90,9 +99,11 @@ function dispatchAction(action: AnyAction) {
 ```
 
 ## Acceptance Criteria
+
 - [ ] handleKeyboardInput uses command system
 - [ ] All existing keybindings still work
 - [ ] Visual regression tests pass (ttyd + Playwright)
 - [ ] Board.tsx keyboard section < 100 lines
 - [ ] No behavior changes for users
 - [ ] Feature flag for rollback (temporary)
+

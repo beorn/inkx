@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/whichkey-grey"
 aliases:
   - km-tui.whichkey-grey
@@ -13,3 +16,4 @@ assignee: claude:d697f216
 # [x] Which-key hints: active key too dark (black), should be grey @km/tui #bug #P2 @claude:d697f216
 
 In the which-key display (chord hints at bottom), the highlighted/active key should transition from yellow to grey, but currently goes to too dark/black, making it hard to read.
+

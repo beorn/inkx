@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/treenode-dataname"
 aliases:
   - km-tui.treenode-dataname
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] TUI: edit field empty for folder nodes (oi) — data.name fallback missing @km/tui #bug #P2
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/flexily/fingerprint-abs-pos"
 aliases:
   - km-flexily.fingerprint-abs-pos
@@ -14,3 +17,4 @@ assignee: claude:c9beade3
 # [x] Fingerprint caching ignores absX/absY — stale rounded edges on fractional moves @km/flexily #bug #P1 @claude:c9beade3
 
 GPT 5.4 Pro re-review P1. Fingerprint only compares availableWidth/Height/direction/offset but not absolute position that affects edge-based rounding. A fractional ancestor movement changes rounded edges but cache returns stale values.
+

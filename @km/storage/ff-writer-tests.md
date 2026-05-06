@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/ff-writer-tests"
 aliases:
   - km-storage.ff-writer-tests
@@ -16,3 +19,4 @@ assignee: claude:b92140a2
 # [x] Unit + E2E tests for write path @km/storage #task #P2 @claude:b92140a2
 
 Phase 2e: Unit tests for generateIndexFileContent/indexFileName plus E2E tests for write path integration.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sterling-2a-data-layer"
 aliases:
   - km-silvery.sterling-2a-data-layer
@@ -26,6 +29,14 @@ dependencies:
     created_at: 2026-04-19T14:42:37Z
     created_by: claude:4274df30
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.sterling-preflight
+      - type: link
+        target: km-silvery.theme-v4
 ---
 
 # [x] Sterling Phase 2a: Theme type + derivation + guardrails (additive) @km/silvery #task #P2 @claude:4274df30
@@ -35,6 +46,7 @@ blocks:: [[@km/silvery/sterling-preflight]], [[@km/silvery/theme-v4]]
 Add new Sterling Theme shape as ADDITIVE — old camelCase keeps working until Phase 2d.
 
 ## New code
+
 - @silvery/design/src/tokens.ts — DesignSystem, Theme, ThemeShape types + FlatToken union
 - @silvery/design/src/sterling.ts — the sterling export
 - @silvery/design/src/derive.ts — preservative derivation from ColorScheme with OKLCH guardrails
@@ -42,6 +54,7 @@ Add new Sterling Theme shape as ADDITIVE — old camelCase keeps working until P
 - @silvery/design/src/flatten.ts — populateFlat(theme) writes flat-key projections
 
 ## Acceptance
+
 - sterling.deriveFromScheme(nord) returns Theme with BOTH theme.accent.fg AND theme['fg-accent'] on same object, same string reference
 - theme.info exists (default aliases accent values, distinct slot)
 - theme.surface.raised + theme.surface.overlay exist
@@ -52,3 +65,4 @@ Add new Sterling Theme shape as ADDITIVE — old camelCase keeps working until P
 DEPENDS: sterling-preflight
 BLOCKS: sterling-2b, sterling-storybook-mvp
 Parent: @km/silvery/theme-v4
+

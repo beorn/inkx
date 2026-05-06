@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/inline-drift"
 aliases:
   - km-inkx.inline-drift
@@ -17,6 +20,7 @@ When using inkx's inline render mode (mode: "inline") with streaming updates (us
 ## Reproduction
 
 Run the dotz reporter in streaming mode:
+
 ```bash
 bun run test:dotz
 ```
@@ -49,3 +53,4 @@ The assumption is that the cursor is at the bottom of the render region. But whe
 
 - @km/_orphan/silvery-legacy-stale (stale pixel bugs in incremental rendering)
 - @km/_orphan/jmxuh (output-phase ANSI diff stale backgrounds)
+

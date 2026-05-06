@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/selection/11-signals-cursor-selection-reads-board-treenode-card"
 aliases:
   - km-silvery.selection.11
@@ -19,3 +21,4 @@ Migrate cursor/selection useAppStore reads to useSignal.
 Files: Board.tsx (cursor, selIds, textEditState, sel), TreeNode.tsx (editNodeId), CardColumn.tsx (isInlineEditing, isDirectlyEditing), WorkspaceChrome.tsx (cursorId, moveMode), CheckboxIcon.tsx
 
 Depends on: selection.9 (useSignal hook)
+

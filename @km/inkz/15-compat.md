@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkz/15-compat"
 aliases:
   - km-inkz.15-compat
@@ -16,24 +18,23 @@ Test that InkZ works as a drop-in replacement for Ink by running it against seve
 ## Approach
 
 1. **Find test subjects** - identify 3-5 popular/representative Ink projects:
-   - ink-cli examples from the Ink repo itself
-   - pastel (Ink-based CLI framework)
-   - ink-testing-library examples
-   - Real apps: gatsby-cli, npm-check, etc.
-
+  - ink-cli examples from the Ink repo itself
+  - pastel (Ink-based CLI framework)
+  - ink-testing-library examples
+  - Real apps: gatsby-cli, npm-check, etc.
 2. **Create test harness**:
-   - Script that clones each project
-   - Replaces import ... from 'ink' with import ... from 'inkz'
-   - Runs the project's tests (if any)
-   - Compares output to original Ink version
-
+  - Script that clones each project
+  - Replaces import ... from 'ink' with import ... from 'inkz'
+  - Runs the project's tests (if any)
+  - Compares output to original Ink version
 3. **Track compatibility**:
-   - Document which APIs work identically
-   - Document which APIs have intentional differences
-   - Document any bugs found
+  - Document which APIs work identically
+  - Document which APIs have intentional differences
+  - Document any bugs found
 
 ## Success Criteria
 
 - [ ] All Ink examples render identically (minus intentional improvements)
 - [ ] No runtime errors from API mismatches
 - [ ] Test suites pass (where applicable)
+

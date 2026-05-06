@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/event-lifecycle-docs"
 aliases:
   - km-storage.event-lifecycle-docs
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Document end-to-end event lifecycle with state diagram @km/storage #task #P2
 
 GPT 5.4 Pro review's #1 recommendation: document the event lifecycle end-to-end with a state diagram showing every path an event can take from creation to filesystem persistence, including error branches. Currently no authoritative reference for the full pipeline. Should include: TUI edit → emit → DB apply → broadcast → fsSync → WriteQueue → .md file, reverse flow (watcher → reconcile → emit), error boundaries, undo interaction.
+

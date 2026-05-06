@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/cursor-context"
 aliases:
   - km-tui.cursor-context
@@ -18,6 +21,7 @@ assignee: Bjørn Stabell
 Replace cursorNodeId + cursorCardNodeId + cursorColumnNodeId with a single CursorContext computed from cursorNodeId + tree position.
 
 CursorContext contains:
+
 - node, visualRole (board|column|card|subitem)
 - parent chain, siblings, isFirstChild, isLastChild, hasChildren, isIndentable
 - selection: Set<string> of selected node IDs (cursor is always in the set)
@@ -26,3 +30,4 @@ CursorContext contains:
 Every editing operation receives CursorContext. Multi-select operations (indent, delete, move) use selection. Single-node operations (split, merge) use cursor only.
 
 Eliminates: per-handler re-derivation, inlineEditBlock.nodeId vs cursorNodeId ambiguity, cursorCardNodeId/cursorColumnNodeId caches, separate selection queries.
+

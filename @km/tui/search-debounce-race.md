@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/search-debounce-race"
 aliases:
   - km-tui.search-debounce-race
@@ -18,3 +21,4 @@ assignee: Bjørn Stabell
 # [x] [bug] Search Enter before 150ms shows No matches @km/tui #bug #P1 @Bjørn Stabell
 
 Repro: /, type fast query, Enter before debounce. LOCAL_FIND_CONFIRM doesn't flush debounce. Empty query → no matches. Fix: flush debounce timer in LOCAL_FIND_CONFIRM handler.
+

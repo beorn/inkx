@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - Bjørn
 id: "@km/silvery/tea-gap-tsx-subpath"
 aliases:
   - km-silvery.tea-gap-tsx-subpath
@@ -21,6 +25,10 @@ dependencies:
     created_at: 2026-04-18T12:01:49Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.tea
 ---
 
 # [x] TEA gap: @silvery/create/* subpath doesn't resolve .tsx files (create-app.tsx) @km/silvery #task #P3 @Bjørn Stabell
@@ -33,7 +41,7 @@ Discovered while executing the aichat-v2 spike (@km/silvery/tea-aichat).
 
 vendor/silvery/packages/create/package.json exports:
 
-  "exports": {
+"exports": {
     ".": "./src/index.ts",
     "./core": "./src/core/index.ts",
     ...
@@ -44,7 +52,7 @@ The wildcard only resolves `.ts` files. But `src/create-app.tsx` is a .tsx
 file (contains JSX). So `import { createApp } from "@silvery/create/create-app"`
 fails with:
 
-  Cannot find package '@silvery/create/create-app' imported from ...
+Cannot find package '@silvery/create/create-app' imported from ...
 
 The main barrel `@silvery/create` DOES export createApp, so callers can
 use the barrel. But the subpath shape implied by "./*" is a trap — the
@@ -79,3 +87,4 @@ hasn't been updated.
 ## Effort
 
 Tiny (one line in package.json).
+

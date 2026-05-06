@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/board/body-virtual-cleanup"
 aliases:
   - km-board.body-virtual-cleanup
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T12:19:02Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [ ] Replace __body__ virtual KNode pattern with cleaner abstraction @km/board #task #P3
@@ -62,3 +68,4 @@ rg 'KNode.isVirtual' --glob '!.beads' -t ts -c | wc -l         # >0
 # OR Option D
 rg '__body__' --glob '!.beads' -t ts -c | wc -l                # 0
 ```
+

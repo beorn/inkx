@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/public-copy-consistency"
 aliases:
   - km-silvery.public-copy-consistency
@@ -19,25 +21,31 @@ Land a consistent framing and language across all public-facing Silvery surfaces
 ## Canonical copy (defined in vendor/internal/silvery/launch/chasm-positioning.md)
 
 ### Tagline
+
 "Powerful apps, beautiful UIs — unapologetically terminal."
 (Alt prose form: "whilst unapologetically terminal"; alt hero 3-beat: "Powerful apps. Beautiful UIs. Unapologetically terminal.")
 
 ### Positional line (paired with tagline)
+
 "React for modern terminal apps."
 
 ### Three principles (short form for strips/cards)
+
 1. Don't surprise experienced web devs. If you'd reach for it on the web, reach for it in Silvery.
 2. Stay unapologetically terminal. Cells, screens, ANSI, scrollback — the terminal is front and center.
 3. Strive for the quality plateau. Architecture, ergonomics, performance — no "good enough for now."
 
 ### Origin story (one-paragraph, F++ short form)
+
 Ink proved React belongs in the terminal. But terminal apps have grown up — AI agents, code review tools, dashboards, editors — and their builders are web developers first. Silvery is what Ink would be if it had been architected around those instincts from day one. Cells, screens, ANSI, scrollback — unapologetically terminal. But layout-first pipeline, W3C flexbox, DOM-style events, focus scopes, 45+ components, Playwright-style testing — built in.
 
 ### Ecosystem (two tiers)
+
 - **Silvery family**: silvery + @silvery/ink + @silvery/chalk + @silvery/test + @silvery/create + @silvery/theme + @silvery/commander + @silvery/headless + @silvery/ansi
 - **Beorn terminal ecosystem**: Flexily + Termless + terminfo.dev + Loggily
 
 ### Commander dog-food one-liner
+
 "Beautiful CLIs for free. @silvery/commander styles its help text through Silvery itself — your CLI looks like your app because it is your app."
 
 ## Pages to update (ordered by priority)
@@ -93,3 +101,4 @@ After the edits, these phrases should appear consistently:
 - Pro review passes on home page + vs-Ink
 - Secondary pages synced at least for tagline/description
 - chasm-positioning.md update-log entry notes the public pages are now consistent with the internal positioning
+

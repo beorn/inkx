@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/skeleton-gap"
 aliases:
   - km-inkx.skeleton-gap
@@ -12,6 +14,7 @@ owner: bjorn@stabell.org
 # [x] Gap analysis: skeleton/loading patterns vs shadcn, bubbletea, textual, blessed @km/inkx #task #P2
 
 Deep research gap analysis on how much of the skeleton/loading pattern should be part of inkx vs app-level. Compare with:
+
 - shadcn/ui (React web): Skeleton component, loading states, Suspense patterns
 - Bubble Tea (Go TUI): loading spinners, progress, async commands
 - Textual (Python TUI): loading indicators, workers, screens
@@ -19,6 +22,7 @@ Deep research gap analysis on how much of the skeleton/loading pattern should be
 - Charm/lipgloss ecosystem
 
 Questions:
+
 1. What loading/skeleton primitives do other frameworks provide?
 2. What patterns are left to the app layer?
 3. Should inkx have a built-in Skeleton component?
@@ -27,3 +31,4 @@ Questions:
 6. What animation patterns do these frameworks use for loading states?
 
 Goal: Make km a great showcase of inkx's capabilities.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/caniterminal"
 aliases:
   - km-termless.caniterminal
@@ -16,3 +19,4 @@ assignee: claude:4929065a
 # [x] caniterminal: the caniuse.com for terminal emulators @km/termless #feature #P2 @claude:4929065a
 
 Add a census/compatibility page to the termless docs site (VitePress). Renders census result JSON as an HTML table: rows = features (grouped by category), columns = backends, cells = ✓/✗ with colors. Reads from packages/census/results/*.json at build time. Just one page added to vendor/termless/docs/ — NOT a separate site.
+

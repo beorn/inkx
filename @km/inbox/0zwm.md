@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/0zwm"
 aliases:
   - km-0zwm
@@ -8,3 +10,4 @@ closed_at: 2026-01-22T07:46:42Z
 ---
 
 # [x] Build robust file watching test framework with chaos simulation @km/_orphan #task #P2
+

@@ -51,14 +51,15 @@ authoring forms feed the existing trigger-indexed path.
 1. **Loader-side merge**: in the bead/frontmatter loader, when
    `data.dependencies: [target1, target2, ...]` is parsed, write each
    target into `data.props["blocked-by"]` in the inline-prop shape:
-  ```json
-  { "type": "list", "values": [
-    { "type": "link", "target": "target1" },
-    { "type": "link", "target": "target2" }
-  ]}
-  ```
 
-  (Match the shape the trigger at schema.ts:127-133 already expects.)
+```json
+{ "type": "list", "values": [
+  { "type": "link", "target": "target1" },
+  { "type": "link", "target": "target2" }
+]}
+```
+
+(Match the shape the trigger at schema.ts:127-133 already expects.)
 2. The existing INSERT/UPDATE triggers (`schema.ts:117-156`) then write
    the `deps` rows. Indexing is automatic.
 3. **No schema change.** No new column. No new table.

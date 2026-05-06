@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/card-border-missing"
 aliases:
   - km-tui.card-border-missing
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Left/right border on cards sometimes doesn't show @km/tui #bug #P2
 
 The left/right vertical border on card boxes sometimes doesn't render. See screenshot on Desktop.
+

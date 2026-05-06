@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/code-tree-sitter"
 aliases:
   - km-silvery.code-tree-sitter
@@ -27,6 +29,14 @@ dependencies:
     created_at: 2026-04-26T09:27:52Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery
+      - type: link
+        target: km-silvery.diff-code-accordion
 ---
 
 # [x] silvery <Code> + tree-sitter highlighting pipeline (split from diff-code-accordion) @km/silvery #feature #P2
@@ -36,6 +46,7 @@ blocks:: [[@km/silvery]], [[@km/silvery/diff-code-accordion]]
 Tree-sitter integration for the <Code> component. Heavy enough to deserve its own bead — the parent @km/silvery/diff-code-accordion ships Accordion / LineNumber / basic Diff first.
 
 ## Scope
+
 - WASM grammar loading (tree-sitter-typescript, tree-sitter-javascript, tree-sitter-python, tree-sitter-rust at minimum)
 - Highlight-query → silvery theme token mapping
 - Async loading: first paint with raw text, refine after grammar loads
@@ -46,3 +57,4 @@ Tree-sitter integration for the <Code> component. Heavy enough to deserve its ow
 Blocks the highlighting layer of <Diff> (which ships unhighlighted at v0).
 
 ## Estimated LOC: ~600-1000
+

@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - rename
 id: "@km/storage/atomic-writes"
 aliases:
   - km-storage.atomic-writes
@@ -15,3 +19,4 @@ owner: bjorn@stabell.org
 # [x] Atomic file writes via temp+rename pattern @km/storage #task #P3
 
 GPT 5.4 Pro recommended: km writes directly to target path, so watcher and external readers can observe partially-written content. Use write-to-temp + fsync + atomic-rename pattern. Also simplifies echo handling since watcher sees rename, not incremental write.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/storage/recent-writes-timing"
 aliases:
   - km-storage.recent-writes-timing
@@ -22,3 +25,4 @@ Classification: P1
 The recentWrites suppression window starts when content is queued, so debounce/retries/slow disks eat into the 10s budget before bytes hit disk. Also, syncFromFs() rule write-back, syncToFs(), and createBlockIdAssigner().rewriteSourceFiles() queue writes directly without recording recentWrites. Heartbeat can misclassify km's own writes as external.
 
 Suggested fix: Replace timestamp suppression with per-file sync state: db_generation, last_written_generation, last_written_hash, last_written_mtime. Update only after successful flush. Route all write paths through the same API.
+

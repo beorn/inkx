@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/flicker-tests"
 aliases:
   - km-silvery.flicker-tests
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Flicker regression tests: useContentRect, render coalescing @km/silvery #task #P3
 
 Verify no visual flicker from useContentRect (width=0 first frame), rapid state changes coalesce, and first render shows content not zeros.
+

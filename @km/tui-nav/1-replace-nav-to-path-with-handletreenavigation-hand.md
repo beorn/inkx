@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui-nav/1-replace-nav-to-path-with-handletreenavigation-hand"
 aliases:
   - km-tui-nav.1
@@ -15,9 +17,10 @@ Update board-actions.ts to compute target nodeId using navigation handlers, then
 Pattern:
   // Before:
   dispatchBoard({ type: 'NAV_TO_PATH', path: [colIdx] });
-  
-  // After:
+
+// After:
   const targetId = vault.getChildren(rootId)[colIdx]?.id;
   if (targetId) dispatchBoard({ type: 'SELECT', nodeId: targetId });
 
 Verify: No NAV_TO_PATH dispatches remain
+

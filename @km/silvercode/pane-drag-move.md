@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/pane-drag-move"
 aliases:
   - km-silvercode.pane-drag-move
@@ -29,6 +32,10 @@ dependencies:
     created_at: 2026-04-25T00:45:31Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Drag-move panes to reorder / swap / re-tile @km/silvercode #feature #P3 @claude:2405c72e
@@ -36,3 +43,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 Drag a pane (probably via a header drag-handle, or by holding a modifier + dragging the pane body) to reorder it within the row, or to swap with another pane. Deferred from @km/silvercode/pane-management v1 — drag-resize ships in v1, drag-move waits on the header strip (@km/silvercode/pane-headers) since the natural grab handle is the header.
+

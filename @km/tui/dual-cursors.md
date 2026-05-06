@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/dual-cursors"
 aliases:
   - km-tui.dual-cursors
@@ -13,3 +16,4 @@ assignee: claude:d3a7049b
 # [x] Dual cursors: active bright yellow, inactive dim yellow @km/tui #feature #P2 @claude:d3a7049b
 
 Board and detail pane each have independent cursors. Active pane cursor = bright yellow, inactive pane cursor = dim yellow. Focus switches between them via Tab/Shift+Tab or Smart-P. See docs/keybindings-v2.md §Dual Cursors.
+

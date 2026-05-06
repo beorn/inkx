@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/board-mount-n-traversal"
 aliases:
   - km-tui.board-mount-n-traversal
@@ -21,6 +24,14 @@ dependencies:
     created_at: 2026-04-18T11:58:16Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-tui
+      - type: link
+        target: km-tui.reactive-desc-walk-inversion
 ---
 
 # [x] Optimize board for big repos — full-vault walks on mount @km/tui #bug #P1 @Bjørn Stabell
@@ -28,3 +39,4 @@ dependencies:
 blocks:: [[@km/tui]], [[@km/tui/reactive-desc-walk-inversion]]
 
 On a 549K-node vault, board mount triggers ~500K unique getChildren calls (2M+ cache accesses in 20s). Each keypress re-walks at 2s/key. Likely cause: countHiddenDescendants or unbounded preloadSubtree traversing the full tree per column. Need lazy/memoized counting and bounded preload.
+

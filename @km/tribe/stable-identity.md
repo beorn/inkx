@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/stable-identity"
 aliases:
   - km-tribe.stable-identity
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-19T10:54:49Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] tribe: route/address by stable sessionId, not mutable name @km/tribe #feature #P1
@@ -33,3 +39,4 @@ Pro review 2026-04-19 found 4 related defects rooted in 'messages route by mutab
 Design: introduce two concepts: 'address' (stable, sessionId-based) and 'label' (mutable name). All routing uses address. History/health/retro show the label at the time, but the join key is address.
 
 Effort: 1-2 days. Touches messaging.ts, handlers.ts, database.ts, tribe-daemon.ts register, replay path.
+

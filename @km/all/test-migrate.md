@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/all/test-migrate"
 aliases:
   - km-all.test-migrate
@@ -15,3 +18,4 @@ assignee: Bjørn Stabell
 # [x] Migrate ALL existing slow tests to createTestApp() @km/all #task #P0 @Bjørn Stabell
 
 Migrate all existing .slow.test.ts and .slow.spec.ts files that use createBoardDriver/testEnv directly to use createTestApp() instead. This gives them automatic termless coverage via TEST_BACKEND=termless. Keep testEnv for fast .test.ts unit tests.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/import-comments"
 aliases:
   - km-tui.import-comments
@@ -13,3 +16,4 @@ assignee: claude:8f007ba9
 # [x] Import: comments as Comments subitem with preserved timestamps @km/tui #feature #P2 @claude:8f007ba9
 
 Asana comments should import into a 'Comments' subitem, each comment as a separate child underneath, preserving original timestamps. Currently comments aren't shown at all in the import.
+

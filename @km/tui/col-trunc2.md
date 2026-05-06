@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/col-trunc2"
 aliases:
   - km-tui.col-trunc2
@@ -13,3 +16,4 @@ assignee: claude:97b8de73
 # [x] Column header still truncated by 1 char (FAMILY SPRIN) @km/tui #bug #P2 @claude:97b8de73
 
 Regression of @km/tui/col-header-trunc — column header 'FAMILY SPRINT' shows as 'FAMILY SPRIN'. Previous fix (PUA icon width) didn't fully resolve. Reproduced with: km view --repo imports/asana stabell. Screenshot: Desktop/Screenshot 2026-02-23 at 13.07.43.png
+

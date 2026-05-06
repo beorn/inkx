@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/vault-fake"
 aliases:
   - km-vault-fake
@@ -14,3 +16,4 @@ Vault interface impl with canned data for unit tests that don't need real parsin
 loadVault() already supports :memory: SQLite - this is for even simpler test doubles.
 
 Depends on: @km/domain-objects/2-implement-createvault-factory (createVault)
+

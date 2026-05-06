@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/markdown/ref-extraction-bugs"
 aliases:
   - km-markdown.ref-extraction-bugs
@@ -17,3 +20,4 @@ assignee: claude:c9beade3
 # [x] Ref extraction scans inline property values, producing false-positive tags/mentions @km/markdown #bug #P1 @claude:c9beade3
 
 kmRefsTransform reads nodeToText() instead of cleanText, so refs inside key:: value and km.* rule values are extracted. Example: owner:: @alice pollutes refs. Fix: read node.data?.cleanText ?? nodeToText(). Also: exported extractTags/Mentions/Projects are ASCII-only while internal extractAllRefs is Unicode-aware.
+

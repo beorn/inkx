@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/output-cache-unbounded"
 aliases:
   - km-silvery.output-cache-unbounded
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Bug: Output-phase sgrCache and transitionCache grow without bound @km/silvery #bug #P2
 
 In output-phase.ts, OutputContext holds sgrCache and transitionCache maps that are never bounded or cleared. With arbitrary hyperlink URLs or many color combos, these grow without limit. Need LRU or size cap.
+

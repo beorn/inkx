@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/8rkws"
 aliases:
   - km-8rkws
@@ -23,8 +25,9 @@ The inkx API migration requires renaming deprecated test APIs across the codebas
 ## Remaining: lastFrame/stdin.write migration
 
 From analysis:
+
 - ~350 uses of lastFrame() across ~20 inkx test files
-- ~50 uses of frames[] 
+- ~50 uses of frames[]
 - ~10 uses of lastBuffer()
 - ~5 uses of stdin.write() in km test helpers
 - ~5 uses of app.html in km (→ app.ansi)
@@ -45,26 +48,29 @@ await app.press('ArrowUp')
 
 ### API Naming (finalized in @km/_orphan/deprecations)
 
-| Old | New | Notes |
-|-----|-----|-------|
-| lastFrame() | app.ansi | ~350 usages in inkx tests |
-| stripAnsi(lastFrame()) | app.text | Already ~180 usages in km |
-| lastBuffer() | app.term.buffer | ~10 usages |
-| lastFrameText() | app.text | Few usages |
-| app.html | app.ansi | 5 usages in km |
-| stdin.write(key) | await app.press(keyName) | 5 usages in km helpers |
+| Old                    | New                      | Notes                     |
+| ---------------------- | ------------------------ | ------------------------- |
+| lastFrame()            | app.ansi                 | ~350 usages in inkx tests |
+| stripAnsi(lastFrame()) | app.text                 | Already ~180 usages in km |
+| lastBuffer()           | app.term.buffer          | ~10 usages                |
+| lastFrameText()        | app.text                 | Few usages                |
+| app.html               | app.ansi                 | 5 usages in km            |
+| stdin.write(key)       | await app.press(keyName) | 5 usages in km helpers    |
 
 ## Definition of Done
+
 - [x] createTestRenderer → createRenderer migrated
 - [x] columns → cols in renderer options migrated
 - [ ] lastFrame() → app.ansi migrated
-- [ ] stripAnsi(lastFrame()) → app.text migrated  
+- [ ] stripAnsi(lastFrame()) → app.text migrated
 - [ ] stdin.write → app.press migrated
 - [ ] app.html → app.ansi migrated
 - [ ] frames[] removed
 - [ ] All tests pass
 
 ## Related
+
 - Parent: @km/_orphan/deprecations
 - Sibling: inkx-mig (broader runtime migration)
 - Feature: inkx-unified-api
+

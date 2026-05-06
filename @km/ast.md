@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/ast"
 aliases:
   - km-ast
@@ -17,3 +19,4 @@ Sub-beads: core → markdown → tree → storage → tui (bottom-up order)
 
 Design spec: docs/design/@km/ast/model.md
 Test fixtures: docs/design/@km/ast/fixtures.md
+

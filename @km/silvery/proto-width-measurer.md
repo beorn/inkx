@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/proto-width-measurer"
 aliases:
   - km-silvery.proto-width-measurer
@@ -17,7 +19,10 @@ owner: bjorn@stabell.org
 Feed DEC width detection results into createWidthMeasurer. When terminal reports emoji width = 2, silvery uses 2 instead of guessing. Fixes alignment bugs in columns with emoji/CJK.
 
 ## Why
+
 withMeasurer() already reads caps.textEmojiWide. DEC 1022 provides the real value. Fixes a class of width bugs where silvery's wcwidth disagrees with the terminal.
 
 ## Depends on
+
 @km/silvery/proto-startup-detect
+

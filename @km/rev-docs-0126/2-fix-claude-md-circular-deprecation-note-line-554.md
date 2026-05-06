@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/rev-docs-0126/2-fix-claude-md-circular-deprecation-note-line-554"
 aliases:
   - km-rev-docs-0126.2
@@ -10,3 +13,4 @@ assignee: beorn
 ---
 
 # [x] Fix CLAUDE.md circular deprecation note (line 554) @km/rev-docs-0126 #bug #P1 @beorn
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/reimport-stale-sections"
 aliases:
   - km-tui.reimport-stale-sections
@@ -13,3 +16,4 @@ assignee: claude:8f007ba9
 # [x] Re-import to remove 30 stale (no section) nodes from Asana data @km/tui #task #P4 @claude:8f007ba9
 
 The import fix (skip no-section/untitled headers) only applies to new imports. Existing DB has 30 oi nodes with title '(no section)'. Fix: re-run the Asana import to regenerate clean data.
+

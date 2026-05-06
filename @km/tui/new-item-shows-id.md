@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/new-item-shows-id"
 aliases:
   - km-tui.new-item-shows-id
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] [bug] New empty item displays internal node ID (XWJE24KP) to user @km/tui #bug #P2
 
 After creating a new item (Enter at end of line in edit mode) and pressing Escape, the new item shows its internal ID like (XWJE24KP) instead of being blank.
+

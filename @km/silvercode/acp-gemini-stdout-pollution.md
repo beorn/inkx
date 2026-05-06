@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/acp-gemini-stdout-pollution"
 aliases:
   - km-silvercode.acp-gemini-stdout-pollution
@@ -17,6 +20,10 @@ dependencies:
     created_at: 2026-04-26T09:10:00Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.acp
 ---
 
 # [x] [bug] gemini-cli ACP mode emits non-JSON on stdout, breaks ACP stream parser @km/silvercode #bug #P3 @claude:cd034ca4
@@ -31,6 +38,7 @@ SyntaxError: JSON Parse error: Unexpected identifier 'Skipping'
 ```
 
 ## Repro
+
 ```
 bun apps/silvercode/tests/probe-acp.ts gemini 'say hi'
 ```
@@ -38,13 +46,17 @@ bun apps/silvercode/tests/probe-acp.ts gemini 'say hi'
 The probe connects (initialize + newSession succeed), but the prompt response stream is corrupted. Some non-JSON lines slip through, others survive.
 
 ## Likely cause
+
 Gemini CLI writes warnings/info to stdout when it should write to stderr. Possibly a bug upstream, possibly a missing flag (e.g., `--quiet` or `--no-banner`).
 
 ## Workaround candidates
+
 - Add a flag to suppress info output (research `--experimental-acp` companion flags)
 - Wrap with a stdout filter that drops non-JSON lines (fragile but effective)
 - File upstream issue with google-gemini/gemini-cli
 
 ## Acceptance
+
 - bun apps/silvercode/tests/probe-acp.ts gemini 'hi' completes with stop_reason=end_turn
 - No JSON parse errors in any version of gemini-cli we support
+

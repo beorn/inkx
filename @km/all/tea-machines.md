@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/all/tea-machines"
 aliases:
   - km-all.tea-machines
@@ -30,3 +33,4 @@ Earlier sessions (and the dual-pro review of 2026-04-21) flagged these as contra
 Design doc: docs/design/tea.md (inner reducer shape, phase roadmap)
 Outer plugin bus reference: @km/all/tea-discuss
 createSlice (L3): vendor/silvery/packages/create/src/core/slice.ts (shipped)
+

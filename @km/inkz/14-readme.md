@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkz/14-readme"
 aliases:
   - km-inkz.14-readme
@@ -37,3 +39,4 @@ Ensure the InkZ README accurately reflects the current state and capabilities.
 - [ ] No broken internal links
 - [ ] Example code is verified to compile
 - [ ] Status reflects reality
+

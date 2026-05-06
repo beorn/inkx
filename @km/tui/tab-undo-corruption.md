@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/tab-undo-corruption"
 aliases:
   - km-tui.tab-undo-corruption
@@ -17,6 +19,7 @@ owner: bjorn@stabell.org
 CRITICAL DATA LOSS BUG.
 
 Steps to reproduce:
+
 1. km view (on ROADMAP.md or similar document)
 2. Navigate to a heading card (e.g. 'Horizon 1: TUI Polish')
 3. Press Tab in NORMAL mode (not edit mode)
@@ -24,6 +27,7 @@ Steps to reproduce:
 5. Press 'u' to undo
 
 Result after undo:
+
 - The indented card ('Horizon 1: TUI Polish') is PERMANENTLY LOST - it does not reappear
 - Card contents are SHUFFLED between remaining cards (e.g. 'Current State' card shows 'Horizon 2' content)
 - The underlying markdown file (ROADMAP.md) is corrupted: the entire section is deleted
@@ -33,8 +37,10 @@ Result after undo:
 Impact: Tab+undo in normal mode causes irrecoverable data corruption. The undo operation does not properly reverse the indent, and the file-system sync propagates the corrupt state.
 
 Evidence:
+
 - ROADMAP.md lost 26 lines (entire Horizon 1 section + Horizon 4 body content)
 - git diff showed the file was modified on disk during the session
 - Screenshots: /tmp/@km/edit-explore-09-before-tab/png through /tmp/@km/edit-explore-11-after-undo/png
 
 Workaround: Do not use Tab in normal mode. If accidentally triggered, do NOT press undo - instead exit km and git checkout the affected file, then delete .km/events.jsonl and .km/state.db.
+

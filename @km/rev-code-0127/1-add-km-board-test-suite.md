@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/rev-code-0127/1-add-km-board-test-suite"
 aliases:
   - km-rev-code-0127.1
@@ -13,11 +15,13 @@ closed_at: 2026-01-27T19:58:37Z
 **Critical**: @km/_orphan/board package has ZERO tests for critical navigation layer
 
 Untested exports:
+
 - boardReducer (state reducer function)
 - createBoardState (state initialization)
 - board-reducer-new.ts (unclear migration status)
 
 Test coverage needed:
+
 - State initialization
 - Cursor movement (next/prev/first/last)
 - Selection mechanics
@@ -26,3 +30,4 @@ Test coverage needed:
 - Edge cases (empty board, single item)
 
 Location: packages/@km/_orphan/board/ (currently only .gitkeep in tests/)
+

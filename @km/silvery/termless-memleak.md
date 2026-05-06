@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/termless-memleak"
 aliases:
   - km-silvery.termless-memleak
@@ -56,3 +59,4 @@ assignee: claude:8b5b9e1c
 # [x] Termless vitest workers leak memory — 25GB+ per worker in long test runs @km/silvery #bug #P1 @claude:8b5b9e1c
 
 Vitest fork workers running termless tests (xterm.js emulator) accumulate 18-28GB RSS over 10-15 minute runs. Likely xterm.js Terminal instances not being disposed between tests, or TerminalBuffer/TextFrame snapshots accumulating. Discovered during CI fix session 2026-04-09 when 3 workers consumed 98% of 128GB RAM.
+

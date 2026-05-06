@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/logical-position-edges"
 aliases:
   - km-flexily.logical-position-edges
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Bug: EDGE_START/EDGE_END positions are ignored — logical positioning broken @km/flexily #bug #P0
+

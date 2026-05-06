@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/mcp-daemon"
 aliases:
   - km-silvercode.mcp-daemon
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-24T13:49:19Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Shared on-demand MCP daemon: eliminate per-session km-mcp + tribe-mcp subprocesses @km/silvercode #feature #P2
@@ -59,3 +65,4 @@ One `silvercode-mcp-daemon` binary, one running instance per user:
 - Port negotiation: random ephemeral vs fixed? Ephemeral avoids conflicts with user's other services.
 - Daemon auth: localhost-only + port file is enough for single-user; consider a token for multi-user machines later.
 - Health check protocol: does Claude CLI retry if daemon rejects a request during auto-shutdown grace window?
+

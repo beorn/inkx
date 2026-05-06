@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/hr-border"
 aliases:
   - km-tui.hr-border
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] HR cards: padding when no border, border when editing @km/tui #task #P2
+

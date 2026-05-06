@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/use-textarea-hook"
 aliases:
   - km-silvery.use-textarea-hook
@@ -17,6 +19,7 @@ owner: bjorn@stabell.org
 Refactor TextArea.tsx (708 lines) to extract core logic into a useTextArea() hook, enabling custom TextArea variants that reuse cursor navigation, selection, scrolling, and editing logic.
 
 The hook should expose:
+
 - lines/visualLines computed from value
 - cursor/selection state
 - scrollTop state
@@ -26,3 +29,4 @@ The hook should expose:
 See textarea-design.md 'Hook Architecture' section for the interface spec.
 
 Why deferred: TextArea was just extensively modified by 3 concurrent agents (selection, disabled/maxLength/meta+enter, scrollMargin). All 67 tests pass. Extracting the hook is pure refactoring with high regression risk — better as a dedicated focused task after the current changes are committed and stable.
+

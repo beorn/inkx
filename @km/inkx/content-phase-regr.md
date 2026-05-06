@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/content-phase-regr"
 aliases:
   - km-inkx.content-phase-regr
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] contentPhase benchmark 3x regression (1.8us → 5.3us) @km/inkx #bug #P2
+

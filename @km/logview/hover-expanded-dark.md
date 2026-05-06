@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/logview/hover-expanded-dark"
 aliases:
   - km-logview.hover-expanded-dark
@@ -18,6 +21,10 @@ dependencies:
     created_at: 2026-04-24T00:32:38Z
     created_by: claude:96f29185
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-logview
 ---
 
 # [x] Hover on expanded body renders black-on-grey (unreadable) @km/logview #bug #P1 @claude:96f29185
@@ -25,3 +32,4 @@ dependencies:
 blocks:: [[@km/logview]]
 
 When hovering an expanded multi-line body row in claude-log viewer, text appears as black-on-grey — hard to read. Expanded bg is $bg-surface-subtle (blend(bg, fg, 0.05)); hover triggers colorize() which wraps plain-text tokens in nested <Text> without a color prop. The inner Text reset drops the parent $fg cascade on subtle-grey bg.
+

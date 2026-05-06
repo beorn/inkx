@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/dead-code-p1"
 aliases:
   - km-tui.dead-code-p1
@@ -22,3 +25,4 @@ Batch delete dead code identified in review:
 1g. Root-level navHistory/navHistoryIndex on store — never read
 1h. Dead BoardAction type in types.ts
 ~200 lines of safe deletions.
+

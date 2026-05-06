@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/era2a-cleanup"
 aliases:
   - km-silvery.era2a-cleanup
@@ -19,6 +21,7 @@ owner: bjorn@stabell.org
 Remaining era2 implementation work — honest scope after audit.
 
 **COMPLETED (this session):**
+
 - ✓ withTest() misleading docstring removed
 - ✓ RunHandle removed from runtime barrel
 - ✓ @silvery/commands tests added (7)
@@ -26,6 +29,7 @@ Remaining era2 implementation work — honest scope after audit.
 - ✓ Command dual-path purged (-681 LOC)
 
 **REMAINING — new implementation (not cleanup):**
+
 1. **withReact for compose.ts** (~200 LOC): Bridge compose API to React reconciler. Needs createContainer, fiberRoot, scheduler wiring. Currently only exists in render.tsx's SilveryInstance class (200+ lines).
 2. **withTest for compose.ts** (~100 LOC): Testing convenience (press, text, locators) via compose API. Blocked on #1.
 3. **Migrate createRenderer consumers** (20+ test files): Blocked on #1 + #2.
@@ -34,3 +38,4 @@ Remaining era2 implementation work — honest scope after audit.
 
 **Critical path**: #1 (withReact) unblocks everything else.
 **Tracking**: #1-4 stay in this bead. era2b-7-migration is separate.
+

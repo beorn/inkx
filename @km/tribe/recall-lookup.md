@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/recall-lookup"
 aliases:
   - km-tribe.recall-lookup
@@ -13,13 +15,17 @@ dependencies:
     created_at: 2026-04-27T16:11:05Z
     created_by: claude:4de4a3ab
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [ ] Mem lookup (Tier 1): polish tribe.ask MCP tool descriptions for ACP-spawned agents @km/tribe #task #P3
 
 blocks:: [[@km/tribe]]
 
-# Tier 1 — mem lookup
+## Tier 1 — mem lookup
 
 Already shipping as tribe.ask / tribe.brief / tribe.plan MCP tools in vendor/bearly/plugins/tribe.
 
@@ -34,3 +40,4 @@ Scope of this bead: optional polish — improve tool descriptions and add a syst
 ## Defer reasoning
 
 Optional. The tool already works; this bead is about discoverability tuning. Land after recall-thought v1 ships.
+

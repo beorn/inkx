@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/census-probe-bugs"
 aliases:
   - km-termless.census-probe-bugs
@@ -14,7 +17,9 @@ assignee: claude:4929065a
 # [x] Census probe bugs: scrollback accumulate + alt screen scrollback @km/termless #bug #P2 @claude:4929065a
 
 Two suspicious census probe failures:
+
 1. xterm.js AND ghostty both fail 'scrollback accumulates beyond screen height' — these are the two most mature backends, so the probe is likely wrong
 2. vt100 AND vt100-rust both fail 'alternate screen has separate scrollback' — might be a real missing feature or probe issue
 
 Need to investigate the probe code to determine if these are real backend bugs or probe bugs.
+

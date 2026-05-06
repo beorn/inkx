@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/caps-demo-input"
 aliases:
   - km-silvery.caps-demo-input
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] terminal-caps-demo: can't quit — text input echoed to terminal instead of captured @km/silvery #bug #P2
 
 terminal-caps-demo.tsx doesn't enter raw mode properly. Typing 'q' echoes to terminal instead of triggering quit. Likely the demo uses render() instead of run() and stdin isn't set to raw mode. Same class as withfocus-press-crash — composition vs runtime timing.
+

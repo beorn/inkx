@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/machine-health"
 aliases:
   - km-tribe.machine-health
@@ -17,10 +19,13 @@ owner: bjorn@stabell.org
 Auto-detect and report machine health metrics to the tribe so sessions can collaboratively fix runaway processes.
 
 ## Problem
+
 When agents spawn many parallel workers (worktree agents, background tasks), processes can consume excessive CPU/memory. Currently no visibility — user has to manually check ps/htop.
 
 ## Proposed Design
+
 A tribe plugin (or daemon extension) that:
+
 1. Periodically samples CPU load, memory pressure, disk I/O
 2. Reports to tribe when thresholds exceeded (e.g., >90% CPU for >30s, >85% memory)
 3. Identifies the offending process (PID, command, session association)
@@ -28,12 +33,14 @@ A tribe plugin (or daemon extension) that:
 5. Optionally auto-kills runaway processes after configurable grace period
 
 ## Key Metrics
+
 - CPU: load average, per-process CPU %
 - Memory: system pressure, per-process RSS, swap usage
 - Process count: total bun/node processes, per-session count
 - Disk: I/O wait (if measurable)
 
 ## Open Questions
+
 - Plugin vs daemon extension vs standalone monitor?
   - Plugin: runs per-session (duplicated work, but simple)
   - Daemon extension: single monitor, broadcasts to all (better, but more complex)
@@ -43,5 +50,7 @@ A tribe plugin (or daemon extension) that:
 - macOS-specific APIs (Activity Monitor data) vs cross-platform (ps, /proc)?
 
 ## Prior Art
+
 - /cpu skill already finds rogue processes — could share detection logic
 - tribe daemon already has broadcast capability
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/historical-terminals"
 aliases:
   - km-terminfo.historical-terminals
@@ -28,3 +31,4 @@ Create /terminal/{vt100,vt220,vt510,xterm} pages similar to the app terminal pag
 These are SEO-valuable pages — people search 'VT100 terminal', 'what is VT100', etc. Cross-links with existing standard pages.
 
 Could also include: DEC VT52, IBM 3270, Tektronix 4014, Wyse 60, etc.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/input-validation"
 aliases:
   - km-tribe.input-validation
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Input validation: name regex, message length cap, control char stripping @km/tribe #feature #P2
 
 Names should match ^[a-z0-9][a-z0-9_-]{0,31}$. Messages capped at 2048 chars. Strip control characters. Prevents injection surface.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/markdown/text-metadata"
 aliases:
   - km-markdown.text-metadata
@@ -11,3 +14,4 @@ assignee: claude:5770ce77
 ---
 
 # [x] Switch task metadata from emoji to text-based key:value format @km/markdown #task #P2 @claude:5770ce77
+

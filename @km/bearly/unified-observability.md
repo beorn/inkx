@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/bearly/unified-observability"
 aliases:
   - km-bearly.unified-observability
@@ -79,13 +82,17 @@ dependencies:
     created_at: 2026-04-27T10:25:20Z
     created_by: claude:87d20187
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] Unified observability — fold BG_RECALL_DEBUG_LOG + INJECTION_DEBUG_LOG into loggily namespaces @km/bearly #task #P2 @claude:87d20187
 
 blocks:: [[@km/tribe]]
 
-# Why
+## Why
 
 Two parallel observability subsystems reinvented loggily's wheel:
 
@@ -98,7 +105,7 @@ The bg-recall bead's "format matches INJECTION_DEBUG_LOG so users can tail -f | 
 
 Per quality-rubric L0/L1/L2 → L4: today each subsystem has its own observability env-var. The architecture doesn't make 'two log paths drift' impossible. After this bead: there's no second path to drift to.
 
-# What
+## What
 
 Fold both into loggily.
 
@@ -122,7 +129,7 @@ Fold both into loggily.
 - Consider a `addWriterFor(namespacePattern, writer)` helper for per-namespace file routing — one writer per file, glob-matched namespaces.
 - Verify JSONL emission preserves structured fields (e.g., `{ts, level, namespace, msg, hintId, score, …}`).
 
-# Acceptance — verified literally
+## Acceptance — verified literally
 
 - `grep -rn 'BG_RECALL_DEBUG_LOG\|INJECTION_DEBUG_LOG' vendor/bearly/ vendor/accountly/` → 0 hits in production source (back-compat shim if any tracked separately + deleted in follow-on)
 - `vendor/bearly/packages/bg-recall/src/log.ts` deleted
@@ -133,14 +140,15 @@ Fold both into loggily.
 - `bun vitest run --project vendor vendor/bearly/` → no regressions
 - README updates: `vendor/bearly/packages/bg-recall/README.md` + injection-envelope README replace 'set BG_RECALL_DEBUG_LOG / INJECTION_DEBUG_LOG' with 'set DEBUG=bg-recall:*,injection:* + LOGGILY_FILE=...'
 
-# Out of scope (separate beads)
+## Out of scope (separate beads)
 
 - Removing the back-compat env aliases (do that in a follow-on after one release of dual-key behaviour)
 - Migrating other ad-hoc loggers to loggily (audit + sweep is its own bead)
 - Adding OTel/structured-log exporters (loggily already has otel.ts + tracing.ts — separate effort)
 
-# Reference
+## Reference
 
 - `hub/composition.md` — loggily is the canonical observability primitive
 - `vendor/loggily/src/{file-writer.ts,pipeline.ts,index.ts}` — current API surface
 - bg-recall README "Status & observability — first-class" section (rewrite to reference loggily namespaces)
+

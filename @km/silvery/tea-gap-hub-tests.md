@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/tea-gap-hub-tests"
 aliases:
   - km-silvery.tea-gap-hub-tests
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-18T12:02:29Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.tea
 ---
 
 # [x] TEA gap: hub/silvery/prototype/ tests need opt-in vitest project @km/silvery #task #P3
@@ -69,3 +75,4 @@ The same issue probably affects hub/silvery/prototype/headless/ — its
 
 Small — add `bun run test:prototype` to the CI matrix if we decide to
 gate merges on prototype tests.
+

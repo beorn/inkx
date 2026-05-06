@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/interactions-runtime/phase-1"
 aliases:
   - km-silvery.interactions-runtime.phase-1
@@ -41,3 +43,4 @@ Update other beads to reflect the new design.
 ## MANDATORY
 
 Read docs/lessons/refactoring.md IN FULL before starting.
+

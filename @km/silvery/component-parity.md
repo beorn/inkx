@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/component-parity"
 aliases:
   - km-silvery.component-parity
@@ -13,12 +15,14 @@ owner: bjorn@stabell.org
 Audit all silvery UI components against shadcn/ui and adopt missing standard features.
 
 ## Already done
+
 - TextInput: `borderStyle`/`borderColor`/`focusBorderColor` — auto focus ring
 - `$token` semantic colors throughout showcases
 
 ## Missing features to add
 
 ### TextInput & TextArea (shared)
+
 - **Focus ring** (border that changes on focus) — done for TextInput, add to TextArea
 - **Disabled state styling** — dim text + muted border when disabled
 - **Error/validation state** — `error?: boolean` or `variant="error"` → `$error` border
@@ -28,17 +32,22 @@ Audit all silvery UI components against shadcn/ui and adopt missing standard fea
 - **Placeholder color** — use `$muted` token (currently uses `dimColor`)
 
 ### TextArea only
+
 - **Auto-resize** — grows to fit content (no fixed height required)
 
 ### All components
+
 - **Default `$token` colors everywhere** — no component should require manual color props for standard usage
 - **Focus system defaults** — components should look right out of the box with focus/unfocus states
 - **Consistent disabled styling** — dim + muted border + no interaction
 
 ## Approach
+
 Extract shared input features (border, focus ring, disabled, error, label) into a shared utility/wrapper that both TextInput and TextArea use. Don't duplicate.
 
 ## Reference
+
 - shadcn/ui Input: focus ring-2, disabled opacity-50, file: variants
 - shadcn/ui Textarea: same + auto-resize via CSS (we use scroll tracking)
 - silvery FormField: already has label + error + description
+

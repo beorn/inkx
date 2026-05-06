@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/board-refactor/7-update-tests-to-use-real-board-with-vaultprovider"
 aliases:
   - km-board-refactor.7
@@ -9,3 +11,4 @@ closed_at: 2026-01-24T19:24:18Z
 ---
 
 # [x] Update tests to use real Board with VaultProvider @km/board-refactor #task #P2
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/listview-core"
 aliases:
   - km-silvery.listview-core
@@ -18,3 +21,4 @@ assignee: claude:def7f8a1
 # [x] ListView core: merge VirtualView + VirtualList @km/silvery #task #P1 @claude:def7f8a1
 
 Phase 1: Merge VirtualView + VirtualList into unified ListView component with navigable sugar. Old components become thin wrappers (deprecated). Port all existing tests.
+

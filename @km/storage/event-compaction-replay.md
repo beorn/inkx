@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/event-compaction-replay"
 aliases:
   - km-storage.event-compaction-replay
@@ -17,3 +20,4 @@ assignee: claude:c9beade3
 # [x] Event compaction can produce unreplayable events.jsonl @km/storage #bug #P1 @claude:c9beade3
 
 identifyStaleEvents drops node_created whose id exists in DB, while keeping later update/delete events. After compaction, replaying from empty DB can fail. Fix: compact by replaying into fresh DB and re-emitting minimal valid log.
+

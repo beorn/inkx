@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/zebra-bg"
 aliases:
   - km-tui.zebra-bg
@@ -23,6 +25,7 @@ When cursor is on a card, the card gets selectedBg (6% primary blend). But secti
 ## Reproduction
 
 Termless tests in apps/@km/tui/tests/card-bg-inheritance.test.ts (3 failing):
+
 - Section1 bg: {r:72, g:73, b:75}
 - sub-item bg: {r:57, g:61, b:69}
 
@@ -42,3 +45,4 @@ Section heading nodes (type "h", §) render with their own bg that stacks on top
 \`\`\`bash
 bun vitest run apps/km-tui/tests/card-bg-inheritance.test.ts  # all 4 pass (0 failures)
 \`\`\`
+

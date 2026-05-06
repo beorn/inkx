@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/windowing-mouse"
 aliases:
   - km-tui.windowing-mouse
@@ -13,3 +16,4 @@ assignee: claude:28b14b32
 # [x] Windowing: mouse click-to-focus + border drag resize @km/tui #task #P3 @claude:28b14b32
 
 Click on any pane to focus it. Drag pane borders to resize. Requires hit-testing on border characters (inkx hitTest).
+

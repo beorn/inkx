@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/flow-docs"
 aliases:
   - km-storage.flow-docs
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 From /big quality review: The core algorithm crosses 9 files (DB→FS) and 13 files (FS→DB). While README has ASCII diagrams, there's no single doc that traces every function call with exact file:line references.
 
 Create packages/@km/storage/src/watch/FLOW.md with two sections: one for each direction, showing the exact call chain with file paths. This makes the architecture reviewable in one place.
+

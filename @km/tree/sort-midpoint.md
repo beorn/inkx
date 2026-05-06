@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tree/sort-midpoint"
 aliases:
   - km-tree.sort-midpoint
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Extract sort order midpoint helper — 6 manual sites @km/tree #task #P3
+

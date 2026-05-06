@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/detail-nav-ancestor"
 aliases:
   - km-tui.detail-nav-ancestor
@@ -21,3 +24,4 @@ Steps: Open detail pane (D), navigate up (k, k), then zoom triggers the crash.
 Also has severe performance issues — event loop blocked 989ms (startup), 1761ms (toggle_detail_pane), 548ms and 531ms (cursor_up).
 
 The error message says cursor=X has no ancestor under root=X — the cursor and root are the SAME ID. This is likely a tree navigation bug where the root is also the cursor, and findAncestor fails because a node is not its own ancestor.
+

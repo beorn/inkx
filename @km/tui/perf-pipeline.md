@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/perf-pipeline"
 aliases:
   - km-tui.perf-pipeline
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 cursor-perf.test.tsx:112 fails: per-phase timing on large board (8 cols × 60 cards) takes 113ms, exceeds 100ms threshold.
 
 Options: relax threshold to 150ms, optimize pipeline, or make test conditional on CPU load.
+

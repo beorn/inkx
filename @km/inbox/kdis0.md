@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/kdis0"
 aliases:
   - km-kdis0
@@ -22,3 +24,4 @@ DRY: Extract embed alias/display resolution functions from TreeNode.tsx into app
 Extract into a unified resolveEmbedAlias(repo, node) that encapsulates the full alias-to-display-text pipeline. Enables reuse from search, CLI, detail pane. Prevents test drift when embed display logic changes.
 
 Mentioned in retros Feb 26 + Feb 27 (twice). Do when TreeNode.tsx is next touched.
+

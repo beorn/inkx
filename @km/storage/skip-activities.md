@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/skip-activities"
 aliases:
   - km-storage.skip-activities
@@ -13,3 +16,4 @@ assignee: claude:97b8de73
 # [x] Don't import activities into DB - just adds clutter @km/storage #feature #P2 @claude:97b8de73
 
 Activities/comments from Asana imports add significant clutter to the DB and rendering. Stop importing them entirely - they belong in Asana's UI, not in km.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/federation"
 aliases:
   - km-storage.federation
@@ -37,6 +40,18 @@ dependencies:
     created_at: 2026-04-21T12:04:30Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-storage
+      - type: link
+        target: km-storage.fs-mount
+      - type: link
+        target: km-storage.identity-schema
+      - type: link
+        target: km-storage.three-seam-boundary
 ---
 
 # [x] Per-repo federation — .km/state.db per mounted repo + workspace composition @km/storage #feature #P2 @claude:8b5b9e1c
@@ -86,3 +101,4 @@ User framing:
 Current scale-bench failure at 2x (20k files, 102s cold-load) is not just a lazy-hydration problem — it's ALSO a federation problem. Federated per-repo topology caps the per-repo startup scope naturally.
 
 See hub/km/source-of-truth-rfc-v2.md §2.2
+

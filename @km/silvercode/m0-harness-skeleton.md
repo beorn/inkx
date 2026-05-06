@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - claude
 id: "@km/silvercode/m0-harness-skeleton"
 aliases:
   - km-silvercode.m0-harness-skeleton
@@ -19,6 +23,10 @@ dependencies:
     created_at: 2026-04-24T02:09:31Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] M0: @silvery/agent-harness skeleton + spawn @km/silvercode #task #P1 @claude:0940ca20
@@ -26,3 +34,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 Build the agent-harness package skeleton with spawn.ts (subprocess spawn of claude --bare -p), parse.ts (stream-json parser), events.ts (typed event schemas), and index.ts (public API).
+

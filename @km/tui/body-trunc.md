@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/body-trunc"
 aliases:
   - km-tui.body-trunc
@@ -15,3 +17,4 @@ Decker has two independent visibility controls: fold (hide subitems/children) an
 In km, this would mean: a card with a long body (multiple paragraphs) can show just the first paragraph with a '...' indicator, independently of whether its children are folded. This keeps the board compact without hiding structural information.
 
 Reference: decker-dragaboard/src/utils/get-hidden-range.ts
+

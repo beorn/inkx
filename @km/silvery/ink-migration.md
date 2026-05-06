@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ink-migration"
 aliases:
   - km-silvery.ink-migration
@@ -20,3 +22,4 @@ One-page migration guide for Ink users switching to Silvery:
 - Link from the-silvery-way.md and landing page
 
 Target audience: Ink devs who hit the ceiling (performance, state management, components).
+

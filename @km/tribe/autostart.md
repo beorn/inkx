@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/autostart"
 aliases:
   - km-tribe.autostart
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-18T10:29:05Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] Tribe daemon missing from SessionStart autostart @km/tribe #bug #P1
@@ -60,3 +66,4 @@ Likely (b) + a stale-pid reap in tribe-cli doctor/start.
 
 - @km/tribe/daemon (P1) — original daemon design, phases 1-3 shipped, phase 4 (hot-reload) shipped. Autostart gap was out of scope.
 - @km/tribe/reliability-sweep-0415 (P1) — lists stale-socket GC but not autostart.
+

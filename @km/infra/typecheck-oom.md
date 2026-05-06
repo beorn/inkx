@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/typecheck-oom"
 aliases:
   - km-infra.typecheck-oom
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-28T01:03:03Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [ ] TypeScript typecheck runs out of memory (SIGABRT) @km/infra #bug #P2
@@ -51,3 +57,4 @@ error: Failed to run "tsc" due to signal SIGABRT
 3. **Reduce type surface**: Investigate if vendor submodules add excessive type complexity
 4. **Skip lib check**: Enable `skipLibCheck: true` if not already set
 5. **Isolate hot paths**: Profile which packages consume most memory during typecheck
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/themex/cli"
 aliases:
   - km-themex.cli
@@ -15,7 +18,9 @@ assignee: claude:66437c43
 themex CLI: browse, generate, detect, import/export.
 
 ## Status
+
 Basic CLI implemented (Phase 4 partial):
+
 - list: shows all 43 built-in themes with color swatches
 - show <name>: full theme details (surface ramp, accents, semantic tokens, palette)
 - generate <primary>: ANSI 16 theme generation
@@ -26,6 +31,8 @@ Basic CLI implemented (Phase 4 partial):
 Available via 'bun cli' in vendor/beorn-themex.
 
 ## Remaining
+
 - Interactive TUI browse mode (inkx-powered, with live preview)
 - Interactive TUI generate mode (color wheel, real-time preview)
 - Terminal palette detection (themex detect)
+

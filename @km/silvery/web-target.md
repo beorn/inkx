@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/web-target"
 aliases:
   - km-silvery.web-target
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] silvery web target — render to DOM/Canvas for terminal apps in the browser @km/silvery #feature #P4
 
 Long-term vision: silvery renders to both terminal (ANSI) and browser (DOM/Canvas). Every silvery app becomes a web app. Carbonyl proves terminal↔browser is bridgeable. Needs significant design work. The holy grail of the multi-target architecture.
+

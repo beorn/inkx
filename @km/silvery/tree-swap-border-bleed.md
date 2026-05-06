@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/tree-swap-border-bleed"
 aliases:
   - km-silvery.tree-swap-border-bleed
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-11T21:29:19Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [ ] incremental render leaves stale border chars when demo tree swaps at same position @km/silvery #bug #P2
@@ -28,3 +34,4 @@ Needs a regression test that uses rerender() to swap ENTIRE trees, not just prop
 Screenshot: /tmp/explore-screenshots/03-demo3-wide-120.png
 
 Also in the same screenshot: the second paragraph box in demo 3 has an off-by-one height measurement — the last wrapped line of text overwrites the bottom border row. May or may not be the same root cause.
+

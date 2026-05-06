@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/view-modes"
 aliases:
   - km-view-modes
@@ -11,3 +14,4 @@ assignee: beorn
 # [x] Implement List, Columns, Tabs view support in testEnv @km/view-modes #epic #P1 @beorn
 
 Add support for testing all view modes in board.spec.ts
+

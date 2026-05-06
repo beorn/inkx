@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/plateau-deprecate-text-sizing-env"
 aliases:
   - km-silvery.plateau-deprecate-text-sizing-env
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-23T03:11:55Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [ ] Deprecate text-sizing.ts env fallback — route through TerminalCaps @km/silvery #task #P4
@@ -40,3 +46,4 @@ leaves the fallback reachable. After 1.0, tighten:
 Also check getTerminalFingerprint (same file, cache keying for
 detectTextSizingSupport probe results) — its env reads could be
 derived from caps + an optional version field.
+

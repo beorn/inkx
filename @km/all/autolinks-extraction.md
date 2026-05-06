@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/autolinks-extraction"
 aliases:
   - km-all.autolinks-extraction
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-25T08:44:18Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all
 ---
 
 # [ ] Extract smart-link infrastructure into shared package (silvercode + km + website) @km/all #epic #P3
@@ -27,29 +33,31 @@ These three systems will converge on shared infrastructure as silvercode integra
 
 ## Naming decision
 
-| System | Standard name | Was |
-|---|---|---|
-| Pattern → URI → preview/action (display-layer detection) | **smart links** | autolinks |
-| Glossary term → linkified `<a>` (build-time enrichment) | **glossary linker** / **term enrichment** | autolinks |
-| Storage-level link between knodes (data-layer) | **links** (canonical `Link` type) | unchanged — see `docs/design/links.md` |
+| System                                                   | Standard name                     | Was                                  |
+| -------------------------------------------------------- | --------------------------------- | ------------------------------------ |
+| Pattern → URI → preview/action (display-layer detection) | smart links                       | autolinks                            |
+| Glossary term → linkified <a> (build-time enrichment)    | glossary linker / term enrichment | autolinks                            |
+| Storage-level link between knodes (data-layer)           | links (canonical Link type)       | unchanged — see docs/design/links.md |
 
 Why "smart links":
+
 - GitHub's "autolinks" is closest peer but ours is a superset (preview kinds, popovers, mouse).
 - Apple/Slack vocabulary; pairs with "smart link providers" if plugin API.
 - Distinct from website System B → no naming collision.
 
 Why "glossary linker":
+
 - Standard in docs-tooling (Sphinx, MkDocs, Hugo).
 - Build-time vs run-time.
 
 ## Package shape (target end-state)
 
-| Package | Owns |
-|---|---|
-| `@km/links` | Storage-level `Link` type, URI scheme registry, rel taxonomy, link cache fields. Already canonical. |
-| `@km/smartlinks` (NEW) | Smart-link config + URI dispatch + popover (display-layer). Consumed by silvercode + @km/tui. |
-| `@km/glossary` (NEW) | Build-time term enrichment for static content. Consumes `@km/links` URI scheme registry; doesn't need popover. |
-| `@silvery/smartlinks` (deferred) | If silvery exposes the popover primitive for any silvery app to use. Lift from `@km/smartlinks` if a third consumer appears. |
+| Package                        | Owns                                                                                                                       |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| @km/links                      | Storage-level Link type, URI scheme registry, rel taxonomy, link cache fields. Already canonical.                          |
+| @km/smartlinks (NEW)           | Smart-link config + URI dispatch + popover (display-layer). Consumed by silvercode + @km/tui.                              |
+| @km/glossary (NEW)             | Build-time term enrichment for static content. Consumes @km/links URI scheme registry; doesn't need popover.               |
+| @silvery/smartlinks (deferred) | If silvery exposes the popover primitive for any silvery app to use. Lift from @km/smartlinks if a third consumer appears. |
 
 ## Migration arc
 
@@ -79,3 +87,4 @@ Why "glossary linker":
 - `km-silvercode.autolinks-uri-pivot` — prerequisite (URI dispatch factor)
 - `km-silvercode.autolinks-mcp-resolver` — superseded by URI pivot (mcp becomes a handler scheme)
 - Website glossary system — TBD location
+

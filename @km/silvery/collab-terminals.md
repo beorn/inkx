@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/collab-terminals"
 aliases:
   - km-silvery.collab-terminals
@@ -20,3 +22,4 @@ Explore shared-state terminal sessions where multiple users (or AI + human) co-c
 Far-future feature. Built on Silvery's runtime/app separation — the runtime could broadcast updates. Warp (terminal) has some collaborative features, but no open framework provides this.
 
 Low priority — explore when runtime architecture stabilizes.
+

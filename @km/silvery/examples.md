@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/examples"
 aliases:
   - km-silvery.examples
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Silvery Examples & Narrative Overhaul @km/silvery #epic #P2
 
 Reorganize examples around differentiators, create missing runnable files, split showcases.tsx, update nav/sidebar, add CLI demo runner
+

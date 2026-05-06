@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/interactions-runtime/phase-6"
 aliases:
   - km-silvery.interactions-runtime.phase-6
@@ -22,6 +24,7 @@ Split acceptance: selection highlight is a HARD gate (zero km code changes); cop
 ### 6.1 Demo verification
 
 Phase 3.1 already rewrote the demo. This phase is a final verification + any residual cleanup:
+
 - Run demo in TTY
 - Verify mouse drag selects across all panels
 - Verify copy on mouseup (OSC 52 via Term's clipboard capability)
@@ -30,12 +33,14 @@ Phase 3.1 already rewrote the demo. This phase is a final verification + any res
 ### 6.2 km two-gate verification (per Pro review 2 item 9)
 
 **Hard gate: zero km code changes, selection highlight works**
+
 - Run km: bun km view /some/vault
 - Open help dialog (?)
 - Mouse-drag on help text → highlights visible
 - PASS: zero km code changes needed
 
 **Conditional gate: copy-on-mouseup works in a runtime with clipboard capability**
+
 - km already uses Term (has OSC 52 clipboard capability)
 - Mouse drag → mouseup → paste into external editor
 - Expected: correct text in clipboard
@@ -63,6 +68,7 @@ Phase 0 added thin architecture docs. This phase completes them with the final d
 ### 6.5 Internal design doc rewrite (deferred from Phase 0)
 
 Full rewrite of vendor/internal/silvery/design/v10-terminal/text-selection-and-clipboard.md now that the architecture is stable:
+
 - Updated diagrams
 - Final service shapes
 - Capability registry pattern
@@ -74,6 +80,7 @@ Full rewrite of vendor/internal/silvery/design/v10-terminal/text-selection-and-c
 Per Pro review 2 item 11I: dev warnings detection is under-specified. If withDomEvents isn't installed, who scans and warns?
 
 Approach:
+
 - Warning detection lives in withTerminal (which is always installed in terminal apps)
 - After mount, walk the ag tree once
 - If any node has userSelect prop but SELECTION_CAPABILITY is not registered in the router → log warning
@@ -98,6 +105,7 @@ If the detection plumbing turns out to be annoying or unreliable, SKIP this sub-
 ### 6.9 Create follow-up beads
 
 If not created in Phase 5:
+
 - @km/silvery/clipboard-paste-cleanup — paste architecture redesign (bracketed paste, onPaste prop, etc)
 - @km/silvery/ag-term-cleanup (optional) — reorganize existing flat ag-term files into input/ and rendering/ subfolders
 
@@ -151,3 +159,4 @@ No new test files. Manual verification is the gate.
 ## MANDATORY
 
 Read docs/lessons/refactoring.md IN FULL before starting. Remember Case Study 3 (NewWay Documentation Drift): migration isn't complete until ALL references updated.
+

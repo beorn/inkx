@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/v-chord"
 aliases:
   - km-tui.v-chord
@@ -15,6 +18,7 @@ assignee: claude:28b14b32
 Turn v into a chord prefix for view/visual commands. Consolidates scattered view bindings under one namespace.
 
 Current bindings to migrate:
+
 - v → visual_mode_enter → v <space>
 - V → cycle_icon_style → v V
 - g v → cycle_view_mode → v v
@@ -23,6 +27,7 @@ Current bindings to migrate:
 - ⌘g/⌃g → filter → v f
 
 New bindings:
+
 - v <space> = visual mode (was bare v)
 - v v = cycle view modes (was g v)
 - v V = cycle icons (was V)
@@ -32,3 +37,4 @@ New bindings:
 - v f = filter (was ⌘g/⌃g)
 
 Note: bare v becomes chord prefix, so visual mode needs v<space>. Keep ⌘g/⌃g as aliases for filter.
+

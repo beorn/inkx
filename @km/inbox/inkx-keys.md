@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/inkx-keys"
 aliases:
   - km-inkx-keys
@@ -13,6 +16,7 @@ assignee: claude:5fa2decc
 The new useInput hook only provides raw key strings and basic modifiers (ctrl, meta, shift).
 
 The old useInput has rich Key interface with:
+
 - upArrow, downArrow, leftArrow, rightArrow
 - pageDown, pageUp, home, end
 - return, escape, tab, backspace, delete
@@ -20,3 +24,4 @@ The old useInput has rich Key interface with:
 Port the key parsing logic from src/hooks/useInput.ts to the new runtime.
 
 Parent: @km/_orphan/silvery-legacy-loop
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/detect-role-lease"
 aliases:
   - km-tribe.detect-role-lease
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] detectRole() should check leader lease, not just heartbeats @km/tribe #bug #P2
 
 detectRole() only checks if a chief heartbeat exists. Long-running sessions predate the lease code and become false chiefs. Fix: detectRole should check the leadership table — if a valid lease exists (lease_until > now), don't claim chief regardless of heartbeat state.
+

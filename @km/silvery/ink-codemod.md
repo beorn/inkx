@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ink-codemod"
 aliases:
   - km-silvery.ink-codemod
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Ink compat codemod: npx silvery migrate-ink @km/silvery #feature #P2
 
 @silvery/compat already exists. Add npx silvery migrate-ink codemod that auto-migrates Ink imports/components to silvery equivalents. Even 60-80% coverage dramatically lowers perceived switching cost.
+

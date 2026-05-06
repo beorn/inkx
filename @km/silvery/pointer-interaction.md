@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/pointer-interaction"
 aliases:
   - km-silvery.pointer-interaction
@@ -60,16 +62,18 @@ BLOCKED BY @km/_orphan/7hfik (runtime refactor):
 BLOCKED BY @km/_orphan/7hfik (runtime refactor): vendor/internal/silvery/design/v10-terminal/text-selection-and-clipboard.md
 BLOCKED BY @km/_orphan/7hfik (runtime refactor): 
 BLOCKED BY @km/_orphan/7hfik (runtime refactor): LABELS: architecture, drag-drop, selection, silvery
-BLOCKED BY @km/_orphan/7hfik (runtime refactor): 
+BLOCKED BY @km/_orphan/7hfik (runtime refactor):
 
 STATUS UPDATE 2026-04-05 (post /big): The text selection feature was implemented but NOT integrated — km has userSelect=contain props that do nothing because no code reads them. The API is over-engineered (37 exports, multiple providers, hooks the user must wire manually).
 
 See @km/_orphan/7hfik for the runtime refactor that makes this actually work.
 
 After @km/_orphan/7hfik lands:
+
 - Phase 1 becomes trivially usable (props just work)
 - Phase 5 (km integration) is already done (props are set)
 - Phases 2/3/4 (find, clipboard backends, virtual lists) become runtime features, not hook chaos
 - Most of the hooks and providers get deleted
 
 Leaving this bead open as the umbrella for the pointer interaction model, but the implementation strategy has pivoted. Do not add more hooks — move everything into the runtime instead.
+

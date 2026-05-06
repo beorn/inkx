@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/tree/v4/p5-fold-sticky"
 aliases:
   - km-tui.tree.v4.p5-fold-sticky
@@ -35,3 +37,4 @@ rg 'syncFoldDepths|syncStickyFolds' --glob '!.beads' --glob '!docs' --glob '!*.m
 bun tsc --noEmit  # 0 new errors
 bun vitest run apps/km-tui/tests/board-view.spec.ts apps/km-tui/tests/fold.slow.test.ts  # all pass
 \`\`\`
+

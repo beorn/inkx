@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/sidepanel-skeleton-mount"
 aliases:
   - km-silvercode.sidepanel-skeleton-mount
@@ -74,6 +76,10 @@ dependencies:
     created_at: 2026-04-28T12:36:37Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Render SidePanel + skeleton pane immediately, don't wait for spawn (fixes 10s blank screen) @km/silvercode #bug #P0
@@ -91,7 +97,9 @@ Fix: render placeholders that don't depend on focused session.
 Files: apps/silvercode/src/components/SidePanel.tsx (drop 'if (!focused) return null'), apps/silvercode/src/components/PaneGrid.tsx (empty-tree placeholder), apps/silvercode/src/claude-version.ts (eager warmup).
 
 Acceptance:
+
 - Empty-state SidePanel renders with sessions/cwd/branch/mode rows
 - Empty-state PaneGrid renders 'Spawning…' placeholder
 - termless test: render App with controller.snapshot()=[] → screen shows SidePanel and 'Spawning…' immediately, NOT blank
 - claude-version probe fires within 100ms of process start, not 10s
+

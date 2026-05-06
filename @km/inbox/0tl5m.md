@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/0tl5m"
 aliases:
   - km-0tl5m
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Inline incremental early return drops cursor-only updates @km/_orphan #bug #P2
 
 inlineIncrementalRender returns empty string when content unchanged but cursor moved. Fix: check cursor state before early return.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ex-reorganize"
 aliases:
   - km-silvery.ex-reorganize
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Phase 2: Reorganize doc pages around differentiators @km/silvery #task #P2
 
 Remove redundant pages (task-list, kanban), rewrite (cli-wizards→forms, data-explorers→tables, dev-tools→testing), add new pages (components, scrollback, terminal)
+

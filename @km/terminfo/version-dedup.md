@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/version-dedup"
 aliases:
   - km-terminfo.version-dedup
@@ -16,3 +19,4 @@ assignee: claude:4929065a
 # [x] Show only latest version per backend on home page, version history on detail pages @km/terminfo #task #P2 @claude:4929065a
 
 Home page shows 4 xterm.js entries (all 76%). Should show only the latest version per backend. Detail pages should show version history with latest primary and older versions collapsible. Also: clarify unknown vs not-implemented labeling.
+

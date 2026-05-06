@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/composable-pretext"
 aliases:
   - km-flexily.composable-pretext
@@ -18,6 +20,7 @@ owner: bjorn@stabell.org
 v0.5 horizon: make Flexily composable with Pretext as a plugin.
 
 ## What Ships
+
 - `createBareFlexily()` — bare node tree + calculateLayout
 - `pipe()` + `with*` plugin architecture
 - `withFlexbox()` — CSS flexbox layout (default)
@@ -25,6 +28,7 @@ v0.5 horizon: make Flexily composable with Pretext as a plugin.
 - `createFlexily()` = `pipe(createBareFlexily(), withFlexbox(), withPretext())` — batteries-included default
 
 ## API
+
 ```typescript
 import { createFlexily } from "flexily"              // batteries-included
 import { createBareFlexily } from "flexily/compose"   // bare
@@ -38,6 +42,7 @@ const flex = pipe(createBareFlexily(), withFlexbox(), withPretext())
 ```
 
 ## Done When
+
 - `npm install flexily @chenglou/pretext` works for external users
 - `createFlexily()` works with zero config
 - `createBareFlexily()` + `pipe()` + plugins work for power users
@@ -45,6 +50,8 @@ const flex = pipe(createBareFlexily(), withFlexbox(), withPretext())
 - Tests swap measurer: `withPretext({ measurer: createFixedTestMeasurer() })`
 
 ## Design Docs
+
 - vendor/silvery-internal/design/v05-layout/pretext-integration.md
 - vendor/silvery-internal/horizons.md § v0.5
 - vendor/silvery-internal/vision/exploration.md § v0.5
+

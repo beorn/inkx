@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/acp-foundation"
 aliases:
   - km-silvercode.acp-foundation
@@ -63,6 +66,10 @@ dependencies:
     created_at: 2026-04-26T01:10:52Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.acp
 ---
 
 # [x] Foundation — silvercode canonical types + ACP boundary adapter @km/silvercode #feature #P1 @claude:cd034ca4
@@ -72,10 +79,13 @@ blocks:: [[@km/silvercode/acp]]
 Define silvercode's canonical internal types (SilvercodeMessage, SilvercodeToolCall, SilvercodePlan, content blocks, capabilities, etc.) shaped like ACP at v1. Build the boundary adapter acpToSilvercode(update: SessionUpdate) → SilvercodeUpdate (~50-100 LOC, the only place @agentclientprotocol/sdk types are imported).
 
 ## Why this shape (not direct ACP adoption)
+
 Per adoption research 2026-04-26 (see @km/silvercode/acp parent bead): ACP SDK type surface churned twice in 5 months, Zed doesn't fully implement its own spec, naming collision with IBM/A2A, governance fragility. Domain-model bet at the canonical layer is too risky today. Boundary adapter isolates breaking changes to one file.
 
 ## Acceptance
+
 - src/acp-types.ts (or equivalent): silvercode's own typed surface, no @agentclientprotocol/sdk import
 - src/adapters/acp-boundary.ts: bidirectional adapter, single file imports ACP types
 - Type tests verifying every SessionUpdate variant, ToolKind, PermissionOptionKind round-trips
 - Doc: when to bump from canonical-silvercode to canonical-ACP (Zed 100% spec coverage + protocolVersion 2)
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/pane-theme"
 aliases:
   - km-inkx.pane-theme
@@ -17,3 +20,4 @@ Add a theme prop to Box that enables per-subtree theme resolution in the content
 Fix: add a context theme stack to theme-defs.ts. The content phase pushes/pops themes as it walks Box nodes with a theme prop. parseColor (via getActiveTheme) automatically resolves against the nearest ancestor's theme.
 
 Immediate use case: WorkspaceView wraps unfocused panes in <Box theme={unfocusedTheme}> where unfocusedTheme has dimmed $selected/$selectedfg tokens. All components inside automatically get dimmed selection colors without any per-component changes.
+

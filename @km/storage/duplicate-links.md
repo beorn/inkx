@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/duplicate-links"
 aliases:
   - km-storage.duplicate-links
@@ -14,3 +17,4 @@ assignee: claude:ceb7c9cb
 # [x] Duplicate link rows in links table (629 groups) @km/storage #bug #P3 @claude:ceb7c9cb
 
 sqlite3 links table has 629 groups of duplicate rows (same source_id, target_id, target_name). Causes inflated backlink counts in delete confirmation dialog. Root cause likely in link extraction during file parsing — same wikilink produces multiple INSERT rows.
+

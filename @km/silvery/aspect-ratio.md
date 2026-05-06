@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/aspect-ratio"
 aliases:
   - km-silvery.aspect-ratio
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Expose aspectRatio prop on Box @km/silvery #feature #P2
+

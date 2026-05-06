@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/gnpz9"
 aliases:
   - km-gnpz9
@@ -12,3 +14,4 @@ closed_at: 2026-01-28T13:45:41Z
 Export detection override functions from @beorn/term for testing purposes.
 
 Part of: @km/_orphan/lp0hu (term/tui consolidation)
+

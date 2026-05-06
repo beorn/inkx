@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkz/17-sticky"
 aliases:
   - km-inkz.17-sticky
@@ -62,11 +64,11 @@ Implement CSS-like `position: sticky` behavior for elements within scrollable co
 
 ## Props
 
-| Prop | Type | Description |
-|------|------|-------------|
-| position | "relative" \| "absolute" \| "sticky" | Positioning mode |
-| top | number | Distance from top when sticky |
-| bottom | number | Distance from bottom when sticky |
+| Prop     | Type                                 | Description                      |
+| -------- | ------------------------------------ | -------------------------------- |
+| position | "relative" \| "absolute" \| "sticky" | Positioning mode                 |
+| top      | number                               | Distance from top when sticky    |
+| bottom   | number                               | Distance from bottom when sticky |
 
 ## Acceptance Criteria
 
@@ -81,3 +83,4 @@ Implement CSS-like `position: sticky` behavior for elements within scrollable co
 ## Dependencies
 
 - Requires @km/inkz/10-scroll (overflow="scroll") to be implemented first
+

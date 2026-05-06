@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/sticky-clear-on-direction-change"
 aliases:
   - km-tui.sticky-clear-on-direction-change
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] stickyX/stickyY should clear when navigation direction changes (e.g., h/l then j/k) @km/tui #bug #P3
+

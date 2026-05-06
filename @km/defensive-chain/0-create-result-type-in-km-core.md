@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+  - km
+  - claude
 id: "@km/defensive-chain/0-create-result-type-in-km-core"
 aliases:
   - km-defensive-chain.0
@@ -12,3 +16,4 @@ assignee: claude
 # [x] Create Result type in @km/core @km/defensive-chain #task #P1 @claude
 
 Add Result<T,E> type with Ok/Err constructors. See plan Appendix A.
+

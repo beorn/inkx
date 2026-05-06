@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/claude-code-outreach"
 aliases:
   - km-market.claude-code-outreach
@@ -10,7 +12,7 @@ owner: bjorn@stabell.org
 
 # [ ] Marketing outreach re: Claude Code rendering (NOT READY — human-gated, no auto-execution) @km/market #task #P3
 
-# DO NOT EXECUTE WITHOUT EXPLICIT USER APPROVAL
+## DO NOT EXECUTE WITHOUT EXPLICIT USER APPROVAL
 
 ## Status: HUMAN-GATED. NO AUTO-EXECUTION.
 
@@ -71,3 +73,4 @@ All four are standard techniques — not silvery-proprietary. The comment can ex
 - @km/silvery/positioning — references this bead as "possible future marketing action, not a dep"
 - @km/market — parent epic
 - vendor/internal/market/blogs/silvery/claude-code-rendering-dilemma.md — already exists as published-path content; that's the primary channel, not GitHub comments
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/flexx-cache-helpers"
 aliases:
   - km-flexx-cache-helpers
@@ -11,3 +14,4 @@ assignee: claude:b8b4780b
 # [x] [flexx] Cache isRow/isReverse and pass to helpers @km/_orphan #task #P2 @claude:b8b4780b
 
 Pass isRow/isReverse booleans to resolveEdgeValue/isEdgeAuto instead of recomputing from flexDirection. Saves 5+ redundant function calls per node.
+

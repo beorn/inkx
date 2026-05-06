@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/compat"
 aliases:
   - km-silvery.compat
@@ -82,3 +84,4 @@ import chalk from 'silvery/chalk'
 - `createTerm()` > `new Chalk()`
 - `useContentRect/useScreenRect` > `measureElement`
 - `useFocusable()` > `useFocus()`
+

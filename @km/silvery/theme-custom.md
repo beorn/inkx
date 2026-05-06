@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-custom"
 aliases:
   - km-silvery.theme-custom
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-17T20:51:41Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.design-system
 ---
 
 # [x] Theme custom tokens — authored themes + defineTokens for app-specific brand colors @km/silvery #feature #P3
@@ -28,20 +34,24 @@ defineTokens() API for extending the theme with derivation-style OR fixed-rgb br
 ## Two paths
 
 **Derivation (semantic extensions):**
+
 ```ts
 defineTokens({
   '$priority-p0': { derive: (s, t) => s.brightRed },
   '$priority-p1': { derive: (s, t) => blend(t.warning, t.bg, 0.2) },
 })
 ```
+
 Re-derives when scheme changes.
 
 **Fixed-rgb (brand tokens):**
+
 ```ts
 defineTokens({
   '$km-brand':   { rgb: '#5B8DEF', ansi16: 'brightBlue' },
 })
 ```
+
 rgb at truecolor/256, ansi16 slot at ANSI 16, attrs at mono. ansi16 REQUIRED.
 
 ## Brand conventions
@@ -68,3 +78,4 @@ rgb at truecolor/256, ansi16 slot at ANSI 16, attrs at mono. ansi16 REQUIRED.
 Full context: hub/silvery/design/v10-terminal/terminal-color-strategy.md
 Parent: @km/silvery/design-system
 Merged: design-system-brand
+

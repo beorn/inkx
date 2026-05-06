@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/zys4"
 aliases:
   - km-zys4
@@ -8,3 +10,4 @@ closed_at: 2026-01-20T20:48:30Z
 ---
 
 # [x] Tabs should use text width + min 10 chars, extra flex space on right @km/_orphan #bug #P2
+

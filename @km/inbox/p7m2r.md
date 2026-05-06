@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/p7m2r"
 aliases:
   - km-p7m2r
@@ -17,3 +19,4 @@ owner: bjorn@stabell.org
 # [x] STRICT failure: auto-capture debug artifacts @km/_orphan #task #P3
 
 On STRICT verification failure, auto-capture prev/next buffer snapshots, ANSI sequence, backend screenshots, terminal size, and test name to /tmp/silvery-strict-failure-<timestamp>/. Log path in error message.
+

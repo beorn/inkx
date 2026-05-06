@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/remove-index-wrappers"
 aliases:
   - km-remove-index-wrappers
@@ -12,6 +14,7 @@ closed_at: 2026-01-25T10:07:30Z
 Remove singleton wrapper exports from packages/@km/storage/src/index.ts.
 
 Exports to REMOVE (lines 4-55):
+
 - All singleton wrapper function exports from db.ts
 - getDbPath, getDb, closeDb, setDb, isMemoryMode, resetDb, runWithDb
 - applyEvent, getNode, getNodeByIdPrefix, getTaskByIdPrefix
@@ -29,6 +32,7 @@ Exports to REMOVE (lines 4-55):
 - executeQuery, queryTasks, queryNodes (lines 165-170)
 
 Keep exports:
+
 - SCHEMA (for testing)
 - createVault, createWatcher (domain objects)
 - loadConfig, loadConfigObject (domain objects)
@@ -37,3 +41,4 @@ Keep exports:
 - Utilities (parseTaskMetadata, extractTags, etc.)
 
 Depends on: @km/_orphan/remove-db-wrappers (must remove from db.ts first)
+

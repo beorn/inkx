@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/comp-ascii-font"
 aliases:
   - km-silvery.comp-ascii-font
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T16:18:46Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.opentui-parity
 ---
 
 # [ ] Component: ASCIIFont (figlet-style large text) @km/silvery #feature #P4
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/silvery/opentui-parity]]
 
 Large ASCII art font renderer (figlet-style) for hero text, splash screens, logos. OpenTUI ships an ASCIIFont renderable.
+

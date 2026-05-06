@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/tree-lenses/1-viewtree-implementation-viewnode-type-usenode-hook"
 aliases:
   - km-tui.tree-lenses.1
@@ -18,6 +20,7 @@ owner: bjorn@stabell.org
 ## ViewTree implementation
 
 ### Step 1: createProjectedMap<K, V> (reusable utility)
+
 Generic projected signal map. Tracks keys, maintains per-key signal bags,
 diffs on sync(). Testable independently — no tree knowledge.
 
@@ -33,6 +36,7 @@ type Projected<V> = { readonly [F in keyof V]: () => V[F] }
 ```
 
 ### Step 2: ViewNode type
+
 ```typescript
 interface ViewNode {
   id: string
@@ -48,14 +52,18 @@ interface ViewNode {
 ```
 
 ### Step 3: createViewTree(repo, signals)
+
 Uses createViewLens internally + createProjectedMap for per-node signals.
 effect() syncs projection when lens inputs change.
 
 ### Step 4: useNode(id) hook
+
 Reads from ViewTree projection. Re-renders only when THIS node changes.
 
 Acceptance:
+
 - createProjectedMap has independent tests (create, sync, diff, prune)
 - ViewNode type exported from @km/_orphan/board
 - useNode(id) returns ViewNode with all fields reactive
 - All existing tests pass (additive — no breaking changes)
+

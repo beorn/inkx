@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - h
 id: "@km/tui/shift-hl"
 aliases:
   - km-tui.shift-hl
@@ -11,3 +16,4 @@ assignee: claude:bca35d62
 ---
 
 # [x] Opt+h/l does not shift cards between columns in terminal @km/tui #bug #P2 @claude:bca35d62
+

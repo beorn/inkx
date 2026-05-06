@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/rev-0129/0-fix-failing-mdtest-shell-command-test"
 aliases:
   - km-rev-0129.0
@@ -12,3 +15,4 @@ assignee: claude:298008b9
 # [x] Fix failing mdtest shell command test @km/rev-0129 #bug #P1 @claude:298008b9
 
 apps/@km/_orphan/cli/tests/commands.mdtest.ts has 1 failing test - shell command exit code mismatch. Blocks CI.
+

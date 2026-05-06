@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/clipboard-image"
 aliases:
   - km-silvery.clipboard-image
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T16:19:36Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.opentui-parity
 ---
 
 # [ ] Clipboard: image paste support via OSC 52 + terminal clipboard APIs @km/silvery #feature #P4
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/silvery/opentui-parity]]
 
 Extend usePaste to handle images (PNG/JPEG) pasted from system clipboard. Encode via Kitty graphics or detect and reject gracefully.
+

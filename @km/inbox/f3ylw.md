@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/f3ylw"
 aliases:
   - km-f3ylw
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Phase 2: Viewport architecture (Screen, ScrollView, VirtualScrollView, useVirtualizer) @km/_orphan #feature #P2
 
 Implement the composable viewport architecture from vendor/beorn-inkx/docs/design/viewport-architecture.md. Extract useVirtualizer from useVirtualization, create Screen/ScrollView/VirtualScrollView components, compat wrappers, exports, tests.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/queue-ux-tdd"
 aliases:
   - km-silvercode.queue-ux-tdd
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-25T21:55:08Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Queue UX bugs: two cursors + display formatting + force-flush trigger @km/silvercode #bug #P1 @claude:2405c72e
@@ -26,3 +33,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 TDD-first fix for three queue bugs in apps/silvercode/src/components/CommandBox.tsx. (A1) Double cursor visible while editing queue. (A2) Queue should show per-line > prefix with single-newline separation between entries (wire format keeps \n\n). (A3) Plain Enter in queue should not force-flush — should insert newline. Each bug needs a failing test before fix. Parent: @km/silvercode.
+

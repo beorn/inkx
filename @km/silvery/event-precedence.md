@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/event-precedence"
 aliases:
   - km-silvery.event-precedence
@@ -16,6 +18,7 @@ owner: bjorn@stabell.org
 Event precedence: focused components before global hooks (plugin-centric model)
 
 ## The Problem
+
 useInput hooks fire BEFORE focused component props (onKeyDown) because processEventBatch bridges directly to RuntimeContext listeners before any plugin sees the event.
 
 ## The Fix — Plugin-Centric Event Flow
@@ -27,17 +30,21 @@ NOT hardcoded lanes in processEventBatch. Instead:
 3. React hooks are thin store readers, not event routers
 
 ### Plugin composition controls precedence:
+
 pipe(createApp(store), withTerminal(process), withFocus(), withInput(), withCommands(cmds))
 
 ### Each plugin = store + update functions:
+
 - withTerminal: modifier state store, updated on every key event
 - withFocus: focus tree dispatch, consumes via stopPropagation
 - withInput: handler registry, dispatches to useInput registered handlers
 
 ### Key changes:
+
 1. processEventBatch calls press() for keyboard events (enters plugin chain)
 2. useInput subscribes via a plugin store, not RuntimeContext directly
 3. useModifierKeys reads from withTerminal modifier store
 4. Plugin chain determines who sees events and in what order
 
 /complete: modal onKeyDown for Escape fires before useInput quit handler
+

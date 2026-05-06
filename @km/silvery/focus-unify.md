@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/focus-unify"
 aliases:
   - km-silvery.focus-unify
@@ -23,17 +26,16 @@ assignee: Bjørn Stabell
 Silvery currently has TWO separate focus implementations:
 
 1. **@silvery/ink** (vendor/silvery/packages/ink/with-ink-focus.ts + ink-hooks.ts)
-   - Full Ink port using React useState
-   - Own InkFocusContext + InkFocusProvider
-   - Tab navigation via raw escape sequences
-   - Exports: useFocus(options), useFocusManager()
-   - NOT integrated with FocusManager
-
+  - Full Ink port using React useState
+  - Own InkFocusContext + InkFocusProvider
+  - Tab navigation via raw escape sequences
+  - Exports: useFocus(options), useFocusManager()
+  - NOT integrated with FocusManager
 2. **@silvery/ag-react** (vendor/silvery/packages/ag-react/src/hooks/useFocusable.ts)
-   - Native FocusManager-backed
-   - Scopes, spatial nav, focus origin, useFocusWithin
-   - Reads testID/autoFocus from Box props
-   - Exports: useFocusable() (no args), useFocusManager()
+  - Native FocusManager-backed
+  - Scopes, spatial nav, focus origin, useFocusWithin
+  - Reads testID/autoFocus from Box props
+  - Exports: useFocusable() (no args), useFocusManager()
 
 ## Why this is bad
 
@@ -72,3 +74,4 @@ Unify on the native FocusManager:
 ## Why P1
 
 Should ship before silvery v1.0. After unification, silvery has ONE focus story that's strictly better than Ink AND ergonomically compatible. This is a competitive moat.
+

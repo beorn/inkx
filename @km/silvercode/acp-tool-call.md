@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/acp-tool-call"
 aliases:
   - km-silvercode.acp-tool-call
@@ -44,6 +47,16 @@ dependencies:
     created_at: 2026-04-26T08:37:55Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode.acp
+      - type: link
+        target: km-silvery.animation-counters
+      - type: link
+        target: km-silvery.diff-code-accordion
 ---
 
 # [x] silvercode <ToolCall> rendering — kind/status variants, error envelope, count summary, apply-patch @km/silvercode #feature #P1 @claude:cd034ca4
@@ -53,6 +66,7 @@ blocks:: [[@km/silvercode/acp]], [[@km/silvery/animation-counters]], [[@km/silve
 Render the ACP `ToolCall` + `ToolCallUpdate` stream events.
 
 ## Maps to ACP
+
 - `SessionUpdate.tool_call` → mount `<ToolCall>`
 - `SessionUpdate.tool_call_update` → merge into existing `<ToolCall>` by toolCallId
 - `ToolKind` (read/edit/delete/move/search/execute/think/fetch/other) → kind-driven body layout
@@ -61,9 +75,11 @@ Render the ACP `ToolCall` + `ToolCallUpdate` stream events.
 - `ToolCallLocation` → path+line chip in header
 
 ## Today
+
 `apps/silvercode/src/components/ToolCallBlock.tsx` (143 LOC, basic collapse). `ToolResultBlock.tsx` separately holds error rendering.
 
 ## Gap (extends existing → ACP-named single component)
+
 - Animated `<ToolCallStatusTitle>` ('Reading file…' → 'Read 3 files') driven by status transitions
 - `<ToolCallError>` — distinct envelope when `status: failed`
 - `<ToolCallSummary>` — aggregate 'Read **12** files' via `<AnimatedNumber>` + popover breakdown
@@ -71,7 +87,9 @@ Render the ACP `ToolCall` + `ToolCallUpdate` stream events.
 - Merge `ToolResultBlock.tsx` into `<ToolCall>` body (no separate component)
 
 ## Deps
+
 - @km/silvery/diff-code-accordion (`<Diff>`, `<Accordion>`)
 - @km/silvery/animation-counters (`<AnimatedNumber>`, `<TextReveal>`)
 
 ## Estimated LOC: ~700-1100
+

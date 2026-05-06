@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/examples-playground"
 aliases:
   - km-silvery.examples-playground
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] Browser terminal playground for docs @km/silvery #feature #P3
 
 Interactive docs playground backed by terminal emulator in browser. Even prerecorded GIFs help. Show keyboard navigation, focus changes, search, scrolling, virtualized lists. Terminal UX is easier to trust when visible.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tribe/ci-helpful-hints"
 aliases:
   - km-tribe.ci-helpful-hints
@@ -20,3 +23,4 @@ Example: session working on termless sees 'CI ALERT: beorn/termless CI failed 3x
 'hint: termless CI needs vt220.js published — run npm publish from vendor/vt100/packages/vt220'
 
 This is protocol-level — add 'github:ci-alert' to the notification types that sessions can respond to. The system prompt should instruct: 'When you see a CI alert for a repo you know about, send a hint with what might fix it.'
+

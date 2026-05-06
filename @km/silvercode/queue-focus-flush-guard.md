@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/queue-focus-flush-guard"
 aliases:
   - km-silvercode.queue-focus-flush-guard
@@ -18,6 +21,10 @@ dependencies:
     created_at: 2026-04-25T22:45:04Z
     created_by: claude:1eb07bba
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Queue auto-flushes even when cursor is in queue (not command box) @km/silvercode #bug #P2 @claude:2405c72e
@@ -25,3 +32,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 When the user moves focus into the queue region (to inspect/edit/reorder queued entries), the controllers turn-end handler still calls tryFlush() and submits the queue. Expected: while focusedRegion=queue, auto-flush should be paused; resume when focus returns to command box. Root: apps/silvercode/src/controller.ts:673-677 fires tryFlush(sessionId) on turn-end. tryFlush() at controller.ts:331-361 checks status===idle but never checks focus. focusedRegion lives in App.tsx:255 and is invisible to the controller. Fix: add a focus accessor; tryFlush bails when region===queue. Test: enqueue text, move focus to queue mid-turn, assert no flush at turn-end; move focus back to command, assert flush.
+

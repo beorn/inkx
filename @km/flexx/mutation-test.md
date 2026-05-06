@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/flexx/mutation-test"
 aliases:
   - km-flexx.mutation-test
@@ -11,3 +14,4 @@ assignee: claude:b509d761
 ---
 
 # [x] Mutation testing script to validate fuzz coverage @km/flexx #task #P2 @claude:b509d761
+

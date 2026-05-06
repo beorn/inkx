@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/o7ayx"
 aliases:
   - km-o7ayx
@@ -17,3 +20,4 @@ assignee: claude:21c57d63
 # [x] Unify detail view children with column card rendering @km/_orphan #task #P2 @claude:21c57d63
 
 DetailView renders children as bare TreeNodes with remainingDepth=Infinity, separate from CardColumn's Card+VirtualList rendering. They should be unified: detail view children should render through the same Card infrastructure with proper fold indicators, fold/unfold, and virtualization. The metadata section (title+properties) stays unique to detail view.
+

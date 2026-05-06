@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/plateau"
 aliases:
   - km-all.plateau
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-20T22:23:18Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all
 ---
 
 # [ ] Quality Plateau — full-stack roadmap to architectural completeness @km/all #epic #P0
@@ -23,16 +29,16 @@ Consolidated roadmap to quality plateau across km. This epic tracks the strategi
 
 ## Current plateau scores by subsystem (2026-04-20 baseline)
 
-| Subsystem | % Plateau | Status |
-|---|---|---|
-| Scroll / virtualization | ~95% | INV-5 fuzz, read-don't-walk, phantom-▼1 fix, bootstrap cleanup |
-| Rendering pipeline | ~95% | Geometry hit-test for absolute, 16ms resize coalesce |
-| Test infra | ~90% | Termless disposal via using, WeakRef leak detector |
-| @km/tui (cards/columns) | ~90% | Column primitive unified, zoom iterative DFS |
-| **Selection / Focus** | ~60% | P0 epic @km/silvery/selection-focus-plateau explicitly exists |
-| **TEA / apply-chain** | ~55% | P0 epics @km/silvery/tea, @km/tui/tea, @km/all/tea-discuss |
-| **Storage** | ~50% | P1 @km/storage/vault-node-explosion (549K nodes) |
-| **Startup perf** | ~40% | P2 @km/tui/cold-startup-block (17s event-loop block) |
+| Subsystem               | % Plateau | Status                                                         |
+| ----------------------- | --------- | -------------------------------------------------------------- |
+| Scroll / virtualization | ~95%      | INV-5 fuzz, read-don't-walk, phantom-▼1 fix, bootstrap cleanup |
+| Rendering pipeline      | ~95%      | Geometry hit-test for absolute, 16ms resize coalesce           |
+| Test infra              | ~90%      | Termless disposal via using, WeakRef leak detector             |
+| @km/tui (cards/columns) | ~90%      | Column primitive unified, zoom iterative DFS                   |
+| Selection / Focus       | ~60%      | P0 epic @km/silvery/selection-focus-plateau explicitly exists  |
+| TEA / apply-chain       | ~55%      | P0 epics @km/silvery/tea, @km/tui/tea, @km/all/tea-discuss     |
+| Storage                 | ~50%      | P1 @km/storage/vault-node-explosion (549K nodes)               |
+| Startup perf            | ~40%      | P2 @km/tui/cold-startup-block (17s event-loop block)           |
 
 Weighted overall: ~82% → target 95%+.
 
@@ -52,28 +58,33 @@ For a subsystem to be "at plateau", it must satisfy:
 ## Strategic work streams
 
 ### Stream A: Selection/Focus plateau (links @km/silvery/selection-focus-plateau, @km/silvery/focus-ink-parity)
+
 - Apply INV-style fuzz to selection actions
 - STRICT-mode invariants for selection validity
 - Unified focus-scope model
 - Eliminate seam fragility between focus + selection + navigation
 
 ### Stream B: TEA migration (links @km/silvery/tea, @km/tui/tea, @km/all/tea-discuss)
+
 - Unify (action, state) → [state, effects] across subsystems
 - Replace imperative handlers with dispatch/apply chain
 - Plugin composition via apply-chain substrate
 - Enables serializable replay, time-travel debugging, portability (TUI + web)
 
 ### Stream C: Storage plateau (links @km/storage/vault-node-explosion, @km/storage/link-model-canonical)
+
 - Diagnose 549K nodes in real vault (schema vs event-sourcing vs CRDT)
 - Decide CRDT direction — defer or commit
 - Event-sourcing-lite as CRDT-compatible foundation
 
 ### Stream D: Performance plateau (links @km/tui/cold-startup-block)
+
 - Phase-attributed startup profiling
 - 17s event-loop block → <2s target
 - SILVERY_INSTRUMENT coverage per major code path
 
 ### Stream E: Cross-cutting plateau hygiene
+
 - @deprecated sweep (~10 annotations in silvery without deletion plans)
 - Old-API elimination in tests (@km/all/test-system/plateau-enforcement P1)
 - Doc audit: current state only, no plans/narrative
@@ -97,3 +108,4 @@ For a subsystem to be "at plateau", it must satisfy:
 
 - Captures the /big analysis from session 2026-04-20 after scroll + rendering push
 - Coordinates with but does NOT replace existing P0 epics — this epic links them into a single strategic narrative
+

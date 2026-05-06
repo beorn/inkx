@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/terminfo-completeness/runbook"
 aliases:
   - km-market.terminfo-completeness.runbook
@@ -21,3 +23,4 @@ Create a runbook and automated validation for terminfo.dev content lifecycle.
 3. Consider making validate run as part of the build (fail on errors, warn on gaps)
 
 Related: @km/market/terminfo-completeness/osc-catalog (OSC completeness), tag taxonomy cleanup (3cdaf4d)
+

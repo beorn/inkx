@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tribe/checkpoint-resume"
 aliases:
   - km-tribe.checkpoint-resume
@@ -20,3 +23,4 @@ After /compact, sessions lose working context. They see all in_progress beads an
 Fix: bd prime (session start hook) should find checkpoint beads claimed by THIS session's CLAUDE_SESSION_ID, created in last few hours, and surface as RESUME directive. The compact summary must also include the active bead ID prominently.
 
 Key: CLAUDE_SESSION_ID persists across compactions within the same session.
+

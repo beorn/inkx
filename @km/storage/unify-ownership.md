@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/unify-ownership"
 aliases:
   - km-storage.unify-ownership
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 From /big quality review: WriteTokenMap (45 lines) and SyncState (120 lines) both track 'is this our write?' with parallel logic. isOwnedWrite() in both SyncManager and ReconciliationEngine is identical (60 lines duplicated).
 
 FIX: Create watch/ownership-tracker.ts with single API: record(), isOurs(), renamePath(), etc. WriteTokenMap becomes the L1 cache inside OwnershipTracker, sync_state is L2. Eliminates 60 lines of duplication, one concept instead of two.
+

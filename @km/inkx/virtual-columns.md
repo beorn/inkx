@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - vertical
 id: "@km/inkx/virtual-columns"
 aliases:
   - km-inkx.virtual-columns
@@ -15,6 +20,7 @@ assignee: claude:d9855593
 ## Problem
 
 Apps that render 2D grids of content (kanban boards, spreadsheets, dashboards) need two axes of virtualization:
+
 1. **Horizontal**: only N columns visible at a time, off-screen columns don't render
 2. **Vertical**: within each column, only visible items render (VirtualList)
 
@@ -45,6 +51,7 @@ The API should be axis-agnostic where possible — the same primitives work for 
 ## Design Research
 
 Deep research fired — see results when available. Key questions:
+
 - Composable primitives (VirtualHorizontal + VirtualList) vs monolithic VirtualGrid?
 - How to make position registry generic without domain concepts?
 - API patterns from TanStack Virtual that translate to terminal?
@@ -56,3 +63,4 @@ Deep research fired — see results when available. Key questions:
 - VirtualList: `vendor/beorn-inkx/src/components/VirtualList.tsx`
 - LayoutRegistry: `apps/km-tui/src/card-positions.ts`
 - CardLayoutRegistrar: `apps/km-tui/src/views/CardColumn.tsx:74-122`
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/stable-visual-classification"
 aliases:
   - km-tui.stable-visual-classification
@@ -19,3 +22,4 @@ Root cause from /big analysis (2026-04-06): body/structural classification, expa
 Current: extractBody, shouldExpand, isCardChild re-derive visual classification on every cursor move.
 
 Design: Node visual identity (body vs structural, expanded vs collapsed, checkbox vs plain) should be stable — determined by data model, not cursor position. Expansion for editing should ADD nodes to the visible set without reclassifying existing nodes.
+

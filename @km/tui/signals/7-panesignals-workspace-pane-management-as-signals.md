@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/signals/7-panesignals-workspace-pane-management-as-signals"
 aliases:
   - km-tui.signals.7
@@ -21,3 +23,4 @@ Migrate workspace-level state (focusedPaneId, layout, panes map) from store to A
 Depends on signals.4 (PaneSignals type exists). ~20 useAppStore calls eliminated (mostly WorkspaceChrome).
 
 Acceptance: grep useAppStore in WorkspaceChrome = 0 hits (except handler registration)
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/use-cursor"
 aliases:
   - km-silvery.use-cursor
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] useCursor() hook for terminal cursor positioning @km/silvery #feature #P2
 
 Add useCursor() hook that positions the real terminal cursor at a specific cell after render. Silvery already has cursor control primitives (setCursorStyle, cursorTo, cursorShow/Hide in @silvery/term). Missing: a React hook that tells the renderer where to place cursor after paint. TextInput/TextArea need this. Also needed for Ink compat (useCursor hook).
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/body-nav-broken"
 aliases:
   - km-tui.body-nav-broken
@@ -11,3 +14,4 @@ assignee: claude:a5c7f7de
 ---
 
 # [x] Visual navigation broken on files with body content @km/tui #bug #P1 @claude:a5c7f7de
+

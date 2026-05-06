@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/term-getmode"
 aliases:
   - km-silvery.term-getmode
@@ -23,8 +25,10 @@ Problem: Proxy's has/get traps lose TerminalReadable methods (getMode, getCursor
 Result: expect(term).toBeInMode('altScreen') fails because toBeInMode can't find getMode
 
 Design options:
+
 1. Composition: withSilveryTerm(createTermless()) — Term delegates to the Terminal
 2. Fix Proxy: ensure Object.defineProperty on termBase is visible through the Proxy
 3. Skip Proxy: Term implements TerminalReadable directly by delegating to emulator
 
 Also: review testing docs to promote termless for ALL terminal feature tests (alt screen, ANSI escapes, cursor, modes). State-level tests are insufficient.
+

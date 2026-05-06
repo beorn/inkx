@@ -31,3 +31,4 @@ Verification:
 - `bun run typecheck` in `vendor/termless` passed.
 - `bun run typecheck` in `vendor/silvery` passed.
 - `bun vitest run --project vendor vendor/silvery/tests/features/image-stdout-routing.test.tsx vendor/silvery/tests/features/image-placement-plan.test.ts vendor/silvery/tests/features/image-no-retransmit-on-move.test.tsx` passed.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/github-channel"
 aliases:
   - km-bearly.github-channel
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] GitHub channel plugin — build/PR/issue notifications @km/bearly #feature #P2
+

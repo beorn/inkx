@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/node-differ-tests"
 aliases:
   - km-storage.node-differ-tests
@@ -15,9 +18,11 @@ The diffNodes function in handlers/node-differ.ts lacks direct unit tests.
 Critical function for detecting what changed during file updates. Currently only tested implicitly through higher-level sync tests.
 
 Should test:
+
 - Structural key matching
-- ID remapping (new→existing)  
+- ID remapping (new→existing)
 - Created/updated/deleted detection
 - Edge cases: empty file, all nodes deleted, type changes
 
 See docs/archive/sync-test-coverage.md for full analysis.
+

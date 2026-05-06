@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/search-blank"
 aliases:
   - km-tui.search-blank
@@ -13,3 +16,4 @@ assignee: claude:36393b5d
 # [x] Search: blank screen on special characters (ready-, backtick) @km/tui #bug #P1 @claude:36393b5d
 
 Typing 'ready-' or backtick in search causes blank/black screen. Backtick is intermittent (every few keystrokes). Likely regex compilation error in search filter crashing render.
+

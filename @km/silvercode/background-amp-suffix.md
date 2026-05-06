@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/background-amp-suffix"
 aliases:
   - km-silvercode.background-amp-suffix
@@ -18,6 +21,10 @@ dependencies:
     created_at: 2026-04-25T22:56:05Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Trailing '&' on command sends + immediately backgrounds the turn (Claude Code parity) @km/silvercode #feature #P2 @claude:2405c72e
@@ -25,3 +32,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 Claude Code: typing 'long task &' submits the message AND backgrounds the turn so the user can keep typing while the turn streams in the background. silvercode has Ctrl+B for backgrounding in-flight turns; add the '&' suffix as a submit-AND-background shortcut. Strip the trailing '&' from the message before sending; immediately call controller.backgroundActiveTurn() after submit. Files: apps/silvercode/src/App.tsx (sendMessage helper). Test: submit 'foo &', assert background-turn fired and the actual sent message is 'foo' (no &).
+

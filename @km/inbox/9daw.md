@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/9daw"
 aliases:
   - km-9daw
@@ -29,3 +31,4 @@ Display bugs won't be caught by tests. These functions are used throughout CLI a
 ### Fix
 
 Create `packages/km-tree/tests/display.test.ts` with unit tests for each function.
+

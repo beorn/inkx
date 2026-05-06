@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/load-perf/3-cache-file-ancestors-in-rule-evaluation"
 aliases:
   - km-load-perf.3
@@ -17,3 +19,4 @@ File: packages/@km/storage/src/db-rules.ts
 Lines: 239-248 (findFileAncestor)
 
 Expected impact: 20-40% faster rule materialization
+

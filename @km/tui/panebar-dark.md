@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/panebar-dark"
 aliases:
   - km-tui.panebar-dark
@@ -13,3 +16,4 @@ assignee: claude:d697f216
 # [x] Top pane bar dark theme: bright bg + dark fg for all elements @km/tui #bug #P1 @claude:d697f216
 
 Dark theme pane bar should have bright background and dark foreground. ALL elements in the pane bar must follow this pattern — verify with TTY/screenshots that nothing breaks the contrast.
+

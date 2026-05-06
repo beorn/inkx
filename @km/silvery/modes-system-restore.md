@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/modes-system-restore"
 aliases:
   - km-silvery.modes-system-restore
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-22T14:17:41Z
     created_by: claude:019d032d
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [ ] Modes.systemRestore(writeSyncFn) — writeSync-capable mode reset for signal handlers @km/silvery #task #P3
@@ -26,3 +32,4 @@ Proposal: add a Modes.systemRestore(writeSyncFn, options?) method that takes a s
 This is the 'writeSync escape hatch' — modes' normal API stays async-clean, but emergency restore gets a tight, deterministic path.
 
 Follow-up work, not blocking Phase 8 of @km/silvery/term-sub-owners.
+

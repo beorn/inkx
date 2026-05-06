@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - 20ff2ff9
 id: "@km/sync-m5/0-create-named-regression-tests-for-discovered-sync-"
 aliases:
   - km-sync-m5.0
@@ -12,3 +15,4 @@ assignee: 20ff2ff9
 # [x] Create named regression tests for discovered sync bugs @km/sync-m5 #task #P3 @20ff2ff9
 
 Extract test cases from chaos fuzzer failures. Each named test should document the specific race condition or edge case it covers.
+

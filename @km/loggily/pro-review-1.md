@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/loggily/pro-review-1"
 aliases:
   - km-loggily.pro-review-1
@@ -17,8 +20,13 @@ dependencies:
     created_at: 2026-04-12T10:34:44Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-loggily
 ---
 
 # [x] Pro Review: loggily v0.7.0 full package @km/loggily #task #P2 @Bjørn Stabell
 
 blocks:: [[@km/loggily]]
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui-nav/4-remove-transitionalboardaction-type"
 aliases:
   - km-tui-nav.4
@@ -17,9 +19,11 @@ Once all legacy actions are removed, TransitionalBoardAction is no longer needed
 3. Run tests to verify
 
 Files to update:
+
 - packages/@km/_orphan/board/src/board-types.ts
 - packages/@km/_orphan/board/src/index.ts
 - apps/@km/tui/src/tui-context.ts
 - apps/@km/tui/src/views/board-input.ts
 - apps/@km/tui/src/views/board-effects.ts
 - apps/@km/tui/src/views/Board.tsx
+

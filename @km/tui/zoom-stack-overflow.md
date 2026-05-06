@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/zoom-stack-overflow"
 aliases:
   - km-tui.zoom-stack-overflow
@@ -26,6 +29,10 @@ dependencies:
     created_at: 2026-04-13T14:14:20Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Stack overflow on zoom out after file rename @km/tui #bug #P2 @claude:8b5b9e1c
@@ -33,3 +40,4 @@ dependencies:
 blocks:: [[@km/tui]]
 
 Zooming out from a +km.md file that was being renamed causes: RangeError: Maximum call stack size exceeded. The error occurs in the silvery event loop, not in the zoom handler itself. Likely a reactive signal cycle triggered by the tree update during rename + zoom. KTree.nodes uses iterative DFS (no stack overflow risk), so the cycle is in the render/signal path. Needs reproduction with the exact vault state.
+

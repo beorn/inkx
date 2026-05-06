@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ag-canvas/mouse-input"
 aliases:
   - km-silvery.ag-canvas.mouse-input
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Mouse input for canvas (click, scroll, drag) @km/silvery #feature #P3
 
 Add mouse event handling to the canvas renderer. Click → hit test ag tree to find clicked node → dispatch selection. Scroll → viewport scroll or virtual scroll. Drag → card reordering. Requires: hit testing from ag tree screenRect, mouse event conversion in canvas/input.ts, click-to-select in BoardView.
+

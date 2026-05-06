@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/vt-demo"
 aliases:
   - km-silvery.vt-demo
@@ -17,11 +19,13 @@ Create a demo that shows the SAME app running in all three modes, proving the mo
 ## The demo
 
 A simple chat/log viewer app that uses:
+
 ```tsx
 <ListView items={messages} cache nav search renderItem={...} />
 ```
 
 Run it three ways:
+
 - bun examples/apps/vterm-demo --mode=inline    → items cache to terminal scrollback
 - bun examples/apps/vterm-demo --mode=fullscreen → items cache to in-memory buffer
 - bun examples/apps/vterm-demo --mode=panes     → two panes, Tab focus, Ctrl+F
@@ -34,13 +38,16 @@ The panes demo (examples/apps/panes/) already demonstrates the fullscreen/panes 
 It needs updating to work with the new SearchProvider (SurfaceRegistry deleted).
 
 ## What this proves
+
 - App code is identical across modes
 - Cache backend auto-selected by mode
 - Search works in all modes
 - Nav works in all modes
 
 ## Depends on
+
 - Phase 5 (cache system) — need TerminalCache and VirtualCache backends
 - Phase 0c — examples cleanup
 
 This is the killer showcase for the blog post story.
+

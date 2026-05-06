@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beads/path-ids"
 aliases:
   - km-beads.path-ids
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Migrate writes path-form filenames + aliases frontmatter @km/beads #task #P1
 
 migrate.ts writes issue/<scope>/<slug>.md instead of issue/<id>.md, with frontmatter id: <scope>/<slug> and aliases: [<legacy-id>]. Acceptance: dry-run on real .beads/issues.jsonl produces correct tree shape; round-trip (read alias-bearing file, parse back) preserves identity; --legacy flag falls back to flat filenames for compat.
+

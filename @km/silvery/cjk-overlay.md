@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/cjk-overlay"
 aliases:
   - km-silvery.cjk-overlay
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] INVESTIGATE: CJK overlay clearing at cell boundaries @km/silvery #bug #P2
+

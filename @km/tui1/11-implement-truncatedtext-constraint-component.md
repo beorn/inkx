@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui1/11-implement-truncatedtext-constraint-component"
 aliases:
   - km-tui1.11
@@ -23,6 +25,7 @@ See [inkx-legacy.3-design.md](.beads/inkx-legacy.3-design.md) for full specifica
 **Location**: `apps/km-tui/packages/km-ink/src/constraints/TruncatedText.tsx`
 
 **Props**:
+
 ```typescript
 interface TruncatedTextProps {
   children: string;
@@ -33,11 +36,13 @@ interface TruncatedTextProps {
 ```
 
 **Usage**:
+
 ```typescript
 <TruncatedText maxLines={3}>{renderRich(node.title)}</TruncatedText>
 ```
 
 **Implementation**:
+
 - Get width from `useComputedSize()` hook
 - Call existing `constrainText()` from layout module
 - Render lines with Ink `<Text>` components
@@ -60,3 +65,4 @@ interface TruncatedTextProps {
 ## Blocked By
 
 - inkx-legacy.1 (constraint system design approval)
+

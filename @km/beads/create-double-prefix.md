@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beads/create-double-prefix"
 aliases:
   - km-beads.create-double-prefix
@@ -41,6 +43,10 @@ dependencies:
     created_at: 2026-04-28T01:24:43Z
     created_by: claude:da9990c5
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-beads
 ---
 
 # [x] km bd create double-prefixes the --id (km-beads.X → km-km-beads.X) @km/beads #bug #P2
@@ -62,6 +68,8 @@ Expected: when --id already starts with the configured prefix (km-), don't re-pr
 Probably in apps/@km/_orphan/cli/src/commands/bd.ts (bd create handler) where it builds the canonical id from --id + prefix. Should detect when --id already has the prefix and pass through verbatim.
 
 Acceptance:
+
 - bun km bd create … --id @km/beads/foo → creates issue with id @km/beads/foo (not @km/km-beads/foo)
 - bun km bd create … --id beads.foo → creates issue with id @km/beads/foo (current behavior of prepending preserved when prefix is missing)
 - Test in packages/@km/beads/tests/
+

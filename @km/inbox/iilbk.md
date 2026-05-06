@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/iilbk"
 aliases:
   - km-iilbk
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] shadcn-style TUI component system (inkx + themex + chalkx) @km/_orphan #feature #P2
 
 Vision: inkx/themex/chalkx as a shadcn-style terminal UI system. Pre-styled, composable, copy-paste friendly components with semantic theming. Includes: Form, Toast, CommandPalette, TreeView, Breadcrumb, Tabs, Tooltip, Skeleton. Each component follows shadcn patterns: minimal API, sensible defaults, theme-token-based styling, works standalone.
+

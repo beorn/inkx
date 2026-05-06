@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/card-border-click"
 aliases:
   - km-tui.card-border-click
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-13T22:05:31Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [ ] Clicking card border selects card then column @km/tui #bug #P3
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/tui]]
 
 When clicking on a card's border (the round corners or vertical edges), the click first selects the card, then selects the parent column. Should only select the card. Pre-existing behavior, not caused by outline migration. Likely a hit-test bubbling or duplicate handler issue.
+

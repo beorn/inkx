@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/tea-events"
 aliases:
   - km-inkx.tea-events
@@ -65,3 +68,4 @@ useState → shared store → commands → slices → effects as data. Each step
 3. Extract built-in plugins from hardcoded logic
 4. Mouse command resolution through same registry
 5. @km/tui migration to composable plugins
+

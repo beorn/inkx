@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/auto-report-dedup"
 aliases:
   - km-bearly.auto-report-dedup
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] tribe auto-report fires duplicate close notifications @km/bearly #bug #P3
 
 Auto-report detects bead changes by watching .beads/backup/issues.jsonl mtime + line count. But it re-fires for the same bead closure multiple times — likely because backup file gets rewritten (not just appended) on each bd operation. Need dedup by bead ID + status, not just line count.
+

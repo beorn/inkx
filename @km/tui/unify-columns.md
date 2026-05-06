@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/unify-columns"
 aliases:
   - km-tui.unify-columns
@@ -21,3 +24,4 @@ TARGET: ViewNode tree is sole authority. use-columns.ts becomes ~50-line wrapper
 IMPACT: ~400 lines removed, derivation drift bug class eliminated.
 DEPENDS ON: @km/tui/view-tree Phase 3 completion.
 CAVEAT: Must have ViewNode memoization (@km/tui/viewnode-cache) first or perf regresses.
+

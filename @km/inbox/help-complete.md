@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/help-complete"
 aliases:
   - km-help-complete
@@ -9,3 +12,4 @@ assignee: claude:5f8fa618
 ---
 
 # [x] Ensure help dialog lists all commands @km/_orphan #task #P3 @claude:5f8fa618
+

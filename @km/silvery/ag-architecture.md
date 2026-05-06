@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ag-architecture"
 aliases:
   - km-silvery.ag-architecture
@@ -18,6 +20,7 @@ owner: bjorn@stabell.org
 ## Problem
 
 The ag* packages (ag, ag-react, ag-term, create) have:
+
 - Circular dependencies (ag-term ↔ create, ag-react → ag-term despite no declared dep)
 - Duplicate patterns (SubscriberList in 2 files, isModifierOnlyEvent was in 2 files)
 - Confusing names (ag-term contains React hooks, create is the event loop)
@@ -32,6 +35,7 @@ Packages are organizational namespaces, not dependency layers. They evolved orga
 ## Quality plateau definition
 
 When a new developer (or agent) can understand the event flow by reading the code:
+
 - [ ] Package names communicate purpose (types, hooks, runtime, composition)
 - [ ] Dependency graph is a clean DAG (no cycles)
 - [ ] Each concept lives in exactly ONE place (zero duplicate types, hooks, or patterns)
@@ -57,7 +61,9 @@ When a new developer (or agent) can understand the event flow by reading the cod
 ## Remaining work
 
 ### Paste unification
+
 Merge usePaste (context getter) and usePasteCallback (event subscription) into ONE hook:
+
 ```tsx
 // Simple: callback gets plain text
 usePaste((text) => insertText(text))
@@ -68,19 +74,24 @@ usePaste((event) => {
   else insertPlainText(event.text)
 })
 ```
+
 Delete PasteProvider, usePasteEvents bridge. One hook, overloaded signature.
 
 ### Package restructure (evaluate)
+
 Current: ag (types), ag-react (hooks + components), ag-term (runtime + terminal + pipeline), create (event loop + composition)
 Consider: do the names need to change? Do the boundaries need to move? Or is documenting the current structure sufficient?
 
 ### Dependency cleanup
+
 - ag-react imports from ag-term without declaring the dependency
 - ag-term ↔ create circular dependency
 - Evaluate: can these be broken with interface extraction?
 
 ### Test coverage
+
 - usePaste, useExit, useInputLayer need dedicated tests
 - Pipeline stage behavior tests (Stage 3 bridges before filtering, etc.)
 
 /complete: new agent understands event flow in <5 min by reading code + CLAUDE.md
+

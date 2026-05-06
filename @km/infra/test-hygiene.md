@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/test-hygiene"
 aliases:
   - km-infra.test-hygiene
@@ -19,15 +21,15 @@ Ad-hoc test files created during bug investigations accumulate in the repo and n
 
 7 stray files in apps/@km/tui/tests/ with debug/repro/analysis/profile names:
 
-| File | Origin | Bug Fixed? | Still useful? |
-|------|--------|-----------|--------------|
-| cursor-right-repro.test.ts | fix: curswantY round-trip | YES (39847eb5) | Regression guard — KEEP but rename |
-| curswanty-repro.test.ts | fix: stickyY capture | YES (8c2c2c0c) | Regression guard — KEEP but rename |
-| curswanty-vt-repro.test.ts | fix: stickyY capture | YES (8c2c2c0c) | Overlaps curswanty-repro — probably DELETE |
-| debug-incremental.test.ts | perf: cursor benchmarks | N/A (diagnostic) | Uses writeFileSync — DELETE or make .slow |
-| outline-depth-debug.test.ts | fix: flexx position delta | YES (d6dd35cc) | Regression guard — KEEP but rename |
-| ansi-diff-analysis.test.ts | diag: level-nav-shift | Partial | Invariant tests — KEEP |
-| scroll-follow.test.ts | (unknown) | N/A | FIXED in e8d852fd — had infinite loops |
+| File                        | Origin                    | Bug Fixed?       | Still useful?                              |
+| --------------------------- | ------------------------- | ---------------- | ------------------------------------------ |
+| cursor-right-repro.test.ts  | fix: curswantY round-trip | YES (39847eb5)   | Regression guard — KEEP but rename         |
+| curswanty-repro.test.ts     | fix: stickyY capture      | YES (8c2c2c0c)   | Regression guard — KEEP but rename         |
+| curswanty-vt-repro.test.ts  | fix: stickyY capture      | YES (8c2c2c0c)   | Overlaps curswanty-repro — probably DELETE |
+| debug-incremental.test.ts   | perf: cursor benchmarks   | N/A (diagnostic) | Uses writeFileSync — DELETE or make .slow  |
+| outline-depth-debug.test.ts | fix: flexx position delta | YES (d6dd35cc)   | Regression guard — KEEP but rename         |
+| ansi-diff-analysis.test.ts  | diag: level-nav-shift     | Partial          | Invariant tests — KEEP                     |
+| scroll-follow.test.ts       | (unknown)                 | N/A              | FIXED in e8d852fd — had infinite loops     |
 
 Also: cursor-profile.slow.test.ts (already fixed — renamed from .test.ts, added skipIf).
 
@@ -42,16 +44,20 @@ The bug debugging workflow (.claude/skills/tui/fix.md) says 'write a failing tes
 ## Tasks
 
 ### A. Clean up existing stray files
+
 - [ ] Review each file above, decide keep/delete/rename
 - [ ] Delete debug-incremental.test.ts (diagnostic tool with writeFileSync, not a test)
 - [ ] Evaluate curswanty-vt-repro.test.ts overlap with curswanty-repro.test.ts
 - [ ] Rename valuable repros to proper regression test names (drop '-repro'/'-debug' suffix)
 
 ### B. Prevent recurrence — update workflows
+
 - [ ] Update .claude/skills/tui/fix.md 'Rendering Bugs' section: after fixing a bug, the repro test must be either promoted (renamed) or deleted. Never leave *-repro.test.ts in the repo.
 - [ ] Update .claude/skills/tests/tdd-workflow.md: add 'Cleanup' step after bug is fixed
 - [ ] Consider adding a lint rule or pre-commit check that flags files matching *-repro.test.ts or *-debug.test.ts
 
 ### C. Convention to document
+
 - [ ] Add to docs/dev/testing.md or test skill: 'Debug/repro test files MUST be cleaned up when the bug is fixed. Either rename to a proper regression test name or delete if redundant.'
 - [ ] Naming convention: temporary investigation files should use .scratch.ts (not .test.ts) so they don't run in test suites. Only promote to .test.ts when they become permanent regression guards.
+

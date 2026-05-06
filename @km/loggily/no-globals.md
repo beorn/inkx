@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/loggily/no-globals"
 aliases:
   - km-loggily.no-globals
@@ -18,6 +21,10 @@ dependencies:
     created_at: 2026-04-12T17:18:11Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-loggily
 ---
 
 # [x] Remove global setters — setIdFormat/setSampleRate into config/env @km/loggily #task #P0 @Bjørn Stabell
@@ -25,3 +32,4 @@ dependencies:
 blocks:: [[@km/loggily]]
 
 setIdFormat() and setSampleRate() in tracing.ts are global mutable state, violating principles.md. Move to env vars (TRACE_ID_FORMAT=w3c, TRACE_SAMPLE_RATE=0.1) read by withEnvDefaults(), or config object keys ({ idFormat, sampleRate }). State hierarchy: env vars → createLogger + config → logger (immutable).
+

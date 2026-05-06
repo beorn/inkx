@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/bearly/tribe-chief-runbook"
 aliases:
   - km-bearly.tribe-chief-runbook
@@ -25,3 +28,4 @@ Comprehensive improvements to tribe coordination quality:
 6. UserPromptSubmit HOOK ERROR: Investigate hook that fires on every message
 7. RUNBOOK: Create formal chief runbook (not playbook) with all responsibilities
 8. ORPHAN CLEANUP: Dead tribe MCP processes accumulate, need aggressive pruning
+

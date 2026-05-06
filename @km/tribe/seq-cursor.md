@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/seq-cursor"
 aliases:
   - km-tribe.seq-cursor
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Replace timestamp cursor with monotonic sequence for message delivery @km/tribe #feature #P1
 
 Timestamp-only cursor causes replay on reconnect when messages share the same ms timestamp. Add seq INTEGER column to messages, cursor tracks last_seq instead of last_ts.
+

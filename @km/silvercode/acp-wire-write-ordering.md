@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/acp-wire-write-ordering"
 aliases:
   - km-silvercode.acp-wire-write-ordering
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-27T17:23:08Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] ACP wire: await pending sessionUpdate writes before settling awaitTurn @km/silvercode #task #P2 @claude:cc081a9a
@@ -35,3 +42,4 @@ Why 2 fix in /why analysis 2026-04-27 (parent symptom: stuck thinking status —
 **Why this is GUARD-level (Why 2)**: prevents the same race from hitting any other consumer state that's sensitive to ordering — not just status. Acceptance: a unit test that interleaves emit() + settleNext() and asserts notifications complete first.
 
 Effort: ~30 min. Acceptance test goes in apps/silvercode/packages/claude-acp/tests/wire.test.ts.
+

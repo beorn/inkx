@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/tea-phase-0-mini-cutover"
 aliases:
   - km-tui.tea-phase-0-mini-cutover
@@ -58,16 +61,21 @@ dependencies:
     created_at: 2026-04-20T23:58:05Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui.tea
 ---
 
 # [x] Mini-cutover: withHelpOverlay plugin — TEA apply-chain on one real km dialog @km/tui #task #P1 @claude:8b5b9e1c
 
 blocks:: [[@km/tui/tea]]
 
-Phase 0 mini-cutover per K2.6 § 6 (pro review 2). Targets HelpOverlay — the simplest km dialog (no text input, no domain coupling, 4 ops). Validates the TEA plugin pattern against km's real zustand store + commands + keybindings before Phase 1 (withDialogs) commits. 
+Phase 0 mini-cutover per K2.6 § 6 (pro review 2). Targets HelpOverlay — the simplest km dialog (no text input, no domain coupling, 4 ops). Validates the TEA plugin pattern against km's real zustand store + commands + keybindings before Phase 1 (withDialogs) commits.
 
 **Protocol:** feature-branched plugin + feature-flag gated + parity tests + real TTY verification. Time-boxed to 1 day. Report-back driven.
 
 **Target ops:** SHOW_HELP, HIDE_HELP, HELP_SCROLL_UP, HELP_SCROLL_DOWN
 **Keybinding:** ? (shift-/)
 **Scope:** zero — no sel.*, no repo, no dialog-guard.
+

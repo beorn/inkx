@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/bearly/tribe-chief"
 aliases:
   - km-bearly.tribe-chief
@@ -15,3 +18,4 @@ assignee: claude:19080504
 # [x] Phase 2: Chief system prompt instructions @km/bearly #task #P2 @claude:19080504
 
 Write system prompt instructions for the chief role: Telegram → bead → assign workflow, status aggregation → Telegram reply, dead member detection → reassignment, shared-file conflict detection. Includes member instructions variant.
+

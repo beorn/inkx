@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/acp-adapter-gemini"
 aliases:
   - km-silvercode.acp-adapter-gemini
@@ -34,6 +37,14 @@ dependencies:
     created_at: 2026-04-26T01:11:37Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode.acp
+      - type: link
+        target: km-silvercode.acp-adapter-claude
 ---
 
 # [x] ACP adapter — Gemini CLI stream-json → SessionUpdate @km/silvercode #feature #P4 @claude:cd034ca4
@@ -41,3 +52,4 @@ dependencies:
 blocks:: [[@km/silvercode/acp]], [[@km/silvercode/acp-adapter-claude]]
 
 Stateless mapper for gemini-cli's output → ACP SessionUpdate. Gemini CLI uses Cloud Code Assist HTTP endpoint underneath; the CLI itself emits a different schema (closer to Vertex/Gemini API event shape). Subscription-plan auth: rides Google account login (Cloud Code Assist free tier). Refer to vibe-kanban's gemini.rs for prior art. Pi-mono's google-gemini-cli provider (HTTP, not subprocess) is a different approach worth comparing.
+

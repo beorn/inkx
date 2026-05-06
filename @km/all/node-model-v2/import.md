@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/node-model-v2/import"
 aliases:
   - km-all.node-model-v2.import
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 Asana import improvements: tasks to oi (not li), reconvert existing imports, attachment timestamps.
 
 Subsumes: @km/tui/asana-section-to-oi, @km/tui/attachment-timestamps, @km/all/node-model-v2/quick-wins
+

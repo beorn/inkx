@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/npm-sync"
 aliases:
   - km-tribe.npm-sync
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Published tribe server.ts is stale @km/tribe #bug #P2
 
 plugins/tribe/server.ts is a stale standalone copy (795 lines) vs tools/tribe.ts (1140 lines). Missing: plugin system, noise dedup, auto-reload, prune-rename, cursor recovery, message format rules. Need to bundle deps (tribe-retro.ts, lib/tribe/plugins.ts) into the npm package or inline them.
+

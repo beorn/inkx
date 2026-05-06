@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/cleanup-writesync"
 aliases:
   - km-silvery.cleanup-writesync
@@ -18,3 +20,4 @@ owner: bjorn@stabell.org
 createApp's exit cleanup uses writeSync(fd, sequences) where fd comes from stdout.fd. Mock stdouts set fd:1 (real stdout fd), so cleanup escapes bypass the mock and hit process.stdout. Causes 'Test produced stdout/stderr output' failures in inline-mouse-default, inline-focus-reporting, and any test using mock stdout with fd:1.
 
 Fix: use stdout.write() for cleanup instead of writeSync(fd), or detect mock stdout and skip writeSync.
+

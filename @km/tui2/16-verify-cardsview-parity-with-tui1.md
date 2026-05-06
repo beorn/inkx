@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui2/16-verify-cardsview-parity-with-tui1"
 aliases:
   - km-tui2.16
@@ -13,3 +15,4 @@ closed_at: 2026-01-17T00:07:26Z
 Verify: card borders, child tasks, selection, folding
 
 **Files**: apps/@km/tui/packages/@km/_orphan/opentui/src/views/CardsView.tsx
+

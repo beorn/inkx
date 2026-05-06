@@ -35,3 +35,4 @@ Add a Claude/Claude Code profile for the shared fake backend and cover both the 
 - Fake Claude ACP profile exercises real `connectAcpRegistry(..., "claude")`.
 - Tests distinguish Claude ACP wrapper behavior from SDK and legacy spawn behavior.
 - Live-mode contract can compare init, prompt, permission, and close behavior against installed Claude backend.
+

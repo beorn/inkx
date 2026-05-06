@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/izt93"
 aliases:
   - km-izt93
@@ -16,3 +19,4 @@ assignee: claude:f8196c1c
 # [x] Pro Review Round: 2026-03-20 — era2 design docs (all 10) @km/_orphan #epic #P2 @claude:f8196c1c
 
 GPT 5.4 Pro deep research review of all era2 design docs for cross-doc consistency, stale content, completeness, and clarity.
+

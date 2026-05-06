@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/swe-bench-baseline"
 aliases:
   - km-silvercode.swe-bench-baseline
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-24T02:01:33Z
     created_by: claude:208595de
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [ ] Benchmark Silvercode vs vanilla Claude Code on SWE-bench @km/silvercode #task #P3
@@ -65,3 +71,4 @@ Not now. This bead exists to prevent forgetting. Target: after M3 (auto-injectio
 - SWE-bench Verified: https://www.swebench.com
 - aider's benchmark methodology (reference for how to run responsibly)
 - Related benchmarks (post-MVP): Terminal-Bench 2.0, SWE-bench Pro, MAKER (Gas Town used this)
+

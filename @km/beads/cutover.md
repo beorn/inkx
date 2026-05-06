@@ -1,7 +1,4 @@
 ---
-tags:
-  - task
-  - P1
 mentions:
   - km
   - claude
@@ -25,6 +22,10 @@ dependencies:
     created_at: 2026-04-27T15:03:33Z
     created_by: claude:da9990c5
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-beads
 ---
 
 # [x] km bd cutover — fix migrate parser, validate dry-run on full issues.jsonl @km/beads #task #P1 @claude:da9990c5

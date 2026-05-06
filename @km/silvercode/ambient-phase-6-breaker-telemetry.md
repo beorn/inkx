@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/ambient-phase-6-breaker-telemetry"
 aliases:
   - km-silvercode.ambient-phase-6-breaker-telemetry
@@ -72,8 +75,13 @@ dependencies:
     created_at: 2026-04-27T14:17:45Z
     created_by: claude:4de4a3ab
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.ambient-context-excellence
 ---
 
 # [x] Ambient Phase 6.b — circuit breaker + Layer 4 telemetry @km/silvercode #feature #P1 @claude:4de4a3ab
 
 blocks:: [[@km/silvercode/ambient-context-excellence]]
+

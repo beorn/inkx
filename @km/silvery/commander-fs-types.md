@@ -1,4 +1,7 @@
 ---
+mentions:
+  - silvery
+  - km
 id: "@km/silvery/commander-fs-types"
 aliases:
   - km-silvery.commander-fs-types
@@ -21,3 +24,4 @@ After era2b ships fx (effect system), add filesystem-aware CLI types to @silvery
 These require side effects (fs access) so they should use fx for DI/testability rather than raw fs calls. Pure types (port, csv, int) stay side-effect-free.
 
 Depends on: era2b fx system shipping in silvery.
+

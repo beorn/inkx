@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/census-page-fix"
 aliases:
   - km-termless.census-page-fix
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Fix termless.dev census page — redirect to terminfo.dev @km/termless #task #P1
+

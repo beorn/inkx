@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/terminfo/pipeline-automation"
 aliases:
   - km-terminfo.pipeline-automation
@@ -30,11 +33,9 @@ From /big analysis of /terminfo-update workflow. Three improvements:
 1. SINGLE PIPELINE RUNNER — bun terminfo update --full
    Wraps all 9 refresh steps into one orchestrated flow with --pause-at triage
    for human checkpoints. Like CI with manual approval gates.
-
 2. DERIVE probeStatus FROM PROBE CODE
    Script scans probe-defs/*.ts. If termless callback is non-null, probeStatus=automated.
    If null, probeStatus=partial. Eliminates manual sync between probe code and features.json.
-
 3. GITHUB RELEASE WATCHER
    Cron or scheduled trigger checking GitHub releases API for tracked terminals
    (Kitty, Ghostty, WezTerm, foot, Alacritty, iTerm2, Windows Terminal, mintty).
@@ -43,3 +44,4 @@ From /big analysis of /terminfo-update workflow. Three improvements:
 
 Also: annotation templates for predictable failures (VT420 ops, xterm-only queries)
 so new annotations are auto-generated instead of hand-written.
+

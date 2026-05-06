@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/xihh"
 aliases:
   - km-xihh
@@ -12,6 +14,7 @@ closed_at: 2026-01-16T08:02:52Z
 Add undo/redo capability to TUI2 leveraging the Redux-style architecture.
 
 Implementation approach:
+
 1. Wrap dispatch() in useBoardState.ts to record state history
 2. Maintain history stack of BoardState snapshots
 3. Expose undo()/redo() functions from the hook
@@ -19,3 +22,4 @@ Implementation approach:
 5. Show undo/redo availability in StatusBar
 
 The pure reducer + immutable state makes this straightforward - just need to snapshot states and restore on undo.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/focus-unmount"
 aliases:
   - km-silvery.focus-unmount
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Focus manager retains references to deleted/unmounted nodes @km/silvery #bug #P0
 
 removeChild, removeChildFromContainer, clearContainer, detachDeletedInstance do not blur/retarget focus. activeElement can point to detached tree node; focusNext indexOf returns -1; hasFocusWithin becomes false while activeId claims focus. GPT 5.4 review finding.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/wrap-unbreakable-audit"
 aliases:
   - km-silvercode.wrap-unbreakable-audit
@@ -78,6 +81,10 @@ dependencies:
     created_at: 2026-04-28T11:12:13Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Audit silvercode <Text wrap="wrap"> sites for long-unbreakable-token overflow @km/silvercode #task #P3 @claude:cc081a9a
@@ -87,6 +94,7 @@ blocks:: [[@km/silvercode]]
 Per /pro review (2026-04-28, see @km/silvercode/pane-2d-horizontal-divider context), silvercode has ~12 <Text wrap="wrap"> sites that could overflow their parent flex containers when rendering long unbreakable tokens (URLs, SHAs, file paths, base64, error blobs). The PaneDivider fix only canonicalized the divider case.
 
 Suspect surfaces (rg -n 'wrap=' apps/silvercode/src/components/):
+
 - LinkifiedText.tsx:242,292 — chat user/agent messages (long URLs likely)
 - MarkdownView.tsx:29 — markdown text (URLs, paths)
 - ToolCallError.tsx:72 — error messages (stack frames, paths)
@@ -99,12 +107,15 @@ Suspect surfaces (rg -n 'wrap=' apps/silvercode/src/components/):
 Pattern (Gemini 3 Pro): "a single long URL spat out by the Claude agent could force a pane to expand, blowing out the binary-split pane grid."
 
 /complete:
+
 - Audit each site for parent container shape (does it have overflow="hidden", minWidth=0 on the inner Box, or a width pin?)
 - For each unguarded site, write a regression test that feeds a 200-char unbreakable token (e.g. https://example.com/path-with-no-break-opportunities-x-x-x-x-x-x-x-x) and asserts it doesn't overflow
 - Apply the canonical escape hatch (inner Box minWidth=0 minHeight=0 + Text minWidth=0)
 - Or extract a <DividerFiller>-style primitive in silvery (Kimi K2.6 recommendation) that bakes the escape in
 
 References:
+
 - vendor/silvery/tests/features/divider-overflow-clear.test.tsx — canonical regression pattern
 - /pro review at /var/folders/x6/.../llm-cc081a9a-review-the-recent-changes-qfrb.txt ($2.22, 4-leg, 2026-04-28)
 - vendor/silvery/CLAUDE.md — "Containers narrower than the longest unbreakable word" rule
+

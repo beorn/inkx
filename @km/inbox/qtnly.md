@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/qtnly"
 aliases:
   - km-qtnly
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Hidden/display:none nodes leave stale dirty flags @km/_orphan #bug #P1
 
 renderNodeToBuffer returns early for hidden/display:none nodes without clearing dirty flags. Stale subtreeDirty blocks markSubtreeDirty propagation. Fix: clearDirtyFlags(node) before returning.
+

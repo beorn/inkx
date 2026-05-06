@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui2/19-add-env-var-to-bypass-tty-check-for-headless-testi"
 aliases:
   - km-tui2.19
@@ -15,3 +17,4 @@ The TTY check at tui2.tsx:127 prevents headless testing via ttyd + Playwright.
 Proposed: Add FORCE_TTY=1 or CI=true bypass for testing.
 
 **Files**: apps/@km/_orphan/cli/src/tui2/tui2.tsx
+

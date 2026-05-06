@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/2k1yy"
 aliases:
   - km-2k1yy
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Composable Region + Matcher API for termless @km/_orphan #feature #P1
 
 Replace ~27 flat matchers with composable region selectors (screen/scrollback/buffer/viewport/row/cell/range) + generic matchers (toContainText/toBeBold/toHaveFg etc). Playwright-inspired WHERE x WHAT composition.
+

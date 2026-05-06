@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/textarea-bugs"
 aliases:
   - km-inkx.textarea-bugs
@@ -20,3 +23,4 @@ TextArea component has multiple UX issues reported during examples testing:
 4. **Cursor stuck at pos 0** — sometimes cursor stays at position 0 but text still appears when typing
 
 These may be related to input layer handling, render cycle latency, or cursor position tracking in the TextArea implementation.
+

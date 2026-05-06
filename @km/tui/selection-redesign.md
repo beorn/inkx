@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/selection-redesign"
 aliases:
   - km-tui.selection-redesign
@@ -18,8 +20,9 @@ Replace ALL selection/cursor/edit state with a single Selection value type.
 ## The Unified Selection Type
 
 Point = { nodeId: string, offset?: number }
-  - offset absent → node cursor
-  - offset present → text cursor (edit mode)
+
+- offset absent → node cursor
+- offset present → text cursor (edit mode)
 
 Selection =
   | { type: 'none' }
@@ -43,34 +46,41 @@ DERIVED (pure functions, never stored):
   inlineEditBlock = { nodeId, blockIndex } when offset present
 
 ## What It Replaces
-  - cursorNodeId (cursor-store.ts)
-  - cursorCardNodeId, cursorColumnNodeId (cursor-store.ts)
-  - selectionLevel (cursor-store.ts)
-  - multiSelected: Set<string> (ui-reducer.ts)
-  - selectionAnchor (ui-reducer.ts)
-  - inlineEditBlock (ui-reducer.ts)
-  - ReactiveNodeStore.multiSelected signals (reactive.ts)
-  - expandWithDescendants (selection-engine.ts)
+
+- cursorNodeId (cursor-store.ts)
+- cursorCardNodeId, cursorColumnNodeId (cursor-store.ts)
+- selectionLevel (cursor-store.ts)
+- multiSelected: Set<string> (ui-reducer.ts)
+- selectionAnchor (ui-reducer.ts)
+- inlineEditBlock (ui-reducer.ts)
+- ReactiveNodeStore.multiSelected signals (reactive.ts)
+- expandWithDescendants (selection-engine.ts)
 
 ## Key Insight: offset IS edit mode
-  { type: 'caret', point: { nodeId: 'task-1' } }           → node cursor
+
+{ type: 'caret', point: { nodeId: 'task-1' } }           → node cursor
   { type: 'caret', point: { nodeId: 'task-1', offset: 0 } } → editing task-1
   No separate 'edit mode' flag needed.
 
 ## Invariant
-  validateSelection(selection, visibleTree) → Selection
-  - Invisible nodes → snap to nearest visible ancestor
-  - Invalid offsets → clamp to content length
-  - Run after every mutation
+
+validateSelection(selection, visibleTree) → Selection
+
+- Invisible nodes → snap to nearest visible ancestor
+- Invalid offsets → clamp to content length
+- Run after every mutation
 
 ## Prior Art
-  SlateJS: anchor/focus Points with path+offset (text-first)
+
+SlateJS: anchor/focus Points with path+offset (text-first)
   ProseMirror: abstract Selection validated against document (most rigorous)
   VS Code TreeView: anchor+focus with getRange (tree-first)
   km model: hybrid — tree-first with optional text offset
 
 ## Phases
-  Phase 1: Define Selection type + pure functions in @km/tree, tests
+
+Phase 1: Define Selection type + pure functions in @km/tree, tests
   Phase 2: Wire into board-app-store, replace multiSelected + selectionAnchor + cursor
   Phase 3: Merge inlineEditBlock into Selection (offset = edit mode)
   Phase 4: Remove old state fields + ReactiveNodeStore.multiSelected
+

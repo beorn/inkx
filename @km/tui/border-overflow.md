@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/border-overflow"
 aliases:
   - km-tui.border-overflow
@@ -20,8 +23,10 @@ Instead of adding any content for overflow indication, modify the card's bottom 
 This replaces the current position:absolute ⋯ overlay in TreeNode.tsx.
 
 Implementation options:
+
 - Option A: Render card without bottom border, manually render custom bottom line
 - Option B: Modify inkx to support custom bottom border content/override
 - Option C: Use position:absolute to overlay the bottom border with custom content
 
 The indicator should only appear when there are hidden children (overflow). When no overflow, the normal border renders.
+

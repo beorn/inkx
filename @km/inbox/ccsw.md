@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/ccsw"
 aliases:
   - km-ccsw
@@ -21,10 +23,10 @@ inkx has partial ref support - HostConfig's `getPublicInstance` already returns 
 
 **onLayout and refs are complementary, not competing:**
 
-| Pattern | When to Use |
-|---------|-------------|
-| **onLayout** | Reactive - auto-triggers on layout change, good for re-renders and side effects |
-| **refs** | Imperative - query on demand, good for one-time reads and imperative operations |
+| Pattern  | When to Use                                                                     |
+| -------- | ------------------------------------------------------------------------------- |
+| onLayout | Reactive - auto-triggers on layout change, good for re-renders and side effects |
+| refs     | Imperative - query on demand, good for one-time reads and imperative operations |
 
 onLayout is a valuable feature (React DOM doesn't have it built-in - you need ResizeObserver). We're adding refs as an additional tool, not replacing onLayout.
 
@@ -33,39 +35,35 @@ onLayout is a valuable feature (React DOM doesn't have it built-in - you need Re
 ### Phase 1: inkx Core Changes
 
 1. **Wrap Box/Text with forwardRef** (`vendor/beorn-inkx/src/components/`)
-   ```typescript
-   export const Box = forwardRef<InkxNode, BoxProps>((props, ref) => {
-     const { children, ...restProps } = props;
-     return <inkx-box ref={ref} {...restProps}>{children}</inkx-box>;
-   });
-   ```
-
+  ```typescript
+  export const Box = forwardRef<InkxNode, BoxProps>((props, ref) => {
+    const { children, ...restProps } = props;
+    return <inkx-box ref={ref} {...restProps}>{children}</inkx-box>;
+  });
+  ```
 2. **Update TypeScript types** - Add `ref?: React.Ref<InkxNode>` to BoxProps/TextProps
-
 3. **Add measureElement() helper** - Convenience function matching Ink's API
-   ```typescript
-   export function measureElement(node: InkxNode): { width: number; height: number } {
-     return {
-       width: node.computedLayout?.width ?? 0,
-       height: node.computedLayout?.height ?? 0,
-     };
-   }
-   ```
+  ```typescript
+  export function measureElement(node: InkxNode): { width: number; height: number } {
+    return {
+      width: node.computedLayout?.width ?? 0,
+      height: node.computedLayout?.height ?? 0,
+    };
+  }
+  ```
 
 ### Phase 2: @km/tui Refactoring
 
 1. **Replace CardPositionRegistry singleton** (`apps/km-tui/packages/km-ink/src/card-positions.ts`)
-   - Convert global singleton to context + ref pattern
-   - Cleaner lifecycle management
-
+  - Convert global singleton to context + ref pattern
+  - Cleaner lifecycle management
 2. **Review patterns - keep onLayout where reactive, use refs where imperative:**
-   - `CardColumn.tsx` prevY tracking - likely keep onLayout (needs reactive updates)
-   - One-time measurements - use refs + measureElement()
-   - Scroll position queries - refs may be cleaner than prop drilling
-
+  - `CardColumn.tsx` prevY tracking - likely keep onLayout (needs reactive updates)
+  - One-time measurements - use refs + measureElement()
+  - Scroll position queries - refs may be cleaner than prop drilling
 3. **Consider focus stack** (optional, may be separate bead)
-   - Replace manual `useInput` gating in `Board.tsx`
-   - Auto-route input to topmost focused component
+  - Replace manual `useInput` gating in `Board.tsx`
+  - Auto-route input to topmost focused component
 
 ### Phase 3: Documentation
 
@@ -76,7 +74,7 @@ onLayout is a valuable feature (React DOM doesn't have it built-in - you need Re
 ## Acceptance Criteria
 
 - [ ] Box and Text support refs via forwardRef
-- [ ] TypeScript types include ref prop  
+- [ ] TypeScript types include ref prop
 - [ ] measureElement() helper exported from inkx
 - [ ] CardPositionRegistry refactored to use context + ref
 - [ ] Documentation includes guidance on refs vs onLayout
@@ -85,19 +83,23 @@ onLayout is a valuable feature (React DOM doesn't have it built-in - you need Re
 ## Files to Modify
 
 **inkx:**
+
 - `vendor/beorn-inkx/src/components/Box.tsx`
 - `vendor/beorn-inkx/src/components/Text.tsx`
 - `vendor/beorn-inkx/src/types.ts` (if needed for exports)
 - `vendor/beorn-inkx/src/index.ts` (export measureElement)
 
 **@km/tui:**
+
 - `apps/km-tui/packages/km-ink/src/card-positions.ts`
 - Components as needed after review
 
 **docs:**
+
 - `docs/dev/ink-patterns.md`
 
 ## References
 
 - Plan file: `~/.claude/plans/iterative-floating-lampson.md`
 - Ink PR #330: https://github.com/vadimdemedes/ink/pull/330
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ag-canvas"
 aliases:
   - km-silvery.ag-canvas
@@ -31,12 +33,15 @@ Canvas rendering target for silvery + @km/_orphan/on-canvas web client.
 **Tests**: 37 passing — node-cache (15), serialize (7), input (9), remote-repo (6).
 
 **Architecture**:
+
 - apps/@km/_orphan/web/ (267+177+286+27 = 757 LOC): serveRepo(), createRemoteRepo(), NodeCache, serialize
 - apps/@km/tui/web/ (~790 LOC): @km/canvas/tsx with BoardView + RemoteBoard, stubs, Vite config
 - vendor/silvery canvas: input.ts (316 LOC) with CanvasMouseEvent, index.ts with onMouse
 - 7 Node.js stubs (fs, path, os, events, child_process, bun:sqlite, async_hooks)
 
 ## Remaining (P4, future)
+
 - era2b: Migrate to commands + signals (blocked on @silvery/commands)
 - npm-package: Ship @silvery/canvas as standalone package (needs API stabilization)
 - UX polish: help dialog (?), search (/), hover tooltip, expanded keybindings — in progress
+

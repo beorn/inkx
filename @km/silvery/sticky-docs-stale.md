@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/sticky-docs-stale"
 aliases:
   - km-silvery.sticky-docs-stale
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Docs: Sticky Tier 2 behavior and getCellBg comments out of date @km/silvery #task #P2
 
 Tier 2 docs say null bg clear but code uses findInheritedBg. Sticky comments in content-phase.ts still explain stickyForceRefresh in terms of getCellBg but renderGraphemes now prefers explicit inheritedBg.
+

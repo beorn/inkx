@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ink-maxfps-shim"
 aliases:
   - km-silvery.ink-maxfps-shim
@@ -20,3 +22,4 @@ Closes 3 Ink 7.0 compat failures.
 ## Parent
 
 @km/silvery/positioning
+

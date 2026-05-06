@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/inline-text-segments"
 aliases:
   - km-silvery.inline-text-segments
@@ -10,7 +12,7 @@ owner: bjorn@stabell.org
 
 # [ ] Nested Text as inline style segments — HTML inline model (wrap + hit-test + styling from one primitive) @km/silvery #feature #P1
 
-# @km/silvery/inline-text-segments
+## @km/silvery/inline-text-segments
 
 **Horizon**: v1.5 or v2.0 (needs design review)
 **Parent**: @km/silvery/positioning
@@ -77,15 +79,16 @@ See full analysis in session notes. 20 hypotheses generated across missing-abstr
 2. **Measure phase** — for a `<Text>` with inner `<Text>` children, measure the unified run (not per-child). Inner Texts don't get their own layout node.
 3. **Wrap algorithm** — wrap across segment boundaries (already works for plain text, needs validation for styled text)
 4. **Hit test** — for a cell inside a `<Text>` rect:
-   - Find which character position the cell corresponds to (accounting for wide chars, style transitions)
-   - Find which segment owns that character position
-   - If the character is interior whitespace not owned by any inner segment, it belongs to the outer Text
-   - Walk up from the segment's owning node checking for handlers (segment handler first, then outer Text's handlers)
+  - Find which character position the cell corresponds to (accounting for wide chars, style transitions)
+  - Find which segment owns that character position
+  - If the character is interior whitespace not owned by any inner segment, it belongs to the outer Text
+  - Walk up from the segment's owning node checking for handlers (segment handler first, then outer Text's handlers)
 5. **Render phase** — apply segment styles per character (already close — just needs segments to include non-bg styles like fg, bold, handlers)
 
 ### Migration risk
 
 Existing layouts relying on inner `<Text>` as atomic wrap units may behave differently after this change (i.e., they'll wrap mid-link when they previously didn't). Mitigation:
+
 - Opt-in `<Text inline>` flag? (rejected — wrong default)
 - Opt-in `<Text atomic>` flag? (better — preserve current behavior for users who need it)
 - Default behavior change with migration guide
@@ -99,3 +102,4 @@ Prototype branch. Take Claude Code's "arm now" repro. Implement the segment-coll
 - @km/silvery/positioning (parent — moat differentiator)
 - @km/silvery/inline-rects (existing infrastructure reuse)
 - @km/silvery/ink-compat-upgrade (relevant for Ink 7.0 compat layer)
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/textarea-autosize-docs"
 aliases:
   - km-silvery.textarea-autosize-docs
@@ -25,6 +28,14 @@ dependencies:
     created_at: 2026-04-25T23:33:26Z
     created_by: claude:611e701e
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery
+      - type: link
+        target: km-silvery.textarea-autosize
 ---
 
 # [x] silvery: docs pass for TextArea autosize feature @km/silvery #task #P2 @claude:2405c72e
@@ -32,3 +43,4 @@ dependencies:
 blocks:: [[@km/silvery]], [[@km/silvery/textarea-autosize]]
 
 Companion to @km/silvery/textarea-autosize (do them in one PR). Update: docs/api/text-area.md (prop reference + examples for fixed/content/bounded modes), docs/components/TextInput.md (cross-link), docs/guide/the-silvery-way.md (anti-pattern callout: don't compute TextArea height from value newlines), docs/guide/styling.md (CSS field-sizing mapping), CHANGELOG.md (feature entry + migration note), examples/apps/textarea.tsx (demo all three modes).
+

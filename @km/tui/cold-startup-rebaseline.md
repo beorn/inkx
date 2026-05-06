@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/cold-startup-rebaseline"
 aliases:
   - km-tui.cold-startup-rebaseline
@@ -22,6 +25,10 @@ dependencies:
     created_at: 2026-04-21T00:43:39Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Cold-start rebaseline after C2 collapse-parse (30min measurement, not optimization) @km/tui #task #P2 @claude:8b5b9e1c
@@ -45,3 +52,4 @@ Do NOT optimize. Do NOT instrument deeply. Just measure.
 - Cold-start <2s: close @km/tui/cold-startup-block as 'resolved by C2'
 - Cold-start 2-8s: downgrade to P3, defer perf work
 - Cold-start >8s: keep at P2, C2 alone didn't fix it, needs real perf investigation
+

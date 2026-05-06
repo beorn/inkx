@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/gbrain-research"
 aliases:
   - km-infra.gbrain-research
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-12T13:13:02Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra.org-redesign
 ---
 
 # [x] Phase D: Research doc + vision update — gbrain/pam convergence @km/infra #task #P2
@@ -24,3 +30,4 @@ dependencies:
 blocks:: [[@km/infra/org-redesign]]
 
 Research doc at vendor/internal/km/. Evaluation framework. Update km horizons with PIM convergence roadmap.
+

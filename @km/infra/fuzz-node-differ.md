@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/fuzz-node-differ"
 aliases:
   - km-infra.fuzz-node-differ
@@ -13,3 +16,4 @@ assignee: claude:e8fd4b92
 ---
 
 # [x] Fuzz: node diffing ID mapping + ordinal normalization @km/infra #task #P2 @claude:e8fd4b92
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-public-docs"
 aliases:
   - km-silvery.theme-public-docs
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-17T22:37:44Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.design-system
 ---
 
 # [x] Theme public docs — silvery.dev guides + terminfo.dev fundamentals @km/silvery #feature #P3
@@ -51,3 +57,4 @@ Cross-link silvery.dev ↔ terminfo.dev for related topics.
 
 Full context: hub/silvery/design/v10-terminal/terminal-color-strategy.md
 Parent: @km/silvery/design-system
+

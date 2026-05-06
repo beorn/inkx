@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/market/execution"
 aliases:
   - km-market.execution
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Content marketing execution across silvery ecosystem @km/market #epic #P3
 
 Epic tracking all content marketing work: programmatic SEO, editorial content, blog infrastructure, newsletter, distribution. Strategy doc: docs/content-marketing-strategy.md. Skill: .claude/skills/marketing/
+

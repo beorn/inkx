@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/reporter-col1"
 aliases:
   - km-reporter-col1
@@ -17,3 +19,4 @@ Expected behavior: Live updating grouped dots view with spinner animation
 Actual behavior: Dots appear on first column only
 
 Related to: @km/_orphan/reporter-tty, @km/_orphan/reporter-grouping
+

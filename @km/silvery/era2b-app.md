@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/era2b-app"
 aliases:
   - km-silvery.era2b-app
@@ -26,3 +29,4 @@ Implement withApp() composition preset and domain plugin infrastructure.
 
 Depends on: era2b-scope, era2b-2-commands.
 Design: era2b/app.md
+

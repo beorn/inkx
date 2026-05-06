@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/wan7"
 aliases:
   - km-wan7
@@ -8,3 +10,4 @@ closed_at: 2026-01-20T15:01:06Z
 ---
 
 # [x] Cards/Tabs View: Column headings need left space padding @km/_orphan #bug #P2
+

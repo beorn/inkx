@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui2/18-verify-all-keyboard-bindings-work-identically"
 aliases:
   - km-tui2.18
@@ -15,3 +17,4 @@ Actions: Enter, x, d, a/A, e, /, v, ?
 Modes: VIEW, VISUAL, INSERT, SEARCH
 
 **Files**: apps/@km/tui/packages/@km/_orphan/opentui/src/App.tsx
+

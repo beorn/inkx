@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/queue-rename-rewrite"
 aliases:
   - km-storage.queue-rename-rewrite
@@ -18,8 +20,10 @@ owner: bjorn@stabell.org
 GPT 5.4 Pro identified: If user edits note then renames before debounce flush, queued write still targets old path. renameSync runs immediately, then queued write recreates old file.
 
 FIX: Add WriteQueue methods:
+
 - renamePending(oldPath, newPath) — rewrite queued path
 - dropPending(path) — cancel queued write for deleted file
 - subtree path rewrite for folder renames
 
 Without this, rename tokens alone are not enough.
+

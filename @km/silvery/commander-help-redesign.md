@@ -1,4 +1,7 @@
 ---
+mentions:
+  - silvery
+  - km
 id: "@km/silvery/commander-help-redesign"
 aliases:
   - km-silvery.commander-help-redesign
@@ -10,7 +13,7 @@ owner: bjorn@stabell.org
 
 # [ ] @silvery/commander: rethink help rendering (design pass) @km/silvery #task #P4
 
-# @silvery/commander: rethink help rendering (design pass)
+## @silvery/commander: rethink help rendering (design pass)
 
 ## Status
 
@@ -23,6 +26,7 @@ owner: bjorn@stabell.org
 **Idea**: render help as a React component tree via `renderStringSync(<HelpView cmd={cmd} />)`. Plug into Commander's `configureHelp({ formatHelp })` hook. Replace Commander's text-based help machinery with silvery's flexbox-driven layout.
 
 **Open questions**:
+
 - Should this ship inside `@silvery/commander` (one package, hard React dep) or as a separate `@silvery/commander-react` package (opt-in, no React in core)? Or as a docs-site copy-paste example with no published code at all?
 - Does the package called `@silvery/commander` benefit from actually using silvery's React layer, or is type-safe Commander + ANSI colors enough?
 - If split into two packages: how do they share the help-section data? Public getter on `cmd.helpSections`? IR walker function? Direct private-field access?
@@ -32,6 +36,7 @@ owner: bjorn@stabell.org
 **Idea**: a typed tree (`HelpSection`, `HelpRow`, `HelpTerm`) describing help structure as data. Walked from Commander's command tree by `commanderToHelpModel(cmd)`. Consumed by any renderer (React, text, HTML, markdown, JSON-for-LLM).
 
 **Open questions**:
+
 - Is the IR worth its weight, or do users just walk Commander's existing `Help` class methods (`visibleOptions`, `visibleCommands`, `subcommandTerm`, etc.)? Commander's API already provides structured access.
 - If we add `HelpModel`, does it duplicate Commander's data shape? Does it survive Commander upgrades better?
 - The IR is mostly useful for non-terminal renderers (HTML, markdown) — but no consumer needs them today. YAGNI argues for skipping.
@@ -41,6 +46,7 @@ owner: bjorn@stabell.org
 **Idea**: introduce a one-arg method `setHelpRenderer` that's shorter and more direct than Commander's existing two-arg `configureHelp({ formatHelp(cmd, helper) })` hook.
 
 **Open questions**:
+
 - The 18-character ergonomic win doesn't justify a new method that fragments the ecosystem (Commander users already know `configureHelp`).
 - `setHelpRenderer` would bypass Commander's `Help` class entirely, losing composition with `padWidth`, `subcommandTerm`, etc.
 - Inheritance to subcommands has to be hand-implemented (parent-chain walk) vs Commander's existing `_helpConfiguration` propagation.
@@ -51,6 +57,7 @@ owner: bjorn@stabell.org
 **Idea**: `addHelpSection("Backends:", rows, { renderItem: BackendRow })` where `BackendRow` is a React component that renders each row's term + description. Default `renderItem` handles the auto-detect ($ blocks, command names, flags) logic.
 
 **Open questions**:
+
 - Adds API surface (`renderItem` prop, component contract).
 - Couples `addHelpSection` to React even if the default is a plain function.
 - Could be solved by users writing their own `formatHelp` that matches on section title — no new API needed.
@@ -60,6 +67,7 @@ owner: bjorn@stabell.org
 **Idea**: `addHelpSection("Backends:", () => buildBackendRows())` — the rows function runs when help is requested, giving live data instead of registration-time data.
 
 **Open questions**:
+
 - Solves the `termless backends` UX problem (action prints table; help prints commands; two systems can't interleave).
 - Adds API surface to `addHelpSection` (content can now be a function).
 - Sync only? Async needs special handling because Commander's `formatHelp` is sync.
@@ -69,6 +77,7 @@ owner: bjorn@stabell.org
 **Idea**: same `HelpModel` IR can render to terminal (silvery), HTML (docs sites), markdown (READMEs), JSON (AI agent introspection). One source of truth, many output targets.
 
 **Open questions**:
+
 - Premature without a second target. Currently only the terminal needs help output.
 - Locks the IR design to "no target-specific concerns" — discipline, but constrains the IR.
 - Could be a future bead once VitePress integration lands and someone wants to auto-generate docs from a Commander program.
@@ -78,6 +87,7 @@ owner: bjorn@stabell.org
 **Idea**: extract the shell command tokenizer (currently inlined in `styleSectionTerm`) into a reusable utility, ship a `<Cmdline>` Silvery component that wraps it.
 
 **Open questions**:
+
 - Where does the tokenizer live? `@silvery/ansi` is wrong (it's not about ANSI). `@silvery/utils` doesn't exist. A new package is overhead. Inline duplication is bad.
 - `<Cmdline>` is reusable beyond commander — error messages, blog posts, docs sites, tutorials — but no consumer wants it today.
 - **Tentative answer**: defer until a second consumer appears. Keep the tokenizer private inside `@silvery/commander/src/tokenize.ts`.
@@ -110,3 +120,4 @@ Until then: leave the default text renderer alone (after `commander-text-render`
 - **closed**: `km-silvery.commander-style-hooks` — Commander 13+ style hook compat moot in new renderer
 - **active**: `km-silvery.commander-text-render` — the stop-gap, ships before this design pass
 - **orthogonal**: `km-silvery.commander-command-string-args` — input syntax, not output rendering
+

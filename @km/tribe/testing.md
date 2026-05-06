@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/testing"
 aliases:
   - km-tribe.testing
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-18T11:00:13Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [ ] Tribe testing system: simulated multi-session environment with fake resources @km/tribe #feature #P2
@@ -22,6 +28,7 @@ blocks:: [[@km/tribe]]
 Build a comprehensive testing system for tribe coordination that can run without real Claude Code sessions.
 
 Requirements:
+
 1. Simulated sessions — spawn N fake tribe MCP clients that register, heartbeat, send/receive messages, claim beads, and commit (mimicking real Claude Code sessions)
 2. Fake cloud resources — mock SQLite DB, mock git repo (in-memory or tmpdir), mock beads directory with issues.jsonl
 3. Scenario runner — define test scenarios as sequences of actions: "session A claims bead X, session B sends query, chief assigns work, session C dies, chief prunes and reassigns"
@@ -31,7 +38,9 @@ Requirements:
 7. Integration tests — full MCP server lifecycle: startup, registration, messaging, pruning, shutdown
 
 Architecture:
+
 - Use vitest for test runner
 - Factory functions for creating mock sessions, mock DBs, mock git repos
 - Scenario DSL: describe sequences of events and expected outcomes
 - No real network, no real Claude Code — pure in-process simulation
+

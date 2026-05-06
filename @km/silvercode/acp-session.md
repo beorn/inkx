@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/acp-session"
 aliases:
   - km-silvercode.acp-session
@@ -40,6 +43,14 @@ dependencies:
     created_at: 2026-04-26T01:10:27Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode.acp
+      - type: link
+        target: km-silvercode.acp-client
 ---
 
 # [x] createAcpSession factory — signals/projections/trees over SessionUpdate stream @km/silvercode #feature #P1 @claude:cd034ca4
@@ -47,3 +58,4 @@ dependencies:
 blocks:: [[@km/silvercode/acp]], [[@km/silvercode/acp-client]]
 
 Factory returning {id, messages, toolCalls, plan, planTree, mode, usage, prompt(), cancel()} as alien-* reactive primitives. Drains the 11 SessionUpdate variants into typed signals (alien-projections for toolCalls keyed by ToolCallId, alien-trees for Plan.entries, signals for the rest). Capability-gates as signals so UI components can declaratively mount/unmount. promptTurn(session, content) returns alien-resource for cancellable async. UI never sees raw SessionUpdate switches outside the adapter.
+

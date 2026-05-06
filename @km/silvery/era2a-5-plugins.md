@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/era2a-5-plugins"
 aliases:
   - km-silvery.era2a-5-plugins
@@ -33,3 +36,4 @@ NOTE: withApp() is era2b — NOT in this phase. create-app.tsx is quarantined (u
 
 Depends on Phase 4 (tree API).
 Design: era2a/rendering.md §Plugin Composition
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui1/14-replace-displaylength-with-string-width-package"
 aliases:
   - km-tui1.14
@@ -63,3 +65,4 @@ export function displayLength(text: string): number {
 
 - [@km/tui-eval/1-analysis/md](.beads/@km/tui-eval/1-analysis/md) - Pain Point 3
 - https://github.com/sindresorhus/string-width
+

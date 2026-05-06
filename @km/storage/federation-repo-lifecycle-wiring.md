@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/federation-repo-lifecycle-wiring"
 aliases:
   - km-storage.federation-repo-lifecycle-wiring
@@ -22,6 +25,10 @@ dependencies:
     created_at: 2026-04-22T08:35:56Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage
 ---
 
 # [x] Wire Repo lifecycle to use readOrMintRepoId on open @km/storage #task #P2 @claude:8b5b9e1c
@@ -31,11 +38,14 @@ blocks:: [[@km/storage]]
 The federation bead (closed 2026-04-22) shipped the RepoId type + readOrMintRepoId + loadWorkspace + parseKmUri. The actual Repo lifecycle (createRepo in packages/@km/storage/src/repo/repo.ts) doesn't yet call readOrMintRepoId on open — so existing vaults never get a persisted RepoId.
 
 ## Scope
+
 - createRepo / loadRepo calls readOrMintRepoId(kmDir) on open, stores the RepoId on the Repo object
 - session-db + future sync layers consume repo.repoId when keying per-repo state
 - Migration: existing .km/ without config.toml mints fresh on first open of upgraded km
 
 ## /complete
+
 - Every Repo has a .repoId property accessible to consumers
 - Existing vaults auto-mint on first post-upgrade open
 - Test: open existing vault, verify config.toml gains repo_id; reopen, verify same repo_id
+

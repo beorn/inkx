@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/migration-validate"
 aliases:
   - km-silvery.migration-validate
@@ -16,3 +19,4 @@ assignee: claude:474834b0
 # [x] Validate migration guide against 3+ real Ink apps @km/silvery #task #P3 @claude:474834b0
 
 Test the silvery/ink compat layer and migration guide against real-world Ink applications to verify completeness and accuracy.
+

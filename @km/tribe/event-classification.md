@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tribe/event-classification"
 aliases:
   - km-tribe.event-classification
@@ -24,21 +27,26 @@ dependencies:
     created_at: 2026-04-27T00:17:30Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe.refactor
 ---
 
 # [x] Tribe event classification: actionable vs ambient delivery filter @km/tribe #feature #P2 @claude:87d20187
 
 blocks:: [[@km/tribe/refactor]]
 
-# Problem
+## Problem
 
 When many tribe plugins fire (commits, pushes, joins/leaves, git-lock warnings, CI alerts, health warnings), every broadcast lands as an MCP channel message. Claude Code renders these as `Human:` turns; the turn-taking reflex drives the agent to respond — even when there's nothing to say. Result: ack-spam like "Acknowledged — still waiting…" for 80+ messages in a row (session 2026-04-19, pro review `/tmp/llm-632692f2-full-session-retrospective-review-the-ull4.txt`).
 
 Memories and CLAUDE.md rules help marginally but lose against live-context pattern completion. **If a rule matters, promote it from memory to mechanism.**
 
-# Proposal
+## Proposal
 
 Tag every tribe plugin event with a **kind**:
+
 - **actionable** — agent needs or likely needs to react (DMs, queries, requests, CI alerts for the session's repos, blocker notifications)
 - **ambient** — informational only (commits, pushes, joins/leaves, git-lock warnings, unrelated CI, health warnings below escalation)
 
@@ -50,9 +58,9 @@ Daemon delivers only **actionable** down the MCP channel. **Ambient** events acc
 2. Daemon routes: `actionable` → channel + inbox; `ambient` → inbox only.
 3. New tool `tribe.inbox({since?, kinds?, limit?})` — returns pending queue, advances read cursor.
 4. New tool `tribe.mode({mode: "focus" | "normal" | "ambient"})` — session-level filter applied AFTER kind classification:
-   - `focus` = only direct DMs and threshold-escalated alerts
-   - `normal` = current kind-based default
-   - `ambient` = everything to channel (escape hatch)
+  - `focus` = only direct DMs and threshold-escalated alerts
+  - `normal` = current kind-based default
+  - `ambient` = everything to channel (escape hatch)
 
 ## Default classifications (configurable per plugin)
 
@@ -87,7 +95,7 @@ Daemon delivers only **actionable** down the MCP channel. **Ambient** events acc
 - `bun vendor/bearly/plugins/tribe/server.mjs` rebuild passes `tribe.doctor`
 - Bump `@bearly/tribe` minor (0.11.x → 0.12.0) — protocol-level change
 
-# Rollout
+## Rollout
 
 1. Add classification field to event emit protocol; all plugins default to `actionable` (no behavioral change)
 2. Classify built-in plugin events per table (broadcasts drop substantially)
@@ -96,14 +104,15 @@ Daemon delivers only **actionable** down the MCP channel. **Ambient** events acc
 5. Update user docs + `tribe.doctor` to surface mode/snooze
 6. Publish @bearly/tribe 0.12.0
 
-# Out of scope
+## Out of scope
 
 - Claude Code hooks (output-side suppressors) — brittle, doesn't save tokens
 - Changing `<channel>` XML rendering — tool owns transport
 - LLM-based classification — keep deterministic per plugin
 
-# Reference
+## Reference
 
 Pro review 2026-04-20 (`/tmp/llm-632692f2-full-session-retrospective-review-the-ull4.txt`). Motivated by ~80 consecutive ambient tribe events producing 80 useless "Acknowledged" turns.
 
 See DESIGN field for Matrix-shape portability mapping. See NOTES for storage model + LLM-side dismiss/snooze affordances.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/doc-view"
 aliases:
   - km-tui.doc-view
@@ -16,16 +19,20 @@ assignee: claude:ceb7c9cb
 # [x] Doc view — render node as markdown document in TUI @km/tui #feature #P2 @claude:ceb7c9cb
 
 ## Vision
+
 Render a node like a markdown document in the TUI. Rather than a new view mode, repurpose/expand the existing detail pane.
 
 ## Approach: Detail Pane → Doc Mode
+
 The detail pane already renders metadata + body + children for one node. Two modes:
+
 - **Side pane** (current): narrow panel alongside board columns
 - **Doc mode** (new): full-width, replaces the board columns temporarily
 
 Toggle with a keybinding (e.g., `Enter` on detail pane, or a chord). `q`/`Escape` returns to board.
 
 ## Doc Mode Rendering
+
 - Full-width rendering of the node's content tree
 - Headings with markdown-style hierarchy (## Title)
 - Body paragraphs inline (not collapsed behind a badge)
@@ -35,10 +42,13 @@ Toggle with a keybinding (e.g., `Enter` on detail pane, or a chord). `q`/`Escape
 - Scrollable via j/k
 
 ## Reuse
+
 - DetailView.tsx already has the metadata rendering
 - TreeNode already renders individual nodes with proper icons
 - The popover's nodeDetailPopoverContent is a mini version
 - A shared DocRenderer could power: detail pane, doc mode, popover preview
 
 ## Why Not a New View Mode
+
 Detail pane is already the "look at one node" UI. Making it expandable to full-width is simpler than adding a 6th view mode with its own state machine, keybindings, and mode transitions.
+

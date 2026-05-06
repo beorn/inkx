@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ex-split"
 aliases:
   - km-silvery.ex-split
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Phase 4: Split showcases.tsx into individual files @km/silvery #task #P3
 
 Break 2303-line showcases.tsx monolith into one file per showcase in examples/web/showcases/ directory with index.ts re-export
+

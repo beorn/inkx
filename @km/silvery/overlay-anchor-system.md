@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/overlay-anchor-system"
 aliases:
   - km-silvery.overlay-anchor-system
@@ -15,6 +18,10 @@ dependencies:
     created_at: 2026-04-25T09:15:55Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.view-as-layout-output
 ---
 
 # [/] General overlay/anchor system: caret + selection + focus + popovers + tooltips as one mechanism @km/silvery #feature #P2 @claude:2405c72e
@@ -26,6 +33,7 @@ Pro review (2026-04-25) identified this as the long-term destination for what vi
 ## Concept
 
 Components declare semantic **inputs** on AgNodes:
+
 - `caret: { offset, visible, focused }`
 - `selectionIntent: { from, to }`
 - `focusIntent: { focused }`
@@ -33,6 +41,7 @@ Components declare semantic **inputs** on AgNodes:
 - `decorations: Decoration[]`
 
 Layout pipeline derives **geometric outputs** (frame artifacts):
+
 - `caretRect`
 - `selectionFragments: Rect[]` (multi-line wrap-spanning)
 - `focusRingRects: Rect[]`
@@ -81,3 +90,4 @@ Scheduler / output phase consumes the overlay layer directly. No scheduler-side 
 
 - /pro #1: `/tmp/llm-2405c72e-senior-engineer-architectural-review-of-5zsn.txt` § 6 (general overlay/anchor system as next plateau)
 - /pro #2: `/tmp/llm-2405c72e-senior-engineer-architectural-review-of-yvaz.txt` § A (frame artifacts framing)
+

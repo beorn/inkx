@@ -1,4 +1,7 @@
 ---
+mentions:
+  - silvery
+  - km
 id: "@km/silvery/async-disposable"
 aliases:
   - km-silvery.async-disposable
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-26T14:08:53Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.lifecycle-scope
 ---
 
 # [x] @silvery/scope: add asyncDisposable() helper @km/silvery #feature #P2
@@ -82,3 +89,4 @@ scope.use(asyncDisposable(
 - hub/silvery/design/lifecycle-scope.md (canonical design; canonical form section)
 - /tmp/llm-2405c72e-review-this-entire-process-management-k1md.txt (Kimi K2.6 flagged this gap)
 - Sibling bead: @km/silvercode/spawn-close-hardening (close() becomes Promise<void>; this enables clean adoption)
+

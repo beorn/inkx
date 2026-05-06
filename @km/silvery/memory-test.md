@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/memory-test"
 aliases:
   - km-silvery.memory-test
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Long-running memory test (10k+ render cycles) @km/silvery #task #P3
 
 Verify no memory leaks over sustained rendering. Run 10k+ render cycles and measure heap growth.
+

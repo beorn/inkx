@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/proxy-reconnect-test"
 aliases:
   - km-tribe.proxy-reconnect-test
@@ -18,6 +20,10 @@ dependencies:
     created_at: 2026-04-18T21:29:01Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] tribe: integration test for proxy reconnect-on-disconnect @km/tribe #task #P2
@@ -25,3 +31,4 @@ dependencies:
 blocks:: [[@km/tribe]]
 
 createReconnectingClient is implemented in tools/lib/tribe/socket.ts and wired into tribe-proxy.ts (line 191). But there's no integration test verifying the proxy transparently reconnects after daemon death. Currently running in a worktree (dispatched 2026-04-18 during /big analysis of post-plateau gaps). Once the kill-and-recover slow test suite lands, close this.
+

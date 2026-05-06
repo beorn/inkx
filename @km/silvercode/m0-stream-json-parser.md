@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/m0-stream-json-parser"
 aliases:
   - km-silvercode.m0-stream-json-parser
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-24T02:09:32Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] M0: stream-json parser @km/silvercode #task #P1 @claude:0940ca20
@@ -26,3 +33,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 Parse newline-delimited JSON events from claude --bare -p stdout. Handle turn-start, text-delta, tool-use, tool-result, permission-request, turn-end, session-end, error events.
+

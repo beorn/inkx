@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-v4-backdrop-standalone"
 aliases:
   - km-silvery.theme-v4-backdrop-standalone
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-19T10:59:05Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.theme-v4
 ---
 
 # [x] Phase 6: Backdrop standalone test + docs @km/silvery #task #P4
@@ -26,3 +32,4 @@ dependencies:
 blocks:: [[@km/silvery/theme-v4]]
 
 Lock in that <Backdrop fade={0.6}><App /></Backdrop> works outside ModalDialog — the ag.ts rootBg walk already supports this, just need test + doc.
+

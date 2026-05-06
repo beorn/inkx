@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/altscreen-console"
 aliases:
   - km-silvery.altscreen-console
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Console output leaks into alt screen in fullscreen render mode @km/silvery #bug #P2
 
 When using createTerm() + render() in fullscreen (alt screen) mode, console.log/warn/error from dependencies (e.g. loggily) writes directly to stdout, corrupting the alt screen display. Silvery should either intercept console output automatically in fullscreen mode, or provide guidance on the canonical pattern for handling this.
+

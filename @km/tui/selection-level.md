@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/selection-level"
 aliases:
   - km-tui.selection-level
@@ -13,3 +16,4 @@ assignee: Bjørn Stabell
 # [x] Extract SelectionLevel.derive() — unify Board.tsx + command-bridge.ts derivation @km/tui #task #P3 @Bjørn Stabell
 
 Selection level derived independently in Board.tsx and command-bridge.ts. Extract single SelectionLevel.derive(). ~30 min.
+

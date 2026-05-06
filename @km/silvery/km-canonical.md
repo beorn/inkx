@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/km-canonical"
 aliases:
   - km-silvery.km-canonical
@@ -18,6 +20,7 @@ owner: bjorn@stabell.org
 After plugin composition APIs are implemented (@km/silvery/plugin-composition), migrate km's TUI to use the canonical Silvery Way.
 
 ## Current km architecture
+
 - apps/@km/tui/src/driver.ts: uses withCommands + withKeybindings manually (SlateJS-style)
 - Has its own createCommandRegistry() in @km/commands
 - Manual terminal setup in tui.tsx via createTerm() + run()
@@ -25,7 +28,8 @@ After plugin composition APIs are implemented (@km/silvery/plugin-composition), 
 - No withFocus() — focus management is manual
 
 ## Migration targets
-1. Replace manual app composition with pipe() 
+
+1. Replace manual app composition with pipe()
 2. Use withTerminal() instead of manual stdin/stdout wiring
 3. Add withDomEvents() for mouse support in board view
 4. Add withFocus() for keyboard navigation scopes
@@ -33,4 +37,6 @@ After plugin composition APIs are implemented (@km/silvery/plugin-composition), 
 6. The driver pattern (withCommands → withKeybindings → withDiagnostics) should use pipe()
 
 ## Key constraint
+
 km is silvery's showcase. This migration proves the plugin APIs work for a real app.
+

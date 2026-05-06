@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/vitestx/diagnostics"
 aliases:
   - km-vitestx.diagnostics
@@ -24,6 +27,7 @@ expect(board.cursor.card).toBe(1)
 ```
 
 ## What's Done
+
 - `createTestBoard()` with string DSL
 - `board.press()`, `board.search()`, `board.type()`
 - Direct state: `board.text`, `board.cursor`, `board.nodeId`, `board.viewMode`
@@ -31,9 +35,12 @@ expect(board.cursor.card).toBe(1)
 - Fuzz tests in navigation-fuzz.fuzz.ts
 
 ## What's Next
+
 - Better examples in skill docs
 - Validate with real bug debugging
 - Simplify invariants to just expect() calls
 
 ## Deferred
+
 - Generalize to inkx (wait until we have 2+ consumers)
+

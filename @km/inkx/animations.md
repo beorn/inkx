@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/animations"
 aliases:
   - km-inkx.animations
@@ -13,3 +16,4 @@ assignee: claude:ee8efc0f
 # [x] Animation utilities (useAnimation, easing, transitions) @km/inkx #feature #P4 @claude:ee8efc0f
 
 useAnimation hook, easing functions, and transition helpers for fade, slide, and typing effects. Low priority since most TUI applications don't need animation, but useful for polished onboarding flows, notifications, and progress indicators. Inspired by animation support in Textual and BubbleTea.
+

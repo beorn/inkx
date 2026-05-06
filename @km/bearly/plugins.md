@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/bearly/plugins"
 aliases:
   - km-bearly.plugins
@@ -16,3 +19,4 @@ assignee: claude:19080504
 # [x] Restructure tools repo as multi-plugin Claude Code marketplace @km/bearly #feature #P2 @claude:19080504
 
 Rename beorn/tools → beorn/claude-plugins. Restructure into plugins/ subdirectories (tribe, tty, llm, recall, batch-refactor) each with .claude-plugin/plugin.json, .mcp.json, skills. Keep non-plugin tools (worktree.ts, refactor.ts CLI) at repo root. Update marketplace.json. Verify skill discovery works (previous attempt never confirmed this).
+

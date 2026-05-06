@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/definePlugin"
 aliases:
   - km-silvery.definePlugin
@@ -23,6 +25,10 @@ dependencies:
     created_at: 2026-04-21T02:06:43Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.authoring-elegance
 ---
 
 # [x] definePlugin() factory + useStore hook — the elegance unlock @km/silvery #feature #P1
@@ -30,3 +36,4 @@ dependencies:
 blocks:: [[@km/silvery/authoring-elegance]]
 
 Ship definePlugin({ name, state, ops, keys, effects? }) + useStore(plugin). Re-cutover HelpOverlay against it. Gate: HelpOverlay total LOC <= 50 across all files. Filed from 2026-04-21 elegance review (cycle 1) as the single highest-leverage change to reach Zustand/Solid-parity ergonomics. Blocks cycle-2 elegance review.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/term-interface-diet"
 aliases:
   - km-silvery.term-interface-diet
@@ -20,6 +23,14 @@ dependencies:
     created_at: 2026-04-22T18:26:32Z
     created_by: claude:019d032d
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.input-structured-events
+      - type: link
+        target: km-silvery.term-sub-owners
 ---
 
 # [ ] Delete redundant legacy slots on Term (write/writeLine/cols/rows/hasInput/hasCursor/hasColor/hasUnicode/caps) @km/silvery #task #P3 @claude:019d032d
@@ -30,19 +41,19 @@ blocks:: [[@km/silvery/input-structured-events]], [[@km/silvery/term-sub-owners]
 
 After the sub-owner refactor the public Term interface still carries convenience duplicates of sub-owner APIs:
 
-| Legacy | Replacement |
-|---|---|
-| `term.write(s)` | `term.output.write(s)` (or `term.modes` mutations) |
-| `term.writeLine(s)` | `term.output.write(s + "\\n")` |
-| `term.cols` (number) | `term.size.cols()` |
-| `term.rows` (number) | `term.size.rows()` |
-| `term.hasInput()` | `term.input !== undefined` |
-| `term.hasCursor()` | capability check — move to `term.caps` or keep as static property |
-| `term.hasColor()` | capability check — same |
-| `term.hasUnicode()` | capability check — same |
-| `term.caps` | TerminalCaps object — rationalize with the has*() methods |
-| `term.getState()` | `term.size.snapshot()` (covered by `input-structured-events`) |
-| `term.subscribe()` | `watch(() => term.size.snapshot(), handler)` (covered by `input-structured-events`) |
+| Legacy             | Replacement                                                                     |
+| ------------------ | ------------------------------------------------------------------------------- |
+| term.write(s)      | term.output.write(s) (or term.modes mutations)                                  |
+| term.writeLine(s)  | term.output.write(s + "\\n")                                                    |
+| term.cols (number) | term.size.cols()                                                                |
+| term.rows (number) | term.size.rows()                                                                |
+| term.hasInput()    | term.input !== undefined                                                        |
+| term.hasCursor()   | capability check — move to term.caps or keep as static property                 |
+| term.hasColor()    | capability check — same                                                         |
+| term.hasUnicode()  | capability check — same                                                         |
+| term.caps          | TerminalCaps object — rationalize with the has*() methods                       |
+| term.getState()    | term.size.snapshot() (covered by input-structured-events)                       |
+| term.subscribe()   | watch(() => term.size.snapshot(), handler) (covered by input-structured-events) |
 
 Each is a 5–15 min deletion once consumers are migrated. Can be done as one "Term interface diet" pass or folded into `km-silvery.input-structured-events`.
 
@@ -76,3 +87,4 @@ Recommend Option A.
 ## Mandatory
 
 Read docs/lessons/refactoring.md IN FULL before writing any code.
+

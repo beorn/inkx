@@ -1,4 +1,7 @@
 ---
+mentions:
+  - silvery
+  - km
 id: "@km/silvery/theme-v3-r1-one-provider"
 aliases:
   - km-silvery.theme-v3-r1-one-provider
@@ -17,6 +20,10 @@ dependencies:
     created_at: 2026-04-18T21:09:17Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.theme-v3-plumbing
 ---
 
 # [x] R1: One ThemeProvider — drop legacy @silvery/theme/ThemeContext @km/silvery #task #P3
@@ -24,3 +31,4 @@ dependencies:
 blocks:: [[@km/silvery/theme-v3-plumbing]]
 
 ag-term/runtime/run.tsx and ag-term/xterm/index.ts import legacy ThemeProvider from @silvery/theme/ThemeContext. Switch both to @silvery/ag-react/ThemeProvider (v2). Delete legacy ThemeProvider implementation. Apps booted via run() then get v2 tokens/variants API automatically.
+

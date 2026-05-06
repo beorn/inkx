@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/tea-inputboundary"
 aliases:
   - km-silvery.tea-inputboundary
@@ -22,6 +24,10 @@ dependencies:
     created_at: 2026-04-18T11:44:15Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.tea
 ---
 
 # [x] InputBoundary child BaseApp — delete rt.on fallback paths @km/silvery #task #P2
@@ -31,3 +37,4 @@ blocks:: [[@km/silvery/tea]]
 After TEA Phase 2 wiring (@km/silvery/tea-useinput), 7 `rt.on` call sites remain in ag-react hooks (useInput, useModifierKeys, useTerminalFocused, usePasteEvents, usePasteCallback) as fallbacks when ChainAppContext is absent. This happens inside InputBoundary (nested modal isolation), which creates its own local RuntimeContextValue without a chain.
 
 Fix: give InputBoundary its own child BaseApp + plugin chain so hooks inside the boundary get ChainAppContext. Then delete all rt.on fallback branches. /complete: `grep "rt\.on(" vendor/silvery/packages/ag-react/src/hooks/` → 0 hits.
+

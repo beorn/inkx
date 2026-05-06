@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/test-ergonomics"
 aliases:
   - km-tui.test-ergonomics
@@ -17,28 +20,28 @@ Add fluent test helpers to board-test.ts and migrate all 22 test files to use th
 ## New Helpers (in createFluentBoardApi)
 
 1. board.editNode(nodeId, opts?) — enter edit mode on any node (incl sub-sections)
-   - Encapsulates store.getState().setUI({ inlineEditBlock: ... }) + flush
-   - opts: { block?: number, card?: string }
-
+  - Encapsulates store.getState().setUI({ inlineEditBlock: ... }) + flush
+  - opts: { block?: number, card?: string }
 2. board.setUI(partial) — thin proxy for store.setUI with auto-flush
-   - Eliminates store.getState().setUI() + board.press("") pattern
-
+  - Eliminates store.getState().setUI() + board.press("") pattern
 3. board.expectEditing(nodeId?) / board.expectNotEditing()
-   - Replaces getActiveBoardPane(store.getState())?.inlineEditBlock checks
-
+  - Replaces getActiveBoardPane(store.getState())?.inlineEditBlock checks
 4. board.expectState({ editing?, viewMode?, filterText?, cursor? })
-   - Declarative assertion over pane state
-   - Replaces 313 getActiveBoardPane chains across 22 files
+  - Declarative assertion over pane state
+  - Replaces 313 getActiveBoardPane chains across 22 files
 
 ## Migration
 
 After implementing helpers, migrate ALL existing tests:
+
 - Replace 17 raw store.getState().setUI({ inlineEditBlock: ... }) calls
 - Replace 313 getActiveBoardPane(store.getState()) assertion chains
 - Remove getActiveBoardPane imports where no longer needed
 - Convert verbose sequences to fluent chains where natural
 
 ## Evidence of completion
+
 - Zero remaining raw store.getState().setUI({ inlineEditBlock }) in tests
 - Zero remaining getActiveBoardPane imports used only for assertions
 - bun run test:fast passes
+

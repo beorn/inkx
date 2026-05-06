@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/k5k3/7-update-docs-for-cursor-system-redesign"
 aliases:
   - km-k5k3.7
@@ -9,3 +11,4 @@ closed_at: 2026-01-21T15:43:46Z
 ---
 
 # [x] Update docs for cursor system redesign @km/k5k3 #task #P2
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/inline-bugs"
 aliases:
   - km-silvery.inline-bugs
@@ -70,6 +72,7 @@ owner: bjorn@stabell.org
 AI chat inline mode bugs (static-scrollback.tsx). Tracking all reported issues.
 
 ## Bugs (2026-03-11)
+
 1. **Compaction says 'session complete'** — after compacting, done=true fires and user can't continue. Should never stop.
 2. **Text auto-inserted into input** — sometimes text appears in TextInput without user typing
 3. **Tab behavior wrong** — should be: empty input → fill random text, non-empty input → act like Enter
@@ -78,3 +81,4 @@ AI chat inline mode bugs (static-scrollback.tsx). Tracking all reported issues.
 6. **Empty space during streaming** — turns with gradual streaming (like 'All done! Summary...') show empty space under input box until content fills in, as if space is pre-allocated
 7. **Border broken** — border rendering issues on exchange cards
 8. **Focus outline when unfocused** — input box shows blue focus ring even when terminal window is not in focus
+

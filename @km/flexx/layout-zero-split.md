@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexx/layout-zero-split"
 aliases:
   - km-flexx.layout-zero-split
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Split layout-zero.ts into phase modules (2501 lines) @km/flexx #task #P2
+

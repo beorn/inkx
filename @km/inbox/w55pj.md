@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - claude
 id: "@km/inbox/w55pj"
 aliases:
   - km-w55pj
@@ -16,3 +20,4 @@ assignee: claude:efb76293
 # [x] Pro Review: @silvery/theme contrast-aware derivation (2026-03-16) @km/_orphan #task #P2 @claude:efb76293
 
 GPT 5.4 Pro code review of @silvery/theme after adding contrast-aware derivation (ensureContrast, updated deriveTheme).
+

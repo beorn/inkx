@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/indent-undo"
 aliases:
   - km-tui.indent-undo
@@ -13,3 +16,4 @@ assignee: claude:949598cc
 # [x] Undo/redo support for indent/outdent operations @km/tui #feature #P2 @claude:949598cc
 
 Ensure undo/redo works correctly for indent/outdent operations. Each indent/outdent (including multi-select batch) should be a single undoable unit. Consider SlateJS patterns if the current undo system doesn't handle compound operations well.
+

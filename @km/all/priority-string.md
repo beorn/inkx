@@ -1,4 +1,10 @@
 ---
+propsRaw:
+  priority: "P0, A, high, etc. @km/all #task #P2 @beorn-claude"
+props:
+  priority:
+    type: text
+    value: "P0, A, high, etc. @km/all #task #P2 @beorn-claude"
 id: "@km/all/priority-string"
 aliases:
   - km-all.priority-string
@@ -10,6 +16,7 @@ owner: bjorn@stabell.org
 assignee: beorn-claude
 ---
 
-# [x] Priority as free-form string: priority:: P0, A, high, etc. @km/all #task #P2 @beorn-claude
+# [x] Priority as free-form string: ^priority-string
 
 Change priority from integer (0-4) to free-form string. Field name: priority:: (not p::). Keybindings t 0-4 set P0-P4 as convenience. Sorting uses string compare. Users can use any system (P0-P4, A/B/C, high/med/low). Backwards compat: read p:: and priority::, write priority::. Emoji ⏫🔼🔽 map to P1/P2/P3. Asana import maps to P1/P2/P3.
+

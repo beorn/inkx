@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/test-4/8-remove-bun-test-dependencies"
 aliases:
   - km-test-4.8
@@ -14,6 +17,7 @@ assignee: claude:bb984f7c
 DECISION: Keep Bun test dependencies and test runner.
 
 Reasoning:
+
 - @km/storage package requires Bun runtime for bun:sqlite (used in 33 source files)
 - @km/storage uses Worker API (3 files) which is Bun-specific
 - Apps and scripts use bun:sqlite (7 files in @km/_orphan/cli, 2 in scripts)
@@ -24,3 +28,4 @@ Conclusion:
 Keep Bun as a test runner alongside Vitest. The project needs Bun runtime for production code (bun:sqlite, Workers), so there's no benefit to removing Bun test dependencies.
 
 This bead is documentation-only - no code changes needed.
+

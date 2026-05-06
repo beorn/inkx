@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/feature-test-cluster"
 aliases:
   - km-silvery.feature-test-cluster
@@ -24,6 +27,10 @@ dependencies:
     created_at: 2026-04-26T16:22:35Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.fix-sweep-vendor-fuzz
 ---
 
 # [x] [bug] vendor/silvery feature tests — 5 failures (4 files) @km/silvery #bug #P2 @claude:cc081a9a
@@ -31,3 +38,4 @@ dependencies:
 blocks:: [[@km/all/fix-sweep-vendor-fuzz]]
 
 pipeline-bugfixes.test.tsx (2: lines 554, 580), box-in-text-warning.test.tsx (1), text-frame.test.tsx (1: line 94), inline-scrollback-promotion.test.tsx (1: line 193). /complete: bun vitest run --project vendor vendor/silvery/tests/features/pipeline-bugfixes.test.tsx vendor/silvery/tests/features/box-in-text-warning.test.tsx vendor/silvery/tests/features/text-frame.test.tsx vendor/silvery/tests/features/inline-scrollback-promotion.test.tsx → 0 failures.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/sherif-vendor-exclude"
 aliases:
   - km-all.sherif-vendor-exclude
@@ -30,3 +32,4 @@ root package.json so sherif sees only first-party packages.
 
 Goal: sherif goes back to passing (✓) in /sop scans, surfacing only
 real workspace consistency issues across packages/* and apps/*.
+

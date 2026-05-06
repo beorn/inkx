@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sterling-public-docs"
 aliases:
   - km-silvery.sterling-public-docs
@@ -31,6 +34,16 @@ dependencies:
     created_at: 2026-04-24T16:14:50Z
     created_by: claude:5e447b66
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-all.sterling
+      - type: link
+        target: km-silvery.sterling-2d-release
+      - type: link
+        target: km-silvery.sterling-2e-interior-migration
 ---
 
 # [x] Sterling: update silvery.dev public docs for 0.19.0 @km/silvery #task #P2 @claude:4274df30
@@ -40,6 +53,7 @@ blocks:: [[@km/all/sterling]], [[@km/silvery/sterling-2d-release]], [[@km/silver
 After Sterling 0.19.0 ships, update silvery.dev public docs to reflect the new Theme shape, the 'Sterling' name, and the flat-token primacy.
 
 ## Scope (12 pages)
+
 - vendor/silvery/docs/guide/styling.md
 - vendor/silvery/docs/guide/theming.md
 - vendor/silvery/docs/guide/token-taxonomy.md → rename or consolidate
@@ -54,7 +68,9 @@ After Sterling 0.19.0 ships, update silvery.dev public docs to reflect the new T
 - vendor/silvery/docs/guide/the-silvery-way.md (mentions of tokens)
 
 ## Approach
+
 Each page reviewed individually — preserve SEO surface, don't merge ranked URLs without explicit user approval. Update code examples to new Theme shape + flat tokens + 'design' namespace.
 
 DEPENDS: sterling-2d-release
 Parent: @km/silvery/theme-v4
+

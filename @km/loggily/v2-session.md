@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/loggily/v2-session"
 aliases:
   - km-loggily.v2-session
@@ -15,6 +17,10 @@ dependencies:
     created_at: 2026-04-12T08:28:37Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-loggily
 ---
 
 # [x] Session: loggily v2 API — design, implement, release, polish @km/loggily #task #P0
@@ -24,6 +30,7 @@ blocks:: [[@km/loggily]]
 Loggily v2 API implementation session (2026-04-12).
 
 ## Delivered
+
 - Phase 1: pipeline.ts + createLogger with config arrays (248 tests)
 - Phase 2: compose() extension point (LoggerFactory, LoggerPlugin types)
 - Phase 3: km consumer migration (6227 km tests pass)
@@ -36,6 +43,7 @@ Loggily v2 API implementation session (2026-04-12).
 - Published: loggily v0.7.0 on npm
 
 ## Open items
+
 - @km/loggily/api-v2 (P1, in-progress): parent epic, stays open
 - @km/loggily/migration (P2, open): formal v1-to-v2 migration guide
 - Phase 2 decomposition: compose() exists but withSpans/withMetrics/withContext not extracted from core
@@ -43,6 +51,7 @@ Loggily v2 API implementation session (2026-04-12).
 - 5 km files still use legacy setters (work via env-var mapping, not bugs)
 
 ## Commits (loggily submodule)
+
 d5da7c1 feat: v2 API — pipeline-based config arrays
 d7f5b92 chore: cleanup — remove stale tgz
 c11061e feat: v2 default pipeline reads env vars dynamically
@@ -53,3 +62,4 @@ c11061e feat: v2 default pipeline reads env vars dynamically
 6f75758 docs(changelog): add 0.7.0 entry
 90bd16a fix: resolve all 7 v2 ergonomics issues
 b4afe5c refactor: quality plateau — DRY console routing, cache formatter
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/signal-handler-registry"
 aliases:
   - km-all.signal-handler-registry
@@ -19,6 +21,14 @@ dependencies:
     created_at: 2026-04-22T13:47:54Z
     created_by: claude:019d032d
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-all
+      - type: link
+        target: km-silvery.term-sub-owners
 ---
 
 # [ ] Signal handler dependency registry — order-safe SIGINT/TERM/exit cleanup @km/all #task #P2
@@ -32,3 +42,4 @@ Same META-pattern as the stdin races: shared global state (process signal handle
 Solution: a single SignalHandlerRegistry per process. Components register intent ('on SIGINT, do X — must run before/after Y'). Registry topologically sorts dependencies and runs cleanup in the correct order. Crash in one handler doesn't prevent others from running.
 
 Audit report: /tmp/shared-global-audit.md (Suspect #2).
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/pro-review-sync"
 aliases:
   - km-storage.pro-review-sync
@@ -24,11 +27,13 @@ Focus: Sync ownership model, data loss bugs, bidirectional sync architecture.
 ## Findings Summary
 
 ### P0 — Correctness / Data Loss (3)
+
 1. reconcileIfChanged still called for create/delete/move/task handlers — same data loss pattern as the fixed bug
 2. Folder deletion uses unlinkSync which fails on directories (EISDIR)
 3. WriteQueue.flush() is re-entrant — can write stale content after newer content
 
 ### P1 — Important Safety/Quality (6)
+
 1. SyncManager creates a private emitter instead of sharing the repo's emitter
 2. recentWrites anchored to queue time not write time, and many write paths bypass it
 3. handleNodeMoved doesn't handle moving file/folder items on disk
@@ -37,11 +42,13 @@ Focus: Sync ownership model, data loss bugs, bidirectional sync architecture.
 6. Inline FS sync in emit() prevents batching and writes intermediate states
 
 ### Architecture Recommendation
+
 Per-file ownership state machine: Clean → DirtyLocal → Writing → AwaitingEcho → Clean.
 Never reconcile FS→DB into a dirty/active file. Decouple FS sync from emit pipeline.
 Use generation + hash instead of timestamp windows.
 
 ## Industry Comparison (Key Findings)
+
 - VS Code: Dirty buffer wins. Uses version IDs + file stat, never silently re-imports into dirty buffer.
 - Obsidian: Conflict copies/history, never best-effort overwrite of active edit.
 - Emacs/Org-roam: Closest match to km. Buffer-modified-p flag. Auto-revert only when clean.
@@ -49,3 +56,4 @@ Use generation + hash instead of timestamp windows.
 - Yjs/Automerge: Causal metadata, not mtime. Overkill for km's current needs.
 
 Output: /tmp/llm-manual-gpt-54-pro-deep-5rba.txt
+

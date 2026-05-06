@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/asana-perf-v2"
 aliases:
   - km-tui.asana-perf-v2
@@ -11,3 +14,4 @@ assignee: claude:97b8de73
 ---
 
 # [x] perf: 6s startup gap + 10s event loop blocks on Asana vault @km/tui #bug #P1 @claude:97b8de73
+

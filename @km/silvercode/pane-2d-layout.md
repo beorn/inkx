@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - W
 id: "@km/silvercode/pane-2d-layout"
 aliases:
   - km-silvercode.pane-2d-layout
@@ -21,6 +26,10 @@ dependencies:
     created_at: 2026-04-25T00:45:44Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] 2D pane layout (binary-split tree, horizontal splits, Ctrl+W s) @km/silvercode #feature #P3 @claude:2405c72e
@@ -28,3 +37,4 @@ dependencies:
 blocks:: [[@km/silvercode]]
 
 Replace the 1D row-of-panes layout with a binary-split tree so users can split horizontally as well as vertically. Wires Ctrl+W s (horizontal split below) and lets the user nest splits arbitrarily (vsplit a pane that's itself a hsplit). Persistence schema in apps/silvercode/src/pane-layout.ts grows from a flat `weights[]` array to a tree node — bump version to 2. Deferred from @km/silvercode/pane-management v1: v1 ships the 1D row only, sufficient for the typical 2-3 pane workflow.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/bxast"
 aliases:
   - km-bxast
@@ -16,3 +18,4 @@ owner: bjorn@stabell.org
 # [x] renderText trailing clear ignores text node explicit bg @km/_orphan #bug #P2
 
 Trailing clear uses inheritedBg ?? null but should use style.bg ?? inheritedBg ?? null for text nodes with own backgroundColor.
+

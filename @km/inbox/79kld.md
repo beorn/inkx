@@ -1,4 +1,8 @@
 ---
+mentions:
+  - next
+  - km
+  - claude
 id: "@km/inbox/79kld"
 aliases:
   - km-79kld
@@ -11,3 +15,4 @@ assignee: claude:586bad48
 ---
 
 # [x] Cycling task status (x) on embedded links in @next doesn't work @km/_orphan #bug #P2 @claude:586bad48
+

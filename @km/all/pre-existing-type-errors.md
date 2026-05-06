@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/pre-existing-type-errors"
 aliases:
   - km-all.pre-existing-type-errors
@@ -9,3 +11,4 @@ owner: bjorn@stabell.org
 ---
 
 # [ ] Fix all pre-existing type errors (0 baseline) @km/all #task #P2
+

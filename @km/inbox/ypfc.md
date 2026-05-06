@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/ypfc"
 aliases:
   - km-ypfc
@@ -10,13 +12,16 @@ closed_at: 2026-01-20T12:58:19Z
 # [x] InkX: Document undocumented Box props @km/_orphan #task #P3
 
 ## Problem
+
 Several Box component props are implemented but not documented in `vendor/beorn-inkx/docs/site/guide/components.md`:
 
 **Positioning:**
+
 - position (relative, absolute, sticky)
 - stickyTop, stickyBottom
 
 **Layout:**
+
 - marginX, marginY
 - flexWrap
 - alignSelf (baseline option)
@@ -24,7 +29,10 @@ Several Box component props are implemented but not documented in `vendor/beorn-
 - display (none)
 
 **Callbacks:**
+
 - onLayout
 
 ## Files to update
+
 - vendor/beorn-inkx/docs/site/guide/components.md
+

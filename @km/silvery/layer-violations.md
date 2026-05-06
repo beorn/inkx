@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/layer-violations"
 aliases:
   - km-silvery.layer-violations
@@ -48,13 +50,13 @@ Only ag-term/adapters/flexily-zero-adapter.ts imports flexily directly. When @si
 
 ## Ideal ag Sub-Components
 
-| Subpath | Contents |
-|---|---|
-| ag/types | AgNode, Rect, BoxProps, TextProps, Events, LayoutNode, MouseEventProps (no terminal types) |
-| ag/keys | Keyboard parsing, hotkey matching (already clean, 1459 lines) |
-| ag/focus | Focus manager + focus-queries (move from create) + event dispatch |
-| ag/tree | Tree traversal + generic hitTest (move from ag-term) |
-| ag/text-frame | TextFrame, FrameCell, RGB |
+| Subpath       | Contents                                                                                   |
+| ------------- | ------------------------------------------------------------------------------------------ |
+| ag/types      | AgNode, Rect, BoxProps, TextProps, Events, LayoutNode, MouseEventProps (no terminal types) |
+| ag/keys       | Keyboard parsing, hotkey matching (already clean, 1459 lines)                              |
+| ag/focus      | Focus manager + focus-queries (move from create) + event dispatch                          |
+| ag/tree       | Tree traversal + generic hitTest (move from ag-term)                                       |
+| ag/text-frame | TextFrame, FrameCell, RGB                                                                  |
 
 ## Target Architecture
 
@@ -79,3 +81,4 @@ create depends on: ag, ag-react, tea, commands, signals, scope, model (not ink, 
 ## Automated Detection
 
 Patterns 40-41 in scripts/review-code-patterns.sh. Severity table in .claude/skills/code/review-code.md.
+

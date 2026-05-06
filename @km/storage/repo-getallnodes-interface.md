@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/repo-getallnodes-interface"
 aliases:
   - km-storage.repo-getallnodes-interface
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-18T21:10:41Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage
 ---
 
 # [x] Widen Repo interface to expose getAllNodes (eliminate FakeRepo-only type hole) @km/storage #task #P3
@@ -28,3 +34,4 @@ blocks:: [[@km/storage]]
 FakeRepo has getAllNodes(). Repo does not. persistence.spec.ts calls app.repo.getAllNodes() — works at runtime because app.repo is actually FakeRepo, but tsc flags it (2 errors). Pre-existing; discovered during spec-ergonomics audit.
 
 Fix: add getAllNodes(): KNode[] to Repo interface, implement for the real Repo (wraps data.getAllNodes()). FakeRepo already satisfies via existing implementation.
+

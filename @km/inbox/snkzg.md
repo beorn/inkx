@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/snkzg"
 aliases:
   - km-snkzg
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Pro Review Round 3: 2026-03-15 — silvery pipeline algorithm, tests, docs, env vars @km/_orphan #epic #P2
+

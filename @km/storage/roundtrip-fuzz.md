@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/roundtrip-fuzz"
 aliases:
   - km-storage.roundtrip-fuzz
@@ -13,3 +16,4 @@ assignee: claude:9b6678d0
 # [x] Content round-trip fuzz: DB→serialize→write→reparse→verify @km/storage #task #P2 @claude:9b6678d0
 
 Add content-level round-trip fuzz tests for the full sync cycle: mutate DB → serialize to markdown → re-parse → verify DB is consistent. Catches silent data loss and node ID instability. Gaps: (1) no content verification in chaos fuzz, (2) no write-then-read-back round-trip, (3) no node ID stability testing, (4) no concurrent write+watch fuzz.
+

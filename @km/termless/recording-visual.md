@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/recording-visual"
 aliases:
   - km-termless.recording-visual
@@ -16,3 +19,4 @@ assignee: claude:4929065a
 # [x] Recording drops non-text visual changes @km/termless #bug #P2 @claude:4929065a
 
 Deferred P2 from pro-review-2 (2026-03-13). Termless recording captures text changes but drops non-text visual changes (cursor style, colors, etc.). Found during GPT 5.4 Pro review of termless.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui2/15-verify-columnsview-parity-with-tui1"
 aliases:
   - km-tui2.15
@@ -13,3 +15,4 @@ closed_at: 2026-01-17T00:07:26Z
 Verify: column headers, collapse/expand, card grouping, selection highlighting
 
 **Files**: apps/@km/tui/packages/@km/_orphan/opentui/src/views/ColumnsView.tsx
+

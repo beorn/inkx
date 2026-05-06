@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - claude
 id: "@km/inbox/7y6mw"
 aliases:
   - km-7y6mw
@@ -14,3 +18,4 @@ assignee: claude:73d7a332
 ---
 
 # [x] ink.ts: move screen reader mode to @silvery/react @km/_orphan #task #P3 @claude:73d7a332
+

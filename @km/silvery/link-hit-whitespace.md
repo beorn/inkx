@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/link-hit-whitespace"
 aliases:
   - km-silvery.link-hit-whitespace
@@ -24,6 +26,7 @@ Hovering 'arm' arms the action. Hovering 'now' arms the action. Hovering the SPA
 Extend collectTextWithBg() in render-text.ts to produce ChildSpan ranges where end extends to the start of the next sibling's span, claiming interior whitespace. The inline hit test (findNodeAtScreenPosition + inlineRects in bound-term.ts) naturally finds the owning segment.
 
 Edge cases to handle:
+
 - Whitespace between two inner Texts with different handlers — assign to left or right? Match nearest handler (if only one has onClick, claim by that one)
 - Whitespace at the start or end of the outer Text — claimed by first/last inner span only if it has a handler
 - Nested nesting — apply recursively
@@ -50,3 +53,4 @@ Plus: ship a canonical <Link onClick={...}>{children}</Link> component in silver
 ## See also
 
 @km/silvery/inline-text-segments (Tier B, 1-2 weeks, architectural moat)
+

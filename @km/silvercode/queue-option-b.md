@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/queue-option-b"
 aliases:
   - km-silvercode.queue-option-b
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-24T16:16:25Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] [epic] Queue UX redesign — two TextAreas with seamless cursor-boundary focus handoff @km/silvercode #feature #P1
@@ -43,9 +49,7 @@ The queue editor has accumulated ~12 bugs in one day of iteration. Root cause (p
 ## Children (sequence)
 
 1. **@km/silvery/textarea-edge-callback** (P1, new) — add `onEdge` callback to silvery TextArea. Fires when arrow key hits boundary; if handler returns true, silvery doesn't clamp. This is the load-bearing silvery API addition.
-
 2. **@km/silvercode/queue-option-b-impl** (P1, new) — rewrite CommandBox to use two-TextArea pair, delete QueueEditor, delete queueFocused/holdQueue state in App.tsx, wire boundary handoff. Piecemeal fixes from this session (commits 49d4274aa, 6be6ef66e, 4b38bd604, b5289d672, 2e37edfe5, 923f2a4c8, 640022ad1, eb0e6a4d3) become obsolete — most will be deleted or radically simplified in this refactor.
-
 3. **@km/silvercode/queue-option-b-tests** — visual regression scenarios covering: focus swap up + down, entry editing via cursor movement, Enter-in-queue force-flush, Enter-in-command normal send, empty-queue Up-arrow no-op, per-region coloring, edge-case when queue grows past 12 rows.
 
 ## Acceptance (full)
@@ -62,3 +66,4 @@ All the piecemeal fixes from session 2026-04-24 stabilize the CURRENT design on 
 - Queue search / filter (future)
 - Per-entry ✕ cancel button (future)
 - Silvery TextArea `linePrefix` prop (v1 uses external gutter Box)
+

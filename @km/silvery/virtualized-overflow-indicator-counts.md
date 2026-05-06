@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/virtualized-overflow-indicator-counts"
 aliases:
   - km-silvery.virtualized-overflow-indicator-counts
@@ -22,6 +25,10 @@ dependencies:
     created_at: 2026-04-20T15:27:55Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Overflow indicator counts wrong for virtualized lists (▼1 means N hidden, not 1) @km/silvery #bug #P2 @claude:8b5b9e1c
@@ -33,9 +40,11 @@ Today, layout-phase scroll-phase derives hidden-count for ▼N / ▲N indicators
 /pro flagged this in the 2026-04-20 column-top-disappears review. It's an architectural gap: the indicator semantics conflate 'hidden boxes' with 'hidden logical items.'
 
 Two paths:
+
 1. Add explicit override props on scroll container: hiddenAboveCount, hiddenBelowCount. ListView passes (count - endIndex) as hiddenBelowCount and startIndex as hiddenAboveCount.
 2. Add explicit virtual-spacer metadata on placeholder Boxes: { virtualItemCount: N }. layout-phase reads it.
 
 Option 1 is simpler and renderer-neutral. Option 2 is more general (works for any virtualization scheme).
 
 Effort: small — 1-2 day change in ListView + scroll-phase. Includes test that verifies indicator count matches actual hidden item count.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/node-visual-spec"
 aliases:
   - km-tui.node-visual-spec
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Review node visual spec — state × role matrix @km/tui #task #P1
 
 Review docs/design/node-visual-spec.md — the complete matrix of state × role × visual treatment. Single source of truth for all selection/cursor/editing/done visual rules. Replaces the 8-rule comment in selection-style.ts. Open questions at the bottom need decisions.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/ufi29"
 aliases:
   - km-ufi29
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Release skill: bead-integrated changelog + vendor publish @km/_orphan #feature #P2
 
 Extract /git release into standalone /release skill. Support km root and vendor submodule packages. Generate changelogs from git log + closed beads. Detect changed packages, publish in dependency order. Track bead→release mapping.
+

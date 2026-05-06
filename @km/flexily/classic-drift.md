@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/flexily/classic-drift"
 aliases:
   - km-flexily.classic-drift
@@ -15,3 +18,4 @@ assignee: claude:65d845d9
 ---
 
 # [x] Bug: Classic implementation has drifted from zero-alloc — not behaviorally equivalent @km/flexily #bug #P1 @claude:65d845d9
+

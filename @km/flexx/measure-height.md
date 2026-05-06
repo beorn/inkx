@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/flexx/measure-height"
 aliases:
   - km-flexx.measure-height
@@ -11,3 +14,4 @@ assignee: claude:b53ef7e4
 # [x] fix(flexx): measure function height not constrained by parent main axis @km/flexx #bug #P2 @claude:b53ef7e4
 
 Code review C2: Text nodes inside height=1 parent get oversized height. Measure function receives unconstrained main-axis size in layout-zero.ts. Worked around in inkx content-phase.ts.
+

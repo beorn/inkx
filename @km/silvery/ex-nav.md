@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ex-nav"
 aliases:
   - km-silvery.ex-nav
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Phase 3: Update nav + sidebar config @km/silvery #task #P2
 
 Update docs/.vitepress/config.ts nav and sidebar for new example page names
+

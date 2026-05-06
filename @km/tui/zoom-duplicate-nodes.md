@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/zoom-duplicate-nodes"
 aliases:
   - km-tui.zoom-duplicate-nodes
@@ -19,3 +22,4 @@ assignee: Bjørn Stabell
 # [x] [bug] Zoom out shows duplicated nodes (Design phase appears twice) @km/tui #bug #P2 @Bjørn Stabell
 
 Repro: zoom into Projects → zoom into Alpha project → zoom back out. Child node appears both as standalone card AND as child of its parent. Tree rendering issue after zoom-out cursor preservation.
+

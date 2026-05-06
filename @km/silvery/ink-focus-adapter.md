@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/ink-focus-adapter"
 aliases:
   - km-silvery.ink-focus-adapter
@@ -16,3 +19,4 @@ assignee: claude:474834b0
 # [x] withInkFocus() — thin adapter from Ink useFocus/useFocusManager to silvery FocusManager @km/silvery #task #P2 @claude:474834b0
 
 Replace the 200-line InkFocusProvider with a thin adapter plugin. Ink's useFocus({ id }) registers with silvery's FocusManager. Ink's useFocusManager delegates to focusManager.focusNext/focusPrev. Remove inputEmitter option — silvery's withFocus() handles Tab/Escape. This is the hard one: bridging Ink's component-registered IDs with silvery's layout-tree-based focus nodes.
+

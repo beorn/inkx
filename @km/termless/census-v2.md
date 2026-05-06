@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/census-v2"
 aliases:
   - km-termless.census-v2
@@ -16,3 +19,4 @@ assignee: claude:4929065a
 # [x] Census v2: pure vitest with native meta, PartialSupport error, custom reporter @km/termless #task #P1 @claude:4929065a
 
 Rework census to use pure vitest instead of custom runner. Tests ARE the probes. describe() meta for category/spec, test() meta for feature ID. PartialSupport error type for partial support. Custom reporter transforms vitest JSON → census.json. Backend-first: init once, reset between probes.
+

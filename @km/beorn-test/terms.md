@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beorn-test/terms"
 aliases:
   - km-beorn-test.terms
@@ -10,3 +12,4 @@ closed_at: 2026-02-04T11:27:29Z
 # [x] vitestx: Terminology review (surface → ?) @km/beorn-test #task #P3
 
 Review 'surface' terminology. Candidates: harness, subject, target. Research prior art (fast-check, hypothesis, proptest). Low priority — naming only, no code changes.
+

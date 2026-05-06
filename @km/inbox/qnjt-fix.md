@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/inbox/qnjt-fix"
 aliases:
   - km-qnjt-fix
@@ -15,6 +18,7 @@ assignee: beorn
 Changed approach: Instead of fallbacks, missing positions now throws.
 
 **Rationale:** If card positions aren't registered, it's a programming error:
+
 1. Columns being virtualized incorrectly (not all visible columns rendered)
 2. Position registration broken (useScreenRectCallback not called)
 3. Registry cleared unexpectedly
@@ -24,3 +28,4 @@ Throwing catches these bugs early instead of silently degrading UX.
 Also fixed: command-bridge crash (cursor.length undefined) caused by
 SimplifiedBoardState not having `cursor` and `nodes` arrays that 
 @km/commands expected.
+

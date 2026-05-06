@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/adapter-text-divergence"
 aliases:
   - km-silvery.adapter-text-divergence
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Content-phase-adapter text rendering ignores wrapping + outline side flags @km/silvery #bug #P1
 
 Adapter renderText does single-line truncation, ignoring wrap/newlines, violating layout contract. Adapter renderOutlineAdapter always draws all 4 sides, ignoring outlineTop/Bottom/Left/Right. GPT 5.4 review finding, upgraded from P1 to high P1.
+

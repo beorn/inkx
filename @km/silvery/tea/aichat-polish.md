@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/tea/aichat-polish"
 aliases:
   - km-silvery.tea.aichat-polish
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-16T12:48:09Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.design-review
 ---
 
 # [ ] Polish AI Chat example for CLI — flagship demo quality @km/silvery #task #P2
@@ -22,9 +28,11 @@ blocks:: [[@km/silvery/design-review]]
 Polish the AI Chat example for CLI — the flagship demo of silvery
 
 ## What This Is
+
 ai-chat (examples/interactive/ai-chat.tsx) is the primary showcase. It must be excellent standalone and in the viewer/bundle. This bead covers CLI-specific polish.
 
 ## Current State
+
 - File: examples/interactive/ai-chat.tsx (TEA state machine via useTea)
 - Supporting modules: examples/interactive/scrollback/ (types.ts, script.ts, state.ts, components.tsx)
 - Tests: tests/examples/ai-chat*.test.tsx (4 files), tests/features/inline-scrollback-promotion.test.tsx, tests/features/scrollback-*.test.tsx
@@ -33,12 +41,14 @@ ai-chat (examples/interactive/ai-chat.tsx) is the primary showcase. It must be e
 - Running modes: inline (default) and fullscreen
 
 ## Known Issues (from @km/silvery/inline-bugs bead)
+
 - Inline mode: content can jump up after Enter (cursor-up overshoots into shell prompt area)
 - Inline mode: exit behavior may not restore terminal properly
 - Border rendering issues in some terminal widths
 - IncrementalRenderMismatchError at (77,45) in tests — pre-existing pipeline bug
 
 ## Polish Items
+
 1. Verify all controls work smoothly: Enter (advance), Tab (auto mode toggle), Ctrl+L (compact), Ctrl+D (exit), Esc (exit)
 2. Streaming animation timing — thinking spinner (1-2s), word-by-word reveal (50ms intervals), tool call spinner
 3. Script content quality — the SCRIPT entries should tell a compelling story
@@ -50,11 +60,14 @@ ai-chat (examples/interactive/ai-chat.tsx) is the primary showcase. It must be e
 9. Verify scrollback preservation — colors, borders, hyperlinks should survive in terminal scrollback
 
 ## Architecture
+
 TEA state machine: INIT_STATE + createDemoUpdate() produces [state, effects]. Effects are timer-based (fx.delay, fx.interval, fx.cancel). State includes exchanges[], scriptIdx, streamPhase, revealFraction, done, compacting, pulse, autoTyping.
 
 ## Key Files
+
 - examples/interactive/ai-chat.tsx — main component (CodingAgent)
 - examples/interactive/scrollback/types.ts — Exchange, ScriptEntry, ToolCall types
 - examples/interactive/scrollback/script.ts — SCRIPT data, CONTEXT_WINDOW, generateStressScript
 - examples/interactive/scrollback/state.ts — INIT_STATE, createDemoUpdate, TEA update function
 - examples/interactive/scrollback/components.tsx — ExchangeItem, DemoFooter, ToolCallBlock
+

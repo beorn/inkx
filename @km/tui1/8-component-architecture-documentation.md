@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui1/8-component-architecture-documentation"
 aliases:
   - km-tui1.8
@@ -15,6 +17,7 @@ Document the TUI1 component architecture for maintainability.
 ## Goal
 
 Create developer documentation explaining:
+
 - Component hierarchy
 - Data flow
 - State management
@@ -55,3 +58,4 @@ BoardState → View → TreeNode → Text rendering
 ## Files
 
 - Should be added to apps/@km/tui/packages/@km/_orphan/ink/README.md or docs/
+

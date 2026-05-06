@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/tribe-session-resume"
 aliases:
   - km-bearly.tribe-session-resume
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-21T13:37:53Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-bearly
 ---
 
 # [x] Tribe: session resume across Claude sessions (stable identity handle) @km/bearly #feature #P2
@@ -36,6 +42,7 @@ Identity token = sha256(CLAUDE_SESSION_ID | cwd | role).slice(0,16). Changes per
 Three complementary mechanisms, any one would cover the use case:
 
 ### A. User-controlled stable handle (most powerful)
+
 A tribe-identity file per-project or per-user that pins the session's name across Claude sessions:
 
 ```toml
@@ -49,9 +56,11 @@ scope = "project"  # or "user"
 On tribe.join, daemon reads this file (keyed by cwd + scope) and uses the declared name if not currently active.
 
 ### B. tribe.rename can reclaim dead names
+
 Currently tribe.rename errors "already taken" even when the holder is dead. Daemon should check if the holder is active; if not, reclaim automatically. One-line fix in server.mjs (or wherever rename handler lives).
 
 ### C. tribe reap CLI + auto-reap in daemon
+
 Sessions inactive for >24h get auto-deleted. Prevents name squatting. Add `bun tribe reap [--older-than=1h]` CLI + opt-in daemon background task.
 
 ## Recommendation
@@ -69,3 +78,4 @@ Ship B first (lowest friction — user already types /tribe rename <name> when t
 - vendor/bearly/tools/tribe-daemon.ts:437-468 (resolveName)
 - vendor/bearly/plugins/tribe/server.mjs:2062 (identity_token)
 - vendor/bearly/plugins/tribe/CHANGELOG.md:346-355 (identity_token history)
+

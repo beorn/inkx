@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/with-app-spread-bug"
 aliases:
   - km-silvery.with-app-spread-bug
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-21T12:55:05Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.authoring-elegance
 ---
 
 # [x] withApp() object-spread breaks apply-chain contract @km/silvery #bug #P1
@@ -80,3 +86,4 @@ With Object.assign, the enhanced object IS the same reference as the original, s
 - vendor/silvery/packages/create/src/runtime/base-app.ts:101+
 - apps/@km/tui/src/plugins/help-overlay.v3.ts (file header)
 - bead @km/tui/tea-help-overlay-v3 (the bead this was discovered under)
+

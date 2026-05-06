@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+  - km
+  - km
 id: "@km/inbox/sxly"
 aliases:
   - km-sxly
@@ -12,8 +16,10 @@ closed_at: 2026-01-16T12:39:47Z
 Move file watching code (1,604 lines) from @km/watch into @km/store.
 
 Steps:
+
 1. Copy src/*.ts files to @km/store/src/watch/
 2. Re-export from @km/store/index.ts
 3. Update apps/@km/_orphan/cli imports
 4. Remove @km/watch package
 5. Update workspace dependencies
+

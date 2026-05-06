@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/query-bugs"
 aliases:
   - km-storage.query-bugs
@@ -17,3 +20,4 @@ assignee: claude:c9beade3
 # [x] Query executor: quoted phrases ignored, negated ref filters inspect whole JSON blob @km/storage #bug #P0 @claude:c9beade3
 
 Two P0 query bugs: (1) Parser populates ast.phrases but executeQuery() never uses them — quoted searches silently drop phrase filter. (2) Negated @mention/#tag/+project uses json_extract(data,'$') NOT LIKE instead of checking specific array path — -@alice excludes nodes with 'alice' anywhere in data.
+

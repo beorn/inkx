@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - Bjørn
 id: "@km/silvery/commander-text-render"
 aliases:
   - km-silvery.commander-text-render
@@ -17,7 +21,7 @@ assignee: Bjørn Stabell
 
 # [x] @silvery/commander: refine the default text help renderer (stop-gap) @km/silvery #feature #P2 @Bjørn Stabell
 
-# @silvery/commander: refine the default text help renderer
+## @silvery/commander: refine the default text help renderer
 
 ## Scope
 
@@ -126,3 +130,4 @@ Each of these has design questions that aren't ready to be answered yet. They ge
 - **closed**: `km-silvery.commander-action-native` (resolved 2026-04-07 — single `.action()` overload + explicit `.actionMerged()`)
 - **deferred**: `km-silvery.commander-help-redesign` (the bigger React/IR/multi-target story)
 - **orthogonal**: `km-silvery.commander-command-string-args` (input syntax, not output rendering)
+

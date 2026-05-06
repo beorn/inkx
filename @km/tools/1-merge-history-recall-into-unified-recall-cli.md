@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - claude
+projects:
+  - recall
 id: "@km/tools/1-merge-history-recall-into-unified-recall-cli"
 aliases:
   - km-tools.1
@@ -10,3 +15,4 @@ assignee: claude:f03533a3
 ---
 
 # [x] Merge history+recall into unified recall CLI @km/tools #feature #P2 @claude:f03533a3
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/textarea-autosize-migrate"
 aliases:
   - km-tui.textarea-autosize-migrate
@@ -25,6 +28,14 @@ dependencies:
     created_at: 2026-04-25T23:33:25Z
     created_by: claude:611e701e
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.textarea-autosize
+      - type: link
+        target: km-tui
 ---
 
 # [x] km-tui: review EditContextDisplay/TextArea consumers for fieldSizing='content' adoption @km/tui #task #P3 @claude:2405c72e
@@ -32,3 +43,4 @@ dependencies:
 blocks:: [[@km/silvery/textarea-autosize]], [[@km/tui]]
 
 Once @km/silvery/textarea-autosize ships (and EditContextDisplay grows the same prop set or its own equivalent), audit @km/tui's BodyEditField (apps/@km/tui/src/views/BodyEditField.tsx — uses EditContextDisplay with explicit height) and any other text-edit surfaces to migrate where content-driven sizing improves UX. UnifiedOmnibox uses TextInput which is single-line and not affected.
+

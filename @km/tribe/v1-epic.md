@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/v1-epic"
 aliases:
   - km-tribe.v1-epic
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Tribe: cross-session coordination for Claude Code @km/tribe #epic #P2
 
 Coordination layer that lets multiple independent Claude Code sessions discover each other, exchange messages, and coordinate work. One session acts as chief (coordinator); the rest are members (workers). Design: docs/design/tribe.md
+

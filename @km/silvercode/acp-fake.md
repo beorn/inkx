@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/acp-fake"
 aliases:
   - km-silvercode.acp-fake
@@ -75,6 +78,14 @@ dependencies:
     created_at: 2026-04-26T02:04:57Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode.acp
+      - type: link
+        target: km-silvercode.acp-foundation
 ---
 
 # [x] ACP fake — deterministic test double for components, adapters, and orchestration @km/silvercode #feature #P1 @claude:cd034ca4
@@ -86,6 +97,7 @@ Scriptable fake ACP server / AcpSession for testing. Lives alongside foundation 
 ## Two layers (ship both)
 
 ### Layer 1 — createFakeAcpSession({ script }) — silvercode-internal
+
 Returns an AcpSession whose signals fire from a scripted sequence of SessionUpdates. Drop-in replacement for createAcpSession in tests and storybook.
 
 ```ts
@@ -101,9 +113,11 @@ const session = createFakeAcpSession(scope, {
 ```
 
 ### Layer 2 — silvercode-acp-fake standalone binary
+
 Wraps Layer 1 in AgentSideConnection (@agentclientprotocol/sdk), exposed as a real ACP server over stdio. Lets silvercode's real connectAcp factory talk to a fake on the other side of the wire — full end-to-end coverage of JSON-RPC layer, capability negotiation, connection lifecycle.
 
 ## Why it earns its place
+
 - Deterministic component testing — storybook stories drive component states from scripted ACP events
 - Adapter regression tests — stream-json → ACP boundary plays back recorded JSONL fixtures, asserts SessionUpdate stream matches golden
 - Cross-agent orchestration tests — deterministic peer behavior in multi-agent scenarios
@@ -112,9 +126,11 @@ Wraps Layer 1 in AgentSideConnection (@agentclientprotocol/sdk), exposed as a re
 - Storybook fixtures — canonical fixture player for every story
 
 ## Recordable + replayable
+
 Script format matches real-session captures. Run silvercode against real Claude with RECORD=1, capture all SessionUpdates + RequestPermissions + fs/* requests as JSON script. Replay through fake in tests. Same primitive as silvery's mdtest tape.
 
 ## Acceptance
+
 - createFakeAcpSession factory with deterministic timing
 - Script JSON schema (matches real ACP wire shape)
 - Recording mode in connectAcp (silvercode dev flag)
@@ -122,4 +138,6 @@ Script format matches real-session captures. Run silvercode against real Claude 
 - Test fixtures: minimal-prompt, tool-call-with-permission, multi-tool-with-fs, rejection-flow, error-flow, plan-update, mode-change
 
 ## Reference
+
 hub/silvery/future/ai-terminal/10-agent-router-landscape.md § ACP fake — a deterministic test double for the foundation
+

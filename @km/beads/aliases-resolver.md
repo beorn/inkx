@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beads/aliases-resolver"
 aliases:
   - km-beads.aliases-resolver
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Resolver indexes aliases from frontmatter @km/beads #task #P1
 
 short-ids.ts resolveShortId checks data.aliases (array) in addition to data.short_id. queries.ts respects aliases. Acceptance: km bd show <legacy-id> resolves to new file; km bd show @km/scope/slug also resolves; tests cover both paths.
+

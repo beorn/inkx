@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/0naz3"
 aliases:
   - km-0naz3
@@ -15,3 +18,4 @@ assignee: claude:b92140a2
 # [x] P0: Inline \![[./child]] mentions treated as structural slots @km/_orphan #bug #P0 @claude:b92140a2
 
 extractAllSlotTargets() fallback regex matches \![[./child]] anywhere in node content, including prose like 'See \![[./alpha]] later'. This causes unexpected child reordering. Fix: only accept nodes whose content is exclusively slot references (no surrounding text).
+

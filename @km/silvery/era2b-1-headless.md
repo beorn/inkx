@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - claude
 id: "@km/silvery/era2b-1-headless"
 aliases:
   - km-silvery.era2b-1-headless
@@ -18,3 +22,4 @@ assignee: claude:fed8de9e
 # [x] Era2b Phase 1: @silvery/headless — extract pure state machines @km/silvery #task #P1 @claude:fed8de9e
 
 New package. Extract SelectListState, TextInputState, VirtualListState, ToggleState, TabGroupState from @silvery/tea. Pure (action, state) → state. No React, no rendering. Depends only on @silvery/create.
+

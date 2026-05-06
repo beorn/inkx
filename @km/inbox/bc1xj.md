@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/bc1xj"
 aliases:
   - km-bc1xj
@@ -11,3 +14,4 @@ assignee: claude:124bfbe5
 ---
 
 # [x] TUI: IGNORE_NODE crashes with EROFS on fake/readonly repos @km/_orphan #bug #P3 @claude:124bfbe5
+

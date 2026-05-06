@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/loggily/worker-handler-facade"
 aliases:
   - km-loggily.worker-handler-facade
@@ -15,6 +17,10 @@ dependencies:
     created_at: 2026-04-11T16:37:20Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-loggily
 ---
 
 # [x] Porcelain API: handleWorkerLogs() — auto-forward logs from workers @km/loggily #feature #P2
@@ -22,3 +28,4 @@ dependencies:
 blocks:: [[@km/loggily]]
 
 Simplified worker thread setup. Developers currently manage workerMessageChannel manually; handleWorkerLogs(workerPort) should auto-subscribe and forward all logs from that worker thread.
+

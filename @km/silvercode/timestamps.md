@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/timestamps"
 aliases:
   - km-silvercode.timestamps
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-28T12:36:37Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [ ] Relative timestamps for turn boundaries — '(2m ago)' next to user/assistant heads @km/silvercode #feature #P2
@@ -26,6 +32,8 @@ Format: '(now)', '(2m ago)', '(1h ago)', '(3d ago)'. Right-aligned at the end of
 Files: apps/silvercode/src/components/SessionUpdateList.tsx, ExchangeItem.tsx (or wherever turn heads render).
 
 Acceptance:
+
 - Turn head rows show relative time, dim, right-aligned
 - Updates every 60s automatically (1-line useEffect with interval)
 - termless test: turn from 5 minutes ago shows '(5m ago)'
+

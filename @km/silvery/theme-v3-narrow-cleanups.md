@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-v3-narrow-cleanups"
 aliases:
   - km-silvery.theme-v3-narrow-cleanups
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-18T21:09:18Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.theme-v3-plumbing
 ---
 
 # [x] Narrow cleanups: compat shims, deprecated aliases, double detectTheme, types stub @km/silvery #task #P3
@@ -24,3 +30,4 @@ dependencies:
 blocks:: [[@km/silvery/theme-v3-plumbing]]
 
 N1: delete @silvery/theme/{derive,resolve,color,contrast}.ts compat shims (8-line re-exports from @silvery/ansi). N2: delete @silvery/theme/src/types.ts 15-line stub — use @silvery/ansi/theme/types.ts directly. N3: delete deprecated aliases from Theme (brandRed, brandOrange, brandYellow, brandGreen, brandTeal, brandBlue, brandPurple, brandPink) — superseded by short names (red, orange, yellow, etc.). N4: merge @silvery/ansi/theme/detect.ts (lightweight) + @silvery/theme/src/detect.ts (enhanced Nord/Catppuccin fallback) into one detectTheme with fallback option.
+

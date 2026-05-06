@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/rev-0129/8-complete-or-document-board-sync-rules"
 aliases:
   - km-rev-0129.8
@@ -18,3 +21,4 @@ packages/@km/storage/src/db-rules.ts:119-122 has sync rule evaluation commented 
 // }
 
 Either implement or document that sync= parsing is supported but evaluation deferred.
+

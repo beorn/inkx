@@ -1,4 +1,10 @@
 ---
+mentions:
+  - silvery
+  - silvery
+  - silvery
+  - km
+  - claude
 id: "@km/silvery/design-package-rename"
 aliases:
   - km-silvery.design-package-rename
@@ -27,6 +33,16 @@ dependencies:
     created_at: 2026-04-19T21:08:12Z
     created_by: claude:4274df30
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-all.sterling
+      - type: link
+        target: km-silvery.sterling-2d-release
+      - type: link
+        target: km-silvery.sterling-2e-interior-migration
 ---
 
 # [ ] Phase 3b: Rename @silvery/theme → @silvery/design + @silvery/schemes @km/silvery #task #P3 @claude:22c2717d
@@ -59,3 +75,4 @@ Phase 3a (shipped 2026-04-19, bead @km/silvery/theme-v4-schemes-rescope) slimmed
 
 Parent: @km/silvery/theme-v4
 Canonical doc: hub/silvery/design/v10-terminal/design-system.md
+

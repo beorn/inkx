@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/nav-regression"
 aliases:
   - km-tui.nav-regression
@@ -13,3 +16,4 @@ assignee: claude:a5c7f7de
 # [x] Visual navigation regression on files with body content @km/tui #bug #P2 @claude:a5c7f7de
 
 Regression in visual navigation when viewing files with body content (e.g. /tmp/vt/CLAUDE.md). Needs /explore to identify the specific failure.
+

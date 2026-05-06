@@ -1,4 +1,8 @@
 ---
+mentions:
+  - beorn
+  - km
+  - claude
 id: "@km/termless/vt-monorepo"
 aliases:
   - km-termless.vt-monorepo
@@ -13,3 +17,4 @@ assignee: claude:4929065a
 ---
 
 # [x] @beorn/vterm monorepo — vt100.js + vterm.js @km/termless #task #P1 @claude:4929065a
+

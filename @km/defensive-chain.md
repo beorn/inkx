@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - cf9418f8
 id: "@km/defensive-chain"
 aliases:
   - km-defensive-chain
@@ -11,3 +14,4 @@ assignee: cf9418f8
 # [x] Defensive Command Chain & User Feedback @km/defensive-chain #epic #P1 @cf9418f8
 
 Replace allowNoEffect with Result type + bell feedback. See plan: .claude/plans/swirling-launching-chipmunk.md
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/click-to-position"
 aliases:
   - km-silvery.click-to-position
@@ -55,3 +58,4 @@ Add onClick handler to TextInput and TextArea that maps terminal (x,y) coordinat
 **Infrastructure already exists**: SGR 1006 mouse protocol, hit testing (hitTest → deepest node), onClick/onMouseDown event dispatch with bubbling, SilveryMouseEvent with clientX/clientY and modifier keys, click-to-focus (findFocusableAncestor). Just need the last step: coordinate → cursor offset mapping.
 
 **Follow-on**: Double-click to select word (double-click detection already exists in mouse-events.ts).
+

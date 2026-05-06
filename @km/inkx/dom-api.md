@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/dom-api"
 aliases:
   - km-inkx.dom-api
@@ -12,6 +14,7 @@ closed_at: 2026-02-11T18:38:31Z
 Improve inkx render API ergonomics with a DOM-like model:
 
 ## Current API (verbose)
+
 ```typescript
 using term = createTerm()
 const { waitUntilExit } = await render(term, <InlineProgress />, {
@@ -22,6 +25,7 @@ await waitUntilExit()
 ```
 
 ## Proposed API
+
 ```typescript
 // render() accepts AutoLocator as mount target
 const layout = await render(term, <Layout />)
@@ -36,15 +40,18 @@ await Promise.all([
 ```
 
 ## Key concepts
+
 - `term.root` represents the terminal as a DOM root
 - `App.locator()` returns AutoLocator which can be a render target
 - Multiple React trees can mount into different regions
 - Aligns with existing inkx patterns (AutoLocator, App interface)
 
 ## Implementation notes
+
 - Extend render() to accept AutoLocator as first arg
 - AutoLocator.boundingBox() provides the mount region
 - Each render creates independent React reconciler root
 - Parent layouts reserve space, children fill it
 
 Reference: React 18's createRoot(container).render(<App />) pattern
+

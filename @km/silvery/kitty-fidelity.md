@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/kitty-fidelity"
 aliases:
   - km-silvery.kitty-fidelity
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Kitty protocol: DISAMBIGUATE | REPORT_EVENTS | REPORT_ALL_KEYS default @km/silvery #task #P2
 
 Silvery now defaults to full-fidelity Kitty flags (11 = DISAMBIGUATE|REPORT_EVENTS|REPORT_ALL_KEYS). useInput filters release events. useModifierKeys tracks held state from all events including modifier-only presses/releases. This enables new features that depend on modifier tracking and key release detection.
+

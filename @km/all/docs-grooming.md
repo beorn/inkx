@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/all/docs-grooming"
 aliases:
   - km-all.docs-grooming
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-16T22:18:52Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all
 ---
 
 # [x] Docs grooming — km + silvery ecosystem (public/internal hard line) @km/all #task #P2 @Bjørn Stabell
@@ -27,3 +34,4 @@ dependencies:
 blocks:: [[@km/all]]
 
 Cross-ecosystem docs grooming: consolidate, unify, enforce public/internal boundary. ~474 md files → ~420 (12% cut). Phases A (boundary+structural), B (consolidation merges), C (glossary unification), D (internal promotion/archive audit), E deferred (CLAUDE.md template). Parent of phase beads. See plan file + docs/backlog.md.
+

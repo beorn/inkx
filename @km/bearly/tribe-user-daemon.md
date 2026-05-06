@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/bearly/tribe-user-daemon"
 aliases:
   - km-bearly.tribe-user-daemon
@@ -27,6 +30,7 @@ Proposed: per-user daemon (~/.local/share/tribe/tribe.sock) + per-project DBs
 ## Namespace Model (aligned with beads)
 
 Borrow beads' prefix-based namespace mapping:
+
 - Beads use km-<scope>.<suffix> — project prefix + scope + ID
 - Tribe sessions: <project>:<name> — e.g. km:chief, decker:webapp
 - Cross-project addressing: tribe_send('decker:chief', msg)
@@ -46,20 +50,22 @@ Agent naming: agents spawned by tribe could follow the same pattern — km:chief
 
 ## What Changes
 
-| Aspect | Now | Proposed |
-|--------|-----|----------|
-| Daemon | per-project (.beads/tribe.sock) | per-user (~/.local/share/tribe/tribe.sock) |
-| Socket discovery | walk up to .beads/ | fixed per-user path |
-| DB | one per project | registry DB + per-project DBs |
-| Sessions | isolated per project | all visible, namespaced by project |
-| Messages | within project only | cross-project via project:name addressing |
-| Agent names | member-<pid> | km:flexily:agent-1 |
+| Aspect           | Now                             | Proposed                                   |
+| ---------------- | ------------------------------- | ------------------------------------------ |
+| Daemon           | per-project (.beads/tribe.sock) | per-user (~/.local/share/tribe/tribe.sock) |
+| Socket discovery | walk up to .beads/              | fixed per-user path                        |
+| DB               | one per project                 | registry DB + per-project DBs              |
+| Sessions         | isolated per project            | all visible, namespaced by project         |
+| Messages         | within project only             | cross-project via project:name addressing  |
+| Agent names      | member-<pid>                    | km:flexily:agent-1                         |
 
 ## Beads Alignment
 
 Beads already solve the namespace problem:
+
 - bd uses remote repos with prefix mapping (e.g. km- prefix → km remote)
 - Projects are identified by their .beads/ directory + remote config
 - IDs are globally unique via prefix (@km/silvery/foo vs decker-auth.foo)
 
 Tribe can reuse this: read .beads/config to get the project prefix, use it as the namespace. A session in ~/Code/pim/km registers as 'km:flexily'. A session in ~/Code/DZ/decker registers as 'decker:webapp'. The daemon routes cross-project messages by prefix lookup.
+

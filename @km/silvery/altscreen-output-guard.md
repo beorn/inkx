@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/altscreen-output-guard"
 aliases:
   - km-silvery.altscreen-output-guard
@@ -17,8 +19,10 @@ owner: bjorn@stabell.org
 In alt screen (fullscreen) mode, any write to stdout/stderr outside silvery's render pipeline corrupts the display. patchConsole only catches console.* methods.
 
 Solution: when entering alt screen mode, silvery should intercept process.stdout.write and process.stderr.write:
+
 1. stdout: only allow silvery's own render output through (from scheduler/output-phase). All other stdout writes are suppressed or buffered.
 2. stderr: redirect to a log file (DEBUG_LOG) or buffer. Restore and flush on exit.
 3. Restore original write methods on dispose (Symbol.dispose).
 
 This catches ALL output sources: loggily, console.*, direct process.stderr.write(), any dependency.
+

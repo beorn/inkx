@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/reduced-signals-typed-api"
 aliases:
   - km-tui.reduced-signals-typed-api
@@ -20,12 +23,14 @@ Redesign reduced signal API from string keys to function accessors.
 ## Problem
 
 Current API uses string keys:
+
 ```ts
 store.defineReduced("cursorDescendant", tree.descendants("cursor").some())
 store.setPrimary("sub1", "cursor", true)
 ```
 
 Design doc (tree-reduce.md) specifies function accessors:
+
 ```ts
 cursorDescendant: tree.descendants(s => s.cursor).some()
 ```
@@ -35,6 +40,7 @@ String keys are inconsistent with the rest of the codebase, which uses typed pro
 ## Codebase Precedents
 
 All state access in km uses typed accessors, not string keys:
+
 - Zustand: `(s) => s.ui.showHelp`
 - PaneSignals: `ps.rootId()` (alien-signal call)
 - useSignal: `useSignal(ps.visibleLens)` (typed signal ref)
@@ -43,6 +49,7 @@ All state access in km uses typed accessors, not string keys:
 ## Design Direction
 
 Declarative state definition with inferred types:
+
 ```ts
 const store = reactiveTree({
   state: () => ({
@@ -72,6 +79,7 @@ The accessor function `s => s.cursor` needs `s` to be typed as the state object 
 5. `batch(tree, fn)` unchanged — fn receives typed node accessors
 
 ## /complete
+
 ```bash
 # No string keys in reduced signal definitions
 rg 'defineReduced\|setPrimary\|"cursor"\|"selected"\|"editing"' apps/km-tui/src/state/reduced-signals.ts -c | wc -l  # → 0
@@ -80,3 +88,4 @@ rg 's => s\.' apps/km-tui/src/state/reduced-signals.ts -c  # → > 0
 # Tests updated
 bun vitest run apps/km-tui/tests/reduced-signals.test.ts  # pass
 ```
+

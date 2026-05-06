@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/markdown-table-render"
 aliases:
   - km-silvercode.markdown-table-render
@@ -19,6 +21,14 @@ dependencies:
     created_at: 2026-04-28T14:19:55Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-shared.text-render-package
+      - type: link
+        target: km-silvercode
 ---
 
 # [ ] Markdown table rendering with column alignment @km/silvercode #feature #P0
@@ -30,6 +40,7 @@ Render markdown tables in silvercode's MarkdownView with column alignment from h
 Currently MarkdownView treats GFM tables as plain text — multi-row tabular output (e.g., bd output, Claude tool results showing data) renders as misaligned monospaced lines.
 
 Scope:
+
 - Parse |---| separator rows to detect tables and capture per-column alignment
 - Render via silvery layout: each row a Box flexDirection=row, each cell a Text with padding to the column width
 - Width budget: pick column widths via max content width per column, capped at terminal width / column count
@@ -48,3 +59,4 @@ Parked from /loop session 2026-04-28 evening at user direction.
 - `Content.Table` tries prose, then wide, then full-width grid rendering; if the table cannot fit, it expands each row into key/value cards.
 - `Content.Table.Grid` and `Content.Table.Cards` are available as explicit variants and are covered in the content layout story.
 - Verification: `apps/silvercode/tests/detection.test.ts`, `apps/silvercode/tests/content-layout.test.tsx`, `apps/silvercode/tests/visual/markdown.test.tsx`, and `apps/silvercode/tests/visual/markdown-bugs.test.tsx` passed, 63 tests total.
+

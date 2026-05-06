@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/bd-integrate"
 aliases:
   - km-infra.bd-integrate
@@ -13,13 +15,17 @@ dependencies:
     created_at: 2026-04-28T00:59:34Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [ ] bd integrate — single-command integration transaction (worktree → main → cleanup) @km/infra #feature #P1
 
 blocks:: [[@km/infra]]
 
-# bd integrate — design notes
+## bd integrate — design notes
 
 ## Why
 
@@ -39,43 +45,39 @@ Quality level: **L0** today (ad-hoc). Target: **L3** (API/lifecycle structure ma
 Single command, transactional. Each step is a hard gate; failure aborts and reports state.
 
 1. **Pre-flight checks**
-   - Bead exists and is `closed` OR `in_progress` with `--force`
-   - Branch exists in worktree (read from bead metadata or `.claude/worktrees/<name>/`)
-   - Worktree has no uncommitted changes
-   - Branch is pushed to origin (verify via `git ls-remote origin <branch>`)
-   - `/complete` criteria from bead description pass (run greps literally)
-   - Main worktree has no uncommitted source changes (allow churn-listed paths only)
-
+  - Bead exists and is `closed` OR `in_progress` with `--force`
+  - Branch exists in worktree (read from bead metadata or `.claude/worktrees/<name>/`)
+  - Worktree has no uncommitted changes
+  - Branch is pushed to origin (verify via `git ls-remote origin <branch>`)
+  - `/complete` criteria from bead description pass (run greps literally)
+  - Main worktree has no uncommitted source changes (allow churn-listed paths only)
 2. **Merge to main**
-   - Fetch origin
-   - Compute merge-base; abort if conflicts predicted
-   - Fast-forward `--no-ff` merge with conventional message: `Merge bead <id>: <title>`
-   - Push origin main
-   - Verify push via `git ls-remote origin main` matches local SHA
-
+  - Fetch origin
+  - Compute merge-base; abort if conflicts predicted
+  - Fast-forward `--no-ff` merge with conventional message: `Merge bead <id>: <title>`
+  - Push origin main
+  - Verify push via `git ls-remote origin main` matches local SHA
 3. **Bead state update**
-   - New state: `integrated` (schema add)
-   - Annotate with merge SHA and timestamp
-   - `bd dolt push` so other sessions see the state
-
+  - New state: `integrated` (schema add)
+  - Annotate with merge SHA and timestamp
+  - `bd dolt push` so other sessions see the state
 4. **Worktree cleanup** (tied to `integrated` state, NOT session end)
-   - If worktree has no other branches: `git worktree remove`
-   - If worktree has other beads in flight: keep, but unmark this branch
-   - Skip if `--keep-worktree` flag set
-
+  - If worktree has no other branches: `git worktree remove`
+  - If worktree has other beads in flight: keep, but unmark this branch
+  - Skip if `--keep-worktree` flag set
 5. **Optional: --batch mode**
-   - `bd integrate --ready` integrates all beads matching state filter
-   - Sequential, abort-on-first-failure
+  - `bd integrate --ready` integrates all beads matching state filter
+  - Sequential, abort-on-first-failure
 
 ## Hard gates (anti-fail-modes)
 
-| Gate | Catches | Implementation |
-|------|---------|---------------|
-| Branch pushed verify | un-pushed commits | `ls-remote` SHA match |
-| Bead closure with evidence | aspirational closure | greps from `/complete` criteria |
-| WIP gate on main | merge collisions | `git diff HEAD --name-only` filter |
-| Push verify | local-only main | `ls-remote` match |
-| Worktree-state gate | orphan worktrees | tied to `integrated` state |
+| Gate                       | Catches              | Implementation                   |
+| -------------------------- | -------------------- | -------------------------------- |
+| Branch pushed verify       | un-pushed commits    | ls-remote SHA match              |
+| Bead closure with evidence | aspirational closure | greps from /complete criteria    |
+| WIP gate on main           | merge collisions     | git diff HEAD --name-only filter |
+| Push verify                | local-only main      | ls-remote match                  |
+| Worktree-state gate        | orphan worktrees     | tied to integrated state         |
 
 ## Schema
 
@@ -110,3 +112,4 @@ Add `integrated` to bead status enum (between `closed` and `archived`?). Or keep
 - /big analysis: 2026-04-28 session, "how far from quality plateau"
 - Hub quality rubric: hub/quality-rubric.md (L0-L5)
 - feedback-worktree-shared-submodule.md (canonical 2-agent isolation rule)
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/overlay-vocabulary"
 aliases:
   - km-silvery.overlay-vocabulary
@@ -15,6 +18,10 @@ dependencies:
     created_at: 2026-04-26T08:37:52Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [/] silvery overlays — DropdownMenu, ContextMenu, HoverCard, Tag, RadioGroup, Switch, TabSelect @km/silvery #feature #P2 @claude:cd034ca4
@@ -24,7 +31,9 @@ blocks:: [[@km/silvery]]
 Add overlay primitives missing from silvery's component vocabulary.
 
 ## Audit (2026-04-26)
+
 Already in vendor/silvery/packages/ag-react/src/ui/components/:
+
 - Tooltip — terminal-inline help text near target
 - Popover — hover-driven floating overlay (mid-WIP in the working tree, not yet pushed)
 - Tabs — compound TabList/TabPanel
@@ -32,6 +41,7 @@ Already in vendor/silvery/packages/ag-react/src/ui/components/:
 - Toggle — focusable checkbox-style toggle (Space-to-toggle)
 
 ## Real gap (4 net-new + 3 aliases)
+
 - <DropdownMenu> — button-triggered menu (like a select), keyboard-navigable
 - <ContextMenu> — keybind-triggered (Ctrl+? or similar) action menu — not right-click since TUI mouse semantics differ
 - <RadioGroup> — mutually-exclusive options for forms, focus-group integrated
@@ -43,6 +53,7 @@ Already in vendor/silvery/packages/ag-react/src/ui/components/:
 ## Estimated LOC: ~350-500 (was 600-900 before audit)
 
 ## Acceptance
+
 - New components in vendor/silvery/packages/ag-react/src/ui/components/
 - Each new component has a test in vendor/silvery/tests/
 - Exported from ag-react barrel
@@ -50,7 +61,10 @@ Already in vendor/silvery/packages/ag-react/src/ui/components/:
 - Aliases re-export verbatim — no parallel implementation
 
 ## Blocks
+
 B.5 file-tabs (TabSelect for narrow chrome), B.8 model-tooltip (HoverCard), B.10 settings (RadioGroup, Switch), B.11 dialog-fork, B.12 status-popover.
 
 ## Source plan
+
 hub/silvery/future/ai-terminal/component-parity-plan.md § Tier 0 bead 3.
+

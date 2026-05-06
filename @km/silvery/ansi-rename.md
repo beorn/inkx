@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ansi-rename"
 aliases:
   - km-silvery.ansi-rename
@@ -19,18 +21,19 @@ owner: bjorn@stabell.org
 
 Rename the ANSI styling helper from `Term` to `Style`:
 
-| Old | New |
-|-----|-----|
-| `Term` (type) | `Style` |
-| `createTerm()` | `createStyle()` |
-| `useTerm()` | `useStyle()` |
-| `TermContext` | `StyleContext` |
+| Old          | New           |
+| ------------ | ------------- |
+| Term (type)  | Style         |
+| createTerm() | createStyle() |
+| useTerm()    | useStyle()    |
+| TermContext  | StyleContext  |
 
 ## Why
 
 Frees up `createTerm()` / `useTerm()` for the runtime terminal abstraction (`km-silvery.terminal-abstraction`). The styling helper is just a chalk proxy + capability detection — `Style` describes it accurately.
 
 Endgame naming:
+
 - `createStyle()` → chalk styling proxy
 - `createTerm()` → runtime terminal (Provider + writable)
 
@@ -41,3 +44,4 @@ Endgame naming:
 ## Sequencing
 
 Do before `km-silvery.terminal-abstraction` so that `createTerm()` is available for the runtime factory.
+

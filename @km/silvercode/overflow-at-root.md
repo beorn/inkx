@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/overflow-at-root"
 aliases:
   - km-silvercode.overflow-at-root
@@ -66,3 +69,4 @@ Best container to own `overflow="hidden"`: **the MessageList's ListView item wra
 - 6+ overflow-prevention commits: 5ca7d89c5, c1280e9a5, 6c015d87c, 9c3a7277a, 6e89c4ab1, c4274e433
 - Same pattern on web: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_flexible_box_layout/Mastering_wrapping_of_flex_items
 - /big analysis session 2026-04-24 (this bead is the output)
+

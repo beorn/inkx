@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tools/import"
 aliases:
   - km-tools.import
@@ -11,3 +14,4 @@ assignee: claude:8f007ba9
 ---
 
 # [x] Generalized importer system (Asana, Todoist, CSV, etc.) @km/tools #feature #P2 @claude:8f007ba9
+

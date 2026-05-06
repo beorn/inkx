@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkz/12-docs"
 aliases:
   - km-inkz.12-docs
@@ -18,6 +20,7 @@ Create comprehensive, LLM-friendly documentation for InkZ that serves developers
 ### 1. Static Documentation Site (VitePress)
 
 Structure:
+
 ```
 docs/site/
 ├── .vitepress/config.ts
@@ -36,6 +39,7 @@ docs/site/
 ### 3. API Documentation
 
 Each component/hook documented with:
+
 - **Purpose** - What it does in one sentence
 - **Props** - Table with name, type, default, description
 - **Examples** - Code + expected output
@@ -48,3 +52,4 @@ Each component/hook documented with:
 - [ ] llms.txt at project root
 - [ ] GitHub Pages deploy config
 - [ ] Dark mode and search work
+

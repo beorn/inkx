@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/doc-edit-safety"
 aliases:
   - km-infra.doc-edit-safety
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-14T18:48:53Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [ ] Encode doc-edit safety rule: never use perl/sed for markdown with pipe-heavy content @km/infra #task #P2
@@ -54,3 +60,4 @@ Encode the rule in steering docs and/or skills where agents will actually see it
 - Corruption pattern: `| null` interleaved between every character of docs/design/omnibox.md
 - Recovery: git show HEAD > file + 13-line Edit repairs
 - Related feedback memory: feedback_batch-refactor-default.md, feedback_batch-refactor-for-migrations.md
+

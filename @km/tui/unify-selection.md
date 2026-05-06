@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/unify-selection"
 aliases:
   - km-tui.unify-selection
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Unify dual selection systems: selectedNodes vs ui.multiSelected @km/tui #task #P3
 
 Two parallel selection systems: selectedNodes (Set<string> node IDs on store root) and ui.multiSelected (Set<SelectionKey> using colIndex:cardIndex format). Unify into selectedNodes (node-ID based, survives column reflow). Eliminate multiSelected, SelectionKey, makeSelectionKey, parseSelectionKey.
+

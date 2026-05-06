@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/a11y-high-contrast"
 aliases:
   - km-silvery.a11y-high-contrast
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-15T16:19:36Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.opentui-parity
 ---
 
 # [ ] A11y: high-contrast mode detection + useHighContrast() @km/silvery #feature #P4
@@ -20,3 +26,4 @@ dependencies:
 blocks:: [[@km/silvery/opentui-parity]]
 
 Detect high-contrast environment and expose useHighContrast() hook. Complements existing useIsScreenReaderEnabled.
+

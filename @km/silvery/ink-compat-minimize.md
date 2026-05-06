@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/ink-compat-minimize"
 aliases:
   - km-silvery.ink-compat-minimize
@@ -18,13 +21,16 @@ assignee: claude:474834b0
 Track and drive all changes needed to shrink the ink compat layer toward zero.
 
 ## Goal
+
 Make silvery natively compatible with Ink patterns so the compat layer becomes thin wrappers (re-exports + trivial adapters), not a parallel rendering stack.
 
 ## Active Sub-beads
+
 - **@km/silvery/sgr-compat** — Differential SGR output (eliminates toChalkCompat ~200 lines)
 - **@km/silvery/ink-compat-audit** — Test suite gap tracking (127/134 pass, 7 flexily gaps)
 
 ## Potential Further Reductions
+
 - [ ] Pass process: { stdin, stdout } directly → eliminate stdin bridging code
 - [ ] wrapRoot plugin or withInk() → eliminate manual wrapElement()
 - [ ] chalkCompat output mode on renderer → eliminate post-processing
@@ -33,4 +39,6 @@ Make silvery natively compatible with Ink patterns so the compat layer becomes t
 - [ ] VS16 emoji stripping — handle at renderer level, not compat layer
 
 ## Current Compat Surface (~80 lines render path + ~200 lines ANSI conversion)
+
 The render() test path in ink.ts and toChalkCompat/stripSilveryVS16 functions.
+

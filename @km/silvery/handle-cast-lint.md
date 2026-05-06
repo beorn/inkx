@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/handle-cast-lint"
 aliases:
   - km-silvery.handle-cast-lint
@@ -24,6 +27,10 @@ dependencies:
     created_at: 2026-04-28T14:45:38Z
     created_by: claude:da9990c5
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] CI lint blocking 'as XHandle' / 'as TickHandle' casts outside scoped factories @km/silvery #task #P3 @claude:2405c72e
@@ -41,6 +48,7 @@ A CI lint script + test was prepared on a feat branch but never merged because t
 ## What to ship
 
 Port the lint from feat/@km/silvery/scope-resource-ownership commit 050902963:
+
 - `packages/km-infra/scripts/check-no-handle-cast.sh` (107 lines)
 - `packages/km-infra/tests/no-handle-cast.test.ts` (73 lines)
 
@@ -58,3 +66,4 @@ The original commit is on branch feat/@km/silvery/scope-resource-ownership (will
 - [ ] Trim allowlist to scoped-tick.ts only
 - [ ] Add CI invocation in package.json or .github workflow
 - [ ] Test catches a deliberate forged `as TickHandle` cast outside scoped-tick.ts
+

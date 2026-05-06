@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/vault-loader/0-create-vault-loader-ts-with-loadvault"
 aliases:
   - km-vault-loader.0
@@ -20,3 +22,4 @@ Create the unified vault loader in packages/@km/storage/src/vault-loader.ts:
 - Shared evaluateRules() using existing evaluateAllRules()
 
 Returns LoadResult { mode, nodeCount, linkCount, errors, duration }
+

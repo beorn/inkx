@@ -1,4 +1,11 @@
 ---
+propsRaw:
+  ts: "getCursorState + subscribeCursor global fallbacks — migrate consumers to
+    CursorAccessors @km/silvery #task #P3"
+props:
+  blocked-by:
+    type: link
+    target: km-all.plateau
 id: "@km/silvery/delete-cursor-globals"
 aliases:
   - km-silvery.delete-cursor-globals
@@ -13,6 +20,7 @@ dependencies:
     metadata: "{}"
 ---
 
-# [ ] Delete silvery useCursor.ts::getCursorState + subscribeCursor global fallbacks — migrate consumers to CursorAccessors @km/silvery #task #P3
+# [ ] Delete silvery useCursor. ^delete-cursor-globals
 
 blocks:: [[@km/all/plateau]]
+

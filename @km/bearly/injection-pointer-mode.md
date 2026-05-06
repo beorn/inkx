@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/bearly/injection-pointer-mode"
 aliases:
   - km-bearly.injection-pointer-mode
@@ -27,13 +30,21 @@ dependencies:
     created_at: 2026-04-21T12:42:43Z
     created_by: claude:7e9436e8
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-bearly
+      - type: link
+        target: km-bearly.injection-envelope-lib
 ---
 
 # [x] Pointer-based injection — ambient awareness without body content @km/bearly #feature #P1 @claude:7e9436e8
 
 blocks:: [[@km/bearly]], [[@km/bearly/injection-envelope-lib]]
 
-# Phase 3 of @km/_orphan/ambot fix
+## Phase 3 of @km/_orphan/ambot fix
 
 Change recall injection from snippets (body prose with imperative shapes) to pointers (title + path + date + 1-line summary + entity tags). Model gets ambient awareness that prior context exists + where to find it, without the attack-surface prose landing in the user role.
 
@@ -63,3 +74,4 @@ Maps to Pro's rank-4/5 ('one of the best make-impossible moves — destroys impe
 ## Dependencies
 
 - **After**: @km/bearly/injection-envelope-lib
+

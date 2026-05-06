@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/embed-transparency"
 aliases:
   - km-tui.embed-transparency
@@ -17,3 +20,4 @@ assignee: claude:f8196c1c
 # [x] Embed cards should transparently show target's title, icon, body, and children @km/tui #feature #P2 @claude:f8196c1c
 
 Currently embed cards show: raw filename as title (not target's display name), generic icon (not target's type icon), empty detail pane (not target's children/body). Embeds should fully 'take on' the identity of their resolved target — title from getNodeDisplayName(target), icon from target type, children from target, body content from target.
+

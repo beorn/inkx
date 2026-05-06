@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - claude
 id: "@km/silvery/plateau-env-read-lint"
 aliases:
   - km-silvery.plateau-env-read-lint
@@ -58,6 +62,10 @@ dependencies:
     created_at: 2026-04-23T02:49:48Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Lint rule: only @silvery/ansi/profile.ts may read process.env terminal signals @km/silvery #task #P3 @claude:c6244087
@@ -97,6 +105,8 @@ The terminal-profile-plateau refactor fixed the big entry points but not the lon
 3. Add lint rule OR CI grep that fails on new env reads outside profile.ts.
 
 ## Effort
+
 ~200 LOC + lint rule. Medium-large refactor, but each call site is small.
 
 From /big review 2026-04-23 (H8 action item).
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/fuzz-flexily-sync"
 aliases:
   - km-infra.fuzz-flexily-sync
@@ -13,3 +16,4 @@ assignee: claude:e8fd4b92
 ---
 
 # [x] Expand flexily fuzz (sticky children) + sync chaos (content roundtrip) @km/infra #task #P2 @claude:e8fd4b92
+

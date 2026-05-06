@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/pane-focus"
 aliases:
   - km-tui.pane-focus
@@ -13,6 +16,8 @@ assignee: claude:d697f216
 # [x] Pane focus styling: dim selection when unfocused, grey/white top bar @km/tui #feature #P2 @claude:d697f216
 
 All panes need focused vs unfocused visual distinction:
+
 - Selected item color is yellow — should dim when pane doesn't have focus
 - Pane top bar: white-grey when not focused, white when focused
 This applies to all panes (columns, detail pane, etc).
+

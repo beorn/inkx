@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/detail-cursor-edit"
 aliases:
   - km-tui.detail-cursor-edit
@@ -23,11 +26,13 @@ Two related bugs in detail view (right panel):
 Reported from user's vault at ~/Bear/Vault with TODO board. Screenshot shows board on left (working) and detail view on right (broken).
 
 Likely related to recent changes:
+
 - km-5's reactive migration (d98e5ea1, af9b23f2)
 - km-5's selection engine changes (f5027677, 23cbebe3)
 - Our CheckboxIcon integration into DetailView
 
 ## Reproduce
+
 1. bun km view ~/Bear/Vault
 2. Navigate to a card with sub-items (e.g., "Card" in TODO column)
 3. Open detail view (Enter or appropriate key)
@@ -36,5 +41,7 @@ Likely related to recent changes:
 6. Try to edit: nothing works
 
 ## Done when
+
 - Cursor visible and navigable in detail view
 - Editing works in detail view
+

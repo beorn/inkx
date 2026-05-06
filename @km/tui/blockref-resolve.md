@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/blockref-resolve"
 aliases:
   - km-tui.blockref-resolve
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] blockref-resolve test: full board [[^nodeId]] resolution fails @km/tui #bug #P3
 
 Pre-existing: blockref-resolve.test.ts:81 'full board: [[^nodeId]] resolves to target title' — the rendered text contains the raw node ID instead of the resolved title. The blockref hyperlink is generated but the display text isn't resolved during board rendering.
+

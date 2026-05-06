@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/sync-refactor/phase2-heartbeat"
 aliases:
   - km-storage.sync-refactor.phase2-heartbeat
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Phase 2: Extract heartbeat to createHeartbeat() factory @km/storage #task #P2
 
 Extract heartbeat methods (start/stop/run/force/diagnostics/reprojectDirtyPaths) from SyncManager into heartbeat.ts factory. ~100 LOC removed from SyncManager.
+

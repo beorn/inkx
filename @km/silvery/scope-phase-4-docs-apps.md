@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/scope-phase-4-docs-apps"
 aliases:
   - km-silvery.scope-phase-4-docs-apps
@@ -31,6 +34,14 @@ dependencies:
     created_at: 2026-04-24T13:40:47Z
     created_by: claude:2aefb4b6
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.scope-phase-4
+      - type: link
+        target: km-silvery.scope-phase-4-eslint
 ---
 
 # [x] Phase 4.E: Audit per-app CLAUDE.md + READMEs @km/silvery #task #P2 @claude:2aefb4b6
@@ -38,3 +49,4 @@ dependencies:
 blocks:: [[@km/silvery/scope-phase-4]], [[@km/silvery/scope-phase-4-eslint]]
 
 Sweep apps/@km/tui/CLAUDE.md, apps/silvercode/*, apps/@km/_orphan/cli/*, apps/@km/_orphan/repl/* for cleanup references. Update anti-patterns sections. Exit: grep clean across apps/*/CLAUDE.md + README.md.
+

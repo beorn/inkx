@@ -1,4 +1,7 @@
 ---
+mentions:
+  - silvery
+  - km
 id: "@km/silvery/tea/standalone"
 aliases:
   - km-silvery.tea.standalone
@@ -15,6 +18,7 @@ owner: bjorn@stabell.org
 Evaluate @silvery/tea as a standalone, framework-agnostic state library (Trojan horse for adoption):
 
 Questions to resolve:
+
 1. Does it stay as @silvery/tea or become a separate package (e.g., silvertea)?
 2. How much effort to maintain React/Svelte/Vue bindings vs core TUI work?
 3. Competitive landscape: Zustand, Jotai, XState, Effect-TS — what's @silvery/tea's edge?
@@ -23,3 +27,4 @@ Questions to resolve:
 Strategy: Keep it decoupled and documented, but don't actively market as a state library until Silvery (TUI) is established. If it gains traction naturally, amplify.
 
 Deep research verdict: 'Good Trojan horse play, but don't divert resources.'
+

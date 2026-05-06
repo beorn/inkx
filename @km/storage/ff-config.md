@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/ff-config"
 aliases:
   - km-storage.ff-config
@@ -15,3 +18,4 @@ assignee: claude:b92140a2
 # [x] FolderIndexConfig in .km/config.yaml @km/storage #task #P2 @claude:b92140a2
 
 Add FolderIndexConfig to KmConfig with naming and materialization options. Phase 2a of folder-index file system.
+

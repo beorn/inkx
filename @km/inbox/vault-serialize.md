@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/vault-serialize"
 aliases:
   - km-vault-serialize
@@ -12,3 +14,4 @@ closed_at: 2026-01-26T16:35:27Z
 Save/restore vault state for testing and debugging.
 
 Depends on: @km/domain-objects/2-implement-createvault-factory (createVault)
+

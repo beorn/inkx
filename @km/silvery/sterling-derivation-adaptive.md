@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sterling-derivation-adaptive"
 aliases:
   - km-silvery.sterling-derivation-adaptive
@@ -29,6 +32,14 @@ dependencies:
     created_at: 2026-04-19T20:18:04Z
     created_by: claude:4274df30
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.sterling-2d-release
+      - type: link
+        target: km-silvery.theme-v4
 ---
 
 # [x] Sterling: adaptive OKLCH state-variant derivation (no white-out) @km/silvery #feature #P2 @claude:4274df30
@@ -79,3 +90,4 @@ Picked **adaptive L-shift + chroma fallback** — simplest algorithmic fix that 
 - **Relates to**: sterling-prune-state-variants (some hover/active tokens shouldn't exist at all)
 
 Parent: @km/silvery/theme-v4
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/ambiguous-links"
 aliases:
   - km-storage.ambiguous-links
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Ambiguous embed links resolve to nothing instead of first match @km/storage #bug #P2
 
 When multiple nodes share a name (e.g., 'source-text' sections in capdocs), link resolver sets null (ambiguous). Embeds show raw \![[name]] content instead of resolved target. Fix: resolve to first match, mark as ambiguous for display (e.g., '1 of 15' indicator).
+

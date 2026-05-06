@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/ambient-phase-3-layers"
 aliases:
   - km-silvercode.ambient-phase-3-layers
@@ -87,6 +90,10 @@ dependencies:
     created_at: 2026-04-27T13:23:08Z
     created_by: claude:4de4a3ab
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.ambient-context-excellence
 ---
 
 # [x] Phase 3: boundary tests + ambient-sanitize + transcript loop-closure + sys prompt + CI gate @km/silvercode #task #P0 @claude:4de4a3ab
@@ -94,3 +101,4 @@ dependencies:
 blocks:: [[@km/silvercode/ambient-context-excellence]]
 
 See hub/silvercode/design/ambient-context-safety.md §4 Phase 3
+

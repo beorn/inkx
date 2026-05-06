@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/llm-dispatch-shatter"
 aliases:
   - km-bearly.llm-dispatch-shatter
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-26T23:59:18Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-bearly
 ---
 
 # [ ] Shatter llm dispatch.ts (1593 LOC) into per-command modules @km/bearly #task #P2
@@ -71,3 +77,4 @@ Keep `dispatch.ts` as a thin router (or delete it).
 ## Reference
 
 Review at /tmp/llm-2405c72e-adversarial-review-of-the-292y.txt
+

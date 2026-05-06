@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/ao5ww"
 aliases:
   - km-ao5ww
@@ -19,3 +21,4 @@ owner: bjorn@stabell.org
 bun worktree create --branch @km/_orphan/ila18-theme-inherit creates a worktree at /Users/beorn/Code/pim/km---branch instead of something sensible like /Users/beorn/Code/pim/km--@km/_orphan/ila18-theme-inherit or using the branch name as the directory suffix.
 
 The --branch value is being used as a literal directory suffix (---branch) instead of incorporating the actual branch name.
+

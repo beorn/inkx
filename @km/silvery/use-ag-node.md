@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/use-ag-node"
 aliases:
   - km-silvery.use-ag-node
@@ -15,6 +17,10 @@ dependencies:
     created_at: 2026-04-12T08:10:08Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.reactive-pipeline
 ---
 
 # [x] useAgNode() hook — expose reactive rect signals as public primitive @km/silvery #feature #P1
@@ -26,8 +32,10 @@ Extract useAgNode() from the rect-signals infrastructure (Phase 4). Returns { no
 Current state: getRectSignals() lives in @silvery/ag-term/pipeline/rect-signals.ts (WeakMap-backed, lazy). useReactiveRect() in useLayout.ts already uses it internally.
 
 Before shipping as a silvery-public primitive:
+
 1. Move rect-signals from @silvery/ag-term/pipeline/ to @silvery/ag/ (framework-agnostic core) so canvas/DOM adapters can also use it
 2. Consider scope expansion: beyond rects, add signal wrappers for dirtyBits, focus state, cursor membership (Design G two-level reactive graph)
 3. Decide API: useAgNode() returns signals directly vs useAgNode() returns node + signals object
 
 Part of the Design G reactive pipeline vision.
+

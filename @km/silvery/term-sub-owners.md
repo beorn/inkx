@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/term-sub-owners"
 aliases:
   - km-silvery.term-sub-owners
@@ -22,6 +25,10 @@ dependencies:
     created_at: 2026-04-22T13:47:52Z
     created_by: claude:019d032d
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Promote Term to typed-sub-owner umbrella (input/output/modes/size/signals/console) @km/silvery #task #P1 @claude:019d032d
@@ -35,6 +42,7 @@ The pattern: silvery has Term as its 'central abstraction' but it leaks raw stre
 The reframe: Term gains typed sub-owners. Hide raw streams. Single, consistent naming (input/output/modes/size/signals/console — singular nouns, no Manager/Guard/Owner suffix). Existing methods (term.write, term.cols, term.events) stay as proxies.
 
 PROPOSED Term SHAPE
+
 ```ts
 interface Term {
   readonly caps:     TerminalCaps     // existing
@@ -51,6 +59,7 @@ interface Term {
 ```
 
 ABSORBED BEADS (each becomes a phase, not a separate invention):
+
 - @km/silvery/input-owner          → Phase 1: term.input (in flight via spawned silvery agent — rename target from start)
 - @km/silvery/terminal-protocol-owner → Phase 2: term.modes
 - @km/silvery/stdout-dims-snapshot-race → Phase 3: term.size (single-source)
@@ -58,12 +67,14 @@ ABSORBED BEADS (each becomes a phase, not a separate invention):
 - (new) Phase 5: term.console — formalize patchConsole as a sub-owner
 
 NAMING RULES
+
 - Singular nouns. The noun IS the role. No Manager/Guard/Owner/Service suffixes.
 - term.X.Y() reads like document.body.style.color — chained access mirrors web.
 - Internal type names match: `Input`, `Output`, `Modes`, `Size`, `Signals`, `Console` (no Term prefix; namespace comes from term.).
 - The sub-owner INTERFACES are public; the implementations stay internal to @silvery/ag-term/runtime.
 
 PRIOR ART CONVERGENCE
+
 - Crossterm (Rust): single Terminal struct owns raw mode, alt-screen, mouse, dims. No direct stdin.
 - Bubbletea (Go): tea.Program is the runtime. Components return tea.Cmd; framework executes.
 - notcurses (C): single notcurses_t* context. All API takes the context.
@@ -73,9 +84,11 @@ LINT EXTENSION
 The existing check-stdin-ownership.sh extends to ban term.stdin.* and term.stdout.* direct access in addition to process.*.
 
 MIGRATION PLAN
+
 - Phase 0: agree on the shape (this bead).
 - Phase 1-5: implement each sub-owner additively. Existing methods (term.write, term.cols) stay as proxies. Zero consumer churn.
 - Phase 6: extend lint to forbid term.stdin / term.stdout member access.
 - Phase 7: deprecate raw stdin/stdout fields in Term interface (warning), then remove (next major).
 
 EFFORT: medium. ~1000 LOC new + ~200 LOC migration glue. Risk low (additive).
+

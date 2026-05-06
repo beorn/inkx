@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/dead-stats"
 aliases:
   - km-flexily.dead-stats
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] DRY: resolveEdgeCalls counter exported but never incremented @km/flexily #task #P2
+

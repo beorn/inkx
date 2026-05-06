@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/hxaue"
 aliases:
   - km-hxaue
@@ -12,6 +14,8 @@ owner: bjorn@stabell.org
 # [x] TUI: Sigil links colored by resolved node, not dimmed @km/_orphan #feature #P3
 
 When rendering text with sigil links (@foo, #bar):
+
 - Don't style differently (currently dimmed) unless the link resolves to a real node
 - If it resolves, show using the color of the resolved node type
 Currently all sigil links are dimmed regardless of resolution status.
+

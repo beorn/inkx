@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/bench-convert"
 aliases:
   - km-infra.bench-convert
@@ -11,3 +14,4 @@ assignee: claude:dffe6eeb
 ---
 
 # [x] Convert performance tests to vitest bench format @km/infra #task #P3 @claude:dffe6eeb
+

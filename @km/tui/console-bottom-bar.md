@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/console-bottom-bar"
 aliases:
   - km-tui.console-bottom-bar
@@ -13,6 +16,7 @@ assignee: claude:b53ef7e4
 Bottom bar console stats indicator with contextual hints:
 
 ## Design
+
 - On TUI (alt screen): `LOGS [icon]N (M⚠) press ` to see`
 - On normal screen: `LOGS [icon]N (M⚠) press ESC to close`
 - Flash effect: text and numbers go bright white for a few seconds when stats change, then fade to grey
@@ -20,7 +24,10 @@ Bottom bar console stats indicator with contextual hints:
 - Only visible when console has entries (hidden when empty)
 
 ## Current State
+
 Bottom bar already has console stats (`🖥️N (M✗ K⚠)` format) but:
+
 - Missing contextual hint text (press ` / press ESC)
 - Missing flash-on-update animation
 - No distinction between TUI vs normal screen state
+

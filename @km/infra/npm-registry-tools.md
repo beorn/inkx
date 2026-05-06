@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/infra/npm-registry-tools"
 aliases:
   - km-infra.npm-registry-tools
@@ -22,6 +25,10 @@ dependencies:
     created_at: 2026-04-11T22:11:11Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] NPM registry management tools/skill @km/infra #task #P3 @Bjørn Stabell
@@ -33,6 +40,7 @@ Centralize npm registry interaction into a dedicated /npm skill + tooling.
 **Current state**: Ad-hoc `curl https://registry.npmjs.org/...` in release skill, manual `npm view`, no single source of truth for which packages we publish. The release skill has an npm-packages.md registry file but no tooling to keep it current.
 
 **Scope**:
+
 - Skill: .claude/skills/npm/ (query registry, check availability, deprecate, rename, list maintainer packages)
 - Tool: `bun npm-registry <cmd>` with subcommands:
   - `list` — all packages by maintainer beorno (paginated)
@@ -44,3 +52,4 @@ Centralize npm registry interaction into a dedicated /npm skill + tooling.
 - Document known stale placeholders and renamed/superseded packages
 
 **Why**: Every release session re-discovers the package list, re-hits npm API, re-answers 'is this published?'. A proper tool + registry file cuts this to one command.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/indexes"
 aliases:
   - km-tribe.indexes
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Add missing SQLite indexes for poll/session queries @km/tribe #task #P2
 
 reads PK order is wrong for polling. Add idx_reads_session_message(session_id, message_id) and idx_sessions_role_pruned_heartbeat.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/vterm-declrmm"
 aliases:
   - km-terminfo.vterm-declrmm
@@ -19,6 +22,7 @@ assignee: claude:4929065a
 vterm.js scores 146/147 (99%) on terminfo.dev. The sole remaining failure is modes.left-right-margin (DECSET ?69 / DECLRMM).
 
 Implementing DECLRMM requires:
+
 - Track left/right margin state (DECSLRM CSI s with two params when DECLRMM enabled)
 - Constrain cursor movement to margin columns
 - Constrain erase operations to margin area
@@ -26,3 +30,4 @@ Implementing DECLRMM requires:
 - Scroll only within margin columns
 
 This is medium complexity — margins affect write, erase, scroll, and cursor operations throughout screen.ts. Worth doing for the 100% badge but not urgent.
+

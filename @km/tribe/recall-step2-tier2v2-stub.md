@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/recall-step2-tier2v2-stub"
 aliases:
   - km-tribe.recall-step2-tier2v2-stub
@@ -19,13 +21,21 @@ dependencies:
     created_at: 2026-04-27T18:52:23Z
     created_by: claude:4de4a3ab
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-tribe
+      - type: link
+        target: km-tribe.recall-step1-hypothesis-test
 ---
 
 # [ ] Step 2 (Days 2-3): Tier 2 v2 stub — UserPromptSubmit hook with skip-on-no-salience + dedup + outcome-rank @km/tribe #task #P2
 
 blocks:: [[@km/tribe]], [[@km/tribe/recall-step1-hypothesis-test]]
 
-# Step 2 — Tier 2 v2 stub (~50 LOC)
+## Step 2 — Tier 2 v2 stub (~50 LOC)
 
 Patch the existing UserPromptSubmit hookRecall path with three improvements:
 
@@ -48,3 +58,4 @@ Compare against Step 3 (Tier 3 v0) over 3-4 days dogfooding. Decide which is wor
 ## Parent
 
 @km/tribe/recall (four-tier memory architecture)
+

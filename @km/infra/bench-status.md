@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/bench-status"
 aliases:
   - km-infra.bench-status
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] bun bench:status — dashboard + staleness reminder + regression alert @km/infra #task #P2
+

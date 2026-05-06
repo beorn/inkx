@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/theme-v3-b2-wcag-build-gate"
 aliases:
   - km-silvery.theme-v3-b2-wcag-build-gate
@@ -17,6 +19,10 @@ dependencies:
     created_at: 2026-04-18T21:09:20Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.theme-v3-plumbing
 ---
 
 # [x] B2: WCAG contrast invariants fail at build time, not runtime @km/silvery #task #P3
@@ -24,3 +30,4 @@ dependencies:
 blocks:: [[@km/silvery/theme-v3-plumbing]]
 
 Catalog test validates every scheme in schemes/*.ts passes WCAG AA contrast invariants. CI gate. Complements runtime validateThemeInvariants.
+

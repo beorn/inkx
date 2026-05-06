@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui-eval/1-analyze-tui1-layout-pain-points"
 aliases:
   - km-tui-eval.1
@@ -33,6 +35,8 @@ Deep dive into TUI1 (Ink) layout issues to understand if they can be addressed w
 ## Output
 
 Document with:
+
 1. Each pain point severity (blocking, annoying, acceptable)
 2. Potential solutions for each
 3. Estimated effort to implement solutions
+

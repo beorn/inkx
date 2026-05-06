@@ -1,4 +1,7 @@
 ---
+mentions:
+  - user
+  - km
 id: "@km/tui/activity-names"
 aliases:
   - km-tui.activity-names
@@ -12,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Activities show with both @user and Full Name (redundant) @km/tui #bug #P3
 
 Activity entries show both @username and Full Name which is redundant and cluttered.
+

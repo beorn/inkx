@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/rizhb"
 aliases:
   - km-rizhb
@@ -23,3 +26,4 @@ Classification: P0
 toMatchTerminalSnapshot() and toMatchSvgSnapshot() return { pass, actual, expected } but never invoke Vitest snapshot comparison/update machinery. Tests can pass without comparing anything.
 
 Suggested fix: Wire into Vitest's internal snapshot matcher correctly, or use expect(terminalSnapshot(term)).toMatchSnapshot(name).
+

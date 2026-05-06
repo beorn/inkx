@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/storage/vault-node-explosion"
 aliases:
   - km-storage.vault-node-explosion
@@ -71,6 +74,10 @@ dependencies:
     created_at: 2026-04-18T11:14:20Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage
 ---
 
 # [x] Investigate 549K nodes in vault — likely needs different strategy @km/storage #task #P1 @Bjørn Stabell
@@ -78,3 +85,4 @@ dependencies:
 blocks:: [[@km/storage]]
 
 Vault has 549,427 nodes across 18,192 files — ~30 nodes per file on average. This is likely too granular: every heading, list item, paragraph, task bullet counts as a node. Need to decide whether km should (a) still parse everything into nodes but materialize lazily, (b) reduce what becomes a node (e.g., only headings + tasks, not every block), (c) introduce a node-count budget with on-demand expansion, or (d) something else. Blocks perf work on @km/tui/board-mount-n-traversal — fixing the traversal is a band-aid if the underlying node count is a modeling problem.
+

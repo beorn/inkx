@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/click-granularity-selection"
 aliases:
   - km-silvery.click-granularity-selection
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-25T22:33:36Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.architectural-plateau
 ---
 
 # [x] Double/triple click → word/line text selection @km/silvery #feature #P2 @claude:2405c72e
@@ -26,3 +33,4 @@ dependencies:
 blocks:: [[@km/silvery/architectural-plateau]]
 
 Wire double-click and triple-click into silvery's selection granularity. Foundation in place: SelectionGranularity, findWordBoundary, findLineBoundary, dblclick events. Missing: triple-click detection (only doubleClick exists in mouse-events.ts), auto-select-word-on-double-click and auto-select-line-on-triple-click defaults, integration with terminalSelectionUpdate. Affected: vendor/silvery/packages/ag-term/src/mouse-events.ts (add tripleClick state + check), and a default selection-on-click handler that snaps to word/line boundaries via headless/selection helpers.
+

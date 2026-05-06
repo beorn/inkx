@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bear/unified-daemon"
 aliases:
   - km-bear.unified-daemon
@@ -21,6 +23,10 @@ dependencies:
     created_at: 2026-04-27T00:17:30Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe.refactor
 ---
 
 # [x] km-bear: unified daemon merging tribe (coordination) and lore (memory) into one process @km/bear #feature #P2
@@ -79,3 +85,4 @@ The "bear" vision is one daemon hosting both capabilities behind one socket, one
 - Phase 1.5 stable session identity (sibling bead)
 - Phase 1.6 message durability across restart (sibling bead)
 - Phase 1.7 proxy reconnect-on-disconnect (already implemented — just needs integration test)
+

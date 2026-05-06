@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - claude
 id: "@km/silvery/ui-button-tone"
 aliases:
   - km-silvery.ui-button-tone
@@ -18,6 +22,10 @@ dependencies:
     created_at: 2026-04-19T20:58:02Z
     created_by: claude:4274df30
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] @silvery/ui: Button — add tone prop (error/warning/success/info/accent/destructive) @km/silvery #feature #P3 @claude:4274df30
@@ -33,6 +41,7 @@ Canonical Button component in vendor/silvery/packages/ag-react/src/ui/components
 ## Scope
 
 Add `tone?: 'accent' | 'error' | 'warning' | 'success' | 'info' | 'destructive'` to Button.
+
 - `destructive` is a synonym for `error` (per D1 — component-layer intent, not a Theme field)
 - Default tone: `accent` (standard primary button)
 - Component maps tone to bg/fg-on/hover/active via Sterling flat tokens (`$bg-accent`, `$fg-on-accent`, `$bg-accent-hover`, etc.)
@@ -49,3 +58,4 @@ Storybook IntentDemo currently draws buttons locally (Box + Text + tokens) becau
 - Storybook IntentDemo refactored to use the real Button (−~20 LOC)
 
 Parent: @km/silvery
+

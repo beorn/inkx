@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/link-perf/2-create-resolvelinksasync-for-background-resolution"
 aliases:
   - km-link-perf.2
@@ -14,3 +16,4 @@ Export a function that can resolve links after vault is loaded.
 Returns pending links count and emits progress.
 
 File: packages/@km/storage/src/vault-loader.ts
+

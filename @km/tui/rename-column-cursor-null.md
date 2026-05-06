@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/rename-column-cursor-null"
 aliases:
   - km-tui.rename-column-cursor-null
@@ -34,3 +37,4 @@ Error: InvariantViolationError: cursor-not-null — Cursor is null but board has
 Root cause hypothesis: Renaming a folder changes its filesystem path, which changes the node ID (IDs are path-derived). The cursor still references the old ID which no longer exists. The rename pipeline doesn't update the cursor to follow the new ID.
 
 The rename job (jobRunner) likely runs async — the repo updates the node ID but the cursor/selection system isn't notified of the ID change. By the time the next render runs, cursor points to a ghost ID.
+

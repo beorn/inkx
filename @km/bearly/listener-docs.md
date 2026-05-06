@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/bearly/listener-docs"
 aliases:
   - km-bearly.listener-docs
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-22T19:38:37Z
     created_by: claude:fa4168d9
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] Listener authoring docs + templates @km/bearly #task #P3
@@ -41,3 +47,4 @@ Write docs for the bearly hook router: how to author a listener, the event vocab
 
 - [ ] A new user can follow the docs and ship a working listener in under 10 minutes
 - [ ] Template renders correctly when dropped into \`~/.claude/hooks.d/\`
+

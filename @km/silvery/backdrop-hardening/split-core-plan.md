@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/backdrop-hardening/split-core-plan"
 aliases:
   - km-silvery.backdrop-hardening.split-core-plan
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-20T14:01:25Z
     created_by: claude:88c0e764
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.backdrop-hardening
 ---
 
 # [x] Split CorePlan from TerminalPlan (cross-platform forward-compat) @km/silvery #task #P0 @claude:a1a0e667
@@ -26,6 +33,7 @@ dependencies:
 blocks:: [[@km/silvery/backdrop-hardening]]
 
 Pro review P2.1 + P2.4. Current Plan type is described as immutable + capability-independent but:
+
 - Contains kittyEnabled (terminal-specific)
 - Active plans not frozen; includes/excludes arrays mutable; PlanRect.rect aliases node rects
 - Single global amount justified by Kitty's one-image-one-alpha model
@@ -57,3 +65,4 @@ type TerminalPlan = CorePlan & {
 ## Parent
 
 @km/silvery/backdrop-hardening
+

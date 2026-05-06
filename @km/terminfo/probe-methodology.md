@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/probe-methodology"
 aliases:
   - km-terminfo.probe-methodology
@@ -12,3 +15,4 @@ assignee: claude:4929065a
 ---
 
 # [x] Show probe methodology on feature pages (what sequence, what response) @km/terminfo #task #P2 @claude:4929065a
+

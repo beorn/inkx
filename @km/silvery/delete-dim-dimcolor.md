@@ -1,4 +1,11 @@
 ---
+propsRaw:
+  ts: "dim + dimColor StyleProps — migrate to semantic tokens ($muted, $faint via
+    <Small>, $disabledfg) @km/silvery #task #P3"
+props:
+  blocked-by:
+    type: link
+    target: km-all.plateau
 id: "@km/silvery/delete-dim-dimcolor"
 aliases:
   - km-silvery.delete-dim-dimcolor
@@ -21,6 +28,7 @@ dependencies:
     metadata: "{}"
 ---
 
-# [x] Delete silvery types.ts::dim + dimColor StyleProps — migrate to semantic tokens ($muted, $faint via <Small>, $disabledfg) @km/silvery #task #P3
+# [x] Delete silvery types. ^delete-dim-dimcolor
 
 blocks:: [[@km/all/plateau]]
+

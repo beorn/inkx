@@ -1,7 +1,4 @@
 ---
-tags:
-  - epic
-  - P2
 mentions:
   - km
   - claude
@@ -24,6 +21,10 @@ closeReason: "Grooming 2026-04-30: WIP 48d, no recent activity. Storage v3
   pro-review reports were the deliverable; if any open follow-ups remain they'd
   be in @km/storage scope, not pro-review-1. Close as superseded by ongoing
   storage v5 work. Reopen if specific recommendation got dropped."
+props:
+  blocked-by:
+    type: link
+    target: km-all
 ---
 
 # [x] Pro Review Round 1: 2026-04-22 — storage-architecture v3 (post-consistency-pass round-3) @km/all #epic #P2 @claude:8b5b9e1c

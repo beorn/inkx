@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/no-keyboard-follow-wikilink"
 aliases:
   - km-tui.no-keyboard-follow-wikilink
@@ -19,3 +22,4 @@ assignee: Bjørn Stabell
 handleFollowLink only fires when card has symlink_to set. Pressing Ctrl+Enter on card with [[wikilink]] toasts 'not a symlink'. TTY users with no mouse have no way to follow wikilinks.
 
 Fix: gf (go follow) binding that picks first wikilink InlineNode from card content and zooms to its target.
+

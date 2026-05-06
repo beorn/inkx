@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/deep-review-0313"
 aliases:
   - km-silvery.deep-review-0313
@@ -19,3 +21,4 @@ owner: bjorn@stabell.org
 Combined Pro review of silvery internals not covered by the pipeline review (@km/silvery/pipeline-review-0312). Scope: React reconciler (host-config, nodes, prop diffing, focus), text rendering (bg segments, wide chars, ANSI generation), and anything the pipeline review missed. Blocked until all existing P0/P1 fixes are done.
 
 Pipeline review already found 5 reconciler items and 5 render-text items (all closed). This review goes deeper into those areas.
+

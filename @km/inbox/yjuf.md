@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/yjuf"
 aliases:
   - km-yjuf
@@ -12,13 +14,16 @@ closed_at: 2026-01-16T16:18:32Z
 Unify all cursor movement actions under CURSOR_* prefix.
 
 **Before:**
+
 - CURSOR_UP/DOWN/LEFT/RIGHT (visual)
 - NAV_PREV_SIBLING/NEXT_SIBLING/PARENT/CHILD (structural)
 - JUMP_TOP/BOTTOM, MOVE_UP/DOWN/LEFT/RIGHT (deprecated)
 
 **After:**
+
 - CURSOR_UP/DOWN/LEFT/RIGHT (visual - spatial)
 - CURSOR_PREV/NEXT/IN/OUT (structural - tree)
 - CURSOR_FIRST/LAST (jump to boundary)
 
 See plan: ~/.claude/plans/peppy-puzzling-goblet.md
+

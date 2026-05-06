@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/typography-adopt"
 aliases:
   - km-silvery.typography-adopt
@@ -23,6 +26,8 @@ Replace manual typography patterns (<Text bold color="$primary">, <Text color="$
 4. **Silvery internal**: any silvery components using manual patterns
 
 Also:
+
 - Add Small component (dim + $muted, for fine print)
 - Update styling.md with any new patterns
 - Add docs/components/typography.md with API reference
+

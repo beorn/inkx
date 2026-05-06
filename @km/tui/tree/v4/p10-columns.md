@@ -1,4 +1,7 @@
 ---
+mentions:
+  - deprecated
+  - km
 id: "@km/tui/tree/v4/p10-columns"
 aliases:
   - km-tui.tree.v4.p10-columns
@@ -20,3 +23,4 @@ use-columns.ts has @deprecated ColumnView interface and useColumns() wrapper. Al
 rg 'ColumnView|useColumns' --glob '!.beads' --glob '!docs' --glob '!*.md' -t ts -c | wc -l  # 0 (or only type imports)
 bun tsc --noEmit  # 0 new errors
 \`\`\`
+

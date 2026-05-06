@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/column-snapshot-delete"
 aliases:
   - km-tui.column-snapshot-delete
@@ -13,6 +15,7 @@ owner: bjorn@stabell.org
 ## Why
 
 ColumnSnapshot (formerly DerivedColumn, formerly ColumnView) is a materialized DTO that exists only because:
+
 1. @km/canvas/tsx (web target) can't subscribe to reactive signals
 2. Test fixtures (storybook.tsx, board-fixtures.ts) construct mock columns
 
@@ -34,3 +37,4 @@ rg 'deriveColumnsFromRepo' --glob '!.beads' -t ts -c | wc -l  # 0 (or moved to l
 bun tsc --noEmit  # pass
 bun run test:fast  # pass
 \`\`\`
+

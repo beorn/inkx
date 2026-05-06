@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/interactions-runtime/phase-3"
 aliases:
   - km-silvery.interactions-runtime.phase-3
@@ -24,6 +26,7 @@ Make text selection actually work. Create SelectionFeature service, register it 
 Per Pro review 2 item 1: earlier drafts added 'withDomEvents({ selection: { ... } })' which contradicts 'no new public options.' Instead, selection is part of what withDomEvents does.
 
 Behavior:
+
 - withDomEvents always creates the selection feature internally
 - Selection is active whenever userSelect prop allows it
 - No opt-in toggle — matches 'zero km code changes' goal
@@ -33,6 +36,7 @@ Behavior:
 Per Pro review 2 item 2: 'copyOnSelect: false' + 'km works with zero code changes' are mutually exclusive.
 
 Resolution:
+
 - selection mouseup looks up a clipboard capability (symbol-keyed via capability registry from Phase 2.5)
 - If capability present: call its copy() method with the selected text
 - If capability absent: no-op (selection persists, user can still copy via explicit command)
@@ -40,6 +44,7 @@ Resolution:
 withDomEvents registers an OSC 52 clipboard capability by default when run in a Term (terminal has clipboard sink). Apps running headless don't get one. km already uses Term → automatically gets OSC 52 copy without any config.
 
 Result:
+
 - km: selection highlights + copy on mouseup (zero code changes)
 - headless tests: selection highlights but no copy (no Term = no clipboard capability)
 - Neither path requires user config
@@ -48,7 +53,7 @@ Result:
 
 Per Pro review 2 item 11D: drop extend() from the public interface. Keep only state + setRange + clear. If cross-feature code later needs extend, add it then.
 
-  interface SelectionFeature {
+interface SelectionFeature {
     state: Observable<TerminalSelectionState>
     setRange(range: SelectionRange | null, source?: string): void
     clear(): void
@@ -67,29 +72,26 @@ Public app shape stays clean.
 
 1. Create features/selection.ts in ag-term (or wherever placements land after Pro review discussion)
 
-   NOTE: Phase 2.5 moved input-router to @silvery/create. Does SelectionFeature also belong in create? 
+  NOTE: Phase 2.5 moved input-router to @silvery/create. Does SelectionFeature also belong in create?
 
-   Arguments for create: with-dom-events (its consumer) lives there; it is runtime composition, not terminal rendering.
-   Arguments for ag-term: it uses TerminalBuffer for overlay rendering (via selection-renderer.ts).
-   
-   Decision: keep SelectionFeature in ag-term, in a new features/ subfolder. Rationale: the feature wraps backend-specific behavior (buffer extraction, overlay rendering). ag-canvas would have its own features/selection.ts. This preserves multi-backend architecture.
+  Arguments for create: with-dom-events (its consumer) lives there; it is runtime composition, not terminal rendering.
+  Arguments for ag-term: it uses TerminalBuffer for overlay rendering (via selection-renderer.ts).
 
+  Decision: keep SelectionFeature in ag-term, in a new features/ subfolder. Rationale: the feature wraps backend-specific behavior (buffer extraction, overlay rendering). ag-canvas would have its own features/selection.ts. This preserves multi-backend architecture.
 2. Extend withDomEvents (in @silvery/create):
-   - Create SelectionFeature instance
-   - Register as capability via router from Phase 2.5
-   - Extend processMouseEvent: mousedown runs selectionHitTest + finds contain scope; mousemove while dragging extends machine; mouseup finalizes and calls clipboard capability if present
-   - Alt+drag override
-   - Selection state changes call router.invalidate() to trigger render
-
+  - Create SelectionFeature instance
+  - Register as capability via router from Phase 2.5
+  - Extend processMouseEvent: mousedown runs selectionHitTest + finds contain scope; mousemove while dragging extends machine; mouseup finalizes and calls clipboard capability if present
+  - Alt+drag override
+  - Selection state changes call router.invalidate() to trigger render
 3. Register selection overlay renderer with router (priority 100) so output phase repaints the overlay.
-
 4. OSC 52 clipboard capability is registered by withTerminal (not withDomEvents — withTerminal is backend-specific). The clipboard capability exposes a copy(text) method. withDomEvents looks it up via router on mouseup.
-
 5. 7 integration tests including the critical invalidation test.
 
 ## Files
 
 CREATE:
+
 - vendor/silvery/packages/ag-term/src/features/index.ts — barrel
 - vendor/silvery/packages/ag-term/src/features/selection.ts — SelectionFeature
 - vendor/silvery/packages/ag-term/src/features/clipboard-capability.ts — OSC 52 clipboard capability registration
@@ -102,6 +104,7 @@ CREATE:
 - vendor/silvery/tests/features/selection-reverse-drag.integration.test.ts — backwards drag works
 
 UPDATE:
+
 - vendor/silvery/packages/create/src/with-dom-events.ts — create + register SelectionFeature, extend processMouseEvent, call invalidate on state changes
 - vendor/silvery/packages/create/src/with-terminal.ts — register OSC 52 clipboard capability via router
 - vendor/silvery/packages/ag-term/src/pipeline/output-phase.ts — read selection state from capability, apply overlay via selection-renderer (priority 100)
@@ -111,7 +114,7 @@ UPDATE:
 
 Define in a shared location (Phase 2.5 capability-registry.ts or a new symbols.ts):
 
-  export const SELECTION_CAPABILITY = Symbol('silvery.selection')
+export const SELECTION_CAPABILITY = Symbol('silvery.selection')
   export const CLIPBOARD_CAPABILITY = Symbol('silvery.clipboard')
   export const FIND_CAPABILITY = Symbol('silvery.find')  // used in Phase 3b
   export const COPY_MODE_CAPABILITY = Symbol('silvery.copy-mode')  // used in Phase 3c
@@ -173,3 +176,4 @@ Nothing.
 ## MANDATORY
 
 Read docs/lessons/refactoring.md IN FULL before starting.
+

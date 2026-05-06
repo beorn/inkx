@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/rm-maxoutlinedepth"
 aliases:
   - km-tui.rm-maxoutlinedepth
@@ -13,3 +16,4 @@ assignee: claude:ee8efc0f
 # [x] Remove maxOutlineDepth — derive fold visibility from foldedNodes only @km/tui #task #P1 @claude:ee8efc0f
 
 Like Decker, remove the global maxOutlineDepth limit. Visibility is controlled solely by foldedNodes set. H/L operate on foldedNodes using computed depth (setFoldLevel pattern). Initial depth-2 behavior achieved by pre-folding nodes at depth >= 2 when card first renders.
+

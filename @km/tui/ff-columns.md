@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/ff-columns"
 aliases:
   - km-tui.ff-columns
@@ -17,3 +19,4 @@ owner: bjorn@stabell.org
 # [x] Column promotion in deriveColumnsFromRepo @km/tui #task #P2
 
 Modify use-columns.ts to detect index files and expand their sections as columns. Embed slots resolve to actual children.
+

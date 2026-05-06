@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/sel-p5-km-migrate"
 aliases:
   - km-silvery.sel-p5-km-migrate
@@ -15,6 +18,7 @@ assignee: Bjørn Stabell
 Replace ALL legacy selection state in @km/tui. /refactor workflow: break intentionally, no compat wrappers, tsc errors guide all work.
 
 ## Method (/refactor)
+
 1. Wire createSelection(app) into km board-app
 2. Delete all legacy selection fields (cursorNodeId, multiSelected, selectionAnchor, inlineEditBlock, selectAllLevel, visualMode, visualAnchor)
 3. Delete CursorStore (cursor-store.ts, cursor-context.tsx)
@@ -27,6 +31,7 @@ Replace ALL legacy selection state in @km/tui. /refactor workflow: break intenti
 10. Wire board-specific: extendHorizontal, cursorCardId, cursorColumnId as km app code
 
 ## Delete (all of these must be GONE, not deprecated)
+
 - apps/@km/tui/src/state/cursor-store.ts
 - apps/@km/tui/src/cursor-context.tsx
 - apps/@km/tui/src/state/selection.ts (replace with @silvery/selection import)
@@ -41,9 +46,11 @@ Replace ALL legacy selection state in @km/tui. /refactor workflow: break intenti
 - useSyncExternalStore selection hooks
 
 ## NO compat wrappers
+
 No re-exports. No "Selection.cursor(sel) = sel.node.cursor" bridges. No deprecated aliases. Clean cut.
 
 ## /complete (ALL must pass)
+
 ```
 grep -r "cursorNodeId" apps/km-tui/src/ → 0 hits
 grep -r "multiSelected" apps/km-tui/src/ → 0 hits
@@ -62,3 +69,4 @@ grep "sel\\.node\\.cursor\\|sel\\.node\\.ids\\|sel\\.text" apps/km-tui/src/ → 
 bun run test:fast → all pass
 bun run test:ci → all pass
 ```
+

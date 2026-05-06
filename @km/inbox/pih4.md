@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/pih4"
 aliases:
   - km-pih4
@@ -8,3 +10,4 @@ closed_at: 2026-01-20T16:55:46Z
 ---
 
 # [x] Dim the count display (qty) in column/section headers @km/_orphan #bug #P2
+

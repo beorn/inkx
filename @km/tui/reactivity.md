@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/reactivity"
 aliases:
   - km-tui.reactivity
@@ -29,17 +31,21 @@ useColumns reads repo.getChildren(rootId) + getChildren(columnId) for each colum
 ## Analysis of approaches
 
 ### Quick fix: SQLite total_changes()
+
 Replace manual `version++` with `db.prepare("SELECT total_changes()").pluck().get()`. SQLite maintains this counter automatically — eliminates accounting risk. Same dead-read limitation.
 
 ### useSyncExternalStore (medium)
+
 Add subscribe/getSnapshot to Repo. afterMutation hook notifies subscribers → React re-renders automatically. Eliminates dead-read problem. Still recomputes everything.
 
 ### Normalized reactive store (full solution)
+
 Maintain a normalized store (Map<id, Node> + Map<parentId, childId[]>) alongside SQLite. Components subscribe to their slice via selectors. Only affected components re-render. This is what Decker does with Slate between Yjs and React.
 
 ## Reference: How others solve this
 
 ### Slate (rich text editor)
+
 - Editor is mutable singleton (like our repo)
 - `onChange` callback registered via WeakMap, fires on every operation
 - Callback increments version `v` in React context → subscribers re-render
@@ -47,6 +53,7 @@ Maintain a normalized store (Map<id, Node> + Map<parentId, childId[]>) alongside
 - Source: https://github.com/ianstormtaylor/slate/blob/main/packages/slate-react/src/components/slate.tsx
 
 ### Decker (boardliner)
+
 - Zustand for UI state (selectedIds, draggingIds, editMode)
 - Content lives in Yjs+Slate, NOT in Zustand
 - Slate-Yjs bindings make Slate reactive to Yjs changes
@@ -54,6 +61,7 @@ Maintain a normalized store (Map<id, Node> + Map<parentId, childId[]>) alongside
 - Source: ~/Code/DZ/decker/apps/webapp/packages/decker-boardliner/src/store/
 
 ### SQLite reactivity landscape
+
 - **Level 1 — Table-level invalidation**: Track which tables a query touches, re-run on any change. Simple, fast enough. Used by vlcn.io, ElectricSQL, observable-sqlite.
 - **Level 2 — Differential dataflow**: Incremental computation pipelines, only process deltas.
 - **Level 3 — Inverted index**: Index queries instead of data, pinpoint invalidation.
@@ -71,3 +79,4 @@ Inline editing (useLineEdit) is local state — keystrokes don't touch repo. Rep
 ## Recommendation
 
 Start with useSyncExternalStore + total_changes() (eliminates accounting + dead reads). If profiling shows full recompute is too slow, upgrade to normalized store with per-component selectors.
+

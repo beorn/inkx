@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/input-mode-stack"
 aliases:
   - km-tui.input-mode-stack
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Global input mode state machine with push/pop context stack @km/tui #task #P2
 
 O3 recommendation: Implement a global keyboard mode manager using a context stack pattern. States: 'command', 'insert', 'dialog:search', 'dialog:rename', etc. Push/pop model — opening any dialog pushes its mode, closing pops back to previous. Single source of truth for 'who handles keystrokes right now'. Prevents the entire category of bugs where two subsystems both process the same key event (keys-as-text, search close focus leak, edit mode after zoom). Related: @km/tui/keys-as-text (this is the architectural fix).
+

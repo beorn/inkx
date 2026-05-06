@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/layout-invariants"
 aliases:
   - km-inkx.layout-invariants
@@ -11,3 +14,4 @@ assignee: claude:b509d761
 ---
 
 # [x] Add layout invariants to withDiagnostics @km/inkx #feature #P2 @claude:b509d761
+

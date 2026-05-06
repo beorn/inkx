@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/pretty-urls"
 aliases:
   - km-tui.pretty-urls
@@ -13,3 +16,4 @@ assignee: claude:36393b5d
 # [x] Pretty URLs: strip https://www, underline, dim/colored @km/tui #feature #P3 @claude:36393b5d
 
 URLs in card content and detail pane should be prettified: remove https://www prefix, show underlined, use dim or distinct color to differentiate from regular text.
+

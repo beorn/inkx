@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/iv1ym"
 aliases:
   - km-iv1ym
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Scrollback demo polish: chat input, status bar, compaction @km/_orphan #task #P2
 
 Task 1-4: Replace static You card with chat-style ReadlineInput box, fix StatusBar right-alignment with flex layout, investigate jump-up issue, reduce MAX_LIVE_TURNS from 6 to 18
+

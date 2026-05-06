@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/edit-focus-outline"
 aliases:
   - km-tui.edit-focus-outline
@@ -13,3 +16,4 @@ assignee: claude:5770ce77
 # [x] Show focus outline when editing in columns/tabs/lists views @km/tui #feature #P2 @claude:5770ce77
 
 When editing a node in columns/tabs/lists view, show the focus outline (border). Layout shift from the outline appearing is acceptable. Currently the outline only shows when navigating, not when in edit mode.
+

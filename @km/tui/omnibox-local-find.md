@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/omnibox-local-find"
 aliases:
   - km-tui.omnibox-local-find
@@ -31,6 +33,18 @@ dependencies:
     created_at: 2026-04-14T16:26:06Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-tui.omnibox-dialog
+      - type: link
+        target: km-tui.omnibox-query-syntax
+      - type: link
+        target: km-tui.omnibox-ranker
+      - type: link
+        target: km-tui.omnibox-unified
 ---
 
 # [ ] / local find bottom-left layout (Phase 9) @km/tui #feature #P1
@@ -52,3 +66,4 @@ Acceptance:
 (f) Enter on a match navigates to the match (via default command type-dispatch)
 (g) FindBar.tsx is deleted after this bead closes
 (h) journey test for the full flow: open /, type, navigate, Enter, verify cursor
+

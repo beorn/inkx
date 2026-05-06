@@ -1,4 +1,12 @@
 ---
+propsRaw:
+  ts: "renderSelectionOverlay legacy ANSI overlay — replaced by
+    composeSelectionCells + applySelectionToBuffer @km/silvery #task #P3
+    @claude:5e447b66"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 id: "@km/silvery/delete-render-selection-overlay"
 aliases:
   - km-silvery.delete-render-selection-overlay
@@ -21,6 +29,7 @@ dependencies:
     metadata: "{}"
 ---
 
-# [x] Delete silvery selection-renderer.ts::renderSelectionOverlay legacy ANSI overlay — replaced by composeSelectionCells + applySelectionToBuffer @km/silvery #task #P3 @claude:5e447b66
+# [x] Delete silvery selection-renderer. ^delete-render-selection-overlay
 
 blocks:: [[@km/silvery]]
+

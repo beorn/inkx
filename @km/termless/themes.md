@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/themes"
 aliases:
   - km-termless.themes
@@ -18,12 +20,15 @@ owner: bjorn@stabell.org
 Support themes in .tape recordings and CLI — map VHS-style Set Theme to silvery's palette system.
 
 ## VHS themes
+
 VHS supports Set Theme "Dracula", "Nord", "Monokai", etc. for screenshot/GIF rendering.
 
 ## Silvery themes
+
 Silvery has 38 palettes in @silvery/theme (catppuccin, dracula, nord, gruvbox, tokyo-night, etc.). These define fg, bg, cursor, and 16 ANSI palette colors — exactly what the SVG renderer needs.
 
 ## Implementation
+
 - Parse Set Theme "name" in .tape (already parsed, just needs wiring)
 - Map theme name to silvery palette: import { palettes } from "@silvery/theme"
 - Pass palette colors to screenshotSvg as SvgTheme
@@ -32,7 +37,9 @@ Silvery has 38 palettes in @silvery/theme (catppuccin, dracula, nord, gruvbox, t
 - termless play --theme dracula demo.tape
 
 ## VHS theme compatibility
+
 Map VHS theme names to silvery palettes where they match:
+
 - Dracula → dracula
 - Nord → nord
 - Monokai → monokai (if available)
@@ -42,5 +49,7 @@ Map VHS theme names to silvery palettes where they match:
 For VHS themes without a silvery equivalent, fall back to the closest match or default.
 
 ## Also
+
 - Auto-detect terminal theme from env (COLORFGBG, terminal-specific APIs)
 - Set Theme could also accept a JSON object for custom colors
+

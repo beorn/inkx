@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/commander-command-string-args"
 aliases:
   - km-silvery.commander-command-string-args
@@ -18,7 +21,7 @@ assignee: Bjørn Stabell
 
 # [x] Accept positional args in .command("name <arg>") string form @km/silvery #feature #P3 @Bjørn Stabell
 
-# Accept positional args in `.command("name <arg>")` string form
+## Accept positional args in `.command("name <arg>")` string form
 
 ## Current state
 
@@ -174,3 +177,4 @@ If built: add to README as "shorthand form — use when all positional args are 
 - Parent: `km-silvery`
 - Predecessor: `km-silvery.commander-action-native` (closed) — introduced the single-overload `.action()` and explicit `.actionMerged()`. This bead is a follow-up relaxation of the type-level restriction introduced in commit `0913349` (`RejectArgSyntax`).
 - Prior art: `@commander-js/extra-typings` does NOT support inline-arg form — users must use `.argument()`. We'd be slightly ahead of extra-typings if we add this.
+

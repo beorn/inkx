@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/typography"
 aliases:
   - km-silvery.typography
@@ -19,11 +21,16 @@ owner: bjorn@stabell.org
 Add typography preset components similar to shadcn/ui typography. TUIs lack font-size variation, so color + bold/dim/italic are the only hierarchy tools. Presets codify the recommended combinations from the semantic colors guide.
 
 Components:
-- <H1> → $primary + bold
-- <H2> → $accent + bold  
-- <H3> → $fg + bold
+
+- 
+  <H1> → $primary + bold
+- 
+  <H2> → $accent + bold  
+- 
+  <H3> → $fg + bold
 - <Muted> → $muted
 - <Lead> → $fg + italic
 - <Small> → $muted + dim (optional)
 
 Should be simple wrapper components in @silvery/ui that apply the right color + typography props. Update the semantic colors guide to remove 'planned' caveat once implemented.
+

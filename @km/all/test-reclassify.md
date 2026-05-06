@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/test-reclassify"
 aliases:
   - km-all.test-reclassify
@@ -21,6 +23,7 @@ owner: bjorn@stabell.org
 ## Problem
 
 The test-migrate work (@km/all/test-migrate) is hitting a mechanical plateau at ~60%. The remaining files can't migrate because they:
+
 1. White-box inspect internal state (store.getState, navigator.stickyX, workspace.panes.has)
 2. Test implementation details rather than user behavior (deriveColumnsFromRepo, findCardBorderProblems regexes)
 3. Need terminal-level features (mouse clicks, bell, palette colors, expectNodeBorder)
@@ -42,28 +45,35 @@ Audit all 53 slow test files in apps/@km/tui/tests/. Categorize each. For RELOCA
 ## Design: Four-Bucket Classification
 
 ### MIGRATE (target: ~30 files)
+
 Behavioral tests that verify user-visible screen output or persistence. Use supported API only.
 Examples: board-nav, collapse, fold, breadcrumb, board-zoom (most tests), cursor-prefetch (navigation tests).
 
 ### REWRITE (target: ~10 files)
+
 Tests that check internal state but could check screen output. Rewrite black-box, then migrate.
 Examples:
+
 - detail-pane.slow.spec.ts — `store.getState().workspace.panes.has("main-detail")` → `app.expectScreen("DETAIL VIEW")`
 - dialog-lifecycle.slow.test.ts — `store.getState().ui.datePrompt` → `app.expect("#date-prompt-dialog").toExist()`
 - error-loading-cards.slow.test.ts — `store.getState().workspace.panes.has("main-detail")` → screen check
 - escape-layering.slow.test.ts — `store.getState().sel.node.ids()` → `app.expect("[data-selected]").toHaveCount(n)`
 
 ### RELOCATE (target: ~5 files)
+
 Unit tests masquerading as integration tests. Move to the right package.
 Examples:
+
 - fold.slow.test.ts — fold reducer tests → packages/@km/_orphan/board/tests/
 - board-zoom.slow.spec.ts — deriveColumnsFromRepo unit tests → packages/@km/_orphan/board/tests/
 - sticky-cursor.slow.test.ts (12 tests) — navigator.stickyX/stickyY → packages/@km/_orphan/board/tests/navigator.test.ts
 - scroll.slow.spec.ts (some tests) — scroll calculation → packages/@km/_orphan/board/tests/
 
 ### FREEZE (target: ~8 files)
+
 Genuinely need testEnv's rich API. Keep on testEnv with @deprecated comment.
 Examples:
+
 - pty-integration.slow.spec.ts — PTY-specific, excluded from CI
 - production-entry.slow.spec.ts — entry-point smoke test
 - real-vault.slow.test.ts — needs createRepo + loadFiles
@@ -72,26 +82,31 @@ Examples:
 ## Tasks
 
 ### Phase 1: Audit (1 day)
+
 - [ ] Classify all 53 files into MIGRATE/REWRITE/RELOCATE/FREEZE
 - [ ] Document classification in this bead
 - [ ] Spot-check 5 files from each bucket to validate classification
 
 ### Phase 2: Complete MIGRATE bucket (2-3 days)
+
 - [ ] Finish mechanical migration for all MIGRATE files
 - [ ] Target: ~30 files migrated (currently at 19)
 - [ ] Run all on both backends (`TEST_BACKEND=termless`)
 
 ### Phase 3: RELOCATE bucket (3-5 days)
+
 - [ ] Move unit tests to correct packages
 - [ ] Delete redundant copies in apps/@km/tui/tests/
 - [ ] Verify per-package test runs pass
 
 ### Phase 4: REWRITE bucket (5-7 days)
+
 - [ ] Rewrite store-inspection tests as screen-based
 - [ ] Migrate the rewrites to createTestApp
 - [ ] Verify behavior preserved
 
 ### Phase 5: FREEZE testEnv (1 day)
+
 - [ ] Add @deprecated JSDoc to testEnv and testEnvWithRepo
 - [ ] Document in apps/@km/tui/tests/CLAUDE.md: "new tests use createTestApp"
 - [ ] Add lint rule or CI check: no new testEnv imports
@@ -114,3 +129,4 @@ This bead is the followup to @km/all/test-migrate. It represents the *real* qual
 The plateau analysis (via /big) showed that the mechanical migration hits ~60% ceiling. Breaking that ceiling requires this reclassification work — expanding createTestApp would perpetuate the anti-pattern.
 
 Key insight: "Missing features in createTestApp are features, not bugs" — the gaps force tests to be rewritten at the right layer.
+

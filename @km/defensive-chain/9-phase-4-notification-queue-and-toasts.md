@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn-15362
 id: "@km/defensive-chain/9-phase-4-notification-queue-and-toasts"
 aliases:
   - km-defensive-chain.9
@@ -16,8 +19,10 @@ Add toast notifications for timed/dismissible feedback.
 See plan Phase 4: .claude/plans/swirling-launching-chipmunk.md
 
 Implementation:
+
 - Design notification queue architecture
 - Create Toast component with auto-dismiss
 - Support undo actions
 - Add animation/transitions
 - Test notification timing
+

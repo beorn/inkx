@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/session/0424-silvercode"
 aliases:
   - km-session.0424-silvercode
@@ -24,6 +27,10 @@ dependencies:
     created_at: 2026-04-24T22:17:10Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] Session 2026-04-24: silvercode resume — Agents 0/0, queue tests, cursor-startup bug @km/session #task #P1 @claude:2405c72e
@@ -60,6 +67,7 @@ Termless cursor-position assertions are blocked: emulator-backed run() resolves 
 ## Uncommitted state
 
 git status shows lots of M files from a previous session's bun fix run (formatter changes). My changes:
+
 - apps/silvercode/src/components/SidePanel.tsx (Agents 0/0)
 - apps/silvercode/tests/visual/queue-cursor.test.tsx (new)
 - apps/silvercode/docs/queue-option-b-design.md (untracked, design doc from prior session)
@@ -68,21 +76,22 @@ git status shows lots of M files from a previous session's bun fix run (formatte
 
 ## Remaining silvercode work (open beads)
 
-| Bead | Priority | Notes |
-|---|---|---|
-| @km/silvercode/cursor-startup-position | P1 | Just filed; this session's repro is fresh — best next pickup |
-| @km/silvercode/queue-option-b (epic) | P1 | Children all closed; epic likely closeable |
-| @km/silvercode/test-process-harness | P2 | Unblocks termless cursor assertions |
-| @km/silvercode/test-ui-driver | P2 | Keystrokes + fake clock + scroll |
-| @km/silvercode/prose-primitive | P2 | Blocked on testfix-2's flexily fix |
-| @km/silvercode/mcp-daemon | P2 | Bigger architectural |
-| @km/silvercode/overflow-at-root | P2 | Container-root overflow prevention |
-| @km/silvercode/test-resize-matrix | P3 | Width-matrix scenarios |
-| @km/silvercode/test-hover-popovers | P3 | Mouse events + popovers |
-| @km/silvercode/swe-bench-baseline | P3 | Benchmark vs vanilla Claude Code |
+| Bead                                   | Priority | Notes                                                        |
+| -------------------------------------- | -------- | ------------------------------------------------------------ |
+| @km/silvercode/cursor-startup-position | P1       | Just filed; this session's repro is fresh — best next pickup |
+| @km/silvercode/queue-option-b (epic)   | P1       | Children all closed; epic likely closeable                   |
+| @km/silvercode/test-process-harness    | P2       | Unblocks termless cursor assertions                          |
+| @km/silvercode/test-ui-driver          | P2       | Keystrokes + fake clock + scroll                             |
+| @km/silvercode/prose-primitive         | P2       | Blocked on testfix-2's flexily fix                           |
+| @km/silvercode/mcp-daemon              | P2       | Bigger architectural                                         |
+| @km/silvercode/overflow-at-root        | P2       | Container-root overflow prevention                           |
+| @km/silvercode/test-resize-matrix      | P3       | Width-matrix scenarios                                       |
+| @km/silvercode/test-hover-popovers     | P3       | Mouse events + popovers                                      |
+| @km/silvercode/swe-bench-baseline      | P3       | Benchmark vs vanilla Claude Code                             |
 
 ## Next steps after compact
 
 1. Resolve stale .git/index.lock + commit the 3 changes above (with co-author silvercode)
 2. Pick up @km/silvercode/cursor-startup-position — fix path likely in vendor/silvery/packages/ag-react/src/hooks/useCursor.ts (use silvery agent for vendor edits)
 3. Close @km/silvercode/queue-option-b epic if children all green
+

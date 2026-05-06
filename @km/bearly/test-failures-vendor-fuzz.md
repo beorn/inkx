@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/bearly/test-failures-vendor-fuzz"
 aliases:
   - km-bearly.test-failures-vendor-fuzz
@@ -44,6 +47,10 @@ dependencies:
     created_at: 2026-04-26T16:22:37Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.fix-sweep-vendor-fuzz
 ---
 
 # [x] [bug] vendor/bearly — 2 test failures (daemon-spine + mcp) @km/bearly #bug #P2 @claude:cc081a9a
@@ -51,3 +58,4 @@ dependencies:
 blocks:: [[@km/all/fix-sweep-vendor-fuzz]]
 
 daemon-spine/tests/parser.test.ts:27 + mcp/tests/mcp-plugin.test.ts:152. /complete: bun vitest run --project vendor vendor/bearly/packages/daemon-spine/tests/parser.test.ts vendor/bearly/plugins/mcp/tests/mcp-plugin.test.ts → 0 failures.
+

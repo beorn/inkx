@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/mdtest/ellipsis-captures-lost"
 aliases:
   - km-mdtest.ellipsis-captures-lost
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] mdtest: ellipsis matching loses captured placeholders @km/mdtest #bug #P1
 
 In matchLines(), the .../[...] branch probes recursive matches using {...caps} but on success returns {ok:true} without copying the probe's captures back into caller's caps. Any {{name:*}} captured after an ellipsis disappears, so later {{name}} reuses fail. Fix: merge probe's capture state back into caps on success. core.ts:212-218. Found by GPT 5.4 Pro review.
+

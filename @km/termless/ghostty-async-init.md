@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/ghostty-async-init"
 aliases:
   - km-termless.ghostty-async-init
@@ -17,3 +20,4 @@ assignee: claude:21c57d63
 # [x] Async Ghostty init doesn't fit sync backend interface @km/termless #bug #P2 @claude:21c57d63
 
 Deferred P2 from pro-review-2 (2026-03-13). Ghostty backend initialization is async but the TerminalBackend interface is sync. Creates a timing gap where backend is used before fully initialized. Found during GPT 5.4 Pro review of termless.
+

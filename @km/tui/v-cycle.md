@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/v-cycle"
 aliases:
   - km-tui.v-cycle
@@ -13,3 +16,4 @@ assignee: claude:124bfbe5
 # [x] 'V' doesn't cycle icon/border card styles @km/tui #bug #P3 @claude:124bfbe5
 
 V key should cycle through icon styles and card border styles per sessions e04f4847 and 5dd0b140
+

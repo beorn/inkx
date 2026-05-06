@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/modifier-cursors"
 aliases:
   - km-silvery.modifier-cursors
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Modifier-aware mouse cursors (Cmd=pointer, Alt=crosshair) @km/silvery #feature #P2
 
 With useModifierKeys, components can change mouse cursor shape based on held modifiers. E.g., Cmd+hover shows pointer cursor over links, Alt+hover shows crosshair for selection. Uses setMouseCursorShape() already exported from silvery.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/acp-storybook"
 aliases:
   - km-silvercode.acp-storybook
@@ -111,6 +114,16 @@ dependencies:
     created_at: 2026-04-26T01:12:03Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode.acp
+      - type: link
+        target: km-silvercode.acp-fake
+      - type: link
+        target: km-silvercode.acp-session
 ---
 
 # [x] Silvercode component storybook — visual showcase for design iteration @km/silvercode #feature #P2 @claude:cd034ca4
@@ -122,6 +135,7 @@ Storybook-style showcase of all silvercode components for design iteration. Each
 ## Components to showcase (driven by ACP SessionUpdate variants + capability surfaces)
 
 ### Streaming-update renderers (one per SessionUpdate variant — 11 total)
+
 - UserMessage / AssistantMessage / ThinkingBlock
 - ToolCallBlock (with status badge + body slot, all 4 statuses)
 - PlanView (entries with priority + status icons, nested via alien-tree)
@@ -131,30 +145,38 @@ Storybook-style showcase of all silvercode components for design iteration. Each
 - UsageBadge (UsageUpdate, tokens + cost)
 
 ### Tool-call body renderers (one per ToolKind)
+
 - FilePreview (read), DiffView (edit), TerminalPane (execute), SearchResults (search), FsOpSummary (move/delete), GenericToolCall (other/fallback)
 
 ### Content-block renderers (one per ContentBlock variant)
+
 - TextContent (markdown), ImageContent, AudioContent, ResourceLink, EmbeddedResource
 
 ### Capability-surface renderers
+
 - PermissionDialog (RequestPermissionRequest, all PermissionOptionKind variants)
 - WorkspaceProvider (FS handlers — virtualized vs real-disk modes)
 - TerminalBackend (needs @silvery/pty)
 
 ### Session/connection plumbing
+
 - SessionPicker / SessionHistory, AuthMethodPicker
 
 ## Why
+
 - Design iteration speed — change components without running real agents
 - Visual regression — tape-record snapshots of every story (silvery's mdtest tape pattern)
 - Onboarding — new contributors see the full component surface in one place
 - Debugging — reproduce edge cases (long thinking blocks, deeply-nested plans, failed tool calls) on demand
 
 ## Approach
+
 - Fixture set: realistic ACP messages from real Claude Code sessions, anonymized
 - Each story is a silvery component tree consuming a fixed ACP message stream
 - Reuse silvery's existing storybook framework if it exists; build a thin wrapper if not
 
 ## Reference
+
 - Component inventory: hub/silvery/future/ai-terminal/10-agent-router-landscape.md § Component inventory
 - Silvery storybook prior art: vendor/silvery/ (see Storybook integration in recent silvery commits)
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/card-line-truncate"
 aliases:
   - km-tui.card-line-truncate
@@ -19,3 +22,4 @@ Screenshot shows paths like 'Accessible at /Library/Mobile Documents/comapple~Cl
 Root cause: In cards view, child TreeNodes (depth > 0) render in multiline mode with no height constraint and no overflow='hidden'. Their content text wraps freely. Each child line should be height={1} with wrap='truncate'.
 
 Fix location: TreeNode.tsx — when rendering children inside a card (multiline variant, depth > 0), each child's content should be single-line truncated.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/asciicast"
 aliases:
   - km-termless.asciicast
@@ -30,6 +33,7 @@ JSON-lines: header + events. Simple to implement.
 ## Write (.cast output)
 
 Any termless session → .cast file:
+
 - termless tape play demo.tape -o demo.cast
 - termless record -o session.cast
 - Programmatic: recording.toCast()
@@ -39,6 +43,7 @@ Captures timestamped output events from terminal.
 ## Read (.cast input)
 
 Replay .cast files through any backend:
+
 - Load as test fixture (verify app renders correctly from recorded data)
 - Cross-terminal replay (same recording, different backends)
 - termless tape play session.cast (treat .cast as input format)
@@ -46,6 +51,7 @@ Replay .cast files through any backend:
 ## Ecosystem unlocked
 
 With .cast files, termless gets free integration with:
+
 - asciinema-player — web component for interactive playback on docs sites
 - asciinema-agg — .cast → GIF/PNG (alternative to our own GIF pipeline)
 - svg-term-cli — .cast → animated SVG
@@ -57,3 +63,4 @@ With .cast files, termless gets free integration with:
 - @km/mdspec/tape: docs could embed asciinema-player for interactive demos
 - terminfo.dev: feature pages could include playable demo recordings
 - silvery.dev: component demos as interactive terminal replays
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/canonical-agent-plan-model"
 aliases:
   - km-silvercode.canonical-agent-plan-model
@@ -231,3 +233,4 @@ Transcript:
 - Preserved `SessionState.todos` as a projection from the canonical plan for compatibility only.
 - Historical transcript replay now asserts canonical plan entries have renderable content and that compatibility todos mirror plan entry text.
 - Verification: `apps/silvercode/packages/agent-harness/tests/parse.test.ts` covers Claude `TodoWrite`, provider `plan-update`, and `update_plan` tool-use; focused plan run passed 5 tests.
+

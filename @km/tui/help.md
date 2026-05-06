@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/help"
 aliases:
   - km-tui.help
@@ -15,6 +18,7 @@ assignee: claude:d3a7049b
 Unified design for all overlay chrome UI elements: bottom-anchored (key bar, which-key, find bar), centered floating (dialogs), and transient indicators (progress, save confirmation). Covers visual consistency, layering/z-order, modal vs non-modal behavior, and sizing.
 
 Children:
+
 - @km/tui/whichkey (DONE) — chord suffix popup
 - @km/tui/keybar (DONE) — mode-aware bottom hints
 - @km/tui/search-replace — floating search/replace dialog
@@ -22,3 +26,4 @@ Children:
 - @km/tui/omnibox — universal command palette
 
 TBD: help screen (?), task dialog (T), progress/status indicators, toast notifications.
+

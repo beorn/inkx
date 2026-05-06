@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/uf4yd"
 aliases:
   - km-uf4yd
@@ -17,3 +19,4 @@ owner: bjorn@stabell.org
 # [x] Restructure docs site: intent-based navigation @km/_orphan #task #P2
 
 Replace package/layer-based docs with intent-based: Getting Started (render+hooks), Components (standalone), Styling, Advanced (incremental rendering, scrollback, focus, testing), Application Architecture (TEA, optional). Add 'Choose your path' landing page.
+

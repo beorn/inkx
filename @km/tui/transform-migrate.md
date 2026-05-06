@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/transform-migrate"
 aliases:
   - km-tui.transform-migrate
@@ -37,6 +40,7 @@ tree changes.
 ## Migration Pattern
 
 Replace this:
+
 ```ts
 // Manual cursor reconciliation
 const cursorTarget = computeNextSibling(...)
@@ -45,6 +49,7 @@ sel.node.select([cursorTarget])
 ```
 
 With this:
+
 ```ts
 // Atomic transform — captures pre-tree snapshot
 const prevTree = captureTree(repo)
@@ -73,3 +78,4 @@ fix. Each handler can be migrated independently with full test coverage.
 - [ ] Manual cursor adjustment code (computeNextSibling, etc.) removed
 - [ ] All tests pass
 - [ ] Invariant #11 still doesn't fire
+

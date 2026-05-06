@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/tree/v4/detail-unify"
 aliases:
   - km-tui.tree.v4.detail-unify
@@ -45,3 +48,4 @@ wc -l apps/@km/tui/src/views/Board.tsx  # ≤1100
 rg 'DerivedColumn' --glob '!.beads' --glob '!docs' -t ts -c | wc -l  # 0
 rg 'deriveDetailColumns|__body__' --glob '!.beads' -t ts -c | wc -l  # 0
 bun vitest run apps/@km/tui/tests/card-bg-inheritance.test.ts  # pass (uniform bg)
+

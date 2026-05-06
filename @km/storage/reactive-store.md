@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/reactive-store"
 aliases:
   - km-storage.reactive-store
@@ -51,3 +53,4 @@ Replication:   ChangeEnvelope { commitId, source, actor, basis, events }
 - **Phase 4**: withSync as commit subscriber (not apply wrapper)
 - **Phase 5**: createFsStore — FS as sync peer / projection adapter
 - **Phase 6**: createAutomergeStore (P4, deferred)
+

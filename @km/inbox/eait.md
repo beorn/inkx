@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/eait"
 aliases:
   - km-eait
@@ -15,19 +17,20 @@ High: shell.ts exports shellEscape(), buildScript(), buildHookScript() with zero
 shellEscape() handles shell injection prevention. Without tests, edge cases may have vulnerabilities.
 
 **Functions to test:**
-1. shellEscape(s: string) - escapes strings for safe shell use
-   - Test special chars: $, `, ', ", newlines
-   - Test safe passthrough: alphanumeric, /, ., :, -
-   
-2. buildScript(commands, opts, envFile, cwdFile, funcFile)
-   - Test state loading from files
-   - Test block options (cwd, env)
-   - Test state saving
 
+1. shellEscape(s: string) - escapes strings for safe shell use
+  - Test special chars: $, `, ', ", newlines
+  - Test safe passthrough: alphanumeric, /, ., :, -
+2. buildScript(commands, opts, envFile, cwdFile, funcFile)
+  - Test state loading from files
+  - Test block options (cwd, env)
+  - Test state saving
 3. buildHookScript(hookName, envFile, cwdFile, funcFile)
-   - Test hook existence check
-   - Test state loading/saving
+  - Test hook existence check
+  - Test state loading/saving
 
 **Files:**
+
 - vendor/beorn-mdtest/src/shell.ts:39-114
 - vendor/beorn-mdtest/tests/ (add shell.test.ts)
+

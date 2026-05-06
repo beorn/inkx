@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - selection
 id: "@km/tui/atomic-tree-ops"
 aliases:
   - km-tui.atomic-tree-ops
@@ -26,6 +30,14 @@ dependencies:
     created_at: 2026-04-15T08:36:40Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-all.unified-selection
+      - type: link
+        target: km-silvery.selection-focus-plateau
 ---
 
 # [x] Atomic tree+selection operations: structural ops include selection update @km/tui #feature #P0
@@ -39,3 +51,4 @@ Current: board-tree-ops.ts and board-actions.ts call tree mutation then separate
 Target: Each structural operation returns new state including updated selection. No separate sel.* calls needed. The operation IS the selection update.
 
 Depends on: @km/all/unified-selection (need the Selection type first)
+

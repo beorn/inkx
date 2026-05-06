@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/inline-render"
 aliases:
   - km-inkx.inline-render
@@ -34,6 +37,7 @@ bun storybook --fullscreen  # fullscreen mode works correctly
 ## Scope
 
 Two sub-tasks:
+
 1. **Fix inline re-render clearing**: When content shrinks, erase leftover lines below new content
 2. **Allow inline buffer taller than terminal**: For content that exceeds stdout.rows, the buffer should grow (or use a virtual viewport)
 
@@ -42,3 +46,4 @@ Two sub-tasks:
 - `vendor/beorn-inkx/src/scheduler.ts` — buffer height = stdout.rows
 - `vendor/beorn-inkx/src/pipeline/output-phase.ts` — changesToAnsi inline mode, bufferToAnsi
 - `vendor/beorn-inkx/src/render.tsx` — RenderOptions, mode handling
+

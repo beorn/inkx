@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/measure-mode-semantics"
 aliases:
   - km-flexily.measure-mode-semantics
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Testing: Measure-mode semantics around unconstrained widths need explicit tests @km/flexily #task #P2
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/bearly/tribe-observability"
 aliases:
   - km-bearly.tribe-observability
@@ -15,3 +18,4 @@ assignee: claude:19080504
 # [x] Observability: retro generation + self-improvement loop @km/bearly #feature #P3 @claude:19080504
 
 Implement the retrospective process: gather events, compute metrics (cycle time, claim latency, block duration, external latency), classify failures, generate retro markdown, persist lessons to bd remember + retros table. Include tribe_retro() MCP tool and auto-retro on tribe end.
+

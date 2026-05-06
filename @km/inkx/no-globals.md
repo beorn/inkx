@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/no-globals"
 aliases:
   - km-inkx.no-globals
@@ -12,6 +14,7 @@ owner: bjorn@stabell.org
 # [x] Refactor inkx: eliminate module-level globals, pass config through create* factory functions @km/inkx #task #P2
 
 Module-level globals to refactor into create* factory config:
+
 - _caps in output-phase.ts (setOutputCaps)
 - _textEmojiWide in unicode.ts (setTextEmojiWide)
 - _textSizingEnabled in unicode.ts (setTextSizingEnabled)
@@ -19,3 +22,4 @@ Module-level globals to refactor into create* factory config:
 - textPresentationEmojiCache in unicode.ts
 
 These should be configuration on the renderer/app instance, not module-level state. Pass through createApp/createRuntime/render options.
+

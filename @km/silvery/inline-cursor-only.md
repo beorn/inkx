@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/inline-cursor-only"
 aliases:
   - km-silvery.inline-cursor-only
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Inline incremental render suppresses cursor-only updates @km/silvery #bug #P3
 
 inlineIncrementalRender() returns '' when content unchanged but cursor position/visibility/shape changed. Early return skips suffix emission entirely. Fix: include cursor state in the early-exit condition. Found by GPT pipeline review.
+

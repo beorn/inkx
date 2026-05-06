@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/worktree-isolation-apfs"
 aliases:
   - km-infra.worktree-isolation-apfs
@@ -74,6 +77,10 @@ dependencies:
     created_at: 2026-04-23T13:38:32Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] Fix Agent worktree isolation via APFS cp -c (replace broken git-worktree hook) @km/infra #task #P2 @claude:c6244087
@@ -112,12 +119,12 @@ isolate_worktree() {
 
 ## Why cp -c beats alternatives
 
-| Option | Speed | Correctness | Scaling |
-|---|---|---|---|
-| APFS cp -c | ~100ms metadata, 0 data | Perfect (uncommitted, symlinks, submodules) | Unlimited (CoW) |
-| tar | 2-4s for km's 13G tree | Perfect | Linear per agent |
-| git worktree | 3-5s + index.lock | Fragile (submodule init race, shared .git) | Lock-contention risk |
-| rsync --exclude node_modules | 2-4s | Incomplete; bun install tax | Linear + 5-10s per agent |
+| Option                       | Speed                   | Correctness                                 | Scaling                  |
+| ---------------------------- | ----------------------- | ------------------------------------------- | ------------------------ |
+| APFS cp -c                   | ~100ms metadata, 0 data | Perfect (uncommitted, symlinks, submodules) | Unlimited (CoW)          |
+| tar                          | 2-4s for km's 13G tree  | Perfect                                     | Linear per agent         |
+| git worktree                 | 3-5s + index.lock       | Fragile (submodule init race, shared .git)  | Lock-contention risk     |
+| rsync --exclude node_modules | 2-4s                    | Incomplete; bun install tax                 | Linear + 5-10s per agent |
 
 Repo sizing (from explore agent): km 13G, node_modules 1.3G, vendor/silvery 230M. APFS copy is instant.
 
@@ -139,3 +146,4 @@ Repo sizing (from explore agent): km 13G, node_modules 1.3G, vendor/silvery 230M
 - Neither agent sees the other's uncommitted changes
 - `git worktree list` (or the clone directory listing) reflects both clones
 - Cleanup script removes clones after merge
+

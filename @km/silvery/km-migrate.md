@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/km-migrate"
 aliases:
   - km-silvery.km-migrate
@@ -37,3 +39,4 @@ bun tools/refactor.ts --from 'decant' --to 'loggily' --glob 'src/**/*.{ts,tsx}'
 - CLAUDE.md files (all levels)
 - .claude/skills/ docs
 - Git submodule URLs (vendor/hightea → vendor/silvery, vendor/decant → vendor/loggily, vendor/swatch removed)
+

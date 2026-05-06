@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/wheel-windowed-buffer"
 aliases:
   - km-silvery.wheel-windowed-buffer
@@ -12,15 +14,15 @@ owner: bjorn@stabell.org
 
 Seven patches accumulated on a scalar \`velocityRef\` in the last few sessions:
 
-| Patch | Fix | Bug class |
-|---|---|---|
-| EMA smoothing α=0.3 | single-event jitter flipping sign | per-event noise |
-| sign-aware reset | absorbed reversals | "intent vs tail" confusion |
-| revert sign-reset | tail events misread as reversals | same, opposite direction |
-| ACCEL 5→3, MAX_V 60→40 | fast scroll jumpy | peak velocity too high |
-| TAIL_VELOCITY_THRESHOLD=15 | tail events producing immediate disp | velocity-scalar below threshold |
-| momentumDir capture | tail events during momentum | velocityRef zeroed in enterMomentum |
-| preserve velocity across momentum | stray events post-reset slipping through | same root |
+| Patch                             | Fix                                      | Bug class                           |
+| --------------------------------- | ---------------------------------------- | ----------------------------------- |
+| EMA smoothing α=0.3               | single-event jitter flipping sign        | per-event noise                     |
+| sign-aware reset                  | absorbed reversals                       | "intent vs tail" confusion          |
+| revert sign-reset                 | tail events misread as reversals         | same, opposite direction            |
+| ACCEL 5→3, MAX_V 60→40            | fast scroll jumpy                        | peak velocity too high              |
+| TAIL_VELOCITY_THRESHOLD=15        | tail events producing immediate disp     | velocity-scalar below threshold     |
+| momentumDir capture               | tail events during momentum              | velocityRef zeroed in enterMomentum |
+| preserve velocity across momentum | stray events post-reset slipping through | same root                           |
 
 Each patch solves one hole and opens latent space for the next. The pattern is the smell: a scalar evolving per-event via EMA + thresholds cannot structurally encode gestural intent.
 
@@ -73,3 +75,4 @@ Estimated net: −50 to −80 LOC.
 
 - Log evidence in wheel2.log: lines 50-52 show the scalar-velocity trap that required the 6th patch (momentum-direction capture).
 - `/big` analysis in session 2026-04-23.
+

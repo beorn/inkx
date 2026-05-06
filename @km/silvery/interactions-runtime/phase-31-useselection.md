@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/interactions-runtime/phase-31-useselection"
 aliases:
   - km-silvery.interactions-runtime.phase-31-useselection
@@ -28,26 +30,29 @@ Other observer hooks (useFindState, useCopyModeState, useDragState) stay in Phas
 ## Files
 
 CREATE:
+
 - vendor/silvery/packages/ag-react/src/hooks/useSelection.ts (~30 lines)
 - vendor/silvery/tests/hooks/useSelection.test.tsx — returns undefined when feature missing, returns state when installed, updates reactively
 
 UPDATE:
+
 - vendor/silvery/packages/ag-react/src/hooks/index.ts — export useSelection
 - vendor/silvery/packages/ag-react/src/exports.ts — export useSelection
 - vendor/silvery/examples/apps/text-selection-demo.tsx — rewrite (delete fake useInput state, use real userSelect props + useSelection for copy indicator)
 
 ## Hook API (Pro review 2 item 6: undefined vs null distinction)
 
-  function useSelection(): TerminalSelectionState | undefined
+function useSelection(): TerminalSelectionState | undefined
 
 Returns:
+
 - undefined when the selection feature is not registered as a capability (feature missing)
 - state object with range=null when feature is installed, no active selection
 - state object with range={...} when active
 
 Consumers distinguish missing feature from idle:
 
-  const selection = useSelection()
+const selection = useSelection()
   if (selection === undefined) return null  // feature not installed
   if (!selection.range) return null  // no active selection
   // ...
@@ -61,10 +66,10 @@ Nothing.
 ## New tests
 
 1. useSelection.test.tsx:
-   - returns undefined when withDomEvents is mounted WITHOUT selection
-   - returns state (range=null) when mounted WITH selection, idle
-   - returns state (range={...}) after mouse drag
-   - re-renders when state changes
+  - returns undefined when withDomEvents is mounted WITHOUT selection
+  - returns state (range=null) when mounted WITH selection, idle
+  - returns state (range={...}) after mouse drag
+  - re-renders when state changes
 
 ## Definition of Done
 
@@ -89,3 +94,4 @@ Nothing.
 ## MANDATORY
 
 Read docs/lessons/refactoring.md IN FULL before starting.
+

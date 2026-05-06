@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/detail-spatial-nav"
 aliases:
   - km-tui.detail-spatial-nav
@@ -27,9 +30,11 @@ navigate spatially between focusable regions (iOS/macOS style). The tree
 only contains real children, navigated by the regular lens.
 
 This eliminates:
+
 - deriveDetailColumns function
 - DETAIL_META_PREFIX virtual nodes
 - The detail-mode branch in buildOpCtx
 - All ColumnView usage in detail mode
 
 Depends on silvery FocusManager spatial navigation support.
+

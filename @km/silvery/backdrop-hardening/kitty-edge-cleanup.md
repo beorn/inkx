@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/backdrop-hardening/kitty-edge-cleanup"
 aliases:
   - km-silvery.backdrop-hardening.kitty-edge-cleanup
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-20T14:00:07Z
     created_by: claude:88c0e764
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.backdrop-hardening
 ---
 
 # [x] Inactive Kitty cleanup fires every frame when fade={0} + kittyGraphics @km/silvery #bug #P0 @claude:a1a0e667
@@ -27,6 +34,7 @@ dependencies:
 blocks:: [[@km/silvery/backdrop-hardening]]
 
 Pro review P1.2. applyBackdrop() in index.ts emits KITTY_CLEANUP_OVERLAY every inactive frame whenever options.kittyGraphics === true. Combined with:
+
 - hasBackdropMarkers() is syntactic presence check
 - parseFade(0) prunes marker → buildPlan() inactive
 - ModalDialog defaults to fade=0 in many places
@@ -56,3 +64,4 @@ Keep deactivation cleanup in ag.ts edge-triggered by _kittyActive; make inactive
 ## Parent
 
 @km/silvery/backdrop-hardening
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/box-in-text-warn"
 aliases:
   - km-silvery.box-in-text-warn
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Warn when Box is nested inside Text (W3C alignment) @km/silvery #task #P2
+

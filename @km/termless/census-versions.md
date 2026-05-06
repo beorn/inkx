@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/census-versions"
 aliases:
   - km-termless.census-versions
@@ -19,10 +22,12 @@ assignee: claude:4929065a
 Unified version resolution: extend resolveBackend() with { version } option. Census uses the same API as users.
 
 Architecture:
+
 - resolveBackend('ghostty')                    → latest installed
 - resolveBackend('ghostty', { version: '0.3.0' }) → specific version
 
 Under the hood, version resolution is type-specific:
+
 - JS/WASM (npm): install specific version to temp dir, import from there
 - Rust (crate): cargo build with pinned crate version, cached in nix store
 - C (source): git checkout tag + compile, cached
@@ -40,3 +45,4 @@ versions.json catalog:
   { 'xtermjs': ['5.3.0', '5.4.0', '5.5.0'], 'ghostty': ['0.3.0', '0.4.0'] }
 
 No separate infrastructure. Registry IS the infrastructure.
+

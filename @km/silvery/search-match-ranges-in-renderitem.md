@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/search-match-ranges-in-renderitem"
 aliases:
   - km-silvery.search-match-ranges-in-renderitem
@@ -54,3 +56,4 @@ export interface SearchItemMatch {
 - Virtualizer already tracks item → line range via \`getText\` (each item can span multiple logical lines). Reuse that lookup.
 - Current-match identification: find match.row == state.currentMatch's row (they'll share the same absolute row)
 - This is additive — existing renderItems that ignore the meta continue to work
+

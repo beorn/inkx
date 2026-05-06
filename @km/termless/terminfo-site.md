@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/termless/terminfo-site"
 aliases:
   - km-termless.terminfo-site
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] terminfo.dev: VitePress site with census matrix @km/termless #task #P2
 
 VitePress site at sites/terminfo.dev/ — reads census-results/ at build time. Colored HTML matrix, summary bars, about page. Cross-links with termless.dev.
+

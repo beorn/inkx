@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/scope-phase-4-docs-silvery"
 aliases:
   - km-silvery.scope-phase-4-docs-silvery
@@ -31,6 +34,14 @@ dependencies:
     created_at: 2026-04-24T13:40:44Z
     created_by: claude:2aefb4b6
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.scope-phase-4
+      - type: link
+        target: km-silvery.scope-phase-4-eslint
 ---
 
 # [x] Phase 4.C: Audit vendor/silvery/docs/** + package READMEs + examples @km/silvery #task #P2 @claude:2aefb4b6
@@ -38,3 +49,4 @@ dependencies:
 blocks:: [[@km/silvery/scope-phase-4]], [[@km/silvery/scope-phase-4-eslint]]
 
 Sweep vendor/silvery/docs/**, vendor/silvery/packages/*/README.md, vendor/silvery/examples/** for old cleanup patterns. Mirror lifecycle-scope.md to vendor/silvery/docs/design/lifecycle-scope.md. Exit: grep clean across vendor/silvery/docs + package READMEs + examples.
+

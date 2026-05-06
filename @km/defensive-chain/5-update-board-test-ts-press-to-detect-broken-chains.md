@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/defensive-chain/5-update-board-test-ts-press-to-detect-broken-chains"
 aliases:
   - km-defensive-chain.5
@@ -14,9 +17,11 @@ assignee: claude
 Remove allowNoEffect option. Throw if key has no effect AND no bell (broken chain detection).
 
 Ergonomic bell testing API:
+
 ```typescript
 expect(board.bell).toBeTrue()   // or .toBeFalse()
 // Instead of: board.expect('[data-bell]').toExist()
 ```
 
 Implementation: Add `bell` getter to BoardTest that returns boolean.
+

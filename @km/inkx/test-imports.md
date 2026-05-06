@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/test-imports"
 aliases:
   - km-inkx.test-imports
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Standardize test imports to inkx/testing across 157 test files @km/inkx #task #P2
+

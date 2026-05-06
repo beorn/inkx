@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui1/12-implement-flexrow-constraint-component"
 aliases:
   - km-tui1.12
@@ -23,6 +25,7 @@ See [inkx-legacy.3-design.md](.beads/inkx-legacy.3-design.md) for full specifica
 **Location**: `apps/km-tui/packages/km-ink/src/constraints/FlexRow.tsx`
 
 **FlexRow Props**:
+
 ```typescript
 interface FlexRowProps {
   children: React.ReactNode;
@@ -31,6 +34,7 @@ interface FlexRowProps {
 ```
 
 **FlexItem Props**:
+
 ```typescript
 interface FlexItemProps {
   flex?: number;       // Flex grow factor (default 0 for fixed, 1 for flex)
@@ -42,6 +46,7 @@ interface FlexItemProps {
 ```
 
 **Usage**:
+
 ```typescript
 <FlexRow gap={1}>
   <FlexItem width={10}><Prefix /></FlexItem>
@@ -85,3 +90,4 @@ function distributeSpace(
 ## Blocked By
 
 - inkx-legacy.1 (constraint system design approval)
+

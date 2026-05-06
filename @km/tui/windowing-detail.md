@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/windowing-detail"
 aliases:
   - km-tui.windowing-detail
@@ -13,3 +16,4 @@ assignee: claude:d3a7049b
 # [x] Windowing: externalize detail as a pane type @km/tui #task #P2 @claude:d3a7049b
 
 Phase 2: Detail pane is no longer special-cased inside Board. It becomes a pane with view type 'detail'. Remove showDetailPane from UIState. No visual change yet — detail renders the same, just as a pane.
+

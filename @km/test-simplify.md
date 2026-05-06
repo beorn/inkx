@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude-MacBookPro
 id: "@km/test-simplify"
 aliases:
   - km-test-simplify
@@ -9,3 +12,4 @@ assignee: claude-MacBookPro.localdomain
 ---
 
 # [x] Test System Simplification @km/test-simplify #epic #P2 @claude-MacBookPro.localdomain
+

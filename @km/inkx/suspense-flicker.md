@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/suspense-flicker"
 aliases:
   - km-inkx.suspense-flicker
@@ -42,3 +45,4 @@ SearchDialog was converted to synchronous rendering (dc931ad2) since the data wa
 - Tests proving Suspense transitions don't cause sibling/ancestor flicker
 - Root cause identified and fixed in the inkx renderer
 - If this is a fundamental react-reconciler limitation for terminal renderers, document it and provide guidance on safe Suspense patterns
+

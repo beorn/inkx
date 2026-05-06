@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/style-precedence-lint"
 aliases:
   - km-infra.style-precedence-lint
@@ -21,13 +23,11 @@ This bead is the cheap enforcement layer to hold the line UNTIL the variant syst
 Grep-based check in `bun fix` (or an oxlint custom rule if that's easy) that flags:
 
 1. **Hardcoded hex colors on Text/Box components** inside `apps/km-tui/src/text/` and `apps/km-tui/src/views/`:
-   - Ban: `color="#..."`, `backgroundColor="#..."`, `color="red"`, `color="blue"`
-   - Allow: `color="$..."` (theme tokens), `color={resolveColor(ctx, ...)}` (override-aware)
-
+  - Ban: `color="#..."`, `backgroundColor="#..."`, `color="red"`, `color="blue"`
+  - Allow: `color="$..."` (theme tokens), `color={resolveColor(ctx, ...)}` (override-aware)
 2. **Raw `color=` on Text components** inside InlineComponents.tsx (the leaves of the inline tree):
-   - Should be: `color={resolveColor(ctx, "$token")}` if fg is state-aware
-   - Exception: decoration-only markers (underline, dim, italic) that don't set `color=` at all are fine — they're cursor-safe by construction
-
+  - Should be: `color={resolveColor(ctx, "$token")}` if fg is state-aware
+  - Exception: decoration-only markers (underline, dim, italic) that don't set `color=` at all are fine — they're cursor-safe by construction
 3. **Multiple `shouldStripColor` computations** — currently computed 4 different ways in TreeNode/NodeView/DetailView/shared-components. Flag duplicates; require all to import from a single helper.
 
 ## Implementation
@@ -46,3 +46,4 @@ Alternatively: add a Grep assertion to packages/@km/infra/vitest/style-check.tes
 ## Parent
 
 @km/silvery/variant-style-system (this is the holding action until that lands)
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/inbox/mr5gj"
 aliases:
   - km-mr5gj
@@ -12,3 +15,4 @@ assignee: Bjørn Stabell
 ---
 
 # [x] Session checkpoint: terminfo.dev discovery pipeline @km/_orphan #task #P3 @Bjørn Stabell
+

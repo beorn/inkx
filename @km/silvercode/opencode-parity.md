@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/opencode-parity"
 aliases:
   - km-silvercode.opencode-parity
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-27T11:16:24Z
     created_by: claude:4de4a3ab
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [ ] [epic] Reach feature parity with opencode — LSP integration, fork/branch ergonomics, file-watch diagnostics, single-binary distribution @km/silvercode #epic #P2
@@ -40,10 +46,12 @@ P3 @km/silvercode/single-binary          Single-binary distribution
   Distribute via npm: '@beorn/silvercode' (after audit). macOS arm64 + Linux x64/arm64. GH release platform binaries.
 
 EPIC ACCEPTANCE — close when:
-  1. All four children closed.
-  2. README's 'Where opencode is ahead' caveat dropped from internal comparison.
-  3. silvercode doctor lsp + silvercode doctor file-watch both ship.
+
+1. All four children closed.
+2. README's 'Where opencode is ahead' caveat dropped from internal comparison.
+3. silvercode doctor lsp + silvercode doctor file-watch both ship.
 
 Reference (2026-04-27 honest comparison, no public artifact):
   silvercode advantages: parallel multi-agent, ACP-native, typed [AMBIENT] pipeline, Silvery TUI, subscription-compatible Claude in-tree, descriptor-driven UI, cross-host tribe-mcp, in-tree storybook, doctor.
   opencode advantages (this epic): LSP, fork/branch UX, file-watch, single-binary.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - km
 id: "@km/inbox/refactor-rename"
 aliases:
   - km-refactor-rename
@@ -12,10 +15,13 @@ closed_at: 2026-01-24T22:10:34Z
 After @km/_orphan/repl migration, rename SimplifiedBoardState to BoardState.
 
 **Changes:**
+
 - Rename SimplifiedBoardState → BoardState
 - Rename SimplifiedBoardAction → BoardAction
 - Update all imports in TUI and other consumers
 - Delete old BoardState type (legacy)
 
 **Dependencies:**
+
 - Blocked by: @km/_orphan/refactor-repl
+

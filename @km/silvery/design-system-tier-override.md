@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/design-system-tier-override"
 aliases:
   - km-silvery.design-system-tier-override
@@ -15,6 +17,10 @@ dependencies:
     created_at: 2026-04-17T20:52:23Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.design-system
 ---
 
 # [x] SILVERY_COLOR env var — force color tier for dev/test/screenshots @km/silvery #feature #P3
@@ -34,13 +40,13 @@ Developers and CI need to render silvery apps at each capability tier independen
 
 New env var `SILVERY_COLOR`:
 
-| Value | Effect |
-|---|---|
-| `truecolor` / `24bit` | Force 24-bit ANSI emission |
-| `256` | Force 256-color quantization (cube + ramp) |
-| `ansi16` / `16` | Force slot rendering (user's theme at ANSI16) |
-| `mono` / `1` | Force attrs-only (bold/dim/inverse) |
-| `auto` (default) | Run detection (existing behavior) |
+| Value             | Effect                                        |
+| ----------------- | --------------------------------------------- |
+| truecolor / 24bit | Force 24-bit ANSI emission                    |
+| 256               | Force 256-color quantization (cube + ramp)    |
+| ansi16 / 16       | Force slot rendering (user's theme at ANSI16) |
+| mono / 1          | Force attrs-only (bold/dim/inverse)           |
+| auto (default)    | Run detection (existing behavior)             |
 
 CLI flag equivalent: `--color-tier=<value>` where supported (km, examples, tests).
 
@@ -71,3 +77,4 @@ CLI flag equivalent: `--color-tier=<value>` where supported (km, examples, tests
 - Parent: @km/silvery/design-system
 - Reference: docs/ref/terminal-color-strategy.md
 - Complements: ansi-color-detection.md (on/off decision)
+

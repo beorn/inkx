@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/design-system-capability-detection"
 aliases:
   - km-silvery.design-system-capability-detection
@@ -15,6 +17,10 @@ dependencies:
     created_at: 2026-04-17T22:37:44Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.design-system
 ---
 
 # [x] Best-practice capability (tier) detection — truecolor/256/ANSI16/monochrome @km/silvery #feature #P3
@@ -28,6 +34,7 @@ The tier decision (which of truecolor / 256 / ANSI16 / monochrome to render at) 
 ## Scope
 
 ### Inputs
+
 - NO_COLOR=* (non-empty) → monochrome
 - TERM=dumb → monochrome
 - !isatty(stdout) → plain/monochrome
@@ -66,6 +73,7 @@ interface CapabilityDetection {
 ## Unification
 
 Silvery has multiple ad-hoc detections. This bead consolidates them into a single detectCapability() function used by:
+
 - deriveTheme mode selection
 - Output phase (quantize vs emit hex vs emit slot)
 - Fingerprint detection (skip probe if not truecolor-capable)
@@ -86,3 +94,4 @@ Silvery has multiple ad-hoc detections. This bead consolidates them into a singl
 - Parent: @km/silvery/design-system
 - Companion: @km/silvery/design-system-tier-override (SILVERY_COLOR env var)
 - Reference: hub/silvery/design/v10-terminal/terminal-color-strategy.md
+

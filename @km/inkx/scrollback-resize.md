@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/inkx/scrollback-resize"
 aliases:
   - km-inkx.scrollback-resize
@@ -47,14 +50,14 @@ Tests use createRenderer (pipeline only, no output phase stdout writes). The rea
 2. Synchronous: ScrollbackView setTermWidth, example compact() (freezes all), runtime pushes resize event
 3. Event loop: processEvent(resize) -> prevTermBuffer=null, invalidate, scheduleRender
 4. doRender: reconciler applies state, flushSyncWork fires useLayoutEffect:
-   - useScrollback detects width change
-   - resetInlineCursor (resets output phase)
-   - Writes ESC[9999A CR ESC[J (clear visible screen)
-   - Re-emits ALL frozen items to stdout
-   - notifyScrollback(N) sets scrollbackOffset=N
+  - useScrollback detects width change
+  - resetInlineCursor (resets output phase)
+  - Writes ESC[9999A CR ESC[J (clear visible screen)
+  - Re-emits ALL frozen items to stdout
+  - notifyScrollback(N) sets scrollbackOffset=N
 5. runtime.render: consumes scrollbackOffset=N, calls outputPhaseFn(null, buf, inline, N, termRows)
-   - Output phase: forceFirstRender, prev=null, no clear prefix
-   - Writes bufferToAnsi from cursor position (after frozen items)
+  - Output phase: forceFirstRender, prev=null, no clear prefix
+  - Writes bufferToAnsi from cursor position (after frozen items)
 
 ## Key Files
 
@@ -71,3 +74,4 @@ Tests use createRenderer (pipeline only, no output phase stdout writes). The rea
 1. Add DEBUG_LOG instrumentation to see ACTUAL bytes written during resize
 2. Write integration test through run() with ScrollbackList + resize capturing all stdout writes
 3. Fix based on actual byte trace
+

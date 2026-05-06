@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/popover"
 aliases:
   - km-tui.popover
@@ -16,3 +19,4 @@ assignee: claude:e31834da
 # [x] Popover component: hover-to-preview for links and more @km/tui #feature #P2 @claude:e31834da
 
 General-purpose popover/tooltip system for the TUI. First use case: hovering over a link shows a preview with title, description, favicon, etc. Should be a reusable silvery component that any content can trigger (links, wikilinks, block refs, sigils).
+

@@ -41,3 +41,4 @@ Partial foundation already landed in mouse dispatch: captured move/up is deliver
 
 related:: [[@km/silvery/scroll-interaction-l4-l5]]
 blocks:: [[@km/silvery/scroll-interaction-l4-l5/scroll-controller-scrollarea]] [[@km/silvery/scroll-interaction-l4-l5/scrollbar-controlled-view]]
+

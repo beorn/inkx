@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/all/fix-sweep-vendor-fuzz"
 aliases:
   - km-all.fix-sweep-vendor-fuzz
@@ -24,6 +27,10 @@ dependencies:
     created_at: 2026-04-26T16:26:13Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.fix-sweep-0426
 ---
 
 # [x] [epic] Fix sweep — 49 vendor + 5 fuzz test failures + hybrid-output phase 3 @km/all #epic #P1 @claude:cc081a9a
@@ -37,40 +44,49 @@ Tracking epic for the remaining failures from @km/all/fix-sweep-0426 scope B (ve
 ### vendor/silvery (15 + 4 + 5 + 5 + 6 + 3 = 38 tests across 13 files)
 
 **Cluster A — scope (15 tests, 1 file)**
+
 - vendor/silvery/tests/features/scope.test.ts — likely one shared root cause
 
 **Cluster B — EditContext export (4 tests, 2 files)**
+
 - vendor/silvery/tests/features/click-to-position.test.tsx — Cannot find package '@silvery/ag-react/ui/components/EditContextDisplay'
 - vendor/silvery/tests/features/use-ag-node.test.tsx (3 tests)
 
 **Cluster C — listview (5 tests, 2 files)**
+
 - listview-scroll-overshoot.test.tsx (2)
 - listview-scrollcap-tall-items.test.tsx (3)
 
 **Cluster D — feature regressions (5 tests, 4 files)**
+
 - pipeline-bugfixes.test.tsx (2)
 - box-in-text-warning.test.tsx (1)
 - text-frame.test.tsx (1)
 - inline-scrollback-promotion.test.tsx (1)
 
 **Cluster E — hooks/memory/perf (6 tests, 3 files)**
+
 - hooks/useBoxMetrics.test.tsx (4)
 - memory/memory.test.tsx (1)
 - perf/termless-memleak-harness.test.tsx (1)
 
 **Cluster F — examples (3 tests, 2 files)**
+
 - examples/ai-chat.test.tsx (2)
 - examples/aichat-inline-bugs.test.tsx (1)
 
 ### vendor/termless (5 tests, 2 files) — Cluster G
+
 - packages/viterm/tests/matchers.test.ts (4)
 - tests/integration.test.ts (1)
 - Common error: `toHaveText expects an AutoLocator, got object` — matcher API shape mismatch
 
 ### vendor/flexily (2 tests, 1 file) — Cluster H
+
 - tests/silvercode-gutter-bug.test.ts (NARROW + WIDE)
 
 ### vendor/bearly (2 tests, 2 files) — Cluster I
+
 - packages/daemon-spine/tests/parser.test.ts
 - plugins/mcp/tests/mcp-plugin.test.ts
 
@@ -100,3 +116,4 @@ Tracking epic for the remaining failures from @km/all/fix-sweep-0426 scope B (ve
 - bun vitest run --project fuzz → 0 failures (was 5)
 - @km/silvery/hybrid-output-phase3 closed with constants reconciled
 - @km/silvery/known-limits has 0 open children
+

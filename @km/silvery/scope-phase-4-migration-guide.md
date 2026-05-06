@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/scope-phase-4-migration-guide"
 aliases:
   - km-silvery.scope-phase-4-migration-guide
@@ -27,6 +30,14 @@ dependencies:
     created_at: 2026-04-24T13:40:48Z
     created_by: claude:2aefb4b6
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.scope-phase-4
+      - type: link
+        target: km-silvery.scope-phase-4-eslint
 ---
 
 # [x] Phase 4.F: Migration guide (new doc) @km/silvery #task #P2 @claude:2aefb4b6
@@ -34,3 +45,4 @@ dependencies:
 blocks:: [[@km/silvery/scope-phase-4]], [[@km/silvery/scope-phase-4-eslint]]
 
 Write hub/silvery/design/migration-lifecycle-scope.md — single-page cheat sheet of the 10 before/after migrations from lifecycle-scope.md. Linkable from root CLAUDE.md + silvery release notes. Exit: doc committed, links in place.
+

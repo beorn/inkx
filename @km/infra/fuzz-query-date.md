@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/fuzz-query-date"
 aliases:
   - km-infra.fuzz-query-date
@@ -13,3 +16,4 @@ assignee: claude:e8fd4b92
 ---
 
 # [x] Fuzz: query parser roundtrip + date composition roundtrip @km/infra #task #P2 @claude:e8fd4b92
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/plugin-review"
 aliases:
   - km-tui.plugin-review
@@ -18,8 +21,10 @@ assignee: Bjørn Stabell
 Audit: what with* plugins exist today (withApp, withOutliner, etc.)? How do they compose? What's the plugin stack order? How does this map to the era2 TEA state machine vision (docs/design/tea-state-machines.md)?
 
 Questions:
+
 - What's the current composition: tree → outliner → board → cursor → render?
 - How do commands flow through the plugin stack?
 - How does undo compose with plugins?
 - What does era2 say about plugin architecture?
 - What's missing to make withValidation + withOutliner + withCursor work together?
+

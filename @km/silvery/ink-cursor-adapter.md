@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/ink-cursor-adapter"
 aliases:
   - km-silvery.ink-cursor-adapter
@@ -16,3 +19,4 @@ assignee: claude:474834b0
 # [x] withInkCursor() — thin adapter from Ink useCursor to silvery CursorStore @km/silvery #task #P2 @claude:474834b0
 
 Replace InkCursorStoreCtx with a thin adapter plugin. Ink's useCursor() delegates to silvery's native CursorStore. ~20 lines. Remove cursorStore option — silvery manages this natively.
+

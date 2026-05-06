@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/delete-search-overlay-ansi"
 aliases:
   - km-silvery.delete-search-overlay-ansi
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-24T16:14:43Z
     created_by: claude:5e447b66
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Migrate search overlay (renderSearchHighlights/renderSearchBarOverlay) off ANSI-past-buffer pattern @km/silvery #task #P3
@@ -47,6 +53,7 @@ When highlights move/shrink (e.g., user edits search query, narrowing matches; o
 ## Fix pattern
 
 Mirror the selection migration:
+
 1. Define composeSearchHighlightCells(buffer, matches, theme?) returning SelectionCellChange[]-like
 2. Apply changes to a paint clone of the buffer (NOT the canonical) before runtime.render — same paintFrame helper currently in create-app.tsx for selection
 3. The status bar (dims.rows;1H) is genuinely a fullscreen-fixed overlay position — that one might still need to write past the buffer OR we cleanly fold it into the buffer's last row before output. Decide during implementation.
@@ -58,3 +65,4 @@ Mirror the selection migration:
 - Termless test: scroll search highlights out of viewport → cells repaint clean
 - SILVERY_STRICT=1 passes on search test suite
 - @km/tui search functionality still works visually (bun km view ~vault, /, type, narrow)
+

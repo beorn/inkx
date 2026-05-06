@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/sel-p7-docs"
 aliases:
   - km-silvery.sel-p7-docs
@@ -13,3 +16,4 @@ assignee: Bjørn Stabell
 # [x] Selection Phase 7: silvery.dev docs + demo @km/silvery #task #P2 @Bjørn Stabell
 
 silvery.dev documentation for @silvery/selection. Guide + API reference. After Phase 3 (km migration) proves the API.
+

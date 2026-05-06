@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/unicode-probes"
 aliases:
   - km-terminfo.unicode-probes
@@ -12,3 +15,4 @@ assignee: claude:4929065a
 ---
 
 # [x] Unicode width probes — emoji ZWJ, regional indicators, variation selectors (from ucs-detect) @km/terminfo #task #P1 @claude:4929065a
+

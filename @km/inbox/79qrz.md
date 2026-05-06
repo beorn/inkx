@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/79qrz"
 aliases:
   - km-79qrz
@@ -22,3 +24,4 @@ Classification: P1
 term.screen, term.scrollback, term.viewport, term.row(), term.range(), and term.cell() resolve rows immediately. If output scrolls after selector creation, saved selector points at stale rows. term.cell() snapshots cell contents, not just address. Opposite of Playwright locator semantics — will undermine polling/auto-waiting.
 
 Suggested fix: Make all selectors lazy. Store logical intent and resolve against current scrollback state on every read/assertion.
+

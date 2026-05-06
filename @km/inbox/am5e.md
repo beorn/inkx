@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/am5e"
 aliases:
   - km-am5e
@@ -12,16 +14,19 @@ closed_at: 2026-01-20T14:51:47Z
 Medium: State file path generation and initialization is duplicated.
 
 **Duplications:**
+
 1. index.ts:181-200 - statePathsFor(), ensureStateFiles(), clearState()
 2. session.ts:38-47 - Similar logic in TestSession constructor
 
 **Problem:**
+
 - Two implementations of the same concept
 - Changes need to be made in both places
 - Risk of divergence
 
 **Solution:**
 Extract to src/state.ts:
+
 ```typescript
 export interface StateFiles {
   envFile: string;
@@ -34,5 +39,7 @@ export function clearState(paths: StateFiles): void
 ```
 
 **Files:**
+
 - vendor/beorn-mdtest/src/index.ts
 - vendor/beorn-mdtest/src/session.ts
+

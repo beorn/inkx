@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - unimac
 id: "@km/inbox/drizzle-typing"
 aliases:
   - km-drizzle-typing
@@ -15,6 +18,7 @@ Currently using raw SQLite with `as Record<string, unknown>` casts throughout @k
 **Problem**: ~30+ unsafe casts on .all() and .get() results. Schema changes could silently introduce invalid data.
 
 **Options**:
+
 1. Drizzle ORM - type-safe query builder, generates types from schema
 2. kysely - lightweight SQL builder with good TS support
 3. Custom typed wrapper around bun:sqlite
@@ -22,6 +26,8 @@ Currently using raw SQLite with `as Record<string, unknown>` casts throughout @k
 **Files affected**: store.ts, db-queries/*.ts, db-events.ts
 
 **Acceptance criteria**:
+
 - [ ] Evaluate options (Drizzle vs kysely vs custom)
 - [ ] Prototype with one query file
 - [ ] Measure impact on bundle size/perf
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/sterling-borders-adaptive"
 aliases:
   - km-silvery.sterling-borders-adaptive
@@ -25,6 +28,14 @@ dependencies:
     created_at: 2026-04-24T16:16:08Z
     created_by: claude:5e447b66
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-all.sterling
+      - type: link
+        target: km-silvery.sterling-2e-interior-migration
 ---
 
 # [x] Sterling: border-default/muted derivation needs contrast lift @km/silvery #bug #P2 @claude:22c2717d
@@ -51,3 +62,4 @@ In packages/theme/src/sterling/derive.ts, add ensureContrast pass for border-def
 - Sterling 219 tests still green
 
 Parent: @km/silvery/theme-v4
+

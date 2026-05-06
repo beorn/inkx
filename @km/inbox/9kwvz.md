@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/9kwvz"
 aliases:
   - km-9kwvz
@@ -14,3 +16,4 @@ owner: bjorn@stabell.org
 # [x] Silvery docs: narrative, tone, and identity overhaul @km/_orphan #epic #P2
 
 Comprehensive docs improvement based on deep research review. Rework tone (less Ink-bashing, more standalone identity), fix consistency issues, reduce claim repetition, add missing content (limitations, roadmap, alpha status). See plan in bead notes.
+

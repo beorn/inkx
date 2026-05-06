@@ -62,3 +62,4 @@ Silvercode already receives or parses config option updates in the ACP adapter, 
 - A fallback test proves existing descriptor-driven controls still work when ACP config options are absent.
 - Manual/fixture verification covers Codex values `low`, `medium`, `high`, `xhigh`.
 - Fake/live contract coverage proves Codex config behavior does not drift between the fake profile and the real backend when live mode is enabled.
+

@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - 2J
 id: "@km/inkx/scrollback-no-history"
 aliases:
   - km-inkx.scrollback-no-history
@@ -10,3 +14,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Scrollback demo clears terminal history on exit (3J+2J) @km/inkx #bug #P2
+

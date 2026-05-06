@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/textarea-edge-callback"
 aliases:
   - km-silvery.textarea-edge-callback
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-24T16:16:26Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode.queue-option-b
 ---
 
 # [x] TextArea: onEdge callback fires when arrow hits buffer boundary (enables focus handoff) @km/silvery #feature #P1
@@ -52,3 +58,4 @@ Fires when an arrow key is pressed AT the buffer boundary (i.e., the key would o
 - Contract test in `tests/features/textarea-onedge.test.tsx` — 3 sibling TextAreas, Up/Down at boundaries, handler returns true in the middle one → cursor doesn't clamp; false → cursor clamps normally
 - Left/right edges fire on horizontal arrow boundaries (for future single-line focus handoff designs)
 - Existing TextArea tests + silvercode tests still pass
+

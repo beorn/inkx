@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/m8v1r"
 aliases:
   - km-m8v1r
@@ -15,3 +18,4 @@ assignee: claude:fed8de9e
 # [x] Rename TeaNode → AgNode across silvery codebase @km/_orphan #task #P1 @claude:fed8de9e
 
 TeaNode falsely ties a renderer primitive to a state architecture. Rename to AgNode (Ag = silver, consistent with @silvery/ag-* naming). Update all imports, types, docs.
+

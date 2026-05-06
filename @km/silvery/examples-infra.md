@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/examples-infra"
 aliases:
   - km-silvery.examples-infra
@@ -67,3 +70,4 @@ Map URL keys to 9 flagship examples: aichat, gallery, kanban, explorer, wizard, 
 ### Components Available
 
 PickerDialog, CommandPalette, ModalDialog, SelectList, TextInput — all exported from silvery.
+

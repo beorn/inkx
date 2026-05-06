@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/variant-style-system"
 aliases:
   - km-silvery.variant-style-system
@@ -17,6 +19,7 @@ owner: bjorn@stabell.org
 Most recent example (2026-04-06): @km/tui/broken-wikilink-no-cue fix applied `color={$error}` to unresolved wikilinks. Under the cursor, this red fg competed with cursor-inverse yellow, producing inconsistent rendering between cursor and non-cursor cells. Fixed narrowly by dropping fg and keeping only the dashed underline (cursor-safe decoration) — but the pattern will recur every time we add a new content marker.
 
 Also in this /big analysis we found:
+
 - `shouldStripColor` computed 4 different ways across TreeNode/NodeView/DetailView/shared-components
 - colorOverride is fg-only; underline/dim/bold/bg bypass the override pipeline
 - Hardcoded hex values (#404050 pill bg in InlineComponents.tsx:284) bypass theme tokens
@@ -72,3 +75,4 @@ Variant-based styling is a general TUI problem, not a @km/_orphan/specific one. 
 - @km/tui/broken-wikilink-no-cue (closed; narrow fix this /big session)
 - @km/infra/style-precedence-lint (enforce convention until variants land)
 - @km/silvery/tint-inverse (color blending API — sibling foundation)
+

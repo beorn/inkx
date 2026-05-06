@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/bear/dedup-inject"
 aliases:
   - km-bear.dedup-inject
@@ -28,6 +31,14 @@ dependencies:
     created_at: 2026-04-17T10:38:04Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-bear
+      - type: link
+        target: km-bear.summarizer
 ---
 
 # [x] Phase 5: dedup + bear.inject_delta @km/bear #task #P2 @Bjørn Stabell
@@ -37,8 +48,10 @@ blocks:: [[@km/bear]], [[@km/bear/summarizer]]
 Phase 5 of @km/bear. Move the per-session already-shown dedup set from tmpfiles into daemon memory. Add bear.inject_delta RPC+MCP tool that runs recall, filters against the per-session set, and returns only the delta. Migrate UserPromptSubmit hook to call bear.inject_delta via daemon first, library fallback preserved.
 
 ## Acceptance
+
 - New RPC bear.inject_delta, new MCP tool of same name.
 - Daemon keeps per-sessionId Map<string, { key → turn }> with TTL 10 turns.
 - hooks.ts cmdHook tries daemon first, falls back to existing hookRecall library.
 - tmpfile-based dedup still exists as fallback path.
 - Tests: daemon inject_delta filters repeats, resets per session.
+

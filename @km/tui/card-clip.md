@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/card-clip"
 aliases:
   - km-tui.card-clip
@@ -11,3 +14,4 @@ assignee: claude:124bfbe5
 ---
 
 # [x] Cards only render when fully fitting on screen — partial cards clipped to blank @km/tui #bug #P3 @claude:124bfbe5
+

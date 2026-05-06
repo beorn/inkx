@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/logger/tests"
 aliases:
   - km-logger.tests
@@ -13,6 +16,7 @@ assignee: claude:76fda6b0
 Add comprehensive test coverage to @beorn/logger.
 
 ## Test Coverage
+
 - Unit tests for all log levels
 - Span timing tests
 - createConditionalLogger behavior
@@ -20,3 +24,4 @@ Add comprehensive test coverage to @beorn/logger.
 - TRACE namespace filtering
 - JSON vs console format
 - Worker thread forwarding (after logger-worker)
+

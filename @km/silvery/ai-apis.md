@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ai-apis"
 aliases:
   - km-silvery.ai-apis
@@ -20,3 +22,4 @@ Refine and formalize the AI-native APIs that make Silvery the go-to framework fo
 Document use cases: AI coding agents (Claude Code, Cursor, Aider), automated testing, remote control, accessibility.
 
 No other TUI framework advertises AI-ready capabilities. This is the category-defining feature.
+

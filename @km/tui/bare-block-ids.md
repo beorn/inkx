@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/bare-block-ids"
 aliases:
   - km-tui.bare-block-ids
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Recurring tasks show bare ^numericId as card content @km/tui #bug #P2
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/kuphm"
 aliases:
   - km-kuphm
@@ -18,3 +20,4 @@ owner: bjorn@stabell.org
 # [x] STRICT_TERMINAL: swappable backends, vt100 default, comma-separated @km/_orphan #task #P2
 
 Unify STRICT_OUTPUT and STRICT_TERMINAL. Define VerifyBackend interface. Accept comma-separated backend list (vt100,xterm,ghostty,all,both). Add vt100 as fast pure-TS backend. Migrate STRICT_OUTPUT to STRICT_TERMINAL=vt100. Deprecate replayAnsiWithStyles. CI: vt100 in PR, xterm nightly.
+

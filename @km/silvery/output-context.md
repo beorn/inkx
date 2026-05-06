@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/output-context"
 aliases:
   - km-silvery.output-context
@@ -23,3 +26,4 @@ assignee: claude:c9beade3
 # [x] Introduce OutputContext type — consolidate termRows, mode, caps threading @km/silvery #task #P3 @claude:c9beade3
 
 Currently termRows/maxRows is threaded through 8 functions. Introduce typed context objects: Viewport { cols, rows }, TerminalCapabilities { osc66, cpr, truecolor }, OutputContext { viewport, caps, mode, prevPhysicalFrame }. Deeper win: separate virtual render, physical frame clip, and ANSI emission stages. See docs/lessons/testing-escape-hatches.md.
+

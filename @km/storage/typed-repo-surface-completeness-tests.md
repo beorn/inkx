@@ -40,22 +40,22 @@ A small typed-completeness test file that pins the entire public surface contrac
 - `withSync` signature is `(emitter: Emitter, config?: SyncConfig) => (repo) => SyncManager`
 - `withFsWriter` signature includes `emitter` as second positional arg
 
-## Implementation
+### Implementation
 
 Use TS `expectTypeOf` (vitest types) or a simple `type Test = X extends Y ? true : never` trick. One file in `packages/km-storage/tests/repo/typed-surface.test.ts`. Maybe 30 lines.
 
-## Acceptance
+### Acceptance
 
 - [ ] Test file exists and runs as part of `bun vitest run packages/km-storage/tests/repo/`
 - [ ] Each invariant is a compile-time check (failure = TS error, not runtime)
 - [ ] Adding a new public field to Repo / SyncableRepo without updating the test = test failure
 - [ ] Documented in `packages/km-storage/CLAUDE.md` (if it exists) as the protocol for surface changes
 
-## Why P3
+### Why P3
 
 It's plumbing for the plumbing. Real correctness today (df353f2c7 shipped + repo-emitter-not-public.test.ts pinned). This is preventive — a hardening pass to ensure future drift gets caught at compile time.
 
-## Surfaced by
+### Surfaced by
 
 The /complete pass after the L4 emitter migration. The `sync-legacy-cleanup` 2026-04-03 close was premature because the verification was a grep, not a typed invariant. This bead encodes the lesson.
 

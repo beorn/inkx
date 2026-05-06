@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/toast-shows-node-id"
 aliases:
   - km-tui.toast-shows-node-id
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] [bug] Toast messages show internal node IDs instead of names @km/tui #bug #P3
 
 shortName() in board-actions-zoom.ts falls back to nodeId.slice(-8) when name/title/content are null. Fix: use a better fallback (parent name, rendered title, or just 'this item').
+

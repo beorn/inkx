@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkx/hot-reload"
 aliases:
   - km-inkx.hot-reload
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Hot reload with state preservation @km/inkx #feature #P4
 
 Watch source files and reload the component tree on change, preserving application state when possible. Like Textual's auto-reload feature. Useful during development to see changes immediately without restarting. Could integrate with Bun's file watcher and React's hot module replacement patterns.
+

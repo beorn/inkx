@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/inbox/otqq"
 aliases:
   - km-otqq
@@ -11,12 +14,14 @@ assignee: beorn
 # [x] ADR-002 Phase 6: Make createRepo a generator like createVault @km/_orphan #task #P1 @beorn
 
 ## Problem
+
 createVault is a generator function that yields progress.
 createRepo is a regular function.
 
 This signature mismatch blocks the Vault→Repo terminology migration.
 
 ## Solution
+
 Make createRepo also yield progress, matching createVault's signature:
 
 ```typescript
@@ -27,12 +32,14 @@ export function* createRepo(
 ```
 
 ## Benefits
+
 - Same calling convention as createVault
 - Enables batch rename: createVault → createRepo
 - Progress feedback for large vaults
 - Consistent API
 
 ## Steps
+
 1. Update createRepo to be a generator
 2. Add yield points for: directory scan, database init, file tree init
 3. Update createBareRepo similarly (or keep as regular function)
@@ -41,5 +48,7 @@ export function* createRepo(
 6. Batch rename across codebase
 
 ## Related
+
 - ADR-002 Phase 6
 - @km/_orphan/jz5c (terminology migration)
+

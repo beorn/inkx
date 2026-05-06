@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/selection-normalization"
 aliases:
   - km-tui.selection-normalization
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-15T12:19:01Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.selection-focus-plateau
 ---
 
 # [x] Selection normalization: auto-adjust selection after tree mutations @km/tui #feature #P1
@@ -34,3 +40,4 @@ Target: One normalization function runs after every Tree.apply() batch. If selec
 Inspired by SlateJS's normalization fixpoint loop.
 
 Depends on: @km/all/unified-selection, @km/tui/atomic-tree-ops
+

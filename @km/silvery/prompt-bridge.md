@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/prompt-bridge"
 aliases:
   - km-silvery.prompt-bridge
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] Prompt-library bridge: confirm, select, input with minimal setup @km/silvery #feature #P2
 
 Prompt libraries (enquirer, clack) are the real competitor for simple CLIs. Provide high-level prompt functions with minimal setup to pull people in before they need a whole app. Could be @silvery/prompts or just examples.
+

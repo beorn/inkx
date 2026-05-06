@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/vault/bun-workspace"
 aliases:
   - km-vault.bun-workspace
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Set up ~vault as bun workspace with sync scripts @km/vault #task #P1
 
 Add package.json with bun scripts: pull (rclone Drive→local), push (local→Drive with dry-run), status (diff), and init (first-time copy). Also git config for binary files.
+

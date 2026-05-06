@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/beorn-test/chaos"
 aliases:
   - km-beorn-test.chaos
@@ -21,3 +24,4 @@ Port the 6 generic async iterable transformers from km's chaos tests into vitest
 - chaos(source, configs, rng) — compose transformers into pipeline
 
 Source: packages/@km/storage/tests/sync/chaos/transformers.ts (already written, just needs generalization from FsEvent to T).
+

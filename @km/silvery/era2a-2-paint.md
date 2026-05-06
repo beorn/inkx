@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/era2a-2-paint"
 aliases:
   - km-silvery.era2a-2-paint
@@ -28,3 +31,4 @@ Add paint method to Term, wrapping existing RenderAdapter.flush.
 
 Depends on Phase 1 (TextFrame).
 Design: era2a/rendering.md §Rendering Pipeline
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/all/docs-mece-review"
 aliases:
   - km-all.docs-mece-review
@@ -30,6 +33,14 @@ dependencies:
     created_at: 2026-04-16T15:30:17Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-all
+      - type: link
+        target: km-storage.link-model-canonical
 ---
 
 # [x] Docs MECE review: one canonical source per concept @km/all #task #P2 @Bjørn Stabell
@@ -41,6 +52,7 @@ Audit the full design / reference / concept doc set for MECE structure — every
 ## Scope
 
 In scope:
+
 - docs/design/* — design docs (owns concepts)
 - docs/glossary.md — terminology index
 - docs/architecture.md, docs/concepts.md, docs/kmast.md, docs/storage.md, docs/inline-ast.md — overview / user-facing
@@ -50,6 +62,7 @@ In scope:
 - README files within packages (package.json docs)
 
 Out of scope:
+
 - docs/archive/* — frozen history
 - docs/future/* — speculative / aspirational
 - Changelog / release notes
@@ -74,3 +87,4 @@ Out of scope:
 - Retired / superseded docs moved to docs/archive/ with a pointer to the new canonical.
 - Stale / broken cross-links fixed.
 - One commit per docs domain (design, ref, guide) for reviewability.
+

@@ -1,7 +1,4 @@
 ---
-tags:
-  - task
-  - P3
 mentions:
   - km
 id: "@km/beads/dolt-archive"
@@ -46,6 +43,20 @@ dependencies:
     created_at: 2026-04-28T01:25:03Z
     created_by: claude:da9990c5
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-beads.advanced-subcommands
+      - type: link
+        target: km-beads.cutover
+      - type: link
+        target: km-beads.hooks-rewrite
+      - type: link
+        target: km-beads.pm-skill-rewrite
+      - type: link
+        target: km-beads.split-backend
 ---
 
 # [x] Retire embedded Dolt MySQL backing the Go bd binary @km/beads #task #P3

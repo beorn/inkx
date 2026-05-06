@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/reset-layout-cache-cost"
 aliases:
   - km-flexily.reset-layout-cache-cost
@@ -20,3 +22,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Perf: resetLayoutCache() is full-tree walk every pass — may be redundant @km/flexily #task #P2
+

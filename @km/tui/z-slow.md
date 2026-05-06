@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/z-slow"
 aliases:
   - km-tui.z-slow
@@ -30,3 +32,4 @@ When pressing Z to navigate back to the root of the board, the app hangs for a s
 ## Expected
 
 Either fast navigation, or a loading indicator while the board re-renders.
+

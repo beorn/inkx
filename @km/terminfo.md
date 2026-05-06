@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/terminfo"
 aliases:
   - km-terminfo
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] terminfo.dev: terminal feature compatibility database @km/terminfo #epic #P2
 
 Epic for all terminfo.dev work: census runs, feature expansion, programmatic SEO, API, baselines, content.
+

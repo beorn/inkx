@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/variable-width-layout"
 aliases:
   - km-silvery.variable-width-layout
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-14T13:01:18Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [ ] Pretext variable-width layout (layoutNextLineRange) @km/silvery #feature #P3
@@ -26,6 +32,8 @@ Primary consumer: @km/tui/badge-float-layout — needs line 1 narrow (reserve ba
 Deliverable: new silvery prop/API that lets a Text parent declare per-line-range widths OR an excluded region (rect relative to the text's content box). Text wrapping honors the per-line widths during layout.
 
 References:
+
 - vendor/silvery/packages/ag-term/src/pipeline/pretext.ts (current primitives)
 - https://chenglou.me/pretext/ (original algorithm)
 - docs/guide/layouts.md lines 450-458 (planned marker)
+

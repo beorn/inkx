@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/demo-refactor"
 aliases:
   - km-silvery.demo-refactor
@@ -17,3 +20,4 @@ assignee: claude:73d7a332
 # [x] Refactor ai-chat demo: lift footer state into TEA, make showcase-ready @km/silvery #task #P2 @claude:73d7a332
 
 The static-scrollback demo (our AI chat showcase for silvery.dev) has DemoFooter with local React state (inputText, elapsed, randomIdx) and imperative controlRef bridging to parent. Should be pure TEA: lift all footer state into DemoState, remove refs, compute placeholder in update function. Also: this is the primary website demo — needs to be exemplary code.
+

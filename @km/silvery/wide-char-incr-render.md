@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/wide-char-incr-render"
 aliases:
   - km-silvery.wide-char-incr-render
@@ -17,6 +20,10 @@ dependencies:
     created_at: 2026-04-26T13:48:28Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.fix-sweep-0426
 ---
 
 # [x] Wide-char incremental render duplicates new emoji when prev frame had wide char in same vicinity @km/silvery #bug #P2 @claude:cc081a9a
@@ -34,6 +41,7 @@ Concrete failure (`apps/km-tui/tests/card-rendering.slow.test.ts:1189` "wide cha
 - Incremental output emits 🇯🇵 at col 34 (where 🛒 was), then 🇯🇵 again at col 35 — ending with `🇯🇵🇯🇵` while fresh has just one 🇯🇵.
 
 STRICT_OUTPUT diagnostic:
+
 ```
 prev='🛒'(w=true,c=false) next=' ' incr=' 🇯🇵' fresh=' 🇯🇵'
 col 35: prev=''(w=false,c=true) next='🇯🇵' incr='🇯🇵' fresh=' ' wide=true cont=false
@@ -62,3 +70,4 @@ vendor/silvery/packages/ag-term/src/pipeline/output*.ts — the diff phase that 
 ## Notes
 
 Surfaced 2026-04-26 during @km/all/fix-sweep-card-borders investigation. Distinct cluster from the body-card border / date-badge issues fixed in that bead.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/parent-death-orphan-gap"
 aliases:
   - km-silvercode.parent-death-orphan-gap
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-26T16:13:01Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [ ] Parent SIGKILL/OOM leaks orphan claude processes — add PR_SET_PDEATHSIG (Linux) + kqueue NOTE_EXIT (macOS) only when reported @km/silvercode #task #P4
@@ -69,3 +75,4 @@ Per `docs/principles.md` (Quarantine-and-Delete + No Parallel Derivation): don't
 - No regression in graceful exit path (still uses `AgentSession.close()` first; PDEATHSIG is the safety net).
 - Test coverage adds a "parent crash" scenario alongside the existing "graceful close" scenarios.
 - Runtime cost: zero on the happy path.
+

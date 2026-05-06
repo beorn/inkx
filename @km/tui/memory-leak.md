@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/memory-leak"
 aliases:
   - km-tui.memory-leak
@@ -18,3 +21,4 @@ assignee: Bjørn Stabell
 # [x] Bun segfault on exit — 10.54GB RSS, likely memory leak @km/tui #bug #P1 @Bjørn Stabell
 
 User reported crash after trying to quit km view. RSS was 10.54GB (MacBook has 128GB). Bun segfault at address 0x23B923B823B723B6. Likely a memory leak in the TUI — possibly from popover render callbacks, unbounded cache growth, or event handler leaks.
+

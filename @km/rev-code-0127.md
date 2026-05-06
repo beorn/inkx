@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/rev-code-0127"
 aliases:
   - km-rev-code-0127
@@ -9,7 +11,7 @@ closed_at: 2026-01-27T14:41:50Z
 
 # [x] Code review: Comprehensive analysis 2026-01-27 @km/rev-code-0127 #epic #P2
 
-# Code Review: km Project - Comprehensive Analysis
+## Code Review: km Project - Comprehensive Analysis
 
 **Date**: 2026-01-27
 **Scope**: Full codebase (all areas)
@@ -38,6 +40,7 @@ closed_at: 2026-01-27T14:41:50Z
 **Location**: [packages/@km/storage/src/db-instance.ts](packages/@km/storage/src/db-instance.ts)
 
 **Issue**: Module-level singletons marked @deprecated but still exported:
+
 - `dbInstance: Database | null = null` (line 31)
 - `dbInjected = false` (line 34)
 - `dbContext = new AsyncLocalStorage<Database>()` (line 37)
@@ -55,6 +58,7 @@ closed_at: 2026-01-27T14:41:50Z
 **Location**: [packages/@km/storage/src/emit.ts](packages/@km/storage/src/emit.ts)
 
 **Issue**: Module-level state for event broadcasting:
+
 - `eventHub: { broadcast } | null = null` (line 25)
 - `fsSync: { applyEventToFs } | null = null` (line 28)
 - `kmDirContext = new AsyncLocalStorage<string>()` (line 31)
@@ -73,6 +77,7 @@ closed_at: 2026-01-27T14:41:50Z
 **Location**: [packages/@km/_orphan/board/](packages/@km/_orphan/board/)
 
 **Issue**: ZERO tests for critical navigation layer
+
 - Source files: `board-reducer.ts`, `board-reducer-new.ts`, `board-types.ts`
 - Test directory: Empty (only `.gitkeep`)
 - Exported functions: `boardReducer`, `createBoardState` - **UNTESTED**
@@ -90,6 +95,7 @@ closed_at: 2026-01-27T14:41:50Z
 **Location**: [CLAUDE.md:8](CLAUDE.md#L8)
 
 **Issue**: Documented "Fast tests (<5s)" but actual timing is **10.55s**
+
 - Documentation claims: <5 seconds
 - Actual measurement: 10.55s (2.1x documented)
 - This is >50% delta threshold
@@ -107,6 +113,7 @@ closed_at: 2026-01-27T14:41:50Z
 **Location**: Multiple files (17 instances)
 
 **Production classes**:
+
 - [packages/@km/storage/src/sync.ts:99](packages/@km/storage/src/sync.ts#L99) - `SyncManager extends EventEmitter`
 - [packages/@km/storage/src/writequeue.ts:302](packages/@km/storage/src/writequeue.ts#L302) - `WriteQueue extends EventEmitter`
 - [packages/@km/storage/src/watcher.ts:46](packages/@km/storage/src/watcher.ts#L46) - `FileSystemWatcher extends EventEmitter`
@@ -147,14 +154,13 @@ closed_at: 2026-01-27T14:41:50Z
 **Location**: Multiple (8 files >800 lines)
 
 **Priority candidates**:
+
 1. [packages/@km/storage/src/repo.ts](packages/@km/storage/src/repo.ts) - **1,385 lines**
-   - Split into: repo-core.ts, repo-hooks.ts, repo-mutations.ts, repo-test.ts
-
+  - Split into: repo-core.ts, repo-hooks.ts, repo-mutations.ts, repo-test.ts
 2. [apps/@km/tui/src/board-actions.ts](apps/@km/tui/src/board-actions.ts) - **1,230 lines**
-   - Split by category: zoom, nav, selection, edit actions
-
+  - Split by category: zoom, nav, selection, edit actions
 3. [apps/@km/tui/src/views/Board.tsx](apps/@km/tui/src/views/Board.tsx) - **825 lines**
-   - Separate rendering logic from state management
+  - Separate rendering logic from state management
 
 **Medium priority**: repo-loader.ts (1,236), reconcile.ts (1,166), sync.ts (863)
 
@@ -167,10 +173,12 @@ closed_at: 2026-01-27T14:41:50Z
 **Location**: Multiple test files
 
 **Issue**: App-layer tests importing storage testing utilities:
+
 - [apps/@km/_orphan/cli/tests/cli-unit.test.ts](apps/@km/_orphan/cli/tests/cli-unit.test.ts) - imports `getNode`, `getTasksByStatus` from @km/storage
 - [apps/@km/tui/tests/*.test.ts](apps/@km/tui/tests/) - 6 files import `createFakeRepo` from @km/storage
 
 **Analysis**:
+
 - Importing test doubles (`createFakeRepo`) is ACCEPTABLE
 - Importing raw DB query functions (`getNode`, `getTasksByStatus`) is a minor violation
 - Should access through Repo APIs instead
@@ -186,6 +194,7 @@ closed_at: 2026-01-27T14:41:50Z
 **Location**: Multiple package.json files
 
 **Unused dependencies (17)**:
+
 - Apps: `@beorn/chalkx`, `@km/board`, `@km/markdown`, `ink-select-input` (@km/_orphan/cli)
 - Apps: `inkx`, `react` (@km/_orphan/repl)
 - Apps: `@beorn/inkx-ui`, `fullscreen-ink`, `ink`, `wrap-ansi` (@km/tui)
@@ -196,6 +205,7 @@ closed_at: 2026-01-27T14:41:50Z
 **Unused exports (264)**: Large number across all packages
 
 **Impact**:
+
 - Security risk (outdated deps)
 - Slower installs
 - Confusing API surface (unused exports)
@@ -209,6 +219,7 @@ closed_at: 2026-01-27T14:41:50Z
 **Location**: Multiple test files
 
 **Examples**:
+
 - [packages/@km/markdown/tests/roundtrip.test.ts](packages/@km/markdown/tests/roundtrip.test.ts) - Many `toContain("specific text")` assertions
 - [packages/@km/storage/tests/query.test.ts](packages/@km/storage/tests/query.test.ts) - Hardcoded AST structure checks
 
@@ -225,6 +236,7 @@ closed_at: 2026-01-27T14:41:50Z
 **Location**: [docs/storage.md](docs/storage.md) and [docs/concepts.md](docs/concepts.md) vs implementation
 
 **Missing from docs**:
+
 - `"embed"` type in NodeType enum
 - `fs_mtime` field in KNode interface
 
@@ -241,6 +253,7 @@ closed_at: 2026-01-27T14:41:50Z
 **Timing**: 69.11s - within expected range for slow tests
 
 **Skipped test**: [packages/@km/storage/tests/sync/chaos/regression.slow.test.ts](packages/@km/storage/tests/sync/chaos/regression.slow.test.ts)
+
 - Legitimate placeholder: `test.skip("no regression scenarios defined yet")`
 
 **Recommendation**: None - working as expected
@@ -254,6 +267,7 @@ closed_at: 2026-01-27T14:41:50Z
 **Location**: Multiple files (19 @deprecated markers)
 
 **Files with most deprecated exports**:
+
 - emit.ts - 13 deprecated functions
 - db-instance.ts - 5 deprecated functions
 - config.ts - 3 deprecated functions
@@ -271,6 +285,7 @@ closed_at: 2026-01-27T14:41:50Z
 ### 14. Unused Files (58 total, 46 in vendor/)
 
 **Production code (12 files)**:
+
 - [apps/@km/_orphan/cli/src/execute.ts](apps/@km/_orphan/cli/src/execute.ts)
 - [apps/@km/tui/src/views/Toast.tsx](apps/@km/tui/src/views/Toast.tsx)
 - [apps/@km/_orphan/cli/tests/@km/repl/ts](apps/@km/_orphan/cli/tests/@km/repl/ts)
@@ -290,6 +305,7 @@ closed_at: 2026-01-27T14:41:50Z
 **Location**: [packages/@km/storage/src/](packages/@km/storage/src/)
 
 **Issue**: Too many db-*.ts files at root level (9 files)
+
 - db.ts, db-events.ts, db-instance.ts, db-links.ts, db-ops.ts, db-rules.ts, etc.
 
 **Suggestion**: Create `db-operations/` or `db-mutations/` subdirectory
@@ -305,14 +321,17 @@ closed_at: 2026-01-27T14:41:50Z
 **Location**: 24 instances across codebase
 
 **Critical** (covered in Critical section):
+
 - db-instance.ts singletons
 - emit.ts singletons
 
 **Acceptable** (performance/ergonomics):
+
 - [packages/@km/markdown/src/parser.ts:45](packages/@km/markdown/src/parser.ts#L45) - `const TASK_MARK_REGEX = new RegExp(...)` - Compiled once, immutable
 - [packages/@km/tree/src/body.ts:15](packages/@km/tree/src/body.ts#L15) - `const STRUCTURAL_TYPES = new Set([...])` - Constant lookup
 
 **CLI state** (expected):
+
 - apps/@km/_orphan/cli/src/program.ts - `let rootExplicitlySet = false` - CLI argument parsing
 - apps/@km/_orphan/cli/src/debug-log.ts - `let stream | null = null` - Logging infrastructure
 
@@ -325,10 +344,12 @@ closed_at: 2026-01-27T14:41:50Z
 **Location**: 43 factory functions, 26 files flagged
 
 **Issue**: Many factories create resources but don't implement disposal:
+
 - createLinkResolver, createDbOps, createIgnoreMatcher
 - Test factories: createVerifier, createTestConfig, createScenario
 
 **Analysis**:
+
 - **Critical**: Factories managing DB/file resources should have Symbol.dispose
 - **Low**: Test factories and pure functions don't need it
 
@@ -341,10 +362,12 @@ closed_at: 2026-01-27T14:41:50Z
 **Location**: 51 instances of `?? defaultValue`
 
 **Examples**:
+
 - [packages/@km/storage/src/db-events.ts:95](packages/@km/storage/src/db-events.ts#L95) - `(data.parent_idx as number) ?? 0`
 - [packages/@km/storage/src/repo.ts:660](packages/@km/storage/src/repo.ts#L660) - `ctx.changes ?? {}`
 
 **Analysis**:
+
 - **Legitimate**: Handling optional fields (`parent_idx ?? 0`, `changes ?? {}`)
 - **Suspicious**: Masking programming errors where value should exist
 
@@ -361,11 +384,13 @@ closed_at: 2026-01-27T14:41:50Z
 **Analysis**: Pattern detection flagged all functions starting with `get*` as "global getters"
 
 **False positives**: Most are legitimate query functions:
+
 - `getNode(db, id)` - Takes db parameter, not singleton access
 - `getTasksByStatus(db, status)` - Proper dependency injection
 - `getSiblings(nodes, path)` - Pure function
 
 **True positives** (singleton access):
+
 - `getDb()` - Singleton access (covered in Critical)
 - `getKmDir()` - Singleton access (covered in Critical)
 
@@ -394,6 +419,7 @@ closed_at: 2026-01-27T14:41:50Z
 **Location**: [.beads/sync-state.json](.beads/sync-state.json)
 
 **Issue**: Git pull failed recently
+
 - Error: "Cannot rebase onto multiple branches"
 - Failure count: 1
 - Backoff until: 2026-01-27T13:58:37
@@ -409,6 +435,7 @@ closed_at: 2026-01-27T14:41:50Z
 **Location**: Bead tracking system
 
 **Examples** (same title, different IDs):
+
 - "Add chaos test coverage metrics" (2 beads)
 - "Create @beorn/flexx - Pure JS flexbox layout engine" (2 beads)
 - "@km/_orphan/repl: interactive shell with filesystem semantics" (2 beads)
@@ -426,6 +453,7 @@ closed_at: 2026-01-27T14:41:50Z
 **Status**: CORRECT with additions beyond documentation
 
 **Missing from docs**:
+
 - `DisposableStore` class for managing multiple subscriptions
 - Three disposal patterns (unbind, .dispose(), Symbol.dispose)
 
@@ -442,6 +470,7 @@ closed_at: 2026-01-27T14:41:50Z
 **Location**: vendor/* directories
 
 **Files**: Examples, benchmarks, upstream tests
+
 - vendor/beorn-chalkx/examples/*
 - vendor/beorn-inkx/tests/*
 - vendor/beorn-inkx/examples/*
@@ -457,6 +486,7 @@ closed_at: 2026-01-27T14:41:50Z
 **Type**: Knip suggestions for improving configuration, not actual findings
 
 **Examples**:
+
 - "Add entry and/or refine project files in workspaces"
 - "Refine entry pattern (no matches)"
 - "Remove redundant entry pattern"
@@ -486,6 +516,7 @@ closed_at: 2026-01-27T14:41:50Z
 **Issue**: Pattern detection flagged factories that don't check if resource is closed before use
 
 **Analysis**:
+
 - **Critical**: Watchers, DB connections should fail-fast if closed
 - **Low**: Pure factories don't need closed checks
 
@@ -498,6 +529,7 @@ closed_at: 2026-01-27T14:41:50Z
 **Location**: package.json files
 
 **List**:
+
 - @types/react (@km/_orphan/repl)
 - @steipete/peekaboo (root)
 - ink-testing-library (root)
@@ -525,26 +557,22 @@ closed_at: 2026-01-27T14:41:50Z
 ## Larger Refactors
 
 1. **Complete singleton migration** (estimated: 2 files, ~200 LOC affected)
-   - Delete or quarantine deprecated exports in db-instance.ts and emit.ts
-   - Migrate remaining callers to Repo/Emitter domain objects
-
+  - Delete or quarantine deprecated exports in db-instance.ts and emit.ts
+  - Migrate remaining callers to Repo/Emitter domain objects
 2. **Add @km/_orphan/board test suite** (estimated: new test file, ~300 LOC)
-   - Test boardReducer state transitions
-   - Test cursor movement, selection, fold/unfold, zoom
-   - Cover edge cases (empty board, single item)
-
+  - Test boardReducer state transitions
+  - Test cursor movement, selection, fold/unfold, zoom
+  - Cover edge cases (empty board, single item)
 3. **Split large files** (estimated: 3 files, refactor only)
-   - repo.ts → 4 files (repo-core, repo-hooks, repo-mutations, repo-test)
-   - board-actions.ts → 5 files (zoom, nav, selection, edit, core)
-   - Board.tsx → 2 files (rendering, state)
-
+  - repo.ts → 4 files (repo-core, repo-hooks, repo-mutations, repo-test)
+  - board-actions.ts → 5 files (zoom, nav, selection, edit, core)
+  - Board.tsx → 2 files (rendering, state)
 4. **Convert infrastructure classes to factories** (estimated: 7 files, medium complexity)
-   - SyncManager, WriteQueue, FileSystemWatcher
-   - ParsePool, MemoryStore, ToastQueue, DisposableStore
-
+  - SyncManager, WriteQueue, FileSystemWatcher
+  - ParsePool, MemoryStore, ToastQueue, DisposableStore
 5. **Update command context documentation** (estimated: docs update only)
-   - Clarify actual vs target implementation
-   - Document migration path
+  - Clarify actual vs target implementation
+  - Document migration path
 
 ---
 
@@ -573,21 +601,19 @@ closed_at: 2026-01-27T14:41:50Z
 Based on this review, recommend:
 
 1. **Add ESLint rules**:
-   - `no-classes` outside infrastructure layer
-   - Detect singleton patterns (module-level let/var)
-   - Flag @deprecated exports older than 90 days
-
+  - `no-classes` outside infrastructure layer
+  - Detect singleton patterns (module-level let/var)
+  - Flag @deprecated exports older than 90 days
 2. **CI checks**:
-   - Add `bun lint:unused` to pre-commit or CI
-   - Verify test timing stays within documented range
-   - Block PRs with >5 new unused exports
-
+  - Add `bun lint:unused` to pre-commit or CI
+  - Verify test timing stays within documented range
+  - Block PRs with >5 new unused exports
 3. **Documentation**:
-   - Add "Common Mistakes" table to principles.md
-   - Document when infrastructure classes are acceptable
-   - Clarify DI patterns with before/after examples
-
+  - Add "Common Mistakes" table to principles.md
+  - Document when infrastructure classes are acceptable
+  - Clarify DI patterns with before/after examples
 4. **Review workflow refinements**:
-   - Update pattern detection to exclude legitimate `?? {}` for optional fields
-   - Improve global getter detection (filter by actual singleton access)
-   - Add pattern for TODO comments older than 6 months
+  - Update pattern detection to exclude legitimate `?? {}` for optional fields
+  - Improve global getter detection (filter by actual singleton access)
+  - Add pattern for TODO comments older than 6 months
+

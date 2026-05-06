@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/selection/6-quality-plateau-sel-owns-cursor-root-delete-board-"
 aliases:
   - km-silvery.selection.6
@@ -16,8 +19,10 @@ assignee: Bjørn Stabell
 ## Quality plateau: sel owns cursor — cursor-always-visible
 
 ### Key question: ANSWERED
+
 Can sel represent cursor intent when the target is temporarily not in walk order?
 **YES — and we eliminate the scenario entirely.** New invariant: cursor is ALWAYS on a visible node.
+
 - Fold (manual action): nudge cursor UP to the card being folded
 - Navigation (J/K/block-nav): auto-unfold to reveal target (ensureCursorVisible already does this)
 - Boot: pass initialCursor to createSelection factory
@@ -48,9 +53,11 @@ No 'intent' gap. No fallback chain. No desiredCursor concept needed.
 3e. Undo entries: snapshot sel.snapshot() for restore
 
 ### /complete criteria
+
 ```
 grep -r 'cursorNodeId' apps/km-tui/src/ --include='*.ts' --include='*.tsx' → 0 hits
 grep -r 'cursorNodeId' packages/km-board/src/ --include='*.ts' → 0 hits
 bun run test:fast → all pass
 bun fix → pass
 ```
+

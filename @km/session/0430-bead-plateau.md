@@ -16,19 +16,19 @@ Single index for all work in this session pushing the bead architecture toward L
 
 ### Shipped to origin/main
 
-| SHA | What |
-|---|---|
-| `a11be57b1` | scope `bd list` to configured `boardRoots` (read-side fix; closed `km-beads.identity-by-structure`) |
-| `5c6553f8d` | introduce `Bead` + `Task` domain interfaces (legacy aliases retained) |
-| `c0c0e3ee3` | migrate km-cli to Bead/Task namespaces |
-| `66f4fa18e` | docs: Bead+Task in Domain Object Inventory |
-| `efbd8463a` | /pm groom skill update (km bd switchover, Inbox triage) |
-| `520195e1c` | inbox frontmatter rewrite — `@km/_orphan/<slug>` → `@km/inbox/<slug>` (1059 files) |
-| `89a453c14` | migrate inline km-parent-id-leaf-materializes-inline to standalone file |
-| `62a7d76e0` + `b5cd1c6cc` | `Bead.create` materializes file at `@<prefix>/<scope>/<leaf>.md` (P2 fix) |
-| `46bf3552e` | L4: drop legacy `Issue`/`displayId`/`nodeToIssue` aliases (33 files) |
-| `2bdab7fb6` | regression test: `bd close` ↔ `bd show` resolver symmetry |
-| `104b6da5a` | L5 property tests: 4 invariants, 11 tests, fast-check |
+| SHA                   | What                                                                                          |
+| --------------------- | --------------------------------------------------------------------------------------------- |
+| a11be57b1             | scope bd list to configured boardRoots (read-side fix; closed km-beads.identity-by-structure) |
+| 5c6553f8d             | introduce Bead + Task domain interfaces (legacy aliases retained)                             |
+| c0c0e3ee3             | migrate km-cli to Bead/Task namespaces                                                        |
+| 66f4fa18e             | docs: Bead+Task in Domain Object Inventory                                                    |
+| efbd8463a             | /pm groom skill update (km bd switchover, Inbox triage)                                       |
+| 520195e1c             | inbox frontmatter rewrite — @km/_orphan/<slug> → @km/inbox/<slug> (1059 files)                |
+| 89a453c14             | migrate inline km-parent-id-leaf-materializes-inline to standalone file                       |
+| 62a7d76e0 + b5cd1c6cc | Bead.create materializes file at @<prefix>/<scope>/<leaf>.md (P2 fix)                         |
+| 46bf3552e             | L4: drop legacy Issue/displayId/nodeToIssue aliases (33 files)                                |
+| 2bdab7fb6             | regression test: bd close ↔ bd show resolver symmetry                                         |
+| 104b6da5a             | L5 property tests: 4 invariants, 11 tests, fast-check                                         |
 
 ### Closed beads
 
@@ -47,14 +47,14 @@ Single index for all work in this session pushing the bead architecture toward L
 
 ### Plateau scorecard
 
-| Surface | Level reached today | Where left |
-|---|---|---|
-| `Bead.from(node) → Bead \| null` | **L4** | type-enforced |
-| `Bead.displayId` (sigil-path, no ULID) | **L3 → L4** | aliases dropped |
-| `Bead.create` (file-materializes) | **L1 → L4** | tests pin |
-| `Task` namespace (in @km/storage) | **L3** | callback-based km-beads boundary |
-| Property tests + regression guard | **L5** | shipped |
-| Persistence-model duplication | **L1** | covered by `@km/beads/name-is-identity` follow-up |
+| Surface                              | Level reached today | Where left                                      |
+| ------------------------------------ | ------------------- | ----------------------------------------------- |
+| Bead.from(node) → Bead \| null       | L4                  | type-enforced                                   |
+| Bead.displayId (sigil-path, no ULID) | L3 → L4             | aliases dropped                                 |
+| Bead.create (file-materializes)      | L1 → L4             | tests pin                                       |
+| Task namespace (in @km/storage)      | L3                  | callback-based km-beads boundary                |
+| Property tests + regression guard    | L5                  | shipped                                         |
+| Persistence-model duplication        | L1                  | covered by @km/beads/name-is-identity follow-up |
 
 ### Files / metrics
 
@@ -63,3 +63,4 @@ Single index for all work in this session pushing the bead architecture toward L
 - 1059 inbox frontmatter rewrites (data migration)
 - 12 + 13 + 11 = 36 new tests added (Bead.create + resolver-symmetry + property tests)
 - 0 net new TS errors
+

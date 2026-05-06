@@ -1,7 +1,4 @@
 ---
-tags:
-  - task
-  - P0
 mentions:
   - km
   - Bjørn
@@ -139,19 +136,19 @@ Based on Ink 7.0 analysis:
 ## Doc updates needed
 
 1. **vendor/silvery/docs/guide/silvery-vs-ink.md** — complete rewrite
-  - Remove "100x" claim everywhere
-  - Show honest bench numbers with methodology
-  - Lead with use-case differentiation (CLI vs app)
-  - Acknowledge where Ink is better (smaller, simpler, more mature)
-  - Link to reproducible bench
-2. **vendor/silvery/docs/index.md** — homepage hero
-  - New tagline
-  - Real numbers instead of inflated claims
-3. **vendor/silvery/README.md** — npm page
-  - Same hero + new feature bullets
-4. **vendor/silvery/docs/guide/why-silvery.md** — refocus on use case, not speed
-5. **vendor/internal/silvery/launch/positioning-2026.md** — internal strategy doc (create new)
-6. **vendor/silvery/docs/getting-started/migrate-from-ink.md** — add "when to migrate" section (when your CLI grows into an app)
+- Remove "100x" claim everywhere
+- Show honest bench numbers with methodology
+- Lead with use-case differentiation (CLI vs app)
+- Acknowledge where Ink is better (smaller, simpler, more mature)
+- Link to reproducible bench
+8. **vendor/silvery/docs/index.md** — homepage hero
+- New tagline
+- Real numbers instead of inflated claims
+12. **vendor/silvery/README.md** — npm page
+- Same hero + new feature bullets
+15. **vendor/silvery/docs/guide/why-silvery.md** — refocus on use case, not speed
+16. **vendor/internal/silvery/launch/positioning-2026.md** — internal strategy doc (create new)
+17. **vendor/silvery/docs/getting-started/migrate-from-ink.md** — add "when to migrate" section (when your CLI grows into an app)
 
 ## When to rewrite
 

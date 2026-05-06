@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/input-leverage"
 aliases:
   - km-tui.input-leverage
@@ -40,6 +43,7 @@ With inkx now supporting full Kitty protocol and SGR mouse, wire these into km T
 ## Hit Registry Integration
 
 Wire the existing HitRegistry into km TUI components:
+
 - TreeNode registers click regions for each node
 - CardColumn registers scroll areas and headers
 - DetailPane registers its scroll area
@@ -49,3 +53,4 @@ Wire the existing HitRegistry into km TUI components:
 
 Depends on inkx Kitty + mouse runtime wiring being complete (@km/silvery-legacy/kitty-auto, @km/silvery-legacy/mouse-runtime).
 The command system already supports super modifier — this is about wiring mouse events and adding new Cmd+ shortcuts.
+

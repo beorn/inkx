@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/col-title-border"
 aliases:
   - km-tui.col-title-border
@@ -11,3 +14,4 @@ assignee: claude:124bfbe5
 ---
 
 # [x] Column titles with black border (like cards) — remove blank line between breadcrumbs @km/tui #feature #P3 @claude:124bfbe5
+

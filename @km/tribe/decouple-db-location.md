@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/decouple-db-location"
 aliases:
   - km-tribe.decouple-db-location
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-18T11:01:34Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] tribe: decouple tribe.db location from .beads/ directory @km/tribe #task #P2
@@ -42,3 +48,4 @@ Probably 1 or 2. Option 1 keeps per-repo isolation visible; option 2 acknowledge
 Migration path: tribe daemon should detect .beads/tribe.db* on startup, move to new location, continue running. OR accept both locations during a transition window.
 
 Downstream effect: once tribe moves out of .beads/, the vault (and any other repo that wants to retire bd) can fully delete .beads/ without breaking tribe.
+

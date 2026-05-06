@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/nodeindex-perf"
 aliases:
   - km-tui.nodeindex-perf
@@ -13,3 +16,4 @@ assignee: claude:97b8de73
 # [x] Eliminate 20k getChildren calls from buildNodeIndex @km/tui #task #P1 @claude:97b8de73
 
 buildNodeIndex calls mapDescendants on every card, triggering 20k getChildren SQL queries on zoom for the Asana vault (298k nodes). This causes 2s+ freeze. Solutions: (1) parent-walk cursor resolution instead of pre-mapping descendants, (2) incremental column loading via generator, (3) batch query for descendant mapping. Immediate fix: skip descendants in nodeIndex, walk parent chain on cursor miss.
+

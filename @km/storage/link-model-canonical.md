@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/storage/link-model-canonical"
 aliases:
   - km-storage.link-model-canonical
@@ -80,3 +83,4 @@ normalizeLinkHref must be wired into every write path — parser, undo/redo repl
 ## What does not ship
 
 User-defined rels and property-link notation are deferred. rel stays the closed enum 'link' | 'embed' until a second epic widens it.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/bearly/llm-images"
 aliases:
   - km-bearly.llm-images
@@ -17,6 +20,7 @@ assignee: claude:491faf6c
 # [x] bun llm --image: send screenshots to multimodal LLMs + v0.dev visual review @km/bearly #feature #P1 @claude:491faf6c
 
 ## Problem
+
 The llm tool only sends text prompts. For visual design review, we need to send actual screenshots. Text descriptions miss rendering bugs — v0.dev (which sees images) caught truncation, data corruption, and color issues that GPT/Grok all missed from text.
 
 ## Feature 1: --image flag for API-based models
@@ -31,6 +35,7 @@ bun llm --image screenshot.png --model grok-3 "Design critique"
 ```
 
 OpenAI API format:
+
 ```json
 {"role": "user", "content": [
   {"type": "text", "text": "..."},
@@ -45,6 +50,7 @@ Gemini, Anthropic, and Grok APIs have similar multimodal support. Each provider 
 v0.dev (Vercel) uses Claude with vision, tuned for UI critique. It's the best visual reviewer we tested — caught rendering bugs, truncation, alignment issues that other LLMs missed.
 
 Automate via Playwright:
+
 1. Open v0.dev/chat
 2. Upload screenshot image
 3. Send design review prompt
@@ -58,9 +64,10 @@ This is a Playwright-based provider (not API), so it's slower but gets the best 
 
 ## Benchmark results (text-only vs visual)
 
-| Model | Text-only rating | Issues caught | Missed |
-|---|---|---|---|
-| GPT-5.4 | 4/10 | Space, margins | Truncation, corruption |
-| GPT-4o | 4/10 | Space, margins | Truncation, corruption |
-| Grok 3 | 4→7/10 | Space, hierarchy, contrast | Truncation, corruption |
-| v0.dev (visual) | N/A | ALL — truncation, corruption, color, alignment | None |
+| Model           | Text-only rating | Issues caught                                  | Missed                 |
+| --------------- | ---------------- | ---------------------------------------------- | ---------------------- |
+| GPT-5.4         | 4/10             | Space, margins                                 | Truncation, corruption |
+| GPT-4o          | 4/10             | Space, margins                                 | Truncation, corruption |
+| Grok 3          | 4→7/10           | Space, hierarchy, contrast                     | Truncation, corruption |
+| v0.dev (visual) | N/A              | ALL — truncation, corruption, color, alignment | None                   |
+

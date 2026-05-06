@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/rev-code-0127/5-cleanup-remove-unused-files-deps-and-exports"
 aliases:
   - km-rev-code-0127.5
@@ -14,6 +17,7 @@ assignee: claude:cacac722
 **Medium**: Large cleanup pass for unused code
 
 Unused files (12 production files):
+
 - apps/@km/_orphan/cli/src/execute.ts
 - apps/@km/tui/src/views/Toast.tsx
 - apps/@km/_orphan/cli/tests/@km/repl/ts
@@ -22,6 +26,7 @@ Unused files (12 production files):
 - Plus 7 more (see full review)
 
 Unused dependencies (17):
+
 - @beorn/chalkx, @km/board, @km/markdown (@km/_orphan/cli)
 - inkx, react (@km/_orphan/repl)
 - @beorn/inkx-ui, ink, wrap-ansi (@km/tui)
@@ -30,7 +35,9 @@ Unused dependencies (17):
 Unused exports (264): See knip output
 
 Actions:
+
 1. Verify files are truly unused (grep codebase)
 2. Delete unused files
 3. Remove unused dependencies
 4. Consider removing unused exports (type-only may be OK)
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/jz2qf"
 aliases:
   - km-jz2qf
@@ -18,6 +20,7 @@ With 6668 nodes, contentPhase takes 210ms even though only 2 TreeCards changed.
 ## Root Cause
 
 React's reconciler knows exactly which components changed, but inkx ignores this:
+
 - React marks 2 nodes as needing update
 - inkx walks all 6668 nodes anyway
 - Each node is written to TerminalBuffer regardless of change
@@ -25,8 +28,9 @@ React's reconciler knows exactly which components changed, but inkx ignores this
 ## Research Context (Deep Research, Feb 2026)
 
 Modern TUI frameworks solve this:
+
 - **Ratatui**: "compares the current buffer to the new buffer each frame and writes only the needed updates"
-- **Textual**: "marks that widget as 'dirty' and automatically refreshes its content" 
+- **Textual**: "marks that widget as 'dirty' and automatically refreshes its content"
 - **Ink**: Has \`incrementalRendering\` mode that "only updates changed lines"
 
 ## Proposed Solution
@@ -62,6 +66,7 @@ function renderNodeToBuffer(node, buffer) {
 ## Complexity
 
 Medium-high:
+
 - Cache invalidation when ancestors resize
 - Memory overhead for cached content
 - Need to handle scroll offset changes
@@ -78,3 +83,4 @@ Medium-high:
 - Textual: https://textual.textualize.io/guide/reactivity/
 - Ratatui diffing: https://github.com/ratatui-org/ratatui/discussions/579
 - Ink incrementalRendering: https://github.com/vadimdemedes/ink#render-options
+

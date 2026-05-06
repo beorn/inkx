@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/kfy7u"
 aliases:
   - km-kfy7u
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Add padding after truncation ellipsis in TUI cards @km/_orphan #task #P3
 
 Truncated text (ending in …) has no gap before card edge. Reserve 2 extra chars in inkx truncateText() so the ellipsis has visual breathing room.
+

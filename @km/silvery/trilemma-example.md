@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/trilemma-example"
 aliases:
   - km-silvery.trilemma-example
@@ -9,6 +11,7 @@ owner: bjorn@stabell.org
 metadata: '{"depends":"km-silvery.inline-bugs,km-silvery.selection-clipboard"}'
 ---
 
-# [ ] Create runnable trilemma example — agent chat with mode switching @km/silvery #task #P1
+# [ ] Create runnable trilemma example — agent chat with mode switching @km/silvery #task #P1 ^trilemma-example
 
 A single example app that demonstrates both modes: inline (dynamic scrollback, Cmd+F works, native selection) and fullscreen (virtual terminal, cell-level control). User can toggle between modes at runtime. Shows streaming, graduation, search, selection. This IS the article's proof. Should be 'npx silvery examples trilemma'.
+

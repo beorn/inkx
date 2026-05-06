@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/terminfo/api"
 aliases:
   - km-terminfo.api
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] TCD: JSON API + embeddable badges at /api/v1/ @km/terminfo #feature #P1
+

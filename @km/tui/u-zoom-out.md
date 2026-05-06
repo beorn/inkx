@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/u-zoom-out"
 aliases:
   - km-tui.u-zoom-out
@@ -12,8 +14,10 @@ owner: bjorn@stabell.org
 # [x] u key: zoom out to parent (keep cursor), at repo root move cursor to parent @km/tui #feature #P2
 
 When pressing 'u':
+
 - Board root moves to parent (zoom out one level)
 - Cursor stays on the same node as much as possible
 - If board root is already the repo root, cursor moves to parent instead
 
 Currently 'u' is mapped to HISTORY_UNDO. This feature would remap 'u' to zoom-out behavior. Undo would need a different binding.
+

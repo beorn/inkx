@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/inline-rects"
 aliases:
   - km-silvery.inline-rects
@@ -23,3 +25,4 @@ Virtual text nodes (nested <Text> inside <Text>) have no screenRect, making them
 **Unlocks**: Link onMouseEnter/onMouseLeave (hover effects), onClick (Cmd+click to follow), useMouseCursor (pointer shape), and future interactive inline elements (checkboxes, tags, mentions).
 
 **Scope**: ~50 lines to store rects during render, ~20 lines to check in hitTest.
+

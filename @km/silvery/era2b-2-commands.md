@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - claude
 id: "@km/silvery/era2b-2-commands"
 aliases:
   - km-silvery.era2b-2-commands
@@ -17,3 +21,4 @@ assignee: claude:fed8de9e
 # [x] Era2b Phase 2: @silvery/commands — extract command system @km/silvery #task #P1 @claude:fed8de9e
 
 Extract from @silvery/tea: command registry, keymap(), when(), canInvoke(), available(), resolveInvocation(), key parsing. when() takes () => boolean — state-agnostic (Decision 30). Depends only on @silvery/create. /react subpath for useCommand/useKeymap.
+

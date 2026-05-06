@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/termless/npm-publish"
 aliases:
   - km-termless.npm-publish
@@ -13,3 +16,4 @@ assignee: claude:fbad9cb1
 # [x] Publish termless packages to npm @km/termless #task #P4 @claude:fbad9cb1
 
 Publish all termless packages to npm. Decide on scope (@beorn/termless vs bare termless). The package.json files are already polished with homepage, bugs, engines, files fields. Packages: termless, termless-xtermjs, termless-ghostty, viterm, termless-cli.
+

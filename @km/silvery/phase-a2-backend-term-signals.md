@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/phase-a2-backend-term-signals"
 aliases:
   - km-silvery.phase-a2-backend-term-signals
@@ -23,6 +25,14 @@ dependencies:
     created_at: 2026-04-22T17:44:24Z
     created_by: claude:019d032d
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.phase-a1-signals-name-uniqueness
+      - type: link
+        target: km-silvery.pro-review-p1
 ---
 
 # [x] Phase A2: createBackendTerm has signals owner @km/silvery #task #P2
@@ -30,15 +40,20 @@ dependencies:
 blocks:: [[@km/silvery/phase-a1-signals-name-uniqueness]], [[@km/silvery/pro-review-p1]]
 
 ## What changes
+
 - `packages/ag-term/src/ansi/term.ts` — `createBackendTerm` wires `createSignals()` into its termBase alongside size/modes, matching createNodeTerm and createHeadlessTerm.
 - Tests: verify that \`createBackendTerm(emulator).signals\` is defined.
 
 ## Delete
+
 - None (additive; filling a hole in the "always present" contract).
 
 ## /complete grep criteria
+
 - `grep -n "signals" vendor/silvery/packages/ag-term/src/ansi/term.ts` shows signals wired in ALL THREE factories (Node, headless, emulator/backend)
 - Test `createBackendTerm().signals` defined check passes
 
 ## Mandatory
+
 Read docs/lessons/refactoring.md IN FULL before writing any code.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/view-as-layout-output"
 aliases:
   - km-silvery.view-as-layout-output
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-24T23:08:05Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.selection-focus-plateau
 ---
 
 # [x] Treat cursor/selection/focus as layout outputs (not effect outputs) @km/silvery #feature #P1
@@ -44,16 +50,17 @@ The narrow framing (just add cursorRect/selectionRange/focusedNodeId signals) ad
 
 **Components don't read layout dimensions in their render.** They describe semantic intent via props; the layout engine fills in dimensions. The `useBoxRect` family becomes refs+onLayout-only (which fire AFTER layout — no stale reads possible) for the rare imperative-measurement use cases.
 
-| Today (broken) | After (correct) |
-|---|---|
-| `MessageList` reads `useBoxRect().height`, passes to ListView | ListView is `flex-grow=1 overflow=scroll`, virtualizes by INDEX RANGE around cursor (not pixel-height) |
-| `useCursor` reads `useScrollRect`, computes absolute coords | TextArea sets `cursorOffset={col,row}` prop on its Box; layout phase computes absolute |
-| `useSelection` reads node rects to position highlights | Selection range declared as AgNode metadata, layout computes absolute rects |
-| `useFocus` reads node rect for focus ring | Focus state declared as AgNode metadata, layout computes |
-| Modal popover reads parent rect to position | Position via flex (sticky, anchor=, absolute+top/right) — no pixel math in components |
-| Tooltip / hover popover reads cursor rect | Layout-phase output: cursor is a known position; popover anchors to it via flex |
+| Today (broken)                                            | After (correct)                                                                                      |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| MessageList reads useBoxRect().height, passes to ListView | ListView is flex-grow=1 overflow=scroll, virtualizes by INDEX RANGE around cursor (not pixel-height) |
+| useCursor reads useScrollRect, computes absolute coords   | TextArea sets cursorOffset={col,row} prop on its Box; layout phase computes absolute                 |
+| useSelection reads node rects to position highlights      | Selection range declared as AgNode metadata, layout computes absolute rects                          |
+| useFocus reads node rect for focus ring                   | Focus state declared as AgNode metadata, layout computes                                             |
+| Modal popover reads parent rect to position               | Position via flex (sticky, anchor=, absolute+top/right) — no pixel math in components                |
+| Tooltip / hover popover reads cursor rect                 | Layout-phase output: cursor is a known position; popover anchors to it via flex                      |
 
 Layout-signals get NEW peer signals (peer of `boxRect`/`scrollRect`/`screenRect`):
+
 - `cursorRect: WritableSignal<Rect | null>` — computed in layout from AgNode's `cursorOffset` + parent's `scrollRect`
 - `selectionRange: WritableSignal<SelectionRange | null>` — computed from AgNode's `selectionState`
 - `focusedNodeId: WritableSignal<string | null>` — computed from focus tree
@@ -65,6 +72,7 @@ The scheduler reads these signals (instead of cursor / selection / focus stores)
 ### Phase 1 — Audit (½ day)
 
 `grep -rn "useBoxRect\|useScrollRect\|useScreenRect\|useCursor" apps/ vendor/silvery/` and classify each caller:
+
 - (a) Replaceable with flex/CSS props (most — wrap, viewport, layout containers)
 - (b) Replaceable with ref + onLayout (some — components that need imperative measurement post-mount)
 - (c) Genuinely needs reactive dimension at render time (rare — keep with a doc-tagged caveat and the documented "first frame returns 0" expectation)
@@ -94,6 +102,7 @@ Rewrite `vendor/silvery/packages/ag-react/src/ui/components/ListView.tsx` to NOT
 ### Phase 4 — Selection + focus as layout outputs (2 days)
 
 Same pattern as cursor:
+
 - Add `selectionRange` / `focusedNodeId` to LayoutSignals
 - Components declare via props (not via store + hook)
 - Selection-renderer + focus-renderer read from signals
@@ -103,6 +112,7 @@ Same pattern as cursor:
 ### Phase 5 — Migration of remaining useBoxRect callers (1 day)
 
 Walk through Phase 1 audit's (a) and (b) classifications, migrate each:
+
 - (a): replace with flex props (wrap, flex-grow, sticky, etc.)
 - (b): keep ref+onLayout pattern (already correct — fires after layout)
 
@@ -148,3 +158,4 @@ Document the rare (c) callers with `// LAYOUT_READ_AT_RENDER: <reason>` comments
 - `vendor/silvery/packages/ag-term/src/scheduler.ts:564-576` — current cursor-suffix emission (would read from layout-signals)
 - `hub/silvery/design/v15-tea/DESIGN.md` — TEA design doc (this work is independent of TEA but compatible)
 - `km-session.0424-silvercode` /big analysis (2026-04-25) — surfaced the deep reframe over the narrow original
+

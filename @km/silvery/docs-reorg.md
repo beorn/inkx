@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/docs-reorg"
 aliases:
   - km-silvery.docs-reorg
@@ -15,7 +17,9 @@ owner: bjorn@stabell.org
 silvery.dev and the GitHub README leak unpublished TEA/era2b APIs, have duplicated content, broken examples, and no coherent reader journey.
 
 ### FTUE Broken
+
 A first-time user sees this flow:
+
 1. **GitHub README** → mentions `createApp` (not shipped), lists `@silvery/create` as a package
 2. **silvery.dev homepage** → "Gradually sip TEA" feature card, `@silvery/create` in packages table
 3. **Quick Start** → actually clean (era2a only)
@@ -26,6 +30,7 @@ A first-time user sees this flow:
 The reader's impression: "this framework is half-built and confused about what it ships."
 
 ### Specific Issues
+
 - **Duplication**: 2 migrate-from-ink guides, 2 getting-started docs, component/hook refs in 3 places
 - **TEA leakage**: 3 files entirely era2b, 7+ files with significant TEA references that look shipped
 - **Stale content**: migrate-from-ink.md has wrong render() API, missing silvery/ink path
@@ -45,16 +50,19 @@ The reader's impression: "this framework is half-built and confused about what i
 ## Phase 1: Fix FTUE (do first — highest impact)
 
 ### README.md
+
 - Remove `createApp` mention from "Extremely composable" bullet. Replace with: "Use as just a renderer (`render`), add a runtime (`run`), or build full apps with any React state library"
 - Remove `@silvery/create` from packages table (it's not shipped for users yet)
 - Keep it in "Coming" section where it already is
 
 ### Homepage (docs/index.md)
+
 - **"Flexible Rendering" feature card**: Remove TEA mention. Change to: "Three modes: render once, run() for interactive apps, or compose with plugins. Same renderer, pick your level." Remove link to "Gradually sip TEA"
 - **Packages table**: Remove `@silvery/create` row or change to "Coming soon" with no link
 - Keep everything else — the hero, examples, renderer section are all excellent
 
 ### getting-started/migrate-from-ink.md (the published one)
+
 - **Fix** `await render()` → `render(<App />)` + `.run()` pattern
 - **Add** `silvery/ink` compat path at the top (the "you don't have to migrate" section from guide/migration-from-ink.md)
 - **Remove** the TEA compat layer section at the bottom (`pipe`, `createApp`, `withInk`)
@@ -63,16 +71,19 @@ The reader's impression: "this framework is half-built and confused about what i
 ## Phase 2: Gate TEA Content
 
 ### Remove from sidebar entirely
+
 - reference/signals.md
 - reference/plugins.md
 - design/app-composition.md
 - design/plugin-architecture.md
 
 ### Gate with prominent "Coming Soon" + remove from default nav
+
 - guides/state-management.md — keep file but remove from sidebar. Add "This documents Silvertea, which is not yet released" banner
 - guides/terminal-apps.md — truncate at Level 2 (useState/useInput). Levels 3-5 get "Coming with Silvertea" banner or are removed
 
 ### Clean up leaks in kept files
+
 - guide/imports.md — remove @silvery/create section
 - reference/packages.md — mark @silvery/create as "Coming Soon", remove API details
 - guide/silvery-vs-ink.md — remove TEA comparison points
@@ -120,6 +131,7 @@ Internals (collapsed)
 ```
 
 ### File consolidation
+
 - Merge guide/layouts.md + guides/components.md → guides/components-layout.md
 - Merge guide/styling.md + guides/theming.md → guides/styling.md
 - Merge guide/event-handling.md + reference/input-features.md → guides/input-focus.md
@@ -127,6 +139,7 @@ Internals (collapsed)
 - Move design/*.md → silvery-internal (internal design docs, not user-facing)
 
 ### Fix the 3 directories → 1 directory problem
+
 - `getting-started/` stays (3 files)
 - `guide/` → rename to `internals/` (deep technical docs only)
 - `guides/` → rename to `guide/` (the main guide section)
@@ -152,3 +165,4 @@ Internals (collapsed)
 - [ ] Every .md file appears in sidebar OR is explicitly internal
 - [ ] FTUE flow works: README → homepage → quick start → first guide in <60 seconds
 - [ ] `bun run docs:build` succeeds with no broken links
+

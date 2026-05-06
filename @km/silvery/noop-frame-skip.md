@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - output
 id: "@km/silvery/noop-frame-skip"
 aliases:
   - km-silvery.noop-frame-skip
@@ -9,3 +13,4 @@ owner: bjorn@stabell.org
 ---
 
 # [ ] No-op frame skip — skip render+output when nothing changed @km/silvery #task #P2
+

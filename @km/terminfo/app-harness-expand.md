@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/terminfo/app-harness-expand"
 aliases:
   - km-terminfo.app-harness-expand
@@ -21,3 +24,4 @@ The app harness (packages/cli/app-harness.ts) only tests 52 features when launch
 Fix: update app-harness.ts to include all probes from the expanded feature set (input protocols, unicode, device attributes, etc.). Then re-run bun census:apps to get fresh results for iTerm2, Terminal.app, Kitty. For Ghostty/Warp (which fail AppleScript), use the serve daemon approach instead.
 
 After: commit updated results, push, site rebuilds with full 133-feature matrix.
+

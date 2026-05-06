@@ -1,4 +1,8 @@
 ---
+mentions:
+  - bearly
+  - km
+  - claude
 id: "@km/infra/llm-review-fixes"
 aliases:
   - km-infra.llm-review-fixes
@@ -35,6 +39,10 @@ dependencies:
     created_at: 2026-04-20T17:26:44Z
     created_by: claude:0590a583
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] Address K2.6 review findings on @bearly/llm (blockers + majors + minors) @km/infra #task #P2 @claude:0590a583
@@ -44,10 +52,12 @@ blocks:: [[@km/infra]]
 Tracking bead for all fixes surfaced by the 2026-04-20 K2.6 architecture review of @bearly/llm. Full report: /tmp/llm-0590a583-architecture-correctness-review-of-jcn9.txt.
 
 ## Blockers
+
 - [ ] 1.4 confirmOrExit / checkAndRecoverPartials hang forever on non-TTY stdin (CI/Docker/bg-task hazard). Add TTY check + timeout + EOF guard.
 - [ ] 2.1 runProDual silently drops imagePath. Forward to both ask() calls.
 
 ## Majors
+
 - [ ] 1.1 cli.ts runs argv parsing + initializePricing() + tempfile cleanup at module scope. Hoist into initFromArgv(), keep module scope pure.
 - [ ] 1.2 let outputFile at module scope is race hazard. Make local to main(), thread through dispatch.
 - [ ] 2.2 + 5.3 runProDual has no cost confirmation. Add skipConfirm + confirmOrExit gate.
@@ -57,6 +67,7 @@ Tracking bead for all fixes surfaced by the 2026-04-20 K2.6 architecture review 
 - [ ] 6.5 gemini-deep SSE parser uses speculative event shapes. Verify against real API or force polling path.
 
 ## Minors
+
 - [ ] 1.3 tools/llm.ts passes argv[2] to maybeAutoUpdatePricing (fragile). Have main() return command string.
 - [ ] 2.5 A/B log schema lacks version. Inject schema: 'ab-pro/v1' on every line.
 - [ ] 3.2 Reasoning text capture inconsistent between providers. Extract in openai-deep + gemini-deep.
@@ -74,7 +85,10 @@ Tracking bead for all fixes surfaced by the 2026-04-20 K2.6 architecture review 
 - [ ] 7.4 runRecover error output missing responseId — add.
 
 ## Already fixed (in 415b43d)
+
 - 2.4 minCompletionTokens naming — renamed to defaultMaxOutputTokens.
 
 ## Pro comparison pending
+
 GPT-5.4 Pro deep review still running (resp_0aca91cbe719359a0069e6c063258c81909d691bd4b658bbef). Reconcile findings when it returns.
+

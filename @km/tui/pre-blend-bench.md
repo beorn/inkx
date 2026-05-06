@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/pre-blend-bench"
 aliases:
   - km-tui.pre-blend-bench
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Bench: run cursor-real-vault at pre-selectedBg baseline (9083c0b07) @km/tui #task #P1
+

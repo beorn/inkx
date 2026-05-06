@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tools/skill-search"
 aliases:
   - km-tools.skill-search
@@ -11,3 +14,4 @@ assignee: claude:124bfbe5
 ---
 
 # [x] Recall: index and search skill invocations (/pm, /explore, etc.) @km/tools #feature #P3 @claude:124bfbe5
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/body-blank-line"
 aliases:
   - km-tui.body-blank-line
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Body content has blank line between each block @km/tui #bug #P2
+

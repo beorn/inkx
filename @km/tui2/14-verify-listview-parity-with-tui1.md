@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui2/14-verify-listview-parity-with-tui1"
 aliases:
   - km-tui2.14
@@ -13,3 +15,4 @@ closed_at: 2026-01-17T00:07:26Z
 Verify: indentation, fold indicators, multi-line wrapping, status icon alignment
 
 **Files**: apps/@km/tui/packages/@km/_orphan/opentui/src/views/ListView.tsx
+

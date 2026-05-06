@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/test-harness-consolidation"
 aliases:
   - km-tui.test-harness-consolidation
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-23T10:27:24Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] km-tui test harness: consolidate 3 overlapping helpers into 1 @km/tui #task #P2 @claude:c6244087
@@ -27,3 +34,4 @@ dependencies:
 blocks:: [[@km/tui]]
 
 Per /big test-harness audit 2026-04-23 (NEAR-PLATEAU verdict). apps/@km/tui/tests/helpers/ has 3 overlapping wrappers (board-test.ts, test-app.ts, real-board.ts) that each reinvent fixture builders, store context, focus manager. Consolidate into a single createTestApp() factory with internal backend selection. Also: add createRenderer-defaults.contract.test.tsx mirroring the existing create-termless-defaults contract tests.
+

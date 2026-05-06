@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/infra/orphan-branch-audit"
 aliases:
   - km-infra.orphan-branch-audit
@@ -28,6 +31,10 @@ dependencies:
     created_at: 2026-04-28T14:49:09Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] /sop infra check — orphan branches (no open bead) + stale worktrees (>24h idle) @km/infra #task #P1 @claude:2405c72e
@@ -78,6 +85,7 @@ Three verbs, no others:
 ### Stale flagging
 
 Rows are highlighted as 'auto-discardable' ONLY when ALL of:
+
 - Linked bead is closed
 - No stash references the branch
 - All commits reachable from origin/main (no unique work to lose)
@@ -118,3 +126,4 @@ Not P0 because manual cleanup works; P1 because building this is high-leverage i
 - /big analysis 2026-04-28 evening (@km/session/0425-evening): integration vs recovery split, no-reliable-end-of-session, triage-is-the-primitive. Two refinement passes by user.
 - Memory: `feedback-agent-isolation-eventual-consistency.md` (canonical operating doc).
 - Closed sibling: `km-infra.agent-isolation-reframe` (the 'patch-apply' framing was scaffolding that didn't survive review — subsumed by this bead's integrate action).
+

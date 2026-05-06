@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/runoptions-xor-type"
 aliases:
   - km-silvery.runoptions-xor-type
@@ -18,6 +21,10 @@ dependencies:
     created_at: 2026-04-23T03:24:06Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Type-level XOR: RunOptions accepts profile OR caps/colorLevel, not both @km/silvery #task #P2 @claude:c6244087
@@ -25,3 +32,4 @@ dependencies:
 blocks:: [[@km/silvery]]
 
 Per /pro review (transition). During the caps/colorLevel deprecation window, the TS type should make profile + caps mutually exclusive. GPT recommends this as the compatibility gate. Bead @km/silvery/runoptions-caps-colorlevel-removal is the final state.
+

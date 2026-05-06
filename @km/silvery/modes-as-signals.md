@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/modes-as-signals"
 aliases:
   - km-silvery.modes-as-signals
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-22T15:01:58Z
     created_by: claude:019d032d
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.term-sub-owners
 ---
 
 # [x] term.modes: expose alien-signals as public API, drop set* methods @km/silvery #task #P1
@@ -57,9 +63,11 @@ Subscribe: standard alien-signals `effect(() => term.modes.mouse())` or via `@si
 - Dispose: same teardown order as before, only restoring what was set.
 
 ## Acceptance criteria
+
 - [ ] `runtime/devices/modes.ts` exposes signals; `setMouseEnabled` / `setKittyKeyboard` / `setRawMode` / `setAlternateScreen` / `setBracketedPaste` / `setFocusReporting` and the `is*` getters are removed.
 - [ ] All ~7 call sites in `runtime/create-app.tsx` migrated (`modes.setX(v)` → `modes.X(v)`).
 - [ ] Test suite at `tests/runtime/modes.test.ts` (or equivalent) updated and passing.
 - [ ] `docs/api/term-modes.md` rewritten — signal-shaped API, drop the setter list.
 - [ ] silvery typecheck baseline.
 - [ ] km consumers still build (km doesn't call term.modes directly per audit; verify `bun fix` + `bun run test:fast` pass after submodule bump).
+

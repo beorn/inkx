@@ -1,4 +1,7 @@
 ---
+mentions:
+  - mention
+  - km
 id: "@km/tui/contact-short-names"
 aliases:
   - km-tui.contact-short-names
@@ -9,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [ ] Replace hardcoded person names with contact type system for @mention shortening @km/tui #feature #P4
+

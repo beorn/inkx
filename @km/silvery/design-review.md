@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/design-review"
 aliases:
   - km-silvery.design-review
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-16T12:40:23Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [ ] Design review with Mike — tokens, components, contrast settings, 'bun design' workbench @km/silvery #feature #P2
@@ -44,16 +50,17 @@ Each stage has its own formula, its own rationale, and its own configurability.
 
 The input is a **partial or full ColorPalette spec**. The output is always a complete 22-color ANSI 22 palette. How we get from one to the other depends on the spec mode.
 
-| Mode | Input | Formula | Rationale |
-|---|---|---|---|
-| **inherit-all** | {} | `detectTheme()` | No opinion. Be the user's terminal. km today. |
-| **brand + inherit** | `{primary: brand}` | `{...detectTheme(), primary: brand}` | Minimal touch — just the emphasis color. Status, neutrals, ANSI 16 all inherit. Respect the user's shell. |
-| **brand-pair + inherit** | `{primary, accent}` | `{...detectTheme(), primary, accent}` | Two-color brand. Status + neutrals still inherit. |
-| **brand-derived** | `{primary: brand}` | `{...neutrals from detectTheme(), all ANSI 16 = hueRotate(brand, offsets)}` | Brand owns the mood. Even red/yellow/green shift to harmonize. |
-| **semantic override** | `{red, green, yellow}` | `{...detectTheme(), ...overrides}` | Tweak specific semantics (e.g., softer red) without changing the feel. |
-| **full spec** | all 22 colors | pass through | For screenshots/marketing where user's terminal must not leak through. |
+| Mode                 | Input                | Formula                                                                   | Rationale                                                                                                 |
+| -------------------- | -------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| inherit-all          | {}                   | detectTheme()                                                             | No opinion. Be the user's terminal. km today.                                                             |
+| brand + inherit      | {primary: brand}     | {...detectTheme(), primary: brand}                                        | Minimal touch — just the emphasis color. Status, neutrals, ANSI 16 all inherit. Respect the user's shell. |
+| brand-pair + inherit | {primary, accent}    | {...detectTheme(), primary, accent}                                       | Two-color brand. Status + neutrals still inherit.                                                         |
+| brand-derived        | {primary: brand}     | {...neutrals from detectTheme(), all ANSI 16 = hueRotate(brand, offsets)} | Brand owns the mood. Even red/yellow/green shift to harmonize.                                            |
+| semantic override    | {red, green, yellow} | {...detectTheme(), ...overrides}                                          | Tweak specific semantics (e.g., softer red) without changing the feel.                                    |
+| full spec            | all 22 colors        | pass through                                                              | For screenshots/marketing where user's terminal must not leak through.                                    |
 
 Each mode is a real design choice:
+
 - km: inherit-all (dev vehicle; respects user's terminal)
 - coding-assistant showcase: probably brand-pair + inherit or brand-derived (competitive with opencode's distinct look)
 - silvery.dev gallery: full spec (consistent across every visitor)
@@ -156,11 +163,13 @@ The workbench is the formula explorer. Sections:
 ## Acceptance
 
 **Phase 1** — Rationale documented, workbench exists, Mike audit scheduled
+
 - \`docs/guide/derivation.md\` lists every Stage 1 mode + Stage 2 token with formula + rationale
 - \`bun design\` runs; shows both stages with live contrast readouts and spec-mode picker
 - Mike onboarded, walked through workbench, returns prioritized change list
 
 **Phase 2** — Pipeline parameterized, global configs land
+
 - Stage 1 spec modes implemented as first-class \`PaletteSpec\` type + \`completePalette(spec)\` function
 - Contrast scalar replaces hardcoded AA/DIM/FAINT/CONTROL in deriveTheme
 - Saturation multiplier applied post-derivation
@@ -168,12 +177,14 @@ The workbench is the formula explorer. Sections:
 - Workbench controls drive live theme rebuild
 
 **Phase 3** — New components + doctrine
+
 - MessageBlock (chat/agent rail), StatusBar (multi-column muted), CommandPalette (list + input combined), Indicator (single-side border), flat Table/Dialog variants
 - Per-side border props on Box
 - Density tokens + component defaults
 - Doctrine doc: when to use panes vs borders, selection colors, hierarchy rules
 
 **Phase 4** — Showcase + ship
+
 - silvery.dev gallery updated with new components + derivation doc
 - Coding-assistant showcase hits opencode parity via brand-derived or brand-pair Stage 1 mode
 - km switches nothing (dev vehicle stays on inherit-all / native contrast)
@@ -185,3 +196,4 @@ The workbench is the formula explorer. Sections:
 - **Docs**: \`vendor/silvery/docs/guide/styling.md\` (current), \`docs/guide/derivation.md\` (to create — rationale tables for both stages)
 - **Related beads**: @km/silvery/tea/aichat-polish (showcase), @km/tui/minimalist-redesign (pure panes experiment), @km/silvery/commander-help-redesign, @km/silvery/variant-style-system
 - **Competitors**: opencode (target visual parity)
+

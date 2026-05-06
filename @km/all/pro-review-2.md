@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/all/pro-review-2"
 aliases:
   - km-all.pro-review-2
@@ -17,16 +20,19 @@ assignee: claude:c9beade3
 Pro Review Round 2: 2026-03-13
 
 ## Progress
-| Package | Status | P0 | P1 | P2 | P3 | Cost |
-|---------|--------|----|----|----|----|------|
-| termless | 9/11 fixed | 5 | 6 | 2 | 0 | $3.38 |
+
+| Package  | Status     | P0  | P1  | P2  | P3  | Cost  |
+| -------- | ---------- | --- | --- | --- | --- | ----- |
+| termless | 9/11 fixed | 5   | 6   | 2   | 0   | $3.38 |
 
 ## Totals
+
 - Findings: 13 (5 P0, 6 P1, 2 P2)
 - Fixed: 9/11 P0+P1 (2 already fixed on feature branch)
 - Cost: $3.38
 
 ## Fixed (this session)
+
 - @km/_orphan/dt7z5: toHaveScrollbackLines now subtracts screenLines
 - @km/_orphan/rizhb: snapshot matchers wire into Vitest snapshot API
 - @km/_orphan/4msy0: pty.ts spawns directly instead of bash -c
@@ -38,9 +44,12 @@ Pro Review Round 2: 2026-03-13
 - @km/_orphan/ou68u: Peekaboo documented as best-effort visual companion
 
 ## Fixed (feature branches, pre-existing)
+
 - @km/_orphan/yg2ng: Cell contract unified on feat/cell-type-unification
 - @km/_orphan/79qrz: Selectors made lazy on feat/terminal-support
 
 ## P2 (tracked only)
+
 - Recording drops non-text visual changes
 - Async Ghostty init doesn't fit sync backend interface
+

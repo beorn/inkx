@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - beorn
 id: "@km/inbox/search-filter"
 aliases:
   - km-search-filter
@@ -11,3 +14,4 @@ assignee: beorn
 # [x] Implement search dialog and tag filtering @km/_orphan #feature #P1 @beorn
 
 / opens search, highlight matches, filter by tags
+

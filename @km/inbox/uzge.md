@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/uzge"
 aliases:
   - km-uzge
@@ -8,3 +10,4 @@ closed_at: 2026-01-20T15:15:30Z
 ---
 
 # [x] Column headings: white text by default, yellow when cursor in column, cyan bg when column selected @km/_orphan #bug #P2
+

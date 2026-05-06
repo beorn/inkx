@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/signals/8-services-to-react-context-repo-toastqueue-jobrunne"
 aliases:
   - km-tui.signals.8
@@ -25,3 +28,4 @@ Current: fields on BoardAppStore, read via useAppStore(s => s.repo).
 Target: React context providers, useRepo()/useToastQueue()/etc. hooks.
 
 No dependency on signals.2 — this is independent cleanup.
+

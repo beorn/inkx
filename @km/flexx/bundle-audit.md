@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/flexx/bundle-audit"
 aliases:
   - km-flexx.bundle-audit
@@ -15,11 +18,13 @@ assignee: claude:ee8efc0f
 Measure, audit, and optimize flexx bundle size for npm consumers.
 
 ## Current measurements (Feb 2026)
+
 - Raw: 181KB (core zero-alloc export via bun build --minify)
 - Gzip: 35KB
 - README claims "38KB raw, ~8KB gzip" — STALE, needs updating
 
 ## Tasks
+
 - [ ] Add a reproducible bundle size measurement script (e.g., scripts/measure-bundle.ts)
 - [ ] Verify what README/docs claim vs actual numbers
 - [ ] Update all bundle size claims in README.md, docs/performance.md
@@ -29,4 +34,6 @@ Measure, audit, and optimize flexx bundle size for npm consumers.
 - [ ] Add bundle size CI check (e.g., size-limit) to prevent regressions
 
 ## Context
+
 Yoga is 38KB gzip. Flexx README claims ~8KB gzip but actual measurement shows 35KB — nearly identical to Yoga. This undermines the "5x smaller" marketing claim. Need to either optimize or correct the messaging.
+

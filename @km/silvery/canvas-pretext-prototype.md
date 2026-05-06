@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/canvas-pretext-prototype"
 aliases:
   - km-silvery.canvas-pretext-prototype
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Prototype: shrinkwrap chat (v0.5 exploration) @km/silvery #task #P2
 
 DONE. Pretext integration shipped in f872256. Canvas demos (canvas-proportional, canvas-debug) demonstrate proportional text rendering with Pretext measurement. Shrinkwrap chat bubbles work end-to-end.
+

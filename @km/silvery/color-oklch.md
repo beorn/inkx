@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - Bjørn
 id: "@km/silvery/color-oklch"
 aliases:
   - km-silvery.color-oklch
@@ -18,6 +22,10 @@ dependencies:
     created_at: 2026-04-17T23:26:41Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.design-system
 ---
 
 # [x] Migrate @silvery/color to OKLCH-native — blend, lighten, complement, contrast in perceptually-uniform space @km/silvery #task #P3 @Bjørn Stabell
@@ -97,3 +105,4 @@ Callers don't need to know about OKLCH — they still pass/receive hex. Internal
 - Reference: hub/silvery/design/v10-terminal/terminal-color-strategy.md
 - Code: vendor/silvery/packages/color/src/color.ts (current RGB/HSL impl)
 - Prior art: culori (JS OKLCH lib), Tailwind v4, Radix Colors
+

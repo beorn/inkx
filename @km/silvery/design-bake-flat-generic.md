@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/design-bake-flat-generic"
 aliases:
   - km-silvery.design-bake-flat-generic
@@ -20,6 +22,10 @@ dependencies:
     created_at: 2026-04-20T10:07:43Z
     created_by: claude:4274df30
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] DesignSystem contract: generic bakeFlat helper for any token system @km/silvery #feature #P3
@@ -97,3 +103,4 @@ Sterling's private flatten.ts gets deleted; sterling.ts declares `flatten: true`
 - POST-PLATEAU: prefer to land after 0.19.0 so 2e doesn't have to rebase onto this
 
 Parent: @km/silvery
+

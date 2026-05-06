@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/plugin-boundary-tightening"
 aliases:
   - km-tribe.plugin-boundary-tightening
@@ -16,6 +18,10 @@ dependencies:
     created_at: 2026-04-19T10:55:27Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tribe
 ---
 
 # [x] tribe: tighten plugin boundary — remove db/session-name leaks @km/tribe #feature #P3
@@ -25,6 +31,7 @@ blocks:: [[@km/tribe]]
 Pro review 2026-04-19 P1.5: plugin boundary is narrower than before but still leaky.
 
 Plugins no longer see the db or clients map directly, but they DO see:
+
 - sessionName (mutable, can be renamed)
 - claudeSessionId (identifying info)
 - The ability to call api.broadcast() with any sender — no enforcement that sender matches plugin name
@@ -33,3 +40,4 @@ Plugins no longer see the db or clients map directly, but they DO see:
 Design: plugins get a fixed sender (their own pluginName); broadcasts automatically prefix with their ID; roster helpers return only counts + role kinds, not names/ids/PIDs. Plugin can write events but cannot impersonate a session.
 
 Effort: ~0.5 day. All 5 plugins need light updates.
+

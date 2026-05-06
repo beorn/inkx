@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/tree-1"
 aliases:
   - km-tree-1
@@ -24,16 +26,21 @@ if (target?.type === 'link') {
 ```
 
 ## Files
+
 - `rich.ts` - track link positions within rendered text
 - `TreeNode.tsx` - register link hit regions (or delegate to text renderer)
 
 ## Verification
+
 - Click on `[link](url)` opens in browser
 - Non-link text still selects normally
 
 ## Risks
+
 - Inline link detection is complex
 - May start with whole-node links, defer inline
 
 ## Depends on
+
 - @km/_orphan/mouse-2 (hit registry)
+

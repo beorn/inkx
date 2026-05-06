@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/remove-singletons/2-migrate-km-cli-tests-from-setkmdir-to-runwithkmdir"
 aliases:
   - km-remove-singletons.2
@@ -12,3 +14,4 @@ closed_at: 2026-01-23T21:10:59Z
 
 File: cli-unit.test.ts
 Pattern: Wrap test code in runWithKmDir() context
+

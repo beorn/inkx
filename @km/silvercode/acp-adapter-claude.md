@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/acp-adapter-claude"
 aliases:
   - km-silvercode.acp-adapter-claude
@@ -39,6 +42,14 @@ dependencies:
     created_at: 2026-04-26T01:11:35Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode.acp
+      - type: link
+        target: km-silvercode.acp-session
 ---
 
 # [x] ACP adapter — Claude Code stream-json → SessionUpdate @km/silvercode #feature #P1 @claude:cd034ca4
@@ -54,18 +65,22 @@ Start internal: ~few-hundred-LOC stream-json → ACP-types adapter inside silver
 If it stabilizes and external consumers want it, extract to silvercode-claude-acp as a published npm package without changing silvercode's consumption path (~50 LOC of AgentSideConnection wrapping). Preserves option value.
 
 ## Why this is the canonical path (not a fallback)
+
 - @agentclientprotocol/claude-agent-acp@0.31.0 (Zed-published, in Registry as 'claude-acp') BLOCKS subscriptions: dist/acp-agent.js:1360 throws 'This integration does not support using claude.ai subscriptions.' when account.subscriptionType is set
 - Two binary-wrap alternatives exist but are abandoned: claude-code-acp@0.1.1 (carlrannaberg/cc-acp, 1★, 8 months stale), claude-code-acp-agent@0.1.0 (single version, abandoned)
 - All active forks of claude-agent-acp inherit the subscription block
 - Silvercode subscription users have no maintained ACP option — must build
 
 ## Subscription auth path (verified)
+
 Spawning claude binary directly inherits Claude Code's full auth gate:
+
 - CLAUDE_CODE_OAUTH_TOKEN if set (Pro/Max)
 - ANTHROPIC_API_KEY if set (API billing)
 - ~/.claude/auth.json fallback (whatever 'claude login' set up)
 
 ## Mapping (stream-json → ACP)
+
 - system/init → session.id signal (sessionId from msg.session_id)
 - assistant text chunk → SessionUpdate.agent_message_chunk
 - assistant thinking → SessionUpdate.agent_thought_chunk
@@ -76,7 +91,10 @@ Spawning claude binary directly inherits Claude Code's full auth gate:
 - compaction → ExtNotification (no native ACP equivalent)
 
 ## Reference for prior art
+
 carlrannaberg/cc-acp source confirms binary-wrap subscription path works (substrings: 'Validating Claude Code subscription authentication', 'subscription authentication validated successfully', 'subscription login or CLAUDE_API_KEY'). Read repo before building, don't depend on npm package.
 
 ## Reference
+
 hub/silvery/future/ai-terminal/10-agent-router-landscape.md § Recommended path — internal-first, extract later
+

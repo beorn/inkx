@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/scope-phase-3-signals"
 aliases:
   - km-silvery.scope-phase-3-signals
@@ -19,6 +21,14 @@ dependencies:
     created_at: 2026-04-24T13:39:55Z
     created_by: claude:2aefb4b6
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.lifecycle-scope
+      - type: link
+        target: km-silvery.scope-phase-2
 ---
 
 # [ ] Phase 3.5: term.signals.on migration @km/silvery #task #P2
@@ -26,3 +36,4 @@ dependencies:
 blocks:: [[@km/silvery/lifecycle-scope]], [[@km/silvery/scope-phase-2]]
 
 Migrate app-layer callers off term.signals.on directly. withScope plugin handles root SIGINT/SIGTERM once via term.signals.on (which returns Disposable after Phase 2) + scope.use. App code uses useAppScope() + root scope disposal instead. Exit: grep for term.signals.on in apps/* + packages/* returns zero (vendor/* exempt).
+

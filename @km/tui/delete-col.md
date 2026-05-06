@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/delete-col"
 aliases:
   - km-tui.delete-col
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Del on column/board should work with confirmation dialog @km/tui #feature #P2
 
 Pressing Del on a column or board currently does nothing. Should prompt a confirmation dialog before deleting. If deleting lots of content, use a stronger warning or two-step confirmation. Depends on @km/tui/confirm-dialog for the dialog component.
+

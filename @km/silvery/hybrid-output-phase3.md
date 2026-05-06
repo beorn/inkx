@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/hybrid-output-phase3"
 aliases:
   - km-silvery.hybrid-output-phase3
@@ -80,6 +83,10 @@ dependencies:
     created_at: 2026-04-26T16:22:37Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.fix-sweep-vendor-fuzz
 ---
 
 # [x] [task] Hybrid-output Phase 3: wire SILVERY_HYBRID_OUTPUT=1 + reconcile constants @km/silvery #task #P2 @claude:cc081a9a
@@ -87,3 +94,4 @@ dependencies:
 blocks:: [[@km/all/fix-sweep-vendor-fuzz]]
 
 Wire the dormant analyzer/estimator into output-phase.ts behind SILVERY_HYBRID_OUTPUT=1 flag. Reconcile cost-estimator constants — recovered original spec (hub/silvery/design/v05-layout/hybrid-output.md): 12/10/2/8/2. Implemented (output-density.ts/output-modes.ts): 8/6/2/6/2. /complete: grep 'SILVERY_HYBRID_OUTPUT' vendor/silvery/packages/ag-term/src/pipeline/output-phase.ts → ≥1 hit; constants in output-modes.ts match design doc §4.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/detail-show-all-props"
 aliases:
   - km-tui.detail-show-all-props
@@ -10,3 +12,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Detail pane: show asana_ props and node ID @km/tui #feature #P2
+

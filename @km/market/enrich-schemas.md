@@ -1,4 +1,8 @@
 ---
+mentions:
+  - bearly
+  - km
+  - claude
 id: "@km/market/enrich-schemas"
 aliases:
   - km-market.enrich-schemas
@@ -15,3 +19,4 @@ assignee: claude:4929065a
 ---
 
 # [x] Add SoftwareSourceCode, FAQ, HowTo JSON-LD to @bearly/vitepress-enrich @km/market #feature #P3 @claude:4929065a
+

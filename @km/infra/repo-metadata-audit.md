@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/repo-metadata-audit"
 aliases:
   - km-infra.repo-metadata-audit
@@ -17,6 +19,7 @@ Hit on 2026-04-06: bearly's GitHub repo had homepage URL pointing at https://beo
 ## Scope
 
 Audit fields on every public beorn/* repo:
+
 - **homepage** — must resolve (200 OK), should match the canonical site for that package
 - **description** — present, non-empty, doesn't reference renamed packages
 - **license** — file present in repo + matches package.json license field
@@ -32,3 +35,4 @@ Probably ~50 lines: `gh api repos/beorn/$name` for each repo, validate fields, o
 ## Parent
 
 @km/infra/audit-all (the unified audit framework)
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/ambient-context-excellence"
 aliases:
   - km-silvercode.ambient-context-excellence
@@ -13,6 +15,10 @@ dependencies:
     created_at: 2026-04-27T11:19:17Z
     created_by: claude:4de4a3ab
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [ ] [epic] Ambient-context pipeline — make it bulletproof, well-tested, and observably correct @km/silvercode #epic #P0
@@ -29,7 +35,7 @@ Pro review 2026-04-27 (DeepSeek R1 + Kimi K2.6 + Gemini 3 Pro) reshaped the plan
 
 CHILDREN — file as separate beads as each phase starts:
 
-  P0 @km/silvercode/ambient-phase-0-quarantine        — recall-ignore forensic JSONL + violations log; remove literal triggers from docs; delete redundant project-level hook.
+P0 @km/silvercode/ambient-phase-0-quarantine        — recall-ignore forensic JSONL + violations log; remove literal triggers from docs; delete redundant project-level hook.
   P0 @km/silvercode/ambient-phase-1-thesis-proof      — hardcode Variant A locally; replay S13 against Anthropic; A emission < 1%, B emission > 10%.
   P0 @km/silvercode/ambient-phase-2-adapter-wire      — capture literal HTTP body per backend; verify ambient bytes never in user-input field; fix or disable.
   P0 @km/silvercode/ambient-phase-3-layers            — boundary tests + ambient-sanitize.ts + transcript.ts loop-closure + CI gate.
@@ -38,18 +44,22 @@ CHILDREN — file as separate beads as each phase starts:
   P1 @km/silvercode/ambient-phase-6-completion        — real source adapters, per-source circuit breaker, doctor + replay tools.
 
 EPIC ACCEPTANCE — close when:
-  1. All seven children closed.
-  2. Tribe + recall re-enabled by default in user's flow, auto-delivered to agent; per-source circuit breaker ships.
-  3. README's 'multi-agent coordination is safe' claim is empirically backed by Phase 4 results.
-  4. Design doc updated to reflect post-implementation state (any hypothesis confirmed/ruled out).
+
+1. All seven children closed.
+2. Tribe + recall re-enabled by default in user's flow, auto-delivered to agent; per-source circuit breaker ships.
+3. README's 'multi-agent coordination is safe' claim is empirically backed by Phase 4 results.
+4. Design doc updated to reflect post-implementation state (any hypothesis confirmed/ruled out).
 
 KEY DESIGN POINTS (from pro review):
-  - Bug B (re-ingestion) is load-bearing and was missing — Layer 3 transcript-serializer hardening.
-  - Adapter wire-bytes verification is a separate phase — typed ACP boundary is fiction if adapters flatten to user-role text.
-  - Auto-deliver to agent. NOT a user-approval queue. Rejected by user explicitly.
-  - Anthropic-first eval; the failure is Claude-priors-driven; backend factorial is noise.
-  - Content quarantine (no literal triggers in repo files indexed by recall) replaces fresh-session as the discovery-hazard fix.
+
+- Bug B (re-ingestion) is load-bearing and was missing — Layer 3 transcript-serializer hardening.
+- Adapter wire-bytes verification is a separate phase — typed ACP boundary is fiction if adapters flatten to user-role text.
+- Auto-deliver to agent. NOT a user-approval queue. Rejected by user explicitly.
+- Anthropic-first eval; the failure is Claude-priors-driven; backend factorial is noise.
+- Content quarantine (no literal triggers in repo files indexed by recall) replaces fresh-session as the discovery-hazard fix.
 
 WHY/WHAT vs HOW:
-  - For the why and what: read hub/silvercode/design/ambient-context-safety.md.
-  - For the how (per phase): read each child bead.
+
+- For the why and what: read hub/silvercode/design/ambient-context-safety.md.
+- For the how (per phase): read each child bead.
+

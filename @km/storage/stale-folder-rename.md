@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/stale-folder-rename"
 aliases:
   - km-storage.stale-folder-rename
@@ -14,7 +16,9 @@ When a folder is renamed on the filesystem (e.g., notes/ → notes-v1/), reconci
 Discovered by lifecycle-fuzz.fuzz.ts — fuzz auto-shrinking shows a single folder_rename triggers the issue.
 
 Two sub-issues:
+
 1. **Stale nodes**: Old fs_path entries remain in the DB after folder renames (data not lost, just duplicated)
 2. **Orphaned parent_ids**: Child nodes may reference parent_id of a folder node that was replaced rather than updated
 
 Impact: Mostly cosmetic — no data loss (FS→DB direction is correct). But stale nodes could confuse the TUI if it shows deleted paths.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/op-surface-rename-path"
 aliases:
   - km-storage.op-surface-rename-path
@@ -22,6 +25,10 @@ dependencies:
     created_at: 2026-04-21T23:45:12Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage
 ---
 
 # [x] Replace hand-rolled journalRename with emitter.apply (crash-safety P0) @km/storage #bug #P0 @claude:8b5b9e1c
@@ -29,3 +36,4 @@ dependencies:
 blocks:: [[@km/storage]]
 
 Audit finding G3 (hub/km/research/op-vocabulary-audit-2026-04-22.md): folder/file/directory rename in watch/change-handlers.ts:616,622,635,697,403,408 does db.run(UPDATE...) directly then hand-rolls journalRename(). A crash between writes leaves DB ahead of journal — silent corruption risk today. Fix: replace with emitter.apply({type: 'node_updated', actor: 'user', target: nodeId, data: {fs_path, name, title, old_fs_path}}). Careful: echo-loop prevention via commit vs apply, and the cascade SUBSTR UPDATE at line 622 is a bulk op that needs to become N per-node ops OR a single node_updated with a cascade-spec payload. Effort ~2 days.
+

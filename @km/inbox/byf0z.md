@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/inbox/byf0z"
 aliases:
   - km-byf0z
@@ -23,3 +26,4 @@ Classification: P0
 handleNodeDeleted() sends both file and folder item deletions through deleteFile(). In SyncManager, that maps to WriteQueue.queueDelete() -> unlinkSync(), which fails on directories (EISDIR). Result: deleting a folder node leaves the directory on disk, and watcher/heartbeat can recreate it.
 
 Suggested fix: Split FsWriteTarget into deleteFile() and deleteDirectory(). For folders, use fs.rmSync(path, { recursive: true, force: true }).
+

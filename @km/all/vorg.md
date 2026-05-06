@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/vorg"
 aliases:
   - km-all.vorg
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] Virtual Org — skill/agent/asset architecture framework @km/all #epic #P2
 
 Framework for organizing ~97 skills into a coherent virtual organization. Three natures (Spells, Expertise, Checklists) + skills vs agents distinction + live asset tracking + org chart skeleton. See plan: functional-crunching-valiant.md
+

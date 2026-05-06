@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/hscroll-partial"
 aliases:
   - km-tui.hscroll-partial
@@ -21,3 +23,4 @@ Root cause: The estimatedVisibleCount in useVirtualization (line 162) uses Math.
 Example at width=73: expandedWidth=36, gap=1, effectiveViewport=71. Two items + gap = 36+1+36 = 73 > 71. But estimatedVisibleCount=ceil(71/37)=2, so calcEdgeBasedScrollOffset thinks 2 items fit.
 
 Fix is in vendor/beorn-inkx/src/hooks/useVirtualization.ts or scroll-utils.ts — the visible count estimation needs to account for the actual physical width of items + gaps, not just item count.
+

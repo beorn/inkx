@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/narrative-order"
 aliases:
   - km-inkx.narrative-order
@@ -13,3 +16,4 @@ assignee: claude:dffe6eeb
 # [x] content-phase: Reorder functions for narrative flow (top-down) @km/inkx #task #P1 @claude:dffe6eeb
 
 Move helpers (findInheritedBg, hasChildPositionChanged, computeChildClipBounds) below main rendering functions. Present architecture top-down: contentPhase → renderNodeToBuffer → renderNormalChildren/renderScrollContainerChildren → helpers at bottom. Deep research recommendation #2.
+

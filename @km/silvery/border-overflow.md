@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/border-overflow"
 aliases:
   - km-silvery.border-overflow
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Fix border text overflow bug @km/silvery #bug #P3
 
 Border text can overflow its container. Needs clipping or truncation.
+

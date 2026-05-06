@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/spawn-error-blank-screen"
 aliases:
   - km-silvercode.spawn-error-blank-screen
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-27T20:08:05Z
     created_by: claude:cc081a9a
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [x] [bug] silvercode shows blank screen when initial spawn fails — stderr hidden by alt-screen @km/silvercode #bug #P1 @claude:cc081a9a
@@ -29,6 +36,7 @@ blocks:: [[@km/silvercode]]
 silvercode --account d@delei.org (no --resume) gives a blank screen.
 
 ROOT CAUSE:
+
 1. Controller's eager spawnSession() rejects (e.g. ACP connection closed,
    credentials missing, agent binary unavailable)
 2. The catch handler writes the error to process.stderr
@@ -43,6 +51,7 @@ silvercode --account d@delei.org   # account that fails to spawn
 => spawn error visible only on stderr, only AFTER user kills the process
 
 FIX (commit pending):
+
 - Controller: tracks lastSpawnError and exposes onSpawnError(handler)
 - App.tsx: subscribes; renders a visible error banner inside alt-screen
   when sessions.length === 0 AND spawnError is set
@@ -52,3 +61,4 @@ FIX (commit pending):
 This is a sister fix to @km/silvercode/resume-blank-screen — same shape
 of bug (alt-screen swallows visibility), different trigger (initial
 spawn vs --resume).
+

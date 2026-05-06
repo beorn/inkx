@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/wikilink-sigil-visibility"
 aliases:
   - km-tui.wikilink-sigil-visibility
@@ -18,3 +21,4 @@ assignee: Bjørn Stabell
 # [x] Make wikilinks visible at rest + sigils navigable @km/tui #bug #P2 @Bjørn Stabell
 
 Three coupled visual fixes: (1) resolved wikilinks at rest have undefined fg color + dotted $border underline, making them nearly invisible on dark bg; should be colored like URLs. (2) Bare sigils (@delei, +taxomatic, #tag) never route through the link renderer — they're colorable but not navigable, even though resolveByName would succeed. (3) Combination means users can't visually distinguish sigil refs from plain text in card titles. Fix: linkTextProps wikilink case gets visible at-rest color; SigilText (or its callers) resolves via ctx.resolveWikiLink and renders with wikilink styling when resolved.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/tree"
 aliases:
   - km-tui.tree
@@ -41,15 +43,15 @@ The v1-v3 engine work is DONE: reactive-graph.ts (computed-based, ~220 LOC) with
 
 ### Blast Radius
 
-| Pattern | Refs | Files | Phase |
-|---------|------|-------|-------|
-| syncCursor/syncSelected/syncEdit | 9 | 3 (Board.tsx, testing.ts, reactive.ts) | 2 |
-| expandWithDescendants/collectDescendants | 10 | 2 (reactive.ts, undoable-repo.ts) | 2 |
-| expandedEditCardId bridge | 3 | 1 (reactive.ts) | 2 |
-| ancestorDone prop drilling | 7 | 1 (NodeView.tsx) | 3 |
-| shouldStripColor 4 implementations | 20+ | 4 (selection-style.ts documents this) | 3 |
-| class ReactiveNodeStore | 1 | 1 (reactive.ts, 389 LOC) | 4 |
-| Stale bench import (reduced-signals.ts) | 1 | 1 (computed-vs-engine.bench.ts) | 1 |
+| Pattern                                  | Refs | Files                                  | Phase |
+| ---------------------------------------- | ---- | -------------------------------------- | ----- |
+| syncCursor/syncSelected/syncEdit         | 9    | 3 (Board.tsx, testing.ts, reactive.ts) | 2     |
+| expandWithDescendants/collectDescendants | 10   | 2 (reactive.ts, undoable-repo.ts)      | 2     |
+| expandedEditCardId bridge                | 3    | 1 (reactive.ts)                        | 2     |
+| ancestorDone prop drilling               | 7    | 1 (NodeView.tsx)                       | 3     |
+| shouldStripColor 4 implementations       | 20+  | 4 (selection-style.ts documents this)  | 3     |
+| class ReactiveNodeStore                  | 1    | 1 (reactive.ts, 389 LOC)               | 4     |
+| Stale bench import (reduced-signals.ts)  | 1    | 1 (computed-vs-engine.bench.ts)        | 1     |
 
 ### Test Failures (62 total from v3 Phase 3)
 
@@ -68,3 +70,4 @@ docs/design/tree-reduce.md (updated for v3)
 ## Phases
 
 See child beads for phase details.
+

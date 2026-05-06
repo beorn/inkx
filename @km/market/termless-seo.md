@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/market/termless-seo"
 aliases:
   - km-market.termless-seo
@@ -15,3 +18,4 @@ assignee: Bjørn Stabell
 # [x] termless.dev SEO audit and optimization @km/market #task #P2 @Bjørn Stabell
 
 Full SEO audit of termless.dev — headless terminal testing framework. Part of @km/market/seo.
+

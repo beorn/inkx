@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/plus-minus"
 aliases:
   - km-tui.plus-minus
@@ -13,3 +16,4 @@ assignee: claude:124bfbe5
 # [x] +/- keys don't seem to work @km/tui #bug #P2 @claude:124bfbe5
 
 User presses +/- on board for /tmp/vt and sees no change. Need to verify keybinding and action.
+

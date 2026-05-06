@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/multi-select-no-visual"
 aliases:
   - km-tui.multi-select-no-visual
@@ -20,3 +23,4 @@ assignee: Bjørn Stabell
 # [x] [bug] Multi-selection has no visual highlight @km/tui #bug #P1 @Bjørn Stabell
 
 Shift+J/K extends selection but no visual feedback on which items are selected. Status shows '2 items selected' but user flies blind. Need bg color or marker on selected items.
+

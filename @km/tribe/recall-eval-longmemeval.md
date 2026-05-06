@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tribe/recall-eval-longmemeval"
 aliases:
   - km-tribe.recall-eval-longmemeval
@@ -19,13 +21,21 @@ dependencies:
     created_at: 2026-04-28T00:05:53Z
     created_by: claude:4de4a3ab
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-tribe
+      - type: link
+        target: km-tribe.recall-eval-corpus
 ---
 
 # [ ] Score recall pipeline on LongMemEval public benchmark (substrate sanity floor) @km/tribe #task #P3
 
 blocks:: [[@km/tribe]], [[@km/tribe/recall-eval-corpus]]
 
-# Why
+## Why
 
 External sanity floor for the substrate retrieval pipeline. Our hand-labeled corpus (@km/tribe/recall-eval-corpus) tests @km/_orphan/specific behaviors; LongMemEval tests whether our pipeline is generally competent at conversational memory.
 
@@ -33,7 +43,7 @@ LongMemEval (Wu et al., 2024) — ~500 hand-curated questions over long conversa
 
 Note: this measures the SUBSTRATE only (FTS + planner + reranker). The Tier 3 sub-agent (@km/tribe/recall-thought) is orthogonal — none of the published systems have a sub-agent maintaining memory across turns, so there's no public benchmark for that.
 
-# What
+## What
 
 - Download LongMemEval public test set (knowledge-update + temporal-reasoning subsets initially)
 - Adapter: convert each (conversation, question) → query against current pipeline
@@ -41,16 +51,17 @@ Note: this measures the SUBSTRATE only (FTS + planner + reranker). The Tier 3 su
 - Compare: baseline / salience-trigger / drop-synthesis / cognitive-rerank / multipath-rrf variants
 - Document where we land vs. published numbers
 
-# Acceptance gate
+## Acceptance gate
 
 - Score ≥ Mem0 baseline (~68%) on knowledge-update subset → substrate is competent
 - Score < random baseline → pipeline has a bug
 - Don't gate downstream beads on this; it's a sanity floor, not a precision target
 
-# Cost
+## Cost
 
 ~\$50-\$100 in LLM calls for one full pass across all 4 variants. Use cheap-judge mode where possible.
 
-# Depends on
+## Depends on
 
 @km/tribe/recall-eval-corpus (corpus + runner come first; LongMemEval reuses the runner)
+

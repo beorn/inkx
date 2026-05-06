@@ -1,4 +1,9 @@
 ---
+mentions:
+  - km
+  - Bjørn
+projects:
+  - layout
 id: "@km/silvery/style-fast-path"
 aliases:
   - km-silvery.style-fast-path
@@ -11,3 +16,4 @@ assignee: Bjørn Stabell
 ---
 
 # [x] Style-only fast path — skip React+layout for cursor/selection changes @km/silvery #feature #P2 @Bjørn Stabell
+

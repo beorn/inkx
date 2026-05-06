@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - km
 id: "@km/domain-objects/1-add-service-interface-to-km-core"
 aliases:
   - km-domain-objects.1
@@ -22,3 +25,4 @@ export interface Service extends AsyncDisposable {
 ```
 
 Export from @km/core index.
+

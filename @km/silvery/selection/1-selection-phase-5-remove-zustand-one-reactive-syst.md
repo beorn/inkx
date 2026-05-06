@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/selection/1-selection-phase-5-remove-zustand-one-reactive-syst"
 aliases:
   - km-silvery.selection.1
@@ -16,12 +19,14 @@ assignee: Bjørn Stabell
 Drop Zustand entirely. Move all remaining app state to alien-signals.
 
 ## Context
+
 - @km/storage already uses alien-signals via withReactive (per-node signals)
 - SelectionStore (Phase 2) uses alien-signals
 - CursorStore (legacy pub/sub) is replaced by SelectionStore signals
 - The remaining Zustand state is the last holdout
 
 ## What changes
+
 - Board nav state (rootId, foldDepths, collapsedNodes, navHistory) to signals
 - UI state (overlays, dialogs, filters, search) to signals
 - Per-pane state to signal-based store per pane
@@ -30,4 +35,6 @@ Drop Zustand entirely. Move all remaining app state to alien-signals.
 - createApp() integration updated
 
 ## Why
+
 Three reactive systems is two too many. Zustand + CursorStore pub/sub + alien-signals becomes just alien-signals. One mental model, one subscription system, granular by default.
+

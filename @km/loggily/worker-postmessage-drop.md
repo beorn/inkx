@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/loggily/worker-postmessage-drop"
 aliases:
   - km-loggily.worker-postmessage-drop
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] loggily: worker logger silently drops logs when postMessage can't clone @km/loggily #bug #P2
 
 createWorkerLogger() forwards raw props/data/spanData through postMessage. Non-structured-cloneable values cause postMessage to throw, silently swallowing the entire message. Fix: reuse serializeArg() for structured log data, span props, custom spanData. Send fallback diagnostic on failure. worker.ts:308-321. Found by GPT 5.4 Pro review.
+

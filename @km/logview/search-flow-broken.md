@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/logview/search-flow-broken"
 aliases:
   - km-logview.search-flow-broken
@@ -39,6 +42,10 @@ dependencies:
     created_at: 2026-04-23T00:54:13Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-logview
 ---
 
 # [x] km-logview /-search is cosmetic only: Enter→detail, n/N dead, cursor doesn't track matches @km/logview #bug #P1 @claude:c6244087
@@ -48,11 +55,10 @@ blocks:: [[@km/logview]]
 Three interlocking problems make `/`-search cosmetic only (see task #13 report):
 
 1. **Enter in search bar opens the detail pane.** `SearchBindings` treats `key.return` as 'next match' (without consuming), but `ListView` also sees `key.return` and fires its own `onSelect` → App's `setDetail(r)` → DetailPane. Visible: typing `/foo<Enter>` jumps into JSON detail.
-
 2. **`n`/`N` at App level are dead keys.** App's `useInput` early-returns when `search.isActive`, so `n`/`N` only fire post-close. But `close` in `searchUpdate` resets state via `createSearchState()` (matches=[]), so `search.next()/prev()` has nothing to cycle. Consequence: the matches suffix in the status bar is never shown.
-
 3. **Cursor doesn't track matches.** `SearchProvider` effects call `searchable.reveal(match)` → `scrollToItem(i)`, but in ListView nav mode `scrollTo` is overridden by `activeCursor` on the next render, so viewport snaps back to cursor. App's `cursor` state is never updated by search.
 
 Fix shape: route search effects through App's `handleCursor`/`onCursor`, propagate match index into cursor state, gate ListView's Enter-consumption when search bar is active (or stop SearchBindings from treating key.return as next-match).
 
 Spans @km/logview `App.tsx` + silvery `SearchProvider.tsx` + silvery `ListView.tsx`.
+

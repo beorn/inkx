@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/rev-0203/2-reduce-cognitive-complexity-in-132-flagged-functio"
 aliases:
   - km-rev-0203.2
@@ -14,6 +16,7 @@ oxlint reports 132 functions exceeding cognitive complexity threshold.
 
 Run: bun lint:complexity
 Top offenders (by complexity score):
+
 - packages/@km/storage/src/repo-loader.ts
 - packages/@km/storage/src/watch/sync.ts
 - packages/@km/storage/src/store.ts
@@ -22,3 +25,4 @@ Top offenders (by complexity score):
 
 Approach: Use /code clean on individual files.
 Extract helper functions, simplify control flow, reduce nesting.
+

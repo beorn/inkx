@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/publish-stubs"
 aliases:
   - km-silvery.publish-stubs
@@ -33,6 +36,7 @@ Publish minimal stub packages to npm early to validate the full publish pipeline
 ## What to publish
 
 Minimal packages with:
+
 - `package.json` (name, version, description, keywords, license, homepage, repository)
 - `README.md` ("Coming soon — see silvery.dev")
 - `src/index.ts` with `export {}` or a version constant
@@ -48,3 +52,4 @@ Minimal packages with:
 ## Notes
 
 Do this BEFORE the monolith split (@km/_orphan/w297c). It's a pipeline validation — if publishing is broken, better to find out now than after splitting 10 packages.
+

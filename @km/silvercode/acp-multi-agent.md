@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/acp-multi-agent"
 aliases:
   - km-silvercode.acp-multi-agent
@@ -113,6 +116,14 @@ dependencies:
     created_at: 2026-04-26T01:42:22Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode.acp
+      - type: link
+        target: km-silvercode.acp-session
 ---
 
 # [x] Cross-agent orchestration — coordinator MCP, cross-agent state, prompt projection @km/silvercode #feature #P2 @claude:cd034ca4
@@ -122,9 +133,11 @@ blocks:: [[@km/silvercode/acp]], [[@km/silvercode/acp-session]]
 Multi-agent setup: silvercode wraps Claude Code + codex + pi + gemini in parallel ACP sessions. ACP doesn't define cross-session sharing — silvercode owns the cross-agent state and projects relevant slices into each agent's prompt.
 
 ## Architectural rule
+
 Agents don't talk to each other. silvercode is the orchestrator. ACP defines per-session conversation; silvercode defines cross-session coordination.
 
 ## Layers of shared state
+
 1. silvercode's signal-backed cross-agent state store (alien-signals + projections): claims, file locks, plan, broadcasts, handoffs
 2. Filesystem (real + virtual via fs/read_text_file with km://, coordinator://, ambient:// URI schemes)
 3. Shared MCP servers passed to ALL sessions in session/new: coordinator-mcp, tribe-mcp, lore-mcp, @km/_orphan/mcp
@@ -133,9 +146,11 @@ Agents don't talk to each other. silvercode is the orchestrator. ACP defines per
 6. ACP session/list + session/load for cross-session reads (one agent reads another's transcript as ResourceLink)
 
 ## OpenClaw pattern (confirmed prior art)
+
 sessions_send / sessions_list / sessions_history as first-class agent tools, gateway-mediated, with per-tool scope policy (tree | self | agent | all) and cross-agent gate (tools.agentToAgent).
 
 ## Acceptance
+
 - coordinator-mcp server: coordinator_claim_file, coordinator_release_file, coordinator_handoff, coordinator_status
 - crossAgentState$ store wiring claims + locks + handoffs
 - Prompt assembly projects relevant state slice per agent
@@ -143,5 +158,7 @@ sessions_send / sessions_list / sessions_history as first-class agent tools, gat
 - UI surfacing of cross-agent activity (notification badges, sidebar pane)
 
 ## Reference
+
 - hub/silvery/future/ai-terminal/10-agent-router-landscape.md § Cross-agent cooperation
 - OpenClaw cross-session: src/agents/system-prompt.ts, src/gateway/server-session-events.ts, src/agents/subagent-registry-lifecycle.ts
+

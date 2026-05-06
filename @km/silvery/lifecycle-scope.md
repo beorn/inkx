@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/lifecycle-scope"
 aliases:
   - km-silvery.lifecycle-scope
@@ -21,6 +24,10 @@ dependencies:
     created_at: 2026-04-24T10:57:34Z
     created_by: claude:0940ca20
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Silvery runtime-integrated structured-concurrency scope for managed resources @km/silvery #feature #P0 @claude:2405c72e
@@ -41,7 +48,7 @@ The goal: resources self-register cleanup on an ambient scope; apps don't write 
 
 Sketch — NOT the final API, this is the problem statement:
 
-  // silvery runtime creates a root scope at run() time, disposes on teardown.
+// silvery runtime creates a root scope at run() time, disposes on teardown.
   const scope = useScope()
   const session = spawnClaude({ scope, cwd })
   // spawnClaude internally: scope.defer(() => session.close())
@@ -50,7 +57,7 @@ Sketch — NOT the final API, this is the problem statement:
 
 Or a higher-level resource hook:
 
-  const session = useSpawnClaude({ cwd })   // hook reads ambient scope, registers
+const session = useSpawnClaude({ cwd })   // hook reads ambient scope, registers
   // session is valid for the lifetime of the scope; tears down automatically.
 
 ## Why P0
@@ -81,3 +88,4 @@ That removes 10 lines of boilerplate but still requires the app author to know a
 - Zero per-call-site cleanup code in the common case.
 - Escape hatch for custom dispose priorities / before-after ordering (drop down to term.signals.on).
 - Playable against real silvercode: App.tsx has no useDispose/useEffect/cleanup anywhere; subprocesses just die when silvery exits.
+

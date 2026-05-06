@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/knip-dead-files"
 aliases:
   - km-tui.knip-dead-files
@@ -14,7 +16,7 @@ SOP knip scan flags 172 unused files repo-wide. Most are false positives
 (fuzz/bench/test fixtures that knip can't see entry points for), but
 there's a real cleanup pass to do in apps/@km/tui:
 
-  apps/@km/tui/src/views/ConsoleModal.tsx
+apps/@km/tui/src/views/ConsoleModal.tsx
   apps/@km/tui/src/views/FindBar.tsx
   apps/@km/tui/src/views/TopBar.tsx
   apps/@km/tui/src/views/selection-style.ts
@@ -32,3 +34,4 @@ config entry if it's a legitimate-but-non-imported entry point
 Also: configure knip to skip *.bench.ts, *.fuzz.ts, tests/fixtures/**
 properly so the noise floor drops below 20 findings, making future
 SOP scans actionable instead of overwhelming.
+

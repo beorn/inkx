@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/detail-body-spacing"
 aliases:
   - km-tui.detail-body-spacing
@@ -13,3 +16,4 @@ assignee: claude:d3a7049b
 # [x] Add vertical spacing around body text in detail pane when >2 KNodes @km/tui #feature #P3 @claude:d3a7049b
 
 When the detail pane shows body text that contains more than 2 KNodes, add one vertical blank line above and below the body text section to visually separate it from surrounding metadata.
+

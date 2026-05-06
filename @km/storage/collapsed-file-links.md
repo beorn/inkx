@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/collapsed-file-links"
 aliases:
   - km-storage.collapsed-file-links
@@ -82,8 +85,13 @@ dependencies:
     created_at: 2026-04-20T23:37:19Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all.plateau
 ---
 
 # [x] Link-edge extraction for collapsed files @km/storage #feature #P1 @claude:8b5b9e1c
 
 blocks:: [[@km/all/plateau]]
+

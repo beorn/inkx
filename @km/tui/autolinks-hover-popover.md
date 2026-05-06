@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/autolinks-hover-popover"
 aliases:
   - km-tui.autolinks-hover-popover
@@ -33,6 +36,16 @@ dependencies:
     created_at: 2026-04-25T21:55:09Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvery.overlay-anchor-impl-v1
+      - type: link
+        target: km-tui
+      - type: link
+        target: km-tui.autolinks-adopt
 ---
 
 # [x] km-tui hover-popover via overlay-anchor system @km/tui #feature #P2 @claude:2405c72e
@@ -40,3 +53,4 @@ dependencies:
 blocks:: [[@km/silvery/overlay-anchor-impl-v1]], [[@km/tui]], [[@km/tui/autolinks-adopt]]
 
 After autolinks adoption (@km/tui/autolinks-adopt) + overlay-anchor v1 (@km/silvery/overlay-anchor-impl-v1). Hovering an autolink match in @km/tui shows popover anchored to the text span via anchorRef + decorations. placeFloating chooses position. Parent: @km/tui.
+

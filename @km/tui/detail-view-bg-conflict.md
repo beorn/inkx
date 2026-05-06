@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/detail-view-bg-conflict"
 aliases:
   - km-tui.detail-view-bg-conflict
@@ -20,6 +23,10 @@ dependencies:
     created_at: 2026-04-13T22:28:30Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui
 ---
 
 # [x] Detail view crash: chalk bg=brightWhite conflicts with silvery bufferBg @km/tui #bug #P2 @Bjørn Stabell
@@ -27,3 +34,4 @@ dependencies:
 blocks:: [[@km/tui]]
 
 Pressing 'D' (detail view) on @agent column in ~vault crashes with: '[silvery] Background conflict at (4,9): chalk bg=brightWhite on silvery bufferBg=rgb(50,50,50). Text: "+Taxes". Raw ANSI: \u001b[4:5m\u001b[2m\u001b[189m\u001b[107m+Taxes...'. The \u001b[107m is SGR bgWhiteBright. Something in km is producing chalk-style ANSI bg that clashes with silvery's buffer bg model. Likely in detail view rendering of project sigils. Need to use ansi.bgOverride() instead of raw chalk bg, OR find why bgWhiteBright is being applied. Repro: bun km view ~/Bear/Vault, navigate to @agent column, press D.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/ctrl-c-quit"
 aliases:
   - km-tui.ctrl-c-quit
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Ctrl-C should always quit the app @km/tui #bug #P2
 
 Ctrl-C should always work as a way to quit the app, regardless of current mode or dialog state. Currently it may not work in certain states.
+

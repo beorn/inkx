@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/remove-skipbgfill"
 aliases:
   - km-inkx.remove-skipbgfill
@@ -13,3 +16,4 @@ assignee: claude:dffe6eeb
 # [x] content-phase: Consider removing skipBgFill micro-optimization @km/inkx #task #P1 @claude:dffe6eeb
 
 skipBgFill skips background fill when parent already cleared the region. Adds a boolean condition for minimal gain. If performance permits (test suite guards against regression), simplifying to always fill would unify the code path. Deep research recommendation #4.
+

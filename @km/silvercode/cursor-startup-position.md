@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/cursor-startup-position"
 aliases:
   - km-silvercode.cursor-startup-position
@@ -52,6 +55,14 @@ dependencies:
     created_at: 2026-04-24T23:08:12Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode
+      - type: link
+        target: km-silvery.view-as-layout-output
 ---
 
 # [x] [bug] Cursor lands in side panel at startup; restored to command box only after first interaction @km/silvercode #bug #P1 @claude:2405c72e
@@ -69,6 +80,7 @@ At silvercode startup, the hardware cursor renders in the side panel (e.g. next 
 3. Type any character + backspace → cursor jumps to the command region
 
 Verified via TTY MCP screenshots:
+
 - Empty state SVG has cursor rect at col=106 row=33 ("  10%" line in the side panel)
 - After type+backspace SVG has cursor rect at col=8 row=37 (right after "> " prompt)
 
@@ -85,3 +97,4 @@ silvery's TextArea calls `useCursor()` which schedules cursor positioning via `u
 ## Tests blocked
 
 `apps/silvercode/tests/visual/queue-cursor.test.tsx` was originally written with cursor-position assertions; they were dropped because termless's emulator-backed run() resolves `nonTTYMode` to "line-by-line" (no cursor ANSI), so `term.getCursor()` reflects last-write position rather than silvery's intent. Real fix: process-harness test infra (see @km/silvercode/test-process-harness).
+

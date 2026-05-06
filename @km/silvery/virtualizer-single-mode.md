@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvery/virtualizer-single-mode"
 aliases:
   - km-silvery.virtualizer-single-mode
@@ -49,6 +52,10 @@ dependencies:
     created_at: 2026-04-20T20:59:19Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Delete useVirtualizer bootstrap mode — containerNode is universal @km/silvery #feature #P3 @claude:8b5b9e1c
@@ -56,3 +63,4 @@ dependencies:
 blocks:: [[@km/silvery]]
 
 After @km/silvery/virtualizer-from-layout activated with containerNode wired in ListView, the bootstrap mode (count-based calcEdgeBasedScrollOffset + height-aware forward walk using estimateHeight) is dead code for the ListView path. Exists to handle first render before useLayoutEffect captures the containerNode ref. Strategy: first render returns minimal placeholder window (start=0, end=minItems, leadingHeight=0, trailingHeight=0). useLayoutEffect captures containerNode → setContainerNode triggers re-render with real layout-signals data. Eliminates ~150 LOC of bootstrap code and conditional-mode complexity. Risk: 2-frame mount may flicker; mitigated by empty-first-render.
+

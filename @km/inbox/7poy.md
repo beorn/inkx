@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/7poy"
 aliases:
   - km-7poy
@@ -8,3 +10,4 @@ closed_at: 2026-01-21T09:36:35Z
 ---
 
 # [x] Top bar shows cyan bg - should be blue (cyan is reserved for selection) @km/_orphan #bug #P1
+

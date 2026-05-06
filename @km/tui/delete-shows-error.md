@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/delete-shows-error"
 aliases:
   - km-tui.delete-shows-error
@@ -17,3 +20,4 @@ assignee: Bjørn Stabell
 # [x] Deleting sub-sub-item shows [error] instead of crashing or logging @km/tui #bug #P2 @Bjørn Stabell
 
 Steps: Have a card with 2 sub-sub-items. Delete the first one. Result: [error] shown in red where the item was. Expected: either throw an exception (KM_STRICT=1) or log the error via loggily — never render [error] text to the user. Screenshot: ~/Desktop/Screenshot 2026-04-01 at 07.38.10.png
+

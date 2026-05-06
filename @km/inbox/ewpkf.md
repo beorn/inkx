@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/ewpkf"
 aliases:
   - km-ewpkf
@@ -22,3 +24,4 @@ Root cause: deriveColumnsFromRepo only does index file expansion when rootNode.f
 Fix: In the card rendering path, when a folder's children include an index file, exclude the index file from the card list. The index file's body/sections content should be absorbed into the folder's representation.
 
 Note: findIndexFile works correctly (verified with real Asana DB). The issue is purely in the TUI card rendering layer.
+

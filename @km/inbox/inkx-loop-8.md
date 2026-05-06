@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/inkx-loop-8"
 aliases:
   - km-inkx-loop-8
@@ -18,3 +21,4 @@ Parent: @km/_orphan/silvery-legacy-loop
 - Mark legacy APIs deprecated but keep as thin wrappers
 - Write codemods for common patterns
 - Major bump to remove wrappers
+

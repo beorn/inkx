@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/visual-mode-dead-code"
 aliases:
   - km-tui.visual-mode-dead-code
@@ -11,3 +13,4 @@ owner: bjorn@stabell.org
 # [ ] [bug] Visual mode chord entry exists but UI hidden — dead state @km/tui #bug #P2
 
 v v enters visual mode (per chord palette) but CommandBox.tsx:215 hardcodes to skip VISUAL label. j/k behave normally, no feedback. Either remove keybinding+chord or restore UI label.
+

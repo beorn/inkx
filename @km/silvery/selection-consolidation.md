@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/selection-consolidation"
 aliases:
   - km-silvery.selection-consolidation
@@ -19,6 +21,7 @@ owner: bjorn@stabell.org
 # [x] Consolidate dual selection systems — create-app + SelectionFeature @km/silvery #task #P2
 
 Two selection systems exist:
+
 1. create-app.tsx lines 1942-1997: inline selection handling in the event loop. Works with real mouse events. ~55 lines.
 2. SelectionFeature + InputRouter: parallel system built by agents. Has tests but InputRouter never receives real mouse events.
 
@@ -29,3 +32,4 @@ Keep: headless machines, observer hooks, CapabilityRegistryContext, keyboard dis
 Bridge: SelectionFeature reads from create-app's selectionState, not its own
 
 Must write termless integration tests FIRST (@km/silvery/demo-integration-tests).
+

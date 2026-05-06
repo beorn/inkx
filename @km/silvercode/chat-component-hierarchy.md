@@ -179,18 +179,18 @@ Rules:
 1. Introduce `src/components/Chat.tsx` with the namespaced component family.
 2. Add Storybook coverage for `Chat.Root`, `Chat.Transcript`, `Chat.Turn.Root`, dense activity, sequential narration/activity, metadata, notifications, and composer placement.
 3. Extract model-building helpers from `SessionUpdateList`:
-  - current `splitAssistantToolActivity`
-  - activity summary item derivation
-  - prompt/assistant turn association
-  - conclusion detection
-  - stats extraction
-4. Render existing transcript through `Chat.Turn.*` without changing behavior.
-5. Change dense-turn behavior so collapsed summary may aggregate, while expanded details preserve narration/activity order.
-6. Move user prompt bubble rendering into `Chat.Turn.Prompt`.
-7. Move `TurnActivitySummary` behavior into `Chat.Turn.Activity` / `Chat.Turn.ToolGroup`.
-8. Move metadata and ambient rows to `Chat.Metadata` and `Chat.Notification`.
-9. Wrap `SessionPromptComposer` as `Chat.Composer` or rename it when safe.
-10. Leave `Content.*` as the layout layer only.
+- current `splitAssistantToolActivity`
+- activity summary item derivation
+- prompt/assistant turn association
+- conclusion detection
+- stats extraction
+12. Render existing transcript through `Chat.Turn.*` without changing behavior.
+13. Change dense-turn behavior so collapsed summary may aggregate, while expanded details preserve narration/activity order.
+14. Move user prompt bubble rendering into `Chat.Turn.Prompt`.
+15. Move `TurnActivitySummary` behavior into `Chat.Turn.Activity` / `Chat.Turn.ToolGroup`.
+16. Move metadata and ambient rows to `Chat.Metadata` and `Chat.Notification`.
+17. Wrap `SessionPromptComposer` as `Chat.Composer` or rename it when safe.
+18. Leave `Content.*` as the layout layer only.
 
 ## Acceptance Criteria
 

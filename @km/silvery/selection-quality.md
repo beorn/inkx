@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/selection-quality"
 aliases:
   - km-silvery.selection-quality
@@ -18,6 +20,10 @@ dependencies:
     created_at: 2026-04-15T11:31:06Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery.selection-focus-plateau
 ---
 
 # [x] Selection quality plateau — fix bugs, consolidate dual systems, add integration tests @km/silvery #task #P1
@@ -27,6 +33,7 @@ blocks:: [[@km/silvery/selection-focus-plateau]]
 ## Status (2026-04-06)
 
 Selection works (drag highlights text, OSC 52 copies) but has quality issues:
+
 - Old selection not visually cleared on new mousedown (full re-render attempted but may still be buggy)
 - Selection not constrained to userSelect=contain boundary
 - Dual selection systems: create-app.tsx inline handler (works) + SelectionFeature/InputRouter (dead path)
@@ -45,12 +52,15 @@ Selection works (drag highlights text, OSC 52 copies) but has quality issues:
 5. Delete InputRouter mouse dispatch (dead path)
 
 ## Related Beads
+
 - @km/silvery/selection-contain-bug (P1) — contain boundary
 - @km/silvery/selection-consolidation (P2) — dual system cleanup
 - @km/silvery/demo-integration-tests (P2) — termless tests for demos
 
 ## Key Files
+
 - vendor/silvery/packages/create/src/create-app.tsx:1942-1997 — working selection
 - vendor/silvery/packages/ag-term/src/features/selection.ts — agent-built (parallel, unused for real events)
 - vendor/silvery/packages/create/src/with-dom-events.ts — injects selection:true into run()
 - vendor/silvery/packages/ag-term/src/selection-renderer.ts — overlay rendering
+

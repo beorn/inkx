@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/board-refactor/4-update-board-component-to-use-simplified-boardstat"
 aliases:
   - km-board-refactor.4
@@ -9,3 +11,4 @@ closed_at: 2026-01-24T19:24:53Z
 ---
 
 # [x] Update Board component to use simplified BoardState @km/board-refactor #task #P2
+

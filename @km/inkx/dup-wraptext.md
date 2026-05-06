@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inkx/dup-wraptext"
 aliases:
   - km-inkx.dup-wraptext
@@ -11,3 +14,4 @@ assignee: claude:a3625ec3
 # [x] refactor(inkx): Consolidate duplicate wrapText implementations @km/inkx #task #P2 @claude:a3625ec3
 
 Two wrapText: unicode.ts (public) and render-text.ts (private). Subtly different behavior.
+

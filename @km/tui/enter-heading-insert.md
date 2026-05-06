@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/enter-heading-insert"
 aliases:
   - km-tui.enter-heading-insert
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] [bug] Enter on section heading triggers INSERT mode unexpectedly @km/tui #bug #P2
 
 Repro: Navigate to a section heading card (e.g., Tasks), press Enter. Expected: drill into card or no-op. Actual: enters INSERT mode, changes card to sub-card view, checkbox indicators disappear.
+

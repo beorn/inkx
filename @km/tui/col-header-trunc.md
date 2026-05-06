@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/col-header-trunc"
 aliases:
   - km-tui.col-header-trunc
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Column headers truncated: missing last character (SCHEDUL, PORTFOLI) @km/tui #bug #P2
 
 Column headings are missing the last letter. Examples from Asana import: 'FAMILY SCHEDUL' (should be SCHEDULE), 'PORTFOLI' (should be PORTFOLIO). Likely off-by-one in width calculation for column header text truncation.
+

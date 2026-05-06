@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inkz/13-visual-tests"
 aliases:
   - km-inkz.13-visual-tests
@@ -24,16 +26,19 @@ Create automated visual tests that verify example apps render correctly using tt
 ## Test Cases
 
 ### Dashboard
+
 - [ ] Three panes visible with borders
 - [ ] Text content visible in each pane
 - [ ] Selection highlighting works
 
 ### Task List
+
 - [ ] List items visible
 - [ ] Checkbox symbols render
 - [ ] Selection highlighting works
 
 ### Kanban
+
 - [ ] Three columns visible
 - [ ] Cards render with borders
 - [ ] Tags display with colors
@@ -45,3 +50,4 @@ Create automated visual tests that verify example apps render correctly using tt
 - [ ] Baseline snapshots committed
 - [ ] Tests fail on visual regression
 - [ ] 10 second timeout per test
+

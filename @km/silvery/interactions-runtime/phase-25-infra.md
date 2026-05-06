@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/interactions-runtime/phase-25-infra"
 aliases:
   - km-silvery.interactions-runtime.phase-25-infra
@@ -42,6 +44,7 @@ This is internal — not exported from create's public barrel.
 A critical missing piece per Pro review. Selection state change must trigger a new output pass without any React/store state change. Otherwise: 'machine state changes, tests pass, nothing visibly updates.'
 
 Design:
+
 - Router exposes invalidate() method
 - Features call it when their state changes
 - with-dom-events / with-render / create-app wires invalidate() to the runtime render loop
@@ -53,12 +56,12 @@ Steal the existing pattern from focus manager if possible (focus changes already
 
 Per Pro review item 11C: services should be internal capabilities, not public app fields.
 
-  const SELECTION = Symbol('silvery.selection')
-  
-  // Feature registers:
+const SELECTION = Symbol('silvery.selection')
+
+// Feature registers:
   router.registerCapability(SELECTION, selectionFeature)
-  
-  // Other features read:
+
+// Other features read:
   const selection = router.getCapability(SELECTION)
   if (selection) selection.setRange(...)
 
@@ -67,12 +70,14 @@ This keeps the public app shape clean while allowing cross-feature communication
 ## Files
 
 CREATE:
+
 - vendor/silvery/packages/create/src/internal/input-router.ts (~150 lines)
 - vendor/silvery/packages/create/src/internal/capability-registry.ts (~40 lines — could be inlined into input-router)
 - vendor/silvery/tests/internal/input-router.test.ts — priority + claim + tie-breaker + invalidation
 - vendor/silvery/tests/internal/capability-registry.test.ts — register/get/idempotent
 
 UPDATE:
+
 - vendor/silvery/packages/create/src/index.ts — DO NOT export internal/* from public barrel. Internal imports are via subpath.
 
 ## Delete
@@ -82,6 +87,7 @@ Nothing.
 ## New tests
 
 4 unit tests in vendor/silvery/tests/internal/:
+
 1. input-router.test.ts — priority ordering, handler claim, tie-breaker (registration order), invalidate() is called
 2. capability-registry.test.ts — register, get (returns capability), get (returns undefined if not registered), re-register (idempotent or last-wins — pick one and test it)
 
@@ -135,3 +141,4 @@ PARENT
 
 BLOCKS
   ← ○ @km/silvery/interactions-runtime/phase-3: Phase 3: Extend withDomEvents for selection (SELECTION FIRST, validate before porting rest) ● P1
+

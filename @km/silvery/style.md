@@ -1,4 +1,8 @@
 ---
+mentions:
+  - silvery
+  - km
+  - claude
 id: "@km/silvery/style"
 aliases:
   - km-silvery.style
@@ -18,3 +22,4 @@ assignee: claude:f8196c1c
 # [x] @silvery/style: theme-aware chalk replacement — unify ansi + style proxy + token resolution @km/silvery #feature #P2 @claude:f8196c1c
 
 @silvery/ansi 1.0 — merge @silvery/style + deriveTheme/detectTheme into @silvery/ansi. See plan at .claude/plans/serene-cuddling-squirrel.md for full architecture. Next session: implement in a worktree.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/silvercode/acp-client"
 aliases:
   - km-silvercode.acp-client
@@ -103,6 +106,14 @@ dependencies:
     created_at: 2026-04-26T01:10:26Z
     created_by: claude:cd034ca4
     metadata: "{}"
+props:
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-silvercode.acp
+      - type: link
+        target: km-silvercode.acp-foundation
 ---
 
 # [x] ACP client — scope-bound ClientSideConnection factory with capability negotiation @km/silvercode #feature #P1 @claude:cd034ca4
@@ -110,3 +121,4 @@ dependencies:
 blocks:: [[@km/silvercode/acp]], [[@km/silvercode/acp-foundation]]
 
 Build connectAcp(scope, opts) returning a ClientSideConnection wired to a child process over ndJsonStream. Handles initialize (protocol-version + capability exchange), authenticate (subscription OAuth), newSession/loadSession/listSessions/cancel. Implements the four Client callbacks: requestPermission, sessionUpdate, readTextFile, writeTextFile (plus terminal/* if FS capabilities advertise them). Scope-bound: disposing scope kills child process, closes stream, aborts in-flight prompts. Reference: hub/silvery/future/ai-terminal/10-agent-router-landscape.md § How ACP is set up and consumed.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/nodf"
 aliases:
   - km-nodf
@@ -15,6 +17,7 @@ Terminal multiplexers have unique rendering challenges that cause issues in ink.
 2. Zellij - modern alternative
 
 Test scenarios:
+
 - Basic rendering
 - Scrolling
 - Input handling (especially IME)
@@ -22,3 +25,4 @@ Test scenarios:
 - Color rendering
 
 Reference: ink PRs #846, #851 both address tmux-specific IME issues via Synchronized Update Mode.
+

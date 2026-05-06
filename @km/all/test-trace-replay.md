@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/test-trace-replay"
 aliases:
   - km-all.test-trace-replay
@@ -60,9 +62,11 @@ Authoring cost: 30 seconds. No TypeScript. No imports. No fixtures. No store acc
 
 Small set of runtime-checked invariants:
 
-    invariant("cursor always on visible node", ...)
-    invariant("undo always reversible", ...)
-    invariant("no orphan nodes", ...)
+```
+invariant("cursor always on visible node", ...)
+invariant("undo always reversible", ...)
+invariant("no orphan nodes", ...)
+```
 
 Chaos fuzzing throws random actions at the app. Invariant violations produce a trace automatically saved to `tests/traces/chaos-discoveries/`. Chaos-discovered traces become regression tests.
 
@@ -94,36 +98,43 @@ Chaos fuzzing throws random actions at the app. Invariant violations produce a t
 ## Phases (when/if this is picked up)
 
 ### Phase A — Trace format
+
 Define the .trace file format. Consider:
+
 - Human-readable (JSON or markdown-like) vs binary
 - Action encoding (serialized TEA actions)
 - State checkpoints (every N actions? every action? just initial+final?)
 - Assertions (inline or in separate .assertions file)
 
 ### Phase B — Recording infrastructure
+
 - `bun km view --record <file>` captures every action
 - Include fixture reference, initial state, action sequence
 - Snapshot state at each action (for diff on replay)
 
 ### Phase C — Replay runner
+
 - `bun test:trace <file>` replays the actions
 - Deterministic runtime: mock time, seed random, isolate I/O
 - Compare actual vs expected state per action
 - Clear failure messages with action context
 
 ### Phase D — Interactive trace viewer
+
 - `bun trace view <file>` opens a stepper
 - Step forward/back, see state + screen at each action
 - Add/modify assertions inline
 - Integration with /tdd workflow
 
 ### Phase E — Property invariants + chaos
+
 - Invariant registry
 - Chaos fuzzer that runs invariants on random actions
 - Auto-save traces on invariant violations
 - CI integration
 
 ### Phase F — Migration
+
 - Convert canonical journey tests to traces
 - Keep createTestApp for component-level tests (card layout, border rendering, visual regression)
 - Policy: new behavioral tests are traces
@@ -141,3 +152,4 @@ The current plan (typed getters + snapshots + mdspec) is good. It's a significan
 ## When to pick this up
 
 After @km/all/tea-machines ships AND @km/all/test-ergonomics Phase 3 is in production AND we have 6+ months of data showing where the mdspec approach is still painful. If mdspec + snapshots + getters are good enough, we don't need this.
+

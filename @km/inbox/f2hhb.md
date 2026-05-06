@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/f2hhb"
 aliases:
   - km-f2hhb
@@ -15,3 +18,4 @@ assignee: claude:73d7a332
 ---
 
 # [x] ErrorBoundary: enhance with source excerpts and stack traces @km/_orphan #task #P2 @claude:73d7a332
+

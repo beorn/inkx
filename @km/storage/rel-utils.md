@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/storage/rel-utils"
 aliases:
   - km-storage.rel-utils
@@ -9,3 +12,4 @@ assignee: claude:dffe6eeb
 ---
 
 # [x] Add toRelativeFsPath/toAbsoluteFsPath utilities + tests @km/storage #task #P1 @claude:dffe6eeb
+

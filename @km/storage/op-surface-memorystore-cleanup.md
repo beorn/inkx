@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/op-surface-memorystore-cleanup"
 aliases:
   - km-storage.op-surface-memorystore-cleanup
@@ -19,6 +21,10 @@ dependencies:
     created_at: 2026-04-22T10:30:51Z
     created_by: claude:8b5b9e1c
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-storage
 ---
 
 # [x] MemoryStore cleanup decision (audit G10) @km/storage #task #P3
@@ -39,3 +45,4 @@ Audit G10 concern: 'Delete MemoryStore if dead, or port to emitter-based path.'
 MemoryStore is actively used in production (memory-mode repo opens) and in tests. The absence of emitter.apply is by design — memory-mode has no changes.jsonl to journal into, no replay contract to satisfy, no FS to write back to. Phase B replay concerns don't apply: memory-mode repos are disposed at process end, there's nothing to replay.
 
 No code action needed. Document this decision in phase-b-replay-contract-2026-04-22.md §9 (out of scope) as a memory-mode carve-out.
+

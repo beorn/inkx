@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/flexily/stale-loc-counts"
 aliases:
   - km-flexily.stale-loc-counts
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 ---
 
 # [x] Docs: LOC counts and file descriptions stale in multiple docs @km/flexily #task #P3
+

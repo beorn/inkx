@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/all/structural-hardening-program"
 aliases:
   - km-all.structural-hardening-program
@@ -20,6 +22,7 @@ Source: GPT-5.4 Pro + Kimi K2.6 dual review at /tmp/llm-cc081a9a-review-this-pla
 ## GATE WORK (must complete before restructure)
 
 ### G1. Failure taxonomy of fix-sweep-vendor-fuzz
+
 - Classify the 49 vendor failures + 5 fuzz failures by root cause
 - Categories: lifecycle/ownership, render-phase ordering, layout convergence, test infrastructure, upstream-bug, other
 - Output: counts per category in a hub/silvery/design/failure-taxonomy.md doc + bd notes on this bead
@@ -27,6 +30,7 @@ Source: GPT-5.4 Pro + Kimi K2.6 dual review at /tmp/llm-cc081a9a-review-this-pla
 - Acceptance: every closed sub-bead under @km/all/fix-sweep-vendor-fuzz mapped to exactly one category; counts published
 
 ### G2. Replace "plateau distance %" with 5-level rubric
+
 - Update the /big skill (or new doc hub/quality-rubric.md) with: L0 workaround/threshold/env tweak; L1 runtime guard catches it; L2 invariant asserted + debug diagnostics; L3 API/lifecycle structure makes invalid state hard; L4 architecture makes invalid state impossible by construction; L5 old workaround code deleted + property/fuzz tests cover regression
 - Update @km/all/plateau-90 description: replace "60-65% → 90%+" with "L0/L1 → L4/L5"
 - Why: percentages drift to vibe; rubric is verifiable per-bead
@@ -35,6 +39,7 @@ Source: GPT-5.4 Pro + Kimi K2.6 dual review at /tmp/llm-cc081a9a-review-this-pla
 ## RESTRUCTURE WORK
 
 ### R1. Split plateau-90 into three proper epics
+
 Move children from @km/all/plateau-90 to:
 
 - @km/silvery/structural-hardening (NEW) — gets:
@@ -43,10 +48,8 @@ Move children from @km/all/plateau-90 to:
   - @km/silvery/renderer-feedback-trace (NEW, P1 — see C3)
   - @km/silvery/bounded-convergence (recast of renderer-convergence-by-design — see C3, P2 after feedback-trace)
   - (scrollto-single-pass folds into bounded-convergence — same class)
-
 - @km/all/codepath-collapse (NEW) — gets:
   - @km/silvery/hybrid-output-default
-
 - @km/infra/guardrails (NEW) — gets:
   - @km/infra/submodule-integrity-check (extend: CI AND pre-commit, not pre-commit alone)
   - @km/silvery/test-handletabcycling-default
@@ -55,6 +58,7 @@ Why: pro/Kimi: mixing architectural hardening with cleanup/infra/test ergonomics
 Acceptance: @km/all/plateau-90 has zero direct children after refile; the three new epics carry their populations; bd dependency edges record the lineage.
 
 ### R2. Tighten upstream-waiting registry
+
 Update .claude/skills/pm/workflows/upstream.md §8 + @km/all/upstream-waiting epic:
 
 - ADD per-bead `bd defer --until="<date>"` requirement (parent for grouping, defer for active reminding)
@@ -62,13 +66,11 @@ Update .claude/skills/pm/workflows/upstream.md §8 + @km/all/upstream-waiting ep
 - ADD required escalation path: "vendorize | fork | accept owned divergence | continue waiting"
 - ADD distinction: status field must be one of {merged-upstream, released-upstream, adopted-locally} — adopted is when our deps actually consume the fix
 - ADD code-marker convention: every workaround in code must have a greppable comment block:
-
   ```
   // UPSTREAM-WAITING(<repo>#<issue>): Delete when <pkg> >= <version>
   // Bead: km-<scope>.<slug>
   // Escalate by: <YYYY-MM-DD>
   ```
-
 - ADD `km-all.owned-divergence` sibling registry — inverse: workarounds where upstream is dead/declined and we own the divergence forever
 - ADD lint script packages/@km/infra/scripts/check-upstream-markers.sh — every UPSTREAM-WAITING comment has a matching open bead + every open bead has at least one matching code marker
 
@@ -76,11 +78,14 @@ Why: pro/Kimi: registries die when not tied to code; "merged" ≠ "released" ≠
 Acceptance: all four updates landed in upstream.md §8 + epic description; lint script exists and runs in CI; existing children of @km/all/upstream-waiting refiled to new template.
 
 ### R3. Split @km/bearly/mcp-plugin-bun-keepalive
+
 The current bead bundles two unrelated changes:
+
 - URL.toString() in Request constructor — pure upstream-waiting shim
 - lease-tracking refactor in connection lifecycle — may be permanent local hygiene improvement
 
 Split into:
+
 - @km/bearly/bun-keepalive-url-shim (P3, child of @km/all/upstream-waiting) — unwind = revert URL.toString
 - @km/bearly/mcp-lease-tracking (P4, child of @km/bearly or whichever scope owns mcp-plugin) — evaluate keep/revert independent of Bun fix
 
@@ -90,9 +95,11 @@ Acceptance: original bead split + closed; both children created with correct par
 ## RECAST WORK (replaces existing beads under restructured epics)
 
 ### C1. Recast @km/silvery/lifecycle-leak-detection → @km/silvery/scope-resource-ownership (P1)
+
 Original framing was detection (handle count returns to baseline at scope close). Pro/Kimi: that's tighter detection, not Summit-tier prevention.
 
 Real Summit:
+
 - Every silvery resource factory takes a scope token; cannot be called without one
 - Handle types are opaque branded outside the scope module — cannot be constructed except via factory
 - Scope close asserts owner registry empty for resources owned BY THIS scope (not global handle count — ambient handles cause flakes)
@@ -102,9 +109,11 @@ Real Summit:
 Acceptance: grep 'Bun.gc' vendor/silvery/tests/ → 0; opaque branded Handle types unable to be constructed outside scope module (verified via test that imports the type and tries to forge one — must be tsc error); leak diagnostic output shows resource class + allocation site; one slow memory canary remains.
 
 ### C2. Recast @km/silvery/paint-clear-invariant → @km/silvery/render-plan-commit (P1, promoted from P2)
+
 Original framing was phase-typed Buffer<Painting>/Buffer<Cleared>. Pro/Kimi: phantom types don't constrain shared mutation; ceremonial safety. Real fix is architectural.
 
 Pick ONE of three approaches (decide during /big sprint):
+
 - **Render plan + commit**: render phase produces immutable scene diff / op list; commit applies it in one deterministic order. clearExcessArea is either derived from the final plan or disappears.
 - **Double-buffer swap**: paint into back buffer; swap; old front buffer implicitly retired. No "clear excess area" because entire buffer is retired.
 - **Damage-list composition**: render produces damage rects; application is one atomic frame-end pass.
@@ -112,11 +121,13 @@ Pick ONE of three approaches (decide during /big sprint):
 Acceptance: clearExcessArea hasPrevBuffer guard at silvery 168b4989 is removed (because the wrong-order call site can't exist); SILVERY_STRICT still passes; the previously-flagged violation can no longer be expressed.
 
 ### C3. Recast @km/silvery/renderer-convergence-by-design into TWO beads
+
 Original was "eliminate MAX_SINGLE_PASS_ITERATIONS, single-pass by design". Pro/Kimi (emphatic): single-pass is wrong target — text layout with wrapping/intrinsic sizing is inherently iterative.
 
 Split into:
 
 **C3a. @km/silvery/renderer-feedback-trace (P1, do FIRST)**
+
 - Every render/layout pass beyond pass 1 emits a reason category
 - Reasons attributable to nodes/edges (which node invalidated layout? which edge fed back?)
 - Pass causes counted from test runs / fuzz runs
@@ -124,6 +135,7 @@ Split into:
 - Why: makes convergence work evidence-driven, not speculative
 
 **C3b. @km/silvery/bounded-convergence (P2, after C3a delivers data)**
+
 - Replace MAX_SINGLE_PASS_ITERATIONS=15 with explicit feedback-edge model
 - For each edge class (text-measurement, viewport-dependent constraints, scrollTo settling): documented bound + proof or assertion
 - Final state: either CONVERGENCE_THEOREM_QED N=2 (or whatever the data supports), OR honest documentation that N>2 is fundamental and the constant becomes "edge inventory limit"
@@ -133,6 +145,7 @@ Split into:
 ## NET-NEW WORK
 
 ### N1. @km/infra/continuous-fuzz (P1, child of @km/infra/guardrails)
+
 Pro/Kimi: 5 fuzz failures were found in this sweep — fuzz is what's working. Stop fuzzing → regress. A plateau program without continuous fuzz is whack-a-mole.
 
 - Wire fuzz harness into CI on a periodic schedule (nightly or per-PR depending on cost)
@@ -141,6 +154,7 @@ Pro/Kimi: 5 fuzz failures were found in this sweep — fuzz is what's working. S
 - Acceptance: GH Actions workflow runs fuzz on schedule; crashes file beads automatically; corpus persists.
 
 ### N2. @km/all/owned-divergence (P3, perpetual registry — inverse of upstream-waiting)
+
 See R2: registry for workarounds where upstream is dead/declined and we own the divergence permanently. Reviewed in /sop infra alongside upstream-waiting.
 
 ## EXECUTION ORDER
@@ -164,8 +178,10 @@ See R2: registry for workarounds where upstream is dead/declined and we own the 
 - This bead's retrospective documents which of pro/Kimi's hypotheses held and which didn't
 
 ## Cross-refs
+
 - Source review: /tmp/llm-cc081a9a-review-this-plan-critically-q8wi.txt
 - Original plan: @km/all/plateau-90 (description has the original 60-65% framing — to be updated by G2)
 - Upstream registry: @km/all/upstream-waiting (modified by R2)
 - Skill: .claude/skills/pm/workflows/upstream.md (modified by R2)
 - /big skill: .claude/skills/big/SKILL.md (modified by G2)
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/infra-2"
 aliases:
   - km-infra-2
@@ -27,6 +29,7 @@ The infra package itself lives at `infra/` (not `packages/km-infra/`), much simp
 ## What was NOT built
 
 The full config centralization plan from the design doc:
+
 - No shared TypeScript base config factory
 - No ESLint/Prettier config presets
 - No auto-path generation from workspaces
@@ -55,3 +58,4 @@ Branch drifted 323 commits behind main. The reporter/setup work was useful but n
 - @km/_orphan/infra-1 (closed) — original bead, marked complete on the branch
 - inkx-9w4 (open) — @beorn/monorepo shared config package
 - docs/future/monorepo-infra.md — design doc (exists on main)
+

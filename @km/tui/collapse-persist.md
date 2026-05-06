@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/collapse-persist"
 aliases:
   - km-tui.collapse-persist
@@ -13,3 +16,4 @@ assignee: claude:124bfbe5
 # [x] Collapse columns: persist to DB, vertical 3-char styling @km/tui #feature #P3 @claude:124bfbe5
 
 Column collapse: (1) persist collapsed state to DB across restarts. (2) Collapsed column renders name vertically down the full height (no count needed). The 'column head' should fill the entire available height, not just a narrow strip.
+

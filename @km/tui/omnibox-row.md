@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/omnibox-row"
 aliases:
   - km-tui.omnibox-row
@@ -22,6 +24,10 @@ dependencies:
     created_at: 2026-04-14T16:24:05Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-tui.omnibox-unified
 ---
 
 # [x] Shared OmniboxRow component (Phase 1) @km/tui #task #P1
@@ -29,3 +35,4 @@ dependencies:
 blocks:: [[@km/tui/omnibox-unified]]
 
 Create OmniboxRow component that renders a KNode as a one-liner row. Migrates ItemPicker, Omnibox, FavoritesDialog to use it via adapter layer. No behavior change. Catches divergence bugs. Sigil color, primary label, secondary metadata derived from node.type.
+

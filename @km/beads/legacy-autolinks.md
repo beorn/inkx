@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/beads/legacy-autolinks"
 aliases:
   - km-beads.legacy-autolinks
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Regex autolinks rewrite bd-form ids in prose @km/beads #task #P1
 
 @km/markdown autolinks pattern: <prefix>-<scope>.<slug> and <prefix>-<scope>-<slug> rewrite to wikilink @<prefix>/<scope>/<slug>. Acceptance: prose containing 'see @km/storage/foo' renders as link; resolution is the catch-all when frontmatter aliases don't have an entry; help text mentions both forms accepted.
+

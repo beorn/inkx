@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/market/crosslinks"
 aliases:
   - km-market.crosslinks
@@ -16,3 +19,4 @@ assignee: claude:4929065a
 ---
 
 # [x] Systematic cross-site editorial linking across all ecosystem sites @km/market #task #P3 @claude:4929065a
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/embed-symlink-rename"
 aliases:
   - km-tui.embed-symlink-rename
@@ -30,8 +33,10 @@ Commit 923269cc2 renamed the data field embed_source → symlink_to, but the dis
 - isBrokenEmbed in TreeNode
 
 Result: three names for the same concept:
+
 - symlink_to (data field)
 - embed (display layer + comments)
 - isSymlink/isBrokenSymlink (ViewTree)
 
 Fix: rename embed→symlink across the display layer to match the data model. Mechanical rename via bun tools/refactor.ts.
+

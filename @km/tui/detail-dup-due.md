@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/detail-dup-due"
 aliases:
   - km-tui.detail-dup-due
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] Detail pane: duplicate 'Due Jan 26' lines accumulate on j/k navigation @km/tui #bug #P2
 
 When navigating between cards with j/k while the detail pane is open, each navigation adds another 'Due Jan 26' line to the metadata. The MetadataTable rows accumulate instead of being replaced. Likely a state/rendering issue where metadata rows are appended rather than recomputed on node change.
+

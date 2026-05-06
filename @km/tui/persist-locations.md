@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/tui/persist-locations"
 aliases:
   - km-tui.persist-locations
@@ -61,3 +63,4 @@ expanded at navigation time.
 4. resolveLocationKey: use expanded template instead of hardcoded REPO_LOCS
 5. Auto-create missing files for date-template locations (mkdir -p + write)
 6. Remove hardcoded REPO_LOCS, hardcoded positional cases — all from config
+

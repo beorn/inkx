@@ -1,4 +1,8 @@
 ---
+mentions:
+  - km
+projects:
+  - G
 id: "@km/inbox/fz3ih"
 aliases:
   - km-fz3ih
@@ -17,6 +21,7 @@ owner: bjorn@stabell.org
 Symptom: Press Ctrl+G then v (or s/x/z) in CommandBox. Expected: pane chord (vsplit/hsplit/close/zoom). Actual: 'v' inserted into input box, no chord action.
 
 Repro:
+
 1. bun apps/silvercode/src/bootstrap.ts --cwd /tmp/test
 2. Press Ctrl+G
 3. Press v
@@ -30,3 +35,4 @@ Note: The bead @km/silvercode/ctrl-w-blocked-by-textarea was about TextArea cons
 Fix: mirror \`chord\` into a ref \`chordRef\`, read from ref in useInput handler.
 
 File: apps/silvercode/src/App.tsx:220, 683
+

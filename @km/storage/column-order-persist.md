@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/storage/column-order-persist"
 aliases:
   - km-storage.column-order-persist
@@ -17,8 +19,10 @@ owner: bjorn@stabell.org
 Column reorder via opt+h/opt+l only updates parent_idx in state.db. When the user deletes state.db (or imports from a fresh vault), all columns reset to filesystem alphabetical order because the FS reconciler assigns parent_idx=0 to every newly-discovered file/folder.
 
 Fix options:
+
 - Write column order to a board frontmatter manifest (km.columns: [...])
 - Use a sidecar .km/columns.json
 - Embed parent_idx in a folder/file naming convention
 
 Spawned from @km/tui/column-move while fixing the 'jumping' half.
+

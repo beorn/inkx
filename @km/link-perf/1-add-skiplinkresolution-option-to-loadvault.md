@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/link-perf/1-add-skiplinkresolution-option-to-loadvault"
 aliases:
   - km-link-perf.1
@@ -14,3 +16,4 @@ Add `skipLinkResolution?: boolean` to LoadOptions.
 When true, skip the resolveLinks() phase entirely.
 
 File: packages/@km/storage/src/vault-loader.ts
+

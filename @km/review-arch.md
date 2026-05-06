@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/review-arch"
 aliases:
   - km-review-arch
@@ -62,3 +64,4 @@ closed_at: 2026-01-23T14:42:21Z
 ## Layer Architecture
 
 ✅ No layer violations - all fs/path usage justified with comments
+

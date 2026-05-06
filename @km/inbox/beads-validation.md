@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - unimac
 id: "@km/inbox/beads-validation"
 aliases:
   - km-beads-validation
@@ -12,7 +15,8 @@ assignee: unimac
 
 JSON.parse results are cast without validation in beads sync/migrate.
 
-**Location**: 
+**Location**:
+
 - packages/@km/beads/src/sync.ts:113
 - packages/@km/beads/src/migrate.ts:61
 
@@ -21,6 +25,8 @@ JSON.parse results are cast without validation in beads sync/migrate.
 **Fix**: Add Zod schema for BeadsIssue and validate on parse.
 
 **Acceptance criteria**:
+
 - [ ] Create Zod schema matching BeadsIssue type
 - [ ] Validate all JSON.parse calls
 - [ ] Add error handling for invalid lines
+

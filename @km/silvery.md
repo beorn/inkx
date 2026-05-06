@@ -1,7 +1,4 @@
 ---
-tags:
-  - epic
-  - P2
 mentions:
   - km
 id: "@km/silvery"
@@ -72,5 +69,5 @@ Release sequence: tree-shaking → bundle audit → border overflow fix → migr
 
 silvery = the shiny new renderer. Better ink/chalk (drop-in compat), with a path to cross-platform rendering. TEA is optional gradual migration, not a prerequisite.
 
-- [ ] silvery Image: visible flicker on scroll because each re-emit deletes the prior placement #P2 @issue priority:: P1
+- [ ] silvery Image: visible flicker on scroll because each re-emit deletes the prior placement #P2 @issue priority:: P2
 

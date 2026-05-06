@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/rev-code-0127/3-convert-infrastructure-classes-to-factory-function"
 aliases:
   - km-rev-code-0127.3
@@ -13,6 +15,7 @@ closed_at: 2026-01-27T14:35:27Z
 **High**: 17 classes violate factory function principle from docs/principles.md
 
 Infrastructure classes to convert:
+
 - SyncManager (packages/@km/storage/src/sync.ts:99)
 - WriteQueue (packages/@km/storage/src/writequeue.ts:302)
 - FileSystemWatcher (packages/@km/storage/src/watcher.ts:46)
@@ -24,5 +27,7 @@ Infrastructure classes to convert:
 Note: docs/principles.md says "Why not classes" but doesn't explain when infrastructure classes are acceptable.
 
 Actions:
+
 1. Convert classes to factory functions OR
 2. Document rationale for infrastructure classes in docs
+

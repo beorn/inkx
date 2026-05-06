@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/vault/sync-finance"
 aliases:
   - km-vault.sync-finance
@@ -13,3 +15,4 @@ owner: bjorn@stabell.org
 # [x] Sync ~fin → ~vault/drive/finance @km/vault #task #P2
 
 Banks, stocks, properties, crypto, expenses, inheritance, loans. ~9900 files total.
+

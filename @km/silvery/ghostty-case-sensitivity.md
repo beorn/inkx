@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/ghostty-case-sensitivity"
 aliases:
   - km-silvery.ghostty-case-sensitivity
@@ -43,6 +45,10 @@ dependencies:
     created_at: 2026-04-23T02:25:36Z
     created_by: claude:c6244087
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] detectTerminalCapsFromEnv: TERM_PROGRAM=Ghostty never matches modern terminal (lowercase compare) @km/silvery #bug #P2
@@ -54,3 +60,4 @@ Surfaced during Plateau Phase 3 (profile.ts). In detectTerminalCapsFromEnv, `isG
 Fix: lowercase the comparison, or compare case-insensitively.
 
 File: vendor/silvery/packages/ansi/src/profile.ts (and its upstream from detection.ts). Pre-existing, not introduced by Phase 3.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/inbox/fni1y"
 aliases:
   - km-fni1y
@@ -12,3 +14,4 @@ owner: bjorn@stabell.org
 # [x] stickyBottom outside scroll containers @km/_orphan #feature #P2
 
 Extend position=sticky + stickyBottom to work at any level, not just inside overflow=scroll containers. Element stays in flow but pins to parent's bottom edge when content is short.
+

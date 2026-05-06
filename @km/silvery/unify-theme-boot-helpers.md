@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/silvery/unify-theme-boot-helpers"
 aliases:
   - km-silvery.unify-theme-boot-helpers
@@ -21,6 +24,10 @@ dependencies:
     created_at: 2026-04-18T22:56:58Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvery
 ---
 
 # [x] Unify createThemedApp + runThemed into single theme boot path @km/silvery #task #P3 @Bjørn Stabell
@@ -28,3 +35,4 @@ dependencies:
 blocks:: [[@km/silvery]]
 
 Two boot helpers exist: createThemedApp (pipe-chain form, composes with @silvery/create) and runThemed (simple run() form). Both wrap element in ThemeProvider + detectTheme. Internal duplication. Extract shared wrapWithThemedProvider(element, opts) — both helpers use it. Keep both public APIs (different call shapes) but dedupe internals. Acceptance: one internal helper; both public APIs delegate to it; existing tests pass.
+

@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/plugin-registry"
 aliases:
   - km-silvery.plugin-registry
@@ -19,3 +21,4 @@ Encourage ecosystem growth by making it easy to publish and discover plugins/com
 
 Ink grew via 50+ community components. BubbleTea has 100+ bubbles. Silvery needs the same flywheel.
 The plugin architecture (plain functions, no framework interface) makes this easier than most frameworks.
+

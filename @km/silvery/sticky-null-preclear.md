@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/sticky-null-preclear"
 aliases:
   - km-silvery.sticky-null-preclear
@@ -15,3 +17,4 @@ owner: bjorn@stabell.org
 # [x] Non-scroll sticky pre-clear uses bg:null instead of effective background @km/silvery #bug #P3
 
 Normal-container sticky force-refresh in renderNormalChildren() clears content area to bg:null, but fresh render would have ancestor bg in gaps between children. Can leave holes with wrong bg in sparse layouts with inherited backgrounds. Should clear to effective bg or be more targeted. Found by GPT pipeline review (3/3 flagged).
+

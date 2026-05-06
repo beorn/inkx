@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/infra/broken-publishes-04-12"
 aliases:
   - km-infra.broken-publishes-04-12
@@ -18,6 +20,10 @@ dependencies:
     created_at: 2026-04-11T20:45:28Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-infra
 ---
 
 # [x] Hotfix broken packages found by /release verify @km/infra #bug #P1
@@ -35,3 +41,4 @@ To investigate each:
   bun release verify <pkg>
 
 Then fix the missing dependencies, build, publish hotfix, re-verify.
+

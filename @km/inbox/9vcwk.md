@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/inbox/9vcwk"
 aliases:
   - km-9vcwk
@@ -13,3 +16,4 @@ assignee: claude:550b034d
 # [x] Follow directory symlinks safely during file discovery @km/_orphan #feature #P2 @claude:550b034d
 
 Follow symlinks to directories during initial discovery and reconciliation scan. Uses realpathSync + visited Set to prevent cycles and deduplication. Symlinks pointing inside repo root are skipped (already indexed). Loop detection emits warnings.
+

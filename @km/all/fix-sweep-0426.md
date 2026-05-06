@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/all/fix-sweep-0426"
 aliases:
   - km-all.fix-sweep-0426
@@ -15,6 +18,10 @@ dependencies:
     created_at: 2026-04-26T12:13:33Z
     created_by: claude:2405c72e
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-all
 ---
 
 # [/] Fix sweep 2026-04-26 — supervisor redesign + 83 test failures + 210 typecheck errors @km/all #epic #P1 @claude:2405c72e
@@ -33,7 +40,7 @@ Tracking epic for the multi-area fix pass started 2026-04-26.
 - Graceful exit hardened in commit `08a0989b9` (sentTerm + exitPromise + 10s SIGKILL fallback through pgroup) covers Ctrl+C / app quit / planned shutdown.
 - Remaining gap (parent SIGKILL/OOM/panic leaks orphan claude+MCP grandchildren) is now `km-silvercode.parent-death-orphan-gap` at **P4** (long-term roadmap). YAGNI: no real-world report; revisit only on user-reported orphan accumulation, measurable resource leak, or deployment to a context where parent crashes are routine.
 
-----
+---
 
 Original section A context (preserved for history):
 
@@ -44,6 +51,7 @@ of the same vault — there's a gap between hard parent death (SIGKILL,
 OOM, panic, machine off) and the next start during which orphans live.
 
 Audit performed (this session):
+
 - spawnSession() callers: controller initial spawn (loop bounded by
   initialSessions=1/2/4), Ctrl+G v split, Ctrl+G s split, header '+'
   button, /spawn slash command, /fork slash command. NONE of these is
@@ -80,7 +88,6 @@ Optional follow-up.
   - vendor/flexily/tests/silvercode-gutter-bug.test.ts
   - vendor/termless/{packages/viterm/tests/matchers, tests/integration}.test.ts
   - vendor/bearly/plugins/recall/tests/history/recall.test.ts
-
 - slow: 30 failures across ~7 @km/tui files
   - apps/@km/tui/tests/card-rendering.slow.test.ts (~9: borders + date badge)
   - apps/@km/tui/tests/board-zoom.slow.spec.ts (~2: incremental mismatch +
@@ -90,7 +97,6 @@ Optional follow-up.
   - apps/@km/tui/tests/detail-pane.slow.test.ts (~1: header bar fallback)
   - apps/@km/tui/tests/production-entry.slow.spec.ts (~3: keypress latency
     perf, td chord)
-
 - fuzz: 7 failures
   - apps/@km/tui/tests/navigation-fuzz.fuzz.ts (4: comprehensive, basic,
     zoom, view-mode)
@@ -129,3 +135,4 @@ Optional follow-up.
   fixes (and vice versa)
 - (A) is a single-author rewrite, not a parallel-agent target
 - Some test failures may BE typecheck failures masquerading; cross-check
+

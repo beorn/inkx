@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/tui/view-coalescing"
 aliases:
   - km-tui.view-coalescing
@@ -22,9 +25,11 @@ Coalesce rapid view updates — process entire input queue before rendering.
 NOT time-based debouncing. Instead: drain the full input queue (all pending keypresses), process each command, THEN render once. This means if 5 keys arrive between frames, all 5 execute but only the final state is painted.
 
 Two levels:
+
 1. Input queue drain: process all buffered stdin bytes before yielding to render
 2. React batch: ensure all store mutations from the queue batch into one React render
 
 User feedback: 'it batches up the keys and still tries to execute each in sequence — I'd like coalescing so I can quickly jump from fold level 1 to 10 without redrawing every level in between'
 
 Key insight: this is about processing the ENTIRE input queue before rendering, not about delaying/debouncing individual keys.
+

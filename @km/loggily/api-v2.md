@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - Bjørn
 id: "@km/loggily/api-v2"
 aliases:
   - km-loggily.api-v2
@@ -19,6 +22,10 @@ dependencies:
     created_at: 2026-04-11T17:13:46Z
     created_by: Bjørn Stabell
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-loggily
 ---
 
 # [x] API v2: composable primitives with ergonomic API @km/loggily #feature #P1 @Bjørn Stabell
@@ -26,3 +33,4 @@ dependencies:
 blocks:: [[@km/loggily]]
 
 Redesign loggily from global setters to composable with* plugins and ergonomic createLogger options. See vendor/internal/loggily/api-v2-design.md for full design.
+

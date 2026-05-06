@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvery/proto-reactive-theme"
 aliases:
   - km-silvery.proto-reactive-theme
@@ -18,7 +20,10 @@ owner: bjorn@stabell.org
 When Mode 2031 detects color scheme change, automatically switch silvery theme. useColorScheme() hook for apps that want to react. km gets auto-switching for free via ThemeProvider.
 
 ## Why
+
 Currently dark/light is detected once at startup (macOS only). Mode 2031 enables reactive switching that works cross-platform including SSH.
 
 ## Depends on
+
 @km/silvery/proto-startup-detect
+

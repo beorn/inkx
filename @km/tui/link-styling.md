@@ -1,4 +1,7 @@
 ---
+mentions:
+  - km
+  - claude
 id: "@km/tui/link-styling"
 aliases:
   - km-tui.link-styling
@@ -13,3 +16,4 @@ assignee: claude:8f007ba9
 # [x] Detail pane: distinguish internal vs external links with different styling @km/tui #feature #P3 @claude:8f007ba9
 
 Internal links (to other nodes) should use dotted underlines. External links (URLs) should use blue + underline (clickable via OSC 8). Centralize link styling so it can be easily tweaked. Asana shows internal links as clickable pills/boxes.
+
