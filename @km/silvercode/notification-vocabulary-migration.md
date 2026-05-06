@@ -5,10 +5,21 @@ aliases:
 created_at: 2026-05-06T23:07:40.920Z
 type: task
 priority: P1
-status: open
+status: done
+closed_at: 2026-05-06T23:38:26Z
+close_reason: "shipped e281fd19a - standardized notification/debug vocabulary,
+  added Debug channel toggle, ChatEvent projection coverage, table spacing/header
+  styling, and resumed-session divider width fix. Tests: bun vitest run
+  apps/silvercode/tests/chat-types.test.ts
+  apps/silvercode/tests/content-layout.test.tsx
+  apps/silvercode/tests/mute-state.test.ts
+  apps/silvercode/tests/side-panel-multi-account.test.tsx
+  apps/silvercode/tests/notification-event-row.test.tsx
+  apps/silvercode/tests/mode-labels.test.tsx (86/86 pass); npx tsc --noEmit
+  --pretty false passed; acceptance grep returns documented exceptions only."
 ---
 
-# [ ] Complete Silvercode notification vocabulary migration @km/silvercode #task #P1
+# [x] Complete Silvercode notification vocabulary migration @km/silvercode #task #P1
 
 Standardize the remaining Silvercode planning and operational vocabulary around notifications.
 
