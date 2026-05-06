@@ -158,11 +158,8 @@ function compactFirstLine(value: unknown): string {
 }
 
 function recapLabel(content: unknown): string {
-  const text =
-    typeof content === "string"
-      ? content.replace(/\s*\(disable recaps in \/config\)\s*$/i, "").trim()
-      : ""
-  return text.length > 0 ? `<recap: ${text}>` : "<recap>"
+  const text = typeof content === "string" ? content.replace(/\s*\(disable recaps in \/config\)\s*$/i, "").trim() : ""
+  return text.length > 0 ? `RECAP · ${text}` : "RECAP"
 }
 
 function countSkillListing(content: unknown): number {

@@ -121,16 +121,17 @@ describe("SessionUpdateList scroll", () => {
     const app = renderList([
       systemMessage(
         "away-summary",
-        "<recap: RECAP-BODY-MARKER next action is queued.>",
+        "RECAP · RECAP-BODY-MARKER next action is queued.",
         1000,
         '{ "type": "system", "subtype": "away_summary" }',
       ),
     ])
 
-    expect(app.text).toContain("<recap: RECAP-BODY-MARKER next action is queued.>")
+    expect(app.text).toContain("RECAP · RECAP-BODY-MARKER next action is queued.")
+    expect(app.text).not.toContain("<recap:")
     const line = app.lines.find((l) => l.includes("RECAP-BODY-MARKER"))
     expect(line).toBeDefined()
-    expect(line!.trimStart().startsWith("<recap:")).toBe(true)
+    expect(line!.trimStart().startsWith("RECAP ·")).toBe(true)
   })
 
   test("wheel-up from resumed tail keeps transcript content visible", async () => {

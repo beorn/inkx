@@ -543,11 +543,23 @@ function BackgroundSystemRow({ text }: { text: string }): React.ReactElement {
   )
 }
 
+function isRecapSystemText(text: string): boolean {
+  return text === "RECAP" || text.startsWith("RECAP ·") || text.startsWith("<recap:")
+}
+
+function recapDisplayText(text: string): string {
+  if (!text.startsWith("<recap:")) return text
+  return `RECAP · ${text
+    .replace(/^<recap:\s*/, "")
+    .replace(/>\s*$/, "")
+    .trim()}`
+}
+
 function RecapSystemRow({ text }: { text: string }): React.ReactElement {
   return (
     <SessionEntry marker=" " markerColor="$muted" width="100%">
       <Text color="$muted" italic wrap="wrap">
-        {text}
+        {recapDisplayText(text)}
       </Text>
     </SessionEntry>
   )
@@ -1257,7 +1269,7 @@ function ExchangeItem({
   }
   if (m.role === "system") {
     const details = m.additionalContext ?? ""
-    const isRecap = m.text.startsWith("<recap:")
+    const isRecap = isRecapSystemText(m.text)
     if (isRecap) {
       return (
         <RawInspector payload={m.additionalContext ? { text: m.text, raw: m.additionalContext } : m}>

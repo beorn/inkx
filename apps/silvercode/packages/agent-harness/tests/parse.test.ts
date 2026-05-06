@@ -239,7 +239,7 @@ describe("stream-json parser — M0 fixtures", () => {
     expect(events[0]).toMatchObject({
       kind: "raw-transcript",
       turnId: "away-1",
-      label: "<recap: Investigating queue metadata; next: split ambient queue entries from user prompts.>",
+      label: "RECAP · Investigating queue metadata; next: split ambient queue entries from user prompts.",
     })
   })
 
