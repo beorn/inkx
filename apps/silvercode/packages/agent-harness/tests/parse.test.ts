@@ -223,6 +223,26 @@ describe("stream-json parser — M0 fixtures", () => {
     })
   })
 
+  test("Claude away summaries replay as visible recap rows", () => {
+    const events = collect([
+      JSON.stringify({
+        type: "system",
+        subtype: "away_summary",
+        content:
+          "Investigating queue metadata; next: split ambient queue entries from user prompts. (disable recaps in /config)",
+        uuid: "away-1",
+        sessionId: "sess-1",
+      }),
+    ])
+
+    expect(events).toHaveLength(1)
+    expect(events[0]).toMatchObject({
+      kind: "raw-transcript",
+      turnId: "away-1",
+      label: "<recap: Investigating queue metadata; next: split ambient queue entries from user prompts.>",
+    })
+  })
+
   test("known Claude transcript metadata gets readable labels and inspectable details", () => {
     const events = collect([
       JSON.stringify({

@@ -157,6 +157,14 @@ function compactFirstLine(value: unknown): string {
   )
 }
 
+function recapLabel(content: unknown): string {
+  const text =
+    typeof content === "string"
+      ? content.replace(/\s*\(disable recaps in \/config\)\s*$/i, "").trim()
+      : ""
+  return text.length > 0 ? `<recap: ${text}>` : "<recap>"
+}
+
 function countSkillListing(content: unknown): number {
   if (typeof content !== "string") return 0
   return content.split(/\r?\n/).filter((line) => /^\s*-\s+/.test(line)).length
@@ -483,6 +491,19 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
           : [],
         claudeCodeVersion: typeof obj.claude_code_version === "string" ? (obj.claude_code_version as string) : "",
         apiKeySource: typeof obj.apiKeySource === "string" ? (obj.apiKeySource as string) : "",
+        ts: nowMs(),
+      })
+      return
+    }
+    if (subtype === "away_summary") {
+      const sid = state.sessionId ?? toSessionId(obj.session_id ?? obj.sessionId)
+      state.sessionId = sid
+      emit({
+        kind: "raw-transcript",
+        sessionId: sid,
+        turnId: toTurnId((obj.uuid as string | undefined) ?? `away-summary-${nowMs()}`),
+        label: recapLabel(obj.content),
+        raw: obj,
         ts: nowMs(),
       })
       return

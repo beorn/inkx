@@ -117,6 +117,22 @@ describe("SessionUpdateList scroll", () => {
     }
   })
 
+  test("recap system row renders as muted inline recap, not a generic system bullet", () => {
+    const app = renderList([
+      systemMessage(
+        "away-summary",
+        "<recap: RECAP-BODY-MARKER next action is queued.>",
+        1000,
+        '{ "type": "system", "subtype": "away_summary" }',
+      ),
+    ])
+
+    expect(app.text).toContain("<recap: RECAP-BODY-MARKER next action is queued.>")
+    const line = app.lines.find((l) => l.includes("RECAP-BODY-MARKER"))
+    expect(line).toBeDefined()
+    expect(line!.trimStart().startsWith("<recap:")).toBe(true)
+  })
+
   test("wheel-up from resumed tail keeps transcript content visible", async () => {
     const long = `data:image/png;base64,${"a".repeat(5000)}`
     const messages: MessageEntry[] = [

@@ -543,6 +543,16 @@ function BackgroundSystemRow({ text }: { text: string }): React.ReactElement {
   )
 }
 
+function RecapSystemRow({ text }: { text: string }): React.ReactElement {
+  return (
+    <SessionEntry marker=" " markerColor="$muted" width="100%">
+      <Text color="$muted" italic wrap="wrap">
+        {text}
+      </Text>
+    </SessionEntry>
+  )
+}
+
 function ExpandableSystemRow({
   text,
   details,
@@ -1247,6 +1257,18 @@ function ExchangeItem({
   }
   if (m.role === "system") {
     const details = m.additionalContext ?? ""
+    const isRecap = m.text.startsWith("<recap:")
+    if (isRecap) {
+      return (
+        <RawInspector payload={m.additionalContext ? { text: m.text, raw: m.additionalContext } : m}>
+          <TimestampedRow timestamp={formatTime(m.ts)} side="left">
+            <Chat.Notification>
+              <RecapSystemRow text={m.text} />
+            </Chat.Notification>
+          </TimestampedRow>
+        </RawInspector>
+      )
+    }
     const isCompactSummary = m.text === "Compact summary" && details.length > 0
     if (isCompactSummary) {
       return (
