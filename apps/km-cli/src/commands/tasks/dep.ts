@@ -15,6 +15,7 @@ import { addGraphEdge, getGraphEdges, removeGraphEdge } from "@km/storage"
 import { loadRepo } from "../../load-repo.ts"
 import { getRootPath } from "../../program.ts"
 import { planAddDeps, planListDeps, planRemoveDeps } from "./dep-plan.ts"
+import { emitJson, normalizeJsonJq } from "../../utils/jq.ts"
 
 const term = createTerm(process)
 
@@ -152,7 +153,18 @@ export function createDepCommand(): Command {
     .alias("list")
     .argument("<id>", "Task ID — the one whose dependency edges are listed")
     .description("List incoming and outgoing dependency edges for a task")
-    .action(async (id: string) => {
+    .option("--json", "Output as JSON")
+    .option("--jq <expr>", "Filter JSON output through jq (implies --json; requires `jq` in PATH)")
+    .action(async (id: string, _localOptions: { json?: boolean; jq?: string }, cmd: { optsWithGlobals?: () => Record<string, unknown> }) => {
+      // Walk parent options too — the grandparent `task` command also
+      // defines `--json` / `--jq`, which masks this subcommand's flag
+      // values when the user types `km task dep ls <id> --json`. Same
+      // pattern as `task ready` / `task stale` / `task orphans`.
+      const merged = (cmd.optsWithGlobals?.() ?? {}) as Record<string, unknown>
+      const options = {
+        json: _localOptions.json === true || merged.json === true,
+        jq: _localOptions.jq ?? (merged.jq as string | undefined),
+      }
       const resolved = resolvePathArg(process.cwd(), getRootPath())
       using repo = await loadRepo(resolved.repoRoot)
 
@@ -168,6 +180,22 @@ export function createDepCommand(): Command {
 
       const inbound = plan.entries.filter((e) => e.direction === "in")
       const outbound = plan.entries.filter((e) => e.direction === "out")
+
+      // JSON mode emits the full planner shape so consumers can `--jq '.entries[]'`
+      // or filter by direction/rel without re-parsing the human output.
+      const { json, jq } = normalizeJsonJq(options)
+      if (json) {
+        await emitJson(
+          {
+            target: { nodeId: plan.targetNodeId, shortId: plan.targetShortId, label: targetLabel },
+            inbound,
+            outbound,
+            entries: plan.entries,
+          },
+          jq,
+        )
+        return
+      }
 
       if (inbound.length === 0 && outbound.length === 0) {
         console.log(term.dim(`${targetLabel} has no dependencies`))

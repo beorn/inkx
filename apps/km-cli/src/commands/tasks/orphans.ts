@@ -17,6 +17,7 @@ import { Bead } from "@km/beads"
 import { loadRepo } from "../../load-repo.ts"
 import { getRootPath } from "../../program.ts"
 import { findOrphans, parseGitLog } from "./orphans-plan.ts"
+import { emitJson, normalizeJsonJq } from "../../utils/jq.ts"
 
 const term = createTerm(process)
 
@@ -25,11 +26,20 @@ export function createOrphansCommand(): Command {
     .description("Find open tasks referenced in recent commit messages (likely closed-by-commit)")
     .option("-d, --days <n>", "Look back this many days in git log", int, 90)
     .option("--json", "Output as JSON")
+    .option("--jq <expr>", "Filter JSON output through jq (implies --json; requires `jq` in PATH)")
     .option("--details", "Include the matching commits per task")
-    .actionMerged(async (opts) => {
+    .actionMerged(async (opts, cmd) => {
       const days = (opts.days as number | undefined) ?? 90
-      const json = opts.json === true
-      const details = opts.details === true
+      // The parent `task` command also defines `--json` / `--jq`, which
+      // masks this subcommand's flag values when present. Use
+      // `optsWithGlobals()` to pick up either layer — same pattern as
+      // `task ready` and `task stale`.
+      const merged = (cmd.optsWithGlobals?.() ?? {}) as Record<string, unknown>
+      const { json, jq } = normalizeJsonJq({
+        json: (opts.json === true) || merged.json === true,
+        jq: (opts.jq as string | undefined) ?? (merged.jq as string | undefined),
+      })
+      const details = opts.details === true || merged.details === true
       const resolved = resolvePathArg(process.cwd(), getRootPath())
       using repo = await loadRepo(resolved.repoRoot)
 
@@ -39,6 +49,13 @@ export function createOrphansCommand(): Command {
         (i) => i.status === "todo" || i.status === "wip" || i.status === "blocked",
       )
       if (issues.length === 0) {
+        if (json) {
+          // Empty input → empty output. Stay JSON-shaped so callers
+          // that pipe `--jq` against this command don't see human text
+          // when there's nothing to orphan-check.
+          await emitJson([], jq)
+          return
+        }
         console.log(term.green("No open tasks — nothing to orphan-check."))
         return
       }
@@ -64,12 +81,9 @@ export function createOrphansCommand(): Command {
       const orphans = findOrphans(issues, commits)
 
       if (json) {
-        console.log(
-          JSON.stringify(
-            orphans.map((o) => ({ id: o.issue.id, title: o.issue.title, status: o.issue.status, commits: o.commits })),
-            null,
-            2,
-          ),
+        await emitJson(
+          orphans.map((o) => ({ id: o.issue.id, title: o.issue.title, status: o.issue.status, commits: o.commits })),
+          jq,
         )
         return
       }

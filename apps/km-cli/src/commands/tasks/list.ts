@@ -14,6 +14,7 @@ import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 import { Task, getBeadsConfig, type Repo } from "@km/storage"
+import { nodeToBead } from "@km/beads"
 import { resolvePathArg } from "@km/fs-mount"
 import { loadRepo } from "../../load-repo.ts"
 import { collapseAncestorsWithTypes } from "@km/tree"
@@ -28,6 +29,7 @@ import { planList } from "./list-plan.ts"
 import { buildStatusBar } from "./status-bar.ts"
 import { formatAmbiguityError } from "../../utils/short-id.ts"
 import { shouldShowSingleResultTip } from "../../utils/single-result-tip.ts"
+import { emitJson, normalizeJsonJq } from "../../utils/jq.ts"
 
 // Re-export pure helpers + planner so existing imports keep working
 // (tests still hit `filterTasksByAssignee`, `filterTasksByPriority`, etc.).
@@ -51,6 +53,7 @@ export interface ListTasksOptions {
   flat?: boolean
   showIds?: boolean
   json?: boolean
+  jq?: string
   blocked?: boolean
   unblocked?: boolean
   limit?: string | number
@@ -158,18 +161,19 @@ function renderTree(repo: Repo, tasks: KNodeType[], options: ListTasksOptions): 
 /**
  * Render the resolved task list (handles JSON, flat, and tree modes).
  */
-function renderTaskList(
+async function renderTaskList(
   repo: Repo,
   input: { tasks: KNodeType[]; rootNode: KNodeType | null; pathFilter: string | null; repoRoot: string },
   options: ListTasksOptions,
-): void {
+): Promise<void> {
   const { rootNode, pathFilter, repoRoot } = input
 
   const limit = parseLimitFlag(options.limit)
   const { items: tasks, totalMsg } = applyLimit(input.tasks, limit)
 
-  if (options.json) {
-    console.log(JSON.stringify(tasks, null, 2))
+  const { json, jq } = normalizeJsonJq(options)
+  if (json) {
+    await emitJson(tasks, jq)
     return
   }
 
@@ -244,7 +248,7 @@ export async function listTasks(pathOrId: string | undefined, options: ListTasks
   })
 
   if (plan.kind === "single-task") {
-    showTaskDetails(repo, plan.task, options)
+    await showTaskDetails(repo, plan.task, options)
     return
   }
   if (plan.kind === "ambiguous") {
@@ -252,7 +256,7 @@ export async function listTasks(pathOrId: string | undefined, options: ListTasks
     process.exit(1)
   }
 
-  renderTaskList(
+  await renderTaskList(
     repo,
     { tasks: plan.tasks, rootNode: plan.rootNode, pathFilter: plan.pathFilter, repoRoot: resolved.repoRoot },
     options,
@@ -263,10 +267,27 @@ export async function listTasks(pathOrId: string | undefined, options: ListTasks
  * Show task details — delegates to the shared `printTaskDetails` helper
  * so `tasks <id>` and `bd show <id>` stay in sync, then appends the
  * task-specific subtask listing.
+ *
+ * `--jq` implies `--json`. The non-jq JSON path delegates to
+ * `printTaskDetails` (which emits the BeadType shape via JSON.stringify).
+ * The jq path reproduces the same BeadType shape but routes it through
+ * `emitJson` so jq can filter the output. The shape stays identical so
+ * existing `--json` consumers don't see drift.
  */
-function showTaskDetails(repo: Repo, task: KNodeType, options: { json?: boolean }): void {
-  printTaskDetails(repo, task, { json: options.json })
-  if (options.json) return
+async function showTaskDetails(repo: Repo, task: KNodeType, options: { json?: boolean; jq?: string }): Promise<void> {
+  const { json, jq } = normalizeJsonJq(options)
+  if (json) {
+    if (jq) {
+      // Reproduce the BeadType payload that `printTaskDetails(..., { json: true })`
+      // would emit, then route through `emitJson` for jq filtering.
+      const issue = nodeToBead(task, { repo })
+      await emitJson(issue, jq)
+      return
+    }
+    printTaskDetails(repo, task, { json: true })
+    return
+  }
+  printTaskDetails(repo, task, { json: false })
 
   // Subtask list is task-mode only — bd uses Blocked-by / dependency
   // tree instead of a flat subtask roll-up.

@@ -118,6 +118,7 @@ export const taskCommand = new Command("task")
   .option("-i, --show-ids", "Show task IDs")
   .option("-n, --limit <n>", "Limit number of results")
   .option("--json", "Output as JSON")
+  .option("--jq <expr>", "Filter JSON output through jq (implies --json; requires `jq` in PATH)")
   .action((queryArgs: string[], options) => {
     // Bare `task` is the board view (list). All mutations go through
     // explicit subcommands — top-level mutation flags were removed in
@@ -232,6 +233,7 @@ taskCommand
   .option("-f, --flat", "Show path on single line")
   .option("-i, --show-ids", "Show task IDs")
   .option("--json", "Output as JSON")
+  .option("--jq <expr>", "Filter JSON output through jq (implies --json; requires `jq` in PATH)")
   .action((_options, cmd) => {
     void listStaleTasks(cmd.optsWithGlobals())
   })
@@ -241,6 +243,12 @@ taskCommand
 // the long-form filter combo for "what's available to work on right now".
 // Display flags mirror the parent `task` command (--detail, --flat,
 // --show-ids, --json, --limit) so output stays consistent across the suite.
+//
+// Use `optsWithGlobals()` so flags shared with the parent `task` command
+// (notably `--json` and `--jq`) reach this action — when both parent and
+// subcommand define the same flag, commander masks the subcommand's copy
+// and the user-facing value lives on the parent. Same pattern as `task
+// stale` below.
 taskCommand
   .command("ready")
   .description("List ready tasks (todo + unblocked)")
@@ -252,7 +260,9 @@ taskCommand
   .option("-p, --priority <value>", "Filter by priority (e.g. P1, P2, or 0-4)")
   .option("--assignee <name>", "Filter by assignee (use 'me' for current user)")
   .option("--json", "Output as JSON")
-  .action((queryArgs: string[], options) => {
+  .option("--jq <expr>", "Filter JSON output through jq (implies --json; requires `jq` in PATH)")
+  .action((queryArgs: string[], _options, cmd) => {
     const queryStr = queryArgs.length > 0 ? queryArgs.join(" ") : undefined
-    void listTasks(queryStr, { ...options, status: "todo", unblocked: true })
+    const merged = cmd.optsWithGlobals()
+    void listTasks(queryStr, { ...merged, status: "todo", unblocked: true })
   })

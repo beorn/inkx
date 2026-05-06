@@ -18,6 +18,7 @@ import { collapseAncestorsWithTypes } from "@km/tree"
 import { getRootPath } from "../../program.ts"
 import { formatTaskWithPath, formatTaskLine } from "./formatters.ts"
 import { planStale } from "./stale-plan.ts"
+import { emitJson, normalizeJsonJq } from "../../utils/jq.ts"
 
 // Re-export the planner + helpers so existing imports keep working.
 export {
@@ -35,6 +36,7 @@ export interface StaleTasksOptions {
   flat?: boolean
   showIds?: boolean
   json?: boolean
+  jq?: string
 }
 
 /**
@@ -46,13 +48,11 @@ export async function listStaleTasks(options: StaleTasksOptions): Promise<void> 
 
   const plan = planStale(repo.getAllTasks(), options.days, Date.now())
 
-  if (options.json) {
-    console.log(
-      JSON.stringify(
-        plan.rows.map((r) => r.task),
-        null,
-        2,
-      ),
+  const { json, jq } = normalizeJsonJq(options)
+  if (json) {
+    await emitJson(
+      plan.rows.map((r) => r.task),
+      jq,
     )
     return
   }
