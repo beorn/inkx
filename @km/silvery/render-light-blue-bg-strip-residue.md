@@ -319,3 +319,74 @@ bun vitest run apps/km-tui/tests/render-cyan-strip-cross-backend.slow.spec.ts
 Or write a focused test that loads `/tmp/km-strip.bin`, feeds Frame 1 to `@termless/xtermjs`, then asserts no cells with bg=rgb(52,58,70) lack a corresponding character within their painted run. The 14 trailing-space cells with bg=$bg-surface-subtle are the smoking gun.
 
 The bug is in silvery's pipeline at the boundary between an inline bg-painting element and the surrounding trailing-whitespace flow. NOT a popover. NOT mouse. NOT residue from prior frame. **Inline content bg → trailing whitespace bg-leak on the very first render.**
+
+## Round 11 — exact strip location + token identification (2026-05-05)
+
+Decoded `/tmp/km-strip.bin` Frame 1 through `@silvery/test` createTermless (xterm-headless). Three regions with bg=rgb(52,58,70):
+
+| termless row | cols | content | source |
+|---|---|---|---|
+| 15 | 51-56 | `/inbox` | inline code in @inbox card content |
+| 37 | 14-27 | `Finance/Taxes/` | inline code in resolver § 2.2 |
+| 71 | 66-79 | (14 empty spaces) | **THE STRIP** |
+
+**Token = `$mutedbg`** (legacy theme, blend(bg, fg, 0.04) = rgb(52,58,70) for Nord). Confirmed via `vendor/silvery/packages/ansi/src/theme/derive.ts:183` + `derived.ts:35`:
+```ts
+code: { backgroundColor: "$mutedbg" }
+```
+
+Sterling's `bg-muted` uses 0.08 blend = rgb(60,66,78). The user's theme is using LEGACY `theme/derive.ts` (not Sterling), giving the 0.04 blend. The `code` variant of `<Text variant="code">` paints this.
+
+### Strip persists across all captured frames
+
+Tracked strip status across all 33 frames in `/tmp/km-strip.bin`:
+- F1 (cold-start full paint, 19262 bytes): 14/14 strip cells at row 71 cols 66-79
+- F2, F3 (`ESC[?25l` only, cursor hide): 14/14 strip cells (unchanged)
+- F4 (status-bar update at row 75): cells STILL there but content scrolled up by 1, strip moves to row 70
+- F5–F33: strip persists at row 70 throughout
+
+**The strip does NOT clear.** It's painted at cold-start and never repainted with default bg.
+
+### Frame 1 byte-level emit at row 72 (ANSI-1-indexed; = termless row 71)
+
+```
+[72;1H[48;2;46;52;64m [38;2;46;52;64;48;2;56;60;69m│[39m [38;2;143;149;161m·[38;2;216;222;233m If you walk the tree and [1mnothing[22;39m  [38;2;46;52;64m│[39m [48;2;46;52;64m                        [48;2;52;58;70m              [48;2;46;52;64m  [38;2;157;163;175m
+```
+
+Row layout decomposed:
+- col 1: bg-default space
+- col 2: left card border `│` (with selectedBg tint — cursorInDescendant)
+- cols 3-38: "· If you walk the tree and **nothing**" (left card content, wrap=truncate)
+- col 39: 2 spaces + right border `│` (invisible — fg=bg-default)
+- cols 40-64: 25 spaces with bg=default (gap between left and right column)
+- **cols 65-78: 14 spaces with bg=$mutedbg ← THE STRIP** (in the right-column area)
+- cols 79-80: 2 spaces with bg=default
+- col 81: scroll indicator `▸` (fg=muted)
+
+### What's NOT the strip source
+
+- **Wrap-truncate inline-code bg-leak**: synthetic test mirrors `<Text wrap="truncate"><Text variant="code">…` correctly truncates bg with content. NO leak past visible boundary.
+- **`+N more` card footer (CardColumn.tsx:675)**: cardBg conditional, none evaluate to $mutedbg.
+- **NodeLine/Popover/Toast/CommandBox**: all use $bg-surface-overlay (rgb 66,72,84), not strip color.
+- **Skeleton cards**: use $muted fg, no bg.
+- **Right column (@inbox) cards**: end at row ~30; row 71 is in empty column area below cards.
+
+### Strongest remaining hypothesis: an off-screen card or wrapped content emits inline-code bg at this position
+
+The strip cols 65-78 width 14 matches `~vault/@inbox/` (14 chars) — an inline-code element in `RESOLVER.md` line:
+> If you walk the tree and **nothing matches**, the item stays in `~vault/@inbox/` (for markdown)…
+
+Hypothesis: the resolver card's content extends beyond the visible portion. The wrap-truncate cuts at "nothing" (col 38). But silvery's incremental render OR layout cascade emits bg-paint for the inline-code segment at the position it WOULD have rendered if the card were wider — projecting into the right-column area at cols 65-78.
+
+This isn't reproducible synthetically (the simple wrap-truncate test passes). It requires real km card layout + real markdown content + real layout-feedback measure cycle. The bug is somewhere between:
+1. `apps/km-tui/src/views/TreeNode.tsx` line 869 (card-child Text wrap=truncate)
+2. silvery's text wrapper measuring inline `<Text variant="code">` segments
+3. silvery's render-phase cell-paint for clipped/truncated inline segments
+
+### Concrete next step
+
+Spawn the silvery agent on the localized site:
+- Set up `bun km view ~/Bear/Vault` at 82×75 with `SILVERY_INSTRUMENT=1 SILVERY_DEV=1 SILVERY_DEV_LOG=/tmp/dev.log SILVERY_CELL_DEBUG=72,71` 
+- Trace what AgNode is responsible for the cell paints at (72, 71) cols 65-78 (1-indexed col 66+)
+- Once the AgNode is named, look at its render-phase emit path for trailing-whitespace bg
+- Or write a test that loads `RESOLVER.md`'s exact line in a 38-wide truncated card with `~vault/@inbox/` inline code, asserts no bg paints outside the card's right border
