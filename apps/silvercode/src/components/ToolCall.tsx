@@ -29,7 +29,7 @@
  */
 
 import React from "react"
-import { Box, Diff as SilveryDiff, Image, type DiffHunk, Muted, Text, type SilveryMouseEvent } from "silvery"
+import { Box, Diff as SilveryDiff, Image, Link, type DiffHunk, Muted, Text, type SilveryMouseEvent } from "silvery"
 import type { ToolCall as ToolCallType, ToolCallContent, ToolCallLocation, ContentBlock } from "@km/agent-harness"
 import { ToolCallStatusTitle } from "./ToolCallStatusTitle.tsx"
 import { BoundedScroll, DEFAULT_DISCLOSURE_MAX_ROWS } from "./BoundedScroll.tsx"
@@ -342,6 +342,18 @@ function shellErrorSummary(toolCall: ToolCallType, exitCode: number | null): str
   return `error: ${command} exited with code ${exitCode}`
 }
 
+function locationLabel(loc: ToolCallLocation): string {
+  const display = formatPathForDisplay(loc.path)
+  return loc.line != null ? `${display}:${loc.line}` : display
+}
+
+function locationHref(loc: ToolCallLocation): string | null {
+  const absolute = resolveDisplayPath(loc.path)
+  if (!absolute.startsWith("/")) return null
+  const line = loc.line != null ? `:${loc.line}` : ""
+  return `file://${absolute}${line}`
+}
+
 /**
  * Compact location chip for the header — "src/foo.ts:42" or "src/foo.ts"
  * if no line. Multiple locations render as a comma-separated list,
@@ -356,18 +368,25 @@ function renderLocations(locations: ReadonlyArray<ToolCallLocation> | undefined)
   if (!locations || locations.length === 0) return null
   const visible = locations.slice(0, 3)
   const more = locations.length - visible.length
-  const text = visible
-    .map((loc) => {
-      const display = formatPathForDisplay(loc.path)
-      return loc.line != null ? `${display}:${loc.line}` : display
-    })
-    .join(", ")
   return (
-    <Box flexShrink={1} minWidth={0}>
-      <Muted wrap="truncate">
-        {text}
-        {more > 0 ? ` +${more}` : ""}
-      </Muted>
+    <Box flexDirection="row" flexShrink={1} minWidth={0}>
+      {visible.map((loc, index) => {
+        const label = locationLabel(loc)
+        const href = locationHref(loc)
+        return (
+          <React.Fragment key={`${loc.path}:${loc.line ?? ""}:${index}`}>
+            {index > 0 ? <Muted>, </Muted> : null}
+            {href ? (
+              <Link href={href} color="$muted" wrap="truncate">
+                {label}
+              </Link>
+            ) : (
+              <Muted wrap="truncate">{label}</Muted>
+            )}
+          </React.Fragment>
+        )
+      })}
+      {more > 0 ? <Muted> +{more}</Muted> : null}
     </Box>
   )
 }

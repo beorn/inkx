@@ -422,6 +422,36 @@ describe("ToolCall", () => {
     expect(app.text).toContain("src/foo.ts:42")
   })
 
+  test("absolute location chip is an OSC 8 file link", () => {
+    const app = freshRender()(
+      <ToolCall
+        toolCall={tc({
+          kind: "read",
+          status: "pending",
+          title: "x",
+          locations: [{ path: "/tmp/foo.ts", line: 42 }],
+        })}
+      />,
+    )
+    expect(app.text).toContain("/tmp/foo.ts:42")
+    expect(app.ansi).toContain("file:///tmp/foo.ts:42")
+  })
+
+  test("relative location chip stays display-only without a file URI", () => {
+    const app = freshRender()(
+      <ToolCall
+        toolCall={tc({
+          kind: "read",
+          status: "pending",
+          title: "x",
+          locations: [{ path: "src/foo.ts", line: 42 }],
+        })}
+      />,
+    )
+    expect(app.text).toContain("src/foo.ts:42")
+    expect(app.ansi).not.toContain("file://src/foo.ts")
+  })
+
   test("multiple locations: shows up to 3 then '+N' marker", () => {
     const app = freshRender()(
       <ToolCall
@@ -652,6 +682,7 @@ describe("ToolCall path display friendliness", () => {
     )
     expect(app.text).not.toContain(fullPath)
     expect(app.text).toMatch(/~km\/CLAUDE\.md|~\/Code\/pim\/km\/CLAUDE\.md/)
+    expect(app.ansi).toContain(`file://${fullPath}`)
   })
 
   test("locations chip shortens absolute paths", () => {
