@@ -1,12 +1,21 @@
 ---
 mentions:
   - km
+closed_at: 2026-05-06T23:10:43.443Z
+closeReason: "shipped ca07323fc on origin/main: structured TestApp tree
+  snapshots, duplicate-title strictness for title handles, dispatch demoted to
+  deprecated/internal escape hatch, toBell matcher, and typed test.extend docs.
+  Evidence: origin/main greps for snapshotTree/expectTreeSnapshot,
+  duplicate-title strictness, @deprecated dispatch, toBell, and test.extend all
+  pass. Tests: bun vitest run apps/km-tui/tests/tree-snapshot.test.ts
+  apps/km-tui/tests/matchers.test.ts apps/km-tui/tests/column-rendering.test.ts
+  => 65 passed, 1 skipped; bun run test:fast => typecheck OK, 609 passed, 2
+  skipped."
 ---
 
-# [/] Phase 6: TestApp API refinement — shrink surface, improve ergonomics @km/all #task #P2
+# [x] Phase 6: TestApp API refinement — shrink surface, improve ergonomics @km/all #task #P2
 
 blocks:: [[@km/infra/test-system]]
-
 ## Goal
 
 Refine the TestApp API based on Pro review findings. Less surface area, sharper signals, better failure messages.
@@ -21,15 +30,15 @@ Refine the TestApp API based on Pro review findings. Less surface area, sharper 
   > column: col1
   > task: task1 [cursor]
   > task: task2
-10. Locator strictness: single-target ops throw on multiple matches (Playwright model)
-11. Shrink TestApp surface:
+14. Locator strictness: single-target ops throw on multiple matches (Playwright model)
+15. Shrink TestApp surface:
 - Cut aliases
 - Move expect* methods to vitest matchers
 - Demote dispatch() (prefer press/command which route through the real kb handler)
-22. Vitest test.extend for typed fixtures + cleanup hooks
-23. bell as counter → toBell() matcher (Pro finding #15)
-24. Distinguish command() from press() semantically (Pro finding #16)
-25. app.card(title) → app.node(id) for stable refs, card(title) convenience only (Pro finding #17)
+31. Vitest test.extend for typed fixtures + cleanup hooks
+32. bell as counter → toBell() matcher (Pro finding #15)
+33. Distinguish command() from press() semantically (Pro finding #16)
+34. app.card(title) → app.node(id) for stable refs, card(title) convenience only (Pro finding #17)
 
 ## /complete criteria
 
