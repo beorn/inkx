@@ -69,8 +69,9 @@
  *   - bd migrate  — bd→km vault migration. `km import bd` doesn't
  *                   exist; legacy stays.
  *
- * Once-per-session deprecation notice fires on first bd invocation —
- * see `bd-deprecation.ts`.
+ * `bd` remains a first-class user-facing surface alongside `km task` /
+ * `km <verb>`. Both are valid; the alias layer just keeps them
+ * behaviourally identical.
  */
 
 import { Command } from "@silvery/commander"
@@ -97,21 +98,14 @@ import { registerBdChildren } from "./bd-children.ts"
 import { registerBdQuery } from "./bd-query.ts"
 import { registerBdRename } from "./bd-rename.ts"
 
-import { printBdDeprecationOnce } from "./bd-deprecation.ts"
-
 export const bdCommand = new Command("bd")
-  .description("Bead tracking — back-compat alias for `km task` / `km <verb>` (Wave 6)")
+  .description("Bead tracking — `km task` / `km <verb>` aliased through bd-style argv")
   .addHelpSection(
     "Note:",
-    "`bd` is an alias for `km task`. Each subcommand delegates to its task / km equivalent.\n" +
-      "See `km bd config` for the prefix knob; the canonical surface is `km task` / `km <verb>`.",
+    "`bd` and `km task` share semantics by construction: each bd subcommand delegates to its\n" +
+      "task / km equivalent. Use whichever feels right; `bd config` owns the issue-prefix knob.",
   )
   .allowUnknownOption(false)
-  .hook("preAction", () => {
-    // Deprecation nudge — bd is an alias for km task. Once-per-session,
-    // off in tests/CI by default. See bd-deprecation.ts for the gating.
-    printBdDeprecationOnce()
-  })
 
 // Display family — alias shims (delegate to km task / km <verb>);
 // children kept legacy (Wave 6 gap: km show -c doesn't walk path-form sibs)
