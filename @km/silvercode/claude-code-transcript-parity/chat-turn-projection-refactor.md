@@ -9,10 +9,22 @@ aliases:
 created_at: 2026-05-05T20:20:15.903Z
 type: task
 priority: P0
-status: in_progress
+status: done
+closed_at: 2026-05-06T22:54:55.480Z
+closeReason: "Verified cbadc97f2 plus existing ChatTree substrate.
+  apps/silvercode/src/chat/types.ts defines
+  ChatEvent/ChatState/ChatSession/ChatTree/ChatNode/ChatElement/ChatLeaf/channe\
+  ls; buildChatTurns documents idle-delimited UI turnKey projection;
+  SessionUpdateList renders Chat.Turn.* with ordered narration/activity and
+  notifications/session metadata outside canonical ownership. Tests: bun vitest
+  run apps/silvercode/tests/chat-types.test.ts
+  apps/silvercode/tests/chat-model.test.ts
+  apps/silvercode/tests/content-layout.test.tsx (57 passed / 1 skipped); focused
+  parity suite with parse/codex/notification/sticky-bottom (169 passed / 1
+  skipped); npx tsc --noEmit --pretty false."
 ---
 
-# [ ] Chat turn/burst projection model and component refactor @km/silvercode #task #P0
+# [x] Chat turn/burst projection model and component refactor @km/silvercode #task #P0
 
 Make Silvercode's chat/session rendering explicit about the difference between canonical stream/session data and derived UI envelopes.
 

@@ -9,10 +9,24 @@ aliases:
 created_at: 2026-05-05T20:12:19.442Z
 type: feature
 priority: P0
-status: in_progress
+status: done
+closed_at: 2026-05-06T22:54:23.471Z
+closeReason: "Shipped/verified cbadc97f2. Canonical AgentPlan covers Claude
+  TodoWrite, ACP plan-update, Codex plan_update/plan_delta and update_plan, with
+  side panel demoted to count/help and in-session PlanDrawer above composer.
+  PlanDrawer is right-aligned at 60% prose width, active/pending first,
+  completed tail collapsed. Tests: bun vitest run
+  apps/silvercode/tests/codex-resume.test.ts
+  apps/silvercode/packages/agent-harness/tests/parse.test.ts
+  apps/silvercode/tests/content-layout.test.tsx
+  apps/silvercode/tests/chat-model.test.ts
+  apps/silvercode/tests/turn-activity-summary.test.tsx
+  apps/silvercode/tests/notification-event-row.test.tsx
+  apps/silvercode/tests/visual/message-list-sticky-bottom.test.tsx (169 passed /
+  1 skipped); npx tsc --noEmit --pretty false."
 ---
 
-# [ ] Canonical agent plan model and in-session plan drawer @km/silvercode #feature #P0
+# [x] Canonical agent plan model and in-session plan drawer @km/silvercode #feature #P0
 
 Unify Claude Code TodoWrite, Codex plan_update/update_plan, ACP/OpenCode plan updates, and Silvercode UI around one canonical Plan data model. Render the current plan in a collapsible bottom-right box inside the session, above the command box, instead of using the side panel as the primary plan surface.
 

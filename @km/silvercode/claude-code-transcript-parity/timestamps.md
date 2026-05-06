@@ -18,9 +18,15 @@ dependencies:
     metadata: "{}"
 props: {}
 propsRaw: {}
+closed_at: 2026-05-06T22:54:23.471Z
+closeReason: "Verified cbadc97f2. TimestampedRow shows exact turn timestamps
+  only on cmd-hover in the nearest gutter and keeps ordinary transcript text
+  unchanged. Test: bun vitest run apps/silvercode/tests/content-layout.test.tsx
+  (45 passed), including cmd-hover timestamp regression; npx tsc --noEmit
+  --pretty false."
 ---
 
-# [ ] Relative timestamps for turn boundaries — '(2m ago)' next to user/assistant heads @km/silvercode #feature #P2
+# [x] Relative timestamps for turn boundaries — '(2m ago)' next to user/assistant heads @km/silvercode #feature #P2
 
 blocks:: [[@km/silvercode]]
 

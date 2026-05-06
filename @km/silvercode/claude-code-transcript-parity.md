@@ -4,9 +4,25 @@ aliases:
   - km-silvercode.claude-code-transcript-parity
   - km-silvercode-claude-code-transcript-parity
 created_at: 2026-05-06T18:36:50.952Z
+closed_at: 2026-05-06T22:55:31.000Z
+closeReason: "Completed through cbadc97f2 and child bead closures. All child
+  beads under @km/silvercode/claude-code-transcript-parity are closed; targeted
+  vocabulary grep for deprecated transcript UI names across apps/silvercode
+  source/tests/storybook/docs/packages and parity beads returns 0 hits.
+  Verification: bun vitest run
+  apps/silvercode/tests/codex-resume.test.ts
+  apps/silvercode/packages/agent-harness/tests/parse.test.ts
+  apps/silvercode/tests/content-layout.test.tsx
+  apps/silvercode/tests/chat-model.test.ts
+  apps/silvercode/tests/chat-types.test.ts
+  apps/silvercode/tests/turn-activity-summary.test.tsx
+  apps/silvercode/tests/notification-event-row.test.tsx
+  apps/silvercode/tests/visual/message-list-sticky-bottom.test.tsx (aggregate
+  focused runs: 169 passed / 1 skipped plus chat-types slice 57 passed / 1
+  skipped); npx tsc --noEmit --pretty false; npx oxfmt --check touched files."
 ---
 
-# [ ] [epic] Silvercode transcript/tool output parity with Claude Code #epic #P1 ^claude-code-transcript-parity
+# [x] [epic] Silvercode transcript/tool output parity with Claude Code #epic #P1 ^claude-code-transcript-parity
 
 Make Silvercode's transcript, tool output, and debug/event treatment reach same-or-better usability versus Claude Code, using the May 6 side-by-side screenshots as the baseline.
 

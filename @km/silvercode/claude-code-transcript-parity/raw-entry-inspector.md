@@ -18,9 +18,16 @@ dependencies:
     metadata: "{}"
 props: {}
 propsRaw: {}
+closed_at: 2026-05-06T22:54:23.471Z
+closeReason: "Shipped/verified cbadc97f2. RawInspector cmd-hover YAML detail now
+  covers notification rows and assistant activity summaries in addition to
+  user/system metadata/tool/raw rows; debug payloads stay out of ordinary prose.
+  Tests: bun vitest run apps/silvercode/tests/content-layout.test.tsx (45
+  passed) and focused parity suite (169 passed / 1 skipped); npx tsc --noEmit
+  --pretty false."
 ---
 
-# [ ] silvercode — per-entry raw inspector (popover + below/above modes) @km/silvercode #feature #P2
+# [x] silvercode — per-entry raw inspector (popover + below/above modes) @km/silvercode #feature #P2
 
 blocks:: [[@km/silvercode]]
 
@@ -76,6 +83,12 @@ v1 is now **cmd-hover/detail first**. `SessionUpdateList.RawInspector` attaches 
 - Debug payloads never masquerade as user-facing prose.
 - Tests cover cmd-hover detail, no duplicate raw payloads on normal text, and raw availability for notification/metadata/activity entries.
 
+## Related
+
+- /raw existing toggle — apps/silvercode/src/App.tsx (showRaw state)
+- @silvery/syntax just shipped (commit 0ccd144cf) — use for JSON syntax highlight
+- Bead @km/silvercode/resume-show-everything-collapsed — origin of /raw
+
 ## Implementation Notes
 
 2026-05-06:
@@ -83,12 +96,6 @@ v1 is now **cmd-hover/detail first**. `SessionUpdateList.RawInspector` attaches 
 - `RawInspector` exists in `apps/silvercode/src/components/SessionUpdateList.tsx` and uses `usePopoverHandlers` plus `SyntaxHighlighter language="yaml"`.
 - Current behavior is popover/detail, not inline `/raw` for every entry.
 - Verification: `bun vitest run apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/notification-event-row.test.tsx apps/silvercode/tests/notification-welcome-artifact.test.tsx apps/silvercode/tests/notification-stream.test.ts` passed, 61 tests.
-
-## Related
-
-- /raw existing toggle — apps/silvercode/src/App.tsx (showRaw state)
-- @silvery/syntax just shipped (commit 0ccd144cf) — use for JSON syntax highlight
-- Bead @km/silvercode/resume-show-everything-collapsed — origin of /raw
 
 ## Why this matters
 
