@@ -27,6 +27,7 @@ import { parseLimitFlag, applyLimit } from "../../utils/limit.ts"
 import { planList } from "./list-plan.ts"
 import { buildStatusBar } from "./status-bar.ts"
 import { formatAmbiguityError } from "../../utils/short-id.ts"
+import { shouldShowSingleResultTip } from "../../utils/single-result-tip.ts"
 
 // Re-export pure helpers + planner so existing imports keep working
 // (tests still hit `filterTasksByAssignee`, `filterTasksByPriority`, etc.).
@@ -197,6 +198,20 @@ function renderTaskList(
 
   console.log()
   console.log(term.dim(`${totalMsg} task(s)`))
+
+  // Smart hint — single-result tip. When the list narrows to exactly
+  // one task, suggest the show-detail verb. Suppressed after threshold
+  // (~3 shows) via on-disk session counter so power users aren't
+  // re-educated on every list call.
+  if (tasks.length === 1 && shouldShowSingleResultTip()) {
+    const target = tasks[0]
+    if (target) {
+      const data = target.data as { id?: unknown } | undefined
+      const ref = typeof data?.id === "string" && data.id ? data.id : target.id.slice(-8)
+      console.log()
+      console.log(term.dim(`Tip: use \`km task show ${ref}\` for full detail.`))
+    }
+  }
 }
 
 /**

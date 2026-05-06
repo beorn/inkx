@@ -12,6 +12,7 @@ import { getMarkerForStatus, type TaskStatus } from "@km/core"
 import { BEAD_TYPE_KEYWORD_SET } from "@km/beads"
 import type { Repo } from "@km/storage"
 import { parseDate } from "../../utils/parse-date.ts"
+import { suggestField } from "../../utils/levenshtein.ts"
 
 /**
  * Plan the per-field side effects of `tasks set <id> field:value`.
@@ -77,6 +78,35 @@ const SCALAR_FIELD_COLUMNS: Record<string, "due_at" | "start_at" | "priority" | 
   assigned_to: "assigned_to",
   owner: "assigned_to",
 }
+
+/**
+ * Canonical field keys for typo-suggestion. Mirrors `set-plan.ts`'s
+ * `ALL_FIELD_KEYS` — both surfaces accept the same vocabulary, so the
+ * suggestion lists must stay in sync. (A future refactor can extract
+ * this into a shared constant; today the file pair is small enough
+ * that duplication is the lower-friction option.)
+ */
+const ALL_TASK_FIELD_KEYS: readonly string[] = [
+  "priority",
+  "due",
+  "start",
+  "owner",
+  "status",
+  "type",
+  "parent",
+  "aliases",
+  "due_at",
+  "due_date",
+  "start_at",
+  "scheduled",
+  "scheduled_date",
+  "assigned",
+  "assigned_to",
+  "task_status",
+  "task_type",
+  "alias",
+  "p",
+]
 
 /**
  * Merge a single key into `updates.data`, preserving sibling keys.
@@ -197,8 +227,12 @@ export function planSetFields(repo: Repo, taskId: string, fields: readonly strin
         mergeIntoData(updates, repo.getNode(taskId), "aliases", list)
         break
       }
-      default:
-        warnings.push(`Unknown field: ${key}`)
+      default: {
+        const suggestion = suggestField(key, ALL_TASK_FIELD_KEYS)
+        warnings.push(
+          suggestion ? `Unknown field: ${key} (did you mean \`${suggestion}\`?)` : `Unknown field: ${key}`,
+        )
+      }
     }
   }
 
@@ -221,6 +255,7 @@ export interface ClearFieldPlan {
 export function planClearFields(fields: readonly string[]): ClearFieldPlan {
   const updates: Record<string, unknown> = {}
   const warnings: string[] = []
+  const clearableKeys = Object.keys(SCALAR_FIELD_COLUMNS)
   for (const field of fields) {
     const key = field.toLowerCase()
     const scalarColumn = SCALAR_FIELD_COLUMNS[key]
@@ -228,7 +263,10 @@ export function planClearFields(fields: readonly string[]): ClearFieldPlan {
       updates[scalarColumn] = null
       continue
     }
-    warnings.push(`Unknown field: ${key}`)
+    const suggestion = suggestField(key, clearableKeys)
+    warnings.push(
+      suggestion ? `Unknown field: ${key} (did you mean \`${suggestion}\`?)` : `Unknown field: ${key}`,
+    )
   }
   return { updates, warnings }
 }

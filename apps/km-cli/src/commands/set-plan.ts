@@ -33,6 +33,7 @@
 import { getMarkerForStatus, type TaskStatus } from "@km/core"
 import type { Repo } from "@km/storage"
 import { BEAD_TYPE_KEYWORD_SET } from "@km/beads"
+import { suggestField } from "../utils/levenshtein.ts"
 
 export interface SetFieldPlan {
   /** Per-id updateNode patches. */
@@ -67,6 +68,39 @@ const SCALAR_FIELD_COLUMNS: Record<string, "due_at" | "start_at" | "priority" | 
   assigned_to: "assigned_to",
   owner: "assigned_to",
 }
+
+/**
+ * Canonical field keys for the typo-suggestion hint. Union of every
+ * scalar alias + the structurally-handled keys (status, type, parent,
+ * aliases). Used to translate `prioirty:P0` → "Did you mean
+ * `priority`?".
+ *
+ * Order is the canonical-name-first ordering: aliases come last so the
+ * Levenshtein tie-break prefers the canonical name when distances are
+ * equal (e.g. `priorit` is closer to `priority` than to `p`, so this
+ * doesn't matter; but if a tie ever occurs, canonical wins).
+ */
+const ALL_FIELD_KEYS: readonly string[] = [
+  "priority",
+  "due",
+  "start",
+  "owner",
+  "status",
+  "type",
+  "parent",
+  "aliases",
+  "due_at",
+  "due_date",
+  "start_at",
+  "scheduled",
+  "scheduled_date",
+  "assigned",
+  "assigned_to",
+  "task_status",
+  "task_type",
+  "alias",
+  "p",
+]
 
 /**
  * Merge a single key into `updates.data`, preserving sibling keys.
@@ -189,8 +223,16 @@ export function planSet(repo: Repo, nodeId: string, fields: readonly string[]): 
         mergeIntoData(updates, repo.getNode(nodeId), "aliases", list)
         break
       }
-      default:
-        warnings.push(`Unknown field: ${key}`)
+      default: {
+        // Smart hint — suggest the canonical key when the user typed
+        // a near-miss (e.g. `prioirty:P0` → "Did you mean `priority`?").
+        // Levenshtein distance ≤ 2 catches single-char typos and
+        // adjacent-key swaps without false-positives on unrelated input.
+        const suggestion = suggestField(key, ALL_FIELD_KEYS)
+        warnings.push(
+          suggestion ? `Unknown field: ${key} (did you mean \`${suggestion}\`?)` : `Unknown field: ${key}`,
+        )
+      }
     }
   }
 

@@ -12,6 +12,8 @@
  * `task set` tests).
  */
 
+import { suggestField } from "../utils/levenshtein.ts"
+
 export interface ClearFieldPlan {
   updates: Record<string, unknown>
   warnings: string[]
@@ -48,6 +50,14 @@ const SCALAR_FIELD_COLUMNS: Record<string, "due_at" | "start_at" | "priority" | 
  * supported — those need targeted verbs (`km set type:`, `km move`,
  * `km set aliases:`).
  */
+/**
+ * Canonical field keys for the `clear` typo-suggestion hint. Matches
+ * the SCALAR_FIELD_COLUMNS keys above (clear only handles scalar
+ * columns — structural keys like `type`/`parent`/`aliases` aren't
+ * clearable, so they aren't candidates).
+ */
+const CLEARABLE_FIELD_KEYS: readonly string[] = Object.keys(SCALAR_FIELD_COLUMNS)
+
 export function planClear(fields: readonly string[]): ClearFieldPlan {
   const updates: Record<string, unknown> = {}
   const warnings: string[] = []
@@ -58,7 +68,12 @@ export function planClear(fields: readonly string[]): ClearFieldPlan {
       updates[scalarColumn] = null
       continue
     }
-    warnings.push(`Unknown field: ${key}`)
+    // Smart hint — suggest the canonical key on near-miss
+    // (e.g. `prioirty` → "Did you mean `priority`?").
+    const suggestion = suggestField(key, CLEARABLE_FIELD_KEYS)
+    warnings.push(
+      suggestion ? `Unknown field: ${key} (did you mean \`${suggestion}\`?)` : `Unknown field: ${key}`,
+    )
   }
   return { updates, warnings }
 }
