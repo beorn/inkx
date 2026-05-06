@@ -1237,6 +1237,17 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       opts.agent === "claude-code-spawn" ||
       opts.agent === "claude-code-sdk"
     const isCodexAgent = opts.agent === "codex" || opts.agent === "codex-spawn"
+    // Yield to the event loop BEFORE replaying transcript so React can
+    // commit an empty-session frame first. Without this yield, the
+    // replay's hundreds of synchronous store.apply() calls run inline
+    // before spawnSession's first `await` (line below), which blocks
+    // createSilvercodeController's caller (App's first render) for
+    // multiple seconds — visible as a blank screen at startup. Bead:
+    // `@km/silvercode/defer-transcript-replay-blank-screen`. Empirical:
+    // a heavy --resume target produced 9-second blank screens; this
+    // yield lets the user see "Loading session…" within ~150 ms while
+    // replay streams in incrementally.
+    await Promise.resolve()
     if (opts.resume && isClaudeAgent) {
       metadata.transcriptPath = sessionJsonlPath(opts.cwd, opts.resume)
       metadata.replayStartedAt = Date.now()
