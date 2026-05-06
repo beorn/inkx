@@ -89,13 +89,41 @@ For a subsystem to be "at plateau", it must satisfy:
 - Old-API elimination in tests (@km/all/test-system/plateau-enforcement P1)
 - Doc audit: current state only, no plans/narrative
 
-## Sequencing
+## Sequencing — operational plan (2026-05-06)
 
-1. **Now**: Stream E (cleanup, low-risk) in parallel with tactical P1/P2 bug finishing (title-edit-no-undo, memory-mode-silent-loss)
-2. **Next**: Stream A (selection-focus-plateau) — this is the most concrete P0 epic with prior design work
-3. **Parallel**: Stream B (TEA migration) — but needs design discussion first, not parallel agent execution
-4. **Parallel**: Stream C (storage investigation) — mostly diagnostic, can proceed independently
-5. **Later**: Stream D (perf) after other streams stabilize (perf work is easier when code is at plateau)
+The current operational view of "what to do, in what order" lives in **[[@km/BACKLOG]]** as a phased queue with planning notes. Reproduced here as the authoritative cross-track sequence:
+
+### Phase 0 — In flight (don't disturb)
+- `@km/infra/test-system` (wip Bjørn) — feat/test-system branch rebase + merge
+- `@km/bearly/injection-framing` (wip claude:6552f1e9) — unblocker for Phase 4 ambient track
+
+### Phase 1 — Silvercode runtime defense (stops bug recurrence)
+- `@km/silvercode/session-store-trace` — Phase A: ship the status logger first
+- `@km/silvercode/queue-stuck-thinking-l4` — Phase B: Turn owner module + derived status
+
+### Phase 2 — Silvery foundation (parallel-safe)
+- `@km/silvery/focus-ink-parity` — unify two parallel focus systems
+- `@km/silvery/custom-protocol-implementation-review` — protocol audit (finite scope)
+- `@km/silvery/authoring-elegance` — framework-adoption bar (≤50 LOC plugins)
+
+### Phase 3 — TEA migration (sequential)
+- `@km/silvery/tea` — Phases 2-4; depends on `@km/silvery/tea-useinput` (P1) unblocker
+- `@km/tui/tea` — domain-plugin migration; downstream of silvery/tea Phase 4
+
+### Phase 4 — Silvercode UX completeness
+- `@km/silvercode/ambient-context-excellence` — depends on Phase 0 injection-framing
+- `@km/silvercode/claude-code-transcript-parity/canonical-agent-plan-model`
+- `@km/silvercode/claude-code-transcript-parity/chat-turn-projection-refactor`
+- `@km/silvercode/claude-code-transcript-parity/markdown-table-render` — depends on `@km/silvercode/text-render-package` (P1)
+
+### Phase 5 — Plateau closure
+- `@km/tui/detail-unify-real` — `[!]` blocked by `@km/silvery/surface-freeze`; unblocks when omnibox + selection plateau close
+- This bead (`@km/all/plateau`) closes when the children do
+
+### Side track (not phased)
+- `@km/all/shared-substrate-review` — overdue decision (was 2026-05-05); decide-or-close
+
+This sequencing supersedes the earlier "Stream A → B → C → D → E" framing — those streams are still real architectural threads, but the BACKLOG-style phased plan is what we work from day-to-day.
 
 ## Success metrics
 
