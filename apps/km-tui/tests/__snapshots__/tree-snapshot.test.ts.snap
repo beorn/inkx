@@ -1,0 +1,10 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`TestApp.snapshotTree() > expectTreeSnapshot matches a saved snapshot > after-init 1`] = `
+"view=cards focus=main overlay=null
+> column: col1 [cursor=false]
+    task: task1 [cursor]
+    task: task2
+> column: col2 [cursor=false]
+    task: task3"
+`;

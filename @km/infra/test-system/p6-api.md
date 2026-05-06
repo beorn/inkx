@@ -3,7 +3,7 @@ mentions:
   - km
 ---
 
-# [ ] Phase 6: TestApp API refinement — shrink surface, improve ergonomics @km/all #task #P2
+# [/] Phase 6: TestApp API refinement — shrink surface, improve ergonomics @km/all #task #P2
 
 blocks:: [[@km/infra/test-system]]
 
@@ -21,15 +21,15 @@ Refine the TestApp API based on Pro review findings. Less surface area, sharper 
   > column: col1
   > task: task1 [cursor]
   > task: task2
-6. Locator strictness: single-target ops throw on multiple matches (Playwright model)
-7. Shrink TestApp surface:
+10. Locator strictness: single-target ops throw on multiple matches (Playwright model)
+11. Shrink TestApp surface:
 - Cut aliases
 - Move expect* methods to vitest matchers
 - Demote dispatch() (prefer press/command which route through the real kb handler)
-13. Vitest test.extend for typed fixtures + cleanup hooks
-14. bell as counter → toBell() matcher (Pro finding #15)
-15. Distinguish command() from press() semantically (Pro finding #16)
-16. app.card(title) → app.node(id) for stable refs, card(title) convenience only (Pro finding #17)
+22. Vitest test.extend for typed fixtures + cleanup hooks
+23. bell as counter → toBell() matcher (Pro finding #15)
+24. Distinguish command() from press() semantically (Pro finding #16)
+25. app.card(title) → app.node(id) for stable refs, card(title) convenience only (Pro finding #17)
 
 ## /complete criteria
 
@@ -39,5 +39,18 @@ Refine the TestApp API based on Pro review findings. Less surface area, sharper 
 - Vitest test.extend fixture pattern documented
 - toBell() matcher shipped
 
-blocks:: [[@km/infra/test-system]]
+## Progress 2026-05-06
 
+- Shipped `TestApp.snapshotTree()` + `expectTreeSnapshot()` for structured semantic board snapshots.
+- Added duplicate-title strictness for `app.card(title)` / `app.column(title)`; tests must use `app.node(id)` when titles are ambiguous.
+- Marked `TestApp.dispatch()` as a deprecated/internal escape hatch; `press()` and `command()` remain the real keyboard-handler paths.
+- Added `expect(app).toBell(expectedCount?)` alongside the existing `toHaveBell()` matcher.
+- Documented typed `vitest` `test.extend` fixture usage in `apps/km-tui/tests/CLAUDE.md`.
+
+Evidence:
+
+- `bun vitest run apps/km-tui/tests/tree-snapshot.test.ts apps/km-tui/tests/matchers.test.ts apps/km-tui/tests/helpers/create-test-app.test.ts apps/silvercode/packages/agent-harness/tests/agent-backends.test.ts apps/silvercode/packages/agent-harness/tests/backend-spec-runner.test.ts apps/silvercode/packages/agent-harness/tests/chat-provider.test.ts apps/silvercode/tests/backend-contracts/config-options.contract.test.ts apps/silvercode/tests/backend-contracts/prompt.contract.test.ts apps/silvercode/tests/backend-contracts/comprehensive-session-updates.contract.test.ts` → 9 files / 54 tests pass.
+- `npx tsc --noEmit --pretty false` blocked by unrelated existing errors in `apps/silvercode/tests/chat-types.test.ts`.
+- `bun run typecheck:check` blocked by unrelated existing errors in `apps/silvercode/tests/chat-types.test.ts` and `apps/silvercode/tests/prompt-assembly-boundary.test.ts`.
+
+blocks:: [[@km/infra/test-system]]

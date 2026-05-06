@@ -21,7 +21,7 @@ Use km's existing sigil + board + rules-engine primitives, plus silvercode as th
 - **Per-board view = self-aggregating via `NodeRules.add`.** Each `@agent/N.md` carries `rules: { add: "<query for incoming @agent/N links>" }`. Sync evaluates the rule and materializes `![[<bead>]]` embeds INTO the board body. Reading the board file = seeing the queue.
 - **Claim = bead claim at the board level.** `km bd update @agent/3 --claim` sets assignee + status=wip on the slot. Acts as a lock; one session per slot. The body content of the claimed board becomes the session's persona context.
 - **`/do` = "work the highest-priority embed from any slot I've claimed."** Compose with `/loop` for continuous mode.
-- **`km agent spawn @agent/N` = thin orchestrator** — claim slot, compose session brief (persona body + queue + env vars), launch runtime (default `silvercode`). Runtime-agnostic by design; silvercode is the canonical km-aware harness, alternatives via `--runtime`. No silvercode-specific code in `km agent spawn`.
+- **`km agent spawn @agent/N` = thin orchestrator** — claim slot, compose session brief (persona body + queue + env vars), launch agent (default `silvercode`). Agent-agnostic by design; silvercode is the canonical km-aware harness, alternatives via `--agent`. No silvercode-specific code in `km agent spawn`.
 - **Tribe notifications at every transition** — `/claim`, `/do` bead-pick, bead-close, `km agent spawn`, slot-release all broadcast on tribe so the chief and peers can see "who's on which slot, working what" without polling.
 
 ## Why this is the right design
@@ -70,10 +70,10 @@ Phase 3 — skills + spawn orchestrator (depends on Phase 2):
 - [ ] **`/claim` skill** at `.claude/skills/claim/SKILL.md` — wraps `km bd update @agent/<N> --claim`, reads the slot's body content into session context as a `<persona>...</persona>` envelope, **broadcasts `tribe.send: claimed @agent/<N> — <persona> — <session>`** after the CAS succeeds. On lock failure, surfaces holder + lease expiry.
 - [ ] **`/do` skill** at `.claude/skills/do/SKILL.md` — for each `@agent/N` the session has claimed, read the materialized embed-list (the board's body), pick the top-priority bead (priority desc → path-form id asc tiebreak), claim it, present to the user / auto-execute, close on completion. **Tribe notifications:** on bead-pick `working @km/<scope>/<slug> — <title> (slot @agent/<N>)`, on close `closed @km/<scope>/<slug> — <reason>`. Compose with `/loop` for continuous mode.
 - [ ] **`km agent spawn @agent/<N>` orchestrator** — thin three-step launcher, runtime-agnostic by design:
-  1. **Claim the slot** via the Phase-1 CAS. On failure, print holder + exit. On success, **broadcast `tribe.send: spawned @agent/<N> runtime=<runtime> pid=<X>`**.
+  1. **Claim the slot** via the Phase-1 CAS. On failure, print holder + exit. On success, **broadcast `tribe.send: spawned @agent/<N> agent=<agent> pid=<X>`**.
   2. **Compose the session brief** — concatenate persona body (the slot's `.md` body) + materialized embed-list (the queue) + env vars (`TRIBE_NAME=@agent/<N>`, `KM_AGENT_SLOT=@agent/<N>`, `KM_VAULT_ROOT`). Write to a temp file `system-prompt-<N>.md`.
-  3. **Launch the runtime** — `--runtime silvercode` (default), `--runtime claude`, `--runtime pi`, `--runtime headless-acp`. Spawn the configured binary with `--system-prompt-file <temp>` (or runtime-equivalent flag). Wrapper catches SIGTERM / process exit and releases the claim with `tribe.send: released @agent/<N> (exit=<code>)`.
-  - **silvercode is the default runtime** because it's the canonical km-aware agent harness — already speaks ACP, has `/claim` and `/do` skills available, and reads markdown system prompts natively. No silvercode-specific code in `km agent spawn`; the contract is just "system-prompt-file injection + env vars". Other runtimes integrate by implementing the same contract.
+  3. **Launch the agent** — `--agent silvercode` (default), `--agent claude`, `--agent pi`, `--agent headless-acp`. Spawn the configured binary with `--system-prompt-file <temp>` (or agent-equivalent flag). Wrapper catches SIGTERM / process exit and releases the claim with `tribe.send: released @agent/<N> (exit=<code>)`.
+  - **silvercode is the default agent** because it's the canonical km-aware agent harness — already speaks ACP, has `/claim` and `/do` skills available, and reads markdown system prompts natively. No silvercode-specific code in `km agent spawn`; the contract is just "system-prompt-file injection + env vars". Other agents integrate by implementing the same contract.
 
 Phase 4 — cleanup (separate sweep, file as follow-up bead under `@km/markdown`):
 
@@ -84,7 +84,7 @@ Phase 4 — cleanup (separate sweep, file as follow-up bead under `@km/markdown`
 - **Named slots** (`@agent/architect`, `@agent/reviewer`) beyond numeric — start numeric; the cap forces persona discipline. Add named slots only if 10 isn't enough.
 - **Multi-agent fanout on one persona** (`km agent fanout @agent/1 3` to spawn 3 workers on the same slot) — needs queue partitioning. Defer.
 - **Persona auto-suggest** (given a bead, propose which slot fits best by `scope_fit` match) — defer; manual assignment first.
-- **silvercode-specific spawn integration** (custom IPC, side-channel hooks) — `km agent spawn` stays runtime-agnostic. silvercode is the *default* runtime, not a baked-in dependency. If silvercode wants richer integration (e.g., live persona-body re-injection on edit), that's a feature on the silvercode side reading `KM_AGENT_SLOT` env, not a coupling in `km agent spawn`.
+- **silvercode-specific spawn integration** (custom IPC, side-channel hooks) — `km agent spawn` stays agent-agnostic. silvercode is the *default* agent, not a baked-in dependency. If silvercode wants richer integration (e.g., live persona-body re-injection on edit), that's a feature on the silvercode side reading `KM_AGENT_SLOT` env, not a coupling in `km agent spawn`.
 
 ## Canonical model — load before changing this work
 

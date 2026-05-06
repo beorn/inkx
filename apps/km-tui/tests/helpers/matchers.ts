@@ -144,6 +144,7 @@ declare module "vitest" {
     toHaveView(mode: string): void
     toHaveOverlay(name: string | null): void
     toHaveBell(): void
+    toBell(expectedCount?: number): void
     toHaveNodeCount(count: number): void
   }
 }
@@ -605,6 +606,36 @@ expect.extend({
         pass
           ? `Expected bell not to have fired (fired ${bellCount} times)`
           : `Expected bell to have fired, but it didn't`,
+    }
+  },
+
+  /**
+   * Assert bell count.
+   *
+   * With no argument, asserts the bell fired at least once. With a number,
+   * asserts the exact count exposed by TestApp state.
+   *
+   * @example
+   * expect(app).toBell()
+   * expect(app).toBell(1)
+   */
+  toBell(received: unknown, expectedCount?: number) {
+    assertTestApp(received, "toBell")
+    const bellCount = received.state.bell
+    const pass = expectedCount === undefined ? bellCount > 0 : bellCount === expectedCount
+
+    return {
+      pass,
+      message: () => {
+        if (expectedCount === undefined) {
+          return pass
+            ? `Expected bell not to have fired (fired ${bellCount} times)`
+            : `Expected bell to have fired, but it didn't`
+        }
+        return pass
+          ? `Expected bell count not to be ${expectedCount}`
+          : `Expected bell count ${expectedCount}, got ${bellCount}`
+      },
     }
   },
 

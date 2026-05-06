@@ -30,8 +30,7 @@ import { withDiagnostics } from "@silvery/ag-react"
 import { createBoardDriver, type BoardDriver } from "../../src/driver.ts"
 import { createFakeRepo, type Repo } from "@km/storage"
 import { createStoreFromRepo, withReactive } from "@km/storage"
-import type { KNode } from "@km/core"
-import { createToastQueue } from "@km/core"
+import { KNode, createToastQueue } from "@km/core"
 import type { FrameCell } from "@silvery/ag"
 import { createFocusManager, hitTest } from "@silvery/ag-react"
 import { createMouseEventProcessor, processMouseEvent } from "@silvery/ag-term"
@@ -193,7 +192,10 @@ export interface TestApp {
   command(commandId: string): TestApp
   /**
    * Dispatch a command by ID directly through the command executor, bypassing key mapping.
-   * Use for orphan commands with no key binding (e.g. "search" dialog). Chainable.
+   *
+   * @deprecated Internal escape hatch for commands with no key binding. Prefer
+   * `press()` for literal keys and `command()` for user-reachable commands so
+   * tests exercise the real keyboard handler.
    */
   dispatch(commandId: string): TestApp
   /** Navigate cursor to a node by pressing cursor_down (max 50 steps). Throws if not found. */
@@ -362,6 +364,16 @@ export interface TestApp {
    * @param name - Optional snapshot name (multiple snapshots per test).
    */
   expectSnapshot(name?: string): TestApp
+  /**
+   * Render a structured, line-based snapshot of the visible board tree.
+   *
+   * This is the TUI equivalent of a Playwright ARIA snapshot: it captures the
+   * semantic tree, cursor marker, view mode, focus pane, and active overlay
+   * without depending on terminal cell geometry.
+   */
+  snapshotTree(): string
+  /** Match `snapshotTree()` against a Vitest snapshot. Chainable. */
+  expectTreeSnapshot(name?: string): TestApp
   /** Locator-based assertions: app.expect("#id").toExist() */
   expect(selector: string): {
     toExist(): void
@@ -688,38 +700,98 @@ function getHeadlessNodeHandle(driver: BoardDriver, id: string): NodeHandle {
   }
 }
 
-/** Find a node by title text in the repo tree */
-function findNodeByTitle(repo: Repo, title: string): KNode | null {
-  // Search by trying the title as an ID first (item() uses content as ID)
-  const direct = repo.getNode(title)
-  if (direct) return direct
-
-  // Search the subtree from root
+/** Find all nodes with the given visible title text in the repo tree. */
+function findNodesByTitle(repo: Repo, title: string): KNode[] {
+  const matches: KNode[] = []
   const root = repo.getChildren(null)
   for (const rootNode of root) {
-    const match = findInSubtree(repo, rootNode, title)
-    if (match) return match
+    collectTitleMatches(repo, rootNode, title, matches)
   }
-  return null
+  return matches
 }
 
-function findInSubtree(repo: Repo, node: KNode, title: string): KNode | null {
-  if (node.content === title || node.data?.name === title) return node
+function collectTitleMatches(repo: Repo, node: KNode, title: string, matches: KNode[]): void {
+  if (node.content === title || node.data?.name === title) matches.push(node)
   for (const child of repo.getChildren(node.id)) {
-    const match = findInSubtree(repo, child, title)
-    if (match) return match
+    collectTitleMatches(repo, child, title, matches)
   }
-  return null
+}
+
+function findUniqueNodeByTitle(repo: Repo, title: string, handleName: "card" | "column"): KNode | null {
+  const matches = findNodesByTitle(repo, title)
+  if (matches.length > 1) {
+    throw new Error(
+      `app.${handleName}(${JSON.stringify(title)}) matched ${matches.length} nodes: ${matches.map((node) => node.id).join(", ")}. Use app.node(id) for a stable reference.`,
+    )
+  }
+  return matches[0] ?? null
+}
+
+/**
+ * Infer a display kind for a tree-snapshot line.
+ *
+ * Primary signal is the board-lens role. When the role is absent, fall back to
+ * the node shape so snapshots stay semantic rather than raw IDs-only dumps.
+ */
+function inferSnapshotKind(lens: ReturnType<typeof createVisibleLens>, repo: Repo, nodeId: string): string {
+  const role = lens.role(nodeId)
+  if (role === "board") return "board"
+  if (role === "column" || role === "body-column") return "column"
+  if (role === "subitem") return "subitem"
+  if (role === "card") {
+    const node = repo.getNode(nodeId)
+    if (node && KNode.isTask(node)) return "task"
+    return "card"
+  }
+  const node = repo.getNode(nodeId)
+  if (!node) return "node"
+  if (KNode.isTask(node)) return "task"
+  if (KNode.isItem(node)) return "section"
+  return "node"
+}
+
+function buildTreeSnapshot(
+  lens: ReturnType<typeof createVisibleLens>,
+  repo: Repo,
+  rootId: string,
+  cursorId: string | null,
+  header: { view: string; focus: string; overlay: string | null },
+): string {
+  const lines: string[] = [`view=${header.view} focus=${header.focus} overlay=${header.overlay ?? "null"}`]
+
+  function walk(nodeId: string, depth: number): void {
+    // The board root is implicit in the header.
+    if (depth > 0 || nodeId !== rootId) {
+      const indent = " ".repeat(Math.max(0, depth - 1) * 4)
+      const kind = inferSnapshotKind(lens, repo, nodeId)
+      const prefix = kind === "column" ? "> column" : kind
+      const visibleChildren = lens.children(nodeId)
+      const repoChildren = repo.getChildren(nodeId)
+      const foldedCount = Math.max(0, repoChildren.length - visibleChildren.length)
+      const parts = [`${indent}${prefix}: ${nodeId}`]
+      if (foldedCount > 0) parts.push(`(folded: ${foldedCount})`)
+      if (cursorId === nodeId) parts.push("[cursor]")
+      else if (kind === "column") parts.push("[cursor=false]")
+      lines.push(parts.join(" "))
+    }
+
+    for (const childId of lens.children(nodeId)) {
+      walk(childId, depth + 1)
+    }
+  }
+
+  walk(rootId, 0)
+  return lines.join("\n")
 }
 
 /** Create a NodeHandle for a node by title text (headless) */
-function getHeadlessNodeHandleByTitle(driver: BoardDriver, title: string): NodeHandle {
+function getHeadlessNodeHandleByTitle(driver: BoardDriver, title: string, handleName: "card" | "column"): NodeHandle {
   const s = driver.store.getState()
   const board = Workspace.getActiveBoardPane(s)
   const cursorId = (board?.sel.node.cursor() as string | null) ?? null
   const selectedIds = board ? new Set(board.sel.node.ids()) : new Set<string>()
 
-  const matchedNode = findNodeByTitle(s.repo, title)
+  const matchedNode = findUniqueNodeByTitle(s.repo, title, handleName)
 
   const id = matchedNode?.id
   const loc = id ? driver.locator(`#${id}`) : null
@@ -1177,11 +1249,11 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
     },
 
     card(title: string): NodeHandle {
-      return getHeadlessNodeHandleByTitle(driver, title)
+      return getHeadlessNodeHandleByTitle(driver, title, "card")
     },
 
     column(title: string): NodeHandle {
-      return getHeadlessNodeHandleByTitle(driver, title)
+      return getHeadlessNodeHandleByTitle(driver, title, "column")
     },
 
     expectEditing(nodeId?: string): TestApp {
@@ -1347,6 +1419,36 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
 
     expectSnapshot(name?: string): TestApp {
       const snapshot = normalizeScreenText(driver.text)
+      if (name !== undefined) expect(snapshot).toMatchSnapshot(name)
+      else expect(snapshot).toMatchSnapshot()
+      return app
+    },
+
+    snapshotTree(): string {
+      const s = driver.store.getState()
+      const board = Workspace.getActiveBoardPane(s)
+      const rootId = board?.rootId ?? null
+      if (!rootId || !board?.signals) {
+        const ds = driver.getState()
+        return `view=${ds.viewMode ?? "cards"} focus=${s.workspace.focusedPaneId} overlay=null`
+      }
+      const lens = board.signals.visibleLens()
+      const cursorId = (board.sel.node.cursor() as string | null) ?? null
+      const ds = driver.getState()
+      let overlay: string | null = null
+      if (ds.dialogs.search) overlay = "search"
+      else if (ds.dialogs.help) overlay = "help"
+      else if (ds.dialogs.newItem) overlay = "newItem"
+      else if (ds.detailPaneOpen) overlay = "detail"
+      return buildTreeSnapshot(lens, s.repo, rootId, cursorId, {
+        view: (ds.viewMode ?? "cards") as string,
+        focus: s.workspace.focusedPaneId,
+        overlay,
+      })
+    },
+
+    expectTreeSnapshot(name?: string): TestApp {
+      const snapshot = app.snapshotTree()
       if (name !== undefined) expect(snapshot).toMatchSnapshot(name)
       else expect(snapshot).toMatchSnapshot()
       return app
@@ -1635,13 +1737,14 @@ function getTermlessNodeHandleByTitle(
   title: string,
   repo: Repo,
   getLocator: (sel: string) => AutoLocator,
+  handleName: "card" | "column",
 ): NodeHandle {
   const s = handle.store.getState()
   const board = Workspace.getActiveBoardPane(s)
   const cursorId = (board?.sel.node.cursor() as string | null) ?? null
   const selectedIds = board ? new Set(board.sel.node.ids()) : new Set<string>()
 
-  const matchedNode = findNodeByTitle(repo, title)
+  const matchedNode = findUniqueNodeByTitle(repo, title, handleName)
 
   const id = matchedNode?.id
   const loc = id ? getLocator(`#${id}`) : null
@@ -1988,12 +2091,12 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
 
     card(title: string): NodeHandle {
       if (!handle) return nullNodeHandle
-      return getTermlessNodeHandleByTitle(handle, boardApp, title, repo, getLocator)
+      return getTermlessNodeHandleByTitle(handle, boardApp, title, repo, getLocator, "card")
     },
 
     column(title: string): NodeHandle {
       if (!handle) return nullNodeHandle
-      return getTermlessNodeHandleByTitle(handle, boardApp, title, repo, getLocator)
+      return getTermlessNodeHandleByTitle(handle, boardApp, title, repo, getLocator, "column")
     },
 
     expectEditing(nodeId?: string): TestApp {
@@ -2170,6 +2273,35 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
           name,
         })
       } else (expect(term) as unknown as { toMatchTerminalSnapshot(): void }).toMatchTerminalSnapshot()
+      return app
+    },
+
+    snapshotTree(): string {
+      if (!handle) return `view=${viewMode} focus=unknown overlay=null`
+      const s = handle.store.getState()
+      const board = Workspace.getActiveBoardPane(s)
+      const rootId = board?.rootId ?? null
+      if (!rootId || !board?.signals) {
+        return `view=${viewMode} focus=${s.workspace.focusedPaneId} overlay=null`
+      }
+      const lens = board.signals.visibleLens()
+      const cursorId = (board.sel.node.cursor() as string | null) ?? null
+      let overlay: string | null = null
+      if (s.ui.showSearchDialog) overlay = "search"
+      else if (s.ui.showHelp) overlay = "help"
+      else if (s.ui.showNewItemDialog) overlay = "newItem"
+      else if (hasDetailPaneFor(s.workspace, s.workspace.focusedPaneId)) overlay = "detail"
+      return buildTreeSnapshot(lens, repo, rootId, cursorId, {
+        view: (board.viewMode ?? viewMode) as string,
+        focus: s.workspace.focusedPaneId,
+        overlay,
+      })
+    },
+
+    expectTreeSnapshot(name?: string): TestApp {
+      const snapshot = app.snapshotTree()
+      if (name !== undefined) expect(snapshot).toMatchSnapshot(name)
+      else expect(snapshot).toMatchSnapshot()
       return app
     },
 

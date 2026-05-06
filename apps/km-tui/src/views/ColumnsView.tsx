@@ -202,6 +202,7 @@ const ColumnTree = React.memo(function ColumnTree({ colId, colIndex, width, heig
           estimateHeight={(index: number) => (cardNodes[index]?.id === editingNodeId ? 3 : 1)}
           overscan={OVERSCAN}
           maxRendered={MAX_RENDERED_ITEMS}
+          maintainVisibleContentPosition={false}
           getKey={(card) => card.id}
           renderItem={renderCard}
           overflowIndicator

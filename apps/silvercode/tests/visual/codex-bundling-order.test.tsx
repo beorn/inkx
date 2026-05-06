@@ -76,7 +76,7 @@ function makeEntry(opts: { id: string; role: "assistant" | "user"; ops: MessageO
 }
 
 describe("SessionUpdateList — codex tool-call interleaving (km-silvercode.codex-bundling-order)", () => {
-  test("renders low-content tool calls as inline action labels", () => {
+  test("summarizes low-content tool calls in arrival order", () => {
     const entry = makeEntry({
       id: "m1",
       role: "assistant",
@@ -130,8 +130,9 @@ describe("SessionUpdateList — codex tool-call interleaving (km-silvercode.code
       ],
     })
 
-    const app = createRenderer({ cols: 100, rows: 20 })(
-      <Box width={100} height={20} flexDirection="column">
+    const COLS = 160
+    const app = createRenderer({ cols: COLS, rows: 20 })(
+      <Box width={COLS} height={20} flexDirection="column">
         <SessionUpdateList
           messages={[entry]}
           onApprove={() => {}}
@@ -143,17 +144,16 @@ describe("SessionUpdateList — codex tool-call interleaving (km-silvercode.code
           outputTokens={0}
           pendingPermissions={0}
           inFlightTool={null}
+          follow={false}
         />
       </Box>,
     )
+    app.press("")
 
-    expect(app.text).toContain("Read alpha.ts")
-    expect(app.text).toContain("Wrote beta.ts")
-    expect(app.text).toContain("Deleted old.ts")
-    expect(app.text).toContain("Fetched https://example.com")
-    expect(app.text).toContain("Todo added Review auth refactor PR")
-    expect(app.text).toMatch(/\$.*ls src/)
+    expect(app.text).toContain("Reading 1 file")
     expect(app.text).toContain("Editing 2 files +1 -1")
+    expect(app.text).toContain("Deleting 1 file")
+    expect(app.text).toMatch(/\$.*ls src/)
   })
 
   test("renders text and tool blocks in arrival order (text → tool → text → tool)", () => {
@@ -195,10 +195,12 @@ describe("SessionUpdateList — codex tool-call interleaving (km-silvercode.code
             outputTokens={0}
             pendingPermissions={0}
             inFlightTool={null}
+            follow={false}
           />
         </Box>
       </Box>,
     )
+    app.press("")
     const frame = app.text
 
     // Both text anchors must appear in the rendered frame (collapsed
@@ -281,9 +283,11 @@ describe("SessionUpdateList — codex tool-call interleaving (km-silvercode.code
           outputTokens={0}
           pendingPermissions={0}
           inFlightTool={null}
+          follow={false}
         />
       </Box>,
     )
+    app.press("")
 
     expect(entry.text).toBe("Visible answer.")
     expect(app.text).toContain('"reference" just means')

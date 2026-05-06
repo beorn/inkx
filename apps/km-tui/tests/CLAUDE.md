@@ -179,6 +179,7 @@ expect(app).toHaveView("cards") // current view mode
 expect(app).toHaveOverlay(null) // no overlay open
 expect(app).toHaveOverlay("search") // search overlay open
 expect(app).toHaveBell() // bell fired at least once
+expect(app).toBell(1) // exact bell count exposed by app.state.bell
 expect(app).toHaveNodeCount(5) // number of visible nodes
 ```
 
@@ -191,7 +192,7 @@ callsites permitted).
 
 ### Typed Node Handles (app.card, app.node, app.column)
 
-Query board elements by title text or ID. Never throw — `.exists` returns false for missing nodes.
+Query board elements by title text or ID. `app.node(id)` is the stable form and never throws for missing nodes — `.exists` returns false. `app.card(title)` and `app.column(title)` are conveniences for readable fixtures; they throw when the title matches multiple nodes so tests do not silently bind to the wrong card.
 
 ```typescript
 // Card handle — find by title text
@@ -210,6 +211,10 @@ expect(app.node("task1").exists).toBe(true)
 
 // Non-existent node — never throws
 expect(app.node("does-not-exist").exists).toBe(false)
+
+// Duplicate titles — use IDs instead of title conveniences
+expect(() => app.card("Duplicate title")).toThrow(/matched 2 nodes/)
+expect(app.node("task-123").exists).toBe(true)
 ```
 
 ### Declarative State (app.state)
@@ -259,6 +264,44 @@ Capture the full screen and compare against a golden file. Backend-aware: termle
 app.expectSnapshot() // anonymous — auto-named by vitest
 app.expectSnapshot("after-fold") // named — multiple snapshots per test
 app.expectSnapshot("initial-view") // alias for expectSnapshot with required name
+```
+
+### Structured Tree Snapshots (app.snapshotTree)
+
+Use `snapshotTree()` when the assertion is about semantic board structure, cursor, folded children, active view, focus pane, or overlay. This is less brittle than raw terminal-cell snapshots.
+
+```typescript
+expect(app.snapshotTree()).toMatchInlineSnapshot(`
+  "view=cards focus=main overlay=null
+  > column: col1 [cursor=false]
+      task: task1 [cursor]"
+`)
+
+app.expectTreeSnapshot("after-fold") // named Vitest snapshot
+```
+
+### Typed Vitest Fixtures
+
+For a suite that repeatedly creates the same app shape, use `test.extend` so cleanup stays automatic and the fixture type is explicit.
+
+```typescript
+import { test as base, expect } from "vitest"
+import { createTestApp, item, type TestApp } from "./helpers/create-test-app.ts"
+
+const test = base.extend<{ app: TestApp }>({
+  app: [
+    async ({}, use) => {
+      using app = createTestApp(item("board", item("Todo", item("task1"))))
+      await use(app)
+    },
+    { auto: false },
+  ],
+})
+
+test("moves cursor", ({ app }) => {
+  app.press("j")
+  expect(app).toHaveCursorOn("task1")
+})
 ```
 
 ### Action History (app.actionHistory)

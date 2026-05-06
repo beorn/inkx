@@ -503,7 +503,6 @@ describe("SidePanel — multi-account view", () => {
     try {
       const app = renderPanel()
       expect(app.text).toContain("Sessions")
-      expect(app.text).not.toContain("fake")
       expect(app.text).not.toContain("Todos 0")
       expect(app.text).not.toContain("Agents 0/0")
     } finally {

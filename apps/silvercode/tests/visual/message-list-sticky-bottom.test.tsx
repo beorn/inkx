@@ -167,11 +167,9 @@ describe("SessionUpdateList follow-end auto-follow (km-silvercode)", () => {
   })
 
   test("when bottom plan chrome is visible, growing assistant text stays above the composer", async () => {
-    const s = await renderScenario({ script: streamingTailWithPlan, cols: 120, rows: 18 })
+    const s = await renderScenario({ script: streamingTailWithPlan, cols: 120, rows: 22 })
     try {
-      expect(s.text, "plan drawer should be visible in the bottom chrome").toContain(
-        "Keep sticky scroll pinned while the tail grows",
-      )
+      expect(s.text, "plan drawer should be visible in the bottom chrome").toContain("Keep sticky scroll pinned")
       s.emit({
         kind: "text-delta",
         sessionId: SESSION,
@@ -182,7 +180,7 @@ describe("SessionUpdateList follow-end auto-follow (km-silvercode)", () => {
       })
       const frame = s.resample()
       const tailRow = frame.lines.findIndex((line) => line.includes("FINAL grown tail above composer"))
-      const planRow = frame.lines.findIndex((line) => line.includes("Keep sticky scroll pinned while the tail grows"))
+      const planRow = frame.lines.findIndex((line) => line.includes("Keep sticky scroll pinned"))
       const composerRow = frame.lines.findIndex((line) => line.includes(">"))
       expect(tailRow, frame.text).toBeGreaterThanOrEqual(0)
       expect(planRow, frame.text).toBeGreaterThan(tailRow)

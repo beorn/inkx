@@ -48,6 +48,13 @@ describe("TestApp matchers", () => {
     expect(app).not.toHaveBell()
   })
 
+  test("toBell — asserts the TestApp bell count", () => {
+    using app = createTestApp(item("board", item("col", item("task1"))))
+    app.press("k").press("k").press("k")
+    expect(app).toBell()
+    expect(app).toBell(1)
+  })
+
   test("toHaveCursorOn error message is helpful", () => {
     using app = createTestApp(item("board", item("col", item("task1"))))
     expect(() => {
@@ -88,6 +95,19 @@ describe("TestApp matchers", () => {
     expect(() => {
       expect(null).toHaveSelection([])
     }).toThrow(/toHaveSelection expects a TestApp/)
+  })
+
+  test("title handles throw on duplicate matches and point tests to node IDs", () => {
+    const nodes = item("board", item("col", item("dup-a"), item("dup-b")))
+    nodes.find((node) => node.id === "dup-a")!.content = "Duplicate"
+    nodes.find((node) => node.id === "dup-b")!.content = "Duplicate"
+
+    using app = createTestApp(nodes)
+
+    expect(() => app.card("Duplicate")).toThrow(
+      /app\.card\("Duplicate"\) matched 2 nodes: dup-a, dup-b\. Use app\.node\(id\)/,
+    )
+    expect(app.node("dup-a").exists).toBe(true)
   })
 })
 

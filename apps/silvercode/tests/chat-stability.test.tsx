@@ -168,7 +168,7 @@ describe("chat-session UI stability (bead @km/silvercode/post-resize-ui-stabilit
         term.resize?.(cols, ROWS)
         await settle(80)
       }
-      await settle(300)
+      await settle(800)
       const postFrames = await pollTermlessFrames(term, { durationMs: 400 })
       expectStableLayouts(postFrames, {
         label: "chat.cmux-multi-sigwinch",

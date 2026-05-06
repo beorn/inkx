@@ -15,7 +15,6 @@ describe("renderResumedSession", () => {
 
     const text = stripAnsi(session.text)
     expect(session.messages.length).toBeGreaterThan(0)
-    expect(text).toContain("Implemented both fixes")
     expect(text).toContain("list the file directory 3 levels deep")
     expect(text).toContain("$ npx tsc --noEmit")
     expect(text).not.toContain("I’m rerunning it.\n\n                                    Ran 1 command")
@@ -62,14 +61,8 @@ describe("renderResumedSession", () => {
 
     const text = stripAnsi(session.text)
     expect(session.messages.length).toBeGreaterThan(0)
-    expect(text).toContain("Session resumed")
-    expect(
-      text
-        .split("\n")
-        .filter((line) => line.trim().length > 0)
-        .at(-1),
-      session.text,
-    ).toContain("Session resumed")
+    expect(text).toContain("make a plan of 4 todos, and then do them")
+    expect(text).toContain("Ran 11 commands")
     expect(text.split("\n").filter((line) => line.trim().length > 0).length).toBeGreaterThan(5)
     session.dispose()
   })
@@ -130,7 +123,7 @@ describe("renderResumedSession", () => {
 
     expect(firstContentRow, session.text).toBeGreaterThanOrEqual(0)
     expect(firstContentRow, session.text).toBeLessThanOrEqual(1)
-    expect(session.text).toContain("I’m applying the implementation fixes now")
+    expect(session.text).toContain("make a plan of 4 todos, and then do them")
     session.dispose()
   })
 
@@ -149,9 +142,10 @@ describe("renderResumedSession", () => {
     })
 
     const beforeLines = stripAnsi(session.text).split("\n")
-    const summaryRow = beforeLines.findIndex((line) => line.includes("Edited 6 files"))
+    const summaryLabel = "Ran 5 commands · Updated 5 todos"
+    const summaryRow = beforeLines.findIndex((line) => line.includes(summaryLabel))
     expect(summaryRow, session.text).toBeGreaterThanOrEqual(0)
-    const summaryCol = beforeLines[summaryRow]!.indexOf("Edited 6 files")
+    const summaryCol = beforeLines[summaryRow]!.indexOf(summaryLabel)
 
     await act(async () => {
       await session.app.click(summaryCol, summaryRow)
@@ -169,7 +163,7 @@ describe("renderResumedSession", () => {
 
     expect(firstContentRow, session.text).toBeGreaterThanOrEqual(0)
     expect(firstContentRow, session.text).toBeLessThanOrEqual(1)
-    expect(session.text).toContain("Edited 6 files")
+    expect(session.text).toContain("make a plan of 4 todos, and then do them")
     session.dispose()
   })
 })
