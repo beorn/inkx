@@ -390,9 +390,9 @@ function createQueryMethods(deps: RepoMethodDeps) {
       return new Map(rows.map((row) => [row.target, row.n]))
     },
     countDependenciesByTarget(target: string, kind: string) {
-      const row = db
-        .prepare("SELECT COUNT(*) AS n FROM deps WHERE target = ? AND kind = ?")
-        .get(target, kind) as { n: number } | undefined
+      const row = db.prepare("SELECT COUNT(*) AS n FROM deps WHERE target = ? AND kind = ?").get(target, kind) as
+        | { n: number }
+        | undefined
       return row?.n ?? 0
     },
     rawQuery<T = Record<string, unknown>>(sql: string, params?: unknown[]): T[] {
@@ -1168,16 +1168,15 @@ function isCorruptionError(err: unknown): boolean {
 
 /** Performance pragmas for disk-mode SQLite (WAL, cache, mmap). Throws SQLiteError on corrupt DB. */
 function configurePragmas(db: Database): void {
+  // Install the busy handler before any pragma that may need an exclusive
+  // lock. `journal_mode=WAL` itself can hit SQLITE_BUSY during recovery.
+  db.run("PRAGMA busy_timeout = 5000")
   db.run("PRAGMA journal_mode = WAL")
   db.run("PRAGMA synchronous = NORMAL")
   db.run("PRAGMA temp_store = MEMORY")
   db.run("PRAGMA cache_size = -200000")
   db.run("PRAGMA mmap_size = 268435456")
   db.run("PRAGMA wal_autocheckpoint = 10000")
-  // SQLITE_BUSY guard for multi-process writers (km-cli, km-tui, silvercode).
-  // WAL allows N readers + 1 writer; without busy_timeout, concurrent writers
-  // immediately fail with "database is locked" instead of waiting.
-  db.run("PRAGMA busy_timeout = 5000")
   db.run("PRAGMA foreign_keys = ON")
 }
 

@@ -147,6 +147,7 @@ export function openSessionDb(opts: OpenSessionDbOptions = {}): Database {
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
 
   const db = new Database(path, { create: true })
+  db.run("PRAGMA busy_timeout = 5000")
   // WAL matches `.km/state.db`; keeps readers unblocked while we append undo rows.
   try {
     db.run("PRAGMA journal_mode = WAL")
