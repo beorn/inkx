@@ -19,8 +19,6 @@
 
 import { getMarkerForStatus, type KNode } from "@km/core"
 import type { Repo } from "@km/storage"
-import { Task } from "@km/storage"
-import { Bead } from "@km/beads"
 import { resolvePathArg } from "@km/fs-mount"
 import { createTerm } from "@silvery/ag-react"
 
@@ -28,6 +26,7 @@ const term = createTerm(process)
 import { loadRepo } from "../../load-repo.ts"
 import { getRootPath } from "../../program.ts"
 import { resolveAssignee } from "../../utils/assignee.ts"
+import { resolveShortId, formatAmbiguityError } from "../../utils/short-id.ts"
 import { type LifecyclePlan, planClaim, planClose, planDrop, planRelease, planReopen } from "./lifecycle-plan.ts"
 
 export {
@@ -99,9 +98,27 @@ export function applyLifecyclePlan(repo: Repo, node: KNode, plan: LifecyclePlan)
   return { owner }
 }
 
-/** Look up a task by user-supplied ref via the canonical resolver chain. */
-function findTask(repo: Repo, ref: string): KNode | null {
-  return Task.findByPathOrId(repo, ref, (r) => Bead.resolve(repo, r))
+/**
+ * Look up a task by user-supplied ref via the canonical resolver chain.
+ *
+ * Wraps `resolveShortId` (which handles slug → scope/slug → full path-form)
+ * with the lifecycle-handler convention of "print an error and exit on
+ * ambiguity / not-found, return the node otherwise". Ambiguity is the
+ * one case we surface specially — both bare-slug input ("close foo")
+ * and path-shaped input that returned candidates print the
+ * "did you mean:" list before exiting non-zero.
+ */
+function resolveOrExit(repo: Repo, ref: string): KNode {
+  const result = resolveShortId(repo, ref)
+  if (result.candidates.length > 0) {
+    console.error(term.red(formatAmbiguityError(ref, result.candidates)))
+    process.exit(1)
+  }
+  if (!result.node) {
+    console.error(term.red(`Task not found: ${ref}`))
+    process.exit(1)
+  }
+  return result.node
 }
 
 /** Common output options for lifecycle subcommands. */
@@ -117,19 +134,19 @@ export async function claimTaskLifecycle(ref: string | undefined, options: Lifec
   }
   const resolved = resolvePathArg(process.cwd(), getRootPath())
   using repo = await loadRepo(resolved.repoRoot)
-  const node = findTask(repo, ref)
+  const node = resolveOrExit(repo, ref)
   const actor = resolveAssignee()
   const plan = planClaim(node, ref, actor)
   if (plan.errors.length > 0) {
     for (const e of plan.errors) console.error(term.red(e))
     process.exit(1)
   }
-  const result = applyLifecyclePlan(repo, node!, plan)
+  const result = applyLifecyclePlan(repo, node, plan)
   if (options.json) {
-    console.log(JSON.stringify({ id: node!.id, status: "wip", assigned_to: result.owner }))
+    console.log(JSON.stringify({ id: node.id, status: "wip", assigned_to: result.owner }))
     return
   }
-  console.log(term.green("◐"), "Claimed:", node!.id.slice(-8))
+  console.log(term.green("◐"), "Claimed:", node.id.slice(-8))
 }
 
 /** `task release <id>` action handler. */
@@ -140,18 +157,18 @@ export async function releaseTaskLifecycle(ref: string | undefined, options: Lif
   }
   const resolved = resolvePathArg(process.cwd(), getRootPath())
   using repo = await loadRepo(resolved.repoRoot)
-  const node = findTask(repo, ref)
+  const node = resolveOrExit(repo, ref)
   const plan = planRelease(node, ref)
   if (plan.errors.length > 0) {
     for (const e of plan.errors) console.error(term.red(e))
     process.exit(1)
   }
-  applyLifecyclePlan(repo, node!, plan)
+  applyLifecyclePlan(repo, node, plan)
   if (options.json) {
-    console.log(JSON.stringify({ id: node!.id, status: "todo", assigned_to: null }))
+    console.log(JSON.stringify({ id: node.id, status: "todo", assigned_to: null }))
     return
   }
-  console.log(term.dim("○"), "Released:", node!.id.slice(-8))
+  console.log(term.dim("○"), "Released:", node.id.slice(-8))
 }
 
 /** Options bag for `task close <id> [--reason TEXT]`. */
@@ -167,18 +184,18 @@ export async function closeTaskLifecycle(ref: string | undefined, options: Close
   }
   const resolved = resolvePathArg(process.cwd(), getRootPath())
   using repo = await loadRepo(resolved.repoRoot)
-  const node = findTask(repo, ref)
+  const node = resolveOrExit(repo, ref)
   const plan = planClose(node, ref, options.reason)
   if (plan.errors.length > 0) {
     for (const e of plan.errors) console.error(term.red(e))
     process.exit(1)
   }
-  applyLifecyclePlan(repo, node!, plan)
+  applyLifecyclePlan(repo, node, plan)
   if (options.json) {
-    console.log(JSON.stringify({ id: node!.id, status: "done", reason: options.reason ?? null }))
+    console.log(JSON.stringify({ id: node.id, status: "done", reason: options.reason ?? null }))
     return
   }
-  console.log(term.green("✓"), "Closed:", node!.id.slice(-8))
+  console.log(term.green("✓"), "Closed:", node.id.slice(-8))
   if (options.reason) console.log(term.dim(`  Reason: ${options.reason}`))
 }
 
@@ -190,18 +207,18 @@ export async function dropTaskLifecycle(ref: string | undefined, options: CloseD
   }
   const resolved = resolvePathArg(process.cwd(), getRootPath())
   using repo = await loadRepo(resolved.repoRoot)
-  const node = findTask(repo, ref)
+  const node = resolveOrExit(repo, ref)
   const plan = planDrop(node, ref, options.reason)
   if (plan.errors.length > 0) {
     for (const e of plan.errors) console.error(term.red(e))
     process.exit(1)
   }
-  applyLifecyclePlan(repo, node!, plan)
+  applyLifecyclePlan(repo, node, plan)
   if (options.json) {
-    console.log(JSON.stringify({ id: node!.id, status: "dropped", reason: options.reason ?? null }))
+    console.log(JSON.stringify({ id: node.id, status: "dropped", reason: options.reason ?? null }))
     return
   }
-  console.log(term.yellow("⊘"), "Dropped:", node!.id.slice(-8))
+  console.log(term.yellow("⊘"), "Dropped:", node.id.slice(-8))
   if (options.reason) console.log(term.dim(`  Reason: ${options.reason}`))
 }
 
@@ -213,16 +230,16 @@ export async function reopenTaskLifecycle(ref: string | undefined, options: Life
   }
   const resolved = resolvePathArg(process.cwd(), getRootPath())
   using repo = await loadRepo(resolved.repoRoot)
-  const node = findTask(repo, ref)
+  const node = resolveOrExit(repo, ref)
   const plan = planReopen(node, ref)
   if (plan.errors.length > 0) {
     for (const e of plan.errors) console.error(term.red(e))
     process.exit(1)
   }
-  applyLifecyclePlan(repo, node!, plan)
+  applyLifecyclePlan(repo, node, plan)
   if (options.json) {
-    console.log(JSON.stringify({ id: node!.id, status: "todo" }))
+    console.log(JSON.stringify({ id: node.id, status: "todo" }))
     return
   }
-  console.log(term.green("↺"), "Reopened:", node!.id.slice(-8))
+  console.log(term.green("↺"), "Reopened:", node.id.slice(-8))
 }

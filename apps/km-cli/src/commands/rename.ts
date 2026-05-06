@@ -34,7 +34,8 @@ export const renameCommand = new Command("rename")
   .action(async (idArg: string, targetArg: string, options: Record<string, unknown>) => {
     // Forward to moveCommand. Build argv the same way commander would
     // for `km move <id> <target> [...flags]` so the polymorphic
-    // dispatch in move.ts handles both reparent and rename.
+    // dispatch in move.ts handles both reparent and rename — the
+    // short-id resolver lives there too, so this shim gets it for free.
     const argv = [idArg, targetArg]
     if (options.rewrite === false) argv.push("--no-rewrite")
     if (options.includeProse === true) argv.push("--include-prose")

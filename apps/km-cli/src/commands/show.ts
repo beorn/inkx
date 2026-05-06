@@ -15,6 +15,7 @@ import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 import type { KNode } from "@km/core"
 import { formatStatus, formatNodeBrief } from "@km/tui"
+import { resolveShortId, formatAmbiguityError } from "../utils/short-id.ts"
 
 /** Options parsed from the show command flags */
 interface ShowOptions {
@@ -42,7 +43,15 @@ export const showCommand = new Command("show")
       process.exit(1)
     }
 
-    const node = repo.resolveNode(resolved.nodeRef)
+    // Use the short-id resolver — accepts bare slugs, scope/slug, or
+    // full path-form. Surfaces ambiguity (slug shared by multiple nodes)
+    // as a "did you mean:" error instead of a silent miss.
+    const result = resolveShortId(repo, resolved.nodeRef)
+    if (result.candidates.length > 0) {
+      console.error(term.red(formatAmbiguityError(id, result.candidates)))
+      process.exit(1)
+    }
+    const node = result.node
 
     if (!node) {
       console.error(term.red(`Node not found: ${id}`))

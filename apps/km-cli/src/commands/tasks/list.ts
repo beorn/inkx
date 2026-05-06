@@ -26,6 +26,7 @@ import { buildTaskTree, sortByPath } from "./queries.ts"
 import { parseLimitFlag, applyLimit } from "../../utils/limit.ts"
 import { planList } from "./list-plan.ts"
 import { buildStatusBar } from "./status-bar.ts"
+import { formatAmbiguityError } from "../../utils/short-id.ts"
 
 // Re-export pure helpers + planner so existing imports keep working
 // (tests still hit `filterTasksByAssignee`, `filterTasksByPriority`, etc.).
@@ -219,6 +220,10 @@ export async function listTasks(pathOrId: string | undefined, options: ListTasks
   if (plan.kind === "single-task") {
     showTaskDetails(repo, plan.task, options)
     return
+  }
+  if (plan.kind === "ambiguous") {
+    console.error(term.red(formatAmbiguityError(plan.raw, plan.candidates)))
+    process.exit(1)
   }
 
   renderTaskList(

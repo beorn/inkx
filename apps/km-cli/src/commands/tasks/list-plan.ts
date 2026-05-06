@@ -21,6 +21,7 @@ import type { KNode } from "@km/core"
 import { Bead, normalizePriority } from "@km/beads"
 import { KNode as KNodeNs, getNodePriority } from "@km/core"
 import { taskPathMatches, looksLikeQuery } from "./queries.ts"
+import { resolveShortId } from "../../utils/short-id.ts"
 
 /**
  * Parsed inputs the planner reads. Subset of the CLI surface — the
@@ -51,6 +52,14 @@ export interface PlanListInputs {
 export type ListPlan =
   | { kind: "single-task"; task: KNode }
   | { kind: "list"; tasks: KNode[]; rootNode: KNode | null; pathFilter: string | null }
+  /**
+   * The user-supplied positional resolved to multiple candidates. The
+   * action handler renders a "did you mean:" list and exits non-zero.
+   * Short-id resolution can surface ambiguity that path-form resolution
+   * masked silently — exposing it as a plan kind keeps the action
+   * handler dumb (one switch over plan.kind).
+   */
+  | { kind: "ambiguous"; raw: string; candidates: KNode[] }
 
 /**
  * Filter tasks by priority (canonical `P0`..`P4` form on `node.priority`).
@@ -137,20 +146,36 @@ function resolveFromQuery(repo: Repo, queryArg: string, options: PlanListInputs)
 
 /**
  * Resolve tasks from a path-or-ID positional argument.
- * Returns null if the pathOrId points to a single task (caller should show details instead).
+ * Returns:
+ *   - `{ kind: "single-task" }` if the pathOrId points to a single task
+ *     (caller should show details instead),
+ *   - `{ kind: "ambiguous" }` if the bare slug typed by the user matches
+ *     multiple nodes (caller renders a "did you mean:" error),
+ *   - `{ kind: "subtree" }` for a subtree-scoped list (rootNode + tasks),
+ *   - `{ kind: "filter" }` when the input doesn't resolve and is treated
+ *     as a path-substring filter against all tasks.
  */
-function resolveFromPathOrId(
-  repo: Repo,
-  pathOrId: string,
-  options: PlanListInputs,
-): { tasks: KNode[]; rootNode: KNode | null; pathFilter: string | null } | null {
-  // Try to find an exact node match first
-  const rootNode = Task.findByPathOrId(repo, pathOrId, (r) => Bead.resolve(repo, r))
+type PathOrIdResolution =
+  | { kind: "single-task"; task: KNode }
+  | { kind: "ambiguous"; candidates: KNode[] }
+  | { kind: "subtree"; tasks: KNode[]; rootNode: KNode; pathFilter: null }
+  | { kind: "filter"; tasks: KNode[]; rootNode: null; pathFilter: string }
+
+function resolveFromPathOrId(repo: Repo, pathOrId: string, options: PlanListInputs): PathOrIdResolution {
+  // Use the short-id resolver so a bare slug typed by the user can
+  // resolve uniquely (e.g. `task move-with-rewrite-refs`) and ambiguous
+  // slugs surface as candidates instead of silently falling through to
+  // the path-substring filter.
+  const shortIdResult = resolveShortId(repo, pathOrId)
+  if (shortIdResult.candidates.length > 0) {
+    return { kind: "ambiguous", candidates: shortIdResult.candidates }
+  }
+  const rootNode = shortIdResult.node
 
   if (rootNode) {
     // If the root IS a task, signal the caller to show details
     if (KNodeNs.isListItem(rootNode) && rootNode.item?.task?.marker !== undefined) {
-      return null
+      return { kind: "single-task", task: rootNode }
     }
 
     // Get tasks under this root, then apply status + priority + blocked filters.
@@ -160,7 +185,7 @@ function resolveFromPathOrId(
       filterTasksByPriority(filterTasksByStatus(subtasks, options, "active"), options.priority),
       options,
     )
-    return { tasks, rootNode, pathFilter: null }
+    return { kind: "subtree", tasks, rootNode, pathFilter: null }
   }
 
   // No exact match - treat as path filter (like `bun test <filter>`)
@@ -169,7 +194,7 @@ function resolveFromPathOrId(
     options,
   )
   const tasks = allTasks.filter((t) => taskPathMatches(repo, t, pathOrId))
-  return { tasks, rootNode: null, pathFilter: pathOrId }
+  return { kind: "filter", tasks, rootNode: null, pathFilter: pathOrId }
 }
 
 /**
@@ -179,6 +204,8 @@ function resolveFromPathOrId(
  * Returns:
  *   - `single-task` when the positional resolved to one task. The caller
  *     should display task details and stop.
+ *   - `ambiguous` when the positional resolved to multiple slug-matched
+ *     candidates. The caller renders a "did you mean:" error.
  *   - `list` with the filtered task list, optional rootNode (shown as a
  *     header), and optional pathFilter (shown as a `Filter: <s>` header).
  */
@@ -198,20 +225,19 @@ export function planList(repo: Repo, inputs: PlanListInputs): ListPlan {
 
   if (inputs.pathOrId) {
     const result = resolveFromPathOrId(repo, inputs.pathOrId, inputs)
-    if (!result) {
-      // pathOrId resolved to a single task
-      const task = Task.findByPathOrId(repo, inputs.pathOrId, (r) => Bead.resolve(repo, r))
-      // `result === null` only happens when findByPathOrId returned a task
-      // (verified via the marker check inside resolveFromPathOrId), so the
-      // re-resolution always succeeds here.
-      if (task) return { kind: "single-task", task }
-    } else {
-      return {
-        kind: "list",
-        tasks: filterTasksByAssignee(result.tasks, inputs.assignee),
-        rootNode: result.rootNode,
-        pathFilter: result.pathFilter,
-      }
+    switch (result.kind) {
+      case "single-task":
+        return { kind: "single-task", task: result.task }
+      case "ambiguous":
+        return { kind: "ambiguous", raw: inputs.pathOrId, candidates: result.candidates }
+      case "subtree":
+      case "filter":
+        return {
+          kind: "list",
+          tasks: filterTasksByAssignee(result.tasks, inputs.assignee),
+          rootNode: result.rootNode,
+          pathFilter: result.pathFilter,
+        }
     }
   }
 

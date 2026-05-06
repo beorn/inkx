@@ -26,6 +26,7 @@ import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 import { formatNodeBrief } from "@km/tui"
 import type { KNode } from "@km/core"
+import { resolveShortId, formatAmbiguityError } from "../utils/short-id.ts"
 
 export const childrenCommand = new Command("children")
   .description("Show the children of a node (alias of `km show <id> -c`; walks bead sibling folders too)")
@@ -40,16 +41,21 @@ export const childrenCommand = new Command("children")
       process.exit(1)
     }
 
-    // When the user passes a path-form id like `@km/scope/foo` and BOTH
-    // a `.md` file and a `/` folder exist at that path, the resolver
-    // matches the folder first. Beads keep their content in the .md
-    // file, so we prefer the file if it exists.
-    let node = null
+    // Beads-aware id resolution: short-id (slug) → scope/slug → full path.
+    // For path-form ids where BOTH a `.md` file and a `/` folder exist at
+    // the same path, prefer the `.md` (the bead) since beads keep their
+    // content in the file, not the folder.
+    let node: KNode | null = null
     if (resolved.nodeRef.includes("/") && !resolved.nodeRef.endsWith(".md")) {
       node = repo.resolveNode(`${resolved.nodeRef}.md`)
     }
     if (!node) {
-      node = repo.resolveNode(resolved.nodeRef)
+      const result = resolveShortId(repo, resolved.nodeRef)
+      if (result.candidates.length > 0) {
+        console.error(term.red(formatAmbiguityError(id, result.candidates)))
+        process.exit(1)
+      }
+      node = result.node
     }
     if (!node) {
       console.error(term.red(`Node not found: ${id}`))

@@ -38,6 +38,7 @@ import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 import { getNodeDisplayName } from "@km/tree"
 import type { KNode, KLink } from "@km/core"
+import { resolveShortId, formatAmbiguityError } from "../utils/short-id.ts"
 
 /**
  * Path-form heuristic: matches `@<scope>/...` (sigil + at least one slash
@@ -71,16 +72,20 @@ export const moveCommand = new Command("move")
 
     // Find the node to move. When the input looks like a path-form id
     // (contains a slash, no extension), prefer the .md FILE over the
-    // same-named folder node — once a bead has children, its directory
-    // and its .md file share the same path-form id, and a path-form
-    // lookup matches the folder first. The bead-content lives in the
-    // .md file; that's what the user means by "move @km/scope/old".
-    let node = null
+    // same-named folder — beads keep their content in the .md file.
+    // Otherwise route through the short-id resolver (slug → scope/slug
+    // → full path), surfacing ambiguity as a "did you mean:" error.
+    let node: KNode | null = null
     if (nodeRef.includes("/") && !nodeRef.endsWith(".md")) {
       node = repo.resolveNode(`${nodeRef}.md`)
     }
     if (!node) {
-      node = repo.resolveNode(nodeRef)
+      const nodeResult = resolveShortId(repo, nodeRef)
+      if (nodeResult.candidates.length > 0) {
+        console.error(term.red(formatAmbiguityError(nodeArg, nodeResult.candidates)))
+        process.exit(1)
+      }
+      node = nodeResult.node
     }
     if (!node) {
       console.error(term.red(`Node not found: ${nodeArg}`))
@@ -117,7 +122,12 @@ export const moveCommand = new Command("move")
       const resolvedParent = resolvePathArg(targetArg, resolvedNode.repoRoot)
       const parentRef = resolvedParent.nodeRef
       if (parentRef) {
-        targetParent = repo.resolveNode(parentRef)
+        const parentResult = resolveShortId(repo, parentRef)
+        if (parentResult.candidates.length > 0) {
+          console.error(term.red(formatAmbiguityError(targetArg, parentResult.candidates)))
+          process.exit(1)
+        }
+        targetParent = parentResult.node
       }
 
       if (!targetParent && looksLikePathFormId(targetArg)) {

@@ -19,6 +19,7 @@ import { resolvePathArg } from "@km/fs-mount"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 import { planClear } from "./clear-plan.ts"
+import { resolveShortId, formatAmbiguityError } from "../utils/short-id.ts"
 
 interface ClearOptions {
   json?: boolean
@@ -80,7 +81,13 @@ export const clearCommand = new Command("clear")
     let hadError = false
 
     for (const idArg of ids) {
-      const node = repo.resolveNode(idArg)
+      const result = resolveShortId(repo, idArg)
+      if (result.candidates.length > 0) {
+        console.error(term.red(formatAmbiguityError(idArg, result.candidates)))
+        hadError = true
+        continue
+      }
+      const node = result.node
       if (!node) {
         console.error(term.red(`Node not found: ${idArg}`))
         hadError = true

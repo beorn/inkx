@@ -15,7 +15,23 @@
 
 import { Bead, type Bead as BeadType } from "@km/beads"
 import { getGraphEdges, type Repo } from "@km/storage"
+import type { KNode } from "@km/core"
 import { resolveTaskNode } from "../../utils/resolve-task.ts"
+import { resolveShortId, formatAmbiguityError } from "../../utils/short-id.ts"
+
+/**
+ * Dep-plan-specific resolver that surfaces ambiguity as an error string
+ * (so it lands in `plan.errors` and aborts the bulk op, preserving the
+ * atomicity contract). On unique resolution, returns the node; on no
+ * match, returns `null` (caller emits its own "not found" message).
+ */
+function resolveOne(repo: Repo, ref: string): { node: KNode | null; error?: string } {
+  const result = resolveShortId(repo, ref)
+  if (result.candidates.length > 0) {
+    return { node: null, error: formatAmbiguityError(ref, result.candidates) }
+  }
+  return { node: result.node }
+}
 
 // =============================================================================
 // Types
@@ -83,7 +99,12 @@ export interface DepListPlan {
 export function planAddDeps(repo: Repo, id: string, blockerInputs: string[]): DepAddPlan {
   const plan: DepAddPlan = { blockers: [], errors: [], warnings: [] }
 
-  const target = resolveTaskNode(repo, id)
+  const targetResolution = resolveOne(repo, id)
+  if (targetResolution.error) {
+    plan.errors.push(targetResolution.error)
+    return plan
+  }
+  const target = targetResolution.node
   if (!target) {
     plan.errors.push(`Task not found: ${id}`)
     return plan
@@ -97,7 +118,12 @@ export function planAddDeps(repo: Repo, id: string, blockerInputs: string[]): De
   }
 
   for (const input of blockerInputs) {
-    const blocker = resolveTaskNode(repo, input)
+    const blockerResolution = resolveOne(repo, input)
+    if (blockerResolution.error) {
+      plan.errors.push(blockerResolution.error)
+      continue
+    }
+    const blocker = blockerResolution.node
     if (!blocker) {
       plan.errors.push(`Blocker not found: ${input}`)
       continue
@@ -127,7 +153,12 @@ export function planAddDeps(repo: Repo, id: string, blockerInputs: string[]): De
 export function planRemoveDeps(repo: Repo, id: string, blockerInputs: string[]): DepRemovePlan {
   const plan: DepRemovePlan = { blockers: [], errors: [], warnings: [] }
 
-  const target = resolveTaskNode(repo, id)
+  const targetResolution = resolveOne(repo, id)
+  if (targetResolution.error) {
+    plan.errors.push(targetResolution.error)
+    return plan
+  }
+  const target = targetResolution.node
   if (!target) {
     plan.errors.push(`Task not found: ${id}`)
     return plan
@@ -141,7 +172,12 @@ export function planRemoveDeps(repo: Repo, id: string, blockerInputs: string[]):
   }
 
   for (const input of blockerInputs) {
-    const blocker = resolveTaskNode(repo, input)
+    const blockerResolution = resolveOne(repo, input)
+    if (blockerResolution.error) {
+      plan.errors.push(blockerResolution.error)
+      continue
+    }
+    const blocker = blockerResolution.node
     if (!blocker) {
       plan.errors.push(`Blocker not found: ${input}`)
       continue
@@ -167,7 +203,12 @@ export function planRemoveDeps(repo: Repo, id: string, blockerInputs: string[]):
 export function planListDeps(repo: Repo, id: string): DepListPlan {
   const plan: DepListPlan = { entries: [], errors: [] }
 
-  const target = resolveTaskNode(repo, id)
+  const targetResolution = resolveOne(repo, id)
+  if (targetResolution.error) {
+    plan.errors.push(targetResolution.error)
+    return plan
+  }
+  const target = targetResolution.node
   if (!target) {
     plan.errors.push(`Task not found: ${id}`)
     return plan

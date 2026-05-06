@@ -13,6 +13,7 @@ import { getRootPath } from "../../program.ts"
 import { loadRepo } from "../../load-repo.ts"
 import { planSetFields, planClearFields } from "./set-clear-plan.ts"
 import { formatSetUpdates, formatClearKeys } from "./set-clear-display.ts"
+import { resolveShortId, formatAmbiguityError } from "../../utils/short-id.ts"
 
 // Re-export so existing imports continue to work.
 export { planSetFields, planClearFields, type SetFieldPlan, type ClearFieldPlan } from "./set-clear-plan.ts"
@@ -39,8 +40,12 @@ export function createSetCommand() {
     .action(async (id, fields, options) => {
       const resolved = resolvePathArg(process.cwd(), getRootPath())
       using repo = await loadRepo(resolved.repoRoot)
-      const task = repo.resolveNode(id, { taskOnly: true })
-
+      const result = resolveShortId(repo, id)
+      if (result.candidates.length > 0) {
+        console.error(term.red(formatAmbiguityError(id, result.candidates)))
+        process.exit(1)
+      }
+      const task = result.node
       if (!task) {
         console.error(term.red(`No task found with ID prefix: ${id}`))
         process.exit(1)
@@ -110,8 +115,12 @@ export function createClearCommand() {
     .action(async (id, fields, options) => {
       const resolved = resolvePathArg(process.cwd(), getRootPath())
       using repo = await loadRepo(resolved.repoRoot)
-      const task = repo.resolveNode(id, { taskOnly: true })
-
+      const result = resolveShortId(repo, id)
+      if (result.candidates.length > 0) {
+        console.error(term.red(formatAmbiguityError(id, result.candidates)))
+        process.exit(1)
+      }
+      const task = result.node
       if (!task) {
         console.error(term.red(`No task found with ID prefix: ${id}`))
         process.exit(1)
