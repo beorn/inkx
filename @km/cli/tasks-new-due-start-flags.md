@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/cli/tasks-new-due-start-flags"
 aliases:
   - km-cli.tasks-new-due-start-flags
@@ -9,9 +11,13 @@ type: task
 priority: P3
 status: todo
 parent: km-cli
+closeReason: Shipped at 998db0879. Added .option('--due <date>') and
+  .option('--start <date>') to tasks/index.ts; mutations.ts surfaces planner
+  errors[] (red-print, exit 1). 6 new tests in tasks-new-flags.test.ts cover
+  tmrw/friday/garbage for both flags. 0 tsc errors, 733/733 km-cli tests.
 ---
 
-# [ ] Wire --due / --start commander flags on tasks --new @km/cli #task #P3
+# [x] Wire --due / --start commander flags on tasks --new @km/cli #task #P3
 
 Wave 7 added `due` / `start` parsing to `mutations-plan.ts` `PlanNewTaskOptions` (chrono-node-backed). The commander surface in `apps/km-cli/src/commands/tasks/mutations.ts` (or wherever `tasks --new` flags are registered) doesn't expose the new options as CLI flags yet — users can't pass `--due tmrw`.
 
@@ -40,3 +46,4 @@ The parser layer exists (Wave 7 commit `ec8249bb1`). This is the 2-line wiring t
 ## Surfaced by
 
 Wave 7 agent (a11eeca07fb3b66df) — couldn't land because `apps/km-cli/src/commands/tasks/mutations.ts` was forbidden in their scope.
+

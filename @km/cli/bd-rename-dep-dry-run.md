@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/cli/bd-rename-dep-dry-run"
 aliases:
   - km-cli.bd-rename-dep-dry-run
@@ -9,9 +11,14 @@ type: task
 priority: P3
 status: todo
 parent: km-cli
+closeReason: Shipped at 22d04115f. Added .option('--dry-run') to bd-rename.ts
+  (uses getRenameImpact preview) and bd-dep.ts add/remove (preview before
+  repo.updateNode; ls left untouched). 8 new tests across
+  bd-rename-dry-run.test.ts (3) and bd-dep-dry-run.test.ts (5) pin no-write
+  invariant via mtime+content snapshots. 0 tsc errors, 733/733 km-cli tests.
 ---
 
-# [ ] Add --dry-run to bd rename and bd dep destructive verbs @km/cli #task #P3
+# [x] Add --dry-run to bd rename and bd dep destructive verbs @km/cli #task #P3
 
 Wave 7 shipped `--dry-run` for `km move`. `km set` already had it (Wave 4). Two destructive bd verbs are still missing it:
 
@@ -44,3 +51,4 @@ Wave 7 agent (a11eeca07fb3b66df) — couldn't land because bd*.ts was bd-split's
 ## Pairs with
 
 - `@km/cli/bd-split-per-command` — must land first; bd-split's per-command files are where the `--dry-run` flag goes.
+
