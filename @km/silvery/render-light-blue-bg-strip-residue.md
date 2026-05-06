@@ -390,3 +390,24 @@ Spawn the silvery agent on the localized site:
 - Trace what AgNode is responsible for the cell paints at (72, 71) cols 65-78 (1-indexed col 66+)
 - Once the AgNode is named, look at its render-phase emit path for trailing-whitespace bg
 - Or write a test that loads `RESOLVER.md`'s exact line in a 38-wide truncated card with `~vault/@inbox/` inline code, asserts no bg paints outside the card's right border
+
+## Round 12 — RESOLVED (2026-05-05)
+
+**Root cause**: `applyBgSegmentsToLine` in `vendor/silvery/packages/ag-term/src/pipeline/render-text.ts` walked every grapheme of the line and emitted bg paint at displayOffset positions within the segment range, **without clipping to the parent's visible region**. When a Text node's natural-flow width exceeds its visible parent (e.g. `<Text wrap=wrap>` in a body card narrower than the text's natural width), `renderGraphemes` correctly clipped chars at `rightEdge = min(maxCol, sink.width)`, but `applyBgSegmentsToLine` had no analogous clip — leaving bg-only cells past the parent's right border.
+
+**Fix**: Added `maxCol` and `minCol` parameters to `applyBgSegmentsToLine`. Skip cells outside `[leftClip, rightClip)`. Same clip semantics for chars and bg paint is now the invariant. Call site passes the existing `maxCol`/`minCol` already computed for `renderTextLineReturn`.
+
+**Verification**:
+- `vendor/silvery/tests/regressions/applybg-clip-to-visible-region.test.tsx` — synthetic regression (2 tests). Catches bug on baseline (4 leak cells), passes with fix.
+- `apps/km-tui/tests/render-cyan-strip-cold-start-82.slow.spec.ts` — real-vault regression. Loads `~/Bear/Vault` at 82×75 with Nord theme via `testBoard({ theme: nordTheme, parseDeferred: true })`. Catches the bug on baseline (14 leak cells at row 71 cols 65-78), passes with fix.
+- Silvery features (2139 tests) + regressions (12 tests) — green.
+- km-tui default (2596) + slow (1179) — only pre-existing failures (verified by re-running on baseline).
+
+**Why testBoard didn't reproduce earlier**: defaults to `ansi16DarkTheme` (`mutedbg = #2e3440 = canvas bg, indistinguishable`); user's sessions use Nord (`mutedbg = #343a46, distinct`). Added `theme?: Theme` option to testBoard. When synthetic + testBoard probes both miss a user-visible bug, **first check theme-path parity**.
+
+**Files**:
+- `vendor/silvery/packages/ag-term/src/pipeline/render-text.ts` — fix
+- `vendor/silvery/tests/regressions/applybg-clip-to-visible-region.test.tsx` — synthetic test
+- `apps/km-tui/tests/render-cyan-strip-cold-start-82.slow.spec.ts` — real-vault test
+- `apps/km-tui/tests/helpers/real-board.ts` — `theme?: Theme` option added
+- `.claude/agents/expert/silvery-knowledge.md` — Round 12 lesson

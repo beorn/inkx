@@ -1,6 +1,46 @@
 # Silvery Knowledge — silvery agent
 
-Last updated: 2026-05-05 (cyan-strip Round 7 — skeleton→full transition probe negative; cascade gap not localized to discoverOnly path)
+Last updated: 2026-05-05 (cyan-strip RESOLVED — applyBgSegmentsToLine missing maxCol/minCol clip)
+
+## Cyan-strip Round 12: RESOLVED — applyBgSegmentsToLine missing visible-region clip (2026-05-05)
+
+**Bead**: `@km/silvery/render-light-blue-bg-strip-residue`. P1 cold-start strip. Root cause + fix shipped.
+
+**Root cause** (`vendor/silvery/packages/ag-term/src/pipeline/render-text.ts:applyBgSegmentsToLine`):
+The bg-segment paint walked **every grapheme of the line** and emitted bg cells at displayOffset positions within the segment range, **without any horizontal clipping**. When a Text node's natural-flow width exceeds its visible parent (e.g. `<Text wrap=wrap>` inside an `overflow=hidden` Box narrower than the text's natural width, OR a Text laid out unwrapped at full width — both happen in km's body cards), `renderGraphemes` correctly clipped chars at `rightEdge = min(maxCol, sink.width)` — but `applyBgSegmentsToLine` painted bg at the natural-flow column with no equivalent check, leaving bg-only cells (no character) past the parent's right border.
+
+**Symptom**: 14-cell horizontal strip of `$mutedbg` (rgb 52,58,70 in Nord legacy theme) with empty content, at the natural-flow column position of `<Text variant="code">~vault/@inbox/</Text>` (14 chars) inside a body card whose Text content extended beyond the card's visible width. The bug ALWAYS surfaced (cold-start, no interaction) because the layout was deterministic.
+
+**Why prior rounds missed it** (Rounds 1-11 spanned a week, ~10 hypotheses ruled out):
+- Synthetic tests of `<Text wrap=truncate><Text variant=code>...</Text></Text>` truncated correctly — the bug needed a Text laid out **wider than its visible parent** (overflow=hidden + flexShrink=0 OR wrap=wrap producing a single line wider than parent), which the synthetic micro-fixtures didn't construct.
+- testBoard helper used `defaultKmTheme = ansi16DarkTheme` which has `mutedbg = #2e3440` (= canvas bg, no contrast). The user's actual sessions detect Nord (`mutedbg = #343a46`, distinct). Without the contrast, every "is the strip there?" probe found 0 cells. Theme override (`testBoard({ theme: nordTheme })`) was the unblock.
+- Cell-debug at `(71,71)` revealed the smoking gun: `lineCharEnd=186` with bgSegment `[60,74)` painting `/` at col 71. The line was the FULL unwrapped 186-char text; the bg paint walked ALL 186 cells.
+
+**Fix**: Add `maxCol?: number` and `minCol?: number` parameters to `applyBgSegmentsToLine`. Clip the paint loop:
+- `rightClip = maxCol !== undefined ? Math.min(maxCol, sink.width) : sink.width`
+- `leftClip = minCol !== undefined ? Math.max(minCol, 0) : 0`
+- Inside grapheme walk: `if (col < rightClip && col >= leftClip)` before `emitSetCell`; also break early when `col >= rightClip`.
+
+The call site in `renderText` already computes `maxCol` and `minCol` (line 1546–1558) for `renderTextLineReturn` — pass the same values to `applyBgSegmentsToLine`. **Same clip semantics for chars and bg paint** is the invariant.
+
+**Verification**:
+- New synthetic regression test `vendor/silvery/tests/regressions/applybg-clip-to-visible-region.test.tsx` — Text wider than overflow=hidden parent + inline `<Text backgroundColor=cyan>`. Catches the bug on baseline (4 leak cells), passes with fix.
+- New real-vault regression test `apps/km-tui/tests/render-cyan-strip-cold-start-82.slow.spec.ts` — loads `~/Bear/Vault` at 82×75 with Nord theme via `testBoard({ theme: nordTheme, parseDeferred: true })`. Asserts no `$mutedbg` cells with empty/space char content. Catches the user-visible bug on baseline (14 leak cells at row 71 cols 65-78), passes with fix.
+- Full silvery features suite (2139 tests) and silvery regressions suite (12 tests) — green.
+- Full km-tui default (2596 tests) and slow (1179 tests) suites — same pre-existing failures as baseline (4 silvery + 6 km-tui pre-existing, all unrelated to this fix).
+
+**Lessons**:
+1. **Theme-dependent bugs need theme-faithful repros.** `testBoard` defaults to `ansi16DarkTheme` for speed; bugs whose fingerprint is a derived truecolor blend (here `$mutedbg = blend(canvas, fg, 0.04)`) are invisible without an explicit theme override. Added `theme?: Theme` option to testBoard. When the user's sessions reproduce a bug that synthetic + testBoard miss, **first check whether the theme path matches**.
+2. **bg paint must mirror char paint clipping.** `renderGraphemes` clipped chars at `rightEdge = min(maxCol, sink.width)`; `applyBgSegmentsToLine` had no analogous clip. Two clip codepaths must move together — the paint pipeline has an implicit invariant "every cell that gets bg also gets a char (or is intentionally empty inside the visible region)" — broken when one walker clips and the other doesn't. Audit other paint walkers (selection-renderer, decoration-phase) for the same shape.
+3. **Layout overflow + bg paint = leak.** `<Text>` laid out wider than its visible parent is a known shape (overflow=hidden cards, flexShrink=0 children with long content). The bg-segment paint pipeline assumed the visible region == the layout region. Document this assumption in render-text.ts header.
+4. **`lineCharEnd` is the canary.** When `lineCharEnd` of a wrapped/truncated line equals the FULL natural width of the source text, the line was rendered unwrapped. If the parent's visible width is less, you have a clip-mismatch hazard. Worth adding an instrumentation hook that asserts `lineCharEnd <= maxCol - x` post-render in STRICT mode.
+
+**Where this lives**:
+- `vendor/silvery/packages/ag-term/src/pipeline/render-text.ts` — fix (function signature + clip vars + early break)
+- `vendor/silvery/tests/regressions/applybg-clip-to-visible-region.test.tsx` — synthetic regression
+- `apps/km-tui/tests/render-cyan-strip-cold-start-82.slow.spec.ts` — real-vault regression
+- `apps/km-tui/tests/helpers/real-board.ts` — added `theme?: Theme` option to testBoard
+- `@km/silvery/render-light-blue-bg-strip-residue.md` — bead with all 12 rounds
 
 ## Cyan-strip Round 7: skeleton→full-parse transition NOT the cause (2026-05-05)
 

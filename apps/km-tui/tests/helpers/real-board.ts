@@ -104,6 +104,13 @@ export interface TestBoardOptions {
    * deterministic ordering.
    */
   parseDeferred?: boolean
+  /**
+   * Override theme. Defaults to defaultKmTheme (ansi16DarkTheme) which uses
+   * ANSI 16 colors with no $mutedbg. For tests that need to reproduce theme-
+   * specific bugs (e.g. legacy-derive $mutedbg = blend(bg, fg, 0.04) only
+   * appears in trucolor schemes like Nord), pass an alternate Theme.
+   */
+  theme?: import("@silvery/ag-react").Theme
 }
 
 export interface TestBoardResult {
@@ -275,7 +282,7 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
   const result = render(
     React.createElement(
       ThemeProvider,
-      { theme: defaultKmTheme, children: null },
+      { theme: options?.theme ?? defaultKmTheme, children: null },
       React.createElement(
         ServicesProvider,
         { toastQueue, jobRunner: store.getState().jobRunner, undoHandle, children: null },
