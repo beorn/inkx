@@ -26,34 +26,65 @@ Build the `@agent` + `@agent/0..9` sigil-board scheme for assigning bead work to
 
 ## Verification — what works today and what doesn't (2026-05-06 experiment)
 
-Created `@agent.md` + `@agent/0.md` + a test bead `@km/inbox/test-agent-mention` with `@agent/0` in its title. Ran the rollup queries:
+Created `@agent.md` + `@agent/0.md` + a test bead `@km/inbox/test-agent-mention` with `@agent/0` in title, `@agent/3` in body, and `[[@agent/5]]` wikilink in body. Ran rollup queries AND inspected the underlying `links` table directly via SQLite.
 
 | Query | Result | Verdict |
 |---|---|---|
-| `km bd list @agent` | Returns all 3 (slot file + test bead + an unrelated bead mentioning `@agent.md`) | ✅ Master rollup works |
+| `km bd list @agent` | Returns slot files + test bead + an unrelated bead mentioning `@agent.md` | ✅ Master rollup works |
 | `km bd list @agent/0` | Returns "No tasks found" | ❌ Per-slot rollup broken |
 | `km bd children @agent` | Lists `@agent/0` slot file | ✅ Path-children works |
 | `km bd query 'title:agent/0'` | `[]` | ❌ No title-substring DSL |
-| `km bd query 'content:@agent/0'` | `[]` | ❌ Same — no substring match |
 
-**Root cause:** the mention extractor records the bare sigil token, not the path-form. Test bead's frontmatter shows `mentions: ["agent"]`, NOT `["agent", "agent/0"]`. So per-slot queries can't filter by mention.
+**The three syntaxes behave differently** — verified by direct SQL on `links` table:
 
-**Implication:** master view (`@agent`) works for free; per-slot routing (`@agent/0`) needs an extractor fix OR a different mechanism.
-
-## Decision matrix
-
-| Option | Pros | Cons |
+| Syntax in bead | Lands in `links` table? | `data.mentions` |
 |---|---|---|
-| **A. Extend mention extractor to record path-form** (`agent`, `agent/0`) | Cleanest; per-slot rollup works for free; symmetric with master | Touches the extractor; data migration on existing beads (re-extract on next sync) |
-| **B. Use frontmatter `assignee:` instead of title sigil** for per-slot routing | No extractor change; uses existing assignee field | Loses the visual "you can see assignment in the title" property; assignment becomes invisible in plain-markdown view |
-| **C. Title-substring fallback in `/do` skill** | Quick to ship; no schema change | Slow (full title scan); doesn't compose with bd query DSL; per-slot `bd list` still broken for users |
+| `#task`, `#P2` (hash sigil) | ✅ as `km:%23task` | — (hash sigils don't go to mentions) |
+| `[[@agent/5]]` (wikilink) | ✅ as `km:@agent/5` (full path-form!) | — |
+| `@agent/0`, `@agent/3` (bare sigil) | ❌ not extracted at all | bare `"agent"` only — no path-form |
 
-**Recommendation: A.** Path-form mention extraction is what the design implicitly assumes; fix the extractor once and everything (per-slot list, /do, bd query) works without per-call workarounds.
+**Implications:**
+
+- **Master view works for free** — anything with `@agent` (any form) surfaces under `bd list @agent` because `data.mentions: ["agent"]`.
+- **Per-slot routing has a clean primitive available** — the links table already indexes `[[@agent/5]]` with full path-form `km:@agent/5` href. The only missing piece is `bd list @agent/<N>` doing a backlinks query (`SELECT host_id FROM links WHERE href = 'km:@agent/<N>'`).
+- **Bare `@agent/<N>` sigils are a dead end** without parser changes — the extractor doesn't recognize path-form for `@`-sigils.
+
+## Decision: align implementation with the canonical klink.md spec
+
+The design is **already documented** in `docs/design/model/klink.md`:
+
+| Markdown | Resulting href |
+|---|---|
+| `@Alice` (inline) | `km:@Alice` |
+| `[[@Alice]]` | `km:@Alice` *(equivalent)* |
+
+So `@blah` ≡ `[[@blah]]` is the **specified behavior**. The links table is canonical. `data.mentions` is a redundant parallel field from `packages/km-markdown/src/extensions/km-refs.ts` — should be deprecated (separate sweep, not part of this bead).
+
+The "broken per-slot rollup" we observed is therefore an **implementation gap, not a design question**:
+
+- `[[@agent/5]]` → produces `km:@agent/5` ✓ (matches spec)
+- Bare `@agent/0` → produces nothing in links table ✗ (**violates spec** — should produce `km:@agent/0` per klink.md)
+- The inline `@<sigil>/<sub>` extractor needs to be fixed to match the documented spec (and the wikilink extractor that already does the right thing).
+
+### Single path forward
+
+1. **Fix the inline `@<sigil>` extractor** to recognize path-form (`@agent/0` → `km:@agent/0` in links table) — bug fix to align with `klink.md`.
+2. **`bd list <slot>` does a backlinks query** on the links table (`SELECT host_id FROM links WHERE href = 'km:@agent/<N>'`) — uses the canonical primitive.
+3. **No syntactic choice for users** — `@agent/3` and `[[@agent/3]]` both work, both produce `km:@agent/3`, both are queryable via the same mechanism. Per the spec.
+
+### Ontology aside (for the extractor fix)
+
+When the extractor sees `@<prefix>/<sub>`:
+- **Doesn't create nodes.** Same as `[[NonExistent]]` wikilinks (dangling, not auto-materialized) and `#tag` sigils (no `#tag.md` auto-creates today). Auto-creation would pollute the vault with empty stubs and force type-inference the extractor can't sensibly do (`@agent/0` is a persona slot; `@reading/scifi/dune` is a book; `@org/team-foo` is a team — no good default).
+- **Records one link**, `km:@<prefix>/<sub>` only. Master-prefix rollup (`bd list @agent`) handled by query-side path-prefix matching (`WHERE href LIKE 'km:@agent%'`), not by recording two links.
+- **Bare `@<prefix>` (no sub) stays as today** — `km:@<prefix>` in links table per spec; the path-form work is purely additive.
 
 ## Sub-tasks
 
 - [ ] **scaffold** — create `@agent.md` + `@agent/0..9.md` at vault root with frontmatter schema (model/harness/scope_fit) and starter persona stubs where known (e.g., 0=generalist, 1=silvery-engineer, 2=silvercode-engineer, 3=bd/cli-engineer, rest empty for ad-hoc)
-- [ ] **extractor: record path-form mentions** — when title contains `@agent/0`, extract both `agent` and `agent/0` into `data.mentions`. Re-extract on sync. Verify `km bd list @agent/0` returns beads mentioning the slot
+- [ ] **fix inline `@<sigil>/<sub>` extractor to match klink.md spec** — bare `@agent/0` should produce `km:@agent/0` in the links table (currently produces nothing). Verifies `@<x>` ≡ `[[@<x>]]` per the canonical klink doc. Re-extract on sync. Verify `km bd list @agent/0` returns beads mentioning the slot via backlinks query.
+- [ ] **`bd list <slot>` backlinks-query path** — when `<slot>` resolves to a node, query `SELECT host_id FROM links WHERE href = 'km:<slot-href>'` (and a `LIKE 'km:<slot>%'` rollup variant for parent paths). Surface those host nodes in the listing.
+- [ ] **deprecate `data.mentions` (separate sweep)** — `packages/km-markdown/src/extensions/km-refs.ts` populates `data.{tags,mentions,projects}` redundantly with the links table. Per klink.md the links table is canonical. File as a follow-up bead under `@km/markdown` once the `@<sigil>/<sub>` extractor work lands and we've verified nothing depends on `data.mentions` exclusively.
 - [ ] **atomic claim** — `bd update --claim` should be DB-side compare-and-swap (`UPDATE ... WHERE assignee IS NULL`); refuse with the current holder if already claimed. Race-safe across sessions
 - [ ] **lease expiry at board level** — verify the existing 20min agent / 24h user lease applies to board-level claims; document or extend
 - [ ] **/claim skill** — `.claude/skills/claim/SKILL.md`: wraps `km bd update @agent/<N> --claim`, reads body content into session context as `<persona>...</persona>` envelope, broadcasts on tribe channel
