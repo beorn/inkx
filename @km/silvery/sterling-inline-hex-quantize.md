@@ -21,12 +21,12 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-all.sterling
+    target: "@km/silvery/sterling"
 ---
 
 # [ ] Sterling: quantize inline hex values per caps.colorLevel @km/silvery #feature #P4 @claude:22c2717d
 
-blocks:: [[@km/all/sterling]]
+blocks:: [[@km/silvery/sterling]]
 
 Follow-up from sterling-tier-override (shipped 2026-04-19, fc758f89). Flagged inline-hex gap:
 

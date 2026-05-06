@@ -30,12 +30,12 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-all.sterling
+    target: "@km/silvery/sterling"
 ---
 
 # [x] Migrate vendor/silvery/tests/{theme-change,theme-contrast} to Sterling Theme shape @km/silvery #task #P3 @claude:22c2717d
 
-blocks:: [[@km/all/sterling]]
+blocks:: [[@km/silvery/sterling]]
 
 After Sterling 0.20.0 made Theme = SterlingTheme, two test files in vendor/silvery/tests/ still use the legacy Theme shape:
 

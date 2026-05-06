@@ -26,12 +26,12 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-all.sterling
+    target: "@km/silvery/sterling"
 ---
 
 # [x] Sterling: bg-surface-overlay near-misses AA on light schemes @km/silvery #bug #P4 @claude:22c2717d
 
-blocks:: [[@km/all/sterling]]
+blocks:: [[@km/silvery/sterling]]
 
 Surfaced 2026-04-20 by Sterling 2e Phase A audit (commit cc33ef9e in vendor/silvery).
 

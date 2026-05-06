@@ -29,12 +29,12 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-all.sterling
+    target: "@km/silvery/sterling"
 ---
 
 # [x] Add Sterling tokens for selection / inverse / link (`bg-selected`, `fg-on-selected`, `bg-inverse`, `bg-link`, `fg-on-link`) @km/silvery #task #P2 @claude:22c2717d
 
-blocks:: [[@km/all/sterling]]
+blocks:: [[@km/silvery/sterling]]
 
 Sterling 0.19 covers fg/bg/border/status/cursor — but selection / inverse / link have no flat-token equivalent and remain on the legacy theme via @silvery/ansi's deriveTheme(). @km/tui still reads the legacy `$selection`/`$selectionbg`/`$inverse`/`$link` tokens directly.
 

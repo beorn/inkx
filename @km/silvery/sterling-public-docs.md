@@ -39,7 +39,7 @@ props:
     type: list
     values:
       - type: link
-        target: km-all.sterling
+        target: "@km/silvery/sterling"
       - type: link
         target: km-silvery.sterling-2d-release
       - type: link
@@ -48,7 +48,7 @@ props:
 
 # [x] Sterling: update silvery.dev public docs for 0.19.0 @km/silvery #task #P2 @claude:4274df30
 
-blocks:: [[@km/all/sterling]], [[@km/silvery/sterling-2d-release]], [[@km/silvery/sterling-2e-interior-migration]]
+blocks:: [[@km/silvery/sterling]], [[@km/silvery/sterling-2d-release]], [[@km/silvery/sterling-2e-interior-migration]]
 
 After Sterling 0.19.0 ships, update silvery.dev public docs to reflect the new Theme shape, the 'Sterling' name, and the flat-token primacy.
 

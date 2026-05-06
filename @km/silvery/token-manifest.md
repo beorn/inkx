@@ -23,12 +23,12 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-all.sterling
+    target: "@km/silvery/sterling"
 ---
 
 # [x] Sterling tokenManifest.ts — single source of truth + doc generation @km/silvery #task #P2 @claude:22c2717d
 
-blocks:: [[@km/all/sterling]]
+blocks:: [[@km/silvery/sterling]]
 
 Create vendor/silvery/packages/theme/src/sterling/tokenManifest.ts as the
 authoritative source for documentation, storybook TokenTree labels, and

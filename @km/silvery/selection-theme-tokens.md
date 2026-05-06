@@ -35,14 +35,14 @@ props:
     type: list
     values:
       - type: link
-        target: km-all.sterling
+        target: "@km/silvery/sterling"
       - type: link
         target: km-silvery.sterling-selection-tokens
 ---
 
 # [x] Plumb $selectionbg / $selectionfg theme tokens through paintFrame's applySelectionToPaintBuffer call @km/silvery #task #P3 @claude:22c2717d
 
-blocks:: [[@km/all/sterling]], [[@km/silvery/sterling-selection-tokens]]
+blocks:: [[@km/silvery/sterling]], [[@km/silvery/sterling-selection-tokens]]
 
 Follow-up to @km/silvery/delete-render-selection-overlay (closed 2026-04-24).
 

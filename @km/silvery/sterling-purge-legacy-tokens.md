@@ -55,7 +55,7 @@ props:
     type: list
     values:
       - type: link
-        target: km-all.sterling
+        target: "@km/silvery/sterling"
       - type: link
         target: km-silvery.selection-theme-tokens
       - type: link
@@ -68,7 +68,7 @@ props:
 
 # [x] Phase D: Purge legacy selection/inverse/link tokens from Sterling theme schema (0.20.0 breaking) @km/silvery #task #P1 @claude:22c2717d
 
-blocks:: [[@km/all/sterling]], [[@km/silvery/selection-theme-tokens]], [[@km/silvery/sterling-2e-interior-migration]], [[@km/silvery/sterling-km-tui-selection-migration]], [[@km/silvery/sterling-selection-tokens]]
+blocks:: [[@km/silvery/sterling]], [[@km/silvery/selection-theme-tokens]], [[@km/silvery/sterling-2e-interior-migration]], [[@km/silvery/sterling-km-tui-selection-migration]], [[@km/silvery/sterling-selection-tokens]]
 
 DELETE all references to `selectionbg`, `selection`, `inversebg`, `inverse`, `link` from the Sterling theme schema and derivation paths. Tsc-error-driven sweep.
 

@@ -11,7 +11,7 @@ created_at: 2026-04-24T09:00:35Z
 
 # [ ] [epic] Silvercode — silvery-native agent workspace @km/silvercode #feature #P1
 
-blocks:: [[@km/inbox/code]]
+blocks:: [[@km/silvercode/code]]
 
 - [/] claude-acp newSession synthetic fallback id is a phantom-session footgun #bug #2 @issue priority:: 2
 

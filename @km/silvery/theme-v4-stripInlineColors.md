@@ -29,12 +29,12 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-all.sterling
+    target: "@km/silvery/sterling"
 ---
 
 # [x] Phase 4: km-tui stripInlineColors prop tidy-up @km/silvery #task #P4
 
-blocks:: [[@km/all/sterling]]
+blocks:: [[@km/silvery/sterling]]
 
 Evaluate whether stripInlineColors can be derived from context instead of explicit prop threading. Small. Might land as 'kept as-is, documented'.
 

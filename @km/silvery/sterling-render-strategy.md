@@ -21,12 +21,12 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-all.sterling
+    target: "@km/silvery/sterling"
 ---
 
 # [ ] Sterling: pluggable RenderStrategy (output-side composability) @km/silvery #feature #P3 @claude:22c2717d
 
-blocks:: [[@km/all/sterling]]
+blocks:: [[@km/silvery/sterling]]
 
 Post-plateau feature to complete Sterling's 'everything swappable' promise. Right now DesignSystem (input) is pluggable; RenderStrategy (output quantization) is not.
 

@@ -22,12 +22,12 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-all.sterling
+    target: "@km/silvery/sterling"
 ---
 
 # [x] Theme v4 — Sterling design system (multi-target, structured tokens) @km/silvery #task #P2
 
-blocks:: [[@km/all/sterling]]
+blocks:: [[@km/silvery/sterling]]
 
 Parent epic: Sterling design system for silvery.
 

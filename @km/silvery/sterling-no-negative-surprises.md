@@ -23,12 +23,12 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-all.sterling
+    target: "@km/silvery/sterling"
 ---
 
 # [x] Sterling v1 completeness — no negative surprises @km/silvery #task #P1 @claude:22c2717d
 
-blocks:: [[@km/all/sterling]]
+blocks:: [[@km/silvery/sterling]]
 
 Sterling v1 completeness — eliminate negative surprises before consolidating demos. Implements the design principle: every reachable API must work or fail at compile time with a teaching message. Sterling MAY exceed expectations (positive surprise) but MUST NEVER undershoot them (negative surprise).
 

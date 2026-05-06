@@ -33,14 +33,14 @@ props:
     type: list
     values:
       - type: link
-        target: km-all.sterling
+        target: "@km/silvery/sterling"
       - type: link
         target: km-silvery.sterling-2e-interior-migration
 ---
 
 # [x] Sterling: border-default/muted derivation needs contrast lift @km/silvery #bug #P2 @claude:22c2717d
 
-blocks:: [[@km/all/sterling]], [[@km/silvery/sterling-2e-interior-migration]]
+blocks:: [[@km/silvery/sterling]], [[@km/silvery/sterling-2e-interior-migration]]
 
 Surfaced 2026-04-20 by Sterling 2e Phase A audit (commit cc33ef9e in vendor/silvery).
 

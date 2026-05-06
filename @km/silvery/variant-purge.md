@@ -23,12 +23,12 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-all.sterling
+    target: "@km/silvery/sterling"
 ---
 
 # [x] Purge tone aliases — variant everywhere @km/silvery #task #P2 @claude:22c2717d
 
-blocks:: [[@km/all/sterling]]
+blocks:: [[@km/silvery/sterling]]
 
 After Option B (variant prop), the old tone aliases were retained one cycle for compatibility. /refactor lessons (Case Study 7): "deprecated annotations standing in for actual deletion" is NOT done. Purge the dual paths.
 

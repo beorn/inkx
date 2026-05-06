@@ -23,12 +23,12 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-all.sterling
+    target: "@km/silvery/sterling"
 ---
 
 # [x] Sterling Storybook — interactive system explorer @km/silvery #epic #P2
 
-blocks:: [[@km/all/sterling]]
+blocks:: [[@km/silvery/sterling]]
 
 Build the Sterling-native storybook at vendor/silvery/examples/apps/storybook.tsx. Not a component gallery — an interactive exploration of the Sterling design system that demonstrates four things no other design-system storybook can: 84 schemes with auto-detection, runtime swap, preservative+generative derivation modes, and tier quantization.
 

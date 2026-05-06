@@ -27,14 +27,14 @@ props:
     type: list
     values:
       - type: link
-        target: km-all.sterling
+        target: "@km/silvery/sterling"
       - type: link
         target: km-silvery.design-package-rename
 ---
 
 # [ ] Sterling Phase 5: @silvery/design-material reference impl @km/silvery #task #P4
 
-blocks:: [[@km/all/sterling]], [[@km/silvery/design-package-rename]]
+blocks:: [[@km/silvery/sterling]], [[@km/silvery/design-package-rename]]
 
 Publish @silvery/design-material as a reference implementation of the DesignSystem contract. Material-3 tokens + generative HCT-style derivation from a seed color.
 

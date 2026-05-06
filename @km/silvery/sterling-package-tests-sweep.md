@@ -34,14 +34,14 @@ props:
     type: list
     values:
       - type: link
-        target: km-all.sterling
+        target: "@km/silvery/sterling"
       - type: link
         target: km-silvery.sterling-2e-interior-migration
 ---
 
 # [x] Sweep legacy theme tokens in vendor/silvery/packages/*/tests/ (~137 uses) — rewrite test expectations alongside 0.20.0 inlineSterlingTokens drop @km/silvery #task #P3 @claude:22c2717d
 
-blocks:: [[@km/all/sterling]], [[@km/silvery/sterling-2e-interior-migration]]
+blocks:: [[@km/silvery/sterling]], [[@km/silvery/sterling-2e-interior-migration]]
 
 Created from @km/silvery/sterling-tests-legacy-sweep DONE evidence (closed by tests-sweep agent 2026-04-20). The original bead miscounted: '~140 hits' was actually 137 in vendor/silvery/packages/*/tests/, not 3 in vendor/silvery/tests/.
 

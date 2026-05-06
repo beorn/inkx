@@ -38,14 +38,14 @@ props:
     type: list
     values:
       - type: link
-        target: km-all.sterling
+        target: "@km/silvery/sterling"
       - type: link
         target: km-silvery.sterling-2d-release
 ---
 
 # [x] Sterling 2e: Migrate silvery interior + ship 0.19.0 breaking release @km/silvery #task #P1 @claude:4274df30
 
-blocks:: [[@km/all/sterling]], [[@km/silvery/sterling-2d-release]]
+blocks:: [[@km/silvery/sterling]], [[@km/silvery/sterling-2d-release]]
 
 Captures the deferred work from 2d's audit 2026-04-19. The 2d cleanup (0.18.x patch) was the surface removal; this is the deep migration that actually justifies the 0.19.0 breaking version bump.
 

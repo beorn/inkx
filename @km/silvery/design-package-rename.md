@@ -38,7 +38,7 @@ props:
     type: list
     values:
       - type: link
-        target: km-all.sterling
+        target: "@km/silvery/sterling"
       - type: link
         target: km-silvery.sterling-2d-release
       - type: link
@@ -47,7 +47,7 @@ props:
 
 # [ ] Phase 3b: Rename @silvery/theme → @silvery/design + @silvery/schemes @km/silvery #task #P3 @claude:22c2717d
 
-blocks:: [[@km/all/sterling]], [[@km/silvery/sterling-2d-release]], [[@km/silvery/sterling-2e-interior-migration]]
+blocks:: [[@km/silvery/sterling]], [[@km/silvery/sterling-2d-release]], [[@km/silvery/sterling-2e-interior-migration]]
 
 Complete the package split started in Phase 3a.
 

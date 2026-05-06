@@ -33,14 +33,14 @@ props:
     type: list
     values:
       - type: link
-        target: km-all.sterling
+        target: "@km/silvery/sterling"
       - type: link
         target: km-silvery.sterling-2c-km-migration
 ---
 
 # [x] Sterling 2d: internal cleanup (0.18.x patch — not breaking) @km/silvery #task #P1 @claude:4274df30
 
-blocks:: [[@km/all/sterling]], [[@km/silvery/sterling-2c-km-migration]]
+blocks:: [[@km/silvery/sterling]], [[@km/silvery/sterling-2c-km-migration]]
 
 REVISED 2026-04-19 after release agent pre-flight audit revealed checklist was over-optimistic. The interior of silvery (reconciler, pipeline, Text resolver, css.ts, cli.ts, ThemeExplorer Vue, @km/tui theme.ts) has 81 live accesses to single-hex role fields (theme.primary/fg/bg/muted/etc.) that 2b never migrated.
 

@@ -31,14 +31,14 @@ props:
     type: list
     values:
       - type: link
-        target: km-all.sterling
+        target: "@km/silvery/sterling"
       - type: link
         target: km-silvery.publishconfig-exports-fix
 ---
 
 # [/] Kill @silvery/theme-detect; move OSC probe to @silvery/ansi, scheme fingerprint to @silvery/theme @km/silvery #task #P2 @claude:a1a0e667
 
-blocks:: [[@km/all/sterling]], [[@km/silvery/publishconfig-exports-fix]]
+blocks:: [[@km/silvery/sterling]], [[@km/silvery/publishconfig-exports-fix]]
 
 The @silvery/theme-detect package shouldn't exist as standalone. Its name conflates two concerns and its content splits cleanly into existing packages.
 

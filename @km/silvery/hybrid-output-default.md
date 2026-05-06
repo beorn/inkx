@@ -18,12 +18,12 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-all.codepath-collapse
+    target: "@km/silvery/codepath-collapse"
 ---
 
 # [ ] Make hybrid output the only path — finish phase 3 migration @km/silvery #feature #P2
 
-blocks:: [[@km/all/codepath-collapse]]
+blocks:: [[@km/silvery/codepath-collapse]]
 
 Phase 3 shipped SILVERY_HYBRID_OUTPUT=1 with density-based dispatch. The flag still exists, meaning two output paths still exist. Plateau: hybrid is the only path, the flag is removed, the alternative output code is deleted.
 

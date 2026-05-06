@@ -18,12 +18,12 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-all.surface-freeze
+    target: "@km/silvery/surface-freeze"
 ---
 
 # [!] Unify detail view as board viewMode — same lens, same tree, same signals @km/tui #task #P0
 
-blocks:: [[@km/all/surface-freeze]]
+blocks:: [[@km/silvery/surface-freeze]]
 
 ## Why
 
