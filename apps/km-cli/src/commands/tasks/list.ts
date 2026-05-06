@@ -73,7 +73,7 @@ export interface ListTasksOptions {
    * bead are acceptance criteria, not separate beads). `task list`
    * leaves this `undefined` to include every task-shaped node.
    */
-  fstype?: "mdfile" | "mdsection" | null
+  fstype?: "mdfile" | "mdsection" | "folder" | "bead" | null
 }
 
 /**

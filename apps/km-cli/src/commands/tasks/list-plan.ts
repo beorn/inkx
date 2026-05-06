@@ -65,7 +65,14 @@ export interface PlanListInputs {
    *
    * Set to `null` to explicitly request "no fstype filter."
    */
-  fstype?: "mdfile" | "mdsection" | null
+  /**
+   * Synthetic value `"bead"` matches both `mdfile` (file with no child dir)
+   * AND `folder` (file that ALSO owns a child directory) — both are
+   * file-level beads conceptually (one .md per bead). The bd-style default
+   * is `"bead"`; the legacy `"mdfile"` value still works for callers that
+   * explicitly want only files-without-children.
+   */
+  fstype?: "mdfile" | "mdsection" | "folder" | "bead" | null
 }
 
 /** Plan kinds. */
@@ -139,6 +146,11 @@ export function filterTasksByAssignee(tasks: KNode[], assignee: string | undefin
  */
 export function filterTasksByFstype(tasks: KNode[], fstype: PlanListInputs["fstype"]): KNode[] {
   if (fstype === undefined || fstype === null) return tasks
+  if (fstype === "bead") {
+    // Synthetic: bead = mdfile OR folder (both are file-level beads;
+    // the only difference is whether the file also owns a child directory).
+    return tasks.filter((t) => t.fstype === "mdfile" || t.fstype === "folder")
+  }
   return tasks.filter((t) => t.fstype === fstype)
 }
 

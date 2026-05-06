@@ -54,11 +54,13 @@ export function registerBdReady(parent: BdRegistrar): void {
         json: opts.json,
         status: "todo",
         unblocked: true,
-        // bd surface = bead-centric; one bead = one .md file. Inline
-        // list-item checkboxes inside a bead body are acceptance criteria,
-        // not separate beads. `--all-tasks` opts out for the rare case
-        // where the user wants to see those checkboxes too.
-        fstype: opts.allTasks ? null : "mdfile",
+        // bd surface = bead-centric; one bead = one .md file (whether or
+        // not the file also owns a child directory of nested beads).
+        // The synthetic `"bead"` value matches both `mdfile` and `folder`.
+        // Inline list-item checkboxes inside a bead body are acceptance
+        // criteria, not separate beads. `--all-tasks` opts out for the
+        // rare case where the user wants to see those checkboxes too.
+        fstype: opts.allTasks ? null : "bead",
       })
     })
   parent.addCommand(readyCmd)
@@ -92,11 +94,13 @@ export function registerBdList(parent: BdRegistrar): void {
         unblocked: opts.unblocked,
         limit: opts.limit,
         json: opts.json,
-        // bd surface = bead-centric; one bead = one .md file. Inline
-        // list-item checkboxes inside a bead body are acceptance criteria,
-        // not separate beads. `--all-tasks` opts out for the rare case
-        // where the user wants to see those checkboxes too.
-        fstype: opts.allTasks ? null : "mdfile",
+        // bd surface = bead-centric; one bead = one .md file (whether or
+        // not the file also owns a child directory of nested beads).
+        // The synthetic `"bead"` value matches both `mdfile` and `folder`.
+        // Inline list-item checkboxes inside a bead body are acceptance
+        // criteria, not separate beads. `--all-tasks` opts out for the
+        // rare case where the user wants to see those checkboxes too.
+        fstype: opts.allTasks ? null : "bead",
       })
     })
   parent.addCommand(listCmd)
