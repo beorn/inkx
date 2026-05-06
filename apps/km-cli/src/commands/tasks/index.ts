@@ -174,51 +174,72 @@ taskCommand
 // Lifecycle subcommands (Wave 3) — workflow transitions distinct from
 // raw `set status:X` writes. See lifecycle.ts header for the
 // distinction; lifecycle-plan.ts holds the validation logic.
+//
+// Bulk surface (@km/cli/bulk-multi-id-or-where): every lifecycle verb
+// accepts variadic positional ids OR `--where "<query>"` (mutually
+// exclusive). `--dry-run` previews matches and would-be transitions.
+// The argument shape is `[id...]` (variadic, optional) so commander
+// accepts `task close foo bar --where "..."` validation at the action
+// handler rather than forcing one shape via parser.
+// Use optsWithGlobals() because flags like --json and --dry-run are also
+// declared on the parent `task` command (board view); without optsWithGlobals
+// they'd be parsed at the parent layer and never reach the subcommand action.
+// Same idiom `task stale` and `task ready` use below.
 taskCommand
   .command("claim")
-  .description("Claim task (assign to yourself; validates not-already-claimed-by-other)")
-  .argument("<id>", "Task ID or prefix")
+  .description("Claim task(s) (assign to yourself; validates not-already-claimed-by-other)")
+  .argument("[ids...]", "Task IDs or prefixes (one or more)")
+  .option("--where <query>", "Bulk select via query DSL (mutually exclusive with positional ids)")
+  .option("--dry-run", "Preview without writing")
   .option("--json", "Output as JSON")
-  .action((id, options) => {
-    void claimTaskLifecycle(id, options)
+  .action((ids: string[], _options, cmd) => {
+    void claimTaskLifecycle(ids, cmd.optsWithGlobals())
   })
 
 taskCommand
   .command("release")
-  .description("Release a claimed task (clear assignee; validates currently-claimed)")
-  .argument("<id>", "Task ID or prefix")
+  .description("Release claimed task(s) (clear assignee; validates currently-claimed)")
+  .argument("[ids...]", "Task IDs or prefixes (one or more)")
+  .option("--where <query>", "Bulk select via query DSL (mutually exclusive with positional ids)")
+  .option("--dry-run", "Preview without writing")
   .option("--json", "Output as JSON")
-  .action((id, options) => {
-    void releaseTaskLifecycle(id, options)
+  .action((ids: string[], _options, cmd) => {
+    void releaseTaskLifecycle(ids, cmd.optsWithGlobals())
   })
 
 taskCommand
   .command("close")
-  .description("Close a task (mark done, set closed_at, optional reason)")
-  .argument("<id>", "Task ID or prefix")
+  .description("Close task(s) (mark done, set closed_at, optional reason)")
+  .argument("[ids...]", "Task IDs or prefixes (one or more)")
   .option("-r, --reason <reason>", "Close reason (recorded on data.closeReason)")
+  .option("--where <query>", "Bulk select via query DSL (mutually exclusive with positional ids)")
+  .option("--dry-run", "Preview without writing")
   .option("--json", "Output as JSON")
-  .action((id, options) => {
-    void closeTaskLifecycle(id, options)
+  .action((ids: string[], _options, cmd) => {
+    void closeTaskLifecycle(ids, cmd.optsWithGlobals())
   })
 
 taskCommand
   .command("drop")
-  .description("Drop a task (mark won't-do, set closed_at, optional reason)")
-  .argument("<id>", "Task ID or prefix")
+  .description("Drop task(s) (mark won't-do, set closed_at, optional reason)")
+  .argument("[ids...]", "Task IDs or prefixes (one or more)")
   .option("-r, --reason <reason>", "Drop reason (recorded on data.dropReason)")
+  .option("--where <query>", "Bulk select via query DSL (mutually exclusive with positional ids)")
+  .option("--dry-run", "Preview without writing")
   .option("--json", "Output as JSON")
-  .action((id, options) => {
-    void dropTaskLifecycle(id, options)
+  .action((ids: string[], _options, cmd) => {
+    void dropTaskLifecycle(ids, cmd.optsWithGlobals())
   })
 
 taskCommand
   .command("reopen")
-  .description("Reopen a closed/dropped task (back to todo, clear closed_at)")
-  .argument("<id>", "Task ID or prefix")
+  .description("Reopen closed/dropped task(s) (back to todo, clear closed_at)")
+  .argument("[ids...]", "Task IDs or prefixes (one or more)")
+  .option("--where <query>", "Bulk select via query DSL (mutually exclusive with positional ids)")
+  .option("--dry-run", "Preview without writing")
   .option("--json", "Output as JSON")
-  .action((id, options) => {
-    void reopenTaskLifecycle(id, options)
+  .action((ids: string[], _options, cmd) => {
+    void reopenTaskLifecycle(ids, cmd.optsWithGlobals())
   })
 
 // Add stale subcommand — list open tasks not updated in N days.

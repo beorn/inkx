@@ -15,6 +15,20 @@
  * That helper is also the seam the property tests drive — they call
  * `applyLifecyclePlan` (not the action handler) so they don't have to
  * synthesize commander/process exit semantics.
+ *
+ * Bulk surface (@km/cli/bulk-multi-id-or-where):
+ *   - All five lifecycle verbs accept multiple positional ids
+ *     (`task close foo bar baz`) and a `--where "<query>"` selector that
+ *     resolves to a list via `repo.query`. Mutually exclusive with
+ *     positional ids — passing both is an error.
+ *   - `--dry-run` previews matches and the would-be transitions without
+ *     writing. Validation runs in dry-run mode so the user sees which
+ *     ids would be REJECTED before applying.
+ *   - Cross-id atomicity is NOT enforced: each id's transition is atomic
+ *     (one `repo.updateNode` via `applyLifecyclePlan`); a planner
+ *     rejection on id #5 of 10 leaves ids 1-4 applied. Output reports
+ *     `applied` and `skipped` lists separately; exit code is 1 if any
+ *     id failed.
  */
 
 import { getMarkerForStatus, type KNode } from "@km/core"
@@ -121,125 +135,327 @@ function resolveOrExit(repo: Repo, ref: string): KNode {
   return result.node
 }
 
-/** Common output options for lifecycle subcommands. */
-interface LifecycleOptions {
+/**
+ * Common output options for lifecycle subcommands.
+ *
+ * - `json`: emit machine-readable JSON instead of the human summary.
+ * - `dryRun`: classify-only; never call `repo.updateNode`. Mirrors
+ *   `move.ts --dry-run` discipline.
+ * - `where`: query DSL string; resolves via `repo.query` to the target
+ *   set. Mutually exclusive with positional refs.
+ */
+export interface LifecycleOptions {
   json?: boolean
+  dryRun?: boolean
+  where?: string
 }
 
-/** `task claim <id>` action handler. */
-export async function claimTaskLifecycle(ref: string | undefined, options: LifecycleOptions): Promise<void> {
-  if (!ref) {
-    console.error(term.red("Task ID or path required"))
-    process.exit(1)
-  }
-  const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using repo = await loadRepo(resolved.repoRoot)
-  const node = resolveOrExit(repo, ref)
-  const actor = resolveAssignee()
-  const plan = planClaim(node, ref, actor)
-  if (plan.errors.length > 0) {
-    for (const e of plan.errors) console.error(term.red(e))
-    process.exit(1)
-  }
-  const result = applyLifecyclePlan(repo, node, plan)
-  if (options.json) {
-    console.log(JSON.stringify({ id: node.id, status: "wip", assigned_to: result.owner }))
-    return
-  }
-  console.log(term.green("◐"), "Claimed:", node.id.slice(-8))
-}
-
-/** `task release <id>` action handler. */
-export async function releaseTaskLifecycle(ref: string | undefined, options: LifecycleOptions): Promise<void> {
-  if (!ref) {
-    console.error(term.red("Task ID or path required"))
-    process.exit(1)
-  }
-  const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using repo = await loadRepo(resolved.repoRoot)
-  const node = resolveOrExit(repo, ref)
-  const plan = planRelease(node, ref)
-  if (plan.errors.length > 0) {
-    for (const e of plan.errors) console.error(term.red(e))
-    process.exit(1)
-  }
-  applyLifecyclePlan(repo, node, plan)
-  if (options.json) {
-    console.log(JSON.stringify({ id: node.id, status: "todo", assigned_to: null }))
-    return
-  }
-  console.log(term.dim("○"), "Released:", node.id.slice(-8))
-}
-
-/** Options bag for `task close <id> [--reason TEXT]`. */
-interface CloseDropOptions extends LifecycleOptions {
+/** Options bag for `task close | drop`. */
+export interface CloseDropOptions extends LifecycleOptions {
   reason?: string
 }
 
-/** `task close <id> [--reason TEXT]` action handler. */
-export async function closeTaskLifecycle(ref: string | undefined, options: CloseDropOptions): Promise<void> {
-  if (!ref) {
-    console.error(term.red("Task ID or path required"))
-    process.exit(1)
-  }
-  const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using repo = await loadRepo(resolved.repoRoot)
-  const node = resolveOrExit(repo, ref)
-  const plan = planClose(node, ref, options.reason)
-  if (plan.errors.length > 0) {
-    for (const e of plan.errors) console.error(term.red(e))
-    process.exit(1)
-  }
-  applyLifecyclePlan(repo, node, plan)
-  if (options.json) {
-    console.log(JSON.stringify({ id: node.id, status: "done", reason: options.reason ?? null }))
-    return
-  }
-  console.log(term.green("✓"), "Closed:", node.id.slice(-8))
-  if (options.reason) console.log(term.dim(`  Reason: ${options.reason}`))
+/** A single id's outcome in a bulk lifecycle run. */
+interface BulkOutcome {
+  /** Display label — sigil path-form when known, else node id. */
+  ref: string
+  /** Underlying node id (only present once resolution succeeds). */
+  nodeId?: string
+  /** When the transition would apply: from-status → to-status. */
+  from?: string
+  to?: string
+  /** When skipped: human-readable reason (may be a planner error). */
+  reason?: string
+  /** Dispatch outcome — `applied` means the planner said yes. */
+  outcome: "applied" | "skipped"
 }
 
-/** `task drop <id> [--reason TEXT]` action handler. */
-export async function dropTaskLifecycle(ref: string | undefined, options: CloseDropOptions): Promise<void> {
-  if (!ref) {
-    console.error(term.red("Task ID or path required"))
-    process.exit(1)
+/**
+ * Look up nodes for the bulk run.
+ *
+ * Three input shapes (validated mutually exclusive at the wrapper):
+ *   - one or more positional refs → resolve each; not-found / ambiguous
+ *     refs become `skipped` outcomes (we don't `process.exit(1)` early
+ *     so the user sees the full report).
+ *   - `--where "<query>"` → run `repo.query`. Empty match is a hard
+ *     error (matches `--where` semantics in other CLIs: a no-match is
+ *     suspicious enough to fail loud rather than silently no-op).
+ *
+ * Returns parallel arrays of `(node, ref)` so the caller can build
+ * outcome rows that mention the user's input verbatim.
+ */
+function resolveBulkTargets(
+  repo: Repo,
+  refs: string[],
+  where: string | undefined,
+): { resolved: Array<{ node: KNode; ref: string }>; skipped: BulkOutcome[]; fatal?: string } {
+  const resolved: Array<{ node: KNode; ref: string }> = []
+  const skipped: BulkOutcome[] = []
+
+  if (where !== undefined) {
+    if (refs.length > 0) {
+      return {
+        resolved,
+        skipped,
+        fatal: "Cannot pass both positional ids and --where (mutually exclusive)",
+      }
+    }
+    let nodes: KNode[]
+    try {
+      nodes = repo.query(where)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      return { resolved, skipped, fatal: `--where query failed: ${msg}` }
+    }
+    if (nodes.length === 0) {
+      return { resolved, skipped, fatal: `--where "${where}" matched no nodes` }
+    }
+    for (const node of nodes) {
+      const data = node.data as { id?: unknown } | undefined
+      const ref = typeof data?.id === "string" && data.id ? data.id : (node.fs_path ?? node.id)
+      resolved.push({ node, ref })
+    }
+    return { resolved, skipped }
   }
-  const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using repo = await loadRepo(resolved.repoRoot)
-  const node = resolveOrExit(repo, ref)
-  const plan = planDrop(node, ref, options.reason)
-  if (plan.errors.length > 0) {
-    for (const e of plan.errors) console.error(term.red(e))
-    process.exit(1)
+
+  if (refs.length === 0) {
+    return { resolved, skipped, fatal: "Task ID or --where required" }
   }
-  applyLifecyclePlan(repo, node, plan)
-  if (options.json) {
-    console.log(JSON.stringify({ id: node.id, status: "dropped", reason: options.reason ?? null }))
-    return
+
+  for (const ref of refs) {
+    const result = resolveShortId(repo, ref)
+    if (result.candidates.length > 0) {
+      skipped.push({
+        ref,
+        outcome: "skipped",
+        reason: formatAmbiguityError(ref, result.candidates),
+      })
+      continue
+    }
+    if (!result.node) {
+      skipped.push({ ref, outcome: "skipped", reason: `not found` })
+      continue
+    }
+    resolved.push({ node: result.node, ref })
   }
-  console.log(term.yellow("⊘"), "Dropped:", node.id.slice(-8))
-  if (options.reason) console.log(term.dim(`  Reason: ${options.reason}`))
+  return { resolved, skipped }
 }
 
-/** `task reopen <id>` action handler. */
-export async function reopenTaskLifecycle(ref: string | undefined, options: LifecycleOptions): Promise<void> {
-  if (!ref) {
-    console.error(term.red("Task ID or path required"))
-    process.exit(1)
+/** Verb name → status the planner would target on success. */
+type LifecycleVerb = "claim" | "release" | "close" | "drop" | "reopen"
+
+/** Planner factory selected by verb. Wraps the per-verb argument shape. */
+function selectPlan(
+  verb: LifecycleVerb,
+  node: KNode,
+  ref: string,
+  ctx: { actor?: string; reason?: string },
+): LifecyclePlan {
+  switch (verb) {
+    case "claim":
+      return planClaim(node, ref, ctx.actor!)
+    case "release":
+      return planRelease(node, ref)
+    case "close":
+      return planClose(node, ref, ctx.reason)
+    case "drop":
+      return planDrop(node, ref, ctx.reason)
+    case "reopen":
+      return planReopen(node, ref)
   }
+}
+
+/** Read the current task status off a KNode for outcome reporting. */
+function statusOf(node: KNode): string {
+  return node.item?.task?.status ?? "todo"
+}
+
+/** Per-verb display config — labels and the headline single-id glyph. */
+const VERB_DISPLAY: Record<LifecycleVerb, { applied: string; verbing: string; glyph: string; color: "green" | "yellow" | "dim" }> = {
+  claim: { applied: "Claimed", verbing: "claim", glyph: "◐", color: "green" },
+  release: { applied: "Released", verbing: "release", glyph: "○", color: "dim" },
+  close: { applied: "Closed", verbing: "close", glyph: "✓", color: "green" },
+  drop: { applied: "Dropped", verbing: "drop", glyph: "⊘", color: "yellow" },
+  reopen: { applied: "Reopened", verbing: "reopen", glyph: "↺", color: "green" },
+}
+
+/**
+ * Bulk lifecycle runner — the shared core for all five verbs.
+ *
+ * Resolves targets (positional or `--where`), runs the per-verb planner
+ * against each, classifies into `applied` / `skipped`, optionally
+ * applies (when not dry-run), and emits the summary.
+ *
+ * Cross-id atomicity is NOT enforced: see file header for rationale.
+ * Per-id atomicity is preserved by `applyLifecyclePlan` (one
+ * `repo.updateNode` per node).
+ *
+ * Returns the outcome object so callers can override formatting in the
+ * single-id case (we still print the historical "Closed: <hash>"
+ * one-liner when one id resolves and applies, to avoid noisy output for
+ * the common case).
+ */
+async function runLifecycleBulk(
+  verb: LifecycleVerb,
+  refs: string[],
+  options: LifecycleOptions & { reason?: string },
+): Promise<{ outcomes: BulkOutcome[]; hadError: boolean }> {
   const resolved = resolvePathArg(process.cwd(), getRootPath())
   using repo = await loadRepo(resolved.repoRoot)
-  const node = resolveOrExit(repo, ref)
-  const plan = planReopen(node, ref)
-  if (plan.errors.length > 0) {
-    for (const e of plan.errors) console.error(term.red(e))
+
+  const { resolved: targets, skipped: preSkipped, fatal } = resolveBulkTargets(repo, refs, options.where)
+  if (fatal) {
+    console.error(term.red(fatal))
     process.exit(1)
   }
-  applyLifecyclePlan(repo, node, plan)
+
+  const actor = verb === "claim" ? resolveAssignee() : undefined
+  const outcomes: BulkOutcome[] = [...preSkipped]
+  let hadError = preSkipped.length > 0
+
+  for (const { node, ref } of targets) {
+    const plan = selectPlan(verb, node, ref, { actor, reason: options.reason })
+    if (plan.errors.length > 0) {
+      outcomes.push({
+        ref,
+        nodeId: node.id,
+        outcome: "skipped",
+        reason: plan.errors.join("; "),
+      })
+      hadError = true
+      continue
+    }
+    const targetStatus = plan.update?.status ?? "?"
+    const fromStatus = statusOf(node)
+    if (!options.dryRun) {
+      applyLifecyclePlan(repo, node, plan)
+    }
+    outcomes.push({
+      ref,
+      nodeId: node.id,
+      outcome: "applied",
+      from: fromStatus,
+      to: targetStatus,
+    })
+  }
+
+  emitBulkOutput(verb, outcomes, options)
+  return { outcomes, hadError }
+}
+
+/**
+ * Render the bulk outcome — JSON or pretty.
+ *
+ * Single-id, single-applied path keeps the historical one-liner shape
+ * (`✓ Closed: <hash>`) so existing callers / scripts that grep for
+ * "Closed:" don't break. Multi-id always uses the grouped summary.
+ */
+function emitBulkOutput(verb: LifecycleVerb, outcomes: BulkOutcome[], options: LifecycleOptions & { reason?: string }): void {
+  const display = VERB_DISPLAY[verb]
+  const applied = outcomes.filter((o) => o.outcome === "applied")
+  const skipped = outcomes.filter((o) => o.outcome === "skipped")
+
   if (options.json) {
-    console.log(JSON.stringify({ id: node.id, status: "todo" }))
+    console.log(
+      JSON.stringify({
+        dryRun: options.dryRun ?? false,
+        verb,
+        applied: applied.map((o) => ({ id: o.nodeId, ref: o.ref, from: o.from, to: o.to })),
+        skipped: skipped.map((o) => ({ id: o.nodeId, ref: o.ref, reason: o.reason })),
+      }),
+    )
     return
   }
-  console.log(term.green("↺"), "Reopened:", node.id.slice(-8))
+
+  // Single-id, single-applied: keep the historical one-liner.
+  const isSingleSimple = outcomes.length === 1 && applied.length === 1 && !options.dryRun
+  if (isSingleSimple) {
+    const o = applied[0]!
+    const colorize = display.color === "green" ? term.green : display.color === "yellow" ? term.yellow : term.dim
+    console.log(colorize(display.glyph), `${display.applied}:`, o.nodeId!.slice(-8))
+    if (options.reason) console.log(term.dim(`  Reason: ${options.reason}`))
+    return
+  }
+
+  const action = options.dryRun ? `Would ${display.verbing}` : display.applied
+  if (applied.length > 0) {
+    const colorize = display.color === "green" ? term.green : display.color === "yellow" ? term.yellow : term.dim
+    console.log(`${action} ${applied.length} task(s):`)
+    for (const o of applied) {
+      console.log(`  ${colorize("✓")} ${o.ref}${o.from !== o.to ? term.dim(` (${o.from} → ${o.to})`) : ""}`)
+    }
+    if (options.reason) console.log(term.dim(`  Reason: ${options.reason}`))
+  }
+  if (skipped.length > 0) {
+    console.log(term.yellow(`Skipped ${skipped.length} task(s):`))
+    for (const o of skipped) {
+      console.log(`  ${term.yellow("-")} ${o.ref} ${term.dim(`(reason: ${o.reason ?? "unknown"})`)}`)
+    }
+  }
+  if (applied.length === 0 && skipped.length === 0) {
+    console.log(term.dim("No tasks matched."))
+  }
 }
+
+/**
+ * Normalize the action-handler `id` argument into a refs[] array.
+ *
+ * Commander's variadic argument shape is an array of strings; the
+ * single-id form (used by bd shims and historical action signatures)
+ * passes a bare string. Accept either so the bulk path doesn't push a
+ * breaking change down to the bd surface.
+ */
+function asRefs(input: string | string[] | undefined): string[] {
+  if (input === undefined) return []
+  if (Array.isArray(input)) return input
+  return [input]
+}
+
+/** `task claim <id...>` action handler. */
+export async function claimTaskLifecycle(
+  ref: string | string[] | undefined,
+  options: LifecycleOptions = {},
+): Promise<void> {
+  const { hadError } = await runLifecycleBulk("claim", asRefs(ref), options)
+  if (hadError) process.exit(1)
+}
+
+/** `task release <id...>` action handler. */
+export async function releaseTaskLifecycle(
+  ref: string | string[] | undefined,
+  options: LifecycleOptions = {},
+): Promise<void> {
+  const { hadError } = await runLifecycleBulk("release", asRefs(ref), options)
+  if (hadError) process.exit(1)
+}
+
+/** `task close <id...> [--reason TEXT]` action handler. */
+export async function closeTaskLifecycle(
+  ref: string | string[] | undefined,
+  options: CloseDropOptions = {},
+): Promise<void> {
+  const { hadError } = await runLifecycleBulk("close", asRefs(ref), options)
+  if (hadError) process.exit(1)
+}
+
+/** `task drop <id...> [--reason TEXT]` action handler. */
+export async function dropTaskLifecycle(
+  ref: string | string[] | undefined,
+  options: CloseDropOptions = {},
+): Promise<void> {
+  const { hadError } = await runLifecycleBulk("drop", asRefs(ref), options)
+  if (hadError) process.exit(1)
+}
+
+/** `task reopen <id...>` action handler. */
+export async function reopenTaskLifecycle(
+  ref: string | string[] | undefined,
+  options: LifecycleOptions = {},
+): Promise<void> {
+  const { hadError } = await runLifecycleBulk("reopen", asRefs(ref), options)
+  if (hadError) process.exit(1)
+}
+
+// Keep a single-id resolveOrExit export-shim for any external import
+// site that grew up before bulk; its semantics didn't change.
+export { resolveOrExit }
