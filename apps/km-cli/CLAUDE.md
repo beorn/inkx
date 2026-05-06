@@ -17,7 +17,7 @@ The CLI is split into two parallel verb families:
 | ---------------- | ------------------------------------------------------------------------------------------------------------------- |
 | `km <verb>`      | Generic node-graph verbs (`set`, `clear`, `move`, `rename`, `children`, `stale`, `query`, `list`, `show`, `new`, …) |
 | `km task <verb>` | Task-workflow-specific verbs (board view, ready/blocked, claim/release/close/drop/reopen, dep)                      |
-| `km bd <verb>`   | Beads-compatible legacy surface; thin alias layer over `km task` / `km` (Wave 6)                                    |
+| `km bd <verb>`   | Beads-compatible on-ramp for users migrating from `bd`. Shared engine with `km task` / `km`; transitional, not permanent. |
 
 The "tasks are nodes" mental model: anything generic to nodes lives at
 top-level `km`. Only verbs that genuinely need task-domain knowledge
@@ -73,7 +73,21 @@ doesn't exist.** Source of truth: `apps/km-cli/src/program.ts`.
 
 ### Beads-compatible alias surface
 
-`km bd <verb>` — Wave 6 thin alias layer that delegates to the equivalents above. Both surfaces are first-class (no deprecation). `bd config` owns the issue-prefix knob.
+`km bd <verb>` is the **migration on-ramp** for users coming from the standalone `bd` issue tracker. The path is:
+
+1. `km import bd <vault>` — bring bd data into km
+2. Use `km bd <verb>` in place of `bd <verb>` — same UX, no muscle-memory cost
+3. Gradually migrate to `km <verb>` / `km task <verb>` (the canonical km surfaces)
+4. Eventually `km bd` retires (post-v2; not soon)
+
+This means `km bd` is **not a permanent parallel surface** — it's transitional. Implications for design:
+
+- Where `km bd` and `km` overlap, the shared engine lives in `@km/*` packages (`@km/core`, `@km/storage`, `@km/beads`, `@km/agent`); `km bd` is a translation layer above the engine.
+- `km bd` keeps bd-flavored UX (flag names, default-scope semantics, output formatting) — that's the point.
+- `km` (general-purpose) doesn't need to mirror every `km bd` feature; it incorporates what makes sense for nodes-in-general, with km-shaped UX.
+- L5 invariant: bd⇔task equivalence property test (`tests/bd-task-equivalence.property.test.ts`) pins state-equivalence on the verbs that share semantics.
+
+`bd config` owns the issue-prefix knob (the bd-flavored config that selects which `@<prefix>/` paths bd treats as its issues). Full per-subcommand verdict matrix lives in [`hub/km/audit-km-tasks-vs-km-bd.md`](../../hub/km/audit-km-tasks-vs-km-bd.md).
 
 ### Workspace + I/O
 
