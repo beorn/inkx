@@ -192,3 +192,59 @@ User confirmed: bisect at `7a812754` (which DID have `./ui` ironically, before i
 2. **Reproduce the exact interaction** — start km, hover items, walk cursor, watch for popover-shaped 14-cell-wide bg fills appearing then becoming residue. Does it correlate with mouse hover dwell timing? Card title hover? Link target hover?
 3. **Run with `SILVERY_DEV=1 SILVERY_DEV_LOG=/tmp/dev.log SILVERY_INSTRUMENT=1`** to expose render pipeline stats. Look for incremental-render decisions on the popover container.
 4. **Bisect path-of-least-resistance**: roll back vendor/silvery to a SHA between Apr 12 and Apr 26 AND temporarily patch its `package.json` to re-add `./ui` export. ~15 minutes of git checkout + patch + test cycle.
+
+## Round 9 — full overlay-bg consumer grep + km-shape synthetic still passes (2026-05-05)
+
+Full grep of `$bg-surface-overlay` consumers in km-tui:
+
+- `Popover.tsx:325` — hover popover (canonical, suspected)
+- `shared-components.tsx:536` — `NodeLine` (height=1) — used in SearchDialog, ItemPicker, Omnibox
+- `OmniboxRow.tsx:70` — omnibox result row
+- `NodeView.tsx:622` — full-node detail view
+- `CommandBox.tsx:76, 103, 275` — FlashMessage + ChordHints
+- `ToastStack.tsx:75` — auto-dismissing toasts (variable timing fits 1-2s lag)
+
+**Intersection of `position="absolute"` + `$bg-surface-overlay`** (strongest residue candidates):
+- `Popover.tsx` (line 317 absolute, line 325 bg)
+- `ToastStack.tsx` (line 110 absolute, line 75 bg) — auto-dismiss matches the 1-2s timing variability
+
+### km-shape synthetic test added — STILL PASSES
+
+`vendor/silvery/tests/regressions/popover-unmount-bg-residue.test.tsx` (commit silvery `00d2bfaf`) now mirrors km-tui Popover.tsx exactly: `marginTop`/`marginLeft` (not `top`/`left`), `maxWidth`/`maxHeight`, `overflow="scroll"`, `userSelect="contain"`, plus a hover-chain churn test (anchor moves → content grows → dismiss).
+
+**4/4 tests pass under `SILVERY_STRICT=2`.** Confirms: the bug needs the real km state machine (signal-store mount/unmount + mouse-hover dwell + real layout context), not just the shape of the props. **Synthetic reproductions are exhausted.**
+
+### Cell-debug instrumentation in real TTY (82×75 via tty MCP, no mouse)
+
+Drove `bun km view ~/Bear/Vault` with `SILVERY_CELL_DEBUG=68,17` + `SILVERY_CAPTURE_OUTPUT=/tmp/km-strip-tty.bin` + `SILVERY_STRICT=2`. Navigated with keys only (`j`/`l`/`/`/`Escape`) — tty MCP can't simulate hover dwell.
+
+**71 frames captured. The only 1-row-tall box covering col 68 row 17:** `silvery-box@19 rect=42,17 37x1`. This is the `+N more` card footer at `apps/km-tui/src/views/CardColumn.tsx:675-681`:
+
+```tsx
+<Box width={width} height={1} flexShrink={0} backgroundColor={cardBg}>
+  <Text wrap="truncate">…+{hiddenCount} more…</Text>
+</Box>
+```
+
+**This is NOT the strip source.** `cardBg` is conditional (`$bg-selected` / `selectedBg(theme)=rgb(56,60,69)` / `multiSelectedBg(theme)` / undefined). None evaluate to `$bg-surface-overlay = rgb(52,58,70)`. Without mouse hover, no `Popover.tsx` mount happens, so the bug doesn't reproduce in keyboard-only sessions.
+
+**`SILVERY_STRICT=2` did not throw** during 71 frames of keyboard-only navigation. Confirms: residue mechanism only fires on mouse-hover-driven popover mount/unmount.
+
+### Conclusion + concrete next-step for user
+
+The bug is **not synthetic-reproducible**. Synthetic + cell-debug-without-mouse have eliminated everything else. To localize further, the user must drive a real session with hover:
+
+```bash
+SILVERY_CELL_DEBUG=68,17 \
+SILVERY_CAPTURE_OUTPUT=/tmp/km-strip.bin \
+DEBUG=silvery:content:cell,silvery:render:phase \
+DEBUG_LOG=/tmp/km-strip.log \
+SILVERY_STRICT=2 \
+bun km view ~/Bear/Vault
+```
+
+Then **hover wikilinks/URLs** in cards (mouse dwell) to mount popovers, move mouse away to dismiss, repeat ~30s. Quit (`q`).
+
+Send `/tmp/km-strip.log` lines containing `popover` or `rect=6[5-9],17` or `rect=7[0-8],17` — the AgNode that painted at row 17 cols 65–78 with bg=`$bg-surface-overlay` is the smoking gun. If `SILVERY_STRICT=2` throws during the session, that's the residue gate firing — capture the throw stack.
+
+The next move requires real-hover trace from the user's Ghostty/iTerm2.
