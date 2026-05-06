@@ -5,28 +5,33 @@ aliases:
 created_at: 2026-05-06T17:12:16.989Z
 ---
 
-# Add `km import bd` as the canonical bd-import path #P3
+# Add `km import bd` (canonical) and delete `km bd migrate` #P3
 
-Even if `km bd` is eventually retired, the import-from-bd path must survive. Make `km import bd` first-class.
+Per user direction (2026-05-06): the canonical-and-only path is `km import bd`. `km bd migrate` is **deleted**, not kept as an on-ramp alias. `km bd --help` mentions `km import bd` in its examples/help text so bd users discover the new path.
 
 ## Goal
 
-Register `bd import` functionality at `km import bd <vault>` (alongside the existing `km import asana`). The implementation already exists in `apps/km-cli/src/commands/bd-migrate.ts` (505 LOC, self-contained — imports from `@km/beads`, `@km/storage`, `loadKmBdConfig` only; zero references to other `bd-*` action handlers).
+1. **Add** `km import bd <vault>` as a subcommand of the existing `importCommand` (alongside `km import asana`). Move the `migrateBeadsToMarkdown` engine call there.
+2. **Add** `km import bd --export <path>` (or `km export bd <path>`) for the reverse direction (km → .beads/issues.jsonl).
+3. **Delete** `migrateCommand` and `exportCommand` from `bd.ts` — they're replaced by the `km import bd` path.
+4. **Delete** `bd-migrate.ts` — its functionality moves entirely into `import.ts` (or a new `import-bd.ts`).
+5. **Update** `bd --help` examples/help text to reference `km import bd` for newcomers.
 
-## Scope
+## Engine reuse
 
-- **Add** `km import bd` as a subcommand of the existing `importCommand` (in `apps/km-cli/src/commands/import.ts`). Wire it to call the same `migrateBeadsToMarkdown` engine that `bd migrate` uses.
-- **Keep** `km bd migrate` as a transitional alias that delegates to `km import bd` (on-ramp ergonomics — bd users muscle-memory looking for `bd migrate`).
-- **Add** `km import bd --export` (or `km export bd`) for the reverse direction (km → .beads/issues.jsonl). The current `bd export` lives in bd-migrate.ts.
-- **Don't delete** `bd-migrate.ts` yet — it still backs `km bd migrate` until the on-ramp retires post-v2.
+The `bd-migrate.ts` implementation is self-contained — imports from `@km/beads` (the package: `migrateBeadsToMarkdown`, `exportToBeads`, `recaptureFromExport`, `splitFrontmatter`, `bdIdToPathForm`, `Bead`, types), `@km/storage`, and `loadKmBdConfig`. Move the action handler into `apps/km-cli/src/commands/import.ts` (or split out `apps/km-cli/src/commands/import-bd.ts` if `import.ts` gets too large). Drop `loadKmBdConfig` cross-import; or move `bd-load-config.ts` into a non-bd location too if needed.
 
 ## Acceptance
 
-- [ ] `km import bd <vault>` brings bd data into a km vault (matches current `bd migrate` behavior)
-- [ ] `km import bd --help` discoverable from `km import --help`
-- [ ] `km bd migrate` continues to work, delegates internally to the same engine
-- [ ] Test that running both produces byte-identical state in a fresh vault (extend the bd⇔task equivalence property test or add a new fake-vault contract test)
+- [ ] `km import bd <vault>` works with the same flag set as the legacy `bd migrate`
+- [ ] `km import --help` lists `bd` alongside `asana`
+- [ ] `km bd migrate` no longer exists (returns "unknown command" or similar)
+- [ ] `km bd --help` mentions `km import bd <vault>` in the examples / help section
+- [ ] Reverse direction works (`km import bd --export <path>` or equivalent)
+- [ ] `bd-migrate.ts` is deleted
+- [ ] `migrateCommand` + `exportCommand` are dropped from `bd.ts`
+- [ ] Test: import a fixture .beads/issues.jsonl into a fresh vault; assert canonical layout
 
 ## Why P3
 
-The import path is critical for adoption (bd users can't migrate without it), but the current `bd migrate` works fine. This is a discoverability/canonical-surface fix — `km import bd` belongs alongside `km import asana` so a fresh km user finds it via `km import --help`.
+Critical for adoption (bd users can't migrate without it), but the existing `bd migrate` works fine — this is a discoverability + canonical-surface fix. `km import bd` belongs alongside `km import asana` so a fresh km user finds it via `km import --help`. Removing `bd migrate` enforces the "import once, then use bd or km" mental model.
