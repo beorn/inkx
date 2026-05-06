@@ -1,11 +1,30 @@
 /**
- * Move Command
+ * Move Command — polymorphic dispatch
  *
- * Re-parent a node to a different location
+ * `km move <node> <target>` resolves `<target>` polymorphically:
  *
- * km move <node> <parent>          # Move by ID, path, or filename
- * km move <node> --project "Name"  # Move by project name
- * km move <node> --root            # Move to root level
+ *   1. existing node id/path/name  → reparent (newParentId)
+ *   2. new path-form id (`@scope/name`, no node exists)
+ *                                  → rename + ref-rewrite (newCanonicalId)
+ *   3. --to-root flag              → move to root (newParentId = null)
+ *   4. --project <name>            → reparent under named project
+ *
+ * Both reparent and rename go through one ref-rewrite engine —
+ * `repo.moveNodeWithRefs` — so they cannot diverge by construction.
+ *
+ *   km move foo @scope/existing       # reparent under existing node
+ *   km move foo @scope/new-id         # rename: rewrites the canonical id + refs
+ *   km move foo --to-root             # move to root
+ *   km move foo --project "Inbox"     # reparent under named project
+ *
+ * `--include-prose` opts into bare-id prose-mention rewriting (slow, off
+ * by default; mirrors `bd rename --include-prose`).
+ *
+ * Path-form detection: a `<target>` is treated as a new-canonical-id
+ * candidate only if (a) it looks like a path-form id (`^@<word>/...`)
+ * AND (b) no node currently resolves to it. This keeps the common case
+ * of `km move foo @existing-board` working as a reparent — the engine
+ * tries the existing-node lookup first.
  */
 
 import { Command } from "@silvery/commander"
@@ -14,21 +33,32 @@ import { createTerm } from "@silvery/ag-react"
 const term = createTerm(process)
 import { findProject } from "@km/storage"
 import { resolvePathArg } from "@km/fs-mount"
+import { relocateBeadSiblingTree } from "@km/beads"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 import { getNodeDisplayName } from "@km/tree"
 import type { KNode, KLink } from "@km/core"
 
+/**
+ * Path-form heuristic: matches `@<scope>/...` (sigil + at least one slash
+ * separator). Used to recognize the rename-mode target shape so a user
+ * mistyped existing-id never silently routes to rename.
+ */
+function looksLikePathFormId(s: string): boolean {
+  return /^@[^/\s]+\/.+/.test(s)
+}
+
 export const moveCommand = new Command("move")
-  .description("Move a node to a different parent (rewrites incoming references by default)")
+  .description("Move (reparent) or rename a node — rewrites incoming references by default")
   .argument("<node>", "Node to move (ID, path, or filename)")
-  .argument("[parent]", "Target parent (ID, path, or filename)")
+  .argument("[target]", "Target: existing node (reparent) or new path-form id (rename)")
   .option("-p, --project <name>", "Move to project by name")
   .option("--to-root", "Move to root level (no parent)")
   .option("--no-rewrite", "Skip rewriting incoming references")
+  .option("--include-prose", "Also rewrite bare-id mentions in body text (slower; off by default)")
   .option("--dry-run", "Print the diff without writing anything")
   .option("--json", "Output as JSON")
-  .action(async (nodeArg, parentArg, options) => {
+  .action(async (nodeArg, targetArg, options) => {
     // Resolve the node argument - may detect repo root from path
     const resolvedNode = resolvePathArg(nodeArg, getRootPath())
     using repo = await loadRepo(resolvedNode.repoRoot)
@@ -46,49 +76,71 @@ export const moveCommand = new Command("move")
       process.exit(1)
     }
 
-    // Determine target parent
+    // ─── Determine mode: rename vs reparent ────────────────────────────
+    // Rename mode (newCanonicalId path) is selected when:
+    //   - target looks like a path-form id (@scope/...)
+    //   - AND no existing node resolves to that target
+    //   - AND no project / to-root flag is set
+    // Otherwise we're in reparent mode (newParentId path).
+    let renameMode = false
+    let newCanonicalId: string | undefined
     let targetParent: KNode | null = null
     let targetParentId: string | null = null
 
     if (options.toRoot) {
-      // Move to root - null parent
+      // Reparent → root. null parent.
       targetParentId = null
     } else if (options.project) {
-      // Find project by name
-      targetParent = findProject(repo.database, options.project) // TODO: Add repo.findProject()
+      // Reparent → named project.
+      targetParent = findProject(repo.database, options.project)
       if (!targetParent) {
         console.error(term.red(`Project not found: ${options.project}`))
         process.exit(1)
       }
       targetParentId = targetParent.id
-    } else if (parentArg) {
-      // Resolve parent path argument
-      const resolvedParent = resolvePathArg(parentArg, resolvedNode.repoRoot)
+    } else if (targetArg) {
+      // Polymorphic dispatch:
+      //   1. Try to resolve as existing node → reparent
+      //   2. Else, if path-form-id-shaped → rename
+      //   3. Else, error with both candidates listed
+      const resolvedParent = resolvePathArg(targetArg, resolvedNode.repoRoot)
       const parentRef = resolvedParent.nodeRef
-      if (!parentRef) {
-        console.error(term.red(`Cannot use a directory as parent`))
-        process.exit(1)
+      if (parentRef) {
+        targetParent = repo.resolveNode(parentRef)
       }
-      // Find parent by ID/path/filename (parentRef validated above)
-      targetParent = repo.resolveNode(parentRef)
-      if (!targetParent) {
-        console.error(term.red(`Parent not found: ${parentArg}`))
+
+      if (!targetParent && looksLikePathFormId(targetArg)) {
+        // Rename mode — target doesn't exist as a node and looks like
+        // a canonical path-form id. This reuses the same engine
+        // (`moveNodeWithRefs` with newCanonicalId) that bd rename uses.
+        renameMode = true
+        newCanonicalId = targetArg
+      } else if (!targetParent) {
+        console.error(
+          term.red(
+            `Target not found: ${targetArg}\n` +
+              `Hint: pass an existing node id to reparent, or a fresh path-form id like '@scope/name' to rename.`,
+          ),
+        )
         process.exit(1)
+      } else {
+        targetParentId = targetParent.id
       }
-      targetParentId = targetParent.id
     } else {
-      console.error(term.red("Specify a parent, --project, or --root"))
+      console.error(
+        term.red("Specify a target (existing-id to reparent, or new path-form id to rename), --project, or --to-root"),
+      )
       process.exit(1)
     }
 
-    // Don't move to self
-    if (targetParentId === node.id) {
+    // ─── Validation common to both modes ───────────────────────────────
+    if (!renameMode && targetParentId === node.id) {
       console.error(term.red("Cannot move a node to itself"))
       process.exit(1)
     }
 
-    // Don't move to current parent (no-op)
-    if (targetParentId === node.parent_id) {
+    // No-op detection: in reparent mode, hitting the existing parent.
+    if (!renameMode && targetParentId === node.parent_id) {
       if (options.json) {
         console.log(
           JSON.stringify({
@@ -103,21 +155,26 @@ export const moveCommand = new Command("move")
       return
     }
 
-    // --dry-run: compute the rewrite preview without applying anything.
-    // Uses `getRenameImpact` (already on the public Repo surface) so the
-    // dry-run shares the exact same backlink walker the real move uses.
+    // ─── --dry-run: preview without writing ────────────────────────────
     // CI-gateable invariant: dry-run NEVER calls a mutation method.
     if (options.dryRun) {
       const impact = repo.getRenameImpact(node.id)
       const nodeName = getNodeDisplayName(node)
-      const targetName = targetParent ? getNodeDisplayName(targetParent) : "(root)"
+      const targetName = renameMode
+        ? newCanonicalId!
+        : targetParent
+          ? getNodeDisplayName(targetParent)
+          : "(root)"
       if (options.json) {
         console.log(
           JSON.stringify({
             dryRun: true,
+            mode: renameMode ? "rename" : "reparent",
             id: node.id,
             from: { name: nodeName, parent_id: node.parent_id, fs_path: node.fs_path },
-            to: { name: nodeName, parent_id: targetParentId },
+            to: renameMode
+              ? { canonicalId: newCanonicalId, name: nodeName }
+              : { name: nodeName, parent_id: targetParentId },
             impact: {
               backlinks: impact.backlinks.length,
               childCount: impact.childCount,
@@ -129,7 +186,14 @@ export const moveCommand = new Command("move")
         )
         return
       }
-      console.log(`Would move ${nodeName} → ${targetName}`)
+      const verb = renameMode ? "rename" : "move"
+      console.log(`Would ${verb} ${nodeName} → ${targetName}`)
+      if (renameMode && node.fs_path) {
+        const newFsPath = `${newCanonicalId}.md`
+        if (newFsPath !== node.fs_path) {
+          console.log(`Would relocate file: ${node.fs_path} → ${newFsPath}`)
+        }
+      }
       const wouldRewrite = options.rewrite !== false
       if (wouldRewrite && impact.backlinks.length > 0) {
         console.log(
@@ -168,20 +232,42 @@ export const moveCommand = new Command("move")
       return
     }
 
-    // Move via the canonical primitive — rewrites incoming references by
-    // default unless `--no-rewrite` is set. See hub/km/design/move-rewrite-refs.md.
-    // targetParentId may be null (--to-root); MoveSpec accepts null explicitly.
-    const result = repo.moveNodeWithRefs(
-      node.id,
-      { newParentId: targetParentId },
-      { noRewrite: options.rewrite === false },
-    )
+    // ─── Apply: one engine for both modes ──────────────────────────────
+    // moveNodeWithRefs accepts either spec shape (renameMode picks
+    // newCanonicalId; reparent mode picks newParentId). Defaults:
+    //   - rewrites wikilinks, transclusions, dep-edges, alias / parent_id
+    //     props, blocked-by props.
+    //   - bare-id prose mentions opt-in via --include-prose.
+    //   - --no-rewrite skips the walk entirely.
+    const oldFsPath = node.fs_path ?? null
+    const spec = renameMode ? { newCanonicalId } : { newParentId: targetParentId }
+    const result = repo.moveNodeWithRefs(node.id, spec, {
+      noRewrite: options.rewrite === false,
+      includeProse: options.includeProse === true,
+    })
+
+    // Post-rename sibling-tree relocation: handle any bead's child
+    // directory shape (`@km/scope/parent.md` ↔ `@km/scope/parent/`). Only
+    // applies in rename mode; reparent doesn't change the canonical path.
+    if (renameMode) {
+      const relocate = relocateBeadSiblingTree(repo, {
+        repoRoot: resolvedNode.repoRoot,
+        oldFsPath,
+        newFsPath: result.newFsPath ?? null,
+      })
+      if (relocate.warning) {
+        console.warn(term.yellow(`Warning: ${relocate.warning}`))
+      }
+    }
 
     if (options.json) {
       console.log(
         JSON.stringify({
+          mode: renameMode ? "rename" : "reparent",
           id: node.id,
-          parent_id: targetParentId,
+          ...(renameMode
+            ? { canonicalId: newCanonicalId, fs_path: result.newFsPath ?? null }
+            : { parent_id: targetParentId }),
           rewroteHosts: result.rewroteHosts,
           rewroteRefs: result.rewroteRefs,
         }),
@@ -190,11 +276,22 @@ export const moveCommand = new Command("move")
     }
 
     const nodeName = getNodeDisplayName(node)
-    const targetName = targetParent ? getNodeDisplayName(targetParent) : "(root)"
-
+    const targetName = renameMode
+      ? newCanonicalId!
+      : targetParent
+        ? getNodeDisplayName(targetParent)
+        : "(root)"
+    const verb = renameMode ? "Renamed" : "Moved"
     const refsSuffix =
       result.rewroteRefs > 0
         ? ` (rewrote ${result.rewroteRefs} ref${result.rewroteRefs === 1 ? "" : "s"} in ${result.rewroteHosts} file${result.rewroteHosts === 1 ? "" : "s"})`
         : ""
-    console.log(term.green("→"), `Moved ${nodeName} to ${targetName}${refsSuffix}`)
+    console.log(term.green("→"), `${verb} ${nodeName} → ${targetName}${refsSuffix}`)
+    if (result.failedHosts.length > 0) {
+      console.warn(
+        term.yellow(
+          `Warning: ${result.failedHosts.length} host${result.failedHosts.length > 1 ? "s" : ""} failed to rewrite (see logs)`,
+        ),
+      )
+    }
   })
