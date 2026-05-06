@@ -12,6 +12,7 @@ import { resolvePathArg } from "@km/fs-mount"
 import { getRootPath } from "../../program.ts"
 import { loadRepo } from "../../load-repo.ts"
 import { planSetFields, planClearFields } from "./set-clear-plan.ts"
+import { formatSetUpdates, formatClearKeys } from "./set-clear-display.ts"
 
 // Re-export so existing imports continue to work.
 export { planSetFields, planClearFields, type SetFieldPlan, type ClearFieldPlan } from "./set-clear-plan.ts"
@@ -72,16 +73,25 @@ export function createSetCommand() {
         repo.moveNode(task.id, plan.newParentId, siblings.length)
       }
 
-      const updatedKeys = [...Object.keys(plan.updates), ...(plan.newParentId ? ["parent"] : [])]
-
       if (options.json) {
         const payload: Record<string, unknown> = { id: task.id, updates: plan.updates }
         if (plan.newParentId) payload.parent = plan.newParentId
+        if (Object.keys(plan.humanized).length > 0) payload.humanized = plan.humanized
         console.log(JSON.stringify(payload))
         return
       }
 
-      console.log(term.green("✓"), `Updated ${updatedKeys.join(", ")}:`, task.id.slice(-8))
+      // Multi-line output: header + per-field details + the user's id
+      // arg (so they can confirm they edited the task they meant). The
+      // humanized form lets users verify chrono parsed `tmrw` /
+      // `friday` / `eod` the way they intended without re-reading the
+      // ISO date.
+      const formatted = formatSetUpdates(plan)
+      console.log(term.green("✓"), formatted.header)
+      for (const detail of formatted.details) {
+        console.log(`  ${detail}`)
+      }
+      console.log(`  ${id}`)
     })
 }
 
@@ -124,6 +134,11 @@ export function createClearCommand() {
         return
       }
 
-      console.log(term.dim("○"), `Cleared ${fields.join(", ")}:`, task.id.slice(-8))
+      // Mirror `set` output shape: header + indented id. No detail
+      // lines because clear has nothing to humanize — the user's intent
+      // is already in the header (`Cleared due:`).
+      const headerKeys = formatClearKeys(fields)
+      console.log(term.dim("○"), `Cleared ${headerKeys}:`)
+      console.log(`  ${id}`)
     })
 }

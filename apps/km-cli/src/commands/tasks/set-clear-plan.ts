@@ -32,6 +32,14 @@ export interface SetFieldPlan {
   updates: Record<string, unknown>
   /** Resolved new parent node id when `parent:<ref>` was given. */
   newParentId?: string
+  /**
+   * Human-readable labels for parsed values, keyed by the storage column
+   * (e.g. `due_at: "tomorrow"`). Populated for date fields that flow
+   * through `parseDate` so the action handler can echo `due: 2026-05-06
+   * (tomorrow)` without re-parsing. Missing keys mean "no humanization
+   * available" — the column was either non-date or cleared.
+   */
+  humanized: Record<string, string>
   /** Unknown field keys (warned, not errored). */
   warnings: string[]
   /** Field-format errors (each aborts the command). */
@@ -104,6 +112,7 @@ function readTags(data: Record<string, unknown>): string[] {
 // oxlint-disable-next-line complexity/complexity -- field-key switch with documented branches
 export function planSetFields(repo: Repo, taskId: string, fields: readonly string[]): SetFieldPlan {
   const updates: Record<string, unknown> = {}
+  const humanized: Record<string, string> = {}
   const warnings: string[] = []
   const errors: string[] = []
   let newParentId: string | undefined
@@ -134,6 +143,7 @@ export function planSetFields(repo: Repo, taskId: string, fields: readonly strin
           continue
         }
         updates[scalarColumn] = parsed.iso
+        humanized[scalarColumn] = parsed.humanized
         continue
       }
       updates[scalarColumn] = value || null
@@ -192,7 +202,7 @@ export function planSetFields(repo: Repo, taskId: string, fields: readonly strin
     }
   }
 
-  return { updates, newParentId, warnings, errors }
+  return { updates, newParentId, humanized, warnings, errors }
 }
 
 /**
