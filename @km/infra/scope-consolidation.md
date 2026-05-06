@@ -5,9 +5,18 @@ aliases:
   - km-infra.scope-consolidation
   - km-infra-scope-consolidation
 created_at: 2026-05-06T19:14:34.309Z
+closed_at: 2026-05-06T21:34:07.000Z
+closeReason: "Migration complete. 6 commits landed (01d980b8a, b641cff14,
+  9fdb0c48c, c188093ff, bf6d90d86, 07d97c07f). Final state: 17 active scopes;
+  @km/all slimmed 41→7; 5 epics closed (bear, agent-view, logview, tools,
+  logger); ~50 renames; 5 inbox triaged; 0 stale wikilinks; 2 empty dirs
+  removed. CLI fixes (-s flag unshadow, open status alias, bd surface defaults
+  to mdfile) shipped. 2 bd-sync follow-up bugs filed
+  (@km/bd-compat/close-no-marker-write, @km/bd-compat/rename-id-column-stale).
+  Doc: hub/km/scope-consolidation-target.md."
 ---
 
-# Scope consolidation — reduce @km/* sprawl to 8 active scopes #epic #P2
+# [x] Scope consolidation — reduce @km/* sprawl to 8 active scopes #epic #P2
 
 Reorganize the `@km/*` scope surface to reduce sprawl. Current state has ~88 directories on disk and ~22 distinct scopes appearing in some form (active backlogs + epic root files + zero-child orphan epics). Consolidate to ~8 well-defined active scopes; close orphan epics; relocate cross-cutting beads from `@km/all` into specific scopes.
 
@@ -74,4 +83,16 @@ Target inventory written to hub/km/scope-consolidation-target.md (2026-05-06). 5
 [bd surface bead-centric defaults shipped] bd list / bd ready / bd query now default to fstype:mdfile (one bead = one .md file; inline-checkbox sub-tasks excluded). Scope-epic umbrellas (@km/silvery.md etc) included — they ARE beads. --all-tasks flag opts out. Files: apps/km-cli/src/commands/{bd-list,bd-query}.ts, apps/km-cli/src/commands/tasks/{list,list-plan}.ts. Verified: bd list -s open returns 546 (was 3934).
 
 Migration complete. Final state: 13 active scope-epic umbrellas (silvery, tui, silvercode, infra, market, tribe, bearly, storage, termless, terminfo, flexily, loggily, all) + bd-compat/mdtest/import/board/cli/markdown active sub-scopes without umbrella files = 19 active scopes total. @km/all slimmed from 41 to 7 (true cross-cutting only: plateau, plateau-90, shared-substrate-review, vorg, universal-editor, upstream-waiting, fix-sweep-0426). pm/SKILL.md Scope Epics table updated. Skipped wip beads owned by other claude sessions (fix-sweep-0426, shared/text-render-package, session/0428-evening, bearly/injection-framing).
+
+Reorganize the `@km/*` scope surface to reduce sprawl. Current state has ~88 directories on disk and ~22 distinct scopes appearing in some form (active backlogs + epic root files + zero-child orphan epics). Consolidate to a defensible active set; close orphan epics; relocate cross-cutting beads from `@km/all` into specific scopes.
+
+**Outcome (2026-05-06):** Initial "8 active scopes" target was wishful — the real number is 17 once you account for the substantial vendor-package scopes (silvery, tui, storage, termless, terminfo) that were hidden by a `bd list --json` bug. Final state matches the target inventory at `hub/km/scope-consolidation-target.md`.
+
+## Acceptance — verified ✓
+
+- ✅ 17 active scopes (was ~30): silvery, tui, silvercode, infra, market, tribe, bearly, storage, termless, terminfo, flexily, loggily, all + bd-compat/mdtest/import/board/cli/markdown sub-scopes.
+- ✅ Three orphan epics (`agent-view`, `bear`, `logview`) closed with reason naming absorbing scope (manual marker patch — `km bd close` doesn't write `[x]` to source markdown; bug filed as `@km/bd-compat/close-no-marker-write`).
+- ✅ `@km/all` open count: 7 (down from 41). True cross-cutting only: plateau, plateau-90, shared-substrate-review, vorg, universal-editor, upstream-waiting, fix-sweep-0426.
+- ✅ Skill doc `pm/SKILL.md` "Scope Epics" table updated to match the new set + adds bd-surface-defaults paragraph (beads = mdfiles).
+- ✅ All renames executed via `km bd rename` (deps/aliases/wikilinks updated automatically; verified 0 stale wikilinks).
 
