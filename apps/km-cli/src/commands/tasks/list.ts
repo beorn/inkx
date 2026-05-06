@@ -13,7 +13,7 @@
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
-import { Task, type Repo } from "@km/storage"
+import { Task, getBeadsConfig, type Repo } from "@km/storage"
 import { resolvePathArg } from "@km/fs-mount"
 import { loadRepo } from "../../load-repo.ts"
 import { collapseAncestorsWithTypes } from "@km/tree"
@@ -25,6 +25,7 @@ import { printTaskDetails } from "../shared-show.ts"
 import { buildTaskTree, sortByPath } from "./queries.ts"
 import { parseLimitFlag, applyLimit } from "../../utils/limit.ts"
 import { planList } from "./list-plan.ts"
+import { buildStatusBar } from "./status-bar.ts"
 
 // Re-export pure helpers + planner so existing imports keep working
 // (tests still hit `filterTasksByAssignee`, `filterTasksByPriority`, etc.).
@@ -147,10 +148,10 @@ function renderTree(repo: Repo, tasks: KNodeType[], options: ListTasksOptions): 
  */
 function renderTaskList(
   repo: Repo,
-  input: { tasks: KNodeType[]; rootNode: KNodeType | null; pathFilter: string | null },
+  input: { tasks: KNodeType[]; rootNode: KNodeType | null; pathFilter: string | null; repoRoot: string },
   options: ListTasksOptions,
 ): void {
-  const { rootNode, pathFilter } = input
+  const { rootNode, pathFilter, repoRoot } = input
 
   const limit = parseLimitFlag(options.limit)
   const { items: tasks, totalMsg } = applyLimit(input.tasks, limit)
@@ -158,6 +159,19 @@ function renderTaskList(
   if (options.json) {
     console.log(JSON.stringify(tasks, null, 2))
     return
+  }
+
+  // Status-bar header — workspace summary anchored on the bd prefix.
+  // Always computed from `repo.getAllTasks()` (workspace-wide) so the
+  // top line stays steady regardless of which filter the user typed.
+  // Skipped silently in JSON mode (above) — header is presentation-only.
+  const allTasks = repo.getAllTasks()
+  const beadsConfig = getBeadsConfig(repoRoot)
+  const scopeLabel = `@${beadsConfig.prefix}`
+  const headerLine = buildStatusBar(allTasks, new Date(), scopeLabel)
+  if (headerLine) {
+    console.log(term.dim(headerLine))
+    console.log()
   }
 
   if (tasks.length === 0) {
@@ -207,7 +221,11 @@ export async function listTasks(pathOrId: string | undefined, options: ListTasks
     return
   }
 
-  renderTaskList(repo, { tasks: plan.tasks, rootNode: plan.rootNode, pathFilter: plan.pathFilter }, options)
+  renderTaskList(
+    repo,
+    { tasks: plan.tasks, rootNode: plan.rootNode, pathFilter: plan.pathFilter, repoRoot: resolved.repoRoot },
+    options,
+  )
 }
 
 /**
