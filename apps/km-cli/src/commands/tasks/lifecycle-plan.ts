@@ -36,6 +36,18 @@ export interface LifecyclePlan {
     clearClosedAt?: boolean
     /** When true, set `closed_at` to current ISO (close/drop). */
     setClosedAt?: boolean
+    /**
+     * When true, the apply step routes through `repo.tryClaim` (atomic CAS)
+     * instead of `repo.updateNode`. Set by `planClaim` so contention is
+     * race-safe across concurrent sessions (Phase 1.3 of `@km/agent/sigil-boards`).
+     *
+     * The planner can no longer reject "already claimed by other actor" up
+     * front — a later session could claim between plan and apply — so the
+     * arbitration moves into `applyLifecyclePlan`. The planner still
+     * rejects done/dropped (those are stable terminal states; a parallel
+     * session can't "un-close" a bead under us in a meaningful sense).
+     */
+    claimCAS?: boolean
   }
 }
 
@@ -54,23 +66,23 @@ function ownerOf(node: KNode): string | null {
  * Plan a `task claim <id>`.
  *
  * Validation:
- *   - Already-claimed-by-someone-else → error with the current owner.
- *   - Already-claimed-by-self → no-op success (idempotent).
- *   - Done/dropped → error (claim a closed task is wrong; reopen first).
+ *   - Done/dropped → error up front (terminal states; reopen first).
  *
- * Effect: status → `wip`, marker → `[/]`, assigned_to → actor.
+ * Note: the "already claimed by someone else" check is **not** performed
+ * here — it would race the apply step. Instead, contention is arbitrated
+ * inside `applyLifecyclePlan` via `repo.tryClaim` (atomic SQL CAS).
+ * `claimCAS: true` flags the apply step to take that path.
+ *
+ * Effect: status → `wip`, marker → `[/]`, assigned_to → actor — but only
+ * if the CAS in `applyLifecyclePlan` accepts the claim (assignee null,
+ * matches `actor`, or stale).
  */
 export function planClaim(node: KNode | null, ref: string, actor: string): LifecyclePlan {
   if (!node) return { errors: [`Task not found: ${ref}`] }
   const status = statusOf(node)
-  const currentOwner = ownerOf(node)
 
   if (status === "done" || status === "dropped") {
     return { errors: [`Task is ${status}; reopen before claiming: ${ref}`] }
-  }
-
-  if (currentOwner && currentOwner !== actor) {
-    return { errors: [`Task already claimed by ${currentOwner}: ${ref}`] }
   }
 
   return {
@@ -78,6 +90,7 @@ export function planClaim(node: KNode | null, ref: string, actor: string): Lifec
     update: {
       status: "wip",
       assignedTo: actor,
+      claimCAS: true,
     },
   }
 }

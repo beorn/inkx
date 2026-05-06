@@ -417,9 +417,33 @@ function summarizeChanges(changes: Partial<KNode>): Record<string, unknown> {
   return summary
 }
 
+/**
+ * Result of `repo.tryClaim`.
+ *
+ * Either the CAS succeeded and we hand back the post-update node, or it
+ * failed and we tell the caller why (current holder, lease expiry, or
+ * a non-claimable status).
+ */
+export type TryClaimResult =
+  | { ok: true; node: KNode }
+  | {
+      ok: false
+      /** Current assignee on the bead (`null` if unassigned or not-found). */
+      currentOwner: string | null
+      /** Estimated lease expiry timestamp; `null` when not held / closed. */
+      expiresAt: number | null
+      /**
+       * Why the claim failed:
+       *   - `"held"` — assignee within the lease window
+       *   - `"closed"` — task status is `done` or `dropped`
+       *   - `"not-found"` — no node with that id
+       */
+      reason: "held" | "closed" | "not-found"
+    }
+
 /** Create mutation methods shared by createRepo and createBareRepo */
 function createMutationMethods(deps: RepoMethodDeps, state: { version: number; notify(): void }) {
-  const { dataStore, hooks, childrenCache } = deps
+  const { db, dataStore, hooks, childrenCache } = deps
 
   /** Run a mutation with before/after hooks, version bump, and notification. */
   function runWithHooks<T>(ctx: MutationContext, fn: (ctx: MutationContext) => T): T {
@@ -602,6 +626,113 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
       // 4. Update path references in rules and blocked-by property targets
       // Pass this (not mutations) so undo proxy intercepts through the proxy chain
       updateRenameReferences(dataStore, this, oldName, newName)
+    },
+
+    /**
+     * Atomic compare-and-swap claim of a bead.
+     *
+     * Race-safe alternative to the legacy "read assigned_to → check → update"
+     * pattern (see `apps/km-cli/src/commands/tasks/lifecycle-plan.ts:planClaim`
+     * pre Phase 1.3 of `@km/agent/sigil-boards`). The CAS runs as a single
+     * SQL UPDATE so two concurrent callers can never both believe they hold
+     * the same row — exactly one wins, the other gets `{ ok: false, ... }`
+     * with the current holder.
+     *
+     * Lease semantics: the WHERE clause accepts the claim when assigned_to
+     * is null, equal to `actor` (idempotent self-reclaim), or stale
+     * (`updated_at < now - leaseMs`). The lease policy lives upstack — see
+     * `@km/beads`'s `leaseMsForAssignee` for the agent-vs-user split.
+     *
+     * Cache invalidation mirrors `mutations.updateNode`: bust children of
+     * the affected parent and a few ancestors, clear the name + resolve
+     * caches, bump version, notify subscribers. The journal entry (event
+     * row in the events table) is *not* written by `tryClaim` — the
+     * canonical write is the SQL UPDATE itself; the journal is best-effort
+     * sync metadata that callers may emit separately if they care.
+     */
+    tryClaim(id: string, actor: string, leaseMs: number): TryClaimResult {
+      const now = Date.now()
+      const cutoff = now - leaseMs
+
+      // Pre-flight: if the row doesn't exist or is closed, skip the CAS so
+      // we can give the caller a precise reason.
+      const before = dataStore.getNode(id)
+      if (!before) {
+        return { ok: false, currentOwner: null, expiresAt: null, reason: "not-found" }
+      }
+      const status = before.item?.task?.status
+      if (status === "done" || status === "dropped") {
+        return {
+          ok: false,
+          currentOwner: before.assigned_to ?? null,
+          expiresAt: null,
+          reason: "closed",
+        }
+      }
+
+      // Single-statement CAS. SQLite serializes statements on the connection,
+      // so even with two concurrent callers, exactly one UPDATE sees the
+      // pre-image with `assigned_to IS NULL` (or `= actor`, or stale).
+      //
+      // SQL three-valued-logic gotcha: `task_status NOT IN ('done','dropped')`
+      // evaluates to NULL when task_status is NULL — which excludes the row
+      // from the WHERE match. Some bead-shaped nodes carry NULL task_status
+      // until first transition; the explicit `IS NULL OR ...` keeps them
+      // claimable.
+      const result = db.run(
+        `UPDATE nodes
+         SET assigned_to = ?, task_status = 'wip', task_marker = '[/]', updated_at = ?
+         WHERE id = ?
+           AND (task_status IS NULL OR task_status NOT IN ('done', 'dropped'))
+           AND (assigned_to IS NULL OR assigned_to = ? OR updated_at < ?)`,
+        [actor, now, id, actor, cutoff],
+      )
+
+      if (result.changes === 0) {
+        // Re-read so we can report the current holder + lease expiry.
+        const after = dataStore.getNode(id)
+        if (!after) {
+          return { ok: false, currentOwner: null, expiresAt: null, reason: "not-found" }
+        }
+        const afterStatus = after.item?.task?.status
+        if (afterStatus === "done" || afterStatus === "dropped") {
+          return {
+            ok: false,
+            currentOwner: after.assigned_to ?? null,
+            expiresAt: null,
+            reason: "closed",
+          }
+        }
+        return {
+          ok: false,
+          currentOwner: after.assigned_to ?? null,
+          expiresAt: (after.updated_at ?? 0) + leaseMs,
+          reason: "held",
+        }
+      }
+
+      // CAS succeeded — bust caches the same way `mutations.updateNode` does
+      // so observers see the new state on next read.
+      const parentId = before.parent_id ?? null
+      childrenCache.bust(parentId)
+      let bustId: string | null = parentId
+      for (let i = 0; i < 4 && bustId; i++) {
+        const bustNode = dataStore.getNode(bustId)
+        bustId = bustNode?.parent_id ?? null
+        if (bustId) childrenCache.bust(bustId)
+      }
+      clearNameIndex()
+      clearResolveCache()
+      state.version++
+      state.notify()
+
+      const updated = dataStore.getNode(id)
+      if (!updated) {
+        // Should be impossible — we just UPDATEd it. Surface as a hard error.
+        throw new Error(`tryClaim: node disappeared after CAS: ${id}`)
+      }
+      log.info?.(`mutation: tryClaim ${id} actor=${actor}`)
+      return { ok: true, node: updated }
     },
   }
 
@@ -1014,6 +1145,21 @@ export interface Repo extends Disposable {
 
   /** Update a node's properties */
   updateNode(id: string, changes: Partial<KNode>): void
+
+  /**
+   * Atomic compare-and-swap claim of a bead.
+   *
+   * Race-safe. Single SQL UPDATE with a WHERE clause that accepts the
+   * claim when assignee is null, equal to `actor` (idempotent), or stale
+   * (`updated_at < now - leaseMs`). Two concurrent callers can never both
+   * succeed — exactly one wins, the other gets `{ ok: false }` with the
+   * current holder + lease expiry.
+   *
+   * Lease policy lives in `@km/beads` (`leaseMsForAssignee`).
+   *
+   * See `TryClaimResult` for the failure shape.
+   */
+  tryClaim(id: string, actor: string, leaseMs: number): TryClaimResult
 
   /** Move a node to a new parent with new sort order */
   moveNode(id: string, newParentId: string, position: number): void

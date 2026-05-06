@@ -345,6 +345,7 @@ export type {
   RepoStats,
   ExpandResult,
   ExpandProgress,
+  TryClaimResult,
 } from "./repo/repo.ts"
 
 // Move/rename with reference rewriting (canonical primitive)

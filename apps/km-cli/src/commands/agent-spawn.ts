@@ -32,7 +32,7 @@ import { createTerm } from "@silvery/ag-react"
 import { loadRepo } from "../load-repo.ts"
 import { getRootPath } from "../program.ts"
 import { resolveAssignee } from "../utils/assignee.ts"
-import { applyLifecyclePlan, planClaim, planRelease } from "./tasks/lifecycle.ts"
+import { applyLifecyclePlan, ClaimContentionError, planClaim, planRelease } from "./tasks/lifecycle.ts"
 
 const term = createTerm(process)
 
@@ -127,12 +127,13 @@ function tribeBroadcast(message: string): void {
 }
 
 /**
- * Stop-gap claim path.
+ * Race-safe claim path — uses the CAS-routed `planClaim` + `applyLifecyclePlan`.
  *
- * TODO: switch to `repo.tryClaim(nodeId, actor, leaseSeconds)` once
- * @km/agent/sigil-boards Phase 1.3 (atomic CAS) lands. Today's `planClaim`
- * does read-then-write — race-unsafe across sessions but correct for the
- * single-claimer happy path the orchestrator runs in.
+ * Phase 1.3 of @km/agent/sigil-boards landed atomic CAS via `repo.tryClaim`;
+ * `planClaim` no longer rejects on owner-mismatch (which used to race), and
+ * `applyLifecyclePlan` throws `ClaimContentionError` on lock-loss with the
+ * holder + expiry attached. We pluck them out here for the orchestrator's
+ * "already running as <holder>" message.
  */
 function tryClaimSlot(
   repo: Repo,
@@ -142,12 +143,19 @@ function tryClaimSlot(
 ): { ok: true; expiresAt: string } | { ok: false; holder: string; expiresAt: string | null } {
   const plan = planClaim(node, slotRef, actor)
   if (plan.errors.length > 0) {
-    // planClaim emits "Task already claimed by <owner>: <ref>"
-    const ownerMatch = plan.errors[0]?.match(/already claimed by ([^:]+):/)
-    const holder = ownerMatch?.[1]?.trim() ?? "unknown"
-    return { ok: false, holder, expiresAt: null }
+    // Done/dropped/not-found — pre-flight rejections.
+    return { ok: false, holder: "unknown", expiresAt: null }
   }
-  applyLifecyclePlan(repo, node, plan)
+  try {
+    applyLifecyclePlan(repo, node, plan)
+  } catch (err) {
+    if (err instanceof ClaimContentionError) {
+      const holder = err.detail.currentOwner ?? "unknown"
+      const expiresAt = err.detail.expiresAt ? new Date(err.detail.expiresAt).toISOString() : null
+      return { ok: false, holder, expiresAt }
+    }
+    throw err
+  }
   // Lease expiry is informational here; the real CAS path will return it.
   const expiresAt = new Date(Date.now() + DEFAULT_LEASE_SECONDS * 1000).toISOString()
   return { ok: true, expiresAt }
@@ -178,11 +186,11 @@ function releaseSlot(repo: Repo, slotRef: string): void {
  * directory. Flag spelling differs per runtime; the orchestrator owns the
  * mapping so callers don't have to.
  */
-export function buildExecCommand(input: {
-  agent: AgentRuntime
-  briefPath: string
-  vaultRoot: string
-}): { cmd: string; args: string[]; note?: string } {
+export function buildExecCommand(input: { agent: AgentRuntime; briefPath: string; vaultRoot: string }): {
+  cmd: string
+  args: string[]
+  note?: string
+} {
   const { agent, briefPath, vaultRoot } = input
   switch (agent) {
     case "silvercode":

@@ -221,15 +221,20 @@ describe("lifecycle invariants — single-step transitions", () => {
 })
 
 describe("lifecycle validation — error paths", () => {
-  test("claim already-claimed-by-other → error names current owner", () => {
+  test("claim already-claimed-by-other → ClaimContentionError at apply", () => {
+    // Phase 1.3 of @km/agent/sigil-boards: contention is no longer a
+    // plan-time check (it would race apply). Instead, planClaim succeeds
+    // and applyLifecyclePlan throws a holder-aware ClaimContentionError
+    // when the CAS loses. The race-safety is what enables this — the bulk
+    // runner catches the error and reports it as a per-id `skipped`.
     const repo = freshRepo()
     const id = addBead(repo, "@km/p/a")
     runOp(repo, id, "claim", "alice")
 
     const node = repo.getNode(id)!
     const plan = planClaim(node, id, "bob")
-    expect(plan.errors).toHaveLength(1)
-    expect(plan.errors[0]).toMatch(/already claimed by alice/)
+    expect(plan.errors).toEqual([])
+    expect(() => applyLifecyclePlan(repo, node, plan)).toThrow(/already claimed by alice/)
   })
 
   test("release on unclaimed task → error", () => {

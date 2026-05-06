@@ -33,6 +33,7 @@
 
 import { getMarkerForStatus, type KNode } from "@km/core"
 import type { Repo } from "@km/storage"
+import { leaseMsForAssignee } from "@km/beads"
 import { resolvePathArg } from "@km/fs-mount"
 import { createTerm } from "@silvery/ag-react"
 
@@ -56,13 +57,26 @@ export {
 /**
  * Apply a lifecycle plan to a repo node atomically.
  *
- * "Atomic" here means single `repo.updateNode` call — the plan
- * collapses status + marker + (optional) assigned_to + (optional) data
- * mutation into one update so observers can never see an
- * intermediate state (e.g. `wip` without an owner).
+ * Two paths:
+ *
+ *   1. **CAS path** (`update.claimCAS === true`, set by `planClaim`) —
+ *      route through `repo.tryClaim`, which does a single SQL UPDATE
+ *      with a WHERE clause that arbitrates concurrent claims. On
+ *      contention failure, throws a holder-aware error so the caller
+ *      can surface "claimed by <other>" without silently overwriting.
+ *      This is the Phase 1.3 race-safety guarantee from
+ *      `@km/agent/sigil-boards`.
+ *
+ *   2. **Standard path** (everything else) — single `repo.updateNode`
+ *      call. The plan collapses status + marker + (optional)
+ *      assigned_to + (optional) data mutation into one update so
+ *      observers can never see an intermediate state.
  *
  * Returns the resolved owner (after the update) so callers can echo it.
  * No-ops on `plan.errors.length > 0` — caller MUST check first.
+ *
+ * Throws on contention failure (claim path only) — the caller's
+ * responsibility to translate into a user-facing error message.
  */
 export function applyLifecyclePlan(repo: Repo, node: KNode, plan: LifecyclePlan): { owner: string | null } {
   if (plan.errors.length > 0 || !plan.update) {
@@ -70,6 +84,33 @@ export function applyLifecyclePlan(repo: Repo, node: KNode, plan: LifecyclePlan)
   }
   const update = plan.update
 
+  // CAS path — claim arbitration. The `assignedTo` is the actor; lease
+  // policy is per-assignee (agent vs user shape) via @km/beads.
+  if (update.claimCAS) {
+    const actor = update.assignedTo
+    if (typeof actor !== "string") {
+      throw new Error("applyLifecyclePlan: claimCAS requires update.assignedTo to be a string actor")
+    }
+    const result = repo.tryClaim(node.id, actor, leaseMsForAssignee(actor))
+    if (!result.ok) {
+      // Translate to a holder-aware error. Caller catches and reports.
+      if (result.reason === "closed") {
+        throw new ClaimContentionError(`Task is closed; reopen before claiming: ${node.id}`, result)
+      }
+      if (result.reason === "not-found") {
+        throw new ClaimContentionError(`Task not found: ${node.id}`, result)
+      }
+      const expiry = result.expiresAt ? ` (lease expires ~${new Date(result.expiresAt).toISOString()})` : ""
+      throw new ClaimContentionError(
+        `Task already claimed by ${result.currentOwner ?? "unknown"}${expiry}: ${node.id}`,
+        result,
+      )
+    }
+    return { owner: result.node.assigned_to ?? null }
+  }
+
+  // Standard path — non-claim transitions.
+  //
   // Build the data merge for closed_at / reason tracking. Data is a
   // full-replacement column — any merge MUST start from the current
   // node.data so siblings (id, aliases, short_id, …) are preserved.
@@ -110,6 +151,23 @@ export function applyLifecyclePlan(repo: Repo, node: KNode, plan: LifecyclePlan)
   else owner = node.assigned_to ?? null
 
   return { owner }
+}
+
+/**
+ * Thrown by `applyLifecyclePlan` when the CAS claim path loses contention.
+ *
+ * Carries the underlying `tryClaim` failure result so callers can choose
+ * to inspect `currentOwner` / `expiresAt` / `reason` rather than parse the
+ * message. The bulk runner translates these into per-id `skipped` outcomes.
+ */
+export class ClaimContentionError extends Error {
+  constructor(
+    message: string,
+    public readonly detail: Extract<ReturnType<Repo["tryClaim"]>, { ok: false }>,
+  ) {
+    super(message)
+    this.name = "ClaimContentionError"
+  }
 }
 
 /**
@@ -271,7 +329,10 @@ function statusOf(node: KNode): string {
 }
 
 /** Per-verb display config — labels and the headline single-id glyph. */
-const VERB_DISPLAY: Record<LifecycleVerb, { applied: string; verbing: string; glyph: string; color: "green" | "yellow" | "dim" }> = {
+const VERB_DISPLAY: Record<
+  LifecycleVerb,
+  { applied: string; verbing: string; glyph: string; color: "green" | "yellow" | "dim" }
+> = {
   claim: { applied: "Claimed", verbing: "claim", glyph: "◐", color: "green" },
   release: { applied: "Released", verbing: "release", glyph: "○", color: "dim" },
   close: { applied: "Closed", verbing: "close", glyph: "✓", color: "green" },
@@ -328,7 +389,23 @@ async function runLifecycleBulk(
     const targetStatus = plan.update?.status ?? "?"
     const fromStatus = statusOf(node)
     if (!options.dryRun) {
-      applyLifecyclePlan(repo, node, plan)
+      try {
+        applyLifecyclePlan(repo, node, plan)
+      } catch (err) {
+        // ClaimContentionError surfaces as a per-id `skipped` outcome
+        // (race-loss reporting). Other errors propagate.
+        if (err instanceof ClaimContentionError) {
+          outcomes.push({
+            ref,
+            nodeId: node.id,
+            outcome: "skipped",
+            reason: err.message,
+          })
+          hadError = true
+          continue
+        }
+        throw err
+      }
     }
     outcomes.push({
       ref,
@@ -350,7 +427,11 @@ async function runLifecycleBulk(
  * (`✓ Closed: <hash>`) so existing callers / scripts that grep for
  * "Closed:" don't break. Multi-id always uses the grouped summary.
  */
-function emitBulkOutput(verb: LifecycleVerb, outcomes: BulkOutcome[], options: LifecycleOptions & { reason?: string }): void {
+function emitBulkOutput(
+  verb: LifecycleVerb,
+  outcomes: BulkOutcome[],
+  options: LifecycleOptions & { reason?: string },
+): void {
   const display = VERB_DISPLAY[verb]
   const applied = outcomes.filter((o) => o.outcome === "applied")
   const skipped = outcomes.filter((o) => o.outcome === "skipped")

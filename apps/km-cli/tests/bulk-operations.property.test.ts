@@ -35,6 +35,7 @@ import { runGenerator } from "@km/core"
 import { createRepo, type Repo } from "@km/storage"
 import {
   applyLifecyclePlan,
+  ClaimContentionError,
   planClaim,
   planClose,
   planDrop,
@@ -133,7 +134,15 @@ function applyOne(repo: Repo, nodeId: string, verb: Verb, actor: string, reason?
   else plan = planReopen(node, nodeId)
 
   if (plan.errors.length > 0) return "skipped"
-  applyLifecyclePlan(repo, node, plan)
+  try {
+    applyLifecyclePlan(repo, node, plan)
+  } catch (err) {
+    // Phase 1.3: claim contention is now detected at apply time via
+    // repo.tryClaim. Treat the contention error as a per-id skip, mirroring
+    // the bulk runner's behavior (lifecycle.ts: catch ClaimContentionError).
+    if (err instanceof ClaimContentionError) return "skipped"
+    throw err
+  }
   return "applied"
 }
 

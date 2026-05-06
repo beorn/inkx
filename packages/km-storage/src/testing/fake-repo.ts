@@ -527,6 +527,47 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       notifyListeners()
     },
 
+    tryClaim(id, actor, leaseMs) {
+      ensureNotClosed()
+      const node = nodes.get(id)
+      if (!node) {
+        return { ok: false as const, currentOwner: null, expiresAt: null, reason: "not-found" as const }
+      }
+      const status = node.item?.task?.status
+      if (status === "done" || status === "dropped") {
+        return {
+          ok: false as const,
+          currentOwner: node.assigned_to ?? null,
+          expiresAt: null,
+          reason: "closed" as const,
+        }
+      }
+      const now = Date.now()
+      const cutoff = now - leaseMs
+      const currentOwner = node.assigned_to ?? null
+      const heldByOther = currentOwner !== null && currentOwner !== actor
+      const fresh = (node.updated_at ?? 0) >= cutoff
+      if (heldByOther && fresh) {
+        return {
+          ok: false as const,
+          currentOwner,
+          expiresAt: (node.updated_at ?? 0) + leaseMs,
+          reason: "held" as const,
+        }
+      }
+      const next = {
+        ...node,
+        id,
+        assigned_to: actor,
+        item: { ...node.item, task: { marker: "[/]" as const, status: "wip" as const } },
+        updated_at: now,
+      }
+      nodes.set(id, next)
+      mutationVersion++
+      notifyListeners()
+      return { ok: true as const, node: next }
+    },
+
     moveNode(id, newParentId, position) {
       ensureNotClosed()
       const node = nodes.get(id)
