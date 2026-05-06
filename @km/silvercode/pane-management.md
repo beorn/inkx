@@ -53,17 +53,17 @@ Each pane gets a border (single-line by default). Active pane's border is highli
 ### 2. Drag-resize, drag-move
 
 - **Resize**: hover the border between two panes → cursor changes (use \`useMouseCursor\` "col-resize" / "row-resize") → click + drag adjusts the shared edge. Layout state persists per-vault (or per-session-grid).
-- **Move**: drag a pane's title bar (or a header strip) → drop on another pane to swap, or drop on a panel edge to re-tile. Optional v2 if v1 is too much.
+- **Move**: drag a pane's title bar (or a header block) → drop on another pane to swap, or drop on a panel edge to re-tile. Optional v2 if v1 is too much.
 
 ### 3. Header buttons
 
-Each pane has a small header strip (1-2 rows) with:
+Each pane has a small header block (1-2 rows) with:
 
 - **Title** — session ID (now that the SidePanel shows ids only)
 - **Add** — \`+\` icon → spawn new session in adjacent split
 - **Move** — \`⇄\` icon → enter move mode (or drag title)
 - **Close** — \`×\` icon → close session (with confirm if running)
-- **Minimize** — \`_\` icon → collapse pane to a single-row strip; click to restore
+- **Minimize** — \`_\` icon → collapse pane to a single-row header block; click to restore
 
 ### 4. Keybindings to split
 
@@ -82,7 +82,7 @@ The active pane gets a **blue outline** (or $accent border) — matches what mos
 
 ## Architecture
 
-silvercode uses silvery's grid layout (probably \`<Box flexDirection="row">\` with multiple \`<SessionCard>\`) per \`apps/silvercode/src/App.tsx\` and \`SessionCard.tsx\`. Pane management could be:
+silvercode uses silvery's grid layout (probably \`<Box flexDirection="row">\` with multiple \`<ChatPane>\`) per \`apps/silvercode/src/App.tsx\` and \`ChatPane.tsx\`. Pane management could be:
 
 - A new \`<PaneGrid>\` component that owns the layout tree (binary tree of splits)
 - Per-pane \`<PaneFrame>\` wrapper providing border + header + resize handles
@@ -92,7 +92,7 @@ silvercode uses silvery's grid layout (probably \`<Box flexDirection="row">\` wi
 ## References
 
 - \`apps/silvercode/src/App.tsx\` — current grid render
-- \`apps/silvercode/src/components/SessionCard.tsx\` — current pane shell (no border / header today)
+- \`apps/silvercode/src/components/ChatPane.tsx\` — current pane shell (no border / header today)
 - \`vendor/silvery/packages/ag-react/src/hooks/useMouseCursor.ts\` — for cursor-shape on hover
 - \`vendor/silvery/packages/ag-react/src/components/Link.tsx\` — useMouseCursor usage example
 - tmux / Zellij / Helix as UX prior art
@@ -108,7 +108,7 @@ silvercode uses silvery's grid layout (probably \`<Box flexDirection="row">\` wi
 
 - [ ] Borders visible between panes (single-line, active=$accent, inactive=$border-muted)
 - [ ] Drag-resize works on the shared border between two panes
-- [ ] Header strip with add/close/minimize buttons (move can be v2)
+- [ ] Header block with add/close/minimize buttons (move can be v2)
 - [ ] Split keybindings (vertical, horizontal, close, zoom) — chord prefix decided
 - [ ] Active pane has visible blue/accent outline
 - [ ] Layout persisted per-vault
@@ -119,4 +119,3 @@ silvercode uses silvery's grid layout (probably \`<Box flexDirection="row">\` wi
 
 - \`km-silvercode.ctrl-b-background\` (P2, in-progress) — Ctrl+B chord conflict to resolve
 - \`km-silvercode.multi-account\` (closed P2) — multi-account spawning is the source of "many panes" in the first place
-

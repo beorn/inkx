@@ -14,7 +14,7 @@ close_reason: "SILVERCODE_REAL=1 contract tests via describe.each([fake, real])
   all boundaries to null so every third-party API hits the real implementation.
   Vitest project 'silvercode-live' isolates *.live.test.tsx so plain bun vitest
   skips the live arm via test.skip. Three contract scenarios: welcome (brand
-  panel renders), single-turn hello (assistant glyph reaches card stream —
+  panel renders), single-turn hello (assistant glyph reaches ChatBlock stream —
   fake-only since live mode lacks UI driver), quota display (SidePanel structure
   stable across probe outcomes). Verification: tsc clean; default suite 76
   passed + 3 skipped; SILVERCODE_REAL=1 bun run test:silvercode-live runs all 6
@@ -77,4 +77,3 @@ This is the standard 'contract tests' pattern — same scenarios, two boundary i
 ## Dependency
 
 Requires `km-silvercode.test-api-fakes` to land first — without the fakes being complete, 'fake vs real' is just 'partial-fake vs real' which isn't a meaningful contract.
-

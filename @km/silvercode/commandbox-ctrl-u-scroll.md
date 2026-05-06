@@ -37,8 +37,8 @@ close_reason: >-
 
   Tests: 2 new vendor tests (textarea-shift-enter, listview-flex-scrollbar), 232
   silvercode tests pass, regression sweep clean. Two unrelated stale tests
-  updated (mutations.test.tsx mutation regex now handles SessionCard's '▎'
-  stripe added 14h ago; side-panel-stays-visible.test.tsx now documents
+  updated (mutations.test.tsx mutation regex now handles ChatPane's '▎'
+  focus marker added 14h ago; side-panel-stays-visible.test.tsx now documents
   post-CSS-flip silvery defaults instead of inverted historical premise).
 started_at: 2026-04-26T05:20:29Z
 owner: bjorn@stabell.org
@@ -67,4 +67,3 @@ Suspected cause: MessageList uses cursorKey={cursor} with initial state -1 and n
 Files: apps/silvercode/src/components/MessageList.tsx (cursor state), apps/silvercode/src/components/CommandBox.tsx (Ctrl-U via TextArea readline).
 
 Done when: a failing test reproduces ctrl-u during streaming or with messages off-screen, fix lands, viewport stays at the latest line.
-

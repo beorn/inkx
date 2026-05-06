@@ -68,8 +68,8 @@ Test coverage targets:
 
 Target: the running silvercode app with fake LLM, asserting real ANSI output via termless.
 
-- Fresh session shows Welcome card + side panel with identity + ctx=0% bar + version lines.
-- User types "hello", Enter — user-message card appears, activity indicator shows, fake LLM streams "Hi!" — assistant block renders.
+- Fresh session shows the Welcome block + side panel with identity + ctx=0% bar + version lines.
+- User types "hello", Enter — user-message block appears, activity indicator shows, fake LLM streams "Hi!" — assistant block renders.
 - Long tool-result (1KB no-whitespace blob) keeps side panel visible (the overflow bug we keep fighting — see bead `km-silvercode.overflow-at-root`).
 - Mode cycling via Shift+Tab (once handleTabCycling=false wires up through the user's real terminal).
 - Queue editor flow: type + Enter while busy, cursor-up to edit, Ctrl+Enter to submit batched message.
@@ -169,4 +169,3 @@ Use termless tape executor. Store expected snapshots in `apps/silvercode/tests/s
 - Use `termless` for Layer 4.
 - Controller already has `spawnFactory` hook — reuse.
 - Agent harness tests at `apps/silvercode/packages/agent-harness/tests/` — good reference for fake patterns.
-

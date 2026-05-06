@@ -19,7 +19,7 @@ closeReason: "Completed: Chat.tsx defines
   apps/silvercode/tests/tool-call-rendering-v2.test.tsx
   apps/silvercode/tests/tool-call.test.tsx
   apps/silvercode/tests/visual/markdown.test.tsx
-  apps/silvercode/tests/ambient-event-row.test.tsx
+  apps/silvercode/tests/notification-event-row.test.tsx
   apps/silvercode/tests/session-end-error-paths.test.tsx
   apps/silvercode/tests/controller-closeall.test.ts
   apps/silvercode/tests/resume-blank-screen.test.ts
@@ -31,7 +31,7 @@ closeReason: "Completed: Chat.tsx defines
 
 ## Problem
 
-Silvercode's transcript rendering has grown around implementation artifacts: `SessionUpdateList`, `ExchangeItem`, `TurnActivitySummary`, `SessionEntry`, ambient rows, metadata rows, and composer code all encode adjacent pieces of the chat UI. This makes it hard to reason about progressive disclosure, because the code mixes three separate concerns:
+Silvercode's transcript rendering has grown around implementation artifacts: `SessionUpdateList`, `ExchangeItem`, `TurnActivitySummary`, `SessionEntry`, notification rows, metadata rows, and composer code all encode adjacent pieces of the chat UI. This makes it hard to reason about progressive disclosure, because the code mixes three separate concerns:
 
 - Layout lanes (`Content.*`): prose/wide/asides/gutters.
 - Chat semantics: prompt, assistant narration, activity, summary, notifications, metadata, composer.
@@ -73,7 +73,7 @@ Top-level chat surface:
 - `Chat.Root` — overall chat surface; owns transcript plus active composer placement.
 - `Chat.Transcript` — scrollback/list surface; owns `Content.Layout`, vertical rhythm, and list integration.
 - `Chat.Metadata` — started/resumed/session lifecycle rows, outside any turn.
-- `Chat.Notification` — ambient rows such as tribe, CI, filewatch, recall, background task observations. Outside a turn by default.
+- `Chat.Notification` — notification rows such as tribe, CI, filewatch, recall, background task observations. Outside a turn by default.
 - `Chat.Composer` — active command/input surface. Replaces/wraps `SessionPromptComposer`; not part of scrollback.
 
 Turn-owned surface:
@@ -184,13 +184,13 @@ Rules:
 - prompt/assistant turn association
 - conclusion detection
 - stats extraction
-12. Render existing transcript through `Chat.Turn.*` without changing behavior.
-13. Change dense-turn behavior so collapsed summary may aggregate, while expanded details preserve narration/activity order.
-14. Move user prompt bubble rendering into `Chat.Turn.Prompt`.
-15. Move `TurnActivitySummary` behavior into `Chat.Turn.Activity` / `Chat.Turn.ToolGroup`.
-16. Move metadata and ambient rows to `Chat.Metadata` and `Chat.Notification`.
-17. Wrap `SessionPromptComposer` as `Chat.Composer` or rename it when safe.
-18. Leave `Content.*` as the layout layer only.
+20. Render existing transcript through `Chat.Turn.*` without changing behavior.
+21. Change dense-turn behavior so collapsed summary may aggregate, while expanded details preserve narration/activity order.
+22. Move user prompt bubble rendering into `Chat.Turn.Prompt`.
+23. Move `TurnActivitySummary` behavior into `Chat.Turn.Activity` / `Chat.Turn.ToolGroup`.
+24. Move metadata and notification rows to `Chat.Metadata` and `Chat.Notification`.
+25. Wrap `SessionPromptComposer` as `Chat.Composer` or rename it when safe.
+26. Leave `Content.*` as the layout layer only.
 
 ## Acceptance Criteria
 
@@ -219,7 +219,7 @@ This bead is intentionally architectural and P0 because it should stop the recur
 - Added `apps/silvercode/src/components/Chat.tsx` with `Chat.Root`, `Chat.Transcript`, `Chat.Metadata`, `Chat.Notification`, `Chat.Composer`, `Chat.Body`, and `Chat.Turn.*`.
 - Added `apps/silvercode/src/chat-model.ts` with explicit `ChatTurn`, `ChatTurnSegment`, `ChatActivitySegment`, and assistant op segmentation.
 - Migrated user prompt, assistant narration, thinking text, activity summary, segment, summary, and stats rendering in `SessionUpdateList` onto `Chat.Turn.*` primitives.
-- Routed production session metadata, ambient notification rows, and active composer placement through `Chat.Metadata`, `Chat.Notification`, and `Chat.Composer`.
+- Routed production session metadata, notification rows, and active composer placement through `Chat.Metadata`, `Chat.Notification`, and `Chat.Composer`.
 - Changed dense interleaved assistant turns to preserve narration/activity/narration/activity order. The old `toolCount >= 8` path no longer flattens all tools into one activity row across intervening narration.
 - Added `Chat/*` storybook stories and updated `All/together` to expose the new component hierarchy while production transcript examples continue through the real `SessionUpdateList` path.
 - Added `apps/silvercode/tests/chat-model.test.ts` and updated turn-activity assertions for the new preserved-order contract.
@@ -239,15 +239,15 @@ Remaining before close:
 ## Progress 2026-05-04
 
 - Tightened the first-pass `Chat.*` migration with root fixes found by the full suite:
-  - `MarkdownView` now participates in shrink/wrap as a bounded flex child, so plain markdown wraps at the card boundary.
+  - `MarkdownView` now participates in shrink/wrap as a bounded flex child, so plain markdown wraps at the ChatBlock boundary.
   - `SyntaxHighlighter` now uses the agreed code-block inner margins: two columns left/right and hover language label inset from the right edge.
-  - `SessionCard` owns a full-width pane contract and the zoomed `PaneGrid` path preserves the focus marker.
+  - `ChatPane` owns a full-width pane contract and the zoomed `PaneGrid` path preserves the focus marker.
   - ACP process cleanup no longer assumes a `.once()` listener on test seams when `.on()` is the available child-process surface.
   - Silvery `ListView` anchoring now yields to explicit declarative `scrollTo` targets, fixing the shared km-tui column overflow indicator regression without a km-tui workaround.
 
 Verification:
 
-- `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/turn-activity-summary.test.tsx apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/ambient-welcome-artifact.test.tsx apps/silvercode/tests/wrap-regression.test.tsx apps/silvercode/tests/visual/markdown.test.tsx apps/silvercode/tests/visual/pane-2d-layout.test.tsx apps/silvercode/packages/agent-harness/tests/registry-adapters.test.ts apps/silvercode/packages/agent-harness/tests/ambient-wire-bytes.test.ts` — 82 tests passed.
+- `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/turn-activity-summary.test.tsx apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/notification-welcome-artifact.test.tsx apps/silvercode/tests/wrap-regression.test.tsx apps/silvercode/tests/visual/markdown.test.tsx apps/silvercode/tests/visual/pane-2d-layout.test.tsx apps/silvercode/packages/agent-harness/tests/registry-adapters.test.ts apps/silvercode/packages/agent-harness/tests/notification-wire-bytes.test.ts` — 82 tests passed.
 - `bun vitest run apps/silvercode/storybook/tests/stories.test.tsx apps/silvercode/storybook/tests/registry.test.ts` — 40 tests passed.
 - `bun vitest run --dir vendor/silvery tests/features/listview-overscroll-bump.test.tsx tests/ui/list-view-visible-content-anchoring.test.tsx tests/features/height-model.test.ts` — 31 tests passed.
 - `bun vitest run apps/km-tui/tests/column-rendering.test.ts --testNamePattern "▲ shows"` — 1 test passed.
@@ -263,7 +263,7 @@ Verification:
 Verification:
 
 - `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/turn-activity-summary.test.tsx` — 28 tests passed.
-- `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/turn-activity-summary.test.tsx apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/ambient-welcome-artifact.test.tsx apps/silvercode/tests/wrap-regression.test.tsx apps/silvercode/tests/visual/markdown.test.tsx apps/silvercode/tests/visual/pane-2d-layout.test.tsx apps/silvercode/packages/agent-harness/tests/registry-adapters.test.ts apps/silvercode/packages/agent-harness/tests/ambient-wire-bytes.test.ts` — 90 tests passed.
+- `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/turn-activity-summary.test.tsx apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/notification-welcome-artifact.test.tsx apps/silvercode/tests/wrap-regression.test.tsx apps/silvercode/tests/visual/markdown.test.tsx apps/silvercode/tests/visual/pane-2d-layout.test.tsx apps/silvercode/packages/agent-harness/tests/registry-adapters.test.ts apps/silvercode/packages/agent-harness/tests/notification-wire-bytes.test.ts` — 90 tests passed.
 - `bun vitest run apps/silvercode/storybook/tests/stories.test.tsx apps/silvercode/storybook/tests/registry.test.ts` — 41 tests passed.
 - `bun run typecheck` is not a useful clean signal in this sandbox/worktree: it cannot write `packages/km-infra/typescript/.tsbuildinfo` from the `apps/silvercode` writable root, and the repo-wide pass also reports pre-existing km-cli/vendor/silvery type errors. A narrower `apps/silvercode/tsconfig.json` pass avoids the write location with `/tmp/silvercode-tsconfig.tsbuildinfo`, but still fails in vendor `silvery`/`termless` type declarations outside this change.
 
@@ -271,13 +271,13 @@ Verification:
 
 - Moved command-session normalization (`exec_command` plus `write_stdin` polling) into `apps/silvercode/src/chat-model.ts`, and made both transcript slicing and turn stats use normalized ops before deciding whether an activity summary saves space.
 - Fixed the real `silvercode --resume codex:019ddfc8-0749-7da1-b892-b2e1c6bc389f` regression where one normalized command still displayed as `Ran 1 command`; the transcript now renders the command row inline.
-- Routed transcript layout through `Chat.Transcript` from production `SessionCard` and `SessionUpdateList` fallback paths, leaving `Content.Layout` as the generic substrate under `Chat.Transcript`.
+- Routed transcript layout through `Chat.Transcript` from production `ChatPane` and `SessionUpdateList` fallback paths, leaving `Content.Layout` as the generic substrate under `Chat.Transcript`.
 - Routed inline tool runs through `Chat.Turn.ToolGroup`; dense/high-content runs still use `Chat.Turn.Activity`.
 - Added regression coverage for one interleaved command, one normalized `exec_command`/`write_stdin` command, normalized turn stats, and the real resumed Codex transcript.
 
 Final verification in this worktree:
 
-- `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/turn-activity-summary.test.tsx apps/silvercode/tests/render-resumed-session-helper.test.tsx apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/ambient-welcome-artifact.test.tsx apps/silvercode/tests/wrap-regression.test.tsx apps/silvercode/tests/visual/markdown.test.tsx apps/silvercode/tests/visual/pane-2d-layout.test.tsx apps/silvercode/packages/agent-harness/tests/registry-adapters.test.ts apps/silvercode/packages/agent-harness/tests/ambient-wire-bytes.test.ts` — 95 tests passed.
+- `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/turn-activity-summary.test.tsx apps/silvercode/tests/render-resumed-session-helper.test.tsx apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/notification-welcome-artifact.test.tsx apps/silvercode/tests/wrap-regression.test.tsx apps/silvercode/tests/visual/markdown.test.tsx apps/silvercode/tests/visual/pane-2d-layout.test.tsx apps/silvercode/packages/agent-harness/tests/registry-adapters.test.ts apps/silvercode/packages/agent-harness/tests/notification-wire-bytes.test.ts` — 95 tests passed.
 - `bun vitest run apps/silvercode/storybook/tests/stories.test.tsx apps/silvercode/storybook/tests/registry.test.ts` — 41 tests passed.
 - Typecheck caveat remains the same as above: repo-wide and narrow app typecheck are currently blocked by sandbox `.tsbuildinfo` write constraints and pre-existing vendor/repo type errors outside this component refactor.
 
@@ -285,4 +285,3 @@ Final verification in this worktree:
 
 - [[@km/silvercode/chat-layout-quality-plateau]]
 - [[@km/silvercode/runtime-error-tracking-plateau]]
-

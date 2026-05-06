@@ -31,7 +31,7 @@ Each time the fix has been a DIFFERENT workaround. Nested `flexGrow` gets remove
 
 ## Current state (2026-04-24)
 
-- **Workaround shipped** in silvercode at commit `363deaf6f` (SessionCard.tsx:51-57): removed inner column's `flexGrow={1}`; only outer Box carries flex-grow. Text now wraps. Documented as a comment that future developers must not touch.
+- **Workaround shipped** in silvercode at commit `363deaf6f` (legacy pane wrapper): removed inner column's `flexGrow={1}`; only outer Box carries flex-grow. Text now wraps. Documented as a comment that future developers must not touch.
 - **Root bug open**: `km-silvery.wrap-measurement` — flexily's Text measurement walks to the nearest flex-grow ancestor instead of direct parent, so `flexShrink=1 minWidth=0` (CSS canonical fix) doesn't actually help grandchild Text wrap.
 - **Ergonomic surface open**: `km-silvercode.prose-primitive` — silvery-level `<Prose>` component that encapsulates the correct flex config so consumers never think about it.
 
@@ -39,8 +39,8 @@ Each time the fix has been a DIFFERENT workaround. Nested `flexGrow` gets remove
 
 1. **@km/silvery/wrap-measurement** — P1. Fix flexily's measurement so grandchild Text respects direct-parent width when `flexShrink=1 minWidth=0` is set, matching CSS semantics. Includes flexily-level test + silvery feature-test. Scale to realistic fixtures (50+ nodes) per km CLAUDE.md pipeline rules.
 2. **@km/silvercode/prose-primitive** — P2. Ship `<Prose>` in silvery (not silvercode). Zero-knowledge API: `<Prose><MarkdownView source={text} /></Prose>` — encapsulates flexShrink / minWidth / overflow / wrap. Reduces the consumer cognitive load to one import.
-3. **Silvercode migration** — replace the SessionCard workaround with `<Prose>` around AssistantBlock / UserMessageBlock / MarkdownView. Remove the "don't touch — restore inner flexGrow to reproduce bug" comment. Delete any scattered `flexShrink={1} minWidth={0}` that `<Prose>` now owns.
-4. **Visual regression test** — tie into the silvercode visual test system landed at `e81fc6ec9`: scenario renders a 1500-char paragraph in a card alongside a side panel; invariant asserts no text occupies columns ≥ (cols - sidePanelWidth).
+3. **Silvercode migration** — replace the ChatPane workaround with `<Prose>` around AssistantBlock / UserMessageBlock / MarkdownView. Remove the "don't touch — restore inner flexGrow to reproduce bug" comment. Delete any scattered `flexShrink={1} minWidth={0}` that `<Prose>` now owns.
+4. **Visual regression test** — tie into the silvercode visual test system landed at `e81fc6ec9`: scenario renders a 1500-char paragraph in a ChatBlock alongside a side panel; invariant asserts no text occupies columns ≥ (cols - sidePanelWidth).
 5. **Docs** — add `vendor/silvery/docs/components/Prose.md` + short section in `docs/guide/styling.md` on text-wrapping patterns. Frame silvery as a design system with both primitives and composites.
 
 ## Positioning context
@@ -53,11 +53,10 @@ Silvery is a multi-target UI framework with web ambitions — NOT "Ink but bette
 - `<Prose>` exported from silvery, documented, used in silvercode
 - Silvercode has ZERO `flexShrink={1}` / `minWidth={0}` on intermediate text-wrapping Boxes — they all flow through `<Prose>`
 - Visual regression test catches the original failure mode automatically
-- SessionCard.tsx "no nested flexGrow" comment is deleted; inner Box restored to normal flex config
+- ChatPane "no nested flexGrow" comment is deleted; inner Box restored to normal flex config
 - `bd close` with close reasons linking the landing commits for each child
 
 ## Out of scope
 
 - Flipping silvery's `flexShrink` default from 0 to 1 (prior silvery-expert audit flagged as high-risk — ListView + others depend on 0).
-- Generalized `<Card>` / `<Stack>` / `<Section>` design primitives (future silvery work; separate initiative).
-
+- Generalized `<Block>` / `<Stack>` / `<Section>` design primitives (future silvery work; separate initiative).

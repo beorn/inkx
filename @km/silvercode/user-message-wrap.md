@@ -37,8 +37,8 @@ close_reason: >-
 
   Tests: 2 new vendor tests (textarea-shift-enter, listview-flex-scrollbar), 232
   silvercode tests pass, regression sweep clean. Two unrelated stale tests
-  updated (mutations.test.tsx mutation regex now handles SessionCard's '▎'
-  stripe added 14h ago; side-panel-stays-visible.test.tsx now documents
+  updated (mutations.test.tsx mutation regex now handles ChatPane's '▎'
+  focus marker added 14h ago; side-panel-stays-visible.test.tsx now documents
   post-CSS-flip silvery defaults instead of inverted historical premise).
 started_at: 2026-04-26T05:20:29Z
 owner: bjorn@stabell.org
@@ -65,4 +65,3 @@ Repro: paste or type a long single-line message in CommandBox, submit. The user-
 Files: apps/silvercode/src/components/UserMessageBlock.tsx (the row container), apps/silvercode/src/components/DetectionText.tsx (the text renderer with wrap=wrap).
 
 Hypothesis: the outer Box flexDirection=row + Prose flexGrow=1 chain isn't propagating an upper width bound to DetectionText's wrap=wrap Text nodes. May need flexShrink/minWidth=0 on the row, or the parent (MessageItem in MessageList) isn't constraining width. CommandBox's queue TextArea has the same overflow issue — also worth checking.
-
