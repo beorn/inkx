@@ -27,7 +27,7 @@
  * ```
  */
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { type Breakpoint, useResponsiveValue } from "silvery"
 
 /**
@@ -65,32 +65,74 @@ export interface ResponsiveDisclosureHandle {
   reset: () => void
 }
 
+/**
+ * Default debounce window for zone changes. cmux workspace switches send
+ * a burst of SIGWINCH events at the TTY level (e.g. 81→113→126→94 in ~300
+ * ms). Without debounce, every intermediate zone crossing flips
+ * `defaultOpen` and remounts/relays the disclosed subtree — see
+ * `@km/silvercode/post-resize-ui-stability`. 250 ms is well above the
+ * cmux burst duration but still imperceptible for genuine user resizes.
+ */
+const ZONE_HYSTERESIS_MS = 250
+
 export function useResponsiveDisclosure(opts: UseResponsiveDisclosureOptions): ResponsiveDisclosureHandle {
   const { defaultOpen, resetOn = "never" } = opts
-  // Resolve zone via useResponsiveValue's tag values.
+  // Resolve zone via useResponsiveValue's tag values — this updates on
+  // every signal tick (incl. SIGWINCH bursts).
   const zone = useResponsiveValue<Zone>({
     default: "default",
     sm: "sm",
     md: "md",
     lg: "lg",
   })
+
+  // Debounced "stable" zone — only updates after the live zone has been
+  // unchanged for ZONE_HYSTERESIS_MS. The disclosure default reads from
+  // this, so transient SIGWINCH-burst zone flips don't drive the panel
+  // open/closed mid-cascade.
+  const [stableZone, setStableZone] = useState<Zone>(zone)
+  const pendingTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    if (zone === stableZone) {
+      // No transition — clear any pending settle.
+      if (pendingTimer.current !== null) {
+        clearTimeout(pendingTimer.current)
+        pendingTimer.current = null
+      }
+      return
+    }
+    if (pendingTimer.current !== null) clearTimeout(pendingTimer.current)
+    pendingTimer.current = setTimeout(() => {
+      pendingTimer.current = null
+      setStableZone(zone)
+    }, ZONE_HYSTERESIS_MS)
+    return () => {
+      if (pendingTimer.current !== null) {
+        clearTimeout(pendingTimer.current)
+        pendingTimer.current = null
+      }
+    }
+  }, [zone, stableZone])
+
   const [override, setOverride] = useState<boolean | null>(null)
 
-  // Optional: clear override when zone changes.
+  // Optional: clear override when *stable* zone changes — same hysteresis
+  // applies, so a burst of zone flips doesn't reset the user's manual
+  // toggle.
   useEffect(() => {
     if (resetOn === "breakpoint-change") {
       setOverride(null)
     }
-  }, [zone, resetOn])
+  }, [stableZone, resetOn])
 
-  const open = override ?? defaultOpen(zone)
+  const open = override ?? defaultOpen(stableZone)
 
   const toggle = useCallback(() => {
-    setOverride((curr) => !(curr ?? defaultOpen(zone)))
-  }, [defaultOpen, zone])
+    setOverride((curr) => !(curr ?? defaultOpen(stableZone)))
+  }, [defaultOpen, stableZone])
 
   const setOpen = useCallback((v: boolean) => setOverride(v), [])
   const reset = useCallback(() => setOverride(null), [])
 
-  return { open, zone, toggle, setOpen, reset }
+  return { open, zone: stableZone, toggle, setOpen, reset }
 }

@@ -124,7 +124,7 @@ describe("chat-session UI stability (bead @km/silvercode/post-resize-ui-stabilit
       // then measure the post-event steady-state. ≤ 1 distinct = the
       // chat list converged to a single new layout. > 1 = the symptom
       // ("shuffles around a lot" after resize).
-      await settle(150)
+      await settle(400)
       const postFrames = await pollTermlessFrames(term, { durationMs: 350 })
       expectStableLayouts(postFrames, {
         label: "chat.resize",
@@ -250,7 +250,7 @@ describe("chat-session UI stability (bead @km/silvercode/post-resize-ui-stabilit
       term.sendInput?.("\x1b[O")
       await settle(80)
       term.sendInput?.("\x1b[I")
-      await settle(150)
+      await settle(400)
       const postFrames = await pollTermlessFrames(term, { durationMs: 400 })
       expectStableLayouts(postFrames, {
         label: "chat.focus-regain",
@@ -290,7 +290,7 @@ describe("chat-session UI stability (bead @km/silvercode/post-resize-ui-stabilit
       expect(typeof term.sendInput, "termless Term must expose .sendInput(data)").toBe("function")
       term.sendInput?.("\x0f")
 
-      await settle(150)
+      await settle(400)
       const postFrames = await pollTermlessFrames(term, { durationMs: 350 })
       expectStableLayouts(postFrames, {
         label: "chat.side-panel-toggle",

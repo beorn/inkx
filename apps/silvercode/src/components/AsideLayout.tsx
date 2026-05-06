@@ -50,31 +50,40 @@ export function AsideLayout({
   children,
   asideBackgroundColor,
 }: AsideLayoutProps): React.ReactElement {
-  // Stable React tree across modes — render the aside subtree always,
-  // varying only its layout props. Eliminates the unmount-remeasure-flip-
-  // remount feedback loop documented in
-  // `@km/silvercode/post-resize-ui-stability`. Combined with the
-  // `Content.Row` structural fix (Content.tsx), this addresses both the
-  // primary `available=0→N` loop and the secondary `88↔120` sidebar-mode
-  // loop. Wrapper always `position="relative"` — no-op for inline/hidden,
-  // correct anchor for overlay.
-  const isOverlay = mode === "overlay"
-  const isHidden = mode === "hidden"
+  // The caller's `children` is the main region — it owns its own flexGrow / overflow / etc.
+  // AsideLayout only handles the row container + the aside placement.
+  if (mode === "hidden") {
+    return (
+      <Box flexDirection="row" flexGrow={1} minHeight={0}>
+        {children}
+      </Box>
+    )
+  }
+
+  if (mode === "overlay") {
+    return (
+      <Box flexDirection="row" flexGrow={1} minHeight={0} position="relative">
+        {children}
+        <Box
+          position="absolute"
+          top={0}
+          bottom={0}
+          right={0}
+          width={asideWidth}
+          flexDirection="column"
+          backgroundColor={asideBackgroundColor}
+        >
+          {aside}
+        </Box>
+      </Box>
+    )
+  }
+
+  // inline
   return (
-    <Box flexDirection="row" flexGrow={1} minHeight={0} position="relative">
+    <Box flexDirection="row" flexGrow={1} minHeight={0}>
       {children}
-      <Box
-        flexDirection="column"
-        backgroundColor={isHidden ? undefined : asideBackgroundColor}
-        display={isHidden ? "none" : "flex"}
-        position={isOverlay ? "absolute" : undefined}
-        top={isOverlay ? 0 : undefined}
-        right={isOverlay ? 0 : undefined}
-        bottom={isOverlay ? 0 : undefined}
-        width={isOverlay ? asideWidth : undefined}
-        flexShrink={isOverlay ? undefined : 0}
-        flexBasis={isOverlay ? undefined : asideWidth}
-      >
+      <Box flexShrink={0} flexBasis={asideWidth} flexDirection="column" backgroundColor={asideBackgroundColor}>
         {aside}
       </Box>
     </Box>

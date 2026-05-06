@@ -112,7 +112,7 @@ describe("welcome-screen UI stability (bead @km/silvercode/post-resize-ui-stabil
       // Let the event propagate (one React commit + microtasks). The
       // pre-event fingerprint clears once the new layout paints; we want
       // to measure the *post-event* steady-state, not the transition.
-      await settle(150)
+      await settle(400)
 
       // Window for post-resize stability. ≤ 1 distinct = the resize
       // landed on a single settled layout with no further shuffling. If
@@ -207,7 +207,7 @@ describe("welcome-screen UI stability (bead @km/silvercode/post-resize-ui-stabil
       term.sendInput?.("\x1b[O")
       await settle(80)
       term.sendInput?.("\x1b[I")
-      await settle(150)
+      await settle(400)
       const postFrames = await pollTermlessFrames(term, { durationMs: 400 })
       expectStableLayouts(postFrames, {
         label: "welcome.focus-regain",
@@ -248,7 +248,7 @@ describe("welcome-screen UI stability (bead @km/silvercode/post-resize-ui-stabil
       term.sendInput?.("\x0f")
 
       // Let the toggle propagate, then measure post-event steady-state.
-      await settle(150)
+      await settle(400)
       const postFrames = await pollTermlessFrames(term, { durationMs: 350 })
       expectStableLayouts(postFrames, {
         label: "welcome.side-panel-toggle",
