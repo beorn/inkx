@@ -1,11 +1,16 @@
 /**
  * Beads Dependency Subcommands — `bd dep add | remove | list`
  *
- * Manages blocked-by edges between beads. Thin wrapper over `Bead.addDependency` /
- * `Bead.removeDependency` / `Bead.getDependencies` from `@km/beads`.
+ * Wave 6 alias-table goal: `dep → ["task", "dep"]`. Kept legacy because
+ * `task dep` doesn't expose `--dry-run` yet (planned for Wave 7); the
+ * dry-run invariant test in `bd-dep-dry-run.test.ts` requires the
+ * legacy implementation. Once `task dep` ships --dry-run, this file
+ * collapses to a thin shim that delegates via `parseAsync`.
  *
- * Extracted from `bd.ts` as part of the per-family split (Wave 6 of
- * task-bd-collapse). See `@km/cli/bd-split-per-command`.
+ * The non-dry-run write paths are functionally equivalent to `task dep`:
+ * both write blocked-by edges (km-beads' `addDependency` returns the
+ * same merged data shape as `addGraphEdge { rel: "blocks" }` produces).
+ * The L5 property test pins repo-state equivalence.
  */
 
 import { Command } from "@silvery/commander"

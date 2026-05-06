@@ -149,8 +149,12 @@ describe("bd create --parent <epic> --id <leaf> materializes a sibling file (reg
     expect(create.exitCode, create.stderr || create.stdout).toBe(0)
     expect(create.stdout, "create output prints canonical path-form").toContain("@km/beads/leaf")
 
+    // `bd close` is now a thin alias for `km task close` (Wave 6 of
+    // task-bd-collapse). The output format follows the task surface
+    // ("Closed: <suffix>"); `--reason` still records to data.closeReason.
     const close = runKm(repo, ["bd", "close", "@km/beads/leaf", "--reason", "regression test"])
     expect(close.exitCode, close.stderr || close.stdout).toBe(0)
-    expect(close.stdout).toContain("Closed @km/beads/leaf")
+    expect(close.stdout).toContain("Closed:")
+    expect(close.stdout).toContain("regression test")
   })
 })

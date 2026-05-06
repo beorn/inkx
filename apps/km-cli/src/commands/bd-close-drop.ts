@@ -1,99 +1,58 @@
 /**
  * Beads Lifecycle Transitions — `bd close | drop`
  *
- * Lifecycle transitions are deliberately distinct from raw `set status:X`
- * field writes (per task-bd-collapse Wave 3): they invoke `Bead.close` /
- * `Bead.drop` which set `closedAt`, optionally record a reason, and merge
- * frontmatter `data.*` for cross-tool readability.
+ * Wave 6 of `@km/cli/task-bd-collapse`: thin alias shims. The action
+ * handlers delegate directly (in-process, same repo) to the canonical
+ * `task close` / `task drop` lifecycle handlers in
+ * `tasks/lifecycle.ts`. Same workflow transitions, same `closed_at`
+ * stamping, same `--reason` recording — no duplicated logic.
  *
- * Extracted from `bd.ts` as part of the per-family split (Wave 6 of
- * task-bd-collapse). The action handlers here are the "shared lifecycle
- * primitive" the bd alias layer ultimately delegates to (until `km task
- * close --reason TEXT` lands as a Wave 3 deliverable).
+ * The bd surface (commander wiring + flag aliases) stays so
+ * `bd close --help` continues to work and the print-once deprecation
+ * notice fires; everything below the wiring is the task surface.
  *
- * See `@km/cli/bd-split-per-command`.
+ * BD_ALIASES table (see bd.ts):
+ *   close → ["task", "close"]
+ *   drop  → ["task", "drop"]
  */
 
 import { Command } from "@silvery/commander"
-import { createTerm } from "@silvery/ag-react"
-import { resolvePathArg } from "@km/fs-mount"
-import { Bead } from "@km/beads"
-import { loadRepo } from "../load-repo.ts"
-import { resolveIssueArg } from "./bd-query-helpers.ts"
+import { closeTaskLifecycle, dropTaskLifecycle } from "./tasks/lifecycle.ts"
 import type { BdRegistrar } from "./bd-register.ts"
 
-const term = createTerm(process)
-
 /**
- * `bd close <id> [--reason TEXT]` — mark an issue done with optional reason.
+ * `bd close <id> [--reason TEXT]` — alias for `km task close`.
  *
- * Workflow transition (NOT a raw `set status:done`): calls `Bead.close`,
- * which sets `closedAt`, records the reason, and merges `data.*` for
- * downstream tooling (bd, gh, asana exports).
+ * Delegates to `closeTaskLifecycle` for the actual work. Same plan,
+ * same applyLifecyclePlan, same JSON shape.
  */
 export function registerBdClose(parent: BdRegistrar): void {
   const closeCmd = new Command("close")
     .argument("[id]", "Bead ID")
-    .description("Close an issue (mark as done)")
+    .description("Close an issue (alias for `km task close`; sets closed_at + optional reason)")
     .option("-r, --reason <reason>", "Close reason")
+    .option("--json", "Output as JSON")
     .actionMerged(async (opts) => {
-      if (!opts.id) {
-        closeCmd.outputHelp()
-        return
-      }
-
-      const resolved = resolvePathArg(undefined)
-      using repo = await loadRepo(resolved.repoRoot)
-      const issue = resolveIssueArg(repo, opts.id)
-      if (!issue) {
-        console.error(term.red(`Bead not found: ${opts.id}`))
-        process.exitCode = 1
-        return
-      }
-
-      const node = repo.getNode(issue.id)
-      const currentData = node?.data as Record<string, unknown> | undefined
-      const updates = Bead.close(repo, issue, opts.reason, currentData)
-      repo.updateNode(issue.id, updates)
-
-      console.log(term.green(`Closed ${issue.shortId}`))
-      if (opts.reason) console.log(term.dim(`Reason: ${opts.reason}`))
+      await closeTaskLifecycle(opts.id, { reason: opts.reason, json: opts.json })
     })
   parent.addCommand(closeCmd)
 }
 
 /**
- * `bd drop <id> [--reason TEXT]` — mark an issue won't-do with optional
- * reason. Same lifecycle shape as close, but the dropped status preserves
- * the "we considered it; chose not to" signal in close-reasons audits.
+ * `bd drop <id> [--reason TEXT]` — alias for `km task drop`.
+ *
+ * Delegates to `dropTaskLifecycle`. Drop preserves the "we considered
+ * it; chose not to" signal for close-reason audits — same shape on disk
+ * as a close, but distinct status.
  */
 export function registerBdDrop(parent: BdRegistrar): void {
   const dropCmd = new Command("drop")
     .argument("[id]", "Bead ID")
-    .description("Drop an issue (mark as won't do)")
+    .description("Drop an issue (alias for `km task drop`; mark won't-do, set closed_at)")
     .option("-r, --reason <reason>", "Drop reason")
+    .option("--json", "Output as JSON")
     .actionMerged(async (opts) => {
-      if (!opts.id) {
-        dropCmd.outputHelp()
-        return
-      }
-
-      const resolved = resolvePathArg(undefined)
-      using repo = await loadRepo(resolved.repoRoot)
-      const issue = resolveIssueArg(repo, opts.id)
-      if (!issue) {
-        console.error(term.red(`Bead not found: ${opts.id}`))
-        process.exitCode = 1
-        return
-      }
-
-      const node = repo.getNode(issue.id)
-      const currentData = node?.data as Record<string, unknown> | undefined
-      const updates = Bead.drop(repo, issue, opts.reason, currentData)
-      repo.updateNode(issue.id, updates)
-
-      console.log(term.yellow(`Dropped ${issue.shortId}`))
-      if (opts.reason) console.log(term.dim(`Reason: ${opts.reason}`))
+      await dropTaskLifecycle(opts.id, { reason: opts.reason, json: opts.json })
     })
   parent.addCommand(dropCmd)
 }

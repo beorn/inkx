@@ -1,13 +1,15 @@
 /**
  * Beads Show — `bd show <id>`
  *
- * Prints issue details. Routes through the shared `printTaskDetails`
- * helper so `bd show <id>` and `tasks <id>` stay in sync; the JSON path
- * uses bd's snake_case shape (issueToBdJson) for backwards compatibility
- * with `bd export` and external scripts.
+ * Wave 6 of `@km/cli/task-bd-collapse`: thin alias shim. Same renderer
+ * as `km task show <id>` and `km show <id>` — both go through
+ * `printTaskDetails` (the shared helper in `./shared-show.ts`). The
+ * `--json` path stays on bd's snake_case shape (issueToBdJson) for
+ * back-compat with `bd export` and external scripts; the camelCase
+ * Bead shape is available via `km show <id> --json`.
  *
- * Extracted from `bd.ts` as part of the per-family split (Wave 6 of
- * task-bd-collapse). See `@km/cli/bd-split-per-command`.
+ * BD_ALIASES table (see bd.ts):
+ *   show → ["task", "show"]
  */
 
 import { Command } from "@silvery/commander"

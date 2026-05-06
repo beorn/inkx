@@ -1,15 +1,17 @@
 /**
  * Beads Children — `bd children <id>`
  *
- * Lists children of an issue (e.g., sub-tasks of an epic).
+ * Wave 6 alias-table goal: `children → ["show", "-c"]`. Kept legacy
+ * because `Bead.children` walks BOTH the structural parent_id children
+ * AND the path-form sibling-folder children (`@km/scope/foo.md` ↔
+ * `@km/scope/foo/`). `km show <id> -c` uses `repo.getChildren(id)`
+ * which is structural-parent_id only — it misses the file-backed
+ * sibling files. Until `km show -c` learns the path-form hierarchy
+ * (Wave 4/7 promotion), bd-children stays on Bead.children.
  *
- * In the path-form hierarchy, sub-issues of `foo.md` live in the sibling
- * folder `foo/`. We walk both the in-file paragraph children and the
- * path-folder file children so the tree the user sees on disk matches
- * what `bd children` reports.
- *
- * Extracted from `bd.ts` as part of the per-family split (Wave 6 of
- * task-bd-collapse). See `@km/cli/bd-split-per-command`.
+ * The L5 property test pins repo-state equivalence on the operations
+ * that DO have parity (close/drop/claim/etc.); children is not in the
+ * delegated set.
  */
 
 import { Command } from "@silvery/commander"
