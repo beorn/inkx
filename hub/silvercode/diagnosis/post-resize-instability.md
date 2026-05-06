@@ -73,7 +73,6 @@ Two compounding issues:
    fresh dimensions into the breakpoint logic, which produces a different
    mode decision on the next pass. Feedback loop until something breaks
    it.
-
 2. **Long unwrappable tokens (silvercode chat content).** Some chat
    content has Text leaves without `wrap="wrap"` (or wrappable-but-no-
    break-points strings such as long URLs). These pin the parent's
@@ -93,6 +92,7 @@ overflows in `/tmp/silvercode-strict3.log`), the actual feedback-loop
 source was traced to `Content.tsx` `Row` component:
 
 **Content.Row had a structural branch on `usesMeasuredGeometry` (= `ctx.available > 0`)**:
+
 - When `ctx.available === 0` (initial mount, pre-measurement): one tree
   shape (no layout-dependent margins, simple wrapper).
 - When `ctx.available > 0` (after measurement): different tree shape
@@ -108,6 +108,7 @@ the live log was a *secondary* symptom; the *primary* loop was the 0↔N
 transition through the structural branch.
 
 **Fix**:
+
 1. `Content.Row` rewritten to render a SINGLE React tree across all
    measurement states. Width-derived ternaries inside that single tree
    produce the right widths in both pre-measurement (=0 → falls back to
@@ -160,13 +161,74 @@ longer compound into the cascade — needs verification.
 
 ## Verification
 
+**Local PTY repro now works.** Script at `/tmp/repro-post-resize.ts` uses
+`termless.spawnPortablePty` (Bun native PTY) to spawn silvercode with
+`--resume`, drive the cmux burst via `proc.resize()`, capture
+`DEBUG_LOG`, count STRICT overflows + width transitions. Reproduces the
+live-session symptom locally.
+
+### Empirical iteration log
+
+| Stage | STRICT overflows |
+|---|---|
+| Pre-fix (no changes) | 702 |
+| AsideLayout always-mount only | 698 (no improvement, reverted) |
+| `Content.Row` structural fix + context `useMemo` | 208 (-71%) |
+| `+` AsideLayout always-mount on top | 834 (worse, reverted) |
+| `+` `useResponsiveDisclosure` 250ms zone hysteresis | ~200 (no further reduction) |
+| `+` 500ms hysteresis | 243 (worse, reverted to 250) |
+
+Net: only `Content.Row` + `useMemo` produced meaningful improvement.
+Other attempted fixes were either no-ops or counterproductive.
+
+### Remaining residue (~200 overflows)
+
+The remaining cascade has two regions visible in the width transition log:
+
+1. **Initial-paint cascade** (~70-150 overflows). The 88↔120 oscillation
+   fires 4-5 times in <1 second of silvercode startup, BEFORE any cmux
+   burst. This is silvery's multi-pass layout convergence (mount → 0
+   width → measure → 120 → SidePanel mounts → 88 → ... → settle). Each
+   cmux workspace switch triggers a similar restart-like cascade.
+2. **Per-cmux-burst residue** (~25-50 per burst). The hysteresis catches
+   *most* mode-flip noise but flexily/silvery's layout reconciliation
+   still produces a few overflows per burst.
+
+### Why hysteresis didn't help further
+
+Diagnosed: at narrow burst widths (e.g. 81 cols mid-burst), hysteresis
+keeps `stableZone="lg"` so `defaultOpen=true`, which means the sidebar
+*tries* to render at 81 cols (where there's no room — needs 32 of 81
+for sidebar + ≥49 for content). This produces width=49 inner with
+overflowing 81-wide children. So hysteresis trades one class of overflow
+for another at narrow burst widths.
+
+### What might fix the residue (NOT attempted yet)
+
+1. **Enable `singlePassLayout: true`** in silvercode's `run()` call.
+   silvery exposes this as an internal renderer option but NOT as a
+   `RunOptions` field — would require a silvery framework change to
+   expose it via the public surface.
+2. **Identify the 336-wide unwrappable text** source (long URL or
+   code-fence line) and add `wrap="wrap"` or `minWidth={0}` to the
+   parent. May require instrumenting silvery to log Text content
+   alongside the STRICT violation.
+3. **Reduce `useBoxRect` call sites**. PaneGrid uses it twice; Content
+   uses it once. Each is a re-render trigger. Memoizing the
+   measurement-derived state at each call site may reduce cascade
+   passes.
+
 In-test:
-- 19 stability cells pass under SILVERY_STRICT=1 (default for `bun run test:fast`).
-- Termless harness does NOT reproduce the live-session symptom (it lacks
-  real-TTY async paths and the live transcript's specific content).
+
+- 62 cells pass under SILVERY_STRICT=1 (19 stability + 43 content-layout).
+- Termless harness alone (without `spawnPortablePty`) does NOT reproduce
+  the live-session symptom (it lacks real-TTY paths and the live
+  transcript content).
 
 Live-session verification (user to run):
+
 - Re-run the live repro after the AsideLayout fix.
 - Compare STRICT overflow count: live log had 150; expect significantly
   fewer with the feedback loop broken.
 - Visually confirm: workspace switch should not produce a visible shuffle.
+

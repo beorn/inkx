@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/silvercode/post-resize-ui-stability"
 aliases:
   - km-silvercode.post-resize-ui-stability
@@ -11,6 +13,10 @@ dependencies:
     type: parent-child
     created_at: 2026-05-06T18:47:12.766Z
     metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 ---
 
 # [/] Post-resize UI stability — components shuffle visibly before settling @km/silvercode #bug #P2
@@ -88,6 +94,7 @@ chat session    │ resumed session │ session updates / │ sidebar toggle doe
 ## Status (2026-05-06)
 
 **Phase 0 — Diagnosis** ✓ landed at `hub/silvercode/diagnosis/post-resize-instability.md`. Ranked suspects (static-analysis hypotheses):
+
 1. silvery `notifyLayoutSubscribers` multi-pass cycles (framework, HIGH).
 2. SessionUpdateList `itemKey()` / `renderItemKey()` width deps (app, MEDIUM-HIGH).
 3. `Content.Layout` context value not memoized (app, MEDIUM).
@@ -111,6 +118,7 @@ Hypothesis: subtree remounts during mode flips drive the feedback loop. Rewrote 
 Traced the actual feedback loop to `Content.Row`'s structural branch on `usesMeasuredGeometry` (= `ctx.available > 0`). Every `available=0 → available>0` transition rebuilt the Row subtree, which fed fresh useBoxRect measurements into descendants → ContentContext consumers re-rendered with new `available` → loop. The 88↔120 oscillation was a *secondary* symptom; the *primary* loop was the 0↔N transition through the structural branch.
 
 **Fixes applied**:
+
 1. `Content.Row` rewritten to render a SINGLE React tree across all measurement states (no `if (!usesMeasuredGeometry)` early return).
 2. `Content.MeasuredLayout` context value wrapped in `useMemo` so consumers don't re-render on identity-only changes.
 
@@ -137,6 +145,7 @@ After the user ran the live repro and shared `/tmp/silvercode-strict2.log` (3.9 
 **Verification needed**: user re-runs `silvercode --resume claude:f9eb64dc-…` post-fix and compares (a) STRICT overflow count (was 150) and (b) visible shuffle.
 
 **Follow-ups (out of scope, file as new beads)**:
+
 - `createFixedSize` (test harness) doesn't coalesce — production has 16ms coalescing in `createSize`. Test-fidelity gap.
 - Long-unwrappable-token (336-wide silvery-text) source unidentified. Needs missing `wrap="wrap"` or `minWidth={0}` in some Chat/SessionUpdateList/MarkdownView subtree. With feedback loop broken, may not compound into a cascade anymore — verify first.
 
@@ -145,13 +154,16 @@ After the user ran the live repro and shared `/tmp/silvercode-strict2.log` (3.9 
 ## Pre-fix status (now superseded)
 
 **Phase 3 — Fixes** *was blocked* on a failing cell. None of the 6 termless cells reproduced the live-session symptom. Likely reasons:
+
 - The instability needs *more* content than `markdownRich` provides (the live session is 19,990-line / 37 MB JSONL).
 - Termless does not exercise real-TTY async paths (Kitty CSI probes, focus-reporting replies, real SIGWINCH stream); the symptom may live there. The `welcome-startup-cascade.test.tsx` docstring already calls this out.
 
 **Next options** for unlocking Phase 3:
+
 - (a) **Synthesize a stress fixture** — combine many turns + tool calls + long markdown. If a cell flips RED, the suspect ranking can be validated by trying fixes (Suspect 3 first — one-line `useMemo` is low-risk).
 - (b) **Real-TTY smoke verification** — run the live repro under `peekaboo` capture, compare frame count per resize against an instrumented baseline (`SILVERY_INSTRUMENT=1 DEBUG=silvery:render`). Confirms whether the bug lives in real-TTY async paths.
 - (c) **Capture a redacted minimal fixture** from the user's session — script that anonymises user prompts/responses but preserves ACP event structure. Requires a converter from Claude Code JSONL → AgentEvents and a redaction pass.
 - (d) **Commit the scaffold as-is** for future regression detection; defer Phase 3 fixes until the bug recurs in a fixture-capturable form.
 
 The 6-cell suite runs in `apps/silvercode/tests/welcome-stability.test.tsx` + `chat-stability.test.tsx`. Total 14 tests with helper self-tests, ~8 s wall-clock.
+

@@ -1,20 +1,29 @@
 ---
+mentions:
+  - km
 id: "@km/bear"
 aliases:
   - km-bear
   - "@km/_orphan/bear"
 created_by: Bjørn Stabell
 created_at: 2026-04-17T06:03:43Z
+closed_at: 2026-05-06T20:28:00Z
+close_reason: >-
+  Workspace-daemon plan shipped. All 7 phase children closed (test-infra,
+  mcp-wrapper, daemon, focus, summarizer, dedup-inject, unified-daemon).
+  Future bear-style work tracked under @km/tribe per scope-consolidation.
+  See hub/km/scope-consolidation-target.md.
 owner: bjorn@stabell.org
 ---
 
-# [ ] (EPIC) bear: workspace daemon unifying recall memory + tribe coordination @km/bear #feature #P3
+# [x] (EPIC) bear: workspace daemon unifying recall memory + tribe coordination @km/bear #feature #P3
 
 Unify \`@bearly/recall\` (memory/search) and \`@bearly/tribe\` (coordination) under a single persistent per-user daemon: **bear**.
 
 ## Problem
 
 Today bearly has two independent long-lived concerns:
+
 - **Tribe** runs a daemon for cross-session coordination (who's alive, broadcast messages, beads/git events) but has no memory.
 - **Recall** has rich memory (FTS5 corpus, LLM planner, session context) but is per-invocation — spawns \`bun\` subprocesses, pays ~400ms startup every hook/call, and has no awareness of other sessions' in-flight work.
 
@@ -74,3 +83,4 @@ Not rebuilding tribe or recall. Not cross-user or shared-service. Not replacing 
 - Plan landed: 2026-04-17
 - Phase 0 bead created. Phases 1–7 tracked in this description; sub-beads created at the moment each phase starts (avoids bead drift on a multi-week plan).
 - Current recall (\`bun recall --agent\`) already delivers most memory value; bear is the consolidation endgame.
+
