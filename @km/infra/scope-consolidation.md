@@ -73,3 +73,5 @@ Target inventory written to hub/km/scope-consolidation-target.md (2026-05-06). 5
 
 [bd surface bead-centric defaults shipped] bd list / bd ready / bd query now default to fstype:mdfile (one bead = one .md file; inline-checkbox sub-tasks excluded). Scope-epic umbrellas (@km/silvery.md etc) included — they ARE beads. --all-tasks flag opts out. Files: apps/km-cli/src/commands/{bd-list,bd-query}.ts, apps/km-cli/src/commands/tasks/{list,list-plan}.ts. Verified: bd list -s open returns 546 (was 3934).
 
+Migration complete. Final state: 13 active scope-epic umbrellas (silvery, tui, silvercode, infra, market, tribe, bearly, storage, termless, terminfo, flexily, loggily, all) + bd-compat/mdtest/import/board/cli/markdown active sub-scopes without umbrella files = 19 active scopes total. @km/all slimmed from 41 to 7 (true cross-cutting only: plateau, plateau-90, shared-substrate-review, vorg, universal-editor, upstream-waiting, fix-sweep-0426). pm/SKILL.md Scope Epics table updated. Skipped wip beads owned by other claude sessions (fix-sweep-0426, shared/text-render-package, session/0428-evening, bearly/injection-framing).
+

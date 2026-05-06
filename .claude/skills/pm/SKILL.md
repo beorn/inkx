@@ -88,19 +88,29 @@ Every scoped bead should use path-form `@km/<scope>/<bead-name>` ids. Scope epic
 
 | Epic | Scope | Example |
 |------|-------|---------|
-| `@km/silvery` | silvery rendering engine | `@km/silvery/bg-bleed` |
+| `@km/silvery` | silvery rendering engine + framework | `@km/silvery/bg-bleed` |
 | `@km/flexily` | Flexily layout engine | `@km/flexily/cold-start` |
-| `@km/tui` | TUI app views/interaction | `@km/tui/emptybody` |
-| `@km/vitestx` | Test framework package | `@km/vitestx/mdspec` |
-| `@km/infra` | Monorepo infra (cross-cutting: CI, benchmarks, packaging) | `@km/infra/ci-fuzz` |
-| `@km/storage` | Storage layer | `@km/storage/split-query` |
-| `@km/tools` | km CLI tools & agent capabilities | `@km/tools/bd-api` |
+| `@km/tui` | km-tui app views/interaction | `@km/tui/emptybody` |
+| `@km/silvercode` | silvercode agent workspace app | `@km/silvercode/test-system` |
+| `@km/storage` | Storage layer (incl. tree, supertags) | `@km/storage/split-query` |
+| `@km/tribe` | Tribe coordination + recall + memory | `@km/tribe/testing` |
 | `@km/bearly` | bearly: reusable Claude Code tools (@bearly/*) | `@km/bearly/batch-refactor` |
-| `@km/tribe` | Tribe coordination system | `@km/tribe/testing` |
-| `@km/markdown` | Markdown parser/serializer | `@km/markdown/split-roundtrip` |
-| `@km/review` | Code reviews (cross-cutting quality) | `@km/review/feb-0203` |
+| `@km/loggily` | loggily + logger (logging family) | `@km/loggily/otel-compat` |
+| `@km/termless` | termless headless terminal testing | `@km/termless/playwright-renderer` |
+| `@km/terminfo` | terminfo data + tooling | `@km/terminfo/feature-history` |
+| `@km/markdown` | Markdown parser/serializer | `@km/markdown/footnotes` |
+| `@km/board` | Board package | `@km/board/viewnode-cache-correctness` |
+| `@km/cli` | km-cli app (the verb surface) | `@km/cli/segfault-memory-mode` |
+| `@km/bd-compat` | bd compatibility shim work (`km bd` surface, on-ramp) | `@km/bd-compat/api` |
+| `@km/import` | `km import <source>` work (bd, asana, github, …) | `@km/import/asana` |
+| `@km/mdtest` | mdtest package | `@km/mdtest/vitest-plugin` |
+| `@km/infra` | Monorepo infra: CI, build, packaging, test-architecture, dev tooling | `@km/infra/ci-fuzz` |
+| `@km/market` | Marketing, positioning, blog, launch, public docs | `@km/market/silvery-launch-w0-w3` |
+| `@km/all` | True cross-cutting only — strategy/vision spanning all packages | `@km/all/plateau` |
 
-**Scoping rule**: If a bead belongs to a specific package, use `km-<package>`. If cross-cutting infra (CI, benchmarks, packaging), use `km-infra`. If cross-cutting non-infra (code reviews, multi-package quality), use `km-review`.
+**Scoping rule**: If a bead belongs to a specific package, use that package's scope. Test architecture (cross-package test infra, MECE strategy, vitest projects) goes to `@km/infra`, not `@km/all`. Marketing/launch/positioning goes to `@km/market`. Only items with no clearer home (vision, plateau, fix sweeps spanning everything) belong in `@km/all`.
+
+**Beads = mdfiles, in the bd surface**: `km bd list / ready / query` defaults to `fstype:mdfile` so inline list-item checkboxes (acceptance criteria inside a bead body) don't surface as separate beads. Scope-epic umbrella files (`@km/<scope>.md`) ARE beads. `--all-tasks` opts out for the rare "show me checkboxes too" case. `km task` (the general surface) is unchanged — includes every task-shaped node.
 
 **Creating**: Prefer path-form IDs such as `@km/<scope>/<suffix>` so the bead lands under the scope at creation time.
 **Closing**: The parent-child link is preserved on closed beads automatically.
