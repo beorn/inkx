@@ -1,6 +1,39 @@
 # Silvery Knowledge — silvery agent
 
-Last updated: 2026-04-28 (km-silvery.outline-incremental-clear — postState carrier survival across per-frame Ag)
+Last updated: 2026-05-05 (cyan-strip Round 7 — skeleton→full transition probe negative; cascade gap not localized to discoverOnly path)
+
+## Cyan-strip Round 7: skeleton→full-parse transition NOT the cause (2026-05-05)
+
+**Bead**: `@km/silvery/render-light-blue-bg-strip-residue`. Round 7 followup to user evidence (iTerm2 reproduces; timing variable).
+
+**Hypothesis tested**: km's `discoverOnly` skeleton render → background-parse re-render leaves a dirty-flag cascade gap. Skeleton paints bg-bearing card boxes; full-parse replaces them with different shape; prevBuffer's bg cells aren't fully cleared. SILVERY_STRICT=residue runs per-frame ("this frame's incremental ≡ this frame's fresh") and would miss this — it tests no cross-frame "what fresh-from-zero would have produced" property.
+
+**Probe**: `apps/km-tui/tests/render-cyan-strip-skeleton-transition.slow.spec.ts`. Mounts BoardApp at 360×120 with `discoverOnly:true + mode:"memory"`; snapshots skeleton buffer (cloned — `lastBuffer()` returns a mutated-in-place reference); runs `parseDeferredAsync` + `repo.touch()` inside `act()`; snapshots post-parse buffer; emits production-incremental ANSI via `createOutputPhase()` (NOT bare `outputPhase()` which always full-renders, see output-phase.ts:869); feeds skeleton-bytes + incremental-bytes sequentially to vt100 + xterm backends; compares each backend's bg cell-by-cell against silvery's final buffer.
+
+**Result on golden vault** (5 markdown files / ~30 cards): zero strip-color residue cells across both vt100 and xterm backends. The skeleton→full transition does NOT leak orphaned bg cells.
+
+**Result on real vault** (~/Bear/Vault, ~30K notes): probe couldn't be set up — `mode:"memory" + discoverOnly:true` returned zero `deferredFiles` despite the vault having a populated `.km/`. Mechanism not yet localized; may be an interaction where memory mode still consults state.db. The real-vault test silently skips when this happens.
+
+**What this rules out**: the user-visible cyan strips are NOT caused by a dirty-flag cascade gap during the skeleton→full-parse transition on the golden-vault scenario. iTerm2 + Ghostty both reproduce; both backends in this probe parse silvery's emitted bytes correctly through that transition.
+
+**Important wrinkles for future probes**:
+- `app.lastBuffer()` returns the SAME `TerminalBuffer` reference each frame (mutated in place). Always `.clone()` before triggering a re-render or your "before" snapshot aliases the "after" snapshot. Symptom: `differingCells === 0` even when frames clearly differ visually.
+- `repo.touch()` alone may not trigger React re-render in tests because the BoardApp's signal subscriptions run only in components that read `withReactive` outputs. If `app.frames.length` doesn't increment after `act(() => repo.touch())`, fall back to `app.rerender(buildTree())` to force a clean commit.
+- Bare `outputPhase()` always full-renders (`prevCursorRow=-1` by design). Use `createOutputPhase({})` and call sequentially to exercise the real incremental diff path.
+- Ghostty WASM `feed()` throws "Offset should not be negative" on long ANSI streams (~50KB). Stick to vt100 + xterm for full-frame cross-backend probes; Ghostty WASM cell readout is also unreliable per Round 6.
+
+**Next probe candidates** (in priority order, not yet exercised):
+1. **Layout-feedback re-pin race**: silvery's layout phase notifies subscribers on rect changes. If a card's measure happens after first paint and re-pins height, the prevBuffer may have stale bg below the old rect. Probe: instrument `useBoxRect` callbacks during cold-start, snapshot frames before+after each notification.
+2. **Sticky pass on first frame**: kanban columns may use `position="sticky"` for the column header. The sticky two-pass overwrite is documented to be hazardous on first-frame (sticky's `hasPrevBuffer=false` semantics). Probe: render board with vs without sticky header, compare bg cell maps.
+3. **Scrollback-anchor recompute on window resize**: variable timing in the user's report (0–2s post-launch) hints at a window-event-driven race. A second resize during cold-start would invalidate prevBuffer + postState; if only one is reset, the other's coordinates are out-of-bounds. Probe: drive a synthetic resize during the cold-start window.
+4. **Real-vault probe with state.db wipe**: confirm the deferredFiles mechanism, then reactivate the real-vault leg of `render-cyan-strip-skeleton-transition.slow.spec.ts`. The strip may only surface above some fixture-size threshold (parse-order-dependent).
+
+**Where this lives**:
+- `apps/km-tui/tests/render-cyan-strip-skeleton-transition.slow.spec.ts` — the probe.
+- `@km/silvery/render-light-blue-bg-strip-residue.md` — bead with full investigation rounds.
+- This file — operational delta on probe-design wrinkles (lastBuffer aliasing, bare-outputPhase trap, Ghostty-WASM feed limit).
+
+
 
 ## Outline post-state carrier must survive per-frame Ag recycle (2026-04-28)
 

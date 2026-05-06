@@ -135,3 +135,28 @@ Then replay `/tmp/km-ansi.bin` through xterm.js / vt100 / Ghostty WASM and compa
 - **vt100 doesn't paint strips, only Ghostty does**: Ghostty-specific terminal interpretation bug. File at the Ghostty boundary; `SILVERY_STRICT_TERMINAL=ghostty` would need to catch it.
 
 The architectural reframe (`@km/silvery/render-stateless-pipeline-reframe`) does NOT retire this class — that's a buffer-model concern, and this bug is downstream of the buffer.
+
+## Round 6 — cross-backend test result + iTerm2 reproduction (2026-05-05)
+
+Silvery agent landed `apps/km-tui/tests/render-cyan-strip-cross-backend.slow.spec.ts` — feeds silvery's emitted bytes (48,931 bytes from real km-tui kanban at 360×120) into both xterm and Ghostty WASM backends. Result:
+
+- **xterm**: parses bytes correctly. Card body bgs paint as `rgb(67,76,94)` (Nord `polar-night-3`), breadcrumb header as `rgb(197,203,215)`. **Bytes are well-formed.**
+- **Ghostty WASM**: returns `bg=null` for ~30+ cells where xterm has correct RGB. Likely a `@termless/ghostty` cell-readout-API quirk, not a real-paint bug. WASM and native share the parser core but expose cells differently.
+- **Falsified**: "silvery emits malformed ANSI". xterm interprets the bytes correctly.
+
+**iTerm2 reproduction (user, 2026-05-05)**: Same strips appear in iTerm2. **Not Ghostty-specific.** Timing varies: sometimes 1-2s after launch, sometimes immediately on cold-start. Variable timing → **race condition**, not a deterministic post-event transition.
+
+### What the iTerm2 + variable-timing evidence shifts
+
+- **Rules out** terminal-emulator interpretation bugs (iTerm2 + Ghostty agree → silvery's emit is the same in both).
+- **Rules in** a silvery emit issue that xterm.js parses forgivingly but real terminals (iTerm2 + Ghostty) paint as visible artifacts. xterm.js's tolerant parser may be hiding it.
+- **Variable timing → race**: candidates include skeleton render → deferred parse re-render, scrollback-anchor recompute, layout-feedback re-pin, sticky-pass on cold-start, OR something paint-order-sensitive that depends on which task wins the first event-loop tick.
+- **Skeleton→full-parse transition** is the strongest hypothesis: km's `discoverOnly` path renders skeleton cards immediately, then full parse re-renders. The transition is exactly where bg-painted cells could get orphaned if the dirty-flag cascade has a gap.
+- testBoard probe at 360×120 ran with `parseDeferred:true` — would NOT capture the skeleton frame. Need a probe that snapshots BEFORE and AFTER the deferred parse, AND that captures all intermediate frames during the race window.
+
+### Next probes (in priority order)
+
+1. **Snapshot the skeleton frame**: extend `render-cyan-strip-cross-backend.slow.spec.ts` to render with `parseDeferred:false`, snapshot bytes for skeleton frame, advance the parse, snapshot bytes for full-parse frame, compare cell grids in xterm + vterm + Ghostty backends side-by-side. If strips appear in any backend's mid-transition snapshot → bug localized to silvery's repaint cascade during shape change.
+2. **vterm as third reference leg**: extend test to use `@termless/vterm` (full-coverage emulator). If vterm matches xterm but disagrees with what real terminals paint, narrow further.
+3. **Capture real ANSI from `bun km view`**: previous capture command produced no file. Re-run with explicit absolute path: `env SILVERY_CAPTURE_OUTPUT=/tmp/km-ansi.bin bun km view ~/Bear/Vault` (zsh `~vault` alias may have eaten the env). Then grep the bytes for: SGR-state edge cases, `\x1b[K` (EL) emissions while bg-color SGR active, CUP/CUF without preceding `\x1b[0m`.
+4. **Run `bun km view` with `SILVERY_STRICT=2 SILVERY_STRICT_ACCUMULATE=1`** in iTerm2 — replays accumulated frames, catches drift that per-frame STRICT misses.

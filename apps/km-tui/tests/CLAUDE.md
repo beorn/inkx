@@ -489,7 +489,7 @@ Inspect the diff (the format is line-oriented and human-readable: text rows on t
 - **Column order** is pinned via a programmatically-written `.km/sibling-order.json` (the `.km/` dir is gitignored repo-wide, so the source-of-truth lives in the test file's `COLUMN_ORDER` constant, not on disk).
 - **Trailing whitespace** is trimmed from text rows; style runs preserve column positions exactly so a one-column shift still surfaces.
 
-**When to extend.** If a regression slipped past this test, prefer adding a *new fixture row* (e.g., a card with the property the bug touched) over loosening the masking. The whole point is that everything visible is captured.
+**When to extend.** If a regression slipped past this test, prefer adding a _new fixture row_ (e.g., a card with the property the bug touched) over loosening the masking. The whole point is that everything visible is captured.
 
 **File pointers**:
 
