@@ -300,8 +300,8 @@ km bd doctor                      # Layout diagnostics + one-shot migrations
 km bd info                        # Beads configuration, statistics, and paths
 km bd info --paths [scope]        # Show only the resolved beads paths (was: bd where)
 km bd config get|set <key> [value]
-km bd migrate <source-jsonl>      # Import from external (Asana, etc.) into imports/<source>-<date>/
-km bd export                      # Dump for sharing
+km import bd <vault>              # Import bd issues into a km vault
+km import bd --export <vault>     # Dump km issues to .beads/issues.jsonl for sharing
 ```
 
 ## Memories

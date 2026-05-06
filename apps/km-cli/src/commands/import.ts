@@ -25,11 +25,13 @@ import { writeFiles } from "../import/write.ts"
 import { getRootPath } from "../program.ts"
 import { ensureAsanaSetup, resetAsanaConfig } from "./import-auth.ts"
 import { printDiscovery } from "./import-discovery.ts"
+import { createBdImportCommand } from "./import-bd.ts"
 
 export const importCommand = new Command("import")
-  .description("Import tasks from external tools (Asana, CSV, etc.)")
+  .description("Import tasks from external tools (Asana, CSV, bd, etc.)")
   .addCommand(createAsanaCommand())
   .addCommand(createCsvCommand())
+  .addCommand(createBdImportCommand())
 
 // ============================================================================
 // Download directory helpers

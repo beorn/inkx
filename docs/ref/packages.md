@@ -246,8 +246,8 @@ Exports: `.` (main), `./plugin`, `./fuzz`, `./chaos`
 | `km bd children <id>` | List sub-tasks |
 | `km bd info` | Configuration and statistics |
 | `km bd query <expr>` | Raw DSL query |
-| `km bd migrate <source>` | Import from external `<source>/issues.jsonl` (Asana, legacy bd dump, etc.) into `imports/<source>-<date>/@km/...` |
-| `km bd export` | Dump beads to `issues.jsonl` for sharing |
+| `km import bd <vault>` | Import bd issues into a km vault — landing under `imports/<source>-<date>/@km/...` (canonical surface; replaces legacy `km bd migrate`) |
+| `km import bd --export <vault>` | Dump km issues to `.beads/issues.jsonl` for sharing (reverse direction; replaces legacy `km bd export`) |
 
 ### Root-level bun scripts (tools)
 

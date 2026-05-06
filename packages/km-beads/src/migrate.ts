@@ -632,7 +632,7 @@ export function migrateBeadsToMarkdown(beadsDir: string, options: MigrateOptions
 
   // Memories — write each to <memDir>/<key>.md. Default sits next to
   // `@<prefix>/` under the same `targetDir` (now `@memory/` under the
-  // configured beads root when called via `bd migrate`). Memories are
+  // configured beads root when called via `km import bd`). Memories are
   // insights (not prefix-tagged); the @memory layout is FLAT, so
   // multiple bd-source imports merge by slug. On collision, append a
   // `## From <memSourceLabel>` subsection to the existing file rather
@@ -757,8 +757,8 @@ export interface RecaptureResult {
  *      closed_at) — vault state may have drifted from the export.
  *   4. Write the file back only when something changed (idempotent).
  *
- * Use case: an earlier `km bd migrate` ran before
- * `migrate-completeness` taught the emitter to preserve every
+ * Use case: an earlier `km import bd` (or legacy `km bd migrate`) ran
+ * before `migrate-completeness` taught the emitter to preserve every
  * non-recomputable field. This function recovers the lost state from
  * the original export without overwriting subsequent hand edits.
  */

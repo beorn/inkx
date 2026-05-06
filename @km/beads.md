@@ -239,12 +239,13 @@ Commit and push changes.
 km bd sync [-m message]
 ```
 
-### km bd migrate
+### km import bd
 
-Migrate from .beads/ to km format.
+Migrate from .beads/ to km format. Use `--export` for the reverse direction.
 
 ```bash
-km bd migrate [--dry-run]
+km import bd [vault] [--dry-run]              # .beads/issues.jsonl → km vault
+km import bd [vault] --export [--mode replace] # km vault → .beads/issues.jsonl
 ```
 
 ## Short IDs

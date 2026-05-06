@@ -222,7 +222,7 @@ The vault layout is **node-tree-shaped on disk**. Directories and files become k
 
 - A directory `@km/` creates `node.name = "@km"`. A directory `km/` creates `node.name = "km"`. Different nodes. Wikilinks `[[@km/beads/cutover]]` traverse `name=@km` → `name=beads` → `name=cutover` and won't resolve under bare `km/`.
 - Sigil **prefix is dynamic** — `@<prefix>` matches whatever `issue-prefix` the source bd config specifies. `@km/` here, `@pim/` for a `pim`-prefixed vault. Thread `sourcePrefix`; never hardcode.
-- **Migrated bead layout** — each `km bd migrate` lands under a per-import subdir (mirrors Asana's `<workspace>-<date>` convention) so the existing vault root stays clean:
+- **Migrated bead layout** — each `km import bd` lands under a per-import subdir (mirrors Asana's `<workspace>-<date>` convention) so the existing vault root stays clean:
   ```
   vault-root/
     imports/                                # all migrated bd content lives here

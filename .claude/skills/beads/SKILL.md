@@ -37,8 +37,8 @@ km bd info                                          # vault stats
 km bd config get|set [<key>] [<value>]              # beads.prefix, etc.
 km bd doctor                                        # consistency checks
 km bd remember "<insight>"                         # memories (mem/<key>.md)
-km bd migrate <source>                              # import from external (Asana, etc.)
-km bd export                                        # dump for sharing
+km import bd <vault>                                # import bd issues into a km vault
+km import bd --export <vault>                       # dump km issues to .beads/issues.jsonl
 ```
 
 **Resolution**: `km bd show` accepts path-form (`@km/silvercode/queue-stuck`), bd-form (`km-silvercode.queue-stuck`), and short id (`km-q5hji`). Same for `--parent`.
