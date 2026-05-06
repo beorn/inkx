@@ -121,6 +121,7 @@ Implemented first slice:
 - `createFakeAcpSpawn()` wires a real `AgentSideConnection` behind the `connectAcp` spawn seam.
 - `createFakeAcpRegistrySpawn()` provides basic initialize/prompt fake profiles for every registered ACP id: Codex, Gemini, GitHub Copilot CLI, pi-acp, Claude, and Claude Code.
 - `createFakeCodexAcpSpawn()` provides the first profile, including stateful `session/set_config_option` handling.
+- `FakeAcpBackendProfile.onPrompt` lets scenarios drive real server-to-client ACP callbacks during a prompt turn, including permissions and filesystem requests.
 - `AcpAgentSession.configOptions` and `AcpAgentSession.setSessionConfigOption()` expose the latest ACP config surface to tests and UI callers.
 - `@km/agent-harness/testing/backend-contract-runner` runs the same assertion function against fake targets by default and live targets when `SILVERCODE_BACKEND_CONTRACT=live`.
 - `apps/silvercode/tests/backend-contracts/config-options.contract.test.ts` is the first fake/live contract, covering Codex `reasoning_effort`.

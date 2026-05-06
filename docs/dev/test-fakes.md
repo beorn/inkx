@@ -55,6 +55,8 @@ Silvercode agent backend fakes are a Layer 2 fake family: a fake backend process
 
 The first ACP fake lives at `@km/agent-harness/testing/fake-acp-server`. It exposes `createFakeAcpSpawn()` for profile-driven fakes, `createFakeAcpRegistrySpawn()` for every registered ACP backend id, and `createFakeCodexAcpSpawn()` for the Codex config-options profile. Use it when a test needs to prove `connectAcp` or `connectAcpRegistry` handles real ACP wire behavior such as `session/set_config_option`.
 
+Use `FakeAcpBackendProfile.onPrompt` when the test must script protocol callbacks from the agent to the client, such as `requestPermission`, `readTextFile`, or `writeTextFile`. That keeps the real Silvercode adapter and callback handlers in the loop instead of mocking `SessionState`.
+
 Backend contracts use `@km/agent-harness/testing/backend-contract-runner`. Fake targets run by default; setting `SILVERCODE_BACKEND_CONTRACT=live` appends live targets so the same assertion catches fake-vs-real drift.
 
 See [silvercode-backend-fakes.md](silvercode-backend-fakes.md) for the full plan, backend profile split, and fake/live drift contract strategy.

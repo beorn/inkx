@@ -172,6 +172,8 @@ export {
 export type {
   FakeAcpBackendController,
   FakeAcpBackendProfile,
+  FakeAcpPromptContext,
+  FakeAcpPromptHandler,
   FakeAcpRegistrySpawnOptions,
   FakeAcpSessionSnapshot,
   FakeAcpSpawnHandle,

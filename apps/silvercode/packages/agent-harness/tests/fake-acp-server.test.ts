@@ -12,7 +12,11 @@ import { createScope } from "@silvery/scope"
 import { afterEach, describe, expect, test, vi } from "vitest"
 import { __setAcpSpawnForTesting, connectAcp, connectAcpRegistry } from "../src/acp-client.ts"
 import type { AgentEvent } from "../src/events.ts"
-import { createFakeAcpRegistrySpawn, createFakeCodexAcpSpawn } from "../src/testing/fake-acp-server.ts"
+import {
+  createFakeAcpRegistrySpawn,
+  createFakeAcpSpawn,
+  createFakeCodexAcpSpawn,
+} from "../src/testing/fake-acp-server.ts"
 
 afterEach(() => {
   __setAcpSpawnForTesting(null)
@@ -115,6 +119,110 @@ describe("fake ACP server", () => {
     } finally {
       errSpy.mockRestore()
     }
+  })
+
+  test("scripted prompt can request permission through the real client callback", async () => {
+    const fake = createFakeAcpSpawn({
+      id: "permission-script",
+      onPrompt: async ({ conn, params, emitText }) => {
+        const response = await conn.requestPermission({
+          sessionId: params.sessionId,
+          toolCall: {
+            toolCallId: "tc-fake-perm",
+            title: "Run echo",
+            kind: "execute",
+            status: "pending",
+            rawInput: { command: "echo ok" },
+          },
+          options: [
+            { optionId: "allow", name: "Allow", kind: "allow_once" },
+            { optionId: "deny", name: "Deny", kind: "reject_once" },
+          ],
+        })
+        await emitText(`permission:${response.outcome.outcome}`)
+      },
+    })
+    __setAcpSpawnForTesting(fake.spawn)
+
+    await using scope = createScope("test-fake-acp-permission-script")
+    const session = await connectAcp(scope, {
+      command: "fake-acp-permission",
+      permissionHandler: async (req) => ({
+        outcome: { outcome: "selected", optionId: req.options[0]!.optionId },
+      }),
+    })
+    const events: AgentEvent[] = []
+    session.subscribe((event) => events.push(event))
+
+    await session.prompt([{ type: "text", text: "needs permission" }])
+
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        kind: "permission-request",
+        requestId: "tc-fake-perm",
+      }),
+    )
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        kind: "permission-decision",
+        requestId: "tc-fake-perm",
+        approved: true,
+      }),
+    )
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        kind: "text-delta",
+        text: "permission:selected",
+      }),
+    )
+  })
+
+  test("scripted prompt can call client filesystem handlers over ACP", async () => {
+    const writes: Array<{ path: string; content: string }> = []
+    const fake = createFakeAcpSpawn({
+      id: "fs-script",
+      onPrompt: async ({ conn, params, emitText }) => {
+        const read = await conn.readTextFile({
+          sessionId: params.sessionId,
+          path: "/tmp/input.txt",
+        })
+        await conn.writeTextFile({
+          sessionId: params.sessionId,
+          path: "/tmp/output.txt",
+          content: read.content.toUpperCase(),
+        })
+        await emitText(`fs:${read.content}`)
+      },
+    })
+    __setAcpSpawnForTesting(fake.spawn)
+
+    await using scope = createScope("test-fake-acp-fs-script")
+    const session = await connectAcp(scope, {
+      command: "fake-acp-fs",
+      clientCapabilities: { fs: { readTextFile: true, writeTextFile: true } },
+      fsHandler: {
+        async readTextFile(req) {
+          expect(req.path).toBe("/tmp/input.txt")
+          return { content: "hello" }
+        },
+        async writeTextFile(req) {
+          writes.push({ path: req.path, content: req.content })
+          return {}
+        },
+      },
+    })
+    const events: AgentEvent[] = []
+    session.subscribe((event) => events.push(event))
+
+    await session.prompt([{ type: "text", text: "use fs" }])
+
+    expect(writes).toEqual([{ path: "/tmp/output.txt", content: "HELLO" }])
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        kind: "text-delta",
+        text: "fs:hello",
+      }),
+    )
   })
 })
 

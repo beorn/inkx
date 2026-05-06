@@ -69,3 +69,10 @@ Verification: `backend-contract-runner.test.ts` + `config-options.contract.test.
 - Kept richer config-option behavior in the Codex-specific profile.
 
 Verification: `fake-acp-server.test.ts` covers all six registered ACP ids.
+
+2026-05-06 prompt-callback slice:
+
+- Added `FakeAcpBackendProfile.onPrompt` scripted prompt hooks.
+- Covered real ACP `requestPermission`, `readTextFile`, and `writeTextFile` callbacks through `connectAcp`.
+
+Verification: `fake-acp-server.test.ts` includes permission and filesystem callback scenarios.

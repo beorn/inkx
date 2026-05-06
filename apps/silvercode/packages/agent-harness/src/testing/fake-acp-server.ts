@@ -12,6 +12,17 @@ import { PassThrough, Readable, Writable } from "node:stream"
 import * as acp from "@agentclientprotocol/sdk"
 import type { AcpRegistryId, AcpSpawn, AcpSpawnedChild } from "../acp-client.ts"
 
+export interface FakeAcpPromptContext {
+  readonly conn: acp.AgentSideConnection
+  readonly params: acp.PromptRequest
+  readonly backend: FakeAcpBackendController
+  emitText(text: string): Promise<void>
+}
+
+export type FakeAcpPromptHandler = (
+  ctx: FakeAcpPromptContext,
+) => Promise<acp.PromptResponse | void> | acp.PromptResponse | void
+
 export interface FakeAcpBackendProfile {
   /** Stable provider id, e.g. `codex` or `gemini`. */
   id: string
@@ -25,6 +36,8 @@ export interface FakeAcpBackendProfile {
   configOptions?: acp.SessionConfigOption[]
   /** Text chunk emitted for prompt calls. Defaults to a deterministic echo. */
   promptText?: string | ((params: acp.PromptRequest) => string)
+  /** Full prompt script. Use when a scenario needs permissions, fs, tools, etc. */
+  onPrompt?: FakeAcpPromptHandler
 }
 
 export interface FakeAcpSessionSnapshot {
@@ -53,6 +66,7 @@ export interface FakeAcpRegistrySpawnOptions {
   sessionIdPrefix?: string
   configOptions?: acp.SessionConfigOption[]
   promptText?: FakeAcpBackendProfile["promptText"]
+  onPrompt?: FakeAcpPromptHandler
 }
 
 export const codexAcpProfile: FakeAcpBackendProfile = {
@@ -157,6 +171,7 @@ export function createFakeAcpRegistrySpawn(
     sessionIdPrefix: opts.sessionIdPrefix ?? profile.sessionIdPrefix,
     configOptions: opts.configOptions ?? profile.configOptions,
     promptText: opts.promptText ?? profile.promptText,
+    onPrompt: opts.onPrompt ?? profile.onPrompt,
   })
 }
 
@@ -226,17 +241,20 @@ class FakeAcpBackend implements FakeAcpBackendController {
       authenticate: async () => ({}),
 
       prompt: async (params) => {
+        if (this.profile.onPrompt) {
+          const response = await this.profile.onPrompt({
+            conn,
+            params,
+            backend: this,
+            emitText: (text) => emitText(conn, params.sessionId, text),
+          })
+          return response ?? { stopReason: "end_turn" }
+        }
         const text =
           typeof this.profile.promptText === "function"
             ? this.profile.promptText(params)
             : (this.profile.promptText ?? `fake ${this.profile.id} response`)
-        await conn.sessionUpdate({
-          sessionId: params.sessionId,
-          update: {
-            sessionUpdate: "agent_message_chunk",
-            content: { type: "text", text },
-          },
-        })
+        await emitText(conn, params.sessionId, text)
         return { stopReason: "end_turn" }
       },
 
@@ -289,6 +307,16 @@ class FakeAcpBackend implements FakeAcpBackendController {
     }
     option.currentValue = value
   }
+}
+
+async function emitText(conn: acp.AgentSideConnection, sessionId: acp.SessionId, text: string): Promise<void> {
+  await conn.sessionUpdate({
+    sessionId,
+    update: {
+      sessionUpdate: "agent_message_chunk",
+      content: { type: "text", text },
+    },
+  })
 }
 
 function createFakeAcpChild(toAgent: (conn: acp.AgentSideConnection) => acp.Agent): AcpSpawnedChild {
