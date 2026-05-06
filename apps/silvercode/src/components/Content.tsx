@@ -371,15 +371,18 @@ function Row({
       </Box>
     ) : null
   const middleAvailableForRow = usesMeasuredGeometry ? middleWidth : 0
+  // Stop propagating measured pixel widths upward through `width=`. Silvery
+  // expert audit (2026-05-06, bead `@km/silvercode/post-resize-ui-stability`)
+  // identified `width={middleWidth}` as the load-bearing feedback edge: an
+  // explicit `width` on a flex child changes its main-axis basis, which
+  // changes the row's intrinsic size, which the parent's flexbox re-uses on
+  // the next convergence pass — visible as the 88↔120 oscillation in the
+  // STRICT log. Switching to `maxWidth` (a hint, not authoritative width)
+  // lets flexily own the final resolved width and breaks the prop-value
+  // feedback edge that survived the Phase 3 stable-tree fix.
   const middleNode = (
     <ContentRowContext.Provider value={{ available: middleAvailableForRow }}>
-      <Box
-        flexDirection="row"
-        width={usesMeasuredGeometry ? middleWidth : "100%"}
-        maxWidth={usesMeasuredGeometry ? middleWidth : "100%"}
-        flexShrink={1}
-        minWidth={0}
-      >
+      <Box flexDirection="row" maxWidth={usesMeasuredGeometry ? middleWidth : "100%"} flexShrink={1} minWidth={0}>
         {middle}
       </Box>
     </ContentRowContext.Provider>
