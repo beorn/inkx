@@ -8,15 +8,25 @@
  *
  * The corpus mixes the aliased commands that are pure thin shims:
  *
- *   close   ↔ task close [--reason TEXT]
- *   drop    ↔ task drop  [--reason TEXT]
- *   claim   ↔ task claim
- *   stale   ↔ km stale
- *   query   ↔ km query
- *   list    ↔ km task    (board view)
- *   ready   ↔ km task ready
- *   blocked ↔ km task --blocked
- *   show    ↔ km task show / km show
+ *   close    ↔ task close [--reason TEXT]
+ *   drop     ↔ task drop  [--reason TEXT]
+ *   claim    ↔ task claim
+ *   stale    ↔ km stale
+ *   query    ↔ km query
+ *   list     ↔ km task    (board view)
+ *   ready    ↔ km task ready
+ *   blocked  ↔ km task --blocked
+ *   show     ↔ km task show / km show
+ *   children ↔ km children
+ *   orphans  ↔ km task orphans
+ *   dep ls   ↔ km task dep ls
+ *
+ * Wave 6 final additions (`@km/cli/bd-shim-collapse-final`):
+ *   - children, orphans, dep ls all delegate to the canonical task / km
+ *     surface after the lift. Read-only — exit-code parity only.
+ *   - dep add / dep rm / rename / create are tested via targeted
+ *     single-shot regression pins (below the random walk) since each
+ *     needs unique inputs that can't be sampled from the seeded corpus.
  *
  * For each invocation, two repo clones with identical starting state
  * are loaded; one runs the bd command, the other runs the canonical
@@ -244,6 +254,26 @@ function pickInvocation(rng: () => number, beadId: string, seed: number, step: n
       taskArgs: ["query", "*"],
       readOnly: true,
     },
+    // Wave 6 final additions — read-only verbs that newly route through
+    // the canonical task/km surface after the lift.
+    {
+      label: "children",
+      bdArgs: ["bd", "children", beadId],
+      taskArgs: ["children", beadId],
+      readOnly: true,
+    },
+    {
+      label: "orphans",
+      bdArgs: ["bd", "orphans"],
+      taskArgs: ["task", "orphans"],
+      readOnly: true,
+    },
+    {
+      label: "dep ls",
+      bdArgs: ["bd", "dep", "list", beadId],
+      taskArgs: ["task", "dep", "ls", beadId],
+      readOnly: true,
+    },
   ]
   return choices[Math.floor(rng() * choices.length)]!
 }
@@ -337,6 +367,9 @@ describe("bd⇔task command equivalence (L5 property test)", () => {
       "list (bare)",
       "ready",
       "query (raw DSL)",
+      "children",
+      "orphans",
+      "dep ls",
     ]
     for (const label of expectedLabels) {
       expect(src, `corpus must contain '${label}'`).toContain(`label: "${label}"`)
@@ -383,5 +416,90 @@ describe("bd⇔task command equivalence (L5 property test)", () => {
     expect(summary.status, "bd claim → wip").toBe("wip")
     expect(summary.assigned_to, "bd claim → assigned_to non-null").not.toBeNull()
     expect(summary.closed_at, "bd claim → closed_at stays null").toBeNull()
+  }, 30_000)
+
+  // -------------------------------------------------------------------
+  // Wave 6 final regression pins — bd ⇔ task/km parity for create/rename
+  // /dep add (the verbs that need unique inputs and can't share the
+  // seeded random walk).
+  // -------------------------------------------------------------------
+
+  test("bd create + task new produce equivalent path-form file shapes", () => {
+    // bd create --path @<scope>/<leaf> ↔ task new --id @<scope>/<leaf>
+    // both should materialize the same .md file; bd-create is a thin
+    // shim over task new's file materializer.
+    const seed = 50
+    const bdVault = freshVault(seed).root
+    const taskVault = freshVault(seed + 1).root
+
+    const bdResult = runKm(bdVault, ["bd", "create", "Test create", "--path", `@km/p${seed}/created`, "--type", "bug"])
+    expect(bdResult.exitCode, bdResult.stderr || bdResult.stdout).toBe(0)
+
+    const taskResult = runKm(taskVault, [
+      "task",
+      "new",
+      "Test create",
+      "--id",
+      `@km/p${seed + 1}/created`,
+      "--type",
+      "bug",
+    ])
+    expect(taskResult.exitCode, taskResult.stderr || taskResult.stdout).toBe(0)
+
+    // Both vaults should now have a .md file at their respective canonical
+    // paths. Read both and assert the body shape matches (path-form
+    // material is the same renderer in both surfaces).
+    const bdFile = readFileSync(join(bdVault, "@km", `p${seed}`, "created.md"), "utf-8")
+    const taskFile = readFileSync(join(taskVault, "@km", `p${seed + 1}`, "created.md"), "utf-8")
+
+    // Both files must exist + share the H1 + type tag; differences in
+    // exact id strings are expected (different vault scopes).
+    expect(bdFile).toContain("# Test create")
+    expect(taskFile).toContain("# Test create")
+    expect(bdFile).toContain("#bug")
+    expect(taskFile).toContain("#bug")
+  }, 30_000)
+
+  test("bd rename + km move (path-form target) produce equivalent canonical id", () => {
+    // bd rename @<scope>/<old> @<scope>/<new>  ↔  km move @<scope>/<old> @<scope>/<new>
+    // Both invocations must rewrite the file to the new canonical path
+    // and delete the old one. Equivalent repo state by construction
+    // since bd-rename is a thin parseAsync forwarder to km move.
+    const seed = 51
+    const bdVault = freshVault(seed).root
+    const kmVault = freshVault(seed + 1).root
+
+    // bd rename surface
+    const bdResult = runKm(bdVault, ["bd", "rename", `@km/p${seed}/a`, `@km/p${seed}/renamed`])
+    expect(bdResult.exitCode, bdResult.stderr || bdResult.stdout).toBe(0)
+    expect(existsSync(join(bdVault, "@km", `p${seed}`, "renamed.md"))).toBe(true)
+    expect(existsSync(join(bdVault, "@km", `p${seed}`, "a.md"))).toBe(false)
+
+    // km move surface
+    const kmResult = runKm(kmVault, ["move", `@km/p${seed + 1}/a`, `@km/p${seed + 1}/renamed`])
+    expect(kmResult.exitCode, kmResult.stderr || kmResult.stdout).toBe(0)
+    expect(existsSync(join(kmVault, "@km", `p${seed + 1}`, "renamed.md"))).toBe(true)
+    expect(existsSync(join(kmVault, "@km", `p${seed + 1}`, "a.md"))).toBe(false)
+  }, 30_000)
+
+  test("bd dep add + task dep add produce equivalent blocked-by edges", () => {
+    // bd dep add <id> <blocker> ↔ task dep add <id> <blocker>
+    // Both write an inbound 'blocks' edge via addGraphEdge — bd-dep is
+    // a thin re-export of createDepCommand.
+    const seed = 52
+    const bdVault = freshVault(seed).root
+    const kmVault = freshVault(seed + 1).root
+
+    const bdResult = runKm(bdVault, ["bd", "dep", "add", `@km/p${seed}/a`, `@km/p${seed}/b`])
+    expect(bdResult.exitCode, bdResult.stderr || bdResult.stdout).toBe(0)
+
+    const kmResult = runKm(kmVault, ["task", "dep", "add", `@km/p${seed + 1}/a`, `@km/p${seed + 1}/b`])
+    expect(kmResult.exitCode, kmResult.stderr || kmResult.stdout).toBe(0)
+
+    // Both should now report a's blockers as containing b.
+    const bdLs = runKm(bdVault, ["bd", "dep", "list", `@km/p${seed}/a`])
+    const kmLs = runKm(kmVault, ["task", "dep", "ls", `@km/p${seed + 1}/a`])
+    expect(bdLs.stdout).toContain(`p${seed}/b`)
+    expect(kmLs.stdout).toContain(`p${seed + 1}/b`)
   }, 30_000)
 })
