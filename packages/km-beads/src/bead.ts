@@ -42,6 +42,7 @@ import {
   closeBeadFields as fnCloseBeadFields,
   createBeadNode as fnCreateBeadNode,
   dropBeadFields as fnDropBeadFields,
+  reopenBeadFields as fnReopenBeadFields,
   type UpdateBeadChanges,
   updateBeadFields as fnUpdateBeadFields,
 } from "./mutations.ts"
@@ -223,6 +224,17 @@ export const Bead = {
   /** Drop (mark won't-do). Returns a partial node for `repo.updateNode`. */
   drop(_repo: Repo, _bead: Bead, reason?: string, currentData?: Record<string, unknown>): Partial<KNode> {
     return fnDropBeadFields(reason, currentData)
+  },
+
+  /**
+   * Reopen a closed/dropped bead — back to `todo`. Clears `closed_at` +
+   * close/drop reason markers. Returns a partial node for
+   * `repo.updateNode`. Source-state validation (must be done or dropped)
+   * lives in the action handler — see apps/km-cli/src/commands/tasks/
+   * lifecycle-plan.ts (planReopen).
+   */
+  reopen(_repo: Repo, _bead: Bead, currentData?: Record<string, unknown>): Partial<KNode> {
+    return fnReopenBeadFields(currentData)
   },
 
   // ---------------------------------------------------------------------

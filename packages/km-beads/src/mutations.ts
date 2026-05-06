@@ -198,48 +198,84 @@ export function updateBeadFields(bead: Bead, changes: UpdateBeadChanges): Partia
 /**
  * Close an issue (mark as done).
  *
- * Pass the node's full `data` blob via `currentData` when a `reason` is
- * provided — storage's `updateNode` treats `data: {...}` as a full
- * replacement, so we MUST merge with the existing data to preserve
- * sibling keys (`id`, `aliases`, `short_id`, `mentions`, `tags`, …).
- * Without `currentData`, a `bd close <id> --reason "x"` silently wipes
- * the canonical id and aliases — the issue stays addressable by its
- * ULID but vanishes from `bd list` / short-id resolution.
+ * Sets `closed_at` to the current ISO timestamp on the data blob — this
+ * is the lifecycle-transition marker that distinguishes `Bead.close` from
+ * a raw `set status:done` field write (the latter does NOT touch
+ * `closed_at`). Tested as an L4 invariant in apps/km-cli's lifecycle
+ * property tests (Wave 3 of @km/cli/task-bd-collapse).
+ *
+ * Pass the node's full `data` blob via `currentData` so we can merge
+ * — storage's `updateNode` treats `data: {...}` as a full replacement,
+ * so omitting `currentData` would silently wipe sibling keys
+ * (`id`, `aliases`, `short_id`, `mentions`, `tags`, …). Without that
+ * merge, a `bd close <id> --reason "x"` strips the canonical id and the
+ * issue vanishes from `bd list` / short-id resolution.
  *
  * Bead: km-beads.close-drop-data-wipe.
  */
 export function closeBeadFields(reason?: string, currentData?: Record<string, unknown>): Partial<KNode> {
-  const updates: Partial<KNode> = {
+  const closedAt = new Date().toISOString()
+  return {
     item: { task: { status: "done", marker: getMarkerForStatus("done") } },
     updated_at: Date.now(),
+    data: {
+      ...currentData,
+      closed_at: closedAt,
+      ...(reason ? { closeReason: reason } : {}),
+    },
   }
-
-  if (reason) {
-    updates.data = { ...currentData, closeReason: reason }
-  }
-
-  return updates
 }
 
 /**
  * Drop an issue (mark as won't do).
  *
- * Same `currentData` discipline as `closeBeadFields`. See its docstring
- * for the rationale.
+ * Same `closed_at` semantics + `currentData` discipline as
+ * `closeBeadFields`. See its docstring for the rationale.
  *
  * Bead: km-beads.close-drop-data-wipe.
  */
 export function dropBeadFields(reason?: string, currentData?: Record<string, unknown>): Partial<KNode> {
-  const updates: Partial<KNode> = {
+  const closedAt = new Date().toISOString()
+  return {
     item: { task: { status: "dropped", marker: getMarkerForStatus("dropped") } },
     updated_at: Date.now(),
+    data: {
+      ...currentData,
+      closed_at: closedAt,
+      ...(reason ? { dropReason: reason } : {}),
+    },
   }
+}
 
-  if (reason) {
-    updates.data = { ...currentData, dropReason: reason }
+/**
+ * Reopen a closed/dropped issue — back to `todo`.
+ *
+ * Counterpart to `closeBeadFields` / `dropBeadFields`: clears the
+ * `closed_at` timestamp and the `closeReason` / `dropReason` markers so
+ * the bead's lifecycle history is symmetric (close → reopen → close
+ * leaves a fresh `closed_at`, not an old one). Also clears
+ * `assigned_to` — reopening returns the bead to the unclaimed-todo
+ * state, mirroring `Bead.update({status:"todo", assignee:undefined})`.
+ * The "todo ⟹ no owner" invariant is fuzz-tested in
+ * apps/km-cli/tests/tasks-lifecycle-properties.test.ts.
+ *
+ * Like its siblings, requires `currentData` so the data merge preserves
+ * siblings (id, aliases, short_id, …). The omitted closed_at /
+ * closeReason / dropReason fields are stripped via destructuring so the
+ * caller's `currentData` reference stays untouched (no `delete` mutation).
+ *
+ * Validation that the source state is `done` / `dropped` (not already
+ * `todo` or `wip`) lives in the action handler, not here — this function
+ * is the field-mutation primitive, parallel to the other two.
+ */
+export function reopenBeadFields(currentData?: Record<string, unknown>): Partial<KNode> {
+  const { closed_at: _ca, closeReason: _cr, dropReason: _dr, ...rest } = (currentData ?? {}) as Record<string, unknown>
+  return {
+    item: { task: { status: "todo", marker: getMarkerForStatus("todo") } },
+    assigned_to: undefined,
+    updated_at: Date.now(),
+    data: { ...rest },
   }
-
-  return updates
 }
 
 /**

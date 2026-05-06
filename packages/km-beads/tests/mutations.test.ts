@@ -156,10 +156,21 @@ describe("closeBeadFields", () => {
     expect(updates.item?.task?.marker).toBe("[x]")
   })
 
-  test("closes issue with reason", () => {
-    const updates = closeBeadFields("Fixed in PR #123")
+  // Wave 3 — task-bd-collapse: close is a workflow transition, not a
+  // raw status set. closed_at is the load-bearing distinguisher and must
+  // be present whenever close() runs (with or without a reason).
+  test("sets closed_at to an ISO timestamp", () => {
+    const updates = closeBeadFields()
+    const data = updates.data as Record<string, unknown> | undefined
+    expect(typeof data?.closed_at).toBe("string")
+    expect(data?.closed_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+  })
 
-    expect(updates.data).toEqual({ closeReason: "Fixed in PR #123" })
+  test("closes issue with reason includes closeReason and closed_at", () => {
+    const updates = closeBeadFields("Fixed in PR #123")
+    const data = updates.data as Record<string, unknown>
+    expect(data.closeReason).toBe("Fixed in PR #123")
+    expect(typeof data.closed_at).toBe("string")
   })
 
   // km-beads.close-drop-data-wipe — closing with a reason MUST preserve
@@ -175,23 +186,24 @@ describe("closeBeadFields", () => {
       tags: ["bug", "P1"],
     }
     const updates = closeBeadFields("Fixed in PR #456", currentData)
-
-    expect(updates.data).toEqual({
-      id: "01ABC123",
-      aliases: ["foo/bar", "old-id"],
-      short_id: "km-abc1",
-      mentions: ["alice"],
-      tags: ["bug", "P1"],
-      closeReason: "Fixed in PR #456",
-    })
+    const data = updates.data as Record<string, unknown>
+    expect(data.id).toBe("01ABC123")
+    expect(data.aliases).toEqual(["foo/bar", "old-id"])
+    expect(data.short_id).toBe("km-abc1")
+    expect(data.mentions).toEqual(["alice"])
+    expect(data.tags).toEqual(["bug", "P1"])
+    expect(data.closeReason).toBe("Fixed in PR #456")
+    expect(typeof data.closed_at).toBe("string")
   })
 
-  test("no data write when no reason, even with currentData (preserves existing blob untouched)", () => {
+  test("no reason still records closed_at + preserves currentData", () => {
     const currentData = { id: "01ABC123", aliases: ["foo/bar"] }
     const updates = closeBeadFields(undefined, currentData)
-    // Without a reason there's nothing to write — leaving updates.data
-    // unset means storage's updateNode skips the data column entirely.
-    expect(updates.data).toBeUndefined()
+    const data = updates.data as Record<string, unknown>
+    expect(data.id).toBe("01ABC123")
+    expect(data.aliases).toEqual(["foo/bar"])
+    expect(typeof data.closed_at).toBe("string")
+    expect(data.closeReason).toBeUndefined()
   })
 })
 
@@ -203,10 +215,18 @@ describe("dropBeadFields", () => {
     expect(updates.item?.task?.marker).toBe("[-]")
   })
 
-  test("drops issue with reason", () => {
-    const updates = dropBeadFields("No longer needed")
+  test("sets closed_at to an ISO timestamp", () => {
+    const updates = dropBeadFields()
+    const data = updates.data as Record<string, unknown> | undefined
+    expect(typeof data?.closed_at).toBe("string")
+    expect(data?.closed_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+  })
 
-    expect(updates.data).toEqual({ dropReason: "No longer needed" })
+  test("drops issue with reason includes dropReason and closed_at", () => {
+    const updates = dropBeadFields("No longer needed")
+    const data = updates.data as Record<string, unknown>
+    expect(data.dropReason).toBe("No longer needed")
+    expect(typeof data.closed_at).toBe("string")
   })
 
   // km-beads.close-drop-data-wipe — same invariant as closeBeadFields.
@@ -217,12 +237,11 @@ describe("dropBeadFields", () => {
       short_id: "km-xyz9",
     }
     const updates = dropBeadFields("Superseded by km-abc1", currentData)
-
-    expect(updates.data).toEqual({
-      id: "01XYZ789",
-      aliases: ["abandoned/feature"],
-      short_id: "km-xyz9",
-      dropReason: "Superseded by km-abc1",
-    })
+    const data = updates.data as Record<string, unknown>
+    expect(data.id).toBe("01XYZ789")
+    expect(data.aliases).toEqual(["abandoned/feature"])
+    expect(data.short_id).toBe("km-xyz9")
+    expect(data.dropReason).toBe("Superseded by km-abc1")
+    expect(typeof data.closed_at).toBe("string")
   })
 })
