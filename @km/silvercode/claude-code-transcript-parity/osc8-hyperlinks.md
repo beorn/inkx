@@ -20,9 +20,19 @@ dependencies:
     metadata: "{}"
 props: {}
 propsRaw: {}
+closed_at: 2026-05-06T22:41:21.535Z
+closeReason: "Shipped 7ef11faa8. ToolCall renderLocations now wraps absolute
+  paths with silvery Link file:// hrefs while title path linkification remains
+  on LinkifiedText. Tests: bun vitest run
+  apps/silvercode/tests/tool-call.test.tsx
+  apps/silvercode/tests/autolinks-osc8.test.tsx
+  apps/silvercode/tests/autolinks-osc8.fuzz.test.tsx (64 passed); npx tsc
+  --noEmit --pretty false; npx oxfmt --check
+  apps/silvercode/src/components/ToolCall.tsx
+  apps/silvercode/tests/tool-call.test.tsx."
 ---
 
-# [ ] OSC 8 hyperlinks for file paths in chat — Cmd+click opens in editor @km/silvercode #feature #P2
+# [x] OSC 8 hyperlinks for file paths in chat — Cmd+click opens in editor @km/silvercode #feature #P2
 
 blocks:: [[@km/silvercode]]
 
