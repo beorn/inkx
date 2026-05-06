@@ -753,19 +753,19 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
     const sid = state.sessionId ?? toSessionId(obj.session_id)
     state.sessionId = sid
     // Claude stores post-/compact summaries as `type:"user"` because they
-    // are replayed into the next model invocation, but visually and
-    // semantically they are generated transcript narration. Rendering them
-    // as user prompts makes several pages of assistant-written summary look
-    // like something the user typed.
+    // are replayed into the next model invocation, but they are generated
+    // transcript context, not something the user typed. Keep them collapsed
+    // as metadata so resume doesn't flood the default transcript surface.
     if (obj.isCompactSummary === true) {
       const compactText = userTextContent(msg.content).trim()
       if (compactText.length === 0) return
       const uniq = (msg.id as string | undefined) ?? (obj.uuid as string | undefined) ?? `compact-${nowMs()}`
       emit({
-        kind: "assistant-message",
+        kind: "raw-transcript",
         sessionId: sid,
         turnId: toTurnId(uniq),
-        content: [{ type: "text", text: quarantineLeadingRolePrefix(compactText) }],
+        label: "Compact summary",
+        raw: compactText,
         ts: nowMs(),
       })
       return

@@ -510,7 +510,7 @@ describe("stream-json parser — M0 fixtures", () => {
     expect(userEvent!.additionalContext).toContain("Continue from where you left off.")
   })
 
-  test("compact summary user records replay as assistant narration, not user prompts", () => {
+  test("compact summary user records replay as collapsed metadata, not user prompts", () => {
     const compactText =
       "This session is being continued from a previous conversation that ran out of context.\n\nSummary:\n1. The assistant had been reviewing code."
     const events = collect([
@@ -528,12 +528,13 @@ describe("stream-json parser — M0 fixtures", () => {
     ])
 
     expect(events.some((event) => event.kind === "user-message")).toBe(false)
-    const assistantEvent = events.find((e) => e.kind === "assistant-message") as
-      | Extract<AgentEvent, { kind: "assistant-message" }>
+    const metadataEvent = events.find((e) => e.kind === "raw-transcript") as
+      | Extract<AgentEvent, { kind: "raw-transcript" }>
       | undefined
-    expect(assistantEvent).toBeDefined()
-    expect(assistantEvent!.turnId).toBe("compact-1")
-    expect(assistantEvent!.content).toEqual([{ type: "text", text: compactText }])
+    expect(metadataEvent).toBeDefined()
+    expect(metadataEvent!.turnId).toBe("compact-1")
+    expect(metadataEvent!.label).toBe("Compact summary")
+    expect(metadataEvent!.raw).toBe(compactText)
   })
 
   test("user-message strips <local-command-stdout> wrapper tags too", () => {
