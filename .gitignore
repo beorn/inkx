@@ -50,6 +50,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Test artifacts (generated at repo root, not in tests/ dirs)
 @*.md
+!@agent.md
 /test-*.tsx
 /test-*.ts
 

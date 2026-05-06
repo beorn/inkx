@@ -185,11 +185,14 @@ export function parseMarkdownWithLinks(content: string, fsPath: string, fsIno?: 
 
   const allNodes = [fileNode, ...childNodes]
   const wikilinks = extractWikilinksFromNodes(allNodes)
-  // Emit hashtag link rows alongside wikilinks. The downstream loader
-  // inserts every entry into the `links` table — tag entries carry a
-  // pre-computed `href = km:%23<tag>` so the resolver passes them through
-  // unchanged. See @km/all/dissolve-data-tags-to-links.
-  collectHashtagLinks(fileNode, childNodes, wikilinks)
+  // Emit sigil link rows (`#tag`, `@mention`, `+project`) alongside
+  // wikilinks. The downstream loader inserts every entry into the `links`
+  // table — sigil entries carry a pre-computed canonical `href` so the
+  // resolver passes them through unchanged. Per docs/design/model/klink.md,
+  // bare `@blah ≡ [[@blah]]` and both must produce `km:@blah` in the
+  // links table. See @km/all/dissolve-data-tags-to-links and
+  // @km/agent/sigil-boards.
+  collectSigilLinks(fileNode, childNodes, wikilinks)
   aggregateRefs(fileNode, childNodes)
   const warnings = validateH1Count(childNodes, fsPath, hadH1, h1Ids)
 
@@ -1157,29 +1160,37 @@ function extractWikilinksFromNodes(allNodes: KNode[]): ExtractedLink[] {
 }
 
 /**
- * Emit synthetic `wikilinks` entries for every `#tag` extracted from
- * heading / list-item title text and YAML frontmatter `tags:` arrays.
+ * Emit synthetic `wikilinks` entries for every sigil reference (`#tag`,
+ * `@mention`, `+project`) extracted from heading / list-item title text
+ * and YAML frontmatter `tags:` arrays.
  *
- * Each entry carries a pre-computed canonical href
- * (`km:%23<tag>` via normalizeLinkHref("bare", "#tag")) so the
- * downstream resolver does not attempt name-resolution and inserts the
- * row verbatim with `rel='link'`.
+ * Each entry carries a pre-computed canonical href via
+ * `normalizeLinkHref("bare", "<sigil><name>")`:
+ *   - `#bug`         → `km:%23bug`
+ *   - `@Alice`       → `km:@Alice`
+ *   - `@km/storage`  → `km:@km/storage`  (path-form, slash passes through)
+ *   - `+cleanup`     → `km:+cleanup`
  *
- * `link.target` is the authored hashtag (e.g. `#task`); `link.embedded`
- * is `false`. Set the relationship to `"tag"` so future readers can
- * distinguish hashtag link rows from wikilink rows if needed (today the
- * loader ignores the field for non-prop links).
+ * Per docs/design/model/klink.md, bare `@blah ≡ [[@blah]]` — both authoring
+ * forms produce the same `km:@blah` row in the canonical `links` table.
+ * The downstream resolver does not attempt name-resolution on these rows
+ * and inserts them verbatim with `rel='link'`.
  *
- * See @km/all/dissolve-data-tags-to-links.
+ * `link.target` is the authored sigil + name (e.g. `#task`, `@Alice`,
+ * `+cleanup`); `link.embedded` is `false`. The relationship is set to
+ * `"tag"` for all sigil rows — the loader ignores the field for non-prop
+ * links today, so distinguishing #/@/+ here would only matter to readers
+ * filtering by relationship (filter by `link.target[0]` instead).
+ *
+ * See @km/all/dissolve-data-tags-to-links and @km/agent/sigil-boards.
  */
-function collectHashtagLinks(fileNode: KNode, childNodes: KNode[], wikilinks: ExtractedLink[]): void {
-  const seen = new Set<string>() // dedupe: same (nodeId, tag) pair
+function collectSigilLinks(fileNode: KNode, childNodes: KNode[], wikilinks: ExtractedLink[]): void {
+  const seen = new Set<string>() // dedupe: same (nodeId, label) pair
 
-  function emit(nodeId: string, tag: string): void {
-    const key = `${nodeId}|${tag}`
+  function emit(nodeId: string, label: string): void {
+    const key = `${nodeId}|${label}`
     if (seen.has(key)) return
     seen.add(key)
-    const label = `#${tag}`
     const href = normalizeLinkHref("bare", label)
     wikilinks.push({
       nodeId,
@@ -1196,16 +1207,19 @@ function collectHashtagLinks(fileNode: KNode, childNodes: KNode[], wikilinks: Ex
   const yamlTags = fileData.tags
   if (Array.isArray(yamlTags)) {
     for (const t of yamlTags) {
-      if (typeof t === "string" && t.length > 0) emit(fileNode.id, t)
+      if (typeof t === "string" && t.length > 0) emit(fileNode.id, `#${t}`)
     }
     delete fileData.tags
   }
 
-  // Inline hashtags in node content (file H1, headings, list items, paragraphs).
+  // Inline sigils (#tag, @mention, +project) in node content
+  // (file H1, headings, list items, paragraphs).
   for (const node of [fileNode, ...childNodes]) {
     if (!node.content) continue
     const refs = extractAllRefs(node.content)
-    for (const t of refs.tags) emit(node.id, t)
+    for (const t of refs.tags) emit(node.id, `#${t}`)
+    for (const m of refs.mentions) emit(node.id, `@${m}`)
+    for (const p of refs.projects) emit(node.id, `+${p}`)
   }
 }
 
