@@ -1,8 +1,10 @@
 ---
 mentions:
   - km
-id: "@km/board/body-virtual-cleanup"
+id: "@km/tui/board-body-virtual-cleanup"
 aliases:
+  - body-virtual-cleanup
+  - "@km/board/body-virtual-cleanup"
   - km-board.body-virtual-cleanup
   - km-board-body-virtual-cleanup
 created_by: Bjørn Stabell

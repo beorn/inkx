@@ -111,12 +111,14 @@ While cheap, it means shallow comparison always fails for this field.
 ## Fix Plan (priority order)
 
 1. **Fix useApp() equality check** — Add Object.is comparison in the subscriber:
-  ```tsx
-  store.subscribe((newState) => {
-    const next = selectorRef.current(newState)
-    setState(prev => Object.is(prev, next) ? prev : next)
-  })
-  ```
+
+```tsx
+store.subscribe((newState) => {
+  const next = selectorRef.current(newState)
+  setState(prev => Object.is(prev, next) ? prev : next)
+})
+```
+
 2. **Stabilize boardState ref** — Only create new boardState when flat fields actually change.
    Compare before/after in withBoardState.
 3. **Remove or debounce updateLayout write-back** — Use a ref instead of store for layout,

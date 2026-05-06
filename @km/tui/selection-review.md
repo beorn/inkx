@@ -23,21 +23,21 @@ Thorough review of km's selection model — shift-extend, click-select, multi-se
 Review against:
 
 1. Decker's approach:
-  - removeNesting() in areaselect.ts (dedup children when parent selected)
-  - selectedIds as flat source of truth + per-item derived state
-  - Area select with disjunctiveUnion for extend mode
-  - DOM-based spatial selection (isTouching, isContaining)
-2. Best practices from VS Code, Notion, Asana, Finder:
-  - Click = select single
-  - Shift+click = range select (anchor to focus)
-  - Cmd+click = toggle individual in set
-  - Shift+arrow = extend selection by one
-  - Range walk algorithm: getSelectionRange(anchor, focus) → string[]
-3. km's current state:
-  - multiSelected: Set<string> with expandWithDescendants()
-  - handleExtendSelectVertical adds one at a time (no range jump)
-  - syncMultiSelected diffs signals
-  - Pop-out to parent at sibling boundary (just implemented)
+- removeNesting() in areaselect.ts (dedup children when parent selected)
+- selectedIds as flat source of truth + per-item derived state
+- Area select with disjunctiveUnion for extend mode
+- DOM-based spatial selection (isTouching, isContaining)
+7. Best practices from VS Code, Notion, Asana, Finder:
+- Click = select single
+- Shift+click = range select (anchor to focus)
+- Cmd+click = toggle individual in set
+- Shift+arrow = extend selection by one
+- Range walk algorithm: getSelectionRange(anchor, focus) → string[]
+14. km's current state:
+- multiSelected: Set<string> with expandWithDescendants()
+- handleExtendSelectVertical adds one at a time (no range jump)
+- syncMultiSelected diffs signals
+- Pop-out to parent at sibling boundary (just implemented)
 
 Deliverables:
 

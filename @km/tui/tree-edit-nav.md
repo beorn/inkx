@@ -27,10 +27,10 @@ cardNodeId is manual state that must be propagated through every edit transition
 
 1. Delete cardNodeId from InlineEditBlock — already derived in Board.tsx (befc0a11)
 2. Rewrite handleEditBlockNavigate to use tree traversal:
-  - Within-node: blocks (title + body) — already works
-  - Cross-node: repo.getChildren(parentId) for siblings, then parent's next sibling
-  - No col.cardNodes lookup needed — works at any tree depth
-3. Card expansion stays derived (Board.tsx syncEdit)
+- Within-node: blocks (title + body) — already works
+- Cross-node: repo.getChildren(parentId) for siblings, then parent's next sibling
+- No col.cardNodes lookup needed — works at any tree depth
+8. Card expansion stays derived (Board.tsx syncEdit)
 
 ## Evidence of completion
 

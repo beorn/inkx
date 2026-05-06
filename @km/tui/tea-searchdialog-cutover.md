@@ -108,12 +108,12 @@ Per dual-pro review 3 (2026-04-21): HelpOverlay mini-cutover validated the reduc
 1. Read HelpOverlay cutover (hub/km/tea-mini-cutover-help-overlay.md) as baseline pattern
 2. Find SearchDialog source (grep apps/@km/tui/src/views/SearchDialog*)
 3. Design withSearchDialog() plugin mirroring HelpOverlay's shape BUT extending for:
-  - Text input state (query, caret)
-  - Async search result lifecycle
-  - Focus scope participation
-4. Port incrementally, behind KM_TEA_SEARCH=1 feature flag
-5. Parity tests: every old behavior passes against both paths
-6. Termless real-TTY verification
+- Text input state (query, caret)
+- Async search result lifecycle
+- Focus scope participation
+10. Port incrementally, behind KM_TEA_SEARCH=1 feature flag
+11. Parity tests: every old behavior passes against both paths
+12. Termless real-TTY verification
 
 ## Falsifiable outcome
 

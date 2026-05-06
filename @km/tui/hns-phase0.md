@@ -23,14 +23,14 @@ Freeze current visual semantics before any refactoring begins.
 
 1. Run + capture golden baselines: cursor-colors.test.ts, board-selection.slow.spec.ts, column-rendering.test.ts
 2. Add 5 missing golden tests:
-  - Cursor-in-descendant visual at ALL levels (column, card, sub-item) — not just cards
-  - Edit expansion (card expands when child enters edit)
-  - Excluded sigil filtering
-  - Batch atomicity (no stale reads during transition)
-  - Reduced signal sync correctness (all signals agree after batch)
-3. Rewrite board-test.ts helper (~400 LOC) to support batch() semantics alongside old API
-4. Capture cursor-perf bench baseline (wall + per-phase breakdown)
-5. Fix pre-existing test failures (4: windowing-wire pane focus + symlink task cycling)
+- Cursor-in-descendant visual at ALL levels (column, card, sub-item) — not just cards
+- Edit expansion (card expands when child enters edit)
+- Excluded sigil filtering
+- Batch atomicity (no stale reads during transition)
+- Reduced signal sync correctness (all signals agree after batch)
+10. Rewrite board-test.ts helper (~400 LOC) to support batch() semantics alongside old API
+11. Capture cursor-perf bench baseline (wall + per-phase breakdown)
+12. Fix pre-existing test failures (4: windowing-wire pane focus + symlink task cycling)
 
 ## Delete
 

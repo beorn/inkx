@@ -36,14 +36,14 @@ on Column + VirtualList re-renders.
 ## Solution
 
 1. Split `useIsCursorInColumn` into:
-  - `useIsColumnSelected(colIndex)` → { isSelected, selectionLevel } — stable on j/k
-  - `useCursorCardIndex(colIndex)` → number — for scroll tracking only
-2. Column subscribes to `useIsColumnSelected` only — doesn't re-render on j/k
-3. Add `ColumnScrollTracker` (null-rendering component) that:
-  - Subscribes to `useCursorCardIndex`
-  - Calls `virtualListRef.scrollToItem()` imperatively
-  - Only causes VirtualList re-render when scroll offset actually changes
-4. Card uses `useIsCursorAtCard` exclusively (remove prop dependency)
+- `useIsColumnSelected(colIndex)` → { isSelected, selectionLevel } — stable on j/k
+- `useCursorCardIndex(colIndex)` → number — for scroll tracking only
+5. Column subscribes to `useIsColumnSelected` only — doesn't re-render on j/k
+6. Add `ColumnScrollTracker` (null-rendering component) that:
+- Subscribes to `useCursorCardIndex`
+- Calls `virtualListRef.scrollToItem()` imperatively
+- Only causes VirtualList re-render when scroll offset actually changes
+12. Card uses `useIsCursorAtCard` exclusively (remove prop dependency)
 
 ## Expected: Common case (cursor in window) = ~3ms
 

@@ -26,9 +26,11 @@ props:
     type: list
     values:
       - type: link
-        target: "@km/silvery/gap-analysis-vs-km"
+        target: km-review.silvery-gap-analysis
       - type: link
         target: km-silvery.selection-focus-plateau
+      - type: link
+        target: "@km/silvery/gap-analysis-vs-km"
 ---
 
 # [ ] Real-vault smoke test to catch dogfood bugs that unit tests miss @km/tui #task #P3

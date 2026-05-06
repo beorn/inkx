@@ -26,14 +26,14 @@ Filter feature for all views:
 2. Filter dialog appears in TOP-RIGHT corner (not center/bottom)
 3. Filter status indicator in breadcrumbs bar (top-right), not bottom bar
 4. Property-based filters with easy toggle (not just text search):
-  - Task status (todo, wip, done, dropped) — checkboxes/toggles
-  - Priority (P1-P4)
-  - Due date (overdue, today, this week, no date)
-  - Assigned to (list of assignees)
-  - Tags/labels
-  - Node color
-  - Node type (task, note, heading, etc.)
-5. Multiple filters can be active simultaneously (AND logic)
-6. Filter state should persist across sessions
-7. When dialog is closed but filters active, show compact status in breadcrumbs bar (e.g., 'F: status=todo,wip')
+- Task status (todo, wip, done, dropped) — checkboxes/toggles
+- Priority (P1-P4)
+- Due date (overdue, today, this week, no date)
+- Assigned to (list of assignees)
+- Tags/labels
+- Node color
+- Node type (task, note, heading, etc.)
+16. Multiple filters can be active simultaneously (AND logic)
+17. Filter state should persist across sessions
+18. When dialog is closed but filters active, show compact status in breadcrumbs bar (e.g., 'F: status=todo,wip')
 

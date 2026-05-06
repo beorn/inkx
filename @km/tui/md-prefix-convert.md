@@ -21,19 +21,19 @@ Roam/Notion-style markdown prefix conversion during inline editing. Two behavior
 
 When the user types a recognized markdown prefix at the START of a node's content in edit mode, convert the node type and strip the prefix from content:
 
-| Prefix typed         | Resulting type | Notes                                             |
-| -------------------- | -------------- | ------------------------------------------------- |
-| -                    | li (bulleted)  | Unordered list item, marker='-'                   |
-| *                    | li (bulleted)  | Unordered list item, marker='*'                   |
-| 1.                   | li (numbered)  | Ordered list item                                 |
-| #                    | oi (section)   | h1 depth heading/section                          |
-| ##                   | oi (section)   | h2 depth                                          |
-| ###                  | oi (section)   | h3 depth                                          |
-| []  or [ ]           | task trait     | Add task_marker '[ ]', keep type                  |
-| [x]                  | task trait     | Add task_marker '[x]' (done)                      |
-| >                    | quote          | Block quote                                       |
-| ---  or ***  or ___  | hr             | Horizontal rule (integrates with @km/tui/hr-edit) |
-| \`` `                | code           | Code block (fenced)                               |
+| Prefix typed        | Resulting type | Notes                                             |
+| ------------------- | -------------- | ------------------------------------------------- |
+| -                   | li (bulleted)  | Unordered list item, marker='-'                   |
+| *                   | li (bulleted)  | Unordered list item, marker='*'                   |
+| 1.                  | li (numbered)  | Ordered list item                                 |
+| #                   | oi (section)   | h1 depth heading/section                          |
+| ##                  | oi (section)   | h2 depth                                          |
+| ###                 | oi (section)   | h3 depth                                          |
+| []  or [ ]          | task trait     | Add task_marker '[ ]', keep type                  |
+| [x]                 | task trait     | Add task_marker '[x]' (done)                      |
+| >                   | quote          | Block quote                                       |
+| ---  or ***  or ___ | hr             | Horizontal rule (integrates with @km/tui/hr-edit) |
+| `                   | code           | Code block (fenced)                               |
 
 Detection: trigger when user types the space (or newline for code fence) after the prefix. Strip the prefix from displayed content.
 

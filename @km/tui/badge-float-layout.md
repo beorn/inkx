@@ -52,23 +52,23 @@ vs desired:
 **Implementation options**:
 
 1. **position: absolute + manual text pre-wrap** (medium complexity)
-  - Badge: `position='absolute' top=0 right=0`
-  - Content: wrap text manually so line 1 is max (width - badgeWidth), lines 2+ max width
-  - Custom wrap calculator using measureText helpers
-  - Most faithful to CSS float, no new silvery primitive
-2. **New silvery primitive: `float='right'` on Box** (hard, biggest payoff)
-  - Extends flexily layout to handle floats
-  - Universal: any component with floating children gets this behavior for free
-  - Requires deep flexily changes (CSS float is non-trivial — intrusions into adjacent flex items)
-3. **Pre-compute line 1 vs line N widths in TreeNode** (low complexity, @km/tui only)
-  - TreeNode measures badge width at render, splits title into two Texts:
-    - First text: sliced at line-1-max-chars, wraps within (width - badgeWidth)
-    - Second text: remainder, wraps within full width
-  - No silvery changes. But fragile — edge cases with inline formatting spans crossing the split point
-  - Doesn't reuse for other badge-like cases
-4. **Accept current behavior** (do nothing)
-  - Narrow content on multi-line tasks is consistent but wastes horizontal space
-  - Users with 80-col terminals would notice more; wide-terminal users less
+- Badge: `position='absolute' top=0 right=0`
+- Content: wrap text manually so line 1 is max (width - badgeWidth), lines 2+ max width
+- Custom wrap calculator using measureText helpers
+- Most faithful to CSS float, no new silvery primitive
+7. **New silvery primitive: `float='right'` on Box** (hard, biggest payoff)
+- Extends flexily layout to handle floats
+- Universal: any component with floating children gets this behavior for free
+- Requires deep flexily changes (CSS float is non-trivial — intrusions into adjacent flex items)
+12. **Pre-compute line 1 vs line N widths in TreeNode** (low complexity, @km/tui only)
+- TreeNode measures badge width at render, splits title into two Texts:
+  - First text: sliced at line-1-max-chars, wraps within (width - badgeWidth)
+  - Second text: remainder, wraps within full width
+- No silvery changes. But fragile — edge cases with inline formatting spans crossing the split point
+- Doesn't reuse for other badge-like cases
+17. **Accept current behavior** (do nothing)
+- Narrow content on multi-line tasks is consistent but wastes horizontal space
+- Users with 80-col terminals would notice more; wide-terminal users less
 
 **Recommendation**: Start with option 3 as a @km/_orphan/tui-local fix. If it works well, consider promoting to option 2 as a silvery primitive. Option 1 is similar to option 3 but wraps the code differently.
 

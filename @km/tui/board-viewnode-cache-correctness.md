@@ -1,8 +1,10 @@
 ---
 mentions:
   - km
-id: "@km/board/viewnode-cache-correctness"
+id: "@km/tui/board-viewnode-cache-correctness"
 aliases:
+  - viewnode-cache-correctness
+  - "@km/board/viewnode-cache-correctness"
   - km-board.viewnode-cache-correctness
   - km-board-viewnode-cache-correctness
 created_by: Bjørn Stabell

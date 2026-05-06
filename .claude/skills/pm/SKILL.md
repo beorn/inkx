@@ -99,7 +99,6 @@ Every scoped bead should use path-form `@km/<scope>/<bead-name>` ids. Scope epic
 | `@km/termless` | termless headless terminal testing | `@km/termless/playwright-renderer` |
 | `@km/terminfo` | terminfo data + tooling | `@km/terminfo/feature-history` |
 | `@km/markdown` | Markdown parser/serializer | `@km/markdown/footnotes` |
-| `@km/board` | Board package | `@km/board/viewnode-cache-correctness` |
 | `@km/cli` | km-cli app (the verb surface) | `@km/cli/segfault-memory-mode` |
 | `@km/bd-compat` | bd compatibility shim work (`km bd` surface, on-ramp) | `@km/bd-compat/api` |
 | `@km/import` | `km import <source>` work (bd, asana, github, …) | `@km/import/asana` |

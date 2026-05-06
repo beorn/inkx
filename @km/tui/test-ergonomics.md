@@ -20,15 +20,15 @@ Add fluent test helpers to board-test.ts and migrate all 22 test files to use th
 ## New Helpers (in createFluentBoardApi)
 
 1. board.editNode(nodeId, opts?) — enter edit mode on any node (incl sub-sections)
-  - Encapsulates store.getState().setUI({ inlineEditBlock: ... }) + flush
-  - opts: { block?: number, card?: string }
-2. board.setUI(partial) — thin proxy for store.setUI with auto-flush
-  - Eliminates store.getState().setUI() + board.press("") pattern
-3. board.expectEditing(nodeId?) / board.expectNotEditing()
-  - Replaces getActiveBoardPane(store.getState())?.inlineEditBlock checks
-4. board.expectState({ editing?, viewMode?, filterText?, cursor? })
-  - Declarative assertion over pane state
-  - Replaces 313 getActiveBoardPane chains across 22 files
+- Encapsulates store.getState().setUI({ inlineEditBlock: ... }) + flush
+- opts: { block?: number, card?: string }
+5. board.setUI(partial) — thin proxy for store.setUI with auto-flush
+- Eliminates store.getState().setUI() + board.press("") pattern
+8. board.expectEditing(nodeId?) / board.expectNotEditing()
+- Replaces getActiveBoardPane(store.getState())?.inlineEditBlock checks
+11. board.expectState({ editing?, viewMode?, filterText?, cursor? })
+- Declarative assertion over pane state
+- Replaces 313 getActiveBoardPane chains across 22 files
 
 ## Migration
 

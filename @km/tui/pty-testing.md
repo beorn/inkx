@@ -38,12 +38,12 @@ Also have TTY MCP tools (`mcp__tty__start`, `mcp__tty__screenshot`, etc.) for in
 
 1. **PTY tests are slow** (~20-30s each due to startup + settle waits). Need faster warm-start or session reuse.
 2. **No visual regression testing**: PTY tests check text content but not pixel-level rendering. Can't detect:
-  - White flash artifacts
-  - Cursor position rendering bugs
-  - Color/style regressions
-3. **No auto-repeat simulation**: `engine.press("j")` sends one key event. Real auto-repeat sends keys at 30Hz with specific timing. Need `engine.repeatKey("j", { count: 20, rateHz: 30 })`.
-4. **No screenshot comparison**: `mcp__tty__screenshot` captures what we'd see, but no automated comparison between expected and actual.
-5. **CI integration**: PTY tests need `*.slow.spec.ts` pattern to separate from fast tests.
+- White flash artifacts
+- Cursor position rendering bugs
+- Color/style regressions
+8. **No auto-repeat simulation**: `engine.press("j")` sends one key event. Real auto-repeat sends keys at 30Hz with specific timing. Need `engine.repeatKey("j", { count: 20, rateHz: 30 })`.
+9. **No screenshot comparison**: `mcp__tty__screenshot` captures what we'd see, but no automated comparison between expected and actual.
+10. **CI integration**: PTY tests need `*.slow.spec.ts` pattern to separate from fast tests.
 
 ## Proposed Approach
 
