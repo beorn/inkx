@@ -267,7 +267,7 @@ function AutolinkSpan({ detection: d }: { detection: AutolinkDetection }): React
   const onMouseEnter = React.useCallback(
     (e: SilveryMouseEvent) => {
       if (!popover) return
-      popover.show(autolinkPopoverContent(d), { x: e.clientX, y: e.clientY })
+      popover.show(autolinkPopoverContent(d), { x: e.clientX ?? e.x, y: e.clientY ?? e.y })
     },
     [popover, d],
   )

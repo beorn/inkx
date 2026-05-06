@@ -104,13 +104,13 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
 
   const handleMouseEnter = useCallback(
     (e: SilveryMouseEvent) => {
-      mousePos.current = { x: e.clientX, y: e.clientY }
+      mousePos.current = { x: e.clientX ?? e.x, y: e.clientY ?? e.y }
       nodeStore.setHovered(nodeId)
     },
     [nodeStore, nodeId],
   )
   const handleMouseMove = useCallback((e: SilveryMouseEvent) => {
-    mousePos.current = { x: e.clientX, y: e.clientY }
+    mousePos.current = { x: e.clientX ?? e.x, y: e.clientY ?? e.y }
   }, [])
   const handleMouseLeave = useCallback(() => {
     nodeStore.setHovered(null)

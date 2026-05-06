@@ -98,9 +98,11 @@ const GOLDEN_VAULT = resolve(__dirname, "fixtures/golden-vault")
 const haveVault = existsSync(GOLDEN_VAULT)
 // User's real vault — order-of-magnitude more files than the golden fixture.
 // The strip residue may be parse-order-dependent and only surface above some
-// fixture-size threshold. When present, we run a parallel pass against it.
+// fixture-size threshold. Keep this opt-in because it depends on private local
+// data and can fail on unrelated parse warnings.
 const REAL_VAULT = "/Users/beorn/Bear/Vault"
 const haveReal = existsSync(REAL_VAULT)
+const runRealVaultProbe = process.env.KM_TUI_REAL_VAULT_PROBE === "1"
 
 const COLS = 360
 const ROWS = 120
@@ -161,7 +163,7 @@ function isStripColor(bg: RGB | null): boolean {
 /** Read a cell's bg from a TerminalBuffer, normalizing string|object|null shapes. */
 function readBufferBg(buffer: TerminalBuffer, col: number, row: number): RGB | null {
   const cell = buffer.getCell(col, row)
-  const bg = cell.bg
+  const bg: unknown = cell.bg
   if (!bg) return null
   if (typeof bg === "object" && "r" in bg) return bg as RGB
   if (typeof bg === "string" && bg.startsWith("#") && bg.length === 7) {
@@ -187,7 +189,7 @@ function mountSkeleton(vaultPath: string) {
   // stubs from filesystem discovery; full parse runs in the background.
   // mode:"memory" forces a fresh discovery (don't replay events from a
   // stale .km/state.db) so deferredFiles is always populated.
-  const rawRepo = runGenerator(createRepo(vaultPath, { loadFiles: true, discoverOnly: true, mode: "memory" }))
+  const rawRepo = runGenerator(createRepo(vaultPath, { loadFiles: true, discoverOnly: true, forceMemory: true }))
   const rootNode = rawRepo.getRepoRootNode()
   if (!rootNode) throw new Error(`No board found in vault: ${vaultPath}`)
 
@@ -391,6 +393,9 @@ async function probeSkeletonTransition(vaultPath: string): Promise<{
   }
 
   const [skeletonAnsi, incrementalAnsi] = emitIncrementalSeries([skeletonBuffer, fullBuffer])
+  if (skeletonAnsi === undefined || incrementalAnsi === undefined) {
+    throw new Error("[probe] incremental series did not emit skeleton and full frames")
+  }
   const skeletonBytes = new TextEncoder().encode(skeletonAnsi)
   const incrementalBytes = new TextEncoder().encode(incrementalAnsi)
 
@@ -450,7 +455,7 @@ describe.skipIf(!haveVault)("render: skeleton -> full-parse cascade gap", () => 
   }, 240_000)
 })
 
-describe.skipIf(!haveReal)("render: skeleton -> full-parse cascade gap (real vault)", () => {
+describe.skipIf(!haveReal || !runRealVaultProbe)("render: skeleton -> full-parse cascade gap (real vault)", () => {
   test("real vault: backend paints no orphan bg after skeleton -> full transition", async () => {
     let result
     try {

@@ -60,7 +60,7 @@ export function useLinkInteraction(opts: UseLinkInteractionOpts): LinkInteractio
       hoveredRef.current = true
       setHovered(true)
       if (!popover) return
-      const anchor = { x: e.clientX, y: e.clientY }
+      const anchor = { x: e.clientX ?? e.x, y: e.clientY ?? e.y }
       if (kind === "url" && url) {
         const cached = getCachedMetadata(url)
         if (cached) {
