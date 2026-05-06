@@ -50,6 +50,8 @@ import {
 } from "silvery"
 import { ActivityIndicator, type ActivityStatus } from "./ActivityIndicator.tsx"
 import { AmbientNotificationStack, type AmbientStreamEntry } from "./AmbientEventRow.tsx"
+import { BoundedScroll } from "./BoundedScroll.tsx"
+import { ChatEntryDisclosure } from "./ChatEntryDisclosure.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
 import { ToolCall } from "./ToolCall.tsx"
 import type { TurnActivitySummaryItem } from "./TurnActivitySummary.tsx"
@@ -538,6 +540,53 @@ function BackgroundSystemRow({ text }: { text: string }): React.ReactElement {
         {text}
       </Text>
     </SessionEntry>
+  )
+}
+
+function ExpandableSystemRow({
+  text,
+  details,
+  onDisclosureToggle,
+}: {
+  text: string
+  details: string
+  onDisclosureToggle?: () => void
+}): React.ReactElement {
+  return (
+    <ChatEntryDisclosure popover={null} onExpandedChange={() => onDisclosureToggle?.()}>
+      {({ surfaceProps, isHovered, expanded }) => (
+        <Box
+          {...surfaceProps}
+          flexDirection="column"
+          minWidth={0}
+          backgroundColor={isHovered ? "$bg-surface-hover" : undefined}
+        >
+          <SessionEntry
+            marker={
+              <Text color="$info" {...surfaceProps}>
+                {expanded ? "▾" : "▸"}
+              </Text>
+            }
+            markerColor="$info"
+          >
+            <Box flexDirection="column" minWidth={0}>
+              <Text color="$info" wrap="wrap" {...surfaceProps}>
+                {text}
+              </Text>
+              {expanded ? (
+                <Box flexDirection="column" paddingTop={1} minWidth={0}>
+                  <BoundedScroll>
+                    <Text color="$muted" wrap="wrap">
+                      {details}
+                    </Text>
+                  </BoundedScroll>
+                </Box>
+              ) : null}
+            </Box>
+          </SessionEntry>
+        </Box>
+      )}
+    </ChatEntryDisclosure>
   )
 }
 
@@ -1197,6 +1246,17 @@ function ExchangeItem({
     )
   }
   if (m.role === "system") {
+    const details = m.additionalContext ?? ""
+    const isCompactSummary = m.text === "Compact summary" && details.length > 0
+    if (isCompactSummary) {
+      return (
+        <TimestampedRow timestamp={formatTime(m.ts)} side="left">
+          <Chat.Notification>
+            <ExpandableSystemRow text={m.text} details={details} onDisclosureToggle={onDisclosureToggle} />
+          </Chat.Notification>
+        </TimestampedRow>
+      )
+    }
     return (
       <RawInspector payload={m.additionalContext ? { text: m.text, raw: m.additionalContext } : m}>
         <TimestampedRow timestamp={formatTime(m.ts)} side="left">
@@ -2021,10 +2081,11 @@ export const SessionUpdateList = React.forwardRef<
         timestamp={formatTime(item.message.ts)}
         onDisclosureToggle={pauseFollowForDisclosure}
       />
-    ) : item.role === "assistant" ? (
+    ) : item.role === "assistant" || item.role === "system" ? (
       // Assistant turns wrap each op (text/tool) individually inside
       // ExchangeItem so the hover popover shows ONLY the hovered op,
-      // not the whole turn's combined JSON.
+      // not the whole turn's combined JSON. System rows may provide their
+      // own disclosure surface, so do not wrap them in another RawInspector.
       <ExchangeItem m={item} showDebug={showDebug} onDisclosureToggle={pauseFollowForDisclosure} />
     ) : (
       <RawInspector payload={item}>

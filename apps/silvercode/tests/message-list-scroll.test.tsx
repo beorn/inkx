@@ -1,9 +1,10 @@
 import React from "react"
 import { describe, expect, test } from "vitest"
-import { createRenderer } from "@silvery/test"
+import { createRenderer, createTermless } from "@silvery/test"
 import { Box } from "silvery"
 import type { MessageEntry, TurnId } from "@km/agent-harness"
 import { SessionUpdateList } from "../src/components/SessionUpdateList.tsx"
+import { run } from "silvery/runtime"
 
 function userMessage(id: string, text: string, ts: number): MessageEntry {
   return {
@@ -29,7 +30,7 @@ function assistantMessage(id: string, text: string, ts: number): MessageEntry {
   } as unknown as MessageEntry
 }
 
-function systemMessage(id: string, text: string, ts: number): MessageEntry {
+function systemMessage(id: string, text: string, ts: number, additionalContext?: string): MessageEntry {
   return {
     id: id as TurnId,
     role: "system",
@@ -37,6 +38,7 @@ function systemMessage(id: string, text: string, ts: number): MessageEntry {
     text,
     toolCalls: [],
     toolResults: [],
+    additionalContext,
     ts,
   } as unknown as MessageEntry
 }
@@ -66,7 +68,55 @@ function lineIndex(lines: string[], needle: string): number {
   return lines.findIndex((line) => line.includes(needle))
 }
 
+const settle = (ms = 60) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+
 describe("SessionUpdateList scroll", () => {
+  test("compact summary system row expands inline on click", async () => {
+    using term = createTermless({ cols: 100, rows: 18 })
+    const handle = await run(
+      <Box width={100} height={18} flexDirection="column">
+        <SessionUpdateList
+          messages={[
+            systemMessage(
+              "compact-summary",
+              "Compact summary",
+              1000,
+              "This session is being continued from a previous conversation.\nSUMMARY-BODY-MARKER",
+            ),
+          ]}
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+          sessionId="scroll-test"
+          onApprove={() => {}}
+          onDeny={() => {}}
+          follow={false}
+        />
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle()
+      expect(term.screen.getText()).toContain("Compact summary")
+      expect(term.screen.getText()).not.toContain("SUMMARY-BODY-MARKER")
+
+      const lines = term.screen.getLines()
+      const row = lineIndex(lines, "Compact summary")
+      expect(row).toBeGreaterThanOrEqual(0)
+      const col = lines[row]!.indexOf("Compact summary")
+      await term.mouse.click(col + 1, row)
+      await settle()
+
+      expect(term.screen.getText()).toContain("SUMMARY-BODY-MARKER")
+    } finally {
+      handle.unmount()
+    }
+  })
+
   test("wheel-up from resumed tail keeps transcript content visible", async () => {
     const long = `data:image/png;base64,${"a".repeat(5000)}`
     const messages: MessageEntry[] = [
