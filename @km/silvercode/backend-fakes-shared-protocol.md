@@ -16,7 +16,7 @@ props:
     target: km-silvercode.backend-fakes
 ---
 
-# Shared fake ACP backend and contract runner #task #P1
+# [/] Shared fake ACP backend and contract runner #task #P1
 
 blocks:: [[@km/silvercode/backend-fakes]]
 
@@ -43,3 +43,22 @@ Create the shared fake backend core that speaks ACP over stdio and can be config
 - The fake backend drives the real `acp-client.ts` adapter, not a mocked `AgentSession`.
 - Contract runner has fake mode as default and live mode behind an explicit env flag.
 - At least one config-option scenario proves fake and live runners use the same assertions.
+
+## Implementation Progress
+
+2026-05-06 first vertical slice:
+
+- Added `@km/agent-harness/testing/fake-acp-server`, a shared in-process ACP fake behind the real `connectAcp` spawn seam.
+- Added `createFakeCodexAcpSpawn()` with stateful `session/set_config_option` support for the Codex reasoning-effort profile.
+- Added `AcpAgentSession.configOptions` and `AcpAgentSession.setSessionConfigOption()` so tests and callers can observe and mutate the ACP config surface.
+- Verified `connectAcpRegistry(..., "codex")` can connect to the fake and exercise config options without launching a real backend.
+
+Verification: `fake-acp-server.test.ts` + `acp-client.test.ts` 31/31 pass; `npx tsc --noEmit` passes; targeted `oxlint`/`oxfmt` pass; `git diff --check` passes.
+
+2026-05-06 contract-runner slice:
+
+- Added `@km/agent-harness/testing/backend-contract-runner`.
+- Added `apps/silvercode/tests/backend-contracts/config-options.contract.test.ts`.
+- Fake targets run by default; `SILVERCODE_BACKEND_CONTRACT=live` appends the live Codex target and reuses the same assertion.
+
+Verification: `backend-contract-runner.test.ts` + `config-options.contract.test.ts` 3/3 pass.

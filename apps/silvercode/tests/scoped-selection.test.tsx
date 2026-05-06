@@ -144,7 +144,9 @@ describe("silvercode: drag selection is scoped to the origin surface", () => {
     await settle()
     term.clipboard.clear()
 
-    const found = term.find("Another selectable")
+    const found = (term as unknown as { find(text: string): { row: number; col: number } | null }).find(
+      "Another selectable",
+    )
     expect(found).not.toBeNull()
     if (!found) throw new Error("transcript text did not render")
 

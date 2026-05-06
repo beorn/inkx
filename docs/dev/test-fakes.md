@@ -51,7 +51,11 @@ Run `TEST_MODE=real bun run test:all` periodically to detect drift.
 
 ## Silvercode Backend Fakes
 
-Silvercode agent backend fakes are planned as a Layer 2 fake family: a fake backend process/server that speaks ACP or the legacy stream protocol while the real Silvercode adapter code runs above it. This follows the same principle as `FakeFileSystem` and Cloudi's Gmail API mock: fake the external boundary, not the application state.
+Silvercode agent backend fakes are a Layer 2 fake family: a fake backend process/server that speaks ACP or the legacy stream protocol while the real Silvercode adapter code runs above it. This follows the same principle as `FakeFileSystem` and Cloudi's Gmail API mock: fake the external boundary, not the application state.
+
+The first ACP fake lives at `@km/agent-harness/testing/fake-acp-server`. It exposes `createFakeAcpSpawn()` for profile-driven fakes, `createFakeAcpRegistrySpawn()` for every registered ACP backend id, and `createFakeCodexAcpSpawn()` for the Codex config-options profile. Use it when a test needs to prove `connectAcp` or `connectAcpRegistry` handles real ACP wire behavior such as `session/set_config_option`.
+
+Backend contracts use `@km/agent-harness/testing/backend-contract-runner`. Fake targets run by default; setting `SILVERCODE_BACKEND_CONTRACT=live` appends live targets so the same assertion catches fake-vs-real drift.
 
 See [silvercode-backend-fakes.md](silvercode-backend-fakes.md) for the full plan, backend profile split, and fake/live drift contract strategy.
 
@@ -273,11 +277,7 @@ Compact tree-style fixture builder using nested function calls. Content is used 
 import { item, testEnv } from "../helpers/board-test"
 
 // Create nodes inline - content becomes ID
-const nodes = item(
-  "board",
-  item("col1", item("1a"), item("1b")),
-  item("col2", item("2a")),
-)
+const nodes = item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a")))
 
 // With rules (WIP limits, etc.)
 const nodes = item("board", item("col1 km.limit:: 3", item("1a"), item("1b")))
@@ -299,9 +299,7 @@ One-line fixture creation + rendering with fluent API. Combines tree builder wit
 import { testEnv, item } from "../helpers/board-test"
 
 // Create and render in one call
-const { board } = testEnv(() =>
-  item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))),
-)
+const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
 
 // Fluent assertions
 board.press("j").expect("#1b[data-cursor]").toExist()

@@ -130,6 +130,7 @@ export type {
   AcpAgentSession,
   AcpConnectOpts,
   AcpRegistryId,
+  AcpSetSessionConfigOptionParams,
   AcpSpawn,
   AcpSpawnedChild,
   FsHandler,
@@ -153,6 +154,45 @@ export type {
   ScriptStep,
   ScriptedDecisions,
 } from "./fake.ts"
+
+// Layer 2 ACP backend fake — in-process ACP server behind a fake spawn seam.
+// Use this for contract tests that need the real ClientSideConnection wire
+// path without launching Codex/Gemini/Copilot/pi-acp binaries.
+export {
+  claudeAcpProfile,
+  claudeCodeAcpProfile,
+  codexAcpProfile,
+  copilotAcpProfile,
+  createFakeAcpRegistrySpawn,
+  createFakeAcpSpawn,
+  createFakeCodexAcpSpawn,
+  geminiAcpProfile,
+  piAcpProfile,
+} from "./testing/fake-acp-server.ts"
+export type {
+  FakeAcpBackendController,
+  FakeAcpBackendProfile,
+  FakeAcpRegistrySpawnOptions,
+  FakeAcpSessionSnapshot,
+  FakeAcpSpawnHandle,
+  FakeCodexAcpSpawnOptions,
+} from "./testing/fake-acp-server.ts"
+export {
+  acpBackendContractTargetsForEnv,
+  assertConfigOptionRoundTrip,
+  runAcpBackendContract,
+} from "./testing/backend-contract-runner.ts"
+export type {
+  AcpBackendContractContext,
+  AcpBackendContractMode,
+  AcpBackendContractEnv,
+  AcpBackendContractResult,
+  AcpBackendContractTarget,
+  AcpBackendContractTargets,
+  ConfigOptionRoundTripContract,
+  FakeAcpBackendContractTarget,
+  LiveAcpBackendContractTarget,
+} from "./testing/backend-contract-runner.ts"
 
 // ---------------------------------------------------------------------------
 // ACP session — silvery-house-style reactive wrapper around the legacy

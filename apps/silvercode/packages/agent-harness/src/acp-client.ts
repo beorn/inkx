@@ -150,6 +150,10 @@ export class AcpResumeUnsupportedError extends Error {
   }
 }
 
+export type AcpSetSessionConfigOptionParams =
+  | { configId: acp.SessionConfigId; type: "boolean"; value: boolean; _meta?: Record<string, unknown> | null }
+  | { configId: acp.SessionConfigId; value: acp.SessionConfigValueId; _meta?: Record<string, unknown> | null }
+
 /**
  * Handle for a live connection to an external ACP server. Extends the
  * existing silvercode `AgentSession` so consumers (session-store, UI) can
@@ -162,6 +166,8 @@ export interface AcpAgentSession extends AgentSession {
   readonly capabilities: acp.AgentCapabilities
   /** Authentication methods the agent advertised. Empty if no auth required. */
   readonly authMethods: acp.AuthMethod[]
+  /** Latest session config options advertised by the agent. */
+  readonly configOptions: acp.SessionConfigOption[]
   /** Negotiated protocol version. */
   readonly protocolVersion: number
   /**
@@ -173,6 +179,12 @@ export interface AcpAgentSession extends AgentSession {
   cancel(): Promise<void>
   /** Authenticate with the given method id (subscription OAuth, env-var, etc.). */
   authenticate(methodId: string): Promise<acp.AuthenticateResponse | void>
+  /**
+   * Set an ACP session config option on the active session. The response
+   * carries the full option set because agents may change related options
+   * after one value changes.
+   */
+  setSessionConfigOption(params: AcpSetSessionConfigOptionParams): Promise<acp.SetSessionConfigOptionResponse>
   /**
    * Resume an existing session within this open connection. The agent
    * re-emits prior SessionUpdate notifications during load. Throws
@@ -455,8 +467,8 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
   )
 
   let resolveExit: (() => void) | null = null
-  const exitPromise = new Promise<void>((r) => {
-    resolveExit = r
+  const exitPromise = new Promise<void>((resolve) => {
+    resolveExit = resolve
   })
   child.on("exit", (code, signal) => {
     exited = true
@@ -470,6 +482,7 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
   // Build the bus for AgentEvent subscribers (legacy session-store path).
   const bus = new EventEmitter()
   let sessionId: SessionId = "acp-pending" as SessionId
+  let configOptions: acp.SessionConfigOption[] = []
   let closed = false
   let sentTerm = false
   // Active prompt turn id — shared across every SessionUpdate notification
@@ -661,6 +674,9 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
     // eslint-disable-next-line @typescript-eslint/require-await
     async sessionUpdate(params: acp.SessionNotification): Promise<void> {
       dWire("sessionUpdate %s", params.update.sessionUpdate)
+      if (params.update.sessionUpdate === "config_option_update") {
+        configOptions = params.update.configOptions
+      }
       try {
         const mapped = mapSessionUpdateToLegacyEvents(params, sessionId, turnIdForUpdate())
         for (const ev of mapped) {
@@ -759,10 +775,11 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
 
   // When the connection closes (stream EOF), mark closed + emit session-end.
   void agent.closed.then(() => {
-    if (closed) return
+    if (closed) return undefined
     closed = true
     emit({ kind: "session-lifecycle", sessionId, state: "ended", ts: Date.now() })
     emit({ kind: "session-end", sessionId, ts: Date.now() })
+    return undefined
   })
 
   // Initialize — exchanges protocol version + capabilities.
@@ -785,11 +802,12 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
       }
       sessionId = opts.resume.sessionId as SessionId
       dSpawn("loadSession sessionId=%s cwd=%s", sessionId, sessionCwd)
-      await agent.loadSession({
+      const loadSessionResult = await agent.loadSession({
         sessionId: opts.resume.sessionId as acp.SessionId,
         cwd: sessionCwd,
         mcpServers: opts.mcpServers ?? [],
       })
+      configOptions = loadSessionResult.configOptions ?? []
       dSpawn("loadSession ok sessionId=%s", sessionId)
     } else {
       const newSessionResult = await agent.newSession({
@@ -797,6 +815,7 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
         mcpServers: opts.mcpServers ?? [],
       })
       sessionId = newSessionResult.sessionId as SessionId
+      configOptions = newSessionResult.configOptions ?? []
       dSpawn("newSession ok sessionId=%s", sessionId)
     }
     // Surface a legacy session-init so existing session-store consumers
@@ -831,6 +850,9 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
     agent,
     capabilities: init.agentCapabilities ?? {},
     authMethods: init.authMethods ?? [],
+    get configOptions(): acp.SessionConfigOption[] {
+      return configOptions
+    },
     protocolVersion: init.protocolVersion,
 
     send(text: string): void {
@@ -929,6 +951,15 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
       return agent.authenticate({ methodId })
     },
 
+    async setSessionConfigOption(params: AcpSetSessionConfigOptionParams): Promise<acp.SetSessionConfigOptionResponse> {
+      const result = await agent.setSessionConfigOption({
+        ...params,
+        sessionId,
+      } as acp.SetSessionConfigOptionRequest)
+      configOptions = result.configOptions
+      return result
+    },
+
     async loadSession(
       newSessionId: string,
       loadOpts?: { cwd?: string; mcpServers?: acp.McpServer[] },
@@ -943,6 +974,7 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
         cwd: resolvedCwd,
         mcpServers: loadOpts?.mcpServers ?? opts.mcpServers ?? [],
       })
+      configOptions = result.configOptions ?? []
       // Surface a legacy session-init for any consumers that materialize state
       // from it. The replayed SessionUpdate notifications fired by the agent
       // during load will continue to arrive on the existing notification path.

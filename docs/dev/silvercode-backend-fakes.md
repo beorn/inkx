@@ -76,12 +76,12 @@ The missing layer is a fake backend process/server that speaks the same ACP or s
 
 Use explicit layers so tests choose the smallest fake that still covers the behavior.
 
-| Layer | Fake | Boundary | Use When |
-|---|---|---|---|
-| 0 | Pure function fixtures | Function input/output | Parser, reducer, formatting |
-| 1 | `AgentSession` fake | Harness session interface | SessionStore/UI behavior only |
-| 2 | Fake backend process/server | ACP or stream-json protocol | Adapter integration, config options, permissions, prompt lifecycle |
-| 3 | Live backend | Real external binary/service | Drift checks, auth, release smoke |
+| Layer | Fake                        | Boundary                     | Use When                                                           |
+| ----- | --------------------------- | ---------------------------- | ------------------------------------------------------------------ |
+| 0     | Pure function fixtures      | Function input/output        | Parser, reducer, formatting                                        |
+| 1     | `AgentSession` fake         | Harness session interface    | SessionStore/UI behavior only                                      |
+| 2     | Fake backend process/server | ACP or stream-json protocol  | Adapter integration, config options, permissions, prompt lifecycle |
+| 3     | Live backend                | Real external binary/service | Drift checks, auth, release smoke                                  |
 
 Layer 2 is the new work. Config options must use Layer 2 because `session/set_config_option` is a protocol feature.
 
@@ -89,7 +89,43 @@ Layer 2 is the new work. Config options must use Layer 2 because `session/set_co
 
 Create a shared fake ACP backend with profile-driven behavior.
 
-Proposed package surface:
+Proposed package layout:
+
+```text
+apps/silvercode/
+├── packages/agent-harness/src/testing/
+│   ├── fake-acp-server.ts          # shared ACP fake engine
+│   ├── fake-acp-stdio-bin.ts       # stdio entry point for process-boundary tests
+│   ├── backend-contract-runner.ts  # fake/live contract harness
+│   ├── backend-profiles/
+│   │   ├── codex.ts
+│   │   ├── claude.ts
+│   │   ├── gemini.ts
+│   │   ├── copilot.ts
+│   │   └── pi-acp.ts
+│   └── scenarios/
+│       ├── config-options.ts
+│       ├── permission.ts
+│       ├── prompt-text.ts
+│       ├── resume.ts
+│       └── stdout-pollution.ts
+└── tests/backend-contracts/
+    ├── acp-contracts.test.ts
+    ├── config-options.contract.test.ts
+    └── legacy-spawn-contracts.test.ts
+```
+
+Implemented first slice:
+
+- `@km/agent-harness/testing/fake-acp-server` provides the shared in-process ACP fake engine.
+- `createFakeAcpSpawn()` wires a real `AgentSideConnection` behind the `connectAcp` spawn seam.
+- `createFakeAcpRegistrySpawn()` provides basic initialize/prompt fake profiles for every registered ACP id: Codex, Gemini, GitHub Copilot CLI, pi-acp, Claude, and Claude Code.
+- `createFakeCodexAcpSpawn()` provides the first profile, including stateful `session/set_config_option` handling.
+- `AcpAgentSession.configOptions` and `AcpAgentSession.setSessionConfigOption()` expose the latest ACP config surface to tests and UI callers.
+- `@km/agent-harness/testing/backend-contract-runner` runs the same assertion function against fake targets by default and live targets when `SILVERCODE_BACKEND_CONTRACT=live`.
+- `apps/silvercode/tests/backend-contracts/config-options.contract.test.ts` is the first fake/live contract, covering Codex `reasoning_effort`.
+
+Proposed TypeScript surface:
 
 ```typescript
 type FakeAcpProfile = {
@@ -100,6 +136,29 @@ type FakeAcpProfile = {
   scenarios: Record<string, FakeBackendScenario>
 }
 ```
+
+Scenario shape:
+
+```typescript
+type FakeBackendScenario = {
+  name: string
+  requiredCapabilities?: string[]
+  initialConfigOptions?: FakeConfigOption[]
+  onPrompt?: FakePromptHandler
+  updates?: FakeSessionUpdateStep[]
+  faults?: FakeFault[]
+}
+
+type FakeConfigOption = {
+  id: string
+  category: "mode" | "model" | "thought_level" | string
+  label: string
+  value: unknown
+  values?: Array<{ value: unknown; label: string }>
+}
+```
+
+The exact type names can change during implementation, but the important property is that scenarios describe backend behavior, not Silvercode UI state.
 
 The fake should support:
 
@@ -128,6 +187,29 @@ The fake should be usable in two forms:
 
 - Library mode for unit tests.
 - Stdio process mode so `connectAcpRegistry` and process lifecycle code run unchanged.
+
+## Contract Matrix
+
+The shared contract runner should keep a visible matrix of which backends support which scenarios. Unsupported features are explicit expectations, not silent skips.
+
+| Scenario         | Codex        | Claude ACP      | Gemini              | Copilot         | pi-acp          | Legacy Claude   | Legacy Codex       | SDK                             |
+| ---------------- | ------------ | --------------- | ------------------- | --------------- | --------------- | --------------- | ------------------ | ------------------------------- |
+| initialize       | required     | required        | required            | required        | required        | required        | required           | required                        |
+| prompt text      | required     | required        | required            | required        | required        | required        | required           | required                        |
+| permission       | required     | required        | profile-defined     | profile-defined | profile-defined | required        | required           | SDK-defined                     |
+| tool updates     | required     | required        | required            | profile-defined | profile-defined | required        | required           | SDK-defined                     |
+| config list      | required     | profile-defined | profile-defined     | profile-defined | profile-defined | unsupported     | unsupported        | unsupported                     |
+| config set       | required     | profile-defined | profile-defined     | profile-defined | profile-defined | unsupported     | unsupported        | unsupported                     |
+| resume/load      | required     | required        | required            | profile-defined | profile-defined | legacy-specific | codex-jsonl replay | unsupported unless SDK supports |
+| cancel           | required     | required        | required            | required        | required        | required        | required           | required                        |
+| close            | required     | required        | required            | required        | required        | required        | required           | required                        |
+| stdout pollution | not expected | not expected    | required regression | profile-defined | profile-defined | stream-specific | stream-specific    | not applicable                  |
+
+`profile-defined` means the profile must choose one of:
+
+- supported, with expected behavior
+- unsupported, with expected fallback behavior
+- unknown, which blocks shipping that profile until live behavior is checked
 
 ## Backend Profiles
 
@@ -292,6 +374,75 @@ Tests:
 - Fallback test when no config option exists.
 - Live Codex drift test behind `SILVERCODE_BACKEND_CONTRACT=live`.
 
+Expected Codex config fixture:
+
+```typescript
+const codexThoughtLevel = {
+  id: "reasoning_effort",
+  category: "thought_level",
+  label: "Reasoning",
+  value: "medium",
+  values: [
+    { value: "low", label: "Low" },
+    { value: "medium", label: "Medium" },
+    { value: "high", label: "High" },
+    { value: "xhigh", label: "Extra High" },
+  ],
+}
+```
+
+The option id must be learned from real Codex if it differs. The category and value set are the stable contract Silvercode should consume.
+
+## Fake vs Live Drift
+
+Every backend contract has two execution targets:
+
+- `fake`: deterministic, default, no credentials, runs in normal CI.
+- `live`: opt-in, uses real installed backend binaries and credentials.
+
+Drift policy:
+
+1. If fake passes and live fails, inspect whether real backend behavior changed or the fake was too permissive.
+2. If Silvercode depends on the live behavior, update the fake and add a regression scenario.
+3. If live behavior is a backend bug, keep the fake strict and document the live exception in the profile.
+4. If a backend does not support a feature, the profile should assert the fallback behavior rather than skipping.
+
+Live gating should be explicit:
+
+```bash
+SILVERCODE_BACKEND_CONTRACT=live \
+SILVERCODE_BACKENDS=codex,gemini \
+bun vitest run apps/silvercode/tests/backend-contracts
+```
+
+Missing binaries or credentials should skip with a clear reason. Available-but-wrong behavior should fail.
+
+Implemented command today:
+
+```bash
+bun vitest run apps/silvercode/tests/backend-contracts/config-options.contract.test.ts
+```
+
+Append the live Codex target explicitly:
+
+```bash
+SILVERCODE_BACKEND_CONTRACT=live \
+bun vitest run apps/silvercode/tests/backend-contracts/config-options.contract.test.ts
+```
+
+## Choosing the Right Fake
+
+Use the smallest fake that crosses the behavior under test:
+
+| Test Goal                                  | Use                                  | Avoid                       |
+| ------------------------------------------ | ------------------------------------ | --------------------------- |
+| Reducer response to one event              | Layer 0/1 event fixture              | Backend process fake        |
+| App rendering of existing state            | `AgentSession` fake or story fixture | Live backend                |
+| ACP adapter maps protocol update correctly | Layer 2 fake ACP backend             | Mocked `SessionState`       |
+| Keybinding mutates backend config          | Layer 2 fake Codex profile           | Local capability state fake |
+| Backend process closes cleanly             | Layer 2 fake process or live smoke   | Pure session fake           |
+| Backend compatibility before release       | Live contract mode                   | Fake-only tests             |
+
 ## Phased Work
 
 ### Phase 1: Shared Fake ACP Core
@@ -300,6 +451,7 @@ Tests:
 - Add deterministic scenario format.
 - Add contract runner fake mode.
 - Port one existing `AgentSession` fake scenario to Layer 2.
+- Document Layer 1 vs Layer 2 usage in `packages/agent-harness/CLAUDE.md`.
 
 Exit criteria: `connectAcpRegistry` can connect to fake ACP backend through stdio.
 
@@ -333,8 +485,17 @@ Exit criteria: every `AcpRegistryId` has a fake profile and at least init/prompt
 - Add a documented command for fake-only contracts.
 - Add a documented command for live drift checks.
 - Add a release checklist item: run live drift against installed backends before changing adapter/config behavior.
+- Add a short "when live finds drift" runbook to this document.
 
 Exit criteria: fake-vs-real drift has a standard workflow and a clear failure policy.
+
+## Open Questions
+
+- What exact config option id does Codex use for `thought_level` in the current ACP wrapper?
+- Do Gemini and Copilot expose config options today, or should their profiles assert descriptor fallback?
+- Should live backend contracts run in nightly CI, local-only, or release-only?
+- Do we need recording support that captures a real live session and turns it into a fake scenario fixture?
+- Should fake ACP profiles live in `agent-harness` only, or should Silvercode app-level scenarios wrap them with UI-specific helpers?
 
 ## Bead Map
 

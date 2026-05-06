@@ -18,7 +18,9 @@
     "./acp-types": "./src/acp-types.ts",
     "./acp-boundary": "./src/acp-boundary.ts",
     "./acp-client": "./src/acp-client.ts",
-    "./acp-session": "./src/acp-session.ts"
+    "./acp-session": "./src/acp-session.ts",
+    "./testing/backend-contract-runner": "./src/testing/backend-contract-runner.ts",
+    "./testing/fake-acp-server": "./src/testing/fake-acp-server.ts"
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "^0.20.0",
