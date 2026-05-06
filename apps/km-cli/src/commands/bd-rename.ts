@@ -33,6 +33,7 @@ export function registerBdRename(parent: BdRegistrar): void {
     .description("Rename an issue ID (rewrites all incoming references by default)")
     .option("--no-rewrite", "Skip rewriting incoming references (legacy behaviour: only short_id + blocked-by)")
     .option("--include-prose", "Also rewrite bare-id mentions in body text (slower; off by default)")
+    .option("--dry-run", "Print the diff without writing anything")
     .actionMerged(async (opts) => {
       const resolved = resolvePathArg(undefined)
       using repo = await loadRepo(resolved.repoRoot)
@@ -62,6 +63,46 @@ export function registerBdRename(parent: BdRegistrar): void {
       // leaves the file in place under its existing path. Both update aliases.
       const isPathForm = opts.newId.includes("/")
       const spec = isPathForm ? { newCanonicalId: opts.newId } : { newShortId: opts.newId }
+
+      // --dry-run: compute the rewrite preview without applying anything.
+      // Mirrors `move.ts` --dry-run; uses `getRenameImpact` (the same
+      // backlink walker the real rename uses) so the dry-run is faithful
+      // to what would happen.
+      // CI-gateable invariant: dry-run NEVER calls a mutation method.
+      if (opts.dryRun) {
+        const impact = repo.getRenameImpact(node.id)
+        const wouldRewrite = opts.rewrite !== false
+        console.log(`Would rename ${opts.oldId} → ${opts.newId}`)
+        if (isPathForm && node.fs_path) {
+          // path-form rename derives a new fs_path; bd-form leaves it in place.
+          const newFsPath = `${opts.newId}.md`
+          if (newFsPath !== node.fs_path) {
+            console.log(`Would relocate file: ${node.fs_path} → ${newFsPath}`)
+          }
+        }
+        if (wouldRewrite && impact.backlinks.length > 0) {
+          console.log(
+            `Would rewrite ${impact.backlinks.length} reference${impact.backlinks.length === 1 ? "" : "s"} across host files.`,
+          )
+        } else if (!wouldRewrite) {
+          console.log(
+            `(--no-rewrite: ${impact.backlinks.length} reference${impact.backlinks.length === 1 ? "" : "s"} would be left dangling)`,
+          )
+        } else {
+          console.log("No incoming references to rewrite.")
+        }
+        if (impact.childCount > 0) {
+          console.log(`Would carry ${impact.childCount} child node${impact.childCount === 1 ? "" : "s"} along.`)
+        }
+        if (impact.ruleRefs > 0) {
+          console.log(`Would update ${impact.ruleRefs} rule reference${impact.ruleRefs === 1 ? "" : "s"}.`)
+        }
+        if (impact.propRefs > 0) {
+          console.log(`Would update ${impact.propRefs} property reference${impact.propRefs === 1 ? "" : "s"}.`)
+        }
+        console.log(term.dim("No changes written. Run without --dry-run to apply."))
+        return
+      }
 
       // Use the canonical move-with-refs primitive. Default behaviour:
       //   - rewrites wikilinks, transclusions, dep-edges, alias props,
