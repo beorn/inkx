@@ -1,6 +1,6 @@
 # Agents
 
-> **Status: Implemented** — Available in `@km/agent` package and `km agent` CLI.
+> Status: Implemented — Available in @km/agent package and km agent CLI.
 
 AI agent orchestration for km.
 
@@ -128,12 +128,12 @@ harness:
 
 ### Built-in Harnesses
 
-| Harness         | Description               | Tools               |
-| --------------- | ------------------------- | ------------------- |
-| `general`       | Default harness for Kimmi | All tools           |
-| `code-reviewer` | Code review and feedback  | read, comment, test |
-| `researcher`    | Information gathering     | read, search, web   |
-| `writer`        | Documentation and content | read, write         |
+| Harness       | Description               | Tools               |
+| ------------- | ------------------------- | ------------------- |
+| general       | Default harness for Kimmi | All tools           |
+| code-reviewer | Code review and feedback  | read, comment, test |
+| researcher    | Information gathering     | read, search, web   |
+| writer        | Documentation and content | read, write         |
 
 ---
 
@@ -232,7 +232,7 @@ This enables queries like "Show all sessions for issue km-a1b2".
 
 ## Session Events
 
-> **Terminology bridge**: Agent sessions in this document correspond to **chat logs** in [brain.md](../future/brain.md). Each session produces a chat log file (`.km/chats/`) containing the events below.
+> Terminology bridge: Agent sessions in this document correspond to chat logs in brain.md. Each session produces a chat log file (.km/chats/) containing the events below.
 
 ### Session Lifecycle
 
@@ -277,10 +277,10 @@ This enables queries like "Show all sessions for issue km-a1b2".
 
 Agents are managed through two complementary command namespaces:
 
-| Namespace  | Purpose                   | Focus                      |
-| ---------- | ------------------------- | -------------------------- |
-| `km agent` | Agent lifecycle & runtime | Spawn, run, stop, sessions |
-| `bd agent` | Work queue integration    | Assign issues, view queues |
+| Namespace | Purpose                   | Focus                      |
+| --------- | ------------------------- | -------------------------- |
+| km agent  | Agent lifecycle & runtime | Spawn, run, stop, sessions |
+| bd agent  | Work queue integration    | Assign issues, view queues |
 
 ### `km agent` — Lifecycle & Runtime
 
@@ -375,16 +375,16 @@ km hub status               # Show status
 
 **Keybindings:**
 
-| Key     | Action               |
-| ------- | -------------------- |
-| `s`     | Spawn new agent      |
-| `k`     | Kill selected agent  |
-| `a`     | Assign task to agent |
-| `q`     | View work queue      |
-| `l`     | View logs/sessions   |
-| `Enter` | Expand/drill into    |
-| `?`     | Help                 |
-| `Esc`   | Back / Quit          |
+| Key   | Action               |
+| ----- | -------------------- |
+| s     | Spawn new agent      |
+| k     | Kill selected agent  |
+| a     | Assign task to agent |
+| q     | View work queue      |
+| l     | View logs/sessions   |
+| Enter | Expand/drill into    |
+| ?     | Help                 |
+| Esc   | Back / Quit          |
 
 ---
 
@@ -399,7 +399,9 @@ km hub status               # Show status
 
 ## See Also
 
+- **[../dev/agent-dispatch.md](../dev/agent-dispatch.md)** — `@agent/N` sigil-board dispatch, `/claim` + `/do` skills, `km agent spawn` orchestrator (Phase 1–3 shipped 2026-05-06; the canonical doc for the dispatch model layered on top of the runtime described here)
 - [../future/brain.md](../future/brain.md) — Knowledge base: logs, statements, items, views
 - [../storage.md](../design/model/storage.md) — Events and storage model
 - [../guides/tasks.md](../guides/tasks.md) — Task management
 - [../guides/cli.md](../guides/cli.md) — CLI commands
+
