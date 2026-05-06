@@ -1,0 +1,111 @@
+---
+id: "@km/silvercode/post-resize-ui-stability"
+aliases:
+  - km-silvercode.post-resize-ui-stability
+  - km-silvercode-post-resize-ui-stability
+created_at: 2026-05-06T18:47:12.766Z
+owner: bjorn@stabell.org
+dependencies:
+  - issue_id: km-silvercode.post-resize-ui-stability
+    depends_on_id: km-silvercode
+    type: parent-child
+    created_at: 2026-05-06T18:47:12.766Z
+    metadata: "{}"
+---
+
+# [/] Post-resize UI stability — components shuffle visibly before settling @km/silvercode #bug #P2
+
+blocks:: [[@km/silvercode]]
+
+After a terminal resize, the silvercode UI shuffles around a lot before settling — components move/reflow visibly across multiple frames instead of converging in one paint. The post-resize state should be stable.
+
+Repro:
+
+```
+SILVERY_STRICT=1 DEBUG='silvery:*,silvercode:*' DEBUG_LOG=/tmp/silvercode-strict2.log silvercode --resume claude:f9eb64dc-d982-4a46-9a8e-da5fd882ac5f
+```
+
+Then resize the terminal. Observe: layout settles only after multiple frames of visible reshuffling.
+
+Expected: one resize event → one stable layout pass. No churn after the first paint at the new size.
+
+Investigation pointers:
+
+- Check Screen resize listener fan-out (`recent-transcript-layout-quality-plateau` already removed a width-derived subtree key in Content.Layout — there may be more remount triggers keyed on width/height).
+- Inspect SessionUpdateList / Content / TurnActivitySummary / ToolCall / Chat for width-dependent memo keys that invalidate on resize.
+- DEBUG_LOG above captures silvery:* + silvercode:* traces during the unstable window — diff timestamps between resize and final-stable frame to count reflow rounds.
+- Possibly a layout-cache fingerprint miss after width change forcing N round-trips through flexily.
+- Existing `recent-transcript-layout-quality-plateau` flagged a `MaxListenersExceededWarning` from repeated `Screen` resize listeners in test harness — may also indicate runtime listener fan-out.
+
+Acceptance:
+
+- After a resize event, layout converges within 1-2 paint passes (no visible shuffling).
+- Spec-level termless test suite (below) is green — covers initial-paint, resize, and side-panel toggle in both welcome + chat session contexts.
+- DEBUG_LOG with silvery:render shows ≤2 dirty cycles per stability event (vs current N).
+
+## Test plan — spec-level UI-stability suite (termless)
+
+Goal: a single suite that asserts "the UI converges within K frames after every stability event, in every screen context." Currently we have piecemeal coverage (welcome-no-layout-jump, welcome-startup-cascade, side-panel-stays-visible) but no shared stability-invariant primitive.
+
+**Stability invariant.** After triggering a stability event, capture committed frames until quiescence; assert:
+
+1. `frames.length ≤ K_MAX` (K_MAX = 2 by default; configurable per event).
+2. The final frame === the frame at index 1 (or 0 for initial paint) — i.e. no late shuffles.
+3. No frame between t0 and quiescence is "degenerate" (empty box, width=0, banner-not-yet-painted) — guards against the welcome-no-layout-jump regression family.
+4. Optional: snapshot of the converged frame matches stored fixture per (screen, terminal-size) pair.
+
+**Matrix (6 cells × N terminal sizes).** Recommend a small test helper `runStabilitySpec({ screen, event, sizes })` so each cell is one `test()` call.
+
+```
+                │  initial paint  │      resize       │  side-panel toggle  │
+────────────────┼─────────────────┼───────────────────┼─────────────────────┤
+welcome screen  │ paints banner + │ welcome reflows   │ panel show/hide does│
+                │ features in ≤2  │ within K_MAX after│ not retrigger banner│
+                │ frames          │ cols→cols' change │ measurement         │
+chat session    │ resumed session │ session updates / │ sidebar toggle does │
+                │ paints in ≤K    │ tool calls keep   │ not reflow chat list│
+                │ frames after    │ position after    │ or scroll position  │
+                │ session-init    │ size change       │                     │
+```
+
+**Termless hook-in.** For event-driven cells (resize, side-panel toggle) drive the silvery `Screen` resize listener directly (mirrors what termless does on real terminal SIGWINCH). For initial-paint cells the existing `singlePassLayout: true + onFrame` pattern from `welcome-no-layout-jump.test.tsx` is the template — extend to chat sessions by mounting via the same harness used in `keyboard-scroll.test.tsx` / `pane-headers.test.tsx`.
+
+**Fixtures, not the live session.** The live session `claude:f9eb64dc-d982-4a46-9a8e-da5fd882ac5f` is great for ad-hoc reproduction (it shuffles a lot — easy to eyeball) but it CANNOT be the regression-test fixture: real Claude transcripts mutate, contain PII, depend on session state on disk, and break reproducibility on CI. Build a **frozen fixture** instead:
+
+- Capture a representative sequence of ACP `session/update` events from the live session into a JSON fixture under `apps/silvercode/tests/fixtures/stability/` — e.g. `chat-mid-stream.json`, `chat-tool-call-active.json`, `welcome-fresh.json`. The existing `fakeSpawn`/fake-ACP harness (used by `acp-fake.md` family + `acp-resume-blank-screen` regression) is the replay surface.
+- Each fixture should be a minimal slice that reproduces the instability in the live session — N session updates, M tool calls, content that exercises the wrap/measure paths likely to thrash on resize. Trim aggressively: smaller fixtures = faster tests, easier diff review.
+- The `chat-session` test cells load the fixture, drive resize/sidebar events through the same harness, and run the stability invariant on the captured frames.
+- Use the live session ONLY to (a) capture the initial fixture seed and (b) sanity-check that fixes track real-world feel — never as a CI input.
+
+**Terminal sizes to cover.** Use the `test-resize-matrix` bead's set as a starting point (narrow 80×24, prod 120×40, wide 200×60). Width-sensitive bugs only show outside the default — see memory `feedback-km-view-test-dimensions`.
+
+**Side-panel cell specifically** must verify the chat list does NOT re-measure or re-scroll on toggle — the current symptom suggests width changes propagate too eagerly through memo keys.
+
+**Instrumentation taps.** Keep `DEBUG=silvery:render,silvery:layout,silvercode:*` available behind a flag so a failing test can dump the frame-by-frame trace into `/tmp/silvercode-stability-<test-id>.log` for triage. Do NOT emit on green runs.
+
+**Ordering.** Land the stability-invariant helper + welcome-screen cells first (they reuse existing patterns). Chat-session cells block on a fake-ACP harness already used by `acp-fake.md` family — reuse, don't recreate.
+
+## Status (2026-05-06)
+
+**Phase 0 — Diagnosis** ✓ landed at `hub/silvercode/diagnosis/post-resize-instability.md`. Ranked suspects (static-analysis hypotheses):
+1. silvery `notifyLayoutSubscribers` multi-pass cycles (framework, HIGH).
+2. SessionUpdateList `itemKey()` / `renderItemKey()` width deps (app, MEDIUM-HIGH).
+3. `Content.Layout` context value not memoized (app, MEDIUM).
+4. Width-responsive style-prop incremental cascade (framework, MEDIUM).
+5. PaneGrid+SidePanel show/hide remount (app, LOW-MEDIUM).
+
+**Phase 1 — Stability invariant + welcome cells** ✓ landed at `apps/silvercode/tests/lib/stability.ts` + `welcome-stability.test.tsx`. 8 helper self-tests + 3 welcome cells (initial-paint, resize, side-panel-toggle), all green.
+
+**Phase 2 — Chat cells** ✓ landed at `chat-stability.test.tsx` using the existing `markdownRich` script. 3 cells (post-arrival paint, resize, side-panel-toggle), all green.
+
+**Phase 3 — Fixes** *blocked* on a failing cell. None of the 6 termless cells reproduce the live-session symptom. Likely reasons:
+- The instability needs *more* content than `markdownRich` provides (the live session is 19,990-line / 37 MB JSONL).
+- Termless does not exercise real-TTY async paths (Kitty CSI probes, focus-reporting replies, real SIGWINCH stream); the symptom may live there. The `welcome-startup-cascade.test.tsx` docstring already calls this out.
+
+**Next options** for unlocking Phase 3:
+- (a) **Synthesize a stress fixture** — combine many turns + tool calls + long markdown. If a cell flips RED, the suspect ranking can be validated by trying fixes (Suspect 3 first — one-line `useMemo` is low-risk).
+- (b) **Real-TTY smoke verification** — run the live repro under `peekaboo` capture, compare frame count per resize against an instrumented baseline (`SILVERY_INSTRUMENT=1 DEBUG=silvery:render`). Confirms whether the bug lives in real-TTY async paths.
+- (c) **Capture a redacted minimal fixture** from the user's session — script that anonymises user prompts/responses but preserves ACP event structure. Requires a converter from Claude Code JSONL → AgentEvents and a redaction pass.
+- (d) **Commit the scaffold as-is** for future regression detection; defer Phase 3 fixes until the bug recurs in a fixture-capturable form.
+
+The 6-cell suite runs in `apps/silvercode/tests/welcome-stability.test.tsx` + `chat-stability.test.tsx`. Total 14 tests with helper self-tests, ~8 s wall-clock.
