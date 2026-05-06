@@ -61,6 +61,7 @@ import { initCommand } from "./commands/init.ts"
 import { listCommand } from "./commands/list.ts"
 import { moveCommand } from "./commands/move.ts"
 import { newCommand } from "./commands/new.ts"
+import { openCommand } from "./commands/open.ts"
 import { perfCommand } from "./commands/perf.ts"
 import { queryCommand } from "./commands/query.ts"
 import { renameCommand } from "./commands/rename.ts"
@@ -284,6 +285,7 @@ export function configureProgram(): Command {
 
   // Actions
   program.addCommand(newCommand) // km new - quick capture to inbox
+  program.addCommand(openCommand) // km open <id> - open markdown file in $EDITOR
   program.addCommand(statusCommand) // km status <id> [status] - view/set task status
   program.addCommand(moveCommand) // km move <node> <parent> - re-parent a node (canonical engine)
   program.addCommand(renameCommand) // km rename <id> <target> - alias of `km move` (muscle memory)

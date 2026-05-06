@@ -49,6 +49,7 @@ doesn't exist.** Source of truth: `apps/km-cli/src/program.ts`.
 | `km query <dsl>`                | Alias of `km list --raw <dsl>`                                                      |
 | `km status <id> [new]`          | View / set task status (single-field convenience over `km set`)                     |
 | `km add <target> <source...>`   | Add tasks to a board/list                                                           |
+| `km open <id>`                  | Open the markdown file for a node in `$EDITOR` (universal — any node)               |
 
 ### Task-workflow surface (singular `task`, alias `tasks`)
 
