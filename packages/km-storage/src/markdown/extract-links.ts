@@ -101,15 +101,20 @@ const FENCE_RE = /^```/
 // Using `\x00` as sentinel (can't appear in text files parsed as UTF-8).
 const ESCAPED_BRACKET_RE = /\\\[/g
 
-// Mention: word boundary + `@` + letter + [word chars].
-// We avoid matching `alice@example.com` (no boundary before `@`) and `@911`
-// (digit after `@`).
-const MENTION_RE = /(^|[\s([{.,;:!?])@([a-zA-Z][\w-]*)/g
+// Mention: word boundary + `@` + letter + [word chars], optionally followed
+// by `/sub` path segments so `@agent/3` and `@km/storage` capture as a single
+// name. The digit-after-sigil rejection (`@911`) only applies to the HEAD
+// segment; sub-segments can start with digits (`@agent/0`) since they are
+// arbitrary slug parts (board indices, ticket numbers, etc.).
+// We avoid matching `alice@example.com` (no boundary before `@`).
+// See docs/design/model/klink.md.
+const MENTION_RE = /(^|[\s([{.,;:!?])@([a-zA-Z][\w-]*(?:\/[\w-]+)*)/g
 
-// Tag: word boundary + `#` + letter + [word chars].
-// Same boundary rule. `foo#bar` is rejected (no boundary); `#42` is rejected
-// (digit after `#`); `issue #urgent` matches.
-const TAG_RE = /(^|[\s([{.,;:!?])#([a-zA-Z][\w-]*)/g
+// Tag: word boundary + `#` + letter + [word chars], optionally followed by
+// `/sub` path segments. Same boundary rule. `foo#bar` is rejected (no
+// boundary); `#42` is rejected (digit after `#`); `issue #urgent` matches;
+// `#scope/sub` and `#scope/0` capture as a single name.
+const TAG_RE = /(^|[\s([{.,;:!?])#([a-zA-Z][\w-]*(?:\/[\w-]+)*)/g
 
 // ============================================================================
 // PUBLIC API
