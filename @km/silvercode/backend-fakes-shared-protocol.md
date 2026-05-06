@@ -62,3 +62,10 @@ Verification: `fake-acp-server.test.ts` + `acp-client.test.ts` 31/31 pass; `npx 
 - Fake targets run by default; `SILVERCODE_BACKEND_CONTRACT=live` appends the live Codex target and reuses the same assertion.
 
 Verification: `backend-contract-runner.test.ts` + `config-options.contract.test.ts` 3/3 pass.
+
+2026-05-06 ACP registry profile slice:
+
+- Added `createFakeAcpRegistrySpawn()` with basic initialize/prompt profiles for Codex, Gemini, GitHub Copilot CLI, pi-acp, Claude, and Claude Code.
+- Kept richer config-option behavior in the Codex-specific profile.
+
+Verification: `fake-acp-server.test.ts` covers all six registered ACP ids.
