@@ -248,3 +248,74 @@ Then **hover wikilinks/URLs** in cards (mouse dwell) to mount popovers, move mou
 Send `/tmp/km-strip.log` lines containing `popover` or `rect=6[5-9],17` or `rect=7[0-8],17` — the AgNode that painted at row 17 cols 65–78 with bg=`$bg-surface-overlay` is the smoking gun. If `SILVERY_STRICT=2` throws during the session, that's the residue gate firing — capture the throw stack.
 
 The next move requires real-hover trace from the user's Ghostty/iTerm2.
+
+## Round 10 — user confirms strip is COLD-START, no interaction needed (2026-05-05)
+
+User ran the Round 9 cold-start command and reports: **"i didn't do the hover - sorry - i just opened it and closed it / the strip is always there"**.
+
+This eliminates ALL hypotheses involving popover, hover, mouse, dwell timing, ChordHints, or auto-dismiss. **The strip is in the FIRST frame** of `bun km view ~/Bear/Vault` at 82×75.
+
+### Captured evidence (`/tmp/km-strip.bin`, 33 frames)
+
+bg-color SGR frequency across all frames:
+- 123× `[48;2;46;52;64m]` = `$bg-surface-default` (rgb 46,52,64) — Nord canvas
+- 15× `[48;2;56;60;69m]` = `selectedBg(theme) = blend(canvas, accent, 0.06)` — cursorInDescendant tint
+- **3× `[48;2;52;58;70m]` = THE STRIP color** (rgb 52,58,70)
+
+**All 3 strip-color SGRs are in Frame 1 (cold start).**
+
+### Color identification — NOT $bg-surface-overlay
+
+Math for Nord (bg=rgb 46,52,64; fg=rgb 216,222,233):
+- `$bg-surface-overlay = blend(bg, fg, 0.12)` ≈ rgb(66,72,84) ✗
+- `$bg-surface-subtle = blend(bg, fg, 0.03)` ≈ rgb(51,57,69) ≈ rgb(52,58,70) ✓
+
+**Round 8 misattributed the color.** The strip is `$bg-surface-subtle` (or a 0.03-blend equivalent in the user's actual scheme), not `$bg-surface-overlay`. Search space shifts entirely:
+
+`$bg-surface-subtle` consumers in km-tui: **none**. Only silvercode uses it (irrelevant for `bun km view`). So whatever paints rgb(52,58,70) in km-tui is computing it via blend — possibly Sterling's `code` variant in this scheme, or a math-derived bg from a tint helper.
+
+### Frame 1 byte-level evidence — three distinct paint sites
+
+Found 3 strip-color SGRs in Frame 1, with surrounding bytes:
+
+**Occurrence 1** (inline content — bold + bg-tint):
+```
+…[1mUse [48;2;52;58;70m/inbox[22;48;2;46;52;64m to pull fresh captur…
+```
+`/inbox` (6 chars) painted with bg=strip-color, inside bold context. Markdown `**…\`/inbox\`…**` rendering. Inline code chip inside bold? Or a sigil/path resolver?
+
+**Occurrence 2** (inline content — bg-tint sandwiched in selectedBg row):
+```
+…[1mTaxes[22m ([48;2;52;58;70m]Finance/Taxes/[48;2;56;60;69m]):…
+```
+`Finance/Taxes/` painted with bg=strip-color, surrounded by `selectedBg(theme)` cells. Inline code/path inside a card with `cursorInDescendant=true`.
+
+**Occurrence 3** (trailing-space STRIP — no characters):
+```
+…thing[22;39m  [38;2;46;52;64m│[39m [48;2;46;52;64m                 [48;2;52;58;70m              [48;2;46;52;64m  [38;2;157;163;175m …
+```
+~14 cells of bg=strip-color in trailing whitespace, between bg=default regions. **No characters.** This is the visible cyan strip.
+
+### Cell-debug confirmed only one node covers (68,17)
+
+`SILVERY_CELL_DEBUG=68,17` filtered render walk: only `silvery-box@19 rect=42,17 37x1` covers col 68 row 17. That's CardColumn.tsx:675-681 — the `+N more` card footer. Its children are pure `<Text color={borderColor}>` (no bg props). cardBg conditional cannot evaluate to rgb(52,58,70) under any branch.
+
+### Hypotheses (untestable from synthetic — need pipeline tracing)
+
+H1. **bg-cell paint cascade across siblings**: an inline element in a SIBLING card (a card to the LEFT in the resolver column) paints its bg, then the kanban row layout's horizontal flow leaves cells beyond the sibling-card's right edge with that bg. The trailing-space cells at row 17 cols 65-78 (which fall in the GAP between left-column content and right-column content) inherit the leaked bg.
+
+H2. **`<Text variant="code">` bg leaks past content**: silvery's `code` variant emits SGR for bg + content but doesn't reset bg correctly at content end, so trailing whitespace in the same Text run carries the bg.
+
+H3. **A Sterling token resolved on cold-start without proper canvas-bg fill**: an ancestor Box has bg=undefined and silvery's pipeline doesn't fill its rect with parent bg, leaving a tiny region painted from the most-recent ancestor with bg.
+
+### Concrete next step for fix-finder
+
+Run the existing cross-backend test against `/tmp/km-strip.bin` (the real cold-start capture):
+
+```bash
+bun vitest run apps/km-tui/tests/render-cyan-strip-cross-backend.slow.spec.ts
+```
+
+Or write a focused test that loads `/tmp/km-strip.bin`, feeds Frame 1 to `@termless/xtermjs`, then asserts no cells with bg=rgb(52,58,70) lack a corresponding character within their painted run. The 14 trailing-space cells with bg=$bg-surface-subtle are the smoking gun.
+
+The bug is in silvery's pipeline at the boundary between an inline bg-painting element and the surrounding trailing-whitespace flow. NOT a popover. NOT mouse. NOT residue from prior frame. **Inline content bg → trailing whitespace bg-leak on the very first render.**
