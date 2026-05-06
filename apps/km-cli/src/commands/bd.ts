@@ -50,6 +50,9 @@
  * Migration / export to .beads/issues.jsonl lives at `km import bd <vault>`
  * (with `--export` for the reverse direction); no longer mounted under `bd`.
  *
+ * Migration / export to .beads/issues.jsonl lives at `km import bd <vault>`
+ * (with `--export` for the reverse direction); no longer mounted under `bd`.
+ *
  * `bd` remains a first-class user-facing surface alongside `km task` /
  * `km <verb>`. Both are valid; the alias layer keeps them behaviourally
  * identical (pinned by `tests/bd-task-equivalence.property.test.ts`).
