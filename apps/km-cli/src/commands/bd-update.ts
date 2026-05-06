@@ -23,10 +23,19 @@
 
 import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
+import { join } from "node:path"
 import { resolvePathArg } from "@km/fs-mount"
-import { Bead, relocateBeadSiblingTree, type Bead as BeadCtor, type UpdateBeadChanges } from "@km/beads"
+import {
+  BEAD_TYPE_KEYWORDS,
+  Bead,
+  isBeadTypeKeyword,
+  leaseMsForAssignee,
+  relocateBeadSiblingTree,
+  type Bead as BeadCtor,
+  type UpdateBeadChanges,
+} from "@km/beads"
 import { setPriorityInContent, type KNode } from "@km/core"
-import type { Repo } from "@km/storage"
+import { parseStubFile, type Repo } from "@km/storage"
 import { loadRepo } from "../load-repo.ts"
 import { loadKmBdConfig } from "./bd-load-config.ts"
 import { resolveIssueArg } from "./bd-query-helpers.ts"
@@ -61,11 +70,30 @@ export function registerBdUpdate(parent: BdRegistrar): void {
 
       const resolved = resolvePathArg(undefined)
       using repo = await loadRepo(resolved.repoRoot)
-      const issue = resolveIssueArg(repo, opts.id)
+      let issue = resolveIssueArg(repo, opts.id)
       if (!issue) {
         console.error(term.red(`Bead not found: ${opts.id}`))
         process.exitCode = 1
         return
+      }
+      let issueNode = repo.getNode(issue.id)
+
+      if (issueNode && isUnparsedStubFile(issueNode)) {
+        const stubFsPath = issueNode.fs_path
+        if (!stubFsPath) {
+          console.error(term.red(`Cannot update stub bead without fs_path: ${opts.id}`))
+          process.exitCode = 1
+          return
+        }
+        const parsed = parseStubFile(repo.database, issue.id, join(resolved.repoRoot, stubFsPath), stubFsPath)
+        if (!parsed) {
+          console.error(term.red(`Could not parse bead file before update: ${issueNode.fs_path}`))
+          process.exitCode = 1
+          return
+        }
+        repo.touch()
+        issue = resolveIssueArg(repo, opts.id) ?? issue
+        issueNode = repo.getNode(issue.id)
       }
 
       // Resolve --parent up front so we fail fast before any mutation.
@@ -80,10 +108,49 @@ export function registerBdUpdate(parent: BdRegistrar): void {
         return
       }
 
-      // Handle --claim: set status + assignee atomically
+      const newType = normalizeTypeOption(opts.type)
+      if (newType === null) {
+        console.error(term.red(`Invalid issue type: ${opts.type}`))
+        console.error(term.dim(`Expected one of: ${BEAD_TYPE_KEYWORDS.join(", ")}`))
+        process.exitCode = 1
+        return
+      }
+      const newPriority = normalizePriorityOption(opts.priority)
+      if (newPriority === null) {
+        console.error(term.red(`Invalid priority: ${opts.priority}`))
+        console.error(term.dim("Expected P0-P4 or 0-4."))
+        process.exitCode = 1
+        return
+      }
+
+      // Handle --claim: set status + assignee atomically.
+      //
+      // Phase 1.3 of @km/agent/sigil-boards — the claim itself goes through
+      // `repo.tryClaim` (single-statement SQL CAS) so two concurrent
+      // sessions can't both believe they hold the same bead. The status +
+      // assignee fields are still written via the regular update path
+      // *after* the CAS succeeds; tryClaim guarantees the row enters the
+      // wip+actor state, which the subsequent updateNode is idempotent
+      // against.
       if (opts.claim) {
+        const actor = (opts.assignee as string | undefined) ?? resolveAssignee()
+        const result = repo.tryClaim(issue.id, actor, leaseMsForAssignee(actor))
+        if (!result.ok) {
+          if (result.reason === "closed") {
+            console.error(term.red(`Cannot claim ${issue.shortId}: task is closed (reopen first)`))
+          } else if (result.reason === "not-found") {
+            console.error(term.red(`Cannot claim ${issue.shortId}: not found`))
+          } else {
+            const expiry = result.expiresAt ? ` (lease expires ~${new Date(result.expiresAt).toISOString()})` : ""
+            console.error(
+              term.red(`Cannot claim ${issue.shortId}: already held by ${result.currentOwner ?? "unknown"}${expiry}`),
+            )
+          }
+          process.exitCode = 1
+          return
+        }
         opts.status = opts.status ?? "wip"
-        opts.assignee = opts.assignee ?? resolveAssignee()
+        opts.assignee = opts.assignee ?? actor
       }
 
       const changes: UpdateBeadChanges = {}
@@ -94,7 +161,6 @@ export function registerBdUpdate(parent: BdRegistrar): void {
       if (opts.type) changes.type = opts.type
 
       const updates = Bead.update(repo, issue, changes)
-      const issueNode = repo.getNode(issue.id)
       const parentMoveError = parentTarget ? validateParentMove(issue, issueNode, parentTarget) : null
       if (parentMoveError) {
         console.error(term.red(parentMoveError))
@@ -106,17 +172,25 @@ export function registerBdUpdate(parent: BdRegistrar): void {
       // content (the H1 line, post-merge in file nodes). The legacy
       // `nodes.priority` column was dropped at SCHEMA_VERSION=11; the H1
       // hashtag is now the source of truth (per docs/future/beads.md).
-      if (opts.priority !== undefined) {
-        const currentContent = updates.content ?? issueNode?.content ?? ""
-        const newPriority = opts.priority ? `P${opts.priority.replace(/^P/i, "")}` : undefined
-        const newContent = setPriorityInContent(currentContent, newPriority)
+      if (newType !== undefined || newPriority !== undefined) {
+        const currentContent = updates.content ?? issueNode?.content ?? issueNode?.title ?? issue.title ?? ""
+        let newContent = currentContent
+        if (newType !== undefined) newContent = setTypeInContent(newContent, newType)
+        if (newPriority !== undefined) newContent = setPriorityInContent(newContent, newPriority)
         if (newContent !== currentContent) {
           updates.content = newContent
           updates.title = newContent
         }
       }
 
-      repo.updateNode(issue.id, updates)
+      const preserveFilePathForContentUpdate = Boolean(
+        issueNode?.fs_path?.endsWith(".md") && updates.content !== undefined,
+      )
+      if (preserveFilePathForContentUpdate) {
+        repo.withDeferredFs(() => repo.updateNode(issue.id, updates))
+      } else {
+        repo.updateNode(issue.id, updates)
+      }
 
       // Handle --parent. File-backed beads express parentage through the
       // canonical sibling-directory filesystem shape:
@@ -126,6 +200,10 @@ export function registerBdUpdate(parent: BdRegistrar): void {
       if (parentTarget) {
         const parentMove = moveBeadUnderParent(repo, resolved.repoRoot, issue, issueNode, parentTarget)
         if (parentMove.warning) console.warn(term.yellow(`Warning: ${parentMove.warning}`))
+      }
+
+      if (preserveFilePathForContentUpdate) {
+        repo.syncToFs(issue.id)
       }
 
       // Handle --description: replace or create first child paragraph
@@ -168,6 +246,34 @@ export function registerBdUpdate(parent: BdRegistrar): void {
   parent.addCommand(updateCmd)
 }
 
+function isUnparsedStubFile(node: KNode): boolean {
+  return Boolean(node.fs_path?.endsWith(".md") && (node.data as Record<string, unknown> | undefined)?._stub)
+}
+
+function normalizePriorityOption(value: unknown): string | null | undefined {
+  if (value === undefined) return undefined
+  const raw = String(value).trim()
+  const match = raw.match(/^P?([0-4])$/i)
+  if (!match?.[1]) return null
+  return `P${match[1]}`
+}
+
+function normalizeTypeOption(value: unknown): string | null | undefined {
+  if (value === undefined) return undefined
+  const raw = String(value).trim().toLowerCase()
+  if (!isBeadTypeKeyword(raw)) return null
+  return raw
+}
+
+function setTypeInContent(content: string, next: string | undefined): string {
+  const types = BEAD_TYPE_KEYWORDS.join("|")
+  let stripped = content.replace(new RegExp(`(\\s+)#(?:${types})\\b`, "gi"), "")
+  stripped = stripped.replace(new RegExp(`^#(?:${types})\\b\\s*`, "i"), "")
+  stripped = stripped.replace(/\s+$/, "")
+  if (!next || next === "task") return stripped
+  return stripped.length > 0 ? `${stripped} #${next}` : `#${next}`
+}
+
 async function resolveParentTarget(repo: Repo, repoRoot: string, parentRef: string): Promise<ParentTarget | null> {
   const parentIssue = resolveIssueArg(repo, parentRef)
   if (parentIssue) {
@@ -206,7 +312,10 @@ function moveBeadUnderParent(
     const childLeaf = childLeafForBead(issue)
     if (!parentTarget.canonicalId || !childLeaf) return {}
 
-    const result = repo.moveNodeWithRefs(issue.id, { newCanonicalId: `${parentTarget.canonicalId}/${childLeaf}` }, {})
+    const newCanonicalId = `${parentTarget.canonicalId}/${childLeaf}`
+    if (canonicalIdForNode(issueNode) === newCanonicalId) return {}
+
+    const result = repo.moveNodeWithRefs(issue.id, { newCanonicalId }, {})
     const relocate = relocateBeadSiblingTree(repo, {
       repoRoot,
       oldFsPath: issueNode.fs_path,
