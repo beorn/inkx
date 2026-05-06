@@ -170,13 +170,16 @@ describe("km bd dep remove --dry-run", () => {
   })
 
   test("source contains the --dry-run option for both add and remove (regression pin)", () => {
-    const src = readFileSync(join(__dirname, "..", "src", "commands", "bd-dep.ts"), "utf-8")
-    // Three actionMerged blocks: add, remove, list. Only add and remove
-    // need --dry-run; list is read-only.
+    // After Wave 6 final, the dep dry-run logic lives in tasks/dep.ts;
+    // bd-dep is a thin re-export shim. The regression pin moves with it.
+    const src = readFileSync(join(__dirname, "..", "src", "commands", "tasks", "dep.ts"), "utf-8")
+    // Three subcommands: add, rm, ls. Only add and rm need --dry-run;
+    // ls is read-only.
     const dryRunOpts = src.match(/\.option\("--dry-run"/g) ?? []
     expect(dryRunOpts.length).toBe(2)
-    // Must short-circuit BEFORE updateNode in both code paths.
-    const dryRunGuards = src.match(/if \(opts\.dryRun\)/g) ?? []
+    // Must short-circuit BEFORE addGraphEdge / removeGraphEdge in both
+    // code paths.
+    const dryRunGuards = src.match(/if \(options\.dryRun\)/g) ?? []
     expect(dryRunGuards.length).toBe(2)
   })
 })

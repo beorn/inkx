@@ -144,11 +144,13 @@ describe("km bd rename --dry-run", () => {
   })
 
   test("source contains the --dry-run option (regression pin)", () => {
-    const src = readFileSync(join(__dirname, "..", "src", "commands", "bd-rename.ts"), "utf-8")
+    // After Wave 6 final, bd-rename is a thin alias shim over `km move`;
+    // the dry-run guard lives in move.ts. The pin moves with it.
+    const src = readFileSync(join(__dirname, "..", "src", "commands", "move.ts"), "utf-8")
     expect(src).toContain('.option("--dry-run"')
-    expect(src).toContain("opts.dryRun")
+    expect(src).toContain("options.dryRun")
     // Dry-run must short-circuit BEFORE moveNodeWithRefs.
-    const dryRunIdx = src.indexOf("if (opts.dryRun)")
+    const dryRunIdx = src.indexOf("if (options.dryRun)")
     const moveIdx = src.indexOf("repo.moveNodeWithRefs(node.id, spec, {")
     expect(dryRunIdx).toBeGreaterThan(0)
     expect(moveIdx).toBeGreaterThan(dryRunIdx)

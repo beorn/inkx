@@ -11,7 +11,7 @@
 import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 import { resolvePathArg } from "@km/fs-mount"
-import { addGraphEdge, removeGraphEdge } from "@km/storage"
+import { addGraphEdge, getGraphEdges, removeGraphEdge } from "@km/storage"
 import { loadRepo } from "../../load-repo.ts"
 import { getRootPath } from "../../program.ts"
 import { planAddDeps, planListDeps, planRemoveDeps } from "./dep-plan.ts"
@@ -56,9 +56,18 @@ export function createDepCommand(): Command {
       // --dry-run: preview without writing. CI-gateable invariant:
       // dry-run NEVER calls a mutation method.
       if (options.dryRun) {
+        // Existing-edge no-op detection: query the graph and report
+        // which would-add edges already exist.
+        const existing = new Set(
+          getGraphEdges(repo, plan.targetNodeId, { rel: "blocks", direction: "in" }).map((e) => e.from),
+        )
         for (const blocker of plan.blockers) {
           const blockerLabel = blocker.blockerShortId ?? blocker.input
-          console.log(`Would add: ${targetLabel} blocked-by ${blockerLabel}`)
+          if (existing.has(blocker.blockerNodeId)) {
+            console.log(term.yellow(`${targetLabel} is already blocked-by ${blockerLabel} (no-op)`))
+          } else {
+            console.log(`Would add dependency: ${targetLabel} blocked-by ${blockerLabel}`)
+          }
         }
         console.log(term.dim("No changes written. Run without --dry-run to apply."))
         return
@@ -104,11 +113,19 @@ export function createDepCommand(): Command {
       if (!plan.targetNodeId) return
       const targetLabel = plan.targetShortId ?? plan.targetNodeId
 
-      // --dry-run: preview without writing.
+      // --dry-run: preview without writing. Detect no-op (edge already
+      // missing) so the user gets the same signal as `bd dep remove`.
       if (options.dryRun) {
+        const existing = new Set(
+          getGraphEdges(repo, plan.targetNodeId, { rel: "blocks", direction: "in" }).map((e) => e.from),
+        )
         for (const blocker of plan.blockers) {
           const blockerLabel = blocker.blockerShortId ?? blocker.input
-          console.log(`Would remove: ${targetLabel} no longer blocked-by ${blockerLabel}`)
+          if (!existing.has(blocker.blockerNodeId)) {
+            console.log(term.yellow(`${targetLabel} does not depend on ${blockerLabel} (no-op)`))
+          } else {
+            console.log(`Would remove dependency: ${targetLabel} no longer blocked-by ${blockerLabel}`)
+          }
         }
         console.log(term.dim("No changes written. Run without --dry-run to apply."))
         return

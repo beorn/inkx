@@ -69,8 +69,19 @@ export const moveCommand = new Command("move")
       process.exit(1)
     }
 
-    // Find the node to move (nodeRef validated above)
-    const node = repo.resolveNode(nodeRef)
+    // Find the node to move. When the input looks like a path-form id
+    // (contains a slash, no extension), prefer the .md FILE over the
+    // same-named folder node — once a bead has children, its directory
+    // and its .md file share the same path-form id, and a path-form
+    // lookup matches the folder first. The bead-content lives in the
+    // .md file; that's what the user means by "move @km/scope/old".
+    let node = null
+    if (nodeRef.includes("/") && !nodeRef.endsWith(".md")) {
+      node = repo.resolveNode(`${nodeRef}.md`)
+    }
+    if (!node) {
+      node = repo.resolveNode(nodeRef)
+    }
     if (!node) {
       console.error(term.red(`Node not found: ${nodeArg}`))
       process.exit(1)
@@ -159,7 +170,12 @@ export const moveCommand = new Command("move")
     // CI-gateable invariant: dry-run NEVER calls a mutation method.
     if (options.dryRun) {
       const impact = repo.getRenameImpact(node.id)
-      const nodeName = getNodeDisplayName(node)
+      const displayName = getNodeDisplayName(node)
+      // For rename mode the "from" label is the user-supplied id (so the
+      // output reads `Would rename @km/scope/old → @km/scope/new`), not
+      // the node's display title. For reparent mode, fall back to the
+      // display name as before — `Would move "Old issue" → "Inbox"`.
+      const fromLabel = renameMode ? nodeArg : displayName
       const targetName = renameMode
         ? newCanonicalId!
         : targetParent
@@ -171,10 +187,10 @@ export const moveCommand = new Command("move")
             dryRun: true,
             mode: renameMode ? "rename" : "reparent",
             id: node.id,
-            from: { name: nodeName, parent_id: node.parent_id, fs_path: node.fs_path },
+            from: { name: displayName, parent_id: node.parent_id, fs_path: node.fs_path },
             to: renameMode
-              ? { canonicalId: newCanonicalId, name: nodeName }
-              : { name: nodeName, parent_id: targetParentId },
+              ? { canonicalId: newCanonicalId, name: displayName }
+              : { name: displayName, parent_id: targetParentId },
             impact: {
               backlinks: impact.backlinks.length,
               childCount: impact.childCount,
@@ -187,7 +203,7 @@ export const moveCommand = new Command("move")
         return
       }
       const verb = renameMode ? "rename" : "move"
-      console.log(`Would ${verb} ${nodeName} → ${targetName}`)
+      console.log(`Would ${verb} ${fromLabel} → ${targetName}`)
       if (renameMode && node.fs_path) {
         const newFsPath = `${newCanonicalId}.md`
         if (newFsPath !== node.fs_path) {
@@ -275,7 +291,10 @@ export const moveCommand = new Command("move")
       return
     }
 
-    const nodeName = getNodeDisplayName(node)
+    const displayName = getNodeDisplayName(node)
+    // For rename mode the user expects to see canonical-id → canonical-id
+    // (matches bd-rename). For reparent, fall back to display titles.
+    const fromLabel = renameMode ? nodeArg : displayName
     const targetName = renameMode
       ? newCanonicalId!
       : targetParent
@@ -286,7 +305,7 @@ export const moveCommand = new Command("move")
       result.rewroteRefs > 0
         ? ` (rewrote ${result.rewroteRefs} ref${result.rewroteRefs === 1 ? "" : "s"} in ${result.rewroteHosts} file${result.rewroteHosts === 1 ? "" : "s"})`
         : ""
-    console.log(term.green("→"), `${verb} ${nodeName} → ${targetName}${refsSuffix}`)
+    console.log(term.green("→"), `${verb} ${fromLabel} → ${targetName}${refsSuffix}`)
     if (result.failedHosts.length > 0) {
       console.warn(
         term.yellow(
