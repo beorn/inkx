@@ -50,6 +50,7 @@ import {
   getSubtree as dbGetSubtree,
   getSubtreeShallow as dbGetSubtreeShallow,
 } from "../db/queries/tree-traversal.ts"
+import { getNodesUnderPath as dbGetNodesUnderPath } from "../db/queries/core-lookup.ts"
 import { createEmitter, type Emitter, type EmitOptions } from "../emitter.ts"
 import { registerRepoEmitter } from "./repo-emitters.ts"
 import {
@@ -231,6 +232,9 @@ function createQueryMethods(deps: RepoMethodDeps) {
     getSubtree(nodeId: string) {
       return dbGetSubtree(db, nodeId)
     },
+    getNodesUnderPath(dirPath: string) {
+      return dbGetNodesUnderPath(db, dirPath)
+    },
     preloadSubtree(rootId: string | null, maxDepth: number) {
       // Skip the expensive recursive CTE if the root's children are already cached.
       // This means a prior preload or getChildren already warmed this subtree.
@@ -373,6 +377,23 @@ function createQueryMethods(deps: RepoMethodDeps) {
     },
     getChildCounts(parentIds: string[]) {
       return dbGetChildCountsBatch(db, parentIds)
+    },
+    getDependencyCountsByTarget(kind: string) {
+      const rows = db
+        .prepare(
+          `SELECT target, COUNT(*) AS n
+           FROM deps
+           WHERE kind = ?
+           GROUP BY target`,
+        )
+        .all(kind) as { target: string; n: number }[]
+      return new Map(rows.map((row) => [row.target, row.n]))
+    },
+    countDependenciesByTarget(target: string, kind: string) {
+      const row = db
+        .prepare("SELECT COUNT(*) AS n FROM deps WHERE target = ? AND kind = ?")
+        .get(target, kind) as { n: number } | undefined
+      return row?.n ?? 0
     },
     rawQuery<T = Record<string, unknown>>(sql: string, params?: unknown[]): T[] {
       const stmt = db.prepare(sql)
@@ -906,6 +927,9 @@ export interface Repo extends Disposable {
   /** Get full subtree under a node */
   getSubtree(nodeId: string): KNode[]
 
+  /** Get fs-materialized file/folder nodes at or under a repo-relative path */
+  getNodesUnderPath(dirPath: string): KNode[]
+
   /**
    * Preload a depth-limited subtree into the children cache.
    * Uses a single recursive CTE query instead of N individual getChildren calls.
@@ -974,6 +998,12 @@ export interface Repo extends Disposable {
 
   /** Batch get child counts for multiple parent IDs */
   getChildCounts(parentIds: string[]): Map<string, number>
+
+  /** Count dependency rows grouped by target for a dependency kind */
+  getDependencyCountsByTarget(kind: string): Map<string, number>
+
+  /** Count dependency rows for one target/kind pair */
+  countDependenciesByTarget(target: string, kind: string): number
 
   /** Get the repo root folder node (the virtual parent of all top-level files) */
   getRepoRootNode(): KNode | null

@@ -76,10 +76,7 @@ describe("planStale — at/above/below threshold", () => {
   })
 
   test("tasks older than threshold appear in rows with relative-time staleness", () => {
-    const tasks = [
-      makeTask({ ageDays: 15, content: "15d-old" }),
-      makeTask({ ageDays: 30, content: "30d-old" }),
-    ]
+    const tasks = [makeTask({ ageDays: 15, content: "15d-old" }), makeTask({ ageDays: 30, content: "30d-old" })]
     const plan = planStale(tasks, 14, NOW)
     expect(plan.rows).toHaveLength(2)
     expect(plan.rows[0]?.task.content).toBe("15d-old")

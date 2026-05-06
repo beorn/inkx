@@ -195,7 +195,16 @@ export function getNodeByContentHashUnderParent(
 }
 
 /**
- * Get all folder/file nodes under a directory path (for reconciliation)
+ * Get all folder/file nodes under a directory path (for reconciliation).
+ *
+ * Returns descendants too — `reconcileFromEntries` walks them when a
+ * folder is being displaced to cascade-delete its children. The
+ * delete-pass at the end filters non-direct children before emitting
+ * deletes, so the descendants stay in `dbByRelPath` only as a
+ * lookup index for the cascade walk.
+ *
+ * Repo root (`dirPath === "."`) returns every fs-materialized node;
+ * subdirs use a prefix match.
  */
 export function getNodesUnderPath(db: Database, dirPath: string): KNode[] {
   // For repo root ("."), match all file/folder nodes except the root node itself.

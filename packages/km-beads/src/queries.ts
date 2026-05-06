@@ -36,18 +36,7 @@ export interface BeadsQueryOptions {
  * @returns Map of shortId → count of issues that block-by this id.
  */
 export function buildDependentCountMap(repo: Repo): Map<string, number> {
-  const map = new Map<string, number>()
-  const sql = `
-    SELECT target, COUNT(*) AS n
-    FROM deps
-    WHERE kind = 'blocked-by'
-    GROUP BY target
-  `
-  const rows = repo.rawQuery<{ target: string; n: number }>(sql)
-  for (const row of rows) {
-    map.set(row.target, row.n)
-  }
-  return map
+  return repo.getDependencyCountsByTarget("blocked-by")
 }
 
 /**
@@ -163,10 +152,7 @@ function countDependents(shortId: string | undefined, repo?: Repo, dependentCoun
   }
   if (!repo) return 0
 
-  const row = repo.rawQuery<{ n: number }>("SELECT COUNT(*) AS n FROM deps WHERE target = ? AND kind = 'blocked-by'", [
-    shortId,
-  ])[0]
-  return row?.n ?? 0
+  return repo.countDependenciesByTarget(shortId, "blocked-by")
 }
 
 /**
@@ -421,6 +407,49 @@ export function nodeToBead(node: KNode, options?: BeadsQueryOptions): Bead {
     dependencyCount: blockedBy?.length ?? 0,
     dependentCount: countDependents(shortId, repo, options?.dependentCountMap),
   }
+}
+
+/**
+ * Child beads of a file-backed bead.
+ *
+ * A bead file can have ordinary in-file children (paragraphs/tasks) and
+ * filesystem child beads in the sibling directory:
+ *
+ *   parent.md
+ *   parent/child.md
+ */
+export function getChildBeads(
+  repo: Repo,
+  bead: Bead,
+  options?: { dependentCountMap?: Map<string, number> },
+): Bead[] {
+  const beadNode = repo.getNode(bead.id)
+  if (!beadNode) return []
+
+  const nodes = uniqueNodes([...repo.getChildren(bead.id), ...getSiblingDirectoryChildNodes(repo, beadNode)])
+  return nodes
+    .filter((node) => node.item?.task?.status != null || node.fs_path?.endsWith(".md"))
+    .map((node) => nodeToBead(node, { repo, dependentCountMap: options?.dependentCountMap }))
+    .filter((child): child is Bead => child.shortId !== undefined)
+}
+
+function getSiblingDirectoryChildNodes(repo: Repo, beadNode: KNode): KNode[] {
+  const dirPath = beadNode.fs_path?.endsWith(".md") ? beadNode.fs_path.slice(0, -3) : null
+  if (!dirPath) return []
+
+  return repo
+    .getNodesUnderPath(dirPath)
+    .filter((node) => isImmediateMarkdownChild(dirPath, node.fs_path))
+}
+
+function isImmediateMarkdownChild(dirPath: string, fsPath: string | undefined): boolean {
+  if (!fsPath?.startsWith(`${dirPath}/`) || !fsPath.endsWith(".md")) return false
+  const suffix = fsPath.slice(dirPath.length + 1)
+  return suffix.length > 0 && !suffix.includes("/")
+}
+
+function uniqueNodes(nodes: KNode[]): KNode[] {
+  return [...new Map(nodes.map((node) => [node.id, node])).values()]
 }
 
 // Re-export resolvers for unit testing — keep them internal to the module

@@ -86,11 +86,7 @@ describe("km bd move", () => {
     expect(existsSync(oldPath)).toBe(false)
 
     const child = readFileSync(childPath, "utf-8")
-    // YAML quotes `@`-prefixed values (reserved tag-shorthand), so the
-    // canonical on-disk form is `parent_id: "@km/scope/new"`. Match either
-    // quoted or unquoted form so a future YAML serializer that emits
-    // unquoted `@` values keeps passing.
-    expect(child).toMatch(/parent_id:\s*"?@km\/scope\/new"?/)
+    expect(child).not.toContain("parent_id:")
     expect(child).toContain("See @km/scope/new and @km/scope/new for context.")
     expect(child).not.toContain("@km/scope/old")
     expect(child).not.toContain("km-scope.old")

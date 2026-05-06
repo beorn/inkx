@@ -25,7 +25,7 @@
  *     failure is recoverable by re-running with the same spec.
  */
 
-import { existsSync, renameSync, unlinkSync } from "fs"
+import { existsSync, mkdirSync, renameSync, unlinkSync } from "fs"
 import { basename, dirname, join } from "path"
 
 import type { Database } from "bun:sqlite"
@@ -459,6 +459,10 @@ export function moveNodeWithRefs(id: string, spec: MoveSpec, deps: MoveDeps, opt
     spec.newFsPath ??
     (spec.newCanonicalId ? canonicalIdToFsPath(spec.newCanonicalId) : null) ??
     deriveNewFsPath(snapshot, newName, newParentNode?.fs_path ?? null)
+
+  if (!options.dryRunFs && deps.rootPath && snapshot.oldFsPath && newFsPath && snapshot.oldFsPath !== newFsPath) {
+    mkdirSync(dirname(join(deps.rootPath, newFsPath)), { recursive: true })
+  }
 
   // ---- Phase 1: data-layer mutations on the moved node ----
   onProgress?.({ phase: "data-layer", visited: 0, total: 0, refsRewritten: 0 })

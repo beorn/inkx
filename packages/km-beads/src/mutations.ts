@@ -315,30 +315,6 @@ export function renderInboxCapture(
  *
  * Pure function: no I/O. Caller writes the file. Tests use this directly.
  */
-/**
- * Derive a `parent_id` for the YAML frontmatter from a canonical id.
- *
- * Examples:
- *   `@km/scope/leaf`        → `@km/scope`
- *   `@km/scope/old/child`   → `@km/scope/old`
- *   `@km/leaf`              → undefined (single-segment beads have no parent)
- *   `@km/inbox/foo`         → undefined (default-scope inbox is not a real parent)
- *
- * Skipping inbox keeps single-segment beads (auto-id at root) free of a
- * trivial `parent_id: @<prefix>/inbox` stamp. Returns undefined when the
- * canonical id doesn't carry the expected `@<prefix>/` sigil.
- */
-export function parentIdFromCanonical(canonicalId: string, prefix: string): string | undefined {
-  const sigil = `@${prefix}/`
-  if (!canonicalId.startsWith(sigil)) return undefined
-  const inner = canonicalId.slice(sigil.length)
-  const segments = inner.split("/")
-  if (segments.length < 2) return undefined
-  const parentInner = segments.slice(0, -1).join("/")
-  if (parentInner === "inbox") return undefined
-  return `${sigil}${parentInner}`
-}
-
 export function renderBeadFile(
   canonicalId: string,
   title: string,
@@ -349,13 +325,6 @@ export function renderBeadFile(
     description?: string
     notes?: string
     createdAt?: Date
-    /**
-     * Parent canonical id (e.g. `@km/scope/old`). When set, written to
-     * `parent_id:` in the YAML frontmatter so the move/rename pipeline
-     * can rewrite it via the alias-resolver path. Mirrors
-     * `bdIdToParentId` used by `migrate.ts`.
-     */
-    parentId?: string
   },
 ): { filename: string; content: string } {
   const sigil = `@${options.prefix}/`
@@ -383,13 +352,6 @@ export function renderBeadFile(
     aliases,
     created_at: (options.createdAt ?? new Date()).toISOString(),
   }
-  // Emit `parent_id:` so the move/rename pipeline can rewrite it via the
-  // alias-resolver path. Without this, child files have no explicit
-  // parent reference and stub-state reparenting silently no-ops.
-  if (options.parentId) {
-    frontmatter.parent_id = options.parentId
-  }
-
   const fmYaml = stringifyYaml(frontmatter).trimEnd()
   const heading = buildBeadHeading(title, { type: options.type, priority: options.priority })
   const description = options.description?.trim() ?? ""

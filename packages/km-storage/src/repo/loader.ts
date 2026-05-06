@@ -685,7 +685,9 @@ function* discoverFromEvents(
     if (nodeCount > 1) {
       writeLastEventSeq(db, maxSeq)
       yield { current: 0, total: 0 }
-      log.debug?.(`post-migration self-heal: stamped last_event_seq=${maxSeq}, skipped replay (${nodeCount} nodes already projected)`)
+      log.debug?.(
+        `post-migration self-heal: stamped last_event_seq=${maxSeq}, skipped replay (${nodeCount} nodes already projected)`,
+      )
       return { changes: [], pendingLinks: [] }
     }
   }

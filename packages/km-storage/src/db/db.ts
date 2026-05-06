@@ -48,13 +48,7 @@ export {
 export type { SearchResult } from "./queries/index.ts"
 
 // Re-export db-accepting query operations
-export {
-  executeQuery,
-  queryTasks,
-  queryNodes,
-  materializeEffectivePaths,
-  dropEffectivePaths,
-} from "../query.ts"
+export { executeQuery, queryTasks, queryNodes, materializeEffectivePaths, dropEffectivePaths } from "../query.ts"
 
 export type { QueryAST } from "../query.ts"
 

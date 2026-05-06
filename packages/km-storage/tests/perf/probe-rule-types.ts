@@ -1,8 +1,13 @@
 import { Database } from "bun:sqlite"
 const db = new Database("/Users/beorn/Bear/Vault/.km/state.db", { readonly: true })
 
-const nodesWithRules = db.query(`SELECT data FROM nodes WHERE json_extract(data, '$.rules') IS NOT NULL AND json_extract(data, '$.rules') != '{}'`).all() as { data: string }[]
-let withAdd = 0, withoutAdd = 0
+const nodesWithRules = db
+  .query(
+    `SELECT data FROM nodes WHERE json_extract(data, '$.rules') IS NOT NULL AND json_extract(data, '$.rules') != '{}'`,
+  )
+  .all() as { data: string }[]
+let withAdd = 0,
+  withoutAdd = 0
 const queryFreq = new Map<string, number>()
 for (const r of nodesWithRules) {
   const d = JSON.parse(r.data) as { rules?: { add?: string | string[] } }

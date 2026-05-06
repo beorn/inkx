@@ -15,7 +15,7 @@
 import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 import { resolvePathArg } from "@km/fs-mount"
-import { Bead, buildDependentCountMap, type Bead as BeadType } from "@km/beads"
+import { Bead, buildDependentCountMap } from "@km/beads"
 import { loadRepo } from "../load-repo.ts"
 import { resolveIssueArg } from "./bd-query-helpers.ts"
 import { issueToBdJson, printIssue } from "./bd-format.ts"
@@ -39,28 +39,8 @@ export function registerBdChildren(parent: BdRegistrar): void {
         return
       }
 
-      // In the path-form hierarchy, sub-issues of `foo.md` live in the
-      // sibling folder `foo/`. Walk both the in-file paragraph children
-      // and the path-folder file children so the tree the user sees on
-      // disk matches what `bd children` reports.
-      //
-      // The folder lookup must use the node's fs_path (which always ends
-      // in `.md` for file-class nodes) rather than `issue.id` — node ids
-      // can be either path-strings (`issue/silvercode/acp.md`) or ULIDs
-      // (`01KQ…`) depending on how the repo was loaded.
-      const issueNode = repo.getNode(issue.id)
-      const inFileChildren = repo.getChildren(issue.id)
-      // Folder nodes carry path-string ids matching their fs_path
-      // (e.g. `issue/silvercode/acp`), so the folder for `foo.md` is
-      // simply `<fs_path>` with the `.md` suffix dropped.
-      const folderId = issueNode?.fs_path?.endsWith(".md") ? issueNode.fs_path.slice(0, -3) : null
-      const pathChildren = folderId ? repo.getChildren(folderId) : []
-      const allChildren = [...inFileChildren, ...pathChildren]
       const dependentCountMap = buildDependentCountMap(repo)
-      const childIssues: BeadType[] = allChildren
-        .filter((c) => c.item?.task?.status != null || c.fs_path?.endsWith(".md"))
-        .map((c) => Bead.from(c, { repo, dependentCountMap }))
-        .filter((b): b is BeadType => b !== null)
+      const childIssues = Bead.children(repo, issue, { dependentCountMap })
 
       if (opts.json) {
         await writeJsonOut(childIssues.map(issueToBdJson))

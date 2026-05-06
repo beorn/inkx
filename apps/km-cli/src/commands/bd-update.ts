@@ -24,8 +24,9 @@
 import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 import { resolvePathArg } from "@km/fs-mount"
-import { Bead, type Bead as BeadCtor, type UpdateBeadChanges } from "@km/beads"
-import { setPriorityInContent } from "@km/core"
+import { Bead, relocateBeadSiblingTree, type Bead as BeadCtor, type UpdateBeadChanges } from "@km/beads"
+import { setPriorityInContent, type KNode } from "@km/core"
+import type { Repo } from "@km/storage"
 import { loadRepo } from "../load-repo.ts"
 import { loadKmBdConfig } from "./bd-load-config.ts"
 import { resolveIssueArg } from "./bd-query-helpers.ts"
@@ -33,6 +34,11 @@ import { resolveAssignee } from "../utils/assignee.ts"
 import type { BdRegistrar } from "./bd-register.ts"
 
 const term = createTerm(process)
+
+interface ParentTarget {
+  id: string
+  canonicalId: string | null
+}
 
 export function registerBdUpdate(parent: BdRegistrar): void {
   const updateCmd = new Command("update")
@@ -65,31 +71,13 @@ export function registerBdUpdate(parent: BdRegistrar): void {
       // Resolve --parent up front so we fail fast before any mutation.
       // Try bd-form short id first (resolveIssueArg understands km-foo, @km/foo,
       // etc.), then fall back to path-form lookup (foo/, @km/foo/).
-      let newParentId: string | null = null
-      if (opts.parent) {
-        const parentRef = opts.parent as string
-        const parentIssue = resolveIssueArg(repo, parentRef)
-        if (parentIssue) {
-          newParentId = parentIssue.id
-        } else {
-          const cfg = await loadKmBdConfig(resolved.repoRoot)
-          const prefix = cfg.beads.prefix
-          const tries = [parentRef]
-          if (parentRef.startsWith(`${prefix}-`) && !parentRef.includes(".")) {
-            tries.push(`${parentRef.slice(prefix.length + 1)}/`)
-          }
-          let parentNode = null
-          for (const ref of tries) {
-            parentNode = repo.resolveNode(ref)
-            if (parentNode) break
-          }
-          if (!parentNode) {
-            console.error(term.red(`Parent not found: ${opts.parent}`))
-            process.exitCode = 1
-            return
-          }
-          newParentId = parentNode.id
-        }
+      const parentTarget = opts.parent
+        ? await resolveParentTarget(repo, resolved.repoRoot, opts.parent as string)
+        : null
+      if (opts.parent && !parentTarget) {
+        console.error(term.red(`Parent not found: ${opts.parent}`))
+        process.exitCode = 1
+        return
       }
 
       // Handle --claim: set status + assignee atomically
@@ -106,14 +94,20 @@ export function registerBdUpdate(parent: BdRegistrar): void {
       if (opts.type) changes.type = opts.type
 
       const updates = Bead.update(repo, issue, changes)
+      const issueNode = repo.getNode(issue.id)
+      const parentMoveError = parentTarget ? validateParentMove(issue, issueNode, parentTarget) : null
+      if (parentMoveError) {
+        console.error(term.red(parentMoveError))
+        process.exitCode = 1
+        return
+      }
 
       // Honor --priority by rewriting the `#P[0-4]` hashtag in the bead's
       // content (the H1 line, post-merge in file nodes). The legacy
       // `nodes.priority` column was dropped at SCHEMA_VERSION=11; the H1
       // hashtag is now the source of truth (per docs/future/beads.md).
       if (opts.priority !== undefined) {
-        const node = repo.getNode(issue.id)
-        const currentContent = updates.content ?? node?.content ?? ""
+        const currentContent = updates.content ?? issueNode?.content ?? ""
         const newPriority = opts.priority ? `P${opts.priority.replace(/^P/i, "")}` : undefined
         const newContent = setPriorityInContent(currentContent, newPriority)
         if (newContent !== currentContent) {
@@ -124,10 +118,14 @@ export function registerBdUpdate(parent: BdRegistrar): void {
 
       repo.updateNode(issue.id, updates)
 
-      // Handle --parent: move under the resolved new parent at end-of-list.
-      if (newParentId) {
-        const siblings = repo.getChildren(newParentId)
-        repo.moveNode(issue.id, newParentId, siblings.length)
+      // Handle --parent. File-backed beads express parentage through the
+      // canonical sibling-directory filesystem shape:
+      //   @km/scope/parent.md
+      //   @km/scope/parent/child.md
+      // Inline/non-file nodes keep using structural parent_id.
+      if (parentTarget) {
+        const parentMove = moveBeadUnderParent(repo, resolved.repoRoot, issue, issueNode, parentTarget)
+        if (parentMove.warning) console.warn(term.yellow(`Warning: ${parentMove.warning}`))
       }
 
       // Handle --description: replace or create first child paragraph
@@ -157,7 +155,7 @@ export function registerBdUpdate(parent: BdRegistrar): void {
       }
 
       console.log(term.green(`Updated ${issue.shortId}:`))
-      if (newParentId) console.log(`  Moved under: ${opts.parent}`)
+      if (parentTarget) console.log(`  Moved under: ${opts.parent}`)
       if (opts.claim) console.log(`  Claimed by ${opts.assignee}`)
       if (updates.item?.task?.status && !opts.claim) console.log(`  Status: ${updates.item?.task?.status}`)
       if (opts.priority !== undefined) {
@@ -168,4 +166,70 @@ export function registerBdUpdate(parent: BdRegistrar): void {
       if (opts.notes) console.log(`  Notes appended`)
     })
   parent.addCommand(updateCmd)
+}
+
+async function resolveParentTarget(repo: Repo, repoRoot: string, parentRef: string): Promise<ParentTarget | null> {
+  const parentIssue = resolveIssueArg(repo, parentRef)
+  if (parentIssue) {
+    return { id: parentIssue.id, canonicalId: parentIssue.shortId ?? null }
+  }
+
+  const cfg = await loadKmBdConfig(repoRoot)
+  const prefix = cfg.beads.prefix
+  const refs = [parentRef]
+  if (parentRef.startsWith(`${prefix}-`) && !parentRef.includes(".")) {
+    refs.push(`${parentRef.slice(prefix.length + 1)}/`)
+  }
+
+  for (const ref of refs) {
+    const node = repo.resolveNode(ref)
+    if (node) return { id: node.id, canonicalId: canonicalIdForNode(node) }
+  }
+  return null
+}
+
+function canonicalIdForNode(node: KNode): string | null {
+  const data = node.data as Record<string, unknown> | undefined
+  const dataId = typeof data?.id === "string" ? data.id : null
+  const pathId = node.fs_path?.endsWith(".md") ? node.fs_path.slice(0, -3) : null
+  return dataId ?? pathId
+}
+
+function moveBeadUnderParent(
+  repo: Repo,
+  repoRoot: string,
+  issue: Bead,
+  issueNode: KNode | null,
+  parentTarget: ParentTarget,
+): { warning?: string | null } {
+  if (issueNode?.fs_path?.endsWith(".md")) {
+    const childLeaf = childLeafForBead(issue)
+    if (!parentTarget.canonicalId || !childLeaf) return {}
+
+    const result = repo.moveNodeWithRefs(issue.id, { newCanonicalId: `${parentTarget.canonicalId}/${childLeaf}` }, {})
+    const relocate = relocateBeadSiblingTree(repo, {
+      repoRoot,
+      oldFsPath: issueNode.fs_path,
+      newFsPath: result.newFsPath ?? null,
+    })
+    return { warning: relocate.warning }
+  }
+
+  if (!issueNode?.fs_path) {
+    const siblings = repo.getChildren(parentTarget.id)
+    repo.moveNode(issue.id, parentTarget.id, siblings.length)
+  }
+  return {}
+}
+
+function validateParentMove(issue: Bead, issueNode: KNode | null, parentTarget: ParentTarget): string | null {
+  if (!issueNode?.fs_path?.endsWith(".md")) return null
+  if (!parentTarget.canonicalId) return `Cannot derive filesystem path for parent: ${parentTarget.id}`
+  if (!childLeafForBead(issue)) return `Cannot derive child leaf from bead id: ${issue.shortId}`
+  return null
+}
+
+function childLeafForBead(issue: Bead): string | null {
+  const childLeaf = issue.shortId?.replace(/\.md$/, "").split("/").pop()
+  return childLeaf && childLeaf.length > 0 ? childLeaf : null
 }

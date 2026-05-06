@@ -119,7 +119,14 @@ export function applyReconcileOps(
     }
   }
 
-  const { db, ops: reconcileOps, repoRoot: root, emitter: emit, fs: fileOps = realFs, resolver: sharedResolver } = options
+  const {
+    db,
+    ops: reconcileOps,
+    repoRoot: root,
+    emitter: emit,
+    fs: fileOps = realFs,
+    resolver: sharedResolver,
+  } = options
 
   using span = log.span("apply-ops", { count: reconcileOps.length })
 

@@ -83,6 +83,21 @@ function fakeHrefForNode(node: KNode): string | null {
   return null
 }
 
+function dependencyTargets(node: KNode, kind: string): string[] {
+  const props = (node.data as { props?: Record<string, unknown> } | undefined)?.props
+  const value = props?.[kind]
+  if (!value) return []
+
+  const entries = Array.isArray(value) ? value : [value]
+  return entries
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null
+      const target = (entry as { target?: unknown }).target
+      return typeof target === "string" ? target : null
+    })
+    .filter((target): target is string => target !== null)
+}
+
 export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
   const path = options.path ?? "/fake/repo"
   const initialNodes = options.nodes ?? []
@@ -325,6 +340,38 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       }
 
       return result
+    },
+
+    getNodesUnderPath(dirPath) {
+      ensureNotClosed()
+      return [...nodes.values()].filter((node) => {
+        if (!node.fs_path || node.id === ".") return false
+        if (node.type !== "h" || node.item == null) return false
+        if (dirPath === ".") return true
+        return node.fs_path === dirPath || node.fs_path.startsWith(`${dirPath}/`)
+      })
+    },
+
+    getDependencyCountsByTarget(kind) {
+      ensureNotClosed()
+      const counts = new Map<string, number>()
+      for (const node of nodes.values()) {
+        for (const target of dependencyTargets(node, kind)) {
+          counts.set(target, (counts.get(target) ?? 0) + 1)
+        }
+      }
+      return counts
+    },
+
+    countDependenciesByTarget(target, kind) {
+      ensureNotClosed()
+      let count = 0
+      for (const node of nodes.values()) {
+        for (const dependencyTarget of dependencyTargets(node, kind)) {
+          if (dependencyTarget === target) count++
+        }
+      }
+      return count
     },
 
     getAncestors(nodeId) {

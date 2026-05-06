@@ -11,7 +11,7 @@
  * The Bead namespace is the ONE entry point for every bd operation —
  * structural predicates (`isBead`, `roots`), construction (`from`,
  * `create`), identity (`displayId`, `path`, `alias`), lookup (`resolve`,
- * `get`), queries (`query`, `queryReady`), predicates (`isBlocked`),
+ * `get`), queries (`query`, `queryReady`, `children`), predicates (`isBlocked`),
  * mutations (`update`, `close`, `drop`), and dependencies (`addDependency`,
  * etc.). Repo is the FIRST arg of every Repo-bound function (km
  * convention; matches `KTree.nodes(tree, ...)`).
@@ -30,6 +30,7 @@ import type { Bead as BeadInterface, BeadCreateOptions, BeadFilter } from "./typ
 import {
   type BeadsQueryOptions,
   formatBeadId as fnDisplayId,
+  getChildBeads as fnGetChildBeads,
   getIssue as fnGetIssue,
   isBead as fnIsBead,
   isBlocked as fnIsBlocked,
@@ -179,6 +180,11 @@ export const Bead = {
     opts?: { boardRoots?: string[]; dependentCountMap?: Map<string, number> },
   ): Bead[] {
     return fnQueryReady(filter, scopePath, boardTag, { repo, ...opts }) as Bead[]
+  },
+
+  /** Immediate child beads from in-file children and sibling-directory files. */
+  children(repo: Repo, bead: Bead, opts?: { dependentCountMap?: Map<string, number> }): Bead[] {
+    return fnGetChildBeads(repo, bead, opts) as Bead[]
   },
 
   // ---------------------------------------------------------------------

@@ -11,13 +11,7 @@ import { DEFAULT_DAYS, planStale, filterStaleNodes } from "../src/commands/stale
 const DAY_MS = 86_400_000
 const NOW = 1_745_000_000_000
 
-function makeNode(opts: {
-  id?: string
-  type?: string
-  status?: TaskStatus
-  ageDays: number
-  content?: string
-}): KNode {
+function makeNode(opts: { id?: string; type?: string; status?: TaskStatus; ageDays: number; content?: string }): KNode {
   const updated = NOW - opts.ageDays * DAY_MS
   const item =
     opts.status !== undefined
@@ -64,10 +58,7 @@ describe("planStale (generic km) — threshold semantics", () => {
   })
 
   test("nodes older than threshold appear with relative-time staleness", () => {
-    const nodes = [
-      makeNode({ ageDays: 15, content: "15d" }),
-      makeNode({ ageDays: 60, content: "60d" }),
-    ]
+    const nodes = [makeNode({ ageDays: 15, content: "15d" }), makeNode({ ageDays: 60, content: "60d" })]
     const plan = planStale(nodes, 14, NOW)
     expect(plan.rows).toHaveLength(2)
     expect(plan.rows[0]?.staleness).toBe("2 weeks ago")
@@ -120,10 +111,7 @@ describe("planStale (generic km) — container filter", () => {
 
 describe("filterStaleNodes — direct contract", () => {
   test("returns only nodes with updated_at < cutoff", () => {
-    const nodes = [
-      makeNode({ ageDays: 5, content: "fresh" }),
-      makeNode({ ageDays: 30, content: "stale" }),
-    ]
+    const nodes = [makeNode({ ageDays: 5, content: "fresh" }), makeNode({ ageDays: 30, content: "stale" })]
     const result = filterStaleNodes(nodes, 14, NOW)
     expect(result.map((n) => n.content)).toEqual(["stale"])
   })

@@ -54,7 +54,7 @@ The public Repo / SyncableRepo / withSync / withFsWriter / getRepoEmitter / hasR
 
 **Before changing any of these:**
 
-1. Decide whether the change is *additive* (new field/method on Repo) or *breaking* (rename, remove, or shape change).
+1. Decide whether the change is _additive_ (new field/method on Repo) or _breaking_ (rename, remove, or shape change).
 2. Update `typed-surface.test.ts` first — extending `RequiredRepoKeys` for additions, or adjusting the matching `Equal<>` / `HasKey<>` assertion for shape changes. The compile error tells you exactly which pin needs touching.
 3. Then update the source. The test file is the contract; the source follows.
 

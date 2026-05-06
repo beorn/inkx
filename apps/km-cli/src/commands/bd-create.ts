@@ -39,7 +39,7 @@ import { join } from "node:path"
 import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 import { resolvePathArg } from "@km/fs-mount"
-import { Bead, parentIdFromCanonical, renderBeadFile, renderInboxCapture } from "@km/beads"
+import { Bead, renderBeadFile, renderInboxCapture } from "@km/beads"
 import { loadRepo } from "../load-repo.ts"
 import { loadKmBdConfig } from "./bd-load-config.ts"
 import { resolveIssueArg } from "./bd-query-helpers.ts"
@@ -223,7 +223,6 @@ export function registerBdCreate(parent: BdRegistrar): void {
         priority: opts.priority as string | undefined,
         description: opts.description as string | undefined,
         notes: opts.notes as string | undefined,
-        parentId: parentIdFromCanonical(canonicalId, configObj.beads.prefix),
       })
       const filepath = join(resolved.repoRoot, filename)
       if (existsSync(filepath)) {

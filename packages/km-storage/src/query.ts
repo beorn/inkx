@@ -226,9 +226,9 @@ function buildPathCteSelect(db: Database): string {
 }
 
 function hasEffectivePathsTable(db: Database): boolean {
-  const row = db
-    .query("SELECT name FROM sqlite_temp_master WHERE type='table' AND name='_effective_paths'")
-    .get() as { name: string } | null
+  const row = db.query("SELECT name FROM sqlite_temp_master WHERE type='table' AND name='_effective_paths'").get() as {
+    name: string
+  } | null
   return row != null
 }
 

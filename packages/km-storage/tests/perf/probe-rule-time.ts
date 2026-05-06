@@ -7,6 +7,6 @@ const queries = ["@agent -path:archive/ -path:raw/", "@inbox", "@next -path:arch
 for (const q of queries) {
   const t0 = performance.now()
   const r = queryNodes(db, q)
-  console.log(`${q}: ${r.length} matches, ${(performance.now()-t0).toFixed(0)}ms`)
+  console.log(`${q}: ${r.length} matches, ${(performance.now() - t0).toFixed(0)}ms`)
 }
 db.close()

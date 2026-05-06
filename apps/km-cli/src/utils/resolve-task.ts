@@ -51,6 +51,18 @@ export function resolveTaskNode(repo: Repo, arg: string): KNode | null {
  */
 export function resolveIssue(repo: Repo, arg: string): BeadType | null {
   const node = resolveTaskNode(repo, arg)
-  if (!node) return null
-  return Bead.from(node, { repo })
+  if (node) {
+    const bead = Bead.from(node, { repo })
+    if (bead) return bead
+  }
+
+  // Once a bead has sub-beads, its file and sibling folder share a stem:
+  // `@km/scope/parent.md` and `@km/scope/parent/`. Path-form lookup may
+  // resolve the folder first, but bd commands operate on the bead file.
+  if (arg.includes("/") && !arg.endsWith(".md")) {
+    const fileNode = resolveTaskNode(repo, `${arg}.md`)
+    if (fileNode) return Bead.from(fileNode, { repo })
+  }
+
+  return null
 }

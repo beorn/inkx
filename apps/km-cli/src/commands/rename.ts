@@ -86,7 +86,10 @@ export const renameCommand = new Command("rename")
         result.rewroteRefs > 0
           ? ` (rewrote ${result.rewroteRefs} ref${result.rewroteRefs === 1 ? "" : "s"} in ${result.rewroteHosts} file${result.rewroteHosts === 1 ? "" : "s"})`
           : ""
-      console.log(term.green("→"), `Moved ${getNodeDisplayName(node)} to ${getNodeDisplayName(targetNode)}${refsSuffix}`)
+      console.log(
+        term.green("→"),
+        `Moved ${getNodeDisplayName(node)} to ${getNodeDisplayName(targetNode)}${refsSuffix}`,
+      )
       return
     }
 

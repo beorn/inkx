@@ -86,6 +86,41 @@ describe("FakeRepo", () => {
       expect(subtree.map((n) => n.id)).not.toContain("other")
     })
 
+    it("getNodesUnderPath returns fs-materialized descendants", () => {
+      const repo = createFakeRepo({
+        nodes: [
+          createNode({ id: "folder", fs_path: "@km/scope/parent", fstype: "folder" }),
+          createNode({ id: "child", fs_path: "@km/scope/parent/child.md", fstype: "mdfile" }),
+          createNode({ id: "grandchild", fs_path: "@km/scope/parent/nested/grandchild.md", fstype: "mdfile" }),
+          createNode({ id: "other", fs_path: "@km/scope/other.md", fstype: "mdfile" }),
+          createNode({ id: "inline", parent_id: "child", fs_path: undefined, fstype: undefined }),
+        ],
+      })
+
+      const nodes = repo.getNodesUnderPath("@km/scope/parent")
+      expect(nodes.map((n) => n.id)).toEqual(["folder", "child", "grandchild"])
+    })
+
+    it("counts dependency rows by target and kind", () => {
+      const repo = createFakeRepo({
+        nodes: [
+          createNode({ id: "one", data: { props: { "blocked-by": { type: "link", target: "@km/a" } } } }),
+          createNode({ id: "two", data: { props: { "blocked-by": { type: "link", target: "@km/a" } } } }),
+          createNode({ id: "three", data: { props: { "blocked-by": { type: "link", target: "@km/b" } } } }),
+          createNode({ id: "other", data: { props: { related: { type: "link", target: "@km/a" } } } }),
+        ],
+      })
+
+      expect(repo.getDependencyCountsByTarget("blocked-by")).toEqual(
+        new Map([
+          ["@km/a", 2],
+          ["@km/b", 1],
+        ]),
+      )
+      expect(repo.countDependenciesByTarget("@km/a", "blocked-by")).toBe(2)
+      expect(repo.countDependenciesByTarget("@km/a", "related")).toBe(1)
+    })
+
     it("getAncestors returns path from root to parent", () => {
       const repo = createFakeRepo({
         nodes: [
