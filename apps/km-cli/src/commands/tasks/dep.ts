@@ -34,7 +34,8 @@ export function createDepCommand(): Command {
     .argument("<id>", "Task ID — the one being blocked")
     .argument("<blockers...>", "One or more blocker IDs — tasks that must complete first")
     .description("Add blocked-by edges from <id> to each blocker (atomic — all-or-nothing)")
-    .action(async (id: string, blockers: string[]) => {
+    .option("--dry-run", "Print the diff without writing anything")
+    .action(async (id: string, blockers: string[], options: { dryRun?: boolean }) => {
       const resolved = resolvePathArg(process.cwd(), getRootPath())
       using repo = await loadRepo(resolved.repoRoot)
 
@@ -49,9 +50,22 @@ export function createDepCommand(): Command {
 
       for (const w of plan.warnings) console.error(term.yellow(w))
 
+      if (!plan.targetNodeId) return // unreachable when errors empty
+      const targetLabel = plan.targetShortId ?? plan.targetNodeId
+
+      // --dry-run: preview without writing. CI-gateable invariant:
+      // dry-run NEVER calls a mutation method.
+      if (options.dryRun) {
+        for (const blocker of plan.blockers) {
+          const blockerLabel = blocker.blockerShortId ?? blocker.input
+          console.log(`Would add: ${targetLabel} blocked-by ${blockerLabel}`)
+        }
+        console.log(term.dim("No changes written. Run without --dry-run to apply."))
+        return
+      }
+
       // Single-writer path. addGraphEdge is idempotent — re-running
       // the same edge is a no-op.
-      if (!plan.targetNodeId) return // unreachable when errors empty
       for (const blocker of plan.blockers) {
         addGraphEdge(repo, {
           from: blocker.blockerNodeId,
@@ -60,7 +74,6 @@ export function createDepCommand(): Command {
         })
       }
 
-      const targetLabel = plan.targetShortId ?? plan.targetNodeId
       for (const blocker of plan.blockers) {
         const blockerLabel = blocker.blockerShortId ?? blocker.input
         console.log(term.green(`Added: ${targetLabel} blocked-by ${blockerLabel}`))
@@ -75,7 +88,8 @@ export function createDepCommand(): Command {
     .argument("<id>", "Task ID — the one whose blocker is being removed")
     .argument("<blockers...>", "One or more blocker IDs to remove")
     .description("Remove blocked-by edges from <id> for each named blocker (atomic)")
-    .action(async (id: string, blockers: string[]) => {
+    .option("--dry-run", "Print the diff without writing anything")
+    .action(async (id: string, blockers: string[], options: { dryRun?: boolean }) => {
       const resolved = resolvePathArg(process.cwd(), getRootPath())
       using repo = await loadRepo(resolved.repoRoot)
 
@@ -88,6 +102,17 @@ export function createDepCommand(): Command {
       }
 
       if (!plan.targetNodeId) return
+      const targetLabel = plan.targetShortId ?? plan.targetNodeId
+
+      // --dry-run: preview without writing.
+      if (options.dryRun) {
+        for (const blocker of plan.blockers) {
+          const blockerLabel = blocker.blockerShortId ?? blocker.input
+          console.log(`Would remove: ${targetLabel} no longer blocked-by ${blockerLabel}`)
+        }
+        console.log(term.dim("No changes written. Run without --dry-run to apply."))
+        return
+      }
 
       for (const blocker of plan.blockers) {
         removeGraphEdge(repo, {
@@ -97,7 +122,6 @@ export function createDepCommand(): Command {
         })
       }
 
-      const targetLabel = plan.targetShortId ?? plan.targetNodeId
       for (const blocker of plan.blockers) {
         const blockerLabel = blocker.blockerShortId ?? blocker.input
         console.log(term.green(`Removed: ${targetLabel} no longer blocked-by ${blockerLabel}`))

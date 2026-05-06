@@ -42,6 +42,7 @@ import { createStatusCommand } from "./status.ts"
 import { createSetCommand, createClearCommand } from "./set-clear.ts"
 import { listStaleTasks } from "./stale.ts"
 import { createDepCommand } from "./dep.ts"
+import { createOrphansCommand } from "./orphans.ts"
 import {
   claimTaskLifecycle,
   closeTaskLifecycle,
@@ -84,6 +85,7 @@ taskCommand.addCommand(createStatusCommand())
 taskCommand.addCommand(createSetCommand())
 taskCommand.addCommand(createClearCommand())
 taskCommand.addCommand(createDepCommand())
+taskCommand.addCommand(createOrphansCommand())
 
 // `task new <content>` — promoted from the legacy `tasks --new <content>`
 // flag-form. Bead-frontmatter flags (--type, --id, --aliases, --parent,
@@ -95,17 +97,27 @@ taskCommand
   .description("Create a new task")
   .argument("<content...>", "Task content (multiple words joined with spaces)")
   .option("--type <type>", "Bead-style type tag (bug, feature, epic, …; task is implicit)")
-  .option("--id <id>", "Explicit canonical id (path-form @km/scope/foo or bare scope/foo)")
+  .option(
+    "--id <id>",
+    "Explicit canonical id (path-form @km/scope/foo materializes a file; bare scope/foo is inline)",
+  )
   .option("--aliases <list>", "Comma-separated alias list (writes to data.aliases)")
   .option("--parent <ref>", "Explicit parent ref (id, path, or filename)")
   .option("--owner <user>", "Initial assignee (writes to node.assigned_to)")
+  .option("-a, --assignee <name>", "Assignee (alias of --owner; bd-compat)")
   .option("-p, --priority <value>", "Priority (P0..P4 or 0..4)")
+  .option("-d, --description <text>", "Description — first body paragraph (file mode only)")
+  .option("-n, --notes <text>", "Notes — appended body paragraph (file mode only)")
+  .option("-l, --label <labels...>", "Add labels")
   .option("--due <date>", "Due date (natural language: tmrw, +2w, friday)")
   .option("--start <date>", "Start date (natural language: tmrw, +2w, friday)")
   .option("--json", "Output as JSON")
   .action((contentArgs: string[], options) => {
     const content = contentArgs.join(" ")
-    void createTask(options.parent, content, options)
+    // commander's option types are inferred too narrowly to satisfy
+    // CreateTaskOptions's optional structural shape; cast at the call
+    // boundary keeps the action handler tidy.
+    void createTask(options.parent, content, options as Parameters<typeof createTask>[2])
   })
 
 // Lifecycle subcommands (Wave 3) — workflow transitions distinct from
