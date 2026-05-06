@@ -1,14 +1,23 @@
 /**
- * Beads Command (bd) — Wave 6 thin alias layer.
+ * Beads Command (bd) — migration on-ramp for users coming from the
+ * standalone `bd` issue tracker.
  *
- * Wave 6 of `@km/cli/task-bd-collapse`: bd is a back-compat shim that
- * delegates in-process to `km task` / `km <verb>`. The action handlers
- * in each `bd-<verb>.ts` register the commander surface (so `bd close
- * --help` still works and the print-once deprecation notice fires),
- * then call the canonical task / km action handler directly. No
- * duplicated lifecycle / mutation logic.
+ * `km bd <verb>` is a first-class surface, NOT a deprecated shim. The
+ * intent is the migration path:
  *
- * Canonical alias mapping (per the bead's design):
+ *   1. `km import bd <vault>` — bring bd data into a km vault
+ *   2. Use `km bd <verb>` in place of `bd <verb>` (same UX, no muscle-
+ *      memory cost)
+ *   3. Gradually adopt `km <verb>` / `km task <verb>` for new work
+ *   4. `km bd` retires post-v2 once adoption is mature
+ *
+ * Where `km bd` and `km` share semantics, the engine lives in `@km/*`
+ * packages and `km bd` is a translation layer above. The L5 invariant
+ * is `tests/bd-task-equivalence.property.test.ts`, which pins
+ * repo-state equivalence on the verbs that share semantics.
+ *
+ * Canonical alias mapping for shared-semantic verbs (per the parent
+ * epic `@km/cli/task-bd-collapse`):
  *
  *   const BD_ALIASES: Record<string, string[]> = {
  *     // Task-domain verbs → km task subcommand
@@ -31,31 +40,21 @@
  *     rename:   ["move"],             // km move (polymorphic dispatch)
  *   }
  *
- * Post-Wave-6-final state (`@km/cli/bd-shim-collapse-final`): every
- * delegated verb is a pure thin shim. The lifts that landed in this
- * wave:
+ * Most delegated verbs are thin alias shims (`bd-<verb>.ts` registers
+ * the commander surface, then calls the canonical task/km action).
+ * `bd-create`/`bd-update`/`bd-rename`/`bd-children` keep richer
+ * bd-specific UX (path-form ids, --description/--notes, --include-prose,
+ * sibling-folder walk) — that's the legitimate cost of being bd-compatible.
  *
- *   - `task new --id @<path>` materializes a file (was bd-create only).
- *   - `task new --description` / `--notes` accept body text (was bd-create only).
- *   - `task orphans` exists (lifted from bd-orphans).
- *   - `task dep add|rm --dry-run` exists (was bd-dep only).
- *   - `km move` polymorphically routes path-form targets to rename mode
- *     (was bd-rename only).
- *
- * Out-of-scope subcommands stay as their own implementations:
- *   bd config — bd-specific tooling
+ * bd-only subcommands (no km equivalent today):
+ *   bd config — issue-prefix knob, bd-specific tooling
  *   bd memory / bd comment / bd agent — bd-specific surfaces
- *   bd info (incl. --paths) — `km doctor` / `km config bd.*` redirects pending
+ *   bd info (with --paths flag) — config + statistics + paths
  *
  * Migration / export to .beads/issues.jsonl lives at `km import bd <vault>`
  * (with `--export` for the reverse direction); no longer mounted under `bd`.
- *
- * Migration / export to .beads/issues.jsonl lives at `km import bd <vault>`
- * (with `--export` for the reverse direction); no longer mounted under `bd`.
- *
- * `bd` remains a first-class user-facing surface alongside `km task` /
- * `km <verb>`. Both are valid; the alias layer keeps them behaviourally
- * identical (pinned by `tests/bd-task-equivalence.property.test.ts`).
+ * `bd doctor` was retired (one-shot vault-layout migration; deleted in
+ * `@km/cli/bd-doctor-retire`).
  */
 
 import { Command } from "@silvery/commander"
