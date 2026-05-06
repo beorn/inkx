@@ -106,7 +106,7 @@ export function configureProgram(): Command {
     .description("Knowledge Machine - The agentic work desk")
     .version("0.1.0")
     .option("-r, --repo <path>", "Repository directory to operate on (overrides KM_ROOT env var)")
-    .option("-s, --silent", "Suppress output except errors")
+    .option("--silent", "Suppress output except errors")
     .option(
       "-v, --verbose",
       "Increase verbosity (-v=info, -vv=debug, -vvv=trace)",

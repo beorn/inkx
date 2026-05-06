@@ -67,6 +67,13 @@ export interface ListTasksOptions {
    * looks.
    */
   forcePath?: boolean
+  /**
+   * Filter by `fstype`. `bd list` passes `"mdfile"` to keep the surface
+   * bead-centric (one bead = one .md file; inline checkboxes inside a
+   * bead are acceptance criteria, not separate beads). `task list`
+   * leaves this `undefined` to include every task-shaped node.
+   */
+  fstype?: "mdfile" | "mdsection" | null
 }
 
 /**
@@ -245,6 +252,7 @@ export async function listTasks(pathOrId: string | undefined, options: ListTasks
     blocked: options.blocked,
     unblocked: options.unblocked,
     forcePath: options.forcePath,
+    fstype: options.fstype,
   })
 
   if (plan.kind === "single-task") {

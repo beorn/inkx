@@ -55,6 +55,17 @@ export interface PlanListInputs {
    * subtree.
    */
   forcePath?: boolean
+  /**
+   * Filter by `fstype` — keeps only tasks whose underlying filesystem
+   * shape matches. Used by `bd list` (bead-centric surface) to default
+   * to `"mdfile"` and exclude inline list-item acceptance-criteria
+   * checkboxes — a bead is one .md file, not the sub-checkboxes inside
+   * one. `task list` (the general task surface) leaves this unset to
+   * include every task-shaped node.
+   *
+   * Set to `null` to explicitly request "no fstype filter."
+   */
+  fstype?: "mdfile" | "mdsection" | null
 }
 
 /** Plan kinds. */
@@ -115,6 +126,23 @@ export function filterTasksByAssignee(tasks: KNode[], assignee: string | undefin
 }
 
 /**
+ * Filter tasks by `fstype`.
+ *
+ * `bd list` (the bead-centric surface) sets `fstype: "mdfile"` by default
+ * — a bead IS one .md file, so the inline list-item checkboxes inside a
+ * bead body (acceptance criteria, sub-tasks) are not separate beads.
+ *
+ * `task list` (the general surface) leaves this `undefined`, which means
+ * all task-shaped nodes are kept (mdfile + mdsection + inline checkboxes).
+ *
+ * Pass `null` to explicitly opt out of any fstype filter.
+ */
+export function filterTasksByFstype(tasks: KNode[], fstype: PlanListInputs["fstype"]): KNode[] {
+  if (fstype === undefined || fstype === null) return tasks
+  return tasks.filter((t) => t.fstype === fstype)
+}
+
+/**
  * Filter tasks by status options (shared across multiple resolution paths).
  * Returns only tasks matching the requested status/all flags.
  *
@@ -127,6 +155,14 @@ export function filterTasksByStatus(
   defaultMode: "excludeDone" | "active" = "excludeDone",
 ): KNode[] {
   if (options.status) {
+    // "open" is a UI alias for todo + wip + blocked (the not-closed states).
+    // Real underlying statuses are todo / wip / blocked / done / dropped.
+    if (options.status === "open") {
+      return tasks.filter((t) => {
+        const s = t.item?.task?.status
+        return s === "todo" || s === "wip" || s === "blocked"
+      })
+    }
     return tasks.filter((t) => t.item?.task?.status === options.status)
   }
   if (!options.all) {
@@ -230,7 +266,10 @@ export function planList(repo: Repo, inputs: PlanListInputs): ListPlan {
   if (queryArg) {
     return {
       kind: "list",
-      tasks: filterTasksByAssignee(resolveFromQuery(repo, queryArg, inputs), inputs.assignee),
+      tasks: filterTasksByFstype(
+        filterTasksByAssignee(resolveFromQuery(repo, queryArg, inputs), inputs.assignee),
+        inputs.fstype,
+      ),
       rootNode: null,
       pathFilter: null,
     }
@@ -247,7 +286,7 @@ export function planList(repo: Repo, inputs: PlanListInputs): ListPlan {
       case "filter":
         return {
           kind: "list",
-          tasks: filterTasksByAssignee(result.tasks, inputs.assignee),
+          tasks: filterTasksByFstype(filterTasksByAssignee(result.tasks, inputs.assignee), inputs.fstype),
           rootNode: result.rootNode,
           pathFilter: result.pathFilter,
         }
@@ -255,12 +294,15 @@ export function planList(repo: Repo, inputs: PlanListInputs): ListPlan {
   }
 
   // Global task list (no positional arg, no query)
-  const tasks = filterTasksByAssignee(
-    filterTasksByBlocked(
-      filterTasksByPriority(filterTasksByStatus(repo.getAllTasks(), inputs), inputs.priority),
-      inputs,
+  const tasks = filterTasksByFstype(
+    filterTasksByAssignee(
+      filterTasksByBlocked(
+        filterTasksByPriority(filterTasksByStatus(repo.getAllTasks(), inputs), inputs.priority),
+        inputs,
+      ),
+      inputs.assignee,
     ),
-    inputs.assignee,
+    inputs.fstype,
   )
   return { kind: "list", tasks, rootNode: null, pathFilter: null }
 }

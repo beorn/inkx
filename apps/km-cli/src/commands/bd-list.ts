@@ -39,6 +39,10 @@ export function registerBdReady(parent: BdRegistrar): void {
     .option("-a, --assignee <name>", "Filter by assignee")
     .option("-p, --priority <value>", "Filter by priority (e.g. P1, P2, or 0-4)")
     .option("-n, --limit <n>", "Limit number of results")
+    .option(
+      "--all-tasks",
+      "Include inline-checkbox sub-tasks (acceptance criteria) — bd defaults to file-level beads only",
+    )
     .option("--json", "Output as JSON")
     .actionMerged(async (opts) => {
       const queryParts: string[] = opts.query ?? []
@@ -50,6 +54,11 @@ export function registerBdReady(parent: BdRegistrar): void {
         json: opts.json,
         status: "todo",
         unblocked: true,
+        // bd surface = bead-centric; one bead = one .md file. Inline
+        // list-item checkboxes inside a bead body are acceptance criteria,
+        // not separate beads. `--all-tasks` opts out for the rare case
+        // where the user wants to see those checkboxes too.
+        fstype: opts.allTasks ? null : "mdfile",
       })
     })
   parent.addCommand(readyCmd)
@@ -59,12 +68,16 @@ export function registerBdList(parent: BdRegistrar): void {
   const listCmd = new Command("list")
     .argument("[query...]", "Query terms (status:todo @assignee #tag) or path scope")
     .description("List issues (alias for `km task`; the bare board view)")
-    .option("-s, --status <status>", "Filter by status (todo,wip,blocked,done,dropped)")
+    .option("-s, --status <status>", "Filter by status (todo, wip, blocked, done, dropped, open=todo+wip+blocked)")
     .option("--assignee <name>", "Filter by assignee")
     .option("-p, --priority <value>", "Filter by priority (e.g. P1, P2, or 0-4)")
     .option("--blocked", "Show only blocked issues")
     .option("--unblocked", "Show only unblocked issues")
     .option("-a, --all", "Show all tasks (include done)")
+    .option(
+      "--all-tasks",
+      "Include inline-checkbox sub-tasks (acceptance criteria) — bd defaults to file-level beads only",
+    )
     .option("-n, --limit <n>", "Limit number of results")
     .option("--json", "Output as JSON")
     .actionMerged(async (opts) => {
@@ -79,6 +92,11 @@ export function registerBdList(parent: BdRegistrar): void {
         unblocked: opts.unblocked,
         limit: opts.limit,
         json: opts.json,
+        // bd surface = bead-centric; one bead = one .md file. Inline
+        // list-item checkboxes inside a bead body are acceptance criteria,
+        // not separate beads. `--all-tasks` opts out for the rare case
+        // where the user wants to see those checkboxes too.
+        fstype: opts.allTasks ? null : "mdfile",
       })
     })
   parent.addCommand(listCmd)
