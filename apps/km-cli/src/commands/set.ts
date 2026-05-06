@@ -15,6 +15,7 @@
  *   km set abc123 priority:P1 --dry-run    # plan-only
  */
 
+import type { KNode } from "@km/core"
 import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 
@@ -28,6 +29,7 @@ import { resolveShortId, formatAmbiguityError } from "../utils/short-id.ts"
 interface SetOptions {
   json?: boolean
   dryRun?: boolean
+  where?: string
   priority?: string
   due?: string
   start?: string
@@ -73,9 +75,10 @@ function partitionArgs(args: readonly string[]): { ids: string[]; fields: string
 
 export const setCommand = new Command("set")
   .description("Set field values on one or more nodes (generic; tasks, notes, anything)")
-  .argument("<args...>", "<id...> <field:value...> — ids and field:value tokens may be intermixed")
+  .argument("[args...]", "<id...> <field:value...> — ids and field:value tokens may be intermixed")
   .option("--json", "Output as JSON")
   .option("--dry-run", "Show planned changes without applying")
+  .option("--where <query>", "Bulk select via query DSL (mutually exclusive with positional ids)")
   .option("-p, --priority <value>", "Priority (P0..P4)")
   .option("--due <date>", "Due date (ISO; natural-language deferred)")
   .option("--start <date>", "Start date")
@@ -85,10 +88,16 @@ export const setCommand = new Command("set")
   .option("--parent <ref>", "Reparent under another node")
   .option("--aliases <list>", "Comma-separated alias list")
   .action(async (args: string[], options: SetOptions) => {
-    const { ids, fields: positionalFields } = partitionArgs(args)
+    const { ids, fields: positionalFields } = partitionArgs(args ?? [])
     const allFields = [...positionalFields, ...flagsToFields(options)]
 
-    if (ids.length === 0) {
+    // --where + positional ids is ambiguous; reject (per @km/cli/bulk-multi-id-or-where).
+    if (options.where !== undefined && ids.length > 0) {
+      console.error(term.red("Cannot pass both positional ids and --where (mutually exclusive)"))
+      process.exit(1)
+    }
+
+    if (ids.length === 0 && options.where === undefined) {
       console.error(term.red("No node ids provided"))
       process.exit(1)
     }
@@ -100,23 +109,51 @@ export const setCommand = new Command("set")
     const resolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(resolved.repoRoot)
 
-    const results: Array<{ id: string; updates: Record<string, unknown>; parent?: string }> = []
+    // Resolve target ids: --where via repo.query, else positional walk
+    // through resolveShortId. `targets` carries `(idArg, node)` so we
+    // can echo the user's input verbatim in error messages.
+    const targets: Array<{ idArg: string; node: KNode }> = []
     let hadError = false
 
-    for (const idArg of ids) {
-      const result = resolveShortId(repo, idArg)
-      if (result.candidates.length > 0) {
-        console.error(term.red(formatAmbiguityError(idArg, result.candidates)))
-        hadError = true
-        continue
+    if (options.where !== undefined) {
+      let nodes: KNode[]
+      try {
+        nodes = repo.query(options.where)
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        console.error(term.red(`--where query failed: ${msg}`))
+        process.exit(1)
       }
-      const node = result.node
-      if (!node) {
-        console.error(term.red(`Node not found: ${idArg}`))
-        hadError = true
-        continue
+      if (nodes.length === 0) {
+        console.error(term.red(`--where "${options.where}" matched no nodes`))
+        process.exit(1)
       }
+      for (const node of nodes) {
+        const data = node.data as { id?: unknown } | undefined
+        const idArg = typeof data?.id === "string" && data.id ? data.id : (node.fs_path ?? node.id)
+        targets.push({ idArg, node })
+      }
+    } else {
+      for (const idArg of ids) {
+        const result = resolveShortId(repo, idArg)
+        if (result.candidates.length > 0) {
+          console.error(term.red(formatAmbiguityError(idArg, result.candidates)))
+          hadError = true
+          continue
+        }
+        const node = result.node
+        if (!node) {
+          console.error(term.red(`Node not found: ${idArg}`))
+          hadError = true
+          continue
+        }
+        targets.push({ idArg, node })
+      }
+    }
 
+    const results: Array<{ id: string; updates: Record<string, unknown>; parent?: string }> = []
+
+    for (const { idArg, node } of targets) {
       const plan = planSet(repo, node.id, allFields)
       for (const warning of plan.warnings) {
         console.error(term.yellow(`${idArg}: ${warning}`))

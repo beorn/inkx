@@ -11,6 +11,7 @@
  *   km clear abc123 def456 due priority    # bulk
  */
 
+import type { KNode } from "@km/core"
 import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 
@@ -24,6 +25,7 @@ import { resolveShortId, formatAmbiguityError } from "../utils/short-id.ts"
 interface ClearOptions {
   json?: boolean
   dryRun?: boolean
+  where?: string
 }
 
 /**
@@ -59,13 +61,20 @@ function partitionArgs(args: readonly string[]): { ids: string[]; fields: string
 
 export const clearCommand = new Command("clear")
   .description("Clear field values on one or more nodes (generic)")
-  .argument("<args...>", "<id...> <field...> — ids first, then fields (or intermixed)")
+  .argument("[args...]", "<id...> <field...> — ids first, then fields (or intermixed)")
   .option("--json", "Output as JSON")
   .option("--dry-run", "Show planned changes without applying")
+  .option("--where <query>", "Bulk select via query DSL (mutually exclusive with positional ids)")
   .action(async (args: string[], options: ClearOptions) => {
-    const { ids, fields } = partitionArgs(args)
+    const { ids, fields } = partitionArgs(args ?? [])
 
-    if (ids.length === 0) {
+    // --where + positional ids is ambiguous; reject (per @km/cli/bulk-multi-id-or-where).
+    if (options.where !== undefined && ids.length > 0) {
+      console.error(term.red("Cannot pass both positional ids and --where (mutually exclusive)"))
+      process.exit(1)
+    }
+
+    if (ids.length === 0 && options.where === undefined) {
       console.error(term.red("No node ids provided"))
       process.exit(1)
     }
@@ -77,23 +86,50 @@ export const clearCommand = new Command("clear")
     const resolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(resolved.repoRoot)
 
-    const results: Array<{ id: string; cleared: string[] }> = []
+    // Target resolution mirrors `set.ts`: --where via repo.query, else
+    // positional walk via resolveShortId.
+    const targets: Array<{ idArg: string; node: KNode }> = []
     let hadError = false
 
-    for (const idArg of ids) {
-      const result = resolveShortId(repo, idArg)
-      if (result.candidates.length > 0) {
-        console.error(term.red(formatAmbiguityError(idArg, result.candidates)))
-        hadError = true
-        continue
+    if (options.where !== undefined) {
+      let nodes: KNode[]
+      try {
+        nodes = repo.query(options.where)
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        console.error(term.red(`--where query failed: ${msg}`))
+        process.exit(1)
       }
-      const node = result.node
-      if (!node) {
-        console.error(term.red(`Node not found: ${idArg}`))
-        hadError = true
-        continue
+      if (nodes.length === 0) {
+        console.error(term.red(`--where "${options.where}" matched no nodes`))
+        process.exit(1)
       }
+      for (const node of nodes) {
+        const data = node.data as { id?: unknown } | undefined
+        const idArg = typeof data?.id === "string" && data.id ? data.id : (node.fs_path ?? node.id)
+        targets.push({ idArg, node })
+      }
+    } else {
+      for (const idArg of ids) {
+        const result = resolveShortId(repo, idArg)
+        if (result.candidates.length > 0) {
+          console.error(term.red(formatAmbiguityError(idArg, result.candidates)))
+          hadError = true
+          continue
+        }
+        const node = result.node
+        if (!node) {
+          console.error(term.red(`Node not found: ${idArg}`))
+          hadError = true
+          continue
+        }
+        targets.push({ idArg, node })
+      }
+    }
 
+    const results: Array<{ id: string; cleared: string[] }> = []
+
+    for (const { idArg, node } of targets) {
       const plan = planClear(fields)
       for (const warning of plan.warnings) {
         console.error(term.yellow(`${idArg}: ${warning}`))
