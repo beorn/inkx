@@ -27,9 +27,37 @@ See the repo root [CLAUDE.md](../../CLAUDE.md) and [docs/architecture.md](../../
 - Storage functions are pure over the passed-in `Database` handle — no module-level singletons, no hidden globals.
 - Event-sourcing-lite is the direction for CRDT compatibility (see memory `storage-crdt-direction.md`). Don't bake in assumptions that block that path.
 
+## Mutation pipeline — one path; sync handles FS both ways
+
+Every code path that changes node state — `km bd close`, `km task new`, `km set`, `km view` keypress (`set_status_done`, etc.), MCP tools, watcher reconciliation — converges on `repo.updateNode` (and its lifecycle wrappers like `closeTaskLifecycle`).
+
+**No code path writes to `.md` files directly.** FS writes happen exclusively through:
+
+- `km sync --to-fs` (and the daemon equivalent / fs-writer plugin) — projects DB state to markdown
+- `km sync --from-fs` (and the fs-watcher) — indexes user edits back into DB
+
+```
+   km view ──┐
+   km bd  ───┤                                              user editor
+   km task ──┼──► repo.updateNode ──► .km/state.db          (the other writer)
+   km <verb>─┤        ▲    │                                     │
+   MCP ──────┘        │    │                                     ▼
+                      │    └─── sync --to-fs ──► .md files ◄─────┘
+                      │                              │
+                      └────── sync --from-fs ────────┘
+                            (fs-watcher continuous)
+```
+
+Two writers (anything calling `repo.updateNode`, vs. the user's editor on `.md`); two indexers (sync DB→FS, sync FS→DB). No code path is both writer-and-FS-writer.
+
+**Why:** `km view`'s set-status-done and `km bd close` produce byte-identical state on disk (property-test pinnable). No CLI-to-FS races. Sync is the contract — if FS doesn't reflect what `bd close` did, that's a sync bug, not a close bug. New surfaces (MCP, agents, future CLIs) get FS materialization for free by calling `repo.updateNode`.
+
+Tracking: [`@km/storage/sync-roundtrip-completeness`](../../@km/storage/sync-roundtrip-completeness.md) (epic) + children.
+
 **Anti-patterns specific to km-storage:**
 
-- Reading or writing `.md` files directly — go through `@km/markdown` and the sync layer
+- Reading or writing `.md` files directly from a CLI command, view handler, or MCP tool — go through `repo.updateNode` and let sync materialize. CLI command source files should contain zero `fs.writeFile` / `Bun.write` calls targeting `.md` paths.
+- Reading or writing `.md` files directly from inside @km/storage — go through `@km/markdown` and the sync layer
 - Embedding business logic (what's a "task"? what's "done"?) in SQL — that belongs in `@km/core` or `@km/board`
 - Swallowing SQLite errors — every failure must log and surface to the user (see memory "no silent failures")
 
@@ -59,3 +87,4 @@ The public Repo / SyncableRepo / withSync / withFsWriter / getRepoEmitter / hasR
 3. Then update the source. The test file is the contract; the source follows.
 
 **Why this matters:** before this protocol, the `df353f2c7` SyncConfig migration verified its emitter-not-on-Repo invariant via grep. The `sync-legacy-cleanup` 2026-04-03 close was premature for the same reason. Compile-time pins make drift impossible to merge silently — a future "let's add `repo.emitter` for convenience" PR fails `tsc`, not a code review. See bead `@km/storage/typed-repo-surface-completeness-tests`.
+

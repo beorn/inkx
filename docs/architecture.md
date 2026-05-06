@@ -142,6 +142,7 @@ interface ViewTree {
 ```
 
 **Layering rule of thumb**:
+
 - React components → use `ViewTree` via `useNode(id)`
 - Reducers, selectors, navigation helpers, store → use `TreeLens` directly
 
@@ -180,6 +181,26 @@ Dependencies flow downward. Each package imports only from packages on its row o
 5. `@km/board`'s dependency on `@silvery/ag-react` (for `PositionRegistry`/`ScrollRect` in grid navigation) is the only direct silvery dependency in the domain packages.
 6. `NodeRules` type and `parseHeadingRules()` live in `@km/core`, consumed by both `@km/board` and `@km/markdown`.
 
+### Mutation pipeline — one path; sync handles FS both ways
+
+Every code path that changes node state — `km bd close`, `km task new`, `km set`, `km view` keypress (`set_status_done`, etc.), MCP tools, watcher reconciliation — converges on `repo.updateNode` (and its lifecycle wrappers in `apps/km-cli/src/commands/tasks/lifecycle.ts`). **No code path writes `.md` files directly.**
+
+```
+   km view ──┐
+   km bd  ───┤                                              user editor
+   km task ──┼──► repo.updateNode ──► .km/state.db          (the other writer)
+   km <verb>─┤        ▲    │                                     │
+   MCP ──────┘        │    │                                     ▼
+                      │    └─── sync --to-fs ──► .md files ◄─────┘
+                      │                              │
+                      └────── sync --from-fs ────────┘
+                            (fs-watcher continuous)
+```
+
+Two writers (anything calling `repo.updateNode`, vs. the user's editor on `.md`); two indexers (sync DB→FS, sync FS→DB). No code path is both writer-and-FS-writer.
+
+This is what makes `km view`'s set-status-done and `km bd close` produce byte-identical state on disk (property-test pinnable). New surfaces — MCP, agent tools, future CLIs — get FS materialization for free by calling `repo.updateNode`. Tracked under [`@km/storage/sync-roundtrip-completeness`](../@km/storage/sync-roundtrip-completeness.md).
+
 ### Actual `@km/*` Dependencies (from package.json)
 
 ```
@@ -194,6 +215,7 @@ Dependencies flow downward. Each package imports only from packages on its row o
 ### Package Inventory
 
 **Domain packages** (private, workspace-only):
+
 - `@km/core`, `@km/markdown`, `@km/tree`, `@km/storage`, `@km/board`, `@km/commands` — see layer responsibilities above
 - `@km/beads` — bd-compatible issue tracking on km data. Depends on: `@km/core`, `@km/storage`.
 - `@km/agent` — Claude SDK agent integration. Depends on: `@km/core`, `@km/storage`.
@@ -202,12 +224,14 @@ Dependencies flow downward. Each package imports only from packages on its row o
 - `@silvery/selection` — Pure selection state machine. Depends on: `alien-signals`.
 
 **Apps** (private, workspace-only):
+
 - `@km/tui` (`apps/km-tui`) — TUI board view
 - `@km/cli-app` (`apps/km-cli`) — CLI commands (`bun km <subcommand>`)
 - `@km/repl` (`apps/km-repl`) — Interactive REPL
 - `@km/web` (`apps/km-web`) — Web server (early stage)
 
 **Vendor** (git submodules, standalone repos):
+
 - `silvery` — React TUI framework ([architecture](../vendor/silvery/docs/architecture.md))
 - `flexily` — Pure JS flexbox layout engine (Yoga-compatible)
 - `termless` — Headless terminal testing
@@ -313,12 +337,12 @@ For the full design rationale and /pro 4-leg consensus that drove it, see [docs/
 
 A node's visual role is determined by its **depth from the zoom root** — not by its type:
 
-| Depth | Role | Appearance |
-|-------|------|------------|
-| 0 | Board root | Fullscreen, no chrome |
-| 1 | Column | Header bar |
-| 2 | Card | Bordered box (title + sub-items + body) |
-| 3+ | Sub-item | Indented line; expands when selected |
+| Depth | Role       | Appearance                              |
+| ----- | ---------- | --------------------------------------- |
+| 0     | Board root | Fullscreen, no chrome                   |
+| 1     | Column     | Header bar                              |
+| 2     | Card       | Bordered box (title + sub-items + body) |
+| 3+    | Sub-item   | Indented line; expands when selected    |
 
 This is a **rendering rule, not data**. The same KNode renders as a column when zoomed out and as the board root when zoomed in. ViewNode makes this explicit — each node carries its `ViewType`, derived from tree position.
 
@@ -352,14 +376,14 @@ Operations and effects are serializable data. The reducer is pure. Cross-cutting
 
 ### SlateJS Alignment
 
-| SlateJS | km (current) | km (target) |
-|---------|-------------|-------------|
-| `Editor` | board-app-store + OpCtx | `Board` — single state machine |
-| `Element` / `Text` | KNode (item/block) | KNode (unchanged) |
-| `Path` | sel.node.cursor + classifyCursorFromViewIndex | `cursorPath: string[]` via ViewNode |
-| `Operation` | BoardReducerOp + KmOp | `KmOp` — unified discriminated union (done) |
-| `Transform` | board-actions.ts (2600 lines) | Per-concern handlers, composed via pipeline |
-| `Plugin` | (hardcoded throughout) | Middleware: `(state, op, next) -> [state, effects]` |
+| SlateJS        | km (current)                                  | km (target)                                       |
+| -------------- | --------------------------------------------- | ------------------------------------------------- |
+| Editor         | board-app-store + OpCtx                       | Board — single state machine                      |
+| Element / Text | KNode (item/block)                            | KNode (unchanged)                                 |
+| Path           | sel.node.cursor + classifyCursorFromViewIndex | cursorPath: string[] via ViewNode                 |
+| Operation      | BoardReducerOp + KmOp                         | KmOp — unified discriminated union (done)         |
+| Transform      | board-actions.ts (2600 lines)                 | Per-concern handlers, composed via pipeline       |
+| Plugin         | (hardcoded throughout)                        | Middleware: (state, op, next) -> [state, effects] |
 
 ## Related Docs
 
@@ -371,3 +395,4 @@ Operations and effects are serializable data. The reducer is pure. Cross-cutting
 - [design/tea.md](design/tea.md) — TEA vision and phase plan
 - [Silvery architecture](../vendor/silvery/docs/architecture.md) — TUI framework internals
 - [The Silvery Way](../vendor/silvery/docs/guide/the-silvery-way.md) — Component principles
+

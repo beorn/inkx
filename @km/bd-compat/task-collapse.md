@@ -13,9 +13,46 @@ type: feature
 priority: P1
 status: todo
 parent: km-cli
+closed_at: 2026-05-06T22:00:49.239Z
+dropReason: >-
+  Won't do — collapse framing is wrong. bd is the bd-compat surface (for users
+  coming from external Go bd tool); km tasks is km's own surface. The two serve
+  different audiences with overlapping engine but distinct ergonomics. Per user
+  2026-05-06: 'we will update km tasks but km bd will remain the same CLI
+  surface.'
+
+
+  What still gets done (separately, not as 'collapse'):
+
+  - Wave 4 generic km verbs (km set, km move, km stale, km children, km query,
+  --json/--jq) — pursued as @km/cli/* beads if/when filed; benefits the km
+  surface independently of bd.
+
+  - Wave 7 ergonomics (short-id resolution, status-bar header, working-dir
+  scoping, dry-run on destructive ops) — file as separate task/cli beads as
+  needed.
+
+  - Engine alignment (shared planners, lifecycle helpers, ref-rewrite engine) —
+  already mostly shipped via Waves 1.5/2/5; the remaining engine convergence is
+  per @km/storage/cli-mutation-unified-with-view-path (the unified mutation
+  pipeline doctrine).
+
+
+  What does NOT get done:
+
+  - Wave 6 (bd → task/km alias layer; bd*.ts ≤500 LOC; legacy logic deleted).
+
+  - The 'duplicated planning code removed' acceptance criterion.
+
+  - bd as 'thin wrappers delegating to km task'.
+
+
+  bd stays bd. The duplication that mattered is already deduped via shared
+  engine modules; the remaining surface duplication is intentional ergonomics
+  for the bd-compat audience.
 ---
 
-# [ ] Collapse `km bd` into `km task` + `km` generic verbs; bd becomes thin back-compat shim @km/cli #feature #P1
+# [-] Collapse `km bd` into `km task` + `km` generic verbs; bd becomes thin back-compat shim @km/cli #feature #P1
 
 Unify the two near-identical task/bead CLI surfaces (`km tasks` 1368 LOC, `km bd` 3022 LOC) into one canonical task surface `km task` (workflow-only) + a fattened generic `km` (set, clear, move, children, stale, query). `km task` stays thin: just the verbs that need task-domain knowledge. `km bd` becomes thin wrappers delegating to `km task`/`km` for backwards compatibility. Drop ~3000 LOC of duplication; close the dependency-mutation gap; rationalize default scope and lifecycle verbs.
 
