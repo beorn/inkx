@@ -1,4 +1,7 @@
 ---
+mentions:
+  - silvery
+  - km
 id: "@km/silvery/ag-react-progress-barrel-export-missing"
 aliases:
   - km-silvery.ag-react-progress-barrel-export-missing
@@ -9,9 +12,13 @@ type: bug
 priority: P1
 status: todo
 parent: km-silvery
+closeReason: "Shipped: silvery commit ec501706 (re-export progress/* from parent
+  barrel) + km commit 688323b30 (migrated all 5 remaining consumers to /ui
+  parent barrel). Verified: 27/27 in tasks-stale + tasks-assignee-filter,
+  672/672 across apps/km-cli/tests/."
 ---
 
-# [ ] Re-export `progress/*` from `@silvery/ag-react/ui` parent barrel @km/silvery #bug #P1
+# [x] Re-export `progress/*` from `@silvery/ag-react/ui` parent barrel @km/silvery #bug #P1
 
 `vendor/silvery/packages/ag-react/src/ui/index.ts` is missing `export * from "./progress/index.js"`. The barrel currently re-exports `cli`, `wrappers`, `types` but not `progress`. Two consequences:
 
@@ -38,6 +45,7 @@ export * from "./progress/index.js"
 ## Why this is L4
 
 The bug surfaced because the barrel was incomplete BUT compile-time + runtime didn't catch it (named imports of missing symbols fail silently in vitest, silently as `undefined` at runtime). After this fix:
+
 - The barrel is a complete re-export by construction
 - A barrel-completeness test pins it as an invariant
 - Consumers can use either `@silvery/ag-react/ui` (parent) or `@silvery/ag-react/ui/progress` (subpath) interchangeably
@@ -45,3 +53,4 @@ The bug surfaced because the barrel was incomplete BUT compile-time + runtime di
 ## Surfaced by
 
 Code-quality agent in session f9eb64dc, after the bd-fixer + my barrel-blanket commit (`301996277`) caused real consumers to silently lose `steps`. Reverted by `f8ce66798`. The runtime correctness lives in vendor, not km.
+

@@ -1,4 +1,7 @@
 ---
+mentions:
+  - silvery
+  - km
 id: "@km/cli/sync-init-progress-import-fix"
 aliases:
   - km-cli.sync-init-progress-import-fix
@@ -9,9 +12,13 @@ type: bug
 priority: P1
 status: todo
 parent: km-cli
+closeReason: "Resolved by silvery barrel re-export (ec501706) + consumer
+  migration (km 688323b30). All consumers now import from @silvery/ag-react/ui
+  parent barrel; vitest resolver no longer crashes on /ui/progress. Verified:
+  672/672 in apps/km-cli/tests/."
 ---
 
-# [ ] Fix `@silvery/ag-react/ui/progress` import in init.ts/sync.ts/load-repo.ts (vitest-fail) @km/cli #bug #P1
+# [x] Fix `@silvery/ag-react/ui/progress` import in init.ts/sync.ts/load-repo.ts (vitest-fail) @km/cli #bug #P1
 
 `apps/km-cli/src/commands/init.ts`, `sync.ts`, and `apps/km-cli/src/load-repo.ts` import `steps` from `@silvery/ag-react/ui/progress`. The path resolves at runtime (Bun honors the `./ui/*` glob in package.json exports) but FAILS at vitest test-load time (vitest doesn't honor glob exports).
 
@@ -45,3 +52,4 @@ Two visible test failures block CI green. The failures aren't real product bugs 
 ## Surfaced by
 
 Code-quality agent + planner-extract agent + bd-fixer agent — three different agents independently flagged this in session f9eb64dc.
+
