@@ -139,3 +139,58 @@ describe("planNewTask — combined flags", () => {
     expect(node.assigned_to).toBe("alice")
   })
 })
+
+describe("planNewTask — --due", () => {
+  test("--due tmrw lands on node.due_at as tomorrow's ISO", () => {
+    // Snapshot today's date so the assertion is stable regardless of when
+    // the test runs. parseDate uses the system clock; we re-derive the
+    // expected ISO here from `new Date()` for the same offset.
+    const now = new Date()
+    const tomorrow = new Date(now)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const expected = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`
+
+    const { node, errors } = planNewTask("Fix foo", { due: "tmrw" })
+    expect(errors).toEqual([])
+    expect(node.due_at).toBe(expected)
+  })
+
+  test("--due friday parses via chrono and lands on node.due_at", () => {
+    const { node, errors } = planNewTask("Fix foo", { due: "friday" })
+    expect(errors).toEqual([])
+    expect(node.due_at).toMatch(/^\d{4}-\d{2}-\d{2}/)
+  })
+
+  test("--due garbage returns an error, no due_at written", () => {
+    const { node, errors } = planNewTask("Fix foo", { due: "garbage" })
+    expect(errors.length).toBeGreaterThan(0)
+    expect(errors[0]).toMatch(/^--due:/)
+    expect(node.due_at).toBeUndefined()
+  })
+})
+
+describe("planNewTask — --start", () => {
+  test("--start tmrw lands on node.start_at as tomorrow's ISO", () => {
+    const now = new Date()
+    const tomorrow = new Date(now)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const expected = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`
+
+    const { node, errors } = planNewTask("Foo", { start: "tmrw" })
+    expect(errors).toEqual([])
+    expect(node.start_at).toBe(expected)
+  })
+
+  test("--start friday parses via chrono and lands on node.start_at", () => {
+    const { node, errors } = planNewTask("Foo", { start: "friday" })
+    expect(errors).toEqual([])
+    expect(node.start_at).toMatch(/^\d{4}-\d{2}-\d{2}/)
+  })
+
+  test("--start garbage returns an error, no start_at written", () => {
+    const { node, errors } = planNewTask("Foo", { start: "garbage" })
+    expect(errors.length).toBeGreaterThan(0)
+    expect(errors[0]).toMatch(/^--start:/)
+    expect(node.start_at).toBeUndefined()
+  })
+})

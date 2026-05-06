@@ -44,6 +44,11 @@ export interface CreateTaskOptions {
   priority?: string
   /** Initial assignee. Stored at `node.assigned_to`. */
   owner?: string
+  /** Natural-language due date (`tmrw`, `friday`, `+2w`, ISO). Parsed via
+   * `parseDate` in the planner; bad input aborts before mutating. */
+  due?: string
+  /** Natural-language start/scheduled date. Same parsing as `due`. */
+  start?: string
 }
 
 /**
@@ -89,7 +94,11 @@ export async function createTask(
   // `--id <id>` flows directly into the planner's `id` slot. The display
   // flag that used to claim `-i, --id` is now `--show-ids`, so the create
   // surface gets the natural `--id` name.
-  const { node } = planNewTask(content, options)
+  const { node, errors } = planNewTask(content, options)
+  if (errors.length > 0) {
+    for (const err of errors) console.error(term.red(err))
+    process.exit(1)
+  }
   const nodeId = repo.addNode(parentId, node)
 
   if (options.json) {
