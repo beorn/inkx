@@ -1620,7 +1620,13 @@ function splitAssistantToolActivity(item: Item): Item[] {
 
 function isAssistantToolActivity(item: Item): boolean {
   if (isAssistantActivitySlice(item)) return true
-  if (isActivity(item) || isNotification(item) || isSessionMetadata(item) || isPadding(item) || item.role !== "assistant") {
+  if (
+    isActivity(item) ||
+    isNotification(item) ||
+    isSessionMetadata(item) ||
+    isPadding(item) ||
+    item.role !== "assistant"
+  ) {
     return false
   }
   let hasTool = false
@@ -2000,7 +2006,9 @@ export const SessionUpdateList = React.forwardRef<
 
   const showActivity = status !== "idle" && status !== "ended"
   const merged =
-    notificationEntries && notificationEntries.length > 0 ? interleave(messages, notificationEntries) : messageItems(messages)
+    notificationEntries && notificationEntries.length > 0
+      ? interleave(messages, notificationEntries)
+      : messageItems(messages)
   const metadata = sessionMetadataItems(sessionMetadata)
   const replayMessageCount = Math.max(0, sessionMetadata?.replayMessageCount ?? 0)
   const replayBoundaryMessageId = sessionMetadata?.replayBoundaryMessageId
@@ -2128,9 +2136,11 @@ export const SessionUpdateList = React.forwardRef<
         </Chat.Body>
       </RawInspector>
     ) : isNotification(item) ? (
-      <Chat.Notification>
-        <NotificationStack entries={item.entries} />
-      </Chat.Notification>
+      <RawInspector payload={{ kind: "notification", entries: item.entries }}>
+        <Chat.Notification>
+          <NotificationStack entries={item.entries} />
+        </Chat.Notification>
+      </RawInspector>
     ) : isSessionMetadata(item) ? (
       <RawInspector payload={item.data}>
         <Chat.Metadata>
@@ -2138,11 +2148,13 @@ export const SessionUpdateList = React.forwardRef<
         </Chat.Metadata>
       </RawInspector>
     ) : isAssistantActivitySlice(item) ? (
-      <ActivitySummaryForOps
-        ops={item.ops}
-        timestamp={formatTime(item.message.ts)}
-        onDisclosureToggle={pauseFollowForDisclosure}
-      />
+      <RawInspector payload={{ kind: "assistant-activity", messageId: item.message.id, activityOps: item.ops }}>
+        <ActivitySummaryForOps
+          ops={item.ops}
+          timestamp={formatTime(item.message.ts)}
+          onDisclosureToggle={pauseFollowForDisclosure}
+        />
+      </RawInspector>
     ) : item.role === "assistant" || item.role === "system" || item.role === "user" ? (
       // Assistant turns wrap each op (text/tool) individually inside
       // ExchangeItem so the hover popover shows ONLY the hovered op,
@@ -2157,19 +2169,26 @@ export const SessionUpdateList = React.forwardRef<
     )
   const renderGroupedItem = (item: RenderItem, i: number): React.ReactNode =>
     isGrouped(item) && item.kind === "assistant-tool-activity" && item.items.length >= 2 ? (
-      <ActivitySummaryForOps
-        timestamp={formatTime(item.items.flatMap((child) => itemTimestamp(child) ?? [])[0] ?? 0)}
-        onDisclosureToggle={pauseFollowForDisclosure}
-        ops={item.items.flatMap((child) =>
-          isActivity(child) || isNotification(child) || isSessionMetadata(child)
-            ? []
-            : isAssistantActivitySlice(child)
-              ? child.ops
-              : isPadding(child)
-                ? []
-                : child.ops,
-        )}
-      />
+      <RawInspector
+        payload={{
+          kind: "assistant-tool-activity",
+          activityOps: item.items.flatMap((child) => (isAssistantActivitySlice(child) ? child.ops : [])),
+        }}
+      >
+        <ActivitySummaryForOps
+          timestamp={formatTime(item.items.flatMap((child) => itemTimestamp(child) ?? [])[0] ?? 0)}
+          onDisclosureToggle={pauseFollowForDisclosure}
+          ops={item.items.flatMap((child) =>
+            isActivity(child) || isNotification(child) || isSessionMetadata(child)
+              ? []
+              : isAssistantActivitySlice(child)
+                ? child.ops
+                : isPadding(child)
+                  ? []
+                  : child.ops,
+          )}
+        />
+      </RawInspector>
     ) : isGrouped(item) ? (
       <Box flexDirection="column" gap={0} alignSelf="stretch" width="100%" flexShrink={0}>
         {item.items.map((child, childIndex) => (

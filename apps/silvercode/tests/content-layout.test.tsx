@@ -4,8 +4,8 @@ import { createRenderer, createTermless } from "@silvery/test"
 import { run } from "silvery/runtime"
 import { isLayoutEngineInitialized, setLayoutEngine } from "@silvery/ag-react"
 import { createFlexilyZeroEngine } from "@silvery/ag-term/adapters/flexily-zero-adapter"
-import { Box, Text } from "silvery"
-import type { AgentPlan, MessageEntry, MessageOp } from "@km/agent-harness"
+import { Box, PopoverProvider, Text } from "silvery"
+import type { AgentPlan, MessageEntry, MessageOp, ToolUseId } from "@km/agent-harness"
 import { MarkdownView } from "../src/components/MarkdownView.tsx"
 import { SessionUpdateList } from "../src/components/SessionUpdateList.tsx"
 import { ChatPane } from "../src/components/ChatPane.tsx"
@@ -17,6 +17,8 @@ import { createSessionStore } from "@km/agent-harness"
 beforeAll(() => {
   if (!isLayoutEngineInitialized()) setLayoutEngine(createFlexilyZeroEngine())
 })
+
+const LEFT_SUPER_PRESS = "\x1b[57444;9:1u"
 
 function makeEntry(opts: { id: string; role: "assistant" | "user"; ops: MessageOp[]; ts: number }): MessageEntry {
   const out: Record<string, unknown> = {
@@ -785,6 +787,103 @@ describe("content layout", () => {
     expect(app.text).not.toContain("kind: text")
   })
 
+  test("cmd-hover on notification rows exposes raw notification payload", async () => {
+    const notificationEntries: NotificationStreamEntry[] = [
+      {
+        kind: "notification",
+        id: "n-raw",
+        source: "tribe",
+        ts: new Date(2026, 3, 30, 16, 7).getTime(),
+        content: '<channel source="plugin:tribe:tribe" from="daemon" type="health">peer ready</channel>',
+        meta: { session: "peer-1" },
+      },
+    ]
+    const renderer = createRenderer({ cols: 132, rows: 40, kittyMode: true, autoRender: true })
+    const tree = (
+      <PopoverProvider>
+        <Box width={132} height={40} flexDirection="column">
+          <SessionUpdateList
+            messages={[]}
+            status="idle"
+            turnStartedAt={null}
+            inputTokens={0}
+            outputTokens={0}
+            pendingPermissions={0}
+            inFlightTool={null}
+            sessionId="test-session"
+            onApprove={() => {}}
+            onDeny={() => {}}
+            follow={false}
+            notificationEntries={notificationEntries}
+          />
+        </Box>
+      </PopoverProvider>
+    )
+    const app = renderer(tree)
+
+    const row = app.lines.findIndex((line) => line.includes("Tribe") && line.includes("peer ready"))
+    expect(row, app.text).toBeGreaterThanOrEqual(0)
+    app.stdin.write(LEFT_SUPER_PRESS)
+    await app.hover(app.lines[row]!.indexOf("Tribe"), row)
+    await new Promise((r) => setTimeout(r, 650))
+    expect(app.text).toContain("entries:")
+    expect(app.text).toContain('source: "tribe"')
+    expect(app.text).toContain('session: "peer-1"')
+  })
+
+  test("cmd-hover on activity summaries exposes raw activity payload", async () => {
+    const messages: MessageEntry[] = [
+      makeEntry({
+        id: "a-raw-activity",
+        role: "assistant",
+        ts: new Date(2026, 3, 30, 16, 8).getTime(),
+        ops: [
+          {
+            kind: "tool",
+            toolCall: { id: "tool-read-a" as ToolUseId, name: "Read", input: { file_path: "alpha.ts" } },
+            result: { id: "tool-read-a" as ToolUseId, output: "alpha", is_error: false },
+          },
+          {
+            kind: "tool",
+            toolCall: { id: "tool-read-b" as ToolUseId, name: "Read", input: { file_path: "beta.ts" } },
+            result: { id: "tool-read-b" as ToolUseId, output: "beta", is_error: false },
+          },
+        ],
+      }),
+    ]
+    const renderer = createRenderer({ cols: 132, rows: 40, kittyMode: true, autoRender: true })
+    const tree = (
+      <PopoverProvider>
+        <Box width={132} height={40} flexDirection="column">
+          <SessionUpdateList
+            messages={messages}
+            status="idle"
+            turnStartedAt={null}
+            inputTokens={0}
+            outputTokens={0}
+            pendingPermissions={0}
+            inFlightTool={null}
+            sessionId="test-session"
+            onApprove={() => {}}
+            onDeny={() => {}}
+            follow={false}
+          />
+        </Box>
+      </PopoverProvider>
+    )
+    const app = renderer(tree)
+
+    const row = app.lines.findIndex((line) => line.includes("Read") && line.includes("2"))
+    expect(row, app.text).toBeGreaterThanOrEqual(0)
+    app.stdin.write(LEFT_SUPER_PRESS)
+    await app.hover(app.lines[row]!.indexOf("Read"), row)
+    await new Promise((r) => setTimeout(r, 650))
+    expect(app.text).toContain('kind: "assistant-activity"')
+    expect(app.text).toContain('messageId: "a-raw-activity"')
+    expect(app.text).toContain("activityOps:")
+    expect(app.text).toContain("alpha.ts")
+  })
+
   test("user markdown list bubble shrinkwraps to balanced rendered list items", () => {
     const text =
       "- see screenshot - the command box should have a one space padding on the right\n" +
@@ -1307,10 +1406,12 @@ describe("content layout", () => {
     expect(app.lines[activityRow]!.indexOf("◈")).toBe(app.lines[proseRow]!.indexOf("•"))
   })
 
-  test("plan drawer fills the prose lane and marks the active entry", () => {
+  test("plan drawer uses a right-aligned narrow block and marks the active entry first", () => {
     const cols = 132
     const measure = 56
     const proseLeft = Math.floor((cols - measure) / 2)
+    const drawerWidth = Math.floor(measure * 0.6)
+    const drawerLeft = proseLeft + measure - drawerWidth
     const plan: AgentPlan = {
       id: "plan-test",
       sessionId: "session" as AgentPlan["sessionId"],
@@ -1350,16 +1451,18 @@ describe("content layout", () => {
 
     const headerRow = app.lines.findIndex((line) => line.includes("▾ Plan"))
     expect(headerRow, app.text).toBeGreaterThanOrEqual(0)
-    expect(app.lines[headerRow]!.search(/\S/)).toBe(proseLeft + 1)
+    expect(app.lines[headerRow]!.search(/\S/)).toBe(drawerLeft + 1)
 
-    const activeRow = app.lines.findIndex((line) => line.includes("● Implementing plan lane"))
+    const activeRow = app.lines.findIndex((line) => line.includes("▸ Implementing plan lane"))
     expect(activeRow, app.text).toBeGreaterThan(headerRow)
+    const completedRow = app.lines.findIndex((line) => line.includes("✓ Inspect"))
+    expect(completedRow, app.text).toBe(-1)
     const wrappedRow = app.lines.findIndex((line) => line.includes("enough detail to wrap"))
     expect(wrappedRow, app.text).toBeGreaterThan(activeRow)
-    expect(app.lines[wrappedRow]!.search(/\S/)).toBeGreaterThan(proseLeft + 1)
+    expect(app.lines[wrappedRow]!.search(/\S/)).toBeGreaterThan(drawerLeft + 1)
 
-    const summaryRow = app.lines.findIndex((line) => line.includes("4 completed"))
-    expect(summaryRow, app.text).toBe(-1)
+    const summaryRow = app.lines.findIndex((line) => line.includes("+4 completed"))
+    expect(summaryRow, app.text).toBeGreaterThan(activeRow)
   })
 
   test("completed plans do not render in the bottom drawer", () => {
@@ -1709,7 +1812,8 @@ describe("content layout", () => {
           id: "tribe-before-boundary",
           source: "tribe",
           timestamp: 2_000,
-          content: '<channel source="plugin:tribe:tribe" from="daemon" type="health">notification before answer</channel>',
+          content:
+            '<channel source="plugin:tribe:tribe" from="daemon" type="health">notification before answer</channel>',
         },
       ],
       132,

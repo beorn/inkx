@@ -44,27 +44,39 @@ function planEntryLabel(entry: AgentPlanEntry): string {
   return entry.status === "in_progress" ? (entry.activeForm ?? entry.content) : entry.content
 }
 
-function planCounts(plan: AgentPlan): { pending: number; completed: number; cancelled: number } {
+function planCounts(plan: AgentPlan): { pending: number; active: number; completed: number; cancelled: number } {
   let pending = 0
+  let active = 0
   let completed = 0
   let cancelled = 0
   for (const entry of plan.entries) {
     if (entry.status === "completed") completed++
     else if (entry.status === "cancelled") cancelled++
+    else if (entry.status === "in_progress") active++
     else pending++
   }
-  return { pending, completed, cancelled }
+  return { pending, active, completed, cancelled }
 }
 
 function planEntryMarker(entry: AgentPlanEntry): { glyph: string; color?: string; active: boolean } {
   if (entry.status === "completed") return { glyph: "✓", color: "$muted", active: false }
   if (entry.status === "cancelled") return { glyph: "×", color: "$muted", active: false }
-  if (entry.status === "in_progress") return { glyph: "●", color: "$warning", active: true }
+  if (entry.status === "in_progress") return { glyph: "▸", color: "$warning", active: false }
   return { glyph: "□", color: undefined, active: false }
 }
 
 function planHasOpenEntries(plan: AgentPlan): boolean {
   return plan.entries.some((entry) => entry.status === "in_progress" || entry.status === "pending")
+}
+
+function orderedPlanEntries(plan: AgentPlan): AgentPlanEntry[] {
+  const order = (entry: AgentPlanEntry): number => {
+    if (entry.status === "in_progress") return 0
+    if (entry.status === "pending") return 1
+    if (entry.status === "completed") return 2
+    return 3
+  }
+  return [...plan.entries].sort((a, b) => order(a) - order(b) || a.order - b.order)
 }
 
 function PlanDrawer({
@@ -76,87 +88,113 @@ function PlanDrawer({
 }): React.ReactElement | null {
   const [expanded, setExpanded] = React.useState(defaultExpanded)
   const hover = useHover()
+  const content = useContentLayout()
   if (!plan || plan.entries.length === 0) return null
   if (!planHasOpenEntries(plan)) return null
   const active = plan.entries.find((entry) => entry.status === "in_progress")
   const next = active ?? plan.entries.find((entry) => entry.status === "pending") ?? plan.entries[0]!
   const counts = planCounts(plan)
-  const summaryText = [
+  const collapsedSummaryText = [
+    counts.pending > 0 ? `${counts.pending} pending` : null,
     counts.completed > 0 ? `${counts.completed} completed` : null,
     counts.cancelled > 0 ? `${counts.cancelled} cancelled` : null,
   ]
     .filter((part): part is string => part != null)
     .join(" · ")
   const nextMarker = planEntryMarker(next)
+  const orderedEntries = orderedPlanEntries(plan)
+  const collapseCompleted = counts.completed > 3
+  const visibleExpandedEntries = collapseCompleted
+    ? orderedEntries.filter((entry) => entry.status !== "completed")
+    : orderedEntries
+  const expandedFooterText = collapseCompleted ? `+${counts.completed} completed` : ""
+  const drawerWidth = Math.max(24, Math.floor(content.measure * 0.6))
 
   return (
     <Content.Row>
       <Content.Body width="prose">
-        <Box
-          width="100%"
-          minWidth={0}
-          flexDirection="column"
-          backgroundColor={hover.isHovered ? "$bg-surface-hover" : "$bg-surface-raised"}
-          paddingLeft={1}
-          paddingRight={2}
-          paddingY={1}
-          onClick={() => setExpanded((value) => !value)}
-          onMouseEnter={hover.onMouseEnter}
-          onMouseLeave={hover.onMouseLeave}
-        >
-          <Box flexDirection="row" gap={1} minWidth={0}>
-            <Text color="$muted">{expanded ? "▾" : "▸"}</Text>
-            {expanded ? (
-              <Text color="$muted">Plan</Text>
-            ) : (
-              <>
-                <StatusGlyph
-                  glyph={nextMarker.glyph}
-                  active={nextMarker.active}
-                  color={nextMarker.color}
-                  period={1800}
-                />
-                <Box flexGrow={1} flexShrink={1} minWidth={0}>
-                  <Text wrap="wrap">{planEntryLabel(next)}</Text>
-                </Box>
-              </>
-            )}
-          </Box>
-          {expanded || summaryText.length > 0 ? (
-            <Box flexDirection="column" paddingLeft={2} minWidth={0}>
-              {expanded
-                ? plan.entries.map((entry) => {
-                    const marker = planEntryMarker(entry)
-                    const color = entry.status === "completed" || entry.status === "cancelled" ? "$muted" : undefined
-                    return (
-                      <Box key={entry.id} flexDirection="row" gap={1} minWidth={0}>
-                        <StatusGlyph
-                          glyph={marker.glyph}
-                          active={marker.active}
-                          color={marker.color ?? color}
-                          period={1800}
-                        />
-                        <Box flexGrow={1} flexShrink={1} minWidth={0}>
-                          <Text color={color} wrap="wrap">
-                            {planEntryLabel(entry)}
-                          </Text>
-                        </Box>
-                      </Box>
-                    )
-                  })
-                : null}
-              {!expanded && summaryText.length > 0 ? (
-                <Box flexDirection="row" gap={1} minWidth={0}>
-                  <Text color="$muted"> </Text>
+        <Box width="100%" minWidth={0} flexDirection="row" justifyContent="flex-end">
+          <Box
+            width={drawerWidth}
+            maxWidth="100%"
+            minWidth={0}
+            flexDirection="column"
+            backgroundColor={hover.isHovered ? "$bg-surface-hover" : "$bg-surface-raised"}
+            paddingLeft={1}
+            paddingRight={2}
+            paddingY={1}
+            onClick={() => setExpanded((value) => !value)}
+            onMouseEnter={hover.onMouseEnter}
+            onMouseLeave={hover.onMouseLeave}
+          >
+            <Box flexDirection="row" gap={1} minWidth={0}>
+              <Text color="$muted">{expanded ? "▾" : "▸"}</Text>
+              {expanded ? (
+                <Text color="$muted">Plan</Text>
+              ) : (
+                <>
+                  <StatusGlyph
+                    glyph={nextMarker.glyph}
+                    active={nextMarker.active}
+                    color={nextMarker.color}
+                    period={1800}
+                  />
                   <Box flexGrow={1} flexShrink={1} minWidth={0}>
-                    <Text color="$muted" wrap="wrap">
-                      {summaryText}
-                    </Text>
+                    <Text wrap="wrap">{planEntryLabel(next)}</Text>
                   </Box>
-                </Box>
-              ) : null}
+                </>
+              )}
             </Box>
-          ) : null}
+            {expanded || collapsedSummaryText.length > 0 ? (
+              <Box flexDirection="column" paddingLeft={2} minWidth={0}>
+                {expanded
+                  ? visibleExpandedEntries.map((entry) => {
+                      const marker = planEntryMarker(entry)
+                      const color = entry.status === "completed" || entry.status === "cancelled" ? "$muted" : undefined
+                      return (
+                        <Box key={entry.id} flexDirection="row" gap={1} minWidth={0}>
+                          <StatusGlyph
+                            glyph={marker.glyph}
+                            active={marker.active}
+                            color={marker.color ?? color}
+                            period={1800}
+                          />
+                          <Box flexGrow={1} flexShrink={1} minWidth={0}>
+                            <Text
+                              color={color}
+                              strikethrough={entry.status === "completed" ? true : undefined}
+                              wrap="wrap"
+                            >
+                              {planEntryLabel(entry)}
+                            </Text>
+                          </Box>
+                        </Box>
+                      )
+                    })
+                  : null}
+                {expanded && expandedFooterText.length > 0 ? (
+                  <Box flexDirection="row" gap={1} minWidth={0}>
+                    <Text color="$muted"> </Text>
+                    <Box flexGrow={1} flexShrink={1} minWidth={0}>
+                      <Text color="$muted" wrap="wrap">
+                        {expandedFooterText}
+                      </Text>
+                    </Box>
+                  </Box>
+                ) : null}
+                {!expanded && collapsedSummaryText.length > 0 ? (
+                  <Box flexDirection="row" gap={1} minWidth={0}>
+                    <Text color="$muted"> </Text>
+                    <Box flexGrow={1} flexShrink={1} minWidth={0}>
+                      <Text color="$muted" wrap="wrap">
+                        {collapsedSummaryText}
+                      </Text>
+                    </Box>
+                  </Box>
+                ) : null}
+              </Box>
+            ) : null}
+          </Box>
         </Box>
       </Content.Body>
     </Content.Row>

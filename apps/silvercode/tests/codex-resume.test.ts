@@ -161,6 +161,61 @@ describe("codex-resume: replayCodexSessionFromDisk", () => {
     expect(state.status).toBe("idle")
   })
 
+  test("replays codex plan_update and plan_delta into canonical session plan", () => {
+    const body = lines(
+      {
+        timestamp: "2026-04-27T20:58:37.609Z",
+        type: "session_meta",
+        payload: {
+          id: SESSION_ID,
+          cwd: "/Users/beorn/Code/pim/km",
+          cli_version: "0.124.0",
+          model_provider: "openai",
+        },
+      },
+      {
+        timestamp: "2026-04-27T20:58:40.000Z",
+        type: "event_msg",
+        payload: {
+          type: "plan_update",
+          id: "plan-1",
+          plan: [
+            { id: "step-1", content: "Inspect state", status: "completed" },
+            { id: "step-2", content: "Patch drawer", status: "in_progress" },
+          ],
+        },
+      },
+      {
+        timestamp: "2026-04-27T20:58:41.000Z",
+        type: "event_msg",
+        payload: {
+          type: "plan_delta",
+          id: "plan-2",
+          steps: [
+            { id: "step-1", content: "Inspect state", status: "completed" },
+            { id: "step-2", content: "Patch drawer", status: "done" },
+            { id: "step-3", content: "Verify tests", status: "pending" },
+          ],
+        },
+      },
+    )
+    writeFakeRollout(SESSION_ID, body)
+
+    const store = createSessionStore()
+    replayCodexSessionFromDisk(store, SESSION_ID)
+    const state = store.state.get()
+
+    expect(state.plan).toMatchObject({
+      source: "codex-plan",
+      entries: [
+        { id: "step-1", content: "Inspect state", status: "completed" },
+        { id: "step-2", content: "Patch drawer", status: "completed" },
+        { id: "step-3", content: "Verify tests", status: "pending" },
+      ],
+    })
+    expect(state.todos.map((todo) => todo.content)).toEqual(["Inspect state", "Patch drawer", "Verify tests"])
+  })
+
   test("replays real user prompts from response_item.message:user and ignores bootstrap context", () => {
     const body = lines(
       {
