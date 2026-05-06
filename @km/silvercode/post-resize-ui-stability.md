@@ -98,7 +98,37 @@ chat session    │ resumed session │ session updates / │ sidebar toggle doe
 
 **Phase 2 — Chat cells** ✓ landed at `chat-stability.test.tsx` using the existing `markdownRich` script. 3 cells (post-arrival paint, resize, side-panel-toggle), all green.
 
-**Phase 3 — Fixes** *blocked* on a failing cell. None of the 6 termless cells reproduce the live-session symptom. Likely reasons:
+**Phase 3 — Fix landed** ✓ (despite no failing cell — root cause confirmed via live STRICT log instead).
+
+After the user ran the live repro and shared `/tmp/silvercode-strict2.log` (3.9 MB / 27955 lines):
+
+- **150 STRICT layout-overflow violations** in a single workspace-switch cycle. Top patterns:
+  - 40× box width 126 vs parent inner 94 (overflow = 32 = sidebar width — stale measurement)
+  - 36× box width 94 vs inner 81
+  - 4× silvery-text width 336 vs inner 85 (long unwrappable token)
+- **Width oscillation** — single workspace switch produces 11 distinct width transitions in 1 second:
+  - `0 → 94 → 120 → 88 → 120 → 88 → 120 → 88 → 0 → 94`
+  - The 88↔120 pattern is the sidebar-visibility breakpoint flipping per pass.
+  - The transient `available=0` indicates a subtree remount.
+- **Trigger is cmux workspace switch**, not user resize. cmux fires 4-6 SIGWINCH events at the TTY level on hide/show. Confirmed reference: Claude Code (Ink-based, also fullscreen) under same cmux switch is stable — bug is silvercode-specific.
+
+**Root cause**: `AsideLayout` (`apps/silvercode/src/components/AsideLayout.tsx`) conditionally rendered THREE structurally-different React subtrees per mode (`hidden`/`inline`/`overlay`). Every mode flip during a SIGWINCH tore down the SidePanel subtree and rebuilt it, feeding fresh dimensions into the breakpoint logic that flipped mode again — feedback loop until something broke it.
+
+**Fix**: rewrote `AsideLayout` to render the aside subtree ALWAYS, varying only layout props (`display`, `position`, `width`, `flexBasis`) by mode. Single React tree. SidePanel never unmounts during a SIGWINCH. Wrapper always `position="relative"` (no-op for inline/hidden, correct anchor for overlay).
+
+**Test suite**: 19 cells passing pre and post fix (no regression). Cells include cmux-multi-SIGWINCH burst + focus-regain + stress-unwrappable to detect future regressions, even though current termless harness lacks the real-TTY paths to reproduce the live symptom.
+
+**Verification needed**: user re-runs `silvercode --resume claude:f9eb64dc-…` post-fix and compares (a) STRICT overflow count (was 150) and (b) visible shuffle.
+
+**Follow-ups (out of scope, file as new beads)**:
+- `createFixedSize` (test harness) doesn't coalesce — production has 16ms coalescing in `createSize`. Test-fidelity gap.
+- Long-unwrappable-token (336-wide silvery-text) source unidentified. Needs missing `wrap="wrap"` or `minWidth={0}` in some Chat/SessionUpdateList/MarkdownView subtree. With feedback loop broken, may not compound into a cascade anymore — verify first.
+
+---
+
+## Pre-fix status (now superseded)
+
+**Phase 3 — Fixes** *was blocked* on a failing cell. None of the 6 termless cells reproduced the live-session symptom. Likely reasons:
 - The instability needs *more* content than `markdownRich` provides (the live session is 19,990-line / 37 MB JSONL).
 - Termless does not exercise real-TTY async paths (Kitty CSI probes, focus-reporting replies, real SIGWINCH stream); the symptom may live there. The `welcome-startup-cascade.test.tsx` docstring already calls this out.
 

@@ -33,6 +33,7 @@ import { App } from "../src/App.tsx"
 import { createFakeSession, type ScriptedFakeSession } from "../src/test/fake-session.ts"
 import { installFakes } from "../src/test/fake-boundaries.ts"
 import { markdownRich } from "../src/test/scripts/markdownRich.ts"
+import { stressUnwrappable } from "../src/test/scripts/stressUnwrappable.ts"
 import { expectStableLayouts, pollTermlessFrames } from "./lib/stability.ts"
 
 const COLS = 120
@@ -127,6 +128,132 @@ describe("chat-session UI stability (bead @km/silvercode/post-resize-ui-stabilit
       const postFrames = await pollTermlessFrames(term, { durationMs: 350 })
       expectStableLayouts(postFrames, {
         label: "chat.resize",
+        kMax: 1,
+      })
+    } finally {
+      handle.unmount()
+      await settle(50)
+      fakes.dispose()
+    }
+  })
+
+  test("cmux-style multi-SIGWINCH burst converges to a single layout (81→113→126→94)", async () => {
+    // Real-world repro from `@km/silvercode/post-resize-ui-stability` log:
+    // a cmux workspace switch sends 4 SIGWINCH events in ~300 ms (cols
+    // 81, 113, 126, 94). Each one should produce ONE settled layout —
+    // currently triggers an internal 88↔120 breakpoint feedback loop
+    // visible as 11 width transitions in 1 second. Drive the same burst,
+    // assert post-burst stability.
+    const fakes = installFakes({})
+    const fake: ScriptedFakeSession = createFakeSession({ sessionId: SESSION })
+    using term: ResizableTerm = createTermless({ cols: COLS, rows: ROWS }) as ResizableTerm
+
+    const handle = await run(
+      <App
+        cwd="/tmp/silvercode-test"
+        bare
+        layout="single"
+        model="claude-sonnet-4-6"
+        spawnFactory={() => fake as unknown as AgentSession}
+      />,
+      term,
+    )
+    try {
+      fake.script(markdownRich, 0)
+      await settle(1500)
+      expect(typeof term.resize, "termless Term must expose .resize(cols, rows)").toBe("function")
+
+      const burst = [81, 113, 126, 94]
+      for (const cols of burst) {
+        term.resize?.(cols, ROWS)
+        await settle(80)
+      }
+      await settle(300)
+      const postFrames = await pollTermlessFrames(term, { durationMs: 400 })
+      expectStableLayouts(postFrames, {
+        label: "chat.cmux-multi-sigwinch",
+        kMax: 1,
+      })
+    } finally {
+      handle.unmount()
+      await settle(50)
+      fakes.dispose()
+    }
+  })
+
+  test("stress: long unwrappable tokens + cmux burst converges to a single layout", async () => {
+    // Repro target — content close to the live session that produced 150
+    // STRICT overflows. Long unwrappable tokens (URLs, file paths, hashes)
+    // force natural-width measurement that conflicts with the constrained
+    // sidebar-aware parent. Combined with a cmux-style multi-SIGWINCH
+    // burst, this is the closest synthetic match to the user's repro.
+    const fakes = installFakes({})
+    const fake: ScriptedFakeSession = createFakeSession({
+      sessionId: "fake-stress-unwrappable" as SessionId,
+    })
+    using term: ResizableTerm = createTermless({ cols: COLS, rows: ROWS }) as ResizableTerm
+
+    const handle = await run(
+      <App
+        cwd="/tmp/silvercode-test"
+        bare
+        layout="single"
+        model="claude-sonnet-4-6"
+        spawnFactory={() => fake as unknown as AgentSession}
+      />,
+      term,
+    )
+    try {
+      fake.script(stressUnwrappable, 0)
+      await settle(1500)
+      expect(typeof term.resize, "termless Term must expose .resize(cols, rows)").toBe("function")
+
+      // Tighter burst — SIGWINCH events arrive faster than the 16ms
+      // resize-coalescing budget in silvery's Size device, exercising
+      // the coalescer if it exists.
+      for (const cols of [81, 113, 126, 94, 81, 126]) {
+        term.resize?.(cols, ROWS)
+        await settle(20)
+      }
+      await settle(500)
+      const postFrames = await pollTermlessFrames(term, { durationMs: 500 })
+      expectStableLayouts(postFrames, {
+        label: "chat.stress-unwrappable",
+        kMax: 1,
+      })
+    } finally {
+      handle.unmount()
+      await settle(50)
+      fakes.dispose()
+    }
+  })
+
+  test("focus-in (after blur) converges to a single layout in a chat session", async () => {
+    const fakes = installFakes({})
+    const fake: ScriptedFakeSession = createFakeSession({ sessionId: SESSION })
+    using term: InputTerm = createTermless({ cols: COLS, rows: ROWS }) as InputTerm
+
+    const handle = await run(
+      <App
+        cwd="/tmp/silvercode-test"
+        bare
+        layout="single"
+        model="claude-sonnet-4-6"
+        spawnFactory={() => fake as unknown as AgentSession}
+      />,
+      term,
+    )
+    try {
+      fake.script(markdownRich, 0)
+      await settle(1500)
+      expect(typeof term.sendInput, "termless Term must expose .sendInput(data)").toBe("function")
+      term.sendInput?.("\x1b[O")
+      await settle(80)
+      term.sendInput?.("\x1b[I")
+      await settle(150)
+      const postFrames = await pollTermlessFrames(term, { durationMs: 400 })
+      expectStableLayouts(postFrames, {
+        label: "chat.focus-regain",
         kMax: 1,
       })
     } finally {

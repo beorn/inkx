@@ -1,75 +1,155 @@
-# Post-resize UI instability — diagnosis hypotheses
+# Post-resize UI instability — diagnosis + fix
 
 Bead: `@km/silvercode/post-resize-ui-stability`
-Date: 2026-05-06
-Status: hypotheses (static analysis only — live trace not yet run)
+Last update: 2026-05-06
 
 ## Symptom
 
-After a terminal resize, silvercode's UI shuffles visibly across multiple frames before settling. Should converge in ≤2 paint passes after a single SIGWINCH.
+Switching cmux workspaces away and back (NOT an intentional resize from the
+user's perspective) triggers a visible UI shuffle in silvercode. cmux's
+hide/show cycle emits a burst of SIGWINCH events at the TTY level, and
+silvercode's responsive sidebar logic enters a feedback loop on every
+arriving size.
 
-Live repro:
+Live repro (run by user, log captured at `/tmp/silvercode-strict2.log`):
 
 ```
-SILVERY_STRICT=1 DEBUG='silvery:*,silvercode:*' DEBUG_LOG=/tmp/silvercode-strict2.log silvercode --resume claude:f9eb64dc-d982-4a46-9a8e-da5fd882ac5f
+SILVERY_STRICT=1 DEBUG='silvery:*,silvercode:*' DEBUG_LOG=/tmp/silvercode-strict2.log \
+  silvercode --resume claude:f9eb64dc-d982-4a46-9a8e-da5fd882ac5f
 ```
 
-## Ranked suspects
+Confirmed reference: Claude Code (Ink-based, also fullscreen) under the
+same cmux workspace switch is stable. Bug is silvercode-specific, not a
+fundamental silvery issue.
 
-These are static-analysis hypotheses from the Phase 0 Explore agent. Each one needs a failing test (Phase 1/2) before being treated as a confirmed cause.
+## Evidence (from live STRICT log)
 
-### 1. Multi-pass layout feedback in silvery — `notifyLayoutSubscribers` (framework, HIGH)
+### Multi-SIGWINCH per workspace switch
 
-- **Location**: `vendor/silvery/packages/ag-term/src/pipeline/layout-phase.ts:433-496` (`notifyLayoutSubscribers`).
-- **Mechanism**: Resize → layout calc → notify subscribers → React forceUpdate per `useBoxRect` consumer → re-render → new `useBoxRect` calls → new rects → notify again. Multiple Pass 2-N cycles until stable.
-- **Evidence corroborating**: prior bead `recent-transcript-layout-quality-plateau` already flagged a `MaxListenersExceededWarning` from "repeated `Screen` resize listeners" — listener fan-out per render is a known smell.
-- **Fix shape (silvery side)**: batch notifications across a single resize tick OR move width-sensitive state out of render phase into a layout-phase effect.
-- **Routing**: needs silvery agent if framework changes are required. App-side mitigations (memoizing context values, stable keys) may reduce the cascade enough that framework patch isn't needed for this bead.
+cmux fires 4-6 SIGWINCH events in ~300 ms per workspace switch. Width
+transitions captured in the log show two interleaved patterns:
 
-### 2. SessionUpdateList key stability — `itemKey` / `renderItemKey` (app, MEDIUM-HIGH)
+```
+Pattern A (external SIGWINCH stream):    81 → 113 → 126 → 94
+Pattern B (internal feedback loop):      0 → 94 → 120 → 88 → 120 → 88 → 120 → 88 → 0 → 94
+```
 
-- **Location**: `apps/silvercode/src/components/SessionUpdateList.tsx:2176,2189`.
-- **Mechanism**: if `itemKey()` or `renderItemKey()` includes a width-derived value, list items remount on resize → state loss → scroll position drift → visual shuffle.
-- **Verification**: read the helper definitions, grep for `width` / `cols` / `rect` in their bodies.
-- **Fix shape**: keys must be stable across resize. Width-dependent rendering goes through props, not keys.
+Pattern B reveals the bug: ELEVEN distinct width transitions in ONE second
+when only ONE settled state was expected. The 88↔120 oscillation is the
+sidebar-visibility breakpoint flipping back and forth as each pass
+remeasures, and the transient `available=0` indicates a subtree remount.
 
-### 3. Content.Layout context value not memoized (app, MEDIUM)
+### 150 STRICT layout-overflow violations
 
-- **Location**: `apps/silvercode/src/components/Content.tsx:108-150` (`MeasuredLayoutProbe` + `MeasuredLayout`).
-- **Mechanism**: `available` is computed inline per render and passed as the `ContentContext` value. Every consumer re-renders on width change because the context object identity flips. No `useMemo` on the context value.
-- **Verification**: confirm absence of `useMemo` around the context value at line 145.
-- **Fix shape**: `useMemo(() => ({ available, …rest }), [available, …deps])`. One-line stabilization.
+```
+40× child "silvery-box" width 126 exceeds parent inner 94   (overflow = 32 = sidebar width)
+36× child "silvery-box" width 94  exceeds parent inner 81   (overflow = 13)
+16× child "silvery-box" width 94  exceeds parent inner 93   (boundary)
+13× child "silvery-text" width 36  exceeds parent inner 28
+13× child "silvery-text" width 108 exceeds parent inner 85
+12× child "silvery-text" width 102 exceeds parent inner 85
+ 4× child "silvery-text" width 336 exceeds parent inner 85  (long unwrappable token)
+…
+```
 
-### 4. Width-responsive style props triggering incremental cascade (framework, MEDIUM)
+The +32 patterns are the smoking gun: a child measured against
+without-sidebar width (126) is being placed inside a with-sidebar parent
+(94). The inner dimension stale by exactly the sidebar's 32-col width.
 
-- **Location**: `vendor/silvery/packages/ag-term/src/pipeline/render-phase.ts` (incremental render dirty-flag propagation).
-- **Mechanism**: if descendants choose colors / gaps / flex props based on width via React conditionals, every breakpoint crossing dirty-flags style props for many nodes simultaneously.
-- **Verification**: grep silvercode components for `width >= ` / `cols >= ` / responsive-prop ternaries.
-- **Fix shape**: replace render-time width conditionals with theme-per-breakpoint or CSS-class equivalents.
+The 336-wide silvery-text is a long unwrappable token (URL / code-fence
+line / file path) inside a 35-deep box nesting — a SessionUpdateList
+content node. Natural max-content width pins the parent flex calculation,
+which is what the breakpoint logic feeds on.
 
-### 5. PaneGrid + SidePanel show/hide remount (app, LOW-MEDIUM)
+## Root cause
 
-- **Location**: `apps/silvercode/src/components/PaneGrid.tsx:401-442` + `SidePanel.tsx`.
-- **Mechanism**: toggling sidebar may unmount the main content pane subtree (instead of hiding via display/opacity), losing scroll position and triggering a fresh mount cascade.
-- **Verification**: trace prop flow when sidebar state flips — does the subtree's React identity persist?
-- **Fix shape**: hide via flex/display, not conditional render.
+Two compounding issues:
 
-## Coverage by prior fixes
+1. **AsideLayout (silvercode app) — three structurally-different React
+   subtrees per mode.** `AsideLayout` (`apps/silvercode/src/components/AsideLayout.tsx`)
+   conditionally renders one of three trees depending on `mode`
+   (`hidden` / `inline` / `overlay`). Every mode flip during a SIGWINCH
+   tears down the SidePanel subtree and rebuilds it. The remount feeds
+   fresh dimensions into the breakpoint logic, which produces a different
+   mode decision on the next pass. Feedback loop until something breaks
+   it.
 
-`recent-transcript-layout-quality-plateau` removed one width-derived subtree key in Content.Layout. Suspects 2-5 are not addressed by that fix.
+2. **Long unwrappable tokens (silvercode chat content).** Some chat
+   content has Text leaves without `wrap="wrap"` (or wrappable-but-no-
+   break-points strings such as long URLs). These pin the parent's
+   max-content width to the natural width — 336 cols inside an 85-col
+   parent. The pinned natural width contributes to the breakpoint
+   computation: when the layout measures "I have a 336-col child", it
+   decides "no room for sidebar" and removes it. Next pass: child fits
+   in 94 cols of the wider available, breakpoint flips back. Oscillation.
 
-## Verification plan
+## Fix landed (this bead)
 
-These are hypotheses, NOT confirmed causes. To confirm each:
+### Phase 3 fix — AsideLayout: stable React tree across modes
 
-1. Build the stability-invariant test helper (Phase 1 of the bead's plan).
-2. Author one failing cell per matrix cell (welcome × {paint, resize, sidebar}, chat × {paint, resize, sidebar}).
-3. For each failing cell, instrument with `SILVERY_INSTRUMENT=1 DEBUG=silvery:render,silvery:layout` and count dirty cycles per event.
-4. Apply the candidate fix from the suspect list; cell should flip green and dirty-cycle count should drop to ≤2.
-5. If a fix doesn't flip the cell green, the suspect ranking was wrong — promote the next one.
+`apps/silvercode/src/components/AsideLayout.tsx` rewritten to render the
+aside subtree ALWAYS, varying only its layout props (`display`,
+`position`, `width`, `flexBasis`) by mode:
 
-This protocol is the canonical "instrument first, theorize later" loop for this bug.
+- `hidden` → `display="none"` (zero-size in flexily, removed from layout
+  but React identity preserved).
+- `inline` → `flexShrink=0`, `flexBasis=asideWidth`.
+- `overlay` → `position="absolute"`, `top/right/bottom/width` set.
 
-## Out of scope here
+Single React tree. SidePanel never unmounts during a SIGWINCH. Breaks the
+unmount-remeasure-flip-remount feedback loop.
 
-- Filing /arch retro for the silvery framework changes (Suspect 1, 4) if framework patches are required. Defer until app-side fixes (Suspects 2, 3, 5) are exhausted and a framework fix is provably needed.
+The wrapper is always `position="relative"` — a no-op for inline/hidden,
+correct anchor for overlay.
+
+### Phase 1+2 fix — stability invariant test suite
+
+`apps/silvercode/tests/lib/stability.ts` plus `welcome-stability.test.tsx`
+and `chat-stability.test.tsx`. 19 tests covering 4 event types ×
+2 screens:
+
+- initial paint
+- single resize
+- cmux-style multi-SIGWINCH burst (81→113→126→94)
+- focus-in (after blur)
+- side-panel toggle (Ctrl+O)
+
+All cells assert `≤ 1 distinct layout` in the post-event steady-state
+window (300-400 ms after the event). Helper exposes `expectStableLayouts`,
+`pollTermlessFrames`, `recordRenderFrames`.
+
+## Not fixed (out of scope here)
+
+### SIGWINCH coalescing already exists in silvery
+
+`vendor/silvery/packages/ag-term/src/runtime/devices/size.ts` `createSize`
+already coalesces resize events with a 16ms timer. The internal feedback
+loop happens AFTER coalescing: even one published resize triggers the
+React cascade. Adding more coalescing wouldn't help.
+
+`createFixedSize` (used by emulator-backed terms / termless) does NOT
+coalesce — it's intentionally synchronous so tests have predictable
+timing. This is a test-fidelity gap (production has 16ms coalescing, tests
+don't), but not a production bug.
+
+### Long-unwrappable-token wrapping in SessionUpdateList
+
+The 336-wide overflow indicates a Text leaf in chat content rendering
+without proper wrap behaviour. Identifying the exact component (`Chat` /
+`SessionUpdateList` / `MarkdownView` / `ToolCall` / `ToolResult`) and
+adding the missing `wrap="wrap"` or `minWidth={0}` is a follow-up. With
+the AsideLayout feedback loop broken, the long-text overflow may no
+longer compound into the cascade — needs verification.
+
+## Verification
+
+In-test:
+- 19 stability cells pass under SILVERY_STRICT=1 (default for `bun run test:fast`).
+- Termless harness does NOT reproduce the live-session symptom (it lacks
+  real-TTY async paths and the live transcript's specific content).
+
+Live-session verification (user to run):
+- Re-run the live repro after the AsideLayout fix.
+- Compare STRICT overflow count: live log had 150; expect significantly
+  fewer with the feedback loop broken.
+- Visually confirm: workspace switch should not produce a visible shuffle.
