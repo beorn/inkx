@@ -2,7 +2,7 @@
  * Pure planning logic for `tasks set <id> field:value`.
  *
  * Extracted from `set-clear.ts` so unit tests can import it without
- * triggering the program.ts → doctor.ts → @silvery/ag-react/ui/progress
+ * triggering the program.ts → doctor.ts → silvery progress
  * import chain (which is heavy at module-load time and trips the
  * workspace state when silvery dist is in flux). The action handler in
  * `set-clear.ts` re-exports + consumes this.

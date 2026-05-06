@@ -2,7 +2,7 @@
  * Pure planning logic for `tasks status <id> [new-status]`.
  *
  * Extracted from `status.ts` so unit tests can import it without
- * triggering the program.ts → doctor.ts → @silvery/ag-react/ui/progress
+ * triggering the program.ts → doctor.ts → silvery progress
  * chain at module-load time. The action handler in `status.ts` consumes
  * the plan and applies it via repo + terminal output.
  *

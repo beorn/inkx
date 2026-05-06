@@ -51,7 +51,7 @@ export async function loadRepo(rootPath: string, options: LoadRepoOptions = {}):
 
   if (showProgress) {
     // Use steps runner for progress display
-    const { steps } = await import("@silvery/ag-react/ui/progress")
+    const { steps } = await import("@silvery/ag-react/ui")
 
     let repo: Repo | undefined
 

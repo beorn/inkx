@@ -2,7 +2,7 @@
  * Pure planning logic for `tasks --new`.
  *
  * Extracted from `mutations.ts` so unit tests can import it without
- * triggering the program.ts → doctor.ts → @silvery/ag-react/ui/progress
+ * triggering the program.ts → doctor.ts → silvery progress
  * chain at module-load time. The action handler in `mutations.ts`
  * re-exports + drives this.
  */

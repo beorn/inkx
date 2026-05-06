@@ -3,7 +3,7 @@
  *
  * Extracted from `stale.ts` so unit tests can import the filter +
  * relative-time helpers + planner without triggering the program.ts →
- * doctor.ts → @silvery/ag-react/ui/progress chain at module-load time.
+ * doctor.ts → silvery progress chain at module-load time.
  *
  * The action handler in `stale.ts` consumes the plan and renders it via
  * terminal / JSON output. The plan itself is `(allTasks, days, now) →

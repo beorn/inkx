@@ -18,7 +18,7 @@ import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
-import { steps } from "@silvery/ag-react/ui/progress"
+import { steps } from "@silvery/ag-react/ui"
 import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "fs"
 import { dirname, join, resolve } from "path"
 import { withSync, findKmRootFromPath } from "@km/fs-mount"

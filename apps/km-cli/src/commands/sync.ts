@@ -10,7 +10,7 @@ import { createTerm } from "@silvery/ag-react"
 import type { FullLogger } from "../logger-types.ts"
 
 const term = createTerm(process)
-import { steps } from "@silvery/ag-react/ui/progress"
+import { steps } from "@silvery/ag-react/ui"
 import { Database } from "bun:sqlite"
 import { dirname, resolve, join } from "path"
 

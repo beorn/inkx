@@ -2,7 +2,7 @@
  * Pure planning logic for `tasks` (list).
  *
  * Extracted from `list.ts` so unit tests can import it without triggering
- * the program.ts → doctor.ts → @silvery/ag-react/ui/progress chain at
+ * the program.ts → doctor.ts → silvery progress chain at
  * module-load time. The action handler in `list.ts` re-exports + drives
  * this. Tests can run against a hand-built `Repo` with no terminal at all.
  *

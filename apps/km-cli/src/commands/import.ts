@@ -17,13 +17,7 @@ import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 
-// `steps` and `step` live at `@silvery/ag-react/ui/progress` — they are
-// NOT re-exported from the parent `@silvery/ag-react/ui` barrel.
-// `CURSOR_SHOW`/`write` live at `@silvery/ag-react/ui/cli` and ARE in the
-// parent barrel via `export * from "./cli/index.js"`. Split the import
-// across the two paths instead of pretending the parent re-exports both.
-import { steps, step } from "@silvery/ag-react/ui/progress"
-import { CURSOR_SHOW, write } from "@silvery/ag-react/ui"
+import { steps, step, CURSOR_SHOW, write } from "@silvery/ag-react/ui"
 import type { ImportData, ImportProject } from "../import/types.ts"
 import type { AsanaWorkspace } from "../import/adapters/asana/asana-api.ts"
 import { convertBatch, slugify } from "../import/convert.ts"
