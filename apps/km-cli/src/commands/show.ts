@@ -16,6 +16,7 @@ import { loadRepo } from "../load-repo.ts"
 import type { KNode } from "@km/core"
 import { formatStatus, formatNodeBrief } from "@km/tui"
 import { resolveShortId, formatAmbiguityError } from "../utils/short-id.ts"
+import { emitJson, normalizeJsonJq } from "../utils/jq.ts"
 
 /** Options parsed from the show command flags */
 interface ShowOptions {
@@ -23,6 +24,7 @@ interface ShowOptions {
   tree?: boolean
   links?: boolean
   json?: boolean
+  jq?: string
 }
 
 export const showCommand = new Command("show")
@@ -32,6 +34,7 @@ export const showCommand = new Command("show")
   .option("-t, --tree", "Show full subtree")
   .option("-l, --links", "Show links (outgoing and backlinks)")
   .option("--json", "Output as JSON")
+  .option("--jq <expr>", "Filter JSON output through jq (implies --json; requires `jq` in PATH)")
   .action(async (id, options) => {
     // Resolve path argument - may initialize store with detected repo root
     const resolved = resolvePathArg(id, getRootPath())
@@ -58,8 +61,9 @@ export const showCommand = new Command("show")
       process.exit(1)
     }
 
-    if (options.json) {
-      outputJson(node, options, repo)
+    const { json, jq } = normalizeJsonJq(options)
+    if (json) {
+      await outputJson(node, options, repo, jq)
       return
     }
 
@@ -69,15 +73,16 @@ export const showCommand = new Command("show")
   })
 
 /**
- * Output node data as JSON based on the requested mode (tree, children, or single node)
+ * Output node data as JSON based on the requested mode (tree, children, or single node).
+ * `--jq <expr>` pipes through jq; absent → pretty-prints.
  */
-function outputJson(node: KNode, options: ShowOptions, repo: Repo): void {
+async function outputJson(node: KNode, options: ShowOptions, repo: Repo, jq?: string): Promise<void> {
   if (options.tree) {
-    console.log(JSON.stringify(repo.getSubtree(node.id), null, 2))
+    await emitJson(repo.getSubtree(node.id), jq)
   } else if (options.children) {
-    console.log(JSON.stringify({ node, children: repo.getChildren(node.id) }, null, 2))
+    await emitJson({ node, children: repo.getChildren(node.id) }, jq)
   } else {
-    console.log(JSON.stringify(node, null, 2))
+    await emitJson(node, jq)
   }
 }
 

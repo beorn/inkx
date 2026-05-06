@@ -23,6 +23,7 @@ import { getRootPath } from "../program.ts"
 import { collapseAncestorsWithTypes, type CollapsedAncestor } from "@km/tree"
 import { formatNode, formatCollapsedAncestor } from "@km/tui"
 import { getBrokenLinks, filterBrokenLinksByScope, printBrokenLinks } from "./broken-links.ts"
+import { emitJson } from "../utils/jq.ts"
 
 // ============================================
 // Main Export - List Command
@@ -369,45 +370,3 @@ function displaySimple(repo: Repo, nodes: KNodeType[], options: { showId: boolea
   }
 }
 
-/**
- * Emit `data` as JSON, optionally piped through `jq <expr>`.
- *
- * Wave 4 of `@km/cli/task-bd-collapse`: every list-shaped command in
- * stock km gains `--json` + `--jq`. We shell out to `jq` (already a
- * standard sysadmin tool, available on macOS / Linux / nix) rather
- * than bundling `node-jq` — keeps the dep surface minimal and avoids
- * the wasm-bridge startup cost. If `jq` isn't in PATH, we surface a
- * clear error with install hints.
- */
-async function emitJson(data: unknown, jqExpr?: string): Promise<void> {
-  const json = JSON.stringify(data, null, 2)
-  if (!jqExpr) {
-    console.log(json)
-    return
-  }
-
-  try {
-    const proc = Bun.spawn(["jq", jqExpr], {
-      stdin: "pipe",
-      stdout: "pipe",
-      stderr: "pipe",
-    })
-    proc.stdin.write(json)
-    await proc.stdin.end()
-    const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()])
-    const exitCode = await proc.exited
-    if (exitCode !== 0) {
-      console.error(term.red(`jq exited ${exitCode}: ${stderr.trim()}`))
-      process.exit(exitCode)
-    }
-    process.stdout.write(stdout)
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    if (msg.includes("ENOENT") || msg.includes("not found")) {
-      console.error(term.red("--jq requires `jq` in PATH. Install with `brew install jq` or `nix-install nixpkgs#jq`."))
-    } else {
-      console.error(term.red(`jq invocation failed: ${msg}`))
-    }
-    process.exit(1)
-  }
-}

@@ -27,12 +27,14 @@ import { loadRepo } from "../load-repo.ts"
 import { formatNodeBrief } from "@km/tui"
 import type { KNode } from "@km/core"
 import { resolveShortId, formatAmbiguityError } from "../utils/short-id.ts"
+import { emitJson, normalizeJsonJq } from "../utils/jq.ts"
 
 export const childrenCommand = new Command("children")
   .description("Show the children of a node (alias of `km show <id> -c`; walks bead sibling folders too)")
   .argument("<id>", "Node ID, path, or filename")
   .option("--json", "Output as JSON")
-  .action(async (id: string, options: { json?: boolean }) => {
+  .option("--jq <expr>", "Filter JSON output through jq (implies --json; requires `jq` in PATH)")
+  .action(async (id: string, options: { json?: boolean; jq?: string }) => {
     const resolved = resolvePathArg(id, getRootPath())
     using repo = await loadRepo(resolved.repoRoot)
 
@@ -78,8 +80,9 @@ export const childrenCommand = new Command("children")
       children = repo.getChildren(node.id)
     }
 
-    if (options.json) {
-      console.log(JSON.stringify({ node, children }, null, 2))
+    const { json, jq } = normalizeJsonJq(options)
+    if (json) {
+      await emitJson({ node, children }, jq)
       return
     }
 

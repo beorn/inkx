@@ -15,11 +15,13 @@ import { resolvePathArg } from "@km/fs-mount"
 import { loadRepo } from "../load-repo.ts"
 import { getRootPath } from "../program.ts"
 import { planStale } from "./stale-plan.ts"
+import { emitJson, normalizeJsonJq } from "../utils/jq.ts"
 
 interface StaleOptions {
   days?: number
   showIds?: boolean
   json?: boolean
+  jq?: string
   /** Include folder/file container nodes (off by default — see stale-plan.ts). */
   includeContainers?: boolean
 }
@@ -29,6 +31,7 @@ export const staleCommand = new Command("stale")
   .option("-d, --days <n>", "Days threshold (default 14)", (v) => parseInt(v, 10), 14)
   .option("-i, --show-ids", "Show node ids")
   .option("--json", "Output as JSON")
+  .option("--jq <expr>", "Filter JSON output through jq (implies --json; requires `jq` in PATH)")
   .option("--include-containers", "Include folder/file container nodes")
   .action(async (options: StaleOptions) => {
     const resolved = resolvePathArg(undefined, getRootPath() || process.cwd())
@@ -41,13 +44,11 @@ export const staleCommand = new Command("stale")
       includeContainers: options.includeContainers,
     })
 
-    if (options.json) {
-      console.log(
-        JSON.stringify(
-          plan.rows.map((r) => r.node),
-          null,
-          2,
-        ),
+    const { json, jq } = normalizeJsonJq(options)
+    if (json) {
+      await emitJson(
+        plan.rows.map((r) => r.node),
+        jq,
       )
       return
     }
