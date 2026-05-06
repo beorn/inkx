@@ -74,12 +74,12 @@ function findMutedbgPhantoms(
 }
 
 function mutedbgOf(theme: { flat?: Record<string, unknown>; mutedbg?: unknown }): {
-  r: number; g: number; b: number;
+  r: number
+  g: number
+  b: number
 } {
   const flat = (theme as { flat?: Record<string, unknown> }).flat ?? theme
-  const candidate =
-    (flat as Record<string, unknown>)["mutedbg"] ??
-    (theme as { mutedbg?: unknown }).mutedbg
+  const candidate = (flat as Record<string, unknown>)["mutedbg"] ?? (theme as { mutedbg?: unknown }).mutedbg
   const rgb = rgbFromCell(candidate)
   if (!rgb) throw new Error(`Could not resolve $mutedbg from theme: ${JSON.stringify(candidate)}`)
   return rgb
@@ -106,23 +106,19 @@ describe.skipIf(skipIf)("regression: cyan-strip cold-start 82x75 (P1)", () => {
     { name: "default-dark", theme: defaultDarkTheme },
   ]
 
-  test.each(themeMatrix)(
-    "no phantom $mutedbg cells in Frame 1 ($name)",
-    { timeout: 60000 },
-    async ({ theme }) => {
-      const board = await testBoard(REAL_VAULT, {
-        columns: 82,
-        rows: 75,
-        parseDeferred: true,
-        theme,
-      })
-      const app = board._result
-      expect(app.width).toBe(82)
-      expect(app.height).toBe(75)
+  test.each(themeMatrix)("no phantom $mutedbg cells in Frame 1 ($name)", { timeout: 60000 }, async ({ theme }) => {
+    const board = await testBoard(REAL_VAULT, {
+      columns: 82,
+      rows: 75,
+      parseDeferred: true,
+      theme,
+    })
+    const app = board._result
+    expect(app.width).toBe(82)
+    expect(app.height).toBe(75)
 
-      const mutedbg = mutedbgOf(theme as { flat?: Record<string, unknown>; mutedbg?: unknown })
-      const phantoms = findMutedbgPhantoms(app, mutedbg)
-      expect(phantoms).toEqual([])
-    },
-  )
+    const mutedbg = mutedbgOf(theme as { flat?: Record<string, unknown>; mutedbg?: unknown })
+    const phantoms = findMutedbgPhantoms(app, mutedbg)
+    expect(phantoms).toEqual([])
+  })
 })

@@ -41,6 +41,13 @@ const ALLOWED_FILES = new Set([
   // build new blocks from scratch — it propagates the type tag of an
   // existing block while replacing the text content.
   "apps/silvercode/src/transcript.ts",
+  // TEMPORARY EXCEPTION — bead @km/silvercode/sessionupdatelist-prompt-boundary-cleanup
+  // SessionUpdateList constructs `{type:"text",text:...}` shapes for UI
+  // rendering of tool-result content (NOT for prompts sent to agents).
+  // The constructions match the prompt-assembly regex but are UI-only.
+  // Proper fix: introduce a UI-specific block type or route through a
+  // sanitized seam. Tracked in the bead above; allowed here pending fix.
+  "apps/silvercode/src/components/SessionUpdateList.tsx",
 ])
 
 const EXTS = [".ts", ".tsx"]
