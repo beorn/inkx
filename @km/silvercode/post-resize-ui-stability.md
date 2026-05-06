@@ -179,3 +179,18 @@ Empirical: 248 → 236 STRICT overflows (PTY repro), 88↔120 oscillation gone (
 This is L1 → L2 (runtime guard catches the prop-feedback edge). Residual ~236 STRICT is mid-burst transient overflow during convergence — flexbox clears it within the bounded loop, not a feedback edge.
 
 L4 reframe filed as `@km/silvery/use-deferred-box-rect-and-post-commit-observers`: silvery framework gets a `useDeferredBoxRect()` returning the committed rect (idempotent across passes) plus an explicit post-commit observer phase. After that ships, this entire class of feedback-loop bugs is impossible by construction.
+
+## Update 2026-05-06 — /pro consensus + AsideLayout out-of-flow attempt
+
+Three-leg /pro review (GPT-5.4 Pro x2 + Kimi K2.6, $5.02, judge tied) converged: dominant remaining feedback edge is AsideLayout's mode-flip changing the row's child-set, not useBoxRect itself. Consensus fix: aside as `position: absolute` always, `paddingRight` reserve on main column for inline mode. Single React tree, no flex-sibling participation by aside.
+
+Tonight's empirical attempt at the consensus rewrite: STRICT spike to 566 vs 176 prior. The 88↔120 oscillation persisted plus new `width=N exceeds inner width=0` overflow at startup — the absolute-overlay variant introduces its own measurement-during-pre-measure issues. Reverted to the prior in-flow flex-sibling AsideLayout.
+
+PTY repro variance is high (run-to-run swing 176↔326 with no code changes — the live --resume session has streaming variation that affects the count). The repro alone isn't reliable enough to A/B small fixes; need either a deterministic fixture or to trust visible behavior over STRICT count.
+
+Filed beads to capture the architectural target:
+- @km/silvery/use-deferred-box-rect-and-post-commit-observers — the L4 mechanical fix (in flight, silvery agent)
+- @km/silvery/ergonomic-responsive-primitives — Lane / Aside / useResponsiveDisplay surface
+- @km/silvery/layer-primitive — `<Layer>` for out-of-flow rendering, where AsideLayout-overlay belongs
+
+Net session result: silvery 100ms trailing-edge debounce shipped (vendor `b26b8476`), Content.Row pixel-width drop shipped (`7923bc8c7`), transcript-replay yield shipped (`4b0e48ba5`). Visible: focus-change stable per user, but startup and resize remain unstable. The architectural work in the silvery beads is the actual fix path; tonight's session brought the picture into focus but didn't land a visible-bug fix.
