@@ -167,3 +167,15 @@ After the user ran the live repro and shared `/tmp/silvercode-strict2.log` (3.9 
 
 The 6-cell suite runs in `apps/silvercode/tests/welcome-stability.test.tsx` + `chat-stability.test.tsx`. Total 14 tests with helper self-tests, ~8 s wall-clock.
 
+
+## Update 2026-05-06 — narrow win + reframe filed
+
+silvery-expert audit identified the load-bearing feedback edge: `Content.Row` was writing `width={middleWidth}` AND `maxWidth={middleWidth}` on the middle Box (Content.tsx:378-379), propagating measured pixel widths upward into the row's intrinsic-sizing pass. Each silvery convergence pass re-used that propagated width, producing the 88↔120 oscillation.
+
+Fix landed (commit `7923bc8c7`): drop `width=`, keep `maxWidth=` only. Lets flexily own the resolved width; `maxWidth` is a hint, not an authoritative size.
+
+Empirical: 248 → 236 STRICT overflows (PTY repro), 88↔120 oscillation gone (transitions now monotonic: 0 → 94 settle → burst-driven only).
+
+This is L1 → L2 (runtime guard catches the prop-feedback edge). Residual ~236 STRICT is mid-burst transient overflow during convergence — flexbox clears it within the bounded loop, not a feedback edge.
+
+L4 reframe filed as `@km/silvery/use-deferred-box-rect-and-post-commit-observers`: silvery framework gets a `useDeferredBoxRect()` returning the committed rect (idempotent across passes) plus an explicit post-commit observer phase. After that ships, this entire class of feedback-loop bugs is impossible by construction.
