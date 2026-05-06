@@ -19,7 +19,7 @@ import { renderScenario, leftWidthFor } from "../../src/test/render-harness.tsx"
 import { longAssistantText } from "../../src/test/scripts/longAssistantText.ts"
 import { parseFrame, summarize } from "../../src/test/parse-frame.ts"
 
-describe("assistant text overflow stays inside the cards region", () => {
+describe("assistant text overflow stays inside the blocks region", () => {
   test("120-col: 1KB unwrappable assistant text does not bleed into the side panel", async () => {
     const COLS = 120
     const ROWS = 30
@@ -36,12 +36,12 @@ describe("assistant text overflow stays inside the cards region", () => {
     // entirely — the panel may legitimately have an `x` glyph in
     // version strings or labels). The bleed signature is three+
     // consecutive `x`s starting at col >= leftWidth in any row that
-    // ALSO has `x`s in the cards zone.
+    // ALSO has `x`s in the blocks zone.
     const offenders: Array<{ row: number; col: number }> = []
     for (let row = 0; row < s.lines.length; row++) {
       const line = s.lines[row] ?? ""
-      const inCards = line.slice(0, leftWidth).includes("xxx")
-      if (!inCards) continue
+      const inBlocks = line.slice(0, leftWidth).includes("xxx")
+      if (!inBlocks) continue
       for (let col = leftWidth; col < Math.min(line.length, COLS) - 2; col++) {
         if (line[col] === "x" && line[col + 1] === "x" && line[col + 2] === "x") {
           offenders.push({ row, col })

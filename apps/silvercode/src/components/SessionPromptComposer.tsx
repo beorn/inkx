@@ -55,7 +55,7 @@ function displayToWire(display: string): string {
  * newline back on edit so the wire format stays canonical.
  *
  * Maps to ACP: drives the outbound `session/prompt` request body
- * (text + ambient resources + image attachments). Slash commands are
+ * (text + notification resources + image attachments). Slash commands are
  * surfaced via `<AvailableCommandsPalette>` rendered above when the
  * input starts with '/'.
  */

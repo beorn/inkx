@@ -14,19 +14,7 @@
  */
 
 import React, { useMemo, useState } from "react"
-import {
-  Box,
-  Divider,
-  Muted,
-  Screen,
-  ScrollArea,
-  SelectList,
-  Strong,
-  Text,
-  useApp,
-  useInput,
-  type Key,
-} from "silvery"
+import { Box, Divider, Muted, Screen, ScrollArea, SelectList, Strong, Text, useApp, useInput, type Key } from "silvery"
 // `Divider` here renders the horizontal rule under the story header. The
 // vertical separator between panes is the implicit layout boundary.
 import { createTerm } from "silvery"

@@ -331,8 +331,9 @@ function Prompt({
             backgroundColor={USER_PROMPT_BUBBLE_BG}
             paddingX={USER_BUBBLE_PADDING_X}
             paddingY={1}
+            userSelect="none"
           >
-            <Prose width="100%" flexGrow={1} flexShrink={1} minWidth={0}>
+            <Prose width="100%" flexGrow={1} flexShrink={1} minWidth={0} userSelect="text">
               <MarkdownView source={text} role="user" layout="inline" />
             </Prose>
           </Box>

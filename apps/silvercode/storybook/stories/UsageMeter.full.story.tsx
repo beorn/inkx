@@ -5,8 +5,8 @@
  *   <UsageMeter>          — slim context-window progress bar
  *   <UsageBreakdown>      — collapsible accordion with per-category rows
  *   <UsageMetrics>        — compact cost + latency chip
- *   <StructuredQuestion>  — mid-turn question card (free-text + multi-choice variants)
- *   <StructuredAnswer>    — confirmed answer card
+ *   <StructuredQuestion>  — mid-turn question block (free-text + multi-choice variants)
+ *   <StructuredAnswer>    — confirmed answer block
  *
  * All five read from the same `UsageUpdate` fixture. The knob controls which
  * fill level (low / medium / high) is shown so colour transitions are visible.

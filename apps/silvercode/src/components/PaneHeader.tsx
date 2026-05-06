@@ -1,12 +1,12 @@
 /**
- * PaneHeader — opt-in 1-row header strip per pane (Zellij-style).
+ * PaneHeader — opt-in 1-row header row per pane (Zellij-style).
  *
  * Bead: km-silvercode.pane-headers (v2 of pane-management). v1 was
- * chrome-minimal: no border, no header strip — separation only via the
+ * chrome-minimal: no border, no header row — separation only via the
  * 1-col `│` / 1-row `─` divider plus a `▎` accent bar for the active
  * pane. This component is the v2 OPT-IN add-on: when the user passes
- * `--pane-headers` on the command line, every leaf renders this strip
- * above its SessionCard.
+ * `--pane-headers` on the command line, every leaf renders this row
+ * above its ChatPane.
  *
  * Layout (1 row):
  *
@@ -22,7 +22,7 @@
  *     a separate drag origin — clicking it is a no-op for now.
  *   - `+`: spawn split-right (same effect as Ctrl+G v).
  *   - `_`: minimize toggle. When minimized, the pane shrinks to just
- *     the header strip (parent decides the height collapse — the header
+ *     the header row (parent decides the height collapse — the header
  *     itself doesn't manage state).
  *   - `×`: close pane (same effect as Ctrl+G x).
  *
@@ -61,7 +61,7 @@ export function PaneHeader({
   onDragMove,
 }: PaneHeaderProps): React.ReactElement {
   // Header bg uses the subtle surface token so it reads as a chrome
-  // strip distinct from the message body, but stays soft enough not to
+  // row distinct from the message body, but stays soft enough not to
   // dominate when the pane is unfocused.
   return (
     <Box
@@ -93,7 +93,7 @@ export function PaneHeader({
 
 /**
  * One clickable header glyph. Hover lifts it to $accent so the user
- * sees the affordance — without hover it stays $muted to keep the strip
+ * sees the affordance — without hover it stays $muted to keep the row
  * visually quiet.
  */
 function HeaderButton({

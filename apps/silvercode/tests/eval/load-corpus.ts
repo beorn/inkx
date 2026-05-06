@@ -7,7 +7,7 @@
  * binary blob, with `.recall-ignore` so they never enter the grep /
  * recall / context surface.
  *
- * See `hub/silvercode/design/ambient-context-safety.md` § 9
+ * See `apps/silvercode/docs/channels.md` § 9
  * (Content quarantine for this design itself).
  */
 

@@ -1,5 +1,5 @@
 /**
- * Regression: side panel must remain visible when the card body contains
+ * Regression: side panel must remain visible when the block body contains
  * a long unwrappable token (paths, URLs, JSON strings, code).
  *
  * This is the load-bearing test for the "overflow at root" pattern —

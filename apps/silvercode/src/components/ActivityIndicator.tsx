@@ -15,7 +15,7 @@ function formatElapsed(ms: number): string {
 
 function formatTokens(n: number): string {
   if (n < 1000) return String(n)
-  // 1.2k style — one decimal for readability, strip trailing `.0`
+  // 1.2k style — one decimal for readability, remove trailing `.0`
   const k = n / 1000
   return k >= 100 ? `${Math.round(k)}k` : `${k.toFixed(1).replace(/\.0$/, "")}k`
 }
@@ -101,7 +101,7 @@ export function ActivityIndicator({
     color = "$info"
   } else if (status === "spawning") {
     // Pre-init phase. The user just submitted a prompt from the Welcome
-    // card (or sent a turn that arrived before session-init resolved) and
+    // block (or sent a turn that arrived before session-init resolved) and
     // the agent subprocess is still booting — "thinking…" would lie
     // (claude isn't reading anything yet). The label reads "Spawning
     // <agent> v<version>…" once session-init has populated `agentVersion`,

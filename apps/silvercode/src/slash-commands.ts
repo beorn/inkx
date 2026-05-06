@@ -43,7 +43,7 @@ export const STATIC_COMMANDS: SlashCommand[] = [
     hidden: true,
   },
   { name: "/handoff", description: "Handoff task + context to another session", local: true },
-  { name: "/fork", description: "Fork current session into a new card", local: true },
+  { name: "/fork", description: "Fork current session into a new pane", local: true },
   { name: "/spawn", description: "Spawn a new session on this workspace", local: true },
   { name: "/history", description: "Open the history view", local: true },
   { name: "/todos", description: "Toggle the todos panel", local: true },
@@ -56,22 +56,22 @@ export const STATIC_COMMANDS: SlashCommand[] = [
   { name: "/think", description: "Set thinking tier: 4K (silvercode injects `think` keyword)", local: true },
   { name: "/think_hard", description: "Set thinking tier: 16K (silvercode injects `think hard` keyword)", local: true },
   { name: "/ultrathink", description: "Set thinking tier: 32K (silvercode injects `ultrathink` keyword)", local: true },
-  // Channel-injection commands — drain queued ambient events from the
+  // Channel-injection commands — drain queued notification events from the
   // channel-queue (see `channel-queue.ts` + `prompt-assembly.ts`) and
   // prepend them to the next user prompt as typed EmbeddedResource
-  // blocks. Default for ambient channels is UI-first / user-mediated;
+  // blocks. Default for notification channels is UI-first / user-mediated;
   // these commands are the user's "I want this context now" lever.
   {
     name: "/inject-tribe",
-    description: "Inject queued tribe messages as ambient resources on next prompt",
+    description: "Inject queued tribe messages as notification resources on next prompt",
     local: true,
   },
-  { name: "/inject-recent", description: "Inject all queued ambient channel events on next prompt", local: true },
+  { name: "/inject-recent", description: "Inject all queued notification channel events on next prompt", local: true },
   { name: "/inject-ci", description: "Inject queued CI status events on next prompt", local: true },
   { name: "/inject-lore", description: "Inject queued lore deltas on next prompt", local: true },
   { name: "/inject-telegram", description: "Inject queued telegram messages on next prompt", local: true },
   { name: "/inject-subagent", description: "Inject queued sub-agent updates on next prompt", local: true },
-  { name: "/clear-channels", description: "Drop all queued ambient channel events without injecting", local: true },
+  { name: "/clear-channels", description: "Drop all queued notification channel events without injecting", local: true },
   // Well-known Claude-native — passed through.
   { name: "/compact", description: "Compact the conversation (Claude)", local: false },
   { name: "/clear", description: "Clear session state (Claude)", local: false },

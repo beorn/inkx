@@ -111,7 +111,8 @@ Known vocabulary issues:
 - ACP `SessionUpdate` is an adapter input shape. Do not let ACP naming leak into ChatState or ChatSession tree types.
 - Current `MessageEntry`, `MessageOp`, activity segment, and transcript-slice types predate the ChatNode model. Rename or isolate them during the vocabulary phase.
 - `Chat.Turn.*` is UI component vocabulary only. New canonical model fields should not depend on provider `turnId`.
-- Historical `entry`, `row`, `item`, `card`, and data-model `block` language remains in components/tests/beads. Migrate docs, tests, stories, fixtures, and touched source before implementing the new transcript tree.
+- Pre-ChatTree `entry`, `row`, and `item` names remain in older components/tests. Isolate or rename them during the vocabulary phase so canonical data modeling uses ChatEvent, ChatNode, ChatElement, and ChatLeaf.
+- UI vocabulary is `ChatPane` for the session pane and `ChatBlock` for rendered transcript/UI blocks. `ChatBlock` is UI-only; do not use it for the canonical data model.
 
 Refactoring rules for this epic:
 
@@ -550,7 +551,7 @@ Definition of done:
 - `apps/silvercode/src/components/ToolCallStatusTitle.tsx`
 - `apps/silvercode/src/components/TurnActivitySummary.tsx`
 - `apps/silvercode/src/components/SessionUpdateList.tsx`
-- `apps/silvercode/src/components/AmbientEventRow.tsx`
+- `apps/silvercode/src/components/NotificationEventRow.tsx`
 - `apps/silvercode/src/components/Content.tsx`
 - `apps/silvercode/src/components/MarkdownView.tsx`
 - `apps/silvercode/packages/agent-harness/src/parse.ts`

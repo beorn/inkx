@@ -41,31 +41,31 @@ describe("visual scenarios — layout invariants hold", () => {
     expect(p.welcome.visible).toBe(true)
     expect(p.sidePanel!.hasSilverCodeRow).toBe(true)
     expect(p.sidePanel!.hasClaudeCodeRow).toBe(true)
-    // Welcome has no card stream so we skip the icon-align invariant.
+    // Welcome has no block stream so we skip the icon-align invariant.
     expectLayoutInvariants(s, { skip: { icons: true } })
   })
 
-  test("helloWorld: user + assistant blocks render in the card stream", async () => {
+  test("helloWorld: user + assistant blocks render in the block stream", async () => {
     const s = await renderScenario({ script: helloWorld, cols: COLS, rows: ROWS })
     const p = parseFrame(s)
     expect(p.welcome.visible).toBe(false)
-    const assistant = p.cardStream.find((b) => b.glyph === "•")
+    const assistant = p.blockStream.find((b) => b.glyph === "•")
     expect(assistant, "missing • assistant block").toBeDefined()
     expect(assistant!.firstLineText).toContain("Hi")
     expect(s.text, "chat-state composer should not use border glyphs").not.toMatch(/[┌┐└┘╭╮╰╯▀▄▌▐▔▁▏▕▘▝▖▗]/u)
     expect(p.inputBox.present, "floating composer prompt should parse as input chrome").toBe(true)
     expect(
-      p.cardStream.some((b) => b.row === p.inputBox.promptRow),
+      p.blockStream.some((b) => b.row === p.inputBox.promptRow),
       "composer prompt must not parse as transcript",
     ).toBe(false)
     expectLayoutInvariants(s)
   })
 
-  test("multiTurn: multiple user/assistant turns stack in the card stream", async () => {
+  test("multiTurn: multiple user/assistant turns stack in the block stream", async () => {
     const s = await renderScenario({ script: multiTurn, cols: COLS, rows: ROWS })
     const p = parseFrame(s)
     // The multiTurn script has 2 user messages + 2 assistant replies.
-    const assistants = p.cardStream.filter((b) => b.glyph === "•")
+    const assistants = p.blockStream.filter((b) => b.glyph === "•")
     expect(assistants.length, `expected at least 1 assistant block`).toBeGreaterThanOrEqual(1)
     expectLayoutInvariants(s)
   })
@@ -73,8 +73,8 @@ describe("visual scenarios — layout invariants hold", () => {
   test("bashTool: tool-call block + assistant text render together", async () => {
     const s = await renderScenario({ script: bashTool, cols: COLS, rows: ROWS })
     const p = parseFrame(s)
-    const activity = p.cardStream.find((b) => b.glyph === "•" && b.firstLineText.includes("Clean tree"))
-    expect(activity, `expected assistant result in card stream.\n${s.text}`).toBeDefined()
+    const activity = p.blockStream.find((b) => b.glyph === "•" && b.firstLineText.includes("Clean tree"))
+    expect(activity, `expected assistant result in block stream.\n${s.text}`).toBeDefined()
     expect(s.text).toContain("$ git status")
     expect(s.text).not.toContain("Ran 1 command")
     expectLayoutInvariants(s)

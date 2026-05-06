@@ -1,3 +1,8 @@
+---
+mentions:
+  - km
+---
+
 # @km/claude-acp
 
 Standalone ACP server wrapping the Claude Code binary.
@@ -21,7 +26,6 @@ The two existing options for ACP-wrapping Claude Code both fall short:
   session-init. Anthropic policy reserves Pro/Max quota for Claude Code's
   own interactive surfaces; programmatic Agent SDK use requires API
   billing. If you're a Pro or Max subscriber, this package is unusable.
-
 - **[`carlrannaberg/cc-acp`](https://github.com/carlrannaberg/cc-acp)**
   (the only prior community attempt at a subscription-compatible binary
   wrap) has been **abandoned for ~8 months** as of writing.
@@ -104,3 +108,4 @@ foundational guarantee; everything else is incremental.
 ## License
 
 Apache-2.0
+

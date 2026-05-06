@@ -49,30 +49,30 @@ storybook/
 
 1. Create `stories/<Component>.<variant>.story.tsx`. Export a `Story`:
 
-   ```tsx
-   import React from "react"
-   import { MyComponent } from "../../src/components/MyComponent.tsx"
-   import type { Story } from "../types.ts"
+```tsx
+import React from "react"
+import { MyComponent } from "../../src/components/MyComponent.tsx"
+import type { Story } from "../types.ts"
 
-   export const myComponentBasic: Story = {
-     id: "MyComponent/basic",
-     component: "MyComponent",
-     variant: "basic",
-     description: "What this variant demonstrates.",
-     knobs: [
-       {
-         kind: "select",
-         id: "size",
-         label: "Size",
-         options: ["small", "large"],
-         default: "small",
-       },
-     ],
-     render(knobs) {
-       return <MyComponent size={knobs.size as "small" | "large"} />
-     },
-   }
-   ```
+export const myComponentBasic: Story = {
+  id: "MyComponent/basic",
+  component: "MyComponent",
+  variant: "basic",
+  description: "What this variant demonstrates.",
+  knobs: [
+    {
+      kind: "select",
+      id: "size",
+      label: "Size",
+      options: ["small", "large"],
+      default: "small",
+    },
+  ],
+  render(knobs) {
+    return <MyComponent size={knobs.size as "small" | "large"} />
+  },
+}
+```
 
 2. Append it to `STORIES` in `registry.ts`. Both test files pick it up
    automatically — no further wiring.
@@ -155,3 +155,4 @@ session / dialog surfaces. The silvercode runner is ~100 LOC of glue
 over the same `silvery` + `SelectList` primitives the silvery storybook
 uses, so we get the same look-and-feel without the structural
 assumptions.
+

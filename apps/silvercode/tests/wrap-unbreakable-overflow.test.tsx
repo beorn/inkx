@@ -93,8 +93,8 @@ function Shell({ children }: { children: React.ReactNode }): React.ReactElement 
   )
 }
 
-describe("regression: long-unbreakable tokens do not bleed past card boundary", () => {
-  test("LinkifiedText with 200-char URL stays inside its card", () => {
+describe("regression: long-unbreakable tokens do not bleed past block boundary", () => {
+  test("LinkifiedText with 200-char URL stays inside its block", () => {
     const render = createRenderer({ cols: TOTAL_COLS, rows: 30 })
     const app = render(
       <Shell>
@@ -110,7 +110,7 @@ describe("regression: long-unbreakable tokens do not bleed past card boundary", 
     expect(contentPastBoundary(app.text, boundary)).toEqual([])
   })
 
-  test("LinkifiedText with long path inside prose stays inside its card", () => {
+  test("LinkifiedText with long path inside prose stays inside its block", () => {
     const render = createRenderer({ cols: TOTAL_COLS, rows: 30 })
     const app = render(
       <Shell>
@@ -123,7 +123,7 @@ describe("regression: long-unbreakable tokens do not bleed past card boundary", 
     expect(contentPastBoundary(app.text, boundary)).toEqual([])
   })
 
-  test("MarkdownView with 200-char URL stays inside its card", () => {
+  test("MarkdownView with 200-char URL stays inside its block", () => {
     const render = createRenderer({ cols: TOTAL_COLS, rows: 30 })
     const app = render(
       <Shell>
@@ -136,7 +136,7 @@ describe("regression: long-unbreakable tokens do not bleed past card boundary", 
     expect(contentPastBoundary(app.text, boundary)).toEqual([])
   })
 
-  test("plain Text wrap=wrap with 200-char URL stays inside its card", () => {
+  test("plain Text wrap=wrap with 200-char URL stays inside its block", () => {
     // Baseline: a vanilla `<Text wrap="wrap">` consumer. If LinkifiedText
     // fails but this passes, the bug is in LinkifiedText's own shape
     // (the prose-row + nested-text projection). If both fail, the issue
@@ -200,7 +200,7 @@ function MinimalShell({ children }: { children: React.ReactNode }): React.ReactE
 }
 
 describe("contract: CSS defaults handle long unbreakable tokens without escape hatch", () => {
-  test("plain Text wrap=wrap with 200-char URL stays inside its card under MINIMAL shell", () => {
+  test("plain Text wrap=wrap with 200-char URL stays inside its block under MINIMAL shell", () => {
     // No overflow="hidden", no explicit flexShrink/minWidth on the
     // intermediate Boxes. CSS preset (flexShrink:1 default + recursive
     // auto-min-size) is sufficient.
@@ -219,8 +219,8 @@ describe("contract: CSS defaults handle long unbreakable tokens without escape h
     expect(contentPastBoundary(app.text, boundary)).toEqual([])
   })
 
-  test("LinkifiedText with 200-char URL stays inside its card under MINIMAL shell", () => {
-    // Realistic chat surface: LinkifiedText in a card without
+  test("LinkifiedText with 200-char URL stays inside its block under MINIMAL shell", () => {
+    // Realistic chat surface: LinkifiedText in a block without
     // explicit overflow:hidden. If this ever starts failing, either
     // (a) silvery's CSS defaults flipped back, or (b) flexily's
     // recursive min-content stopped propagating through Prose +

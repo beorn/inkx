@@ -189,7 +189,7 @@ export const LONG_TOOL_SESSION: MessageEntry[] = [
           output:
             "apps/silvercode/src/components/SessionUpdateList.tsx:444:function RawInspector\n" +
             "apps/silvercode/src/App.tsx:789:// outside Kitty disambiguation mode\n" +
-            "apps/silvercode/src/components/AmbientEventRow.tsx:196:// popover mechanism\n",
+            "apps/silvercode/src/components/NotificationEventRow.tsx:196:// popover mechanism\n",
           is_error: false,
         },
       },
@@ -343,7 +343,7 @@ export const LONG_TOOL_SESSION: MessageEntry[] = [
           input: {
             description: "Review storybook session coverage",
             prompt:
-              "Check whether the representative session exercises user, assistant, tools, failures, and ambient rows.",
+              "Check whether the representative session exercises user, assistant, tools, failures, and notification rows.",
           },
         },
         result: {
@@ -378,7 +378,7 @@ export const LONG_TOOL_SESSION: MessageEntry[] = [
         kind: "text",
         text:
           "Summary: the representative session now includes normal chat, tool-heavy work, a failed command, " +
-          "file operations, search, fetch, todo planning, sub-agent output, and ambient notifications interleaved in the transcript.",
+          "file operations, search, fetch, todo planning, sub-agent output, and notifications interleaved in the transcript.",
       },
     ],
     ts: NOW + 44_000,
@@ -486,18 +486,18 @@ export const TURN_ACTIVITY_RICH: MessageEntry[] = [
   }),
 ]
 
-export const TURN_ACTIVITY_AMBIENT = [
+export const TURN_ACTIVITY_NOTIFICATION = [
   {
-    kind: "ambient" as const,
-    id: "ambient-turn-activity-1",
+    kind: "notification" as const,
+    id: "notification-turn-activity-1",
     source: "file-watch",
     timestamp: NOW + 60_500,
     content: "apps/silvercode/src/components/SessionUpdateList.tsx changed on disk",
     actionable: true,
   },
   {
-    kind: "ambient" as const,
-    id: "ambient-turn-activity-2",
+    kind: "notification" as const,
+    id: "notification-turn-activity-2",
     source: "tribe",
     timestamp: NOW + 61_500,
     content:

@@ -18,7 +18,7 @@
  *
  * This module reads the JSONL, walks events in order, and emits silvercode
  * canonical `AgentEvent`s into the session store so prior turns appear in
- * the card. After replay, codex-acp's `loadSession` continues the live
+ * the block. After replay, codex-acp's `loadSession` continues the live
  * session; new events stream in on top of the replayed history.
  *
  * Strict schema contract: known variants are replayed or explicitly ignored.

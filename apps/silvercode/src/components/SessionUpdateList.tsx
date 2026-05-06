@@ -17,7 +17,7 @@
  *   - `<SessionUpdateList>`    — this component, top-level virtualized list
  *   - `<SessionExchangeDivider>` — thin rule between exchanges
  *   - `<SessionRetry>`         — retry affordance below a failed exchange
- *   - `<SubAgentExchange>`     — nested Task tool stream card
+ *   - `<SubAgentExchange>`     — nested Task tool stream block
  *
  * ListView owns scroll (wheel / keyboard / cursor). `follow="end"` is the
  * canonical chat-style auto-follow API. `nav={false}` so ListView does not
@@ -38,18 +38,17 @@ import type { ToolCall as ToolCallType, ToolCallContent } from "@km/agent-harnes
 import {
   Box,
   Divider,
-  lastModifierState,
   ListView,
   type ListViewHandle,
   Small,
   Text,
-  type SilveryMouseEvent,
   useHover,
   useModifierKeys,
   usePopoverHandlers,
+  useSelection,
 } from "silvery"
 import { ActivityIndicator, type ActivityStatus } from "./ActivityIndicator.tsx"
-import { AmbientNotificationStack, type AmbientStreamEntry } from "./AmbientEventRow.tsx"
+import { NotificationStack, type NotificationStreamEntry } from "./NotificationEventRow.tsx"
 import { BoundedScroll } from "./BoundedScroll.tsx"
 import { ChatEntryDisclosure } from "./ChatEntryDisclosure.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
@@ -447,7 +446,7 @@ function toolErrorMessage(output: unknown, title?: string): string {
 function stripShellRunnerMetadata(text: string): string {
   return text
     .split("\n")
-    .filter((line) => !/^Shell cwd was reset to /.test(line.trim()))
+    .filter((line) => !line.trim().startsWith("Shell cwd was reset to "))
     .join("\n")
     .trim()
 }
@@ -473,7 +472,7 @@ function opsRenderDiff(ops: readonly MessageOp[]): boolean {
 /**
  * Adapt a legacy `MessageEntry` tool-call entry to the ACP `ToolCall` shape
  * consumed by `<ToolCall>`. The tool result (if any) is folded into the
- * `content` array so `<ToolCall>` renders both in a single card body.
+ * `content` array so `<ToolCall>` renders both in a single block body.
  */
 function adaptToolCall(
   c: { id: string; name: string; input: unknown; mcp_server?: string },
@@ -744,6 +743,37 @@ function prettyYamlForDebug(value: unknown, indent = 0): string {
   return String(value)
 }
 
+function compactDebugPayload(value: unknown): unknown | null {
+  if (value === null || value === undefined) return null
+  if (typeof value === "string") return value.trim().length > 0 ? value : null
+  if (typeof value !== "object") return value
+  if (Array.isArray(value)) {
+    const items = value.flatMap((item) => {
+      const compact = compactDebugPayload(item)
+      return compact === null ? [] : [compact]
+    })
+    return items.length > 0 ? items : null
+  }
+
+  const input = value as Record<string, unknown>
+  if (
+    typeof input.kind === "string" &&
+    (input.kind === "text" || input.kind === "thinking") &&
+    typeof input.text === "string" &&
+    Object.keys(input).every((key) => key === "kind" || key === "text")
+  ) {
+    return null
+  }
+
+  const entries = Object.entries(input).flatMap(([key, entry]) => {
+    if (key === "ops") return []
+    if (key === "text" && "raw" in input) return []
+    const compact = compactDebugPayload(entry)
+    return compact === null ? [] : ([[key, compact]] as Array<[string, unknown]>)
+  })
+  return entries.length > 0 ? Object.fromEntries(entries) : null
+}
+
 function timestampFromPayload(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") return null
   const ts = (payload as { ts?: unknown }).ts
@@ -792,6 +822,14 @@ function durationLabel(start: number | undefined, end: number | undefined): stri
   return remMinutes > 0 ? `${hours}h ${remMinutes}m` : `${hours}h`
 }
 
+function useCmdHoverArmed(isHovered: boolean, enabled = true): boolean {
+  const selection = useSelection()
+  const selectionActive = !!selection?.range || !!selection?.selecting
+  const armed = enabled && isHovered && !selectionActive
+  const modifierState = useModifierKeys({ enabled: armed })
+  return armed && modifierState.super
+}
+
 type SessionMetadataRowKind = "start" | "loaded" | "ended"
 
 type SessionMetadataRowData = {
@@ -821,8 +859,7 @@ function MutedDivider({ title }: { title: string }): React.ReactElement {
 function SessionMetadataRow({ data }: { data: SessionMetadataRowData }): React.ReactElement {
   const [expanded, setExpanded] = useState(false)
   const hover = useHover()
-  const modifierState = useModifierKeys({ enabled: hover.isHovered })
-  const cmdHeld = modifierState.super || lastModifierState.super
+  const cmdHeld = useCmdHoverArmed(hover.isHovered)
   const content = useContentLayout()
   const marker = expanded ? "▾" : hover.isHovered || data.kind === "loaded" ? "▸" : " "
   const bg = hover.isHovered ? "$bg-surface-hover" : undefined
@@ -1000,8 +1037,7 @@ function TimestampedRow({
 }): React.ReactElement {
   const hover = useHover()
   const content = useContentLayout()
-  const modifierState = useModifierKeys({ enabled: hover.isHovered })
-  const cmdHeld = modifierState.super || lastModifierState.super
+  const cmdHeld = useCmdHoverArmed(hover.isHovered, side === "left")
   const laneWidth = width === "wide" ? content.wide : content.measure
   const sideGutter = Math.max(0, Math.floor(((content.available || laneWidth) - laneWidth) / 2))
   const showTimestamp = hover.isHovered && cmdHeld && sideGutter >= timestamp.length + 1
@@ -1041,25 +1077,14 @@ function TimestampedRow({
   )
 }
 /**
- * RawInspector — secret debug trick. Wraps each chat entry so that hovering
- * with Cmd+Shift held shows a popover with the entry's raw JSON. The wrapper
- * always listens for hover so a modifier-aware mouse-enter can trigger the
- * popover even when the terminal did not emit standalone modifier key events.
- *
- * Why: debugging a verbose-tool-result or thinking-loop bug usually means
- * inspecting what the wire actually delivered. Without this, the only path is
- * opening the JSONL file directly. The Cmd+Shift gate keeps the affordance
- * out of the way for normal use.
- *
- * Cmd is `super` in silvery's modifier-key tracking (macOS). Most terminals
- * pass Cmd through in mouse events; the popover gracefully no-ops on terminals
- * that don't.
+ * RawInspector — transcript-entry detail view. Cmd-hover shows the complete
+ * YAML payload behind the visible row so parser/debug metadata never has to
+ * masquerade as user-facing prose just to remain inspectable.
  *
  * Bead: km-silvercode.raw-entry-inspector.
  */
 function RawInspector({ payload, children }: { payload: unknown; children: React.ReactNode }): React.ReactElement {
-  const { super: cmdHeld, shift: shiftHeld } = useModifierKeys()
-  const debugMode = cmdHeld && shiftHeld
+  const debugPayload = useMemo(() => compactDebugPayload(payload), [payload])
   // Always compute a valid PopoverContent (the hook requires non-null).
   const popoverContent = useMemo(() => {
     // Pretty-print: when a string value contains newlines, render the body
@@ -1067,12 +1092,11 @@ function RawInspector({ payload, children }: { payload: unknown; children: React
     // quotes) so tool output / commands read like the actual text. Trades
     // strict JSON validity for human readability — the popover is for
     // eyeballing, not parsing.
-    const yaml = prettyYamlForDebug(payload)
-    // Trim very long payloads; full payload available via /debug or the JSONL.
+    const yaml = prettyYamlForDebug(debugPayload)
     const allLines = yaml.split("\n")
-    const truncated =
-      allLines.length > 60 ? [...allLines.slice(0, 60), `# … (${allLines.length - 60} more lines)`].join("\n") : yaml
-    const timestamp = timestampFromPayload(payload)
+    const displayYaml =
+      allLines.length > 60 ? [...allLines.slice(0, 60), `# ... (${allLines.length - 60} more lines)`].join("\n") : yaml
+    const timestamp = timestampFromPayload(debugPayload)
     return {
       body: (
         <Box flexDirection="column">
@@ -1087,7 +1111,7 @@ function RawInspector({ payload, children }: { payload: unknown; children: React
               (no italic-pink JSON-string fallback). `bare` drops chrome
               and switches to wrap="wrap" so long lines flow within the
               popover width. */}
-          <SyntaxHighlighter language="yaml" code={truncated} bare />
+          <SyntaxHighlighter language="yaml" code={displayYaml} bare />
         </Box>
       ),
       // Tighter maxWidth so the +10 anchorOffsetX doesn't get clamped away
@@ -1100,15 +1124,11 @@ function RawInspector({ payload, children }: { payload: unknown; children: React
       flushTop: true,
       anchorOffsetX: 10,
     }
-  }, [payload])
+  }, [debugPayload])
   const handlers = usePopoverHandlers(popoverContent)
-  function onMouseEnter(e: SilveryMouseEvent): void {
-    if (debugMode || (e.metaKey && e.shiftKey)) {
-      handlers.onMouseEnter(e)
-    }
-  }
+  if (debugPayload === null) return <>{children}</>
   return (
-    <Box onMouseEnter={onMouseEnter} onMouseLeave={handlers.onMouseLeave}>
+    <Box onMouseEnter={handlers.onMouseEnter} onMouseLeave={handlers.onMouseLeave}>
       {children}
     </Box>
   )
@@ -1147,27 +1167,25 @@ function ActivityDetails({
         if (op.kind === "thinking") {
           if (op.text.length === 0) return null
           return (
-            <RawInspector key={`thinking-${index}`} payload={op}>
-              <StandaloneProseFrame
-                paddingBefore={hasVisibleTurnOpBefore(ops, index)}
-                paddingAfter={hasVisibleTurnOpAfter(ops, index)}
-              >
-                <Chat.Turn.Narration text={op.text} muted />
-              </StandaloneProseFrame>
-            </RawInspector>
+            <StandaloneProseFrame
+              key={`thinking-${index}`}
+              paddingBefore={hasVisibleTurnOpBefore(ops, index)}
+              paddingAfter={hasVisibleTurnOpAfter(ops, index)}
+            >
+              <Chat.Turn.Narration text={op.text} muted />
+            </StandaloneProseFrame>
           )
         }
         if (op.kind === "text") {
           if (op.text.length === 0) return null
           return (
-            <RawInspector key={`text-${index}`} payload={op}>
-              <StandaloneProseFrame
-                paddingBefore={hasVisibleTurnOpBefore(ops, index)}
-                paddingAfter={hasVisibleTurnOpAfter(ops, index)}
-              >
-                <Chat.Turn.Narration text={op.text} />
-              </StandaloneProseFrame>
-            </RawInspector>
+            <StandaloneProseFrame
+              key={`text-${index}`}
+              paddingBefore={hasVisibleTurnOpBefore(ops, index)}
+              paddingAfter={hasVisibleTurnOpAfter(ops, index)}
+            >
+              <Chat.Turn.Narration text={op.text} />
+            </StandaloneProseFrame>
           )
         }
         if (op.kind === "raw") {
@@ -1179,13 +1197,13 @@ function ActivityDetails({
         }
         const adaptedCall = adaptToolCall(op.toolCall, op.result, op.result === undefined)
         return (
-          <RawInspector key={op.toolCall.id} payload={op}>
-            <ToolCall
-              toolCall={adaptedCall}
-              errorMessage={op.result?.is_error ? toolErrorMessage(op.result.output, adaptedCall.title) : undefined}
-              onExpandedChange={() => onDisclosureToggle?.()}
-            />
-          </RawInspector>
+          <ToolCall
+            key={op.toolCall.id}
+            toolCall={adaptedCall}
+            errorMessage={op.result?.is_error ? toolErrorMessage(op.result.output, adaptedCall.title) : undefined}
+            titleWrap="wrap"
+            onExpandedChange={() => onDisclosureToggle?.()}
+          />
         )
       })}
     </Box>
@@ -1373,20 +1391,18 @@ function ExchangeItem({
                   const standalone = textNeedsStandaloneSpacing(chunk.text)
                   return (
                     <Chat.Turn.Segment key={`text-${chunk.firstIndex}`}>
-                      <RawInspector payload={chunk.ops}>
-                        <StandaloneProseFrame
-                          paddingBefore={standalone && hasVisibleTurnOpBefore(displayOps, chunk.firstIndex)}
-                          paddingAfter={standalone && hasVisibleTurnOpAfter(displayOps, chunk.firstIndex)}
+                      <StandaloneProseFrame
+                        paddingBefore={standalone && hasVisibleTurnOpBefore(displayOps, chunk.firstIndex)}
+                        paddingAfter={standalone && hasVisibleTurnOpAfter(displayOps, chunk.firstIndex)}
+                      >
+                        <TimestampedRow
+                          timestamp={formatTime(m.ts)}
+                          side="left"
+                          width={hasTableMarkdownBlock(chunk.text) ? "wide" : "prose"}
                         >
-                          <TimestampedRow
-                            timestamp={formatTime(m.ts)}
-                            side="left"
-                            width={hasTableMarkdownBlock(chunk.text) ? "wide" : "prose"}
-                          >
-                            <Chat.Turn.Narration text={chunk.text} />
-                          </TimestampedRow>
-                        </StandaloneProseFrame>
-                      </RawInspector>
+                          <Chat.Turn.Narration text={chunk.text} />
+                        </TimestampedRow>
+                      </StandaloneProseFrame>
                     </Chat.Turn.Segment>
                   )
                 })
@@ -1397,11 +1413,9 @@ function ExchangeItem({
                 const firstIndex = run.ops[0]?.index ?? runIdx
                 return (
                   <Chat.Turn.Segment key={`thinking-${firstIndex}`}>
-                    <RawInspector payload={run.ops.map(({ op }) => op)}>
-                      <TimestampedRow timestamp={formatTime(m.ts)} side="left">
-                        <Chat.Turn.Narration text={text} muted />
-                      </TimestampedRow>
-                    </RawInspector>
+                    <TimestampedRow timestamp={formatTime(m.ts)} side="left">
+                      <Chat.Turn.Narration text={text} muted />
+                    </TimestampedRow>
                   </Chat.Turn.Segment>
                 )
               }
@@ -1447,19 +1461,18 @@ function ExchangeItem({
                 const running = result === undefined
                 const adaptedCall = adaptToolCall(c, result, running)
                 return (
-                  <RawInspector key={c.id} payload={op}>
-                    <TimestampedRow
-                      timestamp={formatTime(m.ts)}
-                      side="left"
-                      width={opRendersDiff(op) ? "wide" : "prose"}
-                    >
-                      <ToolCall
-                        toolCall={adaptedCall}
-                        errorMessage={result?.is_error ? toolErrorMessage(result.output, adaptedCall.title) : undefined}
-                        onExpandedChange={() => onDisclosureToggle?.()}
-                      />
-                    </TimestampedRow>
-                  </RawInspector>
+                  <TimestampedRow
+                    key={c.id}
+                    timestamp={formatTime(m.ts)}
+                    side="left"
+                    width={opRendersDiff(op) ? "wide" : "prose"}
+                  >
+                    <ToolCall
+                      toolCall={adaptedCall}
+                      errorMessage={result?.is_error ? toolErrorMessage(result.output, adaptedCall.title) : undefined}
+                      onExpandedChange={() => onDisclosureToggle?.()}
+                    />
+                  </TimestampedRow>
                 )
               })}
             </Chat.Turn.ToolGroup>
@@ -1488,20 +1501,19 @@ function ExchangeItem({
               return chunks.map((chunk) => {
                 const standalone = textNeedsStandaloneSpacing(chunk.text)
                 return (
-                  <RawInspector key={`text-${chunk.firstIndex}`} payload={chunk.ops}>
-                    <StandaloneProseFrame
-                      paddingBefore={standalone && hasVisibleTurnOpBefore(displayOps, chunk.firstIndex)}
-                      paddingAfter={standalone && hasVisibleTurnOpAfter(displayOps, chunk.firstIndex)}
+                  <StandaloneProseFrame
+                    key={`text-${chunk.firstIndex}`}
+                    paddingBefore={standalone && hasVisibleTurnOpBefore(displayOps, chunk.firstIndex)}
+                    paddingAfter={standalone && hasVisibleTurnOpAfter(displayOps, chunk.firstIndex)}
+                  >
+                    <TimestampedRow
+                      timestamp={formatTime(m.ts)}
+                      side="left"
+                      width={hasTableMarkdownBlock(chunk.text) ? "wide" : "prose"}
                     >
-                      <TimestampedRow
-                        timestamp={formatTime(m.ts)}
-                        side="left"
-                        width={hasTableMarkdownBlock(chunk.text) ? "wide" : "prose"}
-                      >
-                        <Chat.Turn.Narration text={chunk.text} />
-                      </TimestampedRow>
-                    </StandaloneProseFrame>
-                  </RawInspector>
+                      <Chat.Turn.Narration text={chunk.text} />
+                    </TimestampedRow>
+                  </StandaloneProseFrame>
                 )
               })
             })()
@@ -1511,11 +1523,9 @@ function ExchangeItem({
               if (text.length === 0) return null
               const firstIndex = run.ops[0]?.index ?? 0
               return (
-                <RawInspector key={`thinking-${firstIndex}`} payload={run.ops.map(({ op }) => op)}>
-                  <TimestampedRow timestamp={formatTime(m.ts)} side="left">
-                    <Chat.Turn.Narration text={text} muted />
-                  </TimestampedRow>
-                </RawInspector>
+                <TimestampedRow key={`thinking-${firstIndex}`} timestamp={formatTime(m.ts)} side="left">
+                  <Chat.Turn.Narration text={text} muted />
+                </TimestampedRow>
               )
             })()
           ) : (
@@ -1546,16 +1556,16 @@ function ExchangeItem({
 }
 
 // =============================================================================
-// Sentinel types for the activity tail and ambient observation rows
+// Sentinel types for the activity tail and notification observation rows
 // =============================================================================
 
 type ActivityItem = { __activity: true }
-type AmbientItem = { __ambient: true; entries: AmbientStreamEntry[] }
+type NotificationItem = { __notification: true; entries: NotificationStreamEntry[] }
 type AssistantActivitySlice = { __assistantActivity: true; id: string; message: MessageEntry; ops: MessageOp[] }
 type SessionMetadataItem = { __sessionMetadata: true; id: string; data: SessionMetadataRowData }
 type PaddingItem = { __padding: true; id: string; height: number }
-type Item = MessageEntry | ActivityItem | AmbientItem | AssistantActivitySlice | SessionMetadataItem | PaddingItem
-type SimilarGroupKind = "user" | "system" | "ambient" | "assistant-tool-activity"
+type Item = MessageEntry | ActivityItem | NotificationItem | AssistantActivitySlice | SessionMetadataItem | PaddingItem
+type SimilarGroupKind = "user" | "system" | "notification" | "assistant-tool-activity"
 type GroupedItem = { __group: true; kind: SimilarGroupKind; items: Item[] }
 type RenderItem = Item | GroupedItem
 
@@ -1563,8 +1573,8 @@ function isActivity(item: Item): item is ActivityItem {
   return (item as ActivityItem).__activity === true
 }
 
-function isAmbient(item: Item): item is AmbientItem {
-  return (item as AmbientItem).__ambient === true
+function isNotification(item: Item): item is NotificationItem {
+  return (item as NotificationItem).__notification === true
 }
 
 function isSessionMetadata(item: Item): item is SessionMetadataItem {
@@ -1582,7 +1592,7 @@ function isAssistantActivitySlice(item: Item): item is AssistantActivitySlice {
 function isMessageEntry(item: Item): item is MessageEntry {
   return (
     !isActivity(item) &&
-    !isAmbient(item) &&
+    !isNotification(item) &&
     !isSessionMetadata(item) &&
     !isPadding(item) &&
     !isAssistantActivitySlice(item)
@@ -1592,7 +1602,7 @@ function isMessageEntry(item: Item): item is MessageEntry {
 function splitAssistantToolActivity(item: Item): Item[] {
   if (
     isActivity(item) ||
-    isAmbient(item) ||
+    isNotification(item) ||
     isSessionMetadata(item) ||
     isPadding(item) ||
     isAssistantActivitySlice(item) ||
@@ -1610,7 +1620,7 @@ function splitAssistantToolActivity(item: Item): Item[] {
 
 function isAssistantToolActivity(item: Item): boolean {
   if (isAssistantActivitySlice(item)) return true
-  if (isActivity(item) || isAmbient(item) || isSessionMetadata(item) || isPadding(item) || item.role !== "assistant") {
+  if (isActivity(item) || isNotification(item) || isSessionMetadata(item) || isPadding(item) || item.role !== "assistant") {
     return false
   }
   let hasTool = false
@@ -1635,7 +1645,7 @@ function isBackgroundSystemMessage(m: MessageEntry): boolean {
 }
 
 function similarGroupKind(item: Item): SimilarGroupKind | null {
-  if (isAmbient(item)) return "ambient"
+  if (isNotification(item)) return "notification"
   if (isActivity(item)) return null
   if (isSessionMetadata(item)) return null
   if (isPadding(item)) return null
@@ -1662,7 +1672,7 @@ function groupSimilarItems(items: Item[]): RenderItem[] {
 
 function itemKey(item: Item, i: number): string {
   if (isActivity(item)) return "__activity"
-  if (isAmbient(item)) return `ambient-cluster:${item.entries[0]?.id ?? i}`
+  if (isNotification(item)) return `notification-cluster:${item.entries[0]?.id ?? i}`
   if (isSessionMetadata(item)) return item.id
   if (isPadding(item)) return `__padding:${item.id}`
   if (isAssistantActivitySlice(item)) return item.id
@@ -1710,7 +1720,7 @@ function areDenseAdjacentItems(prev: RenderItem, item: RenderItem): boolean {
   if (isGrouped(prev) || isGrouped(item)) return false
   if (isPadding(prev) || isPadding(item)) return false
   if (isActivity(prev) || isActivity(item)) return false
-  if (isAmbient(prev) || isAmbient(item)) return false
+  if (isNotification(prev) || isNotification(item)) return false
   if (isSessionMetadata(prev) || isSessionMetadata(item)) return false
   if (isAssistantActivitySlice(prev) || isAssistantActivitySlice(item)) return false
   return prev.role === "system" && item.role === "system"
@@ -1734,7 +1744,7 @@ function ownsVerticalSpacing(item: RenderItem): boolean {
 }
 
 function itemTimestamp(item: Item): number | null {
-  if (isActivity(item) || isAmbient(item) || isSessionMetadata(item) || isPadding(item)) return null
+  if (isActivity(item) || isNotification(item) || isSessionMetadata(item) || isPadding(item)) return null
   if (isAssistantActivitySlice(item)) return item.message.ts
   return item.ts
 }
@@ -1746,7 +1756,7 @@ function sourceMessageId(item: Item): string | null {
 }
 
 function itemBlockText(item: Item): string {
-  if (isActivity(item) || isAmbient(item) || isSessionMetadata(item) || isPadding(item)) return ""
+  if (isActivity(item) || isNotification(item) || isSessionMetadata(item) || isPadding(item)) return ""
   const ops = isAssistantActivitySlice(item) ? item.ops : item.ops
   return ops
     .flatMap((op) => {
@@ -1773,7 +1783,7 @@ function isVisibleAssistantText(text: string): boolean {
 /**
  * Anchor a `MessageEntry` to its scrollback timestamp. Mirrors how
  * `ts: number` is assigned in `session-store.ts` — a millisecond epoch
- * timestamp aligned with `AmbientStreamEntry.timestamp` so the merge
+ * timestamp aligned with `NotificationStreamEntry.timestamp` so the merge
  * sort interleaves correctly.
  */
 function messageTimestamp(m: MessageEntry): number {
@@ -1784,7 +1794,7 @@ function opTimestamp(op: MessageOp, fallback: number): number {
   return op.ts ?? fallback
 }
 
-function ambientTimestamp(entry: AmbientStreamEntry): number {
+function notificationTimestamp(entry: NotificationStreamEntry): number {
   return entry.ts ?? entry.timestamp ?? 0
 }
 
@@ -1827,32 +1837,32 @@ function cloneMessageForTimeline(message: MessageEntry, ops: MessageOp[], suffix
 }
 
 /**
- * Merge messages + ambient entries into one list sorted by timestamp
+ * Merge messages + notification entries into one list sorted by timestamp
  * (ascending). Stable on equal timestamps: messages keep their relative
- * order, ambient entries keep theirs, and a tie between a message and
- * ambient resolves by source array order (messages, then ambient) — so a
- * user prompt and an ambient event with the same `ts` render as
- * "user, then ambient." That is the conservative read: an ambient
+ * order, notification entries keep theirs, and a tie between a message and
+ * notification resolves by source array order (messages, then notification) — so a
+ * user prompt and a notification event with the same `ts` render as
+ * "user, then notification." That is the conservative read: a notification
  * observation associated with the *next* turn arrived after the user
  * sent the prompt.
  *
- * Consecutive ambient entries coalesce into one `AmbientItem` so the
+ * Consecutive notification entries coalesce into one `NotificationItem` so the
  * outer `ListView gap={1}` separates clusters from messages but doesn't
- * insert a blank line between adjacent ambient observations. A burst of
+ * insert a blank line between adjacent notification observations. A burst of
  * filewatch events therefore renders as a tight block.
  */
-function interleave(messages: MessageEntry[], ambient: readonly AmbientStreamEntry[]): Item[] {
-  function pushAmbient(out: Item[], entry: AmbientStreamEntry): void {
+function interleave(messages: MessageEntry[], notification: readonly NotificationStreamEntry[]): Item[] {
+  function pushNotification(out: Item[], entry: NotificationStreamEntry): void {
     const last = out[out.length - 1]
-    if (last && isAmbient(last)) {
+    if (last && isNotification(last)) {
       last.entries.push(entry)
       return
     }
-    out.push({ __ambient: true, entries: [entry] })
+    out.push({ __notification: true, entries: [entry] })
   }
   function flushAssistantOps(out: Item[], message: MessageEntry, ops: MessageOp[], index: number): void {
     if (ops.length === 0) return
-    const part = cloneMessageForTimeline(message, ops, `ambient-${index}`)
+    const part = cloneMessageForTimeline(message, ops, `notification-${index}`)
     out.push(...splitAssistantToolActivity(part))
   }
   const out: Item[] = []
@@ -1864,12 +1874,12 @@ function interleave(messages: MessageEntry[], ambient: readonly AmbientStreamEnt
       let segment = 0
       for (const op of ops) {
         const ots = opTimestamp(op, message.ts)
-        while (j < ambient.length) {
-          const entry = ambient[j]
-          if (!entry || ambientTimestamp(entry) >= ots) break
+        while (j < notification.length) {
+          const entry = notification[j]
+          if (!entry || notificationTimestamp(entry) >= ots) break
           flushAssistantOps(out, message, buffer, segment++)
           buffer = []
-          pushAmbient(out, entry)
+          pushNotification(out, entry)
           j++
         }
         buffer.push(op)
@@ -1878,10 +1888,10 @@ function interleave(messages: MessageEntry[], ambient: readonly AmbientStreamEnt
       continue
     }
     const mts = messageTimestamp(message)
-    while (j < ambient.length) {
-      const entry = ambient[j]
-      if (!entry || ambientTimestamp(entry) < mts) {
-        if (entry) pushAmbient(out, entry)
+    while (j < notification.length) {
+      const entry = notification[j]
+      if (!entry || notificationTimestamp(entry) < mts) {
+        if (entry) pushNotification(out, entry)
         j++
         continue
       }
@@ -1889,9 +1899,9 @@ function interleave(messages: MessageEntry[], ambient: readonly AmbientStreamEnt
     }
     out.push(message)
   }
-  while (j < ambient.length) {
-    const ambientEntry = ambient[j++]
-    if (ambientEntry) pushAmbient(out, ambientEntry)
+  while (j < notification.length) {
+    const notificationEntry = notification[j++]
+    if (notificationEntry) pushNotification(out, notificationEntry)
   }
   return out
 }
@@ -1931,12 +1941,12 @@ export const SessionUpdateList = React.forwardRef<
      *  Bead: km-silvercode.resume-show-everything-collapsed. */
     showDebug?: boolean
     /**
-     * Pre-filtered ambient observations (mute filter applied upstream
-     * in `SessionCard`). Merged with `messages` by timestamp; rendered
+     * Pre-filtered notification observations (mute filter applied upstream
+     * in `ChatPane`). Merged with `messages` by timestamp; rendered
      * inline as styled observation rows between turns.
-     * Bead: km-silvercode.ambient-inline-display.
+     * Bead: km-silvercode.notification-inline-display.
      */
-    ambientEntries?: readonly AmbientStreamEntry[]
+    notificationEntries?: readonly NotificationStreamEntry[]
     sessionMetadata?: SessionHistoryMetadata
     /** Display name for the running agent. Forwarded to the inline
      *  ActivityIndicator so the spawning-state label can read
@@ -1966,7 +1976,7 @@ export const SessionUpdateList = React.forwardRef<
     pendingPermissions,
     inFlightTool,
     showDebug = false,
-    ambientEntries,
+    notificationEntries,
     sessionMetadata,
     agentLabel = null,
     agentVersion = null,
@@ -1990,7 +2000,7 @@ export const SessionUpdateList = React.forwardRef<
 
   const showActivity = status !== "idle" && status !== "ended"
   const merged =
-    ambientEntries && ambientEntries.length > 0 ? interleave(messages, ambientEntries) : messageItems(messages)
+    notificationEntries && notificationEntries.length > 0 ? interleave(messages, notificationEntries) : messageItems(messages)
   const metadata = sessionMetadataItems(sessionMetadata)
   const replayMessageCount = Math.max(0, sessionMetadata?.replayMessageCount ?? 0)
   const replayBoundaryMessageId = sessionMetadata?.replayBoundaryMessageId
@@ -2038,7 +2048,7 @@ export const SessionUpdateList = React.forwardRef<
       if (isGrouped(item)) return `group:${item.kind}:${item.items.length}`
       if (isPadding(item)) return `padding:${item.id}:${item.height}`
       if (isActivity(item)) return "activity"
-      if (isAmbient(item)) return `ambient:${item.entries.length}`
+      if (isNotification(item)) return `notification:${item.entries.length}`
       if (isSessionMetadata(item)) return "session-metadata"
       if (isAssistantActivitySlice(item)) return `assistant-activity:${item.ops.length}`
       return `message:${item.role}:${item.ops.length}`
@@ -2084,42 +2094,61 @@ export const SessionUpdateList = React.forwardRef<
       ))}
     </Box>
   )
+  const activityStartupVerb = sessionMetadata?.resumeId ? "resuming" : "spawning"
   const renderSessionItem = (item: Item, _i: number): React.ReactNode =>
     isPadding(item) ? (
       renderPadding(item.height)
     ) : isActivity(item) ? (
-      <Chat.Body width="prose">
-        <ActivityIndicator
-          status={status}
-          pendingPermissions={pendingPermissions}
-          inFlightTool={inFlightTool}
-          turnStartedAt={turnStartedAt}
-          inputTokens={inputTokens}
-          outputTokens={outputTokens}
-          agentLabel={agentLabel}
-          agentVersion={agentVersion}
-          startupVerb={sessionMetadata?.resumeId ? "resuming" : "spawning"}
-        />
-      </Chat.Body>
-    ) : isAmbient(item) ? (
+      <RawInspector
+        payload={{
+          kind: "activity",
+          status,
+          pendingPermissions,
+          inFlightTool,
+          turnStartedAt,
+          inputTokens,
+          outputTokens,
+          agentLabel,
+          agentVersion,
+          startupVerb: activityStartupVerb,
+        }}
+      >
+        <Chat.Body width="prose">
+          <ActivityIndicator
+            status={status}
+            pendingPermissions={pendingPermissions}
+            inFlightTool={inFlightTool}
+            turnStartedAt={turnStartedAt}
+            inputTokens={inputTokens}
+            outputTokens={outputTokens}
+            agentLabel={agentLabel}
+            agentVersion={agentVersion}
+            startupVerb={activityStartupVerb}
+          />
+        </Chat.Body>
+      </RawInspector>
+    ) : isNotification(item) ? (
       <Chat.Notification>
-        <AmbientNotificationStack entries={item.entries} />
+        <NotificationStack entries={item.entries} />
       </Chat.Notification>
     ) : isSessionMetadata(item) ? (
-      <Chat.Metadata>
-        <SessionMetadataRow data={item.data} />
-      </Chat.Metadata>
+      <RawInspector payload={item.data}>
+        <Chat.Metadata>
+          <SessionMetadataRow data={item.data} />
+        </Chat.Metadata>
+      </RawInspector>
     ) : isAssistantActivitySlice(item) ? (
       <ActivitySummaryForOps
         ops={item.ops}
         timestamp={formatTime(item.message.ts)}
         onDisclosureToggle={pauseFollowForDisclosure}
       />
-    ) : item.role === "assistant" || item.role === "system" ? (
+    ) : item.role === "assistant" || item.role === "system" || item.role === "user" ? (
       // Assistant turns wrap each op (text/tool) individually inside
       // ExchangeItem so the hover popover shows ONLY the hovered op,
       // not the whole turn's combined JSON. System rows may provide their
-      // own disclosure surface, so do not wrap them in another RawInspector.
+      // own disclosure surface, and user prompts have no hidden payload, so
+      // do not wrap them in another RawInspector.
       <ExchangeItem m={item} showDebug={showDebug} onDisclosureToggle={pauseFollowForDisclosure} />
     ) : (
       <RawInspector payload={item}>
@@ -2132,7 +2161,7 @@ export const SessionUpdateList = React.forwardRef<
         timestamp={formatTime(item.items.flatMap((child) => itemTimestamp(child) ?? [])[0] ?? 0)}
         onDisclosureToggle={pauseFollowForDisclosure}
         ops={item.items.flatMap((child) =>
-          isActivity(child) || isAmbient(child) || isSessionMetadata(child)
+          isActivity(child) || isNotification(child) || isSessionMetadata(child)
             ? []
             : isAssistantActivitySlice(child)
               ? child.ops

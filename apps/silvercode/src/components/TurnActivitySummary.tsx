@@ -10,13 +10,12 @@
  */
 
 import React, { useState } from "react"
-import { Box, Text, lastModifierState, useHover, useModifierKeys, type SilveryMouseEvent } from "silvery"
+import { Box, Text, useHover, useModifierKeys, useSelection, type SilveryMouseEvent } from "silvery"
 import type { ContentBlock, ToolCall as ToolCallType, ToolKind } from "@km/agent-harness"
 import type { ChatActivitySpan } from "../chat-model.ts"
 import { ToolCall, ToolContentForceExpandedProvider, ToolMarkerBackgroundProvider } from "./ToolCall.tsx"
 import { Content, useContentLayout } from "./Content.tsx"
 import { StatusGlyph } from "./StatusGlyph.tsx"
-import { BoundedScroll } from "./BoundedScroll.tsx"
 
 export type TurnActivitySummaryItem = {
   id: string
@@ -185,8 +184,10 @@ export function TurnActivitySummary({
   const [expanded, setExpanded] = useState(defaultExpanded)
   const [forceExpandDetails, setForceExpandDetails] = useState(false)
   const { isHovered, onMouseEnter, onMouseLeave } = useHover()
-  const modifierState = useModifierKeys({ enabled: isHovered })
-  const cmdHeld = modifierState.super || lastModifierState.super
+  const selection = useSelection()
+  const selectionActive = !!selection?.range || !!selection?.selecting
+  const modifierState = useModifierKeys({ enabled: isHovered && !selectionActive })
+  const cmdHeld = !selectionActive && modifierState.super
   const contentLayout = useContentLayout()
   const parts = summaryParts(items)
   const text = parts.length > 0 ? parts.join(", ") : `${items.length} tool ${items.length === 1 ? "call" : "calls"}`
@@ -209,8 +210,8 @@ export function TurnActivitySummary({
   }
 
   function onHeaderClick(): void {
-    onDisclosureToggle?.()
     const next = !expanded
+    onDisclosureToggle?.()
     onExpandedChange?.(next)
     setExpanded((v) => {
       if (v) setForceExpandDetails(false)
@@ -259,6 +260,7 @@ export function TurnActivitySummary({
   const expandedBody = expanded ? (
     <Box
       flexDirection="column"
+      width="100%"
       position="relative"
       gap={0}
       onClick={(e: SilveryMouseEvent) => {
@@ -277,12 +279,12 @@ export function TurnActivitySummary({
             </Box>
           ) : null}
           {separateExpandedBody ? (
-            <BoundedScroll>
+            <Box flexDirection="column">
               {details ??
                 items.map((item) => (
                   <ToolCall key={item.id} toolCall={item.toolCall} errorMessage={item.errorMessage} />
                 ))}
-            </BoundedScroll>
+            </Box>
           ) : (
             (details ??
             items.map((item) => <ToolCall key={item.id} toolCall={item.toolCall} errorMessage={item.errorMessage} />))

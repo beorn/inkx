@@ -176,7 +176,7 @@ export function detectReferences(text: string): Detection[] {
     const idx = m.index ?? 0
     if (out.some((d) => d.start <= idx && d.end >= idx + m[0].length)) continue
     if (insideURL(idx, idx + m[0].length)) continue
-    // Strip the optional `:line[:col]` suffix from `match` so the visible
+    // Remove the optional `:line[:col]` suffix from `match` so the visible
     // text on the page matches the raw token, while `payload.line/col`
     // captures the navigation target.
     const line = m[1] ?? ""

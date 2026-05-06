@@ -1,3 +1,8 @@
+---
+mentions:
+  - km
+---
+
 # @km/mcp-server
 
 Stdio MCP server that exposes km as agent-callable capabilities — search, read,
@@ -16,10 +21,10 @@ prompts/resources/sampling — just tools. The host registers it via
 This package owns **path 1**. Path 2 lives in the silvercode host
 (`acp-client`).
 
-| Path                             | Owner                 | What                                                                    | Trigger                               |
-| -------------------------------- | --------------------- | ----------------------------------------------------------------------- | ------------------------------------- |
-| **MCP tools** (this package)     | `@km/mcp-server`      | Agent calls `km_search`, `km_get_node`, `km_create_card`, …             | Agent decides — pull-style capability |
-| **Virtual filesystem** (`km://`) | silvercode acp-client | `km://card/<id>`, `km://selection`, `km://column/<id>`, `km://tree/...` | Agent calls ACP `fs/read_text_file`   |
+| Path                       | Owner                 | What                                                            | Trigger                               |
+| -------------------------- | --------------------- | --------------------------------------------------------------- | ------------------------------------- |
+| MCP tools (this package)   | @km/mcp-server        | Agent calls km_search, km_get_node, km_create_card, …           | Agent decides — pull-style capability |
+| Virtual filesystem (km://) | silvercode acp-client | km://card/<id>, km://selection, km://column/<id>, km://tree/... | Agent calls ACP fs/read_text_file     |
 
 Path 2 is implemented in silvercode's `WorkspaceProvider` — see
 [`hub/silvercode/future/ai-terminal/10-agent-router-landscape.md`](../../../../hub/silvercode/future/ai-terminal/10-agent-router-landscape.md)
@@ -31,14 +36,14 @@ for data the agent wants to _read_.
 
 ### Read-only (v1, always available)
 
-| Tool               | Description                                                              |
-| ------------------ | ------------------------------------------------------------------------ |
-| `km_search`        | FTS5 full-text search over km nodes                                      |
-| `km_get_node`      | Fetch a single node by id (optional children/body)                       |
-| `km_get_board`     | Top-level nodes (a "board" view)                                         |
-| `km_render_path`   | Breadcrumb path (root → … → node)                                        |
-| `km_recent`        | Recently-edited nodes (`limit`, optional `since` unix-ms)                |
-| `km_get_selection` | Current board selection ids; empty when no `getSelection` provider wired |
+| Tool             | Description                                                            |
+| ---------------- | ---------------------------------------------------------------------- |
+| km_search        | FTS5 full-text search over km nodes                                    |
+| km_get_node      | Fetch a single node by id (optional children/body)                     |
+| km_get_board     | Top-level nodes (a "board" view)                                       |
+| km_render_path   | Breadcrumb path (root → … → node)                                      |
+| km_recent        | Recently-edited nodes (limit, optional since unix-ms)                  |
+| km_get_selection | Current board selection ids; empty when no getSelection provider wired |
 
 ### Mutations (v2, gated, `dangerous: true`)
 
@@ -47,13 +52,13 @@ them through ACP's `RequestPermission` flow before invocation. The
 KmContext methods are STUBS — until silvercode's permission UX is wired up,
 calls fail with `not yet implemented`.
 
-| Tool              | Description                                     |
-| ----------------- | ----------------------------------------------- |
-| `km_create_card`  | Create a new card (parent / column / position)  |
-| `km_update_card`  | Edit title and/or body                          |
-| `km_move_card`    | Move a card to a column at an optional position |
-| `km_archive_card` | Soft-archive a card                             |
-| `km_select`       | Replace current selection (UI state mutation)   |
+| Tool            | Description                                     |
+| --------------- | ----------------------------------------------- |
+| km_create_card  | Create a new card (parent / column / position)  |
+| km_update_card  | Edit title and/or body                          |
+| km_move_card    | Move a card to a column at an optional position |
+| km_archive_card | Soft-archive a card                             |
+| km_select       | Replace current selection (UI state mutation)   |
 
 ## The `dangerous` flag → ACP RequestPermission convention
 
@@ -143,3 +148,4 @@ bun vitest run apps/silvercode/packages/km-mcp-server/tests/
 - `km-silvercode.acp-km-mcp` — this package
 - `km-silvercode.acp-tribe-mcp` — sibling MCP for tribe coordination (shares the `dangerous` convention)
 - `km-silvercode.acp` — parent ACP-adoption tracking bead
+

@@ -13,7 +13,7 @@
  * `LinkifiedText` is invoked from `MarkdownView`, `SessionUpdateList`,
  * `InlinePermissionPrompt`, and `AvailableCommandsPalette` — threading
  * cwd through every caller chain bloats every props type for one piece
- * of ambient session state.
+ * of notification session state.
  */
 
 import React, { createContext, useContext } from "react"

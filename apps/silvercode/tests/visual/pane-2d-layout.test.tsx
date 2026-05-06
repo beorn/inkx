@@ -164,7 +164,7 @@ describe("pane management — 2D binary-split tree", () => {
       // pane-to-pane dividers should remain. Originally we asserted
       // `not.toContain("─")` to catch a stray row-divider, but
       // km-cr94 introduced a rounded-border TextInput in the idle Welcome
-      // card (centered "command box") whose top/bottom borders also use
+      // block (centered "command box") whose top/bottom borders also use
       // `─` glyphs. So `─` is now a legitimate Welcome chrome char.
       //
       // The test still pins the regression we care about by counting
@@ -183,7 +183,7 @@ describe("pane management — 2D binary-split tree", () => {
       const longDivider = /─{100,}/
       expect(after, "wide horizontal pane-divider should be hidden in zoom mode").not.toMatch(longDivider)
       // The focused pane content is the load-bearing assertion that
-      // a single SessionCard now occupies the whole grid.
+      // a single ChatPane now occupies the whole grid.
       expect(after).toContain("▎")
     } finally {
       handle.unmount()

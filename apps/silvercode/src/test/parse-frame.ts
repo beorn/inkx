@@ -3,7 +3,7 @@
  *
  * Absolute (col, row) coordinates break under any layout shift — a padding
  * tweak on one component moves every assertion. Instead, `parseFrame()`
- * extracts named regions (card stream, side panel, mode row, input box,
+ * extracts named regions (block stream, side panel, mode row, input box,
  * welcome panel) so tests can say "the mode row has icon X and label Y"
  * without hardcoding row numbers.
  *
@@ -27,7 +27,7 @@ import { leftWidthFor } from "./render-harness.tsx"
 /**
  * Message-stream leading glyphs. Two families:
  *
- * - `FLUSH`: glyphs rendered at the card-stream's leading column (the
+ * - `FLUSH`: glyphs rendered at the block-stream's leading column (the
  *   paddingX={1} inset) — these MUST all align. User rows, assistant rows,
  *   ActivityIndicator.
  *
@@ -142,7 +142,7 @@ export type InputBoxRegion = {
 export type WelcomeRegion = {
   /** Whether the Welcome panel is visible. The heuristic now anchors on the
    *  agent-agnostic "Silver Code" prefix so it works for codex / gemini /
-   *  copilot welcome cards too — the suffix is "for {agentLabel}" or empty.
+   *  copilot welcome screens too — the suffix is "for {agentLabel}" or empty.
    *  Bead: km-silvercode.welcome-claude-hardcoded. */
   readonly visible: boolean
   /** All rows belonging to the welcome panel (heuristic: lines from intro heading down to Keybindings end). */
@@ -154,7 +154,7 @@ export type ParsedFrame = {
   readonly rows: number
   readonly leftWidth: number
   /** Every message-stream glyph detected in the left region, in reading order. */
-  readonly cardStream: readonly MessageBlock[]
+  readonly blockStream: readonly MessageBlock[]
   /** The side-panel region (right columns), or null if the side panel isn't visible. */
   readonly sidePanel: SidePanelRegion | null
   /** The command-input region (bottom of left column). */
@@ -174,14 +174,14 @@ export function parseFrame(s: RenderedScenario, opts: { leftWidth?: number } = {
   // the left region underruns.
   const padded = s.lines.map((l) => l.padEnd(s.cols, " "))
   const inputBox = parseInputBox(padded, leftWidth)
-  // Card stream excludes the input-box row — the command prompt `>` has
+  // Block stream excludes the input-box row — the command prompt `>` has
   // its own paddingX and isn't a message-stream glyph.
   const inputBoxRowsToSkip = inputBox.present ? new Set([inputBox.promptRow]) : new Set<number>()
   return {
     cols: s.cols,
     rows: s.rows,
     leftWidth,
-    cardStream: parseCardStream(padded, leftWidth, inputBoxRowsToSkip),
+    blockStream: parseBlockStream(padded, leftWidth, inputBoxRowsToSkip),
     sidePanel: parseSidePanel(padded, leftWidth),
     inputBox,
     welcome: parseWelcome(padded, leftWidth),
@@ -192,7 +192,7 @@ export function parseFrame(s: RenderedScenario, opts: { leftWidth?: number } = {
 // Region parsers
 // ----------------------------------------------------------------------------
 
-function parseCardStream(
+function parseBlockStream(
   lines: readonly string[],
   leftWidth: number,
   skipRows: ReadonlySet<number> = new Set(),
@@ -353,9 +353,9 @@ function parseWelcome(lines: readonly string[], leftWidth: number): WelcomeRegio
  * OR if fewer than 2 glyphs are present (nothing to compare).
  */
 export function isIconFamilyAligned(p: ParsedFrame): boolean {
-  if (p.cardStream.length < 2) return true
-  const col = p.cardStream[0]!.glyphCol
-  return p.cardStream.every((b) => b.glyphCol === col)
+  if (p.blockStream.length < 2) return true
+  const col = p.blockStream[0]!.glyphCol
+  return p.blockStream.every((b) => b.glyphCol === col)
 }
 
 /**
@@ -365,8 +365,8 @@ export function isIconFamilyAligned(p: ParsedFrame): boolean {
 export function summarize(p: ParsedFrame): string {
   const lines: string[] = []
   lines.push(`Frame ${p.cols}×${p.rows}, leftWidth=${p.leftWidth}`)
-  lines.push(`Card stream (${p.cardStream.length} blocks):`)
-  for (const b of p.cardStream) {
+  lines.push(`Block stream (${p.blockStream.length} blocks):`)
+  for (const b of p.blockStream) {
     lines.push(`  row ${b.row} col ${b.glyphCol}: ${b.glyph} ${b.firstLineText}`)
   }
   if (p.sidePanel) {

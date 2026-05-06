@@ -33,10 +33,10 @@ export const toolCallRead: Story = {
       <ToolCall
         toolCall={{
           toolCallId: id("story-read-1"),
-          title: "src/components/SessionCard.tsx",
+          title: "src/components/ChatPane.tsx",
           kind: "read",
           status,
-          locations: [{ path: "src/components/SessionCard.tsx", line: 42 }],
+          locations: [{ path: "src/components/ChatPane.tsx", line: 42 }],
           content:
             status === "completed" || status === "in_progress"
               ? [
@@ -44,7 +44,7 @@ export const toolCallRead: Story = {
                     type: "content",
                     content: {
                       type: "text",
-                      text: "import React from 'react'\n\nexport function SessionCard() { ... }",
+                      text: "import React from 'react'\n\nexport function ChatPane() { ... }",
                     },
                   },
                 ]

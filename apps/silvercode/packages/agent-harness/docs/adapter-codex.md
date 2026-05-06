@@ -53,6 +53,7 @@ await connectAcpRegistry(scope, "codex", {
   ```ts
   await connectAcp(scope, { command: "codex-acp", cwd: ... })
   ```
+
   (skipping the registry entirely).
 
 ## Capabilities
@@ -81,9 +82,9 @@ that work became redundant for every common case:
 
 | User has                 | Path                       |
 | ------------------------ | -------------------------- |
-| ChatGPT Plus/Pro (local) | `codex-acp` subscription   |
-| `OPENAI_API_KEY`         | `codex-acp` API key        |
-| `CODEX_API_KEY`          | `codex-acp` Codex key      |
+| ChatGPT Plus/Pro (local) | codex-acp subscription     |
+| OPENAI_API_KEY           | codex-acp API key          |
+| CODEX_API_KEY            | codex-acp Codex key        |
 | Remote project + sub     | Fall back to API key (any) |
 
 A stream-json fallback is tracked at P4
@@ -96,3 +97,4 @@ remains deferred.
 
 The Registry entry is asserted in
 `tests/registry-adapters.test.ts` (test id `codex`).
+

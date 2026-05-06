@@ -8,8 +8,8 @@ import { Box, Text } from "silvery"
 import type { AgentPlan, MessageEntry, MessageOp } from "@km/agent-harness"
 import { MarkdownView } from "../src/components/MarkdownView.tsx"
 import { SessionUpdateList } from "../src/components/SessionUpdateList.tsx"
-import { SessionCard } from "../src/components/SessionCard.tsx"
-import type { AmbientStreamEntry } from "../src/components/AmbientEventRow.tsx"
+import { ChatPane } from "../src/components/ChatPane.tsx"
+import type { NotificationStreamEntry } from "../src/components/NotificationEventRow.tsx"
 import { Chat } from "../src/components/Chat.tsx"
 import { Content } from "../src/components/Content.tsx"
 import { createSessionStore } from "@km/agent-harness"
@@ -101,9 +101,9 @@ function renderListWithMetadata(messages: MessageEntry[], cols = 132, rows = 32,
   )
 }
 
-function renderListWithMetadataAndAmbient(
+function renderListWithMetadataAndNotification(
   messages: MessageEntry[],
-  ambientEntries: readonly AmbientStreamEntry[],
+  notificationEntries: readonly NotificationStreamEntry[],
   cols = 132,
   rows = 32,
 ) {
@@ -122,7 +122,7 @@ function renderListWithMetadataAndAmbient(
         onApprove={() => {}}
         onDeny={() => {}}
         follow={false}
-        ambientEntries={ambientEntries}
+        notificationEntries={notificationEntries}
         sessionMetadata={{
           agent: "codex",
           cwd: "/Users/beorn/Code/pim/km",
@@ -138,9 +138,9 @@ function renderListWithMetadataAndAmbient(
   )
 }
 
-function renderListWithAmbient(
+function renderListWithNotification(
   messages: MessageEntry[],
-  ambientEntries: readonly AmbientStreamEntry[],
+  notificationEntries: readonly NotificationStreamEntry[],
   cols = 132,
   rows = 32,
 ) {
@@ -159,7 +159,7 @@ function renderListWithAmbient(
         onApprove={() => {}}
         onDeny={() => {}}
         follow={false}
-        ambientEntries={ambientEntries}
+        notificationEntries={notificationEntries}
       />
     </Box>,
   )
@@ -170,6 +170,21 @@ function sameRgb(a: unknown, b: unknown): boolean {
   const left = a as { r?: number; g?: number; b?: number }
   const right = b as { r?: number; g?: number; b?: number }
   return left.r === right.r && left.g === right.g && left.b === right.b
+}
+
+function colorKey(value: unknown): string {
+  if (value == null) return "null"
+  if (typeof value === "object" && value && "r" in value) {
+    const color = value as { r?: number; g?: number; b?: number }
+    return `${color.r ?? ""}:${color.g ?? ""}:${color.b ?? ""}`
+  }
+  return String(value)
+}
+
+function termCellStyleKey(term: ReturnType<typeof createTermless>, row: number, col: number): string {
+  const cell = term.cell(row, col)
+  const attrs = (cell as { attrs?: { inverse?: boolean } }).attrs
+  return `${colorKey(cell.fg)}|${colorKey(cell.bg)}|${attrs?.inverse ? "inverse" : ""}`
 }
 
 function backgroundRunWidth(app: ReturnType<typeof renderList>, row: number, col: number): number {
@@ -183,6 +198,23 @@ function backgroundRunWidth(app: ReturnType<typeof renderList>, row: number, col
   while (right + 1 < app.width && sameRgb(app.cell(right + 1, row).bg, bg)) right++
 
   return right - left + 1
+}
+
+function backgroundRunBoundsInTerm(
+  term: ReturnType<typeof createTermless>,
+  row: number,
+  col: number,
+): { left: number; right: number } {
+  const bg = term.cell(row, col).bg
+  expect(bg, "target cell should have a prompt bubble background").not.toBeNull()
+
+  let left = col
+  while (left > 0 && sameRgb(term.cell(row, left - 1).bg, bg)) left--
+
+  let right = col
+  while (right + 1 < (term.cols ?? 0) && sameRgb(term.cell(row, right + 1).bg, bg)) right++
+
+  return { left, right }
 }
 
 function backgroundRunBounds(
@@ -273,6 +305,28 @@ describe("content layout", () => {
     expect(tableLine!.trimEnd().length).toBeLessThanOrEqual(132)
   })
 
+  test("wide markdown tables wrap long cell content instead of truncating it", () => {
+    const table =
+      "| Bead | What it now does |\n" +
+      "| --- | --- |\n" +
+      "| @km/cli/migrate-to-import-bd | Add km import bd <vault> as canonical surface alongside km import asana. Keep source compatibility and preserve the UNIQUE-TABLE-CELL-TAIL marker. |\n"
+    const app = renderList(
+      [
+        makeEntry({
+          id: "a-wrapped-table-cell",
+          role: "assistant",
+          ts: Date.UTC(2026, 4, 6, 10, 34),
+          ops: [{ kind: "text", text: table }],
+        }),
+      ],
+      132,
+      24,
+    )
+
+    expect(app.text).toContain("UNIQUE-TABLE-CELL-TAIL")
+    expect(app.text).not.toContain("\u2026")
+  })
+
   test("table-heavy assistant narration keeps its transcript bullet and right border", () => {
     const app = renderList([
       makeEntry({
@@ -322,7 +376,7 @@ describe("content layout", () => {
     const handle = sessionHandleWithStore(store)
     const tree = (
       <Box width={cols} height={rows} flexDirection="column" overflow="hidden">
-        <SessionCard handle={handle} isFocused onFocus={() => {}} onApprove={() => {}} onDeny={() => {}} />
+        <ChatPane handle={handle} isFocused onFocus={() => {}} onApprove={() => {}} onDeny={() => {}} />
       </Box>
     )
     const app = renderer(tree)
@@ -363,7 +417,7 @@ describe("content layout", () => {
     const handle = sessionHandleWithStore(store)
     const tree = (
       <Box width={cols} height={rows} flexDirection="column" overflow="hidden">
-        <SessionCard
+        <ChatPane
           handle={handle}
           isFocused
           onFocus={() => {}}
@@ -409,7 +463,7 @@ describe("content layout", () => {
     using term = createTermless({ cols, rows })
     const handle = await run(
       <Box width={cols} height={rows} flexDirection="column" overflow="hidden">
-        <SessionCard
+        <ChatPane
           handle={sessionHandleWithStore(store)}
           isFocused
           onFocus={() => {}}
@@ -452,7 +506,7 @@ describe("content layout", () => {
     const handle = sessionHandleWithStore(store)
     const tree = (
       <Box width={cols} height={rows} flexDirection="column" overflow="hidden">
-        <SessionCard
+        <ChatPane
           handle={handle}
           isFocused
           onFocus={() => {}}
@@ -509,7 +563,7 @@ describe("content layout", () => {
     const handle = sessionHandleWithStore(store)
     const tree = (
       <Box width={cols} height={rows} flexDirection="column" overflow="hidden">
-        <SessionCard
+        <ChatPane
           handle={handle}
           isFocused
           onFocus={() => {}}
@@ -564,7 +618,7 @@ describe("content layout", () => {
     const handle = sessionHandleWithStore(store)
     const tree = (
       <Box width={cols} height={rows} flexDirection="column" overflow="hidden">
-        <SessionCard
+        <ChatPane
           handle={handle}
           isFocused
           onFocus={() => {}}
@@ -587,7 +641,7 @@ describe("content layout", () => {
     expect(summaryRow, app.text).toBeLessThan(composerRow - 1)
   })
 
-  test("responsive markdown table expands rows into key-value cards when columns cannot fit", () => {
+  test("responsive markdown table expands rows into key-value blocks when columns cannot fit", () => {
     const source =
       "| File | Status | Long Notes |\n" +
       "| --- | --- | --- |\n" +
@@ -665,9 +719,8 @@ describe("content layout", () => {
     await app.press("Super+a")
     renderer(tree)
     const userHoverLine = app.lines.find((line) => line.includes("please summarize"))
-    expect(userHoverLine, app.text).toContain("16:05")
+    expect(userHoverLine, app.text).not.toContain("16:05")
     expect(userHoverLine!.indexOf("please summarize")).toBe(userLineBeforeHover.indexOf("please summarize"))
-    expect(userHoverLine!.indexOf("16:05")).toBeGreaterThan(userHoverLine!.indexOf("please summarize"))
 
     await app.hover(2, assistantRow)
     await app.press("Super+a")
@@ -679,6 +732,57 @@ describe("content layout", () => {
     expect(assistantHoverLine!.indexOf("Here is the summary.")).toBe(
       assistantLineBeforeHover!.indexOf("Here is the summary."),
     )
+  })
+
+  test("cmd-hover on visible prompt and narration text does not open duplicate raw ops payloads", async () => {
+    const messages: MessageEntry[] = [
+      makeEntry({
+        id: "u1",
+        role: "user",
+        ts: new Date(2026, 3, 30, 16, 5).getTime(),
+        ops: [{ kind: "text", text: "delete it now" }],
+      }),
+      makeEntry({
+        id: "a1",
+        role: "assistant",
+        ts: new Date(2026, 3, 30, 16, 6).getTime(),
+        ops: [{ kind: "text", text: "Deleting bd doctor migrate-to-beads-root outright." }],
+      }),
+    ]
+    const renderer = createRenderer({ cols: 132, rows: 20, kittyMode: true, autoRender: true })
+    const tree = (
+      <Box width={132} height={20} flexDirection="column">
+        <SessionUpdateList
+          messages={messages}
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+          sessionId="test-session"
+          onApprove={() => {}}
+          onDeny={() => {}}
+          follow={false}
+        />
+      </Box>
+    )
+    const app = renderer(tree)
+
+    const userRow = app.lines.findIndex((line) => line.includes("delete it now"))
+    const userCol = app.lines[userRow]!.indexOf("delete it now")
+    await app.hover(userCol, userRow)
+    await app.press("Super+a")
+    await new Promise((r) => setTimeout(r, 650))
+    expect(app.text).not.toContain("ops:")
+    expect(app.text).not.toContain("role:")
+
+    const assistantRow = app.lines.findIndex((line) => line.includes("Deleting bd doctor"))
+    const assistantCol = app.lines[assistantRow]!.indexOf("Deleting bd doctor")
+    await app.hover(assistantCol, assistantRow)
+    await new Promise((r) => setTimeout(r, 650))
+    expect(app.text).not.toContain("ops:")
+    expect(app.text).not.toContain("kind: text")
   })
 
   test("user markdown list bubble shrinkwraps to balanced rendered list items", () => {
@@ -722,6 +826,187 @@ describe("content layout", () => {
     expect(row, app.text).toBeGreaterThanOrEqual(0)
     const col = app.lines[row]!.indexOf("ok")
     expect(backgroundRunWidth(app, row, col)).toBe(6)
+  })
+
+  test("selection can expand from a user prompt into adjacent entries", async () => {
+    const beforeText = "Previous assistant entry"
+    const prompt = "select this text"
+    const afterText = "Following assistant entry"
+    const cols = 112
+    const rows = 14
+    using term = createTermless({ cols, rows })
+    const handle = await run(
+      <Box width={cols} height={rows} flexDirection="column">
+        <Content.Layout>
+          <SessionUpdateList
+            messages={[
+              makeEntry({
+                id: "a-before",
+                role: "assistant",
+                ts: new Date(2026, 4, 6, 11, 4).getTime(),
+                ops: [{ kind: "text", text: beforeText }],
+              }),
+              makeEntry({
+                id: "u-select-padding",
+                role: "user",
+                ts: new Date(2026, 4, 6, 11, 5).getTime(),
+                ops: [{ kind: "text", text: prompt }],
+              }),
+              makeEntry({
+                id: "a-after",
+                role: "assistant",
+                ts: new Date(2026, 4, 6, 11, 6).getTime(),
+                ops: [{ kind: "text", text: afterText }],
+              }),
+            ]}
+            status="idle"
+            turnStartedAt={null}
+            inputTokens={0}
+            outputTokens={0}
+            pendingPermissions={0}
+            inFlightTool={null}
+            sessionId="test-session"
+            onApprove={() => {}}
+            onDeny={() => {}}
+            follow={false}
+          />
+        </Content.Layout>
+      </Box>,
+      term,
+      undefined,
+    )
+    await new Promise((r) => setTimeout(r, 100))
+
+    const lines = term.screen.getLines()
+    const row = lines.findIndex((line) => line.includes(prompt))
+    const afterRow = lines.findIndex((line) => line.includes(afterText))
+    expect(row, lines.join("\n")).toBeGreaterThanOrEqual(0)
+    expect(afterRow, lines.join("\n")).toBeGreaterThan(row)
+    const start = lines[row]!.indexOf(prompt)
+    const end = start + prompt.length - 1
+    const afterStart = lines[afterRow]!.indexOf(afterText)
+    const afterEnd = afterStart + afterText.length - 1
+    const bubble = backgroundRunBoundsInTerm(term, row, start)
+    expect(bubble.right, "fixture should include right padding inside the bubble").toBeGreaterThan(end)
+
+    const beforeBg = Array.from({ length: rows }, (_, y) =>
+      Array.from({ length: cols }, (_, col) => termCellStyleKey(term, y, col)),
+    )
+    await term.mouse.drag({ from: [start, row], to: [afterEnd, afterRow] })
+    await new Promise((r) => setTimeout(r, 200))
+
+    const changed = Array.from({ length: rows }, (_, y) =>
+      Array.from({ length: cols }, (_, col) => ({ row: y, col })).filter(
+        (cell) => termCellStyleKey(term, cell.row, cell.col) !== beforeBg[cell.row]![cell.col],
+      ),
+    ).flat()
+    expect(
+      changed.some((cell) => cell.row === row && cell.col >= start && cell.col <= end),
+      "text cells should receive selection styling",
+    ).toBe(true)
+    expect(
+      changed.some((cell) => cell.row === afterRow && cell.col >= afterStart && cell.col <= afterEnd),
+      "dragging out of the prompt should continue selection into adjacent entries",
+    ).toBe(true)
+    expect(
+      changed.filter((cell) => cell.row === row && cell.col > end),
+      "selection styling should not paint prompt bubble padding",
+    ).toEqual([])
+    for (const cell of changed) {
+      const line = lines[cell.row] ?? ""
+      const first = line.search(/\S/)
+      expect(first, `selected row ${cell.row} should contain text`).toBeGreaterThanOrEqual(0)
+      expect(cell.col, `selection must not paint left structural cells at row ${cell.row}`).toBeGreaterThanOrEqual(
+        first,
+      )
+      expect(cell.col, `selection must not paint right structural cells at row ${cell.row}`).toBeLessThanOrEqual(
+        line.trimEnd().length - 1,
+      )
+    }
+
+    handle.unmount()
+  })
+
+  test("cross-entry selection does not highlight empty transcript layout cells", async () => {
+    const cols = 132
+    const rows = 18
+    using term = createTermless({ cols, rows })
+    const messages: MessageEntry[] = [
+      makeEntry({
+        id: "a1",
+        role: "assistant",
+        ts: new Date(2026, 4, 6, 12, 0).getTime(),
+        ops: [{ kind: "text", text: "Status:\n\n- Changed files are still scoped to the silvercode fix." }],
+      }),
+      makeEntry({
+        id: "u1",
+        role: "user",
+        ts: new Date(2026, 4, 6, 12, 1).getTime(),
+        ops: [{ kind: "text", text: "see screenshots - create P0 bead" }],
+      }),
+      makeEntry({
+        id: "a2",
+        role: "assistant",
+        ts: new Date(2026, 4, 6, 12, 2).getTime(),
+        ops: [{ kind: "text", text: "Using the beads skill because this is issue-tracking work." }],
+      }),
+    ]
+    const handle = await run(
+      <Box width={cols} height={rows} flexDirection="column">
+        <Content.Layout>
+          <SessionUpdateList
+            messages={messages}
+            status="idle"
+            turnStartedAt={null}
+            inputTokens={0}
+            outputTokens={0}
+            pendingPermissions={0}
+            inFlightTool={null}
+            sessionId="test-session"
+            onApprove={() => {}}
+            onDeny={() => {}}
+            follow={false}
+          />
+        </Content.Layout>
+      </Box>,
+      term,
+      undefined,
+    )
+    await new Promise((r) => setTimeout(r, 100))
+
+    const lines = term.screen.getLines()
+    const startRow = lines.findIndex((line) => line.includes("Changed files"))
+    const endRow = lines.findIndex((line) => line.includes("Using the beads"))
+    expect(startRow, lines.join("\n")).toBeGreaterThanOrEqual(0)
+    expect(endRow, lines.join("\n")).toBeGreaterThan(startRow)
+    const startCol = lines[startRow]!.indexOf("Changed files")
+    const endCol = lines[endRow]!.indexOf("Using the beads") + "Using the beads".length
+
+    const beforeBg = Array.from({ length: rows }, (_, row) =>
+      Array.from({ length: cols }, (_, col) => termCellStyleKey(term, row, col)),
+    )
+    await term.mouse.drag({ from: [startCol, startRow], to: [endCol, endRow] })
+    await new Promise((r) => setTimeout(r, 200))
+
+    const changed = Array.from({ length: rows }, (_, row) =>
+      Array.from({ length: cols }, (_, col) => ({ row, col })).filter(
+        (cell) => termCellStyleKey(term, cell.row, cell.col) !== beforeBg[cell.row]![cell.col],
+      ),
+    ).flat()
+    expect(changed.length, "fixture should visibly select text cells").toBeGreaterThan(0)
+    for (const cell of changed) {
+      const line = lines[cell.row] ?? ""
+      const first = line.search(/\S/)
+      expect(first, `selected row ${cell.row} should contain text`).toBeGreaterThanOrEqual(0)
+      expect(cell.col, `selection must not paint left structural cells at row ${cell.row}`).toBeGreaterThanOrEqual(
+        first,
+      )
+      expect(cell.col, `selection must not paint right structural cells at row ${cell.row}`).toBeLessThanOrEqual(
+        line.trimEnd().length - 1,
+      )
+    }
+
+    handle.unmount()
   })
 
   test("user prompt bubble occupies its own rows and does not overlay preceding assistant prose", () => {
@@ -1338,19 +1623,19 @@ describe("content layout", () => {
     expect(app.lines[loadedRow], app.text).not.toContain("error")
   })
 
-  test("ambient notifications render in the prose lane", () => {
-    const app = renderListWithAmbient(
+  test("notifications render in the prose lane", () => {
+    const app = renderListWithNotification(
       [
         makeEntry({
           id: "a1",
           role: "assistant",
           ts: 1_000,
-          ops: [{ kind: "text", text: "before ambient" }],
+          ops: [{ kind: "text", text: "before notification" }],
         }),
       ],
       [
         {
-          kind: "ambient",
+          kind: "notification",
           id: "tribe-1",
           source: "tribe",
           timestamp: 1_001,
@@ -1361,49 +1646,49 @@ describe("content layout", () => {
       16,
     )
 
-    const ambientLine = app.lines.find((line) => line.includes("Tribe") && line.includes("peer ready"))
-    const proseLine = app.lines.find((line) => line.includes("before ambient"))
-    expect(ambientLine, app.text).toBeDefined()
+    const notificationLine = app.lines.find((line) => line.includes("Tribe") && line.includes("peer ready"))
+    const proseLine = app.lines.find((line) => line.includes("before notification"))
+    expect(notificationLine, app.text).toBeDefined()
     expect(proseLine, app.text).toBeDefined()
-    expect(ambientLine!.indexOf("Tribe")).toBe(proseLine!.indexOf("before ambient"))
+    expect(notificationLine!.indexOf("Tribe")).toBe(proseLine!.indexOf("before notification"))
   })
 
-  test("ambient notifications interleave between timestamped assistant text ops", () => {
-    const app = renderListWithAmbient(
+  test("notifications interleave between timestamped assistant text ops", () => {
+    const app = renderListWithNotification(
       [
         makeEntry({
           id: "a1",
           role: "assistant",
           ts: 1_000,
           ops: [
-            { kind: "text", text: "before ambient", ts: 1_000 },
-            { kind: "text", text: "after ambient", ts: 3_000 },
+            { kind: "text", text: "before notification", ts: 1_000 },
+            { kind: "text", text: "after notification", ts: 3_000 },
           ],
         }),
       ],
       [
         {
-          kind: "ambient",
+          kind: "notification",
           id: "tribe-between",
           source: "tribe",
           ts: 2_000,
-          content: '<channel source="plugin:tribe:tribe" from="daemon" type="health">ambient between</channel>',
+          content: '<channel source="plugin:tribe:tribe" from="daemon" type="health">notification between</channel>',
         },
       ],
       132,
       16,
     )
 
-    const beforeRow = app.lines.findIndex((line) => line.includes("before ambient"))
-    const ambientRow = app.lines.findIndex((line) => line.includes("ambient between"))
-    const afterRow = app.lines.findIndex((line) => line.includes("after ambient"))
+    const beforeRow = app.lines.findIndex((line) => line.includes("before notification"))
+    const notificationRow = app.lines.findIndex((line) => line.includes("notification between"))
+    const afterRow = app.lines.findIndex((line) => line.includes("after notification"))
     expect(beforeRow, app.text).toBeGreaterThanOrEqual(0)
-    expect(ambientRow, app.text).toBeGreaterThan(beforeRow)
-    expect(afterRow, app.text).toBeGreaterThan(ambientRow)
+    expect(notificationRow, app.text).toBeGreaterThan(beforeRow)
+    expect(afterRow, app.text).toBeGreaterThan(notificationRow)
   })
 
-  test("resumed-session metadata anchors to the replay boundary message across ambient rows", () => {
-    const app = renderListWithMetadataAndAmbient(
+  test("resumed-session metadata anchors to the replay boundary message across notification rows", () => {
+    const app = renderListWithMetadataAndNotification(
       [
         makeEntry({
           id: "u1",
@@ -1420,22 +1705,22 @@ describe("content layout", () => {
       ],
       [
         {
-          kind: "ambient",
+          kind: "notification",
           id: "tribe-before-boundary",
           source: "tribe",
           timestamp: 2_000,
-          content: '<channel source="plugin:tribe:tribe" from="daemon" type="health">ambient before answer</channel>',
+          content: '<channel source="plugin:tribe:tribe" from="daemon" type="health">notification before answer</channel>',
         },
       ],
       132,
       16,
     )
 
-    const ambientRow = app.lines.findIndex((line) => line.includes("ambient before answer"))
+    const notificationRow = app.lines.findIndex((line) => line.includes("notification before answer"))
     const answerRow = app.lines.findIndex((line) => line.includes("final replayed answer"))
     const resumedRow = app.lines.findIndex((line) => line.includes("Session resumed"))
-    expect(ambientRow, app.text).toBeGreaterThanOrEqual(0)
-    expect(answerRow, app.text).toBeGreaterThan(ambientRow)
+    expect(notificationRow, app.text).toBeGreaterThanOrEqual(0)
+    expect(answerRow, app.text).toBeGreaterThan(notificationRow)
     expect(resumedRow, app.text).toBeGreaterThan(answerRow)
   })
 

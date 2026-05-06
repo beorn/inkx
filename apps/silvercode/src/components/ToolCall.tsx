@@ -406,6 +406,8 @@ export interface ToolCallProps {
   interactive?: boolean
   /** When true, shell command titles render as foreground text. */
   titleEmphasis?: "normal" | "muted"
+  /** Title wrapping. Normal transcript rows remain single-line; summary detail rows can wrap. */
+  titleWrap?: "truncate" | "wrap"
   /** Optional background for the one-cell marker column. */
   markerBackgroundColor?: string
 }
@@ -434,6 +436,7 @@ export function ToolCall({
   onExpandedChange,
   interactive = true,
   titleEmphasis = defaultExpanded ? "normal" : "muted",
+  titleWrap = "truncate",
   markerBackgroundColor,
 }: ToolCallProps): React.ReactElement {
   const contextMarkerBackgroundColor = React.useContext(ToolMarkerBackgroundContext)
@@ -489,6 +492,13 @@ export function ToolCall({
     >
       {({ surfaceProps, isHovered, expanded, toggleExpanded, collapse }) => {
         const effectiveExpanded = expanded || forceExpanded
+        const onSurfaceClick =
+          surfaceProps.onClick && interactive && hasContent
+            ? (e: SilveryMouseEvent): void => {
+                e.stopPropagation()
+                surfaceProps.onClick?.(e)
+              }
+            : surfaceProps.onClick
         const onAttachedClick = (e: SilveryMouseEvent): void => {
           e.stopPropagation()
           if (interactive && hasContent) collapse()
@@ -501,7 +511,14 @@ export function ToolCall({
               : undefined
 
         return (
-          <Box flexDirection="row" gap={1} width="100%" backgroundColor={armedBg} {...surfaceProps}>
+          <Box
+            flexDirection="row"
+            gap={1}
+            width="100%"
+            backgroundColor={armedBg}
+            {...surfaceProps}
+            onClick={onSurfaceClick}
+          >
             <Box width={1} flexShrink={0} backgroundColor={markerBg}>
               <StatusGlyph glyph={markerGlyph} active={active} color={markerColor} period={1800} />
             </Box>
@@ -518,6 +535,7 @@ export function ToolCall({
                   shell={shell}
                   color={titleColor}
                   linkify={!shell}
+                  wrap={titleWrap}
                 />
                 {renderLocations(toolCall.locations)}
                 <Box

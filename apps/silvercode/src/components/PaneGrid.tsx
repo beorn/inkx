@@ -4,9 +4,9 @@
  * drag-resize logic + drag-move logic.
  *
  * Chrome philosophy (per bead km-silvercode.pane-management): NO border
- * around each pane, NO header strip. Pane separation is a 1-col `│` (row
+ * around each pane, NO header row. Pane separation is a 1-col `│` (row
  * splits) or 1-row `─` (column splits) gutter; the active pane gets a
- * 1-col accent bar inside SessionCard's left edge. That's it.
+ * 1-col accent bar inside ChatPane's left edge. That's it.
  *
  *   row-split (vsplit, Ctrl+G v):       column-split (hsplit, Ctrl+G s):
  *   ┌───────────────────┐                ┌───────────────────┐
@@ -60,7 +60,7 @@ import {
   swapLeaves,
 } from "../pane-layout.ts"
 import { PaneHeader } from "./PaneHeader.tsx"
-import { SessionCard } from "./SessionCard.tsx"
+import { ChatPane } from "./ChatPane.tsx"
 import { Content } from "./Content.tsx"
 import { formatLoadingSessionId, MeasuredBanner } from "./Welcome.tsx"
 import { Chat } from "./Chat.tsx"
@@ -95,10 +95,10 @@ const CENTER_ZONE_HALF = 0.25 // [0.25, 0.75] on both axes → center
 
 export type PaneGridProps = {
   /**
-   * Controller — passed through to each pane's `SessionCard` so it can
-   * read the per-session ambient stream + mute state. Optional today
-   * (legacy callers omit it; ambient inline display falls back to no
-   * rows when omitted). Bead: km-silvercode.ambient-inline-display.
+   * Controller — passed through to each pane's `ChatPane` so it can
+   * read the per-session notification stream + mute state. Optional today
+   * (legacy callers omit it; notification inline display falls back to no
+   * rows when omitted). Bead: km-silvercode.notification-inline-display.
    */
   controller?: Controller
   sessions: ReadonlyArray<SessionHandle>
@@ -114,7 +114,7 @@ export type PaneGridProps = {
   onApprovePermission: (sessionId: string, requestId: string) => void
   onDenyPermission: (sessionId: string, requestId: string) => void
   /**
-   * v2 opt-in: render a 1-row header strip above each pane (Zellij-
+   * v2 opt-in: render a 1-row header row above each pane (Zellij-
    * style). Default false preserves the v1 chrome-minimal contract from
    * km-silvercode.pane-management. When true, App.tsx supplies the
    * header callbacks below; when false they're ignored. See bead
@@ -128,7 +128,7 @@ export type PaneGridProps = {
   /** v2 only: toggle minimize state for the named pane. */
   onToggleMinimizePane?: (sessionId: string) => void
   /** v2 only: which pane ids are currently minimized. When a pane is
-   * minimized its body is hidden — only the header strip renders. */
+   * minimized its body is hidden — only the header row renders. */
   minimizedPaneIds?: ReadonlySet<string>
   /**
    * Registration callback for each pane's SessionUpdateList ListViewHandle.
@@ -139,11 +139,11 @@ export type PaneGridProps = {
    * `null` on unmount to drop entries.
    */
   onRegisterScrollList?: (sessionId: string, handle: ListViewHandle | null) => void
-  /** App-level `/raw` debug toggle. Forwarded to every SessionCard.
+  /** App-level `/raw` debug toggle. Forwarded to every ChatPane.
    *  Bead: km-silvercode.resume-show-everything-collapsed. */
   showDebug?: boolean
   /** Canonical agent id from BUILTIN_AGENTS — forwarded to every
-   *  SessionCard so the welcome card can label itself per-agent. Bead:
+   *  ChatPane so the welcome screen can label itself per-agent. Bead:
    *  km-silvercode.welcome-claude-hardcoded. */
   agent?: string
   /** App-level model label, used before a SessionHandle exists. */
@@ -494,7 +494,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
       return (
         <Box flexDirection="row" flexGrow={1} flexShrink={1} minHeight={0} minWidth={0}>
           <Box flexDirection="column" flexGrow={1} flexShrink={1} minHeight={0} minWidth={0}>
-            <SessionCard
+            <ChatPane
               handle={zoomed}
               isFocused
               onFocus={() => onFocusSession(zoomed.id)}
@@ -542,10 +542,10 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
  *   - The grab handle overlay at top-left.
  *   - The drop indicator overlay (edge band or center swap band) when
  *     this leaf is the current drag target.
- *   - SessionCard (the actual content).
+ *   - ChatPane (the actual content).
  *
  * The wrapper's `position="relative"` lets the overlays use absolute
- * positioning inside it without pushing the SessionCard around.
+ * positioning inside it without pushing the ChatPane around.
  */
 function LeafContainer({
   handle,
@@ -578,11 +578,11 @@ function LeafContainer({
   onApprove: (rid: string) => void
   onDeny: (rid: string) => void
   onGrabMouseDown: (x: number, y: number) => void
-  /** Render PaneHeader strip above SessionCard (v2 opt-in). */
+  /** Render PaneHeader row above ChatPane (v2 opt-in). */
   showHeader: boolean
   showPaneChrome: boolean
-  /** When minimized + showHeader, hide the SessionCard so only the
-   * header strip is visible. flexGrow stays at 1 so the surrounding
+  /** When minimized + showHeader, hide the ChatPane so only the
+   * header row is visible. flexGrow stays at 1 so the surrounding
    * split layout still allocates space — the empty body just collapses
    * to one row plus the header. */
   isMinimized: boolean
@@ -592,10 +592,10 @@ function LeafContainer({
   onRegisterScrollList?: (sessionId: string, handle: ListViewHandle | null) => void
   showDebug?: boolean
   controller?: Controller
-  /** Agent id forwarded to SessionCard's Welcome card. Bead:
+  /** Agent id forwarded to ChatPane's Welcome screen. Bead:
    *  km-silvercode.welcome-claude-hardcoded. */
   agent?: string
-  /** Forwarded to the FOCUSED leaf's SessionCard so it can render the
+  /** Forwarded to the FOCUSED leaf's ChatPane so it can render the
    *  composer inside the welcome center. Non-focused leaves drop it.
    *  Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn. */
   composerSlot?: React.ReactNode
@@ -621,7 +621,7 @@ function LeafContainer({
         />
       )}
       {!isMinimized && (
-        <SessionCard
+        <ChatPane
           handle={handle}
           isFocused={isFocused}
           isDimmed={isSourceLeaf}
@@ -707,7 +707,7 @@ function DropIndicator({
 }
 
 /**
- * Recursive renderer. A leaf renders SessionCard inside a flexGrow box
+ * Recursive renderer. A leaf renders ChatPane inside a flexGrow box
  * sized via flexBasis (set by its parent split's weight). A split
  * renders two child boxes plus a divider in between.
  */

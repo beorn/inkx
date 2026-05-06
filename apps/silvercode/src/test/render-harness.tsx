@@ -68,7 +68,7 @@ export type RenderScenarioOptions = {
   /** Pass-through model. Default: claude-sonnet-4-6. */
   model?: string
   /** Pass-through agent id (BUILTIN_AGENTS key). Default: undefined.
-   *  When set, the Welcome card's H1 reads "Silver Code for {label}";
+   *  When set, the Welcome screen's H1 reads "Silver Code for {label}";
    *  unset falls back to bare "Silver Code". Bead:
    *  km-silvercode.welcome-claude-hardcoded. */
   agent?: string
@@ -189,7 +189,7 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
     ? { cwd, bare, layout, model, agent, resume: opts.resume }
     : { cwd, bare, layout, model, agent, resume: opts.resume, spawnFactory: () => fake }
   // ScopeProvider wraps App so the lifecycle-scope hooks (useScopeEffect /
-  // useScope, shipped with vendor/silvery 7d9ee808) have an ambient scope
+  // useScope, shipped with vendor/silvery 7d9ee808) have a notification scope
   // to register against. createApp/run() do this for production paths;
   // createRenderer doesn't, so the harness threads it explicitly. Without
   // this, every test that mounts the real App throws "useScope() called

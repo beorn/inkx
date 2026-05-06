@@ -13,7 +13,7 @@
  * Main content (top to bottom):
  *   • Welcome screen variants (bitmap-capable + text-only)
  *   • Exchange 1: user text → assistant text → ToolCall (read)
- *   • AmbientEventRow: all 6 sources merged into one block
+ *   • NotificationEventRow: all 6 sources merged into one block
  *   • Exchange 2: user → assistant → ToolCall (execute) → assistant →
  *     ToolCall (edit) → ApplyPatch
  *   • Exchange 3: user → assistant → ToolCall (failed) → SessionRetry
@@ -31,7 +31,7 @@
  */
 import React, { useState } from "react"
 import { Box, ListView, Muted, Small, Text, useKineticScroll } from "silvery"
-import type { AmbientStreamEntry } from "../../src/components/AmbientEventRow.tsx"
+import type { NotificationStreamEntry } from "../../src/components/NotificationEventRow.tsx"
 import { InlinePermissionPrompt } from "../../src/components/InlinePermissionPrompt.tsx"
 import { InlineAskUserQuestionPrompt } from "../../src/components/InlineAskUserQuestionPrompt.tsx"
 import { SessionPromptComposer } from "../../src/components/SessionPromptComposer.tsx"
@@ -53,7 +53,7 @@ import { Welcome } from "../../src/components/Welcome.tsx"
 import { AvailableCommandsPalette } from "../../src/components/AvailableCommandsPalette.tsx"
 import { SidePanel } from "../../src/components/SidePanel.tsx"
 import { fakeSessionHandle } from "../support/fake-session-handle.ts"
-import { LONG_TOOL_SESSION, TURN_ACTIVITY_AMBIENT, TURN_ACTIVITY_RICH } from "../support/sample-messages.ts"
+import { LONG_TOOL_SESSION, TURN_ACTIVITY_NOTIFICATION, TURN_ACTIVITY_RICH } from "../support/sample-messages.ts"
 import type { Story } from "../types.ts"
 import type {
   MessageEntry,
@@ -197,7 +197,7 @@ const LARGE_TOOL_RESULT: MessageEntry[] = [
             "RUN  v4.1.4 /Users/beorn/Code/pim/km\n\n" +
             "✓ user prompt bubble right edge lands on the prose lane edge\n" +
             "✓ assistant markdown code blocks stay inside the prose lane by default\n" +
-            "✓ responsive markdown table expands rows into key-value cards\n" +
+            "✓ responsive markdown table expands rows into key-value blocks\n" +
             "✓ loaded-session metadata is its own row and does not overwrite preceding prose\n" +
             "✓ thinking rows align to the same prose lane as assistant prose\n\n" +
             "Test Files 1 passed\n" +
@@ -257,12 +257,12 @@ function PanelScroll({ children }: { children: React.ReactNode }): React.ReactEl
   )
 }
 
-function fakeController(ambientBySession: ReadonlyMap<string, readonly AmbientStreamEntry[]> = new Map()): Controller {
+function fakeController(notificationBySession: ReadonlyMap<string, readonly NotificationStreamEntry[]> = new Map()): Controller {
   const muted = new Set<string>()
-  const streamSubscribers = new Set<(sessionId: string, entry: AmbientStreamEntry) => void>()
+  const streamSubscribers = new Set<(sessionId: string, entry: NotificationStreamEntry) => void>()
   const muteSubscribers = new Set<(muted: ReadonlySet<string>) => void>()
   return {
-    ambientMuteState: {
+    notificationMuteState: {
       muted: () => muted,
       subscribe: (fn: (muted: ReadonlySet<string>) => void) => {
         muteSubscribers.add(fn)
@@ -274,9 +274,9 @@ function fakeController(ambientBySession: ReadonlyMap<string, readonly AmbientSt
         for (const fn of muteSubscribers) fn(muted)
       },
     },
-    ambientStream: {
-      entries: (sessionId: string) => ambientBySession.get(sessionId) ?? [],
-      subscribe: (fn: (sessionId: string, entry: AmbientStreamEntry) => void) => {
+    notificationStream: {
+      entries: (sessionId: string) => notificationBySession.get(sessionId) ?? [],
+      subscribe: (fn: (sessionId: string, entry: NotificationStreamEntry) => void) => {
         streamSubscribers.add(fn)
         return () => streamSubscribers.delete(fn)
       },
@@ -347,7 +347,7 @@ function SidePanelStub(): React.ReactElement {
     { content: "Fix failing tests", status: "completed" as const },
   ]
 
-  const ambientSources = [
+  const notificationSources = [
     { id: "tribe", label: "tribe", muted: false },
     { id: "ci", label: "CI", muted: false },
     { id: "recall", label: "recall", muted: true },
@@ -414,7 +414,7 @@ function SidePanelStub(): React.ReactElement {
       <Text bold color="$primary">
         Notifications
       </Text>
-      {ambientSources.map((s) => (
+      {notificationSources.map((s) => (
         <Box key={s.id} flexDirection="row" gap={1}>
           <Text color={s.muted ? "$muted" : "$fg"}>{s.muted ? "☐" : "☑︎"}</Text>
           <Text color={s.muted ? "$muted" : "$fg"}>{s.label}</Text>
@@ -508,30 +508,30 @@ function SidePanelStub(): React.ReactElement {
 
 // ──────────────────────────── All story ────────────────────────────
 
-const allAmbientEntries: AmbientStreamEntry[] = [
+const allNotificationEntries: NotificationStreamEntry[] = [
   {
-    kind: "ambient",
+    kind: "notification",
     id: "amb-tribe-1",
     source: "tribe",
     timestamp: at(0),
     content: "peer alice opened PR #42 in DZ/decker — review requested on the auth refactor",
   },
   {
-    kind: "ambient",
+    kind: "notification",
     id: "amb-ci-1",
     source: "ci",
     timestamp: at(45),
     content: "CI passed: 245 tests, 0 failures, run took 3m 12s on main",
   },
   {
-    kind: "ambient",
+    kind: "notification",
     id: "amb-recall-1",
     source: "recall",
     timestamp: at(90),
     content: "recall hit: feedback-quiet-tribe-ack — relevance 0.82",
   },
   {
-    kind: "ambient",
+    kind: "notification",
     id: "amb-subagent-1",
     source: "sub-agent",
     timestamp: at(180),
@@ -539,14 +539,14 @@ const allAmbientEntries: AmbientStreamEntry[] = [
     actionable: false,
   },
   {
-    kind: "ambient",
+    kind: "notification",
     id: "amb-filewatch-1",
     source: "file-watch",
     timestamp: at(240),
     content: "file-watch: apps/silvercode/src/controller.ts changed (saved by editor)",
   },
   {
-    kind: "ambient",
+    kind: "notification",
     id: "amb-telegram-1",
     source: "telegram",
     timestamp: at(300),
@@ -614,7 +614,7 @@ function AllStoryBody(): React.ReactElement {
 
   const normalSessionId = "story-normal-session"
   const activeSessionId = "story-active-session"
-  const controller = fakeController(new Map([[normalSessionId, [...allAmbientEntries, ...TURN_ACTIVITY_AMBIENT]]]))
+  const controller = fakeController(new Map([[normalSessionId, [...allNotificationEntries, ...TURN_ACTIVITY_NOTIFICATION]]]))
   const normalHandle = fakeSessionHandle({
     id: normalSessionId,
     name: "Normal transcript",
@@ -673,7 +673,7 @@ function AllStoryBody(): React.ReactElement {
           <Box flexDirection="column" minHeight={0}>
             <SessionUpdateList
               messages={ALL_TRANSCRIPT_MESSAGES}
-              ambientEntries={[...allAmbientEntries, ...TURN_ACTIVITY_AMBIENT]}
+              notificationEntries={[...allNotificationEntries, ...TURN_ACTIVITY_NOTIFICATION]}
               onApprove={() => {}}
               onDeny={() => {}}
               sessionId={normalSessionId}
@@ -711,7 +711,7 @@ function AllStoryBody(): React.ReactElement {
           <Box flexDirection="column" minHeight={0}>
             <SessionUpdateList
               messages={TURN_ACTIVITY_RICH}
-              ambientEntries={TURN_ACTIVITY_AMBIENT}
+              notificationEntries={TURN_ACTIVITY_NOTIFICATION}
               onApprove={() => {}}
               onDeny={() => {}}
               sessionId={activeSessionId}

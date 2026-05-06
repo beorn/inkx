@@ -49,7 +49,7 @@ function freshRender() {
 // =============================================================================
 
 describe("ToolCallStatusTitle", () => {
-  // The title carries the meaning; the parent ToolCall card paints status
+  // The title carries the meaning; the parent ToolCall block paints status
   // via the leading glyph (spinner / ✓ / ✗ / ·) and border. The verb prefix
   // ("Reading…", "Read 3 files", "Search failed") is intentionally dropped
   // — the icon already conveys status. Bead: km-silvercode.acp-tool-call.
@@ -346,7 +346,7 @@ describe("ToolCall", () => {
     expect(app.text).not.toContain("Read failed")
   })
 
-  test("failed call inlines the error message in the unified card body", () => {
+  test("failed call inlines the error message in the unified block body", () => {
     const app = freshRender()(
       <ToolCall
         toolCall={tc({

@@ -2,7 +2,7 @@
  * --resume: defensive replay — never throws, always lets App mount.
  *
  * Symptom: `silvercode --resume <bad-id>` produced a completely blank
- * terminal — no welcome card, no command box, no error message. Process
+ * terminal — no welcome screen, no command box, no error message. Process
  * stayed alive but ignored keypresses.
  *
  * Root cause: `replaySessionFromDisk` threw on missing JSONL. The throw
@@ -15,7 +15,7 @@
  *
  * Fix: replaySessionFromDisk now NEVER throws. Missing file, unreadable
  * file, or replay error all surface as a store `error` event so the
- * user sees an actionable message in the card chrome — but the App
+ * user sees an actionable message in the block chrome — but the App
  * still mounts and the user can still type.
  */
 

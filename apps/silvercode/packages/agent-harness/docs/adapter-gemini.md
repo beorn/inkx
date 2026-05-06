@@ -115,10 +115,10 @@ non-ACP output → ACP `SessionUpdate`, plus a separate HTTP path via
 the Cloud Code Assist endpoint. Once `--acp` shipped first-party, both
 were redundant for the common case:
 
-| User has         | Path                                      |
-| ---------------- | ----------------------------------------- |
-| Google account   | `--acp` + Sign in with Google (free tier) |
-| `GEMINI_API_KEY` | `--acp` + API key (paid)                  |
+| User has       | Path                                    |
+| -------------- | --------------------------------------- |
+| Google account | --acp + Sign in with Google (free tier) |
+| GEMINI_API_KEY | --acp + API key (paid)                  |
 
 A stream-json fallback is tracked at P4
 (`km-silvercode.acp-adapter-gemini` notes) — only relevant for users
@@ -130,3 +130,4 @@ Until such a user appears, the adapter remains deferred.
 The Registry entry is asserted in
 `tests/registry-adapters.test.ts` (test id `gemini`). Custom
 `extraArgs` (e.g. `--model`) are also covered there.
+

@@ -12,7 +12,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState } from "react"
 import {
   HOVER_SHOW_DELAY_MS,
-  lastModifierState,
   type ModifierState,
   type PopoverAnchor,
   type PopoverContent,
@@ -20,6 +19,7 @@ import {
   useModifierKeys,
   useMouseCursor,
   usePopover,
+  useSelection,
 } from "silvery"
 
 type PopoverTrigger = "cmd-hover" | "hover"
@@ -108,20 +108,22 @@ export function HoverPreviewTarget({
   const popover = usePopover()
   const subscribeToModifiers = hovered && (trigger === "cmd-hover" || modifiers !== undefined)
   const modifierState = useModifierKeys({ enabled: subscribeToModifiers })
+  const selection = useSelection()
+  const selectionActive = !!selection?.range || !!selection?.selecting
   const activeForThis = active?.id === id
   const effectiveExpanded = expanded ?? uncontrolledExpanded
   const shouldToggleOnClick = toggleOnClick ?? (expanded !== undefined || onExpandedChange !== undefined)
 
   const currentModifiers: ModifierState = useMemo(
     () => ({
-      super: modifierState.super || lastModifierState.super,
-      ctrl: modifierState.ctrl || lastModifierState.ctrl,
-      alt: modifierState.alt || lastModifierState.alt,
-      shift: modifierState.shift || lastModifierState.shift,
+      super: modifierState.super,
+      ctrl: modifierState.ctrl,
+      alt: modifierState.alt,
+      shift: modifierState.shift,
     }),
     [modifierState.alt, modifierState.ctrl, modifierState.shift, modifierState.super],
   )
-  const isArmed = hovered && activeForThis && armedBy(trigger, modifiers, currentModifiers)
+  const isArmed = !selectionActive && hovered && activeForThis && armedBy(trigger, modifiers, currentModifiers)
   useMouseCursor(cursor && isArmed ? "pointer" : null)
 
   const clearPending = useCallback(() => {

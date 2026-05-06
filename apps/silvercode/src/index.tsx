@@ -112,7 +112,7 @@ function guessBuiltinFromEntry(config: Awaited<ReturnType<typeof loadConfig>>, l
   const raw = config.get<unknown>(`ai.acp.${label}`)
   if (typeof raw === "string") {
     // String form — the path segment is the agent id.
-    const match = /^(?:[a-z][a-z0-9+\-.]*:\/\/)?([a-zA-Z0-9_\-]+)/.exec(raw)
+    const match = /^(?:[a-z][a-z0-9+\-.]*:\/\/)?([a-zA-Z0-9_-]+)/.exec(raw)
     const agent = match?.[1]
     return agent && agent in BUILTIN_AGENTS ? agent : undefined
   }
@@ -121,7 +121,7 @@ function guessBuiltinFromEntry(config: Awaited<ReturnType<typeof loadConfig>>, l
     if (typeof agent === "string" && agent in BUILTIN_AGENTS) return agent
     const base = (raw as { base?: unknown }).base
     if (typeof base === "string") {
-      const match = /^(?:[a-z][a-z0-9+\-.]*:\/\/)?([a-zA-Z0-9_\-]+)/.exec(base)
+      const match = /^(?:[a-z][a-z0-9+\-.]*:\/\/)?([a-zA-Z0-9_-]+)/.exec(base)
       const agentFromBase = match?.[1]
       return agentFromBase && agentFromBase in BUILTIN_AGENTS ? agentFromBase : undefined
     }

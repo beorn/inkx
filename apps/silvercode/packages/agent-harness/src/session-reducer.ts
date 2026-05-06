@@ -921,7 +921,7 @@ function applyTextDelta(next: InternalSessionState, action: Extract<AgentEvent, 
   if (stripped.length === 0) return
   next.messages = upsertMessage(next.messages, action.turnId, (m) => {
     // Keep each text delta as a timestamped op. The renderer can merge
-    // adjacent text ops that have no ambient events between them, but it
+    // adjacent text ops that have no notification events between them, but it
     // needs per-op timestamps to place notifications at their arrival point.
     const ops = [...m.ops]
     ops.push({ kind: "text", text: stripped, ts: action.ts })

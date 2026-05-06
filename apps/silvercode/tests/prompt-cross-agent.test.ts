@@ -3,16 +3,16 @@
  *
  * Covers:
  *  - Empty slice returns [] (no peer activity → no projection block)
- *  - Slice format (URI, _meta, body markdown, AMBIENT framing)
+ *  - Slice format (URI, _meta, body markdown, NOTIFICATION framing)
  *  - peersOnly filters self activity out by default
- *  - Composed assembly puts cross-agent slice FIRST, ambient mid, user text LAST
+ *  - Composed assembly puts cross-agent slice FIRST, notification mid, user text LAST
  *  - Opt-in: includeCrossAgent: false leaves the slice off entirely
  */
 
 import { describe, expect, test } from "vitest"
 import { createScope } from "@silvery/scope"
 import { type ChannelEvent, createChannelQueue } from "../src/channel-queue.ts"
-import { AMBIENT_FRAMING_PREFIX } from "../src/prompt-assembly.ts"
+import { NOTIFICATION_FRAMING_PREFIX } from "../src/prompt-assembly.ts"
 import { createCrossAgentState } from "../src/cross-agent-state.ts"
 import {
   COORDINATOR_URI_SCHEME,
@@ -43,7 +43,7 @@ describe("prompt-cross-agent — slice", () => {
     expect(slice).toEqual([])
   })
 
-  test("non-empty slice has resource URI + _meta + AMBIENT framing", () => {
+  test("non-empty slice has resource URI + _meta + NOTIFICATION framing", () => {
     const scope = createScope("test")
     const state = createCrossAgentState(scope)
     state.claimFile({ sessionId: "peer", path: "/foo.ts", exclusive: true })
@@ -60,14 +60,14 @@ describe("prompt-cross-agent — slice", () => {
     expect(block.resource.uri).toBe(coordinatorUri("self"))
     expect(block.resource.uri.startsWith(COORDINATOR_URI_SCHEME)).toBe(true)
     expect(block.resource.mimeType).toBe("text/markdown")
-    expect(block.resource.text.startsWith(AMBIENT_FRAMING_PREFIX)).toBe(true)
+    expect(block.resource.text.startsWith(NOTIFICATION_FRAMING_PREFIX)).toBe(true)
     // Body mentions the peer claim
     expect(block.resource.text).toContain("/foo.ts")
     expect(block.resource.text).toContain("peer")
 
     // _meta hints
     expect(block._meta?.coordinator).toBe(true)
-    expect(block._meta?.ambient).toBe(true)
+    expect(block._meta?.notification).toBe(true)
     expect(block._meta?.sessionId).toBe("self")
     expect(block._meta?.peerClaimCount).toBe(1)
   })
@@ -136,7 +136,7 @@ describe("prompt-cross-agent — composed assembly", () => {
     expect(blocks).toEqual([{ type: "text", text: "hi" }])
   })
 
-  test("ordering: cross-agent slice FIRST, ambient mid, user text LAST", () => {
+  test("ordering: cross-agent slice FIRST, notification mid, user text LAST", () => {
     const scope = createScope("test")
     const queue = createChannelQueue(scope)
     const state = createCrossAgentState(scope)
@@ -154,10 +154,10 @@ describe("prompt-cross-agent — composed assembly", () => {
     expect(blocks[0]?.type).toBe("resource")
     const first = blocks[0] as { resource: { uri: string } }
     expect(first.resource.uri.startsWith(COORDINATOR_URI_SCHEME)).toBe(true)
-    // Middle — ambient channel-queue resource
+    // Middle — notification channel-queue resource
     expect(blocks[1]?.type).toBe("resource")
     const middle = blocks[1] as { resource: { uri: string } }
-    expect(middle.resource.uri.startsWith("ambient://")).toBe(true)
+    expect(middle.resource.uri.startsWith("notification://")).toBe(true)
     // Last — user text
     expect(blocks[2]).toEqual({ type: "text", text: "user prompt" })
   })

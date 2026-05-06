@@ -1,5 +1,5 @@
 /**
- * Channel queue — silvercode-owned event buffer for ambient/peer-channel
+ * Channel queue — silvercode-owned event buffer for notification/peer-channel
  * messages (tribe broadcasts, telegram, CI status, lore deltas, sub-agent
  * updates).
  *
@@ -27,7 +27,7 @@ import { signal } from "alien-signals"
 import type { Scope } from "@silvery/scope"
 
 /**
- * One ambient event awaiting (optional) injection on a future user prompt.
+ * One notification event awaiting (optional) injection on a future user prompt.
  * `source` is a free-form tag (`tribe`, `telegram`, `ci`, `lore`,
  * `subagent`, ...) — sources expand over time, so we don't lock the union.
  * `content` is rendered into the EmbeddedResource body verbatim (callers
@@ -44,7 +44,7 @@ export type ChannelEvent = {
    * for triage) versus purely informational (e.g., a tribe status update).
    * Today this only flows through `_meta.actionable` on the resulting
    * EmbeddedResource — future two-stage filtering may use it as a cue for
-   * the actionable/ambient/ignorable classifier.
+   * the actionable/notification/ignorable classifier.
    */
   readonly actionable?: boolean
 }

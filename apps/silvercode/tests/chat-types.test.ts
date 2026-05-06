@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest"
 import { CHAT_CHANNELS, isChatElement, isChatLeaf } from "../src/chat/types.ts"
 import type {
   ChatChannelState,
+  ChatChannelId,
   ChatEvent,
   ChatEventId,
   ChatMessage,
@@ -81,12 +82,17 @@ describe("chat transcript tree types", () => {
       },
     } satisfies Record<ChatNodeId, ChatNode>
 
-    const transcriptChannel = {
-      id: "transcript",
-      label: "Transcript",
-      visible: true,
-      muted: false,
-    } satisfies ChatChannelState
+    const channels = Object.fromEntries(
+      CHAT_CHANNELS.map((channel) => [
+        channel,
+        {
+          id: channel,
+          label: channel === "transcript" ? "Transcript" : channel,
+          visible: true,
+          muted: false,
+        } satisfies ChatChannelState,
+      ]),
+    ) as Readonly<Record<ChatChannelId, ChatChannelState>>
 
     const state = {
       session: {
@@ -103,12 +109,12 @@ describe("chat transcript tree types", () => {
           nodes,
           state: { disclosure: { [leafId]: "expanded" }, selectedNodeId: leafId },
         },
-        channels: { transcript: transcriptChannel },
+        channels,
       },
     } satisfies ChatState
 
-    const root = state.session.tree.nodes[rootId]
-    const leaf = state.session.tree.nodes[leafId]
+    const root = state.session.tree.nodes[rootId]!
+    const leaf = state.session.tree.nodes[leafId]!
 
     expect(isChatElement(root)).toBe(true)
     expect(isChatLeaf(leaf)).toBe(true)

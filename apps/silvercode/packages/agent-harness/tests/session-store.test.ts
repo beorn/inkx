@@ -112,7 +112,7 @@ describe("session-store — ops-order preservation (codex bundling fix)", () => 
   test("claude-shape preserves timestamped text chunks before tool ops", () => {
     // Multi-chunk streaming text from Claude — typical "model emits one
     // paragraph then both tool calls at once." Text deltas stay separate
-    // so the renderer can interleave ambient events by per-op timestamp.
+    // so the renderer can interleave notification events by per-op timestamp.
     const store = createSessionStore()
     const t = tid(1)
     for (const e of turn(t, [

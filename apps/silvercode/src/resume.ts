@@ -4,11 +4,11 @@
  * When a session is spawned with `--resume <sessionId>`, Claude Code
  * reloads the prior context server-side from `~/.claude/projects/<proj>/
  * <sessionId>.jsonl`. But silvercode's UI store starts empty — the user
- * sees a blank card until they type something new.
+ * sees a blank block until they type something new.
  *
  * This module replays the on-disk JSONL through the same stream-json
  * parser the live harness uses, so the resumed session's history appears
- * in the card BEFORE any new live events arrive. The projdir name is
+ * in the block BEFORE any new live events arrive. The projdir name is
  * derived from the cwd by replacing slashes with dashes (Claude Code's
  * own convention for project namespacing).
  */
@@ -120,12 +120,12 @@ export function validateResumeId(opts: { agent: string | undefined; sessionId: s
  *
  * Defensive contract: this function NEVER throws. A missing JSONL, an
  * empty file, an unreadable file, a corrupt line — all surface as a store
- * `error` event so the user sees an actionable message in the card, but
+ * `error` event so the user sees an actionable message in the block, but
  * the App still mounts and the user can still type. The previous
  * fail-fast `throw` made the spawn promise reject; the controller's
  * `void spawnSession().catch(() => {})` then swallowed it and no session
  * was added to the list, leaving the user with a completely blank screen
- * (no card, no command box, no error). Bead:
+ * (no block, no command box, no error). Bead:
  * `km-silvercode.resume-blank-screen`.
  *
  * Post-condition (when at least one user/assistant message replays):
@@ -145,7 +145,7 @@ export function validateResumeId(opts: { agent: string | undefined; sessionId: s
  * The synthetic turn-end fires ONLY when at least one user/assistant
  * message was successfully replayed AND status is non-idle/non-ended.
  * This avoids appending a phantom empty assistant bubble for an empty
- * or system-only transcript (which would look weird in the card and
+ * or system-only transcript (which would look weird in the block and
  * doesn't add information).
  */
 export function replaySessionFromDisk(store: SessionStore, cwd: string, sessionId: string): void {

@@ -37,6 +37,8 @@ export interface ToolCallStatusTitleProps {
   color?: string
   /** Linkify file/image references inside non-shell titles. */
   linkify?: boolean
+  /** Long titles stay single-line by default; expanded summary bodies can wrap. */
+  wrap?: "truncate" | "wrap"
 }
 
 export function ToolCallStatusTitle({
@@ -47,13 +49,14 @@ export function ToolCallStatusTitle({
   shell = false,
   color,
   linkify = false,
+  wrap = "truncate",
 }: ToolCallStatusTitleProps): React.ReactElement {
   const text = label ?? title
 
   if (shell) {
     return (
       <Box flexShrink={1} minWidth={0}>
-        <LinkifiedText text={text} color={color ?? "$muted"} wrap="truncate" />
+        <LinkifiedText text={text} color={color ?? "$muted"} wrap={wrap} />
       </Box>
     )
   }
@@ -61,9 +64,9 @@ export function ToolCallStatusTitle({
   return (
     <Box flexShrink={1} minWidth={0}>
       {linkify ? (
-        <LinkifiedText text={text} color={color ?? "$muted"} wrap="truncate" />
+        <LinkifiedText text={text} color={color ?? "$muted"} wrap={wrap} />
       ) : (
-        <Text color={color ?? "$muted"} wrap="truncate">
+        <Text color={color ?? "$muted"} wrap={wrap}>
           {text}
         </Text>
       )}

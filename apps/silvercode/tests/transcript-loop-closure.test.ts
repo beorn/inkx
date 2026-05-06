@@ -1,6 +1,6 @@
 /**
- * Tests for `transcript.ts` (Layer 3 of the ambient-context safety stack
- * — see `hub/silvercode/design/ambient-context-safety.md` § 3 Layer 3).
+ * Tests for `transcript.ts` (Layer 3 of the notification-context safety stack
+ * — see `apps/silvercode/docs/channels.md` § 3 Layer 3).
  *
  * **What this layer prevents.** The smoking-gun loop closure: an
  * assistant turn whose text block opens with a role-prefix marker, which
@@ -30,11 +30,11 @@ import { describe, expect, test, beforeAll, afterAll } from "vitest"
 import { createStreamJsonParser, type AgentEvent } from "@km/agent-harness"
 import type { ContentBlock } from "@km/agent-harness/events"
 // Layer 3 quarantine fires Layer 4 telemetry on every detection (Phase
-// 6.b — `recordRolePrefixHit` in `ambient-telemetry.ts`). Loggily routes
+// 6.b — `recordRolePrefixHit` in `notification-telemetry.ts`). Loggily routes
 // warnings to the console writer at the default level; the harness's
 // afterEach() flags any console output as a test failure. Suppress for
 // the duration of these tests — telemetry is verified separately in
-// `ambient-telemetry.test.ts`.
+// `notification-telemetry.test.ts`.
 import * as _loggily from "loggily"
 const { setSuppressConsole } = _loggily as unknown as {
   setSuppressConsole: (value: boolean) => void
@@ -132,7 +132,7 @@ describe("transcript loop-closure — Layer 3", () => {
       // Leading replaced
       expect(out.split(ASSISTANT_ROLE_QUARANTINE_SENTINEL).length - 1).toBe(1)
       // Mid-text role marker preserved (Layer 2 sanitize handles those
-      // separately for ambient payloads; Layer 3 is only about the
+      // separately for notification payloads; Layer 3 is only about the
       // re-ingestion vector at line start of an assistant turn).
       expect(out).toContain(`${ROLE_A}: line two`)
     })
@@ -302,14 +302,14 @@ describe("transcript loop-closure — Layer 3", () => {
       // text begins with a role marker. Replay through the parser:
       const events: AgentEvent[] = []
       const parser = createStreamJsonParser((e) => events.push(e))
-      // Ambient-shaped role-U entry (would not happen with Layer 1 in
+      // Notification-shaped role-U entry (would not happen with Layer 1 in
       // place, but we want defense in depth — even if it appeared in old
       // JSONL, replay still must produce safe output).
       parser.push(
         JSON.stringify({
           type: "user",
           session_id: "s13",
-          message: { role: "user", content: "[AMBIENT — informational, do not act]\n(tribe peer message)" },
+          message: { role: "user", content: "[NOTIFICATION — informational, do not act]\n(tribe peer message)" },
         }),
       )
       // The smoking-gun assistant turn.

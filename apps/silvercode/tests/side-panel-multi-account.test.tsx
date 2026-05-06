@@ -83,7 +83,7 @@ function makeStubController(): Controller {
     cancelBackgroundTask: () => {},
     backgroundTasks: () => [],
     onBackgroundTasksChange: () => () => {},
-    ambientMuteState: {
+    notificationMuteState: {
       isMuted: () => false,
       muted: () => new Set<string>(),
       toggle: () => {},

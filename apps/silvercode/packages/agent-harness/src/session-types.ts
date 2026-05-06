@@ -184,7 +184,7 @@ function installEntryProjections<T extends WritableEntry>(entry: T): MessageEntr
 /**
  * Build a fresh `MessageEntry`. Used everywhere the reducer creates or
  * updates an entry — guarantees the legacy projections are present so
- * existing consumers (controller, SessionCard, SidePanel, harness tests,
+ * existing consumers (controller, ChatPane, SidePanel, harness tests,
  * storybook fixtures) keep working without migration.
  */
 export function makeEntry(init: WritableEntry): MessageEntry {

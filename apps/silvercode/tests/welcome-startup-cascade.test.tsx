@@ -2,7 +2,7 @@
  * Regression test for the 5-stage startup layout cascade
  * (bead km-silvery.startup-layout-cascade, task #4).
  *
- * Symptom: when a user launches silvercode the welcome card visibly settles
+ * Symptom: when a user launches silvercode the welcome screen visibly settles
  * through several different layouts before stabilising — three quick jumps
  * in the first ~50ms followed by two more after a few seconds. The visible
  * artefacts are: (a) the SILVER CODE banner momentarily missing, then
@@ -126,7 +126,7 @@ describe("welcome startup layout cascade (bead km-silvery.startup-layout-cascade
       const contentFingerprints = fingerprints.filter((fp) => fp.replace(/\s+/gu, "").length > 0)
       const distinct = Array.from(new Set(contentFingerprints))
 
-      // Sanity: the harness must capture the welcome card. Empty frames means
+      // Sanity: the harness must capture the welcome screen. Empty frames means
       // run() never painted to the emulator and the test below would falsely
       // pass. We assert content arrived before grading the cascade.
       const screenText = readScreenText()

@@ -1,3 +1,8 @@
+---
+mentions:
+  - km
+---
+
 # @km/agent-harness
 
 Typed harness for spawning agent CLIs (Claude Code, Codex, etc.) and exposing them as a uniform `AgentSession` to silvercode. Lives at `apps/silvercode/packages/agent-harness/`.
@@ -154,12 +159,12 @@ per-vendor adapter code for any of them — `connectAcpRegistry(scope, id,
 opts)` is the entire integration surface. Each id has a brief vendor doc
 covering wire spawn, auth, capabilities, and caveats:
 
-| Registry id          | Doc                                                | Spawn                                          |
-| -------------------- | -------------------------------------------------- | ---------------------------------------------- |
-| `pi-acp`             | [docs/adapter-pi.md](./docs/adapter-pi.md)         | `npx -y pi-acp`                                |
-| `codex`              | [docs/adapter-codex.md](./docs/adapter-codex.md)   | `npx -y @zed-industries/codex-acp`             |
-| `gemini`             | [docs/adapter-gemini.md](./docs/adapter-gemini.md) | `npx -y @google/gemini-cli --experimental-acp` |
-| `github-copilot-cli` | (covered by registry table only)                   | `copilot`                                      |
+| Registry id        | Doc                              | Spawn                                        |
+| ------------------ | -------------------------------- | -------------------------------------------- |
+| pi-acp             | docs/adapter-pi.md               | npx -y pi-acp                                |
+| codex              | docs/adapter-codex.md            | npx -y @zed-industries/codex-acp             |
+| gemini             | docs/adapter-gemini.md           | npx -y @google/gemini-cli --experimental-acp |
+| github-copilot-cli | (covered by registry table only) | copilot                                      |
 
 Spawn correctness is asserted by `tests/registry-adapters.test.ts` — when
 upstream changes a bin name, an ACP flag, or a registry slug, update the
@@ -222,3 +227,4 @@ bun vitest run apps/silvercode/packages/agent-harness/tests/acp-boundary  # boun
 ```
 
 The boundary test suite is the canonical example of "round-trip every variant" — copy its structure when adding new ACP-shaped types.
+

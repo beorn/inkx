@@ -8,7 +8,7 @@ import { Chat } from "./Chat.tsx"
 
 /**
  * Per-agent display label. Mirrors the `AGENT_DISPLAY` map in `SidePanel.tsx`
- * so the welcome card and the side-panel branding row stay in sync. Unknown
+ * so the welcome screen and the side-panel branding row stay in sync. Unknown
  * agent id → bare "Silver Code". Bead: km-silvercode.welcome-claude-hardcoded.
  */
 const AGENT_LABELS: Readonly<Record<string, string>> = {
@@ -416,7 +416,7 @@ export function Welcome(props: {
   model?: string
   /**
    * The App-level `SessionPromptComposer` element, threaded through
-   * PaneGrid → SessionCard so the composer here and the (suppressed)
+   * PaneGrid → ChatPane so the composer here and the (suppressed)
    * bottom-anchored render reference the same controlled component +
    * App-owned state. Width-capped here for visual centering; placement
    * is the only difference from the chat-state render. When omitted
@@ -466,7 +466,7 @@ export function Welcome(props: {
   return (
     // Center the banner and composer together as a group so the input
     // stays near the middle of the screen until a prompt is submitted.
-    // After the first message, SessionCard switches to the chat layout
+    // After the first message, ChatPane switches to the chat layout
     // (absolute-positioned composer at the bottom) automatically.
     <Box
       flexDirection="column"

@@ -159,7 +159,7 @@ export interface StructuredQuestionProps {
 }
 
 /**
- * Renders the agent's mid-turn question in a bordered card.
+ * Renders the agent's mid-turn question in a bordered block.
  *
  * For free-text questions: shows the question text + a hint that the user
  * should type their answer in the prompt composer below.

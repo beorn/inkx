@@ -7,7 +7,7 @@
  * indefinite vertical scroll-jacking when a tool dumps thousands of lines.
  *
  * Why this exists:
- * Disclosures that show their full content "as-is" turn one expanded card
+ * Disclosures that show their full content "as-is" turn one expanded block
  * into a screenful of context that pushes everything else out. The user's
  * design rule: any disclosure caps at 30 visible rows and becomes a kinetic
  * scroll container past that bound. The maxRows default matches that rule.

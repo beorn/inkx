@@ -1178,7 +1178,9 @@ describe("TurnActivitySummary", () => {
       await settle(80)
       const commandRow = term.screen.getLines().findIndex((line) => line.includes("$ printf summary"))
       expect(commandRow).toBeGreaterThanOrEqual(0)
-      await term.mouse.click(10, commandRow)
+      const commandCol = term.screen.getLines()[commandRow]!.indexOf("$ printf summary")
+      expect(commandCol).toBeGreaterThanOrEqual(0)
+      await term.mouse.click(commandCol, commandRow)
       await settle(80)
 
       const revealed = term.screen.getText()
@@ -1186,6 +1188,67 @@ describe("TurnActivitySummary", () => {
       expect(revealed).toContain("RAW-COMMAND-OUTPUT")
       expect(revealed).toContain("RAW-FAILED-OUTPUT")
       expect(revealed).not.toContain("claude-code:Bash")
+    } finally {
+      handle.unmount()
+    }
+  })
+
+  test("expanded command rows inside an activity summary can collapse again", async () => {
+    using term = createTermless({ cols: 110, rows: 18 })
+    const entry = makeEntry({
+      id: "assistant-summary-command-collapse",
+      ts: 2000,
+      ops: [
+        tool("cmd-1", "Bash", { command: "printf first" }, "FIRST-COMMAND-OUTPUT"),
+        tool("cmd-2", "Bash", { command: "printf second" }, "SECOND-COMMAND-OUTPUT"),
+      ],
+    })
+    const handle = await run(
+      <Box width={110} height={18} flexDirection="column">
+        <SessionUpdateList
+          messages={[entry]}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          sessionId="turn-summary-command-collapse-test"
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+          follow={false}
+        />
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle(80)
+      const beforeLines = term.screen.getLines()
+      const summaryRow = beforeLines.findIndex((line) => line.includes("Ran 2 commands"))
+      expect(summaryRow, beforeLines.join("\n")).toBeGreaterThanOrEqual(0)
+      const summaryCol = beforeLines[summaryRow]!.indexOf("Ran 2 commands")
+
+      await term.mouse.click(summaryCol, summaryRow)
+      await settle(80)
+      let commandLines = term.screen.getLines()
+      const commandRow = commandLines.findIndex((line) => line.includes("$ printf first"))
+      expect(commandRow, commandLines.join("\n")).toBeGreaterThanOrEqual(0)
+      const commandCol = commandLines[commandRow]!.indexOf("$ printf first")
+
+      await term.mouse.click(commandCol, commandRow)
+      await settle(80)
+      expect(term.screen.getText()).toContain("FIRST-COMMAND-OUTPUT")
+
+      commandLines = term.screen.getLines()
+      const expandedCommandRow = commandLines.findIndex((line) => line.includes("$ printf first"))
+      expect(expandedCommandRow, commandLines.join("\n")).toBeGreaterThanOrEqual(0)
+      await term.mouse.click(commandCol, expandedCommandRow)
+      await settle(80)
+
+      expect(term.screen.getText()).not.toContain("FIRST-COMMAND-OUTPUT")
+      expect(term.screen.getText()).toContain("$ printf first")
+      expect(term.screen.getText()).toContain("$ printf second")
     } finally {
       handle.unmount()
     }
@@ -1282,6 +1345,165 @@ describe("TurnActivitySummary", () => {
     } finally {
       handle.unmount()
     }
+  })
+
+  test("expanded activity summary wraps long command rows instead of truncating them", async () => {
+    using term = createTermless({ cols: 96, rows: 18 })
+    const longCommand =
+      "git status --short apps/silvercode/src/agent-capabilities.ts apps/silvercode/src/components/SessionUpdateList.tsx TAIL_MARKER_WRAPPED"
+    const entry = makeEntry({
+      id: "assistant-summary-wrap-command",
+      ts: 2000,
+      ops: [
+        tool("cmd-1", "Bash", { command: longCommand }, "ok"),
+        tool("cmd-2", "Bash", { command: "printf short" }, "short"),
+      ],
+    })
+    const handle = await run(
+      <Box width={96} height={18} flexDirection="column">
+        <SessionUpdateList
+          messages={[entry]}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          sessionId="turn-summary-wrap-command-test"
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+        />
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle(80)
+      const beforeLines = term.screen.getLines()
+      const summaryRow = beforeLines.findIndex((line) => line.includes("Ran 2 commands"))
+      expect(summaryRow, beforeLines.join("\n")).toBeGreaterThanOrEqual(0)
+      const summaryCol = beforeLines[summaryRow]!.indexOf("Ran 2 commands")
+
+      await term.mouse.click(summaryCol, summaryRow)
+      await settle(80)
+
+      const text = term.screen.getText()
+      expect(text).toContain("$ git status --short")
+      expect(text).toContain("TAIL_MARKER_WRAPPED")
+    } finally {
+      handle.unmount()
+    }
+  })
+
+  test("expanded high-volume command summary shows command rows", async () => {
+    using term = createTermless({ cols: 120, rows: 34 })
+    const filler = Array.from({ length: 20 }, (_, i) => makeUserEntry(`u-command-tail-${i}`, `filler prompt ${i}`, i))
+    const entry = makeEntry({
+      id: "assistant-summary-command-only-high-volume",
+      ts: 2000,
+      ops: Array.from({ length: 11 }, (_, i) =>
+        tool(`cmd-${i}`, "Bash", { command: `printf command-${i}` }, `output ${i}`),
+      ),
+    })
+    const handle = await run(
+      <Box width={120} height={34} flexDirection="column">
+        <SessionUpdateList
+          messages={[...filler, entry]}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          sessionId="turn-summary-high-volume-command-test"
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+        />
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle(80)
+      const beforeLines = term.screen.getLines()
+      const summaryRow = beforeLines.findIndex((line) => line.includes("Ran 11 commands"))
+      expect(summaryRow, beforeLines.join("\n")).toBeGreaterThanOrEqual(0)
+      const summaryCol = beforeLines[summaryRow]!.indexOf("Ran 11 commands")
+
+      await term.mouse.click(summaryCol, summaryRow)
+      await settle(120)
+
+      expect(term.screen.getText()).toContain("Ran 11 commands")
+      for (let i = 0; i < 8; i++) await term.mouse.wheel(60, 20, 1)
+      await settle(120)
+
+      expect(term.screen.getText()).toContain("$ printf command-0")
+      for (let i = 0; i < 8; i++) await term.mouse.wheel(60, 20, 1)
+      await settle(120)
+
+      expect(term.screen.getText()).toContain("$ printf command-10")
+    } finally {
+      handle.unmount()
+    }
+  })
+
+  test("expanded high-volume summary content remains reachable through transcript scroll", async () => {
+    const renderer = createRenderer({ cols: 120, rows: 18, autoRender: true })
+    const entry = makeEntry({
+      id: "assistant-summary-scroll-expanded-body",
+      ts: 2000,
+      ops: [
+        { kind: "text", text: "NARRATION-BEFORE-COMMANDS" },
+        tool(
+          "cmd-0",
+          "Bash",
+          { command: "printf command-0" },
+          Array.from({ length: 20 }, (_, i) => `cmd0-output-${i}`).join("\n"),
+        ),
+        ...Array.from({ length: 10 }, (_, i) =>
+          tool(`cmd-${i + 1}`, "Bash", { command: `printf command-${i + 1}` }, `output ${i + 1}`),
+        ),
+        { kind: "text", text: "TAIL-NARRATION-INSIDE-SUMMARY" },
+      ],
+    })
+    const app = renderer(
+      <Box width={120} height={18} flexDirection="column">
+        <SessionUpdateList
+          messages={[entry]}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          sessionId="turn-summary-scroll-expanded-body-test"
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+          follow="end"
+        />
+      </Box>,
+    )
+
+    const summaryRow = app.lines.findIndex((line) => line.includes("Ran 11 commands"))
+    expect(summaryRow, app.text).toBeGreaterThanOrEqual(0)
+    const summaryCol = app.lines[summaryRow]!.indexOf("Ran 11 commands")
+
+    await app.click(summaryCol, summaryRow)
+    await settle(80)
+    const commandRow = app.lines.findIndex((line) => line.includes("$ printf command-0"))
+    expect(commandRow, app.text).toBeGreaterThanOrEqual(0)
+    const commandCol = app.lines[commandRow]!.indexOf("$ printf command-0")
+
+    await app.click(commandCol, commandRow)
+    await settle(80)
+    expect(app.text).toContain("cmd0-output-0")
+
+    for (let i = 0; i < 30; i++) {
+      await app.wheel(60, 10, 1)
+    }
+
+    expect(app.text).toContain("$ printf command-10")
+    expect(app.text).toContain("TAIL-NARRATION-INSIDE-SUMMARY")
   })
 
   test("expanding a large edit activity summary keeps transcript content visible", async () => {

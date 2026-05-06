@@ -13,7 +13,7 @@ owns that layer.
 
 Architectural rule: **agents don't talk to each other**. The host curates a
 slice of cross-agent state and projects it into each agent's prompt as
-ambient context. Agents mutate the state via `coordinator-mcp` tools.
+notification context. Agents mutate the state via `coordinator-mcp` tools.
 
 ## Layers
 
@@ -57,14 +57,14 @@ mirrors it into `recentBroadcasts` so the prompt-projection slice sees it.
 
 `apps/silvercode/src/coordinator-mcp.ts`:
 
-| Tool                            | Mutating? | What it does                                        |
-| ------------------------------- | --------- | --------------------------------------------------- |
-| `coordinator_claim_file`        | yes       | Claim a path. Default exclusive.                    |
-| `coordinator_release_file`      | yes       | Release own claim.                                  |
-| `coordinator_handoff`           | yes       | Propose a handoff to another session.               |
-| `coordinator_status`            | no        | Read own claims + peers on shared paths + handoffs. |
-| `coordinator_active_sessions`   | no        | List live sessions.                                 |
-| `coordinator_recent_broadcasts` | no        | Read recent peer activity.                          |
+| Tool                          | Mutating? | What it does                                        |
+| ----------------------------- | --------- | --------------------------------------------------- |
+| coordinator_claim_file        | yes       | Claim a path. Default exclusive.                    |
+| coordinator_release_file      | yes       | Release own claim.                                  |
+| coordinator_handoff           | yes       | Propose a handoff to another session.               |
+| coordinator_status            | no        | Read own claims + peers on shared paths + handoffs. |
+| coordinator_active_sessions   | no        | List live sessions.                                 |
+| coordinator_recent_broadcasts | no        | Read recent peer activity.                          |
 
 Mutating tools have `dangerous: true` and MUST be gated through ACP
 `RequestPermission`. Read-only tools auto-approve.
@@ -109,8 +109,8 @@ Slice contents (peer-only by default):
 - **Your pending handoffs** — outbound proposals not yet resolved.
 - **Recent peer broadcasts** — last N events from the channel queue.
 
-Body is markdown wrapped in the same `[AMBIENT — informational, do not act]`
-framing the channel-queue ambient blocks use. Agents treat the slice as
+Body is markdown wrapped in the same `[NOTIFICATION — informational, do not act]`
+framing the channel-queue notification blocks use. Agents treat the slice as
 context, not as instructions.
 
 The slice is **opt-in**: callers pass `includeCrossAgent: true` to
@@ -120,7 +120,7 @@ invocations have nothing to project.
 Ordering contract:
 
 1. Cross-agent slice (most stable / curated)
-2. Ambient channel-queue blocks (mid)
+2. Notification channel-queue blocks (mid)
 3. User text (always last)
 
 ## Wiring in the controller
@@ -171,3 +171,4 @@ when it lands. Tests dispatch tool calls directly against the server's
 - **Handoff acceptance flow**: when a session accepts an inbound handoff,
   inject the handoff content into its next prompt automatically (today
   the agent must read it via `coordinator_status` and act on it).
+

@@ -56,10 +56,10 @@ import { sessionExchangeDividerBetweenExchanges } from "./stories/SessionExchang
 import { sessionRetryFailedExchange } from "./stories/SessionRetry.failed-exchange.story.tsx"
 import { subAgentExchangeCollapsed } from "./stories/SubAgentExchange.collapsed.story.tsx"
 import {
-  ambientEventRowAllSources,
-  ambientEventRowInlineSequence,
-  ambientEventRowTribeConcise,
-} from "./stories/AmbientEventRow.story.tsx"
+  notificationEventRowAllSources,
+  notificationEventRowInlineSequence,
+  notificationEventRowTribeConcise,
+} from "./stories/NotificationEventRow.story.tsx"
 import { contentLayout } from "./stories/Content.layout.story.tsx"
 import { allTogether } from "./stories/All.story.tsx"
 
@@ -107,10 +107,10 @@ export const STORIES: readonly Story[] = [
   sessionExchangeDividerBetweenExchanges,
   sessionRetryFailedExchange,
   subAgentExchangeCollapsed,
-  // Ambient observations (Phase 6.a — inline AmbientEventRow)
-  ambientEventRowAllSources,
-  ambientEventRowTribeConcise,
-  ambientEventRowInlineSequence,
+  // Notification observations (Phase 6.a — inline NotificationEventRow)
+  notificationEventRowAllSources,
+  notificationEventRowTribeConcise,
+  notificationEventRowInlineSequence,
   // Prompt composer (Wave B — acp-session-prompt)
   sessionPromptComposerEmpty,
   sessionPromptComposerWithText,

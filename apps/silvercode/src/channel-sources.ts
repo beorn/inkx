@@ -1,5 +1,5 @@
 /**
- * Channel sources — subscribers that push ambient events into the
+ * Channel sources — subscribers that push notification events into the
  * silvercode-owned `ChannelQueue`.
  *
  * Each source is a small, scope-bound subscriber. The convention is:
@@ -162,7 +162,7 @@ export function subscribeTribe(scope: Scope, queue: ChannelQueue, opts: { busPat
 // ---------------------------------------------------------------------------
 
 // Other sources (ci, recall, subagent, filewatch) live in
-// `apps/silvercode/src/ambient-adapters/` — that pipeline adds sanitize +
+// `apps/silvercode/src/notification-adapters/` — that pipeline adds sanitize +
 // debounce + per-source telemetry. The legacy tribe subscriber stays here
 // only as a fallback path; the new tribe adapter (with `~/.local/share/tribe/
 // activity.jsonl` primary + `~/.km/tribe-bus.jsonl` legacy fallback) is the

@@ -1,5 +1,5 @@
 /**
- * Welcome card feature tests for bead km-cr94.
+ * Welcome screen feature tests for bead km-cr94.
  *
  * Covers four feature additions (post-redesign per definitive spec):
  *   1. Big SILVER / CODE banner (figlet ASCII art with width fallback,
@@ -30,7 +30,7 @@ import { createRenderer } from "@silvery/test"
 import { Box, Screen } from "silvery"
 import { renderScenario } from "../src/test/render-harness.tsx"
 import { welcome } from "../src/test/scripts/welcome.ts"
-import { SessionCard } from "../src/components/SessionCard.tsx"
+import { ChatPane } from "../src/components/ChatPane.tsx"
 import { SessionUpdateList } from "../src/components/SessionUpdateList.tsx"
 import type { MessageEntry } from "@km/agent-harness"
 
@@ -54,7 +54,7 @@ function userEntry(text: string, id = "u-1"): MessageEntry {
 }
 
 // ============================================================================
-// Shared fixture: SessionCard mount with controllable state + resume flag.
+// Shared fixture: ChatPane mount with controllable state + resume flag.
 // ============================================================================
 
 type Variant = {
@@ -90,7 +90,7 @@ function makeHandle(v: Variant) {
   } as never
 }
 
-function renderCard(handle: never, cols = 100, rows = 50, agent = "claude-code") {
+function renderWelcome(handle: never, cols = 100, rows = 50, agent = "claude-code") {
   // Stub process.stdout dims so silvery's <Screen> picks up the test
   // virtual size (it reads `getTermDims()` from the host stdout). Same
   // technique the production `renderScenario` harness uses.
@@ -103,7 +103,7 @@ function renderCard(handle: never, cols = 100, rows = 50, agent = "claude-code")
     return renderer(
       <Screen flexDirection="row">
         <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
-          <SessionCard
+          <ChatPane
             handle={handle}
             isFocused
             agent={agent}
@@ -158,7 +158,7 @@ describe("feature 1 — shaded banner (primary tier)", () => {
 
 describe("feature 2 — Welcome screen (fresh vs loading)", () => {
   test("fresh session, status=spawning: banner only, composer shown immediately (no Loading line)", () => {
-    const app = renderCard(makeHandle({ status: "spawning" }))
+    const app = renderWelcome(makeHandle({ status: "spawning" }))
     // Banner renders (Big-tier signature).
     expect(app.text).toMatch(/[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/)
     // No "Loading session" — spawning is no longer treated as a loading
@@ -172,7 +172,7 @@ describe("feature 2 — Welcome screen (fresh vs loading)", () => {
   })
 
   test("fresh session, status=idle: banner only, no Loading line", () => {
-    const app = renderCard(makeHandle({ status: "idle" }))
+    const app = renderWelcome(makeHandle({ status: "idle" }))
     expect(app.text).toMatch(/[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/)
     expect(app.text).not.toContain("Loading session")
     expect(app.text).not.toContain("COMMANDS")
@@ -181,7 +181,7 @@ describe("feature 2 — Welcome screen (fresh vs loading)", () => {
   test("loading session (resumeId set): centered Loading state keeps banner art", () => {
     const resumeId = "019ddb63-6e8d-7141-a603-f7c86c135be6"
     const idText = `codex:${resumeId}`
-    const app = renderCard(makeHandle({ status: "idle", resumeId }), 100, 50, "codex")
+    const app = renderWelcome(makeHandle({ status: "idle", resumeId }), 100, 50, "codex")
     expect(app.text).toMatch(/[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/)
     expect(app.text).toContain("Codex")
     expect(app.text).toContain("Loading session")
@@ -203,11 +203,11 @@ describe("feature 2 — Welcome screen (fresh vs loading)", () => {
 
   test("Welcome unmounts when messages.length transitions 0 → 1; chat view mounts", () => {
     // Render with empty messages first — Welcome screen.
-    const before = renderCard(makeHandle({ status: "idle", messages: [] }))
+    const before = renderWelcome(makeHandle({ status: "idle", messages: [] }))
     expect(before.text).toMatch(/[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/)
 
     // Render with one user message — chat view.
-    const after = renderCard(makeHandle({ status: "idle", messages: [userEntry("first prompt")] }))
+    const after = renderWelcome(makeHandle({ status: "idle", messages: [userEntry("first prompt")] }))
     // Banner + welcome chrome are GONE.
     expect(after.text).not.toMatch(/[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/)
     // Chat view shows the bubble's content (right-aligned bubble around
@@ -219,7 +219,7 @@ describe("feature 2 — Welcome screen (fresh vs loading)", () => {
 describe("feature 2 — chat view spawning placeholder", () => {
   test("spawning status + first user turn → 'Spawning Claude Code…' inline placeholder", () => {
     // Status="spawning" means session-init hasn't resolved → no version yet.
-    const app = renderCard(
+    const app = renderWelcome(
       makeHandle({
         status: "spawning",
         messages: [userEntry("hello claude")],
@@ -238,7 +238,7 @@ describe("feature 2 — chat view spawning placeholder", () => {
   })
 
   test("spawning status + version known → label includes 'v<version>'", () => {
-    const app = renderCard(
+    const app = renderWelcome(
       makeHandle({
         status: "spawning",
         messages: [userEntry("hello claude")],
@@ -253,7 +253,7 @@ describe("feature 2 — chat view spawning placeholder", () => {
     // Status="idle" + only-a-user-message means the turn is between user
     // and assistant — but ActivityIndicator only renders when status is
     // active (not idle/ended). So the spawning label must not appear.
-    const app = renderCard(
+    const app = renderWelcome(
       makeHandle({
         status: "idle",
         messages: [userEntry("hello claude")],
@@ -418,7 +418,7 @@ describe("km-silvercode.welcome-bypassed-by-pane-grid-spawn — banner from fram
   test("Welcome banner paints once spawn resolves; '◈ Spawning session…' never appears", async () => {
     // renderScenario waits for the spawn microtask + first session-init
     // before returning, so by the time we sample text the banner must be
-    // present (banner is in Welcome.tsx, mounted via SessionCard once
+    // present (banner is in Welcome.tsx, mounted via ChatPane once
     // sessions.length flips 1) — the legacy placeholder must NEVER appear
     // at any sampled frame in the steady state.
     const s = await renderScenario({ script: welcome, cols: 120, rows: 50, agent: "claude-code" })
@@ -426,7 +426,7 @@ describe("km-silvercode.welcome-bypassed-by-pane-grid-spawn — banner from fram
     // brand mark).
     expect(s.text).toMatch(/[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/)
     // The legacy placeholder must NOT be visible. Pre-fix this string
-    // appeared during the spawn-pending window before SessionCard mounted.
+    // appeared during the spawn-pending window before ChatPane mounted.
     expect(s.text).not.toContain("Spawning session…")
     s.dispose()
   })
@@ -482,7 +482,7 @@ describe("km-silvercode.welcome-bypassed-by-pane-grid-spawn — SessionPromptCom
     //
     // The component-level "Welcome unmounts when messages.length
     // transitions 0 → 1" test above (line 192) already pins the
-    // SessionCard re-render behavior; this test pins the reducer-level
+    // ChatPane re-render behavior; this test pins the reducer-level
     // behavior the optimistic apply depends on. Together they cover
     // the full Welcome → chat transition without depending on the
     // renderScenario harness's autoEmit / re-render plumbing (which
@@ -505,7 +505,7 @@ describe("km-silvercode.welcome-bypassed-by-pane-grid-spawn — SessionPromptCom
       text: "first prompt",
       ts: Date.now(),
     } as never)
-    // Post-condition: messages.length flipped 0 → 1; SessionCard's
+    // Post-condition: messages.length flipped 0 → 1; ChatPane's
     // `state.messages.length === 0` Welcome branch would now switch
     // to SessionUpdateList on the next render.
     const after = store.state.get()

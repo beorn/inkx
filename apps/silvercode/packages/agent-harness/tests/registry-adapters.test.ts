@@ -259,7 +259,7 @@ describe("connectAcpRegistry", () => {
 // `bun x @km/claude-acp` — but @km/claude-acp is private/workspace-only and
 // 404s on npm. The spawn failed silently inside an unawaited
 // `void spawnSession().catch(...)`, no session was created, and the App
-// rendered an empty welcome card on a blank screen.
+// rendered an empty welcome screen on a blank screen.
 //
 // This block asserts every entry in ACP_REGISTRY points at something
 // reachable BEFORE we ship it:
@@ -279,8 +279,8 @@ describe("connectAcpRegistry", () => {
 //     above would have failed with `404 Not Found`.
 //
 // We do NOT actually spawn the binaries here — that's structural
-// reachability only. The welcome-card smoke test in
-// apps/silvercode/tests/welcome-card-paints.test.tsx covers end-to-end
+// reachability only. The welcome-screen smoke test in
+// apps/silvercode/tests/welcome-screen-paints.test.tsx covers end-to-end
 // "if a session can spawn, the App actually paints" via a fake factory.
 
 type ReachabilityKind =

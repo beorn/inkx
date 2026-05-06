@@ -33,7 +33,7 @@ describe("visual harness smoke test", () => {
   test("helloWorld scenario renders assistant block with ● glyph", async () => {
     const s = await renderScenario({ script: helloWorld, cols: 120, rows: 30 })
     const p = parseFrame(s)
-    const assistants = p.cardStream.filter((b) => b.glyph === "•")
+    const assistants = p.blockStream.filter((b) => b.glyph === "•")
     expect(assistants.length, `No • found.\n${summarize(p)}`).toBeGreaterThan(0)
     expect(assistants[0]!.firstLineText).toContain("Hi")
   })

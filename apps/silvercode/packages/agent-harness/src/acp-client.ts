@@ -39,15 +39,7 @@ import * as acp from "@agentclientprotocol/sdk"
 import { Scope, disposable } from "@silvery/scope"
 import createDebug from "debug"
 import { acpRequestPermissionToSilvercode, acpToSilvercode } from "./acp-boundary.ts"
-import type {
-  AgentEvent,
-  AgentSession,
-  ContentBlock as LegacyContentBlock,
-  PermissionRequestId,
-  SessionId,
-  ToolUseId,
-  TurnId,
-} from "./events.ts"
+import type { AgentEvent, AgentSession, PermissionRequestId, SessionId, ToolUseId, TurnId } from "./events.ts"
 
 const dSpawn = createDebug("agent-harness:acp:spawn")
 const dWire = createDebug("agent-harness:acp:wire")
@@ -111,6 +103,8 @@ export type AcpConnectOpts = {
   terminalHandler?: TerminalHandler
   /** When true, swallow subprocess stderr instead of forwarding as `error` events. */
   silentStderr?: boolean
+  /** Spawn implementation for this connection. Tests and fake providers inject here. */
+  spawn?: AcpSpawn
   /** Skip the initial `newSession` call. Caller drives the session lifecycle. */
   skipNewSession?: boolean
   /**
@@ -206,13 +200,9 @@ export interface AcpAgentSession extends AgentSession {
 // catalogue work).
 // ---------------------------------------------------------------------------
 
-export type AcpRegistryId =
-  | "codex" // OpenAI Codex via @zed-industries/codex-acp
-  | "gemini" // Google Gemini CLI in ACP mode
-  | "github-copilot-cli" // GitHub Copilot CLI (binary on PATH)
-  | "pi-acp" // pi-acp ecosystem
-  | "claude" // silvercode-built subscription-compatible Claude wrapper
-  | "claude-code" // silvercode-built subscription-compatible Claude wrapper
+export const ACP_REGISTRY_IDS = ["codex", "gemini", "github-copilot-cli", "pi-acp", "claude", "claude-code"] as const
+
+export type AcpRegistryId = (typeof ACP_REGISTRY_IDS)[number]
 
 // `bun x` (not `npx`) is used for npm-resolved agents because silvercode
 // commonly runs inside the km monorepo, whose root package.json declares
@@ -439,7 +429,8 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
 
   dSpawn("connectAcp command=%s args=%o cwd=%s", opts.command, args, cwd)
 
-  const child = activeSpawn(opts.command, args, { cwd, env })
+  const spawn = opts.spawn ?? activeSpawn
+  const child = spawn(opts.command, args, { cwd, env })
   if (!child.stdin || !child.stdout) {
     throw new Error(`connectAcp: child process started without stdin/stdout pipes (command=${opts.command})`)
   }
@@ -1043,21 +1034,20 @@ function mapSessionUpdateToLegacyEvents(
   switch (scUpdate.sessionUpdate) {
     case "user_message_chunk":
     case "agent_message_chunk": {
-      const block = contentBlockToLegacy(scUpdate.content)
-      if (block.type === "text") {
+      if (scUpdate.content.type === "text") {
         events.push({
           kind: "text-delta",
           sessionId,
           turnId: messageTurnId,
           blockIndex: 0,
-          text: block.text,
+          text: scUpdate.content.text,
           ts,
         })
       } else {
         events.push({
           kind: "status",
           sessionId,
-          status: `acp:${scUpdate.sessionUpdate}:${block.type}`,
+          status: `acp:${scUpdate.sessionUpdate}:${scUpdate.content.type}`,
           ts,
         })
       }
@@ -1065,14 +1055,20 @@ function mapSessionUpdateToLegacyEvents(
     }
 
     case "agent_thought_chunk": {
-      const block = contentBlockToLegacy(scUpdate.content)
-      if (block.type === "text") {
+      if (scUpdate.content.type === "text") {
         events.push({
           kind: "thinking-delta",
           sessionId,
           turnId: messageTurnId,
           blockIndex: 0,
-          text: block.text,
+          text: scUpdate.content.text,
+          ts,
+        })
+      } else {
+        events.push({
+          kind: "status",
+          sessionId,
+          status: `acp:${scUpdate.sessionUpdate}:${scUpdate.content.type}`,
           ts,
         })
       }
@@ -1173,18 +1169,6 @@ function mapSessionUpdateToLegacyEvents(
     ts,
   })
   return events
-}
-
-function contentBlockToLegacy(block: import("./acp-types.ts").ContentBlock): LegacyContentBlock {
-  if (block.type === "text") {
-    return { type: "text", text: block.text }
-  }
-  if (block.type === "image") {
-    return { type: "image", mediaType: block.mimeType ?? "" }
-  }
-  // audio / resource_link / resource have no direct legacy slot. Surface as
-  // empty text so the caller can decide to emit a status event instead.
-  return { type: "text", text: "" }
 }
 
 function toolCallOutput(

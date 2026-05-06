@@ -9,7 +9,7 @@
  * the user can see what the sub-agent did without it dominating the primary
  * conversation flow.
  *
- * The outer card:
+ * The outer block:
  *   - Collapsed (default): shows the task description and final status.
  *   - Expanded: shows the nested stream inline (passed as `children`).
  *

@@ -9,7 +9,7 @@
  * scroll the update stream from the keyboard once the buffer fills
  * the viewport. We bind Shift+Arrow / Shift+PageUp/Down / Shift+Home/
  * End at the App's `useInput` and route them to the focused
- * SessionCard's SessionUpdateList via the `messageListsRef` registry.
+ * ChatPane's SessionUpdateList via the `messageListsRef` registry.
  *
  * SILVERY_STRICT is disabled for this file because silvery's
  * `follow="end"` snap-to-end interacts with strict incremental rendering

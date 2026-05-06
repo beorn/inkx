@@ -1,7 +1,7 @@
 /**
  * Codex --resume parser — turns codex's rollout JSONL into canonical
  * AgentEvents that populate the SessionStore so prior turns appear in
- * the card on resume.
+ * the block on resume.
  *
  * This test feeds a synthetic minimal codex transcript through the parser
  * and asserts the resulting store state matches what a user would expect:

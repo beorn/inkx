@@ -171,3 +171,4 @@ Option B's visual separation between queue and command makes the semantics self-
 - Queue search / filter
 - Per-entry cancel (✕) button — can come later; for now, Backspace-at-line-start merges entries (native TextArea)
 - Silvery TextArea `linePrefix` prop — we'll do the gutter-Box workaround for v1; silvery API can come after
+

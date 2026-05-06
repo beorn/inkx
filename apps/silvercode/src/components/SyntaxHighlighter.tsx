@@ -35,7 +35,7 @@ export interface SyntaxHighlighterProps {
   /** Shiki theme ID. Defaults to "github-dark". */
   theme?: ShikiTheme
   /**
-   * Drop the surrounding card chrome (border, padding, language label).
+   * Drop the surrounding block chrome (border, padding, language label).
    * Use when rendering inside another framing component (e.g. a borderless
    * popover) that owns the chrome. Default: false.
    */

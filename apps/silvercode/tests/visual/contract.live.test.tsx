@@ -56,7 +56,7 @@ describe.each([
   )
 
   it(
-    "single-turn hello — assistant glyph appears in the card stream",
+    "single-turn hello — assistant glyph appears in the block stream",
     async () => {
       // Fake mode plays the helloWorld script. Real mode ignores the
       // script (no spawnFactory injected) and the user must drive the
@@ -79,7 +79,7 @@ describe.each([
       const s = await renderScenario({ script: helloWorld, cols: COLS, rows: ROWS, live })
       try {
         const p = parseFrame(s)
-        const assistant = p.cardStream.find((b) => b.glyph === "•")
+        const assistant = p.blockStream.find((b) => b.glyph === "•")
         expect(assistant, `${label}: missing • assistant block`).toBeDefined()
         expect(assistant!.firstLineText).toContain("Hi")
       } finally {

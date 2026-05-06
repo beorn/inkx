@@ -10,7 +10,7 @@ import {
   BIG_TOOL_TURN,
   METADATA_NOTIFICATIONS,
   MULTI_TURN,
-  TURN_ACTIVITY_AMBIENT,
+  TURN_ACTIVITY_NOTIFICATION,
   TURN_ACTIVITY_RICH,
 } from "../support/sample-messages.ts"
 import type { Story } from "../types.ts"
@@ -342,14 +342,14 @@ export const chatTurnActivityRich: Story = {
   id: "Chat/turn-activity-rich",
   component: "Chat",
   variant: "turn-activity-rich",
-  description: "Production transcript with dense activity, ambient notifications, and preserved turn order.",
+  description: "Production transcript with dense activity, notifications, and preserved turn order.",
   render() {
     return (
       <Screen flexDirection="column">
         <Box flexDirection="column" flexGrow={1} minHeight={0}>
           <SessionUpdateList
             messages={TURN_ACTIVITY_RICH}
-            ambientEntries={TURN_ACTIVITY_AMBIENT}
+            notificationEntries={TURN_ACTIVITY_NOTIFICATION}
             onApprove={() => {}}
             onDeny={() => {}}
             sessionId="story-chat-turn-activity"

@@ -1,6 +1,6 @@
 /**
  * Regression: markdown paragraph text in the assistant row must WRAP at the
- * card boundary, not render as a single long line.
+ * block boundary, not render as a single long line.
  *
  * Screenshot 2026-04-24 14.18.36: "This is km (Knowledge Machine) at
  * ~/Code/pim/km — a TypeScript/Bun TUI workspace for agen" clipped at
@@ -79,7 +79,7 @@ function contentPastBoundary(text: string, boundary: number): string[] {
   return offenders
 }
 
-/** Minimal "card + side panel" shell. The outer Box pins `width` and
+/** Minimal "block + side panel" shell. The outer Box pins `width` and
  *  `height` to mirror what `<Screen>` does in the real app — without that,
  *  column→row→wrappable-text chains collapse to height=1 via correct CSS
  *  max-content sizing and the wrapping that the test wants to verify never
@@ -118,7 +118,7 @@ function AssistantRow({ text }: { text: string }): React.ReactElement {
   )
 }
 
-describe("regression: LinkifiedText wraps mixed-token paragraphs at card boundary", () => {
+describe("regression: LinkifiedText wraps mixed-token paragraphs at block boundary", () => {
   test("LinkifiedText with 5-piece shape wraps onto multiple visual lines", () => {
     // The screenshot text produces 2 detections: `~/Code/pim/km` and
     // `/Bun` (from "TypeScript/Bun"). That's 5 Text pieces in the row.
@@ -145,7 +145,7 @@ describe("regression: LinkifiedText wraps mixed-token paragraphs at card boundar
     expect(lines.some((l) => l.includes("React TUI"))).toBe(true)
   })
 
-  test("assistant row + MarkdownView wraps at card boundary", () => {
+  test("assistant row + MarkdownView wraps at block boundary", () => {
     const render = createRenderer({ cols: TOTAL_COLS, rows: 30 })
     const app = render(
       <Shell>
@@ -166,8 +166,8 @@ describe("regression: LinkifiedText wraps mixed-token paragraphs at card boundar
     expect(lines.some((l) => l.includes("React TUI"))).toBe(true)
   })
 
-  test("full App-style chain: 5 nested flex-grow boxes wrap at card boundary", () => {
-    // Mirrors apps/silvercode/src/App.tsx:397-430 + SessionCard.tsx.
+  test("full App-style chain: 5 nested flex-grow boxes wrap at block boundary", () => {
+    // Mirrors apps/silvercode/src/App.tsx:397-430 + ChatPane.tsx.
     // The outer Box width/height pin matches what `<Screen>` does in the
     // real app — see vendor/silvery/packages/ag-react/src/ui/components/
     // Screen.tsx:51-58. Without this pin, column→row→wrappable-text chains
@@ -178,7 +178,7 @@ describe("regression: LinkifiedText wraps mixed-token paragraphs at card boundar
         <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
           <Box flexDirection="row" flexWrap="wrap" flexGrow={1} flexShrink={1} minHeight={0}>
             <Box flexDirection="column" flexGrow={1} flexShrink={1} minHeight={0} minWidth={0}>
-              {/* SessionCard outer */}
+              {/* ChatPane outer */}
               <Box
                 flexDirection="column"
                 flexGrow={1}
@@ -188,7 +188,7 @@ describe("regression: LinkifiedText wraps mixed-token paragraphs at card boundar
                 overflow="hidden"
                 paddingX={1}
               >
-                {/* SessionCard inner */}
+                {/* ChatPane inner */}
                 <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} paddingX={1}>
                   <AssistantRow text={SCREENSHOT_TEXT} />
                 </Box>
@@ -213,7 +213,7 @@ describe("regression: LinkifiedText wraps mixed-token paragraphs at card boundar
     expect(lines.some((l) => l.includes("React TUI"))).toBe(true)
   })
 
-  test("plain MarkdownView wraps at card boundary", () => {
+  test("plain MarkdownView wraps at block boundary", () => {
     const render = createRenderer({ cols: TOTAL_COLS, rows: 30 })
     const app = render(
       <Shell>

@@ -5,7 +5,7 @@
  *
  * Call `expectLayoutInvariants(s)` at the end of every visual-scenario
  * test body. Each invariant has an opt-out flag for the rare case where
- * a scenario legitimately violates it (e.g. Welcome panel has no card
+ * a scenario legitimately violates it (e.g. Welcome panel has no block
  * stream so icon-align doesn't apply).
  *
  * The invariants use `parseFrame()` from `src/test/parse-frame.ts` — when
@@ -40,7 +40,7 @@ import {
 /**
  * Detect overflow: a wrapped word that crosses the `leftWidth` boundary
  * WITHOUT a whitespace gap. The real failure mode is text flowing
- * continuously from the card region into the side-panel column zone —
+ * continuously from the block region into the side-panel column zone —
  * "paragraph wraps into the side panel." We detect that by scanning
  * each line for a non-space run that spans [leftWidth - 1, leftWidth + 1]
  * AND whose continuation on the right side isn't clearly side-panel
@@ -79,7 +79,7 @@ export function assertNoOverflowIntoSidePanel(s: RenderedScenario, opts: { leftW
   }
   expect(
     offenders,
-    `card-region text overflowed into the side panel column zone across leftWidth=${leftWidth}. ` +
+    `block-region text overflowed into the side panel column zone across leftWidth=${leftWidth}. ` +
       `${offenders.length} line(s) have non-space text spanning [${leftWidth - 2}..${leftWidth + 2}]:\n` +
       offenders
         .slice(0, 5)
@@ -107,7 +107,7 @@ export function assertSidePanelVisible(s: RenderedScenario, opts: { leftWidth?: 
 // ----------------------------------------------------------------------------
 // Invariant: message-stream icon family alignment.
 //
-// The "flush" family (●, >, ◈) all use the card-stream's paddingX={1}
+// The "flush" family (●, >, ◈) all use the block-stream's paddingX={1}
 // inset and MUST appear at the same column. Tool call (⚙) has its own
 // block frame (border stripe + inner padding) and sits in a different
 // alignment family — excluded by default. Drift in the flush family
@@ -117,7 +117,7 @@ export function assertSidePanelVisible(s: RenderedScenario, opts: { leftWidth?: 
 
 export function assertIconFamilyAligned(s: RenderedScenario, opts: { leftWidth?: number } = {}): void {
   const p = parseFrame(s, { leftWidth: opts.leftWidth })
-  const flush = p.cardStream.filter((b) => b.glyph === "•" || b.glyph === ">" || b.glyph === "◈")
+  const flush = p.blockStream.filter((b) => b.glyph === "•" || b.glyph === ">" || b.glyph === "◈")
   if (flush.length < 2) return
   const columns = [...new Set(flush.map((b) => b.glyphCol))]
   if (columns.length === 1) return

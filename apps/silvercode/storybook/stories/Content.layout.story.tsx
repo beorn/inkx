@@ -69,7 +69,7 @@ const markdownTable =
 
 const tableHeaders = ["File", "Status", "Long Notes"]
 const tableRows = [
-  ["Content.tsx", "complete", "default table chooses prose, wide, full, or cards from layout lanes"],
+  ["Content.tsx", "complete", "default table chooses prose, wide, full, or blocks from layout lanes"],
   ["MarkdownView.tsx", "complete", "markdown tables render through Content.Table"],
 ]
 
@@ -156,7 +156,7 @@ export const contentLayout: Story = {
             <Section title="Explicit table variants">
               <Content.Table headers={tableHeaders} rows={tableRows} />
               <Content.Table.Grid headers={tableHeaders} rows={tableRows} widths={[16, 10, 36]} />
-              <Content.Table.Cards headers={tableHeaders} rows={tableRows} />
+              <Content.Table.Blocks headers={tableHeaders} rows={tableRows} />
             </Section>
 
             <Section title="Activity summary">

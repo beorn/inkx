@@ -12,7 +12,7 @@
 export * from "./events.ts"
 export { createStreamJsonParser, createLineSplitter } from "./parse.ts"
 export type { StreamJsonParser } from "./parse.ts"
-// Layer 3 transcript loop-closure (ambient-context-safety.md § 3 Layer 3).
+// Layer 3 transcript loop-closure (apps/silvercode/docs/channels.md § 3 Layer 3).
 // The parser auto-applies `quarantineLeadingRolePrefix` to every assistant
 // text block; these exports let the silvercode transcript builder do the
 // same when it works directly with `messages[]` arrays.
@@ -125,7 +125,13 @@ export {
 // ACP client — scope-bound ClientSideConnection factory for external ACP
 // servers (Codex, Gemini CLI, GitHub Copilot CLI, pi-acp). NOT for wrapping
 // Claude Code — see acp-adapter-claude bead.
-export { connectAcp, connectAcpRegistry, __setAcpSpawnForTesting, AcpResumeUnsupportedError } from "./acp-client.ts"
+export {
+  ACP_REGISTRY_IDS,
+  connectAcp,
+  connectAcpRegistry,
+  __setAcpSpawnForTesting,
+  AcpResumeUnsupportedError,
+} from "./acp-client.ts"
 export type {
   AcpAgentSession,
   AcpConnectOpts,
@@ -137,6 +143,27 @@ export type {
   PermissionHandler,
   TerminalHandler,
 } from "./acp-client.ts"
+
+export {
+  createAcpAgentBackend,
+  createAcpAgentBackends,
+  createAgentBackends,
+  createFakeAcpAgentBackend,
+  createFakeAcpAgentBackends,
+} from "./agent-backends.ts"
+export type {
+  AgentBackend,
+  AgentBackendConnectOptions,
+  AgentBackendId,
+  AgentBackendInput,
+  AgentBackends,
+  AgentConnection,
+  FakeAcpAgentBackend,
+  FakeAcpAgentBackends,
+} from "./agent-backends.ts"
+
+export { createChatSessionStore, createChatStore, withAgentBackends, withChat } from "./chat.ts"
+export type { AgentSelection, ChatOptions, ChatSessionStore, ChatStore, WritableSignal } from "./chat.ts"
 
 // ---------------------------------------------------------------------------
 // ACP fake — Layer 1 of `km-silvercode.acp-fake`. Scriptable test double that
@@ -155,7 +182,7 @@ export type {
   ScriptedDecisions,
 } from "./fake.ts"
 
-// Layer 2 ACP backend fake — in-process ACP server behind a fake spawn seam.
+// Layer 2 ACP backend fake — in-process ACP server behind provider-injected spawn.
 // Use this for contract tests that need the real ClientSideConnection wire
 // path without launching Codex/Gemini/Copilot/pi-acp binaries.
 export {
@@ -180,21 +207,21 @@ export type {
   FakeCodexAcpSpawnOptions,
 } from "./testing/fake-acp-server.ts"
 export {
-  acpBackendContractTargetsForEnv,
+  agentBackendSpecTargetsForEnv,
   assertConfigOptionRoundTrip,
-  runAcpBackendContract,
-} from "./testing/backend-contract-runner.ts"
+  assertPromptRoundTrip,
+  runAgentBackendSpec,
+} from "./testing/backend-spec-runner.ts"
 export type {
-  AcpBackendContractContext,
-  AcpBackendContractMode,
-  AcpBackendContractEnv,
-  AcpBackendContractResult,
-  AcpBackendContractTarget,
-  AcpBackendContractTargets,
-  ConfigOptionRoundTripContract,
-  FakeAcpBackendContractTarget,
-  LiveAcpBackendContractTarget,
-} from "./testing/backend-contract-runner.ts"
+  AgentBackendSpecContext,
+  AgentBackendSpecEnv,
+  AgentBackendSpecMode,
+  AgentBackendSpecResult,
+  AgentBackendSpecTarget,
+  AgentBackendSpecTargets,
+  ConfigOptionRoundTripSpec,
+  PromptRoundTripSpec,
+} from "./testing/backend-spec-runner.ts"
 
 // ---------------------------------------------------------------------------
 // ACP session — silvery-house-style reactive wrapper around the legacy

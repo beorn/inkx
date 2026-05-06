@@ -83,7 +83,7 @@ Each scenario asserts required substrings: `expect(text).toContain("Silver Code"
 
 ### H9. Diff snapshot for markdown
 
-A canonical markdown doc (headings, bullets, code fences, links, tight lists, loose lists, inline bold/italic/code) rendered into a card — snapshot.
+A canonical markdown doc (headings, bullets, code fences, links, tight lists, loose lists, inline bold/italic/code) rendered into a block — snapshot.
 **Cost**: cheap. **Coverage**: every markdown-rendering regression.
 **Winner** — addresses the "wrap broken" class directly.
 
@@ -156,10 +156,10 @@ The user's piecemeal feedback becomes a self-extinguishing problem:
 
 | Layer                      | Cost (per-test) | Coverage                          | Setup effort       | Status          |
 | -------------------------- | --------------- | --------------------------------- | ------------------ | --------------- |
-| Layout invariants (H3+H4)  | ~20ms           | Entire overflow/alignment classes | 1 helper           | **Ship**        |
-| Visual snapshots (H1+H6)   | ~100-300ms      | Every visible surface change      | 8 scenarios        | **Ship**        |
-| Markdown contract (H9)     | ~100ms × 4      | Wrap regressions in prose         | 1 doc + 1 test     | **Ship**        |
-| Regression file (H15)      | ~50-100ms each  | Never re-regress known bugs       | 1 README + culture | **Ship**        |
+| Layout invariants (H3+H4)  | ~20ms           | Entire overflow/alignment classes | 1 helper           | Ship            |
+| Visual snapshots (H1+H6)   | ~100-300ms      | Every visible surface change      | 8 scenarios        | Ship            |
+| Markdown contract (H9)     | ~100ms × 4      | Wrap regressions in prose         | 1 doc + 1 test     | Ship            |
+| Regression file (H15)      | ~50-100ms each  | Never re-regress known bugs       | 1 README + culture | Ship            |
 | Component renderer (H5)    | ~10-50ms        | Isolated component bugs           | Per-component      | Already partial |
 | Resize matrix (H7)         | ~300ms × 3      | Narrow-terminal bugs              | Param scenarios    | v2              |
 | Keystroke simulation (H10) | ~200ms          | Interactive flows                 | Scripted keys      | v2              |
@@ -178,7 +178,7 @@ Ran `/pro review` (GPT-5.4 Pro + Kimi K2.6, dual-pro, $1.90) against the design 
 - **Activity indicator rotation/elapsed/tokens** — requires fake clock. v2 work.
 - **Hover popovers / scroll position / focus ring** — session-event harness can't drive these. v2.
 
-The v1 contract is narrower: **static final-frame composition + layout regressions** in the card stream and side panel. Everything else is an explicit v2 bead.
+The v1 contract is narrower: **static final-frame composition + layout regressions** in the block stream and side panel. Everything else is an explicit v2 bead.
 
 **P0.2 — Kill destructive normalization.** In a TUI, blank lines ARE vertical rhythm and trailing whitespace IS padding. Normalization now strips ONLY content-volatile text (elapsed `Ns`, `Nm Ns`, specific timestamps via marker regex). Row structure, blank lines, and column occupancy are preserved verbatim. If a blank line disappears between "before" and "after", the diff shows it.
 
@@ -188,7 +188,7 @@ The v1 contract is narrower: **static final-frame composition + layout regressio
 
 **Reviewable `.frame.txt` fixtures, not vitest `.snap` files.** Vitest snapshots escape to single-line strings; a 30-line frame becomes a 200-char string nobody reviews in the PR diff. We store expected output as literal multi-line `.frame.txt` files next to the test. Git diff shows exactly which rows changed. No `--update-snapshot` escape hatch — updating means editing the fixture by hand, which forces review.
 
-**Semantic FrameParser for structural assertions.** Absolute `(col, row)` coordinates break under any layout shift. A `parseFrame(text, { cols })` helper extracts semantic regions: `cardStream[]`, `sidePanel.modeRow`, `inputBox`, `welcome.rows[]`. Tests assert `layout.cardStream[0].textWidth === leftWidth - padding` — surviving refactors that shift the whole panel.
+**Semantic FrameParser for structural assertions.** Absolute `(col, row)` coordinates break under any layout shift. A `parseFrame(text, { cols })` helper extracts semantic regions: `blockStream[]`, `sidePanel.modeRow`, `inputBox`, `welcome.rows[]`. Tests assert `layout.blockStream[0].textWidth === leftWidth - padding` — surviving refactors that shift the whole panel.
 
 **Region snapshots, not whole-frame.** Whole-frame snapshots only for the smoke-test scenarios (2-3 canonical). The bulk of assertions are region-level (welcome panel, side panel, first assistant block) so a copy tweak in the welcome panel doesn't churn the side-panel snapshots.
 
@@ -196,21 +196,21 @@ The v1 contract is narrower: **static final-frame composition + layout regressio
 
 ### Coverage matrix (falsifiable)
 
-| Bug class                                  | Test type         | Where                                    | Assertion                                             | v1? |
-| ------------------------------------------ | ----------------- | ---------------------------------------- | ----------------------------------------------------- | --- |
-| paragraph overflows into side panel        | e2e               | `visual/scenarios.test.tsx`              | `assertNoOverflowIntoSidePanel`                       | ✓   |
-| paragraph clips one char short             | component         | `visual/markdown.test.tsx`               | `parseFrame().wrapShape` deep-equal to golden         | ✓   |
-| message-stream icon drift                  | e2e invariant     | `visual/scenarios.test.tsx`              | `assertIconFamilyAligned`                             | ✓   |
-| mode glyph typo / wrong label              | side-panel region | `visual/side-panel.test.tsx`             | `parseFrame().modeRow === { icon, label, color }`     | ✓   |
-| welcome panel missing row                  | region snapshot   | `visual/welcome.test.tsx`                | `.frame.txt` fixture diff                             | ✓   |
-| `paddingX` regression on assistant row     | region snapshot   | `visual/scenarios.test.tsx helloWorld`   | fixture diff — icon column shifts                     | ✓   |
-| side panel pushed off-screen               | layout invariant  | `visual/scenarios.test.tsx longTool`     | `assertSidePanelVisible`                              | ✓   |
-| markdown wrap broken at narrow width       | region at width   | `visual/markdown.test.tsx`               | rendered at {40, 60, 80, 120}; fixture diff per width | ✓   |
-| queue editor height grows on 3 queued msgs | interactive       | **v2** — needs keystroke simulation      | —                                                     | —   |
-| resume hint stderr after alt-screen        | process harness   | **v2** — needs process-level capture     | —                                                     | —   |
-| activity verb rotation / elapsed tail      | fake clock        | **v2** — needs `vi.useFakeTimers()` wire | —                                                     | —   |
-| hover popovers (Sessions/Todos/Mode)       | UI driver         | **v2**                                   | —                                                     | —   |
-| scroll position / focus ring               | UI driver         | **v2**                                   | —                                                     | —   |
+| Bug class                                  | Test type         | Where                                | Assertion                                             | v1? |
+| ------------------------------------------ | ----------------- | ------------------------------------ | ----------------------------------------------------- | --- |
+| paragraph overflows into side panel        | e2e               | visual/scenarios.test.tsx            | assertNoOverflowIntoSidePanel                         | ✓   |
+| paragraph clips one char short             | component         | visual/markdown.test.tsx             | parseFrame().wrapShape deep-equal to golden           | ✓   |
+| message-stream icon drift                  | e2e invariant     | visual/scenarios.test.tsx            | assertIconFamilyAligned                               | ✓   |
+| mode glyph typo / wrong label              | side-panel region | visual/side-panel.test.tsx           | parseFrame().modeRow === { icon, label, color }       | ✓   |
+| welcome panel missing row                  | region snapshot   | visual/welcome.test.tsx              | .frame.txt fixture diff                               | ✓   |
+| paddingX regression on assistant row       | region snapshot   | visual/scenarios.test.tsx helloWorld | fixture diff — icon column shifts                     | ✓   |
+| side panel pushed off-screen               | layout invariant  | visual/scenarios.test.tsx longTool   | assertSidePanelVisible                                | ✓   |
+| markdown wrap broken at narrow width       | region at width   | visual/markdown.test.tsx             | rendered at {40, 60, 80, 120}; fixture diff per width | ✓   |
+| queue editor height grows on 3 queued msgs | interactive       | v2 — needs keystroke simulation      | —                                                     | —   |
+| resume hint stderr after alt-screen        | process harness   | v2 — needs process-level capture     | —                                                     | —   |
+| activity verb rotation / elapsed tail      | fake clock        | v2 — needs vi.useFakeTimers() wire   | —                                                     | —   |
+| hover popovers (Sessions/Todos/Mode)       | UI driver         | v2                                   | —                                                     | —   |
+| scroll position / focus ring               | UI driver         | v2                                   | —                                                     | —   |
 
 ### Mutation proof
 
@@ -219,15 +219,15 @@ Every "we catch this" row in the matrix above has a companion mutation test in `
 ### v1 scope (what ships in this session)
 
 1. `renderScenario()` harness (scripted-event-driven, synchronous, real `<App/>`).
-2. `parseFrame()` semantic parser — cardStream, sidePanel, welcome region, input box.
+2. `parseFrame()` semantic parser — blockStream, sidePanel, welcome region, input box.
 3. Layout invariants — overflow, icon alignment, mode row, side panel visible, command input present.
 4. 7 canonical scenarios: welcome, helloWorld, multiTurn, bashTool, longToolResult, permissionRequest, markdownRich.
 5. 3 visual test files:
-   - `visual/scenarios.test.tsx` — runs every scenario, asserts invariants + small fixture diff on key regions
-   - `visual/markdown.test.tsx` — renders markdownRich at 4 widths, fixture diff per width
-   - `visual/side-panel.test.tsx` — mode glyph + label + color per mode (parsed, not coordinate-based)
-6. 1 mutation test file: `visual/mutations.test.ts` — proves the above tests catch 5 concrete injected regressions.
-7. `regressions/` seed + README — culture mechanism for user-reported bugs.
+- `visual/scenarios.test.tsx` — runs every scenario, asserts invariants + small fixture diff on key regions
+- `visual/markdown.test.tsx` — renders markdownRich at 4 widths, fixture diff per width
+- `visual/side-panel.test.tsx` — mode glyph + label + color per mode (parsed, not coordinate-based)
+14. 1 mutation test file: `visual/mutations.test.ts` — proves the above tests catch 5 concrete injected regressions.
+15. `regressions/` seed + README — culture mechanism for user-reported bugs.
 
 ### v2 backlog (tracked as new beads)
 
@@ -305,8 +305,8 @@ export function assertIconFamilyAligned(frame: TextFrame, family: ReadonlyArray<
 export function assertModeRowWellFormed(frame: TextFrame, mode: ModeName): void
 ```
 
-- `assertNoOverflowIntoSidePanel` — for every non-empty line, the rightmost occupied cell within `[0, leftWidth)` must not contain text that continues past that boundary. (Pragmatic version: extract columns `[0, leftWidth)` → that substring of the card region should not equal the next column, i.e., wrapping correctly terminated.)
-- `assertIconFamilyAligned` — find all `●`, `>`, `◈`, `⚙` occurrences in the card region; assert they all appear at the same column (±1 for spinner vs glyph).
+- `assertNoOverflowIntoSidePanel` — for every non-empty line, the rightmost occupied cell within `[0, leftWidth)` must not contain text that continues past that boundary. (Pragmatic version: extract columns `[0, leftWidth)` → that substring of the block region should not equal the next column, i.e., wrapping correctly terminated.)
+- `assertIconFamilyAligned` — find all `●`, `>`, `◈`, `⚙` occurrences in the block region; assert they all appear at the same column (±1 for spinner vs glyph).
 - `assertModeRowWellFormed` — side panel contains `<MODE_ICON> <MODE_LABEL>` on one row at a specific column; icon and label render with the mode's color.
 
 Every scenario test body ends with:
@@ -319,7 +319,7 @@ expectLayoutInvariants(s.term.screen, { leftWidth: LEFT_WIDTH })
 
 Vitest's `toMatchSnapshot()` stores snapshots next to the test under `__snapshots__/`. Normalize before hashing:
 
-- Strip trailing spaces on each line
+- Trim trailing spaces on each line
 - Collapse runs of blank lines
 - Replace volatile text: `v0.1.0` version glyph, elapsed times (`1s` → `Ns`), timestamps
 
@@ -328,11 +328,11 @@ Vitest's `toMatchSnapshot()` stores snapshots next to the test under `__snapshot
 New mini-skill: `.claude/skills/silvercode/regression-from-bug.md` (future work). Rule:
 
 > When silvercode rendering bug is reported, before fixing:
->
-> 1. Read the bug + reproduce interactively.
-> 2. Add a scenario OR a `tests/regressions/<date>-<slug>.test.tsx` that FAILS.
-> 3. Fix code.
-> 4. Test now passes; never delete the test.
+> 
+> * Read the bug + reproduce interactively.
+> * Add a scenario OR a tests/regressions/<date>-<slug>.test.tsx that FAILS.
+> * Fix code.
+> * Test now passes; never delete the test.
 
 A single bead tag `silvercode-visual-regression` groups all such beads for pattern inventory.
 
@@ -349,7 +349,7 @@ After shipping this system, every mutation below triggers a specific failing tes
 
 - [x] Remove `paddingX={1}` from an assistant row → region fixture diff catches it + icon-align invariant catches it.
 - [x] Change `MODE_ICONS.plan` from `·` to `.` typo → `assertModeRowWellFormed` catches the wrong glyph; semantic mode-row parse catches it too.
-- [x] Remove `overflow="hidden"` from SessionCard outer Box → `assertNoOverflowIntoSidePanel` + `assertSidePanelVisible` on the longToolResult scenario.
+- [x] Remove `overflow="hidden"` from ChatPane outer Box → `assertNoOverflowIntoSidePanel` + `assertSidePanelVisible` on the longToolResult scenario.
 - [x] Break `MarkdownView` flexWrap so paragraphs overflow → `markdown.test.tsx` at 60 cols, `parseFrame().wrapShape` diff.
 - [x] Remove `◈` glyph from Silver Code line → side-panel region fixture diff.
 
@@ -392,12 +392,12 @@ Followups (new beads):
 
 Bead `km-silvercode.test-api-fakes` (closed 2026-04-24) extended ScriptedFakeSession's "fake the Claude session" coverage to every other third-party boundary the app touches. Each boundary now has a factory the harness installs before render and restores after.
 
-| Boundary           | What's faked                                                                           | Override entry point                                                                                                |
-| ------------------ | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Claude CLI version | async `spawn("claude", "--version")` lazily on first `<Suspense>` consumer             | `setVersionFactoryOverride()` + `SILVERCODE_FAKE_CLAUDE_VERSION` env var (override resets the cached probe promise) |
-| Git branch         | `.git/HEAD` walk in `gitBranchFor(cwd)`                                                | `setGitFactoryOverride((cwd) => name)` + `SILVERCODE_FAKE_BRANCH` env var                                           |
-| Account / quota    | accountly's `checkProfileQuota`, keychain reads, `~/.cache/km/quota-*.json` disk cache | `setAccountFactoryOverride({ readCached, probe })`                                                                  |
-| Filesystem         | `~/.cache/km/`, `~/.km/` writes                                                        | `installFakes({ fsRoot })` allocates a tmp dir and overrides `HOME` + `XDG_CACHE_HOME`                              |
+| Boundary           | What's faked                                                                       | Override entry point                                                                                            |
+| ------------------ | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Claude CLI version | async spawn("claude", "--version") lazily on first <Suspense> consumer             | setVersionFactoryOverride() + SILVERCODE_FAKE_CLAUDE_VERSION env var (override resets the cached probe promise) |
+| Git branch         | .git/HEAD walk in gitBranchFor(cwd)                                                | setGitFactoryOverride((cwd) => name) + SILVERCODE_FAKE_BRANCH env var                                           |
+| Account / quota    | accountly's checkProfileQuota, keychain reads, ~/.cache/km/quota-*.json disk cache | setAccountFactoryOverride({ readCached, probe })                                                                |
+| Filesystem         | ~/.cache/km/, ~/.km/ writes                                                        | installFakes({ fsRoot }) allocates a tmp dir and overrides HOME + XDG_CACHE_HOME                                |
 
 ### How the wiring lands without touching components
 
@@ -437,10 +437,10 @@ Bead `km-silvercode.test-live-mode` (closed 2026-04-24) introduces a parallel "r
 
 ### Invocation
 
-| Mode | Command                                                      | What runs                                                  |
-| ---- | ------------------------------------------------------------ | ---------------------------------------------------------- |
-| Fake | `bun vitest run apps/silvercode/tests/`                      | Default — every visual scenario via fakes                  |
-| Live | `SILVERCODE_REAL=1 bun vitest run --project silvercode-live` | `*.live.test.tsx` only — real Claude CLI + accountly + git |
+| Mode | Command                                                    | What runs                                                |
+| ---- | ---------------------------------------------------------- | -------------------------------------------------------- |
+| Fake | bun vitest run apps/silvercode/tests/                      | Default — every visual scenario via fakes                |
+| Live | SILVERCODE_REAL=1 bun vitest run --project silvercode-live | *.live.test.tsx only — real Claude CLI + accountly + git |
 
 ### Pattern
 
@@ -453,3 +453,4 @@ The live project lives at `silvercode-live` in `vitest.config.ts` and is exclude
 - **Welcome** — empty session, real spawnSync of `claude --version`, real `.git/HEAD` walk, real keychain quota read.
 - **Single-turn hello** — sends a literal "say hi" prompt to the real CLI, asserts an assistant glyph + non-empty body in the rendered frame.
 - **Quota display** — real accountly probe; asserts the SidePanel renders ≥1 QuotaWindow row (specific %s vary; we assert structure, not values).
+

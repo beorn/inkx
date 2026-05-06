@@ -6,14 +6,14 @@ through alt-screen ANSI exactly as a user would. Sibling to `createTermless`
 
 ## When to reach for which harness
 
-| Situation                                                    | Use                       |
-| ------------------------------------------------------------ | ------------------------- |
-| Component-level visual contract, mid-turn UI state           | `createTermless` (faster) |
-| Cursor position / hardware-cursor visibility                 | **process-harness**       |
-| Alt-screen / DECRPM / Kitty keyboard probe sequences         | **process-harness**       |
-| Anything that depends on `process.stdout.isTTY === true`     | **process-harness**       |
-| Running the actual `bun silvercode` binary                   | **process-harness**       |
-| Driving fake AgentSession through `<App />` with React state | `createTermless`          |
+| Situation                                                  | Use                     |
+| ---------------------------------------------------------- | ----------------------- |
+| Component-level visual contract, mid-turn UI state         | createTermless (faster) |
+| Cursor position / hardware-cursor visibility               | process-harness         |
+| Alt-screen / DECRPM / Kitty keyboard probe sequences       | process-harness         |
+| Anything that depends on process.stdout.isTTY === true     | process-harness         |
+| Running the actual bun silvercode binary                   | process-harness         |
+| Driving fake AgentSession through <App /> with React state | createTermless          |
 
 `createTermless` is ~50ms/op; the process harness is ~1-2s/op (bun startup +
 first frame). Prefer in-process unless you need a real PTY.
@@ -97,11 +97,11 @@ negative tests that need to see stderr land in the PTY stream.
 
 ## Debug knobs
 
-| Env var                                  | Effect                                       |
-| ---------------------------------------- | -------------------------------------------- |
-| `DEBUG_LOG=/tmp/sc.log`                  | (set automatically) — the child's debug sink |
-| `DEBUG=km:*,silvery:*` (forward via env) | Activate debug namespaces in the child       |
-| `SILVERY_STRICT=1` (forward via env)     | Strict-mode invariants in the child          |
+| Env var                              | Effect                                       |
+| ------------------------------------ | -------------------------------------------- |
+| DEBUG_LOG=/tmp/sc.log                | (set automatically) — the child's debug sink |
+| DEBUG=km:,silvery: (forward via env) | Activate debug namespaces in the child       |
+| SILVERY_STRICT=1 (forward via env)   | Strict-mode invariants in the child          |
 
 Forward env vars via the `env` option:
 
@@ -117,3 +117,4 @@ through `harness.stderr.text()`.
 `km-silvercode.test-process-harness` (P2). Sibling: `km-silvercode.cursor
 -startup-position` (P1) — that bug is the original motivator and the
 canonical regression test under `tests/process/`.
+

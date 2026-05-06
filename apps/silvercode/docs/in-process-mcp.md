@@ -200,14 +200,12 @@ for await (const msg of query({
 Concretely:
 
 1. **(e) Merge km + tribe MCP servers** — 1 day. Halves the shutdown-latency problem immediately for Track 1 (subscription) users. Even with (f) in place, Track 1 remains the default path and benefits permanently.
-
 2. **(f) Wire in-process MCP for Track 2 (SDK)** — 2-3 days. Eliminates the grandchild MCP subprocesses entirely for users on API-key billing. Leverages existing `sdk-adapter.ts`. Good showcase of the Agent SDK integration.
-
 3. **(a) File an Anthropic feature request** asking for one of:
-   - A `type: "sdk"` / in-process MCP path in the CLI's `--mcp-config` schema, parallel to what the Agent SDK already offers internally.
-   - Or, a UDS/fd transport added to the MCP spec.
+- A `type: "sdk"` / in-process MCP path in the CLI's `--mcp-config` schema, parallel to what the Agent SDK already offers internally.
+- Or, a UDS/fd transport added to the MCP spec.
 
-   Without this, Track 1 (the subscription path most silvercode users are on) will always have MCP grandchildren and the shutdown drain they cause. Option (e) compresses the pain; only upstream support eliminates it.
+Without this, Track 1 (the subscription path most silvercode users are on) will always have MCP grandchildren and the shutdown drain they cause. Option (e) compresses the pain; only upstream support eliminates it.
 
 Do **not** pursue (b) (worker-thread shim), (c) (fd transport — no upstream support), or (d1-d5) (micro-optimizations that don't address the structural cause).
 
@@ -238,3 +236,4 @@ The user's whole reason for preferring Track 1 is **subscription billing** (OAut
 - Anthropic docs: https://code.claude.com/docs/en/agent-sdk/custom-tools (createSdkMcpServer)
 - Anthropic docs: https://code.claude.com/docs/en/agent-sdk/mcp (transport types)
 - MCP spec: https://modelcontextprotocol.io/specification/2025-06-18
+

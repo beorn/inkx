@@ -82,7 +82,7 @@ describe("Trailing '&' submit + background", () => {
       // running turn first.
       fake.emit(turnStart("a1"))
       await settle(40)
-      // Now type "bar &" — both the strip + background happen in sequence.
+      // Now type "bar &" — both the remove + background happen in sequence.
       feed(term, "bar &\r")
       await settle(180)
       // Mid-turn so "bar" gets queued (controller queues mid-turn) — but

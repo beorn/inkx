@@ -1,7 +1,7 @@
 /**
- * <ToolCall> — failed status, unified card.
+ * <ToolCall> — failed status, unified block.
  *
- * Demonstrates the failed-status card: one header (✗ glyph + "Read failed"),
+ * Demonstrates the failed-status block: one header (✗ glyph + "Read failed"),
  * one inline error message body — no separate envelope, no second "Error"
  * header line. Default-expanded: errors hide nothing.
  */
@@ -17,7 +17,7 @@ export const toolCallFailed: Story = {
   component: "ToolCall",
   variant: "failed",
   description:
-    "ACP tool call with status=failed — unified card with ✗ glyph, failure header, and inline error message.",
+    "ACP tool call with status=failed — unified block with ✗ glyph, failure header, and inline error message.",
   knobs: [
     {
       kind: "toggle",

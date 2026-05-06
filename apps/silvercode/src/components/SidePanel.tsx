@@ -18,7 +18,7 @@ import {
   modelLabel,
 } from "../context-windows.ts"
 import { gitBranchFor } from "../git-branch.ts"
-import { useAmbientMuteState } from "../hooks/use-ambient-stream.ts"
+import { useNotificationMuteState } from "../hooks/use-notification-stream.ts"
 import { useAllAccounts } from "../hooks/use-all-accounts.ts"
 import { useBackgroundTasks } from "../hooks/use-background-tasks.ts"
 import { useClaudeAccount } from "../hooks/use-claude-account.ts"
@@ -719,13 +719,13 @@ function SectionHeading({ children }: { children: React.ReactNode }): React.Reac
 }
 
 /**
- * Known ambient sources surfaced in the side panel. Mirrors the design
+ * Known notification sources surfaced in the side panel. Mirrors the design
  * doc's source taxonomy. Sources beyond this list still get muted via
- * `controller.ambientMuteState.toggle(...)` if a future bead surfaces
+ * `controller.notificationMuteState.toggle(...)` if a future bead surfaces
  * them programmatically; this constant just controls what the side
  * panel offers as toggle rows.
  */
-const AMBIENT_SOURCES: ReadonlyArray<{ id: string; label: string }> = [
+const NOTIFICATION_SOURCES: ReadonlyArray<{ id: string; label: string }> = [
   { id: "tribe", label: "tribe" },
   { id: "ci", label: "CI" },
   { id: "recall", label: "recall" },
@@ -735,11 +735,11 @@ const AMBIENT_SOURCES: ReadonlyArray<{ id: string; label: string }> = [
 ]
 
 /**
- * AmbientMuteRow — one toggle row for a single ambient source. Shows a
+ * NotificationMuteRow — one toggle row for a single notification source. Shows a
  * `☐` / `☑︎` checkbox marker plus the source label. Hover arms a brighter
  * background and surfaces a help popover; click toggles the mute.
  */
-function AmbientMuteRow({
+function NotificationMuteRow({
   source,
   label,
   isMuted,
@@ -756,7 +756,7 @@ function AmbientMuteRow({
       <Box flexDirection="column" gap={1}>
         <Text bold>Mute {label}</Text>
         <Muted>
-          Hides {label} ambient rows from this chat scrollback. The agent still receives the events — this is a visual
+          Hides {label} notification rows from this chat scrollback. The agent still receives the events — this is a visual
           filter only.
         </Muted>
       </Box>
@@ -791,11 +791,11 @@ function AmbientMuteRow({
 }
 
 /**
- * AmbientMuteSection — heading + per-source mute rows. Heading hover
+ * NotificationMuteSection — heading + per-source mute rows. Heading hover
  * popover spells out the structural guarantee that mute is UI-only.
  */
-function AmbientMuteSection({ controller }: { controller: Controller }): React.ReactElement {
-  const muted = useAmbientMuteState(controller)
+function NotificationMuteSection({ controller }: { controller: Controller }): React.ReactElement {
+  const muted = useNotificationMuteState(controller)
   const headingHover = usePopoverHandlers({
     body: (
       <Box flexDirection="column" gap={1}>
@@ -830,13 +830,13 @@ function AmbientMuteSection({ controller }: { controller: Controller }): React.R
       >
         <SectionHeading>Notifications</SectionHeading>
       </Box>
-      {AMBIENT_SOURCES.map((s) => (
-        <AmbientMuteRow
+      {NOTIFICATION_SOURCES.map((s) => (
+        <NotificationMuteRow
           key={s.id}
           source={s.id}
           label={s.label}
           isMuted={muted.has(s.id)}
-          onToggle={() => controller.ambientMuteState.toggle(s.id)}
+          onToggle={() => controller.notificationMuteState.toggle(s.id)}
         />
       ))}
     </Box>
@@ -1290,7 +1290,7 @@ function SidePanelChrome({
 
   return (
     // `userSelect="contain"` scopes drag-selection to the side panel —
-    // drags starting here can't extend into the card area.
+    // drags starting here can't extend into the block area.
     <Box flexDirection="column" flexGrow={1} paddingX={2} paddingY={1} userSelect="contain">
       {/* Sessions section — heading is a hover target with help. Keybinding
           hint (Ctrl+O) sits top-right as a dim reminder of how to toggle
@@ -1384,11 +1384,11 @@ function SidePanelChrome({
       {/* Notifications — per-source mute toggles for the inline observation
           rows in the chat scrollback. Mute hides matching rows from the
           inline view but does NOT prevent the agent from receiving the
-          events. The agent still sees every ambient observation; this
+          events. The agent still sees every notification observation; this
           is a visual filter only. See
-          hub/silvercode/design/ambient-inline-display.md. */}
+          apps/silvercode/docs/channels.md. */}
       <Box flexShrink={0} height={1} />
-      <AmbientMuteSection controller={controller} />
+      <NotificationMuteSection controller={controller} />
 
       {/* Background tasks — Ctrl-B during a running turn pushes the in-flight
           turn into the background so the user can keep typing. The row only

@@ -17,7 +17,7 @@ The canonical state is an ordered session stream:
 - `MessageEntry` for user, assistant, and system text/content.
 - `MessageOp` for text, thinking, raw payloads, and tool calls.
 - `AgentPlan` for the current session-scoped plan.
-- Permission, usage, lifecycle, ambient, and error updates as session-level records.
+- Permission, usage, lifecycle, notification, and error updates as session-level records.
 
 Source ids stay source-specific. Claude message/jsonl UUIDs are message provenance. Codex `turn_id`, when present, is provider provenance. ACP does not define a canonical turn id. New canonical model fields should not use `turnId`.
 
@@ -42,3 +42,4 @@ Use `turnKey` only as a UI projection key. It is derived from canonical session-
 The old `state.todos` surface is a legacy projection from `state.plan.entries`. New UI should read `state.plan`.
 
 The active plan renders above the composer as an in-session drawer. The side panel may show a count, but it is not the primary plan surface.
+

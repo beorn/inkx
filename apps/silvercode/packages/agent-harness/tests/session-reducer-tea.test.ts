@@ -320,8 +320,8 @@ describe("session-reducer — TEA discipline (action → effects, pure)", () => 
 
     const view = publicView(s)
     expect(view.messages[0]!.ops).toEqual([
-      { kind: "thinking", text: 'Right — "reference" just means "thing that resolves".' },
-      { kind: "text", text: "Visible reply." },
+      { kind: "thinking", text: 'Right — "reference" just means "thing that resolves".', ts: 2 },
+      { kind: "text", text: "Visible reply.", ts: 3 },
     ])
     expect(view.messages[0]!.text).toBe("Visible reply.")
   })

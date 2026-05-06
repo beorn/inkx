@@ -16,7 +16,7 @@
  *
  * This test pins the rendered order: a codex-shape MessageEntry with
  * interleaved text/tool/text/tool ops must render with text and tool
- * cards in that exact arrival order in the rendered frame.
+ * blocks in that exact arrival order in the rendered frame.
  *
  * Bead: km-silvercode.codex-bundling-order.
  */
@@ -156,7 +156,7 @@ describe("SessionUpdateList — codex tool-call interleaving (km-silvercode.code
     expect(app.text).toContain("Editing 2 files +1 -1")
   })
 
-  test("renders text and tool cards in arrival order (text → tool → text → tool)", () => {
+  test("renders text and tool blocks in arrival order (text → tool → text → tool)", () => {
     // Codex-shape: 4 ops alternating text and tool. Each text op contains
     // a unique anchor string so we can locate it in the rendered frame.
     const entry = makeEntry({
@@ -202,16 +202,16 @@ describe("SessionUpdateList — codex tool-call interleaving (km-silvercode.code
     const frame = app.text
 
     // Both text anchors must appear in the rendered frame (collapsed
-    // tool cards in narrow widths render without titles, but the text
+    // tool blocks in narrow widths render without titles, but the text
     // ops carry our unique anchors so the ordering check is robust).
     expect(frame).toContain("ANCHOR_ALPHA")
     expect(frame).toContain("ANCHOR_BETA")
 
     // The crucial assertion: text ops render in arrival order.
     // Pre-fix, both anchors would be concatenated together at the top
-    // ("ANCHOR_ALPHA ANCHOR_BETA"), then both tool cards would follow.
-    // Post-fix, ANCHOR_ALPHA appears, then a tool card, then
-    // ANCHOR_BETA, then another tool card — so there must be characters
+    // ("ANCHOR_ALPHA ANCHOR_BETA"), then both tool blocks would follow.
+    // Post-fix, ANCHOR_ALPHA appears, then a tool block, then
+    // ANCHOR_BETA, then another tool block — so there must be characters
     // *between* the two anchors that are NOT just whitespace/newlines.
     const idxAlpha = frame.indexOf("ANCHOR_ALPHA")
     const idxBeta = frame.indexOf("ANCHOR_BETA")

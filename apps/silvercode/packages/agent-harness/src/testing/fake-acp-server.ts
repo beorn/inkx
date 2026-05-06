@@ -16,6 +16,7 @@ export interface FakeAcpPromptContext {
   readonly conn: acp.AgentSideConnection
   readonly params: acp.PromptRequest
   readonly backend: FakeAcpBackendController
+  readonly configOptions: acp.SessionConfigOption[]
   emitText(text: string): Promise<void>
 }
 
@@ -38,6 +39,8 @@ export interface FakeAcpBackendProfile {
   promptText?: string | ((params: acp.PromptRequest) => string)
   /** Full prompt script. Use when a scenario needs permissions, fs, tools, etc. */
   onPrompt?: FakeAcpPromptHandler
+  /** Built-in prompt scenario used when neither `onPrompt` nor `promptText` is set. */
+  promptScenario?: "basic" | "comprehensive"
 }
 
 export interface FakeAcpSessionSnapshot {
@@ -67,6 +70,7 @@ export interface FakeAcpRegistrySpawnOptions {
   configOptions?: acp.SessionConfigOption[]
   promptText?: FakeAcpBackendProfile["promptText"]
   onPrompt?: FakeAcpPromptHandler
+  promptScenario?: FakeAcpBackendProfile["promptScenario"]
 }
 
 export const codexAcpProfile: FakeAcpBackendProfile = {
@@ -172,6 +176,7 @@ export function createFakeAcpRegistrySpawn(
     configOptions: opts.configOptions ?? profile.configOptions,
     promptText: opts.promptText ?? profile.promptText,
     onPrompt: opts.onPrompt ?? profile.onPrompt,
+    promptScenario: opts.promptScenario ?? profile.promptScenario,
   })
 }
 
@@ -246,9 +251,19 @@ class FakeAcpBackend implements FakeAcpBackendController {
             conn,
             params,
             backend: this,
+            configOptions: cloneConfigOptions(this.requireSession(params.sessionId).configOptions),
             emitText: (text) => emitText(conn, params.sessionId, text),
           })
           return response ?? { stopReason: "end_turn" }
+        }
+        if (!this.profile.promptText && (this.profile.promptScenario ?? "comprehensive") === "comprehensive") {
+          return emitComprehensivePrompt({
+            conn,
+            params,
+            backend: this,
+            configOptions: cloneConfigOptions(this.requireSession(params.sessionId).configOptions),
+            emitText: (text) => emitText(conn, params.sessionId, text),
+          })
         }
         const text =
           typeof this.profile.promptText === "function"
@@ -319,6 +334,205 @@ async function emitText(conn: acp.AgentSideConnection, sessionId: acp.SessionId,
   })
 }
 
+const FAKE_TOOL_KINDS = [
+  "read",
+  "edit",
+  "delete",
+  "move",
+  "search",
+  "execute",
+  "think",
+  "fetch",
+  "switch_mode",
+  "other",
+] as const satisfies readonly acp.ToolKind[]
+
+async function emitComprehensivePrompt(ctx: FakeAcpPromptContext): Promise<acp.PromptResponse> {
+  const { conn, params } = ctx
+  const sessionId = params.sessionId
+
+  await sessionUpdate(conn, sessionId, {
+    sessionUpdate: "agent_thought_chunk",
+    messageId: "00000000-0000-4000-8000-000000000001",
+    content: { type: "text", text: `fake ${ctx.backend.profile.id} reasoning trace` },
+  })
+  await sessionUpdate(conn, sessionId, {
+    sessionUpdate: "agent_message_chunk",
+    messageId: "00000000-0000-4000-8000-000000000002",
+    content: { type: "text", text: `fake ${ctx.backend.profile.id} comprehensive response` },
+  })
+  await sessionUpdate(conn, sessionId, {
+    sessionUpdate: "agent_message_chunk",
+    messageId: "00000000-0000-4000-8000-000000000003",
+    content: {
+      type: "image",
+      data: "iVBORw0KGgo=",
+      mimeType: "image/png",
+      uri: "file:///tmp/silvercode-fake/screenshot.png",
+    },
+  })
+  await sessionUpdate(conn, sessionId, {
+    sessionUpdate: "agent_message_chunk",
+    messageId: "00000000-0000-4000-8000-000000000004",
+    content: {
+      type: "audio",
+      data: "UklGRg==",
+      mimeType: "audio/wav",
+    },
+  })
+  await sessionUpdate(conn, sessionId, {
+    sessionUpdate: "agent_message_chunk",
+    messageId: "00000000-0000-4000-8000-000000000005",
+    content: {
+      type: "resource_link",
+      name: "fixture.md",
+      title: "Fake Fixture",
+      description: "Synthetic resource link emitted by the fake ACP backend.",
+      uri: "file:///tmp/silvercode-fake/fixture.md",
+      mimeType: "text/markdown",
+      size: 128,
+    },
+  })
+  await sessionUpdate(conn, sessionId, {
+    sessionUpdate: "agent_message_chunk",
+    messageId: "00000000-0000-4000-8000-000000000006",
+    content: {
+      type: "resource",
+      resource: {
+        uri: "file:///tmp/silvercode-fake/context.txt",
+        mimeType: "text/plain",
+        text: "synthetic embedded context",
+      },
+    },
+  })
+
+  for (const kind of FAKE_TOOL_KINDS) {
+    await emitToolScenario(conn, sessionId, kind)
+  }
+
+  await sessionUpdate(conn, sessionId, {
+    sessionUpdate: "plan",
+    entries: [
+      { content: "Survey local agent transcript event families", priority: "high", status: "completed" },
+      { content: "Exercise fake ACP provider stream", priority: "high", status: "in_progress" },
+      { content: "Compare fakes against live backend specs", priority: "medium", status: "pending" },
+    ],
+  })
+  await sessionUpdate(conn, sessionId, {
+    sessionUpdate: "available_commands_update",
+    availableCommands: [
+      {
+        name: "/fake-review",
+        description: "Run the fake review command.",
+        input: { hint: "optional scope" },
+      },
+      {
+        name: "/fake-compact",
+        description: "Run the fake compaction command.",
+      },
+    ],
+  })
+  await sessionUpdate(conn, sessionId, {
+    sessionUpdate: "current_mode_update",
+    currentModeId: "fake-act",
+  })
+  await sessionUpdate(conn, sessionId, {
+    sessionUpdate: "config_option_update",
+    configOptions: ctx.configOptions,
+  })
+  await sessionUpdate(conn, sessionId, {
+    sessionUpdate: "session_info_update",
+    title: `Fake ${ctx.backend.profile.id} session`,
+    updatedAt: "2026-05-06T00:00:00.000Z",
+  })
+  await sessionUpdate(conn, sessionId, {
+    sessionUpdate: "usage_update",
+    size: 200_000,
+    used: 1_024,
+    cost: { amount: 0.01, currency: "USD" },
+  })
+
+  return { stopReason: "end_turn" }
+}
+
+async function emitToolScenario(
+  conn: acp.AgentSideConnection,
+  sessionId: acp.SessionId,
+  kind: (typeof FAKE_TOOL_KINDS)[number],
+): Promise<void> {
+  const id = `fake-${kind}`
+  const path = `/tmp/silvercode-fake/${kind}.txt`
+  await sessionUpdate(conn, sessionId, {
+    sessionUpdate: "tool_call",
+    toolCallId: id,
+    title: `Fake ${kind} tool`,
+    kind,
+    status: "pending",
+    locations: [{ path, line: 1 }],
+    rawInput: { kind, path, query: `synthetic ${kind} request` },
+  })
+  await sessionUpdate(conn, sessionId, {
+    sessionUpdate: "tool_call_update",
+    toolCallId: id,
+    status: "pending",
+  })
+
+  if (kind === "execute") {
+    await sessionUpdate(conn, sessionId, {
+      sessionUpdate: "tool_call_update",
+      toolCallId: id,
+      status: "in_progress",
+      content: [{ type: "terminal", terminalId: "fake-terminal-1" }],
+    })
+  }
+
+  const failed = kind === "delete"
+  await sessionUpdate(conn, sessionId, {
+    sessionUpdate: "tool_call_update",
+    toolCallId: id,
+    status: failed ? "failed" : "completed",
+    locations: [{ path, line: 2 }],
+    content: toolContentFor(kind, path),
+    rawOutput: failed ? { ok: false, error: "synthetic failure" } : { ok: true, kind, path },
+  })
+}
+
+function toolContentFor(kind: (typeof FAKE_TOOL_KINDS)[number], path: string): acp.ToolCallContent[] {
+  if (kind === "edit") {
+    return [
+      {
+        type: "diff",
+        path,
+        oldText: "before\n",
+        newText: "after\n",
+      },
+    ]
+  }
+  if (kind === "execute") {
+    return [
+      { type: "terminal", terminalId: "fake-terminal-1" },
+      { type: "content", content: { type: "text", text: "exit 0\n" } },
+    ]
+  }
+  return [
+    {
+      type: "content",
+      content: {
+        type: "text",
+        text: `synthetic ${kind} output`,
+      },
+    },
+  ]
+}
+
+async function sessionUpdate(
+  conn: acp.AgentSideConnection,
+  sessionId: acp.SessionId,
+  update: acp.SessionUpdate,
+): Promise<void> {
+  await conn.sessionUpdate({ sessionId, update })
+}
+
 function createFakeAcpChild(toAgent: (conn: acp.AgentSideConnection) => acp.Agent): AcpSpawnedChild {
   const parentToServer = new PassThrough()
   const serverToParent = new PassThrough()
@@ -328,26 +542,10 @@ function createFakeAcpChild(toAgent: (conn: acp.AgentSideConnection) => acp.Agen
   const serverConn = new acp.AgentSideConnection(toAgent, acp.ndJsonStream(serverWritable, serverReadable))
 
   const events = new EventEmitter()
-  let exitCode: number | null = null
+  const exitCode: number | null = null
   let signalCode: NodeJS.Signals | null = null
-  let child: AcpSpawnedChild
 
-  function on(event: "exit", listener: (code: number | null, signal: NodeJS.Signals | null) => void): unknown
-  function on(event: "error", listener: (err: Error) => void): unknown
-  function on(
-    event: "exit" | "error",
-    listener: ((code: number | null, signal: NodeJS.Signals | null) => void) | ((err: Error) => void),
-  ): unknown {
-    events.on(event, listener as (...args: unknown[]) => void)
-    return child
-  }
-
-  function once(event: "exit", listener: (code: number | null, signal: NodeJS.Signals | null) => void): unknown {
-    events.once(event, listener)
-    return child
-  }
-
-  child = {
+  const child = {
     pid: 900_001,
     stdin: parentToServer,
     stdout: serverToParent,
@@ -369,8 +567,17 @@ function createFakeAcpChild(toAgent: (conn: acp.AgentSideConnection) => acp.Agen
       process.nextTick(() => events.emit("exit", 0, signalCode))
       return true
     },
-    on,
-    once,
+    on(
+      event: "exit" | "error",
+      listener: ((code: number | null, signal: NodeJS.Signals | null) => void) | ((err: Error) => void),
+    ): unknown {
+      events.on(event, listener as (...args: unknown[]) => void)
+      return child
+    },
+    once(event: "exit", listener: (code: number | null, signal: NodeJS.Signals | null) => void): unknown {
+      events.once(event, listener)
+      return child
+    },
   } satisfies AcpSpawnedChild
 
   void serverConn

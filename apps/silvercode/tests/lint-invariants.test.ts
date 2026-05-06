@@ -76,11 +76,11 @@ describe("silvercode invariants", () => {
         // same line. Narrow enough to ignore legitimate uses (e.g. Math.min
         // for maxLen in string truncation).
         // Narrow to the actually-dangerous pattern: arithmetic on terminal
-        // dims (termRows/termCols) or card dims (cardHeight/cardWidth).
+        // dims (termRows/termCols) or block dims (blockHeight/blockWidth).
         // Legitimate Math.* uses on string lengths / indexes stay clean.
         if (
           /Math\.(floor|ceil|round|max|min)\b/.test(line) &&
-          /\b(termRows|termCols|cardHeight|cardWidth)\b/.test(line)
+          /\b(termRows|termCols|blockHeight|blockWidth)\b/.test(line)
         ) {
           offenders.push({ file: relative(REPO_ROOT, file), line: line.trim() })
         }

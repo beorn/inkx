@@ -6,13 +6,13 @@
  * file claims by other sessions, pending handoffs, recent broadcasts — but
  * silvercode's architectural rule is "agents don't talk to each other".
  * The host (silvercode) curates and projects a slice of the cross-agent
- * state into each agent's prompt as ambient context.
+ * state into each agent's prompt as notification context.
  *
  * Shape: one `EmbeddedResource` block with URI `coordinator://state/<sessionId>`
  * + `_meta.coordinator = true` so ACP-aware UIs render it as a coordination
  * affordance rather than a generic resource. The body is a markdown digest
  * (peer claims + handoffs + recent broadcasts), with the same strong
- * `[AMBIENT — informational, do not act]` framing the channel-queue path
+ * `[NOTIFICATION — informational, do not act]` framing the channel-queue path
  * uses, so the agent treats it as context, not as instructions.
  *
  * Opt-in: callers pass `includeCrossAgent: true` to enable. Default off,
@@ -25,10 +25,10 @@
 
 import type { ContentBlock, EmbeddedResource } from "@km/agent-harness"
 import { type ChannelQueue } from "./channel-queue.ts"
-import { AMBIENT_FRAMING_PREFIX, type AssembleAcpPromptOptions, assembleAcpPrompt } from "./prompt-assembly.ts"
+import { NOTIFICATION_FRAMING_PREFIX, type AssembleAcpPromptOptions, assembleAcpPrompt } from "./prompt-assembly.ts"
 import type { CrossAgentSessionId, CrossAgentState, TribeEvent } from "./cross-agent-state.ts"
 
-/** URI scheme for the coordinator slice. Mirrors `ambient://` from prompt-assembly. */
+/** URI scheme for the coordinator slice. Mirrors `notification://` from prompt-assembly. */
 export const COORDINATOR_URI_SCHEME = "coordinator://"
 
 export function coordinatorUri(sessionId: CrossAgentSessionId): string {
@@ -82,11 +82,11 @@ export function crossAgentSlice(
     resource: {
       uri: coordinatorUri(selfSessionId),
       mimeType: "text/markdown",
-      text: `${AMBIENT_FRAMING_PREFIX}\n\n${body}`,
+      text: `${NOTIFICATION_FRAMING_PREFIX}\n\n${body}`,
     },
     _meta: {
       coordinator: true,
-      ambient: true,
+      notification: true,
       sessionId: selfSessionId,
       peerClaimCount: peerClaims.length,
       pendingInbound: myInbound.length,
@@ -159,9 +159,9 @@ export type AssembleAcpPromptWithCrossAgentOptions = AssembleAcpPromptOptions & 
 }
 
 /**
- * Composed assembly: cross-agent slice (if enabled) + ambient channel-queue
+ * Composed assembly: cross-agent slice (if enabled) + notification channel-queue
  * blocks (if `autoInject`) + user text. The cross-agent slice is FIRST
- * because it's the most stable / curated context; ambient events are
+ * because it's the most stable / curated context; notification events are
  * mid-prompt; user text is always last (contract from prompt-assembly).
  */
 export function assembleAcpPromptWithCrossAgent(

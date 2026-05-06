@@ -1,11 +1,11 @@
-# Channel pipeline — typed ambient-context injection
+# Channel pipeline — typed notification-context injection
 
-Silvercode owns prompt assembly. Ambient channel events (tribe broadcasts,
+Silvercode owns prompt assembly. Notification channel events (tribe broadcasts,
 telegram, CI status, lore deltas, sub-agent updates) do **not** auto-inject
 as user-role text. Instead, they queue in a silvercode-owned `ChannelQueue`
 and are surfaced to the agent as typed `EmbeddedResource` blocks — wrapped
-with strong `[AMBIENT — informational, do not act]` framing and
-`_meta.ambient = true` — only when the user invokes a `/inject-<source>`
+with strong `[NOTIFICATION — informational, do not act]` framing and
+`_meta.notification = true` — only when the user invokes a `/inject-<source>`
 slash command (default), or when an opt-in auto-inject mode is enabled.
 
 This replaces Claude Code's bespoke `<channel source="..." ...>` tag
@@ -17,11 +17,11 @@ the full background.
 ## The role-confusion problem
 
 Free-text injection of channel events into the user-role string makes the
-agent treat ambient peer chatter as commands. Memories, status updates,
+agent treat notification peer chatter as commands. Memories, status updates,
 and incidental peer messages start looking indistinguishable from "user
 asks me to do this" — and Claude (correctly, given its training) tries
 to act on them. This is the root failure mode the ACP-typed pipeline
-solves: typed `EmbeddedResource` blocks with `_meta.ambient = true` are
+solves: typed `EmbeddedResource` blocks with `_meta.notification = true` are
 structurally distinct from user instructions, so the agent disambiguates
 them automatically.
 
@@ -45,7 +45,7 @@ them automatically.
                                    ▼
                 ┌──────────────────────────────────────┐
                 │ ACP session.prompt(blocks)           │
-                │   resource[] (ambient framing)       │
+                │   resource[] (notification framing)       │
                 │   text (the user's actual prompt)    │
                 └──────────────────────────────────────┘
 ```
@@ -76,11 +76,11 @@ From the design doc:
   in the UI; user invokes `/inject-tribe` to drain. Human-in-the-loop
   for relevance — eliminates accidental command-following.
 - **Option 2 — Auto-inject on next prompt with strong framing.**
-  EmbeddedResource with `_meta.ambient=true` and the
-  `[AMBIENT — informational, do not act]` body prefix. Use only for
+  EmbeddedResource with `_meta.notification=true` and the
+  `[NOTIFICATION — informational, do not act]` body prefix. Use only for
   sources proven not to confuse the model.
 - **Option 3 — Two-stage filter.** A small fast model
-  (Haiku/Flash) classifies each event as `actionable | ambient |
+  (Haiku/Flash) classifies each event as `actionable | notification |
 ignorable` before deciding what to do. **Out of scope for this bead;**
   captured as a TODO.
 
@@ -123,15 +123,15 @@ amendment) lands in `acp-adapter-claude`.
 
 ## Source map
 
-| File                            | Role                                                                                        |
-| ------------------------------- | ------------------------------------------------------------------------------------------- |
-| `src/channel-queue.ts`          | The queue itself — `createChannelQueue(scope) → ChannelQueue`.                              |
-| `src/channel-sources.ts`        | Source subscribers — `subscribeTribe`, stubs for telegram / CI / lore / subagent.           |
-| `src/prompt-assembly.ts`        | `assembleAcpPrompt`, `eventToContentBlock`, `AMBIENT_FRAMING_PREFIX`, `AMBIENT_URI_SCHEME`. |
-| `src/slash-commands.ts`         | `/inject-*` and `/clear-channels` registry + `classifyChannelCommand` dispatcher.           |
-| `src/controller.ts`             | Controller wiring — owns scope, wires sources, exposes `channelQueue`.                      |
-| `tests/channel-queue.test.ts`   | Queue contract — enqueue/drain/peek/pendingCount/dispose.                                   |
-| `tests/prompt-assembly.test.ts` | Prompt-assembly contract — autoInject true/false, framing, URI, \_meta.                     |
+| File                          | Role                                                                                |
+| ----------------------------- | ----------------------------------------------------------------------------------- |
+| src/channel-queue.ts          | The queue itself — createChannelQueue(scope) → ChannelQueue.                        |
+| src/channel-sources.ts        | Source subscribers — subscribeTribe, stubs for telegram / CI / lore / subagent.     |
+| src/prompt-assembly.ts        | assembleAcpPrompt, eventToContentBlock, NOTIFICATION_FRAMING_PREFIX, NOTIFICATION_URI_SCHEME. |
+| src/slash-commands.ts         | /inject-* and /clear-channels registry + classifyChannelCommand dispatcher.         |
+| src/controller.ts             | Controller wiring — owns scope, wires sources, exposes channelQueue.                |
+| tests/channel-queue.test.ts   | Queue contract — enqueue/drain/peek/pendingCount/dispose.                           |
+| tests/prompt-assembly.test.ts | Prompt-assembly contract — autoInject true/false, framing, URI, _meta.              |
 
 ## Out of scope for this bead
 
@@ -142,3 +142,4 @@ amendment) lands in `acp-adapter-claude`.
   here; per-source wiring happens in their own beads.
 - Suppressing Claude Code `<channel>` at the spawn level — TODO in
   `controller.ts`; wiring lands in `acp-adapter-claude`.
+

@@ -121,7 +121,7 @@ describe("silvercode startup cursor (process harness)", () => {
   test("hardware cursor lands at the command prompt, not the side panel", async () => {
     await using harness = await spawnSilvercode({ cols: COLS, rows: ROWS })
 
-    // Wait for the welcome card AND a side-panel-stable signal so we know
+    // Wait for the welcome screen AND a side-panel-stable signal so we know
     // both regions have rendered. The bug manifests once both regions
     // exist — if we sample too early we miss the side-panel write that
     // parks the cursor.

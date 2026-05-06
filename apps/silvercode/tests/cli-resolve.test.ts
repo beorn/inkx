@@ -29,11 +29,11 @@ async function configWith(yaml: string) {
 
 beforeEach(async () => {
   tmpDir = await mkdtemp(join(tmpdir(), "silvercode-cli-resolve-"))
-  // Prevent ambient SILVERCODE_AGENT / KM_AGENT from leaking into the
+  // Prevent notification SILVERCODE_AGENT / KM_AGENT from leaking into the
   // explicit-input tests — env-fallback gets its own test that sets them.
   delete process.env["SILVERCODE_AGENT"]
   delete process.env["KM_AGENT"]
-  // Seed an ambient credential so the zero-config pre-flight is satisfied
+  // Seed a notification credential so the zero-config pre-flight is satisfied
   // for whichever built-in agent each test happens to resolve to. The
   // pre-flight's intent is verified in `zero-config.test.ts`; here we
   // just need *some* cred source so resolution returns a value.

@@ -6,7 +6,7 @@
  * The acceptance constraint that this file gates: the v1 grid renders
  * panes separated by a SINGLE column of `│` glyphs (one divider per
  * gap), the active pane shows a left-edge `▎` accent bar, and inactive
- * panes paint NO border / outline / header strip. Anything that
+ * panes paint NO border / outline / header row. Anything that
  * regresses to "borders around every pane" must be caught here.
  *
  * Wiring follows the queue-cursor.test.tsx pattern: real `<App/>` driven
@@ -70,7 +70,7 @@ describe("pane management — minimal chrome", () => {
       expect(text.includes("│")).toBe(true)
 
       // No per-pane borders. A naive implementation might wrap each
-      // SessionCard in `<Box borderStyle="single">` — that would
+      // ChatPane in `<Box borderStyle="single">` — that would
       // surface single-line corner glyphs. With the chrome-minimal
       // design, none of these should appear.
       expect(text).not.toContain("┌─")
@@ -86,7 +86,7 @@ describe("pane management — minimal chrome", () => {
   test("active pane renders the left-edge accent bar", async () => {
     const { term, handle, fakesInstalled } = await bootGrid("grid-2")
     try {
-      // SessionCard paints `▎` in $accent on the focused pane's left
+      // ChatPane paints `▎` in $accent on the focused pane's left
       // edge — that glyph IS the active-pane visual cue. Its presence
       // is the contract.
       expect(term.screen?.getText() ?? "").toContain("▎")
@@ -96,10 +96,10 @@ describe("pane management — minimal chrome", () => {
     }
   })
 
-  test("no per-pane header strip is rendered", async () => {
+  test("no per-pane header row is rendered", async () => {
     const { term, handle, fakesInstalled } = await bootGrid("grid-2")
     try {
-      // A header strip would carry add / close / minimize buttons. The
+      // A header row would carry add / close / minimize buttons. The
       // bead spec defers headers to v2 — these glyphs / labels must NOT
       // appear today. Asserting on `[+]` / `[×]` / `[_]` is a stable
       // proxy for "no chrome on the pane top".
@@ -116,7 +116,7 @@ describe("pane management — minimal chrome", () => {
   test("inactive pane has no border/outline of its own", async () => {
     const { term, handle, fakesInstalled } = await bootGrid("grid-2")
     try {
-      // A naive implementation might wrap each SessionCard in a
+      // A naive implementation might wrap each ChatPane in a
       // `<Box borderStyle="single">`. That would emit four corner
       // glyphs PER pane (≥8 corners with 2 panes). With the chrome-
       // minimal design we expect 0 — at most 1 from some unrelated UI

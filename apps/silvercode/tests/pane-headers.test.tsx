@@ -1,5 +1,5 @@
 /**
- * PaneHeader / paneHeaders prop — opt-in chrome strip per pane.
+ * PaneHeader / paneHeaders prop — opt-in chrome row per pane.
  *
  * Bead: km-silvercode.pane-headers (v2 of pane-management). The top-level
  * `--pane-headers` CLI flag was dropped in the connection-system refactor;
@@ -12,7 +12,7 @@
  *      flips the icon. No App, no controller, no fakes — fast.
  *
  *   2. Integration (createTermless + <App/>) — `paneHeaders` wired
- *      through PaneGrid actually paints the strip in the live grid;
+ *      through PaneGrid actually paints the row in the live grid;
  *      default-off keeps the v1 chrome-minimal contract intact.
  *
  * The CLICK paths through to App callbacks (`+` spawn, `×` close) are
@@ -151,7 +151,7 @@ describe("paneHeaders prop — opt-in wiring", () => {
     }
   })
 
-  test("paneHeaders=true renders the header strip glyphs", async () => {
+  test("paneHeaders=true renders the header row glyphs", async () => {
     const { term, handle, fakesInstalled } = await bootApp({ paneHeaders: true })
     try {
       const text = term.screen?.getText() ?? ""
@@ -160,7 +160,7 @@ describe("paneHeaders prop — opt-in wiring", () => {
       expect(text).toContain("+")
       expect(text).toContain("_")
       expect(text).toContain("×")
-      // Still no per-pane borders — header strip is 1 row, not a frame.
+      // Still no per-pane borders — header row is 1 row, not a frame.
       expect(text).not.toContain("┌─")
       expect(text).not.toContain("─┐")
     } finally {

@@ -719,7 +719,7 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
               // Layer 3 loop-closure: if the assistant text starts with a
               // role-prefix marker, quarantine it inline so the next
               // session's transcript builder does not re-ingest it as a
-              // synthetic user turn. See ambient-context-safety.md § 3
+              // synthetic user turn. See apps/silvercode/docs/channels.md § 3
               // Layer 3 / forensic session e8967322.
               return { type: "text", text: quarantineLeadingRolePrefix(String(b.text ?? "")) }
             }

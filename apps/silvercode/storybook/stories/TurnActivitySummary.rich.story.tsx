@@ -3,7 +3,7 @@
  *
  * Covers the bead acceptance fixtures: active turn with reads/writes/commands,
  * long bash output, failed command, file edit diff, todo changes, permission
- * prompt adjacency, ambient notifications, and collapsed vs expanded states.
+ * prompt adjacency, notifications, and collapsed vs expanded states.
  */
 
 import React from "react"
@@ -12,7 +12,7 @@ import type { ToolCall as ToolCallType, ToolCallId } from "@km/agent-harness"
 import { SessionUpdateList } from "../../src/components/SessionUpdateList.tsx"
 import { InlinePermissionPrompt } from "../../src/components/InlinePermissionPrompt.tsx"
 import { TurnActivitySummary, type TurnActivitySummaryItem } from "../../src/components/TurnActivitySummary.tsx"
-import { TURN_ACTIVITY_AMBIENT, TURN_ACTIVITY_RICH } from "../support/sample-messages.ts"
+import { TURN_ACTIVITY_NOTIFICATION, TURN_ACTIVITY_RICH } from "../support/sample-messages.ts"
 import { withActivitySpan } from "../support/activity-summary.ts"
 import { fakeSessionHandle } from "../support/fake-session-handle.ts"
 import type { Story } from "../types.ts"
@@ -125,7 +125,7 @@ export const sessionUpdateListTurnActivityRich: Story = {
   id: "SessionUpdateList/turn-activity-rich",
   component: "SessionUpdateList",
   variant: "turn-activity-rich",
-  description: "Active turn with grouped activity, ambient rows, and adjacent permission prompt.",
+  description: "Active turn with grouped activity, notification rows, and adjacent permission prompt.",
   render() {
     const focused = fakeSessionHandle({
       id: "story-turn-activity",
@@ -146,7 +146,7 @@ export const sessionUpdateListTurnActivityRich: Story = {
         <Box flexDirection="column" flexGrow={1} minHeight={0}>
           <SessionUpdateList
             messages={TURN_ACTIVITY_RICH}
-            ambientEntries={TURN_ACTIVITY_AMBIENT}
+            notificationEntries={TURN_ACTIVITY_NOTIFICATION}
             onApprove={() => {}}
             onDeny={() => {}}
             sessionId="story-turn-activity"

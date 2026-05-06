@@ -19,7 +19,9 @@
     "./acp-boundary": "./src/acp-boundary.ts",
     "./acp-client": "./src/acp-client.ts",
     "./acp-session": "./src/acp-session.ts",
-    "./testing/backend-contract-runner": "./src/testing/backend-contract-runner.ts",
+    "./agent-backends": "./src/agent-backends.ts",
+    "./chat": "./src/chat.ts",
+    "./testing/backend-spec-runner": "./src/testing/backend-spec-runner.ts",
     "./testing/fake-acp-server": "./src/testing/fake-acp-server.ts"
   },
   "dependencies": {

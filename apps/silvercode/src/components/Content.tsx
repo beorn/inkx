@@ -631,7 +631,7 @@ function TableRoot({ headers, rows, alignments = [] }: TableProps): React.ReactE
     }
   }
 
-  return <TableCardsRoot headers={headers} rows={rows} alignments={alignments} />
+  return <TableBlocksRoot headers={headers} rows={rows} alignments={alignments} />
 }
 
 function TableGridRoot({
@@ -691,7 +691,7 @@ function TableGridRoot({
   )
 }
 
-function TableCardsRoot({ headers, rows }: TableProps): React.ReactElement {
+function TableBlocksRoot({ headers, rows }: TableProps): React.ReactElement {
   return (
     <Full>
       <Box flexDirection="column" gap={1} borderStyle="single" borderColor="$border" paddingX={1}>
@@ -714,7 +714,7 @@ function TableCardsRoot({ headers, rows }: TableProps): React.ReactElement {
 
 const Table = Object.assign(TableRoot, {
   Grid: TableGridRoot,
-  Cards: TableCardsRoot,
+  Blocks: TableBlocksRoot,
 })
 
 function Aside({

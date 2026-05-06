@@ -241,7 +241,7 @@ export type AppProps = {
   account?: string
   /**
    * v2 opt-in chrome (km-silvercode.pane-headers). When true, every
-   * pane gets a Zellij-style 1-row header strip with title + drag /
+   * pane gets a Zellij-style 1-row header row with title + drag /
    * split / minimize / close buttons. Default false preserves v1's
    * chrome-minimal contract (km-silvercode.pane-management). Wired to
    * `--pane-headers` in `index.tsx`.
@@ -477,9 +477,9 @@ export function App(props: AppProps): React.ReactElement {
   const paneGridRef = useRef<PaneGridHandle | null>(null)
 
   // Registry of SessionUpdateList ListView handles, keyed by session id. Each
-  // SessionCard registers its forwarded ListViewHandle here on mount via
+  // ChatPane registers its forwarded ListViewHandle here on mount via
   // the `onRegisterScrollList` callback threaded through PaneGrid →
-  // LeafContainer → SessionCard. App-level Shift+Up/Down/PageUp/Down/
+  // LeafContainer → ChatPane. App-level Shift+Up/Down/PageUp/Down/
   // Home/End scroll bindings (below) use this map to call scrollBy /
   // scrollToTop / scrollToBottom on the focused pane's list — keyboard
   // focus normally lives in the SessionPromptComposer, so the ListView never
@@ -609,7 +609,7 @@ export function App(props: AppProps): React.ReactElement {
   // Per-pane minimize state. Keyed by session id — when the pane closes
   // the entry leaks until reconcile drops it (cheap; we never have many
   // panes). Toggle is idempotent: click `_` to minimize, click `□` to
-  // restore. PaneGrid renders only the header strip when minimized.
+  // restore. PaneGrid renders only the header row when minimized.
   const [minimizedPaneIds, setMinimizedPaneIds] = useState<ReadonlySet<string>>(() => new Set())
   const toggleMinimizePane = useCallback((id: string): void => {
     setMinimizedPaneIds((prev) => {
@@ -724,14 +724,14 @@ export function App(props: AppProps): React.ReactElement {
     setInputValue("")
     let trimmed = text.trim()
     // Trailing '&' submits + immediately backgrounds (Claude Code parity).
-    // Strip the '&' (and any whitespace before it), send the cleaned
+    // Remove the '&' (and any whitespace before it), send the cleaned
     // message, then call backgroundActiveTurn so the turn runs in the
     // background and the UI is freed for next input. Edge case: text is
     // just "&" → no message sent, just background the existing turn (same
     // as Ctrl+B). Slash commands keep their literal '&' if any (rare).
     let backgroundAfterSubmit = false
     if (!trimmed.startsWith("/") && trimmed.endsWith("&")) {
-      // Strip the trailing '&' AND any whitespace before it.
+      // Remove the trailing '&' AND any whitespace before it.
       const stripped = trimmed.slice(0, -1).trimEnd()
       if (stripped.length === 0) {
         // "&" alone → background the existing turn, no send.
@@ -1088,7 +1088,7 @@ export function App(props: AppProps): React.ReactElement {
   // `<cwd>/.km/panes.json` and renders one 1-col `│` divider per
   // gap (NOT a border around each pane, per the chrome constraint in
   // bead km-silvercode.pane-management). The active-pane indicator is a
-  // 1-col accent bar inside SessionCard's left edge.
+  // 1-col accent bar inside ChatPane's left edge.
 
   // Clean exit: close all sessions first so the child claude subprocesses
   // terminate, THEN let silvery restore the terminal. process.exit is still
@@ -1276,7 +1276,7 @@ export function App(props: AppProps): React.ReactElement {
 
           ┌──────────────────────────────┬────────────┐
           │                              │            │
-          │          cards area          │  side      │
+          │          chat panes area          │  side      │
           │                              │  panel     │
           │──────────────────────────────┤  (full     │
           │       command input          │  height)   │
@@ -1284,7 +1284,7 @@ export function App(props: AppProps): React.ReactElement {
           └──────────────────────────────┴────────────┘
 
         Side panel spans top to bottom on the right. Left column =
-        cards (flexGrow=1) + command input at the bottom. No borders on
+        chat panes (flexGrow=1) + command input at the bottom. No borders on
         any region — separation is via background color. All status /
         version / cost metadata lives in the side panel's bottom block,
         so the StatusLine at the very bottom is gone.
@@ -1314,8 +1314,8 @@ export function App(props: AppProps): React.ReactElement {
                 />
               }
             >
-              {/* LEFT: cards + overlays + palette + input. The outer column has
-              `overflow="hidden"` — this is the "cards region vs side panel"
+              {/* LEFT: chat panes + overlays + palette + input. The outer column has
+              `overflow="hidden"` — this is the "chat pane region vs side panel"
               boundary. CSS spec §4.5 elevates flexShrink on the overflow
               container itself, so any wide descendant is clipped here
               instead of pushing the side panel off-screen.
@@ -1364,7 +1364,7 @@ export function App(props: AppProps): React.ReactElement {
                       model={props.model}
                       resume={props.resume}
                       composerSlot={
-                        // Focused-pane command surface. SessionCard renders
+                        // Focused-pane command surface. ChatPane renders
                         // it inside the same Content.Layout as the transcript;
                         // Welcome may also show a resume-loading notice above
                         // it, but loading must not replace the input.

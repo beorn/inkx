@@ -1,8 +1,8 @@
 /**
- * Transcript loop-closure (Layer 3 of the ambient-context safety stack —
- * see `hub/silvercode/design/ambient-context-safety.md` § 3).
+ * Transcript loop-closure (Layer 3 of the notification-context safety stack —
+ * see `apps/silvercode/docs/channels.md` § 3).
  *
- * **The bug this prevents.** Layer 1 + 2 stop ambient content reaching
+ * **The bug this prevents.** Layer 1 + 2 stop notification content reaching
  * the role-U slot of the prompt — but if the model nonetheless emits
  * transcript-shaped output (a line starting with a role-prefix marker),
  * the bytes go into the session JSONL. Next session's transcript
@@ -30,7 +30,7 @@ import {
 // pattern-match on `thinking` / `tool_use` blocks too — those flow through
 // assistant messages alongside `text` blocks.
 import type { ContentBlock } from "@km/agent-harness/events"
-import { recordRolePrefixHit } from "./ambient-telemetry.ts"
+import { recordRolePrefixHit } from "./notification-telemetry.ts"
 
 export { ASSISTANT_ROLE_QUARANTINE_SENTINEL, quarantineLeadingRolePrefix, startsWithRolePrefix }
 
@@ -52,7 +52,7 @@ export type TranscriptMessage = {
  * Returns a new array (does not mutate `messages`).
  *
  * `opts.sessionId` is forwarded to telemetry when a role-prefix is
- * detected — Layer 4 ambient observability surface.
+ * detected — Layer 4 notification observability surface.
  */
 export function safeAppendAssistantTurn(
   messages: readonly TranscriptMessage[],

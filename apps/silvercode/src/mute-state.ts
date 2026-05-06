@@ -1,9 +1,9 @@
 /**
- * Mute state — visual filter for the inline ambient scrollback.
+ * Mute state — visual filter for the inline notification scrollback.
  *
- * Tracks which ambient sources the user has muted in the side panel. Mute
+ * Tracks which notification sources the user has muted in the side panel. Mute
  * is UI-only: it hides matching rows from the chat scrollback but does NOT
- * stop ambient events from reaching the agent. Mute is enforced
+ * stop notification events from reaching the agent. Mute is enforced
  * structurally — nothing in `prompt-assembly.ts`, `channel-queue.ts`, or
  * `channel-sources.ts` imports this module.
  *
@@ -11,15 +11,15 @@
  * this to `~/.config/silvercode/mute-state.json` (per the design doc) so
  * toggles survive restarts.
  *
- * Design: hub/silvercode/design/ambient-inline-display.md.
- * Bead: km-silvercode.ambient-inline-display.
+ * Design: apps/silvercode/docs/channels.md.
+ * Bead: km-silvercode.notification-inline-display.
  */
 
 import { signal } from "alien-signals"
 import type { Scope } from "@silvery/scope"
 
 /**
- * Visual mute filter for ambient sources. Read with `isMuted(source)`;
+ * Visual mute filter for notification sources. Read with `isMuted(source)`;
  * toggle with `toggle(source)`. Components subscribe to `version` (or
  * `useSignal(state.version)`) for live updates.
  */

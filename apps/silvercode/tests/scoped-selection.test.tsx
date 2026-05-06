@@ -1,7 +1,7 @@
 /**
  * Regression: mouse-drag selection must be SCOPED to the surface where
- * the drag started. A drag that begins inside a SessionCard must not
- * extend into a neighbor card, into the side panel, or into the command
+ * the drag started. A drag that begins inside a ChatPane must not
+ * extend into a neighbor block, into the side panel, or into the command
  * box — and vice versa.
  *
  * Silvery supports this via `userSelect="contain"` (CSS analog). When
@@ -11,7 +11,7 @@
  * from inside one region into another and asserting the clipboard
  * payload contains ONLY content from the origin region.
  *
- * SessionCard, SidePanel, and SessionPromptComposer roots each set
+ * ChatPane, SidePanel, and SessionPromptComposer roots each set
  * `userSelect="contain"` to define those boundaries.
  */
 import React from "react"
@@ -45,7 +45,7 @@ function pixelMouse(term: Term, button: number, clientX: number, clientY: number
 
 // Layout that mirrors silvercode's App.tsx shape:
 //   [ cardLeft (userSelect=contain) | cardRight (userSelect=contain) | sidePanel (userSelect=contain) ]
-// Card contents are distinct sentinel chars (L / R / S) so the clipboard
+// Block contents are distinct sentinel chars (L / R / S) so the clipboard
 // payload reveals cross-boundary leakage.
 function SilvercodeShape(): React.ReactElement {
   return (
@@ -194,7 +194,7 @@ describe("silvercode: drag selection is scoped to the origin surface", () => {
     handle.unmount()
   })
 
-  test("drag from left card into right card selects only L content", async () => {
+  test("drag from left block into right block selects only L content", async () => {
     using term = createTermless({ cols: 80, rows: 10 })
     const chunks: string[] = []
     const emulator = (term as unknown as { _emulator: { feed: (s: string) => void } })._emulator
@@ -211,7 +211,7 @@ describe("silvercode: drag selection is scoped to the origin surface", () => {
     expect(term.screen).toContainText("SSSSSSSSS")
     chunks.length = 0
 
-    // Drag from inside left card (col=2) into right card (col=30).
+    // Drag from inside left block (col=2) into right block (col=30).
     mouseDown(term, 2, 1)
     await settle(80)
     mouseMove(term, 30, 2)
@@ -228,7 +228,7 @@ describe("silvercode: drag selection is scoped to the origin surface", () => {
     handle.unmount()
   })
 
-  test("drag from right card into side panel selects only R content", async () => {
+  test("drag from right block into side panel selects only R content", async () => {
     using term = createTermless({ cols: 80, rows: 10 })
     const chunks: string[] = []
     const emulator = (term as unknown as { _emulator: { feed: (s: string) => void } })._emulator
@@ -242,7 +242,7 @@ describe("silvercode: drag selection is scoped to the origin surface", () => {
     await settle()
     chunks.length = 0
 
-    // Drag from inside right card (col=22) into side panel (col=50).
+    // Drag from inside right block (col=22) into side panel (col=50).
     mouseDown(term, 22, 1)
     await settle(80)
     mouseMove(term, 50, 2)
@@ -259,7 +259,7 @@ describe("silvercode: drag selection is scoped to the origin surface", () => {
     handle.unmount()
   })
 
-  test("drag from side panel into card selects only S content", async () => {
+  test("drag from side panel into block selects only S content", async () => {
     using term = createTermless({ cols: 80, rows: 10 })
     const chunks: string[] = []
     const emulator = (term as unknown as { _emulator: { feed: (s: string) => void } })._emulator
@@ -273,7 +273,7 @@ describe("silvercode: drag selection is scoped to the origin surface", () => {
     await settle()
     chunks.length = 0
 
-    // Drag from inside side panel (col=42) leftward into cards (col=5).
+    // Drag from inside side panel (col=42) leftward into blocks (col=5).
     mouseDown(term, 42, 1)
     await settle(80)
     mouseMove(term, 5, 2)

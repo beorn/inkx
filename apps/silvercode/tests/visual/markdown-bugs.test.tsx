@@ -14,7 +14,7 @@
  *
  * The test renders a single static `<MarkdownView>` through `createRenderer`
  * (no App harness needed — these bugs live in MarkdownView/markdown.ts) at
- * a width that mirrors the SessionCard (cols - sidepanel - chrome).
+ * a width that mirrors the ChatPane (cols - sidepanel - chrome).
  */
 
 import React from "react"
@@ -26,7 +26,7 @@ import { MarkdownView } from "../../src/components/MarkdownView.tsx"
 const COLS = 80
 const ROWS = 60
 
-// Mirror the SessionCard/assistant row chain so wrap math matches production.
+// Mirror the ChatPane/assistant row chain so wrap math matches production.
 function Frame({ source }: { source: string }): React.ReactElement {
   return (
     <Box width={COLS} height={ROWS} flexDirection="column">

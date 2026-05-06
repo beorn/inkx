@@ -1,3 +1,8 @@
+---
+mentions:
+  - km
+---
+
 # @km/tribe-mcp
 
 MCP server exposing tribe's cross-session messaging bus as agent-callable
@@ -17,19 +22,17 @@ Modelled on OpenClaw's `sessions_send` / `sessions_list` /
 [`hub/silvercode/future/ai-terminal/10-agent-router-landscape.md`][router]
 § "How OpenClaw does it" for the full mapping.
 
-[router]: ../../../../hub/silvercode/future/ai-terminal/10-agent-router-landscape.md
-
 ## Tools
 
-| Tool                  | Mutating? | Description                                                       |
-| --------------------- | --------- | ----------------------------------------------------------------- |
-| `tribe_send`          | dangerous | Direct message to a known peer.                                   |
-| `tribe_broadcast`     | dangerous | Broadcast to all peers in scope.                                  |
-| `tribe_join`          | dangerous | Register the current session as a tribe peer.                     |
-| `tribe_claim_chief`   | dangerous | Attempt to take the chief role (leader-election).                 |
-| `tribe_release_chief` | dangerous | Release the chief role if held.                                   |
-| `tribe_members`       | read-only | List peers visible at the chosen scope (with `isChief`).          |
-| `tribe_history`       | read-only | Recent messages, filterable by `from`, `to`, `contains`, `since`. |
+| Tool                | Mutating? | Description                                               |
+| ------------------- | --------- | --------------------------------------------------------- |
+| tribe_send          | dangerous | Direct message to a known peer.                           |
+| tribe_broadcast     | dangerous | Broadcast to all peers in scope.                          |
+| tribe_join          | dangerous | Register the current session as a tribe peer.             |
+| tribe_claim_chief   | dangerous | Attempt to take the chief role (leader-election).         |
+| tribe_release_chief | dangerous | Release the chief role if held.                           |
+| tribe_members       | read-only | List peers visible at the chosen scope (with isChief).    |
+| tribe_history       | read-only | Recent messages, filterable by from, to, contains, since. |
 
 Every tool definition carries an explicit `dangerous: boolean` field. The
 host (silvercode acp-client) MUST trigger ACP `RequestPermission` before
@@ -42,12 +45,12 @@ just declares which tools are dangerous so the host knows what to gate.
 
 Every tool accepts an optional `scope` argument:
 
-| Scope   | Reach                                                               |
-| ------- | ------------------------------------------------------------------- |
-| `self`  | Only the calling session.                                           |
-| `tree`  | Calling session + parent + descendants + siblings (default).        |
-| `agent` | All sessions sharing the same `agentId` (e.g. all Claude sessions). |
-| `all`   | Any tribe peer.                                                     |
+| Scope | Reach                                                             |
+| ----- | ----------------------------------------------------------------- |
+| self  | Only the calling session.                                         |
+| tree  | Calling session + parent + descendants + siblings (default).      |
+| agent | All sessions sharing the same agentId (e.g. all Claude sessions). |
+| all   | Any tribe peer.                                                   |
 
 Default is `tree`, mirroring OpenClaw. Override per-call via the `scope`
 argument or per-server via the `TRIBE_SCOPE` env var. Sends to peers
@@ -104,3 +107,4 @@ bun vitest run apps/silvercode/packages/tribe-mcp/tests/
 `tools.test.ts` covers the JSON-RPC surface, dangerous-flag invariants,
 scope filtering, history filter + pagination, chief leadership, and
 JSONL backend persistence across restarts.
+

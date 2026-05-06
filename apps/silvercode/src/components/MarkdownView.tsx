@@ -186,7 +186,7 @@ function renderBlock(
       return null
     case "table":
       if (!hasContentLayout) {
-        return <InlineTableCards key={i} headers={b.headers} rows={b.rows} />
+        return <InlineTableBlocks key={i} headers={b.headers} rows={b.rows} />
       }
       return <Content.Table key={i} headers={b.headers} rows={b.rows} alignments={b.alignments} />
   }
@@ -227,7 +227,7 @@ function QuoteBlock({ text }: { text: string }): React.ReactElement {
   )
 }
 
-function InlineTableCards({
+function InlineTableBlocks({
   headers,
   rows,
 }: {

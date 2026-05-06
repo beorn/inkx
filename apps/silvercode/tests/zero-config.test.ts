@@ -49,7 +49,7 @@ beforeEach(async () => {
   tmpDir = await mkdtemp(join(tmpdir(), "silvercode-zero-config-"))
   homeDir = await mkdtemp(join(tmpdir(), "silvercode-zero-config-home-"))
   // Redirect `$HOME` so accounts.ts + credDir expansion hit the synthetic
-  // dirs. Strip any ambient cred env vars so each test seeds its own.
+  // dirs. Remove any notification cred env vars so each test seeds its own.
   process.env["HOME"] = homeDir
   delete process.env["SILVERCODE_AGENT"]
   delete process.env["KM_AGENT"]

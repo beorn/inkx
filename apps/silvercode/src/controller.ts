@@ -41,12 +41,12 @@ import { createInMemoryTribe, type TribeBackend } from "@km/tribe-mcp"
 import { resolveAccountDir } from "./accounts.ts"
 import { bdPrimeOutputAsync, bdPrimePeek, readActiveBeadAsync, readActiveBeadPeek } from "./bd-prime.ts"
 import { type ChannelQueue, createChannelQueue } from "./channel-queue.ts"
-import { type AmbientStream, createAmbientStream } from "./ambient-stream.ts"
+import { type NotificationStream, createNotificationStream } from "./notification-stream.ts"
 import { type MuteState, createMuteState } from "./mute-state.ts"
 import { wireChannelSources } from "./channel-sources.ts"
-import { registerAllAmbientAdapters } from "./ambient-adapters/index.ts"
+import { registerAllNotificationAdapters } from "./notification-adapters/index.ts"
 import { findCodexTranscript, replayCodexSessionFromDisk } from "./codex-resume.ts"
-import { triggerRecallProbe } from "./ambient-adapters/recall.ts"
+import { triggerRecallProbe } from "./notification-adapters/recall.ts"
 import { type CoordinatorMcpServer, createCoordinatorMcpServer } from "./coordinator-mcp.ts"
 import { type CrossAgentState, createCrossAgentState } from "./cross-agent-state.ts"
 import { replaySessionFromDisk, sessionJsonlPath } from "./resume.ts"
@@ -215,7 +215,7 @@ export type SessionHandle = {
   /**
    * Resume session id — set when the session was created via
    * `silvercode --resume <id>` (i.e. `opts.resume` was non-empty at
-   * spawn time). Drives the Welcome card's "Loading session <id>…"
+   * spawn time). Drives the Welcome screen's "Loading session <id>…"
    * variant: while replay is in flight + the live spawn is initializing
    * we show a quiet loading indicator instead of a command box, because
    * the user is waiting on a transcript replay rather than starting a
@@ -334,21 +334,21 @@ export type ControllerOptions = {
   disableChannelSources?: boolean
 
   /**
-   * Disable Phase 6.b ambient adapters (tribe / recall / subagent / ci /
-   * filewatch — see `apps/silvercode/src/ambient-adapters/`). Defaults to
+   * Disable Phase 6.b notification adapters (tribe / recall / subagent / ci /
+   * filewatch — see `apps/silvercode/src/notification-adapters/`). Defaults to
    * the same value as `disableChannelSources` so tests that opt out of
    * the legacy channel pipeline also opt out of the new one.
    *
-   * The new ambient adapters live alongside (not in place of) the legacy
+   * The new notification adapters live alongside (not in place of) the legacy
    * `wireChannelSources` path. When both are active, the new tribe
    * adapter and the legacy `subscribeTribe` would both tail the bus —
    * setting `disableLegacyTribeSource` (below) is the recommended way to
    * avoid double-emit.
    */
-  disableAmbientAdapters?: boolean
+  disableNotificationAdapters?: boolean
   /**
    * Disable the legacy `subscribeTribe` path inside `wireChannelSources`
-   * — the new ambient-adapters tribe subscriber tails the same bus and
+   * — the new notification-adapters tribe subscriber tails the same bus and
    * sanitizes/debounces the result. Defaults to `false` to preserve
    * back-compat; flip to `true` when standing on the new pipeline.
    */
@@ -404,7 +404,7 @@ export type Controller = {
   /**
    * Force-flush the queue buffer NOW, regardless of idle status. Used by
    * the queue editor when the user explicitly submits (Enter in the queue
-   * region). Bypasses the `status === "idle"` gate that the ambient
+   * region). Bypasses the `status === "idle"` gate that the notification
    * auto-flush path uses, because the user's explicit submit is its own
    * signal — Claude Code's CLI buffers stdin if Claude is mid-turn, so
    * sending a queued user message during a turn is safe and lands as the
@@ -515,7 +515,7 @@ export type Controller = {
   /** Subscribe to background-task list changes (per session). */
   onBackgroundTasksChange(handler: (sessionId: string, tasks: ReadonlyArray<BackgroundTask>) => void): () => void
   /**
-   * Channel queue — silvercode-owned ambient-event buffer. Subscribers
+   * Channel queue — silvercode-owned notification-event buffer. Subscribers
    * (tribe, telegram, CI, lore, sub-agent) push `ChannelEvent`s here on
    * receipt; the prompt-assembly hook decides whether to drain them as
    * typed `EmbeddedResource` blocks on the next user prompt.
@@ -533,23 +533,23 @@ export type Controller = {
    */
   readonly channelQueue: ChannelQueue
   /**
-   * Ambient stream — per-session journal of ambient observations
+   * Notification stream — per-session journal of notification observations
    * delivered to the agent. Used by the chat scrollback to render
-   * inline `AmbientEventRow` rows at injection timestamp. UI-only; no
+   * inline `NotificationEventRow` rows at injection timestamp. UI-only; no
    * effect on what the agent receives.
    *
-   * Bead: km-silvercode.ambient-inline-display.
+   * Bead: km-silvercode.notification-inline-display.
    */
-  readonly ambientStream: AmbientStream
+  readonly notificationStream: NotificationStream
   /**
-   * Visual mute filter for ambient sources. Toggling a source via the
+   * Visual mute filter for notification sources. Toggling a source via the
    * side panel hides matching rows from the inline scrollback but does
    * NOT prevent the agent from receiving them. Enforced structurally —
    * no module on the prompt-assembly path imports this.
    *
-   * Bead: km-silvercode.ambient-inline-display.
+   * Bead: km-silvercode.notification-inline-display.
    */
-  readonly ambientMuteState: MuteState
+  readonly notificationMuteState: MuteState
   /**
    * Cross-agent state — silvercode-owned coordination store shared across
    * every session this controller spawned. Holds file claims, handoffs,
@@ -579,7 +579,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   const sessionSubs = new Set<(s: SessionHandle[]) => void>()
   const focusSubs = new Set<(id: string) => void>()
 
-  // Channel pipeline — silvercode-owned ambient-event buffer feeding the
+  // Channel pipeline — silvercode-owned notification-event buffer feeding the
   // typed prompt-assembly path (apps/silvercode/src/prompt-assembly.ts).
   // Replaces Claude Code's free-text `<channel source="..." ...>` tag
   // injection — see hub/silvercode/future/ai-terminal/10-agent-router-landscape.md.
@@ -592,13 +592,13 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   const ownsScope = !opts.scope
   const controllerScope: Scope = opts.scope ?? createScope("silvercode-controller")
   const channelQueue = createChannelQueue(controllerScope)
-  // Ambient stream + mute state — UI-only echo of channel events so the
+  // Notification stream + mute state — UI-only echo of channel events so the
   // chat scrollback can render inline observation rows at the timestamp
   // each event arrived. Mute filters operate on the stream, never on
   // channelQueue or prompt-assembly. See
-  // hub/silvercode/design/ambient-inline-display.md.
-  const ambientStream = createAmbientStream(controllerScope)
-  const ambientMuteState = createMuteState(controllerScope)
+  // apps/silvercode/docs/channels.md.
+  const notificationStream = createNotificationStream(controllerScope)
+  const notificationMuteState = createMuteState(controllerScope)
   // Cross-agent state — one per controller, shared across every session.
   // Each session's coordinator-mcp delegates to this store; UI panes
   // subscribe to its signals (claims, activeSessions, ...). Channel-queue
@@ -612,23 +612,23 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     })
   }
   ctrlStartupTick("controller:create:afterWireChannelSources")
-  // Phase 6.b ambient adapters — sanitize + debounce real source signals
+  // Phase 6.b notification adapters — sanitize + debounce real source signals
   // (tribe, ci, filewatch, subagent; recall is a wired stub awaiting a
   // controller token stream). Disabling is gated by
-  // `disableAmbientAdapters` (default: follow the legacy channel-sources
+  // `disableNotificationAdapters` (default: follow the legacy channel-sources
   // gate). The returned handle bundle exposes per-source surfaces — the
   // subagent handle below receives Task-tool `tool-use` / `tool-result`
   // events from the per-session subscribe loop.
-  let subagentAdapter: ReturnType<typeof registerAllAmbientAdapters>["subagent"] | undefined
-  if (!opts.disableAmbientAdapters && !opts.disableChannelSources) {
-    ctrlStartupTick("controller:create:beforeRegisterAmbient")
-    const adapters = registerAllAmbientAdapters({
+  let subagentAdapter: ReturnType<typeof registerAllNotificationAdapters>["subagent"] | undefined
+  if (!opts.disableNotificationAdapters && !opts.disableChannelSources) {
+    ctrlStartupTick("controller:create:beforeRegisterNotification")
+    const adapters = registerAllNotificationAdapters({
       scope: controllerScope,
       queue: channelQueue,
       cwd: opts.cwd,
     })
     subagentAdapter = adapters.subagent
-    ctrlStartupTick("controller:create:afterRegisterAmbient")
+    ctrlStartupTick("controller:create:afterRegisterNotification")
   }
   // Mirror channel-queue events into the cross-agent broadcast ring buffer
   // so the prompt-projection slice (apps/silvercode/src/prompt-cross-agent.ts)
@@ -645,20 +645,20 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       // subscribers can populate `meta.fromSessionId` to attribute.
       fromSessionId: typeof event.meta?.fromSessionId === "string" ? (event.meta.fromSessionId as string) : undefined,
     })
-    // Record into the per-session ambient journal so the chat scrollback
+    // Record into the per-session notification journal so the chat scrollback
     // can render an inline observation row. Phase 6.a: write to the
     // currently-focused session (one focused pane at a time owns the
-    // ambient firehose). Future phases attribute by which session
+    // notification firehose). Future phases attribute by which session
     // actually drained the queue in `assembleAcpPrompt`.
     //
     // Fallback: if `focusedId` is empty (controller startup window before
     // any session has spawned + focused), target the first session in the
     // list. Without this, filewatch / tribe events fired during startup get
-    // silently dropped from the ambient stream — they live in the channel
+    // silently dropped from the notification stream — they live in the channel
     // queue (so prompt-assembly still sees them) but never render inline.
     // Bead: km-silvercode.claude-acp-wire-bugs.
     const targetId = focusedId || sessions[0]?.id
-    if (targetId) ambientStream.record(targetId, event)
+    if (targetId) notificationStream.record(targetId, event)
   })
   controllerScope.defer(() => broadcastUnsub())
   // TODO (acp-adapter-claude): when we wrap Claude Code via the ACP
@@ -700,9 +700,9 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
 
   // Recall probe wiring — per-session bookkeeping. We probe recall
   // every Nth assistant `turn-end` against the most recent user
-  // prompt, so prior-session context surfaces as an ambient digest
+  // prompt, so prior-session context surfaces as a notification digest
   // event. Recall itself self-rate-limits to ≥60s between queries
-  // (`MIN_RECALL_INTERVAL_MS` in `ambient-adapters/recall.ts`); the
+  // (`MIN_RECALL_INTERVAL_MS` in `notification-adapters/recall.ts`); the
   // turn counter is the secondary throttle that keeps even a slow
   // conversation from churning recall on every reply.
   const lastUserPromptBySession = new Map<string, string>()
@@ -712,7 +712,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     lastUserPromptBySession.set(sessionId, text.slice(0, RECALL_QUERY_MAX_CHARS))
   }
   function maybeProbeRecall(sessionId: string): void {
-    if (opts.disableAmbientAdapters || opts.disableChannelSources) return
+    if (opts.disableNotificationAdapters || opts.disableChannelSources) return
     const next = (turnCountBySession.get(sessionId) ?? 0) + 1
     turnCountBySession.set(sessionId, next)
     if (next % RECALL_PROBE_TURN_INTERVAL !== 0) return
@@ -854,7 +854,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   // event arrives. Completed tasks remain in the list (so the user can
   // foreground / re-inspect them) but are GC'd after BACKGROUND_TASK_TTL_MS.
   //
-  // The set is keyed by sessionId so each card maintains its own
+  // The set is keyed by sessionId so each block maintains its own
   // independent background-task list. `tasksBySession.get(id)!` is mutated
   // in place + then notifyBackground() is called — keeps the wiring
   // identical to the queue store above.
@@ -1220,7 +1220,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     }
 
     // --resume backfill: replay the on-disk JSONL transcript into the store
-    // BEFORE spawning so the card shows prior turns immediately. Claude Code
+    // BEFORE spawning so the block shows prior turns immediately. Claude Code
     // will then --resume from server-side state, and new events stream in on
     // top of the replayed history.
     //
@@ -1251,7 +1251,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       // Codex stores rollouts at ~/.codex/sessions/YYYY/MM/DD/rollout-*-<sid>.jsonl
       // with a different schema than Claude's stream-json. The codex parser
       // walks them and emits canonical AgentEvents into the store so prior
-      // turns appear in the card. See codex-resume.ts for the mapping table.
+      // turns appear in the block. See codex-resume.ts for the mapping table.
       metadata.transcriptPath = findCodexTranscript(opts.resume) ?? undefined
       metadata.replayStartedAt = Date.now()
       replayCodexSessionFromDisk(store, opts.resume)
@@ -1317,7 +1317,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       store.apply(event)
       if (log) log.append(event)
 
-      // Sub-agent ambient signal — emit start/complete/fail events when
+      // Sub-agent notification signal — emit start/complete/fail events when
       // the agent invokes the Task tool. The adapter filters non-Task
       // tool calls internally, so we forward every tool-use/tool-result
       // unconditionally. Per-session attribution flows via `sessionId`.
@@ -1395,9 +1395,9 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         crossAgentState.updateSessionStatus(id, "idle")
         // Per-session recall probe — every Nth assistant turn-end,
         // query @bearly/recall against the most recent user prompt
-        // and surface a digest as one ambient event. Recall itself
+        // and surface a digest as one notification event. Recall itself
         // self-rate-limits; this counter is the secondary throttle.
-        // See `ambient-adapters/recall.ts` for the full pipeline.
+        // See `notification-adapters/recall.ts` for the full pipeline.
         maybeProbeRecall(id)
       } else if (event.kind === "session-end") {
         metadata.endedAt = event.ts
@@ -1997,8 +1997,8 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       return () => backgroundSubs.delete(handler)
     },
     channelQueue,
-    ambientStream,
-    ambientMuteState,
+    notificationStream,
+    notificationMuteState,
     crossAgentState,
   }
 }

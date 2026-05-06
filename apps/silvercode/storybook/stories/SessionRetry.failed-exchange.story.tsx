@@ -1,7 +1,7 @@
 /**
  * <SessionRetry> — failed exchange with retry affordance.
  *
- * Shows the left-border retry strip below a simulated error message. The
+ * Shows the left-border retry row below a simulated error message. The
  * `lastPrompt` is truncated by the component when space is tight. A knob
  * exercises the no-prompt variant (bare ↻ retry label).
  */

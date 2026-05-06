@@ -1,5 +1,5 @@
 /**
- * Transcript loop-closure (Layer 3 of the ambient-context safety stack).
+ * Transcript loop-closure (Layer 3 of the notification-context safety stack).
  *
  * Lives in agent-harness because the parser (`parse.ts`) is the canonical
  * point at which assistant text blocks are constructed — that's where
@@ -8,7 +8,7 @@
  * (transcript builder, prompt assembly).
  *
  * Trigger tokens are constructed from char codes — they never appear as
- * literal text in this source file. See `hub/silvercode/design/ambient-context-safety.md`
+ * literal text in this source file. See `apps/silvercode/docs/channels.md`
  * § 3 (Layer 3) and § 9 (content quarantine).
  */
 

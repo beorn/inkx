@@ -2,9 +2,9 @@ import { describe, expect, test } from "vitest"
 import { createScope } from "@silvery/scope"
 import { type ChannelEvent, createChannelQueue } from "../src/channel-queue.ts"
 import {
-  AMBIENT_FRAMING_PREFIX,
-  AMBIENT_URI_SCHEME,
-  ambientUri,
+  NOTIFICATION_FRAMING_PREFIX,
+  NOTIFICATION_URI_SCHEME,
+  notificationUri,
   assembleAcpPrompt,
   eventToContentBlock,
   renderQueueAsLegacyText,
@@ -74,7 +74,7 @@ describe("prompt-assembly", () => {
     expect(blocks).toEqual([{ type: "text", text: "solo prompt" }])
   })
 
-  test("eventToContentBlock — _meta.ambient=true, AMBIENT framing, ambient:// URI", () => {
+  test("eventToContentBlock — _meta.notification=true, NOTIFICATION framing, notification:// URI", () => {
     const event = ev("tribe", "hello", { id: "abc123", actionable: false })
     const block = eventToContentBlock(event)
 
@@ -84,7 +84,7 @@ describe("prompt-assembly", () => {
     // _meta is the machine-readable hint
     const meta = (block as { _meta?: Record<string, unknown> })._meta
     expect(meta).toBeDefined()
-    expect(meta?.ambient).toBe(true)
+    expect(meta?.notification).toBe(true)
     expect(meta?.source).toBe("tribe")
     expect(meta?.actionable).toBe(false)
 
@@ -93,12 +93,12 @@ describe("prompt-assembly", () => {
     if (!("text" in block.resource)) throw new Error("expected TextResourceContents")
 
     // URI scheme
-    expect(block.resource.uri.startsWith(AMBIENT_URI_SCHEME)).toBe(true)
-    expect(block.resource.uri).toBe("ambient://tribe/abc123")
+    expect(block.resource.uri.startsWith(NOTIFICATION_URI_SCHEME)).toBe(true)
+    expect(block.resource.uri).toBe("notification://tribe/abc123")
     expect(block.resource.mimeType).toBe("text/markdown")
 
-    // Body framing — strong "[AMBIENT — informational, do not act]" prefix
-    expect(block.resource.text.startsWith(AMBIENT_FRAMING_PREFIX)).toBe(true)
+    // Body framing — strong "[NOTIFICATION — informational, do not act]" prefix
+    expect(block.resource.text.startsWith(NOTIFICATION_FRAMING_PREFIX)).toBe(true)
     expect(block.resource.text).toContain("hello")
   })
 
@@ -109,18 +109,18 @@ describe("prompt-assembly", () => {
     expect(meta?.actionable).toBe(true)
   })
 
-  test("ambientUri builds canonical scheme + path", () => {
-    expect(ambientUri("tribe", "abc")).toBe("ambient://tribe/abc")
-    expect(ambientUri("ci", "build-1")).toBe("ambient://ci/build-1")
+  test("notificationUri builds canonical scheme + path", () => {
+    expect(notificationUri("tribe", "abc")).toBe("notification://tribe/abc")
+    expect(notificationUri("ci", "build-1")).toBe("notification://ci/build-1")
   })
 
   test("renderQueueAsLegacyText — empty input returns empty string", () => {
     expect(renderQueueAsLegacyText([])).toBe("")
   })
 
-  test("renderQueueAsLegacyText — frames each event with AMBIENT prefix and source tag", () => {
+  test("renderQueueAsLegacyText — frames each event with NOTIFICATION prefix and source tag", () => {
     const text = renderQueueAsLegacyText([ev("tribe", "alpha"), ev("ci", "build green")])
-    expect(text).toContain(AMBIENT_FRAMING_PREFIX)
+    expect(text).toContain(NOTIFICATION_FRAMING_PREFIX)
     expect(text).toContain("(tribe)")
     expect(text).toContain("(ci)")
     expect(text).toContain("alpha")

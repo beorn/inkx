@@ -60,7 +60,7 @@ apps/silvercode/src/test/scripts/
   multiTurn.ts           — 3 user/assistant turns with token usage
   permissionRequest.ts   — split: before-approval and after-approval halves
   sessionEnd.ts          — graceful and error variants
-  welcome.ts             — empty session for Welcome card tests
+  welcome.ts             — empty session for Welcome screen tests
   markdownRich.ts        — assistant text with code fences, lists, tables
   queuedThree.ts         — drives queue batching from the LLM side
 ```
@@ -132,3 +132,4 @@ Never run `bun test` (it bypasses vitest's project config).
    through a controller and asserts the terminal state.
 5. Document the script's purpose at the top with a one-paragraph
    comment — what it tests, what failure mode it's meant to catch.
+

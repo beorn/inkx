@@ -3,7 +3,7 @@
  * must NOT push the side panel off-screen.
  *
  * This is the load-bearing test for the "overflow at root" pattern —
- * SessionCard's outer Box owns the single `overflow="hidden"` boundary.
+ * ChatPane's outer Box owns the single `overflow="hidden"` boundary.
  * Per CSS spec §4.5 (honoured by flexily/src/layout-zero.ts:587), an
  * `overflow!=visible` flex item gets `min-size: 0` automatically and
  * participates in shrink distribution against its parent. The boundary
@@ -11,7 +11,7 @@
  * even when descendants render unwrappable content that exceeds the
  * column's width by 10x+.
  *
- * If a future change drops `overflow="hidden"` from SessionCard's outer
+ * If a future change drops `overflow="hidden"` from ChatPane's outer
  * Box, this test fails immediately at both 60-col and 120-col widths —
  * the blob expands the column and the side panel either disappears or
  * gets pushed past the right edge.
@@ -24,7 +24,7 @@ import { longToolResult } from "../../src/test/scripts/longToolResult.ts"
 import { leftWidthFor } from "../../src/test/render-harness.tsx"
 import { parseFrame, summarize } from "../../src/test/parse-frame.ts"
 
-describe("overflow=hidden at SessionCard root keeps side panel visible", () => {
+describe("overflow=hidden at ChatPane root keeps side panel visible", () => {
   test("120-col: 1KB unwrappable blob does not bleed into the side panel", async () => {
     const COLS = 120
     const ROWS = 30

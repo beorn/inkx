@@ -14,7 +14,7 @@ describe("controller.closeAll", () => {
       cwd: "/tmp/silvercode-closeall-test",
       bare: true,
       initialSessions: 0,
-      disableAmbientAdapters: true,
+      disableNotificationAdapters: true,
       disableLegacyTribeSource: true,
       spawnFactory: () => {
         const next = spawned.shift()
