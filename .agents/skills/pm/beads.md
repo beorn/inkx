@@ -300,8 +300,8 @@ attribution matters and `$BD_ACTOR` is absent.
 
 ```bash
 km bd doctor                      # Layout diagnostics + one-shot migrations
-km bd info                        # Beads configuration and statistics
-km bd where [scope]               # Show beads paths and prefix config
+km bd info                        # Beads configuration, statistics, and paths
+km bd info --paths [scope]        # Show only the resolved beads paths (was: bd where)
 km bd config get|set <key> [value]
 km bd migrate <source-jsonl>      # Import from external (Asana, etc.) into imports/<source>-<date>/
 km bd export                      # Dump for sharing

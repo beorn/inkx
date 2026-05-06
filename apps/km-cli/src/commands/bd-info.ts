@@ -1,27 +1,58 @@
 /**
- * Beads Info / Where — `bd info [scope]`, `bd where [scope]`
+ * Beads Info — `bd info [scope]`
  *
- * Inspection commands. `bd info` shows config + statistics (counts by status,
- * top files with tasks). `bd where` shows the resolved paths the bd surface
- * is reading/writing — useful when troubleshooting "why does bd see no
- * issues?" or "where will `bd create` land a new file?".
+ * Inspection command. By default shows config + statistics (counts by
+ * status, top files with tasks) AND the resolved paths the bd surface
+ * is reading/writing. The `--paths` flag suppresses config + statistics
+ * and emits only the paths block — useful when scripting / when
+ * troubleshooting "why does bd see no issues?" or "where will `bd
+ * create` land a new file?".
  *
  * Extracted from `bd.ts` as part of the per-family split (Wave 6 of
  * task-bd-collapse). See `@km/cli/bd-split-per-command`.
+ *
+ * History: `bd where` was a separate command that printed only paths;
+ * it was merged into `bd info --paths` (`@km/cli/bd-where-merge-into-info`)
+ * to consolidate the two overlapping inspection surfaces.
  */
 
 import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
-import { resolvePathArg } from "@km/fs-mount"
+import { resolvePathArg, type ResolvedPathArg } from "@km/fs-mount"
 import { Bead } from "@km/beads"
 import { loadRepo } from "../load-repo.ts"
-import { loadKmBdConfig } from "./bd-load-config.ts"
+import { loadKmBdConfig, type BdConfigView } from "./bd-load-config.ts"
 import { resolveBoardRoots, formatScopeMessage, printEmptyDefaultBoardHint } from "./bd-scope.ts"
 import type { BdRegistrar } from "./bd-register.ts"
 
 const term = createTerm(process)
+
+/**
+ * Print the resolved bd paths block — the same content `bd where`
+ * historically produced. Shared by `bd info` (full mode) and
+ * `bd info --paths` (paths-only mode).
+ */
+function printPaths(resolved: ResolvedPathArg, configObj: BdConfigView): void {
+  const kmDir = join(resolved.repoRoot, ".km")
+  const dbPath = join(kmDir, "state.db")
+
+  if (existsSync(kmDir)) {
+    console.log(kmDir)
+    console.log(`  prefix: ${configObj.beads.prefix}`)
+    console.log(`  roots: ${JSON.stringify(configObj.beads.roots)}`)
+    console.log(`  default_scope: ${configObj.beads.default_scope}`)
+    console.log(`  database: ${dbPath}`)
+    console.log(`  repo: ${resolved.repoRoot}`)
+    if (resolved.nodeRef) {
+      console.log(`  scope: ${resolved.nodeRef}`)
+    }
+  } else {
+    console.log(term.yellow("No km directory found."))
+    console.log(`  repo: ${resolved.repoRoot}`)
+  }
+}
 
 export function registerBdInfo(parent: BdRegistrar): void {
   const infoCmd = new Command("info")
@@ -29,12 +60,24 @@ export function registerBdInfo(parent: BdRegistrar): void {
       "[scopeOrBoard]",
       "Filesystem path scopes results; a non-path argument (e.g. `@km`) overrides the configured beads root[0].",
     )
-    .description("Show beads configuration and statistics")
+    .description("Show beads configuration, statistics, and paths (use --paths to show only paths)")
     .option("--all", "Count every checkbox in the vault, not just configured beads roots")
+    .option("--paths", "Show only the resolved bd paths (suppresses config + statistics)")
     // oxlint-disable-next-line complexity/complexity -- CLI action with sequential reporting steps
     .actionMerged(async (opts) => {
       const resolved = resolvePathArg(opts.scopeOrBoard)
       const kmDir = join(resolved.repoRoot, ".km")
+
+      // --paths short-circuit: emit only the resolved paths block. No
+      // need to query the issue index or run boardRoots resolution.
+      if (opts.paths) {
+        // Load repo for consistency with the full-info path (and so a
+        // missing/corrupt .km surfaces the same way).
+        using _repo = await loadRepo(resolved.repoRoot)
+        const configObj = await loadKmBdConfig(resolved.repoRoot)
+        printPaths(resolved, configObj)
+        return
+      }
 
       // Load repo for database access and mode
       using repo = await loadRepo(resolved.repoRoot)
@@ -130,35 +173,4 @@ export function registerBdInfo(parent: BdRegistrar): void {
       }
     })
   parent.addCommand(infoCmd)
-}
-
-export function registerBdWhere(parent: BdRegistrar): void {
-  const whereCmd = new Command("where")
-    .argument("[scope]", "Path scope")
-    .description("Show beads paths and configuration")
-    .actionMerged(async (opts) => {
-      const resolved = resolvePathArg(opts.scope)
-      const kmDir = join(resolved.repoRoot, ".km")
-
-      // Load repo (unused but kept for consistency - may use in future)
-      using _repo = await loadRepo(resolved.repoRoot)
-      const dbPath = join(kmDir, "state.db")
-      const configObj = await loadKmBdConfig(resolved.repoRoot)
-
-      if (existsSync(kmDir)) {
-        console.log(kmDir)
-        console.log(`  prefix: ${configObj.beads.prefix}`)
-        console.log(`  roots: ${JSON.stringify(configObj.beads.roots)}`)
-        console.log(`  default_scope: ${configObj.beads.default_scope}`)
-        console.log(`  database: ${dbPath}`)
-        console.log(`  repo: ${resolved.repoRoot}`)
-        if (resolved.nodeRef) {
-          console.log(`  scope: ${resolved.nodeRef}`)
-        }
-      } else {
-        console.log(term.yellow("No km directory found."))
-        console.log(`  repo: ${resolved.repoRoot}`)
-      }
-    })
-  parent.addCommand(whereCmd)
 }

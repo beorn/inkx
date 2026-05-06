@@ -43,9 +43,12 @@
  *     (was bd-rename only).
  *
  * Out-of-scope subcommands stay as their own implementations:
- *   bd config / bd migrate / bd export — bd-specific tooling
+ *   bd config — bd-specific tooling
  *   bd memory / bd comment / bd agent — bd-specific surfaces
- *   bd info / bd where — `km doctor` / `km config bd.*` redirects pending
+ *   bd info (incl. --paths) — `km doctor` / `km config bd.*` redirects pending
+ *
+ * Migration / export to .beads/issues.jsonl lives at `km import bd <vault>`
+ * (with `--export` for the reverse direction); no longer mounted under `bd`.
  *
  * `bd` remains a first-class user-facing surface alongside `km task` /
  * `km <verb>`. Both are valid; the alias layer keeps them behaviourally
@@ -55,7 +58,6 @@
 import { Command } from "@silvery/commander"
 
 import { configCommand } from "./bd-config.ts"
-import { migrateCommand, exportCommand } from "./bd-migrate.ts"
 import { attachMemoryCommands } from "./bd-memory.ts"
 import { attachCommentCommands } from "./bd-comment.ts"
 import { bdAgentCommand } from "./bd-agent.ts"
@@ -67,7 +69,7 @@ import { registerBdClose, registerBdDrop } from "./bd-close-drop.ts"
 import { registerBdClaim } from "./bd-claim.ts"
 import { registerBdList, registerBdReady } from "./bd-list.ts"
 import { registerBdShow } from "./bd-show.ts"
-import { registerBdInfo, registerBdWhere } from "./bd-info.ts"
+import { registerBdInfo } from "./bd-info.ts"
 import { registerBdStale } from "./bd-stale.ts"
 import { registerBdBlocked } from "./bd-blocked.ts"
 import { registerBdOrphans } from "./bd-orphans.ts"
@@ -81,6 +83,11 @@ export const bdCommand = new Command("bd")
     "Note:",
     "`bd` and `km task` share semantics by construction: each bd subcommand delegates to its\n" +
       "task / km equivalent. Use whichever feels right; `bd config` owns the issue-prefix knob.",
+  )
+  .addHelpSection(
+    "Import:",
+    "Migrate bd issues into a km vault: `km import bd <vault>`\n" +
+      "Export km issues back to .beads/issues.jsonl: `km import bd --export <vault>`",
   )
   .allowUnknownOption(false)
 
@@ -101,10 +108,11 @@ registerBdDrop(bdCommand)
 registerBdClaim(bdCommand)
 registerBdRename(bdCommand)
 
-// Inspection family — all thin alias shims; info/where own bd-specific
-// diagnostic surfaces (km doctor / km config bd.* redirects pending).
+// Inspection family — all thin alias shims; info owns the bd-specific
+// diagnostic surface (km doctor / km config bd.* redirects pending).
+// `bd info --paths` replaces the historical `bd where` (merged in
+// @km/cli/bd-where-merge-into-info).
 registerBdInfo(bdCommand)
-registerBdWhere(bdCommand)
 registerBdStale(bdCommand)
 registerBdOrphans(bdCommand)
 registerBdQuery(bdCommand)
@@ -115,8 +123,6 @@ bdCommand.addCommand(depCommand)
 
 // Sub-command groups (out of Wave 6 scope; pre-existing file boundaries)
 bdCommand.addCommand(configCommand)
-bdCommand.addCommand(migrateCommand)
-bdCommand.addCommand(exportCommand)
 bdCommand.addCommand(bdAgentCommand)
 attachMemoryCommands(bdCommand)
 attachCommentCommands(bdCommand)
