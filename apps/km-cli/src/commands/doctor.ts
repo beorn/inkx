@@ -11,12 +11,7 @@ import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 
-// `steps` lives at `@silvery/ag-react/ui/progress` (the glob-resolved
-// subpath). It is NOT re-exported from the parent `@silvery/ag-react/ui`
-// barrel — only `cli`, `wrappers`, and `types`. Importing `steps` from
-// the parent crashes at load.
-// See `vendor/silvery/packages/ag-react/src/ui/index.ts`.
-import { steps } from "@silvery/ag-react/ui/progress"
+import { steps } from "@silvery/ag-react/ui"
 import { dirname, join, resolve } from "path"
 
 const log = createLogger("km:cli:doctor")
