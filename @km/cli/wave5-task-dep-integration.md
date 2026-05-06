@@ -1,4 +1,6 @@
 ---
+mentions:
+  - km
 id: "@km/cli/wave5-task-dep-integration"
 aliases:
   - km-cli.wave5-task-dep-integration
@@ -9,9 +11,14 @@ type: task
 priority: P2
 status: todo
 parent: km-cli
+closeReason: "Cherry-picked 3 commits onto main: a17c956a2 (km-storage link
+  infra) + 9b5e6f535 (tasks dep add/rm/ls) + 394805374 (compat tests). All 47
+  new tests pass. Auto-merged tasks/index.ts and km-beads/bead.ts cleanly.
+  Pushed at 9a8ef9d95. Memory entry updated to point at
+  docs/design/model/klink.md."
 ---
 
-# [ ] Integrate Wave 5 (km link infra + tasks dep) feature branch into main @km/cli #task #P2
+# [x] Integrate Wave 5 (km link infra + tasks dep) feature branch into main @km/cli #task #P2
 
 The Wave 5 agent (af597a34da13f4dbe) shipped 3 commits to `origin/feat/wave5-task-dep-links` instead of `origin/main` (worked in an isolated `.claude/worktrees/agent-af964ce873be7c779/` worktree, used the legacy feature-branch pattern). The work is preserved but not yet integrated.
 
@@ -78,3 +85,4 @@ git push origin main
 ## Why P2
 
 The work is preserved on origin (not lost), but `tasks dep` is not user-accessible until merged. Once bd-split agent finishes, this integration is a 5-minute cherry-pick.
+
