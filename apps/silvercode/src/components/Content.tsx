@@ -382,7 +382,13 @@ function Row({
   // feedback edge that survived the Phase 3 stable-tree fix.
   const middleNode = (
     <ContentRowContext.Provider value={{ available: middleAvailableForRow }}>
-      <Box flexDirection="row" maxWidth={usesMeasuredGeometry ? middleWidth : "100%"} flexShrink={1} minWidth={0}>
+      <Box
+        flexDirection="row"
+        flexGrow={1}
+        maxWidth={usesMeasuredGeometry ? middleWidth : "100%"}
+        flexShrink={1}
+        minWidth={0}
+      >
         {middle}
       </Box>
     </ContentRowContext.Provider>
