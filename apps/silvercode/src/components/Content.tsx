@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef } from "react"
-import { Box, Text, type Breakpoint, DEFAULT_BREAKPOINTS, useTerm } from "silvery"
+import { Box, Text, type Breakpoint, DEFAULT_BREAKPOINTS, useBoxRect } from "silvery"
 import { createLogger } from "loggily"
 
 type Responsive<T> = T | ({ default: T } & Partial<Record<Breakpoint, T>>)
@@ -72,24 +72,12 @@ function laneJustify(align: ContentContextValue["align"]): "flex-start" | "cente
 
 function Layout({
   children,
-  available,
   measure = 88,
   wide = 120,
   align = "center",
   gap = 1,
 }: {
   children: React.ReactNode
-  /**
-   * Width available for content in columns. When provided, used directly; when
-   * omitted, falls back to the live terminal width via `useTerm`. Callers that
-   * embed `Content.Layout` inside a chrome-aware container (e.g. an `AsideLayout`
-   * with an inline side panel) should pass the *actual* content-area width so
-   * descendants size correctly without needing to measure their own subtree —
-   * measurement-driven sizing produces a feedback loop that ping-pongs at
-   * breakpoint boundaries during multi-event SIGWINCH bursts. See the bead
-   * `@km/silvercode/post-resize-ui-stability` for the incident log.
-   */
-  available?: number
   measure?: Responsive<WidthValue>
   wide?: Responsive<WidthValue>
   align?: Responsive<"start" | "center" | "stretch">
@@ -97,56 +85,42 @@ function Layout({
 }): React.ReactElement {
   return (
     <Box flexDirection="column" alignSelf="stretch" width="100%" minWidth={0} flexGrow={1} flexShrink={1} minHeight={0}>
-      <DerivedLayoutProvider available={available} measure={measure} wide={wide} align={align} gap={gap}>
+      <MeasuredLayoutProbe measure={measure} wide={wide} align={align} gap={gap}>
         {children}
-      </DerivedLayoutProvider>
+      </MeasuredLayoutProbe>
     </Box>
   )
 }
 
-function DerivedLayoutProvider({
+function MeasuredLayoutProbe({
   children,
-  available,
   measure,
   wide,
   align,
   gap,
 }: {
   children: React.ReactNode
-  available: number | undefined
   measure: Responsive<WidthValue>
   wide: Responsive<WidthValue>
   align: Responsive<"start" | "center" | "stretch">
   gap: number
 }): React.ReactElement {
-  // Source of "available", in order of preference:
-  //   1. Caller-provided `available` prop — explicit chrome-aware width.
-  //   2. Outer `Content.Layout`'s context — covers nested layouts (e.g.
-  //      `PaneGrid` rendering a welcome screen inside the app's outer
-  //      Content area).
-  //   3. Live terminal cols via `useTerm` — fallback.
-  //
-  // `useTerm(t => t.size.cols())` re-renders only on a coalesced resize
-  // publish (silvery's Size owner is trailing-edge-debounced — see
-  // `@km/silvery/resize-coalesce-trailing-edge`), so cmux-style multi-
-  // SIGWINCH bursts collapse to one update here. Crucially, this hook does
-  // NOT participate in silvery's measure → layout → render convergence
-  // loop the way `useBoxRect()` does — there's no per-pass feedback edge.
-  const outer = useContext(ContentContext)
-  const termCols = useTerm((t) => t.size.cols())
-  const resolved = Math.max(0, Math.round(available ?? outer?.available ?? termCols))
+  const rect = useBoxRect()
+  const measured = Math.max(0, Math.round(rect.width))
+  const available = measured
   const lastLogKey = useRef("")
   useEffect(() => {
-    const key = `${resolved}`
+    const key = `${measured}:${available}`
     if (key === lastLogKey.current) return
     lastLogKey.current = key
-    layoutLog.debug?.("content layout source", {
-      available: resolved,
-      callerProvided: available !== undefined,
+    layoutLog.debug?.("content layout probe", {
+      measured,
+      available,
+      measuredReady: measured > 0,
     })
-  }, [resolved, available])
+  }, [available, measured])
   return (
-    <MeasuredLayout available={resolved} measure={measure} wide={wide} align={align} gap={gap}>
+    <MeasuredLayout available={available} measure={measure} wide={wide} align={align} gap={gap}>
       {children}
     </MeasuredLayout>
   )
