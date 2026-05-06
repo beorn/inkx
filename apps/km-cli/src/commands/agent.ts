@@ -26,6 +26,7 @@ import {
 import { resolvePathArg, findKmRootFromPath } from "@km/fs-mount"
 import { loadRepo } from "../load-repo.ts"
 import { getRootPath } from "../program.ts"
+import { isAgentSlotRef, spawnAgentSlot, type AgentRuntime } from "./agent-spawn.ts"
 
 // Commander option interfaces
 interface LsOptions {
@@ -42,7 +43,8 @@ export const agentCommand = new Command("agent")
   .description("AI agent lifecycle and runtime management")
   .addHelpSection("Lifecycle:", [
     ["km agent ls", "List all agents"],
-    ["km agent spawn <name>", "Create a new agent"],
+    ["km agent spawn <name>", "Create a new agent (legacy)"],
+    ["km agent spawn @agent/<N>", "Spawn a slot agent (claim + brief + exec)"],
     ["km agent stop <id>", "Stop an agent gracefully"],
     ["km agent kill <id>", "Force kill an agent"],
   ])
@@ -96,18 +98,34 @@ agentCommand
     }
   })
 
-// km agent spawn <name> - Create a new agent
+// km agent spawn <name|@agent/N> - Two modes:
+//   - @agent/<N>  → Phase 3.3 slot orchestrator: claim slot, compose brief, exec agent.
+//   - <name>      → legacy in-memory agent-node creation (persistence pending).
 agentCommand
   .command("spawn")
-  .argument("<name>", "Agent name")
-  .description("Create a new agent")
-  .option("-m, --model <model>", "LLM model (default: claude-sonnet-4)")
-  .option("-h, --harness <name>", "Harness name (default: general)")
-  .option("--id <custom>", "Custom short ID")
-  .option("--workdir <path>", "Working directory")
+  .argument("<name>", "Agent name OR slot ref (@agent/<N>)")
+  .description("Create a new agent (legacy) OR spawn a slot orchestrator (when name is @agent/<N>)")
+  .option("-m, --model <model>", "LLM model (default: claude-sonnet-4) — legacy mode only")
+  .option("-h, --harness <name>", "Harness name (default: general) — legacy mode only")
+  .option("--id <custom>", "Custom short ID — legacy mode only")
+  .option("--workdir <path>", "Working directory — legacy mode only")
+  .option("--agent <runtime>", "Agent runtime for slot mode: silvercode|claude|pi|headless-acp")
+  .option("--dry-run", "Slot mode: print brief + planned exec without claiming or spawning")
   .option("--json", "Output as JSON")
-  .actionMerged((opts) => {
-    // Validate harness exists
+  .actionMerged(async (opts) => {
+    // Slot orchestrator path — `km agent spawn @agent/<N>`
+    if (isAgentSlotRef(opts.name)) {
+      const agent = (opts.agent as AgentRuntime | undefined) ?? "silvercode"
+      if (!["silvercode", "claude", "pi", "headless-acp"].includes(agent)) {
+        console.error(term.red(`Unknown --agent runtime: ${agent}`))
+        process.exitCode = 1
+        return
+      }
+      await spawnAgentSlot(opts.name, { agent, dryRun: opts.dryRun })
+      return
+    }
+
+    // Legacy path — create an in-memory agent node by name.
     if (opts.harness) {
       const harness = loadHarness(opts.harness)
       if (!harness) {
