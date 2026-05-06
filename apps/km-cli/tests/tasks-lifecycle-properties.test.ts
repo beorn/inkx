@@ -369,8 +369,7 @@ describe("L5 fuzz — random sequences preserve invariants", () => {
           if (op === "claim" && before.assigned_to !== null) {
             actualActor = before.assigned_to
           }
-          const reason =
-            op === "close" || op === "drop" ? `seq${seq}-step${step}-${op}` : undefined
+          const reason = op === "close" || op === "drop" ? `seq${seq}-step${step}-${op}` : undefined
 
           runOp(repo, tid, op, actualActor, reason)
 

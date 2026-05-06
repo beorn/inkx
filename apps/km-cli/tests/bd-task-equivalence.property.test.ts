@@ -255,74 +255,68 @@ describe("bd⇔task command equivalence (L5 property test)", () => {
   // invocation runs both bd and task surfaces, so 30 × 2 = 60 op-pairs
   // per seed, 120 total).
   for (const seed of [42, 1234]) {
-    test(
-      `seed=${seed}: 30 random invocations produce equivalent repo state`,
-      () => {
-        const rng = mulberry32(seed)
-        const baseVault = freshVault(seed)
+    test(`seed=${seed}: 30 random invocations produce equivalent repo state`, () => {
+      const rng = mulberry32(seed)
+      const baseVault = freshVault(seed)
 
-        for (let step = 0; step < 30; step++) {
-          // Pick a random bead from the corpus + a random op.
-          const beadId = baseVault.ids[Math.floor(rng() * baseVault.ids.length)]!
-          const inv = pickInvocation(rng, beadId, seed, step)
+      for (let step = 0; step < 30; step++) {
+        // Pick a random bead from the corpus + a random op.
+        const beadId = baseVault.ids[Math.floor(rng() * baseVault.ids.length)]!
+        const inv = pickInvocation(rng, beadId, seed, step)
 
-          // Two parallel clones of the SAME starting state. Each run
-          // starts from byte-identical disk; any divergence in repo
-          // state after the op is a real alias-contract drift.
-          const bdVault = cloneVault(baseVault.root)
-          const taskVault = cloneVault(baseVault.root)
+        // Two parallel clones of the SAME starting state. Each run
+        // starts from byte-identical disk; any divergence in repo
+        // state after the op is a real alias-contract drift.
+        const bdVault = cloneVault(baseVault.root)
+        const taskVault = cloneVault(baseVault.root)
 
-          const bdResult = runKm(bdVault, inv.bdArgs)
-          const taskResult = runKm(taskVault, inv.taskArgs)
+        const bdResult = runKm(bdVault, inv.bdArgs)
+        const taskResult = runKm(taskVault, inv.taskArgs)
 
-          // Exit-code parity is the first invariant. Both surfaces
-          // either succeed or fail in lock-step on the same input.
-          // (Lifecycle errors — close-on-already-closed, claim-by-other
-          // — both surfaces reject identically because they share
-          // `applyLifecyclePlan` validation.)
+        // Exit-code parity is the first invariant. Both surfaces
+        // either succeed or fail in lock-step on the same input.
+        // (Lifecycle errors — close-on-already-closed, claim-by-other
+        // — both surfaces reject identically because they share
+        // `applyLifecyclePlan` validation.)
+        expect(
+          bdResult.exitCode,
+          `seed=${seed} step=${step} ${inv.label}: bd ${bdResult.stderr || bdResult.stdout}`,
+        ).toBe(taskResult.exitCode)
+
+        // For mutating ops, deep-compare the targeted bead's state.
+        // close/drop stamp closed_at via Date.now() — the timestamps
+        // CAN differ between the two runs (different wall-clock
+        // moments), so we equate "both timestamps non-null" rather
+        // than "timestamps equal."
+        if (!inv.readOnly && bdResult.exitCode === 0) {
+          const bdSummary = summarize(bdVault, beadId)
+          const taskSummary = summarize(taskVault, beadId)
+
           expect(
-            bdResult.exitCode,
-            `seed=${seed} step=${step} ${inv.label}: bd ${bdResult.stderr || bdResult.stdout}`,
-          ).toBe(taskResult.exitCode)
+            bdSummary.status,
+            `seed=${seed} step=${step} ${inv.label}: status drift bd=${bdSummary.status} task=${taskSummary.status}`,
+          ).toBe(taskSummary.status)
 
-          // For mutating ops, deep-compare the targeted bead's state.
-          // close/drop stamp closed_at via Date.now() — the timestamps
-          // CAN differ between the two runs (different wall-clock
-          // moments), so we equate "both timestamps non-null" rather
-          // than "timestamps equal."
-          if (!inv.readOnly && bdResult.exitCode === 0) {
-            const bdSummary = summarize(bdVault, beadId)
-            const taskSummary = summarize(taskVault, beadId)
+          expect(bdSummary.assigned_to, `seed=${seed} step=${step} ${inv.label}: assigned_to drift`).toBe(
+            taskSummary.assigned_to,
+          )
 
-            expect(
-              bdSummary.status,
-              `seed=${seed} step=${step} ${inv.label}: status drift bd=${bdSummary.status} task=${taskSummary.status}`,
-            ).toBe(taskSummary.status)
+          // closed_at: both either set or both null. Don't compare
+          // timestamp values (run-time race).
+          expect(bdSummary.closed_at !== null, `seed=${seed} step=${step} ${inv.label}: closed_at presence drift`).toBe(
+            taskSummary.closed_at !== null,
+          )
 
-            expect(bdSummary.assigned_to, `seed=${seed} step=${step} ${inv.label}: assigned_to drift`).toBe(
-              taskSummary.assigned_to,
-            )
-
-            // closed_at: both either set or both null. Don't compare
-            // timestamp values (run-time race).
-            expect(
-              bdSummary.closed_at !== null,
-              `seed=${seed} step=${step} ${inv.label}: closed_at presence drift`,
-            ).toBe(taskSummary.closed_at !== null)
-
-            // Reason markers: should match exactly when both are set.
-            if (bdSummary.closeReason !== undefined || taskSummary.closeReason !== undefined) {
-              expect(bdSummary.closeReason, `${inv.label}: closeReason drift`).toBe(taskSummary.closeReason)
-            }
-            if (bdSummary.dropReason !== undefined || taskSummary.dropReason !== undefined) {
-              expect(bdSummary.dropReason, `${inv.label}: dropReason drift`).toBe(taskSummary.dropReason)
-            }
+          // Reason markers: should match exactly when both are set.
+          if (bdSummary.closeReason !== undefined || taskSummary.closeReason !== undefined) {
+            expect(bdSummary.closeReason, `${inv.label}: closeReason drift`).toBe(taskSummary.closeReason)
+          }
+          if (bdSummary.dropReason !== undefined || taskSummary.dropReason !== undefined) {
+            expect(bdSummary.dropReason, `${inv.label}: dropReason drift`).toBe(taskSummary.dropReason)
           }
         }
-      },
-      // Subprocess spawns — generous timeout for slow CI.
-      120_000,
-    )
+      }
+    }, 120_000) // Subprocess spawns — generous timeout for slow CI.
   }
 
   test("BD_ALIASES coverage — every aliased command has at least one corpus invocation", () => {
