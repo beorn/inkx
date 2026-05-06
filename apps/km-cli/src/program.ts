@@ -141,7 +141,7 @@ export function configureProgram(): Command {
     .addHelpSection("Quick Actions:", [
       ["km view @next", "View your Next Actions board"],
       ["km add @next <id>", "Add task to Next Actions board"],
-      ["km tasks", "List tasks with context"],
+      ["km task", "List tasks with context"],
       ["km status <id> done", "Mark task complete"],
       ["km bd ready", "Show issues ready to work on"],
     ])
@@ -280,7 +280,7 @@ export function configureProgram(): Command {
   program.addCommand(showCommand) // km show <id> [--tree] - show node details or subtree
 
   // Task commands
-  program.addCommand(taskCommand) // km tasks - task listing with context
+  program.addCommand(taskCommand) // km task - task listing with context (alias: tasks)
 
   // Actions
   program.addCommand(newCommand) // km new - quick capture to inbox

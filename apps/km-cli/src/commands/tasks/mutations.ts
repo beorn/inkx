@@ -1,18 +1,21 @@
 /**
  * Task Mutations
  *
- * Functions for modifying tasks: create, claim, release, assign, markDone.
+ * `createTask` — `task new <content>` action handler. Lifecycle verbs
+ * (claim, release, close, drop, reopen) live in `./lifecycle.ts` after
+ * task-bd-collapse Wave 3 — they're workflow transitions with
+ * source-state validation, not raw field writes.
  */
 
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
-import { Task, type Repo } from "@km/storage"
+import { type Repo } from "@km/storage"
+import { Task } from "@km/storage"
 import { resolvePathArg } from "@km/fs-mount"
 import { loadRepo } from "../../load-repo.ts"
 import { getRootPath } from "../../program.ts"
 import { Bead } from "@km/beads"
-import { resolveAssignee } from "../../utils/assignee.ts"
 import { planNewTask } from "./mutations-plan.ts"
 
 // Re-export the planner so existing imports keep working.
@@ -107,137 +110,4 @@ export async function createTask(
   }
 
   console.log(term.green("Created task:"), nodeId.slice(-8))
-}
-
-/**
- * Mark a task as done
- */
-export async function markDone(pathOrId: string | undefined, options: { json?: boolean }): Promise<void> {
-  if (!pathOrId) {
-    console.error(term.red("Task ID or path required"))
-    process.exit(1)
-  }
-
-  const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using repo = await loadRepo(resolved.repoRoot)
-
-  const task = Task.findByPathOrId(repo, pathOrId, (r) => Bead.resolve(repo, r))
-  if (!task) {
-    console.error(term.red(`Task not found: ${pathOrId}`))
-    process.exit(1)
-  }
-
-  repo.updateNode(task.id, {
-    item: { task: { status: "done", marker: "[x]" } },
-  })
-
-  if (options.json) {
-    console.log(JSON.stringify({ id: task.id, status: "done" }))
-    return
-  }
-
-  console.log(term.green("✓"), "Marked as done:", task.id.slice(-8))
-}
-
-/**
- * Claim a task (assign to yourself)
- */
-export async function claimTask(pathOrId: string | undefined, options: { json?: boolean }): Promise<void> {
-  if (!pathOrId) {
-    console.error(term.red("Task ID or path required"))
-    process.exit(1)
-  }
-
-  const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using repo = await loadRepo(resolved.repoRoot)
-
-  const task = Task.findByPathOrId(repo, pathOrId, (r) => Bead.resolve(repo, r))
-  if (!task) {
-    console.error(term.red(`Task not found: ${pathOrId}`))
-    process.exit(1)
-  }
-
-  const actor = resolveAssignee()
-  repo.updateNode(task.id, {
-    assigned_to: actor,
-    item: { task: { status: "wip", marker: "[/]" } },
-  })
-
-  if (options.json) {
-    console.log(
-      JSON.stringify({
-        id: task.id,
-        status: "wip",
-        assigned_to: actor,
-      }),
-    )
-    return
-  }
-
-  console.log(term.green("◐"), "Claimed:", task.id.slice(-8))
-}
-
-/**
- * Release a claimed task
- */
-export async function releaseTask(pathOrId: string | undefined, options: { json?: boolean }): Promise<void> {
-  if (!pathOrId) {
-    console.error(term.red("Task ID or path required"))
-    process.exit(1)
-  }
-
-  const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using repo = await loadRepo(resolved.repoRoot)
-
-  const task = Task.findByPathOrId(repo, pathOrId, (r) => Bead.resolve(repo, r))
-  if (!task) {
-    console.error(term.red(`Task not found: ${pathOrId}`))
-    process.exit(1)
-  }
-
-  repo.updateNode(task.id, {
-    assigned_to: undefined,
-    item: { task: { status: "todo", marker: "[ ]" } },
-  })
-
-  if (options.json) {
-    console.log(JSON.stringify({ id: task.id, status: "todo", assigned_to: null }))
-    return
-  }
-
-  console.log(term.dim("○"), "Released:", task.id.slice(-8))
-}
-
-/**
- * Assign a task to a user
- */
-export async function assignTask(
-  pathOrId: string | undefined,
-  user: string,
-  options: { json?: boolean },
-): Promise<void> {
-  if (!pathOrId) {
-    console.error(term.red("Task ID or path required"))
-    process.exit(1)
-  }
-
-  const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using repo = await loadRepo(resolved.repoRoot)
-
-  const task = Task.findByPathOrId(repo, pathOrId, (r) => Bead.resolve(repo, r))
-  if (!task) {
-    console.error(term.red(`Task not found: ${pathOrId}`))
-    process.exit(1)
-  }
-
-  repo.updateNode(task.id, {
-    assigned_to: user,
-  })
-
-  if (options.json) {
-    console.log(JSON.stringify({ id: task.id, assigned_to: user }))
-    return
-  }
-
-  console.log(term.green("→"), `Assigned to ${user}:`, task.id.slice(-8))
 }
