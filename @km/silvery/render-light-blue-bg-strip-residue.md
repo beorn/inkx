@@ -160,3 +160,35 @@ Silvery agent landed `apps/km-tui/tests/render-cyan-strip-cross-backend.slow.spe
 2. **vterm as third reference leg**: extend test to use `@termless/vterm` (full-coverage emulator). If vterm matches xterm but disagrees with what real terminals paint, narrow further.
 3. **Capture real ANSI from `bun km view`**: previous capture command produced no file. Re-run with explicit absolute path: `env SILVERY_CAPTURE_OUTPUT=/tmp/km-ansi.bin bun km view ~/Bear/Vault` (zsh `~vault` alias may have eaten the env). Then grep the bytes for: SGR-state edge cases, `\x1b[K` (EL) emissions while bg-color SGR active, CUP/CUF without preceding `\x1b[0m`.
 4. **Run `bun km view` with `SILVERY_STRICT=2 SILVERY_STRICT_ACCUMULATE=1`** in iTerm2 — replays accumulated frames, catches drift that per-frame STRICT misses.
+
+## Round 8 — Ghostty WASM probe localizes strip to popover residue (2026-05-05)
+
+User captured real session at 82×75 against `~/Bear/Vault` via the new capture wiring (added to `vendor/silvery/packages/ag-term/src/runtime/create-app.tsx` because km goes through `createApp().run()`, not the scheduler — capture was previously dead code for km consumers).
+
+Captured `/tmp/km-ansi.bin` (3.4MB, 4 sessions, 303 frames). Last session at 82×75 fed through `@termless/ghostty` WASM backend in 2KB chunks (works fine on large feeds — earlier "Ghostty WASM chokes" claim was stale). Final-frame cell readout:
+
+- **Exactly 14 cells with bg=rgb(52,58,70), all on row 17, cols 65–78.**
+- **No border characters** on rows 16 or 18 (no `╭`, `╮`, `│`, `╯`, `╰`).
+- **No content characters** in the 14 cells (all spaces).
+- **bg=rgb(52,58,70) = `$bg-surface-overlay`** — popover/dropdown surface token.
+
+Strong shape match: a popover that was visible (likely hover-triggered) painted its 14×N region. When it unmounted, content + borders cleared on most rows — but row 17's bg fill persisted as residue.
+
+### Bisect attempt — couldn't complete
+
+Tried rolling vendor/silvery to `7a81275486` (parent of 168b4989, the clearExcessArea hasPrevBuffer guard). Result: km module-resolution failed with `Cannot find module '@silvery/ag-react/ui'`. The bare `./ui` export was removed from silvery's package.json sometime between Apr 12 (when it landed) and Apr 26 (when dfa27c08 added subpath exports without the bare ./ui). It was re-added on May 4 (`42b4ef19 fix(types): align source exports`).
+
+This means **a clean silvery-only bisect against current km is impossible for any SHA between Apr 12 and May 4** — that interval covers most of the regression window. Bisecting requires either (a) rolling back km too, or (b) a one-off shim adding `./ui` back at the bisect SHA.
+
+User confirmed: bisect at `7a812754` (which DID have `./ui` ironically, before its removal) didn't fix the strips — but that's a misleading data point because `7a812754` is even OLDER than `168b4989`, predating the full paint-clear series. Strips persisting there means the regression predates `168b4989`, OR it's not in the paint-clear refactor at all.
+
+### Silvery agent's synthetic test passes — meaning?
+
+`vendor/silvery/tests/regressions/popover-unmount-bg-residue.test.tsx` (committed in `acfa6c43`): mounts an absolute-positioned Box with `backgroundColor`, unmounts, asserts no bg residue. **Passes on current HEAD.** Synthetic ≠ real; the bug needs whatever real km hover/dwell/popover state machine + layout combination produces, which the synthetic test doesn't capture.
+
+### Recommended next steps for whoever picks this up
+
+1. **Find what km component paints `$bg-surface-overlay`** beyond Popover.tsx (which you can see at `apps/km-tui/src/views/Popover.tsx:325`). Grep for `$bg-surface-overlay` and `bg-surface-overlay`. Toast? Tooltip? Hover preview?
+2. **Reproduce the exact interaction** — start km, hover items, walk cursor, watch for popover-shaped 14-cell-wide bg fills appearing then becoming residue. Does it correlate with mouse hover dwell timing? Card title hover? Link target hover?
+3. **Run with `SILVERY_DEV=1 SILVERY_DEV_LOG=/tmp/dev.log SILVERY_INSTRUMENT=1`** to expose render pipeline stats. Look for incremental-render decisions on the popover container.
+4. **Bisect path-of-least-resistance**: roll back vendor/silvery to a SHA between Apr 12 and Apr 26 AND temporarily patch its `package.json` to re-add `./ui` export. ~15 minutes of git checkout + patch + test cycle.
