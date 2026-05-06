@@ -12,19 +12,19 @@ Any `/pro`, `/deep`, `/llm`, `/ask` tool call MUST include this brief (via `--co
 
 ## Technology
 
-| Tech | Role | Canonical Reference |
-|---|---|---|
-| **TypeScript 5.9** | Language (strict mode) | [typescript-eslint rules](https://typescript-eslint.io/rules/) |
-| **Bun** | Runtime, package manager, SQLite driver | [bun.sh/docs](https://bun.sh/docs) — use `bun:sqlite`, `bun:test` is NOT used |
-| **React 19** | UI via `@silvery/ag-react` reconciler (NOT React DOM) | [react.dev](https://react.dev) — hooks, refs, effects all apply |
-| **Silvery** | TUI framework — reconciler, components, theme | [The Silvery Way](vendor/silvery/docs/guide/the-silvery-way.md), [Styling](vendor/silvery/docs/guide/styling.md), [silvery CLAUDE.md](vendor/silvery/CLAUDE.md) |
-| **Flexily** | Layout engine (Yoga-compatible flexbox) | [flexily CLAUDE.md](vendor/flexily/CLAUDE.md) |
-| **Zustand 5** | State management (used by `@silvery/tea`) | [zustand docs](https://zustand.docs.pmnd.rs/) — immutable updates, selectors |
-| **SQLite** | Storage via `bun:sqlite` | [bun.sh/docs/api/sqlite](https://bun.sh/docs/api/sqlite) — WAL mode, FTS5 |
-| **mdast/micromark** | Markdown parsing & serialization | [syntax-tree/mdast](https://github.com/syntax-tree/mdast), [unifiedjs.com](https://unifiedjs.com) |
-| **Vitest 4** | Test runner (3 projects: default, slow, vendor) | [vitest.dev](https://vitest.dev) — see [tests/](.claude/skills/tests/) |
-| **Termless** | Headless terminal testing | [termless.md](.claude/skills/tests/termless.md) |
-| **oxlint + oxfmt** | Linting & formatting (Rust-based) | Config in `packages/km-infra/oxlint/`, `packages/km-infra/oxfmt/` |
+| Tech            | Role                                                | Canonical Reference                                           |
+| --------------- | --------------------------------------------------- | ------------------------------------------------------------- |
+| TypeScript 5.9  | Language (strict mode)                              | typescript-eslint rules                                       |
+| Bun             | Runtime, package manager, SQLite driver             | bun.sh/docs — use bun:sqlite, bun:test is NOT used            |
+| React 19        | UI via @silvery/ag-react reconciler (NOT React DOM) | react.dev — hooks, refs, effects all apply                    |
+| Silvery         | TUI framework — reconciler, components, theme       | The Silvery Way, Styling, silvery CLAUDE.md                   |
+| Flexily         | Layout engine (Yoga-compatible flexbox)             | flexily CLAUDE.md                                             |
+| Zustand 5       | State management (used by @silvery/tea)             | zustand docs — immutable updates, selectors                   |
+| SQLite          | Storage via bun:sqlite                              | bun.sh/docs/api/sqlite — WAL mode, FTS5                       |
+| mdast/micromark | Markdown parsing & serialization                    | syntax-tree/mdast, unifiedjs.com                              |
+| Vitest 4        | Test runner (3 projects: default, slow, vendor)     | vitest.dev — see tests/                                       |
+| Termless        | Headless terminal testing                           | termless.md                                                   |
+| oxlint + oxfmt  | Linting & formatting (Rust-based)                   | Config in packages/km-infra/oxlint/, packages/km-infra/oxfmt/ |
 
 ## Priorities
 
@@ -161,12 +161,12 @@ Four sibling packages on top of [alien-signals](https://github.com/stackblitz/al
 
 **Pick by what your data looks like:**
 
-| Your data is…                                          | Reach for                                                              | What it gives you                                                                                       |
-| ------------------------------------------------------ | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| **A plain value** (cursor, count, toggle)              | [`alien-signals`](https://github.com/stackblitz/alien-signals) _(upstream)_ | The primitive. `signal(v)`, `computed(fn)`, `effect(fn)`. Everything below builds on this.             |
-| **A list that changes over time** (rows, cards, todos) | [`alien-projections`](https://www.npmjs.com/package/alien-projections) | `createProjection(list, { key, map, filter, sort })` — when one row changes, only that row re-computes. |
-| **An async fetch** (API call, file load, DB query)     | [`alien-resources`](https://www.npmjs.com/package/alien-resources)     | `createResource(fetcher)` — `.loading()` / `.error()` / `.refetch()` + auto-cancels stale requests.    |
-| **A tree / hierarchy** (folders, outlines, nested UI)  | [`alien-trees`](https://www.npmjs.com/package/alien-trees)             | `createTree(...)` — "any descendant has X?" / "inherit Y from an ancestor?" in O(1).                   |
+| Your data is…                                      | Reach for                | What it gives you                                                                                     |
+| -------------------------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------- |
+| A plain value (cursor, count, toggle)              | alien-signals (upstream) | The primitive. signal(v), computed(fn), effect(fn). Everything below builds on this.                  |
+| A list that changes over time (rows, cards, todos) | alien-projections        | createProjection(list, { key, map, filter, sort }) — when one row changes, only that row re-computes. |
+| An async fetch (API call, file load, DB query)     | alien-resources          | createResource(fetcher) — .loading() / .error() / .refetch() + auto-cancels stale requests.           |
+| A tree / hierarchy (folders, outlines, nested UI)  | alien-trees              | createTree(...) — "any descendant has X?" / "inherit Y from an ancestor?" in O(1).                    |
 
 A list of async-fetched trees of plain values uses all four together. Each package earns its place by exploiting one data shape well — collapsing them would lose the shape-specific wins (sparse ancestor index for trees, key-stable cache for arrays, abort-id race for async). React apps pull the whole family via `@silvery/signals`.
 
@@ -210,13 +210,13 @@ The vault layout is **node-tree-shaped on disk**. Directories and files become k
 
 **All sigils are load-bearing.** The leading sigil character is part of the node name, not just a marker. Strip it and you point at a different node — or no node at all.
 
-| Sigil | Example | Node name | Role |
-|-------|---------|-----------|------|
-| `@<name>` | `@km`, `@issue`, `@memory` | `@km`, `@issue`, `@memory` | Boards, mentions, sigil-tagged collections |
-| `#<tag>` | `#P0`, `#bug`, `#task` | `#P0`, `#bug`, `#task` | Tags (priority, type, label) |
-| `^<id>` | `^abc123` | `^abc123` | Block / node references |
-| `[[<target>]]` | `[[@km/beads/cutover]]` | matches by inner path | Wikilink — brackets are syntax, the inside is a name path |
-| `<key>::` | `blocks::`, `due::` | property key on the containing node | Logseq-style inline property |
+| Sigil        | Example               | Node name                           | Role                                                      |
+| ------------ | --------------------- | ----------------------------------- | --------------------------------------------------------- |
+| @<name>      | @km, @issue, @memory  | @km, @issue, @memory                | Boards, mentions, sigil-tagged collections                |
+| #<tag>       | #P0, #bug, #task      | #P0, #bug, #task                    | Tags (priority, type, label)                              |
+| ^<id>        | ^abc123               | ^abc123                             | Block / node references                                   |
+| [[<target>]] | [[@km/beads/cutover]] | matches by inner path               | Wikilink — brackets are syntax, the inside is a name path |
+| <key>::      | blocks::, due::       | property key on the containing node | Logseq-style inline property                              |
 
 **Consequences for paths and migrations:**
 
@@ -307,18 +307,20 @@ Sub-agents skip this — only the top-level session runs verification.
 
 When the user's request contains any of the triggers below, **load the listed resources BEFORE theorizing, designing, or writing code**. Same load-first discipline, consolidated for discoverability:
 
-| User says (trigger keywords) | Load first |
-|---|---|
-| slow / laggy / freeze / jank / blocked / stutter | [`.claude/skills/perf/`](.claude/skills/perf/) + [`docs/lessons/performance.md`](docs/lessons/performance.md) |
-| publish / release / ship version / npm publish / bump | [`.claude/skills/release/`](.claude/skills/release/) + [`.claude/skills/npm/`](.claude/skills/npm/) + [`.claude/skills/release/npm-packages.md`](.claude/skills/release/npm-packages.md) |
-| signals / reactive / computed / derived / atom / subscription / projection / tree aggregate | check `alien-*` siblings at `github.com/beorn/bearly` before designing |
-| resource leak / lifecycle / cleanup / dispose / SIGINT / process.on / setTimeout cleanup | [`hub/silvery/design/lifecycle-scope.md`](hub/silvery/design/lifecycle-scope.md) — `Scope` (= AsyncDisposableStack + AbortSignal + child cascade) is the canonical primitive. `useScopeEffect` for components, `withScope()` for app root. `bash packages/km-infra/scripts/check-no-raw-lifecycle.sh` blocks new raw `setTimeout` / `process.on("SIG…")`. `SILVERY_SCOPE_TRACE=1` for runtime leak accounting. |
-| CVE / vulnerability / security audit / npm audit | `/sop security` + [`.claude/skills/sop/_dep-security.md`](.claude/skills/sop/_dep-security.md) |
-| DNS / domain / Cloudflare / redirect / Pages | `/sop infra cloudflare` |
-| CI failure / GitHub Actions / workflow | `/sop infra` CI Fix Workflow |
-| hook / SessionStart / PreToolUse / PreCompact | `/sop infra` Hook Debugging |
-| upstream / waiting on / blocked on / unwind workaround / Bun bug / when fix lands / file an issue / report to upstream | [`.claude/skills/pm/workflows/upstream.md`](.claude/skills/pm/workflows/upstream.md) — full filing workflow + §8 mandates registering the workaround in `@km/all/upstream-waiting`. Reviewed monthly via `/sop infra` `upstream-waiting` check. |
-| health check / is X outdated / do we have / maintain / groom | [`/sop`](.claude/skills/sop/) — orchestrator picks domain |
+| User says (trigger keywords)                                                                                           | Load first                                                                                                                                                                                                                                                                                                                                            |
+| ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| slow / laggy / freeze / jank / blocked / stutter                                                                       | .claude/skills/perf/ + docs/lessons/performance.md                                                                                                                                                                                                                                                                                                    |
+| publish / release / ship version / npm publish / bump                                                                  | .claude/skills/release/ + .claude/skills/npm/ + .claude/skills/release/npm-packages.md                                                                                                                                                                                                                                                                |
+| signals / reactive / computed / derived / atom / subscription / projection / tree aggregate                            | check alien-* siblings at github.com/beorn/bearly before designing                                                                                                                                                                                                                                                                                    |
+| resource leak / lifecycle / cleanup / dispose / SIGINT / process.on / setTimeout cleanup                               | hub/silvery/design/lifecycle-scope.md — Scope (= AsyncDisposableStack + AbortSignal + child cascade) is the canonical primitive. useScopeEffect for components, withScope() for app root. bash packages/km-infra/scripts/check-no-raw-lifecycle.sh blocks new raw setTimeout / process.on("SIG…"). SILVERY_SCOPE_TRACE=1 for runtime leak accounting. |
+| CVE / vulnerability / security audit / npm audit                                                                       | /sop security + .claude/skills/sop/_dep-security.md                                                                                                                                                                                                                                                                                                   |
+| DNS / domain / Cloudflare / redirect / Pages                                                                           | /sop infra cloudflare                                                                                                                                                                                                                                                                                                                                 |
+| CI failure / GitHub Actions / workflow                                                                                 | /sop infra CI Fix Workflow                                                                                                                                                                                                                                                                                                                            |
+| hook / SessionStart / PreToolUse / PreCompact                                                                          | /sop infra Hook Debugging                                                                                                                                                                                                                                                                                                                             |
+| upstream / waiting on / blocked on / unwind workaround / Bun bug / when fix lands / file an issue / report to upstream | .claude/skills/pm/workflows/upstream.md — full filing workflow + §8 mandates registering the workaround in @km/all/upstream-waiting. Reviewed monthly via /sop infra upstream-waiting check.                                                                                                                                                          |
+| health check / is X outdated / do we have / maintain / groom                                                           | /sop — orchestrator picks domain                                                                                                                                                                                                                                                                                                                      |
+| sigil / @blah / #tag / +project / mention / board / "@-prefixed" / boards self-aggregate                               | docs/concepts.md § Links + docs/design/model/klink.md + docs/design/model/storage.md § NodeRules. Three load-bearing rules: (1) `@`/`#`/`+` ALL work the same — sigils are part of the node name, not separate namespaces. (2) Bare `@blah` ≡ `[[@blah]]` — both produce `km:@blah` in the canonical `links` table. (3) Boards self-aggregate via `NodeRules.add` — sync materializes `![[<bead>]]` embeds INTO the board for every matching link. `data.mentions` / `data.tags` / `data.projects` are redundant denormalizations being deprecated; the `links` table is canonical. Don't theorize about sigil/board behavior without reading these. |
+| sync / km bd close / repo.updateNode / mutation / "who writes the file" / FS vs DB / data sync                         | packages/km-storage/CLAUDE.md § "Mutation pipeline" + docs/architecture.md § "Mutation pipeline". The rule: every mutation path (CLI, view, MCP, watcher) converges on `repo.updateNode`. NO code path writes `.md` files directly. Sync materializes both directions: DB→FS via `km sync --to-fs`, FS→DB via `km sync --from-fs` / fs-watcher. Two writers (anything via repo.updateNode, vs. user editor on .md), two indexers, no overlap. Tracking: @km/storage/sync-roundtrip-completeness. |
 
 **Skip the triage only when the request is narrow and obviously doesn't benefit from load-first context.** In doubt: load first. Memory entries capture the rationale behind each rule (see `feedback-perf-triage-load-first.md`, `feedback-publish-load-release-skills.md`, `reference-alien-family.md`).
 
@@ -326,17 +328,17 @@ When the user's request contains any of the triggers below, **load the listed re
 
 `/sop` is the unified maintenance orchestrator covering 11 domains (code, packages, security, sites, infra, legal, market, growth, inbound, backlog, packaging). Run `/sop` when asked about freshness, CVEs, CI status, bundle sizes, doc drift, stale beads, or "is anything outdated?"
 
-| Domain     | Cadence          | Owns |
-|------------|------------------|------|
-| code       | every session    | typecheck, lint, tests, complexity |
-| packages   | monthly          | publishability, version drift, deps |
-| security   | weekly           | CVEs, secrets, provenance, supply chain |
-| sites      | per-release      | README / homepage / GH-desc sync, GSC |
-| infra      | monthly          | CI, hooks, accounts, Cloudflare, tools |
-| legal      | quarterly        | licenses, attribution |
-| inbound    | weekly           | issue triage, CVE intake |
-| backlog    | weekly           | stale beads, orphans, session promotion |
-| packaging  | per-release      | bundle sizes, CJS/ESM compat |
+| Domain    | Cadence       | Owns                                    |
+| --------- | ------------- | --------------------------------------- |
+| code      | every session | typecheck, lint, tests, complexity      |
+| packages  | monthly       | publishability, version drift, deps     |
+| security  | weekly        | CVEs, secrets, provenance, supply chain |
+| sites     | per-release   | README / homepage / GH-desc sync, GSC   |
+| infra     | monthly       | CI, hooks, accounts, Cloudflare, tools  |
+| legal     | quarterly     | licenses, attribution                   |
+| inbound   | weekly        | issue triage, CVE intake                |
+| backlog   | weekly        | stale beads, orphans, session promotion |
+| packaging | per-release   | bundle sizes, CJS/ESM compat            |
 
 Each domain maps to a dedicated skill (`/code`, `/release`, `/docs`, etc.). `/sop` handles cross-domain triggers (e.g., `packages.publish → sites.update → growth.check`).
 
@@ -354,70 +356,70 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 
 **Perf triage rule (read FIRST when user reports slow / laggy / freeze / jank / block / stutter)**: load `.claude/skills/perf/SKILL.md` AND `docs/lessons/performance.md` before writing any code or theorizing. The skill has the instrumentation commands (TRACE, DEBUG_LOG, SILVERY_INSTRUMENT, SILVERY_STRICT); the lessons doc documents prior incidents + root causes (60s→<1s via name index cache; 10s→0 via `countDescendantsAtDepth` early-exit). Five minutes of instrumentation beats four sessions of theorizing — this has been re-learned the expensive way.
 
-| Symptom                                      | Skill                                                          |
-| -------------------------------------------- | -------------------------------------------------------------- |
-| Silvery pipeline bug (dirty flags, incremental ≠ fresh, scroll tiers, sticky) | [silvery/](.claude/skills/silvery/) |
-| km-tui visual bug (card layout, column rendering, board components) | [tui/](.claude/skills/tui/) |
-| Flexily layout bug (wrong sizes, caching, fingerprinting) | [flexily/](.claude/skills/flexily/) |
-| Performance (slow, jank, stutter, event loop blocks) | [perf/](.claude/skills/perf/) + [docs/lessons/performance.md](docs/lessons/performance.md) |
-| Bug hunting / fuzz testing                   | [tests/exploratory.md](.claude/skills/tests/exploratory.md) |
+| Symptom                                                                       | Skill                               |
+| ----------------------------------------------------------------------------- | ----------------------------------- |
+| Silvery pipeline bug (dirty flags, incremental ≠ fresh, scroll tiers, sticky) | silvery/                            |
+| km-tui visual bug (card layout, column rendering, board components)           | tui/                                |
+| Flexily layout bug (wrong sizes, caching, fingerprinting)                     | flexily/                            |
+| Performance (slow, jank, stutter, event loop blocks)                          | perf/ + docs/lessons/performance.md |
+| Bug hunting / fuzz testing                                                    | tests/exploratory.md                |
 
 ### External LLMs (choose the right one!)
 
-| Need                                         | Skill                                                          |
-| -------------------------------------------- | -------------------------------------------------------------- |
-| Question for GPT/Gemini/Grok (quick or deep) | [llm/](.claude/skills/llm/) — `/llm "question"` or `/llm --deep` |
-| GPT 5.4 Pro (review or direct question) | [pro/](.claude/skills/pro/) — `/pro review`, `/pro "question"`, or just "pro, ..." |
-| Stuck 20+ min, need architectural advice     | [fresh/](.claude/skills/fresh/) — structured protocol: gather → reflect → ask |
-| Want to discuss alternatives before coding   | [discuss/](.claude/skills/discuss/) — checkpoints context to bead |
+| Need                                         | Skill                                                   |
+| -------------------------------------------- | ------------------------------------------------------- |
+| Question for GPT/Gemini/Grok (quick or deep) | llm/ — /llm "question" or /llm --deep                   |
+| GPT 5.4 Pro (review or direct question)      | pro/ — /pro review, /pro "question", or just "pro, ..." |
+| Stuck 20+ min, need architectural advice     | fresh/ — structured protocol: gather → reflect → ask    |
+| Want to discuss alternatives before coding   | discuss/ — checkpoints context to bead                  |
 
 ### Core Workflow
 
-| Skill                                                               | Use When                                                              |
-| ------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| [pm/](.claude/skills/pm/)                                           | Issue tracking (beads). **Bugs auto-trigger /tdd** (reproduce first)  |
-| [tests/](.claude/skills/tests/)                                     | Writing/running tests, TDD workflow                                   |
-| [tests/termless.md](.claude/skills/tests/termless.md)               | ANSI verification, scrollback, cursor, terminal modes, resolved colors |
-| [code/](.claude/skills/code/)                                       | Code quality/review                                                   |
-| [tdd/](.claude/skills/tdd/)                                         | **Reproduce first, fix second** — tool picker, test patterns, cleanup  |
-| [big/](.claude/skills/big/)                                         | **Think big** — reframe problems, 10-20 hypotheses, find the design where the bug can't happen |
-| [why/](.claude/skills/why/)                                         | **5 Whys** — trace symptom to root cause, fix at the right level |
-| ~~troubleshoot/~~ | Absorbed into `/tests debug` |
-| [commit/](.claude/skills/commit/)                                   | Commits, worktrees                                                    |
-| [release/](.claude/skills/release/)                                 | Release packages (version, changelog, npm publish, GitHub release)    |
-| [refactor/](.claude/skills/refactor/)                                | Large-scale phased refactoring (plan, review, execute phases)         |
-| [complete/](.claude/skills/complete/)                                | Session-end completeness audit (remnants, docs, beads, git)           |
-| [recall/](.claude/skills/recall/)                                   | Search past session knowledge (`bun recall "query"`)                  |
-| [max/](.claude/skills/max/)                                         | Parallel agents for independent tasks                                 |
-| [sop/](.claude/skills/sop/)                                         | **SOP framework** — scan/propose/execute across 9 maintenance domains. Absorbs /audit, /review-all, /project-audit, /project-cleanup, /repo-health, /systematize |
+| Skill             | Use When                                                                                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| pm/               | Issue tracking (beads). Bugs auto-trigger /tdd (reproduce first)                                                                                             |
+| tests/            | Writing/running tests, TDD workflow                                                                                                                          |
+| tests/termless.md | ANSI verification, scrollback, cursor, terminal modes, resolved colors                                                                                       |
+| code/             | Code quality/review                                                                                                                                          |
+| tdd/              | Reproduce first, fix second — tool picker, test patterns, cleanup                                                                                            |
+| big/              | Think big — reframe problems, 10-20 hypotheses, find the design where the bug can't happen                                                                   |
+| why/              | 5 Whys — trace symptom to root cause, fix at the right level                                                                                                 |
+| troubleshoot/     | Absorbed into /tests debug                                                                                                                                   |
+| commit/           | Commits, worktrees                                                                                                                                           |
+| release/          | Release packages (version, changelog, npm publish, GitHub release)                                                                                           |
+| refactor/         | Large-scale phased refactoring (plan, review, execute phases)                                                                                                |
+| complete/         | Session-end completeness audit (remnants, docs, beads, git)                                                                                                  |
+| recall/           | Search past session knowledge (bun recall "query")                                                                                                           |
+| max/              | Parallel agents for independent tasks                                                                                                                        |
+| sop/              | SOP framework — scan/propose/execute across 9 maintenance domains. Absorbs /audit, /review-all, /project-audit, /project-cleanup, /repo-health, /systematize |
 
 ### Silvery Development
 
-| Skill                                                               | Use When                                                              |
-| ------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| [silvery-components](.claude/skills/tui/silvery-components.md)      | **Audit gate** — list of silvery components. Check before building new km-tui components to avoid reimplementing primitives silvery ships. |
-| [The Silvery Way](vendor/silvery/docs/guide/the-silvery-way.md)     | Building with silvery — canonical components, anti-patterns              |
-| [Silvery Styling](vendor/silvery/docs/guide/styling.md)             | Semantic colors, typography presets, theme tokens (`$primary`, `$muted`) |
-| [logging/](.claude/skills/logging/)                                 | Debug output                                                          |
+| Skill              | Use When                                                                                                                               |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| silvery-components | Audit gate — list of silvery components. Check before building new km-tui components to avoid reimplementing primitives silvery ships. |
+| The Silvery Way    | Building with silvery — canonical components, anti-patterns                                                                            |
+| Silvery Styling    | Semantic colors, typography presets, theme tokens ($primary, $muted)                                                                   |
+| logging/           | Debug output                                                                                                                           |
 
 ### Infrastructure & Maintenance
 
-| Skill                                                               | Use When                                                              |
-| ------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| [claude/](.claude/skills/claude/)                                   | Claude Code config (skills, MCP, hooks)                               |
-| [claude-config/](.claude/skills/claude-config/)                     | Drift-audit + registration recipes for hooks, skills, agents, MCP. Run `bun tools/lint-claude-config.ts`. |
-| [docs/](.claude/skills/docs/)                                       | Documentation management — glossary, review, audit, README/landing page writing |
-| ~~project-audit/~~ | Absorbed into `/sop code,sites` |
-| ~~project-cleanup/~~ | Absorbed into `/sop infra` |
-| ~~repo-health/~~ | Absorbed into `/sop packages` |
-| ~~infra/~~ | Absorbed into `/sop infra` |
-| ~~design-review/~~ | Absorbed into `/tui review` |
-| ~~diagram-design/~~ | Absorbed into `/diagram html` |
-| ~~git/~~ | Absorbed into `/commit` |
-| [npm/](.claude/skills/npm/)                                         | Check npm availability. **Package registry**: [npm-packages.md](.claude/skills/release/npm-packages.md) |
-| [upstream](.claude/skills/pm/workflows/upstream.md)                 | Filing bugs on external repos — **MUST load before `gh issue create`**|
-| [diagram/](.claude/skills/diagram/)                                 | ASCII + HTML/CSS diagrams — aligned boxes, trees, flow, blog-ready HTML |
-| [batch-refactor](vendor/bearly/skills/batch-refactor/SKILL.md) | Rename/refactor/migrate across files (`bun tools/refactor.ts --help`) |
+| Skill            | Use When                                                                                                |
+| ---------------- | ------------------------------------------------------------------------------------------------------- |
+| claude/          | Claude Code config (skills, MCP, hooks)                                                                 |
+| claude-config/   | Drift-audit + registration recipes for hooks, skills, agents, MCP. Run bun tools/lint-claude-config.ts. |
+| docs/            | Documentation management — glossary, review, audit, README/landing page writing                         |
+| project-audit/   | Absorbed into /sop code,sites                                                                           |
+| project-cleanup/ | Absorbed into /sop infra                                                                                |
+| repo-health/     | Absorbed into /sop packages                                                                             |
+| infra/           | Absorbed into /sop infra                                                                                |
+| design-review/   | Absorbed into /tui review                                                                               |
+| diagram-design/  | Absorbed into /diagram html                                                                             |
+| git/             | Absorbed into /commit                                                                                   |
+| npm/             | Check npm availability. Package registry: npm-packages.md                                               |
+| upstream         | Filing bugs on external repos — MUST load before gh issue create                                        |
+| diagram/         | ASCII + HTML/CSS diagrams — aligned boxes, trees, flow, blog-ready HTML                                 |
+| batch-refactor   | Rename/refactor/migrate across files (bun tools/refactor.ts --help)                                     |
 
 ## opencode Compatibility
 
@@ -434,12 +436,12 @@ This repository supports **opencode** in addition to Claude Code.
 
 The hooks directory contains Claude Code hooks. opencode should map these equivalents:
 
-| Claude Hook | opencode Equivalent | Notes |
-|-------------|---------------------|-------|
-| `SessionStart` | `pre-task` | Initialize session context, bead workflow |
-| `SessionEnd` | `post-task` | Cleanup, summarize session |
-| `PreCompact` | `pre-compact` | Context gathering for checkpoint |
-| `SubagentStop` | `post-subagent` | Zombie worker cleanup |
+| Claude Hook  | opencode Equivalent | Notes                                     |
+| ------------ | ------------------- | ----------------------------------------- |
+| SessionStart | pre-task            | Initialize session context, bead workflow |
+| SessionEnd   | post-task           | Cleanup, summarize session                |
+| PreCompact   | pre-compact         | Context gathering for checkpoint          |
+| SubagentStop | post-subagent       | Zombie worker cleanup                     |
 
 ### Settings Files
 
@@ -466,5 +468,8 @@ km bd close <id>         # Complete work
 For issues, prefer Claude hooks (master) and adapt for opencode as needed.
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
+
 <!-- Beads integration managed by `bd setup claude`. Do not remove markers. -->
+
 <!-- END BEADS INTEGRATION -->
+

@@ -3,103 +3,98 @@ aliases:
   - km-agent.sigil-boards
   - km-agent-sigil-boards
 created_at: 2026-05-06T22:35:10.050Z
+type: epic
+priority: P2
+parent: "@km/agent"
 ---
 
-# Sigil-board agent dispatch — @agent/0..9 + /claim + /do #epic #P2
+# [ ] Sigil-board agent dispatch — @agent/0..9 + /claim + /do #epic #P2
 
-Build the `@agent` + `@agent/0..9` sigil-board scheme for assigning bead work to agent persona slots, claimable as locks, with a `/do` skill that works the highest-priority bead from currently-claimed slots (composable with `/loop` for continuous mode).
+Build the `@agent` + `@agent/0..9` sigil-board scheme for assigning bead work to agent persona slots, claimable as locks, with `/claim` + `/do` skills that compose with `/loop` for continuous work.
 
-## The design
+## The design (in one breath)
 
-```
-@agent.md              ← master roll-up: ALL agent-assigned work
-@agent/0.md            ← persona slot 0
-@agent/1.md            ← persona slot 1
-...
-@agent/9.md            ← persona slot 9
-```
+Use km's existing sigil + board + rules-engine primitives:
 
-- **Persona definition** = `@agent/<N>.md` body + frontmatter (`model`, `harness`, `scope_fit`, system prompt as body).
-- **Claim** = `km bd update @agent/<N> --claim` — sets assignee + status=wip on the slot. Acts as a lock; only one session holds a slot at a time.
-- **Assign work** = add `@agent/<N>` to a bead's title (sigil = mention). Existing sigil mechanism.
-- **Per-session view** = `/do` reads "what beads mention any of my claimed slots?", picks top by priority, claims it, presents to the user / loops.
+- **Boards = files at `@agent.md` + `@agent/0..9.md`** (vault root, sibling to `@km/`). 10 numeric slots; persona definition lives in the slot's body + frontmatter.
+- **Assignment = sigil mention.** Adding `@agent/3` (or equivalently `[[@agent/3]]`) to a bead title lands `km:@agent/3` in the canonical `links` table.
+- **Per-board view = self-aggregating via `NodeRules.add`.** Each `@agent/N.md` carries `rules: { add: "<query for incoming @agent/N links>" }`. Sync evaluates the rule and materializes `![[<bead>]]` embeds INTO the board body. Reading the board file = seeing the queue.
+- **Claim = bead claim at the board level.** `km bd update @agent/3 --claim` sets assignee + status=wip on the slot. Acts as a lock; one session per slot. The body content of the claimed board becomes the session's persona context.
+- **`/do` = "work the highest-priority embed from any slot I've claimed."** Compose with `/loop` for continuous mode.
 
-## Verification — what works today and what doesn't (2026-05-06 experiment)
+## Why this is the right design
 
-Created `@agent.md` + `@agent/0.md` + a test bead `@km/inbox/test-agent-mention` with `@agent/0` in title, `@agent/3` in body, and `[[@agent/5]]` wikilink in body. Ran rollup queries AND inspected the underlying `links` table directly via SQLite.
+It composes existing primitives — nothing new is invented:
 
-| Query | Result | Verdict |
+| Primitive | Already exists | What we use it for |
 |---|---|---|
-| `km bd list @agent` | Returns slot files + test bead + an unrelated bead mentioning `@agent.md` | ✅ Master rollup works |
-| `km bd list @agent/0` | Returns "No tasks found" | ❌ Per-slot rollup broken |
-| `km bd children @agent` | Lists `@agent/0` slot file | ✅ Path-children works |
-| `km bd query 'title:agent/0'` | `[]` | ❌ No title-substring DSL |
+| Sigil → `links` table (`@blah` ≡ `[[@blah]]` → `km:@blah`) | `docs/design/model/klink.md` | Assignment is just adding `@agent/N` to the title |
+| `NodeRules.add` (board self-aggregation on sync) | `docs/design/model/storage.md` § NodeRules | Each `@agent/N.md` pulls its own queue declaratively |
+| Bead claim (`bd update --claim` → assignee + status=wip) | Existing bd primitive | Per-slot lock; the board IS the bead being claimed |
+| Embed materialization (`![[bead]]` rendered in body) | klink.md `rel: 'embed'` | The materialized board body shows the queue |
 
-**The three syntaxes behave differently** — verified by direct SQL on `links` table:
+The "10 slots" cap forces persona discipline (no proliferation). The parent-child structure (`@agent` parent of `@agent/N`) gives both per-persona views and a unified "all agent work" view.
 
-| Syntax in bead | Lands in `links` table? | `data.mentions` |
-|---|---|---|
-| `#task`, `#P2` (hash sigil) | ✅ as `km:%23task` | — (hash sigils don't go to mentions) |
-| `[[@agent/5]]` (wikilink) | ✅ as `km:@agent/5` (full path-form!) | — |
-| `@agent/0`, `@agent/3` (bare sigil) | ❌ not extracted at all | bare `"agent"` only — no path-form |
+## Implementation gaps (the actual work)
 
-**Implications:**
+Verified in a 2026-05-06 experiment by direct SQL on the `links` table:
 
-- **Master view works for free** — anything with `@agent` (any form) surfaces under `bd list @agent` because `data.mentions: ["agent"]`.
-- **Per-slot routing has a clean primitive available** — the links table already indexes `[[@agent/5]]` with full path-form `km:@agent/5` href. The only missing piece is `bd list @agent/<N>` doing a backlinks query (`SELECT host_id FROM links WHERE href = 'km:@agent/<N>'`).
-- **Bare `@agent/<N>` sigils are a dead end** without parser changes — the extractor doesn't recognize path-form for `@`-sigils.
-
-## Decision: align implementation with the canonical klink.md spec
-
-The design is **already documented** in `docs/design/model/klink.md`:
-
-| Markdown | Resulting href |
+| Scenario | Status |
 |---|---|
-| `@Alice` (inline) | `km:@Alice` |
-| `[[@Alice]]` | `km:@Alice` *(equivalent)* |
-
-So `@blah` ≡ `[[@blah]]` is the **specified behavior**. The links table is canonical. `data.mentions` is a redundant parallel field from `packages/km-markdown/src/extensions/km-refs.ts` — should be deprecated (separate sweep, not part of this bead).
-
-The "broken per-slot rollup" we observed is therefore an **implementation gap, not a design question**:
-
-- `[[@agent/5]]` → produces `km:@agent/5` ✓ (matches spec)
-- Bare `@agent/0` → produces nothing in links table ✗ (**violates spec** — should produce `km:@agent/0` per klink.md)
-- The inline `@<sigil>/<sub>` extractor needs to be fixed to match the documented spec (and the wikilink extractor that already does the right thing).
-
-### Single path forward
-
-1. **Fix the inline `@<sigil>` extractor** to recognize path-form (`@agent/0` → `km:@agent/0` in links table) — bug fix to align with `klink.md`.
-2. **`bd list <slot>` does a backlinks query** on the links table (`SELECT host_id FROM links WHERE href = 'km:@agent/<N>'`) — uses the canonical primitive.
-3. **No syntactic choice for users** — `@agent/3` and `[[@agent/3]]` both work, both produce `km:@agent/3`, both are queryable via the same mechanism. Per the spec.
-
-### Ontology aside (for the extractor fix)
-
-When the extractor sees `@<prefix>/<sub>`:
-- **Doesn't create nodes.** Same as `[[NonExistent]]` wikilinks (dangling, not auto-materialized) and `#tag` sigils (no `#tag.md` auto-creates today). Auto-creation would pollute the vault with empty stubs and force type-inference the extractor can't sensibly do (`@agent/0` is a persona slot; `@reading/scifi/dune` is a book; `@org/team-foo` is a team — no good default).
-- **Records one link**, `km:@<prefix>/<sub>` only. Master-prefix rollup (`bd list @agent`) handled by query-side path-prefix matching (`WHERE href LIKE 'km:@agent%'`), not by recording two links.
-- **Bare `@<prefix>` (no sub) stays as today** — `km:@<prefix>` in links table per spec; the path-form work is purely additive.
+| `[[@agent/5]]` (wikilink in body) → `km:@agent/5` in links table | ✅ Works per spec |
+| Bare `@agent/0` (sigil in title) → no entry in links table | ❌ **Bug** — klink.md says it should produce `km:@agent/0` |
+| `bd list @agent` rolls up `@agent`-mentioning beads | ✅ Works (via `data.mentions` parallel field — being deprecated separately) |
+| `bd list @agent/0` rolls up `@agent/0`-mentioning beads | ❌ Doesn't work — depends on (a) the bare-sigil-with-path fix above, AND (b) `rules.add` materialization on the board |
+| `@agent/N.md` board files have `rules.add` block | ❌ Don't exist yet — need to be authored |
+| `rules.add` DSL supports the query shape needed (`mention:@agent/3` or equivalent) | ❓ Needs verification |
+| `bd update @agent/N --claim` is race-safe across sessions | ❓ Today's `--claim` does read-then-write; needs DB-side compare-and-swap (`UPDATE ... WHERE assignee IS NULL`) |
+| Board-level claim respects the existing 20-min agent / 24h user lease | ❓ Verify; document if needed |
 
 ## Sub-tasks
 
-- [ ] **scaffold** — create `@agent.md` + `@agent/0..9.md` at vault root with frontmatter schema (model/harness/scope_fit) and starter persona stubs where known (e.g., 0=generalist, 1=silvery-engineer, 2=silvercode-engineer, 3=bd/cli-engineer, rest empty for ad-hoc)
-- [ ] **fix inline `@<sigil>/<sub>` extractor to match klink.md spec** — bare `@agent/0` should produce `km:@agent/0` in the links table (currently produces nothing). Verifies `@<x>` ≡ `[[@<x>]]` per the canonical klink doc. Re-extract on sync. Verify `km bd list @agent/0` returns beads mentioning the slot via backlinks query.
-- [ ] **`bd list <slot>` backlinks-query path** — when `<slot>` resolves to a node, query `SELECT host_id FROM links WHERE href = 'km:<slot-href>'` (and a `LIKE 'km:<slot>%'` rollup variant for parent paths). Surface those host nodes in the listing.
-- [ ] **deprecate `data.mentions` (separate sweep)** — `packages/km-markdown/src/extensions/km-refs.ts` populates `data.{tags,mentions,projects}` redundantly with the links table. Per klink.md the links table is canonical. File as a follow-up bead under `@km/markdown` once the `@<sigil>/<sub>` extractor work lands and we've verified nothing depends on `data.mentions` exclusively.
-- [ ] **atomic claim** — `bd update --claim` should be DB-side compare-and-swap (`UPDATE ... WHERE assignee IS NULL`); refuse with the current holder if already claimed. Race-safe across sessions
-- [ ] **lease expiry at board level** — verify the existing 20min agent / 24h user lease applies to board-level claims; document or extend
-- [ ] **/claim skill** — `.claude/skills/claim/SKILL.md`: wraps `km bd update @agent/<N> --claim`, reads body content into session context as `<persona>...</persona>` envelope, broadcasts on tribe channel
-- [ ] **/do skill** — `.claude/skills/do/SKILL.md`: query beads mentioning my claimed slots, pick top by priority desc + path-id asc tiebreak, present to user (or auto-execute in `/loop` mode), close on completion, repeat
-- [ ] **persona body as system prompt** — when an agent runtime (`km agent spawn`) claims a board via `--persona @agent/<N>`, inject the body content into its session as system context
+Phase 1 — substrate fixes (foundational):
 
-## Out of scope (later)
+- [ ] **Fix the inline `@<sigil>/<sub>` extractor** to match the klink.md spec — bare `@agent/0` should produce `km:@agent/0` in the `links` table (currently produces nothing, while `[[@agent/0]]` correctly does). This makes `@<x>` ≡ `[[@<x>]]` true in practice as it already is in spec. Re-extract on next sync.
+- [ ] **Verify or extend the `rules.add` DSL** to support the sigil-mention query shape needed (e.g., `mention:@agent/3`, `links.href:km:@agent/3`, or whatever the canonical form is). Document in `docs/design/model/storage.md` § NodeRules if extended.
+- [ ] **Atomic board claim** — DB-side compare-and-swap on `bd update --claim`: `UPDATE nodes SET assignee = ?, task_status = 'wip' WHERE id = ? AND (assignee IS NULL OR <lease-expired>)`. Return failure with current holder if the row didn't update. Race-safe across sessions.
+- [ ] **Lease expiry at board level** — verify the existing 20-min agent / 24h user lease applies cleanly to board-level claims (vs per-bead claims). Document or extend as needed.
 
-- Named slots (`@agent/architect`, `@agent/reviewer`) beyond numeric — start numeric; revisit if 10 isn't enough.
-- Multi-agent fanout on one persona (`km agent fanout @agent/1 3`) — needs queue-partitioning; defer.
-- Persona suggest (auto-pick best slot for a bead) — defer; manual assignment first.
+Phase 2 — scaffold (depends on Phase 1):
 
-## References
+- [ ] **Scaffold `@agent.md` + `@agent/0..9.md`** at vault root with frontmatter schema (`model`, `harness`, `scope_fit` optional list of paths/tags this persona is best on). Body contains the system-prompt content that becomes session context on claim. Each board's frontmatter also carries `rules: { add: "..." }` so sync materializes the queue. Starter personas where known: 0=generalist, 1=silvery-engineer, 2=silvercode-engineer, 3=bd/cli-engineer; rest empty for ad-hoc claim.
 
+Phase 3 — skills (depends on Phase 2):
+
+- [ ] **`/claim` skill** at `.claude/skills/claim/SKILL.md` — wraps `km bd update @agent/<N> --claim`, reads the slot's body content into session context as a `<persona>...</persona>` envelope, broadcasts on the tribe channel ("session X claimed @agent/3").
+- [ ] **`/do` skill** at `.claude/skills/do/SKILL.md` — for each `@agent/N` the session has claimed, read the materialized embed-list (the board's body), pick the top-priority bead (priority desc → path-form id asc tiebreak), claim it, present to the user / auto-execute, close on completion. Compose with `/loop` for continuous mode.
+- [ ] **Persona body as system prompt for `km agent spawn`** — when an agent runtime is spawned with `--persona @agent/<N>`, inject the slot's body into the session as system context. Cross-cuts with the existing `km agent` runtime; needs the runtime to recognize a persona link as a system-prompt source.
+
+Phase 4 — cleanup (separate sweep, file as follow-up bead under `@km/markdown`):
+
+- [ ] **Deprecate `data.mentions` / `data.tags` / `data.projects`** — `packages/km-markdown/src/extensions/km-refs.ts` populates these as parallel denormalizations of what the `links` table already stores. `data.tags` already shipped (`@km/all/drop-data-tags` closed in commit `36752c4a6`). `data.mentions` and `data.projects` are next; same logic. File once Phase 1's extractor work lands and we've verified nothing depends on the parallel fields exclusively.
+
+## Out of scope (defer; revisit when there's clear demand)
+
+- **Named slots** (`@agent/architect`, `@agent/reviewer`) beyond numeric — start numeric; the cap forces persona discipline. Add named slots only if 10 isn't enough.
+- **Multi-agent fanout on one persona** (`km agent fanout @agent/1 3` to spawn 3 workers on the same slot) — needs queue partitioning. Defer.
+- **Persona auto-suggest** (given a bead, propose which slot fits best by `scope_fit` match) — defer; manual assignment first.
+
+## Canonical model — load before changing this work
+
+Three docs that define the moving parts. Read them before proposing alternative designs:
+
+1. **`docs/concepts.md` § Links** — sigils-as-name; `@`/`#`/`+` all behave identically.
+2. **`docs/design/model/klink.md`** — KLink model; `@blah ≡ [[@blah]]` → `km:@blah`; the `links` table is canonical.
+3. **`docs/design/model/storage.md` § NodeRules** — boards self-aggregate via `rules.add`; sync materializes embeds into the board body.
+
+If observed behavior contradicts these docs, that's an implementation gap (file as a sub-task), not a design alternative.
+
+## Related
+
+- `@km/all/drop-data-tags` (closed) — established the precedent that denormalized `data.*` fields collapse into the `links` table. Same pattern applies here.
+- `@km/all/dissolve-data-tags-to-links` — sister bead for the broader `data.*` deprecation.
+- `@km/infra/vault-next-me-rename` (P3) — existing bead noting `@me`, `@next`, `@agent` as planned vault-root sigils. This bead's design satisfies the `@agent` half.
+- `@km/BACKLOG.md` — phased queue; once `/do` works, BACKLOG phase sections become natural assignment scopes (e.g., `@agent/2 + Phase 1` ≈ "the silvercode runtime defense work, claimed by slot 2").
+- `@km/storage/sync-roundtrip-completeness` — the parent doctrine that all mutations converge on `repo.updateNode` and sync handles FS materialization. The board-aggregation behavior is part of that pipeline.
 - `hub/km/design/vision.md:37` — "persona facet (durable agent identity)" plan in the vision doc.
-- `@km/infra/vault-next-me-rename` — existing P3 bead noting `@me`, `@next`, `@agent` as planned vault-root sigils ("rename @next.md → @me.md for symmetry with @agent.md (discuss)"). This bead's design satisfies the @agent half.
-- `@km/BACKLOG.md` — once /do works, the BACKLOG phase sections become natural assignment scopes.
 - Composable with: `/loop` (continuous run), `tribe` (cross-session coordination), `km agent spawn` (runtime instances).
