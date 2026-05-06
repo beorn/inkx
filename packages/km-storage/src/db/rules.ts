@@ -782,7 +782,10 @@ export function extractChangedAttrs(db: Database, changedNodeIds: Iterable<strin
 
   // Single regex pass mirrors `extractRefs` in km-markdown — cheaper than
   // 3 separate matchAll calls. Captures: 1=tag, 2=mention, 3=project.
-  const refRegex = /#([a-zA-Z0-9_-]+)|@([a-zA-Z0-9_-]+)|\+([a-zA-Z0-9_-]+)/g
+  // Each sigil accepts path-form (`@scope/sub`, `+project/sub`, `#scope/sub`)
+  // so incremental rule-eval picks up the full canonical name when sigil
+  // attrs change. See docs/design/model/klink.md and @km/agent/sigil-boards.
+  const refRegex = /#([a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*)|@([a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*)|\+([a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*)/g
 
   const idList = Array.from(changedNodeIds)
   if (idList.length === 0) return result
