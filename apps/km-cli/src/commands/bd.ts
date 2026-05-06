@@ -44,7 +44,7 @@
  *
  * Out-of-scope subcommands stay as their own implementations:
  *   bd config / bd migrate / bd export — bd-specific tooling
- *   bd memory / bd comment / bd doctor / bd agent — bd-specific surfaces
+ *   bd memory / bd comment / bd agent — bd-specific surfaces
  *   bd info / bd where — `km doctor` / `km config bd.*` redirects pending
  *
  * `bd` remains a first-class user-facing surface alongside `km task` /
@@ -58,7 +58,6 @@ import { configCommand } from "./bd-config.ts"
 import { migrateCommand, exportCommand } from "./bd-migrate.ts"
 import { attachMemoryCommands } from "./bd-memory.ts"
 import { attachCommentCommands } from "./bd-comment.ts"
-import { attachDoctorCommands } from "./bd-doctor.ts"
 import { bdAgentCommand } from "./bd-agent.ts"
 import { depCommand } from "./bd-dep.ts"
 
@@ -121,4 +120,3 @@ bdCommand.addCommand(exportCommand)
 bdCommand.addCommand(bdAgentCommand)
 attachMemoryCommands(bdCommand)
 attachCommentCommands(bdCommand)
-attachDoctorCommands(bdCommand)
