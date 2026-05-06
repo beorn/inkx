@@ -14,6 +14,7 @@ export * from "./queries.ts"
 export * from "./mutations.ts"
 export * from "./harness.ts"
 export * from "./sessions.ts"
+export * from "./format.ts"
 
 // Future exports:
 // export * from "./runtime/index.ts";

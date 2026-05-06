@@ -17,7 +17,10 @@ import {
   listHarnesses,
   getAgentSessions,
   getSession,
+  formatAgentBrief,
+  formatAgentStatus,
   type Agent,
+  type AgentColorizer,
   type AgentStatus,
 } from "@km/agent"
 import { resolvePathArg, findKmRootFromPath } from "@km/fs-mount"
@@ -364,19 +367,26 @@ agentCommand
 
 // Helper functions
 
-function printAgent(agent: Agent): void {
-  const status = formatStatus(agent.status)
-  const task = agent.currentTaskId ? term.dim(` → ${agent.currentTaskId}`) : ""
+const colorizer: AgentColorizer = {
+  cyan: term.cyan,
+  dim: term.dim,
+  green: term.green,
+  yellow: term.yellow,
+  gray: term.gray,
+  red: term.red,
+}
 
-  console.log(`${status} ${term.cyan(agent.shortId)} ${agent.name}${task}`)
-  console.log(term.dim(`   ${agent.model} / ${agent.harness}`))
+function printAgent(agent: Agent): void {
+  for (const line of formatAgentBrief(agent, colorizer, { withModelHarness: true })) {
+    console.log(line)
+  }
 }
 
 function printAgentDetails(agent: Agent): void {
   console.log(term.bold(`Agent: ${agent.shortId}`))
   console.log()
   console.log(`  Name:     ${agent.name}`)
-  console.log(`  Status:   ${formatStatus(agent.status)}`)
+  console.log(`  Status:   ${formatAgentStatus(agent.status, colorizer)}`)
   console.log(`  Model:    ${agent.model}`)
   console.log(`  Harness:  ${agent.harness}`)
 
@@ -387,19 +397,4 @@ function printAgentDetails(agent: Agent): void {
   console.log()
   console.log(term.dim(`  Created:  ${new Date(agent.createdAt).toISOString()}`))
   console.log(term.dim(`  Updated:  ${new Date(agent.updatedAt).toISOString()}`))
-}
-
-function formatStatus(status: AgentStatus): string {
-  switch (status) {
-    case "idle":
-      return term.dim("○")
-    case "running":
-      return term.green("●")
-    case "paused":
-      return term.yellow("◐")
-    case "stopped":
-      return term.gray("○")
-    case "error":
-      return term.red("✗")
-  }
 }

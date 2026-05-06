@@ -16,7 +16,9 @@ import {
   assignIssueFields,
   unassignIssueFields,
   claimIssueFields,
+  formatAgentBrief,
   type Agent,
+  type AgentColorizer,
 } from "@km/agent"
 import { Bead } from "@km/beads"
 import { resolvePathArg } from "@km/fs-mount"
@@ -258,24 +260,17 @@ bdAgentCommand
 
 // Helper functions
 
-function printAgent(agent: Agent): void {
-  const status = formatStatus(agent.status)
-  const task = agent.currentTaskId ? term.dim(` → ${agent.currentTaskId}`) : ""
-
-  console.log(`${status} ${term.cyan(agent.shortId)} ${agent.name}${task}`)
+const colorizer: AgentColorizer = {
+  cyan: term.cyan,
+  dim: term.dim,
+  green: term.green,
+  yellow: term.yellow,
+  gray: term.gray,
+  red: term.red,
 }
 
-function formatStatus(status: Agent["status"]): string {
-  switch (status) {
-    case "idle":
-      return term.dim("○")
-    case "running":
-      return term.green("●")
-    case "paused":
-      return term.yellow("◐")
-    case "stopped":
-      return term.gray("○")
-    case "error":
-      return term.red("✗")
+function printAgent(agent: Agent): void {
+  for (const line of formatAgentBrief(agent, colorizer)) {
+    console.log(line)
   }
 }
