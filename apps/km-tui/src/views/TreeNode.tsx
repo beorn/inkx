@@ -1078,11 +1078,16 @@ function HeadRow({ onLayout, children }: HeadRowProps): React.ReactElement {
   )
 }
 
-/** Reports the HeadRow's screen-relative position via useScrollRect. */
+/** Reports the HeadRow's screen-relative position via useScrollRect.
+ *  Deferred useScrollRect: one-frame-late but idempotent across convergence
+ *  passes. */
 function HeadLayoutRegistrar({ onLayout }: { onLayout: HeadRowProps["onLayout"] }): null {
   const callbackRef = React.useRef(onLayout)
   callbackRef.current = onLayout
-  useScrollRect((rect) => callbackRef.current(rect))
+  const rect = useScrollRect()
+  React.useEffect(() => {
+    callbackRef.current(rect)
+  }, [rect.x, rect.y, rect.width, rect.height])
   return null
 }
 

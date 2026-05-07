@@ -33,15 +33,15 @@ Tests must be **Mutually Exclusive, Collectively Exhaustive** (see [docs/princip
 
 Single canonical entry point. Backend-agnostic test API — write once, run on headless (default) or termless (`TEST_BACKEND=termless`). Re-exports `item`, `createDriverTest`, `createDriverTestWithRepo`, `realisticBoard`, and `renderBoardWithStore` so one import covers the full fixture menu.
 
-| Helper                                     | Purpose                                                     |
-| ------------------------------------------ | ----------------------------------------------------------- |
-| `createTestApp(nodes, opts?)`              | Create test app with headless or termless backend           |
-| `createTestApp.fromMarkdown(md, opts?)`    | Markdown → TestApp                                          |
-| `createTestApp.fromVault(path, opts?)`     | Fixture vault dir (parses .md files) → TestApp              |
-| `createTestApp.fromRealVault(path, opts?)` | Real on-disk vault via `createRepo` → async TestBoardResult |
-| `realisticBoard()`                         | Pre-built fixture: multi-column board with varied content   |
-| `item(...)`                                | Inline tree fixture builder                                 |
-| `createDriverTest(...)`                    | Low-level driver for white-box / cell-attribute tests       |
+| Helper                                   | Purpose                                                   |
+| ---------------------------------------- | --------------------------------------------------------- |
+| createTestApp(nodes, opts?)              | Create test app with headless or termless backend         |
+| createTestApp.fromMarkdown(md, opts?)    | Markdown → TestApp                                        |
+| createTestApp.fromVault(path, opts?)     | Fixture vault dir (parses .md files) → TestApp            |
+| createTestApp.fromRealVault(path, opts?) | Real on-disk vault via createRepo → async TestBoardResult |
+| realisticBoard()                         | Pre-built fixture: multi-column board with varied content |
+| item(...)                                | Inline tree fixture builder                               |
+| createDriverTest(...)                    | Low-level driver for white-box / cell-attribute tests     |
 
 ```typescript
 import { item, createTestApp } from "./helpers/create-test-app.ts"
@@ -58,13 +58,13 @@ See `.claude/skills/tests/reference.md#createTestApp` for the full API.
 
 ### `helpers/board-test.ts` — driver-level tests (used by ~20 tests)
 
-| Helper                                     | Purpose                                                |
-| ------------------------------------------ | ------------------------------------------------------ |
-| `item(title, ...children)`                 | Fluent tree builder for test fixtures (**still used**) |
-| `createDriverTest(builder)`                | Driver-level test env — raw buffer, registry, store    |
-| `createDriverTestWithRepo(repo, rootId)`   | Same, for existing Repo + custom rootId                |
-| `renderBoard(nodes, opts)`                 | Static render without interaction                      |
-| `renderBoardWithStore(repo, rootId, opts)` | Static render with store context                       |
+| Helper                                   | Purpose                                             |
+| ---------------------------------------- | --------------------------------------------------- |
+| item(title, ...children)                 | Fluent tree builder for test fixtures (still used)  |
+| createDriverTest(builder)                | Driver-level test env — raw buffer, registry, store |
+| createDriverTestWithRepo(repo, rootId)   | Same, for existing Repo + custom rootId             |
+| renderBoard(nodes, opts)                 | Static render without interaction                   |
+| renderBoardWithStore(repo, rootId, opts) | Static render with store context                    |
 
 `createDriverTest` is for tests that genuinely need:
 
@@ -87,13 +87,13 @@ expect(store.getState().ui.someField).toBe(true) // white-box inspection
 
 ### `helpers/board-app.ts` — Driver pattern (for AI/exploration)
 
-| Helper                  | Purpose                                     |
-| ----------------------- | ------------------------------------------- |
-| `board.app(dsl)`        | Create board from string DSL                |
-| `board.load(vaultPath)` | Load from real vault                        |
-| `board.fixture(name)`   | Named fixtures: kanban, nested, empty, etc. |
-| `defaultInvariants`     | Auto-checked: rendering, cursor, selection  |
-| `allInvariants`         | + parent links, node links, layout          |
+| Helper                | Purpose                                     |
+| --------------------- | ------------------------------------------- |
+| board.app(dsl)        | Create board from string DSL                |
+| board.load(vaultPath) | Load from real vault                        |
+| board.fixture(name)   | Named fixtures: kanban, nested, empty, etc. |
+| defaultInvariants     | Auto-checked: rendering, cursor, selection  |
+| allInvariants         | + parent links, node links, layout          |
 
 ```typescript
 const app = board.app(["Inbox > Task 1", "Projects > Alpha"])
@@ -246,15 +246,15 @@ defaultInvariants (4): rendering, cursor, selection, cursorVisible
 allInvariants (7):     + parentLinks, nodeLinks, layout
 ```
 
-| Invariant       | What it checks                                   |
-| --------------- | ------------------------------------------------ |
-| `rendering`     | Screen non-empty, no `[object Object]` or errors |
-| `cursor`        | Cursor exists and has valid column index         |
-| `selection`     | Selected node exists in repo                     |
-| `cursorVisible` | Cursor node's text is visible on screen          |
-| `parentLinks`   | Every node's parent_id points to a real node     |
-| `nodeLinks`     | Every embed_of reference is valid                |
-| `layout`        | Column index within bounds                       |
+| Invariant     | What it checks                                 |
+| ------------- | ---------------------------------------------- |
+| rendering     | Screen non-empty, no [object Object] or errors |
+| cursor        | Cursor exists and has valid column index       |
+| selection     | Selected node exists in repo                   |
+| cursorVisible | Cursor node's text is visible on screen        |
+| parentLinks   | Every node's parent_id points to a real node   |
+| nodeLinks     | Every embed_of reference is valid              |
+| layout        | Column index within bounds                     |
 
 ### Snapshot Assertions (app.expectSnapshot)
 
@@ -264,6 +264,19 @@ Capture the full screen and compare against a golden file. Backend-aware: termle
 app.expectSnapshot() // anonymous — auto-named by vitest
 app.expectSnapshot("after-fold") // named — multiple snapshots per test
 app.expectSnapshot("initial-view") // alias for expectSnapshot with required name
+```
+
+### Action History (app.actionHistory)
+
+Every user action is recorded for failure diagnostics. When a test fails, the last actions are included in the error message.
+
+```typescript
+app.press("j")
+app.command("cursor_down")
+app.type("hello")
+
+expect(app.actionHistory).toContain("press(j)")
+expect(app.actionHistory).toContain("command(cursor_down)")
 ```
 
 ### Structured Tree Snapshots (app.snapshotTree)
@@ -278,6 +291,14 @@ expect(app.snapshotTree()).toMatchInlineSnapshot(`
 `)
 
 app.expectTreeSnapshot("after-fold") // named Vitest snapshot
+```
+
+### resize / paste / tick
+
+```typescript
+app.resize(40, 10) // Resize terminal to 40×10
+app.paste("multi\nline") // Paste text (newlines become Enter)
+app.tick(1000) // Advance fake timers by 1000ms (requires vi.useFakeTimers())
 ```
 
 ### Typed Vitest Fixtures
@@ -302,27 +323,6 @@ test("moves cursor", ({ app }) => {
   app.press("j")
   expect(app).toHaveCursorOn("task1")
 })
-```
-
-### Action History (app.actionHistory)
-
-Every user action is recorded for failure diagnostics. When a test fails, the last actions are included in the error message.
-
-```typescript
-app.press("j")
-app.command("cursor_down")
-app.type("hello")
-
-expect(app.actionHistory).toContain("press(j)")
-expect(app.actionHistory).toContain("command(cursor_down)")
-```
-
-### resize / paste / tick
-
-```typescript
-app.resize(40, 10) // Resize terminal to 40×10
-app.paste("multi\nline") // Paste text (newlines become Enter)
-app.tick(1000) // Advance fake timers by 1000ms (requires vi.useFakeTimers())
 ```
 
 ### Dispose Invariants (SILVERY_STRICT)
@@ -352,12 +352,12 @@ The AutoLocator is the semantic screen model. It supports CSS-style selectors on
 
 ### Other Helpers
 
-| File                         | Purpose                                    |
-| ---------------------------- | ------------------------------------------ |
-| `fixtures/board-fixtures.ts` | Pure data factories                        |
-| `helpers/real-board.ts`      | Load real vaults (async, for .slow. tests) |
-| `helpers/fuzz-invariants.ts` | Invariant checkers for fuzz/chaos          |
-| `helpers/matchers.ts`        | Custom vitest matchers (see above)         |
+| File                       | Purpose                                    |
+| -------------------------- | ------------------------------------------ |
+| fixtures/board-fixtures.ts | Pure data factories                        |
+| helpers/real-board.ts      | Load real vaults (async, for .slow. tests) |
+| helpers/fuzz-invariants.ts | Invariant checkers for fuzz/chaos          |
+| helpers/matchers.ts        | Custom vitest matchers (see above)         |
 
 ## Termless Tests for Visual & Terminal Bugs
 
@@ -455,13 +455,13 @@ Journey tests are the primary guard against bugs at layer boundaries (board↔st
 
 ## File Suffixes
 
-| Suffix                            | When                                      | Example                   |
-| --------------------------------- | ----------------------------------------- | ------------------------- |
-| `.spec.ts`                        | Keys in, screen out — user-level journeys | `board-edit.slow.spec.ts` |
-| `.test.ts`                        | Internal API, component rendering         | `card-layout.test.tsx`    |
-| `.slow.test.ts` / `.slow.spec.ts` | Takes >2s (heavy TUI setup)               | `fold.slow.test.ts`       |
-| `.bench.ts`                       | Performance measurement                   | `scroll-perf.bench.ts`    |
-| `.fuzz.ts`                        | Chaos/randomized testing                  | `monkey.fuzz.ts`          |
+| Suffix                        | When                                      | Example                 |
+| ----------------------------- | ----------------------------------------- | ----------------------- |
+| .spec.ts                      | Keys in, screen out — user-level journeys | board-edit.slow.spec.ts |
+| .test.ts                      | Internal API, component rendering         | card-layout.test.tsx    |
+| .slow.test.ts / .slow.spec.ts | Takes >2s (heavy TUI setup)               | fold.slow.test.ts       |
+| .bench.ts                     | Performance measurement                   | scroll-perf.bench.ts    |
+| .fuzz.ts                      | Chaos/randomized testing                  | monkey.fuzz.ts          |
 
 ## Journey Test Pattern
 
@@ -649,12 +649,12 @@ test("board renders correct colors through real terminal", () => {
 
 **@termless/test matchers** (auto-registered via `import "@termless/test/matchers"`):
 
-| Category          | Matchers                                                                                    |
-| ----------------- | ------------------------------------------------------------------------------------------- |
-| Text (RegionView) | `toContainText()`, `toHaveText()`, `toMatchLines()`                                         |
-| Cell style        | `toBeBold()`, `toBeItalic()`, `toHaveFg()`, `toHaveBg()`, `toHaveUnderline()`, `toBeWide()` |
-| Terminal          | `toHaveCursorAt()`, `toHaveCursorVisible()`, `toBeInMode()`, `toHaveTitle()`                |
-| Snapshot          | `toMatchTerminalSnapshot()`, `toMatchSvgSnapshot()`                                         |
+| Category          | Matchers                                                                        |
+| ----------------- | ------------------------------------------------------------------------------- |
+| Text (RegionView) | toContainText(), toHaveText(), toMatchLines()                                   |
+| Cell style        | toBeBold(), toBeItalic(), toHaveFg(), toHaveBg(), toHaveUnderline(), toBeWide() |
+| Terminal          | toHaveCursorAt(), toHaveCursorVisible(), toBeInMode(), toHaveTitle()            |
+| Snapshot          | toMatchTerminalSnapshot(), toMatchSvgSnapshot()                                 |
 
 **Region selectors**: `term.screen`, `term.scrollback`, `term.row(n)`, `term.cell(r, c)`, `term.range(r1, c1, r2, c2)`.
 
@@ -662,14 +662,14 @@ test("board renders correct colors through real terminal", () => {
 
 ## Related Test Types
 
-| Type                    | Location                | When                                                                                       |
-| ----------------------- | ----------------------- | ------------------------------------------------------------------------------------------ |
-| **Termless**            | `*.termless.test.ts`    | ANSI output verification through real terminal emulator (CI-friendly).                     |
-| **Fuzz/chaos**          | `*.fuzz.ts`             | Randomized keypresses, monkey testing. Run with `FUZZ=1`.                                  |
-| **Property invariants** | `*.fuzz.tsx` (silvery)  | Mathematical rendering invariants (idempotence, inverse ops, clipping). Run with `FUZZ=1`. |
-| **Benchmarks**          | `*.bench.ts`            | Rendering, scroll, navigation perf. Run with `bun run bench`.                              |
-| **GUI/TTY**             | Via `mcp__tty__*` tools | Real terminal verification for visual bugs (not in CI).                                    |
-| **Storybook**           | `bun storybook`         | Interactive component catalog for visual inspection.                                       |
+| Type                | Location              | When                                                                                     |
+| ------------------- | --------------------- | ---------------------------------------------------------------------------------------- |
+| Termless            | \*.termless.test.ts   | ANSI output verification through real terminal emulator (CI-friendly).                   |
+| Fuzz/chaos          | \*.fuzz.ts            | Randomized keypresses, monkey testing. Run with FUZZ=1.                                  |
+| Property invariants | \*.fuzz.tsx (silvery) | Mathematical rendering invariants (idempotence, inverse ops, clipping). Run with FUZZ=1. |
+| Benchmarks          | \*.bench.ts           | Rendering, scroll, navigation perf. Run with bun run bench.                              |
+| GUI/TTY             | Via mcptty\* tools    | Real terminal verification for visual bugs (not in CI).                                  |
+| Storybook           | bun storybook         | Interactive component catalog for visual inspection.                                     |
 
 ## Fuzz Testing Patterns
 

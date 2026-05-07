@@ -350,7 +350,7 @@ describe("windowing — visual rendering", () => {
     // width changes from fallback to actual) causes expected incremental mismatches.
     const focusManager = createFocusManager()
     const reactiveStore = withReactive(createStoreFromRepo(repo))
-    const render = createRenderer({ cols, rows, singlePassLayout: true })
+    const render = createRenderer({ cols, rows })
     const result = render(
       h(
         ThemeProvider,

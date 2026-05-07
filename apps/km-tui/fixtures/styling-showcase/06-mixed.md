@@ -15,10 +15,10 @@ The hardest styling bugs happen where multiple layers intersect. Every row here 
 
 ## Multiple markers in one row
 
-- [ ] **urgent** @bjorn #p0 +launch [due::tomorrow] ship the [[missing-doc]] refactor
+- [ ] urgent @bjorn #p0 +launch [ priority:: P0 due:: tomorrow] ship the [[missing-doc]] refactor
 - [x] done: @shi reviewed [[02-links]] with `prettify_url` — #done +launch
 - [-] dropped: old plan for [[OldDesign]] @bjorn #archive
-- Meeting with @bjorn and @shi about [[02-links]] and [[BrokenLink]] #meeting +launch [due::2026-04-20] **urgent**
+- Meeting with @bjorn and @shi about [[02-links]] and [[BrokenLink]] #meeting +launch [due::2026-04-20] urgent
 
 ## Cursor inverse torture
 

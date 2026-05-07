@@ -23,15 +23,15 @@ selection) via `OpCtx`. Use:
 
 ## What it checks
 
-| Invariant                   | Severity | What it catches                                                                 |
-| --------------------------- | -------- | ------------------------------------------------------------------------------- |
-| `no-internal-ids`           | P1       | 8-char hex/alphanum IDs in parens leaking into rendered text, e.g. `(XWJE24KP)` |
-| `no-object-object`          | P1       | `[object Object]` — a value rendered without a proper toString                  |
-| `no-nan`                    | P1       | `NaN` (word-boundary match) — numeric computation produced an invalid value     |
-| `no-typeerror`              | P0       | `TypeError` in rendered text — runtime error escaped into UI                    |
-| `vault-unchanged-by-nav`    | P0       | Vault file md5 changed after a pure navigation action                           |
-| `cursor-on-visible-node`    | P1       | Cursor points at a node not among the currently visible ones                    |
-| `breadcrumb-matches-cursor` | P2       | Top-of-screen breadcrumb is inconsistent with the cursor's path                 |
+| Invariant                 | Severity | What it catches                                                               |
+| ------------------------- | -------- | ----------------------------------------------------------------------------- |
+| no-internal-ids           | P1       | 8-char hex/alphanum IDs in parens leaking into rendered text, e.g. (XWJE24KP) |
+| no-object-object          | P1       | [object Object] — a value rendered without a proper toString                  |
+| no-nan                    | P1       | NaN (word-boundary match) — numeric computation produced an invalid value     |
+| no-typeerror              | P0       | TypeError in rendered text — runtime error escaped into UI                    |
+| vault-unchanged-by-nav    | P0       | Vault file md5 changed after a pure navigation action                         |
+| cursor-on-visible-node    | P1       | Cursor points at a node not among the currently visible ones                  |
+| breadcrumb-matches-cursor | P2       | Top-of-screen breadcrumb is inconsistent with the cursor's path               |
 
 `vault-unchanged-by-nav` is a _nav-only_ invariant — the runner skips it when
 `isMutation: true`, because mutations are expected to change files.
@@ -126,17 +126,19 @@ Low-level: run a list of invariants over one snapshot (optionally with a
 Adding a new invariant:
 
 1. Implement `ExploreInvariant` in `invariants.ts`:
-   ```typescript
-   export const noFooBar: ExploreInvariant = {
-     name: "no-foo-bar",
-     description: "...",
-     severity: "P1",
-     check(state, before) {
-       if (!state.rendered.includes("foo bar")) return null
-       return { invariant: "no-foo-bar", severity: "P1", details: "..." }
-     },
-   }
-   ```
+
+```typescript
+export const noFooBar: ExploreInvariant = {
+  name: "no-foo-bar",
+  description: "...",
+  severity: "P1",
+  check(state, before) {
+    if (!state.rendered.includes("foo bar")) return null
+    return { invariant: "no-foo-bar", severity: "P1", details: "..." }
+  },
+}
+```
+
 2. Add to `alwaysInvariants` (runs on every action) or `navOnlyInvariants`
    (skipped on mutations).
 3. Add a row to the table above.

@@ -11,7 +11,7 @@ Checkbox tasks in every status. Navigate the cursor over each to verify the stat
 - [ ] todo with [[BrokenLink]] — dashed underline must stay visible under cursor
 - [ ] todo with `foo.bar()` code span
 - [ ] todo with @bjorn known mention
-- [ ] todo assigned to @shi with #p0 and [due::2026-04-10]
+- [ ] todo assigned to @shi with #p0 and [ priority:: P0 due:: 2026-04-10]
 
 ## Done (checked)
 

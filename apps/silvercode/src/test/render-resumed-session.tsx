@@ -16,7 +16,7 @@ export type RenderResumedSessionOptions = {
   cols?: number
   rows?: number
   follow?: "end" | false
-  singlePassLayout?: boolean
+  maxLayoutPasses?: number
   incremental?: boolean
   autoRender?: boolean
   onFrame?: (text: string, buffer: TerminalBuffer) => void
@@ -51,7 +51,7 @@ export function renderResumedSession(opts: RenderResumedSessionOptions): Rendere
   const renderer = createRenderer({
     cols,
     rows,
-    singlePassLayout: opts.singlePassLayout,
+    maxLayoutPasses: opts.maxLayoutPasses,
     incremental: opts.incremental ?? false,
     autoRender: opts.autoRender,
     onFrame: opts.onFrame ? (_frame, buffer) => opts.onFrame?.(bufferToText(buffer), buffer) : undefined,

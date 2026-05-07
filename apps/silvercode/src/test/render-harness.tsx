@@ -116,8 +116,8 @@ export type RenderScenarioOptions = {
    * boundary runs against the production implementation.
    */
   live?: boolean
-  /** Match production's one-pass render loop for layout-measurement regressions. */
-  singlePassLayout?: boolean
+  /** Override max layout-pass iterations per render. Default: MAX_CONVERGENCE_PASSES (2). */
+  maxLayoutPasses?: number
 }
 
 /** Returned by `renderScenario` so tests can clean up if they hold on. */
@@ -180,7 +180,7 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
   Object.defineProperty(process.stdout, "rows", { configurable: true, get: () => rows })
 
   const fake = opts.fake ?? createFakeSession()
-  const renderer = createRenderer({ cols, rows, singlePassLayout: opts.singlePassLayout })
+  const renderer = createRenderer({ cols, rows, maxLayoutPasses: opts.maxLayoutPasses })
   // In live mode, omit spawnFactory so the App uses its default
   // spawnClaude / spawnSdk / spawnCodex path. The script (if any) is
   // ignored — the real subprocess produces the events.

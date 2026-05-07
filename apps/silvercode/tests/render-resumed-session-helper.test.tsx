@@ -80,7 +80,7 @@ describe("renderResumedSession", () => {
       rows: 117,
       follow: "end",
       includeMetadata: true,
-      singlePassLayout: true,
+      // maxLayoutPasses defaults to MAX_CONVERGENCE_PASSES (= 2) — production-matching
       autoRender: true,
       onFrame: (text) => frames.push(text),
     })

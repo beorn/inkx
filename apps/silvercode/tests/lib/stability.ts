@@ -89,7 +89,7 @@ export interface RecordedRenderFrames {
  *
  * @example
  *   const rec = recordRenderFrames()
- *   const app = render(<Tree/>, { cols, rows, singlePassLayout: true, onFrame: rec.onFrame })
+ *   const app = render(<Tree/>, { cols, rows, onFrame: rec.onFrame })
  *   await settle()
  *   rec.reset()           // Drop pre-event frames
  *   driveEvent()

@@ -140,9 +140,13 @@ interface CardLayoutTrackerProps {
 /**
  * Wrapper that tracks the card's layout and registers it with the registry.
  *
- * Uses the `useBoxRect(callback)` form to register measured positions without
- * causing re-renders. The reactive form (`useBoxRect()` without a callback)
- * triggers a blank-screen feedback loop with many cards.
+ * Reads the deferred (committed) `useBoxRect` and republishes via useEffect
+ * on every commit boundary. The deferred reactive form is structurally
+ * idempotent across convergence passes, so the historical "blank-screen
+ * feedback loop with many cards" cannot recur — a render that reads the
+ * rect sees the same value across every pass in the batch and writes a
+ * stable layout. See bead
+ * `@km/silvery/use-deferred-box-rect-and-post-commit-observers`.
  */
 function CardLayoutTracker({
   nodeId,
@@ -152,27 +156,20 @@ function CardLayoutTracker({
   children,
 }: CardLayoutTrackerProps): React.ReactElement {
   const registry = useNavigator()
+  const computed = useBoxRect()
 
-  // Register measured position after layout - no re-renders
-  const handleLayout = useCallback(
-    (computed: { x: number; y: number; width: number; height: number }) => {
-      if (!registry) return
-
-      // Use measured dimensions directly from silvery layout
-      registry.register(colIndex, cardIndex, {
-        x: computed.x,
-        y: computed.y,
-        width: computed.width,
-        height: computed.height,
-      })
-      log.debug?.(
-        `registered: col=${colIndex} card=${cardIndex} id=${nodeId.slice(-8)} y=${computed.y} h=${computed.height}`,
-      )
-    },
-    [registry, colIndex, cardIndex, nodeId],
-  )
-
-  useBoxRect(handleLayout)
+  React.useEffect(() => {
+    if (!registry) return
+    registry.register(colIndex, cardIndex, {
+      x: computed.x,
+      y: computed.y,
+      width: computed.width,
+      height: computed.height,
+    })
+    log.debug?.(
+      `registered: col=${colIndex} card=${cardIndex} id=${nodeId.slice(-8)} y=${computed.y} h=${computed.height}`,
+    )
+  }, [registry, colIndex, cardIndex, nodeId, computed.x, computed.y, computed.width, computed.height])
 
   return (
     <Box

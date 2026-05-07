@@ -230,7 +230,7 @@ function mountSkeleton(vaultPath: string) {
   const focusManager = createFocusManager()
   installDialogGuard(focusManager)
 
-  const render = createRenderer({ cols: COLS, rows: ROWS, singlePassLayout: true })
+  const render = createRenderer({ cols: COLS, rows: ROWS })
   const buildTree = () =>
     React.createElement(
       ThemeProvider,

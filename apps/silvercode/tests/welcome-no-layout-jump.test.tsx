@@ -60,14 +60,11 @@ test("MeasuredBanner paints the banner on frame 0 under production-like single-p
     </ScopeProvider>
   )
 
-  // `singlePassLayout: true` mirrors production's create-app.tsx — a
-  // single runPipeline call per doRender, with effect-flush done out of
-  // band. The classic test-renderer mode auto-converges multi-pass
-  // layouts and HIDES this bug; production hits it.
+  // Default maxLayoutPasses (= MAX_CONVERGENCE_PASSES = 2) mirrors
+  // production's create-app.tsx — bounded layout-pass loop per doRender.
   const app = render(tree, {
     cols: COLS,
     rows: ROWS,
-    singlePassLayout: true,
     onFrame: (_frame: string, buffer: TerminalBuffer) => {
       snapshots.push(bufferToText(buffer))
     },

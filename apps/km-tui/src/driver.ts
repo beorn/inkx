@@ -253,8 +253,8 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   // Render BoardApp component with StoreContext.Provider for L3 mode.
   // BoardApp handles workspace pane layout (including detail pane rendering)
   // and reads dimensions from the store via useApp() selectors.
-  // singlePassLayout matches production's create-app.tsx rendering pipeline.
-  const render = createRenderer({ cols: columns, rows, singlePassLayout: true })
+  // Default maxLayoutPasses (= MAX_CONVERGENCE_PASSES = 2) matches production.
+  const render = createRenderer({ cols: columns, rows })
   const boardAppElement = React.createElement(BoardApp, {
     initialViewMode: viewMode,
     toastQueue,

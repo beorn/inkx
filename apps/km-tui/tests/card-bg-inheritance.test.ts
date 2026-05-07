@@ -95,7 +95,7 @@ function renderBoardWithTruecolor(options: {
   const expectedCardBg = theme["bg-selected"] ?? (theme as any).selectionbg ?? selectedBg(theme)
   const expectedDescendantCardBg = selectedBg(theme)
 
-  const render = createRenderer({ cols, rows, singlePassLayout: true })
+  const render = createRenderer({ cols, rows })
   const boardAppElement = React.createElement(BoardApp, {
     initialViewMode: "cards" as const,
     toastQueue,

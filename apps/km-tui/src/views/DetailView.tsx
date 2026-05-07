@@ -76,12 +76,20 @@ const CursorScrollContext = createContext<CursorScrollCtx | null>(null)
 /** Rendered as a child of the cursor DocNode's Box. Uses useScrollRect to
  *  observe the cursor's scroll-container-relative y-position and pushes it
  *  up to DetailView through context. Re-mounts whenever the cursor moves
- *  (because the parent Box with isCursor=true changes identity). */
+ *  (because the parent Box with isCursor=true changes identity).
+ *
+ *  Under deferred useScrollRect semantics, this registrar publishes the
+ *  most-recently-committed rect — one frame late vs the in-flight layout,
+ *  but stable across convergence passes (no feedback loop with consumers
+ *  that branch on the rect). See bead
+ *  `@km/silvery/use-deferred-box-rect-and-post-commit-observers`.
+ */
 function CursorScrollRegistrar(): null {
   const ctx = useContext(CursorScrollContext)
-  useScrollRect((rect) => {
+  const rect = useScrollRect()
+  useEffect(() => {
     ctx?.report(rect.y, rect.height)
-  })
+  }, [ctx, rect.y, rect.height])
   return null
 }
 

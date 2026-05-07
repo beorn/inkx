@@ -176,7 +176,7 @@ describe("markdown rendering at multiple widths", () => {
       },
       { kind: "turn-end", sessionId, turnId: a1, stopReason: "end_turn", ts: 1030 },
     ]
-    const s = await renderScenario({ script, cols: 100, rows: 16, autoEmit: true, singlePassLayout: true })
+    const s = await renderScenario({ script, cols: 100, rows: 16, autoEmit: true })
     s.emit({ kind: "user-message", sessionId, turnId: u2, text: "list the files", ts: 1040 })
     const frame = s.resample()
     const finalRows = frame.lines

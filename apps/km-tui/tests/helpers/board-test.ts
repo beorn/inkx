@@ -589,8 +589,8 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
   // Render BoardApp with StoreContext.Provider for L3 mode.
   // BoardApp handles workspace pane layout (including detail pane rendering)
   // and reads dimensions from the store via useApp() selectors.
-  // singlePassLayout matches production's create-app.tsx rendering pipeline.
-  const render = createRenderer({ cols: columns, rows, singlePassLayout: true })
+  // Default maxLayoutPasses (= MAX_CONVERGENCE_PASSES = 2) matches production.
+  const render = createRenderer({ cols: columns, rows })
   const boardAppElement = React.createElement(BoardApp, {
     initialViewMode: viewMode,
     toastQueue,
@@ -2031,8 +2031,8 @@ export function renderBoardWithStore(
   const store = createSignalStore<BoardAppStore>(createBoardAppStoreState(storeParams))
   const reactiveStore = withReactive(createStoreFromRepo(repo))
 
-  // singlePassLayout matches production's create-app.tsx rendering pipeline
-  const renderFn = options.render ?? createRenderer({ cols: columns, rows, singlePassLayout: true })
+  // Default maxLayoutPasses (= MAX_CONVERGENCE_PASSES = 2) matches production.
+  const renderFn = options.render ?? createRenderer({ cols: columns, rows })
   const boardElement = React.createElement(Board, {
     initialViewMode: viewMode,
     dimensions: { columns, rows },

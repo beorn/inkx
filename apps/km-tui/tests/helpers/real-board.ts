@@ -272,7 +272,7 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
   // core view, which left the root unpinned and collapsed every full-app
   // fixture to a 1-row title-bar frame — see
   // `@km/all/test-system/test-board-empty-frame`.
-  const render = createRenderer({ cols: columns, rows, singlePassLayout: true })
+  const render = createRenderer({ cols: columns, rows })
   const boardAppElement = React.createElement(BoardApp, {
     initialViewMode: viewMode,
     toastQueue,

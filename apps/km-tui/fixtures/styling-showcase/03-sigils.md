@@ -53,6 +53,6 @@ These are cases where a single row has several sigils + formatting — the most 
 
 - **Urgent** @bjorn #p1 +launch ship by friday
 - _quick note_ about [[02-links]] and @next
-- `foo.bar()` failing with @bjorn — #bug +api [priority::high]
+- foo.bar() failing with @bjorn — #bug +api [priority::high]
 - ~~old plan~~ — use [[01-inline-formatting]] now #docs
-- Meeting notes: **kickoff** with @bjorn @shi about +launch #meeting [due::2026-04-20]
+- Meeting notes: kickoff with @bjorn @shi about +launch #meeting [due::2026-04-20]

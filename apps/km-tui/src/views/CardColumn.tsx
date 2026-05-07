@@ -218,27 +218,24 @@ function CardLayoutRegistrar({ colIndex, cardIndex }: { colIndex: number; cardIn
     return !!pane && isDetailViewPane(pane)
   })
 
-  const handleLayout = useCallback(
-    (computed: { x: number; y: number; width: number; height: number }) => {
-      if (!registry || isDetailPane) {
-        layoutLog.trace?.(
-          `CardLayoutRegistrar: skip col=${colIndex} card=${cardIndex} (${isDetailPane ? "detail pane" : "no registry"})`,
-        )
-        return
-      }
-
-      layoutLog.trace?.(`CardLayoutRegistrar: col=${colIndex} card=${cardIndex} y=${computed.y} h=${computed.height}`)
-      registry.register(colIndex, cardIndex, {
-        x: computed.x,
-        y: computed.y,
-        width: computed.width,
-        height: computed.height,
-      })
-    },
-    [registry, colIndex, cardIndex, isDetailPane],
-  )
-
-  useScrollRect(handleLayout)
+  // Deferred useScrollRect: registers committed rect via useEffect on
+  // every commit boundary (one-frame-late, idempotent across passes).
+  const computed = useScrollRect()
+  useEffect(() => {
+    if (!registry || isDetailPane) {
+      layoutLog.trace?.(
+        `CardLayoutRegistrar: skip col=${colIndex} card=${cardIndex} (${isDetailPane ? "detail pane" : "no registry"})`,
+      )
+      return
+    }
+    layoutLog.trace?.(`CardLayoutRegistrar: col=${colIndex} card=${cardIndex} y=${computed.y} h=${computed.height}`)
+    registry.register(colIndex, cardIndex, {
+      x: computed.x,
+      y: computed.y,
+      width: computed.width,
+      height: computed.height,
+    })
+  }, [registry, colIndex, cardIndex, isDetailPane, computed.x, computed.y, computed.width, computed.height])
 
   // Clean up registry entry when ListView unmounts this card.
   // Without this, stale entries with old screen positions remain in the
@@ -263,9 +260,13 @@ function PopoverRectRegistrar({
 }: {
   rectRef: React.RefObject<{ x: number; y: number; width: number; height: number } | null>
 }): null {
-  useScrollRect((rect) => {
+  // Deferred useScrollRect: rect updates one frame late but is stable
+  // across convergence passes. Popovers are user-action-driven (no
+  // same-frame requirement on the rect ref).
+  const rect = useScrollRect()
+  React.useEffect(() => {
     rectRef.current = rect
-  })
+  }, [rectRef, rect.x, rect.y, rect.width, rect.height, rect])
   return null
 }
 
