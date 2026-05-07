@@ -1,9 +1,10 @@
 ---
 mentions:
   - km
-id: "@km/BACKLOG"
+id: "@km/all/BACKLOG"
 aliases:
   - km-BACKLOG
+  - "@km/BACKLOG"
 ---
 
 # km Backlog

@@ -101,7 +101,7 @@ If observed behavior contradicts these docs, that's an implementation gap (file 
 - `@km/all/drop-data-tags` (closed) — established the precedent that denormalized `data.*` fields collapse into the `links` table. Same pattern applies here.
 - `@km/all/dissolve-data-tags-to-links` — sister bead for the broader `data.*` deprecation.
 - `@km/infra/vault-next-me-rename` (P3) — existing bead noting `@me`, `@next`, `@agent` as planned vault-root sigils. This bead's design satisfies the `@agent` half.
-- `@km/BACKLOG.md` — phased queue; once `/do` works, BACKLOG phase sections become natural assignment scopes (e.g., `@agent/2 + Phase 1` ≈ "the silvercode runtime defense work, claimed by slot 2").
+- `@km/all/BACKLOG.md` — phased queue; once `/do` works, BACKLOG phase sections become natural assignment scopes (e.g., `@agent/2 + Phase 1` ≈ "the silvercode runtime defense work, claimed by slot 2").
 - `@km/storage/sync-roundtrip-completeness` — the parent doctrine that all mutations converge on `repo.updateNode` and sync handles FS materialization. The board-aggregation behavior is part of that pipeline.
 - `hub/km/design/vision.md:37` — "persona facet (durable agent identity)" plan in the vision doc.
 - Composable with: `/loop` (continuous run), `tribe` (cross-session coordination), `km agent spawn` (runtime instances).

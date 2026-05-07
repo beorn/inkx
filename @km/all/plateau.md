@@ -91,7 +91,7 @@ For a subsystem to be "at plateau", it must satisfy:
 
 ## Sequencing — operational plan (2026-05-06)
 
-The current operational view of "what to do, in what order" lives in **[[@km/BACKLOG]]** as a phased queue with planning notes. Reproduced here as the authoritative cross-track sequence:
+The current operational view of "what to do, in what order" lives in **[[@km/all/BACKLOG]]** as a phased queue with planning notes. Reproduced here as the authoritative cross-track sequence:
 
 ### Phase 0 — In flight (don't disturb)
 - `@km/infra/test-system` (wip Bjørn) — feat/test-system branch rebase + merge
