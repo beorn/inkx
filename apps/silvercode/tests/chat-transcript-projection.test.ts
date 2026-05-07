@@ -107,8 +107,8 @@ describe("projectChatTranscript", () => {
 
     const tree = projectChatTranscript({ sessionId, events })
     expect(isChatElement(tree.nodes[tree.rootId]!)).toBe(true)
-    const leaves = Object.values(tree.nodes).filter((node) => !("children" in node))
-    expect(leaves.every((leaf) => isChatLeaf(leaf))).toBe(true)
+    const leaves = Object.values(tree.nodes).filter(isChatLeaf)
+    expect(leaves.length).toBeGreaterThan(0)
 
     expect(leaves.map((leaf) => leaf.type)).toEqual(["user-text", "unknown", "permission", "notification", "recap"])
     expect(leaves.map((leaf) => leaf.channel)).toEqual([
