@@ -143,7 +143,7 @@ export const Bead = {
    * ULID, or `null` when nothing matches. Wraps `resolveShortId`.
    */
   resolve(repo: Repo, idRef: string): string | null {
-    return resolveShortId(idRef, { repo })
+    return resolveShortId(idRef, repo)
   },
 
   /** Fetch a single bead by id, alias, or short id. */
@@ -201,7 +201,7 @@ export const Bead = {
       // Use resolveShortId so blockers stored as canonical path-form,
       // legacy bd-form, or aliases all resolve. Raw `short_id:` queries
       // miss path-form blockers and silently treat them as unblocked.
-      const blockerNodeId = resolveShortId(blockerId, { repo })
+      const blockerNodeId = resolveShortId(blockerId, repo)
       if (!blockerNodeId) continue
       const blockerNode = repo.getNode(blockerNodeId)
       if (!blockerNode) continue

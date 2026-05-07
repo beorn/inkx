@@ -636,7 +636,7 @@ export function getIssue(idRef: string, options?: BeadsQueryOptions): Bead | nul
   const repo = options?.repo
   if (!repo) return null
 
-  const nodeId = resolveShortId(idRef, { repo })
+  const nodeId = resolveShortId(idRef, repo)
   if (nodeId) {
     const node = repo.getNode(nodeId)
     if (node) return nodeToBead(node, { repo })

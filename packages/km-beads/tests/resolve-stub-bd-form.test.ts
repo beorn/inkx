@@ -34,7 +34,7 @@ describe("resolveShortId — bd-form input on stub-state nodes", () => {
     })
 
     // Without the bd-form-to-path-form fallback, this returns null.
-    const resolved = resolveShortId("km-beads.foo", { repo })
+    const resolved = resolveShortId("km-beads.foo", repo)
     expect(resolved).toBe(stubId)
   })
 
@@ -47,7 +47,7 @@ describe("resolveShortId — bd-form input on stub-state nodes", () => {
       data: { _stub: true },
     })
 
-    const resolved = resolveShortId("km-silvercode.acp.rename", { repo })
+    const resolved = resolveShortId("km-silvercode.acp.rename", repo)
     expect(resolved).toBe(stubId)
   })
 
@@ -60,14 +60,14 @@ describe("resolveShortId — bd-form input on stub-state nodes", () => {
       data: { _stub: true },
     })
 
-    const resolved = resolveShortId("km-beads-foo", { repo })
+    const resolved = resolveShortId("km-beads-foo", repo)
     expect(resolved).toBe(stubId)
   })
 
   test("non-existent bd-form returns null (no false positives)", () => {
     using repo = createTestRepo()
 
-    const resolved = resolveShortId("km-nonexistent.thing", { repo })
+    const resolved = resolveShortId("km-nonexistent.thing", repo)
     expect(resolved).toBeNull()
   })
 
@@ -80,7 +80,7 @@ describe("resolveShortId — bd-form input on stub-state nodes", () => {
       data: { _stub: true },
     })
 
-    const resolved = resolveShortId("km-q5hji", { repo })
+    const resolved = resolveShortId("km-q5hji", repo)
     expect(resolved).toBe(stubId)
   })
 })

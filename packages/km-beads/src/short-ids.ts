@@ -8,18 +8,6 @@ const SEPARATOR = "-"
 const AUTO_LENGTH = 4
 
 /**
- * Options for the legacy `resolveShortId` wrapper.
- *
- * @deprecated New code uses `resolveRef(repo, ref)` from `@km/storage` —
- * a positional `repo` argument, no options object. This shape exists only
- * for the legacy wrapper.
- */
-export interface ShortIdOptions {
-  /** Repo to use for queries. Required for functions that access storage. */
-  repo?: Repo
-}
-
-/**
  * Mint a fresh node `name` for a bd-CLI-created bead — `<prefix>-<4chars>`.
  *
  * "shortId" is no longer a concept in km's data model. The three handles
@@ -96,11 +84,12 @@ export function mintSubBeadName(parentName: string, childNumber: number): string
 /**
  * Resolve a user-supplied reference to a node id (ULID).
  *
- * @deprecated New code should call `resolveRef(repo, ref)` from `@km/storage`
- * directly. This wrapper exists only to preserve the test-fixture compat
- * fallback (step 4 below) until `@km/beads/data-id-stop-writing` migrates
- * fixtures to file-materialization. Once that lands, this function can be
- * deleted entirely.
+ * @internal Wraps `resolveRef(repo, ref)` from `@km/storage` with a
+ * test-fixture compat fallback (step 4 below). Stays until
+ * `@km/beads/data-id-stop-writing`'s follow-on fixture migration lands —
+ * that bead's close-reason explicitly defers the fixture migration to a
+ * separate change. New code should call `resolveRef(repo, ref)` directly;
+ * keep this name only for the bd-form / data.id fallback path.
  *
  * Resolution priority:
  *   1–3. universal: ULID / path-form / alias — delegated to `resolveRef`.
@@ -111,11 +100,10 @@ export function mintSubBeadName(parentName: string, childNumber: number): string
  *      without writing a file — the lookup-by-data.id pattern that the
  *      pre-2026-04-30 resolver used.
  */
-export function resolveShortId(input: string, options: ShortIdOptions): string | null {
-  if (!options.repo) {
+export function resolveShortId(input: string, repo: Repo): string | null {
+  if (!repo) {
     throw new Error("resolveShortId requires a repo instance")
   }
-  const repo = options.repo
 
   const fileBackedBead = resolvePathFormBeadFile(repo, input)
   if (fileBackedBead !== null) return fileBackedBead

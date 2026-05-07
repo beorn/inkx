@@ -132,9 +132,9 @@ describe("id-resolution property: id-form × scope × bead-class", () => {
         using repo = createTestRepo()
         const seeded = seedBead(repo, b)
 
-        const byCanonical = resolveShortId(seeded.forms.canonical, { repo })
-        const bySigil = resolveShortId(seeded.forms.sigil, { repo })
-        const byBdForm = resolveShortId(seeded.forms.bdForm, { repo })
+        const byCanonical = resolveShortId(seeded.forms.canonical, repo)
+        const bySigil = resolveShortId(seeded.forms.sigil, repo)
+        const byBdForm = resolveShortId(seeded.forms.bdForm, repo)
 
         expect(byCanonical).toBe(seeded.nodeId)
         expect(bySigil).toBe(seeded.nodeId)
@@ -189,12 +189,12 @@ describe("cross-scope disambiguation", () => {
 
         // Each canonical form must resolve to its own bead — no
         // slug-only collision picks the wrong scope.
-        expect(resolveShortId(a.forms.canonical, { repo })).toBe(a.nodeId)
-        expect(resolveShortId(b.forms.canonical, { repo })).toBe(b.nodeId)
-        expect(resolveShortId(a.forms.sigil, { repo })).toBe(a.nodeId)
-        expect(resolveShortId(b.forms.sigil, { repo })).toBe(b.nodeId)
-        expect(resolveShortId(a.forms.bdForm, { repo })).toBe(a.nodeId)
-        expect(resolveShortId(b.forms.bdForm, { repo })).toBe(b.nodeId)
+        expect(resolveShortId(a.forms.canonical, repo)).toBe(a.nodeId)
+        expect(resolveShortId(b.forms.canonical, repo)).toBe(b.nodeId)
+        expect(resolveShortId(a.forms.sigil, repo)).toBe(a.nodeId)
+        expect(resolveShortId(b.forms.sigil, repo)).toBe(b.nodeId)
+        expect(resolveShortId(a.forms.bdForm, repo)).toBe(a.nodeId)
+        expect(resolveShortId(b.forms.bdForm, repo)).toBe(b.nodeId)
       }),
       { numRuns: 50 },
     )
@@ -210,8 +210,8 @@ describe("cross-scope disambiguation", () => {
 
         // bd-form is prefix-bearing — `<prefix>-<scope>.<slug>` — and
         // hits arm 2 (`data.short_id = ?`) by exact match. No ambiguity.
-        expect(resolveShortId(a.forms.bdForm, { repo })).toBe(a.nodeId)
-        expect(resolveShortId(b.forms.bdForm, { repo })).toBe(b.nodeId)
+        expect(resolveShortId(a.forms.bdForm, repo)).toBe(a.nodeId)
+        expect(resolveShortId(b.forms.bdForm, repo)).toBe(b.nodeId)
       }),
       { numRuns: 50 },
     )
@@ -229,7 +229,7 @@ describe("cross-scope disambiguation", () => {
         const a = seedBead(repo, { prefix: pA, scope: s, slug: k })
         const b = seedBead(repo, { prefix: pB, scope: s, slug: k })
 
-        const bareResult = resolveShortId(a.forms.canonical, { repo })
+        const bareResult = resolveShortId(a.forms.canonical, repo)
         expect([a.nodeId, b.nodeId]).toContain(bareResult)
       }),
       { numRuns: 50 },
@@ -258,8 +258,8 @@ describe("cross-scope disambiguation", () => {
 
         // Sigil-prefixed forms SHOULD disambiguate — exact data.id match
         // ought to win over the LIKE-match arm.
-        expect(resolveShortId(a.forms.sigil, { repo })).toBe(a.nodeId)
-        expect(resolveShortId(b.forms.sigil, { repo })).toBe(b.nodeId)
+        expect(resolveShortId(a.forms.sigil, repo)).toBe(a.nodeId)
+        expect(resolveShortId(b.forms.sigil, repo)).toBe(b.nodeId)
       }),
       { numRuns: 50 },
     )
@@ -276,9 +276,9 @@ describe("unknown id returns null, not throw", () => {
       fc.property(beadCoord, (b) => {
         using repo = createTestRepo()
         // Don't seed any beads — every lookup must return null.
-        expect(resolveShortId(`${b.scope}/${b.slug}`, { repo })).toBeNull()
-        expect(resolveShortId(`@${b.prefix}/${b.scope}/${b.slug}`, { repo })).toBeNull()
-        expect(resolveShortId(`${b.prefix}-${b.scope}.${b.slug}`, { repo })).toBeNull()
+        expect(resolveShortId(`${b.scope}/${b.slug}`, repo)).toBeNull()
+        expect(resolveShortId(`@${b.prefix}/${b.scope}/${b.slug}`, repo)).toBeNull()
+        expect(resolveShortId(`${b.prefix}-${b.scope}.${b.slug}`, repo)).toBeNull()
       }),
       { numRuns: 50 },
     )
@@ -304,11 +304,11 @@ describe("unknown id returns null, not throw", () => {
         seedBead(repo, b)
 
         // Query for a slug that doesn't exist under the same scope.
-        const ghost = resolveShortId(`${b.scope}/${otherSlug}`, { repo })
+        const ghost = resolveShortId(`${b.scope}/${otherSlug}`, repo)
         expect(ghost).toBeNull()
 
         // Real bead still resolves.
-        const real = resolveShortId(`${b.scope}/${b.slug}`, { repo })
+        const real = resolveShortId(`${b.scope}/${b.slug}`, repo)
         expect(real).not.toBeNull()
       }),
       { numRuns: 50 },
@@ -330,7 +330,7 @@ describe("aliases", () => {
         // Both forms registered in `data.aliases` (bd-form + dash-form)
         // resolve to the same node.
         const dashForm = `${b.prefix}-${b.scope}-${b.slug}`
-        expect(resolveShortId(dashForm, { repo })).toBe(seeded.nodeId)
+        expect(resolveShortId(dashForm, repo)).toBe(seeded.nodeId)
       }),
       { numRuns: 50 },
     )
@@ -366,7 +366,7 @@ describe("aliases", () => {
 
         // Looking up A's bd-form: arm 2 (short_id) hits A first, before
         // arm 3 (aliases) would hit B. So A wins. This is the contract.
-        const result = resolveShortId(a.forms.bdForm, { repo })
+        const result = resolveShortId(a.forms.bdForm, repo)
         expect(result).toBe(a.nodeId)
         expect(result).not.toBe(bNode)
       }),
@@ -392,9 +392,9 @@ describe("bead-class — non-bead nodes are not addressable", () => {
         })
 
         // None of the well-formed user-supplied forms resolve to it.
-        expect(resolveShortId(`${b.scope}/${b.slug}`, { repo })).toBeNull()
-        expect(resolveShortId(`@${b.prefix}/${b.scope}/${b.slug}`, { repo })).toBeNull()
-        expect(resolveShortId(`${b.prefix}-${b.scope}.${b.slug}`, { repo })).toBeNull()
+        expect(resolveShortId(`${b.scope}/${b.slug}`, repo)).toBeNull()
+        expect(resolveShortId(`@${b.prefix}/${b.scope}/${b.slug}`, repo)).toBeNull()
+        expect(resolveShortId(`${b.prefix}-${b.scope}.${b.slug}`, repo)).toBeNull()
       }),
       { numRuns: 50 },
     )
@@ -418,11 +418,11 @@ describe("id-resolution — hand-rolled cases", () => {
     })
 
     // Bare canonical hits arm 1 directly (exact match against data.id).
-    expect(resolveShortId("scope/old-style", { repo })).toBe(nodeId)
+    expect(resolveShortId("scope/old-style", repo)).toBe(nodeId)
 
     // Sigil form hits via the third predicate (LIKE '%/scope/old-style')
     // after stripping `@km/`.
-    expect(resolveShortId("@km/scope/old-style", { repo })).toBe(nodeId)
+    expect(resolveShortId("@km/scope/old-style", repo)).toBe(nodeId)
   })
 
   test("multiple foreign sigils against the same canonical path resolve to the only bead", () => {
@@ -435,8 +435,8 @@ describe("id-resolution — hand-rolled cases", () => {
     })
 
     // Foreign sigil — gets stripped, falls through to LIKE '%/scope/shared'.
-    expect(resolveShortId("@vendor/scope/shared", { repo })).toBe(nodeId)
-    expect(resolveShortId("@otherprefix/scope/shared", { repo })).toBe(nodeId)
+    expect(resolveShortId("@vendor/scope/shared", repo)).toBe(nodeId)
+    expect(resolveShortId("@otherprefix/scope/shared", repo)).toBe(nodeId)
   })
 
   test("empty-string and degenerate inputs return null (no exception)", () => {
@@ -449,15 +449,15 @@ describe("id-resolution — hand-rolled cases", () => {
     })
 
     // Empty input matches nothing — assert null and no throw.
-    expect(resolveShortId("", { repo })).toBeNull()
-    expect(resolveShortId("@", { repo })).toBeNull()
-    expect(resolveShortId("/", { repo })).toBeNull()
-    expect(resolveShortId("@km/", { repo })).toBeNull()
+    expect(resolveShortId("", repo)).toBeNull()
+    expect(resolveShortId("@", repo)).toBeNull()
+    expect(resolveShortId("/", repo)).toBeNull()
+    expect(resolveShortId("@km/", repo)).toBeNull()
   })
 
   test("resolveShortId throws when no repo is supplied", () => {
     // Unambiguous: this is contract — caller must thread a repo.
-    expect(() => resolveShortId("scope/slug", {} as never)).toThrow(/repo/)
+    expect(() => resolveShortId("scope/slug", undefined as never)).toThrow(/repo/)
   })
 
   test("getIssue returns null with no repo (typed not-found)", () => {
