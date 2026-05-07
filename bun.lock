@@ -277,6 +277,7 @@
         "@agentclientprotocol/sdk": "^0.20.0",
         "@km/agent-harness": "workspace:*",
         "@silvery/scope": "workspace:*",
+        "loggily": "workspace:*",
       },
     },
     "apps/silvercode/packages/km-mcp-server": {

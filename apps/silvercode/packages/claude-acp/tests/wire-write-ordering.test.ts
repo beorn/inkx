@@ -12,11 +12,12 @@
  * Bead: km-silvercode.acp-wire-write-ordering.
  */
 
-import { describe, expect, test } from "vitest"
 import { EventEmitter } from "node:events"
-import type { AgentEvent, AgentSession, SessionId, TurnId } from "@km/agent-harness"
 import * as acp from "@agentclientprotocol/sdk"
-import { attachWire } from "../src/wire.ts"
+import type { AgentEvent, AgentSession, SessionId, TurnId } from "@km/agent-harness"
+import { addWriter, setSuppressConsole } from "loggily"
+import { describe, expect, test } from "vitest"
+import { AcpWireWriteDrainTimeoutError, attachWire } from "../src/wire.ts"
 
 /**
  * Stub AgentSession — exposes a `push(event)` method so the test can
@@ -228,7 +229,7 @@ describe("wire write-ordering — settleNext drains pending sessionUpdate writes
     wire.detach()
   })
 
-  test("stuck notification write does not keep awaitTurn pending forever", async () => {
+  test("stuck notification write is logged and rejects awaitTurn", async () => {
     const session = makeFakeAgentSession()
     const conn = {
       sessionUpdate(_payload: unknown): Promise<void> {
@@ -238,31 +239,46 @@ describe("wire write-ordering — settleNext drains pending sessionUpdate writes
         })
       },
     } as unknown as acp.AgentSideConnection
+    const logs: string[] = []
+    const unsubscribeLogs = addWriter({ ns: "silvercode:claude-acp:wire", level: "error" }, (formatted) => {
+      logs.push(formatted)
+    })
+    setSuppressConsole(true)
     const wire = attachWire(conn, session, SID, { writeDrainTimeoutMs: 5 })
 
-    const turnPromise = wire.awaitTurn()
-    session.push({
-      kind: "text-delta",
-      sessionId: SID as SessionId,
-      turnId: TID,
-      blockIndex: 0,
-      text: "visible answer",
-      ts: 1,
-    })
-    session.push({
-      kind: "turn-end",
-      sessionId: SID as SessionId,
-      turnId: TID,
-      stopReason: "end_turn",
-      ts: 2,
-    })
+    try {
+      const turnPromise = wire.awaitTurn()
+      session.push({
+        kind: "text-delta",
+        sessionId: SID as SessionId,
+        turnId: TID,
+        blockIndex: 0,
+        text: "visible answer",
+        ts: 1,
+      })
+      session.push({
+        kind: "turn-end",
+        sessionId: SID as SessionId,
+        turnId: TID,
+        stopReason: "end_turn",
+        ts: 2,
+      })
 
-    const result = await Promise.race([
-      turnPromise,
-      new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), 50)),
-    ])
+      const result = await Promise.race([
+        turnPromise.then(
+          (value) => value,
+          (err: unknown) => err,
+        ),
+        new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), 50)),
+      ])
 
-    expect(result).toMatchObject({ stopReason: "end_turn" })
-    wire.detach()
+      expect(result).toBeInstanceOf(AcpWireWriteDrainTimeoutError)
+      expect(String((result as Error).message)).toContain("timed out")
+      expect(logs.join("\n")).toContain("sessionUpdate write drain timed out")
+    } finally {
+      wire.detach()
+      unsubscribeLogs()
+      setSuppressConsole(false)
+    }
   })
 })

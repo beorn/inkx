@@ -36,6 +36,9 @@ import type {
   ToolCallId as ScToolCallId,
   ToolCallStatus,
 } from "@km/agent-harness/acp-types"
+import { createLogger } from "loggily"
+
+const log = createLogger("silvercode:claude-acp:wire")
 
 /**
  * Resolution of one Claude prompt turn — settled by the `result` /
@@ -91,6 +94,32 @@ export type AttachWireOptions = {
 
 const DEFAULT_WRITE_DRAIN_TIMEOUT_MS = 1000
 
+export class AcpWireWriteDrainTimeoutError extends Error {
+  readonly sessionId: string
+  readonly pendingWriteCount: number
+  readonly timeoutMs: number
+
+  constructor(args: { sessionId: string; pendingWriteCount: number; timeoutMs: number }) {
+    super(
+      `sessionUpdate write drain timed out for session ${args.sessionId}: ` +
+        `${args.pendingWriteCount} write(s) still pending after ${args.timeoutMs}ms`,
+    )
+    this.name = "AcpWireWriteDrainTimeoutError"
+    this.sessionId = args.sessionId
+    this.pendingWriteCount = args.pendingWriteCount
+    this.timeoutMs = args.timeoutMs
+  }
+}
+
+type TurnWaiter = {
+  resolve: (r: acp.PromptResponse) => void
+  reject: (err: unknown) => void
+}
+
+type SettleOptions = {
+  rejectOnDrainError?: boolean
+}
+
 export function attachWire(
   conn: acp.AgentSideConnection,
   agentSession: AgentSession,
@@ -104,7 +133,7 @@ export function attachWire(
   // model this as one pending resolver at a time. If a second `awaitTurn()`
   // is requested before the first settles, queue it; both are settled in
   // FIFO order.
-  const waiters: Array<(r: acp.PromptResponse) => void> = []
+  const waiters: TurnWaiter[] = []
 
   // In-flight sessionUpdate write tracker. Each `emit(...)` registers its
   // Promise here; `settleNext(...)` drains them all before resolving any
@@ -120,9 +149,12 @@ export function attachWire(
 
   function trackWrite(p: Promise<unknown>): void {
     pendingWrites.add(p)
+    void p.catch((err) => {
+      log.error?.(toError(err, "sessionUpdate write failed"), "sessionUpdate write failed", { sessionId })
+    })
     void p.finally(() => pendingWrites.delete(p)).catch(() => {
-      // The write error belongs to the ACP connection; this tracker only
-      // owns liveness and ordering cleanup.
+      // The separate catch above logs the write failure; this branch only
+      // preserves cleanup liveness.
     })
   }
 
@@ -134,7 +166,13 @@ export function attachWire(
     const writes = [...pendingWrites]
     if (writes.length === 0) return
 
-    const drain = Promise.allSettled(writes).then(() => "drained" as const)
+    const drain = Promise.allSettled(writes).then((results) => {
+      const rejected = results.find((result): result is PromiseRejectedResult => result.status === "rejected")
+      if (rejected) {
+        throw toError(rejected.reason, "sessionUpdate write failed while draining")
+      }
+      return "drained" as const
+    })
     if (writeDrainTimeoutMs <= 0) {
       await drain
       return
@@ -149,17 +187,38 @@ export function attachWire(
     if (timer) clearTimeout(timer)
     if (result === "timeout") {
       for (const write of writes) pendingWrites.delete(write)
+      const err = new AcpWireWriteDrainTimeoutError({
+        sessionId,
+        pendingWriteCount: writes.length,
+        timeoutMs: writeDrainTimeoutMs,
+      })
+      log.error?.(err, "sessionUpdate write drain timed out", {
+        sessionId,
+        pendingWriteCount: writes.length,
+        writeDrainTimeoutMs,
+      })
+      throw err
     }
   }
 
-  function settleNext(stopReason: acp.StopReason): void {
-    const w = waiters.shift()
-    if (!w) return
+  function settleNext(stopReason: acp.StopReason, options: SettleOptions = {}): void {
+    const waiter = waiters.shift()
+    if (!waiter) return
+    const rejectOnDrainError = options.rejectOnDrainError ?? true
     // Drain pending sessionUpdate writes BEFORE resolving the waiter so
     // the prompt RPC response can't overtake any outstanding notification
-    // on the wire. If the drain itself rejects (network error etc.) we
-    // still settle — the consumer needs to un-stick.
-    drainPendingWrites().finally(() => w({ stopReason }))
+    // on the wire. Drain failures are abnormal for completed turns, so fail
+    // the prompt unless the caller is settling a normal cancellation path.
+    void drainPendingWrites().then(
+      () => waiter.resolve({ stopReason }),
+      (err) => {
+        if (rejectOnDrainError) {
+          waiter.reject(err)
+          return
+        }
+        waiter.resolve({ stopReason })
+      },
+    )
   }
 
   function emit(update: ScSessionUpdate): void {
@@ -290,7 +349,12 @@ export function attachWire(
               )
             agentSession.respondToPermission(event.requestId, approved)
           })
-          .catch(() => {
+          .catch((err) => {
+            log.error?.(toError(err, "permission request failed"), "permission request failed", {
+              sessionId,
+              requestId: String(event.requestId),
+              tool: event.tool,
+            })
             agentSession.respondToPermission(event.requestId, false)
           })
         return
@@ -305,7 +369,7 @@ export function attachWire(
 
       case "session-lifecycle": {
         if (event.state === "ended") {
-          while (waiters.length > 0) settleNext("cancelled" as acp.StopReason)
+          while (waiters.length > 0) settleNext("cancelled" as acp.StopReason, { rejectOnDrainError: false })
         }
         return
       }
@@ -357,31 +421,39 @@ export function attachWire(
   const unsubscribe = agentSession.subscribe((e) => {
     try {
       applyEvent(e)
-    } catch {
+    } catch (err) {
       // Defensive: don't let a translation bug tear down the wire. A real
-      // production server would log; we keep silent at v1 to match the
-      // boundary adapter's "lossy by design" stance.
+      // production server would log; this boundary is lossy by design, but
+      // lossy must still be observable.
+      log.error?.(toError(err, "event translation failed"), "event translation failed", {
+        sessionId,
+        eventKind: e.kind,
+      })
     }
   })
 
   return {
     sessionId,
     awaitTurn(): Promise<acp.PromptResponse> {
-      return new Promise<acp.PromptResponse>((resolve) => {
+      return new Promise<acp.PromptResponse>((resolve, reject) => {
         if (detached || agentSession.closed) {
           resolve({ stopReason: "cancelled" as acp.StopReason })
           return
         }
-        waiters.push(resolve)
+        waiters.push({ resolve, reject })
       })
     },
     replayEvent(event: AgentEvent): void {
       if (detached) return
       try {
         applyEvent(event)
-      } catch {
+      } catch (err) {
         // Mirror the live subscribe's defensive try/catch: a translation
         // bug in one event must not abort the replay loop.
+        log.error?.(toError(err, "replay event translation failed"), "replay event translation failed", {
+          sessionId,
+          eventKind: event.kind,
+        })
       }
     },
     detach(): void {
@@ -392,7 +464,7 @@ export function attachWire(
       } catch {
         // already gone
       }
-      while (waiters.length > 0) settleNext("cancelled" as acp.StopReason)
+      while (waiters.length > 0) settleNext("cancelled" as acp.StopReason, { rejectOnDrainError: false })
     },
   }
 }
@@ -423,6 +495,12 @@ function mapStopReason(legacy: string | undefined): acp.StopReason {
     default:
       return "end_turn" as acp.StopReason
   }
+}
+
+function toError(err: unknown, fallbackMessage: string): Error {
+  if (err instanceof Error) return err
+  const suffix = err == null ? "" : `: ${String(err)}`
+  return new Error(`${fallbackMessage}${suffix}`)
 }
 
 function extractPlanFromTodos(input: unknown): ScPlan | null {
