@@ -88,34 +88,40 @@ describe("kmast integration: data fields", () => {
     })
   })
 
-  describe("paragraph.data.tags, .mentions, .projects", () => {
-    test("extracts tags from paragraph", () => {
+  describe("paragraph sigil refs are NOT persisted on AST data (links-table canonical)", () => {
+    // After @km/all/L5-deprecation-purge Phase 2, `kmRefsTransform` was
+    // deleted — sigil refs (`#tag` / `@mention` / `+project`) materialize
+    // directly into the `links` table at node-construction time via
+    // `collectSigilLinks` (see ast2nodes.ts). The mdast-level transforms
+    // intentionally leave `node.data.{tags,mentions,projects}` undefined.
+
+    test("tags are not written to paragraph data", () => {
       const tree = parse("Text #urgent #bug")
       const para = tree.children[0]!
-      expect(para.data?.tags).toEqual(["urgent", "bug"])
+      expect(para.data?.tags).toBeUndefined()
     })
 
-    test("extracts mentions from paragraph", () => {
+    test("mentions are not written to paragraph data", () => {
       const tree = parse("Assigned to @alice @bob")
       const para = tree.children[0]!
-      expect(para.data?.mentions).toEqual(["alice", "bob"])
+      expect(para.data?.mentions).toBeUndefined()
     })
 
-    test("extracts projects from paragraph", () => {
+    test("projects are not written to paragraph data", () => {
       const tree = parse("For +backend +api")
       const para = tree.children[0]!
-      expect(para.data?.projects).toEqual(["backend", "api"])
+      expect(para.data?.projects).toBeUndefined()
     })
 
-    test("extracts all ref types together", () => {
+    test("none of tags/mentions/projects are written for combined refs", () => {
       const tree = parse("#tag @user +proj")
       const para = tree.children[0]!
-      expect(para.data?.tags).toEqual(["tag"])
-      expect(para.data?.mentions).toEqual(["user"])
-      expect(para.data?.projects).toEqual(["proj"])
+      expect(para.data?.tags).toBeUndefined()
+      expect(para.data?.mentions).toBeUndefined()
+      expect(para.data?.projects).toBeUndefined()
     })
 
-    test("no refs set on plain text", () => {
+    test("plain text still has no ref data fields", () => {
       const tree = parse("Plain paragraph")
       const para = tree.children[0]!
       expect(para.data?.tags).toBeUndefined()
@@ -123,13 +129,13 @@ describe("kmast integration: data fields", () => {
       expect(para.data?.projects).toBeUndefined()
     })
 
-    test("refs hoisted from list item paragraph to listItem", () => {
+    test("list item refs are not hoisted to data — links table is canonical", () => {
       const tree = parse("- Task #urgent @alice +backend")
       const list = tree.children[0] as any
       const item = list.children[0]
-      expect(item.data?.tags).toEqual(["urgent"])
-      expect(item.data?.mentions).toEqual(["alice"])
-      expect(item.data?.projects).toEqual(["backend"])
+      expect(item.data?.tags).toBeUndefined()
+      expect(item.data?.mentions).toBeUndefined()
+      expect(item.data?.projects).toBeUndefined()
     })
   })
 
@@ -201,10 +207,13 @@ describe("kmast integration: data fields", () => {
       expect(heading.data?.cleanText).toBe("Section")
     })
 
-    test("heading with tags", () => {
+    test("heading sigil refs are not persisted on AST data (links-table canonical)", () => {
+      // Phase 2 of @km/all/L5-deprecation-purge: heading hashtags land in
+      // the `links` table via `collectSigilLinks` at node-construction
+      // time, not on the mdast `heading.data.tags` field.
       const tree = parse("## Section #important")
       const heading = tree.children[0]!
-      expect(heading.data?.tags).toEqual(["important"])
+      expect(heading.data?.tags).toBeUndefined()
     })
   })
 
@@ -285,10 +294,12 @@ describe("kmast integration: combined features", () => {
     // Block ID
     expect(item.data.blockId).toBe("abc")
 
-    // Refs (hoisted to listItem)
-    expect(item.data.tags).toEqual(["urgent"])
-    expect(item.data.mentions).toEqual(["alice"])
-    expect(item.data.projects).toEqual(["project"])
+    // Sigil refs (#urgent / @alice / +project) are NOT on AST data —
+    // they materialize into the `links` table via `collectSigilLinks`
+    // at node-construction time (Phase 2 of @km/all/L5-deprecation-purge).
+    expect(item.data.tags).toBeUndefined()
+    expect(item.data.mentions).toBeUndefined()
+    expect(item.data.projects).toBeUndefined()
 
     // Inline property (hoisted to listItem)
     expect(item.data.props?.["blocked-by"]).toEqual({ type: "link", target: "other" })
@@ -317,8 +328,10 @@ describe("kmast integration: combined features", () => {
     const para = tree.children[0]!
 
     expect(para.data?.blockId).toBe("ref1")
-    expect(para.data?.tags).toEqual(["feature"])
-    expect(para.data?.mentions).toEqual(["bob"])
+    // Sigil refs (`#feature` / `@bob`) land in the links table — not
+    // on AST data (Phase 2 of @km/all/L5-deprecation-purge).
+    expect(para.data?.tags).toBeUndefined()
+    expect(para.data?.mentions).toBeUndefined()
     expect(para.data?.props?.priority).toEqual({ type: "number", value: 3 })
     expect(para.data?.cleanText).toBe("Description #feature @bob")
   })
@@ -340,9 +353,10 @@ describe("kmast integration: combined features", () => {
     const tree = parse(md)
     const para = tree.children[0]!
 
-    // Refs
-    expect(para.data?.tags).toEqual(["important"])
-    expect(para.data?.mentions).toEqual(["lead"])
+    // Sigil refs land in the links table at node-construction time —
+    // not on AST data (Phase 2 of @km/all/L5-deprecation-purge).
+    expect(para.data?.tags).toBeUndefined()
+    expect(para.data?.mentions).toBeUndefined()
 
     // Wikilinks as child nodes
     const links = findWikilinks(tree)
@@ -362,17 +376,18 @@ describe("kmast integration: combined features", () => {
 
     expect(items).toHaveLength(3)
 
-    // Item 1
+    // Item 1 — sigil refs (`#tag1`) land in the links table, not on
+    // AST data (Phase 2 of @km/all/L5-deprecation-purge).
     expect(items[0].data.taskMark).toBe("x")
     expect(items[0].data.blockId).toBe("id1")
-    expect(items[0].data.tags).toEqual(["tag1"])
+    expect(items[0].data.tags).toBeUndefined()
     expect(items[0].data.props?.rating).toEqual({ type: "number", value: 5 })
 
     // Item 2
     expect(items[1].data.taskMark).toBe(" ")
     expect(items[1].data.blockId).toBe("id2")
-    expect(items[1].data.tags).toEqual(["tag2"])
-    expect(items[1].data.mentions).toEqual(["user"])
+    expect(items[1].data.tags).toBeUndefined()
+    expect(items[1].data.mentions).toBeUndefined()
 
     // Item 3
     expect(items[2].data.taskMark).toBe("/")
@@ -686,33 +701,37 @@ describe("heading-task refs/props extraction (km-markdown.heading-task-refs)", (
   const { parseMarkdownToNodes, parseMarkdownWithLinks } =
     require("../../src/ast2nodes.ts") as typeof import("../../src/ast2nodes.ts")
 
-  test("list-item task extracts tags via link rows + extracts mentions/props (baseline)", () => {
-    // `data.tags` was dissolved (@km/all/dissolve-data-tags-to-links) — hashtags
-    // now land in the parser's `wikilinks` output as synthetic tag entries.
+  test("list-item task extracts tags + mentions via link rows + extracts props (baseline)", () => {
+    // After @km/all/L5-deprecation-purge Phase 2, ALL sigil refs
+    // (#tag / @mention / +project) land in the parser's `wikilinks`
+    // output. `node.data.{tags,mentions,projects}` are no longer
+    // populated.
     const md = "- [ ] title #tagA @person priority:: P1 status:: reported"
     const result = parseMarkdownWithLinks(md, "test.md")
     const task = result.nodes.find((n: { item?: { task?: unknown } }) => n.item?.task !== undefined)
     expect(task).toBeDefined()
-    const taskTags = result.wikilinks
+    const taskRefs = result.wikilinks
       .filter((w: { nodeId: string; relationship?: string }) => w.nodeId === task!.id && w.relationship === "tag")
       .map((w: { href: string }) => w.href)
-    expect(taskTags).toContain("km:%23tagA")
-    expect(task!.data?.mentions).toContain("person")
+    expect(taskRefs).toContain("km:%23tagA")
+    expect(taskRefs).toContain("km:@person")
+    expect(task!.data?.mentions).toBeUndefined()
     const propsRaw = (task!.data as { propsRaw?: Record<string, string> })?.propsRaw
     expect(propsRaw?.priority).toBe("P1")
     expect(propsRaw?.status).toBe("reported")
   })
 
-  test("heading-level task extracts tags via link rows + extracts mentions/props (regression)", () => {
+  test("heading-level task extracts tags + mentions via link rows + extracts props (regression)", () => {
     const md = "#### [ ] title #tagA @person priority:: P1 status:: reported\n"
     const result = parseMarkdownWithLinks(md, "test.md")
     const task = result.nodes.find((n: { item?: { task?: unknown } }) => n.item?.task !== undefined)
     expect(task, "heading-task node should exist").toBeDefined()
-    const taskTags = result.wikilinks
+    const taskRefs = result.wikilinks
       .filter((w: { nodeId: string; relationship?: string }) => w.nodeId === task!.id && w.relationship === "tag")
       .map((w: { href: string }) => w.href)
-    expect(taskTags).toContain("km:%23tagA")
-    expect(task!.data?.mentions).toContain("person")
+    expect(taskRefs).toContain("km:%23tagA")
+    expect(taskRefs).toContain("km:@person")
+    expect(task!.data?.mentions).toBeUndefined()
     const propsRaw = (task!.data as { propsRaw?: Record<string, string> })?.propsRaw
     expect(propsRaw?.priority).toBe("P1")
     expect(propsRaw?.status).toBe("reported")
@@ -732,12 +751,18 @@ describe("heading-task refs/props extraction (km-markdown.heading-task-refs)", (
     expect(propsRaw?.["km.add"]).toBeUndefined()
   })
 
-  test("heading with +project tag populates projects[]", () => {
+  test("heading with +project tag emits a `km:+km` link row, NOT data.projects", () => {
+    // Phase 2 of @km/all/L5-deprecation-purge: project sigils land in
+    // the `links` table (`km:+<name>`) — not on `node.data.projects`.
     const md = "### [ ] ship release +km\n"
-    const nodes = parseMarkdownToNodes(md, "test.md")
-    const task = nodes.find((n: { item?: { task?: unknown } }) => n.item?.task !== undefined)
+    const result = parseMarkdownWithLinks(md, "test.md")
+    const task = result.nodes.find((n: { item?: { task?: unknown } }) => n.item?.task !== undefined)
     expect(task).toBeDefined()
-    expect(task!.data?.projects).toContain("km")
+    expect(task!.data?.projects).toBeUndefined()
+    const taskRefs = result.wikilinks
+      .filter((w: { nodeId: string; relationship?: string }) => w.nodeId === task!.id && w.relationship === "tag")
+      .map((w: { href: string }) => w.href)
+    expect(taskRefs).toContain("km:+km")
   })
 })
 

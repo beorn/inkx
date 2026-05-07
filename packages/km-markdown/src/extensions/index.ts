@@ -32,7 +32,6 @@ import { kmWikilink, kmWikilinkFromMarkdown } from "./km-wikilink.ts"
 import { kmBlockIdTransform } from "./km-block-id.ts"
 import { kmHeadingTaskMarkTransform } from "./km-heading-task-mark.ts"
 import { kmInlinePropTransform } from "./km-inline-prop.ts"
-import { kmRefsTransform } from "./km-refs.ts"
 
 /**
  * Combined micromark syntax extension: GFM (minus task list item) + km extensions.
@@ -49,7 +48,11 @@ export function km(): Extension {
  * 1. block-id — modifies text (strips ` ^blockId` suffix)
  * 2. heading-task-mark — modifies text (strips `[x] ` prefix from headings)
  * 3. inline-prop — reads text (extracts `key:: value` pairs)
- * 4. refs — reads remaining text (extracts #tag @mention +project)
+ *
+ * Sigil refs (`#tag` / `@mention` / `+project`) are no longer extracted
+ * here — they materialize directly into the canonical `links` table via
+ * `collectSigilLinks` (km-markdown/src/ast2nodes.ts) at node-construction
+ * time. See @km/all/L5-deprecation-purge Phase 2.
  */
 export function kmFromMarkdown(): FromMarkdownExtension[] {
   return [
@@ -58,7 +61,7 @@ export function kmFromMarkdown(): FromMarkdownExtension[] {
     gfmTableFromMarkdown(),
     kmTaskMarkFromMarkdown(),
     kmWikilinkFromMarkdown(),
-    { transforms: [kmBlockIdTransform, kmHeadingTaskMarkTransform, kmInlinePropTransform, kmRefsTransform] },
+    { transforms: [kmBlockIdTransform, kmHeadingTaskMarkTransform, kmInlinePropTransform] },
   ]
 }
 
@@ -68,4 +71,3 @@ export { kmWikilink, kmWikilinkFromMarkdown } from "./km-wikilink.ts"
 export { kmBlockIdTransform } from "./km-block-id.ts"
 export { kmHeadingTaskMarkTransform } from "./km-heading-task-mark.ts"
 export { kmInlinePropTransform } from "./km-inline-prop.ts"
-export { kmRefsTransform } from "./km-refs.ts"

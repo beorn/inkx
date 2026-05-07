@@ -36,10 +36,9 @@ export const KNOWN_DATA_KEYS = new Set([
   "item_count",
   "is_repo_root",
   "embeddingTarget",
-  // Internal aggregation (parser)
+  // Internal aggregation (parser) — `_allMentions` / `_allProjects` were
+  // removed in @km/all/L5-deprecation-purge Phase 2 (no live producer).
   "_h1Title",
-  "_allMentions",
-  "_allProjects",
   // Import provenance (shown in footer instead)
   "imported_from",
   "imported_at",

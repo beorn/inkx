@@ -193,7 +193,6 @@ export function parseMarkdownWithLinks(content: string, fsPath: string, fsIno?: 
   // links table. See @km/all/dissolve-data-tags-to-links and
   // @km/agent/sigil-boards.
   collectSigilLinks(fileNode, childNodes, wikilinks)
-  aggregateRefs(fileNode, childNodes)
   const warnings = validateH1Count(childNodes, fsPath, hadH1, h1Ids)
 
   log.debug?.("parsed", {
@@ -390,19 +389,15 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>, body: strin
       // - blockId: kmBlockIdTransform (strips ^id suffix) — folded into `.name` per §2.3
       // - taskMark: kmHeadingTaskMarkTransform (strips [x] prefix)
       // - props/cleanText: kmInlinePropTransform (extracts key:: value)
-      // - tags/mentions/projects: kmRefsTransform
+      //
+      // Sigil refs (`#tag` / `@mention` / `+project`) are no longer
+      // persisted on `node.data` — they land directly in the `links`
+      // table via `collectSigilLinks` (host_id, href, rel='link') at
+      // node-construction time. See @km/all/L5-deprecation-purge Phase 2.
       const sectionBlockId = heading.data?.blockId as string | undefined
       const taskMark = heading.data?.taskMark as string | undefined
       const propsRaw = (heading.data?.propsRaw as Record<string, string> | undefined) ?? {}
       const cleanText = (heading.data?.cleanText as string | undefined) ?? nodeToText(heading)
-      // Refs & non-km props populated by kmRefsTransform / kmInlinePropTransform.
-      // Same shape as list items (see convertListItem): heading-level tasks
-      // need these too so structured queries (tag/assignee/priority) hit them.
-      // See km-markdown.heading-task-refs.
-      // Note: tags are no longer persisted on KNode.data — they land in the
-      // `links` table via collectHashtagLinks. See @km/all/dissolve-data-tags-to-links.
-      const headingMentions = (heading.data?.mentions as string[] | undefined) ?? []
-      const headingProjects = (heading.data?.projects as string[] | undefined) ?? []
       const headingProps = (heading.data?.props as Record<string, unknown> | undefined) ?? {}
 
       // Heading rules from kmast propsRaw (km.* keys extracted by kmInlinePropTransform)
@@ -440,15 +435,14 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>, body: strin
         headingData._mdSource = mdSource
         headingData._mdSourceContent = cleanText
       }
-      // Attach refs & non-km props so heading-level tasks are structurally
+      // Attach non-km props so heading-level tasks are structurally
       // queryable (same shape as list items). km.* keys stay in `rules`;
       // user-level keys (priority::, status::, etc.) go into propsRaw/props.
       //
-      // `data.tags` is no longer persisted — hashtags land in the `links`
-      // table at parse time (host_id, href='km:%23<tag>', rel='link') via
-      // collectHashtagLinks. See @km/all/dissolve-data-tags-to-links.
-      if (headingMentions.length > 0) headingData.mentions = headingMentions
-      if (headingProjects.length > 0) headingData.projects = headingProjects
+      // Sigil refs (`#tag` / `@mention` / `+project`) are no longer
+      // persisted on `node.data` — they land in the `links` table at
+      // parse time via `collectSigilLinks`. See
+      // @km/all/L5-deprecation-purge Phase 2.
       const userPropsRaw: Record<string, string> = {}
       for (const [k, v] of Object.entries(propsRaw)) {
         if (!k.startsWith("km.")) userPropsRaw[k] = v
@@ -577,36 +571,28 @@ function convertListItem(
 
   // Parse task metadata from text
   const metadata = isTask ? parseTaskMetadata(text) : {}
-  // Read refs and props from kmast data (set by kmRefsTransform and kmInlinePropTransform).
-  // Tags are no longer persisted on KNode.data — they land in the `links`
-  // table via collectHashtagLinks. See @km/all/dissolve-data-tags-to-links.
-  const mentions = (item.data?.mentions as string[] | undefined) ?? []
-  const projects = (item.data?.projects as string[] | undefined) ?? []
+  // Read non-km props from kmast data (set by kmInlinePropTransform).
+  //
+  // Sigil refs (`#tag` / `@mention` / `+project`) are no longer
+  // persisted on `node.data` — they land in the `links` table at
+  // parse time via `collectSigilLinks`. See
+  // @km/all/L5-deprecation-purge Phase 2.
   const parsedProps = {
     props: (item.data?.props as Record<string, unknown> | undefined) ?? {},
     propsRaw: (item.data?.propsRaw as Record<string, string> | undefined) ?? {},
     cleanText: (item.data?.cleanText as string | undefined) ?? text,
   }
 
-  // Priority resolution (single source of truth = hashtag in title):
-  //   1. metadata.priority — from `priority::` inline-prop or YAML
-  //      frontmatter `priority:` (legacy authoring forms; new beads stop
-  //      using these); we mirror this into data.tags so getNodePriority()
-  //      can read it without a column.
-  //   2. `#P[0-4]` hashtag in data.tags is the canonical authored form
-  //      (kmRefsTransform populates it from the H1 line per
-  //      docs/future/beads.md).
-  // Both sources should agree; `metadata.priority` wins when both are
-  // set so explicit `priority::` can override (rare).
-  // The legacy nodes.priority column was dropped at SCHEMA_VERSION=11.
-  const itemTags = (item.data?.tags as string[] | undefined) ?? []
-  let priorityTags = itemTags
-  if (metadata.priority !== undefined) {
-    const canonical = metadata.priority
-    if (!itemTags.some((t) => /^P[0-4]$/i.test(t))) {
-      priorityTags = [...itemTags, canonical]
-    }
-  }
+  // Priority resolution: `metadata.priority` from `priority::` inline-prop
+  // or YAML frontmatter `priority:` is the legacy authoring path. New
+  // beads encode priority as `#P[0-4]` in the H1 — that hashtag flows
+  // straight into the `links` table (`km:%23P0`) via `collectSigilLinks`.
+  // The legacy `nodes.priority` column was dropped at SCHEMA_VERSION=11.
+  // We mirror legacy `priority::` writes to `data.tags` solely so
+  // `getNodePriority` can resolve it for cold-read fixtures during the
+  // L5 migration window — drop after the legacy authoring path is
+  // converted to `#P[0-4]` (see @km/all/L5-deprecation-purge).
+  const priorityTags = metadata.priority !== undefined ? [metadata.priority] : []
 
   // Strip metadata from content for tasks only.
   // The serializer (nodes2md appendTaskMetadata) reconstructs task metadata from node fields
@@ -697,16 +683,18 @@ function convertListItem(
     // priority dropped at SCHEMA_VERSION=11; surfaced via data.tags below
     rrule: metadata.rrule,
     data: {
-      // `data.tags` is no longer the persisted bead/file tag store — hashtags
-      // land in the `links` table at parse time
-      // (@km/all/dissolve-data-tags-to-links). EXCEPTION: priority elevated
-      // from `priority::` inline-prop or YAML `priority:` lands here so
-      // getNodePriority() can resolve it after the displayContent strip.
-      // The H1 `#P[0-4]` form already routes through links and content;
-      // this is the legacy-source-only persistence path.
-      ...(metadata.priority !== undefined && priorityTags.length > 0 ? { tags: priorityTags } : {}),
-      ...(mentions.length > 0 ? { mentions } : {}),
-      ...(projects.length > 0 ? { projects } : {}),
+      // `data.tags` is no longer the persisted hashtag store — `#tag`
+      // hashtags land in the `links` table at parse time
+      // (@km/all/L5-deprecation-purge Phase 2). The single remaining
+      // write is the priority mirror: when authored via legacy
+      // `priority::` inline-prop or YAML `priority:`, the canonical
+      // `#P[0-4]` value is parked in `data.tags` so `getNodePriority`
+      // can resolve it without a column. The H1 `#P[0-4]` authoring
+      // form bypasses this entirely (it lands in the `links` table).
+      // Sigil mentions / projects (`@person` / `+project`) are also
+      // canonical via the `links` table — no `data.{mentions,projects}`
+      // mirror is written.
+      ...(priorityTags.length > 0 ? { tags: priorityTags } : {}),
       ...(metadata.rrule ? { rrule: metadata.rrule } : {}),
       ...(Object.keys(parsedProps.props).length > 0 ? { props: parsedProps.props } : {}),
       ...(Object.keys(structuralPropsRaw).length > 0 ? { propsRaw: structuralPropsRaw } : {}),
@@ -1238,64 +1226,6 @@ function wikiLinkToHref(link: WikiLink): string {
   return normalizeLinkHref("wiki", label)
 }
 
-/**
- * Aggregate mentions and projects from all nodes to file node's data.
- * This enables queries like @issue to find files where any content has that mention.
- * Mutates fileNode.data to add _allMentions, _allProjects.
- *
- * Tag aggregation (`_allTags`) is intentionally absent — hashtags now land
- * directly in the `links` table at parse time, so the cache is unnecessary.
- * See @km/all/dissolve-data-tags-to-links.
- */
-// oxlint-disable-next-line complexity/complexity -- Nested iteration over nodes/refs is inherent to aggregation
-function aggregateRefs(fileNode: KNode, childNodes: KNode[]): void {
-  const aggregatedMentions = new Set<string>()
-  const aggregatedProjects = new Set<string>()
-
-  // km-load-perf.1: Use single-pass extraction for all refs
-  // Include file node's own content (e.g., H1 heading with @issue #feature)
-  if (fileNode.content) {
-    const refs = extractAllRefs(fileNode.content)
-    for (const m of refs.mentions) aggregatedMentions.add(m)
-    for (const p of refs.projects) aggregatedProjects.add(p)
-  }
-
-  for (const node of childNodes) {
-    if (node.content) {
-      // Single-pass extraction instead of 3 separate passes
-      const refs = extractAllRefs(node.content)
-      for (const m of refs.mentions) aggregatedMentions.add(m)
-      for (const p of refs.projects) aggregatedProjects.add(p)
-    }
-    // Also include from node's own data (for list items that already extracted these)
-    const nodeData = node.data as Record<string, unknown> | undefined
-    if (nodeData?.mentions) {
-      for (const m of nodeData.mentions as string[]) aggregatedMentions.add(m)
-    }
-    if (nodeData?.projects) {
-      for (const p of nodeData.projects as string[]) aggregatedProjects.add(p)
-    }
-  }
-
-  // Store aggregated refs in separate fields to preserve original frontmatter
-  // Original frontmatter values stay in data.mentions/projects
-  // Aggregated values (content + frontmatter) go in data._allMentions/_allProjects
-  const fileData = fileNode.data as Record<string, unknown>
-  const existingMentions = (fileData.mentions as string[] | undefined) || []
-  const existingProjects = (fileData.projects as string[] | undefined) || []
-
-  // Add original frontmatter values to aggregation
-  for (const m of existingMentions) aggregatedMentions.add(m)
-  for (const p of existingProjects) aggregatedProjects.add(p)
-
-  // Store aggregated values in separate fields (for queries)
-  if (aggregatedMentions.size > 0) {
-    fileData._allMentions = [...aggregatedMentions]
-  }
-  if (aggregatedProjects.size > 0) {
-    fileData._allProjects = [...aggregatedProjects]
-  }
-}
 
 /**
  * Validate that the file has exactly one H1 heading.

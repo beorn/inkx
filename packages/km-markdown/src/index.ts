@@ -45,7 +45,6 @@ export {
   kmBlockIdTransform,
   kmHeadingTaskMarkTransform,
   kmInlinePropTransform,
-  kmRefsTransform,
 } from "./extensions/index.ts"
 
 // AST to nodes
