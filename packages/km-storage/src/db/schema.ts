@@ -131,8 +131,16 @@ export const SCHEMA_VERSION = 12
  *       hashtag in heading / list-item title content + YAML frontmatter
  *       `tags:`. Rebuild populates the new link rows and drops the
  *       legacy JSON fields from existing nodes.
+ *   4 — data.{mentions,projects,tags,_allMentions,_allProjects} fully
+ *       dissolved (@km/all/L5-deprecation-purge Phase 3). Phase 2
+ *       deleted `kmRefsTransform` + `aggregateRefs`, so the parser no
+ *       longer writes any of these JSON sidecars. Migration: surgical
+ *       in-place `json_remove` strips the stale fields from existing
+ *       rows — no full rebuild needed. The canonical `links` table is
+ *       already populated (sigil-boards Phase 1.1 + dissolve-data-tags
+ *       have been emitting rows for every sigil since DATA_VERSION=3).
  */
-export const DATA_VERSION = 3
+export const DATA_VERSION = 4
 
 /**
  * Apply connection-level PRAGMAs that the runtime requires.
@@ -1272,12 +1280,46 @@ export function migrateData(db: import("bun:sqlite").Database): DataMigrateResul
     return { needsRebuild: false }
   }
 
-  // Any version behind DATA_VERSION triggers a full rebuild.
-  // Future: if a data migration can be done incrementally (e.g., UPDATE
-  // all heading names), add a version-gated branch here before the
-  // blanket rebuild. For now, rebuild is the only strategy.
+  // Version-gated incremental migrations land here BEFORE the blanket
+  // rebuild fallback — each branch returns early with `needsRebuild: false`
+  // when the surgical SQL is sufficient.
+  //
+  // 3 → 4: strip the stale data.{mentions,projects,tags,_allMentions,
+  // _allProjects} JSON sidecars from existing rows. The canonical
+  // `links` table is already populated (sigil-boards / dissolve-data-tags
+  // have been emitting rows since DATA_VERSION=3), so no rebuild is
+  // needed — just remove the dead fields. See @km/all/L5-deprecation-purge
+  // Phase 3.
+  if (current === 3 && DATA_VERSION === 4) {
+    db.run("BEGIN IMMEDIATE")
+    try {
+      db.run(`
+        UPDATE nodes
+        SET data = json_remove(data, '$.mentions', '$.projects', '$.tags',
+                                      '$._allMentions', '$._allProjects'),
+            updated_at = ?
+        WHERE data IS NOT NULL
+          AND (json_extract(data, '$.mentions') IS NOT NULL
+            OR json_extract(data, '$.projects') IS NOT NULL
+            OR json_extract(data, '$.tags') IS NOT NULL
+            OR json_extract(data, '$._allMentions') IS NOT NULL
+            OR json_extract(data, '$._allProjects') IS NOT NULL)
+      `, [Date.now()])
+      // Cleanup: nodes whose `data` collapsed to `{}` after the strip
+      // get NULL'd to save space and match fresh-parse output shape.
+      db.run("UPDATE nodes SET data = NULL WHERE data = '{}'")
+      writeDataVersion(db, DATA_VERSION)
+      db.run("COMMIT")
+    } catch (error) {
+      db.run("ROLLBACK")
+      throw error
+    }
+    return { needsRebuild: false }
+  }
 
-  // Wipe derived data so the loader re-parses everything from .md files.
+  // Any version behind DATA_VERSION (with no incremental branch above)
+  // triggers a full rebuild. Wipe derived data so the loader re-parses
+  // everything from .md files.
   db.run("BEGIN IMMEDIATE")
   try {
     db.run("DELETE FROM nodes")
