@@ -27,7 +27,7 @@ import {
   useTheme,
 } from "@silvery/ag-react"
 import { selectedBg } from "../theme.ts"
-import { NodeStoreProvider, useNodeStore, type NodeStore } from "../state/reactive.ts"
+import { NodeStoreProvider, useNodeStore, useTreeNode, type NodeStore } from "../state/reactive.ts"
 import { useSignal } from "../hooks/use-signal.ts"
 import { useRepo } from "../repo-context.tsx"
 import { formatFilterIndicator } from "./FilterDialog.tsx"
@@ -338,16 +338,31 @@ function BoardTopBar({
  * Uses cursorDepth prop (stable on j/k).
  * TopBar, DetailPane, and NewItemDialog subscribe independently.
  */
+function boardCorePropsEqual(prev: BoardCoreProps, next: BoardCoreProps): boolean {
+  // Deliberately ignore cursor/cardIndex/colIndex/depth changes from props.
+  // BoardCore subscribes to NodeStore for the column/depth values it needs;
+  // cards and the top bar subscribe to their own per-node cursor signals.
+  return (
+    prev.rootId === next.rootId &&
+    prev.columnIds === next.columnIds &&
+    prev.columnFilters === next.columnFilters &&
+    prev.ui === next.ui &&
+    prev.dimensions === next.dimensions &&
+    prev.collapsedNodes === next.collapsedNodes &&
+    prev.hasDetailPane === next.hasDetailPane
+  )
+}
+
 // oxlint-disable-next-line complexity/complexity -- React component — JSX conditionals inflate score
-export function BoardCore({
+function BoardCoreImpl({
   rootId,
-  cursor,
+  cursor: _cursor,
   columnIds,
   columnFilters,
-  colIndex,
-  cardIndex,
+  colIndex: _colIndex,
+  cardIndex: _cardIndex,
   ui,
-  cursorDepth,
+  cursorDepth: _cursorDepth,
   dimensions,
   collapsedNodes,
   hasDetailPane,
@@ -360,11 +375,16 @@ export function BoardCore({
   const termWidth = parentRect.width > 0 ? parentRect.width : dimensions.columns
   const termHeight = parentRect.height > 0 ? parentRect.height : dimensions.rows
 
-  // "Board level selected" means cursor is *intentionally* at the board
-  // root (via navigate-up), NOT "cursor is null because user deselected".
-  // cursorDepth collapses both cases to "board"; we distinguish here so
-  // clicking empty space produces no board tint while walk-up nav still does.
-  const isBoardSelected = cursorDepth === "board" && cursor === rootId
+  const nodeStore = useNodeStore()
+  const cursorColumnNodeId = useSignal(nodeStore.cursorColumnNodeId)
+  const cursorDepth = useSignal(nodeStore.cursorDepth)
+  const rootCursorNode = useTreeNode(rootId ?? "__none__")
+  const cursorOnRoot = useSignal(rootCursorNode.cursor)
+  const colIndex = cursorColumnNodeId ? columnIds.indexOf(cursorColumnNodeId) : -1
+  const cardIndex = -1
+  // "Board level selected" means cursor is intentionally on the board root
+  // (via navigate-up), not null from empty-space deselection.
+  const isBoardSelected = cursorDepth === "board" && cursorOnRoot
   const paneLabel = usePaneLabel()
 
   // Board selection: subtle primary bg tint at board level.
@@ -547,6 +567,8 @@ export function BoardCore({
     </ConstraintRoot>
   )
 }
+
+export const BoardCore = React.memo(BoardCoreImpl, boardCorePropsEqual)
 
 // =============================================================================
 // BoardView — render wrapper (providers + BoardCore)

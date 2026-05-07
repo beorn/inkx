@@ -99,6 +99,8 @@ interface TreeNodeProps {
   remainingDepth?: number
   /** Body content node — render without bullet prefix, dimmed. */
   isBody?: boolean
+  /** Suppress direct cursor row highlight while an ancestor is editing. */
+  suppressCursorHighlight?: boolean
   /**
    * Override for the expanded-card child cap (`MAX_EXPANDED_CHILDREN` by
    * default). The cards-view Card sets this to bound an expanded card to
@@ -213,6 +215,7 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
 
   // Body flag
   if (prev.isBody !== next.isBody) return false
+  if (prev.suppressCursorHighlight !== next.suppressCursorHighlight) return false
 
   // Row-budget clamp — re-render on budget or indicator identity change
   if (prev.maxRows !== next.maxRows) return false
@@ -244,7 +247,7 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
 function TreeNodeImpl({
   node,
   depth,
-  isSelected,
+  isSelected: isSelectedProp,
   colIndex,
   cardIndex,
   dimInactiveChildren = false,
@@ -260,6 +263,7 @@ function TreeNodeImpl({
   hideChildCount = false,
   remainingDepth = Infinity,
   isBody = false,
+  suppressCursorHighlight = false,
   maxExpandedChildren,
   maxRows = 0,
   overflowIndicator,
@@ -287,6 +291,7 @@ function TreeNodeImpl({
   // Per-node state via reactive signals — only this node re-renders when its state changes
   const nodeStore = useNodeStore()
   const n = useTreeNode(node.id)
+  const cursorOnThis = useSignal(n.cursor)
   const isNodeSelected = useSignal(n.selected)
   const editState = useSignal(n.edit)
   const foldOverride = useSignal(n.foldOverride)
@@ -297,6 +302,7 @@ function TreeNodeImpl({
   const isFolded = resolvedDepth <= 0
   const editBlockIndex = editState?.blockIndex ?? null
   const isInlineEditing = editBlockIndex !== null
+  const isSelected = !suppressCursorHighlight && !isInlineEditing && (isSelectedProp || cursorOnThis)
   const editingTitle = editBlockIndex === 0
   const excludeBoardIds = rootBoardId ? new Set([rootBoardId]) : new Set<string>()
 
@@ -708,8 +714,7 @@ function TreeNodeImpl({
   const editingDescendant = useSignal(nodeStore.editingDescendant(node.id))
   // Cursor expansion: when cursor is inside this node's subtree, bypass maxContentLines
   // so all siblings of the cursor target are visible.
-  const cursor = useSignal(nodeStore.cursor)
-  const cursorIsChild = cursor != null && cursor !== node.id && repo.getNode(cursor)?.parent_id === node.id
+  const cursorIsChild = useSignal(nodeStore.cursorChild(node.id))
   const shouldExpand =
     // Edit: expand when any descendant is being edited (reduced signal)
     editingDescendant ||
@@ -1102,7 +1107,6 @@ function HeadLayoutRegistrar({ onLayout }: { onLayout: HeadRowProps["onLayout"] 
  */
 const FoldAwareChild = React.memo(function FoldAwareChild({
   node,
-  isSelected,
   depth,
   colIndex,
   cardIndex,
@@ -1114,9 +1118,9 @@ const FoldAwareChild = React.memo(function FoldAwareChild({
   extraExcludedSigils,
   childCount,
   isBody,
+  suppressCursorHighlight,
 }: {
   node: KNode
-  isSelected: boolean
   depth: number
   colIndex: number
   cardIndex: number
@@ -1128,8 +1132,12 @@ const FoldAwareChild = React.memo(function FoldAwareChild({
   extraExcludedSigils?: string[]
   childCount: number
   isBody?: boolean
+  suppressCursorHighlight?: boolean
 }): React.ReactElement {
-  const foldOverride = useSignal(useTreeNode(node.id).foldOverride)
+  const n = useTreeNode(node.id)
+  const foldOverride = useSignal(n.foldOverride)
+  const cursorOnThis = useSignal(n.cursor)
+  const isSelected = !suppressCursorHighlight && cursorOnThis
 
   // If this child has an explicit unfold override or is the cursor target,
   // use full TreeNode (cursor can land here via J/K block navigation)
@@ -1149,6 +1157,7 @@ const FoldAwareChild = React.memo(function FoldAwareChild({
         extraExcludedSigils={extraExcludedSigils}
         remainingDepth={foldOverride ?? 0}
         isBody={isBody}
+        suppressCursorHighlight={suppressCursorHighlight}
       />
     )
   }
@@ -1419,14 +1428,6 @@ function NodeChildren({
     [allFolded, repo, orderedChildren],
   )
 
-  // Get cursor position from NodeStore to determine which child is selected.
-  // When suppressCursorHighlight is true (parent is editing or has an editing
-  // descendant), suppress cursor selection highlights — the bold border-focus
-  // is sufficient, row-level inverse is redundant.
-  const nodeStore = useNodeStore()
-  const cursor = useSignal(nodeStore.cursor)
-  const effectiveCursor = suppressCursorHighlight ? null : cursor
-
   if (allFolded) {
     // Cap folded children at terminal height — no card can show more children
     // than the terminal has rows. Prevents rendering thousands of invisible
@@ -1442,7 +1443,6 @@ function NodeChildren({
           <FoldAwareChild
             key={item.node.id}
             node={item.node}
-            isSelected={effectiveCursor === item.node.id}
             depth={depth + 1}
             colIndex={colIndex}
             cardIndex={cardIndex}
@@ -1454,6 +1454,7 @@ function NodeChildren({
             extraExcludedSigils={extraExcludedSigils}
             childCount={childCounts?.get(item.node.id) ?? 0}
             isBody={item.isBody}
+            suppressCursorHighlight={suppressCursorHighlight}
           />
         ))}
         {totalHiddenCount > 0 && showOverflowIndicator && (
@@ -1469,28 +1470,25 @@ function NodeChildren({
 
   return (
     <Box flexDirection="column">
-      {orderedChildren.map((item, i) => {
-        const childSelected = effectiveCursor === item.node.id
-
-        return (
-          <TreeNode
-            key={`${item.node.id}-${i}`}
-            node={item.node}
-            depth={depth + 1}
-            isSelected={childSelected}
-            colIndex={colIndex}
-            cardIndex={cardIndex}
-            dim={parentDim}
-            dimInactiveChildren={dimInactiveChildren}
-            getChildren={getChildren}
-            getParentContext={getParentContext}
-            getBoardPills={getBoardPills}
-            extraExcludedSigils={extraExcludedSigils}
-            remainingDepth={remainingDepth}
-            isBody={item.isBody}
-          />
-        )
-      })}
+      {orderedChildren.map((item, i) => (
+        <TreeNode
+          key={`${item.node.id}-${i}`}
+          node={item.node}
+          depth={depth + 1}
+          isSelected={false}
+          colIndex={colIndex}
+          cardIndex={cardIndex}
+          dim={parentDim}
+          dimInactiveChildren={dimInactiveChildren}
+          getChildren={getChildren}
+          getParentContext={getParentContext}
+          getBoardPills={getBoardPills}
+          extraExcludedSigils={extraExcludedSigils}
+          remainingDepth={remainingDepth}
+          isBody={item.isBody}
+          suppressCursorHighlight={suppressCursorHighlight}
+        />
+      ))}
       {hiddenCount > 0 && showOverflowIndicator && (
         <Box paddingLeft={Math.max(0, depth) + 2}>
           <Text color="$fg-muted" wrap="truncate">

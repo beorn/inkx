@@ -23,7 +23,6 @@ import { usePaneSignals, useSignal } from "../hooks/use-signal.ts"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import { useToastQueue, useJobRunner, useUndoHandle } from "../services-context.tsx"
-import { classifyCursorFromLens } from "@km/board"
 import type { FilterProperties } from "../state/ui-reducer.ts"
 import { hasActivePropertyFilters } from "../state/ui-reducer.ts"
 import { buildNodeIndexFromTree, deriveCursorIndices } from "../hooks/use-columns.ts"
@@ -156,10 +155,11 @@ export function useBoardController({ patchedConsole }: UseBoardControllerArgs): 
   // Read effective UI state — global UIState merged with this pane's per-pane fields.
   const ui = usePaneUI()
   const rootId = useSignal(ps.rootId)
-  // Cursor: subscribe directly to per-pane sel's cursor computed signal.
-  // No bridge needed — useSignal tracks the alien-signals computed directly.
+  // Cursor snapshot for initial derivations only. Live cursor rendering is
+  // bridged to NodeStore in board-app-store so vertical movement does not
+  // re-render the entire board controller.
   const paneSel = ps.sel
-  const cursor = useSignal(paneSel.node.cursor) as string | null
+  const cursor = paneSel.node.cursor() as string | null
   const foldDepths = useSignal(ps.foldDepths)
   const stickyFolds = useSignal(ps.stickyFolds)
   const storeCollapsedNodes = useSignal(ps.collapsedNodes)
@@ -231,17 +231,16 @@ export function useBoardController({ patchedConsole }: UseBoardControllerArgs): 
   }, [])
 
   // Hydrate reactive node state on initial load and root change (zoom)
-  const selIds = useSignal(paneSel.node.ids) as unknown as ReadonlyArray<string>
-  const cursorId = useSignal(paneSel.node.cursor) as string | null
+  const selIds = paneSel.node.ids() as unknown as ReadonlyArray<string>
   // Exclude cursor from multi-selection set — the cursor card's visual tint is
   // handled by CardColumn's cardBg (selectedBg). Including it causes hydrate to
   // expand descendants, and TreeNode applies multiSelectedBg on their head rows
   // creating a zebra pattern (depth-1 get multiSelectedBg, depth-2 inherit selectedBg).
   const selectedSet = useMemo(() => {
     const s = new Set(selIds)
-    if (cursorId) s.delete(cursorId)
+    if (cursor) s.delete(cursor)
     return s
-  }, [selIds, cursorId])
+  }, [selIds, cursor])
   useEffect(() => {
     nodeStore.hydrate(repo, rootId, foldDepths, selectedSet, stickyFolds)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- full re-hydrate only on root change
@@ -329,28 +328,6 @@ export function useBoardController({ patchedConsole }: UseBoardControllerArgs): 
   )
 
   const cursorDepth = CursorDepth.fromIndices(cursorPosition.colIndex, cursorPosition.isAtCardLevel)
-
-  // Sync cursor to NodeStore — must remain as useEffect because TreeNode components
-  // read per-node cursor signals via useSignal, which requires React render cycle
-  // coordination. Alien-signals effects fire outside React's lifecycle and don't
-  // trigger the useSignal subscriptions within act().
-  useEffect(() => {
-    nodeStore.setCursor(cursor)
-    if (ui.viewMode === "detail") {
-      // Detail mode uses a flat cursor: cursor IS the cursorCardNodeId. Every
-      // focusable entry (metadata rows, doc nodes, title) is addressed directly.
-      // Walking ancestors via classifyCursorFromLens would incorrectly resolve
-      // cursor back to the detail root (the board card being shown).
-      nodeStore.cursorCardNodeId(cursor)
-      nodeStore.cursorColumnNodeId(null)
-      nodeStore.cursorDepth(cursor ? "card" : "board")
-    } else {
-      const ancestors = classifyCursorFromLens(visibleLensValue, cursor)
-      nodeStore.cursorCardNodeId(ancestors.cursorCardNodeId)
-      nodeStore.cursorColumnNodeId(ancestors.cursorColumnNodeId)
-      nodeStore.cursorDepth(ancestors.cursorDepth)
-    }
-  }, [nodeStore, cursor, visibleLensValue, ui.viewMode])
 
   // Hidden column filtering is centralized in the view lens — the computed
   // lens excludes hidden nodes at build time. When showHidden is toggled,

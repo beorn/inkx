@@ -54,6 +54,7 @@ function createReducedStore(traversal: Traversal) {
     (tree) => ({
       // Signals — writable per node
       cursor: signal(false),
+      cursorChild: signal(false),
       selected: signal(false),
       editing: signal(false),
       isDone: signal(false),
@@ -87,6 +88,7 @@ export function createNodeStore() {
 
   // ── Cursor state (written directly by Board.tsx) ──
   const cursor = signal<string | null>(null)
+  const hasCursor = signal(false)
   const cursorCardNodeId = signal<string | null>(null)
   const cursorColumnNodeId = signal<string | null>(null)
   const cursorDepth = signal<"board" | "column" | "card">("board")
@@ -121,6 +123,12 @@ export function createNodeStore() {
    * Returns a boolean getter: true when any descendant of this node has cursor. */
   function cursorDescendant(nodeId: string): () => boolean {
     return reduced.get(nodeId).cursorDescendant as () => boolean
+  }
+
+  /** Get cursorChild signal for a node.
+   * Returns true when the current cursor node is a direct child of this node. */
+  function cursorChild(nodeId: string): () => boolean {
+    return reduced.get(nodeId).cursorChild as () => boolean
   }
 
   function selectedAncestor(nodeId: string): () => boolean {
@@ -198,6 +206,8 @@ export function createNodeStore() {
 
   // ── Internal prev-tracking state for store write API ─────────────────
   let prevCursorId: string | null = null
+  let prevCursorParentId: string | null = null
+  let getParentId: (nodeId: string) => string | null = () => null
   let prevExpandedSelection = new Set<string>()
   let prevEditNodeId: string | null = null
   let prevFoldOverrides = new Map<string, number>()
@@ -205,13 +215,27 @@ export function createNodeStore() {
 
   // ── Centralized store write API ──────────────────────────────────────
 
+  function syncCursorParentMarker(nodeId: string | null): void {
+    const nextParentId = nodeId ? getParentId(nodeId) : null
+    if (prevCursorParentId === nextParentId) return
+    if (prevCursorParentId) reduced.get(prevCursorParentId).cursorChild(false)
+    if (nextParentId) reduced.get(nextParentId).cursorChild(true)
+    prevCursorParentId = nextParentId
+  }
+
   /** Set cursor — clears old per-node cursor boolean, sets new one.
    * Also writes the store-level cursor signal. */
   function setCursor(nodeId: string | null): void {
     const prev = prevCursorId
-    if (prev === nodeId) return
+    const active = nodeId != null
+    if (hasCursor() !== active) hasCursor(active)
+    if (prev === nodeId) {
+      syncCursorParentMarker(nodeId)
+      return
+    }
     if (prev) reduced.get(prev).cursor(false)
     if (nodeId) reduced.get(nodeId).cursor(true)
+    syncCursorParentMarker(nodeId)
     cursor(nodeId)
     prevCursorId = nodeId
   }
@@ -299,13 +323,19 @@ export function createNodeStore() {
     }
     knownNodeIds = new Set<string>()
 
-    if (!rootId) return
+    if (!rootId) {
+      getParentId = () => null
+      syncCursorParentMarker(prevCursorId)
+      return
+    }
 
     // Rebind reactive tree to repo traversal
+    getParentId = (id) => repo.getNode(id)?.parent_id ?? null
     reduced.rebind({
-      parent: (id) => repo.getNode(id)?.parent_id ?? null,
+      parent: getParentId,
       children: (id) => repo.getChildren(id).map((n) => n.id),
     })
+    syncCursorParentMarker(prevCursorId)
 
     // Hydrate fold depths
     for (const [id, depth] of foldDepths) {
@@ -346,11 +376,13 @@ export function createNodeStore() {
   return {
     reduced,
     cursor,
+    hasCursor,
     cursorCardNodeId,
     cursorColumnNodeId,
     cursorDepth,
     setHovered,
     cursorDescendant,
+    cursorChild,
     selectedAncestor,
     editingDescendant,
     doneAncestor,

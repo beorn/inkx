@@ -617,12 +617,11 @@ const Card = React.memo(
     // hover → $fg-muted (faint), selection → $bg-selected (yellow).
     // Done/dropped use the muted border role; normal cards use the default border role.
     const defaultBorder = isDoneOrDropped ? "$border-muted" : "$border-default"
-    // "Board level" means cursor is on an ancestor (column or board root).
-    // Read cursorDepth only for the board-level border-hiding check — this is
-    // a global concern (rare change), not per-card.
+    // "Board level" means cursor is on the board root. Read cursorDepth only
+    // for the border-hiding check — this is stable during j/k card movement.
     const selLevel = useSignal(nodeStore.cursorDepth)
-    const globalCursor = useSignal(nodeStore.cursor)
-    const isBoardLevel = selLevel === "board" && globalCursor !== null
+    const hasCursor = useSignal(nodeStore.hasCursor)
+    const isBoardLevel = selLevel === "board" && hasCursor
     const borderColor = isEditing
       ? "$border-focus"
       : isColSelected || isBoardLevel

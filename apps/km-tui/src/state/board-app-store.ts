@@ -1726,15 +1726,33 @@ export function createBoardAppStoreState(
         if (pane.nodeStoreCleanup) pane.nodeStoreCleanup()
         // Attach nodeStore to pane (mutable — not part of Zustand shallow merge)
         pane.nodeStore = nodeStore
-        // Set up alien-signals effects for selection and edit sync.
-        // These replace the Board.tsx useEffects that observed sel.node.ids and sel.text.
-        // Cursor sync remains as a useEffect in Board.tsx because it requires React render
-        // cycle coordination (useSignal subscriptions in TreeNode components need React
-        // to process the change within act() — alien-signals effects fire outside React's lifecycle).
+        // Set up alien-signals effects for cursor, selection, and edit sync.
+        // This keeps node-level cursor signals current in the same event turn as
+        // sel.node.select(), avoiding a second React pass after Board renders.
         const repo = s.repo
         const stopSelEffect = effect(() => {
           const ids = pane.sel.node.ids()
           const cursorId = pane.sel.node.cursor() as string | null
+          const visibleLens = pane.signals?.visibleLens()
+          const viewMode = pane.signals?.viewMode() ?? pane.viewMode
+          nodeStore.setCursor(cursorId)
+          const writeCursorClassification = (
+            cursorCardNodeId: string | null,
+            cursorColumnNodeId: string | null,
+            cursorDepth: "board" | "column" | "card",
+          ) => {
+            if (nodeStore.cursorCardNodeId() !== cursorCardNodeId) nodeStore.cursorCardNodeId(cursorCardNodeId)
+            if (nodeStore.cursorColumnNodeId() !== cursorColumnNodeId) nodeStore.cursorColumnNodeId(cursorColumnNodeId)
+            if (nodeStore.cursorDepth() !== cursorDepth) nodeStore.cursorDepth(cursorDepth)
+          }
+          if (viewMode === "detail") {
+            writeCursorClassification(cursorId, null, cursorId ? "card" : "board")
+          } else if (visibleLens) {
+            const ancestors = classifyCursorFromLens(visibleLens, cursorId)
+            writeCursorClassification(ancestors.cursorCardNodeId, ancestors.cursorColumnNodeId, ancestors.cursorDepth)
+          } else {
+            writeCursorClassification(null, null, "board")
+          }
           // Exclude cursor from multi-selection set — the cursor card's visual tint
           // is handled by CardColumn's cardBg (selectedBg). Including it causes
           // setSelection to expand descendants and mark all sub-items as selected,

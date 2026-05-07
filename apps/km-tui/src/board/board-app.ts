@@ -31,7 +31,7 @@ import { dispatchSelection, NO_SELECTION, nodeSelect, textCaret } from "../state
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { checkInvariants } from "../invariants.ts"
 import { buildNodeIndexFromTree, deriveCursorIndices } from "../hooks/use-columns.ts"
-import { createViewTree } from "@km/board"
+import { createViewTree, type TreeLens } from "@km/board"
 import { hitTestSplitBorder, hitTestPaneId } from "../layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
 import type { PaneUI } from "../state/ui-reducer.ts"
@@ -168,18 +168,24 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     // Always provide a tree (empty fallback when no board/signals exist).
     const tree = board?.signals?.viewTree ?? locals.emptyTree ?? (locals.emptyTree = createViewTree())
 
-    // Use tree-based index when lens is available.
-    const nodeIndex = board?.signals
-      ? buildNodeIndexFromTree(board.signals.visibleLens())
+    const visibleLens = board?.signals?.visibleLens()
+    const cachedNodeIndex = locals.nodeIndexCache
+    const nodeIndex = visibleLens
+      ? cachedNodeIndex?.lens === visibleLens
+        ? cachedNodeIndex.nodeIndex
+        : buildNodeIndexFromTree(visibleLens)
       : new Map<string, { colIndex: number; cardIndex: number }>()
+    if (visibleLens && cachedNodeIndex?.lens !== visibleLens) {
+      locals.nodeIndexCache = { lens: visibleLens, nodeIndex }
+    }
 
     // Pin the sel adapter to THIS visible lens for the duration of this key event.
     // Without this, a repo mutation (e.g., file watcher) between buildOpCtx and
     // sel.node.select() could invalidate the computed, producing a different
     // lens with a walkOrder that doesn't contain the navigation target.
     // This race condition causes cursor → null (the "no cursor" bug).
-    if (board?.signals) {
-      s.selTreeSource.update(board.signals.visibleLens())
+    if (visibleLens) {
+      s.selTreeSource.update(visibleLens)
     }
 
     // Derive cursor indices, columnId, card from tree (board mode) or flat cursor (detail mode).
@@ -1169,6 +1175,11 @@ export interface BoardAppLocals {
     cardIndex: number
     isAtCardLevel: boolean
   } | null
+  /** Cache for the visible-lens node index used by command handling. */
+  nodeIndexCache: {
+    lens: TreeLens
+    nodeIndex: Map<string, { colIndex: number; cardIndex: number }>
+  } | null
   chordTimer: ReturnType<typeof setTimeout> | null
   pendingChordShownAt: number
   chordDismissTimer: ReturnType<typeof setTimeout> | null
@@ -1190,6 +1201,7 @@ export function createBoardAppLocals(): BoardAppLocals {
     cachedFocus: null,
     cachedActivateScope: null,
     cursorCache: null,
+    nodeIndexCache: null,
     chordTimer: null,
     pendingChordShownAt: 0,
     chordDismissTimer: null,
