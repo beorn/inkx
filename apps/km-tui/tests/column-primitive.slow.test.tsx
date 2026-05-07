@@ -15,16 +15,12 @@
  *
  *   bordered → bordered : 0 blank rows between (borders delimit)
  *   bordered → naked    : 1 blank row   (naked owns `paddingTop=1`)
- *   naked    → naked    : 0 blank rows  (computeLeadingGap → 0)
- *   naked    → bordered : ≤1 blank rows (neither owns padding; border self-delimits)
+ *   naked    → naked    : 1 blank row   (body paragraphs are visually separated in cards view)
+ *   naked    → bordered : 1 blank row   (body paragraph is separated from following card)
  *
- * The fourth case has an `≤ 1` bound rather than strict `0` because
- * the structural card's top border sits at `y - 1` relative to its
- * inner content box — so the last content row of a naked block and
- * the top border of the following structural card can abut with zero
- * intervening blank rows OR leave one blank row, depending on how
- * the measurement lands. Either is acceptable; neither is a phantom
- * gap.
+ * The structural card's top border sits at `y - 1` relative to its
+ * inner content box. The contract still requires one blank row between
+ * the last body paragraph row and that following top border.
  *
  * ## Overflow semantics (documented, not unified)
  *
@@ -123,7 +119,7 @@ describe("column primitive: gap contract between frame pairs", () => {
     ).toBe(1)
   })
 
-  test("naked → naked: 0 blank rows — body blocks abut as stacked prose", () => {
+  test("naked → naked: 1 blank row — body blocks read as separate paragraphs", () => {
     // The canonical body-block-leading-gap case (bead km-tui.body-block-leading-gap,
     // commit 8e8fac337). Two borderless paragraphs must abut with zero
     // phantom whitespace between them.
@@ -149,16 +145,14 @@ describe("column primitive: gap contract between frame pairs", () => {
     const blanks = blankRowsBetween(app, alpha!.y, alpha!.height, beta!.y)
     expect(
       blanks,
-      `naked→naked should abut with 0 blank rows: ` +
+      `naked→naked should leave 1 blank row: ` +
         `alpha.y=${alpha!.y} h=${alpha!.height} beta.y=${beta!.y} — got ${blanks}`,
-    ).toBe(0)
+    ).toBe(1)
   })
 
-  test("naked → bordered: ≤1 blank row between body and bordered top border", () => {
-    // Body → structural: neither frame owns leading/trailing padding at this
-    // boundary. The structural card's own top border delimits; the body's
-    // last content row sits one row above. Accepts 0 or 1 blank rows — the
-    // bound is "no phantom whitespace", not a strict value.
+  test("naked → bordered: 1 blank row between body and bordered top border", () => {
+    // Body → structural: the structural card's top border delimits the next
+    // block, but prose still needs one blank row before that border.
     using app = createTestApp(
       item(
         "board",
@@ -183,22 +177,21 @@ describe("column primitive: gap contract between frame pairs", () => {
     const blanks = blankRowsBetween(app, beta!.y, beta!.height, anchor!.y - 1)
     expect(
       blanks,
-      `naked→bordered should leave at most 1 blank row: ` +
+      `naked→bordered should leave 1 blank row: ` +
         `beta.y=${beta!.y} h=${beta!.height} anchor.y=${anchor!.y} — got ${blanks}`,
-    ).toBeLessThanOrEqual(1)
+    ).toBe(1)
   })
 })
 
 describe("column primitive: frame interleaving preserves gap contract", () => {
-  test("multiple naked blocks → bordered: all naked→naked transitions abut; final naked→bordered ≤1", () => {
+  test("multiple naked blocks → bordered: naked→naked and final naked→bordered have paragraph gaps", () => {
     // Viewtree classification: body cards are the siblings that appear
     // BEFORE the first structural item. This means the layout in a single
     // column is always naked-run → bordered-run — never alternating. The
     // real-vault shape is exactly this.
     //
-    // We validate that every pair in the naked run abuts with 0 gap, and
-    // that the last naked block's transition into the bordered run
-    // introduces no phantom whitespace (≤ 1 blank row is acceptable).
+    // We validate that every pair in the naked run has a paragraph gap, and
+    // that the last naked block's transition into the bordered run does too.
     using app = createTestApp(
       item(
         "board",
@@ -217,15 +210,12 @@ describe("column primitive: frame interleaving preserves gap contract", () => {
     expect(gamma).not.toBeNull()
     expect(anchor).not.toBeNull()
 
-    // naked → naked: 0
-    expect(blankRowsBetween(app, alpha!.y, alpha!.height, beta!.y), "alpha→beta (naked→naked)").toBe(0)
-    expect(blankRowsBetween(app, beta!.y, beta!.height, gamma!.y), "beta→gamma (naked→naked)").toBe(0)
+    // naked → naked: 1
+    expect(blankRowsBetween(app, alpha!.y, alpha!.height, beta!.y), "alpha→beta (naked→naked)").toBe(1)
+    expect(blankRowsBetween(app, beta!.y, beta!.height, gamma!.y), "beta→gamma (naked→naked)").toBe(1)
 
-    // naked → bordered (last body block → first structural): ≤ 1
-    expect(
-      blankRowsBetween(app, gamma!.y, gamma!.height, anchor!.y - 1),
-      "gamma→anchor (naked→bordered)",
-    ).toBeLessThanOrEqual(1)
+    // naked → bordered (last body block → first structural): 1
+    expect(blankRowsBetween(app, gamma!.y, gamma!.height, anchor!.y - 1), "gamma→anchor (naked→bordered)").toBe(1)
   })
 
   test("column-header → naked run → bordered run: all transitions respect their rule", () => {
@@ -267,13 +257,10 @@ describe("column primitive: frame interleaving preserves gap contract", () => {
     expect(bodyFirst!.y - separatorY - 1, "header→naked").toBe(1)
 
     // naked → naked
-    expect(blankRowsBetween(app, bodyFirst!.y, bodyFirst!.height, bodySecond!.y), "naked→naked").toBe(0)
+    expect(blankRowsBetween(app, bodyFirst!.y, bodyFirst!.height, bodySecond!.y), "naked→naked").toBe(1)
 
-    // naked → bordered (≤1)
-    expect(
-      blankRowsBetween(app, bodySecond!.y, bodySecond!.height, structFirst!.y - 1),
-      "naked→bordered",
-    ).toBeLessThanOrEqual(1)
+    // naked → bordered
+    expect(blankRowsBetween(app, bodySecond!.y, bodySecond!.height, structFirst!.y - 1), "naked→bordered").toBe(1)
 
     // bordered → bordered (0 between border rows)
     const gapBB = blankRowsBetween(app, structFirst!.y + structFirst!.height + 1, 0, structSecond!.y - 1)
@@ -298,7 +285,7 @@ describe("column primitive: frame interleaving preserves gap contract", () => {
     for (const [idx, next] of boxes.slice(1).entries()) {
       const prev = boxes[idx]!
       const blanks = blankRowsBetween(app, prev.y, prev.height, next.y)
-      expect(blanks, `naked→naked gap between "${ids[idx]}" and "${ids[idx + 1]}": got ${blanks}`).toBe(0)
+      expect(blanks, `naked→naked gap between "${ids[idx]}" and "${ids[idx + 1]}": got ${blanks}`).toBe(1)
     }
   })
 

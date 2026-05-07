@@ -15,7 +15,7 @@ import { createRenderer } from "@silvery/test"
 import { DeferredThemeProvider } from "../src/deferred-theme-provider.tsx"
 import * as themeModule from "../src/theme.ts"
 import * as cacheModule from "../src/theme-cache.ts"
-import type { Theme } from "@silvery/ag-react"
+import { ansi16DarkTheme, TermContext, type Theme } from "@silvery/ag-react"
 
 const fakeCachedTheme: Theme = {
   name: "test-cached",
@@ -89,6 +89,56 @@ describe("DeferredThemeProvider", () => {
     expect(loadSpy).toHaveBeenCalled()
     expect(detectSpy).toHaveBeenCalled()
     expect(saveSpy).toHaveBeenCalledWith({ program: "ghostty", dark: true }, fakeProbedTheme)
+  })
+
+  test("does not cache fallback-equivalent probe results", async () => {
+    loadSpy.mockReturnValue(null)
+    detectSpy.mockResolvedValueOnce(ansi16DarkTheme)
+
+    const render = createRenderer({ cols: 80, rows: 24 })
+    render(
+      <DeferredThemeProvider
+        caps={{ colorLevel: "truecolor", maybeDarkBackground: true }}
+        emulator={{ program: "ghostty" }}
+        cacheKey={{ program: "ghostty", dark: true }}
+      >
+        <></>
+      </DeferredThemeProvider>,
+    )
+
+    // Let the useEffect + async probe resolve.
+    await new Promise((r) => setTimeout(r, 0))
+    await new Promise((r) => setTimeout(r, 0))
+
+    expect(detectSpy).toHaveBeenCalled()
+    expect(saveSpy).not.toHaveBeenCalled()
+  })
+
+  test("routes cache-miss probe through the active term input owner", async () => {
+    loadSpy.mockReturnValue(null)
+    const fakeInput = { probe: vi.fn() }
+
+    const render = createRenderer({ cols: 80, rows: 24 })
+    render(
+      <TermContext.Provider value={{ input: fakeInput } as never}>
+        <DeferredThemeProvider
+          caps={{ colorLevel: "truecolor", maybeDarkBackground: true }}
+          emulator={{ program: "ghostty" }}
+          cacheKey={{ program: "ghostty", dark: true }}
+        >
+          <></>
+        </DeferredThemeProvider>
+      </TermContext.Provider>,
+    )
+
+    // Let the useEffect + async probe resolve.
+    await new Promise((r) => setTimeout(r, 0))
+    await new Promise((r) => setTimeout(r, 0))
+
+    expect(detectSpy).toHaveBeenCalledWith({
+      caps: { colorLevel: "truecolor", darkBackground: true },
+      input: fakeInput,
+    })
   })
 
   test("KM_FORCE_THEME_PROBE=1 runs probe even on cache hit", async () => {

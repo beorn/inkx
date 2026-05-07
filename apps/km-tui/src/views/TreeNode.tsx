@@ -406,6 +406,7 @@ function TreeNodeImpl({
   // that creates a zebra pattern where sections get 14% tint while sub-items
   // inherit the card's 6% tint.
   const hasSelectedAncestor = useSignal(nodeStore.selectedAncestor(node.id))
+  const hasCursorAncestor = useSignal(nodeStore.cursorAncestor(node.id))
 
   // Search match highlighting: white bg / black fg (current match brighter)
   const isSearchMatch = searchMatchNodeIds.has(node.id)
@@ -537,11 +538,14 @@ function TreeNodeImpl({
     return ids
   }, [children])
 
-  // Strip inline colors when a text color override is active (cursor inverse)
-  // or for done/dropped tasks (colored dates/priorities aren't meaningful).
-  // When textColor is set, competing inline colors would clash with the forced fg.
+  // Strip inline leaf styling when a text color override is active (cursor
+  // inverse), while inside a selected cursor card, or for done/dropped tasks
+  // (colored dates/priorities aren't meaningful). Inside a cursor card, this
+  // also prevents inline code's `$bg-muted` chip from punching through the
+  // selected card background.
   const _isHighlighted = isSelected || isNodeSelected
-  const shouldStripColor = (isSelected && tc != null) || style.isDoneOrDropped
+  const shouldStripColor =
+    (isSelected && tc != null) || hasCursorAncestor || hasSelectedAncestor || style.isDoneOrDropped
 
   // HR detection: node type "hr" from parser, or content matching markdown HR pattern
   const isHR = node.type === "hr" || (cleanContent != null && isHRContent(cleanContent))
@@ -1224,6 +1228,8 @@ const FoldedChildRow = React.memo(
     // Read multi-selection signal so grandchildren highlight when parent is selected
     const nf = useTreeNode(node.id)
     const isNodeSelected = useSignal(nf.selected)
+    const hasSelectedAncestor = useSignal(nf.selectedAncestor) as boolean
+    const hasCursorAncestor = useSignal(nf.cursorAncestor) as boolean
     const stickyFold = useSignal(nf.sticky)
 
     const nodeIsTask = KNode.isTask(node)
@@ -1269,6 +1275,8 @@ const FoldedChildRow = React.memo(
     // Shared inline context and search decorations
     const inlineContext = useTreeInlineContext(repo, rootBoardId, extraExcludedSigils, sigilColors, resolveSigilColor)
     const foldSearchDecorations = useSearchDecorations(displayContent, searchHighlight, searchQuery, isCurrentMatch)
+    const shouldStripColor =
+      searchHighlight || isNodeSelected || hasSelectedAncestor || hasCursorAncestor || style.isDoneOrDropped
     // Per-node sigil un-exclusion: see km-tui.folder-card-empty-title above.
     // Folded titles are even more critical to keep visible — the card is
     // collapsed to a single line; if the only sigil is stripped, the row is blank.
@@ -1312,7 +1320,7 @@ const FoldedChildRow = React.memo(
                 text={displayContent}
                 context={{
                   ...foldEffectiveContext,
-                  stripInlineColors: searchHighlight || isNodeSelected || style.isDoneOrDropped || undefined,
+                  stripInlineColors: shouldStripColor || undefined,
                 }}
                 decorations={foldSearchDecorations}
               />

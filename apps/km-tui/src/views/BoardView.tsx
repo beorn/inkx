@@ -116,7 +116,6 @@ interface TopBarProps {
   filterText: string
   isBoardSelected: boolean
   viewMode?: string
-  maxContentLines: number
 }
 
 /**
@@ -127,9 +126,11 @@ interface TopBarProps {
 function TopBarBreadcrumb({
   segments,
   boardColor,
+  secondaryColor = "$muted",
 }: {
   segments: PathSegment[]
   boardColor?: string
+  secondaryColor?: string
 }): React.ReactElement {
   // Defensive re-clamp: the breadcrumb must always render on a single row. The caller already
   // clamps before passing segments through renderPath, but this guards any future call site.
@@ -150,13 +151,18 @@ function TopBarBreadcrumb({
       )}
       {clamped.map((seg, i) => {
         const isBoardRoot = i === boardRootIdx
-        const sepEl = seg.sep ? <Small key={`sep-${i}`}> {seg.sep} </Small> : null
+        const sepEl = seg.sep ? (
+          <Small key={`sep-${i}`} color={secondaryColor}>
+            {" "}
+            {seg.sep}{" "}
+          </Small>
+        ) : null
         const nameEl = seg.id ? (
           <Link
             key={`seg-${i}`}
             href={`km://zoom/${seg.id}`}
             variant="arm-on-hover"
-            color={isBoardRoot ? "inherit" : "$muted"}
+            color={isBoardRoot ? "inherit" : secondaryColor}
             bold={isBoardRoot}
             underline={false}
           >
@@ -167,7 +173,9 @@ function TopBarBreadcrumb({
             {seg.name}
           </Text>
         ) : (
-          <Small key={`seg-${i}`}>{seg.name}</Small>
+          <Small key={`seg-${i}`} color={secondaryColor}>
+            {seg.name}
+          </Small>
         )
         return (
           <React.Fragment key={i}>
@@ -183,7 +191,7 @@ function TopBarBreadcrumb({
 /**
  * PaneBoardTopBar — multi-pane board top bar.
  *
- * Renders: path > segments          CARDS VIEW  [F] filter  [1]
+ * Renders: path > segments          CARDS VIEW  [filter]  [1]
  * Separated into its own component so useAppStore is only called in multi-pane mode
  * (avoids "useApp must be used within createApp" errors in test setups without store context).
  *
@@ -195,7 +203,6 @@ function PaneBoardTopBar({
   isBoardSelected,
   boardColor,
   viewMode,
-  maxContentLines,
   filterIndicator,
   selectedPathSegments,
 }: {
@@ -203,7 +210,6 @@ function PaneBoardTopBar({
   isBoardSelected: boolean
   boardColor: string | undefined
   viewMode?: string
-  maxContentLines: number
   filterIndicator: string | undefined
   selectedPathSegments: PathSegment[]
 }): React.ReactElement {
@@ -218,7 +224,11 @@ function PaneBoardTopBar({
       paneLabel={paneLabel}
       left={
         <Text color={isBoardSelected ? "$fg-on-selected" : undefined} wrap="truncate">
-          <TopBarBreadcrumb segments={selectedPathSegments} boardColor={boardColor} />
+          <TopBarBreadcrumb
+            segments={selectedPathSegments}
+            boardColor={boardColor}
+            secondaryColor={isBoardSelected ? "$fg-on-selected" : "$fg-on-inverse"}
+          />
         </Text>
       }
       right={
@@ -226,14 +236,14 @@ function PaneBoardTopBar({
           <Box data-view="view-mode-button">
             <Text color={isBoardSelected ? "$fg-on-selected" : undefined} id="view-mode">
               {" "}
-              {(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
-              {viewMode === "cards" && <Small>CL:{maxContentLines} </Small>}
+              {(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}
             </Text>
           </Box>
           {filterIndicator && (
             <Text color={isBoardSelected ? "$fg-on-selected" : undefined} id="filter-indicator">
-              {" [F] "}
+              {" ["}
               {filterIndicator}
+              {"]"}
             </Text>
           )}
         </>
@@ -249,7 +259,6 @@ function BoardTopBar({
   filterText,
   isBoardSelected,
   viewMode,
-  maxContentLines,
 }: TopBarProps): React.ReactElement {
   const repo = useRepo()
   const nodeStore = useNodeStore()
@@ -292,7 +301,6 @@ function BoardTopBar({
         isBoardSelected={isBoardSelected}
         boardColor={boardColor}
         viewMode={viewMode}
-        maxContentLines={maxContentLines}
         filterIndicator={filterIndicator}
         selectedPathSegments={selectedPathSegments}
       />
@@ -306,22 +314,26 @@ function BoardTopBar({
       backgroundColor={isBoardSelected ? "$bg-selected" : undefined}
       left={
         <Text color={isBoardSelected ? "$fg-on-selected" : undefined} wrap="truncate">
-          <TopBarBreadcrumb segments={selectedPathSegments} boardColor={boardColor} />
+          <TopBarBreadcrumb
+            segments={selectedPathSegments}
+            boardColor={boardColor}
+            secondaryColor={isBoardSelected ? "$fg-on-selected" : "$fg-on-inverse"}
+          />
         </Text>
       }
       right={
         <>
           <Box data-view="view-mode-button">
-            <Text color={isBoardSelected ? "$fg-on-selected" : "$muted"} id="view-mode">
+            <Text color={isBoardSelected ? "$fg-on-selected" : "$fg-on-inverse"} id="view-mode">
               {" "}
-              {(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
-              {viewMode === "cards" && <Small>CL:{maxContentLines} </Small>}
+              {(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}
             </Text>
           </Box>
           {filterIndicator && (
             <Text color={isBoardSelected ? "$fg-on-selected" : undefined} id="filter-indicator">
-              {" [F] "}
+              {" ["}
               {filterIndicator}
+              {"]"}
             </Text>
           )}
         </>
@@ -462,7 +474,6 @@ function BoardCoreImpl({
           filterText={ui.filterText}
           isBoardSelected={isBoardSelected}
           viewMode={ui.viewMode}
-          maxContentLines={ui.maxContentLines}
         />
         {/* Spacer below top bar */}
         <Box height={1} flexShrink={0} />

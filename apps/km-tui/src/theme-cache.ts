@@ -27,7 +27,7 @@ export interface ThemeCacheKey {
 }
 
 interface CacheFile {
-  version: 1
+  version: 3
   entries: Record<string, Theme>
 }
 
@@ -42,28 +42,29 @@ function cacheKey(key: ThemeCacheKey): string {
 
 let memoCache: CacheFile | null = null
 let loaded = false
+const CACHE_VERSION = 3
 
 function readCache(): CacheFile {
   if (loaded && memoCache) return memoCache
   loaded = true
   const path = cachePath()
   if (!existsSync(path)) {
-    memoCache = { version: 1, entries: {} }
+    memoCache = { version: CACHE_VERSION, entries: {} }
     return memoCache
   }
   try {
     const raw = readFileSync(path, "utf-8")
     const parsed = JSON.parse(raw) as CacheFile
-    if (parsed.version !== 1 || typeof parsed.entries !== "object") {
+    if (parsed.version !== CACHE_VERSION || typeof parsed.entries !== "object") {
       log.debug?.(`theme-cache: bad schema version ${parsed.version}, ignoring`)
-      memoCache = { version: 1, entries: {} }
+      memoCache = { version: CACHE_VERSION, entries: {} }
       return memoCache
     }
     memoCache = parsed
     return parsed
   } catch (err) {
     log.debug?.(`theme-cache: failed to read cache: ${err instanceof Error ? err.message : String(err)}`)
-    memoCache = { version: 1, entries: {} }
+    memoCache = { version: CACHE_VERSION, entries: {} }
     return memoCache
   }
 }

@@ -11,7 +11,7 @@ import React from "react"
 import { createRenderer } from "@silvery/test"
 import { item } from "../helpers/board-test.ts"
 import { createTestApp } from "../helpers/test-app.ts"
-import { createFocusManager, FocusManagerContext } from "@silvery/ag-react"
+import { Box, createFocusManager, FocusManagerContext } from "@silvery/ag-react"
 import { StoreContext } from "@silvery/create"
 import { createSignalStore, type SignalStoreApi as StoreApi } from "../../src/state/signal-store.ts"
 import { createSelection } from "@silvery/selection"
@@ -324,6 +324,46 @@ describe("StatusCounters", () => {
     const app = render(<StatusCounters ui={mockUIState} rootPath={mockRootPath} storageMode="memory" nodeCount={42} />)
     const output = app.text
     expect(output).toContain("MEM")
+  })
+
+  it("right-aligns numeric counters with space from the storage path", () => {
+    const app = render(
+      <Box width={80}>
+        <StatusCounters ui={mockUIState} rootPath={mockRootPath} storageMode="disk" nodeCount={112912} />
+      </Box>,
+    )
+
+    const storage = app.locator("#storage-path").boundingBox()
+    const nodeCount = app.locator("#node-count").boundingBox()
+
+    expect(storage, "storage path should render").not.toBeNull()
+    expect(nodeCount, "node count should render").not.toBeNull()
+    expect(nodeCount!.x - (storage!.x + storage!.width)).toBeGreaterThanOrEqual(4)
+    expect(nodeCount!.x + nodeCount!.width).toBeGreaterThanOrEqual(79)
+  })
+
+  it("keeps watcher file count as the visible rightmost counter", () => {
+    const uiWithWatcher: UIState = {
+      ...mockUIState,
+      watcherStatus: {
+        state: "idle",
+        pendingPaths: 0,
+        watchedPaths: 608,
+      },
+    }
+    const app = render(
+      <Box width={80}>
+        <StatusCounters ui={uiWithWatcher} rootPath={mockRootPath} storageMode="disk" nodeCount={112912} />
+      </Box>,
+    )
+
+    const nodeCount = app.locator("#node-count").boundingBox()
+    const watcher = app.locator("#watcher-status").boundingBox()
+
+    expect(nodeCount, "node count should render").not.toBeNull()
+    expect(watcher, "watcher count should render").not.toBeNull()
+    expect(watcher!.x - (nodeCount!.x + nodeCount!.width)).toBeGreaterThanOrEqual(2)
+    expect(watcher!.x + watcher!.width).toBeGreaterThanOrEqual(79)
   })
 
   // ===========================================================================

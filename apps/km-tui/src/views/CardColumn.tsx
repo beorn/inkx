@@ -129,11 +129,10 @@ function classifyFrame(card: KNode, isBody: boolean): CardFrame {
  * Rule (per bead km-tui.body-block-leading-gap and
  * apps/km-tui/tests/column-primitive.slow.test.tsx):
  *
- * - naked → naked: 0 — stacked prose blocks abut with no phantom
- *   whitespace. Markdown paragraphs in the same "run" read as one block.
+ * - naked → naked: 1 — body blocks read as distinct Markdown paragraphs.
  * - bordered → naked: 1 — blank row prevents body text from pressing
  *   against the neighbour's bottom border.
- * - naked → bordered: 1 — blank row separates the body block from the
+ * - naked → bordered: 1 — blank row separates the body paragraph from the
  *   next card's top border.
  * - bordered ↔ bordered / hr: 0 — borders provide their own separation.
  *
@@ -141,7 +140,7 @@ function classifyFrame(card: KNode, isBody: boolean): CardFrame {
  * header separator visually acts as a border for gap purposes).
  */
 function computeLeadingGap(prev: CardFrame | undefined, next: CardFrame): number {
-  if (next === "naked" && prev === "naked") return 0
+  if (next === "naked" && prev === "naked") return 1
   if (next === "naked" || prev === "naked") return 1
   return 0
 }
@@ -163,8 +162,8 @@ interface CardProps {
    * background fills the gap — preserves selection-tint continuity).
    *
    * Computed by the Column via `computeLeadingGap`. The card applies it
-   * blindly; it does not reason about siblings. 0 for all bordered cards
-   * (gap handled by their own border); 0 or 1 for naked body blocks.
+   * blindly; it does not reason about siblings. Usually 0 for bordered
+   * cards, except when they follow a naked body block.
    */
   leadingGap?: number
   /** True if this is the last body block before a structural card or end of column */
@@ -450,6 +449,7 @@ const Card = React.memo(
           data-card-id={nodeId}
           flexDirection="column"
           flexShrink={0}
+          marginTop={leadingGap}
           width={width}
           userSelect="none"
           {...hoverHandlers}
@@ -644,6 +644,7 @@ const Card = React.memo(
           data-card-id={nodeId}
           flexDirection="column"
           flexShrink={0}
+          marginTop={leadingGap}
           width={width}
           userSelect="none"
           {...hoverHandlers}
@@ -689,6 +690,7 @@ const Card = React.memo(
         data-card-id={nodeId}
         flexDirection="column"
         flexShrink={0}
+        marginTop={leadingGap}
         width={width}
         userSelect="none"
         borderStyle={isEditing ? "bold" : "round"}

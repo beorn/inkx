@@ -47,6 +47,27 @@ describe("P2: Filter feature", () => {
     expect(screen).toContain("Due")
   })
 
+  test("top bar shows compact filter chips and hides cards content-line count", () => {
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"), item("Fix bug"))), {
+      cols: 100,
+      rows: 24,
+    })
+
+    app.command("filter")
+    app.command("select_toggle") // todo
+    app.command("cursor_right")
+    app.command("select_toggle") // wip
+    app.command("cursor_right")
+    app.command("select_toggle") // blocked
+    app.press("Escape")
+
+    const topRow = app.screen.row(0)
+    expect(topRow).toContain("CARDS VIEW")
+    expect(topRow).toContain("[todo,wip,blocked]")
+    expect(topRow).not.toContain("CL:")
+    expect(topRow).not.toContain("[F]")
+  })
+
   test("Escape closes filter panel", () => {
     using app = createTestApp(item("board", item("Tasks", item("Buy groceries"), item("Fix bug"))), {
       cols: 120,
@@ -151,7 +172,7 @@ describe("P2: Filter feature", () => {
 
     // No filter indicator initially
     let screen = app.text
-    expect(screen).not.toContain("[F]")
+    expect(screen).not.toContain("[todo]")
 
     // Open filter — Status is row 0, toggle todo
     app.command("filter")
@@ -161,9 +182,9 @@ describe("P2: Filter feature", () => {
     app.press("Escape")
 
     screen = app.text
-    // Filter indicator should be visible in top bar
-    expect(screen).toContain("[F]")
-    expect(screen).toContain("todo")
+    // Filter indicator should be visible in top bar as compact chips.
+    expect(screen).toContain("[todo]")
+    expect(screen).not.toContain("[F]")
   })
 
   test("text filter still works via filterText state", () => {
@@ -1246,8 +1267,9 @@ describe("Filter/View Journeys", () => {
     // Step 3: Close filter panel
     app.press("Escape")
     screen = app.text
-    // Filter indicator should show
-    expect(screen).toContain("[F]")
+    // Filter indicator should show as compact chips.
+    expect(screen).toContain("[todo]")
+    expect(screen).not.toContain("[F]")
 
     // Step 4: Navigate among filtered results
     app.command("cursor_down")
@@ -1262,6 +1284,7 @@ describe("Filter/View Journeys", () => {
     expect(screen).toContain("Buy groceries")
     expect(screen).toContain("Fix bug")
     expect(screen).toContain("Write docs")
+    expect(screen).not.toContain("[todo]")
     expect(screen).not.toContain("[F]")
   })
 

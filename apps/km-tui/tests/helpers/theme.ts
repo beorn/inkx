@@ -80,8 +80,14 @@ const SELECTION_FG = hexToRgb(t["fg-on-selected"])
 const FG = hexToRgb(t["fg"])
 /** Muted foreground text — prefer Sterling fg-muted, fallback to legacy. */
 const MUTED = hexToRgb(t["fg-muted"] ?? t["muted"])
+/** Muted inline/code chip background. */
+const MUTED_BG = hexToRgb(t["bg-muted"] ?? t["mutedbg"])
 /** Disabled foreground — Sterling has no disabled slot; falls back to muted. */
 const DISABLED_FG = hexToRgb(t["fg-muted"] ?? t["disabledfg"] ?? t["muted"])
+/** Inverse/chrome background. */
+const INVERSE_BG = hexToRgb(t["bg-inverse"])
+/** Foreground intended for inverse/chrome background. */
+const INVERSE_FG = hexToRgb(t["fg-on-inverse"])
 /** Default border color (Sterling border-default → legacy border). */
 const BORDER = hexToRgb(t["border-default"] ?? t["border"])
 /** Error / destructive — prefer Sterling fg-error. */
@@ -116,8 +122,14 @@ export const TC = {
   $fg: FG,
   /** Muted foreground text — Sterling */
   "$fg-muted": MUTED,
+  /** Muted inline/code chip background — Sterling */
+  "$bg-muted": MUTED_BG,
   /** Disabled foreground text */
   "$disabled-fg": DISABLED_FG,
+  /** Inverse/chrome background — Sterling */
+  "$bg-inverse": INVERSE_BG,
+  /** Foreground intended for inverse/chrome background — Sterling */
+  "$fg-on-inverse": INVERSE_FG,
   /** Dividers, borders, rules — Sterling */
   "$border-default": BORDER,
   /** Error/destructive — Sterling */

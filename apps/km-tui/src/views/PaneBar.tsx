@@ -2,7 +2,7 @@
  * PaneBar — shared top bar component for all pane types.
  *
  * Provides consistent styling across board, detail, and empty panes:
- * - Chrome bg/fg ($fg-on-inverse/$fg-on-inverse) by default (light bg, dark text in dark themes)
+ * - Chrome bg/fg ($bg-inverse/$fg-on-inverse) by default (light bg, dark text in dark themes)
  * - Yellow ($selected) background when board-level selected
  * - Per-pane theme dims tokens for unfocused panes
  * - Left/right layout with overflow hidden on the left

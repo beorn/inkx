@@ -66,6 +66,7 @@ function createReducedStore(traversal: Traversal) {
 
       // Computeds — derived from tree walks, cached
       cursorDescendant: tree.descendants((s: { cursor: unknown }) => s.cursor).some(),
+      cursorAncestor: tree.ancestors((s: { cursor: unknown }) => s.cursor).some(),
       selectedAncestor: tree.ancestors((s: { selected: unknown }) => s.selected).some(),
       editingDescendant: tree.descendants((s: { editing: unknown }) => s.editing).some(),
       doneAncestor: tree.ancestors((s: { isDone: unknown }) => s.isDone).some(),
@@ -123,6 +124,12 @@ export function createNodeStore() {
    * Returns a boolean getter: true when any descendant of this node has cursor. */
   function cursorDescendant(nodeId: string): () => boolean {
     return reduced.get(nodeId).cursorDescendant as () => boolean
+  }
+
+  /** Get cursorAncestor reduced signal for a node.
+   * Returns a boolean getter: true when any ancestor of this node has cursor. */
+  function cursorAncestor(nodeId: string): () => boolean {
+    return reduced.get(nodeId).cursorAncestor as () => boolean
   }
 
   /** Get cursorChild signal for a node.
@@ -382,6 +389,7 @@ export function createNodeStore() {
     cursorDepth,
     setHovered,
     cursorDescendant,
+    cursorAncestor,
     cursorChild,
     selectedAncestor,
     editingDescendant,
@@ -424,6 +432,7 @@ export function useNodeStore(): NodeStore {
  * const n = useTreeNode(nodeId)
  * const cursor = useSignal(n.cursor)
  * const breadcrumb = n.cursorDescendant()
+ * const inCursorCard = n.cursorAncestor()
  * const dim = n.doneAncestor()
  * ```
  */

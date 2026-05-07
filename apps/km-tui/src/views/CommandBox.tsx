@@ -381,10 +381,10 @@ export function StatusCounters({
   // longer renders — see bead km-tui.status-bar-stray-chars.
   // - Loading prefix is always 3 cells (" ⠋ " when loading, "   " otherwise).
   // - File-count ("📄 N") keeps its emoji at the same column.
-  // - Suffix is padded to WATCHER_SUFFIX_WIDTH in renderWatcherSuffix.
+  // - State slot is padded to WATCHER_STATE_WIDTH in renderWatcherStateSlot.
   const watcherLoadingPrefix = ui.watcherStatus ? ` ${isLoading ? spinnerFrame : " "} ` : ""
-  const watcherFileCount = ui.watcherStatus ? ` ${renderWatcherFileCount(ui.watcherStatus)}` : ""
-  const watcherSuffix = ui.watcherStatus ? renderWatcherSuffix(ui.watcherStatus) : ""
+  const watcherStateSlot = ui.watcherStatus ? renderWatcherStateSlot(ui.watcherStatus) : ""
+  const watcherFileCount = ui.watcherStatus ? renderWatcherFileCount(ui.watcherStatus) : ""
 
   // Held modifier keys (shown as emoji sigils)
   const mods = useModifierKeys()
@@ -393,51 +393,50 @@ export function StatusCounters({
   if (mods.ctrl) modParts.push("⌃")
   if (mods.alt) modParts.push("⌥")
   if (mods.shift) modParts.push("⇧")
-  const modSuffix = modParts.length > 0 ? ` ${modParts.join("")}` : ""
+  const modifierText = modParts.join("")
 
   return (
-    <Box flexDirection="row" flexShrink={0}>
-      {modSuffix && <Small id="modifier-keys">{modSuffix} </Small>}
-      <Small id="storage-path">
-        {storageMode === "memory" ? "MEM" : "DISK"} {shortenPath(rootPath)}
-      </Small>
-      {/* Loading spinner + elapsed time counter */}
-      {isLoading && (
-        <Small id="loading-indicator">
-          {" "}
-          {spinnerFrame}
-          {elapsed > 1 ? ` ${elapsed}s` : ""}
+    <Box flexDirection="row" flexShrink={0} width="100%" overflow="hidden">
+      <Box flexDirection="row" flexGrow={1} flexShrink={1} overflow="hidden" gap={1}>
+        {modifierText && <Small id="modifier-keys">{modifierText}</Small>}
+        <Small id="storage-path">
+          {storageMode === "memory" ? "MEM" : "DISK"} {shortenPath(rootPath)}
         </Small>
-      )}
-      {logTotal > 0 && (
-        <Text color={!logFlash ? "$muted" : undefined} id="console-indicator">
-          {" "}
-          {hasWarnings ? "\u26A0" : "💬"} {logTotal}
+        {/* Loading spinner + elapsed time counter */}
+        {isLoading && (
+          <Small id="loading-indicator">
+            {spinnerFrame}
+            {elapsed > 1 ? ` ${elapsed}s` : ""}
+          </Small>
+        )}
+      </Box>
+      <Box flexDirection="row" flexShrink={0} gap={2} id="status-counts">
+        {logTotal > 0 && (
+          <Text color={!logFlash ? "$muted" : undefined} id="console-indicator">
+            {hasWarnings ? "\u26A0" : "💬"} {logTotal}
+          </Text>
+        )}
+        <Text color={!nodeFlash ? "$muted" : undefined} id="node-count">
+          📋 {nodeCount}
         </Text>
-      )}
-      <Text color={!nodeFlash ? "$muted" : undefined} id="node-count">
-        {" "}
-        📋 {nodeCount}
-      </Text>
-      {watcherLoadingPrefix && (
-        <Text color={!fileFlash ? "$muted" : undefined} id="watcher-loading">
-          {watcherLoadingPrefix}
-        </Text>
-      )}
-      {watcherFileCount && (
-        <Text color={!fileFlash ? "$muted" : undefined} id="watcher-status">
-          {watcherFileCount}
-        </Text>
-      )}
-      {/* Always render the suffix at a stable width so the right-justified
-         bottom bar never reflows when state transitions. Padded spaces keep
-         the wide-emoji continuation cells above from landing on stale
-         letters. See bead km-tui.status-bar-stray-chars. */}
-      {ui.watcherStatus && (
-        <Text color="$muted" id="watcher-state">
-          {watcherSuffix}
-        </Text>
-      )}
+        {ui.watcherStatus && (
+          <Box flexDirection="row" flexShrink={0} id="watcher-counts">
+            {watcherLoadingPrefix && (
+              <Text color={!fileFlash ? "$muted" : undefined} id="watcher-loading">
+                {watcherLoadingPrefix}
+              </Text>
+            )}
+            <Text color="$muted" id="watcher-state">
+              {watcherStateSlot}
+            </Text>
+            {watcherFileCount && (
+              <Text color={!fileFlash ? "$muted" : undefined} id="watcher-status">
+                {watcherFileCount}
+              </Text>
+            )}
+          </Box>
+        )}
+      </Box>
     </Box>
   )
 }
@@ -487,41 +486,39 @@ function renderWatcherFileCount(status: WatcherStatus): string {
   return watchedPaths ? `📄 ${watchedPaths}` : "📄 0"
 }
 
-/** Max display width of any watcher suffix string. Used to pad shorter states
- *  to a stable width — see bead km-tui.status-bar-stray-chars. `" starting"`
- *  is the longest fixed string; `" sync:N"` can be longer for N≥10 paths. */
-const WATCHER_SUFFIX_WIDTH = " starting".length
+/** Max display width of any watcher state slot. Used to pad shorter states
+ *  to a stable width — see bead km-tui.status-bar-stray-chars. `"starting "`
+ *  is the longest fixed string; `"sync:N "` can be longer for N≥100 paths. */
+const WATCHER_STATE_WIDTH = "starting ".length
 
-/** Optional state suffix appended AFTER the emoji + count.
+/** Optional watcher state slot rendered BEFORE the file count.
  *
- *  Returns a string padded to `WATCHER_SUFFIX_WIDTH` (9) so the watcher-suffix
- *  Text's rendered width is invariant to state. This prevents the parent
- *  right-justified flex row from reflowing on state transitions, which would
- *  otherwise shift the `📋`/`📄` wide emojis onto cells that held stale
- *  letters from a prior longer render (silvery pipeline leaves them in the
- *  continuation-cell slot). See bead km-tui.status-bar-stray-chars. */
-function renderWatcherSuffix(status: WatcherStatus): string {
+ *  Returns a string padded to `WATCHER_STATE_WIDTH` (9) so state transitions
+ *  don't reflow the right-aligned counter group. Keeping the variable-width
+ *  state before `📄 N` leaves the visible number anchored at the bottom-right
+ *  while still clearing stale letters from prior longer states. */
+function renderWatcherStateSlot(status: WatcherStatus): string {
   const { state, pendingPaths } = status
   let raw: string
   switch (state) {
     case "starting":
-      raw = " starting"
+      raw = "starting "
       break
     case "syncing":
-      raw = pendingPaths > 0 ? ` sync:${pendingPaths}` : " syncing"
+      raw = pendingPaths > 0 ? `sync:${pendingPaths} ` : "syncing "
       break
     case "ready":
     case "idle":
       raw = ""
       break
     case "error":
-      raw = " err"
+      raw = "err "
       break
     case "stopped":
-      raw = " off"
+      raw = "off "
       break
     default:
       raw = ""
   }
-  return raw.padEnd(WATCHER_SUFFIX_WIDTH, " ")
+  return raw.padEnd(WATCHER_STATE_WIDTH, " ")
 }

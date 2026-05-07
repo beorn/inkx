@@ -24,7 +24,7 @@
  */
 
 import React, { useEffect, useRef, useState } from "react"
-import { ThemeProvider, ansi16DarkTheme, ansi16LightTheme, type Theme } from "@silvery/ag-react"
+import { ThemeProvider, ansi16DarkTheme, ansi16LightTheme, TermContext, type Theme } from "@silvery/ag-react"
 import type { ColorLevel } from "@silvery/ansi"
 import { detectTheme } from "./theme.ts"
 import { loadCachedTheme, saveCachedTheme, type ThemeCacheKey } from "./theme-cache.ts"
@@ -62,7 +62,13 @@ function pickFallbackTheme(caps: DeferredThemeProviderProps["caps"]): Theme {
   return isDark ? ansi16DarkTheme : ansi16LightTheme
 }
 
+function isFallbackEquivalentTheme(theme: Theme, caps: DeferredThemeProviderProps["caps"]): boolean {
+  const fallback = pickFallbackTheme(caps)
+  return theme.name === fallback.name && theme.bg === fallback.bg && theme.fg === fallback.fg
+}
+
 export function DeferredThemeProvider({ caps, cacheKey, children }: DeferredThemeProviderProps): React.ReactElement {
+  const term = React.useContext(TermContext)
   // Start with cached theme if available, else the synchronous fallback.
   // The cache survives across runs keyed by terminal program + mode so
   // repeat launches see zero theme flash. The cached theme is already
@@ -107,11 +113,16 @@ export function DeferredThemeProvider({ caps, cacheKey, children }: DeferredThem
     // km-silvery.plateau-naming-polish; we adapt field names here.
     detectTheme({
       caps: { colorLevel: caps.colorLevel, darkBackground: caps.maybeDarkBackground },
+      input: term?.input,
     })
       .then((detected) => {
         if (cancelled) return
         setTheme(detected)
-        if (cacheKey) saveCachedTheme(cacheKey, detected)
+        if (cacheKey && !isFallbackEquivalentTheme(detected, caps)) {
+          saveCachedTheme(cacheKey, detected)
+        } else if (cacheKey) {
+          log.debug?.(`theme: probe resolved to fallback ${detected.name} — cache not saved`)
+        }
         log.debug?.(`theme: probe resolved → ${detected.name}`)
         return
       })

@@ -59,10 +59,12 @@
  *
  * ## Known gaps in the current precedence model (tracked in km-silvery.variant-style-system)
  *
- * - `stripInlineColors` only handles fg. Decoration attributes (underline, dim,
- *   bold, bg) don't go through it — they pass through regardless. This is
- *   fine for the cursor-safe decoration rule above, but it means inconsistent
- *   enforcement: a leaf can hardcode `underlineStyle` and nothing can strip it.
+ * - `stripInlineColors` is a leaf-style suppression flag, not just a
+ *   foreground override. InlineCode drops its `$bg-muted` code-chip variant
+ *   when this is set so selected card/container backgrounds stay continuous.
+ *   Decoration attributes (underline, dim, bold) still pass through; that is
+ *   fine for the cursor-safe decoration rule above, but it means enforcement
+ *   is convention-based for non-fg/bg styling.
  *
  * - `shouldStripColor` is computed locally in TreeNode and NodeView. The
  *   per-view definitions differ intentionally: TreeNode guards `isSelected`
@@ -135,7 +137,7 @@
  * - tree-node-helpers.tsx: computeNodeStyle() — cursor inverse (rule 1)
  * - TreeNode.tsx: headRowBg/effectiveBg — title-only inverse (rule 1),
  *   multi-select tint for sub-items (rule 6)
- * - TreeNode.tsx: shouldStripColor — inline color stripping (rules 1, 8)
+ * - TreeNode.tsx: shouldStripColor — inline leaf style stripping (rules 1, 2, 8)
  * - CardColumn.tsx Card: cardBg — card container tint (rules 2, 6)
  * - CardColumn.tsx Card: borderColor — parent indicator (rule 5)
  * - CardColumn.tsx Column: columnBg — column container tint (rule 3)

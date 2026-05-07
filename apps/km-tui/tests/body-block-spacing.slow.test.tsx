@@ -15,9 +15,8 @@
  * @agent" column).
  *
  * Invariant under test: between two consecutive short body blocks, there
- * are ZERO blank rows. Body blocks run flush against each other like
- * stacked prose. Structural-card neighbours retain their existing 0-row
- * abutment (no regression there).
+ * is exactly ONE blank row. Body blocks in cards view should read as
+ * distinct paragraphs, including before the next structural card.
  *
  * See `apps/km-tui/src/views/CardColumn.tsx` body-block branch for the
  * `paddingTop` contract this test constrains. The fix makes that padding
@@ -47,7 +46,7 @@ function blankRowsBetween(app: ReturnType<typeof createTestApp>, prevY: number, 
 }
 
 describe("body-block spacing", () => {
-  test("consecutive short body blocks leave at most 1 blank row between them", () => {
+  test("consecutive short body blocks leave 1 blank row between them", () => {
     // Three short body blocks + a structural card. item.code(content) produces
     // a code-type node which km-tui's viewtree classifies as a body card when
     // it appears before the first structural item in its parent column.
@@ -79,17 +78,17 @@ describe("body-block spacing", () => {
     for (const [idx, nextBox] of boxes.slice(1).entries()) {
       const prevBox = boxes[idx]!
       const blanks = blankRowsBetween(app, prevBox.y, prevBox.height, nextBox.y)
-      // Consecutive body blocks should abut — no blank row between them.
-      // A leading blank row on the second block is phantom whitespace.
+      // Consecutive body blocks in cards view should read as separate
+      // paragraphs, with one blank row between them.
       expect(
         blanks,
         `blank rows between body blocks "${ids[idx]}" and "${ids[idx + 1]}": ` +
-          `prev.y=${prevBox.y} prev.h=${prevBox.height} next.y=${nextBox.y} — got ${blanks}, expected 0`,
-      ).toBe(0)
+          `prev.y=${prevBox.y} prev.h=${prevBox.height} next.y=${nextBox.y} — got ${blanks}, expected 1`,
+      ).toBe(1)
     }
   })
 
-  test("body block → structural card leaves at most 1 blank row between them", () => {
+  test("body block → structural card leaves 1 blank row between them", () => {
     // This mirrors the real-vault case: a run of body-block content followed
     // by a structural (bordered) card. The user reported 3-4 phantom blank
     // rows in this transition in the "Agent Next Actions @agent" column.
@@ -123,8 +122,8 @@ describe("body-block spacing", () => {
       blanks,
       `blank rows between last body block and structural card top border: ` +
         `prev.y=${prev.y} prev.h=${prev.height} next.y=${next.y} (border at ${next.y - 1}) — ` +
-        `got ${blanks} blank rows, expected ≤ 1`,
-    ).toBeLessThanOrEqual(1)
+        `got ${blanks} blank rows, expected 1`,
+    ).toBe(1)
   })
 
   test("body block with overflow indicator + structural card: no phantom gap rows", () => {
@@ -174,7 +173,7 @@ describe("body-block spacing", () => {
     ).toBeLessThanOrEqual(1)
   })
 
-  test("truncated body block (with ··· indicator) → structural card leaves at most 1 blank row", () => {
+  test("truncated body block (with ··· indicator) → structural card leaves 1 blank row", () => {
     // Reproduces the exact real-vault scenario: a long body block that
     // triggers the maxRows clamp + ··· indicator, followed by a structural
     // card. The user sees 3-4 blank rows between the ··· and the structural
@@ -202,7 +201,7 @@ describe("body-block spacing", () => {
       blanks,
       `blank rows between truncated body block and structural card top border: ` +
         `prev.y=${prev.y} prev.h=${prev.height} next.y=${next.y} (border at ${next.y - 1}) — ` +
-        `got ${blanks} blank rows, expected ≤ 1`,
-    ).toBeLessThanOrEqual(1)
+        `got ${blanks} blank rows, expected 1`,
+    ).toBe(1)
   })
 })

@@ -251,6 +251,63 @@ describe("km-tui.selected-color: all selected card content is black-on-yellow", 
     app.expectNodeColor("mySelectedTask", { fg: TC.$selectedfg, bg: TC.$selected })
   })
 
+  it("inline code inside a selected card inherits the selected card background", () => {
+    const nodes = item(
+      "board",
+      item("col1", item.file("Short IDs", item("Stored in `data.short_id`. Full value remains elsewhere"))),
+    )
+
+    using app = createTestApp(nodes, { cols: 100, rows: 24 })
+
+    app.expect('[id="Short IDs"][data-cursor]').toExist()
+    const nodeBox = app.screen.nodeBox("Stored in `data.short_id`. Full value remains elsewhere")
+    expect(nodeBox).not.toBeNull()
+    if (!nodeBox) return
+
+    const row = app.screen.row(nodeBox.y)
+    const codeIdx = row.indexOf("data.short_id")
+    expect(codeIdx, "inline code text should be visible").toBeGreaterThan(-1)
+
+    for (let x = codeIdx; x < codeIdx + "data.short_id".length; x++) {
+      const cell = app.screen.cell(x, nodeBox.y)
+      expect(cell.bg, `inline code bg at (${x},${nodeBox.y}) should inherit selected card bg`).toEqual(
+        TC["$bg-selected"],
+      )
+      expect(cell.bg, `inline code bg at (${x},${nodeBox.y}) should not keep code chip bg`).not.toEqual(TC["$bg-muted"])
+    }
+  })
+
+  it("nested inline code inside a selected card inherits the selected card background", () => {
+    const nodes = item(
+      "board",
+      item(
+        "col1",
+        item.file("Agent", item("Working agreement", item("Read the local `CLAUDE.md` before edits")), item("Queue")),
+      ),
+    )
+
+    using app = createTestApp(nodes, { cols: 100, rows: 24 })
+
+    app.expect('[id="Agent"][data-cursor]').toExist()
+    const nodeBox = app.screen.nodeBox("Read the local `CLAUDE.md` before edits")
+    expect(nodeBox).not.toBeNull()
+    if (!nodeBox) return
+
+    const row = app.screen.row(nodeBox.y)
+    const codeIdx = row.indexOf("CLAUDE.md")
+    expect(codeIdx, "nested inline code text should be visible").toBeGreaterThan(-1)
+
+    for (let x = codeIdx; x < codeIdx + "CLAUDE.md".length; x++) {
+      const cell = app.screen.cell(x, nodeBox.y)
+      expect(cell.bg, `nested inline code bg at (${x},${nodeBox.y}) should inherit selected card bg`).toEqual(
+        TC["$bg-selected"],
+      )
+      expect(cell.bg, `nested inline code bg at (${x},${nodeBox.y}) should not keep code chip bg`).not.toEqual(
+        TC["$bg-muted"],
+      )
+    }
+  })
+
   it("date range on selected card is black-on-yellow (not green/red)", () => {
     // Task with both scheduled and due date
     const today = new Date()
@@ -356,6 +413,22 @@ describe("km-tui.date-range-color: date uses green/red when not selected", () =>
     // Future date should NOT be red or green
     expect(colorEquals(cell.fg, TC["$fg-error"]), "future date should not be red").toBe(false)
     expect(colorEquals(cell.fg, TC["$fg-success"]), "future date should not be green").toBe(false)
+  })
+})
+
+describe("top bar contrast", () => {
+  it("uses inverse foreground for the view-mode label on inverse top bar", () => {
+    using app = createTestApp(item("board", item("col1", item("task-a"))), { cols: 80, rows: 24 })
+
+    const y = app.screen.findRow("CARDS VIEW")
+    expect(y, "top bar should show the current view mode").toBeGreaterThanOrEqual(0)
+    const row = app.screen.row(y)
+    const x = row.indexOf("CARDS")
+    expect(x).toBeGreaterThanOrEqual(0)
+
+    const cell = app.screen.cell(x, y)
+    expect(cell.bg, "top bar label should be on inverse/chrome bg").toEqual(TC["$bg-inverse"])
+    expect(cell.fg, "top bar label should use inverse/chrome foreground").toEqual(TC["$fg-on-inverse"])
   })
 })
 
