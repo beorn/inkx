@@ -1,0 +1,68 @@
+=== bench run ===
+sha:       b1c1379ee
+file:      apps/km-tui/tests/cursor-real-vault.bench.ts
+timestamp: 2026-05-07T05-26-57Z
+cores:     18
+load:      4.30 (limit 9.00)
+===
+
+Benchmarking is an experimental feature.
+Breaking changes might not follow SemVer, please pin Vitest's version when using it.
+
+ RUN  v4.1.4 /Users/beorn/Code/pim/km
+
+]2;km — Realistic Board > Column 1 > Debug parser edge case +bench #hot[?2004h]2;km — Realistic Board > Column 2 > Fix storage sync #infra @mem-a]2;km — Realistic Board > Column 1 > Debug parser edge case +bench #hot[?2004h]2;km — Realistic Board > Column 2 > Fix storage sync #infra @mem-a]2;km — Realistic Board > Column 1 > Debug parser edge case +bench #hot[?2004h]2;km — Realistic Board > Column 2 > Fix storage sync #infra @mem-a]2;km — Realistic Board > Column 1 > Debug parser edge case +bench #hot[?2004h]2;km — Realistic Board > Column 2 > Fix storage sync #infra @mem-a]2;km — Realistic Board > Column 1 > Debug parser edge case +bench #hot[?2004h]2;km — Realistic Board > Column 2 > Fix storage sync #infra @mem-a]2;km — Realistic Board > Column 1 > Debug parser edge case +bench #hot[?2004h]2;km — Realistic Board > Column 2 > Fix storage sync #infra @mem-a]2;km — Realistic Board > Column 1 > Debug parser edge case +bench #hot[?2004h]2;km — Realistic Board > Column 2 > Fix storage sync #infra @mem-a]2;km — Realistic Board > Column 1 > Debug parser edge case +bench #hot[?2004h]2;km — Realistic Board > Column 2 > Fix storage sync #infra @mem-a
+ ✓ apps/km-tui/tests/cursor-real-vault.bench.ts > Realistic board cursor perf (300x120) [fixture:realistic-board] 8742ms
+     name              hz       min       max      mean       p75       p99      p995      p999     rme  samples
+   · 10 j-presses  0.7269  1,353.54  1,411.80  1,375.65  1,411.80  1,411.80  1,411.80  1,411.80  ±5.70%        3
+]2;km — Realistic Board > Column 1 > Debug parser edge case +bench #hot[?2004h]2;km — Realistic Board > Column 2 > Fix storage sync #infra @mem-a]2;km — Realistic Board > Column 1 > Debug parser edge case +bench #hot[?2004h]2;km — Realistic Board > Column 2 > Fix storage sync #infra @mem-a]2;km — Realistic Board > Column 1 > Debug parser edge case +bench #hot[?2004h]2;km — Realistic Board > Column 2 > Fix storage sync #infra @mem-a]2;km — Realistic Board > Column 1 > Debug parser edge case +bench #hot[?2004h]2;km — Realistic Board > Column 2 > Fix storage sync #infra @mem-a]2;km — Realistic Board > Column 1 > Debug parser edge case +bench #hot[?2004h]2;km — Realistic Board > Column 2 > Fix storage sync #infra @mem-a]2;km — Realistic Board > Column 1 > Debug parser edge case +bench #hot[?2004h]2;km — Realistic Board > Column 2 > Fix storage sync #infra @mem-a
+ ✓ apps/km-tui/tests/cursor-real-vault.bench.ts > Realistic board cursor perf (200x60) [fixture:realistic-board] 4432ms
+     name              hz     min     max    mean     p75     p99    p995    p999     rme  samples
+   · 10 j-presses  1.3578  723.64  744.42  736.48  744.42  744.42  744.42  744.42  ±3.79%        3
+]2;km — Realistic Board > Column 1 > Debug parser edge case +bench #hot[?2004h]2;km — Realistic Board > Column 2 > Fix storage sync #infra @mem-a]2;km — Realistic Board > Column 1 > Debug parser edge case +bench #hot[?2004h]2;km — Realistic Board > Column 2 > Fix storage sync #infra @mem-a]2;km — Realistic Board > Column 1 > Debug parser edge case +bench #hot[?2004h]2;km — Realistic Board > Column 2 > Fix storage sync #infra @mem-a]2;km — Realistic Board > Column 1 > Debug parser edge case +bench #hot[?2004h]2;km — Realistic Board > Column 2 > Fix storage sync #infra @mem-a
+ ✓ apps/km-tui/tests/cursor-real-vault.bench.ts > Realistic board cursor perf (80x24) [fixture:realistic-board] 1411ms
+     name              hz     min     max    mean     p75     p99    p995    p999     rme  samples
+   · 10 j-presses  4.4751  222.17  225.66  223.46  225.66  225.66  225.66  225.66  ±2.13%        3
+
+ BENCH  Summary
+
+  10 j-presses - apps/km-tui/tests/cursor-real-vault.bench.ts:42:1 > Realistic board cursor perf (300x120) [fixture:realistic-board]
+
+  10 j-presses - apps/km-tui/tests/cursor-real-vault.bench.ts:68:1 > Realistic board cursor perf (200x60) [fixture:realistic-board]
+
+  10 j-presses - apps/km-tui/tests/cursor-real-vault.bench.ts:92:1 > Realistic board cursor perf (80x24) [fixture:realistic-board]
+
+
+=== exit: 0 ===
+
+=== per-phase breakdown ===
+
+cursor-real-vault:200x60              iters=6  pipeline=0
+  wall (per iter)           735.87ms
+  react reconcile             0.00ms (  0%)
+  layout side total          46.90ms (  6%)
+    measure                   2.26ms
+    flexbox layout           36.93ms
+  content (render)          390.78ms ( 53%)
+  output (diff/ANSI)          0.00ms (  0%)
+  other                     298.18ms ( 41%)
+
+cursor-real-vault:300x120             iters=6  pipeline=0
+  wall (per iter)          1456.24ms
+  react reconcile             0.00ms (  0%)
+  layout side total          91.51ms (  6%)
+    measure                   4.85ms
+    flexbox layout           71.54ms
+  content (render)          710.09ms ( 49%)
+  output (diff/ANSI)          0.00ms (  0%)
+  other                     654.64ms ( 45%)
+
+cursor-real-vault:80x24               iters=6  pipeline=0
+  wall (per iter)           232.88ms
+  react reconcile             0.00ms (  0%)
+  layout side total          19.92ms (  9%)
+    measure                   0.89ms
+    flexbox layout           15.30ms
+  content (render)          103.45ms ( 44%)
+  output (diff/ANSI)          0.00ms (  0%)
+  other                     109.50ms ( 47%)
