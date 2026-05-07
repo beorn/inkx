@@ -90,8 +90,11 @@ describe("layer 3: useDispose regression (ca794509)", () => {
       />,
     )
     expect(app.text).toContain("initial")
-    // Session is spawned by the effect — wait a microtask.
-    await Promise.resolve()
+    // Session is spawned by the effect — wait for spawnSession's await
+    // chain (Promise.resolve + factory) to resolve. ~5 ticks is the
+    // empirical floor; the controller's spawnSession needs 2 awaits
+    // before adding the handle to the list.
+    for (let i = 0; i < 10; i++) await Promise.resolve()
     expect(capturedController).not.toBeNull()
     expect(capturedController!.snapshot()).toHaveLength(1)
     // Baseline: dispose must not have fired during mount.
@@ -133,10 +136,11 @@ describe("layer 3: useDispose regression (ca794509)", () => {
 
     const app = render(<DisposeHarness label="hello" spawnFactory={() => fake} onController={() => {}} />)
     expect(app.text).toContain("hello")
-    await Promise.resolve()
+    for (let i = 0; i < 10; i++) await Promise.resolve()
 
     // Render an empty tree to unmount DisposeHarness.
     render(<Box />)
+    for (let i = 0; i < 5; i++) await Promise.resolve()
     // dispose fires synchronously on unmount — closeCount is 1, not 0 or 2.
     expect(fake.closeCount).toBe(1)
   })

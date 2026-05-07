@@ -181,7 +181,7 @@ export function attachWire(
     let timer: ReturnType<typeof setTimeout> | null = null
     const timeout = new Promise<"timeout">((resolve) => {
       timer = setTimeout(() => resolve("timeout"), writeDrainTimeoutMs)
-      timer.unref?.()
+      ;(timer as unknown as { unref?: () => void }).unref?.()
     })
     const result = await Promise.race([drain, timeout])
     if (timer) clearTimeout(timer)

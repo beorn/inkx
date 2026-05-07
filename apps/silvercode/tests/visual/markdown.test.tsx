@@ -132,8 +132,12 @@ describe("markdown rendering at multiple widths", () => {
     expect(composerRow, s.text).toBeGreaterThan(userRow)
     expect(s.lines[userRow]!, s.text).not.toContain("final paragraph")
     expect(s.lines[composerRow]!, s.text).not.toContain("final paragraph")
-    if (firstRow > 1) expect(s.lines[firstRow - 1]?.trim() ?? "").toBe("")
-    expect(s.lines[userRow - 1]?.trim() ?? "").toBe("")
+    // Slice to chat region — side panel always paints its rightmost
+    // border across all rows (cols 99 etc.), so trim of the full row
+    // never returns "" once side panel is visible.
+    const leftWidth = leftWidthFor(100)
+    if (firstRow > 1) expect(s.lines[firstRow - 1]?.slice(0, leftWidth).trim() ?? "").toBe("")
+    expect(s.lines[userRow - 1]?.slice(0, leftWidth).trim() ?? "").toBe("")
     s.dispose()
   })
 

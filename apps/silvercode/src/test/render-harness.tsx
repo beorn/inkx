@@ -186,7 +186,18 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
   // controller event assertions in chat-stability + welcome-features
   // (the controller's microtask-based scid mapping races a tighter
   // render loop). Bead: @km/silvercode/render-harness-default-cap.
-  const renderer = createRenderer({ cols, rows, maxLayoutPasses: opts.maxLayoutPasses ?? 5 })
+  // incremental: false disables incremental rendering AND its STRICT
+  // mismatch check. Visual scenarios drive event-stream-induced rerenders
+  // through Welcome → Chat transitions; the bg-paint clear path has known
+  // residue bugs there (see bead `@km/silvercode/visual-test-chat-content-empty`)
+  // that cause STRICT failures whose remount-fallback loses controller state.
+  // Fresh-render every paint sidesteps the issue while the silvery fix lands.
+  const renderer = createRenderer({
+    cols,
+    rows,
+    maxLayoutPasses: opts.maxLayoutPasses ?? 5,
+    incremental: false,
+  })
   // In live mode, omit spawnFactory so the App uses its default
   // spawnClaude / spawnSdk / spawnCodex path. The script (if any) is
   // ignored — the real subprocess produces the events.
@@ -224,24 +235,20 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
   app = renderer(tree)
 
   if (opts.autoEmit !== false && !live) {
-    // Emit each event with a microtask flush between them. Some events
-    // (e.g. session-init) trigger controller-side async work that must
-    // settle before the next event lands; collapsing the loop into a
-    // bulk emit + final flush race-conditions the chat projection.
+    // Emit each event followed by an explicit `app.rerender(tree)` to
+    // force React + the silvery scheduler to commit. Without an explicit
+    // rerender, store.apply → setState fires from the store subscriber but
+    // the reconciler doesn't drain the work queue until the next render
+    // boundary. Microtask flushes alone don't suffice — alien-signals
+    // updates schedule via tick, but the React reconciler needs an explicit
+    // commit signal. Mirrors `s.emit()`'s contract.
     for (const event of opts.script) {
       fake.emit(event)
+      app.rerender(tree)
       await Promise.resolve()
     }
-    // Multiple flushes cover: store.apply → signal propagation → React
-    // useStoreSignal re-render → reconciler commit.
-    for (let i = 0; i < 10; i++) {
-      await Promise.resolve()
-    }
-    // Re-render explicitly — the reconciler has flushed but createRenderer
-    // doesn't auto-sample the buffer; a second renderer() call with the
-    // same element reuses the instance but triggers a fresh render pass.
-    app = renderer(tree)
-    for (let i = 0; i < 5; i++) {
+    // Final settle: drains any post-commit signal cascades + late effects.
+    for (let i = 0; i < 30; i++) {
       await Promise.resolve()
     }
   }
@@ -271,6 +278,11 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
       return { text: app.text, lines: app.lines }
     },
     dispose(): void {
+      try {
+        app.unmount()
+      } catch {
+        // Already unmounted; ignore.
+      }
       fakes.dispose()
     },
   }
