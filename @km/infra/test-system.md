@@ -125,3 +125,53 @@ Main has moved on with substantive cross-cutting refactors that conflict with th
 
 strictest reserved on npm (0.0.1).
 
+## Update 2026-05-07 — divergence has widened, verify-before-rebase
+
+Sanity check on the branch state, 9 days after the last touch:
+
+- Worktree `/Users/beorn/Code/pim/km-test-system-rebase` still on local branch `feat/test-system`, tip `0f73c16bc` (the 29-commit squash). Working tree clean, no in-flight edits.
+- Origin/main has moved another ~2 days of cross-cutting work since 2026-04-28. Counts now: **1 commit ahead, 2035 commits behind origin/main**.
+- Cross-cutting refactors that landed on main *since* the table above (each will collide with the squash):
+  - `ChatEntryDisclosure` → `EntryDisclosure` rename (a5d5fd600 + the commit that introduced EntryDisclosure.tsx)
+  - The 88-file no-non-null-assertion lint sweep (cffb9d418)
+  - The bead schema migration that landed alongside the lint sweep (cffb9d418)
+  - Codex km-tui polish (e65f7ad5b)
+  - Bd retirement / km bd surface cutover (the new bead surface in `apps/km-cli/src/commands/`)
+  - Sigil-board / @agent dispatch model + 60+ archive moves under @km/archive/
+- p4-suites + p6-api are now both **closed** in the bead tree, but their *code* lives only on the unmerged branch. So either main absorbed equivalents through other paths (very plausible — the bd cutover landed many test changes), or the closures were aspirational while the rebase was paused.
+
+**Before any rebase attempt, run the equivalence audit:**
+
+```bash
+# Did main absorb the substance via other paths?
+git log origin/main --grep -E "testEnv|createTestApp|fast-check|plateau|MECE|driverTest|expectScreen" \
+  --since "2026-04-28" --oneline | head -50
+
+# Diff the squash's surface against main per-file
+git diff --stat $(git merge-base origin/main 0f73c16bc)..0f73c16bc | sort -k3 -n -r | head -40
+
+# For each touched file, check if main also touched it post-2026-04-28
+git diff --name-only $(git merge-base origin/main 0f73c16bc)..0f73c16bc \
+  | xargs -I{} sh -c 'echo "{} : $(git log origin/main --since 2026-04-28 --oneline -- {} | wc -l)"' \
+  | awk '$3 > 0'
+```
+
+If main has independently absorbed >50% of the substance, **do not rebase** — the squash is now duplicative noise. Cherry-pick the unique residue (Option C variant from above) and abandon the branch.
+
+If main has **not** absorbed the substance, the rebase is still worth doing but is now closer to ~6-8 hrs of careful porting given how the surface has shifted. Use a fresh pool slot, not the existing 9-day-old worktree (its submodule pointers are stale and `direnv` state is from a prior bun version).
+
+**Recommended next step:** spawn a focused agent in a pool slot that runs the equivalence audit and reports: (a) percent of squash substance absorbed by main; (b) the residue list (commits / file-changes uniquely on the branch); (c) recommendation A/B/C with effort estimate. Do not attempt the rebase in the same agent — keep the audit separate so the call is informed before tools start reflowing 1500+ files.
+
+**Holding state**: branch + worktree retained pending audit. Do not `git worktree remove` — the squash is the analysis artifact. If the audit decides "main absorbed it," THEN remove the worktree and delete `feat/test-system` (origin/feat/test-system can stay as historical reference).
+
+## Update 2026-05-07 — links to current main tip
+
+For audit context, recent main commits that touched test surface (informational, not exhaustive):
+
+- `cffb9d418` chore: lint sweep + bead schema migration (725 files)
+- `889b7cb34` feat(silvercode): cmd-hover on tool rows
+- `b508319fa` feat(silvercode): AskUserQuestion replay rendering
+- `a5d5fd600` fix(silvercode): complete ChatEntryDisclosure→EntryDisclosure rename
+
+The lint sweep alone touched 88 .ts/.tsx files and the bead schema migration probably touched 100s more. Conflict surface against the squash is much wider than the 2026-04-28 table suggests.
+
