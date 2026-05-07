@@ -697,6 +697,10 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   // (Enter in queue region) calls `flushQueue` to bypass the idle gate.
   const queues = new Map<string, string>()
   const queueSubs = new Set<(sessionId: string, text: string) => void>()
+  type OutboundTurnState =
+    | { readonly kind: "awaiting-turn-start" }
+    | { readonly kind: "running"; readonly turnId: TurnId }
+  const outboundTurns = new Map<string, OutboundTurnState>()
 
   // Recall probe wiring — per-session bookkeeping. We probe recall
   // every Nth assistant `turn-end` against the most recent user
@@ -788,6 +792,60 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     const t = queues.get(sessionId) ?? ""
     for (const fn of queueSubs) fn(sessionId, t)
   }
+  function outboundState(sessionId: string): OutboundTurnState | undefined {
+    return outboundTurns.get(sessionId)
+  }
+  function hasOutbound(sessionId: string): boolean {
+    return outboundState(sessionId) !== undefined
+  }
+  function isSendable(sessionId: string, store: SessionStore): boolean {
+    const status = store.state.get().status
+    return (status === "idle" || status === "ended") && !hasOutbound(sessionId)
+  }
+  function markOutboundSent(sessionId: string): void {
+    outboundTurns.set(sessionId, { kind: "awaiting-turn-start" })
+    dQueue("outbound %s — gate armed", sessionId)
+  }
+  function bindOutboundTurn(sessionId: string, turnId: TurnId): void {
+    const state = outboundState(sessionId)
+    if (state?.kind !== "awaiting-turn-start") return
+    outboundTurns.set(sessionId, { kind: "running", turnId })
+    dQueue("outbound %s — gate bound to turn %s", sessionId, turnId)
+  }
+  function clearOutboundTurn(sessionId: string, turnId: TurnId): void {
+    const state = outboundState(sessionId)
+    if (state?.kind !== "running" || state.turnId !== turnId) return
+    outboundTurns.delete(sessionId)
+    dQueue("outbound %s — gate cleared for turn %s", sessionId, turnId)
+  }
+  function clearUnstartedOutbound(sessionId: string): void {
+    const state = outboundState(sessionId)
+    if (state?.kind !== "awaiting-turn-start") return
+    outboundTurns.delete(sessionId)
+    dQueue("outbound %s — unstarted gate cleared", sessionId)
+  }
+  function clearOutbound(sessionId: string): void {
+    if (!outboundTurns.delete(sessionId)) return
+    dQueue("outbound %s — gate cleared", sessionId)
+  }
+  function dispatchUserTurn(s: SessionHandle, sessionId: string, text: string): void {
+    recordUserPromptForRecall(sessionId, text)
+    const turnId = `u-${Date.now()}` as never
+    s.store.apply({
+      kind: "user-message",
+      sessionId: s.session.sessionId,
+      turnId,
+      text,
+      ts: Date.now(),
+    })
+    markOutboundSent(sessionId)
+    try {
+      s.session.send(text)
+    } catch (err) {
+      clearUnstartedOutbound(sessionId)
+      throw err
+    }
+  }
   /**
    * Flush the queue buffer to Claude as one user turn, then clear.
    *
@@ -807,10 +865,15 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       dQueue("tryFlush %s force=%s — no handle", sessionId, force)
       return
     }
+    if (force && outboundState(sessionId)?.kind === "awaiting-turn-start") {
+      dQueue("tryFlush %s force=%s — outbound awaiting turn-start, skip", sessionId, force)
+      return
+    }
     if (!force) {
-      const status = s.store.state.get().status
-      if (status !== "idle") {
-        dQueue("tryFlush %s — status=%s, skip", sessionId, status)
+      if (!isSendable(sessionId, s.store)) {
+        const status = s.store.state.get().status
+        const outbound = outboundState(sessionId)?.kind ?? "none"
+        dQueue("tryFlush %s — status=%s outbound=%s, skip", sessionId, status, outbound)
         return
       }
       // Focus guard — if the user has moved the cursor INTO the queue
@@ -833,16 +896,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     dQueue("tryFlush %s force=%s — FLUSHING %d chars", sessionId, force, text.length)
     queues.set(sessionId, "")
     notifyQueue(sessionId)
-    recordUserPromptForRecall(sessionId, text)
-    const turnId = `u-${Date.now()}` as never
-    s.store.apply({
-      kind: "user-message",
-      sessionId: s.session.sessionId,
-      turnId,
-      text,
-      ts: Date.now(),
-    })
-    s.session.send(text)
+    dispatchUserTurn(s, sessionId, text)
   }
   function notifyFocus(): void {
     for (const fn of focusSubs) fn(focusedId)
@@ -1383,6 +1437,16 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         }
       }
 
+      if (event.kind === "turn-start") {
+        bindOutboundTurn(id, event.turnId)
+      } else if (event.kind === "turn-end") {
+        clearOutboundTurn(id, event.turnId)
+      } else if (event.kind === "session-end" || (event.kind === "session-lifecycle" && event.state === "ended")) {
+        clearOutbound(id)
+      } else if (event.kind === "error") {
+        clearUnstartedOutbound(id)
+      }
+
       // Flush on every turn boundary — the whole queue goes as ONE turn.
       if (event.kind === "turn-end" || event.kind === "session-lifecycle") {
         dQueue("subscribe %s — event=%s, calling tryFlush", id, event.kind)
@@ -1541,15 +1605,19 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     send(sessionId: string, text: string): void {
       const s = sessions.find((h) => h.id === sessionId)
       if (!s) return
-      const status = s.store.state.get().status
-      const idle = status === "idle" || status === "ended"
-      // Non-idle → append to buffer and let tryFlush drain on turn-end.
-      if (!idle) {
+      // Non-sendable → append to buffer and let tryFlush drain once the
+      // current outbound turn has a complete backend lifecycle. The extra
+      // outbound gate covers the gap between stdin write and provider
+      // turn-start, when the store still reports idle but another user
+      // turn is already in flight.
+      if (!isSendable(sessionId, s.store)) {
         const prev = queues.get(sessionId) ?? ""
         const next = prev ? `${prev}\n\n${text}` : text
         queues.set(sessionId, next)
         notifyQueue(sessionId)
-        dQueue("send %s — queued (status=%s len=%d)", sessionId, status, next.length)
+        const status = s.store.state.get().status
+        const outbound = outboundState(sessionId)?.kind ?? "none"
+        dQueue("send %s — queued (status=%s outbound=%s len=%d)", sessionId, status, outbound, next.length)
         return
       }
       // Idle + no hold → send immediately, but include any pending queue
@@ -1558,16 +1626,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       const combined = pending ? `${pending}\n\n${text}` : text
       queues.set(sessionId, "")
       notifyQueue(sessionId)
-      recordUserPromptForRecall(sessionId, combined)
-      const turnId = `u-${Date.now()}` as never
-      s.store.apply({
-        kind: "user-message",
-        sessionId: s.session.sessionId,
-        turnId,
-        text: combined,
-        ts: Date.now(),
-      })
-      s.session.send(combined)
+      dispatchUserTurn(s, sessionId, combined)
     },
     queuedText(sessionId: string): string {
       return queues.get(sessionId) ?? ""

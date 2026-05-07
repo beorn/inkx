@@ -52,7 +52,90 @@ function turnEnd(turnId: string): AgentEvent {
   }
 }
 
+function textDelta(turnId: string, text: string): AgentEvent {
+  return {
+    kind: "text-delta",
+    sessionId: SESSION,
+    turnId: turnId as TurnId,
+    blockIndex: 0,
+    text,
+    ts: 1030,
+  }
+}
+
 describe("layer 3: queue batching", () => {
+  test("second prompt before backend turn-start queues behind the in-flight send and strips its echo", async () => {
+    const fake = createFakeSession({ sessionId: SESSION })
+    const controller = createSilvercodeController({
+      cwd: "/tmp/fake",
+      bare: true,
+      initialSessions: 0,
+      spawnFactory: () => fake,
+    })
+    const handle = await controller.spawnSession("test")
+
+    fake.emit(initEvent())
+    expect(handle.store.state.get().status).toBe("idle")
+
+    controller.send(handle.id, "yes")
+    expect(fake.sent).toHaveLength(1)
+    expect(fake.sent[0]!.payload).toBe("yes")
+
+    controller.send(handle.id, "its")
+    expect(fake.sent).toHaveLength(1)
+    expect(controller.queuedText(handle.id)).toBe("its")
+
+    fake.emit(turnStart("a1"))
+    fake.emit(turnEnd("a1"))
+
+    expect(fake.sent).toHaveLength(2)
+    expect(fake.sent[1]!.payload).toBe("its")
+    expect(controller.queuedText(handle.id)).toBe("")
+
+    fake.emit(turnStart("a2"))
+    fake.emit(textDelta("a2", "itsGot it — thanks for the correction."))
+    fake.emit(turnEnd("a2"))
+
+    const state = handle.store.state.get()
+    expect(state.status).toBe("idle")
+    const assistant = state.messages.find((m) => m.id === ("a2" as TurnId))
+    expect(assistant?.role).toBe("assistant")
+    expect(assistant?.text).toBe("Got it — thanks for the correction.")
+    expect(assistant?.text.startsWith("its")).toBe(false)
+
+    controller.closeAll()
+  })
+
+  test("explicit queue flush waits while the previous send has not reached turn-start", async () => {
+    const fake = createFakeSession({ sessionId: SESSION })
+    const controller = createSilvercodeController({
+      cwd: "/tmp/fake",
+      bare: true,
+      initialSessions: 0,
+      spawnFactory: () => fake,
+    })
+    const handle = await controller.spawnSession("test")
+
+    fake.emit(initEvent())
+    controller.send(handle.id, "first")
+    expect(fake.sent).toHaveLength(1)
+
+    controller.setQueuedText(handle.id, "second")
+    controller.flushQueue(handle.id)
+
+    expect(fake.sent).toHaveLength(1)
+    expect(controller.queuedText(handle.id)).toBe("second")
+
+    fake.emit(turnStart("a1"))
+    fake.emit(turnEnd("a1"))
+
+    expect(fake.sent).toHaveLength(2)
+    expect(fake.sent[1]!.payload).toBe("second")
+    expect(controller.queuedText(handle.id)).toBe("")
+
+    controller.closeAll()
+  })
+
   test("three sends while thinking collapse to ONE send joined with \\n\\n on turn-end", async () => {
     const fake = createFakeSession({ sessionId: SESSION })
     const controller = createSilvercodeController({
