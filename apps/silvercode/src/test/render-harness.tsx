@@ -206,17 +206,32 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
       <App {...elementProps} />
     </ScopeProvider>
   )
-  const app = renderer(tree)
+  // CRITICAL: capture `app` from EVERY renderer(tree) call. createRenderer
+  // may unmount the previous instance and remount fresh (e.g., when
+  // rerender throws). Stale app references return text="" because the
+  // detached App's buffer is empty. Each renderer(tree) returns the
+  // current live App.
+  let app = renderer(tree)
 
   // Let the controller's initial `void spawnSession()` microtask resolve,
   // then trigger React to re-render with the new session in the list.
-  for (let i = 0; i < 5; i++) {
+  // 20 flushes covers: controller init → spawnSession's 2 awaits → React
+  // commit → store ready → fake.subscribe registered → Welcome paint.
+  // Lower counts have race-conditioned the chat projection wiring.
+  for (let i = 0; i < 20; i++) {
     await Promise.resolve()
   }
-  renderer(tree)
+  app = renderer(tree)
 
   if (opts.autoEmit !== false && !live) {
-    for (const event of opts.script) fake.emit(event)
+    // Emit each event with a microtask flush between them. Some events
+    // (e.g. session-init) trigger controller-side async work that must
+    // settle before the next event lands; collapsing the loop into a
+    // bulk emit + final flush race-conditions the chat projection.
+    for (const event of opts.script) {
+      fake.emit(event)
+      await Promise.resolve()
+    }
     // Multiple flushes cover: store.apply → signal propagation → React
     // useStoreSignal re-render → reconciler commit.
     for (let i = 0; i < 10; i++) {
@@ -225,7 +240,7 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
     // Re-render explicitly — the reconciler has flushed but createRenderer
     // doesn't auto-sample the buffer; a second renderer() call with the
     // same element reuses the instance but triggers a fresh render pass.
-    renderer(tree)
+    app = renderer(tree)
     for (let i = 0; i < 5; i++) {
       await Promise.resolve()
     }
