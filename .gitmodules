@@ -1,27 +1,27 @@
 [submodule "vendor/flexily"]
 	path = vendor/flexily
-	url = git@github.com:beorn/flexily.git
+	url = https://github.com/beorn/flexily.git
 [submodule "vendor/loggily"]
 	path = vendor/loggily
-	url = git@github.com:beorn/loggily.git
+	url = https://github.com/beorn/loggily.git
 [submodule "vendor/termless"]
 	path = vendor/termless
-	url = git@github.com:beorn/termless.git
+	url = https://github.com/beorn/termless.git
 [submodule "vendor/bearly"]
 	path = vendor/bearly
-	url = git@github.com:beorn/bearly.git
+	url = https://github.com/beorn/bearly.git
 [submodule "vendor/silvery"]
 	path = vendor/silvery
-	url = git@github.com:beorn/silvery.git
+	url = https://github.com/beorn/silvery.git
 [submodule "vendor/vimonkey"]
 	path = vendor/vimonkey
-	url = git@github.com:beorn/vimonkey.git
+	url = https://github.com/beorn/vimonkey.git
 [submodule "vendor/terminfo.dev"]
 	path = vendor/terminfo.dev
-	url = git@github.com:beorn/terminfo.dev.git
+	url = https://github.com/beorn/terminfo.dev.git
 [submodule "vendor/vterm"]
 	path = vendor/vterm
-	url = git@github.com:beorn/vterm.git
+	url = https://github.com/beorn/vterm.git
 [submodule "vendor/mdspec"]
 	path = vendor/mdspec
-	url = git@github.com:beorn/mdspec.git
+	url = https://github.com/beorn/mdspec.git
