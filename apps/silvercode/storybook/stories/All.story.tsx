@@ -31,7 +31,8 @@
  */
 import React, { useState } from "react"
 import { Box, ListView, Muted, Small, Text, useKineticScroll } from "silvery"
-import type { NotificationStreamEntry } from "../../src/components/NotificationEventRow.tsx"
+import type { SessionState } from "@km/agent-harness"
+import type { NotificationStreamEntry } from "../../src/notification-stream.ts"
 import { InlinePermissionPrompt } from "../../src/components/InlinePermissionPrompt.tsx"
 import { InlineAskUserQuestionPrompt } from "../../src/components/InlineAskUserQuestionPrompt.tsx"
 import { SessionPromptComposer } from "../../src/components/SessionPromptComposer.tsx"
@@ -257,7 +258,9 @@ function PanelScroll({ children }: { children: React.ReactNode }): React.ReactEl
   )
 }
 
-function fakeController(notificationBySession: ReadonlyMap<string, readonly NotificationStreamEntry[]> = new Map()): Controller {
+function fakeController(
+  notificationBySession: ReadonlyMap<string, readonly NotificationStreamEntry[]> = new Map(),
+): Controller {
   const muted = new Set<string>()
   const streamSubscribers = new Set<(sessionId: string, entry: NotificationStreamEntry) => void>()
   const muteSubscribers = new Set<(muted: ReadonlySet<string>) => void>()
@@ -586,7 +589,7 @@ function AllStoryBody(): React.ReactElement {
   const claudePermissionHandle = fakeSessionHandle({
     id: "story-all",
     name: "Claude permission",
-    state: sidePanelSessionJson as any,
+    state: sidePanelSessionJson as unknown as Partial<SessionState>,
   })
   const codexPermissionHandle = fakeSessionHandle({
     id: "story-codex-permission",
@@ -614,7 +617,9 @@ function AllStoryBody(): React.ReactElement {
 
   const normalSessionId = "story-normal-session"
   const activeSessionId = "story-active-session"
-  const controller = fakeController(new Map([[normalSessionId, [...allNotificationEntries, ...TURN_ACTIVITY_NOTIFICATION]]]))
+  const controller = fakeController(
+    new Map([[normalSessionId, [...allNotificationEntries, ...TURN_ACTIVITY_NOTIFICATION]]]),
+  )
   const normalHandle = fakeSessionHandle({
     id: normalSessionId,
     name: "Normal transcript",

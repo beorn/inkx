@@ -294,8 +294,8 @@ async function buildProgram(): Promise<Command> {
       const parentOpts = cmd.parent?.opts() ?? {}
       const cwd = expandHomePath(String(opts.cwd ?? parentOpts.cwd ?? process.cwd()))
       const only = checker ? [checker] : undefined
-      if (only && !CHECKER_NAMES.includes(only[0]! as (typeof CHECKER_NAMES)[number])) {
-        process.stderr.write(`silvercode doctor: unknown checker "${only[0]}". Known: ${CHECKER_NAMES.join(", ")}\n`)
+      if (only && !CHECKER_NAMES.includes(checker as (typeof CHECKER_NAMES)[number])) {
+        process.stderr.write(`silvercode doctor: unknown checker "${checker}". Known: ${CHECKER_NAMES.join(", ")}\n`)
         process.exitCode = 2
         return
       }

@@ -288,9 +288,11 @@ export const chatPlanDrawer: Story = {
               <Chat.Composer>
                 <Box flexDirection="column" gap={1} width="100%" minWidth={0}>
                   <Chat.PlanDrawer plan={activePlan} />
+                  {/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- literal-array, [0] provably defined */}
                   <Chat.AgentsDrawer sessions={activeAgents} selfSessionId={activeAgents[0]!.sessionId} />
                   <Chat.AgentsDrawer
                     sessions={activeAgents}
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- literal-array, [0] provably defined
                     selfSessionId={activeAgents[0]!.sessionId}
                     defaultExpanded
                   />

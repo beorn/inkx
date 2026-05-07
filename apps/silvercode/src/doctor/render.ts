@@ -77,9 +77,11 @@ function renderExtra(extra: DoctorExtra, t: Term): string[] {
     const lines: string[] = []
     lines.push(`  ${t.bold(`cascade (${extra.rows.length} rule${extra.rows.length === 1 ? "" : "s"} effective)`)}`)
     lines.push(`  ${t.dim(divider(widths))}`)
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- header row is always present (constructed via spread above)
     lines.push(`  ${formatRow(rows[0]!, widths, t.dim)}`)
     for (let i = 1; i < rows.length; i++) {
-      const row = rows[i]!
+      const row = rows[i]
+      if (row === undefined) continue
       const colorize = row[1] === "WS→VAULT" ? t.yellow : (s: string) => s
       lines.push(`  ${formatRow(row, widths, colorize)}`)
     }
@@ -116,9 +118,12 @@ function renderExtra(extra: DoctorExtra, t: Term): string[] {
     const lines: string[] = []
     lines.push(`  ${t.bold(`handler registry (${extra.rows.length} scheme${extra.rows.length === 1 ? "" : "s"})`)}`)
     lines.push(`  ${t.dim(divider(widths))}`)
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- header row always present
     lines.push(`  ${formatRow(rows[0]!, widths, t.dim)}`)
     for (let i = 1; i < rows.length; i++) {
-      lines.push(`  ${formatRow(rows[i]!, widths, (s) => s)}`)
+      const row = rows[i]
+      if (row === undefined) continue
+      lines.push(`  ${formatRow(row, widths, (s) => s)}`)
     }
     return lines
   }
@@ -130,9 +135,12 @@ function renderExtra(extra: DoctorExtra, t: Term): string[] {
     const lines: string[] = []
     lines.push(`  ${t.bold(`https host parsers (${extra.rows.length} registered)`)}`)
     lines.push(`  ${t.dim(divider(widths))}`)
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- header row always present
     lines.push(`  ${formatRow(rows[0]!, widths, t.dim)}`)
     for (let i = 1; i < rows.length; i++) {
-      lines.push(`  ${formatRow(rows[i]!, widths, (s) => s)}`)
+      const row = rows[i]
+      if (row === undefined) continue
+      lines.push(`  ${formatRow(row, widths, (s) => s)}`)
     }
     return lines
   }
@@ -144,11 +152,13 @@ function renderExtra(extra: DoctorExtra, t: Term): string[] {
     const lines: string[] = []
     lines.push(`  ${t.bold(`rule handler coverage (${extra.rows.length} rule${extra.rows.length === 1 ? "" : "s"})`)}`)
     lines.push(`  ${t.dim(divider(widths))}`)
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- header row always present
     lines.push(`  ${formatRow(rows[0]!, widths, t.dim)}`)
     for (let i = 1; i < rows.length; i++) {
-      const row = rows[i]!
-      const status = extra.rows[i - 1]!.status
-      const colorize = status === "no-handler" ? t.red : (s: string) => s
+      const row = rows[i]
+      const sourceRow = extra.rows[i - 1]
+      if (row === undefined || sourceRow === undefined) continue
+      const colorize = sourceRow.status === "no-handler" ? t.red : (s: string) => s
       lines.push(`  ${formatRow(row, widths, colorize)}`)
     }
     return lines
@@ -194,13 +204,14 @@ function formatSummary(counts: { ok: number; warn: number; error: number }, t: T
 }
 
 function computeColumnWidths(rows: readonly string[][]): number[] {
-  if (rows.length === 0) return []
-  const colCount = rows[0]!.length
-  const widths = new Array(colCount).fill(0)
+  const first = rows[0]
+  if (first === undefined) return []
+  const colCount = first.length
+  const widths = new Array<number>(colCount).fill(0)
   for (const row of rows) {
     for (let i = 0; i < colCount; i++) {
       const len = (row[i] ?? "").length
-      if (len > widths[i]) widths[i] = len
+      if (len > (widths[i] ?? 0)) widths[i] = len
     }
   }
   return widths
@@ -210,7 +221,7 @@ function formatRow(row: readonly string[], widths: readonly number[], colorize: 
   const parts: string[] = []
   for (let i = 0; i < widths.length; i++) {
     const cell = row[i] ?? ""
-    const padded = i === widths.length - 1 ? cell : cell.padEnd(widths[i]!)
+    const padded = i === widths.length - 1 ? cell : cell.padEnd(widths[i] ?? 0)
     parts.push(padded)
   }
   return colorize(parts.join("  "))

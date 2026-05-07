@@ -210,7 +210,9 @@ function parseBlockStream(
 
   for (let row = 0; row < lines.length; row++) {
     if (skipRows.has(row)) continue
-    const line = lines[row]!.slice(0, leftWidth)
+    const rawLine = lines[row]
+    if (rawLine === undefined) continue
+    const line = rawLine.slice(0, leftWidth)
     for (const glyph of glyphs) {
       let idx = line.indexOf(glyph)
       while (idx !== -1) {
@@ -254,10 +256,12 @@ function parseSidePanel(lines: readonly string[], leftWidth: number): SidePanelR
   // non-space run after stripping leading whitespace as the icon.
   let modeRow: SidePanelRegion["modeRow"] = null
   for (const [label] of Object.entries(MODE_LABELS_EXPECTED).sort((a, b) => b[1].length - a[1].length)) {
-    const expectedLabel = MODE_LABELS_EXPECTED[label]!
+    const expectedLabel = MODE_LABELS_EXPECTED[label]
+    if (expectedLabel === undefined) continue
     const row = panelLines.findIndex((l) => l.includes(expectedLabel))
     if (row !== -1) {
-      const line = panelLines[row]!
+      const line = panelLines[row]
+      if (line === undefined) continue
       // Icon is the first non-space grapheme-ish cluster in the row, BEFORE
       // the label. We find the label's index and walk backward.
       const labelIdx = line.indexOf(expectedLabel)
@@ -287,11 +291,13 @@ function parseInputBox(lines: readonly string[], leftWidth: number): InputBoxReg
   // be bare (`> ` at the lane start) or framed as a floating surface
   // (`│ > ` inside a border); both are input chrome, not transcript rows.
   for (let row = lines.length - 1; row >= 0; row--) {
-    const line = lines[row]!.slice(0, leftWidth)
+    const raw = lines[row]
+    if (raw === undefined) continue
+    const line = raw.slice(0, leftWidth)
     // Prompt shape: optional leading space, then `>`, then space or end.
     const m = /^(\s*)>\s?/.exec(line)
     if (m) {
-      return { promptRow: row, promptCol: m[1]!.length, present: true }
+      return { promptRow: row, promptCol: (m[1] ?? "").length, present: true }
     }
     const framed = /^(\s*)[│┃▏▕]\s*>\s?/.exec(line)
     if (framed) {
@@ -330,7 +336,7 @@ function parseWelcome(lines: readonly string[], leftWidth: number): WelcomeRegio
   let endRow = lines.length
   let blankRun = 0
   for (let row = startRow + 1; row < lines.length; row++) {
-    const trimmed = lines[row]!.trim()
+    const trimmed = (lines[row] ?? "").trim()
     if (trimmed === "") {
       blankRun++
       if (blankRun >= 2) {
@@ -354,7 +360,9 @@ function parseWelcome(lines: readonly string[], leftWidth: number): WelcomeRegio
  */
 export function isIconFamilyAligned(p: ParsedFrame): boolean {
   if (p.blockStream.length < 2) return true
-  const col = p.blockStream[0]!.glyphCol
+  const first = p.blockStream[0]
+  if (first === undefined) return true
+  const col = first.glyphCol
   return p.blockStream.every((b) => b.glyphCol === col)
 }
 

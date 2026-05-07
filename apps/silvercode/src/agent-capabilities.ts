@@ -119,6 +119,7 @@ export function adjacentCapabilityOption(
 ): CapabilityOption {
   const current = currentCapabilityOption(options, selection)
   const index = options.findIndex((option) => option.id === current.id)
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- currentCapabilityOption throws on empty options, so modulo by options.length is safe
   return options[(index + direction + options.length) % options.length]!
 }
 

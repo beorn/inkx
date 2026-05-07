@@ -542,7 +542,7 @@ function shrinkTableWidths(widths: readonly number[], targetWidth: number, separ
   let overflow = total - availableCells
   while (overflow > 0) {
     const candidates = out
-      .map((width, index) => ({ width, index, reducible: width - minimums[index]! }))
+      .map((width, index) => ({ width, index, reducible: width - (minimums[index] ?? 0) }))
       .filter((candidate) => candidate.reducible > 0)
       .sort((a, b) => b.width - a.width)
     const candidate = candidates[0]

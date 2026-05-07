@@ -311,6 +311,7 @@ function selectPlan(
 ): LifecyclePlan {
   switch (verb) {
     case "claim":
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- caller ensures actor is set when verb === "claim"
       return planClaim(node, ref, ctx.actor!)
     case "release":
       return planRelease(node, ref)
@@ -451,11 +452,13 @@ function emitBulkOutput(
   // Single-id, single-applied: keep the historical one-liner.
   const isSingleSimple = outcomes.length === 1 && applied.length === 1 && !options.dryRun
   if (isSingleSimple) {
-    const o = applied[0]!
-    const colorize = display.color === "green" ? term.green : display.color === "yellow" ? term.yellow : term.dim
-    console.log(colorize(display.glyph), `${display.applied}:`, o.nodeId!.slice(-8))
-    if (options.reason) console.log(term.dim(`  Reason: ${options.reason}`))
-    return
+    const o = applied[0]
+    if (o !== undefined) {
+      const colorize = display.color === "green" ? term.green : display.color === "yellow" ? term.yellow : term.dim
+      console.log(colorize(display.glyph), `${display.applied}:`, (o.nodeId ?? "").slice(-8))
+      if (options.reason) console.log(term.dim(`  Reason: ${options.reason}`))
+      return
+    }
   }
 
   const action = options.dryRun ? `Would ${display.verbing}` : display.applied

@@ -204,7 +204,8 @@ export function replaySessionFromDisk(store: SessionStore, cwd: string, sessionI
   const replayed = store.state.get()
   const hasReplayedMessage = replayed.messages.some((m) => m.role === "user" || m.role === "assistant")
   if (hasReplayedMessage && replayed.status !== "idle" && replayed.status !== "ended") {
-    const last = replayed.messages[replayed.messages.length - 1]!
+    const last = replayed.messages[replayed.messages.length - 1]
+    if (last === undefined) return
     const turnId = last.id as never
     try {
       store.apply({

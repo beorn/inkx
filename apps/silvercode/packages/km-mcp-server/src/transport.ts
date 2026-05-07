@@ -103,7 +103,7 @@ export async function runStdioServer(
   let buffer = ""
   const decoder = new TextDecoder()
   await new Promise<void>((resolve) => {
-    input.on("data", async (chunk: Buffer | string) => {
+    async function handleChunk(chunk: Buffer | string): Promise<void> {
       buffer += typeof chunk === "string" ? chunk : decoder.decode(chunk)
       let idx = buffer.indexOf("\n")
       while (idx !== -1) {
@@ -127,6 +127,9 @@ export async function runStdioServer(
         }
         idx = buffer.indexOf("\n")
       }
+    }
+    input.on("data", (chunk: Buffer | string) => {
+      void handleChunk(chunk)
     })
     input.on("end", () => resolve())
     input.on("close", () => resolve())

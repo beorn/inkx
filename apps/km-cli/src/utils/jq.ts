@@ -43,7 +43,7 @@ export async function emitJson(data: unknown, jqExpr?: string): Promise<void> {
       stdout: "pipe",
       stderr: "pipe",
     })
-    proc.stdin.write(json)
+    void proc.stdin.write(json)
     await proc.stdin.end()
     const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()])
     const exitCode = await proc.exited
@@ -55,9 +55,7 @@ export async function emitJson(data: unknown, jqExpr?: string): Promise<void> {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     if (msg.includes("ENOENT") || msg.includes("not found")) {
-      console.error(
-        term.red("--jq requires `jq` in PATH. Install with `brew install jq` or `nix-install nixpkgs#jq`."),
-      )
+      console.error(term.red("--jq requires `jq` in PATH. Install with `brew install jq` or `nix-install nixpkgs#jq`."))
     } else {
       console.error(term.red(`jq invocation failed: ${msg}`))
     }

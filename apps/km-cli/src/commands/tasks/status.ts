@@ -67,6 +67,7 @@ export function createStatusCommand() {
               id: plan.id,
               status: plan.status,
               mark: plan.marker,
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- planStatus returns kind="view" only when task is non-null
               content: task!.content,
             }),
           )

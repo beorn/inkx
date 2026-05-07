@@ -17,7 +17,7 @@ function writeClipboard(stdout: Writable, text: string): void {
     writerOverride(stdout, text)
     return
   }
-  createOsc52Backend(stdout).write({ text })
+  void createOsc52Backend(stdout).write({ text })
 }
 
 function formatUnknown(value: unknown): string {

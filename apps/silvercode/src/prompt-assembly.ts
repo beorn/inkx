@@ -126,7 +126,8 @@ export function assembleAcpPrompt(
   const text: ContentBlock = { type: "text", text: userText }
   if (!opts.autoInject) return [text]
 
-  const drained = opts.sources ? queue.drainWhere((e) => opts.sources!.has(e.source)) : queue.drain()
+  const sources = opts.sources
+  const drained = sources ? queue.drainWhere((e) => sources.has(e.source)) : queue.drain()
   if (drained.length === 0) return [text]
 
   const blocks: ContentBlock[] = []
@@ -147,5 +148,7 @@ export function renderQueueAsLegacyText(events: readonly ChannelEvent[]): string
   if (events.length === 0) return ""
   // Sanitize each payload before concatenation — same Layer 2 pass as the
   // typed path, so legacy stream-json callers get the same safety floor.
-  return events.map((e) => `${NOTIFICATION_FRAMING_PREFIX} (${e.source})\n${sanitizeNotification(e.content)}`).join("\n\n")
+  return events
+    .map((e) => `${NOTIFICATION_FRAMING_PREFIX} (${e.source})\n${sanitizeNotification(e.content)}`)
+    .join("\n\n")
 }

@@ -265,8 +265,10 @@ export const moveCommand = new Command("move")
 
     // Single-source compat: keep `node` and `nodeArg` references for the
     // historical code paths.
-    const node = sources[0]!.node
-    const nodeArg = sources[0]!.ref
+    const sole = sources[0]
+    if (sole === undefined) return
+    const node = sole.node
+    const nodeArg = sole.ref
 
     // ─── Validation common to both modes ───────────────────────────────
     if (!renameMode && targetParentId === node.id) {
@@ -300,11 +302,8 @@ export const moveCommand = new Command("move")
       // the node's display title. For reparent mode, fall back to the
       // display name as before — `Would move "Old issue" → "Inbox"`.
       const fromLabel = renameMode ? nodeArg : displayName
-      const targetName = renameMode
-        ? newCanonicalId!
-        : targetParent
-          ? getNodeDisplayName(targetParent)
-          : "(root)"
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- renameMode === true ⇒ newCanonicalId set above
+      const targetName = renameMode ? newCanonicalId! : targetParent ? getNodeDisplayName(targetParent) : "(root)"
       if (options.json) {
         console.log(
           JSON.stringify({
@@ -419,11 +418,8 @@ export const moveCommand = new Command("move")
     // For rename mode the user expects to see canonical-id → canonical-id
     // (matches bd-rename). For reparent, fall back to display titles.
     const fromLabel = renameMode ? nodeArg : displayName
-    const targetName = renameMode
-      ? newCanonicalId!
-      : targetParent
-        ? getNodeDisplayName(targetParent)
-        : "(root)"
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- renameMode === true ⇒ newCanonicalId set above
+    const targetName = renameMode ? newCanonicalId! : targetParent ? getNodeDisplayName(targetParent) : "(root)"
     const verb = renameMode ? "Renamed" : "Moved"
     const refsSuffix =
       result.rewroteRefs > 0
@@ -517,7 +513,12 @@ async function runBulkMove(params: {
       JSON.stringify({
         dryRun: options.dryRun ?? false,
         target: { parent_id: targetParentId, name: targetLabel },
-        applied: applied.map((o) => ({ id: o.nodeId, ref: o.ref, rewroteHosts: o.rewroteHosts, rewroteRefs: o.rewroteRefs })),
+        applied: applied.map((o) => ({
+          id: o.nodeId,
+          ref: o.ref,
+          rewroteHosts: o.rewroteHosts,
+          rewroteRefs: o.rewroteRefs,
+        })),
         noop: noop.map((o) => ({ id: o.nodeId, ref: o.ref })),
         skipped: skipped.map((o) => ({ id: o.nodeId, ref: o.ref, reason: o.reason })),
       }),

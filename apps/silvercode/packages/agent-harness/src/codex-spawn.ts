@@ -35,8 +35,8 @@ export function spawnCodex(opts: SpawnCodexOptions = {}): AgentSession {
   let sentTerm = false
   let proc: ChildProcess
   let resolveExit: (() => void) | null = null
-  const exitPromise = new Promise<void>((r) => {
-    resolveExit = r
+  const exitPromise = new Promise<void>((resolve) => {
+    resolveExit = resolve
   })
 
   const binary = opts.binary ?? "codex"

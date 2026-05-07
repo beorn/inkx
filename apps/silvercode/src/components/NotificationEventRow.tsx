@@ -35,23 +35,7 @@ import { BoundedScroll } from "./BoundedScroll.tsx"
 import { Content, useHasContentLayout } from "./Content.tsx"
 import { LinkedTerm } from "./LinkedTerm.tsx"
 import { SessionEntry } from "./SessionEntry.tsx"
-
-/**
- * One notification observation. Mirrors the wire-shape of `ChannelEvent` but
- * narrowed to the fields the inline row needs — scope-bound stream
- * factory in `notification-stream.ts` lifts `ChannelEvent` → `NotificationStreamEntry`
- * and feeds the UI.
- */
-export type NotificationStreamEntry = {
-  readonly kind: "notification"
-  readonly id: string
-  readonly source: string
-  readonly ts?: number
-  readonly timestamp?: number
-  readonly content: string
-  readonly meta?: Readonly<Record<string, unknown>>
-  readonly actionable?: boolean
-}
+import type { NotificationStreamEntry } from "../notification-stream.ts"
 
 /**
  * Source presentation: one neutral label per source. The row intentionally
@@ -138,7 +122,9 @@ function escapeHtmlEntities(s: string): string {
 function parseSnippetAttrs(attrs: string): Record<string, string> {
   const out: Record<string, string> = {}
   for (const m of attrs.matchAll(/\b([a-zA-Z_][\w-]*)="([^"]*)"/g)) {
-    out[m[1]!] = escapeHtmlEntities(m[2]!)
+    const [, key, value] = m
+    if (key === undefined || value === undefined) continue
+    out[key] = escapeHtmlEntities(value)
   }
   return out
 }
@@ -255,6 +241,34 @@ function parseCpuWarning(raw: string): FormattedContent | null {
   return { preview, body: lines.join("\n"), disclosureBody: lines.join("\n") }
 }
 
+function parseSubagentStatus(raw: string): FormattedContent | null {
+  if (!raw.startsWith("[subagent ")) return null
+  const match = raw.match(/^\[subagent\s+([^\]]+)\]\s+(started|completed|failed|stopped|progress):\s*([\s\S]*)$/i)
+  if (!match) return null
+  const agent = (match[1] ?? "").trim()
+  const status = (match[2] ?? "").toLowerCase()
+  let rest = (match[3] ?? "").trim()
+  const usageMatch = rest.match(/\s*<usage>([\s\S]*?)<\/usage>\s*$/i)
+  const usage = usageMatch?.[1]?.trim()
+  if (usageMatch) rest = rest.slice(0, usageMatch.index).trim()
+
+  const agentIdMatch = rest.match(/\bagentId:\s*([A-Za-z0-9_-]+)/)
+  const agentId = agentIdMatch?.[1]
+  rest = rest
+    .replace(/\s*\(use SendMessage with to:\s*'[^']+'\s*to continue this agent\)\s*/i, " ")
+    .replace(/\s*\bagentId:\s*[A-Za-z0-9_-]+\s*/i, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+
+  const [title, summary] = rest.split(/\s+—\s+/, 2)
+  const preview = clip(`${status}: ${title || rest}`, 90)
+  const bodyLines = [`${status}: ${title || rest}`, `agent: ${agent}`]
+  if (agentId) bodyLines.push(`agentId: ${agentId}`)
+  if (summary) bodyLines.push(`summary: ${summary}`)
+  if (usage) bodyLines.push("usage", `  ${usage}`)
+  return { preview, body: bodyLines.join("\n"), disclosureBody: bodyLines.join("\n") }
+}
+
 function formatContent(raw: string): FormattedContent {
   const recall = parseRecallMemory(raw)
   if (recall) return recall
@@ -262,6 +276,8 @@ function formatContent(raw: string): FormattedContent {
   if (channel) return channel
   const cpu = parseCpuWarning(raw)
   if (cpu) return cpu
+  const subagent = parseSubagentStatus(raw)
+  if (subagent) return subagent
   const flat = raw.replace(/\s+/g, " ").trim()
   return { preview: flat, body: raw }
 }
@@ -391,6 +407,10 @@ function isFilewatchSource(source: string): boolean {
   return source === "filewatch" || source === "file-watch"
 }
 
+function isSubagentSource(source: string): boolean {
+  return source === "subagent" || source === "sub-agent"
+}
+
 function groupedPreview(source: string, formattedPreview: string, count: number): string {
   if (count <= 1) return formattedPreview
   if (isFilewatchSource(source)) return `file (${count}x)`
@@ -406,6 +426,7 @@ function groupedPreview(source: string, formattedPreview: string, count: number)
  */
 function groupKeyFor(source: string, preview: string): string {
   if (isFilewatchSource(source)) return source
+  if (isSubagentSource(source)) return `${source}:${preview}`
   const canonical = preview
     .replace(/\d+(?:\.\d+)?%?/g, "#")
     .replace(/\s+/g, " ")
@@ -441,9 +462,13 @@ function groupNotificationEntries(entries: readonly NotificationStreamEntry[]): 
     items.push(group)
   }
 
-  return items.map((item) =>
-    item.kind === "group" && item.entries.length === 1 ? { kind: "single", entry: item.entries[0]! } : item,
-  )
+  return items.map((item) => {
+    if (item.kind === "group" && item.entries.length === 1) {
+      const sole = item.entries[0]
+      if (sole !== undefined) return { kind: "single", entry: sole }
+    }
+    return item
+  })
 }
 
 export function NotificationStack({ entries }: { entries: readonly NotificationStreamEntry[] }): React.ReactElement {
@@ -472,7 +497,8 @@ export function NotificationStack({ entries }: { entries: readonly NotificationS
             />
           )
         }
-        const first = item.entries[0]!
+        const first = item.entries[0]
+        if (first === undefined) return null
         return (
           <NotificationEventRow
             key={`group:${item.key}:${first.id}`}

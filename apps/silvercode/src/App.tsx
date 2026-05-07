@@ -307,6 +307,7 @@ export function App(props: AppProps): React.ReactElement {
     })
     appStartupTick("App:firstRender:afterControllerCreate")
   }
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- set above on first render
   const controller = controllerRef.current!
 
   const [sessions, setSessions] = useState<SessionHandle[]>(controller.snapshot())
@@ -569,7 +570,7 @@ export function App(props: AppProps): React.ReactElement {
       const handle = sessions.find((s) => s.id === id)
       if (!handle) return
       if (sessions.length <= 1) return
-      handle.session.close()
+      void handle.session.close()
       handle.unsubscribe()
       // Advance focus to the next session in left-to-right reading order
       // so the user keeps a sensible focus after closing.
@@ -777,6 +778,7 @@ export function App(props: AppProps): React.ReactElement {
             })
           case "/mode": {
             const modes = ["ask", "plan", "accept-edits", "auto", "bypass"]
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- modulo by modes.length keeps index in bounds
             const target = modes.includes(arg) ? arg : modes[(modes.indexOf(mode) + 1) % modes.length]!
             setMode(target)
             return
@@ -1044,7 +1046,7 @@ export function App(props: AppProps): React.ReactElement {
             // SDK-level close + drop the handle from the visible list by
             // moving focus to a sibling. The orphaned subprocess shuts
             // down via the same SIGTERM path that closeAll uses.
-            focused.session.close()
+            void focused.session.close()
             focused.unsubscribe()
             const idx = sessions.findIndex((s) => s.id === focused.id)
             const next = sessions[(idx + 1) % sessions.length]
@@ -1241,7 +1243,7 @@ export function App(props: AppProps): React.ReactElement {
   const cycleMode = useCallback((): void => {
     const modes = agentCapabilities?.planning?.map((o) => o.id) ?? ["ask", "plan", "accept-edits", "auto", "bypass"]
     if (modes.length === 0) return
-    setMode((m) => modes[(modes.indexOf(m) + 1) % modes.length] ?? modes[0]!)
+    setMode((m) => modes[(modes.indexOf(m) + 1) % modes.length] ?? modes[0] ?? m)
     // Fire the activate hook for the next option so the agent-side
     // change (e.g. codex's /plan slash command) actually happens.
     if (focused && agentCapabilities?.planning) {
@@ -1279,6 +1281,7 @@ export function App(props: AppProps): React.ReactElement {
       setThinking((t) => {
         const tiers = ["normal", "think", "think_hard", "ultrathink"]
         const current = t && tiers.includes(t) ? t : "normal"
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- modulo by tiers.length keeps index in bounds
         const next = tiers[(tiers.indexOf(current) + direction + tiers.length) % tiers.length]!
         if (focused && next !== "normal") {
           controller.runSlashCommand(focused.id, `/${next}`)

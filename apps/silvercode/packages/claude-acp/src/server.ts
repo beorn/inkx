@@ -219,7 +219,7 @@ export async function runClaudeAcpServer(opts: RunClaudeAcpServerOpts = {}): Pro
       sessionScope.use(
         disposable({}, () => {
           try {
-            agentSession.close()
+            void agentSession.close()
           } catch {
             // already closed
           }
@@ -444,7 +444,7 @@ export async function runClaudeAcpServer(opts: RunClaudeAcpServerOpts = {}): Pro
       sessionScope.use(
         disposable({}, () => {
           try {
-            agentSession.close()
+            void agentSession.close()
           } catch {
             // already closed
           }

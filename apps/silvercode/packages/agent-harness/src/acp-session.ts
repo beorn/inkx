@@ -646,7 +646,7 @@ export function createAcpSession(scope: Scope, agentSession: AgentSession, opts:
     cancel(): void {
       if (pendingPrompt) settlePrompt("cancelled")
       try {
-        agentSession.close()
+        void agentSession.close()
       } catch {
         // already closed — fine.
       }

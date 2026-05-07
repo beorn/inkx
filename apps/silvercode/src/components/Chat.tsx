@@ -1,12 +1,14 @@
 import React from "react"
-import { Box, Prose, Text, useHover } from "silvery"
+import { Box, Prose, Text, type PopoverContent, useHover } from "silvery"
 import type { AgentPlan, AgentPlanEntry } from "@km/agent-harness"
 import type { SessionInfo } from "../cross-agent-state.ts"
 import { buildTextAnalysis, shrinkwrapWidth } from "@silvery/ag-term/pipeline/pretext"
 import { Content, useContentLayout } from "./Content.tsx"
+import { EntryDisclosure } from "./EntryDisclosure.tsx"
 import { MarkdownView } from "./MarkdownView.tsx"
 import { SessionEntry } from "./SessionEntry.tsx"
 import { StatusGlyph } from "./StatusGlyph.tsx"
+import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
 import { TurnActivitySummary, type TurnActivitySummaryItem } from "./TurnActivitySummary.tsx"
 import { parseBlocks, type MdBlock } from "../markdown.ts"
 
@@ -92,6 +94,7 @@ function PlanDrawer({
   if (!plan || plan.entries.length === 0) return null
   if (!planHasOpenEntries(plan)) return null
   const active = plan.entries.find((entry) => entry.status === "in_progress")
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- early return at line 94 guarantees entries.length > 0
   const next = active ?? plan.entries.find((entry) => entry.status === "pending") ?? plan.entries[0]!
   const counts = planCounts(plan)
   const collapsedSummaryText = [
@@ -215,27 +218,122 @@ function agentStatusGlyph(status: SessionInfo["status"]): string {
   return "○"
 }
 
-function shortSessionId(sessionId: string): string {
-  return sessionId.length > 8 ? sessionId.slice(0, 8) : sessionId
+export type AgentDrawerMetrics = {
+  readonly elapsedMs?: number
+  readonly inputTokens?: number
+  readonly outputTokens?: number
+  readonly costUsd?: number
+}
+
+export type AgentDrawerMetadata = {
+  readonly model?: string
+  readonly account?: string
+  readonly cwd?: string
+  readonly subagentType?: string
+  readonly prompt?: string
+  readonly tools?: number
+  readonly mcpServers?: number
+  readonly slashCommands?: number
+  readonly skills?: number
+  readonly plugins?: number
+}
+
+export type AgentDrawerSubagent = {
+  readonly id: string
+  readonly label: string
+  readonly detail?: string
+  readonly status?: "running" | "done"
+  readonly metrics?: AgentDrawerMetrics
+  readonly metadata?: AgentDrawerMetadata
+  readonly raw?: unknown
+}
+
+export type AgentDrawerSession = SessionInfo & {
+  readonly metrics?: AgentDrawerMetrics
+  readonly metadata?: AgentDrawerMetadata
+  readonly raw?: unknown
+}
+
+function safeJson(value: unknown): string {
+  try {
+    return JSON.stringify(value, null, 2)
+  } catch (err) {
+    return JSON.stringify(
+      {
+        error: "Unable to serialize agent detail payload",
+        message: err instanceof Error ? err.message : String(err),
+      },
+      null,
+      2,
+    )
+  }
+}
+
+function agentDetailPopover(payload: unknown): PopoverContent {
+  return {
+    body: <SyntaxHighlighter language="json" code={safeJson(payload)} bare />,
+    maxWidth: 90,
+    borderless: true,
+    flushTop: true,
+    anchorOffsetX: 10,
+  }
+}
+
+function AgentDrawerRow({
+  marker,
+  markerColor,
+  active = false,
+  children,
+  payload,
+}: {
+  marker: string
+  markerColor: string
+  active?: boolean
+  children: React.ReactNode
+  payload: unknown
+}): React.ReactElement {
+  return (
+    <EntryDisclosure popover={agentDetailPopover(payload)} canExpand={false}>
+      {({ surfaceProps, isHovered }) => {
+        const rowBg = isHovered ? "$bg-surface-hover" : "$bg-surface-raised"
+        return (
+          <Box {...surfaceProps} flexDirection="row" gap={1} minWidth={0} backgroundColor={rowBg}>
+            <StatusGlyph glyph={marker} active={active} color={markerColor} period={1800} backgroundColor={rowBg} />
+            <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0}>
+              {children}
+            </Box>
+          </Box>
+        )
+      }}
+    </EntryDisclosure>
+  )
 }
 
 function AgentsDrawer({
   sessions,
   selfSessionId,
+  subagents = [],
   defaultExpanded = false,
 }: {
-  sessions: readonly SessionInfo[] | null | undefined
+  sessions: readonly AgentDrawerSession[] | null | undefined
   selfSessionId?: string
+  subagents?: readonly AgentDrawerSubagent[]
   defaultExpanded?: boolean
 }): React.ReactElement | null {
   const activeSessions = (sessions ?? []).filter((session) => session.status !== "ended")
+  const hasLiveSubagent = subagents.some((agent) => agent.status !== "done")
+  const visibleSubagents = hasLiveSubagent ? subagents : []
   const [expanded, setExpanded] = React.useState(defaultExpanded)
   const hover = useHover()
-  if (activeSessions.length === 0) return null
-  const running = activeSessions.filter(
-    (session) => session.status === "thinking" || session.status === "waiting",
-  ).length
-  const label = running > 0 ? `${running}/${activeSessions.length} active` : `${activeSessions.length} idle`
+  const total = activeSessions.length + visibleSubagents.length
+  React.useEffect(() => {
+    if (total > 1) setExpanded(true)
+  }, [total])
+  if (total <= 1) return null
+  const running =
+    activeSessions.filter((session) => session.status === "thinking" || session.status === "waiting").length +
+    visibleSubagents.filter((agent) => agent.status !== "done").length
+  const label = running > 0 ? `${running}/${total} active` : `${total} idle`
 
   return (
     <Content.Row>
@@ -264,17 +362,28 @@ function AgentsDrawer({
                 const self = session.sessionId === selfSessionId
                 const color = agentStatusColor(session.status)
                 return (
-                  <Box key={session.sessionId} flexDirection="row" gap={1} minWidth={0}>
-                    <Text color={color}>{agentStatusGlyph(session.status)}</Text>
-                    <Box flexGrow={1} flexShrink={1} minWidth={0}>
-                      <Text wrap="wrap">
-                        {session.name}
-                        {self ? " (this)" : ""} · {session.status} · {shortSessionId(session.sessionId)}
-                      </Text>
-                    </Box>
-                  </Box>
+                  <AgentDrawerRow
+                    key={session.sessionId}
+                    marker={agentStatusGlyph(session.status)}
+                    markerColor={color}
+                    active={session.status === "thinking" || session.status === "waiting"}
+                    payload={{ kind: "session", ...session, self }}
+                  >
+                    <Text wrap="truncate">{session.name}</Text>
+                  </AgentDrawerRow>
                 )
               })}
+              {visibleSubagents.map((agent) => (
+                <AgentDrawerRow
+                  key={agent.id}
+                  marker={agent.status === "done" ? "✓" : "●"}
+                  markerColor={agent.status === "done" ? "$muted" : "$warning"}
+                  active={agent.status !== "done"}
+                  payload={{ kind: "subagent", ...agent, raw: agent.raw ?? agent }}
+                >
+                  <Text wrap="truncate">{agent.label}</Text>
+                </AgentDrawerRow>
+              ))}
             </Box>
           ) : null}
         </Box>

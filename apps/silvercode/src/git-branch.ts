@@ -44,13 +44,15 @@ export function gitBranchFor(cwd: string): string | null {
         const head = readFileSync(dotGit, "utf8").trim()
         const m = head.match(/^gitdir:\s*(.+)$/)
         if (!m) return null
-        gitDir = m[1]!.startsWith("/") ? m[1]! : join(dir, m[1]!)
+        const target = m[1]
+        if (target === undefined) return null
+        gitDir = target.startsWith("/") ? target : join(dir, target)
       }
       const headPath = join(gitDir, "HEAD")
       if (!existsSync(headPath)) return null
       const head = readFileSync(headPath, "utf8").trim()
       const ref = head.match(/^ref:\s*refs\/heads\/(.+)$/)
-      if (ref) return ref[1]!
+      if (ref?.[1] !== undefined) return ref[1]
       // Detached HEAD — show short sha.
       return head.slice(0, 7)
     }

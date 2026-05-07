@@ -291,8 +291,8 @@ export function spawnClaude(opts: SpawnClaudeOptions = {}): AgentSession {
     dSpawn("close code=%s signal=%s stdin=%s", code, signal, proc.stdin?.destroyed)
   })
   let resolveExit: (() => void) | null = null
-  const exitPromise = new Promise<void>((r) => {
-    resolveExit = r
+  const exitPromise = new Promise<void>((resolve) => {
+    resolveExit = resolve
   })
 
   proc.on("exit", (code, signal) => {

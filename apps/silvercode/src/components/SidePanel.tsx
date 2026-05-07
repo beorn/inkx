@@ -63,11 +63,12 @@ function ClaudeVersionSuffix({ override }: { override: string }): React.ReactEle
  *   so the row reads "<icon> <Label>" without a version suffix until
  *   ACP `_meta.agentVersion` adoption lands.
  */
+const CLAUDE_DISPLAY = { icon: "✻", label: "Claude Code" } as const
 const AGENT_DISPLAY: Readonly<Record<string, { icon: string; label: string }>> = {
-  claude: { icon: "✻", label: "Claude Code" },
-  "claude-code": { icon: "✻", label: "Claude Code" },
-  "claude-code-spawn": { icon: "✻", label: "Claude Code" },
-  "claude-code-sdk": { icon: "✻", label: "Claude Code" },
+  claude: CLAUDE_DISPLAY,
+  "claude-code": CLAUDE_DISPLAY,
+  "claude-code-spawn": CLAUDE_DISPLAY,
+  "claude-code-sdk": CLAUDE_DISPLAY,
   codex: { icon: "○", label: "Codex" },
   "codex-spawn": { icon: "○", label: "Codex" },
   gemini: { icon: "✦", label: "Gemini" },
@@ -75,7 +76,7 @@ const AGENT_DISPLAY: Readonly<Record<string, { icon: string; label: string }>> =
 }
 
 function agentDisplayFor(agent: string | undefined): { icon: string; label: string } {
-  if (!agent) return AGENT_DISPLAY["claude"]!
+  if (!agent) return CLAUDE_DISPLAY
   const known = AGENT_DISPLAY[agent]
   if (known) return known
   // Custom / free-form agent id — show the bare id with a neutral glyph.
@@ -426,33 +427,36 @@ function groupAccountsByPlan(accounts: AccountSummary[]): Array<{ label: string;
 }
 
 function selectedAccountForAgent(accounts: AccountSummary[], agent: string | undefined): AccountSummary | null {
+  // Length checked at entry — `first` is guaranteed defined for every fallback below.
   if (accounts.length === 0) return null
+  const first = accounts[0]
+  if (first === undefined) return null
   const id = agent ?? "claude"
   if (isCodexAgent(id)) {
     return (
       accounts.find((a) => a.label === "Codex") ??
       accounts.find((a) => a.provider === "openai") ??
       accounts.find((a) => a.current) ??
-      accounts[0]!
+      first
     )
   }
   if (id === "github-copilot-cli") {
-    return accounts.find((a) => /copilot/i.test(a.label) || /copilot/i.test(String(a.provider))) ?? accounts[0]!
+    return accounts.find((a) => /copilot/i.test(a.label) || /copilot/i.test(String(a.provider))) ?? first
   }
   if (id === "gemini") {
-    return accounts.find((a) => /gemini/i.test(a.label) || /google/i.test(String(a.provider))) ?? accounts[0]!
+    return accounts.find((a) => /gemini/i.test(a.label) || /google/i.test(String(a.provider))) ?? first
   }
   if (id === "xai" || id === "grok") {
-    return accounts.find((a) => String(a.provider) === "xai" || /xai|grok/i.test(a.label)) ?? accounts[0]!
+    return accounts.find((a) => String(a.provider) === "xai" || /xai|grok/i.test(a.label)) ?? first
   }
   if (id === "cursor" || id === "cursor-api") {
-    return accounts.find((a) => String(a.provider) === "cursor-api" || /cursor/i.test(a.label)) ?? accounts[0]!
+    return accounts.find((a) => String(a.provider) === "cursor-api" || /cursor/i.test(a.label)) ?? first
   }
   return (
     accounts.find((a) => a.current && a.provider === "claude-oauth") ??
     accounts.find((a) => a.provider === "claude-oauth") ??
     accounts.find((a) => a.current) ??
-    accounts[0]!
+    first
   )
 }
 
@@ -767,8 +771,8 @@ function NotificationToggleRow({
       <Box flexDirection="column" gap={1}>
         <Text bold>{spec.label}</Text>
         <Muted>
-          {visible ? "Shows" : "Hides"} these inline notification rows in the chat scrollback. The agent still receives the
-          events — this is a visual filter only.
+          {visible ? "Shows" : "Hides"} these inline notification rows in the chat scrollback. The agent still receives
+          the events — this is a visual filter only.
         </Muted>
       </Box>
     ),

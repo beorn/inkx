@@ -138,8 +138,9 @@ function resolveArgToPath(arg: string): string | null {
       s.shortId.toLowerCase() === query ||
       s.firstUserMessage.toLowerCase().includes(query),
   )
-  if (matches.length === 0) return null
-  return matches[0]!.path
+  const first = matches[0]
+  if (first === undefined) return null
+  return first.path
 }
 
 function openSession(path: string): void {
@@ -158,7 +159,11 @@ function main(): void {
     listSessions()
     return
   }
-  const [arg] = args
+  const arg = args[0]
+  if (arg === undefined) {
+    listSessions()
+    return
+  }
   if (arg === "-h" || arg === "--help") {
     process.stdout.write(`claude-log — list or open Claude Code session logs
 
@@ -172,7 +177,7 @@ Usage:
 `)
     return
   }
-  const path = resolveArgToPath(arg!)
+  const path = resolveArgToPath(arg)
   if (path === null) {
     process.stderr.write(`claude-log: no session matches: ${arg}\n`)
     process.exit(1)

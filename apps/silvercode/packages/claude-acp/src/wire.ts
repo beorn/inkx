@@ -152,10 +152,12 @@ export function attachWire(
     void p.catch((err) => {
       log.error?.(toError(err, "sessionUpdate write failed"), "sessionUpdate write failed", { sessionId })
     })
-    void p.finally(() => pendingWrites.delete(p)).catch(() => {
-      // The separate catch above logs the write failure; this branch only
-      // preserves cleanup liveness.
-    })
+    void p
+      .finally(() => pendingWrites.delete(p))
+      .catch(() => {
+        // The separate catch above logs the write failure; this branch only
+        // preserves cleanup liveness.
+      })
   }
 
   async function drainPendingWrites(): Promise<void> {
@@ -348,6 +350,7 @@ export function attachWire(
                   (option.kind === "allow_once" || option.kind === "allow_always"),
               )
             agentSession.respondToPermission(event.requestId, approved)
+            return
           })
           .catch((err) => {
             log.error?.(toError(err, "permission request failed"), "permission request failed", {

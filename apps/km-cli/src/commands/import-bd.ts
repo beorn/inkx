@@ -57,40 +57,45 @@ const nodeFs: BeadsFs = { existsSync, readFileSync, writeFileSync, mkdirSync }
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- commander infers complex generic types
 export function createBdImportCommand(): Command<any, any, any> {
-  return new Command("bd")
-    .description("Import bd issues into a km vault (or export back to .beads/issues.jsonl)")
-    .addHelpSection("Pipeline:", [
-      ["1. Source", ".beads/issues.jsonl (auto-discovered, or via --source / --file)"],
-      ["2. Convert", "bd issues → markdown beads in the configured beads root"],
-      ["3. Memory", "bd memories → @memory/ subdir (collision-merge by source label)"],
-    ])
-    .addHelpSection(
-      "Reverse direction:",
-      "Pass --export to write km issues to <vault>/.beads/issues.jsonl. Use --target to override the .beads dir.",
-    )
-    .argument("[vault]", "km vault root (default: auto-detect from cwd)")
-    // Source / target
-    .option("--source <dir>", "Source .beads directory (or its parent). Defaults to auto-discovery upward from cwd.")
-    .option("--file <path>", "Read issues directly from a .jsonl file (skips .beads discovery and pre-flight).")
-    .option("--target <dir>", "Target dir: vault root for import; .beads dir for --export.")
-    // Filtering / behaviour
-    .option("--dry-run", "Show what would be migrated without writing files")
-    .option("--status <statuses>", "Only migrate issues with these statuses (comma-separated)")
-    .option("--no-preflight", "Skip pre-flight: bd export refresh + bd doctor.")
-    .option(
-      "--update-only",
-      "Backfill missing frontmatter fields on existing vault beads from the export (ADD-only). Skip beads not yet in the vault.",
-    )
-    // Reverse direction
-    .option("--export", "Reverse direction: export km issues to .beads/issues.jsonl (writes the SOURCE-of-truth shape).")
-    .option("--mode <mode>", "Export mode: append or replace (only with --export)", "append")
-    .action(async (vault, opts) => {
-      if (opts.export) {
-        await runExport(vault, opts)
-        return
-      }
-      await runImport(vault, opts)
-    })
+  return (
+    new Command("bd")
+      .description("Import bd issues into a km vault (or export back to .beads/issues.jsonl)")
+      .addHelpSection("Pipeline:", [
+        ["1. Source", ".beads/issues.jsonl (auto-discovered, or via --source / --file)"],
+        ["2. Convert", "bd issues → markdown beads in the configured beads root"],
+        ["3. Memory", "bd memories → @memory/ subdir (collision-merge by source label)"],
+      ])
+      .addHelpSection(
+        "Reverse direction:",
+        "Pass --export to write km issues to <vault>/.beads/issues.jsonl. Use --target to override the .beads dir.",
+      )
+      .argument("[vault]", "km vault root (default: auto-detect from cwd)")
+      // Source / target
+      .option("--source <dir>", "Source .beads directory (or its parent). Defaults to auto-discovery upward from cwd.")
+      .option("--file <path>", "Read issues directly from a .jsonl file (skips .beads discovery and pre-flight).")
+      .option("--target <dir>", "Target dir: vault root for import; .beads dir for --export.")
+      // Filtering / behaviour
+      .option("--dry-run", "Show what would be migrated without writing files")
+      .option("--status <statuses>", "Only migrate issues with these statuses (comma-separated)")
+      .option("--no-preflight", "Skip pre-flight: bd export refresh + bd doctor.")
+      .option(
+        "--update-only",
+        "Backfill missing frontmatter fields on existing vault beads from the export (ADD-only). Skip beads not yet in the vault.",
+      )
+      // Reverse direction
+      .option(
+        "--export",
+        "Reverse direction: export km issues to .beads/issues.jsonl (writes the SOURCE-of-truth shape).",
+      )
+      .option("--mode <mode>", "Export mode: append or replace (only with --export)", "append")
+      .action(async (vault, opts) => {
+        if (opts.export) {
+          await runExport(vault, opts)
+          return
+        }
+        await runImport(vault, opts)
+      })
+  )
 }
 
 /**
@@ -264,6 +269,7 @@ async function runImport(
   // On collision, migrate appends a `## From <source>` subsection.
   const kmConfig = loadConfigObject(resolved.repoRoot)
   const beadsRoots = resolveBeadsRoots(kmConfig.beads)
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- resolveBeadsRoots always returns ≥1 element
   const defaultTargetDir = join(resolved.repoRoot, beadsRoots[0]!)
   const targetDir = opts.target || defaultTargetDir
   const memDir = resolveMemDir(resolved.repoRoot, kmConfig.beads)

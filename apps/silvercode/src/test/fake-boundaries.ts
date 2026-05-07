@@ -68,7 +68,9 @@ export function fakeAccountFactory(scenario: AccountScenario = {}): AccountFacto
     },
     async probe(): Promise<AccountProbe> {
       if (scenario.probeDelayMs && scenario.probeDelayMs > 0) {
-        await new Promise((resolve) => setTimeout(resolve, scenario.probeDelayMs))
+        await new Promise((resolve) => {
+          setTimeout(resolve, scenario.probeDelayMs)
+        })
       }
       return probe
     },
@@ -122,7 +124,9 @@ export function fakeAllAccountsFactory(scenario: AccountScenario = {}): AllAccou
     },
     async probe(): Promise<AccountSummary[]> {
       if (scenario.probeDelayMs && scenario.probeDelayMs > 0) {
-        await new Promise((resolve) => setTimeout(resolve, scenario.probeDelayMs))
+        await new Promise((resolve) => {
+          setTimeout(resolve, scenario.probeDelayMs)
+        })
       }
       return [summaryFromProbe(probe)]
     },

@@ -62,7 +62,7 @@ export interface DepAddPlan {
 }
 
 /** Plan for `tasks dep rm <id> <blocker...>`. */
-export interface DepRemovePlan extends DepAddPlan {}
+export type DepRemovePlan = DepAddPlan
 
 /** One edge entry in the `tasks dep ls` output. */
 export interface DepListEntry {

@@ -110,11 +110,12 @@ export function createFakeSession(opts: CreateFakeSessionOptions = {}): Scripted
     emit,
     script(events: ReadonlyArray<AgentEvent>, intervalMs = 10): void {
       for (let i = 0; i < events.length; i++) {
-        const ev = events[i]!
+        const ev = events[i]
+        if (ev === undefined) continue
         if (intervalMs <= 0) {
           // Still off-tick — a macrotask — so controllers that schedule
           // their own microtasks in response observe streaming ordering.
-          queueMicrotask(() => emit(ev))
+          void Promise.resolve().then(() => emit(ev))
         } else {
           setTimeout(() => emit(ev), i * intervalMs)
         }

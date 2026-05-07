@@ -291,8 +291,8 @@ function deriveAssistantRows(obj: JSON, lineNo: number, time: string): LogRow[] 
   // usage is per-message in the Anthropic API, not per content-block, so
   // repeating it on every row (thinking + text + tool_use) would be noise.
   const tokens = formatUsage(message)
-  if (tokens && out.length > 0) {
-    out[0]!.fields.tokens = tokens
+  if (tokens && out[0]) {
+    out[0].fields.tokens = tokens
   }
   return out
 }

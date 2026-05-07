@@ -43,7 +43,8 @@ export function modelLabel(model: string | null | undefined): string {
   const slug = model.replace(/\[1m\]$/, "")
   const m = slug.match(/^claude-(opus|sonnet|haiku)-(\d+)-(\d+)(?:-\d{8})?$/)
   if (m) {
-    const family = m[1]!.charAt(0).toUpperCase() + m[1]!.slice(1)
+    const familyRaw = m[1] ?? ""
+    const family = familyRaw.charAt(0).toUpperCase() + familyRaw.slice(1)
     return `${family} ${m[2]}.${m[3]}${big}`
   }
   return slug + big

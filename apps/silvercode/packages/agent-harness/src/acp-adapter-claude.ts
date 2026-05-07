@@ -106,7 +106,7 @@ export function spawnClaudeAcpSession(scope: Scope, opts: SpawnClaudeAcpOpts = {
   scope.use(
     disposable({}, () => {
       try {
-        agentSession.close()
+        void agentSession.close()
       } catch {
         // Already closed — fine. `close()` is idempotent on the legacy
         // surface but the JSDoc doesn't promise that, so we trap defensively.

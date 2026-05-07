@@ -437,6 +437,7 @@ export function LinkifiedText({
               </Text>,
             )
           }
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- early return at line 366 guarantees non-empty
           const firstPopoverBody = renderPopoverContent(lineDetections[0]!, cwd, home)
           return (
             <PopoverRow key={lineIdx} popoverBody={firstPopoverBody}>

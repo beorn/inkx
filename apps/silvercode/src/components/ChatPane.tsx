@@ -8,11 +8,12 @@ import { useNotificationStream } from "../hooks/use-notification-stream.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 import { SessionUpdateList } from "./SessionUpdateList.tsx"
 import { Welcome } from "./Welcome.tsx"
-import type { MessageEntry } from "@km/agent-harness"
+import type { MessageEntry, SessionState } from "@km/agent-harness"
 import { Chat } from "./Chat.tsx"
 import { ChatBlockList } from "./ChatBlockList.tsx"
-import { NotificationBlock, notificationBlockSnapshotFromMessages } from "./NotificationBlock.tsx"
-import type { NotificationStreamEntry } from "./NotificationEventRow.tsx"
+import { chatActivitySnapshotFromMessages } from "../chat/activity-snapshot.ts"
+import { NotificationBlock } from "./NotificationBlock.tsx"
+import type { NotificationStreamEntry } from "../notification-stream.ts"
 import { useBackgroundTasks } from "../hooks/use-background-tasks.ts"
 
 /**
@@ -130,6 +131,7 @@ export function ChatPane({
   composerSlot,
   follow = "end",
   showFocusBar = false,
+  allSessions = [handle],
 }: {
   handle: SessionHandle
   isFocused: boolean
@@ -174,6 +176,8 @@ export function ChatPane({
   follow?: "end" | false
   /** PaneGrid enables this when pane chrome is meaningful; standalone panes stay chrome-free. */
   showFocusBar?: boolean
+  /** All live sessions, used only to enrich the agents drawer metadata. */
+  allSessions?: ReadonlyArray<SessionHandle>
 }): React.ReactElement {
   const state = useStoreSignal(handle.store)
   const chatProjection = React.useMemo(
@@ -186,12 +190,89 @@ export function ChatPane({
   }, [chatProjection, showDebug])
   const projectedLeaves = useSignal(chatProjection.visibleLeaves) ?? chatProjection.visibleLeaves()
   const activeAgents = useSignal(controller?.crossAgentState.activeSessions ?? null) ?? []
+  const sessionStates = useAllSessionStates(allSessions)
   const backgroundTasks = useBackgroundTasks(controller, handle.id)
-  const notificationBlock = notificationBlockSnapshotFromMessages(state.messages, backgroundTasks)
   // Notification stream — pre-filtered through the mute set so muted source
   // rows never reach `SessionUpdateList`. The hook handles a null
   // controller internally (returns []), keeping rules-of-hooks intact.
-  const notificationEntries = useNotificationStream(controller ?? null, handle.id)
+  const rawNotificationEntries = useNotificationStream(controller ?? null, handle.id)
+  const notificationBlock = React.useMemo(
+    () =>
+      chatActivitySnapshotFromMessages(state.messages, backgroundTasks, {
+        notificationEntries: rawNotificationEntries,
+        sessionId: handle.id,
+      }),
+    [backgroundTasks, handle.id, rawNotificationEntries, state.messages],
+  )
+  const notificationBlockCounts = React.useMemo(
+    () => ({ ...notificationBlock.counts, agentsRunning: 0 }),
+    [notificationBlock.counts],
+  )
+  const drawerSessions = React.useMemo(
+    () =>
+      activeAgents.map((session) => {
+        const handleForSession = allSessions.find((candidate) => candidate.id === session.sessionId)
+        const liveState = sessionStates.get(session.sessionId)
+        const metadata = handleForSession?.metadata
+        const cost = liveState?.cost
+        const elapsedMs = elapsedMsSince(metadata?.spawnedAt ?? session.startedAt, metadata?.endedAt)
+        return {
+          ...session,
+          metrics: {
+            ...(elapsedMs !== undefined ? { elapsedMs } : {}),
+            ...(cost && cost.usd > 0 ? { costUsd: cost.usd } : {}),
+          },
+          metadata: {
+            model: session.model || liveState?.model || metadata?.model,
+            account: metadata?.account,
+            cwd: metadata?.cwd,
+            tools: liveState?.tools.length,
+            mcpServers: liveState?.mcpServers.length,
+            slashCommands: liveState?.slashCommands.length,
+            skills: liveState?.skills.length,
+            plugins: liveState?.plugins.length,
+          },
+          raw: {
+            kind: "session",
+            coordinatorSessionId: session.sessionId,
+            providerSessionId: metadata?.sessionId ?? liveState?.sessionId,
+            name: session.name,
+            status: session.status,
+            model: session.model || liveState?.model || metadata?.model,
+            startedAt: session.startedAt,
+            metadata,
+            state: liveState
+              ? {
+                  sessionId: liveState.sessionId,
+                  model: liveState.model,
+                  mode: liveState.mode,
+                  cwd: liveState.cwd,
+                  tools: liveState.tools,
+                  mcpServers: liveState.mcpServers,
+                  slashCommands: liveState.slashCommands,
+                  skills: liveState.skills,
+                  plugins: liveState.plugins,
+                  claudeCodeVersion: liveState.claudeCodeVersion,
+                  apiKeySource: liveState.apiKeySource,
+                  status: liveState.status,
+                  messageCount: liveState.messages.length,
+                  pendingPermissions: liveState.permissions.length,
+                  hasPendingQuestion: liveState.pendingQuestion !== null,
+                  plan: liveState.plan,
+                  todos: liveState.todos,
+                  cost: liveState.cost,
+                  lastError: liveState.lastError,
+                }
+              : undefined,
+          },
+        }
+      }),
+    [activeAgents, allSessions, sessionStates],
+  )
+  const notificationEntries = React.useMemo(
+    () => filterVisibleNotificationEntries(rawNotificationEntries, showDebug, handle.id, state.messages),
+    [handle.id, rawNotificationEntries, showDebug, state.messages],
+  )
   const notificationLeaves = React.useMemo(
     () => notificationEntries.map((entry) => notificationLeafFromEntry(entry)),
     [notificationEntries],
@@ -220,9 +301,11 @@ export function ChatPane({
   // the one currently in flight. Used in the activity indicator label.
   const inFlightTool = (() => {
     for (let i = state.messages.length - 1; i >= 0; i--) {
-      const m = state.messages[i]!
+      const m = state.messages[i]
+      if (m === undefined) continue
       for (let j = m.toolCalls.length - 1; j >= 0; j--) {
-        const c = m.toolCalls[j]!
+        const c = m.toolCalls[j]
+        if (c === undefined) continue
         const hasResult = m.toolResults.some((r) => r.id === c.id)
         if (!hasResult) return c.name
       }
@@ -233,7 +316,7 @@ export function ChatPane({
   // Elapsed time is anchored to the latest MessageEntry's `ts` (most
   // recent turn, user or assistant); if there are no messages yet we
   // pass null and the indicator omits the elapsed segment.
-  const turnStartedAt = state.messages.length > 0 ? state.messages[state.messages.length - 1]!.ts : null
+  const turnStartedAt = state.messages[state.messages.length - 1]?.ts ?? null
   const hasTranscriptContent = hasVisibleTranscriptContent(legacyMessages)
   const [composerHeight, setComposerHeight] = React.useState(0)
   const composerOverlayHeight = composerSlot ? Math.max(3, composerHeight) : 0
@@ -318,11 +401,15 @@ export function ChatPane({
                         setComposerHeight((previous) => (previous === height ? previous : height))
                       }}
                     >
-                      <Chat.AgentsDrawer sessions={activeAgents} selfSessionId={handle.id} />
+                      <Chat.AgentsDrawer
+                        sessions={drawerSessions}
+                        selfSessionId={handle.id}
+                        subagents={notificationBlock.agents}
+                      />
                       <Chat.PlanDrawer plan={state.plan} />
                       <NotificationBlock
-                        counts={notificationBlock.counts}
-                        agents={notificationBlock.agents}
+                        counts={notificationBlockCounts}
+                        agents={[]}
                         shells={notificationBlock.shells}
                         backgroundTasks={backgroundTasks}
                         onCancelBackgroundTask={(taskId) => controller?.cancelBackgroundTask(handle.id, taskId)}
@@ -343,4 +430,90 @@ export function ChatPane({
       </Box>
     </Box>
   )
+}
+
+function useAllSessionStates(sessions: ReadonlyArray<SessionHandle>): ReadonlyMap<string, SessionState> {
+  const [states, setStates] = React.useState<ReadonlyMap<string, SessionState>>(
+    () => new Map(sessions.map((session) => [session.id, session.store.state.get()])),
+  )
+  const sessionKey = sessions.map((session) => session.id).join("\0")
+  React.useEffect(() => {
+    let next = new Map(sessions.map((session) => [session.id, session.store.state.get()]))
+    setStates(next)
+    const unsubs = sessions.map((session) =>
+      session.store.state.subscribe((state) => {
+        next = new Map(next)
+        next.set(session.id, state)
+        setStates(next)
+      }),
+    )
+    return () => {
+      for (const unsub of unsubs) unsub()
+    }
+  }, [sessionKey, sessions])
+  return states
+}
+
+function elapsedMsSince(start: number | undefined, end: number | undefined): number | undefined {
+  if (typeof start !== "number") return undefined
+  const to = typeof end === "number" ? end : Date.now()
+  if (to < start) return undefined
+  return to - start
+}
+
+export function filterVisibleNotificationEntries(
+  entries: readonly NotificationStreamEntry[],
+  showDebug: boolean,
+  selfSessionId: string,
+  messages: readonly MessageEntry[] = [],
+): readonly NotificationStreamEntry[] {
+  if (showDebug) return entries
+  const completedToolIds = completedSubagentToolIds(messages)
+  return entries.filter((entry) => !isHiddenSubagentNotification(entry, selfSessionId, completedToolIds))
+}
+
+function isHiddenSubagentNotification(
+  entry: NotificationStreamEntry,
+  selfSessionId: string,
+  completedToolIds: ReadonlySet<string>,
+): boolean {
+  if (!isSubagentNotification(entry)) return false
+  if (isNonTerminalSubagentNotification(entry)) return true
+  if (!isSameSessionSubagentNotification(entry, selfSessionId)) return false
+  const toolUseId = typeof entry.meta?.toolUseId === "string" ? entry.meta.toolUseId : undefined
+  return toolUseId !== undefined && completedToolIds.has(toolUseId)
+}
+
+function isSubagentNotification(entry: NotificationStreamEntry): boolean {
+  return entry.source === "subagent" || entry.source === "sub-agent"
+}
+
+function isSameSessionSubagentNotification(entry: NotificationStreamEntry, selfSessionId: string): boolean {
+  const fromSessionId = typeof entry.meta?.fromSessionId === "string" ? entry.meta.fromSessionId : undefined
+  return fromSessionId !== undefined && fromSessionId === selfSessionId
+}
+
+function isNonTerminalSubagentNotification(entry: NotificationStreamEntry): boolean {
+  if (!isSubagentNotification(entry)) return false
+  const status = typeof entry.meta?.status === "string" ? entry.meta.status : undefined
+  if (status) return status === "started" || status === "progress"
+  return /^\[subagent\s+[^\]]+\]\s+(started|progress):/i.test(entry.content)
+}
+
+function completedSubagentToolIds(messages: readonly MessageEntry[]): ReadonlySet<string> {
+  const ids = new Set<string>()
+  for (const message of messages) {
+    for (const call of message.toolCalls) {
+      if (call.name !== "Agent" && call.name !== "Task") continue
+      if (!message.toolResults.some((result) => result.id === call.id)) continue
+      ids.add(String(call.id))
+    }
+    for (const op of message.ops) {
+      if (op.kind !== "tool") continue
+      if (op.toolCall.name !== "Agent" && op.toolCall.name !== "Task") continue
+      if (!op.result) continue
+      ids.add(String(op.toolCall.id))
+    }
+  }
+  return ids
 }

@@ -234,7 +234,7 @@ export function planLabel(plan: string | null): string {
       // Cosmetic fallback: "claude_foo_bar" → "Claude Foo Bar"
       return normalized
         .split("_")
-        .map((w) => (w.length > 0 ? w[0]!.toUpperCase() + w.slice(1) : w))
+        .map((w) => (w.length > 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w))
         .join(" ")
   }
 }

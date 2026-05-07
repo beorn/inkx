@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from "loggily"
+import { existsSync } from "node:fs"
 import { resolve as resolvePath } from "node:path"
 import createDebug from "debug"
 import {
@@ -184,12 +185,7 @@ function findKmDb(cwd: string): string | null {
   const envPath = process.env.KM_DB_PATH
   if (envPath && envPath.length > 0) return resolvePath(envPath)
   const candidate = resolvePath(cwd, ".km", "state.db")
-  try {
-    const fs = require("node:fs") as { existsSync(p: string): boolean }
-    if (fs.existsSync(candidate)) return candidate
-  } catch {
-    /* require failure is a hard error handled by Node — won't reach here */
-  }
+  if (existsSync(candidate)) return candidate
   return null
 }
 
@@ -956,7 +952,8 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     // The most recent assistant message that hasn't ended is our active turn.
     // We scan from the end because turns are append-only.
     for (let i = state.messages.length - 1; i >= 0; i--) {
-      const m = state.messages[i]!
+      const m = state.messages[i]
+      if (m === undefined) continue
       if (m.role !== "assistant") continue
       if (m.stopReason) continue // turn-end already arrived
       return m.id as string
@@ -993,7 +990,9 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     const list = getTasks(sessionId)
     const idx = list.findIndex((t) => t.id === taskId)
     if (idx < 0) return false
-    list[idx] = fn(list[idx]!)
+    const current = list[idx]
+    if (current === undefined) return false
+    list[idx] = fn(current)
     return true
   }
 
@@ -1001,7 +1000,8 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     const list = getTasks(sessionId)
     const idx = list.findIndex((t) => t.turnId === turnId && t.status === "running")
     if (idx < 0) return
-    const task = list[idx]!
+    const task = list[idx]
+    if (task === undefined) return
     const events = [...task.events, event]
     const fresh = buildSnippet(events)
     // Prefer fresh content from events that arrived AFTER backgrounding;
@@ -1024,7 +1024,8 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     const list = getTasks(sessionId)
     const idx = list.findIndex((t) => t.turnId === turnId && t.status === "running")
     if (idx < 0) return
-    const task = list[idx]!
+    const task = list[idx]
+    if (task === undefined) return
     const fresh = buildSnippet(task.events)
     const hasFresh = fresh && fresh !== "(no output yet)"
     const completed: BackgroundTask = {
@@ -1548,6 +1549,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       .then(() => {
         // Successful spawn clears any prior spawn-error banner.
         setSpawnError(null)
+        return
       })
       .catch((err: unknown) => {
         // Surface spawn failures both to stderr (for users running
@@ -2025,7 +2027,8 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       const list = getTasks(sessionId)
       const idx = list.findIndex((t) => t.id === taskId)
       if (idx < 0) return
-      const task = list[idx]!
+      const task = list[idx]
+      if (task === undefined) return
       // Already terminal? no-op.
       if (task.status !== "running") return
       // Record the cancellation so the eventual turn-end is treated as a

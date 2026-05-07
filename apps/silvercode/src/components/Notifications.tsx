@@ -70,7 +70,8 @@ export function Notifications({ sessions }: { sessions: SessionHandle[] }): Reac
             // session-reducer's `lastError` dedup contract so toast
             // and `state.lastError` agree on what is "the same incident."
             for (let i = t.length - 1; i >= 0; i--) {
-              const x = t[i]!
+              const x = t[i]
+              if (x === undefined) continue
               if (x.kind !== "error") continue
               if (x.errorKey === errorKey) {
                 dedupedId = x.id

@@ -60,7 +60,7 @@ export function ghostFor(buffer: string, candidates: readonly GhostCandidate[]):
   const top = candidates[0]
   if (!top) return null
 
-  const sigil = SIGIL_CHARS.has(buffer[0] ?? "") ? buffer[0]! : ""
+  const sigil = SIGIL_CHARS.has(buffer[0] ?? "") ? (buffer[0] ?? "") : ""
   const bufferBody = sigil ? buffer.slice(1) : buffer
   if (bufferBody.length === 0) return null
 

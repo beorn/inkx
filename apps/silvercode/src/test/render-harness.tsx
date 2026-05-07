@@ -47,7 +47,9 @@ import { createFakeSession, type ScriptedFakeSession } from "./fake-session.ts"
 async function settle(): Promise<void> {
   // One task lets queued setTimeout(0) effects run; the trailing
   // microtask drain catches Promise-resolution cascades.
-  await new Promise<void>((resolve) => setTimeout(resolve, 0))
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, 0)
+  })
   for (let i = 0; i < 5; i++) await Promise.resolve()
 }
 import { type AccountScenario, installFakes, type InstalledFakes } from "./fake-boundaries.ts"

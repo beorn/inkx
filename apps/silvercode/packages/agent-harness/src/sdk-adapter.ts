@@ -34,8 +34,8 @@ type SdkModule = {
 
 async function loadSdk(): Promise<SdkModule> {
   try {
-    // biome-ignore lint/suspicious/noExplicitAny: dynamic optional peer dep
-    const mod = (await import("@anthropic-ai/claude-agent-sdk" as any)) as SdkModule
+    // dynamic optional peer dep — string is parameterized at runtime, so cast through unknown
+    const mod = (await import("@anthropic-ai/claude-agent-sdk" as unknown as string)) as SdkModule
     return mod
   } catch (err) {
     throw new Error(
@@ -55,8 +55,8 @@ export async function spawnSdk(opts: SpawnSdkOptions = {}): Promise<AgentSession
   let sessionId: SessionId = ("sdk-" + Date.now()) as SessionId
   let closed = false
   let resolveExit: () => void = () => {}
-  const exitPromise = new Promise<void>((r) => {
-    resolveExit = r
+  const exitPromise = new Promise<void>((resolve) => {
+    resolveExit = resolve
   })
 
   const injectors = opts.injectors ?? []
@@ -159,7 +159,7 @@ export async function spawnSdk(opts: SpawnSdkOptions = {}): Promise<AgentSession
     return null
   }
 
-  ;(async () => {
+  void (async () => {
     try {
       const sdkStream = sdk.query({
         prompt: promptIterable,
