@@ -1,4 +1,6 @@
 ---
+mentions:
+  - agent/0
 aliases:
   - km-agent.sigil-boards
   - km-agent-sigil-boards
@@ -28,12 +30,7 @@ Use km's existing sigil + board + rules-engine primitives, plus silvercode as th
 
 It composes existing primitives — nothing new is invented:
 
-| Primitive | Already exists | What we use it for |
-|---|---|---|
-| Sigil → `links` table (`@blah` ≡ `[[@blah]]` → `km:@blah`) | `docs/design/model/klink.md` | Assignment is just adding `@agent/N` to the title |
-| `NodeRules.add` (board self-aggregation on sync) | `docs/design/model/storage.md` § NodeRules | Each `@agent/N.md` pulls its own queue declaratively |
-| Bead claim (`bd update --claim` → assignee + status=wip) | Existing bd primitive | Per-slot lock; the board IS the bead being claimed |
-| Embed materialization (`![[bead]]` rendered in body) | klink.md `rel: 'embed'` | The materialized board body shows the queue |
+![[silvercode-squad-mode#Bead]]
 
 The "10 slots" cap forces persona discipline (no proliferation). The parent-child structure (`@agent` parent of `@agent/N`) gives both per-persona views and a unified "all agent work" view.
 
@@ -41,16 +38,16 @@ The "10 slots" cap forces persona discipline (no proliferation). The parent-chil
 
 Verified in a 2026-05-06 experiment by direct SQL on the `links` table:
 
-| Scenario | Status |
-|---|---|
-| `[[@agent/5]]` (wikilink in body) → `km:@agent/5` in links table | ✅ Works per spec |
-| Bare `@agent/0` (sigil in title) → no entry in links table | ❌ **Bug** — klink.md says it should produce `km:@agent/0` |
-| `bd list @agent` rolls up `@agent`-mentioning beads | ✅ Works (via `data.mentions` parallel field — being deprecated separately) |
-| `bd list @agent/0` rolls up `@agent/0`-mentioning beads | ❌ Doesn't work — depends on (a) the bare-sigil-with-path fix above, AND (b) `rules.add` materialization on the board |
-| `@agent/N.md` board files have `rules.add` block | ❌ Don't exist yet — need to be authored |
-| `rules.add` DSL supports the query shape needed (`mention:@agent/3` or equivalent) | ❓ Needs verification |
-| `bd update @agent/N --claim` is race-safe across sessions | ❓ Today's `--claim` does read-then-write; needs DB-side compare-and-swap (`UPDATE ... WHERE assignee IS NULL`) |
-| Board-level claim respects the existing 20-min agent / 24h user lease | ❓ Verify; document if needed |
+| Scenario                                                                       | Status                                                                                                             |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| [[@agent/5]] (wikilink in body) → km:@agent/5 in links table                   | ✅ Works per spec                                                                                                   |
+| Bare @agent/0 (sigil in title) → no entry in links table                       | ❌ Bug — klink.md says it should produce km:@agent/0                                                                |
+| bd list @agent rolls up @agent-mentioning beads                                | ✅ Works (via data.mentions parallel field — being deprecated separately)                                           |
+| bd list @agent/0 rolls up @agent/0-mentioning beads                            | ❌ Doesn't work — depends on (a) the bare-sigil-with-path fix above, AND (b) rules.add materialization on the board |
+| @agent/N.md board files have rules.add block                                   | ❌ Don't exist yet — need to be authored                                                                            |
+| rules.add DSL supports the query shape needed (mention:@agent/3 or equivalent) | ❓ Needs verification                                                                                               |
+| bd update @agent/N --claim is race-safe across sessions                        | ❓ Today's --claim does read-then-write; needs DB-side compare-and-swap (UPDATE ... WHERE assignee IS NULL)         |
+| Board-level claim respects the existing 20-min agent / 24h user lease          | ❓ Verify; document if needed                                                                                       |
 
 ## Sub-tasks
 
@@ -71,8 +68,8 @@ Phase 3 — skills + spawn orchestrator (depends on Phase 2):
 - [x] **`/do` skill** at `.claude/skills/do/SKILL.md` — landed via commit `33245818f`. For each `@agent/N` the session has claimed, reads the materialized embed-list, picks the top-priority bead (priority desc → path-form id asc tiebreak), claims, presents/auto-executes, closes. **Tribe notifications:** on bead-pick `working @km/<scope>/<slug> — <title> (slot @agent/<N>)`, on close `closed @km/<scope>/<slug> — <reason>`. Composable with `/loop`.
 - [x] **`km agent spawn @agent/<N>` orchestrator** — landed via commit `a7c12567d`. Three-step launcher: claim → compose brief → launch agent. Default `--agent silvercode`; alternatives `claude` (active), `pi` / `headless-acp` (TODO stubs). Cleanup wrapper handles SIGINT (130) / SIGTERM (143) / child exit; tribe broadcasts at every transition. `--dry-run` prints the brief + planned exec without claiming or spawning. Stop-gap claim path piggybacks on `planClaim` until `repo.tryClaim` CAS lands (Phase 1.3 in-flight). Legacy `km agent spawn <name>` path preserved for non-slot refs. 11 tests, 0 non-vendor tsc errors.
   1. **Claim the slot** via the Phase-1 CAS. On failure, print holder + exit. On success, **broadcast `tribe.send: spawned @agent/<N> agent=<agent> pid=<X>`**.
-  2. **Compose the session brief** — concatenate persona body (the slot's `.md` body) + materialized embed-list (the queue) + env vars (`TRIBE_NAME=@agent/<N>`, `KM_AGENT_SLOT=@agent/<N>`, `KM_VAULT_ROOT`). Write to a temp file `system-prompt-<N>.md`.
-  3. **Launch the agent** — `--agent silvercode` (default), `--agent claude`, `--agent pi`, `--agent headless-acp`. Spawn the configured binary with `--system-prompt-file <temp>` (or agent-equivalent flag). Wrapper catches SIGTERM / process exit and releases the claim with `tribe.send: released @agent/<N> (exit=<code>)`.
+  1. **Compose the session brief** — concatenate persona body (the slot's `.md` body) + materialized embed-list (the queue) + env vars (`TRIBE_NAME=@agent/<N>`, `KM_AGENT_SLOT=@agent/<N>`, `KM_VAULT_ROOT`). Write to a temp file `system-prompt-<N>.md`.
+  1. **Launch the agent** — `--agent silvercode` (default), `--agent claude`, `--agent pi`, `--agent headless-acp`. Spawn the configured binary with `--system-prompt-file <temp>` (or agent-equivalent flag). Wrapper catches SIGTERM / process exit and releases the claim with `tribe.send: released @agent/<N> (exit=<code>)`.
   - **silvercode is the default agent** because it's the canonical km-aware agent harness — already speaks ACP, has `/claim` and `/do` skills available, and reads markdown system prompts natively. No silvercode-specific code in `km agent spawn`; the contract is just "system-prompt-file injection + env vars". Other agents integrate by implementing the same contract.
 
 Phase 4 — cleanup (separate sweep, file as follow-up bead under `@km/markdown`):
@@ -101,7 +98,8 @@ If observed behavior contradicts these docs, that's an implementation gap (file 
 - `@km/all/drop-data-tags` (closed) — established the precedent that denormalized `data.*` fields collapse into the `links` table. Same pattern applies here.
 - `@km/all/dissolve-data-tags-to-links` — sister bead for the broader `data.*` deprecation.
 - `@km/infra/vault-next-me-rename` (P3) — existing bead noting `@me`, `@next`, `@agent` as planned vault-root sigils. This bead's design satisfies the `@agent` half.
-- `@km/all/BACKLOG.md` — phased queue; once `/do` works, BACKLOG phase sections become natural assignment scopes (e.g., `@agent/2 + Phase 1` ≈ "the silvercode runtime defense work, claimed by slot 2").
+- `@km/BACKLOG.md` — phased queue; once `/do` works, BACKLOG phase sections become natural assignment scopes (e.g., `@agent/2 + Phase 1` ≈ "the silvercode runtime defense work, claimed by slot 2").
 - `@km/storage/sync-roundtrip-completeness` — the parent doctrine that all mutations converge on `repo.updateNode` and sync handles FS materialization. The board-aggregation behavior is part of that pipeline.
 - `hub/km/design/vision.md:37` — "persona facet (durable agent identity)" plan in the vision doc.
 - Composable with: `/loop` (continuous run), `tribe` (cross-session coordination), `km agent spawn` (runtime instances).
+
