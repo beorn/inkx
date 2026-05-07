@@ -1,32 +1,32 @@
 /**
- * <TurnActivitySummary>
+ * <ChatMessageSummary>
  *
- * Compact per-assistant-turn summary for dense tool activity. The collapsed
+ * Compact per-assistant-message summary for dense tool activity. The collapsed
  * row gives a friendly sentence ("Read 3 files, ran 1 command") and the
  * expanded body renders the original ToolCall components so command output,
  * diffs, errors, and raw tool payloads remain recoverable.
  *
- * Bead: km-silvercode.turn-activity-summary.
+ * Bead: km-silvercode.chat-message-summary.
  */
 
 import React, { useState } from "react"
 import { Box, Text, useHover, useModifierKeys, useSelection, type SilveryMouseEvent } from "silvery"
 import type { ContentBlock, ToolCall as ToolCallType, ToolKind } from "@km/agent-harness"
-import type { ChatActivitySpan } from "../chat-model.ts"
+import type { ActivityRun } from "../chat-model.ts"
 import { ToolCall, ToolContentForceExpandedProvider, ToolMarkerBackgroundProvider } from "./ToolCall.tsx"
 import { Content, useContentLayout } from "./Content.tsx"
 import { StatusGlyph } from "./StatusGlyph.tsx"
 import { pluralForm, type PluralForms } from "../i18n.ts"
 
-export type TurnActivitySummaryItem = {
+export type ChatMessageSummaryItem = {
   id: string
-  span: ChatActivitySpan
+  activity: ActivityRun
   toolCall: ToolCallType
   errorMessage?: string
 }
 
-export interface TurnActivitySummaryProps {
-  items: readonly TurnActivitySummaryItem[]
+export interface ChatMessageSummaryProps {
+  items: readonly ChatMessageSummaryItem[]
   defaultExpanded?: boolean
   details?: React.ReactNode
   livePreview?: React.ReactNode
@@ -75,13 +75,13 @@ function editDelta(title: string): { additions: number; deletions: number } | nu
   return { additions: Number(match[1]), deletions: Number(match[2]) }
 }
 
-function summaryParts(items: readonly TurnActivitySummaryItem[]): string[] {
+function summaryParts(items: readonly ChatMessageSummaryItem[]): string[] {
   const counts = new Map<ToolKind, SummaryCount>()
   for (const item of items) {
     const kind = item.toolCall.kind ?? "other"
     const summary = counts.get(kind) ?? { count: 0, additions: 0, deletions: 0, active: false }
     summary.count++
-    if (item.span.status === "running") summary.active = true
+    if (item.activity.status === "running") summary.active = true
     if (kind === "edit") {
       const delta = editDelta(item.toolCall.title)
       if (delta) {
@@ -159,7 +159,7 @@ function toolContentNaturalWidth(content: NonNullable<ToolCallType["content"]>[n
   return 0
 }
 
-function itemNaturalWidth(item: TurnActivitySummaryItem): number {
+function itemNaturalWidth(item: ChatMessageSummaryItem): number {
   const titleWidth = item.toolCall.title.length
   const contentWidth = Math.max(0, ...(item.toolCall.content ?? []).map(toolContentNaturalWidth))
   const errorWidth = item.errorMessage ? Math.max(0, ...item.errorMessage.split("\n").map((line) => line.length)) : 0
@@ -167,11 +167,11 @@ function itemNaturalWidth(item: TurnActivitySummaryItem): number {
   return 2 + Math.max(titleWidth, contentWidth, errorWidth)
 }
 
-function summaryNaturalWidth(items: readonly TurnActivitySummaryItem[], fallbackText: string): number {
+function summaryNaturalWidth(items: readonly ChatMessageSummaryItem[], fallbackText: string): number {
   return Math.max(fallbackText.length + 2, ...items.map(itemNaturalWidth))
 }
 
-export function TurnActivitySummary({
+export function ChatMessageSummary({
   items,
   defaultExpanded = false,
   details,
@@ -181,7 +181,7 @@ export function TurnActivitySummary({
   naturalWidth,
   onDisclosureToggle,
   onExpandedChange,
-}: TurnActivitySummaryProps): React.ReactElement {
+}: ChatMessageSummaryProps): React.ReactElement {
   const [expanded, setExpanded] = useState(defaultExpanded)
   const [forceExpandDetails, setForceExpandDetails] = useState(false)
   const { isHovered, onMouseEnter, onMouseLeave } = useHover()
@@ -194,7 +194,7 @@ export function TurnActivitySummary({
   const text = parts.length > 0 ? parts.join(", ") : `${items.length} tool ${items.length === 1 ? "call" : "calls"}`
   const headerBg = isHovered ? "$bg-surface-hover" : undefined
   const markerBg = expanded ? "$bg-surface-subtle" : isHovered ? "$bg-surface-hover" : undefined
-  const active = items.some((item) => item.span.status === "running")
+  const active = items.some((item) => item.activity.status === "running")
   const marker = expanded ? "▾" : isHovered ? "▸" : active ? "●" : " "
   const markerColor = active ? "$info" : marker === " " ? "$muted" : "$fg"
   const headerMaxWidth = Math.max(1, contentLayout.measure)

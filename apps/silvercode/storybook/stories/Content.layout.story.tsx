@@ -3,8 +3,8 @@ import { Box, Screen, Text } from "silvery"
 import type { ToolCall as ToolCallType, ToolCallId } from "@km/agent-harness"
 import { Content } from "../../src/components/Content.tsx"
 import { MarkdownView } from "../../src/components/MarkdownView.tsx"
-import { TurnActivitySummary, type TurnActivitySummaryItem } from "../../src/components/TurnActivitySummary.tsx"
-import { withActivitySpan } from "../support/activity-summary.ts"
+import { ChatMessageSummary, type ChatMessageSummaryItem } from "../../src/components/ChatMessageSummary.tsx"
+import { withActivityRun } from "../support/chat-message-summary.ts"
 import type { Story } from "../types.ts"
 
 const id = (s: string) => s as ToolCallId
@@ -13,7 +13,7 @@ function tool(partial: Partial<ToolCallType> & Pick<ToolCallType, "toolCallId" |
   return partial
 }
 
-const activityItems: TurnActivitySummaryItem[] = [
+const activityItems: ChatMessageSummaryItem[] = [
   {
     id: "read",
     toolCall: tool({
@@ -59,7 +59,7 @@ const activityItems: TurnActivitySummaryItem[] = [
       ],
     }),
   },
-].map(withActivitySpan)
+].map(withActivityRun)
 
 const markdownTable =
   "| File | Status | Notes |\n" +
@@ -160,7 +160,7 @@ export const contentLayout: Story = {
             </Section>
 
             <Section title="Activity summary">
-              <TurnActivitySummary items={activityItems} defaultExpanded={activityExpanded} />
+              <ChatMessageSummary items={activityItems} defaultExpanded={activityExpanded} />
             </Section>
           </Box>
         </Content.Layout>

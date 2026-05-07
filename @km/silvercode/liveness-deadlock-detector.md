@@ -82,7 +82,7 @@ Implemented reducer liveness obligations, Codex resume strict replay/order/incom
 Evidence:
 
 ```bash
-bun vitest run apps/silvercode/tests/side-panel-multi-account.test.tsx apps/silvercode/tests/tool-call-rendering-v2.test.tsx apps/silvercode/tests/turn-activity-summary.test.tsx apps/silvercode/tests/ambient-event-row.test.tsx apps/silvercode/tests/mute-state.test.ts apps/silvercode/tests/codex-resume.test.ts apps/silvercode/tests/autolinks-osc8.test.tsx apps/silvercode/packages/agent-harness/tests/liveness-detector.test.ts apps/silvercode/packages/agent-harness/tests/status-trace.test.ts apps/silvercode/packages/agent-harness/tests/acp-client.test.ts
+bun vitest run apps/silvercode/tests/side-panel-multi-account.test.tsx apps/silvercode/tests/tool-call-rendering-v2.test.tsx apps/silvercode/tests/chat-message-summary.test.tsx apps/silvercode/tests/ambient-event-row.test.tsx apps/silvercode/tests/mute-state.test.ts apps/silvercode/tests/codex-resume.test.ts apps/silvercode/tests/autolinks-osc8.test.tsx apps/silvercode/packages/agent-harness/tests/liveness-detector.test.ts apps/silvercode/packages/agent-harness/tests/status-trace.test.ts apps/silvercode/packages/agent-harness/tests/acp-client.test.ts
 ```
 
 Result: 10 files passed, 119 tests passed.

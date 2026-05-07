@@ -28,10 +28,7 @@ import { toolCallExecute } from "./stories/ToolCall.execute.story.tsx"
 import { toolCallFailed } from "./stories/ToolCall.failed.story.tsx"
 import { toolCallBashSummary } from "./stories/ToolCall.bash-summary.story.tsx"
 import { toolCallSummary } from "./stories/ToolCallSummary.story.tsx"
-import {
-  sessionUpdateListTurnActivityRich,
-  turnActivitySummaryRich,
-} from "./stories/TurnActivitySummary.rich.story.tsx"
+import { sessionUpdateListTurnActivityRich, chatMessageSummaryRich } from "./stories/ChatMessageSummary.rich.story.tsx"
 import { applyPatch, applyPatchMulti } from "./stories/ApplyPatch.story.tsx"
 import { sessionUpdateListEmpty } from "./stories/SessionUpdateList.empty.story.tsx"
 import { sessionUpdateListMultiTurn } from "./stories/SessionUpdateList.multi-turn.story.tsx"
@@ -54,7 +51,7 @@ import { sessionPromptHistoryEntries } from "./stories/SessionPromptHistory.entr
 import { usageMeterFull } from "./stories/UsageMeter.full.story.tsx"
 import { sessionExchangeDividerBetweenExchanges } from "./stories/SessionExchangeDivider.between-exchanges.story.tsx"
 import { sessionRetryFailedExchange } from "./stories/SessionRetry.failed-exchange.story.tsx"
-import { subAgentExchangeCollapsed } from "./stories/SubAgentExchange.collapsed.story.tsx"
+import { subagentActivityPanelCollapsed } from "./stories/SubagentActivityPanel.collapsed.story.tsx"
 import {
   notificationEventRowAllSources,
   notificationEventRowInlineSequence,
@@ -88,7 +85,7 @@ export const STORIES: readonly Story[] = [
   toolCallFailed,
   toolCallBashSummary,
   toolCallSummary,
-  turnActivitySummaryRich,
+  chatMessageSummaryRich,
   applyPatch,
   applyPatchMulti,
   // Higher-order: full conversation via SessionUpdateList
@@ -106,7 +103,7 @@ export const STORIES: readonly Story[] = [
   // Conversation structure
   sessionExchangeDividerBetweenExchanges,
   sessionRetryFailedExchange,
-  subAgentExchangeCollapsed,
+  subagentActivityPanelCollapsed,
   // Notification observations (Phase 6.a — inline NotificationEventRow)
   notificationEventRowAllSources,
   notificationEventRowTribeConcise,

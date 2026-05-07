@@ -41,14 +41,14 @@ export type ChatTranscriptSlice =
   | { kind: "message"; id: string; message: MessageEntry }
   | { kind: "activity"; id: string; message: MessageEntry; ops: MessageOp[] }
 
-export type ChatActivityKind = "reasoning" | "tool"
+export type ActivityRunKind = "reasoning" | "tool"
 
-export type ChatActivityStatus = "running" | "completed" | "failed"
+export type ActivityRunStatus = "running" | "completed" | "failed"
 
-export type ChatActivitySpan = {
+export type ActivityRun = {
   id: string
-  kind: ChatActivityKind
-  status: ChatActivityStatus
+  kind: ActivityRunKind
+  status: ActivityRunStatus
   op: MessageOp
   index: number
 }
@@ -252,14 +252,14 @@ export function splitAssistantOpsIntoDisplaySlices(ops: readonly MessageOp[]): A
   return out
 }
 
-function activityStatusForOp(op: MessageOp): ChatActivityStatus {
+function activityStatusForOp(op: MessageOp): ActivityRunStatus {
   if (op.kind !== "tool") return "completed"
   if (!op.result) return "running"
   return op.result.is_error ? "failed" : "completed"
 }
 
-export function activitySpansFromOps(ops: readonly MessageOp[]): ChatActivitySpan[] {
-  const out: ChatActivitySpan[] = []
+export function activityRunsFromOps(ops: readonly MessageOp[]): ActivityRun[] {
+  const out: ActivityRun[] = []
   ops.forEach((op, index) => {
     if (op.kind === "tool") {
       out.push({
@@ -284,10 +284,10 @@ export function activitySpansFromOps(ops: readonly MessageOp[]): ChatActivitySpa
   return out
 }
 
-export function latestRunningActivitySpan(spans: readonly ChatActivitySpan[]): ChatActivitySpan | null {
-  for (let i = spans.length - 1; i >= 0; i--) {
-    const span = spans[i]
-    if (span?.status === "running") return span
+export function latestRunningActivityRun(runs: readonly ActivityRun[]): ActivityRun | null {
+  for (let i = runs.length - 1; i >= 0; i--) {
+    const run = runs[i]
+    if (run?.status === "running") return run
   }
   return null
 }

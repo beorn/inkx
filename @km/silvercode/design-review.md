@@ -74,7 +74,7 @@ Mouse-wheel to scroll. NotificationEventRow rows are click-to-expand.
   - tribe / ci / recall / filewatch / sub-agent / telegram
   - expanded body uses BoundedScroll (max 30 rows)
 - **SessionRetry** — retry affordance after failed exchange
-- **SubAgentExchange** — Task tool with nested stream
+- **SubagentActivityPanel** — Task tool with nested stream
 - **SessionExchangeDivider** — hairline between exchanges
 - **ActivityIndicator** — thinking spinner
 - **RequestPermissionInbox** — pending Bash with Allow/Deny
@@ -86,7 +86,7 @@ Mouse-wheel to scroll. NotificationEventRow rows are click-to-expand.
 
 - ToolCallStatusTitle now renders the title verbatim (no "Reading…" / "Read 3 files" / "Search failed" verb prefix). Status comes from the leading glyph.
 - ToolCall failed-status renders ONE unified ChatBlock (✗ glyph in header + inline error body). The separate <ToolCallError> envelope is gone from the composed path.
-- Disclosure bodies are bounded: BoundedScroll wraps ToolCall expanded body, NotificationEventRow expanded body, SubAgentExchange children, and the "N more lines" Accordion. Cap is 30 rows, kinetic scroll past that.
+- Disclosure bodies are bounded: BoundedScroll wraps ToolCall expanded body, NotificationEventRow expanded body, SubagentActivityPanel children, and the "N more lines" Accordion. Cap is 30 rows, kinetic scroll past that.
 
 ## Likely tweak areas (judgment calls only the user should make)
 

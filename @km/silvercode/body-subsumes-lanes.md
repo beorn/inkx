@@ -13,7 +13,7 @@ Make `Content.Body` (with `width="prose|wide|full|auto"`) the canonical public s
 
 Audit of apps/silvercode (2026-05-06) shows two parallel APIs in active use:
 
-- `<Content.Body width="prose">` — 8+ uses (Chat, NotificationBlock, TurnActivitySummary, SessionUpdateList, MarkdownView indirectly)
+- `<Content.Body width="prose">` — 8+ uses (Chat, NotificationBlock, ChatMessageSummary, SessionUpdateList, MarkdownView indirectly)
 - `<Content.Prose>`, `<Content.Wide>`, `<Content.Full>`, `<Content.Right>` — 4+ direct uses (MarkdownView, NotificationEventRow, SessionUpdateList, storybook)
 
 Both express the same idea: "render this content at width X." Body is the more ergonomic form (one component, one prop) and dominant in usage. Direct lane components are mostly used inside Content.tsx itself for auto-pick logic.

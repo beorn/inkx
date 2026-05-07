@@ -396,6 +396,9 @@ function formatAgentModelDetails({ agentLabel, model }: { agentLabel?: string; m
   return [agentLabel, model].filter((part): part is string => Boolean(part && part.length > 0)).join(" · ")
 }
 
+const WELCOME_BANNER_FLEX = 58
+const WELCOME_BODY_FLEX = 42
+
 /**
  * Empty-state screen — banner + the App-level `SessionPromptComposer`,
  * both centered. The composer is THE SAME element rendered at the bottom
@@ -445,14 +448,18 @@ export function Welcome(props: {
     ? resumeId
     : props.handle.metadata?.sessionId || props.handle.id || props.handle.name
   const agentModelDetails = formatAgentModelDetails({
-    agentLabel,
     model: props.model || props.handle.metadata?.model,
   })
   const centerVertically = props.centerVertically !== false
   const showComposer = Boolean(props.composerSlot && !isLoading)
-  const bannerContent = (
-    <>
-      {props.bitmapBanner === false ? <StaticTextBanner /> : <MeasuredBanner />}
+  const banner =
+    props.bitmapBanner === false ? (
+      <StaticTextBanner agentLabel={agentLabel} />
+    ) : (
+      <MeasuredBanner agentLabel={agentLabel} />
+    )
+  const lowerContent = (
+    <Box flexDirection="column" alignItems="center" gap={1} width="100%" minWidth={0}>
       {agentModelDetails.length > 0 ? <Muted>{agentModelDetails}</Muted> : null}
       {isLoading ? (
         <Box flexDirection="column" alignItems="center">
@@ -460,24 +467,6 @@ export function Welcome(props: {
           {loadingSessionId.length > 0 ? <Muted>{loadingSessionId}</Muted> : null}
         </Box>
       ) : null}
-    </>
-  )
-
-  return (
-    // Center the banner and composer together as a group so the input
-    // stays near the middle of the screen until a prompt is submitted.
-    // After the first message, ChatPane switches to the chat layout
-    // (absolute-positioned composer at the bottom) automatically.
-    <Box
-      flexDirection="column"
-      flexGrow={centerVertically ? 1 : 0}
-      alignItems="center"
-      justifyContent={centerVertically ? "center" : "flex-start"}
-      gap={1}
-      minHeight={0}
-      width="100%"
-    >
-      {bannerContent}
       {showComposer ? (
         <Chat.Composer>
           <Box alignSelf="center" width="70%" minWidth={0}>
@@ -485,6 +474,39 @@ export function Welcome(props: {
           </Box>
         </Chat.Composer>
       ) : null}
+    </Box>
+  )
+
+  return (
+    // Reserve the upper part of the welcome screen for the logo and align
+    // the artwork to the bottom of that slot. The model/loading/composer
+    // rows then flow underneath in normal flex order, so late image/terminal
+    // measurement cannot push them down.
+    <Box
+      flexDirection="column"
+      flexGrow={centerVertically ? 1 : 0}
+      alignItems="center"
+      justifyContent="flex-start"
+      gap={1}
+      minHeight={0}
+      width="100%"
+    >
+      <Box
+        flexDirection="column"
+        alignSelf="stretch"
+        alignItems="center"
+        justifyContent={centerVertically ? "flex-end" : "flex-start"}
+        flexGrow={centerVertically ? WELCOME_BANNER_FLEX : 0}
+        flexBasis={centerVertically ? 0 : "auto"}
+        flexShrink={centerVertically ? 1 : 0}
+        minHeight={0}
+        overflow="hidden"
+      >
+        {banner}
+      </Box>
+      <Box flexGrow={centerVertically ? WELCOME_BODY_FLEX : 0} flexBasis={0} minHeight={0} width="100%">
+        {lowerContent}
+      </Box>
     </Box>
   )
 }

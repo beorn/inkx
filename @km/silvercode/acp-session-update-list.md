@@ -52,7 +52,7 @@ Render the ACP `SessionUpdate` stream as a vertical list. Replaces today's flat 
 - `<SessionUpdateList>` — virtualized list of all updates in a session
 - `<SessionExchangeDivider>` — visual separator between a user prompt and the next user prompt (silvercode-only)
 - `<SessionRetry>` — inline retry button below a failed exchange (re-emits last user prompt)
-- `<SubAgentExchange>` — nested SessionUpdate stream for Task tool with sub-stream
+- `<SubagentActivityPanel>` — nested SessionUpdate stream for Task tool with sub-stream
 
 ## Today
 

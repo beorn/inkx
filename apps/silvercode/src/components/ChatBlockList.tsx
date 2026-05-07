@@ -16,21 +16,21 @@ export type ChatBlockListProps = {
   paddingBottom?: number
 }
 
-type ActivityItem = { __activity: true }
-type PaddingItem = { __padding: true; id: string; height: number }
-type Item = ChatLeaf | ActivityItem | PaddingItem
+type ChatBlockActivityTail = { __activity: true }
+type ChatBlockPadding = { __padding: true; id: string; height: number }
+type ChatBlockListItem = ChatLeaf | ChatBlockActivityTail | ChatBlockPadding
 
-function isActivity(item: Item): item is ActivityItem {
-  return (item as ActivityItem).__activity === true
+function isChatBlockActivityTail(item: ChatBlockListItem): item is ChatBlockActivityTail {
+  return (item as ChatBlockActivityTail).__activity === true
 }
 
-function isPadding(item: Item): item is PaddingItem {
-  return (item as PaddingItem).__padding === true
+function isChatBlockPadding(item: ChatBlockListItem): item is ChatBlockPadding {
+  return (item as ChatBlockPadding).__padding === true
 }
 
-function listKey(item: Item, index: number): string {
-  if (isActivity(item)) return "__activity"
-  if (isPadding(item)) return `__padding:${item.id}:${item.height}`
+function listKey(item: ChatBlockListItem, index: number): string {
+  if (isChatBlockActivityTail(item)) return "__activity"
+  if (isChatBlockPadding(item)) return `__padding:${item.id}:${item.height}`
   return item.id || `leaf:${index}`
 }
 
@@ -320,8 +320,8 @@ export const ChatBlockList = React.forwardRef<ListViewHandle, ChatBlockListProps
   { leaves, activity, follow = "end", viewportBottomInset, paddingTop = 0, paddingBottom = 0 },
   ref,
 ): React.ReactElement {
-  const items = React.useMemo<Item[]>(() => {
-    const base: Item[] = [...leaves]
+  const items = React.useMemo<ChatBlockListItem[]>(() => {
+    const base: ChatBlockListItem[] = [...leaves]
     if (activity) base.push({ __activity: true })
     if (base.length === 0) return base
     return [
@@ -332,9 +332,9 @@ export const ChatBlockList = React.forwardRef<ListViewHandle, ChatBlockListProps
   }, [activity, leaves, paddingBottom, paddingTop])
 
   const renderItem = React.useCallback(
-    (item: Item): React.ReactNode => {
-      if (isPadding(item)) return renderPadding(item.height)
-      if (isActivity(item)) return activity
+    (item: ChatBlockListItem): React.ReactNode => {
+      if (isChatBlockPadding(item)) return renderPadding(item.height)
+      if (isChatBlockActivityTail(item)) return activity
       return renderChatLeaf(item)
     },
     [activity],

@@ -1,5 +1,5 @@
 /**
- * <SubAgentExchange> — collapsed and expanded variants.
+ * <SubagentActivityPanel> — collapsed and expanded variants.
  *
  * A Task tool invocation renders as a collapsible block in the parent
  * conversation. The knob switches between collapsed (default), expanded
@@ -10,14 +10,14 @@
  */
 import React from "react"
 import { Box, Muted, Screen, Text } from "silvery"
-import { SubAgentExchange } from "../../src/components/SubAgentExchange.tsx"
+import { SubagentActivityPanel } from "../../src/components/SubagentActivityPanel.tsx"
 import type { Story } from "../types.ts"
 
-export const subAgentExchangeCollapsed: Story = {
-  id: "SubAgentExchange/collapsed",
-  component: "SubAgentExchange",
+export const subagentActivityPanelCollapsed: Story = {
+  id: "SubagentActivityPanel/collapsed",
+  component: "SubagentActivityPanel",
   variant: "collapsed",
-  description: "Task sub-agent block — collapsed / expanded / running / failed variants.",
+  description: "Task subagent block — collapsed / expanded / running / failed variants.",
   knobs: [
     {
       kind: "select",
@@ -41,14 +41,14 @@ export const subAgentExchangeCollapsed: Story = {
           </Text>
           <Text>Run the full test suite and fix any failures you find.</Text>
 
-          <SubAgentExchangeWrapper
+          <SubagentActivityPanelWrapper
             description="Run bun run test:fast and fix all failing tests in apps/silvercode/"
             running={running}
             failed={failed}
             defaultExpanded={state === "expanded"}
           />
 
-          {!running && !failed && <Muted>Sub-agent completed in 47s · 3 files edited · 0 tests failing</Muted>}
+          {!running && !failed && <Muted>Subagent completed in 47s · 3 files edited · 0 tests failing</Muted>}
         </Box>
       </Screen>
     )
@@ -57,10 +57,10 @@ export const subAgentExchangeCollapsed: Story = {
 
 /**
  * Wrapper that forces the `expanded` state on mount so the knob can control
- * the initial render deterministically. SubAgentExchange manages its own
+ * the initial render deterministically. SubagentActivityPanel manages its own
  * toggle state; we pass `defaultExpanded` via a key-based remount trick.
  */
-function SubAgentExchangeWrapper({
+function SubagentActivityPanelWrapper({
   description,
   running,
   failed,
@@ -72,7 +72,7 @@ function SubAgentExchangeWrapper({
   defaultExpanded: boolean
 }): React.ReactElement {
   return (
-    <SubAgentExchange key={String(defaultExpanded)} description={description} running={running} failed={failed}>
+    <SubagentActivityPanel key={String(defaultExpanded)} description={description} running={running} failed={failed}>
       {/* Nested stream — static simulation */}
       <Box flexDirection="column" gap={0}>
         <Text color="$muted">Running bun run test:fast…</Text>
@@ -81,6 +81,6 @@ function SubAgentExchangeWrapper({
         <Text color="$muted">Editing apps/silvercode/storybook/stories/ToolCall.read.story.tsx…</Text>
         <Text color="$success">All tests pass after fix.</Text>
       </Box>
-    </SubAgentExchange>
+    </SubagentActivityPanel>
   )
 }

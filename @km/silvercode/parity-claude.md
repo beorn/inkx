@@ -17,7 +17,7 @@ previous_closeReason: "Completed through cbadc97f2 and child bead closures. All 
   apps/silvercode/tests/content-layout.test.tsx
   apps/silvercode/tests/chat-model.test.ts
   apps/silvercode/tests/chat-types.test.ts
-  apps/silvercode/tests/turn-activity-summary.test.tsx
+  apps/silvercode/tests/chat-message-summary.test.tsx
   apps/silvercode/tests/notification-event-row.test.tsx
   apps/silvercode/tests/visual/message-list-sticky-bottom.test.tsx (aggregate
   focused runs: 169 passed / 1 skipped plus chat-types slice 57 passed / 1
@@ -162,7 +162,7 @@ Every observed raw/control event must route to exactly one primary owner:
 | Tool call/read/search/edit/command        | `activity` or `error`                                     | ChatTool + activity leaves        | grouped/smart activity ChatBlocks                         | full input/output/raw refs                         |
 | Permission request                        | `permission`                                              | ChatPermissions + permission leaf | expanded while pending, collapsed/resolved after decision | raw provider payload                               |
 | Permission mode update, e.g. `auto`       | `debug`                                                   | session mode state                | no standalone row after state is reflected in UI          | raw detail via Debug/session detail only           |
-| Queue operation / queued prompt lifecycle | `queue` when parsed as queue-operation; otherwise `debug` | ChatQueue state                   | queue leaf only when user-actionable or stuck             | raw lifecycle payload and ownership context        |
+| Queue operation / queued prompt lifecycle | `queue` when parsed as queue-operation; otherwise `debug` | ChatPromptQueue state                   | queue leaf only when user-actionable or stuck             | raw lifecycle payload and ownership context        |
 | Task reminder / plan update               | `plan` or `debug`                                         | ChatPlan state                    | no duplicate row when task list visibly updates           | Debug leaf with raw reminder if Debug is visible   |
 | File history snapshot                     | `debug`                                                   | ChatSession debug/history state   | hidden by default                                         | Debug leaf with file/version snapshot detail       |
 | Hook info                                 | `debug` or `error`                                        | hook/debug state                  | hidden by default unless failed/actionable                | Debug leaf with hook name, cwd, exit/output        |
@@ -275,7 +275,7 @@ Required initial ChatEvent matrix:
 | `permission.requested`  | `permission`                                               | create pending permission state and visible actionable permission leaf   |
 | `permission.resolved`   | `permission` or `debug`                                    | update permission state; no duplicate visible row unless user-relevant   |
 | `plan.updated`          | `plan` or `debug`                                          | update ChatPlan; project only meaningful plan leaf                       |
-| `queue.updated`         | `queue` or `debug`                                         | update ChatQueue; project only actionable/stuck/user-visible queue leaf  |
+| `queue.updated`         | `queue` or `debug`                                         | update ChatPromptQueue; project only actionable/stuck/user-visible queue leaf  |
 | `notification.received` | `notification`, `debug`, or `error`                        | project notification leaf or state update based on source classification |
 | `recap.recorded`        | `notification` or `debug`                                  | project recap leaf with raw/detail payload                               |
 | `session.updated`       | `status` or `debug`                                        | update title/model/mode/cwd/session metadata; visible chrome first       |
@@ -707,7 +707,7 @@ export type ChatSession = {
   messageParts: Readonly<Record<ChatMessagePartId, ChatMessagePart>>
   tools: Readonly<Record<ChatToolId, ChatTool>>
   plan: ChatPlan
-  queue: ChatQueue
+  promptQueue: ChatPromptQueue
   permissions: ChatPermissions
   tree: ChatTree
   channels: Readonly<Record<ChatChannelId, ChatChannelState>>
@@ -715,7 +715,7 @@ export type ChatSession = {
 
 export type ChatTool = Record<string, unknown>
 export type ChatPlan = Record<string, unknown>
-export type ChatQueue = Record<string, unknown>
+export type ChatPromptQueue = Record<string, unknown>
 export type ChatPermissions = Record<string, unknown>
 ```
 
@@ -975,7 +975,7 @@ Definition of done:
 - `apps/silvercode/src/chat/tree.ts`
 - `apps/silvercode/src/components/ToolCall.tsx`
 - `apps/silvercode/src/components/ToolCallStatusTitle.tsx`
-- `apps/silvercode/src/components/TurnActivitySummary.tsx`
+- `apps/silvercode/src/components/ChatMessageSummary.tsx`
 - `apps/silvercode/src/components/SessionUpdateList.tsx`
 - `apps/silvercode/src/components/NotificationEventRow.tsx`
 - `apps/silvercode/src/components/Content.tsx`

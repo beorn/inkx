@@ -1,16 +1,16 @@
 import type { MessageOp, ToolCall as ToolCallType, ToolResultEntry, ToolUseId } from "@km/agent-harness"
-import type { ChatActivitySpan, ChatActivityStatus } from "../../src/chat-model.ts"
-import type { TurnActivitySummaryItem } from "../../src/components/TurnActivitySummary.tsx"
+import type { ActivityRun, ActivityRunStatus } from "../../src/chat-model.ts"
+import type { ChatMessageSummaryItem } from "../../src/components/ChatMessageSummary.tsx"
 
-type StoryActivityItem = Omit<TurnActivitySummaryItem, "span">
+type StoryActivityItem = Omit<ChatMessageSummaryItem, "activity">
 
-function statusFromToolCall(toolCall: ToolCallType): ChatActivityStatus {
+function statusFromToolCall(toolCall: ToolCallType): ActivityRunStatus {
   if (toolCall.status === "in_progress" || toolCall.status === "pending") return "running"
   if (toolCall.status === "failed") return "failed"
   return "completed"
 }
 
-export function withActivitySpan(item: StoryActivityItem, index: number): TurnActivitySummaryItem {
+export function withActivityRun(item: StoryActivityItem, index: number): ChatMessageSummaryItem {
   const status = statusFromToolCall(item.toolCall)
   const result: ToolResultEntry | undefined =
     status === "running"
@@ -29,12 +29,12 @@ export function withActivitySpan(item: StoryActivityItem, index: number): TurnAc
     },
     result,
   }
-  const span: ChatActivitySpan = {
+  const activity: ActivityRun = {
     id: item.id,
     kind: "tool",
     status,
     op,
     index,
   }
-  return { ...item, span }
+  return { ...item, activity }
 }

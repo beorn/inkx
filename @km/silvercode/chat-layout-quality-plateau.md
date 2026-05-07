@@ -12,7 +12,7 @@ closeReason: "Completed after current screenshot-driven review and user request
   to complete. The remaining live regression found during closure was the
   resumed-session divider right gutter; fixed in f33ab87c5. Verification:
   Silvercode transcript/layout slice passed 12 files, 187 tests, including
-  content-layout, message-list-scroll, codex-resume, turn-activity-summary,
+  content-layout, message-list-scroll, codex-resume, chat-message-summary,
   tool-call, markdown, notification rows, session-end, closeAll, resume blank-screen,
   and CLI smoke."
 ---
@@ -37,7 +37,7 @@ Keep these unchecked until jointly confirmed.
 - [ ] Welcome screen does not refresh after 3-5 seconds. If a refresh/re-render is unavoidable, the input field keeps cursor position and edit state.
 - [ ] `Resumed session ...` renders as its own session metadata row with exactly one blank line of breathing room around it, without double-spacing when adjacent sections also have spacing.
 - [ ] User prompts are flush with the right edge of the prose column. Regular `SessionEntry` content uses a narrower left lane, around 90% of prose width, leaving right-side breathing room so the transcript reads like chat.
-- [ ] Collapsed and expanded content tries to fit in the prose lane first. It uses `wide` or `full` only when the actual content needs it. Expanded activity-summary command rows should truncate/compact in prose; raw/wide output should only widen when that individual item is truly expanded.
+- [ ] Collapsed and expanded content tries to fit in the prose lane first. It uses `wide` or `full` only when the actual content needs it. Expanded chat-message-summary command rows should truncate/compact in prose; raw/wide output should only widen when that individual item is truly expanded.
 - [ ] Clicking a line to expand/collapse preserves that clicked line's screen position. A second click at the same coordinates should collapse/expand the same row, not miss because the view jumped.
 - [ ] Text selection scopes to the smallest selectable entry/bubble where possible, instead of always selecting the entire content pane. Cross-entry selection should escalate to the content pane.
 - [ ] User prompt background is owned by the prompt bubble box/surface, not painted only behind text glyphs.
@@ -142,7 +142,7 @@ Likely related code:
 
 - `apps/silvercode/src/components/SessionUpdateList.tsx`
 - `apps/silvercode/src/components/SessionEntry.tsx`
-- `apps/silvercode/src/components/TurnActivitySummary.tsx`
+- `apps/silvercode/src/components/ChatMessageSummary.tsx`
 - `apps/silvercode/src/components/ToolCall.tsx`
 - `apps/silvercode/src/components/Content.tsx`
 - `apps/silvercode/src/components/PaneGrid.tsx`

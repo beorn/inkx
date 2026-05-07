@@ -256,7 +256,7 @@ const planTaskSchema = z
   })
   .strict()
 const planSchema = z.object({ tasks: z.array(planTaskSchema).readonly(), eventIds: eventIdsSchema }).strict()
-const queueItemSchema = z
+const promptSchema = z
   .object({
     id: idSchema,
     label: labelSchema,
@@ -264,7 +264,7 @@ const queueItemSchema = z
     eventIds: eventIdsSchema,
   })
   .strict()
-const queueSchema = z.object({ items: z.array(queueItemSchema).readonly(), eventIds: eventIdsSchema }).strict()
+const promptQueueSchema = z.object({ prompts: z.array(promptSchema).readonly(), eventIds: eventIdsSchema }).strict()
 const notificationSchema = z
   .object({
     source: idSchema,
@@ -355,7 +355,7 @@ export const chatEventSchema = z.union([
     z.object({ permissionId: idSchema, decision: z.enum(["approved", "rejected", "cancelled"]) }).strict(),
   ),
   eventSchema("plan.updated", z.object({ plan: planSchema }).strict()),
-  eventSchema("queue.updated", z.object({ queue: queueSchema }).strict()),
+  eventSchema("queue.updated", z.object({ promptQueue: promptQueueSchema }).strict()),
   eventSchema("notification.received", notificationSchema),
   eventSchema("recap.recorded", z.object({ text: textSchema.min(1), raw: z.unknown().optional() }).strict()),
   eventSchema(

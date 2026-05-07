@@ -83,5 +83,5 @@ Verification: `fake-acp-server.test.ts` includes permission and filesystem callb
 - Added fake backend providers for every ACP registry id and spec-level prompt/config/comprehensive-session-update tests.
 - Added docs in `docs/dev/silvercode-backend-fakes.md` and `docs/dev/test-fakes.md`.
 
-Verification: `apps/silvercode/packages/agent-harness/tests/`, `apps/silvercode/tests/backend-contracts`, and `apps/silvercode/tests/turn-activity-summary.test.tsx` pass.
+Verification: `apps/silvercode/packages/agent-harness/tests/`, `apps/silvercode/tests/backend-contracts`, and `apps/silvercode/tests/chat-message-summary.test.tsx` pass.
 

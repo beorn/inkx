@@ -1,3 +1,17 @@
+export type SubagentSessionSummary = {
+  id: string
+  provider: "claude"
+  agentType?: string
+  description?: string
+  prompt?: string
+  resultText?: string
+  status: "running" | "done" | "failed" | "cancelled"
+  startedAt?: number
+  completedAt?: number
+  transcriptPath: string
+  metadataPath?: string
+}
+
 export type SessionHistoryMetadata = {
   agent?: string
   sessionId?: string
@@ -14,4 +28,5 @@ export type SessionHistoryMetadata = {
   sessionInitAt?: number
   liveStartedAt?: number
   endedAt?: number
+  subagentSessions?: readonly SubagentSessionSummary[]
 }

@@ -15,7 +15,7 @@ closeReason: "Completed: Chat.tsx defines
   Verification: bun vitest run apps/silvercode/tests/content-layout.test.tsx
   apps/silvercode/tests/message-list-scroll.test.tsx
   apps/silvercode/tests/codex-resume.test.ts
-  apps/silvercode/tests/turn-activity-summary.test.tsx
+  apps/silvercode/tests/chat-message-summary.test.tsx
   apps/silvercode/tests/tool-call-rendering-v2.test.tsx
   apps/silvercode/tests/tool-call.test.tsx
   apps/silvercode/tests/visual/markdown.test.tsx
@@ -31,7 +31,7 @@ closeReason: "Completed: Chat.tsx defines
 
 ## Problem
 
-Silvercode's transcript rendering has grown around implementation artifacts: `SessionUpdateList`, `ExchangeItem`, `TurnActivitySummary`, `SessionEntry`, notification rows, metadata rows, and composer code all encode adjacent pieces of the chat UI. This makes it hard to reason about progressive disclosure, because the code mixes three separate concerns:
+Silvercode's transcript rendering has grown around implementation artifacts: `SessionUpdateList`, `ExchangeItem`, `ChatMessageSummary`, `SessionEntry`, notification rows, metadata rows, and composer code all encode adjacent pieces of the chat UI. This makes it hard to reason about progressive disclosure, because the code mixes three separate concerns:
 
 - Layout lanes (`Content.*`): prose/wide/asides/gutters.
 - Chat semantics: prompt, assistant narration, activity, summary, notifications, metadata, composer.
@@ -113,7 +113,7 @@ type ChatTurnSegment = {
 }
 
 type ChatActivitySegment = {
-  summary: ChatActivitySummary
+  summary: ChatMessageSummary
   groups: ChatToolGroup[]
   items: ChatActivityItem[]
 }
@@ -187,7 +187,7 @@ Rules:
 28. Render existing transcript through `Chat.Turn.*` without changing behavior.
 29. Change dense-turn behavior so collapsed summary may aggregate, while expanded details preserve narration/activity order.
 30. Move user prompt bubble rendering into `Chat.Turn.Prompt`.
-31. Move `TurnActivitySummary` behavior into `Chat.Turn.Activity` / `Chat.Turn.ToolGroup`.
+31. Move `ChatMessageSummary` behavior into `Chat.Turn.Activity` / `Chat.Turn.ToolGroup`.
 32. Move metadata and notification rows to `Chat.Metadata` and `Chat.Notification`.
 33. Wrap `SessionPromptComposer` as `Chat.Composer` or rename it when safe.
 34. Leave `Content.*` as the layout layer only.
@@ -226,7 +226,7 @@ This bead is intentionally architectural and P0 because it should stop the recur
 
 Verification in current working tree:
 
-- `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/turn-activity-summary.test.tsx apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/message-list-scroll.test.tsx` — 50 tests passed.
+- `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/chat-message-summary.test.tsx apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/message-list-scroll.test.tsx` — 50 tests passed.
 - `bun vitest run apps/silvercode/storybook/tests/stories.test.tsx apps/silvercode/storybook/tests/registry.test.ts` — 40 tests passed.
 - `bun vitest run --dir vendor/silvery tests/features/listview-overscroll-bump.test.tsx tests/ui/list-view-visible-content-anchoring.test.tsx tests/features/height-model.test.ts` — 31 tests passed.
 
@@ -247,7 +247,7 @@ Remaining before close:
 
 Verification:
 
-- `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/turn-activity-summary.test.tsx apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/notification-welcome-artifact.test.tsx apps/silvercode/tests/wrap-regression.test.tsx apps/silvercode/tests/visual/markdown.test.tsx apps/silvercode/tests/visual/pane-2d-layout.test.tsx apps/silvercode/packages/agent-harness/tests/registry-adapters.test.ts apps/silvercode/packages/agent-harness/tests/notification-wire-bytes.test.ts` — 82 tests passed.
+- `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/chat-message-summary.test.tsx apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/notification-welcome-artifact.test.tsx apps/silvercode/tests/wrap-regression.test.tsx apps/silvercode/tests/visual/markdown.test.tsx apps/silvercode/tests/visual/pane-2d-layout.test.tsx apps/silvercode/packages/agent-harness/tests/registry-adapters.test.ts apps/silvercode/packages/agent-harness/tests/notification-wire-bytes.test.ts` — 82 tests passed.
 - `bun vitest run apps/silvercode/storybook/tests/stories.test.tsx apps/silvercode/storybook/tests/registry.test.ts` — 40 tests passed.
 - `bun vitest run --dir vendor/silvery tests/features/listview-overscroll-bump.test.tsx tests/ui/list-view-visible-content-anchoring.test.tsx tests/features/height-model.test.ts` — 31 tests passed.
 - `bun vitest run apps/km-tui/tests/column-rendering.test.ts --testNamePattern "▲ shows"` — 1 test passed.
@@ -262,8 +262,8 @@ Verification:
 
 Verification:
 
-- `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/turn-activity-summary.test.tsx` — 28 tests passed.
-- `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/turn-activity-summary.test.tsx apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/notification-welcome-artifact.test.tsx apps/silvercode/tests/wrap-regression.test.tsx apps/silvercode/tests/visual/markdown.test.tsx apps/silvercode/tests/visual/pane-2d-layout.test.tsx apps/silvercode/packages/agent-harness/tests/registry-adapters.test.ts apps/silvercode/packages/agent-harness/tests/notification-wire-bytes.test.ts` — 90 tests passed.
+- `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/chat-message-summary.test.tsx` — 28 tests passed.
+- `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/chat-message-summary.test.tsx apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/notification-welcome-artifact.test.tsx apps/silvercode/tests/wrap-regression.test.tsx apps/silvercode/tests/visual/markdown.test.tsx apps/silvercode/tests/visual/pane-2d-layout.test.tsx apps/silvercode/packages/agent-harness/tests/registry-adapters.test.ts apps/silvercode/packages/agent-harness/tests/notification-wire-bytes.test.ts` — 90 tests passed.
 - `bun vitest run apps/silvercode/storybook/tests/stories.test.tsx apps/silvercode/storybook/tests/registry.test.ts` — 41 tests passed.
 - `bun run typecheck` is not a useful clean signal in this sandbox/worktree: it cannot write `packages/km-infra/typescript/.tsbuildinfo` from the `apps/silvercode` writable root, and the repo-wide pass also reports pre-existing km-cli/vendor/silvery type errors. A narrower `apps/silvercode/tsconfig.json` pass avoids the write location with `/tmp/silvercode-tsconfig.tsbuildinfo`, but still fails in vendor `silvery`/`termless` type declarations outside this change.
 
@@ -277,7 +277,7 @@ Verification:
 
 Final verification in this worktree:
 
-- `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/turn-activity-summary.test.tsx apps/silvercode/tests/render-resumed-session-helper.test.tsx apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/notification-welcome-artifact.test.tsx apps/silvercode/tests/wrap-regression.test.tsx apps/silvercode/tests/visual/markdown.test.tsx apps/silvercode/tests/visual/pane-2d-layout.test.tsx apps/silvercode/packages/agent-harness/tests/registry-adapters.test.ts apps/silvercode/packages/agent-harness/tests/notification-wire-bytes.test.ts` — 95 tests passed.
+- `bun vitest run apps/silvercode/tests/chat-model.test.ts apps/silvercode/tests/chat-message-summary.test.tsx apps/silvercode/tests/render-resumed-session-helper.test.tsx apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/notification-welcome-artifact.test.tsx apps/silvercode/tests/wrap-regression.test.tsx apps/silvercode/tests/visual/markdown.test.tsx apps/silvercode/tests/visual/pane-2d-layout.test.tsx apps/silvercode/packages/agent-harness/tests/registry-adapters.test.ts apps/silvercode/packages/agent-harness/tests/notification-wire-bytes.test.ts` — 95 tests passed.
 - `bun vitest run apps/silvercode/storybook/tests/stories.test.tsx apps/silvercode/storybook/tests/registry.test.ts` — 41 tests passed.
 - Typecheck caveat remains the same as above: repo-wide and narrow app typecheck are currently blocked by sandbox `.tsbuildinfo` write constraints and pre-existing vendor/repo type errors outside this component refactor.
 
@@ -285,4 +285,3 @@ Final verification in this worktree:
 
 - [[@km/silvercode/chat-layout-quality-plateau]]
 - [[@km/silvercode/runtime-error-tracking-plateau]]
-

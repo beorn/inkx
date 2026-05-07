@@ -1,0 +1,556 @@
+import type { MessageEntry, ToolCallEntry, ToolResultEntry } from "@km/agent-harness"
+import type { NotificationStreamEntry } from "../notification-stream.ts"
+import type { ChatEvent, ChatRawRef } from "./types.ts"
+
+export type SubagentActivityStatus = "running" | "done" | "failed" | "cancelled"
+
+export type SubagentActivity = {
+  readonly id: string
+  readonly label: string
+  readonly status: SubagentActivityStatus
+  readonly startedAt: number
+  readonly completedAt?: number
+  readonly toolId?: string
+  readonly resultText?: string
+  readonly output?: unknown
+  readonly metadata?: {
+    readonly subagentType?: string
+    readonly prompt?: string
+  }
+  readonly eventIds: readonly string[]
+  readonly rawRefs: readonly ChatRawRef[]
+  readonly raw?: unknown
+}
+
+export type SubagentActivityDiagnostic = {
+  readonly kind: "subagent-count-mismatch"
+  readonly claimed: number
+  readonly observed: number
+  readonly text: string
+}
+
+export type SubagentActivityProjection = {
+  readonly activities: readonly SubagentActivity[]
+  readonly diagnostics: readonly SubagentActivityDiagnostic[]
+}
+
+export type SubagentActivityRow = {
+  readonly id: string
+  readonly label: string
+  readonly detail?: string
+  readonly status?: "running" | "done"
+  readonly matchKey?: string
+  readonly metadata?: {
+    readonly subagentType?: string
+    readonly prompt?: string
+  }
+  readonly raw?: unknown
+}
+
+export type ProjectSubagentActivityOptions = {
+  readonly sessionId?: string
+  readonly notificationEntries?: readonly NotificationStreamEntry[]
+  readonly currentOnly?: boolean
+}
+
+type SubagentActivityCandidate = Omit<SubagentActivity, "eventIds" | "rawRefs"> & {
+  readonly eventIds?: readonly string[]
+  readonly rawRefs?: readonly ChatRawRef[]
+}
+
+const SUBAGENT_TOOL_NAMES: ReadonlySet<string> = new Set(["Task", "Agent"])
+
+export function projectCurrentSubagentActivitiesFromChatEvents(
+  events: readonly ChatEvent[],
+  options: Omit<ProjectSubagentActivityOptions, "currentOnly"> = {},
+): SubagentActivityProjection {
+  return projectSubagentActivitiesFromChatEvents(events, { ...options, currentOnly: true })
+}
+
+export function projectSubagentActivitiesFromChatEvents(
+  events: readonly ChatEvent[],
+  options: ProjectSubagentActivityOptions = {},
+): SubagentActivityProjection {
+  const scopedEvents = options.sessionId ? events.filter((event) => event.sessionId === options.sessionId) : [...events]
+  const orderedEvents = orderWithIndex(scopedEvents)
+  const currentStartedAt = options.currentOnly === false ? undefined : latestUserMessageStartedAt(orderedEvents)
+  const builder = new SubagentActivityBuilder()
+  const assistantTextByMessageId = new Map<string, string>()
+  const userTextByMessageId = new Map<string, string>()
+  const roleByMessageId = new Map<string, string>()
+
+  for (const { value: event } of orderedEvents) {
+    if (currentStartedAt !== undefined && event.ts < currentStartedAt) continue
+    switch (event.type) {
+      case "message.started":
+        roleByMessageId.set(event.payload.messageId, event.payload.role)
+        break
+      case "message.part.added": {
+        const role = roleByMessageId.get(event.payload.messageId)
+        if (role === "user" && event.payload.part.type === "text") {
+          userTextByMessageId.set(
+            event.payload.messageId,
+            `${userTextByMessageId.get(event.payload.messageId) ?? ""}${event.payload.part.text}`,
+          )
+        } else if (role !== "user" && event.payload.part.type === "text") {
+          assistantTextByMessageId.set(
+            event.payload.messageId,
+            `${assistantTextByMessageId.get(event.payload.messageId) ?? ""}${event.payload.part.text}`,
+          )
+        }
+        break
+      }
+      case "tool.started":
+        if (isSubagentToolName(event.payload.name)) {
+          builder.upsert(subagentActivityFromToolStarted(event))
+        }
+        break
+      case "tool.completed":
+        builder.completeTool(
+          event.payload.toolId,
+          event.payload.status === "cancelled" ? "cancelled" : event.payload.status === "failed" ? "failed" : "done",
+          {
+            completedAt: event.ts,
+            output: event.payload.output,
+            resultText: resultText(event.payload.output),
+            eventId: event.id,
+            rawRefs: event.rawRefs,
+          },
+        )
+        break
+      default:
+        break
+    }
+  }
+
+  for (const entry of options.notificationEntries ?? []) {
+    const activity = subagentActivityFromNotification(entry, {
+      currentStartedAt,
+      sessionId: options.sessionId,
+    })
+    if (activity) builder.upsert(activity)
+  }
+
+  const activities = builder.activities()
+  return {
+    activities,
+    diagnostics: claimDiagnostics(
+      [...userTextByMessageId.values(), ...assistantTextByMessageId.values()],
+      activities.length,
+    ),
+  }
+}
+
+export function projectCurrentSubagentActivitiesFromMessages(
+  messages: readonly MessageEntry[],
+  options: Omit<ProjectSubagentActivityOptions, "currentOnly"> = {},
+): SubagentActivityProjection {
+  const builder = new SubagentActivityBuilder()
+  const lastUserIndex = findLastMessageIndex(messages, (message) => message.role === "user")
+  const currentMessages = lastUserIndex >= 0 ? messages.slice(lastUserIndex + 1) : messages
+  const currentStartedAt = lastUserIndex >= 0 ? messages[lastUserIndex]?.ts : undefined
+  const assistantTexts: string[] = []
+  const userTexts = lastUserIndex >= 0 ? [messages[lastUserIndex]?.text ?? ""] : []
+
+  for (const message of currentMessages) {
+    if (message.role === "assistant" && message.text.trim().length > 0) assistantTexts.push(message.text)
+    for (const call of message.toolCalls) {
+      if (!isSubagentToolName(call.name)) continue
+      const result = message.toolResults.find((candidate) => candidate.id === call.id)
+      builder.upsert(subagentActivityFromMessageTool(call, result, message))
+    }
+  }
+
+  for (const entry of options.notificationEntries ?? []) {
+    const activity = subagentActivityFromNotification(entry, {
+      currentStartedAt,
+      sessionId: options.sessionId,
+    })
+    if (activity) builder.upsert(activity)
+  }
+
+  const activities = builder.activities()
+  return {
+    activities,
+    diagnostics: claimDiagnostics([...userTexts, ...assistantTexts], activities.length),
+  }
+}
+
+export function subagentActivityRowsFromActivities(
+  activities: readonly SubagentActivity[],
+): readonly SubagentActivityRow[] {
+  return activities.map((activity) => ({
+    id: activity.toolId ?? activity.id,
+    label: activity.label,
+    detail: activity.resultText,
+    status: activity.status === "running" ? "running" : "done",
+    matchKey: activity.toolId ?? activity.label,
+    metadata: activity.metadata,
+    raw: activity.raw ?? activity,
+  }))
+}
+
+class SubagentActivityBuilder {
+  private readonly activitiesById = new Map<string, SubagentActivity>()
+  private readonly order: string[] = []
+
+  upsert(candidate: SubagentActivityCandidate): void {
+    const activity = materializeCandidate(candidate)
+    const existingId = this.findExistingId(activity)
+    if (!existingId) {
+      this.activitiesById.set(activity.id, activity)
+      this.order.push(activity.id)
+      return
+    }
+    const existing = this.activitiesById.get(existingId)
+    if (!existing) return
+    this.activitiesById.set(existingId, mergeActivities(existing, activity))
+  }
+
+  completeTool(
+    toolId: string,
+    status: Extract<SubagentActivityStatus, "done" | "failed" | "cancelled">,
+    patch: {
+      readonly completedAt: number
+      readonly output?: unknown
+      readonly resultText?: string
+      readonly eventId: string
+      readonly rawRefs: readonly ChatRawRef[]
+    },
+  ): void {
+    const existingId = this.findByToolId(toolId)
+    if (!existingId) return
+    const existing = this.activitiesById.get(existingId)
+    if (!existing) return
+    this.activitiesById.set(existingId, {
+      ...existing,
+      status,
+      completedAt: patch.completedAt,
+      output: patch.output,
+      resultText: patch.resultText ?? existing.resultText,
+      eventIds: unique([...existing.eventIds, patch.eventId]),
+      rawRefs: [...existing.rawRefs, ...patch.rawRefs],
+    })
+  }
+
+  activities(): readonly SubagentActivity[] {
+    return this.order.flatMap((id) => {
+      const activity = this.activitiesById.get(id)
+      return activity ? [activity] : []
+    })
+  }
+
+  private findExistingId(activity: SubagentActivity): string | undefined {
+    if (activity.toolId) {
+      const byTool = this.findByToolId(activity.toolId)
+      if (byTool) {
+        const existing = this.activitiesById.get(byTool)
+        if (existing && labelsCompatible(existing.label, activity.label)) return byTool
+      }
+    }
+    const labelKey = meaningfulKey(activity.label)
+    if (!labelKey) return this.activitiesById.has(activity.id) ? activity.id : undefined
+    if (activity.toolId) {
+      return this.activitiesById.has(activity.id) ? activity.id : undefined
+    }
+    let uniqueToolBackedLabelMatch: string | undefined
+    let toolBackedLabelMatches = 0
+    for (const id of this.order) {
+      const existing = this.activitiesById.get(id)
+      if (!existing) continue
+      if (meaningfulKey(existing.label) !== labelKey) continue
+      if (!existing.toolId) return id
+      uniqueToolBackedLabelMatch = id
+      toolBackedLabelMatches++
+    }
+    if (toolBackedLabelMatches === 1) return uniqueToolBackedLabelMatch
+    return this.activitiesById.has(activity.id) ? activity.id : undefined
+  }
+
+  private findByToolId(toolId: string): string | undefined {
+    for (const id of this.order) {
+      const existing = this.activitiesById.get(id)
+      if (existing?.toolId === toolId) return id
+    }
+    return undefined
+  }
+}
+
+function materializeCandidate(candidate: SubagentActivityCandidate): SubagentActivity {
+  return {
+    ...candidate,
+    eventIds: candidate.eventIds ?? [],
+    rawRefs: candidate.rawRefs ?? [],
+  }
+}
+
+function mergeActivities(existing: SubagentActivity, incoming: SubagentActivity): SubagentActivity {
+  const terminalIncoming = incoming.status !== "running"
+  const terminalExisting = existing.status !== "running"
+  const status = terminalIncoming || !terminalExisting ? incoming.status : existing.status
+  return {
+    ...existing,
+    label: preferLabel(existing.label, incoming.label),
+    status,
+    startedAt: Math.min(existing.startedAt, incoming.startedAt),
+    completedAt: maxDefined(existing.completedAt, incoming.completedAt),
+    toolId: existing.toolId ?? incoming.toolId,
+    resultText: incoming.resultText ?? existing.resultText,
+    output: incoming.output ?? existing.output,
+    metadata: {
+      ...existing.metadata,
+      ...incoming.metadata,
+    },
+    eventIds: unique([...existing.eventIds, ...incoming.eventIds]),
+    rawRefs: [...existing.rawRefs, ...incoming.rawRefs],
+    raw: {
+      kind: "subagent-activity-merged",
+      existing: existing.raw ?? existing,
+      incoming: incoming.raw ?? incoming,
+    },
+  }
+}
+
+function subagentActivityFromToolStarted(
+  event: Extract<ChatEvent, { type: "tool.started" }>,
+): SubagentActivityCandidate {
+  const task = taskDetails(event.payload.name, event.payload.input)
+  return {
+    id: `tool:${event.payload.toolId}`,
+    toolId: event.payload.toolId,
+    label: task.label,
+    status: "running",
+    startedAt: event.ts,
+    metadata: task.metadata,
+    eventIds: [event.id],
+    rawRefs: event.rawRefs,
+    raw: {
+      kind: "subagent-tool-started",
+      event,
+    },
+  }
+}
+
+function subagentActivityFromMessageTool(
+  call: ToolCallEntry,
+  result: ToolResultEntry | undefined,
+  message: MessageEntry,
+): SubagentActivityCandidate {
+  const task = taskDetails(call.name, call.input)
+  const terminalStatus = result?.is_error ? "failed" : "done"
+  return {
+    id: `tool:${call.id}`,
+    toolId: call.id,
+    label: task.label,
+    status: result ? terminalStatus : "running",
+    startedAt: message.ts,
+    completedAt: result ? message.ts : undefined,
+    output: result?.output,
+    resultText: resultText(result?.output),
+    metadata: task.metadata,
+    eventIds: [message.id],
+    rawRefs: [],
+    raw: {
+      kind: "subagent-message-tool",
+      messageId: message.id,
+      call,
+      result,
+    },
+  }
+}
+
+function subagentActivityFromNotification(
+  entry: NotificationStreamEntry,
+  opts: { readonly currentStartedAt?: number; readonly sessionId?: string },
+): SubagentActivityCandidate | null {
+  if (entry.source !== "subagent" && entry.source !== "sub-agent") return null
+  const timestamp = entry.ts ?? entry.timestamp ?? 0
+  if (opts.currentStartedAt !== undefined && timestamp < opts.currentStartedAt) return null
+  const fromSessionId = typeof entry.meta?.fromSessionId === "string" ? entry.meta.fromSessionId : undefined
+  if (opts.sessionId && fromSessionId && fromSessionId !== opts.sessionId) return null
+  const parsed = parseSubagentNotificationContent(entry.content)
+  if (!parsed) return null
+  const metaDescription = stringField(entry.meta?.description)
+  const description = metaDescription ?? parsed.description
+  if (!isMeaningfulSubagentDescription(description)) return null
+  const toolUseId = stringField(entry.meta?.toolUseId)
+  const status = notificationStatus(parsed.status)
+  return {
+    id: `notification:${entry.id}`,
+    toolId: toolUseId,
+    label: description,
+    status,
+    startedAt: timestamp,
+    completedAt: status === "running" ? undefined : timestamp,
+    resultText: parsed.resultText,
+    eventIds: [entry.id],
+    rawRefs: [{ id: entry.id, source: "local", label: "subagent notification", raw: entry }],
+    raw: {
+      kind: "subagent-notification",
+      entry,
+    },
+  }
+}
+
+function taskDetails(
+  fallbackLabel: string,
+  input: unknown,
+): { readonly label: string; readonly metadata?: SubagentActivity["metadata"] } {
+  const obj = typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {}
+  const description = stringField(obj.description)
+  const prompt = stringField(obj.prompt)
+  const command = stringField(obj.command)
+  const subagentType = stringField(obj.subagent_type) ?? stringField(obj.agent)
+  const label = description ?? command ?? prompt ?? subagentType ?? fallbackLabel
+  return {
+    label,
+    metadata: {
+      ...(subagentType && subagentType !== description ? { subagentType } : {}),
+      ...(prompt ? { prompt } : {}),
+    },
+  }
+}
+
+function parseSubagentNotificationContent(content: string): {
+  readonly description: string
+  readonly resultText?: string
+  readonly status: string
+} | null {
+  const match = content.match(
+    /^\[subagent\s+[^\]]+\]\s+(started|completed|failed|stopped|progress|in progress):\s*([\s\S]*)$/i,
+  )
+  if (!match) return null
+  const status = (match[1] ?? "").toLowerCase()
+  const body = cleanSubagentNotificationBody(match[2] ?? "")
+  if (!body) return null
+  const [description = "", resultText] = body.split(/\s+—\s+/, 2)
+  const trimmedDescription = description.trim()
+  return {
+    description: trimmedDescription,
+    resultText: resultText?.trim() || undefined,
+    status,
+  }
+}
+
+function notificationStatus(status: string): SubagentActivityStatus {
+  switch (status) {
+    case "completed":
+      return "done"
+    case "failed":
+      return "failed"
+    case "stopped":
+      return "cancelled"
+    default:
+      return "running"
+  }
+}
+
+function cleanSubagentNotificationBody(value: string): string {
+  return value
+    .replace(/\s*<usage>[\s\S]*?<\/usage>\s*$/i, " ")
+    .replace(/\s*\(use SendMessage with to:\s*'[^']+'\s*to continue this agent\)\s*/i, " ")
+    .replace(/\s*\bagentId:\s*[A-Za-z0-9_-]+\s*/i, " ")
+    .replace(/\s+—\s*$/i, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function claimDiagnostics(texts: readonly string[], observed: number): readonly SubagentActivityDiagnostic[] {
+  const latestTextByClaim = new Map<number, string>()
+  for (const text of texts) {
+    const claimed = claimedDoneCount(text)
+    if (claimed !== undefined && claimed > observed) latestTextByClaim.set(claimed, text)
+  }
+  return [...latestTextByClaim].map(([claimed, text]) => ({ kind: "subagent-count-mismatch", claimed, observed, text }))
+}
+
+function claimedDoneCount(text: string): number | undefined {
+  const match =
+    text.match(/\b(?:use|run|spawn|start|launch|create)\s+(\d+)\s+(?:subagents?|agents?)\b/i) ??
+    text.match(/\ball\s+(\d+)\s+(?:subagents?|agents?)?\s*(?:reported\s+)?(?:are\s+)?done\b/i) ??
+    text.match(/\b(\d+)\s+(?:subagents?|agents?)\s+(?:reported\s+)?(?:are\s+)?done\b/i)
+  if (!match?.[1]) return undefined
+  const count = Number.parseInt(match[1], 10)
+  return Number.isFinite(count) && count > 0 ? count : undefined
+}
+
+function latestUserMessageStartedAt(events: readonly { readonly value: ChatEvent }[]): number | undefined {
+  let latest: number | undefined
+  for (const { value: event } of events) {
+    if (event.type === "message.started" && event.payload.role === "user") latest = event.ts
+  }
+  return latest
+}
+
+function findLastMessageIndex(
+  messages: readonly MessageEntry[],
+  predicate: (message: MessageEntry) => boolean,
+): number {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i]
+    if (m === undefined) continue
+    if (predicate(m)) return i
+  }
+  return -1
+}
+
+function orderWithIndex<T extends { readonly ts: number }>(
+  values: readonly T[],
+): readonly { value: T; index: number }[] {
+  return values.map((value, index) => ({ value, index })).sort((a, b) => a.value.ts - b.value.ts || a.index - b.index)
+}
+
+function isSubagentToolName(name: string): boolean {
+  return SUBAGENT_TOOL_NAMES.has(name)
+}
+
+function resultText(output: unknown): string | undefined {
+  if (typeof output === "string") return output.trim() || undefined
+  if (output === undefined || output === null) return undefined
+  try {
+    return JSON.stringify(output)
+  } catch {
+    return String(output)
+  }
+}
+
+function stringField(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined
+}
+
+function isMeaningfulSubagentDescription(value: string): boolean {
+  const normalized = value.replace(/\s+/g, " ").trim().toLowerCase()
+  return normalized.length > 0 && normalized !== "(no description)"
+}
+
+function meaningfulKey(value: string | undefined): string | undefined {
+  const normalized = value?.replace(/\s+/g, " ").trim().toLowerCase()
+  if (!normalized) return undefined
+  if (normalized === "agent" || normalized === "task" || normalized === "general-purpose") return undefined
+  if (normalized === "(no description)") return undefined
+  return normalized
+}
+
+function labelsCompatible(a: string, b: string): boolean {
+  const aKey = meaningfulKey(a)
+  const bKey = meaningfulKey(b)
+  if (!aKey || !bKey) return true
+  return aKey === bKey
+}
+
+function preferLabel(existing: string, incoming: string): string {
+  const existingKey = meaningfulKey(existing)
+  const incomingKey = meaningfulKey(incoming)
+  if (!existingKey && incomingKey) return incoming
+  return existing
+}
+
+function maxDefined(a: number | undefined, b: number | undefined): number | undefined {
+  if (a === undefined) return b
+  if (b === undefined) return a
+  return Math.max(a, b)
+}
+
+function unique(values: readonly string[]): readonly string[] {
+  return [...new Set(values)]
+}

@@ -41,7 +41,7 @@ import { createScope, type Scope } from "@silvery/scope"
 import { createInMemoryTribe, type TribeBackend } from "@km/tribe-mcp"
 import { resolveAccountDir } from "./accounts.ts"
 import { bdPrimeOutputAsync, bdPrimePeek, readActiveBeadAsync, readActiveBeadPeek } from "./bd-prime.ts"
-import { type ChannelQueue, createChannelQueue } from "./channel-queue.ts"
+import { type ChannelEvent, type ChannelQueue, createChannelQueue } from "./channel-queue.ts"
 import { type NotificationStream, createNotificationStream } from "./notification-stream.ts"
 import { type MuteState, createMuteState } from "./mute-state.ts"
 import { wireChannelSources } from "./channel-sources.ts"
@@ -51,7 +51,8 @@ import { triggerRecallProbe } from "./notification-adapters/recall.ts"
 import { type CoordinatorMcpServer, createCoordinatorMcpServer } from "./coordinator-mcp.ts"
 import { type CrossAgentState, createCrossAgentState } from "./cross-agent-state.ts"
 import { replaySessionFromDisk, sessionJsonlPath } from "./resume.ts"
-import type { SessionHistoryMetadata } from "./session-metadata.ts"
+import { discoverClaudeSubagentSessions } from "./claude-subagent-sessions.ts"
+import type { SessionHistoryMetadata, SubagentSessionSummary } from "./session-metadata.ts"
 
 // Queue diagnostics — enable with `DEBUG=silvercode:queue` (combined with
 // `DEBUG_LOG=<path>` when running the TUI so the alt-screen UI isn't
@@ -568,6 +569,61 @@ function ctrlStartupTick(label: string, extra?: Record<string, unknown>): void {
   ctrlStartupLog.info?.(label, { elapsedMs: Date.now() - ctrlBootT0, ...extra })
 }
 
+function isClaudeAgentId(agent: string | undefined): boolean {
+  return (
+    agent === undefined ||
+    agent === "claude" ||
+    agent === "claude-code" ||
+    agent === "claude-code-spawn" ||
+    agent === "claude-code-sdk"
+  )
+}
+
+function latestUserMessageTs(store: SessionStore): number | undefined {
+  const messages = store.state.get().messages
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i]
+    if (message?.role === "user") return message.ts
+  }
+  return undefined
+}
+
+function channelEventFromClaudeSubagentSummary(
+  sessionId: string,
+  summary: SubagentSessionSummary,
+  status: "started" | "completed" | "failed" | "stopped",
+): ChannelEvent {
+  const agent = summary.agentType ?? "Agent"
+  const description = summary.description ?? summary.id
+  const timestamp = summary.completedAt ?? summary.startedAt ?? Date.now()
+  const resultText = summary.resultText ? ` — ${summary.resultText}` : ""
+  return {
+    id: `claude-subagent:${sessionId}:${summary.id}:${status}:${timestamp}`,
+    source: "subagent",
+    timestamp,
+    content: `[subagent ${agent}] ${status}: ${description}${status === "completed" ? resultText : ""}`,
+    meta: {
+      kind: "subagent-status",
+      provider: "claude-sidechain",
+      status,
+      agent,
+      fromSessionId: sessionId,
+      description,
+      subagentSessionId: summary.id,
+      transcriptPath: summary.transcriptPath,
+    },
+  }
+}
+
+function notificationStatusForSubagentSummary(
+  status: SubagentSessionSummary["status"],
+): "started" | "completed" | "failed" | "stopped" {
+  if (status === "done") return "completed"
+  if (status === "failed") return "failed"
+  if (status === "cancelled") return "stopped"
+  return "started"
+}
+
 export function createSilvercodeController(opts: ControllerOptions): Controller {
   ctrlStartupTick("controller:create:enter")
   const sessions: SessionHandle[] = []
@@ -616,6 +672,36 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   // subagent handle below receives Task-tool `tool-use` / `tool-result`
   // events from the per-session subscribe loop.
   let subagentAdapter: ReturnType<typeof registerAllNotificationAdapters>["subagent"] | undefined
+  const claudeSidechainNotificationKeys = new Map<string, Set<string>>()
+  const lastClaudeSidechainScanAt = new Map<string, number>()
+  function recordClaudeSidechainSubagents(
+    sessionId: string,
+    store: SessionStore,
+    metadata: SessionHistoryMetadata,
+    force = false,
+  ): void {
+    if (!isClaudeAgentId(metadata.agent)) return
+    const providerSessionId = metadata.sessionId ?? metadata.resumeId
+    if (!providerSessionId) return
+    const now = Date.now()
+    const lastScanAt = lastClaudeSidechainScanAt.get(sessionId) ?? 0
+    if (!force && now - lastScanAt < 250) return
+    lastClaudeSidechainScanAt.set(sessionId, now)
+
+    const summaries = discoverClaudeSubagentSessions(metadata.cwd, providerSessionId)
+    metadata.subagentSessions = summaries
+    const since = latestUserMessageTs(store)
+    const seen = claudeSidechainNotificationKeys.get(sessionId) ?? new Set<string>()
+    claudeSidechainNotificationKeys.set(sessionId, seen)
+    for (const summary of summaries) {
+      if (since !== undefined && summary.startedAt !== undefined && summary.startedAt < since) continue
+      const status = notificationStatusForSubagentSummary(summary.status)
+      const event = channelEventFromClaudeSubagentSummary(sessionId, summary, status)
+      if (seen.has(event.id)) continue
+      seen.add(event.id)
+      notificationStream.record(sessionId, event)
+    }
+  }
   if (!opts.disableNotificationAdapters && !opts.disableChannelSources) {
     ctrlStartupTick("controller:create:beforeRegisterNotification")
     const adapters = registerAllNotificationAdapters({
@@ -1287,12 +1373,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     // the ACP server is responsible for hydrating prior turns via session
     // updates. Skip the local replay so non-Claude users don't see a
     // misleading "no transcript at ~/.claude/projects/..." error.
-    const isClaudeAgent =
-      opts.agent === undefined ||
-      opts.agent === "claude" ||
-      opts.agent === "claude-code" ||
-      opts.agent === "claude-code-spawn" ||
-      opts.agent === "claude-code-sdk"
+    const isClaudeAgent = isClaudeAgentId(opts.agent)
     const isCodexAgent = opts.agent === "codex" || opts.agent === "codex-spawn"
     // Yield to the event loop BEFORE replaying transcript so React can
     // commit an empty-session frame first. Without this yield, the
@@ -1315,6 +1396,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         metadata.replayMessageCount = replayedMessages.length
         metadata.replayBoundaryMessageId = replayedMessages.at(-1)?.id
       }
+      recordClaudeSidechainSubagents(id, store, metadata, true)
     } else if (opts.resume && isCodexAgent) {
       // Codex stores rollouts at ~/.codex/sessions/YYYY/MM/DD/rollout-*-<sid>.jsonl
       // with a different schema than Claude's stream-json. The codex parser
@@ -1483,6 +1565,15 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       } else if (event.kind === "session-lifecycle" && event.state === "ended") {
         metadata.endedAt = event.ts
         crossAgentState.updateSessionStatus(id, "ended")
+      }
+
+      if (isClaudeAgent) {
+        recordClaudeSidechainSubagents(
+          id,
+          store,
+          metadata,
+          event.kind === "session-init" || event.kind === "tool-result" || event.kind === "turn-end",
+        )
       }
     })
 

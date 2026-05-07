@@ -19,7 +19,7 @@ closeReason: "Shipped/verified cbadc97f2. Canonical AgentPlan covers Claude
   apps/silvercode/packages/agent-harness/tests/parse.test.ts
   apps/silvercode/tests/content-layout.test.tsx
   apps/silvercode/tests/chat-model.test.ts
-  apps/silvercode/tests/turn-activity-summary.test.tsx
+  apps/silvercode/tests/chat-message-summary.test.tsx
   apps/silvercode/tests/notification-event-row.test.tsx
   apps/silvercode/tests/visual/message-list-sticky-bottom.test.tsx (169 passed /
   1 skipped); npx tsc --noEmit --pretty false."
@@ -41,7 +41,7 @@ Silvercode currently has multiple plan/todo representations:
 - Codex exposes plan-like data through `plan_update` / `plan_delta` rollout events and `update_plan`-style tool activity.
 - Transcript rendering still treats plan/todo updates mostly as generic tool activity (`ToolKind: "think"`), while the side panel shows the latest todo count/snapshot.
 
-That makes the UI and state model unclear: the same concept appears as side-panel todos, activity-summary tool rows, ACP plan entries, and provider-specific raw payloads.
+That makes the UI and state model unclear: the same concept appears as side-panel todos, chat-message-summary tool rows, ACP plan entries, and provider-specific raw payloads.
 
 ## Goal
 
@@ -203,7 +203,7 @@ Side panel:
 
 Transcript:
 
-- Render provider plan updates as a first-class plan update component, not as generic `TurnActivitySummary` / `ToolKind: "think"` rows.
+- Render provider plan updates as a first-class plan update component, not as generic `ChatMessageSummary` / `ToolKind: "think"` rows.
 - When provenance allows, the plan update may appear inside a visible chat envelope/segment as a presentation detail. The underlying canonical plan remains session-scoped.
 - Raw `TodoWrite`, `update_plan`, and ACP plan payloads remain available in raw/debug mode.
 

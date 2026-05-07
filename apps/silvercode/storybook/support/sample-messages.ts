@@ -389,7 +389,7 @@ export const TURN_ACTIVITY_RICH: MessageEntry[] = [
   makeFixtureEntry({
     id: tid(30),
     role: "user",
-    ops: [{ kind: "text", text: "Implement TurnActivitySummary and verify the transcript surface." }],
+    ops: [{ kind: "text", text: "Implement ChatMessageSummary and verify the transcript surface." }],
     ts: NOW + 60_000,
   }),
   makeFixtureEntry({
@@ -426,15 +426,15 @@ export const TURN_ACTIVITY_RICH: MessageEntry[] = [
         toolCall: {
           id: "tu_activity_bash_long" as ToolUseId,
           name: "Bash",
-          input: { command: "bun vitest run apps/silvercode/tests/turn-activity-summary.test.tsx" },
+          input: { command: "bun vitest run apps/silvercode/tests/chat-message-summary.test.tsx" },
         },
         result: {
           id: "tu_activity_bash_long" as ToolUseId,
           output:
             "RUN  v4.1.4 /Users/beorn/Code/pim/km\n" +
-            "✓ TurnActivitySummary keeps a single low-content tool call inline\n" +
-            "✓ TurnActivitySummary groups high-content tool work\n" +
-            "✓ TurnActivitySummary expands recoverable raw details\n" +
+            "✓ ChatMessageSummary keeps a single low-content tool call inline\n" +
+            "✓ ChatMessageSummary groups high-content tool work\n" +
+            "✓ ChatMessageSummary expands recoverable raw details\n" +
             "Test Files 1 passed\n" +
             "Tests 3 passed\n" +
             "Duration 1.9s\n",
@@ -448,7 +448,7 @@ export const TURN_ACTIVITY_RICH: MessageEntry[] = [
           input: {
             file_path: "apps/silvercode/src/components/SessionUpdateList.tsx",
             old_string: "<ToolCall toolCall={adaptedCall} />",
-            new_string: "<TurnActivitySummary items={items} />",
+            new_string: "<ChatMessageSummary items={items} />",
           },
         },
         result: { id: "tu_activity_edit" as ToolUseId, output: "Patch applied.", is_error: false },

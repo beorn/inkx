@@ -39,7 +39,7 @@ Wave B (acp-session-update-list, acp-session-prompt, acp-usage-and-permission) s
 - UsageMeter — context-window meter with realistic usage values + UsageBreakdown + UsageMetrics + StructuredQuestion + StructuredAnswer (5 sub-components)
 - SessionExchangeDivider — between two exchanges
 - SessionRetry — failed exchange with retry affordance
-- SubAgentExchange — nested SessionUpdate stream (collapsed + expanded variants)
+- SubagentActivityPanel — nested SessionUpdate stream (collapsed + expanded variants)
 
 ## Acceptance
 

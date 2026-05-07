@@ -40,25 +40,29 @@ describe("markdown rendering at multiple widths", () => {
       // scroll the leading `●` glyph out of the viewport — markdownRich
       // wraps to ~100 rendered lines at narrow widths.
       const s = await renderScenario({ script: markdownRich, cols, rows: 200 })
-      const leftWidth = expectedLeftWidth(cols)
-      const panelHidden = cols < PANEL_AUTO_OPEN_COLS
-      const p = parseFrame(s, { leftWidth })
-      // Match key markdown tokens. At narrow widths panel is hidden so the
-      // message column gets the full terminal width — paragraphs wrap less
-      // aggressively. Code fence still asserted only where it fits.
-      expect(s.text, `H1 heading missing at cols=${cols}`).toMatch(/Heading/)
-      expect(s.text, `'first' missing at cols=${cols}`).toMatch(/first/)
-      expect(s.text, `'bullet' missing at cols=${cols}`).toMatch(/bullet/)
-      if (cols >= 80) {
-        expect(s.text, `code fence missing at cols=${cols}`).toMatch(/function|hello/)
+      try {
+        const leftWidth = expectedLeftWidth(cols)
+        const panelHidden = cols < PANEL_AUTO_OPEN_COLS
+        const p = parseFrame(s, { leftWidth })
+        // Match key markdown tokens. At narrow widths panel is hidden so the
+        // message column gets the full terminal width — paragraphs wrap less
+        // aggressively. Code fence still asserted only where it fits.
+        expect(s.text, `H1 heading missing at cols=${cols}`).toMatch(/Heading/)
+        expect(s.text, `'first' missing at cols=${cols}`).toMatch(/first/)
+        expect(s.text, `'bullet' missing at cols=${cols}`).toMatch(/bullet/)
+        if (cols >= 80) {
+          expect(s.text, `code fence missing at cols=${cols}`).toMatch(/function|hello/)
+        }
+        // Skip panel-presence + overflow-into-panel invariants when panel is
+        // hidden (cols < lg=120) — the responsive default gives the message
+        // area the full width, so there's no panel column zone to overflow into.
+        expectLayoutInvariants(s, {
+          leftWidth,
+          skip: panelHidden ? { sidePanel: true, overflow: true } : undefined,
+        })
+      } finally {
+        s.dispose()
       }
-      // Skip panel-presence + overflow-into-panel invariants when panel is
-      // hidden (cols < lg=120) — the responsive default gives the message
-      // area the full width, so there's no panel column zone to overflow into.
-      expectLayoutInvariants(s, {
-        leftWidth,
-        skip: panelHidden ? { sidePanel: true, overflow: true } : undefined,
-      })
     })
   }
 
@@ -68,20 +72,28 @@ describe("markdown rendering at multiple widths", () => {
     // NOT render, but message content does. (Manual /panel opens it as an
     // overlay; that path tested elsewhere.)
     const s = await renderScenario({ script: markdownRich, cols: 40, rows: 60 })
-    expect(s.text, `'first' missing at cols=40`).toMatch(/first/)
-    expect(s.text, `'bullet' missing at cols=40`).toMatch(/bullet/)
+    try {
+      expect(s.text, `'first' missing at cols=40`).toMatch(/first/)
+      expect(s.text, `'bullet' missing at cols=40`).toMatch(/bullet/)
+    } finally {
+      s.dispose()
+    }
   })
 
   test("code and quote blocks render as inset prose blocks, not bordered boxes", async () => {
     const s = await renderScenario({ script: markdownRich, cols: 80, rows: 80 })
-    expect(s.text).toContain("function hello")
-    expect(s.text).not.toContain("│")
-    expect(s.text).not.toContain("typescript")
+    try {
+      expect(s.text).toContain("function hello")
+      expect(s.text).not.toContain("│")
+      expect(s.text).not.toContain("typescript")
 
-    const codeLine = s.text.split("\n").find((line) => line.includes("function hello")) ?? ""
-    expect(codeLine.indexOf("function hello")).toBeGreaterThan(0)
-    const commandLine = s.text.split("\n").find((line) => line.includes(">")) ?? ""
-    expect(commandLine.indexOf(">")).toBe(codeLine.indexOf("function hello") - 1)
+      const codeLine = s.text.split("\n").find((line) => line.includes("function hello")) ?? ""
+      expect(codeLine.indexOf("function hello")).toBeGreaterThan(0)
+      const commandLine = s.text.split("\n").find((line) => line.includes(">")) ?? ""
+      expect(commandLine.indexOf(">")).toBe(codeLine.indexOf("function hello") - 1)
+    } finally {
+      s.dispose()
+    }
   })
 
   test("blocky assistant prose does not overlap the following user prompt or composer", async () => {

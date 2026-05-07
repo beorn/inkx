@@ -42,10 +42,10 @@ Standardize Silvercode on the Sterling surface vocabulary:
 
 - `apps/silvercode/src/components/SyntaxHighlighter.tsx`
 - `apps/silvercode/src/components/AvailableCommandsPalette.tsx`
-- `apps/silvercode/src/components/SubAgentExchange.tsx`
+- `apps/silvercode/src/components/SubagentActivityPanel.tsx`
 - `apps/silvercode/src/components/PaneHeader.tsx`
 - `apps/silvercode/src/components/SessionPromptComposer.tsx`
 - `apps/silvercode/src/components/SessionUpdateList.tsx`
-- `apps/silvercode/src/components/TurnActivitySummary.tsx`
+- `apps/silvercode/src/components/ChatMessageSummary.tsx`
 - `apps/silvercode/src/components/SidePanel.tsx`
 

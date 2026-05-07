@@ -9,7 +9,7 @@ import type {
   ChatNodeId,
   ChatPermissionId,
   ChatPlan,
-  ChatQueue,
+  ChatPromptQueue,
   ChatRole,
   ChatSessionId,
   ChatToolId,
@@ -127,15 +127,15 @@ function assertPlanConsistency(event: ChatEvent<"plan.updated">, plan: ChatPlan)
   }
 }
 
-function assertQueueConsistency(event: ChatEvent<"queue.updated">, queue: ChatQueue): void {
-  assertEventIdsInclude(`queue.updated ${event.id} payload queue`, event.id, queue.eventIds)
+function assertPromptQueueConsistency(event: ChatEvent<"queue.updated">, promptQueue: ChatPromptQueue): void {
+  assertEventIdsInclude(`queue.updated ${event.id} payload prompt queue`, event.id, promptQueue.eventIds)
   const ids = new Set<string>()
-  for (const item of queue.items) {
-    if (ids.has(item.id)) {
-      throw new Error(`queue.updated ${event.id} duplicates item ${item.id}`)
+  for (const prompt of promptQueue.prompts) {
+    if (ids.has(prompt.id)) {
+      throw new Error(`queue.updated ${event.id} duplicates prompt ${prompt.id}`)
     }
-    ids.add(item.id)
-    assertEventIdsInclude(`queue.updated ${event.id} item ${item.id}`, event.id, item.eventIds)
+    ids.add(prompt.id)
+    assertEventIdsInclude(`queue.updated ${event.id} prompt ${prompt.id}`, event.id, prompt.eventIds)
   }
 }
 
@@ -352,7 +352,7 @@ export function projectChatTranscript({ sessionId, events }: ProjectArgs): ChatT
         })
         break
       case "queue.updated":
-        assertQueueConsistency(event, event.payload.queue)
+        assertPromptQueueConsistency(event, event.payload.promptQueue)
         pushLeaf({
           ...leafBase(event),
           type: "queue",

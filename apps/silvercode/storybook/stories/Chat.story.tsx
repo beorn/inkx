@@ -4,8 +4,8 @@ import type { AgentPlan, ToolCall as ToolCallType, ToolCallId } from "@km/agent-
 import { Chat } from "../../src/components/Chat.tsx"
 import type { SessionInfo } from "../../src/cross-agent-state.ts"
 import { SessionUpdateList } from "../../src/components/SessionUpdateList.tsx"
-import type { TurnActivitySummaryItem } from "../../src/components/TurnActivitySummary.tsx"
-import { withActivitySpan } from "../support/activity-summary.ts"
+import type { ChatMessageSummaryItem } from "../../src/components/ChatMessageSummary.tsx"
+import { withActivityRun } from "../support/chat-message-summary.ts"
 import {
   BIG_TOOL_TURN,
   METADATA_NOTIFICATIONS,
@@ -21,7 +21,7 @@ function tc(partial: Partial<ToolCallType> & Pick<ToolCallType, "toolCallId" | "
   return partial
 }
 
-const directActivityItems: TurnActivitySummaryItem[] = [
+const directActivityItems: ChatMessageSummaryItem[] = [
   {
     id: "read",
     toolCall: tc({
@@ -41,10 +41,10 @@ const directActivityItems: TurnActivitySummaryItem[] = [
       content: [{ type: "content", content: { type: "text", text: "Tests 2 passed" } }],
     }),
   },
-].map(withActivitySpan)
+].map(withActivityRun)
 
-const denseActivityItems: TurnActivitySummaryItem[] = Array.from({ length: 9 }, (_, i) =>
-  withActivitySpan(
+const denseActivityItems: ChatMessageSummaryItem[] = Array.from({ length: 9 }, (_, i) =>
+  withActivityRun(
     {
       id: `dense-${i}`,
       toolCall: tc({

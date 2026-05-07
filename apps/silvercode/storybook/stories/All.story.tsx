@@ -17,7 +17,7 @@
  *   • Exchange 2: user → assistant → ToolCall (execute) → assistant →
  *     ToolCall (edit) → ApplyPatch
  *   • Exchange 3: user → assistant → ToolCall (failed) → SessionRetry
- *   • SubAgentExchange (Task tool with nested stream)
+ *   • SubagentActivityPanel (Task tool with nested stream)
  *   • SessionExchangeDivider
  *   • ActivityIndicator (thinking)
  *   • Bottom area: InlinePermissionPrompt, SessionPromptComposer,

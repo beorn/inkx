@@ -1,7 +1,7 @@
 import React from "react"
 import { Box, Muted, Text, useHover } from "silvery"
 import type { BackgroundTask } from "../controller.ts"
-import type { BackgroundShellActivity, ChatActivityCounts, SubagentActivity } from "../chat/activity-snapshot.ts"
+import type { BackgroundShellActivity, ChatActivityCounts, SubagentActivityRow } from "../chat/activity-snapshot.ts"
 import { Content } from "./Content.tsx"
 import { BackgroundPane } from "./BackgroundPane.tsx"
 
@@ -32,7 +32,7 @@ function DetailBody({
 }: {
   detail: NotificationBlockDetail
   counts: ChatActivityCounts
-  agents: readonly SubagentActivity[]
+  agents: readonly SubagentActivityRow[]
   shells: readonly BackgroundShellActivity[]
   backgroundTasks: readonly BackgroundTask[]
   onCancelBackgroundTask?: (taskId: string) => void
@@ -121,7 +121,7 @@ export function NotificationBlock({
   onForegroundBackgroundTask,
 }: {
   counts: ChatActivityCounts
-  agents?: readonly SubagentActivity[]
+  agents?: readonly SubagentActivityRow[]
   shells?: readonly BackgroundShellActivity[]
   backgroundTasks: readonly BackgroundTask[]
   onCancelBackgroundTask?: (taskId: string) => void

@@ -198,7 +198,7 @@ describe("normalizeAgentEventToChatEvents", () => {
     })
     expect(normalizeAgentEventToChatEvents(rawEvents[1]!, { sessionId })[0]).toMatchObject({
       channel: "queue",
-      payload: { queue: { items: [] } },
+      payload: { promptQueue: { prompts: [] } },
     })
     expect(normalizeAgentEventToChatEvents(rawEvents[2]!, { sessionId })[0]).toMatchObject({
       channel: "notification",
@@ -231,6 +231,63 @@ describe("normalizeAgentEventToChatEvents", () => {
       payload: { label: "Duplicate message start" },
       rawRefs: [{ raw: { kind: "turn-start", turnId: duplicateTurnId } }],
     })
+  })
+
+  test("merges aggregate-only tool_use blocks into a streamed assistant turn", () => {
+    const providerSessionId = "provider-streamed" as SessionId
+    const streamedTurnId = "assistant-streamed" as TurnId
+
+    const normalized = normalizeAgentEventsToChatEvents(
+      [
+        {
+          kind: "user-message",
+          sessionId: providerSessionId,
+          turnId: "user-1" as TurnId,
+          text: "use 4 subagents to sleep 20s",
+          ts: 1_000,
+        },
+        { kind: "turn-start", sessionId: providerSessionId, turnId: streamedTurnId, role: "assistant", ts: 1_100 },
+        {
+          kind: "tool-use",
+          sessionId: providerSessionId,
+          turnId: streamedTurnId,
+          id: "toolu_2" as ToolUseId,
+          name: "Agent",
+          input: { description: "Sleep 20s #2" },
+          ts: 1_200,
+        },
+        { kind: "tool-result", sessionId: providerSessionId, id: "toolu_2" as ToolUseId, output: "done", ts: 1_300 },
+        {
+          kind: "text-delta",
+          sessionId: providerSessionId,
+          turnId: streamedTurnId,
+          blockIndex: 0,
+          text: "All 4 done in parallel.",
+          ts: 1_400,
+        },
+        {
+          kind: "assistant-message",
+          sessionId: providerSessionId,
+          turnId: streamedTurnId,
+          content: [1, 2, 3, 4].map((i) => ({
+            type: "tool_use",
+            id: `toolu_${i}` as ToolUseId,
+            name: "Agent",
+            input: { description: `Sleep 20s #${i}` },
+          })),
+          ts: 1_500,
+        },
+      ] satisfies AgentEvent[],
+      { sessionId },
+    )
+
+    expect(normalized.filter(isToolStarted).map((event) => event.payload.toolId)).toEqual([
+      "toolu_2",
+      "toolu_1",
+      "toolu_3",
+      "toolu_4",
+    ])
+    expect(normalized.filter(isMessagePartAdded).filter((event) => event.payload.part.type === "text")).toHaveLength(2)
   })
 
   test("coalesces split assistant aggregates when projected session id differs from provider session id", () => {

@@ -12,7 +12,7 @@ started_at: 2026-05-06T06:17:16.150Z
 closed_at: 2026-05-06T17:14:18Z
 close_reason: "Implemented provider-injected AgentBackends/chat session stores,
   comprehensive fake ACP backend streams, fake/live backend spec runner, docs,
-  and screenshot disclosure regressions. Tests: turn-activity-summary,
+  and screenshot disclosure regressions. Tests: chat-message-summary,
   agent-harness tests, backend contracts, typecheck, targeted oxlint, and git
   diff --check."
 owner: bjorn@stabell.org

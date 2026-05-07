@@ -38,7 +38,7 @@ Expected: one resize event → one stable layout pass. No churn after the first 
 Investigation pointers:
 
 - Check Screen resize listener fan-out (`recent-transcript-layout-quality-plateau` already removed a width-derived subtree key in Content.Layout — there may be more remount triggers keyed on width/height).
-- Inspect SessionUpdateList / Content / TurnActivitySummary / ToolCall / Chat for width-dependent memo keys that invalidate on resize.
+- Inspect SessionUpdateList / Content / ChatMessageSummary / ToolCall / Chat for width-dependent memo keys that invalidate on resize.
 - DEBUG_LOG above captures silvery:* + silvercode:* traces during the unstable window — diff timestamps between resize and final-stable frame to count reflow rounds.
 - Possibly a layout-cache fingerprint miss after width change forcing N round-trips through flexily.
 - Existing `recent-transcript-layout-quality-plateau` flagged a `MaxListenersExceededWarning` from repeated `Screen` resize listeners in test harness — may also indicate runtime listener fan-out.

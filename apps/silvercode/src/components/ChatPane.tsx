@@ -12,6 +12,11 @@ import type { MessageEntry, SessionState } from "@km/agent-harness"
 import { Chat } from "./Chat.tsx"
 import { ChatBlockList } from "./ChatBlockList.tsx"
 import { chatActivitySnapshotFromMessages } from "../chat/activity-snapshot.ts"
+import {
+  projectCurrentSubagentActivitiesFromChatEvents,
+  subagentActivityRowsFromActivities,
+} from "../chat/subagent-activities.ts"
+import { filterVisibleNotificationEntries } from "../chat/notification-visibility.ts"
 import { NotificationBlock } from "./NotificationBlock.tsx"
 import type { NotificationStreamEntry } from "../notification-stream.ts"
 import { useBackgroundTasks } from "../hooks/use-background-tasks.ts"
@@ -131,7 +136,7 @@ export function ChatPane({
   composerSlot,
   follow = "end",
   showFocusBar = false,
-  allSessions = [handle],
+  allSessions,
 }: {
   handle: SessionHandle
   isFocused: boolean
@@ -180,6 +185,7 @@ export function ChatPane({
   allSessions?: ReadonlyArray<SessionHandle>
 }): React.ReactElement {
   const state = useStoreSignal(handle.store)
+  const sessionHandles = React.useMemo(() => allSessions ?? [handle], [allSessions, handle])
   const chatProjection = React.useMemo(
     () => createChatSessionProjectionStore(handle.store, { sessionId: handle.id }),
     [handle.id, handle.store],
@@ -188,22 +194,35 @@ export function ChatPane({
   React.useEffect(() => {
     chatProjection.setChannelVisible("debug", showDebug)
   }, [chatProjection, showDebug])
+  const projectedEvents = useSignal(chatProjection.events) ?? chatProjection.events()
   const projectedLeaves = useSignal(chatProjection.visibleLeaves) ?? chatProjection.visibleLeaves()
   const activeAgents = useSignal(controller?.crossAgentState.activeSessions ?? null) ?? []
-  const sessionStates = useAllSessionStates(allSessions)
+  const sessionStates = useAllSessionStates(sessionHandles)
   const backgroundTasks = useBackgroundTasks(controller, handle.id)
   // Notification stream — pre-filtered through the mute set so muted source
   // rows never reach `SessionUpdateList`. The hook handles a null
   // controller internally (returns []), keeping rules-of-hooks intact.
   const rawNotificationEntries = useNotificationStream(controller ?? null, handle.id, { respectMute: false })
   const mutedNotificationEntries = useNotificationStream(controller ?? null, handle.id)
-  const notificationBlock = React.useMemo(
+  const currentSubagentActivityProjection = React.useMemo(
     () =>
-      chatActivitySnapshotFromMessages(state.messages, backgroundTasks, {
+      projectCurrentSubagentActivitiesFromChatEvents(projectedEvents, {
         notificationEntries: rawNotificationEntries,
         sessionId: handle.id,
       }),
-    [backgroundTasks, handle.id, rawNotificationEntries, state.messages],
+    [handle.id, projectedEvents, rawNotificationEntries],
+  )
+  const currentSubagentActivities = React.useMemo(
+    () => subagentActivityRowsFromActivities(currentSubagentActivityProjection.activities),
+    [currentSubagentActivityProjection],
+  )
+  const notificationBlock = React.useMemo(
+    () =>
+      chatActivitySnapshotFromMessages(state.messages, backgroundTasks, {
+        agents: currentSubagentActivities,
+        sessionId: handle.id,
+      }),
+    [backgroundTasks, currentSubagentActivities, handle.id, state.messages],
   )
   const notificationBlockCounts = React.useMemo(
     () => ({ ...notificationBlock.counts, agentsRunning: 0 }),
@@ -212,7 +231,7 @@ export function ChatPane({
   const drawerSessions = React.useMemo(
     () =>
       activeAgents.map((session) => {
-        const handleForSession = allSessions.find((candidate) => candidate.id === session.sessionId)
+        const handleForSession = sessionHandles.find((candidate) => candidate.id === session.sessionId)
         const liveState = sessionStates.get(session.sessionId)
         const metadata = handleForSession?.metadata
         const cost = liveState?.cost
@@ -268,7 +287,7 @@ export function ChatPane({
           },
         }
       }),
-    [activeAgents, allSessions, sessionStates],
+    [activeAgents, sessionHandles, sessionStates],
   )
   const notificationEntries = React.useMemo(
     () => filterVisibleNotificationEntries(mutedNotificationEntries, showDebug, handle.id, state.messages),
@@ -392,7 +411,7 @@ export function ChatPane({
                     <Box
                       position="absolute"
                       left={0}
-                      right={1}
+                      right={0}
                       bottom={0}
                       paddingY={1}
                       flexDirection="column"
@@ -406,6 +425,7 @@ export function ChatPane({
                         sessions={drawerSessions}
                         selfSessionId={handle.id}
                         subagents={notificationBlock.agents}
+                        diagnostics={currentSubagentActivityProjection.diagnostics}
                       />
                       <Chat.PlanDrawer plan={state.plan} />
                       <NotificationBlock
@@ -460,114 +480,4 @@ function elapsedMsSince(start: number | undefined, end: number | undefined): num
   const to = typeof end === "number" ? end : Date.now()
   if (to < start) return undefined
   return to - start
-}
-
-export function filterVisibleNotificationEntries(
-  entries: readonly NotificationStreamEntry[],
-  showDebug: boolean,
-  selfSessionId: string,
-  messages: readonly MessageEntry[] = [],
-): readonly NotificationStreamEntry[] {
-  if (showDebug) return entries
-  const completedTools = completedSubagentToolMatches(messages)
-  return entries.filter((entry) => !isHiddenSubagentNotification(entry, selfSessionId, completedTools))
-}
-
-function isHiddenSubagentNotification(
-  entry: NotificationStreamEntry,
-  selfSessionId: string,
-  completedTools: ReadonlyMap<string, ReadonlySet<string>>,
-): boolean {
-  if (!isSubagentNotification(entry)) return false
-  if (isNonTerminalSubagentNotification(entry)) return true
-  if (!isSameSessionSubagentNotification(entry, selfSessionId)) return false
-  const toolUseId = typeof entry.meta?.toolUseId === "string" ? entry.meta.toolUseId : undefined
-  if (toolUseId === undefined) return false
-  const completedLabels = completedTools.get(toolUseId)
-  if (!completedLabels) return false
-  if (completedLabels.size === 0) return true
-  const notificationLabel = subagentNotificationLabelKey(entry)
-  return notificationLabel === null || completedLabels.has(notificationLabel)
-}
-
-function isSubagentNotification(entry: NotificationStreamEntry): boolean {
-  return entry.source === "subagent" || entry.source === "sub-agent"
-}
-
-function isSameSessionSubagentNotification(entry: NotificationStreamEntry, selfSessionId: string): boolean {
-  const fromSessionId = typeof entry.meta?.fromSessionId === "string" ? entry.meta.fromSessionId : undefined
-  return fromSessionId !== undefined && fromSessionId === selfSessionId
-}
-
-function isNonTerminalSubagentNotification(entry: NotificationStreamEntry): boolean {
-  if (!isSubagentNotification(entry)) return false
-  const status = typeof entry.meta?.status === "string" ? entry.meta.status : undefined
-  if (status) return status === "started" || status === "progress"
-  return /^\[subagent\s+[^\]]+\]\s+(started|progress):/i.test(entry.content)
-}
-
-function completedSubagentToolMatches(messages: readonly MessageEntry[]): ReadonlyMap<string, ReadonlySet<string>> {
-  const tools = new Map<string, Set<string>>()
-  const add = (id: unknown, input: unknown): void => {
-    const key = String(id)
-    const labels = tools.get(key) ?? new Set<string>()
-    const label = subagentToolInputLabelKey(input)
-    if (label) labels.add(label)
-    tools.set(key, labels)
-  }
-  for (const message of messages) {
-    for (const call of message.toolCalls) {
-      if (call.name !== "Agent" && call.name !== "Task") continue
-      if (!message.toolResults.some((result) => result.id === call.id)) continue
-      add(call.id, call.input)
-    }
-    for (const op of message.ops) {
-      if (op.kind !== "tool") continue
-      if (op.toolCall.name !== "Agent" && op.toolCall.name !== "Task") continue
-      if (!op.result) continue
-      add(op.toolCall.id, op.toolCall.input)
-    }
-  }
-  return tools
-}
-
-function subagentToolInputLabelKey(input: unknown): string | null {
-  const obj = typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {}
-  return meaningfulSubagentLabelKey(
-    stringField(obj.description) ??
-      stringField(obj.command) ??
-      stringField(obj.prompt) ??
-      stringField(obj.subagent_type),
-  )
-}
-
-function subagentNotificationLabelKey(entry: NotificationStreamEntry): string | null {
-  return meaningfulSubagentLabelKey(
-    stringField(entry.meta?.description) ?? parseSubagentNotificationDescription(entry.content),
-  )
-}
-
-function parseSubagentNotificationDescription(content: string): string | undefined {
-  const match = content.match(/^\[subagent\s+[^\]]+\]\s+(?:completed|failed|stopped):\s*([\s\S]*)$/i)
-  if (!match) return undefined
-  const body = (match[1] ?? "")
-    .replace(/\s*<usage>[\s\S]*?<\/usage>\s*$/i, " ")
-    .replace(/\s*\(use SendMessage with to:\s*'[^']+'\s*to continue this agent\)\s*/i, " ")
-    .replace(/\s*\bagentId:\s*[A-Za-z0-9_-]+\s*/i, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-  const [description = ""] = body.split(/\s+—\s+/, 2)
-  return description.trim() || undefined
-}
-
-function stringField(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim().length > 0 ? value : undefined
-}
-
-function meaningfulSubagentLabelKey(value: string | undefined): string | null {
-  const normalized = value?.trim().toLowerCase()
-  if (!normalized) return null
-  if (normalized === "agent" || normalized === "task" || normalized === "general-purpose") return null
-  if (normalized === "(no description)") return null
-  return normalized
 }

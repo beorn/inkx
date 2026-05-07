@@ -12,6 +12,7 @@ import type { ChatMessageId, ChatMessagePartId, ChatPermissionId, ChatToolId } f
 const sessionId = "session-1" as SessionId
 const turnId = "turn-1" as TurnId
 const toolId = "tool-1" as ToolUseId
+const subagentToolId = "subagent-1" as ToolUseId
 const permissionId = "permission-1" as PermissionRequestId
 
 describe("ChatSession projection store", () => {
@@ -175,6 +176,22 @@ describe("ChatSession projection store", () => {
     })
     sessionStore.apply({ kind: "tool-result", sessionId, id: toolId, output: "ok", ts: 5 })
     sessionStore.apply({
+      kind: "tool-use",
+      sessionId,
+      turnId,
+      id: subagentToolId,
+      name: "Agent",
+      input: { description: "Sleep 20s #1", subagent_type: "general-purpose" },
+      ts: 5.1,
+    })
+    sessionStore.apply({
+      kind: "tool-result",
+      sessionId,
+      id: subagentToolId,
+      output: "agent 1: done sleeping 20s",
+      ts: 5.2,
+    })
+    sessionStore.apply({
       kind: "permission-request",
       sessionId,
       requestId: permissionId,
@@ -214,6 +231,14 @@ describe("ChatSession projection store", () => {
       text: "Run tests",
     })
     expect(session.tools[toolId as unknown as ChatToolId]).toMatchObject({ name: "Bash", status: "done", output: "ok" })
+    expect(session.subagentActivities).toMatchObject([
+      {
+        toolId: subagentToolId,
+        label: "Sleep 20s #1",
+        status: "done",
+        resultText: "agent 1: done sleeping 20s",
+      },
+    ])
     expect(session.permissions.requests[permissionId as unknown as ChatPermissionId]).toMatchObject({
       status: "approved",
       prompt: "Bash permission requested",

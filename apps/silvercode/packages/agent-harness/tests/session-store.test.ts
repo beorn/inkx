@@ -274,7 +274,7 @@ describe("session-store — ops-order preservation (codex bundling fix)", () => 
     // several adjacent `assistant` rows with the same `message.id`, each
     // carrying one `tool_use` block. Live streaming exposes those as
     // multiple blocks in one turn. Replay must normalize to the same
-    // `MessageEntry.ops` shape so UI affordances like TurnActivitySummary
+    // `MessageEntry.ops` shape so UI affordances like ChatMessageSummary
     // do not depend on whether the session is live or loaded from disk.
     const store = createSessionStore()
     const t = tid(1)

@@ -38,7 +38,7 @@ Do not close this bead until runtime failures are visible, attributable, and cov
 
 - 2026-05-01: `apps/silvercode/packages/agent-harness/tests/acp-client.test.ts` now has strict tests proving ACP scope disposal uses negative-pid process-group SIGTERM instead of only killing the wrapper. This addresses the observed orphaned `@zed-industries/codex-acp` daemons, but needs real Ctrl-C verification before checking off.
 - 2026-05-01: `apps/silvercode/tests/notification-welcome-artifact.test.tsx` covers the notification text artifact path: pre-transcript notification content does not appear on Welcome, and post-transcript notification content renders in the content lane.
-- 2026-05-01: `apps/silvercode/tests/turn-activity-summary.test.tsx` covers preserving the clicked summary row near the viewport bottom. Broader ListView anchored-disclosure semantics are still tracked by the chat-layout bead.
+- 2026-05-01: `apps/silvercode/tests/chat-message-summary.test.tsx` covers preserving the clicked summary row near the viewport bottom. Broader ListView anchored-disclosure semantics are still tracked by the chat-layout bead.
 - 2026-05-03: `apps/silvercode/tests/controller-closeall.test.ts` covers `controller.closeAll()` surfacing synchronous session-close failures as session errors while continuing to close later sessions. This closes one "do not silently ignore cleanup failures" gap without changing the public synchronous `closeAll()` contract.
 
 ## Related

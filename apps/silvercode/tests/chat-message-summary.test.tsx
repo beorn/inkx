@@ -1,7 +1,7 @@
 /**
- * TurnActivitySummary — dense assistant tool work collapses to one turn row.
+ * ChatMessageSummary — dense assistant tool work collapses to one message row.
  *
- * Bead: km-silvercode.turn-activity-summary.
+ * Bead: km-silvercode.chat-message-summary.
  */
 
 import React from "react"
@@ -126,7 +126,7 @@ function tool(
   }
 }
 
-describe("TurnActivitySummary", () => {
+describe("ChatMessageSummary", () => {
   test("keeps a single low-content tool call inline as a sentence summary", () => {
     const entry = makeEntry({
       ops: [tool("read-1", "Read", { file_path: "apps/silvercode/src/App.tsx" })],
@@ -135,7 +135,7 @@ describe("TurnActivitySummary", () => {
     const app = renderList([entry])
 
     expect(app.text).toContain("Read apps/silvercode/src/App.tsx")
-    expect(app.text).not.toContain("Turn activity")
+    expect(app.text).not.toContain("Message activity")
   })
 
   test("renders a single shell command inline instead of hiding it behind an activity summary", () => {
@@ -355,14 +355,14 @@ describe("TurnActivitySummary", () => {
     }
   })
 
-  test("groups high-content tool work under one friendly turn row", () => {
+  test("groups high-content tool work under one friendly message row", () => {
     const entry = makeEntry({
       ops: [
         tool("read-1", "Read", { file_path: "apps/silvercode/src/App.tsx" }, "APP CONTENT"),
         tool(
           "cmd-1",
           "exec_command",
-          { cmd: "bun vitest run apps/silvercode/tests/turn-activity-summary.test.tsx" },
+          { cmd: "bun vitest run apps/silvercode/tests/chat-message-summary.test.tsx" },
           "ok",
         ),
         tool(
@@ -383,7 +383,7 @@ describe("TurnActivitySummary", () => {
     expect(app.text).toContain("Read 1 file")
     expect(app.text).toContain("Edited 1 file")
     expect(app.text).toContain("Ran 1 command")
-    expect(app.text).not.toContain("Turn activity")
+    expect(app.text).not.toContain("Message activity")
     expect(app.text).not.toContain("APP CONTENT")
     expect(app.text).not.toContain("exec_command")
   })
@@ -574,7 +574,7 @@ describe("TurnActivitySummary", () => {
     const app = renderList([entry])
 
     expect(app.text).toContain("Ran 2 commands")
-    expect(app.text).not.toContain("Turn activity")
+    expect(app.text).not.toContain("Message activity")
     expect(app.text).not.toContain("find @km")
     expect(app.text).not.toContain("wc -l")
   })
@@ -677,7 +677,7 @@ describe("TurnActivitySummary", () => {
   })
 
   test("expanded Codex command output does not repeat the echoed command line", async () => {
-    const command = "bun vitest run apps/silvercode/tests/turn-activity-summary.test.tsx"
+    const command = "bun vitest run apps/silvercode/tests/chat-message-summary.test.tsx"
     const entry = makeEntry({
       ops: [
         tool(
@@ -1016,7 +1016,7 @@ describe("TurnActivitySummary", () => {
     const row = app.lines.findIndex((line) => line.includes("Read 1 file"))
     expect(row).toBeGreaterThanOrEqual(0)
 
-    expect(app.lines[row]).not.toContain("Turn activity")
+    expect(app.lines[row]).not.toContain("Message activity")
     expect(app.lines[row]).toContain(" · ")
     expect(app.lines[row]?.trimStart().startsWith("●")).toBe(false)
     expect(app.lines[row]?.trimStart().startsWith("•")).toBe(false)

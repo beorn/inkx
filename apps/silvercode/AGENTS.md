@@ -21,7 +21,7 @@ This is an always-on rule for silvercode UI work.
   `Content.Aside`.
 - `src/components/SessionEntry.tsx`: transcript entry marker/content layout.
 - `src/components/ToolCall.tsx`, `MarkdownView.tsx`,
-  `TurnActivitySummary.tsx`, `NotificationEventRow.tsx`.
+  `ChatMessageSummary.tsx`, `NotificationEventRow.tsx`.
 
 17. Check Storybook for examples before inventing a new pattern:
 

@@ -7,8 +7,9 @@ export type ChatNodeId = Brand<string, "ChatNodeId">
 export type ChatMessageId = Brand<string, "ChatMessageId">
 export type ChatMessagePartId = Brand<string, "ChatMessagePartId">
 export type ChatToolId = Brand<string, "ChatToolId">
+export type ChatSubagentActivityId = Brand<string, "ChatSubagentActivityId">
 export type ChatPlanTaskId = Brand<string, "ChatPlanTaskId">
-export type ChatQueueItemId = Brand<string, "ChatQueueItemId">
+export type ChatPromptId = Brand<string, "ChatPromptId">
 export type ChatPermissionId = Brand<string, "ChatPermissionId">
 
 export const CHAT_CHANNELS = [
@@ -76,7 +77,7 @@ export type ChatEventPayloads = {
   }
   "permission.resolved": { permissionId: ChatPermissionId; decision: "approved" | "rejected" | "cancelled" }
   "plan.updated": { plan: ChatPlan }
-  "queue.updated": { queue: ChatQueue }
+  "queue.updated": { promptQueue: ChatPromptQueue }
   "notification.received": ChatNotificationLeafProps
   "recap.recorded": { text: string; raw?: unknown }
   "session.updated": {
@@ -134,6 +135,26 @@ export type ChatTool = {
   rawRefs: readonly ChatRawRef[]
 }
 
+export type ChatSubagentActivityStatus = "running" | "done" | "failed" | "cancelled"
+
+export type ChatSubagentActivity = {
+  id: ChatSubagentActivityId | string
+  label: string
+  status: ChatSubagentActivityStatus
+  startedAt: number
+  completedAt?: number
+  toolId?: ChatToolId | string
+  resultText?: string
+  output?: unknown
+  metadata?: {
+    subagentType?: string
+    prompt?: string
+  }
+  eventIds: readonly string[]
+  rawRefs: readonly ChatRawRef[]
+  raw?: unknown
+}
+
 export type ChatPlanTask = {
   id: ChatPlanTaskId
   content: string
@@ -147,15 +168,15 @@ export type ChatPlan = {
   eventIds: readonly ChatEventId[]
 }
 
-export type ChatQueueItem = {
-  id: ChatQueueItemId
+export type ChatPrompt = {
+  id: ChatPromptId
   label: string
   status: "queued" | "running" | "done" | "cancelled"
   eventIds: readonly ChatEventId[]
 }
 
-export type ChatQueue = {
-  items: readonly ChatQueueItem[]
+export type ChatPromptQueue = {
+  prompts: readonly ChatPrompt[]
   eventIds: readonly ChatEventId[]
 }
 
@@ -244,7 +265,7 @@ export type ChatLeaf =
   | ChatLeafBase<"tool", ChatToolLeafProps>
   | ChatLeafBase<"permission", ChatPermissionLeafProps>
   | ChatLeafBase<"plan-update", ChatPlanUpdateLeafProps>
-  | ChatLeafBase<"queue", ChatQueueLeafProps>
+  | ChatLeafBase<"queue", ChatPromptQueueLeafProps>
   | ChatLeafBase<"notification", ChatNotificationLeafProps>
   | ChatLeafBase<"session-status", ChatStatusLeafProps>
   | ChatLeafBase<"file-snapshot", ChatFileSnapshotLeafProps>
@@ -264,7 +285,7 @@ export type ChatLeafProps =
   | ChatToolLeafProps
   | ChatPermissionLeafProps
   | ChatPlanUpdateLeafProps
-  | ChatQueueLeafProps
+  | ChatPromptQueueLeafProps
   | ChatNotificationLeafProps
   | ChatStatusLeafProps
   | ChatFileSnapshotLeafProps
@@ -293,8 +314,8 @@ export type ChatCommandLeafProps = {
 export type ChatToolLeafProps = { name: string; input?: unknown; output?: unknown }
 export type ChatPermissionLeafProps = { prompt: string; decision?: "approved" | "rejected" | "cancelled" }
 export type ChatPlanUpdateLeafProps = { taskCount: number; changedTaskIds?: readonly ChatPlanTaskId[] }
-export type ChatQueueLeafProps = {
-  itemId?: ChatQueueItemId
+export type ChatPromptQueueLeafProps = {
+  promptId?: ChatPromptId
   action: "queued" | "started" | "finished" | "cancelled" | "updated"
 }
 export type ChatNotificationLeafProps = {
@@ -343,8 +364,9 @@ export type ChatSession = {
   messages: Readonly<Record<ChatMessageId, ChatMessage>>
   messageParts: Readonly<Record<ChatMessagePartId, ChatMessagePart>>
   tools: Readonly<Record<ChatToolId, ChatTool>>
+  subagentActivities: readonly ChatSubagentActivity[]
   plan: ChatPlan
-  queue: ChatQueue
+  promptQueue: ChatPromptQueue
   permissions: ChatPermissions
   tree: ChatTree
   channels: Readonly<Record<ChatChannelId, ChatChannelState>>

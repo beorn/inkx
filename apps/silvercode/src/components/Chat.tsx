@@ -9,7 +9,7 @@ import { MarkdownView } from "./MarkdownView.tsx"
 import { SessionEntry } from "./SessionEntry.tsx"
 import { StatusGlyph } from "./StatusGlyph.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
-import { TurnActivitySummary, type TurnActivitySummaryItem } from "./TurnActivitySummary.tsx"
+import { ChatMessageSummary, type ChatMessageSummaryItem } from "./ChatMessageSummary.tsx"
 import { parseBlocks, type MdBlock } from "../markdown.ts"
 
 type LaneWidth = "prose" | "wide" | "full" | "auto"
@@ -248,6 +248,13 @@ export type AgentDrawerSubagent = {
   readonly raw?: unknown
 }
 
+export type AgentDrawerDiagnostic = {
+  readonly kind: "subagent-count-mismatch"
+  readonly claimed: number
+  readonly observed: number
+  readonly text: string
+}
+
 export type AgentDrawerSession = SessionInfo & {
   readonly metrics?: AgentDrawerMetrics
   readonly metadata?: AgentDrawerMetadata
@@ -313,19 +320,30 @@ function AgentsDrawer({
   sessions,
   selfSessionId,
   subagents = [],
+  diagnostics = [],
   defaultExpanded = false,
 }: {
   sessions: readonly AgentDrawerSession[] | null | undefined
   selfSessionId?: string
   subagents?: readonly AgentDrawerSubagent[]
+  diagnostics?: readonly AgentDrawerDiagnostic[]
   defaultExpanded?: boolean
 }): React.ReactElement | null {
   const activeSessions = (sessions ?? []).filter((session) => session.status !== "ended")
   const hasLiveSubagent = subagents.some((agent) => agent.status !== "done")
-  const visibleSubagents = hasLiveSubagent ? subagents : []
+  const hasDiagnostics = diagnostics.length > 0
+  const visibleSubagents = hasLiveSubagent || hasDiagnostics ? subagents : []
+  const primaryDiagnostic = diagnostics[0]
+  const missingSubagentRows = primaryDiagnostic
+    ? Array.from({ length: Math.max(0, primaryDiagnostic.claimed - visibleSubagents.length) }, (_, index) => ({
+        id: `missing-agent-event:${primaryDiagnostic.claimed}:${primaryDiagnostic.observed}:${index}`,
+        label: `Missing Agent event #${index + 1}`,
+        diagnostic: primaryDiagnostic,
+      }))
+    : []
   const [expanded, setExpanded] = React.useState(defaultExpanded)
   const hover = useHover()
-  const total = activeSessions.length + visibleSubagents.length
+  const total = activeSessions.length + visibleSubagents.length + missingSubagentRows.length + diagnostics.length
   React.useEffect(() => {
     if (total > 1) setExpanded(true)
   }, [total])
@@ -333,7 +351,11 @@ function AgentsDrawer({
   const running =
     activeSessions.filter((session) => session.status === "thinking" || session.status === "waiting").length +
     visibleSubagents.filter((agent) => agent.status !== "done").length
-  const label = running > 0 ? `${running}/${total} active` : `${total} idle`
+  const label = primaryDiagnostic
+    ? `${primaryDiagnostic.observed}/${primaryDiagnostic.claimed} observed`
+    : running > 0
+      ? `${running}/${total} active`
+      : `${total} idle`
 
   return (
     <Content.Row>
@@ -382,6 +404,32 @@ function AgentsDrawer({
                   payload={{ kind: "subagent", ...agent, raw: agent.raw ?? agent }}
                 >
                   <Text wrap="truncate">{agent.label}</Text>
+                </AgentDrawerRow>
+              ))}
+              {missingSubagentRows.map((missing) => (
+                <AgentDrawerRow
+                  key={missing.id}
+                  marker="!"
+                  markerColor="$warning"
+                  active={false}
+                  payload={{ kind: "missing-subagent-event", diagnostic: missing.diagnostic, label: missing.label }}
+                >
+                  <Text color="$muted" wrap="truncate">
+                    {missing.label}
+                  </Text>
+                </AgentDrawerRow>
+              ))}
+              {diagnostics.map((diagnostic, index) => (
+                <AgentDrawerRow
+                  key={`diagnostic-${index}-${diagnostic.claimed}-${diagnostic.observed}`}
+                  marker="!"
+                  markerColor="$warning"
+                  active={false}
+                  payload={{ kind: "diagnostic", diagnostic }}
+                >
+                  <Text wrap="truncate">
+                    Only {diagnostic.observed} of {diagnostic.claimed} Agent events observed
+                  </Text>
                 </AgentDrawerRow>
               ))}
             </Box>
@@ -629,7 +677,7 @@ function Activity({
   onDisclosureToggle,
   onExpandedChange,
 }: {
-  items: TurnActivitySummaryItem[]
+  items: ChatMessageSummaryItem[]
   timestamp?: string
   details?: React.ReactNode
   livePreview?: React.ReactNode
@@ -640,7 +688,7 @@ function Activity({
   onExpandedChange?: (expanded: boolean) => void
 }): React.ReactElement {
   return (
-    <TurnActivitySummary
+    <ChatMessageSummary
       items={items}
       timestamp={timestamp}
       details={details}

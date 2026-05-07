@@ -1,12 +1,12 @@
 /**
- * <SubAgentExchange>
+ * <SubagentActivityPanel>
  *
  * Nested `SessionUpdate` stream for a Task tool invocation with sub-stream.
  *
- * When the agent fires a Task tool, the sub-agent produces its own
+ * When the agent fires a Task tool, the subagent produces its own
  * `SessionUpdate` stream that logically lives inside the parent session.
- * `SubAgentExchange` renders that nested stream as a collapsible block so
- * the user can see what the sub-agent did without it dominating the primary
+ * `SubagentActivityPanel` renders that nested stream as a collapsible block so
+ * the user can see what the subagent did without it dominating the primary
  * conversation flow.
  *
  * The outer block:
@@ -20,23 +20,23 @@ import { Box, Muted, Text } from "silvery"
 import { BoundedScroll } from "./BoundedScroll.tsx"
 import { StatusGlyph } from "./StatusGlyph.tsx"
 
-export interface SubAgentExchangeProps {
-  /** Short description of the sub-agent task (from Task tool `description`). */
+export interface SubagentActivityPanelProps {
+  /** Short description of the subagent task (from Task tool `description`). */
   description: string
-  /** Whether the sub-agent is still running. Drives the spinner. */
+  /** Whether the subagent is still running. Drives the spinner. */
   running?: boolean
-  /** Whether the sub-agent task failed. */
+  /** Whether the subagent task failed. */
   failed?: boolean
   /** Nested update stream rendered when expanded. */
   children?: React.ReactNode
 }
 
-export function SubAgentExchange({
+export function SubagentActivityPanel({
   description,
   running = false,
   failed = false,
   children,
-}: SubAgentExchangeProps): React.ReactElement {
+}: SubagentActivityPanelProps): React.ReactElement {
   const [expanded, setExpanded] = useState(false)
   const hasChildren = !!children
   const accentColor = failed ? "$error" : running ? "$accent" : "$muted"

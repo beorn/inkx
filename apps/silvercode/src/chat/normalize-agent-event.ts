@@ -143,9 +143,7 @@ export function normalizeAgentEventsToChatEvents(
           return
         }
         if (previous.source === "turn-start" && previous.role === "assistant") {
-          pushChatEvent(
-            debugEventFromAgentEvent(event, options, "Assistant message aggregate", "assistant-message-aggregate"),
-          )
+          mergeAssistantAggregateIntoStreamedTurn(event)
           flushPendingToolCompletions()
           return
         }
@@ -175,6 +173,33 @@ export function normalizeAgentEventsToChatEvents(
     for (const completion of completions) out.push(orphanToolCompletionDebugEvent(completion))
   }
   return out.map((chatEvent) => parseChatEvent(chatEvent))
+
+  function mergeAssistantAggregateIntoStreamedTurn(event: Extract<AgentEvent, { kind: "assistant-message" }>): void {
+    const emittedToolIds = new Set<string>()
+    for (const chatEvent of normalizeParsedAgentEvent(event, options)) {
+      if (chatEvent.type === "message.started") continue
+      if (chatEvent.type === "tool.started") {
+        const key = toolKey(chatEvent.sessionId, chatEvent.payload.toolId)
+        if (seenTools.has(key)) continue
+        emittedToolIds.add(chatEvent.payload.toolId)
+        pushChatEvent(chatEvent)
+        continue
+      }
+      if (chatEvent.type === "message.part.added") {
+        const part = chatEvent.payload.part
+        if (part.type !== "tool-ref") continue
+        if (!emittedToolIds.has(part.toolId)) continue
+        pushChatEvent(chatEvent)
+        continue
+      }
+      if (chatEvent.type === "tool.completed") {
+        pushChatEvent(chatEvent)
+      }
+    }
+    pushChatEvent(
+      debugEventFromAgentEvent(event, options, "Assistant message aggregate", "assistant-message-aggregate"),
+    )
+  }
 }
 
 function messageKey(sessionId: ChatSessionId, messageId: ChatMessageId): string {
@@ -501,7 +526,7 @@ function normalizeRawTranscriptEvent(
         make(
           "queue.updated",
           "queue",
-          { queue: { items: [], eventIds: [chatEventId(`${agentEventIdFor(event)}:queue`)] } },
+          { promptQueue: { prompts: [], eventIds: [chatEventId(`${agentEventIdFor(event)}:queue`)] } },
           "queue",
         ),
       ]

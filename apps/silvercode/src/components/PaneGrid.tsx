@@ -62,22 +62,7 @@ import {
 import { PaneHeader } from "./PaneHeader.tsx"
 import { ChatPane } from "./ChatPane.tsx"
 import { Content } from "./Content.tsx"
-import { formatLoadingSessionId, MeasuredBanner } from "./Welcome.tsx"
-import { Chat } from "./Chat.tsx"
-
-/** Mirrors `AGENT_LABELS` in `Welcome.tsx` — kept local to PaneGrid so the
- *  pre-spawn banner (rendered before any SessionHandle exists) can pick the
- *  right per-agent label. Same map; if either drifts, both should update. */
-const AGENT_LABELS_FOR_PRESPAWN: Readonly<Record<string, string>> = {
-  claude: "Claude Code",
-  "claude-code": "Claude Code",
-  "claude-code-spawn": "Claude Code",
-  "claude-code-sdk": "Claude Code",
-  codex: "Codex",
-  "codex-spawn": "Codex",
-  gemini: "Gemini",
-  "github-copilot-cli": "GitHub Copilot",
-}
+import { Welcome } from "./Welcome.tsx"
 
 /** Width of a single divider column / row in cells. */
 const DIVIDER_SIZE = 1
@@ -461,30 +446,21 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
   //
   // Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn.
   if (sessions.length === 0) {
-    const agentLabel = agent ? AGENT_LABELS_FOR_PRESPAWN[agent] : undefined
-    const loadingSessionId = props.resume ? formatLoadingSessionId(props.resume, agent) : "pending"
-    const agentModelDetails = [agentLabel, props.model]
-      .filter((part): part is string => Boolean(part && part.length > 0))
-      .join(" · ")
-    const isResumeLoading = Boolean(props.resume)
+    const placeholderHandle = {
+      id: props.resume ?? "pending",
+      name: "pending",
+      resumeId: props.resume,
+      metadata: {
+        cwd: process.cwd(),
+        model: props.model,
+        sessionId: props.resume,
+        resumeId: props.resume,
+        spawnedAt: 0,
+      },
+    } as SessionHandle
     return (
       <Content.Layout>
-        <Box flexDirection="column" flexGrow={1} alignItems="center" justifyContent="center" gap={1}>
-          <MeasuredBanner />
-          {agentModelDetails.length > 0 ? <Text color="$muted">{agentModelDetails}</Text> : null}
-          {isResumeLoading ? (
-            <>
-              <Text color="$muted">Loading session</Text>
-              {loadingSessionId.length > 0 ? <Text color="$muted">{loadingSessionId}</Text> : null}
-            </>
-          ) : composerSlot ? (
-            <Chat.Composer>
-              <Box alignSelf="center" width="70%" minWidth={0}>
-                {composerSlot}
-              </Box>
-            </Chat.Composer>
-          ) : null}
-        </Box>
+        <Welcome handle={placeholderHandle} agent={agent} model={props.model} composerSlot={composerSlot} />
       </Content.Layout>
     )
   }

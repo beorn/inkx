@@ -1,5 +1,5 @@
 /**
- * TurnActivitySummary — rich grouped turn examples.
+ * ChatMessageSummary — rich grouped message examples.
  *
  * Covers the bead acceptance fixtures: active turn with reads/writes/commands,
  * long bash output, failed command, file edit diff, todo changes, permission
@@ -11,9 +11,9 @@ import { Box, Screen } from "silvery"
 import type { ToolCall as ToolCallType, ToolCallId } from "@km/agent-harness"
 import { SessionUpdateList } from "../../src/components/SessionUpdateList.tsx"
 import { InlinePermissionPrompt } from "../../src/components/InlinePermissionPrompt.tsx"
-import { TurnActivitySummary, type TurnActivitySummaryItem } from "../../src/components/TurnActivitySummary.tsx"
+import { ChatMessageSummary, type ChatMessageSummaryItem } from "../../src/components/ChatMessageSummary.tsx"
 import { TURN_ACTIVITY_NOTIFICATION, TURN_ACTIVITY_RICH } from "../support/sample-messages.ts"
-import { withActivitySpan } from "../support/activity-summary.ts"
+import { withActivityRun } from "../support/chat-message-summary.ts"
 import { fakeSessionHandle } from "../support/fake-session-handle.ts"
 import type { Story } from "../types.ts"
 
@@ -23,7 +23,7 @@ function tc(partial: Partial<ToolCallType> & Pick<ToolCallType, "toolCallId" | "
   return partial
 }
 
-const directItems: TurnActivitySummaryItem[] = [
+const directItems: ChatMessageSummaryItem[] = [
   {
     id: "read",
     toolCall: tc({
@@ -48,7 +48,7 @@ const directItems: TurnActivitySummaryItem[] = [
           type: "diff",
           path: "apps/silvercode/src/components/SessionUpdateList.tsx",
           oldText: "ToolCall",
-          newText: "TurnActivitySummary",
+          newText: "ChatMessageSummary",
         },
       ],
     }),
@@ -57,7 +57,7 @@ const directItems: TurnActivitySummaryItem[] = [
     id: "command",
     toolCall: tc({
       toolCallId: id("story-command"),
-      title: "bun vitest run apps/silvercode/tests/turn-activity-summary.test.tsx",
+      title: "bun vitest run apps/silvercode/tests/chat-message-summary.test.tsx",
       kind: "execute",
       status: "completed",
       content: [
@@ -100,13 +100,13 @@ const directItems: TurnActivitySummaryItem[] = [
     }),
     errorMessage: "No test files found, exiting with code 1",
   },
-].map(withActivitySpan)
+].map(withActivityRun)
 
-export const turnActivitySummaryRich: Story = {
-  id: "TurnActivitySummary/rich",
-  component: "TurnActivitySummary",
+export const chatMessageSummaryRich: Story = {
+  id: "ChatMessageSummary/rich",
+  component: "ChatMessageSummary",
   variant: "rich",
-  description: "Grouped turn activity with collapsed and expanded detail states.",
+  description: "Grouped message activity with collapsed and expanded detail states.",
   knobs: [
     {
       kind: "select",
@@ -117,7 +117,7 @@ export const turnActivitySummaryRich: Story = {
     },
   ],
   render(knobs) {
-    return <TurnActivitySummary items={directItems} defaultExpanded={knobs.state === "expanded"} />
+    return <ChatMessageSummary items={directItems} defaultExpanded={knobs.state === "expanded"} />
   },
 }
 

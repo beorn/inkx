@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { Box, PopoverProvider } from "silvery"
 import { Chat } from "../src/components/Chat.tsx"
-import { filterVisibleNotificationEntries } from "../src/components/ChatPane.tsx"
+import { filterVisibleNotificationEntries } from "../src/chat/notification-visibility.ts"
 import { NotificationBlock } from "../src/components/NotificationBlock.tsx"
 import { chatActivityCountsFromMessages, chatActivitySnapshotFromMessages } from "../src/chat/activity-snapshot.ts"
 import type { NotificationStreamEntry } from "../src/notification-stream.ts"
@@ -242,6 +242,40 @@ describe("NotificationBlock", () => {
         toolUseId: "toolu_4",
       }),
     ].map((entry, index) => ({ ...entry, ts: 1_300 + index, timestamp: 1_300 + index }))
+
+    const snapshot = chatActivitySnapshotFromMessages(messages, [], {
+      notificationEntries: entries,
+      sessionId: "s1",
+    })
+
+    expect(snapshot.agents.map((agent) => agent.label)).toEqual([
+      "Sleep 20s #2",
+      "Sleep 20s #1",
+      "Sleep 20s #3",
+      "Sleep 20s #4",
+    ])
+    expect(snapshot.agents.filter((agent) => agent.label === "Sleep 20s #2")).toHaveLength(1)
+    expect(snapshot.counts.agentsRunning).toBe(4)
+  })
+
+  test("agents drawer snapshot merges a sidechain subagent with the matching tool row by unique label", () => {
+    const messages = [
+      userMessage("u-live", "use 4 subagents to sleep 20s", 1_000),
+      messageWithTools({
+        ts: 1_200,
+        toolCalls: [{ id: "toolu_2", name: "Agent", input: { description: "Sleep 20s #2" } }],
+      }),
+    ]
+    const entries = [1, 2, 3, 4].map((i, index) => ({
+      ...notificationEntry({
+        id: `sidechain-${i}`,
+        content: `[subagent general-purpose] started: Sleep 20s #${i}`,
+        fromSessionId: "s1",
+        status: "started",
+      }),
+      ts: 1_300 + index,
+      timestamp: 1_300 + index,
+    }))
 
     const snapshot = chatActivitySnapshotFromMessages(messages, [], {
       notificationEntries: entries,
@@ -559,6 +593,32 @@ describe("NotificationBlock", () => {
     )
 
     expect(app.text.trim()).toBe("")
+  })
+
+  test("agents drawer shows subagent count mismatch diagnostics", () => {
+    const app = renderBlock(
+      <Chat.AgentsDrawer
+        sessions={[{ sessionId: "s1", name: "session 1", status: "idle", startedAt: 1 }]}
+        selfSessionId="s1"
+        defaultExpanded
+        subagents={[{ id: "task-2", label: "Sleep 20s #2", status: "done" }]}
+        diagnostics={[
+          {
+            kind: "subagent-count-mismatch",
+            claimed: 4,
+            observed: 1,
+            text: "use 4 subagents to sleep 20s",
+          },
+        ]}
+      />,
+    )
+
+    expect(app.text).toContain("1/4 observed")
+    expect(app.text).toContain("Sleep 20s #2")
+    expect(app.text).toContain("Missing Agent event #1")
+    expect(app.text).toContain("Missing Agent event #2")
+    expect(app.text).toContain("Missing Agent event #3")
+    expect(app.text).toContain("Only 1 of 4 Agent events observed")
   })
 
   test("cmd-hovering an agents drawer row shows raw session and task details", async () => {

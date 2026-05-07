@@ -14,9 +14,9 @@ import {
 } from "@km/agent-harness"
 import { claudeProjectsRoot, codexSessionsRoot } from "@km/config/paths"
 import {
-  activitySpansFromOps,
+  activityRunsFromOps,
   buildChatTurns,
-  latestRunningActivitySpan,
+  latestRunningActivityRun,
   splitAssistantMessageForTranscript,
   splitAssistantOpsIntoDisplaySlices,
 } from "../src/chat-model.ts"
@@ -171,31 +171,31 @@ function expectHistoricalTranscriptProjects(label: string, state: SessionState):
 }
 
 describe("chat model", () => {
-  test("normalizes activity spans and lifecycle status for rendering", () => {
-    const spans = activitySpansFromOps([
+  test("normalizes activity runs and lifecycle status for rendering", () => {
+    const activities = activityRunsFromOps([
       { kind: "thinking", text: "Inspecting context" },
       runningTool("running", "bun test"),
       tool("failed", "bun lint", { id: "failed" as ToolUseId, output: "bad", is_error: true }),
       tool("completed", "npx tsc --noEmit"),
     ])
 
-    expect(spans.map((span) => [span.kind, span.status, span.id])).toEqual([
+    expect(activities.map((activity) => [activity.kind, activity.status, activity.id])).toEqual([
       ["reasoning", "completed", "reasoning-0"],
       ["tool", "running", "running"],
       ["tool", "failed", "failed"],
       ["tool", "completed", "completed"],
     ])
-    expect(latestRunningActivitySpan(spans)?.id).toBe("running")
+    expect(latestRunningActivityRun(activities)?.id).toBe("running")
   })
 
-  test("latest running activity span follows the last unresolved operation", () => {
-    const spans = activitySpansFromOps([
+  test("latest running activity run follows the last unresolved operation", () => {
+    const activities = activityRunsFromOps([
       runningTool("first", "bun test"),
       tool("done", "rg todo"),
       runningTool("second", "npx tsc --noEmit"),
     ])
 
-    expect(latestRunningActivitySpan(spans)?.id).toBe("second")
+    expect(latestRunningActivityRun(activities)?.id).toBe("second")
   })
 
   test("splits assistant ops into narration/activity/narration/activity order", () => {

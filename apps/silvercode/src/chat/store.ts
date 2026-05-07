@@ -2,6 +2,7 @@ import { computed, signal } from "alien-signals"
 import type { AgentEvent, SessionStore } from "@km/agent-harness"
 import { normalizeAgentEventsToChatEvents } from "./normalize-agent-event.ts"
 import { projectChatTranscript, visibleChatLeaves } from "./project-transcript.ts"
+import { projectSubagentActivitiesFromChatEvents } from "./subagent-activities.ts"
 import type {
   ChatChannelId,
   ChatChannelState,
@@ -14,7 +15,7 @@ import type {
   ChatPermissionId,
   ChatPermissionRequest,
   ChatPlan,
-  ChatQueue,
+  ChatPromptQueue,
   ChatSession,
   ChatSessionId,
   ChatTool,
@@ -92,7 +93,7 @@ function buildChatSession(
   const tools: Record<ChatToolId, ChatTool> = {}
   const permissionRequests: Record<ChatPermissionId, ChatPermissionRequest> = {}
   let plan = emptyPlan()
-  let queue = emptyQueue()
+  let promptQueue = emptyPromptQueue()
   let title: string | undefined
   let titlePriorityValue = 0
   let model: string | undefined
@@ -203,7 +204,7 @@ function buildChatSession(
         plan = event.payload.plan
         break
       case "queue.updated":
-        queue = event.payload.queue
+        promptQueue = event.payload.promptQueue
         break
       case "session.updated":
         if (event.payload.title !== undefined) {
@@ -243,8 +244,9 @@ function buildChatSession(
     messages,
     messageParts,
     tools,
+    subagentActivities: projectSubagentActivitiesFromChatEvents(events, { sessionId, currentOnly: false }).activities,
     plan,
-    queue,
+    promptQueue,
     permissions: { requests: permissionRequests },
     tree,
     channels,
@@ -255,8 +257,8 @@ function emptyPlan(): ChatPlan {
   return { tasks: [], eventIds: [] }
 }
 
-function emptyQueue(): ChatQueue {
-  return { items: [], eventIds: [] }
+function emptyPromptQueue(): ChatPromptQueue {
+  return { prompts: [], eventIds: [] }
 }
 
 function titlePriority(source: ChatEventPayloadTitleSource | undefined): number {
