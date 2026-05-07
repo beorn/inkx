@@ -41,6 +41,15 @@ describe("side panel", () => {
     expect(panelText(p)).toContain("/tmp/silvercode-test")
   })
 
+  test("notification mute row labels debug like the other channel names", async () => {
+    const s = await renderScenario({ script: welcome, cols: 120, rows: 30 })
+    const p = parseFrame(s)
+    const panelText = p.sidePanel!.lines.join("\n")
+
+    expect(panelText).toMatch(/\bdebug\b/)
+    expect(panelText).not.toContain("Debug channel")
+  })
+
   test("wrapped model label sits directly below the agent version row", async () => {
     const sessionId = "side-panel-model-wrap" as SessionId
     const script: AgentEvent[] = [

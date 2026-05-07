@@ -36,7 +36,6 @@ import { useClaudeAccount } from "../hooks/use-claude-account.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 import { isTransientAccountError, type AccountSummary } from "../account-status.ts"
 import { copySessionTranscriptToClipboard } from "../session-clipboard.ts"
-import type { ChatChannelId } from "../chat/types.ts"
 
 /**
  * Claude CLI version suffix — Suspense-aware. The async probe runs once
@@ -731,24 +730,20 @@ function SectionHeading({ children }: { children: React.ReactNode }): React.Reac
 }
 
 /**
- * Known notification channels/sources surfaced in the side panel. Mirrors the design
- * doc's taxonomy. Sources beyond this list still get muted via
- * `controller.notificationMuteState.toggle(...)` if a future bead surfaces
- * them programmatically; this constant just controls what the side
- * panel offers as toggle rows.
+ * Known notification controls surfaced in the side panel. `debug` is backed
+ * by chat-channel visibility; the rest are notification sources. The row
+ * UI intentionally presents them as one flat list.
  */
-type NotificationToggleSpec =
-  | { id: ChatChannelId; label: string; kind: "channel" }
-  | { id: string; label: string; kind: "source" }
+type NotificationToggleSpec = { id: string; label: string }
 
 const NOTIFICATION_TOGGLES: readonly NotificationToggleSpec[] = [
-  { id: "debug", label: "Debug", kind: "channel" },
-  { id: "tribe", label: "tribe", kind: "source" },
-  { id: "ci", label: "CI", kind: "source" },
-  { id: "recall", label: "recall", kind: "source" },
-  { id: "sub-agent", label: "sub-agent", kind: "source" },
-  { id: "filewatch", label: "file-watch", kind: "source" },
-  { id: "telegram", label: "telegram", kind: "source" },
+  { id: "debug", label: "debug" },
+  { id: "tribe", label: "tribe" },
+  { id: "ci", label: "CI" },
+  { id: "recall", label: "recall" },
+  { id: "sub-agent", label: "sub-agent" },
+  { id: "filewatch", label: "file-watch" },
+  { id: "telegram", label: "telegram" },
 ]
 
 /**
@@ -767,13 +762,12 @@ function NotificationToggleRow({
 }): React.ReactElement {
   const { isHovered, onMouseEnter, onMouseLeave } = useHover()
   const visible = !isMuted
-  const subject = spec.kind === "channel" ? "channel" : "source"
   const popover = usePopoverHandlers({
     body: (
       <Box flexDirection="column" gap={1}>
         <Text bold>{spec.label}</Text>
         <Muted>
-          {visible ? "Shows" : "Hides"} this notification {subject} in the chat scrollback. The agent still receives the
+          {visible ? "Shows" : "Hides"} these inline notification rows in the chat scrollback. The agent still receives the
           events — this is a visual filter only.
         </Muted>
       </Box>
@@ -798,7 +792,6 @@ function NotificationToggleRow({
     >
       <Switch value={visible} onChange={(nextVisible) => onChange(!nextVisible)} />
       <Text color={isMuted ? "$muted" : "$fg"}>{spec.label}</Text>
-      {spec.kind === "channel" ? <Small color="$muted">channel</Small> : null}
       {/* Use the source/channel key as a hidden accessibility hint via popover only;
           the visible label is the human-readable form. */}
       <Box flexBasis={0} minWidth={0}>
@@ -827,7 +820,7 @@ function NotificationMuteSection({
       <Box flexDirection="column" gap={1}>
         <Text bold>Notifications</Text>
         <Muted>
-          Notifications include channel views such as Debug and sources such as tribe broadcasts, CI status, recall
+          Notifications include channel views such as debug and sources such as tribe broadcasts, CI status, recall
           hits, sub-agent updates, file changes, and telegram messages.
         </Muted>
         <Muted>
@@ -857,7 +850,7 @@ function NotificationMuteSection({
         <SectionHeading>Notifications</SectionHeading>
       </Box>
       {NOTIFICATION_TOGGLES.map((s) => {
-        const isControlledDebug = s.kind === "channel" && s.id === "debug" && debugChannelVisible !== undefined
+        const isControlledDebug = s.id === "debug" && debugChannelVisible !== undefined
         const isMuted = isControlledDebug ? !debugChannelVisible : muted.has(s.id)
         return (
           <NotificationToggleRow
@@ -866,7 +859,7 @@ function NotificationMuteSection({
             isMuted={isMuted}
             onChange={(nextMuted) => {
               controller.notificationMuteState.set(s.id, nextMuted)
-              if (s.kind === "channel" && s.id === "debug") onDebugChannelVisibleChange?.(!nextMuted)
+              if (s.id === "debug") onDebugChannelVisibleChange?.(!nextMuted)
             }}
           />
         )
