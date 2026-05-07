@@ -1575,7 +1575,7 @@ function SidePanelChrome({
           return (
             <Box flexDirection="row" gap={1}>
               <Text color="$fg">{icon}</Text>
-              <Box flexDirection="row" flexWrap="wrap" gap={1}>
+              <Box flexDirection="row" flexWrap="wrap" columnGap={1} rowGap={0}>
                 <Text bold color="$fg">
                   {label}
                   {isClaudeAgent ? (

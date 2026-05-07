@@ -6,6 +6,7 @@
  * extraction so assertions survive layout shifts.
  */
 import { describe, expect, test } from "vitest"
+import type { AgentEvent, SessionId } from "@km/agent-harness"
 import { renderScenario } from "../../src/test/render-harness.tsx"
 import { welcome } from "../../src/test/scripts/welcome.ts"
 import { parseFrame, summarize } from "../../src/test/parse-frame.ts"
@@ -38,5 +39,40 @@ describe("side panel", () => {
     const p = parseFrame(s)
     const panelText = (parsed: typeof p) => parsed.sidePanel!.lines.join("\n")
     expect(panelText(p)).toContain("/tmp/silvercode-test")
+  })
+
+  test("wrapped model label sits directly below the agent version row", async () => {
+    const sessionId = "side-panel-model-wrap" as SessionId
+    const script: AgentEvent[] = [
+      {
+        kind: "session-init",
+        sessionId,
+        cwd: "/tmp/fake",
+        model: "claude-opus-4-7",
+        mode: "auto",
+        tools: ["Bash", "Read"],
+        mcp_servers: [],
+        slashCommands: [],
+        skills: [],
+        plugins: [],
+        claudeCodeVersion: "2.1.132",
+        apiKeySource: "OAuth",
+        ts: 1000,
+      },
+    ]
+    const s = await renderScenario({
+      script,
+      cols: 120,
+      rows: 30,
+      version: "2.1.132",
+    })
+    const p = parseFrame(s)
+    const lines = p.sidePanel!.lines.map((line) => line.trimEnd())
+    const agentRow = lines.findIndex((line) => line.includes("Claude Code v2.1.132"))
+    const modelRow = lines.findIndex((line, i) => i > agentRow && line.includes("Opus 4.7"))
+
+    expect(agentRow, `Claude Code row missing.\n${summarize(p)}`).toBeGreaterThanOrEqual(0)
+    expect(modelRow, `Opus model row missing.\n${summarize(p)}`).toBeGreaterThanOrEqual(0)
+    expect(modelRow).toBe(agentRow + 1)
   })
 })
