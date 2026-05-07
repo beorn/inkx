@@ -145,6 +145,14 @@ describe("ToolCallSummary", () => {
     expect(app.text).not.toMatch(/files\b/)
   })
 
+  test("pluralizes search queries correctly", () => {
+    const app = freshRender()(<ToolCallSummary kind="search" count={2} />)
+    expect(app.text).toContain("Searched")
+    expect(app.text).toContain("2")
+    expect(app.text).toContain("queries")
+    expect(app.text).not.toContain("querys")
+  })
+
   test("breakdown is hidden by default and visible when expanded", () => {
     const breakdown = [
       { id: "1", label: "/tmp/a.ts" },

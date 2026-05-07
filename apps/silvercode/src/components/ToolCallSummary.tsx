@@ -19,6 +19,7 @@ import React from "react"
 import { AnimatedNumber, Box, Muted, Text } from "silvery"
 import type { ToolKind } from "@km/agent-harness"
 import { formatPathForDisplay } from "../utils/format-path.ts"
+import { pluralForm, type PluralForms } from "../i18n.ts"
 
 // =============================================================================
 // Vocabulary — past-tense + plural noun, mirrors ToolCallStatusTitle.
@@ -28,22 +29,22 @@ import { formatPathForDisplay } from "../utils/format-path.ts"
  * Per-kind summary phrasing. Pluralization is handled in `phrase()` so the
  * vocabulary stays a flat data table — easier to extend than a switch.
  */
-const SUMMARY: Record<ToolKind, { verb: string; noun: string }> = {
-  read: { verb: "Read", noun: "file" },
-  edit: { verb: "Edited", noun: "file" },
-  delete: { verb: "Deleted", noun: "file" },
-  move: { verb: "Moved", noun: "file" },
-  search: { verb: "Searched", noun: "query" },
-  execute: { verb: "Ran", noun: "command" },
-  think: { verb: "Thought", noun: "step" },
-  fetch: { verb: "Fetched", noun: "resource" },
-  switch_mode: { verb: "Switched", noun: "mode" },
-  other: { verb: "Ran", noun: "tool" },
+const SUMMARY: Record<ToolKind, { verb: string; noun: PluralForms }> = {
+  read: { verb: "Read", noun: { one: "file", other: "files" } },
+  edit: { verb: "Edited", noun: { one: "file", other: "files" } },
+  delete: { verb: "Deleted", noun: { one: "file", other: "files" } },
+  move: { verb: "Moved", noun: { one: "file", other: "files" } },
+  search: { verb: "Searched", noun: { one: "query", other: "queries" } },
+  execute: { verb: "Ran", noun: { one: "command", other: "commands" } },
+  think: { verb: "Thought", noun: { one: "step", other: "steps" } },
+  fetch: { verb: "Fetched", noun: { one: "resource", other: "resources" } },
+  switch_mode: { verb: "Switched", noun: { one: "mode", other: "modes" } },
+  other: { verb: "Ran", noun: { one: "tool", other: "tools" } },
 }
 
 function phrase(kind: ToolKind, count: number): { lead: string; trail: string } {
   const v = SUMMARY[kind] ?? SUMMARY.other
-  const noun = count === 1 ? v.noun : `${v.noun}s`
+  const noun = pluralForm(count, v.noun)
   return { lead: v.verb, trail: noun }
 }
 

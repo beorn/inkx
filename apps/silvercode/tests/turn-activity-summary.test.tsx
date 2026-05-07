@@ -149,6 +149,19 @@ describe("TurnActivitySummary", () => {
     expect(app.text).not.toContain("Ran 1 command")
   })
 
+  test("pluralizes search query summaries as queries", () => {
+    const ops: MessageOp[] = []
+    for (let i = 0; i < 5; i++) ops.push(tool(`search-${i}`, "Grep", { pattern: `term-${i}` }, "hits"))
+    for (let i = 0; i < 3; i++) ops.push(tool(`cmd-${i}`, "Bash", { command: `echo ${i}` }, "ok"))
+    const entry = makeEntry({ ops })
+
+    const app = renderList([entry])
+
+    expect(app.text).toContain("Searched 5 queries")
+    expect(app.text).not.toContain("querys")
+    expect(app.text).toContain("Ran 3 commands")
+  })
+
   test("renders a single-line generic tool result as one row", () => {
     const entry = makeEntry({
       ops: [tool("plan-1", "update_plan", { plan: [] }, "Plan updated")],

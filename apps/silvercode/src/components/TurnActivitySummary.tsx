@@ -16,6 +16,7 @@ import type { ChatActivitySpan } from "../chat-model.ts"
 import { ToolCall, ToolContentForceExpandedProvider, ToolMarkerBackgroundProvider } from "./ToolCall.tsx"
 import { Content, useContentLayout } from "./Content.tsx"
 import { StatusGlyph } from "./StatusGlyph.tsx"
+import { pluralForm, type PluralForms } from "../i18n.ts"
 
 export type TurnActivitySummaryItem = {
   id: string
@@ -36,17 +37,17 @@ export interface TurnActivitySummaryProps {
   onExpandedChange?: (expanded: boolean) => void
 }
 
-const WORDS: Record<ToolKind, { verb: string; activeVerb: string; noun: string }> = {
-  read: { verb: "Read", activeVerb: "Reading", noun: "file" },
-  edit: { verb: "Edited", activeVerb: "Editing", noun: "file" },
-  delete: { verb: "Deleted", activeVerb: "Deleting", noun: "file" },
-  move: { verb: "Moved", activeVerb: "Moving", noun: "file" },
-  search: { verb: "Searched", activeVerb: "Searching", noun: "query" },
-  execute: { verb: "Ran", activeVerb: "Running", noun: "command" },
-  think: { verb: "Updated", activeVerb: "Updating", noun: "todo" },
-  fetch: { verb: "Fetched", activeVerb: "Fetching", noun: "resource" },
-  switch_mode: { verb: "Switched", activeVerb: "Switching", noun: "mode" },
-  other: { verb: "Used", activeVerb: "Using", noun: "tool" },
+const WORDS: Record<ToolKind, { verb: string; activeVerb: string; noun: PluralForms }> = {
+  read: { verb: "Read", activeVerb: "Reading", noun: { one: "file", other: "files" } },
+  edit: { verb: "Edited", activeVerb: "Editing", noun: { one: "file", other: "files" } },
+  delete: { verb: "Deleted", activeVerb: "Deleting", noun: { one: "file", other: "files" } },
+  move: { verb: "Moved", activeVerb: "Moving", noun: { one: "file", other: "files" } },
+  search: { verb: "Searched", activeVerb: "Searching", noun: { one: "query", other: "queries" } },
+  execute: { verb: "Ran", activeVerb: "Running", noun: { one: "command", other: "commands" } },
+  think: { verb: "Updated", activeVerb: "Updating", noun: { one: "todo", other: "todos" } },
+  fetch: { verb: "Fetched", activeVerb: "Fetching", noun: { one: "resource", other: "resources" } },
+  switch_mode: { verb: "Switched", activeVerb: "Switching", noun: { one: "mode", other: "modes" } },
+  other: { verb: "Used", activeVerb: "Using", noun: { one: "tool", other: "tools" } },
 }
 
 type SummaryCount = {
@@ -59,7 +60,7 @@ type SummaryCount = {
 function phrase(kind: ToolKind, summary: SummaryCount): string {
   const count = summary.count
   const words = WORDS[kind] ?? WORDS.other
-  const noun = count === 1 ? words.noun : `${words.noun}s`
+  const noun = pluralForm(count, words.noun)
   const delta =
     kind === "edit" && (summary.additions > 0 || summary.deletions > 0)
       ? ` +${summary.additions} -${summary.deletions}`
