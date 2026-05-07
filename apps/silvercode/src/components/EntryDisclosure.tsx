@@ -2,7 +2,7 @@ import React from "react"
 import { type PopoverContent, type SilveryMouseEvent } from "silvery"
 import { HoverPreviewTarget } from "./HoverPreviewTarget.tsx"
 
-export interface ChatEntryDisclosureState {
+export interface EntryDisclosureState {
   surfaceProps: {
     onMouseEnter: (e: SilveryMouseEvent) => void
     onMouseLeave: (e: SilveryMouseEvent) => void
@@ -16,8 +16,8 @@ export interface ChatEntryDisclosureState {
   collapse: () => void
 }
 
-export interface ChatEntryDisclosureProps {
-  children: (state: ChatEntryDisclosureState) => React.ReactElement
+export interface EntryDisclosureProps {
+  children: (state: EntryDisclosureState) => React.ReactElement
   popover?: PopoverContent | null
   defaultExpanded?: boolean
   expanded?: boolean
@@ -27,7 +27,7 @@ export interface ChatEntryDisclosureProps {
 }
 
 /**
- * Transcript row disclosure.
+ * Shared row disclosure.
  *
  * The row/header is one interactive surface: hover highlights it, Cmd-hover
  * shows a preview, click toggles expansion, and expanded attached content can
@@ -35,7 +35,7 @@ export interface ChatEntryDisclosureProps {
  * AgNodes, so Silvery's interaction ownership makes them the front-most
  * surface without parent-specific code.
  */
-export function ChatEntryDisclosure({
+export function EntryDisclosure({
   children,
   popover,
   defaultExpanded,
@@ -43,7 +43,7 @@ export function ChatEntryDisclosure({
   onExpandedChange,
   interactive = true,
   canExpand = true,
-}: ChatEntryDisclosureProps): React.ReactElement {
+}: EntryDisclosureProps): React.ReactElement {
   return (
     <HoverPreviewTarget
       popover={interactive ? popover : null}
