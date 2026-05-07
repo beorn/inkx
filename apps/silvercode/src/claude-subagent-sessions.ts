@@ -72,6 +72,7 @@ function readTranscriptSummary(path: string): TranscriptSummary {
   let prompt: string | undefined
   let resultText: string | undefined
   let status: SubagentSessionSummary["status"] = "running"
+  let sawToolResult = false
 
   for (const line of raw.split("\n")) {
     if (line.length === 0) continue
@@ -81,11 +82,20 @@ function readTranscriptSummary(path: string): TranscriptSummary {
     if (ts !== undefined && startedAt === undefined) startedAt = ts
     const message = objectField(row.message)
     const role = stringField(message.role)
-    if (role === "user" && prompt === undefined) prompt = contentText(message.content)
+    if (role === "user") {
+      if (prompt === undefined) prompt = contentText(message.content)
+      if (hasToolResultContent(message.content)) sawToolResult = true
+    }
     if (role === "assistant") {
       const text = contentText(message.content)
-      if (text) resultText = text
       const stopReason = stringField(message.stop_reason)
+      if (text) {
+        resultText = text
+        if (sawToolResult) {
+          status = "done"
+          completedAt = ts ?? completedAt
+        }
+      }
       if (stopReason === "end_turn") {
         status = "done"
         completedAt = ts ?? completedAt
@@ -127,6 +137,11 @@ function contentText(content: unknown): string | undefined {
     .join("\n")
     .trim()
   return text || undefined
+}
+
+function hasToolResultContent(content: unknown): boolean {
+  if (!Array.isArray(content)) return false
+  return content.some((part) => objectField(part).type === "tool_result")
 }
 
 function parseTimestamp(value: unknown): number | undefined {

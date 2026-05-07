@@ -58,4 +58,82 @@ describe("Claude subagent sidechain discovery", () => {
       rmSync(root, { recursive: true, force: true })
     }
   })
+
+  test("marks a sidechain done when final assistant text follows a tool result without end_turn", () => {
+    const root = mkdtempSync(join(tmpdir(), "silvercode-subagents-"))
+    try {
+      const subagentsDir = join(root, "subagents")
+      mkdirSync(subagentsDir, { recursive: true })
+      writeFileSync(
+        join(subagentsDir, "agent-ab046939455004e89.meta.json"),
+        JSON.stringify({ agentType: "general-purpose", description: "Sleep 17s #2" }),
+      )
+      writeFileSync(
+        join(subagentsDir, "agent-ab046939455004e89.jsonl"),
+        [
+          jsonlLine({
+            isSidechain: true,
+            agentId: "ab046939455004e89",
+            type: "user",
+            message: {
+              role: "user",
+              content: 'Run `sleep 17` via the Bash tool, then report "agent 2: done sleeping 17s".',
+            },
+            timestamp: "2026-05-07T18:18:23.876Z",
+          }),
+          jsonlLine({
+            isSidechain: true,
+            agentId: "ab046939455004e89",
+            type: "assistant",
+            message: {
+              role: "assistant",
+              content: [{ type: "text", text: "I'll run the sleep command." }],
+              stop_reason: null,
+            },
+            timestamp: "2026-05-07T18:18:24.100Z",
+          }),
+          jsonlLine({
+            isSidechain: true,
+            agentId: "ab046939455004e89",
+            type: "assistant",
+            message: {
+              role: "assistant",
+              content: [{ type: "tool_use", id: "toolu_bash", name: "Bash", input: { command: "sleep 17" } }],
+              stop_reason: "tool_use",
+            },
+            timestamp: "2026-05-07T18:18:24.200Z",
+          }),
+          jsonlLine({
+            isSidechain: true,
+            agentId: "ab046939455004e89",
+            type: "user",
+            message: {
+              role: "user",
+              content: [{ type: "tool_result", tool_use_id: "toolu_bash", content: "" }],
+            },
+            timestamp: "2026-05-07T18:18:41.500Z",
+          }),
+          jsonlLine({
+            isSidechain: true,
+            agentId: "ab046939455004e89",
+            type: "assistant",
+            message: {
+              role: "assistant",
+              content: [{ type: "text", text: "agent 2: done sleeping 17s" }],
+              stop_reason: null,
+            },
+            timestamp: "2026-05-07T18:18:41.900Z",
+          }),
+        ].join(""),
+      )
+
+      const [summary] = readClaudeSubagentSessionsFromDir(subagentsDir)
+
+      expect(summary?.status).toBe("done")
+      expect(summary?.completedAt).toBe(Date.parse("2026-05-07T18:18:41.900Z"))
+      expect(summary?.resultText).toBe("agent 2: done sleeping 17s")
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
 })
