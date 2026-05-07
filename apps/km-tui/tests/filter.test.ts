@@ -21,6 +21,7 @@ import { createTestApp } from "./helpers/test-app.ts"
 import type { KNode } from "@km/core"
 import { createFakeRepo } from "@km/storage"
 import { addHidden, computeHiddenPath, readBoardHidden, isHidden } from "../src/hidden.ts"
+import { countFilteredDirectChildren } from "../src/views/useBoardController.ts"
 
 describe("P2: Filter feature", () => {
   test("V toggles filter panel", () => {
@@ -876,6 +877,33 @@ function flushFilter(app: { press: (key: string) => void; command: (cmd: string)
 }
 
 describe("filter hidden count indicator", () => {
+  test("property filter hidden-count does not recurse through deep card subtrees", () => {
+    const nodes = item("board", item("Tasks", item("visible-parent", item("visible-child", item("deep-done")))))
+    const deepDone = nodes.find((n) => n.id === "deep-done")!
+    deepDone.item = { ...deepDone.item, task: { status: "done", marker: "[x]" } }
+
+    const repo = createFakeRepo({ nodes })
+    const visitedParents: Array<string | null> = []
+    const countingRepo = {
+      getNode: repo.getNode.bind(repo),
+      getChildren(parentId: string | null) {
+        visitedParents.push(parentId)
+        return repo.getChildren(parentId)
+      },
+    }
+
+    const hidden = countFilteredDirectChildren(countingRepo, "visible-parent", {
+      taskStatus: new Set(["todo", "wip", "blocked"]),
+      priority: new Set(),
+      dueDate: new Set(),
+      assignedTo: new Set(),
+      nodeType: new Set(),
+    })
+
+    expect(hidden).toBe(0)
+    expect(visitedParents).toEqual(["visible-parent"])
+  })
+
   test("shows +N hidden when text filter hides cards", () => {
     using app = createTestApp(
       item(

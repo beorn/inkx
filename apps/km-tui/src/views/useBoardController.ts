@@ -51,9 +51,16 @@ import type { BoardViewProps, ColumnFilterState } from "./BoardView.tsx"
 // Property filter matching (helpers used by controller derivation)
 // =============================================================================
 
-/** Count descendant nodes hidden by property filters within a card's subtree.
- * Only counts one level deep (direct children) — deeper nesting is rare in practice. */
-function countHiddenDescendants(
+/**
+ * Count direct child nodes hidden by property filters within a card.
+ *
+ * This intentionally stays one level deep. Recursing through every surviving
+ * descendant turns a saved task-status filter into a mount-time full-subtree
+ * walk on large boards such as `@km`.
+ *
+ * @internal Exported for a focused perf regression test.
+ */
+export function countFilteredDirectChildren(
   repo: { getNode(id: string): KNode | null | undefined; getChildren(parentId: string | null): KNode[] },
   parentId: string,
   filters: FilterProperties,
@@ -65,9 +72,6 @@ function countHiddenDescendants(
     const filterNode = embedTarget ? (repo.getNode(embedTarget) ?? child) : child
     if (!matchesPropertyFilters(filterNode, filters)) {
       count++
-    } else {
-      // Recurse into children that survived the filter
-      count += countHiddenDescendants(repo, child.id, filters)
     }
   }
   return count
@@ -389,7 +393,7 @@ export function useBoardController({ patchedConsole }: UseBoardControllerArgs): 
       let hiddenDescendantCount = 0
       if (hasPropertyFilter) {
         for (const cardId of filteredCardIds) {
-          hiddenDescendantCount += countHiddenDescendants(repo, cardId, ui.filterProperties)
+          hiddenDescendantCount += countFilteredDirectChildren(repo, cardId, ui.filterProperties)
         }
       }
       map.set(colId, {
