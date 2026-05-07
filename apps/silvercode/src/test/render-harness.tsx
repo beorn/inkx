@@ -180,7 +180,13 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
   Object.defineProperty(process.stdout, "rows", { configurable: true, get: () => rows })
 
   const fake = opts.fake ?? createFakeSession()
-  const renderer = createRenderer({ cols, rows, maxLayoutPasses: opts.maxLayoutPasses })
+  // Default cap = 5 mirrors the pre-max-layout-passes-knob classic-loop
+  // default. Tests that need production-matching cap=2 can override via
+  // `opts.maxLayoutPasses`. Lowering the default broke timing-dependent
+  // controller event assertions in chat-stability + welcome-features
+  // (the controller's microtask-based scid mapping races a tighter
+  // render loop). Bead: @km/silvercode/render-harness-default-cap.
+  const renderer = createRenderer({ cols, rows, maxLayoutPasses: opts.maxLayoutPasses ?? 5 })
   // In live mode, omit spawnFactory so the App uses its default
   // spawnClaude / spawnSdk / spawnCodex path. The script (if any) is
   // ignored — the real subprocess produces the events.
