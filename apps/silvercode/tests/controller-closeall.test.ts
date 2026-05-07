@@ -83,5 +83,15 @@ describe("controller subagent invariants", () => {
         ts: 21_300,
       }),
     ).toThrow(/subagent activity invariant failed.*claimed 4.*observed 1/s)
+
+    expect(() =>
+      fake.emit({
+        kind: "turn-end",
+        sessionId: providerSessionId,
+        turnId,
+        stopReason: "end_turn",
+        ts: 21_301,
+      }),
+    ).not.toThrow()
   })
 })

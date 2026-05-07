@@ -683,6 +683,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   let subagentAdapter: ReturnType<typeof registerAllNotificationAdapters>["subagent"] | undefined
   const claudeSidechainNotificationKeys = new Map<string, Set<string>>()
   const lastClaudeSidechainScanAt = new Map<string, number>()
+  const lastClaudeSubagentInvariantBySession = new Map<string, string>()
   function recordClaudeSidechainSubagents(
     sessionId: string,
     store: SessionStore,
@@ -731,7 +732,17 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   }
   function assertClaudeSubagentDataModelInvariants(sessionId: string, store: SessionStore): void {
     const err = claudeSubagentDataModelInvariantError(sessionId, store)
-    if (err) throw err
+    if (!err) {
+      lastClaudeSubagentInvariantBySession.delete(sessionId)
+      return
+    }
+    const key = err.message
+    if (lastClaudeSubagentInvariantBySession.get(sessionId) === key) {
+      dInvariant("subagent activity invariant deduped session=%s message=%s", sessionId, key)
+      return
+    }
+    lastClaudeSubagentInvariantBySession.set(sessionId, key)
+    throw err
   }
   function recordClaudeSubagentDataModelInvariant(sessionId: string, store: SessionStore): void {
     const err = claudeSubagentDataModelInvariantError(sessionId, store)
