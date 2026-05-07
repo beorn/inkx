@@ -16,6 +16,7 @@ import {
   Screen,
   Text,
   useExit,
+  usePanic,
   useScopeEffect,
   useTerm,
 } from "silvery"
@@ -314,12 +315,21 @@ export function App(props: AppProps): React.ReactElement {
   useEffect(() => controller.subscribe((list) => setSessions(list.slice())), [controller])
   const [focusedSessionId, setFocusedSessionId] = useState<string>(() => controller.focusedId())
   useEffect(() => controller.onFocusChange((id) => setFocusedSessionId(id)), [controller])
-  // Surface controller-level spawn errors as a visible banner so the user
-  // isn't stuck staring at a blank UI when the agent connection drops or
-  // the configured agent fails to launch. Stderr writes alone are hidden
-  // behind alt-screen. Bead: km-silvercode.spawn-error-blank-screen.
+  // Controller-level spawn failures are fatal startup diagnostics. Route them
+  // through Silvery's panic path so terminal cleanup happens before the message
+  // is printed, making it visible and copyable on the regular screen.
+  const silveryPanic = usePanic()
   const [spawnError, setSpawnErrorState] = useState<string | null>(() => controller.lastSpawnError())
   useEffect(() => controller.onSpawnError((msg) => setSpawnErrorState(msg)), [controller])
+  const panickedSpawnErrorRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (spawnError === null || panickedSpawnErrorRef.current === spawnError) return
+    panickedSpawnErrorRef.current = spawnError
+    const message = spawnError.startsWith("silvercode:")
+      ? spawnError.slice("silvercode:".length).trim()
+      : spawnError
+    silveryPanic(message, { title: "silvercode", exitCode: 1 })
+  }, [silveryPanic, spawnError])
 
   const focused = useMemo(
     () => sessions.find((s) => s.id === focusedSessionId) ?? sessions[0],
