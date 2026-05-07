@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "vitest"
 import type { RenderProbeEvent } from "../src/render-probe.ts"
-import { createDriverTest, item } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 
 function cursorScopeFixture() {
   const cards = Array.from({ length: 24 }, (_, i) =>
@@ -18,14 +19,10 @@ describe("cursor render scope", () => {
     const events: RenderProbeEvent[] = []
     globalThis.__kmTuiRenderProbe = (event) => events.push(event)
 
-    const { board } = createDriverTest(() => cursorScopeFixture(), {
-      columns: 120,
-      rows: 40,
-      incremental: true,
-    })
+    using app = createTestApp(() => cursorScopeFixture(), { cols: 120, rows: 40, incremental: true })
 
     events.length = 0
-    board.command("cursor_down")
+    app.command("cursor_down")
 
     const boardCoreRenders = events.filter((event) => event.component === "BoardCore")
     expect(boardCoreRenders).toHaveLength(0)
@@ -35,14 +32,10 @@ describe("cursor render scope", () => {
     const events: RenderProbeEvent[] = []
     globalThis.__kmTuiRenderProbe = (event) => events.push(event)
 
-    const { board } = createDriverTest(() => cursorScopeFixture(), {
-      columns: 120,
-      rows: 40,
-      incremental: true,
-    })
+    using app = createTestApp(() => cursorScopeFixture(), { cols: 120, rows: 40, incremental: true })
 
     events.length = 0
-    board.command("cursor_down")
+    app.command("cursor_down")
 
     const renderedNodeIds = new Set(
       events
