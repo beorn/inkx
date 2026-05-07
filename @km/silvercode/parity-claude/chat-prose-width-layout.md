@@ -1,5 +1,4 @@
 ---
-id: "@km/silvercode/claude-code-transcript-parity/chat-prose-width-layout"
 aliases:
   - "@km/silvercode/chat-prose-width-layout"
   - km-silvercode.chat-prose-width-layout
@@ -289,3 +288,4 @@ Markdown rendering should eventually become block-aware so paragraphs use the pr
 - `rg "useResponsiveValue" vendor/silvery apps packages --glob '!node_modules' --glob '!dist'` returns 0 after the final batch refactor.
 - Callers that depend on app/terminal chrome width use `useResponsiveViewport`; callers inside content layout use `useResponsiveContent`.
 - Silvery docs include a dedicated content layout/responsive typography page covering the component family, hooks, examples, migration guidance, and anti-patterns.
+

@@ -1,18 +1,17 @@
 ---
-id: "@km/silvercode/claude-code-transcript-parity/l5-visual-replay-parity"
 aliases:
-  - km-silvercode.claude-code-transcript-parity.l5-visual-replay-parity
-  - km-silvercode-claude-code-transcript-parity-l5-visual-replay-parity
+  - @km/silvercode/parity-claude.l5-visual-replay-parity
+  - @km/silvercode/parity-claude-l5-visual-replay-parity
 created_at: 2026-05-07T01:20:12.416Z
 type: task
 priority: P1
 status: open
-parent: "@km/silvercode/claude-code-transcript-parity"
+parent: "@km/silvercode/parity-claude"
 ---
 
 # L5: visual replay parity against Claude Code screenshot sessions #P1
 
-blocks:: [[@km/silvercode/claude-code-transcript-parity]]
+blocks:: [[@km/silvercode/parity-claude]]
 
 ## Goal
 

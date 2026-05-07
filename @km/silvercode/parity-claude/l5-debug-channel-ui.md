@@ -1,18 +1,17 @@
 ---
-id: "@km/silvercode/claude-code-transcript-parity/l5-debug-channel-ui"
 aliases:
-  - km-silvercode.claude-code-transcript-parity.l5-debug-channel-ui
-  - km-silvercode-claude-code-transcript-parity-l5-debug-channel-ui
+  - @km/silvercode/parity-claude.l5-debug-channel-ui
+  - @km/silvercode/parity-claude-l5-debug-channel-ui
 created_at: 2026-05-07T01:20:07.609Z
 type: feature
 priority: P0
 status: open
-parent: "@km/silvercode/claude-code-transcript-parity"
+parent: "@km/silvercode/parity-claude"
 ---
 
 # L5: Debug notification channel toggle controls projected Debug leaves #feature #P0
 
-blocks:: [[@km/silvercode/claude-code-transcript-parity]]
+blocks:: [[@km/silvercode/parity-claude]]
 
 ## Goal
 

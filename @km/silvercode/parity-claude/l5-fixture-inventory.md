@@ -1,18 +1,17 @@
 ---
-id: "@km/silvercode/claude-code-transcript-parity/l5-fixture-inventory"
 aliases:
-  - km-silvercode.claude-code-transcript-parity.l5-fixture-inventory
-  - km-silvercode-claude-code-transcript-parity-l5-fixture-inventory
+  - @km/silvercode/parity-claude.l5-fixture-inventory
+  - @km/silvercode/parity-claude-l5-fixture-inventory
 created_at: 2026-05-07T01:19:44.338Z
 type: task
 priority: P0
 status: open
-parent: "@km/silvercode/claude-code-transcript-parity"
+parent: "@km/silvercode/parity-claude"
 ---
 
 # L5: replay fixture inventory and unknown event fail-fast gate #P0
 
-blocks:: [[@km/silvercode/claude-code-transcript-parity]]
+blocks:: [[@km/silvercode/parity-claude]]
 
 ## Goal
 

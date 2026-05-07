@@ -2,7 +2,6 @@
 mentions:
   - km
   - claude
-id: "@km/silvercode/claude-code-transcript-parity/thinking-loop-after-bash"
 aliases:
   - "@km/silvercode/thinking-loop-after-bash"
   - km-silvercode.thinking-loop-after-bash

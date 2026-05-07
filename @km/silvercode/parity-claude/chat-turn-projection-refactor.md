@@ -1,7 +1,6 @@
 ---
 mentions:
   - km
-id: "@km/silvercode/claude-code-transcript-parity/chat-turn-projection-refactor"
 aliases:
   - "@km/silvercode/chat-turn-projection-refactor"
   - km-silvercode.chat-turn-projection-refactor

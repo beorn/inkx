@@ -1,7 +1,6 @@
 ---
 mentions:
   - km
-id: "@km/silvercode/claude-code-transcript-parity/timestamps"
 aliases:
   - "@km/silvercode/timestamps"
   - km-silvercode.timestamps
@@ -16,7 +15,10 @@ dependencies:
     created_at: 2026-04-28T12:36:37Z
     created_by: claude:2405c72e
     metadata: "{}"
-props: {}
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 propsRaw: {}
 closed_at: 2026-05-06T22:54:23.471Z
 closeReason: "Verified cbadc97f2. TimestampedRow shows exact turn timestamps
@@ -49,3 +51,4 @@ Acceptance:
 - `TimestampedRow` in `SessionUpdateList.tsx` shows formatted exact time only on cmd-hover.
 - Verification: `apps/silvercode/tests/content-layout.test.tsx` includes `cmd-hovering turns shows timestamps in the nearest gutter without moving content`.
 - Current implementation intentionally does not show always-visible relative chips.
+

@@ -1,7 +1,6 @@
 ---
 mentions:
   - km
-id: "@km/silvercode/claude-code-transcript-parity/markdown-table-render"
 aliases:
   - "@km/silvercode/markdown-table-render"
   - km-silvercode.markdown-table-render
@@ -10,12 +9,12 @@ created_by: claude:1eb07bba
 created_at: 2026-04-26T05:49:35Z
 owner: bjorn@stabell.org
 closed_at: 2026-05-06T22:23:05Z
-close_reason: "Verified MarkdownView/Content.Table path renders GFM tables
-  with alignment and wrapped cell content instead of truncating. Tests:
-  bun vitest run apps/silvercode/tests/content-layout.test.tsx plus
+close_reason: "Verified MarkdownView/Content.Table path renders GFM tables with
+  alignment and wrapped cell content instead of truncating. Tests: bun vitest
+  run apps/silvercode/tests/content-layout.test.tsx plus
   apps/silvercode/tests/visual/markdown.test.tsx
-  apps/silvercode/tests/visual/markdown-bugs.test.tsx (10 visual markdown
-  tests passed after the focused content-layout run)."
+  apps/silvercode/tests/visual/markdown-bugs.test.tsx (10 visual markdown tests
+  passed after the focused content-layout run)."
 dependencies:
   - issue_id: km-silvercode.markdown-table-render
     depends_on_id: km-shared.text-render-package
@@ -32,9 +31,18 @@ dependencies:
 props:
   verified:
     type: text
-    value: "2026-05-06: Content.Table + MarkdownView path verified by content-layout and markdown visual tests."
+    value: "2026-05-06: Content.Table + MarkdownView path verified by content-layout
+      and markdown visual tests."
+  blocked-by:
+    type: list
+    values:
+      - type: link
+        target: km-shared.text-render-package
+      - type: link
+        target: km-silvercode
 propsRaw:
-  verified: "2026-05-06: Content.Table + MarkdownView path verified by content-layout and markdown visual tests."
+  verified: "2026-05-06: Content.Table + MarkdownView path verified by
+    content-layout and markdown visual tests."
 ---
 
 # [x] Markdown table rendering with column alignment @km/silvercode #feature #P0 ^markdown-table-render
@@ -68,3 +76,4 @@ Originally blocked on `@km/shared/text-render-package`; current implementation u
 
 - Re-verified after Claude Code parity triage: `bun vitest run apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/visual/markdown.test.tsx apps/silvercode/tests/visual/markdown-bugs.test.tsx` passed, 53 tests.
 - Existing regression `wide markdown tables wrap long cell content instead of truncating it` asserts the unique tail marker survives and no ellipsis is introduced.
+

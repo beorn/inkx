@@ -1,18 +1,17 @@
 ---
-id: "@km/silvercode/claude-code-transcript-parity/l5-control-event-state-routing"
 aliases:
-  - km-silvercode.claude-code-transcript-parity.l5-control-event-state-routing
-  - km-silvercode-claude-code-transcript-parity-l5-control-event-state-routing
+  - @km/silvercode/parity-claude.l5-control-event-state-routing
+  - @km/silvercode/parity-claude-l5-control-event-state-routing
 created_at: 2026-05-07T01:20:06.006Z
 type: task
 priority: P0
 status: open
-parent: "@km/silvercode/claude-code-transcript-parity"
+parent: "@km/silvercode/parity-claude"
 ---
 
 # L5: state-first handling for permission queue title recap hook and snapshot events #P0
 
-blocks:: [[@km/silvercode/claude-code-transcript-parity]]
+blocks:: [[@km/silvercode/parity-claude]]
 
 ## Goal
 

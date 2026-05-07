@@ -1,7 +1,6 @@
 ---
 mentions:
   - km
-id: "@km/silvercode/claude-code-transcript-parity/raw-entry-inspector"
 aliases:
   - "@km/silvercode/raw-entry-inspector"
   - km-silvercode.raw-entry-inspector
@@ -16,7 +15,10 @@ dependencies:
     created_at: 2026-04-26T16:39:09Z
     created_by: claude:cd034ca4
     metadata: "{}"
-props: {}
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 propsRaw: {}
 closed_at: 2026-05-06T22:54:23.471Z
 closeReason: "Shipped/verified cbadc97f2. RawInspector cmd-hover YAML detail now
@@ -100,3 +102,4 @@ v1 is now **cmd-hover/detail first**. `SessionUpdateList.RawInspector` attaches 
 ## Why this matters
 
 Debugging a verbose-tool-result issue or a thinking-loop bug (e.g., @km/silvercode/thinking-loop-after-bash) requires seeing what the wire actually delivered. Today this requires opening the JSONL file directly. A per-entry inspector closes that gap.
+

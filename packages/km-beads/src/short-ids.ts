@@ -2,6 +2,7 @@ import { ulid } from "ulid"
 import { resolveRef, type Repo } from "@km/storage"
 
 import { bdIdToPathForm } from "./migrate.ts"
+import { resolveBeadsRoots } from "./paths.ts"
 
 const SEPARATOR = "-"
 const AUTO_LENGTH = 4
@@ -116,6 +117,9 @@ export function resolveShortId(input: string, options: ShortIdOptions): string |
   }
   const repo = options.repo
 
+  const fileBackedBead = resolvePathFormBeadFile(repo, input)
+  if (fileBackedBead !== null) return fileBackedBead
+
   const universal = resolveRef(repo, input)
   if (universal !== null) return universal
 
@@ -180,4 +184,35 @@ export function resolveShortId(input: string, options: ShortIdOptions): string |
   }
 
   return null
+}
+
+/**
+ * Bead path-form ids name files, not their sibling child directories.
+ *
+ * The universal storage resolver intentionally prefers `foo/` over `foo.md`
+ * for generic path navigation. Beads use the sibling shape differently:
+ *
+ *   @km/scope/foo.md  # parent bead body
+ *   @km/scope/foo/    # child bead directory
+ *
+ * So `Bead.resolve("@km/scope/foo")` must resolve the file-backed bead
+ * before delegating to the universal folder-first resolver.
+ */
+function resolvePathFormBeadFile(repo: Repo, input: string): string | null {
+  const trimmed = input.trim()
+  if (!trimmed.includes("/") || trimmed.endsWith(".md")) return null
+
+  const node = repo.resolveNode(`${trimmed}.md`)
+  if (node?.fstype === "mdfile" && isUnderBeadRoot(node.fs_path, resolveBeadsRoots(repo.config.beads))) return node.id
+
+  return null
+}
+
+function isUnderBeadRoot(fsPath: string | undefined, roots: string[]): boolean {
+  if (!fsPath) return false
+  for (const root of roots) {
+    if (fsPath === root) return true
+    if (fsPath.startsWith(`${root}/`)) return true
+  }
+  return false
 }

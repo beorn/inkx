@@ -13,14 +13,19 @@ The single source of truth for bead operations. `/pm` is a thin alias that route
 
 ## Storage model — markdown files in the vault
 
-Bead state is **per-vault markdown** under `@km/<scope>/<slug>.md` (path-form) or `km-<scope>.<slug>` (bd-form, equivalent alias). Beads ride the normal git transport — there is no separate `.beads/` directory or Dolt push. `km bd` reads/writes the markdown files plus the local index in `.km/state.db` (gitignored cache).
+Bead state is **per-vault markdown** under the path-form id (`@km/<scope>/<slug>`), with bd-form (`km-<scope>.<slug>`) as a legacy alias. Beads ride the normal git transport — there is no separate `.beads/` directory or Dolt push. `km bd` reads/writes the markdown files plus the local index in `.km/state.db` (gitignored cache).
+
+The filesystem path is the canonical identity. Do **not** add `id:` frontmatter when the path already carries the id. Use `aliases:` only for legacy bd/dash forms or old names.
+
+Use the sibling file + sibling directory layout for beads that have children: the `.md` file is the bead body, and the same-stem directory holds child beads. Example: `@km/silvercode/parity-claude.md` is the parent bead body, and child beads live under `@km/silvercode/parity-claude/`. Do not move the parent body inside the child directory as `@km/silvercode/parity-claude/parity-claude.md`.
 
 | Surface | What's there |
 |---|---|
-| `@km/<scope>/<slug>.md` | The bead — markdown body with frontmatter (id, aliases, type, priority, status, parent) |
+| `@km/<scope>/<slug>.md` | Bead body. Frontmatter may have `aliases`, status fields, etc.; no redundant `id:`. |
+| `@km/<scope>/<slug>/` | Child-bead directory for `@km/<scope>/<slug>.md`. |
 | `.km/state.db` | Local FTS5 index + events table (gitignored, rebuilt from markdown on `km doctor rebuild`) |
 
-**Sync**: `git add @km/<scope>/<slug>.md && git commit && git push` — that's it. Don't ever run `bd dolt push` (the Go bd binary and Dolt backend were retired 2026-04-29; `bd` is no longer on PATH).
+**Sync**: `git add @km/<scope>/<slug>.md @km/<scope>/<slug>/ && git commit && git push` — that's it. Don't ever run `bd dolt push` (the Go bd binary and Dolt backend were retired 2026-04-29; `bd` is no longer on PATH).
 
 ## CLI surface
 
@@ -96,6 +101,8 @@ git push                          # everyone else's bead view is stale until the
 
 Scope epics are permanent backlogs (per-package); they don't close. Project epics close when shipped.
 
+If a sub-bead grows children, keep the parent body at `@km/<scope>/<slug>.md` and put children under `@km/<scope>/<slug>/`. This sibling directory is intentional; it is how bead trees are materialized.
+
 ## Common workflows
 
 ### Start a new bug fix
@@ -152,6 +159,8 @@ If a bead description has numeric targets (≤12 useEffects, ≤1000 LOC, 0 TS e
 - Running `km bd` from a slot worktree (`.claude/worktrees/wtN`) for non-slot beads — landed in slot, not visible from main
 - Closing a bead without grep evidence in `--reason`
 - Closing a bead because "the agent said done" — agents close aspirationally; verify with `km bd show <id>` and run the acceptance commands
+- Adding `id:` frontmatter to normal path-form beads — the path is the id. Use `aliases:` for old names.
+- Moving a parent bead body into its child directory as `@km/<scope>/<slug>/<slug>.md` — bead children use sibling layout: `@km/<scope>/<slug>.md` plus `@km/<scope>/<slug>/`.
 - Using `--parent km-silvery --id better-scroll-defaults` for a scoped bead — use `--id @km/silvery/better-scroll-defaults`
 - Using `--id wt.1` expecting it to auto-scope to `@km/wt/1` — auto-scope-derive was removed (4734b3bb1); use `--id @km/wt/1`
 - Re-creating a bead someone else already filed — search `km bd list --status open` first

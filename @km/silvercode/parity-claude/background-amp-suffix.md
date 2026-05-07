@@ -2,7 +2,6 @@
 mentions:
   - km
   - claude
-id: "@km/silvercode/claude-code-transcript-parity/background-amp-suffix"
 aliases:
   - "@km/silvercode/background-amp-suffix"
   - km-silvercode.background-amp-suffix
@@ -22,7 +21,10 @@ dependencies:
     created_at: 2026-04-25T22:56:05Z
     created_by: claude:2405c72e
     metadata: "{}"
-props: {}
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 propsRaw: {}
 ---
 

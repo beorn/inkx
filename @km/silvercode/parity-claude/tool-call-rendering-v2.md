@@ -1,7 +1,6 @@
 ---
 mentions:
   - km
-id: "@km/silvercode/claude-code-transcript-parity/tool-call-rendering-v2"
 aliases:
   - "@km/silvercode/tool-call-rendering-v2"
   - km-silvercode.tool-call-rendering-v2
@@ -24,7 +23,10 @@ dependencies:
     created_at: 2026-04-28T12:35:20Z
     created_by: claude:2405c72e
     metadata: "{}"
-props: {}
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 propsRaw: {}
 ---
 
@@ -58,5 +60,6 @@ Acceptance:
 - Consecutive Read/Glob/Grep: zero gap rows
 - termless test: 5 successive Read calls render as 5 contiguous rows with no blank row between
 - termless test: hover on a row does not reveal body inline or move following rows
-- termless test: click toggles body content inline
 - termless test: failed call renders red verb token, body still indented + no border
+- termless test: click toggles body content inline
+

@@ -1,7 +1,6 @@
 ---
 mentions:
   - km
-id: "@km/silvercode/claude-code-transcript-parity/user-turn-bg-only"
 aliases:
   - "@km/silvercode/user-turn-bg-only"
   - km-silvercode.user-turn-bg-only
@@ -12,8 +11,8 @@ owner: bjorn@stabell.org
 closed_at: 2026-05-06T22:23:05Z
 close_reason: "Verified current chat styling: user prompts render through
   Chat.Turn.Prompt with subtle raised background, assistant narration remains
-  plain, and tool hover backgrounds only appear for interactive detail.
-  Test: bun vitest run apps/silvercode/tests/notification-block.test.tsx
+  plain, and tool hover backgrounds only appear for interactive detail. Test:
+  bun vitest run apps/silvercode/tests/notification-block.test.tsx
   apps/silvercode/tests/content-layout.test.tsx
   apps/silvercode/tests/notification-welcome-artifact.test.tsx
   apps/silvercode/tests/welcome-features.test.tsx
@@ -26,7 +25,10 @@ dependencies:
     created_at: 2026-04-28T12:35:19Z
     created_by: claude:2405c72e
     metadata: "{}"
-props: {}
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 propsRaw: {}
 ---
 
@@ -55,3 +57,4 @@ Acceptance:
 - Assistant narration renders via `Chat.Turn.Narration` on the plain transcript background.
 - Tool rows use hover/expanded backgrounds only when interactive detail is available.
 - Verification: `bun vitest run apps/silvercode/tests/content-layout.test.tsx apps/silvercode/tests/notification-event-row.test.tsx apps/silvercode/tests/notification-welcome-artifact.test.tsx apps/silvercode/tests/notification-stream.test.ts` passed, 61 tests.
+

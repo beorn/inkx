@@ -2,7 +2,6 @@
 mentions:
   - km
   - claude
-id: "@km/silvercode/claude-code-transcript-parity/resume-renders-system-reminders"
 aliases:
   - "@km/silvercode/resume-renders-system-reminders"
   - km-silvercode.resume-renders-system-reminders

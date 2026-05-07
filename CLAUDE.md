@@ -227,7 +227,8 @@ The vault layout is **node-tree-shaped on disk**. Directories and files become k
   vault-root/
     imports/                                # all migrated bd content lives here
       km-2026-04-28/                        # one subdir per import (<source>-<YYYY-MM-DD>)
-        @km/<scope>/<slug>.md               # canonical bead path (mirrors @km/<scope>/<slug> sigil)
+        @km/<scope>/<slug>.md               # bead body (path mirrors @km/<scope>/<slug> sigil)
+        @km/<scope>/<slug>/                 # child-bead directory when that bead owns children
         @km/inbox/<id>.md                   # bd auto-ids without scope (km-q5hji etc); also fresh `km bd create` lands here
         mem/<key>.md                        # memories — insights, not prefix-tagged
       decker-2026-04-29/                    # second import = own subdir
@@ -239,8 +240,9 @@ The vault layout is **node-tree-shaped on disk**. Directories and files become k
   - Imports are containerized — multiple bd dbs don't pollute the vault root.
   - Memories live next to `@<prefix>/` because they share *provenance* (the same bd db) but they're not prefix-tagged conceptually — they're insights.
   - Multi-prefix imports stay isolated by import-subdir, not by sigil.
-- **Path-form == frontmatter id == wikilink target.** All three carry the literal sigil. The on-disk path mirrors the link target 1:1 — no mental translation between "path" and "logical id."
-- **Aliases keep legacy forms working.** For migrated beads, frontmatter `aliases:` includes bd-form (`km-beads.cutover`) and dash-form (`km-beads-cutover`); canonical id is the sigil-prefixed path-form.
+- **Path-form == canonical id == wikilink target.** The on-disk path mirrors the link target 1:1 — no mental translation between "path" and "logical id." Do not add redundant `id:` frontmatter when the path already carries the id.
+- **Beads with children use sibling layout:** when a bead has children, keep the bead body at `@km/silvercode/parity-claude.md` and put child beads under the sibling directory `@km/silvercode/parity-claude/`. Do not move the parent body into `@km/silvercode/parity-claude/parity-claude.md`.
+- **Aliases keep legacy forms working.** For migrated beads, frontmatter `aliases:` includes bd-form (`km-beads.cutover`) and dash-form (`km-beads-cutover`); canonical id is the sigil-prefixed path-form from the filesystem.
 
 **Trap to avoid (recurring):** "Use bare `km/` / `bug/` / `abc123/` instead of `@km/` / `#bug/` / `^abc123/` because the sigil is annoying / breaks shell completion / looks weird." Wrong — different node, broken parenting, broken link resolution. The sigil character is part of node identity.
 
@@ -266,7 +268,7 @@ Before theorizing about a bug or issue, **search history first**: `bun recall "t
 
 ## Issue Tracking (km bd / beads)
 
-Issue tracking is **`/beads`** — see [.claude/skills/beads/SKILL.md](.claude/skills/beads/SKILL.md) for the canonical surface (CLI, lifecycle, ids, claim/release, storage model). Bead state is markdown in `@km/<scope>/<slug>.md` synced via normal git. **All bead ops on main repo's main worktree, except slot-bead self-close** (`km bd close km-wtN` from inside `wtN`). Claim before coding. `/pm` is an alias-and-deeper-recipes layer over `/beads`. **When `/pm` reports a bug requiring code changes, auto-run `/tdd`** — reproduce with a failing test before fixing.
+Issue tracking is **`/beads`** — see [.claude/skills/beads/SKILL.md](.claude/skills/beads/SKILL.md) for the canonical surface (CLI, lifecycle, ids, claim/release, storage model). Bead state is markdown under `@km/`: parent bodies live at `@km/<scope>/<slug>.md`, and child beads live in the sibling `@km/<scope>/<slug>/` directory; path-form is canonical and `id:` frontmatter is redundant. **All bead ops on main repo's main worktree, except slot-bead self-close** (`km bd close km-wtN` from inside `wtN`). Claim before coding. `/pm` is an alias-and-deeper-recipes layer over `/beads`. **When `/pm` reports a bug requiring code changes, auto-run `/tdd`** — reproduce with a failing test before fixing.
 
 ## Commits
 
@@ -473,4 +475,3 @@ For issues, prefer Claude hooks (master) and adapt for opencode as needed.
 <!-- Beads integration managed by `bd setup claude`. Do not remove markers. -->
 
 <!-- END BEADS INTEGRATION -->
-

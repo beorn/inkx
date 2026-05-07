@@ -1,6 +1,8 @@
 ---
-id: "@km/silvercode/claude-code-transcript-parity"
 aliases:
+  - km-silvercode.parity-claude
+  - km-silvercode-parity-claude
+  - claude-code-transcript-parity
   - km-silvercode.claude-code-transcript-parity
   - km-silvercode-claude-code-transcript-parity
 created_at: 2026-05-06T18:36:50.952Z
@@ -30,7 +32,34 @@ reopenReason: "The first closure reached useful UI patches and type
   routing pass."
 ---
 
-# [ ] [epic] Silvercode transcript/tool output parity with Claude Code #epic #P1 ^claude-code-transcript-parity
+# [ ] Claude parity tracker @km/silvercode #feature #P1 ^parity-claude
+
+Track Silvercode parity with Claude across the legacy stream-json path, the `@km/claude-acp` server path, resume/replay, transcript quality, permissions, prompt injection, and local-agent/subsession behavior.
+
+This bead moved over the previous `@km/silvercode/claude-code-transcript-parity` epic and preserves its detailed transcript parity body below.
+
+## Not yet implemented / notes
+
+- [ ] Projected ChatTree is not primary yet. `ChatPane` still renders legacy `SessionUpdateList`; projected transcript is compare/debug only. See `@km/silvercode/parity-claude/l5-chatblock-cutover`.
+- [ ] Claude fixture inventory/fail-loud contract is still open. Parser still funnels unknown Claude shapes into raw metadata, and ACP replay skips several event classes silently. See `@km/silvercode/parity-claude/l5-fixture-inventory`.
+- [ ] ACP Claude resume ownership is ambiguous: controller replays Claude JSONL before spawn, while `@km/claude-acp` `loadSession` also replays JSONL. Decide single owner or add dedupe.
+- [ ] ACP Claude remains intentionally lossy: non-text prompt blocks are dropped, HTTP/SSE MCP servers are skipped, replay skips some events, and status/error/handoff/km-reference do not surface as `SessionUpdate`s.
+- [ ] Live Claude permission shapes/modes are not fully locked down. Parser has a placeholder `permission-request` branch; wire supports permission requests once emitted. See `@km/silvercode/parity-claude/l5-control-event-state-routing`.
+- [ ] Claude-specific fake backend coverage is open. Current fake profiles include `claude` / `claude-code`, but `@km/silvercode/backend-fakes-claude` asks for Claude init/tools/slash/skills/plugins/TodoWrite/permissions/config/live-mode contracts.
+- [ ] Claude ACP docs drift behind implementation: README still says `loadSession: false` and permissions are not forwarded, while server/wire now implement both.
+- [ ] ACP path does not yet match legacy Claude for prompt injectors/channels, multi-account config, or `--bare` threading. See `@km/silvercode/acp-channels`.
+- [ ] Claude local-agent/subsession transcript view is not modeled yet. Parent Agent/Task records and child sidechain JSONL files need to feed `SubSessionHandle`; see `@km/silvercode/local-agent-subsessions`.
+
+## Existing beads moved / linked
+
+- Moved over: `@km/silvercode/claude-code-transcript-parity` -> `@km/silvercode/parity-claude`, including the child bead directory.
+- Parent active L5 work here: `l5-fixture-inventory`, `l5-canonical-event-contract`, `l5-reactive-chat-session-store`, `l5-project-transcript-rules`, `l5-control-event-state-routing`, `l5-debug-channel-ui`, `l5-legacy-quarantine`, `l5-chatblock-cutover`, `l5-visual-replay-parity`; review `l5-duplicate-message-coalescing` for close-or-revise.
+- Move/parent active provider coverage: `@km/silvercode/backend-fakes-claude`.
+- Link/absorb completed Claude evidence: `@km/silvercode/acp-adapter-claude`, `@km/silvercode/acp-claude-server`, `@km/silvercode/acp-claude-acp-loadsession`, `@km/silvercode/claude-acp-wire-bugs`, `@km/silvercode/acp-resume-blank-screen`, `@km/silvercode/acp-permission-ui-wire`, and `@km/silvercode/permission-inline-prompt`.
+- Link but keep under broader ACP/global trackers: `@km/silvercode/acp-session-load`, `@km/silvercode/acp-controller-wire`, `@km/silvercode/acp-channels`, and `@km/silvercode/backend-fakes`.
+- Cleanup candidate: `@km/silvercode/defer-transcript-replay-blank-screen` is a stub; fold into Claude resume parity or replace it with a concrete replay bead.
+
+## Historical transcript parity detail
 
 Make Silvercode's transcript, tool output, and debug/event treatment reach same-or-better usability versus Claude Code, using the May 6 side-by-side screenshots as the baseline.
 
@@ -966,7 +995,7 @@ Likely new/extracted components:
 ## Related Beads
 
 - `@km/silvercode/acp-tool-call-sweep`
-- `@km/silvercode/opencode-parity`
+- `@km/silvercode/parity-kilo`
 - `@km/silvercode/raw-entry-inspector`
 - `@km/silvercode/chat-prose-width-layout`
 - `@km/silvery/diff-code-accordion`
@@ -986,3 +1015,13 @@ Likely new/extracted components:
 - Implement recap leaf and session-title/header treatment.
 - Harden raw-detail expansion/cmd-hover for every nontrivial leaf.
 - Run same-or-better visual parity review against Claude Code.
+
+## Implemented checklist
+
+- [x] Claude stream-json spawn path exists and mirrors real Claude Code by default, including `--resume`, `--model`, MCP config, verbose stream-json, and non-`--bare` default.
+- [x] Claude parser normalizes init, text, thinking, tool use/results, assistant aggregates, resume JSONL, system-reminder stripping, task/todo metadata, hooks, titles, queue ops, and compact/recap records.
+- [x] Normalized provider events have strict `AgentEvent` validation and ordered retention in `SessionStore.events`.
+- [x] Claude ACP wrapper/server exists with registry aliases `claude` and `claude-code`, real session ids, `loadSession: true`, permission forwarding, TodoWrite-to-plan mapping, slash command updates, and ordered turn draining.
+- [x] Claude resume preflight/replay handles real Claude JSONL, rejects old synthetic ACP ids, and injects a synthetic turn-end when replay ends active.
+- [x] ChatEvent projection substrate exists: AgentEvent-to-ChatEvent normalization, exhaustive handling matrix, projected transcript leaves, visibility channels, and Debug hidden by default.
+- [x] Completed Claude parity evidence includes resume reminders, raw/debug collapsed detail, thinking/tool rendering, markdown tables, OSC8 links, notifications, timestamps, ACP loadSession, and ACP permission UI.

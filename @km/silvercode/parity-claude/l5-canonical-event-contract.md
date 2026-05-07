@@ -1,18 +1,17 @@
 ---
-id: "@km/silvercode/claude-code-transcript-parity/l5-canonical-event-contract"
 aliases:
-  - km-silvercode.claude-code-transcript-parity.l5-canonical-event-contract
-  - km-silvercode-claude-code-transcript-parity-l5-canonical-event-contract
+  - @km/silvercode/parity-claude.l5-canonical-event-contract
+  - @km/silvercode/parity-claude-l5-canonical-event-contract
 created_at: 2026-05-07T01:20:01.218Z
 type: task
 priority: P0
 status: open
-parent: "@km/silvercode/claude-code-transcript-parity"
+parent: "@km/silvercode/parity-claude"
 ---
 
 # L5: canonical ChatEvent contract with event.channel as the only routing source #P0
 
-blocks:: [[@km/silvercode/claude-code-transcript-parity]]
+blocks:: [[@km/silvercode/parity-claude]]
 
 ## Goal
 

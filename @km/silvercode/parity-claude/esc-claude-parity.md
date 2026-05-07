@@ -2,7 +2,6 @@
 mentions:
   - km
   - claude
-id: "@km/silvercode/claude-code-transcript-parity/esc-claude-parity"
 aliases:
   - "@km/silvercode/esc-claude-parity"
   - km-silvercode.esc-claude-parity
@@ -24,7 +23,10 @@ dependencies:
     created_at: 2026-04-25T22:55:42Z
     created_by: claude:2405c72e
     metadata: "{}"
-props: {}
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 propsRaw: {}
 ---
 

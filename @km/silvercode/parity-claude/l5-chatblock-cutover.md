@@ -1,18 +1,17 @@
 ---
-id: "@km/silvercode/claude-code-transcript-parity/l5-chatblock-cutover"
 aliases:
-  - km-silvercode.claude-code-transcript-parity.l5-chatblock-cutover
-  - km-silvercode-claude-code-transcript-parity-l5-chatblock-cutover
+  - @km/silvercode/parity-claude.l5-chatblock-cutover
+  - @km/silvercode/parity-claude-l5-chatblock-cutover
 created_at: 2026-05-07T01:20:09.207Z
 type: feature
 priority: P0
 status: open
-parent: "@km/silvercode/claude-code-transcript-parity"
+parent: "@km/silvercode/parity-claude"
 ---
 
 # L5: ChatPane cutover to projected ChatBlocks from ChatTree #feature #P0
 
-blocks:: [[@km/silvercode/claude-code-transcript-parity]]
+blocks:: [[@km/silvercode/parity-claude]]
 
 ## Goal
 

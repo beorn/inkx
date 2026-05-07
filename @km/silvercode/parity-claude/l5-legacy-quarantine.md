@@ -1,18 +1,17 @@
 ---
-id: "@km/silvercode/claude-code-transcript-parity/l5-legacy-quarantine"
 aliases:
-  - km-silvercode.claude-code-transcript-parity.l5-legacy-quarantine
-  - km-silvercode-claude-code-transcript-parity-l5-legacy-quarantine
+  - @km/silvercode/parity-claude.l5-legacy-quarantine
+  - @km/silvercode/parity-claude-l5-legacy-quarantine
 created_at: 2026-05-07T01:20:10.803Z
 type: task
 priority: P0
 status: open
-parent: "@km/silvercode/claude-code-transcript-parity"
+parent: "@km/silvercode/parity-claude"
 ---
 
 # L5: delete or quarantine legacy MessageEntry routing behind ChatEvent adapters #P0
 
-blocks:: [[@km/silvercode/claude-code-transcript-parity]]
+blocks:: [[@km/silvercode/parity-claude]]
 
 ## Goal
 

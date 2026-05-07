@@ -23,7 +23,7 @@ vendor/                  # Git submodules — independent npm packages
   ansi/, termless/, bearly/, loggily/, accountly/, tap/, vt100/, ...
 hub/                     # Internal design docs (private; do not promote to public docs)
 docs/                    # Public documentation
-@km/                     # Bead state — markdown files (one per scope/sub-bead) tracked in git
+@km/                     # Bead state — path-form markdown plus child directories tracked in git
 .km/                     # Local bead index (gitignored FTS5 cache; rebuilt from @km/)
 ```
 
@@ -64,6 +64,8 @@ tail -f /tmp/debug.log    # in another terminal
 ## Issue tracking (beads)
 
 This project uses **bd** for issue tracking. Bead IDs follow `km-<scope>.<slug>`.
+
+Path-form bead identity comes from the filesystem path (`@km/<scope>/<slug>`), not `id:` frontmatter. Do not add `id:` when creating/updating bead markdown; use `aliases:` for legacy names. If a bead has children, keep the parent body at `@km/<scope>/<slug>.md` and put child beads in the sibling directory `@km/<scope>/<slug>/`.
 
 ```bash
 km bd ready                 # Find available work

@@ -2,7 +2,6 @@
 mentions:
   - km
   - claude
-id: "@km/silvercode/claude-code-transcript-parity/prompt-echo-in-chat"
 aliases:
   - "@km/silvercode/prompt-echo-in-chat"
   - km-silvercode.prompt-echo-in-chat

@@ -1,7 +1,6 @@
 ---
 mentions:
   - km
-id: "@km/silvercode/claude-code-transcript-parity/resume-show-everything-collapsed"
 aliases:
   - "@km/silvercode/resume-show-everything-collapsed"
   - km-silvercode.resume-show-everything-collapsed

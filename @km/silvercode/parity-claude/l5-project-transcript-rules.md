@@ -1,18 +1,17 @@
 ---
-id: "@km/silvercode/claude-code-transcript-parity/l5-project-transcript-rules"
 aliases:
-  - km-silvercode.claude-code-transcript-parity.l5-project-transcript-rules
-  - km-silvercode-claude-code-transcript-parity-l5-project-transcript-rules
+  - @km/silvercode/parity-claude.l5-project-transcript-rules
+  - @km/silvercode/parity-claude-l5-project-transcript-rules
 created_at: 2026-05-07T01:20:04.414Z
 type: task
 priority: P0
 status: open
-parent: "@km/silvercode/claude-code-transcript-parity"
+parent: "@km/silvercode/parity-claude"
 ---
 
 # L5: central projectChatTranscript rules for grouping summaries disclosure and widths #P0
 
-blocks:: [[@km/silvercode/claude-code-transcript-parity]]
+blocks:: [[@km/silvercode/parity-claude]]
 
 ## Goal
 

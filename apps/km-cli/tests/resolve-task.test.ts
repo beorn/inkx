@@ -80,6 +80,23 @@ describe("resolveTaskNode", () => {
     expect(node?.id).toBe(id)
   })
 
+  test("path-form bead id prefers the sibling .md file over its child directory", () => {
+    const dir = freshDir("sibling-file-directory")
+    mkdirSync(join(dir, "@km", "scope", "parent"), { recursive: true })
+    writeFileSync(join(dir, "@km", "scope", "parent.md"), `---\ntype: task\npriority: P1\n---\n# Parent\n\n`)
+    writeFileSync(join(dir, "@km", "scope", "parent", "child.md"), `---\ntype: task\n---\n# Child\n\n`)
+
+    using repo = openRepo(dir)
+
+    const node = resolveTaskNode(repo, "@km/scope/parent")
+    expect(node?.fstype).toBe("mdfile")
+    expect(node?.fs_path).toBe("@km/scope/parent.md")
+
+    const issue = resolveIssue(repo, "@km/scope/parent")
+    expect(issue?.id).toBe(node?.id)
+    expect(issue?.shortId).toBe("@km/scope/parent")
+  })
+
   test("path 3: legacy data.short_id (km-scope.slug)", () => {
     const dir = freshDir("short-id")
     using repo = openRepo(dir)

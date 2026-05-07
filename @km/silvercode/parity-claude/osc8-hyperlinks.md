@@ -3,7 +3,6 @@ mentions:
   - km
 projects:
   - click
-id: "@km/silvercode/claude-code-transcript-parity/osc8-hyperlinks"
 aliases:
   - "@km/silvercode/osc8-hyperlinks"
   - km-silvercode.osc8-hyperlinks
@@ -18,7 +17,10 @@ dependencies:
     created_at: 2026-04-28T12:35:59Z
     created_by: claude:2405c72e
     metadata: "{}"
-props: {}
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 propsRaw: {}
 closed_at: 2026-05-06T22:41:21.535Z
 closeReason: "Shipped 7ef11faa8. ToolCall renderLocations now wraps absolute

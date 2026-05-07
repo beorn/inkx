@@ -1,9 +1,8 @@
 ---
 mentions:
   - km
-id: "@km/silvercode/claude-code-transcript-parity/notification-block"
 aliases:
-  - "@km/silvercode/claude-code-transcript-parity/notification-indicators"
+  - "@km/silvercode/parity-claude/notification-indicators"
   - "@km/silvercode/notification-block"
   - "@km/silvercode/notification-indicators"
   - km-silvercode.notification-block
@@ -14,10 +13,10 @@ created_by: claude:2405c72e
 created_at: 2026-04-28T19:36:38Z
 owner: bjorn@stabell.org
 closed_at: 2026-05-06T22:14:36Z
-close_reason: "Shipped NotificationBlock in ChatPane composer overlay. Shows compact
-  running counts for Task/Agent tool calls, Ctrl-B background tasks, and
-  run_in_background Bash shells; click expands inline detail. Tests:
-  bun vitest run apps/silvercode/tests/notification-block.test.tsx
+close_reason: "Shipped NotificationBlock in ChatPane composer overlay. Shows
+  compact running counts for Task/Agent tool calls, Ctrl-B background tasks, and
+  run_in_background Bash shells; click expands inline detail. Tests: bun vitest
+  run apps/silvercode/tests/notification-block.test.tsx
   apps/silvercode/tests/content-layout.test.tsx."
 dependencies:
   - issue_id: km-silvercode.notification-block
@@ -26,7 +25,10 @@ dependencies:
     created_at: 2026-04-28T12:36:38Z
     created_by: claude:2405c72e
     metadata: "{}"
-props: {}
+props:
+  blocked-by:
+    type: link
+    target: km-silvercode
 propsRaw: {}
 ---
 
@@ -64,3 +66,4 @@ Acceptance:
 The UI vocabulary is `ChatPane` and `ChatBlock`; this shipped block is a `NotificationBlock`.
 
 The notification ingestion subsystem now uses notification vocabulary in file names, stream types, entry kinds, and prompt-resource URIs.
+

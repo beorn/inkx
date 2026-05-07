@@ -1,18 +1,17 @@
 ---
-id: "@km/silvercode/claude-code-transcript-parity/l5-reactive-chat-session-store"
 aliases:
-  - km-silvercode.claude-code-transcript-parity.l5-reactive-chat-session-store
-  - km-silvercode-claude-code-transcript-parity-l5-reactive-chat-session-store
+  - @km/silvercode/parity-claude.l5-reactive-chat-session-store
+  - @km/silvercode/parity-claude-l5-reactive-chat-session-store
 created_at: 2026-05-07T01:20:02.818Z
 type: task
 priority: P0
 status: open
-parent: "@km/silvercode/claude-code-transcript-parity"
+parent: "@km/silvercode/parity-claude"
 ---
 
 # L5: reactive ChatSession store with accumulated state and projected ChatTree #P0
 
-blocks:: [[@km/silvercode/claude-code-transcript-parity]]
+blocks:: [[@km/silvercode/parity-claude]]
 
 ## Goal
 
