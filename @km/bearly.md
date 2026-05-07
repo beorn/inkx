@@ -11,7 +11,9 @@ created_at: 2026-03-25T17:58:20Z
 owner: bjorn@stabell.org
 ---
 
-# [ ] bearly: reusable Claude Code tools monorepo (@bearly/*) @km/bearly #epic #P2
+# bearly
+
+bearly: reusable Claude Code tools monorepo (@bearly/*).
 
 Unified monorepo for reusable Claude Code tools at github.com/beorn/bearly. Merges beorn/tools + beorn/bearlymade. npm scope @bearly/*, Claude marketplace 'bearly'. Packages: tribe, tty, llm, recall, refactor, worktree (as @bearly/*) + alien-projections, alien-resources, vitest-silvery-dots (bare names).
 

@@ -8,7 +8,9 @@ aliases:
 created_at: 2026-02-04T11:50:23Z
 ---
 
-# [ ] Storage layer (sync, queries, coverage) @km/storage #epic #P3
+# storage
+
+Storage layer (sync, queries, coverage).
 
 **TRACKING EPIC for km storage layer** — permanent scope epic. See `/pm` skill and `bd list --parent km-storage` for current work.
 

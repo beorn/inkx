@@ -10,7 +10,9 @@ created_at: 2026-03-26T17:05:43Z
 owner: bjorn@stabell.org
 ---
 
-# [ ] Tribe: cross-session coordination system @km/tribe #epic #P2
+# tribe
+
+Tribe: cross-session coordination system.
 
 All tribe coordination work — MCP server, plugins, CLI, daemon, recall integration, observability. Tribe is the cross-session coordination layer: multiple Claude Code sessions joined to a single daemon, exchanging DMs, broadcasts, and recall-driven hints.
 

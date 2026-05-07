@@ -12,7 +12,9 @@ owner: bjorn@stabell.org
 assignee: claude:8fc35754
 ---
 
-# [ ] termless: headless terminal testing library @km/termless #epic #P3 @claude:8fc35754
+# termless
+
+termless: headless terminal testing library.
 
 ## Vision
 

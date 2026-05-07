@@ -10,5 +10,7 @@ created_at: 2026-02-21T16:25:47Z
 owner: bjorn@stabell.org
 ---
 
-# [ ] Cross-cutting: keybindings, code quality, multi-package @km/all #epic #P3
+# all
+
+Cross-cutting: keybindings, code quality, multi-package.
 

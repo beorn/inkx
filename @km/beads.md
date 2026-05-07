@@ -9,7 +9,9 @@ created_at: 2026-01-21T12:00:00Z
 closed_at: 2026-01-21T12:39:47Z
 ---
 
-# [x] Beads Integration: km bd CLI for Issue Tracking @km/beads #epic #P2
+# beads
+
+Beads Integration: km bd CLI for Issue Tracking.
 
 ## Overview
 

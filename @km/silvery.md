@@ -10,7 +10,9 @@ created_at: 2026-03-09T18:27:29Z
 owner: bjorn@stabell.org
 ---
 
-# [ ] Silvery ecosystem (v1.0): packaging, release, adoption @km/silvery #epic #P2
+# silvery
+
+Silvery ecosystem (v1.0): packaging, release, adoption.
 
 Master tracking bead for the silvery ecosystem.
 

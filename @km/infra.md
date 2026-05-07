@@ -8,7 +8,9 @@ aliases:
 created_at: 2026-02-04T11:26:59Z
 ---
 
-# [ ] Monorepo infra (CI, benchmarks, packaging) @km/infra #epic #P3
+# infra
+
+Monorepo infra (CI, benchmarks, packaging).
 
 **TRACKING EPIC** — Keep this bead up-to-date when creating, closing, or reparenting infra beads.
 See `/pm` skill and `bd list --parent km-infra` for current children.

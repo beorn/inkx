@@ -9,7 +9,9 @@ created_by: claude:208595de
 created_at: 2026-04-24T09:00:35Z
 ---
 
-# [ ] [epic] Silvercode — silvery-native agent workspace @km/silvercode #feature #P1
+# silvercode
+
+Silvercode — silvery-native agent workspace.
 
 blocks:: [[@km/silvercode/code]]
 

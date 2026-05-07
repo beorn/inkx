@@ -8,7 +8,9 @@ aliases:
 created_at: 2026-02-04T11:26:59Z
 ---
 
-# [ ] TUI app views & interaction issues @km/tui #epic #P2
+# tui
+
+TUI app views & interaction issues.
 
 **TRACKING EPIC** — Keep this bead up-to-date when creating, closing, or reparenting TUI beads.
 See `/pm` skill and `bd list --parent km-tui` for current children.

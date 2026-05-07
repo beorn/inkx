@@ -12,5 +12,7 @@ close_reason: All children completed
 owner: bjorn@stabell.org
 ---
 
-# [x] Markdown parser/serializer @km/markdown #epic #P3
+# markdown
+
+Markdown parser/serializer.
 
