@@ -79,8 +79,26 @@ export interface WireHandle {
   detach(): void
 }
 
-export function attachWire(conn: acp.AgentSideConnection, agentSession: AgentSession, sessionId: string): WireHandle {
+export type AttachWireOptions = {
+  /**
+   * Max time to wait for pending sessionUpdate writes before resolving a
+   * prompt turn. Local stdio writes normally settle immediately; the cap is
+   * a liveness guard so a bad write promise cannot keep the client-side
+   * activity indicator in "thinking" forever after the answer is visible.
+   */
+  writeDrainTimeoutMs?: number
+}
+
+const DEFAULT_WRITE_DRAIN_TIMEOUT_MS = 1000
+
+export function attachWire(
+  conn: acp.AgentSideConnection,
+  agentSession: AgentSession,
+  sessionId: string,
+  opts: AttachWireOptions = {},
+): WireHandle {
   let detached = false
+  const writeDrainTimeoutMs = opts.writeDrainTimeoutMs ?? DEFAULT_WRITE_DRAIN_TIMEOUT_MS
 
   // Single waiter queue — Claude Code subprocesses are single-turn, so we
   // model this as one pending resolver at a time. If a second `awaitTurn()`
@@ -102,7 +120,10 @@ export function attachWire(conn: acp.AgentSideConnection, agentSession: AgentSes
 
   function trackWrite(p: Promise<unknown>): void {
     pendingWrites.add(p)
-    p.finally(() => pendingWrites.delete(p))
+    void p.finally(() => pendingWrites.delete(p)).catch(() => {
+      // The write error belongs to the ACP connection; this tracker only
+      // owns liveness and ordering cleanup.
+    })
   }
 
   async function drainPendingWrites(): Promise<void> {
@@ -110,8 +131,25 @@ export function attachWire(conn: acp.AgentSideConnection, agentSession: AgentSes
     // AFTER it starts. The contract is "drain everything queued up to
     // this point"; subsequent emits get their own drain on the next
     // settle.
-    if (pendingWrites.size === 0) return
-    await Promise.allSettled(pendingWrites)
+    const writes = [...pendingWrites]
+    if (writes.length === 0) return
+
+    const drain = Promise.allSettled(writes).then(() => "drained" as const)
+    if (writeDrainTimeoutMs <= 0) {
+      await drain
+      return
+    }
+
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const timeout = new Promise<"timeout">((resolve) => {
+      timer = setTimeout(() => resolve("timeout"), writeDrainTimeoutMs)
+      timer.unref?.()
+    })
+    const result = await Promise.race([drain, timeout])
+    if (timer) clearTimeout(timer)
+    if (result === "timeout") {
+      for (const write of writes) pendingWrites.delete(write)
+    }
   }
 
   function settleNext(stopReason: acp.StopReason): void {

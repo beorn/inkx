@@ -227,4 +227,42 @@ describe("wire write-ordering — settleNext drains pending sessionUpdate writes
 
     wire.detach()
   })
+
+  test("stuck notification write does not keep awaitTurn pending forever", async () => {
+    const session = makeFakeAgentSession()
+    const conn = {
+      sessionUpdate(_payload: unknown): Promise<void> {
+        return new Promise<void>(() => {
+          // Never resolves: models an ACP notification write promise that
+          // has already put bytes on the wire but never settles.
+        })
+      },
+    } as unknown as acp.AgentSideConnection
+    const wire = attachWire(conn, session, SID, { writeDrainTimeoutMs: 5 })
+
+    const turnPromise = wire.awaitTurn()
+    session.push({
+      kind: "text-delta",
+      sessionId: SID as SessionId,
+      turnId: TID,
+      blockIndex: 0,
+      text: "visible answer",
+      ts: 1,
+    })
+    session.push({
+      kind: "turn-end",
+      sessionId: SID as SessionId,
+      turnId: TID,
+      stopReason: "end_turn",
+      ts: 2,
+    })
+
+    const result = await Promise.race([
+      turnPromise,
+      new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), 50)),
+    ])
+
+    expect(result).toMatchObject({ stopReason: "end_turn" })
+    wire.detach()
+  })
 })
