@@ -513,15 +513,23 @@ describe("content layout", () => {
       stopReason: "end_turn",
       ts: 5,
     })
+    store.apply({
+      kind: "raw-transcript",
+      sessionId,
+      turnId: "raw-permission-mode" as never,
+      label: "Permission mode: auto",
+      raw: { type: "permission-mode", permissionMode: "auto" },
+      ts: 6,
+    })
 
     const replayedMessages = store.state.get().messages
     const handle = sessionHandleWithStore(store, {
       agent: "claude-code",
       cwd: "/Users/beorn/Code/pim/km",
       resumeId: "claude:f9eb64dc-d982-4a46-9a8e-da5fd882ac5f",
-      replayCompletedAt: 6,
+      replayCompletedAt: 7,
       replayMessageCount: replayedMessages.length,
-      replayBoundaryMessageId: replayedMessages.at(-1)?.id,
+      replayBoundaryMessageId: "raw-permission-mode",
       spawnedAt: 1,
     })
     const renderer = createRenderer({ cols, rows, autoRender: true })

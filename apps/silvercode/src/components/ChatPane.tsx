@@ -76,17 +76,48 @@ function messageIdForChatEvent(event: ChatEvent): string | undefined {
   }
 }
 
+function isLiveActivityAnchor(event: ChatEvent): boolean {
+  switch (event.type) {
+    case "message.started":
+    case "message.part.added":
+    case "message.completed":
+    case "tool.started":
+    case "tool.updated":
+    case "tool.completed":
+    case "permission.requested":
+    case "permission.resolved":
+    case "plan.updated":
+    case "queue.updated":
+    case "notification.received":
+      return true
+    default:
+      return false
+  }
+}
+
 function eventsAfterReplayBoundary(
   events: readonly ChatEvent[],
   replayBoundaryMessageId: string | undefined,
+  replayCompletedAt: number | undefined,
+  liveStartedAt: number | undefined,
 ): readonly ChatEvent[] {
-  if (!replayBoundaryMessageId) return events
-  let boundaryIndex = -1
-  for (let index = 0; index < events.length; index++) {
-    const event = events[index]
-    if (event && messageIdForChatEvent(event) === replayBoundaryMessageId) boundaryIndex = index
+  if (!replayBoundaryMessageId && replayCompletedAt === undefined && liveStartedAt === undefined) return events
+  if (replayBoundaryMessageId) {
+    let boundaryIndex = -1
+    for (let index = 0; index < events.length; index++) {
+      const event = events[index]
+      if (event && messageIdForChatEvent(event) === replayBoundaryMessageId) boundaryIndex = index
+    }
+    if (boundaryIndex >= 0) return events.slice(boundaryIndex + 1)
   }
-  return boundaryIndex >= 0 ? events.slice(boundaryIndex + 1) : events
+  const liveThreshold = liveStartedAt ?? replayCompletedAt
+  if (liveThreshold === undefined) return events
+  const firstLiveActivityIndex = events.findIndex(
+    (event) =>
+      (liveStartedAt === undefined ? event.ts > liveThreshold : event.ts >= liveThreshold) &&
+      isLiveActivityAnchor(event),
+  )
+  return firstLiveActivityIndex >= 0 ? events.slice(firstLiveActivityIndex) : []
 }
 
 function notificationEntryTs(entry: NotificationStreamEntry): number {
@@ -244,8 +275,19 @@ export function ChatPane({
   const rawNotificationEntries = useNotificationStream(controller ?? null, handle.id, { respectMute: false })
   const mutedNotificationEntries = useNotificationStream(controller ?? null, handle.id)
   const currentProjectedEvents = React.useMemo(
-    () => eventsAfterReplayBoundary(projectedEvents, handle.metadata?.replayBoundaryMessageId),
-    [handle.metadata?.replayBoundaryMessageId, projectedEvents],
+    () =>
+      eventsAfterReplayBoundary(
+        projectedEvents,
+        handle.metadata?.replayBoundaryMessageId,
+        handle.metadata?.replayCompletedAt,
+        handle.metadata?.liveStartedAt,
+      ),
+    [
+      handle.metadata?.liveStartedAt,
+      handle.metadata?.replayBoundaryMessageId,
+      handle.metadata?.replayCompletedAt,
+      projectedEvents,
+    ],
   )
   const currentRawNotificationEntries = React.useMemo(
     () => notificationEntriesAfterProjectedEvents(rawNotificationEntries, currentProjectedEvents, projectedEvents),
