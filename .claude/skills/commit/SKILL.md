@@ -69,6 +69,14 @@ Group by scope from the diff stats above. One commit per scope, executed sequent
 - Conventional commit: `type(scope): message`
 - Co-author line: `Co-Authored-By: Claude <noreply@anthropic.com>`
 
+## When concurrent agents are running — explicit pathspec
+
+Use `git commit -o <file> [-o <file2>...] -m "..."` instead of `git commit -m "..."` to scope the commit to ONLY the named files. This bypasses any prepare-commit-msg hooks that might auto-stage other files in the working tree, and refuses to include anything outside the listed pathspecs even if it's already staged.
+
+Why this matters: tribe-coordinated parallel agents leave other agents' work as untracked or unstaged files in the same working tree. A bare `git add <file> && git commit -m "..."` can sweep those into your commit if a hook (or even just `git add -u` semantics elsewhere in the workflow) reaches further than expected. Always scope explicitly when concurrency is in play.
+
+Reference incident: commit `33245818f` accidentally absorbed 13 untracked agent-board files (filed as `@km/beads/prepare-commit-msg-hook-auto-stages`, fixed by `@km/all/L5-deprecation-purge` Phase 6 — removed the legacy `bd` prepare-commit-msg hook from `.git/hooks/`).
+
 ## When to Ask User
 
 **ASK:** bead unclear, sensitive files, detached HEAD.
