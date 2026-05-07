@@ -1261,6 +1261,82 @@ describe("Multi-project task dedup", () => {
 })
 
 // ============================================================================
+// Sigil-board: project files carry rules.add: "+<slug>"
+// ============================================================================
+
+describe("Sigil-board project files (rules.add)", () => {
+  test("project file H1 carries km.add:: +<slug>", () => {
+    const md = convertToMd(
+      makeData([{ sourceId: "t1", title: "A task" }], "API Refactor"),
+    )
+    // The H1 line should contain the rules.add directive that bd query / sync materialization read.
+    expect(md).toMatch(/^# API Refactor km\.add:: \+api-refactor/m)
+  })
+
+  test("project file rules.add slug matches the file name", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-17T12:00:00Z",
+      workspace: "Acme",
+      teams: [{ name: "Engineering", gid: "team-eng" }],
+      projects: [
+        {
+          sourceId: "p-api",
+          title: "API Refactor",
+          team: "Engineering",
+          items: [{ sourceId: "t1", title: "A task" }],
+        },
+      ],
+    }
+    const files = convert(data)
+    const filename = "acme/engineering/+api-refactor.md"
+    expect(files.has(filename)).toBe(true)
+    const md = files.get(filename)!
+    // The km.add:: <slug> on H1 must agree with the +<slug> in the file path
+    expect(md).toContain("km.add:: +api-refactor")
+  })
+
+  test("tag projects do NOT get rules.add (handled by generateTagFiles)", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-17T12:00:00Z",
+      projects: [
+        {
+          sourceId: "tag-123",
+          title: "#urgent",
+          items: [{ sourceId: "t1", title: "A tagged task", tags: ["urgent"] }],
+        },
+      ],
+    }
+    // Tag projects don't produce a project file at all (filename undefined).
+    // generateTagFiles emits #urgent.md instead — verify no rogue +urgent.md appears.
+    const files = convert(data)
+    expect(files.has("+urgent.md")).toBe(false)
+    expect(files.has("+#urgent.md")).toBe(false)
+  })
+
+  test("user projects do NOT get + sigil (they use @user.md)", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-17T12:00:00Z",
+      users: [{ name: "Alice", gid: "u-alice" }],
+      projects: [
+        {
+          sourceId: "user-u-alice",
+          title: "@Alice",
+          items: [{ sourceId: "t1", title: "A task", assignee: "Alice" }],
+        },
+      ],
+    }
+    const files = convert(data)
+    expect(files.has("@alice.md")).toBe(true)
+    const md = files.get("@alice.md")!
+    // No km.add:: directive on user files (those are not + sigil-boards)
+    expect(md).not.toContain("km.add::")
+  })
+})
+
+// ============================================================================
 // Roundtrip: Convert → Parse (verify parser handles import output)
 // ============================================================================
 

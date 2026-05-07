@@ -719,6 +719,8 @@ function projectToNodes(
   primaryMap?: Map<string, string>,
   userSlugMap?: Map<string, string>,
   convertOpts?: ConvertOptions,
+  /** Resolved sigil slug for this project's file (e.g. "+api-refactor"). Undefined for tag/user projects. */
+  sigilSlug?: string,
 ): KNode[] {
   const counter: IdxCounter = { value: 0 }
   const nodes: KNode[] = []
@@ -734,6 +736,10 @@ function projectToNodes(
   }
 
   const projectTitle = project.title.trim() || "(untitled)"
+  // Sigil-board pattern: project files carry `rules.add: "+<slug>"` so sync
+  // materializes embeds for every task that mentions `+<slug>`.
+  // See docs/design/model/storage.md § NodeRules and @km/import/asana-projects-as-sigil-nodes.
+  const fileRules = sigilSlug ? { add: sigilSlug } : undefined
   nodes.push(
     mkNode(counter, {
       id: fileId,
@@ -742,6 +748,7 @@ function projectToNodes(
       fstype: "mdfile",
       content: projectTitle,
       data: props,
+      ...(fileRules ? { rules: fileRules } : {}),
       created_at: project.createdAt ? new Date(project.createdAt).getTime() : Date.now(),
       updated_at: project.modifiedAt ? new Date(project.modifiedAt).getTime() : Date.now(),
     }),
@@ -976,10 +983,13 @@ export { itemToNodes, buildTaskContent, buildBodyContent, decodeHtmlEntities, st
 function buildPrimaryMap(data: ImportData): {
   primaryMap: Map<string, string>
   filenames: (string | undefined)[]
+  /** Per-project sigil slug (e.g. "+api-refactor") for real projects, undefined for tag/user. Aligned 1:1 with `data.projects`. */
+  sigilSlugs: (string | undefined)[]
   userSlugMap: Map<string, string>
 } {
   const primaryMap = new Map<string, string>()
   const filenames: (string | undefined)[] = []
+  const sigilSlugs: (string | undefined)[] = []
 
   // Build slug maps for users and teams
   const userSlugMap = buildUniqueSlugMap((data.users ?? []).map((u) => ({ name: u.name, gid: u.gid })))
@@ -1022,6 +1032,7 @@ function buildPrimaryMap(data: ImportData): {
     const isTag = project.sourceId.startsWith("tag-")
     const isUser = project.sourceId.startsWith("user-")
     let filename: string | undefined
+    let projectSigilSlug: string | undefined
 
     if (isTag) {
       // Tag projects don't get their own file — generateTagFiles() produces #slug.md instead
@@ -1046,6 +1057,7 @@ function buildPrimaryMap(data: ImportData): {
       // Tasks emit `+<projectSlug>` mentions; the project file's `rules.add`
       // materializes them back as embeds. See docs/design/model/storage.md § NodeRules.
       const sigilSlug = `+${projectSlug}`
+      projectSigilSlug = sigilSlug
       const teamSlug = project.team ? (teamSlugMap.get(project.team) ?? slugify(project.team)) : undefined
 
       if (wsSlug && teamSlug) {
@@ -1060,6 +1072,7 @@ function buildPrimaryMap(data: ImportData): {
     }
 
     filenames.push(filename)
+    sigilSlugs.push(projectSigilSlug)
 
     const ids: string[] = []
     if (project.sections?.length) {
@@ -1077,7 +1090,7 @@ function buildPrimaryMap(data: ImportData): {
     }
   }
 
-  return { primaryMap, filenames, userSlugMap }
+  return { primaryMap, filenames, sigilSlugs, userSlugMap }
 }
 
 /** Convert ImportData to a map of relative file paths → markdown content */
@@ -1094,13 +1107,13 @@ export function convert(data: ImportData, opts?: ConvertOptions): FileMap {
  * Memory-efficient for large imports — each project's KNode tree is GC'd after yield.
  */
 export function* convertBatch(data: ImportData, opts?: ConvertOptions): Generator<[string, string]> {
-  const { primaryMap, filenames, userSlugMap } = buildPrimaryMap(data)
+  const { primaryMap, filenames, sigilSlugs, userSlugMap } = buildPrimaryMap(data)
   const rendered = new Set<string>()
 
   for (const [i, project] of data.projects.entries()) {
     const filename = filenames[i]
     if (!filename) continue
-    const nodes = projectToNodes(project, rendered, primaryMap, userSlugMap, opts)
+    const nodes = projectToNodes(project, rendered, primaryMap, userSlugMap, opts, sigilSlugs[i])
     const markdown = nodesToMarkdown(nodes)
     yield [filename, markdown]
   }
