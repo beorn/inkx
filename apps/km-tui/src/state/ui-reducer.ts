@@ -341,11 +341,6 @@ export const VIEW_DIALOG_ROWS: ViewDialogRow[] = [
   },
 ]
 
-/** @deprecated Use VIEW_DIALOG_ROWS instead */
-export const FILTER_ROWS = VIEW_DIALOG_ROWS.filter(
-  (r): r is Extract<ViewDialogRow, { kind: "filter" }> => r.kind === "filter",
-)
-
 // =============================================================================
 // Initial State Factory
 // =============================================================================
