@@ -356,13 +356,6 @@ export interface KNode {
   assigned_to?: string
   due_at?: string // ISO 8601: "2026-02-20" or "2026-02-20T14:00:00-08:00"
   start_at?: string // ISO 8601: same format as due_at
-  /**
-   * @deprecated Use `getNodePriority(node)` from `@km/core`. The column
-   * is being dissolved — source of truth is the `#P[0-4]` hashtag in
-   * the H1 / list-item title, captured into `data.tags` by the parser.
-   * Field stays in transition while readers migrate to the helper.
-   */
-  priority?: string
   rrule?: string // iCal RRULE format
   recur_prev?: string // Previous recurrence instance ID
   completed_at?: number // Unix ms — when task was marked done (stored in data blob)
@@ -463,8 +456,6 @@ export interface NodeCreatedData {
   assigned_to?: string
   due_at?: string
   start_at?: string
-  /** @deprecated — see KNode.priority. Use getNodePriority() from @km/core. */
-  priority?: string
   title?: string
   content?: string
   content_hash?: string
