@@ -63,6 +63,7 @@ type Variant = {
   resumeId?: string
   messages?: MessageEntry[]
   claudeCodeVersion?: string
+  model?: string
 }
 
 function makeHandle(v: Variant) {
@@ -74,6 +75,7 @@ function makeHandle(v: Variant) {
         cost: { inputTokens: 0, outputTokens: 0 },
         permissions: [],
         claudeCodeVersion: v.claudeCodeVersion ?? "",
+        model: v.model ?? "",
       }),
       subscribe: () => () => {},
     },
@@ -196,6 +198,18 @@ describe("feature 2 — Welcome screen (fresh vs loading)", () => {
     }
     assertCentered(loadingLine!, "Loading session")
     assertCentered(idLine!, idText)
+  })
+
+  test("agent label and model label use the same horizontal center", () => {
+    const model = "claude-opus-4-7"
+    const app = renderWelcome(makeHandle({ status: "idle", model }), 100, 50, "claude-code")
+    const agentLine = app.lines.find((l) => l.includes("Claude Code"))
+    const modelLine = app.lines.find((l) => l.includes(model))
+    expect(agentLine).toBeDefined()
+    expect(modelLine).toBeDefined()
+
+    const centerOf = (line: string, text: string): number => line.indexOf(text) + text.length / 2
+    expect(Math.abs(centerOf(agentLine!, "Claude Code") - centerOf(modelLine!, model))).toBeLessThanOrEqual(0.5)
   })
 
   test("Welcome unmounts when messages.length transitions 0 → 1; chat view mounts", () => {

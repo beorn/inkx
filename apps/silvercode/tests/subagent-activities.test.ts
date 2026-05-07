@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest"
 import { normalizeAgentEventsToChatEvents } from "../src/chat/normalize-agent-event.ts"
 import {
+  assertSubagentActivityInvariants,
   projectCurrentSubagentActivitiesFromChatEvents,
   subagentActivityRowsFromActivities,
 } from "../src/chat/subagent-activities.ts"
@@ -97,7 +98,7 @@ describe("subagent activity projection", () => {
     expect(projected.diagnostics).toEqual([])
   })
 
-  test("does not invent missing activities when assistant text claims more agents than tool events contain", () => {
+  test("throws when assistant completion text claims more agents than provider events contain", () => {
     const projected = project([
       userMessage("use 4 subagents to sleep 20 s"),
       agentToolUse("toolu_2", "Sleep 20s #2", 1_200),
@@ -116,9 +117,12 @@ describe("subagent activity projection", () => {
         text: "All 4 done in parallel. Wallclock ~26s.",
       },
     ])
+    expect(() => assertSubagentActivityInvariants(projected, { sessionId: "s1" })).toThrow(
+      /subagent activity invariant failed.*claimed 4.*observed 1/s,
+    )
   })
 
-  test("records a count mismatch from the user prompt before assistant summary text arrives", () => {
+  test("does not treat the user-requested subagent count as observed provider state", () => {
     const projected = project([
       userMessage("use 4 subagents to sleep 20s"),
       agentToolUse("toolu_2", "Sleep 20s #2", 1_200),
@@ -127,13 +131,7 @@ describe("subagent activity projection", () => {
     expect(projected.activities.map((activity) => `${activity.label}:${activity.status}`)).toEqual([
       "Sleep 20s #2:running",
     ])
-    expect(projected.diagnostics).toEqual([
-      {
-        kind: "subagent-count-mismatch",
-        claimed: 4,
-        observed: 1,
-        text: "use 4 subagents to sleep 20s",
-      },
-    ])
+    expect(projected.diagnostics).toEqual([])
+    expect(() => assertSubagentActivityInvariants(projected, { sessionId: "s1" })).not.toThrow()
   })
 })

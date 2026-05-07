@@ -334,16 +334,9 @@ function AgentsDrawer({
   const hasDiagnostics = diagnostics.length > 0
   const visibleSubagents = hasLiveSubagent || hasDiagnostics ? subagents : []
   const primaryDiagnostic = diagnostics[0]
-  const missingSubagentRows = primaryDiagnostic
-    ? Array.from({ length: Math.max(0, primaryDiagnostic.claimed - visibleSubagents.length) }, (_, index) => ({
-        id: `missing-agent-event:${primaryDiagnostic.claimed}:${primaryDiagnostic.observed}:${index}`,
-        label: `Missing Agent event #${index + 1}`,
-        diagnostic: primaryDiagnostic,
-      }))
-    : []
   const [expanded, setExpanded] = React.useState(defaultExpanded)
   const hover = useHover()
-  const total = activeSessions.length + visibleSubagents.length + missingSubagentRows.length + diagnostics.length
+  const total = activeSessions.length + visibleSubagents.length + diagnostics.length
   React.useEffect(() => {
     if (total > 1) setExpanded(true)
   }, [total])
@@ -404,19 +397,6 @@ function AgentsDrawer({
                   payload={{ kind: "subagent", ...agent, raw: agent.raw ?? agent }}
                 >
                   <Text wrap="truncate">{agent.label}</Text>
-                </AgentDrawerRow>
-              ))}
-              {missingSubagentRows.map((missing) => (
-                <AgentDrawerRow
-                  key={missing.id}
-                  marker="!"
-                  markerColor="$warning"
-                  active={false}
-                  payload={{ kind: "missing-subagent-event", diagnostic: missing.diagnostic, label: missing.label }}
-                >
-                  <Text color="$muted" wrap="truncate">
-                    {missing.label}
-                  </Text>
                 </AgentDrawerRow>
               ))}
               {diagnostics.map((diagnostic, index) => (

@@ -76,7 +76,6 @@ export function projectSubagentActivitiesFromChatEvents(
   const currentStartedAt = options.currentOnly === false ? undefined : latestUserMessageStartedAt(orderedEvents)
   const builder = new SubagentActivityBuilder()
   const assistantTextByMessageId = new Map<string, string>()
-  const userTextByMessageId = new Map<string, string>()
   const roleByMessageId = new Map<string, string>()
 
   for (const { value: event } of orderedEvents) {
@@ -87,12 +86,7 @@ export function projectSubagentActivitiesFromChatEvents(
         break
       case "message.part.added": {
         const role = roleByMessageId.get(event.payload.messageId)
-        if (role === "user" && event.payload.part.type === "text") {
-          userTextByMessageId.set(
-            event.payload.messageId,
-            `${userTextByMessageId.get(event.payload.messageId) ?? ""}${event.payload.part.text}`,
-          )
-        } else if (role !== "user" && event.payload.part.type === "text") {
+        if (role !== "user" && event.payload.part.type === "text") {
           assistantTextByMessageId.set(
             event.payload.messageId,
             `${assistantTextByMessageId.get(event.payload.messageId) ?? ""}${event.payload.part.text}`,
@@ -134,10 +128,7 @@ export function projectSubagentActivitiesFromChatEvents(
   const activities = builder.activities()
   return {
     activities,
-    diagnostics: claimDiagnostics(
-      [...userTextByMessageId.values(), ...assistantTextByMessageId.values()],
-      activities.length,
-    ),
+    diagnostics: claimDiagnostics([...assistantTextByMessageId.values()], activities.length),
   }
 }
 
@@ -150,7 +141,6 @@ export function projectCurrentSubagentActivitiesFromMessages(
   const currentMessages = lastUserIndex >= 0 ? messages.slice(lastUserIndex + 1) : messages
   const currentStartedAt = lastUserIndex >= 0 ? messages[lastUserIndex]?.ts : undefined
   const assistantTexts: string[] = []
-  const userTexts = lastUserIndex >= 0 ? [messages[lastUserIndex]?.text ?? ""] : []
 
   for (const message of currentMessages) {
     if (message.role === "assistant" && message.text.trim().length > 0) assistantTexts.push(message.text)
@@ -172,8 +162,25 @@ export function projectCurrentSubagentActivitiesFromMessages(
   const activities = builder.activities()
   return {
     activities,
-    diagnostics: claimDiagnostics([...userTexts, ...assistantTexts], activities.length),
+    diagnostics: claimDiagnostics(assistantTexts, activities.length),
   }
+}
+
+export function assertSubagentActivityInvariants(
+  projection: SubagentActivityProjection,
+  opts: { readonly sessionId?: string } = {},
+): void {
+  if (projection.diagnostics.length === 0) return
+  const prefix = opts.sessionId
+    ? `subagent activity invariant failed for session ${opts.sessionId}`
+    : "subagent activity invariant failed"
+  const detail = projection.diagnostics
+    .map(
+      (diagnostic) =>
+        `provider text claimed ${diagnostic.claimed} completed subagents but observed ${diagnostic.observed}: ${JSON.stringify(diagnostic.text)}`,
+    )
+    .join("; ")
+  throw new Error(`${prefix}: ${detail}`)
 }
 
 export function subagentActivityRowsFromActivities(
@@ -458,15 +465,14 @@ function cleanSubagentNotificationBody(value: string): string {
 function claimDiagnostics(texts: readonly string[], observed: number): readonly SubagentActivityDiagnostic[] {
   const latestTextByClaim = new Map<number, string>()
   for (const text of texts) {
-    const claimed = claimedDoneCount(text)
+    const claimed = claimedCompletedSubagentCount(text)
     if (claimed !== undefined && claimed > observed) latestTextByClaim.set(claimed, text)
   }
   return [...latestTextByClaim].map(([claimed, text]) => ({ kind: "subagent-count-mismatch", claimed, observed, text }))
 }
 
-function claimedDoneCount(text: string): number | undefined {
+function claimedCompletedSubagentCount(text: string): number | undefined {
   const match =
-    text.match(/\b(?:use|run|spawn|start|launch|create)\s+(\d+)\s+(?:subagents?|agents?)\b/i) ??
     text.match(/\ball\s+(\d+)\s+(?:subagents?|agents?)?\s*(?:reported\s+)?(?:are\s+)?done\b/i) ??
     text.match(/\b(\d+)\s+(?:subagents?|agents?)\s+(?:reported\s+)?(?:are\s+)?done\b/i)
   if (!match?.[1]) return undefined

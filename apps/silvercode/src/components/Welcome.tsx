@@ -1,7 +1,7 @@
 import React from "react"
 import { resolve as resolvePath } from "node:path"
 import { existsSync, readFileSync } from "node:fs"
-import { Box, Image, MeasuredBox, Muted, Small, Text, isKittyGraphicsSupported } from "silvery"
+import { Box, Image, MeasuredBox, Muted, Small, Text, isKittyGraphicsSupported, useTerm } from "silvery"
 import type { SessionHandle } from "../controller.ts"
 import { prefixSid } from "../sid-prefix.ts"
 import { Chat } from "./Chat.tsx"
@@ -200,6 +200,8 @@ const SHADED_MIN_COLS = 56
 const BIG_MIN_COLS = 44
 const STANDARD_MIN_COLS = 36
 const SMALL_MIN_COLS = 28
+const IMAGE_MAX_COLS = 60
+const IMAGE_MIN_COLS = 24
 
 type BannerTier = "image" | "shaded" | "big" | "standard" | "small" | "stacked"
 
@@ -228,6 +230,17 @@ function chooseBannerTier(width: number): BannerTier {
   if (width >= STANDARD_MIN_COLS) return "standard"
   if (width >= SMALL_MIN_COLS) return "small"
   return "stacked"
+}
+
+function imageCellSize(availableWidth: number): { readonly width: number; readonly height: number } {
+  // Kitty graphics are placed into terminal cells. Terminal cells are roughly
+  // twice as tall as wide, so the displayed cell aspect is the PNG aspect
+  // divided by that cell-shape factor.
+  const CELL_HEIGHT_TO_WIDTH = 2
+  const { width: pngW, height: pngH } = SILVER_CODE_PNG_DIMENSIONS
+  const width = Math.min(IMAGE_MAX_COLS, Math.max(IMAGE_MIN_COLS, availableWidth - 4))
+  const height = Math.max(5, Math.round((width * pngH) / (pngW * CELL_HEIGHT_TO_WIDTH)))
+  return { width, height }
 }
 
 /**
@@ -279,21 +292,7 @@ export function SilverCodeBanner({
 
   let block: React.ReactElement
   if (tier === "image") {
-    // Kitty graphics path — derive the displayed cell-grid dimensions
-    // from the PNG's actual pixel dimensions (read at module load).
-    // Terminal cells are about twice as tall as they are wide, so for
-    // a faithful display the cell-grid aspect must be the PNG's pixel
-    // aspect divided by that cell-shape factor — no per-image
-    // hardcoded ratios.
-    const CELL_HEIGHT_TO_WIDTH = 2
-    // Cap at 60 cols — the image is a centered banner, not a full-screen
-    // backdrop. Without this, on a 150-col Ghostty window the image
-    // computed to ~146 cells wide × 50 cells tall and consumed almost
-    // the entire viewport.
-    const IMG_MAX_COLS = 60
-    const { width: pngW, height: pngH } = SILVER_CODE_PNG_DIMENSIONS
-    const imgW = Math.min(IMG_MAX_COLS, Math.max(20, availableWidth - 4))
-    const imgH = Math.max(5, Math.round((imgW * pngH) / (pngW * CELL_HEIGHT_TO_WIDTH)))
+    const { width: imgW, height: imgH } = imageCellSize(availableWidth)
     block = (
       <Box flexDirection="column" alignItems="center" marginBottom={2}>
         <Image src={SILVER_CODE_PNG_PATH} width={imgW} height={imgH} fallback="SILVER CODE" />
@@ -348,6 +347,17 @@ export function SilverCodeBanner({
     <Box flexDirection="column" alignItems="center" gap={1}>
       {block}
       {agentLabel ? <Small color="$muted">{agentLabel}</Small> : null}
+    </Box>
+  )
+}
+
+function FixedBitmapBanner(): React.ReactElement {
+  const cols = useTerm((term) => term.size.cols())
+  const availableWidth = Math.max(IMAGE_MIN_COLS + 4, Math.floor(cols * 0.45))
+  const { width, height } = imageCellSize(availableWidth)
+  return (
+    <Box flexDirection="column" alignItems="center" marginBottom={2}>
+      <Image src={SILVER_CODE_PNG_PATH} width={width} height={height} fallback="" />
     </Box>
   )
 }
@@ -453,13 +463,10 @@ export function Welcome(props: {
   const centerVertically = props.centerVertically !== false
   const showComposer = Boolean(props.composerSlot && !isLoading)
   const banner =
-    props.bitmapBanner === false ? (
-      <StaticTextBanner agentLabel={agentLabel} />
-    ) : (
-      <MeasuredBanner agentLabel={agentLabel} />
-    )
+    props.bitmapBanner === false ? <StaticTextBanner /> : KITTY_SUPPORTED ? <FixedBitmapBanner /> : <MeasuredBanner />
   const lowerContent = (
     <Box flexDirection="column" alignItems="center" gap={1} width="100%" minWidth={0}>
+      {agentLabel ? <Small color="$muted">{agentLabel}</Small> : null}
       {agentModelDetails.length > 0 ? <Muted>{agentModelDetails}</Muted> : null}
       {isLoading ? (
         <Box flexDirection="column" alignItems="center">

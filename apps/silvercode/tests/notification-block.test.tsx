@@ -595,7 +595,7 @@ describe("NotificationBlock", () => {
     expect(app.text.trim()).toBe("")
   })
 
-  test("agents drawer shows subagent count mismatch diagnostics", () => {
+  test("agents drawer shows mismatch diagnostics without fabricating missing agent rows", () => {
     const app = renderBlock(
       <Chat.AgentsDrawer
         sessions={[{ sessionId: "s1", name: "session 1", status: "idle", startedAt: 1 }]}
@@ -615,9 +615,7 @@ describe("NotificationBlock", () => {
 
     expect(app.text).toContain("1/4 observed")
     expect(app.text).toContain("Sleep 20s #2")
-    expect(app.text).toContain("Missing Agent event #1")
-    expect(app.text).toContain("Missing Agent event #2")
-    expect(app.text).toContain("Missing Agent event #3")
+    expect(app.text).not.toContain("Missing Agent event")
     expect(app.text).toContain("Only 1 of 4 Agent events observed")
   })
 

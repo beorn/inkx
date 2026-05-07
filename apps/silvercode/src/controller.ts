@@ -52,6 +52,10 @@ import { type CoordinatorMcpServer, createCoordinatorMcpServer } from "./coordin
 import { type CrossAgentState, createCrossAgentState } from "./cross-agent-state.ts"
 import { replaySessionFromDisk, sessionJsonlPath } from "./resume.ts"
 import { discoverClaudeSubagentSessions } from "./claude-subagent-sessions.ts"
+import {
+  assertSubagentActivityInvariants,
+  projectCurrentSubagentActivitiesFromMessages,
+} from "./chat/subagent-activities.ts"
 import type { SessionHistoryMetadata, SubagentSessionSummary } from "./session-metadata.ts"
 
 // Queue diagnostics — enable with `DEBUG=silvercode:queue` (combined with
@@ -62,6 +66,7 @@ import type { SessionHistoryMetadata, SubagentSessionSummary } from "./session-m
 const dQueue = createDebug("silvercode:queue")
 const dBackground = createDebug("silvercode:background")
 const dRecall = createDebug("silvercode:recall")
+const dInvariant = createDebug("silvercode:chat-invariants")
 
 function createReplayOnlySession(sessionId: string, sendFailureMessage: string): AgentSession {
   const subscribers = new Set<(event: AgentEvent) => void>()
@@ -624,6 +629,10 @@ function notificationStatusForSubagentSummary(
   return "started"
 }
 
+function shouldAssertClaudeSubagentDataModelInvariants(event: AgentEvent): boolean {
+  return event.kind === "text-delta" || event.kind === "assistant-message" || event.kind === "turn-end"
+}
+
 export function createSilvercodeController(opts: ControllerOptions): Controller {
   ctrlStartupTick("controller:create:enter")
   const sessions: SessionHandle[] = []
@@ -700,6 +709,22 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       if (seen.has(event.id)) continue
       seen.add(event.id)
       notificationStream.record(sessionId, event)
+    }
+  }
+  function assertClaudeSubagentDataModelInvariants(sessionId: string, store: SessionStore): void {
+    const projection = projectCurrentSubagentActivitiesFromMessages(store.state.get().messages, {
+      notificationEntries: notificationStream.entries(sessionId),
+      sessionId,
+    })
+    try {
+      assertSubagentActivityInvariants(projection, { sessionId })
+    } catch (err) {
+      dInvariant(
+        "subagent activity invariant failed session=%s message=%s",
+        sessionId,
+        err instanceof Error ? err.message : String(err),
+      )
+      throw err
     }
   }
   if (!opts.disableNotificationAdapters && !opts.disableChannelSources) {
@@ -1397,6 +1422,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         metadata.replayBoundaryMessageId = replayedMessages.at(-1)?.id
       }
       recordClaudeSidechainSubagents(id, store, metadata, true)
+      assertClaudeSubagentDataModelInvariants(id, store)
     } else if (opts.resume && isCodexAgent) {
       // Codex stores rollouts at ~/.codex/sessions/YYYY/MM/DD/rollout-*-<sid>.jsonl
       // with a different schema than Claude's stream-json. The codex parser
@@ -1574,6 +1600,9 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
           metadata,
           event.kind === "session-init" || event.kind === "tool-result" || event.kind === "turn-end",
         )
+        if (shouldAssertClaudeSubagentDataModelInvariants(event)) {
+          assertClaudeSubagentDataModelInvariants(id, store)
+        }
       }
     })
 
