@@ -1345,6 +1345,23 @@ function syntheticLiveToolOps(status: ActivityStatus, inFlightTool: string | nul
   ]
 }
 
+function currentTranscriptHasRunningToolActivity(messages: readonly MessageEntry[]): boolean {
+  let lastUserIndex = -1
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i]?.role === "user") {
+      lastUserIndex = i
+      break
+    }
+  }
+  for (const message of messages.slice(lastUserIndex + 1)) {
+    if (message.role !== "assistant") continue
+    for (const op of normalizeCommandSessionOps(message.ops)) {
+      if (op.kind === "tool" && op.result === undefined) return true
+    }
+  }
+  return false
+}
+
 function ExchangeItem({
   m,
   showDebug,
@@ -1697,7 +1714,10 @@ export const SessionUpdateList = React.forwardRef<
     setFollowPausedByDisclosure(false)
   }, [messages.length, status])
 
-  const showActivity = status !== "idle" && status !== "ended"
+  const showActivity =
+    status !== "idle" &&
+    status !== "ended" &&
+    !(status === "tool-running" && currentTranscriptHasRunningToolActivity(messages))
   const { visibleItems, contentItems, items, renderItems, topPadding, bottomPadding, listEpoch } = useMemo(
     () =>
       projectSessionUpdateTranscript({

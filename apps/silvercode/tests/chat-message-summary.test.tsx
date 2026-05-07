@@ -204,6 +204,34 @@ describe("ChatMessageSummary", () => {
     expect(app.text).not.toContain("AGENT-PROMPT-ECHO-MARKER")
   })
 
+  test("does not append a synthetic live tool summary when transcript already shows running tools", () => {
+    const entry = makeEntry({
+      ops: [1, 2, 3, 4].map((n) => tool(`agent-${n}`, "Agent", { description: `Sleep 20s #${n}` })),
+    })
+    const renderer = createRenderer({ cols: 100, rows: 18 })
+
+    const app = renderer(
+      <Box width={100} height={18} flexDirection="column">
+        <SessionUpdateList
+          messages={[entry]}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          sessionId="turn-summary-live-tail-test"
+          status="tool-running"
+          turnStartedAt={0}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool="Agent"
+          follow={false}
+        />
+      </Box>,
+    )
+
+    expect(app.text).toContain("Using 4 tools...")
+    expect(app.text).not.toContain("Using 1 tool...")
+  })
+
   test("keeps multiline generic tool results disclosed under the tool row", async () => {
     using term = createTermless({ cols: 110, rows: 12 })
     const entry = makeEntry({
