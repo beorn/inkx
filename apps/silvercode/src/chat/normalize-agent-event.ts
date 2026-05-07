@@ -1,4 +1,4 @@
-import { parseAgentEvent, type AgentEvent, type ContentBlock } from "@km/agent-harness"
+import { parseAgentEvent, type AgentEvent } from "@km/agent-harness"
 import { parseChatEvent } from "./event-handling.ts"
 import type {
   AgentEventId,
@@ -23,6 +23,10 @@ type AgentEventProjection = {
   keepsRaw: boolean
 }
 
+type MessageStartSource = "assistant-message" | "turn-start" | "user-message" | "other"
+type SeenMessage = { role: ChatRole; source: MessageStartSource }
+type AssistantContentBlock = Extract<AgentEvent, { kind: "assistant-message" }>["content"][number]
+
 export const AGENT_EVENT_CHAT_PROJECTION = {
   "session-init": { channel: "status", chatEventTypes: ["session.updated", "debug.recorded"], keepsRaw: true },
   "turn-start": { channel: "transcript", chatEventTypes: ["message.started"], keepsRaw: true },
@@ -36,14 +40,7 @@ export const AGENT_EVENT_CHAT_PROJECTION = {
   "turn-end": { channel: "transcript", chatEventTypes: ["message.completed", "debug.recorded"], keepsRaw: true },
   "assistant-message": {
     channel: "transcript",
-    chatEventTypes: [
-      "message.started",
-      "message.part.added",
-      "tool.started",
-      "tool.completed",
-      "debug.recorded",
-      "message.completed",
-    ],
+    chatEventTypes: ["message.started", "message.part.added", "tool.started", "tool.completed", "debug.recorded"],
     keepsRaw: true,
   },
   "user-message": {
@@ -86,37 +83,113 @@ export function normalizeAgentEventsToChatEvents(
 ): ChatEvent[] {
   const events = inputs.map((input) => parseAgentEvent(input))
   const latestToolUseIndex = new Map<string, number>()
+  const latestAssistantMessageIndex = new Map<string, number>()
+  const firstMessageSourceByKey = new Map<string, MessageStartSource>()
   events.forEach((event, index) => {
     if (event.kind === "tool-use") latestToolUseIndex.set(`${event.sessionId}:${event.id}`, index)
+    if (event.kind === "assistant-message" || event.kind === "turn-start" || event.kind === "user-message") {
+      const key = messageKey(chatSessionIdFor(event, options), chatMessageId(event.turnId))
+      firstMessageSourceByKey.set(key, firstMessageSourceByKey.get(key) ?? messageStartSource(event))
+      if (event.kind === "assistant-message") latestAssistantMessageIndex.set(key, index)
+    }
   })
 
-  const seenMessages = new Map<string, ChatRole>()
+  const seenMessages = new Map<string, SeenMessage>()
+  const seenTools = new Set<string>()
+  const pendingToolCompletions = new Map<string, ChatEvent<"tool.completed">[]>()
   const out: ChatEvent[] = []
+  const pushChatEvent = (chatEvent: ChatEvent): void => {
+    if (chatEvent.type === "tool.completed") {
+      const key = toolKey(chatEvent.sessionId, chatEvent.payload.toolId)
+      if (!seenTools.has(key)) {
+        pendingToolCompletions.set(key, [...(pendingToolCompletions.get(key) ?? []), chatEvent])
+        return
+      }
+    }
+    out.push(chatEvent)
+    if (chatEvent.type === "tool.started") {
+      seenTools.add(toolKey(chatEvent.sessionId, chatEvent.payload.toolId))
+    }
+  }
+  const flushPendingToolCompletions = (): void => {
+    for (const [key, completions] of pendingToolCompletions) {
+      if (!seenTools.has(key)) continue
+      out.push(...completions)
+      pendingToolCompletions.delete(key)
+    }
+  }
   events.forEach((event, index) => {
     if (event.kind === "tool-use" && latestToolUseIndex.get(`${event.sessionId}:${event.id}`) !== index) {
       return
     }
-    if (event.kind === "assistant-message" && seenMessages.has(`${event.sessionId}:${event.turnId}`)) {
-      out.push(debugEventFromAgentEvent(event, options, "Assistant message aggregate", "assistant-message-aggregate"))
-      return
+    if (event.kind === "turn-end") {
+      const key = messageKey(chatSessionIdFor(event, options), chatMessageId(event.turnId))
+      if (
+        firstMessageSourceByKey.get(key) === "assistant-message" &&
+        (latestAssistantMessageIndex.get(key) ?? -1) > index
+      ) {
+        return
+      }
+    }
+    if (event.kind === "assistant-message") {
+      const key = messageKey(chatSessionIdFor(event, options), chatMessageId(event.turnId))
+      const previous = seenMessages.get(key)
+      if (previous) {
+        if (previous.source === "assistant-message") {
+          for (const chatEvent of normalizeParsedAgentEvent(event, options)) {
+            if (chatEvent.type !== "message.started") pushChatEvent(chatEvent)
+          }
+          flushPendingToolCompletions()
+          return
+        }
+        if (previous.source === "turn-start" && previous.role === "assistant") {
+          pushChatEvent(
+            debugEventFromAgentEvent(event, options, "Assistant message aggregate", "assistant-message-aggregate"),
+          )
+          flushPendingToolCompletions()
+          return
+        }
+        throw new Error(`normalizeAgentEventsToChatEvents duplicate message ${event.turnId}`)
+      }
     }
     for (const chatEvent of normalizeParsedAgentEvent(event, options)) {
       if (chatEvent.type === "message.started") {
-        const key = `${chatEvent.sessionId}:${chatEvent.payload.messageId}`
-        const previousRole = seenMessages.get(key)
-        if (previousRole !== undefined) {
-          if (event.kind === "turn-start" && previousRole === chatEvent.payload.role) {
-            out.push(debugEventFromAgentEvent(event, options, "Duplicate message start", "duplicate-message-start"))
+        const key = messageKey(chatEvent.sessionId, chatEvent.payload.messageId)
+        const previous = seenMessages.get(key)
+        if (previous !== undefined) {
+          if (event.kind === "turn-start" && previous.role === chatEvent.payload.role) {
+            pushChatEvent(
+              debugEventFromAgentEvent(event, options, "Duplicate message start", "duplicate-message-start"),
+            )
             continue
           }
           throw new Error(`normalizeAgentEventsToChatEvents duplicate message ${chatEvent.payload.messageId}`)
         }
-        seenMessages.set(key, chatEvent.payload.role)
+        seenMessages.set(key, { role: chatEvent.payload.role, source: messageStartSource(event) })
       }
-      out.push(chatEvent)
+      pushChatEvent(chatEvent)
     }
+    flushPendingToolCompletions()
   })
+  for (const completions of pendingToolCompletions.values()) {
+    for (const completion of completions) out.push(orphanToolCompletionDebugEvent(completion))
+  }
   return out.map((chatEvent) => parseChatEvent(chatEvent))
+}
+
+function messageKey(sessionId: ChatSessionId, messageId: ChatMessageId): string {
+  return `${sessionId}:${messageId}`
+}
+
+function toolKey(sessionId: ChatSessionId, toolId: ChatToolId): string {
+  return `${sessionId}:${toolId}`
+}
+
+function messageStartSource(event: AgentEvent): MessageStartSource {
+  if (event.kind === "assistant-message" || event.kind === "turn-start" || event.kind === "user-message") {
+    return event.kind
+  }
+  return "other"
 }
 
 function normalizeParsedAgentEvent(event: AgentEvent, options: NormalizeAgentEventOptions): ChatEvent[] {
@@ -493,6 +566,26 @@ function debugEventFromAgentEvent(
   }
 }
 
+function orphanToolCompletionDebugEvent(event: ChatEvent<"tool.completed">): ChatEvent<"debug.recorded"> {
+  return {
+    id: chatEventId(`${event.id}:orphan-tool-result`),
+    type: "debug.recorded",
+    channel: "debug",
+    ts: event.ts,
+    sessionId: event.sessionId,
+    agentEventId: event.agentEventId,
+    payload: {
+      label: "Orphan tool result",
+      raw: {
+        toolId: event.payload.toolId,
+        status: event.payload.status,
+        output: event.payload.output,
+      },
+    },
+    rawRefs: event.rawRefs,
+  }
+}
+
 function normalizeAssistantMessage(
   event: Extract<AgentEvent, { kind: "assistant-message" }>,
   make: <T extends ChatEventType>(
@@ -513,9 +606,10 @@ function normalizeAssistantMessage(
 
   event.content.forEach((block, index) => {
     const suffix = `block-${index}`
+    const blockKey = assistantBlockKey(event, index, block)
     switch (block.type) {
       case "text": {
-        const partId = chatMessagePartId(`${event.turnId}:text:${index}`)
+        const partId = chatMessagePartId(`${event.turnId}:text:${blockKey}`)
         const partEventId = chatEventId(`${agentEventIdFor(event)}:${suffix}:text`)
         out.push(
           messagePart(
@@ -528,7 +622,7 @@ function normalizeAssistantMessage(
         break
       }
       case "thinking": {
-        const partId = chatMessagePartId(`${event.turnId}:thinking:${index}`)
+        const partId = chatMessagePartId(`${event.turnId}:thinking:${blockKey}`)
         const partEventId = chatEventId(`${agentEventIdFor(event)}:${suffix}:thinking`)
         out.push(
           messagePart(
@@ -541,7 +635,7 @@ function normalizeAssistantMessage(
         break
       }
       case "image": {
-        const partId = chatMessagePartId(`${event.turnId}:image:${index}`)
+        const partId = chatMessagePartId(`${event.turnId}:image:${blockKey}`)
         const partEventId = chatEventId(`${agentEventIdFor(event)}:${suffix}:image`)
         out.push(
           messagePart(
@@ -560,7 +654,7 @@ function normalizeAssistantMessage(
       }
       case "tool_use": {
         const toolId = chatToolId(block.id)
-        const partId = chatMessagePartId(`${event.turnId}:tool:${index}`)
+        const partId = chatMessagePartId(`${event.turnId}:tool:${block.id}`)
         const partEventId = chatEventId(`${agentEventIdFor(event)}:${suffix}:tool-ref`)
         out.push(
           make("tool.started", "activity", { toolId, name: block.name, input: block.input }, `${suffix}:tool-started`),
@@ -593,8 +687,26 @@ function normalizeAssistantMessage(
     }
   })
 
-  out.push(make("message.completed", "transcript", { messageId }, "message-completed"))
   return out
+}
+
+function assistantBlockKey(
+  event: Extract<AgentEvent, { kind: "assistant-message" }>,
+  index: number,
+  block: AssistantContentBlock,
+): string {
+  if (block.type === "tool_use") return block.id
+  if (block.type === "tool_result") return block.tool_use_id
+  return `${event.ts}:${index}:${hashString(JSON.stringify(block))}`
+}
+
+function hashString(value: string): string {
+  let hash = 2166136261
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i)
+    hash = Math.imul(hash, 16777619)
+  }
+  return (hash >>> 0).toString(36)
 }
 
 function chatSessionIdFor(event: AgentEvent, options: NormalizeAgentEventOptions): ChatSessionId {
@@ -657,6 +769,6 @@ function assertNeverAgentEvent(event: never): never {
 }
 
 function assertNeverContentBlock(block: never): never {
-  const type = (block as ContentBlock).type
+  const type = (block as AssistantContentBlock).type
   throw new Error(`Unhandled assistant content block type: ${String(type)}`)
 }

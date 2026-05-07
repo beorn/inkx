@@ -7,10 +7,18 @@ import {
   normalizeAgentEventsToChatEvents,
   normalizeAgentEventToChatEvents,
 } from "../src/chat/normalize-agent-event.ts"
-import type { ChatEventType } from "../src/chat/types.ts"
+import type { ChatEvent, ChatEventType } from "../src/chat/types.ts"
 
 function id<T>(value: string): T {
   return value as T
+}
+
+function isMessagePartAdded(event: ChatEvent): event is ChatEvent<"message.part.added"> {
+  return event.type === "message.part.added"
+}
+
+function isToolStarted(event: ChatEvent): event is ChatEvent<"tool.started"> {
+  return event.type === "tool.started"
 }
 
 const sessionId = id<SessionId>("session-1")
@@ -108,7 +116,7 @@ describe("normalizeAgentEventToChatEvents", () => {
       "permission-decision": ["permission.resolved"],
       "liveness-check": ["status.updated"],
       "turn-end": ["message.completed", "debug.recorded"],
-      "assistant-message": ["message.started", "message.part.added", "message.completed"],
+      "assistant-message": ["message.started", "message.part.added"],
       "user-message": ["message.started", "message.part.added", "message.completed"],
       "raw-transcript": ["debug.recorded"],
       status: ["status.updated"],
@@ -223,5 +231,95 @@ describe("normalizeAgentEventToChatEvents", () => {
       payload: { label: "Duplicate message start" },
       rawRefs: [{ raw: { kind: "turn-start", turnId: duplicateTurnId } }],
     })
+  })
+
+  test("coalesces split assistant aggregates when projected session id differs from provider session id", () => {
+    const providerSessionId = "f9eb64dc-d982-4a46-9a8e-da5fd882ac5f" as SessionId
+    const projectedSessionId = `claude:${providerSessionId}`
+    const splitMessageId = "msg_01GE15xRAqBbnxU9ihrxhHFk" as TurnId
+
+    const normalized = normalizeAgentEventsToChatEvents(
+      [
+        {
+          kind: "assistant-message",
+          sessionId: providerSessionId,
+          turnId: splitMessageId,
+          content: [{ type: "thinking", text: "" }],
+          ts: 1,
+        },
+        { kind: "turn-end", sessionId: providerSessionId, turnId: splitMessageId, stopReason: "end_turn", ts: 2 },
+        {
+          kind: "assistant-message",
+          sessionId: providerSessionId,
+          turnId: splitMessageId,
+          content: [{ type: "text", text: "Picking up the suggested agenda." }],
+          ts: 3,
+        },
+        { kind: "turn-end", sessionId: providerSessionId, turnId: splitMessageId, stopReason: "end_turn", ts: 4 },
+        {
+          kind: "tool-result",
+          sessionId: providerSessionId,
+          id: "toolu_split_1" as ToolUseId,
+          output: "File has not been read yet.",
+          is_error: true,
+          ts: 5,
+        },
+        {
+          kind: "assistant-message",
+          sessionId: providerSessionId,
+          turnId: splitMessageId,
+          content: [{ type: "tool_use", id: "toolu_split_1" as ToolUseId, name: "Read", input: { file_path: "a.ts" } }],
+          ts: 6,
+        },
+        { kind: "turn-end", sessionId: providerSessionId, turnId: splitMessageId, stopReason: "end_turn", ts: 7 },
+        {
+          kind: "assistant-message",
+          sessionId: providerSessionId,
+          turnId: splitMessageId,
+          content: [{ type: "tool_use", id: "toolu_split_2" as ToolUseId, name: "Bash", input: { command: "pwd" } }],
+          ts: 8,
+        },
+        { kind: "turn-end", sessionId: providerSessionId, turnId: splitMessageId, stopReason: "end_turn", ts: 9 },
+      ] satisfies AgentEvent[],
+      { sessionId: projectedSessionId },
+    )
+
+    expect(normalized.map((event) => [event.type, event.channel])).toEqual([
+      ["message.started", "transcript"],
+      ["message.part.added", "transcript"],
+      ["message.part.added", "transcript"],
+      ["tool.started", "activity"],
+      ["message.part.added", "transcript"],
+      ["tool.completed", "error"],
+      ["tool.started", "activity"],
+      ["message.part.added", "transcript"],
+      ["message.completed", "transcript"],
+      ["debug.recorded", "debug"],
+    ])
+    expect(normalized.every((event) => event.sessionId === projectedSessionId)).toBe(true)
+    const partIds = normalized.filter(isMessagePartAdded).map((event) => event.payload.partId)
+    expect(new Set(partIds).size).toBe(partIds.length)
+    expect(normalized.filter(isToolStarted).map((event) => event.payload.name)).toEqual(["Read", "Bash"])
+    expect(normalized.filter((event) => event.type === "message.completed")).toHaveLength(1)
+    expect(normalized[2]).toMatchObject({
+      type: "message.part.added",
+      payload: { part: { type: "text", text: "Picking up the suggested agenda." } },
+      rawRefs: [{ raw: { kind: "assistant-message", turnId: splitMessageId } }],
+    })
+    expect(() =>
+      normalizeAgentEventsToChatEvents(
+        [
+          { kind: "user-message", sessionId, turnId: splitMessageId, text: "same id", ts: 1 },
+          {
+            kind: "assistant-message",
+            sessionId,
+            turnId: splitMessageId,
+            content: [{ type: "text", text: "conflict" }],
+            ts: 2,
+          },
+        ] satisfies AgentEvent[],
+        { sessionId },
+      ),
+    ).toThrow(/duplicate message/)
   })
 })

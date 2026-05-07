@@ -285,9 +285,8 @@ export function projectChatTranscript({ sessionId, events }: ProjectArgs): ChatT
         if (!message) {
           throw new Error(`message.completed ${event.id} references unknown message ${event.payload.messageId}`)
         }
-        // Idempotent: assistant-message (aggregate) and turn-end (streaming)
-        // both emit message.completed for the same turnId-derived messageId.
-        // Both are legitimate completion signals from the same provider event.
+        // Idempotent so replay/stream boundary duplicates do not crash, while
+        // requireMessageState still prevents appending to a completed message.
         message.completed = true
         break
       }

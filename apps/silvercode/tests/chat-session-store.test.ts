@@ -7,7 +7,7 @@ import {
 } from "@km/agent-harness"
 import { describe, expect, test } from "vitest"
 import { createChatSessionProjectionStore } from "../src/chat/store.ts"
-import type { ChatMessageId, ChatMessagePartId } from "../src/chat/types.ts"
+import type { ChatMessageId, ChatMessagePartId, ChatPermissionId, ChatToolId } from "../src/chat/types.ts"
 
 const sessionId = "session-1" as SessionId
 const turnId = "turn-1" as TurnId
@@ -47,7 +47,7 @@ describe("ChatSession projection store", () => {
     chat.dispose()
   })
 
-  test("duplicate assistant turn-start stays inspectable in Debug instead of crashing the projection", () => {
+  test("handles duplicate assistant message shapes without crashing the projection", () => {
     const sessionStore = createSessionStore()
     const chat = createChatSessionProjectionStore(sessionStore, { sessionId })
     const duplicateTurnId = "msg_01GE15xRAqBbnxU9ihrxhHFk" as TurnId
@@ -67,6 +67,80 @@ describe("ChatSession projection store", () => {
     })
 
     chat.dispose()
+
+    const providerSessionId = "f9eb64dc-d982-4a46-9a8e-da5fd882ac5f" as SessionId
+    const projectedSessionId = `claude:${providerSessionId}`
+    const splitMessageId = "msg_01GE15xRAqBbnxU9ihrxhHFk" as TurnId
+    const replayToolId = "toolu_split_1" as ToolUseId
+    const replayStore = createSessionStore()
+    const replayChat = createChatSessionProjectionStore(replayStore, { sessionId: projectedSessionId })
+
+    replayStore.apply({
+      kind: "assistant-message",
+      sessionId: providerSessionId,
+      turnId: splitMessageId,
+      content: [{ type: "thinking", text: "" }],
+      ts: 1,
+    })
+    replayStore.apply({
+      kind: "turn-end",
+      sessionId: providerSessionId,
+      turnId: splitMessageId,
+      stopReason: "end_turn",
+      ts: 2,
+    })
+    replayStore.apply({
+      kind: "assistant-message",
+      sessionId: providerSessionId,
+      turnId: splitMessageId,
+      content: [{ type: "text", text: "Picking up the suggested agenda." }],
+      ts: 3,
+    })
+    replayStore.apply({
+      kind: "turn-end",
+      sessionId: providerSessionId,
+      turnId: splitMessageId,
+      stopReason: "end_turn",
+      ts: 4,
+    })
+    replayStore.apply({
+      kind: "tool-result",
+      sessionId: providerSessionId,
+      id: replayToolId,
+      output: "File has not been read yet.",
+      is_error: true,
+      ts: 5,
+    })
+    replayStore.apply({
+      kind: "assistant-message",
+      sessionId: providerSessionId,
+      turnId: splitMessageId,
+      content: [{ type: "tool_use", id: replayToolId, name: "Read", input: { file_path: "a.ts" } }],
+      ts: 6,
+    })
+    replayStore.apply({
+      kind: "turn-end",
+      sessionId: providerSessionId,
+      turnId: splitMessageId,
+      stopReason: "end_turn",
+      ts: 7,
+    })
+
+    expect(replayChat.visibleLeaves().map((leaf) => leaf.type)).toEqual([
+      "reasoning",
+      "assistant-text",
+      "tool",
+      "tool",
+      "tool",
+    ])
+    expect(replayChat.session().messages[splitMessageId as unknown as ChatMessageId]?.partIds).toHaveLength(3)
+    expect(replayChat.session().tools[replayToolId as unknown as ChatToolId]).toMatchObject({
+      name: "Read",
+      status: "failed",
+      output: "File has not been read yet.",
+    })
+
+    replayChat.dispose()
   })
 
   test("accumulates ChatSession state from the same canonical ChatEvents that feed the tree", () => {
@@ -139,8 +213,8 @@ describe("ChatSession projection store", () => {
       type: "text",
       text: "Run tests",
     })
-    expect(session.tools[toolId]).toMatchObject({ name: "Bash", status: "done", output: "ok" })
-    expect(session.permissions.requests[permissionId]).toMatchObject({
+    expect(session.tools[toolId as unknown as ChatToolId]).toMatchObject({ name: "Bash", status: "done", output: "ok" })
+    expect(session.permissions.requests[permissionId as unknown as ChatPermissionId]).toMatchObject({
       status: "approved",
       prompt: "Bash permission requested",
     })
