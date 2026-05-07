@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { fsPathOf, pathOf } from "../src/path.ts"
+import { fsPathOf } from "../src/path.ts"
 
 describe("fsPathOf", () => {
   test("strips .md extension from file path", () => {
@@ -53,16 +53,3 @@ describe("fsPathOf", () => {
   })
 })
 
-describe("pathOf (deprecated alias)", () => {
-  test("is the same function as fsPathOf", () => {
-    expect(pathOf).toBe(fsPathOf)
-  })
-
-  test("smoke: deprecated alias still strips .md", () => {
-    expect(pathOf({ fs_path: "@km/beads/foo.md" })).toBe("@km/beads/foo")
-  })
-
-  test("smoke: deprecated alias returns null for missing fs_path", () => {
-    expect(pathOf({})).toBeNull()
-  })
-})

@@ -153,6 +153,4 @@ export { SIGILS, isSigilChar, hasSigilPrefix, getSigilChar, stripSigil, isInline
 // Path derivation — fsPathOf(node) materializes the user-facing path-form
 // from the fs_path cache. See path.ts for the path/name/id three-concept
 // rationale and the path/name × tree/fs 2×2 vocabulary.
-// `pathOf` is a deprecated alias retained for one transitional release —
-// see `@km/all/path-name-orthogonal-vocabulary`.
-export { fsPathOf, pathOf } from "./path.ts"
+export { fsPathOf } from "./path.ts"

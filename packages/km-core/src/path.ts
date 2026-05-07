@@ -62,12 +62,3 @@ export function fsPathOf(node: PathableNode): string | null {
   if (node.fs_path === ".") return ""
   return node.fs_path.replace(/^\.\//, "").replace(/\.md$/i, "")
 }
-
-/**
- * @deprecated Use `fsPathOf` — see `@km/all/path-name-orthogonal-vocabulary`.
- * `pathOf` lived in the wrong cell of the path/name × tree/fs 2×2: it reads
- * `fs_path` and strips fs-isms, so it's the fs-cache reader, not a tree
- * walker. Renamed to `fsPathOf` to make the cell explicit. Kept as a
- * one-line re-export for one transitional release.
- */
-export const pathOf = fsPathOf
