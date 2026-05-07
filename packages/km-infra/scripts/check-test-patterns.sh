@@ -53,6 +53,34 @@ elif [ "$HITS" -lt "$BASELINE_EXPECT_SCREEN" ]; then
   echo "NOTE: app.expectScreen callsites dropped $BASELINE_EXPECT_SCREEN → $HITS. Lower BASELINE_EXPECT_SCREEN in $0 to lock in the progress."
 fi
 
+# --- Baseline guard: app.dispatch() — escape hatch for orphan commands ---
+# `dispatch()` bypasses the keyboard handler and goes straight to the command
+# executor. It is `@internal` (not `@deprecated`) — legitimate uses are orphan
+# commands with no key binding (`search`, `item_picker`, `pane_split_and_pick`),
+# the command-registry iteration test in command-contracts.test.ts, and tests
+# specifically exercising dispatch's render-flush behavior. New callers should
+# prefer `press()` (literal keys) or `command()` (user-reachable commands)
+# unless they fall into one of the legitimate buckets.
+#
+# Baseline locked at 79 in @km/tui/test-helpers-deprecation-cleanup (2026-05)
+# after auditing all string-arg callers and confirming each falls into one of
+# the legitimate buckets above. New callsites fail CI; reductions print a NOTE.
+BASELINE_APP_DISPATCH=79
+# Match TestApp.dispatch's `(commandId: string)` signature — exclude
+# `app.dispatch({type:...})` calls on pipe-plugin apps (different dispatcher).
+HITS=$(grep -rEn '\bapp\.dispatch\([^{]' apps/km-tui/tests/ \
+  --include="*.ts" --include="*.tsx" \
+  | grep -v "helpers/" | grep -v "node_modules" | wc -l | tr -d ' ')
+if [ "$HITS" -gt "$BASELINE_APP_DISPATCH" ]; then
+  echo "ERROR: app.dispatch callsites grew from $BASELINE_APP_DISPATCH to $HITS"
+  echo "  Prefer app.press(<key>) or app.command(<id>) — dispatch is the @internal"
+  echo "  escape hatch for orphan commands with no key binding."
+  echo "  See apps/km-tui/tests/helpers/test-app.ts JSDoc on TestApp.dispatch."
+  EXIT=1
+elif [ "$HITS" -lt "$BASELINE_APP_DISPATCH" ]; then
+  echo "NOTE: app.dispatch callsites dropped $BASELINE_APP_DISPATCH → $HITS. Lower BASELINE_APP_DISPATCH in $0 to lock in the progress."
+fi
+
 # --- Baseline guard: .spec.ts file count — curated tier should stay small -
 # Journey tests go in .spec.ts; internal tests in .test.ts. Baseline prevents
 # drift back into mixed-suffix patterns. Lower BASELINE_SPEC_FILES as legacy

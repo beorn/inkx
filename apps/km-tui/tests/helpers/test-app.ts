@@ -191,11 +191,15 @@ export interface TestApp {
   /** Dispatch a command by name. Chainable: `app.command("cursor_down").command("cursor_right")` */
   command(commandId: string): TestApp
   /**
-   * Dispatch a command by ID directly through the command executor, bypassing key mapping.
+   * Dispatch a command by ID directly through the command executor, bypassing
+   * key mapping.
    *
-   * @deprecated Internal escape hatch for commands with no key binding. Prefer
-   * `press()` for literal keys and `command()` for user-reachable commands so
-   * tests exercise the real keyboard handler.
+   * @internal Escape hatch for orphan commands with no key binding (e.g.,
+   * `search`, `item_picker`, `pane_split_and_pick`) and for command-registry
+   * iteration tests (`command-contracts.test.ts`). Prefer `press()` for
+   * literal keys and `command()` for user-reachable commands — those exercise
+   * the real keyboard handler. Audit before adding new callers; if your
+   * command has a key binding or a `command()` mapping, use those instead.
    */
   dispatch(commandId: string): TestApp
   /** Navigate cursor to a node by pressing cursor_down (max 50 steps). Throws if not found. */

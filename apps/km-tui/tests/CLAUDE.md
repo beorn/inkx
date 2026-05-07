@@ -610,6 +610,7 @@ board.expectNodeColor("Buy milk", "whiteBright")
 
 - **Hard ban: `testEnv`** in test files (removed deprecated alias — use `createDriverTest` or `createTestApp`)
 - **Hard ban: `app.expectScreen`** / `app.expectScreenNot` — removed; use `expect(app).toContainText(text)` / `.not.toContainText(text)`. Baseline = 0.
+- **Baseline guard: `app.dispatch("...")`** — `@internal` escape hatch for orphan commands with no key binding (e.g., `search`, `item_picker`, `pane_split_and_pick`) and command-registry iteration tests. Prefer `app.press(<key>)` or `app.command(<id>)`. Baseline = 79.
 - **Baseline guard: `.spec.ts` file count** — journey tests only. Baseline = 24. New `.spec.ts` files fail CI (use `.test.ts` for internal tests).
 - **Warn: `store.getState()`** in test files outside helpers (use `app.state` instead) — warning only
 
