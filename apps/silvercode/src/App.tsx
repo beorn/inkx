@@ -718,6 +718,7 @@ export function App(props: AppProps): React.ReactElement {
 
   function handleSubmit(text: string): void {
     if (!focused) return
+    const focusedId = focused.id
     const now = Date.now()
     if (now - lastSubmitAt.current < 50) return
     lastSubmitAt.current = now
@@ -735,11 +736,21 @@ export function App(props: AppProps): React.ReactElement {
       const stripped = trimmed.slice(0, -1).trimEnd()
       if (stripped.length === 0) {
         // "&" alone → background the existing turn, no send.
-        controller.backgroundActiveTurn(focused.id)
+        controller.backgroundActiveTurn(focusedId)
         return
       }
       trimmed = stripped
       backgroundAfterSubmit = true
+    }
+    // Let the cleared composer paint before optimistic chat updates or
+    // backend stdin writes do heavier synchronous work.
+    const dispatchAfterComposerPaint = (dispatch: () => void, backgroundSessionId?: string): void => {
+      setTimeout(() => {
+        dispatch()
+        if (backgroundSessionId) {
+          void Promise.resolve().then(() => controller.backgroundActiveTurn(backgroundSessionId))
+        }
+      }, 0)
     }
     if (trimmed.startsWith("/")) {
       const [cmd, ...rest] = trimmed.split(/\s+/)
@@ -786,30 +797,38 @@ export function App(props: AppProps): React.ReactElement {
             setThinking("ultrathink")
             return
           case "/handoff": {
-            const otherId = sessions.find((s) => s.id !== focused.id)?.id
-            if (otherId) controller.handoff(focused.id, otherId, arg)
+            const otherId = sessions.find((s) => s.id !== focusedId)?.id
+            if (otherId) controller.handoff(focusedId, otherId, arg)
             return
           }
           case "/fork":
-            void controller.fork(focused.id)
+            void controller.fork(focusedId)
             return
           case "/spawn":
             void controller.spawnSession(arg || undefined)
             return
         }
       } else {
-        controller.runSlashCommand(focused.id, trimmed)
+        const dispatchSlash = () => controller.runSlashCommand(focusedId, trimmed)
+        const status = focused.store.state.get().status
+        if (status === "idle" || status === "ended") {
+          dispatchAfterComposerPaint(dispatchSlash)
+        } else {
+          dispatchSlash()
+        }
       }
     } else {
-      controller.send(focused.id, injectThinkingKeyword(trimmed, thinking))
-    }
-    // '&' suffix → after-send background. Wait a microtask so the send
-    // has registered as the active turn before we try to background it.
-    // Idempotent + no-op when there's no active turn yet (e.g. send was
-    // queued mid-turn) — the controller checks status internally.
-    if (backgroundAfterSubmit) {
-      const sid = focused.id
-      void Promise.resolve().then(() => controller.backgroundActiveTurn(sid))
+      const dispatchPrompt = () => controller.send(focusedId, injectThinkingKeyword(trimmed, thinking))
+      const backgroundAfterDispatch = () => {
+        if (backgroundAfterSubmit) void Promise.resolve().then(() => controller.backgroundActiveTurn(focusedId))
+      }
+      const status = focused.store.state.get().status
+      if (status === "idle" || status === "ended") {
+        dispatchAfterComposerPaint(dispatchPrompt, backgroundAfterSubmit ? focusedId : undefined)
+      } else {
+        dispatchPrompt()
+        backgroundAfterDispatch()
+      }
     }
   }
 
