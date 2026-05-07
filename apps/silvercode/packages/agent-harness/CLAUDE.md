@@ -73,9 +73,9 @@ Both consume the same underlying `AgentSession` event stream — they can run in
 3. Permission UI migrates from `state.permissions` to `acp.pendingPermissions()` and `acp.respondToPermission(id, decision)`.
 4. Plan UI migrates from `state.todos` (Claude TodoWrite-flavored compatibility projection) to `state.plan` / `acp.plan()` / `acp.planTree` (provider-neutral, future-nesting-ready).
 
-## Chat turn semantics
+## Chat interval semantics
 
-Silvercode UI may call the visible group a "turn", but this is an idle-delimited presentation group, not necessarily one prompt and one response. ACP does not provide canonical turns, Claude primarily provides message/jsonl UUIDs, and Codex only sometimes provides provider-specific `turn_id`. New canonical model surfaces should use message/activity/tool/plan ids and provider provenance; use UI-only `turnKey` for derived chat projection identity.
+Silvercode's canonical visible grouping is a `ChatInterval`: an idle-delimited presentation group, not necessarily one prompt and one response. ACP does not provide canonical turns, Claude primarily provides message/jsonl UUIDs, and Codex only sometimes provides provider-specific `turn_id`. New canonical model surfaces should use message/activity/tool/plan ids and provider provenance; use UI-only `intervalKey` for derived chat projection identity. Legacy UI/components may still say "turn" while they are being migrated.
 
 See `apps/silvercode/docs/chat-session-model.md`. 5. Status line migrates from `state.status` to `acp.status()` (same five-state enum). 6. Usage / cost migrates from `state.cost` to `acp.usage()` (ACP shape, `{ used, size, cost? }`).
 

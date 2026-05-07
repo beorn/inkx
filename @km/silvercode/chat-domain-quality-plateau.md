@@ -30,14 +30,14 @@ Current rough assessment (2026-05-07): roughly 65-70% of the way to the chat-dom
 
 Target shape: put the original chat-domain model back at the center and make rendering consume it:
 
-`AgentEvent / NotificationStreamEntry -> ChatEvent -> ChatSession -> ChatProjection -> UI`
+`AgentEvent / raw notification input -> ChatEvent -> ChatSession -> ChatProjection -> UI`
 
 The plateau is not another round of per-component compensation. The plateau is where the next screenshot-class bug has one obvious owner: event normalization, chat-domain state/projection, or rendering.
 
 Acceptance direction:
 
-- Define canonical chat-domain concepts around the existing model: `ChatEvent`, `ChatMessage`, `ChatMessagePart`, `ChatTool`, `ChatSession`, `NotificationObservation`, `SubagentActivity`, `ReplayBoundary`.
-- Ensure the pipeline has one clear shape: `AgentEvent` / `NotificationStreamEntry` -> `ChatEvent` -> `ChatSession` -> `ChatProjection` -> UI.
+- Define canonical chat-domain concepts around the existing model: `ChatEvent`, `ChatMessage`, `ChatMessagePart`, `ChatTool`, `ChatSession`, `Notification`, `SubagentActivity`, `SubagentSession`, `ChatInterval`, `ChatLifecycleEvent`.
+- Ensure the pipeline has one clear shape: `AgentEvent` / raw notification input -> `ChatEvent` -> `ChatSession` -> `ChatProjection` -> UI.
 - Make the agents drawer read SubagentActivity for the current turn/session, not notification-block leftovers.
 - Preserve completed current-turn subagents without surfacing every historical subagent from the session.
 - Carry enough lifecycle metadata to show real subagent/tool durations, or explicitly record why a provider cannot supply them.
@@ -48,8 +48,8 @@ Acceptance direction:
 First implementation slice:
 
 1. Extract `SessionUpdateList` projection logic into a tested `chat/projection` module.
-   - Inputs: `MessageEntry[]`, session metadata, notification observations, queue/activity state.
-   - Output: typed `ChatRenderItem[]` with explicit variants for user prompt, assistant text, tool activity, subagent activity, notification observation, replay boundary, lifecycle marker, padding/activity tail.
+   - Inputs: `MessageEntry[]`, session metadata, notifications, queue/activity state.
+   - Output: typed `ChatProjection`. Do not decide list-vs-tree at this boundary; the projection can later be rendered as a tree, list, or mixed structure.
    - No React components in this module.
 2. Move replay-boundary placement into that projection module.
    - Covered cases: loaded replay boundary, missing `replayBoundaryMessageId`, live prompt submitted during replay, boundary timestamp sorting after live rows.
@@ -93,32 +93,44 @@ Canonical nouns to use:
 - `ChatPromptQueue`: ordered collection of pre-transcript `ChatPrompt`s: queued, submitted, editable, or cancellable prompts that are still not history. This replaces the overly generic `ChatQueue` when the queue is specifically the user's prompt queue.
 - `ChatTool`: chat-domain record for a tool lifecycle derived from tool-related `ChatEvent`s.
 - `ChatSession`: read model over `ChatEvent`s: messages, message parts, tools, plan, queue, permissions, channels, and projection state.
-- `TurnBoundaryEvent`: if needed, a name for `turn-start` / `turn-end`-like input facts from the harness/provider. This is an event fact, not a durable `ProviderTurn` entity. ACP and some providers synthesize this boundary from prompt/request lifecycle; do not promote it to a core noun unless the provider really exposes a durable turn id with semantics we need.
-- `Exchange`: presentation-only grouping used by components such as `SessionExchangeDivider`. It is an idle-delimited visual boundary, not provider state and not a core persisted/domain object.
+- `ChatInterval`: silvercode-domain activity interval. An interval starts when both user and agent are idle and new user/agent activity appears; it ends when both are idle again. It is not the same thing as a provider/harness `turnId`.
+- `ChatLifecycleEvent`: session/replay lifecycle fact such as resumed, ended, interrupted, recovered, or replay boundary. This replaces separate `ReplayBoundary` and `SessionLifecycleMarker` nouns.
+- `ActivitySummary`: projection summary for dense tool/work/reasoning activity inside a message or interval. Use this instead of inventing an `Exchange` grouping layer.
 - `SessionState`: reducer-owned harness state for one provider session. It may contain compatibility projections like `MessageEntry.text`, but it is not the final UI projection.
 - `TranscriptMessage`: durable conversation content owned by the session transcript.
 - `MessageOp`: ordered operation inside a harness `MessageEntry`. Keep this while it is the harness public surface; if moved into chat-domain code, prefer `TranscriptOp` or `TranscriptMessagePart` to avoid conflict with `ChatMessagePart`.
-- `ToolCall`: raw/provider invocation. `ToolActivity`: chat-domain lifecycle/render concept derived from a tool call plus status/result metadata.
+- `ToolCall`: raw/provider or ACP-shaped invocation/update. Keep this at adapter/component boundaries. The canonical chat-domain aggregate is `ChatTool`.
 - `SubagentActivity`: chat-domain activity for a Task/Agent-style local agent running under the current session.
-- `Subsession`: only use for a navigable local-agent session with its own session id, stream, replay/load semantics, and selectable view. Do not use it for a mere Task tool row or notification.
-- `NotificationStreamEntry`: raw event admitted from a side channel.
-- `NotificationObservation`: chat-domain/render concept for a notification that should appear in transcript/history.
-- `ReplayBoundary`: domain marker between loaded/persisted replay and live activity.
-- `SessionLifecycleMarker`: render/domain marker like "Session resumed", spawn, end, interrupt, or recover.
+- `SubagentSession`: navigable local-agent session with its own session id, stream, replay/load semantics, and selectable view. Do not use it for a mere Task tool row or notification.
+- `Notification`: normalized notification admitted into the chat domain. Current raw-stream code may still use `NotificationStreamEntry`, but that is an implementation boundary name, not a target domain noun.
 
 Naming rules:
 
-- Use `subagent` as one word in filenames/types/functions (`SubagentActivity`, `subagentActivityFromTool`, `SubagentExchange`). Avoid mixed `SubAgent`.
+- Use `subagent` as one word in filenames/types/functions (`SubagentActivity`, `subagentActivityFromTool`, `SubagentActivityPanel`). Avoid mixed `SubAgent`.
 - Use `debug` as the channel id and "Debug" only as the UI label.
 - Use `ChatEvent` / `ChatMessage` / `ChatMessagePart` for the core chat model. Do not invent parallel state nouns when the existing model already has the concept.
 - Use `ChatPrompt` until the prompt is committed to transcript history. Submitting to the backend may change its status, but does not by itself turn it into a `ChatMessage`.
 - Remove a `ChatPrompt` from `ChatPromptQueue` when it becomes a user `ChatMessage`, is cancelled, or fails permanently. Do not keep a prompt object around just to correlate it to transcript history.
 - Use `ChatPromptQueue`, not `ChatQueue`, for queued user prompts. Reserve any generic `Queue` noun only for a truly generic infrastructure queue.
-- Avoid `ProviderTurn` as a canonical type name. Use concrete event names (`turn-start`, `turn-end`, `message.started`, `message.completed`) or `TurnBoundaryEvent` when describing boundary facts.
-- Use `Exchange` only for presentation grouping. It should not own lifecycle, persistence, queue policy, or provider semantics.
-- Use `NotificationObservation` when the thing is visible/considered by chat projection; use `NotificationStreamEntry` only for the raw channel stream.
+- Avoid `ProviderTurn` as a canonical type name. Use concrete event names (`turn-start`, `turn-end`, `message.started`, `message.completed`) when describing provider/harness boundary facts.
+- Use `ChatInterval` for the silvercode idle/activity interval: idle user + idle agent -> first activity starts the interval; both idle again ends it.
+- Use `ChatInterval.key` / `intervalKey` for derived projection identity. Mint it from the idle-boundary projection, such as the first canonical `ChatEventId` in the interval or a stable projection ordinal. Do not use Codex `turn_id`, Claude message ids, ACP message ids, or legacy harness `AgentEvent.turnId` as the interval key.
+- Do not introduce `ChatIntervalEvent` or `ChatSpanEvent` as target nouns. If interval boundaries must be materialized, use normal `ChatEvent` types such as `interval.started` and `interval.ended`.
+- Do not introduce `Exchange` as a target domain noun. If the UI needs a compact row, model the actual thing being summarized: `ActivitySummary`, `MessageActivitySummary`, or `IntervalActivitySummary`.
+- Use `Notification` for normalized notification facts. Keep `NotificationStreamEntry` only as a current raw-stream implementation name until that boundary is renamed or hidden behind `rawRefs`.
 - Use `Activity` only for work/lifecycle rows, not for every non-message item.
-- Use `RenderItem` only with a domain prefix (`ChatRenderItem`, `TranscriptRenderItem`). Bare `Item` / `RenderItem` is not acceptable outside tiny local render helpers.
+- Do not introduce `ChatRenderItem` as a target noun until we decide the projection is list-shaped. The target noun is `ChatProjection`; tree/list items are implementation details underneath it.
+
+Event nouns:
+
+- `AgentEvent`: external adapter/runtime event before chat normalization.
+- `ChatEvent`: canonical event envelope after normalization.
+- `ChatLifecycleEvent`: optional `ChatEvent` family for session/replay lifecycle facts.
+
+Non-event nouns:
+
+- `ChatSession`, `ChatMessage`, `ChatMessagePart`, `ChatTool`, `ChatPrompt`, `ChatPromptQueue`, `AgentPromptQueue`, `ChatInterval`, `SubagentActivity`, `SubagentSession`, `Notification`, and `ActivitySummary` are state/projection nouns, not separate event logs.
+- Summaries are projection state unless they come from provider-authored transcript content. Provider-authored recap/summary content should enter as a normal `ChatEvent` and become a `ChatMessagePart` or explicit recap part.
 
 Prompt lifecycle model:
 
@@ -152,6 +164,18 @@ Capability rule:
 - If a provider does not expose prompt queue management, Silvercode can only edit/cancel prompts it still owns locally.
 - If a provider does expose queue management, model that explicitly with backend queue ids/capabilities; do not infer it from stdin buffering, prompt promises, or waiter queues.
 
+Interval lifecycle model:
+
+- A `ChatInterval` is not a strict prompt/response pair.
+- A `ChatInterval` starts when both sides are idle and a new user or agent activity event appears.
+- A `ChatInterval` remains open while either side is active:
+  - user has queued/submitted prompt activity not yet settled;
+  - agent is thinking, streaming text, running tools, awaiting permission, or processing a provider-owned queued prompt.
+- A `ChatInterval` ends only when both user and agent are idle again.
+- Multiple prompts and partial responses can interleave inside the same `ChatInterval`.
+- Legacy `AgentEvent.turnId` is adapter evidence, not the canonical chat-domain turn identity.
+- Codex `turn_id`, when present, is provider provenance only. Keep it in `rawRefs` or an adapter-specific `providerTurnId` field only when a feature genuinely needs queryable Codex provenance; do not promote it into `ChatInterval.key`.
+
 Rename candidates:
 
 - `apps/silvercode/src/chat-model.ts` should either be folded into `chat/projection` or renamed to a narrower file such as `chat/transcript-ops.ts`. The current name is too broad and overlaps with `chat/types.ts`.
@@ -162,11 +186,11 @@ Rename candidates:
 - `chat/activity-snapshot.ts` should become `chat/current-turn-activity.ts` if it continues to intentionally filter to messages after the latest user prompt. Rename `chatActivitySnapshotFromMessages` to `projectCurrentTurnActivity`.
 - `SessionUpdateList` should become `ChatTranscriptList` or `TranscriptRenderList` after projection extraction. The current name is protocol-shaped and hides that it renders projected transcript, lifecycle, notification, and activity rows.
 - `ActivityItem` in `SessionUpdateList` should become `LiveActivityTail`.
-- `NotificationItem` should become `NotificationObservationGroup`.
+- `NotificationItem` should become `NotificationGroup`.
 - `AssistantActivitySlice` should become `AssistantToolActivitySegment` or `AssistantActivitySegment` depending on whether reasoning remains included.
-- `SessionMetadataItem` should become `SessionLifecycleMarkerItem` or `ReplayBoundaryItem`; metadata is too vague for visible rows.
-- `SubAgentExchange.tsx` should be renamed to `SubagentExchange.tsx` unless it becomes a navigable local-agent session view, in which case use `SubsessionExchange.tsx`.
-- `TurnActivitySummary` should be reviewed after projection extraction. If it summarizes activity attached to one `ChatMessage` / assistant response, rename toward `MessageActivitySummary`; if it summarizes a visual exchange, rename toward `ExchangeActivitySummary`. Do not keep `Turn` unless the component is explicitly about harness/provider turn-boundary events.
+- `SessionMetadataItem` should become `ChatLifecycleItem`; metadata is too vague for visible rows.
+- `SubAgentExchange.tsx` should be renamed away from exchange vocabulary. If it renders task/local-agent activity, use `SubagentActivityPanel` or `SubagentActivityRow`; if it becomes a navigable local-agent session view, use `SubagentSessionView`.
+- `TurnActivitySummary` should become `MessageActivitySummary` or `IntervalActivitySummary` depending on the source it summarizes. Do not keep `Turn`, and do not introduce `ExchangeActivitySummary`.
 
 What happened to the clearer model:
 
@@ -174,7 +198,7 @@ What happened to the clearer model:
 - It is exercised by `apps/silvercode/src/chat/store.ts`, `apps/silvercode/src/chat/project-transcript.ts`, `apps/silvercode/tests/chat-session-store.test.ts`, and `apps/silvercode/tests/chat-transcript-projection.test.ts`.
 - It did not become the production transcript renderer. `ChatPane` still renders the legacy `SessionUpdateList` over harness `SessionState.messages` / `MessageEntry[]`, and only shows the projected `ChatBlockList` under Debug comparison.
 - Recent screenshot fixes landed in that legacy path because it was the user-visible path. That improved behavior but added more renderer-local ownership for replay boundaries, notification filtering, subagent activity identity, grouping, and spacing.
-- The plateau move is therefore not to invent `ProviderTurn` / `Exchange` as new domain state. It is to finish the migration so production rendering uses the existing `ChatEvent` -> `ChatSession` -> projection model, with presentation-only exchange boundaries added at the edge.
+- The plateau move is therefore not to invent `ProviderTurn`, `Exchange`, or `ToolActivity` as new domain state. It is to finish the migration so production rendering uses the existing `ChatEvent` -> `ChatSession` -> projection model, with dense UI collapsed through `ActivitySummary`/`MessageActivitySummary`/`IntervalActivitySummary` where needed.
 
 Progress:
 
@@ -185,7 +209,7 @@ Progress:
   - live prompts submitted during resume replay stay below the Session resumed divider, including when replayed messages have not rendered yet;
   - completed Agent/Task transcript rows show the result text while the drawer keeps the stable task label.
 - Stopped debouncing subagent lifecycle events. These are state transitions, not ambient notification noise; dropping them caused missing agents and stale active counts.
-- Moved `NotificationStreamEntry` usage to the stream module instead of treating the row component as the source of the stream type.
+- Moved current raw notification stream typing to the stream module instead of treating the row component as the source of the type.
 - Renamed the shared disclosure component from `ChatEntryDisclosure` to `EntryDisclosure`; `ChatEntry*` no longer appears in Silvercode source/tests/storybook.
 - Replaced ambiguous `NotificationBlockWorkDetail` terminology with `SubagentActivity` / `BackgroundShellActivity`-oriented types in the notification block path.
 - Extracted current-turn agent/shell derivation to `apps/silvercode/src/chat/activity-snapshot.ts`, so the drawer reads a chat-domain activity snapshot instead of a `NotificationBlock` helper.
