@@ -516,7 +516,7 @@ describe("SidePanel — multi-account view", () => {
       expect(app.text).not.toContain("Agents 0/0")
 
       const notificationsRow = app.lines.findIndex((l) => l.includes("Notifications"))
-      const debugRow = app.lines.findIndex((l, row) => row > notificationsRow && l.includes("Debug"))
+      const debugRow = app.lines.findIndex((l, row) => row > notificationsRow && /\bdebug\b/i.test(l))
       const tribeRow = app.lines.findIndex((l, row) => row > notificationsRow && l.includes("tribe"))
       expect(notificationsRow).toBeGreaterThan(-1)
       expect(debugRow, app.text).toBeGreaterThan(notificationsRow)
@@ -524,7 +524,7 @@ describe("SidePanel — multi-account view", () => {
       expect(app.lines[debugRow], app.text).toContain("[ ]")
 
       const debugOn = renderPanel({ debugChannelVisible: true })
-      const debugOnRow = debugOn.lines.findIndex((l) => l.includes("Debug"))
+      const debugOnRow = debugOn.lines.findIndex((l) => /\bdebug\b/i.test(l))
       expect(debugOn.lines[debugOnRow], debugOn.text).toContain("[x]")
     } finally {
       setAllAccountsFactoryOverride(null)
