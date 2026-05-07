@@ -368,11 +368,11 @@ export function App(props: AppProps): React.ReactElement {
   const panel = useResponsiveDisclosure({
     defaultOpen: (zone) => zone === "lg" || zone === "xl",
   })
-  // Inline when at-or-above the auto-open threshold; overlay below.
-  const isInlinePanel = panel.zone === "lg" || panel.zone === "xl"
+  // AsideLayout auto-decides row-vs-column from breakpoint="lg". Caller's
+  // job is presence: don't render the panel at all on tiny terminals where
+  // even the stacked-column variant would overwhelm the chat region.
   const viewportCols = useTerm((t) => t.size.cols())
-  const canRenderOverlayPanel = viewportCols === 0 || viewportCols >= SIDE_PANEL_OVERLAY_MIN_COLS
-  const showSidePanel = panel.open && (isInlinePanel || canRenderOverlayPanel)
+  const showSidePanel = panel.open && (viewportCols === 0 || viewportCols >= SIDE_PANEL_OVERLAY_MIN_COLS)
   const togglePanel = panel.toggle
 
   const [showHistory, setShowHistory] = useState(false)
@@ -1295,32 +1295,33 @@ export function App(props: AppProps): React.ReactElement {
       */}
           <Screen flexDirection="row">
             <AsideLayout
-              mode={showSidePanel ? (isInlinePanel ? "inline" : "overlay") : "hidden"}
               asideWidth={SIDE_PANEL_WIDTH}
               asideBackgroundColor="$bg-surface-subtle"
               aside={
-                <SidePanel
-                  focused={focused}
-                  sessions={sessions}
-                  focusedSessionId={focusedSessionId}
-                  onFocusSession={(id) => controller.focus(id)}
-                  mode={mode}
-                  onCycleMode={cycleMode}
-                  thinking={thinking}
-                  onCycleThinking={cycleThinking}
-                  cwd={props.cwd}
-                  controller={controller}
-                  agent={props.agent}
-                  capabilities={agentCapabilities}
-                  setThinking={setThinking}
-                  setMode={setMode}
-                  defaultModel={props.agent ? BUILTIN_AGENTS[props.agent]?.defaultModel : undefined}
-                  debugChannelVisible={showDebug}
-                  onDebugChannelVisibleChange={(visible) => {
-                    controller.notificationMuteState.set("debug", !visible)
-                    setShowDebug(visible)
-                  }}
-                />
+                showSidePanel ? (
+                  <SidePanel
+                    focused={focused}
+                    sessions={sessions}
+                    focusedSessionId={focusedSessionId}
+                    onFocusSession={(id) => controller.focus(id)}
+                    mode={mode}
+                    onCycleMode={cycleMode}
+                    thinking={thinking}
+                    onCycleThinking={cycleThinking}
+                    cwd={props.cwd}
+                    controller={controller}
+                    agent={props.agent}
+                    capabilities={agentCapabilities}
+                    setThinking={setThinking}
+                    setMode={setMode}
+                    defaultModel={props.agent ? BUILTIN_AGENTS[props.agent]?.defaultModel : undefined}
+                    debugChannelVisible={showDebug}
+                    onDebugChannelVisibleChange={(visible) => {
+                      controller.notificationMuteState.set("debug", !visible)
+                      setShowDebug(visible)
+                    }}
+                  />
+                ) : null
               }
             >
               {/* LEFT: chat panes + overlays + palette + input. The outer column has

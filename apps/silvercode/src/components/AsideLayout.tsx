@@ -1,39 +1,36 @@
 /**
- * AsideLayout — main + aside layout with three placement modes.
+ * AsideLayout — main + aside, responsive flex direction.
  *
- * Encapsulates the "do I render the aside as a flex sibling, an absolute
- * overlay, or not at all?" branching in one place. Apps stop hand-writing
- * the position="absolute" + flexBasis variants; the responsive policy is
- * cleanly separable from the geometry.
+ * The component auto-decides aside-vs-inline from the viewport breakpoint:
  *
- * Modes:
- *   - `inline`  — aside renders as a flex sibling to main, taking `asideWidth`
- *                 columns. Main flexes into the remaining space.
- *   - `overlay` — aside renders as an absolute-positioned overlay, right-
- *                 anchored, full-height, on top of main. Main takes full
- *                 width (so its content doesn't reflow under the overlay).
- *                 The wrapper Box has position="relative" so absolute
- *                 children anchor correctly.
- *   - `hidden`  — aside not rendered. Main takes full width.
+ *   - At or above `breakpoint`: `flexDirection: "row"`. Aside renders as a
+ *     right-side flex sibling consuming `asideWidth` columns; main flexes
+ *     into the remaining space.
+ *   - Below `breakpoint`: `flexDirection: "column"`. Aside stacks below
+ *     main, using full available width — "render as aside if there's
+ *     space, otherwise inline as body."
  *
- * Caller computes mode + showAside via useResponsiveDisclosure or similar.
- * This component is purely presentational.
+ * Caller passes `aside={null}` to hide the aside entirely (e.g. user
+ * dismissed the panel). Layout decision is the component's; presence
+ * decision is the caller's.
  *
- * Bead: docs/llm-research/tui-responsive-design-patterns (pro review).
+ * No position="absolute" overlay, no `mode` enum. Driven by silvery's
+ * `useResponsiveBoxProps` reading the global terminal width via
+ * `useResponsiveValue` — the canonical responsive-layout primitive.
+ *
+ * Bead: @km/silvercode/aside-auto-layout.
  */
 
 import React from "react"
-import { Box } from "silvery"
-
-export type AsideMode = "inline" | "overlay" | "hidden"
+import { Box, type Breakpoint, useResponsiveBoxProps } from "silvery"
 
 export interface AsideLayoutProps {
-  /** Placement strategy. */
-  mode: AsideMode
-  /** Aside column count. Used by both `inline` (flexBasis) and `overlay` (width). */
+  /** Breakpoint at and above which the aside renders as a side column. Default: "lg". */
+  breakpoint?: Breakpoint
+  /** Aside column count at wide widths. Used as flexBasis in row mode. */
   asideWidth: number
-  /** The aside content. Not rendered when mode === 'hidden'. */
-  aside: React.ReactNode
+  /** Aside content. Pass null/undefined to omit entirely. */
+  aside: React.ReactNode | null
   /** Main content. Always rendered. */
   children: React.ReactNode
   /**
@@ -44,46 +41,33 @@ export interface AsideLayoutProps {
 }
 
 export function AsideLayout({
-  mode,
+  breakpoint = "lg",
   asideWidth,
   aside,
   children,
   asideBackgroundColor,
 }: AsideLayoutProps): React.ReactElement {
-  // The caller's `children` is the main region — it owns its own flexGrow / overflow / etc.
-  // AsideLayout only handles the row container + the aside placement.
-  if (mode === "hidden") {
+  const containerLayout = useResponsiveBoxProps({
+    default: { flexDirection: "column" },
+    [breakpoint]: { flexDirection: "row" },
+  })
+  const asideLayout = useResponsiveBoxProps({
+    default: { width: "100%", flexShrink: 0 },
+    [breakpoint]: { flexBasis: asideWidth, flexShrink: 0, width: undefined },
+  })
+
+  if (!aside) {
     return (
-      <Box flexDirection="row" flexGrow={1} minHeight={0}>
+      <Box flexGrow={1} flexDirection="row" minHeight={0}>
         {children}
       </Box>
     )
   }
 
-  if (mode === "overlay") {
-    return (
-      <Box flexDirection="row" flexGrow={1} minHeight={0} position="relative">
-        {children}
-        <Box
-          position="absolute"
-          top={0}
-          bottom={0}
-          right={0}
-          width={asideWidth}
-          flexDirection="column"
-          backgroundColor={asideBackgroundColor}
-        >
-          {aside}
-        </Box>
-      </Box>
-    )
-  }
-
-  // inline
   return (
-    <Box flexDirection="row" flexGrow={1} minHeight={0}>
+    <Box flexGrow={1} minHeight={0} {...containerLayout}>
       {children}
-      <Box flexShrink={0} flexBasis={asideWidth} flexDirection="column" backgroundColor={asideBackgroundColor}>
+      <Box {...asideLayout} flexDirection="column" backgroundColor={asideBackgroundColor}>
         {aside}
       </Box>
     </Box>
