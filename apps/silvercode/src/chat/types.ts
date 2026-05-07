@@ -36,6 +36,7 @@ export type ChatRawRef = {
   id: string
   source: "agent" | "adapter" | "local" | "replay" | "restore"
   label?: string
+  raw?: unknown
 }
 
 export type ChatEventType =
@@ -50,6 +51,7 @@ export type ChatEventType =
   | "plan.updated"
   | "queue.updated"
   | "notification.received"
+  | "recap.recorded"
   | "session.updated"
   | "status.updated"
   | "error.raised"
@@ -76,7 +78,14 @@ export type ChatEventPayloads = {
   "plan.updated": { plan: ChatPlan }
   "queue.updated": { queue: ChatQueue }
   "notification.received": ChatNotificationLeafProps
-  "session.updated": { title?: string; model?: string; mode?: string; cwd?: string }
+  "recap.recorded": { text: string; raw?: unknown }
+  "session.updated": {
+    title?: string
+    titleSource?: "custom" | "ai" | "agent"
+    model?: string
+    mode?: string
+    cwd?: string
+  }
   "status.updated": { status: string; severity?: ChatSeverity }
   "error.raised": { message: string; severity?: ChatSeverity; raw?: unknown }
   "debug.recorded": { label: string; raw: unknown }
@@ -86,6 +95,7 @@ export type ChatEvent<T extends ChatEventType = ChatEventType> = {
   [Type in T]: {
     id: ChatEventId
     type: Type
+    channel: ChatChannelId
     ts: number
     sessionId: ChatSessionId
     agentEventId?: AgentEventId
@@ -324,6 +334,11 @@ export type ChatState = {
 
 export type ChatSession = {
   id: ChatSessionId
+  title?: string
+  model?: string
+  mode?: string
+  cwd?: string
+  status?: string
   events: readonly ChatEvent[]
   messages: Readonly<Record<ChatMessageId, ChatMessage>>
   messageParts: Readonly<Record<ChatMessagePartId, ChatMessagePart>>

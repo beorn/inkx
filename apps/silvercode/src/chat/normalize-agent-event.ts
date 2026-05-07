@@ -12,6 +12,7 @@ import type {
   ChatPermissionId,
   ChatPlanTaskId,
   ChatRawRef,
+  ChatRole,
   ChatSessionId,
   ChatToolId,
 } from "./types.ts"
@@ -89,7 +90,7 @@ export function normalizeAgentEventsToChatEvents(
     if (event.kind === "tool-use") latestToolUseIndex.set(`${event.sessionId}:${event.id}`, index)
   })
 
-  const seenMessages = new Set<string>()
+  const seenMessages = new Map<string, ChatRole>()
   const out: ChatEvent[] = []
   events.forEach((event, index) => {
     if (event.kind === "tool-use" && latestToolUseIndex.get(`${event.sessionId}:${event.id}`) !== index) {
@@ -102,10 +103,15 @@ export function normalizeAgentEventsToChatEvents(
     for (const chatEvent of normalizeParsedAgentEvent(event, options)) {
       if (chatEvent.type === "message.started") {
         const key = `${chatEvent.sessionId}:${chatEvent.payload.messageId}`
-        if (seenMessages.has(key)) {
+        const previousRole = seenMessages.get(key)
+        if (previousRole !== undefined) {
+          if (event.kind === "turn-start" && previousRole === chatEvent.payload.role) {
+            out.push(debugEventFromAgentEvent(event, options, "Duplicate message start", "duplicate-message-start"))
+            continue
+          }
           throw new Error(`normalizeAgentEventsToChatEvents duplicate message ${chatEvent.payload.messageId}`)
         }
-        seenMessages.add(key)
+        seenMessages.set(key, chatEvent.payload.role)
       }
       out.push(chatEvent)
     }
@@ -415,7 +421,7 @@ function normalizeRawTranscriptEvent(
   if (typeof rawType === "string") {
     if (rawType === "permission-mode") {
       const mode = stringField(raw, "permissionMode") ?? stringField(raw, "mode")
-      if (mode) return [make("session.updated", "status", { mode }, "permission-mode")]
+      if (mode) return [make("session.updated", "debug", { mode }, "permission-mode")]
     }
     if (rawType === "queue-operation") {
       return [
@@ -433,7 +439,11 @@ function normalizeRawTranscriptEvent(
         stringField(raw, "aiTitle") ??
         stringField(raw, "agentName") ??
         event.label.replace(/^(Title|AI title|Agent):\s*/, "").trim()
-      if (title.length > 0) return [make("session.updated", "status", { title }, rawType)]
+      if (title.length > 0) {
+        const titleSource = rawType === "custom-title" ? "custom" : rawType === "ai-title" ? "ai" : "agent"
+        const channel = rawType === "custom-title" ? "status" : "debug"
+        return [make("session.updated", channel, { title, titleSource }, rawType)]
+      }
     }
   }
 

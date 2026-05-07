@@ -62,6 +62,30 @@ function turn(
 }
 
 describe("session-store — ops-order preservation (codex bundling fix)", () => {
+  test("retains a strict AgentEvent log and rejects invalid shapes without mutation", () => {
+    const store = createSessionStore()
+    const event: AgentEvent = {
+      kind: "status",
+      sessionId: sid,
+      status: "requesting",
+      ts: 1,
+    }
+    const snapshots: AgentEvent[][] = []
+    const unsubscribe = store.events.subscribe((events) => snapshots.push([...events]))
+
+    store.apply(event)
+    unsubscribe()
+
+    expect(store.events.get()).toEqual([event])
+    expect(snapshots).toEqual([[event]])
+
+    expect(() =>
+      store.apply({ kind: "status", sessionId: sid, status: "requesting", ts: 1, extra: true } as never),
+    ).toThrow(/Unrecognized key|unrecognized/i)
+    expect(() => store.apply({ kind: "surprise", sessionId: sid, ts: 1 } as never)).toThrow(/invalid|kind/i)
+    expect(store.events.get()).toEqual([event])
+  })
+
   test("late user-message with earlier timestamp renders before assistant response", () => {
     const store = createSessionStore()
     const userTurn = "u-late" as TurnId

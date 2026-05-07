@@ -16,8 +16,11 @@ closeReason: "Verified cbadc97f2 plus existing ChatTree substrate.
   ChatEvent/ChatState/ChatSession/ChatTree/ChatNode/ChatElement/ChatLeaf/channe\
   ls; buildChatTurns documents idle-delimited UI turnKey projection;
   SessionUpdateList renders Chat.Turn.* with ordered narration/activity and
-  notifications/session metadata outside canonical ownership. Tests: bun vitest
-  run apps/silvercode/tests/chat-types.test.ts
+  notifications/session metadata outside canonical ownership. Test coverage for
+  the retired chat-types test now lives in chat-event-handling and
+  chat-transcript-projection. Tests: bun vitest run
+  apps/silvercode/tests/chat-event-handling.test.ts
+  apps/silvercode/tests/chat-transcript-projection.test.ts
   apps/silvercode/tests/chat-model.test.ts
   apps/silvercode/tests/content-layout.test.tsx (57 passed / 1 skipped); focused
   parity suite with parse/codex/notification/sticky-bottom (169 passed / 1

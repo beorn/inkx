@@ -1,12 +1,12 @@
 # How km Works
 
-> **Reading this doc**: Principles explain the "why". Guidelines (checkboxes) are the actionable rules.
+> Reading this doc: Principles explain the "why". Guidelines (checkboxes) are the actionable rules.
 >
-> **For LLM agents**: Extract guidelines with `grep '- \[ \]' docs/principles.md`
+> For LLM agents: Extract guidelines with grep '- [ ]' docs/principles.md
 
 ---
 
-> **The thesis**: Build from composable pieces. Maintain quality through fast feedback. Write for humans and LLMs.
+> The thesis: Build from composable pieces. Maintain quality through fast feedback. Write for humans and LLMs.
 
 ## Why These Choices
 
@@ -98,10 +98,12 @@ Domain objects are plain objects created by factory functions. They compose via 
 **Example narrative**: "A Repo loads Nodes from files. The Board displays Nodes and handles Commands. The Watcher detects file changes and triggers sync."
 
 **Example algorithm** (reads like pseudocode):
+
 ```typescript
 const visible = ViewTree.nodes(viewIndex, column.id)
 const target = navigate(visible, cursor, "down")
 ```
+
 Not: a 15-line manual stack-based DFS that you have to mentally simulate.
 
 If your narrative needs technical jargon to make sense, the names are wrong. If your algorithm reads like implementation details instead of intent, the vocabulary is missing domain operations.
@@ -111,6 +113,7 @@ If your narrative needs technical jargon to make sense, the names are wrong. If 
 **Why**: Domain language makes code self-documenting and reduces onboarding time. Rich domain namespaces prevent duplication — new contributors (human or AI) discover existing operations instead of reimplementing them. Core algorithms expressed in domain language are reviewable in one place.
 
 **Guidelines:**
+
 - [ ] Domain names — `Repo`, `Board`, `Watcher` / not `DataManager`, `StateController`
 - [ ] Operations on namespaces — `ViewTree.nodes()`, `KNode.isOutline()` / not bare `dfsTraversal()`
 - [ ] Algorithms read like pseudocode — intent expressed in domain operations / not implementation details at every call site
@@ -126,26 +129,27 @@ If your narrative needs technical jargon to make sense, the names are wrong. If 
 
 **The inventory** — these are km's core domain objects and their namespaces:
 
-| Layer | Object | Namespace | Key operations |
-|-------|--------|-----------|----------------|
-| Data | `KNode` | `KTree` | `.nodes()`, `.ancestors()`, `.isOutline()`, `.isTask()` |
-| Data | `TreeOp` | `inverse`, `applyOperation` | 7 atomic tree ops with invertibility |
-| Data | `Point`, `Range` | `Point`, `Range` | text-level selection, `transformPoint`, `transformRange` |
-| Data | `HistoryEditor` | `withHistory` | `.undo()`, `.redo()`, `.batch()` |
-| Data | `OperationLog` | `createOperationLog` | `.append()`, `.getSince()`, `.seq()` |
-| View | `ViewNode` | `ViewTree` | `.nodes()`, `.next()`, `.prev()`, `.ancestors()`, `.get()` |
-| Storage | `Repo` | — | `.apply()`, `.commit()`, `.getNode()`, `.getChildren()` |
-| Storage | `Sync` | `withSync()` | `.start()`, `.stop()`, `.save()`, `.forceHeartbeat()` |
-| Storage | `KNode` (task) | `Task` | `.isTask()`, `.isBlocked()`, `.under()`, `.findByPathOrId()`, `.tree()` |
-| Beads | `Bead` | `Bead` | `.from()`, `.displayId()`, `.query()`, `.queryReady()`, `.create()`, `.update()`, `.close()`, `.drop()`, `.addDependency()`, `.removeDependency()`, `.getDependencies()` |
-| State | `BoardNavState` | `applyListNav` | list-based cursor navigation |
-| UI | `PaneUI` | `PaneUI` | `.editMode()`, `.isInDialog()` |
+| Layer   | Object        | Namespace               | Key operations                                                                                                                                     |
+| ------- | ------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Data    | KNode         | KTree                   | .nodes(), .ancestors(), .isOutline(), .isTask()                                                                                                    |
+| Data    | TreeOp        | inverse, applyOperation | 7 atomic tree ops with invertibility                                                                                                               |
+| Data    | Point, Range  | Point, Range            | text-level selection, transformPoint, transformRange                                                                                               |
+| Data    | HistoryEditor | withHistory             | .undo(), .redo(), .batch()                                                                                                                         |
+| Data    | OperationLog  | createOperationLog      | .append(), .getSince(), .seq()                                                                                                                     |
+| View    | ViewNode      | ViewTree                | .nodes(), .next(), .prev(), .ancestors(), .get()                                                                                                   |
+| Storage | Repo          | —                       | .apply(), .commit(), .getNode(), .getChildren()                                                                                                    |
+| Storage | Sync          | withSync()              | .start(), .stop(), .save(), .forceHeartbeat()                                                                                                      |
+| Storage | KNode (task)  | Task                    | .isTask(), .isBlocked(), .under(), .findByPathOrId(), .tree()                                                                                      |
+| Beads   | Bead          | Bead                    | .from(), .displayId(), .query(), .queryReady(), .create(), .update(), .close(), .drop(), .addDependency(), .removeDependency(), .getDependencies() |
+| State   | BoardNavState | applyListNav            | list-based cursor navigation                                                                                                                       |
+| UI      | PaneUI        | PaneUI                  | .editMode(), .isInDialog()                                                                                                                         |
 
 **The principle**: These are the vocabulary. If an operation doesn't exist here, it's probably missing from the system, not a one-off helper. When you need a new operation, add it to the right namespace — don't create a standalone function.
 
 **Why**: An explicit inventory makes the system learnable. A new developer (or AI agent) reads this table and knows where to look for any operation. It also makes gaps visible — if the inventory doesn't cover a concept, the system has a missing abstraction.
 
 **Guidelines:**
+
 - [ ] New operations go on existing namespaces — not as standalone helpers
 - [ ] Keep the inventory up to date — when a new domain object is introduced, add it here and in the Quick Reference
 
@@ -160,13 +164,13 @@ If your narrative needs technical jargon to make sense, the names are wrong. If 
 **Three levels of centralization:**
 
 1. **Types as blueprint** — a package's `types.ts` reads like a specification. The type definitions compose domain objects and show how they relate. A reader understands the system's shape from types alone.
-
 2. **Factories as architecture** — `createRepo()`, `createBoard()`, `withSync()` read like pseudocode composition. They wire together domain objects and show the full structure. When you read the factory, you see the architecture.
-
 3. **Handlers as flows** — a core flow reads as a sequence of domain operations:
+
 ```
 keypress → command → direction → ViewTree.nodes → applyListNav → cursor update
 ```
+
 Not: implementation details scattered across 5 files.
 
 **The test**: "Can a new developer read this one function/file and understand the full [structure/flow]?" If they need 4 tabs and 3 intermediate states in their head, it needs centralizing.
@@ -176,6 +180,7 @@ Not: implementation details scattered across 5 files.
 **Note**: This is a guideline, not an absolute — sometimes concerns genuinely can't be colocated. The goal is to minimize the number of places a reader must look, not to force everything into one file.
 
 **Guidelines:**
+
 - [ ] Types as blueprint — `types.ts` reads like a specification of what exists
 - [ ] Factories as architecture — `createX()` reads like pseudocode showing how things compose
 - [ ] Flows readable in one place — navigation, sync, rendering each have a single entry point
@@ -200,6 +205,7 @@ This is the duplication signal. It already happened with DFS traversal (see [dis
 **The principle**: These aren't abstract ideals — they're testable heuristics. Run them during code review. When you find a bare helper function that operates on a domain object, apply Test 1: would someone find it by typing `DomainObject.`? If not, move it.
 
 **Guidelines:**
+
 - [ ] Autocomplete test — operations discoverable via `Namespace.` / not buried as bare functions
 - [ ] Duplication signal — when two implementations exist, the namespace is missing a method
 
@@ -279,6 +285,7 @@ export class Repo {
 **App-level Event Bus Exception**: The `tuiEvents` EventEmitter in `apps/km-tui/src/tui.tsx` is an intentional module-level singleton. It serves as the app-level event bus for TUI refresh events (filesystem sync triggers UI refresh). This is acceptable because: (1) it is scoped to the TUI app layer, not a domain package, (2) it coordinates cross-cutting concerns (watcher status, refresh signals) that would otherwise require deep prop drilling through the React component tree, and (3) it has no state beyond listener registration. Domain objects and packages below the app layer must not use this pattern.
 
 **Guidelines:**
+
 - [ ] Factories not classes — `createRepo()` / not `new Repo()`
 - [ ] Plain properties — `{ path }` / not `get path() { return x }`
 
@@ -407,6 +414,7 @@ async function watchRepo(path: string) {
 **Why this relates to DI**: Resources you create are dependencies you manage. Lifecycle management is part of dependency management.
 
 **Guidelines:**
+
 - [ ] Inject deps — `{ inject: { db } }` / not `getDb()`
 - [ ] No mutable module state — `const x = ...` / not `let x = ...` at top level
 - [ ] No lazy singletons — pass `db` as param / not `getDb()` accessor
@@ -447,6 +455,7 @@ async function watchRepo(path: string) {
 **Why**: Testable in isolation, clear boundaries, replaceable implementations. Each layer can be understood independently, reducing cognitive overhead.
 
 **Guidelines:**
+
 - [ ] Call down only — Board→Storage→Parser / not Board→Parser
 - [ ] UI through storage — `repo.save()` / not `fs.writeFile()`
 
@@ -458,11 +467,11 @@ async function watchRepo(path: string) {
 
 **The properties**:
 
-| Concern | Properties | Used by |
-|---------|------------|---------|
-| Structural | `type`, `content`, `children`, `task_marker`, `rules` | Core, Tree, Views |
-| Visual | depth, isSelected, cursor position, column width | Views only |
-| Physical | `fstype`, `fs_path`, `fs_ino` | Storage, Parser only |
+| Concern    | Properties                                       | Used by              |
+| ---------- | ------------------------------------------------ | -------------------- |
+| Structural | type, content, children, task_marker, rules      | Core, Tree, Views    |
+| Visual     | depth, isSelected, cursor position, column width | Views only           |
+| Physical   | fstype, fs_path, fs_ino                          | Storage, Parser only |
 
 **The rule**: View code decides what to render based on structural properties (has body? has subitems? has task marker?) — never on `fstype` (is it a folder? a file? a section?).
 
@@ -480,11 +489,12 @@ if (node.task_marker) renderTaskStatus()
 **Why**: Nodes can come from markdown files, Asana imports, inline creation, or any future source. If the visual layer branches on `fstype`, nodes from different sources render inconsistently. Structural properties are universal.
 
 **Guidelines:**
+
 - [ ] Views branch on structure — `type`, `content`, `children` / not `fstype`
 - [ ] Physical in storage only — `fstype` checks in `@km/storage` and `@km/markdown` / not in views
 - [ ] Predicates from tree — `KNode.isOutline(node)`, `extractBody()` / not `fstype === "mdsection"`
 
-> **Lessons learned**: [docs/lessons/structural-visual-physical.md](lessons/structural-visual-physical.md)
+> Lessons learned: docs/lessons/structural-visual-physical.md
 
 ---
 
@@ -566,6 +576,7 @@ for await (const item of pipeline) { ... }
 ```
 
 **Guidelines:**
+
 - [ ] Generator pipelines — `for await (x of pipeline)` / not chained `Promise.all`
 - [ ] Single fan-out OK — `Promise.all([a, b, c])` / not `Promise.all(xs.map(...))`
 
@@ -595,6 +606,7 @@ async *respond(s) {
 **Don't mix them up.** If an update does I/O but doesn't stream content, use `async`. If it streams progressive content to the view, use `async function*`. Don't use generators for control flow (that's Redux-Saga territory — more ceremony for no benefit when `await` works).
 
 **Guidelines:**
+
 - [ ] `async/await` for effects — `await fx.fetch()` / not `yield fx.fetch()`
 - [ ] `async function*` for streaming content — `yield` to push chunks / not timers + reveal fractions
 - [ ] Never use generators purely for control flow — `await` is simpler and idiomatic
@@ -626,6 +638,7 @@ drag.commit()
 Serializable actions (`dragStart`, `dragMove`, `dragEnd`) also enable replay, undo, and AI automation — see [docs/design/tea.md](design/tea.md).
 
 **Guidelines:**
+
 - [ ] Scope temporary state — `using op = beginX()` / not `store.xMode = true`
 - [ ] Operations are machines — `(action, state) → [state, effects]` / not imperative flag flips
 - [ ] Lifetime-bound cleanup — `Symbol.dispose` or commit/cancel / not manual flag reset
@@ -659,18 +672,19 @@ function getNode(id: string) {
 
 **When to throw vs. handle gracefully**:
 
-| Scenario                      | Action                          |
-| ----------------------------- | ------------------------------- |
-| Missing required dependency   | **Throw** - programming error   |
-| Invalid internal state        | **Throw** - invariant violation |
-| User input validation failure | Handle gracefully               |
-| External API failure          | Handle gracefully               |
+| Scenario                      | Action                      |
+| ----------------------------- | --------------------------- |
+| Missing required dependency   | Throw - programming error   |
+| Invalid internal state        | Throw - invariant violation |
+| User input validation failure | Handle gracefully           |
+| External API failure          | Handle gracefully           |
 
 **Invariant violations throw.** Only user-caused errors (bad input, network failures) are logged gracefully. Pre-release policy: fail fast, fail loud. Runtime invariant checks (e.g. `checkInvariants` in board-app) always throw `InvariantViolationError` — there is no log-only mode.
 
 **Why**: Bugs surface at the call site, not later as mysterious failures. A runtime invariant that throws immediately is worth more than 10 manual test sessions. The cursor-null bug (signals migration) survived 3 separate root causes for hours — 1 invariant caught them all in seconds.
 
 **Invariant-first development:**
+
 - When adding state, add the invariant FIRST. What must always be true?
 - When fixing a bug, add the invariant that would have caught it.
 - Runtime invariants > unit tests for state consistency. Tests check specific scenarios; invariants check ALL scenarios.
@@ -678,6 +692,7 @@ function getNode(id: string) {
 - Invariants are documentation: they describe what "correct" means for the system.
 
 **Guidelines:**
+
 - [ ] Throw internally — `if (!id) throw` / not `id ?? defaultId`
 - [ ] No ensure checks — let `db.get()` throw / not `ensureDbOpen()`
 - [ ] Required = throw — `throw new Error('db required')` / not `db ?? fallback`
@@ -707,6 +722,7 @@ const db = new Database("/tmp/test.db")
 **Target**: `bun run test:fast` ~11 seconds.
 
 **Guidelines:**
+
 - [ ] In-memory tests — `withTestEnv()` / not `new Database('/tmp/test.db')`
 - [ ] Fast suite — `test:fast` < 15s / not minutes
 - [ ] Benchmarks measure production — `bun bench` disables test-only overhead (SILVERY_STRICT, checkIncremental). Bench numbers must represent what users experience, not what tests verify. If a bench includes verification overhead, its numbers are useless for optimization decisions.
@@ -740,6 +756,7 @@ This applies everywhere:
 **Why**: Systems that grow bug-by-bug accumulate overlapping tests, redundant types, and competing modules. MECE prevents drift. When each thing has exactly one home, changes require updating one place, not hunting through duplicates.
 
 **Guidelines:**
+
 - [ ] One test file per domain — merge by domain / not by bug or symptom
 - [ ] Universal properties become invariants — auto-check / not manual assertions in 50 tests
 - [ ] Each type has one canonical definition — single source of truth / not parallel definitions across layers
@@ -774,6 +791,7 @@ export function getDb() { ... }
 **Why**: Backwards compat shims never get cleaned up. If fallbacks exist, old patterns persist forever.
 
 **Guidelines:**
+
 - [ ] No compat shims — delete old API / not `export { old as new }`
 - [ ] Hard delete — comment out + fix callers / not `@deprecated` tag
 
@@ -800,15 +818,18 @@ recall export --catchup --hook
 **Why**: Hooks crash, schemas change, dependencies go missing. A one-shot write path with no reconciliation means failures accumulate invisibly until you notice the index is wrong. The catchup is the WAL-replay-on-mount pattern: the system always tries to complete stuck work on a frequent trigger, so any single failure loses at most one event's worth of work.
 
 **When to use**:
+
 - Any hook that writes files, database rows, cache entries, or other durable state.
 - Any one-shot job (cron, systemd timer, post-commit hook) where the trigger runs less often than the catchup opportunity would.
 - Anywhere silent partial failure would accumulate cumulative damage invisibly.
 
 **When NOT to use**:
+
 - Read-only enrichment hooks (UserPromptSubmit → qmd search injection). No state to heal. Failure just means that one turn misses the enrichment.
 - Expensive irreversible operations (OAuth refreshes, remote pushes). Self-healing these silently would make each session start slow and hide errors the user needs to see. Surface them as doctor findings instead.
 
 **Design rules**:
+
 - **Catchup trigger ≥ primary trigger frequency.** SessionStart runs for every session; SessionEnd only runs when a session terminates cleanly. Pick the catchup trigger so it fires under conditions where the primary hook might have been skipped.
 - **Silent on the happy path.** Zero stderr output when there's nothing to catch up. Noise-during-normal-operation destroys the signal on actual failures.
 - **Idempotency is the invariant; protect it with a test.** `catchup()` twice in a row must be a no-op on the second call. Regressions here silently rewrite live state on every session start. Add a test.
@@ -816,6 +837,7 @@ recall export --catchup --hook
 - **Pair with a `doctor` command for expensive repairs.** Cheap idempotent work auto-heals on the catchup trigger. Expensive or user-blocking work (re-login, force-rebuild, cache invalidation) surfaces as findings in a `doctor` command. Both use the same underlying logic.
 
 **Guidelines:**
+
 - [ ] Paired catchup — every durable-write hook has a corresponding `--catchup` invocation on a frequent trigger / not standalone fire-and-forget
 - [ ] Silent happy path — catchup emits zero stderr when nothing to do / not "ran, 0 files" noise
 - [ ] Idempotent test — "run catchup twice, second is no-op" test exists / not hand-waved
@@ -867,12 +889,13 @@ function loadDatabase(p: string) { /* ... */ }
 **Why**: Readers (human and AI) start at what matters, not implementation details.
 
 **Guidelines:**
+
 - [ ] Main first — exports at top / not buried after helpers
 - [ ] Public API in first screenful — if >200 lines and factory below line 100, restructure
 - [ ] Short core — < 15 lines main logic / not 50-line functions
 - [ ] Helpers below — after `return` or bottom of file / not before main
 
-> **Lessons learned**: [docs/lessons/read-the-factory.md](lessons/read-the-factory.md)
+> Lessons learned: docs/lessons/read-the-factory.md
 
 ---
 
@@ -883,6 +906,7 @@ The public API of a file — the functions, types, and constants that callers im
 **Why:** Readers scan top-down. AI agents and humans alike look at the first screen of a file to understand what it does. If the public API is buried among helpers, the file looks like a utility module and the canonical entry point is hidden. This was the root cause of the "board driver vs createBoardApp" confusion — tests used low-level drivers because `createBoardApp()` was line 380, not line 20.
 
 **In practice:**
+
 - Exported factories come first
 - Exported types and interfaces the factory returns come with the factory (or immediately above it)
 - Private helpers, constants, and internal state come after
@@ -916,7 +940,7 @@ test("cursor moves down", async () => {
 
 **Corollary**: Use batch refactor editsets for surgical migrations, not per-file agents. Agents grind for 5-15 minutes per file; editsets let you review all changes at once.
 
-> **Lessons learned**: [docs/lessons/sync-test-api.md](lessons/sync-test-api.md)
+> Lessons learned: docs/lessons/sync-test-api.md
 
 ---
 
@@ -986,10 +1010,30 @@ const props = { path, data }   // Internal: let TS infer
 interface RepoMethodDeps { db: Database, path: string }  // Just delete this
 ```
 
+**Pass-through shape**: Adjacent layers should share names and payload shapes wherever the semantics are the same. Adapters enrich and validate; they do not rebuild fields just because a boundary exists.
+
+```typescript
+// GOOD - boundary adds metadata, common fields pass through unchanged
+const ev = parseAgentEvent(input)
+return { ...ev, type: "tool.completed", channel, rawRefs }
+
+// BAD - same data rebuilt under different names at every layer
+return {
+  type: "tool.completed",
+  sessionId: input.sid,
+  toolId: input.call_id,
+  output: input.result_text,
+}
+```
+
+If a translator grows a large switch full of one-to-one field copying, stop and align the source and target shapes first. Bespoke transforms are for real semantic changes: aggregation, splitting, provider quirks, version migration, or UI projection.
+
 **Why**: Aligned code enables generic wrappers, spread syntax, and visual scanning. When names match across layers, you can use `{ ...props }` instead of manual mapping.
 
 **Guidelines:**
+
 - [ ] Aligned names — `const path = ...; return { path }` / not `{ path: rootPath }`
+- [ ] Pass-through first — enrich/validate matching fields / not hand-map identical payloads
 - [ ] Family prefixes — `getNode`, `getChildren` / not `getNode`, `fetchChildren`
 - [ ] Equal weight — all one-liners or all extracted / not mixed
 - [ ] No delegators — call `g(x)` directly / not `f(x) { return g(x) }`
@@ -1021,6 +1065,7 @@ interface RepoOptions {
 ```
 
 **Guidelines:**
+
 - [ ] Naming pattern — `createRepo(opts: RepoOptions)` / not `makeRepo(config)`
 - [ ] Inject names — `inject: { db }` / not `inject: { database }`
 
@@ -1070,6 +1115,7 @@ function Parent({ user, env }) {
 **Why**: Prop drilling creates maintenance burden. When you add a prop at the top, you must thread it through every layer. Aligned names and spread eliminate this busywork.
 
 **Guidelines:**
+
 - [ ] Spread props — `<Child {...props} />` / not `<Child a={props.a} b={props.b} />`
 - [ ] Group related — `{ user: { id, name } }` / not `{ userId, userName }`
 
@@ -1098,6 +1144,7 @@ export function createGlobalState() {
 **Why**: Hidden initialization makes testing hard and violates explicit dependencies.
 
 **Guidelines:**
+
 - [ ] No import effects — `export function create()` / not `const x = init()` at top
 - [ ] No opts.ensure — caller ensures preconditions / not `{ ensure: true }`
 
@@ -1126,6 +1173,7 @@ function processNode(db: Database, node: KNode) {
 ```
 
 **Guidelines:**
+
 - [ ] No globals — `fn(db, node)` / not `fn(node)` + `getCurrentDb()`
 - [ ] Deps as params — `process(db, x)` / not `process(x)` reading module state
 
@@ -1158,6 +1206,7 @@ function processNode(db: Database, node: KNode) {
 This applies to any visual modifier: focus, disabled, error, warning, muted. Express it as a semantic color token (`$focused`, `$muted`) on the parent, not a boolean branched on by every child.
 
 **Guidelines:**
+
 - [ ] Semantic colors for visual state — `color="$selected"` / not `selected={true}` prop drilling
 - [ ] Set once, inherit down — parent owns the color / not every child branches
 - [ ] One token per state — `$selected`, `$focused`, `$muted` / not ad-hoc boolean combos
@@ -1183,6 +1232,7 @@ function Pane() {
 ```
 
 **Symptoms of mismatched lifetimes:**
+
 - A store outlives the component that created it → reopening shows stale state
 - A component reads state that was cleaned up when its parent unmounted → undefined crash
 - Two components share state with no clear owner → effect cascades and double writes
@@ -1193,6 +1243,7 @@ function Pane() {
 This is the dual of [Scoped Operations, Not Flags](#principle-scoped-operations-not-flags): state is scoped to its lifetime, not smeared across the global store.
 
 **Guidelines:**
+
 - [ ] State has one owner — component, store, or machine / not "shared" with no owner
 - [ ] Lifetime match — state dies when its owner dies / not leaks beyond unmount
 - [ ] No orphan globals — if state exists only during X, it lives on X / not on the app store
@@ -1215,6 +1266,7 @@ store.removeNode(id)  // internally: compute new cursor, then apply both
 **Why**: Coupled state that updates sequentially has a window where the invariant is violated. Any code that runs between the two writes (rerender, effect, observer) sees the inconsistent state. This is how "cursor points at a deleted node" bugs are born.
 
 **How to enforce:**
+
 1. Put coupled state under the same owner (one store method, one reducer action).
 2. Compute the new values from the old ones *first*, then write them together.
 3. Add an [invariant](#principle-fail-loud-fail-now) that fires if the coupling is ever broken.
@@ -1222,6 +1274,7 @@ store.removeNode(id)  // internally: compute new cursor, then apply both
 If the invariant throws, the bug surfaces at the offending action — not three renders later when something tries to read the dead cursor.
 
 **Guidelines:**
+
 - [ ] One action per coupled update — `store.removeNode()` / not `tree.remove(); cursor.fix()`
 - [ ] Compute before write — derive new state, then apply in one step / not write then fix
 - [ ] Invariant guards coupling — `checkInvariants()` asserts the relationship holds
@@ -1256,6 +1309,7 @@ effect(() => { agNode.selected = sel.selection().has(agNode.id) })
 **Why**: Effect cascades between stores cause double writes, init races, and stale gaps. The selection bridge mess (two stores owning cursor state, synced via effect) is the canonical example — see [lessons/op-signal-boundary.md](lessons/op-signal-boundary.md).
 
 **Guidelines:**
+
 - [ ] One writer per signal — only the owning store's methods write it / not external `effect()` calls
 - [ ] `computed` over `effect` for cross-store reads — derive, don't sync
 - [ ] Store methods are the boundary — pure logic inside, signal write at the end / not scattered writes
@@ -1278,6 +1332,7 @@ Never: let two systems arrive at the same answer by independent math and hope th
 **Why**: Two systems computing the same quantity is a false redundancy — it looks defensive but every edge case is a bug. Consolidate or assert.
 
 **Guidelines:**
+
 - [ ] One derivation per quantity — if two systems need X, one computes and the other consumes
 - [ ] When sharing isn't feasible, add a STRICT invariant asserting equality — not "usually agrees"
 - [ ] Before patching a math bug, check: is this a single-owner bug or a divergence between two owners? If the latter, fix the divergence source, not the math
@@ -1327,6 +1382,7 @@ function applyNode(db: Database, node: KNode) {
 **Why**: External callers get graceful errors. Internal bugs surface immediately.
 
 **Guidelines:**
+
 - [ ] Validate at edge — `if (!x) return null` in exports / not everywhere
 - [ ] Throw inside — `if (!x) throw` in internals / not `return null`
 
@@ -1373,6 +1429,7 @@ if (task.status == null) task.status = "todo"
 This is one of the few places `== null` is correct — it covers both `null` and `undefined` with intent.
 
 **Guidelines:**
+
 - [ ] No any — `unknown` + narrowing / not `any`
 - [ ] No bang — `if (!x) throw` / not `x!`
 - [ ] Explicit returns — `fn(): Result` / not inferred on exports
@@ -1403,6 +1460,7 @@ throw new KmUserError("File not found", "FILE_NOT_FOUND")
 ```
 
 **Guidelines:**
+
 - [ ] Throw Error — `throw new Error('msg')` / not `throw 'msg'`
 - [ ] Typed user errors — `throw new KmUserError()` / not generic Error for UI
 
@@ -1413,6 +1471,7 @@ throw new KmUserError("File not found", "FILE_NOT_FOUND")
 **The rule**: Every error message (thrown or logged) should help the user identify the problem and fix it.
 
 **Required context:**
+
 1. **Human-readable identifier** — Name, title, path (not raw UUIDs)
 2. **Type/category** — What kind of thing (file, folder, task)
 3. **What happened** — Clear description
@@ -1440,15 +1499,16 @@ log.warn?.(
 
 **When to throw vs log:**
 
-| Scenario | Action |
-|----------|--------|
-| Programming error ("shouldn't happen") | **Throw** with bug report request |
-| Data integrity at risk | **Throw** with recovery steps |
-| Gracefully degraded | **Log warn** — operation succeeded but with caveats |
-| User can retry | **Log error** — operation failed but app continues |
-| Expected edge case | **Log warn** — handled scenario user should know about |
+| Scenario                               | Action                                             |
+| -------------------------------------- | -------------------------------------------------- |
+| Programming error ("shouldn't happen") | Throw with bug report request                      |
+| Data integrity at risk                 | Throw with recovery steps                          |
+| Gracefully degraded                    | Log warn — operation succeeded but with caveats    |
+| User can retry                         | Log error — operation failed but app continues     |
+| Expected edge case                     | Log warn — handled scenario user should know about |
 
 **Guidelines:**
+
 - [ ] Human-readable IDs — `"${name}" ${type}` / not `${nodeId}`
 - [ ] Include path — `at ${fsPath}` / not just name
 - [ ] Explain impact — "changes not saved" / not just "failed"
@@ -1471,6 +1531,7 @@ import { queryNode } from '@km/storage'
 **Why**: Deep imports create coupling to internal structure. When internals change, unrelated code breaks.
 
 **Guidelines:**
+
 - [ ] Export via index — `export` in `index.ts` / not scattered exports
 - [ ] No deep imports — `from '@km/x'` / not `from '@km/x/src/internal'`
 - [ ] ESM only — `import` / not `require()`
@@ -1537,16 +1598,17 @@ Code Quality      ╱
 
 These principles are universal, but LLMs suffer MORE from violations due to their constraints (no memory, limited context, pure pattern matching).
 
-| Principle | Why LLMs need it more |
-|-----------|----------------------|
-| [Factory Functions](#principle-plain-objects) | Can't track hidden state across files |
-| [Explicit Dependencies](#principle-lego-blocks) | Can't infer that `getDb()` requires initialization |
-| [Quarantine and Delete](#principle-quarantine-and-delete) | Will copy old patterns—they don't read deprecation warnings |
-| [5-Second Tests](#principle-5-second-test-loops) | 100 iterations while you wait for one slow suite |
-| [Fail Loud](#principle-fail-loud-fail-now) | Silent failures compound across sessions |
-| [Quality Plateau](#the-quality-plateau) | When there's one pattern, they follow it; when there are two, they guess |
+| Principle             | Why LLMs need it more                                                    |
+| --------------------- | ------------------------------------------------------------------------ |
+| Factory Functions     | Can't track hidden state across files                                    |
+| Explicit Dependencies | Can't infer that getDb() requires initialization                         |
+| Quarantine and Delete | Will copy old patterns—they don't read deprecation warnings              |
+| 5-Second Tests        | 100 iterations while you wait for one slow suite                         |
+| Fail Loud             | Silent failures compound across sessions                                 |
+| Quality Plateau       | When there's one pattern, they follow it; when there are two, they guess |
 
 **Guidelines:**
+
 - [ ] Clean touched files — fix old patterns in modified files / not leave them
 - [ ] Track todos — `// TODO(#123)` / not `// TODO: someday`
 - [ ] One way only — consolidate before adding / not two patterns coexisting
@@ -1652,6 +1714,7 @@ How we keep principles true over time.
 Extract with: `grep '- \[ \]' docs/principles.md`
 
 Each principle section includes inline guidelines that serve as the review checklist. Key areas:
+
 - **Composability** (Part 1): Factory functions, explicit dependencies, disposables, layers
 - **Fast feedback** (Part 2): Fail loud, in-memory tests, no backwards compat
 - **Readability** (Part 3): Inverted pyramid, alignment, naming, no hidden effects
@@ -1674,39 +1737,42 @@ When reviewing PRs, the question is: "Does this follow the principles?" If not, 
 
 ## Quick Reference
 
-> Extract all guidelines: `grep '- \[ \]' docs/principles.md`
+> Extract all guidelines: grep '- [ ]' docs/principles.md
 
 For terminology used throughout, see [glossary.md](glossary.md).
 
 ### Domain Object Inventory
 
-| Layer | Object | Namespace | Key operations |
-|-------|--------|-----------|----------------|
-| Data | `KNode` | `KTree` | `.nodes()`, `.ancestors()`, `.isOutline()`, `.isTask()` |
-| Data | `TreeOp` | `inverse`, `applyOperation` | 7 atomic tree ops with invertibility |
-| Data | `Point`, `Range` | `Point`, `Range` | text-level selection, transforms |
-| Data | `HistoryEditor` | `withHistory` | `.undo()`, `.redo()`, `.batch()` |
-| View | `ViewNode` | `ViewTree` | `.nodes()`, `.sibling()` |
-| Storage | `KNode` (task) | `Task` | `.isTask()`, `.isBlocked()`, `.under()`, `.findByPathOrId()`, `.tree()` |
-| Beads | `Bead` | `Bead` | `.from()`, `.displayId()`, `.query()`, `.queryReady()`, `.create()`, `.update()`, `.close()`, `.drop()` |
-| State | `BoardNavState` | `applyListNav` | list-based cursor navigation |
-| UI | `PaneUI` | `PaneUI` | `.editMode()`, `.isInDialog()` |
+| Layer   | Object        | Namespace               | Key operations                                                                          |
+| ------- | ------------- | ----------------------- | --------------------------------------------------------------------------------------- |
+| Data    | KNode         | KTree                   | .nodes(), .ancestors(), .isOutline(), .isTask()                                         |
+| Data    | TreeOp        | inverse, applyOperation | 7 atomic tree ops with invertibility                                                    |
+| Data    | Point, Range  | Point, Range            | text-level selection, transforms                                                        |
+| Data    | HistoryEditor | withHistory             | .undo(), .redo(), .batch()                                                              |
+| View    | ViewNode      | ViewTree                | .nodes(), .sibling()                                                                    |
+| Storage | KNode (task)  | Task                    | .isTask(), .isBlocked(), .under(), .findByPathOrId(), .tree()                           |
+| Beads   | Bead          | Bead                    | .from(), .displayId(), .query(), .queryReady(), .create(), .update(), .close(), .drop() |
+| State   | BoardNavState | applyListNav            | list-based cursor navigation                                                            |
+| UI      | PaneUI        | PaneUI                  | .editMode(), .isInDialog()                                                              |
 
 If an operation doesn't exist here, it's probably missing from the system. See [Domain Object Inventory](#principle-domain-object-inventory).
 
 ### Structure
 
 **Module level:**
+
 - Core functions (exports) first - the reason this module exists
 - Helpers at bottom - in importance order, narrative flows
 - Types near what uses them
 
 **Function level:**
+
 - Core logic <15 lines - abstract details to helpers
 - Helpers after return or at end of file
 - Name helpers for intent: `initDatabase()` not `setupDbStuff()`
 
 **Order by importance:**
+
 - Within any list (imports, methods, helpers), most important first
 - Narrative should flow - reader follows the story top to bottom
 - If helpers call each other, order them so callees appear after callers
@@ -1716,20 +1782,24 @@ If an operation doesn't exist here, it's probably missing from the system. See [
 Alignment makes code more readable AND more composable.
 
 **Names:**
+
 - Align variable names with return property names: enables shorthand `{ path, data }` instead of `{ path: rootPath, data: loadedData }`
 - Shorter when unambiguous: `withHooks` not `wrapWithHooks`
 - Family names consistent: `initDatabase`, `initEmitter`, `initFiles` (all `init*`); `getNode`, `getChildren`, `getSubtree` (all `get*`)
 
 **Signatures:**
+
 - Align function signatures across a family to enable generic wrappers
 - Prefer readable helper calls over inline expressions: `const db = initDatabase(mode, kmDir)`
 
 **Visual weight:**
+
 - Same-level things get same treatment
 - Extract all or inline all - don't mix (inline dominates unfairly)
 - If something sticks out visually, it should be important
 
 **Types:**
+
 - Domain types explicit (documentation): `Repo` interface, `KNode` type
 - Internal types inferred: let TS figure it out
 - Delete wrapper types that just mirror another type
@@ -1737,39 +1807,42 @@ Alignment makes code more readable AND more composable.
 ### Patterns
 
 **Composition:**
+
 - `const` over `let`: `const x = transform(initial)` not `let x = initial; x = mutate(x)`
 - Spread over manual: `{ ...defaults, ...overrides }` not field-by-field copying
 - Compose over call: `withHooks(base)` returns wrapped object, not `addHooks()` that mutates
 
 **Decomposition:**
+
 - Wrappers for cross-cutting concerns (hooks, logging, timing)
 - Stage helpers for pipelines: `parse → validate → transform`
 - Each piece independently meaningful and testable
 
 **Control flow:**
+
 - Early returns (guard clauses at top): `if (!id) return null`
 - Lookup objects over switch: `handlers[type]?.()` not `switch(type) { case 'a': ... }`
 
 ### Avoid (delete these when you see them)
 
-| Pattern | Why Bad | Instead |
-|---------|---------|---------|
-| `ensure*` checks | Lower levels throw naturally | Let db throw on closed connection |
-| Getters/setters | Accidental indirection | Plain properties: `path` not `get path()` |
-| Pure delegators | `f(x)` just calls `g(x)` | Call `g(x)` directly |
-| `opts.ensure` | Embedded side effects | Caller handles preconditions |
-| Compatibility shims | Adds complexity forever | Break and fix callers now |
-| Inline expressions | Hard to read | Named helper calls |
-| `let` with mutation | Hard to follow | `const` with transform |
+| Pattern             | Why Bad                      | Instead                               |
+| ------------------- | ---------------------------- | ------------------------------------- |
+| ensure* checks      | Lower levels throw naturally | Let db throw on closed connection     |
+| Getters/setters     | Accidental indirection       | Plain properties: path not get path() |
+| Pure delegators     | f(x) just calls g(x)         | Call g(x) directly                    |
+| opts.ensure         | Embedded side effects        | Caller handles preconditions          |
+| Compatibility shims | Adds complexity forever      | Break and fix callers now             |
+| Inline expressions  | Hard to read                 | Named helper calls                    |
+| let with mutation   | Hard to follow               | const with transform                  |
 
 ### Deliberate indirection (keep these)
 
-| Pattern | Why Good |
-|---------|----------|
-| Interfaces at boundaries | `DataStore` enables swapping implementations |
-| Dependency injection | Pass `db` as param, not import singleton |
-| Hooks for extension | `beforeMutation`/`afterMutation` without modifying core |
-| Wrappers for concerns | `withHooks(baseRepo)` separates cross-cutting concerns |
+| Pattern                  | Why Good                                             |
+| ------------------------ | ---------------------------------------------------- |
+| Interfaces at boundaries | DataStore enables swapping implementations           |
+| Dependency injection     | Pass db as param, not import singleton               |
+| Hooks for extension      | beforeMutation/afterMutation without modifying core  |
+| Wrappers for concerns    | withHooks(baseRepo) separates cross-cutting concerns |
 
 ### Test Commands
 

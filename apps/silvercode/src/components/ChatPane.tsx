@@ -2,13 +2,17 @@ import React from "react"
 import { Box, Text, type ListViewHandle } from "silvery"
 import { useSignal } from "@silvery/ag-react"
 import type { Controller, SessionHandle } from "../controller.ts"
+import { createChatSessionProjectionStore } from "../chat/store.ts"
+import type { ChatEventId, ChatLeaf, ChatNodeId } from "../chat/types.ts"
 import { useNotificationStream } from "../hooks/use-notification-stream.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 import { SessionUpdateList } from "./SessionUpdateList.tsx"
 import { Welcome } from "./Welcome.tsx"
 import type { MessageEntry } from "@km/agent-harness"
 import { Chat } from "./Chat.tsx"
+import { ChatBlockList } from "./ChatBlockList.tsx"
 import { NotificationBlock, notificationBlockSnapshotFromMessages } from "./NotificationBlock.tsx"
+import type { NotificationStreamEntry } from "./NotificationEventRow.tsx"
 import { useBackgroundTasks } from "../hooks/use-background-tasks.ts"
 
 /**
@@ -41,6 +45,57 @@ function hasVisibleTranscriptContent(messages: readonly MessageEntry[]): boolean
       return true
     })
   })
+}
+
+function isRecapSystemText(text: string): boolean {
+  return text === "RECAP" || text.startsWith("RECAP ·") || text.startsWith("<recap:")
+}
+
+function isDebugSystemMessage(message: MessageEntry): boolean {
+  if (message.role !== "system") return false
+  if (!message.additionalContext) return false
+  if (isRecapSystemText(message.text)) return false
+  if (message.text === "Compact summary") return false
+  return true
+}
+
+function notificationLeafFromEntry(entry: NotificationStreamEntry): ChatLeaf {
+  const id = `notification:${entry.id}`
+  return {
+    id: `leaf:${id}` as ChatNodeId,
+    type: "notification",
+    channel: "notification",
+    eventIds: [id as ChatEventId],
+    width: "prose",
+    defaultDisclosure: "collapsed",
+    detailAccess: ["expand", "cmd-hover"],
+    rawRefs: [{ id, source: "local", label: entry.source, raw: entry }],
+    props: {
+      source: entry.source,
+      body: entry.content,
+      actionable: entry.actionable,
+    },
+  }
+}
+
+function ProjectedTranscriptCompare({ leaves }: { leaves: readonly ChatLeaf[] }): React.ReactElement | null {
+  if (leaves.length === 0) return null
+  return (
+    <Box flexDirection="column" flexShrink={0} height={12} minWidth={0} overflow="hidden" paddingTop={1}>
+      <ContentDivider label={`Projected ChatBlocks · ${leaves.length}`} />
+      <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} overflow="hidden">
+        <ChatBlockList leaves={leaves} follow={false} />
+      </Box>
+    </Box>
+  )
+}
+
+function ContentDivider({ label }: { label: string }): React.ReactElement {
+  return (
+    <Box flexDirection="row" flexShrink={0} minWidth={0}>
+      <Text color="$muted">{label}</Text>
+    </Box>
+  )
 }
 
 /**
@@ -121,6 +176,15 @@ export function ChatPane({
   showFocusBar?: boolean
 }): React.ReactElement {
   const state = useStoreSignal(handle.store)
+  const chatProjection = React.useMemo(
+    () => createChatSessionProjectionStore(handle.store, { sessionId: handle.id }),
+    [handle.id, handle.store],
+  )
+  React.useEffect(() => () => chatProjection.dispose(), [chatProjection])
+  React.useEffect(() => {
+    chatProjection.setChannelVisible("debug", showDebug)
+  }, [chatProjection, showDebug])
+  const projectedLeaves = useSignal(chatProjection.visibleLeaves) ?? chatProjection.visibleLeaves()
   const activeAgents = useSignal(controller?.crossAgentState.activeSessions ?? null) ?? []
   const backgroundTasks = useBackgroundTasks(controller, handle.id)
   const notificationBlock = notificationBlockSnapshotFromMessages(state.messages, backgroundTasks)
@@ -128,6 +192,18 @@ export function ChatPane({
   // rows never reach `SessionUpdateList`. The hook handles a null
   // controller internally (returns []), keeping rules-of-hooks intact.
   const notificationEntries = useNotificationStream(controller ?? null, handle.id)
+  const notificationLeaves = React.useMemo(
+    () => notificationEntries.map((entry) => notificationLeafFromEntry(entry)),
+    [notificationEntries],
+  )
+  const projectedCompareLeaves = React.useMemo(
+    () => [...projectedLeaves, ...notificationLeaves],
+    [notificationLeaves, projectedLeaves],
+  )
+  const legacyMessages = React.useMemo(
+    () => (showDebug ? state.messages : state.messages.filter((message) => !isDebugSystemMessage(message))),
+    [showDebug, state.messages],
+  )
   // Callback ref — fires with the live ListViewHandle on mount and with
   // null on unmount. Mirrors the handle into App's registration map so
   // app-level Shift+Up/Down scroll bindings can reach this pane's list
@@ -158,7 +234,7 @@ export function ChatPane({
   // recent turn, user or assistant); if there are no messages yet we
   // pass null and the indicator omits the elapsed segment.
   const turnStartedAt = state.messages.length > 0 ? state.messages[state.messages.length - 1]!.ts : null
-  const hasTranscriptContent = hasVisibleTranscriptContent(state.messages)
+  const hasTranscriptContent = hasVisibleTranscriptContent(legacyMessages)
   const [composerHeight, setComposerHeight] = React.useState(0)
   const composerOverlayHeight = composerSlot ? Math.max(3, composerHeight) : 0
   const transcriptBottomPadding = hasTranscriptContent ? 1 : 0
@@ -201,29 +277,32 @@ export function ChatPane({
             <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0}>
               <Chat.Transcript>
                 <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} position="relative">
-                  <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} overflow="hidden">
-                    <SessionUpdateList
-                      ref={scrollListRefCb}
-                      messages={state.messages}
-                      onApprove={onApprove}
-                      onDeny={onDeny}
-                      sessionId={handle.id}
-                      status={state.status}
-                      turnStartedAt={turnStartedAt}
-                      inputTokens={state.cost.inputTokens}
-                      outputTokens={state.cost.outputTokens}
-                      pendingPermissions={state.permissions.length}
-                      inFlightTool={inFlightTool}
-                      showDebug={showDebug}
-                      notificationEntries={notificationEntries}
-                      sessionMetadata={handle.metadata}
-                      agentLabel={agentLabelFor(agent)}
-                      agentVersion={state.claudeCodeVersion || null}
-                      follow={follow}
-                      paddingTop={hasTranscriptContent ? 1 : 0}
-                      paddingBottom={transcriptBottomPadding}
-                      viewportBottomInset={composerOverlayHeight}
-                    />
+                  <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} overflow="hidden">
+                    <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} overflow="hidden">
+                      <SessionUpdateList
+                        ref={scrollListRefCb}
+                        messages={legacyMessages}
+                        onApprove={onApprove}
+                        onDeny={onDeny}
+                        sessionId={handle.id}
+                        status={state.status}
+                        turnStartedAt={turnStartedAt}
+                        inputTokens={state.cost.inputTokens}
+                        outputTokens={state.cost.outputTokens}
+                        pendingPermissions={state.permissions.length}
+                        inFlightTool={inFlightTool}
+                        showDebug={showDebug}
+                        notificationEntries={notificationEntries}
+                        sessionMetadata={handle.metadata}
+                        agentLabel={agentLabelFor(agent)}
+                        agentVersion={state.claudeCodeVersion || null}
+                        follow={follow}
+                        paddingTop={hasTranscriptContent ? 1 : 0}
+                        paddingBottom={transcriptBottomPadding}
+                        viewportBottomInset={composerOverlayHeight}
+                      />
+                    </Box>
+                    {showDebug ? <ProjectedTranscriptCompare leaves={projectedCompareLeaves} /> : null}
                   </Box>
                   {composerSlot ? (
                     <Box

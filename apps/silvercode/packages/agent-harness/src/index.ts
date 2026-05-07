@@ -10,6 +10,7 @@
  */
 
 export * from "./events.ts"
+export { agentEventSchema, parseAgentEvent } from "./event-schema.ts"
 export { createStreamJsonParser, createLineSplitter } from "./parse.ts"
 export type { StreamJsonParser } from "./parse.ts"
 // Layer 3 transcript loop-closure (apps/silvercode/docs/channels.md § 3 Layer 3).

@@ -18,6 +18,7 @@
 
 import { signal } from "alien-signals"
 import type { AgentEvent, AgentSession } from "./events.ts"
+import { parseAgentEvent } from "./event-schema.ts"
 import {
   type Effect,
   type InternalSessionState,
@@ -49,6 +50,7 @@ export type {
 
 export type SessionStore = {
   state: { get(): SessionState; subscribe(fn: (s: SessionState) => void): () => void }
+  events: { get(): readonly AgentEvent[]; subscribe(fn: (events: readonly AgentEvent[]) => void): () => void }
   apply(event: AgentEvent): void
   /** Convenience: subscribe an AgentSession's events directly. */
   bind(session: AgentSession): () => void
@@ -58,8 +60,10 @@ export function createSessionStore(): SessionStore {
   // Internal state carries the strip runtime; the public projection
   // (returned via `state.get()` and passed to subscribers) omits it.
   let internal: InternalSessionState = initialInternalState()
+  let events: AgentEvent[] = []
   const s = signal<SessionState>(publicView(internal))
   const subscribers = new Set<(state: SessionState) => void>()
+  const eventSubscribers = new Set<(events: readonly AgentEvent[]) => void>()
 
   function getPublic(): SessionState {
     return s()
@@ -70,10 +74,18 @@ export function createSessionStore(): SessionStore {
     for (const fn of subscribers) fn(view)
   }
 
+  function notifyEvents(): void {
+    const view = events.slice()
+    for (const fn of eventSubscribers) fn(view)
+  }
+
   function apply(event: AgentEvent): void {
-    const [nextInternal, effects]: [InternalSessionState, Effect[]] = reduce(internal, event)
+    const parsed = parseAgentEvent(event)
+    const [nextInternal, effects]: [InternalSessionState, Effect[]] = reduce(internal, parsed)
     internal = nextInternal
+    events = [...events, parsed]
     notify(publicView(internal))
+    notifyEvents()
     // Effect runner — pure no-op today (Effect is an empty union). Future
     // notify-bell / persist-event-log / dispatch-to-acp variants plug in
     // here without touching the reducer signature.
@@ -86,6 +98,15 @@ export function createSessionStore(): SessionStore {
       subscribe(fn: (state: SessionState) => void): () => void {
         subscribers.add(fn)
         return () => subscribers.delete(fn)
+      },
+    },
+    events: {
+      get(): readonly AgentEvent[] {
+        return events.slice()
+      },
+      subscribe(fn: (events: readonly AgentEvent[]) => void): () => void {
+        eventSubscribers.add(fn)
+        return () => eventSubscribers.delete(fn)
       },
     },
     apply,

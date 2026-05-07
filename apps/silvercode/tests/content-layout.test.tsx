@@ -426,6 +426,51 @@ describe("content layout", () => {
     expect(thumb!.col).toBe(cols - 1)
   })
 
+  test("ChatPane Debug toggle hides raw control rows until Debug is visible", () => {
+    const cols = 88
+    const rows = 20
+    const store = createSessionStore()
+    const sessionId = "test-session" as never
+    store.apply({
+      kind: "assistant-message",
+      sessionId,
+      turnId: "assistant-1" as never,
+      content: [{ type: "text", text: "Done" }],
+      ts: 1,
+    })
+    store.apply({
+      kind: "raw-transcript",
+      sessionId,
+      turnId: "debug-permission-mode" as never,
+      label: "Permission mode: auto",
+      raw: { type: "permission-mode", permissionMode: "auto" },
+      ts: 2,
+    })
+
+    const renderer = createRenderer({ cols, rows })
+    const handle = sessionHandleWithStore(store)
+    const pane = (showDebug: boolean) => (
+      <Box width={cols} height={rows} flexDirection="column" overflow="hidden">
+        <ChatPane
+          handle={handle}
+          isFocused
+          onFocus={() => {}}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          showDebug={showDebug}
+          follow={false}
+        />
+      </Box>
+    )
+
+    const hidden = renderer(pane(false))
+    expect(hidden.text).toContain("Done")
+    expect(hidden.text).not.toContain("Permission mode: auto")
+
+    hidden.rerender(pane(true))
+    expect(hidden.text).toContain("Permission mode: auto")
+  })
+
   test("floating composer does not cover the scrollbar bottom row", async () => {
     const cols = 80
     const rows = 18
