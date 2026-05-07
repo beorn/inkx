@@ -875,7 +875,7 @@ describe("End-to-end: FakeAsana → markdown files", () => {
     expect(written).toHaveLength(3)
 
     // Verify Sprint 4 file (FakeAsana uses gid="proj-1", team="Engineering", workspace="Test Workspace")
-    const sprint = readFileSync(join(testDir, "test-workspace", "engineering", "sprint-4.md"), "utf-8")
+    const sprint = readFileSync(join(testDir, "test-workspace", "engineering", "+sprint-4.md"), "utf-8")
     expect(sprint).toContain("# Sprint 4")
     expect(sprint).toContain("## To Do")
     // Tasks are headings now (oi type) with task markers
@@ -886,12 +886,12 @@ describe("End-to-end: FakeAsana → markdown files", () => {
     expect(sprint).toContain("## [x] Write tests")
 
     // Verify Product Backlog file (no team)
-    const backlog = readFileSync(join(testDir, "test-workspace", "product-backlog.md"), "utf-8")
+    const backlog = readFileSync(join(testDir, "test-workspace", "+product-backlog.md"), "utf-8")
     expect(backlog).toContain("# Product Backlog")
     expect(backlog).toContain("### [ ] API spec review")
 
     // Verify Edge Cases file (no team)
-    const edge = readFileSync(join(testDir, "test-workspace", "edge-cases.md"), "utf-8")
+    const edge = readFileSync(join(testDir, "test-workspace", "+edge-cases.md"), "utf-8")
     expect(edge).toContain("# Edge Cases")
     expect(edge).toContain("## Active")
     expect(edge).toContain("## ------------------")
@@ -916,7 +916,7 @@ describe("End-to-end: FakeAsana → markdown files", () => {
     })
 
     const files = convert(data)
-    const edge = files.get("test-workspace/edge-cases.md")!
+    const edge = files.get("test-workspace/+edge-cases.md")!
     // The html_notes for task-links contain Asana URLs that should be converted
     // to [[^GID]] block references in the final markdown (no aliases)
     expect(edge).toContain("[[^789012]]")
@@ -931,7 +931,7 @@ describe("End-to-end: FakeAsana → markdown files", () => {
     })
 
     const files = convert(data)
-    const sprint = files.get("test-workspace/engineering/sprint-4.md")!
+    const sprint = files.get("test-workspace/engineering/+sprint-4.md")!
     expect(sprint).not.toContain("workspace:")
   })
 
@@ -943,7 +943,7 @@ describe("End-to-end: FakeAsana → markdown files", () => {
 
     const files = convert(data)
     // task-full is in proj-3 (primary) AND proj-1 — should show +sprint-4 tag
-    const edge = files.get("test-workspace/edge-cases.md")!
+    const edge = files.get("test-workspace/+edge-cases.md")!
     expect(edge).toContain("### [x] Comprehensive task")
     expect(edge).toContain("+sprint-4")
   })

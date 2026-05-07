@@ -127,7 +127,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
   test("generates one file per project with correct slug", () => {
     const files = convert(fixture)
     expect(files.size).toBe(1)
-    expect(files.has("sprint-4.md")).toBe(true)
+    expect(files.has("+sprint-4.md")).toBe(true)
   })
 
   test("includes frontmatter", () => {
@@ -156,10 +156,33 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     expect(md).toContain("## [x] Write tests completed:: 2026-02-09 ^t2")
   })
 
-  test("renders multi-project as +project tags (excluding current project)", () => {
+  test("renders every project membership as +project mention (sigil-board pattern)", () => {
     const md = convertToMd(fixture)
-    expect(md).not.toContain("+sprint-4")
+    // Always emit +<projectSlug> for every project — not just non-primary.
+    // The project file's rules.add materializes these as embeds back into the project file.
+    expect(md).toContain("+sprint-4")
     expect(md).toContain("+backlog")
+  })
+
+  test("dedupes repeated project memberships", () => {
+    const md = convertToMd(
+      makeData(
+        [
+          {
+            sourceId: "t-dup",
+            title: "Task in dupe-listed project",
+            // Duplicates of the same project should produce a single +mention
+            projects: ["Sprint 4", "Sprint 4", "Backlog"],
+          },
+        ],
+        "Sprint 4",
+      ),
+    )
+    const taskLine = md.split("\n").find((l) => l.includes("Task in dupe-listed project"))!
+    expect(taskLine).toBeDefined()
+    const sprintMatches = taskLine.match(/\+sprint-4/g)
+    expect(sprintMatches).toHaveLength(1)
+    expect(taskLine).toContain("+backlog")
   })
 
   test("renders completed tasks as headings", () => {
@@ -422,9 +445,8 @@ describe("Stage 2: Convert ImportData to markdown", () => {
       { skipActivities: false },
     )
     expect(md).toContain(
-      "## [x] Full task @alice-smith #backend #urgent +other-project created:: 2026-01-15 due:: 2026-02-15 start:: 2026-01-20 completed:: 2026-02-10 priority:: P2 ^tf1",
+      "## [x] Full task @alice-smith #backend #urgent +test +other-project created:: 2026-01-15 due:: 2026-02-15 start:: 2026-01-20 completed:: 2026-02-10 priority:: P2 ^tf1",
     )
-    expect(md).not.toContain("+test")
     // Body appears directly under heading (no indent since parent is oi)
     expect(md).toContain("Description with **bold** text.")
     // Subtask is a heading too (depth 3 under parent)
@@ -1222,8 +1244,8 @@ describe("Multi-project task dedup", () => {
       ],
     }
     const files = convert(data)
-    const alpha = files.get("project-alpha.md")!
-    const beta = files.get("project-beta.md")!
+    const alpha = files.get("+project-alpha.md")!
+    const beta = files.get("+project-beta.md")!
 
     // Alpha has full content (body, ^block-id)
     expect(alpha).toContain("## [ ] Shared task ^shared-1")
@@ -1272,7 +1294,7 @@ describe("roundtrip: convert → parse", () => {
     ])
 
     const files = convert(data)
-    const md = files.get("test-project.md")!
+    const md = files.get("+test-project.md")!
     const { body } = extractFrontmatter(md)
     const tree = parseMarkdown(body)
 
@@ -1299,7 +1321,7 @@ describe("roundtrip: convert → parse", () => {
     ])
 
     const files = convert(data)
-    const md = files.get("test-project.md")!
+    const md = files.get("+test-project.md")!
     const { body } = extractFrontmatter(md)
     const tree = parseMarkdown(body)
 
@@ -1325,7 +1347,7 @@ describe("roundtrip: convert → parse", () => {
     ])
 
     const files = convert(data)
-    const md = files.get("test-project.md")!
+    const md = files.get("+test-project.md")!
     const { body } = extractFrontmatter(md)
     const tree = parseMarkdown(body)
 
@@ -1389,7 +1411,7 @@ describe("roundtrip: convert → parse", () => {
     }
 
     const files = convert(data)
-    const betaMd = files.get("project-beta.md")!
+    const betaMd = files.get("+project-beta.md")!
     const { body } = extractFrontmatter(betaMd)
     const tree = parseMarkdown(body)
 
@@ -1422,7 +1444,7 @@ describe("roundtrip: convert → parse", () => {
     ])
 
     const files = convert(data)
-    const md = files.get("test-project.md")!
+    const md = files.get("+test-project.md")!
     const taskLine = md.split("\n").find((l) => l.includes("Metadata task"))!
     expect(taskLine).toBeDefined()
 
@@ -1463,7 +1485,7 @@ describe("roundtrip: convert → parse", () => {
     }
 
     const files = convert(data)
-    const md = files.get("engineering/frontmatter-test.md")!
+    const md = files.get("engineering/+frontmatter-test.md")!
     const { frontmatter, body } = extractFrontmatter(md)
     expect(frontmatter).not.toBeNull()
 
@@ -1512,7 +1534,7 @@ describe("Within-file dedup", () => {
       ],
     }
     const files = convert(data)
-    const md = files.get("wellness.md")!
+    const md = files.get("+wellness.md")!
 
     // Task should appear exactly once as a full heading entry
     const fullMatches = md.match(/## \[[ x]\] Exercise daily/g)
@@ -1573,8 +1595,8 @@ describe("Within-file dedup", () => {
       ],
     }
     const files = convert(data)
-    const alpha = files.get("alpha.md")!
-    const beta = files.get("beta.md")!
+    const alpha = files.get("+alpha.md")!
+    const beta = files.get("+beta.md")!
 
     // Alpha: full content once as heading, no self-reference
     const alphaFullMatches = alpha.match(/## \[[ x]\] Shared task/g)
@@ -2676,8 +2698,8 @@ describe("Filenames with raw GIDs", () => {
       ],
     }
     const files = convert(data)
-    expect(files.has("fam-estate.md")).toBe(true)
-    expect(files.has("fam-estate-688176235175685.md")).toBe(false)
+    expect(files.has("+fam-estate.md")).toBe(true)
+    expect(files.has("+fam-estate-688176235175685.md")).toBe(false)
   })
 })
 
@@ -2737,7 +2759,7 @@ describe("Embed nodes use actual task title", () => {
       ],
     }
     const files = convert(data)
-    const beta = files.get("project-beta.md")!
+    const beta = files.get("+project-beta.md")!
 
     // The embed node should use the actual task title alongside the embed reference
     expect(beta).toContain("Review quarterly report ![[^shared-1]]")
@@ -2842,7 +2864,7 @@ describe("URL-only titles prettified", () => {
       ],
     }
     const files = convert(data)
-    const beta = files.get("beta.md")!
+    const beta = files.get("+beta.md")!
     expect(beta).toContain("example.com/docs/api")
     expect(beta).not.toContain("https://www.example.com")
   })

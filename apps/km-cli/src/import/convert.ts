@@ -175,13 +175,13 @@ function buildTaskContent(item: ImportItem, currentProject?: string, userSlugMap
     parts.push(`@${slug}`)
   }
   if (item.tags?.length) parts.push(...new Set(item.tags.map((t) => `#${slugify(t)}`)))
-  if (item.projects && item.projects.length > 1) {
-    const otherProjects = currentProject
-      ? item.projects.filter((p) => slugify(p) !== slugify(currentProject))
-      : item.projects
-    if (otherProjects.length > 0) {
-      parts.push(...otherProjects.map((p) => `+${slugify(p)}`))
-    }
+  // Always emit +<projectSlug> mentions for every project the task belongs to
+  // (Set-deduped). Sigil-board pattern: the +project file's `rules.add` materializes
+  // these mentions back as embeds in the project file.
+  // `currentProject` is unused now but kept in the signature for callsite stability.
+  void currentProject
+  if (item.projects && item.projects.length > 0) {
+    parts.push(...new Set(item.projects.map((p) => `+${slugify(p)}`)))
   }
   // Inline date properties for markdown round-tripping
   if (item.createdAt) parts.push(`created:: ${item.createdAt.slice(0, 10)}`)
@@ -1042,16 +1042,20 @@ function buildPrimaryMap(data: ImportData): {
     } else {
       const rawTitle = project.title.trim() || "untitled"
       const projectSlug = projectSlugOverrides.get(project.sourceId) ?? slugify(rawTitle)
+      // `+` sigil prefix — projects are sigil-boards (mirrors @user, #tag).
+      // Tasks emit `+<projectSlug>` mentions; the project file's `rules.add`
+      // materializes them back as embeds. See docs/design/model/storage.md § NodeRules.
+      const sigilSlug = `+${projectSlug}`
       const teamSlug = project.team ? (teamSlugMap.get(project.team) ?? slugify(project.team)) : undefined
 
       if (wsSlug && teamSlug) {
-        filename = `${wsSlug}/${teamSlug}/${projectSlug}.md`
+        filename = `${wsSlug}/${teamSlug}/${sigilSlug}.md`
       } else if (wsSlug) {
-        filename = `${wsSlug}/${projectSlug}.md`
+        filename = `${wsSlug}/${sigilSlug}.md`
       } else if (teamSlug) {
-        filename = `${teamSlug}/${projectSlug}.md`
+        filename = `${teamSlug}/${sigilSlug}.md`
       } else {
-        filename = `${projectSlug}.md`
+        filename = `${sigilSlug}.md`
       }
     }
 
