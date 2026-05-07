@@ -1315,6 +1315,83 @@ describe("Sigil-board project files (rules.add)", () => {
     expect(files.has("+#urgent.md")).toBe(false)
   })
 
+  test("end-to-end: +sigil parity (file path + km.add:: + task content + dedup)", () => {
+    // Phase 3 — exercise all three phases together on one minimal ImportData.
+    // Verifies: file naming, task content emission, frontmatter rules, link extraction.
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-17T12:00:00Z",
+      workspace: "Acme",
+      teams: [{ name: "Engineering", gid: "team-eng" }],
+      projects: [
+        {
+          sourceId: "p-api",
+          title: "API Refactor",
+          team: "Engineering",
+          items: [
+            {
+              sourceId: "t1",
+              title: "Land /v2/items endpoint",
+              status: "todo",
+              projects: ["API Refactor"],
+            },
+            {
+              sourceId: "t2",
+              title: "Migration script",
+              status: "todo",
+              // Belongs to BOTH projects — should land +api-refactor AND +schema-cleanup
+              projects: ["API Refactor", "Schema Cleanup"],
+            },
+          ],
+        },
+        {
+          sourceId: "p-schema",
+          title: "Schema Cleanup",
+          team: "Engineering",
+          items: [
+            {
+              sourceId: "t3",
+              title: "Drop unused indexes",
+              status: "todo",
+              projects: ["Schema Cleanup"],
+            },
+          ],
+        },
+      ],
+    }
+    const files = convert(data)
+
+    // (a) Both project files land at the expected sigil-prefixed paths.
+    expect(files.has("acme/engineering/+api-refactor.md")).toBe(true)
+    expect(files.has("acme/engineering/+schema-cleanup.md")).toBe(true)
+
+    const apiMd = files.get("acme/engineering/+api-refactor.md")!
+    const schemaMd = files.get("acme/engineering/+schema-cleanup.md")!
+
+    // (b) Each project file's H1 carries km.add:: matching its filename slug.
+    expect(apiMd).toMatch(/^# API Refactor km\.add:: \+api-refactor/m)
+    expect(schemaMd).toMatch(/^# Schema Cleanup km\.add:: \+schema-cleanup/m)
+
+    // (c) Every task content carries +<projectSlug> for every project it belongs to.
+    //     Single-project task in api-refactor file:
+    const t1Line = apiMd.split("\n").find((l) => l.includes("Land /v2/items endpoint"))!
+    expect(t1Line).toBeDefined()
+    expect(t1Line).toContain("+api-refactor")
+
+    //     Multi-project task: rendered in api-refactor (its primary), embedded in schema-cleanup.
+    //     The full-content rendering carries BOTH +mentions:
+    const t2Line = apiMd.split("\n").find((l) => l.includes("Migration script") && !l.includes("![["))!
+    expect(t2Line).toBeDefined()
+    expect(t2Line).toContain("+api-refactor")
+    expect(t2Line).toContain("+schema-cleanup")
+
+    // (d) Link extraction across the full file picks up the +project mentions
+    //     — this is what populates the `links` table on sync (km:+<slug> rows).
+    const apiRefs = extractAllRefs(apiMd)
+    expect(apiRefs.projects).toContain("api-refactor")
+    expect(apiRefs.projects).toContain("schema-cleanup")
+  })
+
   test("user projects do NOT get + sigil (they use @user.md)", () => {
     const data: ImportData = {
       source: "asana",
