@@ -675,6 +675,7 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
     if (type === "message_delta") {
       const delta = event.delta as Record<string, unknown> | undefined
       const stopReason = typeof delta?.stop_reason === "string" ? (delta.stop_reason as string) : undefined
+      if (stopReason === "tool_use") return
       emit({
         kind: "turn-end",
         sessionId: sid,

@@ -34,7 +34,7 @@ describe("controller.closeAll", () => {
 })
 
 describe("controller subagent invariants", () => {
-  test("throws when Claude claims completed subagents that were never emitted as data", async () => {
+  test("records a diagnostic when Claude claims completed subagents that were never emitted as data", async () => {
     const providerSessionId = "provider-s1" as SessionId
     const turnId = "assistant-turn" as TurnId
     const fake = createFakeSession({ sessionId: providerSessionId })
@@ -55,6 +55,13 @@ describe("controller subagent invariants", () => {
       turnId: "user-turn" as TurnId,
       text: "use 4 subagents to sleep 20s",
       ts: 1_000,
+    })
+    fake.emit({
+      kind: "turn-start",
+      sessionId: providerSessionId,
+      turnId,
+      role: "assistant",
+      ts: 1_100,
     })
     fake.emit({
       kind: "tool-use",
@@ -82,7 +89,12 @@ describe("controller subagent invariants", () => {
         text: "All 4 done in parallel. Wallclock ~26s.",
         ts: 21_300,
       }),
-    ).toThrow(/subagent activity invariant failed.*claimed 4.*observed 1/s)
+    ).not.toThrow()
+    expect(fake.sent).toHaveLength(0)
+    expect(controller.snapshot()[0]?.store.state.get().lastError?.message).toMatch(
+      /subagent activity invariant failed.*claimed 4.*observed 1/s,
+    )
+    expect(controller.snapshot()[0]?.store.state.get().lastError?.message).not.toContain("sessionUpdate handler failed")
 
     expect(() =>
       fake.emit({

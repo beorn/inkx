@@ -116,6 +116,82 @@ describe("bug 1 — claude-acp wire emits turn-end on prompt resolve", () => {
     wire.detach()
   })
 
+  test("tool_use message_delta does not resolve the ACP prompt before tool results land", async () => {
+    const session = makeFakeAgentSession()
+    const { conn } = makeRecordingConnection()
+    const wire = attachWire(conn, session, SID)
+    let settled = false
+    const turnPromise = wire.awaitTurn().then((result) => {
+      settled = true
+      return result
+    })
+
+    session.push({
+      kind: "tool-use",
+      sessionId: SID as SessionId,
+      turnId: TID,
+      id: "toolu-agent-1" as never,
+      name: "Agent",
+      input: { description: "Sleep 20s #1" },
+      ts: Date.now(),
+    })
+    session.push({
+      kind: "turn-end",
+      sessionId: SID as SessionId,
+      turnId: TID,
+      stopReason: "tool_use",
+      ts: Date.now(),
+    })
+    await new Promise<void>((resolve) => setImmediate(resolve))
+
+    expect(settled).toBe(false)
+
+    session.push({
+      kind: "tool-result",
+      sessionId: SID as SessionId,
+      id: "toolu-agent-1" as never,
+      output: "agent 1: done sleeping 20s",
+      is_error: false,
+      ts: Date.now(),
+    })
+    session.push({
+      kind: "text-delta",
+      sessionId: SID as SessionId,
+      turnId: TID,
+      blockIndex: 0,
+      text: "All 4 done.",
+      ts: Date.now(),
+    })
+    session.push({
+      kind: "turn-end",
+      sessionId: SID as SessionId,
+      turnId: TID,
+      stopReason: "end_turn",
+      ts: Date.now(),
+    })
+
+    const result = await turnPromise
+    expect(result.stopReason).toBe("end_turn")
+    wire.detach()
+  })
+
+  test("live Claude user-message echoes are not forwarded by the wire", async () => {
+    const session = makeFakeAgentSession()
+    const { conn, updates } = makeRecordingConnection()
+    const wire = attachWire(conn, session, SID)
+
+    session.push({
+      kind: "user-message",
+      sessionId: SID as SessionId,
+      turnId: "subagent-prompt-echo" as TurnId,
+      text: 'Run `sleep 20` via the Bash tool, then report "agent 1: done sleeping 20s".',
+      ts: Date.now(),
+    })
+
+    expect(updates.filter((u) => u.update.sessionUpdate === "user_message_chunk")).toEqual([])
+    wire.detach()
+  })
+
   test("session-end also resolves awaitTurn (defensive — settlement on terminal lifecycle)", async () => {
     const session = makeFakeAgentSession()
     const { conn } = makeRecordingConnection()

@@ -114,6 +114,36 @@ describe("stream-json parser — M0 fixtures", () => {
     expect(last.input).toEqual({ cmd: "ls" })
   })
 
+  test("message_delta with stop_reason tool_use does not emit turn-end", () => {
+    const events = collect([
+      JSON.stringify({
+        type: "stream_event",
+        event: {
+          type: "message_start",
+          message: { id: "msg-tool-use", role: "assistant", content: [] },
+        },
+      }),
+      JSON.stringify({
+        type: "stream_event",
+        event: {
+          type: "content_block_start",
+          index: 0,
+          content_block: { type: "tool_use", id: "toolu-1", name: "Bash", input: {} },
+        },
+      }),
+      JSON.stringify({
+        type: "stream_event",
+        event: {
+          type: "message_delta",
+          delta: { stop_reason: "tool_use" },
+          usage: { input_tokens: 5, output_tokens: 2 },
+        },
+      }),
+    ])
+
+    expect(events.map((event) => event.kind)).toEqual(["turn-start", "tool-use"])
+  })
+
   test("result event emits session-end with cost + usage", () => {
     const events = collect([
       JSON.stringify({

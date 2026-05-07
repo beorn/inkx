@@ -519,6 +519,65 @@ describe("createAcpSession — prompt() / cancel()", () => {
     expect(result.stopReason).toBe("end_turn")
   })
 
+  it("prompt() stays pending across a tool_use stopReason", async () => {
+    await using scope = createScope("test")
+    const turnId = "t-tool-use" as TurnId
+    const fake = manualFakeFromScript([
+      {
+        delayMs: 0,
+        event: {
+          kind: "tool-use",
+          sessionId: TEST_SESSION,
+          turnId,
+          id: "tool-1" as ToolUseId,
+          name: "Agent",
+          input: { description: "Sleep 20s #1" },
+          ts: 1,
+        },
+      },
+      {
+        delayMs: 0,
+        event: { kind: "turn-end", sessionId: TEST_SESSION, turnId, stopReason: "tool_use", ts: 2 },
+      },
+      {
+        delayMs: 0,
+        event: {
+          kind: "tool-result",
+          sessionId: TEST_SESSION,
+          id: "tool-1" as ToolUseId,
+          output: "agent 1: done sleeping 20s",
+          is_error: false,
+          ts: 3,
+        },
+      },
+      {
+        delayMs: 0,
+        event: {
+          kind: "turn-end",
+          sessionId: TEST_SESSION,
+          turnId,
+          stopReason: "end_turn",
+          ts: 4,
+        },
+      },
+    ])
+    const acp = createAcpSession(scope, fake)
+    let settled = false
+    const promptPromise = acp.prompt([{ type: "text", text: "hi" }]).then((result) => {
+      settled = true
+      return result
+    })
+
+    fake.tick()
+    fake.tick()
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    expect(settled).toBe(false)
+
+    fake.drain()
+    const result = await promptPromise
+    expect(result.stopReason).toBe("end_turn")
+  })
+
   it("cancel() aborts an in-flight prompt with stopReason=cancelled", async () => {
     await using scope = createScope("test")
     const fake = manualFakeFromScript([])

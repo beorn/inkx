@@ -547,6 +547,25 @@ describe("NotificationBlock", () => {
     ])
   })
 
+  test("same-session Claude sidechain completions are hidden when their Agent row is already in history", () => {
+    const messages = [
+      messageWithTools({
+        toolCalls: [{ id: "toolu_2", name: "Agent", input: { description: "Sleep 20s #2" } }],
+        toolResults: [{ id: "toolu_2", output: "agent 2: done sleeping 20s" }],
+      }),
+    ]
+    const entries = [
+      notificationEntry({
+        id: "sidechain-completed",
+        content: "[subagent Agent] completed: Sleep 20s #2 — agent 2: done sleeping 20s",
+        fromSessionId: "s1",
+        status: "completed",
+      }),
+    ]
+
+    expect(filterVisibleNotificationEntries(entries, false, "s1", messages).map((entry) => entry.id)).toEqual([])
+  })
+
   test("same-session completion hiding keeps distinct labels when notification tool ids are reused", () => {
     const messages = [
       messageWithTools({

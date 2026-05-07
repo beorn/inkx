@@ -664,7 +664,9 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
         configOptions = params.update.configOptions
       }
       try {
-        const mapped = mapSessionUpdateToLegacyEvents(params, sessionId, turnIdForUpdate())
+        const mapped = mapSessionUpdateToLegacyEvents(params, sessionId, turnIdForUpdate(), {
+          inPromptTurn: currentTurnId !== null,
+        })
         for (const ev of mapped) {
           if (
             currentTurnId !== null &&
@@ -999,6 +1001,7 @@ function mapSessionUpdateToLegacyEvents(
   params: acp.SessionNotification,
   fallbackSessionId: SessionId,
   turnId: TurnId,
+  options: { readonly inPromptTurn?: boolean } = {},
 ): AgentEvent[] {
   // Run the canonical adapter so we exercise the boundary code path. The
   // resulting silvercode-shaped update is what richer consumers will use
@@ -1027,7 +1030,26 @@ function mapSessionUpdateToLegacyEvents(
       : turnId
 
   switch (scUpdate.sessionUpdate) {
-    case "user_message_chunk":
+    case "user_message_chunk": {
+      if (options.inPromptTurn) return events
+      if (scUpdate.content.type === "text") {
+        events.push({
+          kind: "user-message",
+          sessionId,
+          turnId: messageTurnId,
+          text: scUpdate.content.text,
+          ts,
+        })
+      } else {
+        events.push({
+          kind: "status",
+          sessionId,
+          status: `acp:${scUpdate.sessionUpdate}:${scUpdate.content.type}`,
+          ts,
+        })
+      }
+      return events
+    }
     case "agent_message_chunk": {
       if (scUpdate.content.type === "text") {
         events.push({

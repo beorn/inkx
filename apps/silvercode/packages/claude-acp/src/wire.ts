@@ -241,11 +241,12 @@ export function attachWire(
   function applyEvent(event: AgentEvent): void {
     switch (event.kind) {
       case "user-message": {
-        emit({
-          sessionUpdate: "user_message_chunk",
-          content: { type: "text", text: event.text },
-          messageId: null,
-        })
+        // Live Claude stream-json echoes user-looking records for several
+        // things that are not top-level user prompts, including Agent
+        // subtask prompts. `server.prompt()` owns the real prompt echo and
+        // `replayJsonl()` owns persisted user transcript replay, so the live
+        // wire must not forward these or clients see subagent instructions as
+        // fresh user messages.
         return
       }
 
@@ -319,6 +320,7 @@ export function attachWire(
       }
 
       case "turn-end": {
+        if (event.stopReason === "tool_use") return
         const reason = mapStopReason(event.stopReason)
         settleNext(reason)
         return

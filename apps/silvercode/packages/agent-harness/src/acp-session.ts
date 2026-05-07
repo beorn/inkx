@@ -499,6 +499,10 @@ export function createAcpSession(scope: Scope, agentSession: AgentSession, opts:
           const used = (event.usage.input_tokens ?? 0) + (event.usage.output_tokens ?? 0)
           usageSig({ size: 0, used })
         }
+        if (event.stopReason === "tool_use") {
+          recomputeStatus()
+          return
+        }
         const reason = mapStopReason(event.stopReason)
         if (pendingPrompt) settlePrompt(reason)
         recomputeStatus()

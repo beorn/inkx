@@ -74,7 +74,7 @@ export function projectSubagentActivitiesFromChatEvents(
   const scopedEvents = options.sessionId ? events.filter((event) => event.sessionId === options.sessionId) : [...events]
   const orderedEvents = orderWithIndex(scopedEvents)
   const currentStartedAt = options.currentOnly === false ? undefined : latestUserMessageStartedAt(orderedEvents)
-  const builder = new SubagentActivityBuilder()
+  const builder = new SubagentRunLedger()
   const assistantTextByMessageId = new Map<string, string>()
   const roleByMessageId = new Map<string, string>()
 
@@ -86,7 +86,7 @@ export function projectSubagentActivitiesFromChatEvents(
         break
       case "message.part.added": {
         const role = roleByMessageId.get(event.payload.messageId)
-        if (role !== "user" && event.payload.part.type === "text") {
+        if (role === "assistant" && event.payload.part.type === "text") {
           assistantTextByMessageId.set(
             event.payload.messageId,
             `${assistantTextByMessageId.get(event.payload.messageId) ?? ""}${event.payload.part.text}`,
@@ -136,7 +136,7 @@ export function projectCurrentSubagentActivitiesFromMessages(
   messages: readonly MessageEntry[],
   options: Omit<ProjectSubagentActivityOptions, "currentOnly"> = {},
 ): SubagentActivityProjection {
-  const builder = new SubagentActivityBuilder()
+  const builder = new SubagentRunLedger()
   const lastUserIndex = findLastMessageIndex(messages, (message) => message.role === "user")
   const currentMessages = lastUserIndex >= 0 ? messages.slice(lastUserIndex + 1) : messages
   const currentStartedAt = lastUserIndex >= 0 ? messages[lastUserIndex]?.ts : undefined
@@ -164,6 +164,36 @@ export function projectCurrentSubagentActivitiesFromMessages(
     activities,
     diagnostics: claimDiagnostics(assistantTexts, activities.length),
   }
+}
+
+export function representedSubagentNotificationIdsFromMessages(
+  messages: readonly MessageEntry[],
+  entries: readonly NotificationStreamEntry[],
+  options: { readonly sessionId?: string } = {},
+): ReadonlySet<string> {
+  const builder = new SubagentRunLedger()
+  const lastUserIndex = findLastMessageIndex(messages, (message) => message.role === "user")
+  const currentMessages = lastUserIndex >= 0 ? messages.slice(lastUserIndex + 1) : messages
+  const currentStartedAt = lastUserIndex >= 0 ? messages[lastUserIndex]?.ts : undefined
+  for (const message of currentMessages) {
+    for (const call of message.toolCalls) {
+      if (!isSubagentToolName(call.name)) continue
+      const result = message.toolResults.find((candidate) => candidate.id === call.id)
+      builder.upsert(subagentActivityFromMessageTool(call, result, message))
+    }
+  }
+
+  const hidden = new Set<string>()
+  for (const entry of entries) {
+    const activity = subagentActivityFromNotification(entry, {
+      currentStartedAt,
+      sessionId: options.sessionId,
+    })
+    if (!activity) continue
+    if (activity.status === "running") continue
+    if (builder.hasTerminalMatch(activity)) hidden.add(entry.id)
+  }
+  return hidden
 }
 
 export function assertSubagentActivityInvariants(
@@ -197,7 +227,7 @@ export function subagentActivityRowsFromActivities(
   }))
 }
 
-class SubagentActivityBuilder {
+class SubagentRunLedger {
   private readonly activitiesById = new Map<string, SubagentActivity>()
   private readonly order: string[] = []
 
@@ -245,6 +275,14 @@ class SubagentActivityBuilder {
       const activity = this.activitiesById.get(id)
       return activity ? [activity] : []
     })
+  }
+
+  hasTerminalMatch(candidate: SubagentActivityCandidate): boolean {
+    const activity = materializeCandidate(candidate)
+    const existingId = this.findExistingId(activity)
+    if (!existingId) return false
+    const existing = this.activitiesById.get(existingId)
+    return existing !== undefined && existing.status !== "running"
   }
 
   private findExistingId(activity: SubagentActivity): string | undefined {

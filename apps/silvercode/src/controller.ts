@@ -52,9 +52,10 @@ import { type CoordinatorMcpServer, createCoordinatorMcpServer } from "./coordin
 import { type CrossAgentState, createCrossAgentState } from "./cross-agent-state.ts"
 import { replaySessionFromDisk, sessionJsonlPath } from "./resume.ts"
 import { discoverClaudeSubagentSessions } from "./claude-subagent-sessions.ts"
+import { normalizeAgentEventsToChatEvents } from "./chat/normalize-agent-event.ts"
 import {
   assertSubagentActivityInvariants,
-  projectCurrentSubagentActivitiesFromMessages,
+  projectCurrentSubagentActivitiesFromChatEvents,
 } from "./chat/subagent-activities.ts"
 import type { SessionHistoryMetadata, SubagentSessionSummary } from "./session-metadata.ts"
 
@@ -629,7 +630,7 @@ function notificationStatusForSubagentSummary(
   return "started"
 }
 
-function shouldAssertClaudeSubagentDataModelInvariants(event: AgentEvent): boolean {
+function shouldCheckClaudeSubagentDataModelInvariants(event: AgentEvent): boolean {
   return event.kind === "text-delta" || event.kind === "assistant-message" || event.kind === "turn-end"
 }
 
@@ -713,24 +714,23 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     }
   }
   function claudeSubagentDataModelInvariantError(sessionId: string, store: SessionStore): Error | null {
-    const projection = projectCurrentSubagentActivitiesFromMessages(store.state.get().messages, {
-      notificationEntries: notificationStream.entries(sessionId),
-      sessionId,
-    })
+    const projection = projectCurrentSubagentActivitiesFromChatEvents(
+      normalizeAgentEventsToChatEvents(store.events.get(), { sessionId }),
+      {
+        notificationEntries: notificationStream.entries(sessionId),
+        sessionId,
+      },
+    )
     try {
       assertSubagentActivityInvariants(projection, { sessionId })
       return null
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err))
-      dInvariant(
-        "subagent activity invariant failed session=%s message=%s",
-        sessionId,
-        error.message,
-      )
+      dInvariant("subagent activity invariant failed session=%s message=%s", sessionId, error.message)
       return error
     }
   }
-  function assertClaudeSubagentDataModelInvariants(sessionId: string, store: SessionStore): void {
+  function recordClaudeSubagentDataModelInvariant(sessionId: string, store: SessionStore): void {
     const err = claudeSubagentDataModelInvariantError(sessionId, store)
     if (!err) {
       lastClaudeSubagentInvariantBySession.delete(sessionId)
@@ -742,15 +742,10 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       return
     }
     lastClaudeSubagentInvariantBySession.set(sessionId, key)
-    throw err
-  }
-  function recordClaudeSubagentDataModelInvariant(sessionId: string, store: SessionStore): void {
-    const err = claudeSubagentDataModelInvariantError(sessionId, store)
-    if (!err) return
     store.apply({
       kind: "error",
       sessionId: sessionId as SessionId,
-      message: `--resume: recovered transcript has inconsistent subagent activity data: ${err.message}`,
+      message: `Claude provider subagent data mismatch: ${err.message}`,
       ts: Date.now(),
     })
   }
@@ -1627,8 +1622,8 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
           metadata,
           event.kind === "session-init" || event.kind === "tool-result" || event.kind === "turn-end",
         )
-        if (shouldAssertClaudeSubagentDataModelInvariants(event)) {
-          assertClaudeSubagentDataModelInvariants(id, store)
+        if (shouldCheckClaudeSubagentDataModelInvariants(event)) {
+          recordClaudeSubagentDataModelInvariant(id, store)
         }
       }
     })

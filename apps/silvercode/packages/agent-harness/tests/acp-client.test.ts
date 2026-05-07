@@ -384,6 +384,60 @@ describe("connectAcp", () => {
     }
   })
 
+  test("active prompt user_message_chunk is not surfaced as assistant text", async () => {
+    let serverConn: acp.AgentSideConnection | null = null
+    const { spawn } = createFakeAcpServer({
+      agent: (conn) => {
+        serverConn = conn
+        return {
+          async initialize() {
+            return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] }
+          },
+          async newSession() {
+            return { sessionId: "session-active-user-chunk" }
+          },
+          async authenticate() {
+            return {}
+          },
+          async prompt() {
+            await serverConn!.sessionUpdate({
+              sessionId: "session-active-user-chunk",
+              update: {
+                sessionUpdate: "user_message_chunk",
+                content: { type: "text", text: "use 4 subagents to sleep 20s" },
+              },
+            })
+            await serverConn!.sessionUpdate({
+              sessionId: "session-active-user-chunk",
+              update: {
+                sessionUpdate: "agent_message_chunk",
+                content: { type: "text", text: "All 4 done in parallel. Wallclock ~28s." },
+              },
+            })
+            return { stopReason: "end_turn" as const }
+          },
+          async cancel() {
+            /* no-op */
+          },
+        }
+      },
+    })
+    __setAcpSpawnForTesting(spawn)
+
+    await using scope = createScope("test-active-user-chunk")
+    const session = await connectAcp(scope, { command: "fake-acp" })
+    const events: AgentEvent[] = []
+    session.subscribe((e) => events.push(e))
+
+    session.send("use 4 subagents to sleep 20s")
+    for (let i = 0; i < 20 && !events.some((event) => event.kind === "turn-end"); i++) {
+      await new Promise<void>((resolve) => setImmediate(resolve))
+    }
+
+    const text = events.flatMap((event) => (event.kind === "text-delta" ? [event.text] : []))
+    expect(text).toEqual(["All 4 done in parallel. Wallclock ~28s."])
+  })
+
   test("keeps distinct ACP messageIds as distinct assistant messages", async () => {
     let serverConn: acp.AgentSideConnection | null = null
     const { spawn } = createFakeAcpServer({

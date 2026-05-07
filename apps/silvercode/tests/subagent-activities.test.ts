@@ -17,6 +17,16 @@ function userMessage(text: string, ts = 1_000): AgentEvent {
   }
 }
 
+function assistantTurnStart(ts: number): AgentEvent {
+  return {
+    kind: "turn-start",
+    sessionId: "provider-s1" as SessionId,
+    turnId: "assistant-shared" as TurnId,
+    role: "assistant",
+    ts,
+  }
+}
+
 function agentToolUse(id: string, description: string, ts: number): AgentEvent {
   return {
     kind: "tool-use",
@@ -101,6 +111,7 @@ describe("subagent activity projection", () => {
   test("throws when assistant completion text claims more agents than provider events contain", () => {
     const projected = project([
       userMessage("use 4 subagents to sleep 20 s"),
+      assistantTurnStart(1_100),
       agentToolUse("toolu_2", "Sleep 20s #2", 1_200),
       agentToolResult("toolu_2", "agent 2: done sleeping 20s", 21_200),
       assistantText("All 4 done in parallel. Wallclock ~26s.", 21_300),
