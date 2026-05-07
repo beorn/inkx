@@ -33,7 +33,6 @@ import {
   getChildBeads as fnGetChildBeads,
   getIssue as fnGetIssue,
   isBead as fnIsBead,
-  isBlocked as fnIsBlocked,
   nodeToBead as fnNodeToBead,
   queryIssues as fnQueryIssues,
   queryReady as fnQueryReady,
@@ -194,7 +193,22 @@ export const Bead = {
 
   /** Is this bead blocked (has at least one open blocker)? */
   isBlocked(bead: Bead, opts?: BeadsQueryOptions): boolean {
-    return fnIsBlocked(bead, opts)
+    if (!bead.blockedBy || bead.blockedBy.length === 0) return false
+    const repo = opts?.repo
+    for (const blockerId of bead.blockedBy) {
+      // Without a repo we cannot check blocker status — assume blocked.
+      if (!repo) return true
+      // Use resolveShortId so blockers stored as canonical path-form,
+      // legacy bd-form, or aliases all resolve. Raw `short_id:` queries
+      // miss path-form blockers and silently treat them as unblocked.
+      const blockerNodeId = resolveShortId(blockerId, { repo })
+      if (!blockerNodeId) continue
+      const blockerNode = repo.getNode(blockerNodeId)
+      if (!blockerNode) continue
+      const blocker = fnNodeToBead(blockerNode, { repo })
+      if (blocker.status !== "done" && blocker.status !== "dropped") return true
+    }
+    return false
   },
 
   // ---------------------------------------------------------------------

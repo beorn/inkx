@@ -313,15 +313,25 @@ function resolveStatus(node: KNode, blockedBy: string[] | undefined): Bead["stat
  * ignored — beads carry exactly one type by convention.
  */
 function resolveType(node: KNode, repo: Repo | undefined): BeadTypeKeyword | undefined {
-  if (!repo) return undefined
-  const tags = extractTagsFromLinks(node, repo)
+  const tags = repo ? extractTagsFromLinks(node, repo) : []
   for (const tag of tags) {
     const lowered = tag.toLowerCase()
     if (BEAD_TYPE_KEYWORD_SET.has(lowered)) {
       return lowered as BeadTypeKeyword
     }
   }
+  for (const tag of extractTagsFromContent(node.content)) {
+    const lowered = tag.toLowerCase()
+    if (BEAD_TYPE_KEYWORD_SET.has(lowered)) {
+      return lowered as BeadTypeKeyword
+    }
+  }
   return undefined
+}
+
+function extractTagsFromContent(content: string | undefined): string[] {
+  if (!content) return []
+  return [...content.matchAll(/(?:^|\s|[([{.,;:!?])#([A-Za-z][A-Za-z0-9_-]*)\b/g)].map((m) => m[1]!)
 }
 
 /**
@@ -418,11 +428,7 @@ export function nodeToBead(node: KNode, options?: BeadsQueryOptions): Bead {
  *   parent.md
  *   parent/child.md
  */
-export function getChildBeads(
-  repo: Repo,
-  bead: Bead,
-  options?: { dependentCountMap?: Map<string, number> },
-): Bead[] {
+export function getChildBeads(repo: Repo, bead: Bead, options?: { dependentCountMap?: Map<string, number> }): Bead[] {
   const beadNode = repo.getNode(bead.id)
   if (!beadNode) return []
 
@@ -437,9 +443,7 @@ function getSiblingDirectoryChildNodes(repo: Repo, beadNode: KNode): KNode[] {
   const dirPath = beadNode.fs_path?.endsWith(".md") ? beadNode.fs_path.slice(0, -3) : null
   if (!dirPath) return []
 
-  return repo
-    .getNodesUnderPath(dirPath)
-    .filter((node) => isImmediateMarkdownChild(dirPath, node.fs_path))
+  return repo.getNodesUnderPath(dirPath).filter((node) => isImmediateMarkdownChild(dirPath, node.fs_path))
 }
 
 function isImmediateMarkdownChild(dirPath: string, fsPath: string | undefined): boolean {
@@ -459,44 +463,6 @@ export const __resolvers = {
   resolveStatus,
   resolveType,
   resolveBeadShortId,
-}
-
-/**
- * Check if an issue is blocked (has unresolved blockers)
- * @param issue - The issue to check
- * @param options - Optional query options (repo for DI)
- * @deprecated Use `Bead.isBlocked`.
- */
-export function isBlocked(issue: Bead, options?: BeadsQueryOptions): boolean {
-  const repo = options?.repo
-  if (!issue.blockedBy || issue.blockedBy.length === 0) {
-    return false
-  }
-
-  // Check if any blocker is not done
-  for (const blockerId of issue.blockedBy) {
-    if (!repo) {
-      // Without repo, we can't check if blockers are done - assume blocked
-      return true
-    }
-    // Use resolveShortId so blockers stored as canonical path-form (data.id),
-    // legacy bd-form (data.short_id), or aliases all resolve. The previous
-    // `repo.query("short_id:...")` raw form only matched data.short_id and
-    // silently treated path-form blockers as not-found (= unblocked), which
-    // would mark items ready when they aren't.
-    const blockerNodeId = resolveShortId(blockerId, { repo })
-    if (blockerNodeId) {
-      const firstBlocker = repo.getNode(blockerNodeId)
-      if (firstBlocker) {
-        const blocker = nodeToBead(firstBlocker, { repo })
-        if (blocker.status !== "done" && blocker.status !== "dropped") {
-          return true
-        }
-      }
-    }
-  }
-
-  return false
 }
 
 /**
