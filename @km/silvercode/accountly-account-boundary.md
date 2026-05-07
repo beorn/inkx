@@ -1,6 +1,8 @@
 ---
-id: "@km/config/accountly-silvercode-account-boundary"
+id: "@km/silvercode/accountly-account-boundary"
 aliases:
+  - accountly-silvercode-account-boundary
+  - "@km/config/accountly-silvercode-account-boundary"
   - km-config.accountly-silvercode-account-boundary
   - km-config-accountly-silvercode-account-boundary
 created_at: 2026-04-30T10:46:38.929Z
