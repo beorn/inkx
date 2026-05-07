@@ -2,11 +2,14 @@
 id: "@km/beads/prepare-commit-msg-hook-auto-stages"
 type: bug
 priority: P3
+status: closed
 created_at: 2026-05-06T23:18:00.000Z
+closed_at: 2026-05-06T23:55:00.000Z
 parent: "@km/beads"
+close_reason: "L5 Phase 6: removed legacy bd integration block from .git/hooks/prepare-commit-msg (post-2026-04-29 km bd cutover; standalone Go bd binary retired). Verified via dry-run that 'git add <file> && git commit -m \"...\"' no longer sweeps untracked files into the commit. Documented 'git commit -o <pathspec>' workaround in .claude/skills/commit/SKILL.md (commit 54aa060f1) for the concurrent-agent case. Verified no km bd hooks installer exists in apps/km-cli or packages/km-beads, so no replacement hook needed — km bd state lives in .md files committed via normal git, no out-of-band coordination required."
 ---
 
-# [ ] bd prepare-commit-msg hook auto-stages files the user didn't stage #bug #P3
+# [x] bd prepare-commit-msg hook auto-stages files the user didn't stage #bug #P3
 
 ## Symptom
 
@@ -52,3 +55,4 @@ The `bd hooks run prepare-commit-msg` script runs `git add` on bd-managed files 
 - 2026-04-29 cutover: `km bd` is canonical, external `bd` binary retired (`packages/km-beads/CLAUDE.md`)
 - Concurrent agents (tribe peers, `/max` parallel agents, worktree pool) regularly leave bd-managed files untracked between operations
 - Reference incident: `33245818f feat(markdown): collectSigilLinks emits @mention and +project rows` accidentally absorbed `@agent/0..9.md`, `@agent.md`, `.gitignore`, `.claude/skills/{claim,do}/SKILL.md` from a tribe peer (myself, this session)
+
