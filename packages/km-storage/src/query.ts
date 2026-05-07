@@ -432,63 +432,100 @@ function buildDateCondition(field: string, op: string, dateRange: DateRange, par
 }
 
 /**
- * Build SQL for `priority:Px` queries against `data.tags`.
+ * Build SQL for `priority:Px` queries against the `links` table.
  *
  * The legacy `nodes.priority` column was dropped at SCHEMA_VERSION=11.
- * The H1 `#P[0-4]` hashtag (captured into `data.tags` by
- * kmRefsTransform) is the canonical authored form. Comma-separated
- * values produce an OR over each tag.
+ * The H1 `#P[0-4]` hashtag is the canonical authored form (per
+ * docs/future/beads.md), and `collectSigilLinks` materializes it as
+ * a `(host_id, href='km:%23P[0-4]', rel='link')` row in the `links`
+ * table — so the query joins `links` directly.
+ *
+ * Comma-separated values produce an OR over each canonical href.
+ *
+ * Switched from `data.tags` LIKE in @km/all/L5-deprecation-purge
+ * Phase 1; the JSON sidecar reader fallback in `getNodePriority`
+ * stays for fixture-seeded test data only.
  */
 function buildPriorityTagCondition(op: string, value: string, params: (string | number)[]): string {
   const values = value.split(",").filter((v) => v.length > 0)
   if (values.length === 0) return ""
 
-  const tagLike = (v: string) => `%"${v}"%`
+  const priorityHref = (v: string) => `km:%23${v}`
 
   if (op === "=") {
     if (values.length === 1) {
-      params.push(tagLike(value))
-      return ` AND json_extract(data, '$.tags') LIKE ?`
+      params.push(priorityHref(value))
+      return ` AND EXISTS (SELECT 1 FROM links WHERE links.host_id = nodes.id AND links.href = ?)`
     }
-    const ors = values.map(() => `json_extract(data, '$.tags') LIKE ?`).join(" OR ")
-    params.push(...values.map(tagLike))
-    return ` AND (${ors})`
+    const placeholders = values.map(() => "?").join(", ")
+    params.push(...values.map(priorityHref))
+    return ` AND EXISTS (SELECT 1 FROM links WHERE links.host_id = nodes.id AND links.href IN (${placeholders}))`
   }
   if (op === "!=") {
     if (values.length === 1) {
-      params.push(tagLike(value))
-      return ` AND (data IS NULL OR json_extract(data, '$.tags') IS NULL OR json_extract(data, '$.tags') NOT LIKE ?)`
+      params.push(priorityHref(value))
+      return ` AND NOT EXISTS (SELECT 1 FROM links WHERE links.host_id = nodes.id AND links.href = ?)`
     }
-    const ands = values
-      .map(() => `(data IS NULL OR json_extract(data, '$.tags') IS NULL OR json_extract(data, '$.tags') NOT LIKE ?)`)
-      .join(" AND ")
-    params.push(...values.map(tagLike))
-    return ` AND ${ands}`
+    const placeholders = values.map(() => "?").join(", ")
+    params.push(...values.map(priorityHref))
+    return ` AND NOT EXISTS (SELECT 1 FROM links WHERE links.host_id = nodes.id AND links.href IN (${placeholders}))`
   }
-  // Comparison ops (>, <, >=, <=) on priority compare canonical strings —
-  // P0 < P1 < P2 < P3 < P4 by ASCII order. We can't push that through
-  // json_extract LIKE — fall back to raw json_extract value comparison.
-  // Use json_each to extract each tag and check against P[0-4] pattern.
+  // Comparison ops (>, <, >=, <=) compare canonical priority strings —
+  // P0 < P1 < P2 < P3 < P4 by ASCII order. The links-table href is
+  // `km:%23P[0-4]` so we strip the prefix when comparing.
   if (op === ">" || op === "<" || op === ">=" || op === "<=") {
-    params.push(value)
+    params.push(`km:%23${value}`)
     return ` AND EXISTS (
-      SELECT 1 FROM json_each(json_extract(data, '$.tags')) je
-      WHERE je.value GLOB 'P[0-4]' AND je.value ${op} ?
+      SELECT 1 FROM links
+      WHERE links.host_id = nodes.id
+        AND links.href GLOB 'km:%23P[0-4]'
+        AND links.href ${op} ?
     )`
   }
   return ""
 }
 
-/** Build SQL for reference filters (person/tag/project stored in JSON data) */
+/**
+ * Build SQL for reference filters (`@person` / `#tag` / `+project`).
+ *
+ * Resolves via the canonical `links` table — the parser emits
+ * `(host_id, href, rel='link')` rows for every sigil occurrence
+ * (`collectSigilLinks` in km-markdown), so an EXISTS join against
+ * `links.href` is the source of truth. Per docs/design/model/klink.md:
+ *
+ *   `@Alice`   → href `km:@Alice`     (sub-delim, passes through)
+ *   `+cleanup` → href `km:+cleanup`   (sub-delim, passes through)
+ *   `#bug`     → href `km:%23bug`     (`#` is fragment-reserved → percent-encoded)
+ *
+ * `@scope/sub` and `+project/sub` path-form sigils flow through
+ * unchanged as `km:@scope/sub` / `km:+project/sub` — no extra encoding
+ * needed (slash is the path separator, not a reserved char in the path
+ * component). See @km/agent/sigil-boards Phase 1.1.
+ *
+ * Switched from `data.{mentions,tags,projects}` JSON LIKE in
+ * @km/all/L5-deprecation-purge Phase 1.
+ */
 function buildRefCondition(ref: QueryRef, params: (string | number)[]): string {
-  const jsonPath = ref.type === "person" ? "mentions" : ref.type === "tag" ? "tags" : "projects"
-
+  const sigil = ref.type === "person" ? "@" : ref.type === "tag" ? "#" : "+"
+  const href = sigilHref(sigil, ref.value)
+  params.push(href)
   if (ref.negated) {
-    params.push(`%"${ref.value}"%`)
-    return ` AND (data IS NULL OR json_extract(data, '$.${jsonPath}') IS NULL OR json_extract(data, '$.${jsonPath}') NOT LIKE ?)`
+    return ` AND NOT EXISTS (SELECT 1 FROM links WHERE links.host_id = nodes.id AND links.href = ?)`
   }
-  params.push(`%"${ref.value}"%`)
-  return ` AND json_extract(data, '$.${jsonPath}') LIKE ?`
+  return ` AND EXISTS (SELECT 1 FROM links WHERE links.host_id = nodes.id AND links.href = ?)`
+}
+
+/**
+ * Compose the canonical `km:` href for a sigil + bare value.
+ *
+ * Mirrors `normalizeLinkHref("bare", `${sigil}${value}`)` from km-markdown
+ * but lives here to avoid a cross-package import (and to keep the value
+ * empty-safe for query-time use). Only `#` requires percent-encoding;
+ * `@` and `+` are URI sub-delims and pass through.
+ */
+function sigilHref(sigil: "@" | "#" | "+", value: string): string {
+  if (sigil === "#") return `km:%23${value}`
+  return `km:${sigil}${value}`
 }
 
 /**

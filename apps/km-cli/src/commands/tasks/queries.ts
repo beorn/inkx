@@ -14,14 +14,13 @@
 // `@silvery/ag-react` via `createTerm`); use `@km/tree`'s
 // `getNodeDisplayName` directly when ancestor display names are needed.
 
-import { Task, type Repo } from "@km/storage"
+import { type Repo } from "@km/storage"
 import { normalizeName, type KNode } from "@km/core"
 import {
   collapseAncestorsWithTypes,
   type CollapsedAncestor,
   getNodeDisplayName as getNodeDisplayNameRaw,
 } from "@km/tree"
-import { Bead } from "@km/beads"
 
 /**
  * Display name for a node (mirrors `formatters.getNodeDisplayName`, but
@@ -30,25 +29,6 @@ import { Bead } from "@km/beads"
  */
 function getNodeDisplayName(repo: Repo, node: KNode): string {
   return getNodeDisplayNameRaw(node, (parentId) => repo.getChildren(parentId))
-}
-
-/**
- * Find a node by path or ID prefix/suffix.
- *
- * @deprecated Use `Task.findByPathOrId(repo, ref, (r) => Bead.resolve(repo, r))`
- *   directly. This wrapper preserves the legacy CLI signature.
- */
-export function findNodeByPathOrId(repo: Repo, pathOrId: string): KNode | null {
-  return Task.findByPathOrId(repo, pathOrId, (ref) => Bead.resolve(repo, ref))
-}
-
-/**
- * Get all tasks under a root node (recursive).
- *
- * @deprecated Use `Task.under(repo, nodeId)` from `@km/storage`.
- */
-export function getTasksUnderNode(repo: Repo, nodeId: string): KNode[] {
-  return Task.under(repo, nodeId)
 }
 
 /**
@@ -175,15 +155,6 @@ export function taskPathMatches(repo: Repo, task: KNode, filter: string): boolea
   }
 
   return false
-}
-
-/**
- * True if the task has at least one open blocker via `data.props["blocked-by"]`.
- *
- * @deprecated Use `Task.isBlocked(node)` from `@km/storage`.
- */
-export function taskIsBlocked(task: KNode): boolean {
-  return Task.isBlocked(task)
 }
 
 /**

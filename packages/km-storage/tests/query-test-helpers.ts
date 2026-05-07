@@ -41,6 +41,14 @@ export function createTestDatabase(): Database {
  * priority dropped as a column at SCHEMA_VERSION=11 — the helper mirrors
  * any `priority` field into `data.tags` as the canonical `#P[0-4]`
  * hashtag so getNodePriority() can resolve it.
+ *
+ * As of `@km/all/L5-deprecation-purge` Phase 1, ref filters
+ * (`@person` / `#tag` / `+project` / `priority:Px`) execute via the
+ * `links` table — not `data.{mentions,tags,projects}` JSON. The helper
+ * therefore also derives link rows from the seeded JSON sidecars
+ * (`data.mentions[]` → `km:@<v>`, `data.tags[]` → `km:%23<v>`,
+ * `data.projects[]` → `km:+<v>`) plus from any `priority` field, so
+ * existing tests that seed via `data: { ... }` continue to find rows.
  */
 export function seedTestData(db: Database, nodes: TestNode[]): void {
   const now = Date.now()
@@ -51,6 +59,7 @@ export function seedTestData(db: Database, nodes: TestNode[]): void {
       created_at, updated_at, version, parent_idx
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
+  const linkStmt = db.prepare(`INSERT INTO links (host_id, href, rel) VALUES (?, ?, ?)`)
 
   for (let i = 0; i < nodes.length; i++) {
     const n = nodes[i]!
@@ -82,6 +91,22 @@ export function seedTestData(db: Database, nodes: TestNode[]): void {
       `v${i + 1}`,
       i,
     )
+
+    // Derive link rows from the canonicalized data JSON so ref-filter
+    // queries (which now read the `links` table) match the seeded refs.
+    const dataObj = JSON.parse(dataStr) as Record<string, unknown>
+    const seen = new Set<string>()
+    const emit = (href: string): void => {
+      if (seen.has(href)) return
+      seen.add(href)
+      linkStmt.run(n.id, href, "link")
+    }
+    const mentions = dataObj.mentions
+    if (Array.isArray(mentions)) for (const v of mentions) if (typeof v === "string") emit(`km:@${v}`)
+    const tags = dataObj.tags
+    if (Array.isArray(tags)) for (const v of tags) if (typeof v === "string") emit(`km:%23${v}`)
+    const projects = dataObj.projects
+    if (Array.isArray(projects)) for (const v of projects) if (typeof v === "string") emit(`km:+${v}`)
   }
 }
 

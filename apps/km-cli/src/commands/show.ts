@@ -266,18 +266,20 @@ const DISPLAY_FIELDS: DisplayField[] = [
 ]
 
 /**
- * Display refs (mentions, tags, projects) from node data + the `links` table.
+ * Display refs (mentions, tags, projects) for a node from the `links` table.
  *
- * Tags are stored as `(host_id, href='km:%23<tag>', rel='link')` rows in the
- * links table — `data.tags` was dissolved
- * (@km/all/dissolve-data-tags-to-links). Decode the href back to the
- * authored hashtag for display.
+ * The `links` table is the canonical source for sigil refs — see
+ * docs/design/model/klink.md and @km/all/L5-deprecation-purge. Each
+ * sigil href has a known prefix:
+ *
+ *   `km:@<name>`   → mention (`@name`)
+ *   `km:%23<name>` → tag    (`#name`)
+ *   `km:+<name>`   → project (`+name`)
+ *
+ * Returns deduped, sorted lists — order is not load-bearing.
  */
 function displayRefs(node: KNode, repo: Repo): void {
-  const { data } = node
-  const mentions = Array.isArray(data.mentions) ? (data.mentions as string[]) : []
-  const tags = readTagsFromLinks(node, repo)
-  const projects = Array.isArray(data.projects) ? (data.projects as string[]) : []
+  const { mentions, tags, projects } = readSigilRefsFromLinks(node, repo)
   if (mentions.length > 0) {
     console.log(term.bold("Refs:"), mentions.map((m) => term.magenta(`@${m}`)).join(" "))
   }
@@ -289,20 +291,34 @@ function displayRefs(node: KNode, repo: Repo): void {
   }
 }
 
-/**
- * Read hashtag link rows for a node and decode them to authored tags.
- *
- * Tag link rows have hrefs of the form `km:%23<tag>` (per
- * normalizeLinkHref("bare", "#tag")). Decode the percent-encoded `#`
- * sentinel back to a plain tag string. Returns the deduped, sorted tag
- * list — order is not load-bearing.
- */
-function readTagsFromLinks(node: KNode, repo: Repo): string[] {
+interface SigilRefs {
+  mentions: string[]
+  tags: string[]
+  projects: string[]
+}
+
+function readSigilRefsFromLinks(node: KNode, repo: Repo): SigilRefs {
   const links = repo.getOutgoingLinks(node.id)
+  const mentions = new Set<string>()
   const tags = new Set<string>()
+  const projects = new Set<string>()
   for (const link of links) {
-    const m = link.href.match(/^km:%23(.+)$/)
-    if (m?.[1]) tags.add(decodeURIComponent(m[1]))
+    const tagMatch = link.href.match(/^km:%23(.+)$/)
+    if (tagMatch?.[1]) {
+      tags.add(decodeURIComponent(tagMatch[1]))
+      continue
+    }
+    const mentionMatch = link.href.match(/^km:@(.+)$/)
+    if (mentionMatch?.[1]) {
+      mentions.add(mentionMatch[1])
+      continue
+    }
+    const projectMatch = link.href.match(/^km:\+(.+)$/)
+    if (projectMatch?.[1]) projects.add(projectMatch[1])
   }
-  return [...tags].sort()
+  return {
+    mentions: [...mentions].sort(),
+    tags: [...tags].sort(),
+    projects: [...projects].sort(),
+  }
 }

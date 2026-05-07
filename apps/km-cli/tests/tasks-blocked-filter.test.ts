@@ -10,7 +10,9 @@
 
 import { describe, test, expect } from "vitest"
 import type { KNode } from "@km/core"
-import { taskIsBlocked } from "../src/commands/tasks/queries.ts"
+import { Task } from "@km/storage"
+
+const taskIsBlocked = Task.isBlocked
 
 function makeTask(id: string, data?: Record<string, unknown>): KNode {
   return {
