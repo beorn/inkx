@@ -4,9 +4,18 @@ type: refactor
 priority: P3
 created_at: 2026-05-06T00:00:00.000Z
 parent: "@km/all/L5-deprecation-purge"
+closed_at: 2026-05-07T03:49:59.743Z
+closeReason: "Path A (lightest form): loadRepo is now @internal (was
+  misleadingly @deprecated). No test migration needed — verification showed
+  loadRepo was never in the public barrel; all callers either use createRepo
+  (prod) or import directly from ./repo/loader.ts (in-package tests + dev
+  scripts), which is the canonical @internal access pattern. Drop the
+  eslint-disable @typescript-eslint/no-deprecated suppression in repo.ts:1876 —
+  no longer applicable. Storage tests (91 files / 1322 tests) and km-cli tests
+  (60 files / 886 tests) all green; tsc 0 errors. Commit: c0c58be07"
 ---
 
-# [ ] km-storage: internalize loadRepo (delete @deprecated, drop public export) (L5 Phase 5d follow-up) #refactor #P3
+# [x] km-storage: internalize loadRepo (delete @deprecated, drop public export) (L5 Phase 5d follow-up) #refactor #P3
 
 `loadRepo` in `packages/km-storage/src/repo/loader.ts` is marked `@deprecated` with the suggested replacement `createRepo()`, but it is NOT a shim — it's the actual workhorse generator that `createRepo`'s `initWithFileLoading` delegates to internally (`packages/km-storage/src/repo/repo.ts:1877` with an explicit `eslint-disable @typescript-eslint/no-deprecated -- Internal use of loadRepo is acceptable here`).
 
