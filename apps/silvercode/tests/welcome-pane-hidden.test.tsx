@@ -57,6 +57,10 @@ test("ChatPane with empty messages renders Welcome alongside the focus bar", asy
       }),
       subscribe: () => () => {},
     },
+    events: {
+      get: () => [] as never[],
+      subscribe: () => () => {},
+    },
   } as never
   const handle = {
     id: "test",

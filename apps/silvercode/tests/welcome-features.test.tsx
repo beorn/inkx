@@ -77,6 +77,10 @@ function makeHandle(v: Variant) {
       }),
       subscribe: () => () => {},
     },
+    events: {
+      get: () => [] as never[],
+      subscribe: () => () => {},
+    },
   } as never
   return {
     id: "test",
@@ -103,14 +107,7 @@ function renderWelcome(handle: never, cols = 100, rows = 50, agent = "claude-cod
     return renderer(
       <Screen flexDirection="row">
         <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
-          <ChatPane
-            handle={handle}
-            isFocused
-            agent={agent}
-            onFocus={() => {}}
-            onApprove={() => {}}
-            onDeny={() => {}}
-          />
+          <ChatPane handle={handle} isFocused agent={agent} onFocus={() => {}} onApprove={() => {}} onDeny={() => {}} />
         </Box>
       </Screen>,
     )
