@@ -12,5 +12,6 @@ export type SessionHistoryMetadata = {
   replayMessageCount?: number
   replayBoundaryMessageId?: string
   sessionInitAt?: number
+  liveStartedAt?: number
   endedAt?: number
 }

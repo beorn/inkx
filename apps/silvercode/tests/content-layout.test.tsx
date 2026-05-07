@@ -9,7 +9,7 @@ import type { AgentPlan, MessageEntry, MessageOp, ToolUseId } from "@km/agent-ha
 import { MarkdownView } from "../src/components/MarkdownView.tsx"
 import { SessionUpdateList } from "../src/components/SessionUpdateList.tsx"
 import { ChatPane } from "../src/components/ChatPane.tsx"
-import type { NotificationStreamEntry } from "../src/components/NotificationEventRow.tsx"
+import type { NotificationStreamEntry } from "../src/notification-stream.ts"
 import { Chat } from "../src/components/Chat.tsx"
 import { Content } from "../src/components/Content.tsx"
 import { createSessionStore } from "@km/agent-harness"
@@ -1551,6 +1551,246 @@ describe("content layout", () => {
     expect(livePromptRow, app.text).toBeGreaterThan(resumedRow)
   })
 
+  test("resumed-session metadata uses replay completion time before live prompt when boundary id is absent", () => {
+    const renderer = createRenderer({ cols: 132, rows: 16 })
+    const app = renderer(
+      <Box width={132} height={16} flexDirection="column">
+        <SessionUpdateList
+          messages={[
+            makeEntry({
+              id: "u-replayed",
+              role: "user",
+              ts: 1_000,
+              ops: [{ kind: "text", text: "old prompt" }],
+            }),
+            makeEntry({
+              id: "a-replayed",
+              role: "assistant",
+              ts: 2_000,
+              ops: [{ kind: "text", text: "old answer" }],
+            }),
+            makeEntry({
+              id: "u-live",
+              role: "user",
+              ts: 10_000,
+              ops: [{ kind: "text", text: "latest live prompt" }],
+            }),
+          ]}
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+          sessionId="test-session"
+          onApprove={() => {}}
+          onDeny={() => {}}
+          follow={false}
+          sessionMetadata={{
+            agent: "claude",
+            cwd: "/Users/beorn/Code/pim/km",
+            resumeId: "0e9413ff-5f95-43ad-a0fa-27bbfaa44dec",
+            spawnedAt: 500,
+            replayStartedAt: 600,
+            replayCompletedAt: 3_000,
+            replayMessageCount: 5_592,
+          }}
+        />
+      </Box>,
+    )
+
+    const oldAnswerRow = app.lines.findIndex((line) => line.includes("old answer"))
+    const resumedRow = app.lines.findIndex((line) => line.includes("Session resumed"))
+    const livePromptRow = app.lines.findIndex((line) => line.includes("latest live prompt"))
+    expect(oldAnswerRow, app.text).toBeGreaterThanOrEqual(0)
+    expect(resumedRow, app.text).toBeGreaterThan(oldAnswerRow)
+    expect(livePromptRow, app.text).toBeGreaterThan(resumedRow)
+  })
+
+  test("resumed-session metadata stays before live prompt submitted while replay is loading", () => {
+    const renderer = createRenderer({ cols: 132, rows: 16 })
+    const app = renderer(
+      <Box width={132} height={16} flexDirection="column">
+        <SessionUpdateList
+          messages={[
+            makeEntry({
+              id: "u-replayed",
+              role: "user",
+              ts: 100,
+              ops: [{ kind: "text", text: "old prompt" }],
+            }),
+            makeEntry({
+              id: "a-replayed",
+              role: "assistant",
+              ts: 200,
+              ops: [{ kind: "text", text: "old answer" }],
+            }),
+            makeEntry({
+              id: "u-live",
+              role: "user",
+              ts: 1_000,
+              ops: [{ kind: "text", text: "prompt submitted during replay" }],
+            }),
+            makeEntry({
+              id: "a-live",
+              role: "assistant",
+              ts: 1_100,
+              ops: [toolOp("agent-1", "Agent", { description: "Sleep 20s #2" })],
+            }),
+          ]}
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+          sessionId="test-session"
+          onApprove={() => {}}
+          onDeny={() => {}}
+          follow={false}
+          sessionMetadata={{
+            agent: "claude",
+            cwd: "/Users/beorn/Code/pim/km",
+            resumeId: "0e9413ff-5f95-43ad-a0fa-27bbfaa44dec",
+            spawnedAt: 500,
+            replayStartedAt: 600,
+            sessionInitAt: 900,
+            replayCompletedAt: 3_000,
+            replayMessageCount: 5_486,
+          }}
+        />
+      </Box>,
+    )
+
+    const resumedRow = app.lines.findIndex((line) => line.includes("Session resumed"))
+    const livePromptRow = app.lines.findIndex((line) => line.includes("prompt submitted during replay"))
+    const liveAgentRow = app.lines.findIndex((line) => line.includes("Agent running - Sleep 20s #2"))
+    expect(resumedRow, app.text).toBeGreaterThanOrEqual(0)
+    expect(livePromptRow, app.text).toBeGreaterThan(resumedRow)
+    expect(liveAgentRow, app.text).toBeGreaterThan(resumedRow)
+  })
+
+  test("resumed-session metadata stays before live prompt when replayed messages have not rendered yet", () => {
+    const renderer = createRenderer({ cols: 132, rows: 12 })
+    const app = renderer(
+      <Box width={132} height={12} flexDirection="column">
+        <SessionUpdateList
+          messages={[
+            makeEntry({
+              id: "u-live",
+              role: "user",
+              ts: 1_000,
+              ops: [{ kind: "text", text: "prompt submitted before replay render" }],
+            }),
+            makeEntry({
+              id: "a-live",
+              role: "assistant",
+              ts: 1_100,
+              ops: [toolOp("agent-1", "Agent", { description: "Sleep 20s #2" })],
+            }),
+          ]}
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+          sessionId="test-session"
+          onApprove={() => {}}
+          onDeny={() => {}}
+          follow={false}
+          sessionMetadata={{
+            agent: "claude",
+            cwd: "/Users/beorn/Code/pim/km",
+            resumeId: "0e9413ff-5f95-43ad-a0fa-27bbfaa44dec",
+            spawnedAt: 500,
+            replayStartedAt: 600,
+            sessionInitAt: 900,
+            replayCompletedAt: 3_000,
+            replayMessageCount: 5_486,
+          }}
+        />
+      </Box>,
+    )
+
+    const resumedRow = app.lines.findIndex((line) => line.includes("Session resumed"))
+    const livePromptRow = app.lines.findIndex((line) => line.includes("prompt submitted before replay render"))
+    const liveAgentRow = app.lines.findIndex((line) => line.includes("Agent running - Sleep 20s #2"))
+    expect(resumedRow, app.text).toBeGreaterThanOrEqual(0)
+    expect(livePromptRow, app.text).toBeGreaterThan(resumedRow)
+    expect(liveAgentRow, app.text).toBeGreaterThan(resumedRow)
+  })
+
+  test("resumed-session metadata stays before live prompt when replay boundary sorts after live activity", () => {
+    const renderer = createRenderer({ cols: 132, rows: 18 })
+    const app = renderer(
+      <Box width={132} height={18} flexDirection="column">
+        <SessionUpdateList
+          messages={[
+            makeEntry({
+              id: "u-replayed",
+              role: "user",
+              ts: 100,
+              ops: [{ kind: "text", text: "old prompt" }],
+            }),
+            makeEntry({
+              id: "a-replayed-before",
+              role: "assistant",
+              ts: 200,
+              ops: [{ kind: "text", text: "old answer" }],
+            }),
+            makeEntry({
+              id: "u-live",
+              role: "user",
+              ts: 1_000,
+              ops: [{ kind: "text", text: "prompt submitted after resume" }],
+            }),
+            makeEntry({
+              id: "a-live",
+              role: "assistant",
+              ts: 1_100,
+              ops: [toolOp("agent-1", "Agent", { description: "Sleep 20s #2" })],
+            }),
+            makeEntry({
+              id: "a-replayed-boundary",
+              role: "assistant",
+              ts: 5_000,
+              ops: [{ kind: "text", text: "late-sorted replay boundary" }],
+            }),
+          ]}
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+          sessionId="test-session"
+          onApprove={() => {}}
+          onDeny={() => {}}
+          follow={false}
+          sessionMetadata={{
+            agent: "claude",
+            cwd: "/Users/beorn/Code/pim/km",
+            resumeId: "0e9413ff-5f95-43ad-a0fa-27bbfaa44dec",
+            spawnedAt: 500,
+            replayStartedAt: 600,
+            sessionInitAt: 900,
+            replayCompletedAt: 3_000,
+            replayMessageCount: 3,
+            replayBoundaryMessageId: "a-replayed-boundary",
+          }}
+        />
+      </Box>,
+    )
+
+    const resumedRow = app.lines.findIndex((line) => line.includes("Session resumed"))
+    const livePromptRow = app.lines.findIndex((line) => line.includes("prompt submitted after resume"))
+    const liveAgentRow = app.lines.findIndex((line) => line.includes("Agent running - Sleep 20s #2"))
+    expect(resumedRow, app.text).toBeGreaterThanOrEqual(0)
+    expect(livePromptRow, app.text).toBeGreaterThan(resumedRow)
+    expect(liveAgentRow, app.text).toBeGreaterThan(resumedRow)
+  })
+
   test("high-volume assistant text chunks coalesce before markdown parsing", () => {
     const renderer = createRenderer({ cols: 132, rows: 28 })
     const fragmented = [
@@ -1927,6 +2167,7 @@ describe("content layout", () => {
           kind: "notification",
           id: "tribe-1",
           source: "tribe",
+          ts: 1_001,
           timestamp: 1_001,
           content: '<channel source="plugin:tribe:tribe" from="daemon" type="health">peer ready</channel>',
         },
@@ -1997,6 +2238,7 @@ describe("content layout", () => {
           kind: "notification",
           id: "tribe-before-boundary",
           source: "tribe",
+          ts: 2_000,
           timestamp: 2_000,
           content:
             '<channel source="plugin:tribe:tribe" from="daemon" type="health">notification before answer</channel>',

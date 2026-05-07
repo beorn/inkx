@@ -83,7 +83,7 @@ describe("NotificationEventRow disclosure", () => {
       </Box>,
     )
 
-    expect(app.text).toContain("CI failed Workers builds: km-website")
+    expect(app.text).toContain("CI - failed Workers builds: km-website")
     expect(event?.meta?.details).toContain("Missing KV namespace binding")
     expect(osc8Hrefs(app.ansi)).toEqual(["https://github.com/acme/repo/actions/runs/123/job/456"])
   })
@@ -318,11 +318,11 @@ describe("NotificationEventRow disclosure", () => {
     try {
       await settle(80)
       const text = term.screen.getText()
-      expect(text).toContain("Watch file (4x)")
+      expect(text).toContain("Watch - file (4x)")
       expect(text).not.toContain("src/a.ts")
       expect(text).not.toContain("src/b.ts")
       const lines = term.screen.getLines()
-      const row = lines.findIndex((line) => line.includes("Watch file (4x)"))
+      const row = lines.findIndex((line) => line.includes("Watch - file (4x)"))
       expect(row).toBeGreaterThanOrEqual(0)
       expect(lines.findIndex((line) => line.includes("NEXT-ROW"))).toBe(row + 1)
     } finally {
@@ -367,8 +367,8 @@ describe("NotificationEventRow disclosure", () => {
     try {
       await settle(80)
       const text = term.screen.getText()
-      expect(text).toContain("CI build failed (2x)")
-      expect(text).toContain("Recall memory: related note")
+      expect(text).toContain("CI - build failed (2x)")
+      expect(text).toContain("Recall - memory: related note")
       expect(text.match(/build failed/g)?.length).toBe(1)
     } finally {
       handle.unmount()
@@ -405,8 +405,8 @@ describe("NotificationEventRow disclosure", () => {
     try {
       await settle(80)
       const text = term.screen.getText()
-      expect(text).toContain("Tribe member silvercode-2 joined")
-      expect(text).toContain("CI failed Workers builds: km, km-website")
+      expect(text).toContain("Tribe - member silvercode-2 joined")
+      expect(text).toContain("CI - failed Workers builds: km, km-website")
       expect(text).not.toContain("[session tribe]")
       expect(text).not.toContain("[ci c8c98bf]")
     } finally {
@@ -458,14 +458,87 @@ describe("NotificationEventRow disclosure", () => {
     try {
       await settle(80)
       const text = term.screen.getText()
-      expect(text).toContain('Recall 2 prior sessions discussed "layout"')
-      expect(text).toContain("Agent completed: checked layout primitives")
-      expect(text).toContain("Watch apps/silvercode/src/components/Content.tsx changed")
-      expect(text).toContain("Telegram from approved channel: weekly digest ready")
+      expect(text).toContain('Recall - 2 prior sessions discussed "layout"')
+      expect(text).toContain("Agent - completed: checked layout primitives")
+      expect(text).toContain("Watch - apps/silvercode/src/components/Content.tsx changed")
+      expect(text).toContain("Telegram - from approved channel: weekly digest ready")
       expect(text).not.toContain("[recall]")
       expect(text).not.toContain("[subagent explorer]")
-      expect(text).not.toContain("Watch file-watch:")
-      expect(text).not.toContain("Telegram telegram message")
+      expect(text).not.toContain("Watch - file-watch:")
+      expect(text).not.toContain("Telegram - telegram message")
+    } finally {
+      handle.unmount()
+    }
+  })
+
+  test("subagent completion with metadata renders as a compact disclosure", async () => {
+    using term = createTermless({ cols: 110, rows: 10 })
+    const handle = await run(
+      <Box flexDirection="column">
+        <ExpandableNotificationRow
+          entry={{
+            kind: "notification",
+            id: "subagent-complete",
+            source: "subagent",
+            timestamp: 1_700_000_000_001,
+            content:
+              "[subagent general-purpose] completed: Sleep 20s #4 — agent 4: done sleeping 20s agentId: a04ba8404fc27c295 (use SendMessage with to: 'a04ba8404fc27c295' to continue this agent) <usage>total_tokens: 56893 tool_uses: 1 duration_ms: 27782</usage>",
+          }}
+        />
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+
+    try {
+      await settle(80)
+      let text = term.screen.getText()
+      expect(text).toContain("Agent - completed: Sleep 20s #4")
+      expect(text).not.toContain("<usage>")
+      expect(text).not.toContain("SendMessage")
+
+      const lines = term.screen.getLines()
+      const row = lines.findIndex((line) => line.includes("Agent - completed: Sleep 20s #4"))
+      expect(row).toBeGreaterThanOrEqual(0)
+      const col = lines[row]!.indexOf("Agent - completed: Sleep 20s #4")
+      await term.mouse.click(col + 1, row)
+      await settle(80)
+
+      text = term.screen.getText()
+      expect(text).toContain("general-purpose")
+      expect(text).toContain("a04ba8404fc27c295")
+      expect(text).toContain("total_tokens: 56893")
+      expect(text).toContain("duration_ms: 27782")
+    } finally {
+      handle.unmount()
+    }
+  })
+
+  test("subagent completion rows keep distinct agent labels instead of numeric grouping", async () => {
+    using term = createTermless({ cols: 120, rows: 10 })
+    const handle = await run(
+      <Box flexDirection="column">
+        <NotificationStack
+          entries={[1, 3, 4].map((i) => ({
+            kind: "notification" as const,
+            id: `subagent-complete-${i}`,
+            source: "subagent",
+            timestamp: 1_700_000_000_000 + i,
+            content: `[subagent general-purpose] completed: Sleep 20s #${i} — agent ${i}: done sleeping 20s`,
+          }))}
+        />
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+
+    try {
+      await settle(80)
+      const text = term.screen.getText()
+      expect(text).toContain("Agent - completed: Sleep 20s #1")
+      expect(text).toContain("Agent - completed: Sleep 20s #3")
+      expect(text).toContain("Agent - completed: Sleep 20s #4")
+      expect(text).not.toContain("(3x)")
     } finally {
       handle.unmount()
     }

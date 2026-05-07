@@ -10,7 +10,9 @@
  * description that the START event carried.
  *
  * Per `apps/silvercode/docs/channels.md` § 3, every payload passes through Layer
- * 2 (`sanitizeNotification`) — the `createDebouncedEmit` helper enforces that.
+ * 2 (`sanitizeNotification`). Unlike chatty ambient sources, Task lifecycle
+ * events are state transitions; dropping sibling starts/completions leaves the
+ * UI with stale active subagents.
  *
  * Coordination value: peer sessions watching notification events see "session
  * X spawned subagent: <description>" and "session X completed subagent:
@@ -28,7 +30,8 @@
 
 import createDebug from "debug"
 import type { NotificationAdapterCtx } from "./types.ts"
-import { createDebouncedEmit, makeNotificationEventId } from "./types.ts"
+import { sanitizeNotification } from "../notification-sanitize.ts"
+import { makeNotificationEventId } from "./types.ts"
 
 const dSubagent = createDebug("silvercode:notification:subagent")
 
@@ -60,6 +63,8 @@ export type SubagentEvent = {
   readonly agent: string
   /** Short human description (started: task description; completed: digest; failed: error). */
   readonly summary: string
+  readonly toolUseId?: string
+  readonly description?: string
   /**
    * Source session id — i.e., the session that spawned the subagent. Used
    * for per-session attribution by the prompt-cross-agent slice and by
@@ -131,16 +136,15 @@ export function registerSubagentNotificationAdapter(opts: SubagentAdapterOptions
 }
 
 export function registerSubagentNotificationAdapterHandle(opts: SubagentAdapterOptions): SubagentHandle {
-  const emit = createDebouncedEmit(opts)
   const inflight = new Map<string, Inflight>()
   const digestMax = resolveDigestMax(opts.digestMax)
   let disposed = false
 
   function handle(event: SubagentEvent): boolean {
     if (disposed) return false
-    const content = formatSubagentEvent(event, digestMax)
+    const content = sanitizeNotification(formatSubagentEvent(event, digestMax))
     if (content.length === 0) return false
-    return emit({
+    opts.queue.enqueue({
       id: makeNotificationEventId(SOURCE),
       source: SOURCE,
       timestamp: Date.now(),
@@ -150,8 +154,11 @@ export function registerSubagentNotificationAdapterHandle(opts: SubagentAdapterO
         agent: event.agent,
         status: event.kind,
         fromSessionId: event.sessionId,
+        toolUseId: event.toolUseId,
+        description: event.description,
       },
     })
+    return true
   }
 
   function notifyTaskToolUse(input: TaskToolUseInput): boolean {
@@ -170,6 +177,8 @@ export function registerSubagentNotificationAdapterHandle(opts: SubagentAdapterO
       kind: "started",
       agent,
       summary: truncate(description, DESCRIPTION_MAX),
+      toolUseId: input.toolUseId,
+      description,
       sessionId: input.sessionId,
     })
   }
@@ -186,6 +195,8 @@ export function registerSubagentNotificationAdapterHandle(opts: SubagentAdapterO
         kind: "failed",
         agent: record.agent,
         summary: composeFailedSummary(record.description, digest),
+        toolUseId: input.toolUseId,
+        description: record.description,
         sessionId: input.sessionId ?? record.sessionId,
       })
     }
@@ -194,6 +205,8 @@ export function registerSubagentNotificationAdapterHandle(opts: SubagentAdapterO
       kind: "completed",
       agent: record.agent,
       summary: composeCompletedSummary(record.description, digest),
+      toolUseId: input.toolUseId,
+      description: record.description,
       sessionId: input.sessionId ?? record.sessionId,
     })
   }
@@ -341,7 +354,7 @@ function resolveDigestMax(override: number | undefined): number {
 
 /**
  * Test-only: drive one sub-agent event through the adapter pipeline.
- * Returns whether it was enqueued (false if debounced or empty).
+ * Returns whether it was enqueued (false if sanitized content is empty).
  */
 export function emitSubagentEventForTest(opts: SubagentAdapterOptions, event: SubagentEvent): boolean {
   const handle = registerSubagentNotificationAdapterHandle(opts)

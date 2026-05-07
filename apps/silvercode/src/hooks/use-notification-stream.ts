@@ -18,10 +18,19 @@
 
 import { useEffect, useState } from "react"
 import type { Controller } from "../controller.ts"
-import type { NotificationStreamEntry } from "../components/NotificationEventRow.tsx"
+import type { NotificationStreamEntry } from "../notification-stream.ts"
 
-function snapshot(controller: Controller, sessionId: string): readonly NotificationStreamEntry[] {
+export type UseNotificationStreamOptions = {
+  readonly respectMute?: boolean
+}
+
+function snapshot(
+  controller: Controller,
+  sessionId: string,
+  options: UseNotificationStreamOptions = {},
+): readonly NotificationStreamEntry[] {
   const all = controller.notificationStream.entries(sessionId)
+  if (options.respectMute === false) return all
   const muted = controller.notificationMuteState.muted()
   if (muted.size === 0) return all
   return all.filter((e) => !muted.has(e.source))
@@ -33,17 +42,22 @@ function snapshot(controller: Controller, sessionId: string): readonly Notificat
  * lets callers compose this hook unconditionally even when they don't
  * have a controller yet (rules-of-hooks-friendly).
  */
-export function useNotificationStream(controller: Controller | null, sessionId: string): readonly NotificationStreamEntry[] {
+export function useNotificationStream(
+  controller: Controller | null,
+  sessionId: string,
+  options: UseNotificationStreamOptions = {},
+): readonly NotificationStreamEntry[] {
   const [entries, setEntries] = useState<readonly NotificationStreamEntry[]>(() =>
-    controller && sessionId ? snapshot(controller, sessionId) : [],
+    controller && sessionId ? snapshot(controller, sessionId, options) : [],
   )
+  const respectMute = options.respectMute !== false
 
   useEffect(() => {
     if (!controller || !sessionId) {
       setEntries([])
       return undefined
     }
-    const refresh = (): void => setEntries(snapshot(controller, sessionId))
+    const refresh = (): void => setEntries(snapshot(controller, sessionId, { respectMute }))
     const unsubStream = controller.notificationStream.subscribe((sid) => {
       if (sid === sessionId) refresh()
     })
@@ -53,7 +67,7 @@ export function useNotificationStream(controller: Controller | null, sessionId: 
       unsubStream()
       unsubMute()
     }
-  }, [controller, sessionId])
+  }, [controller, respectMute, sessionId])
 
   return entries
 }

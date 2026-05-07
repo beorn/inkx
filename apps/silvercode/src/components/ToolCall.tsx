@@ -429,6 +429,8 @@ export interface ToolCallProps {
   titleWrap?: "truncate" | "wrap"
   /** Optional background for the one-cell marker column. */
   markerBackgroundColor?: string
+  /** When false, active tool markers stay steady instead of pulsing. */
+  animateMarker?: boolean
 }
 
 /**
@@ -457,6 +459,7 @@ export function ToolCall({
   titleEmphasis = defaultExpanded ? "normal" : "muted",
   titleWrap = "truncate",
   markerBackgroundColor,
+  animateMarker = true,
 }: ToolCallProps): React.ReactElement {
   const contextMarkerBackgroundColor = React.useContext(ToolMarkerBackgroundContext)
   const forceExpanded = React.useContext(ToolContentForceExpandedContext)
@@ -572,7 +575,7 @@ export function ToolCall({
             onClick={onSurfaceClick}
           >
             <Box width={1} flexShrink={0} backgroundColor={markerBg}>
-              <StatusGlyph glyph={markerGlyph} active={active} color={markerColor} period={1800} />
+              <StatusGlyph glyph={markerGlyph} active={active && animateMarker} color={markerColor} period={1800} />
             </Box>
 
             <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0}>

@@ -51,14 +51,15 @@ export function chatActivitySnapshotFromMessages(
   const currentMessages = lastUserIndex >= 0 ? messages.slice(lastUserIndex + 1) : messages
   const currentTurnStartedAt = lastUserIndex >= 0 ? messages[lastUserIndex]?.ts : undefined
   const upsertAgent = (agent: SubagentActivity): void => {
-    const keys = agentKeys(agent)
-    const key = keys.flatMap((candidate) => agentAliases.get(candidate) ?? []).at(0) ?? keys[0]
+    const identity = agentIdentity(agent)
+    const key =
+      identity.primaryKeys.flatMap((candidate) => agentAliases.get(candidate) ?? []).at(0) ?? identity.primaryKeys[0]
     if (!key) return
     const existing = agentsByKey.get(key)
     if (!existing || (existing.status !== "done" && agent.status === "done")) {
       agentsByKey.set(key, agent)
     }
-    for (const candidate of keys) agentAliases.set(candidate, key)
+    for (const candidate of identity.aliases) agentAliases.set(candidate, key)
   }
   for (const message of currentMessages) {
     for (const call of message.toolCalls) {
@@ -193,12 +194,27 @@ function normalizedAgentKey(value: string | undefined): string | null {
   return normalized && normalized.length > 0 ? normalized : null
 }
 
-function agentKeys(agent: SubagentActivity): string[] {
+function meaningfulAgentLabelKey(value: string | undefined): string | null {
+  const normalized = normalizedAgentKey(value)
+  if (!normalized) return null
+  if (normalized === "agent" || normalized === "task" || normalized === "general-purpose") return null
+  if (normalized === "(no description)") return null
+  return normalized
+}
+
+function fallbackAgentKeys(agent: SubagentActivity): string[] {
   const keys = [agent.id, agent.matchKey].flatMap((value) => {
     const normalized = normalizedAgentKey(value)
     return normalized ? [normalized] : []
   })
   return [...new Set(keys)]
+}
+
+function agentIdentity(agent: SubagentActivity): { primaryKeys: string[]; aliases: string[] } {
+  const labelKey = meaningfulAgentLabelKey(agent.label)
+  if (labelKey) return { primaryKeys: [labelKey], aliases: [labelKey] }
+  const keys = fallbackAgentKeys(agent)
+  return { primaryKeys: keys, aliases: keys }
 }
 
 function subagentActivityFromNotification(

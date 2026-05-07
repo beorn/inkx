@@ -21,12 +21,13 @@ import { createScope } from "@silvery/scope"
 import { createNotificationStream } from "../src/notification-stream.ts"
 import type { ChannelEvent } from "../src/channel-queue.ts"
 
-function event(id: string, content = "x"): ChannelEvent {
+function event(id: string, content = "x", source = "filewatch", meta?: ChannelEvent["meta"]): ChannelEvent {
   return {
     id,
-    source: "filewatch",
+    source,
     content,
     timestamp: Date.now(),
+    meta,
   }
 }
 
@@ -92,6 +93,35 @@ describe("createNotificationStream — referential semantics for React re-render
     snap.push(event("rogue") as never) // simulate a misbehaving consumer
 
     expect(stream.entries("s1")).toHaveLength(1)
+  })
+
+  test("subagent lifecycle events are recorded even when the notification breaker is exhausted", async () => {
+    await using scope = createScope("test")
+    const stream = createNotificationStream(scope, {
+      breakerOpts: { perSourcePerMin: 1, globalPerHour: 1, now: () => 1_000 },
+    })
+
+    expect(stream.record("s1", event("ambient-1"))).toBe(true)
+    for (let i = 1; i <= 4; i++) {
+      expect(
+        stream.record(
+          "s1",
+          event(`subagent-${i}`, `[subagent general-purpose] started: Sleep 20s #${i}`, "subagent", {
+            kind: "subagent-status",
+            status: "started",
+            description: `Sleep 20s #${i}`,
+          }),
+        ),
+      ).toBe(true)
+    }
+
+    expect(stream.entries("s1").map((entry) => entry.id)).toEqual([
+      "ambient-1",
+      "subagent-1",
+      "subagent-2",
+      "subagent-3",
+      "subagent-4",
+    ])
   })
 })
 

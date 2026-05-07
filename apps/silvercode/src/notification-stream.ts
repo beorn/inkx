@@ -15,7 +15,11 @@
 
 import { signal } from "alien-signals"
 import type { Scope } from "@silvery/scope"
-import { type NotificationBreaker, type NotificationBreakerOpts, createNotificationBreaker } from "./notification-circuit-breaker.ts"
+import {
+  type NotificationBreaker,
+  type NotificationBreakerOpts,
+  createNotificationBreaker,
+} from "./notification-circuit-breaker.ts"
 import { sanitizeNotificationWithReport, containsRolePrefix } from "./notification-sanitize.ts"
 import {
   recordAdmitted,
@@ -35,7 +39,7 @@ export type NotificationStreamEntry = {
   readonly kind: "notification"
   readonly id: string
   readonly source: string
-  readonly ts: number
+  readonly ts?: number
   readonly timestamp?: number
   readonly content: string
   readonly meta?: Readonly<Record<string, unknown>>
@@ -117,7 +121,9 @@ export type CreateNotificationStreamOpts = {
  *      counter; a role-prefix detection emits `rolePrefixDetected`.
  *   3. Circuit breaker (`admit`) — token-bucket rate-limit per source +
  *      global. Drops are counted in telemetry and short-circuit the
- *      append (the entry never reaches the buffer or subscribers).
+ *      append (the entry never reaches the buffer or subscribers). Subagent
+ *      lifecycle events bypass this breaker because they are UI state
+ *      transitions for the agents drawer, not ambient notification noise.
  *   4. Append to the per-session ring buffer + notify subscribers.
  */
 export function createNotificationStream(scope: Scope, opts: CreateNotificationStreamOpts = {}): NotificationStream {
@@ -165,14 +171,20 @@ export function createNotificationStream(scope: Scope, opts: CreateNotificationS
     return { ...event, content: report.output }
   }
 
+  function bypassBreaker(event: ChannelEvent): boolean {
+    return event.source === "subagent" && event.meta?.kind === "subagent-status"
+  }
+
   return {
     record(sessionId: string, event: ChannelEvent): boolean {
       if (disposed) return false
       const sanitized = instrumentSanitize(event, sessionId)
-      const decision = breaker.admit(sanitized)
-      if (!decision.ok) {
-        recordDropped({ source: event.source, reason: decision.reason, sessionId })
-        return false
+      if (!bypassBreaker(sanitized)) {
+        const decision = breaker.admit(sanitized)
+        if (!decision.ok) {
+          recordDropped({ source: event.source, reason: decision.reason, sessionId })
+          return false
+        }
       }
       recordAdmitted({ source: event.source, kind: "notification", sessionId })
       const entry = toEntry(sanitized)

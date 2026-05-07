@@ -826,13 +826,15 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   }
   function dispatchUserTurn(s: SessionHandle, sessionId: string, text: string): void {
     recordUserPromptForRecall(sessionId, text)
-    const turnId = `u-${Date.now()}` as never
+    const ts = Date.now()
+    if (s.metadata.resumeId && s.metadata.liveStartedAt === undefined) s.metadata.liveStartedAt = ts
+    const turnId = `u-${ts}` as never
     s.store.apply({
       kind: "user-message",
       sessionId: s.session.sessionId,
       turnId,
       text,
-      ts: Date.now(),
+      ts,
     })
     markOutboundSent(sessionId)
     try {

@@ -1150,6 +1150,7 @@ function sessionMetadataItems(metadata: SessionHistoryMetadata | undefined): {
               replayCompletedAt: formatDateTime(metadata.replayCompletedAt),
               replayMessageCount: metadata.replayMessageCount,
               replayBoundaryMessageId: metadata.replayBoundaryMessageId,
+              liveStartedAt: formatDateTime(metadata.liveStartedAt),
             }),
           },
         }
@@ -1378,6 +1379,7 @@ function ActivityLivePreview({ spans }: { spans: readonly ChatActivitySpan[] }):
           key={currentTool.toolCall.id}
           toolCall={adaptToolCall(currentTool.toolCall, currentTool.result, true)}
           interactive={false}
+          animateMarker={false}
         />
       ) : null}
       {thinking.map((span) => {
@@ -2174,6 +2176,7 @@ export const SessionUpdateList = React.forwardRef<
   const replayCompletedAt = sessionMetadata?.replayCompletedAt
   const replayLiveMessageThreshold = sessionMetadata?.spawnedAt
   const replayLiveSessionInitAt = sessionMetadata?.sessionInitAt
+  const replayLiveStartedAt = sessionMetadata?.liveStartedAt
   const visibleItems: Item[] = []
   if (metadata.start) visibleItems.push(metadata.start)
   let seenReplayMessages = 0
@@ -2192,11 +2195,13 @@ export const SessionUpdateList = React.forwardRef<
         sawReplayItemBeforeLiveThreshold
       const crossesSessionInit =
         timestamp !== null && replayLiveSessionInitAt !== undefined && timestamp >= replayLiveSessionInitAt
+      const crossesLiveStarted =
+        timestamp !== null && replayLiveStartedAt !== undefined && timestamp >= replayLiveStartedAt
       const looksLive =
         timestamp !== null &&
         (replayBoundaryMessageId !== undefined
-          ? crossesSessionInit || crossesLiveThreshold
-          : timestamp > replayCompletedAt || crossesSessionInit || crossesLiveThreshold)
+          ? crossesLiveStarted || crossesSessionInit || crossesLiveThreshold
+          : timestamp > replayCompletedAt || crossesLiveStarted || crossesSessionInit || crossesLiveThreshold)
       if (looksLive) {
         visibleItems.push(metadata.loaded)
         insertedLoadedMetadata = true

@@ -49,6 +49,7 @@ This bead moved over the previous `@km/silvercode/claude-code-transcript-parity`
 - [ ] Claude ACP docs drift behind implementation: README still says `loadSession: false` and permissions are not forwarded, while server/wire now implement both.
 - [ ] ACP path does not yet match legacy Claude for prompt injectors/channels, multi-account config, or `--bare` threading. See `@km/silvercode/acp-channels`.
 - [ ] Claude local-agent/subsession transcript view is not modeled yet. Parent Agent/Task records and child sidechain JSONL files need to feed `SubSessionHandle`; see `@km/silvercode/local-agent-subsessions`.
+- [ ] Claude Code parity gap: per-subagent token/cost accounting is not available through the parent Task/Agent tool record we currently receive. Silvercode can show parent session tokens/cost/time, Task/Agent input, parent message timestamp, status, and final result/error when present; exact child/subagent token totals require Claude sidechain/subsession metadata or provider support.
 
 ## Existing beads moved / linked
 
